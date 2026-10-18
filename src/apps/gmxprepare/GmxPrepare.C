@@ -139,6 +139,8 @@ void GmxPrepare::createPanels()
       wxBoxSizer *fill = new wxBoxSizer(wxVERTICAL);
       fill->Add(p_panel, 1, wxEXPAND);
       scroll->SetSizer(fill);
+      // opens wide enough for the content (plus a scroll bar), no wider
+      scroll->SetMinSize(wxSize(p_panel->GetBestSize().x + 24, 420));
       p_notebook->AddPage(scroll, _("System"));
       p_panel->setModel(prepModel());
       p_panel->refreshGUI();
@@ -359,11 +361,14 @@ string GmxPrepare::verifyText()
       periodic = "periodic-molecules = yes\n";
    }
    o << "4. gmx grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr\n";
-   if (water) {
+   if (water && !m->neutralise() && m->ionConcentration() <= 0) {
+      o << "   (neutralising is off and the salt concentration is 0: no ions are added;"
+           " the net charge stays as it is)\n";
+   } else if (water) {
       snprintf(num, sizeof num, "%g", m->ionConcentration());
       o << "   echo SOL | gmx genion -s ions.tpr -o ion.gro -p topol.top -pname "
         << m->positiveIon() << " -pq " << recipeValue(recipe, "PQ", "1")
-        << " -nname " << m->negativeIon() << " -neutral"
+        << " -nname " << m->negativeIon() << (m->neutralise() ? " -neutral" : "")
         << (m->ionConcentration() > 0 ? string(" -conc ") + num : string())
         << "\n";
    } else {

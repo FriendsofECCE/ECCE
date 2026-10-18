@@ -17,6 +17,7 @@ void GromacsPrepareModel::reset()
    p_nname = "CL";
    p_ignh = true;
    p_merge = true;
+   p_neut = true;
    p_dist = 1.0;
    p_conc = 0.15;
    p_mvariant = "gminff";

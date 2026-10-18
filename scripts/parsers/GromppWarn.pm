@@ -4,7 +4,8 @@ package GromppWarn;
 # warnings it printed with this table, and passes the count of harmless ones
 # as -maxwarn: any warning not listed here still stops the run.  Used by
 # gromacs.launchpp (the launch check) and, as an awk program made from the
-# same table, by the job script (gensub).
+# same table, by the job script (gensub; run with -v marked=0|1, the
+# topology's net-charge marker).
 #
 # Patterns are POSIX ERE, matched against the warning's text on one line, so
 # that Perl and awk agree.  Add a warning here only when it cannot mean a
@@ -26,17 +27,19 @@ our @TABLE = (
   # Needs the charge from grompp's "System has non-zero total charge" note.
   { id  => 'net-charge',
     re  => 'Ewald electrostatics in a system with net charge',
-    why => 'the net charge is below 1e-4, which is rounding.',
+    why => 'the net charge is below 1e-4, which is rounding, or the Prepare left it on purpose '
+         . '(Neutralise unticked: the topology carries ECCE-NETCHARGE-INTENDED).',
     charge => 1 },
 );
 
 our $CHARGE_LIMIT = 1e-4;
 
 # The warnings in grompp's output, each as { head, text, harmless, why } (text
-# on one line).
+# on one line).  $intended: the topology carries the Prepare's marker for a
+# net charge left on purpose.
 sub parse
 {
-  my ($out) = @_;
+  my ($out, $intended) = @_;
   my (@w, $cur);
   my $charge;
   foreach my $l (split(/\n/, $out)) {
@@ -59,7 +62,7 @@ sub parse
     $w->{harmless} = 0;
     foreach my $e (@TABLE) {
       next if ($w->{text} !~ /$e->{re}/);
-      next if ($e->{charge} && !(defined($charge) && abs($charge) < $CHARGE_LIMIT));
+      next if ($e->{charge} && !$intended && !(defined($charge) && abs($charge) < $CHARGE_LIMIT));
       $w->{harmless} = 1;
       $w->{why} = $e->{why};
       last;
@@ -77,7 +80,7 @@ sub awkProgram
   foreach my $e (@TABLE) {
     die "GromppWarn: '/' in a pattern" if ($e->{re} =~ m#/#);
     my $test = "t ~ /$e->{re}/";
-    $test .= " && (q != \"\" && q < $CHARGE_LIMIT)" if ($e->{charge});
+    $test .= " && (marked == 1 || (q != \"\" && q < $CHARGE_LIMIT))" if ($e->{charge});
     $conds .= "    if ($test) h = 1\n";
   }
   my $prog = <<'AWK';

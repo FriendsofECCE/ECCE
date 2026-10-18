@@ -55,6 +55,11 @@ WARNING 4 [file a.mdp]:
     check(perl_out.strip() == "1,1,1,0",
           "table: Berendsen, atom names and a net charge of 1e-6 are harmless, an unknown warning is not (%s)"
           % perl_out.strip())
+    big = out.replace("0.000001", "1.000000")
+    code1 = code.replace("GromppWarn::parse($o)", "GromppWarn::parse($o, 1)")
+    outs = [run(["perl", "-e", c], input=big.encode())[1].strip() for c in (code, code1)]
+    check(outs == ["1,1,0,0", "1,1,1,0"],
+          "table: a net charge of 1 stops, unless the Prepare marked it intended (%s)" % outs)
     prog = subprocess.run(["perl", "-I" + PARSERS, "-MGromppWarn", "-e",
                            "print GromppWarn::awkProgram()"],
                           stdout=subprocess.PIPE).stdout
@@ -64,9 +69,16 @@ WARNING 4 [file a.mdp]:
         rc, awk_out = run(["awk", "-f", h.name], input=out.encode())
     check(awk_out.splitlines()[:2] == ["harmless 3", "stopping 1"],
           "awk form of the table counts the same (%s)" % awk_out.splitlines()[:2])
+    with tempfile.NamedTemporaryFile(suffix=".awk") as h:
+        h.write(prog)
+        h.flush()
+        res = [run(["awk"] + v + ["-f", h.name], input=big.encode())[1].splitlines()[:2]
+               for v in ([], ["-v", "marked=1"])]
+    check(res == [["harmless 2", "stopping 2"], ["harmless 3", "stopping 1"]],
+          "awk form: the marker lets a net charge of 1 through (%s)" % res)
 
 
-def system(tmp, name, charged):
+def system(tmp, name, charged, marked=False):
     d = os.path.join(tmp, name)
     os.makedirs(d)
     lines = open(os.path.join(FIXTURES, "conf.gro")).read().splitlines()
@@ -82,6 +94,8 @@ def system(tmp, name, charged):
         top = top.replace("SOL   466", "SOL   466\nNA    1")
     open(os.path.join(d, "conf.gro"), "w").write(
         "test\n%d\n%s\n%s\n" % (n, "\n".join(atoms), box))
+    if marked:
+        top += "; ECCE-NETCHARGE-INTENDED\n"
     open(os.path.join(d, "topol.top"), "w").write(top)
     open(os.path.join(d, "gromacs.mdp"), "w").write(
         "integrator = steep\nnsteps = 5\ncoulombtype = pme\n")
@@ -133,6 +147,14 @@ def main():
         status, text = job(home, d, "charge")
         check(status != "0" and "net charge" in text,
               "job script: grompp stops at the net-charge warning with its own message")
+
+        # Prepare with Neutralise unticked: the marker makes the net charge a decision
+        d = system(tmp, "intended", True, marked=True)
+        rc, out = run(launch, cwd=d)
+        check(rc == 0 and "ECCE-LAUNCH-WARNING" not in out and "net charge" not in out,
+              "launch check: a net charge the Prepare left on purpose is not reported")
+        status, text = job(home, d, "intended")
+        check(status == "0", "job script: grompp lets the marked net charge through (status %s)" % status)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     if rt.failures:

@@ -85,6 +85,7 @@ class GromacsPreparePanel : public ewxPanel
       void showFields();
       bool isMinff() const;
       void fillIons();
+      void showIonNote();
       void minffStale();
       string cellWarning() const;
       void showCellWarning();
@@ -117,7 +118,7 @@ class GromacsPreparePanel : public ewxPanel
       ewxChoice *p_ff;
       ewxTextCtrl *p_otherFf;
       ewxChoice *p_water;
-      ewxCheckBox *p_ignh;
+      ewxCheckBox *p_ignh, *p_neut;
       ewxCheckBox *p_merge;
       ewxChoice *p_box;
       ewxTextCtrl *p_dist;

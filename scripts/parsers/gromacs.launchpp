@@ -32,6 +32,7 @@ use Cwd ();
 use FindBin qw($Bin);
 use lib $FindBin::Bin;
 use GromppWarn;
+use GmxIons;
 
 our($opt_p, $opt_v);
 getopts('p:v');
@@ -126,7 +127,13 @@ if ($status != 0) {
   }
   warnAndExit("grompp rejects the inputs.", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
 }
-my @warn = GromppWarn::parse($out);
+my $intended = 0;
+if (open(my $tp, "<", "$work/topol.top")) {
+  local $/;
+  $intended = (<$tp> =~ /ECCE-NETCHARGE-INTENDED/) ? 1 : 0;
+  close($tp);
+}
+my @warn = GromppWarn::parse($out, $intended);
 my @stop = grep { !$_->{harmless} } @warn;
 if (@stop) {
   warnAndExit("grompp warns about the inputs.",
@@ -187,7 +194,18 @@ sub checkPrepare
   my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
   # pdb2gmx goes by the extension, and a staged name may not end in .pdb
   my $pdb = "$tmp/in.pdb";
-  symlink(Cwd::abs_path($pdb[0]), $pdb);
+  if (open(my $in, "<", $pdb[0])) {
+    local $/;
+    my $text = <$in>;
+    close($in);
+    my ($new) = GmxIons::rewrite($text, $r{FF});
+    if (open(my $out, ">", $pdb)) {
+      print {$out} $new;
+      close($out);
+    }
+  } else {
+    symlink(Cwd::abs_path($pdb[0]), $pdb);
+  }
   my @cmd = ($gmx, "pdb2gmx", "-f", $pdb, "-ff", $r{FF}, "-water", $r{WATER},
              "-o", "$tmp/c.gro", "-p", "$tmp/t.top", "-i", "$tmp/p.itp");
   push(@cmd, "-ignh") if ($r{IGNH});

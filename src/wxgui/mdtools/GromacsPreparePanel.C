@@ -54,6 +54,7 @@ static const wxWindowID ID_STRUCT = wxNewId();
 static const wxWindowID ID_BROWSE = wxNewId();
 static const wxWindowID ID_IGNH = wxNewId();
 static const wxWindowID ID_MERGE = wxNewId();
+static const wxWindowID ID_NEUT = wxNewId();
 static const wxWindowID ID_BOX = wxNewId();
 static const wxWindowID ID_DIST = wxNewId();
 static const wxWindowID ID_CONC = wxNewId();
@@ -159,9 +160,25 @@ static bool isNumber(const string& s, double& v, bool allowZero)
 
 static wxString U(const char *s) { return wxString::FromUTF8(s); }
 
+// A number field about eight characters wide, not stretched with the window.
+static wxTextCtrl *shortField(wxTextCtrl *t)
+{
+  t->SetMinSize(wxSize(t->GetTextExtent("00000000").x + 24, -1));
+  return t;
+}
+
 static ewxStaticText *label(wxWindow *parent, const wxString& text)
 {
   return new ewxStaticText(parent, wxID_ANY, text);
+}
+
+// The field with its unit right next to it.
+static wxSizer *withUnit(wxWindow *parent, wxWindow *field, const wxString& unit)
+{
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  row->Add(field, 0, wxALIGN_CENTER_VERTICAL);
+  row->Add(label(parent, unit), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 6);
+  return row;
 }
 
 GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
@@ -189,7 +206,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   src.Add(_("Mineral (MINFF)"));
   p_source = new ewxChoice(box, ID_SOURCE, wxDefaultPosition, wxDefaultSize, src);
   p_source->SetSelection(0);
-  g->Add(p_source, 1, wxEXPAND);
+  g->Add(p_source, 0);
   lab = label(box, _("Structure:"));
   p_proteinOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -199,7 +216,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_structure = new ewxChoice(box, ID_STRUCT, wxDefaultPosition, wxDefaultSize, st);
   p_structure->SetSelection(0);
   p_proteinOnly.push_back(p_structure);
-  g->Add(p_structure, 1, wxEXPAND);
+  g->Add(p_structure, 0);
   p_browse = new ewxButton(box, ID_BROWSE, _("Browse..."));
   p_proteinOnly.push_back(p_browse);
   g->AddSpacer(0);
@@ -237,7 +254,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_mrep->SetToolTip(_("How many times the unit cell is repeated along its a, b "
                        "and c axes, for example 4 3 3."));
   p_minffOnly.push_back(p_mrep);
-  g->Add(p_mrep, 1, wxEXPAND);
+  g->Add(shortField(p_mrep), 0);
   lab = label(box, _("Substitutions:"));
   p_minffOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -253,7 +270,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_mseed->SetToolTip(_("A whole number makes the substitutions repeatable; "
                         "empty is a different draw every time."));
   p_minffOnly.push_back(p_mseed);
-  g->Add(p_mseed, 1, wxEXPAND);
+  g->Add(shortField(p_mseed), 0);
   lab = label(box, _("Parameters:"));
   p_minffOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -262,7 +279,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   variants.Add(_("Tailored to one mineral (TMINFF)"));
   p_mvariant = new ewxChoice(box, ID_MVARIANT, wxDefaultPosition, wxDefaultSize, variants);
   p_minffOnly.push_back(p_mvariant);
-  g->Add(p_mvariant, 1, wxEXPAND);
+  g->Add(p_mvariant, 0);
   lab = label(box, _("Mineral (TMINFF):"));
   p_minffOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -279,7 +296,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
     ks.Add(wxString::Format("%d kJ/mol/rad2", ANGLE_KS[i]));
   p_mangle = new ewxChoice(box, ID_MANGLE, wxDefaultPosition, wxDefaultSize, ks);
   p_minffOnly.push_back(p_mangle);
-  g->Add(p_mangle, 1, wxEXPAND);
+  g->Add(p_mangle, 0);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   p_mbuild = new ewxButton(box, ID_MBUILD, _("Build topology"));
   p_minffOnly.push_back(p_mbuild);
@@ -296,7 +313,6 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   box = sb->GetStaticBox();
   p_ffBox = (wxStaticBox*)box;
   g = new wxFlexGridSizer(2, 6, 8);
-  g->AddGrowableCol(1);
   lab = label(box, _("Force field:"));
   p_proteinOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -305,7 +321,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   ffs.Add(_("Other (GMXLIB)"));
   p_ff = new ewxChoice(box, ID_FF, wxDefaultPosition, wxDefaultSize, ffs);
   p_proteinOnly.push_back(p_ff);
-  g->Add(p_ff, 1, wxEXPAND);
+  g->Add(p_ff, 0);
   lab = label(box, _("Directory name:"));
   p_proteinOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -316,7 +332,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   g->Add(p_otherFf, 1, wxEXPAND);
   g->Add(label(box, _("Water model:")), 0, wxALIGN_CENTER_VERTICAL);
   p_water = new ewxChoice(box, ID_WATER);
-  g->Add(p_water, 1, wxEXPAND);
+  g->Add(p_water, 0);
   lab = label(box, _("Histidines:"));
   p_proteinOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -336,8 +352,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Box and water"));
   box = sb->GetStaticBox();
   p_waterBox = (wxStaticBox*)box;
-  g = new wxFlexGridSizer(3, 6, 8);
-  g->AddGrowableCol(1);
+  g = new wxFlexGridSizer(2, 6, 8);
   lab = label(box, _("Box type:"));
   p_proteinOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -345,38 +360,34 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   for (int i = 0; i < NBOX; i++) boxes.Add(U(BOXES[i][1]));
   p_box = new ewxChoice(box, ID_BOX, wxDefaultPosition, wxDefaultSize, boxes);
   p_proteinOnly.push_back(p_box);
-  g->Add(p_box, 1, wxEXPAND);
-  lab = label(box, wxEmptyString);
-  p_proteinOnly.push_back(lab);
-  g->Add(lab, 0);
+  g->Add(p_box, 0);
   p_distLabel = label(box, _("Distance to edge:"));
   g->Add(p_distLabel, 0, wxALIGN_CENTER_VERTICAL);
   p_dist = new ewxTextCtrl(box, ID_DIST, wxEmptyString);
-  g->Add(p_dist, 1, wxEXPAND);
-  g->Add(label(box, _("nm")), 0, wxALIGN_CENTER_VERTICAL);
+  g->Add(withUnit(box, shortField(p_dist), _("nm")), 0);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   right->Add(sb, 0, wxALL | wxEXPAND, 4);
 
   sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Ions"));
   box = sb->GetStaticBox();
-  p_ionNote = label(box,
-      _("The system is always neutralised. Salt is added on top."));
-  sb->Add(p_ionNote, 0, wxALL, 6);
-  g = new wxFlexGridSizer(3, 6, 8);
-  g->AddGrowableCol(1);
+  p_neut = new ewxCheckBox(box, ID_NEUT, _("Neutralise with counter-ions"));
+  p_neut->SetValue(true);
+  p_neut->SetToolTip(_("genion -neutral. Unticked, only the salt below is added "
+                       "and the system keeps the net charge of the structure."));
+  sb->Add(p_neut, 0, wxALL, 6);
+  p_ionNote = label(box, wxEmptyString);
+  sb->Add(p_ionNote, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  g = new wxFlexGridSizer(2, 6, 8);
   g->Add(label(box, _("Salt concentration:")), 0, wxALIGN_CENTER_VERTICAL);
   p_conc = new ewxTextCtrl(box, ID_CONC, wxEmptyString);
   p_conc->SetToolTip(_("0 neutralises only."));
-  g->Add(p_conc, 1, wxEXPAND);
-  g->Add(label(box, _("mol/L")), 0, wxALIGN_CENTER_VERTICAL);
+  g->Add(withUnit(box, shortField(p_conc), _("mol/L")), 0);
   g->Add(label(box, _("Positive ion:")), 0, wxALIGN_CENTER_VERTICAL);
   p_pion = new ewxChoice(box, ID_PION);
-  g->Add(p_pion, 1, wxEXPAND);
-  g->AddSpacer(0);
+  g->Add(p_pion, 0);
   g->Add(label(box, _("Negative ion:")), 0, wxALIGN_CENTER_VERTICAL);
   p_nion = new ewxChoice(box, ID_NION);
-  g->Add(p_nion, 1, wxEXPAND);
-  g->AddSpacer(0);
+  g->Add(p_nion, 0);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   right->Add(sb, 0, wxALL | wxEXPAND, 4);
 
@@ -401,6 +412,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnBrowse, this, ID_BROWSE);
   Bind(wxEVT_CHECKBOX, &GromacsPreparePanel::OnCheck, this, ID_IGNH);
   Bind(wxEVT_CHECKBOX, &GromacsPreparePanel::OnCheck, this, ID_MERGE);
+  Bind(wxEVT_CHECKBOX, &GromacsPreparePanel::OnCheck, this, ID_NEUT);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnBox, this, ID_BOX);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_DIST);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_CONC);
@@ -490,6 +502,7 @@ void GromacsPreparePanel::showFields()
   p_otherFf->Enable(p_editable && other);
   p_water->Enable(p_editable);
   p_ignh->Enable(p_editable);
+  p_neut->Enable(p_editable);
   p_merge->Enable(p_editable);
   p_box->Enable(p_editable);
   p_dist->Enable(p_editable);
@@ -519,10 +532,23 @@ void GromacsPreparePanel::showFields()
           "mineral's cell as it is and adds no water; a charged mineral is then "
           "not neutralised, because there is no water to replace by ions.")
       : _("The distance from the solute to the box edge."));
-  p_ionNote->SetLabel(minff
-      ? _("With a water layer the mineral's charge is neutralised by counter-ions.")
-      : _("The system is always neutralised. Salt is added on top."));
+  showIonNote();
   relayout();
+}
+
+// What the Ions box does, for the state of the tick box and the source.
+void GromacsPreparePanel::showIonNote()
+{
+  bool neut = p_neut->GetValue();
+  if (isMinff())
+    p_ionNote->SetLabel(neut
+        ? _("With a water layer the mineral's charge is neutralised by counter-ions.")
+        : _("The mineral keeps its charge; only the salt below is added."));
+  else
+    p_ionNote->SetLabel(neut
+        ? _("The system is neutralised first; salt is added on top.")
+        : _("The system keeps its net charge; only the salt below is added."));
+  p_ionNote->Wrap(380);
 }
 
 // The mineral page is taller than the protein page; the scrolled window
@@ -607,6 +633,8 @@ void GromacsPreparePanel::refreshGUI()
   fillWaters(p_model->waterModel());
   p_ignh->SetValue(p_model->ignoreHydrogens());
   p_merge->SetValue(p_model->mergeChains());
+  p_neut->SetValue(p_model->neutralise());
+  showIonNote();
   int b = 0;
   for (int i = 0; i < NBOX; i++) if (p_model->boxType() == BOXES[i][0]) b = i;
   p_box->SetSelection(b);
@@ -785,6 +813,8 @@ void GromacsPreparePanel::OnCheck(wxCommandEvent&)
   if (p_refreshing || p_model == 0) return;
   p_model->ignoreHydrogens(p_ignh->GetValue());
   p_model->mergeChains(p_merge->GetValue());
+  p_model->neutralise(p_neut->GetValue());
+  showIonNote();
   changed();
 }
 
@@ -1202,8 +1232,8 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
     }
     message = "not offered for this force field";
     return false;
-  } else if (field == "ignh" || field == "merge") {
-    (field == "ignh" ? p_ignh : p_merge)->SetValue(value == "1");
+  } else if (field == "ignh" || field == "merge" || field == "neut") {
+    (field == "ignh" ? p_ignh : field == "merge" ? p_merge : p_neut)->SetValue(value == "1");
     OnCheck(ev);
   } else if (field == "box") {
     for (int i = 0; i < NBOX; i++) {

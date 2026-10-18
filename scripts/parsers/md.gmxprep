@@ -14,7 +14,7 @@
 #   the task model XML.  Both front ends fill the same %R; only read_xml
 #   knows the model's element names.
 #
-# Keys: SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME
+# Keys: SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC NEUT PNAME NNAME
 #   HIS=auto only: pdb2gmx has no non-interactive way to pick a histidine
 #   state, so it chooses, and a PDB that already names HID/HIE/HIP (or the
 #   force field's own spelling) is honoured as it stands.
@@ -25,7 +25,7 @@ use strict;
 
 my %DEFAULT = (SOURCE => "protein", FF => "amber99sb-ildn", WATER => "tip3p",
                HIS => "auto", IGNH => 1, MERGE => 1, BOX => "dodecahedron",
-               DIST => 1.0, CONC => 0.15, PNAME => "NA", NNAME => "CL");
+               DIST => 1.0, CONC => 0.15, PNAME => "NA", NNAME => "CL", NEUT => 1);
 
 # SOURCE=minff: the topology and structure were built on the client
 # (scripts/minff_topology.py) and are staged, so FF, HIS, IGNH, MERGE and BOX
@@ -58,7 +58,7 @@ my %XMLKEY = (Source => "SOURCE", ForceField => "FF", WaterModel => "WATER",
               Histidine => "HIS", IgnoreHydrogens => "IGNH",
               MergeChains => "MERGE", BoxType => "BOX", BoxDistance => "DIST",
               IonConcentration => "CONC", PositiveIon => "PNAME",
-              NegativeIon => "NNAME");
+              NegativeIon => "NNAME", Neutralise => "NEUT");
 sub read_xml {
   my ($text) = @_;
   die "md.gmxprep: not a GromacsPrepareModel document.\n"
@@ -107,12 +107,13 @@ need("MERGE",  qr/^[01]$/, "0 or 1");
 need("BOX",    qr/^(cubic|dodecahedron|octahedron|triclinic)$/, "a box type");
 need("DIST",   qr/^\d+(\.\d+)?$/, "a distance in nm");
 need("CONC",   qr/^\d+(\.\d+)?$/, "a concentration in mol/L (0 neutralises only)");
+need("NEUT",   qr/^[01]$/, "0 or 1");
 need("PNAME",  qr/^[A-Za-z0-9+-]+$/, "an ion name");
 need("NNAME",  qr/^[A-Za-z0-9+-]+$/, "an ion name");
 die "md.gmxprep: DIST=$R{DIST} must be above 0.\n" if ($R{DIST} <= 0 && !$minff);
 
 print "# ECCE GROMACS prepare recipe\n";
-foreach my $k (qw(SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME PQ)) {
+foreach my $k (qw(SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC NEUT PNAME NNAME PQ)) {
   print "$k=$R{$k}\n";
 }
 exit(0);
