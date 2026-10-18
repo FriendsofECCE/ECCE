@@ -165,7 +165,7 @@ GromacsRunPanel::GromacsRunPanel(MDEdBase *owner, wxWindow *parent)
   p_warning = new ewxStaticText(this, wxID_ANY, wxEmptyString);
   top->Add(p_warning, 0, wxALL | wxEXPAND, 10);
 
-  SetSizer(top);
+  SetSizerAndFit(top);   // sizes the static boxes before GTK first allocates them
 
   Bind(wxEVT_TEXT, &GromacsRunPanel::OnChanged, this, ID_RUN_FIELD);
   Bind(wxEVT_CHECKBOX, &GromacsRunPanel::OnChanged, this, ID_RUN_FIELD);

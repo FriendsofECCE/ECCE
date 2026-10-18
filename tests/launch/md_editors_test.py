@@ -154,6 +154,15 @@ def main():
             finally:
                 ed.close()
 
+        #  GTK complains on stderr when a widget is allocated less than it can
+        #  hold (a static box before its first layout was one).
+        try:
+            noise = [l for l in open(os.path.join(s.state, "mdoptimize.log"), errors="replace")
+                     if "Gtk-WARNING" in l or "Gtk-CRITICAL" in l]
+        except OSError:
+            noise = []
+        check(not noise, "mdoptimize writes no GTK warning: %s" % noise[:2])
+
         answers, menus = summary(s, display, genv, wrappers, list(opts.values()), args.png)
         for code, url in opts.items():
             out = answers.get(url, "")
