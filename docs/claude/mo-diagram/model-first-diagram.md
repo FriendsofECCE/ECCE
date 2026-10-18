@@ -20,15 +20,15 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   paired strongest-with-strongest per degeneracy; same irrep unless the two
   fragments are equal (halves combine g/u). Unpaired = nb. This is the model's
   reading, not the book's: N2 2su comes out nb (sp mixing), pair 2sg/4su*.
-- Calculation column (layout C): its own energy axis in Hartree, to scale, ticks
-  on the right, broken like the model's for the high empty levels; no lines to
+- Calculation column (layout C): its own energy axis in eV, to scale, ticks
+  on the right (header "Your calculation (eV, own scale)"; no common scale with the model), broken like the model's for the high empty levels; no lines to
   the model. Each model level is matched to the calculated level (the panel's
   `wholeSpectrum`) with the largest subspace overlap, via the mixed STO/Gaussian S;
   distinct calculated levels are drawn once, at their own energy, in the colour of
   the model partner, labelled like the model (lower-case Mulliken, `*` from the
-  partner) with the energy below; overlap < 0.80 adds a grey "≈" (value in the hover
-  text only). Levels whose boxes would overlap vertically go side by side in lanes
-  (`MoDiagramCanvas::layoutCalc`). `MoLevel::orbitals` are the calculated MOs, so a click
+  partner) with the energy on the same row; overlap < 0.80 adds a grey "≈" (value in the hover
+  text only). Levels whose rows would overlap are opened out vertically, never sideways
+  (`MoDiagramCanvas::layoutCalc`, `openRows`); the stretched part of the calculation axis is dotted and closed by slanted strokes. `MoLevel::orbitals` are the calculated MOs, so a click
   shows them. Verdict: only the occupied levels, plus the LUMO when the model's
   LUMO matches the calculation's; a different LUMO is named; order above the LUMO
   is only in About. Delta_o for t2g/eg.
@@ -38,11 +38,14 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   without a model partner they sit in `MoColumn::calcOnly`, in grey ("no model partner").
   Fragment-column symmetry labels are lower-case (a1g, t2g); AO names stay (3d). Test hooks:
   builder scene `modiagram <n> tip|ctip <i>`.
-- Energies: model in eV on the axis. Empty levels > 30 eV above the HOMO are
-  drawn at the top of the axis, marked with an up arrow, true energy beside
-  them (EHT puts sigma* tens of eV up; the partner of a drawn level is never
-  hidden). Ligand-internal levels (>= 80 % on the right fragment, a lone
-  central atom against >= 2 others) are grey bars with level/electron counts.
+- Model positions: monotone in EHT energy, not on a scale. The model side has a
+  plain "E" arrow with one tick, "0 eV" (between the highest negative and the
+  lowest positive model level as drawn: `p_zeroY`), and no model energy is printed
+  beside a level (it is in the hover text); "Show energies" governs only the
+  calculation column. Empty levels > 30 eV above the HOMO sit at the top, marked
+  with an up arrow (the old broken-axis strip is kept for positions). Ligand-internal
+  levels (>= 80 % on the right fragment, a lone central atom against >= 2 others) are
+  grey bars with level/electron counts.
 - Electrons: model aufbau (alpha/beta for open shells); fragments' own, metal
   ionic (group - charge) in the one d set.
 - Test hook: `fragorb CALC --model [--left 1,2]`; dump has `verdict:` and
@@ -91,15 +94,12 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   possible to the populations the occupied model orbitals put on them
   (`fillByPopulation`: whole sets, one electron on one non-degenerate set at most),
   so total = B 3 + F3 21 = 24 and no e' set is half filled.
-- Middle column in lanes (`MoDiagramCanvas::layoutCentreLanes`): the lines of levels
-  whose arrows would meet go in side-by-side lanes, every line at its own energy
-  (the column is not opened out any more). Labels are one row each ("label energy
-  tag") in a column left of the lanes, moved apart only as far as they must and
-  joined to their lines by a thin leader, on a white patch so connectors run behind
-  the text. At most as many lanes as fit in 55 % of the width; a denser spectrum
-  (a whole big complex) shares the last lane. Test hook: scene
-  `modiagram <name> overlaps 0` prints the number of overlapping pairs
-  (`orca-ptcl4-overlaps` in tests/modiagram/capture.py).- Electron bookkeeping (summary part "electrons: ..."): per fragment drawn + folded
+- Middle column: one lane, every level its own row (`MoDiagramCanvas::layoutCentreLanes`
+  -> `openRows`), at least a label/arrow height apart, label on the level's row, no
+  sideways offset. Test hook: scene `modiagram <name> overlaps 0` prints the number of
+  overlapping or offset rows in the model and calculation columns plus a misplaced
+  0 eV tick (`orca-ptcl4-overlaps`, `orca-bf3-overlaps` in tests/modiagram/capture.py).
+- Electron bookkeeping (summary part "electrons: ..."): per fragment drawn + folded
   as core-like ns + folded as internal = its total (the About's), and the model
   column's drawn + folded = the molecule's total; the calculation column folds the
   same levels. `check_pairs.py::check_electrons` asserts it on every golden. The

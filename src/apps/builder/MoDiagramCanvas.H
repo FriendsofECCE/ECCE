@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <functional>
 #include <map>
 #include <string>
 #include <sstream>
@@ -397,7 +398,7 @@ class MoDiagramCanvas : public wxPanel
     {
       int level;                 // the centre level it is matched to (click, hover, colour)
       int only;                  // >= 0: index into calcOnly (no model partner)
-      double e;                  // Hartree
+      double e;                  // eV
       int deg;
       bool strip, loose;
       int y, top, bottom, w, lane, x;
@@ -422,6 +423,7 @@ class MoDiagramCanvas : public wxPanel
     }
 
     static const int calcSlot = 14;
+    static constexpr double HARTREE_EV = 27.211386;
 
     //  Hover keys: a model level is its index; a calculation-column level
     //  carries one of these bits (matched: centre index; no partner: calcOnly index).
@@ -457,13 +459,13 @@ class MoDiagramCanvas : public wxPanel
         }
         if (dup) continue;
         CalcItem it;
-        it.level = (int)i; it.only = -1; it.e = l.calcEnergy; it.strip = l.clipped;
+        it.level = (int)i; it.only = -1; it.e = l.calcEnergy*HARTREE_EV; it.strip = l.clipped;
         it.deg = 1; it.loose = false; it.y = it.top = it.bottom = it.w = it.lane = it.x = 0;
         items.push_back(it);
       }
       for (size_t i = 0; i < p_centre.calcOnly.size(); i++) {
         CalcItem it;
-        it.level = -1; it.only = (int)i; it.e = p_centre.calcOnly[i].calcEnergy; it.strip = false;
+        it.level = -1; it.only = (int)i; it.e = p_centre.calcOnly[i].calcEnergy*HARTREE_EV; it.strip = false;
         it.deg = 1; it.loose = false; it.y = it.top = it.bottom = it.w = it.lane = it.x = 0;
         items.push_back(it);
       }
@@ -512,44 +514,50 @@ class MoDiagramCanvas : public wxPanel
         const double e = fabs(it.e) < 0.005 ? 0.0 : it.e;
         it.energy = wxString::Format(wxT("%s%.2f"), e < 0 ? wxT("−") : wxT("+"), fabs(e));
         if (it.loose) it.energy += wxT(" ≈");
+        if (!p_showEnergies) it.energy.clear();
         it.y = calcYFor(it.e, plot);
         const int lw = measurePieces(dc, it.pieces, label, sub).x;
         dc.SetFont(*wxSMALL_FONT);
         const int ew = dc.GetTextExtent(it.energy).x;
-        it.w = it.deg*calcSlot + 6 + max(lw, ew) + 8;
+        it.w = it.deg*calcSlot + 6 + lw + (ew ? 6 + ew : 0) + 8;
         it.top = it.y - max(9, labelH/2);
-        it.bottom = it.y + labelH/2 + smallH;
+        it.bottom = it.y + max(9, labelH/2);
       }
+      (void)smallH;
 
-      //  Lanes: lowest lane whose last item ends above this one's top.
-      vector<size_t> order(items.size());
-      for (size_t k = 0; k < order.size(); k++) order[k] = k;
-      std::stable_sort(order.begin(), order.end(),
-                       [&](size_t a, size_t b) { return items[a].y < items[b].y; });
-      vector<int> laneBottom, laneW;
-      for (size_t o = 0; o < order.size(); o++) {
-        CalcItem& it = items[order[o]];
-        size_t ln = 0;
-        while (ln < laneBottom.size() && laneBottom[ln] + 2 > it.top) ln++;
-        if (ln == laneBottom.size()) { laneBottom.push_back(-1000000); laneW.push_back(0); }
-        laneBottom[ln] = it.bottom;
-        laneW[ln] = max(laneW[ln], it.w);
-        it.lane = (int)ln;
-      }
-      vector<int> laneX(laneW.size(), 0);
-      int total = 0;
-      for (size_t ln = 0; ln < laneW.size(); ln++) { laneX[ln] = total; total += laneW[ln]; }
-
+      //  One row per level, in energy order, never beside another.
+      {
+        vector<int> natural, y;
+        int widest = 0;
+        for (size_t k = 0; k < items.size(); k++) {
+          natural.push_back(items[k].y);
+          widest = max(widest, items[k].w);
+        }
+        y = natural;
+        const int half = max(9, labelH/2);
+        openRows(y, [&](size_t, size_t) { return 2*half + 1; },
+                 plot.y + half, plot.y + plot.height - half);
+        p_calcSpans.clear();
+        stretchedSpans(natural, y, p_calcSpans);
+        for (size_t k = 0; k < items.size(); k++) {
+          items[k].top += y[k] - items[k].y;
+          items[k].bottom += y[k] - items[k].y;
+          items[k].y = y[k];
+          items[k].lane = 0;
+        }
+        const int total = widest;
       dc.SetFont(*wxNORMAL_FONT);
-      const int header = dc.GetTextExtent(wxT("Your calculation (Ha)")).x;
+      const int header = dc.GetTextExtent(wxT("Your calculation (eV, own scale)")).x;
       const int axisW = 44;
       int width = max(total + 20, header + 20) + axisW;
       width = max(width, 150);
       (void)canvasWidth;
       const int x0 = canvasWidth - width + 8 + 6;
-      for (size_t k = 0; k < items.size(); k++) items[k].x = x0 + laneX[items[k].lane];
+      for (size_t k = 0; k < items.size(); k++) items[k].x = x0;
       axisX = canvasWidth - axisW + 8;
+      p_calcRows = items;
       return width;
+      }
     }
 
     void drawCalc(wxDC& dc, const wxRect& plot, const vector<CalcItem>& items, int axisX)
@@ -558,7 +566,7 @@ class MoDiagramCanvas : public wxPanel
       wxFont sub = label;
       sub.SetPointSize(max(5, label.GetPointSize() - 3));
 
-      //  The axis, in Hartree, with the same kind of break as the model's.
+      //  The axis, in eV, with the same kind of break as the model's.
       dc.SetPen(wxPen(wxColour(120, 120, 120), 1));
       if (p_cstripH > 0) {
         const int valenceTop = plot.y + p_cstripH + 4 + p_breakGap;
@@ -574,17 +582,19 @@ class MoDiagramCanvas : public wxPanel
       dc.DrawLine(axisX, plot.y, axisX + 4, plot.y + 7);
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(wxColour(110, 110, 110));
-      static const double steps[] = { 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2 };
-      double step = steps[7];
-      for (int i = 0; i < 8; i++)
+      static const double steps[] = { 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50 };
+      double step = steps[8];
+      for (int i = 0; i < 9; i++)
         if ((p_chi - p_clo)/steps[i] <= 10) { step = steps[i]; break; }
       for (double v = ceil(p_clo/step)*step; v <= p_chi; v += step) {
         const int y = calcYFor(v, plot);
+        if (inSpans(p_calcSpans, y)) continue;
         dc.DrawLine(axisX - 3, y, axisX + 3, y);
         const double shown = fabs(v) < 1.0e-9 ? 0.0 : floor(v/step + 0.5)*step;
         const wxString text = wxString::Format(wxT("%g"), shown);
         dc.DrawText(text, axisX + 6, y - dc.GetTextExtent(text).y/2);
       }
+      drawStretchMarks(dc, axisX, p_calcSpans);
 
       for (size_t k = 0; k < items.size(); k++) {
         const CalcItem& it = items[k];
@@ -614,9 +624,10 @@ class MoDiagramCanvas : public wxPanel
         dc.SetFont(label);
         const int labelH = dc.GetTextExtent(wxT("Xg")).y;
         drawPieces(dc, it.pieces, tx, it.y - labelH/2, label, sub, labelH);
+        const int lw = measurePieces(dc, it.pieces, label, sub).x;
         dc.SetFont(*wxSMALL_FONT);
         dc.SetTextForeground(wxColour(110, 110, 110));
-        dc.DrawText(it.energy, tx, it.y + labelH/2 - 1);
+        dc.DrawText(it.energy, tx + lw + 6, it.y - dc.GetTextExtent(it.energy).y/2);
       }
     }
 
@@ -648,8 +659,8 @@ class MoDiagramCanvas : public wxPanel
      * scale their rows overlap and their labels and phase sketches
      * print on top of one another.  A fragment level is not AT its
      * drawn energy anyway: it is placed at the mean of the orbitals
-     * it became.  The molecular column is never opened out -- its
-     * energies are the measurement.
+     * it became.  The energy is printed beside every level, so a row
+     * moved off its height still says its true value.
      */
     void columnGeometry(wxDC& dc, const MoColumn& column,
                         const wxRect& plot, bool spread,
@@ -720,72 +731,125 @@ class MoDiagramCanvas : public wxPanel
         if (sketch && needs[g] < 46) needs[g] = 46;
       }
 
+      //  In the order they are DRAWN: a fragment column is not sorted by
+      //  energy (placeFragments() moves each level to the mean of the
+      //  orbitals it became), so array order would stack it wrongly.
+      vector<double> en;
+      for (size_t g = 0; g < groups.size(); g++) en.push_back(column.levels[groups[g].first].energy);
+      openRows(groupY, [&](size_t upper, size_t) { return needs[upper]; },
+               plot.y + 6, plot.y + plot.height - 6, &en);
+    }
 
-      //  IN THE ORDER THEY ARE DRAWN, NOT THE ORDER THEY ARE STORED.
-      //
-      //  A fragment column is not sorted by energy: placeFragments()
-      //  moves each level to the mean of the orbitals it became, and
-      //  nothing re-sorts afterwards.  Opening the column out in array
-      //  order therefore stacked the levels in the wrong order
-      //  entirely -- water's B1 2p, the LOWEST of the oxygen's three,
-      //  was drawn above the other two, so its non-bonding molecular
-      //  orbital appeared stabilised by a tenth of a Hartree against
-      //  an atomic level that was simply in the wrong place.  The two
-      //  are at identical energies and the diagram has to show that.
+    /**
+     * Opens a column out vertically: every row its own height, in the order
+     * of `y`, at least gap(upper, lower) apart, the stack kept centred on
+     * where the rows really are and inside [lo, hi] (squeezed in order when
+     * there is not room).  One implementation for every column, so the
+     * correlation lines and the levels get the same answer.
+     */
+    static void openRows(vector<int>& y,
+                         const std::function<int(size_t, size_t)>& gap,
+                         int lo, int hi, const vector<double>* energy = 0)
+    {
+      if (y.size() < 2) return;
+      //  Rows on one pixel keep the order of their energies.
       vector< std::pair<int,size_t> > byHeight;
-      for (size_t g = 0; g < groupY.size(); g++) {
-        byHeight.push_back(std::make_pair(groupY[g], g));
-      }
-      std::sort(byHeight.begin(), byHeight.end());
+      for (size_t g = 0; g < y.size(); g++) byHeight.push_back(std::make_pair(y[g], g));
+      std::sort(byHeight.begin(), byHeight.end(),
+                [&](const std::pair<int,size_t>& a, const std::pair<int,size_t>& b) {
+                  if (a.first != b.first) return a.first < b.first;
+                  if (energy != 0 && (*energy)[a.second] != (*energy)[b.second])
+                    return (*energy)[a.second] > (*energy)[b.second];
+                  return a.second < b.second; });
 
       double before = 0.0;
-      for (size_t g = 0; g < groupY.size(); g++) before += groupY[g];
+      for (size_t g = 0; g < y.size(); g++) before += y[g];
 
       for (size_t k = 1; k < byHeight.size(); k++) {
-        const int above = groupY[byHeight[k-1].second];
-        const int minGap = needs[byHeight[k-1].second];
-        if (groupY[byHeight[k].second] - above < minGap) {
-          groupY[byHeight[k].second] = above + minGap;
-        }
+        const size_t up = byHeight[k-1].second, dn = byHeight[k].second;
+        const int need = gap(up, dn);
+        if (y[dn] - y[up] < need) y[dn] = y[up] + need;
       }
 
-      //  CENTRED ON WHERE THEY REALLY ARE.  Pushing each level down
-      //  from the one above accumulates downward, so a set that had
-      //  to be opened out ended up wholly below its true energy --
-      //  water's B1 2p was pushed a tenth of a Hartree under the
-      //  non-bonding orbital it is identical to, which is the one
-      //  thing that diagram has to show.  Moving the opened-out stack
-      //  back onto its own centre keeps every level as near its
-      //  energy as the spacing allows.
+      //  Pushing down from the top accumulates downward; moving the stack
+      //  back onto its own centre keeps every row as near its energy as
+      //  the spacing allows.
       double after = 0.0;
-      for (size_t g = 0; g < groupY.size(); g++) after += groupY[g];
-      const int recentre = (int)((before - after)/(double)groupY.size());
-      if (recentre != 0) {
-        for (size_t g = 0; g < groupY.size(); g++) groupY[g] += recentre;
+      for (size_t g = 0; g < y.size(); g++) after += y[g];
+      const int recentre = (int)((before - after)/(double)y.size());
+      if (recentre != 0) for (size_t g = 0; g < y.size(); g++) y[g] += recentre;
+
+      //  Inside [lo, hi]: only the rows that are in the way move, each keeping
+      //  its gap; shifting the whole stack would squeeze a spread-out column.
+      const size_t first = byHeight.front().second, last = byHeight.back().second;
+      for (size_t k = byHeight.size(); k-- > 0; ) {
+        const size_t g = byHeight[k].second;
+        int limit = hi;
+        if (k + 1 < byHeight.size()) limit = y[byHeight[k+1].second] - gap(g, byHeight[k+1].second);
+        if (y[g] > limit) y[g] = limit;
+      }
+      for (size_t k = 0; k < byHeight.size(); k++) {
+        const size_t g = byHeight[k].second;
+        int limit = lo;
+        if (k > 0) limit = y[byHeight[k-1].second] + gap(byHeight[k-1].second, g);
+        if (y[g] < limit) y[g] = limit;
       }
 
-      //  Slid back inside the plot if the stack ran off either end.
-      const int lowest  = groupY[byHeight[byHeight.size() - 1].second];
-      const int highest = groupY[byHeight[0].second];
-      const int over  = lowest - (plot.y + plot.height - 6);
-      const int under = (plot.y + 6) - highest;
-      if (over > 0) {
-        for (size_t g = 0; g < groupY.size(); g++) groupY[g] -= over;
-      } else if (under > 0) {
-        for (size_t g = 0; g < groupY.size(); g++) groupY[g] += under;
+      if (y[last] - y[first] > hi - lo) {
+        const int y0 = y[first];
+        const double span = y[last] - y0;
+        for (size_t g = 0; g < y.size(); g++)
+          y[g] = lo + (int)((y[g] - y0)*(hi - lo)/span);
       }
+    }
 
-      //  More levels than the plot has room for (every level of a complex
-      //  shown at once): squeezed into the plot, in order, rather than
-      //  running off an end.
-      const int top = plot.y + 6, room = plot.height - 12;
-      if (groupY[byHeight[byHeight.size() - 1].second] -
-          groupY[byHeight[0].second] > room) {
-        const int y0 = groupY[byHeight[0].second];
-        const double span = groupY[byHeight[byHeight.size() - 1].second] - y0;
-        for (size_t g = 0; g < groupY.size(); g++) {
-          groupY[g] = top + (int)((groupY[g] - y0)*room/span);
-        }
+    /**
+     * The stretches of the axis where rows were pushed further apart than
+     * their energies are: where two neighbours (in true order) ended up more
+     * than 2 px further apart than `natural` puts them.  Each span is in
+     * drawn coordinates, a little beyond its first and last row.
+     */
+    static void stretchedSpans(const vector<int>& natural, const vector<int>& shown,
+                               vector< std::pair<int,int> >& spans)
+    {
+      vector< std::pair<int,size_t> > order;
+      for (size_t g = 0; g < natural.size(); g++) order.push_back(std::make_pair(natural[g], g));
+      std::sort(order.begin(), order.end());
+      bool open = false;
+      for (size_t k = 0; k + 1 < order.size(); k++) {
+        const int a = shown[order[k].second], b = shown[order[k+1].second];
+        const bool wide = (b - a) > (order[k+1].first - order[k].first) + 2;
+        if (wide && !open) { spans.push_back(std::make_pair(a - 6, b + 6)); open = true; }
+        else if (wide) spans.back().second = b + 6;
+        else open = false;
+      }
+    }
+
+    static bool inSpans(const vector< std::pair<int,int> >& spans, int y)
+    {
+      for (size_t i = 0; i < spans.size(); i++)
+        if (y >= spans[i].first && y <= spans[i].second) return true;
+      return false;
+    }
+
+    /**
+     * The "not to scale" mark of a stretched stretch of axis: the axis goes
+     * dotted and is closed by the same two slanted strokes as the broken axis.
+     */
+    static void drawStretchMarks(wxDC& dc, int axisX,
+                                 const vector< std::pair<int,int> >& spans)
+    {
+      for (size_t i = 0; i < spans.size(); i++) {
+        const int y0 = spans[i].first, y1 = spans[i].second;
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(*wxWHITE_BRUSH);
+        dc.DrawRectangle(axisX - 5, y0, 11, y1 - y0 + 1);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.SetPen(wxPen(wxColour(120, 120, 120), 1, wxPENSTYLE_DOT));
+        dc.DrawLine(axisX, y0, axisX, y1);
+        dc.SetPen(wxPen(wxColour(120, 120, 120), 1));
+        dc.DrawLine(axisX - 6, y0 + 1, axisX + 6, y0 - 4);
+        dc.DrawLine(axisX - 6, y1 + 4, axisX + 6, y1 - 1);
       }
     }
 
@@ -867,25 +931,29 @@ class MoDiagramCanvas : public wxPanel
     }
 
 
-    //  THE MODEL'S MIDDLE COLUMN IN LANES.
+    //  THE MODEL'S MIDDLE COLUMN.
     //
-    //  Levels close in energy have their lines in side-by-side lanes (as the
-    //  calculation column's), every line at its own energy.  Their labels are
-    //  one row each in a column to the left, spread just far enough apart to be
-    //  read, and joined to their lines by a thin leader where they had to move.
+    //  Every level has its own row, in energy order, one label height apart at
+    //  least, and the label is on the row of its line.  A crowded range is
+    //  opened out vertically, never sideways: a level drawn beside another
+    //  reads as a separate group.
     struct CentreLane
     {
-      int lane;        // 0, 1, ...
+      int lane;        // always 0: one lane
       int lineX;       // left of the lines, from the column's start
       int y;           // the level
       int slotsW;      // width of the lines
       int labelY;      // centre of the label's row
       int labelW;      // width of the label's row
+      int labelH;      // height of the label's row
       int top, bottom; // the arrows
     };
     vector<CentreLane> p_cLanes;
     int p_cLaneTotal = 0;
     int p_cLabelRight = 0;          // right edge of the label column, from the column's start
+    vector< std::pair<int,int> > p_calcSpans;     // ... by the calculation column
+    int p_zeroY = -1;                             // 0 eV on the model's arrow, -1 if none
+    vector<CalcItem> p_calcRows;                  // the calculation column as laid out
 
     int centreSlot() const { return 24; }
 
@@ -910,15 +978,18 @@ class MoDiagramCanvas : public wxPanel
       }
     }
 
-    /** Every centre level's lane and label row, and the width the column needs. */
+    /** Every centre level's row, and the width the column needs. */
     int layoutCentreLanes(wxDC& dc, const wxRect& plot, int maxWidth)
     {
+      (void)maxWidth;
       const int n = (int)p_centre.levels.size();
       p_cLanes.assign(n, CentreLane());
       dc.SetFont(*wxSMALL_FONT);
       const int row = dc.GetTextExtent(wxT("Xg")).y;
+      const int R = row + 2;
 
-      int labelCol = 0;
+      int labelCol = 0, slotsMax = 0;
+      vector<int> natural(n), half(n);
       for (int i = 0; i < n; i++) {
         const MoLevel& l = p_centre.levels[i];
         vector<Piece> pieces;
@@ -926,94 +997,50 @@ class MoDiagramCanvas : public wxPanel
         centreRow(dc, l, pieces, wl, we, wt);
         CentreLane& c = p_cLanes[i];
         c.labelW = wl + (we ? 8 + we : 0) + (wt ? 8 + wt : 0);
+        c.labelH = row;
         labelCol = max(labelCol, c.labelW);
         const int count = l.degeneracy > 0 ? l.degeneracy : 1;
-        c.y = yFor(l.energy, plot);
         c.slotsW = count*centreSlot();
-        c.top = c.y - 11;
-        c.bottom = c.y + 11;
+        slotsMax = max(slotsMax, c.slotsW);
+        natural[i] = yFor(l.energy, plot);
+        //  Electron arrows are 18 px tall; an empty level needs only its label.
+        half[i] = (l.occupancy > 0.0 || l.occupancyBeta > 0.0) ? max(R/2, 10) : R/2;
       }
 
-      //  Lines: top to bottom, each into the first lane where its arrows fit.
-      vector<int> order(n);
-      for (int i = 0; i < n; i++) order[i] = i;
-      std::stable_sort(order.begin(), order.end(),
-                       [&](int a, int b) { return p_cLanes[a].y < p_cLanes[b].y; });
-      //  As many lanes as the arrows need; if the column would be wider than
-      //  the room, fewer, the densest levels sharing the last lane.
-      vector<int> laneBottom, laneW, laneX;
-      int total = 0;
+      vector<int> y = natural;
+      vector<double> en;
+      for (int i = 0; i < n; i++) en.push_back(p_centre.levels[i].energy);
+      openRows(y, [&](size_t a, size_t b) { return half[a] + half[b]; },
+               plot.y + R/2, plot.y + plot.height - R/2, &en);
+
+      //  0 eV between the highest negative level and the lowest positive one as
+      //  drawn (bound levels below, antibonding EHT levels above).
+      p_zeroY = -1;
+      if (n > 0) {
+        int negTop = 1 << 29, posBottom = -(1 << 29);
+        for (int i = 0; i < n; i++) {
+          if (p_centre.levels[i].energy < 0.0) negTop = min(negTop, y[i]);
+          else posBottom = max(posBottom, y[i]);
+        }
+        const int lim0 = plot.y + 6, lim1 = plot.y + plot.height - 6;
+        if (negTop < (1 << 29) && posBottom > -(1 << 29)) p_zeroY = (negTop + posBottom)/2;
+        else if (negTop < (1 << 29)) p_zeroY = max(lim0, negTop - R);
+        else p_zeroY = min(lim1, posBottom + R);
+      }
+
       p_cLabelRight = labelCol;
-      for (size_t maxLanes = (size_t)n; maxLanes >= 1; maxLanes--) {
-        laneBottom.clear(); laneW.clear();
-        for (int k = 0; k < n; k++) {
-          CentreLane& c = p_cLanes[order[k]];
-          size_t ln = 0;
-          while (ln < laneBottom.size() && laneBottom[ln] + 1 > c.top) ln++;
-          if (ln >= maxLanes) ln = maxLanes - 1;
-          if (ln == laneBottom.size()) { laneBottom.push_back(-1000000); laneW.push_back(0); }
-          laneBottom[ln] = c.bottom;
-          laneW[ln] = max(laneW[ln], c.slotsW);
-          c.lane = (int)ln;
-        }
-        laneX.assign(laneW.size(), 0);
-        total = labelCol + 16;
-        for (size_t ln = 0; ln < laneW.size(); ln++) {
-          laneX[ln] = total;
-          total += laneW[ln] + 8;
-        }
-        total -= 8;
-        if (total <= maxWidth || maxLanes == 1) break;
+      const int lineX = labelCol + 16;
+      for (int i = 0; i < n; i++) {
+        CentreLane& c = p_cLanes[i];
+        c.lane = 0;
+        c.lineX = lineX;
+        c.y = y[i];
+        c.labelY = y[i];
+        c.top = y[i] - half[i];
+        c.bottom = y[i] + half[i];
       }
-      for (int i = 0; i < n; i++) p_cLanes[i].lineX = laneX[p_cLanes[i].lane];
-
-      //  Labels: one row each, in energy order, moved apart only as far as
-      //  needed; a crowded group is centred on where its levels are.
-      const int R = row + 2;
-      struct Group { int first, last; double top; };
-      vector<Group> gs;
-      for (int k = 0; k < n; k++) {
-        Group g; g.first = g.last = k; g.top = p_cLanes[order[k]].y - R/2.0;
-        gs.push_back(g);
-      }
-      for (bool merged = true; merged; ) {
-        merged = false;
-        for (size_t g = 0; g + 1 < gs.size(); g++) {
-          const double bottom = gs[g].top + (gs[g].last - gs[g].first + 1)*R;
-          if (bottom > gs[g + 1].top + 0.5) {
-            gs[g].last = gs[g + 1].last;
-            double sum = 0.0;
-            for (int k = gs[g].first; k <= gs[g].last; k++)
-              sum += (p_cLanes[order[k]].y - R/2.0) - (k - gs[g].first)*R;
-            gs[g].top = sum/(gs[g].last - gs[g].first + 1);
-            gs.erase(gs.begin() + g + 1);
-            merged = true;
-            break;
-          }
-        }
-      }
-      for (size_t g = 0; g < gs.size(); g++)
-        for (int k = gs[g].first; k <= gs[g].last; k++)
-          p_cLanes[order[k]].labelY = (int)(gs[g].top + (k - gs[g].first)*R + R/2.0);
-
-      //  Inside the plot, top and bottom, keeping the spacing.
-      {
-        int lim = plot.y + plot.height - R/2;
-        for (int k = n - 1; k >= 0; k--) {
-          CentreLane& c = p_cLanes[order[k]];
-          if (c.labelY > lim) c.labelY = lim;
-          lim = c.labelY - R;
-        }
-        lim = plot.y + R/2;
-        for (int k = 0; k < n; k++) {
-          CentreLane& c = p_cLanes[order[k]];
-          if (c.labelY < lim) c.labelY = lim;
-          lim = c.labelY + R;
-        }
-      }
-
-      p_cLaneTotal = total;
-      return total;
+      p_cLaneTotal = lineX + slotsMax;
+      return p_cLaneTotal;
     }
 
     /** The model's middle column: lines, electrons, labels and hit boxes. */
@@ -1085,16 +1112,38 @@ class MoDiagramCanvas : public wxPanel
     }
 
   public:
-    /** Pairs of levels of the model column whose blocks overlap (a test hook). */
+    /** 1 when the 0 eV tick is not between the negative and the positive model levels. */
+    int zeroTickProblems() const
+    {
+      if (p_zeroY < 0) return 0;
+      for (size_t i = 0; i < p_cLanes.size() && i < p_centre.levels.size(); i++) {
+        const bool neg = p_centre.levels[i].energy < 0.0;
+        if (neg ? p_cLanes[i].y <= p_zeroY : p_cLanes[i].y >= p_zeroY) return 1;
+      }
+      return 0;
+    }
+
+    /**
+     * Test hook: problems in the model and calculation columns.  Counts
+     * pairs of levels whose arrows or label boxes overlap, and pairs that
+     * are not in one lane (drawn sideways of each other).
+     */
     int centreOverlaps() const
     {
       int n = 0;
       for (size_t a = 0; a < p_cLanes.size(); a++)
         for (size_t b = a + 1; b < p_cLanes.size(); b++) {
           const CentreLane &u = p_cLanes[a], &v = p_cLanes[b];
-          if (u.lane == v.lane && u.top < v.bottom && v.top < u.bottom) n++;
-          //  Two label rows on one line of text.
-          if (abs(u.labelY - v.labelY) < 12) n++;
+          if (u.lineX != v.lineX) n++;
+          if (u.top < v.bottom && v.top < u.bottom) n++;
+          if (abs(u.labelY - v.labelY) < u.labelH) n++;
+        }
+      n += zeroTickProblems();
+      for (size_t a = 0; a < p_calcRows.size(); a++)
+        for (size_t b = a + 1; b < p_calcRows.size(); b++) {
+          const CalcItem &u = p_calcRows[a], &v = p_calcRows[b];
+          if (u.x != v.x) n++;
+          if (u.top < v.bottom && v.top < u.bottom) n++;
         }
       return n;
     }
@@ -1913,6 +1962,20 @@ class MoDiagramCanvas : public wxPanel
       {
         const int ax = 22;
         dc.SetPen(wxPen(wxColour(120, 120, 120), 1));
+        dc.SetFont(*wxSMALL_FONT);
+        dc.SetTextForeground(wxColour(110, 110, 110));
+        if (model) {
+          //  Positions are monotone in energy but not on a scale, so the
+          //  model side has an arrow and no numbers; each level prints its own.
+          dc.DrawLine(ax, plot.y, ax, plot.y + plot.height);
+          dc.DrawLine(ax, plot.y, ax - 4, plot.y + 7);
+          dc.DrawLine(ax, plot.y, ax + 4, plot.y + 7);
+          dc.DrawText(wxT("E"), 4, plot.y - 16);
+          if (p_zeroY >= 0) {
+            dc.DrawLine(ax - 4, p_zeroY, ax + 4, p_zeroY);
+            dc.DrawText(wxT("0 eV"), ax + 7, p_zeroY - dc.GetTextExtent(wxT("X")).y/2);
+          }
+        } else {
         if (p_stripH > 0) {
           //  Broken axis: the strip above holds the high levels in order,
           //  not to scale; the break is two slanted strokes.
@@ -1930,9 +1993,6 @@ class MoDiagramCanvas : public wxPanel
         }
         dc.DrawLine(ax, plot.y, ax - 4, plot.y + 7);
         dc.DrawLine(ax, plot.y, ax + 4, plot.y + 7);
-
-        dc.SetFont(*wxSMALL_FONT);
-        dc.SetTextForeground(wxColour(110, 110, 110));
 
         //  Ticks on round numbers, at whatever spacing keeps them from
         //  colliding, so the spacing follows the spectrum rather than
@@ -1958,8 +2018,10 @@ class MoDiagramCanvas : public wxPanel
           wxString text = wxString::Format(wxT("%g"), shown);
           dc.DrawText(text, ax + 6, y - dc.GetTextExtent(text).y/2);
         }
-        dc.DrawText(model ? wxT("E / eV (model)") : wxT("E / Hartree"), 4, plot.y - 16);
+        dc.DrawText(wxT("E / Hartree"), 4, plot.y - 16);
+        }
       }
+
 
       //  Column headings.
       dc.SetFont(*wxNORMAL_FONT);
@@ -1999,7 +2061,7 @@ class MoDiagramCanvas : public wxPanel
         //  Not over the banner of a diagram that could not be drawn.
         if (p_headline.empty() || p_haveFragments) dc.DrawText(tc, xCentre, top - 38);
         if (model) {
-          dc.DrawText(wxT("Your calculation (Ha)"), xCalc, top - 38);
+          dc.DrawText(wxT("Your calculation (eV, own scale)"), xCalc, top - 38);
           dc.SetPen(wxPen(wxColour(210, 210, 210), 1));
           dc.DrawLine(xCalc - 12, top - 40, xCalc - 12, plot.y + plot.height);
         }
@@ -2367,8 +2429,9 @@ class MoDiagramCanvas : public wxPanel
         out << "MO " << l.orbitals[0] + 1;
       }
       char e[64];
-      snprintf(e, sizeof e, "%.4f", calc ? l.calcEnergy : l.energy);
-      out << ", E = " << e << " Hartree";
+      if (calc) snprintf(e, sizeof e, "%.2f", l.calcEnergy*HARTREE_EV);
+      else snprintf(e, sizeof e, "%.4f", l.energy);
+      out << ", E = " << e << (calc ? " eV" : " Hartree");
       if (calc && !l.calcLabel.empty()) out << ", " << l.calcLabel;
       else if (!l.irrep.empty()) out << ", " << l.irrep;
       const double oa = calc ? l.calcOccupancy : l.occupancy;

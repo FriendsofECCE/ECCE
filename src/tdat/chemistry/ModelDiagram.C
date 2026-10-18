@@ -1133,7 +1133,7 @@ bool ModelDiagram::build(const Input& in,
       }
       if (clipped > 0)
          caveats.push_back(std::to_string(clipped) + " high empty level" + (clipped == 1 ? "" : "s") +
-             " drawn at the top (true energy beside " + (clipped == 1 ? "it" : "them") + ")");
+             " drawn at the top (marked with an up arrow)");
       if (n > 0)
          caveats.push_back(std::to_string(n) + " very high empty level" + (n == 1 ? "" : "s") + " not drawn");
    }
@@ -1202,7 +1202,7 @@ bool ModelDiagram::build(const Input& in,
          lv.calcOccupancyBeta = R.occupancyBeta;
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
       }
-      lv.annotation = (L.clipped ? string("\xE2\x86\x91 ") : string()) + signedNumber(L.energy*HARTREE, 2) + " eV";
+      lv.annotation = L.clipped ? string("\xE2\x86\x91") : string();
       lv.tag = characterTag(charAcc[order[oi]], CHARACTER_MIN);
       //  The hover text.
       vector< std::pair<double,string> > parts;
@@ -1231,7 +1231,7 @@ bool ModelDiagram::build(const Input& in,
             if (e > k) text += "\xE2\x80\x93" + std::to_string(lv.orbitals[e] + 1);
             k = e + 1;
          }
-         text += " (E = " + signedNumber(R.energy, 4) + " Hartree, overlap " + fmt("%.2f", L.overlap) + ").";
+         text += " (E = " + signedNumber(R.energy*HARTREE, 2) + " eV, overlap " + fmt("%.2f", L.overlap) + ").";
          if (L.overlap < POOR_OVERLAP) text += "  A poor match: no calculated orbital resembles this model level.";
       }
       lv.detail = text;
@@ -1263,7 +1263,7 @@ bool ModelDiagram::build(const Input& in,
          }
          lv.label = "FO" + std::to_string(i0) + (i1 > i0 ? "-" + std::to_string(i1) : string());
       }
-      lv.annotation = signedNumber(sets[s].energy*HARTREE, 2) + " eV";
+      lv.annotation.clear();
       lv.detail = "Fragment orbital set from extended H\xC3\xBC" "ckel, E = " +
                   signedNumber(sets[s].energy*HARTREE, 2) + " eV, " +
                   std::to_string((int)lround(sets[s].occupancy)) + " electrons.";
@@ -1522,8 +1522,8 @@ bool ModelDiagram::build(const Input& in,
    if (!caveats.empty()) out.warnings.push_back(joinCaveats(caveats));
 
    //  --- the text ----------------------------------------------------
-   out.summary = "Model from extended H\xC3\xBC" "ckel (qualitative) \xC2\xB7 model energies in eV \xC2\xB7 "
-                 "calculation in Hartree";
+   out.summary = "Model: order and approximate spacing from extended H\xC3\xBC" "ckel (qualitative) \xC2\xB7 "
+                 "calculation: eV, own scale";
    if (!out.right.bands.empty()) {
       string t;
       bool plainBands = false;
@@ -1604,7 +1604,8 @@ bool ModelDiagram::build(const Input& in,
           "**Bonding and antibonding** are read from the sign of each model MO's overlap population between the "
           "two fragments, then paired per symmetry label and degeneracy, so each antibonding level has its bonding "
           "partner; a level without a partner is non-bonding. Colours mark the pairs.\n\n"
-          "**The calculation** is the column on the right, on its own energy axis in Hartree and to scale. For each model level it shows the calculated "
+          "**Scale.** The model columns show the order of the levels and their approximate spacing from extended H\xC3\xBC" "ckel, not a scale: close levels are drawn further apart so they can be read, and no model energy is printed (it is in the hover text). Extended H\xC3\xBC" "ckel antibonding energies are qualitative and typically far too high for short bonds to diffuse atoms such as B, Be and Al.\n\n"
+          "**The calculation** is the column on the right, on its own energy axis in eV (not on the model's scale). For each model level it shows the calculated "
           "orbital (or set of near-degenerate orbitals) with the largest overlap with it, at its calculated energy, "
           "in the colour of the model level it matches. A level marked \xE2\x89\x88 matches only loosely (overlap below 0.80; the value is in the hover text). Labels are those of the matched calculated orbital. Clicking a "
           "level shows that orbital in 3-D.\n\n" + aboutVerdict + "\n\n**Total electrons: " + string(b) + "** (" + leftName.formula + " " +
@@ -1624,8 +1625,8 @@ bool ModelDiagram::build(const Input& in,
          out.about += "\n\n**Caveats.** ";
          for (size_t i = 0; i < caveats.size(); i++) out.about += (i ? "; " : "") + caveats[i];
          out.about += ". Extended H\xC3\xBC" "ckel puts empty antibonding orbitals tens of eV up, so an empty level more than " +
-                      fmt("%.0f", WINDOW_EV) + " eV above the HOMO is drawn at the top of the axis with its model energy written "
-                      "beside it, or not at all when it sits almost entirely on one fragment. A loose match means no "
+                      fmt("%.0f", WINDOW_EV) + " eV above the HOMO is drawn at the top of the diagram, marked with an up arrow, "
+                      "or not at all when it sits almost entirely on one fragment. A loose match means no "
                       "calculated orbital resembles the model level closely; read its calculated energy with care.";
       }
    }
