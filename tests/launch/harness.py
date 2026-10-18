@@ -62,6 +62,8 @@ def treeInstall(state, build):
     link(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
     link(os.path.join(REPO, "data", "admin"), os.path.join(home, "data", "admin"))
     link(os.path.join(REPO, "data", "client"), os.path.join(home, "data", "client"))
+    link(os.path.join(REPO, "third_party", "minff", "unit_cells"),
+         os.path.join(home, "data", "minff", "unit_cells"))
     link(os.path.join(REPO, "packaging", "dataserver", "httpd.conf.ecce"),
          os.path.join(home, "server", "httpd-conf", "httpd.conf.ecce"))
 

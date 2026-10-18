@@ -101,6 +101,8 @@ def main():
                     help="run only the force-field Import section")
     ap.add_argument("--organizer-only", action="store_true",
                     help="run only the Organizer section")
+    ap.add_argument("--ui-only", action="store_true",
+                    help="run only the editor window section")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
 
@@ -124,6 +126,10 @@ def main():
         if args.minff_only:
             minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
             failures.extend(gromacs_test_failures())
+            return 1 if failures else 0
+
+        if args.ui_only:
+            ui_section(s, build, args.png or os.path.join(s.state, "png"))
             return 1 if failures else 0
 
         if args.clayff_only:
@@ -284,6 +290,7 @@ def main():
 
         # ---- the editor ---------------------------------------------------
         editor_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
+        ui_section(s, build, args.png or os.path.join(s.state, "png"))
         minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
         clayff_section(s, build, os.path.join(s.state, "run-clayff"))
         ffimport_section(s, build, rundir, gmx)
@@ -416,6 +423,33 @@ def builder_flow_section(s, build, rundir):
     if not s.services(True):
         check(False, "services came up again after the Builder")
         return
+    # R1: a bare atom, nothing saved yet: the Residue Table is not greyed out
+    # and opening it gives the atom a residue to name
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "naion2",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "frag=-",
+                       "ff=amber99sb-ildn", "water=tip3p", "box=cubic",
+                       "dist=1.0", "conc=0")
+    urls2 = urls_of(out)
+    if check(rc == 0 and len(urls2) == 3, "a second study with an empty Prepare"):
+        with xdisplay.Display() as display2:
+            log2 = run_builder(s, build, display2, urls2[1], [
+                "wait 5000", "add Na Terminal 0 0 0",
+                "menustate Residue Table", "residues",
+                "panel Residue Table", "wait 1500", "residues",
+                "cell residue 0 2 NA enter", "residues", "savestate",
+                "save", "wait 3000", "quit"], "naion2")
+        check("BUILDER: menu Residue Table enabled=1" in log2,
+              "the Residue Table menu item is enabled for a bare atom")
+        res2 = [n.strip() for n in re.findall(r"BUILDER: residues=(.*)", log2)]
+        check(res2 == ["", "UNK", "NA"],
+              "opening the table gives the atom a default residue, which is renamed: %s" % res2)
+        pd = sorted(glob.glob(os.path.join(urls2[1].replace("file://", "").rstrip("/"),
+                                           "Parameters", "*.pdb")), key=os.path.getmtime)
+        check(pd and " NA " in open(pd[-1]).read(), "and the saved structure holds residue NA")
+        # closing that Builder ended the session too
+        if not s.services(True):
+            check(False, "services came up again after the second Builder")
+            return
     prepare_then_optimize(s, rundir, prep, opt, "Na+ in water", charged=False)
 
     # the same ion left UNK by the Builder (no Residue Table edit): the job names it
@@ -539,8 +573,8 @@ def editor_section(s, build, rundir, png):
                       and "rcoulomb = 1.0" in ver and "FF=amber99sb-ildn" in ver,
                       "Verify lists the protein Prepare's commands and ions.mdp: %s" % ver)
                 sz = [int(x) for x in re.findall(r"\d+", ed.cmd("size"))]
-                check(len(sz) == 6 and sz[0] <= 1000 and sz[1] <= 760,
-                      "the editor opens compact: %s" % sz)
+                check(len(sz) == 6 and sz[0] <= 1000 and sz[1] <= 960,
+                      "the editor opens within the screen: %s" % sz)
 
                 # the water models follow the force field
                 check(ed.cmd("set ff oplsaa") == "ok", "OPLS-AA chosen")
@@ -778,6 +812,117 @@ def organizer_new(s, build, gmx):
                     pass
 
 
+def ui_section(s, build, png):
+    """The editor's window and labels (P1-P4, P6): sized to its content at
+    1920x1080 so nothing scrolls, the Source and box names, the Repeat field,
+    the unit cells that ship, and Verify's two panes."""
+    if not shutil.which("Xvfb") or not os.access(os.path.join(build, "gmxprepare"), os.X_OK):
+        say("  (no Xvfb or no gmxprepare: the editor window is not checked)")
+        return
+    import xdisplay
+    import gromacs_test
+    harness.link(os.path.join(build, "gmxprepare"), os.path.join(s.home, "bin", "gmxprepare"))
+    wrappers = os.path.join(s.state, "wrappers-ui")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+    os.makedirs(png, exist_ok=True)
+    if not s.services(True):
+        check(False, "services came up for the editor window")
+        return
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "uiprep",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "bare")
+    urls = urls_of(out)
+    if not check(rc == 0 and len(urls) == 3, "a study with a bare Prepare was made"):
+        return
+    prep = urls[1]
+    with xdisplay.Display(screen="1920x1080x24") as display:
+        cmddir = os.path.join(s.state, "mded-ui")
+        os.makedirs(cmddir, exist_ok=True)
+        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir,
+                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        ed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                 "gmxprepare", "GMXPrepare")
+        try:
+            if not ed.up():
+                return
+            check(ed.cmd("open " + prep) == "ok", "the Prepare opens in gmxprepare")
+
+            def geometry():
+                return [int(x) for x in re.findall(r"\d+", ed.cmd("size"))]
+
+            # P1: frame, page and virtual size; a scrollbar shows when the
+            # virtual size exceeds the page
+            g0 = geometry()
+            say("  open size: %s; %s" % (g0, ed.cmd("layout")))
+            check(len(g0) == 6 and 600 <= g0[0] <= 1160 and g0[1] <= 1000,
+                  "opens about 1130 px wide at most, within the screen: %s" % g0)
+            for what, cmds in (("protein", []),
+                               ("mineral (MINFF)", ["set source minff"]),
+                               ("mineral (ClayFF)", ["set mff clayff"])):
+                for c in cmds:
+                    ed.cmd(c)
+                g = geometry()
+                say("  %s: %s %s" % (what, g, ed.cmd("layout")))
+                check(len(g) == 6 and g[4] <= g[2] and g[5] <= g[3],
+                      "%s: no scrollbar at the opening size (page %s, content %s)"
+                      % (what, g[2:4], g[4:6]))
+                check(geometry()[:2] == g0[:2], "%s: the window did not grow" % what)
+            # P2: names follow the choices
+            f = ed.cmd("fields")
+            check("source_label=Mineral " in f + " " and "mineral_title=Mineral (ClayFF)" in f,
+                  "the source is 'Mineral' and the box is named after ClayFF: %s"
+                  % f.split("source_label=")[-1])
+            ed.cmd("set mff minff")
+            ed.cmd("snap " + os.path.join(png, "gmxprepare-ui-minff.png"))
+            check("mineral_title=Mineral (MINFF)" in ed.cmd("fields"),
+                  "and 'Mineral (MINFF)' with MINFF")
+            # P3: the repeat field keeps its spaces
+            for rep in ("1 1 1", "10 1 1"):
+                ed.cmd("set mrep " + rep)
+                check("<MinffReplicate>%s</MinffReplicate>" % rep in ed.cmd("model"),
+                      "repeat %r reaches the model as typed" % rep)
+            check(ed.cmd("set mrep 1 1 1") == "ok" and "repshown=1 1 1 " in ed.cmd("fields") + " ",
+                  "and the field shows '1 1 1': %s" % ed.cmd("fields").split("repshown=")[-1][:12])
+            # P4: Browse starts in the unit cells that ship
+            cells = ed.cmd("mcelldir")
+            names = os.listdir(cells) if os.path.isdir(cells) else []
+            check(cells.rstrip("/").endswith("unit_cells") and len(
+                [n for n in names if n.endswith(".pdb")]) >= 30
+                  and not any(n.endswith(".log") for n in names),
+                  "Browse starts in the bundled unit cells (%d .pdb): %s"
+                  % (len(names), cells))
+            # P6: Verify's two panes
+            ed.cmd("set source protein")
+            rep = ed.cmd("verifydialog " + os.path.join(png, "gmxprepare-verify.png"))
+            say("  verify dialog: %s" % rep)
+            m = re.match(r"upper (\d+) x (\d+) chars (\d+) \| lower (\d+) x (\d+) chars (\d+) \| shown 1", rep)
+            check(m is not None and int(m.group(2)) > 100 and int(m.group(3)) > 300
+                  and int(m.group(5)) > 60 and int(m.group(6)) > 20,
+                  "Verify shows an upper and a lower pane with text")
+            files = ed.cmd("verifyfiles")
+            check("gromacs.gmxprep" in files and "bytes" in files
+                  and "Builder's structure" in files,
+                  "the lower pane lists the staged inputs: %s" % files[:200])
+            # P3: stored, closed, reopened: the repeat comes back as typed
+            for rep in ("10 1 1", "1 1 1"):
+                ed.cmd("set source minff")
+                ed.cmd("set mrep " + rep)
+                check(ed.cmd("save") == "ok", "Save with repeat %r" % rep)
+                ed.close()
+                ed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                         "gmxprepare", "GMXPrepare")
+                if not (ed.up() and ed.cmd("open " + prep) == "ok"):
+                    check(False, "the editor reopens")
+                    return
+                f = ed.cmd("fields")
+                check("repshown=%s source_label" % rep in f,
+                      "reopened, the repeat shows %r: %s" % (rep, f.split("repshown=")[-1][:20]))
+        finally:
+            ed.close()
+
+
 def minff_section(s, build, rundir, png):
     """The MINFF source: build in the editor, Prepare, then an Optimize.
 
@@ -852,9 +997,9 @@ def minff_section(s, build, rundir, png):
             # .gro of the report)
             # G1: compact and scrollable, with the tall mineral page showing
             sz = [int(x) for x in re.findall(r"\d+", ed.cmd("size"))]
-            check(len(sz) == 6 and sz[0] <= 1000 and sz[1] <= 760
-                  and sz[5] > sz[3],
-                  "the editor opens compact and scrolls its page: %s" % sz)
+            check(len(sz) == 6 and sz[0] <= 1000 and sz[1] <= 960
+                  and sz[5] <= sz[3],
+                  "the editor opens within the screen and its mineral page needs no scroll: %s" % sz)
             ver = ed.cmd("verify")
             check("SOURCE=minff" in ver and "no water layer: step2.gro" in ver
                   and "(mineral)" in ver,
@@ -887,6 +1032,17 @@ def minff_section(s, build, rundir, png):
             check(out == "ok", "Build topology of the flat cell: %s" % out)
             check("cellwarning=1" in ed.cmd("fields"),
                   "no water: the editor warns the cell is too small for the cut-off")
+            # P5: the warning names the axis, its length and the way out
+            warn = ed.cmd("cellwarning")
+            m = re.search(r"c is ([\d.]+) nm; repeat at least (\d+) times along c, or add at "
+                          r"least ([\d.]+) nm of water, or lower the cut-off in the tasks\.", warn)
+            check(m is not None and warn.startswith("The cell is too small for the 0.9 nm cut-off")
+                  and "a is" not in warn and "b is" not in warn,
+                  "the warning names c, its length, the repeat and the water: %s" % warn)
+            if m:
+                check(ed.cmd("set dist " + m.group(3)) == "ok" and ed.cmd("cellwarning") == "",
+                      "adding the water it names (%s nm) clears the warning" % m.group(3))
+                ed.cmd("set dist 0")
             check(ed.cmd("set dist 2") == "ok" and "cellwarning=0" in ed.cmd("fields"),
                   "2 nm of water: no warning")
             ver = ed.cmd("verify")
@@ -896,6 +1052,16 @@ def minff_section(s, build, rundir, png):
                   "Verify lists solvate, genion and the mineral's ions.mdp: %s" % ver[-420:])
             check(ed.cmd("set dist 0") == "ok" and "cellwarning=1" in ed.cmd("fields"),
                   "water layer off again: the warning returns")
+            # P6 for a mineral: the lower pane lists the built files and the
+            # topology's first lines
+            files = ed.cmd("verifyfiles")
+            check("conf.gmxmin" in files and "topol.gmxmin" in files and "bytes" in files
+                  and "min.ff__SLASH__forcefield.itp" in files
+                  and "first lines" in files and "MINFF system written by ECCE" in files,
+                  "Verify's lower pane lists the mineral's inputs and topology: %s" % files[:300])
+            rep = ed.cmd("verifydialog")
+            check(re.search(r"lower \d+ x \d+ chars [1-9]\d{2,}", rep) is not None,
+                  "the mineral's Verify dialog fills both panes: %s" % rep)
             check(ed.cmd("set mrep 4 3 3") == "ok" and
                   ed.cmd("set msubs Al,Mgo,4") == "ok" and
                   ed.cmd("set mseed 1") == "ok", "repeat 4 3 3, 4 Al -> Mgo, seed 1")

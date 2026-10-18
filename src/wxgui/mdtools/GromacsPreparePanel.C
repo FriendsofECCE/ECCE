@@ -200,6 +200,23 @@ static ewxStaticText *label(wxWindow *parent, const wxString& text)
   return new ewxStaticText(parent, wxID_ANY, text);
 }
 
+// The width of about this many characters: where long notes wrap, so that a
+// long summary or file name cannot make the whole page wider.
+static int wrapPixels(wxWindow *w, int chars = 60)
+{
+  return w->GetTextExtent("0123456789").x * chars / 10;
+}
+
+// A label that is cut in the middle, not widened, when its text is long.
+static ewxStaticText *clippedLabel(wxWindow *parent)
+{
+  ewxStaticText *t = new ewxStaticText(parent, wxID_ANY, wxEmptyString,
+                                       wxDefaultPosition, wxDefaultSize,
+                                       wxST_ELLIPSIZE_MIDDLE);
+  t->SetMinSize(wxSize(wrapPixels(parent) / 3, -1));
+  return t;
+}
+
 // The field with its unit right next to it.
 static wxSizer *withUnit(wxWindow *parent, wxWindow *field, const wxString& unit)
 {
@@ -233,7 +250,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   g->Add(label(box, _("Source:")), 0, wxALIGN_CENTER_VERTICAL);
   wxArrayString src;
   src.Add(_("Protein (pdb2gmx)"));
-  src.Add(_("Mineral (MINFF)"));
+  src.Add(_("Mineral"));
   p_source = new ewxChoice(box, ID_SOURCE, wxDefaultPosition, wxDefaultSize, src);
   p_source->SetSelection(0);
   g->Add(p_source, 0);
@@ -252,7 +269,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   g->AddSpacer(0);
   g->Add(p_browse, 0);
   g->AddSpacer(0);
-  p_file = label(box, wxEmptyString);
+  p_file = clippedLabel(box);
   p_proteinOnly.push_back(p_file);
   g->Add(p_file, 1, wxEXPAND);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
@@ -263,6 +280,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   // its structure, topology and includes are stored in the task.
   sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Mineral (MINFF)"));
   box = sb->GetStaticBox();
+  p_mineralBox = (wxStaticBox*)box;
   p_minffOnly.push_back(box);
   g = new wxFlexGridSizer(2, 6, 8);
   g->AddGrowableCol(1);
@@ -282,7 +300,8 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_minffOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   wxBoxSizer *cellRow = new wxBoxSizer(wxHORIZONTAL);
-  p_cellLabel = label(box, _("none chosen"));
+  p_cellLabel = clippedLabel(box);
+  p_cellLabel->SetLabel(_("none chosen"));
   p_minffOnly.push_back(p_cellLabel);
   cellRow->Add(p_cellLabel, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   p_mcellBtn = new ewxButton(box, ID_MCELL, _("Browse..."));
@@ -385,6 +404,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   sb->Add(p_summaryLabel, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   left->Add(sb, 0, wxALL | wxEXPAND, 4);
   p_leftSizer = left;
+  p_rightSizer = right;
   p_minffSizer = sb;
 
   // ---- force field ----
@@ -483,7 +503,9 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   right->Add(sb, 0, wxALL | wxEXPAND, 4);
 
-  columns->Add(left, 1, wxEXPAND);
+  // Not equal proportions: those make the page twice as wide as its wider
+  // column.  The right column takes what the window has over.
+  columns->Add(left, 0, wxEXPAND);
   columns->Add(right, 1, wxEXPAND);
   SetSizer(columns);
   fillIons();
@@ -579,6 +601,7 @@ void GromacsPreparePanel::showStructure()
   p_file->SetLabel(name.empty()
       ? _("The Builder's structure is used when the job is launched.")
       : U(name.c_str()));
+  p_file->SetToolTip(p_file->GetLabel());
   p_refreshing = false;
   showFields();
 }
@@ -637,6 +660,8 @@ void GromacsPreparePanel::showFields()
   bool clay = isClayff();
   for (size_t i = 0; i < p_minffFfOnly.size(); i++) p_minffFfOnly[i]->Show(minff && !clay);
   for (size_t i = 0; i < p_clayffOnly.size(); i++) p_clayffOnly[i]->Show(clay);
+  // the box follows the force field chosen in it
+  p_mineralBox->SetLabel(clay ? _("Mineral (ClayFF)") : _("Mineral (MINFF)"));
   p_ffBox->SetLabel(minff ? _("Water model") : _("Force field"));
   p_waterBox->SetLabel(minff ? _("Water layer") : _("Box and water"));
   p_distLabel->SetLabel(minff ? _("Water layer above the mineral:")
@@ -662,7 +687,52 @@ void GromacsPreparePanel::showIonNote()
     p_ionNote->SetLabel(neut
         ? _("The system is neutralised first; salt is added on top.")
         : _("The system keeps its net charge; only the salt below is added."));
-  p_ionNote->Wrap(380);
+  p_ionNote->Wrap(wrapPixels(p_ionNote, 40));
+}
+
+// The page's natural size in the most demanding of its three states
+// (protein, MINFF, ClayFF), for sizing the window once.  The model is put
+// back as it was.
+wxSize GromacsPreparePanel::bestSizeAllSources()
+{
+  if (p_model == 0 || GetSizer() == 0) return GetBestSize();
+  const string src = p_model->source(), mff = p_model->mineralForceField();
+  const char *states[3][2] = { { "protein", "minff" }, { "minff", "minff" },
+                               { "minff", "clayff" } };
+  bool was = p_refreshing;
+  p_refreshing = true;
+  wxSize best(0, 0);
+  for (int i = 0; i < 3; i++) {
+    p_model->source(states[i][0]);
+    p_model->mineralForceField(states[i][1]);
+    showFields();
+    wxSize b = GetSizer()->CalcMin();
+    best.x = std::max(best.x, b.x);
+    best.y = std::max(best.y, b.y);
+  }
+  p_model->source(src);
+  p_model->mineralForceField(mff);
+  showFields();
+  p_refreshing = was;
+  return best;
+}
+
+// Test hook: the width each box asks for, "title=width ..." per column.
+string GromacsPreparePanel::layoutReport() const
+{
+  std::ostringstream os;
+  wxSizer *cols[2] = { p_leftSizer, p_rightSizer };
+  for (int c = 0; c < 2; c++) {
+    os << (c ? " right:" : "left:");
+    for (wxSizerItemList::compatibility_iterator n = cols[c]->GetChildren().GetFirst();
+         n; n = n->GetNext()) {
+      wxStaticBoxSizer *sb = dynamic_cast<wxStaticBoxSizer*>(n->GetData()->GetSizer());
+      if (sb == 0 || !n->GetData()->IsShown()) continue;
+      os << " [" << sb->GetStaticBox()->GetLabel().ToUTF8() << "="
+         << sb->CalcMin().x << "x" << sb->CalcMin().y << "]";
+    }
+  }
+  return os.str();
 }
 
 // The mineral page is taller than the protein page; the scrolled window
@@ -958,9 +1028,11 @@ void GromacsPreparePanel::showMineral()
   string::size_type s = cell.find_last_of("/\\");
   if (s != string::npos) cell = cell.substr(s + 1);
   p_cellLabel->SetLabel(cell.empty() ? _("none chosen") : U(cell.c_str()));
+  p_cellLabel->SetToolTip(U(cell.c_str()));
   p_summaryLabel->SetLabel(p_built
       ? U(p_model->minffSummary().c_str())
       : _("No topology built yet. Choose a unit cell and press Build."));
+  p_summaryLabel->Wrap(wrapPixels(p_summaryLabel));
   relayout();
 }
 
@@ -970,34 +1042,53 @@ void GromacsPreparePanel::minffStale()
   if (p_refreshing || !p_built) return;
   p_summaryLabel->SetLabel(_("The options changed since the topology was built; "
                              "press Build to apply them."));
+  p_summaryLabel->Wrap(wrapPixels(p_summaryLabel));
   relayout();
 }
 
 // The cell the MD tasks after this Prepare get (the built mineral's box,
 // its c lengthened by the water layer) against grompp's limit for the
-// cut-off: half the shortest box vector and the smallest diagonal element.
-// Empty when it holds the default cut-off of those tasks.
+// cut-off: the pair-list cut-off must stay below half of each box vector and
+// below each diagonal element, so an axis needs a width of
+// min(|v|, 2 v_ii) of at least twice that.  Names every axis that falls
+// short, with how often to repeat the unit cell or how much water to add.
+// Empty when the cell holds the default cut-off of those tasks.
 string GromacsPreparePanel::cellWarning() const
 {
   double v[3][3];
   if (!cellVectors(v)) return "";
-  double limit = 1e30;
-  for (int i = 0; i < 3; i++) {
-    limit = std::min(limit, 0.5 * std::sqrt(v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2]));
-    limit = std::min(limit, v[i][i]);
-  }
   // grompp checks the pair list, which mdrun's buffer makes about 0.1 nm
   // longer than the cut-off.
   const double cut = InteractionModel::SHORTCUT;
-  if (limit >= cut + 0.1) return "";
-  char buf[400];
-  snprintf(buf, sizeof buf,
-           "The cell is too small for the %.1f nm cut-off the MD tasks use: "
-           "with its pair-list buffer it must stay below %.2f nm here (half "
-           "the shortest box vector). "
-           "Repeat the cell more often, add water, or lower the cut-off in "
-           "the tasks.", cut, limit);
-  return buf;
+  const double need = 2.0 * (cut + 0.1);
+  int rep[3] = { 1, 1, 1 };
+  std::istringstream rin(p_model->minffReplicate());
+  rin >> rep[0] >> rep[1] >> rep[2];
+  const double water = p_model->boxDistance() > 0 ? p_model->boxDistance() : 0.0;
+  const char axis[3] = { 'a', 'b', 'c' };
+  string out;
+  for (int i = 0; i < 3; i++) {
+    double w = std::min(std::sqrt(v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2]),
+                        2.0 * v[i][i]);
+    if (w >= need) continue;
+    char buf[300];
+    int n = std::max(rep[i], 1);
+    double unit = (w - (i == 2 ? water : 0.0)) / n;
+    int times = unit > 0 ? (int)std::ceil((need - (i == 2 ? water : 0.0)) / unit - 1e-9) : 0;
+    snprintf(buf, sizeof buf, "%s%c is %.2f nm; repeat at least %d times along %c",
+             out.empty() ? "" : " ", axis[i], w, std::max(times, n + 1), axis[i]);
+    out += buf;
+    if (i == 2) {
+      snprintf(buf, sizeof buf, ", or add at least %.1f nm of water",
+               std::ceil((need - w) * 10.0 - 1e-9) / 10.0);
+      out += buf;
+    }
+    out += ", or lower the cut-off in the tasks.";
+  }
+  if (out.empty()) return "";
+  char head[120];
+  snprintf(head, sizeof head, "The cell is too small for the %.1f nm cut-off the MD tasks use. ", cut);
+  return head + out;
 }
 
 // The built mineral's cell vectors (nm), c lengthened by the water layer.
@@ -1184,12 +1275,26 @@ void GromacsPreparePanel::OnMineralForceField(wxCommandEvent&)
   changed();
 }
 
-void GromacsPreparePanel::OnMinffCell(wxCommandEvent&)
+// Where Browse... for the unit cell starts: the folder last used, else the
+// unit cells that ship with ECCE (data/minff/unit_cells; in a source tree
+// third_party/), else the home directory.
+string GromacsPreparePanel::cellStartDir() const
 {
   Preferences prefs("GromacsPrepare");
   string dir;
   prefs.getString("GromacsPrepare.MineralDir", dir);
-  if (dir.empty()) dir = Ecce::realUserHome();
+  if (!dir.empty() && wxDirExists(U(dir.c_str()))) return dir;
+  const string home = Ecce::ecceHome();
+  const char *sub[] = { "/data/minff/unit_cells", "/third_party/minff/unit_cells" };
+  for (int i = 0; i < 2; i++)
+    if (wxDirExists(U((home + sub[i]).c_str()))) return home + sub[i];
+  return Ecce::realUserHome();
+}
+
+void GromacsPreparePanel::OnMinffCell(wxCommandEvent&)
+{
+  Preferences prefs("GromacsPrepare");
+  string dir = cellStartDir();
   ewxFileDialog dlg(this, _("Choose the mineral unit cell"), dir, "",
                     "Structures (*.pdb;*.gro;*.cif)|*.pdb;*.gro;*.cif|All files|*",
                     wxFD_OPEN | wxFD_FILE_MUST_EXIST, wxDefaultPosition);
@@ -1745,6 +1850,9 @@ string GromacsPreparePanel::summary() const
      << " bend=" << p_model->clayffBend()
      << " rigid=" << (p_model->clayffRigidWater() ? 1 : 0)
      << " buildwarn=" << (p_buildWarnings.empty() ? 0 : 1)
-     << " cellwarning=" << (cellWarning().empty() ? 0 : 1);
+     << " cellwarning=" << (cellWarning().empty() ? 0 : 1)
+     << " repshown=" << p_mrep->GetValue().ToUTF8()
+     << " source_label=" << p_source->GetString(p_source->GetSelection()).ToUTF8()
+     << " mineral_title=" << p_mineralBox->GetLabel().ToUTF8();
   return os.str();
 }

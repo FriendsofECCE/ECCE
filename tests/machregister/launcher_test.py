@@ -65,7 +65,7 @@ def launchwarn_check(disp, build, tmp):
     e = g.Env(tmp, "launcher-warn")
     for answer, want in (("cancel", "cancel"), ("yes", "go")):
         g.write(os.path.join(e.root, "lscript"),
-                "launchwarn 'grompp warns about the inputs. The job will fail at this point when it is run.'\nquit\n")
+                "launchwarn 'The job will stop at grompp with this error:\\n\\nNet charge 1 e. With PME, a net charge adds a uniform background charge.\\nECCE-ORIGINAL-MESSAGE\\nWARNING 1 [file topol.top]:\\n  Ewald electrostatics in a system with net charge.'\nquit\n")
         env = e.env(disp)
         env.pop("ECCE_MACHREG_SCRIPT", None)
         env.update({"ECCE_REALUSER": "eccetest", "ECCE_TEST_DIALOG_CLOSE": "1",
@@ -74,7 +74,10 @@ def launchwarn_check(disp, build, tmp):
         p = subprocess.run([os.path.join(build, "launcher")], env=env, cwd=e.root,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            text=True, timeout=120)
-        g.check("[Launch check] grompp warns" in p.stdout
+        g.check("[Launch check] The job will stop at grompp with this error:" in p.stdout
+                and "Net charge 1 e. With PME" in p.stdout
+                and "ECCE_TEST_DIALOG_DETAILS: WARNING 1 [file topol.top]:" in p.stdout
+                and "Ewald electrostatics in a system" in p.stdout
                 and "launchwarn: %s" % want in p.stdout,
                 "launch-check dialog answered %s: %s" % (answer, want))
 

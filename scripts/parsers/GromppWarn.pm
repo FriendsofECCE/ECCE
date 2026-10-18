@@ -34,6 +34,66 @@ our @TABLE = (
 
 our $CHARGE_LIMIT = 1e-4;
 
+# The common warnings that stop a job, in ECCE's own words for the launch
+# check's dialog: what it is and what to change, impersonal and action first.
+# grompp's text is shown beside it.  A warning matching no row is shown as
+# grompp wrote it.  Each text is a sub of the parsed warning.
+our @EXPLAIN = (
+  { re => 'Ewald electrostatics in a system with net charge',
+    text => sub {
+      my ($w) = @_;
+      my $lead = "The system has a net charge.";
+      if (defined($w->{charge})) {
+        my $q = sprintf("%.3f", $w->{charge}); $q =~ s/\.?0+$//;
+        $q =~ s/^-/\xe2\x88\x92/;
+        $lead = "Net charge $q e.";
+      }
+      return "$lead With PME, a net charge adds a uniform background charge that can "
+           . "cause artefacts. Neutralise the system with counter-ions "
+           . "(Prepare: Neutralise), optionally with added salt.";
+    } },
+  { re => 'should be at least [0-9]+ times larger than nst[tp]couple',
+    text => sub {
+      my ($w) = @_;
+      if ($w->{text} =~ /tau-([tp]) \(([0-9.eE+-]+)\) should be at least ([0-9]+) times larger than nst[tp]couple\*dt \(([0-9.eE+-]+)\)/) {
+        my ($k, $tau, $times, $dt) = ($1, $2, $3, $4);
+        my ($what, $step) = $k eq 't' ? ("thermostat", "nsttcouple") : ("barostat", "nstpcouple");
+        my $min = sprintf("%.3g", $times * $dt);
+        return "The $what coupling time tau-$k ($tau ps) is too short for its coupling interval "
+             . "($step*dt = $dt ps). Raise tau-$k to $min ps or more in the task, or shorten $step.";
+      }
+      return undef;
+    } },
+  { re => 'constraints on all bonds',
+    text => sub {
+      return "Every bond is constrained, but this force field was parametrised with constraints "
+           . "on bonds to hydrogen only. Choose h-bonds for constraints in the task, which is also faster.";
+    } },
+  { re => 'plain Coulomb cut-off',
+    text => sub {
+      return "Plain Coulomb cut-off electrostatics can produce artefacts. Choose PME for "
+           . "coulombtype in the task.";
+    } },
+  { re => 'center of mass motion in the presence of position restraints',
+    text => sub {
+      return "Removing centre-of-mass motion while atoms are position-restrained can cause "
+           . "artefacts; they are usually negligible when a macromolecule is restrained to "
+           . "equilibrate it. Set comm-mode to None in the task to avoid them.";
+    } },
+);
+
+# ECCE's own text for a warning from parse(), or undef when there is none.
+sub explain
+{
+  my ($w) = @_;
+  foreach my $e (@EXPLAIN) {
+    next if ($w->{text} !~ /$e->{re}/);
+    my $t = $e->{text}->($w);
+    return $t if (defined($t));
+  }
+  return undef;
+}
+
 # The warnings in grompp's output, each as { head, text, harmless, why } (text
 # on one line).  $intended: the topology carries the Prepare's marker for a
 # net charge left on purpose.
@@ -59,6 +119,7 @@ sub parse
   }
   push(@w, $cur) if ($cur);
   foreach my $w (@w) {
+    $w->{charge} = $charge;
     $w->{harmless} = 0;
     foreach my $e (@TABLE) {
       next if ($w->{text} !~ /$e->{re}/);

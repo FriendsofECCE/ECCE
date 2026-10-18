@@ -10,7 +10,9 @@
 #   that grompp needs are there, and, if gmx is on this machine, runs grompp
 #   on them into a scratch .tpr.  grompp's diagnostics are good -- a
 #   topology that does not match the structure is the first thing a new user
-#   hits -- and are passed on as they are.  Nothing here blocks the launch:
+#   hits -- and are passed on as they are, except the common stopping warnings,
+#   which GromppWarn::explain words for the dialog (grompp's text follows the
+#   marker ECCE-ORIGINAL-MESSAGE).  Nothing here blocks the launch:
 #   a rejection or a stopping warning is printed after the line
 #   ECCE-LAUNCH-WARNING and the exit status is 0; Launch hands the text to the
 #   Launcher, which asks whether to launch anyway.  Harmless warnings are not
@@ -125,7 +127,7 @@ if ($status != 0) {
   for (my $i = 0; $i < scalar(@lines); $i++) {
     if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
   }
-  warnAndExit("grompp rejects the inputs.", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
+  warnAndExit("grompp", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
 }
 my $intended = 0;
 if (open(my $tp, "<", "$work/topol.top")) {
@@ -136,18 +138,25 @@ if (open(my $tp, "<", "$work/topol.top")) {
 my @warn = GromppWarn::parse($out, $intended);
 my @stop = grep { !$_->{harmless} } @warn;
 if (@stop) {
-  warnAndExit("grompp warns about the inputs.",
-              join("\n\n", map { $_->{text} } @stop));
+  # ECCE's text where there is one, grompp's own otherwise; grompp's message
+  # in full goes after the marker for the dialog's closed pane.
+  my @own = map { GromppWarn::explain($_) } @stop;
+  my $body = join("\n\n", map { GromppWarn::explain($_) // $_->{text} } @stop);
+  my $original = scalar(grep { defined } @own)
+               ? join("\n\n", map { "$_->{head}\n  $_->{text}" } @stop) : "";
+  warnAndExit("grompp", $body, $original);
 }
 print "grompp accepted the inputs.\n";
 exit 0;
 
-# Report a problem the job will meet and leave the decision to the user.
+# Report a problem the job will meet and leave the decision to the user: the
+# tool the job stops at, the text for the dialog and, when ECCE reworded the
+# tool's message, the original (the dialog shows it in a closed pane).
 sub warnAndExit
 {
-  my ($what, $detail) = @_;
-  print "ECCE-LAUNCH-WARNING\n$what The job will fail at this point when it is run: "
-      . "the job script runs grompp again, and lets through only the harmless warnings.\n\n$detail\n";
+  my ($tool, $detail, $original) = @_;
+  print "ECCE-LAUNCH-WARNING\nThe job will stop at $tool with this error:\n\n$detail\n";
+  print "ECCE-ORIGINAL-MESSAGE\n$original\n" if (defined($original) && $original ne "");
   exit 0;
 }
 
@@ -218,7 +227,7 @@ sub checkPrepare
     for (my $i = 0; $i < scalar(@lines); $i++) {
       if ($lines[$i] =~ /(is missing in residue|not found in|^Fatal error|^Program:)/) { $first = $i; last; }
     }
-    warnAndExit("pdb2gmx rejects the structure.", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
+    warnAndExit("pdb2gmx", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
   }
   print "pdb2gmx accepted the structure.\n";
   exit 0;
@@ -297,7 +306,7 @@ sub checkMinff
     for (my $i = 0; $i < scalar(@lines); $i++) {
       if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
     }
-    warnAndExit("grompp rejects the mineral topology.", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
+    warnAndExit("grompp", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
   }
   print "grompp accepted the mineral topology.\n";
   exit 0;

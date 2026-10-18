@@ -5,7 +5,7 @@ area: codereg
 paths: [src/wxgui/mdtools/GromacsPreparePanel.C, include/dsm/GromacsPrepareModel.H, src/dsm/xml/GromacsPrepareModelXMLizer.C, scripts/minff_topology.py, scripts/parsers/md.gmxprep, tests/launch/gromacs_prepare_test.py]
 issues: [930]
 ---
-- **Choice.** The mineral box has "Force field: MINFF | ClayFF" (model
+- **Choice.** The Source entry is "Mineral"; its box is titled "Mineral (MINFF)" or "Mineral (ClayFF)" after the choice in it, "Force field: MINFF | ClayFF" (model
   `mineralForceField`, XML `MineralForceField`, default minff; an older task is
   MINFF). Changing it, the bend or the rigid-water tick marks the build stale.
   With ClayFF the variant, mineral, angle constant and ion-set rows are hidden;

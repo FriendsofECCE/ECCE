@@ -143,8 +143,14 @@ int LauncherScript::runCommand(const vector<string>& w)
         fprintf(stderr, "[LAUNCHER] sizecheck: %s\n",
                 p_frame->confirmQmSize() ? "go" : "cancel");
     else if (cmd == "launchwarn" && n == 2)
+    {
+        // a literal \n in the word stands for a newline
+        string t = w[1];
+        for (size_t at; (at = t.find("\\n")) != string::npos; )
+            t.replace(at, 2, "\n");
         fprintf(stderr, "[LAUNCHER] launchwarn: %s\n",
-                p_frame->confirmLaunchWarning(w[1]) ? "go" : "cancel");
+                p_frame->confirmLaunchWarning(t) ? "go" : "cancel");
+    }
     else if (cmd == "rundir" && n == 2)
         p_frame->setRunDirectory(w[1]);
     else if (cmd == "reload")
