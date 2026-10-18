@@ -12,6 +12,8 @@
  * "nwchem" makes proj-nw/nh3-energy, nh3-geom (run type Geometry) and nh3-orca
  * (an ORCA calculation), nh3-qe (Quantum ESPRESSO), each holding NH3 with a dummy atom X bonded to N,
  * for the Geometry Constraints tests; empty-nw holds no structure.
+ * "cp2k" makes proj-cp2k/si and si-geom (CP2K calculations, run type Energy and
+ * Geometry, holding two silicon atoms in a face-centred cell), which the Calculation Editor turns into a CP2K input file.
  * "summary" reads <scratch-dir>/proj-sum/water-opt (a copy of
  * tests/apps/fixtures/calc-water-opt): the molecule and basis properties,
  * stored on its Parameters documents, must be the calculation's, as the
@@ -25,6 +27,7 @@ using namespace std;
 #include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
 #include "tdat/Fragment.H"
+#include "tdat/LatticeDef.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
@@ -138,6 +141,31 @@ int main(int argc, char **argv)
       }
       Fragment frag(c.name, tags, xyz, 4, bonds);
       check(icalc->fragment(&frag), string("NH3+X stored in ") + c.name);
+      cout << calc->getURL().toString() << endl;
+    }
+    return failures ? 1 : 0;
+  }
+
+  if (mode == "cp2k") {
+    Resource *top = EDSIFactory::getResource(EcceURL("file://" + root));
+    ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+    ResourceType *projType = rd.getResourceType("collection", "ecceProject", "");
+    ResourceType *calcType = rd.getResourceType("virtual_document",
+                                                "ecceCalculation", "CP2K");
+    Resource *proj = top && projType ? top->createChild("proj-cp2k", projType) : 0;
+    vector<string> tags = {"Si", "Si"};
+    const double xyz[] = { 0, 0, 0,   0.96, 0.96, 0.96 };
+    const char *names[] = { "si", "si-geom" };
+    const char *runs[] = { "Energy", "Geometry" };
+    for (int i = 0; i < 2; i++) {
+      Resource *calc = proj && calcType ? proj->createChild(names[i], calcType) : 0;
+      ICalculation *icalc = dynamic_cast<ICalculation*>(calc);
+      check(icalc != 0, string("CP2K calculation ") + names[i] + " created");
+      if (!icalc) return 1;
+      icalc->runtype(TRunType(runs[i], false));
+      Fragment frag(names[i], tags, xyz, 0, 0);
+      frag.setLattice(new LatticeDef(3.84, 3.84, 3.84, 60.0, 60.0, 60.0));
+      check(icalc->fragment(&frag), "two silicon atoms and a cell stored");
       cout << calc->getURL().toString() << endl;
     }
     return failures ? 1 : 0;

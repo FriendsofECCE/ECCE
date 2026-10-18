@@ -1,0 +1,2050 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    cp2k-nio-u-opt
+desc:    cp2k.desc
+fixture: cp2k/nio_u_opt.cp2kout (1857 lines)
+args:    '.' 'Geometry' 'QS' 'GPW' '0'
+
+[VERSION]  Script=cp2k.version  Freq=first  Skip=0  Lines=1
+  Begin=CP2K\| version string
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=27 fed=1 rc=0 first-fed=' CP2K| version string:                                       CP2K version 2025.1'
+    key: VERSION
+      size: 1
+      values: CP2K 2025.1
+
+[TE]  Script=cp2k.energy  Freq=all  Skip=0  Lines=1
+  Begin=ENERGY\| Total FORCE_EVAL
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=903 fed=1 rc=0 first-fed=' ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]           -184.893807342150808'
+    key: TE
+      size: 1
+      values: -184.893807342150808
+      units: Hartree
+  block 2: begin-line=1164 fed=1 rc=0 first-fed=' ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]           -184.925037463868904'
+    key: TE
+      size: 1
+      values: -184.925037463868904
+      units: Hartree
+  block 3: begin-line=1353 fed=1 rc=0 first-fed=' ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]           -184.951807056388532'
+    key: TE
+      size: 1
+      values: -184.951807056388532
+      units: Hartree
+  block 4: begin-line=1516 fed=1 rc=0 first-fed=' ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]           -184.953401787291142'
+    key: TE
+      size: 1
+      values: -184.953401787291142
+      units: Hartree
+
+[EWVEC][DELTAE]  Script=cp2k.ewvec  Freq=all  Skip=0  Lines=1
+  Begin=^\s+\d+\s+(?:OT\s+\w+|\S+/\S+)\s+\S+\s+\S+\s+\S+\s+-?\d+\.\d+\s+-?\d+\.\d+E[-+]\d+\s*$
+  begins=214 delivered=214 buffered_away=0
+  block 1: begin-line=670 fed=1 rc=0 first-fed='     1 OT CG       0.15E+00    0.5     0.32260631      -181.9444823759 -1.82E+02'
+    key: EWVEC
+      size: 1
+      values: -181.9444823759
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.82E+02
+      units: Hartree
+  block 2: begin-line=672 fed=1 rc=0 first-fed='     3 OT CG       0.12E+00    1.0     0.14573230      -184.2298842834 -2.29E+00'
+    key: EWVEC
+      size: 1
+      values: -184.2298842834
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.29E+00
+      units: Hartree
+  block 3: begin-line=674 fed=1 rc=0 first-fed='     5 OT CG       0.15E+00    1.0     0.06799101      -184.6704652219 -4.41E-01'
+    key: EWVEC
+      size: 1
+      values: -184.6704652219
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.41E-01
+      units: Hartree
+  block 4: begin-line=676 fed=1 rc=0 first-fed='     7 OT CG       0.93E-01    1.0     0.03539466      -184.7422319362 -7.18E-02'
+    key: EWVEC
+      size: 1
+      values: -184.7422319362
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.18E-02
+      units: Hartree
+  block 5: begin-line=678 fed=1 rc=0 first-fed='     9 OT CG       0.25E+00    1.1     0.02472383      -184.7954981645 -5.33E-02'
+    key: EWVEC
+      size: 1
+      values: -184.7954981645
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.33E-02
+      units: Hartree
+  block 6: begin-line=680 fed=1 rc=0 first-fed='    11 OT CG       0.49E+00    0.9     0.02119324      -184.8370494294 -4.16E-02'
+    key: EWVEC
+      size: 1
+      values: -184.8370494294
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.16E-02
+      units: Hartree
+  block 7: begin-line=682 fed=1 rc=0 first-fed='    13 OT CG       0.15E+00    0.6     0.02333837      -184.8423280958 -5.28E-03'
+    key: EWVEC
+      size: 1
+      values: -184.8423280958
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.28E-03
+      units: Hartree
+  block 8: begin-line=684 fed=1 rc=0 first-fed='    15 OT CG       0.26E+00    0.9     0.01522708      -184.8656073980 -2.33E-02'
+    key: EWVEC
+      size: 1
+      values: -184.8656073980
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.33E-02
+      units: Hartree
+  block 9: begin-line=686 fed=1 rc=0 first-fed='    17 OT CG       0.22E+00    0.7     0.01637008      -184.8739137140 -8.31E-03'
+    key: EWVEC
+      size: 1
+      values: -184.8739137140
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.31E-03
+      units: Hartree
+  block 10: begin-line=688 fed=1 rc=0 first-fed='    19 OT CG       0.16E+00    1.0     0.00858514      -184.8814997717 -7.59E-03'
+    key: EWVEC
+      size: 1
+      values: -184.8814997717
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.59E-03
+      units: Hartree
+  block 11: begin-line=690 fed=1 rc=0 first-fed='    21 OT CG       0.55E+00    1.0     0.00822648      -184.8881666306 -6.67E-03'
+    key: EWVEC
+      size: 1
+      values: -184.8881666306
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.67E-03
+      units: Hartree
+  block 12: begin-line=692 fed=1 rc=0 first-fed='    23 OT CG       0.25E+00    0.9     0.00568142      -184.8908669399 -2.70E-03'
+    key: EWVEC
+      size: 1
+      values: -184.8908669399
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.70E-03
+      units: Hartree
+  block 13: begin-line=694 fed=1 rc=0 first-fed='    25 OT CG       0.12E+00    1.0     0.00353411      -184.8915137089 -6.47E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8915137089
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.47E-04
+      units: Hartree
+  block 14: begin-line=696 fed=1 rc=0 first-fed='    27 OT CG       0.27E+00    1.0     0.00208127      -184.8920858177 -5.72E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8920858177
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.72E-04
+      units: Hartree
+  block 15: begin-line=698 fed=1 rc=0 first-fed='    29 OT CG       0.34E+00    0.7     0.00157557      -184.8923348080 -2.49E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8923348080
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.49E-04
+      units: Hartree
+  block 16: begin-line=700 fed=1 rc=0 first-fed='    31 OT CG       0.69E+00    1.0     0.00173263      -184.8926250408 -2.90E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8926250408
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.90E-04
+      units: Hartree
+  block 17: begin-line=702 fed=1 rc=0 first-fed='    33 OT CG       0.14E+00    1.0     0.00131552      -184.8926954695 -7.04E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8926954695
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.04E-05
+      units: Hartree
+  block 18: begin-line=704 fed=1 rc=0 first-fed='    35 OT CG       0.27E+00    0.9     0.00093477      -184.8927746960 -7.92E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8927746960
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.92E-05
+      units: Hartree
+  block 19: begin-line=706 fed=1 rc=0 first-fed='    37 OT CG       0.47E+00    1.0     0.00100136      -184.8928444610 -6.98E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8928444610
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.98E-05
+      units: Hartree
+  block 20: begin-line=708 fed=1 rc=0 first-fed='    39 OT CG       0.57E+00    1.0     0.00155750      -184.8929402661 -9.58E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8929402661
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.58E-05
+      units: Hartree
+  block 21: begin-line=710 fed=1 rc=0 first-fed='    41 OT CG       0.17E+00    1.0     0.00129411      -184.8930096122 -6.93E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8930096122
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.93E-05
+      units: Hartree
+  block 22: begin-line=712 fed=1 rc=0 first-fed='    43 OT CG       0.39E+00    0.9     0.00100386      -184.8931228544 -1.13E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8931228544
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.13E-04
+      units: Hartree
+  block 23: begin-line=714 fed=1 rc=0 first-fed='    45 OT CG       0.46E+00    1.0     0.00092381      -184.8932026355 -7.98E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8932026355
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.98E-05
+      units: Hartree
+  block 24: begin-line=716 fed=1 rc=0 first-fed='    47 OT CG       0.36E+00    1.0     0.00123115      -184.8932543305 -5.17E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8932543305
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.17E-05
+      units: Hartree
+  block 25: begin-line=718 fed=1 rc=0 first-fed='    49 OT CG       0.21E+00    1.0     0.00125204      -184.8933082262 -5.39E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8933082262
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.39E-05
+      units: Hartree
+  block 26: begin-line=720 fed=1 rc=0 first-fed='    51 OT CG       0.40E+00    1.0     0.00088546      -184.8934152651 -1.07E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8934152651
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.07E-04
+      units: Hartree
+  block 27: begin-line=722 fed=1 rc=0 first-fed='    53 OT CG       0.51E+00    1.0     0.00083032      -184.8934835603 -6.83E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8934835603
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.83E-05
+      units: Hartree
+  block 28: begin-line=724 fed=1 rc=0 first-fed='    55 OT CG       0.36E+00    1.0     0.00110278      -184.8935247267 -4.12E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8935247267
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.12E-05
+      units: Hartree
+  block 29: begin-line=726 fed=1 rc=0 first-fed='    57 OT CG       0.20E+00    1.1     0.00104146      -184.8935658659 -4.11E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8935658659
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.11E-05
+      units: Hartree
+  block 30: begin-line=728 fed=1 rc=0 first-fed='    59 OT CG       0.37E+00    1.0     0.00081091      -184.8936343214 -6.85E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8936343214
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.85E-05
+      units: Hartree
+  block 31: begin-line=730 fed=1 rc=0 first-fed='    61 OT CG       0.41E+00    1.0     0.00074610      -184.8936794068 -4.51E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8936794068
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.51E-05
+      units: Hartree
+  block 32: begin-line=732 fed=1 rc=0 first-fed='    63 OT CG       0.18E+00    1.0     0.00080203      -184.8936967704 -1.74E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8936967704
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.74E-05
+      units: Hartree
+  block 33: begin-line=734 fed=1 rc=0 first-fed='    65 OT CG       0.31E+00    1.1     0.00049509      -184.8937308098 -3.40E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8937308098
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.40E-05
+      units: Hartree
+  block 34: begin-line=736 fed=1 rc=0 first-fed='    67 OT CG       0.42E+00    0.9     0.00050482      -184.8937483779 -1.76E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8937483779
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.76E-05
+      units: Hartree
+  block 35: begin-line=738 fed=1 rc=0 first-fed='    69 OT CG       0.13E+00    1.0     0.00040534      -184.8937541675 -5.79E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937541675
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.79E-06
+      units: Hartree
+  block 36: begin-line=740 fed=1 rc=0 first-fed='    71 OT CG       0.40E+00    0.6     0.00033635      -184.8937652202 -1.11E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8937652202
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.11E-05
+      units: Hartree
+  block 37: begin-line=742 fed=1 rc=0 first-fed='    73 OT CG       0.32E+00    0.8     0.00028207      -184.8937712611 -6.04E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937712611
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.04E-06
+      units: Hartree
+  block 38: begin-line=744 fed=1 rc=0 first-fed='    75 OT CG       0.15E+00    1.0     0.00025031      -184.8937733205 -2.06E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937733205
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.06E-06
+      units: Hartree
+  block 39: begin-line=746 fed=1 rc=0 first-fed='    77 OT CG       0.28E+00    0.9     0.00018798      -184.8937763207 -3.00E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937763207
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.00E-06
+      units: Hartree
+  block 40: begin-line=748 fed=1 rc=0 first-fed='    79 OT CG       0.58E+00    1.0     0.00023349      -184.8937797809 -3.46E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937797809
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.46E-06
+      units: Hartree
+  block 41: begin-line=750 fed=1 rc=0 first-fed='    81 OT CG       0.16E+00    1.2     0.00023963      -184.8937812912 -1.51E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937812912
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.51E-06
+      units: Hartree
+  block 42: begin-line=752 fed=1 rc=0 first-fed='    83 OT CG       0.55E+00    1.0     0.00026325      -184.8937866183 -5.33E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937866183
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.33E-06
+      units: Hartree
+  block 43: begin-line=754 fed=1 rc=0 first-fed='    85 OT CG       0.49E+00    0.8     0.00030110      -184.8937923607 -5.74E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937923607
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.74E-06
+      units: Hartree
+  block 44: begin-line=756 fed=1 rc=0 first-fed='    87 OT CG       0.13E+00    0.9     0.00022102      -184.8937943378 -1.98E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937943378
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.98E-06
+      units: Hartree
+  block 45: begin-line=758 fed=1 rc=0 first-fed='    89 OT CG       0.40E+00    1.0     0.00022649      -184.8937976197 -3.28E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8937976197
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.28E-06
+      units: Hartree
+  block 46: begin-line=760 fed=1 rc=0 first-fed='    91 OT CG       0.43E+00    0.9     0.00022201      -184.8938013594 -3.74E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8938013594
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.74E-06
+      units: Hartree
+  block 47: begin-line=762 fed=1 rc=0 first-fed='    93 OT CG       0.14E+00    1.0     0.00018419      -184.8938025077 -1.15E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8938025077
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.15E-06
+      units: Hartree
+  block 48: begin-line=764 fed=1 rc=0 first-fed='    95 OT CG       0.35E+00    0.9     0.00012146      -184.8938045056 -2.00E-06'
+    key: EWVEC
+      size: 1
+      values: -184.8938045056
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.00E-06
+      units: Hartree
+  block 49: begin-line=766 fed=1 rc=0 first-fed='    97 OT CG       0.37E+00    0.8     0.00012750      -184.8938054201 -9.15E-07'
+    key: EWVEC
+      size: 1
+      values: -184.8938054201
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.15E-07
+      units: Hartree
+  block 50: begin-line=768 fed=1 rc=0 first-fed='    99 OT CG       0.14E+00    0.9     0.00009515      -184.8938057900 -3.70E-07'
+    key: EWVEC
+      size: 1
+      values: -184.8938057900
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.70E-07
+      units: Hartree
+  block 51: begin-line=770 fed=1 rc=0 first-fed='   101 OT CG       0.33E+00    0.6     0.00006937      -184.8938063000 -5.10E-07'
+    key: EWVEC
+      size: 1
+      values: -184.8938063000
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.10E-07
+      units: Hartree
+  block 52: begin-line=772 fed=1 rc=0 first-fed='   103 OT CG       0.37E+00    0.7     0.00007685      -184.8938066017 -3.02E-07'
+    key: EWVEC
+      size: 1
+      values: -184.8938066017
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.02E-07
+      units: Hartree
+  block 53: begin-line=774 fed=1 rc=0 first-fed='   105 OT CG       0.16E+00    0.7     0.00006456      -184.8938067570 -1.55E-07'
+    key: EWVEC
+      size: 1
+      values: -184.8938067570
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.55E-07
+      units: Hartree
+  block 54: begin-line=776 fed=1 rc=0 first-fed='   107 OT CG       0.25E+00    0.6     0.00003331      -184.8938069311 -1.74E-07'
+    key: EWVEC
+      size: 1
+      values: -184.8938069311
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.74E-07
+      units: Hartree
+  block 55: begin-line=778 fed=1 rc=0 first-fed='   109 OT CG       0.51E+00    1.0     0.00004672      -184.8938070260 -9.48E-08'
+    key: EWVEC
+      size: 1
+      values: -184.8938070260
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.48E-08
+      units: Hartree
+  block 56: begin-line=780 fed=1 rc=0 first-fed='   111 OT CG       0.14E+00    1.0     0.00003411      -184.8938070757 -4.98E-08'
+    key: EWVEC
+      size: 1
+      values: -184.8938070757
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.98E-08
+      units: Hartree
+  block 57: begin-line=782 fed=1 rc=0 first-fed='   113 OT CG       0.48E+00    1.0     0.00002652      -184.8938071701 -9.44E-08'
+    key: EWVEC
+      size: 1
+      values: -184.8938071701
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.44E-08
+      units: Hartree
+  block 58: begin-line=784 fed=1 rc=0 first-fed='   115 OT CG       0.27E+00    0.7     0.00002698      -184.8938072019 -3.18E-08'
+    key: EWVEC
+      size: 1
+      values: -184.8938072019
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.18E-08
+      units: Hartree
+  block 59: begin-line=786 fed=1 rc=0 first-fed='   117 OT CG       0.14E+00    1.0     0.00001898      -184.8938072192 -1.73E-08'
+    key: EWVEC
+      size: 1
+      values: -184.8938072192
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.73E-08
+      units: Hartree
+  block 60: begin-line=788 fed=1 rc=0 first-fed='   119 OT CG       0.43E+00    1.0     0.00001647      -184.8938072449 -2.58E-08'
+    key: EWVEC
+      size: 1
+      values: -184.8938072449
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.58E-08
+      units: Hartree
+  block 61: begin-line=790 fed=1 rc=0 first-fed='   121 OT CG       0.27E+00    0.9     0.00001413      -184.8938072574 -1.24E-08'
+    key: EWVEC
+      size: 1
+      values: -184.8938072574
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.24E-08
+      units: Hartree
+  block 62: begin-line=792 fed=1 rc=0 first-fed='   123 OT CG       0.12E+00    0.9     0.00000992      -184.8938072615 -4.19E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938072615
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.19E-09
+      units: Hartree
+  block 63: begin-line=794 fed=1 rc=0 first-fed='   125 OT CG       0.50E+00    1.0     0.00000855      -184.8938072715 -9.94E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938072715
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.94E-09
+      units: Hartree
+  block 64: begin-line=796 fed=1 rc=0 first-fed='   127 OT CG       0.34E+00    1.0     0.00001375      -184.8938072763 -4.84E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938072763
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.84E-09
+      units: Hartree
+  block 65: begin-line=798 fed=1 rc=0 first-fed='   129 OT CG       0.19E+00    1.0     0.00001069      -184.8938072823 -6.03E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938072823
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.03E-09
+      units: Hartree
+  block 66: begin-line=800 fed=1 rc=0 first-fed='   131 OT CG       0.30E+00    0.9     0.00001347      -184.8938072880 -5.70E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938072880
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.70E-09
+      units: Hartree
+  block 67: begin-line=802 fed=1 rc=0 first-fed='   133 OT CG       0.15E+00    0.8     0.00001000      -184.8938072926 -4.57E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938072926
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.57E-09
+      units: Hartree
+  block 68: begin-line=804 fed=1 rc=0 first-fed='   135 OT CG       0.51E+00    0.8     0.00001264      -184.8938073012 -8.59E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938073012
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.59E-09
+      units: Hartree
+  block 69: begin-line=806 fed=1 rc=0 first-fed='   137 OT CG       0.19E+00    1.0     0.00001431      -184.8938073063 -5.06E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938073063
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.06E-09
+      units: Hartree
+  block 70: begin-line=808 fed=1 rc=0 first-fed='   139 OT CG       0.29E+00    1.0     0.00001153      -184.8938073162 -9.91E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938073162
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.91E-09
+      units: Hartree
+  block 71: begin-line=810 fed=1 rc=0 first-fed='   141 OT CG       0.31E+00    0.8     0.00001347      -184.8938073231 -6.94E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938073231
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.94E-09
+      units: Hartree
+  block 72: begin-line=812 fed=1 rc=0 first-fed='   143 OT CG       0.13E+00    1.0     0.00000851      -184.8938073270 -3.89E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938073270
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.89E-09
+      units: Hartree
+  block 73: begin-line=814 fed=1 rc=0 first-fed='   145 OT CG       0.38E+00    0.7     0.00000686      -184.8938073316 -4.58E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938073316
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.58E-09
+      units: Hartree
+  block 74: begin-line=816 fed=1 rc=0 first-fed='   147 OT CG       0.13E+00    1.1     0.00000592      -184.8938073326 -1.03E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938073326
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.03E-09
+      units: Hartree
+  block 75: begin-line=818 fed=1 rc=0 first-fed='   149 OT CG       0.36E+00    1.0     0.00000460      -184.8938073347 -2.10E-09'
+    key: EWVEC
+      size: 1
+      values: -184.8938073347
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.10E-09
+      units: Hartree
+  block 76: begin-line=820 fed=1 rc=0 first-fed='   151 OT CG       0.23E+00    1.0     0.00000553      -184.8938073355 -8.30E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073355
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.30E-10
+      units: Hartree
+  block 77: begin-line=822 fed=1 rc=0 first-fed='   153 OT CG       0.17E+00    1.0     0.00000364      -184.8938073364 -8.91E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073364
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.91E-10
+      units: Hartree
+  block 78: begin-line=824 fed=1 rc=0 first-fed='   155 OT CG       0.36E+00    0.9     0.00000382      -184.8938073372 -8.01E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073372
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.01E-10
+      units: Hartree
+  block 79: begin-line=826 fed=1 rc=0 first-fed='   157 OT CG       0.15E+00    1.0     0.00000347      -184.8938073376 -3.61E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073376
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.61E-10
+      units: Hartree
+  block 80: begin-line=828 fed=1 rc=0 first-fed='   159 OT CG       0.34E+00    1.0     0.00000303      -184.8938073383 -6.93E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073383
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.93E-10
+      units: Hartree
+  block 81: begin-line=830 fed=1 rc=0 first-fed='   161 OT CG       0.32E+00    0.8     0.00000461      -184.8938073388 -5.00E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073388
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.00E-10
+      units: Hartree
+  block 82: begin-line=832 fed=1 rc=0 first-fed='   163 OT CG       0.17E+00    1.0     0.00000275      -184.8938073394 -6.21E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073394
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.21E-10
+      units: Hartree
+  block 83: begin-line=834 fed=1 rc=0 first-fed='   165 OT CG       0.43E+00    1.0     0.00000349      -184.8938073400 -5.45E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073400
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.45E-10
+      units: Hartree
+  block 84: begin-line=836 fed=1 rc=0 first-fed='   167 OT CG       0.13E+00    1.0     0.00000255      -184.8938073402 -2.57E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073402
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.57E-10
+      units: Hartree
+  block 85: begin-line=838 fed=1 rc=0 first-fed='   169 OT CG       0.50E+00    1.0     0.00000239      -184.8938073408 -5.56E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073408
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.56E-10
+      units: Hartree
+  block 86: begin-line=840 fed=1 rc=0 first-fed='   171 OT CG       0.14E+00    1.1     0.00000225      -184.8938073409 -1.38E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073409
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.38E-10
+      units: Hartree
+  block 87: begin-line=842 fed=1 rc=0 first-fed='   173 OT CG       0.34E+00    1.0     0.00000165      -184.8938073412 -2.87E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073412
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.87E-10
+      units: Hartree
+  block 88: begin-line=844 fed=1 rc=0 first-fed='   175 OT CG       0.22E+00    1.0     0.00000208      -184.8938073413 -1.02E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073413
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.02E-10
+      units: Hartree
+  block 89: begin-line=846 fed=1 rc=0 first-fed='   177 OT CG       0.20E+00    1.0     0.00000134      -184.8938073414 -1.46E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073414
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.46E-10
+      units: Hartree
+  block 90: begin-line=848 fed=1 rc=0 first-fed='   179 OT CG       0.41E+00    1.0     0.00000189      -184.8938073416 -1.24E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073416
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.24E-10
+      units: Hartree
+  block 91: begin-line=850 fed=1 rc=0 first-fed='   181 OT CG       0.14E+00    1.0     0.00000145      -184.8938073417 -8.57E-11'
+    key: EWVEC
+      size: 1
+      values: -184.8938073417
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.57E-11
+      units: Hartree
+  block 92: begin-line=852 fed=1 rc=0 first-fed='   183 OT CG       0.41E+00    1.0     0.00000145      -184.8938073418 -1.45E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073418
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.45E-10
+      units: Hartree
+  block 93: begin-line=854 fed=1 rc=0 first-fed='   185 OT CG       0.19E+00    1.0     0.00000160      -184.8938073419 -6.82E-11'
+    key: EWVEC
+      size: 1
+      values: -184.8938073419
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.82E-11
+      units: Hartree
+  block 94: begin-line=856 fed=1 rc=0 first-fed='   187 OT CG       0.23E+00    1.0     0.00000129      -184.8938073420 -9.78E-11'
+    key: EWVEC
+      size: 1
+      values: -184.8938073420
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.78E-11
+      units: Hartree
+  block 95: begin-line=858 fed=1 rc=0 first-fed='   189 OT CG       0.40E+00    1.0     0.00000163      -184.8938073421 -1.13E-10'
+    key: EWVEC
+      size: 1
+      values: -184.8938073421
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.13E-10
+      units: Hartree
+  block 96: begin-line=860 fed=1 rc=0 first-fed='   191 OT CG       0.11E+00    1.0     0.00000088      -184.8938073421 -4.91E-11'
+    key: EWVEC
+      size: 1
+      values: -184.8938073421
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.91E-11
+      units: Hartree
+  block 97: begin-line=967 fed=1 rc=0 first-fed='     1 OT CG       0.15E+00    0.5     0.01580012      -184.8708455925 -1.85E+02'
+    key: EWVEC
+      size: 1
+      values: -184.8708455925
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.85E+02
+      units: Hartree
+  block 98: begin-line=969 fed=1 rc=0 first-fed='     3 OT CG       0.47E+00    1.0     0.01549862      -184.8870720758 -1.62E-02'
+    key: EWVEC
+      size: 1
+      values: -184.8870720758
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.62E-02
+      units: Hartree
+  block 99: begin-line=971 fed=1 rc=0 first-fed='     5 OT CG       0.19E+00    1.1     0.00541746      -184.8923117182 -5.24E-03'
+    key: EWVEC
+      size: 1
+      values: -184.8923117182
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.24E-03
+      units: Hartree
+  block 100: begin-line=973 fed=1 rc=0 first-fed='     7 OT CG       0.19E+00    1.0     0.00353799      -184.8932242938 -9.13E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8932242938
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.13E-04
+      units: Hartree
+  block 101: begin-line=975 fed=1 rc=0 first-fed='     9 OT CG       0.18E+00    1.0     0.00171746      -184.8936134353 -3.89E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8936134353
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.89E-04
+      units: Hartree
+  block 102: begin-line=977 fed=1 rc=0 first-fed='    11 OT CG       0.57E+00    1.0     0.00123119      -184.8938961730 -2.83E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8938961730
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.83E-04
+      units: Hartree
+  block 103: begin-line=979 fed=1 rc=0 first-fed='    13 OT CG       0.72E+00    1.0     0.00158908      -184.8940803483 -1.84E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8940803483
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.84E-04
+      units: Hartree
+  block 104: begin-line=981 fed=1 rc=0 first-fed='    15 OT CG       0.13E+00    0.9     0.00078774      -184.8941440119 -6.37E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8941440119
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.37E-05
+      units: Hartree
+  block 105: begin-line=983 fed=1 rc=0 first-fed='    17 OT CG       0.52E+00    1.0     0.00043559      -184.8942208627 -7.69E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8942208627
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.69E-05
+      units: Hartree
+  block 106: begin-line=985 fed=1 rc=0 first-fed='    19 OT CG       0.60E+00    1.1     0.00085606      -184.8942409779 -2.01E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8942409779
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.01E-05
+      units: Hartree
+  block 107: begin-line=987 fed=1 rc=0 first-fed='    21 OT CG       0.36E+00    1.0     0.00082365      -184.8942847435 -4.38E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8942847435
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.38E-05
+      units: Hartree
+  block 108: begin-line=989 fed=1 rc=0 first-fed='    23 OT CG       0.64E+00    1.0     0.00076728      -184.8943593290 -7.46E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8943593290
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.46E-05
+      units: Hartree
+  block 109: begin-line=991 fed=1 rc=0 first-fed='    25 OT CG       0.77E+00    1.0     0.00135158      -184.8944423254 -8.30E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8944423254
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.30E-05
+      units: Hartree
+  block 110: begin-line=993 fed=1 rc=0 first-fed='    27 OT CG       0.14E+00    0.9     0.00080324      -184.8944992539 -5.69E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8944992539
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.69E-05
+      units: Hartree
+  block 111: begin-line=995 fed=1 rc=0 first-fed='    29 OT CG       0.55E+00    1.0     0.00109491      -184.8945857709 -8.65E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8945857709
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.65E-05
+      units: Hartree
+  block 112: begin-line=997 fed=1 rc=0 first-fed='    31 OT CG       0.22E+00    0.7     0.00130313      -184.8946406507 -5.49E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8946406507
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.49E-05
+      units: Hartree
+  block 113: begin-line=999 fed=1 rc=0 first-fed='    33 OT CG       0.90E+00    1.0     0.00482528      -184.8950243272 -3.84E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8950243272
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.84E-04
+      units: Hartree
+  block 114: begin-line=1001 fed=1 rc=0 first-fed='    35 OT CG       0.21E-01    1.4     0.00527554      -184.8950858422 -6.15E-05'
+    key: EWVEC
+      size: 1
+      values: -184.8950858422
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.15E-05
+      units: Hartree
+  block 115: begin-line=1003 fed=1 rc=0 first-fed='    37 OT CG       0.83E-01    1.0     0.00409118      -184.8957104092 -6.25E-04'
+    key: EWVEC
+      size: 1
+      values: -184.8957104092
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.25E-04
+      units: Hartree
+  block 116: begin-line=1005 fed=1 rc=0 first-fed='    39 OT CG       0.33E+00    1.3     0.00346358      -184.8972322530 -1.52E-03'
+    key: EWVEC
+      size: 1
+      values: -184.8972322530
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.52E-03
+      units: Hartree
+  block 117: begin-line=1007 fed=1 rc=0 first-fed='    41 OT CG       0.99E+00    1.0     0.01100518      -184.8993638994 -2.13E-03'
+    key: EWVEC
+      size: 1
+      values: -184.8993638994
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.13E-03
+      units: Hartree
+  block 118: begin-line=1009 fed=1 rc=0 first-fed='    43 OT CG       0.10E+00    1.0     0.01111690      -184.9030209311 -3.66E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9030209311
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.66E-03
+      units: Hartree
+  block 119: begin-line=1011 fed=1 rc=0 first-fed='    45 OT CG       0.12E+00    1.0     0.00401276      -184.9056470041 -2.63E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9056470041
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.63E-03
+      units: Hartree
+  block 120: begin-line=1013 fed=1 rc=0 first-fed='    47 OT CG       0.49E+00    0.9     0.00276509      -184.9076648358 -2.02E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9076648358
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.02E-03
+      units: Hartree
+  block 121: begin-line=1015 fed=1 rc=0 first-fed='    49 OT CG       0.13E+01    0.9     0.00508997      -184.9093770232 -1.71E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9093770232
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.71E-03
+      units: Hartree
+  block 122: begin-line=1017 fed=1 rc=0 first-fed='    51 OT CG       0.21E+00    1.0     0.00412662      -184.9104806472 -1.10E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9104806472
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.10E-03
+      units: Hartree
+  block 123: begin-line=1019 fed=1 rc=0 first-fed='    53 OT CG       0.49E+00    0.9     0.00381218      -184.9119257201 -1.45E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9119257201
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.45E-03
+      units: Hartree
+  block 124: begin-line=1021 fed=1 rc=0 first-fed='    55 OT CG       0.16E+01    0.8     0.00831458      -184.9156494464 -3.72E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9156494464
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.72E-03
+      units: Hartree
+  block 125: begin-line=1023 fed=1 rc=0 first-fed='    57 OT CG       0.26E+00    0.9     0.00770532      -184.9184553652 -2.81E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9184553652
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.81E-03
+      units: Hartree
+  block 126: begin-line=1025 fed=1 rc=0 first-fed='    59 OT CG       0.29E+00    0.9     0.00407585      -184.9213629265 -2.91E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9213629265
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.91E-03
+      units: Hartree
+  block 127: begin-line=1027 fed=1 rc=0 first-fed='    61 OT CG       0.34E+00    1.2     0.00228489      -184.9222979659 -9.35E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9222979659
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.35E-04
+      units: Hartree
+  block 128: begin-line=1029 fed=1 rc=0 first-fed='    63 OT CG       0.41E+00    1.0     0.00139224      -184.9226589782 -3.61E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9226589782
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.61E-04
+      units: Hartree
+  block 129: begin-line=1031 fed=1 rc=0 first-fed='    65 OT CG       0.58E+00    1.0     0.00140610      -184.9228474750 -1.88E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9228474750
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.88E-04
+      units: Hartree
+  block 130: begin-line=1033 fed=1 rc=0 first-fed='    67 OT CG       0.44E+00    1.0     0.00116103      -184.9229943751 -1.47E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9229943751
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.47E-04
+      units: Hartree
+  block 131: begin-line=1035 fed=1 rc=0 first-fed='    69 OT CG       0.49E+00    1.0     0.00087425      -184.9231058070 -1.11E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9231058070
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.11E-04
+      units: Hartree
+  block 132: begin-line=1037 fed=1 rc=0 first-fed='    71 OT CG       0.10E+01    1.0     0.00105409      -184.9232364153 -1.31E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9232364153
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.31E-04
+      units: Hartree
+  block 133: begin-line=1039 fed=1 rc=0 first-fed='    73 OT CG       0.33E+00    1.0     0.00077928      -184.9233010518 -6.46E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9233010518
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.46E-05
+      units: Hartree
+  block 134: begin-line=1041 fed=1 rc=0 first-fed='    75 OT CG       0.45E+00    1.0     0.00051834      -184.9233486622 -4.76E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9233486622
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.76E-05
+      units: Hartree
+  block 135: begin-line=1043 fed=1 rc=0 first-fed='    77 OT CG       0.14E+01    1.0     0.00094064      -184.9234109151 -6.23E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9234109151
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.23E-05
+      units: Hartree
+  block 136: begin-line=1045 fed=1 rc=0 first-fed='    79 OT CG       0.64E+00    1.0     0.00136745      -184.9235114575 -1.01E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9235114575
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.01E-04
+      units: Hartree
+  block 137: begin-line=1047 fed=1 rc=0 first-fed='    81 OT CG       0.69E+00    1.0     0.00177696      -184.9237316386 -2.20E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9237316386
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.20E-04
+      units: Hartree
+  block 138: begin-line=1049 fed=1 rc=0 first-fed='    83 OT CG       0.21E+00    1.0     0.00177760      -184.9238536503 -1.22E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9238536503
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.22E-04
+      units: Hartree
+  block 139: begin-line=1051 fed=1 rc=0 first-fed='    85 OT CG       0.39E+00    1.0     0.00136229      -184.9240677473 -2.14E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9240677473
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.14E-04
+      units: Hartree
+  block 140: begin-line=1053 fed=1 rc=0 first-fed='    87 OT CG       0.30E+00    1.0     0.00105776      -184.9241631689 -9.54E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9241631689
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.54E-05
+      units: Hartree
+  block 141: begin-line=1055 fed=1 rc=0 first-fed='    89 OT CG       0.56E+00    1.0     0.00089489      -184.9242693481 -1.06E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9242693481
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.06E-04
+      units: Hartree
+  block 142: begin-line=1057 fed=1 rc=0 first-fed='    91 OT CG       0.72E+00    1.0     0.00075604      -184.9243670070 -9.77E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9243670070
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.77E-05
+      units: Hartree
+  block 143: begin-line=1059 fed=1 rc=0 first-fed='    93 OT CG       0.87E+00    1.0     0.00135902      -184.9244495413 -8.25E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9244495413
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.25E-05
+      units: Hartree
+  block 144: begin-line=1061 fed=1 rc=0 first-fed='    95 OT CG       0.39E+00    1.0     0.00120573      -184.9245820763 -1.33E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9245820763
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.33E-04
+      units: Hartree
+  block 145: begin-line=1063 fed=1 rc=0 first-fed='    97 OT CG       0.80E+00    0.8     0.00114500      -184.9247755162 -1.93E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9247755162
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.93E-04
+      units: Hartree
+  block 146: begin-line=1065 fed=1 rc=0 first-fed='    99 OT CG       0.45E+00    0.9     0.00091717      -184.9248682535 -9.27E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9248682535
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -9.27E-05
+      units: Hartree
+  block 147: begin-line=1067 fed=1 rc=0 first-fed='   101 OT CG       0.37E+00    0.6     0.00089761      -184.9249203617 -5.21E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9249203617
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.21E-05
+      units: Hartree
+  block 148: begin-line=1069 fed=1 rc=0 first-fed='   103 OT CG       0.47E+00    0.6     0.00059492      -184.9249837598 -6.34E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9249837598
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.34E-05
+      units: Hartree
+  block 149: begin-line=1071 fed=1 rc=0 first-fed='   105 OT CG       0.47E+00    1.1     0.00029668      -184.9250111425 -2.74E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9250111425
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.74E-05
+      units: Hartree
+  block 150: begin-line=1073 fed=1 rc=0 first-fed='   107 OT CG       0.45E+00    0.8     0.00027536      -184.9250177815 -6.64E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9250177815
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.64E-06
+      units: Hartree
+  block 151: begin-line=1075 fed=1 rc=0 first-fed='   109 OT CG       0.29E+00    0.8     0.00016160      -184.9250215363 -3.75E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9250215363
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.75E-06
+      units: Hartree
+  block 152: begin-line=1077 fed=1 rc=0 first-fed='   111 OT CG       0.93E+00    1.0     0.00018103      -184.9250256346 -4.10E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9250256346
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.10E-06
+      units: Hartree
+  block 153: begin-line=1079 fed=1 rc=0 first-fed='   113 OT CG       0.72E+00    1.0     0.00020969      -184.9250295980 -3.96E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9250295980
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.96E-06
+      units: Hartree
+  block 154: begin-line=1081 fed=1 rc=0 first-fed='   115 OT CG       0.36E+00    1.0     0.00017394      -184.9250322417 -2.64E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9250322417
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.64E-06
+      units: Hartree
+  block 155: begin-line=1083 fed=1 rc=0 first-fed='   117 OT CG       0.45E+00    1.0     0.00010499      -184.9250345300 -2.29E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9250345300
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.29E-06
+      units: Hartree
+  block 156: begin-line=1085 fed=1 rc=0 first-fed='   119 OT CG       0.60E+00    1.2     0.00007139      -184.9250356432 -1.11E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9250356432
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.11E-06
+      units: Hartree
+  block 157: begin-line=1087 fed=1 rc=0 first-fed='   121 OT CG       0.33E+00    1.0     0.00006036      -184.9250359283 -2.85E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9250359283
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.85E-07
+      units: Hartree
+  block 158: begin-line=1089 fed=1 rc=0 first-fed='   123 OT CG       0.38E+00    1.0     0.00003644      -184.9250361601 -2.32E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9250361601
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.32E-07
+      units: Hartree
+  block 159: begin-line=1091 fed=1 rc=0 first-fed='   125 OT CG       0.10E+01    1.0     0.00003678      -184.9250363874 -2.27E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9250363874
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.27E-07
+      units: Hartree
+  block 160: begin-line=1093 fed=1 rc=0 first-fed='   127 OT CG       0.50E+00    1.0     0.00004813      -184.9250365006 -1.13E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9250365006
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.13E-07
+      units: Hartree
+  block 161: begin-line=1095 fed=1 rc=0 first-fed='   129 OT CG       0.63E+00    1.1     0.00004761      -184.9250367445 -2.44E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9250367445
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.44E-07
+      units: Hartree
+  block 162: begin-line=1097 fed=1 rc=0 first-fed='   131 OT CG       0.99E+00    1.0     0.00005108      -184.9250371226 -3.78E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9250371226
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.78E-07
+      units: Hartree
+  block 163: begin-line=1099 fed=1 rc=0 first-fed='   133 OT CG       0.39E+00    1.0     0.00003464      -184.9250372950 -1.72E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9250372950
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.72E-07
+      units: Hartree
+  block 164: begin-line=1101 fed=1 rc=0 first-fed='   135 OT CG       0.26E+00    1.0     0.00002118      -184.9250373479 -5.30E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9250373479
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.30E-08
+      units: Hartree
+  block 165: begin-line=1103 fed=1 rc=0 first-fed='   137 OT CG       0.58E+00    1.1     0.00001576      -184.9250373920 -4.40E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9250373920
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.40E-08
+      units: Hartree
+  block 166: begin-line=1105 fed=1 rc=0 first-fed='   139 OT CG       0.57E+00    1.0     0.00001226      -184.9250374157 -2.37E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9250374157
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.37E-08
+      units: Hartree
+  block 167: begin-line=1107 fed=1 rc=0 first-fed='   141 OT CG       0.33E+00    1.4     0.00001093      -184.9250374239 -8.22E-09'
+    key: EWVEC
+      size: 1
+      values: -184.9250374239
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.22E-09
+      units: Hartree
+  block 168: begin-line=1109 fed=1 rc=0 first-fed='   143 OT CG       0.61E+00    1.0     0.00000947      -184.9250374361 -1.22E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9250374361
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.22E-08
+      units: Hartree
+  block 169: begin-line=1111 fed=1 rc=0 first-fed='   145 OT CG       0.99E+00    1.3     0.00000977      -184.9250374510 -1.49E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9250374510
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.49E-08
+      units: Hartree
+  block 170: begin-line=1113 fed=1 rc=0 first-fed='   147 OT CG       0.32E+00    0.8     0.00000784      -184.9250374562 -5.12E-09'
+    key: EWVEC
+      size: 1
+      values: -184.9250374562
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.12E-09
+      units: Hartree
+  block 171: begin-line=1115 fed=1 rc=0 first-fed='   149 OT CG       0.41E+00    0.7     0.00000486      -184.9250374604 -4.20E-09'
+    key: EWVEC
+      size: 1
+      values: -184.9250374604
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.20E-09
+      units: Hartree
+  block 172: begin-line=1117 fed=1 rc=0 first-fed='   151 OT CG       0.51E+00    1.0     0.00000350      -184.9250374624 -2.02E-09'
+    key: EWVEC
+      size: 1
+      values: -184.9250374624
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.02E-09
+      units: Hartree
+  block 173: begin-line=1119 fed=1 rc=0 first-fed='   153 OT CG       0.55E+00    1.0     0.00000300      -184.9250374635 -1.12E-09'
+    key: EWVEC
+      size: 1
+      values: -184.9250374635
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.12E-09
+      units: Hartree
+  block 174: begin-line=1121 fed=1 rc=0 first-fed='   155 OT CG       0.21E+00    1.0     0.00000094      -184.9250374638 -3.10E-10'
+    key: EWVEC
+      size: 1
+      values: -184.9250374638
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.10E-10
+      units: Hartree
+  block 175: begin-line=1258 fed=1 rc=0 first-fed='     1 OT CG       0.15E+00    0.3     0.02339124      -184.8978444128 -1.85E+02'
+    key: EWVEC
+      size: 1
+      values: -184.8978444128
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.85E+02
+      units: Hartree
+  block 176: begin-line=1260 fed=1 rc=0 first-fed='     3 OT CG       0.51E+00    0.9     0.01191654      -184.9437013300 -4.59E-02'
+    key: EWVEC
+      size: 1
+      values: -184.9437013300
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.59E-02
+      units: Hartree
+  block 177: begin-line=1262 fed=1 rc=0 first-fed='     5 OT CG       0.25E+00    1.0     0.00657873      -184.9492902596 -5.59E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9492902596
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.59E-03
+      units: Hartree
+  block 178: begin-line=1264 fed=1 rc=0 first-fed='     7 OT CG       0.16E+00    1.0     0.00300384      -184.9503966525 -1.11E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9503966525
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.11E-03
+      units: Hartree
+  block 179: begin-line=1266 fed=1 rc=0 first-fed='     9 OT CG       0.47E+00    1.0     0.00112313      -184.9511156195 -7.19E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9511156195
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.19E-04
+      units: Hartree
+  block 180: begin-line=1268 fed=1 rc=0 first-fed='    11 OT CG       0.63E+00    1.0     0.00075908      -184.9512495430 -1.34E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9512495430
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.34E-04
+      units: Hartree
+  block 181: begin-line=1270 fed=1 rc=0 first-fed='    13 OT CG       0.32E+00    1.0     0.00070502      -184.9512803392 -3.08E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9512803392
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.08E-05
+      units: Hartree
+  block 182: begin-line=1272 fed=1 rc=0 first-fed='    15 OT CG       0.25E+00    1.0     0.00045729      -184.9513013428 -2.10E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9513013428
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.10E-05
+      units: Hartree
+  block 183: begin-line=1274 fed=1 rc=0 first-fed='    17 OT CG       0.10E+01    1.1     0.00052561      -184.9513525862 -5.12E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9513525862
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.12E-05
+      units: Hartree
+  block 184: begin-line=1276 fed=1 rc=0 first-fed='    19 OT CG       0.28E+01    1.3     0.00185356      -184.9515011056 -1.49E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9515011056
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.49E-04
+      units: Hartree
+  block 185: begin-line=1278 fed=1 rc=0 first-fed='    21 OT CG       0.28E-01    1.0     0.00192697      -184.9515176784 -1.66E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9515176784
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.66E-05
+      units: Hartree
+  block 186: begin-line=1280 fed=1 rc=0 first-fed='    23 OT CG       0.11E+00    1.0     0.00117620      -184.9516294880 -1.12E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9516294880
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.12E-04
+      units: Hartree
+  block 187: begin-line=1282 fed=1 rc=0 first-fed='    25 OT CG       0.36E+00    1.0     0.00045082      -184.9517123513 -8.29E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9517123513
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.29E-05
+      units: Hartree
+  block 188: begin-line=1284 fed=1 rc=0 first-fed='    27 OT CG       0.71E+00    1.0     0.00061234      -184.9517366827 -2.43E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9517366827
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.43E-05
+      units: Hartree
+  block 189: begin-line=1286 fed=1 rc=0 first-fed='    29 OT CG       0.31E+00    1.0     0.00061663      -184.9517566441 -2.00E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9517566441
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.00E-05
+      units: Hartree
+  block 190: begin-line=1288 fed=1 rc=0 first-fed='    31 OT CG       0.48E+00    1.0     0.00041996      -184.9517868300 -3.02E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9517868300
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.02E-05
+      units: Hartree
+  block 191: begin-line=1290 fed=1 rc=0 first-fed='    33 OT CG       0.51E+00    1.0     0.00019654      -184.9518014961 -1.47E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9518014961
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.47E-05
+      units: Hartree
+  block 192: begin-line=1292 fed=1 rc=0 first-fed='    35 OT CG       0.65E+00    1.0     0.00018487      -184.9518057060 -4.21E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9518057060
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.21E-06
+      units: Hartree
+  block 193: begin-line=1294 fed=1 rc=0 first-fed='    37 OT CG       0.15E+00    1.0     0.00006497      -184.9518065662 -8.60E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9518065662
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.60E-07
+      units: Hartree
+  block 194: begin-line=1296 fed=1 rc=0 first-fed='    39 OT CG       0.56E+00    1.0     0.00002366      -184.9518069662 -4.00E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9518069662
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.00E-07
+      units: Hartree
+  block 195: begin-line=1298 fed=1 rc=0 first-fed='    41 OT CG       0.50E+00    0.9     0.00001367      -184.9518070129 -4.67E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9518070129
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.67E-08
+      units: Hartree
+  block 196: begin-line=1300 fed=1 rc=0 first-fed='    43 OT CG       0.72E+00    0.8     0.00001007      -184.9518070356 -2.27E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9518070356
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.27E-08
+      units: Hartree
+  block 197: begin-line=1302 fed=1 rc=0 first-fed='    45 OT CG       0.42E+00    1.7     0.00001321      -184.9518070427 -7.07E-09'
+    key: EWVEC
+      size: 1
+      values: -184.9518070427
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.07E-09
+      units: Hartree
+  block 198: begin-line=1304 fed=1 rc=0 first-fed='    47 OT CG       0.34E+00    0.9     0.00000668      -184.9518070527 -1.00E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9518070527
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.00E-08
+      units: Hartree
+  block 199: begin-line=1306 fed=1 rc=0 first-fed='    49 OT CG       0.38E+00    0.8     0.00000276      -184.9518070556 -2.83E-09'
+    key: EWVEC
+      size: 1
+      values: -184.9518070556
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.83E-09
+      units: Hartree
+  block 200: begin-line=1308 fed=1 rc=0 first-fed='    51 OT CG       0.58E+00    1.0     0.00000117      -184.9518070563 -7.37E-10'
+    key: EWVEC
+      size: 1
+      values: -184.9518070563
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -7.37E-10
+      units: Hartree
+  block 201: begin-line=1310 fed=1 rc=0 first-fed='    53 OT CG       0.49E+00    1.0     0.00000077      -184.9518070564 -1.13E-10'
+    key: EWVEC
+      size: 1
+      values: -184.9518070564
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.13E-10
+      units: Hartree
+  block 202: begin-line=1449 fed=1 rc=0 first-fed='     1 OT CG       0.15E+00    0.3     0.03206802      -184.8771867005 -1.85E+02'
+    key: EWVEC
+      size: 1
+      values: -184.8771867005
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.85E+02
+      units: Hartree
+  block 203: begin-line=1451 fed=1 rc=0 first-fed='     3 OT CG       0.39E+00    0.6     0.01596587      -184.9449692655 -6.78E-02'
+    key: EWVEC
+      size: 1
+      values: -184.9449692655
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.78E-02
+      units: Hartree
+  block 204: begin-line=1453 fed=1 rc=0 first-fed='     5 OT CG       0.14E+00    1.0     0.00524776      -184.9510256535 -6.06E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9510256535
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.06E-03
+      units: Hartree
+  block 205: begin-line=1455 fed=1 rc=0 first-fed='     7 OT CG       0.46E+00    0.9     0.00200750      -184.9531138212 -2.09E-03'
+    key: EWVEC
+      size: 1
+      values: -184.9531138212
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.09E-03
+      units: Hartree
+  block 206: begin-line=1457 fed=1 rc=0 first-fed='     9 OT CG       0.27E+00    0.6     0.00150363      -184.9532939820 -1.80E-04'
+    key: EWVEC
+      size: 1
+      values: -184.9532939820
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -1.80E-04
+      units: Hartree
+  block 207: begin-line=1459 fed=1 rc=0 first-fed='    11 OT CG       0.21E+00    0.6     0.00053577      -184.9533752256 -8.12E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9533752256
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.12E-05
+      units: Hartree
+  block 208: begin-line=1461 fed=1 rc=0 first-fed='    13 OT CG       0.43E+00    0.6     0.00022986      -184.9533960143 -2.08E-05'
+    key: EWVEC
+      size: 1
+      values: -184.9533960143
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.08E-05
+      units: Hartree
+  block 209: begin-line=1463 fed=1 rc=0 first-fed='    15 OT CG       0.48E+00    0.6     0.00017498      -184.9534002635 -4.25E-06'
+    key: EWVEC
+      size: 1
+      values: -184.9534002635
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.25E-06
+      units: Hartree
+  block 210: begin-line=1465 fed=1 rc=0 first-fed='    17 OT CG       0.17E+00    0.6     0.00008263      -184.9534011616 -8.98E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9534011616
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.98E-07
+      units: Hartree
+  block 211: begin-line=1467 fed=1 rc=0 first-fed='    19 OT CG       0.51E+00    0.6     0.00002163      -184.9534017484 -5.87E-07'
+    key: EWVEC
+      size: 1
+      values: -184.9534017484
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -5.87E-07
+      units: Hartree
+  block 212: begin-line=1469 fed=1 rc=0 first-fed='    21 OT CG       0.41E+00    0.6     0.00001545      -184.9534017803 -3.19E-08'
+    key: EWVEC
+      size: 1
+      values: -184.9534017803
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.19E-08
+      units: Hartree
+  block 213: begin-line=1471 fed=1 rc=0 first-fed='    23 OT CG       0.15E+00    0.6     0.00000338      -184.9534017864 -6.07E-09'
+    key: EWVEC
+      size: 1
+      values: -184.9534017864
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.07E-09
+      units: Hartree
+  block 214: begin-line=1473 fed=1 rc=0 first-fed='    25 OT CG       0.44E+00    0.6     0.00000090      -184.9534017873 -8.53E-10'
+    key: EWVEC
+      size: 1
+      values: -184.9534017873
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.53E-10
+      units: Hartree
+
+[GEOMTRACE][TEVEC]  Script=cp2k.geomtrace  Freq=all  Skip=0  Lines=-
+  Begin=^\s+i =\s+\d+,\s+E =\s+-?\d
+  End=^\s*$
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=1173 fed=4 rc=0 first-fed=' i =        1, E =      -184.9250374639'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-Ni 2-O
+      columnlabels: X Y Z
+      values: -0.1299875686 -0.1044142152 -0.0681130963 2.0859915441 2.1437890657 2.0902124094
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -184.9250374639
+      units: Hartree
+  block 2: begin-line=1362 fed=4 rc=0 first-fed=' i =        2, E =      -184.9518070564'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-Ni 2-O
+      columnlabels: X Y Z
+      values: -0.3799875686 -0.0736177866 -0.1832932442 2.1470463742 2.2542901547 2.1648342709
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -184.9518070564
+      units: Hartree
+  block 3: begin-line=1525 fed=4 rc=0 first-fed=' i =        3, E =      -184.9534017873'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-Ni 2-O
+      columnlabels: X Y Z
+      values: -0.6299875686 -0.1382321717 -0.2194583369 2.1103684983 2.3071181310 2.2146488910
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -184.9534017873
+      units: Hartree
+
+[EGRADVEC]  Script=cp2k.egradvec  Freq=last  Skip=2  Lines=-
+  Begin=FORCES\| Atomic forces
+  End=FORCES\| Sum
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=1518 fed=3 rc=0 first-fed=' FORCES|      1  2.10569809E-01 -7.96336631E-02 -8.15950605E-02   2.39455463E-01'
+    key: EGRADVEC
+      size: 2 3
+      rowlabels: 1 2
+      columnlabels: X Y Z
+      values: -0.2105698090 0.0796336631 0.0815950605 0.1160781450 -0.0791015355 -0.0702766156
+      units: Hartree/Bohr
+
+[MULLIKEN][SPINMOM]  Script=cp2k.mulliken  Freq=last  Skip=1  Lines=-
+  Begin=Mulliken Population Analysis
+  End=^\s*#\s+Total charge
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=1497 fed=5 rc=0 first-fed=''
+    key: MULLIKEN
+      size: 2
+      values: 0.356777 -0.356777
+      units: e
+    key: SPINMOM
+      size: 2
+      values: 0.814907 1.185093
+      units: e
+
+[HIRSHFELD]  Script=cp2k.hirshfeld  Freq=last  Skip=1  Lines=-
+  Begin=Hirshfeld Charges
+  End=^\s+Total Charge
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=1507 fed=6 rc=0 first-fed=''
+    key: HIRSHFELD
+      size: 2
+      values: -0.897 0.897
+      units: e
+
+[ETIME]  Script=cp2k.time  Freq=last  Skip=0  Lines=1
+  Begin=^\s*CP2K\s+1\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s*$
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1814 fed=1 rc=0 first-fed=' CP2K                                 1  1.0    0.004    0.007  300.118  300.118'
+    key: ETIME
+      size: 1
+      values: 300.118
+

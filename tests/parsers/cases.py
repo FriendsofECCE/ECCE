@@ -2257,6 +2257,77 @@ CASES = [
         },
     ),
 
+    # -----------------------------------------------------------------
+    # CP2K 2025.1 (Quickstep), #329.  The decks were written by ai.cp2k and
+    # run by the real cp2k.psmp (tests/cp2k_features keeps them), so these
+    # cases exercise the generator and the parsers together.  CP2K prints
+    # Hartree, which is what ECCE stores, so there is no conversion to pin:
+    # the values are the ones CP2K printed.
+    # -----------------------------------------------------------------
+    dict(
+        #  Bulk silicon, PBE, OT SCF, RUN_TYPE ENERGY_FORCE: 35 SCF
+        #  iterations in one table, the final energy, the forces block and
+        #  both population tables of a restricted run.
+        name='cp2k-si-scf',
+        desc='cp2k.desc',
+        fixture='cp2k/si_scf.cp2kout',
+        parse_args=('.', 'Energy', 'QS', 'GPW', '0'),
+        expect={
+            'VERSION': dict(keys={'VERSION': {'values': 'CP2K 2025.1'}}),
+            'TE': dict(blocks=1, keys={
+                'TE': {'values': '-7.244611704690247', 'units': 'Hartree'}}),
+            #  One line per OT step; the line-search rows ("OT LS") have no
+            #  change column and must not be counted.
+            'EWVEC][DELTAE': dict(blocks=35, keys={
+                'EWVEC': {'values': '-7.2446117047', 'units': 'Hartree'},
+                'DELTAE': {'units': 'Hartree'}}),
+            'EGRADVEC': dict(blocks=1, keys={'EGRADVEC': {
+                'size': '2 3', 'rowlabels': '1 2', 'columnlabels': 'X Y Z',
+                'units': 'Hartree/Bohr'}}),
+            'MULLIKEN][SPINMOM': dict(blocks=1, keys={
+                'MULLIKEN': {'size': '2', 'units': 'e'}}),
+            'HIRSHFELD': dict(blocks=1, keys={
+                'HIRSHFELD': {'size': '2', 'units': 'e'}}),
+            'ETIME': dict(blocks=1, keys={'ETIME': {}}),
+        },
+    ),
+    dict(
+        #  The same cell without OT (diagonalisation, Broyden mixing, 300 K
+        #  smearing, no forces): the SCF table's method column is one word
+        #  (NoMix/Diag., Broy./Diag.) and its first row has no mixing.
+        name='cp2k-si-diag',
+        desc='cp2k.desc',
+        fixture='cp2k/si_diag.cp2kout',
+        parse_args=('.', 'Energy', 'QS', 'GPW', '0'),
+        expect={
+            'EWVEC][DELTAE': dict(blocks=8, keys={
+                'EWVEC': {'units': 'Hartree'}, 'DELTAE': {'units': 'Hartree'}}),
+            'TE': dict(blocks=1, keys={'TE': {'units': 'Hartree'}}),
+        },
+    ),
+    dict(
+        #  A NiO cell, U on Ni 3d, UKS with multiplicity 3, GEO_OPT stopped
+        #  after 3 steps: three trajectory frames (each carries its own
+        #  energy, so TEVEC is as long as GEOMTRACE), the forces after every
+        #  step (the last is kept), and the unrestricted Mulliken table with
+        #  a spin moment per atom.
+        name='cp2k-nio-u-opt',
+        desc='cp2k.desc',
+        fixture='cp2k/nio_u_opt.cp2kout',
+        parse_args=('.', 'Geometry', 'QS', 'GPW', '0'),
+        expect={
+            'GEOMTRACE][TEVEC': dict(blocks=3, keys={
+                'GEOMTRACE': {'size': '1 2 3', 'rowlabels': '1-Ni 2-O',
+                              'columnlabels': 'X Y Z', 'units': 'Angstrom'},
+                'TEVEC': {'values': '-184.9534017873', 'units': 'Hartree'}}),
+            'EGRADVEC': dict(blocks=1, keys={'EGRADVEC': {
+                'size': '2 3', 'units': 'Hartree/Bohr'}}),
+            'MULLIKEN][SPINMOM': dict(blocks=1, keys={
+                'MULLIKEN': {'size': '2', 'units': 'e'},
+                'SPINMOM': {'size': '2', 'units': 'e'}}),
+            'HIRSHFELD': dict(blocks=1, keys={'HIRSHFELD': {'size': '2'}}),
+        },
+    ),
 ]
 
 

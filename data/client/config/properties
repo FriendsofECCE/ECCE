@@ -304,6 +304,7 @@ Charge		Mulliken Charges			MULLIKEN	Charge		PropVector<Atom>
 Charge		Mulliken Shell Charges			MLKNSHELL	Charge		PropVector<Unknown>
 Charge		Loewdin Charges			LOEWDIN	Charge		PropVector<Atom>
 Charge		Hirshfeld Charges			HIRSHFELD	Charge		PropVector<Atom>
+Charge		Mulliken Spin Moments			SPINMOM	Charge		PropVector<Atom>
 Charge		CM5 Charges			CM5	Charge		PropVector<Atom>
 Charge		MBIS Charges			MBIS	Charge		PropVector<Atom>
 Charge		Natural (NPA) Charges			NPA	Charge		PropVector<Atom>

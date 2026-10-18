@@ -1,0 +1,127 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    cp2k-si-diag
+desc:    cp2k.desc
+fixture: cp2k/si_diag.cp2kout (799 lines)
+args:    '.' 'Energy' 'QS' 'GPW' '0'
+
+[VERSION]  Script=cp2k.version  Freq=first  Skip=0  Lines=1
+  Begin=CP2K\| version string
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=27 fed=1 rc=0 first-fed=' CP2K| version string:                                       CP2K version 2025.1'
+    key: VERSION
+      size: 1
+      values: CP2K 2025.1
+
+[TE]  Script=cp2k.energy  Freq=all  Skip=0  Lines=1
+  Begin=ENERGY\| Total FORCE_EVAL
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=572 fed=1 rc=0 first-fed=' ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]             -7.244608106117271'
+    key: TE
+      size: 1
+      values: -7.244608106117271
+      units: Hartree
+
+[EWVEC][DELTAE]  Script=cp2k.ewvec  Freq=all  Skip=0  Lines=1
+  Begin=^\s+\d+\s+(?:OT\s+\w+|\S+/\S+)\s+\S+\s+\S+\s+\S+\s+-?\d+\.\d+\s+-?\d+\.\d+E[-+]\d+\s*$
+  begins=8 delivered=8 buffered_away=0
+  block 1: begin-line=525 fed=1 rc=0 first-fed='     1 NoMix/Diag. 0.40E+00    0.1     1.70734139        -8.3783627455 -8.38E+00'
+    key: EWVEC
+      size: 1
+      values: -8.3783627455
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -8.38E+00
+      units: Hartree
+  block 2: begin-line=526 fed=1 rc=0 first-fed='     2 Broy./Diag. 0.40E+00    0.2     0.01529935        -7.2032662646  1.18E+00'
+    key: EWVEC
+      size: 1
+      values: -7.2032662646
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: 1.18E+00
+      units: Hartree
+  block 3: begin-line=527 fed=1 rc=0 first-fed='     3 Broy./Diag. 0.40E+00    0.2     0.02730720        -7.2024666795  8.00E-04'
+    key: EWVEC
+      size: 1
+      values: -7.2024666795
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: 8.00E-04
+      units: Hartree
+  block 4: begin-line=528 fed=1 rc=0 first-fed='     4 Broy./Diag. 0.40E+00    0.2     0.00114981        -7.2412276563 -3.88E-02'
+    key: EWVEC
+      size: 1
+      values: -7.2412276563
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -3.88E-02
+      units: Hartree
+  block 5: begin-line=529 fed=1 rc=0 first-fed='     5 Broy./Diag. 0.40E+00    0.2     0.00119333        -7.2440412891 -2.81E-03'
+    key: EWVEC
+      size: 1
+      values: -7.2440412891
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -2.81E-03
+      units: Hartree
+  block 6: begin-line=530 fed=1 rc=0 first-fed='     6 Broy./Diag. 0.40E+00    0.2     0.00001324        -7.2447037237 -6.62E-04'
+    key: EWVEC
+      size: 1
+      values: -7.2447037237
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -6.62E-04
+      units: Hartree
+  block 7: begin-line=531 fed=1 rc=0 first-fed='     7 Broy./Diag. 0.40E+00    0.2     0.00001101        -7.2446035119  1.00E-04'
+    key: EWVEC
+      size: 1
+      values: -7.2446035119
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: 1.00E-04
+      units: Hartree
+  block 8: begin-line=532 fed=1 rc=0 first-fed='     8 Broy./Diag. 0.40E+00    0.2     0.00000030        -7.2446081061 -4.59E-06'
+    key: EWVEC
+      size: 1
+      values: -7.2446081061
+      units: Hartree
+    key: DELTAE
+      size: 1
+      values: -4.59E-06
+      units: Hartree
+
+[MULLIKEN][SPINMOM]  Script=cp2k.mulliken  Freq=last  Skip=1  Lines=-
+  Begin=Mulliken Population Analysis
+  End=^\s*#\s+Total charge
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=553 fed=5 rc=0 first-fed=''
+    key: MULLIKEN
+      size: 2
+      values: 0.000013 -0.000013
+      units: e
+
+[HIRSHFELD]  Script=cp2k.hirshfeld  Freq=last  Skip=1  Lines=-
+  Begin=Hirshfeld Charges
+  End=^\s+Total Charge
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=563 fed=6 rc=0 first-fed=''
+    key: HIRSHFELD
+      size: 2
+      values: 0.000 -0.000
+      units: e
+
+[ETIME]  Script=cp2k.time  Freq=last  Skip=0  Lines=1
+  Begin=^\s*CP2K\s+1\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s*$
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=767 fed=1 rc=0 first-fed=' CP2K                                 1  1.0    0.003    0.004    1.440    1.441'
+    key: ETIME
+      size: 1
+      values: 1.441
+

@@ -438,6 +438,26 @@ def expect_qe_si(props, report):
         report.check(sym, 'STRESS tensor is symmetric (got %s)' % stress)
 
 
+def expect_cp2k_si(props, report):
+    """Bulk silicon, PBE, GPW, OT SCF -- CP2K's energy, SCF trace and charges.
+
+    CP2K prints Hartree, so a TE near -7.24 is right and anything near -3.6
+    (per atom) or -14.5 (Rydberg) would mean a unit slip.  The Mulliken net
+    charges of two equivalent atoms must cancel.
+    """
+    for key in ('TE', 'EWVEC', 'MULLIKEN', 'EGRADVEC', 'VERSION'):
+        report.check(bool(props.get(key)), '%s extracted' % key)
+    if not (props.get('TE') and props.get('MULLIKEN')):
+        return
+    te = float(sect(props['TE'][-1], 'values'))
+    report.check(-7.6 < te < -7.0,
+                 'total energy is a plausible Hartree value for Si2 '
+                 'with these potentials (got %g)' % te)
+    q = [float(x) for x in sect(props['MULLIKEN'][-1], 'values').split()]
+    report.check(len(q) == 2 and abs(sum(q)) < 1e-4,
+                 'Mulliken charges of the two Si atoms cancel (got %s)' % q)
+
+
 def expect_gromacs_water(props, report):
     """216 SPC waters, 50 steps of MD.
 
@@ -582,6 +602,17 @@ CASES = [
         expect=expect_qe_si,
     ),
     dict(
+        #  Bulk Si, 2 atoms, the deck ai.cp2k writes (cheap grid, OT).  CP2K
+        #  finds BASIS_MOLOPT and GTH_POTENTIALS in its own data directory.
+        name='cp2k-si-scf',
+        code='cp2k',
+        desc='cp2k.desc',
+        deck='cp2k/cp2k.cp2kin',
+        parse_args=('.', 'Energy', 'QS', 'GPW', '0'),
+        output='cp2k.cp2kout',
+        expect=expect_cp2k_si,
+    ),
+    dict(
         #  The .mdp is the deck ECCE names; conf.gro and topol.top are
         #  copied alongside it and consumed by the grompp setup step.
         name='gromacs-water-md',
@@ -612,6 +643,14 @@ CODES = {
                                 '-g', 'gromacs.log', '-o', 'traj.trr',
                                 '-c', 'out.gro', '-e', 'ener.edr'],
         packaged='gromacs',
+    ),
+    'cp2k': dict(
+        binary='cp2k.psmp',
+        search=(),
+        argv=lambda exe, deck: [exe, '-i', deck],
+        stdoutTo=True,
+        env={'OMP_NUM_THREADS': '2'},
+        packaged='cp2k + cp2k-data',
     ),
     'qe': dict(
         binary='pw.x',

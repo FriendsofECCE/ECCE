@@ -66,7 +66,7 @@ A code gets progress in the Organizer by `.desc` entries alone:
   it), so an SCF is normally just `scf converged=yes` and the summary says
   "SCF converged" without a count; the opt history is the gradient, so
   the summary takes an energy from the history only when it is `energy`.
-  CP2K has no code registration yet, so no `.desc`.
+  CP2K (#329): the SCF table and the optimiser summary are read as in ORCA; see `cp2k-code-registration-follows-qe.md`.
 - **GROMACS** names the stage by the integrator (`Progress={integrator}
   point=$1/{nsteps}`): `md` is "Molecular dynamics", `steep` "Minimisation".
   QE prints the ionic step after its criteria, so it is sent as `istep`

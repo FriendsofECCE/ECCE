@@ -146,6 +146,25 @@ int main(int argc, char** argv)
     expectContains("qe routine error text", reason, "bad line in namelist");
   }
 
+  // CP2K: an SCF that hit MAX_SCF (real 2025.1 output, steps from the line
+  // before the box) and a boxed error naming the missing basis set.
+  {
+    vector<string> files;
+    files.push_back(fx + "/synthetic/cp2k-noconverge.cp2kout");
+    string reason = JobFailureReason::extractReason(files);
+    expectContains("cp2k no convergence", reason, "did not converge in 8 steps");
+    expectContains("cp2k no convergence advice", reason, "Max. SCF Iterations");
+    expectShortSingleLine("cp2k no convergence is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/cp2k-no-basis.cp2kout");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("cp2k box message", reason, "CP2K stopped");
+    expectContains("cp2k box message text", reason,
+                   "The requested basis set <NOSUCH-BASIS> for element <Si>");
+    expectContains("cp2k box message continues", reason, "<BASIS_MOLOPT>");
+    expectShortSingleLine("cp2k box reason is short", reason);
+  }
+
   // GROMACS: the Fatal error paragraph of the tool that failed (real gmx
   // 2025.2 output); for grompp the ERROR paragraph above its own box.
   {

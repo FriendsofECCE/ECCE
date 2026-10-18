@@ -70,6 +70,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`scripts/parsers`](scripts-parsers.md)
 - [`scripts/gensub`](scripts-gensub.md)
 - [`[PROGRESS]` entries in a `.desc`: job progress, not properties (#284)](progress-parse-type-284.md)
+- [CP2K is registered like Quantum ESPRESSO: its own dialogs, the library scanned in ai.cp2k, the cell from the Builder, results through cp2k.desc (#329)](cp2k-code-registration-follows-qe.md)
 
 ### How a property gets from disk into the Properties menu
 
@@ -142,6 +143,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [A stored basis set can be missing part of an aggregate; it is repaired when read, and copying a calculation copies the damage (#265)](a-stored-basis-can-be-missing-an-aggregate-part.md)
 - [A combo whose default is a bare integer opens BLANK when the list is built conditionally](a-combo-whose-default-is-a-bare.md)
 - [NWChem aborts on three offered functionals and rejects its documented dispersion spellings](verify-a-codes-keyword-list-by-running.md)
+- [CP2K 2025.1: a trajectory to the output is FILENAME __STD_OUT__ (not =__STD_OUT__), an unconverged SCF aborts the run, OT line-search rows have no energy change, and three more](cp2k-output-and-input-facts.md)
 - [Retired codes are not maintained, and the suite no longer checks them](retired-codes-are-not-maintained-and-the.md)
 - [A `.desc` entry's `Begin` wording can silently stop matching between versions of the same code](a-desc-entrys-begin-wording-can-silently.md)
 - [`eccejobmonitor`'s "enable all parse types" check is case-sensitive](eccejobmonitors-enable-all-parse-types-check-is.md)

@@ -322,6 +322,61 @@ inline bool matchQuantumEspressoError(const std::vector<std::string>& lines,
 }
 
 // ------------------------------------------------------------------------
+// CP2K.  Every error ends the run with a box:
+//    * [ABORT]
+//    *  \___/     <message, wrapped over lines>
+//    *    |
+//    *  O/|
+// An SCF that does not converge in MAX_SCF steps is the common one and gets
+// advice; the others show the message.
+// ------------------------------------------------------------------------
+inline bool matchCp2kError(const std::vector<std::string>& lines,
+                           std::string& reason)
+{
+  static const std::regex leaving(
+      "Leaving inner SCF loop after reaching\\s+([0-9]+) steps");
+  std::string steps;
+  for (size_t i = 0; i < lines.size(); i++) {
+    std::smatch m;
+    if (std::regex_search(lines[i], m, leaving))
+      steps = m[1].str();
+    if (lines[i].find("[ABORT]") == std::string::npos)
+      continue;
+    std::string text;
+    for (size_t j = i + 1; j < lines.size() && j < i + 12; j++) {
+      if (lines[j].find("O/|") != std::string::npos)
+        break;
+      std::string t = lines[j];
+      size_t at = t.find("\\___/");
+      if (at != std::string::npos)
+        t = t.substr(at + 5);
+      // Drop the box's own frame: a leading and a trailing '*', the
+      // source position at the end, and the drawing's '|'.
+      t = trimmed(t);
+      while (!t.empty() && (t[0] == '*' || t[0] == '|'))
+        t = trimmed(t.substr(1));
+      while (!t.empty() && t[t.size() - 1] == '*')
+        t = trimmed(t.substr(0, t.size() - 1));
+      if (t.empty())
+        continue;
+      text += (text.empty() ? "" : " ") + t;
+    }
+    if (text.find("SCF run NOT converged") != std::string::npos) {
+      reason = "The self-consistent field did not converge" +
+               (steps.empty() ? std::string() : " in " + steps + " steps") +
+               " -- raise Max. SCF Iterations, or try the CG minimizer with "
+               "the FULL_ALL preconditioner, in Theory Details.";
+      return true;
+    }
+    if (!text.empty()) {
+      reason = "CP2K stopped: \"" + truncate(text, 110) + "\"";
+      return true;
+    }
+  }
+  return false;
+}
+
+// ------------------------------------------------------------------------
 // GROMACS tools end a failure with a box:
 //   Program:     gmx pdb2gmx, version ...
 //   Fatal error:
@@ -408,6 +463,7 @@ inline std::string extractReason(const std::vector<std::string>& filePaths)
     matchGaussianError,
     matchNWChemInputError,
     matchQuantumEspressoError,
+    matchCp2kError,
     matchGromacsError,
     matchOrcaError,
   };
