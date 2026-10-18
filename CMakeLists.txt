@@ -2294,6 +2294,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # MOPAC normal modes of an imported output sit on the stored atoms and the
+  # Builder draws a symmetric ammonia umbrella (#369).
+  add_test(NAME apps_mopac_import_modes
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/mopac_import_modes_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_mopac_import_modes PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Organizer File > Open Example Calculations: the shipped examples import
   # with their properties; ECCE_TEST_ORGANIZER "examples".
   add_test(NAME apps_examples

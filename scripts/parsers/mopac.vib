@@ -192,9 +192,9 @@ exit(0);
 # A FORCE run prints its modes in "ORIENTATION OF MOLECULE IN FORCE
 # CALCULATION" (mopac.forceframe leaves it in $key/mopacForceGeom), not in
 # the frame of the stored geometry (mopac.geomtrace leaves that in
-# $key/mopacInputGeom), so the arrows would point the wrong way.  Rotate the modes by the proper rotation that fits the one frame onto
-# the other (Horn's quaternion method); without both frames, or when the two
-# are not the same structure, leave them as printed.
+# $key/mopacInputGeom), so the arrows would point the wrong way.  Rotate the
+# modes by the proper rotation that fits the one frame onto the other (Horn's
+# quaternion method).
 sub readGeom {
   my ($file) = @_;
   my @rows;
@@ -207,14 +207,33 @@ sub readGeom {
   return @rows;
 }
 
+# Both frames come from side files of the other parse scripts in this job
+# directory.  When they are not there, or do not fit, the modes would be drawn
+# in the wrong frame without a sign of it, so say so and store nothing: the
+# exit status reaches the job's activity log as a parse error.
+sub frameError {
+  my ($why) = @_;
+  print STDERR "mopac.vib: $why; the normal modes are not stored because they "
+             . "would be drawn in a different orientation than the structure\n";
+  exit(1);
+}
+
 sub rotateModesToInputFrame {
   my @in = readGeom($key . "/mopacInputGeom");
   my @orient = readGeom($key . "/mopacForceGeom");
+  unlink($key . "/mopacInputGeom", $key . "/mopacForceGeom");
+  frameError("mopac.geomtrace left no geometry in the job directory (the parse "
+           . "scripts do not share one)") if (!@in);
+  # MOPAC printed no force orientation: the modes are in the input frame.
   return if (!@orient);
   my $n = scalar(@orient);
-  return if (scalar(@in) != $n || $n * 3 != $nrows);
+  frameError("the geometry has " . scalar(@in) . " atoms and the force "
+           . "orientation $n, for $nrows displacement rows")
+    if (scalar(@in) != $n || $n * 3 != $nrows);
   for my $i (0 .. $n - 1) {
-    return if (lc($in[$i][0]) ne lc($orient[$i][0]));
+    frameError("atom " . ($i + 1) . " is " . $in[$i][0] . " in the geometry and "
+             . $orient[$i][0] . " in the force orientation")
+      if (lc($in[$i][0]) ne lc($orient[$i][0]));
   }
 
   my (@ca, @cb);
@@ -244,7 +263,7 @@ sub rotateModesToInputFrame {
     [2*($x*$y + $w*$z), $w*$w - $x*$x + $y*$y - $z*$z, 2*($y*$z - $w*$x)],
     [2*($x*$z - $w*$y), 2*($y*$z + $w*$x), $w*$w - $x*$x - $y*$y + $z*$z]);
 
-  # Not the same structure (or a mirror image): do not touch the modes.
+  # Not the same structure (or a mirror image).
   my $sq = 0;
   for my $i (0 .. $n - 1) {
     for my $a (0 .. 2) {
@@ -253,7 +272,8 @@ sub rotateModesToInputFrame {
       $sq += ($v - $in[$i][$a + 1]) ** 2;
     }
   }
-  return if (sqrt($sq / $n) > 0.01);
+  frameError("the force orientation is not the stored structure rotated "
+           . "(rms " . sqrt($sq / $n) . " A)") if (sqrt($sq / $n) > 0.01);
 
   for my $m (0 .. $nmodes - 1) {
     for my $i (0 .. $n - 1) {

@@ -19,6 +19,7 @@ while (<STDIN>) {
     push(@rows, "$1 $2 $3 $4\n");
   }
 }
+unlink($key . "/mopacForceGeom");
 if (@rows && open(AUXFILE, ">" . $key . "/mopacForceGeom")) {
   print AUXFILE @rows;
   close(AUXFILE);

@@ -2,7 +2,7 @@
 type: pitfall
 title: "The Builder draws normal modes (and MOs, dipole) on the last GEOMTRACE step, so a code that reorients must deliver one (#312)"
 area: codereg
-paths: [scripts/parsers/mopac.vib, scripts/parsers/mopac.forceframe, scripts/parsers/orca.desc, scripts/parsers/nwchem.desc, scripts/parsers/gaussian-16.desc, src/viz/propsgcommands/ShowFragCmd.C, tests/parsers/vib_frame_test.py, tests/apps/vib_frame_builder_test.py]
+paths: [tests/apps/mopac_import_modes_test.py, scripts/parsers/mopac.vib, scripts/parsers/mopac.forceframe, scripts/parsers/orca.desc, scripts/parsers/nwchem.desc, scripts/parsers/gaussian-16.desc, src/viz/propsgcommands/ShowFragCmd.C, tests/parsers/vib_frame_test.py, tests/apps/vib_frame_builder_test.py]
 issues: [312, 369]
 ---
 ORCA with UseSym, Gaussian (standard orientation) and NWChem (`geometry
@@ -30,8 +30,11 @@ and `mopac.vib` fits one onto the other (Horn, proper rotation, refused above
 0.01 A rms) and rotates every mode. Two traps: the force orientation cannot
 be a wider `[VIB]` Begin, since that block swallows the heat of formation and
 zero-point energy after it; and any harness that runs the scripts must give
-them one shared work directory, or the side files never meet and the modes
-stay unrotated (silently). `tests/parsers/vib_frame_test.py` checks the
+them one shared work directory. Without the side files `mopac.vib` exits 1 with
+its reason on stderr (a parse error in the job's activity log) and stores no
+modes, rather than storing them unrotated. The real Organizer import is
+checked by `tests/apps/mopac_import_modes_test.py` (stored modes and the
+Builder's arrows on the imported calculation). `tests/parsers/vib_frame_test.py` checks the
 mass-weighted share of every MOPAC vibration inside the six rigid motions of
 the stored structure (was 0.2 to 0.7, now below 1e-6), and
 `tests/vibanalysis` labels the stored geometry directly.

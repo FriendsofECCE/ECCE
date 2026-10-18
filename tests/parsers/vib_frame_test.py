@@ -173,8 +173,33 @@ def rigid_share(found, given):
     return max(shares)
 
 
+def vib_without_side_files():
+    """mopac.vib in a job directory the other scripts never wrote to must
+    refuse loudly, not store modes in the wrong frame (#369)."""
+    desc = read_desc(os.path.join(SCRIPTS, "mopac.desc"))
+    result = replay(desc, os.path.join(HERE, "fixtures", "mopac",
+                                       "nh3_geovib.out"))
+    empty = tempfile.mkdtemp(prefix="ecce-vibframe-empty-")
+    atexit.register(shutil.rmtree, empty, True)
+    for entry in desc.live_entries():
+        if entry.script != "mopac.vib":
+            continue
+        for block in result.delivered_for(entry):
+            out, err, rc = run_parser(SCRIPTS, entry, block,
+                                      (".", "GeoVib", "SCF", "RHF", "0"),
+                                      workdir=empty)
+            ok = rc != 0 and "mopac.geomtrace left no geometry" in err \
+                and not parse_parser_output(out)
+            print("%s mopac.vib without the other scripts' side files: exit "
+                  "%s, stderr %r" % ("ok  " if ok else "FAIL", rc,
+                                     err.strip()[:90]))
+            return 0 if ok else 1
+    print("FAIL no mopac.vib block delivered")
+    return 1
+
+
 def main():
-    bad = 0
+    bad = vib_without_side_files()
     for fixture, descName, runtype, what in CASES:
         given = GIVEN.get(fixture, "")
         found = records(fixture, descName, runtype)
