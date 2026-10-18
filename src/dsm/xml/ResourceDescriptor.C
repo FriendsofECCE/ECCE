@@ -7,6 +7,7 @@
 #include <unistd.h>  // access()
 
 #include <iostream>
+  using std::cerr;
   using std::cout;
   using std::endl;
 
@@ -586,6 +587,14 @@ ResourceDescriptor::getToolPropertyViews(ResourceType* resource)
 
   for (toolIt = tools.begin(); toolIt != tools.end(); toolIt++) {
     tpv = getToolPropertyView((*toolIt)->getName(),resource->getContentType());
+    // A tool enabled without a view for this content type is a gap in the
+    // descriptor; leave the tool out rather than take the Organizer down.
+    if (tpv == 0) {
+      cerr << "ResourceDescriptor: no ToolPropertyView for tool "
+           << (*toolIt)->getName() << " and content type "
+           << resource->getContentType() << endl;
+      continue;
+    }
     pairRT_TPV = make_pair((*toolIt),tpv);
     ret.insert(make_pair(tpv->getOrder(), pairRT_TPV));
   }
