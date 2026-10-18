@@ -3658,10 +3658,10 @@
     <SortPriority>20</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>mdstudy.xpm</Normal>
-      <Selected>mdstudy.xpm</Selected>
-      <Expanded>mdstudy.xpm</Expanded>
-      <SelectedExpanded>mdstudy.xpm</SelectedExpanded>
+      <Normal>studygromacs.xpm</Normal>
+      <Selected>studygromacs.xpm</Selected>
+      <Expanded>studygromacs.xpm</Expanded>
+      <SelectedExpanded>studygromacs.xpm</SelectedExpanded>
     </Icons>
     <Label>Study</Label>
     <StateBased>false</StateBased>
