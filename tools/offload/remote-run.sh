@@ -1,15 +1,17 @@
 #!/bin/bash
-# Runs on radium (sent by run-on-radium.sh).  $1 = ref, $2... = command.
+# Runs on the offload host (sent by run-offload.sh).  $1 = ref, $2... = command.
 set -u
 ref=$1; shift
 cmd=$1; shift
-# Set by run-offload.sh: OFF (work root), MODE (container|native), SLOTS, JOBS.
+# Set by run-offload.sh: OFF (work root), MODE (container|native), SLOTS, JOBS,
+# KEEP (build trees kept; 0 = all).
 OFF=${OFF:-$HOME/ecce-offload}
 MODE=${MODE:-container}
 REPO_URL=https://github.com/FriendsofECCE/ECCE.git
 IMAGE=ecce-trixie-build
 SLOTS=${SLOTS:-2}
 JOBS=${JOBS:-6}
+KEEP=${KEEP:-0}
 mkdir -p "$OFF"/{src,wt,build,logs,locks,home,cache,tmp}
 
 safe=$(printf %s "$ref" | tr -c 'A-Za-z0-9._-' '_')
@@ -52,6 +54,23 @@ done
 cd "$OFF/src"
 sha=$(git rev-parse --verify -q "$ref^{commit}" || git rev-parse --verify -q "origin/$ref^{commit}") \
     || fail "ref $ref not found on GitHub (push it first)"
+# Every ref keeps a build tree of 8-16 GB; without a limit they filled
+# radium's 3 TB disk.  Drop the oldest beyond $KEEP, then insist on room.
+if [ "$KEEP" -gt 0 ]; then
+    (
+        flock 7
+        ls -1t "$OFF/build" | grep -vx "$safe" | tail -n +"$KEEP" | while read -r old; do
+            echo "pruning old build tree $old"
+            rm -rf -- "${OFF:?}/build/$old" "${OFF:?}/home/$old"
+            git -C "$OFF/src" worktree remove --force "$OFF/wt/$old" 2>/dev/null || rm -rf -- "${OFF:?}/wt/$old"
+        done
+        git -C "$OFF/src" worktree prune
+    ) 7>"$OFF/locks/git"
+fi
+avail=$(df -P -BG "$OFF" | awk 'NR==2 {sub("G","",$4); print $4}')
+[ "${avail:-0}" -ge 30 ] || fail "only ${avail}G free under $OFF (need 30G)"
+temps() { command -v sensors >/dev/null && sensors 2>/dev/null | grep -E '^(Package|Core 0|CPU)' | tr -s ' ' | paste -sd ';' -; }
+echo "temperatures at start: $(temps)"
 wt=$OFF/wt/$safe
 (
     flock 7
@@ -103,6 +122,7 @@ $inner" bash "$@" </dev/null
 fi
 rc=$?
 secs=$(( $(date +%s) - start ))
+echo "temperatures at end: $(temps)"
 
 say "---- last lines of the log ----"
 tail -n 25 "$log" >&3
