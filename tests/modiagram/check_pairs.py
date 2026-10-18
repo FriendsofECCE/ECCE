@@ -171,6 +171,67 @@ def check_d_electrons(d):
     return bad
 
 
+def check_electrons(d):
+    """Every electron is somewhere in a model-first diagram: per fragment,
+    drawn + folded as core-like ns + folded as internal = the fragment's total
+    (and the About's), the drawn sets add up in the dump's columns, and the
+    model column's drawn + folded = the molecule's total."""
+    import re
+    bad = 0
+    seen = 0
+    for fn in sorted(os.listdir(d)):
+        if not fn.endswith(".dump"):
+            continue
+        text = open(os.path.join(d, fn)).read()
+        m = re.search(r"^note: .*?electrons: (.*?)(?: \xc2\xb7 labels|\\n|$)", text, re.M)
+        if not m:
+            continue
+        seen += 1
+        part = m.group(1)
+        frag = part.split("; model and calculation: ")[0].split("; ")
+        mm = re.search(r"model and calculation: (\d+) drawn \+ (\d+) folded .*?= (\d+)", part)
+        sums = []
+        cols = {}
+        cur = None
+        for line in text.split("\n"):
+            c = re.match(r"column (\w+)", line)
+            if c:
+                cur = c.group(1)
+                cols[cur] = 0.0
+            lv = re.match(r"  level \d+ .*? occupancy=([-\d.]+) occupancyBeta=([-\d.]+)", line)
+            if lv and cur:
+                cols[cur] += float(lv.group(1)) + max(0.0, float(lv.group(2)))
+        problems = []
+        for i, f in enumerate(frag):
+            n = int(re.search(r" (\d+)(?: \(|,)", f).group(1))
+            drawn = int(re.search(r"drawn (\d+)", f).group(1))
+            core = re.search(r"core-like \d+ levels? (\d+) e", f)
+            inner = re.search(r"internal \d+ levels? (\d+) e", f)
+            tot = drawn + (int(core.group(1)) if core else 0) + (int(inner.group(1)) if inner else 0)
+            sums.append(n)
+            if tot != n:
+                problems.append("fragment %d: %d drawn+folded of %d" % (i, tot, n))
+            if round(cols["left" if i == 0 else "right"]) != drawn:
+                problems.append("fragment %d: dump column has %g, note %d" % (i, cols["left" if i == 0 else "right"], drawn))
+        if not mm:
+            problems.append("no model sum")
+        else:
+            if int(mm.group(1)) + int(mm.group(2)) != int(mm.group(3)):
+                problems.append("model sum")
+            if round(cols["centre"]) != int(mm.group(1)):
+                problems.append("model column has %g, note %s" % (cols["centre"], mm.group(1)))
+            if sum(sums) != int(mm.group(3)):
+                problems.append("fragments %d != model %s" % (sum(sums), mm.group(3)))
+            ab = re.search(r"Total electrons: (\d+)\*\* \(.*? (\d+), .*? (\d+)\)", text)
+            if ab and (int(ab.group(1)) != int(mm.group(3)) or [int(ab.group(2)), int(ab.group(3))] != sums):
+                problems.append("About says %s" % ab.group(0))
+        if problems:
+            bad += 1
+            print("%s: electrons: %s" % (fn, "; ".join(problems)))
+    print("electron bookkeeping over %d model-first goldens: %s" % (seen, "FAIL" if bad else "ok"))
+    return bad
+
+
 def main():
     d = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "expected")
     bad = 0
@@ -192,6 +253,7 @@ def main():
     bad += check_rules(d)
     bad += check_d_electrons(d)
     bad += check_lfview(d)
+    bad += check_electrons(d)
     return 1 if bad else 0
 
 

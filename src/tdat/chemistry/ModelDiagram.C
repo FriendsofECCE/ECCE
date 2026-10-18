@@ -171,9 +171,11 @@ void fillByEnergy(const vector<double>& energy, const vector<int>& deg,
 //  occupied orbitals put on each set (`pop`, in electrons): the subset of
 //  sets that adds up to the fragment's electrons and lies closest to the
 //  populations.  An odd count puts one electron on a single non-degenerate
-//  set, never a half-filled degenerate one.
+//  set, never a half-filled degenerate one, and that set is the highest-lying
+//  one that is not core-like.  Core-like sets are always full.
 void fillByPopulation(const vector<double>& pop, const vector<double>& energy,
-                      const vector<int>& deg, int electrons, vector<double>& occ)
+                      const vector<int>& deg, int electrons, vector<double>& occ,
+                      const vector<bool>& core)
 {
    const size_t m = pop.size();
    if (m > 18) { fillByEnergy(energy, deg, electrons, 2, occ); return; }
@@ -182,11 +184,16 @@ void fillByPopulation(const vector<double>& pop, const vector<double>& energy,
    int bestPartial = -1;
    for (unsigned long mask = 0; mask < (1UL << m); mask++) {
       int sum = 0;
-      for (size_t k = 0; k < m; k++) if (mask & (1UL << k)) sum += 2*deg[k];
+      bool coreFull = true;
+      for (size_t k = 0; k < m; k++) {
+         if (mask & (1UL << k)) sum += 2*deg[k];
+         else if (core[k]) coreFull = false;
+      }
+      if (!coreFull) continue;
       const int need = electrons - sum;
       if (need != 0 && need != 1) continue;
       for (int partial = -1; partial < (need ? (int)m : 0); partial++) {
-         if (need == 1 && (partial < 0 || deg[partial] != 1 || (mask & (1UL << partial)))) continue;
+         if (need == 1 && (partial < 0 || deg[partial] != 1 || core[partial] || (mask & (1UL << partial)))) continue;
          double cost = 0.0;
          for (size_t k = 0; k < m; k++) {
             const double o = (mask & (1UL << k)) ? 2.0*deg[k] : ((int)k == partial ? 1.0 : 0.0);
@@ -198,7 +205,11 @@ void fillByPopulation(const vector<double>& pop, const vector<double>& energy,
    if (bestCost > 1e29) { fillByEnergy(energy, deg, electrons, 2, occ); return; }
    occ.assign(m, 0.0);
    for (size_t k = 0; k < m; k++) if (bestMask & (1UL << k)) occ[k] = 2.0*deg[k];
-   if (bestPartial >= 0) occ[bestPartial] = 1.0;
+   if (bestPartial >= 0) {
+      for (size_t k = 0; k < m; k++)
+         if (deg[k] == 1 && !core[k] && occ[k] == 0.0 && energy[k] > energy[bestPartial]) bestPartial = (int)k;
+      occ[bestPartial] = 1.0;
+   }
 }
 
 //  How much of an orbital (coefficients over the functions) changes sign on
@@ -786,10 +797,12 @@ bool ModelDiagram::build(const Input& in,
       vector<size_t> mine;
       vector<double> en, pop;
       vector<int> dg;
+      vector<bool> coreSet;
       double piPop = 0.0;
       for (size_t s2 = 0; s2 < sets.size(); s2++) {
          if (sets[s2].fragment != f || !setOdd[s2]) continue;
          mine.push_back(s2); en.push_back(sets[s2].energy); dg.push_back(sets[s2].degeneracy);
+         coreSet.push_back(centralAtom && sets[s2].nsShare >= 0.5);
          double e = 0.0;
          for (size_t c = 0; c < cl.size(); c++)
             e += (cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta))*cl[c].share[s2];
@@ -805,8 +818,10 @@ bool ModelDiagram::build(const Input& in,
       bool partial = false;
       for (size_t k = 0; k < occ.size(); k++)
          if (occ[k] > 0.0 && occ[k] < 2.0*dg[k] - 1e-9 && dg[k] > 1) partial = true;
+      for (size_t k = 0; k < occ.size(); k++)
+         if (coreSet[k] && occ[k] < 2.0*dg[k] - 1e-9) partial = true;
       if (partial && frags[f].kind != FragmentOrbitals::METAL)
-         fillByPopulation(pop, en, dg, n < 0 ? 0 : n, occ);
+         fillByPopulation(pop, en, dg, n < 0 ? 0 : n, occ, coreSet);
       for (size_t k = 0; k < mine.size(); k++) sets[mine[k]].occupancy = occ[k];
    }
 
@@ -1232,13 +1247,14 @@ bool ModelDiagram::build(const Input& in,
    //  Ligand-internal levels: grey bars with their level and electron counts.
    for (int occupied = 1; occupied >= 0; occupied--) {
       double lo = 1e30, hi = -1e30;
-      int levels = 0;
+      int levels = 0, coreLv = 0;
       double e = 0.0;
       for (size_t c = 0; c < cl.size(); c++) {
          if (cl[c].drawn || tooHigh[c] || cl[c].lfFold) continue;
          if ((cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta) > 0.0) != (occupied == 1)) continue;
          lo = std::min(lo, cl[c].energy); hi = std::max(hi, cl[c].energy);
          levels += cl[c].degeneracy;
+         if (cl[c].core) coreLv += cl[c].degeneracy;
          e += cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta);
       }
       if (levels == 0) continue;
@@ -1254,7 +1270,8 @@ bool ModelDiagram::build(const Input& in,
       b.low = lo; b.high = hi; b.levels = levels;
       b.label = rightName.formula + (bandRule ? " internal" : "") + ": " + std::to_string(levels) +
                 (levels == 1 ? " level" : " levels") +
-                (occupied == 1 ? ", " + std::to_string((int)lround(e)) + " e" : string(", empty"));
+                (occupied == 1 ? ", " + std::to_string((int)lround(e)) + " e" : string(", empty")) +
+                (coreLv ? " (" + std::to_string(coreLv) + " core-like " + (coreLv == 1 ? "level" : "levels") + ")" : string());
       out.right.bands.push_back(b);
    }
 
@@ -1444,6 +1461,51 @@ bool ModelDiagram::build(const Input& in,
       if (plainBands) out.summary += "; tick Show all levels";
       if (lfFolded) out.summary += "; untick Ligand-field view to draw them";
       out.foldedAny = true;
+   }
+   //  Where every electron is: per fragment (drawn, folded as core-like ns,
+   //  folded as internal) and in the model column; each adds up to its total.
+   {
+      string part = "electrons: ";
+      for (int f = 0; f < 2; f++) {
+         double all = 0, drawnE = 0, coreE = 0, otherE = 0;
+         int coreL = 0, otherL = 0, odd = 0;
+         string coreName;
+         for (size_t k = 0; k < sets.size(); k++) {
+            if (sets[k].fragment != f || !setOdd[k]) continue;
+            all += sets[k].occupancy;
+            odd += (int)lround(sets[k].occupancy <= sets[k].degeneracy ? sets[k].occupancy : 2.0*sets[k].degeneracy - sets[k].occupancy);
+            if (sets[k].drawn >= 0) drawnE += sets[k].occupancy;
+            else if (bandRule && sets[k].nsShare >= 0.5) {
+               coreE += sets[k].occupancy; coreL += sets[k].degeneracy;
+               if (coreName.empty())
+                  for (map<string,double>::iterator it = sets[k].chars.begin(); it != sets[k].chars.end(); ++it)
+                     if (!it->first.empty() && it->first.back() == 's') coreName = it->first;
+            } else { otherE += sets[k].occupancy; otherL += sets[k].degeneracy; }
+         }
+         const string name = f ? rightName.formula : leftName.formula;
+         auto n = [](double x) { return std::to_string((int)lround(x)); };
+         part += (f ? "; " : "") + name + " " + n(all);
+         if (frags[f].charge == 0 && odd > 0) part += " (neutral: " + std::to_string(odd) + " unpaired e)";
+         part += ", drawn " + n(drawnE);
+         if (coreL > 0) part += ", " + (coreName.empty() ? string("ns") : coreName) + " core-like " + std::to_string(coreL) +
+                                (coreL == 1 ? " level " : " levels ") + n(coreE) + " e";
+         if (otherL > 0) part += ", internal " + std::to_string(otherL) + (otherL == 1 ? " level " : " levels ") + n(otherE) + " e";
+      }
+      double mDrawn = 0, mFold = 0, mCore = 0;
+      int mFoldL = 0, mCoreL = 0;
+      for (size_t i = 0; i < out.centre.levels.size(); i++)
+         mDrawn += out.centre.levels[i].occupancy + std::max(0.0, out.centre.levels[i].occupancyBeta);
+      for (size_t c = 0; c < cl.size(); c++) {
+         if (cl[c].drawn || tooHigh[c] || cl[c].lfFold) continue;
+         const double e = cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta);
+         mFold += e; mFoldL += cl[c].degeneracy;
+         if (cl[c].core) { mCore += e; mCoreL += cl[c].degeneracy; }
+      }
+      part += "; model and calculation: " + std::to_string((int)lround(mDrawn)) + " drawn + " +
+              std::to_string((int)lround(mFold)) + " folded (" + std::to_string(mFoldL) + " levels";
+      if (mCoreL > 0) part += ", " + std::to_string(mCoreL) + " core-like, " + std::to_string((int)lround(mCore)) + " e";
+      part += ") = " + std::to_string((int)lround(mDrawn + mFold));
+      out.summary += " \xC2\xB7 " + part;
    }
    {
       int total = 0;

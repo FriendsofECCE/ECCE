@@ -91,4 +91,11 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   the text. At most as many lanes as fit in 55 % of the width; a denser spectrum
   (a whole big complex) shares the last lane. Test hook: scene
   `modiagram <name> overlaps 0` prints the number of overlapping pairs
-  (`orca-ptcl4-overlaps` in tests/modiagram/capture.py).
+  (`orca-ptcl4-overlaps` in tests/modiagram/capture.py).- Electron bookkeeping (summary part "electrons: ..."): per fragment drawn + folded
+  as core-like ns + folded as internal = its total (the About's), and the model
+  column's drawn + folded = the molecule's total; the calculation column folds the
+  same levels. `check_pairs.py::check_electrons` asserts it on every golden. The
+  band's level count is MOs, not fragment orbitals (BF3: 6 + 6 occupied MOs; the 6
+  folded are 3 core-like F 2s + 3 lone pairs). A neutral odd fragment (F3, 21 e)
+  keeps one unpaired electron, on the highest-lying non-core non-degenerate set,
+  and the note says "(neutral: 1 unpaired e)".
