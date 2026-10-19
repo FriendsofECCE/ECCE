@@ -202,37 +202,33 @@ void EcceTool::OnMouseRightDown( wxMouseEvent& event )
 // }
 
 
-//  The thumbnail is a window cut into the raised button: a frame in the
-//  theme's own shades, dark side up and left, light side down and right,
-//  the reverse of the button's bevel.  ECCE_THUMB_FRAME selects the
-//  candidate: "bevel" (two pixels), "border" (one pixel), else none.
+//  The thumbnail is a window cut into the raised button: a two-pixel frame in
+//  the theme's own shades, dark side up and left, light side down and right,
+//  the reverse of the button's bevel.  Filled one-pixel rectangles rather
+//  than DrawLine, whose end point is drawn or not depending on the backend.
+static void fillRect(wxDC& dc, const wxColour& c, int x, int y, int w, int h)
+{
+  dc.SetPen(*wxTRANSPARENT_PEN);
+  dc.SetBrush(wxBrush(c));
+  dc.DrawRectangle(x, y, w, h);
+}
+
 static void drawThumbnailFrame(wxDC& dc, const wxRect& img)
 {
-  const char* mode = getenv("ECCE_THUMB_FRAME");
-  if (!mode) return;
-  const bool bevel = strcmp(mode, "bevel") == 0;
-  if (!bevel && strcmp(mode, "border") != 0) return;
   wxColour dark = wxSystemSettings::GetColour(wxSYS_COLOUR_3DSHADOW);
   wxColour light = wxSystemSettings::GetColour(wxSYS_COLOUR_3DHIGHLIGHT);
   wxColour mid = wxSystemSettings::GetColour(wxSYS_COLOUR_3DDKSHADOW);
   if (mid == dark) mid = dark.ChangeLightness(80);
   //  Drawn around the image, on the button face, so a dark picture does not
   //  swallow it.
-  wxRect r = img; r.Inflate(bevel ? 2 : 1);
-  const int x0 = r.x, y0 = r.y, x1 = r.x + r.width - 1, y1 = r.y + r.height - 1;
-  dc.SetBrush(*wxTRANSPARENT_BRUSH);
-  if (!bevel) {
-    dc.SetPen(wxPen(dark));
-    dc.DrawRectangle(x0, y0, r.width, r.height);
-    return;
-  }
+  wxRect r = img; r.Inflate(2);
   for (int i = 0; i < 2; i++) {
-    dc.SetPen(wxPen(i == 0 ? mid : dark));
-    dc.DrawLine(x0 + i, y0 + i, x1 - i, y0 + i);
-    dc.DrawLine(x0 + i, y0 + i, x0 + i, y1 - i);
-    dc.SetPen(wxPen(light));
-    dc.DrawLine(x0 + i, y1 - i, x1 - i + 1, y1 - i);
-    dc.DrawLine(x1 - i, y0 + i, x1 - i, y1 - i + 1);
+    const int x = r.x + i, y = r.y + i, w = r.width - 2 * i, h = r.height - 2 * i;
+    const wxColour& tl = (i == 0) ? mid : dark;
+    fillRect(dc, tl, x, y, w, 1);
+    fillRect(dc, tl, x, y, 1, h);
+    fillRect(dc, light, x + 1, y + h - 1, w - 1, 1);
+    fillRect(dc, light, x + w - 1, y + 1, 1, h - 1);
   }
 }
 
