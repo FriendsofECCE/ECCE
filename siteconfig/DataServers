@@ -50,11 +50,15 @@
   <ForceField name="NWChem">
     <ParamFiles>
       <ParamFile>$ECCE_NWCHEM_DATA/amber_s/amber.par</ParamFile>
+      <ParamFile>$ECCE_NWCHEM_DATA/amber_q/amber.par</ParamFile>
       <ParamFile>$ECCE_NWCHEM_DATA/amber_x/amber.par</ParamFile>
+      <ParamFile>$ECCE_NWCHEM_DATA/amber_u/amber.par</ParamFile>
     </ParamFiles>
     <SegmentDirs>
       <SegmentDir>$ECCE_NWCHEM_DATA/amber_s</SegmentDir>
+      <SegmentDir>$ECCE_NWCHEM_DATA/amber_q</SegmentDir>
       <SegmentDir>$ECCE_NWCHEM_DATA/amber_x</SegmentDir>
+      <SegmentDir>$ECCE_NWCHEM_DATA/amber_u</SegmentDir>
     </SegmentDirs>
   </ForceField>
 </EcceData>

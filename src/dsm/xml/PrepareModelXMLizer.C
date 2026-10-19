@@ -33,6 +33,7 @@ using std::string;
 #include "dsm/PrepareModelXMLizer.H"
 #include "dsm/Resource.H"
 #include "dsm/MdTask.H"
+#include "dsm/EDSIServerCentral.H"
 
 const string PrepareModelXMLizer::ROOTELEMENT = "PrepareModel";
 
@@ -841,7 +842,15 @@ void PrepareModelXMLizer::serialize(const Serializable& object,
            << "</PrintLevel>"<<endl;
       }
 
+      // A user who never opened the force field dialog has no prefs; the
+      // site defaults are what accepting that dialog would store.
+      EDSIServerCentral siteDefaults;
       vector<string> files = FFConfigData::getFFFiles();
+      if (files.empty()) {
+        vector<string> *d = siteDefaults.getDefaultParamFiles("NWChem");
+        files = *d;
+        delete d;
+      }
       os << "<ForceFieldFiles>" << endl;
         for (int idx=0; idx<files.size(); idx++ ) {
           os << "  <File>";
@@ -851,6 +860,11 @@ void PrepareModelXMLizer::serialize(const Serializable& object,
       os << "</ForceFieldFiles>" << endl;
 
       vector<string> dirs = FFConfigData::getSegDirs();
+      if (dirs.empty()) {
+        vector<string> *d = siteDefaults.getDefaultSegmentDirs("NWChem");
+        dirs = *d;
+        delete d;
+      }
       os << "<ForceFieldDirectories>" << endl;
         for (int idx=0; idx<dirs.size(); idx++ ) {
           os << "  <Directory>";

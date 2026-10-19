@@ -81,12 +81,6 @@ def main():
     s.registerMachine("localhost", "Shell", {"NWChem": nwchem})
     rundir = os.path.join(s.state, "run")
 
-    # The Builder's force-field configuration: amber parameters and segments
-    with open(os.path.join(s.state, ".ECCE", "Builder"), "w") as h:
-        h.write("FFTYPE: NWChem\n")
-        h.write("NWChemFF: \\,%s/amber_s/amber.par,%s/amber_x/amber.par\n" % (NWDATA, NWDATA))
-        h.write("NWChemSEG: \\,%s/amber_s,%s/amber_x\n" % (NWDATA, NWDATA))
-
     display = None
     try:
         if not s.services(True):
