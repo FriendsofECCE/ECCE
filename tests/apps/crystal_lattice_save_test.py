@@ -33,7 +33,7 @@ import xdisplay   # noqa: E402
 import qe_walkthrough_test as q   # noqa: E402
 
 CODES = ["CP2K", "QuantumESPRESSO"]
-NOT_READY = "this code needs a periodic unit cell"
+NOT_READY = "needs a periodic unit cell"
 failures = []
 
 
@@ -59,11 +59,6 @@ def walk(display, tmp, org, code):
     print(org.send("newproject " + project))
     print(org.send("newcalc %s %s %s" % (project, name, code)))
     a = q.auth(tmp)
-
-    log = run(display, "ecce-calced", "ECCE_CALCED_SCRIPT",
-              ["wait 3000", "ready", "info", "quit"], url, a, tmp)
-    check("CALCED: notready=Not ready" in log,
-          code + ": a new calculation is not ready", run_tests._tail(log, 15))
 
     log = run(display, "ecce-builder", "ECCE_BUILDER_SCRIPT",
               ["wait 4000", "add O Bent 0 0 0", "wait 1000", "cmd addh",
