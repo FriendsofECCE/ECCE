@@ -174,6 +174,7 @@ void MDEdBase::startTestHook()
  * tab <title>          select a notebook page
  * tabs                 the notebook pages, in order
  * inputs               what the Inputs page shows
+ * inputs-warning       "shown" while the missing-inputs warning is in the message area
  * run                  what the Run settings page holds
  * run-set <field> <v>  set a field of that page as the user would (\n = newline)
  * launch               whether the Launch button is enabled
@@ -232,6 +233,8 @@ string MDEdBase::runTestCommand(const string& line)
       return out;
    } else if (cmd == "inputs") {
       return p_gmxInputs ? p_gmxInputs->summary() : "no inputs page";
+   } else if (cmd == "inputs-warning") {
+      return p_inputsWarned ? "shown" : "none";
    } else if (cmd == "run") {
       return (p_gmxRun && p_isGromacs) ? p_gmxRun->summary() : "no run settings page";
    } else if (cmd == "run-set") {
@@ -376,6 +379,12 @@ void MDEdBase::enableLaunch(bool flag)
       p_feedback->setMessage("Launch is not possible yet: " + why +
                              " Attach them on the Inputs tab.",
                              WxFeedback::WARNING);
+      p_inputsWarned = true;
+    } else if (p_inputsWarned) {
+      //  The inputs from earlier tasks are often found after the first
+      //  check; a stale warning beside an enabled Launch misleads.
+      p_feedback->clearMessage();
+      p_inputsWarned = false;
     }
   }
 

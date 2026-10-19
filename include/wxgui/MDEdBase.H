@@ -186,6 +186,7 @@ class MDEdBase: public MDEdBaseGUI,
       GromacsInputsPanel *p_gmxInputs;
       GromacsRunPanel *p_gmxRun;
       bool p_launchWanted;
+      bool p_inputsWarned = false;  // the message area shows the missing-inputs warning
 
       /** The panels the current model carries, set by initializeModel(). */
       vector<MDCompositeModel::GUIPanel> p_panelSet;

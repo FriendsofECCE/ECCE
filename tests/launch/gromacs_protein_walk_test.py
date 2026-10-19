@@ -200,6 +200,9 @@ def main():
                 tabs = ed.cmd("tabs")
                 say("  pages: %s" % tabs)
                 out = ed.cmd("inputs")
+                if "Ready" in out:
+                    check(ed.cmd("inputs-warning") == "none",
+                          "no missing-inputs warning beside a Ready Inputs page")
                 say("  inputs: %s" % out)
                 check("Ready" in out and "(from" in out,
                       "topology and structure found on an earlier task")
