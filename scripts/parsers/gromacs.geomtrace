@@ -2,32 +2,34 @@
 ################################################################################
 #
 # Purpose:
-#   One trajectory frame of a GROMACS run -> ECCE's GEOMTRACE table.
+#   The trajectory of a GROMACS run -> ECCE's GEOMTRACE table, one step per
+#   frame.
 #
 #   gensub (on the compute side, where gmx is) converts traj.xtc with
-#   "trjconv -pbc mol" and appends each frame to the output file as
+#   "trjconv -pbc mol", keeps at most 100 frames, and writes them to
+#   ecce_traj.txt as
 #
 #     ECCE-TRAJ frame <n> atoms <N>
 #     <element> <x> <y> <z>        (Angstrom, one line per atom)
 #     ECCE-TRAJ end
 #
-#   so that the Builder's geometry-trace panel can animate the run.
+#   The log only gets the line "ECCE-TRAJ file ecce_traj.txt"; this script
+#   reads that file from the job directory, so the frames are stored once,
+#   as the GEOMTRACE, and not as a file as well.
 #
 ################################################################################
 
 $| = 1;
 
-my (@coords, $labels);
-my $i = 0;
+my $file;
 while (<STDIN>) {
-  if (/^\s*([A-Za-z]{1,2})\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/) {
-    push(@coords, "$2 $3 $4");
-    $i++;
-    $labels .= " $i-$1";
-  }
+  $file = $1 if /^ECCE-TRAJ file\s+(\S+)/;
 }
+exit(0) unless defined($file) && open(my $in, "<", $file);
 
-if (@coords) {
+my (@coords, $labels, $i);
+sub flush {
+  return unless @coords;
   print "key: GEOMTRACE\n";
   print "size:\n1 " . scalar(@coords) . " 3\n";
   print "rowlabels:\n$labels\n";
@@ -36,5 +38,17 @@ if (@coords) {
   print " $_\n" for @coords;
   print "units:\nAngstrom\n";
   print "END\n";
+  @coords = (); $labels = ""; $i = 0;
 }
+
+while (<$in>) {
+  if (/^ECCE-TRAJ end/) {
+    flush();
+  } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/) {
+    push(@coords, "$2 $3 $4");
+    $i++;
+    $labels .= " $i-$1";
+  }
+}
+flush();
 exit(0);

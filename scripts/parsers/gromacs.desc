@@ -87,14 +87,15 @@ Skip=0
 End=Pressure \(bar\)
 [END]
 
-# The trajectory frames gensub appends to the log after mdrun (converted from
-# the .xtc), one GEOMTRACE step each.  The Begin is not one mdrun prints.
+# The trajectory: gensub leaves the frames in ecce_traj.txt and a pointer
+# line in the log; the script reads the file, so the frames are not part of
+# the stored output.  The Begin is not one mdrun prints.
 [GEOMTRACE]
 Script=gromacs.geomtrace
-Begin=^ECCE-TRAJ frame
-Skip=1
-Frequency=all
-End=^ECCE-TRAJ end
+Begin=^ECCE-TRAJ file
+Skip=0
+Frequency=last
+Lines=1
 [END]
 
 # Job progress for the Organizer's Progress box (#284).  No Script: these

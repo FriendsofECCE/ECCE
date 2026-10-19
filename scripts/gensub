@@ -1888,12 +1888,15 @@ sub gromacs()
     $retval .= "  mdrunStatus=\$?\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $log $::outFile\n";
-    #  The frames go after the log as text, because the log is what the
-    #  parser reads and the Builder animates a GEOMTRACE; the .xtc itself
-    #  is not stored.  Whole molecules (-pbc mol) so the chain does not
-    #  tear at the box edge.
+    #  The frames go to ecce_traj.txt on the compute side; the log only
+    #  gets a pointer line that gromacs.desc matches, and gromacs.geomtrace
+    #  reads the file.  Nothing stores the frames except the GEOMTRACE.
+    #  Whole molecules (-pbc mol) so the chain does not tear at the box
+    #  edge; at most 100 frames are kept (every k-th plus the last).
     $retval .= "  if [ -s traj.xtc ] && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f traj.xtc -pbc mol -o ecce_traj.pdb >> $::logfile 2>&1; then\n";
-    $retval .= "    awk 'BEGIN{n=0} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb >> $::outFile\n";
+    $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj.pdb`\n";
+    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce_traj.txt\n";
+    $retval .= "    echo 'ECCE-TRAJ file ecce_traj.txt' >> $::outFile\n";
     $retval .= "  fi\n";
     $retval .= "  $::CC - The final structure as PDB: what the Builder shows.\n";
     $retval .= "  \"\$gmx\" editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";

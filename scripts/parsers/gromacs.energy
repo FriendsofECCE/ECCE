@@ -198,12 +198,12 @@ foreach my $k ("TE", "TEVEC") {
 #  it does not have, so an invented label would be an exception rather
 #  than a cosmetic wart.
 #
-#  Scalar only, deliberately.  A per-step pressure would have to be a
+#  Scalar only, deliberately.  A per-step pressure would be a
 #  PropTSVector<Geometry Step>, and GeomTracePropertyPanel plots any of
-#  those against GEOMTRACE -- which GROMACS has no producer for, so the
-#  trace would be unplottable at best and out of bounds at worst (the
-#  len(TEVEC) <= len(GEOMTRACE) rule in CLAUDE.md).  A minimisation run
-#  prints no pressure at all, hence the defined() guard.
+#  those against GEOMTRACE.  MD tasks have one (gromacs.geomtrace, thinned
+#  to at most 100 frames), so the plot point of a step with no frame goes to
+#  the nearest frame (GTStepCmd); a minimisation has none.  A minimisation
+#  run prints no pressure at all, hence the defined() guard.
 if (defined($term{"Pressure (bar)"})) {
   print "key: PRESSURE\n";
   print "size:\n1\n";
@@ -212,9 +212,8 @@ if (defined($term{"Pressure (bar)"})) {
   print "END\n";
 
   #  And the per-step trace, so a run's pressure can be plotted against
-  #  step.  It is a trace of an MD run, with no GEOMTRACE alongside, so it
-  #  is shown by "Geometry Step Plots" (which plots any step vector on its
-  #  own) and not by the geometry trace panel the note above is about.
+  #  step.  It is shown by "Geometry Step Plots", which plots any step
+  #  vector on its own.
   print "key: PRESSVEC\n";
   print "size:\n1\n";
   print "values:\n" . $term{"Pressure (bar)"} . "\n";
