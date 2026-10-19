@@ -67,6 +67,31 @@ without root and running two builds side by side are in
 * `archive/*` preserves old branches (`develop`, `stable`, `master`,
   `make`, and `v9`, merged into `main` for 9.0) for history only.
 
+## Working alongside others
+
+Several people, and their AI assistants, work on ECCE at the same time.
+To keep the work from colliding:
+
+* **Claim before you start.** Assign the issue to yourself, or comment
+  "working on this", before writing code. If someone has already
+  claimed it, ask on the issue first. Work without an issue gets one.
+* **Your own branch, then a pull request.** Push to a branch named
+  after you (`<name>/<topic>`, for example `matt/vsepr-help`) and open
+  a pull request against `main`. `main`, `wip/*` and `release/*` are
+  pushed to by the maintainer only.
+* **Check what is in progress.** The wiki's
+  [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan)
+  lists what is being worked on now and what comes next. Avoid
+  changing the same files as work listed there without asking.
+* **Keep a pull request to one topic** and say in it how you tested it
+  (which machine, which code, which test). A pull request is reviewed
+  and its tests run before it is merged; small ones are merged
+  quickest.
+* **AI assistants follow the same rules.** An assistant working on
+  your behalf claims issues, uses your branch name and opens pull
+  requests like you would; `CLAUDE.md` and `docs/claude/` describe
+  pitfalls that apply to any assistant, not only Claude.
+
 ## Roadmap
 
 No dates — this is a small effort. The order below is the estimated order
