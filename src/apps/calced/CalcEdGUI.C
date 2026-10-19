@@ -504,6 +504,16 @@ void CalcEdGUI::CreateControls()
     ewxButton* itemButton81 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer77->Add(itemButton81, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
 
+    //  In the Settings box, not the bottom row, which it made wider.
+    ewxButton* itemButton85 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_CONSTRAINT, _("Geometry Constraints..."), wxDefaultPosition, wxDefaultSize, 0 );
+    itemButton85->Show(false);
+    itemBoxSizer77->Add(itemButton85, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+
+    //  "2 constraints defined: used only by geometry optimisations"
+    p_constraintNote = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+    itemBoxSizer77->Add(p_constraintNote, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+    p_constraintNote->Show(false);
+
     p_runtypeDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
     itemBoxSizer76->Add(p_runtypeDetailsSizer, 0, wxALIGN_LEFT|wxLEFT, 5);
 
@@ -532,15 +542,6 @@ void CalcEdGUI::CreateControls()
     ewxButton* itemButton84 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_PARTIAL, _("Partial Charge Editor..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButton84->Show(false);
     itemBoxSizer83->Add(itemButton84, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
-
-    ewxButton* itemButton85 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_CONSTRAINT, _("Geometry Constraints..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemButton85->Show(false);
-    itemBoxSizer83->Add(itemButton85, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
-
-    //  "2 constraints defined: used only by geometry optimisations"
-    p_constraintNote = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer83->Add(p_constraintNote, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
-    itemBoxSizer83->Show(p_constraintNote, false);
 
     //  The light and the Verify button sit together, immediately left
     //  of Final Edit: the light is the standing answer and the button

@@ -227,6 +227,7 @@ class CalcEd: public CalcEdGUI,
     void showDetailsFields();
     void showGeomEditor();
     void refreshOrbitalGuess();
+    bool deckNamesOrbitalGuess();
     void showPartialEditor();
 
     void makeRuntypeNoSphericalConsistent();

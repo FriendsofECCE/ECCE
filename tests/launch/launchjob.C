@@ -555,6 +555,23 @@ int main(int argc, char** argv)
     if (!OrbitalGuess::attach(target, source, why)) { cerr << why << endl; return 1; }
     return 0;
   }
+  if (mode == "dup3" && a.size() == 1) {
+    //  CalcMgr::OnDuplicate3Click without the GUI: copy, reset, attach.
+    //  Prints the copy's URL.
+    TaskJob* source = getTask(a[0]);
+    if (!source) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    EcceURL copyUrl(a[0]);
+    if (!source->copy(copyUrl)) { cerr << source->messages() << endl; return 1; }
+    TaskJob* dup = getTask(copyUrl.toString());
+    if (!dup) { cerr << "copy is not a calculation" << endl; return 1; }
+    dup->resetForRerun(ResourceDescriptor::STATE_CREATED);
+    string why;
+    //  DUP3_NO_ATTACH: leave the attaching to a later "guess" call.
+    if (getenv("DUP3_NO_ATTACH") == 0 &&
+        !OrbitalGuess::attach(dup, source, why)) { cerr << why << endl; return 1; }
+    cout << copyUrl.toString() << endl;
+    return 0;
+  }
   if (mode == "uncreate" && a.size() == 1) {
     //  What a regenerated deck does first: back to created, inputs removed.
     TaskJob* t = getTask(a[0]);
