@@ -254,6 +254,10 @@ def main():
         check(want and got == want, "Dynamics stores %s trajectory frames" % want)
         gro_atoms = int(open(gro).read().split("\n")[1])
         check(natoms == gro_atoms, "frames hold every atom of the system (%d)" % gro_atoms)
+        kept = [f for f in os.listdir(os.path.join(where(dyn), "Outputs"))
+                if f.startswith("ecce-parse-")]
+        check(not kept, "the trajectory is stored once, as the trace; %s kept "
+              "beside it: %s (trace %d bytes)" % (len(kept), kept, len(text)))
         for name, url, panel in (("structure", tasks["optimize"], ""),
                                  ("energies", dyn, "Geometry Step Plots"),
                                  ("trajectory", dyn, "Geometry Trace")):

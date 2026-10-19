@@ -1888,13 +1888,13 @@ sub gromacs()
     $retval .= "  mdrunStatus=\$?\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $log $::outFile\n";
-    #  The frames go to ecce_traj.txt, which gromacs.desc parses as a File=
+    #  The frames go to ecce-parse-traj.txt, which gromacs.desc parses as a File=
     #  of its own, so they are not part of the log.
     #  Whole molecules (-pbc mol) so the chain does not tear at the box
     #  edge; at most 100 frames are kept (every k-th plus the last).
     $retval .= "  if [ -s traj.xtc ] && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f traj.xtc -pbc mol -o ecce_traj.pdb >> $::logfile 2>&1; then\n";
     $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj.pdb`\n";
-    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce_traj.txt\n";
+    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce-parse-traj.txt\n";
     $retval .= "  fi\n";
     $retval .= "  $::CC - The final structure as PDB: what the Builder shows.\n";
     $retval .= "  \"\$gmx\" editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";

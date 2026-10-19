@@ -7,7 +7,7 @@
 #
 #   gensub (on the compute side, where gmx is) converts traj.xtc with
 #   "trjconv -pbc mol", keeps at most 100 frames, and writes them to
-#   ecce_traj.txt as
+#   ecce-parse-traj.txt as
 #
 #     ECCE-TRAJ frame <n> atoms <N>
 #     <element> <x> <y> <z>        (Angstrom, one line per atom)
