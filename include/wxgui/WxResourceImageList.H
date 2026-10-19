@@ -28,6 +28,7 @@ class WxResourceImageList : public ewxImageList
     static wxBitmap getBitmap(Resource * resource,
                               ResourceDescriptor::IconType iconType =
                               ResourceDescriptor::IT_NORMAL);
+    static wxBitmap getCodeBitmap(Resource * resource);
     ~WxResourceImageList();
 
     static void refresh();

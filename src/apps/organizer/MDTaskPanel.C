@@ -112,7 +112,7 @@ void MDTaskPanel::createControls()
   p_name->SetLabel(taskjob->getName());
 
   // add the code/application bitmap
-  p_codeBitmap->SetBitmap(WxResourceImageList::getBitmap(taskjob));
+  p_codeBitmap->SetBitmap(WxResourceImageList::getCodeBitmap(taskjob));
 
   // set the name of the code/application to display
   string codeName;

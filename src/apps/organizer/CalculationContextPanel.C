@@ -522,7 +522,7 @@ wxBoxSizer* CalculationContextPanel::createPropHolder(ResourceProperty *resProp)
   if (type == GridProperty::PT_RESOURCE_ICON)
   {
     // create bitmap from image list
-    wxBitmap codeBitmap(WxResourceImageList::getBitmap(
+    wxBitmap codeBitmap(WxResourceImageList::getCodeBitmap(
                         p_itemData->getResource()));
 
     // create the static bitmap from the above bitmap
@@ -692,7 +692,7 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
     // needed for ES calc application type changes
     wxWindow *codeWin = FindWindowByName("codeBitmap");
     wxStaticBitmap *codeBitmapWin = dynamic_cast<wxStaticBitmap*>(codeWin);
-    wxBitmap codeBitmap(WxResourceImageList::getBitmap(
+    wxBitmap codeBitmap(WxResourceImageList::getCodeBitmap(
                         p_itemData->getResource()));
     codeBitmapWin->SetBitmap(codeBitmap);
   }
