@@ -38,7 +38,9 @@ def main():
         print("SKIP: gmx is not installed")
         return 77
     bad = []
-    tmp = tempfile.mkdtemp(prefix="groconv-", dir=os.path.expanduser("~/.cache"))
+    base = os.path.expanduser("~/.cache")
+    os.makedirs(base, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix="groconv-", dir=base)
     try:
         cases = [os.path.join(HERE, "fixtures", "conf.gro"),
                  os.path.join(HERE, "..", "e2e", "fixtures", "gromacs", "conf.gro")]
