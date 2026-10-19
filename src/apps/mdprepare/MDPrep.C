@@ -191,7 +191,7 @@ void MDPrep::startTestHook()
 string MDPrep::runTestCommand(const string& line)
 {
    string cmd = line.substr(0, line.find(' '));
-   istringstream args(line.size() > cmd.size() ? line.substr(cmd.size() + 1) : "");
+   std::istringstream args(line.size() > cmd.size() ? line.substr(cmd.size() + 1) : "");
    vector<string> a;
    string w;
    while (args >> w) a.push_back(w);
