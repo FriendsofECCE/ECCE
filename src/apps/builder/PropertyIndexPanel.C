@@ -124,7 +124,7 @@ void PropertyIndexPanel::setEntries(const std::vector<Entry>& entries)
 }
 
 
-int PropertyIndexPanel::preferredHeight(int maxRows) const
+int PropertyIndexPanel::preferredHeight(int maxHeight) const
 {
   int rows = 0;
   wxTreeItemId root = p_tree->GetRootItem();
@@ -136,7 +136,7 @@ int PropertyIndexPanel::preferredHeight(int maxRows) const
       if (p_tree->IsExpanded(a)) rows += (int)p_tree->GetChildrenCount(a, false);
     }
   }
-  rows = std::max(1, std::min(rows, maxRows));
+  rows = std::max(1, rows);
   int rowHeight = p_tree->GetCharHeight() + 8;
   wxTreeItemIdValue c2;
   wxTreeItemId first = root.IsOk() ? p_tree->GetFirstChild(root, c2)
@@ -150,7 +150,9 @@ int PropertyIndexPanel::preferredHeight(int maxRows) const
   for (int i = 0; i < 3; ++i) {
     if (labels[i]->IsShown()) header += labels[i]->GetBestSize().y;
   }
-  return header + 6 + rows * rowHeight + 8;
+  const int full = header + 6 + rows * rowHeight + 8;
+  //  Never below the header and two rows, so a scrolling list stays usable.
+  return std::min(full, std::max(maxHeight, header + 6 + 2 * rowHeight + 8));
 }
 
 

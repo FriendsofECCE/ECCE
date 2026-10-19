@@ -39,9 +39,9 @@ class PropertyIndexPanel : public wxPanel
     // event, keyboard focus in the list.  False if it is not listed.
     bool click(const std::string& name);
 
-    // Height that shows the header and every row, at most maxRows rows (the
+    // Height that shows the header and every row, at most maxHeight (the
     // tree scrolls beyond that).
-    int preferredHeight(int maxRows) const;
+    int preferredHeight(int maxHeight) const;
 
     // Test hook: what the list holds, one "group/name" line per panel.
     std::vector<std::string> listing() const;

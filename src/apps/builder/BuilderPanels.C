@@ -1131,7 +1131,7 @@ void Builder::updatePropertyIndex()
 
 
 /**
- * The Properties list is as tall as its rows (up to ten, then it scrolls)
+ * The Properties list is as tall as its rows (up to a share of the screen, then it scrolls)
  * and the panel below it takes the rest.  Its share of the column starts
  * at the floor; once the user drags the sash the pixel proportions the drag
  * sets stay, so this only moves the floor.
@@ -1140,7 +1140,9 @@ void Builder::sizeIndexPane()
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
   if (!pane.IsOk()) return;
-  const int height = p_index->preferredHeight(10);
+  //  A share of the screen, not the window: the panel below needs the rest
+  //  for a table of eight rows on a laptop screen.
+  const int height = p_index->preferredHeight(wxGetDisplaySize().y * 22 / 100);
   if (!p_indexSized) {
     pane.dock_proportion = 1;
     p_indexSized = true;
