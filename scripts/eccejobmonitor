@@ -4467,7 +4467,10 @@ sub ProgressLine
                 $$st{'t0'} = $now;
                 $$st{'k0'} = $k;
             }
-            if ($k > $$st{'k0'} && $k < $n)
+            #  Two finished steps at least: the first one carries start-up
+            #  work (QE's first SCF, ORCA's first guess), and an estimate
+            #  from it alone swung from seconds to minutes (#930).
+            if ($k - $$st{'k0'} >= 2 && $k < $n)
             {
                 push @{$$st{'keys'}}, 'eta' unless (exists $$st{'f'}{'eta'});
                 $$st{'f'}{'eta'} = int(($now - $$st{'t0'}) / ($k - $$st{'k0'})
