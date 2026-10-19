@@ -105,7 +105,7 @@ def main():
                   "no 'cannot be computed' message")
             tips = [text(out, "ctip%d" % n) or "" for n in range(0, 8)]
             mtips = [text(out, "tip%d" % n) or "" for n in range(0, 8)]
-            check(any("Made of:" in t and "Matches your MO" in t for t in mtips),
+            check(any("Made of:" in t and "Matches MO" in t for t in mtips),
                   "a model level's hover gives its fragment composition and its match")
             check(any("matches model" in t for t in tips),
                   "a calculation level's hover names its model partner")
