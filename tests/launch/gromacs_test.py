@@ -192,6 +192,8 @@ def main():
         check(not any(f.endswith(".top") for f in files),
               "no .top is stored, so nothing is typed as an NWChem topology")
         check(ed.cmd("set-steps 100") == "ok", "the step count changes")
+        check(ed.cmd("launch") == "enabled",
+              "Launch is enabled before Save: it saves, then launches")
         check(ed.cmd("save") == "ok", "Save, with the system attached")
         check(ed.cmd("launch") == "enabled", "Launch is enabled")
         ed.shots(png, "02-optimize", ["Inputs", "Optimize"], "attached")
@@ -318,6 +320,8 @@ def main():
         check("Dynamics" in ed.cmd("title") and "GROMACS" in ed.cmd("title"),
               "the window says GROMACS Dynamics")
         check(ed.cmd("set-steps 300") == "ok", "300 steps")
+        check(ed.cmd("launch") == "enabled",
+              "Launch is enabled before Save: it saves, then launches")
         check(ed.cmd("save") == "ok", "Save")
         ed.shots(png, "04-dynamics", ["Inputs", "Dynamics", "Files"], "dynamics")
         ed.close()
