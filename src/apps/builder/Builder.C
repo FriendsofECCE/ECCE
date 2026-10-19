@@ -5709,21 +5709,23 @@ void Builder::updatePropertyMenus()
         //  "need": the width the pane's own controls take at this font.
         wxSizer *content = p.window->GetSizer();
         //  Rows the pane's first table shows at once.
-        int rows = -1;
+        int rows = -1, gridH = -1, rowH = -1;
         std::vector<wxWindow*> todo(1, p.window);
         while (!todo.empty() && rows < 0) {
           wxWindow *w = todo.back();
           todo.pop_back();
           wxGrid *g = dynamic_cast<wxGrid*>(w);
           if (g && g->IsShownOnScreen()) {
-            rows = g->GetGridWindow()->GetClientSize().y /
-                   std::max(1, g->GetDefaultRowSize());
+            gridH = g->GetGridWindow()->GetClientSize().y;
+            rowH = g->GetDefaultRowSize();
+            rows = gridH / std::max(1, rowH);
             break;
           }
           for (wxWindowList::compatibility_iterator n = w->GetChildren().GetFirst();
                n; n = n->GetNext()) todo.push_back(n->GetData());
         }
-        fprintf(f, "rows \"%s\" %d\n", p.name.ToStdString().c_str(), rows);
+        fprintf(f, "rows \"%s\" %d grid %d row %d\n",
+                p.name.ToStdString().c_str(), rows, gridH, rowH);
         fprintf(f, "pane \"%s\" %d %d %d %d %s %s need %d have %d\n",
                 p.name.ToStdString().c_str(), p.rect.x, p.rect.y,
                 p.rect.width, p.rect.height,

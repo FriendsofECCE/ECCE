@@ -66,6 +66,7 @@ def readMetrics(path):
             elif line.startswith("rows "):
                 m2 = re.match(r'rows "([^"]+)" (-?\d+)', line)
                 out.setdefault("rows", {})[m2.group(1)] = int(m2.group(2))
+                out.setdefault("grid", {})[m2.group(1)] = line.split("grid", 1)[1].strip()
             elif line.startswith("client "):
                 out["client"] = tuple(int(v) for v in line.split()[1:3])
             elif line.startswith("mode "):
@@ -167,7 +168,7 @@ def check(display, url, label, mode, expected):
     failures.append(label)
     print("FAIL  %s: %s\n%s" % (label, problem, run_tests._tail(log, 15)))
     print("      panes: %s  rows: %s  client: %s" % (
-        {n: p[:4] for n, p in metrics["panes"].items()}, metrics.get("rows"),
+        {n: p[:4] for n, p in metrics["panes"].items()}, metrics.get("grid"),
         metrics["client"]))
 
 
