@@ -775,6 +775,18 @@ def main():
             problems.append("exit status %d does not match its findings"
                             % rc)
 
+        #  The dialog's lower pane marks only lines a finding points at, so a
+        #  GOOD check at line 0 is counted in the summary but invisible
+        #  there (CP2K and QE once showed one "+" for eleven checks).
+        if code in ("CP2K", "QuantumESPRESSO"):
+            out = subprocess.run([CHECKER, "-f", os.path.join(FIXTURES, fixture),
+                                  "-c", code, "-a", str(atoms)],
+                                 capture_output=True, text=True).stdout
+            for row in out.splitlines():
+                level, line, check, _ = (row.split("|", 3) + ["", "", "", ""])[:4]
+                if level == "GOOD" and line == "0" and check not in ("file", "readable"):
+                    problems.append("GOOD|%s marks no line in the deck" % check)
+
         if problems:
             failures += 1
             print("FAIL  %s" % label)

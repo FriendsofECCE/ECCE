@@ -110,12 +110,14 @@ my $NUM = qr/[-+]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][-+]?\d+)?/;
 my $whole_early = join("", @lines);
 my $atoms = 0;
 my $firstAtom = 0;
+my $lastAtom = 0;
 for my $i (0 .. $#lines) {
   #  Trailing tokens are allowed: MOPAC writes an optimisation flag
   #  after each coordinate, and NWChem permits a tag.
   if ($lines[$i] =~ /^\s*([A-Z][a-z]?|x)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
     $atoms++;
     $firstAtom = $i + 1 if (!$firstAtom);
+    $lastAtom = $i + 1;
   }
 }
 
@@ -135,7 +137,8 @@ if (!$atoms && $whole_early =~ /geom\s*=\s*\(?[^)\n]*check/i) {
           "The geometry has $atoms atoms; the calculation says it has " .
           "$opt_a. One of them is wrong.");
 } else {
-  finding("GOOD", $firstAtom, "geometry", "$atoms atoms.");
+  finding("GOOD", $lastAtom > $firstAtom ? "$firstAtom-$lastAtom" : $firstAtom,
+          "geometry", "$atoms atoms.");
 }
 
 #  ------------------------------------------- what each code needs
@@ -1317,9 +1320,22 @@ sub mopac
 #  a kind with a basis and a potential, a spin state needs UKS), never by
 #  whether CP2K accepts a keyword.
 #  ====================================================================
+#  The 1-based line of the first line matching a pattern, 0 if none.  A
+#  GOOD finding with a line (range) is what marks the deck in the dialog's
+#  lower pane, so each check should point at what it examined.
+sub lineOf
+{
+  my ($re) = @_;
+  for my $i (0 .. $#stripped) {
+    return $i + 1 if ($stripped[$i] =~ $re);
+  }
+  return 0;
+}
+
 sub cp2k
 {
   my @L = @stripped;
+  my %range;
 
   my @stack;
   my $bad = 0;
@@ -1329,6 +1345,7 @@ sub cp2k
     if ($line =~ /^\s*&END\b\s*(\w*)/i) {
       my $name = uc($1);
       my $top = pop(@stack);
+      $range{uc($top->[0])} ||= $top->[1] . "-" . ($i + 1) if (defined($top));
       if (!defined($top) || ($name ne "" && uc($top->[0]) ne $name)) {
         finding("BAD", $i + 1, "sections",
                 "This &END does not close the section open at that point" .
@@ -1346,7 +1363,8 @@ sub cp2k
             "The &" . $stack[-1][0] . " section opened here is never closed " .
             "by &END.");
   } elsif (!$bad) {
-    finding("GOOD", 0, "sections", "Every section is closed by &END.");
+    finding("GOOD", "1-" . scalar(@L), "sections",
+            "Every section is closed by &END.");
   }
 
   foreach my $required (["global", "&GLOBAL"], ["force_eval", "&FORCE_EVAL"],
@@ -1354,7 +1372,8 @@ sub cp2k
                         ["coord", "&COORD"]) {
     my ($name, $shown) = @$required;
     if ($whole =~ /^\s*&$name\b/mi) {
-      finding("GOOD", 0, $name, "The $shown section is present.");
+      finding("GOOD", $range{uc($name)} || lineOf(qr/^\s*&$name\b/i), $name,
+              "The $shown section is present.");
     } else {
       finding("BAD", 0, $name, "There is no $shown section.");
     }
@@ -1369,7 +1388,8 @@ sub cp2k
     finding("BAD", 0, "run", "RUN_TYPE $run needs a &MOTION section with " .
             "its own subsection; CP2K stops without it.");
   } else {
-    finding("GOOD", 0, "run", "RUN_TYPE " . uc($run) . ".");
+    finding("GOOD", lineOf(qr/^\s*RUN_TYPE\s/i), "run",
+            "RUN_TYPE " . uc($run) . ".");
   }
 
   #  Every element of &COORD needs a &KIND with a basis and a potential.
@@ -1400,7 +1420,10 @@ sub cp2k
             "POTENTIAL for: " . join(", ", @missing) . ". CP2K stops " .
             "without them.");
   } elsif (%atoms) {
-    finding("GOOD", 0, "kinds", "Every element (" . join(", ", sort keys %atoms) .
+    my ($k1, $k2) = (lineOf(qr/^\s*&KIND\b/i), 0);
+    for my $i (0 .. $#L) { $k2 = $i + 1 if ($L[$i] =~ /^\s*&END\s+KIND\b/i); }
+    finding("GOOD", ($k1 && $k2 >= $k1) ? "$k1-$k2" : $k1, "kinds",
+            "Every element (" . join(", ", sort keys %atoms) .
             ") has a basis set and a potential.");
   }
 
@@ -1410,13 +1433,15 @@ sub cp2k
             "CP2K runs a restricted calculation and stops on the spin " .
             "state.");
   } elsif (defined($mult)) {
-    finding("GOOD", 0, "spin", "Multiplicity $mult.");
+    finding("GOOD", lineOf(qr/^\s*MULTIPLICITY\s/i), "spin",
+            "Multiplicity $mult.");
   }
 
   if ($whole =~ /^\s*&DFT_PLUS_U\b/mi && !%kind) {
     finding("BAD", 0, "plus_u", "&DFT_PLUS_U is outside any &KIND.");
   } elsif ($whole =~ /^\s*&DFT_PLUS_U\b/mi) {
-    finding("GOOD", 0, "plus_u", "DFT+U is set on a kind.");
+    finding("GOOD", lineOf(qr/^\s*&DFT_PLUS_U\b/i), "plus_u",
+            "DFT+U is set on a kind.");
   }
 }
 
@@ -1429,16 +1454,42 @@ sub cp2k
 #  documentation rather than from decks that have been run, which is
 #  the weakest evidence this checker uses anywhere.
 #  ====================================================================
+#  The lines of a QE card: its header and the lines under it, up to the
+#  next card, namelist or '/'.
+sub cardRange
+{
+  my ($re) = @_;
+  my $first = lineOf($re);
+  return 0 unless ($first);
+  my $last = $first;
+  for my $i ($first .. $#stripped) {
+    last if ($stripped[$i] =~ /^\s*(&\w+|\/\s*$|(ATOMIC_SPECIES|ATOMIC_POSITIONS|K_POINTS|CELL_PARAMETERS|OCCUPATIONS|CONSTRAINTS|ATOMIC_FORCES|ADDITIONAL_K_POINTS|HUBBARD)\b)/i);
+    $last = $i + 1 if ($stripped[$i] =~ /\S/);
+  }
+  return $last > $first ? "$first-$last" : $first;
+}
+
 sub espresso
 {
   my @L = @stripped;
+
+  #  Namelist name => first-last line.
+  my (%nlRange, $nlName, $nlStart);
+  for my $i (0 .. $#L) {
+    if ($L[$i] =~ /^\s*&(\w+)/)  { $nlName = lc($1); $nlStart = $i + 1; next; }
+    if ($L[$i] =~ /^\s*\/\s*$/ && defined($nlName)) {
+      $nlRange{$nlName} ||= $nlStart . "-" . ($i + 1);
+      undef $nlName;
+    }
+  }
 
   foreach my $required (["control", "&CONTROL"],
                         ["system",  "&SYSTEM"],
                         ["electrons", "&ELECTRONS"]) {
     my ($name, $shown) = @$required;
     if ($whole =~ /^\s*&$name\b/mi) {
-      finding("GOOD", 0, $name, "The $shown namelist is present.");
+      finding("GOOD", $nlRange{$name} || lineOf(qr/^\s*&$name\b/i), $name,
+              "The $shown namelist is present.");
     } else {
       finding("BAD", 0, $name, "There is no $shown namelist.");
     }
@@ -1456,17 +1507,20 @@ sub espresso
             "A namelist opened here is never closed by a '/' on a line " .
             "of its own.");
   } elsif ($open == 0) {
-    finding("GOOD", 0, "sections", "Every namelist is closed by a '/'.");
+    finding("GOOD", "1-" . scalar(@L), "sections",
+            "Every namelist is closed by a '/'.");
   }
 
   if ($whole =~ /^\s*ATOMIC_POSITIONS/mi) {
-    finding("GOOD", 0, "positions", "An ATOMIC_POSITIONS block is present.");
+    finding("GOOD", cardRange(qr/^\s*ATOMIC_POSITIONS/i), "positions",
+            "An ATOMIC_POSITIONS block is present.");
   } else {
     finding("BAD", 0, "positions", "There is no ATOMIC_POSITIONS block.");
   }
 
   if ($whole =~ /^\s*ATOMIC_SPECIES/mi) {
-    finding("GOOD", 0, "species", "An ATOMIC_SPECIES block is present.");
+    finding("GOOD", cardRange(qr/^\s*ATOMIC_SPECIES/i), "species",
+            "An ATOMIC_SPECIES block is present.");
   } else {
     finding("BAD", 0, "species",
             "There is no ATOMIC_SPECIES block, so no pseudopotential is " .
