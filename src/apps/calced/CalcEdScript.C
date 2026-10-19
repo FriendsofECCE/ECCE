@@ -256,7 +256,7 @@ void CalcEd::runCalcEdScript(const string& file)
           wxRect q = x ? x->GetRect() : wxRect();
           return wxString::Format("%d,%d,%d,%d", q.x, q.y, q.width, q.height);
         };
-        wxWindow *log = FindWindow(ID_TEXTCTRL_FEEDBACK_MSG);
+        wxWindow *log = FindWindow(WxFeedbackGUI::ID_TEXTCTRL_FEEDBACK_MSG);
         fprintf(stderr, "CALCED: rects verify=%s launch=%s frame=%d,%d "
                 "log=%d\n",
                 r(ID_BUTTON_CALCED_VERIFY).utf8_str().data(),
