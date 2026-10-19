@@ -82,7 +82,9 @@ To keep the work from colliding:
 * **Check what is in progress.** The wiki's
   [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan)
   lists what is being worked on now and what comes next. Avoid
-  changing the same files as work listed there without asking.
+  changing the same files as work listed there without asking. When
+  you start or finish something, update its row in the page's "In
+  progress now" table.
 * **Keep a pull request to one topic** and say in it how you tested it
   (which machine, which code, which test). A pull request is reviewed
   and its tests run before it is merged; small ones are merged
