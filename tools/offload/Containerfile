@@ -1,6 +1,7 @@
 # Build and test environment for tools/offload/run-on-radium.sh.
 # Package list = the CI "Debian (apt, containerized)" job plus what
-# tests/teaching, tests/launch, tests/apps and tests/tls need at run time;
+# tests/teaching, tests/launch, tests/apps, tests/tls, the GROMACS/MINFF
+# tests (bundled atomipy) and the QE tests need at run time;
 # activemq, ant and a JDK: the broker and the Java JMSDispatcher of 8.x
 # release branches.
 FROM docker.io/library/debian:trixie
@@ -16,5 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       apache2 apache2-utils xvfb xauth x11-utils x11-apps libgl1-mesa-dri \
       mesa-utils python3-wxgtk4.0 libgtk-3-bin imagemagick xdotool \
       strace rpm activemq ant default-jdk-headless \
+      gromacs python3-numpy python3-tqdm python3-gemmi \
+      quantum-espresso quantum-espresso-data-sssp libeigen3-dev libxc-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /work

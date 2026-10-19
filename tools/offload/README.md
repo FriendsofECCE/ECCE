@@ -1,9 +1,9 @@
 # Offloading long builds and test suites
 
 Full builds and `tests/teaching` take long enough to overload the developer
-machine. `run-offload.sh` runs them on one of two other machines instead.
+machine. `run-offload.sh` runs them on radium instead.
 
-    tools/offload/run-offload.sh [--host radium|tellurium|auto] <git ref> <command> [args]
+    tools/offload/run-offload.sh [--host radium|auto] <git ref> <command> [args]
 
 `<git ref>` is a branch, `origin/<branch>` or a commit that is **already
 pushed to GitHub**: the host fetches from GitHub, not from this machine.
@@ -28,29 +28,30 @@ exit status is the command's (77 is SKIP). Examples:
 
 ## Hosts
 
-| | radium | tellurium |
-| --- | --- | --- |
-| role | long test suites | builds |
-| system | Debian 12, 6c/12t, 15 GB; build and tests in the `ecce-trixie-build` rootless podman image (`Containerfile`, `--memory 12g`) | Debian 13 native, 4c/8t, 31 GB |
-| work root | `~/ecce-offload` | `/mnt/games/ecce` only (never the root disk) |
-| concurrency | 2 jobs, `ninja -j6` | 3 jobs, `ninja -j3` |
+radium: Debian 13, 6c/12t, 15 GB. Build and tests run natively under
+`~/ecce-offload`, 2 jobs at a time with `ninja -j6`; nothing is started from
+17:00 to 21:00. The `Containerfile` image (`MODE=container`) remains for a
+host whose system is older than the CI's Debian.
 
-`--host auto` (the default) prefers tellurium for `build`/`ctest` and radium
-for `teaching`/`apps`, takes the other if the first has no free slot, and
-queues on the first reachable host if both are full. **tellurium is someone's gaming computer and is used only in its owner's hours** (until 2026-10-08 14:00, then evenings 17-21 and weekend mornings 07-12; a job starts only with an hour left, see `tellurium_free` in the script). radium starts nothing from 17:00 to 21:00
-(in use 18-21). A host that does not answer within 5 s
-is skipped. If
-no host is reachable the script exits 3 and says so; run the command locally
-then. Slots are `flock` files in `<work root>/locks`, so waiting jobs queue
+Each host keeps the 8 most recent build trees (8-16 GB each) and removes older
+ones before a job; a job refuses to start with less than 30 GB free. The CPU
+temperatures (`sensors`, package lm-sensors) are logged at the start and end
+of each job. A host that does not answer within 5 s is skipped; if none is
+reachable the script exits 3 and says so; run the command locally then.
+Slots are `flock` files in `<work root>/locks`, so waiting jobs queue
 instead of failing. One job per ref at a time (the build dir is per ref).
+
+Packages for a native (non-container) host: the list in `Containerfile`, plus `gromacs
+python3-numpy python3-tqdm python3-gemmi quantum-espresso
+quantum-espresso-data-sssp libeigen3-dev libxc-dev lm-sensors smartmontools`.
 
 ## Layout on a host
 
 `<root>/src` is a shallow clone (`--depth 50`, fetching only `main` and the
 requested branch); `wt/<ref>` a detached worktree per ref; `build/<ref>` the
 persistent build tree (`b` normal, `bi` + `install` for `apps`), so a second
-run of a ref is incremental; `home/<ref>` is `$HOME` for the job (tellurium
-also sets `XDG_CACHE_HOME`, `TMPDIR` under the root); `logs/`.
+run of a ref is incremental; `home/<ref>` is `$HOME` for the job (native
+hosts also set `XDG_CACHE_HOME`, `TMPDIR` under the root); `logs/`.
 
 ## Rebuilding radium's image
 

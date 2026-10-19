@@ -14,6 +14,7 @@ nothing else installed. ECCE was developed at Pacific Northwest National
 Laboratory, which stopped supporting it around 2017; it is maintained
 here since, with PNNL's blessing.
 
+<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="384" alt="The Organizer: projects and calculations, with a completed ORCA calculation selected"></a>
 <a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="420" alt="The viewer, showing a molecular orbital of benzene"></a>
 
 More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
@@ -34,7 +35,7 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 |---|---|---|
 | Debian 13, Ubuntu 24.04 | `ecce-client_…deb`, `ecce-server_…deb` | `sudo apt install ./ecce-client_*.deb ./ecce-server_*.deb` |
 | RHEL/Rocky 9, Fedora | `ecce-client-…rpm`, `ecce-server-…rpm` | `sudo dnf install ./ecce-*.rpm` (on RHEL/Rocky first `sudo dnf install epel-release`) |
-| macOS | `ECCE-…-arm64.dmg` (Apple silicon) or `…-x86_64.dmg` (Intel) | open it and drag ECCE to Applications |
+| macOS | `ECCE-…-arm64.dmg` (Apple silicon) or `…-x86_64.dmg` (Intel) | open it and drag ECCE to Applications; macOS refuses it at first: on macOS 15 and later open it once, then System Settings → Privacy & Security → Open Anyway (macOS 14 and earlier: right-click → Open), or run `xattr -dr com.apple.quarantine /Applications/ECCE.app` |
 | Windows 10/11 | `ECCE-windows-….msi` | double-click; at the SmartScreen warning choose More info → Run anyway |
 
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
