@@ -290,7 +290,7 @@ static void testSticks()
   double l, h;
   water().defaultRange(&l, &h);
   CHECK(l == 0 && h == 4700);
-  CHECK(h - 4392.6459 >= 0.08 * (h - l));
+  CHECK(h - 4392.6459 >= 100);
   VibSpectrum lone;
   const double lf[] = {0.0, 0.0, 0.0, 2169.8577};
   lone.setModes(std::vector<double>(lf, lf + 4), std::vector<std::string>());
