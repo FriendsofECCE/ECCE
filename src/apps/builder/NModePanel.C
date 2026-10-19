@@ -1184,7 +1184,11 @@ void NModePanel::showModeDetail(int row)
       const VibModeInfo& v = p_vib.modes[row];
       wxString sym = p_grid->GetNumberCols() > p_symColumn && p_symColumn >= 0
                         ? p_grid->GetCellValue(row, p_symColumn) : wxString();
-      freq = p_grid->GetCellValue(row, 0) +
+      //  The table keeps the user's number format; the label is read, not
+      //  compared, so one decimal is enough.
+      double f = 0.0;
+      wxString cell = p_grid->GetCellValue(row, 0);
+      freq = (cell.ToCDouble(&f) ? wxString::Format("%.1f", f) : cell) +
              wxString::FromUTF8(" cm\xE2\x81\xBB\xC2\xB9");
       const wxString parts[3] = { sym, wxString::FromUTF8(v.detail),
                                   activityShort(v) };
