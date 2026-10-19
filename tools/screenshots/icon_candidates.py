@@ -24,19 +24,11 @@ for sub in ("tests/launch", "tests/apps"):
 import harness   # noqa: E402
 import xdisplay  # noqa: E402
 
-CAND = os.path.join(ROOT, "data", "client", "pixmaps", "candidates")
 THUMB = os.path.join(ROOT, "tests", "apps", "fixtures", "calc-water-vib",
                      "Parameters", "Thumbnail.jpeg")
-VARIANTS = [   # name, env
-    ("icon-current", {"ECCE_ICON_ALT": "studygromacs.xpm=%s/mdstudy_current.xpm"
-                      % CAND}),
-    ("icon-A", {"ECCE_ICON_ALT": "studygromacs.xpm=%s/studygromacs_a.xpm" % CAND}),
-    ("icon-B", {"ECCE_ICON_ALT": "studygromacs.xpm=%s/studygromacs_b.xpm" % CAND}),
-    ("icon-C", {"ECCE_ICON_ALT": "studygromacs.xpm=%s/studygromacs_c.xpm" % CAND}),
-    ("thumb-current", {}),
-    ("thumb-A-bevel", {"ECCE_THUMB_FRAME": "bevel"}),
-    ("thumb-B-border", {"ECCE_THUMB_FRAME": "border"}),
-]
+VARIANTS = [("gmx-icons", {}), ("thumb-current", {}),
+            ("thumb-A-bevel", {"ECCE_THUMB_FRAME": "bevel"}),
+            ("thumb-B-border", {"ECCE_THUMB_FRAME": "border"})]
 THEMES = {"light": "Adwaita", "dark": "Adwaita:dark"}
 
 

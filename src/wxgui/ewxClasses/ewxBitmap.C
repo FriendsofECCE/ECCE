@@ -104,16 +104,6 @@ static const struct { const char* icon; const char* lucide; } LUCIDE_ICONS[] = {
  */
 wxString ewxBitmap::pixmapFile(const wxString& name)
 {
-  //  ECCE_ICON_ALT="a.xpm=/path/b.xpm;..." shows another file for a named
-  //  icon, to compare candidates without rebuilding.
-  if (const char* alt = getenv("ECCE_ICON_ALT")) {
-    wxString list = wxString::FromUTF8(alt);
-    wxStringTokenizer tok(list, ";");
-    while (tok.HasMoreTokens()) {
-      wxString pair = tok.GetNextToken();
-      if (pair.BeforeFirst('=') == name) return pair.AfterFirst('=');
-    }
-  }
   wxString ret = Ecce::ecceDataPath();
   ret.append("/client/pixmaps/");
   ret.append(name);
@@ -364,6 +354,12 @@ wxBitmapBundle ewxBitmap::bundle(const wxString& name, long type)
  */
 ewxBitmap::ewxBitmap(const wxString& name, long type)
 {
+  // A resource icon may be an SVG; the tree image lists are 16x16.
+  if (name.EndsWith(".svg")) {
+    wxBitmap bmp = colorIcon(name, wxSize(16, 16)).GetBitmap(wxSize(16, 16));
+    wxBitmap::operator=(bmp.IsOk() ? bmp : placeholder(name));
+    return;
+  }
   wxBitmap::operator=(loadPixmap(name, type));
   wxString icon = genericIconName(name);
   if (!icon.empty()) {
