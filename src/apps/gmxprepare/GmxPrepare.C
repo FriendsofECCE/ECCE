@@ -1,4 +1,5 @@
 // For compilers that support precompilation, includes "wx/wxprec.h".
+#include <wx/collpane.h>
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -314,6 +315,18 @@ static string recipeValue(const string& recipe, const string& key,
    return dflt;
 }
 
+// The raw recipe, as the expander at the bottom of the dialog shows it.
+string GmxPrepare::verifyRecipeText()
+{
+   MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
+   if (task == 0) return "No task is open.";
+   try {
+      return recipeText(task);
+   } catch (IOException& e) {
+      return e.what();
+   }
+}
+
 string GmxPrepare::verifyText()
 {
    MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
@@ -334,9 +347,50 @@ string GmxPrepare::verifyText()
    char num[64];
    std::ostringstream o;
 
-   o << "The recipe stored with this task (gromacs.gmxprep):\n\n" << recipe
-     << "\nThe job runs these commands, in its own directory, with the gmx "
-        "it finds on the compute machine:\n\n";
+   {
+      string src;
+      if (minff) {
+         src = string("Mineral, ") + (m->mineralForceField() == "clayff" ? "ClayFF" : "MINFF");
+         if (!m->minffMineral().empty()) src += ": " + m->minffMineral();
+         if (!m->minffVariant().empty()) src += " (" + m->minffVariant() + ")";
+         if (!m->minffReplicate().empty()) src += ", repeat " + m->minffReplicate();
+      } else {
+         src = p_panel != 0 && !p_panel->sourceFile().empty()
+                  ? "Structure from the file " + p_panel->sourceFile()
+                  : "Structure from the Builder";
+      }
+      string ff = minff ? (m->mineralForceField() == "clayff" ? "ClayFF" : "MINFF (min.ff)")
+                        : m->forceField();
+      char d[64];
+      string box;
+      snprintf(d, sizeof d, "%g", m->boxDistance());
+      if (minff)
+         box = water ? string("unit cell kept; c lengthened by a ") + d + " nm water layer"
+                     : "unit cell kept, no water layer";
+      else
+         box = m->boxType() + ", " + d + " nm from the solute";
+      string ions;
+      if (!water) {
+         ions = "none (no solvent to replace)";
+      } else {
+         if (m->neutralise()) ions = "neutralise with " + m->positiveIon() + "+/" + m->negativeIon() + "-";
+         if (m->ionConcentration() > 0) {
+            snprintf(d, sizeof d, "%g", m->ionConcentration());
+            ions += string(ions.empty() ? "" : ", ") + "salt at " + d + " mol/l";
+         }
+         if (ions.empty()) ions = "none (neutralising off, salt 0)";
+      }
+      o << "Source:      " << src << "\n"
+        << "Force field: " << ff << "\n"
+        << "Water model: " << (water ? w : string("none")) << "\n"
+        << "Box:         " << box << "\n"
+        << "Ions:        " << ions << "\n";
+      if (!minff)
+         o << "Hydrogens:   " << (m->ignoreHydrogens() ? "those in the structure are ignored and rebuilt" : "taken from the structure")
+           << (m->mergeChains() ? "; chains merged" : "") << "\n";
+   }
+   o << "\nCommands, in order, run in the job's own directory with the gmx "
+        "found on the compute machine:\n\n";
    if (minff) {
       o << "1. (mineral) the topology and structure built here are used as "
            "they are: topol.top, step1.gro\n";
@@ -418,9 +472,14 @@ string GmxPrepare::verifyFilesText()
    vector<string> aux = task->getDataFileNames(JCode::AUXILIARY_INPUT);
    names.insert(names.end(), aux.begin(), aux.end());
    std::ostringstream o;
-   o << "Input files that will be staged for the job:\n\n";
+   o << "Files staged in the job directory (name, size):\n\n";
+   // Include folders are stored flat as <folder>__SLASH__<file>.
+   vector<string> shown = names;
+   for (size_t i = 0; i < shown.size(); i++)
+      for (size_t k; (k = shown[i].find("__SLASH__")) != string::npos;)
+         shown[i].replace(k, 9, "/");
    size_t width = 0;
-   for (size_t i = 0; i < names.size(); i++) width = std::max(width, names[i].size());
+   for (size_t i = 0; i < shown.size(); i++) width = std::max(width, shown[i].size());
    string topology;
    for (size_t i = 0; i < names.size(); i++) {
       istream *is = task->getAnyFile(names[i]);
@@ -437,8 +496,10 @@ string GmxPrepare::verifyFilesText()
       }
       if (names[i] == "topol.gmxmin") topology = head;
       char line[64];
-      snprintf(line, sizeof line, "  %9ld bytes", size);
-      o << "  " << names[i] << string(width - names[i].size(), ' ') << line << "\n";
+      if (size >= 1024 * 1024) snprintf(line, sizeof line, "  %7.1f MB", size / 1048576.0);
+      else if (size >= 1024) snprintf(line, sizeof line, "  %7.1f kB", size / 1024.0);
+      else snprintf(line, sizeof line, "  %7ld bytes", size);
+      o << "  " << shown[i] << string(width - shown[i].size(), ' ') << line << "\n";
    }
    if (prepModel()->source() != "minff" && p_panel->sourceFile().empty())
       o << "  <system>.pdb: the Builder's structure, written when the job is launched\n";
@@ -453,33 +514,55 @@ string GmxPrepare::verifyFilesText()
 }
 
 
-// Upper pane: what will run. Lower pane: what it will be given.
+// Upper pane: what will run. Lower pane: what it will be given. The raw
+// recipe sits in a closed expander.
 wxDialog *GmxPrepare::makeVerifyDialog()
 {
    wxDialog *dlg = new wxDialog(this, wxID_ANY, _("Verify GROMACS Prepare"),
-                                wxDefaultPosition, wxSize(760, 620),
+                                wxDefaultPosition, wxSize(760, 680),
                                 wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
    wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
    const wxFont mono(wxFontInfo().Family(wxFONTFAMILY_TELETYPE));
    const long style = wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP;
-   col->Add(new wxStaticText(dlg, wxID_ANY, _("What will run")), 0, wxLEFT | wxTOP, 8);
+   col->Add(new wxStaticText(dlg, wxID_ANY,
+       _("Nothing is run from here; this is what Launch will stage and run.")),
+       0, wxLEFT | wxRIGHT | wxTOP, 8);
+   wxStaticText *h1 = new wxStaticText(dlg, wxID_ANY, _("What will run"));
+   h1->SetFont(h1->GetFont().Bold());
+   col->Add(h1, 0, wxLEFT | wxTOP, 8);
    wxTextCtrl *upper = new wxTextCtrl(dlg, wxID_ANY,
        wxString::FromUTF8(verifyText().c_str()), wxDefaultPosition,
-       wxSize(-1, 280), style);
+       wxSize(-1, 260), style);
    upper->SetFont(mono);
    upper->SetName("verify-upper");
    upper->SetInsertionPoint(0);
    upper->ShowPosition(0);
    col->Add(upper, 3, wxEXPAND | wxALL, 8);
-   col->Add(new wxStaticText(dlg, wxID_ANY, _("Input files")), 0, wxLEFT, 8);
+   wxStaticText *h2 = new wxStaticText(dlg, wxID_ANY, _("Input files"));
+   h2->SetFont(h2->GetFont().Bold());
+   col->Add(h2, 0, wxLEFT, 8);
    wxTextCtrl *lower = new wxTextCtrl(dlg, wxID_ANY,
        wxString::FromUTF8(verifyFilesText().c_str()), wxDefaultPosition,
-       wxSize(-1, 180), style);
+       wxSize(-1, 160), style);
    lower->SetFont(mono);
    lower->SetName("verify-lower");
    lower->SetInsertionPoint(0);
    lower->ShowPosition(0);
    col->Add(lower, 2, wxEXPAND | wxALL, 8);
+   wxCollapsiblePane *raw = new wxCollapsiblePane(dlg, wxID_ANY, _("Recipe as stored (gromacs.gmxprep)"));
+   raw->SetName("verify-recipe-pane");
+   wxTextCtrl *rt = new wxTextCtrl(raw->GetPane(), wxID_ANY,
+       wxString::FromUTF8(verifyRecipeText().c_str()), wxDefaultPosition,
+       wxSize(-1, 140), style);
+   rt->SetFont(mono);
+   rt->SetName("verify-recipe");
+   wxBoxSizer *rs = new wxBoxSizer(wxVERTICAL);
+   rs->Add(rt, 1, wxEXPAND | wxTOP, 4);
+   raw->GetPane()->SetSizer(rs);
+   raw->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, [dlg](wxCollapsiblePaneEvent&) {
+      dlg->Layout();
+   });
+   col->Add(raw, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
    col->Add(dlg->CreateStdDialogButtonSizer(wxCLOSE), 0, wxEXPAND | wxALL, 8);
    dlg->SetSizer(col);
    dlg->SetEscapeId(wxID_CLOSE);

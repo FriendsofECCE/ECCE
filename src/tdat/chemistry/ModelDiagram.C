@@ -1455,7 +1455,7 @@ bool ModelDiagram::build(const Input& in,
       for (size_t k = 0; k < parts.size() && k < 5; k++) text += (k ? ", " : "") + parts[k].second;
       if (L.realLevel >= 0) {
          const MoLevel& R = real[L.realLevel];
-         text += "\nMatches your MO ";
+         text += "\nMatches MO ";
          for (size_t k = 0; k < lv.orbitals.size();) {
             size_t e = k;
             while (e + 1 < lv.orbitals.size() && lv.orbitals[e + 1] == lv.orbitals[e] + 1) e++;
@@ -1696,7 +1696,7 @@ bool ModelDiagram::build(const Input& in,
          lv.degeneracy = lv.calcDegeneracy = real[R].degeneracy > 0 ? real[R].degeneracy : (int)real[R].orbitals.size();
          lv.hasCalc = true;
          lv.calcEnergy = real[R].energy;
-         lv.detail = pass == 0 ? "Your HOMO: no model partner." : "Your LUMO: no model partner.";
+         lv.detail = pass == 0 ? "HOMO: no model partner." : "LUMO: no model partner.";
          out.centre.calcOnly.push_back(lv);
       }
 
@@ -1726,20 +1726,20 @@ bool ModelDiagram::build(const Input& in,
 
       string lumoSentence;
       if (lumoDiffers)
-         lumoSentence = "The empty levels differ: your LUMO is " + lower(stripMarks(real[calcLumo].label)) +
+         lumoSentence = "The empty levels differ: the calculated LUMO is " + lower(stripMarks(real[calcLumo].label)) +
                         ", the model's is " + plain(out.centre.levels[modelLumo].label) + ".";
       if (judged.empty()) {
          out.verdict = lumoSentence;
          if (lumoDiffers) out.verdictOk = false;
       } else if (out.inversions == 0) {
-         out.verdict = string("The model explains your occupied orbitals") + (lumoJudged ? " and the LUMO" : "") +
+         out.verdict = string("The model explains the calculated occupied orbitals") + (lumoJudged ? " and the LUMO" : "") +
                        " in the right order.";
          if (lumoDiffers) { out.verdict += " " + lumoSentence; out.verdictOk = false; }
       } else {
          out.verdictOk = false;
          string first = joinNames(bad);
          first[0] = (char)toupper((unsigned char)first[0]);
-         out.verdict = first + "; your calculation has " + (out.inversions == 1 ? "them" : "those") +
+         out.verdict = first + "; the calculation has " + (out.inversions == 1 ? "them" : "those") +
                        " the other way round (" + std::to_string(out.inversions) + " of " + std::to_string(pairs) +
                        " pairs of the " + std::to_string(judged.size()) + " levels judged).";
          if (lumoDiffers) out.verdict += " " + lumoSentence;
@@ -1770,7 +1770,7 @@ bool ModelDiagram::build(const Input& in,
    out.summary = "Model: order and approximate spacing from extended H\xC3\xBC" "ckel (qualitative) \xC2\xB7 "
                  "calculation in eV";
    if (out.haveDeltaO)
-      out.summary += " \xC2\xB7 \xCE\x94o in your calculation: " + fmt("%.1f", out.deltaCalcEv) + " eV";
+      out.summary += " \xC2\xB7 \xCE\x94o (this calculation): " + fmt("%.1f", out.deltaCalcEv) + " eV";
    if (!out.right.bands.empty()) {
       string t;
       bool plainBands = false;
@@ -1834,10 +1834,10 @@ bool ModelDiagram::build(const Input& in,
       int total = 0;
       string aboutVerdict;
       if (out.valenceLevels > 0 && out.inversions == 0)
-         aboutVerdict = string("The model explains your occupied orbitals") + (lumoJudged ? " and the LUMO" : "") +
+         aboutVerdict = string("The model explains the calculated occupied orbitals") + (lumoJudged ? " and the LUMO" : "") +
                         " in the right order. ";
       if (aboveDiffers)
-         aboutVerdict += "The order of some empty levels above the LUMO differs between the model and your calculation. ";
+         aboutVerdict += "The order of some empty levels above the LUMO differs between the model and the calculation. ";
       aboutVerdict += "Virtual orbitals above the LUMO depend strongly on the basis set.";
       for (size_t i = 0; i < sets.size(); i++) total += (int)lround(sets[i].occupancy);
       char b[64];

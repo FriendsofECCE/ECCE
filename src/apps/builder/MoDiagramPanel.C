@@ -513,7 +513,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   //  (the group swaps the halves, so neither is a set of equivalent
   //  atoms); untick it to get that one back.
   p_autoFragments->SetToolTip("Group the sets of equivalent atoms "
-                              "yourself, instead of the construction "
+                              "manually, instead of the construction "
                               "the diagram chose");
   fragRow->Add(p_autoFragments, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 

@@ -86,7 +86,7 @@ class NModePanel : public NModesGUI,
       void fitModeColumn();
       void showModeDetail(int row);
       /** Sets a description label to `text`, wrapped to two lines at its width. */
-      static void setWrapped(wxStaticText *label, const wxString& text);
+      static void setWrapped(wxStaticText *label, const std::vector<wxString>& parts);
       void dumpTableIfRequested();
       wxString cellTip(int row, int col) const;
       void OnGridMotion(wxMouseEvent& event);
@@ -157,6 +157,7 @@ class NModePanel : public NModesGUI,
       wxStaticText *p_modeDetail = NULL;
       wxStaticText *p_graphFreq = NULL;
       wxStaticText *p_graphDetail = NULL;
+      std::vector<wxString> p_detailParts;
       wxString p_detailText;          // unwrapped, for re-wrapping on a resize
       int         p_mode;
       int         p_numAnimations;

@@ -62,6 +62,9 @@ MOLECULES = [
 ]
 #  Gaussian's own labels (VIBSYM) for water: shown as the code printed them.
 RAMAN = ("h2o-raman", os.path.join(rt.FIX, "ecceqm", "h2o_raman.qmout"))
+#  The detail label's width in px, narrower than any dock: forces the wrapping.
+NARROW = "150"
+CO = ("co-g16", os.path.join(rt.FIX, "gaussian-16", "co_freq.log"))
 G16 = ("h2o-g16", os.path.join(rt.FIX, "gaussian-16", "h2o_optfreq.log"))
 
 
@@ -171,7 +174,8 @@ def run(s, display, env, wrappers, png, url, name):
     text, _shots = bo.runScript(
         s, display, env, wrappers, ["-context", url], lines, png, name,
         {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies",
-         "ECCE_NMODE_TABLE_DUMP": dump, "ECCE_EXIT_AFTER_DUMP": "1"})
+         "ECCE_NMODE_TABLE_DUMP": dump, "ECCE_EXIT_AFTER_DUMP": "1",
+         "ECCE_NMODE_DETAIL_WIDTH": NARROW})
     if not check(os.path.exists(dump) and os.path.getsize(dump) > 0,
                  "%s: the table dumped what it holds" % name):
         say(text[-2000:])
@@ -232,6 +236,10 @@ def main():
         say("table: %s" % G16[0])
         results[G16[0]] = run(s, display, env, wrappers, png,
                               "file://" + os.path.join(project, G16[0]) + "/", G16[0])
+        makeCalc(project, CO[0], CO[1], "gaussian-16.desc", "GeoVib", None, "CO")
+        say("table: %s" % CO[0])
+        results[CO[0]] = run(s, display, env, wrappers, png,
+                             "file://" + os.path.join(project, CO[0]) + "/", CO[0])
         makeCalc(project, RAMAN[0], RAMAN[1], "ecceqm.desc", "Vibration", list("OHH"), "H2O")
         say("table: %s" % RAMAN[0])
         results[RAMAN[0]] = run(s, display, env, wrappers, png,
@@ -290,6 +298,24 @@ def main():
             cell = d["cells"].get((r, 1))
             if m["irrep"] != "-" and cell is not None:
                 check(cell[2] == m["irrep"], "%s mode %d: Sym column %s, analysis %s" % (name, r, cell[2], m["irrep"]))
+
+    #  Narrow detail line: at most two lines, only whole words of the full text,
+    #  an ellipsis only after a whole word, and the description kept.
+    for name, d in sorted(results.items()):
+        if d is None or not d.get("detail"):
+            continue
+        shown = d.get("shown", "")
+        full = set(d["detail"].replace("\u00b7", " ").split())
+        words = [w for w in shown.replace("|", " ").replace("\u00b7", " ").split()]
+        bad = [w for w in words if w.rstrip("\u2026") not in full]
+        check(not bad and shown.count("|") <= 1,
+              "%s: the wrapped detail line has whole words only and two lines at most: %s" % (name, shown))
+        desc = (d["modes"].get(8) or {}).get("detail", "")
+        if desc and name != CO[0]:
+            check(desc.split()[0] in shown, "%s: the description survives the narrow line: %s" % (name, shown))
+    co = results.get(CO[0])
+    if co is not None:
+        say("  CO detail: %r -> %r" % (co["detail"], co.get("shown")))
 
     d = results.get(G16[0])
     if d is not None and codeSym:

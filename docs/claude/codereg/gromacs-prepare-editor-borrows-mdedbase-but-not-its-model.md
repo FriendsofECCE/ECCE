@@ -55,10 +55,11 @@ the page twice as wide as its wider column (the right column now takes the
 remainder); and a long summary or file-name label widens its box, so those
 wrap (`wrapPixels`) or ellipsize (`clippedLabel`).
 The Verify button (beside Launch) opens a dialog with two panes: the upper is
-the recipe, the gmx commands and `ions.mdp` from `GmxPrepare::verifyText`,
+a labelled summary of the model, the gmx commands and `ions.mdp` from `GmxPrepare::verifyText`
+(the raw recipe, `verifyRecipeText`, is in a closed expander at the bottom),
 which mirrors `gromacsPrepare()` in `scripts/gensub` by hand (a change to the
 job's commands or its cut-off rule needs the same change there); the lower is
-`verifyFilesText`, the inputs staged with their sizes and, for a mineral, the
+`verifyFilesText`, the inputs staged (`__SLASH__` shown as `/`) with their sizes and, for a mineral, the
 topology's first lines. Hooks: `verify`, `verifyfiles`, `verifydialog [PNG]`,
 `size`, `layout`, `cellwarning`, `mcelldir`.
 Unit-cell Browse... starts in the last folder used, else the bundled

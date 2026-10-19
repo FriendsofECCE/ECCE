@@ -41,6 +41,7 @@ class GmxPrepare: public MDEdBase, public WxJMSListener
        * scripts/gensub; a change there needs one here.
        */
       string verifyText();
+      string verifyRecipeText();
 
       /** The input files the job is given, with sizes (Verify's lower pane). */
       string verifyFilesText();

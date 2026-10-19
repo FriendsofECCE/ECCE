@@ -171,7 +171,7 @@ class MoDiagramCanvas : public wxPanel
     /** The calculation column's heading: the method, e.g. "BP86/def2-SVP". */
     void setCalcHeader(const string& text)
     {
-      p_calcHeader = text.empty() ? string("Your calculation") : text;
+      p_calcHeader = text.empty() ? string("This calculation") : text;
       Refresh();
     }
 
@@ -2699,7 +2699,7 @@ class MoDiagramCanvas : public wxPanel
     bool p_showEnergies;
     string p_group;
     string p_formula;
-    string p_calcHeader = "Your calculation";
+    string p_calcHeader = "This calculation";
 
     vector<Hit> p_hits;
     string p_info;                       // the clicked level, in the footer

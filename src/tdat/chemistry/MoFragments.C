@@ -2178,7 +2178,7 @@ bool MoFragments::linearGroupName(const vector<double>& coords,
 const char* MoFragments::fragmentationName(Fragmentation how)
 {
    switch (how) {
-      case CHOSEN:          return "atom sets you chose";
+      case CHOSEN:          return "chosen atom sets";
       case SKELETON:        return "a metal and its donor atoms";
       case CENTRAL:         return "a central atom and its neighbours";
       case HALVES:          return "two equivalent halves";
@@ -2340,7 +2340,7 @@ static bool buildPicked(const vector<double>& coords,
          note = "This bond is part of a ring, so cutting it does not "
                 "split the molecule in two and there is no pair of "
                 "fragments to draw from it. Use Choose fragments to "
-                "group the atoms yourself.";
+                "group the atoms manually.";
          return false;
       }
       for (int i = 0; i < n; i++) (inA[i] ? leftSet : rightSet).push_back(i);
@@ -2443,7 +2443,7 @@ bool MoFragments::bondSides(const vector<double>& coords,
    if (inA[b]) {
       note = "This bond is part of a ring, so cutting it does not split "
              "the molecule in two and there is no pair of fragments to "
-             "draw from it. Use Choose fragments to group the atoms yourself.";
+             "draw from it. Use Choose fragments to group the atoms manually.";
       return false;
    }
    for (int i = 0; i < n; i++) if (inA[i]) sideA.push_back(i);
@@ -3174,8 +3174,7 @@ bool MoFragments::build(const vector<double>& coords,
                       "guess at the fragments: it has "
                    << orbits.size() << " symmetry-distinct sets of atoms "
                       "and more than one way to split them. Choose the "
-                      "fragments yourself if another split is the one you "
-                      "want.";
+                      "fragments manually if another split is wanted.";
             note = chosen.str();
       if (how != 0) *how = CHOSEN;
 
@@ -3246,7 +3245,7 @@ bool MoFragments::build(const vector<double>& coords,
              << group << " this molecule has " << orbits.size()
              << " symmetry-distinct set" << (orbits.size() == 1 ? "" : "s")
              << " of atoms, so there is no such split. Choose the fragments "
-                "yourself, or read the molecular orbitals on their own.";
+                "manually, or read the molecular orbitals on their own.";
          note = why.str();
          return false;
       }
