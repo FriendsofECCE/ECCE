@@ -1,0 +1,40 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+#   One trajectory frame of a GROMACS run -> ECCE's GEOMTRACE table.
+#
+#   gensub (on the compute side, where gmx is) converts traj.xtc with
+#   "trjconv -pbc mol" and appends each frame to the output file as
+#
+#     ECCE-TRAJ frame <n> atoms <N>
+#     <element> <x> <y> <z>        (Angstrom, one line per atom)
+#     ECCE-TRAJ end
+#
+#   so that the Builder's geometry-trace panel can animate the run.
+#
+################################################################################
+
+$| = 1;
+
+my (@coords, $labels);
+my $i = 0;
+while (<STDIN>) {
+  if (/^\s*([A-Za-z]{1,2})\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/) {
+    push(@coords, "$2 $3 $4");
+    $i++;
+    $labels .= " $i-$1";
+  }
+}
+
+if (@coords) {
+  print "key: GEOMTRACE\n";
+  print "size:\n1 " . scalar(@coords) . " 3\n";
+  print "rowlabels:\n$labels\n";
+  print "columnlabels:\nX Y Z\n";
+  print "values:\n";
+  print " $_\n" for @coords;
+  print "units:\nAngstrom\n";
+  print "END\n";
+}
+exit(0);

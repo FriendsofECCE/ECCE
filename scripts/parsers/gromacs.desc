@@ -87,6 +87,16 @@ Skip=0
 End=Pressure \(bar\)
 [END]
 
+# The trajectory frames gensub appends to the log after mdrun (converted from
+# the .xtc), one GEOMTRACE step each.  The Begin is not one mdrun prints.
+[GEOMTRACE]
+Script=gromacs.geomtrace
+Begin=^ECCE-TRAJ frame
+Skip=1
+Frequency=all
+End=^ECCE-TRAJ end
+[END]
+
 # Job progress for the Organizer's Progress box (#284).  No Script: these
 # only feed the monitor's live snapshot.  mdrun echoes the integrator and
 # nsteps in its log; the stage is named by the integrator (md, steep, ...)
