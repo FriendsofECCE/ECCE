@@ -92,10 +92,6 @@ def main():
         if not s.services(True):
             check(False, "services came up")
             return 1
-        # Local mode deletes DataServers, which also holds the force-field
-        # defaults the Prepare deck needs; put it back for the editors.
-        shutil.copy(os.path.join(build, "siteconfig-local", "DataServers"),
-                    os.path.join(s.home, "siteconfig", "DataServers"))
         display = xdisplay.Display().__enter__()
         cmddir = os.path.join(s.state, "mded")
         os.makedirs(cmddir)
