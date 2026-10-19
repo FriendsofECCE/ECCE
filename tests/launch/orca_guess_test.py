@@ -141,7 +141,7 @@ def importFiles(orca, work, name):
     return pre
 
 
-def editorPhase(s, build, orca, work, rundir, urlA):
+def editorPhase(s, build, orca, work, rundir, urlA, andy=False):
     """The Calculation Editor on a calculation that carries A's orbitals,
     through its test hook on a private X server: the line under Settings,
     Save keeping the guess, and Use Default Guess dropping it."""
@@ -164,11 +164,20 @@ def editorPhase(s, build, orca, work, rundir, urlA):
     for entry in os.listdir(wrappers):
         os.chmod(os.path.join(wrappers, entry), 0o755)
 
-    urlE = runJob(s, "water-tzvp-editor", makeDeck(work, "e", "def2-TZVP", False), rundir)
-    rc, out = s.driver("setup", urlE, importFiles(orca, work, "e"), "orca.orcaout")
+    tag = "f" if andy else "e"
+    urlE = runJob(s, "water-tzvp-" + ("flow" if andy else "editor"),
+                  makeDeck(work, tag, "def2-TZVP", False), rundir)
+    rc, out = s.driver("setup", urlE, importFiles(orca, work, tag), "orca.orcaout")
     check(rc == 0, "E's molecule, basis and theory stored (setup)")
-    rc, out = s.driver("guess", urlE, urlA)
-    check(rc == 0, "A's orbitals attached to E")
+    if andy:
+        #  The real Duplicate with Final Orbitals: a copy of the finished
+        #  source, reset, the orbitals attached.
+        rc, out = s.driver("dup3", urlA)
+        check(rc == 0, "A duplicated with its final orbitals")
+        urlE = out.strip().splitlines()[-1]
+    else:
+        rc, out = s.driver("guess", urlE, urlA)
+        check(rc == 0, "A's orbitals attached to E")
     calcE = calcDir(s, urlE)
 
     cmdfile = os.path.join(s.state, "calced.cmd")
@@ -205,6 +214,10 @@ def editorPhase(s, build, orca, work, rundir, urlA):
 
         try:
             time.sleep(10)
+            if andy:
+                andyFlow(s, ask, deck, calcE, urlE)
+                ask("quit", 30)
+                return
             answer = ask("guess")
             say("    guess -> %s" % answer)
             check(answer is not None and "shown=1" in answer and
@@ -235,6 +248,32 @@ def editorPhase(s, build, orca, work, rundir, urlA):
                     proc.wait(timeout=20)
                 except (OSError, subprocess.TimeoutExpired):
                     pass
+
+
+def andyFlow(s, ask, deck, calcE, urlE):
+    """Duplicate with Final Orbitals, then in the editor: change the run
+    type to GeoVib, Save, launch; the deck and ORCA's output must show the
+    guess."""
+    answer = ask("guess")
+    check(answer is not None and "has=1" in answer and "shown=1" in answer,
+          "the editor shows the guess (%s)" % answer)
+    answer = ask("runtype GeoVib")
+    check(answer == "ok", "the run type was changed to GeoVib (%s)" % answer)
+    answer = ask("guess")
+    check(answer is not None and "has=1" in answer,
+          "the guess is still attached after the run type change")
+    ask("save")
+    check("MORead" in deck() and '%moinp "guess.gbwin"' in deck(),
+          "Save after the run type change wrote MORead and %moinp")
+    check("Opt" in deck() and "Freq" in deck(), "and the GeoVib route")
+    check(os.path.exists(os.path.join(calcE, "Inputs", "guess.gbwin")),
+          "and kept guess.gbwin")
+    ran = finish(s, urlE, "the duplicate")
+    if ran:
+        out = open(os.path.join(ran, "Outputs", "orca.orcaout"),
+                   errors="replace").read()
+        check("Guess MOs are being read from file: guess.gbwin" in out,
+              "ORCA read guess.gbwin in the launched job")
 
 
 def calcDir(s, url):
@@ -381,6 +420,7 @@ def main():
         #  The editor needs a login against a data server; local data covers it.
         if not args.no_editor and not args.central:
             editorPhase(s, build, orca, work, rundir, urlA)
+            editorPhase(s, build, orca, work, rundir, urlA, andy=True)
     finally:
         left = s.stop()
         if left:
