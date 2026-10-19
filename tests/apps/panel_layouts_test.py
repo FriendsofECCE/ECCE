@@ -166,6 +166,9 @@ def check(display, url, label, mode, expected):
         return
     failures.append(label)
     print("FAIL  %s: %s\n%s" % (label, problem, run_tests._tail(log, 15)))
+    print("      panes: %s  rows: %s  client: %s" % (
+        {n: p[:4] for n, p in metrics["panes"].items()}, metrics.get("rows"),
+        metrics["client"]))
 
 
 def main():
