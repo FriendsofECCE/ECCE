@@ -41,9 +41,9 @@ tasks after it.
 2. Select the project and choose **File > New > GROMACS MD Study...**.
    Enter `trpcage` and click **OK**.
 3. Select the study and choose **File > New > GROMACS MD Prepare...**. Make
-   in the same way a **GROMACS MD Optimize**, a **GROMACS MD Equilibrate**
-   and a **GROMACS MD Dynamics**, in that order. The study shows them as
-   Prepare, Optimize, Equilibrate and Dynamics.
+   in the same way a **GROMACS MD Optimize**, two **GROMACS MD
+   Equilibrate** tasks (the second is used in section 5) and a **GROMACS MD
+   Dynamics**, in that order. The study shows them in that order.
 
 Each task finds the topology and the structure of the one before it by
 itself. Nothing is attached by hand.
@@ -95,18 +95,36 @@ around the protein.
 When it is done, the temperature of the task is close to 300 K (303 K at
 its last step in the run of this tutorial).
 
-## 5. Dynamics
+## 5. Equilibrate at constant pressure
 
-1. Select **Dynamics**, open its editor in the same way and set **Data
-   Collection Steps:** to `2000` (4 ps).
+The run above holds the temperature only, so the box keeps its volume. A
+second Equilibrate lets the density settle at 1 bar before the production
+run.
+
+1. Select the second **Equilibrate** and choose **Tools > GROMACS MD
+   Equilibrate Editor**. Tick **Continue from the previous task's
+   structure and velocities**, so that it carries on from the first
+   Equilibrate instead of drawing new velocities.
+2. On the **Dynamics** page, set **Data Collection Steps:** to `1000`.
+3. On the **Pressure** tab, tick **Use Constant Pressure Algorithm** and set
+   **Pressure:** to `100000` N/m**2 (1 bar).
+4. On the **Run settings** page, choose the **Barostat:** under **Pressure
+   coupling**: C-rescale, the default, or Parrinello-Rahman.
+5. Click **Launch...**, then **Launch**.
+
+## 6. Dynamics
+
+1. Select the last task, **Dynamics**, open its editor in the same way and
+   set **Data Collection Steps:** to `2000` (4 ps).
 2. The box **Continue from the previous task's structure and velocities**
-   is not ticked: the run then starts from the structure of Equilibrate and
-   draws new velocities at 300 K. Tick it to keep the velocities.
+   is ticked, because the task before it is an Equilibrate: the run starts
+   from the structure and the velocities the equilibration ended with.
+   Untick it to draw new velocities at 300 K instead.
 3. Click **Launch...**, then **Launch**.
 
 This is the longest task, about 15 seconds.
 
-## 6. The results
+## 7. The results
 
 - Select a task and open the Builder (**Tools > Builder**): it shows the
   structure the task ended with. The status line counts the atoms of the

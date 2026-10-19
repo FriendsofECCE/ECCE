@@ -84,6 +84,8 @@ class MDEdBase: public MDEdBaseGUI,
 
       virtual void doQuit(bool force, bool notifyEditor);
       virtual void setContext(const string& url);
+      // Called when a task is opened that has no saved model yet.
+      virtual void newTaskDefaults(MdTask *task) {}
       virtual void generateInputFile(MdTask *task);
       virtual void saveModelAndInputFile(MdTask *task);
       virtual void resetPanel();

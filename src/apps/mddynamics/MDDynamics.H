@@ -42,6 +42,7 @@ class MDDynamics: public MDEdBase, public WxJMSListener
       virtual string getTitle() const;
 
       void setContext(const string& url);
+      void newTaskDefaults(MdTask *task);
       void resetPanel();
 
       /**
