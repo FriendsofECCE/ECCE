@@ -1141,8 +1141,8 @@ void Builder::sizeIndexPane()
   wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
   if (!pane.IsOk()) return;
   //  A share of the screen, not the window: the panel below needs the rest
-  //  for a table of eight rows on a laptop screen.
-  const int height = p_index->preferredHeight(wxGetDisplaySize().y * 22 / 100);
+  //  for its table; the MOs panel needs about 250 px of controls before its first row.
+  const int height = p_index->preferredHeight(wxGetDisplaySize().y * 12 / 100);
   if (!p_indexSized) {
     pane.dock_proportion = 1;
     p_indexSized = true;
