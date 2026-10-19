@@ -4469,7 +4469,7 @@ sub ProgressLine
             }
             #  Two finished steps at least: the first one carries start-up
             #  work (QE's first SCF, ORCA's first guess), and an estimate
-            #  from it alone swung from seconds to minutes (#930).
+            #  from it alone swung from seconds to minutes.
             if ($k - $$st{'k0'} >= 2 && $k < $n)
             {
                 push @{$$st{'keys'}}, 'eta' unless (exists $$st{'f'}{'eta'});
