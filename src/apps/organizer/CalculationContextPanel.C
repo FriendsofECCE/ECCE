@@ -23,6 +23,7 @@
 #include "util/NullPointerException.H"
 
 #include "dsm/EDSIFactory.H"
+#include "dsm/JCode.H"
 #include "dsm/MdTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
@@ -30,6 +31,7 @@
 #include "dsm/GridProperty.H"
 #include "dsm/ResourceTool.H"
 #include "dsm/Session.H"
+#include "dsm/TaskJob.H"
 #include "dsm/ToolPropertyView.H"
 #include "dsm/VDoc.H"
 
@@ -45,6 +47,16 @@
 #include "CalcMgrGUI.H"
 #include "CalculationContextPanel.H"
 #include "ProgressBox.H"
+
+//  The Basis Set button and its rows are dropped for a code that has no basis
+//  set; the registration (needsBasis of its theories) decides.
+static bool noBasisView(Resource *res, ResourceTool *tool)
+{
+  if (tool->getName() != BASISTOOL) return false;
+  TaskJob *task = dynamic_cast<TaskJob*>(res);
+  const JCode *code = task ? task->application() : 0;
+  return code && !code->usesBasisSet();
+}
 
 
 
@@ -116,6 +128,8 @@ void CalculationContextPanel::refresh()
   for (tpvIt = toolPropertyViews.begin();
        tpvIt != toolPropertyViews.end();
        tpvIt++) {
+    if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
+      continue;
 
     // get the ResourceProperties for this tool and iterate through them
     multimap<int, ResourceProperty*> properties;
@@ -272,6 +286,8 @@ void CalculationContextPanel::createControls()
   for (tpvIt = toolPropertyViews.begin();
        tpvIt != toolPropertyViews.end();
        tpvIt++) {
+    if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
+      continue;
     pair<ResourceTool*,ToolPropertyView*> pairRT_TPV = tpvIt->second;
 
     // create the sizer for this tool

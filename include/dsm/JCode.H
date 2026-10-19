@@ -119,6 +119,9 @@ class JCode
   bool supportsDummyAtoms(void) const;
   /// Element Periodic; false unless the code says true (crystal codes).
   bool isPeriodic(void) const;
+  /// False when no theory of the code needs a basis set (semi-empirical,
+  /// plane-wave and Quickstep codes), so basis set displays can be dropped.
+  bool usesBasisSet() const;
   bool theoryNeedsBasis(const TTheory& theory) const;
   bool theoryCategoryNeedsBasis(const string& theorycat) const;
 
