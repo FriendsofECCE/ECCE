@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+<defs>
+<radialGradient id="sW" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".3" stop-color="#f0f0f0"/><stop offset="1" stop-color="#6a6a6a"/></radialGradient>
+<radialGradient id="sO" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".3" stop-color="#D55E00"/><stop offset="1" stop-color="#5f2a00"/></radialGradient>
+<radialGradient id="sB" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".3" stop-color="#0072B2"/><stop offset="1" stop-color="#00263d"/></radialGradient>
+<radialGradient id="sh"><stop offset=".5" stop-color="#000" stop-opacity=".32"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<linearGradient id="frame" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6A56B"/><stop offset=".45" stop-color="#D55E00"/><stop offset="1" stop-color="#6b2d00"/></linearGradient>
+<linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cfd8e0"/></linearGradient>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".4" stop-color="#e8f1f8"/><stop offset="1" stop-color="#7d93a5"/></linearGradient>
+<linearGradient id="merc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F59A55"/><stop offset=".4" stop-color="#D55E00"/><stop offset="1" stop-color="#7a3500"/></linearGradient>
+<linearGradient id="cell" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd3f0" stop-opacity=".55"/><stop offset="1" stop-color="#0072B2" stop-opacity=".25"/></linearGradient>
+<linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6A0"/><stop offset=".5" stop-color="#F0E442"/><stop offset="1" stop-color="#E69F00"/></linearGradient>
+<linearGradient id="fold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6A56B"/><stop offset=".5" stop-color="#D55E00"/><stop offset="1" stop-color="#7a3500"/></linearGradient>
+<linearGradient id="curve" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#56B4E9"/><stop offset="1" stop-color="#0072B2"/></linearGradient>
+</defs>
+<rect x="3" y="7" width="58" height="50" rx="8" fill="url(#sh)" transform="translate(1.5,2.5)"/><rect x="3" y="6" width="58" height="50" rx="8" fill="url(#frame)"/><path d="M6 12Q6 7 12 7H52" stroke="#fff" stroke-opacity=".6" stroke-width="1.6" fill="none"/><rect x="9" y="12" width="46" height="38" rx="4" fill="url(#panel)"/><g transform="translate(14.4,17.6) scale(.64)"><rect x="25" y="5" width="13" height="42" rx="6.5" fill="url(#glass)" stroke="#6b7c8a" stroke-width="1.6"/><rect x="29" y="18" width="5" height="32" fill="url(#merc)"/><line x1="38" y1="10" x2="45" y2="10" stroke="#555" stroke-width="2"/><line x1="38" y1="15" x2="42" y2="15" stroke="#555" stroke-width="2"/><line x1="38" y1="20" x2="45" y2="20" stroke="#555" stroke-width="2"/><line x1="38" y1="25" x2="42" y2="25" stroke="#555" stroke-width="2"/><line x1="38" y1="30" x2="45" y2="30" stroke="#555" stroke-width="2"/><line x1="38" y1="35" x2="42" y2="35" stroke="#555" stroke-width="2"/><circle cx="32" cy="51" r="9.5" fill="url(#sh)" opacity=".6"/><circle cx="31.5" cy="50" r="9" fill="url(#sO)"/><path d="M47 33c3-3 5 3 8 0M47 40c3-3 5 3 8 0" stroke="#0072B2" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
+</svg>
