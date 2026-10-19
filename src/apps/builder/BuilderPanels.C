@@ -378,12 +378,13 @@ void Builder::refreshColumn()
   } else if (p_panelMode == PANELS_DETAIL) {
     ensureDetail();
   }
-  //  An editable calculation always opens on the building tools, so a new
-  //  user sees Build; one with results (read-only) opens on Properties.
-  if (!anyProperties || !p_calculation || !isReadOnly()) {
+  //  An editable calculation opens on the building tools, so a new user
+  //  sees Build; one with results (read-only) opens on Properties.  A tab
+  //  somebody chose, or a panel somebody opened, wins either way.
+  if (!anyProperties) {
     p_columnTab = 0;
   } else if (!p_columnTabChosen) {
-    p_columnTab = 1;
+    p_columnTab = p_calculation && isReadOnly() ? 1 : 0;
   }
   updatePropertyIndex();
   syncColumn(false);
