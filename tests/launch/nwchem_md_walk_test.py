@@ -22,6 +22,7 @@ import glob
 import os
 import re
 import shutil
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -94,7 +95,13 @@ def main():
         display = xdisplay.Display().__enter__()
         cmddir = os.path.join(s.state, "mded")
         os.makedirs(cmddir)
-        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir, "ECCE_DEBUG_FF": "1",
+        # The generated app wrappers export this; the editors need it to
+        # write the force-field directory lines into the Prepare deck.
+        dd = subprocess.run([os.path.join(REPO, "packaging", "nwchem", "ecce-nwchem-datadir")],
+                            capture_output=True, text=True).stdout.strip()
+        if not dd:
+            harness.skip("ecce-nwchem-datadir finds no NWChem data")
+        genv = s.env({"ECCE_NWCHEM_DATA": dd, "DISPLAY": display.name, "ECCE_TEST_MDED": cmddir, "ECCE_DEBUG_FF": "1",
                       "PATH": wrappers + os.pathsep + s.env()["PATH"]})
 
         rc, out = s.driver("nwchemmdstudy", s.userUrl(), "cytidine",

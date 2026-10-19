@@ -355,11 +355,14 @@ class Session(object):
         return out.strip().splitlines()[-1] if out.strip() else ""
 
     def waitState(self, url, seconds=180, want=FINAL_STATES):
-        state = ""
+        state = last = ""
         deadline = time.time() + seconds
         while time.time() < deadline:
             self.seen.update(seenBinaries(self.home))
             state = self.state_of(url)
+            if state != last:
+                say("  state: %s" % state)
+                last = state
             if state in ("failed", "unsuccessful"):
                 break
             if state in want or state == "system_failure":
