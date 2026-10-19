@@ -215,7 +215,21 @@ def main():
                         ed.cmd("snap " + os.path.join(
                             png, "03-%s-%s.png" % (kind, tab.replace(" ", "_").lower())))
                 mdp = os.path.join(where(tasks[kind]), "Inputs", "gromacs.mdp")
-                say("  mdp: %s" % open(mdp).read().replace("\n", " | "))
+                text = open(mdp).read()
+                say("  mdp: %s" % text.replace("\n", " | "))
+                if kind == "equilibrate":
+                    check(ed.cmd("resume") == "off", "Equilibrate starts with Continue unticked")
+                    check(re.search(r"^gen[-_]vel\s*=\s*yes", text, re.M) is not None,
+                          "Equilibrate draws new velocities (gen-vel yes)")
+                if kind == "dynamics":
+                    check(ed.cmd("resume") == "on",
+                          "Dynamics after Equilibrate opens with Continue ticked")
+                    check(re.search(r"^gen[-_]vel\s*=\s*no", text, re.M) is not None
+                          and re.search(r"^continuation\s*=\s*yes", text, re.M) is not None,
+                          "Dynamics .mdp continues (continuation yes, gen-vel no)")
+                    prev = glob.glob(os.path.join(where(tasks["equilibrate"]), "Outputs", "*.gro"))
+                    first = open(prev[0]).read().splitlines()[2] if prev else ""
+                    check(len(first) > 44, "the Equilibrate structure it continues from holds velocities")
             finally:
                 ed.close()
             rc, out = s.launch(tasks[kind])

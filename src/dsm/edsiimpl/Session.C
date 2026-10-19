@@ -29,6 +29,7 @@ using std::pair;
 
 #include "dsm/NWChemMDModel.H"
 #include "dsm/GromacsMDModel.H"
+#include "tdat/DynamicsModel.H"
 #include "dsm/Resource.H"
 #include "dsm/MdTask.H"
 #include "dsm/ResourceType.H"
@@ -1318,6 +1319,14 @@ void Session::addMemberAsTarget(Resource * target, Resource * source)
           if (target->getApplicationType() == ResourceDescriptor::AT_GROMACS) {
             GromacsMDModel inputModel(currentTask->getContentType());
             inputTask->getTaskModel(inputModel);
+            // A Dynamics task after an Equilibrate or Dynamics task
+            // continues from its structure and velocities by default.
+            if (currentTask->getContentType() == ResourceDescriptor::CT_MDDYNAMICS &&
+                (inputTask->getContentType() == ResourceDescriptor::CT_MDDYNAMICS ||
+                 inputTask->getContentType() == ResourceDescriptor::CT_MDEQUILIBRATE) &&
+                inputModel.getDynamicsModel() != 0) {
+              inputModel.getDynamicsModel()->setResumeOpt(true);
+            }
             currentTask->setTaskModel(&inputModel);
           } else {
             NWChemMDModel inputModel(currentTask->getContentType());

@@ -178,6 +178,7 @@ void MDEdBase::startTestHook()
  * run                  what the Run settings page holds
  * run-set <field> <v>  set a field of that page as the user would (\n = newline)
  * launch               whether the Launch button is enabled
+ * resume               "on" or "off": the continue-from-previous-task setting
  * title                the window's title
  * snap <png>           the window as a PNG
  * quit                 close without asking
@@ -247,6 +248,9 @@ string MDEdBase::runTestCommand(const string& line)
    } else if (cmd == "launch") {
       ewxButton* launch = ((ewxButton*)FindWindow(ID_BUTTON_LAUNCH));
       return launch->IsEnabled() ? "enabled" : "disabled";
+   } else if (cmd == "resume") {
+      DynamicsModel *dm = getMDModel().getDynamicsModel();
+      return dm == 0 ? "no dynamics" : (dm->getResumeOpt() ? "on" : "off");
    } else if (cmd == "title") {
       return string(GetTitle().ToUTF8());
    } else if (cmd == "snap") {
