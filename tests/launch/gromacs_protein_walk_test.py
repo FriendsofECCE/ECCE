@@ -15,6 +15,7 @@ Exit status 77 (CTest SKIP) without gmx, Xvfb or the built binaries.
 import argparse
 import glob
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -238,8 +239,28 @@ def main():
         temps = gmx_series(gmx, drun and os.path.dirname(drun), "Temperature")
         say("  last temperature %s K" % (temps[-1] if temps else None))
         check(temps and 150 < temps[-1] < 450, "near the target temperature")
+        # The run's frames are stored as a geometry trace, one step per
+        # trajectory frame (steps/interval + 1: mdrun writes step 0 too).
+        mdp = open(os.path.join(os.path.dirname(drun), "gromacs.mdp")).read() \
+            if drun and os.path.exists(os.path.join(os.path.dirname(drun), "gromacs.mdp")) else ""
+        m = re.search(r"nstxout-compressed\s*=\s*(\d+)", mdp)
+        want = int(STEPS["dynamics"]) // int(m.group(1)) + 1 if m else None
+        gt = glob.glob(os.path.join(where(dyn), "Props", "GEOMTRACE*"))
+        text = open(gt[0], errors="replace").read() if gt else ""
+        got = len(re.findall(r"<step number=", text))
+        natoms = int(re.search(r'rows="(\d+)"', text).group(1)) if gt and re.search(r'rows="(\d+)"', text) else 0
+        say("  trajectory: %d frames of %d atoms (want %s), %d bytes"
+            % (got, natoms, want, len(text)))
+        check(want and got == want, "Dynamics stores %s trajectory frames" % want)
+        gro_atoms = int(open(gro).read().split("\n")[1])
+        check(natoms == gro_atoms, "frames hold every atom of the system (%d)" % gro_atoms)
+        kept = [f for f in os.listdir(os.path.join(where(dyn), "Outputs"))
+                if f.startswith("ecce-parse-")]
+        check(not kept, "the trajectory is stored once, as the trace; %s kept "
+              "beside it: %s (trace %d bytes)" % (len(kept), kept, len(text)))
         for name, url, panel in (("structure", tasks["optimize"], ""),
-                                 ("energies", dyn, "Geometry Step Plots")):
+                                 ("energies", dyn, "Geometry Step Plots"),
+                                 ("trajectory", dyn, "Geometry Trace")):
             env = dict(genv, ECCE_PANEL_FULLSCREEN="1")
             if panel:
                 env["ECCE_OPEN_PANEL"] = panel

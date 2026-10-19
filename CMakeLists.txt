@@ -1852,6 +1852,12 @@ add_executable(systemfolder_test tests/systemfolder/systemfolder_test.C)
 target_link_libraries(systemfolder_test PRIVATE ecceutil)
 add_test(NAME systemfolder COMMAND systemfolder_test)
 
+# A trace step with no frame goes to the nearest frame (GROMACS traces are
+# thinned to 100 frames, the energy plot is not).
+add_executable(proptsvec_nearest_test tests/tdat/proptsvec_nearest_test.C)
+target_link_libraries(proptsvec_nearest_test PRIVATE eccetdat ecceutil)
+add_test(NAME proptsvec_nearest COMMAND proptsvec_nearest_test)
+
 # The ECCE_HIDE_MO_DIAGRAM site setting (#280).
 add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
 target_link_libraries(sitehide_test PRIVATE ecceutil)

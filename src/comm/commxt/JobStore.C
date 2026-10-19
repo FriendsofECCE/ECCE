@@ -2538,7 +2538,9 @@ void interactFile(char* fileData)
   // decode type of message
   if (fileType == MSG_TYPE_F_PROP) {
     dbStoreContents = true;
-    dbStoreName = true;
+    //  "ecce-parse-*" files exist only to be parsed (a GROMACS trajectory
+    //  becomes GEOMTRACE); keeping them as outputs would store the data twice.
+    dbStoreName = fileName.compare(0, 11, "ecce-parse-") != 0;
 
     // for imports, create a symbolic link immediately to the specified file
     if (cpImportDir != "") {

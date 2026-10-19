@@ -1,0 +1,46 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+#   The trajectory of a GROMACS run -> ECCE's GEOMTRACE table, one step per
+#   frame.
+#
+#   gensub (on the compute side, where gmx is) converts traj.xtc with
+#   "trjconv -pbc mol", keeps at most 100 frames, and writes them to
+#   ecce-parse-traj.txt as
+#
+#     ECCE-TRAJ frame <n> atoms <N>
+#     <element> <x> <y> <z>        (Angstrom, one line per atom)
+#     ECCE-TRAJ end
+#
+#   gromacs.desc ships that file whole (File=), one record per frame here.
+#
+################################################################################
+
+$| = 1;
+
+my (@coords, $labels, $i);
+sub flush {
+  return unless @coords;
+  print "key: GEOMTRACE\n";
+  print "size:\n1 " . scalar(@coords) . " 3\n";
+  print "rowlabels:\n$labels\n";
+  print "columnlabels:\nX Y Z\n";
+  print "values:\n";
+  print " $_\n" for @coords;
+  print "units:\nAngstrom\n";
+  print "END\n";
+  @coords = (); $labels = ""; $i = 0;
+}
+
+while (<STDIN>) {
+  if (/^ECCE-TRAJ end/) {
+    flush();
+  } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/) {
+    push(@coords, "$2 $3 $4");
+    $i++;
+    $labels .= " $i-$1";
+  }
+}
+flush();
+exit(0);

@@ -87,6 +87,14 @@ Skip=0
 End=Pressure \(bar\)
 [END]
 
+# The trajectory gensub leaves in ecce-parse-traj.txt (<= 100 frames), one
+# GEOMTRACE step per frame; a File= parse like Gaussian's fort.7.
+[GEOMTRACE]
+Script=gromacs.geomtrace
+File=ecce-parse-traj.txt
+Begin=ecce-parse-traj.txt
+[END]
+
 # Job progress for the Organizer's Progress box (#284).  No Script: these
 # only feed the monitor's live snapshot.  mdrun echoes the integrator and
 # nsteps in its log; the stage is named by the integrator (md, steep, ...)
