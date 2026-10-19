@@ -37,7 +37,8 @@ import xdisplay   # noqa: E402
 LAYOUTS = [("classic", "classic"), ("stacked", "stacked"),
            ("accordion", "accordion"), ("detail", "detail"),
            ("default", "detail")]
-SCREEN = "1366x768x24"
+SCREEN = os.environ.get("ECCE_LAYOUT_SCREEN", "1280x764x24")
+MIN_ROWS = 8          # MO table rows visible in the list + detail layouts
 PANEL = "MOs"
 MIN_VIEWER = 200      # px, each way
 MIN_PANEL = 80        # px high: the MOs pane's own minimum
@@ -62,6 +63,9 @@ def readMetrics(path):
                 if m.group(8):
                     out.setdefault("width", {})[m.group(1)] = (
                         int(m.group(8)), int(m.group(9)))
+            elif line.startswith("rows "):
+                m2 = re.match(r'rows "([^"]+)" (-?\d+)', line)
+                out.setdefault("rows", {})[m2.group(1)] = int(m2.group(2))
             elif line.startswith("client "):
                 out["client"] = tuple(int(v) for v in line.split()[1:3])
             elif line.startswith("mode "):
@@ -95,6 +99,15 @@ def clipProblem(metrics, name):
     if have < need:
         return ("%s pane is %d px wide but its controls need %d: the right "
                 "end of its rows is clipped" % (name, have, need))
+    return None
+
+
+def rowsProblem(metrics, mode):
+    if mode not in ("detail", "default"):
+        return None
+    rows = metrics.get("rows", {}).get(PANEL, -1)
+    if rows < MIN_ROWS:
+        return "the %s table shows %d rows, fewer than %d" % (PANEL, rows, MIN_ROWS)
     return None
 
 
@@ -145,10 +158,11 @@ def check(display, url, label, mode, expected):
                    if moved else
                    paneProblem(metrics, "Viewer", MIN_VIEWER, MIN_VIEWER) or
                    paneProblem(metrics, PANEL, 1, MIN_PANEL) or
-                   clipProblem(metrics, PANEL))
+                   clipProblem(metrics, PANEL) or rowsProblem(metrics, mode))
     if problem is None:
         need, have = metrics.get("width", {}).get(PANEL, (0, 0))
-        print("ok    %s (%d px, controls need %d)" % (label, have, need))
+        print("ok    %s (%d px, controls need %d, %d table rows)"
+              % (label, have, need, metrics.get("rows", {}).get(PANEL, -1)))
         return
     failures.append(label)
     print("FAIL  %s: %s\n%s" % (label, problem, run_tests._tail(log, 15)))

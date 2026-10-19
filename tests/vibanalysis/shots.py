@@ -24,6 +24,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(pt.REPO, "build-cmake"))
     ap.add_argument("--png", required=True)
+    ap.add_argument("--screen", default="1500x950x24")
     ap.add_argument("mols", nargs="*", default=["h2o", "ch4"])
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -43,17 +44,21 @@ def main():
     try:
         if not s.services(True):
             return 1
-        xdisplay.SCREEN = "1500x950x24"
+        xdisplay.SCREEN = args.screen
         display = xdisplay.Display().__enter__()
         env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         project = os.path.join(s.localData(), "users", "local", "qm")
         os.makedirs(project, exist_ok=True)
         shutil.copy(bo.PROJECT_META, os.path.join(project, ".ecce-meta"))
-        for name, fixture, elements, key in pt.MOLECULES:
+        mols = list(pt.MOLECULES)
+        if "co-g16" in args.mols:
+            mols.append((pt.CO[0], pt.CO[1], None, "CO"))
+        for name, fixture, elements, key in mols:
             if name not in args.mols:
                 continue
-            pt.makeCalc(project, name, fixture, "ecceqm.desc", "GeoVib", list(elements), key)
+            desc = "gaussian-16.desc" if name == pt.CO[0] else "ecceqm.desc"
+            pt.makeCalc(project, name, fixture, desc, "GeoVib", list(elements) if elements else None, key)
             url = "file://" + os.path.join(project, name) + "/"
             for view in ("graph", "table"):
                 extra = {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies"}

@@ -95,6 +95,7 @@ using std::vector;
 #include "wxgui/PerTabPanel.H"
 #include "wxgui/SaveExperimentAsDialog.H"
 #include <wx/bmpcbox.h>
+#include <wx/grid.h>
 #include <wx/listctrl.h>
 #include <wx/generic/filectrlg.h>
 #include "wxgui/TearableContent.H"
@@ -5707,6 +5708,22 @@ void Builder::updatePropertyMenus()
         if (!p.IsShown() || p.IsToolbar() || !p.window) continue;
         //  "need": the width the pane's own controls take at this font.
         wxSizer *content = p.window->GetSizer();
+        //  Rows the pane's first table shows at once.
+        int rows = -1;
+        std::vector<wxWindow*> todo(1, p.window);
+        while (!todo.empty() && rows < 0) {
+          wxWindow *w = todo.back();
+          todo.pop_back();
+          wxGrid *g = dynamic_cast<wxGrid*>(w);
+          if (g && g->IsShownOnScreen()) {
+            rows = g->GetGridWindow()->GetClientSize().y /
+                   std::max(1, g->GetDefaultRowSize());
+            break;
+          }
+          for (wxWindowList::compatibility_iterator n = w->GetChildren().GetFirst();
+               n; n = n->GetNext()) todo.push_back(n->GetData());
+        }
+        fprintf(f, "rows \"%s\" %d\n", p.name.ToStdString().c_str(), rows);
         fprintf(f, "pane \"%s\" %d %d %d %d %s %s need %d have %d\n",
                 p.name.ToStdString().c_str(), p.rect.x, p.rect.y,
                 p.rect.width, p.rect.height,
