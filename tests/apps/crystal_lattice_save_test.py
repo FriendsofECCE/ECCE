@@ -62,8 +62,8 @@ def walk(display, tmp, org, code):
 
     log = run(display, "ecce-calced", "ECCE_CALCED_SCRIPT",
               ["wait 3000", "ready", "info", "quit"], url, a, tmp)
-    check(re.search(r"CALCED: notready=.*" + NOT_READY, log) is not None,
-          code + ": a new calculation has no cell", run_tests._tail(log, 15))
+    check("CALCED: notready=Not ready" in log,
+          code + ": a new calculation is not ready", run_tests._tail(log, 15))
 
     log = run(display, "ecce-builder", "ECCE_BUILDER_SCRIPT",
               ["wait 4000", "add O Bent 0 0 0", "wait 1000", "cmd addh",
