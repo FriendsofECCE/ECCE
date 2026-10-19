@@ -630,6 +630,11 @@ EcceURL EDSIServerCentral::getDefaultStructureLibrary()
   return ret;
 }
 
+//  NWChem's own standard amber order.  Local mode has no DataServers file, so
+//  without this list a user who never saved force-field preferences would
+//  get a Prepare deck with no parameter directories at all.
+static const char *const kNWChemAmber[] = {"amber_s", "amber_q", "amber_x", "amber_u"};
+
 //////////////////////////////////////////////////////////////////////////////
 // Currently reads default paramater files from the DataServers file
 //////////////////////////////////////////////////////////////////////////////
@@ -682,6 +687,10 @@ vector<string> *EDSIServerCentral::getDefaultParamFiles(string forceFieldName)
         i++;
       }
     }
+  }
+  if (ret->empty() && forceFieldName == "NWChem") {
+    for (const char *d : kNWChemAmber)
+      ret->push_back(string("$ECCE_NWCHEM_DATA/") + d + "/amber.par");
   }
   return ret;
 }
@@ -740,6 +749,10 @@ vector<string> *EDSIServerCentral::getDefaultSegmentDirs(string forceFieldName)
         i++;
       }
     }
+  }
+  if (ret->empty() && forceFieldName == "NWChem") {
+    for (const char *d : kNWChemAmber)
+      ret->push_back(string("$ECCE_NWCHEM_DATA/") + d + "");
   }
   return ret;
 }
