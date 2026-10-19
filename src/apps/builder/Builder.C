@@ -3120,6 +3120,12 @@ void Builder::eventMCB(const Event& event)
      updateSave();
      updateForAnyEdit();
    }
+   else if (name == "LatticeChange") {
+     // Creating or editing a cell publishes only this event; without it
+     // the cell never counts as a modification and Save stays greyed.
+     setDirty(true);
+     updateSave();
+   }
    else if (name == "StepChange") {
      updateForAnyEdit();
    }

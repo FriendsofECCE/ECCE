@@ -1907,7 +1907,7 @@ void CalcEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
   p_feedback->setSaveHandler(this);
-  GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
+  GetSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
 
   //  Save sits in the button row, a standard button just before Launch.
   wxButton *save = p_feedback->adoptSaveButton(this);
