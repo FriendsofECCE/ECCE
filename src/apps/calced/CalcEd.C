@@ -4616,6 +4616,9 @@ void CalcEd::processTheoryInput(const char* databuf)
         enableSave();
       }
     }
+    //  Readiness depends on these details; codes without a basis choice
+    //  have no auto-save to re-check Launch, so check it here.
+    if (p_theoryInitFlag && p_runtypeInitFlag) enableLaunch();
   }
 
   if (strstr(databuf, "#CLOSING") != NULL) {
@@ -4679,6 +4682,9 @@ void CalcEd::processRuntypeInput(const char* databuf)
         enableSave();
       }
     }
+    //  Readiness depends on these details; codes without a basis choice
+    //  have no auto-save to re-check Launch, so check it here.
+    if (p_theoryInitFlag && p_runtypeInitFlag) enableLaunch();
   }
 
   if (strstr(databuf, "#CLOSING") != NULL) {
