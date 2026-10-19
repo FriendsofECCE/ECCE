@@ -178,7 +178,8 @@ def main():
                   "a Geometry run writes GEO_OPT and &MOTION with the optimizer and step limit")
             r = subprocess.run(["perl", os.path.join(REPO, "scripts", "parsers", "verifyinput"),
                                 "-f", deck, "-c", "CP2K", "-a", "2"], capture_output=True, text=True)
-            check(r.returncode == 0 and "GOOD|0|run|" in r.stdout, "Verify marks the run type")
+            check(r.returncode == 0 and re.search(r"^GOOD\|[1-9]\d*\|run\|", r.stdout, re.M),
+                  "Verify marks the run type on its RUN_TYPE line")
         else:
             say("\n".join(log.splitlines()[-30:]))
     finally:
