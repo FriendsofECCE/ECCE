@@ -13,19 +13,11 @@
 #     <element> <x> <y> <z>        (Angstrom, one line per atom)
 #     ECCE-TRAJ end
 #
-#   The log only gets the line "ECCE-TRAJ file ecce_traj.txt"; this script
-#   reads that file from the job directory, so the frames are stored once,
-#   as the GEOMTRACE, and not as a file as well.
+#   gromacs.desc ships that file whole (File=), one record per frame here.
 #
 ################################################################################
 
 $| = 1;
-
-my $file;
-while (<STDIN>) {
-  $file = $1 if /^ECCE-TRAJ file\s+(\S+)/;
-}
-exit(0) unless defined($file) && open(my $in, "<", $file);
 
 my (@coords, $labels, $i);
 sub flush {
@@ -41,7 +33,7 @@ sub flush {
   @coords = (); $labels = ""; $i = 0;
 }
 
-while (<$in>) {
+while (<STDIN>) {
   if (/^ECCE-TRAJ end/) {
     flush();
   } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/) {
