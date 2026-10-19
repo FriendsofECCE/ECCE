@@ -37,7 +37,7 @@ import xdisplay   # noqa: E402
 LAYOUTS = [("classic", "classic"), ("stacked", "stacked"),
            ("accordion", "accordion"), ("detail", "detail"),
            ("default", "detail")]
-SCREEN = os.environ.get("ECCE_LAYOUT_SCREEN", "1280x764x24")
+SCREEN = os.environ.get("ECCE_LAYOUT_SCREEN", "1366x764x24")
 MIN_ROWS = 8          # MO table rows visible in the list + detail layouts
 PANEL = "MOs"
 MIN_VIEWER = 200      # px, each way
