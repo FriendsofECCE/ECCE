@@ -202,6 +202,42 @@ void EcceTool::OnMouseRightDown( wxMouseEvent& event )
 // }
 
 
+//  The thumbnail is a window cut into the raised button: a frame in the
+//  theme's own shades, dark side up and left, light side down and right,
+//  the reverse of the button's bevel.  ECCE_THUMB_FRAME selects the
+//  candidate: "bevel" (two pixels), "border" (one pixel), else none.
+static void drawThumbnailFrame(wxDC& dc, const wxRect& img)
+{
+  const char* mode = getenv("ECCE_THUMB_FRAME");
+  if (!mode) return;
+  const bool bevel = strcmp(mode, "bevel") == 0;
+  if (!bevel && strcmp(mode, "border") != 0) return;
+  wxColour dark = wxSystemSettings::GetColour(wxSYS_COLOUR_3DSHADOW);
+  wxColour light = wxSystemSettings::GetColour(wxSYS_COLOUR_3DHIGHLIGHT);
+  wxColour mid = wxSystemSettings::GetColour(wxSYS_COLOUR_3DDKSHADOW);
+  if (mid == dark) mid = dark.ChangeLightness(80);
+  //  Drawn around the image, on the button face, so a dark picture does not
+  //  swallow it.
+  wxRect r = img; r.Inflate(bevel ? 2 : 1);
+  const int x0 = r.x, y0 = r.y, x1 = r.x + r.width - 1, y1 = r.y + r.height - 1;
+  dc.SetBrush(*wxTRANSPARENT_BRUSH);
+  if (!bevel) {
+    dc.SetPen(wxPen(dark));
+    dc.DrawRectangle(x0, y0, r.width, r.height);
+    return;
+  }
+  for (int i = 0; i < 2; i++) {
+    dc.SetPen(wxPen(i == 0 ? mid : dark));
+    dc.DrawLine(x0 + i, y0 + i, x1 - i, y0 + i);
+    dc.DrawLine(x0 + i, y0 + i, x0 + i, y1 - i);
+    dc.SetPen(wxPen(light));
+    dc.DrawLine(x0 + i, y1 - i, x1 - i + 1, y1 - i);
+    dc.DrawLine(x1 - i, y0 + i, x1 - i, y1 - i + 1);
+  }
+}
+
+
+
 void EcceTool::OnPaint( wxPaintEvent& event )
 {
   wxPaintDC dc(this);
@@ -221,6 +257,8 @@ void EcceTool::OnPaint( wxPaintEvent& event )
     wxSize sz = p_thumbnail.IsOk() ? wxSize(ICON_SIZE, ICON_SIZE)
                                    : p_bundle.GetPreferredLogicalSizeFor(this);
     dc.DrawBitmap(bmp, (rect.width - sz.x) / 2, 4, true);
+    if (p_thumbnail.IsOk()) drawThumbnailFrame(dc, wxRect(
+        wxPoint((rect.width - sz.x) / 2, 4), sz));
     dc.SetFont(GetFont());
     dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
     wxSize ts = dc.GetTextExtent(p_label);

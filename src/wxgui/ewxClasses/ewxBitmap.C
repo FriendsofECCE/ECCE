@@ -13,6 +13,7 @@ using namespace std;
 #include "wx/log.h"
 #include "wx/ffile.h"
 #include "wx/bmpbndl.h"
+#include "wx/tokenzr.h"
 #include <cstdlib>
 #include <cstring>
 
@@ -353,6 +354,12 @@ wxBitmapBundle ewxBitmap::bundle(const wxString& name, long type)
  */
 ewxBitmap::ewxBitmap(const wxString& name, long type)
 {
+  // A resource icon may be an SVG; the tree image lists are 16x16.
+  if (name.EndsWith(".svg")) {
+    wxBitmap bmp = colorIcon(name, wxSize(16, 16)).GetBitmap(wxSize(16, 16));
+    wxBitmap::operator=(bmp.IsOk() ? bmp : placeholder(name));
+    return;
+  }
   wxBitmap::operator=(loadPixmap(name, type));
   wxString icon = genericIconName(name);
   if (!icon.empty()) {

@@ -3658,10 +3658,10 @@
     <SortPriority>20</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>mdstudy.xpm</Normal>
-      <Selected>mdstudy.xpm</Selected>
-      <Expanded>mdstudy.xpm</Expanded>
-      <SelectedExpanded>mdstudy.xpm</SelectedExpanded>
+      <Normal>svg/study-gromacs.svg</Normal>
+      <Selected>svg/study-gromacs.svg</Selected>
+      <Expanded>svg/study-gromacs.svg</Expanded>
+      <SelectedExpanded>svg/study-gromacs.svg</SelectedExpanded>
     </Icons>
     <Label>Study</Label>
     <StateBased>false</StateBased>
@@ -3696,10 +3696,10 @@
     <SortPriority>30</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>taskmdprepare.xpm</Normal>
-      <Selected>taskmdprepare.xpm</Selected>
-      <Expanded>taskmdprepare.xpm</Expanded>
-      <SelectedExpanded>taskmdprepare.xpm</SelectedExpanded>
+      <Normal>svg/task-gmx-prepare.svg</Normal>
+      <Selected>svg/task-gmx-prepare.svg</Selected>
+      <Expanded>svg/task-gmx-prepare.svg</Expanded>
+      <SelectedExpanded>svg/task-gmx-prepare.svg</SelectedExpanded>
     </Icons>
     <Label>Prepare</Label>
     <!-- Indicates that this resource can be the initial task created in the study,
@@ -3972,10 +3972,10 @@
     <SortPriority>30</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>taskmdenergy.xpm</Normal>
-      <Selected>taskmdenergy.xpm</Selected>
-      <Expanded>taskmdenergy.xpm</Expanded>
-      <SelectedExpanded>taskmdenergy.xpm</SelectedExpanded>
+      <Normal>svg/task-gmx-energy.svg</Normal>
+      <Selected>svg/task-gmx-energy.svg</Selected>
+      <Expanded>svg/task-gmx-energy.svg</Expanded>
+      <SelectedExpanded>svg/task-gmx-energy.svg</SelectedExpanded>
     </Icons>
     <Label>Energy</Label>
     <!-- Indicates that this resource can be the initial task created in the study,
@@ -4248,10 +4248,10 @@
     <SortPriority>30</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>taskmdoptimize.xpm</Normal>
-      <Selected>taskmdoptimize.xpm</Selected>
-      <Expanded>taskmdoptimize.xpm</Expanded>
-      <SelectedExpanded>taskmdoptimize.xpm</SelectedExpanded>
+      <Normal>svg/task-gmx-optimize.svg</Normal>
+      <Selected>svg/task-gmx-optimize.svg</Selected>
+      <Expanded>svg/task-gmx-optimize.svg</Expanded>
+      <SelectedExpanded>svg/task-gmx-optimize.svg</SelectedExpanded>
     </Icons>
     <Label>Optimize</Label>
     <!-- Indicates that this resource can be the initial task created in the study,
@@ -4524,10 +4524,10 @@
     <SortPriority>30</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>taskmddynamics.xpm</Normal>
-      <Selected>taskmddynamics.xpm</Selected>
-      <Expanded>taskmddynamics.xpm</Expanded>
-      <SelectedExpanded>taskmddynamics.xpm</SelectedExpanded>
+      <Normal>svg/task-gmx-equilibrate.svg</Normal>
+      <Selected>svg/task-gmx-equilibrate.svg</Selected>
+      <Expanded>svg/task-gmx-equilibrate.svg</Expanded>
+      <SelectedExpanded>svg/task-gmx-equilibrate.svg</SelectedExpanded>
     </Icons>
     <Label>Equilibrate</Label>
     <!-- Indicates that this resource can be the initial task created in the study,
@@ -4800,10 +4800,10 @@
     <SortPriority>30</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>taskmddynamics.xpm</Normal>
-      <Selected>taskmddynamics.xpm</Selected>
-      <Expanded>taskmddynamics.xpm</Expanded>
-      <SelectedExpanded>taskmddynamics.xpm</SelectedExpanded>
+      <Normal>svg/task-gmx-dynamics.svg</Normal>
+      <Selected>svg/task-gmx-dynamics.svg</Selected>
+      <Expanded>svg/task-gmx-dynamics.svg</Expanded>
+      <SelectedExpanded>svg/task-gmx-dynamics.svg</SelectedExpanded>
     </Icons>
     <Label>Dynamics</Label>
     <!-- Indicates that this resource can be the initial task created in the study,
