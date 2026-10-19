@@ -138,6 +138,7 @@ class NModePanel : public NModesGUI,
 
       /* currently selected row; GetSelected* methods don't work */
       int p_selectedRow;
+      int p_initialMode = -1;   // the row the panel opened on, for the dump
 
       int         p_loopSpeed;
       int         p_currentStep;

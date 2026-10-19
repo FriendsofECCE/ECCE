@@ -159,6 +159,10 @@ def readDump(path):
             d["modes"][int(g[1])] = dict(
                 irrep=g[3], ir=int(g[5]), raman=int(g[7]), known=int(g[9]),
                 label=g[11] if len(g) > 11 else "-", detail=detail)
+        elif f[0] == "initial":
+            d["initial"] = (int(f[1]), float(f[2]) if len(f) > 2 else None)
+        elif f[0] == "axis" and len(f) == 3:
+            d["range"] = (float(f[1]), float(f[2]))
         elif f[0] == "detail":
             d["detail"] = line[7:]
         elif f[0] == "detailshown":
@@ -313,6 +317,17 @@ def main():
         desc = (d["modes"].get(8) or {}).get("detail", "")
         if desc and name != CO[0]:
             check(desc.split()[0] in shown, "%s: the description survives the narrow line: %s" % (name, shown))
+    for name, d in sorted(results.items()):
+        if d is None or "initial" not in d:
+            continue
+        freqs = [float(d["cells"][(r, 0)][2]) for r in range(1, 1 + max(r for r, c in d["cells"]))]
+        first = next((i + 1 for i, v in enumerate(freqs) if abs(v) >= 10), None)
+        check(d["initial"][0] == first and abs(d["initial"][1]) >= 10,
+              "%s: opens on the first real vibration (row %s), not a translation: %s" % (name, first, d["initial"]))
+        lo, hi = d["range"]
+        top = max(freqs)
+        check(hi >= 3400 and hi >= top and lo <= 0 and lo <= min(0, min(freqs)),
+              "%s: the spectrum axis spans 0 to at least 3400 and every peak: %s" % (name, d["range"]))
     co = results.get(CO[0])
     if co is not None:
         say("  CO detail: %r -> %r" % (co["detail"], co.get("shown")))
