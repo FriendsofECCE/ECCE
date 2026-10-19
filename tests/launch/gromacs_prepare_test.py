@@ -1054,7 +1054,7 @@ def minff_section(s, build, rundir, png):
                   and sz[5] <= sz[3],
                   "the editor opens within the screen and its mineral page needs no scroll: %s" % sz)
             ver = ed.cmd("verify")
-            check("SOURCE=minff" in ver and "no water layer: step2.gro" in ver
+            check("Mineral, MINFF" in ver and "no water layer: step2.gro" in ver
                   and "(mineral)" in ver,
                   "Verify before a build names the mineral recipe: %s" % ver[:200])
             # a bare cell: the editor builds it with a vacuum gap and says so
