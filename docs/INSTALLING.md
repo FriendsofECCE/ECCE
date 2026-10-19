@@ -59,6 +59,8 @@ your `PATH`.
   ECCE from the Start menu), and the same files as a zip (unpack it and
   run `ecce.cmd`). Windows shows a SmartScreen warning at first, because
   the client is not signed: choose More info > Run anyway.
+* **Chromebook** (untested): through ChromeOS's Linux environment with a
+  Debian 13 container; see [CHROMEBOOK.md](CHROMEBOOK.md).
 
 ## 2. Choose where your data lives
 
