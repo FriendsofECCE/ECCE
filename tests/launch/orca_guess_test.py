@@ -222,7 +222,7 @@ def editorPhase(s, build, orca, work, rundir, urlA, andy=False, late=False):
                 time.sleep(5)
                 say("    guess -> %s" % ask("guess"))
                 say("    save -> %s" % ask("save"))
-                say("    deck has MORead: %s" % ("MORead" in deck()))
+                check("MORead" in deck(), "Save wrote MORead for orbitals that arrived later")
                 ask("quit", 30)
                 return
             if andy:
