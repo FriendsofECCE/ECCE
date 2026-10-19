@@ -1620,24 +1620,6 @@ void TaskJob::setTaskModel(ITaskModel* model)
  *         deserialized from the DAV server, otherwise
  *         false is returned.
  */
-bool TaskJob::hasTaskModel()
-{
-  EcceURL originalUrl = getEDSI()->getURL();
-  Serializer *serializer = 0;
-  string resourceName = "";
-  bool found = false;
-  try {
-    serializer = getSerializer(resourceName);
-    getEDSI()->setURL(getVDoc()->getConfiguration(resourceName));
-    found = getEDSI()->exists();
-  }
-  catch (...) {
-  }
-  delete serializer;
-  getEDSI()->setURL(originalUrl);
-  return found;
-}
-
 void TaskJob::getTaskModel(ITaskModel& model)
 {
   EcceURL originalUrl = getEDSI()->getURL();

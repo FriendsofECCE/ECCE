@@ -591,9 +591,7 @@ void MDEdBase::setContext(const string& urlstr)
         p_feedback->setContextLabel(servers.mapURLtoName(url));
         p_feedback->setContextURL(url);
 
-        bool saved = mdTask->hasTaskModel();
         mdTask->getTaskModel(*p_model);
-        if (!saved) newTaskDefaults(mdTask);
 
         // Until the user chooses, a structure with a cell is taken to be
         // periodic.  No cell leaves it unchosen rather than off: the

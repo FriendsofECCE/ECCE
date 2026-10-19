@@ -200,8 +200,6 @@ class TaskJob : public Job,
 ;
       virtual void getTaskModel(ITaskModel& model)
 ;
-      // true once a model has been saved for this task
-      virtual bool hasTaskModel();
       virtual string serializeModel(ITaskModel* model);
 
       virtual bool application(const JCode* code);

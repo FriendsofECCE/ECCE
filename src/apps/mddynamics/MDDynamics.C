@@ -140,21 +140,6 @@ void MDDynamics::applyCodeProfile(bool gromacs)
 }
 
 
-// A new GROMACS Dynamics task after an Equilibrate or Dynamics task
-// continues from its structure and velocities unless the user unticks it.
-void MDDynamics::newTaskDefaults(MdTask *task)
-{
-   if (!p_isGromacs) return;
-   bool cont = false;
-   if (task->getContentType() == ResourceDescriptor::CT_MDDYNAMICS) {
-      ResourceDescriptor::CONTENTTYPE from = task->getInputProviderType();
-      cont = (from == ResourceDescriptor::CT_MDDYNAMICS ||
-              from == ResourceDescriptor::CT_MDEQUILIBRATE);
-   }
-   p_dynamics->getDynamicsModel()->setResumeOpt(cont);
-}
-
-
 void MDDynamics::setContext(const string& url)
 {
   wxBusyCursor busy;
