@@ -198,7 +198,7 @@ bool NModePanel::Create(IPropCalculation *calculation,
    }
    for (wxStaticText *t : { p_modeDetail, p_graphDetail })
       t->Bind(wxEVT_SIZE, [this, t](wxSizeEvent& e) {
-         setWrapped(t, p_detailText);
+         setWrapped(t, p_detailParts);
          e.Skip();
       });
    p_grid->GetGridWindow()->Bind(wxEVT_MOTION, &NModePanel::OnGridMotion, this);
@@ -1137,29 +1137,71 @@ void NModePanel::OnLabelMotion(wxMouseEvent& event)
 }
 
 
-//  Greedy word wrap into at most two lines, the second ellipsized: a
-//  wxStaticText's own wrapping has no limit on the lines.
-void NModePanel::setWrapped(wxStaticText *label, const wxString& text)
+//  Two lines at most, broken at the " . " separators first and inside a part
+//  only between words. When that does not fit, the last part (activity) is
+//  dropped, then the description is cut after a whole word; the tooltip
+//  keeps the full text.
+static bool layoutParts(wxDC& dc, const std::vector<wxString>& parts, int width,
+                        wxString& out)
+{
+   std::vector<wxString> lines;
+   wxString cur;
+   for (size_t i = 0; i < parts.size(); i++) {
+      const wxString piece = parts[i] + (i + 1 < parts.size() ? wxString::FromUTF8(" \xC2\xB7") : wxString());
+      const wxString joined = cur.empty() ? piece : cur + " " + piece;
+      if (dc.GetTextExtent(joined).x <= width) { cur = joined; continue; }
+      if (!cur.empty()) { lines.push_back(cur); cur.clear(); }
+      if (dc.GetTextExtent(piece).x <= width) { cur = piece; continue; }
+      wxString rest = piece;
+      while (!rest.empty()) {
+         wxString line;
+         while (!rest.empty()) {
+            const size_t cut = rest.find(' ');
+            const wxString word = cut == wxString::npos ? rest : rest.substr(0, cut);
+            const wxString t = line.empty() ? word : line + " " + word;
+            if (!line.empty() && dc.GetTextExtent(t).x > width) break;
+            line = t;
+            rest = cut == wxString::npos ? wxString() : rest.substr(cut + 1);
+         }
+         if (rest.empty()) cur = line; else lines.push_back(line);
+      }
+   }
+   if (!cur.empty()) lines.push_back(cur);
+   if (lines.size() > 2) return false;
+   out.clear();
+   for (size_t i = 0; i < lines.size(); i++) out += (i ? "\n" : "") + lines[i];
+   return true;
+}
+
+
+void NModePanel::setWrapped(wxStaticText *label, const std::vector<wxString>& parts)
 {
    if (label == 0) return;
-   label->SetToolTip(text.empty() ? NULL : new wxToolTip(text));
+   wxString full;
+   for (size_t i = 0; i < parts.size(); i++)
+      full += (i ? wxString::FromUTF8(" \xC2\xB7 ") : wxString()) + parts[i];
+   label->SetToolTip(full.empty() ? NULL : new wxToolTip(full));
    const int width = label->GetClientSize().x;
-   wxString shown = text;
-   if (width > 40 && !text.empty()) {
+   wxString shown = full;
+   if (width > 40 && !full.empty()) {
       wxClientDC dc(label);
       dc.SetFont(label->GetFont());
-      wxString first, rest = text;
-      while (!rest.empty()) {
-         const size_t cut = rest.find(' ');
-         const wxString word = cut == wxString::npos ? rest : rest.substr(0, cut);
-         const wxString tryLine = first.empty() ? word : first + " " + word;
-         if (!first.empty() && dc.GetTextExtent(tryLine).x > width) break;
-         first = tryLine;
-         rest = cut == wxString::npos ? wxString() : rest.substr(cut + 1);
+      std::vector<wxString> p = parts;
+      bool ok = layoutParts(dc, p, width, shown);
+      if (!ok && p.size() > 2) { p.pop_back(); ok = layoutParts(dc, p, width, shown); }
+      //  Shorten the last remaining part by whole words, with an ellipsis.
+      while (!ok && !p.empty()) {
+         wxString& last = p.back();
+         last.Replace(wxString::FromUTF8("\xE2\x80\xA6"), "");
+         const size_t cut = last.rfind(' ');
+         if (cut == wxString::npos) {
+            if (p.size() == 1) { shown = wxControl::Ellipsize(last, dc, wxELLIPSIZE_END, width); break; }
+            p.pop_back();
+         } else {
+            last = last.substr(0, cut) + wxString::FromUTF8("\xE2\x80\xA6");
+         }
+         ok = layoutParts(dc, p, width, shown);
       }
-      shown = first;
-      if (!rest.empty())
-         shown += "\n" + wxControl::Ellipsize(rest, dc, wxELLIPSIZE_END, width);
    }
    if (label->GetLabel() != shown) label->SetLabel(shown);
 }
@@ -1179,6 +1221,7 @@ void NModePanel::showModeDetail(int row)
 {
    if (p_modeDetail == 0) return;
    wxString freq, text;
+   std::vector<wxString> vparts;
    if (row >= 0 && row < (int)p_vib.modes.size() && p_grid != 0 &&
        row < p_grid->GetNumberRows()) {
       const VibModeInfo& v = p_vib.modes[row];
@@ -1193,12 +1236,16 @@ void NModePanel::showModeDetail(int row)
       const wxString parts[3] = { sym, wxString::FromUTF8(v.detail),
                                   activityShort(v) };
       for (int i = 0; i < 3; i++)
-         if (!parts[i].empty()) text += (text.empty() ? "" : wxString::FromUTF8(" \xC2\xB7 ")) + parts[i];
+         if (!parts[i].empty()) {
+            text += (text.empty() ? "" : wxString::FromUTF8(" \xC2\xB7 ")) + parts[i];
+            vparts.push_back(parts[i]);
+         }
    }
    p_detailText = text;
-   setWrapped(p_modeDetail, text);
+   p_detailParts = vparts;
+   setWrapped(p_modeDetail, vparts);
    if (p_graphFreq != 0) p_graphFreq->SetLabel(freq);
-   setWrapped(p_graphDetail, text);
+   setWrapped(p_graphDetail, vparts);
 }
 
 
