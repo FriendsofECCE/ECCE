@@ -484,6 +484,8 @@ CODE_RUNNERS = {
     "ORCA": {
         "binaries": ["/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_"
                      "nodmrg/orca", "orca"],
+        #  GNOME's screen reader is also /usr/bin/orca.
+        "sibling":  "orca_2mkl",
         "suffix":   ".inp",
         #  "input.*error" used to match this ORCA ECP failure by
         #  ACCIDENT: its one real diagnostic line is "[file orca_main/
@@ -525,10 +527,15 @@ CODE_RUNNERS = {
 def code_binary(spec):
     for candidate in spec["binaries"]:
         if os.path.isabs(candidate):
-            if os.access(candidate, os.X_OK):
-                return candidate
-        elif which(candidate):
-            return which(candidate)
+            found = candidate if os.access(candidate, os.X_OK) else None
+        else:
+            found = which(candidate)
+        if found and spec.get("sibling"):
+            here = os.path.dirname(os.path.realpath(found))
+            if not os.path.exists(os.path.join(here, spec["sibling"])):
+                found = None
+        if found:
+            return found
     return None
 
 
