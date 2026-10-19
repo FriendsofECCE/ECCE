@@ -34,6 +34,24 @@ using std::string;
 #include "dsm/Resource.H"
 #include "dsm/MdTask.H"
 #include "dsm/EDSIServerCentral.H"
+#include "util/SFile.H"
+
+// The deck generator needs real paths, so $ECCE_NWCHEM_DATA is resolved
+// here, and entries absent from this NWChem installation are dropped.
+static vector<string> existingExpanded(const vector<string>& in)
+{
+  vector<string> out;
+  for (size_t i = 0; i < in.size(); i++) {
+    SFile f(in[i]);
+    string p = f.path(true);
+    if (getenv("ECCE_DEBUG_FF"))
+      fprintf(stderr, "FF default %s -> %s (%s)\n", in[i].c_str(), p.c_str(),
+              f.exists() ? "exists" : "missing");
+    if (f.exists())
+      out.push_back(p);
+  }
+  return out;
+}
 
 const string PrepareModelXMLizer::ROOTELEMENT = "PrepareModel";
 
@@ -848,7 +866,7 @@ void PrepareModelXMLizer::serialize(const Serializable& object,
       vector<string> files = FFConfigData::getFFFiles();
       if (files.empty()) {
         vector<string> *d = siteDefaults.getDefaultParamFiles("NWChem");
-        files = *d;
+        files = existingExpanded(*d);
         delete d;
       }
       os << "<ForceFieldFiles>" << endl;
@@ -862,7 +880,7 @@ void PrepareModelXMLizer::serialize(const Serializable& object,
       vector<string> dirs = FFConfigData::getSegDirs();
       if (dirs.empty()) {
         vector<string> *d = siteDefaults.getDefaultSegmentDirs("NWChem");
-        dirs = *d;
+        dirs = existingExpanded(*d);
         delete d;
       }
       os << "<ForceFieldDirectories>" << endl;

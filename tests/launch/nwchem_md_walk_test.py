@@ -94,7 +94,7 @@ def main():
         display = xdisplay.Display().__enter__()
         cmddir = os.path.join(s.state, "mded")
         os.makedirs(cmddir)
-        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir,
+        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir, "ECCE_DEBUG_FF": "1",
                       "PATH": wrappers + os.pathsep + s.env()["PATH"]})
 
         rc, out = s.driver("nwchemmdstudy", s.userUrl(), "cytidine",

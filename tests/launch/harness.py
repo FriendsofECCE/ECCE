@@ -360,6 +360,8 @@ class Session(object):
         while time.time() < deadline:
             self.seen.update(seenBinaries(self.home))
             state = self.state_of(url)
+            if state in ("failed", "unsuccessful"):
+                break
             if state in want or state == "system_failure":
                 #  system_failure (a job that vanished) may still be followed
                 #  by a later state from a restarted store; give it a moment.
