@@ -26,6 +26,7 @@
 #include "dsm/GromacsPrepareModel.H"
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
+#include "tdat/Fragment.H"
 #include "tdat/InteractionModel.H"
 
 #include "wxgui/ewxButton.H"
@@ -1676,6 +1677,15 @@ bool GromacsPreparePanel::attachPdb(const string& path, string& message)
   detachPdb();
   if (!t->putInputFile(tail + ".gmxpdb", &in)) {
     message = "The structure could not be stored in the task.";
+    return false;
+  }
+  // The file is also the task's structure, so the Builder and the Organizer
+  // show it; the staged .gmxpdb alone is only an input file of the job.
+  ifstream fin(path.c_str());
+  Fragment frag;
+  if (!fin || !frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ") ||
+      !t->fragment(&frag)) {
+    message = "The file " + path + " is not a PDB structure ECCE can read.";
     return false;
   }
   return true;
