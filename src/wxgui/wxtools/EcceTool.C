@@ -206,7 +206,7 @@ void EcceTool::OnMouseRightDown( wxMouseEvent& event )
 //  theme's own shades, dark side up and left, light side down and right,
 //  the reverse of the button's bevel.  ECCE_THUMB_FRAME selects the
 //  candidate: "bevel" (two pixels), "border" (one pixel), else none.
-static void drawThumbnailFrame(wxDC& dc, const wxRect& r)
+static void drawThumbnailFrame(wxDC& dc, const wxRect& img)
 {
   const char* mode = getenv("ECCE_THUMB_FRAME");
   if (!mode) return;
@@ -215,6 +215,10 @@ static void drawThumbnailFrame(wxDC& dc, const wxRect& r)
   wxColour dark = wxSystemSettings::GetColour(wxSYS_COLOUR_3DSHADOW);
   wxColour light = wxSystemSettings::GetColour(wxSYS_COLOUR_3DHIGHLIGHT);
   wxColour mid = wxSystemSettings::GetColour(wxSYS_COLOUR_3DDKSHADOW);
+  if (mid == dark) mid = dark.ChangeLightness(80);
+  //  Drawn around the image, on the button face, so a dark picture does not
+  //  swallow it.
+  wxRect r = img; r.Inflate(bevel ? 2 : 1);
   const int x0 = r.x, y0 = r.y, x1 = r.x + r.width - 1, y1 = r.y + r.height - 1;
   dc.SetBrush(*wxTRANSPARENT_BRUSH);
   if (!bevel) {
