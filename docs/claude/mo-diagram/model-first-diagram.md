@@ -46,7 +46,7 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   lowest positive model level as drawn: `p_zeroY`), and no model energy is printed
   beside a level (it is in the hover text); "Show energies" governs only the
   calculation column. Empty levels > 30 eV above the HOMO sit at the top, marked
-  with an up arrow (the old broken-axis strip is kept for positions). Ligand-internal
+  (not marked) (the old broken-axis strip is kept for positions). Ligand-internal
   levels (>= 80 % on the right fragment, a lone central atom against >= 2 others) are
   grey bars with level/electron counts.
 - Electrons: model aufbau (alpha/beta for open shells); fragments' own, metal

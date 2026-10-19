@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
   using std::cout;
   using std::cerr;
@@ -316,7 +317,16 @@ void NModePanel::initialize()
    TransferDataFromWindow();
    txt->SetValue(wxString::Format (_T("%d"), p_loopSpeed));
 
-   showMode(p_mode);
+   //  Translations and rotations (~0 cm-1) come first in the output; open
+   //  on the first real vibration, not a zero-scale translation.
+   for (int r = 0; r < p_grid->GetNumberRows(); r++) {
+      double f = 0;
+      if (p_grid->GetCellValue(r, 0).ToDouble(&f) && fabs(f) >= 10.0) {
+         p_mode = r;
+         break;
+      }
+   }
+   selectMode(p_mode);
 
    if (!haveGraphable) {
       // Tricky situation.  Table looks better but don't want to override

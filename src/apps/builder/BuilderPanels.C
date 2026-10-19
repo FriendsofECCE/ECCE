@@ -5,6 +5,7 @@
 //  the menus, the layout save/restore and the viz-panel focus logic in
 //  Builder.C need no second implementation.
 
+#include <wx/settings.h>
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -516,7 +517,23 @@ void Builder::syncColumn(bool allowSwitch)
   }
 
   for (int t = 0; t < 2; ++t) {
-    if (p_tabButtons[t]) p_tabButtons[t]->SetValue(t == p_columnTab);
+    wxToggleButton *b = p_tabButtons[t];
+    if (!b) continue;
+    //  A pressed GTK toggle differs from a raised one by a faint shade
+    //  only; the selected tab also gets the selection colours and bold.
+    const bool on = t == p_columnTab;
+    b->SetValue(on);
+    wxFont f = b->GetFont();
+    f.SetWeight(on ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
+    b->SetFont(f);
+    if (on) {
+      b->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
+      b->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT));
+    } else {
+      b->SetBackgroundColour(wxNullColour);
+      b->SetForegroundColour(wxNullColour);
+    }
+    b->Refresh();
   }
 }
 
@@ -1105,10 +1122,32 @@ void Builder::updatePropertyIndex()
     entries.push_back(ordered[i].second);
   }
   p_index->setEntries(entries);
+  sizeIndexPane();
   if (p_detail) {
     wxAuiPaneInfo &pane = p_mgr.GetPane(p_detail);
     if (pane.IsOk()) p_index->setSelected(pane.name.ToStdString());
   }
+}
+
+
+/**
+ * The Properties list is as tall as its rows (up to ten, then it scrolls)
+ * and the panel below it takes the rest.  Its share of the column starts
+ * at the floor; once the user drags the sash the pixel proportions the drag
+ * sets stay, so this only moves the floor.
+ */
+void Builder::sizeIndexPane()
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
+  if (!pane.IsOk()) return;
+  const int height = p_index->preferredHeight(10);
+  if (!p_indexSized) {
+    pane.dock_proportion = 1;
+    p_indexSized = true;
+  }
+  if (pane.min_size.y == height) return;
+  pane.MinSize(wxSize(pane.min_size.x, height)).BestSize(wxSize(400, height));
+  if (pane.IsShown() && !pane.IsFloating()) updatePanes();
 }
 
 

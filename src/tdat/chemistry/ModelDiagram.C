@@ -1365,7 +1365,7 @@ bool ModelDiagram::build(const Input& in,
       }
       if (clipped > 0)
          caveats.push_back(std::to_string(clipped) + " high empty level" + (clipped == 1 ? "" : "s") +
-             " drawn at the top (marked with an up arrow)");
+             " drawn at the top (not to scale)");
       if (n > 0)
          caveats.push_back(std::to_string(n) + " very high empty level" + (n == 1 ? "" : "s") + " not drawn");
    }
@@ -1434,7 +1434,7 @@ bool ModelDiagram::build(const Input& in,
          lv.calcOccupancyBeta = R.occupancyBeta;
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
       }
-      lv.annotation = L.clipped ? string("\xE2\x86\x91") : string();
+      lv.annotation.clear();   // a marker beside the label read as a stray glyph
       lv.tag = characterTag(charAcc[order[oi]], CHARACTER_MIN);
       //  The hover text.
       vector< std::pair<double,string> > parts;

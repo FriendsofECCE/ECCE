@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <map>
 #include <set>
 
@@ -120,6 +121,36 @@ void PropertyIndexPanel::setEntries(const std::vector<Entry>& entries)
   if (!selected.empty()) {
     setSelected(selected);
   }
+}
+
+
+int PropertyIndexPanel::preferredHeight(int maxRows) const
+{
+  int rows = 0;
+  wxTreeItemId root = p_tree->GetRootItem();
+  if (root.IsOk()) {
+    wxTreeItemIdValue c1;
+    for (wxTreeItemId a = p_tree->GetFirstChild(root, c1); a.IsOk();
+         a = p_tree->GetNextChild(root, c1)) {
+      ++rows;
+      if (p_tree->IsExpanded(a)) rows += (int)p_tree->GetChildrenCount(a, false);
+    }
+  }
+  rows = std::max(1, std::min(rows, maxRows));
+  int rowHeight = p_tree->GetCharHeight() + 8;
+  wxTreeItemIdValue c2;
+  wxTreeItemId first = root.IsOk() ? p_tree->GetFirstChild(root, c2)
+                                   : wxTreeItemId();
+  wxRect r;
+  if (first.IsOk() && p_tree->GetBoundingRect(first, r) && r.height > 0) {
+    rowHeight = r.height;
+  }
+  int header = 6;
+  wxStaticText *labels[3] = { p_title, p_codeTheory, p_energy };
+  for (int i = 0; i < 3; ++i) {
+    if (labels[i]->IsShown()) header += labels[i]->GetBestSize().y;
+  }
+  return header + 6 + rows * rowHeight + 8;
 }
 
 

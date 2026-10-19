@@ -328,9 +328,10 @@ void VibSpectrum::defaultRange(double *lo, double *hi) const
   //  The margin grows with the range: 100 cm-1 is a few pixels in the
   //  docked panel, and a band at the edge looked cut off.
   const double pad = max(max(100.0, 4.0 * p_fwhm), 0.1 * (maxReal - minReal));
-  double h = std::ceil((maxReal + pad) / 100.0) * 100.0;
-  double l = std::floor((minReal - pad) / 100.0) * 100.0;
-  if (l < 0) l = 0;
+  //  The whole usual IR range (0 to 3400 at least), so a diatomic is not
+  //  blown up to a narrow window around its one band.
+  double h = max(3400.0, std::ceil((maxReal + pad) / 100.0) * 100.0);
+  double l = 0;
   if (minImag < 0) l = std::floor((minImag - pad) / 100.0) * 100.0;
   *lo = l;
   *hi = h;
