@@ -1,0 +1,15 @@
+# ECCE GROMACS prepare recipe
+SOURCE=protein
+FF=amber99sb-ildn
+WATER=tip3p
+HIS=auto
+IGNH=1
+MERGE=1
+BOX=dodecahedron
+DIST=1
+CONC=0.15
+RMIN=0.6
+NEUT=1
+PNAME=NA
+NNAME=CL
+PQ=1
