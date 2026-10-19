@@ -256,10 +256,18 @@ void CalcEd::runCalcEdScript(const string& file)
           wxRect q = x ? x->GetRect() : wxRect();
           return wxString::Format("%d,%d,%d,%d", q.x, q.y, q.width, q.height);
         };
-        fprintf(stderr, "CALCED: rects verify=%s launch=%s frame=%d,%d\n",
+        wxWindow *log = FindWindow(ID_TEXTCTRL_FEEDBACK_MSG);
+        fprintf(stderr, "CALCED: rects verify=%s launch=%s frame=%d,%d "
+                "log=%d\n",
                 r(ID_BUTTON_CALCED_VERIFY).utf8_str().data(),
                 r(ID_BUTTON_CALCED_LAUNCH).utf8_str().data(),
-                GetClientSize().x, GetClientSize().y);
+                GetClientSize().x, GetClientSize().y,
+                log ? log->GetSize().y : -1);
+      } else if (w[0] == "grow" && w.size() == 2) {
+        //  Make the frame taller by N pixels, as a drag of its bottom edge.
+        wxSize c = GetClientSize();
+        SetClientSize(c.x, c.y + atoi(w[1].c_str()));
+        Layout();
       } else if (w[0] == "info") {
         wxWindow *launch = FindWindow(ID_BUTTON_CALCED_LAUNCH);
         fprintf(stderr, "CALCED: theory=%s runtype=%s launch=%s\n",

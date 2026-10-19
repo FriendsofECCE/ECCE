@@ -2427,6 +2427,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_qe_walkthrough PROPERTIES TIMEOUT 3000
                        SKIP_RETURN_CODE 77)
 
+  # A lattice made in the Builder reaches a crystal code's calculation (Save
+  # enabled, cell stored, editor ready); the editor's log takes extra height.
+  add_test(NAME apps_crystal_lattice_save
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/crystal_lattice_save_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_crystal_lattice_save PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # The Builder with a calculation's MOs panel open in every panel layout,
   # on a 1366x768 screen: viewer and panel on screen and inside the window.
   add_test(NAME apps_panel_layouts
