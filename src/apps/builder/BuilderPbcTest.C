@@ -73,6 +73,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     else if (b == "super") id = PBCGUI::ID_BUTTON_PBC_SUPER;
     else if (b == "fold") id = PBCGUI::ID_BUTTON_PBC_FOLD;
     else if (b == "delete") id = PBCGUI::ID_BUTTON_PBC_DELETE;
+    else if (b == "layers") id = PBCGUI::ID_BUTTON_LAYER_BUILD;
     else return s.fail("pbcpress: unknown button " + b);
     if (b == "replicate" && w.size() >= 3) {
       int n = atoi(w[2].c_str());
@@ -92,6 +93,88 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     btn->ProcessWindowEvent(ev);
     settle(200);
     return true;
+  }
+
+  //  "pbcscroll": scroll the Periodic Builder to its bottom (Layer builder).
+  if (c == "pbcscroll") {
+    if (!pbc) return s.fail("pbcscroll: no Periodic Builder panel");
+    for (wxWindow *p = pbc->FindWindow(PBCGUI::ID_BUTTON_LAYER_BUILD); p;
+         p = p->GetParent()) {
+      wxScrolledWindow *sw = dynamic_cast<wxScrolledWindow*>(p);
+      if (sw) { sw->Scroll(-1, 1000); break; }
+    }
+    settle(300);
+    return true;
+  }
+
+  //  "importfile <path>": Add Structure from File, the type from the
+  //  file's extension.
+  if (c == "importfile" && w.size() == 2) {
+    const size_t dot = w[1].rfind('.');
+    if (dot == string::npos) return s.fail("importfile: no extension");
+    importChemicalSystem(w[1], "", wxString(w[1].substr(dot + 1)));
+    settle(500);
+    return true;
+  }
+
+  //  "tooldock <tool> <left|right>": the pane dragged to that side.
+  if (c == "tooldock" && w.size() == 3) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk()) return s.fail("tooldock: no pane " + name);
+    if (w[2] == "left") pane.Left().Layer(0).Row(0);
+    else pane.Right();
+    pane.Show(true);
+    updatePanes(true);
+    settle(400);
+    return true;
+  }
+
+  //  "collapse <0|1>": View > Hide Side Panels off or on.
+  if (c == "collapse" && w.size() == 2) {
+    setColumnCollapsed(w[1] == "1");
+    settle(400);
+    return true;
+  }
+
+  //  "undo" / "redo": Edit > Undo / Redo.
+  if ((c == "undo" || c == "redo") && w.size() == 1) {
+    wxCommandEvent ev(wxEVT_MENU, c == "undo" ? wxID_UNDO : wxID_REDO);
+    if (c == "undo") OnUndoClick(ev); else OnRedoClick(ev);
+    settle(300);
+    return true;
+  }
+
+  //  "pbclayer <field> <value>": set a Layer builder field (layers spacing
+  //  shifta shiftb ion1 ion1n ion1q ion1min ion2 ... water watermin seed).
+  if (c == "pbclayer" && w.size() == 3) {
+    if (!pbc) return s.fail("pbclayer: no Periodic Builder panel");
+    static const struct { const char* n; wxWindowID id; bool spin; } f[] = {
+      {"layers", PBCGUI::ID_SPIN_LAYER_N, true},
+      {"spacing", PBCGUI::ID_TEXT_LAYER_SPACING, false},
+      {"shifta", PBCGUI::ID_TEXT_LAYER_SHIFTA, false},
+      {"shiftb", PBCGUI::ID_TEXT_LAYER_SHIFTB, false},
+      {"ion1", PBCGUI::ID_TEXT_LAYER_ION1SYM, false},
+      {"ion1n", PBCGUI::ID_SPIN_LAYER_ION1N, true},
+      {"ion1q", PBCGUI::ID_TEXT_LAYER_ION1Q, false},
+      {"ion1min", PBCGUI::ID_TEXT_LAYER_ION1MIN, false},
+      {"ion2", PBCGUI::ID_TEXT_LAYER_ION2SYM, false},
+      {"ion2n", PBCGUI::ID_SPIN_LAYER_ION2N, true},
+      {"ion2q", PBCGUI::ID_TEXT_LAYER_ION2Q, false},
+      {"ion2min", PBCGUI::ID_TEXT_LAYER_ION2MIN, false},
+      {"water", PBCGUI::ID_SPIN_LAYER_WATER, true},
+      {"watermin", PBCGUI::ID_TEXT_LAYER_WATERMIN, false},
+      {"seed", PBCGUI::ID_SPIN_LAYER_SEED, true}};
+    for (const auto& e : f) {
+      if (w[1] != e.n) continue;
+      wxWindow *win = pbc->FindWindow(e.id);
+      if (!win) return s.fail("pbclayer: no field " + w[1]);
+      if (e.spin) dynamic_cast<wxSpinCtrl*>(win)->SetValue(atoi(w[2].c_str()));
+      else dynamic_cast<wxTextCtrl*>(win)->SetValue(wxString(w[2]));
+      return true;
+    }
+    return s.fail("pbclayer: unknown field " + w[1]);
   }
 
   //  "setcontext <url>": switch this Builder to another calculation.
@@ -259,7 +342,8 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
-  //  "sashdrag <tool> <dy> [lost]": press on the sash under that pane, move
+  //  "sashdrag <tool> <dy> [lost|top]": press on the sash under that pane
+  //  ("top": on the pane's own top edge, the sash of the pane above), move
   //  dy px in ten steps and release, as the mouse does it through the
   //  frame's event chain (AUI first); "lost" drops the release and moves
   //  once more without the button.  Appends "<tool> <dy> capture <0|1>"
@@ -273,7 +357,13 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     const int dy = atoi(w[2].c_str());
     const int sash = p_mgr.GetArtProvider()->GetMetric(wxAUI_DOCKART_SASH_SIZE);
     const int x = pane.rect.x + pane.rect.width / 2;
-    const int y0 = pane.rect.GetBottom() + 1 + sash / 2;
+    const bool top = w.size() == 4 && w[3] == "top";
+    //  rect is the client area; the caption and border lie above it.
+    wxAuiDockArt *art = p_mgr.GetArtProvider();
+    const int y0 = top
+        ? pane.rect.y - art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE) -
+              art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE) - 1
+        : pane.rect.GetBottom() + 1 + sash / 2;
     auto send = [this, x](wxEventType type, int y, bool down) {
       wxMouseEvent e(type);
       e.SetPosition(wxPoint(x, y));
@@ -284,7 +374,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     };
     send(wxEVT_LEFT_DOWN, y0, true);
     for (int i = 1; i <= 10; i++) send(wxEVT_MOTION, y0 + dy * i / 10, true);
-    if (w.size() == 4) {
+    if (w.size() == 4 && !top) {
       send(wxEVT_MOTION, y0 + dy + 3, false);
     } else {
       send(wxEVT_LEFT_UP, y0 + dy, false);
@@ -388,6 +478,11 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
         << "\norphanNubs " << orphans << "\n";
     LatticeDef *lattice = frag->getLattice();
     out << "lattice " << (lattice ? 1 : 0) << "\n";
+    {
+      PBC *pbcPanel = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
+      out << "latticeshown " << (pbcPanel && pbcPanel->latticeShown() ? 1 : 0)
+          << "\n";
+    }
     MPoint d, e, f, origin;
     double volume = 0.0;
     if (lattice) {

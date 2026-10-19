@@ -1,0 +1,13 @@
+title ch4
+runtype optfreq
+charge 0
+multiplicity 1
+method hf
+basis STO-3G
+geometry
+C 0 0 0
+H 0.629 0.629 0.629
+H -0.629 -0.629 0.629
+H -0.629 0.629 -0.629
+H 0.629 -0.629 -0.629
+end

@@ -1505,6 +1505,275 @@ sub ecceqm()
 # injected into the input file's keyword line by mopac.launchpp
 # (<LaunchPreprocessor>) before this script ever runs.
 ###########################################################################
+# A Prepare task (input gromacs.gmxprep, written by md.gmxprep): builds the
+# solvated, neutral system the later tasks start from.  Four steps, each
+# announced in the output file with its tool output below it; the first
+# failure puts that tool's words in the output file and ends the script
+# false.  Step 1 depends on SOURCE; the rest are shared.  A later SOURCE
+# (MINFF files staged from the client, a ligand through acpype) is another
+# arm of the case in step 1 and must leave step1.gro and topol.top.
+# Written for sh: no arrays, no [[ ]].
+sub gromacsPrepare()
+{
+  my ($t, $restart);
+  $restart = $::mdSystemName . "_" . $::mdCalcName . ".gro";
+  $t = <<'PREPEOF';
+
+@@CC@@ - Read the recipe; md.gmxprep has checked every value.
+SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1 NEUT=1
+BOX=dodecahedron DIST=1.0 CONC=0.15 RMIN=0.6 PNAME=NA NNAME=CL PQ=1
+while IFS='=' read -r k v; do
+  case "$k" in
+    SOURCE) SOURCE=$v;; FF) FF=$v;; WATER) WATER=$v;; HIS) HIS=$v;;
+    IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;;
+    CONC) CONC=$v;; RMIN) RMIN=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;; PQ) PQ=$v;;
+  esac
+done < @@IN@@
+rm -f @@OUT@@
+: > @@OUT@@
+
+@@IONAWK@@
+prepStep() {
+  echo "ECCE-PREPARE step $1/4 $2" >> @@OUT@@
+  echo "ECCE-PREPARE step $1/4 $2" >> @@LOG@@
+}
+# Runs the command with its output kept; a failure ends the step.
+prepRun() {
+  "$@" > prep.step 2>&1 < /dev/null
+  prepRc=$?
+  cat prep.step >> @@LOG@@
+  cat prep.step >> @@OUT@@
+  if [ $prepRc -ne 0 ]; then
+    echo "$1 $2 failed with status $prepRc" >> @@LOG@@
+    return 1
+  fi
+}
+genionRun() {
+  echo SOL | "$gmx" genion -s ions.tpr -o ion.gro -p topol.top \
+      -pname "$PNAME" -pq "$PQ" -nname "$NNAME" $GENION_NEUT $GENION_CONC $GENION_RMIN
+}
+
+case "$WATER" in
+  tip3p|spc|spce|opc3|tip3p-fb) WBOX=spc216.gro;;
+  tip4p|tip4pew|opc|tip4p-fb)   WBOX=tip4p.gro;;
+  tip5p)          WBOX=tip5p.gro;;
+  *) echo "No water box is known for the water model $WATER" >> @@OUT@@; WBOX="";;
+esac
+GENION_CONC=""
+GENION_NEUT="-neutral"
+[ "$NEUT" = 0 ] && GENION_NEUT=""
+if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $CONC"; fi
+# genion's own default is 0.6 nm; it is passed only when it differs
+GENION_RMIN=""
+[ "`echo "$RMIN" | awk '{print ($1 != 0.6)}'`" = 1 ] && GENION_RMIN="-rmin $RMIN"
+
+(
+  [ -n "$WBOX" ] || exit 1
+
+  # The mineral keeps its own cell: DIST (nm) is a water layer added on top
+  # of it, 0 adds none.  Without water there is nothing for genion to
+  # replace, so a charged mineral stays charged and the summary says so.
+  MINFF_WATER=0
+  if [ "$SOURCE" = minff ] && [ "`echo "$DIST" | awk '{print ($1 > 0)}'`" = 1 ]; then
+    MINFF_WATER=1
+  fi
+  if [ "$SOURCE" = minff ]; then prepStep 1 minff; else prepStep 1 pdb2gmx; fi
+  case "$SOURCE" in
+    minff)
+      # staged by Launch from what the editor built on the client; includes
+      # in folders (min.ff/) arrive flat
+      if [ ! -f topol.gmxmin ] || [ ! -f conf.gmxmin ]; then
+        echo "The mineral topology and structure (topol.gmxmin, conf.gmxmin) were not staged." >> @@OUT@@
+        exit 1
+      fi
+      for f in *__SLASH__*; do
+        [ -f "$f" ] || continue
+        d=`echo "$f" | sed 's#__SLASH__#/#g;s#\.gmxff$##'`
+        mkdir -p "`dirname "$d"`" && mv "$f" "$d"
+      done
+      cp topol.gmxmin topol.top
+      cp conf.gmxmin step1.gro
+      : > prep.pdb2gmx
+      ;;
+    protein)
+      # an imported force field arrives flat as <name>.ff__SLASH__<file>;
+      # pdb2gmx searches the current directory first
+      for f in *__SLASH__*; do
+        [ -f "$f" ] || continue
+        d=`echo "$f" | sed 's#__SLASH__#/#g;s#\.gmxff$##'`
+        mkdir -p "`dirname "$d"`" && mv "$f" "$d"
+      done
+      set -- *.gmxpdb
+      pdb=$1
+      [ -f "$pdb" ] || pdb=@@SYS@@.pdb
+      # pdb2gmx goes by the extension, and a staged name may not end in .pdb;
+      # a lone UNK atom that is an ion gets the force field's name for it
+      awk -v ff="$FF" -f ecce_ions.awk "$pdb" > prep_in.pdb 2> prep.ions
+      cat prep.ions >> @@OUT@@
+      pdb=prep_in.pdb
+      opts=""
+      [ "$IGNH" = 1 ] && opts="$opts -ignh"
+      [ "$MERGE" = 1 ] && opts="$opts -merge all"
+      prepRun "$gmx" pdb2gmx -f "$pdb" -ff "$FF" -water "$WATER" $opts \
+          -o step1.gro -p topol.top -i posre.itp || exit 1
+      cp prep.step prep.pdb2gmx
+      ;;
+    *) echo "Unknown SOURCE $SOURCE" >> @@OUT@@; exit 1;;
+  esac
+
+  prepStep 2 editconf
+  if [ "$SOURCE" = minff ]; then
+    # z is the stacking direction: lengthen its component of the cell vector
+    # and keep the tilt, which editconf -box would drop
+    n=`wc -l < step1.gro | tr -d ' '`
+    head -n `expr $n - 1` step1.gro > step2.gro
+    tail -n 1 step1.gro | awk -v d="$DIST" -v add=$MINFF_WATER '
+      { for (i = NF + 1; i <= 9; i++) $i = 0
+        if (add) $3 = $3 + d
+        printf "%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f\n", $1,$2,$3,$4,$5,$6,$7,$8,$9 }' >> step2.gro
+    # no editconf here (it prints no box when it changes none): lengths and
+    # angles from the vectors, in editconf's own wording
+    tail -n 1 step2.gro | awk '
+      function acosd(x) { return atan2(sqrt(1 - x * x), x) * 180 / 3.14159265358979 }
+      { a = $1; b = $2; c = $3; v1y = $4; v1z = $5; v2x = $6; v2z = $7; v3x = $8; v3y = $9
+        # v1 = (a, v1y, v1z), v2 = (v2x, b, v2z), v3 = (v3x, v3y, c)
+        la = sqrt(a * a + v1y * v1y + v1z * v1z); lb = sqrt(v2x * v2x + b * b + v2z * v2z)
+        lc = sqrt(v3x * v3x + v3y * v3y + c * c)
+        printf "new box vectors : %.3f %.3f %.3f (nm)\n", la, lb, lc
+        printf "new box angles  : %.2f %.2f %.2f (degrees)\n",
+          acosd((v2x * v3x + b * v3y + v2z * c) / (lb * lc)),
+          acosd((a * v3x + v1y * v3y + v1z * c) / (la * lc)),
+          acosd((a * v2x + v1y * b + v1z * v2z) / (la * lb)) }' > prep.step
+    BOX=cell
+  else
+    prepRun "$gmx" editconf -f step1.gro -o step2.gro -c -bt "$BOX" -d "$DIST" || exit 1
+  fi
+  cp prep.step prep.editconf
+
+  prepStep 3 solvate
+  if [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
+    echo "No water layer requested; the mineral keeps its cell and no water is added." >> @@OUT@@
+    cp step2.gro step3.gro
+  else
+    prepRun "$gmx" solvate -cp step2.gro -cs "$WBOX" -o step3.gro -p topol.top || exit 1
+  fi
+
+  prepStep 4 genion
+  RC=1.0
+  PERIODIC=""
+  RCCAP=1.0
+  if [ "$SOURCE" = minff ]; then RCCAP=0.5; PERIODIC="periodic-molecules = yes"; fi
+  # genion only reads charges from the .tpr, but grompp still wants the pair
+  # list (5% longer than the cut-off) inside half the shortest box vector: a
+  # small box (one ion in water) or a mineral cell needs a shorter cut-off
+  {
+    RC=`tail -n 1 step3.gro | awk -v cap=$RCCAP '
+      { for (i = NF + 1; i <= 9; i++) $i = 0
+        v[0,0] = $1; v[0,1] = $4; v[0,2] = $5; v[1,0] = $6; v[1,1] = $2; v[1,2] = $7
+        v[2,0] = $8; v[2,1] = $9; v[2,2] = $3; m = cap
+        for (k = 0; k < 3; k++) {
+          l = 0.5 * sqrt(v[k,0] ^ 2 + v[k,1] ^ 2 + v[k,2] ^ 2)
+          if (l < m) m = l
+          if (v[k,k] < m) m = v[k,k]
+        }
+        printf "%.3f\n", int(m / 1.05 * 980) / 1000 }'`
+    [ -n "$RC" ] || RC=0.5
+  }
+  cat > ions.mdp <<MDPEOF
+integrator = steep
+nsteps = 0
+cutoff-scheme = Verlet
+coulombtype = cutoff
+rcoulomb = $RC
+rvdw = $RC
+pbc = xyz
+$PERIODIC
+MDPEOF
+  # A net charge is only a note.  Every GROMOS force field draws one
+  # warning (its twin-range parametrisation), which is the one allowed here.
+  maxwarn=0
+  case "$FF" in gromos*) maxwarn=1;; esac
+  prepRun "$gmx" grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn $maxwarn || exit 1
+  cp prep.step prep.grompp
+  if [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
+    echo "No solvent to replace with ions; the charge of the mineral is left as it is." >> @@OUT@@
+    cp step3.gro ion.gro
+  elif [ "$NEUT" = 0 ] && [ -z "$GENION_CONC" ]; then
+    echo "Neutralising is off and the salt concentration is 0: no ions are added." >> @@OUT@@
+    cp step3.gro ion.gro
+  else
+    prepRun genionRun || exit 1
+    if [ "$SOURCE" = minff ]; then
+      # genion names the ion atom after the molecule (Na), but min.ff's
+      # ions.itp calls the atom Na+; grompp warns about the mismatch and the
+      # tasks after this one would need -maxwarn.  Write the topology's name.
+      "$gmx" grompp -f ions.mdp -c ion.gro -p topol.top -pp processed.top -o fix.tpr -maxwarn 9 > prep.fix 2>&1 < /dev/null
+      for ion in "$PNAME" "$NNAME"; do
+        an=`awk -v m="$ion" '
+          /^\[ *moleculetype *\]/ { st = 1; next }
+          /^\[ *atoms *\]/ { if (cur == m) st = 3; else st = 0; next }
+          /^\[/ { st = 0; next }
+          /^;/ || NF == 0 { next }
+          st == 1 { cur = $1; st = 2; next }
+          st == 3 { print $5; exit }' processed.top`
+        [ -n "$an" ] || continue
+        awk -v ion="$ion" -v an="$an" '
+          NR > 2 { r = substr($0, 6, 5); gsub(/ /, "", r)
+                   if (r == ion) $0 = substr($0, 1, 10) sprintf("%-5s", an) substr($0, 16) }
+          { print }' ion.gro > ion.fixed && mv ion.fixed ion.gro
+      done
+    fi
+  fi
+  cp ion.gro @@RESTART@@ || exit 1
+  # An unticked "Neutralise" is a decision; the MD tasks' grompp reads the
+  # marker and lets the net-charge warning through instead of stopping.
+  [ "$NEUT" = 0 ] && echo "; ECCE-NETCHARGE-INTENDED" >> topol.top
+  cp topol.top @@SYS@@.gmxtop || exit 1
+  prepRun "$gmx" editconf -f @@RESTART@@ -o chemsys.pdb || exit 1
+
+  # The summary the Organizer and the Viewer show.  The numbers are gmx's
+  # own: the structure and topology it wrote, and what pdb2gmx, editconf
+  # and grompp said; a charge grompp does not mention is zero.
+  atoms=`sed -n 2p @@RESTART@@ | tr -d ' \r'`
+  resid=`sed -n 's/^Now there are \([0-9]*\) residues.*/\1/p' prep.pdb2gmx | tail -1`
+  [ -n "$resid" ] || resid=`sed -n 's/^.* and \([0-9]*\) residues with.*/\1/p' prep.pdb2gmx | tail -1`
+  molcount() { awk -v m="$1" '/\[ *molecules *\]/{f=1;next} f && $1==m {n+=$2} END{print n+0}' topol.top; }
+  waters=`molcount SOL`
+  npos=`molcount "$PNAME"`
+  nneg=`molcount "$NNAME"`
+  chargeOf() { q=`sed -n 's/.*System has non-zero total charge: *\([-0-9.eE+]*\).*/\1/p' "$1" | head -1`; echo "${q:-0}"; }
+  q0=`chargeOf prep.grompp`
+  if "$gmx" grompp -f ions.mdp -c @@RESTART@@ -p topol.top -o after.tpr -maxwarn $maxwarn > prep.after 2>&1 < /dev/null; then
+    q1=`chargeOf prep.after`
+  else
+    q1="?"
+  fi
+  boxv=`sed -n 's/^new box vectors : *\([0-9.]*\) *\([0-9.]*\) *\([0-9.]*\).*/\1 \2 \3/p' prep.editconf | tail -1`
+  boxa=`sed -n 's/^new box angles  : *\([0-9.]*\) *\([0-9.]*\) *\([0-9.]*\).*/\1 \2 \3/p' prep.editconf | tail -1`
+  set -- $boxv; ba=$1; bb=$2; bc=$3
+  set -- $boxa; aa=$1; ab=$2; ag=$3
+  {
+    echo "ECCE-PREPARE system atoms=$atoms residues=$resid waters=$waters pos=$npos neg=$nneg posname=$PNAME negname=$NNAME"
+    echo "ECCE-PREPARE box charge0=$q0 charge1=$q1 box=$BOX a=$ba b=$bb c=$bc alpha=$aa beta=$ab gamma=$ag"
+    echo "ECCE-PREPARE done"
+  } | tee -a @@LOG@@ >> @@OUT@@
+)
+prepStatus=$?
+( exit $prepStatus )
+PREPEOF
+  require "$FindBin::RealBin/parsers/GmxIons.pm";
+  my $ionawk = "cat > ecce_ions.awk << 'ECCE_AWK_END'\n" . GmxIons::awkProgram() . "ECCE_AWK_END\n";
+  $t =~ s/\@\@IONAWK\@\@\n/$ionawk/;
+  $t =~ s/\@\@CC\@\@/$::CC/g;
+  $t =~ s/\@\@IN\@\@/$::inFile/g;
+  $t =~ s/\@\@OUT\@\@/$::outFile/g;
+  $t =~ s/\@\@LOG\@\@/$::logfile/g;
+  $t =~ s/\@\@SYS\@\@/$::mdSystemName/g;
+  $t =~ s/\@\@RESTART\@\@/$restart/g;
+  return $t;
+}
+
+###########################################################################
 # GROMACS, run as a task of a GROMACS MD study (docs/GROMACS.md).
 #
 # GROMACS is not one binary reading one deck: grompp turns the .mdp (written
@@ -1543,6 +1812,8 @@ sub gromacs()
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
+  } elsif ($::inFile =~ /\.gmxprep$/) {
+    $retval .= &gromacsPrepare();
   } else {
     $restart = $::mdSystemName . "_" . $::mdCalcName . ".gro";
     $mpi = ($gmx =~ /gmx_mpi[^\/]*$/) ? 1 : 0;
@@ -1553,7 +1824,7 @@ sub gromacs()
     $retval .= "\n$::CC - Recreate the include sub-folders of the topology.\n";
     $retval .= "for f in *__SLASH__*; do\n";
     $retval .= "  [ -f \"\$f\" ] || continue\n";
-    $retval .= "  d=`echo \"\$f\" | sed 's#__SLASH__#/#g'`\n";
+    $retval .= "  d=`echo \"\$f\" | sed 's#__SLASH__#/#g;s#\\.gmxff\$##'`\n";
     $retval .= "  mkdir -p \"`dirname \"\$d\"`\" && mv \"\$f\" \"\$d\"\n";
     $retval .= "done\n";
 
@@ -1564,8 +1835,34 @@ sub gromacs()
     $retval .= "$::CC - mostly about the topology, go where the user will look.\n";
     #  -r: position restraints are held to the starting structure; grompp
     #  refuses a restrained topology without it and ignores it otherwise.
-    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top -o topol.tpr -maxwarn 0 > grompp.out 2>&1\n";
-    $retval .= "if [ \$? -ne 0 ]; then\n";
+    #  grompp runs once with a -maxwarn no real run reaches; the warnings are
+    #  sorted by the table in parsers/GromppWarn.pm and the harmless ones
+    #  counted.  With any other warning grompp is run again with that count,
+    #  so that it stops with its own message.
+    require "$FindBin::RealBin/parsers/GromppWarn.pm";
+    $retval .= "cat > ecce_gromppwarn.awk << 'ECCE_AWK_END'\n" . GromppWarn::awkProgram() . "ECCE_AWK_END\n";
+    #  An index file the user attached is used as it is; otherwise the one
+    #  gromacs.launchpp wrote from the groups in the .mdp (gromacs.mkndx),
+    #  which Launch shipped with the other inputs.
+    $retval .= "ndx=\n";
+    $retval .= "for f in *.ndx; do\n";
+    $retval .= "  [ -f \"\$f\" ] && [ \"\$f\" != ecce_groups.ndx ] && { ndx=\$f; break; }\n";
+    $retval .= "done\n";
+    $retval .= "[ -z \"\$ndx\" ] && [ -f ecce_groups.ndx ] && ndx=ecce_groups.ndx\n";
+    $retval .= "grompp_args=\"-f $::inFile -c conf.gro -r conf.gro -p topol.top \${ndx:+-n \$ndx} -o topol.tpr\"\n";
+    $retval .= "marked=0\ngrep -q ECCE-NETCHARGE-INTENDED topol.top && marked=1\n";
+    $retval .= "\"\$gmx\" grompp \$grompp_args -maxwarn 999 > grompp.out 2>&1\n";
+    $retval .= "grompp_rc=\$?\n";
+    $retval .= "if [ \$grompp_rc -eq 0 ]; then\n";
+    $retval .= "  awk -v marked=\$marked -f ecce_gromppwarn.awk grompp.out > grompp.warn\n";
+    $retval .= "  grep -E '^(harmless|stopping):' grompp.warn >> $::logfile\n";
+    $retval .= "  if [ \"`sed -n 's/^stopping //p' grompp.warn`\" != 0 ]; then\n";
+    $retval .= "    rm -f topol.tpr\n";
+    $retval .= "    \"\$gmx\" grompp \$grompp_args -maxwarn `sed -n 's/^harmless //p' grompp.warn` > grompp.out 2>&1\n";
+    $retval .= "    grompp_rc=\$?\n";
+    $retval .= "  fi\n";
+    $retval .= "fi\n";
+    $retval .= "if [ \$grompp_rc -ne 0 ]; then\n";
     $retval .= "  cat grompp.out >> $::logfile\n";
     $retval .= "  cp grompp.out $::outFile\n";
     $retval .= "  echo \"grompp failed; see $::outFile\" >> $::logfile\n";
@@ -1591,6 +1888,14 @@ sub gromacs()
     $retval .= "  mdrunStatus=\$?\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $log $::outFile\n";
+    #  The frames go to ecce-parse-traj.txt, which gromacs.desc parses as a File=
+    #  of its own, so they are not part of the log.
+    #  Whole molecules (-pbc mol) so the chain does not tear at the box
+    #  edge; at most 100 frames are kept (every k-th plus the last).
+    $retval .= "  if [ -s traj.xtc ] && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f traj.xtc -pbc mol -o ecce_traj.pdb >> $::logfile 2>&1; then\n";
+    $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj.pdb`\n";
+    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce-parse-traj.txt\n";
+    $retval .= "  fi\n";
     $retval .= "  $::CC - The final structure as PDB: what the Builder shows.\n";
     $retval .= "  \"\$gmx\" editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";
     $retval .= "  ( exit \$mdrunStatus )\n";
@@ -1691,6 +1996,49 @@ sub quantumespresso()
   } else {
     $retval .= "\n$::CC - pw.x is a plain MPI program; mpirun wraps it.\n";
     $retval .= "mpirun -np $::totalprocs \"\$pw\" -in $::inFile > $::outFile 2>&1 < /dev/null\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# CP2K.  The sub name is lc(applicationType) of cp2k_es; the CONFIG key is
+# "cp2k" for the path of cp2k.psmp (MPI + OpenMP), cp2k.popt (MPI) or
+# cp2k.ssmp / cp2k.sopt (one process, threads).
+#
+# cp2k writes its report to stdout and its restart, wavefunction and
+# trajectory files (<project>-pos-1.xyz, ...) into the run directory.  An MPI
+# build gets one rank per process and one OpenMP thread each unless the
+# user's CONFIG or environment says otherwise; a threads-only build gets
+# the process count as threads, since mpirun would start it N times.
+###########################################################################
+sub cp2k()
+{
+  use strict vars;
+  my ($retval,$cp2k,$cmd);
+  $retval = "";
+  $cp2k = $::config{$::lccode};
+  if ($cp2k eq "") { die "Path for CP2K not found"; }
+  $cmd = &userCmd("cp2kcommand");
+
+  $retval .= &pathVar("cp2k", "$cp2k", "ECCE_CP2K");
+  $retval .= "echo \"Using CP2K path: \$cp2k\" >> $::logfile\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } elsif ($::totalprocs <= 1) {
+    $retval .= "\"\$cp2k\" -i $::inFile > $::outFile 2>&1\n";
+  } else {
+    $retval .= "\n$::CC - a threads-only build (ssmp, sopt) runs once with\n";
+    $retval .= "$::CC - $::totalprocs threads; an MPI build is wrapped in mpirun.\n";
+    $retval .= "case \"\$cp2k\" in\n";
+    $retval .= "  *.ssmp|*.sopt)\n";
+    $retval .= "    OMP_NUM_THREADS=$::totalprocs; export OMP_NUM_THREADS\n";
+    $retval .= "    \"\$cp2k\" -i $::inFile > $::outFile 2>&1 ;;\n";
+    $retval .= "  *)\n";
+    $retval .= "    OMP_NUM_THREADS=\${OMP_NUM_THREADS:-1}; export OMP_NUM_THREADS\n";
+    $retval .= "    mpirun -np $::totalprocs \"\$cp2k\" -i $::inFile > $::outFile 2>&1 < /dev/null ;;\n";
+    $retval .= "esac\n";
   }
   return $retval;
   nouse strict vars;

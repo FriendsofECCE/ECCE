@@ -26,6 +26,7 @@
 #include "wxgui/WxJMSListener.H"
 
 #include "MDDynamics.H"
+#include "wxgui/GromacsRunPanel.H"
 
 
 MDDynamics::MDDynamics( ) : MDEdBase(), WxJMSListener()
@@ -183,6 +184,7 @@ void MDDynamics::refreshGUI()
 {
    p_interaction->refreshGUI();
    p_constraint->refreshGUI();
+   if (p_gmxRun != 0) p_gmxRun->refresh();
    p_dynamics->refreshGUI();
    p_thermo->refreshGUI();
    enableLaunch(p_dynamics->getDynamicsModel()->getDataSteps() > 0);

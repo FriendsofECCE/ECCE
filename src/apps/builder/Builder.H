@@ -445,6 +445,8 @@ class Builder: public BuilderGUI,
       Command * createModeCommand(int modeId);
 
       void updateContextPane();
+      void sizeIndexPane();
+      bool p_indexSized = false;
       void addToolPanel(wxWindow *panel, const string& name,
                         const bool& readOnlyDisabled=true,
                         const bool& alwaysFixed=true);
@@ -638,7 +640,7 @@ class Builder: public BuilderGUI,
 
       // Property panes folded to their caption bar, with what to restore.
       struct FoldState { wxSize best; wxSize min; bool resizable; int proportion;
-                         wxSize winMin; };
+                         wxSize winMin; int row; };
       map<wxWindow*, FoldState> p_folded;
       //  Each tool pane's own height floor; fitToolColumn() lowers the
       //  pane's min_size below it while the column is too short.
@@ -668,6 +670,12 @@ class Builder: public BuilderGUI,
       bool p_columnTabChosen = false;    // the user picked it, this calc
       bool p_columnHidden = false;       // F9
       int p_columnWidth = 0;             // the column's width as last laid out
+      //  A drag of a pane's top edge beside folded panes (#346): the two
+      //  panes it moves, the press position and their heights at the press.
+      wxWindow *p_edgeAbove = 0;
+      wxWindow *p_edgeBelow = 0;
+      int p_edgeY0 = 0, p_edgeHeightAbove = 0, p_edgeHeightBelow = 0;
+      void endEdgeDrag();
       set<wxWindow*> p_tabHidden;        // open, but hidden by tab/F9
       set<wxWindow*> p_columnSeen;       // property panes given mode defaults
       wxWindow *p_detail = 0;            // list + detail: the shown panel

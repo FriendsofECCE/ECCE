@@ -27,6 +27,7 @@ class WxFragmentImport;
 
 class MDCompositeModel;
 class GromacsInputsPanel;
+class GromacsRunPanel;
 class MdTask;
 class InteractionPanel;
 class ConstraintPanel;
@@ -101,6 +102,7 @@ class MDEdBase: public MDEdBaseGUI,
       void startTestHook();
 
    protected:
+      friend class GromacsRunPanel;
       // Callbacks
       virtual void doSaveButtonClick(wxCommandEvent &event);
       virtual void OnCloseWindow( wxCloseEvent& event );
@@ -145,15 +147,19 @@ class MDEdBase: public MDEdBaseGUI,
       /** The task model, whichever MD code the task belongs to. */
       virtual MDCompositeModel& getMDModel() const;
 
+      /** The GROMACS Inputs page, or 0 where there is none. */
+      GromacsInputsPanel *gromacsInputs() const { return p_gmxInputs; }
+
       /**
        * Make the editor's model, and the panels bound to it, those of the
        * given code (an editor window is reused for tasks of either code).
        */
       void selectCode(bool gromacs);
 
-      /** Point every panel at the sub-models of the current model. */
-      string runTestCommand(const string& line);
+      /** The test hook's commands (see startTestHook); editors add their own. */
+      virtual string runTestCommand(const string& line);
 
+      /** Point every panel at the sub-models of the current model. */
       virtual void bindModels();
 
       /** Hide the controls that mean nothing for GROMACS, or show them. */
@@ -178,7 +184,9 @@ class MDEdBase: public MDEdBaseGUI,
       };
       vector<PageEntry> p_pages;
       GromacsInputsPanel *p_gmxInputs;
+      GromacsRunPanel *p_gmxRun;
       bool p_launchWanted;
+      bool p_inputsWarned = false;  // the message area shows the missing-inputs warning
 
       /** The panels the current model carries, set by initializeModel(). */
       vector<MDCompositeModel::GUIPanel> p_panelSet;

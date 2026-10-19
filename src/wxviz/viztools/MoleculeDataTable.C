@@ -342,3 +342,30 @@ vector<GridAtomElement*> *MoleculeDataTable::getCurrentSelections()
 
   return selections;
 }
+
+
+string MoleculeDataTable::scriptEdit(int row, int col, const string& text,
+                                     const string& key)
+{
+  ewxGrid *g = p_table->getGrid();
+  if (row < 0 || row >= g->GetNumberRows() || col < 0 || col >= g->GetNumberCols())
+    return "no such cell";
+  g->SetGridCursor(row, col);
+  g->EnableCellEditControl(true);
+  wxGridCellEditor *ed = g->GetCellEditor(row, col);
+  wxTextCtrl *tc = ed ? dynamic_cast<wxTextCtrl*>(ed->GetControl()) : 0;
+  if (tc == 0) {
+    if (ed) ed->DecRef();
+    return "no text editor in that cell";
+  }
+  tc->SetValue(text);
+  if (key != "none") {
+    wxKeyEvent ke(wxEVT_KEY_DOWN);
+    ke.m_keyCode = (key == "esc" ? WXK_ESCAPE : WXK_RETURN);
+    ke.SetEventObject(tc);
+    tc->GetEventHandler()->ProcessEvent(ke);
+  }
+  ed->DecRef();
+  return "value=[" + g->GetCellValue(row, col).ToStdString() + "] editing=" +
+         (g->IsCellEditControlEnabled() ? "yes" : "no");
+}

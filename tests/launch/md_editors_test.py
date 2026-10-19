@@ -135,9 +135,33 @@ def main():
                 tabs = ed.cmd("tabs").split("|")
                 check(("Control" in tabs) == (code == "NWChem") and "Optimize" in tabs,
                       "%s pages: %s" % (code, tabs))
+                check(("Run settings" in tabs) == (code == "GROMACS"),
+                      "%s: the Run settings page is GROMACS's alone" % code)
+                if code == "NWChem":
+                    # Save writes the model; none of GROMACS's settings may be in it
+                    check(ed.cmd("save") == "ok", "the NWChem task saves")
+                    root = url.replace("file://", "").rstrip("/")
+                    found = []
+                    for dp, dn, fn in os.walk(root):
+                        for f in fn:
+                            try:
+                                if "<Gmx" in open(os.path.join(dp, f), errors="replace").read():
+                                    found.append(f)
+                            except OSError:
+                                pass
+                    check(not found, "NWChem's saved model carries no GROMACS setting: %s" % found)
                 check(ed.proc.poll() is None, "mdoptimize is still up after the %s task" % code)
             finally:
                 ed.close()
+
+        #  GTK complains on stderr when a widget is allocated less than it can
+        #  hold (a static box before its first layout was one).
+        try:
+            noise = [l for l in open(os.path.join(s.state, "mdoptimize.log"), errors="replace")
+                     if "Gtk-WARNING" in l or "Gtk-CRITICAL" in l]
+        except OSError:
+            noise = []
+        check(not noise, "mdoptimize writes no GTK warning: %s" % noise[:2])
 
         answers, menus = summary(s, display, genv, wrappers, list(opts.values()), args.png)
         for code, url in opts.items():

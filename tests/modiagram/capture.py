@@ -23,8 +23,10 @@ a separate suite with its own service-startup code (see tests/apps/README).
 """
 import argparse
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -50,6 +52,10 @@ FIXTURES = {
     "gaussian-water": os.path.join(FIXTURES_DIR, "gaussian-water"),
     "gaussian-co": os.path.join(FIXTURES_DIR, "gaussian-co"),
     "orca-crco6": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    #  The same calculation drawn by the SKELETON construction, which was
+    #  the metal default before the fragment-orbital diagram (#301).
+    "orca-crco6-skeleton": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    "orca-crco6-lfview": os.path.join(FIXTURES_DIR, "orca-crco6"),
     "nwchem-water": os.path.join(FIXTURES_DIR, "nwchem-water"),
     #  #132: unsymmetrised input, symmetry on in the deck (makecalc.py).
     "orca-nh3-usesym": os.path.join(FIXTURES_DIR, "orca-nh3-usesym"),
@@ -63,6 +69,96 @@ FIXTURES = {
     "ecceqm-n2": os.path.join(FIXTURES_DIR, "ecceqm-n2"),
     "ecceqm-co-rotated": os.path.join(FIXTURES_DIR, "ecceqm-co-rotated"),
     "ecceqm-water": os.path.join(FIXTURES_DIR, "ecceqm-water"),
+    #  #301: ethene and cyclopropane (makecalc.py ecceqm c2h4 / c3h6 0
+    #  --no-rotate), and the atom picks that choose a diagram.
+    "ecceqm-c2h4": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
+    "ecceqm-c2h4-pick-c1c2": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
+    "ecceqm-c3h6-pick-ring": os.path.join(FIXTURES_DIR, "ecceqm-c3h6"),
+    "ecceqm-water-pick-o1": os.path.join(FIXTURES_DIR, "ecceqm-water"),
+    "orca-crco6-pick-cr1": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    #  #301: a non-metal pick that the one-atom CENTRAL cannot draw cleanly
+    #  goes to the fragment-orbital route (makecalc.py ecceqm ch3oh 0
+    #  --no-rotate): the methyl carbon, and the hydroxyl oxygen.
+    "ecceqm-methanol-pick-c1": os.path.join(FIXTURES_DIR, "ecceqm-methanol"),
+    "ecceqm-methanol-pick-o2": os.path.join(FIXTURES_DIR, "ecceqm-methanol"),
+    #  #301 validation set (ORCA BP86/def2-SVP, idealised geometries, no
+    #  UseSym, so the labels are the diagram's own).  The open-shell and
+    #  charged ones carry their multiplicity and charge in .davprops.
+    "orca-bf3": os.path.join(FIXTURES_DIR, "orca-bf3"),
+    "orca-benzene": os.path.join(FIXTURES_DIR, "orca-benzene"),
+    "orca-benzene-pi": os.path.join(FIXTURES_DIR, "orca-benzene"),
+    "ecceqm-c2h4-pi": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
+    "orca-o2-triplet": os.path.join(FIXTURES_DIR, "orca-o2-triplet"),
+    "orca-no2": os.path.join(FIXTURES_DIR, "orca-no2"),
+    "orca-b2h6": os.path.join(FIXTURES_DIR, "orca-b2h6"),
+    "orca-nico4": os.path.join(FIXTURES_DIR, "orca-nico4"),
+    "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    #  A bond pick that breaks the molecule's symmetry: drawn and labelled in
+    #  the subgroup that keeps the two sides (Td -> C3v, Oh -> C4v).
+    "orca-cocl4-pick-cocl3": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-crco6-pick-crc": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    "orca-ptcl4-overlaps": os.path.join(FIXTURES_DIR, "orca-ptcl4"),
+    "orca-bf3-overlaps": os.path.join(FIXTURES_DIR, "orca-bf3"),
+    "orca-crco6-overlaps": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    "orca-benzene-overlaps": os.path.join(FIXTURES_DIR, "orca-benzene"),
+    #  Ligand-set phase sketches (#368): Oh and Td, with every level drawn.
+    "orca-crco6-all": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    "orca-cocl4-overlaps": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-nico4-overlaps": os.path.join(FIXTURES_DIR, "orca-nico4"),
+    "orca-cocl4-compute": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-benzene-compute-ring": os.path.join(FIXTURES_DIR, "orca-benzene"),
+    "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
+    #  [PtCl4]2-, d8 square planar: the metal d electrons come from the MOs.
+    "orca-ptcl4": os.path.join(FIXTURES_DIR, "orca-ptcl4"),
+}
+
+
+#  Extra environment per fixture: a construction asked for by name.
+FIXTURE_ENV = {
+    "orca-crco6-skeleton": {"ECCE_MODIAGRAM_CONSTRUCTION": "skeleton"},
+    "orca-crco6-lfview": {"ECCE_MODIAGRAM_LFVIEW": "1"},
+    "orca-crco6-all": {"ECCE_MODIAGRAM_SHOWALL": "1"},
+    #  ECCE_MODIAGRAM_PICK: the atom (or "A,B" bond) the user picked.
+    "ecceqm-c2h4-pick-c1c2": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
+    "ecceqm-c3h6-pick-ring": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
+    "ecceqm-water-pick-o1": {"ECCE_MODIAGRAM_PICK": "O1"},
+    "orca-crco6-pick-cr1": {"ECCE_MODIAGRAM_PICK": "Cr1"},
+    "orca-cocl4-pick-cocl3": {"ECCE_MODIAGRAM_PICK": "Co1,Cl2"},
+    "orca-crco6-pick-crc": {"ECCE_MODIAGRAM_PICK": "Cr1,C2"},
+    "ecceqm-methanol-pick-c1": {"ECCE_MODIAGRAM_PICK": "C1"},
+    "ecceqm-methanol-pick-o2": {"ECCE_MODIAGRAM_PICK": "O2"},
+    #  ECCE_MODIAGRAM_PIONLY: the "pi system only" box ticked.
+    "orca-benzene-pi": {"ECCE_MODIAGRAM_PIONLY": "1"},
+    "ecceqm-c2h4-pi": {"ECCE_MODIAGRAM_PIONLY": "1"},
+}
+
+
+#  Scripted checks run in the Builder after the diagram is up (the scene
+#  commands of Builder.C): name -> (scene text, {output file: regex it must
+#  match}).  Scene fixtures share a source directory with a plain one.
+FIXTURE_SCENE = {
+    #  No two labels or arrows of the model column on top of each other.
+    "orca-ptcl4-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                            {"overlaps": r"overlaps 0\b"}),
+    #  Model and calculation columns: one lane, no overlapping rows, and the
+    #  0 eV tick between the negative and the positive model levels.
+    "orca-bf3-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                          {"overlaps": r"overlaps 0\b"}),
+    "orca-crco6-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                            {"overlaps": r"overlaps 0\b"}),
+    "orca-cocl4-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                            {"overlaps": r"overlaps 0\b"}),
+    "orca-nico4-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                            {"overlaps": r"overlaps 0\b"}),
+    "orca-benzene-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                              {"overlaps": r"overlaps 0\b"}),
+    #  The live Compute button: pick a bond, press it, and the diagram is
+    #  redrawn in the subgroup that keeps the two sides.
+    "orca-cocl4-compute": ("hold 2\nmodipick pick Co1 Cl2\n",
+                           {"pick": r"labels in C.*3.*lowered from"}),
+    #  A bond that cannot be cut (a ring bond) is said on the panel.
+    "orca-benzene-compute-ring": ("hold 2\nmodipick pick C1 C2\n",
+                                  {"pick": r"part of a ring"}),
 }
 
 
@@ -164,7 +260,18 @@ def captureOne(name, source, outfile, timeout, png=None):
         env = display.env()
         env["ECCE_OPEN_PANEL"] = "MO Diagram"
         env["ECCE_MODIAGRAM_DUMP"] = outfile
-        env["ECCE_EXIT_AFTER_DUMP"] = "1"
+        env.update(FIXTURE_ENV.get(name, {}))
+        sceneOut = None
+        if name in FIXTURE_SCENE:
+            #  The scene runs after the first build and ends the app itself.
+            sceneOut = tempfile.mkdtemp(prefix=name + "-scene-",
+                                        dir=os.path.dirname(state))
+            with open(os.path.join(sceneOut, "script"), "w") as handle:
+                handle.write(FIXTURE_SCENE[name][0])
+            env["ECCE_VIEWER_SCENE"] = os.path.join(sceneOut, "script")
+            env["ECCE_VIEWER_SCENE_OUT"] = sceneOut
+        else:
+            env["ECCE_EXIT_AFTER_DUMP"] = "1"
         if png:
             #  Long enough to find the window, let it settle and shoot it;
             #  short enough not to make a --png run noticeably slower.
@@ -214,7 +321,7 @@ def captureOne(name, source, outfile, timeout, png=None):
             time.sleep(0.5)
 
         try:
-            proc.wait(timeout=15)
+            proc.wait(timeout=60 if sceneOut else 15)
         except subprocess.TimeoutExpired:
             try:
                 os.killpg(os.getpgid(proc.pid), 15)
@@ -233,6 +340,23 @@ def captureOne(name, source, outfile, timeout, png=None):
 
         apps.stopServices(display)
         restorePrefs()
+
+        if sceneOut:
+            import re
+            problem = None
+            for fileName, pattern in FIXTURE_SCENE[name][1].items():
+                path = os.path.join(sceneOut, fileName + ".txt")
+                text = open(path).read() if os.path.exists(path) else ""
+                if not re.search(pattern, text):
+                    failed = os.path.join(sceneOut, "FAILED")
+                    problem = ("scene check %s: %r does not match %r%s"
+                               % (fileName, text[:300], pattern,
+                                  (" (" + open(failed).read() + ")")
+                                  if os.path.exists(failed) else ""))
+                    break
+            shutil.rmtree(sceneOut, ignore_errors=True)
+            if problem:
+                return problem
 
         if not os.path.exists(outfile):
             tail = out.decode("utf-8", "replace")[-4000:]

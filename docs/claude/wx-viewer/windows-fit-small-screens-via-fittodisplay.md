@@ -40,6 +40,6 @@ up to three items under it), or the sizer passed to `fitToScreen(row)`.
   buttons are in a footer owned by the frame, so they never scroll. Call
   `panel.Fit()` (overridden) when the content changes.
 - `tests/apps/smallscreen_test.py` (ctest `apps_smallscreen_*`) opens
-  every app and every codereg theory/runtype dialog on Xvfb at 1024x768 and
+  every app and every codereg theory/runtype dialog on Xvfb at 1366x768, 1024x768 and
   1024x600 and fails for a window that, with the title-bar reserve, ends
   past the screen.

@@ -49,6 +49,7 @@ public:
         int    rows(void) const;                   // number of rows
         int    columns(void) const;                // number of columns
         int    tables(void) const;                 // number of tables
+        int    nearestTable(int step) const;       // step clamped to a valid table, -1 if none
         double value(int table, int row,           // single value
                      int col) const;  
         const vector<double>& values(int table) const; // one table of values

@@ -1,0 +1,177 @@
+# Parse descriptor for CP2K output (Quickstep, ENERGY / ENERGY_FORCE /
+# GEO_OPT).  Checked by replaying output of CP2K 2025.1 through
+# tests/parsers/eccejobmonitor_sim.py, which re-implements the monitor's
+# Begin/Skip/Lines/End line feeding; Skip=N counts the Begin line itself.
+#
+# One Begin phrase serves one entry: the monitor keys entries by their Begin
+# text and gives each line to the first entry that matches it, so a line that
+# feeds two properties (the SCF iteration line: energy and its change; the
+# trajectory frame: geometry and energy) is one entry with a script that
+# prints both keys.  No End line below is another entry's Begin.
+
+# " CP2K| version string:   CP2K version 2025.1"
+[VERSION]
+Script=cp2k.version
+Begin=CP2K\| version string
+Frequency=first
+Skip=0
+Lines=1
+[END]
+
+# " ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]   -7.244568794042680",
+# printed after every SCF of an optimisation, so the last one is kept.
+[TE]
+Script=cp2k.energy
+Begin=ENERGY\| Total FORCE_EVAL
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+# One line of the SCF table, OT or diagonalisation.  The line-search rows of
+# OT ("38 OT LS ...") have no change column and do not match.
+[EWVEC][DELTAE]
+Script=cp2k.ewvec
+Begin=^\s+\d+\s+(?:OT\s+\w+|\S+/\S+)\s+\S+\s+\S+\s+\S+\s+-?\d+\.\d+\s+-?\d+\.\d+E[-+]\d+\s*$
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+# The frame CP2K prints after each geometry step: an atom count, a
+# " i = N, E = ..." line and one row per atom, then a blank line.  The
+# blank line is this entry's End and no other entry begins on it.
+[GEOMTRACE][TEVEC]
+Script=cp2k.geomtrace
+Begin=^\s+i =\s+\d+,\s+E =\s+-?\d
+Frequency=all
+Skip=0
+End=^\s*$
+[END]
+
+# "FORCES| Atomic forces [hartree/bohr]", a header line, one row per atom,
+# then the Sum row.  Present when the forces are requested (ENERGY_FORCE) and
+# in every optimisation.
+[EGRADVEC]
+Script=cp2k.egradvec
+Begin=FORCES\| Atomic forces
+Frequency=last
+Skip=2
+End=FORCES\| Sum
+[END]
+
+# The Mulliken table; unrestricted runs add the alpha and beta populations
+# and a spin moment per atom, read as SPINMOM.  The End is the table's own
+# last row, before the Hirshfeld table begins.
+[MULLIKEN][SPINMOM]
+Script=cp2k.mulliken
+Begin=Mulliken Population Analysis
+Frequency=last
+Skip=1
+End=^\s*#\s+Total charge
+[END]
+
+[HIRSHFELD]
+Script=cp2k.hirshfeld
+Begin=Hirshfeld Charges
+Frequency=last
+Skip=1
+End=^\s+Total Charge
+[END]
+
+# The whole-program row of the timing table: " CP2K  1  1.0  1.403 ..."
+[ETIME]
+Script=cp2k.time
+Begin=^\s*CP2K\s+1\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s*$
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+# ---- job progress for the Organizer (#284) -------------------------------
+# The SCF tolerance is printed once with the SCF parameters.
+[PROGRESS]
+Begin=^\s+eps_scf:\s+(\S+)
+Remember=epsscf
+[END]
+
+# "  4 OT DIIS  0.80E-01  0.7  0.06579221  -7.0482844195 -8.11E-02": step,
+# method, step size, time, convergence (the orbital gradient), energy, change.
+[PROGRESS]
+Begin=^\s+(\d+)\s+(?:OT\s+\w+|\S+/\S+)\s+\S+\s+\S+\s+(\d\S*)\s+(-?\d+\.\d+)\s+-?\d+\.\d+E[-+]\d+\s*$
+Progress=scf cycle=$1 scferr=$2/{epsscf} energy=$3
+History=scferr
+[END]
+
+[PROGRESS]
+Begin=^\s+\*\*\* SCF run converged in\s+(\d+) steps
+Progress=scf converged=yes
+[END]
+
+[PROGRESS]
+Begin=^\s+Leaving inner SCF loop after reaching\s+\d+ steps
+Progress=scf converged=no
+[END]
+
+# The optimiser's summary after each step.  The limits are printed with every
+# step, so they are remembered and then shown as targets.
+[PROGRESS]
+Begin=^\s+OPT\| Convergence limit for maximum gradient\s+(\S+)
+Remember=gmax
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| Convergence limit for RMS gradient\s+(\S+)
+Remember=grms
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| Convergence limit for maximum step size\s+(\S+)
+Remember=smax
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| Convergence limit for RMS step size\s+(\S+)
+Remember=srms
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| Step number\s+(\d+)
+Progress=opt step=$1
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| Total energy \[hartree\]\s+(-?\d\S*)
+Progress=opt energy=$1
+History=energy
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| Maximum gradient\s+(\d\S*)\s*$
+Progress=opt maxgrad=$1/{gmax}
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| RMS gradient\s+(\d\S*)\s*$
+Progress=opt rmsgrad=$1/{grms}
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| Maximum step size\s+(\d\S*)\s*$
+Progress=opt maxstep=$1/{smax}
+[END]
+
+[PROGRESS]
+Begin=^\s+OPT\| RMS step size\s+(\d\S*)\s*$
+Progress=opt rmsstep=$1/{srms}
+[END]
+
+[PROGRESS]
+Begin=^\s+\*\*\* GEOMETRY OPTIMIZATION COMPLETED \*\*\*
+Progress=opt converged=yes
+[END]
+
+[PROGRESS]
+Begin=^\s+\*\*\* MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED \*\*\*
+Progress=opt converged=no
+[END]

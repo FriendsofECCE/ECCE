@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+# CP2K's Mulliken table into MULLIKEN (net charge per atom) and, for an
+# unrestricted run, SPINMOM (spin moment per atom):
+#
+#   #  Atom  Element  Kind  Atomic population                  Net charge
+#         1     Si       1          3.999998                     0.000002
+#
+#   #  Atom  Element  Kind  Atomic population (alpha,beta) Net charge  Spin moment
+#         1     Ni       1   9.228817     8.272317     0.498865     0.956500
+#
+# The columns after the kind are told apart by their number: two for a
+# restricted run, four for an unrestricted one.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my (@charge, @spin);
+while (<STDIN>) {
+  last if (/^\s*#\s+Total charge/);
+  next if (!/^\s*\d+\s+[A-Za-z]{1,2}\s+\d+\s+(.*\S)\s*$/);
+  my @n = split(/\s+/, $1);
+  next if (grep { !/^-?\d+\.\d+$/ } @n);
+  if (@n == 2) {
+    push(@charge, $n[1]);
+  } elsif (@n == 4) {
+    push(@charge, $n[2]);
+    push(@spin, $n[3]);
+  }
+}
+exit(0) if (!@charge);
+
+print "key: MULLIKEN\nsize:\n", scalar(@charge), "\nvalues:\n",
+      join(" ", @charge), "\nunits:\ne\nEND\n";
+if (@spin == @charge) {
+  print "key: SPINMOM\nsize:\n", scalar(@spin), "\nvalues:\n",
+        join(" ", @spin), "\nunits:\ne\nEND\n";
+}
+exit(0);

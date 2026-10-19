@@ -3880,6 +3880,11 @@ static string builtinCommand(const string& code)
         return "$pw -in $inFile > $outFile 2>&1\n" + one +
                "mpirun -np $totalprocs $pw -in $inFile > $outFile 2>&1 "
                "< /dev/null";
+    if (code == "CP2K")
+        return "$cp2k -i $inFile > $outFile 2>&1\n" + one +
+               "mpirun -np $totalprocs $cp2k -i $inFile > $outFile 2>&1 "
+               "< /dev/null\n# a cp2k.ssmp or cp2k.sopt runs one process "
+               "with OMP_NUM_THREADS=$totalprocs, without mpirun";
     if (code == "ORCA")
         return "$orca $inFile > $outFile 2>&1\n" + one +
                "the same, after \"%pal nprocs $totalprocs end\" is put at the "
@@ -3919,6 +3924,8 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
         if (code == "MOPAC") return "e.g. OMP_NUM_THREADS 4";
         if (code == "QuantumESPRESSO")
             return "e.g. ESPRESSO_PSEUDO /opt/pseudo";
+        if (code == "CP2K")
+            return "e.g. CP2K_DATA_DIR /opt/cp2k/data";
         return "e.g. OMP_NUM_THREADS 4";
     }
     if (b.id == "ccmd")
@@ -3929,6 +3936,8 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
             return "e.g. mpirun -np $totalprocs $nwchem $inFile > $outFile";
         if (code == "QuantumESPRESSO")
             return "e.g. srun $pw -in $inFile > $outFile";
+        if (code == "CP2K")
+            return "e.g. srun $cp2k -i $inFile > $outFile";
         if (code == "Gaussian-16" || code == "Gaussian-09" ||
             code == "Gaussian-03" || code == "Gaussian-98")
             return "e.g. srun $G" + code.substr(code.size() - 2) +

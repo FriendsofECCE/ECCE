@@ -96,7 +96,9 @@ void PlotAnyPropertyPanel::initialize()
                
   // create our wxPlotCtrl and add to sizer
   p_plotCtrl = new ewxPlotCtrl(this);
-  p_plotCtrl->SetMinSize(wxSize(300,200));
+  // Small minimum: in a short pane the plot must give way before the
+  // axis rows below it are clipped.
+  p_plotCtrl->SetMinSize(wxSize(200,90));
   p_plotCtrl->SetShowXAxisLabel(true);
   p_plotCtrl->SetShowYAxisLabel(true);
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
@@ -248,8 +250,14 @@ void PlotAnyPropertyPanel::doAxisChoice()
   // add and show the axes labels
   refreshAxisLabel(p_xaxis);
   refreshAxisLabel(p_yaxis);
-  p_plotCtrl->SetPlotTitle(p_xaxis->GetStringSelection()
-                           + " vs " + p_yaxis->GetStringSelection());
+  // Name the quantity (the axis labels only carry units), as the
+  // Geometry Trace plot does.
+  wxString title = p_yaxis->GetStringSelection();
+  if (getSelectionSize(p_xaxis) > 0) {
+    title += " vs " + p_xaxis->GetStringSelection();
+  }
+  p_plotCtrl->SetPlotTitle(title);
+  p_plotCtrl->SetShowPlotTitle(true);
 }
 
 

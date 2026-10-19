@@ -28,6 +28,7 @@
 #include "dsm/GeomConstraintModelXMLizer.H"
 #include "dsm/ICalculation.H"
 #include "dsm/JCode.H"
+#include "dsm/TaskJob.H"
 #include "dsm/VDoc.H"
 
 #include "CalcEd.H"
@@ -282,6 +283,13 @@ bool CalcEd::write_setup(const string& output_file)
     GUIValues* guivalues = p_iCalc->guiparams();
     if (guivalues != (GUIValues*)0)
         guivalues->dumpKeyVals(os);
+
+    //  Not a dialog value: it follows the file attached to the
+    //  calculation, so it is added here and not kept in p_GUIValues.
+    TaskJob *guessJob = dynamic_cast<TaskJob*>(p_iCalc);
+    if (guessJob != 0 && guessJob->hasOrbitalGuess())
+      os << "ES.Theory.SCF.OrbitalGuessFile: " << TaskJob::orbitalGuessFile()
+         << endl;
 
     os.close();
 

@@ -53,6 +53,12 @@ these dumps verbatim.
   - `calc-water-vib` is NOT duplicated here -- `capture.py` points
     straight at `tests/apps/fixtures/calc-water-vib` (Gaussian-16 water,
     STO-3G, opt+freq, C2v), reusing it rather than a second copy.
+- `orca-cocl4-quartet`, `orca-o2-triplet` (open shell, ORCA UKS BP86/def2-SVP,
+  `UseSym`) are copies of an Organizer import of the real output (the stored
+  properties and metadata as the import wrote them, `Outputs` dropped), not
+  `makecalc.py` runs: the import keeps ORCA's own `ORBSYM`/`ORBSYMBETA` in its D2
+  spelling, which is what the beta matching has to cope with, and the functional
+  the import stores for the summary line.
 - `expected/<name>.dump` -- the golden `ECCE_MODIAGRAM_DUMP` output for
   each fixture, captured from the real `builder` binary at commit
   `809fbae` (headless, `ECCE_OPEN_PANEL="MO Diagram"` +
@@ -140,6 +146,13 @@ computes them. The basis is recorded Cartesian (`.davprops`, applied by
 `capture.py` over WebDAV): that is the case that used to draw no labels.
 Preferences' `EcceQmMoDiagram` is switched on by `capture.py`.
 
+## Constructions (#301)
+
+`orca-crco6` is drawn by the fragment-orbital construction, the default for
+a metal complex; `orca-crco6-skeleton` is the same calculation forced to
+SKELETON (`ECCE_MODIAGRAM_CONSTRUCTION=skeleton`) and keeps the golden the
+metal case had before it.
+
 ## Reproducing
 
 ```
@@ -154,3 +167,34 @@ goldens after an intentional engine change, and `--repeat N` to check
 determinism before trusting a capture (used here with `N=2` for every
 fixture). A single fixture can be named on the command line to avoid
 re-running all six.
+
+## Atom picks (#301)
+
+`ECCE_MODIAGRAM_PICK="O1"` (one atom) or `"C1,C2"` (a bond), labels as the
+Builder numbers atoms (symbol and number from 1), does what the panel's
+"Centre/first atom" and "Bonded to" choosers do. `ecceqm-water-pick-o1`,
+`orca-crco6-pick-cr1` and `ecceqm-c2h4-pick-c1c2` differ from the automatic
+goldens (`ecceqm-water`, `orca-crco6`, `ecceqm-c2h4`) only in the `note:`
+and `about:` lines, which name the pick. `ecceqm-c3h6-pick-ring` picks a
+ring bond and is refused (a spectrum and a tier-B line). `ecceqm-c2h4` and
+`ecceqm-c3h6` are `makecalc.py ecceqm c2h4|c3h6 0 DIR --no-rotate`.
+`ecceqm-methanol` (`makecalc.py ecceqm ch3oh 0 DIR --no-rotate`) picked at C1
+and at O2 is drawn by the fragment-orbital route with that atom as centre
+(CENTRAL would leave atoms out): `ecceqm-methanol-pick-c1`, `-pick-o2`.
+
+## Validation set (#301)
+
+`orca-bf3`, `-benzene` (also `orca-benzene-pi`, `ecceqm-c2h4-pi`: the `pi
+system only` box, `ECCE_MODIAGRAM_PIONLY=1`), `-o2-triplet`, `-no2`, `-b2h6`,
+`-nico4`, `-cocl4-quartet`, `-agnh3`: ORCA 6.1.1 BP86/def2-SVP (UKS for the
+open-shell ones), idealised textbook geometries (not optimised), no UseSym,
+so the labels are the diagram's own. The summary line says `RHF` for these
+because the fixture builder records that theory; it is not what ran.
+Multiplicity and charge are in `.davprops` (calculation and
+`Parameters/chemsys.mvm`). `orca-b2h6` and `orca-agnh3` are refusals with a
+stated reason (no one-centre split; no EHT parameters for Ag). `orca-ptcl4`
+([PtCl4]2-, d8, singlet) was added with the d-electron rule: the metal
+column's electrons are read off the occupied MOs, so b1g sigma* is empty and
+`orca-cocl4-quartet` is e^4 t2^3 (`check_pairs.py` asserts both, and Ni(CO)4
+d10). Ferrocene (e2' and a1' filled, e1'' empty) was checked once from a
+656 KB fixture that is not kept.

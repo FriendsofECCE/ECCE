@@ -110,6 +110,30 @@ void NWChemMDModelXMLizer::deserialize(const string& data,
           if (value.length() > 0) {
             imodel->setPeriodicMolecules(atoi(value.c_str()));
           }
+          {
+            GromacsRun run = imodel->getGromacsRun();
+            value = getTagValue(iroot, "GmxDefines");
+            if (value.length() > 0) run.defines = value;
+            value = getTagValue(iroot, "GmxPosres");
+            if (value.length() > 0) run.posres = atoi(value.c_str()) != 0;
+            value = getTagValue(iroot, "GmxPosresName");
+            if (value.length() > 0) run.posresName = value;
+            value = getTagValue(iroot, "GmxGroups");
+            if (value.length() > 0) run.groups = value;
+            value = getTagValue(iroot, "GmxComGroups");
+            if (value.length() > 0) run.comGroups = atoi(value.c_str());
+            value = getTagValue(iroot, "GmxTcGroups");
+            if (value.length() > 0) run.tcGroups = atoi(value.c_str());
+            value = getTagValue(iroot, "GmxBarostat");
+            if (value.length() > 0) run.barostat = atoi(value.c_str());
+            value = getTagValue(iroot, "GmxPcoupltype");
+            if (value.length() > 0) run.pcoupltype = atoi(value.c_str());
+            value = getTagValue(iroot, "GmxNstpcouple");
+            if (value.length() > 0) run.nstpcouple = atoi(value.c_str());
+            value = getTagValue(iroot, "GmxExtraMdp");
+            if (value.length() > 0) run.extraMdp = value;
+            imodel->setGromacsRun(run);
+          }
           value = getTagValue(iroot, "EwaldConvergence");
           if (value.length() > 0) {
             imodel->setEwaldConvergence(atof(value.c_str()));
@@ -891,6 +915,25 @@ void NWChemMDModelXMLizer::serialize(const Serializable& object,
    }
 }
 
+// Free text goes into one line of the file, so a newline is written as a
+// character reference; the DOM reader gives it back.
+static string xmlText(const string& s)
+{
+  string r;
+  for (size_t i = 0; i < s.size(); i++) {
+    switch (s[i]) {
+      case '&': r += "&amp;"; break;
+      case '<': r += "&lt;"; break;
+      case '>': r += "&gt;"; break;
+      case '\n': r += "&#10;"; break;
+      case '\r': break;
+      case '\t': r += "&#9;"; break;
+      default: r += s[i];
+    }
+  }
+  return r;
+}
+
 void NWChemMDModelXMLizer::dumpInteraction(InteractionModel *model, ostream &os)
 {
   os <<"    <Touched>1</Touched>"<<endl;
@@ -910,6 +953,31 @@ void NWChemMDModelXMLizer::dumpInteraction(InteractionModel *model, ostream &os)
   if (model->getPeriodicMolecules() != model->PERIODICMOL) {
     os << "    <PeriodicMolecules>" << model->getPeriodicMolecules()
        << "</PeriodicMolecules>" << endl;
+  }
+  {
+    const GromacsRun& g = model->getGromacsRun();
+    const GromacsRun d;
+    if (g.defines != d.defines)
+      os << "    <GmxDefines>" << xmlText(g.defines) << "</GmxDefines>" << endl;
+    if (g.posres != d.posres)
+      os << "    <GmxPosres>" << (g.posres ? 1 : 0) << "</GmxPosres>" << endl;
+    if (g.posresName != d.posresName)
+      os << "    <GmxPosresName>" << xmlText(g.posresName)
+         << "</GmxPosresName>" << endl;
+    if (g.groups != d.groups)
+      os << "    <GmxGroups>" << xmlText(g.groups) << "</GmxGroups>" << endl;
+    if (g.comGroups != d.comGroups)
+      os << "    <GmxComGroups>" << g.comGroups << "</GmxComGroups>" << endl;
+    if (g.tcGroups != d.tcGroups)
+      os << "    <GmxTcGroups>" << g.tcGroups << "</GmxTcGroups>" << endl;
+    if (g.barostat != d.barostat)
+      os << "    <GmxBarostat>" << g.barostat << "</GmxBarostat>" << endl;
+    if (g.pcoupltype != d.pcoupltype)
+      os << "    <GmxPcoupltype>" << g.pcoupltype << "</GmxPcoupltype>" << endl;
+    if (g.nstpcouple != d.nstpcouple)
+      os << "    <GmxNstpcouple>" << g.nstpcouple << "</GmxNstpcouple>" << endl;
+    if (g.extraMdp != d.extraMdp)
+      os << "    <GmxExtraMdp>" << xmlText(g.extraMdp) << "</GmxExtraMdp>" << endl;
   }
   if (model->getEwaldConvergence() != model->EWALDCONVRG) {
     os << "    <EwaldConvergence>" << model->getEwaldConvergence()

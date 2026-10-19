@@ -95,6 +95,7 @@ using std::vector;
 #include "wxgui/PerTabPanel.H"
 #include "wxgui/SaveExperimentAsDialog.H"
 #include <wx/bmpcbox.h>
+#include <wx/grid.h>
 #include <wx/listctrl.h>
 #include <wx/generic/filectrlg.h>
 #include "wxgui/TearableContent.H"
@@ -142,6 +143,7 @@ using std::vector;
 #include "viz/HydrogenBondsCmd.H"
 #include "viz/HydrogensCmd.H"
 #include "viz/InsertResidueCmd.H"
+#include "viz/MakeResidueCmd.H"
 #include "viz/LengthEditCmd.H"
 #include "viz/NewFragmentCmd.H"
 #include "viz/RingsCmd.H"
@@ -1603,6 +1605,12 @@ void Builder::setContext(const string& url, const bool& force)
     getCM()->clearCommands();
     setDirty(false);
     setImport(false);
+
+    // A structure that carries a cell shows it, without the Periodic
+    // Builder open (the Viewer of a Prepare has no use for the panel).
+    PBC *pbcPanel = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
+    if (pbcPanel && getSG()->getFragment()->getLattice())
+      pbcPanel->showLattice(true);
 
     // The constraints follow the atoms of this fragment from here on.
     const string ctxUrl = p_calculation->getURL().toString();
@@ -3113,6 +3121,12 @@ void Builder::eventMCB(const Event& event)
      updateSave();
      updateForAnyEdit();
    }
+   else if (name == "LatticeChange") {
+     // Creating or editing a cell publishes only this event; without it
+     // the cell never counts as a modification and Save stays greyed.
+     setDirty(true);
+     updateSave();
+   }
    else if (name == "StepChange") {
      updateForAnyEdit();
    }
@@ -3842,7 +3856,20 @@ void Builder::OnToolOrientClick( wxCommandEvent& event )
 void Builder::OnToolMenuClick( wxCommandEvent& event )
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(GetMenuBar()->GetLabel(event.GetId()));
-  if (pane.name == NAME_TOOL_PBC) p_pbcAutoShown = false;
+  if (pane.name == NAME_TOOL_PBC) {
+    p_pbcAutoShown = false;
+    // Switching the tool off takes the box with it.
+    PBC *pbcPanel = dynamic_cast<PBC*>(pane.window);
+    if (pbcPanel && !event.IsChecked()) pbcPanel->showLattice(false);
+  }
+  // A bare atom or fragment has no residue to rename: give it the default
+  // ones, as Make into Residue-Based System does, so the table has rows.
+  if (pane.name == NAME_TOOL_RESIDUE_TABLE && event.IsChecked() && !isReadOnly()) {
+    Fragment *frag = getSG()->getFragment();
+    if (frag->numResidues() == 0 && frag->numAtoms() > 0) {
+      getFW().execute(new MakeResidueCmd("Make Residue", getSG()));
+    }
+  }
   pane.Show(event.IsChecked());
   if (!event.IsChecked()) {
     p_tabHidden.erase(pane.window);
@@ -3931,7 +3958,17 @@ void Builder::foldPane(wxWindow *win, bool fold)
     return;
   }
   FoldState st = { pane.best_size, pane.min_size, pane.IsResizable(),
-                   pane.dock_proportion, win->GetMinSize() };
+                   pane.dock_proportion, win->GetMinSize(), pane.dock_row };
+  //  A pane docked across the frame (the Log at the bottom): AUI keeps the
+  //  dock's height from when it was open, so a folded one stayed tall, and
+  //  Fixed() stopped it stretching along the frame (half width).  Fold it
+  //  in a row of its own, which AUI sizes from the caption, and remember
+  //  the height it had for unfolding.
+  const bool across = pane.dock_direction == wxAUI_DOCK_BOTTOM ||
+                      pane.dock_direction == wxAUI_DOCK_TOP;
+  if (across && pane.rect.height > 1) {
+    st.best.y = pane.rect.height;
+  }
   p_folded[win] = st;
   //  AUI floors a pane at its window's minimum, so a folded pane would
   //  keep the content height until the window is hidden.
@@ -3941,7 +3978,12 @@ void Builder::foldPane(wxWindow *win, bool fold)
   }
   win->wxWindow::SetMinSize(wxSize(st.winMin.x, 1));
   unfocusPanel(win);
-  pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1)).Fixed();
+  pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1));
+  if (across) {
+    pane.Row(st.row + 1);
+  } else {
+    pane.Fixed();
+  }
   pane.dock_proportion = 1;
 }
 
@@ -3954,7 +3996,7 @@ void Builder::unfoldPane(wxAuiPaneInfo &pane)
     return;
   }
   pane.BestSize(it->second.best).MinSize(it->second.min)
-      .Resizable(it->second.resizable);
+      .Resizable(it->second.resizable).Row(it->second.row);
   pane.dock_proportion = it->second.proportion;
   if (PropertyPanel *pp = dynamic_cast<PropertyPanel*>(pane.window)) {
     pp->setPaneMinHeight(it->second.winMin.y);
@@ -4000,7 +4042,11 @@ void Builder::OnPaneClose(wxAuiManagerEvent& event)
   } else {
     wxString name(event.pane->name);
     wxWindow *win = event.pane->window;
-    if (name == NAME_TOOL_PBC) p_pbcAutoShown = false;
+    if (name == NAME_TOOL_PBC) {
+      p_pbcAutoShown = false;
+      PBC *pbcPanel = dynamic_cast<PBC*>(win);
+      if (pbcPanel) pbcPanel->showLattice(false);
+    }
     unfoldPane(*event.pane);
     p_tabHidden.erase(win);
     if (p_detail == win) {
@@ -5245,6 +5291,20 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
      symmetryShown = true;
   }
 
+  //  Build is always open on an editable calculation, in a saved layout too:
+  //  a new user starts from it.
+  if (layoutName == NAME_LAYOUT_DEFAULT && !isReadOnly()) {
+    wxAuiPaneInfo &build = p_mgr.GetPane(NAME_TOOL_BUILD);
+    if (build.IsOk() && !build.IsShown()) {
+      unfoldPane(build);
+      p_tabHidden.erase(build.window);
+      build.Show(true);
+      GetMenuBar()->Check(
+          GetMenuBar()->FindMenuItem("Tools", NAME_TOOL_BUILD), true);
+      symmetryShown = true;   // so that updatePanes() runs below
+    }
+  }
+
   //  A crystal code's calculation opens with the Periodic Builder, which
   //  holds the cell, since a molecule view cannot define one.  It is only
   //  shown, not made: no cell is invented for a structure without one.
@@ -5465,7 +5525,9 @@ void Builder::updateMenus()
    bool enable = frag->numResidues() > 0;
    p_editMenu->Enable(ID_SELECT_BACKBONE, enable);
    p_editMenu->Enable(ID_SELECT_SIDECHAINS, enable);
-   GetMenuBar()->Enable(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), enable);
+   // Never greyed: opening it on a structure without residues gives that
+   // structure default ones to name (OnToolMenuClick).
+   GetMenuBar()->Enable(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), true);
 }
 
 /**
@@ -5646,6 +5708,24 @@ void Builder::updatePropertyMenus()
         if (!p.IsShown() || p.IsToolbar() || !p.window) continue;
         //  "need": the width the pane's own controls take at this font.
         wxSizer *content = p.window->GetSizer();
+        //  Rows the pane's first table shows at once.
+        int rows = -1, gridH = -1, rowH = -1;
+        std::vector<wxWindow*> todo(1, p.window);
+        while (!todo.empty() && rows < 0) {
+          wxWindow *w = todo.back();
+          todo.pop_back();
+          wxGrid *g = dynamic_cast<wxGrid*>(w);
+          if (g && g->IsShownOnScreen()) {
+            gridH = g->GetGridWindow()->GetClientSize().y;
+            rowH = g->GetDefaultRowSize();
+            rows = gridH / std::max(1, rowH);
+            break;
+          }
+          for (wxWindowList::compatibility_iterator n = w->GetChildren().GetFirst();
+               n; n = n->GetNext()) todo.push_back(n->GetData());
+        }
+        fprintf(f, "rows \"%s\" %d grid %d row %d\n",
+                p.name.ToStdString().c_str(), rows, gridH, rowH);
         fprintf(f, "pane \"%s\" %d %d %d %d %s %s need %d have %d\n",
                 p.name.ToStdString().c_str(), p.rect.x, p.rect.y,
                 p.rect.width, p.rect.height,
@@ -6063,7 +6143,9 @@ void Builder::updatePropertyMenus()
             w[0] == "foldclick" ||
             w[0] == "sashdrag" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab" ||
-            w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip")
+            w[0] == "undo" || w[0] == "redo" || w[0] == "pbcscroll" ||
+            w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip" ||
+            w[0] == "importfile" || w[0] == "tooldock" || w[0] == "collapse")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside
         //  the property panes that are shown, -> <name>.txt.
@@ -6103,7 +6185,7 @@ void Builder::updatePropertyMenus()
           GetEventHandler()->ProcessEvent(ev);
           return true;
         }
-        //  "modiagram <name> tip|click <n>": the diagram's text for molecular
+        //  "modiagram <name> tip|click|overlaps <n>": the diagram's text for molecular
         //  level <n> (the tooltip), or a click on orbital <n> (0-based ORBENG
         //  index); -> <name>.txt, with whether a surface was computed.
         if (w[0] == "modiagram" && w.size() == 4) {
@@ -6119,12 +6201,34 @@ void Builder::updatePropertyMenus()
           const int n = atoi(w[3].c_str());
           if (w[2] == "tip") {
             out << md->levelText(n) << "\n";
+          } else if (w[2] == "ctip") {
+            out << md->calcLevelText(n) << "\n";
+          } else if (w[2] == "overlaps") {
+            out << "overlaps " << md->centreOverlaps() << "\n";
           } else {
             md->orbitalClicked(n);
             SingleGrid *grid = getSG()->getCurrentGrid();
             out << "grid " << (grid && grid->fieldMax() > grid->fieldMin()
                                ? "yes" : "no") << "\n";
           }
+          return true;
+        }
+        //  "modipick <name> <atom|-> [<bonded atom>]": choose the atom (and
+        //  bond) in the MO diagram and press Compute, as clicked; the text
+        //  under the diagram afterwards -> <name>.txt.
+        if (w[0] == "modipick" && w.size() >= 3 && w.size() <= 4) {
+          MoDiagramPanel *md = 0;
+          set<PropertyPanel*> dp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = dp.begin();
+               it != dp.end() && !md; ++it)
+            md = dynamic_cast<MoDiagramPanel*>(*it);
+          if (!md) return s.fail("modipick: no MO diagram panel");
+          if (!md->computePick(w[2] == "-" ? string() : w[2],
+                               w.size() == 4 ? w[3] : string()))
+            return s.fail("modipick: no such atom or bond: " + w[2]);
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          out << md->noteText() << "\n";
           return true;
         }
         //  "mofield <type>": the MO panel's field-type choice, as clicked.

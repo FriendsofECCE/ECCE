@@ -80,6 +80,9 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       /** What the diagram shows for a molecular level (tooltip text). */
       string levelText(int level);
+      /** The calculation column's hover text: n indexes the centre levels,
+          then the levels without a model partner. */
+      string calcLevelText(int n);
 
       /** The MOs panel's composition line for a level's orbitals. */
       virtual string orbitalComposition(const vector<int>& orbengIndices);
@@ -120,8 +123,44 @@ class MoDiagramPanel : public VizPropertyPanel,
                                const vector<string>& elements);
       void onFragmentChanged(wxCommandEvent& event);
 
+      /** The first picked atom changed: the second one starts over. */
+      void onPickFirstChanged(wxCommandEvent& event);
+
+      /** The Compute button: the atom/bond now chosen is what gets drawn. */
+      void onCompute(wxCommandEvent& event);
+
+      /** Offer the atoms bonded to `first` (-1: none) in the second chooser. */
+      void refreshSecondChooser(int first);
+
+   public:
+      /**
+       * What the Compute button does, for a script: choose the atom (and the
+       * atom bonded to it) by label ("Co1", "Cl2"; empty for none) and press
+       * it.  False when a label is not an atom of this molecule.
+       */
+      bool computePick(const string& first, const string& second);
+
+      /** The text under the diagram as last built (summary, then warnings). */
+      string noteText() const { return p_lastNote; }
+
+      /** Levels of the model column whose blocks overlap as last drawn (-1: none drawn). */
+      int centreOverlaps() const;
+
+   protected:
+
+      /**
+       * Fill the two atom choosers for this molecule and read them (or
+       * ECCE_MODIAGRAM_PICK) into `first`/`second`, -1 for none.
+       */
+      void fillPickChoosers(const vector<double>& coords,
+                            const vector<string>& elements,
+                            int& first, int& second);
+
       /** Show or hide each level's energy. */
       void onShowEnergies(wxCommandEvent& event);
+
+      /** The longer explanation of the diagram, in a pop-up. */
+      void onAbout(wxCommandEvent& event);
 
       virtual void initialize();
 
@@ -134,13 +173,31 @@ class MoDiagramPanel : public VizPropertyPanel,
       //  below).
       void buildOnce();
 
+      //  Opens or closes the "Fragments..." expander.
+      void setFragmentsOpen(bool open);
+
       MoDiagramCanvas *p_canvas;
+      wxPanel         *p_fragPanel;
+      wxButton        *p_fragToggle;
       wxCheckListBox  *p_fragments;
       wxStaticText    *p_fragmentHint;
       wxCheckBox      *p_autoFragments;
       wxChoice        *p_construction;
       wxCheckBox      *p_piOnly;
       wxCheckBox      *p_showEnergies;
+      wxCheckBox      *p_showAll;
+      wxCheckBox      *p_ligandField;
+      wxButton        *p_about;
+      wxChoice        *p_pickFirst;
+      wxChoice        *p_pickSecond;
+      wxButton        *p_compute;
+      int              p_pickA, p_pickB;   // the pick Compute last took, -1 none
+      bool             p_pickEnvDone;
+      vector<double>   p_pickCoords;       // for the second chooser's bonded atoms
+      vector<string>   p_pickElements;
+      string           p_lastNote;
+      vector<string>   p_atomLabels;     // "O1", "H2", ... as the Builder numbers
+      vector<int>      p_secondAtoms;    // atoms in the second chooser, after (none)
 
       //  Re-entrancy guard (#170 progress dialog): ewxProgressDialog::
       //  Update() pumps the event loop, so a resize or a control the

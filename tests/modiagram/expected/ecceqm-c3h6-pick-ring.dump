@@ -1,0 +1,47 @@
+group: D3h
+formula: C3H6
+construction: -
+headline: The picked atoms cannot be drawn as two fragments
+source: MO levels: RHF, 6-31G* · 
+note: Molecular levels only · energies in Hartree · labels in D<sub>3h</sub> · 3 core orbitals hidden\nThis bond is part of a ring, so cutting it does not split the molecule in two and there is no pair of fragments to draw from it. Use Choose fragments to group the atoms yourself.
+about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Symmetry.** Symmetry labels computed from the orbitals in D3h; the code reported none.\n\n**Not shown.** 3 core orbitals below −10.17 Hartree.
+column left
+  title: 
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 0
+column centre
+  title: Molecular orbitals
+  fromHalves: 0
+  hiddenCount: 3
+  hiddenMaxEnergy: -10.169358
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 2
+  shellKeys:
+  levels: 12
+  level 0 energy=-0.839533 tabulated=0.000000 irrep=A1' label=2A1' character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[3] annotation="-0.8395"
+  level 1 energy=-0.588360 tabulated=0.000000 irrep=E' label=2E' character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[4,5] annotation="-0.5884"
+  level 2 energy=-0.486666 tabulated=0.000000 irrep=A2'' label=1A2'' character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[6] annotation="-0.4867"
+  level 3 energy=-0.455933 tabulated=0.000000 irrep=A1' label=3A1' character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[7] annotation="-0.4559"
+  level 4 energy=-0.357526 tabulated=0.000000 irrep=E'' label=1E'' character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[8,9] annotation="-0.3575"
+  level 5 energy=-0.283558 tabulated=0.000000 irrep=E' label=3E' character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[10,11] annotation="-0.2836"
+  level 6 energy=0.107819 tabulated=0.000000 irrep=A1' label=4A1' character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[12] annotation="0.1078"
+  level 7 energy=0.114687 tabulated=0.000000 irrep=A2'' label=2A2'' character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[13] annotation="0.1147"
+  level 8 energy=0.160634 tabulated=0.000000 irrep=A2' label=1A2' character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[14] annotation="0.1606"
+  level 9 energy=0.161373 tabulated=0.000000 irrep=E' label=4E' character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[15,16] annotation="0.1614"
+  level 10 energy=0.236324 tabulated=0.000000 irrep=E'' label=2E'' character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[17,18] annotation="0.2363"
+  level 11 energy=0.265298 tabulated=0.000000 irrep=E' label=5E' character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[19,20] annotation="0.2653"
+column right
+  title: 
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 0
+links: 0

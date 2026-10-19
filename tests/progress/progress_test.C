@@ -111,6 +111,35 @@ int main()
   check(cb.size() == 1 && cb[0].bar && cb[0].fraction == 1.0,
         "a converged run's bar is full before the step limit");
 
+  // A GROMACS Prepare: the step under way, then the outcome.
+  {
+    JobProgress pp;
+    pp.parse("# seq=1\nprepare point=3/4 tool=solvate eta=5\n");
+    vector<JobProgress::Block> pb = pp.running(0);
+    check(pb.size() == 1 && pb[0].title == "Prepare" && pb[0].bar &&
+          fabs(pb[0].fraction - 0.5) < 1e-9 &&
+          has(pb[0].lines, "step 3 of 4 \xc2\xb7 solvate") &&
+          !has(pb[0].lines, "left"), "Prepare: step 3 of 4 under way, no time left");
+    check(pp.shortLine() == "Prepare 3/4", "cell: Prepare: " + pp.shortLine());
+    check(has(pp.summary(true), "Prepare stopped at step 3 of 4 (solvate)"),
+          "a Prepare that stops says where");
+    JobProgress pd;
+    pd.parse("# seq=2\nprepare point=4/4 tool=ions done=yes atoms=5913 residues=20 "
+             "waters=1866 pos=5 neg=6 posname=NA negname=CL charge0=1.000000 "
+             "charge1=0 box=dodecahedron a=4.392 b=4.392 c=4.392 alpha=60.00 "
+             "beta=60.00 gamma=90.00\n");
+    vector<string> ds = pd.summary(true);
+    check(ds.size() == 2 &&
+          has(ds, "Prepare complete \xc2\xb7 5913 atoms \xc2\xb7 20 protein residues "
+                  "\xc2\xb7 1866 waters \xc2\xb7 5 NA, 6 CL"),
+          "Prepare summary: the system");
+    check(has(ds, "Net charge 1 to 0 \xc2\xb7 rhombic dodecahedron box 4.392 "
+                  "\xc3\x97 4.392 \xc3\x97 4.392 nm, angles 60.00/60.00/90.00"),
+          "Prepare summary: charge and box");
+    vector<JobProgress::Block> db = pd.running(0, true);
+    check(db.size() == 1 && db[0].fraction == 1.0, "a finished Prepare's bar is full");
+  }
+
   // The table cell.
   check(p.shortLine() == "Freq 14/54", "cell: frequencies, the last of opt/freq: " + p.shortLine());
   JobProgress c1;

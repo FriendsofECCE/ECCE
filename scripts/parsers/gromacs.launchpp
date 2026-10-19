@@ -10,8 +10,13 @@
 #   that grompp needs are there, and, if gmx is on this machine, runs grompp
 #   on them into a scratch .tpr.  grompp's diagnostics are good -- a
 #   topology that does not match the structure is the first thing a new user
-#   hits -- and are printed as they are.  A non-zero exit stops the launch;
-#   Launch shows what was printed.
+#   hits -- and are passed on as they are, except the common stopping warnings,
+#   which GromppWarn::explain words for the dialog (grompp's text follows the
+#   marker ECCE-ORIGINAL-MESSAGE).  Nothing here blocks the launch:
+#   a rejection or a stopping warning is printed after the line
+#   ECCE-LAUNCH-WARNING and the exit status is 0; Launch hands the text to the
+#   Launcher, which asks whether to launch anyway.  Harmless warnings are not
+#   reported.  Missing files still exit 1.
 #
 #   The job script runs grompp again on the machine that runs the job (that
 #   is where the .tpr that mdrun reads is built, and that machine may be a
@@ -26,6 +31,10 @@ use strict;
 use Getopt::Std;
 use File::Temp qw(tempdir);
 use Cwd ();
+use FindBin qw($Bin);
+use lib $FindBin::Bin;
+use GromppWarn;
+use GmxIons;
 
 our($opt_p, $opt_v);
 getopts('p:v');
@@ -45,6 +54,14 @@ close($pd);
 
 my $mdp = $params{"inputFile"} || "gromacs.mdp";
 
+# gmx on this machine?  Not an error if it is not: the job's machine has it.
+my $gmx = "";
+foreach my $dir (split(/:/, $ENV{"PATH"} || "")) {
+  if (-x "$dir/gmx") { $gmx = "$dir/gmx"; last; }
+}
+
+checkPrepare() if ($mdp =~ /\.gmxprep$/);
+
 my @missing;
 push(@missing, "the run-control file $mdp") if (! -s $mdp);
 push(@missing, "the topology (topol.top)")  if (! -s "topol.top");
@@ -55,11 +72,12 @@ if (@missing) {
   exit 1;
 }
 
-# gmx on this machine?  Not an error if it is not: the job's machine has it.
-my $gmx = "";
-foreach my $dir (split(/:/, $ENV{"PATH"} || "")) {
-  if (-x "$dir/gmx") { $gmx = "$dir/gmx"; last; }
-}
+# The index file for -n: one the user attached wins and its group names are
+# theirs; otherwise one is written from the groups the .mdp defines by residue
+# name.  It is written here, before anything is checked, because Launch ships
+# whatever is in this directory and the job script only passes -n.
+my $ndx = indexFile();
+
 if ($gmx eq "") {
   print "gmx is not on this machine, so the inputs are not checked here; grompp runs on the job's machine.\n";
   exit 0;
@@ -77,7 +95,7 @@ my $cwd = Cwd::getcwd();
 opendir(my $dh, ".") || die "gromacs.launchpp: cannot read the staging directory\n";
 foreach my $f (readdir($dh)) {
   next if ($f eq "." || $f eq ".." || ! -f $f);
-  (my $rel = $f) =~ s#__SLASH__#/#g;
+  (my $rel = $f) =~ s#__SLASH__#/#g; $rel =~ s#\.gmxff$##;
   if ($rel =~ m#^/# || $rel =~ m#(^|/)\.\.(/|$)#) { next; }
   if ($rel =~ m#/#) {
     (my $dir = $rel) =~ s#/[^/]*$##;
@@ -91,22 +109,205 @@ $mdp = "$cwd/$mdp" if ($mdp !~ m#^/#);
 # -r: a topology with [ position_restraints ] needs a reference structure,
 # and grompp ignores it otherwise; the starting structure is the reference,
 # as in the job script (gensub).
+# grompp is run with a -maxwarn no real run reaches, and the warnings it
+# printed are sorted afterwards (GromppWarn): the harmless ones are allowed,
+# any other would stop the job, so it stops the launch.
+my $maxwarn = 999;
 my @cmd = ($gmx, "grompp", "-f", $mdp, "-c", "conf.gro", "-r", "conf.gro",
-           "-p", "topol.top",
-           "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", "0");
+           "-p", "topol.top", ($ndx ne "" ? ("-n", $ndx) : ()),
+           "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", $maxwarn);
 my $out = `@cmd 2>&1`;
+# leave the scratch directory so that its removal at exit can succeed
+chdir($cwd);
 my $status = $? >> 8;
 if ($status != 0) {
-  print STDERR "grompp rejected the inputs, so the job was not submitted.\n";
-  print STDERR "  command: @cmd\n\n";
   # the useful part of grompp's output starts at its first ERROR/WARNING
   my @lines = split(/\n/, $out);
   my $first = 0;
   for (my $i = 0; $i < scalar(@lines); $i++) {
     if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
   }
-  print STDERR join("\n", @lines[$first .. $#lines]) . "\n";
-  exit($status);
+  warnAndExit("grompp", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
+}
+my $intended = 0;
+if (open(my $tp, "<", "$work/topol.top")) {
+  local $/;
+  $intended = (<$tp> =~ /ECCE-NETCHARGE-INTENDED/) ? 1 : 0;
+  close($tp);
+}
+my @warn = GromppWarn::parse($out, $intended);
+my @stop = grep { !$_->{harmless} } @warn;
+if (@stop) {
+  # ECCE's text where there is one, grompp's own otherwise; grompp's message
+  # in full goes after the marker for the dialog's closed pane.
+  my @own = map { GromppWarn::explain($_) } @stop;
+  my $body = join("\n\n", map { GromppWarn::explain($_) // $_->{text} } @stop);
+  my $original = scalar(grep { defined } @own)
+               ? join("\n\n", map { "$_->{head}\n  $_->{text}" } @stop) : "";
+  warnAndExit("grompp", $body, $original);
 }
 print "grompp accepted the inputs.\n";
 exit 0;
+
+# Report a problem the job will meet and leave the decision to the user: the
+# tool the job stops at, the text for the dialog and, when ECCE reworded the
+# tool's message, the original (the dialog shows it in a closed pane).
+sub warnAndExit
+{
+  my ($tool, $detail, $original) = @_;
+  print "ECCE-LAUNCH-WARNING\nThe job will stop at $tool with this error:\n\n$detail\n";
+  print "ECCE-ORIGINAL-MESSAGE\n$original\n" if (defined($original) && $original ne "");
+  exit 0;
+}
+
+# The index file grompp is given, or "" for none.
+sub indexFile
+{
+  my $own = "ecce_groups.ndx";
+  my @user = sort grep { $_ ne $own && ! m#__SLASH__# && -f $_ } glob("*.ndx");
+  if (@user) {
+    unlink($own);
+    return $user[0];
+  }
+  unlink($own);
+  my $script = "$Bin/gromacs.mkndx";
+  my $out = `'$^X' '$script' conf.gro '$mdp' $own topol.top 2>&1`;
+  if ($? != 0) {
+    print STDERR "The index file for the groups of the task could not be made.\n$out";
+    exit 1;
+  }
+  return -s $own ? $own : "";
+}
+
+# A Prepare task has no topology or structure of its own to check; the
+# mistakes worth stopping for are pdb2gmx's (a residue it has no entry for,
+# a missing atom), so it is run on its own, here, on the staged structure.
+sub checkPrepare
+{
+  my %r = (FF => "amber99sb-ildn", WATER => "tip3p", IGNH => 1, MERGE => 0);
+  if (open(my $rf, "<", $mdp)) {
+    while (<$rf>) { $r{$1} = $2 if (/^\s*([A-Z]+)=(\S*)\s*$/); }
+    close($rf);
+  }
+  checkMinff() if (($r{SOURCE} || "") eq "minff");
+  my @pdb = glob("*.gmxpdb");
+  @pdb = glob("*.pdb") if (!@pdb);
+  if (!@pdb) {
+    print STDERR "Prepare needs the protein structure (a .pdb file) and it is not here.\n";
+    exit 1;
+  }
+  if ($gmx eq "") {
+    print "gmx is not on this machine, so pdb2gmx is not tried here; it runs on the job's machine.\n";
+    exit 0;
+  }
+  my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
+  # pdb2gmx goes by the extension, and a staged name may not end in .pdb
+  my $pdb = "$tmp/in.pdb";
+  if (open(my $in, "<", $pdb[0])) {
+    local $/;
+    my $text = <$in>;
+    close($in);
+    my ($new) = GmxIons::rewrite($text, $r{FF});
+    if (open(my $out, ">", $pdb)) {
+      print {$out} $new;
+      close($out);
+    }
+  } else {
+    symlink(Cwd::abs_path($pdb[0]), $pdb);
+  }
+  my @cmd = ($gmx, "pdb2gmx", "-f", $pdb, "-ff", $r{FF}, "-water", $r{WATER},
+             "-o", "$tmp/c.gro", "-p", "$tmp/t.top", "-i", "$tmp/p.itp");
+  push(@cmd, "-ignh") if ($r{IGNH});
+  push(@cmd, "-merge", "all") if ($r{MERGE});
+  my $out = `cd $tmp && @cmd 2>&1 </dev/null`;
+  my $status = $? >> 8;
+  if ($status != 0) {
+    my @lines = split(/\n/, $out);
+    my $first = 0;
+    for (my $i = 0; $i < scalar(@lines); $i++) {
+      if ($lines[$i] =~ /(is missing in residue|not found in|^Fatal error|^Program:)/) { $first = $i; last; }
+    }
+    warnAndExit("pdb2gmx", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
+  }
+  print "pdb2gmx accepted the structure.\n";
+  exit 0;
+}
+
+# A cut-off grompp accepts for the box on the last line of a .gro: its pair
+# list (5% longer than the cut-off for a minimisation) must stay below half
+# the shortest box vector and the smallest diagonal element.  At most 0.5 nm.
+sub minffCheckCutoff
+{
+  my ($gro) = @_;
+  my $last = "";
+  if (open(my $g, "<", $gro)) {
+    while (my $l = <$g>) { $last = $l if ($l =~ /\S/); }
+    close($g);
+  }
+  my @b = split(' ', $last);
+  return 0.5 if (scalar(@b) != 3 && scalar(@b) != 9);
+  push(@b, (0) x 6) if (scalar(@b) == 3);
+  my @v = ([$b[0], $b[3], $b[4]], [$b[5], $b[1], $b[6]], [$b[7], $b[8], $b[2]]);
+  my $max = 0.5;
+  for my $i (0 .. 2) {
+    my $len = sqrt($v[$i][0]**2 + $v[$i][1]**2 + $v[$i][2]**2);
+    $max = 0.5 * $len if (0.5 * $len < $max);
+    $max = $v[$i][$i] if ($v[$i][$i] < $max);
+  }
+  my $rc = int($max / 1.05 * 0.98 * 1000) / 1000;
+  return $rc > 0 ? $rc : 0.5;
+}
+
+# A MINFF Prepare has no pdb2gmx step: its topology and structure were built
+# by the editor and are staged as topol.gmxmin and conf.gmxmin.  What is
+# worth stopping for is a topology grompp rejects, so grompp is run on them.
+sub checkMinff
+{
+  if (! -s "topol.gmxmin" || ! -s "conf.gmxmin") {
+    print STDERR "This Prepare has no mineral topology yet.\n";
+    print STDERR "Open it in the GROMACS Prepare editor, choose the unit cell and press Build topology.\n";
+    exit 1;
+  }
+  if ($gmx eq "") {
+    print "gmx is not on this machine, so grompp is not tried here; it runs on the job's machine.\n";
+    exit 0;
+  }
+  my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
+  my $cwd = Cwd::getcwd();
+  opendir(my $dh, ".") || die "gromacs.launchpp: cannot read the staging directory\n";
+  foreach my $f (readdir($dh)) {
+    next if ($f eq "." || $f eq ".." || ! -f $f);
+    (my $rel = $f) =~ s#__SLASH__#/#g; $rel =~ s#\.gmxff$##;
+    next if ($rel =~ m#^/# || $rel =~ m#(^|/)\.\.(/|$)#);
+    if ($rel =~ m#/#) {
+      (my $dir = $rel) =~ s#/[^/]*$##;
+      system("mkdir", "-p", "$tmp/$dir");
+    }
+    symlink("$cwd/$f", "$tmp/$rel");
+  }
+  closedir($dh);
+  # gmx goes by the extension
+  symlink("$cwd/topol.gmxmin", "$tmp/topol.top");
+  symlink("$cwd/conf.gmxmin", "$tmp/conf.gro");
+  open(my $mf, ">", "$tmp/check.mdp") || die "gromacs.launchpp: cannot write in $tmp\n";
+  print $mf "integrator = steep\nnsteps = 0\ncutoff-scheme = Verlet\ncoulombtype = cutoff\n";
+  # Only the topology is checked here: a cut-off the bare mineral cell can
+  # hold, since the water layer the job adds is not in it yet.
+  my $rc = minffCheckCutoff("conf.gmxmin");
+  print $mf "rcoulomb = $rc\nrvdw = $rc\npbc = xyz\nperiodic-molecules = yes\n";
+  close($mf);
+  my @cmd = ($gmx, "grompp", "-f", "check.mdp", "-c", "conf.gro", "-p", "topol.top",
+             "-o", "check.tpr", "-po", "mdout.mdp");
+  my $out = `cd $tmp && @cmd 2>&1 </dev/null`;
+  my $status = $? >> 8;
+  if ($status != 0) {
+    my @lines = split(/\n/, $out);
+    my $first = 0;
+    for (my $i = 0; $i < scalar(@lines); $i++) {
+      if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
+    }
+    warnAndExit("grompp", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
+  }
+  print "grompp accepted the mineral topology.\n";
+  exit 0;
+}

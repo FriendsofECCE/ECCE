@@ -1,344 +1,81 @@
 group: Oh
-formula: CrC6O6
-construction: a metal and its donor atoms
+formula: Cr(CO)6
+construction: Fragment orbitals (extended Hückel)
 headline: 
-note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Each ligand contributes one sigma donor orbital, as a ligand field diagram does; the ligands' own internal orbitals are not drawn.  Symmetry labels computed from the orbitals in Oh (cross-checked against the code's own D2H labels, which agreed on all 199 orbitals both sides could label, and every computed label subduces to match).
+source: MO levels: RHF, def2-SVP · 
+note: Model: order and approximate spacing from extended Hückel (qualitative) · calculation in eV · Δo in your calculation: 17.4 eV · not drawn: (CO)6 internal: 22 levels, 44 e; 6 levels, empty; tick Show all levels · electrons: Cr 6 (neutral: 4 unpaired e), drawn 6; (CO)6 60, drawn 22, internal 31 levels 38 e; model and calculation: 22 drawn + 44 folded (28 levels) = 66 · labels in O<sub>h</sub>\n4 high empty levels drawn at the top (not to scale); 6 very high empty levels not drawn; 3 levels match the calculation only loosely (overlap < 0.80)
+about: The extended Hückel diagram explains the calculation's orbitals: nothing more, nothing less.\n\n**The model.** Every column is extended Hückel (Alvarez parameters). The middle column is the molecule's own extended Hückel run, the side columns are the two fragments' (Cr and (CO)6). The basis is the same in all three, so the lines are an exact projection of each model MO on the fragment orbitals: a line joins a model MO to a fragment level that makes up at least 10 % of it.\n\n**Bonding and antibonding** are read from the sign of each model MO's overlap population between the two fragments, then paired per symmetry label and degeneracy, so each antibonding level has its bonding partner; a level without a partner is non-bonding. Colours mark the pairs.\n\n**Scale.** The model columns show the order of the levels and their approximate spacing from extended Hückel, not a scale: close levels are drawn further apart so they can be read, and no model energy is printed (it is in the hover text). Extended Hückel antibonding energies are qualitative and typically far too high for short bonds to diffuse atoms such as B, Be and Al.\n\n**The calculation** is the column on the right, on its own energy axis in eV (not on the model's scale). For each model level it shows the calculated orbital (or set of near-degenerate orbitals) with the largest overlap with it, at its calculated energy, in the colour of the model level it matches. A level marked ≈ matches only loosely (overlap below 0.80; the value is in the hover text). Labels are those of the matched calculated orbital. Clicking a level shows that orbital in 3-D.\n\nThe model explains your occupied orbitals in the right order. The order of some empty levels above the LUMO differs between the model and your calculation. Virtual orbitals above the LUMO depend strongly on the basis set.\n\n**Total electrons: 66** (Cr 6, (CO)6 60).\n\nEach model level carries a short grey tag naming the fragment orbitals it is mostly made of (shares of at least 20 %), such as Cr d or CO π*. Ligand-field view hides empty ligand-centred levels such as CO π*; transitions into them are charge transfer, not d–d.\n\nThe levels counted in the note under the diagram are model levels that sit almost entirely on the (CO)6 and take no part in the interaction; they are counted, not drawn, in the calculation's column as well. The ns orbitals of a ligand atom that also has np (F 2s, Cl 3s) are treated as core-like here: the textbook sigma bonds are made of np.\n\n**Caveats.** 4 high empty levels drawn at the top (not to scale); 6 very high empty levels not drawn; 3 levels match the calculation only loosely (overlap < 0.80). Extended Hückel puts empty antibonding orbitals tens of eV up, so an empty level more than 30 eV above the HOMO is drawn at the top of the diagram, not to scale, or not at all when it sits almost entirely on one fragment. A loose match means no calculated orbital resembles the model level closely; read its calculated energy with care.\n\n**Orbital labels.** Symmetry labels computed from the orbitals in Oh (cross-checked against the code's own D2H labels, which agreed on all 199 orbitals both sides could label, and every computed label subduces to match).
+verdict: differs The model explains your occupied orbitals in the right order. The empty levels differ: your LUMO is 9a1g, the model's is 2t2u.
 column left
-  title: Cr
+  title: Cr (extended Hückel)
   fromHalves: 0
   hiddenCount: 0
   hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
-  shellKeys: Cr:0 Cr:1 Cr:2
-  levels: 4
-  level 0 energy=-0.080425 tabulated=-7.200000 irrep=EG label=Eg  (3d) character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=-1.0000 degeneracy=2 shell=2 slot=2 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.26 Ha"
-  level 1 energy=-0.080425 tabulated=-7.200000 irrep=T2G label=T2g  (3d) character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=-1.0000 degeneracy=3 shell=2 slot=2 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.26 Ha"
-  level 2 energy=-0.016728 tabulated=-6.600000 irrep=A1G label=A1g  (4s) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.24 Ha"
-  level 3 energy=0.046969 tabulated=-3.500000 irrep=T1U label=T1u  (4p) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.13 Ha"
+  shellKeys:
+  levels: 3
+  level 0 energy=-0.412327 tabulated=0.000000 irrep=- label=3d character=UNKNOWN pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=5 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −11.22 eV, 6 electrons."
+  level 1 energy=-0.318249 tabulated=0.000000 irrep=- label=4s character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −8.66 eV, 0 electrons."
+  level 2 energy=-0.192566 tabulated=0.000000 irrep=- label=4p character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −5.24 eV, 0 electrons."
 column centre
-  title: Molecular orbitals
-  fromHalves: 0
-  hiddenCount: 18
-  hiddenMaxEnergy: -2.246040
-  hiddenSemicoreCount: 3
-  hiddenAboveCount: 46
-  shellKeys:
-  levels: 24
-  level 0 energy=-1.506470 tabulated=0.000000 irrep=A1G label=6A1g nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.0261 shareRight=0.3553 lowdinMax=0.1031 OP=0.3182 mullikenMax=0.1177 norm=1.0000 OPml=0.0348 orbitals=[21] annotation="-1.5065"
-  level 1 energy=-1.505210 tabulated=0.000000 irrep=T1U label=3T1u nb character=NONBONDING pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0095 shareRight=0.3689 lowdinMax=0.1036 OP=0.3351 mullikenMax=0.1161 norm=1.0000 OPml=0.0172 orbitals=[22,23,24] annotation="-1.5052"
-  level 2 energy=-1.504780 tabulated=0.000000 irrep=EG label=2Eg nb character=NONBONDING pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.0050 shareRight=0.3735 lowdinMax=0.1036 OP=0.3366 mullikenMax=0.1164 norm=1.0000 OPml=0.0058 orbitals=[25,26] annotation="-1.5048"
-  level 3 energy=-0.847900 tabulated=0.000000 irrep=A1G label=7A1g character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1055 shareRight=0.4853 lowdinMax=0.1055 OP=0.0697 mullikenMax=0.0918 norm=1.0000 OPml=0.0663 orbitals=[27] annotation="-0.8479"
-  level 4 energy=-0.804000 tabulated=0.000000 irrep=T1U label=4T1u nb character=NONBONDING pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0282 shareRight=0.1957 lowdinMax=0.1293 OP=0.0434 mullikenMax=0.1236 norm=1.0000 OPml=0.0077 orbitals=[28,29,30] annotation="-0.8040"
-  level 5 energy=-0.799500 tabulated=0.000000 irrep=EG label=3Eg nb character=NONBONDING pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.0365 shareRight=0.1571 lowdinMax=0.1344 OP=0.0554 mullikenMax=0.1287 norm=1.0000 OPml=0.0225 orbitals=[31,32] annotation="-0.7995"
-  level 6 energy=-0.729470 tabulated=0.000000 irrep=A1G label=8A1g* character=ANTIBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1041 shareRight=0.3882 lowdinMax=0.1041 OP=-0.0791 mullikenMax=0.0853 norm=1.0000 OPml=-0.0411 orbitals=[33] annotation="-0.7295"
-  level 7 energy=-0.668410 tabulated=0.000000 irrep=T1U label=5T1u nb character=NONBONDING pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0633 shareRight=0.4089 lowdinMax=0.0880 OP=0.2379 mullikenMax=0.0914 norm=1.0000 OPml=0.0894 orbitals=[34,35,36] annotation="-0.6684"
-  level 8 energy=-0.668160 tabulated=0.000000 irrep=T2G label=1T2g nb character=NONBONDING pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0400 shareRight=0.3382 lowdinMax=0.1036 OP=0.2329 mullikenMax=0.1077 norm=1.0000 OPml=0.0318 orbitals=[37,38,39] annotation="-0.6682"
-  level 9 energy=-0.647060 tabulated=0.000000 irrep=T2U label=1T2u nb character=NONBONDING pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0001 shareRight=0.2809 lowdinMax=0.1198 OP=0.2182 mullikenMax=0.1234 norm=1.0000 OPml=0.0001 orbitals=[40,41,42] annotation="-0.6471"
-  level 10 energy=-0.640060 tabulated=0.000000 irrep=T1G label=1T1g nb character=NONBONDING pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0000 shareRight=0.2578 lowdinMax=0.1237 OP=0.2222 mullikenMax=0.1265 norm=1.0000 OPml=0.0000 orbitals=[43,44,45] annotation="-0.6401"
-  level 11 energy=-0.612860 tabulated=0.000000 irrep=EG label=4Eg character=BONDING pairing=1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.3552 shareRight=0.5384 lowdinMax=0.3552 OP=0.2321 mullikenMax=0.2297 norm=1.0000 OPml=0.2508 orbitals=[46,47] annotation="-0.6129"
-  level 12 energy=-0.597260 tabulated=0.000000 irrep=T1U label=6T1u character=BONDING pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.1316 shareRight=0.5311 lowdinMax=0.1316 OP=0.2150 mullikenMax=0.1380 norm=1.0000 OPml=0.1331 orbitals=[48,49,50] annotation="-0.5973"
-  level 13 energy=-0.354060 tabulated=0.000000 irrep=T2G label=2T2g character=BONDING pairing=2 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.7103 shareRight=0.1311 lowdinMax=0.7103 OP=0.0864 mullikenMax=0.7266 norm=1.0000 OPml=0.1371 orbitals=[51,52,53] annotation="-0.3541"
-  level 14 energy=0.070870 tabulated=0.000000 irrep=A1G label=9A1g* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.8756 shareRight=0.0908 lowdinMax=0.8756 OP=-2.3158 mullikenMax=1.1586 norm=1.0000 OPml=-2.0432 orbitals=[54] annotation="0.0709"
-  level 15 energy=0.097850 tabulated=0.000000 irrep=T1U label=7T1u nb character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0249 shareRight=0.7352 lowdinMax=0.1225 OP=-0.7146 mullikenMax=0.1385 norm=1.0000 OPml=-0.2653 orbitals=[55,56,57] annotation="0.0979"
-  level 16 energy=0.135620 tabulated=0.000000 irrep=T2U label=2T2u nb character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0020 shareRight=0.7374 lowdinMax=0.1229 OP=-0.7418 mullikenMax=0.1298 norm=1.0000 OPml=0.0018 orbitals=[58,59,60] annotation="0.1356"
-  level 17 energy=0.146300 tabulated=0.000000 irrep=T2G label=3T2g* character=ANTIBONDING pairing=2 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.3266 shareRight=0.4925 lowdinMax=0.3266 OP=-0.9479 mullikenMax=0.2521 norm=1.0000 OPml=-0.4331 orbitals=[61,62,63] annotation="0.1463"
-  level 18 energy=0.222910 tabulated=0.000000 irrep=T1G label=2T1g nb character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0000 shareRight=0.7500 lowdinMax=0.1250 OP=-0.8469 mullikenMax=0.1308 norm=1.0000 OPml=0.0000 orbitals=[64,65,66] annotation="0.2229"
-  level 19 energy=0.284450 tabulated=0.000000 irrep=EG label=5Eg* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5208 shareRight=0.4124 lowdinMax=0.5208 OP=-4.2509 mullikenMax=0.5213 norm=1.0000 OPml=-0.5015 orbitals=[67,68] annotation="0.2844"
-  level 20 energy=0.333480 tabulated=0.000000 irrep=T1U label=8T1u nb character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0034 shareRight=0.8863 lowdinMax=0.1477 OP=-11.5815 mullikenMax=0.2417 norm=1.0000 OPml=-1.0017 orbitals=[69,70,71] annotation="0.3335"
-  level 21 energy=0.347740 tabulated=0.000000 irrep=A1G label=10A1g* character=ANTIBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.2118 shareRight=0.7069 lowdinMax=0.2118 OP=-62.3826 mullikenMax=0.4514 norm=1.0000 OPml=-57.4023 orbitals=[72] annotation="0.3477"
-  level 22 energy=0.468090 tabulated=0.000000 irrep=EG label=6Eg* character=ANTIBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.2330 shareRight=0.6479 lowdinMax=0.2330 OP=-15.4075 mullikenMax=0.2120 norm=1.0000 OPml=-1.9789 orbitals=[73,74] annotation="0.4681"
-  level 23 energy=0.616760 tabulated=0.000000 irrep=T2G label=4T2g nb character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0339 shareRight=0.9277 lowdinMax=0.1546 OP=-0.4455 mullikenMax=0.1658 norm=1.0000 OPml=-0.4329 orbitals=[75,76,77] annotation="0.6168"
-column right
-  title: 6 ligand donors
+  title: Model MOs
   fromHalves: 0
   hiddenCount: 0
   hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
   shellKeys:
+  levels: 10
+  calconly 0 energy=0.070870 label=9a1g occupancy=0.0000
+  level 0 energy=-0.811311 tabulated=0.000000 irrep=A1G label=7a1g tag=CO σ + Cr s character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.2763 shareRight=0.7237 calcEnergy=-0.847900 calcOverlap=0.9201 calcLabel=7a1g calcOcc=2.0000 calcOccBeta=-1.0000 calcDeg=1 orbitals=[27] annotation="" detail="Model MO (extended Hückel), E = −22.08 eV.  Bonding (overlap population 0.17).\nMade of: (CO)6 a1g 72 %, Cr 4s 28 %\nMatches your MO 28 (E = −23.07 eV, overlap 0.92)."
+  level 1 energy=-0.720259 tabulated=0.000000 irrep=T1U label=4t1u tag=CO σ character=BONDING pairing=3 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.1910 shareRight=0.8090 calcEnergy=-0.804000 calcOverlap=0.8202 calcLabel=4t1u calcOcc=6.0000 calcOccBeta=-1.0000 calcDeg=3 orbitals=[28,29,30] annotation="" detail="Model MO (extended Hückel), E = −19.60 eV.  Bonding (overlap population 0.13).\nMade of: (CO)6 t1u 81 %, Cr 4p 19 %\nMatches your MO 29–31 (E = −21.88 eV, overlap 0.82)."
+  level 2 energy=-0.690148 tabulated=0.000000 irrep=EG label=3eg tag=CO σ character=BONDING pairing=2 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.1544 shareRight=0.8456 calcEnergy=-0.799500 calcOverlap=0.8441 calcLabel=3eg calcOcc=4.0000 calcOccBeta=-1.0000 calcDeg=2 orbitals=[31,32] annotation="" detail="Model MO (extended Hückel), E = −18.78 eV.  Bonding (overlap population 0.14).\nMade of: (CO)6 eg 83 %, Cr 3d 15 %\nMatches your MO 32–33 (E = −21.76 eV, overlap 0.84)."
+  level 3 energy=-0.521201 tabulated=0.000000 irrep=EG label=4eg nb tag=CO σ + Cr d character=NONBONDING pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.2802 shareRight=0.7198 calcEnergy=-0.612860 calcOverlap=0.8267 calcLabel=4eg calcOcc=4.0000 calcOccBeta=-1.0000 calcDeg=2 orbitals=[46,47] annotation="" detail="Model MO (extended Hückel), E = −14.18 eV.  Non-bonding (overlap population 0.13).\nMade of: (CO)6 eg 61 %, Cr 3d 28 %, (CO)6 eg 11 %\nMatches your MO 47–48 (E = −16.68 eV, overlap 0.83)."
+  level 4 energy=-0.452467 tabulated=0.000000 irrep=T2G label=2t2g tag=Cr d + CO π* character=BONDING pairing=1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.5794 shareRight=0.4206 calcEnergy=-0.354060 calcOverlap=0.9735 calcLabel=2t2g calcOcc=6.0000 calcOccBeta=-1.0000 calcDeg=3 orbitals=[51,52,53] annotation="" detail="Model MO (extended Hückel), E = −12.31 eV.  Bonding (overlap population 0.15).\nMade of: Cr 3d 58 %, (CO)6 t2g 40 %\nMatches your MO 52–54 (E = −9.63 eV, overlap 0.97)."
+  level 5 energy=-0.326045 tabulated=0.000000 irrep=T2U label=2t2u nb tag=CO π* character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.0000 shareRight=1.0000 calcEnergy=0.135620 calcOverlap=0.9634 calcLabel=2t2u calcOcc=0.0000 calcOccBeta=-1.0000 calcDeg=3 orbitals=[58,59,60] annotation="" detail="Model MO (extended Hückel), E = −8.87 eV.  Non-bonding (overlap population 0.00).\nMade of: (CO)6 t2u 100 %\nMatches your MO 59–61 (E = 3.69 eV, overlap 0.96)."
+  level 6 energy=-0.283819 tabulated=0.000000 irrep=T2G label=3t2g* tag=CO π* + Cr d character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.3928 shareRight=0.6072 calcEnergy=0.146300 calcOverlap=0.9268 calcLabel=3t2g* calcOcc=0.0000 calcOccBeta=-1.0000 calcDeg=3 orbitals=[61,62,63] annotation="" detail="Model MO (extended Hückel), E = −7.72 eV.  Antibonding (overlap population −0.32).\nMade of: (CO)6 t2g 60 %, Cr 3d 39 %\nMatches your MO 62–64 (E = 3.98 eV, overlap 0.93)."
+  level 7 energy=-0.034368 tabulated=0.000000 irrep=EG label=5eg* tag=Cr d + CO σ character=ANTIBONDING pairing=2 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5593 shareRight=0.4407 calcEnergy=0.284450 calcOverlap=0.7822 calcLabel=5eg* calcOcc=0.0000 calcOccBeta=-1.0000 calcDeg=2 orbitals=[67,68] annotation="" detail="Model MO (extended Hückel), E = −0.94 eV.  Antibonding (overlap population −0.81).\nMade of: Cr 3d 56 %, (CO)6 eg 38 %, (CO)6 eg 6 %\nMatches your MO 68–69 (E = 7.74 eV, overlap 0.78).  A poor match: no calculated orbital resembles this model level."
+  level 8 energy=0.705137 tabulated=0.000000 irrep=T1U label=10t1u* tag=Cr p + CO σ character=ANTIBONDING pairing=3 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.6564 shareRight=0.3436 calcEnergy=0.758190 calcOverlap=0.7927 calcLabel=10t1u* calcOcc=0.0000 calcOccBeta=-1.0000 calcDeg=3 orbitals=[85,86,87] annotation="" detail="Model MO (extended Hückel), E = 43.37 eV.  Antibonding (overlap population −4.50).\nMade of: Cr 4p 66 %, (CO)6 t1u 16 %, (CO)6 t1u 13 %, (CO)6 t1u 4 %\nMatches your MO 86–88 (E = 20.63 eV, overlap 0.79).  A poor match: no calculated orbital resembles this model level."
+  level 9 energy=0.815385 tabulated=0.000000 irrep=A1G label=11a1g* tag=Cr s + CO σ character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.6503 shareRight=0.3497 calcEnergy=0.681580 calcOverlap=0.6993 calcLabel=11a1g* calcOcc=0.0000 calcOccBeta=-1.0000 calcDeg=1 orbitals=[81] annotation="" detail="Model MO (extended Hückel), E = 78.82 eV.  Antibonding (overlap population −9.55).\nMade of: Cr 4s 65 %, (CO)6 a1g 26 %, (CO)6 a1g 6 %\nMatches your MO 82 (E = 18.55 eV, overlap 0.70).  A poor match: no calculated orbital resembles this model level."
+column right
+  title: (CO)6 combinations
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  band 0 low=-0.921559 high=-0.521971 levels=22 label=(CO)6 internal: 22 levels, 44 e
+  band 1 low=-0.317668 high=-0.296069 levels=6 label=(CO)6 internal: 6 levels, empty
   levels: 7
-  level 0 energy=-0.546957 tabulated=-13.000000 irrep=A1G label=A1g  (sigma) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.48 Ha"
-  level 1 energy=-0.546957 tabulated=-13.000000 irrep=EG label=Eg  (sigma) character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=0 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.48 Ha"
-  level 2 energy=-0.546957 tabulated=-13.000000 irrep=T1U label=T1u  (sigma) character=UNKNOWN pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=0 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.48 Ha"
-  level 3 energy=-0.263253 tabulated=-11.000000 irrep=T1G label=T1g  (pi) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.40 Ha"
-  level 4 energy=-0.263253 tabulated=-11.000000 irrep=T2G label=T2g  (pi) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.40 Ha"
-  level 5 energy=-0.263253 tabulated=-11.000000 irrep=T1U label=T1u  (pi) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.40 Ha"
-  level 6 energy=-0.263253 tabulated=-11.000000 irrep=T2U label=T2u  (pi) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.40 Ha"
-links: 39
-  link 0 left=-1 centre=0 right=0
-  link 1 left=-1 centre=1 right=2
-  link 2 left=-1 centre=1 right=5
-  link 3 left=-1 centre=2 right=1
-  link 4 left=2 centre=3 right=-1
-  link 5 left=-1 centre=3 right=0
-  link 6 left=-1 centre=4 right=2
-  link 7 left=-1 centre=4 right=5
-  link 8 left=-1 centre=5 right=1
-  link 9 left=2 centre=6 right=-1
-  link 10 left=-1 centre=6 right=0
-  link 11 left=-1 centre=7 right=2
-  link 12 left=-1 centre=7 right=5
-  link 13 left=-1 centre=8 right=4
-  link 14 left=-1 centre=9 right=6
-  link 15 left=-1 centre=10 right=3
-  link 16 left=0 centre=11 right=-1
-  link 17 left=-1 centre=11 right=1
-  link 18 left=3 centre=12 right=-1
-  link 19 left=-1 centre=12 right=2
-  link 20 left=-1 centre=12 right=5
-  link 21 left=1 centre=13 right=-1
-  link 22 left=-1 centre=13 right=4
-  link 23 left=2 centre=14 right=-1
-  link 24 left=-1 centre=15 right=5
-  link 25 left=-1 centre=15 right=2
-  link 26 left=-1 centre=16 right=6
-  link 27 left=1 centre=17 right=-1
-  link 28 left=-1 centre=17 right=4
-  link 29 left=-1 centre=18 right=3
-  link 30 left=0 centre=19 right=-1
-  link 31 left=-1 centre=19 right=1
-  link 32 left=-1 centre=20 right=5
-  link 33 left=-1 centre=20 right=2
-  link 34 left=2 centre=21 right=-1
-  link 35 left=-1 centre=21 right=0
-  link 36 left=0 centre=22 right=-1
-  link 37 left=-1 centre=22 right=1
-  link 38 left=-1 centre=23 right=4
-model:
-  ok: 1
-  note: 6 ligand fragments, largest same-type energy spread 1.50113e-06 Ha.
-  method: canonical closed-shell HF/DFT orbitals
-  energyScaleNote: Every energy and gap here is a canonical-orbital ENERGY GAP (Koopmans-like at best), never a computed excitation energy.
-  ligandAsymmetry: 1.50113e-06
-  couplingThreshold: 0.0482662
-  thresholdWhy: Largest ratio gap in the sorted couplings is 2.48811x, between 0.076134 and 0.0305991 Ha; threshold set to their geometric mean.
-  deltaO: 0
-  verdict: NOT_REPRESENTATIVE
-  verdictReason: Worst per-level capture: 0.322135 (ligand:sigma5*)
-  verdictReason: One or more order claims are unresolved (see disagreements).
-  verdictReason: A qualitative claim changed under the 0.5x/2x threshold scan.
-  disagreement: Order claim ligand:sigma2 < ligand:sigma2 (gap 0.400203 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (2.85334 Ha).
-  disagreement: Order claim ligand:sigma2 < ligand:sigma1 (gap 0.99965 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (2.85334 Ha).
-  disagreement: Order claim ligand:sigma1 < ligand:sigma1 (gap 0.000657373 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.000519491 Ha).
-  disagreement: Order claim ligand:sigma3 < ligand:sigma3 (gap 0.00468163 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0327182 Ha).
-  disagreement: Order claim ligand:sigma3 < ligand:sigma3 (gap 0.0112537 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.00650012 Ha).
-  disagreement: Order claim ligand:pi1 < ligand:pi1 (gap 0.0272311 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.021111 Ha).
-  disagreement: Order claim ligand:pi1 < ligand:sigma4 (gap 0.00743743 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0746175 Ha).
-  disagreement: Order claim ligand:sigma4 < ligand:pi1 (gap 0.00782648 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0746175 Ha).
-  disagreement: Order claim ligand:pi1 < ligand:pi1 (gap 0.0209472 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0218464 Ha).
-  disagreement: Order claim ligand:pi1 < ligand:sigma4 (gap 0.0123822 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0218464 Ha).
-  disagreement: Order claim ligand:pi2 < ligand:pi2 (gap 0.168602 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.221603 Ha).
-  disagreement: Order claim ligand:pi2 < a1g (gap 0.00607782 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.028507 Ha).
-  disagreement: Order claim a1g < ligand:pi2 (gap 0.0391585 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.028507 Ha).
-  disagreement: Order claim ligand:sigma5 < eg (gap 0.000211938 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0295444 Ha).
-  disagreement: Order claim ligand:sigma5* < ligand:pi3 (gap 0.0681311 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.0422876 Ha).
-  disagreement: Order claim ligand:pi3 < ligand:sigma5* (gap 0.012196 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.242965 Ha).
-  disagreement: Order claim ligand:sigma5* < ligand:pi3 (gap 0.0910631 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.242965 Ha).
-  disagreement: Order claim ligand:pi3 < t2g* (gap 0.105224 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.111769 Ha).
-  disagreement: Order claim t2g* < ligand:sigma5* (gap 0.0879977 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.111769 Ha).
-  disagreement: Order claim ligand:sigma5* < ligand:pi3 (gap 0.012335 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.076704 Ha).
-  disagreement: Order claim ligand:pi3 < ligand:sigma2* (gap 0.333941 Ha) is UNRESOLVED: it is less than twice the larger energy deviation from a canonical match (0.496725 Ha).
-  column metal: 4
-    level 0 label=t1u energy=-0.619585 degeneracy=3 character=UNKNOWN pairing=-1 metalWeight=1 ligandWeight=0 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 1 label=a1g energy=-0.118512 degeneracy=1 character=UNKNOWN pairing=-1 metalWeight=1 ligandWeight=0 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 2 label=eg energy=0.455442 degeneracy=2 character=UNKNOWN pairing=-1 metalWeight=1 ligandWeight=0 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 3 label=t2g energy=0.597617 degeneracy=3 character=UNKNOWN pairing=-1 metalWeight=1 ligandWeight=0 capture=-1 energyDeviation=-1 canonicalMOs=[]
-  column interaction: 31
-    level 0 label=ligand:sigma2 energy=-2.9058 degeneracy=3 character=BONDING pairing=-1 metalWeight=0.4777 ligandWeight=0.5223 capture=0.8271 energyDeviation=0.6598 canonicalMOs=[19:0.7957]
-    level 1 label=ligand:sigma2 energy=-2.5056 degeneracy=1 character=BONDING pairing=-1 metalWeight=0.149 ligandWeight=0.851 capture=0.7172 energyDeviation=2.853 canonicalMOs=[72:0.1914]
-    level 2 label=ligand:sigma1 energy=-1.50595 degeneracy=1 character=NONBONDING pairing=-1 metalWeight=0.0224 ligandWeight=0.9776 capture=0.9999 energyDeviation=0.0005195 canonicalMOs=[21:0.9993]
-    level 3 label=ligand:sigma1 energy=-1.50529 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.02239 ligandWeight=0.9776 capture=1 energyDeviation=8.314e-05 canonicalMOs=[22:0.9999]
-    level 4 label=ligand:sigma1 energy=-1.50472 degeneracy=2 character=NONBONDING pairing=-1 metalWeight=0.001102 ligandWeight=0.9989 capture=1 energyDeviation=6.219e-05 canonicalMOs=[26:1]
-    level 5 label=ligand:sigma3 energy=-0.815182 degeneracy=1 character=BONDING pairing=-1 metalWeight=0.05647 ligandWeight=0.9435 capture=0.9778 energyDeviation=0.03272 canonicalMOs=[27:0.8362]
-    level 6 label=ligand:sigma3 energy=-0.8105 degeneracy=3 character=BONDING pairing=-1 metalWeight=0.09057 ligandWeight=0.9094 capture=0.999 energyDeviation=0.0065 canonicalMOs=[30:0.985]
-    level 7 label=ligand:sigma3 energy=-0.799246 degeneracy=2 character=NONBONDING pairing=-1 metalWeight=5.062e-06 ligandWeight=1 capture=0.9995 energyDeviation=0.0002536 canonicalMOs=[32:0.9995]
-    level 8 label=ligand:pi1 energy=-0.689521 degeneracy=3 character=BONDING pairing=-1 metalWeight=0.1696 ligandWeight=0.8304 capture=0.9973 energyDeviation=0.02111 canonicalMOs=[35:0.8915]
-    level 9 label=ligand:pi1 energy=-0.66229 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.008222 ligandWeight=0.9918 capture=0.9882 energyDeviation=0.00587 canonicalMOs=[39:0.9845]
-    level 10 label=ligand:sigma4 energy=-0.654853 degeneracy=1 character=BONDING pairing=-1 metalWeight=0.06802 ligandWeight=0.932 capture=0.9752 energyDeviation=0.07462 canonicalMOs=[33:0.7885]
-    level 11 label=ligand:pi1 energy=-0.647026 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=4.836e-16 ligandWeight=1 capture=1 energyDeviation=3.398e-05 canonicalMOs=[42:1]
-    level 12 label=ligand:pi1 energy=-0.640054 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=9.979e-20 ligandWeight=1 capture=1 energyDeviation=6.438e-06 canonicalMOs=[44:1]
-    level 13 label=ligand:pi1 energy=-0.619106 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.08238 ligandWeight=0.9176 capture=0.9951 energyDeviation=0.02185 canonicalMOs=[48:0.8955]
-    level 14 label=ligand:sigma4 energy=-0.606724 degeneracy=2 character=NONBONDING pairing=-1 metalWeight=0.01815 ligandWeight=0.9818 capture=0.9896 energyDeviation=0.006136 canonicalMOs=[47:0.9891]
-    level 15 label=ligand:pi2 energy=-0.0753027 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.01504 ligandWeight=0.985 capture=0.6676 energyDeviation=0.2216 canonicalMOs=[61:0.5153]
-    level 16 label=ligand:pi2 energy=0.0932992 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.007716 ligandWeight=0.9923 capture=0.9963 energyDeviation=0.004551 canonicalMOs=[56:0.9866]
-    level 17 label=a1g energy=0.099377 degeneracy=1 character=NONBONDING pairing=-1 metalWeight=0.569 ligandWeight=0.431 capture=0.9403 energyDeviation=0.02851 canonicalMOs=[54:0.8599]
-    level 18 label=ligand:pi2 energy=0.138535 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=1.021e-15 ligandWeight=1 capture=0.9983 energyDeviation=0.002915 canonicalMOs=[60:0.9982]
-    level 19 label=ligand:pi2 energy=0.225441 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=3.089e-19 ligandWeight=1 capture=0.998 energyDeviation=0.002531 canonicalMOs=[65:0.9978]
-    level 20 label=ligand:sigma5 energy=0.313782 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.009803 ligandWeight=0.9902 capture=0.9826 energyDeviation=0.0197 canonicalMOs=[69:0.9614]
-    level 21 label=eg energy=0.313994 degeneracy=2 character=BONDING pairing=-1 metalWeight=0.5421 ligandWeight=0.4579 capture=0.8997 energyDeviation=0.02954 canonicalMOs=[68:0.89]
-    level 22 label=ligand:sigma5* energy=0.510378 degeneracy=2 character=ANTIBONDING pairing=-1 metalWeight=0.3148 ligandWeight=0.6852 capture=0.87 energyDeviation=0.04229 canonicalMOs=[74:0.8188]
-    level 23 label=ligand:pi3 energy=0.578509 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.2313 ligandWeight=0.7687 capture=0.9518 energyDeviation=0.03825 canonicalMOs=[75:0.8655]
-    level 24 label=ligand:sigma5* energy=0.590705 degeneracy=1 character=ANTIBONDING pairing=-1 metalWeight=0.1351 ligandWeight=0.8649 capture=0.7172 energyDeviation=0.243 canonicalMOs=[72:0.3563]
-    level 25 label=ligand:pi3 energy=0.681768 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=0.02267 ligandWeight=0.9773 capture=0.7165 energyDeviation=0.02195 canonicalMOs=[79:0.4715]
-    level 26 label=ligand:pi3 energy=0.756537 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=1.265e-14 ligandWeight=1 capture=0.9738 energyDeviation=0.01976 canonicalMOs=[83:0.9736]
-    level 27 label=t2g* energy=0.861761 degeneracy=3 character=ANTIBONDING pairing=-1 metalWeight=0.7454 ligandWeight=0.2546 capture=0.7982 energyDeviation=0.1118 canonicalMOs=[100:0.7637]
-    level 28 label=ligand:sigma5* energy=0.949759 degeneracy=3 character=ANTIBONDING pairing=-1 metalWeight=0.1171 ligandWeight=0.8829 capture=0.3221 energyDeviation=0.06647 canonicalMOs=[103:0.3102]
-    level 29 label=ligand:pi3 energy=0.962094 degeneracy=3 character=NONBONDING pairing=-1 metalWeight=1.272e-15 ligandWeight=1 capture=0.8754 energyDeviation=0.0767 canonicalMOs=[90:0.8747]
-    level 30 label=ligand:sigma2* energy=1.29604 degeneracy=2 character=ANTIBONDING pairing=-1 metalWeight=0.1239 ligandWeight=0.8761 capture=0.5102 energyDeviation=0.4967 canonicalMOs=[88:0.3379]
-  column ligandInteracting: 8
-    level 0 label=sigma1 energy=-1.50556 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 1 label=sigma2 energy=-1.11703 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 2 label=sigma3 energy=-0.786535 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 3 label=pi1 energy=-0.65153 degeneracy=12 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 4 label=sigma4 energy=-0.360275 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 5 label=pi2 energy=0.00382632 degeneracy=12 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 6 label=sigma5 energy=0.365949 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-    level 7 label=pi3 energy=0.580449 degeneracy=12 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-  column ligandInternal: 1
-    level 0 label=sigma6 energy=0.952309 degeneracy=6 character=UNKNOWN pairing=-1 metalWeight=0 ligandWeight=1 capture=-1 energyDeviation=-1 canonicalMOs=[]
-  links: 77
-    link 0 metal=-1 model=0 ligand=1 weight=0.4652
-    link 1 metal=0 model=0 ligand=-1 weight=0.4777
-    link 2 metal=-1 model=1 ligand=1 weight=0.5676
-    link 3 metal=-1 model=1 ligand=4 weight=0.2493
-    link 4 metal=1 model=1 ligand=-1 weight=0.149
-    link 5 metal=-1 model=2 ligand=0 weight=0.977
-    link 6 metal=-1 model=3 ligand=0 weight=0.9714
-    link 7 metal=-1 model=4 ligand=0 weight=0.9932
-    link 8 metal=-1 model=5 ligand=1 weight=0.1391
-    link 9 metal=-1 model=5 ligand=2 weight=0.7579
-    link 10 metal=1 model=5 ligand=-1 weight=0.05647
-    link 11 metal=-1 model=6 ligand=1 weight=0.07897
-    link 12 metal=-1 model=6 ligand=2 weight=0.783
-    link 13 metal=0 model=6 ligand=-1 weight=0.09057
-    link 14 metal=-1 model=7 ligand=2 weight=0.9385
-    link 15 metal=-1 model=8 ligand=3 weight=0.4002
-    link 16 metal=-1 model=8 ligand=1 weight=0.1006
-    link 17 metal=-1 model=8 ligand=2 weight=0.1581
-    link 18 metal=-1 model=8 ligand=4 weight=0.1444
-    link 19 metal=0 model=8 ligand=-1 weight=0.1696
-    link 20 metal=-1 model=9 ligand=3 weight=0.9866
-    link 21 metal=-1 model=10 ligand=1 weight=0.2872
-    link 22 metal=-1 model=10 ligand=2 weight=0.2095
-    link 23 metal=-1 model=10 ligand=4 weight=0.416
-    link 24 metal=1 model=10 ligand=-1 weight=0.06802
-    link 25 metal=-1 model=11 ligand=3 weight=0.9973
-    link 26 metal=-1 model=12 ligand=3 weight=0.9817
-    link 27 metal=-1 model=13 ligand=3 weight=0.5735
-    link 28 metal=-1 model=13 ligand=1 weight=0.07427
-    link 29 metal=-1 model=13 ligand=4 weight=0.1756
-    link 30 metal=0 model=13 ligand=-1 weight=0.08238
-    link 31 metal=-1 model=14 ligand=1 weight=0.1899
-    link 32 metal=-1 model=14 ligand=4 weight=0.7213
-    link 33 metal=-1 model=15 ligand=5 weight=0.9797
-    link 34 metal=-1 model=16 ligand=5 weight=0.7646
-    link 35 metal=-1 model=16 ligand=4 weight=0.1402
-    link 36 metal=-1 model=16 ligand=6 weight=0.05009
-    link 37 metal=-1 model=17 ligand=4 weight=0.1084
-    link 38 metal=-1 model=17 ligand=6 weight=0.2948
-    link 39 metal=1 model=17 ligand=-1 weight=0.569
-    link 40 metal=-1 model=18 ligand=5 weight=0.9283
-    link 41 metal=-1 model=18 ligand=7 weight=0.07048
-    link 42 metal=-1 model=19 ligand=5 weight=0.7609
-    link 43 metal=-1 model=19 ligand=7 weight=0.2352
-    link 44 metal=-1 model=20 ligand=7 weight=0.06891
-    link 45 metal=-1 model=20 ligand=1 weight=0.09264
-    link 46 metal=-1 model=20 ligand=4 weight=0.1953
-    link 47 metal=-1 model=20 ligand=6 weight=0.6252
-    link 48 metal=-1 model=21 ligand=1 weight=0.1115
-    link 49 metal=-1 model=21 ligand=4 weight=0.1419
-    link 50 metal=-1 model=21 ligand=6 weight=0.2014
-    link 51 metal=2 model=21 ligand=-1 weight=0.5421
-    link 52 metal=-1 model=22 ligand=6 weight=0.6741
-    link 53 metal=2 model=22 ligand=-1 weight=0.3148
-    link 54 metal=-1 model=23 ligand=7 weight=0.7659
-    link 55 metal=3 model=23 ligand=-1 weight=0.2313
-    link 56 metal=-1 model=24 ligand=4 weight=0.1901
-    link 57 metal=-1 model=24 ligand=6 weight=0.6577
-    link 58 metal=1 model=24 ligand=-1 weight=0.1351
-    link 59 metal=-1 model=25 ligand=7 weight=0.7525
-    link 60 metal=-1 model=25 ligand=4 weight=0.197
-    link 61 metal=-1 model=26 ligand=5 weight=0.06977
-    link 62 metal=-1 model=26 ligand=7 weight=0.9287
-    link 63 metal=-1 model=27 ligand=7 weight=0.2325
-    link 64 metal=3 model=27 ligand=-1 weight=0.7454
-    link 65 metal=-1 model=28 ligand=5 weight=0.1559
-    link 66 metal=-1 model=28 ligand=7 weight=0.1213
-    link 67 metal=-1 model=28 ligand=1 weight=0.1678
-    link 68 metal=-1 model=28 ligand=4 weight=0.122
-    link 69 metal=-1 model=28 ligand=6 weight=0.2966
-    link 70 metal=0 model=28 ligand=-1 weight=0.1171
-    link 71 metal=-1 model=29 ligand=5 weight=0.2264
-    link 72 metal=-1 model=29 ligand=7 weight=0.7593
-    link 73 metal=-1 model=30 ligand=1 weight=0.6525
-    link 74 metal=-1 model=30 ligand=4 weight=0.1099
-    link 75 metal=-1 model=30 ligand=6 weight=0.09962
-    link 76 metal=2 model=30 ligand=-1 weight=0.1239
-  couplings: 72
-    coupling 0 label=ligand#0 ligand:sigma1 energy=-1.50556 maxCoupling=0.159605 interacting=1
-    coupling 1 label=ligand#0 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
-    coupling 2 label=ligand#0 ligand:sigma3 energy=-0.786535 maxCoupling=0.0761342 interacting=1
-    coupling 3 label=ligand#0 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 4 label=ligand#0 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 5 label=ligand#0 ligand:sigma4 energy=-0.360276 maxCoupling=0.191964 interacting=1
-    coupling 6 label=ligand#0 ligand:pi2 energy=0.00382632 maxCoupling=0.161192 interacting=1
-    coupling 7 label=ligand#0 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
-    coupling 8 label=ligand#0 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
-    coupling 9 label=ligand#0 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 10 label=ligand#0 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 11 label=ligand#0 ligand:sigma6 energy=0.952309 maxCoupling=0.030599 interacting=0
-    coupling 12 label=ligand#1 ligand:sigma1 energy=-1.50556 maxCoupling=0.159605 interacting=1
-    coupling 13 label=ligand#1 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
-    coupling 14 label=ligand#1 ligand:sigma3 energy=-0.786535 maxCoupling=0.0761342 interacting=1
-    coupling 15 label=ligand#1 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 16 label=ligand#1 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 17 label=ligand#1 ligand:sigma4 energy=-0.360276 maxCoupling=0.191964 interacting=1
-    coupling 18 label=ligand#1 ligand:pi2 energy=0.00382632 maxCoupling=0.161192 interacting=1
-    coupling 19 label=ligand#1 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
-    coupling 20 label=ligand#1 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
-    coupling 21 label=ligand#1 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 22 label=ligand#1 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 23 label=ligand#1 ligand:sigma6 energy=0.952309 maxCoupling=0.030599 interacting=0
-    coupling 24 label=ligand#2 ligand:sigma1 energy=-1.50556 maxCoupling=0.159604 interacting=1
-    coupling 25 label=ligand#2 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
-    coupling 26 label=ligand#2 ligand:sigma3 energy=-0.786535 maxCoupling=0.076134 interacting=1
-    coupling 27 label=ligand#2 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 28 label=ligand#2 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 29 label=ligand#2 ligand:sigma4 energy=-0.360275 maxCoupling=0.191964 interacting=1
-    coupling 30 label=ligand#2 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
-    coupling 31 label=ligand#2 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
-    coupling 32 label=ligand#2 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
-    coupling 33 label=ligand#2 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 34 label=ligand#2 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 35 label=ligand#2 ligand:sigma6 energy=0.952309 maxCoupling=0.0305989 interacting=0
-    coupling 36 label=ligand#3 ligand:sigma1 energy=-1.50556 maxCoupling=0.159604 interacting=1
-    coupling 37 label=ligand#3 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
-    coupling 38 label=ligand#3 ligand:sigma3 energy=-0.786535 maxCoupling=0.076134 interacting=1
-    coupling 39 label=ligand#3 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 40 label=ligand#3 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 41 label=ligand#3 ligand:sigma4 energy=-0.360275 maxCoupling=0.191964 interacting=1
-    coupling 42 label=ligand#3 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
-    coupling 43 label=ligand#3 ligand:pi2 energy=0.00382633 maxCoupling=0.161192 interacting=1
-    coupling 44 label=ligand#3 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
-    coupling 45 label=ligand#3 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 46 label=ligand#3 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 47 label=ligand#3 ligand:sigma6 energy=0.952309 maxCoupling=0.0305989 interacting=0
-    coupling 48 label=ligand#4 ligand:sigma1 energy=-1.50556 maxCoupling=0.159605 interacting=1
-    coupling 49 label=ligand#4 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
-    coupling 50 label=ligand#4 ligand:sigma3 energy=-0.786535 maxCoupling=0.0761344 interacting=1
-    coupling 51 label=ligand#4 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 52 label=ligand#4 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 53 label=ligand#4 ligand:sigma4 energy=-0.360275 maxCoupling=0.191964 interacting=1
-    coupling 54 label=ligand#4 ligand:pi2 energy=0.0038263 maxCoupling=0.161192 interacting=1
-    coupling 55 label=ligand#4 ligand:pi2 energy=0.00382632 maxCoupling=0.161192 interacting=1
-    coupling 56 label=ligand#4 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
-    coupling 57 label=ligand#4 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 58 label=ligand#4 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 59 label=ligand#4 ligand:sigma6 energy=0.95231 maxCoupling=0.0305991 interacting=0
-    coupling 60 label=ligand#5 ligand:sigma1 energy=-1.50556 maxCoupling=0.159605 interacting=1
-    coupling 61 label=ligand#5 ligand:sigma2 energy=-1.11703 maxCoupling=0.134274 interacting=1
-    coupling 62 label=ligand#5 ligand:sigma3 energy=-0.786535 maxCoupling=0.0761344 interacting=1
-    coupling 63 label=ligand#5 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 64 label=ligand#5 ligand:pi1 energy=-0.65153 maxCoupling=0.135514 interacting=1
-    coupling 65 label=ligand#5 ligand:sigma4 energy=-0.360275 maxCoupling=0.191964 interacting=1
-    coupling 66 label=ligand#5 ligand:pi2 energy=0.0038263 maxCoupling=0.161192 interacting=1
-    coupling 67 label=ligand#5 ligand:pi2 energy=0.00382632 maxCoupling=0.161192 interacting=1
-    coupling 68 label=ligand#5 ligand:sigma5 energy=0.365949 maxCoupling=0.194464 interacting=1
-    coupling 69 label=ligand#5 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 70 label=ligand#5 ligand:pi3 energy=0.580449 maxCoupling=0.104877 interacting=1
-    coupling 71 label=ligand#5 ligand:sigma6 energy=0.95231 maxCoupling=0.0305991 interacting=0
-  robustness: 2
-    scan scale=0.5 piAcceptorPattern=0 deltaOSign=0 eg2AboveT2g=0
-    scan scale=2 piAcceptorPattern=0 deltaOSign=0 eg2AboveT2g=0
-      characterChange: ligand:sigma4: BONDING -> NONBONDING
+  level 0 energy=-0.802134 tabulated=0.000000 irrep=A1G label=a1g character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −21.83 eV, 2 electrons." phases=[0.4222,0.4222,0.4222,0.4222,0.4222,0.4222] phaseAtoms=[1,2,3,4,5,6]
+  level 1 energy=-0.712463 tabulated=0.000000 irrep=T1U label=t1u (FO8-10) character=UNKNOWN pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −19.39 eV, 6 electrons." phases=[-0.1570,0.1570,-0.6416,0.6416,0.2528,-0.2528] phaseAtoms=[1,2,3,4,5,6]
+  level 2 energy=-0.668067 tabulated=0.000000 irrep=EG label=eg (FO11-12) character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −18.18 eV, 4 electrons." phases=[-0.1241,-0.1241,-0.3570,-0.3570,0.4811,0.4811] phaseAtoms=[1,2,3,4,5,6]
+  level 3 energy=-0.494307 tabulated=0.000000 irrep=T1U label=t1u character=UNKNOWN pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −13.45 eV, 6 electrons." phases=[-0.5959,0.5959,-0.0313,0.0313,-0.0438,0.0438] phaseAtoms=[1,2,3,4,5,6]
+  level 4 energy=-0.422978 tabulated=0.000000 irrep=EG label=eg character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −11.51 eV, 4 electrons." phases=[0.1249,0.1249,0.5701,0.5701,-0.6950,-0.6950] phaseAtoms=[1,2,3,4,5,6]
+  level 5 energy=-0.371080 tabulated=0.000000 irrep=T2G label=t2g character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −10.10 eV, 0 electrons." phases=[0.2717,0.0000,0.3283,-0.2717,0.0000,-0.3283,0.1373,0.3283,0.0000,-0.1373,-0.3283,0.0000,0.0000,0.2717,0.1373,0.0000,-0.2717,-0.1373] phaseAtoms=[1,2,3,4,5,6]
+  level 6 energy=-0.326045 tabulated=0.000000 irrep=T2U label=t2u character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −8.87 eV, 0 electrons." phases=[-0.0726,0.0000,-0.0043,-0.0726,0.0000,-0.0043,0.0726,0.4883,0.0000,0.0726,0.4883,0.0000,0.0000,-0.4883,0.0043,0.0000,-0.4883,0.0043] phaseAtoms=[1,2,3,4,5,6]
+  sketch view=1 normal=2 points=[0.0000,1.0000,0.0000;0.0000,-1.0000,0.0000;0.0000,0.0000,1.0000;0.0000,0.0000,-1.0000;1.0000,0.0000,0.0000;-1.0000,0.0000,0.0000]
+links: 21
+  link 0 left=1 centre=0 right=-1 weight=0.2763
+  link 1 left=-1 centre=0 right=0 weight=0.7205
+  link 2 left=2 centre=1 right=-1 weight=0.1910
+  link 3 left=-1 centre=1 right=1 weight=0.8067
+  link 4 left=0 centre=2 right=-1 weight=0.1544
+  link 5 left=-1 centre=2 right=2 weight=0.8314
+  link 6 left=0 centre=3 right=-1 weight=0.2802
+  link 7 left=-1 centre=3 right=2 weight=0.1087
+  link 8 left=-1 centre=3 right=4 weight=0.6102
+  link 9 left=0 centre=4 right=-1 weight=0.5794
+  link 10 left=-1 centre=4 right=5 weight=0.3993
+  link 11 left=-1 centre=5 right=6 weight=1.0000
+  link 12 left=0 centre=6 right=-1 weight=0.3928
+  link 13 left=-1 centre=6 right=5 weight=0.6000
+  link 14 left=0 centre=7 right=-1 weight=0.5593
+  link 15 left=-1 centre=7 right=4 weight=0.3751
+  link 16 left=2 centre=8 right=-1 weight=0.6564
+  link 17 left=-1 centre=8 right=1 weight=0.1578
+  link 18 left=-1 centre=8 right=3 weight=0.1264
+  link 19 left=1 centre=9 right=-1 weight=0.6503
+  link 20 left=-1 centre=9 right=0 weight=0.2641

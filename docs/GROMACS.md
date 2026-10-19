@@ -95,6 +95,10 @@ K, kJ/mol, Pa and 1/Pa; only the last two are converted (to bar and 1/bar).
 | Dynamics: annealing | `annealing = single`, `annealing-time`, `annealing-temp` |
 | Dynamics: constant pressure, pressure, relaxation time, compressibility | `pcoupl = C-rescale`, `ref-p`, `tau-p`, `compressibility` |
 | Dynamics: continue | `continuation = yes`, `gen-vel = no`; otherwise `gen-vel = yes`, `gen-temp` |
+| Run settings: defines, restrain positions + name | `define` (user flags, then `-D<name>`); `refcoord-scaling = com` when a barostat is on |
+| Run settings: groups, centre-of-mass and thermostat choice | `comm-grps`, `tc-grps` (with `tau-t`/`ref-t` repeated per group); `; ecce-group name = RES` comments that `gromacs.mkndx` turns into `ecce_groups.ndx` at launch, passed to grompp with `-n` |
+| Run settings: barostat, coupling type, interval | `pcoupl`, `pcoupltype`, `nstpcouple`; `ref-p`/`compressibility` expanded per type |
+| Run settings: extra lines | merged last by `ai.gromacs`; a key replaces ours (`-`/`_`, case ignored) |
 | Files: write trajectory, interval | `nstxout-compressed` (`traj.xtc`, left in the run directory) |
 | Files: write energies, interval | `nstlog`, `nstenergy` (default: about a hundred over the run) |
 
@@ -216,16 +220,20 @@ These are `#define`s in the topology, not `define =` in the `.mdp`, so the
 box, and without it `mdrun` stops with "inconsistent shifts" / a domain
 decomposition error.
 
-**min.ff** is not in this repository (the minff repository has no licence
-yet). It is fetched at a pinned commit (`MINFF_COMMIT` in the script) into
-`~/.cache/ecce/minff/<commit>` (`$XDG_CACHE_HOME` is honoured);
-`ECCE_MINFF_DIR` points at an existing checkout instead.
-
-**atomipy** is found through `ECCE_ATOMIPY_PYTHON` (a python that has it),
-else `python3`; without it the script says `pip install atomipy`.
+**atomipy and min.ff are bundled** (`third_party/`, installed to
+`lib/python/atomipy` and `data/minff/min.ff` of the client package; versions
+in `third_party/README.md`), so the MINFF route needs nothing installed or
+downloaded. atomipy needs `python3-numpy`, `python3-tqdm` and (for CIF unit
+cells) `python3-gemmi`, which the Debian client package depends on.
+`ECCE_ATOMIPY_PYTHON` (a python that has atomipy) and `ECCE_MINFF_DIR` (a
+minff checkout) override the bundled copies; with neither the bundle nor an
+override present the script says the installation is incomplete.
+`minff_topology.py fetch` downloads the pinned minff commit (`MINFF_COMMIT`)
+into `~/.cache/ecce/minff/<commit>`; only the tests use it, for minff's
+example systems.
 
 **Tests**: `tests/minff/run_tests.py` (ctest `minff`; exit 77 = skipped
-without atomipy, `gmx` or network for min.ff). It builds kaolinite (GMINFF,
+without `gmx` or network for the example systems). It builds kaolinite (GMINFF,
 k=500), the montmorillonite layer of the authors' hydrated example
 `Systems/conf/preem27.gro` (TMINFF; `UC_conf` has none) and pyrophyllite
 with 4 Al-to-Mg substitutions. Types, charges and total charge are compared
@@ -236,15 +244,70 @@ potential energy must be finite and lower at the end. Charged systems
 (montmorillonite -48, substituted pyrophyllite -4) give grompp's net-charge
 warning, which the test allows (counter-ions are a later step).
 
-* **Linux:** `pip install atomipy` (a venv is fine; point
-  `ECCE_ATOMIPY_PYTHON` at its `python`), `apt install gromacs`, then
-  `python3 tests/minff/run_tests.py` or `ctest -R minff` from a build.
-* **macOS:** `brew install gromacs`, `python3 -m pip install atomipy`
-  (use a venv if the system Python refuses; set `ECCE_ATOMIPY_PYTHON`),
-  then the same command. The test needs only the standard library of the
-  python that runs it.
+* **Linux:** `apt install gromacs python3-numpy python3-tqdm python3-gemmi`,
+  then `python3 tests/minff/run_tests.py` or `ctest -R minff` from a build
+  (the bundled atomipy in `third_party/` is used from a source tree).
+* **macOS, Windows:** the installers must carry numpy, tqdm and gemmi for
+  the python that runs `minff_topology.py`; the test needs only the standard
+  library of the python that runs it.
 
-## Step 2 (not built): Prepare
+## Step 2 (scripts, task and editor built): Prepare
+
+What exists so far is the part that runs, the resource type and the editor:
+
+* `gromacs_md_prepare` ("New GROMACS MD Prepare...", first in a GROMACS
+  study's list, a root task like NWChem's) in both resource descriptors;
+  its tool `GMXPrepare` (`./gmxprepare`, "GROMACS MD Prepare Editor") opens
+  the editor, one page on `MDEdBase` (`src/apps/gmxprepare`,
+  `GromacsPreparePanel`): source (protein), structure (the Builder's or a PDB
+  file stored as `.gmxpdb`), force field and the water models it offers
+  (a static table of the 15 force fields of GROMACS 2025.2, plus "Other
+  (GMXLIB)"), ignore hydrogens, merge chains (both on), box type and
+  distance (dodecahedron, 1.0 nm), salt concentration (0.15 mol/L, 0 =
+  neutralise only) and the ions.  Save writes `gromacs.gmxprep` through
+  `md.gmxprep`. `GROMACS.edml` declares `gromacs.gmxprep` as a second
+  primary input; the source structure is stored as `<name>.gmxpdb`.
+* The recipe's task model is `GromacsPrepareModel` /
+  `GromacsPrepareModelXMLizer` (`TaskJob::getSerializer`); `md.gmxprep`
+  reads that XML or `KEY=value` lines.
+* A finished Prepare stores `<sys>.gmxtop`, `<sys>_<calc>.gro`, `posre.itp`,
+  any `topol_*.itp` and `chemsys.pdb`; the tasks after it need nothing
+  attached (see `docs/claude/codereg/gromacs-prepare-outputs-come-back-*`).
+  They run grompp with `-maxwarn 1` for a GROMOS topology.
+* `scripts/parsers/md.gmxprep` writes the recipe `gromacs.gmxprep`
+  (`KEY=value`: `SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME`)
+  from the task model XML or `KEY=value` lines on stdin and checks every
+  value; `HIS` is `auto` only.
+* `gensub`, for an input ending in `.gmxprep`, runs pdb2gmx (protein source,
+  from a `*.gmxpdb` or `<system>.pdb`), editconf, solvate with the box that
+  matches the water model, and grompp + genion (`CONC=0` neutralises only),
+  announcing `ECCE-PREPARE step k/4` in the output file; a failing step puts
+  gmx's output there and the job fails. It leaves `<system>_<calc>.gro`,
+  `<system>.gmxtop`, `posre.itp` and `chemsys.pdb`.
+* `gromacs.launchpp` runs pdb2gmx alone at launch and stops with its message.
+* A failed gmx tool's `Fatal error:` text is the reason the Organizer shows
+  (`JobFailureReason.H`).
+* `tests/gromacs_md/run_tests.py` runs Trp-cage (PDB 1L2Y) through all of it
+  and on into an Optimize task.
+
+* Results (piece 4): the Organizer's Progress box shows a *Prepare* stage
+  (steps pdb2gmx, box, solvate, ions) and, when complete, a summary (atoms,
+  protein residues, waters, ions added, net charge before and after, box);
+  the same numbers are the `Process` properties `NATOMS NRESIDUES NWATERS
+  NIONSPOS NIONSNEG SYSCHARGE0 SYSCHARGE BOXA..BOXGAMMA` (Run Statistics in the
+  Viewer). `gensub` takes them from gmx's own output; `gromacs.desc` reads them.
+
+**MINFF source.** `SOURCE=minff` (editor: *Mineral (MINFF)*): the editor's
+Build button runs `minff_topology.py` on the client and stores `conf.gmxmin`,
+`topol.gmxmin` and the includes (`min.itp`, `min.ff__SLASH__...`) in the task;
+`gensub` skips pdb2gmx, optionally lengthens the cell's c axis by `DIST` nm
+(0 = keep the cell), solvates and neutralises with `PNAME` of charge `PQ`
+(MINFF's ions.itp names). Details and traps:
+`docs/claude/codereg/gromacs-prepare-minff-source-traps.md`. Tests:
+`tests/minff/prepare_tests.py` (ctest `minff_prepare`) and the MINFF section of
+`tests/launch/gromacs_prepare_test.py`.
+
+Not done: a restrain-protein (POSRES) switch in the Equilibrate editor, histidine states other than pdb2gmx's own choice, ligands (acpype), and everything listed below that is not these scripts and the task.
 
 Everything above takes a system as given. A Prepare task would build one
 and, like NWChem's, be the first task of a study (`RootTask`) and the
@@ -252,8 +315,7 @@ provider of the topology and structure the tasks after it find through the
 same search the Inputs tab uses today (`TOPOLOGY_OUTPUT`, `RESTART_OUTPUT`
 on an earlier task). It needs:
 
-* a resource type `gromacs_md_prepare` and a `PrepareInputGenerator` in
-  `GROMACS.edml`; the Prepare editor (`src/apps/mdprepare` is 8400 lines
+* the Prepare editor (`src/apps/mdprepare` is 8400 lines
   around NWChem's segment model and is not the thing to extend: a small
   GROMACS-only editor over these steps is);
 * `pdb2gmx` with a **force-field picker**: the installed force fields are

@@ -31,7 +31,7 @@ import subprocess
 import tempfile
 import time
 
-SCREEN = "1280x1024x24"
+SCREEN = os.environ.get("ECCE_XVFB_SCREEN", "1280x1024x24")
 
 
 class DisplayUnavailable(Exception):

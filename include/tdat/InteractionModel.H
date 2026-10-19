@@ -17,8 +17,35 @@
 #include "tdat/FragmentSummary.H"
 
 /**
+ * GROMACS-only run settings that every task of a study carries.  They are
+ * saved in the Interaction section and only when they differ from the
+ * defaults, so an NWChem task's file is untouched.  The defaults are all
+ * "off": a default struct leaves the .mdp as it was.
  */
-class InteractionModel 
+struct GromacsRun
+{
+   GromacsRun();
+   bool operator==(const GromacsRun& o) const;
+   bool operator!=(const GromacsRun& o) const { return !(*this == o); }
+
+   string defines;       ///< text of the .mdp define line
+   bool   posres;        ///< add -D<posresName> unless defines has it
+   string posresName;
+   string groups;        ///< lines "name = residue residue"
+   int    comGroups;     ///< 0 System, 1 the defined groups
+   int    tcGroups;      ///< 0 System, 1 the defined groups
+   int    barostat;      ///< 0 C-rescale, 1 Berendsen, 2 Parrinello-Rahman
+   int    pcoupltype;    ///< 0 isotropic, 1 semiisotropic, 2 anisotropic
+   int    nstpcouple;    ///< 0: leave to grompp
+   string extraMdp;      ///< lines written at the end of the .mdp
+
+   /** Empty when grompp takes the barostat/type pair, else why not. */
+   static string pairProblem(int barostat, int pcoupltype);
+};
+
+/**
+ */
+class InteractionModel
 {
    public:
      /* Default values */
@@ -72,6 +99,7 @@ class InteractionModel
      int getLongListUpdateFreq() const;
      int getPeriodicMolecules() const;
      bool getTouched() const;
+     const GromacsRun& getGromacsRun() const;
 
      /* Modifiers */
      void setParameterSet(int opt);
@@ -95,6 +123,7 @@ class InteractionModel
      void setLongListUpdateFreq(int freq);
      void setPeriodicMolecules(int opt);
      void setTouched(bool flag);
+     void setGromacsRun(const GromacsRun& run);
 
      /**
       *  Reset model values to defaults
@@ -126,5 +155,6 @@ class InteractionModel
      int p_periodicMol;
 
      int p_touched;
+     GromacsRun p_gmxRun;
 };
 #endif

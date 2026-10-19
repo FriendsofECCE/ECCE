@@ -56,6 +56,7 @@ const string MACHREGISTER = "MachineRegister";
 const string ORGANIZER = "Organizer";
 const string PERTAB = "PeriodicTable";
 const string MDPREPARE = "MDPrepare";
+const string GMXPREPARE = "GMXPrepare";
 const string MDOPTIMIZE = "MDOptimize";
 const string MDENERGY = "MDEnergy";
 const string MDDYNAMICS = "MDDynamics";

@@ -27,6 +27,7 @@ title_of() {
     pertable)     echo "ECCE Periodic Table" ;;
     solvate)      echo "ECCE Solvate" ;;
     mdprepare)    echo "ECCE MD Prepare" ;;
+    gmxprepare)   echo "ECCE GROMACS Prepare" ;;
     mddynamics)   echo "ECCE MD Dynamics" ;;
     mdenergy)     echo "ECCE MD Energy" ;;
     mdoptimize)   echo "ECCE MD Optimize" ;;

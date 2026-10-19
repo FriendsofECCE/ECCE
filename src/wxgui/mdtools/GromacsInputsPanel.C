@@ -235,6 +235,50 @@ void GromacsInputsPanel::refresh()
   Layout();
 }
 
+vector<string> GromacsInputsPanel::moleculeNames()
+{
+  vector<string> names;
+  MdTask *t = task();
+  Session *session = (t == 0) ? 0 : t->getSession();
+  while (t != 0) {
+    if (!t->getDataFileNames(JCode::TOPOLOGY_OUTPUT).empty()) {
+      istream *is = t->getDataFile(JCode::TOPOLOGY_OUTPUT);
+      if (is != 0) {
+        std::ostringstream text;
+        text << is->rdbuf();
+        delete is;
+        names = GromacsStructure::moleculeNames(text.str());
+      }
+      break;
+    }
+    t = (session == 0) ? 0
+        : dynamic_cast<MdTask*>(t->getInputProvider(session));
+  }
+  return names;
+}
+
+vector<string> GromacsInputsPanel::residueNames()
+{
+  vector<string> names;
+  MdTask *t = task();
+  Session *session = (t == 0) ? 0 : t->getSession();
+  while (t != 0) {
+    if (!t->getDataFileNames(JCode::RESTART_OUTPUT).empty()) {
+      istream *is = t->getDataFile(JCode::RESTART_OUTPUT);
+      if (is != 0) {
+        std::ostringstream text;
+        text << is->rdbuf();
+        delete is;
+        names = GromacsStructure::residueNames(text.str());
+      }
+      break;
+    }
+    t = (session == 0) ? 0
+        : dynamic_cast<MdTask*>(t->getInputProvider(session));
+  }
+  return names;
+}
+
 bool GromacsInputsPanel::inputsReady(string& why)
 {
   string text;

@@ -1,0 +1,12 @@
+title nh3
+runtype optfreq
+charge 0
+multiplicity 1
+method hf
+basis STO-3G
+geometry
+N 0 0 0.12
+H 0.94 0 -0.28
+H -0.47 0.814 -0.28
+H -0.47 -0.814 -0.28
+end

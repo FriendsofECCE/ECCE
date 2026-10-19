@@ -56,6 +56,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A structure opened from a file is not a calculation: `AbstractPropCalculation::getProperty()` throws](structure-file-calculations-throw-on-getproperty.md)
 - [wxMSW paints every intermediate state: panes before AUI places them, menu bars item by item; a disabled active window hands the activation away (#254, #255, #256)](windows-every-intermediate-state-is-painted.md)
 - [Every `ewxFrame`/`ewxDialog` is capped to its display and scrolls what does not fit (`fitToScreen()`); codereg dialogs scroll in `EccePanel` (#189)](windows-fit-small-screens-via-fittodisplay.md)
+- [smallscreen_test: dialogs open on the real Wayland screen; Wayland has no work area; the splitter hides the periodic table width (#337, #351)](smallscreen-test-and-wayland-display-traps.md)
 
 - [The ESP colour bar draws the surface's own ramp and the grid's colour range; it follows the surface on screen, not the type drop-down (#210)](esp-colour-bar-reads-the-surfaces-own-ramp.md)
 
@@ -86,5 +87,9 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [NanoSVG draws objectBoundingBox radial gradients flat: the Builder bond/geometry icons use per-sphere userSpaceOnUse gradients (#323)](nanosvg-renders-bounding-box-gradients-flat.md)
 - [macOS: Coin's own offscreen context fails, so every thumbnail failed until CoinCglOffscreen (#344)](macos-offscreen-render-needs-our-cgl-context.md)
 - [wx 3.3 binds wxAuiManager's pane-button handler on the frame, wx 3.2 pushes the manager: the fold handler must be on both (#344)](wx33-aui-pin-handler-is-bound-on-the-frame.md)
+- [A PDB's CRYST1 was never read into the lattice: a GROMACS box opened in the Viewer had no cell; LatticeDef(a,b,c,angles) is not the PDB frame (#930)](pdb-reader-took-no-cell-from-cryst1.md)
+- [Layer builder: spacing is along the a-b normal, shifts accumulate, tilt wraps differently from an orthogonal reference, water H 1.5 A from everything (#357)](layer-builder-traps.md)
 - [Depth peeling copies from a multisampled window (#360)](depth-peeling-copies-from-a-multisampled-window.md)
 - [Auto-centre after property commands](auto-centre-after-property-commands.md)
+- ["1 1 1" in one text field reads "111" in Cantarell: one field per number](space-separated-values-need-one-field-each.md)
+- [The Vibrational Frequencies table's Sym and Mode columns are VibAnalysis (#367): irreps from ECCE's own operations, a projection on internal coordinates, and what makes it refuse](mode-symmetry-and-description-367.md)

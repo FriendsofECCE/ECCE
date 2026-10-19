@@ -57,6 +57,11 @@ DECLARE_DYNAMIC_CLASS(MoleculeDataTable)
 
     virtual void gridRangeSelect(wxGridRangeSelectEvent& event);
 
+    /// Test hook (BuilderScript "cell"): opens the editor on a cell, types
+    /// text and sends the key (enter, esc or none); returns the cell's value
+    /// afterwards and whether the editor is still open.
+    string scriptEdit(int row, int col, const string& text, const string& key);
+
   protected:
 
     virtual void setSelections();

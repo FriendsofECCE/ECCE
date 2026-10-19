@@ -322,6 +322,131 @@ inline bool matchQuantumEspressoError(const std::vector<std::string>& lines,
 }
 
 // ------------------------------------------------------------------------
+// CP2K.  Every error ends the run with a box:
+//    * [ABORT]
+//    *  \___/     <message, wrapped over lines>
+//    *    |
+//    *  O/|
+// An SCF that does not converge in MAX_SCF steps is the common one and gets
+// advice; the others show the message.
+// ------------------------------------------------------------------------
+inline bool matchCp2kError(const std::vector<std::string>& lines,
+                           std::string& reason)
+{
+  static const std::regex leaving(
+      "Leaving inner SCF loop after reaching\\s+([0-9]+) steps");
+  std::string steps;
+  for (size_t i = 0; i < lines.size(); i++) {
+    std::smatch m;
+    if (std::regex_search(lines[i], m, leaving))
+      steps = m[1].str();
+    if (lines[i].find("[ABORT]") == std::string::npos)
+      continue;
+    std::string text;
+    for (size_t j = i + 1; j < lines.size() && j < i + 12; j++) {
+      if (lines[j].find("O/|") != std::string::npos)
+        break;
+      std::string t = lines[j];
+      size_t at = t.find("\\___/");
+      if (at != std::string::npos)
+        t = t.substr(at + 5);
+      // Drop the box's own frame: a leading and a trailing '*', the
+      // source position at the end, and the drawing's '|'.
+      t = trimmed(t);
+      while (!t.empty() && (t[0] == '*' || t[0] == '|'))
+        t = trimmed(t.substr(1));
+      while (!t.empty() && t[t.size() - 1] == '*')
+        t = trimmed(t.substr(0, t.size() - 1));
+      if (t.empty())
+        continue;
+      text += (text.empty() ? "" : " ") + t;
+    }
+    if (text.find("SCF run NOT converged") != std::string::npos) {
+      reason = "The self-consistent field did not converge" +
+               (steps.empty() ? std::string() : " in " + steps + " steps") +
+               " -- raise Max. SCF Iterations, or try the CG minimizer with "
+               "the FULL_ALL preconditioner, in Theory Details.";
+      return true;
+    }
+    if (!text.empty()) {
+      reason = "CP2K stopped: \"" + truncate(text, 110) + "\"";
+      return true;
+    }
+  }
+  return false;
+}
+
+// ------------------------------------------------------------------------
+// GROMACS tools end a failure with a box:
+//   Program:     gmx pdb2gmx, version ...
+//   Fatal error:
+//   <paragraph>
+// The paragraph is the reason.  grompp's own box only counts its errors
+// ("There was 1 error in input file(s)"); the cause is the "ERROR n [file
+// ..., line ...]:" paragraph above it, so that is quoted instead.
+// ------------------------------------------------------------------------
+inline std::string paragraphAfter(const std::vector<std::string>& lines,
+                                   size_t i)
+{
+  std::string text;
+  for (size_t j = i + 1; j < lines.size(); j++) {
+    std::string t = trimmed(lines[j]);
+    if (t.empty()) {
+      if (text.empty()) continue;
+      break;
+    }
+    text += (text.empty() ? "" : " ") + t;
+  }
+  return text;
+}
+
+inline bool matchGromacsError(const std::vector<std::string>& lines,
+                               std::string& reason)
+{
+  static const std::regex program("^Program:\\s+(gmx\\S*)\\s+([A-Za-z0-9_]+)");
+  static const std::regex grompErr("^ERROR\\s+[0-9]+\\s+\\[file ");
+  static const std::regex fatal("^Fatal error:\\s*$");
+
+  for (size_t i = 0; i < lines.size(); i++) {
+    std::smatch m;
+    if (!std::regex_search(lines[i], m, program))
+      continue;
+    std::string tool = m[1].str() + " " + m[2].str();
+    // Program: is followed by "Source file:" and a blank line, then
+    // "Fatal error:".
+    size_t f = i + 1;
+    while (f < lines.size() && f < i + 6 && !std::regex_search(lines[f], fatal))
+      f++;
+    if (f >= lines.size() || !std::regex_search(lines[f], fatal))
+      continue;
+    std::string detail;
+    if (m[2].str() == "grompp") {
+      for (size_t e = 0; e < i; e++) {
+        if (std::regex_search(lines[e], grompErr)) {
+          detail = paragraphAfter(lines, e);
+          break;
+        }
+      }
+    }
+    if (detail.empty())
+      detail = paragraphAfter(lines, f);
+    if (detail.empty())
+      continue;
+    if (m[2].str() == "genion" &&
+        detail.find("No more replaceable solvent") != std::string::npos) {
+      // short enough to survive truncate(): the advice is the point
+      reason = tool + ": no more replaceable solvent. Lower the Minimum ion "
+               "distance in the Prepare editor.";
+      return true;
+    }
+    reason = tool + ": \"" + truncate(detail, kMaxReasonLen - tool.size() - 6) +
+             "\"";
+    return true;
+  }
+  return false;
+}
+
+// ------------------------------------------------------------------------
 // Try every known pattern, in priority order (most specific/actionable
 // first), across the primary output file and then any auxiliary files
 // (stderr, etc) already available locally.  Returns "" if nothing
@@ -338,6 +463,8 @@ inline std::string extractReason(const std::vector<std::string>& filePaths)
     matchGaussianError,
     matchNWChemInputError,
     matchQuantumEspressoError,
+    matchCp2kError,
+    matchGromacsError,
     matchOrcaError,
   };
 

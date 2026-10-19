@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   CP2K (Quickstep, GPW) code registration, modelled on
+   QuantumESPRESSO.edml (#329).  Same shape as QE:
+
+     * A plane-wave/Gaussian hybrid with pseudopotentials: there is no
+       ECCE basis set object.  The theory is needsBasis="false" and no
+       <GaussianBasisSetRules> block exists, so the Basis Set Tool stays
+       off, no .basis file is written and ai.cp2k is never handed -b.
+       The MOLOPT basis and the GTH potential of each element are picked
+       by ai.cp2k from the code's own BASIS_MOLOPT / GTH_POTENTIALS
+       files, which a dialog cannot do because it is never told which
+       elements the structure has.
+
+     * Periodic only.  The cell is taken from the fragment's lattice (the
+       Builder's Periodic Builder) and from nowhere else; ai.cp2k
+       refuses a structure without one.
+
+     * The file names are free (cp2k takes "-i <file>" and writes to
+       stdout), so .cp2kin / .cp2kout are used, with matching AddType and
+       mimetypes lines.
+
+   Run types: Energy (ENERGY) and Geometry (GEO_OPT, or CELL_OPT with the
+   "Optimize cell" box).  Molecular dynamics, vibrations and QM/MM are not
+   offered because nothing in ai.cp2k or cp2k.desc could honour them.
+-->
+
+<appdescriptor>
+<SupportsDummyAtoms>false</SupportsDummyAtoms>
+<Periodic>true</Periodic>
+<SupportsConstraints>false</SupportsConstraints>
+
+<Editor theorydialog="cp2ktheory.py" runtypedialog="cp2kruntype.py">
+  <RequiresPeriodic>true</RequiresPeriodic>
+
+  <Theory category="QS" name="GPW" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+  </Theory>
+
+  <TheorySummary topLabel="Quickstep-">
+    <item key="ES.Theory.GPW.Functional" label="Functional"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.GPW.BasisLevel" label="Basis"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.GPW.Cutoff" label="Cutoff (Ry)"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.GPW.Dispersion" label="Dispersion"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.GPW.UseOT" label="OT SCF"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.GPW.EpsScf" label="SCF Convergence"></item>
+  </TheorySummary>
+
+  <RuntypeSummary topLabel="Geometry-">
+    <item key="ES.Runtype.GPW.MaxIter" label="Max. Steps"></item>
+    <item key="ES.Runtype.GPW.MaxForce" label="Max. Force"></item>
+  </RuntypeSummary>
+  <RuntypeSummary topLabel="Properties-">
+    <item key="ES.Runtype.GPW.PrintForces" label="Forces"></item>
+  </RuntypeSummary>
+</Editor>
+
+<DataFiles>
+  <Input  type="primary" mimetype="chemical/x-cp2k-input" comment="true" commentstring="#">cp2k.cp2kin</Input>
+  <Output type="primary" mimetype="chemical/x-cp2k-output">cp2k.cp2kout</Output>
+  <Output type="parse" verifypattern="CP2K\| version string" mimetype="chemical/x-cp2k-output">cp2k.cp2kout</Output>
+</DataFiles>
+
+<!-- cp2k.launchpp is required unconditionally (Launch::postProcessInput
+     shells out to it); here it writes the project name's run directory
+     and the library file locations known only at launch. -->
+<IntegrationFiles>
+  <Template>cp2k.tpl</Template>
+  <InputGenerator>ai.cp2k</InputGenerator>
+  <ParseSpecification>cp2k.desc</ParseSpecification>
+  <LaunchPreprocessor>cp2k.launchpp</LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>

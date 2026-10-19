@@ -52,6 +52,8 @@ describe what you did and what happened.
    and pseudopotentials.
    [Choosing Quantum ESPRESSO settings](qe-choosing-settings.md) says how to
    pick the cutoff, the k-points, smearing and the box.
+   [Your first GROMACS calculation](gromacs-first-calculation.md): a small
+   protein through Prepare, Optimize, Equilibrate and Dynamics.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.
@@ -70,6 +72,15 @@ describe what you did and what happened.
    than one core.
 12. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
    on a Windows PC, and Microsoft MPI for ORCA on more than one core.
+13. [Preparing a protein for GROMACS](gromacs-prepare.md): from a PDB file
+   to a solvated, neutral system ready for minimisation, with the GROMACS MD
+   Prepare task.
+14. [Stacking layers: the Layer builder](layer-builder.md): build graphite,
+   layered oxides or a clay from one layer, with a spacing, a sideways shift,
+   and ions and water between the layers.
+15. [GROMACS MD: run settings](gromacs-md-settings.md): defines and position
+   restraints, groups by residue name, the barostat and its coupling type,
+   and extra `.mdp` lines.
 
 Reference:
 

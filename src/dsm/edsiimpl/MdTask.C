@@ -381,11 +381,18 @@ bool MdTask::getTaskFragmentSummary(FragmentSummary& fragSum)
 {
   bool ret = false;
 
-  // Get output fragment, if exists
-  EcceURL url = getVDoc()->getConfiguration(getOutputFragmentName());
+  // Get output fragment, if exists.  A task's output is stored under
+  // Outputs (as hasFragment looks), not among its configurations; a finished
+  // GROMACS Prepare's chemsys.pdb carries the cell the next task needs.
+  EcceURL url = getVDoc()->getOutput(getOutputFragmentName());
   getEDSI()->setURL(url);
+  if (!getEDSI()->exists()) {
+    //  Where it was looked for before; kept for NWChem MD tasks.
+    url = getVDoc()->getConfiguration(getOutputFragmentName());
+    getEDSI()->setURL(url);
+  }
   if (getEDSI()->exists()) {
-    ret = getFragmentSummary(fragSum,url); 
+    ret = getFragmentSummary(fragSum,url);
   } else {
     EcceURL url = getVDoc()->getConfiguration(getInputFragmentName());
     getEDSI()->setURL(url);
@@ -624,6 +631,13 @@ istream *MdTask::getInputFragmentAsFile()
   getEDSI()->setURL(url);
   if (getEDSI()->exists()) {
     ret = getEDSI()->getDataSet();
+  } else {
+    // The first Builder save is stored as the original fragment only.
+    url = getVDoc()->getConfiguration(getVDoc()->getOriginalMoleculeName());
+    getEDSI()->setURL(url);
+    if (getEDSI()->exists()) {
+      ret = getEDSI()->getDataSet();
+    }
   }
 
   return ret;
@@ -868,9 +882,11 @@ string MdTask::getRestartName() const
  */
 string MdTask::getTopologyName() const
 {
-  // A GROMACS task is given its topology; it never produces one.
+  // Only a GROMACS Prepare produces one (kept as .gmxtop, see GROMACS.edml);
+  // the other GROMACS tasks are given theirs.
   if (getApplicationType() == ResourceDescriptor::AT_GROMACS) {
-    return "";
+    return getContentType() == ResourceDescriptor::CT_MDPREPARE
+           ? getSystemName() + ".gmxtop" : "";
   }
   return getSystemName() + ".top";
 }

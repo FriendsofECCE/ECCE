@@ -131,6 +131,25 @@ def check(display, results):
     for p in problems:
         results.fail("builder panes tools", p)
 
+    # L3: tool panes dragged to the left, the column collapsed (F9) and
+    # restored, then folded and unfolded, stay as they were
+    results.checks += 1
+    names = "Build Selection Symmetry Residue_Table"
+    work = run(display, results, "dockleft", unrun_url,
+               ["tooldock %s left" % n for n in names.split()] +
+               ["panestate left " + names, "collapse 1", "collapse 0",
+                "panefold Build", "panefold Build", "panestate back " + names],
+               "detail")
+    for n in [x.replace("_", " ") for x in names.split()]:
+        left, back = rect(work, "left", n), rect(work, "back", n)
+        if not left or left[0] < 20 or left[1] < 20:
+            results.fail("builder panes dockleft", "%s: no room on the left: %s"
+                         % (n, left))
+        elif (not back or abs(back[0] - left[0]) > 4 or abs(back[1] - left[1]) > 4
+              or flag(work, "back", n, "shown") != 1):
+            results.fail("builder panes dockleft",
+                         "%s changed after collapse/fold: %s -> %s" % (n, left, back))
+
     # props: stacked layout, the property panes shown by default
     results.checks += 1
     work = run(display, results, "props1", run_url,

@@ -56,7 +56,21 @@ class MoFragments
       CENTRAL,         ///< a central atom against its terminal atoms
       HALVES,          ///< two equivalent groups, in and out of phase
       GROUPS,          ///< one chemical group against the other
-      EQUIVALENT_SETS  ///< the fallback: its two sets of like atoms
+      EQUIVALENT_SETS, ///< the fallback: its two sets of like atoms
+      FRAGMENT_ORBITALS ///< metal AOs and ligand-shell orbitals from
+                        ///< extended Hueckel (FoDiagram); the caller
+                        ///< builds it, build() here never does
+    };
+
+    /**
+     * An atom (or a bonded pair) the user picked to choose the diagram.
+     * Indices into the atom list; second is -1 for a single atom.
+     */
+    struct Pick
+    {
+      int first, second;
+      Pick() : first(-1), second(-1) {}
+      Pick(int a, int b = -1) : first(a), second(b) {}
     };
 
     /** What to call a construction on screen. */
@@ -107,6 +121,32 @@ class MoFragments
      *         diagram with no symmetry in it.
      */
     static bool symmetryOperations(const string& group, vector<SymOp>& ops);
+
+    /**
+     * The two sides of a cut bond a-b: the atoms that stay with a, and the
+     * rest.  False, with `note`, for a bond in a ring (cutting it splits
+     * nothing) or two atoms that are not bonded.
+     */
+    static bool bondSides(const vector<double>& coords,
+                          const vector<string>& elements, int a, int b,
+                          vector<int>& sideA, string& note);
+
+    /**
+     * The largest subgroup of `group` that keeps a pick's two sides (`sideA`
+     * and the rest) each on itself.  Where every operation of `group` keeps
+     * them or swaps them (the usual fragments of a symmetric molecule) that is
+     * `group` itself and nothing changes.  Otherwise `subName` is the
+     * subgroup's name (Td with one Co-Cl cut gives C3v) and `subCoords` the
+     * coordinates in that subgroup's standard frame, which is what labelling
+     * the orbitals in it needs.  False, with `note`, when the subgroup cannot
+     * be named or oriented.
+     */
+    static bool subgroupKeeping(const vector<double>& coords,
+                                const vector<string>& elements,
+                                const string& group,
+                                const vector<int>& sideA,
+                                string& subName, vector<double>& subCoords,
+                                string& note);
 
     /**
      * A valence orbital ionisation energy, in eV, negative.
@@ -472,6 +512,12 @@ class MoFragments
      *              -- someone who asked for a ligand field diagram of
      *              ethene needs to be told ethene has no metal, not
      *              handed a different diagram.
+     * @param pick  one atom: it against the atoms bonded to it (CENTRAL);
+     *              two bonded atoms: the molecule cut at that bond, as
+     *              HALVES when the sides are swapped by a symmetry
+     *              operation and GROUPS otherwise. Refused, with the
+     *              reason in `note`, for a ring bond, a metal, or a
+     *              piece the symmetry does not map onto itself.
      */
     static bool build(const vector<double>& coords,
                       const vector<string>& elements,
@@ -484,7 +530,8 @@ class MoFragments
                       vector<int>* rightAtoms = 0,
                       const vector<int>* sideOfOrbit = 0,
                       Fragmentation* how = 0,
-                      Fragmentation want = NOT_BUILT);
+                      Fragmentation want = NOT_BUILT,
+                      const Pick* pick = 0);
 };
 
 #endif

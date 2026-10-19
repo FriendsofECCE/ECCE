@@ -34,6 +34,9 @@ if(NOT TARGET Eigen3::Eigen)
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
     GIT_TAG 3.4.0 GIT_SHALLOW ON ${_qm_fc_exclude})
   set(EIGEN_BUILD_DOC OFF)
+  # Eigen 3.4 asks for CMake 3.5, so its option(BUILD_TESTING) would ignore
+  # this OFF and add its ~1000 own tests to ctest
+  set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
   set(BUILD_TESTING OFF)
   set(EIGEN_BUILD_PKGCONFIG OFF)
   FetchContent_MakeAvailable(eigen)

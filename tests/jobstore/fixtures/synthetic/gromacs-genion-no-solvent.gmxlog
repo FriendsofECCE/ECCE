@@ -1,0 +1,21 @@
+             :-) GROMACS - gmx genion, 2025.2-Debian_2025.2_1 (-:
+
+Command line:
+  gmx genion -s ions.tpr -o ion.gro -p topol.top -pname Cu2+ -pq 2 -nname Cl -neutral
+
+Will try to add 12 Cu2+ ions and 0 Cl- ions.
+Select a continuous group of solvent molecules
+Selected 3: 'SOL'
+Processing topology
+Replacing solvent molecule 42 (atom 3101) with Cu2+
+
+-------------------------------------------------------
+Program:     gmx genion, version 2025.2-Debian_2025.2_1
+Source file: src/gromacs/gmxpreprocess/genion.cpp (line 538)
+
+Fatal error:
+No more replaceable solvent!
+
+For more information and tips for troubleshooting, please check the GROMACS
+website at https://manual.gromacs.org/current/user-guide/run-time-errors.html
+-------------------------------------------------------

@@ -88,7 +88,11 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
                                                   : MoPanel::TABLE);
     mo->GetEventHandler()->ProcessEvent(ev);
   }
-  pane.Float().FloatingPosition(wxPoint(20, 20))
+  //  ECCE_PLOTSHOT_POS="x,y" moves the floating panel clear of the
+  //  Builder's own windows, which a screen blit would otherwise include.
+  int px = 20, py = 20;
+  if (const char *pos = getenv("ECCE_PLOTSHOT_POS")) sscanf(pos, "%d,%d", &px, &py);
+  pane.Float().FloatingPosition(wxPoint(px, py))
       .BestSize(wxSize(width, height)).MinSize(wxSize(100, 100))
       .FloatingSize(wxSize(width, height + 40));
   p_mgr.Update();

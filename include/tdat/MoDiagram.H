@@ -27,6 +27,7 @@ struct MoLevel
    string         label;           // what to draw
    string         irrep;           // canonical irrep name, for matching
    string         annotation;      // extra text, e.g. a fragment's VOIE
+   string         tag;             // model levels: dominant fragment-orbital character, "Cr d + CO pi*"
 
    /**
     * How much of this level sits on each fragment, 0 to 1.
@@ -177,6 +178,12 @@ struct MoLevel
    double         occupancyBeta;
 
    /**
+    * Extra tooltip text, written after the composition line.  Only the
+    * fragment-orbital construction fills it (class, shares, capture).
+    */
+   string         detail;
+
+   /**
     * Each orbital's own energy, in the same order as `orbitals`.
     *
     * `energy` is their mean, which is where the level is drawn when
@@ -188,10 +195,43 @@ struct MoLevel
     */
    vector<double> energies;
 
+   /**
+    * The model-first diagram (ModelDiagram): this level is a model MO
+    * from extended Hueckel, `energy` is the model's, and `orbitals`
+    * names the calculated MO(s) it was matched to.  hasCalc: the
+    * matched energy (Hartree) and the overlap value are filled.
+    */
+   bool           model;
+   /** Drawn in the strip above the axis break, in order but not to scale. */
+   bool           clipped;
+   bool           hasCalc;
+   double         calcEnergy;
+   double         calcOverlap;
+   /** The matched calculated level's own label (irrep), occupation and
+       number of orbitals, for the calculation column. */
+   string         calcLabel;
+   double         calcOccupancy, calcOccupancyBeta;
+   int            calcDegeneracy;
+
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
                occupancyBeta(-1.0),
                shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
-               tabulated(0.0), character(UNKNOWN), pairing(-1) {}
+               tabulated(0.0), character(UNKNOWN), pairing(-1),
+               model(false), clipped(false), hasCalc(false), calcEnergy(0.0), calcOverlap(0.0),
+               calcOccupancy(0.0), calcOccupancyBeta(-1.0), calcDegeneracy(0) {}
+};
+
+
+/**
+ * Several levels drawn as one grey block between two energies (ligand
+ * lone pairs that take no part in bonding).  No lines go to a block.
+ */
+struct MoBand
+{
+   double low, high;       // Hartree
+   string label;
+   int    levels;          // how many levels it stands for
+   MoBand() : low(0.0), high(0.0), levels(0) {}
 };
 
 
@@ -199,6 +239,13 @@ struct MoLevel
 struct MoColumn
 {
    string           title;
+
+   /** Merged non-bonding levels, drawn as grey blocks. */
+   vector<MoBand>   bands;
+
+   /** Model-first diagram, centre column: calculated levels (the HOMO and
+       LUMO) that match no model level.  Drawn in the calculation column only. */
+   vector<MoLevel>  calcOnly;
 
    /**
     * This column's shells, named by element and angular momentum.
@@ -227,6 +274,10 @@ struct MoColumn
    /** Where to draw this column's atoms, for the phase sketches. */
    vector<double>   sketchX;
    vector<double>   sketchY;
+   /** Depth, for an oblique 3-D sketch (sketchView 1); empty otherwise. */
+   vector<double>   sketchZ;
+   /** 0: flat, as seen along the third axis; 1: octahedron/tetrahedron, oblique view. */
+   int              sketchView;
 
    /**
     * Which Cartesian axis was flattened away making those positions.
@@ -269,7 +320,7 @@ struct MoColumn
    int    hiddenAboveCount;
 
    MoColumn() : fromHalves(false), hiddenCount(0), hiddenMaxEnergy(0.0),
-               hiddenSemicoreCount(0), hiddenAboveCount(0), sketchNormal(2) {}
+               hiddenSemicoreCount(0), hiddenAboveCount(0), sketchView(0), sketchNormal(2) {}
 };
 
 
@@ -279,6 +330,11 @@ struct MoConnection
    int leftLevel;     // index into the left column, or -1
    int centreLevel;   // index into the centre column
    int rightLevel;    // index into the right column, or -1
+   double weight;     // 0..1 share the line stands for; -1 = not weighted
+   MoConnection() : leftLevel(-1), centreLevel(-1), rightLevel(-1),
+                    weight(-1.0) {}
+   MoConnection(int l, int c, int r) : leftLevel(l), centreLevel(c),
+                    rightLevel(r), weight(-1.0) {}
 };
 
 class CharacterTable;
@@ -740,7 +796,31 @@ class MoDiagram
     static void classifyByEnergy(const vector<MoLevel>& left,
                                  vector<MoLevel>& centre,
                                  const vector<MoLevel>& right,
-                                 const vector<MoConnection>& connections);
+                                 const vector<MoConnection>& connections,
+                                 vector<string>* pairWarnings = 0);
+
+    /**
+     * Fill a fragment column's electrons as whole pairs, in energy order
+     * (a main-group fragment's TASOs: the neutral valence count, never
+     * the singly occupied symmetry orbitals of the split atoms).  The
+     * total is the column's present total; an odd one leaves one
+     * electron in the next level.
+     */
+    static void fillWholePairs(vector<MoLevel>& levels);
+
+    /**
+     * The central-atom simplification, after classification:
+     * lines to non-bonding levels are dropped; ligand s TASOs that make
+     * up under 10 % of every drawn MO are left out; the non-bonding MOs
+     * that are at least 80 % on the ligands, and the TASOs left with no
+     * line, are merged into one grey block each (MoColumn::bands).
+     * `removedCentre` marks the centre levels that went, for parallel
+     * per-level vectors.
+     */
+    static void simplifyCentral(MoColumn& left, MoColumn& centre,
+                                MoColumn& right, vector<MoConnection>& links,
+                                vector<bool>& removedCentre,
+                                int& leftOut, int& blockLevels);
 
     static void connect(const vector<MoLevel>& left,
                         const vector<MoLevel>& centre,

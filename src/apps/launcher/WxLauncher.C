@@ -1332,7 +1332,7 @@ static string missingMpiLauncher(const string& code, RefMachine *mach)
     if (key == "nwchemmd")
         key = "nwchem";          // gensub runs NWChemMD with the nwchem entry
     if (key != "nwchem" && key != "orca" && key != "quantumespresso" &&
-        key != "gromacs")
+        key != "cp2k" && key != "gromacs")
         return "";
 
     map<string,string> cfg = RefMachine::config(mach->refname());
@@ -1349,6 +1349,10 @@ static string missingMpiLauncher(const string& code, RefMachine *mach)
     string base = slash == string::npos ? exe : exe.substr(slash + 1);
     if (key == "gromacs" && base.compare(0, 7, "gmx_mpi") != 0)
         return "";               // thread-MPI gmx needs no mpirun
+    if (key == "cp2k" && base.size() >= 4 &&
+        (base.compare(base.size() - 4, 4, "ssmp") == 0 ||
+         base.compare(base.size() - 4, 4, "sopt") == 0))
+        return "";               // the threads-only builds run without mpirun
 
 #ifdef __WXMSW__
     string launcher = key == "orca" ? "mpiexec" : "mpirun";
@@ -1417,6 +1421,37 @@ bool WxLauncher::confirmMpiLauncher(const string& code)
     p_prefsEdited = true;
     this->ensureEditsApplied(false);
     return true;
+}
+
+
+/**
+ * A problem the code's launch check found that the job will meet.  Only a
+ * warning: the user knows best, so launching anyway is the default.  False
+ * when the user cancelled.
+ */
+bool WxLauncher::confirmLaunchWarning(const string& text)
+{
+    // A check that reworded the tool's message sends the original after a
+    // marker line; it goes in a closed pane.
+    string shown = text, original;
+    const string mark = "\nECCE-ORIGINAL-MESSAGE\n";
+    size_t at = text.find(mark);
+    if (at != string::npos)
+    {
+        shown = text.substr(0, at);
+        original = text.substr(at + mark.size());
+    }
+    // the text is UTF-8 (a real minus sign); a byte string that is not falls
+    // back to the 8-bit reading
+    wxString msg = wxString::FromUTF8(shown.c_str());
+    if (msg.empty() && !shown.empty())
+        msg = wxString::From8BitData(shown.c_str());
+    ewxMessageDialog dlg(this, msg, "Launch check", wxICON_EXCLAMATION);
+    if (!original.empty())
+        dlg.AddDetails("grompp's message", wxString::FromUTF8(original.c_str()));
+    dlg.AddButton(wxID_CANCEL, "Cancel");
+    dlg.AddButton(wxID_YES, "Launch anyway")->SetDefault();
+    return dlg.ShowModal() == wxID_YES;
 }
 
 
@@ -2487,6 +2522,20 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
 
         else if (p_launchData->info() != "")
             p_messagesFeedback->setMessage(p_launchData->info(), WxFeedback::INFO, false, true);
+
+        if (valid && p_launchData->launchWarning() != "")
+        {
+            string warning = p_launchData->launchWarning();
+            p_launchData->clearLaunchWarning();
+            if (!confirmLaunchWarning(warning))
+            {
+                p_messagesFeedback->setMessage("Launch cancelled.", WxFeedback::INFO);
+                p_launchData->removeStaging();
+                delete p_launchData;
+                p_launchData = NULL;
+                return;
+            }
+        }
 
         this->UpdateWindowUI();
     }

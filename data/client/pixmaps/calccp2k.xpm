@@ -1,0 +1,23 @@
+/* XPM */
+/* Placeholder calculation icon for CP2K: a "C" in the 16x16 two-colour
+   style of calcqe.xpm, in its own colour.  Replace with a real icon. */
+static char * calccp2k_xpm[] = {
+"16 16 2 1",
+" 	c None",
+".	c #2060A0",
+"                ",
+"                ",
+"     ........   ",
+"   ............ ",
+"  ....      ....",
+" ....        .. ",
+" ...            ",
+" ...            ",
+" ...            ",
+" ...            ",
+" ....        .. ",
+"  ....      ....",
+"   ............ ",
+"     ........   ",
+"                ",
+"                "};

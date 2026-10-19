@@ -492,7 +492,7 @@ void calcPutOutFileName(const string& fileName, const string& parseType)
 { 
   string outputFile = tmpStorage + "/" + fileName; 
   string key, value;
-  ifstream ifs(outputFile.c_str());
+  ifstream ifs(outputFile.c_str(), ios::in | ios::binary);
   VDoc *vdoc = EDSIFactory::getVdoc(calculation->getURL());
   if (vdoc != 0) {
 
@@ -1512,6 +1512,22 @@ void interactGetFiles(void)
     }
   }
 
+  //  The auxiliary output a code asks to keep (ORCA's .gbw).  Only a
+  //  file that really arrived is stored; a failed job may leave none.
+  {
+    const JCode *jc = calculation->application();
+    string retain;
+    if (jc != 0 && jc->get_string("RetainAuxiliaryOutput", retain) &&
+        retain == "yes") {
+      vector<TypedFile> aux = jc->getCodeFiles(JCode::AUXILIARY_OUTPUT);
+      for (size_t a = 0; a < aux.size(); a++) {
+        if (!aux[a].name().empty() &&
+            localconn->exists(tmpStorage + "/" + aux[a].name()))
+          calcPutOutFileName(aux[a].name(), "");
+      }
+    }
+  }
+
   if (cpRxnMetadynamicsTask == "yes") {
     if (localconn->execout("/bin/ls *.db *.movecs *.vmovecs *.vpp *.psp", lsout)) {
       StringTokenizer metaFiles(lsout, " \t\n\r");
@@ -2522,7 +2538,9 @@ void interactFile(char* fileData)
   // decode type of message
   if (fileType == MSG_TYPE_F_PROP) {
     dbStoreContents = true;
-    dbStoreName = true;
+    //  "ecce-parse-*" files exist only to be parsed (a GROMACS trajectory
+    //  becomes GEOMTRACE); keeping them as outputs would store the data twice.
+    dbStoreName = fileName.compare(0, 11, "ecce-parse-") != 0;
 
     // for imports, create a symbolic link immediately to the specified file
     if (cpImportDir != "") {

@@ -817,6 +817,14 @@ bool JCode::getBasisSetQuickListSupported(void) const
   return supportedFlag;
 }
 
+bool JCode::usesBasisSet() const
+{
+  for (int it=0; p_theories && it < p_theories->size(); it++) {
+    if ((*p_theories)[it].needsBasis()) return true;
+  }
+  return false;
+}
+
 bool JCode::theoryNeedsBasis(const TTheory& theory) const
 {
   bool ret = true;

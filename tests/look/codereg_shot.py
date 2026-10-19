@@ -27,6 +27,7 @@ CASES = {
                    "Geometry"),
     "mopac": ("mopactheory.py", "mopacruntype.py", "SE", "RPM7", "Energy"),
     "qe": ("qetheory.py", "qeruntype.py", "PW", "PW", "Energy"),
+    "cp2k": ("cp2ktheory.py", "cp2kruntype.py", "QS", "GPW", "Geometry"),
     "gromacs": ("gromacstheory.py", "gromacsruntype.py", "MD", "MD", "Energy"),
     # ECCE-QM has no runtype dialog
     "ecceqm": ("ecceqmtheory.py", None, "DFT", "DFT", "Energy"),

@@ -93,6 +93,9 @@ def check(label, result, expect):
                  for k, v in sorted(expect.items()) if got.get(k) != v]
         if wrong:
             problem = "summary fields wrong: " + ", ".join(wrong)
+        #  Both codes here have basis sets: the Basis Set button stays.
+        elif "tool=Basis" not in done.group(1):
+            problem = "no Basis Set button in the summary"
     if problem is None:
         print("ok    %s: %s" % (label, done.group(1)))
         return

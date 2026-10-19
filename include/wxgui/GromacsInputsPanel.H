@@ -45,6 +45,12 @@ class GromacsInputsPanel : public ewxPanel
        */
       bool inputsReady(string& why);
 
+      /** The residue names of the task's starting structure, each once. */
+      vector<string> residueNames();
+
+      /** The molecule names of the task's topology, each once, in order. */
+      vector<string> moleculeNames();
+
       /** Reread the task's files and redisplay them. */
       void refresh();
 

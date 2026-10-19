@@ -3144,7 +3144,7 @@ contraction shell=F num_primitives=1 num_coefficients=1
 0.8651224 1.0000000
 contraction shell=F num_primitives=1 num_coefficients=1
 0.3714973 1.0000000
-atom=Uun
+atom=Ds
 contraction shell=P num_primitives=1 num_coefficients=1
 0.1277398 1.0000000
 contraction shell=P num_primitives=1 num_coefficients=1
@@ -3171,7 +3171,7 @@ contraction shell=F num_primitives=1 num_coefficients=1
 1.8829343 1.0000000
 contraction shell=F num_primitives=1 num_coefficients=1
 0.7479886 1.0000000
-atom=Uuu
+atom=Rg
 contraction shell=P num_primitives=1 num_coefficients=1
 0.0902311 1.0000000
 contraction shell=P num_primitives=1 num_coefficients=1
@@ -3198,7 +3198,7 @@ contraction shell=F num_primitives=1 num_coefficients=1
 0.9727928 1.0000000
 contraction shell=F num_primitives=1 num_coefficients=1
 0.4197411 1.0000000
-atom=Uub
+atom=Cn
 contraction shell=P num_primitives=1 num_coefficients=1
 0.0903696 1.0000000
 contraction shell=P num_primitives=1 num_coefficients=1
@@ -3225,7 +3225,7 @@ contraction shell=F num_primitives=1 num_coefficients=1
 0.9323977 1.0000000
 contraction shell=F num_primitives=1 num_coefficients=1
 0.3925141 1.0000000
-atom=Uut
+atom=Nh
 contraction shell=P num_primitives=1 num_coefficients=1
 2.2429884 1.0000000
 contraction shell=P num_primitives=1 num_coefficients=1
@@ -3254,7 +3254,7 @@ contraction shell=F num_primitives=1 num_coefficients=1
 1.0307168 1.0000000
 contraction shell=F num_primitives=1 num_coefficients=1
 0.4416325 1.0000000
-atom=Uuq
+atom=Fl
 contraction shell=P num_primitives=1 num_coefficients=1
 1.7935886 1.0000000
 contraction shell=P num_primitives=1 num_coefficients=1
@@ -3283,7 +3283,7 @@ contraction shell=F num_primitives=1 num_coefficients=1
 1.1103357 1.0000000
 contraction shell=F num_primitives=1 num_coefficients=1
 0.4948663 1.0000000
-atom=Uup
+atom=Mc
 contraction shell=P num_primitives=1 num_coefficients=1
 4.6364816 1.0000000
 contraction shell=P num_primitives=1 num_coefficients=1
@@ -3312,7 +3312,7 @@ contraction shell=F num_primitives=1 num_coefficients=1
 2.4147049 1.0000000
 contraction shell=F num_primitives=1 num_coefficients=1
 1.0384794 1.0000000
-atom=Uuh
+atom=Lv
 contraction shell=P num_primitives=1 num_coefficients=1
 7.6428803 1.0000000
 contraction shell=P num_primitives=1 num_coefficients=1
@@ -3337,7 +3337,7 @@ contraction shell=F num_primitives=1 num_coefficients=1
 4.7704078 1.0000000
 contraction shell=F num_primitives=1 num_coefficients=1
 2.4780453 1.0000000
-atom=Uus
+atom=Ts
 contraction shell=P num_primitives=1 num_coefficients=1
 5.6847500 1.0000000
 contraction shell=P num_primitives=1 num_coefficients=1

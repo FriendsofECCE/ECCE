@@ -1,0 +1,90 @@
+<MolecularConfig>
+<Map>
+<Group Tag="B F" Name="def2-svp">
+<OrderedList>
+<BasisSet Type="ECPOrbital">def2-svp</BasisSet>
+<ECP Type="ecp">Def2-ECP</ECP>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="def2-svp">
+<BasisSet Type="ECPOrbital">def2-svp</BasisSet>
+<ECP Type="ecp">Def2-ECP</ECP>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="B">
+<BasisSet uniqueKey="def2-svp:ECPOrbital">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+<Element tag="F">
+<BasisSet uniqueKey="def2-svp:ECPOrbital">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="B">
+0 0 0 0 0 0 0 0 </Element>
+<Element tag="F">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="B">
+0 0 0 0 0 0 0 0 </Element>
+<Element tag="F">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+</Map>
+<Data>
+BasisSet=Def2-ECP
+Type=ecp Category=AUXILIARY Spherical=UnknownCoordSys ContType=UnknownContType
+EndBasisSet
+BasisSet=def2-svp
+Type=ECPOrbital Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
+element=B
+contraction shell=S num_primitives=5 num_coefficients=1
+839.31830086 -0.55929201074E-02
+126.26464843 -0.41565520771E-01
+28.620600763 -0.18299816983
+7.8793722710 -0.46540391866
+2.4088857172 -0.44173884791
+contraction shell=S num_primitives=1 num_coefficients=1
+0.25105109036 1.0000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.83648866069E-01 1.0000000
+contraction shell=P num_primitives=3 num_coefficients=1
+6.0332223619 -0.35603672456E-01
+1.2499157866 -0.19895775769
+0.33871676350 -0.50850202618
+contraction shell=P num_primitives=1 num_coefficients=1
+0.96415632351E-01 1.0000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.5000000 1.0000000
+element=F
+contraction shell=S num_primitives=5 num_coefficients=1
+2894.8325990 -0.53408255515E-02
+435.41939120 -0.39904258866E-01
+98.843328866 -0.17912768038
+27.485198001 -0.46758090825
+8.5405498171 -0.44653131020
+contraction shell=S num_primitives=1 num_coefficients=1
+1.0654578038 1.0000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.33247346748 1.0000000
+contraction shell=P num_primitives=3 num_coefficients=1
+22.696633924 -0.45212874436E-01
+4.9872339257 -0.23754317067
+1.3491613954 -0.51287353587
+contraction shell=P num_primitives=1 num_coefficients=1
+0.34829881977 1.0000000
+contraction shell=D num_primitives=1 num_coefficients=1
+1.4000000 1.0000000
+EndBasisSet
+</Data>
+</MolecularConfig>

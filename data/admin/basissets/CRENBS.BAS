@@ -728,7 +728,7 @@ contraction shell=F num_primitives=5 num_coefficients=1
 1.8778761 0.3385913
 0.8651224 0.1097074
 0.3714973 0.0183220
-atom=Uun
+atom=Ds
 contraction shell=S num_primitives=6 num_coefficients=1
 18.561479 -0.0116504
 4.2815409 -0.1376744
@@ -774,7 +774,7 @@ contraction shell=F num_primitives=5 num_coefficients=1
 3.7247118 0.3765663
 1.8829343 0.3183215
 0.7479886 0.0942456
-atom=Uuu
+atom=Rg
 contraction shell=S num_primitives=6 num_coefficients=1
 28.982198 -0.0076983
 3.1520539 -1.5250903
@@ -820,7 +820,7 @@ contraction shell=F num_primitives=5 num_coefficients=1
 2.0820072 0.3322471
 0.9727928 0.1003968
 0.4197411 0.0160408
-atom=Uub
+atom=Cn
 contraction shell=S num_primitives=6 num_coefficients=1
 21.711907 -0.0117747
 4.0519063 -0.3501435
@@ -866,7 +866,7 @@ contraction shell=F num_primitives=5 num_coefficients=1
 2.0485838 0.3159730
 0.9323977 0.0816303
 0.3925141 0.0106859
-atom=Uut
+atom=Nh
 contraction shell=S num_primitives=6 num_coefficients=1
 18.044113 -0.0149534
 4.1716298 -0.4412975
@@ -914,7 +914,7 @@ contraction shell=F num_primitives=5 num_coefficients=1
 2.2437546 0.5345413
 1.0307168 0.3266730
 0.4416325 0.0944255
-atom=Uuq
+atom=Fl
 contraction shell=S num_primitives=6 num_coefficients=1
 39.975762 -0.0063174
 4.1097837 -0.2705511
@@ -962,7 +962,7 @@ contraction shell=F num_primitives=5 num_coefficients=1
 2.3508303 0.3197556
 1.1103357 0.0831312
 0.4948663 0.0106347
-atom=Uup
+atom=Mc
 contraction shell=S num_primitives=6 num_coefficients=1
 36.443830 -0.0072536
 4.3686812 -0.3159259
@@ -1010,7 +1010,7 @@ contraction shell=F num_primitives=5 num_coefficients=1
 4.2628352 0.3152939
 2.4147049 0.2888529
 1.0384794 0.0826323
-atom=Uuh
+atom=Lv
 contraction shell=S num_primitives=6 num_coefficients=1
 13.151181 -0.0199376
 5.2514419 -0.2048551
@@ -1056,7 +1056,7 @@ contraction shell=F num_primitives=5 num_coefficients=1
 4.7704078 0.3650974
 2.4780453 0.4017765
 0.0523035 0.5220167
-atom=Uus
+atom=Ts
 contraction shell=S num_primitives=6 num_coefficients=1
 22.473140 -0.0101151
 7.1088634 -0.1153737

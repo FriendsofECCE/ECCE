@@ -6,6 +6,7 @@
 
 #include "NModesGUI.H"
 #include "SpectrumCanvas.H"
+#include "tdat/VibAnalysis.H"
 
 #include <wx/frame.h>
 #include <wx/weakref.h>
@@ -79,6 +80,17 @@ class NModePanel : public NModesGUI,
       void initialize();
       void setSlider();
       void fillTable();
+      /** Irreps and descriptions of the modes (VibAnalysis) into p_vib. */
+      void analyseModes();
+      /** Mode column width and text for the grid's current width. */
+      void fitModeColumn();
+      void showModeDetail(int row);
+      /** Sets a description label to `text`, wrapped to two lines at its width. */
+      static void setWrapped(wxStaticText *label, const std::vector<wxString>& parts);
+      void dumpTableIfRequested();
+      wxString cellTip(int row, int col) const;
+      void OnGridMotion(wxMouseEvent& event);
+      void OnLabelMotion(wxMouseEvent& event);
       bool fillGraph();
       void createSpectrumPane();
       void openSpectrumWindow();
@@ -126,6 +138,7 @@ class NModePanel : public NModesGUI,
 
       /* currently selected row; GetSelected* methods don't work */
       int p_selectedRow;
+      int p_initialMode = -1;   // the row the panel opened on, for the dump
 
       int         p_loopSpeed;
       int         p_currentStep;
@@ -134,6 +147,19 @@ class NModePanel : public NModesGUI,
       //  shifts the other.
       int p_irColumn;
       int p_ramanColumn;
+      int p_symColumn = -1;
+      int p_modeColumn = -1;
+      /** ECCE's own analysis of each mode, and what the code printed. */
+      VibResult p_vib;
+      vector<string> p_codeSym;
+      vector<wxString> p_modeFull;   // untruncated Mode cells
+      //  The selected mode's frequency and description: under the table, and
+      //  under the plot in the Graph view (p_graphFreq, p_graphDetail).
+      wxStaticText *p_modeDetail = NULL;
+      wxStaticText *p_graphFreq = NULL;
+      wxStaticText *p_graphDetail = NULL;
+      std::vector<wxString> p_detailParts;
+      wxString p_detailText;          // unwrapped, for re-wrapping on a resize
       int         p_mode;
       int         p_numAnimations;
       bool        p_isValid;

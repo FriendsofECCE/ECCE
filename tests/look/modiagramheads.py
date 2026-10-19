@@ -6,10 +6,12 @@
 Paints the real MoDiagramCanvas (tests/look/modiagramheads.C) at several
 widths, three times each with one heading blanked, and takes each heading's
 box from the pixels that change.  Fails if two boxes meet, or a box leaves
-the picture.  Needs wx for a bitmap DC, no display.
+the picture.  wxGTK needs a display even for a bitmap DC: without $DISPLAY
+it runs under xvfb-run, and SKIPs (77) when that is missing too.
 """
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -60,12 +62,18 @@ def main():
         print(b.stderr[-3000:])
         return 1
     env = dict(os.environ, HOME=work, ECCE_HOME=ROOT, ECCE_REALUSERHOME=work)
+    wrap = []
+    if not os.environ.get("DISPLAY"):
+        if not shutil.which("xvfb-run"):
+            print("SKIP: no DISPLAY and no xvfb-run")
+            return 77
+        wrap = ["xvfb-run", "-a"]
     status = 0
     L, C, R = o.left, "Molecular orbitals", o.right
 
     def paint(name, width, l, c, r):
         path = os.path.join(work, "%s-%d.png" % (name, width))
-        res = out([binary, path, str(width), l, c, r], env=env, timeout=60)
+        res = out(wrap + [binary, path, str(width), l, c, r], env=env, timeout=60)
         if res.returncode:
             print(res.stderr[-500:])
             sys.exit(1)
@@ -102,7 +110,7 @@ def main():
     if o.outdir and os.path.exists(os.path.join(o.outdir, "heads-600.png")):
         for width in (330, 600):
             path = os.path.join(o.outdir, "clicked-%d.png" % width)
-            res = out([binary, path, str(width), L, C, R, "click"], env=env,
+            res = out(wrap + [binary, path, str(width), L, C, R, "click"], env=env,
                       timeout=60)
             if res.returncode:
                 print(res.stderr[-500:])

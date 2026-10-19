@@ -30,6 +30,10 @@ chemical/x-gromacs-trajectory            .xtc .trr
 chemical/x-gromacs-topology              .gmxtop
 chemical/x-gromacs-include               .itp .ndx
 chemical/x-gromacs-log                   .gmxlog
+chemical/x-gromacs-prepare               .gmxprep
+chemical/x-gromacs-source-pdb            .gmxpdb
+chemical/x-gromacs-source-mineral        .gmxmin
+chemical/x-gromacs-forcefield            .gmxff
 chemical/x-nwdirdy-file30                .file30
 chemical/x-polyrate-input                .fu5
 chemical/x-polyrate-output               .fu6
@@ -50,12 +54,16 @@ chemical/x-gamessuk-input                .gki
 chemical/x-gamessuk-output               .gko
 chemical/x-orca-input                    .orcain
 chemical/x-orca-output                   .orcaout
+chemical/x-orca-gbw                      .gbw
+chemical/x-orca-guess                    .gbwin
 chemical/x-ecceqm-input                  .qmin
 chemical/x-ecceqm-output                 .qmout
 chemical/x-mopac-input                   .mop
 chemical/x-mopac-output                  .mopout
 chemical/x-qe-input                      .pwin
 chemical/x-qe-output                     .pwout
+chemical/x-cp2k-input                    .cp2kin
+chemical/x-cp2k-output                   .cp2kout
 application/x-compress                   .Z
 application/x-gzip                       .gz .tgz
 image/x-icon                             .ico

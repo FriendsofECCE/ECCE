@@ -108,6 +108,16 @@ int PropTSVecTable::tables(void) const
   return p_values->size();
 }
 
+// A step that has no frame (an energy-plot point past the end of a thinned
+// trace) maps to the nearest frame rather than reading past the series.
+int PropTSVecTable::nearestTable(int step) const
+{
+  if (p_values == 0 || p_values->empty()) return -1;
+  if (step < 0) return 0;
+  if (step >= (int)p_values->size()) return (int)p_values->size() - 1;
+  return step;
+}
+
 /////////////////////////////////////////
 double PropTSVecTable::value(int table, int row, int col) const
 {

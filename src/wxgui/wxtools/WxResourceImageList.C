@@ -9,6 +9,7 @@
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
+#include "dsm/VDoc.H"
 
 #include "util/EcceURL.H"
 
@@ -215,3 +216,18 @@ WxResourceImageList::getBitmap(Resource * resource,
          getImageList()->getImageIndex(resource, iconType));
 }
 
+
+
+//  The icon of the code a calculation or task runs, for the detail pane's Code
+//  row.  GROMACS tasks are registered under NWChem MD types, whose icons name
+//  the wrong code.
+wxBitmap
+WxResourceImageList::getCodeBitmap(Resource * resource)
+{
+  if (resource->getProp(VDoc::getEcceNamespace() + ":application") ==
+      "GROMACS") {
+    ewxBitmap bitmap(wxT("svg/study-gromacs.svg"));
+    if (bitmap.IsOk()) return bitmap;
+  }
+  return getBitmap(resource);
+}

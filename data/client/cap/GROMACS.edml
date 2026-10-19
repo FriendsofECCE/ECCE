@@ -28,9 +28,23 @@
 
 <DataFiles>
   <Input  type="primary" mimetype="chemical/x-gromacs-mdp" comment="true" commentstring=";">gromacs.mdp</Input>
+  <!-- A Prepare task's recipe (md.gmxprep writes it from the task model);
+       gensub runs pdb2gmx, editconf, solvate and genion from it.  The raw
+       PDB is stored as .gmxpdb, not .pdb: a .pdb is the task's fragment
+       and TaskJob::getDataFiles matches by type. -->
+  <Input  type="primary" mimetype="chemical/x-gromacs-prepare">gromacs.gmxprep</Input>
   <!-- Attached by the user, matched by type: .itp and .ndx files the
        topology includes. -->
   <Input  type="auxiliary" mimetype="chemical/x-gromacs-include"></Input>
+  <Input  type="auxiliary" mimetype="chemical/x-gromacs-source-pdb"></Input>
+  <!-- A MINFF Prepare's mineral: conf.gmxmin (structure and cell) and
+       topol.gmxmin (topology), built on the client by minff_topology.py; its
+       includes (min.itp, min.ff/...) are ordinary .itp inputs. -->
+  <Input  type="auxiliary" mimetype="chemical/x-gromacs-source-mineral"></Input>
+  <!-- An imported force field folder, one input per file named
+       <name>.ff__SLASH__<file>.gmxff (any file name a force field uses is
+       typed by the one extension, which the job strips). -->
+  <Input  type="auxiliary" mimetype="chemical/x-gromacs-forcefield"></Input>
   <Output type="primary" mimetype="chemical/x-gromacs-log">gromacs.gmxlog</Output>
   <Output type="parse" verifypattern="GROMACS:" mimetype="chemical/x-gromacs-log">gromacs.gmxlog</Output>
   <!-- Attached by the user, matched by type.  "topology" and "restart" are

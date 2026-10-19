@@ -1,0 +1,350 @@
+// For compilers that support precompilation, includes "wx/wx.h".
+#include "wx/wxprec.h"
+
+#ifndef WX_PRECOMP
+#include "wx/wx.h"
+#endif
+
+#include <cstdlib>
+#include <sstream>
+
+#include "dsm/MDCompositeModel.H"
+#include "tdat/DynamicsModel.H"
+#include "tdat/InteractionModel.H"
+
+#include "wxgui/ewxButton.H"
+#include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxChoice.H"
+#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxTextCtrl.H"
+#include "wxgui/GromacsInputsPanel.H"
+#include "wxgui/GromacsRunPanel.H"
+#include "wxgui/MDEdBase.H"
+
+static const wxWindowID ID_RUN_FIELD = wxNewId();
+static const wxWindowID ID_RUN_FILL  = wxNewId();
+static const wxWindowID ID_RUN_FILLMOL = wxNewId();
+
+static wxString W(const string& s) { return wxString::FromUTF8(s.c_str()); }
+static string S(const wxString& w) { return string(w.ToUTF8()); }
+
+static ewxChoice *makeChoice(wxWindow *parent, const char *a, const char *b,
+                             const char *c = 0)
+{
+  wxArrayString items;
+  items.Add(wxString::FromUTF8(a));
+  items.Add(wxString::FromUTF8(b));
+  if (c) items.Add(wxString::FromUTF8(c));
+  ewxChoice *ch = new ewxChoice(parent, ID_RUN_FIELD, wxDefaultPosition,
+                                wxDefaultSize, items);
+  ch->SetSelection(0);
+  return ch;
+}
+
+GromacsRunPanel::GromacsRunPanel(MDEdBase *owner, wxWindow *parent)
+  : ewxPanel(parent, wxID_ANY)
+{
+  p_owner = owner;
+  p_loading = false;
+  p_editable = true;
+
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+
+  // ---- defines and restraints ----
+  wxStaticBoxSizer *defs = new wxStaticBoxSizer(wxVERTICAL, this,
+                                                _("Defines and restraints"));
+  wxWindow *db = defs->GetStaticBox();
+  wxFlexGridSizer *g1 = new wxFlexGridSizer(2, 4, 6);
+  g1->AddGrowableCol(1);
+  g1->Add(new ewxStaticText(db, wxID_ANY, _("Defines:")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_defines = new ewxTextCtrl(db, ID_RUN_FIELD);
+  p_defines->SetToolTip(_("Flags for the topology's preprocessor, for example "
+                          "-DFLEXIBLE -DOPC3_IOD_LM. Written as the define line."));
+  g1->Add(p_defines, 1, wxEXPAND);
+  p_posres = new ewxCheckBox(db, ID_RUN_FIELD, _("Restrain positions"));
+  g1->Add(p_posres, 0, wxALIGN_CENTER_VERTICAL);
+  wxBoxSizer *pr = new wxBoxSizer(wxHORIZONTAL);
+  pr->Add(new ewxStaticText(db, wxID_ANY, _("named")), 0,
+          wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_posresName = new ewxTextCtrl(db, ID_RUN_FIELD, "POSRES",
+                                 wxDefaultPosition, wxSize(160, -1));
+  p_posresName->SetToolTip(_("Adds -D<name> to the defines unless they already "
+                             "have it. Several names may be given, for a "
+                             "topology that restrains per chain; the topology must use this name in an "
+                             "#ifdef around [ position_restraints ]."));
+  pr->Add(p_posresName, 0);
+  g1->Add(pr, 0);
+  defs->Add(g1, 0, wxALL | wxEXPAND, 6);
+  top->Add(defs, 0, wxALL | wxEXPAND, 6);
+
+  // ---- groups by residue name (dynamics tasks) ----
+  p_groupBox = new wxPanel(this);
+  wxStaticBoxSizer *grp = new wxStaticBoxSizer(wxVERTICAL, p_groupBox,
+                                               _("Groups by residue name"));
+  wxWindow *gb = grp->GetStaticBox();
+  ewxStaticText *gnote = new ewxStaticText(gb, wxID_ANY,
+      _("One group per line: name = residue names, for example "
+        "Water_and_ions = SOL Cu; mol:<name> takes all atoms of a molecule "
+        "of the topology, such as a protein chain (chainA = "
+        "mol:Protein_chain_A). ECCE writes the index file from the "
+        "starting structure. With an .ndx file attached on the Inputs page "
+        "the group names are yours and ECCE writes no index file."));
+  gnote->Wrap(560);
+  grp->Add(gnote, 0, wxALL | wxEXPAND, 4);
+  p_groups = new ewxTextCtrl(gb, ID_RUN_FIELD, wxEmptyString,
+                             wxDefaultPosition, wxSize(-1, 70),
+                             wxTE_MULTILINE);
+  grp->Add(p_groups, 1, wxALL | wxEXPAND, 4);
+  ewxButton *fill = new ewxButton(gb, ID_RUN_FILL,
+                                  _("One group per residue name"));
+  ewxButton *fillMol = new ewxButton(gb, ID_RUN_FILLMOL,
+                                     _("One group per molecule (chains)"));
+  wxBoxSizer *fills = new wxBoxSizer(wxHORIZONTAL);
+  fills->Add(fill, 0, wxRIGHT, 6);
+  fills->Add(fillMol, 0);
+  grp->Add(fills, 0, wxALL, 4);
+  wxFlexGridSizer *g2 = new wxFlexGridSizer(2, 4, 6);
+  g2->Add(new ewxStaticText(gb, wxID_ANY, _("Centre of mass removal groups:")),
+          0, wxALIGN_CENTER_VERTICAL);
+  p_comGroups = makeChoice(gb, "System", "Defined groups");
+  g2->Add(p_comGroups);
+  g2->Add(new ewxStaticText(gb, wxID_ANY, _("Thermostat groups:")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_tcGroups = makeChoice(gb, "System", "Defined groups");
+  g2->Add(p_tcGroups);
+  grp->Add(g2, 0, wxALL, 4);
+  p_groupBox->SetSizer(grp);
+  top->Add(p_groupBox, 0, wxALL | wxEXPAND, 6);
+
+  // ---- pressure coupling (dynamics tasks) ----
+  p_pressureBox = new wxPanel(this);
+  wxStaticBoxSizer *prs = new wxStaticBoxSizer(wxVERTICAL, p_pressureBox,
+                                               _("Pressure coupling"));
+  wxWindow *pb = prs->GetStaticBox();
+  wxFlexGridSizer *g3 = new wxFlexGridSizer(2, 4, 6);
+  g3->Add(new ewxStaticText(pb, wxID_ANY, _("Barostat:")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_barostat = makeChoice(pb, "C-rescale", "Berendsen", "Parrinello-Rahman");
+  g3->Add(p_barostat);
+  g3->Add(new ewxStaticText(pb, wxID_ANY, _("Coupling type:")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_pcoupltype = makeChoice(pb, "isotropic", "semiisotropic", "anisotropic");
+  g3->Add(p_pcoupltype);
+  g3->Add(new ewxStaticText(pb, wxID_ANY, _("Coupling interval (steps):")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_nstpcouple = new ewxTextCtrl(pb, ID_RUN_FIELD, wxEmptyString,
+                                 wxDefaultPosition, wxSize(80, -1));
+  p_nstpcouple->SetToolTip(_("nstpcouple; leave blank for grompp's own choice."));
+  g3->Add(p_nstpcouple);
+  prs->Add(g3, 0, wxALL, 4);
+  ewxStaticText *pnote = new ewxStaticText(pb, wxID_ANY,
+      _("Used when constant pressure is switched on on the Pressure tab. The "
+        "pressure and compressibility there are repeated for every direction "
+        "the type has."));
+  pnote->Wrap(560);
+  prs->Add(pnote, 0, wxALL | wxEXPAND, 4);
+  p_pressureBox->SetSizer(prs);
+  top->Add(p_pressureBox, 0, wxALL | wxEXPAND, 6);
+
+  // ---- extra lines ----
+  wxStaticBoxSizer *ext = new wxStaticBoxSizer(wxVERTICAL, this,
+                                               _("Extra .mdp lines"));
+  wxWindow *eb = ext->GetStaticBox();
+  ewxStaticText *enote = new ewxStaticText(eb, wxID_ANY,
+      _("Written at the end of the .mdp, for example DispCorr = EnerPres. A "
+        "key written here replaces the line ECCE would write for it."));
+  enote->Wrap(560);
+  ext->Add(enote, 0, wxALL | wxEXPAND, 4);
+  p_extra = new ewxTextCtrl(eb, ID_RUN_FIELD, wxEmptyString,
+                            wxDefaultPosition, wxSize(-1, 90),
+                            wxTE_MULTILINE);
+  ext->Add(p_extra, 1, wxALL | wxEXPAND, 4);
+  top->Add(ext, 1, wxALL | wxEXPAND, 6);
+
+  p_warning = new ewxStaticText(this, wxID_ANY, wxEmptyString);
+  top->Add(p_warning, 0, wxALL | wxEXPAND, 10);
+
+  SetSizerAndFit(top);   // sizes the static boxes before GTK first allocates them
+
+  Bind(wxEVT_TEXT, &GromacsRunPanel::OnChanged, this, ID_RUN_FIELD);
+  Bind(wxEVT_CHECKBOX, &GromacsRunPanel::OnChanged, this, ID_RUN_FIELD);
+  Bind(wxEVT_CHOICE, &GromacsRunPanel::OnChanged, this, ID_RUN_FIELD);
+  Bind(wxEVT_BUTTON, &GromacsRunPanel::OnFill, this, ID_RUN_FILL);
+  Bind(wxEVT_BUTTON, &GromacsRunPanel::OnFillMolecules, this, ID_RUN_FILLMOL);
+}
+
+GromacsRunPanel::~GromacsRunPanel()
+{
+  p_owner = 0;
+}
+
+void GromacsRunPanel::setEditable(bool editable)
+{
+  p_editable = editable;
+  Enable(editable);
+}
+
+void GromacsRunPanel::refresh()
+{
+  MDCompositeModel& m = p_owner->getMDModel();
+  InteractionModel *im = m.getInteractionModel();
+  if (im == 0) return;
+  const GromacsRun& g = im->getGromacsRun();
+  p_loading = true;
+  p_defines->ChangeValue(W(g.defines));
+  p_posres->SetValue(g.posres);
+  p_posresName->ChangeValue(W(g.posresName));
+  p_groups->ChangeValue(W(g.groups));
+  p_comGroups->SetSelection(g.comGroups ? 1 : 0);
+  p_tcGroups->SetSelection(g.tcGroups ? 1 : 0);
+  p_barostat->SetSelection(g.barostat >= 0 && g.barostat <= 2 ? g.barostat : 0);
+  p_pcoupltype->SetSelection(g.pcoupltype >= 0 && g.pcoupltype <= 2 ?
+                             g.pcoupltype : 0);
+  p_nstpcouple->ChangeValue(g.nstpcouple > 0 ?
+      wxString::Format("%d", g.nstpcouple) : wxString());
+  p_extra->ChangeValue(W(g.extraMdp));
+  p_loading = false;
+
+  bool dyn = m.getDynamicsModel() != 0;
+  p_groupBox->Show(dyn);
+  p_pressureBox->Show(dyn);
+  warn();
+  Layout();
+}
+
+void GromacsRunPanel::store()
+{
+  if (p_loading || p_owner == 0) return;
+  InteractionModel *im = p_owner->getMDModel().getInteractionModel();
+  if (im == 0) return;
+  GromacsRun g = im->getGromacsRun();
+  g.defines = S(p_defines->GetValue());
+  g.posres = p_posres->GetValue();
+  string name = S(p_posresName->GetValue());
+  g.posresName = name.empty() ? GromacsRun().posresName : name;
+  g.groups = S(p_groups->GetValue());
+  g.comGroups = p_comGroups->GetSelection() == 1 ? 1 : 0;
+  g.tcGroups = p_tcGroups->GetSelection() == 1 ? 1 : 0;
+  g.barostat = p_barostat->GetSelection();
+  g.pcoupltype = p_pcoupltype->GetSelection();
+  int n = atoi(S(p_nstpcouple->GetValue()).c_str());
+  g.nstpcouple = n > 0 ? n : 0;
+  g.extraMdp = S(p_extra->GetValue());
+  if (g != im->getGromacsRun()) {
+    im->setGromacsRun(g);
+    p_owner->setSaveState(true);
+  }
+  warn();
+}
+
+// Mistakes the user can still fix, said where they are made; none blocks.
+void GromacsRunPanel::warn()
+{
+  MDCompositeModel& m = p_owner->getMDModel();
+  InteractionModel *im = m.getInteractionModel();
+  string msg;
+  if (im != 0 && m.getDynamicsModel() != 0) {
+    const GromacsRun& g = im->getGromacsRun();
+    if (m.getDynamicsModel()->getUseNPT()) {
+      msg = GromacsRun::pairProblem(g.barostat, g.pcoupltype);
+    }
+    bool defined = g.groups.find_first_not_of(" \t\r\n") != string::npos;
+    if ((g.comGroups || g.tcGroups) && !defined) {
+      msg += (msg.empty() ? "" : "\n") + string(
+          "Defined groups are chosen but no group is defined.");
+    }
+  }
+  p_warning->SetLabel(W(msg));
+  p_warning->Wrap(560);
+  Layout();
+}
+
+void GromacsRunPanel::OnChanged(wxCommandEvent& event)
+{
+  store();
+  event.Skip();
+}
+
+void GromacsRunPanel::fillGroups(bool molecules)
+{
+  GromacsInputsPanel *in = p_owner->gromacsInputs();
+  vector<string> names;
+  if (in != 0) names = molecules ? in->moleculeNames() : in->residueNames();
+  if (names.empty()) {
+    p_warning->SetLabel(molecules
+        ? _("No molecules found: attach a topology on the Inputs page first.")
+        : _("No residue names found: attach a starting structure (.gro) on "
+            "the Inputs page first."));
+    p_warning->Wrap(560);
+    Layout();
+    return;
+  }
+  string text;
+  for (size_t i = 0; i < names.size(); i++) {
+    text += (i ? "\n" : "") + names[i] + " = " + (molecules ? "mol:" : "") + names[i];
+  }
+  p_groups->SetValue(W(text));
+}
+
+void GromacsRunPanel::OnFill(wxCommandEvent& event)
+{
+  fillGroups(false);
+  event.Skip();
+}
+
+void GromacsRunPanel::OnFillMolecules(wxCommandEvent& event)
+{
+  fillGroups(true);
+  event.Skip();
+}
+
+// One line per answer: the hook's output file is read by line.
+static string oneLine(string s)
+{
+  size_t p;
+  while ((p = s.find('\n')) != string::npos) s.replace(p, 1, "\\n");
+  return s;
+}
+
+string GromacsRunPanel::summary()
+{
+  InteractionModel *im = p_owner->getMDModel().getInteractionModel();
+  if (im == 0) return "no model";
+  const GromacsRun& g = im->getGromacsRun();
+  std::ostringstream os;
+  os << "defines=" << S(p_defines->GetValue())
+     << " posres=" << (p_posres->GetValue() ? 1 : 0)
+     << " posresname=" << S(p_posresName->GetValue())
+     << " groups=[" << oneLine(S(p_groups->GetValue())) << "]"
+     << " comgroups=" << p_comGroups->GetSelection()
+     << " tcgroups=" << p_tcGroups->GetSelection()
+     << " barostat=" << p_barostat->GetSelection()
+     << " pcoupltype=" << p_pcoupltype->GetSelection()
+     << " nstpcouple=" << S(p_nstpcouple->GetValue())
+     << " extra=[" << oneLine(S(p_extra->GetValue())) << "]"
+     << " shown=" << (p_groupBox->IsShown() ? "groups+pressure" : "basic")
+     << " model-defines=" << g.defines
+     << " warning=[" << oneLine(S(p_warning->GetLabel())) << "]";
+  return os.str();
+}
+
+string GromacsRunPanel::setField(const string& name, const string& value)
+{
+  wxString v = W(value);
+  if (name == "defines") p_defines->SetValue(v);
+  else if (name == "posres") p_posres->SetValue(value == "1");
+  else if (name == "posresname") p_posresName->SetValue(v);
+  else if (name == "groups") p_groups->SetValue(v);
+  else if (name == "extra") p_extra->SetValue(v);
+  else if (name == "nstpcouple") p_nstpcouple->SetValue(v);
+  else if (name == "comgroups") p_comGroups->SetSelection(atoi(value.c_str()));
+  else if (name == "tcgroups") p_tcGroups->SetSelection(atoi(value.c_str()));
+  else if (name == "barostat") p_barostat->SetSelection(atoi(value.c_str()));
+  else if (name == "pcoupltype") p_pcoupltype->SetSelection(atoi(value.c_str()));
+  else if (name == "fill") { fillGroups(false); return "ok"; }
+  else if (name == "fillmol") { fillGroups(true); return "ok"; }
+  else return "unknown field";
+  store();   // choices and check boxes raise no event when set in code
+  return "ok";
+}

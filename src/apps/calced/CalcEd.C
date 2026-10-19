@@ -43,6 +43,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/ICalcUtils.H"
 #include "dsm/JCode.H"
+#include "dsm/OrbitalGuess.H"
 #include "dsm/ResourceTool.H"
 #include "dsm/ResourceType.H"
 #include "dsm/SummaryIterator.H"
@@ -278,6 +279,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
 /**
  * One command of the ECCE_TEST_CALCED hook:
  *   state             the stored ES.Theory.UseSymmetry, the box, the theory
+ *   guess             the initial-guess line; guessdefault clicks its button
  *   theory <label>    choose a theory as the Theory menu does
  *   box 0|1           untick/tick "Use symmetry" as a click does
  *   opentheory        Theory Details..., closetheory closes it
@@ -315,6 +317,17 @@ void CalcEd::runTestCommand(const string& line)
     wxCommandEvent event(wxEVT_COMMAND_CHECKBOX_CLICKED,
                          ID_CHECKBOX_CALCED_USE_SYMMETRY);
     OnCheckboxCalcedUseSymmetryClick(event);
+    outcome = "ok";
+  } else if (line == "guess") {
+    TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
+    outcome = string("shown=") +
+        (p_guessColumn->IsShown(p_guessRow) ? "1" : "0") +
+        " has=" + (job != 0 && job->hasOrbitalGuess() ? "1" : "0") +
+        " text=" + p_guessText->GetLabel().ToStdString();
+  } else if (line == "guessdefault") {
+    wxCommandEvent event(wxEVT_COMMAND_BUTTON_CLICKED,
+                         ID_BUTTON_CALCED_GUESS_DEFAULT);
+    OnButtonCalcedGuessDefaultClick(event);
     outcome = "ok";
   } else if (line == "opentheory") {
     startTheoryApp(false);
@@ -1205,7 +1218,8 @@ void CalcEd::OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event )
 
 /**
  * The basis sets the quick menu offers: the code's own short list when its
- * .edml gives one (ECCE-QM), otherwise the built-in list.  "-" is a separator.
+ * .edml gives one (ECCE-QM), otherwise the built-in list.  "-" is a separator,
+ * "#Name" a greyed group heading.
  */
 vector<string> CalcEd::quickPicks() const
 {
@@ -1225,6 +1239,9 @@ void CalcEd::OnButtonCalcedBasisQuickClick( wxCommandEvent& event )
   for (size_t i = 0; i < picks.size(); i++) {
     if (picks[i] == "-") {
       menu.AppendSeparator();
+    } else if (!picks[i].empty() && picks[i][0] == '#') {
+      menu.Append(wxID_ANY, wxString::FromUTF8(picks[i].substr(1).c_str()))
+          ->Enable(false);
     } else {
       menu.Append(ID_BASIS_PICK0 + (int)i, picks[i]);
     }
@@ -1693,6 +1710,17 @@ void CalcEd::OnButtonCalcedVerifyClick( wxCommandEvent& event )
 
 void CalcEd::OnButtonCalcedLaunchClick( wxCommandEvent& event )
 {
+  //  A calculation that is ready but was never saved has no deck yet
+  //  (codes without a basis choice never trigger basisMCB's auto-save):
+  //  write it now, as Save would, and stop if the generator refuses.
+  if (!p_hasInputFile) {
+    enableSave();
+    doSave();
+    verifyInput();
+    if (!p_hasInputFile)
+      return;
+  }
+
   if (!regenerateIfStructureChanged())
     return;
 
@@ -1883,6 +1911,8 @@ void CalcEd::propertyMCB(wxCommandEvent& event)
     enableSave();
     doSave();
   }
+  //  The orbitals of an earlier calculation arrive as properties and a file.
+  refreshOrbitalGuess();
 }
 
 
@@ -1890,7 +1920,7 @@ void CalcEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
   p_feedback->setSaveHandler(this);
-  GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
+  GetSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
 
   //  Save sits in the button row, a standard button just before Launch.
   wxButton *save = p_feedback->adoptSaveButton(this);
@@ -3281,6 +3311,83 @@ void CalcEd::refreshBasisSetFields()
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_XC))->SetLabel("");
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_CD))->SetLabel("");
   }
+  refreshOrbitalGuess();
+}
+
+
+/**
+ * The initial-guess line under the Settings box: shown only when this
+ * calculation carries the orbitals of an earlier one.  A different basis
+ * set is a warning-free fact here, the code projects the orbitals.
+ */
+void CalcEd::refreshOrbitalGuess()
+{
+  TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
+  bool has = job != 0 && job->hasOrbitalGuess();
+  //  A recorded source without its file: the line must not claim orbitals
+  //  that the job cannot read.
+  bool lost = job != 0 && !has && !OrbitalGuess::sourceName(job).empty();
+  bool editable = job != 0 &&
+      job->getState() < ResourceDescriptor::STATE_SUBMITTED;
+  if (has || lost) {
+    string text;
+    if (lost) {
+      text = "Initial guess: the orbitals from " +
+             OrbitalGuess::sourceName(job) +
+             " are missing; the job starts from the default guess";
+    } else {
+      text = "Initial guess: MOs from " + OrbitalGuess::sourceName(job);
+      string was = OrbitalGuess::sourceBasis(job);
+      //  The importer stores the name in lower case, the library in mixed.
+      if (p_basis != 0 && !was.empty() &&
+          wxString::FromUTF8(was).CmpNoCase(
+              wxString::FromUTF8(p_basis->name())) != 0)
+        text += " (projected from " + was + ")";
+      //  A deck made before the orbitals were attached does not read them,
+      //  and Save does nothing unless something is marked changed.
+      if (editable && !deckNamesOrbitalGuess()) {
+        text += "; the input file is out of date, Save to apply";
+        enableSave();
+      }
+    }
+    p_guessText->SetLabel(wxString::FromUTF8(text));
+    p_guessText->SetToolTip(wxString::FromUTF8(text));
+    FindWindow(ID_BUTTON_CALCED_GUESS_DEFAULT)->Enable(has && editable);
+  }
+  wxSizer *column = p_guessColumn;
+  bool show = has || lost;
+  if (column != 0 && column->IsShown(p_guessRow) != show) {
+    column->Show(p_guessRow, show);
+    GetSizer()->Layout();
+    refit();
+  }
+}
+
+
+//  True when there is no deck yet, or the deck refers to the guess file.
+bool CalcEd::deckNamesOrbitalGuess()
+{
+  try {
+    istream *is = p_iCalc->getDataFile(JCode::PRIMARY_INPUT);
+    if (is == 0) return true;
+    string text;
+    StringConverter::streamToText(*is, text);
+    delete is;
+    return text.find(TaskJob::orbitalGuessFile()) != string::npos;
+  } catch (...) {
+    return true;
+  }
+}
+
+
+void CalcEd::OnButtonCalcedGuessDefaultClick( wxCommandEvent& event )
+{
+  TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
+  if (job != 0) job->clearOrbitalGuess();
+  refreshOrbitalGuess();
+  //  The deck has to be written again without MORead.
+  enableSave();
+  event.Skip();
 }
 
 
@@ -3341,6 +3448,20 @@ void CalcEd::enableBasisSetFields()
   bool isSubmitted(hasCalc
           && p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED);
 
+  //  A code none of whose theories has a basis set (MOPAC, QE) gets no
+  //  box (#348). A code with both kinds (NWChem's plane waves) keeps it
+  //  greyed, so the layout does not jump while the theory is changed.
+  bool codeUsesBasis = !p_code;
+  if (p_code) {
+    vector<TTheory> *all = p_code->theories();
+    for (size_t i = 0; all && i < all->size() && !codeUsesBasis; i++)
+      codeUsesBasis = p_code->theoryNeedsBasis((*all)[i]);
+    delete all;
+  }
+  if (p_basisMark && p_basisMark->IsShown() != codeUsesBasis) {
+    p_basisMark->Show(codeUsesBasis);
+    Layout();
+  }
   p_basisSetTool->Enable(hasFragment && needsBasis);
   FindWindow(ID_BUTTON_CALCED_BASIS_QUICK)->Enable(!isSubmitted
           && hasFragment && needsBasis);
@@ -3475,8 +3596,9 @@ void CalcEd::enableLaunch()
     //  never actually written -- everything ELSE about whether a bad
     //  or stale deck may be launched is Verify's job, not this one's
     //  (Andy, 2026-09-29: Verify is what should flag a bad deck; Launch
-    //  should let people do what they want with it).
-    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo && p_hasInputFile);
+    //  should let people do what they want with it).  A missing deck is
+    //  written by the Launch click itself.
+    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(togo);
 
     int box;
@@ -3612,7 +3734,7 @@ void CalcEd::showGeomEditor()
   const string note = constraintNote();
   p_constraintNote->SetLabel(wxString::FromUTF8(note));
   p_constraintNote->SetToolTip(wxString::FromUTF8(note));
-  p_buttonRow->Show(p_constraintNote, !note.empty());
+  p_constraintNote->Show(!note.empty());
   GetSizer()->Layout();
   refit();
 }
@@ -4494,6 +4616,9 @@ void CalcEd::processTheoryInput(const char* databuf)
         enableSave();
       }
     }
+    //  Readiness depends on these details; codes without a basis choice
+    //  have no auto-save to re-check Launch, so check it here.
+    if (p_theoryInitFlag && p_runtypeInitFlag) enableLaunch();
   }
 
   if (strstr(databuf, "#CLOSING") != NULL) {
@@ -4557,6 +4682,9 @@ void CalcEd::processRuntypeInput(const char* databuf)
         enableSave();
       }
     }
+    //  Readiness depends on these details; codes without a basis choice
+    //  have no auto-save to re-check Launch, so check it here.
+    if (p_theoryInitFlag && p_runtypeInitFlag) enableLaunch();
   }
 
   if (strstr(databuf, "#CLOSING") != NULL) {

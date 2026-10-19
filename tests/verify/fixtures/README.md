@@ -26,6 +26,9 @@ working ones are files the codes actually accepted.
   nwchem-ammonia-no-task.nw  NWChem reads it and does nothing
   orca-no-route.orcain    no ! line
 
+  cp2k-silicon.cp2kin     CP2K 2025.1, bulk silicon, written by ai.cp2k and
+  cp2k-nio-u-opt.cp2kin   run (and a NiO+U optimisation: UKS, DFT_PLUS_U, GEO_OPT)
+
 The exception is `qe-silicon.qein`, which is hand-written: this tree has
 no captured Quantum ESPRESSO deck, because QE support is experimental
 and has never been run in anger.  Treat it as an assertion about the

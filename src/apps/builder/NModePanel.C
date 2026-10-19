@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
   using std::cout;
   using std::cerr;
@@ -7,6 +8,8 @@
 #include <limits>
 
 #include <wx/checkbox.h>
+#include <wx/control.h>
+#include <wx/settings.h>
 #include <wx/dcmemory.h>
 #include <wx/link.h>
 #include <wx/listctrl.h>
@@ -179,6 +182,30 @@ bool NModePanel::Create(IPropCalculation *calculation,
    p_grid = (wxGrid*)FindWindow(ID_GRID_NMODE);
    p_grid->SetRowLabelSize(0);
 
+   //  Two lines under the table for the selected mode: wrapped to the
+   //  width the dock gives, a tiny minimum width so it never widens the
+   //  panel; the whole text is its tooltip.
+   {
+      wxSizer *gs = p_grid->GetContainingSizer();
+      p_modeDetail = new wxStaticText(this, wxID_ANY, "");
+      p_modeDetail->SetMinSize(wxSize(50, 2*p_modeDetail->GetCharHeight() + 2));
+      wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+      gs->Detach(p_grid);
+      col->Add(p_grid, 1, wxEXPAND);
+      col->Add(p_modeDetail, 0, wxEXPAND | wxTOP, 3);
+      gs->Insert(0, col, 1, wxGROW | wxALL, 3);
+      //  A window made now is shown whatever its sizer item's state is.
+      p_modeDetail->Show(!isGraphShown());
+   }
+   for (wxStaticText *t : { p_modeDetail, p_graphDetail })
+      t->Bind(wxEVT_SIZE, [this, t](wxSizeEvent& e) {
+         setWrapped(t, p_detailParts);
+         e.Skip();
+      });
+   p_grid->GetGridWindow()->Bind(wxEVT_MOTION, &NModePanel::OnGridMotion, this);
+   p_grid->GetGridColLabelWindow()->Bind(wxEVT_MOTION, &NModePanel::OnLabelMotion, this);
+   p_grid->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { fitModeColumn(); e.Skip(); });
+
    wxString color = config->Read("NMode/Color", "yellow");
    ewxButton *btn = (ewxButton*)FindWindow(ID_BUTTON_NMODE_VECCOLOR);
    btn->SetBackgroundColour(wxColour(color));
@@ -290,7 +317,17 @@ void NModePanel::initialize()
    TransferDataFromWindow();
    txt->SetValue(wxString::Format (_T("%d"), p_loopSpeed));
 
-   showMode(p_mode);
+   //  Translations and rotations (~0 cm-1) come first in the output; open
+   //  on the first real vibration, not a zero-scale translation.
+   for (int r = 0; r < p_grid->GetNumberRows(); r++) {
+      double f = 0;
+      if (p_grid->GetCellValue(r, 0).ToDouble(&f) && fabs(f) >= 10.0) {
+         p_mode = r;
+         break;
+      }
+   }
+   selectMode(p_mode);
+   p_initialMode = p_mode;
 
    if (!haveGraphable) {
       // Tricky situation.  Table looks better but don't want to override
@@ -312,6 +349,7 @@ void NModePanel::initialize()
    getFW().getViewer().viewAll();
 
    dumpSpectrumIfRequested();
+   dumpTableIfRequested();
 }
 
 /**
@@ -432,6 +470,15 @@ void NModePanel::createSpectrumPane()
    p_spectrum->setShowSticks(sticks);
    col->Add(p_spectrum, 1, wxEXPAND);
 
+   //  The selected mode: its frequency on one line, its description on a
+   //  full-width line of its own under the plot (see showModeDetail()).
+   p_graphFreq = new wxStaticText(pane, wxID_ANY, "");
+   p_graphFreq->SetMinSize(wxSize(50, -1));
+   col->Add(p_graphFreq, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
+   p_graphDetail = new wxStaticText(pane, wxID_ANY, "");
+   p_graphDetail->SetMinSize(wxSize(50, 2*p_graphDetail->GetCharHeight() + 2));
+   col->Add(p_graphDetail, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
+
    wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
    const int gap = 6;
 
@@ -498,10 +545,13 @@ void NModePanel::createSpectrumPane()
    //  screen (1366x768) the pane is about 140 px, room for the plot alone.
    pane->Bind(wxEVT_SIZE, [pane, col, row, noRoom, this](wxSizeEvent& e) {
       const int h = e.GetSize().y;
-      const bool plot = h >= 110, settings = h >= 190;
-      if (col->IsShown(p_spectrum) != plot || col->IsShown(row) != settings) {
+      const bool plot = h >= 110, settings = h >= 190, text = h >= 150;
+      if (col->IsShown(p_spectrum) != plot || col->IsShown(row) != settings ||
+          col->IsShown(p_graphDetail) != text) {
          col->Show(p_spectrum, plot);
          col->Show(row, settings);
+         col->Show(p_graphFreq, text);
+         col->Show(p_graphDetail, text);
          col->Show(noRoom, !plot);
       }
       e.Skip();
@@ -797,6 +847,79 @@ void NModePanel::dumpSpectrumIfRequested()
 
 
 /**
+ * ECCE_NMODE_TABLE_DUMP=<path> (#367): switch to the table, and once the
+ * window has been laid out write what it shows: the panel's and the grid's
+ * sizes, each column's width, each cell as displayed and whether its text
+ * fits, and ECCE's analysis of every mode.  For headless checks that the
+ * docked panel shows the Mode cells without widening.
+ */
+void NModePanel::dumpTableIfRequested()
+{
+   const char *path = getenv("ECCE_NMODE_TABLE_DUMP");
+   if (path == 0) return;
+   showTable();
+   const string target(path);
+   wxTimer *timer = new wxTimer();   // its own handler; ends with the process
+   timer->Bind(wxEVT_TIMER, [this, target](wxTimerEvent&) {
+      fitModeColumn();
+      FILE *out = fopen(target.c_str(), "w");
+      if (out == 0) return;
+      wxClientDC dc(p_grid->GetGridWindow());
+      dc.SetFont(p_grid->GetDefaultCellFont());
+      fprintf(out, "panel %d %d min %d %d\n", GetSize().x, GetSize().y,
+              GetEffectiveMinSize().x, GetEffectiveMinSize().y);
+      fprintf(out, "grid %d %d min %d %d\n", p_grid->GetClientSize().x,
+              p_grid->GetClientSize().y, p_grid->GetEffectiveMinSize().x,
+              p_grid->GetEffectiveMinSize().y);
+      fprintf(out, "group %s\n", p_vib.group.c_str());
+      int total = 0;
+      for (int c = 0; c < p_grid->GetNumberCols(); c++) {
+         total += p_grid->GetColSize(c);
+         wxString label = p_grid->GetColLabelValue(c);
+         label.Replace("\n", " ");
+         fprintf(out, "col %d %d %s\n", c, p_grid->GetColSize(c),
+                 (const char*)label.utf8_str());
+      }
+      fprintf(out, "colstotal %d\n", total);
+      for (int r = 0; r < p_grid->GetNumberRows(); r++) {
+         for (int c = 0; c < p_grid->GetNumberCols(); c++) {
+            const wxString v = p_grid->GetCellValue(r, c);
+            const bool fits = dc.GetTextExtent(v).x + 4 <= p_grid->GetColSize(c);
+            const bool cut = c == p_modeColumn && r < (int)p_modeFull.size() &&
+                             v != p_modeFull[r];
+            fprintf(out, "cell %d %d %d %d %s\n", r + 1, c, fits ? 1 : 0,
+                    cut ? 1 : 0, (const char*)v.utf8_str());
+         }
+         if (r < (int)p_vib.modes.size()) {
+            const VibModeInfo& m = p_vib.modes[r];
+            fprintf(out, "mode %d irrep %s ir %d raman %d known %d label %s | %s\n",
+                    r + 1, m.irrep.empty() ? "-" : m.irrep.c_str(), m.ir,
+                    m.raman, m.activityKnown, m.label.empty() ? "-" : m.label.c_str(),
+                    m.detail.c_str());
+         }
+      }
+      fprintf(out, "initial %d %s\n", p_initialMode + 1,
+              p_initialMode >= 0 && p_initialMode < p_grid->GetNumberRows()
+                 ? (const char*)p_grid->GetCellValue(p_initialMode, 0).utf8_str() : "");
+      fprintf(out, "axis %g %g\n", p_spectrum->axis().lo(), p_spectrum->axis().hi());
+      //  The selected row's detail line, as the panel shows it.
+      selectMode(std::min(p_grid->GetNumberRows() - 1, 7));
+      fprintf(out, "detail %s\n", (const char*)p_detailText.utf8_str());
+      wxString shown = p_modeDetail ? p_modeDetail->GetLabel() : wxString();
+      shown.Replace("\n", "|");
+      fprintf(out, "detailshown %s\n", (const char*)shown.utf8_str());
+      fclose(out);
+      if (getenv("ECCE_EXIT_AFTER_DUMP") != 0)
+         wxTheApp->CallAfter([]() {
+            wxWindow *top = wxTheApp->GetTopWindow();
+            if (top != 0) top->Close(true);
+         });
+   });
+   timer->StartOnce(2500);
+}
+
+
+/**
  * Fill the table and initialize the UI.
  * This code copied from motool_cdlg but the graph code is currently excluded.
  */
@@ -816,33 +939,27 @@ void NModePanel::fillTable()
    PropVector *rvec = (PropVector*) expt->getProperty("VIBRAM");
 
    if (vec != (PropVector*)0) {
-      wxListItem itemCol;
-      itemCol.SetText(_T("Frequency"));
+      analyseModes();
 
-      //label = "Frequency\n" + vec->units();
       p_grid->InsertCols(0,1);
       p_grid->SetColLabelValue(0,"Frequency\n" + vec->units());
 
+      p_symColumn = 1;
       p_grid->InsertCols(1,1);
       p_grid->SetColLabelValue(1,"Sym");
 
-      //  Only show a column for a property the code actually produced.
-      //  MOPAC computes no Raman activities at all, so a permanently
-      //  empty "Raman" column there is just a question the user cannot
-      //  answer -- "is this blank because the job failed, or because
-      //  the code cannot do it?". Reported live 2026-09-22.
-      //
-      //  Kept general rather than special-casing MOPAC: the panel
-      //  already knows, because getProperty() returns null for a
-      //  property that was never extracted. Any code missing either one
-      //  now simply has no column for it.
-      //
-      //  The indices are tracked rather than hardcoded, because
-      //  skipping Infrared while keeping Raman would otherwise leave
-      //  the Raman values written to a column that does not exist.
+      //  ECCE's own description of the motion, for every code (#367).
+      p_modeColumn = 2;
+      p_grid->InsertCols(2,1);
+      p_grid->SetColLabelValue(2,"Mode");
+
+      //  Only show a column for a property the code actually produced:
+      //  MOPAC computes no Raman activities, and a permanently empty
+      //  column reads as a failed job.  The indices are tracked because
+      //  skipping Infrared while keeping Raman shifts the other.
       p_irColumn = -1;
       p_ramanColumn = -1;
-      int nextCol = 2;
+      int nextCol = 3;
       if (ivec != (PropVector*)0) {
          p_grid->InsertCols(nextCol,1);
          p_grid->SetColLabelValue(nextCol,"Infrared\n"+ivec->units());
@@ -854,32 +971,25 @@ void NModePanel::fillTable()
          p_ramanColumn = nextCol++;
       }
 
-
       int nRows = vec->rows();
 
-      //  The "Sym" column used to show VIBFREQ's ROW LABELS, which most
-      //  parsers emit as plain mode numbers -- so it displayed 1, 2,
-      //  3... instead of Mulliken symbols. Reported for MOPAC, but ORCA
-      //  emits numeric row labels too, so it was never code-specific.
-      //
-      //  Meanwhile VIBSYM, which mopac.desc and orca.desc both extract,
-      //  was not read by this panel at all: a correctly parsed property
-      //  with no consumer. Read it here, and keep the row labels as the
-      //  fallback for a code that carries its symmetries there instead.
-      PropVecString *symvec = (PropVecString*) expt->getProperty("VIBSYM");
-      const vector<string> *syms = vec->rowLabels();
-      INTERNALEXCEPTION(syms,"No symmetry labels - gotta have 'em");
-
       p_grid->InsertRows(0,nRows);
+      p_modeFull.assign(nRows, wxString());
 
       for (int idx=0; idx<nRows; idx++) {
          p_grid->SetCellValue(idx,0,
                wxString::Format (PrefLabels::DOUBLEFORMAT, vec->value(idx)));
-         if (symvec != (PropVecString*)0 && idx < symvec->rows()) {
-            p_grid->SetCellValue(idx,1,symvec->value(idx).c_str());
-         } else if (syms && syms->size()>0) {
-            p_grid->SetCellValue(idx,1,(*syms)[idx].c_str());
+
+         //  The code's own label wins where it prints one (Gaussian,
+         //  MOPAC: VIBSYM); otherwise ECCE's, which every code gets.
+         if (idx < (int)p_codeSym.size() && !p_codeSym[idx].empty()) {
+            p_grid->SetCellValue(idx,p_symColumn,wxString::FromUTF8(p_codeSym[idx]));
+         } else if (idx < (int)p_vib.modes.size()) {
+            p_grid->SetCellValue(idx,p_symColumn,
+                                 wxString::FromUTF8(p_vib.modes[idx].irrep));
          }
+         if (idx < (int)p_vib.modes.size())
+            p_modeFull[idx] = wxString::FromUTF8(p_vib.modes[idx].label);
 
          if (ivec != (PropVector*)0 && p_irColumn >= 0) {
             p_grid->SetCellValue(idx,p_irColumn,
@@ -887,18 +997,273 @@ void NModePanel::fillTable()
          }
 
          if (rvec != (PropVector*)0 && p_ramanColumn >= 0) {
-            //  Its OWN column. This used to write into column 2 -- the
-            //  Infrared column -- so for any code emitting both VIBIR
-            //  and VIBRAM the Raman value overwrote the infrared one and
-            //  the Raman column was NEVER populated, for every code.
             p_grid->SetCellValue(idx,p_ramanColumn,
                   wxString::Format (PrefLabels::DOUBLEFORMAT, rvec->value(idx)));
          }
       }
    }
-   p_grid->AutoSize();
+
+   //  Columns only: AutoSize() would also resize the grid window, and a
+   //  docked panel must keep the width the dock gave it (the Mode column
+   //  gives way instead, see fitModeColumn()).
+   p_grid->AutoSizeColumns(false);
+   p_grid->SetColLabelSize(wxGRID_AUTOSIZE);
+   fitModeColumn();
 }
 
+
+void NModePanel::analyseModes()
+{
+   p_vib = VibResult();
+   p_codeSym.clear();
+   IPropCalculation *expt = getCalculation();
+   PropVector *vec = (PropVector*) expt->getProperty("VIBFREQ");
+   PropVecTable *vib = dynamic_cast<PropVecTable*>(expt->getProperty("VIB"));
+   PropVecString *symvec = (PropVecString*) expt->getProperty("VIBSYM");
+   if (symvec != 0)
+      for (int i = 0; i < symvec->rows(); i++) p_codeSym.push_back(symvec->value(i));
+   if (vec == 0 || vib == 0) return;
+
+   Fragment frag;
+   if (!expt->getFragment(frag)) return;
+   const int nat = (int)frag.numAtoms(), nm = vec->rows();
+   if (nat == 0 || vib->rows() != nat || vib->tables() != nm) return;
+
+   vector<double> freqs;
+   vector< vector<double> > modes(nm, vector<double>(3*nat));
+   for (int m = 0; m < nm; m++) {
+      freqs.push_back(vec->value(m));
+      for (int a = 0; a < nat; a++)
+         for (int k = 0; k < 3; k++) modes[m][3*a+k] = vib->value(m, a, k);
+   }
+   try {
+      VibAnalysis::analyse(frag, freqs, modes, p_vib);
+   } catch (...) {
+      p_vib = VibResult();
+   }
+}
+
+
+//  The Mode column takes what is left of the grid's width after the
+//  numeric columns, up to a cap, and ellipsizes the text beyond it: a
+//  docked panel is as wide as the dock makes it and must not grow.
+void NModePanel::fitModeColumn()
+{
+   if (p_grid == 0 || p_modeColumn < 0 || p_modeFull.empty() ||
+       p_grid->GetNumberCols() <= p_modeColumn) return;
+
+   wxClientDC dc(p_grid->GetGridWindow());
+   dc.SetFont(p_grid->GetDefaultCellFont());
+   const int pad = 12, minWidth = 56, cap = 190;
+   int longest = dc.GetTextExtent("Mode").x;
+   for (size_t i = 0; i < p_modeFull.size(); i++)
+      longest = std::max(longest, dc.GetTextExtent(p_modeFull[i]).x);
+
+   int others = 0;
+   for (int c = 0; c < p_grid->GetNumberCols(); c++)
+      if (c != p_modeColumn) others += p_grid->GetColSize(c);
+   const int scroll = wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, p_grid);
+   const int avail = p_grid->GetClientSize().x - others - scroll - 4;
+
+   int width = std::min(longest + pad, cap);
+   if (avail > 0) width = std::min(width, std::max(avail, minWidth));
+   width = std::max(width, minWidth);
+   p_grid->SetColSize(p_modeColumn, width);
+   for (size_t i = 0; i < p_modeFull.size() && (int)i < p_grid->GetNumberRows(); i++)
+      p_grid->SetCellValue((int)i, p_modeColumn,
+         wxControl::Ellipsize(p_modeFull[i], dc, wxELLIPSIZE_END, width - pad));
+}
+
+
+static wxString activityText(const VibModeInfo& v)
+{
+   if (!v.activityKnown) return wxString();
+   if (v.ir && v.raman) return "IR active, Raman active";
+   if (v.ir) return "IR active, Raman inactive";
+   if (v.raman) return "IR inactive, Raman active";
+   return "IR inactive, Raman inactive";
+}
+
+
+wxString NModePanel::cellTip(int row, int col) const
+{
+   if (row < 0 || row >= (int)p_vib.modes.size()) return wxString();
+   const VibModeInfo& v = p_vib.modes[row];
+   if (col == p_modeColumn) {
+      wxString t = wxString::FromUTF8(v.detail);
+      const wxString act = activityText(v);
+      if (!act.empty()) t += (t.empty() ? "" : "\n") + act;
+      if (!v.remark.empty()) t += (t.empty() ? "" : "\n") + wxString::FromUTF8(v.remark);
+      return t;
+   }
+   if (col == p_symColumn) {
+      wxString t;
+      if (!v.irrep.empty() && v.irrep != "?") {
+         t = wxString::FromUTF8(v.irrep);
+         if (!p_vib.group.empty()) t += " in " + wxString::FromUTF8(p_vib.group);
+         const wxString act = activityText(v);
+         if (!act.empty()) t += "\n" + act;
+      } else if (v.irrep == "?") {
+         t = "Symmetry not clear (the mode is not a pure irrep within the "
+             "numerical noise)";
+      }
+      if (row < (int)p_codeSym.size() && !p_codeSym[row].empty())
+         t += (t.empty() ? "" : "\n") + wxString("The code's own label: ") +
+              wxString::FromUTF8(p_codeSym[row]);
+      return t;
+   }
+   return wxString();
+}
+
+
+void NModePanel::OnGridMotion(wxMouseEvent& event)
+{
+   int x, y;
+   p_grid->CalcUnscrolledPosition(event.GetX(), event.GetY(), &x, &y);
+   wxWindow *win = p_grid->GetGridWindow();
+   const wxString tip = cellTip(p_grid->YToRow(y), p_grid->XToCol(x));
+   if (win->GetToolTipText() != tip) win->SetToolTip(tip.empty() ? NULL : new wxToolTip(tip));
+   event.Skip();
+}
+
+
+void NModePanel::OnLabelMotion(wxMouseEvent& event)
+{
+   wxWindow *win = p_grid->GetGridColLabelWindow();
+   int x, y;
+   p_grid->CalcUnscrolledPosition(event.GetX(), 0, &x, &y);
+   const int col = p_grid->XToCol(x);
+   wxString tip;
+   if (col == p_modeColumn) {
+      tip = wxString::FromUTF8(
+         "What the motion is, from the bonds, angles and torsions it "
+         "changes.\n\xCE\xBD\xCC\x83 stretch, \xCE\xB4 bend, \xCF\x81 rock, "
+         "\xCF\x89 wag, \xCF\x84 torsion, \xCE\xB3 out-of-plane bend; "
+         "s symmetric, as antisymmetric.\n"
+         "Two terms: both contribute; \xE2\x80\xA6 more. Hover a row for "
+         "the shares.");
+   } else if (col == p_symColumn) {
+      tip = "Irreducible representation of the mode in the molecule's point "
+            "group, found by ECCE from the mode's displacements.\n"
+            "Where the code prints its own label, that is shown instead.";
+   }
+   if (win->GetToolTipText() != tip) win->SetToolTip(tip.empty() ? NULL : new wxToolTip(tip));
+   event.Skip();
+}
+
+
+//  Two lines at most, broken at the " . " separators first and inside a part
+//  only between words. When that does not fit, the last part (activity) is
+//  dropped, then the description is cut after a whole word; the tooltip
+//  keeps the full text.
+static bool layoutParts(wxDC& dc, const std::vector<wxString>& parts, int width,
+                        wxString& out)
+{
+   std::vector<wxString> lines;
+   wxString cur;
+   for (size_t i = 0; i < parts.size(); i++) {
+      const wxString piece = parts[i] + (i + 1 < parts.size() ? wxString::FromUTF8(" \xC2\xB7") : wxString());
+      const wxString joined = cur.empty() ? piece : cur + " " + piece;
+      if (dc.GetTextExtent(joined).x <= width) { cur = joined; continue; }
+      if (!cur.empty()) { lines.push_back(cur); cur.clear(); }
+      if (dc.GetTextExtent(piece).x <= width) { cur = piece; continue; }
+      wxString rest = piece;
+      while (!rest.empty()) {
+         wxString line;
+         while (!rest.empty()) {
+            const size_t cut = rest.find(' ');
+            const wxString word = cut == wxString::npos ? rest : rest.substr(0, cut);
+            const wxString t = line.empty() ? word : line + " " + word;
+            if (!line.empty() && dc.GetTextExtent(t).x > width) break;
+            line = t;
+            rest = cut == wxString::npos ? wxString() : rest.substr(cut + 1);
+         }
+         if (rest.empty()) cur = line; else lines.push_back(line);
+      }
+   }
+   if (!cur.empty()) lines.push_back(cur);
+   if (lines.size() > 2) return false;
+   out.clear();
+   for (size_t i = 0; i < lines.size(); i++) out += (i ? "\n" : "") + lines[i];
+   return true;
+}
+
+
+void NModePanel::setWrapped(wxStaticText *label, const std::vector<wxString>& parts)
+{
+   if (label == 0) return;
+   wxString full;
+   for (size_t i = 0; i < parts.size(); i++)
+      full += (i ? wxString::FromUTF8(" \xC2\xB7 ") : wxString()) + parts[i];
+   label->SetToolTip(full.empty() ? NULL : new wxToolTip(full));
+   int width = label->GetClientSize().x;
+   //  Test hook: the width of the narrowest dock, without resizing windows.
+   if (const char *w = getenv("ECCE_NMODE_DETAIL_WIDTH")) width = atoi(w);
+   wxString shown = full;
+   if (width > 40 && !full.empty()) {
+      wxClientDC dc(label);
+      dc.SetFont(label->GetFont());
+      std::vector<wxString> p = parts;
+      bool ok = layoutParts(dc, p, width, shown);
+      if (!ok && p.size() > 2) { p.pop_back(); ok = layoutParts(dc, p, width, shown); }
+      //  Shorten the last remaining part by whole words, with an ellipsis.
+      while (!ok && !p.empty()) {
+         wxString& last = p.back();
+         last.Replace(wxString::FromUTF8("\xE2\x80\xA6"), "");
+         const size_t cut = last.rfind(' ');
+         if (cut == wxString::npos) {
+            if (p.size() == 1) { shown = wxControl::Ellipsize(last, dc, wxELLIPSIZE_END, width); break; }
+            p.pop_back();
+         } else {
+            last = last.substr(0, cut) + wxString::FromUTF8("\xE2\x80\xA6");
+         }
+         ok = layoutParts(dc, p, width, shown);
+      }
+   }
+   if (label->GetLabel() != shown) label->SetLabel(shown);
+}
+
+
+static wxString activityShort(const VibModeInfo& v)
+{
+   if (!v.activityKnown) return wxString();
+   if (v.ir && v.raman) return "IR, Raman";
+   if (v.ir) return "IR";
+   if (v.raman) return "Raman";
+   return "inactive";
+}
+
+
+void NModePanel::showModeDetail(int row)
+{
+   if (p_modeDetail == 0) return;
+   wxString freq, text;
+   std::vector<wxString> vparts;
+   if (row >= 0 && row < (int)p_vib.modes.size() && p_grid != 0 &&
+       row < p_grid->GetNumberRows()) {
+      const VibModeInfo& v = p_vib.modes[row];
+      wxString sym = p_grid->GetNumberCols() > p_symColumn && p_symColumn >= 0
+                        ? p_grid->GetCellValue(row, p_symColumn) : wxString();
+      //  The table keeps the user's number format; the label is read, not
+      //  compared, so one decimal is enough.
+      double f = 0.0;
+      wxString cell = p_grid->GetCellValue(row, 0);
+      freq = (cell.ToCDouble(&f) ? wxString::Format("%.1f", f) : cell) +
+             wxString::FromUTF8(" cm\xE2\x81\xBB\xC2\xB9");
+      const wxString parts[3] = { sym, wxString::FromUTF8(v.detail),
+                                  activityShort(v) };
+      for (int i = 0; i < 3; i++)
+         if (!parts[i].empty()) {
+            text += (text.empty() ? "" : wxString::FromUTF8(" \xC2\xB7 ")) + parts[i];
+            vparts.push_back(parts[i]);
+         }
+   }
+   p_detailText = text;
+   p_detailParts = vparts;
+   setWrapped(p_modeDetail, vparts);
+   if (p_graphFreq != 0) p_graphFreq->SetLabel(freq);
+   setWrapped(p_graphDetail, vparts);
+}
 
 
 /**
@@ -921,6 +1286,7 @@ void NModePanel::showMode(int index)
    p_currentStep = 0;
    p_mode = index;
    if (p_spectrum != 0) p_spectrum->setSelected(index);
+   showModeDetail(index);
 
    // Restore to proper fragment so commands use correct coordinates
    selectFragStep(-1);

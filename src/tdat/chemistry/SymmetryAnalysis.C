@@ -1352,6 +1352,139 @@ bool SymmetryAnalysis::fullOrbitalIrrep(const vector< vector<double> >& orbitals
 }
 
 
+bool SymmetryAnalysis::fullOrbitalSplit(const vector< vector<double> >& orbitals,
+                                        const vector<int>& perAtom,
+                                        const vector<int>& shellTypeOf,
+                                        const vector< vector<double> >& overlap,
+                                        const vector< vector<int> >& images,
+                                        const vector<int>& classOfOp,
+                                        const vector<SymOp>& opsInCoeffFrame,
+                                        TGBSAngFunc *angfunc,
+                                        const CharacterTable& table,
+                                        double shellResidualTol,
+                                        vector<string>& labels,
+                                        vector< vector<double> >& split)
+{
+   labels.clear();
+   split.clear();
+   if (angfunc == 0 || orbitals.empty() || perAtom.empty()) return false;
+   const size_t h = opsInCoeffFrame.size(), k = orbitals.size();
+   if (h == 0 || classOfOp.size() != h || images.size() != h) return false;
+
+   vector<int> base(perAtom.size(), 0);
+   int total = 0;
+   for (size_t a = 0; a < perAtom.size(); a++) { base[a] = total; total += perAtom[a]; }
+   if ((int)shellTypeOf.size() != total || overlap.size() != (size_t)total) return false;
+   for (size_t i = 0; i < k; i++) if ((int)orbitals[i].size() != total) return false;
+
+   vector< vector<AtomShell> > shells(perAtom.size());
+   for (size_t a = 0; a < perAtom.size(); a++)
+      if (!segmentAtomShells(shellTypeOf, base[a], perAtom[a], angfunc, shells[a])) return false;
+   map< std::pair<int,int>, vector< vector<double> > > dcache;
+   for (size_t op = 0; op < h; op++)
+      for (size_t a = 0; a < shells.size(); a++) {
+         const int to = images[op][a];
+         if (to < 0 || (size_t)to >= perAtom.size() || shells[to].size() != shells[a].size()) return false;
+         for (size_t s = 0; s < shells[a].size(); s++) {
+            const int st = shells[a][s].shellType;
+            std::pair<int,int> key((int)op, st);
+            if (dcache.find(key) != dcache.end()) continue;
+            vector< vector<double> > D;
+            if (!ShellRotation::buildD(st, angfunc, opsInCoeffFrame[op], shellResidualTol, D)) return false;
+            dcache[key] = D;
+         }
+      }
+
+   //  R(g) c for every operation and orbital.
+   vector< vector< vector<double> > > moved(h, vector< vector<double> >(k, vector<double>(total, 0.0)));
+   for (size_t op = 0; op < h; op++)
+      for (size_t i = 0; i < k; i++)
+         for (size_t a = 0; a < shells.size(); a++) {
+            const int to = images[op][a];
+            for (size_t s = 0; s < shells[a].size(); s++) {
+               const AtomShell& sh = shells[a][s];
+               const vector< vector<double> >& D = dcache[std::pair<int,int>((int)op, sh.shellType)];
+               for (int row = 0; row < sh.width; row++) {
+                  double sum = 0.0;
+                  for (int col = 0; col < sh.width; col++)
+                     sum += D[row][col]*orbitals[i][base[a] + sh.offset + col];
+                  moved[op][i][base[to] + sh.offset + row] += sum;
+               }
+            }
+         }
+
+   //  S times a vector.
+   auto timesS = [&](const vector<double>& v) {
+      vector<double> r(total, 0.0);
+      for (int i = 0; i < total; i++) {
+         if (v[i] == 0.0) continue;
+         for (int j = 0; j < total; j++) r[j] += overlap[i][j]*v[i];
+      }
+      return r;
+   };
+   auto inner = [&](const vector<double>& u, const vector<double>& v) {
+      const vector<double> sv = timesS(v);
+      double x = 0.0;
+      for (int i = 0; i < total; i++) x += u[i]*sv[i];
+      return x;
+   };
+
+   const size_t numClasses = table.classes().size();
+   vector<double> chi(numClasses, 0.0);
+   vector<bool> filled(numClasses, false);
+   for (size_t op = 0; op < h; op++) {
+      const int kl = classOfOp[op];
+      if (kl < 0 || (size_t)kl >= numClasses) return false;
+      if (filled[kl]) continue;
+      double x = 0.0, n = 0.0;
+      for (size_t i = 0; i < k; i++) { x += inner(orbitals[i], moved[op][i]); n += inner(orbitals[i], orbitals[i]); }
+      if (fabs(n) < 1e-10) return false;
+      chi[kl] = x/n*(double)k;
+      filled[kl] = true;
+   }
+   //  Characters of a real set are whole numbers in the tables of the common
+   //  groups; the orbitals' own precision leaves them a thousandth off.
+   for (size_t c = 0; c < chi.size(); c++) {
+      const double r = floor(chi[c] + 0.5);
+      if (fabs(chi[c] - r) < 0.02) chi[c] = r;
+   }
+   vector<int> mult;
+   if (!table.reduce(chi, mult)) return false;
+
+   const vector<string>& names = table.irreps();
+   int placed = 0;
+   for (size_t x = 0; x < names.size() && x < mult.size(); x++) {
+      if (mult[x] <= 0) continue;
+      if (table.separable(names[x])) return false;
+      const vector<double>* chiX = table.characters(names[x]);
+      const int d = table.dimension(names[x]);
+      if (chiX == 0 || d <= 0) return false;
+      const int want = mult[x]*d;
+      vector< vector<double> > kept;
+      for (size_t i = 0; i < k && (int)kept.size() < want; i++) {
+         vector<double> p(total, 0.0);
+         for (size_t op = 0; op < h; op++) {
+            const double w = (*chiX)[classOfOp[op]]*d/(double)h;
+            for (int j = 0; j < total; j++) p[j] += w*moved[op][i][j];
+         }
+         for (size_t q = 0; q < kept.size(); q++) {
+            const double c = inner(kept[q], p);
+            for (int j = 0; j < total; j++) p[j] -= c*kept[q][j];
+         }
+         const double n2 = inner(p, p);
+         if (n2 < 1e-4) continue;
+         const double sc = 1.0/sqrt(n2);
+         for (int j = 0; j < total; j++) p[j] *= sc;
+         kept.push_back(p);
+      }
+      if ((int)kept.size() != want) return false;
+      for (size_t q = 0; q < kept.size(); q++) { labels.push_back(names[x]); split.push_back(kept[q]); }
+      placed += want;
+   }
+   return placed == (int)k;
+}
+
+
 int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals,
                                         const vector<double>& energies,
                                         const vector<int>& perAtom,
@@ -1363,10 +1496,13 @@ int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals
                                         TGBSAngFunc *angfunc,
                                         const CharacterTable& table,
                                         double shellResidualTol,
-                                        vector<string>& derived)
+                                        vector<string>& derived,
+                                        vector< vector<double> >* rotated,
+                                        bool splitReducible)
 {
    derived.assign(orbitals.size(), string());
    if (orbitals.empty()) return 0;
+   if (rotated != 0) *rotated = orbitals;
 
    //  Degenerate sets, grouped by energy -- CONNECTED COMPONENTS
    //  (each member within tolerance of its immediate neighbour), not a
@@ -1385,11 +1521,14 @@ int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals
    //  unlabelled with no error anywhere. 1e-5 keeps every genuine
    //  degenerate set together (CH4 t2, benzene's e sets, SF6, N2/CO's
    //  pi) while telling Cr(CO)6's t1u and eg apart.
+   //  ORCA prints orbital energies to 1e-5, so a true pair can differ by
+   //  that much from rounding alone (BF3's e', benzene's e sets): the
+   //  tolerance has to be above the print step, not at it.
    vector< vector<size_t> > sets;
    for (size_t i = 0; i < orbitals.size(); ) {
       size_t j = i;
       while (j + 1 < orbitals.size() && j + 1 < energies.size() &&
-             fabs(energies[j+1] - energies[j]) < 1.0e-5) {
+             fabs(energies[j+1] - energies[j]) < 1.5e-5) {
          j++;
       }
       vector<size_t> one;
@@ -1426,6 +1565,20 @@ int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals
       //  whole group, and a vector each of them sends to +/- itself
       //  would span an invariant line), so such a set stays declined.
       if (sets[s].size() < 2) continue;
+      if (splitReducible && rotated != 0) {
+         vector<string> labs;
+         vector< vector<double> > pieces;
+         if (fullOrbitalSplit(set, perAtom, shellTypeOf, overlap, images, classOfOp,
+                              opsInCoeffFrame, angfunc, table, shellResidualTol,
+                              labs, pieces)) {
+            for (size_t m = 0; m < sets[s].size(); m++) {
+               derived[sets[s][m]] = labs[m];
+               (*rotated)[sets[s][m]] = pieces[m];
+               labelled++;
+            }
+            continue;
+         }
+      }
       for (size_t m = 0; m < sets[s].size(); m++) {
          vector< vector<double> > one(1, orbitals[sets[s][m]]);
          string single;

@@ -2492,6 +2492,19 @@ sub JobFilesGet
         &MsgSendFile($i, $MSG_TYPE_F_JOF);
     }
 
+    # A GROMACS Prepare's topology includes (posre.itp, one topol_*.itp per
+    # chain) have names only the run knows, so they go as outputs like .rst.
+    if ($gConfig{'mdPrepareTask'} eq 'yes')
+    {
+        opendir ITP_DIR, "." or Die "Could not open directory: $! \n";
+        my @itpFiles = grep /\.itp$/, readdir ITP_DIR;
+        closedir ITP_DIR;
+        foreach $i (@itpFiles)
+        {
+            &MsgSendFile($i, $MSG_TYPE_F_JOF);
+        }
+    }
+
     # send other files
     if ($gConfig{'filesToTransfer'})
     {
@@ -4454,7 +4467,10 @@ sub ProgressLine
                 $$st{'t0'} = $now;
                 $$st{'k0'} = $k;
             }
-            if ($k > $$st{'k0'} && $k < $n)
+            #  Two finished steps at least: the first one carries start-up
+            #  work (QE's first SCF, ORCA's first guess), and an estimate
+            #  from it alone swung from seconds to minutes.
+            if ($k - $$st{'k0'} >= 2 && $k < $n)
             {
                 push @{$$st{'keys'}}, 'eta' unless (exists $$st{'f'}{'eta'});
                 $$st{'f'}{'eta'} = int(($now - $$st{'t0'}) / ($k - $$st{'k0'})

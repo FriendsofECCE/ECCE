@@ -1,0 +1,155 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Writes a GROMACS index file (.ndx) of groups defined by residue name.
+#
+#   usage: gromacs.mkndx <conf.gro> <run.mdp> <out.ndx> [<topol.top>]
+#
+#   The groups are the "; ecce-group <name> = <item> <item>" comment lines
+#   that ai.gromacs writes into the .mdp from the task editor.  An item is a
+#   residue name, or mol:<name> for every atom of the molecules the topology's
+#   [ molecules ] lists under that name (a protein chain from pdb2gmx is one:
+#   mol:Protein_chain_A).  The .gro has no chain column, so chains come from
+#   the topology: the atom count of each molecule type, summed in order.  The
+#   file has [ System ] first, because grompp finds only the groups of an
+#   index file when one is given, and then one group per line.  This is the
+#   one place that writes an index file: gromacs.launchpp runs it at launch
+#   and the file is shipped with the job, so the job script has nothing of
+#   its own.
+#
+#   Exit 0 with nothing written when the .mdp defines no group; exit 1 with
+#   the reason on stderr when a residue name is not in the structure.
+#
+###############################################################################
+use strict;
+
+die "usage: gromacs.mkndx conf.gro run.mdp out.ndx [topol.top]\n" if (@ARGV < 3 || @ARGV > 4);
+my ($gro, $mdp, $out, $top) = @ARGV;
+
+my @defs;      # [name, [residues]]
+open(my $mf, "<", $mdp) || die "gromacs.mkndx: cannot read $mdp: $!\n";
+while (<$mf>) {
+  push(@defs, [$1, [split(/\s+/, $2)]]) if (/^;\s*ecce-group\s+(\S+)\s*=\s*(.+?)\s*$/);
+}
+close($mf);
+exit 0 if (!@defs);
+
+open(my $gf, "<", $gro) || die "gromacs.mkndx: cannot read $gro: $!\n";
+my $title = <$gf>;
+my $n = <$gf>;
+$n = 0 + ($n // 0);
+my @res;       # residue name of atom i (0-based here)
+while (@res < $n && defined(my $l = <$gf>)) {
+  my $r = substr($l, 5, 5);
+  $r =~ s/^\s+//; $r =~ s/\s+$//;
+  push(@res, $r);
+}
+close($gf);
+die "gromacs.mkndx: $gro lists " . scalar(@res) . " atoms, not the $n it declares.\n"
+  if (@res != $n || $n == 0);
+
+my %seen = map { $_ => 1 } @res;
+
+# ---- molecules of the topology: name -> [atom indices] (1-based) ----
+my %atomsOf;     # molecule type -> atoms in it
+my @order;       # [type, count] as listed under [ molecules ]
+my %visited;
+sub findInclude {
+  my ($name, $from) = @_;
+  (my $flat = $name) =~ s#/#__SLASH__#g;
+  my @dirs = ($from, ".");
+  foreach my $d (@dirs) {
+    foreach my $n ($name, $flat) { return "$d/$n" if (-f "$d/$n"); }
+  }
+  foreach my $d ($ENV{GMXLIB}, ($ENV{GMXDATA} ? "$ENV{GMXDATA}/top" : undef), "/usr/share/gromacs/top") {
+    return "$d/$name" if (defined($d) && -f "$d/$name");
+  }
+  return undef;
+}
+sub readTop {
+  my ($file) = @_;
+  return if ($visited{$file}++);
+  (my $dir = $file) =~ s#/?[^/]*$##;
+  $dir = "." if ($dir eq "");
+  open(my $fh, "<", $file) || return;
+  my ($sect, $cur) = ("", "");
+  my $named = 0;
+  while (my $l = <$fh>) {
+    $l =~ s/;.*//;
+    next if ($l =~ /^\s*$/);
+    if ($l =~ /^\s*#\s*include\s+"([^"]+)"/) {
+      next if ($1 =~ /(forcefield|ffbonded|ffnonbonded)\.itp$/);
+      my $f = findInclude($1, $dir);
+      readTop($f) if (defined($f));
+    } elsif ($l =~ /^\s*#/) {
+      next;
+    } elsif ($l =~ /^\s*\[\s*(\w+)\s*\]/) {
+      $sect = lc($1);
+      $named = 0 if ($sect eq "moleculetype");
+    } elsif ($sect eq "moleculetype" && !$named) {
+      ($cur) = split(/\s+/, $l =~ s/^\s+//r);
+      $named = 1;
+      $atomsOf{$cur} = 0;
+    } elsif ($sect eq "atoms" && $cur ne "") {
+      $atomsOf{$cur}++;
+    } elsif ($sect eq "molecules") {
+      my ($n, $c) = split(" ", $l);
+      push(@order, [$n, $c]);
+    }
+  }
+  close($fh);
+}
+my %molAtoms;    # name -> list of atom indices over all its copies
+my $molsRead = 0;
+sub moleculeAtoms {
+  my $name = shift;
+  if (!$molsRead) {
+    die "gromacs.mkndx: a group asks for a molecule (mol:$name) and no topology was given.\n"
+      if (!defined($top) || !-f $top);
+    readTop($top);
+    my $at = 0;
+    foreach my $m (@order) {
+      my ($n, $c) = @$m;
+      die "gromacs.mkndx: molecule $n of the topology has no [ atoms ] that could be found, so the atoms of $name cannot be placed.\n"
+        if (!$atomsOf{$n});
+      for (my $i = 0; $i < $c; $i++) {
+        push(@{$molAtoms{$n}}, $at + 1 .. $at + $atomsOf{$n});
+        $at += $atomsOf{$n};
+      }
+    }
+    die "gromacs.mkndx: the topology's molecules hold $at atoms, the structure $n.\n" if ($at != $n);
+    $molsRead = 1;
+  }
+  die "gromacs.mkndx: the topology has no molecule named $name; it has: " .
+      join(" ", sort keys %molAtoms) . ".\n" if (!$molAtoms{$name});
+  return @{$molAtoms{$name}};
+}
+sub block {
+  my ($name, @idx) = @_;
+  my $s = "[ $name ]\n";
+  for (my $i = 0; $i < @idx; $i += 15) {
+    my $e = $i + 14 < $#idx ? $i + 14 : $#idx;
+    $s .= join("", map { sprintf("%4d ", $_) } @idx[$i .. $e]) . "\n";
+  }
+  return $s;
+}
+
+my $text = block("System", 1 .. $n);
+foreach my $d (@defs) {
+  my ($name, $names) = @$d;
+  my @extra;
+  foreach my $r (@$names) {
+    if ($r =~ /^mol:(.+)$/) { push(@extra, moleculeAtoms($1)); next; }
+    next if ($seen{$r});
+    die "gromacs.mkndx: group $name asks for residue name $r, which is not in the structure; it has: " .
+        join(" ", sort keys %seen) . ".\n";
+  }
+  my %want = map { $_ => 1 } @$names;
+  my %all = map { $_ => 1 } @extra;
+  $text .= block($name, grep { $want{$res[$_ - 1]} || $all{$_} } 1 .. $n);
+}
+open(my $of, ">", $out) || die "gromacs.mkndx: cannot write $out: $!\n";
+print $of $text;
+close($of);
+exit 0;

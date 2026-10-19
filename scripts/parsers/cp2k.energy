@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+# The total energy of the last SCF, ECCE's TE:
+#   " ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]   -7.244568794042680"
+# CP2K prints Hartree already.  The same line follows every SCF of an
+# optimisation, so cp2k.desc reads it at Frequency=all and the last wins.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_));
+exit(0) if (!/ENERGY\|.*energy \[hartree\]\s+(-?\d+\.\d+)\s*$/);
+
+print "key: TE\nsize:\n1\nvalues:\n$1\nunits:\nHartree\nEND\n";
+exit(0);

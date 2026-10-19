@@ -4613,6 +4613,38 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
     strncpy(record,cptr,6);
     cptr += 6;
 
+//  CRYST1 is the cell of a periodic system (GROMACS' solvated box, a
+//  triclinic one included).  A 1 1 1 90 90 90 record is the "no cell"
+//  placeholder many programs write.
+    if (strncmp(record,"CRYST1",6) == 0 && p_lattice == 0 && strlen(buf) >= 54) {
+      double cell[6];
+      static const int start[6] = {6, 15, 24, 33, 40, 47};
+      static const int width[6] = {9, 9, 9, 7, 7, 7};
+      for (i=0; i<6; i++) {
+        string field(buf + start[i], width[i]);
+        cell[i] = atof(field.c_str());
+      }
+      if (cell[0] > 1.0 && cell[1] > 0.0 && cell[2] > 0.0 &&
+          cell[3] > 0.0 && cell[4] > 0.0 && cell[5] > 0.0) {
+        //  The PDB convention: a along x, b in the xy plane.  The vectors
+        //  are assigned, not built from LatticeDef's own (a, b, c, angles)
+        //  constructor, whose frame differs and would not enclose the atoms.
+        const double rad = M_PI / 180.0;
+        const double ca = cos(cell[3]*rad), cb = cos(cell[4]*rad);
+        const double cg = cos(cell[5]*rad), sg = sin(cell[5]*rad);
+        const double cy = (ca - cb*cg) / sg;
+        const double cz2 = 1.0 - cb*cb - cy*cy;
+        if (sg > 1.0e-6 && cz2 > 0.0) {
+          LatticeDef *cellDef = new LatticeDef(1.,1.,1.,90.,90.,90.);
+          cellDef->assign(MPoint(cell[0], 0.0, 0.0),
+                          MPoint(cell[1]*cg, cell[1]*sg, 0.0),
+                          MPoint(cell[2]*cb, cell[2]*cy, cell[2]*sqrt(cz2)));
+          setLattice(cellDef);
+        }
+      }
+      continue;
+    }
+
 // Check to see if first six characters correspond to any of the records
 // currently being supported (ATOM, HETATM)
 

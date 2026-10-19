@@ -19,6 +19,7 @@
 #include "tdat/Fragment.H"
 #include "tdat/Residue.H"
 #include "tdat/TAtm.H"
+#include "tdat/TPerTab.H"
 #include "tdat/TBond.H"
 
 using namespace std;
@@ -244,6 +245,36 @@ int main(int argc, char **argv)
       }
     }
     delete frag;
+  }
+
+  {
+    // Elements 110-118 carry IUPAC symbols; the old placeholders written
+    // by earlier releases are read as the same elements.
+    const char *iupac[] = {"Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"};
+    const char *old[] = {"Uun","Uuu","Uub","Uut","Uuq","Uup","Uuh","Uus","Uuo"};
+    TPerTab pt;
+    for (int i = 0; i < 9; i++) {
+      string t = string(iupac[i]) + "/" + old[i];
+      check(pt.atomicSymbol(110 + i) == iupac[i], t + ": table symbol");
+      check(pt.atomicNumber(iupac[i]) == 110 + i, t + ": Z from IUPAC symbol");
+      check(pt.atomicNumber(old[i]) == 110 + i, t + ": Z from old symbol");
+      check(TPerTab::mixedCase(string("UU") + (char)toupper(old[i][2]))
+            == iupac[i], t + ": mixedCase maps old symbol");
+    }
+    Fragment *frag = load(dir + "/old_symbols.xyz", "XYZ");
+    if (frag) {
+      check(frag->numAtoms() == 3, "old_symbols.xyz: 3 atoms");
+      if (frag->numAtoms() == 3) {
+        check(frag->atomRef(0)->atomicNumber() == 110
+              && frag->atomRef(1)->atomicNumber() == 118
+              && frag->atomRef(2)->atomicNumber() == 117,
+              "old_symbols.xyz: Z 110, 118, 117");
+        check(string(frag->atomRef(0)->atomicSymbol()) == "Ds"
+              && string(frag->atomRef(1)->atomicSymbol()) == "Og",
+              "old_symbols.xyz: symbols come out IUPAC");
+      }
+      delete frag;
+    }
   }
 
   cout << (failures ? "FAILED" : "PASSED") << " (" << failures

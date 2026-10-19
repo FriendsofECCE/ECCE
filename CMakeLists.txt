@@ -488,6 +488,13 @@ target_include_directories(mocomp PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mocomp PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
+# Fragment-orbital composition of a calculation's MOs (#301); a development
+# tool like mocomp, not installed.
+add_executable(fragorb tools/modiagram/fragorb.C)
+target_include_directories(fragorb PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(fragorb PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
 # flock(1) for the session scripts where util-linux is absent (macOS).
 if(NOT WIN32)   # the Windows client has no session scripts (#133)
   add_executable(ecce-flock src/apps/flock/ecce-flock.c)
@@ -522,6 +529,8 @@ ecce_app(mddynamics src/apps/mddynamics WX
 ecce_app(mdenergy src/apps/mdenergy WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdoptimize src/apps/mdoptimize WX
+  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(gmxprepare src/apps/gmxprepare WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdprepare src/apps/mdprepare WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
@@ -989,7 +998,7 @@ install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMP
 # ------------------------------------------------------------------------
 set(ECCE_GUI_APPS
   basistool calced dirdyed gateway launcher machbrowser machregister
-  mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
+  mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
@@ -1078,6 +1087,34 @@ endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/processmachine)
   install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/processmachine
           DESTINATION scripts
+          COMPONENT client)
+endif()
+
+# scripts/minff_topology.py: the GROMACS Prepare editor's "Mineral (MINFF)"
+# Build button runs it as $ECCE_HOME/scripts/minff_topology.py on the client.
+if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/minff_topology.py)
+  install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/minff_topology.py
+          DESTINATION scripts
+          COMPONENT client)
+endif()
+
+# Bundled atomipy and min.ff (third_party/, see its README): minff_topology.py
+# looks for them at $ECCE_HOME/lib/python/atomipy and data/minff/min.ff.
+if(EXISTS ${CMAKE_SOURCE_DIR}/third_party/python/atomipy)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/python/atomipy
+          DESTINATION lib/python
+          COMPONENT client
+          PATTERN "__pycache__" EXCLUDE)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/minff/
+          DESTINATION data/minff
+          COMPONENT client)
+endif()
+
+# third_party/clayff/clayff.ff: ClayFF for GROMACS, transcribed from Cygan et
+# al. 2004; minff_topology.py --forcefield clayff finds it at data/clayff.
+if(EXISTS ${CMAKE_SOURCE_DIR}/third_party/clayff/clayff.ff)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/clayff/
+          DESTINATION data/clayff
           COMPONENT client)
 endif()
 
@@ -1520,7 +1557,7 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # mod_ssl is in the apache2 package on Debian but its own package on RPM.
 # xterm: editing an input file with the default editor (vi) opens it in
 # an xterm (UserEditor.C).
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, mosquitto, libaprutil1, perl, xterm, openssl")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, python3-numpy, python3-tqdm, python3-gemmi, mosquitto, libaprutil1, perl, xterm, openssl")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1575,7 +1612,7 @@ if(RPMBUILD_EXECUTABLE)
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, mod_ssl, openssl, python3-wxpython4, perl, xterm, mosquitto, apr-util${_coin_rpm}")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, mod_ssl, openssl, python3-wxpython4, python3-numpy, python3-tqdm, perl, xterm, mosquitto, apr-util${_coin_rpm}")
   set(CPACK_RPM_PACKAGE_SUGGESTS "nwchem, openssh-clients, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
@@ -1719,7 +1756,7 @@ if(ECCE_SPLIT_PACKAGES)
   # -remote client only needs the library, and the package's own system
   # service is of no use to it.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-      "python3-wxgtk4.0, perl, xterm, libmosquitto1, curl, openssl")
+      "python3-wxgtk4.0, python3-numpy, python3-tqdm, python3-gemmi, perl, xterm, libmosquitto1, curl, openssl")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
@@ -1755,7 +1792,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
     # mosquitto provides both the library and the broker on RPM distros.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, perl, xterm, mosquitto, curl, openssl${_coin_rpm}")
+        "python3-wxpython4, python3-numpy, python3-tqdm, perl, xterm, mosquitto, curl, openssl${_coin_rpm}")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
@@ -1815,6 +1852,12 @@ add_executable(systemfolder_test tests/systemfolder/systemfolder_test.C)
 target_link_libraries(systemfolder_test PRIVATE ecceutil)
 add_test(NAME systemfolder COMMAND systemfolder_test)
 
+# A trace step with no frame goes to the nearest frame (GROMACS traces are
+# thinned to 100 frames, the energy plot is not).
+add_executable(proptsvec_nearest_test tests/tdat/proptsvec_nearest_test.C)
+target_link_libraries(proptsvec_nearest_test PRIVATE eccetdat ecceutil)
+add_test(NAME proptsvec_nearest COMMAND proptsvec_nearest_test)
+
 # The ECCE_HIDE_MO_DIAGRAM site setting (#280).
 add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
 target_link_libraries(sitehide_test PRIVATE ecceutil)
@@ -1839,6 +1882,11 @@ set_tests_properties(dummy_fragment PROPERTIES
 add_test(NAME dummy_atoms_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
 
+# tests/layerstack (#357): layer builder geometry, wx-free.
+add_executable(layer_stack_test tests/layerstack/layer_stack_test.C)
+target_link_libraries(layer_stack_test PRIVATE eccetdat ecceutil)
+add_test(NAME layer_stack COMMAND layer_stack_test)
+
 # tests/metal_bonds (#325): Metal bonds need no nubs.
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
 target_link_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
@@ -1860,12 +1908,28 @@ add_test(NAME nwchem_cc_decks
 # always, real pw.x runs when pw.x and the SSSP library are installed.
 add_test(NAME qe_features
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/qe_features/run_tests.py)
+set_tests_properties(qe_features PROPERTIES SKIP_RETURN_CODE 77)
+
+# #329: CP2K decks (generator, input checker, cp2k --check) and, with
+# cp2k.psmp installed, a silicon energy and a NiO+U optimisation run for real.
+add_test(NAME cp2k_features
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/cp2k_features/run_tests.py)
+set_tests_properties(cp2k_features PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
 
 # tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
 # reversal and zoom, broadening, sticks.
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
 target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
 add_test(NAME vibspectrum COMMAND vibspectrum_test)
+
+# tests/vibanalysis -- mode symmetry and description (#367): real code output
+# through the real parsers, against textbook assignments.
+add_executable(vibanalysis_cli tests/vibanalysis/vibanalysis_cli.C)
+target_link_libraries(vibanalysis_cli PRIVATE eccetdat ecceutil)
+add_test(NAME vibanalysis
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/vibanalysis/run_tests.py
+          --cli $<TARGET_FILE:vibanalysis_cli> --build ${CMAKE_BINARY_DIR})
+set_tests_properties(vibanalysis PROPERTIES SKIP_RETURN_CODE 77)
 # The canvas painted onto a bitmap (tools/spectrum/render) from the numbers
 # the codes printed; needs wx, g++ and xvfb-run, SKIPs without them.
 find_program(PYTHON3_FOR_SPECTRUM NAMES python3)
@@ -1948,14 +2012,46 @@ add_test(NAME gromacs_md
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_tests.py
                  --includes-bin $<TARGET_FILE:gromacs_includes>)
 set_tests_properties(gromacs_md PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+add_test(NAME gromacs_run_settings
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_settings_test.py
+                 --groconv $<TARGET_FILE:gromacs_groconv>)
+set_tests_properties(gromacs_run_settings PROPERTIES TIMEOUT 600)
+add_test(NAME gromacs_grompp_warnings
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/grompp_warn_test.py)
+set_tests_properties(gromacs_grompp_warnings PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+add_test(NAME gromacs_lone_ion_names
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/gmx_ions_test.py)
+set_tests_properties(gromacs_lone_ion_names PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+# Every tool a resource type enables has a summary view for its content type.
+add_test(NAME resource_tool_views
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/tool_views_test.py)
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)
-# without atomipy, gmx, or network access to fetch min.ff.
+# without gmx or network access (the example systems are fetched).
 add_test(NAME minff
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/minff/run_tests.py)
 set_tests_properties(minff PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
+# tests/clayff -- ClayFF force field (third_party/clayff) and
+# minff_topology.py --forcefield clayff; the NPT comparison with the papers
+# is `run_tests.py --long` and is not part of ctest.
+add_test(NAME clayff
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/clayff/run_tests.py)
+set_tests_properties(clayff PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
+# The same systems through a GROMACS Prepare with the MINFF source:
+# md.gmxprep, gromacs.launchpp and the gensub job script, run for real.
+add_test(NAME minff_prepare
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/minff/prepare_tests.py)
+set_tests_properties(minff_prepare PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
@@ -2152,7 +2248,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/modiagramheads.py
                    --libdir ${CMAKE_BINARY_DIR})
-  set_tests_properties(look_modiagram_heads PROPERTIES TIMEOUT 300)
+  set_tests_properties(look_modiagram_heads PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
@@ -2203,6 +2299,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calcimport_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # MOPAC normal modes of an imported output sit on the stored atoms and the
+  # Builder draws a symmetric ammonia umbrella (#369).
+  add_test(NAME apps_mopac_import_modes
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/mopac_import_modes_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_mopac_import_modes PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # Organizer File > Open Example Calculations: the shipped examples import
   # with their properties; ECCE_TEST_ORGANIZER "examples".
@@ -2329,6 +2433,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_qe_walkthrough PROPERTIES TIMEOUT 3000
                        SKIP_RETURN_CODE 77)
 
+  # A lattice made in the Builder reaches a crystal code's calculation (Save
+  # enabled, cell stored, editor ready); the editor's log takes extra height.
+  add_test(NAME apps_crystal_lattice_save
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/crystal_lattice_save_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_crystal_lattice_save PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # The Builder with a calculation's MOs panel open in every panel layout,
   # on a 1366x768 screen: viewer and panel on screen and inside the window.
   add_test(NAME apps_panel_layouts
@@ -2377,7 +2490,7 @@ if(PYTHON3_EXECUTABLE)
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.
-  foreach(size 1024x768 1024x600)
+  foreach(size 1366x768 1024x768 1024x600)
     add_test(NAME apps_smallscreen_${size}
              COMMAND ${PYTHON3_EXECUTABLE}
                      ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/smallscreen_test.py
@@ -2646,6 +2759,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/mocomp/run_tests.py
                    ${CMAKE_BINARY_DIR})
   set_tests_properties(mocomp PROPERTIES TIMEOUT 300)
+
+  # tests/fragorb: fragment orbitals and MO composition in them (#301);
+  # EHT against YAeHMOP, the projection against Multiwfn, ML6 classes.
+  add_test(NAME fragorb
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragorb/run_tests.py
+                   ${CMAKE_BINARY_DIR})
+  set_tests_properties(fragorb PROPERTIES TIMEOUT 600)
   add_test(NAME fragreaders
            COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
@@ -2703,6 +2824,38 @@ if(PYTHON3_EXECUTABLE)
     set_tests_properties(launch_contact PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   endif()
 
+  # #329: CP2K, silicon and a NiO+U optimisation, created and run through
+  # Launch in a local data folder; skipped (77) without cp2k.psmp and mpirun.
+  add_test(NAME launch_cp2k
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/cp2k_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_cp2k PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  # #329: a CP2K calculation in the real Calculation Editor (script hook, private
+  # Xvfb): settings sent as the dialogs send them, the saved deck checked.
+  add_test(NAME launch_cp2k_calced
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/cp2k_calced_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_cp2k_calced PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
+  # #75: an ORCA job's final orbitals as the guess of the next (local data,
+  # then a data server); skipped (77) without ORCA 6 under /opt/orca.
+  add_test(NAME launch_orca_guess
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/orca_guess_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_orca_guess PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_orca_guess_central
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/orca_guess_test.py
+                   --build ${CMAKE_BINARY_DIR} --central
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_orca_guess_central PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+
   # A GROMACS MD study through the real editors (private Xvfb), launches and
   # results; skipped (77) without gmx or Xvfb.  Needs the GUI apps built.
   add_test(NAME launch_gromacs
@@ -2711,6 +2864,22 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # A GROMACS Prepare (pdb2gmx, editconf, solvate, genion) and the Optimize
+  # after it, through the real launch path; skipped (77) without gmx.
+  # The GROMACS tutorial (help/src/gromacs-first-calculation.md): a protein
+  # through New, Prepare, Optimize, Equilibrate and Dynamics, in the real editors.
+  add_test(NAME launch_gromacs_protein_walk
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_protein_walk_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_protein_walk PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_gromacs_prepare
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_prepare_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_prepare PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
   # The MD Optimize editor and the Organizer's editor button for a GROMACS
   # and an NWChem MD study (private Xvfb); skipped (77) without Xvfb.
   add_test(NAME launch_md_editors
@@ -2737,6 +2906,16 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_ecceqm_vib_builder PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # The vibration table's Sym and Mode columns for six molecules: the
+  # textbook assignments through the panel, every cell whole at the docked
+  # width, nothing widening the dock (#367).
+  add_test(NAME apps_vibration_modes
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/vibanalysis/panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/vibanalysis)
+  set_tests_properties(apps_vibration_modes PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # The Energies panel's groups and their fold state (#283).
   add_test(NAME apps_energies_groups
@@ -2932,3 +3111,8 @@ if(ECCE_BUILD_QM)
   add_subdirectory(src/qm)
   install(TARGETS ecce-qm RUNTIME DESTINATION bin COMPONENT client)
 endif()
+
+# tests/boxshape (#930): GROMACS dodecahedron / truncated octahedron cell.
+add_executable(box_shape_test tests/boxshape/box_shape_test.C)
+target_link_libraries(box_shape_test PRIVATE eccetdat ecceutil)
+add_test(NAME box_shape COMMAND box_shape_test ${CMAKE_SOURCE_DIR}/tests/boxshape/fixtures)

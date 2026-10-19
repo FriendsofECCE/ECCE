@@ -146,6 +146,57 @@ int main(int argc, char** argv)
     expectContains("qe routine error text", reason, "bad line in namelist");
   }
 
+  // CP2K: an SCF that hit MAX_SCF (real 2025.1 output, steps from the line
+  // before the box) and a boxed error naming the missing basis set.
+  {
+    vector<string> files;
+    files.push_back(fx + "/synthetic/cp2k-noconverge.cp2kout");
+    string reason = JobFailureReason::extractReason(files);
+    expectContains("cp2k no convergence", reason, "did not converge in 8 steps");
+    expectContains("cp2k no convergence advice", reason, "Max. SCF Iterations");
+    expectShortSingleLine("cp2k no convergence is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/cp2k-no-basis.cp2kout");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("cp2k box message", reason, "CP2K stopped");
+    expectContains("cp2k box message text", reason,
+                   "The requested basis set <NOSUCH-BASIS> for element <Si>");
+    expectContains("cp2k box message continues", reason, "<BASIS_MOLOPT>");
+    expectShortSingleLine("cp2k box reason is short", reason);
+  }
+
+  // GROMACS: the Fatal error paragraph of the tool that failed (real gmx
+  // 2025.2 output); for grompp the ERROR paragraph above its own box.
+  {
+    vector<string> files;
+    files.push_back(fx + "/synthetic/gromacs-pdb2gmx-missing-atoms.gmxlog");
+    string reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs pdb2gmx missing atoms", reason, "gmx pdb2gmx: ");
+    expectContains("gromacs pdb2gmx missing atoms text", reason,
+                   "8 missing atoms in molecule Protein_chain_A");
+    expectShortSingleLine("gromacs pdb2gmx reason is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/gromacs-pdb2gmx-bad-residue.gmxlog");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs pdb2gmx residue type", reason, "do not have a consistent type");
+    files.clear();
+    files.push_back(fx + "/synthetic/gromacs-genion-no-solvent.gmxlog");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs genion names the control", reason,
+                   "Lower the Minimum ion distance");
+    expectShortSingleLine("gromacs genion reason is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/gromacs-grompp-error.gmxlog");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs grompp error names the cause", reason,
+                   "cut-off length is longer");
+    expectShortSingleLine("gromacs grompp error is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/gromacs-grompp-mismatch.gmxlog");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs grompp mismatch", reason, "does not match topology");
+  }
+
   // No files, or a file with nothing recognizable: no match, not a
   // guess.
   {

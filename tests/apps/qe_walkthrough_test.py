@@ -485,10 +485,17 @@ def walk(display, tmp, outdir, org, authArgs, name):
         {"builder-start": "%s-1-builder.png" % prefix,
          "builder-atom": "%s-2-periodic-builder.png" % prefix,
          "builder-generated": "%s-3-cell.png" % prefix})
-    app("ecce-calced", "ECCE_CALCED_SCRIPT", case["calced"], (1100, 900),
+    _, clog = app("ecce-calced", "ECCE_CALCED_SCRIPT", case["calced"], (1100, 900),
         {"calced-start": "%s-4-calced.png" % prefix,
          "calced-theory": ("Theory", "%s-5-theory.png" % prefix),
          "calced-final": "%s-6-calced-ready.png" % prefix})
+    #  The first "info" is before any Save: a ready calculation can be
+    #  launched, the click writing the input first.
+    infos = re.findall(r"CALCED: theory=.* launch=(\w+)", clog)
+    if not infos or infos[0] != "enabled":
+        fail("%s: Launch is not enabled before the first Save (%s)" % (name, infos[:1]))
+    else:
+        ok("%s: Launch is enabled before the first Save" % name)
     deck = findDeck(project, name)
     deckText = open(deck).read() if deck else ""
     say("deck:\n" + deckText)

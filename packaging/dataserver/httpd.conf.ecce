@@ -176,6 +176,10 @@ AddType  chemical/x-gromacs-coordinates  .gro
 AddType  chemical/x-gromacs-topology     .gmxtop
 AddType  chemical/x-gromacs-include      .itp .ndx
 AddType  chemical/x-gromacs-log          .gmxlog
+AddType  chemical/x-gromacs-prepare      .gmxprep
+AddType  chemical/x-gromacs-source-pdb   .gmxpdb
+AddType  chemical/x-gromacs-source-mineral .gmxmin
+AddType  chemical/x-gromacs-forcefield   .gmxff
 AddType  chemical/x-gromacs-tpr          .tpr
 AddType  chemical/x-gromacs-energy       .edr
 AddType  chemical/x-gromacs-trajectory   .xtc .trr
@@ -228,6 +232,8 @@ AddType  chemical/x-gamessuk-output .gko
 # distinctive extension; ORCA.edml now does the same.
 AddType  chemical/x-orca-input  .orcain
 AddType  chemical/x-orca-output .orcaout
+AddType  chemical/x-orca-gbw    .gbw
+AddType  chemical/x-orca-guess   .gbwin
 
 # ECCE-QM, the bundled engine: distinctive extensions, as for ORCA above.
 AddType  chemical/x-ecceqm-input  .qmin
@@ -260,6 +266,12 @@ AddType  chemical/x-mopac-output .mopout
 # already running.
 AddType  chemical/x-qe-input  .pwin
 AddType  chemical/x-qe-output .pwout
+
+# CP2K. The input is given with "-i" and the report goes to stdout, so, as
+# for pw.x, the extensions are free; generic .inp/.out would be typed
+# text/plain and the primary-input lookup would not find the deck.
+AddType  chemical/x-cp2k-input  .cp2kin
+AddType  chemical/x-cp2k-output .cp2kout
 
 # ECCE Server Side Compression: deferred, see header comment. The
 # SetOutputFilter/SetInputFilter SS_COMPRESSION directives and their

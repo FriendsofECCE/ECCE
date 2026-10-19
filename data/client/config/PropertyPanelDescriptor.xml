@@ -208,6 +208,15 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Mulliken Spin Moments</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="SPINMOM"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>CM5 Charges</name>
     <group>Charges</group>
     <class>MullikenPanel</class>

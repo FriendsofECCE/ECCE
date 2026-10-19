@@ -62,6 +62,8 @@ def treeInstall(state, build):
     link(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
     link(os.path.join(REPO, "data", "admin"), os.path.join(home, "data", "admin"))
     link(os.path.join(REPO, "data", "client"), os.path.join(home, "data", "client"))
+    link(os.path.join(REPO, "third_party", "minff", "unit_cells"),
+         os.path.join(home, "data", "minff", "unit_cells"))
     link(os.path.join(REPO, "packaging", "dataserver", "httpd.conf.ecce"),
          os.path.join(home, "server", "httpd-conf", "httpd.conf.ecce"))
 
@@ -291,7 +293,7 @@ class Session(object):
         os.chmod(path, 0o600)
         return path
 
-    def driver(self, *argv, timeout=180):
+    def driver(self, *argv, timeout=180, extra=None):
         """One launchjob invocation, with credentials piped in.
 
         The gateway starts every app with `cd $ECCE_HOME/bin && ./app`, and
@@ -300,7 +302,7 @@ class Session(object):
         pipe = os.devnull if self.local else self.authFile()
         return self.run([os.path.join(self.home, "bin", "launchjob"),
                          "-pipe", pipe] + list(argv),
-                        cwd=os.path.join(self.home, "bin"), timeout=timeout)
+                        extra=extra, cwd=os.path.join(self.home, "bin"), timeout=timeout)
 
     def registerMachine(self, name, manager, codes, queues=("normal", "debug"),
                         limits=None, config=None):

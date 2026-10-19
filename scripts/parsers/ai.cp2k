@@ -1,0 +1,845 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  ai.cp2k
+#
+# SYNTAX: ai.cp2k -p -f [-b] [-c] -n <basename> -t <template> [-h] [-v]
+#
+# PURPOSE:
+#       Take an ECCE dictionary (.param) and fragment (.frag) and write a CP2K
+#       Quickstep input file.  The generic dictionary/fragment readers and
+#       the ##tag## template engine are the ones ai.qe uses.
+#
+# SCOPE: Energy (RUN_TYPE ENERGY or ENERGY_FORCE) and Geometry (GEO_OPT, or
+# CELL_OPT with "Optimize cell"), GPW with GTH pseudopotentials and MOLOPT
+# basis sets, periodic in XYZ.  The cell comes from the fragment's lattice
+# (the Builder's Periodic Builder) and nowhere else.
+#
+# WHY THE BASIS AND POTENTIAL ARE CHOSEN HERE: a Theory Details dialog is
+# never told which elements the structure has, so it cannot offer a row per
+# element.  This script has the element list and scans the code's own
+# BASIS_MOLOPT and GTH_POTENTIALS (directory set in the dialog) for each
+# one.  The potential is the file's default for the functional's family
+# (the entry carrying the plain alias, GTH-PBE), the basis the chosen level
+# with the same charge state, so the two always agree.  A per-element row in
+# the dialog overrides either one.
+#
+# NO MEMORY FIELD: CP2K has no input keyword for it (it allocates what it
+# needs), so there is nothing to label in GB.
+#
+# Validation that can refuse to write a deck is in the main flow, never in
+# a ##tag## resolver: the template engine calls resolvers through eval and
+# a die() inside one used to vanish with the tag's line.
+################################################################################
+
+use Getopt::Std;
+use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
+            $opt_e $opt_s $opt_q);
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+&loadPT;
+
+$| = 1;
+
+&getopts(':n:t:pfbcqeshv');
+&handle_options;
+
+%AbiDict = ();
+$useLatticeVectors = 0;
+
+if ($TplFILE eq "") {
+  &usage;
+}
+
+&verifyAbiFile;
+&verifyFragFile;
+&readDict;
+&aiDebugDict;
+&readChemSys;
+&collectSpecies;
+&verifyPeriodic;
+&verifyRunType;
+&resolveLibrary;
+&verifyDispersion;
+&warnOnOddElectronCount;
+&modifyInputFile;
+&cleanup;
+exit(0);
+
+
+################################################################################
+# Species bookkeeping
+################################################################################
+
+# The distinct element symbols of the fragment in first-appearance order.
+sub collectSpecies {
+  @species = ();
+  %speciesIndex = ();
+  ($chemsys_atoms != 0) ||
+    die "ai.cp2k error: Fragment has no atoms!\n";
+  for (my $i = 0; $i < $chemsys_atoms; $i++) {
+    my $sym = &normalizeSymbol($tags{$i});
+    if (!defined($speciesIndex{$sym})) {
+      $speciesIndex{$sym} = scalar(@species);
+      push(@species, $sym);
+    }
+  }
+}
+
+# ECCE atom tags can carry a suffix ("C1", "Ow"); a CP2K kind here is the
+# element, because the library files are looked up by element.
+sub normalizeSymbol {
+  my ($raw) = @_;
+  my $sym = $raw;
+  $sym =~ s/^\s+//;
+  $sym =~ s/\s+$//;
+  if ($sym =~ /^([A-Za-z]{1,2})/) {
+    $sym = $1;
+  }
+  return ucfirst(lc($sym));
+}
+
+# Same element, any spelling the user typed in a dialog row.
+sub typedElement {
+  my ($raw) = @_;
+  return "" if (!defined($raw) || $raw !~ /\S/);
+  return &normalizeSymbol($raw);
+}
+
+################################################################################
+# Validation (main flow only)
+################################################################################
+
+sub verifyPeriodic {
+  if ($useLatticeVectors != 1) {
+    die "ai.cp2k error: this structure has no unit cell.\n" .
+        "  This CP2K setup is periodic and takes its cell from the Builder.\n" .
+        "  Open the structure in the Builder, show the \"Periodic Builder\"\n" .
+        "  tool panel, and create a lattice (Create Lattice, then enter\n" .
+        "  a/b/c/alpha/beta/gamma or the nine lattice-vector components)\n" .
+        "  before generating the input file.\n";
+  }
+}
+
+sub verifyRunType {
+  my $rt = $AbiDict{"RunType"};
+  return if ($rt eq "Energy" || $rt eq "Geometry");
+  die "Runtype '$rt' is not supported for CP2K.\n" .
+      "  Supported: Energy (ENERGY), Geometry (GEO_OPT).\n";
+}
+
+sub verifyDispersion {
+  my $d = &dispersionType;
+  return if ($d eq "");
+  my $f = &functionalInfo;
+  return if ($f->{d3} ne "");
+  die "ai.cp2k error: DFT-D3 has no parameters for the $f->{label} " .
+      "functional.\n  Choose another functional or set Dispersion to " .
+      "None in Theory Details.\n";
+}
+
+# Not fatal: an odd electron count with a restricted calculation makes CP2K
+# stop in its SCF setup.  The all-electron count differs from CP2K's valence
+# count by closed core shells only, so its parity is the same.
+sub warnOnOddElectronCount {
+  my $nel = $AbiDict{"NumElectrons"};
+  return if (!defined($nel) || $nel !~ /^\s*-?\d+\s*$/);
+  return if (($nel + 0) % 2 == 0);
+  return if (&unrestricted);
+  print STDERR "ai.cp2k warning: this system has an odd number of electrons " .
+    "($nel) but the calculation is spin-restricted.\n  CP2K will stop; set " .
+    "Spin to Unrestricted or the Multiplicity above 1.\n";
+}
+
+################################################################################
+# Settings
+################################################################################
+
+sub multiplicity {
+  my $mult = 1;
+  $mult = $1 if ($AbiDict{"ChemSys.Multiplicity"} =~ /(\d+)/);
+  return $mult;
+}
+
+sub unrestricted {
+  return 1 if (&multiplicity > 1);
+  return ($AbiDict{"ES.Theory.GPW.SpinType"} =~ /unrestricted/i) ? 1 : 0;
+}
+
+# The functional's CP2K section, the GTH family its potentials belong to and
+# the reference name DFT-D3 knows it under ("" if it has none).
+sub functionalInfo {
+  my $f = $AbiDict{"ES.Theory.GPW.Functional"};
+  $f = "PBE" if (!defined($f) || $f eq "");
+  return { label => "PBE", family => "GTH-PBE", d3 => "PBE",
+           lines => ["&PBE", "&END PBE"] }
+    if ($f =~ /^PBE\b/i);
+  return { label => "revPBE", family => "GTH-PBE", d3 => "revPBE",
+           lines => ["&PBE", "  PARAMETRIZATION REVPBE", "&END PBE"] }
+    if ($f =~ /^revPBE/i);
+  return { label => "BLYP", family => "GTH-BLYP", d3 => "BLYP",
+           lines => ["&BECKE88", "&END BECKE88", "&LYP", "&END LYP"] }
+    if ($f =~ /^BLYP/i);
+  return { label => "BP86", family => "GTH-BP", d3 => "BP",
+           lines => ["&BECKE88", "&END BECKE88", "&P86C", "&END P86C"] }
+    if ($f =~ /^BP/i);
+  return { label => "LDA", family => "GTH-PADE", d3 => "",
+           lines => ["&PADE", "&END PADE"] }
+    if ($f =~ /^LDA/i);
+  &aiUnmatched($f);
+  return { label => "PBE", family => "GTH-PBE", d3 => "PBE",
+           lines => ["&PBE", "&END PBE"] };
+}
+
+# "" for none, else the TYPE keyword of &PAIR_POTENTIAL.
+sub dispersionType {
+  my $d = $AbiDict{"ES.Theory.GPW.Dispersion"};
+  return "" if (!defined($d) || $d eq "" || $d =~ /^none/i);
+  return "DFTD3(BJ)" if ($d =~ /D3.*(Becke|BJ)/i);
+  return "DFTD3" if ($d =~ /D3/);
+  &aiUnmatched($d);
+  return "";
+}
+
+sub projectName {
+  my $name = $AbiDict{"title"};
+  $name = "" if (!defined($name));
+  $name =~ s/[^A-Za-z0-9_]/_/g;
+  $name =~ s/^_+//;
+  $name =~ s/_+$//;
+  $name = "ecce" if ($name eq "");
+  return substr($name, 0, 40);
+}
+
+sub numOr {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v));
+  $v =~ s/^\s+//;
+  $v =~ s/\s+$//;
+  return ($v eq "") ? $default : $v;
+}
+
+sub intOr {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v) || $v !~ /^\s*-?\d+\s*$/);
+  return $v + 0;
+}
+
+sub flag {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  $v = $default if (!defined($v) || $v eq "");
+  return ($v eq "1" || $v =~ /^(true|yes|on)$/i) ? 1 : 0;
+}
+
+################################################################################
+# Basis and potential per element, from the library files
+################################################################################
+
+use constant DEFAULT_LIBDIR => "/usr/share/cp2k";
+
+sub libraryDir {
+  my $d = &numOr("ES.Theory.GPW.LibraryDir", DEFAULT_LIBDIR);
+  $d =~ s{/+$}{};
+  return ($d eq "") ? DEFAULT_LIBDIR : $d;
+}
+
+# The file as read here (client side) and as written into the deck.  The
+# deck gets the bare name while the directory is CP2K's own default, since
+# CP2K finds its data directory itself, and wherever that is on the machine
+# that runs the job; a directory typed in the dialog is written in full.
+sub libraryPath {
+  my ($name) = @_;
+  return $name if ($name =~ m{^/});
+  return &libraryDir . "/" . $name;
+}
+
+sub libraryDeckName {
+  my ($name) = @_;
+  return $name if ($name =~ m{^/});
+  return $name if (&libraryDir eq DEFAULT_LIBDIR);
+  return &libraryDir . "/" . $name;
+}
+
+sub basisFileName { return &numOr("ES.Theory.GPW.BasisFile", "BASIS_MOLOPT"); }
+sub potentialFileName { return &numOr("ES.Theory.GPW.PotentialFile", "GTH_POTENTIALS"); }
+
+# {element => [[name, alias, ...], ...]} for a CP2K library file: a header
+# line is an element symbol followed by names, the data under it starts with
+# a number.
+sub scanLibrary {
+  my ($path) = @_;
+  my %entries = ();
+  open(my $fh, "<", $path) || return undef;
+  while (<$fh>) {
+    next if (/^\s*#/);
+    if (/^\s*([A-Z][a-z]?)\s+([A-Za-z]\S*(?:\s+\S+)*)\s*$/) {
+      my ($el, $rest) = ($1, $2);
+      next if (!defined($symbol_to_number{$el}));
+      push(@{$entries{$el}}, [split(/\s+/, $rest)]);
+    }
+  }
+  close($fh);
+  return \%entries;
+}
+
+# The charge state (valence electrons) a library name ends with, or undef.
+sub qOf {
+  my ($name) = @_;
+  return ($name =~ /-q(\d+)$/) ? $1 + 0 : undef;
+}
+
+# The potential names for an element, best first: the entry of the family
+# that carries the plain family name as an alias (the file's default), then
+# the others by falling number of valence electrons.
+sub potentialCandidates {
+  my ($el, $family) = @_;
+  my ($default, %byQ);
+  foreach my $entry (@{$potentialLib->{$el}}) {
+    my @names = @$entry;
+    my ($qname) = grep { /^\Q$family\E-q\d+$/ } @names;
+    next if (!defined($qname));
+    $default = $qname if (grep { $_ eq $family } @names);
+    $byQ{qOf($qname)} = $qname;
+  }
+  my @list = map { $byQ{$_} } sort { $b <=> $a } keys %byQ;
+  unshift(@list, $default) if (defined($default));
+  my %seen;
+  return grep { !$seen{$_}++ } @list;
+}
+
+sub basisStems {
+  my $s = &numOr("ES.Theory.GPW.BasisLevel", "DZVP-MOLOPT-SR-GTH");
+  my @stems = ($s);
+  my $alt = $s;
+  if ($alt =~ s/-SR-GTH$/-GTH/) { push(@stems, $alt); }
+  elsif ($alt =~ s/-GTH$/-SR-GTH/) { push(@stems, $alt); }
+  return @stems;
+}
+
+sub pickBasis {
+  my ($el, $q) = @_;
+  foreach my $stem (&basisStems) {
+    foreach my $entry (@{$basisLib->{$el}}) {
+      return "$stem-q$q" if (grep { $_ eq "$stem-q$q" } @$entry);
+    }
+  }
+  return "";
+}
+
+sub resolveLibrary {
+  my $bpath = &libraryPath(&basisFileName);
+  my $ppath = &libraryPath(&potentialFileName);
+  $basisLib = &scanLibrary($bpath);
+  die "ai.cp2k error: the basis set file '$bpath' cannot be read.\n" .
+      "  Set Theory Details -> Library Files (Directory and Basis file); on\n" .
+      "  Debian the CP2K data is in /usr/share/cp2k (package cp2k-data).\n"
+    if (!defined($basisLib));
+  $potentialLib = &scanLibrary($ppath);
+  die "ai.cp2k error: the potential file '$ppath' cannot be read.\n" .
+      "  Set Theory Details -> Library Files (Directory and Potential file).\n"
+    if (!defined($potentialLib));
+
+  my %override = ();
+  for (my $i = 1; $i <= 3; $i++) {
+    my $el = &typedElement($AbiDict{"ES.Theory.GPW.KindElement$i"});
+    next if ($el eq "");
+    if (!defined($speciesIndex{$el})) {
+      print STDERR "ai.cp2k warning: the per-element row $i names $el, " .
+        "which is not in the structure; it is ignored.\n";
+      next;
+    }
+    my $b = $AbiDict{"ES.Theory.GPW.KindBasis$i"};
+    my $p = $AbiDict{"ES.Theory.GPW.KindPotential$i"};
+    $override{$el} = [ (defined($b) ? $b : ""), (defined($p) ? $p : "") ];
+  }
+
+  my $family = (&functionalInfo)->{family};
+  %kindBasis = ();
+  %kindPotential = ();
+  my @problems = ();
+  foreach my $el (@species) {
+    my ($ob, $op) = defined($override{$el}) ? @{$override{$el}} : ("", "");
+    my @pots = ($op ne "") ? ($op) : &potentialCandidates($el, $family);
+    if (!@pots) {
+      push(@problems, "$el: no $family potential in $ppath");
+      next;
+    }
+    my ($pot, $basis) = ("", $ob);
+    foreach my $cand (@pots) {
+      if ($ob ne "") { $pot = $cand; last; }
+      my $q = qOf($cand);
+      my $b = defined($q) ? &pickBasis($el, $q) : "";
+      if ($b ne "") { ($pot, $basis) = ($cand, $b); last; }
+    }
+    if ($pot eq "") {
+      my $q = qOf($pots[0]);
+      push(@problems, "$el: no " . join(" or ", map { "$_-q" . (defined($q) ? $q : "?") } &basisStems) .
+           " basis in $bpath");
+      next;
+    }
+    my $found = grep { grep { $_ eq $pot } @$_ } @{$potentialLib->{$el}};
+    print STDERR "ai.cp2k warning: $pot is not an $el entry of $ppath; " .
+      "CP2K will stop unless it is defined elsewhere.\n"
+      if ($op ne "" && !$found);
+    $kindBasis{$el} = $basis;
+    $kindPotential{$el} = $pot;
+  }
+  die "ai.cp2k error: no basis set and potential for\n  " .
+      join("\n  ", @problems) . "\n" .
+      "  Choose another Basis level, or name them in Theory Details ->\n" .
+      "  Per-element Basis and Potential.\n"
+    if (@problems);
+}
+
+# The U rows of the Theory dialog as ([element, l, U-J in eV], ...), only
+# for elements in the structure.
+sub hubbardRows {
+  my @rows = ();
+  my %lOf = ("p" => 1, "d" => 2, "f" => 3);
+  for (my $i = 1; $i <= 3; $i++) {
+    my $el = &typedElement($AbiDict{"ES.Theory.GPW.HubbardElement$i"});
+    my $u = &numOr("ES.Theory.GPW.HubbardU$i", "");
+    next if ($el eq "" || $u eq "");
+    if (!defined($speciesIndex{$el})) {
+      print STDERR "ai.cp2k warning: DFT+U row $i names $el, which is not " .
+        "in the structure; it is ignored.\n";
+      next;
+    }
+    my $orb = lc($AbiDict{"ES.Theory.GPW.HubbardOrbital$i"});
+    $orb = "d" if (!defined($lOf{$orb}));
+    push(@rows, [$el, $lOf{$orb}, $u]);
+  }
+  return @rows;
+}
+
+################################################################################
+# Sections
+################################################################################
+
+sub emit {
+  my ($r) = @_;
+  $_ = $r;
+  return $r;
+}
+
+sub indent {
+  my ($n, @lines) = @_;
+  return map { (" " x $n) . $_ } @lines;
+}
+
+sub CP2KGlobal {
+  my $rt = $AbiDict{"RunType"};
+  my $run;
+  if ($rt eq "Geometry") { $run = "GEO_OPT"; }
+  elsif (&flag("ES.Runtype.GPW.PrintForces", 1)) { $run = "ENERGY_FORCE"; }
+  else { $run = "ENERGY"; }
+  return &emit(join("\n", "&GLOBAL", "  PROJECT " . &projectName,
+                    "  RUN_TYPE $run", "  PRINT_LEVEL MEDIUM", "&END GLOBAL"));
+}
+
+sub needsForces {
+  my $rt = $AbiDict{"RunType"};
+  return 1 if ($rt eq "Geometry");
+  return &flag("ES.Runtype.GPW.PrintForces", 1);
+}
+
+sub scfLines {
+  my @l = ("&SCF", "  SCF_GUESS ATOMIC",
+           "  MAX_SCF " . &intOr("ES.Theory.GPW.MaxScf", 100),
+           "  EPS_SCF " . &numOr("ES.Theory.GPW.EpsScf", "1.0E-6"));
+  if (&flag("ES.Theory.GPW.UseOT", 1)) {
+    my $min = ($AbiDict{"ES.Theory.GPW.OTMinimizer"} =~ /^CG/i) ? "CG" : "DIIS";
+    my $pre = ($AbiDict{"ES.Theory.GPW.OTPreconditioner"} =~ /FULL_ALL/i)
+            ? "FULL_ALL" : "FULL_SINGLE_INVERSE";
+    push(@l, "  &OT", "    PRECONDITIONER $pre", "    MINIMIZER $min");
+    push(@l, "    LINESEARCH 2PNT") if ($min eq "CG");
+    push(@l, "  &END OT");
+  } else {
+    my $temp = &numOr("ES.Theory.GPW.SmearTemperature", "0");
+    push(@l, "  ADDED_MOS 20") if ($temp + 0 > 0);
+    push(@l, "  &DIAGONALIZATION", "    ALGORITHM STANDARD",
+             "  &END DIAGONALIZATION",
+             "  &MIXING", "    METHOD BROYDEN_MIXING", "    ALPHA 0.4",
+             "    NBROYDEN 8", "  &END MIXING");
+    push(@l, "  &SMEAR", "    METHOD FERMI_DIRAC",
+             "    ELECTRONIC_TEMPERATURE [K] $temp", "  &END SMEAR")
+      if ($temp + 0 > 0);
+  }
+  push(@l, "&END SCF");
+  return @l;
+}
+
+sub xcLines {
+  my $f = &functionalInfo;
+  my @l = ("&XC", "  &XC_FUNCTIONAL", &indent(4, @{$f->{lines}}),
+           "  &END XC_FUNCTIONAL");
+  my $d = &dispersionType;
+  if ($d ne "") {
+    push(@l, "  &VDW_POTENTIAL", "    POTENTIAL_TYPE PAIR_POTENTIAL",
+             "    &PAIR_POTENTIAL",
+             "      PARAMETER_FILE_NAME dftd3.dat",
+             "      TYPE $d",
+             "      REFERENCE_FUNCTIONAL $f->{d3}",
+             "      R_CUTOFF [angstrom] 16",
+             "    &END PAIR_POTENTIAL",
+             "  &END VDW_POTENTIAL");
+  }
+  push(@l, "&END XC");
+  return @l;
+}
+
+sub kindLines {
+  my %u = ();
+  foreach my $r (&hubbardRows) { $u{$r->[0]} = $r; }
+  my @l = ();
+  foreach my $el (@species) {
+    push(@l, "&KIND $el", "  BASIS_SET $kindBasis{$el}",
+             "  POTENTIAL $kindPotential{$el}");
+    if (defined($u{$el})) {
+      push(@l, "  &DFT_PLUS_U", "    L $u{$el}->[1]",
+               "    U_MINUS_J [eV] $u{$el}->[2]", "  &END DFT_PLUS_U");
+    }
+    push(@l, "&END KIND");
+  }
+  return @l;
+}
+
+sub CP2KForceEval {
+  my @dft = ("&DFT",
+    "  BASIS_SET_FILE_NAME " . &libraryDeckName(&basisFileName),
+    "  POTENTIAL_FILE_NAME " . &libraryDeckName(&potentialFileName));
+  my $charge = $AbiDict{"Charge"};
+  $charge = 0 if (!defined($charge) || $charge !~ /^\s*-?\d+\s*$/);
+  push(@dft, "  CHARGE " . ($charge + 0));
+  my $mult = &multiplicity;
+  push(@dft, "  UKS") if (&unrestricted);
+  push(@dft, "  MULTIPLICITY $mult") if (&unrestricted);
+  push(@dft, "  &MGRID",
+       "    NGRIDS " . &intOr("ES.Theory.GPW.NGrids", 4),
+       "    CUTOFF " . &numOr("ES.Theory.GPW.Cutoff", "400"),
+       "    REL_CUTOFF " . &numOr("ES.Theory.GPW.RelCutoff", "60"),
+       "  &END MGRID",
+       "  &QS", "    METHOD GPW", "    EPS_DEFAULT 1.0E-10", "  &END QS",
+       "  &POISSON", "    PERIODIC XYZ", "  &END POISSON");
+  push(@dft, &indent(2, &scfLines), &indent(2, &xcLines));
+  push(@dft, "&END DFT");
+
+  my @sub = ("&SUBSYS", "  &CELL");
+  my @axis = ("A", "B", "C");
+  for (my $i = 0; $i < 3; $i++) {
+    #  The unit is spelled out so the line is not an element and three
+    #  numbers (A, B and C are elements) to the input checker.
+    push(@sub, sprintf("    %s [angstrom] %.10f %.10f %.10f", $axis[$i],
+                       $latvec{$i,0}, $latvec{$i,1}, $latvec{$i,2}));
+  }
+  push(@sub, "    PERIODIC XYZ", "  &END CELL", "  &COORD");
+  for (my $i = 0; $i < $chemsys_atoms; $i++) {
+    push(@sub, sprintf("    %-3s %16.10f %16.10f %16.10f",
+                       &normalizeSymbol($tags{$i}),
+                       $coords{$i,0}, $coords{$i,1}, $coords{$i,2}));
+  }
+  push(@sub, "  &END COORD", &indent(2, &kindLines), "&END SUBSYS");
+
+  my @fe = ("&FORCE_EVAL", "  METHOD Quickstep", &indent(2, @dft),
+            &indent(2, @sub));
+  push(@fe, "  &PRINT", "    &FORCES ON", "    &END FORCES", "  &END PRINT")
+    if (&needsForces);
+  push(@fe, "&END FORCE_EVAL");
+  return &emit(join("\n", @fe));
+}
+
+# The optimiser criteria: CP2K wants all four, and its own defaults keep
+# the RMS values at 2/3 (forces) and 1/2 (displacements) of the maxima.
+sub CP2KMotion {
+  if ($AbiDict{"RunType"} ne "Geometry") { $_ = ""; return ""; }
+  my $opt = $AbiDict{"ES.Runtype.GPW.Optimizer"};
+  $opt = ($opt =~ /^(LBFGS|CG)/i) ? uc($1) : "BFGS";
+  my $maxf = &numOr("ES.Runtype.GPW.MaxForce", "4.5E-4");
+  my $maxdr = &numOr("ES.Runtype.GPW.MaxDR", "3.0E-3");
+  my @l = ("&MOTION", "  &GEO_OPT", "    OPTIMIZER $opt",
+           "    MAX_ITER " . &intOr("ES.Runtype.GPW.MaxIter", 100),
+           "    MAX_FORCE $maxf",
+           sprintf("    RMS_FORCE %.6g", $maxf * 2.0 / 3.0),
+           "    MAX_DR $maxdr",
+           sprintf("    RMS_DR %.6g", $maxdr / 2.0),
+           "  &END GEO_OPT",
+           "  &PRINT", "    &TRAJECTORY", "      FILENAME __STD_OUT__",
+           "      FORMAT XYZ", "    &END TRAJECTORY", "  &END PRINT",
+           "&END MOTION");
+  return &emit(join("\n", @l));
+}
+
+################################################################################
+# Generic ##tag## substitution engine -- identical to ai.mopac's/ai.orca's
+# modifyInputFile. Walks the template line by line, replaces ##key## with
+# either &key(value) if such a sub exists, else the raw dictionary value,
+# else (no match at any level of the dot-separated key) drops the line.
+#
+# CONTRACT: a sub that wants to emit nothing must set $_ = "" itself,
+# because the engine only overwrites $_ when the sub's return value is
+# non-empty.
+################################################################################
+################################################################################
+# Verbose troubleshooting output for the ##tag## substitution engine.
+#
+# Every silent-failure bug this project has chased through the input
+# generators has one shape: a tag resolves to the empty string, its line is
+# dropped, and the setting the user picked is simply not in the deck.  Nothing
+# says so -- the script exits 0 and the job runs with different settings than
+# the dialog showed.  (The NWChem BP86 case: the dialog offered "BP86 (GGA)",
+# the resolver only matched "BP86 (hybrid)", and every such job silently ran
+# on the default LDA instead.)
+#
+# Set ECCE_AI_DEBUG=1 for one line per tag on STDERR saying what it resolved
+# to and, crucially, when it resolved to nothing.  An environment variable
+# rather than a switch because these scripts are invoked with a fixed argument
+# list from C++, so this needs no C++ change to turn on.
+################################################################################
+sub aiDebug {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my ($message) = @_;
+  print STDERR "[ecce-ai] $message\n";
+}
+
+# A resolver that returns "" is not automatically a bug.  The convention in
+# these scripts is that a resolver which produces several lines either sets $_
+# itself or prints straight to NEWFILE, and returns "" either way.  Four
+# outcomes have to be told apart, and only the first two are trouble:
+#
+#   $_ still holds ##tag##   nothing replaced it; the literal tag text is
+#                            about to be written into the input deck
+#   nothing written at all   the line is dropped.  Intentional for an optional
+#                            setting, and the silent-drop bug when it is not --
+#                            the message names the tag, so a user report names
+#                            the setting that vanished
+#   bytes went to NEWFILE    the resolver wrote its own output (chemsys and
+#                            friends do this); fine
+#   $_ became something else likewise fine
+#
+# The NEWFILE byte count is what separates "dropped" from "written another
+# way"; without it every multi-line resolver looks like a silent drop.
+# Called from the `else { &aiUnmatched(@_); $result = ""; }` fallback that ends almost every
+# translator in these scripts.  That fallback IS the silent-failure mechanism:
+# the dialog offered a string, this sub has no case for it, the empty result
+# propagates, and the job runs without the setting -- or, as with the Gaussian
+# "None" case, the whole method string collapses to a bare "r".  @_ is the
+# sub's own argument list, so the unmatched value reports itself without each
+# call site having to name its parameter.
+sub aiUnmatched {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my $sub = (caller(1))[3] || "main";
+  $sub =~ s/^main:://;
+  my $value = defined($_[0]) ? $_[0] : "(no argument)";
+  &aiDebug("  !! &$sub has no case for '$value' -- returning empty. If that "
+           . "value came from a dialog, the dialog and this script disagree "
+           . "and the setting will be missing from the input.");
+}
+
+# The full dictionary the dialogs and calced handed this script.  Logged once
+# at startup because every "the job ran with the wrong settings" report needs
+# both halves: what was asked for, and what reached the deck.
+sub aiDebugDict {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  # readDict() stores every dotted SUFFIX of each key, so a single setting
+  # appears four or five times.  Print only the longest form of each -- a key
+  # that no other key ends with -- or the dump is mostly noise.
+  my @keys = sort keys %AbiDict;
+  my %isSuffix;
+  foreach my $key (@keys) {
+    foreach my $other (@keys) {
+      $isSuffix{$key} = 1 if ($other ne $key && $other =~ /\.\Q$key\E$/);
+    }
+  }
+  &aiDebug("dictionary as read from the .param file:");
+  foreach my $key (@keys) {
+    next if $isSuffix{$key};
+    &aiDebug(sprintf("    %-46s = '%s'", $key, $AbiDict{$key}));
+  }
+}
+
+sub aiDebugEmpty {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my ($tag, $sub, $tellBefore) = @_;
+  my $wrote = tell(NEWFILE) - $tellBefore;
+  if ($_ =~ /\#\#\Q$tag\E\#\#/) {
+    &aiDebug("  ##$tag##: &$sub returned EMPTY and nothing replaced the tag "
+             . "-- the literal ##$tag## text will appear in the input file");
+  } elsif ($wrote > 0) {
+    &aiDebug("  ##$tag##: &$sub wrote $wrote bytes to the input directly");
+  } elsif ($_ eq "") {
+    &aiDebug("  ##$tag##: &$sub returned EMPTY and wrote nothing -- the line "
+             . "was dropped; if that setting was chosen in the GUI, it is NOT "
+             . "in the generated input");
+  } else {
+    &aiDebug("  ##$tag##: &$sub replaced the line itself");
+  }
+}
+
+sub modifyInputFile {
+  local($keysave, $key, $subname, $prefix, $postfix, $finished);
+  $inputFile = $TplFILE;
+  open(TEMPLATE, $inputFile);
+  open(NEWFILE, ">tmpfile");
+  while (<TEMPLATE>) {
+    if (/([^#]*)##([^#]*)##(.*)/) {
+      $prefix = $1;
+      $postfix = $3;
+      $keysave = $key = $2;
+      &aiDebug("tag ##$key## (template line $.)");
+      $finished = 0;
+      while ($finished == 0) {
+        $subname = $key;
+        $subname =~ s/\./_/g;
+        if (defined($AbiDict{$key})) {
+          $finished = 1;
+          $value = $AbiDict{$key};
+          $fct = "&$subname('$value')";
+          $eccePrevLine = $_;
+          $eccePrevTell = tell(NEWFILE);
+          $result = eval $fct;
+          # #92: eval catches a die() inside the resolver, and the engine
+          # reads undef as "no such sub / no substitution" -- so a
+          # deliberate error used to vanish along with the tag's line and
+          # the script exited 0 with a quietly incomplete deck. Re-raise
+          # anything that is a real error; an "Undefined subroutine"
+          # failure IS the no-substitution case the engine relies on, so
+          # it stays silent.
+          if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
+          if (!(defined $result)) {
+            s/##$keysave##/$value/;
+          } elsif ($result eq "") {
+            &aiDebugEmpty($keysave, $subname, $eccePrevTell);
+          } elsif ($result ne "") {
+            &aiDebug("  ##$keysave## -> \'$result\'");
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        } else {
+          $finished = 1;
+          $fct = "&$subname";
+          $eccePrevLine = $_;
+          $eccePrevTell = tell(NEWFILE);
+          $result = eval $fct;
+          # #92: eval catches a die() inside the resolver, and the engine
+          # reads undef as "no such sub / no substitution" -- so a
+          # deliberate error used to vanish along with the tag's line and
+          # the script exited 0 with a quietly incomplete deck. Re-raise
+          # anything that is a real error; an "Undefined subroutine"
+          # failure IS the no-substitution case the engine relies on, so
+          # it stays silent.
+          if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
+          if (!(defined $result)) {
+            if (index($key, ".") >= $[) {
+              $key =~ s/\.[^\.]*$//;
+              &aiDebug("  no &$subname; retrying as ##$key##");
+              $finished = 0;
+            } else {
+              &aiDebug("  ##$keysave##: no dictionary value and no resolver -- LINE REMOVED");
+              $_ = "";
+            }
+          } elsif ($result eq "") {
+            &aiDebugEmpty($keysave, $subname, $eccePrevTell);
+          } elsif ($result ne "") {
+            &aiDebug("  ##$keysave## -> \'$result\'");
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        }
+      }
+    }
+    print(NEWFILE);
+  }
+  close(TEMPLATE);
+  close(NEWFILE);
+}
+
+################################################################################
+# Generic file I/O -- copied from ai.mopac/ai.orca, code-agnostic except
+# for readChemSys's lattice_vectors: branch (taken from ai.nwchem:1780).
+################################################################################
+
+sub verifyAbiFile {
+  open(ABIDICT, $AbiFILE) || die "ai.cp2k error: Couldn't open $AbiFILE\n";
+}
+
+sub verifyFragFile {
+  open(CHEMSYS, $FragFILE) || die "ai.cp2k error: Couldn't open $FragFILE\n";
+}
+
+sub cleanup {
+  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
+  close(ABIDICT);
+}
+
+sub readDict {
+  while (<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      my ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      my $tagkey = $key;
+      while ($tagkey ne "") {
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+sub readChemSys {
+  my $symbols = 0;
+  $chemsys_atoms = 0;
+  $_ = <CHEMSYS>;
+  while (<CHEMSYS>) {
+    if (/^num_atoms:/) {
+      (undef, $chemsys_atoms) = split;
+    } elsif (/^title:/) {
+      (undef, $chemsys_name) = split;
+    } elsif (/^atom_info:/) {
+      $symbols = /symbol/;
+    } elsif (/^lattice_vectors:/) {
+      # Fragment::dumpMVM writes this block (3 rows, Angstrom) whenever
+      # the fragment has a LatticeDef, BEFORE num_atoms:.  ai.nwchem:1780
+      # is the existing reader.
+      $useLatticeVectors = 1;
+      for (my $index = 0; $index < 3; $index++) {
+        $_ = <CHEMSYS>;
+        ($latvec{$index,0},$latvec{$index,1},$latvec{$index,2}) = split;
+      }
+    } elsif (/^atom_list:/) {
+      for (my $index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($tags{$index}, $coords{$index,0}, $coords{$index,1}, $coords{$index,2}) = split;
+        if (!$symbols) {
+          $tags{$index} = $number_to_symbol{$tags{$index}};
+        }
+      }
+    }
+  }
+}
+
+sub usage {
+  print "Usage: ai.cp2k -p -f -n <basename> -t <template>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+
+sub handle_options {
+  &usage && exit if ($opt_h || $opt_help);
+  my $revision = '$Revision: 1 $';
+  $revision =~ s/\$//g;
+  print "$revision\n" if ($opt_v);
+  exit if ($opt_v);
+  $AbiFILE = "$opt_n.param" if ($opt_p);
+  $FragFILE = "$opt_n.frag" if ($opt_f);
+  $BasisFILE = "$opt_n.basis" if ($opt_b);
+  $CnstrntFILE = "$opt_n.con" if ($opt_c);
+  $TplFILE = $opt_t;
+}
+

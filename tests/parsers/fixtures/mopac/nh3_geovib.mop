@@ -1,0 +1,11 @@
+PM7 EF CHARGE=0 SINGLET PRECISE GNORM=0.01
+ammonia optimization then vibrational analysis
+ECCE MOPAC regression fixture
+N    0.000000    0.000000    0.000000
+H    0.000000    0.950000    0.380000
+H    0.822724   -0.475000    0.380000
+H   -0.822724   -0.475000    0.380000
+
+PM7 FORCE THERMO OLDGEO CHARGE=0 SINGLET PRECISE
+ammonia optimization then vibrational analysis
+Vibrational analysis at the optimized geometry

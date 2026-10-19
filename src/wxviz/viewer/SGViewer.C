@@ -14,6 +14,7 @@
 #include "inv/nodes/SoPerspectiveCamera.H"
 #include "inv/actions/SoGLRenderAction.H"
 #include "inv/elements/SoGLLazyElement.H"
+#include "inv/elements/SoViewingMatrixElement.H"
 
 #include "wxgui/ewxCursor.H"
 
@@ -612,8 +613,17 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
   if (viewer->p_showText) {
 
      glPushMatrix();
+     //  The text is placed in world coordinates (a plane of the view
+     //  volume); a model transform left by a property display before this
+     //  node pushed the bottom-left text off the canvas.
+     glLoadMatrixf(SoViewingMatrixElement::get(state)[0]);
 
-
+     //  Its own state: a transparency mode left blending on (additive for
+     //  DELAYED_ADD), and black text added to a white background vanished.
+     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+     glDisable(GL_BLEND);
+     glDisable(GL_DEPTH_TEST);
+     glDisable(GL_TEXTURE_2D);
      glDisable(GL_LIGHTING);  // so we don't have to set normals
 
      // Put text colors under user control
@@ -647,8 +657,7 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
         glPopAttrib ();
      }
 
-     glEnable(GL_LIGHTING);
-
+     glPopAttrib();
 
      glPopMatrix();
   }

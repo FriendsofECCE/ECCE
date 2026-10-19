@@ -64,6 +64,7 @@ const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_ELECTRONS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATIC_CALCED_SPIN_MULT = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_FINAL_EDIT = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_VERIFY = wxNewId();
+const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_GUESS_DEFAULT = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_VERIFY_LIGHT = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_OPEN_SHELLS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_FUNCTIONS = wxNewId();
@@ -142,6 +143,7 @@ BEGIN_EVENT_TABLE( CalcEdGUI, ewxFrame )
 
     EVT_BUTTON( ID_BUTTON_CALCED_FINAL_EDIT, CalcEdGUI::OnButtonCalcedFinalEditClick )
     EVT_BUTTON( ID_BUTTON_CALCED_VERIFY, CalcEdGUI::OnButtonCalcedVerifyClick )
+    EVT_BUTTON( ID_BUTTON_CALCED_GUESS_DEFAULT, CalcEdGUI::OnButtonCalcedGuessDefaultClick )
 
     EVT_BUTTON( ID_BUTTON_CALCED_LAUNCH, CalcEdGUI::OnButtonCalcedLaunchClick )
 
@@ -176,6 +178,9 @@ bool CalcEdGUI::Create( wxWindow* parent, wxWindowID id, const wxString& caption
     p_theoryDetailsSizer = NULL;
     p_runtypeDetailsSizer = NULL;
     p_buttonRow = NULL;
+    p_guessRow = NULL;
+    p_guessColumn = NULL;
+    p_guessText = NULL;
 ////@end CalcEdGUI member initialisation
 
 ////@begin CalcEdGUI creation
@@ -499,8 +504,30 @@ void CalcEdGUI::CreateControls()
     ewxButton* itemButton81 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer77->Add(itemButton81, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
 
+    //  In the Settings box, not the bottom row, which it made wider.
+    ewxButton* itemButton85 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_CONSTRAINT, _("Geometry Constraints..."), wxDefaultPosition, wxDefaultSize, 0 );
+    itemButton85->Show(false);
+    itemBoxSizer77->Add(itemButton85, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+
+    //  "2 constraints defined: used only by geometry optimisations"
+    p_constraintNote = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+    itemBoxSizer77->Add(p_constraintNote, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+    p_constraintNote->Show(false);
+
     p_runtypeDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
     itemBoxSizer76->Add(p_runtypeDetailsSizer, 0, wxALIGN_LEFT|wxLEFT, 5);
+
+    //  "Initial guess: MOs from <calculation>", shown only when the
+    //  calculation carries the orbitals of an earlier one.
+    p_guessRow = new wxBoxSizer(wxHORIZONTAL);
+    p_guessText = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+    p_guessRow->Add(p_guessText, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+    ewxButton* itemGuessButton = new ewxButton( itemFrame1, ID_BUTTON_CALCED_GUESS_DEFAULT, _("Use Default Guess"), wxDefaultPosition, wxDefaultSize, 0 );
+    itemGuessButton->SetToolTip(_("Drop the orbitals from the earlier calculation and let the code make its own initial guess."));
+    p_guessRow->Add(itemGuessButton, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+    itemBoxSizer11->Add(p_guessRow, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 8);
+    p_guessColumn = itemBoxSizer11;
+    itemBoxSizer11->Show(p_guessRow, false);
 
     //  Why Save/Verify/Launch are unavailable; hidden while empty.
     p_notReadyText = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END );
@@ -515,15 +542,6 @@ void CalcEdGUI::CreateControls()
     ewxButton* itemButton84 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_PARTIAL, _("Partial Charge Editor..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButton84->Show(false);
     itemBoxSizer83->Add(itemButton84, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
-
-    ewxButton* itemButton85 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_CONSTRAINT, _("Geometry Constraints..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemButton85->Show(false);
-    itemBoxSizer83->Add(itemButton85, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
-
-    //  "2 constraints defined: used only by geometry optimisations"
-    p_constraintNote = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer83->Add(p_constraintNote, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
-    itemBoxSizer83->Show(p_constraintNote, false);
 
     //  The light and the Verify button sit together, immediately left
     //  of Final Edit: the light is the standing answer and the button
@@ -585,6 +603,11 @@ void CalcEdGUI::OnCloseWindow( wxCloseEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_CLOSE_WINDOW event handler for ID_CALCED_FRAME in CalcEdGUI. 
+}
+
+void CalcEdGUI::OnButtonCalcedGuessDefaultClick( wxCommandEvent& event )
+{
+    event.Skip();
 }
 
 /*!

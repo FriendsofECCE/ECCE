@@ -118,8 +118,8 @@ computer, is registered already: jobs run directly on it, without ssh and
 without a batch system.
 
 * **Codes on your `PATH` work at once.** ECCE starts NWChem, Gaussian,
-  ORCA, MOPAC and Quantum ESPRESSO by their command names (`nwchem`,
-  `g16`, `orca`, `mopac`, `pw.x`), so a code you can start from a
+  ORCA, MOPAC, Quantum ESPRESSO and CP2K by their command names (`nwchem`,
+  `g16`, `orca`, `mopac`, `pw.x`, `cp2k.psmp`), so a code you can start from a
   terminal by that name needs no setup.
 * **A code elsewhere needs its full path.** Open **Tools → Register
   Machines…**, select `localhost`, and on the **Codes** tab enter the

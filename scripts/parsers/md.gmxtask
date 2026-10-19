@@ -34,7 +34,10 @@ while (<STDIN>) {
   } elsif (/^\s*<\/(Interaction|Constraints|Optimize|Control|Dynamics|Thermodynamics|Files)>\s*$/) {
     $sect = "Top";
   } elsif (/^\s*<([A-Za-z0-9_]+)>\s*([^<]*?)\s*<\/[A-Za-z0-9_]+>\s*$/) {
-    $D{$sect}{$1} = $2;
+    my ($k, $v) = ($1, $2);
+    $v =~ s/&#10;/\n/g; $v =~ s/&#9;/\t/g; $v =~ s/&lt;/</g;
+    $v =~ s/&gt;/>/g; $v =~ s/&amp;/&/g;
+    $D{$sect}{$k} = $v;
   }
 }
 
@@ -150,6 +153,59 @@ if ($runtype{$task} eq "Dynamics") {
     $p{"ES.Runtype.MD.GenTemp"}  = $temp;
   }
 }
+
+# ---- GROMACS run settings (Interaction section, every task) ----
+# defines and position restraints
+my $defs = get("Interaction", "GmxDefines", "");
+$defs =~ s/\s+/ /g; $defs =~ s/^ //; $defs =~ s/ $//;
+if (get("Interaction", "GmxPosres", 0) == 1) {
+  # one or several names: a topology may restrain per chain (POSRES_A POSRES_B)
+  foreach my $name (split(/\s+/, get("Interaction", "GmxPosresName", "POSRES"))) {
+    $name =~ s/^-D//;
+    next if ($name eq "");
+    $defs .= " " if ($defs ne "");
+    $defs .= "-D$name" if ($defs !~ /(^| )-D\Q$name\E(=\S*)?( |$)/);
+  }
+  # grompp objects to restraints with a barostat unless the reference
+  # coordinates scale with the centre of mass
+  $p{"ES.Runtype.MD.RefcoordScaling"} = "com"
+    if ($runtype{$task} eq "Dynamics" && get("Dynamics", "UseNPT", 0) == 1);
+}
+$p{"ES.Runtype.MD.Defines"} = $defs if ($defs ne "");
+
+# groups by residue name: "name = RES RES" per line
+my @groups;
+foreach my $line (split(/\n/, get("Interaction", "GmxGroups", ""))) {
+  next if ($line =~ /^\s*$/);
+  if ($line =~ /^\s*([^\s=:]+)\s*[=:]\s*(.*?)\s*$/ && $2 ne "") {
+    push(@groups, [$1, $2]);
+  } else {
+    die "md.gmxtask: group line '$line' is not 'name = residue names'.\n";
+  }
+}
+if (@groups) {
+  $p{"ES.Runtype.MD.GroupDefs"} = join("|", map { "$_->[0]=$_->[1]" } @groups);
+}
+foreach my $pair (["GmxComGroups", "ComGroups"], ["GmxTcGroups", "TcGroups"]) {
+  next if (get("Interaction", $pair->[0], 0) != 1 || $runtype{$task} ne "Dynamics");
+  die "md.gmxtask: $pair->[1] use the defined groups, but none is defined.\n"
+    if (!@groups);
+  $p{"ES.Runtype.MD.$pair->[1]"} = join(" ", map { $_->[0] } @groups);
+}
+
+# barostat, coupling type, how often
+if (defined($p{"ES.Runtype.MD.Pressure"})) {
+  my @bar = ("C-rescale", "Berendsen", "Parrinello-Rahman");
+  my @typ = ("isotropic", "semiisotropic", "anisotropic");
+  $p{"ES.Runtype.MD.Barostat"} = $bar[get("Interaction", "GmxBarostat", 0)] || $bar[0];
+  $p{"ES.Runtype.MD.PressureType"} = $typ[get("Interaction", "GmxPcoupltype", 0)] || $typ[0];
+  $p{"ES.Runtype.MD.PressureInterval"} = get("Interaction", "GmxNstpcouple", 0)
+    if (get("Interaction", "GmxNstpcouple", 0) > 0);
+}
+
+# lines of the user's own, merged over ours by ai.gromacs
+my @extra = grep { /\S/ } split(/\n/, get("Interaction", "GmxExtraMdp", ""));
+$p{"ES.Runtype.MD.ExtraLines"} = join("|", @extra) if (@extra);
 
 # ---- write the .param file and let ai.gromacs fill the template ----
 my $dir = tempdir("gmxtask.XXXXXX", TMPDIR => 1, CLEANUP => 1);

@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+# CP2K's Hirshfeld table into HIRSHFELD; the net charge is the last column
+# in both the restricted and the unrestricted layout:
+#
+#    #Atom  Element  Kind  Ref Charge     Population                    Net charge
+#        1       Si     1       4.000          4.000                         0.000
+#    #Atom  Element  Kind  Ref Charge     Population       Spin moment  Net charge
+#        1       Ni     1      18.000    9.889   8.728            1.161     -0.617
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @charge;
+while (<STDIN>) {
+  last if (/^\s*Total Charge/);
+  next if (!/^\s*\d+\s+[A-Za-z]{1,2}\s+\d+\s+(.*\S)\s*$/);
+  my @n = split(/\s+/, $1);
+  next if (@n < 3 || grep { !/^-?\d+\.\d+$/ } @n);
+  push(@charge, $n[-1]);
+}
+exit(0) if (!@charge);
+
+print "key: HIRSHFELD\nsize:\n", scalar(@charge), "\nvalues:\n",
+      join(" ", @charge), "\nunits:\ne\nEND\n";
+exit(0);

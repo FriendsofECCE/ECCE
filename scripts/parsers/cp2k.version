@@ -1,0 +1,12 @@
+#!/usr/bin/env perl
+# CP2K's version line: "CP2K| version string:    CP2K version 2025.1".
+# Fed the Begin line only (cp2k.desc, Lines=1).
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_));
+exit(0) if (!/CP2K\| version string:\s+(?:CP2K version\s+)?(\S+)/);
+
+print "key: VERSION\nsize:\n1\nvalues:\nCP2K $1\nEND\n";
+exit(0);

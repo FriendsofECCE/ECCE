@@ -5,6 +5,7 @@
 //  the menus, the layout save/restore and the viz-panel focus logic in
 //  Builder.C need no second implementation.
 
+#include <wx/settings.h>
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -306,7 +307,8 @@ void Builder::applyGeometry(bool resetSizes)
     }
     if (name == NAME_TOOL_LOG) {
       if (col) {
-        pane.Bottom().Layer(0).Row(0).Position(0).PinButton(true);
+        pane.Bottom().Layer(0).Row(p_folded.count(pane.window) ? 1 : 0)
+            .Position(0).PinButton(true);
         if (resetSizes && !p_folded.count(pane.window)) {
           const int line = pane.window->GetCharHeight();
           pane.BestSize(wxSize(300, 3 * line + 8))
@@ -377,12 +379,13 @@ void Builder::refreshColumn()
   } else if (p_panelMode == PANELS_DETAIL) {
     ensureDetail();
   }
-  //  A calculation without results has an empty Properties tab, whatever
-  //  tab was last chosen: it opens on the building tools.
+  //  An editable calculation opens on the building tools, so a new user
+  //  sees Build; one with results (read-only) opens on Properties.  A tab
+  //  somebody chose, or a panel somebody opened, wins either way.
   if (!anyProperties) {
     p_columnTab = 0;
   } else if (!p_columnTabChosen) {
-    p_columnTab = 1;
+    p_columnTab = p_calculation && isReadOnly() ? 1 : 0;
   }
   updatePropertyIndex();
   syncColumn(false);
@@ -514,7 +517,23 @@ void Builder::syncColumn(bool allowSwitch)
   }
 
   for (int t = 0; t < 2; ++t) {
-    if (p_tabButtons[t]) p_tabButtons[t]->SetValue(t == p_columnTab);
+    wxToggleButton *b = p_tabButtons[t];
+    if (!b) continue;
+    //  A pressed GTK toggle differs from a raised one by a faint shade
+    //  only; the selected tab also gets the selection colours and bold.
+    const bool on = t == p_columnTab;
+    b->SetValue(on);
+    wxFont f = b->GetFont();
+    f.SetWeight(on ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
+    b->SetFont(f);
+    if (on) {
+      b->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
+      b->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT));
+    } else {
+      b->SetBackgroundColour(wxNullColour);
+      b->SetForegroundColour(wxNullColour);
+    }
+    b->Refresh();
   }
 }
 
@@ -691,10 +710,67 @@ void Builder::guardSashDrag()
 {
   p_mgr.Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& event) {
     const int x = event.GetX();
-    //  AUI shares the dock among whole panes, caption and border included.
+    //  A folded pane is Fixed(), so AUI gives it no sash: the top edge of
+    //  the pane below it grabs nothing (#346).  That edge is dragged here:
+    //  the resizable pane above the folded ones and the pane below trade
+    //  height, as AUI would trade it across a sash.
+    endEdgeDrag();
+    bool ownDrag = false;
     wxAuiDockArt *art = p_mgr.GetArtProvider();
     const int caption = art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE);
     const int border = art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE);
+    {
+      wxAuiPaneInfoArray &docked = p_mgr.GetAllPanes();
+      //  rect is the client area: the caption and border lie above it.
+      auto topOf = [caption, border](const wxAuiPaneInfo &q) {
+        return q.rect.y - (q.HasCaption() ? caption : 0) -
+               (q.HasBorder() ? border : 0);
+      };
+      auto fullHeight = [caption, border](const wxAuiPaneInfo &q) {
+        return q.rect.height + (q.HasCaption() ? caption : 0) +
+               (q.HasBorder() ? 2 * border : 0);
+      };
+      for (size_t i = 0; i < docked.GetCount(); ++i) {
+        wxAuiPaneInfo &below = docked.Item(i);
+        if (!below.window || !below.IsShown() || below.IsFloating() ||
+            below.IsToolbar() || below.dock_direction != wxAUI_DOCK_RIGHT ||
+            !below.IsResizable() || p_folded.count(below.window) ||
+            x < below.rect.x || x >= below.rect.GetRight() ||
+            event.GetY() < topOf(below) - 3 || event.GetY() > topOf(below)) {
+          continue;
+        }
+        //  The pane directly above, then up through the folded ones.
+        wxAuiPaneInfo *above = 0;
+        int topEdge = topOf(below);
+        bool skipped = false;
+        for (;;) {
+          above = 0;
+          for (size_t j = 0; j < docked.GetCount(); ++j) {
+            wxAuiPaneInfo &q = docked.Item(j);
+            if (q.window && q.IsShown() && !q.IsFloating() &&
+                !q.IsToolbar() && q.dock_direction == wxAUI_DOCK_RIGHT &&
+                q.dock_layer == below.dock_layer &&
+                q.rect.x == below.rect.x && q.rect.GetBottom() < topEdge &&
+                (!above || q.rect.y > above->rect.y)) {
+              above = &q;
+            }
+          }
+          if (!above || !p_folded.count(above->window)) break;
+          topEdge = topOf(*above);
+          skipped = true;
+        }
+        if (above && skipped && above->IsResizable()) {
+          p_edgeAbove = above->window;
+          p_edgeBelow = below.window;
+          p_edgeY0 = event.GetY();
+          p_edgeHeightAbove = fullHeight(*above);
+          p_edgeHeightBelow = fullHeight(below);
+          ownDrag = true;
+        }
+        break;
+      }
+    }
+    //  AUI shares the dock among whole panes, caption and border included.
     wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
     for (size_t i = 0; i < all.GetCount(); ++i) {
       wxAuiPaneInfo &pane = all.Item(i);
@@ -708,9 +784,45 @@ void Builder::guardSashDrag()
             (pane.HasBorder() ? 2 * border : 0);
       }
     }
+    if (ownDrag) {
+      for (size_t k = 0; k < all.GetCount(); ++k) {
+        if (all.Item(k).window == p_edgeAbove)
+          all.Item(k).dock_proportion = p_edgeHeightAbove;
+        if (all.Item(k).window == p_edgeBelow)
+          all.Item(k).dock_proportion = p_edgeHeightBelow;
+      }
+      if (!HasCapture()) CaptureMouse();
+      SetCursor(wxCursor(wxCURSOR_SIZENS));
+      return;
+    }
     event.Skip();
   });
   p_mgr.Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
+    if (p_edgeAbove) {
+      if (!event.LeftIsDown()) {
+        endEdgeDrag();
+        return;
+      }
+      wxAuiPaneInfo &a = p_mgr.GetPane(p_edgeAbove);
+      wxAuiPaneInfo &b = p_mgr.GetPane(p_edgeBelow);
+      if (a.IsOk() && b.IsOk()) {
+        //  Neither pane goes below its floor (client floor plus chrome).
+        wxAuiDockArt *art = p_mgr.GetArtProvider();
+        const int chrome = (a.HasCaption() ?
+            art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE) : 0) +
+            (a.HasBorder() ? 2 * art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE) : 0);
+        const int chromeB = (b.HasCaption() ?
+            art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE) : 0) +
+            (b.HasBorder() ? 2 * art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE) : 0);
+        int dy = event.GetY() - p_edgeY0;
+        dy = std::max(dy, a.min_size.y + chrome - p_edgeHeightAbove);
+        dy = std::min(dy, p_edgeHeightBelow - b.min_size.y - chromeB);
+        a.dock_proportion = p_edgeHeightAbove + dy;
+        b.dock_proportion = p_edgeHeightBelow - dy;
+        p_mgr.Update();
+      }
+      return;
+    }
     if (HasCapture() && !event.LeftIsDown()) {
       endStuckSashDrag();
       return;
@@ -718,11 +830,24 @@ void Builder::guardSashDrag()
     event.Skip();
   });
   p_mgr.Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& event) {
+    if (p_edgeAbove) {
+      endEdgeDrag();
+      return;
+    }
     event.Skip();
     CallAfter([this]() {
       if (HasCapture()) endStuckSashDrag();
     });
   });
+}
+
+
+void Builder::endEdgeDrag()
+{
+  if (!p_edgeAbove) return;
+  p_edgeAbove = p_edgeBelow = 0;
+  if (HasCapture()) ReleaseMouse();
+  SetCursor(wxNullCursor);
 }
 
 
@@ -997,10 +1122,34 @@ void Builder::updatePropertyIndex()
     entries.push_back(ordered[i].second);
   }
   p_index->setEntries(entries);
+  sizeIndexPane();
   if (p_detail) {
     wxAuiPaneInfo &pane = p_mgr.GetPane(p_detail);
     if (pane.IsOk()) p_index->setSelected(pane.name.ToStdString());
   }
+}
+
+
+/**
+ * The Properties list is as tall as its rows (up to a share of the screen, then it scrolls)
+ * and the panel below it takes the rest.  Its share of the column starts
+ * at the floor; once the user drags the sash the pixel proportions the drag
+ * sets stay, so this only moves the floor.
+ */
+void Builder::sizeIndexPane()
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
+  if (!pane.IsOk()) return;
+  //  A share of the screen, not the window: the panel below needs the rest
+  //  for its table; the MOs panel needs about 250 px of controls before its first row.
+  const int height = p_index->preferredHeight(wxGetDisplaySize().y * 12 / 100);
+  if (!p_indexSized) {
+    pane.dock_proportion = 1;
+    p_indexSized = true;
+  }
+  if (pane.min_size.y == height) return;
+  pane.MinSize(wxSize(pane.min_size.x, height)).BestSize(wxSize(400, height));
+  if (pane.IsShown() && !pane.IsFloating()) updatePanes();
 }
 
 

@@ -6,7 +6,10 @@
 //  the only difference between them is what they do with the model.
 //
 //  Kept in step with MoDiagramPanel::build(), which is the third
-//  caller and the one that matters.  Input file format is documented
+//  caller and the one that matters.  The fragment-orbital construction
+//  (FoDiagram, #301) is not offered here: it projects a calculation's
+//  MOs in their own basis functions, and a molecule file carries only
+//  per-atom function counts.  Input file format is documented
 //  in dump.C.
 #ifndef TDAT_MOSPEC__H
 #define TDAT_MOSPEC__H

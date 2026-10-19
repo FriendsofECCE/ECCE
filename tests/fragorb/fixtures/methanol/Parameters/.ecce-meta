@@ -1,0 +1,12 @@
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:coordsys		N
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:gbs-type		element
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:name		6-31G*
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:numFunctions		36
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:numPrimitives		38
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		0
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		CH4O
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		methanol
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		6
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		18
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C1
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

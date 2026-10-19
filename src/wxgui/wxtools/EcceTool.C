@@ -202,6 +202,38 @@ void EcceTool::OnMouseRightDown( wxMouseEvent& event )
 // }
 
 
+//  The thumbnail is a window cut into the raised button: a two-pixel frame in
+//  the theme's own shades, dark side up and left, light side down and right,
+//  the reverse of the button's bevel.  Filled one-pixel rectangles rather
+//  than DrawLine, whose end point is drawn or not depending on the backend.
+static void fillRect(wxDC& dc, const wxColour& c, int x, int y, int w, int h)
+{
+  dc.SetPen(*wxTRANSPARENT_PEN);
+  dc.SetBrush(wxBrush(c));
+  dc.DrawRectangle(x, y, w, h);
+}
+
+static void drawThumbnailFrame(wxDC& dc, const wxRect& img)
+{
+  wxColour dark = wxSystemSettings::GetColour(wxSYS_COLOUR_3DSHADOW);
+  wxColour light = wxSystemSettings::GetColour(wxSYS_COLOUR_3DHIGHLIGHT);
+  wxColour mid = wxSystemSettings::GetColour(wxSYS_COLOUR_3DDKSHADOW);
+  if (mid == dark) mid = dark.ChangeLightness(80);
+  //  Drawn around the image, on the button face, so a dark picture does not
+  //  swallow it.
+  wxRect r = img; r.Inflate(2);
+  for (int i = 0; i < 2; i++) {
+    const int x = r.x + i, y = r.y + i, w = r.width - 2 * i, h = r.height - 2 * i;
+    const wxColour& tl = (i == 0) ? mid : dark;
+    fillRect(dc, tl, x, y, w, 1);
+    fillRect(dc, tl, x, y, 1, h);
+    fillRect(dc, light, x + 1, y + h - 1, w - 1, 1);
+    fillRect(dc, light, x + w - 1, y + 1, 1, h - 1);
+  }
+}
+
+
+
 void EcceTool::OnPaint( wxPaintEvent& event )
 {
   wxPaintDC dc(this);
@@ -210,7 +242,7 @@ void EcceTool::OnPaint( wxPaintEvent& event )
   //  Always the theme's raised push button: a flat icon gives no sign
   //  it can be clicked until the mouse is over it.
   wxRect rect(wxPoint(0, 0), GetClientSize());
-  int flags = 0;
+  int flags = IsEnabled() ? 0 : wxCONTROL_DISABLED;
   if (p_isSunken) flags |= wxCONTROL_PRESSED;
   else if (p_isHover) flags |= wxCONTROL_CURRENT;
   wxRendererNative::Get().DrawPushButton(this, dc, rect, flags);
@@ -218,11 +250,15 @@ void EcceTool::OnPaint( wxPaintEvent& event )
   if (p_bundle.IsOk()) {
     wxBitmap bmp = p_thumbnail.IsOk() ? p_thumbnail
                                       : p_bundle.GetBitmapFor(this);
+    if (!IsEnabled()) bmp = bmp.ConvertToDisabled();
     wxSize sz = p_thumbnail.IsOk() ? wxSize(ICON_SIZE, ICON_SIZE)
                                    : p_bundle.GetPreferredLogicalSizeFor(this);
     dc.DrawBitmap(bmp, (rect.width - sz.x) / 2, 4, true);
+    if (p_thumbnail.IsOk()) drawThumbnailFrame(dc, wxRect(
+        wxPoint((rect.width - sz.x) / 2, 4), sz));
     dc.SetFont(GetFont());
-    dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
+    dc.SetTextForeground(wxSystemSettings::GetColour(
+        IsEnabled() ? wxSYS_COLOUR_BTNTEXT : wxSYS_COLOUR_GRAYTEXT));
     wxSize ts = dc.GetTextExtent(p_label);
     dc.DrawText(p_label, wxMax(0, (rect.width - ts.x) / 2),
                 4 + ICON_SIZE + 2);
@@ -262,6 +298,7 @@ void EcceTool::OnKeyDown( wxKeyEvent& event )
  */
 void EcceTool::toolActivate(bool shiftDown)
 {
+  if (!IsEnabled()) return;
   wxCommandEvent evt(wxEVT_COMMAND_BUTTON_CLICKED, GetId());
   p_invokeParam->forceNew = (shiftDown?1:0);
   evt.SetClientObject(p_invokeParam);

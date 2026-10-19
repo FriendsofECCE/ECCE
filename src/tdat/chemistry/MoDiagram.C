@@ -12,6 +12,7 @@ using std::ostringstream;
 #include "tdat/CharacterTable.H"
 #include "tdat/MoComposition.H"
 #include "tdat/MoDiagram.H"
+#include "tdat/MoPairs.H"
 
 MoDiagram::MoDiagram()
 {
@@ -1995,7 +1996,8 @@ static bool classifyLinearByPhase(vector<MoLevel>& centre, int& nextPair)
 void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
                                  vector<MoLevel>& centre,
                                  const vector<MoLevel>& right,
-                                 const vector<MoConnection>& connections)
+                                 const vector<MoConnection>& connections,
+                                 vector<string>* pairWarnings)
 {
   //  WITHOUT IRREPS THERE IS NOTHING TO COUNT, but there is still
   //  something to read: an orbital below every fragment level it is
@@ -2134,6 +2136,175 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
       nextPair++;
     }
   }
+
+  //  One rule for every construction: a level without a partner is nb.
+  MoPairs::settle(centre, pairWarnings);
+}
+
+
+void MoDiagram::fillWholePairs(vector<MoLevel>& levels)
+{
+  double total = 0.0;
+  for (size_t i = 0; i < levels.size(); i++) total += levels[i].occupancy;
+  int n = (int)floor(total + 0.5);
+  vector<size_t> order(levels.size());
+  for (size_t i = 0; i < order.size(); i++) order[i] = i;
+  std::stable_sort(order.begin(), order.end(), [&levels](size_t a, size_t b) {
+    return levels[a].energy < levels[b].energy; });
+  for (size_t k = 0; k < order.size(); k++) {
+    MoLevel& lv = levels[order[k]];
+    const int cap = 2*(lv.degeneracy > 0 ? lv.degeneracy : 1);
+    const int take = n < cap ? n : cap;
+    lv.occupancy = take;
+    n -= take;
+  }
+}
+
+
+/** Element and angular momentum of a shell key such as "F:1". */
+static bool splitKey(const string& key, string& element, int& l)
+{
+  const size_t colon = key.find(':');
+  if (colon == string::npos) return false;
+  element = key.substr(0, colon);
+  l = atoi(key.c_str() + colon + 1);
+  return true;
+}
+
+
+static void energyRange(const MoLevel& lv, double& lo, double& hi)
+{
+  if (lv.energies.empty()) {
+    lo = std::min(lo, lv.energy); hi = std::max(hi, lv.energy);
+    return;
+  }
+  for (size_t k = 0; k < lv.energies.size(); k++) {
+    lo = std::min(lo, lv.energies[k]); hi = std::max(hi, lv.energies[k]);
+  }
+}
+
+
+void MoDiagram::simplifyCentral(MoColumn& left, MoColumn& centre,
+                                MoColumn& right, vector<MoConnection>& links,
+                                vector<bool>& removedCentre,
+                                int& leftOut, int& blockLevels)
+{
+  (void)left;
+  leftOut = 0;
+  blockLevels = 0;
+  const size_t nC = centre.levels.size(), nR = right.levels.size();
+  removedCentre.assign(nC, false);
+
+  //  No line goes to a non-bonding level.
+  {
+    vector<MoConnection> kept;
+    for (size_t i = 0; i < links.size(); i++) {
+      const int c = links[i].centreLevel;
+      if (c >= 0 && c < (int)nC && centre.levels[c].character == MoLevel::NONBONDING)
+        continue;
+      kept.push_back(links[i]);
+    }
+    links.swap(kept);
+  }
+
+  //  A ligand s TASO is left out unless it makes up 10 % of a drawn MO.
+  vector<bool> dropR(nR, false);
+  for (size_t r = 0; r < nR; r++) {
+    const MoLevel& t = right.levels[r];
+    if (t.shell != 0 || t.slot < 0 || t.slot >= (int)right.shellKeys.size()) continue;
+    string el; int l;
+    if (!splitKey(right.shellKeys[t.slot], el, l)) continue;
+    bool hasP = false;
+    for (size_t k = 0; k < right.shellKeys.size(); k++) {
+      string e2; int l2;
+      if (splitKey(right.shellKeys[k], e2, l2) && e2 == el && l2 == 1) hasP = true;
+    }
+    if (!hasP) continue;
+    bool used = false;
+    for (size_t c = 0; c < nC; c++)
+      if ((int)centre.levels[c].shellRight.size() > t.slot &&
+          centre.levels[c].shellRight[t.slot] >= 0.10) used = true;
+    if (!used) { dropR[r] = true; leftOut++; }
+  }
+
+  //  Ligand lone pairs: non-bonding MOs on the ligands, and the TASOs
+  //  that now have no line.
+  vector<bool> blockC(nC, false), blockR(nR, false);
+  int nBlock = 0;
+  for (size_t c = 0; c < nC; c++) {
+    const MoLevel& m = centre.levels[c];
+    if (m.character == MoLevel::NONBONDING && m.shareRight >= 0.80) {
+      blockC[c] = true; nBlock++;
+    }
+  }
+  if (nBlock > 0) {
+    vector<bool> linked(nR, false);
+    for (size_t i = 0; i < links.size(); i++)
+      if (links[i].rightLevel >= 0 && links[i].rightLevel < (int)nR)
+        linked[links[i].rightLevel] = true;
+    for (size_t r = 0; r < nR; r++) if (!dropR[r] && !linked[r]) blockR[r] = true;
+
+    string name;
+    vector<string> seen;
+    for (size_t r = 0; r < nR; r++) {
+      if (!blockR[r] || right.levels[r].slot < 0 ||
+          right.levels[r].slot >= (int)right.shellKeys.size()) continue;
+      string el; int l;
+      if (!splitKey(right.shellKeys[right.levels[r].slot], el, l)) continue;
+      if (std::find(seen.begin(), seen.end(), el) == seen.end()) seen.push_back(el);
+    }
+    if (seen.empty()) {
+      for (size_t k = 0; k < right.shellKeys.size(); k++) {
+        string el; int l;
+        if (splitKey(right.shellKeys[k], el, l) && el != "H" &&
+            std::find(seen.begin(), seen.end(), el) == seen.end()) seen.push_back(el);
+      }
+    }
+    for (size_t k = 0; k < seen.size(); k++) name += (k ? "/" : "") + seen[k];
+    name += name.empty() ? "Ligand lone pairs (nb)" : " lone pairs (nb)";
+
+    MoBand cb; cb.label = name; cb.low = 1.0e30; cb.high = -1.0e30;
+    for (size_t c = 0; c < nC; c++) if (blockC[c]) {
+      energyRange(centre.levels[c], cb.low, cb.high);
+      cb.levels += centre.levels[c].degeneracy > 0 ? centre.levels[c].degeneracy : 1;
+    }
+    centre.bands.push_back(cb);
+    MoBand rb; rb.label = name; rb.low = 1.0e30; rb.high = -1.0e30;
+    for (size_t r = 0; r < nR; r++) if (blockR[r]) {
+      energyRange(right.levels[r], rb.low, rb.high);
+      rb.levels += right.levels[r].degeneracy > 0 ? right.levels[r].degeneracy : 1;
+    }
+    if (rb.levels > 0) right.bands.push_back(rb);
+    blockLevels = cb.levels;
+  }
+
+  //  Remove, remapping the lines.
+  vector<int> newC(nC, -1), newR(nR, -1);
+  vector<MoLevel> keepC, keepR;
+  for (size_t c = 0; c < nC; c++) {
+    if (blockC[c]) { removedCentre[c] = true; continue; }
+    newC[c] = (int)keepC.size(); keepC.push_back(centre.levels[c]);
+  }
+  for (size_t r = 0; r < nR; r++) {
+    if (dropR[r] || blockR[r]) continue;
+    newR[r] = (int)keepR.size(); keepR.push_back(right.levels[r]);
+  }
+  vector<MoConnection> kept;
+  for (size_t i = 0; i < links.size(); i++) {
+    MoConnection k = links[i];
+    if (k.centreLevel >= 0) { k.centreLevel = newC[k.centreLevel]; if (k.centreLevel < 0) continue; }
+    if (k.rightLevel >= 0) {
+      k.rightLevel = newR[k.rightLevel];
+      if (k.rightLevel < 0) {
+        if (k.leftLevel < 0) continue;     // a line to a level that went
+        continue;
+      }
+    }
+    kept.push_back(k);
+  }
+  links.swap(kept);
+  centre.levels.swap(keepC);
+  right.levels.swap(keepR);
 }
 
 

@@ -1,0 +1,46 @@
+group: D2h
+formula: C2H4
+construction: two equivalent halves
+headline: 
+source: MO levels: RHF, 6-31G* · 
+note: Model: order and approximate spacing from extended Hückel (qualitative) · calculation in eV · electrons: CH2 1 (neutral: 1 unpaired e), drawn 1; CH2 1 (neutral: 1 unpaired e), drawn 1; model and calculation: 2 drawn + 0 folded (0 levels) = 2 · labels in D<sub>2h</sub>
+about: The extended Hückel diagram explains the calculation's orbitals: nothing more, nothing less.\n\n**The model.** Every column is extended Hückel (Alvarez parameters). The middle column is the molecule's own extended Hückel run, the side columns are the two fragments' (CH2 and CH2). The basis is the same in all three, so the lines are an exact projection of each model MO on the fragment orbitals: a line joins a model MO to a fragment level that makes up at least 10 % of it.\n\n**Bonding and antibonding** are read from the sign of each model MO's overlap population between the two fragments, then paired per symmetry label and degeneracy, so each antibonding level has its bonding partner; a level without a partner is non-bonding. Colours mark the pairs.\n\n**Scale.** The model columns show the order of the levels and their approximate spacing from extended Hückel, not a scale: close levels are drawn further apart so they can be read, and no model energy is printed (it is in the hover text). Extended Hückel antibonding energies are qualitative and typically far too high for short bonds to diffuse atoms such as B, Be and Al.\n\n**The calculation** is the column on the right, on its own energy axis in eV (not on the model's scale). For each model level it shows the calculated orbital (or set of near-degenerate orbitals) with the largest overlap with it, at its calculated energy, in the colour of the model level it matches. A level marked ≈ matches only loosely (overlap below 0.80; the value is in the hover text). Labels are those of the matched calculated orbital. Clicking a level shows that orbital in 3-D.\n\nThe model explains your occupied orbitals and the LUMO in the right order. Virtual orbitals above the LUMO depend strongly on the basis set.\n\n**Total electrons: 2** (CH2 1, CH2 1).\n\nEach model level carries a short grey tag naming the fragment orbitals it is mostly made of (shares of at least 20 %), such as Cr d or CO π*. Ligand-field view hides empty ligand-centred levels such as CO π*; transitions into them are charge transfer, not d–d.\n\n**Orbital labels.** Symmetry labels computed from the orbitals in D2h; the code reported none.  b1 and b2 (b2 and b3 in D2h) depend on the choice of axes; ECCE follows Mulliken's convention, as most textbooks do.
+verdict: ok The model explains your occupied orbitals and the LUMO in the right order.
+column left
+  title: CH2 (extended Hückel)
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 1
+  level 0 energy=-0.418942 tabulated=0.000000 irrep=B3U label=b3u character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −11.40 eV, 1 electrons."
+  sketch view=0 normal=2 points=[0.0000,-0.4038,0.0000;1.0000,0.2019,0.0000;-1.0000,0.2019,0.0000]
+column centre
+  title: Model MOs
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 2
+  level 0 energy=-0.485820 tabulated=0.000000 irrep=B3U label=1b3u tag=C 2p π character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 calcEnergy=-0.261736 calcOverlap=0.9931 calcLabel=1b3u calcOcc=2.0000 calcOccBeta=-1.0000 calcDeg=1 orbitals=[7] annotation="" detail="Model MO (extended Hückel), E = −13.22 eV.  Bonding (overlap population 0.21).\nMade of: CH2 b3u 50 %, CH2 b3u 50 %\nMatches your MO 8 (E = −7.12 eV, overlap 0.99)."
+  level 1 energy=-0.302494 tabulated=0.000000 irrep=B2G label=1b2g* tag=C 2p π character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 calcEnergy=0.020669 calcOverlap=0.9638 calcLabel=1b2g* calcOcc=0.0000 calcOccBeta=-1.0000 calcDeg=1 orbitals=[8] annotation="" detail="Model MO (extended Hückel), E = −8.23 eV.  Antibonding (overlap population −0.37).\nMade of: CH2 b3u 50 %, CH2 b3u 50 %\nMatches your MO 9 (E = 0.56 eV, overlap 0.96)."
+column right
+  title: CH2 (extended Hückel)
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 1
+  level 0 energy=-0.418942 tabulated=0.000000 irrep=B3U label=b3u character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −11.40 eV, 1 electrons."
+  sketch view=0 normal=2 points=[0.0000,0.4038,0.0000;1.0000,-0.2019,0.0000;-1.0000,-0.2019,0.0000]
+links: 4
+  link 0 left=0 centre=0 right=-1 weight=0.5000
+  link 1 left=-1 centre=0 right=0 weight=0.5000
+  link 2 left=0 centre=1 right=-1 weight=0.5000
+  link 3 left=-1 centre=1 right=0 weight=0.5000

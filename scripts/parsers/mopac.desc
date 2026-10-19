@@ -253,6 +253,19 @@ Skip=0
 Lines=1
 [END]
 
+# A FORCE run prints its modes in this frame, not the stored one.  The block
+# is only the table (Skip=4 lands on the first atom row, End is the blank
+# line after it): a wider one would swallow the heat of formation and zero
+# point energy that follow.  Nothing is published; mopac.vib reads the file
+# this leaves in the job directory.  The key is not a property.
+[MOPFORCEFRAME]
+Script=mopac.forceframe
+Begin=ORIENTATION OF MOLECULE IN FORCE CALCULATION
+Skip=4
+Frequency=all
+End=^\s*$
+[END]
+
 # Frequencies, mode symmetry labels AND the per-mode Cartesian
 # displacement vectors, all from the one NORMAL COORDINATE ANALYSIS
 # block.  VIB is what makes the "Vibrational Frequencies" entry appear

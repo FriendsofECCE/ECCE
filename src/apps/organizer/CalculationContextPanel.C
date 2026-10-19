@@ -23,6 +23,7 @@
 #include "util/NullPointerException.H"
 
 #include "dsm/EDSIFactory.H"
+#include "dsm/JCode.H"
 #include "dsm/MdTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
@@ -30,6 +31,7 @@
 #include "dsm/GridProperty.H"
 #include "dsm/ResourceTool.H"
 #include "dsm/Session.H"
+#include "dsm/TaskJob.H"
 #include "dsm/ToolPropertyView.H"
 #include "dsm/VDoc.H"
 
@@ -45,6 +47,26 @@
 #include "CalcMgrGUI.H"
 #include "CalculationContextPanel.H"
 #include "ProgressBox.H"
+
+//  The Basis Set button and its rows are dropped for a code that has no basis
+//  set; the registration (needsBasis of its theories) decides.
+static bool noBasisView(Resource *res, ResourceTool *tool)
+{
+  if (tool->getName() != BASISTOOL) return false;
+  TaskJob *task = dynamic_cast<TaskJob*>(res);
+  const JCode *code = task ? task->application() : 0;
+  return code && !code->usesBasisSet();
+}
+
+//  A code that has a basis but is not used with the Basis Set Tool (ECCE-QM:
+//  quick picks in the editor) shows the button and rows, greyed out.
+static bool basisToolOff(Resource *res, ResourceTool *tool)
+{
+  if (tool->getName() != BASISTOOL) return false;
+  TaskJob *task = dynamic_cast<TaskJob*>(res);
+  const JCode *code = task ? task->application() : 0;
+  return code && code->getBasisSetToolHidden();
+}
 
 
 
@@ -116,6 +138,8 @@ void CalculationContextPanel::refresh()
   for (tpvIt = toolPropertyViews.begin();
        tpvIt != toolPropertyViews.end();
        tpvIt++) {
+    if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
+      continue;
 
     // get the ResourceProperties for this tool and iterate through them
     multimap<int, ResourceProperty*> properties;
@@ -272,6 +296,8 @@ void CalculationContextPanel::createControls()
   for (tpvIt = toolPropertyViews.begin();
        tpvIt != toolPropertyViews.end();
        tpvIt++) {
+    if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
+      continue;
     pair<ResourceTool*,ToolPropertyView*> pairRT_TPV = tpvIt->second;
 
     // create the sizer for this tool
@@ -280,6 +306,11 @@ void CalculationContextPanel::createControls()
     // create the button for this tool and add it to its sizer
     EcceTool *toolButton = createToolButton(pairRT_TPV.first);
     toolButtons.push_back(toolButton);
+    if (basisToolOff(p_itemData->getResource(), pairRT_TPV.first)) {
+      toolButton->Enable(false);
+      toolButton->SetToolTip("This code picks its basis set in the "
+                             "Calculation Editor, not in the Basis Set Tool.");
+    }
     sizer->Add(toolButton,
           0,                        // do not stretch horizontally
           wxALIGN_CENTER_VERTICAL|  // center vertically
@@ -522,7 +553,7 @@ wxBoxSizer* CalculationContextPanel::createPropHolder(ResourceProperty *resProp)
   if (type == GridProperty::PT_RESOURCE_ICON)
   {
     // create bitmap from image list
-    wxBitmap codeBitmap(WxResourceImageList::getBitmap(
+    wxBitmap codeBitmap(WxResourceImageList::getCodeBitmap(
                         p_itemData->getResource()));
 
     // create the static bitmap from the above bitmap
@@ -692,7 +723,7 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
     // needed for ES calc application type changes
     wxWindow *codeWin = FindWindowByName("codeBitmap");
     wxStaticBitmap *codeBitmapWin = dynamic_cast<wxStaticBitmap*>(codeWin);
-    wxBitmap codeBitmap(WxResourceImageList::getBitmap(
+    wxBitmap codeBitmap(WxResourceImageList::getCodeBitmap(
                         p_itemData->getResource()));
     codeBitmapWin->SetBitmap(codeBitmap);
   }

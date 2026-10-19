@@ -1,0 +1,33 @@
+#!/usr/bin/env perl
+################################################################################
+# CP2K's atomic forces into EGRADVEC, from
+#   " FORCES|      1  1.8E-13  1.8E-13  9.67888929E-02   9.67888929E-02"
+# CP2K prints forces in Hartree/Bohr; EGRADVEC is a gradient, so the sign is
+# flipped and nothing else changes.
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my (@values, @labels);
+while (<STDIN>) {
+  last if (/FORCES\|\s+Sum/);
+  next if (!/FORCES\|\s+(\d+)\s+(-?\d\S*)\s+(-?\d\S*)\s+(-?\d\S*)\s+\d\S*\s*$/);
+  push(@labels, $1);
+  foreach my $f ($2, $3, $4) {
+    my $g = ($f + 0 == 0) ? 0 : -$f;
+    push(@values, sprintf("%.10f", $g));
+  }
+}
+my $natom = scalar(@labels);
+exit(0) if ($natom == 0);
+
+print "key: EGRADVEC\nsize:\n$natom 3\nrowlabels:\n", join(" ", @labels),
+      "\ncolumnlabels:\nX Y Z\nvalues:\n";
+for (my $i = 0; $i <= $#values; $i++) {
+  print "$values[$i] ";
+  print "\n" if (($i % 3) == 2);
+}
+print "units:\nHartree/Bohr\nEND\n";
+exit(0);

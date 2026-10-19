@@ -125,16 +125,16 @@ Sg: Seaborgium,7,6,synthetic,metallic,#efe7ad,n.a.,263,0,0.00,0.00,1.35,1.2
 Bh: Bohrium,7,7,synthetic,metallic,#efe7ad,n.a.,262,0,0.00,0.00,1.30,1.2
 Hs: Hassium,7,8,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.28,1.2
 Mt: Meitnerium,7,9,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.25,1.2
-Uun: Ununnilium,7,10,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.23,1.2
+Ds: Darmstadtium,7,10,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.23,1.2
 
-Uuu: Unununium,7,11,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.25,1.2
-Uub: Ununbium,7,12,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.30,1.2
-Uut: Elemtn113,7,13,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.45,1.2
-Uuq: Ununquadium,7,14,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.50,1.2
-Uup: Element115,7,15,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.60,1.2
-Uuh: Ununhexium,7,16,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.70,1.2
-Uus: Element117,7,17,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.80,1.2
-Uuo: Ununoctium,7,18,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.90,1.2
+Rg: Roentgenium,7,11,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.25,1.2
+Cn: Copernicium,7,12,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.30,1.2
+Nh: Nihonium,7,13,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.45,1.2
+Fl: Flerovium,7,14,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.50,1.2
+Mc: Moscovium,7,15,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.60,1.2
+Lv: Livermorium,7,16,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.70,1.2
+Ts: Tennessine,7,17,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.80,1.2
+Og: Oganesson,7,18,synthetic,metallic,#efe7ad,n.a.,0,0,0.00,0.00,1.90,1.2
 #HideNubunderhydrogenatposition1,1
 Nub: Nub,9,2,gas,nonMetallic,#be6a00,n.a.,0,0,0.00,0.00,0.36,1.2
 

@@ -1,0 +1,18 @@
+#!/usr/bin/env perl
+# One SCF iteration into EWVEC (total energy, PropTSVector<Wave Step>) and
+# DELTAE (its change), from
+#   "    4 OT DIIS     0.80E-01    0.7     0.06579221     -7.0482844195 -8.11E-02"
+#   "    1 Broy./Diag. 0.40E+00    0.3     0.01235000     -7.1234567890 -7.12E+00"
+# Both come from one parse type because they share the line, and two entries
+# with one Begin would starve each other.  Not TEVEC, which is indexed by
+# geometry step and an SCF prints many per geometry.  Hartree already.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_));
+exit(0) if (!/^\s+\d+\s+(?:OT\s+\w+|\S+\/\S+)\s+\S+\s+\S+\s+\S+\s+(-?\d+\.\d+)\s+(-?\d+\.\d+E[-+]\d+)\s*$/i);
+
+print "key: EWVEC\nsize:\n1\nvalues:\n$1\nunits:\nHartree\nEND\n";
+print "key: DELTAE\nsize:\n1\nvalues:\n$2\nunits:\nHartree\nEND\n";
+exit(0);

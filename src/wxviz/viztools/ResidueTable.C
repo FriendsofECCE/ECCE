@@ -59,6 +59,7 @@
 
 //#include "wxviz/WxVizToolFW.H"
 #include "wxviz/ResidueTable.H"
+#include "viz/SetResidueCmd.H"
 //#include "wxviz/ResidueTableMenu.H"
 #include "wxgui/WxFFDataConfig.H"
 
@@ -395,8 +396,23 @@ int ResidueTable::resIndexToRow(int resIndex)
 
 
 
+// A cell edit has to reach the fragment, or Save stores the old value.
 void ResidueTable::updateFragment(GridAtomElement *element)
 {
+  AtomProperty *ap = dynamic_cast<AtomProperty*>(element->getProperty());
+  if (ap == 0) return;
+  string prop;
+  switch (ap->getProp()) {
+    case AtomProperty::AP_RES_NAME: prop = "name"; break;
+    case AtomProperty::AP_PDB_NUM: prop = "pdbnum"; break;
+    case AtomProperty::AP_CHAIN: prop = "chain"; break;
+    default: return;
+  }
+  SetResidueCmd *cmd = new SetResidueCmd("Set Residue", &getFW().getSceneGraph(), getId());
+  cmd->getParameter("resnum")->setInteger(element->getIndex());
+  cmd->getParameter("property")->setString(prop);
+  cmd->getParameter("value")->setString(element->getValue().ToStdString());
+  getFW().execute(cmd);
 }
 
 

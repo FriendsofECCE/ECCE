@@ -16,6 +16,12 @@
 //                                Ctrl+X/C/V/Z with the focus in the 3-D view
 //                                or in a text field (holding "abc")
 //    click                       a click in the 3D view in the current mode
+//    cell residue|atom ROW COL TEXT [enter|esc|none]
+//                                type TEXT into that cell of the shown table
+//                                and press the key; prints the cell and
+//                                whether its editor is still open
+//    residues                    the residue names of the structure, on stderr
+//    menustate NAME              whether Tools > NAME is enabled, on stderr
 //    save                        File > Save
 //    savemenu                    the File > Save menu event, if enabled
 //    savestate                   dirty flag and Save menu/toolbar enabled state
@@ -86,6 +92,8 @@
 #include "inv/SoPath.H"
 
 #include "tdat/LatticeDef.H"
+#include "tdat/Residue.H"
+#include "wxviz/MoleculeDataTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
@@ -401,6 +409,26 @@ void Builder::runBuilderScript(const std::string& file)
           if (w[2] == "text")
             outcome += " text=[" + field->GetValue().ToStdString() + "]";
         }
+      } else if (w[0] == "cell" && w.size() >= 5) {
+        wxWindow *win = p_mgr.GetPane(w[1] == "atom" ? NAME_TOOL_ATOM_TABLE
+                                                     : NAME_TOOL_RESIDUE_TABLE).window;
+        MoleculeDataTable *tbl = dynamic_cast<MoleculeDataTable*>(win);
+        if (!tbl) {
+          outcome = "no table";
+        } else {
+          std::string key = w.size() > 5 ? w[5] : "enter";
+          outcome = tbl->scriptEdit(atoi(w[2].c_str()), atoi(w[3].c_str()), w[4], key);
+        }
+      } else if (w[0] == "menustate" && w.size() >= 2) {
+        std::string name = line.substr(line.find("menustate") + 10);
+        int id = p_toolMenu->FindItem(name);
+        fprintf(stderr, "BUILDER: menu %s enabled=%d\n", name.c_str(),
+                id == wxNOT_FOUND ? -1 : (p_toolMenu->IsEnabled(id) ? 1 : 0));
+      } else if (w[0] == "residues") {
+        std::string names;
+        for (int i = 0; i < frag->numResidues(); i++)
+          names += (i ? "," : "") + frag->residue(i)->name();
+        fprintf(stderr, "BUILDER: residues=%s\n", names.c_str());
       } else if (w[0] == "save") {
         doSave();
       } else if (w[0] == "savemenu") {

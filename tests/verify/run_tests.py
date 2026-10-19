@@ -67,6 +67,10 @@ CASES = [
     ("orca-ethane.orcain",    "ORCA",             8, [("GOOD", "route"),
                                                       ("GOOD", "geomblock"),
                                                       ("GOOD", "geometry")]),
+    #  #75: the deck a duplicate with final orbitals generates; MORead is a
+    #  keyword ECCE writes, so it must not be reported as unknown.
+    ("orca-moread.orcain",    "ORCA",             3, [("GOOD", "route"),
+                                                      ("GOOD", "geometry")]),
     #  #148 "the miss found live": the ECP ORCA deck from
     #  /home/andy/jobs/iodimethane/orca.orcain, whose NewECP rows had no
     #  leading index column -- ORCA 6.1.1 stops on every one of these
@@ -108,6 +112,14 @@ CASES = [
     #  U on Ni without spin polarisation: a warning, never a BAD.
     ("qe-nio-hubbard-card-nospin.qein", "QuantumESPRESSO", 2,
      [("GOOD", "hubbard"), ("UNSURE", "hubbard")]),
+
+    #  CP2K decks written by ai.cp2k and run by cp2k.psmp 2025.1.
+    ("cp2k-silicon.cp2kin",   "CP2K",             2, [("GOOD", "sections"),
+                                                      ("GOOD", "kinds"),
+                                                      ("GOOD", "geometry")]),
+    ("cp2k-nio-u-opt.cp2kin", "CP2K",             2, [("GOOD", "run"),
+                                                      ("GOOD", "spin"),
+                                                      ("GOOD", "plus_u")]),
 
     #  --- the two real failures ---------------------------------------
     #  Three faults, not one: the binary bytes, the basis block they
@@ -472,6 +484,8 @@ CODE_RUNNERS = {
     "ORCA": {
         "binaries": ["/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_"
                      "nodmrg/orca", "orca"],
+        #  GNOME's screen reader is also /usr/bin/orca.
+        "sibling":  "orca_2mkl",
         "suffix":   ".inp",
         #  "input.*error" used to match this ORCA ECP failure by
         #  ACCIDENT: its one real diagnostic line is "[file orca_main/
@@ -513,10 +527,15 @@ CODE_RUNNERS = {
 def code_binary(spec):
     for candidate in spec["binaries"]:
         if os.path.isabs(candidate):
-            if os.access(candidate, os.X_OK):
-                return candidate
-        elif which(candidate):
-            return which(candidate)
+            found = candidate if os.access(candidate, os.X_OK) else None
+        else:
+            found = which(candidate)
+        if found and spec.get("sibling"):
+            here = os.path.dirname(os.path.realpath(found))
+            if not os.path.exists(os.path.join(here, spec["sibling"])):
+                found = None
+        if found:
+            return found
     return None
 
 
@@ -755,6 +774,18 @@ def main():
         if anyBad != (rc == 1):
             problems.append("exit status %d does not match its findings"
                             % rc)
+
+        #  The dialog's lower pane marks only lines a finding points at, so a
+        #  GOOD check at line 0 is counted in the summary but invisible
+        #  there (CP2K and QE once showed one "+" for eleven checks).
+        if code in ("CP2K", "QuantumESPRESSO"):
+            out = subprocess.run([CHECKER, "-f", os.path.join(FIXTURES, fixture),
+                                  "-c", code, "-a", str(atoms)],
+                                 capture_output=True, text=True).stdout
+            for row in out.splitlines():
+                level, line, check, _ = (row.split("|", 3) + ["", "", "", ""])[:4]
+                if level == "GOOD" and line == "0" and check not in ("file", "readable"):
+                    problems.append("GOOD|%s marks no line in the deck" % check)
 
         if problems:
             failures += 1

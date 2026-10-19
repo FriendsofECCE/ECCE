@@ -243,6 +243,12 @@
   <Input   type="primary" mimetype="chemical/x-orca-input" comment="true" commentstring="#">orca.orcain</Input>
   <Output type="primary" mimetype="chemical/x-orca-output">orca.orcaout</Output>
   <Output type="parse" verifypattern="O   R   C   A" mimetype="chemical/x-orca-output">orca.orcaout</Output>
+  <!-- The final MOs (binary, a few MB). ORCA names the file after the whole
+       input file name, so it is orca.orcain.gbw. The input-side copy has its own
+       name and type so that a calculation's own .gbw is never taken
+       for the guess it reads. -->
+  <Output type="auxiliary" mimetype="chemical/x-orca-gbw">orca.orcain.gbw</Output>
+  <Input   type="auxiliary" mimetype="chemical/x-orca-guess">guess.gbwin</Input>
 </DataFiles>
 
 <!-- Names of files required for code integration.  These files are
@@ -256,6 +262,7 @@
   <ParseSpecification>orca.desc</ParseSpecification>
   <BasisTranslationScript>std2ORCA</BasisTranslationScript>
   <LaunchPreprocessor>orca.launchpp</LaunchPreprocessor>
+  <RetainAuxiliaryOutput>yes</RetainAuxiliaryOutput>
 </IntegrationFiles>
 
 </appdescriptor>

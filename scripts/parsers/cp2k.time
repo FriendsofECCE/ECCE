@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+# The whole-program row of CP2K's timing table:
+#   " CP2K    1  1.0    1.403    1.432   32.862   32.862"
+# (calls, ASD, self max/avg, total max/avg); the last column is the wall
+# time of the run in seconds.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $line = <STDIN>;
+exit(0) if (!defined($line));
+exit(0) if ($line !~ /^\s*CP2K\s+1\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+\.\d+)\s*$/);
+
+print "key: ETIME\nsize:\n1\nvalues:\n$1\nEND\n";
+exit(0);

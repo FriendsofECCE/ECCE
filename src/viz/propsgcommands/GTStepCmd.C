@@ -58,6 +58,12 @@ bool GTStepCmd::execute()
  
   // Could be null if data exists but is corrupted.  So we try not to crash...
   if (trace) {
+    // Nearest frame for a step the trace has no frame for.
+    const int lastStep = step;
+    step = trace->nearestTable(step);
+    if (step < 0) return false;
+    if (step != lastStep) cout << "GTStepCmd: step " << lastStep
+         << " has no frame, using " << step << endl;
     // loop through all the atoms and replace with coordinates for this step 
     int natoms = sgfrag->numAtoms() ;
     // MOPAC and Gaussian leave dummy atoms out of their geometry tables; the
@@ -79,7 +85,8 @@ bool GTStepCmd::execute()
       sgfrag->atomRef(j)->coordinates(coords);
     }
     //TODO decide what to do if there is no lattice - create one?
-    if (lattice && latticeprop) {
+    if (lattice && latticeprop && latticeprop->nearestTable(step) >= 0) {
+         step = latticeprop->nearestTable(step);
          float x,y,z;
          x = latticeprop->value(step,0,0);
          y = latticeprop->value(step,0,1);

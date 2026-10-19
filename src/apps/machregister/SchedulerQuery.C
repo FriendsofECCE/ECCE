@@ -222,6 +222,16 @@ static ProgramHelp baseHelp(const string& code)
         h.examples.push_back("/usr/bin/pw.x");
         h.signature = "PWSCF";
     }
+    else if (code == "CP2K")
+    {
+        //  psmp is the MPI+OpenMP build, popt plain MPI, ssmp threads only.
+        h.names.push_back("cp2k.psmp");
+        h.names.push_back("cp2k.popt");
+        h.names.push_back("cp2k.ssmp");
+        h.names.push_back("cp2k");
+        h.examples.push_back("/usr/bin/cp2k.psmp");
+        h.signature = "CP2K";
+    }
     else if (code == "MOPAC")
     {
         h.names.push_back("MOPAC2016.exe");
@@ -254,8 +264,6 @@ static ProgramHelp baseHelp(const string& code)
             l[i] = (char)tolower((unsigned char)l[i]);
         h.names.push_back(l);
         h.examples.push_back("/opt/" + l + "/bin/" + l);
-        if (code == "CP2K")
-            h.signature = "CP2K";
     }
     return h;
 }

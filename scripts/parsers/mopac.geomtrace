@@ -28,12 +28,14 @@ $| = 1;
 ($key, $runtype, $ucCategory, $theory) = @ARGV;
 
 my @coordlines;
+my @symbols;
 my $rowLabels = "";
 my $index = 0;
 while (<STDIN>) {
   if (/^\s*\d+\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
     my ($symbol, $x, $y, $z) = ($1, $2, $3, $4);
     push(@coordlines, "$x $y $z");
+    push(@symbols, $symbol);
     $rowLabels .= " " . ($index + 1) . "-$symbol";
     $index++;
   }
@@ -51,5 +53,14 @@ if ($size >= 1) {
   }
   print "units:\nAngstrom\n";
   print "END\n";
+
+  # mopac.vib rotates a FORCE run's modes back into this frame; the latest
+  # block before the force orientation is the one it needs.
+  if (open(AUXFILE, ">" . $key . "/mopacInputGeom")) {
+    for my $i (0 .. $#coordlines) {
+      print AUXFILE "$symbols[$i] $coordlines[$i]\n";
+    }
+    close(AUXFILE);
+  }
 }
 exit(0);

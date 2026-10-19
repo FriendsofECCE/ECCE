@@ -18,6 +18,7 @@ Checks that the monitor
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -120,6 +121,30 @@ def check_remember_and_second_file():
         shutil.rmtree(work, ignore_errors=True)
 
 
+def check_qe_md_snapshot():
+    """A QE MD output through qe.desc: the md stage counts steps, and the
+    estimate (a mean over at least two finished steps) never exceeds the
+    run's own length."""
+    work = tempfile.mkdtemp(prefix="ecce-progress-")
+    try:
+        fixture = os.path.join(ROOT, "tests", "parsers", "fixtures", "qe", "si_md.pwout")
+        results = os.path.join(work, "r.out")
+        cmd = ["perl", MONITOR, "-commType", "stdio", "-monitoringMode", "post",
+               "-jobOutputFile", fixture,
+               "-parseDescriptorFile", os.path.join(ROOT, "scripts", "parsers", "qe.desc"),
+               "-parseTypes", "NONE", "-outputFile", results, "-calcName", "p",
+               "-logFile", os.path.join(work, "m.log"), "-filesToTransfer", "",
+               "-importDir", work + os.sep, "-progress", "1"]
+        subprocess.run(cmd, cwd=work, stdin=subprocess.DEVNULL,
+                       capture_output=True, text=True, timeout=60)
+        raw = open(results, "rb").read().decode("utf-8", "replace").replace("\002", "\n")
+        mds = re.findall(r"^md point=(\d+)/(\d+)(?: eta=(\d+))?", raw, re.M)
+        check(bool(mds) and mds[-1][:2] == ("5", "5"), "QE MD: the md stage reaches point=5/5")
+        check(all(not e or int(e) < 3600 for _, _, e in mds), "QE MD: no absurd estimate")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     if not shutil.which("perl"):
         return 77
@@ -165,6 +190,7 @@ def main():
         geo = [p for _, p in msgs if "\0GEOMTRACE\0" in p and "progress freq point=0/18" in p]
         check(len(geo) == 1, "the progress line inside a geometry block stays in that block")
         check_remember_and_second_file()
+        check_qe_md_snapshot()
     finally:
         shutil.rmtree(work, ignore_errors=True)
     print("FAILED: %s" % "; ".join(failures) if failures else "PASSED")

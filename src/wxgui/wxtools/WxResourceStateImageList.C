@@ -167,14 +167,14 @@ WxResourceStateImageList::combineWithState(wxBitmap bitmap, int state)
   memset(combined.GetData(), 0, (size_t)combinedWidth*greaterHeight*3);
   memset(combined.GetAlpha(), 0, (size_t)combinedWidth*greaterHeight);
 
-  // the resource bitmap; one with no state goes at the right, next to its
-  // label, not before an empty slot
-  const int x = state < 0 ? stateWidth : 0;
-  combined.Paste(withAlpha(bitmap, true), x, 0, wxIMAGE_ALPHA_BLEND_COMPOSE);
+  // The state icon comes first and the resource icon second, so that stateless
+  // resources (an empty first slot) and tasks have their icons in one column.
+  combined.Paste(withAlpha(bitmap, true), stateWidth, 0,
+                 wxIMAGE_ALPHA_BLEND_COMPOSE);
   if (state >= 0) {
     combined.Paste(withAlpha(WxStateImageList::getImageList()->GetBitmap(state),
                              false),
-                   bitmap.GetWidth(), 0, wxIMAGE_ALPHA_BLEND_COMPOSE);
+                   0, 0, wxIMAGE_ALPHA_BLEND_COMPOSE);
   }
 
   return wxBitmap(combined, 32);

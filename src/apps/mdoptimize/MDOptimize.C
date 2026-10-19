@@ -27,6 +27,7 @@
 #include "wxgui/WxJMSMessageDispatch.H"
 
 #include "MDOptimize.H"
+#include "wxgui/GromacsRunPanel.H"
 
 
 MDOptimize::MDOptimize() : MDEdBase(), WxJMSListener()
@@ -168,6 +169,7 @@ void MDOptimize::refreshGUI()
 {
    p_interaction->refreshGUI();
    p_constraint->refreshGUI();
+   if (p_gmxRun != 0) p_gmxRun->refresh();
    p_optimize->refreshGUI();
    p_thermo->refreshGUI();
    p_control->refreshGUI();

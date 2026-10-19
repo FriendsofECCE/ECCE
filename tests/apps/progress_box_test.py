@@ -156,8 +156,8 @@ def run(display, pngs):
             return m.group(1) if m else None
 
         check(field(stored, "shown") == "1", "running: the box is shown")
-        check("Optimisation: step 4" in stored and "max force 4.1e-04 / 3e-04 \u2717" in stored
-              and "RMS force 8.0e-05 / 1e-04 \u2713" in stored,
+        check("Optimisation: step 4" in stored and "max force 4.1e-04 (limit 3e-04) \u2717" in stored
+              and "RMS force 8.0e-05 (limit 1e-04) \u2713" in stored,
               "running (stored): step, criteria against targets", stored)
         check("plot energy per step (4 points)" in stored and
               "plot log |\u0394E| per cycle (6 points)" in stored,

@@ -40,7 +40,12 @@ def check(display, results):
                 "sashdrag Build 30", "panestate s2 " + TOOLS,
                 "sashdrag Open_structures 40", "panestate s3 " + TOOLS,
                 "sashdrag Build -20 lost", "panestate s4 " + TOOLS,
-                "panefold Symmetry", "sashdrag Selection 30"], "detail")
+                "panefold Symmetry", "sashdrag Selection 30",
+                #  #346: with Build folded above it, Selection's own top
+                #  edge moves, not only the top of the folded Build.
+                "panefold Build", "panestate t0 " + TOOLS,
+                "sashdrag Selection 20 top", "panestate t1 " + TOOLS],
+               "detail")
 
     def h(state, pane):
         r = rect(work, state, pane)
@@ -52,8 +57,8 @@ def check(display, results):
         if line.endswith("capture 1"):
             problems.append("mouse still captured after: sashdrag %s"
                             % line.rsplit(" capture", 1)[0])
-    if len(drags) < 5:
-        problems.append("%d of 5 drags reported" % len(drags))
+    if len(drags) < 6:
+        problems.append("%d of 6 drags reported" % len(drags))
     b = [h("s%d" % i, "Build") for i in range(5)]
     sel = [h("s%d" % i, "Selection") for i in range(5)]
     op = [h("s%d" % i, "Open structures") for i in range(5)]
@@ -71,6 +76,10 @@ def check(display, results):
         moved("above Build +40: Open structures", op[3] - op[2], 40)
         moved("above Build +40: Build", b[3] - b[2], -40)
         moved("below Build -20, release lost: Build", b[4] - b[3], -20)
+        moved("Selection top edge +20 beside a folded Build: Selection",
+              h("t1", "Selection") - h("t0", "Selection"), -20)
+        moved("Selection top edge +20 beside a folded Build: Open structures",
+              h("t1", "Open structures") - h("t0", "Open structures"), 20)
     for p in problems:
         results.fail("builder sash", p)
 

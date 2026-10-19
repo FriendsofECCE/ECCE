@@ -1,0 +1,44 @@
+; ClayFF nonbonded parameters, Cygan, Liang and Kalinichev, J. Phys. Chem. B
+; 2004, 108, 1255-1266, Table 1 (see forcefield.doc).
+;
+; The paper's Lennard-Jones term is E = D0 [ (R0/r)^12 - 2 (R0/r)^6 ], so
+;   sigma [nm] = R0 [A] / 2^(1/6) / 10        epsilon [kJ/mol] = D0 [kcal/mol] x 4.184
+; and it combines R0 arithmetically and D0 geometrically, which is GROMACS
+; comb-rule 2 (sigma arithmetic, epsilon geometric).
+;
+; Atom type names are those atomipy's clayff() assigns; the column "paper"
+; gives the symbol of Table 1. Charges are the paper's. Hydrogens have no
+; Lennard-Jones term. Parameters are not rounded beyond the digits printed.
+;
+; CAUTION, possible misprint in Table 1: R0 is printed as 6.2484 for cao
+; and 6.2428 for cah, while every other octahedral/hydroxide pair shares one
+; value (mgo/mgh 5.9090, st/at 3.7064). Both are kept exactly as printed.
+
+[ atomtypes ]
+; name  at.num    mass       charge  ptype   sigma(nm)     epsilon(kJ/mol)  ; paper  description
+H        1    1.00794    0.4250  A   0.0000000   0.000000e+00  ; ho    hydroxyl hydrogen
+Hw       1    1.00800    0.4100  A   0.0000000   0.000000e+00  ; h*    water hydrogen
+Ow       8   15.99940   -0.8200  A   0.3165541   6.501936e-01  ; o*    water oxygen
+Oh       8   15.99940   -0.9500  A   0.3165541   6.501936e-01  ; oh    hydroxyl oxygen
+Ob       8   15.99940   -1.0500  A   0.3165541   6.501936e-01  ; ob    bridging oxygen (basal)
+Op       8   15.99940   -1.0500  A   0.3165541   6.501936e-01  ; ob    bridging oxygen (apical), same parameters as ob
+O        8   15.99940   -1.0500  A   0.3165541   6.501936e-01  ; ob    bridging oxygen, generic name for ob
+Omg      8   15.99940   -1.1808  A   0.3165541   6.501936e-01  ; obos  bridging oxygen with octahedral substitution
+Oalt     8   15.99940   -1.1688  A   0.3165541   6.501936e-01  ; obts  bridging oxygen with tetrahedral substitution
+Odsub    8   15.99940   -1.2996  A   0.3165541   6.501936e-01  ; obss  bridging oxygen with double substitution
+Ohmg     8   15.99940   -1.0808  A   0.3165541   6.501936e-01  ; ohs   hydroxyl oxygen with substitution
+Sit     14   28.08550    2.1000  A   0.3302027   7.700652e-06  ; st    tetrahedral silicon
+Alo     13   26.98154    1.5750  A   0.4271236   5.563883e-06  ; ao    octahedral aluminum
+Alt     13   26.98154    1.5750  A   0.3302027   7.700652e-06  ; at    tetrahedral aluminum
+Mgo     12   24.30500    1.3600  A   0.5264321   3.778068e-06  ; mgo   octahedral magnesium
+Mgh     12   24.30500    1.0500  A   0.5264321   3.778068e-06  ; mgh   hydroxide magnesium
+Cao     20   40.07800    1.3600  A   0.5566692   2.104468e-05  ; cao   octahedral calcium; R0 as printed, possibly a misprint (see header)
+Cah     20   40.07800    1.0500  A   0.5561703   2.104468e-05  ; cah   hydroxide calcium; R0 as printed, possibly a misprint (see header)
+Feo     26   55.84500    1.5750  A   0.4906179   3.778068e-05  ; feo   octahedral iron
+Lio      3    6.94100    0.5250  A   0.4210120   3.778068e-05  ; lio   octahedral lithium
+Na      11   22.98977    1.0000  A   0.2350013   5.443384e-01  ; Na    aqueous sodium (Smith and Dang)
+K       19   39.09830    1.0000  A   0.3334010   4.184000e-01  ; K     aqueous potassium (Koneshan et al.)
+Cs      55  132.90545    1.0000  A   0.3831043   4.184000e-01  ; Cs    aqueous cesium (Smith and Dang)
+Ca      20   40.07800    2.0000  A   0.2871990   4.184000e-01  ; Ca    aqueous calcium (Koneshan et al.)
+Ba      56  137.32700    2.0000  A   0.3816610   1.966480e-01  ; Ba    aqueous barium (Aqvist)
+Cl      17   35.45300   -1.0000  A   0.4399971   4.188184e-01  ; Cl    aqueous chloride (Smith and Dang)

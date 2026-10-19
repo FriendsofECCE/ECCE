@@ -406,6 +406,22 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
     }
     return true;
   }
+  //  "vibdirs": each drawn atom and the arrow on it, for tests that check
+  //  the arrows numerically (tests/apps/mopac_import_modes_test.py).
+  if (c == "vibdirs") {
+    SGFragment *frag = getSG()->getFragment();
+    SoSwitch *root = getSG()->getNMVecRoot();
+    for (int k = 0; k < root->getNumChildren() && k < (int)frag->numAtoms(); k++) {
+      VRVector *v = dynamic_cast<VRVector*>(root->getChild(k));
+      if (!v) continue;
+      const double *x = frag->atomRef(k)->coordinates();
+      const double *d = v->getDirection();
+      fprintf(stderr, "VIBDIR: %d %s %.6f %.6f %.6f %.6f %.6f %.6f\n", k,
+              frag->atomRef(k)->atomicSymbol().c_str(), x[0], x[1], x[2],
+              d[0], d[1], d[2]);
+    }
+    return true;
+  }
   //  "vibframe": whether the arrows sit in the frame of the drawn atoms.
   //  The hydrogen with the longest arrow in a stretch moves along its own
   //  X-H bond, so cos(arrow, bond) is 1 when atoms and modes share a frame

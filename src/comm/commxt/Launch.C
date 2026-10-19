@@ -240,7 +240,11 @@ Launch::Launch(TaskJob* task,
     // the task is searched first.
     const bool gromacs =
       (task->getApplicationType() == ResourceDescriptor::AT_GROMACS);
-    if (gromacs && task->getDataFiles(JCode::RESTART_OUTPUT).size() > 0) {
+    // (a GROMACS Prepare builds both, so its own earlier outputs are not
+    // its inputs)
+    const bool gromacsInputs = gromacs &&
+      task->getContentType() != ResourceDescriptor::CT_MDPREPARE;
+    if (gromacsInputs && task->getDataFiles(JCode::RESTART_OUTPUT).size() > 0) {
       p_restartProvider = task;
       finishedSearch = true;
     }
@@ -267,7 +271,7 @@ Launch::Launch(TaskJob* task,
     p_topologyProvider = 0;
     searchTask = dynamic_cast<TaskJob*>(EDSIFactory::getResource(task->getURL()));
     finishedSearch = false;
-    if (gromacs && task->getDataFiles(JCode::TOPOLOGY_OUTPUT).size() > 0) {
+    if (gromacsInputs && task->getDataFiles(JCode::TOPOLOGY_OUTPUT).size() > 0) {
       p_topologyProvider = task;
       finishedSearch = true;
     }
@@ -469,6 +473,12 @@ string Launch::message(void) const
 
 string Launch::info(void) const
 { return p_infoMessage; }
+
+string Launch::launchWarning(void) const
+{ return p_launchWarning; }
+
+void Launch::clearLaunchWarning(void)
+{ p_launchWarning = ""; }
 
 // ---------- General Methods  ----------
 
@@ -762,6 +772,20 @@ bool Launch::validateCalculation(void)
           // process any auxiliary basis set files (Amica)
           vector<EcceURL> basvec = auxInputUrls();
           for (int ib=0; ib<basvec.size(); ib++) {
+            //  Binary, and the stream form of a stored file stops at the
+            //  first NUL byte, so this one goes straight to a file.
+            if (basvec[ib].getFilePathTail() == TaskJob::orbitalGuessFile()) {
+              inputFilePath = p_cache->directory + "/" +
+                              basvec[ib].getFilePathTail();
+              SFile guessDest(inputFilePath);
+              if (p_taskjob->getAnyFile(basvec[ib], &guessDest) == 0) {
+                ret = false;
+                p_lastMessage = "The orbital guess file could not be "
+                                "copied from the data server";
+                break;
+              }
+              continue;
+            }
             is = p_taskjob->getAnyFile(basvec[ib]);
             if (is) {
               inputFilePath = p_cache->directory + "/" + basvec[ib].getFilePathTail();
@@ -872,9 +896,12 @@ bool Launch::validateCalculation(void)
               }
               delete is;
               is = 0;
-            } else {
+            } else if (!(p_cache->isGromacs && hasGromacsSourcePdb())) {
+              // A GROMACS Prepare may start from an attached .gmxpdb instead
               ret = false;
-              p_lastMessage = "Unable to find source for chemical system pdb file for MD Prepare task";
+              p_lastMessage = "This Prepare task has no structure. Open it in the "
+                "Builder (Builder... button), build or load the structure, "
+                "and Save.";
             }
           }
         } 
@@ -1362,6 +1389,18 @@ bool Launch::generateJobMonitoringFiles(void)
       monitorConfigFile << "jobOutputFile6 " << mdOutputFileName << endl;
     }
 
+    //  A code that keeps its auxiliary output (ORCA's .gbw) has the
+    //  monitor send it with the run's other files at the end.
+    {
+      string retain;
+      const JCode* jc = p_taskjob->application();
+      string aux = (*p_options)["##auxiliary##"];
+      substituteRealFileName(aux);
+      if (jc != 0 && !aux.empty() &&
+          jc->get_string("RetainAuxiliaryOutput", retain) && retain == "yes")
+        monitorConfigFile << "filesToTransfer " << aux << endl;
+    }
+
     monitorConfigFile << "parseTypes ALL" << endl;
 
     monitorConfigFile << "mdTask " <<
@@ -1501,6 +1540,25 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
 // to any task of the study, and every later task needs them too, so the
 // earlier tasks are searched as well and the nearest file of a name wins.
 ///////////////////////////////////////////////////////////////////////////
+static bool isGromacsSourcePdb(const EcceURL& url)
+{
+  const string t = url.getFilePathTail();
+  // .gmxmin: a MINFF Prepare's mineral, likewise for that Prepare only
+  return t.size() > 7 && (t.compare(t.size() - 7, 7, ".gmxpdb") == 0 ||
+                          t.compare(t.size() - 7, 7, ".gmxmin") == 0);
+}
+
+
+bool Launch::hasGromacsSourcePdb() const
+{
+  vector<EcceURL> urls = p_taskjob->getDataFiles(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < urls.size(); i++) {
+    if (isGromacsSourcePdb(urls[i])) return true;
+  }
+  return false;
+}
+
+
 vector<EcceURL> Launch::auxInputUrls() const
 {
   vector<EcceURL> urls = p_taskjob->getDataFiles(JCode::AUXILIARY_INPUT);
@@ -1513,6 +1571,8 @@ vector<EcceURL> Launch::auxInputUrls() const
       if (t == 0) break;
       vector<EcceURL> more = t->getDataFiles(JCode::AUXILIARY_INPUT);
       for (size_t i = 0; i < more.size(); i++) {
+        // a Prepare's source PDB is for that Prepare only
+        if (isGromacsSourcePdb(more[i])) continue;
         bool have = false;
         for (size_t j = 0; j < urls.size(); j++) {
           if (urls[j].getFilePathTail() == more[i].getFilePathTail())
@@ -1584,6 +1644,12 @@ bool Launch::moveFiles(void)
       vector<EcceURL> auxurls = auxInputUrls();
       for (size_t a = 0; a < auxurls.size(); a++)
         auxvec.push_back(auxurls[a].getFilePathTail());
+      // The index file gromacs.launchpp wrote from the task's groups is in
+      // the local directory, not on the data server.
+      if (p_cache->isGromacs) {
+        ifstream groups((p_cache->directory + "/ecce_groups.ndx").c_str());
+        if (groups.good()) auxvec.push_back("ecce_groups.ndx");
+      }
     }
     vector<string> invec;
     if (prvec.size() > 0) {
@@ -1703,10 +1769,14 @@ bool Launch::moveFiles(void)
     }
 
     // PDB File
+    // (a GROMACS Prepare that starts from an attached .gmxpdb writes none)
     if (p_cache->isMd && p_isPrepareTask) {
       pdbFileName = p_cache->mdSystemName + ".pdb";
-      incount++;
-      pdbIdx = incount -1;
+      if (!p_cache->isGromacs ||
+          ifstream((p_cache->directory + "/" + pdbFileName).c_str()).good()) {
+        incount++;
+        pdbIdx = incount -1;
+      }
     }
 
     char** fromFiles = (char**)malloc((incount+5) * sizeof(char*));
@@ -2381,6 +2451,17 @@ bool Launch::postProcessInput(void)
         p_lastMessage += output;
       }
     } else {
+       // A launch check that found a problem the job will meet reports it
+       // after this marker; it is the user's decision, so it is not a failure.
+       // (RCommand returns every newline as CR LF.)
+       size_t mark = output.find("ECCE-LAUNCH-WARNING");
+       if (mark != string::npos) {
+         p_launchWarning = output.substr(mark + 19);
+         size_t cr;
+         while ((cr = p_launchWarning.find('\r')) != string::npos)
+           p_launchWarning.erase(cr, 1);
+         p_launchWarning.erase(0, p_launchWarning.find_first_not_of('\n'));
+       }
        // Write it back out to dav.
        // I had to use the full path or I got corrupted data.  I don't know why.
        ifstream ifs((p_cache->directory + "/" + p_inputFile).c_str());

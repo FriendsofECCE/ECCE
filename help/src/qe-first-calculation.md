@@ -116,8 +116,8 @@ a crystal you set the cell before the atoms exist, so it makes no difference.
 The editor shows **Formula:** `Si8`, **Atoms:** 8 and **Symmetry:** `Fd-3m`.
 **Electrons:** shows 112, the electrons of eight silicon atoms with all their
 electrons. `pw.x` treats 4 valence electrons per atom, 32 in all.
-The code buttons at the top show Quantum ESPRESSO selected. The **Basis Set**
-box is greyed out: there is no basis set, only a cutoff.
+The code buttons at the top show Quantum ESPRESSO selected. There is no
+**Basis Set** box: plane waves have no basis set, only a cutoff.
 
 2. Check that **Theory:** is `PW` (plane waves) and **Runtype:** is `Energy`.
 3. Click **Theory Details...**. The window has these boxes. The defaults suit

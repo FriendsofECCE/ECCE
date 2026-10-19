@@ -12,6 +12,7 @@
 #include <vector>
 using namespace std;
 
+#include "tdat/FragmentOrbitals.H"
 #include "tdat/Huckel.H"
 #include "tdat/MoFragments.H"
 
@@ -101,7 +102,7 @@ int main(void)
       //  nearly.  Nothing in the method arranges that; it is what the
       //  method means.
       double p2 = 0.0;
-      MoFragments::valenceEnergy("O", 1, p2);
+      FragmentOrbitals::hii("O", 1, p2);
       p2 /= 27.211386245988;
 
       bool found = false;
