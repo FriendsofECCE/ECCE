@@ -897,6 +897,10 @@ void NModePanel::dumpTableIfRequested()
                     m.detail.c_str());
          }
       }
+      fprintf(out, "initial %d %s\n", p_selectedRow + 1,
+              p_selectedRow < p_grid->GetNumberRows()
+                 ? (const char*)p_grid->GetCellValue(p_selectedRow, 0).utf8_str() : "");
+      fprintf(out, "axis %g %g\n", p_spectrum->axis().lo(), p_spectrum->axis().hi());
       //  The selected row's detail line, as the panel shows it.
       selectMode(std::min(p_grid->GetNumberRows() - 1, 7));
       fprintf(out, "detail %s\n", (const char*)p_detailText.utf8_str());
