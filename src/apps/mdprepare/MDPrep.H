@@ -59,6 +59,8 @@ class MDPrep: public MDPrepGUI,
       ~MDPrep();
 
       void addListCmd(string cmd);
+      void startTestHook();
+      string runTestCommand(const string& line);
 
       void setState(MDPrep::PrepState state);
       void clearAll();

@@ -22,7 +22,7 @@
 //                                 save does (MdTask::fragment: the first save is the original
 //                                 fragment); frag=- stores the recipe and no structure
 //   launchjob apptype <url>       the application and content type of a resource
-//   launchjob nwchemmdstudy <parentURL> <name>
+//   launchjob nwchemmdstudy <parentURL> <name> [frag=<mvm|pdb>] [all]
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
 //   launchjob mdsetup <taskURL> <machine> <runDir> <user> [procs=P]
 //                                 launch settings for an MD study task made some other
@@ -206,6 +206,12 @@ static int doMdStudy(const vector<string>& a, bool gromacs)
   Resource* parent = EDSIFactory::getResource(EcceURL(a[0]));
   if (!parent) { cerr << "no such parent: " << a[0] << endl; return 1; }
   const string prefix = gromacs ? "gromacs_md_" : "nwchem_md_";
+  //  nwchemmdstudy ... frag=<file.mvm|.pdb>: the Prepare's structure, stored as the Builder's save does
+  string fragFile;
+  for (size_t i = 2; i < a.size(); i++)
+    if (a[i].compare(0, 5, "frag=") == 0) fragFile = a[i].substr(5);
+  bool allTasks = false;
+  for (size_t i = 2; i < a.size(); i++) if (a[i] == "all") allTasks = true;
   ResourceType* studyType = typeNamed(prefix + "study");
   if (!studyType || studyType->getApplicationType() != (gromacs ? "GROMACS" : "MDStudy")) {
     cerr << prefix << "study is not registered" << endl;
@@ -221,13 +227,26 @@ static int doMdStudy(const vector<string>& a, bool gromacs)
   // an NWChem MD Optimize cannot be a study's first task
   vector<string> names;
   if (gromacs) names = { "optimize", "equilibrate", "dynamics" };
-  else names = { "prepare", "optimize" };
+  else names = allTasks ? vector<string>{ "prepare", "optimize", "energy", "dynamics" }
+                        : vector<string>{ "prepare", "optimize" };
   for (size_t i = 0; i < names.size(); i++) {
     ResourceType* tt = typeNamed(prefix + names[i]);
     Resource* task = tt ? study->createChild(names[i], tt) : 0;
     if (!task) { cerr << "could not create " << names[i] << endl; return 1; }
     //  as CalcMgr does after createChild: the new task follows the last
     session->addMemberAsTarget(task, 0);
+    if (!gromacs && names[i] == "prepare" && !fragFile.empty()) {
+      ifstream fin(fragFile.c_str());
+      Fragment frag;
+      MdTask* md = dynamic_cast<MdTask*>(task);
+      bool pdb = fragFile.size() > 4 && fragFile.compare(fragFile.size() - 4, 4, ".pdb") == 0;
+      bool read = fin && (pdb ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ")
+                              : frag.restoreMVM(fin));
+      if (!read || !md || !md->fragment(&frag)) {
+        cerr << "could not store the fragment " << fragFile << endl;
+        return 1;
+      }
+    }
     cout << task->getURL().toString() << endl;
   }
   return 0;

@@ -23,6 +23,9 @@
   using std::istrstream;
   using std::ostrstream;
 #include <unistd.h>
+#include <memory>
+#include <wx/timer.h>
+#include "wxgui/WindowShot.H"
 
 #include "util/BadValueException.H"
 #include "util/BrowserHelp.H"
@@ -141,6 +144,133 @@ MDPrep::MDPrep(wxWindow* parent, wxWindowID id, const wxString& caption,
    restoreWindowSettings(WHOAMI, prefs, false);
 
    refreshGUI();
+   startTestHook();
+}
+
+
+/**
+ * ECCE_TEST_MDED=<dir>: commands appended to <dir>/MDPrepare.cmd run as the
+ * buttons would; answers go to MDPrepare.out.  Same protocol as MDEdBase.
+ *   open <url>   title   cmds   save   quit   snap <png>
+ *   ci <name> <n> <scale> <grid> <mindist>   counter ions, as the page's fields
+ *   solvent water|<name> <model>   box <x> <y> <z>   periodic
+ *   center   orient   solvate [mindist]   minslu <dist>
+ */
+void MDPrep::startTestHook()
+{
+   const char *dir = getenv("ECCE_TEST_MDED");
+   if (dir == 0) return;
+   string base = string(dir) + "/MDPrepare";
+   string cmdPath = base + ".cmd";
+   string outPath = base + ".out";
+   std::shared_ptr<size_t> done(new size_t(0));
+   wxTimer *timer = new wxTimer();   // lives until the process exits
+   timer->Bind(wxEVT_TIMER, [this, cmdPath, outPath, done](wxTimerEvent&) {
+      ifstream in(cmdPath.c_str());
+      string line;
+      size_t n = 0;
+      while (std::getline(in, line)) {
+         if (n++ < *done) continue;
+         *done = n;
+         string outcome;
+         try {
+            outcome = runTestCommand(line);
+         } catch (std::exception& ex) {
+            outcome = string("exception: ") + ex.what();
+         } catch (...) {
+            outcome = "exception";
+         }
+         ofstream out(outPath.c_str(), std::ios::app);
+         out << line << ": " << outcome << std::endl;
+      }
+   });
+   timer->Start(500);
+}
+
+
+string MDPrep::runTestCommand(const string& line)
+{
+   string cmd = line.substr(0, line.find(' '));
+   istringstream args(line.size() > cmd.size() ? line.substr(cmd.size() + 1) : "");
+   vector<string> a;
+   string w;
+   while (args >> w) a.push_back(w);
+   for (int i = 0; i < 4; i++) { wxYield(); }
+   wxCommandEvent ev;
+   auto text = [this](wxWindowID id, const string& v) {
+      ((ewxTextCtrl*)FindWindow(id))->SetValue(wxString::FromUTF8(v.c_str()));
+   };
+
+   if (cmd == "open" && a.size() == 1) {
+      setContext(a[0]);
+      Raise();
+      return "ok";
+   } else if (cmd == "ci" && a.size() == 5) {
+      ((ewxComboBox*)FindWindow(ID_COMBOBOX_MDPREP_CINAME))->SetValue(a[0]);
+      text(ID_TEXTCTRL_MDPREP_CINUM, a[1]);
+      OnButtonMdprepCiaddClick(ev);
+      text(ID_TEXTCTRL_MDPREP_CISCALE, a[2]);
+      OnTextctrlMdprepCiscaleEnter(ev);
+      text(ID_TEXTCTRL_MDPREP_CIGRIDSZ, a[3]);
+      OnTextctrlMdprepCigridszEnter(ev);
+      text(ID_TEXTCTRL_MDPREP_CIMINDIS, a[4]);
+      OnTextctrlMdprepCimindisEnter(ev);
+      return "ok";
+   } else if (cmd == "solvent" && !a.empty()) {
+      ewxChoice *choice = ((ewxChoice*)FindWindow(ID_CHOICE_MDPREP_SOLVENTS));
+      if (a[0] == "water") {
+         choice->SetStringSelection("Water");
+         OnChoiceMdprepSolventsSelected(ev);
+      } else if (a.size() == 2) {
+         text(ID_TEXTCTRL_MDPREP_SOL_NAM, a[0]);
+         OnTextctrlMdprepSolNamEnter(ev);
+         text(ID_TEXTCTRL_MDPREP_SOL_MOD, a[1]);
+         OnTextctrlMdprepSolModEnter(ev);
+      } else return "usage: solvent water | solvent <name> <model>";
+      return "ok";
+   } else if (cmd == "box" && a.size() == 3) {
+      text(ID_TEXTCTRL_MDPREP_SETX, a[0]);
+      text(ID_TEXTCTRL_MDPREP_SETY, a[1]);
+      text(ID_TEXTCTRL_MDPREP_SETZ, a[2]);
+      OnButtonMdprepSetdimClick(ev);
+      return "ok";
+   } else if (cmd == "periodic") {
+      ((ewxChoice*)FindWindow(ID_CHOICE_MDPREP_BCOPT))->SetStringSelection("Periodic");
+      OnChoiceMdprepBcoptSelected(ev);
+      OnButtonMdprepSetbcClick(ev);
+      return "ok";
+   } else if (cmd == "center") {
+      OnButtonMdprepCenterClick(ev);
+      return "ok";
+   } else if (cmd == "orient") {
+      OnButtonMdprepOrientClick(ev);
+      return "ok";
+   } else if (cmd == "solvate") {
+      if (!a.empty()) text(ID_TEXTCTRL_MDPREP_SLV_MINDIST, a[0]);
+      OnButtonMdprepSolvateClick(ev);
+      return "ok";
+   } else if (cmd == "minslu" && a.size() == 1) {
+      getPrepareModel().setMinSluSluDist(atof(a[0].c_str()));
+      setSaveState(true);
+      return "ok";
+   } else if (cmd == "cmds") {
+      string out;
+      for (const string& c : getPrepareModel().getCmdList()) out += c + "|";
+      for (const string& c : getPrepareModel().getCounterIonList()) out += c + "|";
+      return out;
+   } else if (cmd == "save") {
+      MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
+      saveModelAndInputFile(task);
+      return "ok";
+   } else if (cmd == "title") {
+      return string(GetTitle().ToUTF8());
+   } else if (cmd == "snap" && a.size() == 1) {
+      return ecceWindowShot(this, wxString::FromUTF8(a[0].c_str())) ? "saved" : "not saved";
+   } else if (cmd == "quit") {
+      Close(true);
+      return "ok";
+   }
+   return "unknown command";
 }
 
 
