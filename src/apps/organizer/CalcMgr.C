@@ -737,6 +737,32 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
       outcome += " selected=" + (sel ? sel->getUrl().toString() : string("-")) +
                  " up=" + (p_treeCtrl->canSelectParent() ? "yes" : "no");
+    } else if (command == "treerects") {
+      // "iconw=<normal icon width>", then for each drawn node
+      // "depth:label:x:textx:state": where the label starts, in tree pixels,
+      // and its run state (-1 none).
+      for (int i = 0; i < 5; i++) wxYield();
+      std::function<void(wxTreeItemId, int)> walk =
+          [&](wxTreeItemId id, int depth) {
+        wxTreeItemIdValue cookie;
+        for (wxTreeItemId c = p_treeCtrl->GetFirstChild(id, cookie);
+             c.IsOk(); c = p_treeCtrl->GetNextChild(id, cookie)) {
+          wxRect all, text;
+          if (p_treeCtrl->GetBoundingRect(c, all, false) &&
+              p_treeCtrl->GetBoundingRect(c, text, true)) {
+            outcome += " " + std::to_string(depth) + ":" +
+                       string(p_treeCtrl->GetItemText(c).ToUTF8()) + ":" +
+                       std::to_string(all.x) + ":" + std::to_string(text.x) +
+                       ":" + std::to_string(p_treeCtrl->GetItemState(c));
+          }
+          if (p_treeCtrl->IsExpanded(c)) walk(c, depth + 1);
+        }
+      };
+      int iconW = 0, iconH = 0;
+      if (p_treeCtrl->GetImageList())
+        p_treeCtrl->GetImageList()->GetSize(0, iconW, iconH);
+      outcome = "ok iconw=" + std::to_string(iconW);
+      walk(p_treeCtrl->GetRootItem(), 0);
     } else if (command == "treeflags") {
       // "depth:label" with "+" for a node drawn with an expander and "-"
       // for one that is open, for each node below the hidden root
@@ -908,11 +934,9 @@ void CalcMgr::runTestCommand(const string& line)
       } else {
         double lastHeard = 0;
         Resource *r = node->getResource();
-        outcome = "image=" + std::to_string(p_treeCtrl->GetItemImage(node->GetId())) +
-            " running=" + std::to_string(WxResourceStateImageList::getImageIndex(
-                r, ResourceDescriptor::STATE_RUNNING)) +
-            " lost=" + std::to_string(WxResourceStateImageList::getImageIndex(
-                r, (ResourceDescriptor::RUNSTATE)WxState::OUT_OF_CONTACT)) +
+        outcome = "image=" + std::to_string(p_treeCtrl->GetItemState(node->GetId())) +
+            " running=" + std::to_string((int)ResourceDescriptor::STATE_RUNNING) +
+            " lost=" + std::to_string((int)WxState::OUT_OF_CONTACT) +
             " outOfContact=" + (outOfContact(r, lastHeard) ? "1" : "0");
       }
     } else if (command == "iconstyle") {
@@ -928,15 +952,15 @@ void CalcMgr::runTestCommand(const string& line)
       for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
       outcome = "ok";
     } else if (command == "treeicon") {
-      // "treeicon <url>": a checksum of the pixels of the tree icon shown.
+      // "treeicon <url>": a checksum of the pixels of the state icon shown.
       WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName),
                                                           true, true);
-      wxImageList *list = p_treeCtrl->GetImageList();
-      if (!node || !list) {
+      wxImageList *list = p_treeCtrl->GetStateImageList();
+      int state = node ? p_treeCtrl->GetItemState(node->GetId()) : -1;
+      if (!node || !list || state < 0) {
         outcome = "no node";
       } else {
-        wxImage img = list->GetBitmap(
-            p_treeCtrl->GetItemImage(node->GetId())).ConvertToImage();
+        wxImage img = list->GetBitmap(state).ConvertToImage();
         unsigned long sum = 0;
         const size_t n = (size_t)img.GetWidth() * img.GetHeight();
         for (size_t i = 0; i < 3 * n; i++) sum = sum * 31 + img.GetData()[i];

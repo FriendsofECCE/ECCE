@@ -111,7 +111,7 @@ bool WxResourceTreeCtrl::Create(wxWindow* parent, wxWindowID id,
 
   // Somehow putting this space and indent setting in ewxTreeCtrl() won't work
   SetSpacing(8);
-  SetIndent(10);
+  SetIndent(20);
 
   // Image list for folder expand and collapse button (the native MSW tree
   // draws its own and has no button list)
@@ -237,11 +237,8 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addRoot(const string& name,
   if (res) {
     node = new WxResourceTreeItemData(res);
     
-    int serverIcon = getImageIndex(node->getResource());
-    wxTreeItemId itemId = AppendItem(GetRootItem(), rootName,
-                                     serverIcon, serverIcon+1, node);
-    SetItemImage(itemId, serverIcon+2, wxTreeItemIcon_Expanded);
-    SetItemImage(itemId, serverIcon+3, wxTreeItemIcon_SelectedExpanded);
+    wxTreeItemId itemId = AppendItem(GetRootItem(), rootName, -1, -1, node);
+    setItemImages(itemId, node->getResource());
     
     SetItemHasChildren(itemId);
   }
@@ -328,11 +325,9 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
     vector<Resource *>::iterator resItor = children->begin();
     for (; resItor!= children->end(); resItor++) {
       WxResourceTreeItemData * childNode = new WxResourceTreeItemData(*resItor);
-      int resIcon = getImageIndex(*resItor);
       wxTreeItemId itemId = AppendItem(node->GetId(), (*resItor)->getName(),
-                                       resIcon, resIcon+1, childNode);
-      SetItemImage(itemId, resIcon+2, wxTreeItemIcon_Expanded);
-      SetItemImage(itemId, resIcon+3, wxTreeItemIcon_SelectedExpanded);
+                                       -1, -1, childNode);
+      setItemImages(itemId, *resItor);
       
       setExpandable(childNode);
     }
@@ -412,12 +407,9 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addToTree(const EcceURL & url)
 
     Resource * resource = EDSIFactory::getResource(url);
     ret = new WxResourceTreeItemData(resource);
-    int resIcon = getImageIndex(resource);
-    wxTreeItemId itemId = AppendItem(parent->GetId(),
-                                     resource->getName(),
-                                     resIcon, resIcon+1, ret);
-    SetItemImage(itemId, resIcon+2, wxTreeItemIcon_Expanded);
-    SetItemImage(itemId, resIcon+3, wxTreeItemIcon_SelectedExpanded);
+    wxTreeItemId itemId = AppendItem(parent->GetId(), resource->getName(),
+                                     -1, -1, ret);
+    setItemImages(itemId, resource);
     
     setExpandable(ret);
     SortChildren(parent->GetId());
@@ -845,7 +837,6 @@ bool WxResourceTreeCtrl::setExpandable( WxResourceTreeItemData * node )
 void WxResourceTreeCtrl::recolorStatePixmaps()
 {
   WxStateImageList::refresh();
-  WxResourceStateImageList::refresh();
 }
 
 
@@ -918,12 +909,21 @@ int WxResourceTreeCtrl::OnCompareItems(const wxTreeItemId& item1,
 
 void WxResourceTreeCtrl::refreshState(WxResourceTreeItemData * node)
 {
-  wxTreeItemId itemId = node->GetId();
-  int resIcon = getImageIndex(node->getResource());
+  setItemImages(node->GetId(), node->getResource());
+}
+
+
+// The resource icon is in the normal image list; the run state is the tree's
+// state image, drawn before it, and only on items that have one.
+void WxResourceTreeCtrl::setItemImages(const wxTreeItemId& itemId,
+                                       Resource * resource)
+{
+  int resIcon = WxResourceImageList::getImageIndex(resource);
   SetItemImage(itemId, resIcon, wxTreeItemIcon_Normal);
   SetItemImage(itemId, resIcon+1, wxTreeItemIcon_Selected);
   SetItemImage(itemId, resIcon+2, wxTreeItemIcon_Expanded);
   SetItemImage(itemId, resIcon+3, wxTreeItemIcon_SelectedExpanded);
+  SetItemState(itemId, getStateIndex(resource));
 }
 
 
@@ -968,31 +968,20 @@ WxResourceTreeItemData * WxResourceTreeCtrl::getSelection()
 
 void WxResourceTreeCtrl::setImageList()
 {
-  if (p_showRunStates) {
-    SetImageList(WxResourceStateImageList::getImageList());
-  } else {
-    SetImageList(WxResourceImageList::getImageList());
-  }
+  SetImageList(WxResourceImageList::getImageList());
+  SetStateImageList(p_showRunStates ? WxStateImageList::getImageList() : NULL);
 }
 
 
-int WxResourceTreeCtrl::getImageIndex(Resource * resource,
-                                      ResourceDescriptor::IconType iconType)
+int WxResourceTreeCtrl::getStateIndex(Resource * resource)
 {
-  int ret;
+  TaskJob * taskJob = p_showRunStates ? dynamic_cast<TaskJob*>(resource) : 0;
+  if (!taskJob) return wxTREE_ITEMSTATE_NONE;
 
-  if (p_showRunStates) {
-    TaskJob * taskJob = dynamic_cast<TaskJob*>(resource);
-    ResourceDescriptor::RUNSTATE state = taskJob ? taskJob->getState() :
-                                         ResourceDescriptor::NUMBER_OF_STATES;
-    if (taskJob && state == ResourceDescriptor::STATE_RUNNING &&
-        p_outOfContact && p_outOfContact(resource))
-      state = (ResourceDescriptor::RUNSTATE)WxState::OUT_OF_CONTACT;
-    ret = WxResourceStateImageList::getImageIndex(resource, state, iconType);
-  } else {
-    ret = WxResourceImageList::getImageIndex(resource, iconType);
-  }
-
-  return ret;
+  int state = taskJob->getState();
+  if (state == ResourceDescriptor::STATE_RUNNING &&
+      p_outOfContact && p_outOfContact(resource))
+    state = WxState::OUT_OF_CONTACT;
+  return state;
 }
 

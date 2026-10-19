@@ -141,9 +141,8 @@ public:
   { p_outOfContact = test; }
 
 protected:
-  int getImageIndex(Resource * resource,
-                    ResourceDescriptor::IconType iconType =
-                    ResourceDescriptor::IT_NORMAL);
+  int getStateIndex(Resource * resource);
+  void setItemImages(const wxTreeItemId& itemId, Resource * resource);
 
 private:
   
