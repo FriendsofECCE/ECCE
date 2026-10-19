@@ -929,7 +929,10 @@ def ui_section(s, build, png):
                 check(len(g) == 6 and g[4] <= g[2] and g[5] <= g[3],
                       "%s: no scrollbar at the opening size (page %s, content %s)"
                       % (what, g[2:4], g[4:6]))
-                check(geometry()[:2] == g0[:2], "%s: the window did not grow" % what)
+                #  The height follows the source (no empty space, no scroll);
+                #  the width does not change and the window stays on screen.
+                check(g[0] == g0[0] and g[1] <= 1000,
+                      "%s: same width, within the screen: %s" % (what, g[:2]))
             # P2: names follow the choices
             f = ed.cmd("fields")
             check("source_label=Mineral " in f + " " and "mineral_title=Mineral (ClayFF)" in f,

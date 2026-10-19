@@ -23,6 +23,8 @@
 
 #include "dsm/EDSIFactory.H"
 #include "dsm/GromacsIncludes.H"
+#include <wx/display.h>
+#include <wx/scrolwin.h>
 #include "dsm/GromacsPrepareModel.H"
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
@@ -1240,6 +1242,24 @@ void GromacsPreparePanel::OnSource(wxCommandEvent&)
   p_model->ionConcentration(minff ? 0.0 : d.ionConcentration());
   refreshGUI();
   changed();
+  fitToSource();
+}
+
+// The sources differ in height: fit the page to this one, so the window has
+// neither empty space nor a scrollbar, and keep the window on the screen.
+void GromacsPreparePanel::fitToSource()
+{
+  wxScrolledWindow *page = dynamic_cast<wxScrolledWindow*>(GetParent());
+  wxWindow *top = wxGetTopLevelParent(this);
+  if (page == 0 || top == 0 || GetSizer() == 0) return;
+  int idx = wxDisplay::GetFromWindow(top);
+  wxRect area = wxDisplay(idx == wxNOT_FOUND ? 0 : idx).GetClientArea();
+  int frameExtra = top->GetSize().y - page->GetSize().y;
+  int want = std::min(GetSizer()->CalcMin().y + 8,
+                      std::max(300, area.height - 60 - frameExtra));
+  page->SetMinSize(wxSize(page->GetMinSize().x, want));
+  top->SetMinSize(wxSize(420, 320));
+  top->Fit();
 }
 
 // The model keeps the repeat as "a b c"; an empty field counts as missing.

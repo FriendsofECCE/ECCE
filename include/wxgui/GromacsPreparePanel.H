@@ -86,6 +86,7 @@ class GromacsPreparePanel : public ewxPanel
       void OnNumber(wxCommandEvent& event);
       void OnOtherForceField(wxCommandEvent& event);
       void OnSource(wxCommandEvent& event);
+      void fitToSource();
       void OnMinffText(wxCommandEvent& event);
       void OnMinffChoice(wxCommandEvent& event);
       void OnMineralForceField(wxCommandEvent& event);
