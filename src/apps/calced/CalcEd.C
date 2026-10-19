@@ -3686,7 +3686,7 @@ void CalcEd::showGeomEditor()
   const string note = constraintNote();
   p_constraintNote->SetLabel(wxString::FromUTF8(note));
   p_constraintNote->SetToolTip(wxString::FromUTF8(note));
-  p_buttonRow->Show(p_constraintNote, !note.empty());
+  p_constraintNote->Show(!note.empty());
   GetSizer()->Layout();
   refit();
 }
