@@ -141,7 +141,7 @@ def importFiles(orca, work, name):
     return pre
 
 
-def editorPhase(s, build, orca, work, rundir, urlA, andy=False):
+def editorPhase(s, build, orca, work, rundir, urlA, andy=False, late=False):
     """The Calculation Editor on a calculation that carries A's orbitals,
     through its test hook on a private X server: the line under Settings,
     Save keeping the guess, and Use Default Guess dropping it."""
@@ -172,7 +172,7 @@ def editorPhase(s, build, orca, work, rundir, urlA, andy=False):
     if andy:
         #  The real Duplicate with Final Orbitals: a copy of the finished
         #  source, reset, the orbitals attached.
-        rc, out = s.driver("dup3", urlA)
+        rc, out = s.driver("dup3", urlA, extra={"DUP3_NO_ATTACH": "1"} if late else None)
         check(rc == 0, "A duplicated with its final orbitals")
         urlE = out.strip().splitlines()[-1]
     else:
@@ -214,6 +214,17 @@ def editorPhase(s, build, orca, work, rundir, urlA, andy=False):
 
         try:
             time.sleep(10)
+            if andy and late:
+                #  The editor was already on the copy when the orbitals arrived.
+                say("    early guess -> %s" % ask("guess"))
+                rc, out = s.driver("guess", urlE, urlA)
+                check(rc == 0, "the orbitals attached while the editor is open")
+                time.sleep(5)
+                say("    guess -> %s" % ask("guess"))
+                say("    save -> %s" % ask("save"))
+                say("    deck has MORead: %s" % ("MORead" in deck()))
+                ask("quit", 30)
+                return
             if andy:
                 andyFlow(s, ask, deck, calcE, urlE)
                 ask("quit", 30)
@@ -421,6 +432,7 @@ def main():
         if not args.no_editor and not args.central:
             editorPhase(s, build, orca, work, rundir, urlA)
             editorPhase(s, build, orca, work, rundir, urlA, andy=True)
+            editorPhase(s, build, orca, work, rundir, urlA, andy=True, late=True)
     finally:
         left = s.stop()
         if left:

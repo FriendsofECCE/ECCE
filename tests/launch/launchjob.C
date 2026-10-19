@@ -566,7 +566,9 @@ int main(int argc, char** argv)
     if (!dup) { cerr << "copy is not a calculation" << endl; return 1; }
     dup->resetForRerun(ResourceDescriptor::STATE_CREATED);
     string why;
-    if (!OrbitalGuess::attach(dup, source, why)) { cerr << why << endl; return 1; }
+    //  DUP3_NO_ATTACH: leave the attaching to a later "guess" call.
+    if (getenv("DUP3_NO_ATTACH") == 0 &&
+        !OrbitalGuess::attach(dup, source, why)) { cerr << why << endl; return 1; }
     cout << copyUrl.toString() << endl;
     return 0;
   }
