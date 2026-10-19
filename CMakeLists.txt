@@ -2860,6 +2860,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # A GROMACS Prepare (pdb2gmx, editconf, solvate, genion) and the Optimize
   # after it, through the real launch path; skipped (77) without gmx.
+  # The GROMACS tutorial (help/src/gromacs-first-calculation.md): a protein
+  # through New, Prepare, Optimize, Equilibrate and Dynamics, in the real editors.
+  add_test(NAME launch_gromacs_protein_walk
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_protein_walk_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_protein_walk PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   add_test(NAME launch_gromacs_prepare
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_prepare_test.py

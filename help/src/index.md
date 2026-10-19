@@ -52,6 +52,8 @@ describe what you did and what happened.
    and pseudopotentials.
    [Choosing Quantum ESPRESSO settings](qe-choosing-settings.md) says how to
    pick the cutoff, the k-points, smearing and the box.
+   [Your first GROMACS calculation](gromacs-first-calculation.md): a small
+   protein through Prepare, Optimize, Equilibrate and Dynamics.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.
