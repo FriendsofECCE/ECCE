@@ -164,8 +164,8 @@ def editorPhase(s, build, orca, work, rundir, urlA, andy=False, late=False):
     for entry in os.listdir(wrappers):
         os.chmod(os.path.join(wrappers, entry), 0o755)
 
-    tag = "f" if andy else "e"
-    urlE = runJob(s, "water-tzvp-" + ("flow" if andy else "editor"),
+    tag = ("g" if late else "f") if andy else "e"
+    urlE = runJob(s, "water-tzvp-" + (("late" if late else "flow") if andy else "editor"),
                   makeDeck(work, tag, "def2-TZVP", False), rundir)
     rc, out = s.driver("setup", urlE, importFiles(orca, work, tag), "orca.orcaout")
     check(rc == 0, "E's molecule, basis and theory stored (setup)")

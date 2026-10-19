@@ -1900,6 +1900,8 @@ void CalcEd::propertyMCB(wxCommandEvent& event)
     enableSave();
     doSave();
   }
+  //  The orbitals of an earlier calculation arrive as properties and a file.
+  refreshOrbitalGuess();
 }
 
 
@@ -3311,24 +3313,58 @@ void CalcEd::refreshOrbitalGuess()
 {
   TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
   bool has = job != 0 && job->hasOrbitalGuess();
-  if (has) {
-    string text = "Initial guess: MOs from " + OrbitalGuess::sourceName(job);
-    string was = OrbitalGuess::sourceBasis(job);
-    //  The importer stores the name in lower case, the library in mixed.
-    if (p_basis != 0 && !was.empty() &&
-        wxString::FromUTF8(was).CmpNoCase(
-            wxString::FromUTF8(p_basis->name())) != 0)
-      text += " (projected from " + was + ")";
+  //  A recorded source without its file: the line must not claim orbitals
+  //  that the job cannot read.
+  bool lost = job != 0 && !has && !OrbitalGuess::sourceName(job).empty();
+  bool editable = job != 0 &&
+      job->getState() < ResourceDescriptor::STATE_SUBMITTED;
+  if (has || lost) {
+    string text;
+    if (lost) {
+      text = "Initial guess: the orbitals from " +
+             OrbitalGuess::sourceName(job) +
+             " are missing; the job starts from the default guess";
+    } else {
+      text = "Initial guess: MOs from " + OrbitalGuess::sourceName(job);
+      string was = OrbitalGuess::sourceBasis(job);
+      //  The importer stores the name in lower case, the library in mixed.
+      if (p_basis != 0 && !was.empty() &&
+          wxString::FromUTF8(was).CmpNoCase(
+              wxString::FromUTF8(p_basis->name())) != 0)
+        text += " (projected from " + was + ")";
+      //  A deck made before the orbitals were attached does not read them,
+      //  and Save does nothing unless something is marked changed.
+      if (editable && !deckNamesOrbitalGuess()) {
+        text += "; the input file is out of date, Save to apply";
+        enableSave();
+      }
+    }
     p_guessText->SetLabel(wxString::FromUTF8(text));
     p_guessText->SetToolTip(wxString::FromUTF8(text));
-    FindWindow(ID_BUTTON_CALCED_GUESS_DEFAULT)->Enable(
-        job->getState() < ResourceDescriptor::STATE_SUBMITTED);
+    FindWindow(ID_BUTTON_CALCED_GUESS_DEFAULT)->Enable(has && editable);
   }
   wxSizer *column = p_guessColumn;
-  if (column != 0 && column->IsShown(p_guessRow) != has) {
-    column->Show(p_guessRow, has);
+  bool show = has || lost;
+  if (column != 0 && column->IsShown(p_guessRow) != show) {
+    column->Show(p_guessRow, show);
     GetSizer()->Layout();
     refit();
+  }
+}
+
+
+//  True when there is no deck yet, or the deck refers to the guess file.
+bool CalcEd::deckNamesOrbitalGuess()
+{
+  try {
+    istream *is = p_iCalc->getDataFile(JCode::PRIMARY_INPUT);
+    if (is == 0) return true;
+    string text;
+    StringConverter::streamToText(*is, text);
+    delete is;
+    return text.find(TaskJob::orbitalGuessFile()) != string::npos;
+  } catch (...) {
+    return true;
   }
 }
 
