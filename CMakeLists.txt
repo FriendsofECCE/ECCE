@@ -3097,3 +3097,8 @@ if(ECCE_BUILD_QM)
   add_subdirectory(src/qm)
   install(TARGETS ecce-qm RUNTIME DESTINATION bin COMPONENT client)
 endif()
+
+# tests/boxshape (#930): GROMACS dodecahedron / truncated octahedron cell.
+add_executable(box_shape_test tests/boxshape/box_shape_test.C)
+target_link_libraries(box_shape_test PRIVATE eccetdat ecceutil)
+add_test(NAME box_shape COMMAND box_shape_test ${CMAKE_SOURCE_DIR}/tests/boxshape/fixtures)

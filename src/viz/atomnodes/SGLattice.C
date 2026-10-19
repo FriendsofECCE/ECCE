@@ -17,6 +17,7 @@
 #include "viz/freeglut_font_data.H"
 
 #include "viz/SGLattice.H"
+#include "tdat/BoxShape.H"
 
 #include <iostream>
   using std::cout;
@@ -173,6 +174,30 @@ void SGLattice::setLattice(LatticeDef *lattice)
       p_a1str = (*edges)[1];
       p_a2str = (*edges)[3];
       p_a3str = (*edges)[5];
+
+      // A GROMACS dodecahedron or truncated octahedron is simulated as its
+      // compact cell around the box centre, not as the vector parallelepiped.
+      boxshape::Vec va = {{a1.x(), a1.y(), a1.z()}};
+      boxshape::Vec vb = {{a2.x(), a2.y(), a2.z()}};
+      boxshape::Vec vc = {{a3.x(), a3.y(), a3.z()}};
+      boxshape::Shape shape;
+      if (boxshape::isGromacsCompactBox(va, vb, vc) &&
+          boxshape::wignerSeitz(va, vb, vc, shape)) {
+         double cx = 0.5*(va[0]+vb[0]+vc[0]);
+         double cy = 0.5*(va[1]+vb[1]+vc[1]);
+         double cz = 0.5*(va[2]+vb[2]+vc[2]);
+         // The first three lines are coloured as the axes; keep their slots
+         // empty so the cell edges all get the plain cell colour.
+         edges->clear();
+         for (int e=0; e<6; e++) edges->push_back(MPoint(0.,0.,0.));
+         for (size_t e=0; e<shape.edges.size(); e++) {
+            const boxshape::Vec& s = shape.vertices[shape.edges[e].first];
+            const boxshape::Vec& t = shape.vertices[shape.edges[e].second];
+            edges->push_back(MPoint(s[0]+cx, s[1]+cy, s[2]+cz));
+            edges->push_back(MPoint(t[0]+cx, t[1]+cy, t[2]+cz));
+         }
+         nlines = edges->size();
+      }
 
 
       p_line->vertex.startEditing();
