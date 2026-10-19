@@ -154,14 +154,16 @@ void GmxPrepare::createPanels()
       fill->Add(p_panel, 1, wxEXPAND);
       scroll->SetSizer(fill);
       p_panel->setModel(prepModel());
-      // The window opens at what the page needs in its tallest state (a
-      // mineral), so no box needs scrolling; the width is capped at 60% of
-      // the screen and the constructor trims the height to the screen.
+      // The window opens at what the page needs in its current state, with
+      // no empty space below; the width is that of the widest state (capped
+      // at 60% of the screen) so a change of source does not widen it, and a
+      // taller state scrolls.  The constructor trims the height to the screen.
       wxSize best = p_panel->bestSizeAllSources();
+      best.y = p_panel->GetSizer()->CalcMin().y;
       int idx = wxDisplay::GetFromWindow(this);
       wxRect area = wxDisplay(idx == wxNOT_FOUND ? 0 : idx).GetClientArea();
       int w = std::min(best.x + 48, std::max(700, area.width * 6 / 10));
-      scroll->SetMinSize(wxSize(w, std::max(best.y + 8, 420)));
+      scroll->SetMinSize(wxSize(w, best.y + 8));
       p_scroll = scroll;
       p_notebook->AddPage(scroll, _("System"));
       p_panel->refreshGUI();
@@ -626,6 +628,7 @@ void GmxPrepare::OnButtonResetaClick(wxCommandEvent&)
  * cellwarning           the cut-off warning for the built mineral cell
  * mcelldir               where the unit cell's Browse... starts
  * ffchoices             the force field choice, joined by |
+ * structureatoms       the atom count of the task's structure (what the Builder opens)
  * fields                the model and the water choices, in words
  * recipe                the stored gromacs.gmxprep, lines joined by " | "
  * model                 the model XML as stored
@@ -670,6 +673,11 @@ string GmxPrepare::runTestCommand(const string& line)
       return out;
    } else if (cmd == "ffchoices") {
       return p_panel->forceFieldChoices();
+   } else if (cmd == "structureatoms") {
+      MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
+      Fragment frag;
+      if (task == 0 || !task->getFragment(frag)) return "no structure";
+      return std::to_string(frag.numAtoms());
    } else if (cmd == "fields") {
       return p_panel->summary();
    } else if (cmd == "recipe" || cmd == "model") {

@@ -604,6 +604,14 @@ def editor_section(s, build, rundir, png):
                 check(ed.cmd("set structure " + os.path.join(FIXTURES, "1l2y.pdb")) == "ok",
                       "a PDB file chosen as the structure")
                 check("structure=1l2y.gmxpdb" in ed.cmd("fields"), "the editor shows it")
+                natoms = sum(1 for l in open(os.path.join(FIXTURES, "1l2y.pdb"))
+                             if l.startswith(("ATOM", "HETATM")))
+                check(ed.cmd("structureatoms") == str(natoms),
+                      "the PDB is also the task's structure (what the Builder opens): "
+                      "%s of %d atoms" % (ed.cmd("structureatoms"), natoms))
+                check(ed.cmd("launch") == "enabled",
+                      "Launch is enabled before any Save once the setup is complete: "
+                      + ed.cmd("launch"))
                 shot = os.path.join(png, "gmxprepare.png")
                 check(ed.cmd("snap " + shot) == "saved" and os.path.exists(shot),
                       "window shot: %s" % shot)
