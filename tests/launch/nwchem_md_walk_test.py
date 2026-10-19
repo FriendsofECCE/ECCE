@@ -127,7 +127,7 @@ def main():
             deck = glob.glob(os.path.join(where(tasks["prepare"]), "Inputs", "*.nw*"))
             text = open(deck[0]).read() if deck else ""
             say("  deck: %s" % text.replace("\n", " | "))
-            for want in ("solvent HOH model spce", "solvate", "periodic", "write chemsys.pdb"):
+            for want in ("solvent name HOH model spce", "solvate", "periodic", "write chemsys.pdb"):
                 check(want in text, "the deck has: %s" % want)
         finally:
             ed.close()
