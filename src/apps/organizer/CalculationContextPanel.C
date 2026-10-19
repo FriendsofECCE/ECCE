@@ -58,6 +58,16 @@ static bool noBasisView(Resource *res, ResourceTool *tool)
   return code && !code->usesBasisSet();
 }
 
+//  A code that has a basis but is not used with the Basis Set Tool (ECCE-QM:
+//  quick picks in the editor) shows the button and rows, greyed out.
+static bool basisToolOff(Resource *res, ResourceTool *tool)
+{
+  if (tool->getName() != BASISTOOL) return false;
+  TaskJob *task = dynamic_cast<TaskJob*>(res);
+  const JCode *code = task ? task->application() : 0;
+  return code && code->getBasisSetToolHidden();
+}
+
 
 
 /**
@@ -296,6 +306,11 @@ void CalculationContextPanel::createControls()
     // create the button for this tool and add it to its sizer
     EcceTool *toolButton = createToolButton(pairRT_TPV.first);
     toolButtons.push_back(toolButton);
+    if (basisToolOff(p_itemData->getResource(), pairRT_TPV.first)) {
+      toolButton->Enable(false);
+      toolButton->SetToolTip("This code picks its basis set in the "
+                             "Calculation Editor, not in the Basis Set Tool.");
+    }
     sizer->Add(toolButton,
           0,                        // do not stretch horizontally
           wxALIGN_CENTER_VERTICAL|  // center vertically
