@@ -23,8 +23,10 @@ free() {
     ssh -o BatchMode=yes -o ConnectTimeout=5 "$1" "$(conf "$1"); n=0; mkdir -p \$OFF/locks;
       for i in \$(seq 1 \$SLOTS); do ( exec 9>\$OFF/locks/slot\$i; flock -n 9 ) && n=\$((n+1)); done; echo \$n" 2>/dev/null || echo -1
 }
-# radium is in use on evenings 18-21: start nothing from 17:00 to 21:00.
+# radium is in use on evenings 18-21: start nothing from 17:00 to 21:00,
+# unless its owner said it is free (OFFLOAD_IGNORE_HOURS=1).
 radium_free() {
+    [ "${OFFLOAD_IGNORE_HOURS:-0}" = 1 ] && return 0
     local hm=$((10#$(date +%H) * 60 + 10#$(date +%M)))
     [ "$hm" -lt $((17 * 60)) ] || [ "$hm" -ge $((21 * 60)) ]
 }
