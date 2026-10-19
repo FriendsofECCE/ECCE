@@ -5284,6 +5284,20 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
      symmetryShown = true;
   }
 
+  //  Build is always open on an editable calculation, in a saved layout too:
+  //  a new user starts from it.
+  if (layoutName == NAME_LAYOUT_DEFAULT && !isReadOnly()) {
+    wxAuiPaneInfo &build = p_mgr.GetPane(NAME_TOOL_BUILD);
+    if (build.IsOk() && !build.IsShown()) {
+      unfoldPane(build);
+      p_tabHidden.erase(build.window);
+      build.Show(true);
+      GetMenuBar()->Check(
+          GetMenuBar()->FindMenuItem("Tools", NAME_TOOL_BUILD), true);
+      symmetryShown = true;   // so that updatePanes() runs below
+    }
+  }
+
   //  A crystal code's calculation opens with the Periodic Builder, which
   //  holds the cell, since a molecule view cannot define one.  It is only
   //  shown, not made: no cell is invented for a structure without one.

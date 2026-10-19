@@ -378,9 +378,9 @@ void Builder::refreshColumn()
   } else if (p_panelMode == PANELS_DETAIL) {
     ensureDetail();
   }
-  //  A calculation without results has an empty Properties tab, whatever
-  //  tab was last chosen: it opens on the building tools.
-  if (!anyProperties) {
+  //  An editable calculation always opens on the building tools, so a new
+  //  user sees Build; one with results (read-only) opens on Properties.
+  if (!anyProperties || !p_calculation || !isReadOnly()) {
     p_columnTab = 0;
   } else if (!p_columnTabChosen) {
     p_columnTab = 1;
