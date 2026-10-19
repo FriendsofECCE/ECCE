@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """The classic ECCE NWChem MD workflow, headless: Prepare, Optimize, Energy, Dynamics.
 
+This is a does-it-execute regression test only.  The settings (step counts,
+box size, water model, counter ion) are chosen to run quickly and to reach
+each code path; they are not recommended practice.  The Cl counter ion is
+there to exercise the counter-ion path, not because neutral cytidine needs it.
+
 Cytidine (the Structure Library's RNA monomer) goes into an NWChem MD study.
 Prepare is edited through MDPrep's test hook (amber, SPC/E water, Cl- ions,
 5 nm box, periodic solvation), the other tasks through MDEdBase's; each is
