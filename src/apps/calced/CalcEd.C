@@ -1710,6 +1710,17 @@ void CalcEd::OnButtonCalcedVerifyClick( wxCommandEvent& event )
 
 void CalcEd::OnButtonCalcedLaunchClick( wxCommandEvent& event )
 {
+  //  A calculation that is ready but was never saved has no deck yet
+  //  (codes without a basis choice never trigger basisMCB's auto-save):
+  //  write it now, as Save would, and stop if the generator refuses.
+  if (!p_hasInputFile) {
+    enableSave();
+    doSave();
+    verifyInput();
+    if (!p_hasInputFile)
+      return;
+  }
+
   if (!regenerateIfStructureChanged())
     return;
 
@@ -3585,8 +3596,9 @@ void CalcEd::enableLaunch()
     //  never actually written -- everything ELSE about whether a bad
     //  or stale deck may be launched is Verify's job, not this one's
     //  (Andy, 2026-09-29: Verify is what should flag a bad deck; Launch
-    //  should let people do what they want with it).
-    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo && p_hasInputFile);
+    //  should let people do what they want with it).  A missing deck is
+    //  written by the Launch click itself.
+    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(togo);
 
     int box;
