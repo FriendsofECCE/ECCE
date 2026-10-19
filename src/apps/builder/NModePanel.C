@@ -1181,7 +1181,9 @@ void NModePanel::setWrapped(wxStaticText *label, const std::vector<wxString>& pa
    for (size_t i = 0; i < parts.size(); i++)
       full += (i ? wxString::FromUTF8(" \xC2\xB7 ") : wxString()) + parts[i];
    label->SetToolTip(full.empty() ? NULL : new wxToolTip(full));
-   const int width = label->GetClientSize().x;
+   int width = label->GetClientSize().x;
+   //  Test hook: the width of the narrowest dock, without resizing windows.
+   if (const char *w = getenv("ECCE_NMODE_DETAIL_WIDTH")) width = atoi(w);
    wxString shown = full;
    if (width > 40 && !full.empty()) {
       wxClientDC dc(label);
