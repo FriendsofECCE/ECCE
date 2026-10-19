@@ -573,7 +573,8 @@ def editor_section(s, build, rundir, png):
                       and "gmx editconf -f step1.gro -o step2.gro -c -bt dodecahedron -d 1" in ver
                       and "gmx solvate -cp step2.gro -cs spc216.gro" in ver
                       and "-pname NA -pq 1 -nname CL -neutral -conc 0.15" in ver
-                      and "rcoulomb = 1.0" in ver and "FF=amber99sb-ildn" in ver,
+                      and "rcoulomb = 1.0" in ver and "Force field: amber99sb-ildn" in ver
+                      and "Box:         dodecahedron, 1 nm from the solute" in ver,
                       "Verify lists the protein Prepare's commands and ions.mdp: %s" % ver)
                 sz = [int(x) for x in re.findall(r"\d+", ed.cmd("size"))]
                 check(len(sz) == 6 and sz[0] <= 1000 and sz[1] <= 960,
@@ -954,7 +955,7 @@ def ui_section(s, build, png):
                   and int(m.group(5)) > 60 and int(m.group(6)) > 20,
                   "Verify shows an upper and a lower pane with text")
             files = ed.cmd("verifyfiles")
-            check("gromacs.gmxprep" in files and "bytes" in files
+            check("gromacs.gmxprep" in files and re.search(r"\d (bytes|kB|MB)", files)
                   and "Builder's structure" in files,
                   "the lower pane lists the staged inputs: %s" % files[:200])
             # P3: stored, closed, reopened: the repeat comes back as typed
@@ -1107,8 +1108,8 @@ def minff_section(s, build, rundir, png):
             # P6 for a mineral: the lower pane lists the built files and the
             # topology's first lines
             files = ed.cmd("verifyfiles")
-            check("conf.gmxmin" in files and "topol.gmxmin" in files and "bytes" in files
-                  and "min.ff__SLASH__forcefield.itp" in files
+            check("conf.gmxmin" in files and "topol.gmxmin" in files and re.search(r"\d (bytes|kB|MB)", files)
+                  and "min.ff/forcefield.itp" in files and "__SLASH__" not in files
                   and "first lines" in files and "MINFF system written by ECCE" in files,
                   "Verify's lower pane lists the mineral's inputs and topology: %s" % files[:300])
             rep = ed.cmd("verifydialog")
