@@ -526,10 +526,10 @@
     <SortPriority>60</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>svg/candidates/codes/g16.svg</Normal>
-      <Selected>svg/candidates/codes/g16.svg</Selected>
-      <Expanded>svg/candidates/codes/g16.svg</Expanded>
-      <SelectedExpanded>svg/candidates/codes/g16.svg</SelectedExpanded>
+      <Normal>calcgaussian16.xpm</Normal>
+      <Selected>calcgaussian16.xpm</Selected>
+      <Expanded>calcgaussian16.xpm</Expanded>
+      <SelectedExpanded>calcgaussian16.xpm</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
