@@ -64,6 +64,7 @@
 #include "wxgui/ewxProgressDialog.H"
 #include "wxgui/ewxTextCtrl.H"
 
+#include "wxgui/ewxThemeColours.H"
 #include "WxLauncher.H"
 
 #define MAX_PROCS_LIMIT     32
@@ -254,6 +255,9 @@ void WxLauncher::createControls()
     p_messagesFeedback->setContextLabel("");
     p_messagesFeedback->setEditStatus(WxFeedback::NA);
     p_messagesFeedback->GetSizer()->SetMinSize(-1, 1);
+    //  Six lines: enough to read a message, small enough that the window
+    //  opens at the size of its controls; the user can still enlarge it.
+    p_messagesFeedback->SetMinSize(wxSize(-1, 6 * p_messagesFeedback->GetCharHeight() + 8));
 
     ewxMenuBar *mbar = (ewxMenuBar *)(this->GetMenuBar());
     p_machRegisterMenuItem = (ewxMenuItem *)(mbar->FindItem(ID_MENUITEM_WXLAUNCHER_MACHREGISTER));
@@ -909,12 +913,23 @@ bool WxLauncher::runsHere() const
  *  The machine, not the typed name, decides where the Username field
  *  lives, so it never moves while the user types in it.
  */
+//  A hidden star would collapse its grid column and shift the field to the
+//  left of the rows that show one; painting it in the background keeps the
+//  fields on one x.
+static void starShown(wxWindow *st, bool shown)
+{
+    st->SetForegroundColour(shown ? ewxThemeColours::statusText(ewxThemeColours::BAD)
+                                  : st->GetParent()->GetBackgroundColour());
+    st->Refresh();
+}
+
+
 void WxLauncher::refreshRemoteSection()
 {
     const bool thisHost = namesThisHost();
     const bool hide = runsHere();
     if (wxWindow *req = FindWindow(ID_STATIC_WXLAUNCHER_USERNAMEREQUIRED))
-        req->Show(!thisHost);
+        starShown(req, !thisHost);
 
     this->placeAdvancedWidgets(thisHost);
 
@@ -938,7 +953,7 @@ void WxLauncher::refreshRemoteSection()
              p_calcDrctyPanel->GetChildren().GetFirst(); n; n = n->GetNext())
         if (wxStaticText *st = wxDynamicCast(n->GetData(), wxStaticText))
             if (st->GetLabel() == "*")
-                st->Show(!hide);
+                starShown(st, !hide);
 
     // Nothing is marked required for a local job, so neither is the key.
     if (wxWindow *key = FindWindow(ID_STATIC_WXLAUNCHER_REQUIREDFIELDSKEY))
@@ -948,7 +963,7 @@ void WxLauncher::refreshRemoteSection()
                     if (st == key)   // emptied, not hidden: it pushes Launch right
                         st->SetLabel(hide ? "" : "Required value");
                     else if (st->GetLabel() == "*")
-                        st->Show(!hide);
+                        starShown(st, !hide);
 }
 
 
