@@ -8,4 +8,9 @@
 // so they stay; only what is drawn on screen changes.
 std::string unitLabel(const std::string& units);
 
+// A value printed with up to `decimals` decimals and no trailing zeros
+// (-385274.0, not -385274.000000), but at least one decimal so a count
+// still reads as a measurement.  Hartree energies keep their precision.
+std::string valueLabel(double value, int decimals);
+
 #endif

@@ -291,8 +291,7 @@ void KeyValuePropertyPanel::refresh()
       continue;
     }
     string units = tprop->units()=="NA"? "": unitLabel(tprop->units());
-    wxString valueStr = wxString::Format(PrefLabels::PRECISEDOUBLEFORMAT,
-                                         tprop->scalarize());
+    wxString valueStr = valueLabel(tprop->scalarize(), 10);
     if (*nameIt == "THERMOTEMP") {
       // Shown in the Thermochemistry heading, not as a row.
       thermoTemp = string(wxString::Format("%g", tprop->scalarize()).c_str()) + " " +
