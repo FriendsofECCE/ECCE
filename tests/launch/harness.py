@@ -225,7 +225,10 @@ class Session(object):
             "PATH": "%s/scripts:%s/scripts/parsers:%s" % (
                 self.home, self.home, os.environ["PATH"]),
         })
-        env.pop("ECCE_NO_REAP", None)
+        #  A test closes one app before starting the next, so every exit is
+        #  "the last app out" and the reaper may tear the session down between
+        #  steps (#382); teardown stops the services itself, as tests/apps do.
+        env["ECCE_NO_REAP"] = "1"
         env.pop("DISPLAY", None)
         env.pop("ECCE_TRANSPORT", None)
         env.pop("ECCE_LOCAL_DATA", None)
@@ -260,7 +263,8 @@ class Session(object):
             return True
         for script in ("ecce-gateway-stop", "ecce-dataserver-stop"):
             try:
-                self.run([os.path.join(self.home, "bin", script)], timeout=120)
+                self.run([os.path.join(self.home, "bin", script)],
+                         extra={"ECCE_NO_REAP": ""}, timeout=120)
             except subprocess.TimeoutExpired:
                 pass
         return True
