@@ -34,6 +34,7 @@
 #include "dsm/JCode.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/TaskJob.H"
+#include "dsm/MdTask.H"
 #include "dsm/ActivityLog.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
@@ -251,6 +252,81 @@ bool JobParser::importCalculation(const char* parseFile,
   delete launch;
 
   return ret;
+}
+
+
+bool JobParser::importGromacsTask(TaskJob* task, const string& stageDir,
+                                  string& message)
+{
+  const string parseFileName = "gromacs.gmxlog";
+  RefMachine* refMachine = RefMachine::abbrevLookup(RCommand::whereami());
+  if (!refMachine)
+    refMachine = RefMachine::refLookup("localhost");
+  if (!refMachine) {
+    message = "No registered compute server to import with.";
+    return false;
+  }
+  MdTask* md = dynamic_cast<MdTask*>(task);
+  const JCode* jcode = CodeFactory::lookup("GROMACS");
+  if (!md || !jcode) {
+    message = "Not a GROMACS MD task.";
+    delete refMachine;
+    return false;
+  }
+  task->application(jcode);
+
+  struct Launchdata launchdata;
+  launchdata.machine = refMachine->refname();
+  launchdata.remoteShell = "";
+  launchdata.user = "";
+  launchdata.nodes = 0;
+  launchdata.totalprocs = 0;
+  launchdata.maxmemory = 0;
+  launchdata.minscratch = 0;
+  task->launchdata(launchdata);
+  delete refMachine;
+
+  SDirectory* dir = TempStorage::getTempJobDirectory(
+                                task->getURL().getFilePathTail().c_str());
+  struct Jobdata jobdata;
+  jobdata.jobpath = dir->path();
+  jobdata.jobid = "";
+  task->jobdata(jobdata);
+
+  // The monitor opens the run's files in the job directory, so the staged
+  // files are linked into it, as importCalculation does for its one file.
+  RCommand localconn("system");
+  if (!localconn.isOpen() || !localconn.cd(dir->path())) {
+    message = "Unable to create local command shell for importing.";
+    return false;
+  }
+  if (!localconn.exec("for f in " + RCommand::quotePath(stageDir) +
+                      "/*; do ln -sf \"$f\" .; done")) {
+    message = "Cannot link the staged files into " + dir->path() + ".";
+    return false;
+  }
+
+  // The names a live launch hands the monitor (WxLauncher::buildArgs)
+  EcceMap kvargs;
+  kvargs["##parse##"] = parseFileName;
+  kvargs["##output##"] = parseFileName;
+  kvargs["##output_frag##"] = md->getOutputFragmentName();
+  kvargs["##restart##"] = md->getRestartName();
+  kvargs["##md_output##"] = md->getMdOutputName();
+  kvargs["##topology##"] = md->getTopologyName();
+
+  string dirWithSlash = stageDir;
+  if (dirWithSlash.empty() || dirWithSlash[dirWithSlash.size()-1] != '/')
+    dirWithSlash += '/';
+  Launch launch(task, kvargs, false, dirWithSlash, md->getCalcName());
+  bool ok = launch.validateLocalDir() &&
+            launch.validateRemoteLogin() &&
+            launch.generateJobMonitoringFiles() &&
+            launch.moveJobMonitoringFiles() &&
+            launch.startJobStore(dirWithSlash);
+  if (!ok)
+    message = "Unable to import--" + launch.message();
+  return ok;
 }
 
 

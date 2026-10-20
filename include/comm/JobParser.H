@@ -46,6 +46,15 @@ class JobParser
             const string& importName,
             string& message);
 
+      // Import the finished run staged in stageDir as the GROMACS MD task
+      // `task`: its output files under the names a live run brings back
+      // (gromacs.gmxlog, <sys>_<calc>.gro, <sys>.gmxtop, *.itp,
+      // ecce-parse-traj.txt) go through the job monitor and store as for a
+      // live run.  Used by the GROMACS run importer only.
+      static bool importGromacsTask(TaskJob* task,
+            const string& stageDir,
+            string& message);
+
       void cacheParseArgs(const string& tmpDir);
 
       void storeProperty(RCommand* localconn,

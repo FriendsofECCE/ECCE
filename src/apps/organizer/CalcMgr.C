@@ -143,6 +143,7 @@ static string progressKey(const EcceURL & url);
 #include "WxFind.H"
 #include "wxgui/GlobalPrefs.H"
 
+#include "GromacsImport.H"
 #include "CalcMgr.H"
 
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
@@ -575,6 +576,22 @@ void CalcMgr::runTestCommand(const string& line)
         p_testCreateError = 0;
         outcome = error.empty() ? "ok" : "error: " + error;
       }
+    } else if (command == "gmximport") {
+      // "gmximport PARENT-URL RUN-DIR": import a GROMACS run (layout in
+      // GromacsImport.H) as a GROMACS MD study in PARENT.
+      std::istringstream args(calcName);
+      string parentUrl, runDir;
+      args >> parentUrl >> runDir;
+      WxResourceTreeItemData *parentNode = findNode(EcceURL(parentUrl),
+                                                    true, true);
+      string message, made;
+      if (parentNode)
+        made = importGromacsRun(parentNode->getResource(), "GROMACS_Import",
+                                runDir, message);
+      if (parentNode) p_treeCtrl->refresh(parentNode);
+      outcome = !parentNode ? "error: no parent node"
+              : (made.empty() || !message.empty()) ? "error: " + message
+              : "ok " + made;
     } else if (command == "state") {
       Resource *res = EDSIFactory::getResource(EcceURL(calcName));
       ICalculation *icalc = dynamic_cast<ICalculation*>(res);

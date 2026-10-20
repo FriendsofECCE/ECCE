@@ -2875,6 +2875,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_protein_walk PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # The GROMACS run importer (#375): a finished run becomes a study whose
+  # energies come from the job monitor's parse of the logs.
+  add_test(NAME launch_gromacs_import
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_import_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_import PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # The classic NWChem MD workflow (Prepare, Optimize, Energy, Dynamics), headless.
   add_test(NAME launch_nwchem_md_walk
            COMMAND ${PYTHON3_EXECUTABLE}
