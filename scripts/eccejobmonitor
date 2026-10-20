@@ -3843,17 +3843,20 @@ sub MsgSendErr
 # Link that sibling under the descriptor's name where the job store looks.
 # --------------------------------------------------------------------------- #
 
-sub ImportSiblingLink
+# An imported run's files carry the output's name (ammonia.mgf beside
+# ammonia.out), not the name a live job's File= parse expects (mopac.mgf).
+# Returns the sibling with the File= name's extension, if the import
+# directory holds one.
+sub ImportSibling
 {
     my($idir, $file) = @_;
     my $out = $gConfig{'jobOutputFile'};
 
-    return unless (defined $out && $file =~ /(\.[^.\/]+)$/);
+    return '' unless (defined $out && $file =~ /(\.[^.\/]+)$/);
     my $ext = $1;
     (my $base = $out) =~ s/\.[^.\/]*$//;
-    my $sib = "$base$ext";
-    return unless (-f "$idir$sib");
-    symlink("$idir$sib", $file) unless (-e $file);
+    $base =~ s/^.*\///;
+    return (-f "$idir$base$ext") ? "$base$ext" : '';
 }
 
 sub MsgSendFile
@@ -3878,7 +3881,11 @@ sub MsgSendFile
     else
     {
         $idir = $gConfig{'importDir'};
-        &ImportSiblingLink($idir, $file) unless (-e "$idir$file");
+        unless (-e "$idir$file")
+        {
+            my $sib = &ImportSibling($idir, $file);
+            $file = $sib if ($sib ne '');
+        }
         unless (-e "$idir$file")
         {
             &MsgSendErr($MSG_TYPE_E_INFO, "MsgSendFile: file '$idir$file' does not exist");

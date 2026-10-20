@@ -43,7 +43,8 @@ EXPECT = {
               "MKFIT", "MO"],
     "benzene": ["MO", "VIBFREQ", "ESPFIT", "HIRSHFELD", "MBIS", "NPA"],
     "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"],
-    "ammonia": ["MO", "VIBFREQ"],
+    # SLATERBASIS: the .mgf beside the output reaches its parse on import
+    "ammonia": ["MO", "VIBFREQ", "SLATERBASIS"],
     "methane": ["MO", "VIBFREQ", "MULLIKEN"],
     # a GROMACS study: its tasks, each as "task:" and "task:PROP"
     "trpcage": ["prepare:", "optimize:", "equilibrate:", "dynamics:",
