@@ -69,15 +69,16 @@ def orca(i):
 @icon("qe")
 def qe(i):
     badge(i, "#f4efe6", "#d7c8b0", "#8a7456")
+    # The Q's tail must stay clear of the cup, or the Q reads as an O.
     g = i.lin(4, 4, 22, 22, (0, "#4f8fe8"), (1, "#16408c"))
-    i.add('<circle cx="14.500" cy="14" r="8.500" fill="none" stroke="%s" stroke-width="3.600"/>' % g)
-    i.add('<path d="M18 18l5 5" stroke="%s" stroke-width="3.400" stroke-linecap="round"/>' % g)
-    i.add('<ellipse cx="23" cy="27.500" rx="7.500" ry="1.800" fill="#e9eef6" stroke="#7a8498" stroke-width=".7"/>')
-    cup = i.lin(18, 0, 30, 0, (0, "#ffffff"), (1, "#b9c2d4"))
-    i.add('<path d="M17.500 19.500h11v3.500a5.500 5.500 0 0 1-11 0z" fill="%s" stroke="#6a7488" stroke-width=".8"/>' % cup)
-    i.add('<ellipse cx="23" cy="19.500" rx="5.500" ry="1.400" fill="#4a2810" stroke="#6a7488" stroke-width=".6"/>')
-    i.add('<path d="M28.500 20.500h1.500a2.300 2.300 0 0 1 0 4.600h-2" fill="none" stroke="#6a7488" stroke-width="1.200"/>')
-    i.add('<path d="M20.500 17c-1-1.500 1-2.500 0-4M24.500 17c-1-1.500 1-2.500 0-4" fill="none" stroke="#9a8c78" stroke-width="1" stroke-linecap="round"/>')
+    i.add('<circle cx="12.500" cy="12.500" r="8" fill="none" stroke="%s" stroke-width="3.600"/>' % g)
+    i.add('<path d="M16.800 16.800l4.200 4.200" stroke="%s" stroke-width="3.400" stroke-linecap="round"/>' % g)
+    i.add('<ellipse cx="25.500" cy="29.200" rx="5.300" ry="1.300" fill="#e9eef6" stroke="#7a8498" stroke-width=".7"/>')
+    cup = i.lin(21, 0, 30, 0, (0, "#ffffff"), (1, "#b9c2d4"))
+    i.add('<path d="M21.700 24h7.600v2.300a3.800 3.800 0 0 1-7.600 0z" fill="%s" stroke="#6a7488" stroke-width=".8"/>' % cup)
+    i.add('<ellipse cx="25.500" cy="24" rx="3.800" ry="1" fill="#4a2810" stroke="#6a7488" stroke-width=".6"/>')
+    i.add('<path d="M29.300 24.700h1a1.700 1.700 0 0 1 0 3.400h-1.400" fill="none" stroke="#6a7488" stroke-width="1.100"/>')
+    i.add('<path d="M24.300 22.300c-.8-1.200.8-2 0-3.200M27 22.300c-.8-1.200.8-2 0-3.200" fill="none" stroke="#9a8c78" stroke-width=".9" stroke-linecap="round"/>')
 
 
 @icon("mopac-a")
@@ -110,6 +111,10 @@ def build():
         f(i)
         with open(os.path.join(OUT, name + ".svg"), "w") as fh:
             fh.write(i.svg())
+    # GROMACS keeps the study icon already chosen for it.
+    import shutil
+    shutil.copy(os.path.join(OUT, "..", "..", "study-gromacs.svg"),
+                os.path.join(OUT, "gmx.svg"))
     print("wrote", len(ICONS), "icons to", os.path.normpath(OUT))
 
 
