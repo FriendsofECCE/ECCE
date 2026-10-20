@@ -183,7 +183,11 @@ void PlotAnyPropertyPanel::refreshChoices(const wxString& lastX,
   if (!p_xaxis->SetStringSelection(lastX)) {
     p_xaxis->SetSelection(p_xaxis->GetCount()-1); // select dimension
   }
-  if (!p_yaxis->SetStringSelection(lastY)) {
+  //  Otherwise the energy: the first name in alphabetical order (often a
+  //  noisy pressure) is not what one looks at first.
+  if (!p_yaxis->SetStringSelection(lastY) &&
+      !p_yaxis->SetStringSelection("Total Energy") &&
+      !p_yaxis->SetStringSelection("Potential Energy")) {
     p_yaxis->SetSelection(0); // select first prop vec
   }
 }
