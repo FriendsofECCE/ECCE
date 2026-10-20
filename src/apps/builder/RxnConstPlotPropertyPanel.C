@@ -17,7 +17,7 @@
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "RxnConstPlotPropertyPanel.H"
@@ -83,7 +83,7 @@ void ReactionConstantPlotPropertyPanel::refresh()
   calculation = getCalculation();
 
   // Clear the plot
-  p_plotCtrl->DeleteCurve(-1, true); // -1 deletes all, true emits event
+  p_plotCtrl->clearCurves();
 
   props = getPropertyNames();
   if (props.size() <= 0) {
@@ -101,11 +101,10 @@ void ReactionConstantPlotPropertyPanel::refresh()
     double *b = new double[count];
     double *c = new double[count];
     double *d = new double[count];
-    wxPlotData *plotData = NULL;
 
-    p_plotCtrl->SetXAxisLabel("1000/(T[K])");
-    p_plotCtrl->SetYAxisLabel("ln(k[1/sec])");
-    p_plotCtrl->SetPlotTitle(getName());
+    p_plotCtrl->setXAxisLabel("1000/(T[K])");
+    p_plotCtrl->setYAxisLabel("ln(k[1/sec])");
+    p_plotCtrl->setTitle(getName());
 
     // figure out which columns to use, first TST, then CVT
     // (w/error)     "T 1000/T ln(k_TST) low high ln(k_CVT) low high"
@@ -116,24 +115,10 @@ void ReactionConstantPlotPropertyPanel::refresh()
       a[i] = table->value(i, col_1000_T);
       b[i] = table->value(i, col_data);
     }
-    plotData = new wxPlotData(a,b,count);
-    plotData->SetFilename("TST");
-    plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(0));
-    plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(0));
-    plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(0));
-#if 000
-    plotData->SetSymbol(wxPLOTSYMBOL_RECTANGLE, wxPLOTPEN_NORMAL);
-    plotData->SetSymbol(wxPLOTSYMBOL_RECTANGLE, wxPLOTPEN_ACTIVE);
-    plotData->SetSymbol(wxPLOTSYMBOL_RECTANGLE, wxPLOTPEN_SELECTED);
-    p_plotCtrl->SetDrawSymbols(true);
-#else
-    wxBitmap rectangle = plotData->CreateSymbol(wxPLOTSYMBOL_RECTANGLE);
-    plotData->SetSymbol(rectangle, wxPLOTPEN_NORMAL);
-    plotData->SetSymbol(rectangle, wxPLOTPEN_ACTIVE);
-    plotData->SetSymbol(rectangle, wxPLOTPEN_SELECTED);
-    p_plotCtrl->SetDrawSymbols(true);
-#endif
-    p_plotCtrl->AddCurve(plotData, true, true);
+    { int curve = p_plotCtrl->addCurve(a, b, count, "TST", 0, XYPlotCanvas::LINE_MARKERS);
+      p_plotCtrl->setCurveMarker(curve, 1); }
+    delete[] a;
+    delete[] b;
 
     // ... next, CVT
     col_data = hasError() ? 5 : 3;
@@ -141,24 +126,10 @@ void ReactionConstantPlotPropertyPanel::refresh()
       c[i] = table->value(i, col_1000_T);
       d[i] = table->value(i, col_data);
     }
-    plotData = new wxPlotData(c,d,count);
-    plotData->SetFilename("CVT");
-    plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(1));
-    plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(1));
-    plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(1));
-#if 000
-    plotData->SetSymbol(wxPLOTSYMBOL_CROSS, wxPLOTPEN_NORMAL);
-    plotData->SetSymbol(wxPLOTSYMBOL_CROSS, wxPLOTPEN_ACTIVE);
-    plotData->SetSymbol(wxPLOTSYMBOL_CROSS, wxPLOTPEN_SELECTED);
-    p_plotCtrl->SetDrawSymbols(true);
-#else
-    wxBitmap cross = plotData->CreateSymbol(wxPLOTSYMBOL_CROSS);
-    plotData->SetSymbol(cross, wxPLOTPEN_NORMAL);
-    plotData->SetSymbol(cross, wxPLOTPEN_ACTIVE);
-    plotData->SetSymbol(cross, wxPLOTPEN_SELECTED);
-    p_plotCtrl->SetDrawSymbols(true);
-#endif
-    p_plotCtrl->AddCurve(plotData, true, true);
+    { int curve = p_plotCtrl->addCurve(c, d, count, "CVT", 1, XYPlotCanvas::LINE_MARKERS);
+      p_plotCtrl->setCurveMarker(curve, 2); }
+    delete[] c;
+    delete[] d;
   } else {
     INTERNALEXCEPTION(table, "Incorrect cast to a table");
   }
@@ -214,12 +185,9 @@ void ReactionConstantPlotPropertyPanel::initialize()
   }
                
   // create our wxPlotCtrl and add to sizer
-  p_plotCtrl = new ewxPlotCtrl(this);
+  p_plotCtrl = new XYPlotCanvas(this);
   p_plotCtrl->SetMinSize(wxSize(300,200));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
-  p_plotCtrl->SetShowKey(true);
-  p_plotCtrl->SetKeyPosition(wxPoint(0,0));
+  p_plotCtrl->setShowKey(true);
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   GetSizer()->Fit(this);

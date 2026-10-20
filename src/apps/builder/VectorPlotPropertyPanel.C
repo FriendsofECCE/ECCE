@@ -10,7 +10,7 @@
 
 #include "dsm/IPropCalculation.H"
 
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "VectorPlotPropertyPanel.H"
@@ -73,29 +73,16 @@ bool VectorPlotPropertyPanel::Create(IPropCalculation *calculation,
   }
 
   // create our wxPlotCtrl and add to sizer
-  p_plotCtrl = new ewxPlotCtrl(this, wxID_ANY);
+  p_plotCtrl = new XYPlotCanvas(this);
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
-  // wxPlotData expects either an ascii file or a pointer to an array
   vector<double> &vectorData = propVector->values();
-  double *arrayData = new double[vectorData.size()];
-  copy(vectorData.begin(), vectorData.end(), arrayData);
-  
-  // We also need our "step" data
-  double *stepData = new double[vectorData.size()];
-  for (size_t i = 0; i < vectorData.size(); i++) {
-    stepData[i] = i+1;
-  }
+  vector<double> stepData(vectorData.size());
+  for (size_t i = 0; i < vectorData.size(); i++) stepData[i] = i+1;
+  p_plotCtrl->addCurve(stepData, vectorData);
 
-  // create our curve and add to plot control
-  wxPlotData plotData(stepData, arrayData, vectorData.size());
-  p_plotCtrl->AddCurve(plotData, true, true);
-
-  // add and show the axes labels
-  p_plotCtrl->SetXAxisLabel(propVector->rowLabel());
-  p_plotCtrl->SetYAxisLabel(unitLabel(propVector->units()));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
+  p_plotCtrl->setXAxisLabel(propVector->rowLabel());
+  p_plotCtrl->setYAxisLabel(unitLabel(propVector->units()));
 
   GetSizer()->Fit(this);
   GetSizer()->SetSizeHints(this);

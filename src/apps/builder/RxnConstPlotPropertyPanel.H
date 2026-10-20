@@ -4,7 +4,7 @@
 #include "PropertyPanel.H"
 
 class ewxChoice;
-class ewxPlotCtrl;
+class XYPlotCanvas;
 
 class ReactionConstantPlotPropertyPanel : public PropertyPanel
 {
@@ -35,7 +35,7 @@ class ReactionConstantPlotPropertyPanel : public PropertyPanel
     virtual bool hasError();
 
   private:
-    ewxPlotCtrl *p_plotCtrl;
+    XYPlotCanvas *p_plotCtrl;
 };
 
 #endif // REACTIONCONSTANTPLOTPROPERTYPANEL_H_

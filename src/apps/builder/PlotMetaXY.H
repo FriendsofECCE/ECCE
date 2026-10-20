@@ -6,7 +6,7 @@
 
 #include "PropertyPanel.H"
 
-class ewxPlotCtrl;
+class XYPlotCanvas;
 class ewxTextCtrl;
 class wxString;
 
@@ -41,7 +41,7 @@ class PlotMetaXY : public PropertyPanel
     virtual void refreshTemp(wxCommandEvent &event);
 
   private:
-    ewxPlotCtrl *p_plotCtrl;
+    XYPlotCanvas *p_plotCtrl;
     wxString p_dimension;
     vector<wxString> p_dataNames;
     ewxTextCtrl *p_xminCtrl;

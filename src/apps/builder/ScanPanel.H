@@ -7,7 +7,7 @@
 
 class wxChoice;
 class wxGrid;
-class wxPlotCtrl;
+class XYPlotCanvas;
 
 /**
  * Relaxed scan (#393): energy of each optimised scan point, relative to the
@@ -51,7 +51,7 @@ class ScanPanel : public PropertyPanel
       std::vector<double> p_hartree;
       std::string p_coordUnit;
       wxChoice *p_unit;
-      wxPlotCtrl *p_plot;
+      XYPlotCanvas *p_plot;
       wxGrid *p_grid;
 };
 

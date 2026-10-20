@@ -14,7 +14,7 @@
 
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxIntClientData.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "PlotAnyPropertyPanel.H"
@@ -96,12 +96,10 @@ void PlotAnyPropertyPanel::initialize()
   }
                
   // create our wxPlotCtrl and add to sizer
-  p_plotCtrl = new ewxPlotCtrl(this);
+  p_plotCtrl = new XYPlotCanvas(this);
   // Small minimum: in a short pane the plot must give way before the
   // axis rows below it are clipped.
   p_plotCtrl->SetMinSize(wxSize(200,90));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   // create the axis choice boxes
@@ -203,7 +201,7 @@ void PlotAnyPropertyPanel::OnAxisChoice(wxCommandEvent &event)
 void PlotAnyPropertyPanel::doAxisChoice()
 {
   // clear any plot(s) that might exist
-  p_plotCtrl->DeleteCurve(-1, true); // -1 deletes all, true emits event
+  p_plotCtrl->clearCurves();
 
   // now we need to get the data to be plotted
   // its a problem if the data we're trying to plot does not contain the same
@@ -249,8 +247,9 @@ void PlotAnyPropertyPanel::doAxisChoice()
   }
 
   // create our curve and add to plot control
-  wxPlotData *plotData = new wxPlotData(x, y, size);
-  p_plotCtrl->AddCurve(plotData, true, true);
+  p_plotCtrl->addCurve(x, y, size);
+  delete[] x;
+  delete[] y;
 
   // add and show the axes labels
   refreshAxisLabel(p_xaxis);
@@ -261,8 +260,7 @@ void PlotAnyPropertyPanel::doAxisChoice()
   if (getSelectionSize(p_xaxis) > 0) {
     title += " vs " + p_xaxis->GetStringSelection();
   }
-  p_plotCtrl->SetPlotTitle(title);
-  p_plotCtrl->SetShowPlotTitle(true);
+  p_plotCtrl->setTitle(title);
 }
 
 
@@ -312,9 +310,9 @@ void PlotAnyPropertyPanel::refreshAxisLabel(ewxChoice *axis)
   }
 
   if (axis == p_xaxis) {
-    p_plotCtrl->SetXAxisLabel(label);
+    p_plotCtrl->setXAxisLabel(label);
   } else if (axis == p_yaxis) {
-    p_plotCtrl->SetYAxisLabel(label);
+    p_plotCtrl->setYAxisLabel(label);
   }
 }
 

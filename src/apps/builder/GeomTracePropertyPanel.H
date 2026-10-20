@@ -13,7 +13,7 @@
 #include "VizPropertyPanel.H"
 
 class PlaybackControl;
-class wxPlotCtrl;
+class XYPlotCanvas;
 
 
 class GeomTracePropertyPanel : public VizPropertyPanel,
@@ -58,7 +58,7 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     void OnToolClick(wxCommandEvent& event);
     void OnPlaybackTick(wxCommandEvent& event);
     void OnPlaybackLoop(wxCommandEvent& event);
-    void OnPointClick(wxPlotCtrlEvent& event);
+    void OnPointClick(int curve, int index);
     void OnValidation(wxCommandEvent& event);
 
     virtual void processStep(int step);
@@ -69,7 +69,7 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     virtual void receiveFocus();
     virtual void loseFocus();
 
-    wxPlotCtrl      *p_plotCtrl;
+    XYPlotCanvas     *p_plotCtrl;
     PlaybackControl *p_playback;
 
     int p_delay;

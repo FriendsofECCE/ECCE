@@ -2,12 +2,9 @@
 #define MOPANEL__H
 
 #include "wxgui/TearableContentProvider.H"
-//  Self-contained, so this header can be included from anywhere.  It
-//  used to rely on whatever MoPanel.C happened to include ahead of it
-//  -- wxPoint2DDoubleCmp, SliderCombo and wxPlotCtrlEvent all come
-//  from these two -- which meant no other translation unit could
-//  include it at all.
-#include "wxgui/ewxPlotCtrl.H"
+//  Self-contained, so this header can be included from anywhere.
+#include <map>
+#include <utility>
 #include "wxgui/SliderCombo.H"
 
 #include "MoGUI.H"
@@ -19,7 +16,7 @@ class ewxStaticText;
 class ewxTextCtrl;
 class Command;
 
-class ewxPlotCtrl;
+class XYPlotCanvas;
 class GridDlg;
 class MoCoeffs;
 class MoAoBasis;
@@ -152,7 +149,7 @@ class MoPanel : public MoGUI,
      void OnComputeButtonClick( wxCommandEvent& event );
      void OnViewCoeffsClick( wxCommandEvent& event );
      void OnMoSelection( wxGridEvent& event );
-     void OnGraphSelection(wxPlotCtrlEvent& event);
+     void OnGraphSelection(bool regular, int curve, int index);
      void OnEndSliderMotion(wxScrollEvent& event);
      void OnSliderTextEnter(wxCommandEvent& event);
 
@@ -248,14 +245,14 @@ class MoPanel : public MoGUI,
       int p_selectedRow;
 
       /* The first plot; all symmetries are on same x value. */
-      ewxPlotCtrl *p_plotReg;
+      XYPlotCanvas *p_plotReg;
 
       /* The second plot; all values grouped by symmetries. */
-      ewxPlotCtrl *p_plotSym;
+      XYPlotCanvas *p_plotSym;
 
       /* map from plot selections to table rows */
-      map<wxPoint2DDouble,int,wxPoint2DDoubleCmp> p_pointToRowReg;
-      map<wxPoint2DDouble,int,wxPoint2DDoubleCmp> p_pointToRowSym;
+      std::map<std::pair<int,int>,int> p_pointToRowReg;
+      std::map<std::pair<int,int>,int> p_pointToRowSym;
 
 };
 

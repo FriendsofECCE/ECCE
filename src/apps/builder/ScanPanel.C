@@ -14,7 +14,7 @@
 #include "tdat/PropVector.H"
 #include "tdat/TProperty.H"
 #include "dsm/IPropCalculation.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 
 #include "ScanPanel.H"
 
@@ -90,7 +90,7 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0);
   GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
-  p_plot = new ewxPlotCtrl(this, wxID_ANY);
+  p_plot = new XYPlotCanvas(this);
   p_plot->SetMinSize(wxSize(300, 180));
   GetSizer()->Add(p_plot, 3, wxEXPAND);
 
@@ -127,21 +127,15 @@ void ScanPanel::fill()
   const wxString unit = kcal ? "kcal/mol" : "kJ/mol";
   const double lo = n ? *std::min_element(p_hartree.begin(), p_hartree.end()) : 0;
 
-  p_plot->DeleteCurve(-1, false);
+  p_plot->clearCurves();
   if (n) {
-    double *x = new double[n], *y = new double[n];
-    for (size_t i = 0; i < n; i++) {
-      x[i] = p_coord[i];
-      y[i] = (p_hartree[i] - lo) * factor(kcal);
-    }
-    wxPlotData data(x, y, n);
-    p_plot->AddCurve(data, true, true);
+    std::vector<double> y(n);
+    for (size_t i = 0; i < n; i++) y[i] = (p_hartree[i] - lo) * factor(kcal);
+    p_plot->addCurve(p_coord, y);
   }
-  p_plot->SetXAxisLabel(p_coordUnit == "degree" ? "Scanned coordinate (degrees)"
+  p_plot->setXAxisLabel(p_coordUnit == "degree" ? "Scanned coordinate (degrees)"
                                                  : "Scanned coordinate (Angstrom)");
-  p_plot->SetYAxisLabel("Relative energy (" + unit + ")");
-  p_plot->SetShowXAxisLabel(true);
-  p_plot->SetShowYAxisLabel(true);
+  p_plot->setYAxisLabel("Relative energy (" + unit + ")");
 
   if (p_grid->GetNumberRows()) p_grid->DeleteRows(0, p_grid->GetNumberRows());
   p_grid->AppendRows((int)n);
