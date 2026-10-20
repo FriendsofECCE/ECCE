@@ -1086,10 +1086,10 @@
     <SortPriority>68</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>calcecceqm.xpm</Normal>
-      <Selected>calcecceqm.xpm</Selected>
-      <Expanded>calcecceqm.xpm</Expanded>
-      <SelectedExpanded>calcecceqm.xpm</SelectedExpanded>
+      <Normal>svg/candidates/codes/ecceqm.svg</Normal>
+      <Selected>svg/candidates/codes/ecceqm.svg</Selected>
+      <Expanded>svg/candidates/codes/ecceqm.svg</Expanded>
+      <SelectedExpanded>svg/candidates/codes/ecceqm.svg</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
