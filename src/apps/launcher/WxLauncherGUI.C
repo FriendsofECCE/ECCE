@@ -254,7 +254,7 @@ void WxLauncherGUI::CreateControls()
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemPanel5, wxID_STATIC, _("Machine:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
     itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL, 3);
 
-    ewxStaticText* itemStaticText8 = new ewxStaticText( itemPanel5, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(7, -1), 0 );
+    ewxStaticText* itemStaticText8 = new ewxStaticText( itemPanel5, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(10, -1), 0 );
     itemBoxSizer6->Add(itemStaticText8, 0, wxALIGN_CENTER_VERTICAL, 5);
 
     ewxPanel* itemPanel9 = new ewxPanel( itemPanel5, ID_PANEL_WXLAUNCHER_MACHINE, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
@@ -284,8 +284,8 @@ void WxLauncherGUI::CreateControls()
     itemPanel14->Show(false);
     itemBoxSizer4->Add(itemPanel14, 0, wxGROW|wxALL, 3);
 
-    wxFlexGridSizer* itemFlexGridSizer15 = new wxFlexGridSizer(1, 2, 0, 3);
-    itemFlexGridSizer15->AddGrowableCol(1);
+    wxFlexGridSizer* itemFlexGridSizer15 = new wxFlexGridSizer(2, 1, 0, 3);
+    itemFlexGridSizer15->AddGrowableCol(0);
     itemPanel14->SetSizer(itemFlexGridSizer15);
 
     ewxPanel* itemPanel16 = new ewxPanel( itemPanel14, ID_PANEL_WXLAUNCHER_WKSTNPROCS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
@@ -311,14 +311,14 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer17->Add(itemWxParameterEdit20, 0, wxALIGN_LEFT|wxALIGN_BOTTOM, 3);
 
     ewxPanel* itemPanel21 = new ewxPanel( itemPanel14, ID_PANEL_WXLAUNCHER_PRIORITY, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemFlexGridSizer15->Add(itemPanel21, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemFlexGridSizer15->Add(itemPanel21, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer22 = new wxFlexGridSizer(1, 3, 0, 3);
     itemFlexGridSizer22->AddGrowableCol(2);
     itemPanel21->SetSizer(itemFlexGridSizer22);
 
-    ewxStaticText* itemStaticText23 = new ewxStaticText( itemPanel21, wxID_STATIC, _("Priority:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
-    itemFlexGridSizer22->Add(itemStaticText23, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 3);
+    ewxStaticText* itemStaticText23 = new ewxStaticText( itemPanel21, wxID_STATIC, _("Priority:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
+    itemFlexGridSizer22->Add(itemStaticText23, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText24 = new ewxStaticText( itemPanel21, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(7, -1), 0 );
     itemFlexGridSizer22->Add(itemStaticText24, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
@@ -406,10 +406,8 @@ void WxLauncherGUI::CreateControls()
     ewxPanel* itemPanel52 = new ewxPanel( itemPanel26, ID_PANEL_WXLAUNCHER_BATCH2, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemFlexGridSizer27->Add(itemPanel52, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
 
-    wxFlexGridSizer* itemFlexGridSizer53 = new wxFlexGridSizer(1, 3, 0, 3);
-    itemFlexGridSizer53->AddGrowableRow(1);
+    wxFlexGridSizer* itemFlexGridSizer53 = new wxFlexGridSizer(3, 1, 0, 3);
     itemFlexGridSizer53->AddGrowableCol(0);
-    itemFlexGridSizer53->AddGrowableCol(1);
     itemPanel52->SetSizer(itemFlexGridSizer53);
 
     ewxPanel* itemPanel54 = new ewxPanel( itemPanel52, ID_PANEL_WXLAUNCHER_BATCHPROCS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
@@ -462,9 +460,9 @@ void WxLauncherGUI::CreateControls()
     itemPanel35->SetSizer(itemFlexGridSizer36);
 
     wxBoxSizer* itemBoxSizer37 = new wxBoxSizer(wxHORIZONTAL);
-    itemFlexGridSizer36->Add(itemBoxSizer37, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
+    itemFlexGridSizer36->Add(itemBoxSizer37, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
-    ewxStaticText* itemStaticText38 = new ewxStaticText( itemPanel35, ID_STATIC_WXLAUNCHER_QUEUELABELRIGHT, _("Queue:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
+    ewxStaticText* itemStaticText38 = new ewxStaticText( itemPanel35, ID_STATIC_WXLAUNCHER_QUEUELABELRIGHT, _("Queue:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
     itemBoxSizer37->Add(itemStaticText38, 0, wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText39 = new ewxStaticText( itemPanel35, ID_STATIC_WXLAUNCHER_QUEUELABELLEFT, _("Queue:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
@@ -485,8 +483,8 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer66->AddGrowableCol(2);
     itemPanel65->SetSizer(itemFlexGridSizer66);
 
-    ewxStaticText* itemStaticText67 = new ewxStaticText( itemPanel65, wxID_STATIC, _("Nodes:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
-    itemFlexGridSizer66->Add(itemStaticText67, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 3);
+    ewxStaticText* itemStaticText67 = new ewxStaticText( itemPanel65, wxID_STATIC, _("Nodes:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
+    itemFlexGridSizer66->Add(itemStaticText67, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText68 = new ewxStaticText( itemPanel65, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(7, -1), 0 );
     itemFlexGridSizer66->Add(itemStaticText68, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
@@ -505,9 +503,8 @@ void WxLauncherGUI::CreateControls()
     ewxPanel* itemPanel70 = new ewxPanel( itemPanel26, ID_PANEL_WXLAUNCHER_BATCH3, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemFlexGridSizer27->Add(itemPanel70, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
 
-    wxFlexGridSizer* itemFlexGridSizer71 = new wxFlexGridSizer(1, 2, 3, 3);
+    wxFlexGridSizer* itemFlexGridSizer71 = new wxFlexGridSizer(2, 1, 3, 3);
     itemFlexGridSizer71->AddGrowableCol(0);
-    itemFlexGridSizer71->AddGrowableCol(1);
     itemPanel70->SetSizer(itemFlexGridSizer71);
 
     ewxPanel* itemPanel72 = new ewxPanel( itemPanel70, ID_PANEL_WXLAUNCHER_MINSCRATCH, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
@@ -539,8 +536,8 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer78->AddGrowableCol(2);
     itemPanel77->SetSizer(itemFlexGridSizer78);
 
-    ewxStaticText* itemStaticText79 = new ewxStaticText( itemPanel77, wxID_STATIC, _("Memory Limit:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
-    itemFlexGridSizer78->Add(itemStaticText79, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 3);
+    ewxStaticText* itemStaticText79 = new ewxStaticText( itemPanel77, wxID_STATIC, _("Memory Limit:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
+    itemFlexGridSizer78->Add(itemStaticText79, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText80 = new ewxStaticText( itemPanel77, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(7, -1), 0 );
     itemFlexGridSizer78->Add(itemStaticText80, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
@@ -569,7 +566,7 @@ void WxLauncherGUI::CreateControls()
     itemBoxSizer82->Add(itemStaticLine85, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxPanel* itemPanel86 = new ewxPanel( itemPanel3, ID_PANEL_WXLAUNCHER_6, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemBoxSizer4->Add(itemPanel86, 0, wxGROW, 3);
+    itemBoxSizer4->Add(itemPanel86, 0, wxGROW|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer87 = new wxFlexGridSizer(3, 1, 0, 3);
     itemFlexGridSizer87->AddGrowableRow(0);
@@ -578,8 +575,8 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer87->AddGrowableCol(0);
     itemPanel86->SetSizer(itemFlexGridSizer87);
 
-    wxFlexGridSizer* itemFlexGridSizer88 = new wxFlexGridSizer(1, 2, 0, 3);
-    itemFlexGridSizer88->AddGrowableCol(1);
+    wxFlexGridSizer* itemFlexGridSizer88 = new wxFlexGridSizer(2, 1, 0, 3);
+    itemFlexGridSizer88->AddGrowableCol(0);
     itemFlexGridSizer87->Add(itemFlexGridSizer88, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
 
     ewxPanel* itemPanel89 = new ewxPanel( itemPanel86, ID_PANEL_WXLAUNCHER_USERNAME, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
@@ -601,14 +598,14 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer90->Add(itemTextCtrl93, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxPanel* itemPanel94 = new ewxPanel( itemPanel86, ID_PANEL_WXLAUNCHER_PASSWORD1, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemFlexGridSizer88->Add(itemPanel94, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemFlexGridSizer88->Add(itemPanel94, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer95 = new wxFlexGridSizer(1, 3, 0, 3);
     itemFlexGridSizer95->AddGrowableCol(2);
     itemPanel94->SetSizer(itemFlexGridSizer95);
 
-    ewxStaticText* itemStaticText96 = new ewxStaticText( itemPanel94, ID_STATIC_WXLAUNCHER_PASSWORD1LABEL, _("Password:"), wxDefaultPosition, wxSize(90, -1), wxALIGN_RIGHT );
-    itemFlexGridSizer95->Add(itemStaticText96, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 3);
+    ewxStaticText* itemStaticText96 = new ewxStaticText( itemPanel94, ID_STATIC_WXLAUNCHER_PASSWORD1LABEL, _("Password:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
+    itemFlexGridSizer95->Add(itemStaticText96, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText97 = new ewxStaticText( itemPanel94, wxID_STATIC, _("*"), wxDefaultPosition, wxSize(7, -1), 0 );
     itemStaticText97->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
