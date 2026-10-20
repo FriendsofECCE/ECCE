@@ -1,4 +1,5 @@
 
+#include <cmath>
 #include <iostream>
   using namespace std;
 
@@ -43,6 +44,14 @@ using namespace ecce;
 
 IMPLEMENT_DYNAMIC_CLASS( PBC, PBCGUI )
 const wxWindowID PBC::ID_COMBO_SPACE_GROUP = wxNewId();
+
+//  "10" and "5.43", not "10.000000": a double-click selects the whole
+//  number, and rounding noise (2.7e-15) shows as 0.
+static wxString cellText(double v)
+{
+   if (std::fabs(v) < 1.0e-9) v = 0.0;
+   return wxString::Format("%.6g", v);
+}
 
 /**
  This panel introduces all kinds of interaction problems because it has
@@ -138,8 +147,15 @@ bool PBC::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxS
    //vector<string> selections = PointGroup::getGroups();
    vector<string> groups = PointGroup::getSpaceGroups();
 
-   for (size_t i=0; i<groups.size(); i++ )
-      iface->AddSelection(groups[i]);
+   //  The file is in International Tables order, 1 to 230: each name gets
+   //  its number and crystal system, so a group can be found by either.
+   for (size_t i=0; i<groups.size(); i++ ) {
+      const int n = (int)i + 1;
+      const char *sys = n <= 2 ? "triclinic" : n <= 15 ? "monoclinic"
+                      : n <= 74 ? "orthorhombic" : n <= 142 ? "tetragonal"
+                      : n <= 167 ? "trigonal" : n <= 194 ? "hexagonal" : "cubic";
+      iface->AddSelection(groups[i] + "   (" + std::to_string(n) + ", " + sys + ")");
+   }
 
 
    p_symSizer->Insert( 1, cc, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2 );
@@ -189,6 +205,21 @@ bool PBC::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxS
   txt->SetValidator(validator);
   txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A3Z);
   txt->SetValidator(validator);
+  //  Clicking into a cell field selects its value, so typing replaces it.
+  const wxWindowID cellIds[] = { ID_TEXTCTRL_PBC_A, ID_TEXTCTRL_PBC_B,
+     ID_TEXTCTRL_PBC_C, ID_TEXTCTRL_PBC_ALPHA, ID_TEXTCTRL_PBC_BETA,
+     ID_TEXTCTRL_PBC_GAMMA, ID_TEXTCTRL_PBC_A1X, ID_TEXTCTRL_PBC_A1Y,
+     ID_TEXTCTRL_PBC_A1Z, ID_TEXTCTRL_PBC_A2X, ID_TEXTCTRL_PBC_A2Y,
+     ID_TEXTCTRL_PBC_A2Z, ID_TEXTCTRL_PBC_A3X, ID_TEXTCTRL_PBC_A3Y,
+     ID_TEXTCTRL_PBC_A3Z };
+  for (wxWindowID id : cellIds) {
+     if (wxTextCtrl *t = dynamic_cast<wxTextCtrl*>(FindWindow(id))) {
+        t->Bind(wxEVT_SET_FOCUS, [t](wxFocusEvent& e) {
+           t->CallAfter([t]() { t->SelectAll(); });
+           e.Skip();
+        });
+     }
+  }
 
   /*
   ewxSpinCtrl *spin;
@@ -506,17 +537,17 @@ void PBC::refresh()
          lattice->getLattice(a,b,c,alpha,beta,gamma);
          ewxTextCtrl *txt;
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A);
-         txt->SetValue(wxString::Format (_T("%lf"), a));
+         txt->SetValue(cellText(a));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_B);
-         txt->SetValue(wxString::Format (_T("%lf"), b));
+         txt->SetValue(cellText(b));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_C);
-         txt->SetValue(wxString::Format (_T("%lf"), c));
+         txt->SetValue(cellText(c));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_ALPHA);
-         txt->SetValue(wxString::Format (_T("%lf"), alpha));
+         txt->SetValue(cellText(alpha));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_BETA);
-         txt->SetValue(wxString::Format (_T("%lf"), beta));
+         txt->SetValue(cellText(beta));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_GAMMA);
-         txt->SetValue(wxString::Format (_T("%lf"), gamma));
+         txt->SetValue(cellText(gamma));
 
          vector<MPoint> *vecs = lattice->toVectors();
          MPoint a1 = (*vecs)[0];
@@ -524,25 +555,25 @@ void PBC::refresh()
          MPoint a3 = (*vecs)[2];
 
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A1X);
-         txt->SetValue(wxString::Format (_T("%lf"), a1.x()));
+         txt->SetValue(cellText(a1.x()));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A1Y);
-         txt->SetValue(wxString::Format (_T("%lf"), a1.y()));
+         txt->SetValue(cellText(a1.y()));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A1Z);
-         txt->SetValue(wxString::Format (_T("%lf"), a1.z()));
+         txt->SetValue(cellText(a1.z()));
 
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A2X);
-         txt->SetValue(wxString::Format (_T("%lf"), a2.x()));
+         txt->SetValue(cellText(a2.x()));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A2Y);
-         txt->SetValue(wxString::Format (_T("%lf"), a2.y()));
+         txt->SetValue(cellText(a2.y()));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A2Z);
-         txt->SetValue(wxString::Format (_T("%lf"), a2.z()));
+         txt->SetValue(cellText(a2.z()));
 
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A3X);
-         txt->SetValue(wxString::Format (_T("%lf"), a3.x()));
+         txt->SetValue(cellText(a3.x()));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A3Y);
-         txt->SetValue(wxString::Format (_T("%lf"), a3.y()));
+         txt->SetValue(cellText(a3.y()));
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A3Z);
-         txt->SetValue(wxString::Format (_T("%lf"), a3.z()));
+         txt->SetValue(cellText(a3.z()));
 
          delete vecs;
 
@@ -983,6 +1014,8 @@ void PBC::OnPbcGenerateClick( wxCommandEvent& event )
 {
    wxComboCtrl *cc = (wxComboCtrl*)FindWindow(ID_COMBO_SPACE_GROUP);
    string sym = cc->GetValue().ToStdString();
+   //  A picked entry carries "(number, system)" after the name.
+   sym = sym.substr(0, sym.find_first_of(" \t("));
    if (!PointGroup::isSpaceGroup(sym)) {
       wxLogWarning("You must specify a valid space group.");
    } else {
