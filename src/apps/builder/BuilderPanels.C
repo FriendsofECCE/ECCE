@@ -1143,10 +1143,12 @@ void Builder::sizeIndexPane()
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
   if (!pane.IsOk()) return;
-  //  A few rows, then it scrolls: the panel below needs the rest for its table.
   //  Its share stays minimal every time, also over a saved layout that gave
   //  the list half the column (the open panel was squashed under it).
-  const int height = p_index->preferredHeight(3);
+  //  All its rows when they fit; a long list stops at 40 % of the window
+  //  and scrolls, so a panel with a table or plot keeps its room.
+  const int cap = std::max(150, GetClientSize().y * 2 / 5);
+  const int height = std::min(p_index->preferredHeight(1000), cap);
   p_indexSized = true;
   if (pane.min_size.y == height && pane.dock_proportion == 1) return;
   pane.dock_proportion = 1;
