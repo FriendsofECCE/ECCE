@@ -102,6 +102,12 @@ void MDEdBase::constructor()
    // Save sits in the button row, just before the launch button.
    wxWindow *launch = FindWindow(ID_BUTTON_LAUNCH);
    p_feedback->addSaveButton(this, launch->GetContainingSizer(), launch);
+   // The row spreads its buttons across the width: Save needs its own gap.
+   {
+      wxSizer *row = launch->GetContainingSizer();
+      int at = row->GetChildren().IndexOf(row->GetItem(launch));
+      if (at != wxNOT_FOUND) row->Insert(at, 0, 0, 1);
+   }
 
    EDSIFactory::addAuthEventListener(this);
 

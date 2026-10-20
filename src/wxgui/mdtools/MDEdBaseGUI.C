@@ -156,29 +156,29 @@ void MDEdBaseGUI::CreateControls()
     itemBoxSizer12->Add(p_notebook, 1, wxGROW|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer14 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer10->Add(itemBoxSizer14, 0, wxALIGN_LEFT|wxALL, 0);
+    itemBoxSizer10->Add(itemBoxSizer14, 0, wxGROW|wxALL, 0);
 
     itemBoxSizer14->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxButton* itemButton16 = new ewxButton( itemFrame1, ID_BUTTON_BUILDER, _("Builder..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemButton16, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 3);
 
-    itemBoxSizer14->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    itemBoxSizer14->AddStretchSpacer(1);
 
     ewxButton* itemButton18 = new ewxButton( itemFrame1, ID_BUTTON_FINALEDIT, _("Final Edit..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemButton18, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 3);
 
-    itemBoxSizer14->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    itemBoxSizer14->AddStretchSpacer(1);
 
     ewxButton* itemButton20 = new ewxButton( itemFrame1, ID_BUTTON_LAUNCH, _("Launch..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemButton20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    itemBoxSizer14->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    itemBoxSizer14->AddStretchSpacer(1);
 
     ewxButton* itemButton22 = new ewxButton( itemFrame1, ID_BUTTON_RESETW, _("Reset Panel"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemButton22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    itemBoxSizer14->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    itemBoxSizer14->AddStretchSpacer(1);
 
     ewxButton* itemButton24 = new ewxButton( itemFrame1, ID_BUTTON_RESETA, _("Reset All"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer14->Add(itemButton24, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
