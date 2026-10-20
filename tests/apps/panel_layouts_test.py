@@ -38,7 +38,7 @@ LAYOUTS = [("classic", "classic"), ("stacked", "stacked"),
            ("accordion", "accordion"), ("detail", "detail"),
            ("default", "detail")]
 SCREEN = os.environ.get("ECCE_LAYOUT_SCREEN", "1366x764x24")
-MIN_ROWS = 2          # MO table rows in the list + detail layouts: the MOs panel keeps ~250 px of controls, so a laptop shows two
+MIN_ROWS = 3          # MO table rows in the list + detail layouts at 1366x764: four since #379, one spare for fonts
 PANEL = "MOs"
 MIN_VIEWER = 200      # px, each way
 MIN_PANEL = 80        # px high: the MOs pane's own minimum

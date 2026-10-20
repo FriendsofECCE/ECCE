@@ -70,3 +70,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Windows MSI: install time goes by the file and the component; Strawberry keeps core modules in vendor\lib (#257)](windows-msi-time-goes-by-file.md)
 - [Preferences > Advanced: environment switches applied by Ecce::initialize; an explicit variable wins (#307)](preferences-advanced-switches.md)
 - [subscribe() skips the process's own messages by default (MQTT No Local); a topic the same app publishes needs filterSelf=false](subscribe-skips-own-messages.md)
+- [The app suite tests the INSTALLED ECCE (/opt/ecce), not build-cmake (#385)](app-tests-run-the-installed-tree.md)
