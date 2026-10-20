@@ -1041,68 +1041,15 @@ void Builder::accordionNormalize(wxWindow *keepOpen)
 }
 
 
-//  The header and the list at the top of the list + detail layout.
+//  The list at the top of the list + detail layout.
 void Builder::updatePropertyIndex()
 {
   if (!p_index || !p_calculation || p_panelMode != PANELS_DETAIL) {
     return;
   }
-  wxString title;
-  if (dynamic_cast<DefaultCalculation*>(p_calculation)) {
-    title = "New structure";
-  } else {
-    string url = p_calculation->getURL().toString();
-    while (!url.empty() && url[url.size() - 1] == '/') {
-      url.erase(url.size() - 1);
-    }
-    const size_t cut = url.find_last_of('/');
-    title = wxString::FromUTF8(cut == string::npos ? url.c_str()
-                                                   : url.c_str() + cut + 1);
-  }
-
-  string app, theory;
-  TaskJob *job = dynamic_cast<TaskJob*>(p_calculation);
-  if (job) {
-    const JCode *code = job->application();
-    if (code) app = code->name();
-  }
-  ICalculation *calc = dynamic_cast<ICalculation*>(p_calculation);
-  if (calc) {
-    TTheory *t = calc->theory();
-    if (t) {
-      theory = t->toConciseString();
-      delete t;
-    }
-    const string run = calc->runtype().name();
-    if (!run.empty()) {
-      theory += (theory.empty() ? "" : " / ") + run;
-    }
-  }
-  wxString codeTheory = wxString::FromUTF8(app.c_str());
-  if (!app.empty() && !theory.empty()) codeTheory += " - ";
-  codeTheory += wxString::FromUTF8(theory.c_str());
-
-  wxString energy;
-  //  A structure file (PDB, XYZ, CAR, cube, ...) and a new structure are
-  //  AbstractPropCalculations, whose getProperty() throws: they have no
-  //  properties, so they get no energy line.
-  const bool props = !dynamic_cast<AbstractPropCalculation*>(p_calculation);
-  // A semiempirical code (MOPAC) reports its heat of formation, which it
-  // also publishes as TE; it is not a total energy, so say what it is.
-  TProperty *hof = props ? p_calculation->getProperty("HFENERGY") : 0;
-  TProperty *te = props && !hof ? p_calculation->getProperty("TE") : 0;
-  if (hof) {
-    const string units = hof->units() == "NA" ? "" : unitLabel(hof->units());
-    energy = wxString::Format("Heat of formation %s %s",
-                              valueLabel(hof->scalarize(), 6).c_str(),
-                              units.c_str());
-  } else if (te) {
-    const string units = te->units() == "NA" ? "" : unitLabel(te->units());
-    energy = wxString::Format("Total energy %s %s",
-                              valueLabel(te->scalarize(), 6).c_str(),
-                              units.c_str());
-  }
-  p_index->setHeader(title, codeTheory, energy);
+  // No header: the name, code, theory and energy are in Calculation
+  // Summary and Energies, and the list gets the room.
+  p_index->setHeader(wxEmptyString, wxEmptyString, wxEmptyString);
 
   PropertyPanelFactory &factory = PropertyPanelFactory::getPropertyPanelFactory();
   vector<std::pair<int, PropertyIndexPanel::Entry> > ordered;

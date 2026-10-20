@@ -56,6 +56,7 @@ void PropertyIndexPanel::setHeader(const wxString& title,
   p_title->SetLabel(title);
   p_codeTheory->SetLabel(codeTheory);
   p_energy->SetLabel(energy);
+  p_title->Show(!title.IsEmpty());
   p_codeTheory->Show(!codeTheory.IsEmpty());
   p_energy->Show(!energy.IsEmpty());
   Layout();
