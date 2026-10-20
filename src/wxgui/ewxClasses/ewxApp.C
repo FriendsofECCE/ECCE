@@ -12,6 +12,7 @@
 
 #include "wx/image.h"
 #include "wx/aboutdlg.h"
+#include "wx/generic/aboutdlgg.h"
 #include <fstream>
 #include <sstream>
 
@@ -319,9 +320,8 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       "endorses, the modifications made by the FriendsofECCE project.\n\n"
       "Report problems: Help > Report a Problem... collects the diagnostics "
       "for an issue at github.com/FriendsofECCE/ECCE.");
-#ifndef __WXGTK__
-   // The generic About box (Windows, macOS) does not wrap: break the lines
-   // so the dialog keeps a readable width.
+   // The generic About box does not wrap: break the lines so the dialog
+   // keeps a readable width.
    {
       wxString wrapped, line;
       for (const wxString& word : wxSplit(desc, ' ', '\0')) {
@@ -338,7 +338,6 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       }
       desc = wrapped + line;
    }
-#endif
    info.SetDescription(desc);
    info.SetCopyright(wxString::FromUTF8(
       "Copyright \xC2\xA9 1994-2012 Pacific Northwest National Laboratory, "
@@ -382,5 +381,6 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       if (top && top->GetIcon().IsOk()) info.SetIcon(top->GetIcon());
    }
 
-   wxAboutBox(info, GetTopWindow());
+   // The generic box everywhere: GTK's own centres every paragraph.
+   wxGenericAboutBox(info, GetTopWindow());
 }

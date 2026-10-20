@@ -52,7 +52,8 @@ itself. Nothing is attached by hand.
 
 ## 2. Prepare
 
-1. Double-click **Prepare**. Its editor opens.
+1. Select **Prepare** and click the **GROMACS MD Prepare** button below its
+   details in the Organizer. Its editor opens.
 2. Under **Structure**, choose **Source:** `Protein (pdb2gmx)`, and
    **Structure:** `PDB file...`. A file dialog opens. Choose `1l2y.pdb`:
    ECCE ships it in its examples folder, on Linux
@@ -76,7 +77,7 @@ makes up for the net charge of the protein, and salt.
 
 ## 3. Optimize
 
-1. Double-click **Optimize**.
+1. Select **Optimize** and click **GROMACS MD Optimize**.
 2. The **Inputs** page says `topology: ecceSession.gmxtop (from Prepare)`,
    `structure: ecceSession_ecceMdPrepare.gro (from Prepare)` and `Ready`.
 3. On the **Optimize** page, set the number of steps to `200`. The method
@@ -91,7 +92,8 @@ around the protein.
 
 ## 4. Equilibrate
 
-1. Double-click the first **Equilibrate**. The **Inputs** page now takes the structure from Optimize.
+1. Select the first **Equilibrate** and click **GROMACS MD Equilibrate**.
+   The **Inputs** page now takes the structure from Optimize.
 2. On the **Dynamics** page, set **Data Collection Steps:** to `1000`. The
    **Time Step** is `0.002` ps, so this is 2 ps. The **Temperature** tab
    holds the 300 K the system is brought to.
@@ -106,7 +108,8 @@ The run above holds the temperature only, so the box keeps its volume. A
 second Equilibrate lets the density settle at 1 bar before the production
 run.
 
-1. Double-click the second **Equilibrate**. Tick **Continue from the previous task's
+1. Select the second **Equilibrate** and click **GROMACS MD Equilibrate**.
+   Tick **Continue from the previous task's
    structure and velocities**, so that it carries on from the first
    Equilibrate instead of drawing new velocities.
 2. On the **Dynamics** page, set **Data Collection Steps:** to `1000`.
@@ -130,7 +133,7 @@ This is the longest task, about 15 seconds.
 
 ## 7. The results
 
-- Select a task and open the Builder (**Tools > Builder**): it shows the
+- Select a task and click **Builder**: it shows the
   structure the task ended with. The status line counts the atoms of the
   whole system, water included.
 - In the **Properties** panel of the Builder, choose **Geometry Step Plots**

@@ -24,7 +24,7 @@ and so on. ECCE never changes or deletes a project you already have, so you
 can edit and delete the examples freely. The project remembers which version
 of the example set it was made from.
 
-Select a calculation and choose **Tools > Viewer...** (Ctrl+R), then open
+Select a calculation and click **Viewer**, then open
 entries from the **Properties** menu.
 
 ## The five examples

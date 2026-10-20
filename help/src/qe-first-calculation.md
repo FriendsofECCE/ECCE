@@ -79,7 +79,8 @@ The calculation appears under the project, in the run state **Created**.
 
 ### 2. Build the crystal
 
-1. Select `si-scf` and press Ctrl+B. The Builder opens.
+1. Select `si-scf` and click **Builder** below its details in the
+   Organizer.
 2. In the **Build** panel on the right, click the element button `Si`. In
    the shape drop-down at the bottom of the panel, choose the first shape,
    the lone atom.
@@ -110,7 +111,7 @@ a crystal you set the cell before the atoms exist, so it makes no difference.
 
 ### 3. Set up the calculation
 
-1. Double-click `si-scf` in the Organizer. The Calculation Editor opens.
+1. Select `si-scf` in the Organizer and click **Editor**.
 
 The editor shows **Formula:** `Si8`, **Atoms:** 8 and **Symmetry:** `Fd-3m`.
 **Electrons:** shows 112, the electrons of eight silicon atoms with all their
@@ -165,7 +166,7 @@ The Organizer shows the run state: **Submitted**, **Running**, then
 
 ### 5. Look at the results
 
-1. Select `si-scf` and choose **Tools > Viewer...** (Ctrl+R).
+1. Select `si-scf` and click **Viewer**.
 2. In the **Properties** menu choose **Energies**.
 
 The **Total Energy** is `-45.678429` Hartree, which is `-91.35686` Ry. The
@@ -211,7 +212,7 @@ physics are more telling:
 
 1. In the Organizer, select `qe-tutorial` and choose **File > New Quantum
    ESPRESSO Calculation...**. Enter `h2o-relax`.
-2. Select it and press Ctrl+B. The Builder opens.
+2. Select it and click **Builder**.
 3. In the **Build** panel click `O`. The default shape of oxygen is Bent, with
    two open bonds. Click once in the 3D view.
 4. Click **Add H** in the **Build** panel (or choose **Build > Add

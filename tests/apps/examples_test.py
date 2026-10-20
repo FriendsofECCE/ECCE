@@ -196,11 +196,6 @@ def run(display, data, work):
             for calc in sorted(CALCS):
                 handle.write("summary file://%s\n" % os.path.join(
                     root, "Examples_2", calc))
-            # a double-click: a project stays with the tree, a calculation
-            # starts its tool
-            handle.write("activate file://%s\n" % os.path.join(root, "Examples_2"))
-            handle.write("activate file://%s\n" % os.path.join(
-                root, "Examples_2", sorted(CALCS)[0]))
         time.sleep(12)
         # VizThumbnail renders them in its own process
         end = time.time() + 90
@@ -226,12 +221,6 @@ def run(display, data, work):
         return fail(what, "CRASHED (%s)" % result.signalName, log)
     answers = re.findall(r"ECCE_TEST_ORGANIZER: examples: (.*)$", log, re.M)
     problems = []
-    act = re.findall(r"ECCE_TEST_ORGANIZER: activate \S+: (.*)$", log, re.M)
-    if len(act) != 2 or act[0] != "tree" or not act[1].startswith("started "):
-        problems.append("double-click answers %s" % act)
-    else:
-        print("ok    double-click: a project stays with the tree, a calculation "
-              "%s" % act[1])
     if answers != ["ok Examples_3"]:
         problems.append("answers %s" % answers)
     if os.path.exists(os.path.join(root, "Examples_4")):

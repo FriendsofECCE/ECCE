@@ -37,6 +37,7 @@ class  SGLattice : public SoLineSet
 
       SoVertexProperty *p_line;
       MPoint p_a1str, p_a2str, p_a3str;
+      bool p_noLabels;   // a GROMACS compact box has no a/b/c edges to label
       uint32_t p_color, p_xcolor, p_ycolor, p_zcolor;
 
 };

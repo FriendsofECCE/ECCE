@@ -73,7 +73,7 @@ project, and opens it in the Builder.
 ## Look at the results
 
 1. Select the imported calculation in the Organizer.
-2. Choose **Tools > Viewer...** (Ctrl+R).
+2. Click **Viewer**.
 
 The Viewer shows the geometry in the output: the final geometry for an
 optimisation. Open results from the **Properties** menu; the menu lists

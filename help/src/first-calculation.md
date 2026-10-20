@@ -49,7 +49,7 @@ Creation** if you prefer that.)
 ## 3. Build the molecule
 
 1. Select `water-opt`.
-2. Choose **Tools > Builder...** (Ctrl+B).
+2. Click **Builder** below the calculation's details in the Organizer.
 
 The Builder opens on this calculation. (If you have not used the Builder
 before, [Importing a structure](importing-a-structure.md) shows how to open existing
@@ -94,7 +94,7 @@ Then save the structure:
 ## 4. Set up the calculation
 
 1. Select `water-opt` in the Organizer.
-2. Choose **Tools > Electronic Structure Editor...** (Ctrl+E).
+2. Click **Editor**.
 
 The editor shows what you built under **Chemical System**: **Formula:**
 `H2O`, **Atoms:** 3, **Electrons:** 10. **Charge:** is 0 and **Spin
@@ -187,7 +187,7 @@ reported.
 ## 7. Look at the results
 
 1. Select `water-opt`.
-2. Choose **Tools > Viewer...** (Ctrl+R).
+2. Click **Viewer**.
 
 The Viewer shows the final geometry. (The same Viewer shows the output of a
 calculation run elsewhere: see [Importing a calculation](importing-a-calculation.md).) Open the results from its

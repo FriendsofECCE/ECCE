@@ -41,6 +41,7 @@ SGLattice::SGLattice()
 
 void SGLattice::constructor()
 {
+   p_noLabels = false;
    // set up 12 lines (2 points each)
    // This is the default box but of course it changes with replication
    int cnt = 12;
@@ -92,7 +93,7 @@ void SGLattice::GLRender(SoGLRenderAction *action)
    // now. This is a method on SoShape that checks for INVISIBLE
    // draw style, BOUNDING_BOX complexity, and delayed
    // transparency.
-   if (! shouldGLRender(action))
+   if (! shouldGLRender(action) || p_noLabels)
       return;
 
    glPushMatrix();
@@ -174,6 +175,7 @@ void SGLattice::setLattice(LatticeDef *lattice)
       p_a1str = (*edges)[1];
       p_a2str = (*edges)[3];
       p_a3str = (*edges)[5];
+      p_noLabels = false;
 
       // A GROMACS dodecahedron or truncated octahedron is simulated as its
       // compact cell around the box centre, not as the vector parallelepiped.
@@ -199,6 +201,7 @@ void SGLattice::setLattice(LatticeDef *lattice)
          // The first three lines are coloured as the axes; keep their slots
          // empty so the cell edges all get the plain cell colour.
          edges->clear();
+         p_noLabels = true;
          for (int e=0; e<6; e++) edges->push_back(MPoint(0.,0.,0.));
          for (size_t e=0; e<shape.edges.size(); e++) {
             const boxshape::Vec& s = shape.vertices[shape.edges[e].first];
