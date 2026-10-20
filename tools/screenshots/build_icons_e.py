@@ -225,7 +225,7 @@ def spin(i):
 
 
 @icon
-def home(i):
+def home_window(i):
     i.shadow(16, 30.5, 12, 1.2, .2)
     fr = i.lin(0, 2, 0, 30, (0, "#6aa4f6"), (1, "#1a42a8"))
     i.add('<rect x="2" y="2.500" width="28" height="27" rx="1.500" fill="%s" stroke="#122e78" stroke-width="1"/>' % fr)
@@ -293,7 +293,7 @@ def home_grid(i):
 
 
 @icon
-def home_front(i):
+def home(i):
     # A house seen from the front, no perspective: shaded but flat-on
     i.shadow(16, 29.200, 12.500, 1.300, .22)
     ch = i.lin(20, 0, 24, 0, (0, "#d8684a"), (1, "#8a3018"))
