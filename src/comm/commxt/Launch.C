@@ -899,7 +899,14 @@ bool Launch::validateCalculation(void)
             } else if (!(p_cache->isGromacs && hasGromacsSourcePdb())) {
               // A GROMACS Prepare may start from an attached .gmxpdb instead
               ret = false;
-              p_lastMessage = "This Prepare task has no structure. Open it in the "
+              // A GROMACS Prepare's structure comes from its Source, which
+              // is rarely the Builder.
+              p_lastMessage = p_cache->isGromacs ?
+                "This Prepare task has no structure yet. Source Mineral: "
+                "press Build topology, then Save. Source Protein: choose a "
+                "PDB file (Structure: PDB file...), or build the structure "
+                "in the Builder and Save." :
+                "This Prepare task has no structure. Open it in the "
                 "Builder (Builder... button), build or load the structure, "
                 "and Save.";
             }

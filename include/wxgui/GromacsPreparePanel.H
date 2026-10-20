@@ -112,6 +112,7 @@ class GromacsPreparePanel : public ewxPanel
       bool isClayff() const;
       void fillIons();
       void showIonNote();
+      void markBuildNeeded(bool needed);
       void minffStale();
       void showCellWarning();
       void detachMineral();
@@ -142,6 +143,7 @@ class GromacsPreparePanel : public ewxPanel
       ewxChoice *p_mvariant, *p_mangle, *p_mions, *p_mff, *p_mbend;
       ewxCheckBox *p_mrigid;
       ewxButton *p_mcellBtn, *p_mbuild;
+      wxPanel *p_mbuildFrame;
       wxSizer *p_leftSizer, *p_rightSizer, *p_minffSizer;
 
       ewxChoice *p_source;

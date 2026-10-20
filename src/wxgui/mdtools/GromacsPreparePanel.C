@@ -406,9 +406,14 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_clayffOnly.push_back(p_mrigid);
   g->Add(p_mrigid, 0);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
-  p_mbuild = new ewxButton(box, ID_MBUILD, _("Build topology"));
-  p_minffOnly.push_back(p_mbuild);
-  sb->Add(p_mbuild, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  // Red frame while the topology is missing or stale: Launch needs it.
+  p_mbuildFrame = new wxPanel(box);
+  wxBoxSizer *fs = new wxBoxSizer(wxHORIZONTAL);
+  p_mbuild = new ewxButton(p_mbuildFrame, ID_MBUILD, _("Build topology"));
+  fs->Add(p_mbuild, 0, wxALL, 3);
+  p_mbuildFrame->SetSizer(fs);
+  p_minffOnly.push_back(p_mbuildFrame);
+  sb->Add(p_mbuildFrame, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   p_summaryLabel = label(box, wxEmptyString);
   p_minffOnly.push_back(p_summaryLabel);
   sb->Add(p_summaryLabel, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -1043,17 +1048,26 @@ void GromacsPreparePanel::showMineral()
   p_cellLabel->SetToolTip(U(cell.c_str()));
   p_summaryLabel->SetLabel(p_built
       ? U(p_model->minffSummary().c_str())
-      : _("No topology built yet. Choose a unit cell and press Build."));
+      : _("No topology built yet. Choose a unit cell and press Build topology."));
+  markBuildNeeded(!p_built);
   p_summaryLabel->Wrap(wrapPixels(p_summaryLabel));
   relayout();
 }
 
 // Options changed after a build: the stored files no longer match them.
+void GromacsPreparePanel::markBuildNeeded(bool needed)
+{
+  if (needed) p_mbuildFrame->SetBackgroundColour(wxColour(204, 0, 0));
+  else p_mbuildFrame->SetBackgroundColour(p_mbuildFrame->GetParent()->GetBackgroundColour());
+  p_mbuildFrame->Refresh();
+}
+
 void GromacsPreparePanel::minffStale()
 {
   if (p_refreshing || !p_built) return;
   p_summaryLabel->SetLabel(_("The options changed since the topology was built; "
-                             "press Build to apply them."));
+                             "press Build topology to apply them."));
+  markBuildNeeded(true);
   p_summaryLabel->Wrap(wrapPixels(p_summaryLabel));
   relayout();
 }
@@ -1087,8 +1101,10 @@ string GromacsPreparePanel::cellWarning() const
     int n = std::max(rep[i], 1);
     double unit = (w - (i == 2 ? water : 0.0)) / n;
     int times = unit > 0 ? (int)std::ceil((need - (i == 2 ? water : 0.0)) / unit - 1e-9) : 0;
-    snprintf(buf, sizeof buf, "%s%c is %.2f nm; repeat at least %d times along %c",
-             out.empty() ? "" : " ", axis[i], w, std::max(times, n + 1), axis[i]);
+    snprintf(buf, sizeof buf, "%sThe box is %.2f nm along %c (%d unit cell%s) and "
+             "needs %.2f nm: repeat the cell at least %d times along %c",
+             out.empty() ? "" : " ", w, axis[i], n, n == 1 ? "" : "s", need,
+             std::max(times, n + 1), axis[i]);
     out += buf;
     if (i == 2) {
       snprintf(buf, sizeof buf, ", or add at least %.1f nm of water",
@@ -1099,7 +1115,7 @@ string GromacsPreparePanel::cellWarning() const
   }
   if (out.empty()) return "";
   char head[120];
-  snprintf(head, sizeof head, "The cell is too small for the %.1f nm cut-off the MD tasks use. ", cut);
+  snprintf(head, sizeof head, "The box is too small for the %.1f nm cut-off the MD tasks use. ", cut);
   return head + out;
 }
 

@@ -1098,10 +1098,11 @@ def minff_section(s, build, rundir, png):
                   "no water: the editor warns the cell is too small for the cut-off")
             # P5: the warning names the axis, its length and the way out
             warn = ed.cmd("cellwarning")
-            m = re.search(r"c is ([\d.]+) nm; repeat at least (\d+) times along c, or add at "
+            m = re.search(r"The box is ([\d.]+) nm along c \(1 unit cell\) and needs [\d.]+ nm: "
+                          r"repeat the cell at least (\d+) times along c, or add at "
                           r"least ([\d.]+) nm of water, or lower the cut-off in the tasks\.", warn)
-            check(m is not None and warn.startswith("The cell is too small for the 0.9 nm cut-off")
-                  and "a is" not in warn and "b is" not in warn,
+            check(m is not None and warn.startswith("The box is too small for the 0.9 nm cut-off")
+                  and " along a " not in warn and " along b " not in warn,
                   "the warning names c, its length, the repeat and the water: %s" % warn)
             if m:
                 check(ed.cmd("set dist " + m.group(3)) == "ok" and ed.cmd("cellwarning") == "",
