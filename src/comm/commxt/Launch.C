@@ -244,10 +244,14 @@ Launch::Launch(TaskJob* task,
     // its inputs)
     const bool gromacsInputs = gromacs &&
       task->getContentType() != ResourceDescriptor::CT_MDPREPARE;
+    // A GROMACS Prepare after other tasks of the study must not get their
+    // structure and topology: it pairs them with its own mineral.
+    const bool gromacsPrepare = gromacs && !gromacsInputs;
     if (gromacsInputs && task->getDataFiles(JCode::RESTART_OUTPUT).size() > 0) {
       p_restartProvider = task;
       finishedSearch = true;
     }
+    if (gromacsPrepare) finishedSearch = true;
     while (!finishedSearch && searchTask != 0) {
       p_restartProvider = dynamic_cast<TaskJob*>(searchTask->getInputProvider(session));
       if (p_restartProvider == 0) {
@@ -275,6 +279,7 @@ Launch::Launch(TaskJob* task,
       p_topologyProvider = task;
       finishedSearch = true;
     }
+    if (gromacsPrepare) finishedSearch = true;
     while (!finishedSearch && searchTask != 0) {
       p_topologyProvider = dynamic_cast<TaskJob*>(searchTask->getInputProvider(session));
       if (p_topologyProvider == 0) {

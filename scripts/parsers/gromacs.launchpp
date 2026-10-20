@@ -286,7 +286,9 @@ sub checkMinff
     symlink("$cwd/$f", "$tmp/$rel");
   }
   closedir($dh);
-  # gmx goes by the extension
+  # gmx goes by the extension; the Prepare's own files replace any staged
+  # conf.gro/topol.top (symlink does not overwrite)
+  unlink("$tmp/topol.top", "$tmp/conf.gro");
   symlink("$cwd/topol.gmxmin", "$tmp/topol.top");
   symlink("$cwd/conf.gmxmin", "$tmp/conf.gro");
   open(my $mf, ">", "$tmp/check.mdp") || die "gromacs.launchpp: cannot write in $tmp\n";
