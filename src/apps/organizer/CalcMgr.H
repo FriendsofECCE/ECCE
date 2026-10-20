@@ -107,6 +107,10 @@ public:
   void OnImportClick( wxCommandEvent& event );
 
   void OnOpenExamplesClick( wxCommandEvent& event );
+  /// File > Import GROMACS Run...
+  void OnImportGromacsClick( wxCommandEvent& event );
+  /// Imports runDir into the selection's project; "" with message on failure.
+  string importGromacsFrom(const string& runDir, string& message);
 
   /// Imports the shipped example calculations into a new project
   /// "Examples" (never an existing one); returns its name, "" on failure.

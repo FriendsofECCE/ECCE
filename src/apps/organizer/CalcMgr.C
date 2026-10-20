@@ -144,6 +144,10 @@ static string progressKey(const EcceURL & url);
 #include "wxgui/GlobalPrefs.H"
 
 #include "GromacsImport.H"
+#include <sys/stat.h>
+#include <chrono>
+#include <set>
+#include <wx/dirdlg.h>
 #include "CalcMgr.H"
 
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
@@ -591,6 +595,16 @@ void CalcMgr::runTestCommand(const string& line)
       if (parentNode) p_treeCtrl->refresh(parentNode);
       outcome = !parentNode ? "error: no parent node"
               : (made.empty() || !message.empty()) ? "error: " + message
+              : "ok " + made;
+    } else if (command == "gmximportsel") {
+      // "gmximportsel PROJECT-URL RUN-DIR": File > Import GROMACS Run...
+      // with PROJECT selected and RUN-DIR chosen.
+      std::istringstream args(calcName);
+      string parentUrl, runDir, message;
+      args >> parentUrl >> runDir;
+      findNode(EcceURL(parentUrl), true, true);
+      string made = importGromacsFrom(runDir, message);
+      outcome = (made.empty() || !message.empty()) ? "error: " + message
               : "ok " + made;
     } else if (command == "state") {
       Resource *res = EDSIFactory::getResource(EcceURL(calcName));
@@ -2824,6 +2838,56 @@ void CalcMgr::OnImportClick( wxCommandEvent& event )
 }
 
 
+// The study goes into the project enclosing the selection, named after
+// the directory (project names allow no spaces).
+string CalcMgr::importGromacsFrom(const string& runDir, string& message)
+{
+  WxResourceTreeItemData *node = p_treeCtrl->getSelection();
+  while (node && node->getResource() &&
+         (!node->getResource()->getDescriptor() ||
+          node->getResource()->getDescriptor()->getName() != "project")) {
+    WxResourceTreeItemData *up = p_treeCtrl->getParent(node);
+    node = (up == node) ? 0 : up;
+  }
+  if (!node || !node->getResource()) {
+    message = "Select a project to import the GROMACS run into.";
+    return "";
+  }
+  string name = runDir;
+  while (name.size() > 1 && name[name.size() - 1] == '/')
+    name.erase(name.size() - 1);
+  name = name.substr(name.find_last_of('/') + 1);
+  for (size_t i = 0; i < name.size(); i++)
+    if (!isalnum((unsigned char)name[i]) && name[i] != '_' && name[i] != '-')
+      name[i] = '_';
+  if (name.empty()) name = "GROMACS_Import";
+  // Asked of the data server: the tree's cached children may not list a
+  // study imported a moment ago.
+  EDSI *edsi = EDSIFactory::getEDSI(node->getResource()->getURL());
+  name = edsi->uniqueName(name, "_%d");
+  delete edsi;
+  string made = importGromacsRun(node->getResource(), name, runDir, message);
+  p_treeCtrl->refresh(node);
+  return made;
+}
+
+
+void CalcMgr::OnImportGromacsClick( wxCommandEvent& event )
+{
+  wxDirDialog dlg(this, _("Choose the directory of the GROMACS run"));
+  if (dlg.ShowModal() != wxID_OK) return;
+  startDisabler();
+  string message;
+  string made = importGromacsFrom(string(dlg.GetPath().mb_str()), message);
+  if (made.empty() || !message.empty())
+    setMessage(message, WxFeedback::ERROR);
+  else
+    setMessage("The GROMACS run is imported; its properties appear shortly.",
+               WxFeedback::INFO);
+  stopDisabler();
+}
+
+
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_OPENEXAMPLES
  */
@@ -2851,8 +2915,9 @@ static const char *const kExampleOutputs[] = {
   "ecceqm-ethanol/ethanol.qmout",
   "mopac-ammonia/ammonia.out",
   "nwchem-methane/methane.eprint",
+  "gromacs-trpcage",
 };
-static const char *const kExampleSetVersion = "2";
+static const char *const kExampleSetVersion = "3";
 
 string CalcMgr::openExamples(string& message)
 {
@@ -2898,13 +2963,34 @@ string CalcMgr::openExamples(string& message)
   // afterwards, not per calculation.
   findNode(project, true, true);
   p_batchImport = true;
+  const auto t0 = std::chrono::steady_clock::now();
+  double gmxSeconds = 0;
   {
     WxCalcImport dlg(this);
     dlg.registerListener(this);
-    for (const char *rel : kExampleOutputs)
-      dlg.importFile(dir + rel);
+    for (const char *rel : kExampleOutputs) {
+      // A directory is a GROMACS run (GromacsImport.H), a study named
+      // after the example.
+      struct stat st;
+      if (stat((dir + rel).c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+        string why, name = rel;
+        if (name.compare(0, 8, "gromacs-") == 0) name = name.substr(8);
+        const auto g0 = std::chrono::steady_clock::now();
+        if (importGromacsRun(proj, name, dir + rel, why).empty() ||
+            !why.empty())
+          p_batchError = why;
+        gmxSeconds += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - g0).count();
+      } else {
+        dlg.importFile(dir + rel);
+      }
+    }
   }
   p_batchImport = false;
+  cerr << "Organizer: examples imported in "
+       << std::chrono::duration<double>(
+              std::chrono::steady_clock::now() - t0).count()
+       << " s, of which the GROMACS run " << gmxSeconds << " s" << endl;
 
   // What each example is for, in its Annotation field.
   static const struct { const char *name, *text; } kNotes[] = {
@@ -2920,6 +3006,9 @@ string CalcMgr::openExamples(string& message)
     {"ammonia", "MOPAC, PM7: optimisation, then frequencies. A semiempirical "
                 "calculation: compare its orbitals and frequencies with the "
                 "DFT examples."},
+    {"trpcage", "GROMACS, AMBER99SB-ILDN, TIP3P: the Trp-cage (PDB 1L2Y) "
+                "through Prepare, Optimize, Equilibrate and Dynamics. Open "
+                "a task to see its inputs, energies and the trajectory."},
     {"methane", "NWChem, B3LYP/6-31G*: optimisation, frequencies and "
                 "properties, imported from NWChem's own output."},
   };
@@ -2927,7 +3016,8 @@ string CalcMgr::openExamples(string& message)
   if (Resource *projRes = EDSIFactory::getResource(project)) {
     if (vector<Resource*> *calcs = projRes->getChildren(true)) {
       for (Resource *calc : *calcs) {
-        if (calc) thumbUrls.push_back(calc->getURL().toString());
+        if (calc && dynamic_cast<ICalculation*>(calc))
+          thumbUrls.push_back(calc->getURL().toString());
         for (const auto &note : kNotes) {
           if (calc && calc->getName() == note.name) {
             vector<MetaDataResult> ann(1);
@@ -3940,6 +4030,8 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   menu.AppendSeparator();
 
   menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
+              _T(""), wxITEM_NORMAL);
+  menu.Append(wxID_IMPORTGROMACS, _("Import &GROMACS Run..."),
               _T(""), wxITEM_NORMAL);
   menu.Append(wxID_OPENEXAMPLES, _("Open &Example Calculations"),
               _T(""), wxITEM_NORMAL);

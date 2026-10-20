@@ -1,0 +1,627 @@
+ECCE-PREPARE step 1/4 pdb2gmx
+             :-) GROMACS - gmx pdb2gmx, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx pdb2gmx -f prep_in.pdb -ff amber99sb-ildn -water tip3p -ignh -merge all -o step1.gro -p topol.top -i posre.itp
+
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.r2b
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.r2b
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.r2b
+All occupancies are one
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/atomtypes.atp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.n.tdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.c.tdb
+9 out of 9 lines of specbond.dat converted successfully
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.arn
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.arn
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.arn
+Before cleaning: 818 pairs
+Before cleaning: 873 dihedrals
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Using the Amber99sb-ildn force field in directory amber99sb-ildn.ff
+
+going to rename amber99sb-ildn.ff/aminoacids.r2b
+
+going to rename amber99sb-ildn.ff/dna.r2b
+
+going to rename amber99sb-ildn.ff/rna.r2b
+Reading prep_in.pdb...
+Read 'NMR STRUCTURE OF TRP-CAGE MINIPROTEIN CONSTRUCT TC5B', 154 atoms
+
+Analyzing pdb file
+Splitting chemical chains based on TER records or chain id changing.
+
+There are 1 chains and 0 blocks of water and 20 residues with 154 atoms
+
+  chain  #res #atoms
+
+  1 'A'    20    154  
+
+All occupancies are one
+
+Reading residue database... (Amber99sb-ildn)
+
+Processing chain 1 'A' (154 atoms, 20 residues)
+
+Identified residue ASN1 as a starting terminus.
+
+Identified residue SER20 as a ending terminus.
+
+Checking for duplicate atoms....
+
+Generating any missing hydrogen atoms and/or adding termini.
+
+Now there are 20 residues with 304 atoms
+
+Making bonds...
+
+Number of bonds was 311, now 310
+
+Generating angles, dihedrals and pairs...
+
+Making cmap torsions...
+
+There are  873 dihedrals,   61 impropers,  565 angles
+           812 pairs,      310 bonds and     0 virtual sites
+
+Total mass 2170.450 a.m.u.
+
+Total charge 1.000 e
+
+Writing topology
+
+Writing coordinate file...
+
+		--------- PLEASE NOTE ------------
+
+You have successfully generated a topology from: prep_in.pdb.
+
+The Amber99sb-ildn force field and the tip3p water model are used.
+
+		--------- ETON ESAELP ------------
+ECCE-PREPARE step 2/4 editconf
+             :-) GROMACS - gmx editconf, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx editconf -f step1.gro -o step2.gro -c -bt dodecahedron -d 1
+
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Note that major changes are planned in future for editconf, to improve usability and utility.
+Read 304 atoms
+Volume: 6.3772 nm^3, corresponds to roughly 2800 electrons
+No velocities found
+    system size :  2.299  2.012  1.378 (nm)
+    diameter    :  2.392               (nm)
+    center      :  0.010  0.002 -0.001 (nm)
+    box vectors :  2.299  2.012  1.379 (nm)
+    box angles  :  90.00  90.00  90.00 (degrees)
+    box volume  :   6.38               (nm^3)
+    shift       :  3.284  3.292  1.554 (nm)
+new center      :  3.294  3.294  1.553 (nm)
+new box vectors :  4.392  4.392  4.392 (nm)
+new box angles  :  60.00  60.00  90.00 (degrees)
+new box volume  :  59.92               (nm^3)
+ECCE-PREPARE step 3/4 solvate
+             :-) GROMACS - gmx solvate, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx solvate -cp step2.gro -cs spc216.gro -o step3.gro -p topol.top
+
+Reading solute configuration
+Reading solvent configuration
+
+Initialising inter-atomic distances...
+
+WARNING: Masses and atomic (Van der Waals) radii will be guessed
+         based on residue and atom names, since they could not be
+         definitively assigned from the information in your input
+         files. These guessed numbers might deviate from the mass
+         and radius of the atom type. Please check the output
+         files if necessary. Note, that this functionality may
+         be removed in a future GROMACS version. Please, consider
+         using another file format for your input.
+
+NOTE: From version 5.0 gmx solvate uses the Van der Waals radii
+from the source below. This means the results may be different
+compared to previous GROMACS versions.
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+A. Bondi
+van der Waals Volumes and Radii
+J. Phys. Chem. (1964)
+DOI: 10.1021/j100785a001
+-------- -------- --- Thank You --- -------- --------
+
+Generating solvent configuration
+Will generate new solvent configuration of 3x3x2 boxes
+Solvent box contains 7590 atoms in 2530 residues
+Removed 1674 solvent atoms due to solvent-solvent overlap
+Removed 285 solvent atoms due to solute-solvent overlap
+Sorting configuration
+Found 1 molecule type:
+    SOL (   3 atoms):  1877 residues
+Generated solvent containing 5631 atoms in 1877 residues
+Writing generated configuration to step3.gro
+
+Output configuration contains 5935 atoms in 1897 residues
+Volume                 :     59.9181 (nm^3)
+Density                :      1001.3 (g/l)
+Number of solvent molecules:   1877   
+
+Processing topology
+
+Back Off! I just backed up topol.top to ./#topol.top.1#
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Adding line for 1877 solvent molecules with resname (SOL) to topology file (topol.top)
+ECCE-PREPARE step 4/4 genion
+              :-) GROMACS - gmx grompp, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn 0
+
+
+NOTE 1 [file ions.mdp]:
+  You have set rlist larger than the interaction cut-off, but you also have
+  verlet-buffer-tolerance > 0. Will set rlist using
+  verlet-buffer-tolerance.
+
+
+NOTE 2 [file ions.mdp]:
+  For a correct single-point energy evaluation with nsteps = 0, use
+  continuation = yes to avoid constraining the input coordinates.
+
+Generating 1-4 interactions: fudge = 0.5
+
+NOTE 3 [file topol.top, line 3015]:
+  System has non-zero total charge: 1.000000
+  Total charge should normally be an integer. See
+  https://manual.gromacs.org/current/user-guide/floating-point.html
+  for discussion on how close it should be to an integer.
+
+
+
+
+NOTE 4 [file topol.top, line 3015]:
+  Zero-step energy minimization will alter the coordinates before
+  calculating the energy. If you just want the energy of a single point,
+  try zero-step MD (with unconstrained_start = yes). To do multiple
+  single-point energy evaluations of different configurations of the same
+  topology, use mdrun -rerun.
+
+Number of degrees of freedom in T-Coupling group rest is 12171.00
+The integrator does not provide a ensemble temperature, there is no system ensemble temperature
+
+NOTE 5 [file ions.mdp]:
+  You are using a plain Coulomb cut-off, which might produce artifacts.
+  You might want to consider using PME electrostatics.
+
+
+
+There were 5 NOTEs
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Setting the LD random seed to 1610591966
+
+Generated 2145 of the 2145 non-bonded parameter combinations
+
+Generated 2145 of the 2145 1-4 parameter combinations
+
+Excluding 3 bonded neighbours molecule type 'Protein_chain_A'
+
+Excluding 2 bonded neighbours molecule type 'SOL'
+Analysing residue names:
+There are:    20    Protein residues
+There are:  1877      Water residues
+Analysing Protein...
+
+This run will generate roughly 0 Mb of data
+              :-) GROMACS - gmx genion, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx genion -s ions.tpr -o ion.gro -p topol.top -pname NA -pq 1 -nname CL -neutral -conc 0.15
+
+Reading file ions.tpr, VERSION 2025.2-Debian_2025.2_1 (single precision)
+Reading file ions.tpr, VERSION 2025.2-Debian_2025.2_1 (single precision)
+Group     0 (         System) has  5935 elements
+Group     1 (        Protein) has   304 elements
+Group     2 (      Protein-H) has   154 elements
+Group     3 (        C-alpha) has    20 elements
+Group     4 (       Backbone) has    60 elements
+Group     5 (      MainChain) has    81 elements
+Group     6 (   MainChain+Cb) has    98 elements
+Group     7 (    MainChain+H) has    99 elements
+Group     8 (      SideChain) has   205 elements
+Group     9 (    SideChain-H) has    73 elements
+Group    10 (    Prot-Masses) has   304 elements
+Group    11 (    non-Protein) has  5631 elements
+Group    12 (          Water) has  5631 elements
+Group    13 (            SOL) has  5631 elements
+Group    14 (      non-Water) has   304 elements
+Select a group: Number of (3-atomic) solvent molecules: 1877
+
+Back Off! I just backed up topol.top to ./#topol.top.2#
+Using random seed -1610615939.
+Replacing solvent molecule 885 (atom 2959) with NA
+Replacing solvent molecule 1688 (atom 5368) with NA
+Replacing solvent molecule 824 (atom 2776) with NA
+Replacing solvent molecule 958 (atom 3178) with NA
+Replacing solvent molecule 511 (atom 1837) with NA
+Replacing solvent molecule 76 (atom 532) with CL
+Replacing solvent molecule 1154 (atom 3766) with CL
+Replacing solvent molecule 33 (atom 403) with CL
+Replacing solvent molecule 1671 (atom 5317) with CL
+Replacing solvent molecule 293 (atom 1183) with CL
+Replacing solvent molecule 895 (atom 2989) with CL
+
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Will try to add 5 NA ions and 6 CL ions.
+Select a continuous group of solvent molecules
+Selected 13: 'SOL'
+
+Processing topology
+Replacing 11 solute molecules in topology file (topol.top)  by 5 NA and 6 CL ions.
+             :-) GROMACS - gmx editconf, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx editconf -f ecceSession_ecceMdPrepare.gro -o chemsys.pdb
+
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Note that major changes are planned in future for editconf, to improve usability and utility.
+Read 5913 atoms
+Volume: 59.9181 nm^3, corresponds to roughly 26900 electrons
+No velocities found
+ECCE-PREPARE system atoms=5913 residues=20 waters=1866 pos=5 neg=6 posname=NA negname=CL
+ECCE-PREPARE box charge0=1.000000 charge1=0 box=dodecahedron a=4.392 b=4.392 c=4.392 alpha=60.00 beta=60.00 gamma=90.00
+ECCE-PREPARE done
+
+-----ECCE Log Information-----
+Starting Job: Tue Oct 20 10:16:19 AM CEST 2026
+Using GROMACS path: /usr/bin/gmx
+ECCE-PREPARE step 1/4 pdb2gmx
+             :-) GROMACS - gmx pdb2gmx, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx pdb2gmx -f prep_in.pdb -ff amber99sb-ildn -water tip3p -ignh -merge all -o step1.gro -p topol.top -i posre.itp
+
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.r2b
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.r2b
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.r2b
+All occupancies are one
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/atomtypes.atp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.n.tdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.c.tdb
+9 out of 9 lines of specbond.dat converted successfully
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.arn
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.arn
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.arn
+Before cleaning: 818 pairs
+Before cleaning: 873 dihedrals
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Using the Amber99sb-ildn force field in directory amber99sb-ildn.ff
+
+going to rename amber99sb-ildn.ff/aminoacids.r2b
+
+going to rename amber99sb-ildn.ff/dna.r2b
+
+going to rename amber99sb-ildn.ff/rna.r2b
+Reading prep_in.pdb...
+Read 'NMR STRUCTURE OF TRP-CAGE MINIPROTEIN CONSTRUCT TC5B', 154 atoms
+
+Analyzing pdb file
+Splitting chemical chains based on TER records or chain id changing.
+
+There are 1 chains and 0 blocks of water and 20 residues with 154 atoms
+
+  chain  #res #atoms
+
+  1 'A'    20    154  
+
+All occupancies are one
+
+Reading residue database... (Amber99sb-ildn)
+
+Processing chain 1 'A' (154 atoms, 20 residues)
+
+Identified residue ASN1 as a starting terminus.
+
+Identified residue SER20 as a ending terminus.
+
+Checking for duplicate atoms....
+
+Generating any missing hydrogen atoms and/or adding termini.
+
+Now there are 20 residues with 304 atoms
+
+Making bonds...
+
+Number of bonds was 311, now 310
+
+Generating angles, dihedrals and pairs...
+
+Making cmap torsions...
+
+There are  873 dihedrals,   61 impropers,  565 angles
+           812 pairs,      310 bonds and     0 virtual sites
+
+Total mass 2170.450 a.m.u.
+
+Total charge 1.000 e
+
+Writing topology
+
+Writing coordinate file...
+
+		--------- PLEASE NOTE ------------
+
+You have successfully generated a topology from: prep_in.pdb.
+
+The Amber99sb-ildn force field and the tip3p water model are used.
+
+		--------- ETON ESAELP ------------
+ECCE-PREPARE step 2/4 editconf
+             :-) GROMACS - gmx editconf, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx editconf -f step1.gro -o step2.gro -c -bt dodecahedron -d 1
+
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Note that major changes are planned in future for editconf, to improve usability and utility.
+Read 304 atoms
+Volume: 6.3772 nm^3, corresponds to roughly 2800 electrons
+No velocities found
+    system size :  2.299  2.012  1.378 (nm)
+    diameter    :  2.392               (nm)
+    center      :  0.010  0.002 -0.001 (nm)
+    box vectors :  2.299  2.012  1.379 (nm)
+    box angles  :  90.00  90.00  90.00 (degrees)
+    box volume  :   6.38               (nm^3)
+    shift       :  3.284  3.292  1.554 (nm)
+new center      :  3.294  3.294  1.553 (nm)
+new box vectors :  4.392  4.392  4.392 (nm)
+new box angles  :  60.00  60.00  90.00 (degrees)
+new box volume  :  59.92               (nm^3)
+ECCE-PREPARE step 3/4 solvate
+             :-) GROMACS - gmx solvate, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx solvate -cp step2.gro -cs spc216.gro -o step3.gro -p topol.top
+
+Reading solute configuration
+Reading solvent configuration
+
+Initialising inter-atomic distances...
+
+WARNING: Masses and atomic (Van der Waals) radii will be guessed
+         based on residue and atom names, since they could not be
+         definitively assigned from the information in your input
+         files. These guessed numbers might deviate from the mass
+         and radius of the atom type. Please check the output
+         files if necessary. Note, that this functionality may
+         be removed in a future GROMACS version. Please, consider
+         using another file format for your input.
+
+NOTE: From version 5.0 gmx solvate uses the Van der Waals radii
+from the source below. This means the results may be different
+compared to previous GROMACS versions.
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+A. Bondi
+van der Waals Volumes and Radii
+J. Phys. Chem. (1964)
+DOI: 10.1021/j100785a001
+-------- -------- --- Thank You --- -------- --------
+
+Generating solvent configuration
+Will generate new solvent configuration of 3x3x2 boxes
+Solvent box contains 7590 atoms in 2530 residues
+Removed 1674 solvent atoms due to solvent-solvent overlap
+Removed 285 solvent atoms due to solute-solvent overlap
+Sorting configuration
+Found 1 molecule type:
+    SOL (   3 atoms):  1877 residues
+Generated solvent containing 5631 atoms in 1877 residues
+Writing generated configuration to step3.gro
+
+Output configuration contains 5935 atoms in 1897 residues
+Volume                 :     59.9181 (nm^3)
+Density                :      1001.3 (g/l)
+Number of solvent molecules:   1877   
+
+Processing topology
+
+Back Off! I just backed up topol.top to ./#topol.top.1#
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Adding line for 1877 solvent molecules with resname (SOL) to topology file (topol.top)
+ECCE-PREPARE step 4/4 genion
+              :-) GROMACS - gmx grompp, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn 0
+
+
+NOTE 1 [file ions.mdp]:
+  You have set rlist larger than the interaction cut-off, but you also have
+  verlet-buffer-tolerance > 0. Will set rlist using
+  verlet-buffer-tolerance.
+
+
+NOTE 2 [file ions.mdp]:
+  For a correct single-point energy evaluation with nsteps = 0, use
+  continuation = yes to avoid constraining the input coordinates.
+
+Generating 1-4 interactions: fudge = 0.5
+
+NOTE 3 [file topol.top, line 3015]:
+  System has non-zero total charge: 1.000000
+  Total charge should normally be an integer. See
+  https://manual.gromacs.org/current/user-guide/floating-point.html
+  for discussion on how close it should be to an integer.
+
+
+
+
+NOTE 4 [file topol.top, line 3015]:
+  Zero-step energy minimization will alter the coordinates before
+  calculating the energy. If you just want the energy of a single point,
+  try zero-step MD (with unconstrained_start = yes). To do multiple
+  single-point energy evaluations of different configurations of the same
+  topology, use mdrun -rerun.
+
+Number of degrees of freedom in T-Coupling group rest is 12171.00
+The integrator does not provide a ensemble temperature, there is no system ensemble temperature
+
+NOTE 5 [file ions.mdp]:
+  You are using a plain Coulomb cut-off, which might produce artifacts.
+  You might want to consider using PME electrostatics.
+
+
+
+There were 5 NOTEs
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Setting the LD random seed to 1610591966
+
+Generated 2145 of the 2145 non-bonded parameter combinations
+
+Generated 2145 of the 2145 1-4 parameter combinations
+
+Excluding 3 bonded neighbours molecule type 'Protein_chain_A'
+
+Excluding 2 bonded neighbours molecule type 'SOL'
+Analysing residue names:
+There are:    20    Protein residues
+There are:  1877      Water residues
+Analysing Protein...
+
+This run will generate roughly 0 Mb of data
+              :-) GROMACS - gmx genion, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx genion -s ions.tpr -o ion.gro -p topol.top -pname NA -pq 1 -nname CL -neutral -conc 0.15
+
+Reading file ions.tpr, VERSION 2025.2-Debian_2025.2_1 (single precision)
+Reading file ions.tpr, VERSION 2025.2-Debian_2025.2_1 (single precision)
+Group     0 (         System) has  5935 elements
+Group     1 (        Protein) has   304 elements
+Group     2 (      Protein-H) has   154 elements
+Group     3 (        C-alpha) has    20 elements
+Group     4 (       Backbone) has    60 elements
+Group     5 (      MainChain) has    81 elements
+Group     6 (   MainChain+Cb) has    98 elements
+Group     7 (    MainChain+H) has    99 elements
+Group     8 (      SideChain) has   205 elements
+Group     9 (    SideChain-H) has    73 elements
+Group    10 (    Prot-Masses) has   304 elements
+Group    11 (    non-Protein) has  5631 elements
+Group    12 (          Water) has  5631 elements
+Group    13 (            SOL) has  5631 elements
+Group    14 (      non-Water) has   304 elements
+Select a group: Number of (3-atomic) solvent molecules: 1877
+
+Back Off! I just backed up topol.top to ./#topol.top.2#
+Using random seed -1610615939.
+Replacing solvent molecule 885 (atom 2959) with NA
+Replacing solvent molecule 1688 (atom 5368) with NA
+Replacing solvent molecule 824 (atom 2776) with NA
+Replacing solvent molecule 958 (atom 3178) with NA
+Replacing solvent molecule 511 (atom 1837) with NA
+Replacing solvent molecule 76 (atom 532) with CL
+Replacing solvent molecule 1154 (atom 3766) with CL
+Replacing solvent molecule 33 (atom 403) with CL
+Replacing solvent molecule 1671 (atom 5317) with CL
+Replacing solvent molecule 293 (atom 1183) with CL
+Replacing solvent molecule 895 (atom 2989) with CL
+
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Will try to add 5 NA ions and 6 CL ions.
+Select a continuous group of solvent molecules
+Selected 13: 'SOL'
+
+Processing topology
+Replacing 11 solute molecules in topology file (topol.top)  by 5 NA and 6 CL ions.
+             :-) GROMACS - gmx editconf, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Command line:
+  gmx editconf -f ecceSession_ecceMdPrepare.gro -o chemsys.pdb
+
+
+GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+
+Note that major changes are planned in future for editconf, to improve usability and utility.
+Read 5913 atoms
+Volume: 59.9181 nm^3, corresponds to roughly 26900 electrons
+No velocities found
+ECCE-PREPARE system atoms=5913 residues=20 waters=1866 pos=5 neg=6 posname=NA negname=CL
+ECCE-PREPARE box charge0=1.000000 charge1=0 box=dodecahedron a=4.392 b=4.392 c=4.392 alpha=60.00 beta=60.00 gamma=90.00
+ECCE-PREPARE done
+gromacs exit status = 0
+Final exit status = 0
+Completed Job: Tue Oct 20 10:16:20 AM CEST 2026

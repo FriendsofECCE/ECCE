@@ -301,21 +301,36 @@ def main():
 
 
 def save_example(dest, gmx, tasks, rundir):
-    """The small files that ship as data/client/examples/gromacs-trpcage."""
-    os.makedirs(dest, exist_ok=True)
+    """The run as GromacsImport.H lays it out: one directory per task."""
+    shutil.rmtree(dest, ignore_errors=True)
+    os.makedirs(dest)
     shutil.copy(os.path.join(FIXTURES, "1l2y.pdb"), dest)
-    shutil.copy(os.path.join(where(tasks["prepare"]), "Inputs", "gromacs.gmxprep"),
-                os.path.join(dest, "prepare.recipe"))
-    for kind in ("optimize", "equilibrate", "dynamics"):
-        shutil.copy(os.path.join(where(tasks[kind]), "Inputs", "gromacs.mdp"),
-                    os.path.join(dest, kind + ".mdp"))
-    for kind, term in (("optimize", "Potential"), ("equilibrate", "Temperature"),
-                       ("dynamics", "Total-Energy")):
+
+    def put(task, src, name=None):
+        d = os.path.join(dest, task)
+        os.makedirs(d, exist_ok=True)
+        shutil.copy(src, os.path.join(d, name or os.path.basename(src)))
+
+    pout = os.path.join(where(tasks["prepare"]), "Outputs")
+    put("1-prepare", os.path.join(where(tasks["prepare"]), "Inputs", "gromacs.gmxprep"),
+        "prepare.recipe")
+    put("1-prepare", os.path.join(FIXTURES, "1l2y.pdb"))
+    for f in sorted(os.listdir(pout)):
+        if f.endswith((".gro", ".gmxtop", ".itp", ".gmxlog", ".log")):
+            put("1-prepare", os.path.join(pout, f))
+    say("  example Prepare outputs: %s" % sorted(os.listdir(pout)))
+    for n, kind in enumerate(("optimize", "equilibrate", "dynamics"), 2):
+        task = "%d-%s" % (n, kind)
+        put(task, os.path.join(where(tasks[kind]), "Inputs", "gromacs.mdp"), kind + ".mdp")
         run = last_run_file(rundir, "ecceSession_ecceMd%s.gro" % kind.capitalize())
-        vals = gmx_series(gmx, run and os.path.dirname(run), term)
-        with open(os.path.join(dest, "%s-%s.txt" % (kind, term.lower())), "w") as h:
-            h.write("# gmx energy: %s of the %s task, one value per saved step\n" % (term, kind))
-            h.writelines("%s\n" % v for v in vals)
+        rdir = os.path.dirname(run) if run else None
+        say("  example %s run dir: %s" % (kind, rdir and sorted(os.listdir(rdir))))
+        if not rdir:
+            continue
+        put(task, run, "confout.gro")
+        for f in sorted(os.listdir(rdir)):
+            if f.endswith(".log") or f == "ecce-parse-traj.txt":
+                put(task, os.path.join(rdir, f))
 
 
 if __name__ == "__main__":

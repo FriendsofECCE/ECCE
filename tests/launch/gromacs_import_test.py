@@ -131,6 +131,10 @@ def main():
             stderr=subprocess.STDOUT, start_new_session=True)
 
         def send(line, timeout=120):
+            # Only answers after this command: a repeated command must not
+            # find the answer to its earlier copy.
+            seen = len(open(olog, errors="replace").read().splitlines()) \
+                if os.path.exists(olog) else 0
             with open(cmds, "a") as h:
                 h.write(line + "\n")
             want = "ECCE_TEST_ORGANIZER: %s: " % line
@@ -138,7 +142,7 @@ def main():
             while time.time() < end:
                 if org.poll() is not None:
                     return "the Organizer ended (%s)" % org.returncode
-                for t in open(olog, errors="replace").read().splitlines():
+                for t in open(olog, errors="replace").read().splitlines()[seen:]:
                     if t.startswith(want):
                         return t[len(want):]
                 time.sleep(0.5)
@@ -198,6 +202,13 @@ def main():
             if os.path.isdir(os.path.join(t["optimize"], "Outputs")) else []
         check(any(o.endswith(".gro") for o in outs),
               "the Optimize stores its final structure: %s" % outs)
+        # File > Import GROMACS Run...: the study is named after the
+        # directory, and a second import beside it gets another name.
+        base = os.path.basename(run.rstrip("/"))
+        for want in (base, base + "_1"):
+            ans = send("gmximportsel %s %s" % (proj, run))
+            check(ans.startswith("ok ") and ans.rstrip("/").endswith("/" + want),
+                  "gmximportsel makes %s: %s" % (want, ans))
     finally:
         if org is not None:
             stop(org)

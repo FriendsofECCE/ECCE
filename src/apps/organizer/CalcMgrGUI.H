@@ -91,6 +91,7 @@ public:
 
     /// File > Open Example Calculations
     virtual    void OnOpenExamplesClick( wxCommandEvent& event );
+    virtual    void OnImportGromacsClick( wxCommandEvent& event );
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXPORT
     virtual    void OnExportClick( wxCommandEvent& event );
@@ -289,6 +290,7 @@ public:
     static const wxWindowID wxID_SORT_DATE;
     static const wxWindowID wxID_IMPORT;
     static const wxWindowID wxID_OPENEXAMPLES;
+    static const wxWindowID wxID_IMPORTGROMACS;
     static const wxWindowID wxID_NEWSTRUCTURE;
     static const wxWindowID wxID_RENAME;
     static const wxWindowID wxID_SHOW_TOOLBAR;

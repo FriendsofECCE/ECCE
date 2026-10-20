@@ -68,6 +68,7 @@ const wxWindowID CalcMgrGUI::wxID_SORT_NAME_REV = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SORT_DATE = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_IMPORT = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_OPENEXAMPLES = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_IMPORTGROMACS = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_NEWSTRUCTURE = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_RENAME = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SHOW_TOOLBAR = wxNewId();
@@ -96,6 +97,7 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_NEWSTRUCTURE, CalcMgrGUI::OnNewStructureClick )
     EVT_MENU( wxID_IMPORT, CalcMgrGUI::OnImportClick )
     EVT_MENU( wxID_OPENEXAMPLES, CalcMgrGUI::OnOpenExamplesClick )
+    EVT_MENU( wxID_IMPORTGROMACS, CalcMgrGUI::OnImportGromacsClick )
 
     EVT_MENU( wxID_EXPORT, CalcMgrGUI::OnExportClick )
 
@@ -415,6 +417,11 @@ void CalcMgrGUI::OnNewStructureClick( wxCommandEvent& event )
 
 
 void CalcMgrGUI::OnOpenExamplesClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CalcMgrGUI::OnImportGromacsClick( wxCommandEvent& event )
 {
     event.Skip();
 }

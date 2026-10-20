@@ -45,7 +45,12 @@ EXPECT = {
     "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"],
     "ammonia": ["MO", "VIBFREQ"],
     "methane": ["MO", "VIBFREQ", "MULLIKEN"],
+    # a GROMACS study: its tasks, each as "task:" and "task:PROP"
+    "trpcage": ["prepare:", "optimize:", "equilibrate:", "dynamics:",
+                "optimize:TE", "dynamics:TE"],
 }
+# The study has no thumbnail and no theory/run type of its own.
+CALCS = [c for c in EXPECT if c != "trpcage"]
 
 failures = []
 
@@ -56,6 +61,20 @@ def fail(what, why, log=""):
     print("FAIL  %s: %s\n%s" % (what, why, tail))
 
 
+def studyProps(study):
+    """The tasks of a study as "task:" and "task:PROP" for each Props file."""
+    found = set()
+    for task in os.listdir(study):
+        tdir = os.path.join(study, task)
+        if task.startswith(".") or not os.path.isdir(tdir):
+            continue
+        found.add(task + ":")
+        props = os.path.join(tdir, "Props")
+        if os.path.isdir(props):
+            found.update(task + ":" + p for p in os.listdir(props))
+    return found
+
+
 def propsOf(project):
     """{calculation: set of Props files} under a project directory."""
     found = {}
@@ -63,6 +82,8 @@ def propsOf(project):
         props = os.path.join(project, calc, "Props")
         if os.path.isdir(props):
             found[calc] = set(os.listdir(props))
+        elif os.path.isdir(os.path.join(project, calc)):
+            found[calc] = studyProps(os.path.join(project, calc))
     return found
 
 
@@ -131,6 +152,8 @@ def run(display, data, work):
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                       env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
+    for line in re.findall(r"Organizer: examples imported in .*", result.log or ""):
+        print(line)
     got = (first.get("props") or {}).get("Examples", {})
     if result.crashed or sorted(c.split("_")[0] for c in got) != sorted(EXPECT):
         fail("first start imports the examples",
@@ -162,14 +185,14 @@ def run(display, data, work):
             # Help > Report a Problem... without its dialog
             handle.write("reportproblem\ntreeflags\ntree\n")
             # what the project table's Theory and Run Type columns show
-            for calc in sorted(EXPECT):
+            for calc in sorted(CALCS):
                 handle.write("summary file://%s\n" % os.path.join(
                     root, "Examples_2", calc))
         time.sleep(12)
         # VizThumbnail renders them in its own process
         end = time.time() + 90
         while time.time() < end and len(
-                thumbnails(os.path.join(root, "Examples_2"))) < len(EXPECT):
+                thumbnails(os.path.join(root, "Examples_2"))) < len(CALCS):
             time.sleep(2)
         box["thumbs"] = thumbnails(os.path.join(root, "Examples_2"))
         # ecce-diagnose takes about half a minute
@@ -209,7 +232,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*2", text):
+        if not re.search(r"exampleSet[^0-9]*3", text):
             problems.append("%s records no example-set version" % project)
     trees = re.findall(r"ECCE_TEST_ORGANIZER: tree: ok (.*)$", log, re.M)
     if not trees:
@@ -246,9 +269,9 @@ def run(display, data, work):
             problems.append("%s: run type not %s (%s)" % (calc, runtype, s))
     problems += reportProblemProblems(log)
     requested = re.findall(r"thumbnails requested for (\d+) example", log)
-    if requested[:2] != [str(len(EXPECT))] * 2:
+    if requested[:2] != [str(len(CALCS))] * 2:
         problems.append("thumbnail requests: %s" % requested)
-    if len(box.get("thumbs", ())) != len(EXPECT):
+    if len(box.get("thumbs", ())) != len(CALCS):
         problems.append("thumbnails stored for %s" % sorted(box.get("thumbs", ())))
     if problems:
         fail(what, "; ".join(problems), log)
