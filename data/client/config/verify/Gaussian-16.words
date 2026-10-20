@@ -50,6 +50,8 @@ $prim{rexponent}
 $result\
 $revision:
 $revision\n
+$scanstep\n
+$scansteps
 $shelltype\n
 $symbol
 $theory\n
@@ -130,6 +132,7 @@ $wrote
 [freq
 [modredundant]:
 \'$result\'
+\d+
 \n
 \niop
 \s*
