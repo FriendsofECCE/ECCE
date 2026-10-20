@@ -1891,8 +1891,12 @@ add_test(NAME formula COMMAND formula_test)
 
 # tests/geomconstraint (#393): the scan setting survives the constraint XML.
 add_executable(scan_xml_test tests/geomconstraint/scan_xml_test.C)
-target_link_libraries(scan_xml_test PRIVATE
-  "$<LINK_GROUP:RESCAN,eccexml;eccetdat;ecceutil>" ${XercesC_LIBRARIES})
+if(APPLE)   # ld64 resolves the cycles itself and has no RESCAN group
+  target_link_libraries(scan_xml_test PRIVATE eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+else()
+  target_link_libraries(scan_xml_test PRIVATE
+    "$<LINK_GROUP:RESCAN,eccexml;eccetdat;ecceutil>" ${XercesC_LIBRARIES})
+endif()
 add_test(NAME scan_xml COMMAND scan_xml_test)
 set_tests_properties(scan_xml PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
