@@ -1229,6 +1229,29 @@ sub gaussian03() { return &gaussianScript("g03", "G03", "ECCE_GAUSSIAN03", "gaus
 #    Notice that nwchem does not allow the full domain name for
 #    the host in the nwchem.p file.  You will get a very confusing
 #    "Permission denied" error.
+# NWChem finds its solvent boxes (spce.rst ...) only through an nwchemrc in
+# the run directory (no leading dot) or $HOME; Debian's nwchem-data ships
+# none and aborts silently in solvation. MD decks run through nwchem() as
+# well as nwchemmd(), so the input is tested for a prepare/md task. Resolved
+# on the compute host; an existing run-directory nwchemrc is the user's.
+sub nwchemrcSnippet()
+{
+  my $guard = "if [ ! -e nwchemrc ] && grep -qiE '^[[:space:]]*task[[:space:]]+(prepare|md)' $::inFile 2>/dev/null; then\n";
+  my $body = <<'EONWRC';
+  nwsolv=
+  for d in /usr/share/nwchem/solvents "$NWCHEM_TOP/src/data/solvents" \
+      "$(dirname "$(dirname "$(command -v "$nwchem" 2>/dev/null)")")/share/nwchem/solvents"; do
+    if [ -d "$d" ]; then nwsolv=$d; break; fi
+  done
+  if [ -n "$nwsolv" ]; then
+    for s in spce meoh clfm thfs; do
+      if [ -f "$nwsolv/$s.rst" ]; then echo "$s $nwsolv/$s.rst" >> nwchemrc; fi
+    done
+  fi
+EONWRC
+  return $guard . $body . "fi\n";
+}
+
 ###########################################################################
 sub nwchem() 
 {
@@ -1263,6 +1286,8 @@ sub nwchem()
     $retval .= "  echo \"Using \$TMPDIR as nwchem SCRATCH_DIR\" >> $::logfile\n";
     $retval .= "fi\n";
   }
+
+  $retval .= &nwchemrcSnippet();
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
@@ -1308,24 +1333,7 @@ sub nwchemmd()
     $retval .= "fi\n";
   }
 
-  # NWChem finds its solvent boxes (spce.rst ...) only through an nwchemrc
-  # in the run directory (no leading dot) or $HOME; Debian's nwchem-data
-  # ships none and aborts silently in solvation. Resolved here, on the
-  # compute host. An existing run-directory nwchemrc is the user's.
-  $retval .= <<'EONWRC';
-if [ ! -e nwchemrc ]; then
-  nwsolv=
-  for d in /usr/share/nwchem/solvents "$NWCHEM_TOP/src/data/solvents" \
-      "$(dirname "$(dirname "$(command -v "$nwchem" 2>/dev/null)")")/share/nwchem/solvents"; do
-    if [ -d "$d" ]; then nwsolv=$d; break; fi
-  done
-  if [ -n "$nwsolv" ]; then
-    for s in spce meoh clfm thfs; do
-      if [ -f "$nwsolv/$s.rst" ]; then echo "$s $nwsolv/$s.rst" >> nwchemrc; fi
-    done
-  fi
-fi
-EONWRC
+  $retval .= &nwchemrcSnippet();
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
