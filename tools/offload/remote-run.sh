@@ -89,6 +89,7 @@ case $cmd in
   teaching) inner='configure; ninja -C $BLD/b -j'$JOBS' -k 0 && cd $SRC && tests/teaching/run_tests.py --build $BLD/b --jobs 4 "$@"' ;;
   apps)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/run_tests.py "$@"' ;;
   clip)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/clip_test.py "$@"' ;;
+  apptest)  inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin python3 "$@"' ;;
   run)      inner='configure; cd $SRC && "$@"' ;;
   *) fail "unknown command '$cmd' (build|ctest|teaching|apps|clip|run)" ;;
 esac
