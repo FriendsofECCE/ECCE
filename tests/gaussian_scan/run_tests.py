@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """A scanned constraint (#393) must reach the Gaussian 16 deck as
-'D i j k l <value> S <n> <step>' with Opt=ModRedundant; a plain constraint
+'D i j k l S <n> <step>' (no value: Gaussian reads a value as a fixed
+coordinate and drops the scan) with Opt=ModRedundant; a plain constraint
 keeps its 'F'.  Generates decks only; no Gaussian needed."""
 import os, shutil, subprocess, sys, tempfile
 
@@ -42,9 +43,9 @@ def main():
     fails = 0
     cases = [
         (CON % ("torsion", "2 0 1 3", "141.11993", '  <Scan steps="6" step="30.0"/>\n'),
-         "D 3 1 2 4 141.11993 S 6 30.0"),
+         "D 3 1 2 4 S 6 30.0"),
         (CON % ("bond", "0 1", "1.46", '  <Scan steps="10" step="-0.05"/>\n'),
-         "B 1 2 1.46 S 10 -0.05"),
+         "B 1 2 S 10 -0.05"),
         (CON % ("torsion", "2 0 1 3", "141.11993", ""), "D 3 1 2 4 141.11993 F"),
     ]
     for con, want in cases:

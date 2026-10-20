@@ -4528,6 +4528,20 @@ void Builder::constraintsEdited()
 }
 
 
+void Builder::saveFromConstraints()
+{
+  doSave();
+}
+
+
+bool Builder::constraintsUnsaved() const
+{
+  if (!p_calculation) return false;
+  auto it = p_constraintsDirty.find(p_calculation->getURL().toString());
+  return it != p_constraintsDirty.end() && it->second;
+}
+
+
 void Builder::OnAddDummy(wxCommandEvent& event)
 {
   string codeName;

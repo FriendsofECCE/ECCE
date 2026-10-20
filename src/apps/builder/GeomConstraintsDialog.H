@@ -44,6 +44,8 @@ private:
   void OnConstrain(wxCommandEvent&);
   void OnRestrain(wxCommandEvent&);
   void OnFix(wxCommandEvent&);
+  void OnScan(wxCommandEvent&);
+  void OnSave(wxCommandEvent&);
   void OnRemove(wxCommandEvent&);
   void OnClearAll(wxCommandEvent&);
   void OnEdit(wxCommandEvent&);
@@ -57,7 +59,8 @@ private:
   void done(const std::string& message);
   void updateButtons();
   void fillList();
-  void editRow(long row);
+  /// scanOn: open with Scan ticked (the Scan button).
+  void editRow(long row, bool scanOn = false);
 
   Builder *p_builder;
   wxStaticText *p_pick;
@@ -67,6 +70,8 @@ private:
   wxButton *p_constrain;
   wxButton *p_restrain;
   wxButton *p_fix;
+  wxButton *p_scan;
+  wxButton *p_save;
   wxButton *p_edit;
   wxButton *p_remove;
   wxButton *p_clear;

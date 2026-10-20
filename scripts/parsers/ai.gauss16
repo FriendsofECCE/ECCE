@@ -2312,9 +2312,11 @@ sub readCnstrntFile {
           $value =~ s/\s*$//;
           $value .= ".0";
         }
-        # A scanned coordinate starts at its value and moves $scanStep per point.
+        # No value on a scanned coordinate: with one, Gaussian reads the line
+        # as a fixed coordinate and drops the scan.  It starts from the
+        # geometry, which holds the value already.
         if ($scanSteps > 0 && $type ne "fixed") {
-          $newline .= " $value S $scanSteps $scanStep\n";
+          $newline .= " S $scanSteps $scanStep\n";
         } else {
           $newline .= " $value F\n";
         }

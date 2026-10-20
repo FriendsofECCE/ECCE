@@ -18,6 +18,7 @@
 
 #include "Builder.H"
 #include "GeomConstraintsDialog.H"
+#include <algorithm>
 #include <wx/checkbox.h>
 #include <wx/spinctrl.h>
 #include <wx/textctrl.h>
@@ -28,7 +29,7 @@ using std::vector;
 namespace {
 
 enum { ID_CONSTRAIN = wxID_HIGHEST + 700, ID_RESTRAIN, ID_FIX, ID_EDIT,
-       ID_REMOVE, ID_CLEAR, ID_LIST };
+       ID_REMOVE, ID_CLEAR, ID_LIST, ID_SCAN, ID_SAVE };
 
 const char *DASH = "\xE2\x80\x93";
 
@@ -67,11 +68,18 @@ string valueOf(const GeomConstraint *c)
 {
   char buf[64];
   if (c->getNumAtoms() == 1) return "";
-  if (c->getNumAtoms() == 2)
+  const bool length = c->getNumAtoms() == 2;
+  if (length)
     snprintf(buf, sizeof buf, "%.4f \xC3\x85", c->getConstraintValue());
   else
     snprintf(buf, sizeof buf, "%.2f\xC2\xB0", c->getConstraintValue());
-  return buf;
+  string s = buf;
+  if (c->getScanSteps() > 0) {
+    snprintf(buf, sizeof buf, ", scan %d \xC3\x97 %g%s", c->getScanSteps(),
+             c->getScanStep(), length ? " \xC3\x85" : "\xC2\xB0");
+    s += buf;
+  }
+  return s;
 }
 
 string springOf(const GeomConstraint *c)
@@ -95,13 +103,9 @@ GeomConstraintsDialog::GeomConstraintsDialog(Builder *builder)
   const int pad = 8;
 
   wxStaticText *help = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(
-      "1. Select atoms in the viewer. Shift+click or Ctrl+click adds an atom "
-      "to the selection.\n"
-      "2. Press a button below. Two atoms make a bond length, three an angle "
-      "(the centre atom is the one bonded to the other two), four a torsion "
-      "along a bonded chain.\n"
-      "Constrain holds the value it has now; Restrain pulls towards it with "
-      "a spring; Fix Atoms holds the atoms in place."));
+      "Select 2, 3 or 4 atoms in the viewer (Shift+click adds one), then "
+      "press a button. Constrain holds the value; Restrain pulls towards it; "
+      "Scan steps it, relaxing the rest; Fix Atoms holds atoms in place."));
   help->Wrap(440);
   top->Add(help, 0, wxALL | wxEXPAND, pad);
 
@@ -112,9 +116,11 @@ GeomConstraintsDialog::GeomConstraintsDialog(Builder *builder)
   wxBoxSizer *act = new wxBoxSizer(wxHORIZONTAL);
   p_constrain = new wxButton(this, ID_CONSTRAIN, "Constrain");
   p_restrain = new wxButton(this, ID_RESTRAIN, "Restrain");
+  p_scan = new wxButton(this, ID_SCAN, "Scan...");
   p_fix = new wxButton(this, ID_FIX, "Fix Atoms");
   act->Add(p_constrain, 0, wxRIGHT, 4);
   act->Add(p_restrain, 0, wxRIGHT, 4);
+  act->Add(p_scan, 0, wxRIGHT, 4);
   act->Add(p_fix, 0);
   top->Add(act, 0, wxALL, pad);
 
@@ -141,14 +147,21 @@ GeomConstraintsDialog::GeomConstraintsDialog(Builder *builder)
   p_note = new wxStaticText(this, wxID_ANY, "");
   top->Add(p_note, 0, wxLEFT | wxRIGHT | wxEXPAND, pad);
 
-  top->Add(new wxButton(this, wxID_CLOSE, "Close"), 0,
-           wxALL | wxALIGN_RIGHT, pad);
+  wxBoxSizer *bottom = new wxBoxSizer(wxHORIZONTAL);
+  p_save = new wxButton(this, ID_SAVE, "Save");
+  p_save->SetToolTip("Save the structure with its constraints");
+  bottom->AddStretchSpacer(1);
+  bottom->Add(p_save, 0, wxRIGHT, 4);
+  bottom->Add(new wxButton(this, wxID_CLOSE, "Close"), 0);
+  top->Add(bottom, 0, wxALL | wxEXPAND, pad);
 
   SetSizerAndFit(top);
 
   Bind(wxEVT_BUTTON, &GeomConstraintsDialog::OnConstrain, this, ID_CONSTRAIN);
   Bind(wxEVT_BUTTON, &GeomConstraintsDialog::OnRestrain, this, ID_RESTRAIN);
   Bind(wxEVT_BUTTON, &GeomConstraintsDialog::OnFix, this, ID_FIX);
+  Bind(wxEVT_BUTTON, &GeomConstraintsDialog::OnScan, this, ID_SCAN);
+  Bind(wxEVT_BUTTON, &GeomConstraintsDialog::OnSave, this, ID_SAVE);
   Bind(wxEVT_BUTTON, &GeomConstraintsDialog::OnEdit, this, ID_EDIT);
   Bind(wxEVT_BUTTON, &GeomConstraintsDialog::OnRemove, this, ID_REMOVE);
   Bind(wxEVT_BUTTON, &GeomConstraintsDialog::OnClearAll, this, ID_CLEAR);
@@ -271,7 +284,9 @@ void GeomConstraintsDialog::updateButtons()
   const size_t n = p_builder->constraintSelection().size();
   p_constrain->Enable(!ro && n >= 2 && n <= 4);
   p_restrain->Enable(!ro && n >= 2 && n <= 4);
+  p_scan->Enable(!ro && n >= 2 && n <= 4);
   p_fix->Enable(!ro && n >= 1);
+  p_save->Enable(!ro && p_builder->constraintsUnsaved());
   const bool picked = p_list->GetSelectedItemCount() > 0;
   p_edit->Enable(!ro && p_list->GetSelectedItemCount() == 1);
   p_remove->Enable(!ro && picked);
@@ -362,6 +377,24 @@ void GeomConstraintsDialog::OnFix(wxCommandEvent&)
   done(fixSelection());
 }
 
+void GeomConstraintsDialog::OnScan(wxCommandEvent&)
+{
+  const vector<GeomConstraint*> before = p_rows;
+  done(addFromSelection(false, true, false));
+  for (size_t i = 0; i < p_rows.size(); i++)
+    if (std::find(before.begin(), before.end(), p_rows[i]) == before.end()) {
+      editRow((long)i, true);
+      return;
+    }
+}
+
+void GeomConstraintsDialog::OnSave(wxCommandEvent&)
+{
+  p_builder->saveFromConstraints();
+  p_status->SetLabel("Saved.");
+  updateButtons();
+}
+
 
 void GeomConstraintsDialog::OnRemove(wxCommandEvent&)
 {
@@ -388,7 +421,7 @@ void GeomConstraintsDialog::OnClearAll(wxCommandEvent&)
 }
 
 
-void GeomConstraintsDialog::editRow(long row)
+void GeomConstraintsDialog::editRow(long row, bool scanOn)
 {
   if (row < 0 || row >= (long)p_rows.size()) return;
   GeomConstraint *c = p_rows[row];
@@ -411,7 +444,7 @@ void GeomConstraintsDialog::editRow(long row)
   wxTextCtrl *step = nullptr;
   if (!r) {
     scan = new wxCheckBox(&d, wxID_ANY, "Scan: step this value, relaxing the rest");
-    scan->SetValue(c->getScanSteps() > 0);
+    scan->SetValue(scanOn || c->getScanSteps() > 0);
     steps = new wxSpinCtrl(&d, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
                            wxSP_ARROW_KEYS, 1, 500,
                            c->getScanSteps() > 0 ? c->getScanSteps() : 10);

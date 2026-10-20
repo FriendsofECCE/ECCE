@@ -115,6 +115,9 @@ for my $i (0 .. $#lines) {
   #  Trailing tokens are allowed: MOPAC writes an optimisation flag
   #  after each coordinate, and NWChem permits a tag.
   if ($lines[$i] =~ /^\s*([A-Z][a-z]?|x)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+    #  A Gaussian ModRedundant line ("D 11 8 5 1 S 12 30") looks like a
+    #  deuterium or boron atom; its numbers are atom indices, never decimals.
+    next if ($lines[$i] =~ /^\s*[BADLX]\s+\d+\s+\d+(\s+\d+){0,2}(\s+[A-Z]\b|\s+[-+]?\d*\.\d+|\s*$)/);
     $atoms++;
     $firstAtom = $i + 1 if (!$firstAtom);
     $lastAtom = $i + 1;

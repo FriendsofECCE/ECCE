@@ -256,6 +256,9 @@ class Builder: public BuilderGUI,
       GeomConstraintModel *constraintModel(bool create);
       std::vector<int> constraintSelection();
       void constraintsEdited();
+      /// The constraints window's Save: saves the structure.
+      void saveFromConstraints();
+      bool constraintsUnsaved() const;
       bool constraintsReadOnly() const;
       std::string constraintRunType() const;
       std::string constraintCodeName() const;
