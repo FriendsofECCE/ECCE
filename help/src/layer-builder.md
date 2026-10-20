@@ -1,7 +1,7 @@
-# Stacking layers: the Layer builder
+# Stacking layers: the Layer Builder
 
-The Layer builder in the Periodic Builder turns one layer into a stack of
-layers. Use it for graphite, layered oxides, clays and layered hydroxides.
+The Layer Builder (**Tools > Layer Builder**) turns one layer into a stack
+of layers. Use it for graphite, layered oxides, clays and layered hydroxides.
 It only draws the structure. It knows nothing about force fields or about
 the code that will run the calculation, and it proposes no spacings, shifts
 or counts: you give them.
@@ -17,7 +17,7 @@ included.
 
 ## The fields
 
-In the **Layer builder** box of the Periodic Builder:
+In the Layer Builder panel:
 
 - **Layers**: the number of layers in the new cell.
 - **Spacing (A)**: the distance from one layer to the next, measured along

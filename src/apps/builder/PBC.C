@@ -36,7 +36,6 @@ using namespace ecce;
 #include "viz/PBCDeleteCmd.H"
 #include "viz/PBCEditVectorsCmd.H"
 #include "viz/PBCGenerateFragCmd.H"
-#include "viz/PBCLayerCmd.H"
 
 #include "PBC.H"
 
@@ -237,8 +236,6 @@ bool PBC::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxS
   choice->SetStringSelection("Lattice");
   p_latticePanel->GetSizer()->Show((size_t)2,true);
   p_latticePanel->GetSizer()->Show((size_t)1,false);
-
-  Bind(wxEVT_BUTTON, &PBC::OnButtonLayerBuild, this, ID_BUTTON_LAYER_BUILD);
 
   indicateHaveLattice(false);
   // Hack - can't properly set up the code for checking the fragment
@@ -1102,46 +1099,6 @@ void PBC::center(bool docenter)
    lattice->setCentering(docenter);
    getFW().getSceneGraph().touchLattice();
    EventDispatcher::getDispatcher().publish(Event("GeomChange"));
-}
-
-void PBC::OnButtonLayerBuild( wxCommandEvent& event )
-{
-   auto num = [this](wxWindowID id, double &v) {
-      ewxTextCtrl *t = (ewxTextCtrl*)FindWindow(id);
-      return t->GetValue().Trim().ToDouble(&v);
-   };
-   double spacing = 0, sa = 0, sb = 0, wmin = 0, q[2] = {0, 0}, imin[2] = {0, 0};
-   if (!num(ID_TEXT_LAYER_SPACING, spacing) || spacing <= 0.0) {
-      wxLogWarning("Enter the interlayer spacing in Angstrom: the distance from one layer to the next.");
-      return;
-   }
-   if (!num(ID_TEXT_LAYER_SHIFTA, sa) || !num(ID_TEXT_LAYER_SHIFTB, sb) ||
-       !num(ID_TEXT_LAYER_WATERMIN, wmin) ||
-       !num(ID_TEXT_LAYER_ION1Q, q[0]) || !num(ID_TEXT_LAYER_ION1MIN, imin[0]) ||
-       !num(ID_TEXT_LAYER_ION2Q, q[1]) || !num(ID_TEXT_LAYER_ION2MIN, imin[1])) {
-      wxLogWarning("A shift, charge or minimum distance is not a number.");
-      return;
-   }
-   wxBusyCursor busy;
-   PBCCmd *cmd = new PBCLayerCmd("Build layers", &getFW().getSceneGraph(), 0);
-   cmd->getParameter("layers")->setInteger(((ewxSpinCtrl*)FindWindow(ID_SPIN_LAYER_N))->GetValue());
-   cmd->getParameter("spacing")->setDouble(spacing);
-   cmd->getParameter("shiftA")->setDouble(sa);
-   cmd->getParameter("shiftB")->setDouble(sb);
-   const wxWindowID sym[2] = {ID_TEXT_LAYER_ION1SYM, ID_TEXT_LAYER_ION2SYM};
-   const wxWindowID cnt[2] = {ID_SPIN_LAYER_ION1N, ID_SPIN_LAYER_ION2N};
-   for (int i = 0; i < 2; i++) {
-      string p = i == 0 ? "ion1" : "ion2";
-      cmd->getParameter(p + "sym")->setString(
-         ((ewxTextCtrl*)FindWindow(sym[i]))->GetValue().Trim().ToStdString());
-      cmd->getParameter(p + "n")->setInteger(((ewxSpinCtrl*)FindWindow(cnt[i]))->GetValue());
-      cmd->getParameter(p + "q")->setDouble(q[i]);
-      cmd->getParameter(p + "min")->setDouble(imin[i]);
-   }
-   cmd->getParameter("water")->setInteger(((ewxSpinCtrl*)FindWindow(ID_SPIN_LAYER_WATER))->GetValue());
-   cmd->getParameter("waterMin")->setDouble(wmin);
-   cmd->getParameter("seed")->setInteger(((ewxSpinCtrl*)FindWindow(ID_SPIN_LAYER_SEED))->GetValue());
-   execute(cmd);
 }
 
 void PBC::OnButtonPbcFoldClick( wxCommandEvent& event )

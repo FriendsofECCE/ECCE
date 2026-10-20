@@ -3120,9 +3120,17 @@ bool SGFragment::addAtom(const string& elem, const string& geom,
          string oldGeom = selAtom->shapeString();
          if (STLUtil::compareString(oldTag,elem) == 0 &&
                STLUtil::compareString(oldGeom,geom) == 0) {
-            ret = false;
-            throw EcceException("The new atom and shape are identical to "
-                  "the current atom and shape.  Request ignored.",WHERE);
+            //  Nothing to change, so a click on the atom means "bond a new
+            //  one to it": the second O of O2 lands on an open site (#401).
+            TAtm *nub = childNub(selAtom);
+            if (nub == 0) {
+               ret = false;
+               throw EcceException("The new atom and shape are identical to "
+                     "the current atom and shape, and the atom has no open "
+                     "site to add to.  Request ignored.",WHERE);
+            }
+            ret = fragutil.addToNub(selAtom,nub,elem.c_str(),geom.c_str(),
+                  order);
          } else if (oldTag != elem && oldGeom == geom) {
             // Here we are changing the type but not the shape.  This is
             // easy.  We want to change things like symbol, number, instance
