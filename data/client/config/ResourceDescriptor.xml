@@ -802,9 +802,7 @@
        reduced scope: RHF/UHF/RDFT/UDFT x Energy/Gradient/Geometry/
        Vibration/GeoVib). Cloned from gaussian16_es above, with every
        section identical except applicationType/DescriptorFile/
-       MenuItem/Icons. No svg/candidates/codes/orca.svg exists yet, so this reuses
-       calcany.xpm (the same generic fallback import_es uses above)
-       until a real icon is made. -->
+       MenuItem/Icons. -->
   <ResourceType name="orca_es" resourceType="virtual_document" contentType="ecceCalculation"
     applicationType="ORCA">
     <SortPriority>65</SortPriority>
@@ -1377,10 +1375,10 @@
     <SortPriority>66</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>svg/candidates/codes/mopac-a.svg</Normal>
-      <Selected>svg/candidates/codes/mopac-a.svg</Selected>
-      <Expanded>svg/candidates/codes/mopac-a.svg</Expanded>
-      <SelectedExpanded>svg/candidates/codes/mopac-a.svg</SelectedExpanded>
+      <Normal>svg/candidates/codes/mopac-b.svg</Normal>
+      <Selected>svg/candidates/codes/mopac-b.svg</Selected>
+      <Expanded>svg/candidates/codes/mopac-b.svg</Expanded>
+      <SelectedExpanded>svg/candidates/codes/mopac-b.svg</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>

@@ -1,5 +1,4 @@
 #ifdef _WIN32
-#include <wx/statline.h>
 #include <windows.h>
 #endif
 #include <cstdint>
@@ -14,6 +13,7 @@
 #include <sys/wait.h>
 
 #include <wx/combo.h>
+#include <wx/statline.h>
 
 #include <wx/wupdlock.h>
 #include "util/Ecce.H"
@@ -500,9 +500,14 @@ void CalcEd::OnButtonCalcedCodeClick(wxCommandEvent &event)
   wxCustomButton *codeButton;
 
   // enforce radio button behavior
+  //  The code bar also holds the group rules: only buttons take a state.
   while (node) {
     child = node->GetData();
-    codeButton = (wxCustomButton*)child->GetWindow();
+    codeButton = wxDynamicCast(child->GetWindow(), wxCustomButton);
+    if (!codeButton) {
+      node = node->GetNext();
+      continue;
+    }
     if (codeButton != eventButton) {
       codeButton->SetValue(false);
     } else {
@@ -534,7 +539,11 @@ void CalcEd::setCurrentCodeButton(const string& currentCode)
     wxCustomButton *codeButton;
     while (node) {
       child = node->GetData();
-      codeButton = (wxCustomButton*)child->GetWindow();
+      codeButton = wxDynamicCast(child->GetWindow(), wxCustomButton);
+      if (!codeButton) {
+        node = node->GetNext();
+        continue;
+      }
       if ((uintptr_t)codeButton->GetClientData() == icode) {
         codeButton->SetValue(true);
       } else {

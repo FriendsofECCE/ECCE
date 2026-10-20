@@ -5099,17 +5099,6 @@ void Builder::savePaneLayout(const wxString& layoutName_)
 }
 
 
-//  AUI reads a toolbar pane's Position as a pixel offset along the row, so the
-//  groups sit side by side only when each starts where the previous one ends.
-static int toolbarOffset(const vector<wxToolBar*>& bars, size_t upTo)
-{
-  int x = 0;
-  for (size_t i = 0; i < upTo && i < bars.size(); i++)
-    x += bars[i]->GetBestSize().x + 12;
-  return x;
-}
-
-
 void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
 {
   //  Detaching and re-docking every property panel is not the user
@@ -5171,18 +5160,17 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         config->Read(layoutPrefix + pane.name, &info)) {
       unfoldPane(pane);     // the saved info carries the unfolded sizes
       p_mgr.LoadPaneInfo(info, pane);
-      //  Layouts saved with resizable toolbars stretch them across the row.
-      if (pane.IsToolbar()) {
-        //  A saved layout holds the widths and pixel offsets of the screen it
-        //  was saved on, which spread the toolbars along the row.
-        pane.Fixed();
-        if (pane.window) {
-          pane.BestSize(pane.window->GetBestSize());
-          pane.MinSize(pane.window->GetBestSize());
-          for (size_t t = 0; t < p_toolbars.size(); t++)
-            if (p_toolbars[t] == pane.window)
-              pane.Position(toolbarOffset(p_toolbars, t));
-        }
+      //  AUI keeps a fixed pane at its best size only while it has no
+      //  minimum size; with one, the row's spare width is shared out among
+      //  the toolbars.  Position is a pixel offset in a toolbar row and AUI
+      //  only pushes a pane right to stop overlaps, so a saved offset leaves
+      //  a gap; the creation order packs them.
+      if (pane.IsToolbar() && pane.window) {
+        pane.BestSize(pane.window->GetBestSize());
+        pane.MinSize(wxDefaultSize);
+        for (size_t t = 0; t < p_toolbars.size(); t++)
+          if (p_toolbars[t] == pane.window) pane.Position(t);
+        continue;
       }
       //  Saved before tool panes could fold: no fold button in the info.
       if (p_structureNames.count(pane.name.ToStdString()) ||
@@ -6799,10 +6787,8 @@ void Builder::addToolBar(wxToolBar * toolbar, const string& name)
   toolbar->Realize();
   
   wxAuiPaneInfo pinfo;
-  pinfo.Name(name).Caption(name).ToolbarPane().Top().
-          Position(toolbarOffset(p_toolbars, p_toolbars.size())).
-          LeftDockable(false).RightDockable(false).Fixed().
-          BestSize(toolbar->GetBestSize()).MinSize(toolbar->GetBestSize());
+  pinfo.Name(name).Caption(name).ToolbarPane().Top().Position(p_toolbarCount).
+          LeftDockable(false).RightDockable(false);
   p_mgr.AddPane(toolbar, pinfo);
 
   p_toolbarMenu->AppendCheckItem(ID_TOOLBARMENU_ITEM+p_toolbarCount, name, "");
