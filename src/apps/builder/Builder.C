@@ -207,6 +207,7 @@ using std::vector;
 #include "TranslatePanel.H"
 #include "VizPropertyPanel.H"
 #include "PBC.H"
+#include "LayerBuilder.H"
 #include "Slice.H"
 
 #include <wx/timer.h>
@@ -329,6 +330,7 @@ const string Builder::NAME_TOOL_LOG(_("Log"));
 const string Builder::NAME_TOOL_COMMAND_LINE(_("Command Line"));
 const string Builder::NAME_TOOL_STRUCTLIB(_("Structure Library"));
 const string Builder::NAME_TOOL_PBC(_("Periodic Builder"));
+const string Builder::NAME_TOOL_LAYER(_("Layer Builder"));
 const string Builder::NAME_TOOL_SLICER(_("Slicer"));
 
 const string Builder::NAME_TOOLBAR_FILE(_("File Toolbar"));
@@ -1081,6 +1083,9 @@ void Builder::createToolPanels()
   PBC *pbc = new PBC(this,-1);
   addToolPanel(pbc, NAME_TOOL_PBC, false);
 
+  LayerBuilder *layers = new LayerBuilder(this);
+  addToolPanel(layers, NAME_TOOL_LAYER, true);
+
   Slice *slice = new Slice(this,-1);
   addToolPanel(slice, NAME_TOOL_SLICER, false);
 
@@ -1343,8 +1348,9 @@ Command * Builder::createModeCommand(int modeId)
         cmd->getParameter("geom")->setString(p_currentShapes[p_currentElement]);
         cmd->getParameter("bondOrder")->setDouble(p_currentBond);
         cmd->getParameter("resIndex")->setInteger(resIdx);
-        break;
       } catch (CancelException) {}
+      //  A cancelled residue prompt adds nothing (it fell into Bond mode).
+      break;
     }
   case ID_MODE_BOND:
     cmd = new BondEditCmd("bond", getSG());
@@ -1781,6 +1787,26 @@ bool Builder::mouseEvent(wxMouseEvent *event)
 }
 
 
+/// A press on an atom, bond or nub in the 3-D view, after the selection
+/// was read: doubleClick for the second press of a double-click, on
+/// dcatom (-1 for none).
+void Builder::pickedInMode(bool doubleClick, int dcatom)
+{
+  SGFragment *sgfrag = getSG()->getFragment();
+  if (doubleClick && dcatom >= 0 && sgfrag &&
+      dcatom < (int)sgfrag->numAtoms()) {
+    TAtm *atm = sgfrag->atomRef(dcatom);
+    Residue *res = sgfrag->findResidue(atm);
+    if (res) selectResidue(*res,true);
+  }
+  //  The first press of the double-click already ran the mode's action;
+  //  running it again added a second atom on the first one (#401).
+  if (doubleClick && p_currentMode != ID_MODE_SELECT) return;
+  Command *cmd = createModeCommand(p_currentMode);
+  execute(cmd);
+}
+
+
 void Builder::processSelectionChange(ChemSelection *sel)
 {
   SGSelection * esel = ( SGSelection *) sel;
@@ -1871,17 +1897,7 @@ void Builder::processSelectionChange(ChemSelection *sel)
         bool changed = esel->readSelection(sgfrag);
         //cout << "read selection " << changed << endl;
         if (changed || esel->isDoubleClick()) {
-          if (esel->isDoubleClick() ) {
-            int dcatom = esel->getDoubleClickAtom();
-            if (dcatom >= 0) {
-              TAtm *atm = sgfrag->atomRef(dcatom);
-              Residue *res = sgfrag->findResidue(atm);
-              if (res) selectResidue(*res,true);
-            }
-          }
-          
-          Command *cmd = createModeCommand(p_currentMode);
-          execute(cmd);
+          pickedInMode(esel->isDoubleClick(), esel->getDoubleClickAtom());
           /*
           if (cmd) {
             // This just dumps the command in XML for debugging
@@ -6157,7 +6173,7 @@ void Builder::updatePropertyMenus()
             w[0] == "foldclick" ||
             w[0] == "sashdrag" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab" ||
-            w[0] == "undo" || w[0] == "redo" || w[0] == "pbcscroll" ||
+            w[0] == "undo" || w[0] == "redo" ||
             w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip" ||
             w[0] == "importfile" || w[0] == "tooldock" || w[0] == "collapse")
           return pbcTestCommand(s, w, outdir);

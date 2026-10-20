@@ -81,7 +81,6 @@ class PBC : public PBCGUI,
       virtual    void OnButtonPbcRestoreClick( wxCommandEvent& event );
       virtual    void OnPbcGenerateClick( wxCommandEvent& event );
       virtual    void OnListChange(wxListEvent& event);
-      void OnButtonLayerBuild( wxCommandEvent& event );
       virtual    void OnCheckboxPbcUniformClick( wxCommandEvent& event );
       virtual    void OnButtonPbcEquivrectClick( wxCommandEvent& event );
 

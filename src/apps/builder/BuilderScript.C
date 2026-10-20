@@ -33,6 +33,7 @@
 //    bondorder single|metal      the order Bond mode makes
 //    clean                       the viewer's Clean command
 //    key escape                  what the Esc key does with the view focused
+//    dclick A                    a double-click on the last atom of element A
 //    selectnub A                 select the first Nub of the last atom of element A
 //    bonds A B                   count the bonds from the last atom of element A
 //                                to atoms of element B
@@ -517,6 +518,20 @@ void Builder::runBuilderScript(const std::string& file)
             outcome = "ok";
             break;
           }
+        }
+      } else if (w[0] == "dclick" && w.size() == 2 && frag) {
+        //  A double-click on the last atom of element A, as the viewer
+        //  reports it: two presses on that atom, the second flagged.
+        int idx = -1;
+        for (size_t i = 0; i < frag->numAtoms(); i++)
+          if (frag->atomRef(i)->atomicSymbol() == w[1]) idx = (int)i;
+        if (idx < 0) {
+          outcome = "FAIL: no such atom";
+        } else {
+          frag->m_atomHighLight.assign(1, idx);
+          pickedInMode(false, -1);
+          frag->m_atomHighLight.assign(1, idx);
+          pickedInMode(true, idx);
         }
       } else if (w[0] == "bonds" && w.size() == 3 && frag) {
         //  Bonds from the last atom of element A to atoms of element B.

@@ -2,7 +2,7 @@
 type: pitfall
 title: "Layer builder (#357): spacing, tilt, wrapping and the water-H distance have silent traps"
 area: wx-viewer
-paths: [include/tdat/LayerStack.H, src/tdat/chemistry/LayerStack.C, src/viz/sgcommands/PBCLayerCmd.C, src/apps/builder/PBC.C, tests/layerstack/layer_stack_test.C]
+paths: [include/tdat/LayerStack.H, src/tdat/chemistry/LayerStack.C, src/viz/sgcommands/PBCLayerCmd.C, src/apps/builder/LayerBuilder.C, src/apps/builder/BuilderPbcTest.C, tests/layerstack/layer_stack_test.C]
 issues: [357]
 ---
 - Spacing is the perpendicular distance along the a-b normal; shifts are
@@ -34,3 +34,6 @@ issues: [357]
   Layers. Each added ion and water gets its own residue (`HOH`, the ion's
   symbol) when the fragment has residues. Scene hook `importfile <path>`
   loads such a file headless (`pbc_layers_test.py` gro-residues).
+- The controls are their own tool pane, Tools > Layer Builder
+  (`LayerBuilder.C`, #401), not part of the Periodic Builder; the hooks
+  `pbclayer` and `pbcpress layers` find them in that pane, open or not.

@@ -170,6 +170,7 @@ class Builder: public BuilderGUI,
     const static string NAME_TOOL_COMMAND_LINE;
     const static string NAME_TOOL_STRUCTLIB;
     const static string NAME_TOOL_PBC;
+    const static string NAME_TOOL_LAYER;
     const static string NAME_TOOL_SLICER;
 
     const static string NAME_TOOLBAR_FILE;
@@ -304,6 +305,7 @@ class Builder: public BuilderGUI,
       void showSelectionFromNWChemString(string selection);
       static void selectionChangeCB(void *  data, ChemSelection * sel);
       void processSelectionChange(ChemSelection *sel);
+      void pickedInMode(bool doubleClick, int dcatom);
       void setMode(int modeId);
       void applyMode(int modeId);
       bool escapeKey();
