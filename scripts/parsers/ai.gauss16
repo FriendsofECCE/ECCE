@@ -2316,6 +2316,8 @@ sub readCnstrntFile {
         # as a fixed coordinate and drops the scan.  It starts from the
         # geometry, which holds the value already.
         if ($scanSteps > 0 && $type ne "fixed") {
+          # Gaussian stops on an integer step ("Wanted a floating point number").
+          $scanStep .= ".0" if ($scanStep =~ /^[-+]?\d+$/);
           $newline .= " S $scanSteps $scanStep\n";
         } else {
           $newline .= " $value F\n";

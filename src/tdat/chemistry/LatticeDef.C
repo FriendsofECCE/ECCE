@@ -179,6 +179,12 @@ void LatticeDef::setFragCenter(double x, double y, double z)
 }
 
 
+MPoint LatticeDef::getFragCenter() const
+{
+   return p_fragcenter;
+}
+
+
 /**
  * Generate three vectors a1,a2,a3 from the lattice definition.
  * Caller responsible for memory

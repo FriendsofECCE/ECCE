@@ -47,6 +47,7 @@ class LatticeDef
       void setCentering(bool center);
       bool getCentering() const;
       void setFragCenter(double x, double y, double z);
+      MPoint getFragCenter() const;
       void getLattice(double& a, double& b, double& c,
                       double& alpha, double& beta, double& gamma) const;
       /* Find intersections of a plane described by displ and normal with

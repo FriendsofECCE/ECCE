@@ -46,6 +46,8 @@ def main():
          "D 3 1 2 4 S 6 30.0"),
         (CON % ("bond", "0 1", "1.46", '  <Scan steps="10" step="-0.05"/>\n'),
          "B 1 2 S 10 -0.05"),
+        (CON % ("torsion", "2 0 1 3", "141.11993", '  <Scan steps="12" step="30"/>\n'),
+         "D 3 1 2 4 S 12 30.0"),
         (CON % ("torsion", "2 0 1 3", "141.11993", ""), "D 3 1 2 4 141.11993 F"),
     ]
     for con, want in cases:

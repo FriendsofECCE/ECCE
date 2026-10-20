@@ -208,7 +208,7 @@ ecce_library(ecceutil
 )
 target_compile_definitions(ecceutil PRIVATE ECCE_VERSION=\"${ECCE_VERSION_RAW}\")
 # A build that is not exactly the release tag names its commit in About, so
-# a tester can tell which build they have.  Read at configure time.
+# a tester can tell which build they have.
 set(ECCE_BUILD_COMMIT "")
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.git)
@@ -219,6 +219,12 @@ if(GIT_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.git)
   string(REGEX MATCH "(^|\n)v${ECCE_VERSION_RAW}(\n|$)" _ecce_release "${_ecce_tags}")
   if(_ecce_head AND NOT _ecce_release)
     set(ECCE_BUILD_COMMIT "${_ecce_head}")
+  endif()
+  # Re-read on every commit: an incremental build otherwise kept naming the
+  # commit of its first configure.
+  if(EXISTS ${CMAKE_SOURCE_DIR}/.git/logs/HEAD)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                 ${CMAKE_SOURCE_DIR}/.git/logs/HEAD)
   endif()
 endif()
 target_compile_definitions(ecceutil PRIVATE ECCE_BUILD_COMMIT=\"${ECCE_BUILD_COMMIT}\")

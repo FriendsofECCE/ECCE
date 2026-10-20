@@ -183,9 +183,19 @@ void SGLattice::setLattice(LatticeDef *lattice)
       boxshape::Shape shape;
       if (boxshape::isGromacsCompactBox(va, vb, vc) &&
           boxshape::wignerSeitz(va, vb, vc, shape)) {
+         // gmx trjconv -ur compact centres on (a+b+c)/2, gmx solvate and
+         // editconf -c fill the brick around the diagonal's half: the one
+         // nearer the atoms is where they are.
+         MPoint fc = lattice->getFragCenter();
          double cx = 0.5*(va[0]+vb[0]+vc[0]);
          double cy = 0.5*(va[1]+vb[1]+vc[1]);
          double cz = 0.5*(va[2]+vb[2]+vc[2]);
+         const double rx = 0.5*va[0], ry = 0.5*vb[1], rz = 0.5*vc[2];
+         const double dt = (cx-fc.x())*(cx-fc.x()) + (cy-fc.y())*(cy-fc.y()) +
+                           (cz-fc.z())*(cz-fc.z());
+         const double dr = (rx-fc.x())*(rx-fc.x()) + (ry-fc.y())*(ry-fc.y()) +
+                           (rz-fc.z())*(rz-fc.z());
+         if (dr < dt) { cx = rx; cy = ry; cz = rz; }
          // The first three lines are coloured as the axes; keep their slots
          // empty so the cell edges all get the plain cell colour.
          edges->clear();
