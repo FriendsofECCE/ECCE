@@ -75,6 +75,26 @@ CASES = [
         },
     ),
     dict(
+        name='g16-h2o2-scan',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o2_dihedral_scan.log',
+        # HF/STO-3G Opt=ModRedundant, D 3 1 2 4 S 6 30.0 (#393).  Values are
+        # the "Summary of Optimized Potential Surface Scan" read by eye:
+        # D1 141.11993, 171.11993, -158.88007 ... -38.88007 (unwrapped here
+        # to 201.11993 ...), energies -148.0 plus -0.76495 ... -0.75557.
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={
+            'SCANCOORD][SCANENERGY': dict(keys={
+                'SCANCOORD': {'values': '141.11993 171.11993 201.11993 '
+                              '231.11993 261.11993 291.11993 321.11993',
+                              'units': 'Degree'},
+                'SCANENERGY': {'values': '-148.76495 -148.76488 -148.76490 '
+                               '-148.76499 -148.76455 -148.76161 -148.75557',
+                               'units': 'Hartree'},
+            }),
+        },
+    ),
+    dict(
         name='g16-co-freq',
         desc='gaussian-16.desc',
         fixture='gaussian-16/co_freq.log',

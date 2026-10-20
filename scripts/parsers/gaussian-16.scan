@@ -1,0 +1,57 @@
+#!/usr/bin/env perl
+# Relaxed scan (#393): the optimised energy and scanned coordinate of every
+# scan point, from "Summary of Optimized Potential Surface Scan".  The block
+# does not mark the scanned row, so it is the one that moves by a constant,
+# non-zero step (dihedrals wrap at 360).
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /Geo/i);
+
+my $offset = 0;
+my (@energy, %row, @rowOrder);
+while (<STDIN>) {
+  if (/add\s+(-?[\d.]+)\s+to energies/) { $offset = $1; next; }
+  next if (/^\s+\d+(?:\s+\d+)*\s*$/);
+  if (/Eigenvalues --\s*(.*)/) {
+    push(@energy, $offset + $_) for ($1 =~ /-?\d+\.\d+/g);
+    next;
+  }
+  if (/^\s+([A-Z]\d+)\s+(-?\d.*)$/) {
+    push(@rowOrder, $1) unless exists $row{$1};
+    push(@{$row{$1}}, $2 =~ /-?\d+\.\d+/g);
+  }
+}
+exit(0) unless (@energy > 1);
+
+my $n = scalar(@energy);
+my $best;
+foreach my $r (@rowOrder) {
+  my @v = @{$row{$r}};
+  next unless (@v == $n);
+  my @d = map {
+    my $x = $v[$_] - $v[$_-1];
+    $x -= 360 * int($x / 180) if ($r =~ /^D/ && abs($x) > 180);
+    $x } (1 .. $n-1);
+  next if (abs($d[0]) < 1e-6);
+  my $ok = 1;
+  foreach (@d) { $ok = 0 if (abs($_ - $d[0]) > 1e-3 * (1 + abs($d[0]))); }
+  if ($ok) { $best = $r; last; }
+}
+exit(0) unless defined $best;
+
+# Unwrapped, so a dihedral scan through 180 stays monotone on the plot axis.
+my @coord = @{$row{$best}};
+if ($best =~ /^D/) {
+  for my $i (1 .. $n-1) {
+    my $x = $coord[$i] - $coord[$i-1];
+    $x -= 360 * int($x / 180) if (abs($x) > 180);
+    $coord[$i] = $coord[$i-1] + $x;
+  }
+}
+@coord = map { sprintf("%.5f", $_) } @coord;
+my $units = ($best =~ /^R/) ? "Angstrom" : "Degree";
+
+print "key: SCANCOORD\nsize: \n$n\nvalues: \n", join("\n", @coord), "\nunits:\n$units\nEND\n";
+print "key: SCANENERGY\nsize: \n$n\nvalues: \n",
+      join("\n", map { sprintf("%.5f", $_) } @energy), "\nunits:\nHartree\nEND\n";
+exit(0);

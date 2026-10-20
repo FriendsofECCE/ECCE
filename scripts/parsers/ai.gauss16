@@ -2257,12 +2257,17 @@ sub readCnstrntFile {
       }
       $newline = "";
       @group = ();
+      $scanSteps = 0;
       while (<GEOCNST>) {
         if (/<\/Constraint>/i) {
           last;
         }
         if (/^\s*<Value>(.*)<\/Value>\s*$/i) {
           $value = $1;
+        }
+        if (/^\s*<Scan\s+steps="(\d+)"\s+step="([^"]+)"/i) {
+          $scanSteps = $1;
+          $scanStep = $2;
         }
         if (/^\s*<Group>(.*)<\/Group>\s*$/i) {
           $tgroup = $1;
@@ -2307,7 +2312,12 @@ sub readCnstrntFile {
           $value =~ s/\s*$//;
           $value .= ".0";
         }
-        $newline .= " $value F\n";
+        # A scanned coordinate starts at its value and moves $scanStep per point.
+        if ($scanSteps > 0 && $type ne "fixed") {
+          $newline .= " $value S $scanSteps $scanStep\n";
+        } else {
+          $newline .= " $value F\n";
+        }
       }
       push(@geo_zcoords, $newline);
     }

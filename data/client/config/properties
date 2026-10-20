@@ -221,6 +221,8 @@ ESP		ESP Grid Dimensions     		ESPDIM		NA		PropVector<Grid>
 ESP		Electro Static Potential		ESPVEC		Energy		PropVector<Grid>
 #
 Geometry	GeometryTrace				GEOMTRACE	Length		PropTSVecTable<Geometry Step,Atom,Coordinate>
+Geometry	Scan Coordinate				SCANCOORD	NA		PropVector<Scan Point>
+Geometry	Scan Energy				SCANENERGY	Energy		PropVector<Scan Point>
 Geometry	Lattice Vectors				LATTICEVEC	Length		PropTSVecTable<Geometry Step,Coordinate,Coordinate>
 #
 #							   		     

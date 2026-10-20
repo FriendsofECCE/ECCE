@@ -21,6 +21,13 @@ Frequency=all
 End=CISAX will form
 [END]
 
+[SCANCOORD][SCANENERGY]
+Script=gaussian-16.scan
+Begin=Summary of Optimized Potential Surface Scan
+Frequency=last
+End=Largest change from initial coordinates
+[END]
+
 [GEOMTRACE]
 Script=gaussian-16.geomtrace
 Begin=Input orientation\:
