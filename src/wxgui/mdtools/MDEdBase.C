@@ -48,6 +48,7 @@
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxNotebook.H"
+#include <wx/scrolwin.h>
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/WxEditSessionMgr.H"
 #include "wxgui/WxFeedback.H"
@@ -109,13 +110,11 @@ void MDEdBase::constructor()
    createPanels();
 
    registerPages();
-   p_gmxInputs = new GromacsInputsPanel(this, p_notebook);
-   p_gmxInputs->Hide();
-   PageEntry inputs = { p_gmxInputs, _("Inputs"), false };
+   p_gmxInputs = new GromacsInputsPanel(this, scrollPage());
+   PageEntry inputs = { putInScrollPage(p_gmxInputs), _("Inputs"), false };
    p_pages.insert(p_pages.begin(), inputs);
-   p_gmxRun = new GromacsRunPanel(this, p_notebook);
-   p_gmxRun->Hide();
-   PageEntry runSettings = { p_gmxRun, _("Run settings"), false };
+   p_gmxRun = new GromacsRunPanel(this, scrollPage());
+   PageEntry runSettings = { putInScrollPage(p_gmxRun), _("Run settings"), false };
    p_pages.insert(p_pages.begin() + 1, runSettings);
 
    Fit();
@@ -131,6 +130,31 @@ void MDEdBase::constructor()
    ewxWindowUtils::setToolIcon(this, getAppName());
 
    startTestHook();
+}
+
+
+// A page taller than the window scrolls instead of being cut off by the
+// button row; the small minimum keeps it from sizing the editor.
+wxScrolledWindow *MDEdBase::scrollPage()
+{
+   wxScrolledWindow *sc = new wxScrolledWindow(p_notebook, wxID_ANY);
+   sc->SetScrollRate(10, 10);
+   sc->SetMinSize(wxSize(300, 200));
+   sc->Hide();
+   return sc;
+}
+
+
+wxWindow *MDEdBase::putInScrollPage(wxWindow *panel)
+{
+   wxWindow *sc = panel->GetParent();
+   wxBoxSizer *fill = new wxBoxSizer(wxVERTICAL);
+   fill->Add(panel, 1, wxEXPAND);
+   sc->SetSizer(fill);
+   sc->SetSize(panel->GetBestSize());   // lay the panel out before GTK first allocates it
+   sc->Layout();
+   sc->SetSize(sc->GetMinSize());
+   return sc;
 }
 
 
@@ -180,6 +204,8 @@ void MDEdBase::startTestHook()
  * launch               whether the Launch button is enabled
  * resume               "on" or "off": the continue-from-previous-task setting
  * title                the window's title
+ * size <w> <h>         resize the window (a small screen)
+ * scroll-end           scroll the selected page to its bottom
  * snap <png>           the window as a PNG
  * quit                 close without asking
  */
@@ -253,6 +279,22 @@ string MDEdBase::runTestCommand(const string& line)
       return dm == 0 ? "no dynamics" : (dm->getResumeOpt() ? "on" : "off");
    } else if (cmd == "title") {
       return string(GetTitle().ToUTF8());
+   } else if (cmd == "size") {
+      int w = 0, h = 0;
+      if (sscanf(arg.c_str(), "%d %d", &w, &h) != 2) return "usage: size <w> <h>";
+      SetMinSize(wxSize(1, 1));
+      SetSize(w, h);
+      for (int i = 0; i < 8; i++) { wxYield(); }
+      return "ok";
+   } else if (cmd == "scroll-end") {
+      wxScrolledWindow *sw = dynamic_cast<wxScrolledWindow*>(p_notebook->GetCurrentPage());
+      if (sw == 0) return "page does not scroll";
+      sw->Scroll(0, 100000);
+      for (int i = 0; i < 4; i++) { wxYield(); }
+      return wxString::Format("ok size %dx%d virtual %dx%d notebook %dx%d",
+         sw->GetSize().x, sw->GetSize().y, sw->GetVirtualSize().x,
+         sw->GetVirtualSize().y, p_notebook->GetSize().x,
+         p_notebook->GetSize().y).ToStdString();
    } else if (cmd == "snap") {
       return ecceWindowShot(this, wxString::FromUTF8(arg.c_str())) ? "saved"
                                                                   : "not saved";
@@ -961,10 +1003,10 @@ void MDEdBase::selectCode(bool gromacs)
    bindModels();
    applyCodeProfile(gromacs);
    if (p_gmxInputs != 0) {
-      setPageShown(p_gmxInputs, gromacs);
+      setPageShown(p_gmxInputs->GetParent(), gromacs);
       if (gromacs) p_notebook->SetSelection(0);
    }
-   if (p_gmxRun != 0) setPageShown(p_gmxRun, gromacs);
+   if (p_gmxRun != 0) setPageShown(p_gmxRun->GetParent(), gromacs);
    delete old;
 
    SetTitle(wxString::FromUTF8(("ECCE " + getTitle()).c_str()));

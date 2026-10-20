@@ -82,22 +82,22 @@ void GmxPrepare::constructor()
    // makes the topology and structure that page attaches.
    if (p_gmxInputs != 0) {
       for (size_t i = 0; i < p_pages.size(); i++) {
-         if (p_pages[i].win == (wxWindow*)p_gmxInputs) {
+         if (p_pages[i].win == p_gmxInputs->GetParent()) {
             p_pages.erase(p_pages.begin() + i);
             break;
          }
       }
-      p_gmxInputs->Destroy();
+      p_gmxInputs->GetParent()->Destroy();
       p_gmxInputs = 0;
    }
    if (p_gmxRun != 0) {
       for (size_t i = 0; i < p_pages.size(); i++) {
-         if (p_pages[i].win == (wxWindow*)p_gmxRun) {
+         if (p_pages[i].win == p_gmxRun->GetParent()) {
             p_pages.erase(p_pages.begin() + i);
             break;
          }
       }
-      p_gmxRun->Destroy();
+      p_gmxRun->GetParent()->Destroy();
       p_gmxRun = 0;
    }
    SetTitle(wxString::FromUTF8(("ECCE " + getTitle()).c_str()));

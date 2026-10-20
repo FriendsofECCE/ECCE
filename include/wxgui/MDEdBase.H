@@ -26,6 +26,7 @@ class WxJMSMessageDispatch;
 class WxFragmentImport;
 
 class MDCompositeModel;
+class wxScrolledWindow;
 class GromacsInputsPanel;
 class GromacsRunPanel;
 class MdTask;
@@ -176,6 +177,8 @@ class MDEdBase: public MDEdBaseGUI,
        */
       void registerPages();
       void setPageShown(wxWindow *page, bool show);
+      wxScrolledWindow *scrollPage();
+      wxWindow *putInScrollPage(wxWindow *panel);
 
       struct PageEntry {
         wxWindow *win;
