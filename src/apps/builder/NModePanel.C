@@ -530,13 +530,6 @@ void NModePanel::createSpectrumPane()
    popout->SetToolTip("The same spectrum in its own resizable window, with "
                       "both panes and both axes.");
    row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
-   wxButton *exportCsv = new wxButton(pane, wxID_ANY, "Export .csv...");
-   exportCsv->SetToolTip("Save the spectrum shown (sticks and broadened "
-                         "curve) as a comma-separated file for a "
-                         "spreadsheet or plotting program.");
-   row->Add(exportCsv, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
-   exportCsv->Bind(wxEVT_BUTTON,
-                   [this](wxCommandEvent&) { exportSpectrumDialog(); });
    col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
 
    //  The dock can give this panel less height than a plot is readable
@@ -587,6 +580,16 @@ void NModePanel::createSpectrumPane()
       viewSizer->Insert(at + 1, spectrum, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
       spectrum->Bind(wxEVT_BUTTON,
                      [this](wxCommandEvent&) { openSpectrumWindow(); });
+      //  Beside the Graph/Table choice, not in the plot's settings row,
+      //  where it wrapped onto a line of its own and took the plot's height.
+      wxButton *exportCsv = new wxButton(viewBox->GetParent(), wxID_ANY,
+                                         "Export .csv...");
+      exportCsv->SetToolTip("Save the spectrum (sticks and broadened "
+                            "curve) as a comma-separated file for a "
+                            "spreadsheet or plotting program.");
+      viewSizer->Insert(at + 2, exportCsv, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      exportCsv->Bind(wxEVT_BUTTON,
+                      [this](wxCommandEvent&) { exportSpectrumDialog(); });
    }
 
    //  The wrap sizers under the plot learn their width only in a layout, so
