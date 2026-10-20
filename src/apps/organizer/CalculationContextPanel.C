@@ -5,6 +5,7 @@
  *
  */
 
+#include "util/UnitDisplay.H"
 #include <iostream>
   using std::ofstream;
   using std::ostream;
@@ -238,11 +239,11 @@ void CalculationContextPanel::updateProgress()
     TProperty *te = task && !hof ? task->getProperty("TE") : 0;
     TProperty *e = hof ? hof : te;
     if (e) {
-      const string units = e->units() == "NA" ? "" : " " + e->units();
+      const string units = e->units() == "NA" ? "" : " " + unitLabel(e->units());
       char line[128];
-      snprintf(line, sizeof line, "%s %.6f%s",
-               hof ? "Heat of formation" : "Final energy", e->scalarize(),
-               units.c_str());
+      snprintf(line, sizeof line, "%s %s%s",
+               hof ? "Heat of formation" : "Final energy",
+               valueLabel(e->scalarize(), 6).c_str(), units.c_str());
       p_progressBox->setFinalEnergy(line);
     }
   }

@@ -1093,11 +1093,13 @@ void Builder::updatePropertyIndex()
   TProperty *te = props && !hof ? p_calculation->getProperty("TE") : 0;
   if (hof) {
     const string units = hof->units() == "NA" ? "" : unitLabel(hof->units());
-    energy = wxString::Format("Heat of formation %.6f %s", hof->scalarize(),
+    energy = wxString::Format("Heat of formation %s %s",
+                              valueLabel(hof->scalarize(), 6).c_str(),
                               units.c_str());
   } else if (te) {
     const string units = te->units() == "NA" ? "" : unitLabel(te->units());
-    energy = wxString::Format("Total energy %.6f %s", te->scalarize(),
+    energy = wxString::Format("Total energy %s %s",
+                              valueLabel(te->scalarize(), 6).c_str(),
                               units.c_str());
   }
   p_index->setHeader(title, codeTheory, energy);

@@ -1,3 +1,4 @@
+#include "util/UnitDisplay.H"
 #include <algorithm>
   using std::copy;
   using std::fill;
@@ -327,7 +328,7 @@ void GeomTracePropertyPanel::fillPlot()
 
   // add and show the axes labels
   p_plotCtrl->SetXAxisLabel(prop->rowLabel());
-  p_plotCtrl->SetYAxisLabel(prop->units());
+  p_plotCtrl->SetYAxisLabel(unitLabel(prop->units()));
   p_plotCtrl->SetShowXAxisLabel(true);
   p_plotCtrl->SetShowYAxisLabel(true);
 

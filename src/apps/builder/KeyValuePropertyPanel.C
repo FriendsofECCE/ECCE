@@ -291,8 +291,7 @@ void KeyValuePropertyPanel::refresh()
       continue;
     }
     string units = tprop->units()=="NA"? "": unitLabel(tprop->units());
-    wxString valueStr = wxString::Format(PrefLabels::PRECISEDOUBLEFORMAT,
-                                         tprop->scalarize());
+    wxString valueStr = valueLabel(tprop->scalarize(), 10);
     if (*nameIt == "THERMOTEMP") {
       // Shown in the Thermochemistry heading, not as a row.
       thermoTemp = string(wxString::Format("%g", tprop->scalarize()).c_str()) + " " +
@@ -333,6 +332,8 @@ void KeyValuePropertyPanel::refresh()
 
   wxSizer *sizer = GetSizer();
   const long left = wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL;
+  //  The panel's own sizer has no border, so values touched the edge.
+  const int PAD = 8;
   for (const char *groupName : GROUPS) {
     const string name = groupName;
     vector<const Row*> members;
@@ -374,7 +375,7 @@ void KeyValuePropertyPanel::refresh()
           CallAfter([this, name]() { toggleGroup(name); });
         });
       }
-      sizer->Add(headSizer, 0, wxEXPAND|wxALIGN_CENTER_VERTICAL);
+      sizer->Add(headSizer, 0, wxEXPAND|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, PAD);
       sizer->AddSpacer(0);
       sizer->AddSpacer(0);
       p_rows.push_back("H " + text);
@@ -386,13 +387,13 @@ void KeyValuePropertyPanel::refresh()
             wxST_ELLIPSIZE_END);
         key->SetToolTip(wxString::FromUTF8(row->key));
         key->SetMinSize(wxSize(labelMin(key), -1));
-        sizer->Add(key, 1, wxEXPAND|wxALIGN_CENTER_VERTICAL);
+        sizer->Add(key, 1, wxEXPAND|wxALIGN_CENTER_VERTICAL|wxLEFT, PAD);
         wxWindow *value = new ewxStaticText(this, wxID_ANY,
                                       wxString::FromUTF8(row->value));
         sizer->Add(value, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL);
         wxWindow *unit = new ewxNonBoldLabel(this, wxID_ANY,
                                          wxString::FromUTF8(row->units));
-        sizer->Add(unit, 0, left);
+        sizer->Add(unit, 0, left|wxRIGHT, PAD);
         p_rowWindows.push_back({row->key, value, unit});
         p_rows.push_back("R " + row->key + " | " + row->value + " | " +
                          row->units);
