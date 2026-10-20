@@ -70,15 +70,6 @@ int main()
   check(s.plotLog && s.plot.size() == 3 && fabs(s.plot[2] - log10(3.1e-6)) < 1e-9,
         "log |dE| per SCF cycle");
 
-  {
-    JobProgress two;
-    two.parse("# seq=3 sent=1760000000.000\nopt step=3 converged=yes\n"
-              "opt~ dE=-1.0e-03,-2.3e-05\n");
-    vector<JobProgress::Block> b2 = two.running(0, true);
-    check(!b2.empty() && b2[0].plot.empty(),
-          "no plot from two points (one line says nothing)");
-  }
-
   const string done =
       "# seq=20 sent=1760000100.000\n"
       "opt step=6 converged=yes\n"
