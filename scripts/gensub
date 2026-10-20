@@ -2016,6 +2016,15 @@ sub quantumespresso()
   $retval .= &pathVar("pw", "$pw", "ECCE_PWSCF");
   $retval .= "echo \"Using Quantum ESPRESSO path: \$pw\" >> $::logfile\n";
 
+  #  ai.qe writes the client's pseudopotential folder into pseudo_dir; on a
+  #  cluster the same files live elsewhere, named by the code's
+  #  ESPRESSO_PSEUDO setting, which then wins.
+  $retval .= 'if [ -n "${ESPRESSO_PSEUDO:-}" ]; then' . "\n" .
+    "  sed \"s|^[[:space:]]*pseudo_dir[[:space:]]*=.*|  pseudo_dir = '\$ESPRESSO_PSEUDO/'|\" " .
+    "$::inFile > $::inFile.ecce && mv $::inFile.ecce $::inFile\n" .
+    "  echo \"pseudo_dir set to \$ESPRESSO_PSEUDO\" >> $::logfile\n" .
+    "fi\n";
+
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
