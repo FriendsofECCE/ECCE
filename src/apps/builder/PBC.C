@@ -695,6 +695,35 @@ bool PBC::latticeShown()
 /**
  * User changed one of the a,b,c,alpha,beta,gamma...
  */
+//  The chosen space group fixes some cell parameters (cubic: a = b = c,
+//  all 90 degrees), so only the free ones need typing; the fields show the
+//  result.  Rhombohedral R groups are left alone (two settings exist).
+void PBC::applyCrystalSystem(double& a, double& b, double& c,
+                             double& alpha, double& beta, double& gamma)
+{
+   wxComboCtrl *cc = (wxComboCtrl*)FindWindow(ID_COMBO_SPACE_GROUP);
+   string sym = cc ? cc->GetValue().ToStdString() : string();
+   sym = sym.substr(0, sym.find_first_of(" \t("));
+   vector<string> groups = PointGroup::getSpaceGroups();
+   int n = 0;
+   for (size_t i = 0; i < groups.size(); i++)
+      if (groups[i] == sym) n = (int)i + 1;
+   if (n <= 2 || sym.empty() || sym[0] == 'R') return;
+   if (n <= 15) { alpha = gamma = 90.0; }
+   else if (n <= 74) { alpha = beta = gamma = 90.0; }
+   else if (n <= 142) { b = a; alpha = beta = gamma = 90.0; }
+   else if (n <= 194) { b = a; alpha = beta = 90.0; gamma = 120.0; }
+   else { b = c = a; alpha = beta = gamma = 90.0; }
+   const struct { wxWindowID id; double v; } f[] = {
+      { ID_TEXTCTRL_PBC_B, b }, { ID_TEXTCTRL_PBC_C, c },
+      { ID_TEXTCTRL_PBC_ALPHA, alpha }, { ID_TEXTCTRL_PBC_BETA, beta },
+      { ID_TEXTCTRL_PBC_GAMMA, gamma } };
+   for (const auto& x : f)
+      if (wxTextCtrl *t = dynamic_cast<wxTextCtrl*>(FindWindow(x.id)))
+         t->ChangeValue(cellText(x.v));
+}
+
+
 void PBC::unitCellChanged()
 {
    SGFragment *frag = getFW().getSceneGraph().getFragment();
@@ -718,6 +747,7 @@ void PBC::unitCellChanged()
          txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_GAMMA);
          sscanf(txt->GetValue().c_str(), "%lf",&gamma);
          lock = (ewxCheckBox*)FindWindow(ID_CHECKBOX_PBC_LOCK);
+         applyCrystalSystem(a, b, c, alpha, beta, gamma);
 
          WxVizToolFW &fw = getFW();
          PBCCmd *cmd = new PBCEditLatticeCmd("Edit Lattice", 
@@ -1019,6 +1049,8 @@ void PBC::OnPbcGenerateClick( wxCommandEvent& event )
    if (!PointGroup::isSpaceGroup(sym)) {
       wxLogWarning("You must specify a valid space group.");
    } else {
+      // the cell as the chosen group's crystal system has it
+      unitCellChanged();
 
       SGFragment *frag = getFW().getSceneGraph().getFragment();
       string origsym = frag->pointGroup();

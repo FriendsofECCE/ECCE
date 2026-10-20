@@ -90,6 +90,8 @@ class PBC : public PBCGUI,
       void center(bool docenter);
       void vectorChanged();
       void unitCellChanged();
+    void applyCrystalSystem(double& a, double& b, double& c,
+                            double& alpha, double& beta, double& gamma);
       void stashFragment();
       void indicateHaveLattice();
       void updateReplicateBtn(int x, int y, int z);
