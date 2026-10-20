@@ -13,5 +13,6 @@ string unitLabel(const string& units)
   string s = units;
   replaceAll(s, "kJoule/Mole", "kJ/mol");
   replaceAll(s, "kcal/Mole", "kcal/mol");
+  if (s == "Kelvin") s = "K";
   return s;
 }
