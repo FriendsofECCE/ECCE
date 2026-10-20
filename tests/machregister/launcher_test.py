@@ -159,7 +159,14 @@ def local_section_check(disp, build, tmp, pngs):
     e = g.Env(tmp + "-local", "launcher")
     g.write(os.path.join(e.ue, "MyMachines"), g.read(os.path.join(e.ue, "MyMachines"))
             + "loc\tlocalhost\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
-              "MN:RD:SD:UN:PW\n")
+              "MN:RD:SD:UN:PW\n"
+            + "locq\tlocalhost\tLinux\tx86_64\tZen4\t8:1\tssh\t:NWChem\t"
+              "MN:RD:SD:UN:PW:Q\n")
+    # a Slurm machine on this host: queued, so the full form, no fold
+    g.write(os.path.join(e.ue, "Queues"), "Queues: locq\n"
+            "locq|queueMgrName: Slurm\nlocq|prefFile: locq.Q\n")
+    g.write(os.path.join(e.ue, "locq.Q"), "Queues: debug\n\n"
+            "debug|minProcessors: 1\ndebug|maxProcessors: 4\n")
 
     def shot(name):
         return ("shot %s/launcher-%s.png" % (pngs, name)) if pngs else ""
@@ -193,6 +200,13 @@ expect scratchdir 1
 expect advanced none
 expect button 1
 %(s4)s
+machine locq
+expect advanced none
+expect block 1
+expect password 0
+expect username 1
+expect scratchdir 1
+expect button 1
 quit
 """ % {"runs": os.path.join(e.user, "ecce-runs"), "s1": shot("local-closed"),
        "s2": shot("local-advanced"), "s3": shot("local-other-user"),
@@ -216,6 +230,52 @@ quit
 """)
     clean(p, "closing the fold is remembered too")
     shutil.rmtree(tmp + "-local", ignore_errors=True)
+
+
+def pick_check(disp, build, tmp, pngs):
+    """A machine picked from the drop-down goes through the choice's own
+    event path. A read-only Launcher (no calculation, or one not Ready)
+    eats the event, so the choice must go back to the machine whose fields
+    it shows, not show a remote machine over a local machine's settings."""
+    e = g.Env(tmp + "-pick", "launcher")
+    g.write(os.path.join(e.ue, "MyMachines"), g.read(os.path.join(e.ue, "MyMachines"))
+            + "keb\tkeb.example.org\tLinux\tx86_64\tZen4\t32:4\tssh\t:NWChem\t"
+              "MN:RD:SD:UN:PW:AA:Q:TL:MM\n"
+            + "nio\tlocalhost\tLinux\tx86_64\tZen4\t8:1\tssh\t:NWChem\t"
+              "MN:RD:SD:UN:PW:Q\n")
+    g.write(os.path.join(e.ue, "Queues"), "Queues: keb nio\n"
+            "keb|queueMgrName: Slurm\nkeb|prefFile: keb.Q\n"
+            "nio|queueMgrName: Slurm\nnio|prefFile: nio.Q\n")
+    g.write(os.path.join(e.ue, "keb.Q"), "Queues: batch\n\n"
+            "batch|minProcessors: 1\nbatch|maxProcessors: 28\nbatch|runLimit: 10080\n")
+    g.write(os.path.join(e.ue, "nio.Q"), "Queues: debug\n\n"
+            "debug|minProcessors: 1\ndebug|maxProcessors: 4\n")
+    g.write(os.path.join(e.ue, "MachPrefs"),
+            "keb:\tandy|ssh|batch|/proj/andy/ecce||acct-1|1|1|120|0|0|1\n"
+            "nio:\tandy|ssh|debug|/home/andy/jobs|/home/andy/scratch||4|1|0|0|0|0\n")
+    shot = ("shot %s/launcher-pick-editable.png" % pngs) if pngs else ""
+    p = run_launcher(disp, build, e, """
+machine nio
+expect queue debug
+pick keb
+expect machine nio
+expect queue debug
+expect procsmax 4
+editable 1
+pick keb
+expect machine keb
+expect queue batch
+expect rundir /proj/andy/ecce
+expect block 1
+%s
+pick nio
+expect machine nio
+expect queue debug
+expect rundir /home/andy/jobs
+quit
+""" % shot)
+    clean(p, "a picked machine: refused while read-only, every field follows when editable")
+    shutil.rmtree(tmp + "-pick", ignore_errors=True)
 
 
 def main():
@@ -298,6 +358,7 @@ quit
         g.check("gpu" in q and "short|defProcessors:" in q,
                 "the save really went through Register Machines")
         local_section_check(disp, build, tmp, pngs)
+        pick_check(disp, build, tmp, pngs)
         mpi_check(disp, build, tmp)
         launchwarn_check(disp, build, tmp)
     finally:

@@ -106,6 +106,8 @@ class WxLauncher : public WxLauncherGUI,
         //  Test hook (WxLauncherScript.H); inert unless ECCE_LAUNCHER_SCRIPT is set.
         bool selectMachine(const string& refname);
         bool selectQueue(const string& name);
+        bool pickMachine(const string& refname);
+        void hookEditAllowed(bool a) { setEditAllowed(a, false); }
         bool clickMachineSettings();
         bool clickLaunch();
         void toggleAdvanced() { setAdvanced(!p_advOpen, true); }
@@ -214,6 +216,7 @@ class WxLauncher : public WxLauncherGUI,
         void refreshRemoteSection();
         bool namesThisHost() const;
         bool runsHere() const;
+        void refit();
         void buildAdvanced();
         void setAdvanced(bool open, bool save);
         void placeAdvancedWidgets(bool inFold);

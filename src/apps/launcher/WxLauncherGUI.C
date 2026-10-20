@@ -340,7 +340,7 @@ void WxLauncherGUI::CreateControls()
     itemPanel26->SetSizer(itemFlexGridSizer27);
 
     ewxPanel* itemPanel28 = new ewxPanel( itemPanel26, ID_PANEL_WXLAUNCHER_BATCH0, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemFlexGridSizer27->Add(itemPanel28, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+    itemFlexGridSizer27->Add(itemPanel28, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
 
     wxFlexGridSizer* itemFlexGridSizer29 = new wxFlexGridSizer(1, 2, 0, 0);
     itemFlexGridSizer29->AddGrowableRow(0);
@@ -349,7 +349,7 @@ void WxLauncherGUI::CreateControls()
     itemPanel28->SetSizer(itemFlexGridSizer29);
 
     ewxPanel* itemPanel30 = new ewxPanel( itemPanel28, ID_PANEL_WXLAUNCHER_ALLOCACCT, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemFlexGridSizer29->Add(itemPanel30, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemFlexGridSizer29->Add(itemPanel30, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer31 = new wxFlexGridSizer(1, 3, 3, 3);
     itemFlexGridSizer31->AddGrowableCol(2);
@@ -366,7 +366,7 @@ void WxLauncherGUI::CreateControls()
     ewxTextCtrl* itemTextCtrl34 = new ewxTextCtrl( itemPanel30, ID_TEXTCTRL_WXLAUNCHER_ALLOCACCT, _T(""), wxDefaultPosition, wxSize(100, -1), wxTE_PROCESS_ENTER );
     if (ShowToolTips())
         itemTextCtrl34->SetToolTip(_("(Required)\nAccount number to charge for the use of the computing resource."));
-    itemFlexGridSizer31->Add(itemTextCtrl34, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
+    itemFlexGridSizer31->Add(itemTextCtrl34, 1, wxGROW|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxPanel* itemPanel42 = new ewxPanel( itemPanel26, ID_PANEL_WXLAUNCHER_WALLTIME, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemFlexGridSizer27->Add(itemPanel42, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -580,7 +580,7 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer87->Add(itemFlexGridSizer88, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
 
     ewxPanel* itemPanel89 = new ewxPanel( itemPanel86, ID_PANEL_WXLAUNCHER_USERNAME, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemFlexGridSizer88->Add(itemPanel89, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemFlexGridSizer88->Add(itemPanel89, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer90 = new wxFlexGridSizer(1, 3, 0, 3);
     itemFlexGridSizer90->AddGrowableCol(2);
@@ -595,10 +595,10 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer90->Add(itemStaticText92, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 
     ewxTextCtrl* itemTextCtrl93 = new ewxTextCtrl( itemPanel89, ID_TEXTCTRL_WXLAUNCHER_USERNAME, _T(""), wxDefaultPosition, wxSize(100, -1), wxTE_PROCESS_ENTER );
-    itemFlexGridSizer90->Add(itemTextCtrl93, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
+    itemFlexGridSizer90->Add(itemTextCtrl93, 1, wxGROW|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxPanel* itemPanel94 = new ewxPanel( itemPanel86, ID_PANEL_WXLAUNCHER_PASSWORD1, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
-    itemFlexGridSizer88->Add(itemPanel94, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemFlexGridSizer88->Add(itemPanel94, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer95 = new wxFlexGridSizer(1, 3, 0, 3);
     itemFlexGridSizer95->AddGrowableCol(2);
@@ -613,7 +613,7 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer95->Add(itemStaticText97, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 
     ewxTextCtrl* itemTextCtrl98 = new ewxTextCtrl( itemPanel94, ID_TEXTCTRL_WXLAUNCHER_PASSWORD1, _T(""), wxDefaultPosition, wxSize(100, -1), wxTE_PROCESS_ENTER|wxTE_PASSWORD );
-    itemFlexGridSizer95->Add(itemTextCtrl98, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
+    itemFlexGridSizer95->Add(itemTextCtrl98, 1, wxGROW|wxALIGN_CENTER_VERTICAL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer105 = new wxFlexGridSizer(1, 2, 0, 3);
     itemFlexGridSizer105->AddGrowableCol(1);
@@ -706,7 +706,7 @@ void WxLauncherGUI::CreateControls()
     itemBoxSizer4->Add(itemStaticLine129, 0, wxGROW|wxTOP|wxBOTTOM, 3);
 
     WxFeedback* itemWxFeedback130 = new WxFeedback( itemPanel3, ID_FEEDBACK_WXLAUNCHER_MESSAGES, wxDefaultPosition, wxDefaultSize, wxNO_BORDER );
-    itemBoxSizer4->Add(itemWxFeedback130, 1, wxGROW, 3);
+    itemBoxSizer4->Add(itemWxFeedback130, 0, wxGROW, 3);
 
 ////@end WxLauncherGUI content construction
 }

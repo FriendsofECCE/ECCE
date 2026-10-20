@@ -26,6 +26,7 @@ class ewxDisabler : public wxEvtHandler
       bool getEnabled() const;
 
       void filter( wxCommandEvent& event );
+      void filterChoice( wxCommandEvent& event );
       void filterMouse( wxMouseEvent& event );
       void filterKey( wxKeyEvent& event );
       void filterSpin(wxSpinEvent& event);

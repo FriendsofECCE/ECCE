@@ -255,9 +255,9 @@ void WxLauncher::createControls()
     p_messagesFeedback->setContextLabel("");
     p_messagesFeedback->setEditStatus(WxFeedback::NA);
     p_messagesFeedback->GetSizer()->SetMinSize(-1, 1);
-    //  Six lines: enough to read a message, small enough that the window
-    //  opens at the size of its controls; the user can still enlarge it.
-    p_messagesFeedback->SetMinSize(wxSize(-1, 6 * p_messagesFeedback->GetCharHeight() + 8));
+    //  A fixed five lines: the fields, not the log, take the window's
+    //  height, and a taller window gives the log no more room.
+    p_messagesFeedback->SetMinSize(wxSize(-1, 5 * p_messagesFeedback->GetCharHeight() + 8));
 
     ewxMenuBar *mbar = (ewxMenuBar *)(this->GetMenuBar());
     p_machRegisterMenuItem = (ewxMenuItem *)(mbar->FindItem(ID_MENUITEM_WXLAUNCHER_MACHREGISTER));
@@ -344,6 +344,16 @@ void WxLauncher::setFeedbackCaption(string cptn)
  *
  *  This method assumes that the slctPrefs object is non-null.
  */
+/**
+ *  Size the frame to the controls now shown.  Fit() alone cannot shrink it:
+ *  the minimum size set when every panel was still shown would hold it tall.
+ */
+void WxLauncher::refit()
+{
+    GetSizer()->SetSizeHints(this);
+}
+
+
 void WxLauncher::refreshControls()
 {
     bool prevState = p_inCtrlUpdate;
@@ -391,7 +401,7 @@ void WxLauncher::refreshControls()
         this->refreshLaunchControls(cnctAllwd);
 
     this->Layout();
-    this->Fit();
+    this->refit();
     
     p_inCtrlUpdate = prevState;
 }
@@ -428,7 +438,7 @@ void WxLauncher::clearControls()
         this->refreshLaunchControls(false);
 
     this->Layout();
-    this->Fit();
+    this->refit();
 
     p_inCtrlUpdate = prevState;
 }
@@ -489,7 +499,7 @@ void WxLauncher::usernameTextCtrlUpdateCB(wxCommandEvent& event)
         this->refreshLocality();
         this->refreshRemoteSection();
         this->Layout();
-        this->Fit();
+        this->refit();
     }
 }
 
@@ -840,7 +850,7 @@ void WxLauncher::remshellChoiceSelectedCB(wxCommandEvent& event)
         this->refreshLaunchControls(cnctAllwd);
 
         this->Layout();
-        this->Fit();
+        this->refit();
     }
 }
 
@@ -927,16 +937,29 @@ static void starShown(wxWindow *st, bool shown)
 void WxLauncher::refreshRemoteSection()
 {
     const bool thisHost = namesThisHost();
-    const bool hide = runsHere();
+    //  A queued machine keeps the full form, as in 9.2.2, even on this
+    //  host: the simplified local form is for jobs started directly here.
+    const bool batch = p_slctPrefs->isOptionSupported("Q");
+    const bool fold = thisHost && !batch;
+    const bool hide = runsHere() && !batch;
     if (wxWindow *req = FindWindow(ID_STATIC_WXLAUNCHER_USERNAMEREQUIRED))
         starShown(req, !thisHost);
 
-    this->placeAdvancedWidgets(thisHost);
+    this->placeAdvancedWidgets(fold);
 
     if (wxWindow *userPanel = FindWindow(ID_PANEL_WXLAUNCHER_USERNAME))
         userPanel->Show(p_slctPrefs->isOptionSupported("UN"));
     if (wxWindow *block = FindWindow(ID_PANEL_WXLAUNCHER_6))
         block->Show(!hide);
+    //  A job that runs here has no password or shell to give; a queued one
+    //  still shows its Username (another name is the ssh-to-self route).
+    {
+        const bool here = runsHere();
+        if (wxWindow *shellPanel = FindWindow(ID_PANEL_WXLAUNCHER_REMSHELL))
+            shellPanel->Show(!here);
+        p_shellOpenButton->Show(!here);
+        p_password1Panel->Show(!here && p_slctPrefs->isOptionSupported("PW"));
+    }
     if (wxWindow *heading = FindWindow(ID_STATIC_WXLAUNCHER_REMOTEHEADING))
     {
         wxSizer *row = heading->GetContainingSizer();
@@ -946,7 +969,7 @@ void WxLauncher::refreshRemoteSection()
     }
 
     // Another user's login saved for this host: show where it is.
-    if (thisHost && !hide && !p_advOpen)
+    if (fold && !hide && !p_advOpen)
         this->setAdvanced(true, false);
 
     for (wxWindowList::compatibility_iterator n =
@@ -1034,7 +1057,7 @@ void WxLauncher::setAdvanced(bool open, bool save)
         cfg->Flush();
     }
     this->Layout();
-    this->Fit();
+    this->refit();
 }
 
 
@@ -1053,7 +1076,9 @@ void WxLauncher::placeAdvancedWidgets(bool inFold)
             {
                 s.sizer->Detach(s.win);
                 s.win->Reparent(p_advPanel);
-                p_advPanel->GetSizer()->Add(s.win, 0, wxALIGN_LEFT|wxALL, 3);
+                //  The fields span the column; the button keeps its size.
+                p_advPanel->GetSizer()->Add(s.win, 0,
+                    (s.win == p_machSettingsButton ? wxALIGN_LEFT : wxGROW)|wxALL, 3);
             }
             else
             {
@@ -2355,7 +2380,7 @@ void WxLauncher::setContext(string cntxt)
     }
 
     this->Layout();
-    this->Fit();
+    this->refit();
 
     ResourceDescriptor::RUNSTATE rs = ResourceDescriptor::STATE_CREATED;
 
@@ -2509,7 +2534,7 @@ void WxLauncher::updateControls(Launchdata ldat)
     }
 
     this->Layout();
-    this->Fit();
+    this->refit();
 
     p_inCtrlUpdate = prevState;
 }
@@ -3228,6 +3253,25 @@ bool WxLauncher::selectMachine(const string& refname)
     wxCommandEvent ev(wxEVT_CHOICE, p_machinesChoice->GetId());
     ev.SetEventObject(p_machinesChoice);
     this->machinesChoiceSelectedCB(ev);
+    return true;
+}
+
+
+/**
+ *  A user's pick: the popup changes the shown entry, then the event goes
+ *  the choice's own way, through its disabler, as from the GUI.
+ */
+bool WxLauncher::pickMachine(const string& refname)
+{
+    int n = p_machinesChoice->FindString(refname);
+    if (n < 0)
+        return false;
+    p_machinesChoice->wxChoice::SetSelection(n);
+    wxCommandEvent ev(wxEVT_CHOICE, p_machinesChoice->GetId());
+    ev.SetEventObject(p_machinesChoice);
+    ev.SetInt(n);
+    ev.SetString(refname);
+    p_machinesChoice->GetEventHandler()->ProcessEvent(ev);
     return true;
 }
 

@@ -126,6 +126,27 @@ bool ewxChoice::IsEditable()
 }
 
 
+void ewxChoice::SetSelection(int n)
+{
+   wxChoice::SetSelection(n);
+   noteSelection();
+}
+
+
+void ewxChoice::noteSelection()
+{
+   int n = GetSelection();
+   p_accepted = n == wxNOT_FOUND ? wxString() : GetString(n);
+}
+
+
+void ewxChoice::restoreSelection()
+{
+   int n = p_accepted.empty() ? wxNOT_FOUND : FindString(p_accepted, true);
+   wxChoice::SetSelection(n);
+}
+
+
 
 int ewxChoice::DoInsertItems(const wxArrayStringsAdapter& items,
                              unsigned int pos, void **clientData,
