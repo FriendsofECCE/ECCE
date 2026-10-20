@@ -4,9 +4,9 @@
 
 ## GROMACS (#262, #334, #336, #363, #375)
 - **Prepare task:** a task that builds the system for the MD tasks that follow. Sources: a PDB file (`pdb2gmx`), a mineral or clay (MINFF, or ClayFF as the force field), or a structure from the Builder. Verify shows a labelled summary, the real file names with sizes and the commands that will run; a force field can be imported (folder or zip) into a per-user library and is staged with the job.
-- **Minerals (MINFF, ClayFF):** the MINFF unit cells, atomipy and `min.ff` are bundled, so this route needs no download. The editor sets layer repeats (one field per axis), ions (`genion -rmin`, a neutralise tick box, ion parameter set) and a gap for a cell that bonds to its own image along c; `min.itp` carries position restraints on heavy atoms. ClayFF parameters follow the published ClayFF set. The Layer builder in the Periodic Builder stacks a layer with ions and water, undoably.
-- **Launch check:** stopping warnings and `grompp` errors are shown in a dialog with Cancel and Launch anyway; harmless warnings are not shown. Launch without a structure says what each source needs (#399).
-- **Results:** one MD Summary panel with final values and run averages with their standard deviations; minimisation shows the energy and the maximum force (#334). The trajectory is kept as a geometry trace that the Builder animates (at most 100 frames). The Viewer draws the true box, including the rhombic dodecahedron and the truncated octahedron.
+- **Minerals (MINFF, ClayFF):** the MINFF unit cells, atomipy and `min.ff` are bundled, so this route needs no download. The editor sets layer repeats (one field per axis), ions (`genion -rmin`, a neutralise tick box, ion parameter set) and a gap for a cell that bonds to its own image along c; `min.itp` carries position restraints on heavy atoms. ClayFF parameters follow the published ClayFF set. The Layer Builder (Tools > Layer Builder) stacks a layer with ions and water, undoably. For a crystal that is not layered along c the editor says what to do instead (no water layer for the bulk, or a slab cell).
+- **Launch check:** stopping warnings and `grompp` errors are shown in a dialog with Cancel and Launch anyway; harmless warnings are not shown. Launch without a structure says what each source needs; Build topology is framed in red until the topology is built (#399).
+- **Results:** one MD Summary panel with final values and run averages with their standard deviations; minimisation shows the energy and the maximum force (#334). The trajectory is kept as a geometry trace that the Builder animates (at most 100 frames). The Viewer draws the true box, including the rhombic dodecahedron and the truncated octahedron, with the molecules wrapped into it.
 - **Run importer:** File > Import GROMACS Run... turns a finished run into a GROMACS MD study (#375). A protein example (the 1L2Y Trp-cage) made from a real run is imported at first start, with a first-calculation tutorial in the help.
 - **MD editor:** defines, restraints, groups, barostat type and extra `.mdp` lines. A Dynamics task after Equilibrate or Dynamics opens with Continue ticked (#374).
 - **Fixes:** a Prepare placed after other tasks no longer inherits their structure and topology (#397); the box is drawn around the atoms (#398); the Inputs and Run settings pages scroll instead of being cut off.
@@ -37,14 +37,25 @@ Duplicate with Final Orbitals starts the copy from the source calculation's MOs.
 
 ## Calculation menu and Organizer
 - **Gaussian 09** is no longer offered under New Calculation; existing calculations still open.
-- **Double-click** on a calculation or task opens its default tool: the editor while it is being set up.
 - The right-click menu offers Import Calculation from Output File.
 - The Organizer detail pane shows no Basis Set button for a code whose theories need no basis set; ECCE-QM keeps it.
+
+## Look (#210)
+- **Builder and Viewer toolbar:** the Classic ECCE icons redrawn as scalable images, one family, the toolbars side by side from the left.
+- **Calculation Editor:** the code buttons are grouped (DFT, Semi-empirical, Periodic) with new icons for ORCA, ECCE-QM, Quantum ESPRESSO, CP2K and MOPAC.
+- **Plots:** every plot (step plots, geometry trace, relaxed scan, MO levels, reaction plots) is drawn like the vibrational spectrum: hover readout, drag or wheel to zoom, double-click to fit.
+- **Properties list** (list and detail layout): as tall as its entries, so the panel below gets the rest; no header above it.
+- **About:** one window, left-aligned.
 
 ## MO diagram (experimental, #301, #368)
 Rebuilt as a model-first fragment-orbital diagram: choose it by picking one atom or one bond, with a verdict, an About dialog and a Ligand-field view. It remains experimental and can be incomplete for larger molecules.
 
 ## Other changes
+- **Copy values** (#408): in Energies and the other panels that list values, a right-click copies a value, a value with its unit, or all rows as tab-separated lines for a spreadsheet.
+- **Launcher:** a machine with queues shows its full form again; wider fields; a small message area.
+- **Periodic Builder:** space groups listed with their number and crystal system; a click in a cell field selects its value; the crystal system of the chosen group fixes the dependent cell parameters.
+- **Builder:** clicking an atom with the same element and shape builds on its first open site (two O atoms now bond); the second click of a double-click no longer adds an atom.
+- **MOPAC:** the bundled example has its orbital file, so its MOs show a composition; an imported run's `.mgf` beside the output is read.
 - ECCE-QM lists the spin expectation value S^2 only for an unrestricted reference, and for restricted open-shell runs (#390).
 - Builder: an editable calculation opens with the Build tool shown; units appear as kJ/mol, kcal/mol and K; elements 110-118 use the IUPAC symbols.
 - ECCE-QM basis menu grouped (minimal, Pople, Dunning, Karlsruhe), with def2-TZVP added.
@@ -57,7 +68,8 @@ Rebuilt as a model-first fragment-orbital diagram: choose it by picking one atom
 - **Relaxed scan input:** a scanned coordinate carried a value on its `ModRedundant` line (#396).
 - **Prepare after other tasks** inherited their structure and topology (#397).
 - **Progress plot:** a plot is drawn again from two points (#400); a time estimate needs two finished steps.
-- **Help pages:** the GROMACS and Quantum ESPRESSO walkthroughs are reworded to match the windows.
+- **Relaxed scan plot:** the scanned coordinate was taken from a bond that hardly moved, and a dihedral scan through 180 degrees was unwrapped wrongly (#396).
+- **Help pages:** the walkthroughs use the Organizer's tool buttons and are reworded to match the windows.
 
 ## Known issues
 - **GROMACS, CP2K and Quantum ESPRESSO** remain experimental.
