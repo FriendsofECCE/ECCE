@@ -61,6 +61,47 @@ static string tailOf(const string& path)
 }
 
 
+// Text that wraps to the width the editor gives it.  A fixed Wrap() or a
+// long label set the page's minimum width, so the page scrolled sideways
+// and cut off the buttons.  The unwrapped text is kept on the window.
+struct WrapData : public wxClientData {
+  wxString raw;
+  int width;
+};
+
+static void rewrap(wxStaticText *text)
+{
+  WrapData *d = dynamic_cast<WrapData*>(text->GetClientObject());
+  const int w = text->GetClientSize().x;
+  //  Wrapping changes the label, which resizes it: only act on a new width.
+  if (d == 0 || w < 60 || w == d->width) return;
+  d->width = w;
+  text->Freeze();
+  text->SetLabel(d->raw);
+  text->Wrap(w);
+  text->Thaw();
+}
+
+static void setWrapped(wxStaticText *text, const wxString& value)
+{
+  WrapData *d = new WrapData;
+  d->raw = value;
+  d->width = -1;
+  text->SetClientObject(d);
+  text->SetLabel(value);
+  rewrap(text);
+}
+
+static void makeWrapping(wxStaticText *text)
+{
+  text->SetMinSize(wxSize(50, -1));
+  text->Bind(wxEVT_SIZE, [text](wxSizeEvent& e) {
+    e.Skip();
+    text->CallAfter([text]() { rewrap(text); });
+  });
+}
+
+
 GromacsInputsPanel::GromacsInputsPanel(MDEdBase *owner, wxWindow *parent)
   : ewxPanel(parent, wxID_ANY)
 {
@@ -75,7 +116,8 @@ GromacsInputsPanel::GromacsInputsPanel(MDEdBase *owner, wxWindow *parent)
         "task without its own uses those of an earlier task in the study. "
         "A topology is kept as .gmxtop so it cannot be mistaken for an "
         "NWChem topology; the job still sees it as topol.top."));
-  intro->Wrap(520);
+  makeWrapping(intro);
+  setWrapped(intro, intro->GetLabel());
   top->Add(intro, 0, wxALL | wxEXPAND, 10);
 
   wxFlexGridSizer *grid = new wxFlexGridSizer(3, 3, 8, 8);
@@ -83,7 +125,9 @@ GromacsInputsPanel::GromacsInputsPanel(MDEdBase *owner, wxWindow *parent)
 
   grid->Add(new ewxStaticText(this, wxID_ANY, _("Topology:")), 0,
             wxALIGN_CENTER_VERTICAL);
-  p_topology = new ewxStaticText(this, wxID_ANY, wxEmptyString);
+  p_topology = new ewxStaticText(this, wxID_ANY, wxEmptyString,
+                          wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+  p_topology->SetMinSize(wxSize(50, -1));
   grid->Add(p_topology, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND);
   wxBoxSizer *b1 = new wxBoxSizer(wxHORIZONTAL);
   p_attachTop = new ewxButton(this, ID_ATTACH_TOP, _("Attach..."));
@@ -94,7 +138,9 @@ GromacsInputsPanel::GromacsInputsPanel(MDEdBase *owner, wxWindow *parent)
 
   grid->Add(new ewxStaticText(this, wxID_ANY, _("Starting structure:")), 0,
             wxALIGN_CENTER_VERTICAL);
-  p_structure = new ewxStaticText(this, wxID_ANY, wxEmptyString);
+  p_structure = new ewxStaticText(this, wxID_ANY, wxEmptyString,
+                          wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+  p_structure->SetMinSize(wxSize(50, -1));
   grid->Add(p_structure, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND);
   wxBoxSizer *b2 = new wxBoxSizer(wxHORIZONTAL);
   p_attachGro = new ewxButton(this, ID_ATTACH_GRO, _("Attach..."));
@@ -106,7 +152,7 @@ GromacsInputsPanel::GromacsInputsPanel(MDEdBase *owner, wxWindow *parent)
   grid->Add(new ewxStaticText(this, wxID_ANY, _("Include files:")), 0,
             wxALIGN_TOP);
   p_includes = new ewxListBox(this, ID_LIST_INC, wxDefaultPosition,
-                              wxSize(-1, 90));
+                              wxSize(50, 90));
   grid->Add(p_includes, 1, wxEXPAND);
   wxBoxSizer *b3 = new wxBoxSizer(wxVERTICAL);
   p_attachInc = new ewxButton(this, ID_ATTACH_INC, _("Attach..."));
@@ -118,6 +164,7 @@ GromacsInputsPanel::GromacsInputsPanel(MDEdBase *owner, wxWindow *parent)
   top->Add(grid, 0, wxALL | wxEXPAND, 10);
 
   p_status = new ewxStaticText(this, wxID_ANY, wxEmptyString);
+  makeWrapping(p_status);
   top->Add(p_status, 0, wxALL | wxEXPAND, 10);
 
   SetSizer(top);
@@ -228,9 +275,9 @@ void GromacsInputsPanel::refresh()
 
   string why;
   if (inputsReady(why)) {
-    p_status->SetLabel(_("Ready: a topology and a starting structure are attached."));
+    setWrapped(p_status, _("Ready: a topology and a starting structure are attached."));
   } else {
-    p_status->SetLabel(wxString::FromUTF8(("Not ready to run: " + why).c_str()));
+    setWrapped(p_status, wxString::FromUTF8(("Not ready to run: " + why).c_str()));
   }
   Layout();
 }
@@ -299,7 +346,7 @@ void GromacsInputsPanel::report(const string& message, bool error)
                          "ECCE GROMACS inputs", wxOK | wxICON_ERROR);
     dlg.ShowModal();
   } else {
-    p_status->SetLabel(wxString::FromUTF8(message.c_str()));
+    setWrapped(p_status, wxString::FromUTF8(message.c_str()));
     Layout();
   }
 }
@@ -457,7 +504,7 @@ bool GromacsInputsPanel::attachFile(Kind kind, const string& path,
     message = "Attached " + name + ".";
   }
   refresh();
-  p_status->SetLabel(wxString::FromUTF8(message.c_str()));
+  setWrapped(p_status, wxString::FromUTF8(message.c_str()));
   Layout();
   if (p_owner) p_owner->gromacsInputsChanged();
   return true;
