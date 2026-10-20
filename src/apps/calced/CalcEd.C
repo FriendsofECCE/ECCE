@@ -1,4 +1,5 @@
 #ifdef _WIN32
+#include <wx/statline.h>
 #include <windows.h>
 #endif
 #include <cstdint>
@@ -452,6 +453,10 @@ void CalcEd::createCodeButtons()
   wxCustomButton *codeButton;
   wxSize margins(5,5);
 
+  // Code bar groups, separated by a rule: quantum chemistry (also any code
+  // not named below) | periodic / plane-wave | molecular dynamics.
+  std::vector<wxCustomButton*> groups[3];
+
   for (size_t it = 0; it < codes.size(); it++) {
     rt = rd.getResourceType("virtual_document", "ecceCalculation", codes[it]);
     if (rt!=(ResourceType*)0 && rt->getFactoryCategory()=="EsCalculation" &&
@@ -465,8 +470,21 @@ void CalcEd::createCodeButtons()
       codeButton->SetClientData((void*)it);
       codeButton->SetMargins(margins);
       codeButton->SetToolTip(codes[it]);
-      p_codeSizer->Add(codeButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+      const bool periodic = codes[it]=="QuantumESPRESSO" || codes[it]=="CP2K";
+      groups[codes[it]=="GROMACS" ? 2 : periodic ? 1 : 0].push_back(codeButton);
     }
+  }
+
+  bool first = true;
+  for (int g = 0; g < 3; g++) {
+    if (groups[g].empty()) continue;
+    if (!first)
+      p_codeSizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition,
+                       wxSize(-1, 24), wxLI_VERTICAL), 0,
+                       wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 6);
+    first = false;
+    for (size_t k = 0; k < groups[g].size(); k++)
+      p_codeSizer->Add(groups[g][k], 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
   }
 }
 

@@ -793,7 +793,7 @@
        reduced scope: RHF/UHF/RDFT/UDFT x Energy/Gradient/Geometry/
        Vibration/GeoVib). Cloned from gaussian16_es above, with every
        section identical except applicationType/DescriptorFile/
-       MenuItem/Icons. No calcorca.xpm exists yet, so this reuses
+       MenuItem/Icons. No svg/candidates/codes/orca.svg exists yet, so this reuses
        calcany.xpm (the same generic fallback import_es uses above)
        until a real icon is made. -->
   <ResourceType name="orca_es" resourceType="virtual_document" contentType="ecceCalculation"
@@ -801,10 +801,10 @@
     <SortPriority>65</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>calcorca.xpm</Normal>
-      <Selected>calcorca.xpm</Selected>
-      <Expanded>calcorca.xpm</Expanded>
-      <SelectedExpanded>calcorca.xpm</SelectedExpanded>
+      <Normal>svg/candidates/codes/orca.svg</Normal>
+      <Selected>svg/candidates/codes/orca.svg</Selected>
+      <Expanded>svg/candidates/codes/orca.svg</Expanded>
+      <SelectedExpanded>svg/candidates/codes/orca.svg</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
@@ -1368,10 +1368,10 @@
     <SortPriority>66</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>calcmopac.xpm</Normal>
-      <Selected>calcmopac.xpm</Selected>
-      <Expanded>calcmopac.xpm</Expanded>
-      <SelectedExpanded>calcmopac.xpm</SelectedExpanded>
+      <Normal>svg/candidates/codes/mopac-a.svg</Normal>
+      <Selected>svg/candidates/codes/mopac-a.svg</Selected>
+      <Expanded>svg/candidates/codes/mopac-a.svg</Expanded>
+      <SelectedExpanded>svg/candidates/codes/mopac-a.svg</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
@@ -1668,10 +1668,10 @@
     <SortPriority>67</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>calcqe.xpm</Normal>
-      <Selected>calcqe.xpm</Selected>
-      <Expanded>calcqe.xpm</Expanded>
-      <SelectedExpanded>calcqe.xpm</SelectedExpanded>
+      <Normal>svg/candidates/codes/qe.svg</Normal>
+      <Selected>svg/candidates/codes/qe.svg</Selected>
+      <Expanded>svg/candidates/codes/qe.svg</Expanded>
+      <SelectedExpanded>svg/candidates/codes/qe.svg</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
@@ -1950,10 +1950,10 @@
     <SortPriority>68</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>calccp2k.xpm</Normal>
-      <Selected>calccp2k.xpm</Selected>
-      <Expanded>calccp2k.xpm</Expanded>
-      <SelectedExpanded>calccp2k.xpm</SelectedExpanded>
+      <Normal>svg/candidates/codes/cp2k.svg</Normal>
+      <Selected>svg/candidates/codes/cp2k.svg</Selected>
+      <Expanded>svg/candidates/codes/cp2k.svg</Expanded>
+      <SelectedExpanded>svg/candidates/codes/cp2k.svg</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
