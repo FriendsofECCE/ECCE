@@ -1209,6 +1209,38 @@ def minff_section(s, build, rundir, png):
                     check(r is not None, "the force field includes reached the Optimize's run")
             finally:
                 oed.close()
+
+            # ---- a second Prepare after the Optimize (#397): it must stage
+            # and run on its own structure, not the first Prepare's ----------
+            rc, out = s.driver("gromacsaddprepare", urls[0], "prepare-1")
+            more = urls_of(out)
+            if not check(rc == 0 and len(more) == 1, "a Prepare was added after the Optimize"):
+                return
+            prep2 = more[0]
+            ptask2 = prep2.replace("file://", "").rstrip("/")
+            check(ed.cmd("open " + prep2) == "ok", "the second Prepare opens")
+            check(ed.cmd("set source minff") == "ok" and ed.cmd("set mcell " + cell) == "ok"
+                  and ed.cmd("set mrep 2 3 3") == "ok", "mineral, repeat 2 3 3")
+            check(ed.cmd("set mbuild go", timeout=600) == "ok", "Build topology of the second Prepare")
+            fields = ed.cmd("fields")
+            check("720 atoms" in fields, "it holds 720 atoms, not 1440: %s" % fields.split("mineral=")[-1][:120])
+            ed.cmd("save")
+            rc, out = s.driver("mdsetup", prep2, "localhost", rundir, s.user())
+            rc, out = s.launch(prep2)
+            check(rc == 0 and "does not match" not in out,
+                  "Launch accepted the second Prepare: %s" % out.strip().splitlines()[-3:])
+            state = s.waitState(prep2, 900)
+            check(state in ("completed", "loaded"), "the second Prepare ran to %s" % state)
+            staged = os.path.join(ptask2, "Inputs", "conf.gmxmin")
+            natoms = None
+            if os.path.exists(staged):
+                natoms = int(open(staged).read().splitlines()[1])
+            check(natoms == 720, "its own conf.gmxmin has %s atoms" % natoms)
+            rc, stored = s.driver("progress", prep2)
+            m = re.search(r"atoms=(\d+)", stored)
+            check(m is not None and m.group(1) == "720",
+                  "the run built on its own 720 atoms (the first Prepare's gave 2480): %s"
+                  % (m.group(0) if m else stored.strip()[-120:]))
         finally:
             ed.close()
 

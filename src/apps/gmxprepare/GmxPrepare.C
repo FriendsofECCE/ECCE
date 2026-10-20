@@ -113,6 +113,7 @@ void GmxPrepare::constructor()
            n; n = n->GetNext(), at++)
          if (n->GetData()->GetWindow() == launch) break;
       row->Insert(at, verify, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      row->Insert(at + 1, 0, 0, 1);
    }
    // The base fitted the window to its content; keep it on the screen (the
    // page then scrolls) and let it shrink below that.

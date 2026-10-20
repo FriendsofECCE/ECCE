@@ -21,6 +21,9 @@
 //                                 frag=<pdb> instead of the .gmxpdb stores <pdb> as the Builder's
 //                                 save does (MdTask::fragment: the first save is the original
 //                                 fragment); frag=- stores the recipe and no structure
+//   launchjob gromacsaddprepare <studyURL> <name>
+//                                 a bare Prepare appended to the study's chain, as New makes it
+//                                 with the last task selected; prints its URL
 //   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name> [frag=<mvm|pdb>] [all]
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
@@ -275,6 +278,19 @@ static bool generateInput(TaskJob* task, ITaskModel& model,
   remove(tmp.c_str());
   remove(out.c_str());
   return ok;
+}
+
+static int doGromacsAddPrepare(const vector<string>& a)
+{
+  if (a.size() != 2) { cerr << "gromacsaddprepare: wrong argument count" << endl; return 2; }
+  Session* session = dynamic_cast<Session*>(EDSIFactory::getResource(EcceURL(a[0])));
+  ResourceType* tt = typeNamed("gromacs_md_prepare");
+  Resource* r = session && tt ? session->createChild(a[1], tt) : 0;
+  TaskJob* task = r ? dynamic_cast<TaskJob*>(r) : 0;
+  if (!task) { cerr << "could not create " << a[1] << endl; return 1; }
+  session->addMemberAsTarget(task, 0);
+  cout << task->getURL().toString() << endl;
+  return 0;
 }
 
 static int doGromacsPrepStudy(const vector<string>& a)
@@ -629,6 +645,7 @@ int main(int argc, char** argv)
   if (mode == "listen") return doListen(a);
   if (mode == "mdsetup") return doMdSetup(a);
   if (mode == "gromacsstudy") return doMdStudy(a, true);
+  if (mode == "gromacsaddprepare") return doGromacsAddPrepare(a);
   if (mode == "gromacsprepstudy") return doGromacsPrepStudy(a);
   if (mode == "apptype" && a.size() == 1) {
     Resource* r = EDSIFactory::getResource(EcceURL(a[0]));
