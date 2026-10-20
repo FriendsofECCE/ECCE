@@ -12,6 +12,9 @@
 
 #include "wx/image.h"
 #include "wx/aboutdlg.h"
+#include "wx/statbmp.h"
+#include "wx/hyperlink.h"
+#include "wx/collpane.h"
 #include "wx/generic/aboutdlgg.h"
 #include <fstream>
 #include <sstream>
@@ -242,6 +245,12 @@ bool ewxApp::OnInit()
 
    Bind(wxEVT_MENU, &ewxApp::OnAbout, this, wxID_ABOUT);
    Bind(wxEVT_MENU, &ewxApp::OnReportProblem, this, ID_REPORT_PROBLEM);
+   //  Test hook: Help > About once the app is up (for screenshots).
+   if (getenv("ECCE_SHOW_ABOUT")) {
+      CallAfter([this]() {
+         CallAfter([this]() { wxCommandEvent e; OnAbout(e); });
+      });
+   }
 
    Color::initialize();
 
@@ -320,24 +329,6 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       "endorses, the modifications made by the FriendsofECCE project.\n\n"
       "Report problems: Help > Report a Problem... collects the diagnostics "
       "for an issue at github.com/FriendsofECCE/ECCE.");
-   // The generic About box does not wrap: break the lines so the dialog
-   // keeps a readable width.
-   {
-      wxString wrapped, line;
-      for (const wxString& word : wxSplit(desc, ' ', '\0')) {
-         const int nl = word.Find('\n');
-         if (line.length() + word.length() > 72 && !line.empty()) {
-            wrapped += line + "\n";
-            line.clear();
-         }
-         line += (line.empty() ? "" : " ") + word;
-         if (nl != wxNOT_FOUND) {
-            wrapped += line.BeforeLast('\n') + "\n";
-            line = line.AfterLast('\n');
-         }
-      }
-      desc = wrapped + line;
-   }
    info.SetDescription(desc);
    info.SetCopyright(wxString::FromUTF8(
       "Copyright \xC2\xA9 1994-2012 Pacific Northwest National Laboratory, "
@@ -381,6 +372,66 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       if (top && top->GetIcon().IsOk()) info.SetIcon(top->GetIcon());
    }
 
-   // The generic box everywhere: GTK's own centres every paragraph.
-   wxGenericAboutBox(info, GetTopWindow());
+   showAbout(info, GetTopWindow());
+}
+
+
+//  Our own About window: GTK's and wx's generic box centre every block on
+//  its own, so the copyright, text and folds started at different places.
+//  Here everything beside the logo shares one left edge.
+void ewxApp::showAbout(const wxAboutDialogInfo& info, wxWindow *parent)
+{
+   wxDialog dlg(parent, wxID_ANY, "About " + info.GetName());
+   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+   if (info.GetIcon().IsOk()) {
+      wxBitmap b;
+      b.CopyFromIcon(info.GetIcon());
+      row->Add(new wxStaticBitmap(&dlg, wxID_ANY, b), 0, wxALL | wxALIGN_TOP, 12);
+   }
+   wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+   const int width = 560;
+   wxStaticText *title = new wxStaticText(&dlg, wxID_ANY,
+                                          info.GetName() + " " + info.GetVersion());
+   title->SetFont(title->GetFont().Bold().Larger());
+   col->Add(title, 0, wxBOTTOM, 8);
+   wxStaticText *desc = new wxStaticText(&dlg, wxID_ANY, info.GetDescription());
+   desc->Wrap(width);
+   col->Add(desc, 0, wxBOTTOM, 8);
+   wxStaticText *copy = new wxStaticText(&dlg, wxID_ANY, info.GetCopyright());
+   copy->SetFont(copy->GetFont().Smaller());
+   copy->Wrap(width);
+   col->Add(copy, 0, wxBOTTOM, 6);
+   if (info.HasWebSite())
+      col->Add(new wxHyperlinkCtrl(&dlg, wxID_ANY, info.GetWebSiteURL(),
+                                   info.GetWebSiteURL()), 0, wxBOTTOM, 6);
+   auto fold = [&](const wxString& label, const wxString& text, bool scroll) {
+      if (text.empty()) return;
+      wxCollapsiblePane *cp = new wxCollapsiblePane(&dlg, wxID_ANY, label);
+      wxWindow *pane = cp->GetPane();
+      wxBoxSizer *ps = new wxBoxSizer(wxVERTICAL);
+      if (scroll) {
+         wxTextCtrl *t = new wxTextCtrl(pane, wxID_ANY, text, wxDefaultPosition,
+                                        wxSize(width, 220),
+                                        wxTE_MULTILINE | wxTE_READONLY);
+         ps->Add(t, 1, wxEXPAND);
+      } else {
+         wxStaticText *t = new wxStaticText(pane, wxID_ANY, text);
+         t->Wrap(width);
+         ps->Add(t, 0);
+      }
+      pane->SetSizer(ps);
+      cp->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED,
+               [&dlg](wxCollapsiblePaneEvent&) { dlg.Fit(); });
+      col->Add(cp, 0, wxEXPAND);
+   };
+   fold(_("License"), info.GetLicence(), true);
+   fold(_("Developers"), wxJoin(info.GetDevelopers(), '\n', '\0'), false);
+   fold(_("Artists"), wxJoin(info.GetArtists(), '\n', '\0'), false);
+   row->Add(col, 1, wxTOP | wxRIGHT | wxBOTTOM, 12);
+   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+   top->Add(row, 1, wxEXPAND);
+   top->Add(dlg.CreateStdDialogButtonSizer(wxOK), 0, wxEXPAND | wxALL, 10);
+   dlg.SetSizerAndFit(top);
+   dlg.CentreOnParent();
+   dlg.ShowModal();
 }
