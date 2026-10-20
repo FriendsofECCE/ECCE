@@ -76,6 +76,17 @@ def qe(i):
     strokes(i, "M26.500 9H19.300v13.800h7.200M19.300 15.900h5.800", w)
 
 
+@icon("ecceqm")
+def ecceqm(i):
+    # "QM" lettering in the ECCE logo's colours: ECCE's own engine
+    badge(i, "#3a2a78", "#120a30", "#0a0620")
+    w = 2.8
+    green = "#b8f0a0"
+    strokes(i, "M8.800 8.800a4.800 6.400 0 1 0 .01 0z", w, green)
+    strokes(i, "M10.500 17.800l3 4.200", w, green)
+    strokes(i, "M17 22.500V9.200l4.300 7.500 4.300-7.500v13.300", w, green)
+
+
 @icon("mopac-a")
 def mopac_a(i):
     badge(i, "#f0a04a", "#a8480c", "#6c2c04")
