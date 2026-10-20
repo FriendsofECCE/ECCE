@@ -13,6 +13,7 @@
 #include <map>
 #include <sstream>
 
+#include "comm/CodePrograms.H"
 #include "comm/RCommand.H"
 #include "SchedulerQuery.H"
 
@@ -193,78 +194,54 @@ ProgramHelp programHelp(const string& code, bool windows)
 static ProgramHelp baseHelp(const string& code)
 {
     ProgramHelp h;
+    h.names = CodePrograms::names(code);
+    h.companion = CodePrograms::companion(code);
+    const string& n0 = h.names[0];
     if (code == "NWChem" || code == "NWChemMD")
     {
-        h.names.push_back("nwchem");
         h.examples.push_back("/usr/bin/nwchem");
         h.signature = "NWChem";
     }
     else if (code == "ORCA")
     {
-        h.names.push_back("orca");
-        h.companion = "orca_2mkl";
         h.signature = "ORCA_";
         h.examples.push_back("/opt/orca/<version>/orca");
         h.note = "ORCA needs the full path for parallel runs.";
     }
     else if (code.compare(0, 9, "Gaussian-") == 0 && code.size() == 11)
     {
-        string g = "g" + code.substr(9);
-        h.names.push_back(g);
-        h.examples.push_back("/opt/" + g + "/" + g);
+        h.examples.push_back("/opt/" + n0 + "/" + n0);
         //  Tested on g09 and g16 only; the older programs get none.
         if (code == "Gaussian-16" || code == "Gaussian-09")
             h.signature = "Entering Gaussian System";
     }
     else if (code == "QuantumESPRESSO")
     {
-        h.names.push_back("pw.x");
         h.examples.push_back("/usr/bin/pw.x");
         h.signature = "PWSCF";
     }
     else if (code == "CP2K")
     {
-        //  psmp is the MPI+OpenMP build, popt plain MPI, ssmp threads only.
-        h.names.push_back("cp2k.psmp");
-        h.names.push_back("cp2k.popt");
-        h.names.push_back("cp2k.ssmp");
-        h.names.push_back("cp2k");
         h.examples.push_back("/usr/bin/cp2k.psmp");
         h.signature = "CP2K";
     }
     else if (code == "MOPAC")
     {
-        h.names.push_back("MOPAC2016.exe");
-        h.names.push_back("mopac");
         h.examples.push_back("/opt/mopac/MOPAC2016.exe");
         h.examples.push_back("/usr/bin/mopac");
         h.signature = "MOPAC";
     }
     else if (code == "GROMACS")
     {
-        h.names.push_back("gmx");
-        h.names.push_back("gmx_mpi");
         h.examples.push_back("/usr/bin/gmx");
         h.signature = "GROMACS";
     }
     else if (code == "GAMESS-US")
-    {
-        h.names.push_back("gamess.00.x");
         h.examples.push_back("/opt/gamess/gamess.00.x");
-    }
     else if (code == "Polyrate")
-    {
-        h.names.push_back("polyrate");
         h.examples.push_back("/opt/polyrate/polyrate");
-    }
     else
-    {
-        string l = code;
-        for (size_t i = 0; i < l.size(); i++)
-            l[i] = (char)tolower((unsigned char)l[i]);
-        h.names.push_back(l);
-        h.examples.push_back("/opt/" + l + "/bin/" + l);
-    }
+        h.examples.push_back("/opt/" + n0 + "/bin/" + n0);
     return h;
 }
 

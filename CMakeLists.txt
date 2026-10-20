@@ -523,7 +523,8 @@ ecce_app(machbrowser src/apps/machbrowser WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
 ecce_app(machregister src/apps/machregister WX
   # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
+  # eccecomm for CodePrograms, the program names Find and first start share.
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccecomm eccetdat ecceutil)
 ecce_app(mddynamics src/apps/mddynamics WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdenergy src/apps/mdenergy WX
@@ -3056,6 +3057,20 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
   set_tests_properties(machregister_gui PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # First-start registration finds the codes on the PATH (#377).
+  add_executable(localcodes tests/machregister/localcodes.C)
+  target_include_directories(localcodes PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(localcodes PRIVATE
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME machregister_localcodes
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/localcodes_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  set_tests_properties(machregister_localcodes PROPERTIES TIMEOUT 120
                        SKIP_RETURN_CODE 77)
   # The Launcher's "Machine settings..." button and its reload after a save.
   add_test(NAME help_pages

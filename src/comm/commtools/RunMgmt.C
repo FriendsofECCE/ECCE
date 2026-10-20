@@ -36,6 +36,7 @@ using namespace std;
 #include "dsm/ICalculation.H"
 #include "dsm/CodeFactory.H"
 
+#include "comm/CodePrograms.H"
 #include "comm/RCommand.H"
 #include "comm/RunMgmt.H"
 
@@ -569,7 +570,7 @@ bool RunMgmt::registerLocalMachine(string& msg)
       // Within PNNL, use the AFS installations of codes as defined in the
       // CONFIG.<vendor> files.
       bool emslFlag = false;
-      bool nwchemFlag = false;
+      vector<string> foundCodes;
       // Even though a machine has a .pnl.domain does not mean it is using
       // the EMSL maintained version of ECCE or has AFS access.  GDB 3/24/12
       if (machine.find(".pnl.gov")==machine.length()-8 &&
@@ -591,24 +592,26 @@ bool RunMgmt::registerLocalMachine(string& msg)
         }
         settings += PM::field("registeredcodes", codeList) + paths;
       } else {
-        // Outside PNNL: this fork ships no vendored/bundled NWChem (the
-        // old "3rdparty/nwchem/bin/nwchem" path this used to default to
-        // was never actually packaged in the CMake/CPack build -- it
-        // always pointed at a file that doesn't exist, silently seeding
-        // a broken machine registration). NWChem is a real, Debian-
-        // packaged `nwchem` dependency instead (see
-        // CPACK_DEBIAN_PACKAGE_DEPENDS in CMakeLists.txt) -- default to
-        // its real install path, but only if it's actually present on
-        // this machine, so a missing/skipped dependency still results in
-        // an honest "nothing pre-configured" registration rather than
-        // another silently-wrong path.
-        string path = "/usr/bin/nwchem";
-        SFile nwchemBin(path);
-        nwchemFlag = nwchemBin.exists();
-        if (nwchemFlag)
-          settings += "&registeredcodes=NWChem," + PM::field("NWChem", path);
-        else
-          settings += "&registeredcodes=";
+        // Outside PNNL nothing is bundled; register what is on the PATH.
+        string codeList = "";
+        string paths = "";
+        vector<string> codes = CodeFactory::getMachineCodeNames();
+        for (size_t i = 0; i < codes.size(); i++) {
+          // A code shipped with ECCE (ECCE-QM) has no path to register.
+          if (RefMachine::bundledCode(codes[i], "localhost"))
+            continue;
+#ifdef _WIN32
+          string found;  // PATH search is POSIX-only; Windows keeps the Find button
+#else
+          string found = CodePrograms::findOnPath(codes[i]);
+#endif
+          if (found.empty())
+            continue;
+          codeList += codes[i] + ",";
+          paths += PM::field(codes[i], found);
+          foundCodes.push_back(codes[i] + " (" + found + ")");
+        }
+        settings += PM::field("registeredcodes", codeList) + paths;
       }
 
       settings += "&qmgrPath=&AA=false&qmgr=None&numQueues=0";
@@ -628,20 +631,23 @@ bool RunMgmt::registerLocalMachine(string& msg)
 #endif
         if (emslFlag)
           msg += "Paths to codes have been set based on EMSL defaults.  ";
-        else if (nwchemFlag)
-          msg += "The NWChem installation found at /usr/bin/nwchem will be used.  ";
-        else
+        else if (!foundCodes.empty()) {
+          msg += "Programs found on the PATH were registered: ";
+          for (size_t i = 0; i < foundCodes.size(); i++)
+            msg += (i ? ", " : "") + foundCodes[i];
+          msg += ".  ";
+        } else
           msg += "No computational codes were found pre-installed; register "
               "paths to the codes you have manually.  ";
-        msg += "These settings can be changed using the \"Register "
-            "Machines...\" option from the Launcher Job menu.\n";
+        msg += "These settings can be changed using \"Register "
+            "Machines...\" in the Organizer's Tools menu.\n";
 
         RefMachine::markUpdateUserPrefs();
       } else {
         msg = "Attempt to register the machine you are on, ";
         msg += machine;
         msg += ", failed.  Please register it using the "
-            "\"Register Machines...\" option from the Launcher Job menu "
+            "\"Register Machines...\" in the Organizer's Tools menu "
             "if you wish to import or launch jobs locally.";
         succeeded = false;
       }
