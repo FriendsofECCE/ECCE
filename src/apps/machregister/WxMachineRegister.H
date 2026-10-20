@@ -111,10 +111,12 @@ class WxMachineRegister: public ewxFrame
             wxBitmapButton *undo;
             wxSizer *box;
             wxWindow *scroll;             // the tab's scrolled window
+            wxSizer *row;                 // name, site line, controls
+            bool builtin;                 // the box's hint is ECCE's built-in
             BlockRow() : heading(NULL), siteHead(NULL), siteLabel(NULL), yoursLabel(NULL),
                          tag(NULL), note(NULL), site(NULL), user(NULL),
                          none(NULL), copy(NULL), undoBox(NULL), undo(NULL),
-                         box(NULL), scroll(NULL) {}
+                         box(NULL), scroll(NULL), row(NULL), builtin(false) {}
         };
 
         //  A one-line setting of the code selected on the Codes tab (program,
@@ -252,6 +254,7 @@ class WxMachineRegister: public ewxFrame
         void showProgramCheck(const string& text);
         void browseProgram();
         string defaultAccount() const;
+        bool userPrefsDiffer() const;
         void saveDefaultAccount(const string& name);
         void addDiscovered(const vector<SchedulerQuery::Queue>& picked);
         void previewJobScript(const string& code = "");
@@ -374,6 +377,9 @@ class WxMachineRegister: public ewxFrame
         std::set<string>     p_discovered;   // the scheduler's queues, last Discover
         ewxTextCtrl         *p_defAccount;     // per-user, in MachPrefs
         string               p_accountLoaded;
+        //  The other per-user MachinePreferences fields of the Machine tab.
+        ewxTextCtrl         *p_runDir, *p_scratchDir, *p_userName;
+        string               p_runDirLoaded, p_scratchLoaded, p_userLoaded;
         std::deque<int>      p_choices;   // test hook: answers to a list of paths
         wxWindow            *p_codePage;
         wxPanel             *p_codeAdvanced;

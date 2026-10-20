@@ -924,8 +924,8 @@ def job_script_tab(tmp, display, build, mode):
     setup_src = "the ECCE server" if remote else "the site"
     site = "from server" if remote else "from site"
     yours = "site value" if admin else "your value"
-    hdr_label = "source: %s (read-only)" % (
-        "server (submit.site)" if remote else "submit.site")
+    hdr_label = "%s: #SBATCH --partition=$queue... \u2014 text here replaces it" % (
+        "Default" if admin else "Site")
 
     if admin:
         setup_pre = """expect field blk:setup '%s'
@@ -942,13 +942,12 @@ set blk:setup %s
         setup_pre = """expect field blk:setup ''
 expect field blk:setup:site '%s'
 expect label tag:setup '%s'
-expect label blk:setup:label 'source: %s (read-only)'
+expect contains blk:setup:label 'Site: '
 click blk:setup:copy
 expect field blk:setup '%s'
 expect label tag:setup 'your value'
 set blk:setup %s
 """ % (site_setup, site,
-       "server (CONFIG.cluster)" if remote else "siteconfig/CONFIG.cluster",
        site_setup,
        esc(site_setup + "\nmodule load mine"))
     p = run(display, build, e, """
@@ -961,12 +960,13 @@ expect label blk:header:hint 'e.g. #SBATCH --qos=normal'
 expect shown blk:header:hint 1
 expect label blk:wrapup:hint 'e.g. cp *.log $HOME/results'
 expect label blk:header:label %(hdrlabel)s
-expect shown blk:header:site 1
+expect shown blk:header:label 1
+expect shown blk:header:site 0
+check-block-layout
 expect enabled blk:header:copy 1
 expect label tag:wrapup 'not set'
 expect shown blk:wrapup:site 0
-expect label blk:wrapup:head '%(none)s'
-expect label blk:wrapup:yours '%(mine)s'
+expect shown blk:wrapup:label 0
 expect shown blk:wrapup:none 0
 expect shown condorallowtmp 0
 expect shown undo:header 0
@@ -1214,7 +1214,7 @@ expect shown blk:cenv:site 0
         first = """expect field blk:cenv ''
 expect field blk:cenv:site 'g16root /sitedir'
 expect enabled blk:cenv:copy 1
-expect label blk:cenv:yours 'User setting (replaces the site setting)'
+expect contains blk:cenv:label 'Site: g16root /sitedir'
 """
     p = run(display, build, e, """
 select cluster
@@ -1235,23 +1235,18 @@ expect shown undo:code 0
 expect shown undo:cenv 0
 %(first)sexpect label tag:ccmd 'default'
 expect label tag:files '%(fsite)s'
-expect shown blk:ccmd:site 1
-expect label blk:ccmd:head 'Built-in (used when empty)'
-expect field blk:ccmd:site '$G16 < $inFile > $outFile 2>&1'
-expect label blk:ccmd:yours '%(mine)s (replaces the built-in)'
+expect shown blk:ccmd:label 0
 expect shown blk:ccmd:copy 0
 expect shown blk:ccmd:none 0
-expect label blk:ccmd:hint 'e.g. srun $G16 < $inFile > $outFile'
+expect label blk:ccmd:hint 'Empty: ECCE runs $G16 < $inFile > $outFile 2>&1'
 expect shown blk:ccmd:hint 1
 expect label blk:cenv:hint 'e.g. g16root /opt'
 expect label blk:csetup:hint 'e.g. module load gaussian-16'
 expect field blk:ccmd ''
 expect dirty 0
-expect label cmd:help "When this is empty, ECCE's built-in command is used."
 code ORCA
 expect label code:title ORCA
-expect contains blk:ccmd:site '$orca $inFile > $outFile 2>&1'
-expect label blk:ccmd:hint 'e.g. $orca $inFile "--bind-to core" > $outFile'
+expect contains blk:ccmd:hint 'Empty: ECCE runs $orca $inFile > $outFile 2>&1'
 expect label blk:cenv:hint 'e.g. OMP_NUM_THREADS 1'
 expect label blk:csetup:hint 'e.g. module load orca'
 expect field code:orca ''
@@ -2460,7 +2455,7 @@ quit
         #  "Allocation accounts used", and fills the Preview and the Test.
         p = run(display, build, e, """
 select stubm
-tab queues
+tab machine
 expect field aa 0
 expect dirty 0
 set default-account proj7
@@ -2491,7 +2486,7 @@ quit
               "the default account: %r" % prefs[-200:])
         p = run(display, build, e, """
 select stubm
-tab queues
+tab machine
 expect field default-account proj7
 expect field aa 1
 quit
@@ -2587,6 +2582,57 @@ quit
           "nothing was saved by testing")
 
 
+def machine_tab_and_modules(tmp, display, build):
+    print("Machine tab: per-user fields; Codes tab: Modules, More")
+    e = Env(tmp, "machprefs")
+    write(os.path.join(e.ue, "CONFIG.mine"), "nwchem: /opt/nwchem\n")
+    p = run(display, build, e, """
+select mine
+tab machine
+set run-dir /work/me/runs
+set scratch-dir /scratch/me
+set default-account proj9
+set username me42
+expect dirty 1
+tab codes
+code NWChem
+check-block-layout
+set code:modules 'GCC/13.2.0 OpenMPI/4.1.6'
+expect field code:modules 'GCC/13.2.0 OpenMPI/4.1.6'
+set blk:csetup 'echo before'
+click code:more
+set code:files '*.tmp'
+save
+expect dirty 0
+quit
+""", extra=LOCALUSER, timeout=180)
+    clean(p, "Machine-tab fields, Modules and a More field are accepted and saved")
+    cfg = read(os.path.join(e.ue, "CONFIG.mine"))
+    check("NWChemModules: GCC/13.2.0 OpenMPI/4.1.6" in cfg,
+          "the machine file holds NWChemModules: %r" % cfg)
+    check("NWChemModules" not in "".join(
+              read(os.path.join(e.ue, "MachPrefs"))
+              if os.path.exists(os.path.join(e.ue, "MachPrefs")) else ""),
+          "Modules is a machine-file key, not a preference")
+    prefs = read(os.path.join(e.ue, "MachPrefs"))
+    for v in ("/work/me/runs", "/scratch/me", "proj9", "me42"):
+        check(v in prefs, "MachPrefs (per user) holds %s" % v)
+    p = run(display, build, e, """
+select mine
+tab machine
+expect field run-dir /work/me/runs
+expect field scratch-dir /scratch/me
+expect field default-account proj9
+expect field username me42
+tab codes
+code NWChem
+expect field code:modules 'GCC/13.2.0 OpenMPI/4.1.6'
+expect dirty 0
+quit
+""", extra=LOCALUSER, timeout=180)
+    clean(p, "the Machine-tab fields and Modules are shown again")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
@@ -2662,6 +2708,7 @@ def main():
             preview_admin(tmp, disp, build)
             test_submission(tmp, disp, build)
             account_required(tmp, disp, build)
+            machine_tab_and_modules(tmp, disp, build)
             kebnekaise_roundtrip(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)

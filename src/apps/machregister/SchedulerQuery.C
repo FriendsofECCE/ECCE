@@ -253,9 +253,57 @@ string exampleText(const ProgramHelp& h)
     return s;
 }
 
-string findProgramScript(const ProgramHelp& h)
+//  Same text as modulePrologue() in scripts/gensub (minus the log line):
+//  keep the two in step.  Defines `module` under sh, where Lmod and
+//  Environment Modules do not.
+static const char* modulePrologueText()
 {
-    string s;
+    return R"EOT(# Make the module command available (job scripts are sh, not bash)
+if ! command -v module >/dev/null 2>&1; then
+  _ecce_p=$(sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}LMOD_PKG=["'"'"']\{0,1\}\([^"'"'"'; ]*\).*/\2/p' /etc/profile.d/*lmod*.sh 2>/dev/null | head -n 1)
+  case $_ecce_p in *'$'*) _ecce_p= ;; esac
+  for _ecce_m in "${LMOD_PKG:+$LMOD_PKG/init/sh}" "${MODULESHOME:+$MODULESHOME/init/sh}" "${LMOD_CMD:+${LMOD_CMD%/libexec/*}/init/sh}" "${_ecce_p:+$_ecce_p/init/sh}" /etc/profile.d/lmod.sh /usr/share/lmod/lmod/init/sh /etc/profile.d/modules.sh /usr/share/Modules/init/sh /etc/profile.d/z00_lmod.sh; do
+    [ -n "$_ecce_m" ] && [ -r "$_ecce_m" ] && . "$_ecce_m" && break
+  done
+fi
+if ! command -v module >/dev/null 2>&1; then
+  echo "module command not available in sh; 'module load' will fail (no Lmod or Environment Modules init file found)" >&2
+fi
+)EOT";
+}
+
+string moduleLoadScript(const string& modules)
+{
+    string m = trim(modules);
+    if (m.empty())
+        return "";
+    return string(modulePrologueText()) +
+           "_ecce_mo=${TMPDIR:-/tmp}/ecce-module.$$\n"
+           "module load " + m + " >\"$_ecce_mo\" 2>&1\n"
+           "if [ $? -ne 0 ]; then echo ECCE-MODULE-FAILED; "
+           "cat \"$_ecce_mo\"; echo ECCE-MODULE-END; fi\n"
+           "rm -f \"$_ecce_mo\"\n";
+}
+
+string moduleError(const string& output)
+{
+    vector<string> ls = lines(output);
+    string r;
+    bool in = false;
+    for (size_t i = 0; i < ls.size(); i++)
+    {
+        string l = trim(ls[i]);
+        if (l == "ECCE-MODULE-FAILED") { in = true; continue; }
+        if (l == "ECCE-MODULE-END") { in = false; continue; }
+        if (in)
+            r += (r.empty() ? "" : "\n") + ls[i];
+    }
+    return r;
+}
+
+string findProgramScript(const ProgramHelp& h, const string& modules)
+{
+    string s = moduleLoadScript(modules);
     for (size_t i = 0; i < h.names.size(); i++)
     {
         const string& n = h.names[i];

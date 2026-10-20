@@ -200,6 +200,15 @@
   print SUBMIT "\n$CC Exit status and ECCE states...\n";
   print SUBMIT &defineStatusSymbols();
 
+  # Modules for this code go before its setup, which may use what they provide.
+  my $modules = $config{$lccode . "modules"};
+  if (defined($modules) && $modules =~ /\S/ && $modules ne "-") {
+    $modules =~ s/^\s+|\s+$//g;
+    $modules =~ s/\s*\n\s*/ /g;
+    print SUBMIT "\n$CC Load the modules registered for this code\n";
+    print SUBMIT "module load $modules\n";
+  }
+
   # If there is a specific setup registered, add it
   if (defined($config{$lccode . "_setup"})) {
     $out = &shSnippet($lccode . "_setup", $config{$lccode . "_setup"});
