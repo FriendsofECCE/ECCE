@@ -71,6 +71,18 @@ nwchem=/opt/codes/nwchem
 if [ -n "${ECCE_NWCHEM+set}" ]; then
   nwchem=$ECCE_NWCHEM
 fi
+if [ ! -e nwchemrc ] && grep -qiE '^[[:space:]]*task[[:space:]]+(prepare|md)' nwch.nw 2>/dev/null; then
+  nwsolv=
+  for d in /usr/share/nwchem/solvents "$NWCHEM_TOP/src/data/solvents" \
+      "$(dirname "$(dirname "$(command -v "$nwchem" 2>/dev/null)")")/share/nwchem/solvents"; do
+    if [ -d "$d" ]; then nwsolv=$d; break; fi
+  done
+  if [ -n "$nwsolv" ]; then
+    for s in spce meoh clfm thfs; do
+      if [ -f "$nwsolv/$s.rst" ]; then echo "$s $nwsolv/$s.rst" >> nwchemrc; fi
+    done
+  fi
+fi
 "$nwchem" nwch.nw > nwch.nwout 2>&1
 
 
