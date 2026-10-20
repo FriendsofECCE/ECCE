@@ -757,13 +757,23 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         if fixed:
             summary = fixed
         else:
-            summary["warnings"].append(
-                "%d bonds join the mineral to its own periodic image along c: the "
-                "cell has too little vacuum (at most about %.2f nm; MINFF needs about "
-                "%.1f nm), so its layer is bonded to itself.%s Lengthen the cell "
-                "along c%s." % (wound, gap, GAP_NM,
-                                " Adding a gap automatically did not work." if add_gap else "",
-                                "" if add_gap or gui else ", or build with --add-gap"))
+            if add_gap:
+                # No gap opens without breaking bonds: the crystal is not
+                # layered along c, so water cannot simply be stacked on it.
+                summary["warnings"].append(
+                    "%d bonds join the mineral to its own periodic image along c, "
+                    "and no gap could be opened between layers: this crystal is not "
+                    "layered along c. For the bulk crystal, set the water layer to "
+                    "0. For water on a surface, start from a slab cell (the crystal "
+                    "cut along a plane, with its surface terminated) and repeat it "
+                    "once along c." % wound)
+            else:
+                summary["warnings"].append(
+                    "%d bonds join the mineral to its own periodic image along c: the "
+                    "cell has too little vacuum (at most about %.2f nm; MINFF needs "
+                    "about %.1f nm), so its layer is bonded to itself. Lengthen the "
+                    "cell along c%s." % (wound, gap, GAP_NM,
+                                         "" if gui else ", or build with --add-gap"))
     for w in summary["warnings"]:
         print("minff_topology: WARNING: " + w, file=sys.stderr)
     with open(os.path.join(outdir, "minff.json"), "w", encoding="utf-8") as f:

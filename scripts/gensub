@@ -1765,7 +1765,6 @@ MDPEOF
   # marker and lets the net-charge warning through instead of stopping.
   [ "$NEUT" = 0 ] && echo "; ECCE-NETCHARGE-INTENDED" >> topol.top
   cp topol.top @@SYS@@.gmxtop || exit 1
-  prepRun "$gmx" editconf -f @@RESTART@@ -o chemsys.pdb || exit 1
 
   # The summary the Organizer and the Viewer show.  The numbers are gmx's
   # own: the structure and topology it wrote, and what pdb2gmx, editconf
@@ -1784,6 +1783,18 @@ MDPEOF
   else
     q1="?"
   fi
+  # The structure the Viewer shows: in a dodecahedron or octahedron box the
+  # molecules are wrapped into that shape (solvate leaves a brick); the
+  # restart file the MD tasks use is not touched.
+  view=@@RESTART@@
+  case "$BOX" in
+    dodecahedron|octahedron)
+      if [ -s after.tpr ] && echo System | "$gmx" trjconv -s after.tpr -f @@RESTART@@ \
+           -o view.gro -pbc mol -ur compact > prep.view 2>&1; then
+        view=view.gro
+      fi;;
+  esac
+  prepRun "$gmx" editconf -f "$view" -o chemsys.pdb || exit 1
   boxv=`sed -n 's/^new box vectors : *\([0-9.]*\) *\([0-9.]*\) *\([0-9.]*\).*/\1 \2 \3/p' prep.editconf | tail -1`
   boxa=`sed -n 's/^new box angles  : *\([0-9.]*\) *\([0-9.]*\) *\([0-9.]*\).*/\1 \2 \3/p' prep.editconf | tail -1`
   set -- $boxv; ba=$1; bb=$2; bc=$3
@@ -1928,7 +1939,7 @@ sub gromacs()
     #  of its own, so they are not part of the log.
     #  Whole molecules (-pbc mol) so the chain does not tear at the box
     #  edge; at most 100 frames are kept (every k-th plus the last).
-    $retval .= "  if [ -s traj.xtc ] && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f traj.xtc -pbc mol -o ecce_traj.pdb >> $::logfile 2>&1; then\n";
+    $retval .= "  if [ -s traj.xtc ] && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f traj.xtc -pbc mol -ur compact -o ecce_traj.pdb >> $::logfile 2>&1; then\n";
     $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj.pdb`\n";
     $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce-parse-traj.txt\n";
     $retval .= "  fi\n";
