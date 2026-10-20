@@ -292,6 +292,27 @@ def home_grid(i):
     i.add('</g>')
 
 
+@icon
+def home_front(i):
+    # A house seen from the front, no perspective: shaded but flat-on
+    i.shadow(16, 29.200, 12.500, 1.300, .22)
+    ch = i.lin(20, 0, 24, 0, (0, "#d8684a"), (1, "#8a3018"))
+    i.add('<rect x="20.500" y="5" width="3.600" height="8" fill="%s" stroke="#4a1808" stroke-width=".6"/>' % ch)
+    i.add('<rect x="20" y="4.200" width="4.600" height="1.500" rx=".4" fill="#5a2414"/>')
+    wall = i.lin(0, 14, 0, 29, (0, "#fffaf0"), (1, "#e2cca4"))
+    i.add('<rect x="6" y="14.500" width="20" height="14" fill="%s" stroke="#8a5a30" stroke-width=".8"/>' % wall)
+    roof = i.lin(0, 3, 0, 16, (0, "#ff9c6c"), (.6, "#e44c1c"), (1, "#a82a0a"))
+    i.add('<path d="M2.500 15.500L16 3.500l13.500 12z" fill="%s" stroke="#6a1804" stroke-width=".9" stroke-linejoin="round"/>' % roof)
+    i.add('<path d="M6 15.400L16 6.600l10 8.800" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width=".8"/>')
+    door = i.lin(0, 19, 0, 28.500, (0, "#b87444"), (1, "#5e3010"))
+    i.add('<rect x="13.500" y="19.500" width="5" height="9" rx=".6" fill="%s" stroke="#3a1c06" stroke-width=".6"/>' % door)
+    i.add('<circle cx="17.300" cy="24.300" r=".6" fill="#ffd27a"/>')
+    glass = i.lin(0, 17, 0, 23, (0, "#e0f0ff"), (1, "#4a88d8"))
+    for x in (8, 20.500):
+        i.add('<rect x="%s" y="18" width="3.800" height="3.800" fill="%s" stroke="#5a3a1a" stroke-width=".7"/>' % (x, glass))
+        i.add('<path d="M%s 19.900h3.800M%s 18v3.800" stroke="#5a3a1a" stroke-width=".5"/>' % (x, x + 1.9))
+
+
 def arrow(i, x1, y1, x2, y2, light, dark, w=2.4):
     dx, dy = x2 - x1, y2 - y1
     L = math.hypot(dx, dy)
