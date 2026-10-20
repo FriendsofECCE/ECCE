@@ -17,7 +17,7 @@
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "RxnConstVsPlotPropertyPanel.H"
@@ -83,7 +83,7 @@ void ReactionConstantVsPlotPropertyPanel::refresh()
   calculation = getCalculation();
 
   // Clear the plot
-  p_plotCtrl->DeleteCurve(-1, true); // -1 deletes all, true emits event
+  p_plotCtrl->clearCurves();
 
   props = getPropertyNames();
   if (props.size() <= 0) {
@@ -99,19 +99,19 @@ void ReactionConstantVsPlotPropertyPanel::refresh()
     int count = table->rows();
     double *a = new double[count];
     double *b = new double[count];
-    wxPlotData *plotData = NULL;
 
-    p_plotCtrl->SetXAxisLabel("1000/(T[K])");
-    p_plotCtrl->SetYAxisLabel("ln(k_TST/k_CVT)");
-    p_plotCtrl->SetPlotTitle(getName());
+    p_plotCtrl->setXAxisLabel("1000/(T[K])");
+    p_plotCtrl->setYAxisLabel("ln(k_TST/k_CVT)");
+    p_plotCtrl->setTitle(getName());
 
     col_data = hasError() ? 8 : 4;
     for (i=0; i<count; ++i) {
       a[i] = table->value(i, col_1000_T);
       b[i] = table->value(i, col_data);
     }
-    plotData = new wxPlotData(a,b,count);
-    p_plotCtrl->AddCurve(plotData, true, true);
+    p_plotCtrl->addCurve(a, b, count);
+    delete[] a;
+    delete[] b;
   } else {
     INTERNALEXCEPTION(table, "Incorrect cast to a table");
   }
@@ -166,10 +166,8 @@ void ReactionConstantVsPlotPropertyPanel::initialize()
   }
                
   // create our wxPlotCtrl and add to sizer
-  p_plotCtrl = new ewxPlotCtrl(this);
+  p_plotCtrl = new XYPlotCanvas(this);
   p_plotCtrl->SetMinSize(wxSize(300,200));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   GetSizer()->Fit(this);

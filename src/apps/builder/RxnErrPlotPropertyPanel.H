@@ -4,7 +4,7 @@
 #include "PropertyPanel.H"
 
 class ewxChoice;
-class ewxPlotCtrl;
+class XYPlotCanvas;
 
 class ReactionErrorPlotPropertyPanel : public PropertyPanel
 {
@@ -40,7 +40,7 @@ class ReactionErrorPlotPropertyPanel : public PropertyPanel
     void OnReferenceClick(wxCommandEvent &event);
 
   private:
-    ewxPlotCtrl *p_plotCtrl;
+    XYPlotCanvas *p_plotCtrl;
     ewxChoice *p_choice;
 
     static map<wxString,wxString> s_key_to_name;

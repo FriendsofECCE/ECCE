@@ -47,7 +47,6 @@
 #include "wxgui/WxColorSchemeButton.H"
 #include "wxgui/ewxGrid.H"
 #include "wxgui/ewxProgressDialog.H"
-#include "wxgui/ewxPlotCtrl.H"
 #include "wxgui/SliderCombo.H"
 
 #include "inv/ChemKit/ChemColor.H"

@@ -14,7 +14,7 @@
 #include "dsm/PropFactory.H"
 #include "dsm/ChemistryTask.H"
 
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 

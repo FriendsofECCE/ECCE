@@ -17,7 +17,7 @@
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "EqConstPlotPropertyPanel.H"
@@ -86,7 +86,7 @@ void EquilibriumConstantPlotPropertyPanel::refresh()
   calculation = getCalculation();
 
   // Clear the plot
-  p_plotCtrl->DeleteCurve(-1, true); // -1 deletes all, true emits event
+  p_plotCtrl->clearCurves();
 
   props = getPropertyNames();
   if (props.size() <= 0) {
@@ -101,7 +101,6 @@ void EquilibriumConstantPlotPropertyPanel::refresh()
     int count = table->rows();
     double *x = new double[count];
     double *y = new double[count];
-    wxPlotData *plotData = NULL;
 
     int col_x = 3;
     int col_y = 2;
@@ -109,16 +108,14 @@ void EquilibriumConstantPlotPropertyPanel::refresh()
       x[i] = table->value(i, col_x);
       y[i] = table->value(i, col_y);
     }
-    plotData = new wxPlotData(x,y,count);
-    //plotData->SetFilename("data");
-    //plotData->SetPen(wxPLOTPEN_NORMAL, wxPen(*wxBLACK));
-    //plotData->SetPen(wxPLOTPEN_ACTIVE, wxPen(*wxBLACK));
-    //plotData->SetPen(wxPLOTPEN_SELECTED, wxPen(*wxBLACK));
-    p_plotCtrl->AddCurve(plotData, true, true);
+    { int curve = p_plotCtrl->addCurve(x, y, count, wxString(), 0, XYPlotCanvas::LINE_MARKERS);
+      p_plotCtrl->setCurveMarker(curve, 0); }
+    delete[] x;
+    delete[] y;
 
-    p_plotCtrl->SetXAxisLabel(table->colLabels()->at(col_x));
-    p_plotCtrl->SetYAxisLabel(table->colLabels()->at(col_y));
-    p_plotCtrl->SetPlotTitle(getName());
+    p_plotCtrl->setXAxisLabel(table->colLabels()->at(col_x));
+    p_plotCtrl->setYAxisLabel(table->colLabels()->at(col_y));
+    p_plotCtrl->setTitle(getName());
   } else {
     INTERNALEXCEPTION(table, "Incorrect cast to a table");
   }
@@ -142,10 +139,8 @@ void EquilibriumConstantPlotPropertyPanel::initialize()
   }
                
   // create our wxPlotCtrl and add to sizer
-  p_plotCtrl = new ewxPlotCtrl(this);
+  p_plotCtrl = new XYPlotCanvas(this);
   p_plotCtrl->SetMinSize(wxSize(300,200));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   GetSizer()->Fit(this);

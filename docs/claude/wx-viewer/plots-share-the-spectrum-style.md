@@ -1,40 +1,30 @@
 ---
 type: map
-title: "Every plot is an `ewxPlotCtrl` styled by `PlotStyle.H`, the palette the vibrational spectrum canvas uses; `tests/plots/capture.py` pictures them before and after a change"
+title: "Every plot is an `XYPlotCanvas` (src/apps/builder/XYPlotCanvas.H), drawn like the vibrational spectrum with `PlotStyle.H`'s palette; `tests/plots/capture.py` pictures them before and after a change"
 area: wx-viewer
 section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
-paths: ["include/wxgui/PlotStyle.H", "include/wxgui/ewxPlotCtrl.H", "src/wxgui/ewxClasses/ewxPlotCtrl.C", "src/wxgui/wxplotctrl", "src/apps/builder/BuilderPlotShot.C", "tests/plots"]
+paths: ["include/wxgui/PlotStyle.H", "src/apps/builder/XYPlotCanvas.H", "src/apps/builder/BuilderPlotShot.C", "tests/plots"]
 issues: [210, 214]
 ---
-`SpectrumCanvas` (#214) is specific to spectra; what is shared is its
-colours. `PlotPalette` (was `SpectrumPalette`, still a typedef) lives in
-`include/wxgui/PlotStyle.H`, header-only so `tools/spectrum/render` needs
-no wx widgets. Every other plot is an `ewxPlotCtrl` (the old wxPlotCtrl
-under `src/wxgui/wxplotctrl`); `ewxPlotCtrl::ApplyStyle()` runs from
-`Create()` and gives it the system window colours, Okabe-Ito curves
-(`SeriesPen(i)`), small tick labels, short outside ticks, a pale grid, and
-a readout box for the point under the pointer. Drag zooms a rectangle,
-double click on empty plot fits everything, click still selects the point.
+`XYPlotCanvas` (#930) is the one x-y plot of the Builder: the Geometry
+Trace and Step plots, Relaxed Scan, MO energy levels (`LEVELS` style, key
+above the plot), reaction-rate, equilibrium and metadynamics plots. It
+paints with the same axes, ticks (`niceTicks`), fonts, `PlotPalette` and
+hover box as `SpectrumCanvas`. `ewxPlotCtrl`/`wxplotctrl` are no longer
+used by any panel. A click on a point selects it and calls
+`setPointHandler(curve, index)`; drag zooms a rectangle, the wheel zooms
+about the pointer, right/middle drag pans, double click on empty plot or
+Home fits.
 
-- **A new plot panel needs nothing**; if it sets curve pens itself, use
-  `p_plotCtrl->SeriesPen(n)` and `GetPalette()`, not `wxBLUE`/`wxCYAN`.
-  A curve whose pens still equal the library default is restyled in
-  `StyleNewCurve()`; one with its own pens keeps them.
-- **`SetCorrectTicks(false)`.** The library's tick "correction" moved the
-  view to put ticks on round numbers and cut data off after a resize (the
-  Geometry Trace curve left the plot). Ticks now go where they fall.
-- **The y-axis window is as wide as its labels** (`CalcYAxisTickPositions`
-  re-lays out when the width changes); it used to be a fixed guess at
-  `-5.5e+555`. The window now ends at the plot frame so ticks reach it.
-- **`DrawAreaOverlay()` and `StyleNewCurve()`** are the two new virtual
-  hooks in `wxPlotCtrl`; the readout is drawn in the first.
-- **Rate-constant, equilibrium, MO-level and step plots all go through
-  this**; `PlotMeta3D`'s plot is commented out and draws nothing.
+- **Curve colours:** `addCurve(..., series)` takes `palette().series(i)`
+  (Okabe-Ito); `setCurveColour` overrides it.
+- **Hooks:** `gtpick` calls `pointPosition()`, which lays the plot out
+  itself, so it works before the first paint.
+- **No export:** the old control had none either; Scan has its own CSV.
 - **Pictures.** `tests/plots/capture.py --png DIR --tag before|after`
   floats each plot panel in the real Builder at two sizes (scene command
   `plotshot`) and saves the pixels; `tests/plots/sheet.py DIR` makes the
-  contact sheets. One Builder per panel and size: resizing a floated
-  panel left stale pixels in the plot's native windows.
+  contact sheets. One Builder per panel and size.
 - **`gtpick <step|mid|last>`** (scene script) clicks the plot where a step
   is drawn and checks the molecule is the trace's; it is in
   `tests/apps/geomtrace_stress.py`.

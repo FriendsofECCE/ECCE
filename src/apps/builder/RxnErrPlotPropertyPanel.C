@@ -17,7 +17,7 @@
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "RxnErrPlotPropertyPanel.H"
@@ -106,7 +106,7 @@ void ReactionErrorPlotPropertyPanel::refresh()
   calculation = getCalculation();
 
   // Clear the plot
-  p_plotCtrl->DeleteCurve(-1, true); // -1 deletes all, true emits event
+  p_plotCtrl->clearCurves();
 
   props = getPropertyNames();
   if (props.size() <= 0) {
@@ -138,7 +138,6 @@ void ReactionErrorPlotPropertyPanel::refresh()
     int col_data = 0;
     double *x,*y;
     int count = 0;
-    wxPlotData *plotData = NULL;
     // figure out which columns to use
     // always have at least the columns "T 1000/T ln(k_TST) ln(k_CVT)"
     //isForward = property_name.find("FORWARD") != string::npos;
@@ -155,16 +154,14 @@ void ReactionErrorPlotPropertyPanel::refresh()
       x[i] = table->value(i, col_1000_T);
       y[i] = table->value(i, col_data);
     }
-    plotData = new wxPlotData(x,y,count);
-    plotData->SetFilename(isTST ? "TST" : "CVT");
-    plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(0));
-    plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(0));
-    plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(0));
-    p_plotCtrl->AddCurve(plotData, true, true);
+    { int curve = p_plotCtrl->addCurve(x, y, count, isTST ? "TST" : "CVT", 0, XYPlotCanvas::LINE);
+      p_plotCtrl->setCurveMarker(curve, 0); }
+    delete[] x;
+    delete[] y;
 
-    p_plotCtrl->SetXAxisLabel("1000/(T[K])");
-    p_plotCtrl->SetYAxisLabel("ln(k[1/sec])");
-    p_plotCtrl->SetPlotTitle(getName());
+    p_plotCtrl->setXAxisLabel("1000/(T[K])");
+    p_plotCtrl->setYAxisLabel("ln(k[1/sec])");
+    p_plotCtrl->setTitle(getName());
 
     if (hasError()) {
       double *a,*b,*c,*d;
@@ -178,23 +175,19 @@ void ReactionErrorPlotPropertyPanel::refresh()
         a[i] = table->value(i, col_1000_T);
         b[i] = table->value(i, col_data);
       }
-      plotData = new wxPlotData(a,b,count);
-      plotData->SetFilename(isTST? "TST_lower": "CVT_lower");
-      plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(1));
-      plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(1));
-      plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(1));
-      p_plotCtrl->AddCurve(plotData, true, true);
+      { int curve = p_plotCtrl->addCurve(a, b, count, isTST? "TST_lower": "CVT_lower", 1, XYPlotCanvas::LINE);
+        p_plotCtrl->setCurveMarker(curve, 0); }
+      delete[] a;
+      delete[] b;
       col_data = isTST ? 4 : 7;
       for (int i=0; i<count; ++i) {
         c[i] = table->value(i, col_1000_T);
         d[i] = table->value(i, col_data);
       }
-      plotData = new wxPlotData(c,d,count);
-      plotData->SetFilename(isTST? "TST_upper": "CVT_upper");
-      plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(2));
-      plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(2));
-      plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(2));
-      p_plotCtrl->AddCurve(plotData, true, true);
+      { int curve = p_plotCtrl->addCurve(c, d, count, isTST? "TST_upper": "CVT_upper", 2, XYPlotCanvas::LINE);
+        p_plotCtrl->setCurveMarker(curve, 0); }
+      delete[] c;
+      delete[] d;
     }
   } else {
     INTERNALEXCEPTION(table, "Incorrect cast to a table");
@@ -252,12 +245,9 @@ void ReactionErrorPlotPropertyPanel::initialize()
   }
                
   // create our wxPlotCtrl and add to sizer
-  p_plotCtrl = new ewxPlotCtrl(this);
+  p_plotCtrl = new XYPlotCanvas(this);
   p_plotCtrl->SetMinSize(wxSize(300,200));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
-  p_plotCtrl->SetShowKey(true);
-  p_plotCtrl->SetKeyPosition(wxPoint(0,0));
+  p_plotCtrl->setShowKey(true);
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   if (hasError()) {

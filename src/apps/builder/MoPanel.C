@@ -35,7 +35,7 @@
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxNumericValidator.H"
 #include "wxgui/ewxMessageDialog.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxProgressDialog.H"
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxStaticText.H"
@@ -80,7 +80,6 @@ BEGIN_EVENT_TABLE( MoPanel, MoGUI )
     EVT_GRID_SELECT_CELL(MoPanel::OnMoSelection)
     EVT_SCROLL(MoPanel::OnEndSliderMotion)
     EVT_TEXT_ENTER(ID_SLIDER, MoPanel::OnSliderTextEnter)
-    EVT_PLOTCTRL_POINT_CLICKED(wxID_ANY, MoPanel::OnGraphSelection)
 
 END_EVENT_TABLE()
 
@@ -178,19 +177,17 @@ bool MoPanel::Create(IPropCalculation *calculation,
    wxSizer *sizer = p_mogrid->GetContainingSizer();
 
    // Create our two plots
-   ewxPlotCtrl* plot[] = {p_plotReg, p_plotSym};
+   XYPlotCanvas* plot[] = {p_plotReg, p_plotSym};
    for (int idx=0; idx<2; ++idx) {
-      plot[idx] = new ewxPlotCtrl(this);
+      plot[idx] = new XYPlotCanvas(this);
       plot[idx]->SetMinSize(minSize);
-      plot[idx]->SetShowKey(true);
-      plot[idx]->SetDrawSymbols(false);
-      plot[idx]->SetDrawLines(false);
-      plot[idx]->SetDrawSpline(false);
-      plot[idx]->SetShowXAxis(false);
-      plot[idx]->SetShowPlotTitle(true);
-      plot[idx]->SetYAxisLabel("Energy (Hartree)");
-      plot[idx]->SetShowYAxisLabel(true);
-      plot[idx]->SetKeyPosition(wxPoint(100,0), true);
+      plot[idx]->setShowKey(true);
+      plot[idx]->setShowXAxis(false);
+      plot[idx]->setXPadding(0.75);
+      plot[idx]->setYAxisLabel("Energy (Hartree)");
+      plot[idx]->setPointHandler([this, idx](int curve, int index) {
+         OnGraphSelection(idx == 0, curve, index);
+      });
       sizer->Insert(1, plot[idx], 1, wxGROW);
    }
    p_plotReg = plot[0];
@@ -494,10 +491,10 @@ void MoPanel::fillUI()
    p_mogrid->DeleteCols(0,p_mogrid->GetNumberCols());
    p_mogrid->DeleteRows(0,p_mogrid->GetNumberRows());
    // Clear plots
-   p_plotReg->DeleteCurve(-1);
-   p_plotReg->ClearMarkers();
-   p_plotSym->DeleteCurve(-1);
-   p_plotSym->ClearMarkers();
+   p_plotReg->clearCurves();
+   p_plotSym->clearCurves();
+   p_pointToRowReg.clear();
+   p_pointToRowSym.clear();
 
    // Get the required properties 
    PropTable     *moCoefs = (PropTable*) expt->getProperty("MO");
@@ -717,36 +714,16 @@ void MoPanel::fillGraph(bool haveTypes)
    double occs[] = {0, 1, 2};
    string names[] = {"Unoccupied", "Singly Occupied", "Doubly Occupied"};
    //  Unoccupied levels in the axis grey, then the first two series colours.
-   const PlotPalette& palette = p_plotReg->GetPalette();
+   const PlotPalette& palette = p_plotReg->palette();
    const wxColour levelColours[] = {palette.axis, palette.series(1),
                                     palette.series(0)};
-   wxBrush brushes[] = {wxBrush(levelColours[0]), wxBrush(levelColours[1]),
-                        wxBrush(levelColours[2])};
-   wxGenericPen pens[] = {
-     wxGenericPen(wxGenericColour(levelColours[0]), 2, wxPENSTYLE_SOLID),
-     wxGenericPen(wxGenericColour(levelColours[1]), 2, wxPENSTYLE_SOLID),
-     wxGenericPen(wxGenericColour(levelColours[2]), 2, wxPENSTYLE_SOLID)};
-   //wxColor colors[] = {*wxBLACK, *wxRED, *wxCYAN}; // unused
-   // create bitmaps to use for markers
-   int width=13, height=1; // odd numbers recommended so that they center
-   wxBitmap unoccupied(width, height);
-   wxBitmap singlyoccupied(width, height);
-   wxBitmap doublyoccupied(width, height);
-   wxBitmap markers[] = {unoccupied, singlyoccupied, doublyoccupied};
-   for (int idx=0; idx<3; ++idx) {
-   wxMemoryDC dc;
-      dc.SelectObject(markers[idx]);
-      dc.SetBackground(brushes[idx]);
-      dc.Clear();
-      dc.SelectObject(wxNullBitmap);
-   }
-   wxPlotMarker marker;
-   AxisMap regAxisMap, symAxisMap;
    for (int occIdx=0; occIdx<3; ++occIdx) {
       vector<double> values;
       vector<double> regXValues;
       vector<double> symXValues;
-      for (int row=0, rows=p_mogrid->GetNumberRows(); row<rows; ++row) {
+      vector<int> rows;
+      vector<wxString> regLabels, symLabels;
+      for (int row=0, rows_=p_mogrid->GetNumberRows(); row<rows_; ++row) {
          double occ;
          p_mogrid->GetCellValue(row, occColumn).ToDouble(&occ);
          if (occ == occs[occIdx]) {
@@ -761,47 +738,30 @@ void MoPanel::fillGraph(bool haveTypes)
                regXValueString << " - " << type;
                symXValueString << " - " << type;
             }
-            double regXValue = regXValueMap[type];
-            double symXValue = symXValueMap[symXValueString];
-            regAxisMap[wxPoint2DDouble(regXValue,energy)] = regXValueString;
-            symAxisMap[wxPoint2DDouble(symXValue,energy)] = symXValueString;
-            regXValues.push_back(regXValue);
-            symXValues.push_back(symXValue);
+            regXValues.push_back(regXValueMap[type]);
+            symXValues.push_back(symXValueMap[symXValueString]);
+            regLabels.push_back(regXValueString);
+            symLabels.push_back(symXValueString);
             values.push_back(energy);
-            p_pointToRowReg[wxPoint2DDouble(regXValue,energy)] = row;
-            p_pointToRowSym[wxPoint2DDouble(symXValue,energy)] = row;
+            rows.push_back(row);
          }
       }
-      if (!values.empty()) {
-         ewxPlotCtrl *plot[] = {p_plotReg, p_plotSym};
-         for (int plotIdx=0; plotIdx<2; ++plotIdx) {
-            int size = values.size();
-            double *x = new double[size];
-            double *y = new double[size];
-            if (plot[plotIdx] == p_plotReg) {
-               copy(regXValues.begin(), regXValues.end(), x);
-            } else {
-               copy(symXValues.begin(), symXValues.end(), x);
-            }
-            copy(values.begin(), values.end(), y);
-            wxPlotData data(x, y, size);
-            data.SetFilename(names[occIdx]);
-            data.SetPen(wxPLOTPEN_NORMAL, pens[occIdx]);
-            data.SetPen(wxPLOTPEN_ACTIVE, pens[occIdx]);
-            data.SetPen(wxPLOTPEN_SELECTED, pens[occIdx]);
-            plot[plotIdx]->AddCurve(data, false, true);
-            // add markers
-            for (int mdx=0; mdx<size; ++mdx) {
-               marker.CreateBitmapMarker(wxPoint2DDouble(x[mdx],y[mdx]),
-                                         markers[occIdx]);
-               plot[plotIdx]->AddMarker(marker);
-            }
+      if (values.empty()) continue;
+      XYPlotCanvas *plot[] = {p_plotReg, p_plotSym};
+      for (int plotIdx=0; plotIdx<2; ++plotIdx) {
+         const bool reg = plotIdx == 0;
+         const int curve = plot[plotIdx]->addCurve(
+             reg ? regXValues : symXValues, values, names[occIdx], 0,
+             XYPlotCanvas::LEVELS);
+         plot[plotIdx]->setCurveColour(curve, levelColours[occIdx]);
+         for (size_t i = 0; i < rows.size(); ++i) {
+            plot[plotIdx]->setPointLabel(curve, (int)i,
+                                         reg ? regLabels[i] : symLabels[i]);
+            (reg ? p_pointToRowReg : p_pointToRowSym)[
+                std::make_pair(curve, (int)i)] = rows[i];
          }
       }
    }
-   // add x-value mappings
-   p_plotReg->SetXValueMap(regAxisMap);
-   p_plotSym->SetXValueMap(symAxisMap);
    // fix the plot titles
    wxString regTitle;
    wxString symTitle;
@@ -813,22 +773,8 @@ void MoPanel::fillGraph(bool haveTypes)
       symTitle << it->first << " : ";
    }
    symTitle = symTitle.Left(symTitle.Len()-3);
-   p_plotReg->SetPlotTitle(regTitle);
-   p_plotSym->SetPlotTitle(symTitle);
-   // special zoom to fit
-   // pad the bounding rect so our data isn't off screen
-   ewxPlotCtrl *plot[] = {p_plotReg, p_plotSym};
-   for (int plotIdx=0; plotIdx<2; ++plotIdx) {
-      wxRect2DDouble rect;
-      plot[plotIdx]->CalcBoundingPlotRect();
-      rect = plot[plotIdx]->GetCurveBoundingRect();
-      rect.m_x -= 1; // so our data labels don't go off screen
-      rect.m_width += 1+1; // to make up for the m_x change, plus additional
-      rect.m_y -= 20; // make room for our key
-      rect.m_height += 20+2; // make up for m_y change, plus additional
-      plot[plotIdx]->SetCurveBoundingRect(rect);
-      plot[plotIdx]->MakeCurveVisible(-1);
-   }
+   p_plotReg->setTitle(regTitle);
+   p_plotSym->setTitle(symTitle);
 }
 
 
@@ -1609,22 +1555,13 @@ void MoPanel::OnMoSelection(wxGridEvent& event)
    event.Skip();
 }
 
-void MoPanel::OnGraphSelection(wxPlotCtrlEvent& event)
+void MoPanel::OnGraphSelection(bool regular, int curve, int index)
 {
-   wxPlotCtrl * plot = event.GetPlotCtrl();
-   wxPlotData * curve = (wxPlotData*)event.GetCurve();
-   int index = event.GetCurveDataIndex();
-   wxPoint2DDouble point = curve->GetPoint(index);
-   if (plot == p_plotReg) {
-      if (p_pointToRowReg.find(point) != p_pointToRowReg.end()) {
-         selectMo(p_pointToRowReg[point]);
-      }
-   } else if (plot == p_plotSym) {
-       if (p_pointToRowSym.find(point) != p_pointToRowSym.end()) {
-          selectMo(p_pointToRowSym[point]);
-       }
-   }
-   event.Skip();
+   std::map<std::pair<int,int>,int>& rows =
+      regular ? p_pointToRowReg : p_pointToRowSym;
+   std::map<std::pair<int,int>,int>::iterator it =
+      rows.find(std::make_pair(curve, index));
+   if (it != rows.end()) selectMo(it->second);
 }
 
 void MoPanel::updateSurface()

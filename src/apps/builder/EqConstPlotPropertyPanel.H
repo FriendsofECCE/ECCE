@@ -4,7 +4,7 @@
 #include "PropertyPanel.H"
 
 class ewxChoice;
-class ewxPlotCtrl;
+class XYPlotCanvas;
 
 class EquilibriumConstantPlotPropertyPanel : public PropertyPanel
 {
@@ -35,7 +35,7 @@ class EquilibriumConstantPlotPropertyPanel : public PropertyPanel
     virtual void initialize();
 
   private:
-    ewxPlotCtrl *p_plotCtrl;
+    XYPlotCanvas *p_plotCtrl;
 };
 
 #endif // EQUILIBRIUMCONSTANTPLOTPROPERTYPANEL_H_

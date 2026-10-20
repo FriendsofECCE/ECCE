@@ -26,7 +26,7 @@
 
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/GenericValidator.H"
@@ -59,7 +59,6 @@ BEGIN_EVENT_TABLE(GeomTracePropertyPanel, VizPropertyPanel)
               GeomTracePropertyPanel::OnPlaybackLoop)
   EVT_TOOL(ID_CHECKBOX_BONDS, GeomTracePropertyPanel::OnToolClick)
   EVT_TOOL(ID_CHECKBOX_FOLD, GeomTracePropertyPanel::OnToolClick)
-  EVT_PLOTCTRL_POINT_CLICKED(wxID_ANY, GeomTracePropertyPanel::OnPointClick)
   EVT_COMMAND(wxID_ANY, wxEVT_VALIDATION_EVENT,
               GeomTracePropertyPanel::OnValidation)
 END_EVENT_TABLE()
@@ -173,7 +172,8 @@ void GeomTracePropertyPanel::initialize()
   }
 
   // create our wxPlotCtrl, add to sizer
-  p_plotCtrl = new ewxPlotCtrl(this);
+  p_plotCtrl = new XYPlotCanvas(this);
+  p_plotCtrl->setPointHandler([this](int, int index) { OnPointClick(0, index); });
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -217,7 +217,7 @@ wxWindow * GeomTracePropertyPanel::GetTearableContent()
        const Property_Ref *propref = PropFactory::getPropRef(*key);
        wxString long_name = propref ? propref->long_name : *key;
        tb->AddCheckTool(p_keyToId[*key], long_name, wxNullBitmap);
-       tb->ToggleTool(p_keyToId[*key], long_name == p_plotCtrl->GetPlotTitle());
+       tb->ToggleTool(p_keyToId[*key], long_name == p_plotCtrl->title());
     }
   }
   tb->AddSeparator();
@@ -307,37 +307,21 @@ void GeomTracePropertyPanel::fillPlot()
   if (!prop) return; // bail if bad prop
 
   // clear any plots that might exist, don't send event
-  p_plotCtrl->DeleteCurve(-1, false);
+  p_plotCtrl->clearCurves();
 
-  // wxPlotData expects a pointer to an array
   size_t size = prop->rows();
-  double *arrayData = new double[size];
-  fill(arrayData, arrayData+size, 0);
+  vector<double> arrayData(size, 0.0), stepData(size);
   vector<double> &vectorData = prop->values();
-  copy(vectorData.begin(), vectorData.end(), arrayData);
-  
-  // We also need our "step" data
-  double *stepData = new double[size];
-  for (size_t i = 0; i < size; i++) {
-    stepData[i] = i+1;
-  }
+  copy(vectorData.begin(), vectorData.begin() + std::min(size, vectorData.size()),
+       arrayData.begin());
+  for (size_t i = 0; i < size; i++) stepData[i] = i+1;
+  p_plotCtrl->addCurve(stepData, arrayData);
 
-  // create our curve and add to plot control
-  wxPlotData plotData(stepData, arrayData, size);
-  p_plotCtrl->AddCurve(plotData, true, true);
+  p_plotCtrl->setXAxisLabel(prop->rowLabel());
+  p_plotCtrl->setYAxisLabel(unitLabel(prop->units()));
 
-  // add and show the axes labels
-  p_plotCtrl->SetXAxisLabel(prop->rowLabel());
-  p_plotCtrl->SetYAxisLabel(unitLabel(prop->units()));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
-
-  // add and show the plot title
   const Property_Ref *propref = PropFactory::getPropRef(p_currentProp);
-  if (propref) {
-    p_plotCtrl->SetPlotTitle(propref->long_name);
-    p_plotCtrl->SetShowPlotTitle(true);
-  }
+  if (propref) p_plotCtrl->setTitle(propref->long_name);
 }
 
 
@@ -368,9 +352,9 @@ void GeomTracePropertyPanel::OnPlaybackLoop(wxCommandEvent& event)
 }
 
 
-void GeomTracePropertyPanel::OnPointClick(wxPlotCtrlEvent& event)
+void GeomTracePropertyPanel::OnPointClick(int, int index)
 {
-  processStep(event.GetCurveDataIndex());
+  processStep(index);
 }
 
 
@@ -458,11 +442,7 @@ void GeomTracePropertyPanel::processStep(int step)
   }
 
   // The plotted series (TEVEC, ...) may have fewer points than the trace.
-  wxPlotData *curve = p_plotCtrl->CurveIndexOk(0) ?
-          p_plotCtrl->GetDataCurve(0) : NULL;
-  if (curve && step < curve->GetCount()) {
-    p_plotCtrl->SetCursorDataIndex(0, step);
-  }
+  if (step < p_plotCtrl->pointCount(0)) p_plotCtrl->setSelectedPoint(0, step);
 
   // Issue #99: drive the repaint directly instead of relying on Open
   // Inventor's change notification, which stops firing after the first

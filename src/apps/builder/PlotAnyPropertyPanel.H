@@ -6,7 +6,7 @@
 
 #include "PropertyPanel.H"
 
-class ewxPlotCtrl;
+class XYPlotCanvas;
 
 class PlotAnyPropertyPanel : public PropertyPanel
 {
@@ -43,7 +43,7 @@ class PlotAnyPropertyPanel : public PropertyPanel
     void refreshAxisLabel(ewxChoice *axis);
 
   private:
-    ewxPlotCtrl *p_plotCtrl;
+    XYPlotCanvas *p_plotCtrl;
     ewxChoice *p_xaxis;
     ewxChoice *p_yaxis;
 };

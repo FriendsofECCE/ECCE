@@ -15,7 +15,7 @@
 #include "dsm/PropFactory.H"
 
 #include "wxgui/ewxNonBoldLabel.H"
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "viz/GTStepCmd.H"
@@ -88,7 +88,7 @@ void ReactionTracePropertyPanel::restoreSettings()
 void ReactionTracePropertyPanel::fillPlot()
 {
   // clear any plots that might exist, don't send event
-  p_plotCtrl->DeleteCurve(-1, false);
+  p_plotCtrl->clearCurves();
 
   if (!getCalculation()) return;
 
@@ -130,27 +130,21 @@ void ReactionTracePropertyPanel::fillPlot()
   reverse(prop_array, prop_array + p_index);
   
   // create our curve and add to plot control
-  wxPlotData plotData(rxcoord_prop_array, prop_array, size);
-  p_plotCtrl->AddCurve(plotData, true, true);
+  p_plotCtrl->addCurve(rxcoord_prop_array, prop_array, size);
+  delete[] rxcoord_prop_array;
+  delete[] prop_array;
 
-  // add and show the axes labels
-  p_plotCtrl->SetXAxisLabel(prop->rowLabel());
-  p_plotCtrl->SetYAxisLabel(unitLabel(prop->units()));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
+  p_plotCtrl->setXAxisLabel(prop->rowLabel());
+  p_plotCtrl->setYAxisLabel(unitLabel(prop->units()));
 
-  // add and show the plot title
   const Property_Ref *propref = PropFactory::getPropRef(p_currentProp);
-  if (propref) {
-    p_plotCtrl->SetPlotTitle(propref->long_name);
-    p_plotCtrl->SetShowPlotTitle(true);
-  }
+  if (propref) p_plotCtrl->setTitle(propref->long_name);
 }
 
 
 void ReactionTracePropertyPanel::processStep(int step)
 {
-  p_plotCtrl->SetCursorDataIndex(0, step);
+  p_plotCtrl->setSelectedPoint(0, step);
 
   WxVizToolFW& fw = getFW();
   IPropCalculation *expt = getCalculation();

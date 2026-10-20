@@ -15,7 +15,7 @@
 #include "dsm/PropFactory.H"
 #include "dsm/ChemistryTask.H"
 
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 
@@ -198,10 +198,8 @@ void PlotMetaXY::initialize()
   }
                
   // create our wxPlotCtrl and add to sizer
-  p_plotCtrl = new ewxPlotCtrl(this);
+  p_plotCtrl = new XYPlotCanvas(this);
   p_plotCtrl->SetMinSize(wxSize(300,200));
-  p_plotCtrl->SetShowXAxisLabel(true);
-  p_plotCtrl->SetShowYAxisLabel(true);
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   //Create boxes for values of minimum and maximum locations
@@ -279,7 +277,7 @@ void PlotMetaXY::initialize()
 void PlotMetaXY::doPlot()
 {
   // clear any plot(s) that might exist
-  p_plotCtrl->DeleteCurve(-1, true); // -1 deletes all, true emits event
+  p_plotCtrl->clearCurves();
 
   // get property data
   int size, xsize;
@@ -383,13 +381,12 @@ void PlotMetaXY::doPlot()
   p_xmaxCtrl->setValueAsDouble(p_xmax);
 
   // create our curve and add to plot control
-  wxPlotData *plotData = new wxPlotData(p_xvalues, p_yvalues, p_size);
-  p_plotCtrl->AddCurve(plotData, true, true);
+  p_plotCtrl->addCurve(p_xvalues, p_yvalues, p_size);
 
   // add and show the axes labels
-  p_plotCtrl->SetXAxisLabel(p_xlabel);
-  p_plotCtrl->SetYAxisLabel(p_ylabel);
-  p_plotCtrl->SetPlotTitle(p_xlabel + " vs " + p_ylabel);
+  p_plotCtrl->setXAxisLabel(p_xlabel);
+  p_plotCtrl->setYAxisLabel(p_ylabel);
+  p_plotCtrl->setTitle(p_xlabel + " vs " + p_ylabel);
 }
 
 // Refresh plot if xmin or xmax values have been changed

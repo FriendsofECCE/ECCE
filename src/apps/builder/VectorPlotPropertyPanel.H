@@ -3,7 +3,7 @@
 
 #include "PropertyPanel.H"
 
-class wxPlotCtrl;
+class XYPlotCanvas;
 
 class VectorPlotPropertyPanel : public PropertyPanel
 {
@@ -26,7 +26,7 @@ class VectorPlotPropertyPanel : public PropertyPanel
     virtual ~VectorPlotPropertyPanel();
 
   private:
-    wxPlotCtrl *p_plotCtrl;
+    XYPlotCanvas *p_plotCtrl;
 };
 
 #endif // VECTORPLOTPROPERTYPANEL_H_
