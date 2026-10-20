@@ -216,7 +216,10 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "energy_exchange_hf " << r.e_exchange_hf << "\n";
   os << "energy_xc " << r.e_xc << "\n";
   if (dft) os << "grid_electrons " << r.xc_electrons << "\n";
-  os << "s_squared " << r.s2 << "\n";
+  // Only an unrestricted <S^2> says anything (spin contamination); for RHF
+  // and ROHF it is S(S+1) by construction, so it is not listed (#390).
+  if (r.reference == Reference::Unrestricted)
+    os << "s_squared " << r.s2 << "\n";
   os << "dipole_au " << r.dipole[0] << " " << r.dipole[1] << " " << r.dipole[2] << "\n";
   double dn = std::sqrt(r.dipole[0] * r.dipole[0] + r.dipole[1] * r.dipole[1] + r.dipole[2] * r.dipole[2]);
   os << "dipole_debye " << r.dipole[0] * kDebyePerAu << " " << r.dipole[1] * kDebyePerAu << " "
