@@ -229,4 +229,16 @@ if (defined($term{"Temperature"})) {
   print "units:\nKelvin\n";
   print "END\n";
 }
+#  The MD Summary panel's per-step series (#334).  Potential and kinetic
+#  energy have their own keys because TEVEC holds the total, and PEVEC/KEVEC
+#  are other codes'.  Volume and density only exist in a pressure-coupled run.
+my %series = ("Potential" => ["MDPEVEC", "kJoule/Mole"],
+              "Kinetic En." => ["MDKEVEC", "kJoule/Mole"],
+              "Volume" => ["MDVOLVEC", "nm^3"],
+              "Density" => ["MDDENSVEC", "kg/m^3"]);
+foreach my $term (sort keys %series) {
+  next if (!defined($term{$term}));
+  print "key: $series{$term}[0]\nsize:\n1\nvalues:\n $term{$term}\n";
+  print "units:\n$series{$term}[1]\nEND\n";
+}
 exit(0);

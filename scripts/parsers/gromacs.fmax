@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+################################################################################
+# Purpose:
+# The maximum force a GROMACS minimisation ends with (#334), from the line
+#     Maximum force     =  5.3351556e+02 on atom 74
+# mdrun prints it once, at the end, so there is no per-step series.
+################################################################################
+
+$| = 1;
+while (<STDIN>) {
+  next if (!/^Maximum force\s*=\s*(\S+)/);
+  print "key: FMAX\nsize:\n1\nvalues:\n $1\nunits:\nkJ/mol/nm\nEND\n";
+  last;
+}
+exit(0);

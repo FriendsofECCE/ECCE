@@ -27,6 +27,7 @@ class KeyValuePropertyPanel : public PropertyPanel
     virtual ~KeyValuePropertyPanel();
 
     virtual void refresh();
+    virtual bool isRelevant(IPropCalculation *propCalc) const;
 
     // The rows as drawn, one string per row ("H ..." heading, "R ..." value),
     // for tests; toggleGroup() is what a click on a group heading does.

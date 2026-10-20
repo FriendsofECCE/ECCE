@@ -53,7 +53,7 @@
 # apart. Parsed as a step it would put a final point on every
 # energy-vs-step plot whose value is an AVERAGE OVER THE RUN, and would
 # leave the scalar TE holding that average rather than the last step.
-[TE][TEVEC][PRESSURE]
+[TE][TEVEC][PRESSURE][MDPEVEC][MDKEVEC][MDVOLVEC][MDDENSVEC]
 Script=gromacs.energy
 Begin=^\s*Energies \(kJ/mol\)
 Frequency=all
@@ -61,30 +61,27 @@ Skip=0
 End=^\s*$
 [END]
 
-# Deliberate use of End-line starvation, the hazard CLAUDE.md documents,
-# as the mechanism rather than the bug.
-#
-# eccejobmonitor consumes the End-matching line as part of the block it
-# closes, and will not open a new block while one is being fed. So a
-# no-op entry that starts at the AVERAGES banner and ends on the last
-# header row of the summary's energy section swallows that section's
-# "Energies (kJ/mol)" line before [TE][TEVEC] is ever offered it.
-#
-# End is the summary's final header row rather than a blank, because the
-# section contains no blank line until after its last value row -- and
-# ending there would leave the marker consumed but the values loose,
-# which is fine, whereas ending earlier would not consume the marker at
-# all and the averages would be parsed as a step.
-#
-# Safe against starving anything real: "A V E R A G E S" appears exactly
-# once in a run, at the end, and a minimisation does not print it at all
-# (the 5-step minimisation fixture has 5 energy blocks for 5 steps).
-[NULL]
-Script=gromacs.null
+# The averages summary is swallowed by this entry so that [TE] never sees its
+# byte-identical "Energies (kJ/mol)" marker as a step: eccejobmonitor will
+# not open a block while one is being fed.  The entry parses it instead
+# (gromacs.mdavg, #334) and runs to "Total Virial", which closes the whole
+# energies section.  "A V E R A G E S" appears once, at the end of a run, and
+# a minimisation prints none.
+[MDPEAVG][MDKEAVG][MDTEAVG][MDTEMPAVG][MDPRESAVG][MDVOLAVG][MDDENSAVG]
+Script=gromacs.mdavg
 Begin=A V E R A G E S
 Frequency=last
 Skip=0
-End=Pressure \(bar\)
+End=Total Virial
+[END]
+
+# A minimisation's last force; mdrun prints it once, after the final step.
+[FMAX]
+Script=gromacs.fmax
+Begin=^Maximum force\s*=
+Frequency=last
+Skip=0
+Lines=1
 [END]
 
 # The trajectory gensub leaves in ecce-parse-traj.txt (<= 100 frames), one

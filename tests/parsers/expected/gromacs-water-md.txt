@@ -4,7 +4,7 @@ desc:    gromacs.desc
 fixture: gromacs/water_md.log (612 lines)
 args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
 
-[TE][TEVEC][PRESSURE]  Script=gromacs.energy  Freq=all  Skip=0  Lines=-
+[TE][TEVEC][PRESSURE][MDPEVEC][MDKEVEC][MDVOLVEC][MDDENSVEC]  Script=gromacs.energy  Freq=all  Skip=0  Lines=-
   Begin=^\s*Energies \(kJ/mol\)
   End=^\s*$
   begins=6 delivered=6 buffered_away=0
@@ -29,6 +29,14 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: 1.73671e+00
       units: Kelvin
+    key: MDKEVEC
+      size: 1
+      values: 9.55193e+00
+      units: kJoule/Mole
+    key: MDPEVEC
+      size: 1
+      values: -8.19624e+03
+      units: kJoule/Mole
   block 2: begin-line=468 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -50,6 +58,14 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: 2.65370e+02
       units: Kelvin
+    key: MDKEVEC
+      size: 1
+      values: 1.45954e+03
+      units: kJoule/Mole
+    key: MDPEVEC
+      size: 1
+      values: -8.79686e+03
+      units: kJoule/Mole
   block 3: begin-line=477 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -71,6 +87,14 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: 2.81573e+02
       units: Kelvin
+    key: MDKEVEC
+      size: 1
+      values: 1.54866e+03
+      units: kJoule/Mole
+    key: MDPEVEC
+      size: 1
+      values: -8.74458e+03
+      units: kJoule/Mole
   block 4: begin-line=486 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -92,6 +116,14 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: 2.96108e+02
       units: Kelvin
+    key: MDKEVEC
+      size: 1
+      values: 1.62860e+03
+      units: kJoule/Mole
+    key: MDPEVEC
+      size: 1
+      values: -8.77318e+03
+      units: kJoule/Mole
   block 5: begin-line=495 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -113,6 +145,14 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: 2.94002e+02
       units: Kelvin
+    key: MDKEVEC
+      size: 1
+      values: 1.61702e+03
+      units: kJoule/Mole
+    key: MDPEVEC
+      size: 1
+      values: -8.79802e+03
+      units: kJoule/Mole
   block 6: begin-line=507 fed=6 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -134,11 +174,38 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       size: 1
       values: 3.02001e+02
       units: Kelvin
+    key: MDKEVEC
+      size: 1
+      values: 1.66101e+03
+      units: kJoule/Mole
+    key: MDPEVEC
+      size: 1
+      values: -8.77669e+03
+      units: kJoule/Mole
 
-[NULL]  Script=gromacs.null  Freq=last  Skip=0  Lines=-
+[MDPEAVG][MDKEAVG][MDTEAVG][MDTEMPAVG][MDPRESAVG][MDVOLAVG][MDDENSAVG]  Script=gromacs.mdavg  Freq=last  Skip=0  Lines=-
   Begin=A V E R A G E S
-  End=Pressure \(bar\)
+  End=Total Virial
   begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=519 fed=9 rc=0 first-fed='\t<====  A V E R A G E S  ====>'
-    (script emitted no property)
+  block 1: begin-line=519 fed=12 rc=0 first-fed='\t<====  A V E R A G E S  ====>'
+    key: MDKEAVG
+      size: 1
+      values: 1.32073e+03
+      units: kJoule/Mole
+    key: MDPEAVG
+      size: 1
+      values: -8.68093e+03
+      units: kJoule/Mole
+    key: MDPRESAVG
+      size: 1
+      values: -2.19113e+03
+      units: Bar
+    key: MDTEMPAVG
+      size: 1
+      values: 2.40132e+02
+      units: Kelvin
+    key: MDTEAVG
+      size: 1
+      values: -7.36020e+03
+      units: kJoule/Mole
 

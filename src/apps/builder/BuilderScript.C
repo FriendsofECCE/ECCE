@@ -719,15 +719,20 @@ void Builder::runBuilderScript(const std::string& file)
       } else if ((w[0] == "rows" || w[0] == "fold") && w.size() >= 2) {
         //  rows <panel>: the rows a KeyValuePropertyPanel shows;
         //  fold <panel> <group>: what a click on that group's heading does.
+        //  "rows" takes the rest of the line, so a panel name may hold
+        //  spaces ("MD Summary").
+        string pane = w[1];
+        if (w[0] == "rows")
+          for (size_t i = 2; i < w.size(); i++) pane += " " + w[i];
         KeyValuePropertyPanel *kv = dynamic_cast<KeyValuePropertyPanel*>(
-            p_mgr.GetPane(wxString(w[1])).window);
+            p_mgr.GetPane(wxString(pane)).window);
         if (!kv) {
-          outcome = "no key/value panel " + w[1];
+          outcome = "no key/value panel " + pane;
         } else if (w[0] == "fold") {
           if (w.size() < 3) outcome = "fold needs a group";
           else kv->toggleGroup(w[2]);
         } else {
-          fprintf(stderr, "BUILDER: rows %s\n", w[1].c_str());
+          fprintf(stderr, "BUILDER: rows %s\n", pane.c_str());
           for (const std::string& row : kv->rowDump())
             fprintf(stderr, "BUILDER: row %s\n", row.c_str());
           for (const std::string& fit : kv->rowFit())

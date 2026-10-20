@@ -1,0 +1,52 @@
+#!/usr/bin/env perl
+################################################################################
+# Purpose:
+# Reads the end-of-run "A V E R A G E S" block of a GROMACS .log (#334): the
+# energy terms averaged over every step of the run.  The block is fed from the
+# banner to the "Total Virial" line, so it holds the whole energies section.
+# The log carries no fluctuations; the MD Summary panel takes the s.d. from
+# the per-step series.
+#
+# Header rows are fixed-width (15 columns), as in gromacs.energy, and a row
+# of names is followed by a row of values.
+################################################################################
+
+$| = 1;
+use constant FIELD_WIDTH => 15;
+
+my %term;
+my $in = 0;
+while (<STDIN>) {
+  chomp;
+  if (/^\s*Energies\s*\(/) { $in = 1; next; }
+  next if (!$in);
+  last if (/^\s*$/ || /Total Virial/);
+  next if (!/[A-Za-z]/);
+  my @names;
+  my $line = $_;
+  while (length($line) > 0) {
+    my $f = substr($line, 0, FIELD_WIDTH);
+    $line = length($line) > FIELD_WIDTH ? substr($line, FIELD_WIDTH) : "";
+    $f =~ s/^\s+|\s+$//g;
+    push(@names, $f) if ($f ne "");
+  }
+  my $values = <STDIN>;
+  last if (!defined($values));
+  my @v = split(' ', $values);
+  next if (@v != @names);
+  @term{@names} = @v;
+}
+
+my %out = ("Potential" => ["MDPEAVG", "kJoule/Mole"],
+           "Kinetic En." => ["MDKEAVG", "kJoule/Mole"],
+           "Total Energy" => ["MDTEAVG", "kJoule/Mole"],
+           "Temperature" => ["MDTEMPAVG", "Kelvin"],
+           "Pressure (bar)" => ["MDPRESAVG", "Bar"],
+           "Volume" => ["MDVOLAVG", "nm^3"],
+           "Density" => ["MDDENSAVG", "kg/m^3"]);
+foreach my $t (sort keys %out) {
+  next if (!defined($term{$t}));
+  print "key: $out{$t}[0]\nsize:\n1\nvalues:\n $term{$t}\n";
+  print "units:\n$out{$t}[1]\nEND\n";
+}
+exit(0);

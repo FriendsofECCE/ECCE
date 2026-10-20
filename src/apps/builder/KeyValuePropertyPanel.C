@@ -1,5 +1,6 @@
 #include "util/UnitDisplay.H"
 #include <algorithm>
+#include <cmath>
 #include <vector>
 #include <iostream>
   using std::cout;
@@ -13,6 +14,7 @@
 
 #include "tdat/TProperty.H"
 #include "tdat/PropString.H"
+#include "tdat/PropVector.H"
 
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropFactory.H"
@@ -122,9 +124,116 @@ KeyValuePropertyPanel::~KeyValuePropertyPanel()
 
 //  Group names are the "group" column of data/client/config/properties, in
 //  display order.  A property with no (or an unknown) group goes last.
-static const char *GROUPS[] = {"Total", "Components", "Thermochemistry",
+static const char *GROUPS[] = {"Final value", "Average over run (\xC2\xB1 s.d.)",
+                               "Total", "Components", "Thermochemistry",
                                "Solvation", "Derived", ""};
 static const char *INIFILE = "wxbuilder.ini";
+
+
+namespace {
+
+struct Row { string key, value, units, group; size_t order; };
+
+//  n significant figures without an exponent, so a large energy reads
+//  -64995, not -6.4995e+04.
+string sigFigs(double v, int n)
+{
+  if (v == 0.0 || !std::isfinite(v)) return v == 0.0 ? "0" : "-";
+  int dec = std::max(0, n - 1 - (int)std::floor(std::log10(std::fabs(v))));
+  return string(wxString::Format("%.*f", dec, v).ToUTF8());
+}
+
+//  GROMACS logs no fluctuations, so the s.d. is that of the logged steps;
+//  the average is the run's own (the log's AVERAGES block) when it has one.
+string meanSd(double mean, double sd)
+{
+  if (!(sd > 0.0)) return sigFigs(mean, 5);
+  int dec = std::max(0, 1 - (int)std::floor(std::log10(sd)));
+  return string(wxString::Format("%.*f \xC2\xB1 %.*f", dec, mean, dec, sd).ToUTF8());
+}
+
+const PropVector *vectorOf(IPropCalculation *calc, const string& key)
+{
+  const PropVector *v = dynamic_cast<PropVector*>(calc->getProperty(key));
+  return v && v->rows() > 0 ? v : 0;
+}
+
+//  The MD Summary rows (#334): a minimisation has only its end state; a
+//  dynamics run adds the run average and s.d. of each quantity.
+void mdSummaryRows(IPropCalculation *calc, vector<Row>& rows)
+{
+  struct Q { const char *label, *vec, *avg; };
+  static const Q QS[] = {
+    {"Potential Energy", "MDPEVEC", "MDPEAVG"},
+    {"Kinetic Energy", "MDKEVEC", "MDKEAVG"},
+    {"Total Energy", "TEVEC", "MDTEAVG"},
+    {"Temperature", "TEMPVEC", "MDTEMPAVG"},
+    {"Pressure", "PRESSVEC", "MDPRESAVG"},
+    {"Volume", "MDVOLVEC", "MDVOLAVG"},
+    {"Density", "MDDENSVEC", "MDDENSAVG"}};
+  const bool dynamics = vectorOf(calc, "MDKEVEC") != 0;
+  size_t order = 0;
+  for (int pass = 0; pass < 2; pass++) {
+    if (pass == 1 && !dynamics) break;
+    for (const Q& q : QS) {
+      if (!dynamics && string(q.vec) != "MDPEVEC") continue;
+      const PropVector *vec = vectorOf(calc, q.vec);
+      if (!vec) continue;
+      const vector<double>& vals = vec->values();
+      string units = vec->units() == "NA" ? "" : unitLabel(vec->units());
+      if (string(q.vec) == "MDVOLVEC") units = "nm\xC2\xB3";
+      if (string(q.vec) == "MDDENSVEC") units = "kg/m\xC2\xB3";
+      Row row;
+      row.key = q.label;
+      row.units = units;
+      row.order = order++;
+      if (pass == 0) {
+        row.group = "Final value";
+        row.value = sigFigs(vals.back(), 5);
+      } else {
+        row.group = GROUPS[1];
+        double mean = 0, sd = 0;
+        const size_t n = vals.size();
+        for (double x : vals) mean += x;
+        mean /= n;
+        if (n > 1) {
+          for (double x : vals) sd += (x - mean) * (x - mean);
+          sd = std::sqrt(sd / (n - 1));
+        }
+        if (TProperty *avg = calc->getProperty(q.avg)) mean = avg->scalarize();
+        row.value = meanSd(mean, sd);
+      }
+      rows.push_back(row);
+    }
+    if (pass == 0 && !dynamics) {
+      if (TProperty *f = calc->getProperty("FMAX")) {
+        Row row;
+        row.key = "Maximum Force";
+        row.value = sigFigs(f->scalarize(), 5);
+        row.units = "kJ/mol/nm";
+        row.group = "Final value";
+        row.order = order++;
+        rows.push_back(row);
+      }
+    }
+  }
+}
+
+}  // namespace
+
+
+//  A GROMACS run is shown by the MD Summary panel; the one-value Energies
+//  and Pressure panels would repeat its numbers.
+bool KeyValuePropertyPanel::isRelevant(IPropCalculation *calc) const
+{
+  const string name = getName();
+  if (name != "Energies" && name != "Pressure") return true;
+  try {
+    return calc->getProperty("MDPEVEC") == 0;
+  } catch (...) {
+    return true;
+  }
+}
 
 
 bool KeyValuePropertyPanel::isFolded(const string& group) const
@@ -153,7 +262,6 @@ void KeyValuePropertyPanel::refresh()
   p_rows.clear();
   p_rowWindows.clear();
 
-  struct Row { string key, value, units, group; size_t order; };
   vector<Row> rows;
   string thermoTemp, thermoPres, solvModel;
   bool grouped = false;
@@ -166,6 +274,11 @@ void KeyValuePropertyPanel::refresh()
     if (hof && te && hof->scalarize() == te->scalarize() &&
         hof->units() == te->units())
       names.erase("TE");
+  }
+  if (getName() == "MD Summary") {
+    mdSummaryRows(getCalculation(), rows);
+    grouped = true;
+    names.clear();
   }
   set<string>::iterator nameIt;
   for (nameIt = names.begin(); nameIt != names.end(); nameIt++) {

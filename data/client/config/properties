@@ -183,6 +183,18 @@ Energy		Potential Energy Vector			PEVEC		Energy		PropTSVector<Geometry Step>
 Energy		TimeStep Vector				TIMEVEC		Time		PropTSVector<Geometry Step>
 Energy		Temperature Vector			TEMPVEC		Temperature	PropTSVector<Geometry Step>
 Energy		Pressure Vector				PRESSVEC	Pressure	PropTSVector<Geometry Step>
+Energy		MD Potential Energy Vector			MDPEVEC	Energy	PropTSVector<Geometry Step>
+Energy		MD Kinetic Energy Vector			MDKEVEC	Energy	PropTSVector<Geometry Step>
+Process		MD Volume Vector			MDVOLVEC	NA	PropTSVector<Geometry Step>
+Process		MD Density Vector			MDDENSVEC	NA	PropTSVector<Geometry Step>
+MDSummary		MD Average Potential Energy			MDPEAVG	Energy	PropValue
+MDSummary		MD Average Kinetic Energy			MDKEAVG	Energy	PropValue
+MDSummary		MD Average Total Energy			MDTEAVG	Energy	PropValue
+MDSummary		MD Average Temperature			MDTEMPAVG	Temperature	PropValue
+MDSummary		MD Average Pressure			MDPRESAVG	Pressure	PropValue
+MDSummary		MD Average Volume			MDVOLAVG	NA	PropValue
+MDSummary		MD Average Density			MDDENSAVG	NA	PropValue
+MDSummary		Maximum Force			FMAX	NA	PropValue
 Energy		SCF Energy Vector			ESCFVEC		Energy		PropTSVector<Geometry Step>
 Energy		DFT Energy Vector			EDFTVEC		Energy		PropTSVector<Geometry Step>
 Energy		MP2 Energy Vector			EMP2VEC		Energy		PropTSVector<Geometry Step>

@@ -74,6 +74,18 @@
     <property class="Process" type="value"/>
   </PropertyPanel>
 
+  <!-- GROMACS runs: one panel for the final value and run average of
+       each quantity.  Energies and Pressure hide themselves for such a
+       run (KeyValuePropertyPanel::isRelevant). -->
+  <PropertyPanel>
+    <name>MD Summary</name>
+    <group>Energies</group>
+    <class>KeyValuePropertyPanel</class>
+    <consumer>false</consumer>
+    <property name="MDPEVEC"/>
+    <property class="MDSummary"/>
+  </PropertyPanel>
+
   <PropertyPanel>
     <name>Energies</name>
     <group>Energies</group>

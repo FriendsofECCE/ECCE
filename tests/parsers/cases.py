@@ -1621,9 +1621,14 @@ CASES = [
             #  A minimisation prints no pressure column at all, so
             #  PRESSURE is absent here by design -- the parser guards on
             #  the term being present rather than emitting an empty one.
-            'TE][TEVEC][PRESSURE': dict(blocks=5, keys={
+            'TE][TEVEC][PRESSURE][MDPEVEC][MDKEVEC][MDVOLVEC][MDDENSVEC': dict(blocks=5, keys={
                 'TE': {'values': '-8.19803e+03', 'units': 'kJoule/Mole'},
-                'TEVEC': {'units': 'kJoule/Mole'}}),
+                'TEVEC': {'units': 'kJoule/Mole'},
+                'MDPEVEC': {'units': 'kJoule/Mole'}}),
+            #  "Maximum force     =  5.3351556e+02 on atom 74", read off the
+            #  end of the fixture by hand.
+            'FMAX': dict(blocks=1, keys={
+                'FMAX': {'values': '5.3351556e+02', 'units': 'kJ/mol/nm'}}),
         },
     ),
     dict(
@@ -1651,13 +1656,23 @@ CASES = [
             #  [NULL] suppressor ever stops swallowing it, TE lands on
             #  the run average and this fails loudly instead of quietly
             #  reporting a plausible wrong number.
-            'TE][TEVEC][PRESSURE': dict(blocks=6, keys={
+            'TE][TEVEC][PRESSURE][MDPEVEC][MDKEVEC][MDVOLVEC][MDDENSVEC': dict(blocks=6, keys={
                 'TE': {'values': '-7.11568e+03', 'units': 'kJoule/Mole'},
                 'TEVEC': {'units': 'kJoule/Mole'},
                 #  Same argument as TE: the LAST STEP's pressure, not the
                 #  averages block's. Units must be one PressureConverter
                 #  knows -- it throws on anything else.
-                'PRESSURE': {'values': '-2.13868e+03', 'units': 'Bar'}}),
+                'PRESSURE': {'values': '-2.13868e+03', 'units': 'Bar'},
+                'MDKEVEC': {'units': 'kJoule/Mole'}}),
+            #  The AVERAGES block, read off the fixture by hand (lines
+            #  524-528): these are the run averages, not the last step's.
+            'MDPEAVG][MDKEAVG][MDTEAVG][MDTEMPAVG][MDPRESAVG][MDVOLAVG]'
+            '[MDDENSAVG': dict(blocks=1, keys={
+                'MDPEAVG': {'values': '-8.68093e+03', 'units': 'kJoule/Mole'},
+                'MDKEAVG': {'values': '1.32073e+03', 'units': 'kJoule/Mole'},
+                'MDTEAVG': {'values': '-7.36020e+03', 'units': 'kJoule/Mole'},
+                'MDTEMPAVG': {'values': '2.40132e+02', 'units': 'Kelvin'},
+                'MDPRESAVG': {'values': '-2.19113e+03', 'units': 'Bar'}}),
         },
     ),
     dict(
@@ -2483,13 +2498,6 @@ KNOWN_SILENT_SCRIPTS = {
     'gaussian-03.null': 'Deliberate no-op (see gaussian-16.null).',
     'nwchem.null': 'Deliberate no-op (see gaussian-16.null).',
     'orca.null': 'Deliberate no-op (see gaussian-16.null).',
-    'gromacs.null': 'Deliberate no-op, and the ONLY way to exclude the '
-                    'end-of-run AVERAGES summary: its "Energies (kJ/mol)" '
-                    'marker is byte-identical to a real step\'s, so no '
-                    'Begin pattern can tell them apart. This entry '
-                    'consumes that section first. Parsed as a step it '
-                    'would put a run-average on every energy-vs-step plot '
-                    'and leave the scalar TE holding it. See gromacs.desc.',
     'nwchem.symlab': 'Emits no property by design: it writes the symmetry '
                      'labels to a side file ("$key/parseSym", $key being '
                      'argv[1] = the job directory) for other scripts to read.',
