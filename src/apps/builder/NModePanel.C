@@ -34,6 +34,10 @@
 #include "tdat/PropVecString.H"
 
 #include "dsm/ICalculation.H"
+#include "dsm/ChemistryTask.H"
+#include "dsm/JCode.H"
+#include "util/EcceURL.H"
+#include <wx/filedlg.h>
 #include "dsm/IPropCalculation.H"
 
 #include "wxgui/ewxButton.H"
@@ -526,6 +530,13 @@ void NModePanel::createSpectrumPane()
    popout->SetToolTip("The same spectrum in its own resizable window, with "
                       "both panes and both axes.");
    row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
+   wxButton *exportCsv = new wxButton(pane, wxID_ANY, "Export .csv...");
+   exportCsv->SetToolTip("Save the spectrum shown (sticks and broadened "
+                         "curve) as a comma-separated file for a "
+                         "spreadsheet or plotting program.");
+   row->Add(exportCsv, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
+   exportCsv->Bind(wxEVT_BUTTON,
+                   [this](wxCommandEvent&) { exportSpectrumDialog(); });
    col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
 
    //  The dock can give this panel less height than a plot is readable
@@ -636,6 +647,47 @@ void NModePanel::openSpectrumWindow()
    frame->Show(true);
 }
 
+
+VibKind NModePanel::spectrumKindShown() const
+{
+   return p_spectrum ? p_spectrum->compactPane() : VIB_IR;
+}
+
+bool NModePanel::exportSpectrumCsv(const wxString& path, VibKind kind)
+{
+   IPropCalculation *calc = getCalculation();
+   if (p_spectrum == 0 || calc == 0) return false;
+   const VibSpectrum& spec = p_spectrum->spectrum();
+   if (!spec.has(kind)) kind = spec.has(VIB_IR) ? VIB_IR : VIB_RAMAN;
+
+   SpectrumCsvInfo info;
+   info.calculation = calc->getURL().getFilePathTail();
+   ChemistryTask *task = dynamic_cast<ChemistryTask*>(calc);
+   const JCode *code = task ? task->application() : 0;
+   info.code = code ? code->name() : string();
+
+   const string text = vibSpectrumCsv(spec, kind, info,
+                                      p_spectrum->axis().fullLo(),
+                                      p_spectrum->axis().fullHi(), 1.0);
+   FILE *out = fopen(path.utf8_str(), "wb");
+   if (out == 0) return false;
+   const bool ok = fwrite(text.data(), 1, text.size(), out) == text.size();
+   return fclose(out) == 0 && ok;
+}
+
+void NModePanel::exportSpectrumDialog()
+{
+   IPropCalculation *calc = getCalculation();
+   if (calc == 0) return;
+   wxFileDialog dlg(this, "Export spectrum",  wxEmptyString,
+                    wxString::FromUTF8(calc->getURL().getFilePathTail().c_str()) +
+                    "-spectrum.csv", "CSV files (*.csv)|*.csv",
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+   if (dlg.ShowModal() != wxID_OK) return;
+   if (!exportSpectrumCsv(dlg.GetPath(), spectrumKindShown()))
+      wxMessageBox("The file could not be written.", "Export spectrum",
+                   wxOK | wxICON_ERROR, this);
+}
 
 /**
  * Width and scale from their entry fields, kept within what means

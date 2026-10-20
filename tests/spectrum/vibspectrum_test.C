@@ -2,7 +2,11 @@
 //
 //      ./vibspectrum_test            (exit 0 when every check holds)
 #include <cmath>
+#include <clocale>
+#include <locale>
 #include <cstdio>
+#include <cstdlib>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -298,12 +302,95 @@ static void testSticks()
   CHECK(l == 0 && h == 3400);
 }
 
+static std::vector<std::string> split(const std::string& line, char sep)
+{
+  std::vector<std::string> f;
+  std::stringstream in(line);
+  std::string x;
+  while (std::getline(in, x, sep)) f.push_back(x);
+  return f;
+}
+
+//  Parsed in the C locale: the process runs in another one on purpose.
+static double num(const std::string& text)
+{
+  std::istringstream in(text);
+  in.imbue(std::locale::classic());
+  double v = 0;
+  in >> v;
+  return v;
+}
+
+//  The CSV a user opens in a spreadsheet (#392): the numbers must be the
+//  model's, whatever locale the process runs in.
+static void testCsv()
+{
+  setlocale(LC_ALL, "sv_SE.UTF-8");      // decimal comma where installed
+  VibSpectrum s = water();
+  s.setFwhm(15);
+  s.setScale(0.96);
+  SpectrumCsvInfo info;
+  info.calculation = "water";
+  info.code = "Gaussian 16";
+  const std::string csv = vibSpectrumCsv(s, VIB_RAMAN, info, 1500, 4500, 1.0);
+  std::stringstream in(csv);
+  std::string line;
+  int header = 0, sticks = 0, curve = 0;
+  bool inCurve = false, sawSticks = false;
+  double lastX = 0;
+  while (std::getline(in, line)) {
+    if (line.empty()) continue;
+    if (line[0] == '#') {
+      if (!sawSticks) header++;
+      continue;
+    }
+    std::vector<std::string> f = split(line, ',');
+    if (f[0] == "mode") { CHECK(f.size() == 5); sawSticks = true; continue; }
+    if (f[0] == "wavenumber_cm-1") { inCurve = true; continue; }
+    if (!inCurve) {
+      CHECK(f.size() == 5);
+      const int i = atoi(f[0].c_str()) - 1;
+      const double freq[3] = {2169.8577, 4141.5426, 4392.6459};
+      const double ir[3] = {7.2460, 44.2829, 29.9543};
+      const double ra[3] = {9.2633, 47.7911, 21.5432};
+      CHECK(i >= 0 && i < 3);
+      if (i >= 0 && i < 3) {
+        CHECK(near(num(f[1]), freq[i] * 0.96, 1e-4));
+        CHECK(near(num(f[2]), ir[i], 1e-4));
+        CHECK(near(num(f[3]), ra[i], 1e-4));
+      }
+      CHECK(f[4] == "A'");
+      sticks++;
+    } else {
+      CHECK(f.size() == 2);
+      const double x = num(f[0]);
+      const double e = s.envelope(VIB_RAMAN, x);
+      CHECK(near(num(f[1]), e, 1e-6 * (1 + e)));
+      CHECK(curve == 0 || near(x - lastX, 1.0, 1e-9));
+      lastX = x;
+      curve++;
+    }
+  }
+  CHECK(header >= 6);
+  CHECK(sticks == 3);
+  CHECK(curve == 3001);
+  CHECK(csv.find("# spectrum: Raman") != std::string::npos);
+  CHECK(csv.find("# code: Gaussian 16") != std::string::npos);
+  CHECK(csv.find("# frequency scaling factor: 0.96") != std::string::npos);
+
+  //  Width 0 is sticks only.
+  s.setFwhm(0);
+  CHECK(vibSpectrumCsv(s, VIB_IR, info, 1500, 4500, 1.0)
+        .find("wavenumber_cm-1") == std::string::npos);
+}
+
 int main()
 {
   testTicks();
   testAxis();
   testLines();
   testSticks();
+  testCsv();
   printf("%d checks, %d failed\n", checks, failures);
   return failures ? 1 : 0;
 }

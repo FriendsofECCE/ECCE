@@ -117,6 +117,7 @@ class SpectrumCanvas : public wxPanel
     void setCompactBelow(int height) { p_compactBelow = height; Refresh(); }
     /** Which pane the compact layout shows. */
     void setCompactPane(VibKind kind) { p_kindShown = kind; Refresh(); }
+    VibKind compactPane() const { return p_kindShown; }
 
     void setClickHandler(SpectrumClickTarget *owner) { p_owner = owner; }
 

@@ -71,6 +71,11 @@ class NModePanel : public NModesGUI,
       /** A peak in the spectrum was clicked: select and animate that mode. */
       virtual void modeClicked(int mode);
 
+      /** The spectrum as CSV (#392); false if the file cannot be written.
+          The curve covers the data's full wavenumber range at 1 cm-1. */
+      bool exportSpectrumCsv(const wxString& path, VibKind kind);
+      VibKind spectrumKindShown() const;
+
       /** The structure in the viewer is the one these modes belong to:
           as many atoms as the modes, of the calculation's elements. */
       bool modesApply();
@@ -95,6 +100,7 @@ class NModePanel : public NModesGUI,
       void createSpectrumPane();
       void openSpectrumWindow();
       void dumpSpectrumIfRequested();
+      void exportSpectrumDialog();
       void applySpectrumSettings();
       void updateVectors(int mode,
                          float amplitude,

@@ -114,6 +114,8 @@
 #include "inv/nodes/SoCamera.H"
 #include "wxviz/SGViewer.H"
 #include "dsm/ChemistryTask.H"
+#include "wxgui/SliderCombo.H"
+#include "NModePanel.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -730,6 +732,23 @@ void Builder::runBuilderScript(const std::string& file)
             fprintf(stderr, "BUILDER: row %s\n", row.c_str());
           for (const std::string& fit : kv->rowFit())
             fprintf(stderr, "BUILDER: fit %s\n", fit.c_str());
+        }
+      } else if (w[0] == "spectrumcsv" && w.size() >= 2) {
+        //  spectrumcsv <path> [ir|raman]: the Vibrational Frequencies
+        //  panel's Export .csv (#392) without the file dialog.
+        NModePanel *nm = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
+        if (!nm) {
+          outcome = "no Vibrational Frequencies panel";
+        } else {
+          const VibKind kind = w.size() > 2 && w[2] == "raman" ? VIB_RAMAN
+                                                              : VIB_IR;
+          fprintf(stderr, "BUILDER: spectrumcsv %s\n",
+                  nm->exportSpectrumCsv(wxString::FromUTF8(w[1].c_str()), kind)
+                      ? "ok" : "failed");
         }
       } else if (w[0] == "overlay") {
         std::string list;

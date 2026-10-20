@@ -199,4 +199,22 @@ class VibSpectrum
     LineShape      p_shape;
 };
 
+/** What the CSV header says about where the spectrum came from. */
+struct SpectrumCsvInfo
+{
+    string calculation;
+    string code;
+};
+
+/**
+ * The spectrum as CSV text (#392): '#' header lines, the stick table (every
+ * mode, scaled wavenumber, the intensities present, symmetry), a blank line,
+ * then the broadened curve of `kind` as x, y on a grid of `step` cm-1 from
+ * lo to hi (no curve when the width is 0).  Numbers are written in the C
+ * locale, so a decimal comma never splits a field.
+ */
+string vibSpectrumCsv(const VibSpectrum& spectrum, VibKind kind,
+                      const SpectrumCsvInfo& info,
+                      double lo, double hi, double step);
+
 #endif

@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <locale>
+#include <sstream>
 
 #include "tdat/VibSpectrum.H"
 
@@ -335,4 +337,57 @@ void VibSpectrum::defaultRange(double *lo, double *hi) const
   if (minImag < 0) l = std::floor((minImag - pad) / 100.0) * 100.0;
   *lo = l;
   *hi = h;
+}
+
+string vibSpectrumCsv(const VibSpectrum& s, VibKind kind,
+                      const SpectrumCsvInfo& info,
+                      double lo, double hi, double step)
+{
+  std::ostringstream out;
+  out.imbue(std::locale::classic());
+  out.precision(8);
+  const bool curve = s.fwhm() > 0 && step > 0 && hi > lo;
+
+  out << "# ECCE vibrational spectrum\n";
+  out << "# calculation: " << info.calculation << "\n";
+  out << "# code: " << info.code << "\n";
+  out << "# spectrum: " << (kind == VIB_IR ? "IR" : "Raman") << "\n";
+  out << "# intensity unit: " << s.unitLabel(kind) << "\n";
+  out << "# frequency scaling factor: " << s.scale() << "\n";
+  out << "# broadening: "
+      << (curve ? (s.lineShape() == LINE_LORENTZIAN ? "Lorentzian" : "Gaussian")
+                : "none")
+      << ", FWHM " << s.fwhm() << " cm-1\n";
+  out << "# wavenumbers are scaled; the curve is intensity per cm-1\n";
+  out << "# sticks\n";
+  out << "mode,frequency_cm-1";
+  if (s.has(VIB_IR)) out << ",ir_intensity";
+  if (s.has(VIB_RAMAN)) out << ",raman_activity";
+  out << ",symmetry\n";
+
+  const vector<VibStick> ir = s.has(VIB_IR) ? s.sticks(VIB_IR) : vector<VibStick>();
+  const vector<VibStick> ra = s.has(VIB_RAMAN) ? s.sticks(VIB_RAMAN) : vector<VibStick>();
+  const vector<VibStick>& base = s.has(kind) ? (kind == VIB_IR ? ir : ra) : ir;
+  for (size_t i = 0; i < base.size(); i++) {
+    out << base[i].mode + 1 << "," << base[i].wavenumber;
+    if (s.has(VIB_IR))
+      for (size_t j = 0; j < ir.size(); j++)
+        if (ir[j].mode == base[i].mode) out << "," << ir[j].intensity;
+    if (s.has(VIB_RAMAN))
+      for (size_t j = 0; j < ra.size(); j++)
+        if (ra[j].mode == base[i].mode) out << "," << ra[j].intensity;
+    out << "," << base[i].irrep << "\n";
+  }
+
+  if (curve) {
+    out << "\n# broadened curve, " << step << " cm-1 grid from " << lo
+        << " to " << hi << "\n";
+    out << "wavenumber_cm-1,intensity\n";
+    const long n = (long)std::floor((hi - lo) / step + 1e-9);
+    for (long i = 0; i <= n; i++) {
+      const double x = lo + i * step;
+      out << x << "," << s.envelope(kind, x) << "\n";
+    }
+  }
+  return out.str();
 }

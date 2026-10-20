@@ -2956,6 +2956,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_energies_groups PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # The vibrational spectrum as CSV (#392).
+  add_test(NAME apps_spectrum_csv
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/spectrum_csv_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_spectrum_csv PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # verifyinput's ecce-qm keyword list must match src/qm/input.cpp (#148).
   add_test(NAME ecceqm_checker_keywords
            COMMAND ${PYTHON3_EXECUTABLE}
