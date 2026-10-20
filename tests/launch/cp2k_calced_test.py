@@ -23,6 +23,7 @@ built binaries.
 """
 
 import argparse
+import math
 import os
 import re
 import shutil
@@ -153,8 +154,20 @@ def main():
         check("&BECKE88" in text and "GTH-BLYP-q4" in text, "BLYP with the GTH-BLYP potential for Si")
         check("TYPE DFTD3\n" in text and "REFERENCE_FUNCTIONAL BLYP" in text, "D3 for BLYP")
         check("DFT_PLUS_U" not in text, "no +U without an element typed")
-        check(re.search(r"A \[angstrom\]\s+3\.8400000000\s+1\.9200000000\s+1\.9200000000", text) is not None,
-              "the cell is the structure's lattice")
+        # The structure's cell is a = b = c = 3.84 A at 60 degrees (primitive
+        # Si); the deck's vectors must have those lengths and angles.
+        vec = {}
+        for k in "ABC":
+            m = re.search(k + r" \[angstrom\]\s+(\S+)\s+(\S+)\s+(\S+)", text)
+            vec[k] = [float(x) for x in m.groups()] if m else None
+        ok = all(vec.values())
+        if ok:
+            L = {k: sum(x * x for x in v) ** .5 for k, v in vec.items()}
+            def ang(u, v):
+                return math.degrees(math.acos(sum(a * b for a, b in zip(vec[u], vec[v])) / (L[u] * L[v])))
+            ok = (all(abs(l - 3.84) < 1e-3 for l in L.values()) and
+                  all(abs(ang(u, v) - 60) < 1e-2 for u, v in ("AB", "BC", "AC")))
+        check(ok, "the cell is the structure's lattice (lengths 3.84 A, angles 60 deg): %s" % vec)
         check(len(re.findall(r"^\s+Si\s+-?\d", text, re.M)) == 2, "both Si atoms are in &COORD")
         check("BASIS_SET DZVP-MOLOPT-SR-GTH-q4" in text, "a basis set for silicon was found in the library")
         rc = subprocess.run(["perl", os.path.join(REPO, "scripts", "parsers", "verifyinput"),
