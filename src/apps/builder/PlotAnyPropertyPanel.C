@@ -1,3 +1,4 @@
+#include "util/UnitDisplay.H"
 #include <algorithm>
   using std::copy;
   using std::fill;
@@ -305,7 +306,7 @@ void PlotAnyPropertyPanel::refreshAxisLabel(ewxChoice *axis)
   if ((stringData = dynamic_cast<wxStringClientData*>(clientData))) {
     TProperty *prop =
             getCalculation()->getProperty(stringData->GetData().ToStdString());
-    label << prop->units();
+    label << unitLabel(prop->units());
   } else {
     label << axis->GetStringSelection();
   }

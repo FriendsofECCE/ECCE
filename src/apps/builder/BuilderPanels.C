@@ -5,6 +5,7 @@
 //  the menus, the layout save/restore and the viz-panel focus logic in
 //  Builder.C need no second implementation.
 
+#include "util/UnitDisplay.H"
 #include <wx/settings.h>
 #include <algorithm>
 #include <cstdio>
@@ -1091,11 +1092,11 @@ void Builder::updatePropertyIndex()
   TProperty *hof = props ? p_calculation->getProperty("HFENERGY") : 0;
   TProperty *te = props && !hof ? p_calculation->getProperty("TE") : 0;
   if (hof) {
-    const string units = hof->units() == "NA" ? "" : hof->units();
+    const string units = hof->units() == "NA" ? "" : unitLabel(hof->units());
     energy = wxString::Format("Heat of formation %.6f %s", hof->scalarize(),
                               units.c_str());
   } else if (te) {
-    const string units = te->units() == "NA" ? "" : te->units();
+    const string units = te->units() == "NA" ? "" : unitLabel(te->units());
     energy = wxString::Format("Total energy %.6f %s", te->scalarize(),
                               units.c_str());
   }

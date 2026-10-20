@@ -1,3 +1,4 @@
+#include "util/UnitDisplay.H"
 #include <cmath>
 #include <iostream>
   using std::cout;
@@ -942,7 +943,7 @@ void NModePanel::fillTable()
       analyseModes();
 
       p_grid->InsertCols(0,1);
-      p_grid->SetColLabelValue(0,"Frequency\n" + vec->units());
+      p_grid->SetColLabelValue(0,wxString::FromUTF8("Frequency\n" + unitLabel(vec->units())));
 
       p_symColumn = 1;
       p_grid->InsertCols(1,1);

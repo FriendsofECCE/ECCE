@@ -1,3 +1,4 @@
+#include "util/UnitDisplay.H"
 #include <algorithm>
 #include <vector>
 #include <iostream>
@@ -164,7 +165,7 @@ void KeyValuePropertyPanel::refresh()
       if (PropString *ps = dynamic_cast<PropString*>(tprop)) solvModel = ps->value();
       continue;
     }
-    string units = tprop->units()=="NA"? "": tprop->units();
+    string units = tprop->units()=="NA"? "": unitLabel(tprop->units());
     wxString valueStr = wxString::Format(PrefLabels::PRECISEDOUBLEFORMAT,
                                          tprop->scalarize());
     if (*nameIt == "THERMOTEMP") {

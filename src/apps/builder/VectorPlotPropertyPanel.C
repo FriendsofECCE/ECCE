@@ -1,3 +1,4 @@
+#include "util/UnitDisplay.H"
 #include <algorithm>
   using std::copy;
 
@@ -92,7 +93,7 @@ bool VectorPlotPropertyPanel::Create(IPropCalculation *calculation,
 
   // add and show the axes labels
   p_plotCtrl->SetXAxisLabel(propVector->rowLabel());
-  p_plotCtrl->SetYAxisLabel(propVector->units());
+  p_plotCtrl->SetYAxisLabel(unitLabel(propVector->units()));
   p_plotCtrl->SetShowXAxisLabel(true);
   p_plotCtrl->SetShowYAxisLabel(true);
 
