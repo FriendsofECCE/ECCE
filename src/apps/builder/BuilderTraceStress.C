@@ -25,7 +25,7 @@
 #include "viz/SGFragment.H"
 #include "viz/VRVector.H"
 
-#include "wxgui/ewxPlotCtrl.H"
+#include "XYPlotCanvas.H"
 #include "wxgui/PlaybackControl.H"
 #include "wxgui/ThingToggle.H"
 
@@ -53,10 +53,10 @@ GeomTracePropertyPanel *tracePanel(IPropCalculation *calc)
 }
 
 
-ewxPlotCtrl *plotOf(wxWindow *w)
+XYPlotCanvas *plotOf(wxWindow *w)
 {
   if (!w) return 0;
-  ewxPlotCtrl *p = dynamic_cast<ewxPlotCtrl*>(w);
+  XYPlotCanvas *p = dynamic_cast<XYPlotCanvas*>(w);
   if (p) return p;
   for (wxWindow *c : w->GetChildren())
     if ((p = plotOf(c)) != 0) return p;
@@ -220,11 +220,11 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
 
   //  "gttitle <text>": the plot's title contains <text> (the series shown).
   if (c == "gttitle" && w.size() >= 2) {
-    ewxPlotCtrl *plot = plotOf(gt);
+    XYPlotCanvas *plot = plotOf(gt);
     string want = w[1];
     for (size_t i = 2; i < w.size(); i++) want += " " + w[i];
     if (!plot) return s.fail("gttitle: no plot");
-    string title = string(plot->GetPlotTitle().ToUTF8());
+    string title = string(plot->title().ToUTF8());
     if (title.find(want) == string::npos)
       return s.fail("gttitle: plot shows '" + title + "', want '" + want + "'");
     return true;
@@ -234,29 +234,27 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
   //  drawn (zero-based; mid and last of the plotted points), as a user does; the molecule on screen must then be the
   //  one the trace holds for that step.
   if (c == "gtpick" && w.size() == 2) {
-    ewxPlotCtrl *plot = plotOf(gt);
+    XYPlotCanvas *plot = plotOf(gt);
     PropTSVecTable *trace =
         dynamic_cast<PropTSVecTable*>(p_calculation->getProperty("GEOMTRACE"));
     if (!plot || !trace) return s.fail("gtpick: no plot or no trace");
-    wxPlotData *data = plot->GetDataCurve(plot->GetActiveIndex());
+    const int count = plot->pointCount(0);
     int step = atoi(w[1].c_str());
-    if (data && w[1] == "mid") step = data->GetCount() / 2;
-    if (data && w[1] == "last") step = data->GetCount() - 1;
-    if (!data || step < 0 || step >= data->GetCount() ||
-        step >= trace->tables())
+    if (w[1] == "mid") step = count / 2;
+    if (w[1] == "last") step = count - 1;
+    if (step < 0 || step >= count || step >= trace->tables())
       return s.fail("gtpick: step out of range");
-    const wxPoint2DDouble pt = data->GetPoint(step);
-    const wxPoint at(plot->GetClientCoordFromPlotX(pt.m_x),
-                     plot->GetClientCoordFromPlotY(pt.m_y));
-    wxWindow *area = plot->GetPlotArea();
+    wxPoint at;
+    if (!plot->pointPosition(0, step, &at))
+      return s.fail("gtpick: the point is not drawn");
     wxMouseEvent down(wxEVT_LEFT_DOWN), up(wxEVT_LEFT_UP);
-    down.SetEventObject(area);
-    up.SetEventObject(area);
+    down.SetEventObject(plot);
+    up.SetEventObject(plot);
     down.SetPosition(at);
     up.SetPosition(at);
     down.SetLeftDown(true);
-    area->GetEventHandler()->ProcessEvent(down);
-    area->GetEventHandler()->ProcessEvent(up);
+    plot->GetEventHandler()->ProcessEvent(down);
+    plot->GetEventHandler()->ProcessEvent(up);
     spin(50);
     SGFragment *frag = getSG()->getFragment();
     for (size_t i = 0; i < frag->numAtoms() && (int)i < trace->rows(); i++) {
