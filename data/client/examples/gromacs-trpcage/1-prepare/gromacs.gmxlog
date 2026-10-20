@@ -3,7 +3,7 @@ ECCE-PREPARE step 1/4 pdb2gmx
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx pdb2gmx -f prep_in.pdb -ff amber99sb-ildn -water tip3p -ignh -merge all -o step1.gro -p topol.top -i posre.itp
 
@@ -27,7 +27,7 @@ Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.arn
 Before cleaning: 818 pairs
 Before cleaning: 873 dihedrals
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "As always in life, people want a simple answer... and it's always wrong." (Marie Daly)
 
 Using the Amber99sb-ildn force field in directory amber99sb-ildn.ff
 
@@ -95,12 +95,12 @@ ECCE-PREPARE step 2/4 editconf
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx editconf -f step1.gro -o step2.gro -c -bt dodecahedron -d 1
 
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "As always in life, people want a simple answer... and it's always wrong." (Marie Daly)
 
 Note that major changes are planned in future for editconf, to improve usability and utility.
 Read 304 atoms
@@ -122,7 +122,7 @@ ECCE-PREPARE step 3/4 solvate
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx solvate -cp step2.gro -cs spc216.gro -o step3.gro -p topol.top
 
@@ -171,7 +171,7 @@ Processing topology
 
 Back Off! I just backed up topol.top to ./#topol.top.1#
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "The aim of science is not to open the door to infinite wisdom, but to set a limit to infinite error." (Bertolt Brecht, Life of Galileo)
 
 Adding line for 1877 solvent molecules with resname (SOL) to topology file (topol.top)
 ECCE-PREPARE step 4/4 genion
@@ -179,7 +179,7 @@ ECCE-PREPARE step 4/4 genion
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn 0
 
@@ -223,9 +223,9 @@ NOTE 5 [file ions.mdp]:
 
 There were 5 NOTEs
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "Art For Arts Sake, Money For Gods Sake" (10 CC)
 
-Setting the LD random seed to 1610591966
+Setting the LD random seed to -40904706
 
 Generated 2145 of the 2145 non-bonded parameter combinations
 
@@ -244,7 +244,7 @@ This run will generate roughly 0 Mb of data
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx genion -s ions.tpr -o ion.gro -p topol.top -pname NA -pq 1 -nname CL -neutral -conc 0.15
 
@@ -268,21 +268,21 @@ Group    14 (      non-Water) has   304 elements
 Select a group: Number of (3-atomic) solvent molecules: 1877
 
 Back Off! I just backed up topol.top to ./#topol.top.2#
-Using random seed -1610615939.
-Replacing solvent molecule 885 (atom 2959) with NA
-Replacing solvent molecule 1688 (atom 5368) with NA
-Replacing solvent molecule 824 (atom 2776) with NA
-Replacing solvent molecule 958 (atom 3178) with NA
-Replacing solvent molecule 511 (atom 1837) with NA
-Replacing solvent molecule 76 (atom 532) with CL
-Replacing solvent molecule 1154 (atom 3766) with CL
-Replacing solvent molecule 33 (atom 403) with CL
-Replacing solvent molecule 1671 (atom 5317) with CL
-Replacing solvent molecule 293 (atom 1183) with CL
-Replacing solvent molecule 895 (atom 2989) with CL
+Using random seed -74453121.
+Replacing solvent molecule 47 (atom 445) with NA
+Replacing solvent molecule 520 (atom 1864) with NA
+Replacing solvent molecule 244 (atom 1036) with NA
+Replacing solvent molecule 636 (atom 2212) with NA
+Replacing solvent molecule 189 (atom 871) with NA
+Replacing solvent molecule 1631 (atom 5197) with CL
+Replacing solvent molecule 706 (atom 2422) with CL
+Replacing solvent molecule 1610 (atom 5134) with CL
+Replacing solvent molecule 363 (atom 1393) with CL
+Replacing solvent molecule 548 (atom 1948) with CL
+Replacing solvent molecule 1086 (atom 3562) with CL
 
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "Rat-tat-tat Ka boom boom" (The Smashing Pumpkins)
 
 Will try to add 5 NA ions and 6 CL ions.
 Select a continuous group of solvent molecules
@@ -294,12 +294,12 @@ Replacing 11 solute molecules in topology file (topol.top)  by 5 NA and 6 CL ion
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx editconf -f ecceSession_ecceMdPrepare.gro -o chemsys.pdb
 
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "Rat-tat-tat Ka boom boom" (The Smashing Pumpkins)
 
 Note that major changes are planned in future for editconf, to improve usability and utility.
 Read 5913 atoms
@@ -310,14 +310,14 @@ ECCE-PREPARE box charge0=1.000000 charge1=0 box=dodecahedron a=4.392 b=4.392 c=4
 ECCE-PREPARE done
 
 -----ECCE Log Information-----
-Starting Job: Tue Oct 20 10:16:19 AM CEST 2026
+Starting Job: Tue Oct 20 11:56:42 AM CEST 2026
 Using GROMACS path: /usr/bin/gmx
 ECCE-PREPARE step 1/4 pdb2gmx
              :-) GROMACS - gmx pdb2gmx, 2025.2-Debian_2025.2_1 (-:
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx pdb2gmx -f prep_in.pdb -ff amber99sb-ildn -water tip3p -ignh -merge all -o step1.gro -p topol.top -i posre.itp
 
@@ -341,7 +341,7 @@ Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.arn
 Before cleaning: 818 pairs
 Before cleaning: 873 dihedrals
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "As always in life, people want a simple answer... and it's always wrong." (Marie Daly)
 
 Using the Amber99sb-ildn force field in directory amber99sb-ildn.ff
 
@@ -409,12 +409,12 @@ ECCE-PREPARE step 2/4 editconf
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx editconf -f step1.gro -o step2.gro -c -bt dodecahedron -d 1
 
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "As always in life, people want a simple answer... and it's always wrong." (Marie Daly)
 
 Note that major changes are planned in future for editconf, to improve usability and utility.
 Read 304 atoms
@@ -436,7 +436,7 @@ ECCE-PREPARE step 3/4 solvate
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx solvate -cp step2.gro -cs spc216.gro -o step3.gro -p topol.top
 
@@ -485,7 +485,7 @@ Processing topology
 
 Back Off! I just backed up topol.top to ./#topol.top.1#
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "The aim of science is not to open the door to infinite wisdom, but to set a limit to infinite error." (Bertolt Brecht, Life of Galileo)
 
 Adding line for 1877 solvent molecules with resname (SOL) to topology file (topol.top)
 ECCE-PREPARE step 4/4 genion
@@ -493,7 +493,7 @@ ECCE-PREPARE step 4/4 genion
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn 0
 
@@ -537,9 +537,9 @@ NOTE 5 [file ions.mdp]:
 
 There were 5 NOTEs
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "Art For Arts Sake, Money For Gods Sake" (10 CC)
 
-Setting the LD random seed to 1610591966
+Setting the LD random seed to -40904706
 
 Generated 2145 of the 2145 non-bonded parameter combinations
 
@@ -558,7 +558,7 @@ This run will generate roughly 0 Mb of data
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx genion -s ions.tpr -o ion.gro -p topol.top -pname NA -pq 1 -nname CL -neutral -conc 0.15
 
@@ -582,21 +582,21 @@ Group    14 (      non-Water) has   304 elements
 Select a group: Number of (3-atomic) solvent molecules: 1877
 
 Back Off! I just backed up topol.top to ./#topol.top.2#
-Using random seed -1610615939.
-Replacing solvent molecule 885 (atom 2959) with NA
-Replacing solvent molecule 1688 (atom 5368) with NA
-Replacing solvent molecule 824 (atom 2776) with NA
-Replacing solvent molecule 958 (atom 3178) with NA
-Replacing solvent molecule 511 (atom 1837) with NA
-Replacing solvent molecule 76 (atom 532) with CL
-Replacing solvent molecule 1154 (atom 3766) with CL
-Replacing solvent molecule 33 (atom 403) with CL
-Replacing solvent molecule 1671 (atom 5317) with CL
-Replacing solvent molecule 293 (atom 1183) with CL
-Replacing solvent molecule 895 (atom 2989) with CL
+Using random seed -74453121.
+Replacing solvent molecule 47 (atom 445) with NA
+Replacing solvent molecule 520 (atom 1864) with NA
+Replacing solvent molecule 244 (atom 1036) with NA
+Replacing solvent molecule 636 (atom 2212) with NA
+Replacing solvent molecule 189 (atom 871) with NA
+Replacing solvent molecule 1631 (atom 5197) with CL
+Replacing solvent molecule 706 (atom 2422) with CL
+Replacing solvent molecule 1610 (atom 5134) with CL
+Replacing solvent molecule 363 (atom 1393) with CL
+Replacing solvent molecule 548 (atom 1948) with CL
+Replacing solvent molecule 1086 (atom 3562) with CL
 
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "Rat-tat-tat Ka boom boom" (The Smashing Pumpkins)
 
 Will try to add 5 NA ions and 6 CL ions.
 Select a continuous group of solvent molecules
@@ -608,12 +608,12 @@ Replacing 11 solute molecules in topology file (topol.top)  by 5 NA and 6 CL ion
 
 Executable:   /usr/bin/gmx
 Data prefix:  /usr
-Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 Command line:
   gmx editconf -f ecceSession_ecceMdPrepare.gro -o chemsys.pdb
 
 
-GROMACS reminds you: "A tidy laboratory means a lazy chemist." (J.J. Berzelius)
+GROMACS reminds you: "Rat-tat-tat Ka boom boom" (The Smashing Pumpkins)
 
 Note that major changes are planned in future for editconf, to improve usability and utility.
 Read 5913 atoms
@@ -624,4 +624,4 @@ ECCE-PREPARE box charge0=1.000000 charge1=0 box=dodecahedron a=4.392 b=4.392 c=4
 ECCE-PREPARE done
 gromacs exit status = 0
 Final exit status = 0
-Completed Job: Tue Oct 20 10:16:20 AM CEST 2026
+Completed Job: Tue Oct 20 11:56:52 AM CEST 2026

@@ -2,7 +2,7 @@
 ;	File 'topol.top' was generated
 ;	By user: andy (1000)
 ;	On host: niobium
-;	At date: Tue Oct 20 10:16:19 2026
+;	At date: Tue Oct 20 11:56:43 2026
 ;
 ;	This is a standalone topology file
 ;
@@ -11,7 +11,7 @@
 ;	
 ;	Executable:   /usr/bin/gmx
 ;	Data prefix:  /usr
-;	Working dir:  /home/andy/.cache/ecce-gmxwalk-yshqaap6/run/Study/Prepare
+;	Working dir:  /home/andy/.cache/ecce-gmxwalk-dsx9mus9/run/Study/Prepare
 ;	Command line:
 ;	  gmx pdb2gmx -f prep_in.pdb -ff amber99sb-ildn -water tip3p -ignh -merge all -o step1.gro -p topol.top -i posre.itp
 ;	Force field was read from the standard GROMACS share directory.

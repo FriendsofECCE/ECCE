@@ -202,6 +202,13 @@ def main():
             if os.path.isdir(os.path.join(t["optimize"], "Outputs")) else []
         check(any(o.endswith(".gro") for o in outs),
               "the Optimize stores its final structure: %s" % outs)
+        # The Builder shows a task's chemsys.pdb output fragment.
+        gro_atoms = int(open(os.path.join(MDFIX, "conf.gro")).read().splitlines()[1])
+        pdb = os.path.join(t["optimize"], "Outputs", "chemsys.pdb")
+        natom = sum(1 for l in open(pdb) if l.startswith("ATOM")) \
+            if os.path.exists(pdb) else -1
+        check(natom == gro_atoms, "the Optimize has a structure of %d atoms "
+              "(chemsys.pdb: %d)" % (gro_atoms, natom))
         # File > Import GROMACS Run...: the study is named after the
         # directory, and a second import beside it gets another name.
         base = os.path.basename(run.rstrip("/"))

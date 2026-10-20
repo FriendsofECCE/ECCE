@@ -32,7 +32,7 @@ from gromacs_test import Editor, check, failures, gmx_check, gmx_series, \
     last_run_file, prop_value, shot_when_window, stop  # noqa: E402
 
 FIXTURES = os.path.join(REPO, "tests", "gromacs_md", "fixtures")
-STEPS = {"optimize": "200", "equilibrate": "1000", "dynamics": "2000"}
+STEPS = {"optimize": "2000", "equilibrate": "1000", "dynamics": "2000"}
 
 
 def where(u):
@@ -208,6 +208,11 @@ def main():
                 check("Ready" in out and "(from" in out,
                       "topology and structure found on an earlier task")
                 check(ed.cmd("set-steps " + STEPS[kind]) == "ok", "%s steps" % STEPS[kind])
+                if kind == "optimize":
+                    # Steepest descents on a solvated protein reaches
+                    # Fmax < 1000 in a few hundred steps, not Fmax < 100.
+                    check(ed.cmd("run-set extra emtol = 1000") == "ok",
+                          "emtol 1000")
                 check(ed.cmd("save") == "ok", "Save")
                 check(ed.cmd("launch") == "enabled", "Launch is enabled")
                 for tab in tabs.split("|"):
@@ -302,9 +307,9 @@ def main():
 
 def save_example(dest, gmx, tasks, rundir):
     """The run as GromacsImport.H lays it out: one directory per task."""
-    shutil.rmtree(dest, ignore_errors=True)
-    os.makedirs(dest)
-    shutil.copy(os.path.join(FIXTURES, "1l2y.pdb"), dest)
+    for d in glob.glob(os.path.join(dest, "[0-9]-*")):  # README.txt stays
+        shutil.rmtree(d)
+    os.makedirs(dest, exist_ok=True)
 
     def put(task, src, name=None):
         d = os.path.join(dest, task)
@@ -329,8 +334,36 @@ def save_example(dest, gmx, tasks, rundir):
             continue
         put(task, run, "confout.gro")
         for f in sorted(os.listdir(rdir)):
-            if f.endswith(".log") or f == "ecce-parse-traj.txt":
+            if f.endswith(".log"):
                 put(task, os.path.join(rdir, f))
+                if kind == "optimize":
+                    check("converged to Fmax" in open(os.path.join(rdir, f)).read()
+                          and "did not converge" not in open(os.path.join(rdir, f)).read(),
+                          "the minimisation converged")
+            elif f == "ecce-parse-traj.txt":
+                put(task, os.path.join(rdir, f))
+                thin_trajectory(os.path.join(dest, task, f), 5)
+
+
+def thin_trajectory(path, keep):
+    """Keep `keep` evenly spaced frames, first and last included, renumbered:
+    the example stays small and still shows a trajectory."""
+    frames, cur = [], None
+    for line in open(path).read().splitlines(True):
+        if line.startswith("ECCE-TRAJ frame"):
+            cur = [line]
+            frames.append(cur)
+        elif cur is not None:
+            cur.append(line)
+    if len(frames) <= keep:
+        return
+    pick = [round(i * (len(frames) - 1) / (keep - 1)) for i in range(keep)]
+    with open(path, "w") as h:
+        for n, i in enumerate(pick, 1):
+            parts = frames[i][0].split()
+            parts[2] = str(n)
+            h.write(" ".join(parts) + "\n")
+            h.writelines(frames[i][1:])
 
 
 if __name__ == "__main__":
