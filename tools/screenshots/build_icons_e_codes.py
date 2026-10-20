@@ -89,11 +89,12 @@ def ecceqm(i):
 
 @icon("g16")
 def g16(i):
-    # a large G with a small 16, lettering like QE and QM
-    badge(i, "#f6c35a", "#c07a08", "#7a4a04")
-    strokes(i, "M16.500 9.500C14.800 6.300 5 6 5 15.500c0 9.500 10 9.500 11.500 5v-4h-5", 3)
-    strokes(i, "M20.500 19.200l2-1.200v9.500", 2)
-    strokes(i, "M29 18.300c-1-.8-4-.8-4 3.500v2.500a2 2 0 0 0 4 0v-.5a2 2 0 0 0-4 0", 2)
+    # the original: a large red G with a 1 over a 6 at its right
+    badge(i, "#ffffff", "#e8e8ec", "#9a9aa8")
+    red, dark = "#e01020", "#00000040"
+    strokes(i, "M17.500 9.500C15.500 5.800 4.500 5.500 4.500 16c0 10.500 11 10.500 13 5.500V17h-5.500", 3.600, red, dark)
+    strokes(i, "M22.500 7.800l2.300-1.600v8", 2.200, red, dark)
+    strokes(i, "M28 17.600c-1-.9-4.400-.9-4.400 3.400v2.200a2.200 2.200 0 0 0 4.400 0v-.4a2.200 2.200 0 0 0-4.400 0", 2.200, red, dark)
 
 
 @icon("mopac-a")
