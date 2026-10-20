@@ -1,3 +1,4 @@
+#include <wx/settings.h>
 #include <iostream>
 #include <memory>
   using std::cout;
@@ -428,6 +429,10 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
    }
 
    p_grid->AutoSizeColumns();
+   //  The grid's own minimum width (200) would otherwise win over its columns.
+   int width = wxSystemSettings::GetMetric(wxSYS_VSCROLL_X) + 8;
+   for (int c = 0; c < p_grid->GetNumberCols(); ++c) width += p_grid->GetColSize(c);
+   p_grid->SetMinSize(wxSize(width, 500));
    GetSizer()->Fit(this);
 }
 

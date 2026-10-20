@@ -225,6 +225,12 @@ bool MoPanel::Create(IPropCalculation *calculation,
          (cutoffRow->GetWindowStyleFlag() & ~wxBORDER_MASK) | wxBORDER_NONE);
    if (wxSizerItem *item = GetSizer()->GetItem(cutoffRow))
       item->SetFlag((item->GetFlag() & ~wxALL) | wxLEFT | wxRIGHT);
+   const wxString cutoffTip = _("When Compute draws an orbital, atomic-orbital "
+         "shells whose largest coefficient is below this value are left out. "
+         "Raise it for a faster, rougher surface.");
+   txt->SetToolTip(cutoffTip);
+   if (wxWindow *label = cutoffRow->GetChildren().GetFirst()->GetData())
+      label->SetToolTip(cutoffTip);
    ewxNumericValidator validator(0.,100.,0.001);
    validator.setHardRange("(0.,100.)");
    validator.setValue(0.001);

@@ -124,7 +124,7 @@ void PropertyIndexPanel::setEntries(const std::vector<Entry>& entries)
 }
 
 
-int PropertyIndexPanel::preferredHeight(int maxHeight) const
+int PropertyIndexPanel::preferredHeight(int maxRows) const
 {
   int rows = 0;
   wxTreeItemId root = p_tree->GetRootItem();
@@ -150,9 +150,9 @@ int PropertyIndexPanel::preferredHeight(int maxHeight) const
   for (int i = 0; i < 3; ++i) {
     if (labels[i]->IsShown()) header += labels[i]->GetBestSize().y;
   }
-  const int full = header + 6 + rows * rowHeight + 8;
-  //  Never below the header and two rows, so a scrolling list stays usable.
-  return std::min(full, std::max(maxHeight, header + 6 + 2 * rowHeight + 8));
+  //  The cap counts rows, not pixels: the header above them is a fixed cost
+  //  and a pixel cap left a short window one and a half rows.
+  return header + 6 + std::min(rows, std::max(2, maxRows)) * rowHeight + 8;
 }
 
 
