@@ -24,7 +24,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.2.2](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.2.2)),
+  [9.3.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.3.0)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -41,27 +41,9 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.3.0
+## Coming in 9.4.0
 
-Planned, being worked on:
-
-* **GROMACS from start to finish:** preparing proteins (`pdb2gmx`), clay and
-  mineral systems (MINFF) and small molecules (AmberTools), and results shown
-  as plots and trajectories
-  ([#262](https://github.com/FriendsofECCE/ECCE/issues/262),
-  [#334](https://github.com/FriendsofECCE/ECCE/issues/334),
-  [#336](https://github.com/FriendsofECCE/ECCE/issues/336)).
-* **A finished job's orbitals as the starting guess** of the next
-  calculation, ORCA first
-  ([#75](https://github.com/FriendsofECCE/ECCE/issues/75)).
-* **Quantum ESPRESSO:** a full Verify and automatic choice of k-points and
-  cutoff ([#349](https://github.com/FriendsofECCE/ECCE/issues/349)).
-* **Windows that fit small screens:** the QE Theory Details, the plot
-  panels and the Basis Set Tool
-  ([#337](https://github.com/FriendsofECCE/ECCE/issues/337),
-  [#351](https://github.com/FriendsofECCE/ECCE/issues/351)).
-* **Calculation Editor:** no Basis Set box for MOPAC and Quantum ESPRESSO
-  ([#348](https://github.com/FriendsofECCE/ECCE/issues/348)).
+Nothing announced yet.
 
 ## First steps
 
