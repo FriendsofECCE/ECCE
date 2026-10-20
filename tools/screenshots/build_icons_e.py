@@ -271,19 +271,13 @@ def axes(i):
 
 @icon
 def rings(i):
-    # Kekule hexagon: three alternating double bonds
-    R, r = 12.500, 8.200
+    # The resonance hybrid: hexagon with the delocalised ring inside, dark
+    R = 12.500
     v = [(16 + R * math.sin(math.radians(60 * k)), 16 - R * math.cos(math.radians(60 * k))) for k in range(6)]
-    w = [(16 + r * math.sin(math.radians(60 * k)), 16 - r * math.cos(math.radians(60 * k))) for k in range(6)]
     g = i.lin(0, 3, 0, 29, (0, "#4a4a58"), (1, "#101018"))
     pts = " ".join("%.2f,%.2f" % q for q in v)
     i.add('<polygon points="%s" fill="#ffffff" fill-opacity=".45" stroke="%s" stroke-width="2.600" stroke-linejoin="round"/>' % (pts, g))
-    for k in (0, 2, 4):
-        a, b = w[k], w[(k + 1) % 6]
-        t = .16
-        x1, y1 = a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])
-        x2, y2 = b[0] + t * (a[0] - b[0]), b[1] + t * (a[1] - b[1])
-        i.add('<path d="M%.2f %.2fL%.2f %.2f" stroke="%s" stroke-width="2.200" stroke-linecap="round"/>' % (x1, y1, x2, y2, g))
+    i.add('<circle cx="16" cy="16" r="6.300" fill="none" stroke="%s" stroke-width="2.200"/>' % g)
 
 
 @icon
