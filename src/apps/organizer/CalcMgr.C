@@ -1262,6 +1262,13 @@ void CalcMgr::runTestCommand(const string& line)
       args >> tool >> url;
       startApp(tool, 0, url);
       outcome = "requested";
+    } else if (command == "activate") {
+      // "activate URL": a double-click on that tree item; says which tool
+      // it starts, or "tree" when the tree keeps the click.
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, true);
+      ResourceTool *tool = node ? defaultToolOf(node) : 0;
+      if (tool) startApp(tool->getName(), 0, node->getUrl().toString());
+      outcome = tool ? "started " + tool->getName() : string("tree");
     } else if (command == "probe") {
       // What a user sees first: the registration notice, whether the home
       // is in the tree, and the selection the tree's focus handler settles
@@ -3315,11 +3322,26 @@ void CalcMgr::OnTreectrlDeleteItem( wxTreeEvent& event )
 /*!
  * wxEVT_COMMAND_TREE_ITEM_ACTIVATED event handler for ID_TREECTRL
  */
+ResourceTool *CalcMgr::defaultToolOf(WxResourceTreeItemData *item)
+{
+  Resource *res = item->getResource();
+  return res && dynamic_cast<TaskJob*>(res) ? res->getDefaultTool() : 0;
+}
+
+
 void CalcMgr::OnTreectrlItemActivated( wxTreeEvent& event )
 {
-  //  cerr << "\nEnter ItemActivated event\n";
-  //  cerr << "Leave ItemActivated event\n";
-  event.Skip();
+  //  A calculation or task opens in its default tool for its state (the
+  //  editor while it is set up, as File > New does); a folder, project or
+  //  study keeps the tree's own expand/collapse.
+  WxResourceTreeItemData * itemData = dynamic_cast<WxResourceTreeItemData*>
+    (p_treeCtrl->GetItemData(event.GetItem()));
+  ResourceTool * tool = itemData ? defaultToolOf(itemData) : 0;
+  if (tool == 0) {
+    event.Skip();
+    return;
+  }
+  startApp(tool->getName(), 0, itemData->getUrl().toString());
 }
 
 

@@ -250,7 +250,7 @@ bool EDSIServerCentral::checkServerSetup()
           string(getenv("ECCE_REMOTE_DIR") ?
             "The server's certificate has changed since you first connected. "
             "If you expected that, ask the server's administrator, then "
-            "choose Edit > Change Server... and connect again.\n" :
+            "choose Edit > Preferences..., Data folder, Change Server... and connect again.\n" :
             "The administrator can give you the "
             "server's current certificate (ecce-remote-setup --tls --pin).\n"),
           WHERE);

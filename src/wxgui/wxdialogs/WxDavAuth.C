@@ -66,7 +66,7 @@ static bool useThisComputer()
         "this computer.\n\nThis start ends now. Start ECCE again to work "
         "there."
       : "ECCE could not switch to this computer. Your setting is unchanged; "
-        "use Edit > Change Server... in the Organizer to try again.",
+        "use Edit > Preferences..., Data folder, Change Server... in the Organizer to try again.",
       "Use this computer", wxOK | (rc == 0 ? wxICON_INFORMATION : wxICON_EXCLAMATION));
   dlg.ShowModal();
   return rc == 0;

@@ -252,6 +252,8 @@ public:
   
   /// wxEVT_COMMAND_TREE_ITEM_ACTIVATED event handler for ID_TREECTRL
   void OnTreectrlItemActivated( wxTreeEvent& event );
+  /// The tool a double-click starts: a task's default tool, else none.
+  ResourceTool *defaultToolOf(WxResourceTreeItemData *item);
 
   /// wxEVT_COMMAND_TREE_ITEM_COLLAPSED event handler for ID_TREECTRL
   void OnTreectrlItemCollapsed( wxTreeEvent& event );

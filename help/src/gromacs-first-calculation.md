@@ -40,20 +40,26 @@ tasks after it.
    Project...**. Enter `gromacs-tutorial` and click **OK**.
 2. Select the project and choose **File > New > GROMACS MD Study...**.
    Enter `trpcage` and click **OK**.
-3. Select the study and choose **File > New > GROMACS MD Prepare...**. Make
-   in the same way a **GROMACS MD Optimize**, two **GROMACS MD
-   Equilibrate** tasks (the second is used in section 5) and a **GROMACS MD
-   Dynamics**, in that order. The study shows them in that order.
+3. Add the five tasks. Each time, select the study first, then choose:
+   1. **File > New > GROMACS MD Prepare...**
+   2. **File > New > GROMACS MD Optimize...**
+   3. **File > New > GROMACS MD Equilibrate...** (constant volume)
+   4. **File > New > GROMACS MD Equilibrate...** again (constant pressure)
+   5. **File > New > GROMACS MD Dynamics...**
 
 Each task finds the topology and the structure of the one before it by
 itself. Nothing is attached by hand.
 
 ## 2. Prepare
 
-1. Select **Prepare** and choose **Tools > GROMACS MD Prepare Editor**.
+1. Double-click **Prepare**. Its editor opens.
 2. Under **Structure**, choose **Source:** `Protein (pdb2gmx)`, and
-   **Structure:** `PDB file...`. A file dialog opens: choose your 1L2Y file.
-   The name of the file's copy, `1l2y.gmxpdb`, is shown under **Browse...**.
+   **Structure:** `PDB file...`. A file dialog opens. Choose `1l2y.pdb`:
+   ECCE ships it in its examples folder, on Linux
+   `/opt/ecce/data/client/examples/gromacs-trpcage/1-prepare/1l2y.pdb`
+   (in the file dialog, type Ctrl+L and paste the path). A file downloaded
+   from the Protein Data Bank works as well. The name of the file's copy,
+   `1l2y.gmxpdb`, is shown under **Browse...**.
 3. Leave the other settings at their defaults: **Force field:**
    `AMBER99SB-ILDN`, **Water model:** `TIP3P`, **Box type:** `Rhombic
    dodecahedron`, **Distance to edge:** `1` nm, **Neutralise with
@@ -70,7 +76,7 @@ makes up for the net charge of the protein, and salt.
 
 ## 3. Optimize
 
-1. Select **Optimize** and choose **Tools > GROMACS MD Optimize Editor**.
+1. Double-click **Optimize**.
 2. The **Inputs** page says `topology: ecceSession.gmxtop (from Prepare)`,
    `structure: ecceSession_ecceMdPrepare.gro (from Prepare)` and `Ready`.
 3. On the **Optimize** page, set the number of steps to `200`. The method
@@ -85,8 +91,7 @@ around the protein.
 
 ## 4. Equilibrate
 
-1. Select **Equilibrate** and choose **Tools > GROMACS MD Equilibrate
-   Editor**. The **Inputs** page now takes the structure from Optimize.
+1. Double-click the first **Equilibrate**. The **Inputs** page now takes the structure from Optimize.
 2. On the **Dynamics** page, set **Data Collection Steps:** to `1000`. The
    **Time Step** is `0.002` ps, so this is 2 ps. The **Temperature** tab
    holds the 300 K the system is brought to.
@@ -101,8 +106,7 @@ The run above holds the temperature only, so the box keeps its volume. A
 second Equilibrate lets the density settle at 1 bar before the production
 run.
 
-1. Select the second **Equilibrate** and choose **Tools > GROMACS MD
-   Equilibrate Editor**. Tick **Continue from the previous task's
+1. Double-click the second **Equilibrate**. Tick **Continue from the previous task's
    structure and velocities**, so that it carries on from the first
    Equilibrate instead of drawing new velocities.
 2. On the **Dynamics** page, set **Data Collection Steps:** to `1000`.

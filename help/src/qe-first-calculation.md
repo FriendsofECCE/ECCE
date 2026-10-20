@@ -79,19 +79,19 @@ The calculation appears under the project, in the run state **Created**.
 
 ### 2. Build the crystal
 
-1. Select `si-scf` and choose **Tools > Builder...** (Ctrl+B).
+1. Select `si-scf` and press Ctrl+B. The Builder opens.
 2. In the **Build** panel on the right, click the element button `Si`. In
    the shape drop-down at the bottom of the panel, choose the first shape,
-   the single atom with no open bonds.
-3. Choose **Mode > Atom** (Ctrl+5) and click once in the empty 3D view. One
-   silicon atom appears. The status line of the view says `1 atoms`.
+   the lone atom.
+3. Click once in the empty 3D view. One silicon atom appears; the status
+   line of the view says `1 atoms`.
 4. Choose **Tools > Periodic Builder** unless the panel is already shown: a
    Quantum ESPRESSO calculation opens with it. The panel is in the right-hand
    column. Click **Create Lattice**.
 5. Set the cell **before** you generate atoms. **Cell Type:** is `Lattice`.
    Enter `5.43` in **a:**, **b:** and **c:**, pressing Enter after each, and
    check that **alpha:**, **beta:** and **gamma:** are `90`.
-6. In the box next to **Sym. Group**, choose `Fd-3m`. Click **Generate**.
+6. Type `Fd-3m` in the box next to **Sym. Group** and click **Generate**.
 
 The view shows the cubic cell with 8 atoms and the status line says `8 atoms,
 Fd-3m`.
@@ -110,8 +110,7 @@ a crystal you set the cell before the atoms exist, so it makes no difference.
 
 ### 3. Set up the calculation
 
-1. Select `si-scf` in the Organizer and choose **Tools > Electronic
-   Structure Editor...** (Ctrl+E).
+1. Double-click `si-scf` in the Organizer. The Calculation Editor opens.
 
 The editor shows **Formula:** `Si8`, **Atoms:** 8 and **Symmetry:** `Fd-3m`.
 **Electrons:** shows 112, the electrons of eight silicon atoms with all their
@@ -120,29 +119,21 @@ The code buttons at the top show Quantum ESPRESSO selected. There is no
 **Basis Set** box: plane waves have no basis set, only a cutoff.
 
 2. Check that **Theory:** is `PW` (plane waves) and **Runtype:** is `Energy`.
-3. Click **Theory Details...**. The window has these boxes. The defaults suit
-   silicon, so you only look:
+3. Click **Theory Details...**. The defaults suit silicon; nothing needs
+   changing. The ones that matter here:
+   - **Wavefunction Cutoff:** `30.0` Ry, the size of the plane-wave basis.
+   - **k-points:** a `4` × `4` × `4` Monkhorst-Pack grid. A crystal is
+     computed at a grid of points in its reciprocal cell; 4 by 4 by 4 is a
+     reasonable first choice for an insulator with this cell.
+   - **Occupations:** `Fixed (insulator)`.
 
-   | Box | Field | Value |
-   | --- | --- | --- |
-   | **Plane-Wave Basis** | **Wavefunction Cutoff:** | `30.0` Ry |
-   | | **Charge Density Cutoff:** | box not ticked |
-   | **Brillouin Zone Sampling** | **k-points:** | `Monkhorst-Pack grid` |
-   | | **Grid n1:**, **n2:**, **n3:** | `4`, `4`, `4` |
-   | | **Offset s1:**, **s2:**, **s3:** | `0`, `0`, `0` |
-   | **Occupations** | **Occupations:** | `Fixed (insulator)` |
-   | **SCF Convergence** | **Energy Convergence:** | `1e-06` Ry |
-   | **Pseudopotentials** | **Directory:** | `/usr/share/espresso/pseudo` |
-
-   A crystal is computed at a grid of points in its reciprocal cell, the
-   *k-points*. A grid of 4 by 4 by 4 is a reasonable first choice for an
-   insulator with this cell. Click **Close**.
+   Click **Close**.
 
 ![Theory Details for silicon](img/qe-si-5-theory.png)
 
 <!-- capture: Theory Details window with the defaults -->
 
-4. Click **Verify**, then choose **File > Save** (Ctrl+S).
+4. Choose **File > Save** (Ctrl+S).
 5. To see what ECCE gives `pw.x`, click **Final Edit...** and read the file,
    then close the editor without saving. The file has the cell
    (`CELL_PARAMETERS`), the 8 atoms (`ATOMIC_POSITIONS`), the pseudopotential
@@ -220,9 +211,9 @@ physics are more telling:
 
 1. In the Organizer, select `qe-tutorial` and choose **File > New Quantum
    ESPRESSO Calculation...**. Enter `h2o-relax`.
-2. Select it and open the Builder (**Tools > Builder...**).
+2. Select it and press Ctrl+B. The Builder opens.
 3. In the **Build** panel click `O`. The default shape of oxygen is Bent, with
-   two open bonds. Choose **Mode > Atom** and click once in the 3D view.
+   two open bonds. Click once in the 3D view.
 4. Click **Add H** in the **Build** panel (or choose **Build > Add
    Hydrogen**). Two hydrogen atoms complete the water molecule.
 5. Choose **Tools > Periodic Builder** and click **Create Lattice**.
@@ -254,7 +245,7 @@ physics are more telling:
 
    A molecule in a large box needs only one k-point, the centre of the cell,
    and `pw.x` is faster with it. Click **Close**.
-4. Click **Verify** and choose **File > Save**.
+4. Choose **File > Save** (Ctrl+S).
 
 ![Theory Details for water](img/qe-h2o-5-theory.png)
 
