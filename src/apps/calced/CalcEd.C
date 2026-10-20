@@ -456,7 +456,7 @@ void CalcEd::createCodeButtons()
 
   // Code bar groups, each named, separated by a rule.  A code not named
   // here goes with the molecular codes.
-  static const char *const groupName[4] = { "Molecules:", "Semi-empirical:",
+  static const char *const groupName[4] = { "DFT:", "Semi-empirical:",
                                             "Periodic:", "MD:" };
   static const char *const order[] = { "ECCE-QM", "Gaussian-16", "ORCA",
                                        "NWChem", "MOPAC", "QuantumESPRESSO",
