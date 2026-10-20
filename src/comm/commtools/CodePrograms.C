@@ -1,6 +1,7 @@
 #include "comm/CodePrograms.H"
 
 #include <climits>
+#include <cstdio>
 #include <cstdlib>
 #include <cctype>
 #include <unistd.h>
@@ -64,13 +65,41 @@ static bool isExecutable(const string& p)
            access(p.c_str(), X_OK) == 0;
 }
 
-string CodePrograms::findOnPath(const string& code)
+// The PATH to search.  A macOS app started from the Dock or Finder gets
+// only /usr/bin:/bin:/usr/sbin:/sbin, not the user's Terminal PATH, so the
+// login shell is asked once and the usual Homebrew/MacPorts folders added.
+static string searchPath()
 {
     const char* env = getenv("PATH");
-    if (!env)
+    string path = env ? env : "";
+#ifdef __APPLE__
+    static string extra;
+    static bool asked = false;
+    if (!asked) {
+        asked = true;
+        const char* sh = getenv("SHELL");
+        string cmd = string(sh && *sh ? sh : "/bin/zsh") +
+                     " -l -c 'printf %s \"$PATH\"' </dev/null 2>/dev/null";
+        if (FILE* f = popen(cmd.c_str(), "r")) {
+            char buf[4096];
+            size_t n;
+            while ((n = fread(buf, 1, sizeof buf, f)) > 0)
+                extra.append(buf, n);
+            pclose(f);
+        }
+        extra += ":/opt/homebrew/bin:/usr/local/bin:/opt/local/bin";
+    }
+    path += ":" + extra;
+#endif
+    return path;
+}
+
+string CodePrograms::findOnPath(const string& code)
+{
+    string path = searchPath();
+    if (path.empty())
         return "";
     vector<string> dirs;
-    string path = env;
     size_t a = 0;
     while (a <= path.size())
     {
