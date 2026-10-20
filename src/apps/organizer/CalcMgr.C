@@ -163,6 +163,18 @@ IMPLEMENT_CLASS( CalcMgr, wxFrame )
  * Constructor.
  * Should never be used.
  */
+namespace {
+// One-shot timer that runs its function and deletes itself.
+class OnceTimer : public wxTimer
+{
+public:
+  explicit OnceTimer(std::function<void()> f) : p_f(f) {}
+  void Notify() override { p_f(); delete this; }
+private:
+  std::function<void()> p_f;
+};
+}
+
 CalcMgr::CalcMgr( )
   : CalcMgrGUI(),
     EditListener(),
@@ -356,7 +368,13 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   }
 
   // #302: after the window is up, so the import shows in the tree.
-  CallAfter([this]() { importExamplesOnce(); });
+  // CallAfter alone runs before the first paint; the delay lets the window
+  // appear first.
+  (new OnceTimer([this]() {
+    Update();
+    cerr << "Organizer: window shown" << endl;
+    importExamplesOnce();
+  }))->StartOnce(300);
 
   // File > New is offered before the first selection too.
   {
@@ -2968,7 +2986,25 @@ string CalcMgr::openExamples(string& message)
   {
     WxCalcImport dlg(this);
     dlg.registerListener(this);
+    const int nExamples = sizeof(kExampleOutputs) / sizeof(*kExampleOutputs);
+    // Shown at once: the import is always slow, and the window was
+    // otherwise silent for its whole length.
+    ewxProgressDialog progress(_("Example calculations"),
+        _("Importing example calculations"), nExamples, this,
+        wxPD_APP_MODAL | wxPD_SMOOTH);
+    int step = 0;
     for (const char *rel : kExampleOutputs) {
+      {
+        string label = rel;
+        size_t dash = label.find('-'), slash = label.find('/');
+        if (dash != string::npos)
+          label = label.substr(dash + 1, slash == string::npos ? string::npos
+                                                               : slash - dash - 1);
+        progress.Update(step, wxString::Format(
+            _("Importing example calculations: %s (%d of %d)"),
+            label.c_str(), step + 1, nExamples));
+        step++;
+      }
       // A directory is a GROMACS run (GromacsImport.H), a study named
       // after the example.
       struct stat st;
@@ -3069,6 +3105,7 @@ void CalcMgr::importExamplesOnce()
   EDSIServerCentral central;
   EcceURL home = central.getDefaultUserHome();
   if (!EDSIFactory::getResource(home)) return;   // not logged in: next start
+  cerr << "Organizer: examples import started" << endl;
   string made;
   if (EDSIFactory::getResource(home.getChild("Examples"))) {
     made = "Examples";

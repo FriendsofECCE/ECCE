@@ -154,6 +154,14 @@ def run(display, data, work):
                       env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
     for line in re.findall(r"Organizer: examples imported in .*", result.log or ""):
         print(line)
+    lg = result.log or ""
+    shown = lg.find("Organizer: window shown")
+    began = lg.find("Organizer: examples import started")
+    if shown < 0 or began < 0 or shown > began:
+        fail("window before import", "log order: window shown at %d, import "
+             "started at %d" % (shown, began), lg)
+    else:
+        print("ok    the Organizer window is shown before the import starts")
     got = (first.get("props") or {}).get("Examples", {})
     if result.crashed or sorted(c.split("_")[0] for c in got) != sorted(EXPECT):
         fail("first start imports the examples",
