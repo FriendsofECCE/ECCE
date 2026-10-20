@@ -2633,6 +2633,28 @@ quit
     clean(p, "the Machine-tab fields and Modules are shown again")
 
 
+def program_paths_survive_machine_tab(tmp, display, build):
+    print("Machine-tab fields leave every code's program path alone")
+    e = Env(tmp, "progpaths")
+    write(os.path.join(e.ue, "CONFIG.mine"),
+          "Gaussian-16: /opt/g16/g16\nGROMACS: /opt/gmx/bin/gmx\n")
+    p = run(display, build, e, """
+select mine
+tab codes
+code Gaussian-16
+expect field code:gaussian-16 /opt/g16/g16
+tab machine
+set default-account proj5
+set run-dir /work/me/runs
+save
+quit
+""", extra=LOCALUSER, timeout=180)
+    clean(p, "Account and Run directory saved")
+    cfg = read(os.path.join(e.ue, "CONFIG.mine"))
+    check("Gaussian-16: /opt/g16/g16" in cfg and "proj5" not in cfg,
+          "the Gaussian-16 program is unchanged: %r" % cfg)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
