@@ -292,7 +292,10 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
    wxAboutDialogInfo info;
    info.SetName("ECCE");
-   info.SetVersion(Ecce::ecceVersion());
+   wxString version = Ecce::ecceVersion();
+   if (*Ecce::buildCommit())
+      version += wxString(" (development build ") + Ecce::buildCommit() + ")";
+   info.SetVersion(version);
    wxString desc = wxString::FromUTF8("Extensible Computational Chemistry Environment: "
       "build molecules, set up and run calculations, and look at the "
       "results.\n\n"

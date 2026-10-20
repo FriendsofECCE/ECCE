@@ -55,6 +55,9 @@ using std::ostrstream;
 
 // ECCE_VERSION must be supplied by the Makefile.
 const char* Ecce::p_ecceVersion = ECCE_VERSION;
+#ifndef ECCE_BUILD_COMMIT
+#define ECCE_BUILD_COMMIT ""
+#endif
 
 
 // -----------------------
@@ -152,6 +155,13 @@ bool Ecce::guiAvailable()
 const char * Ecce::ecceVersion() 
 {
   return p_ecceVersion;
+}
+
+
+// Empty for a release build; the commit for anything else.
+const char * Ecce::buildCommit()
+{
+  return ECCE_BUILD_COMMIT;
 }
 
 

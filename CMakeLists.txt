@@ -207,6 +207,21 @@ ecce_library(ecceutil
   src/util/units
 )
 target_compile_definitions(ecceutil PRIVATE ECCE_VERSION=\"${ECCE_VERSION_RAW}\")
+# A build that is not exactly the release tag names its commit in About, so
+# a tester can tell which build they have.  Read at configure time.
+set(ECCE_BUILD_COMMIT "")
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.git)
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C ${CMAKE_SOURCE_DIR} rev-parse --short=8 HEAD
+                  OUTPUT_VARIABLE _ecce_head OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C ${CMAKE_SOURCE_DIR} tag --points-at HEAD
+                  OUTPUT_VARIABLE _ecce_tags OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+  string(REGEX MATCH "(^|\n)v${ECCE_VERSION_RAW}(\n|$)" _ecce_release "${_ecce_tags}")
+  if(_ecce_head AND NOT _ecce_release)
+    set(ECCE_BUILD_COMMIT "${_ecce_head}")
+  endif()
+endif()
+target_compile_definitions(ecceutil PRIVATE ECCE_BUILD_COMMIT=\"${ECCE_BUILD_COMMIT}\")
 # Messaging (src/util/jms) is MQTT 5 on libmosquitto.
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
 target_link_libraries(ecceutil PUBLIC PkgConfig::MOSQUITTO)

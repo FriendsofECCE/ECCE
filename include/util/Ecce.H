@@ -41,6 +41,7 @@ class Ecce
       static void initialize();
 
       static const char *ecceVersion();
+      static const char *buildCommit();
 
       // Environment Variable Wrappers
       static const char*  realUserVar;        // ECCE_REALUSER
