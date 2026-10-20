@@ -68,17 +68,12 @@ def orca(i):
 
 @icon("qe")
 def qe(i):
-    badge(i, "#f4efe6", "#d7c8b0", "#8a7456")
-    # The Q's tail must stay clear of the cup, or the Q reads as an O.
-    g = i.lin(4, 4, 22, 22, (0, "#4f8fe8"), (1, "#16408c"))
-    i.add('<circle cx="12.500" cy="12.500" r="8" fill="none" stroke="%s" stroke-width="3.600"/>' % g)
-    i.add('<path d="M16.800 16.800l4.200 4.200" stroke="%s" stroke-width="3.400" stroke-linecap="round"/>' % g)
-    i.add('<ellipse cx="25.500" cy="29.200" rx="5.300" ry="1.300" fill="#e9eef6" stroke="#7a8498" stroke-width=".7"/>')
-    cup = i.lin(21, 0, 30, 0, (0, "#ffffff"), (1, "#b9c2d4"))
-    i.add('<path d="M21.700 24h7.600v2.300a3.800 3.800 0 0 1-7.600 0z" fill="%s" stroke="#6a7488" stroke-width=".8"/>' % cup)
-    i.add('<ellipse cx="25.500" cy="24" rx="3.800" ry="1" fill="#4a2810" stroke="#6a7488" stroke-width=".6"/>')
-    i.add('<path d="M29.300 24.700h1a1.700 1.700 0 0 1 0 3.400h-1.400" fill="none" stroke="#6a7488" stroke-width="1.100"/>')
-    i.add('<path d="M24.300 22.300c-.8-1.200.8-2 0-3.200M27 22.300c-.8-1.200.8-2 0-3.200" fill="none" stroke="#9a8c78" stroke-width=".9" stroke-linecap="round"/>')
+    # "QE" lettering like CP/2K's; espresso-brown badge for the name
+    badge(i, "#c8936a", "#6b3a1c", "#45220c")
+    w = 3
+    strokes(i, "M9.500 9.200a5.300 6.800 0 1 0 .01 0z", w)
+    strokes(i, "M11.300 18.500l3.400 4.600", w)
+    strokes(i, "M26.500 9H19.300v13.800h7.200M19.300 15.900h5.800", w)
 
 
 @icon("mopac-a")
