@@ -362,6 +362,36 @@ int MachRegScript::runCommand(const vector<string>& w)
             f->p_lastMessage = "check-program: " + st + ": " + f->p_codeCheckText;
         }
     }
+    else if (cmd == "check-block-layout")
+    {
+        //  A setting's name must be on the row directly above its own box.
+        int bad = 0;
+        for (size_t i = 0; i < f->p_blocks.size(); i++)
+        {
+            const WxMachineRegister::BlockRow& b = f->p_blocks[i];
+            wxSizerItemList& items = b.box->GetChildren();
+            bool ok = false;
+            for (wxSizerItemList::iterator it = items.begin();
+                 it != items.end(); ++it)
+            {
+                wxSizerItemList::iterator nx = it;
+                ++nx;
+                if ((*it)->GetSizer() != b.row || nx == items.end())
+                    continue;
+                wxSizerItemList& r = b.row->GetChildren();
+                ok = (*nx)->GetWindow() == b.user && !r.empty() &&
+                     r.front()->GetWindow() == b.heading;
+            }
+            if (!ok)
+            {
+                fail("block " + b.id + ": name is not directly above its box");
+                bad++;
+            }
+        }
+        if (bad == 0)
+            fprintf(stderr, "[MACHREG] check-block-layout: ok (%d blocks)\n",
+                    (int)f->p_blocks.size());
+    }
     else if (cmd == "check-program-hints")
     {
         //  Every suggested path ends in a name `Find` would look for.

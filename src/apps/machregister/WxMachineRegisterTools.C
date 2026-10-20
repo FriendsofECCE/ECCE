@@ -401,6 +401,11 @@ void WxMachineRegister::findProgram()
     }
     SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(code, windowsPrograms());
     SchedulerQuery::Connection conn = this->connection();
+    CodeLine* ml = codeLine("modules");
+    string modules = ml != NULL && ml->ctrl != NULL
+        ? stripped((string)ml->ctrl->GetValue()) : string();
+    if (windowsPrograms())
+        modules.clear();
     string output, err;
     bool ran = false;
     string extra;
@@ -445,7 +450,8 @@ void WxMachineRegister::findProgram()
         vector<string> argv;
         argv.push_back("sh");
         argv.push_back("-c");
-        argv.push_back(SchedulerQuery::findProgramScript(h) + "exit 0\n");
+        argv.push_back(SchedulerQuery::findProgramScript(h, modules) +
+                       "exit 0\n");
         ran = r.run(argv, output, 60);
         //  The install folders only when nothing is on the PATH: what the
         //  login setup provides is what the job script will run.
@@ -458,6 +464,9 @@ void WxMachineRegister::findProgram()
             err = output;
     });
     vector<string> found = SchedulerQuery::parseFound(output);
+    const string modError = SchedulerQuery::moduleError(output);
+    const string modNote = modError.empty() ? string()
+        : "\n\nmodule load " + modules + " failed:\n" + modError;
     if (!ran && found.empty())
     {
         displayMessage("Could not look on " + machine + ":\n" + err);
@@ -477,8 +486,8 @@ void WxMachineRegister::findProgram()
         else
             displayMessage("No " + names + " was found on " + machine + ". "
                 "The program was left as it was. If " + code + " is loaded "
-                "with 'module load', put that command in the login setup on "
-                "the Connection tab; otherwise enter the path by hand.");
+                "with 'module load', enter the modules in the Modules box "
+                "above; otherwise enter the path by hand." + modNote);
         return;
     }
     //  Programs with the code's signature first; the others stay listed.

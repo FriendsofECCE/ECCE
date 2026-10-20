@@ -88,7 +88,14 @@ namespace SchedulerQuery
     /// each candidate `command -v` finds.
     /// The examples as shown under the Program box ("a  or  b").
     string exampleText(const ProgramHelp& h);
-    string findProgramScript(const ProgramHelp& h);
+    /// `modules` (blank-separated, may be empty) are loaded first, as the
+    /// job script does.
+    string findProgramScript(const ProgramHelp& h, const string& modules = "");
+    /// sh text that defines `module` and loads `modules`; the text between
+    /// ECCE-MODULE-FAILED and ECCE-MODULE-END is the error output.
+    string moduleLoadScript(const string& modules);
+    /// The error output moduleLoadScript printed, or "" if the load worked.
+    string moduleError(const string& output);
     /// What the signature check found for one path.  `state`: "yes" (the
     /// signature is in the file), "no", "missing" (not a file, or not
     /// executable) or "found" (the code has no signature).  `resolved` is

@@ -440,6 +440,18 @@ def moduleScript(perl):
         check(plain is not None and "command -v module" not in plain,
               "no module prologue when the script does not use module")
 
+        mod = gen("NWChem: /opt/nwchem\nNWChemModules: GCC/13.2.0 OpenMPI/4.1.6\n"
+                  "nwchem_setup: echo setup-ran\n")
+        check(mod is not None and "module load GCC/13.2.0 OpenMPI/4.1.6" in mod
+              and "# Make the module command available" in mod
+              and mod.find("# Make the module command available")
+              < mod.find("module load GCC/13.2.0")
+              < mod.find("echo setup-ran"),
+              "NWChemModules writes module load with the prologue before the code's setup")
+        none = gen("NWChem: /opt/nwchem\nNWChemModules: -\n")
+        check(none is not None and "module load" not in none,
+              "empty/disabled Modules writes nothing")
+
         script = gen("NWChem: /opt/nwchem\nsetup: module load x\n"
                      "wrapup: module unload x\n")
         check(script is not None, "gensub generated a script using module")

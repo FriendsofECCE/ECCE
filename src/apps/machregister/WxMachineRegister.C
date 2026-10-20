@@ -163,6 +163,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeExample = NULL;
     p_codeCheck = NULL;
     p_defAccount = NULL;
+    p_runDir = p_scratchDir = p_userName = NULL;
     p_setupNote = NULL;
     p_wrapupNote = NULL;
     p_codePage = NULL;
@@ -417,6 +418,31 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
     grid->Add(new ewxStaticText(page, wxID_ANY, "Processors"),
               wxSizerFlags().Right().Border().CentreVertical());
     grid->Add(counts, wxSizerFlags(1));
+
+    //  Per user (MachinePreferences), not machine-file keys: an admin
+    //  registering the machine does not set them for anyone else.
+    const char* const mine = "Yours only; the Launcher starts from this and "
+                             "you can change it per job.";
+    struct { ewxTextCtrl** ctrl; const char* label; const char* hint;
+             const char* hook; } mineRows[] = {
+        { &p_runDir, "Run directory", "e.g. /home/you/ecce-runs", "run-dir" },
+        { &p_scratchDir, "Scratch directory", "e.g. /scratch/you",
+          "scratch-dir" },
+        { &p_defAccount, "Account", "e.g. proj1", "default-account" },
+        { &p_userName, "Username", "e.g. your login name on the machine",
+          "username" } };
+    for (size_t i = 0; i < 4; i++)
+    {
+        *mineRows[i].ctrl = new ewxTextCtrl(page, wxID_ANY);
+        (*mineRows[i].ctrl)->SetHint(mineRows[i].hint);
+        (*mineRows[i].ctrl)->SetToolTip(mine);
+        grid->Add(new ewxStaticText(page, wxID_ANY, mineRows[i].label),
+                  wxSizerFlags().Right().Border().CentreVertical());
+        grid->Add(*mineRows[i].ctrl,
+                  wxSizerFlags(1).Expand().Border().CentreVertical());
+        reg(mineRows[i].hook, *mineRows[i].ctrl);
+    }
+    reg("account", p_defAccount);
 
     grid->Add(new ewxStaticText(page, wxID_ANY, "Connection"),
               wxSizerFlags().Right().Border().CentreVertical());
@@ -735,9 +761,8 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     outer->Add(sizer, wxSizerFlags(1).Expand());
 
-    addTabIntro(page, sizer, "Applies to one code only. Its own commands "
-                "before and after the program (Advanced) replace the "
-                "machine-wide ones.");
+    addTabIntro(page, sizer, "Settings for one code. Its commands replace "
+                "those on the Job script tab.");
     p_codeTitle = new wxStaticText(page, wxID_ANY, "");
     wxFont tf = p_codeTitle->GetFont().Bold();
     tf.SetFractionalPointSize(tf.GetFractionalPointSize() * 1.2);
@@ -748,41 +773,43 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     wxFlexGridSizer* grid = new wxFlexGridSizer(4, 0, 0);
     grid->AddGrowableCol(1);
     sizer->Add(grid, wxSizerFlags().Expand());
-    addCodeLine(page, grid, "code", "Program (full path to the executable)", "",
+    addCodeLine(page, grid, "modules", "Modules", "Modules",
+                "Environment modules to load before this code runs, separated "
+                "by spaces. The job script runs \"module load\" with them "
+                "before the commands run before the program. Empty: nothing "
+                "is loaded.");
+    addCodeLine(page, grid, "code", "Program", "",
                 "The file ECCE's job script runs for this code, with its full "
                 "path; not the folder it is in. A code with no program is not "
                 "offered for this machine.");
 
-    //  Environment: gensub does not replace placeholders here.
-    addBlock(page, sizer, "cenv", "Environment variables", page);
-    wxStaticText* envHelp = new wxStaticText(page, wxID_ANY,
-        "One \"NAME value\" per line, exported in the job script before the "
-        "program starts. A name that contains PATH is added to the end of "
-        "what the variable already holds; any other name replaces it.");
-    envHelp->SetFont(envHelp->GetFont().Smaller());
-    envHelp->SetForegroundColour(gray);
-    envHelp->Wrap(560);
-    sizer->Add(envHelp, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    addBlock(page, sizer, "csetup", "Commands run before the program", page);
 
     //  Command line.
     addBlock(page, sizer, "ccmd", "Command line", page);
     wxBoxSizer* cmdRow = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(cmdRow, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
-    wxStaticText* cmdHelp = new wxStaticText(page, wxID_ANY,
-        "When this is empty, ECCE's built-in command is used.");
-    cmdHelp->SetFont(cmdHelp->GetFont().Smaller());
-    cmdHelp->SetForegroundColour(gray);
-    cmdRow->Add(cmdHelp, wxSizerFlags(1).CentreVertical());
+    cmdRow->AddStretchSpacer(1);
     cmdRow->Add(wordsLink(page), wxSizerFlags().CentreVertical());
-    reg("cmd:help", cmdHelp);
+
+    //  Environment: gensub does not replace placeholders here.
+    addBlock(page, sizer, "cenv", "Environment variables", page);
+    wxStaticText* envHelp = new wxStaticText(page, wxID_ANY,
+        "One \"NAME value\" per line. A name that contains PATH is added to "
+        "the end of what the variable holds; any other name replaces it.");
+    envHelp->SetFont(envHelp->GetFont().Smaller());
+    envHelp->SetForegroundColour(gray);
+    envHelp->Wrap(560);
+    sizer->Add(envHelp, wxSizerFlags().Border(wxLEFT|wxRIGHT));
 
     //  Not a wxCollapsiblePane: that resizes the frame when it toggles.
     p_codeAdvBtn = new wxButton(page, wxID_ANY,
-        wxString::FromUTF8("\xe2\x96\xb8 Advanced"),
+        wxString::FromUTF8("\xe2\x96\xb8 More"),
         wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT|wxBORDER_NONE);
     p_codeAdvBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         this->setCodeAdvanced(!p_codeAdvanced->IsShown());
     });
+    reg("code:more", p_codeAdvBtn);
     reg("code:advanced", p_codeAdvBtn);
     sizer->Add(p_codeAdvBtn, wxSizerFlags().Border());
     p_codeAdvanced = new wxPanel(page);
@@ -792,13 +819,6 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     wxBoxSizer* advBox = new wxBoxSizer(wxVERTICAL);
     adv->SetSizer(advBox);
 
-    wxStaticText* advNote = new wxStaticText(adv, wxID_ANY,
-        "Commands here replace the ones on the Job script tab, for this "
-        "code only.");
-    advNote->SetFont(advNote->GetFont().Smaller());
-    advNote->SetForegroundColour(gray);
-    advBox->Add(advNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
-    addBlock(adv, advBox, "csetup", "Commands run before the program", page);
     addBlock(adv, advBox, "cwrapup", "Commands run after the program", page);
     wxFlexGridSizer* files = new wxFlexGridSizer(4, 0, 0);
     files->AddGrowableCol(1);
@@ -837,8 +857,6 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
     l.suffix = suffix;
     l.name = new ewxStaticText(page, wxID_ANY, label);
     l.name->SetMinSize(wxSize(190, -1));
-    if (id == "code")
-        l.name->Wrap(190);
     grid->Add(l.name, wxSizerFlags().Right().Border().CentreVertical());
 
     if (id == "code")
@@ -899,7 +917,9 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
     {
         l.ctrl = new ewxTextCtrl(page, wxID_ANY);
         l.ctrl->SetToolTip(tip);
-        l.ctrl->SetHint("e.g. *.tmp core");
+        l.ctrl->SetHint(id == "modules"
+            ? "e.g. GCC/13.2.0 OpenMPI/4.1.6 ORCA/6.0.1 (loaded with module load)"
+            : "e.g. *.tmp core");
         grid->Add(l.ctrl, wxSizerFlags(1).Expand().Border().CentreVertical());
         reg("code:" + id, l.ctrl);
     }
@@ -974,10 +994,10 @@ static bool keySet(const MCD::KeyState& ks)
 bool WxMachineRegister::codeInUse(const string& name) const
 {
     static const char* const suffix[] = { "", "Command", "Environment",
-        "FilesToRemove", "PrelimFilesToRemove" };
+        "FilesToRemove", "PrelimFilesToRemove", "Modules" };
     if (p_draft == NULL)
         return false;
-    for (size_t k = 0; k < 5; k++)
+    for (size_t k = 0; k < 6; k++)
     {
         const MCD::KeyState* ks = p_draft->state(name + suffix[k]);
         if (ks != NULL && keySet(*ks))
@@ -1054,19 +1074,20 @@ void WxMachineRegister::showCode()
             p_codeList->SetSelection((int)r);
     codeLinesToControls();
 
-    //  Open Advanced when it holds something for this code.
+    //  Open More when it holds something for this code.
     bool used = false;
     if (p_draft != NULL)
     {
-        const char* keys[] = { "_setup", "_wrapup" };
-        for (size_t k = 0; k < 2; k++)
+        const char* keys[] = { "_wrapup" };
+        for (size_t k = 0; k < 1; k++)
         {
             const MCD::KeyState* ks = p_draft->state(lowerOf(name) + keys[k]);
             used = used || (ks != NULL && keySet(*ks));
         }
         for (size_t k = 0; k < p_codeLines.size(); k++)
         {
-            if (p_codeLines[k].suffix.empty())
+            if (p_codeLines[k].suffix.empty() ||
+                p_codeLines[k].id == "modules")
                 continue;
             const MCD::KeyState* ks = p_draft->state(
                 codeLineKey(p_codeLines[k]));
@@ -1119,8 +1140,8 @@ bool WxMachineRegister::selectCodeByName(const string& name)
 void WxMachineRegister::setCodeAdvanced(bool on)
 {
     p_codePage->GetSizer()->Show(p_codeAdvanced, on, true);
-    p_codeAdvBtn->SetLabel(wxString::FromUTF8(on ? "\xe2\x96\xbe Advanced"
-                                                 : "\xe2\x96\xb8 Advanced"));
+    p_codeAdvBtn->SetLabel(wxString::FromUTF8(on ? "\xe2\x96\xbe More"
+                                                 : "\xe2\x96\xb8 More"));
     p_codePage->Layout();
     static_cast<wxScrolledWindow*>(p_codePage)->FitInside();
 }
@@ -1280,7 +1301,7 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     p_jobPage = page;
 
     addTabIntro(page, sizer,
-                "Applies to every job on this machine, regardless of code.");
+                "Settings for every job on this machine.");
     p_jobNote = new wxStaticText(page, wxID_ANY, "");
     sizer->Add(p_jobNote, wxSizerFlags().Border());
 
@@ -1289,7 +1310,7 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     addBlock(page, sizer, "header", "");
 
 
-    //  A code's own commands (Codes > Advanced) run instead of these, so the
+    //  A code's own commands (Codes tab) run instead of these, so the
     //  tab says for which codes that is so.
     addBlock(page, sizer, "setup", "Commands run before the calculation");
     p_setupNote = new wxStaticText(page, wxID_ANY, "");
@@ -1352,35 +1373,37 @@ void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
 
     b.heading = new wxStaticText(page, wxID_ANY, title);
     b.heading->SetFont(b.heading->GetFont().Bold());
-    b.box->Add(b.heading, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
 
-    b.siteHead = new wxStaticText(page, wxID_ANY, "Site setting");
-    b.box->Add(b.siteHead, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP, 4));
-    b.siteLabel = new wxStaticText(page, wxID_ANY, "");
-    b.siteLabel->SetFont(b.siteLabel->GetFont().Smaller());
-    b.siteLabel->SetForegroundColour(gray);
-    b.box->Add(b.siteLabel, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    //  The inherited text, whole, for the hook and the tooltip; only its
+    //  first line is shown, in the gray line above the box.
     b.site = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
-        wxSize(-1, 80), wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP);
-    b.site->SetFont(mono);
-    b.site->SetForegroundColour(gray);
-    b.box->Add(b.site, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
+        wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY);
+    b.site->Hide();
 
     wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
     b.box->Add(row, wxSizerFlags().Expand());
-    b.yoursLabel = new wxStaticText(page, wxID_ANY, "User setting");
-    row->Add(b.yoursLabel, wxSizerFlags().Border().CentreVertical());
-    b.copy = new ewxButton(page, wxID_ANY, "Copy site setting");
-    b.copy->SetToolTip("Start from the site setting and change it. The user "
-                       "setting replaces the site setting, it is not added "
-                       "to it.");
+    //  The name is the first thing on the row directly above its box;
+    //  everything else about the setting sits to its right.
+    row->Add(b.heading, wxSizerFlags().Border(wxLEFT|wxTOP|wxBOTTOM)
+                                      .CentreVertical());
+    b.siteLabel = new wxStaticText(page, wxID_ANY, "", wxDefaultPosition,
+        wxDefaultSize, wxST_ELLIPSIZE_END);
+    b.siteLabel->SetFont(b.siteLabel->GetFont().Smaller());
+    b.siteLabel->SetForegroundColour(gray);
+    row->Add(b.siteLabel, wxSizerFlags(1).Border().CentreVertical());
+    b.row = row;
+    b.copy = new ewxButton(page, wxID_ANY, "Copy");
+    b.copy->SetToolTip(p_adminFlag
+        ? "Start from the default text and change it. The text in the box "
+          "replaces the default; it is not added to it."
+        : "Start from the site text and change it. The text in the box "
+          "replaces the site text; it is not added to it.");
     row->Add(b.copy, wxSizerFlags().Border(wxTOP|wxBOTTOM|wxRIGHT)
                                    .CentreVertical());
     b.none = new wxCheckBox(page, wxID_ANY, "Disable");
-    b.none->SetToolTip("Writes \"key: -\", so neither the site setting nor "
-                       "a user setting is used.");
+    b.none->SetToolTip("Writes \"key: -\": neither the inherited text nor "
+                       "text of your own is used.");
     row->Add(b.none, wxSizerFlags().Border().CentreVertical());
-    row->AddStretchSpacer(1);
     b.tag = new wxStaticText(page, wxID_ANY, "");
     b.tag->SetFont(b.tag->GetFont().Smaller());
     b.tag->SetMinSize(wxSize(b.tag->GetTextExtent("from server  ").x, -1));
@@ -1416,8 +1439,6 @@ void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
     reg("blk:" + id, b.user);
     reg("blk:" + id + ":site", b.site);
     reg("blk:" + id + ":label", b.siteLabel);
-    reg("blk:" + id + ":head", b.siteHead);
-    reg("blk:" + id + ":yours", b.yoursLabel);
     reg("blk:" + id + ":none", b.none);
     reg("blk:" + id + ":copy", b.copy);
     reg("blk:" + id + ":csh", b.note);
@@ -1464,16 +1485,6 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     row1->Add(p_qmgrChoice, wxSizerFlags().Border().CentreVertical());
     row1->AddSpacer(12);
     row1->Add(p_allocAccts, wxSizerFlags().Border().CentreVertical());
-    row1->Add(new ewxStaticText(page, wxID_ANY, "Default account"),
-              wxSizerFlags().Border().CentreVertical());
-    p_defAccount = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
-                                   wxSize(130, -1));
-    p_defAccount->SetHint("e.g. proj1");
-    p_defAccount->SetToolTip("Your allocation account on this machine. The "
-        "Launcher offers it, and Preview job script and Test submission use "
-        "it. Stored for you only, not in the site's files.");
-    row1->Add(p_defAccount, wxSizerFlags().Border().CentreVertical());
-    reg("default-account", p_defAccount);
     sizer->Add(row1);
 
     p_queueChoice = new ewxChoice(page, wxID_ANY, wxDefaultPosition,
@@ -1696,9 +1707,22 @@ void WxMachineRegister::growToFitSizer(bool fitWholeForm)
         }
     };
 
-    p_book->SetMinSize(p_book->CalcSizeFromPage(natural));
+    //  The frame opens at the Machine page's height (the first page), not
+    //  the tallest page's: the others scroll.
+    wxSize firstPage(natural.x, natural.y);
+    if (p_book->GetPageCount() > 0 && p_book->GetPage(0)->GetSizer() != NULL)
+        firstPage.y = p_book->GetPage(0)->GetSizer()->GetMinSize().y;
+    p_book->SetMinSize(p_book->CalcSizeFromPage(firstPage));
     Invalidate::up(p_book, this);
     wxSize full = this->GetSizer()->GetMinSize();
+    if (fitWholeForm)
+    {
+        wxRect area = wxGetClientDisplayRect();
+        full.x = wxMax(full.x, 860);
+        full.y = wxMax(full.y, 600);
+        full.x = wxMin(full.x, wxMax(860, area.width * 8 / 10));
+        full.y = wxMin(full.y, wxMax(600, area.height * 8 / 10));
+    }
 
     p_book->SetMinSize(p_book->CalcSizeFromPage(
         wxSize(natural.x, wxMin(natural.y, MIN_FORM_HEIGHT))));
@@ -1976,6 +2000,7 @@ static vector<string> codeKeys(const string& code)
     k.push_back(code + "Environment");
     k.push_back(code + "FilesToRemove");
     k.push_back(code + "PrelimFilesToRemove");
+    k.push_back(code + "Modules");
     k.push_back(lowerOf(code) + "_setup");
     k.push_back(lowerOf(code) + "_wrapup");
     return k;
@@ -2133,6 +2158,9 @@ void WxMachineRegister::draftToControls()
         MachinePreferences* mp = MachinePreferences::lookup(
                                      p_slctRgstn->refname());
         p_accountLoaded = mp != NULL ? mp->getAllocationAccount() : string();
+        p_runDirLoaded = mp != NULL ? mp->getRemoteDirectory() : string();
+        p_scratchLoaded = mp != NULL ? mp->getScratchDirectory() : string();
+        p_userLoaded = mp != NULL ? mp->getUsername() : string();
     }
     else
     {
@@ -2144,10 +2172,16 @@ void WxMachineRegister::draftToControls()
         p_procs->SetValue(1);
         p_nodes->SetValue(1);
         p_allocAccts->SetValue(false);
-        p_accountLoaded = "";
+        p_accountLoaded = p_runDirLoaded = p_scratchLoaded = p_userLoaded = "";
     }
     p_defAccount->ChangeValue(wxString::FromUTF8(p_accountLoaded.c_str()));
+    p_runDir->ChangeValue(wxString::FromUTF8(p_runDirLoaded.c_str()));
+    p_scratchDir->ChangeValue(wxString::FromUTF8(p_scratchLoaded.c_str()));
+    p_userName->ChangeValue(wxString::FromUTF8(p_userLoaded.c_str()));
     p_defAccount->Enable(!p_adminFlag);
+    p_runDir->Enable(!p_adminFlag);
+    p_scratchDir->Enable(!p_adminFlag);
+    p_userName->Enable(!p_adminFlag);
     p_autoRefName = "";
 
     for (size_t i = 0; i < p_codePaths.size(); i++)
@@ -3071,8 +3105,7 @@ bool WxMachineRegister::isDirty()
 {
     this->syncDraft();
     return p_draft != NULL && (p_draft->isDirty() || queueFormDiffers() ||
-                               (!p_adminFlag &&
-                                defaultAccount() != p_accountLoaded));
+                               (!p_adminFlag && userPrefsDiffer()));
 }
 
 
@@ -3083,17 +3116,38 @@ string WxMachineRegister::defaultAccount() const
 }
 
 
-//  The account is the user's own, so it goes where the Launcher keeps it.
+static string boxText(ewxTextCtrl* c)
+{
+    return c == NULL ? string() : strip((string)c->GetValue());
+}
+
+
+bool WxMachineRegister::userPrefsDiffer() const
+{
+    return boxText(p_defAccount) != p_accountLoaded ||
+           boxText(p_runDir) != p_runDirLoaded ||
+           boxText(p_scratchDir) != p_scratchLoaded ||
+           boxText(p_userName) != p_userLoaded;
+}
+
+
+//  These are the user's own, so they go where the Launcher keeps them.
 void WxMachineRegister::saveDefaultAccount(const string& name)
 {
-    string acct = defaultAccount();
-    if (p_adminFlag || acct == p_accountLoaded || name.empty())
+    if (p_adminFlag || name.empty() || !userPrefsDiffer())
         return;
     MachinePreferences::lookup(name);       // loads the file
     MachinePreferences::refresh(true);      // and again, for others' changes
     MachinePreferences* mp = MachinePreferences::create(name);
-    mp->setAllocationAccount(acct);
+    mp->setAllocationAccount(boxText(p_defAccount));
+    mp->setRemoteDirectory(boxText(p_runDir));
+    mp->setScratchDirectory(boxText(p_scratchDir));
+    mp->setUsername(boxText(p_userName));
     MachinePreferences::saveChanges();
+    p_accountLoaded = boxText(p_defAccount);
+    p_runDirLoaded = boxText(p_runDir);
+    p_scratchLoaded = boxText(p_scratchDir);
+    p_userLoaded = boxText(p_userName);
 }
 
 
@@ -3729,6 +3783,23 @@ void WxMachineRegister::blocksToControls()
 }
 
 
+//  First line of a text, cut to `max` characters, for a one-line summary.
+static string firstLine(const string& text, size_t max)
+{
+    size_t nl = text.find('\n');
+    string l = text.substr(0, nl);
+    bool more = nl != string::npos && !strip(text.substr(nl)).empty();
+    if (l.size() > max)
+    {
+        l = l.substr(0, max);
+        while (!l.empty() && (l.back() & 0xC0) == 0x80)
+            l.erase(l.size() - 1);
+        more = true;
+    }
+    return more ? l + "..." : l;
+}
+
+
 void WxMachineRegister::blockToControl(BlockRow& b)
 {
     bool header = b.id == "header";
@@ -3759,35 +3830,36 @@ void WxMachineRegister::blockToControl(BlockRow& b)
         b.heading->SetToolTip("CONFIG key: " + ks->name);
         string inh;
         bool hasInh = inheritedValue(*ks, false, inh);
-        const char* what = p_adminFlag ? "Default setting" : "Site setting";
-        //  With nothing inherited, a command line shows what gensub runs.
+        const char* what = p_adminFlag ? "Default" : "Site";
+        //  With nothing inherited, a command line shows what gensub runs,
+        //  as the box's hint.
         string builtin = (b.id == "ccmd" && !hasInh)
             ? builtinCommand(p_codeNames.empty() ? string()
                                                  : p_codeNames[p_codeSel])
             : string();
-        b.siteHead->SetLabel(hasInh ? string(what)
-            : !builtin.empty() ? string("Built-in (used when empty)")
-            : string(what) + ": none");
-        b.siteLabel->SetLabel(hasInh ? "source: " + blockSource(
-            ks->inherited.back(), remoteClient()) + " (read-only)"
-            : !builtin.empty() ? string("from ECCE's job script generator "
-                                        "(read-only)") : string());
-        b.siteLabel->Show(hasInh || !builtin.empty());
-        string mine = p_adminFlag ? "Site setting" : "User setting";
-        b.yoursLabel->SetLabel(hasInh ? mine + (p_adminFlag
-            ? " (replaces the default)" : " (replaces the site setting)")
-            : !builtin.empty() ? mine + " (replaces the built-in)" : mine);
-        b.site->ChangeValue(hasInh ? inh : builtin);
-        b.site->Show(hasInh || !builtin.empty());
-
+        b.builtin = !builtin.empty();
+        string first = firstLine(hasInh ? inh : string(), 70);
+        b.siteLabel->SetLabel(wxString::FromUTF8((string(what) + ": " + first +
+            " \xe2\x80\x94 text here replaces it").c_str()));
+        b.siteLabel->SetToolTip(wxString::FromUTF8((hasInh ? "Source: " +
+            blockSource(ks->inherited.back(), remoteClient()) + "\n\n" + inh
+            : string()).c_str()));
+        b.siteLabel->Show(hasInh);
+        b.site->ChangeValue(hasInh ? inh : string());
         bool cleared = ks->edit == MCD::Clear;
         b.user->ChangeValue(ks->edit == MCD::Set ? ks->value : "");
         b.user->Enable(!cleared);
-        setBoxHint(b.user, cleared ? "(disabled)" : blockExample(b));
+        setBoxHint(b.user, cleared ? "(disabled)"
+            : b.builtin ? "Empty: ECCE runs " + firstLine(builtin, 90)
+            : blockExample(b));
+        b.user->SetToolTip(wxString::FromUTF8(
+            (b.builtin && !cleared ? "ECCE's own command, used while this "
+                                     "box is empty:\n" + builtin
+                                   : string()).c_str()));
         b.none->SetValue(cleared);
         b.none->Show(hasInh || cleared);
-        b.none->SetToolTip("Writes \"" + ks->name + ": -\", so neither the "
-                           "site setting nor a user setting is used.");
+        b.none->SetToolTip("Writes \"" + ks->name + ": -\": neither the "
+                           "inherited text nor text of your own is used.");
         b.copy->Enable(hasInh && !cleared);
         b.copy->Show(hasInh);
         b.note->Show(!b.note->GetLabel().empty());
@@ -4037,7 +4109,7 @@ static string ownCommandsNote(const MCD* draft, const vector<string>& codes,
         return string("These run ") + when + " for every code.";
     return string("These run ") + when + " for every code except " + names +
            ", which " + (n == 1 ? "has" : "have") + " its own commands "
-           "(Codes tab, Advanced) that run instead.";
+           "(Codes tab) that run instead.";
 }
 
 
@@ -4065,7 +4137,7 @@ void WxMachineRegister::blocksTags()
         MCD::Tag t;
         string tip;
         cfgTagInfo(b.key, false, t, tip);
-        wxString text = plainTag(t, b.id == "ccmd" && b.site->IsShown());
+        wxString text = plainTag(t, b.builtin);
         if (b.tag->GetLabel() != text)
             b.tag->SetLabel(text);
         b.tag->SetForegroundColour(wxSystemSettings::GetColour(
