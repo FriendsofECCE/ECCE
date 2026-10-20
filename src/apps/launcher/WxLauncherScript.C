@@ -129,6 +129,10 @@ int LauncherScript::runCommand(const vector<string>& w)
         if (!p_frame->clickMachineSettings())
             fail("the Machine settings button is missing or disabled");
     }
+    else if (cmd == "click" && n == 2 && w[1] == "advanced")
+        p_frame->toggleAdvanced();
+    else if (cmd == "username" && n == 2)
+        p_frame->setUsername(w[1]);
     else if (cmd == "launch" && n == 1)
     {
         if (!p_frame->clickLaunch())

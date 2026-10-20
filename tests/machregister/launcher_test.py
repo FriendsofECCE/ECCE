@@ -152,6 +152,72 @@ quit
     g.check("ECCE_TEST_DIALOG:" not in p.stdout, "no warning with mpirun on PATH")
 
 
+def local_section_check(disp, build, tmp, pngs):
+    """A machine that runs jobs here shows no Remote Machine Access block;
+    Username and Scratch Directory sit under a remembered Advanced fold;
+    another Username brings the block back; a remote machine is unchanged."""
+    e = g.Env(tmp + "-local", "launcher")
+    g.write(os.path.join(e.ue, "MyMachines"), g.read(os.path.join(e.ue, "MyMachines"))
+            + "loc\tlocalhost\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
+              "MN:RD:SD:UN:PW\n")
+
+    def shot(name):
+        return ("shot %s/launcher-%s.png" % (pngs, name)) if pngs else ""
+
+    script = """
+machine loc
+expect block 0
+expect password 0
+expect username 0
+expect scratchdir 0
+expect advanced closed
+expect connect 1
+expect rundir %(runs)s
+%(s1)s
+click advanced
+expect username 1
+expect scratchdir 1
+expect block 0
+%(s2)s
+username bob
+expect block 1
+expect password 1
+%(s3)s
+username eccetest
+expect block 0
+machine mine
+expect block 1
+expect password 1
+expect username 1
+expect scratchdir 1
+expect advanced none
+expect button 1
+%(s4)s
+quit
+""" % {"runs": os.path.join(e.user, "ecce-runs"), "s1": shot("local-closed"),
+       "s2": shot("local-advanced"), "s3": shot("local-other-user"),
+       "s4": shot("remote")}
+    p = run_launcher(disp, build, e, script)
+    clean(p, "local machine: no remote block or password, default run "
+             "directory, Advanced fold; remote machine unchanged")
+    # the fold's state was saved by the click above
+    p = run_launcher(disp, build, e, """
+machine loc
+expect advanced open
+expect username 1
+click advanced
+quit
+""")
+    clean(p, "the Advanced fold is remembered")
+    p = run_launcher(disp, build, e, """
+machine loc
+expect advanced closed
+quit
+""")
+    clean(p, "closing the fold is remembered too")
+    shutil.rmtree(tmp + "-local", ignore_errors=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
@@ -231,6 +297,7 @@ quit
         q = g.read(os.path.join(e.ue, "cluster.Q"))
         g.check("gpu" in q and "short|defProcessors:" in q,
                 "the save really went through Register Machines")
+        local_section_check(disp, build, tmp, pngs)
         mpi_check(disp, build, tmp)
         launchwarn_check(disp, build, tmp)
     finally:

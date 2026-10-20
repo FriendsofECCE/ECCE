@@ -55,6 +55,7 @@
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxButton.H"
+#include "wxgui/ewxConfig.H"
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxMenuBar.H"
@@ -246,6 +247,7 @@ void WxLauncher::createControls()
     p_launchButton->Enable(false);
 
     p_machSettingsButton    =       (ewxButton *)(FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS));
+    this->buildAdvanced();
 
     p_messagesFeedback = (WxFeedback *)(FindWindow(ID_FEEDBACK_WXLAUNCHER_MESSAGES));
     p_messagesFeedback->SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY | wxWS_EX_PROCESS_UI_UPDATES);
@@ -481,6 +483,9 @@ void WxLauncher::usernameTextCtrlUpdateCB(wxCommandEvent& event)
         //  For a machine naming this host, the username decides local vs
         //  ssh (#144) -- keep the statement of which in step with it.
         this->refreshLocality();
+        this->refreshRemoteSection();
+        this->Layout();
+        this->Fit();
     }
 }
 
@@ -876,24 +881,47 @@ bool WxLauncher::namesThisHost() const
 
 
 /**
- *  For this computer the Username is optional, and on Windows, where such
- *  a job never goes over a shell, the whole Remote Machine Access section
- *  is left out unless a different login was saved.  Decided when a machine
- *  is chosen, not while typing, so the field never vanishes under the cursor.
+ *  True when the job for the selected machine runs on this computer: the
+ *  machine names this host and the Username is empty or the user's own.
+ *  Asked of RCommand::isRemote() as the launch does.
+ */
+bool WxLauncher::runsHere() const
+{
+    if (p_slctPrefs == NULL)
+        return false;
+    RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
+    if (machRgstn == NULL)
+        return false;
+    string user;
+    if (p_slctPrefs->isOptionSupported("UN"))
+        user = STLUtil::trim((string)p_usernameTextCtrl->GetValue());
+    return !RCommand::isRemote(machRgstn->fullname(),
+                    (string)p_remShellChoice->GetStringSelection(), user);
+}
+
+
+/**
+ *  A job that runs here needs no login, password or remote shell, so the
+ *  Remote Machine Access section is left out and only what still has an
+ *  effect (another Username, Scratch Directory, Machine settings) sits
+ *  under Advanced.  A Username for another user on a machine naming this
+ *  host is the deliberate remote route: the section is shown then.
+ *  The machine, not the typed name, decides where the Username field
+ *  lives, so it never moves while the user types in it.
  */
 void WxLauncher::refreshRemoteSection()
 {
     const bool thisHost = namesThisHost();
+    const bool hide = runsHere();
     if (wxWindow *req = FindWindow(ID_STATIC_WXLAUNCHER_USERNAMEREQUIRED))
         req->Show(!thisHost);
 
-    bool hide = false;
-#ifdef _WIN32
-    string user = STLUtil::trim((string)p_usernameTextCtrl->GetValue());
-    hide = thisHost && (user.empty() || user == Ecce::realUser());
-#endif
-    if (wxWindow *panel = FindWindow(ID_PANEL_WXLAUNCHER_USERNAME))
-        panel->Show(p_slctPrefs->isOptionSupported("UN") && !hide);
+    this->placeAdvancedWidgets(thisHost);
+
+    if (wxWindow *userPanel = FindWindow(ID_PANEL_WXLAUNCHER_USERNAME))
+        userPanel->Show(p_slctPrefs->isOptionSupported("UN"));
+    if (wxWindow *block = FindWindow(ID_PANEL_WXLAUNCHER_6))
+        block->Show(!hide);
     if (wxWindow *heading = FindWindow(ID_STATIC_WXLAUNCHER_REMOTEHEADING))
     {
         wxSizer *row = heading->GetContainingSizer();
@@ -901,6 +929,120 @@ void WxLauncher::refreshRemoteSection()
         if (row && parent && parent->GetSizer())
             parent->GetSizer()->Show(row, !hide, true);
     }
+
+    // Another user's login saved for this host: show where it is.
+    if (thisHost && !hide && !p_advOpen)
+        this->setAdvanced(true, false);
+
+    for (wxWindowList::compatibility_iterator n =
+             p_calcDrctyPanel->GetChildren().GetFirst(); n; n = n->GetNext())
+        if (wxStaticText *st = wxDynamicCast(n->GetData(), wxStaticText))
+            if (st->GetLabel() == "*")
+                st->Show(!hide);
+}
+
+
+/**
+ *  The fold's button and panel go in after the directories.  A button, not
+ *  a wxCollapsiblePane, as in Register Machines.
+ */
+void WxLauncher::buildAdvanced()
+{
+    wxWindow *dirs = p_calcDrctyPanel->GetParent();
+    wxWindow *top = dirs->GetParent();
+    wxSizer *sz = top->GetSizer();
+    size_t at = 0;
+    for (; at < sz->GetItemCount(); at++)
+        if (sz->GetItem(at)->GetWindow() == dirs)
+            break;
+
+    p_advButton = new wxButton(top, wxID_ANY,
+        wxString::FromUTF8("\xe2\x96\xb8 Advanced"),
+        wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT|wxBORDER_NONE);
+    p_advButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->setAdvanced(!p_advOpen, true);
+    });
+    p_advPanel = new wxPanel(top);
+    p_advPanel->SetSizer(new wxBoxSizer(wxVERTICAL));
+    sz->Insert(at + 1, p_advButton, 0, wxALIGN_LEFT|wxLEFT, 6);
+    sz->Insert(at + 2, p_advPanel, 0, wxGROW|wxLEFT|wxRIGHT, 3);
+    p_advButton->Hide();
+    p_advPanel->Hide();
+
+    wxWindow *wins[3] = { FindWindow(ID_PANEL_WXLAUNCHER_USERNAME),
+                          p_scratchDrctyPanel, p_machSettingsButton };
+    for (int i = 0; i < 3; i++)
+    {
+        wxSizer *s = wins[i]->GetContainingSizer();
+        wxSizerItem *it = s->GetItem(wins[i]);
+        size_t idx = 0;
+        for (; idx < s->GetItemCount(); idx++)
+            if (s->GetItem(idx) == it)
+                break;
+        p_slots[i] = { wins[i], wins[i]->GetParent(), s, idx,
+                       it->GetProportion(), it->GetFlag(), it->GetBorder() };
+    }
+
+    //  Moved into the fold, these controls are no longer below the panel
+    //  whose event table handles them, so they are bound directly.
+    p_usernameTextCtrl->Bind(wxEVT_TEXT, &WxLauncher::usernameTextCtrlUpdateCB, this);
+    if (wxWindow *sc = FindWindow(ID_TEXTCTRL_WXLAUNCHER_SCRATCHDIR))
+        sc->Bind(wxEVT_TEXT, &WxLauncher::scratchDirectoryTextCtrlUpdateCB, this);
+    p_machSettingsButton->Bind(wxEVT_BUTTON, &WxLauncher::machRegisterMenuitemClickCB, this);
+
+    bool open = false;
+    ewxConfig::getConfig("wxlauncher.ini")->Read("/Launcher/AdvancedOpen", &open, false);
+    p_advOpen = open;
+}
+
+
+void WxLauncher::setAdvanced(bool open, bool save)
+{
+    p_advOpen = open;
+    p_advButton->SetLabel(wxString::FromUTF8(open ? "\xe2\x96\xbe Advanced"
+                                                  : "\xe2\x96\xb8 Advanced"));
+    p_advPanel->Show(p_inFold && open);
+    if (save)
+    {
+        ewxConfig *cfg = ewxConfig::getConfig("wxlauncher.ini");
+        cfg->Write("/Launcher/AdvancedOpen", open);
+        cfg->Flush();
+    }
+    this->Layout();
+    this->Fit();
+}
+
+
+/**
+ *  Move Username, Scratch Directory and Machine settings into the fold or
+ *  back to their places; a remote machine shows them where they always were.
+ */
+void WxLauncher::placeAdvancedWidgets(bool inFold)
+{
+    if (inFold != p_inFold)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            FoldSlot &s = p_slots[i];
+            if (inFold)
+            {
+                s.sizer->Detach(s.win);
+                s.win->Reparent(p_advPanel);
+                p_advPanel->GetSizer()->Add(s.win, 0, wxALIGN_LEFT|wxALL, 3);
+            }
+            else
+            {
+                p_advPanel->GetSizer()->Detach(s.win);
+                s.win->Reparent(s.parent);
+                s.sizer->Insert(s.idx, s.win, s.prop, s.flag, s.border);
+            }
+        }
+        p_inFold = inFold;
+    }
+    p_advButton->Show(inFold);
+    p_advPanel->Show(inFold && p_advOpen);
+    p_advButton->SetLabel(wxString::FromUTF8(p_advOpen ? "\xe2\x96\xbe Advanced"
+                                                       : "\xe2\x96\xb8 Advanced"));
 }
 
 
@@ -1910,13 +2052,9 @@ void WxLauncher::refreshCalcDirectory()
 
     if (supported)
         p_calcDrctyTextCtrl->SetValue(p_slctPrefs->getRemoteDirectory());
-#ifdef _WIN32
     // This computer, no run directory saved yet: one in the user's home.
-    RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
-    if (supported && machRgstn &&
-        STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue()).empty() &&
-        !RCommand::isRemote(machRgstn->fullname(),
-                            (string)p_remShellChoice->GetStringSelection(), ""))
+    if (supported && runsHere() &&
+        STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue()).empty())
     {
         string dflt = string(Ecce::realUserHome()) + "/ecce-runs";
         p_calcDrctyTextCtrl->SetValue(dflt);
@@ -1924,7 +2062,6 @@ void WxLauncher::refreshCalcDirectory()
         // got an empty run directory ("Unable to 'cd' to run directory").
         p_slctPrefs->setRemoteDirectory(dflt);
     }
-#endif
 
     p_calcDrctyPanel->Show(supported);
 }
@@ -3073,6 +3210,8 @@ bool WxLauncher::selectMachine(const string& refname)
 bool WxLauncher::clickMachineSettings()
 {
     wxWindow* b = FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS);
+    if (b != NULL && p_inFold && !p_advOpen)
+        this->setAdvanced(true, false);
     if (b == NULL || !b->IsShown() || !b->IsEnabled())
         return false;
     wxCommandEvent ev(wxEVT_BUTTON, b->GetId());
@@ -3153,10 +3292,37 @@ string WxLauncher::hookGet(const string& what)
     if (what == "scratchunits")
         return p_minScratchParamEdit->getUnitsVisible()
                    ? p_minScratchParamEdit->getUnitsLabel() : "";
+    if (what == "block")
+        return FindWindow(ID_PANEL_WXLAUNCHER_6)->IsShown() ? "1" : "0";
+    if (what == "password")
+        return (p_password1Panel->IsShown() &&
+                FindWindow(ID_PANEL_WXLAUNCHER_6)->IsShown()) ? "1" : "0";
+    if (what == "username")
+        return p_usernameTextCtrl->IsShownOnScreen() ? "1" : "0";
+    if (what == "scratchdir")
+        return p_scratchDrctyPanel->IsShownOnScreen() ? "1" : "0";
+    if (what == "advanced")
+        return !p_advButton->IsShown() ? "none" : (p_advOpen ? "open" : "closed");
+    if (what == "rundir")
+        return STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue());
+    if (what == "connect")
+        return this->checkConnectAllowed() ? "1" : "0";
+    if (what == "launchable")
+        return p_launchButton->IsEnabled() ? "1" : "0";
     if (what == "button")
     {
         wxWindow* b = FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS);
         return (b != NULL && b->IsShown()) ? "1" : "0";
     }
     return "<unknown>";
+}
+
+
+void WxLauncher::setUsername(const string& u)
+{
+    //  As typed: the text control sets its value without an event.
+    p_usernameTextCtrl->ChangeValue(u);
+    wxCommandEvent ev(wxEVT_TEXT, p_usernameTextCtrl->GetId());
+    ev.SetEventObject(p_usernameTextCtrl);
+    this->usernameTextCtrlUpdateCB(ev);
 }

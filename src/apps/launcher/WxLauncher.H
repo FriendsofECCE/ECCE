@@ -108,6 +108,8 @@ class WxLauncher : public WxLauncherGUI,
         bool selectQueue(const string& name);
         bool clickMachineSettings();
         bool clickLaunch();
+        void toggleAdvanced() { setAdvanced(!p_advOpen, true); }
+        void setUsername(const string& u);
         void setRunDirectory(const string& path);
         string hookGet(const string& what);
         bool confirmMpiLauncher(const string& code);
@@ -211,6 +213,10 @@ class WxLauncher : public WxLauncherGUI,
         void refreshLocality();
         void refreshRemoteSection();
         bool namesThisHost() const;
+        bool runsHere() const;
+        void buildAdvanced();
+        void setAdvanced(bool open, bool save);
+        void placeAdvancedWidgets(bool inFold);
 
         void refreshLaunchControls();
         void refreshLaunchControls(bool cnctAllwd);
@@ -276,6 +282,18 @@ class WxLauncher : public WxLauncherGUI,
 
         ewxButton           *p_launchButton;
         ewxButton           *p_machSettingsButton;
+
+        //  The "Advanced" fold of a machine that runs jobs here: Username,
+        //  Scratch Directory and Machine settings move into it.
+        struct FoldSlot {
+            wxWindow *win; wxWindow *parent; wxSizer *sizer;
+            size_t idx; int prop; int flag; int border;
+        };
+        wxButton            *p_advButton = nullptr;
+        wxPanel             *p_advPanel = nullptr;
+        FoldSlot             p_slots[3] = {};
+        bool                 p_inFold = false;
+        bool                 p_advOpen = false;
 
         ewxMenuItem         *p_jobSaveMenuItem;
         ewxMenuItem         *p_machRegisterMenuItem;

@@ -11,6 +11,8 @@
  *    machine NAME | queue NAME    choose, as the drop-downs do
  *    rundir PATH           fill the Run Directory field
  *    procs N               set the processors, as typed into the field
+    click advanced        the Advanced fold button
+    username NAME         type into the Username field
     launch                click Launch
  *    mpicheck CODE         Launch's missing-MPI check for CODE on the chosen
  *                          machine; logs "go" or "cancel"
@@ -25,6 +27,8 @@
  *    exec COMMAND          run a shell command (for example a Register
  *                          Machines run that saves) and wait for it
  *    expect KEY VALUE      KEY: request | machine | machines | queues |
+ *                          block | password | username | scratchdir |
+ *                          advanced | rundir | connect | launchable |
  *                          queue | procs | wsprocs | procsmax | memory | memunits |
  *                          scratchunits | button
  *    wait MS | shot FILE | quit
