@@ -159,7 +159,14 @@ def local_section_check(disp, build, tmp, pngs):
     e = g.Env(tmp + "-local", "launcher")
     g.write(os.path.join(e.ue, "MyMachines"), g.read(os.path.join(e.ue, "MyMachines"))
             + "loc\tlocalhost\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
-              "MN:RD:SD:UN:PW\n")
+              "MN:RD:SD:UN:PW\n"
+            + "locq\tlocalhost\tLinux\tx86_64\tZen4\t8:1\tssh\t:NWChem\t"
+              "MN:RD:SD:UN:PW:Q\n")
+    # a Slurm machine on this host: queued, so the full form, no fold
+    g.write(os.path.join(e.ue, "Queues"), "Queues: locq\n"
+            "locq|queueMgrName: Slurm\nlocq|prefFile: locq.Q\n")
+    g.write(os.path.join(e.ue, "locq.Q"), "Queues: debug\n\n"
+            "debug|minProcessors: 1\ndebug|maxProcessors: 4\n")
 
     def shot(name):
         return ("shot %s/launcher-%s.png" % (pngs, name)) if pngs else ""
@@ -193,6 +200,13 @@ expect scratchdir 1
 expect advanced none
 expect button 1
 %(s4)s
+machine locq
+expect advanced none
+expect block 1
+expect password 0
+expect username 1
+expect scratchdir 1
+expect button 1
 quit
 """ % {"runs": os.path.join(e.user, "ecce-runs"), "s1": shot("local-closed"),
        "s2": shot("local-advanced"), "s3": shot("local-other-user"),

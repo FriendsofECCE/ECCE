@@ -214,6 +214,7 @@ class WxLauncher : public WxLauncherGUI,
         void refreshRemoteSection();
         bool namesThisHost() const;
         bool runsHere() const;
+        void refit();
         void buildAdvanced();
         void setAdvanced(bool open, bool save);
         void placeAdvancedWidgets(bool inFold);
