@@ -132,15 +132,14 @@ def current_state():
             host = t.split("<Url>", 1)[1].split("</Url>", 1)[0].split("://", 1)[1].split("/", 1)[0]
         except (OSError, IndexError):
             pass
-        return "server", ("ECCE is connected to the server %s.\n"
-                          "Your calculations are kept on that server." % host), host
+        return "server", ("Your calculations are kept on the server %s." % host), host
     rc, folder = run([tool("ecce-localdata")])
     if pref_state() == "on" or os.environ.get("ECCE_LOCAL_DATA") or folder:
         folder = folder or LOCAL_DEFAULT
-        return "local", ("ECCE is working on this computer.\n"
-                         "Your calculations are in the folder\n%s" % folder), ""
-    return "here", ("ECCE is using the data server on this computer.\n"
-                    "Your calculations are in %s" % os.path.join(STATE, "dataserver")), ""
+        return "local", ("Your calculations are kept on this computer,\n"
+                         "in the folder %s" % folder), ""
+    return "here", ("Your calculations are kept by the data server on this computer,\n"
+                    "in the folder %s" % os.path.join(STATE, "dataserver")), ""
 
 
 def choose_local():
