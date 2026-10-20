@@ -3836,6 +3836,26 @@ sub MsgSendErr
 # Send a file message to the client.
 # --------------------------------------------------------------------------- #
 
+# --------------------------------------------------------------------------- #
+# An imported run's companion file (File= parse type, e.g. MOPAC's .mgf) is
+# named after the job in the output's own directory (ammonia.mgf beside
+# ammonia.out), not under the fixed name the parse descriptor gives it.
+# Link that sibling under the descriptor's name where the job store looks.
+# --------------------------------------------------------------------------- #
+
+sub ImportSiblingLink
+{
+    my($idir, $file) = @_;
+    my $out = $gConfig{'jobOutputFile'};
+
+    return unless (defined $out && $file =~ /(\.[^.\/]+)$/);
+    my $ext = $1;
+    (my $base = $out) =~ s/\.[^.\/]*$//;
+    my $sib = "$base$ext";
+    return unless (-f "$idir$sib");
+    symlink("$idir$sib", $file) unless (-e $file);
+}
+
 sub MsgSendFile
 {
     my($file, $msgType, $parseType) = @_;
@@ -3858,6 +3878,7 @@ sub MsgSendFile
     else
     {
         $idir = $gConfig{'importDir'};
+        &ImportSiblingLink($idir, $file) unless (-e "$idir$file");
         unless (-e "$idir$file")
         {
             &MsgSendErr($MSG_TYPE_E_INFO, "MsgSendFile: file '$idir$file' does not exist");
