@@ -324,6 +324,9 @@ def save_example(dest, gmx, tasks, rundir):
         if f.endswith((".gro", ".gmxtop", ".itp", ".gmxlog", ".log")):
             put("1-prepare", os.path.join(pout, f))
     say("  example Prepare outputs: %s" % sorted(os.listdir(pout)))
+    view = last_run_file(rundir, "view.gro")
+    if view:
+        put("1-prepare", view)
     for n, kind in enumerate(("optimize", "equilibrate", "dynamics"), 2):
         task = "%d-%s" % (n, kind)
         put(task, os.path.join(where(tasks[kind]), "Inputs", "gromacs.mdp"), kind + ".mdp")
@@ -333,6 +336,7 @@ def save_example(dest, gmx, tasks, rundir):
         if not rdir:
             continue
         put(task, run, "confout.gro")
+        compact_view(gmx, rdir, run, os.path.join(dest, task, "view.gro"))
         for f in sorted(os.listdir(rdir)):
             if f.endswith(".log"):
                 put(task, os.path.join(rdir, f))
@@ -343,6 +347,17 @@ def save_example(dest, gmx, tasks, rundir):
             elif f == "ecce-parse-traj.txt":
                 put(task, os.path.join(rdir, f))
                 thin_trajectory(os.path.join(dest, task, f), 5)
+
+
+def compact_view(gmx, rdir, gro, out):
+    """The task's structure wrapped into its dodecahedron, for display
+    (GromacsImport takes view.gro for the Viewer, confout.gro to continue)."""
+    tpr = os.path.join(rdir, "topol.tpr")
+    if gmx and os.path.exists(tpr):
+        subprocess.run([gmx, "trjconv", "-s", tpr, "-f", gro, "-o", out,
+                        "-pbc", "mol", "-ur", "compact"], input=b"System\n",
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    check(os.path.exists(out), "a wrapped view.gro for %s" % os.path.basename(os.path.dirname(out)))
 
 
 def thin_trajectory(path, keep):

@@ -176,7 +176,7 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
   const string stage = &buf[0];
 
   bool haveLog = false;
-  string fragment;
+  string fragment, view;
   vector<string> files = listDir(taskDir, false);
   for (size_t i = 0; i < files.size(); i++) {
     const string& f = files[i];
@@ -188,6 +188,10 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
       haveLog = true;
     } else if (f == "ecce-parse-traj.txt") {
       ok = writeFile(stage + "/" + f, text);
+    } else if (f == "view.gro") {
+      // The structure wrapped into a dodecahedron or octahedron box, for
+      // display only; the restart file stays the run's own.
+      view = text;
     } else if (prepare) {
       if (hasSuffix(f, ".gmxprep") || hasSuffix(f, ".recipe"))
         ok = putInput(md, "gromacs.gmxprep", text);
@@ -224,6 +228,7 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
     message = taskDir + " has no .log or .gmxlog file";
     return false;
   }
+  if (!view.empty()) fragment = view;
   if (!fragment.empty()) {
     string pdb = groToPdb(fragment);
     if (!pdb.empty()) writeFile(stage + "/" + md->getOutputFragmentName(), pdb);
