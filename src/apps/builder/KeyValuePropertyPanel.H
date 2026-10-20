@@ -36,6 +36,10 @@ class KeyValuePropertyPanel : public PropertyPanel
     // Per row "<key> | <value right edge> | <unit right edge> | <panel width>"
     // in panel pixels, so a test can see whether a unit is cut off.
     std::vector<std::string> rowFit() const;
+    // What the right-click menu copies (#408): one row's value, with or
+    // without its unit, or every row as "key<TAB>value<TAB>unit" lines.
+    wxString copyText(const std::string& key, bool unit) const;
+    wxString copyAllText() const;
 
   protected:
     virtual void initialize();
@@ -44,7 +48,9 @@ class KeyValuePropertyPanel : public PropertyPanel
     bool isFolded(const std::string& group) const;
 
     std::vector<std::string> p_rows;
-    struct RowWindows { std::string key; wxWindow *value, *unit; };
+    struct RowWindows { std::string key; wxWindow *value, *unit;
+                        std::string valueText, unitText; };
+    void copyMenu(const std::string& key);
     std::vector<RowWindows> p_rowWindows;
 };
 

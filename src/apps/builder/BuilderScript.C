@@ -753,6 +753,12 @@ void Builder::runBuilderScript(const std::string& file)
             fprintf(stderr, "BUILDER: row %s\n", row.c_str());
           for (const std::string& fit : kv->rowFit())
             fprintf(stderr, "BUILDER: fit %s\n", fit.c_str());
+          //  what Copy all (#408) puts on the clipboard
+          wxString all = kv->copyAllText();
+          all.Replace("\t", " \\t ");
+          for (const wxString& line : wxSplit(all, '\n'))
+            if (!line.empty())
+              fprintf(stderr, "BUILDER: copy %s\n", line.ToUTF8().data());
         }
       } else if (w[0] == "spectrumcsv" && w.size() >= 2) {
         //  spectrumcsv <path> [ir|raman]: the Vibrational Frequencies

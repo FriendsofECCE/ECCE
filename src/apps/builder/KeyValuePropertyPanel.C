@@ -22,6 +22,8 @@
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxNonBoldLabel.H"
 #include "wxgui/ewxStaticText.H"
+#include <wx/clipbrd.h>
+#include <wx/menu.h>
 
 #include "KeyValuePropertyPanel.H"
 
@@ -394,7 +396,12 @@ void KeyValuePropertyPanel::refresh()
         wxWindow *unit = new ewxNonBoldLabel(this, wxID_ANY,
                                          wxString::FromUTF8(row->units));
         sizer->Add(unit, 0, left|wxRIGHT, PAD);
-        p_rowWindows.push_back({row->key, value, unit});
+        p_rowWindows.push_back({row->key, value, unit, row->value, row->units});
+        const string rowKey = row->key;
+        for (wxWindow *w : {static_cast<wxWindow*>(key), value, unit})
+          w->Bind(wxEVT_CONTEXT_MENU, [this, rowKey](wxContextMenuEvent&) {
+            copyMenu(rowKey);
+          });
         p_rows.push_back("R " + row->key + " | " + row->value + " | " +
                          row->units);
       }
@@ -422,5 +429,46 @@ std::vector<std::string> KeyValuePropertyPanel::rowFit() const
 void KeyValuePropertyPanel::initialize()
 {
   refresh();
+  //  Right-click on the panel's background: copy every row.
+  Bind(wxEVT_CONTEXT_MENU, [this](wxContextMenuEvent&) { copyMenu(""); });
+}
+
+
+wxString KeyValuePropertyPanel::copyText(const std::string& key, bool unit) const
+{
+  for (const RowWindows& r : p_rowWindows)
+    if (r.key == key)
+      return wxString::FromUTF8(r.valueText +
+                                (unit && !r.unitText.empty() ? " " + r.unitText
+                                                             : std::string()));
+  return wxEmptyString;
+}
+
+
+wxString KeyValuePropertyPanel::copyAllText() const
+{
+  wxString out;
+  for (const RowWindows& r : p_rowWindows)
+    out += wxString::FromUTF8(r.key + "\t" + r.valueText + "\t" + r.unitText + "\n");
+  return out;
+}
+
+
+void KeyValuePropertyPanel::copyMenu(const std::string& key)
+{
+  enum { ID_VALUE = wxID_HIGHEST + 1, ID_WITH_UNIT, ID_ALL };
+  wxMenu menu;
+  if (!key.empty()) {
+    menu.Append(ID_VALUE, _("Copy value"));
+    menu.Append(ID_WITH_UNIT, _("Copy value with unit"));
+  }
+  menu.Append(ID_ALL, _("Copy all"));
+  const int id = GetPopupMenuSelectionFromUser(menu);
+  wxString text = id == ID_VALUE ? copyText(key, false)
+                : id == ID_WITH_UNIT ? copyText(key, true)
+                : id == ID_ALL ? copyAllText() : wxString();
+  if (text.empty() || !wxTheClipboard->Open()) return;
+  wxTheClipboard->SetData(new wxTextDataObject(text));
+  wxTheClipboard->Close();
 }
 

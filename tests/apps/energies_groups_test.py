@@ -168,6 +168,12 @@ def main():
             clipped = [f[0] for f in fits if f[2] > f[3] or f[1] > f[3]]
             check(not clipped, "every value and unit lies inside the panel "
                   "(panel %s px): %s" % (fits[0][3] if fits else "?", clipped))
+            # Copy all (#408): one tab-separated line per value row shown
+            copied = [l[len("BUILDER: copy "):] for l in text.splitlines()
+                      if l.startswith("BUILDER: copy ")]
+            shown = [r[2:].replace(" | ", " \\t ") for r in first if r.startswith("R ")]
+            check(copied[:len(shown)] == shown,
+                  "Copy all holds the rows shown, tab-separated: %s" % copied[:3])
             say("rows at start:\n  " + "\n  ".join(first))
             heads = headings(first)
             check(heads[0] == "▾ Total", "Total is first and open: %s" % heads)
