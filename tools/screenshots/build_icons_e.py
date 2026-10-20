@@ -249,6 +249,49 @@ def home(i):
     i.sphere(7, 24.500, 2.200, "#d8f0b8", "#4a9a30", "#1e5a14")
 
 
+def house(i):
+    # a free-standing house in three-quarter view: cream front with its
+    # gable, darker side wall, red roof with a chimney, door and windows
+    side = i.lin(16, 0, 27, 0, (0, "#e6cfa8"), (1, "#9a7448"))
+    i.add('<path d="M16 15.500L27 13v11.500L16 27z" fill="%s" stroke="#6a4420" stroke-width=".6" stroke-linejoin="round"/>' % side)
+    front = i.lin(4, 0, 16, 0, (0, "#fffaf0"), (1, "#ead6b2"))
+    i.add('<path d="M4 15.500L10 9l6 6.500V27H4z" fill="%s" stroke="#8a5a30" stroke-width=".6" stroke-linejoin="round"/>' % front)
+    roof = i.lin(10, 5, 24, 16, (0, "#ff9a6a"), (.55, "#e04a1c"), (1, "#9a2408"))
+    i.add('<path d="M10 7.800L21.500 5.200 28.500 13.500 17 16.300z" fill="%s" stroke="#6a1804" stroke-width=".7" stroke-linejoin="round"/>' % roof)
+    i.add('<path d="M2.800 16.300L10 7.800 17 16.300" fill="none" stroke="#7a1c06" stroke-width="1.700" stroke-linecap="round" stroke-linejoin="round"/>')
+    ch = i.lin(21, 0, 24, 0, (0, "#d06040"), (1, "#7a2a14"))
+    i.add('<path d="M21 4.800h2.800v4.800L21 10.400z" fill="%s" stroke="#4a1808" stroke-width=".5"/>' % ch)
+    i.add('<rect x="20.600" y="4" width="3.600" height="1.200" fill="#5a2a18"/>')
+    door = i.lin(0, 20, 0, 27, (0, "#b07040"), (1, "#5e3010"))
+    i.add('<rect x="6.200" y="20" width="3.600" height="7" fill="%s" stroke="#3a1c06" stroke-width=".5"/>' % door)
+    glass = i.lin(0, 17, 0, 22, (0, "#d8ecff"), (1, "#4a88d8"))
+    i.add('<rect x="11.200" y="18" width="3.400" height="3.400" fill="%s" stroke="#5a3a1a" stroke-width=".6"/>' % glass)
+    i.add('<path d="M19 18.200L23.500 17.200V21.400L19 22.400z" fill="%s" stroke="#4a2c10" stroke-width=".6"/>' % glass)
+
+
+@icon
+def home_free(i):
+    i.shadow(16, 28.300, 13.500, 2, .25)
+    house(i)
+
+
+@icon
+def home_grid(i):
+    # the house standing on a grid floor: home in a 3-D scene
+    fl = i.lin(0, 20, 0, 31, (0, "#e4eefc"), (1, "#a8c0e8"))
+    i.add('<path d="M1 25L16 19.500 31 25 16 31z" fill="%s" stroke="#4a6aa8" stroke-width=".6" stroke-linejoin="round"/>' % fl)
+    for t in (.25, .5, .75):
+        x1, y1 = 1 + 15 * t, 25 - 5.5 * t
+        x2, y2 = 16 + 15 * t, 31 - 6 * t
+        i.add('<path d="M%.2f %.2fL%.2f %.2f" stroke="#6a8ac0" stroke-width=".5"/>' % (x1, y1, x2, y2))
+        x1, y1 = 16 + 15 * t, 19.500 + 5.5 * t
+        x2, y2 = 1 + 15 * t, 25 + 6 * t
+        i.add('<path d="M%.2f %.2fL%.2f %.2f" stroke="#6a8ac0" stroke-width=".5"/>' % (x1, y1, x2, y2))
+    i.add('<g transform="translate(5 1.500) scale(.68)">')
+    house(i)
+    i.add('</g>')
+
+
 def arrow(i, x1, y1, x2, y2, light, dark, w=2.4):
     dx, dy = x2 - x1, y2 - y1
     L = math.hypot(dx, dy)
