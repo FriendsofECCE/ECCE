@@ -37,21 +37,22 @@ Things that are easy to get wrong:
 - The Job script tab edits three text blocks (`BlockRow`): the header named
   after the Queues tab's queue manager (`slurm`, `pbs`, ...), `setup` and
   `wrapup`. A block's text *replaces* the inherited text (gensub never merges
-  them); the inherited text is shown read-only above, from gensub's layers
-  (`cppOnly` false, so `submit.site` counts), the box below holds only the
-  user's own. An empty box inherits; "Use no text" writes `key: -`; copy
+  them); the inherited text is summarised on the block's name row ("Site:"/
+  "Default:", full text in the tooltip and the hidden `blk:<id>:site`), from
+  gensub's layers (`cppOnly` false, so `submit.site` counts); the box holds
+  only the user's own, directly under the name (`check-block-layout`). An empty box inherits; "Use no text" writes `key: -`; copy
   fills the box with the inherited text. Switching queue manager syncs the
   old header key first (`blocksRetarget`). csh in setup/wrapup is checked by
   `ecce-csh2sh --check` on the box text (600 ms after typing, and on Save) and
   only reported, as gensub reports it at submit time. `condorAllowTmp` is a
   `CfgRow` with `gensubOnly`, shown for HTCondor only.
 - The Codes tab follows the code selected in its list (retired codes -
-  Gaussian-03, Gaussian-98, GAMESS-UK, Amica - are listed only when the
+  Gaussian-03, Gaussian-98, Gaussian-09, GAMESS-UK, Amica - are listed only when the
   machine has a key for them). Per code the keys are `<Code>` (the program),
-  `<Code>Environment`, `<Code>Command`, `<code>_setup`, `<code>_wrapup`,
+  `<Code>Modules`, `<Code>Environment`, `<Code>Command`, `<code>_setup`, `<code>_wrapup`,
   `<Code>FilesToRemove`, `<Code>PrelimFilesToRemove`; gensub lower-cases every
-  key, but `_setup`/`_wrapup` are written lower-case. The Environment, Command
-  and Advanced setup/wrap-up boxes are `BlockRow`s whose key is re-derived from
+  key, but `_setup`/`_wrapup` are written lower-case. The Environment, Command,
+  setup and (under More) wrap-up boxes are `BlockRow`s whose key is re-derived from
   the selection (`blockKey`); switching code syncs the old code's boxes into
   the draft first. gensub's `doEnvironment` keeps only the first two
   blank-separated words of each line (a value with spaces is cut; the box
@@ -59,10 +60,10 @@ Things that are easy to get wrong:
   `provideVariables` over the environment, unlike header, setup, wrap-up and
   the command. The "Placeholders" dialog inserts at the cursor of the last
   box focused (never the Environment box).
-- With no inherited command, the Codes tab's read-only area shows gensub's
-  built-in command (`builtinCommand()`, a copy of each code's sub in gensub:
-  keep the two in step), tagged "default"; the grey example in the box is an
-  alternative, never the built-in.
+- With no inherited command, the Command box's hint shows gensub's built-in
+  command ("Empty: ECCE runs ...", full text in the tooltip;
+  `builtinCommand()`, a copy of each code's sub in gensub: keep the two in
+  step).
 - Tags: "default" for a control that shows a built-in value when its key is
   unset (choices, checkboxes, the job radios, the built-in command); "not
   set" for an empty text box.
