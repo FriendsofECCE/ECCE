@@ -64,6 +64,13 @@ class FoldArrow : public wxWindow
 }
 
 
+//  The least a label may shrink to: about ten characters, then "...".
+static int labelMin(wxWindow *label)
+{
+  return 10 * label->GetCharWidth();
+}
+
+
 wxFORCE_LINK_THIS_MODULE(KeyValuePropertyPanel)
 
 
@@ -99,6 +106,10 @@ bool KeyValuePropertyPanel::Create(IPropCalculation *calculation,
   if (!GetSizer()) {
     SetSizer(new wxFlexGridSizer(3, 0, 5)); // three columns
   }
+  //  The label column takes the slack and gives way first (ellipsis), so
+  //  the value and its unit are never what a narrow pane cuts off.
+  if (wxFlexGridSizer *grid = dynamic_cast<wxFlexGridSizer*>(GetSizer()))
+    if (!grid->IsColGrowable(0)) grid->AddGrowableCol(0, 1);
 
   return true;
 }
@@ -140,6 +151,7 @@ void KeyValuePropertyPanel::refresh()
   //  windows, and left in the sizer they shift every later row by a cell.
   GetSizer()->Clear(true);
   p_rows.clear();
+  p_rowWindows.clear();
 
   struct Row { string key, value, units, group; size_t order; };
   vector<Row> rows;
@@ -232,13 +244,16 @@ void KeyValuePropertyPanel::refresh()
       //  that glyph narrower than the native control drew it (a fallback
       //  font), and the control wrapped the title out of sight.
       wxBoxSizer *headSizer = new wxBoxSizer(wxHORIZONTAL);
-      ewxStaticText *head = new ewxStaticText(this, wxID_ANY,
-          wxString::FromUTF8(title + (folded ? " (" +
-              std::to_string(members.size()) + ")" : string())));
+      const wxString headText = wxString::FromUTF8(title + (folded ? " (" +
+              std::to_string(members.size()) + ")" : string()));
+      ewxStaticText *head = new ewxStaticText(this, wxID_ANY, headText,
+          wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+      head->SetToolTip(headText);
       head->SetFont(head->GetFont().Bold());
       FoldArrow *arrow = new FoldArrow(this, !folded, head->GetCharHeight());
       headSizer->Add(arrow, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 3);
-      headSizer->Add(head, 0, wxALIGN_CENTER_VERTICAL);
+      head->SetMinSize(wxSize(labelMin(head), -1));
+      headSizer->Add(head, 1, wxALIGN_CENTER_VERTICAL);
       for (wxWindow *w : {static_cast<wxWindow*>(arrow),
                           static_cast<wxWindow*>(head)}) {
         w->SetCursor(wxCursor(wxCURSOR_HAND));
@@ -246,20 +261,26 @@ void KeyValuePropertyPanel::refresh()
           CallAfter([this, name]() { toggleGroup(name); });
         });
       }
-      sizer->Add(headSizer, 0, left);
+      sizer->Add(headSizer, 0, wxEXPAND|wxALIGN_CENTER_VERTICAL);
       sizer->AddSpacer(0);
       sizer->AddSpacer(0);
       p_rows.push_back("H " + text);
     }
     if (!folded) {
       for (const Row *row : members) {
-        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY,
-                                         wxString::FromUTF8(row->key)), 0, left);
-        sizer->Add(new ewxStaticText(this, wxID_ANY,
-                                      wxString::FromUTF8(row->value)),
-                0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL);
-        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY,
-                                         wxString::FromUTF8(row->units)), 0, left);
+        ewxNonBoldLabel *key = new ewxNonBoldLabel(this, wxID_ANY,
+            wxString::FromUTF8(row->key), wxDefaultPosition, wxDefaultSize,
+            wxST_ELLIPSIZE_END);
+        key->SetToolTip(wxString::FromUTF8(row->key));
+        key->SetMinSize(wxSize(labelMin(key), -1));
+        sizer->Add(key, 1, wxEXPAND|wxALIGN_CENTER_VERTICAL);
+        wxWindow *value = new ewxStaticText(this, wxID_ANY,
+                                      wxString::FromUTF8(row->value));
+        sizer->Add(value, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL);
+        wxWindow *unit = new ewxNonBoldLabel(this, wxID_ANY,
+                                         wxString::FromUTF8(row->units));
+        sizer->Add(unit, 0, left);
+        p_rowWindows.push_back({row->key, value, unit});
         p_rows.push_back("R " + row->key + " | " + row->value + " | " +
                          row->units);
       }
@@ -269,6 +290,18 @@ void KeyValuePropertyPanel::refresh()
 
   sizer->Fit(this);
   sizer->SetSizeHints(this);
+}
+
+
+std::vector<std::string> KeyValuePropertyPanel::rowFit() const
+{
+  std::vector<std::string> out;
+  for (const RowWindows& r : p_rowWindows)
+    out.push_back(r.key + " | " +
+                  std::to_string(r.value->GetRect().GetRight()) + " | " +
+                  std::to_string(r.unit->GetRect().GetRight()) + " | " +
+                  std::to_string(GetClientSize().x));
+  return out;
 }
 
 

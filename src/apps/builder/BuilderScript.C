@@ -728,6 +728,8 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: rows %s\n", w[1].c_str());
           for (const std::string& row : kv->rowDump())
             fprintf(stderr, "BUILDER: row %s\n", row.c_str());
+          for (const std::string& fit : kv->rowFit())
+            fprintf(stderr, "BUILDER: fit %s\n", fit.c_str());
         }
       } else if (w[0] == "overlay") {
         std::string list;

@@ -17,6 +17,7 @@ commands "rows" and "fold" (no synthetic input):
   * Thermochemistry carries the temperature and the pressure, which are not
     rows of their own, and Solvation the model and solvent;
   * "Entropy Term (T·S)", and Total Energy first in Total;
+  * no row's value or unit reaches past the panel's right edge;
   * the fold state is remembered: folded, opened, and again after a restart.
 
 --baseline only photographs (a build from before the change has no "rows").
@@ -63,6 +64,16 @@ def rowSets(text):
         elif line.startswith("BUILDER: row ") and sets:
             sets[-1].append(line[len("BUILDER: row "):])
     return sets
+
+
+def fitLines(text):
+    """The "fit" lines of a Builder log: (key, value right, unit right, width)."""
+    out = []
+    for line in text.splitlines():
+        if line.startswith("BUILDER: fit "):
+            key, v, u, w = [x.strip() for x in line[len("BUILDER: fit "):].split(" | ")]
+            out.append((key, int(v), int(u), int(w)))
+    return out
 
 
 def headings(rows):
@@ -152,6 +163,11 @@ def main():
                 say(text[-3000:])
                 continue
             first, opened, total_folded = sets
+            fits = fitLines(text)
+            check(len(fits) > 0, "the rows report their positions")
+            clipped = [f[0] for f in fits if f[2] > f[3] or f[1] > f[3]]
+            check(not clipped, "every value and unit lies inside the panel "
+                  "(panel %s px): %s" % (fits[0][3] if fits else "?", clipped))
             say("rows at start:\n  " + "\n  ".join(first))
             heads = headings(first)
             check(heads[0] == "▾ Total", "Total is first and open: %s" % heads)
