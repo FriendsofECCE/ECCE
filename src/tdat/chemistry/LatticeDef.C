@@ -41,11 +41,12 @@ LatticeDef& LatticeDef::assign(double a, double b, double c,
 {
    double m[3][3];
    toMatrix(a, b, c, alpha, beta, gamma, m);
-   // NOTE: vectors in columns
+   // toMatrix puts the vectors in columns.  Reading rows instead gave the
+   // transpose: right for right-angled cells only.
    MPoint p;
    p_vectors.clear();
    for (int i=0; i<3; i++) {
-     p.xyz(m[i][0],m[i][1],m[i][2]);
+     p.xyz(m[0][i],m[1][i],m[2][i]);
      p_vectors.push_back(p);
    }
 

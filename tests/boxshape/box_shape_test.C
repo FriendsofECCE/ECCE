@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "tdat/BoxShape.H"
+#include "tdat/LatticeDef.H"
 
 using namespace boxshape;
 
@@ -88,11 +89,44 @@ static void one(const std::string& dir, const char* name, int faces, int verts)
   check(vw < 1.0001, tag + " vertices inside");
 }
 
+
+// A cell given by its six parameters, as a PDB CRYST1 or the Periodic
+// Builder gives it, must reproduce the box vectors GROMACS itself wrote
+// (the last line of a Prepare .gro, x10 to Angstrom) and so be recognised.
+static void fromParameters()
+{
+  LatticeDef l(43.923, 43.923, 43.923, 60.0, 60.0, 90.0);
+  std::vector<MPoint>* v = l.toVectors();
+  const double want[3][3] = {{43.9229, 0, 0}, {0, 43.9229, 0},
+                             {21.9615, 21.9615, 31.0582}};
+  bool same = true;
+  for (int i = 0; i < 3; i++) {
+    const double got[3] = {(*v)[i].x(), (*v)[i].y(), (*v)[i].z()};
+    for (int k = 0; k < 3; k++)
+      if (std::fabs(got[k] - want[i][k]) > 0.01) same = false;
+  }
+  check(same, "a cell from its parameters has GROMACS's box vectors");
+  Vec a = {{(*v)[0].x(), (*v)[0].y(), (*v)[0].z()}};
+  Vec b = {{(*v)[1].x(), (*v)[1].y(), (*v)[1].z()}};
+  Vec c = {{(*v)[2].x(), (*v)[2].y(), (*v)[2].z()}};
+  check(isGromacsCompactBox(a, b, c), "and is drawn as the dodecahedron");
+  delete v;
+
+  LatticeDef h(3.0, 3.0, 5.0, 90.0, 90.0, 120.0);
+  v = h.toVectors();
+  const double la = (*v)[0].length(), lb = (*v)[1].length();
+  const double g = std::acos((*v)[0].dotProduct((*v)[1]) / (la * lb)) * 180 / M_PI;
+  check(std::fabs(la - 3.0) < 1e-6 && std::fabs(lb - 3.0) < 1e-6 &&
+        std::fabs(g - 120.0) < 1e-6, "a hexagonal cell keeps its lengths and gamma");
+  delete v;
+}
+
 int main(int argc, char** argv)
 {
   std::string dir = argc > 1 ? argv[1] : "tests/boxshape/fixtures";
   one(dir, "dodsq", 12, 14);
   one(dir, "dodhex", 12, 14);
   one(dir, "to", 14, 24);
+  fromParameters();
   return failures ? 1 : 0;
 }
