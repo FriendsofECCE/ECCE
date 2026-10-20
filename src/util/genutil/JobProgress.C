@@ -319,7 +319,8 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     b.criteria.push_back(c);
   }
 
-  if (st.history.size() >= 2) {
+  // Two points always draw one straight line, whatever the run did.
+  if (st.history.size() >= 3) {
     if (st.historyKey == "energy") {
       b.plot = st.history;
       b.plotLabel = "energy per step";
