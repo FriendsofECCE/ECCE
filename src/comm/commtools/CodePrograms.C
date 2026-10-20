@@ -78,15 +78,24 @@ static string searchPath()
     if (!asked) {
         asked = true;
         const char* sh = getenv("SHELL");
+        // Interactive too: PATH set in .zshrc (conda, GMXRC) is not read by
+        // a login shell alone.  Markers keep out whatever the rc files print.
         string cmd = string(sh && *sh ? sh : "/bin/zsh") +
-                     " -l -c 'printf %s \"$PATH\"' </dev/null 2>/dev/null";
+                     " -l -i -c 'printf \"@ECCEPATH@%s@ECCEPATH@\" \"$PATH\"'"
+                     " </dev/null 2>/dev/null";
+        string out;
         if (FILE* f = popen(cmd.c_str(), "r")) {
             char buf[4096];
             size_t n;
             while ((n = fread(buf, 1, sizeof buf, f)) > 0)
-                extra.append(buf, n);
+                out.append(buf, n);
             pclose(f);
         }
+        const string mark = "@ECCEPATH@";
+        size_t a = out.find(mark);
+        size_t b = a == string::npos ? a : out.find(mark, a + mark.size());
+        if (b != string::npos)
+            extra = out.substr(a + mark.size(), b - a - mark.size());
         extra += ":/opt/homebrew/bin:/usr/local/bin:/opt/local/bin";
     }
     path += ":" + extra;
