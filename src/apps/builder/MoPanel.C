@@ -205,11 +205,12 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_plotSym->Show(which == PLOTSYM);
    sizer->Layout();
 
-   //  The composition of the selected MO, under the table or plot.  Three
-   //  lines high: it is a summary, and the full per-function list is in
-   //  View Coeff.
+   //  The composition of the selected MO, under the table or plot.  Two
+   //  lines high, so a laptop screen keeps several table rows (#379): it is
+   //  a summary that scrolls, and the full per-function list is in View
+   //  Coeff.
    p_compText = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
-         wxDefaultPosition, wxSize(-1, 4*GetTextExtent("M").y + 6),
+         wxDefaultPosition, wxSize(-1, 2*GetTextExtent("M").y + 6),
          wxTE_MULTILINE|wxTE_READONLY|wxTE_WORDWRAP|wxBORDER_NONE);
    p_compText->SetBackgroundColour(GetBackgroundColour());
    p_compText->SetToolTip(_("Which atoms and shells the selected orbital "
@@ -217,6 +218,13 @@ bool MoPanel::Create(IPropCalculation *calculation,
    sizer->Insert(3, p_compText, 0, wxGROW|wxLEFT|wxRIGHT, 5);
 
    wxTextCtrl *txt = (wxTextCtrl*)FindWindow(ID_TEXTCTRL_MO_CUTOFF);
+   //  The cutoff row needs no frame of its own; the frame and its margins
+   //  cost table rows on a laptop (#379).
+   wxWindow *cutoffRow = txt->GetParent();
+   cutoffRow->SetWindowStyleFlag(
+         (cutoffRow->GetWindowStyleFlag() & ~wxBORDER_MASK) | wxBORDER_NONE);
+   if (wxSizerItem *item = GetSizer()->GetItem(cutoffRow))
+      item->SetFlag((item->GetFlag() & ~wxALL) | wxLEFT | wxRIGHT);
    ewxNumericValidator validator(0.,100.,0.001);
    validator.setHardRange("(0.,100.)");
    validator.setValue(0.001);
