@@ -3,6 +3,7 @@
 # scan point, from "Summary of Optimized Potential Surface Scan".  The block
 # does not mark the scanned row, so it is the one that moves by a constant,
 # non-zero step (dihedrals wrap at 360).
+use POSIX ();
 $| = 1;
 ($key, $runtype) = @ARGV;
 exit(0) unless ($runtype =~ /Geo/i);
@@ -30,11 +31,13 @@ foreach my $r (@rowOrder) {
   next unless (@v == $n);
   my @d = map {
     my $x = $v[$_] - $v[$_-1];
-    $x -= 360 * int($x / 180) if ($r =~ /^D/ && abs($x) > 180);
+    $x -= 360 * POSIX::floor(($x + 180) / 360) if ($r =~ /^D/);
     $x } (1 .. $n-1);
-  next if (abs($d[0]) < 1e-6);
+  # A scanned coordinate moves by a real step; a relaxed bond drifting by
+  # 1e-4 A per point must not pass as "constant".
+  next if (abs($d[0]) < 1e-3);
   my $ok = 1;
-  foreach (@d) { $ok = 0 if (abs($_ - $d[0]) > 1e-3 * (1 + abs($d[0]))); }
+  foreach (@d) { $ok = 0 if (abs($_ - $d[0]) > 0.02 * abs($d[0]) + 1e-4); }
   if ($ok) { $best = $r; last; }
 }
 exit(0) unless defined $best;
@@ -44,7 +47,7 @@ my @coord = @{$row{$best}};
 if ($best =~ /^D/) {
   for my $i (1 .. $n-1) {
     my $x = $coord[$i] - $coord[$i-1];
-    $x -= 360 * int($x / 180) if (abs($x) > 180);
+    $x -= 360 * POSIX::floor(($x + 180) / 360);
     $coord[$i] = $coord[$i-1] + $x;
   }
 }
