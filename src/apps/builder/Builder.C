@@ -705,31 +705,31 @@ void Builder::createToolbar()
     p_fileToolbar->SetToolSeparation(0);
     p_fileToolbar->SetToolPacking(0);
     p_fileToolbar->SetToolBitmapSize(wxSize(22, 22));
-    p_fileToolbar->AddTool(wxID_NEW, _T(""), ewxBitmap::bundle("filenew.png", wxBITMAP_TYPE_PNG), _("New"));
-    p_fileToolbar->AddTool(wxID_OPEN, _T(""), ewxBitmap::bundle("fileopen.png", wxBITMAP_TYPE_PNG), _("Open"));
-    p_fileToolbar->AddTool(wxID_SAVE, _T(""), ewxBitmap::bundle("filesave.png", wxBITMAP_TYPE_PNG), _("Save"));
-    p_fileToolbar->AddTool(wxID_SAVEAS, _T(""), ewxBitmap::bundle("filesaveas.png", wxBITMAP_TYPE_PNG), _("Save As"));
-    p_fileToolbar->AddTool(wxID_UNDO, _T(""), ewxBitmap::bundle("undo.png", wxBITMAP_TYPE_PNG), _("Undo"));
-    p_fileToolbar->AddTool(wxID_REDO, _T(""), ewxBitmap::bundle("redo.png", wxBITMAP_TYPE_PNG), _("Redo"));
+    p_fileToolbar->AddTool(wxID_NEW, _T(""), ewxBitmap::colorIcon("svg/candidates/e/new.svg", wxSize(22, 22)), _("New"));
+    p_fileToolbar->AddTool(wxID_OPEN, _T(""), ewxBitmap::colorIcon("svg/candidates/e/open.svg", wxSize(22, 22)), _("Open"));
+    p_fileToolbar->AddTool(wxID_SAVE, _T(""), ewxBitmap::colorIcon("svg/candidates/e/save.svg", wxSize(22, 22)), _("Save"));
+    p_fileToolbar->AddTool(wxID_SAVEAS, _T(""), ewxBitmap::colorIcon("svg/candidates/e/saveas.svg", wxSize(22, 22)), _("Save As"));
+    p_fileToolbar->AddTool(wxID_UNDO, _T(""), ewxBitmap::colorIcon("svg/candidates/e/undo.svg", wxSize(22, 22)), _("Undo"));
+    p_fileToolbar->AddTool(wxID_REDO, _T(""), ewxBitmap::colorIcon("svg/candidates/e/redo.svg", wxSize(22, 22)), _("Redo"));
 
     p_modeToolbar = new wxToolBar(this, ID_MODE_TOOLBAR, wxDefaultPosition,
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_modeToolbar->SetToolSeparation(0);
     p_modeToolbar->SetToolPacking(0);
     p_modeToolbar->SetToolBitmapSize(wxSize(22, 22));
-    ewxBitmap selBitmap("mode_select.png", wxBITMAP_TYPE_PNG);
+    wxBitmapBundle selBitmap = ewxBitmap::colorIcon("svg/candidates/e/select.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_SELECT, _T(""), selBitmap,
                            _("Select"), wxITEM_CHECK);
-    ewxBitmap rotBitmap("mode_rotate.png", wxBITMAP_TYPE_PNG);
+    wxBitmapBundle rotBitmap = ewxBitmap::colorIcon("svg/candidates/e/rotate.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_ROTATE, _T(""), rotBitmap,
                            _("Rotate"), wxITEM_CHECK);
-    ewxBitmap moveBitmap("mode_move.png", wxBITMAP_TYPE_PNG);
+    wxBitmapBundle moveBitmap = ewxBitmap::colorIcon("svg/candidates/e/move.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_TRANSLATE, _T(""), moveBitmap,
                            _("Translate"), wxITEM_CHECK);
-    ewxBitmap zoomBitmap("mode_zoom.png", wxBITMAP_TYPE_PNG);
+    wxBitmapBundle zoomBitmap = ewxBitmap::colorIcon("svg/candidates/e/zoom.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_ZOOM, _T(""), zoomBitmap,
                            _("Zoom"), wxITEM_CHECK);
-    ewxBitmap atomBitmap("mode_select.png", wxBITMAP_TYPE_PNG);
+    wxBitmapBundle atomBitmap = ewxBitmap::colorIcon("svg/candidates/e/element.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_ATOM, _T(""), atomBitmap,
                            _("Build with this element (right-click or the "
                              "element selector: choose another)"), wxITEM_CHECK);
@@ -739,7 +739,7 @@ void Builder::createToolbar()
                            _("Geometry"), wxITEM_NORMAL);
     p_modeToolbar->AddTool(ID_MODE_BOND, _T(""), bondIcon(TBond::Single),
                            _("Choose Build Bond"), wxITEM_CHECK);
-    ewxBitmap structBitmap("structlib.png");
+    wxBitmapBundle structBitmap = ewxBitmap::colorIcon("svg/candidates/e/library.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_STRUCTLIB, _T(""), structBitmap,
                            _("Import from Structure Library"), wxITEM_CHECK);
     updateElementIcon();
@@ -751,28 +751,27 @@ void Builder::createToolbar()
     p_viewToolbar->SetToolPacking(0);
     p_viewToolbar->SetToolBitmapSize(wxSize(22, 22));
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_DEPTH_CUEING, _T(""),
-            ewxBitmap::svgIcon("depthcue", wxSize(22, 22), "depthcue.png"),
+            ewxBitmap::colorIcon("svg/candidates/e/depthcue.svg", wxSize(22, 22)),
             _("Enable/disable depth cueing"), wxITEM_CHECK);
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_ENABLE_SPINNING, _T(""),
-            ewxBitmap::svgIcon("spin", wxSize(22, 22), "spin.xpm"), _("Enable/disable spinning"), wxITEM_CHECK);
-    wxBitmap resetIcon = ewxBitmap::themedIcon("go-home", wxSize(22, 22));
-    if (!resetIcon.IsOk()) resetIcon = ewxBitmap("home_view16.png", wxBITMAP_TYPE_PNG);
+            ewxBitmap::colorIcon("svg/candidates/e/spin.svg", wxSize(22, 22)), _("Enable/disable spinning"), wxITEM_CHECK);
+    wxBitmapBundle resetIcon = ewxBitmap::colorIcon("svg/candidates/e/home.svg", wxSize(22, 22));
     p_viewToolbar->AddTool(ID_TOOL_RESETVIEW, _T(""), resetIcon,
             _("Reset view (Home)"));
 
     p_styleToolbar = new wxToolBar(this, ID_STYLE_TOOLBAR, wxDefaultPosition,
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_styleToolbar->AddTool(ViewerEvtHandler::ID_SHOW_AXES, _T(""),
-            ewxBitmap::svgIcon("axis", wxSize(22, 22), "axis.png"), _("Show/hide axis"), wxITEM_CHECK);
+            ewxBitmap::colorIcon("svg/candidates/e/axes.svg", wxSize(22, 22)), _("Show/hide axis"), wxITEM_CHECK);
     p_styleToolbar->AddTool(ViewerEvtHandler::ID_SHOW_RING, _T(""),
-            ewxBitmap::svgIcon("rings", wxSize(22, 22), "rings.xpm"), _("Display aromatic rings"), wxITEM_CHECK);
+            ewxBitmap::colorIcon("svg/candidates/e/rings.svg", wxSize(22, 22)), _("Display aromatic rings"), wxITEM_CHECK);
     p_styleToolbar->AddTool(ID_TOOL_STYLE, _T(""),
-            ewxBitmap::svgIcon("styles", wxSize(22, 22), "styles.xpm"),
+            ewxBitmap::colorIcon("svg/candidates/e/styles.svg", wxSize(22, 22)),
             _("Set global display style")); 
     p_styleToolbar->AddTool(ViewerEvtHandler::ID_BACKGROUND_COLOR, _T(""),
-            ewxBitmap::svgIcon("background", wxSize(22, 22), "background.png"), _("Background Color"), wxITEM_NORMAL);
+            ewxBitmap::colorIcon("svg/candidates/e/background.svg", wxSize(22, 22)), _("Background Color"), wxITEM_NORMAL);
     p_styleToolbar->AddTool(ViewerEvtHandler::ID_FOREGROUND_COLOR, _T(""),
-            ewxBitmap::svgIcon("textcolor", wxSize(22, 22), "textcolor22.png"), _("Atom Label Color"), wxITEM_NORMAL);
+            ewxBitmap::colorIcon("svg/candidates/e/textcolor.svg", wxSize(22, 22)), _("Atom Label Color"), wxITEM_NORMAL);
 
     p_manipulatorToolbar = new wxToolBar(this, ID_DRAGGER_TOOLBAR,
             wxDefaultPosition, wxDefaultSize,
@@ -2139,10 +2138,12 @@ static wxBitmap elementToolBitmap(const wxString& sym, const wxColour& col,
     wxGCDC dc(mdc);
     const wxColour rim(col.Red() * 6 / 10, col.Green() * 6 / 10,
                        col.Blue() * 6 / 10);
-    dc.SetBrush(wxBrush(col));
-    dc.SetPen(wxPen(rim, wxMax(1, n / 22)));
     const int m = wxMax(1, n / 11);
-    dc.DrawEllipse(m, m, n - 2 * m, n - 2 * m);
+    wxGraphicsContext *gc = dc.GetGraphicsContext();
+    gc->SetBrush(gc->CreateRadialGradientBrush(n * .38, n * .32, n * .38,
+        n * .32, n * .62, col.ChangeLightness(170), col.ChangeLightness(70)));
+    gc->SetPen(wxPen(rim, wxMax(1, n / 22)));
+    gc->DrawEllipse(m, m, n - 2 * m, n - 2 * m);
     wxFont font = ewxStyledWindow::getBoldFont();
     font.SetPixelSize(wxSize(0, wxMax(8, n * 11 / 22)));
     dc.SetFont(font);
@@ -2157,44 +2158,11 @@ static wxBitmap elementToolBitmap(const wxString& sym, const wxColour& col,
 }
 
 
-//  A small periodic table on the toolbar's face colour: the element tool's
-//  selector says what it opens.  Metals, metalloids and non-metals get the
-//  three Okabe-Ito colours that stay apart for colour-blind users and read on
-//  light and dark toolbars alike.
+//  A small periodic table (svg/candidates/e/periodic.svg): the element
+//  tool's selector says what it opens.
 wxBitmapBundle Builder::elementArrowIcon()
 {
-  auto draw = [](int n) {
-    wxBitmap bitmap(n, n);
-    wxMemoryDC mdc;
-    mdc.SelectObject(bitmap);
-    mdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE)));
-    mdc.Clear();
-    {
-      wxGCDC dc(mdc);
-      dc.SetPen(*wxTRANSPARENT_PEN);
-      // 9 columns by 5 rows: H and He on top, the s and p blocks above the
-      // d block, the metalloids on the diagonal between metals and non-metals.
-      // M metal, S metalloid, N non-metal.
-      static const char *rows[] = { "N.......N", "MM..SNNNN", "MM..MSNNN",
-                                    "MMMMMSSNN", "MMMMMMSSN" };
-      const wxColour metal(0, 114, 178), metalloid(230, 159, 0),
-                     nonmetal(0, 158, 115);
-      const int pitch = n / 11, gap = pitch >= 4 ? 1 : 0;
-      const int x0 = (n - 9 * pitch) / 2, y0 = (n - 5 * pitch) / 2;
-      for (int r = 0; r < 5; r++)
-        for (int c = 0; c < 9; c++) {
-          const char kind = rows[r][c];
-          if (kind == '.') continue;
-          dc.SetBrush(wxBrush(kind == 'M' ? metal
-                              : kind == 'S' ? metalloid : nonmetal));
-          dc.DrawRectangle(x0 + c * pitch, y0 + r * pitch,
-                           pitch - gap, pitch - gap);
-        }
-    }
-    mdc.SelectObject(wxNullBitmap);
-    return bitmap;
-  };
-  return wxBitmapBundle::FromBitmaps(draw(22), draw(44));
+  return ewxBitmap::colorIcon("svg/candidates/e/periodic.svg", wxSize(22, 22));
 }
 
 
@@ -5192,6 +5160,18 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         config->Read(layoutPrefix + pane.name, &info)) {
       unfoldPane(pane);     // the saved info carries the unfolded sizes
       p_mgr.LoadPaneInfo(info, pane);
+      //  AUI keeps a fixed pane at its best size only while it has no
+      //  minimum size; with one, the row's spare width is shared out among
+      //  the toolbars.  Position is a pixel offset in a toolbar row and AUI
+      //  only pushes a pane right to stop overlaps, so a saved offset leaves
+      //  a gap; the creation order packs them.
+      if (pane.IsToolbar() && pane.window) {
+        pane.BestSize(pane.window->GetBestSize());
+        pane.MinSize(wxDefaultSize);
+        for (size_t t = 0; t < p_toolbars.size(); t++)
+          if (p_toolbars[t] == pane.window) pane.Position(t);
+        continue;
+      }
       //  Saved before tool panes could fold: no fold button in the info.
       if (p_structureNames.count(pane.name.ToStdString()) ||
           pane.name == NAME_TOOL_LOG) {

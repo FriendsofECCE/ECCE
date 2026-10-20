@@ -1,4 +1,5 @@
 #ifdef _WIN32
+#include <algorithm>
 #include <windows.h>
 #endif
 #include <cstdint>
@@ -13,6 +14,7 @@
 #include <sys/wait.h>
 
 #include <wx/combo.h>
+#include <wx/statline.h>
 
 #include <wx/wupdlock.h>
 #include "util/Ecce.H"
@@ -452,6 +454,15 @@ void CalcEd::createCodeButtons()
   wxCustomButton *codeButton;
   wxSize margins(5,5);
 
+  // Code bar groups, each named, separated by a rule.  A code not named
+  // here goes with the molecular codes.
+  static const char *const groupName[4] = { "Molecules:", "Semi-empirical:",
+                                            "Periodic:", "MD:" };
+  static const char *const order[] = { "ECCE-QM", "Gaussian-16", "ORCA",
+                                       "NWChem", "MOPAC", "QuantumESPRESSO",
+                                       "CP2K", "GROMACS" };
+  std::vector<std::pair<int, wxCustomButton*> > groups[4];
+
   for (size_t it = 0; it < codes.size(); it++) {
     rt = rd.getResourceType("virtual_document", "ecceCalculation", codes[it]);
     if (rt!=(ResourceType*)0 && rt->getFactoryCategory()=="EsCalculation" &&
@@ -465,8 +476,34 @@ void CalcEd::createCodeButtons()
       codeButton->SetClientData((void*)it);
       codeButton->SetMargins(margins);
       codeButton->SetToolTip(codes[it]);
-      p_codeSizer->Add(codeButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+      const string& c = codes[it];
+      const int g = c=="GROMACS" ? 3
+                  : (c=="QuantumESPRESSO" || c=="CP2K") ? 2
+                  : c=="MOPAC" ? 1 : 0;
+      int rank = 100;
+      for (int r = 0; r < (int)(sizeof order / sizeof order[0]); r++)
+        if (c == order[r]) rank = r;
+      groups[g].push_back(std::make_pair(rank, codeButton));
     }
+  }
+
+  bool first = true;
+  for (int g = 0; g < 4; g++) {
+    if (groups[g].empty()) continue;
+    std::stable_sort(groups[g].begin(), groups[g].end(),
+        [](const std::pair<int, wxCustomButton*>& x,
+           const std::pair<int, wxCustomButton*>& y) { return x.first < y.first; });
+    if (!first)
+      p_codeSizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition,
+                       wxSize(-1, 24), wxLI_VERTICAL), 0,
+                       wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 6);
+    first = false;
+    wxStaticText *name = new wxStaticText(this, wxID_ANY, groupName[g]);
+    name->SetFont(name->GetFont().Smaller());
+    name->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    p_codeSizer->Add(name, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
+    for (size_t k = 0; k < groups[g].size(); k++)
+      p_codeSizer->Add(groups[g][k].second, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
   }
 }
 
@@ -482,9 +519,14 @@ void CalcEd::OnButtonCalcedCodeClick(wxCommandEvent &event)
   wxCustomButton *codeButton;
 
   // enforce radio button behavior
+  //  The code bar also holds the group rules: only buttons take a state.
   while (node) {
     child = node->GetData();
-    codeButton = (wxCustomButton*)child->GetWindow();
+    codeButton = wxDynamicCast(child->GetWindow(), wxCustomButton);
+    if (!codeButton) {
+      node = node->GetNext();
+      continue;
+    }
     if (codeButton != eventButton) {
       codeButton->SetValue(false);
     } else {
@@ -516,7 +558,11 @@ void CalcEd::setCurrentCodeButton(const string& currentCode)
     wxCustomButton *codeButton;
     while (node) {
       child = node->GetData();
-      codeButton = (wxCustomButton*)child->GetWindow();
+      codeButton = wxDynamicCast(child->GetWindow(), wxCustomButton);
+      if (!codeButton) {
+        node = node->GetNext();
+        continue;
+      }
       if ((uintptr_t)codeButton->GetClientData() == icode) {
         codeButton->SetValue(true);
       } else {
