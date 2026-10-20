@@ -139,13 +139,25 @@ def select(i):
 
 @icon
 def rotate(i):
-    i.shadow(16, 29.5, 10, 1.5)
-    i.sphere(16, 18, 8, "#f2f4f8", "#9aa1ae", "#454b58", rim="#3a404c")
-    g = i.lin(2, 6, 30, 26, (0, "#7bb4ff"), (1, "#1c55d0"))
-    d = "M3.500 21C1.500 12 9 4.500 17 4.500c6 0 11 3.500 12 9"
-    i.add('<path d="%s" fill="none" stroke="#12347e" stroke-width="4.200" stroke-linecap="round"/>' % d)
-    i.add('<path d="%s" fill="none" stroke="%s" stroke-width="2.800" stroke-linecap="round"/>' % (d, g))
-    i.add('<path d="M23.500 8l7.500 2.500-5 6.500z" fill="%s" stroke="#12347e" stroke-width="1" stroke-linejoin="round"/>' % g)
+    i.shadow(16, 30, 10, 1.4)
+    cx = cy = 16
+    R = 11.500
+    i.sphere(cx, cy, 6, "#f4f6fa", "#98a0ae", "#3c4250", rim="#343a46")
+    g = i.lin(3, 4, 29, 28, (0, "#8cc0ff"), (1, "#1848c8"))
+    a0, a1 = math.radians(-35), math.radians(235)
+    pt = lambda a, r=R: (cx + r * math.cos(a), cy + r * math.sin(a))
+    x0, y0 = pt(a0)
+    x1, y1 = pt(a1)
+    d = "M%.2f %.2fA%s %s 0 1 1 %.2f %.2f" % (x0, y0, R, R, x1, y1)
+    i.add('<path d="%s" fill="none" stroke="#0c2c78" stroke-width="5" stroke-linecap="round"/>' % d)
+    i.add('<path d="%s" fill="none" stroke="%s" stroke-width="3.400" stroke-linecap="round"/>' % (d, g))
+    tx, ty = -math.sin(a1), math.cos(a1)
+    nx, ny = math.cos(a1), math.sin(a1)
+    bx, by = x1 + 1.200 * tx, y1 + 1.200 * ty
+    L, W = 8, 5.500
+    pts = [(bx + L * tx, by + L * ty), (bx + W * nx, by + W * ny), (bx - W * nx, by - W * ny)]
+    i.add('<path d="M%.2f %.2fL%.2f %.2fL%.2f %.2fz" fill="%s" stroke="#0c2c78" stroke-width="1" stroke-linejoin="round"/>' % (
+        pts[0] + pts[1] + pts[2] + (g,)))
 
 
 @icon
@@ -171,23 +183,41 @@ def zoom(i):
 
 @icon
 def library(i):
-    i.shadow(16, 30, 11, 1.4, .2)
-    pts = [(16, 6), (26, 13), (22, 25), (10, 25), (6, 13)]
-    for a, b in zip(pts, pts[1:] + pts[:1]):
-        i.add('<path d="M%s %sL%s %s" stroke="#5a6070" stroke-width="2.400" stroke-linecap="round"/>' % (a + b))
-        i.add('<path d="M%s %sL%s %s" stroke="#b8bfce" stroke-width=".9" stroke-linecap="round"/>' % (a[0] - .3, a[1] - .4, b[0] - .3, b[1] - .4))
-    blue = ("#cfe6ff", "#3b8cf0", "#14449a")
-    grey = ("#f1f3f6", "#9aa0ac", "#4a505c")
-    for n, (x, y) in enumerate(pts):
-        i.sphere(x, y, 4.200, *(blue if n in (0, 2, 4) else grey))
+    # traced from structlib.png (22x22 grid, scaled to 32)
+    C = {"A": (4.5, 4.6), "B": (11.4, 8.9), "D": (6.8, 12.9), "E": (16.8, 16.0), "F": (7.6, 19.0)}
+    N = {"n1": (10.4, 4.6), "n2": (2.5, 10.0), "n3": (16.4, 10.7), "n4": (12.9, 19.3)}
+    P = dict(C)
+    P.update(N)
+    bonds = [("A", "n1"), ("n1", "B"), ("B", "D"), ("D", "n2"), ("n2", "A"),
+             ("B", "n3"), ("n3", "E"), ("E", "n4"), ("n4", "F"), ("F", "D")]
+    H = [((11.6, 1.0), "n1"), ((4.6, 21.0), "F"), ((20.8, 17.6), "E")]
+    k = 32 / 22.0
+    i.add('<g transform="scale(%.4f)">' % k)
+    i.shadow(11, 21.500, 8, 1, .15)
+    for a, b in bonds + [(h[1], h[0]) for h in []]:
+        (x1, y1), (x2, y2) = P[a], P[b]
+        i.add('<path d="M%s %sL%s %s" stroke="#4a505a" stroke-width="2" stroke-linecap="round"/>' % (x1, y1, x2, y2))
+        i.add('<path d="M%s %sL%s %s" stroke="#b4bac4" stroke-width=".8" stroke-linecap="round"/>' % (x1 - .2, y1 - .3, x2 - .2, y2 - .3))
+    for (hx, hy), a in H:
+        x, y = P[a]
+        i.add('<path d="M%s %sL%s %s" stroke="#9aa0aa" stroke-width="1.100" stroke-linecap="round"/>' % (x, y, hx, hy))
+        i.sphere(hx, hy, 1.200, "#ffffff", "#f0f0f4", "#b0b4be")
+    for n, (x, y) in C.items():
+        i.sphere(x, y, 2.300, "#e4e6ea", "#8c929c", "#3c424c")
+    for n, (x, y) in N.items():
+        i.sphere(x, y, 2.500, "#bfe0ff", "#2c92ee", "#0a4aa8")
+    i.add('</g>')
 
 
 @icon
 def depthcue(i):
-    i.shadow(16, 30, 12, 1.2, .15)
-    i.sphere(24, 21, 3.400, "#ffd0d0", "#e04040", "#8a1010", .38)
-    i.sphere(18, 17, 5.200, "#ffd0d0", "#e03030", "#880c0c", .68)
-    i.sphere(9.500, 12, 7.500, "#ffe0e0", "#e82020", "#800808", 1)
+    i.shadow(16, 30.5, 11, 1.2, .15)
+    body = i.lin(0, 6, 0, 28, (0, "#ffffff"), (.5, "#b4b8c0"), (1, "#3c4048"))
+    i.add('<path d="M3.500 7L28.500 7L21 28H11z" fill="%s" stroke="#1c1c24" stroke-width="1.400" stroke-linejoin="round"/>' % body)
+    top = i.lin(0, 3, 0, 8, (0, "#ffffff"), (1, "#d4d8e0"))
+    i.add('<path d="M3.500 7L8.500 3H23.500L28.500 7z" fill="%s" stroke="#1c1c24" stroke-width="1.200" stroke-linejoin="round"/>' % top)
+    sd = i.lin(3, 0, 12, 0, (0, "#000000", .25), (1, "#000000", 0))
+    i.add('<path d="M3.500 7L11 28L14 28L8 7z" fill="%s"/>' % sd)
 
 
 @icon
@@ -199,17 +229,27 @@ def spin(i):
 
 @icon
 def home(i):
-    i.shadow(16, 30, 12, 1.3, .2)
-    fr = i.lin(0, 3, 0, 29, (0, "#5b95f0"), (1, "#1d49b0"))
-    i.add('<rect x="3" y="3" width="26" height="25" rx="1.600" fill="%s" stroke="#14327c" stroke-width="1"/>' % fr)
-    sky = i.lin(0, 8, 0, 27, (0, "#e6f3ff"), (1, "#a9d0f8"))
-    i.add('<rect x="5" y="8" width="22" height="18" fill="%s"/>' % sky)
-    i.add('<rect x="5" y="5" width="22" height="2" fill="#ffffff" fill-opacity=".5"/>')
-    wall = i.lin(0, 14, 0, 26, (0, "#ffe0b0"), (1, "#f09040"))
-    i.add('<path d="M9.500 15.500h13V26h-13z" fill="%s" stroke="#9a4a10" stroke-width=".8"/>' % wall)
-    roof = i.lin(0, 8, 0, 16, (0, "#ff8a50"), (1, "#c8300c"))
-    i.add('<path d="M7 16.500L16 8.500l9 8z" fill="%s" stroke="#7a1a04" stroke-width=".9" stroke-linejoin="round"/>' % roof)
-    i.add('<rect x="14" y="19.500" width="4" height="6.500" fill="#7a3a10"/>')
+    i.shadow(16, 30.5, 12, 1.2, .2)
+    fr = i.lin(0, 2, 0, 30, (0, "#6aa4f6"), (1, "#1a42a8"))
+    i.add('<rect x="2" y="2.500" width="28" height="27" rx="1.500" fill="%s" stroke="#122e78" stroke-width="1"/>' % fr)
+    tb = i.lin(0, 4, 0, 7.500, (0, "#a9cdfb"), (1, "#4f86e0"))
+    i.add('<rect x="4" y="4" width="24" height="3.500" fill="%s"/>' % tb)
+    sky = i.lin(0, 7.500, 0, 27, (0, "#dcecff"), (1, "#ffffff"))
+    i.add('<rect x="4" y="7.500" width="24" height="19.500" fill="%s"/>' % sky)
+    gr = i.lin(0, 24, 0, 27, (0, "#d8e8d0"), (1, "#a8c8a0"))
+    i.add('<rect x="4" y="24.500" width="24" height="2.500" fill="%s"/>' % gr)
+    side = i.lin(19, 0, 26.500, 0, (0, "#d8b890"), (1, "#8a6444"))
+    i.add('<path d="M19.500 17L26.500 15.500V24L19.500 26z" fill="%s" stroke="#6a4020" stroke-width=".6" stroke-linejoin="round"/>' % side)
+    front = i.lin(8.500, 0, 19.500, 0, (0, "#fff4e0"), (1, "#e2c8a0"))
+    i.add('<path d="M8.500 17h11v9h-11z" fill="%s" stroke="#8a5a30" stroke-width=".6"/>' % front)
+    gab = i.lin(0, 10, 0, 17, (0, "#ff9a60"), (1, "#e0501c"))
+    i.add('<path d="M7.500 17.500L14 10l6.500 7.500z" fill="%s" stroke="#7a2008" stroke-width=".7" stroke-linejoin="round"/>' % gab)
+    roof = i.lin(14, 9, 24, 17, (0, "#ffb070"), (.5, "#ec5a20"), (1, "#a82a08"))
+    i.add('<path d="M14 10L21 8l6.500 8-7 2z" fill="%s" stroke="#7a2008" stroke-width=".7" stroke-linejoin="round"/>' % roof)
+    door = i.lin(0, 20, 0, 26, (0, "#b87040"), (1, "#6a3410"))
+    i.add('<rect x="12" y="20.500" width="4" height="5.500" fill="%s" stroke="#4a2408" stroke-width=".5"/>' % door)
+    i.add('<path d="M22 19v3.500M24 18.500v3.500" stroke="#f0e0c0" stroke-opacity=".6" stroke-width="1.200"/>')
+    i.sphere(7, 24.500, 2.200, "#d8f0b8", "#4a9a30", "#1e5a14")
 
 
 def arrow(i, x1, y1, x2, y2, light, dark, w=2.4):
@@ -234,20 +274,43 @@ def axes(i):
 
 @icon
 def rings(i):
-    i.shadow(16, 30, 11, 1.2, .15)
-    i.add('<path d="M16 3.500l11 6.250v12.500L16 28.500 5 22.250V9.750z" fill="#ffffff" fill-opacity=".35" stroke="#1c1c28" stroke-width="2.400" stroke-linejoin="round"/>')
-    g = i.rad(14, 13.5, 9, (0, "#ffe2a0"), (.5, "#ff9a1c"), (1, "#c05a00"))
-    i.add('<circle cx="16" cy="16" r="6" fill="%s" stroke="#7a3800" stroke-width=".9"/>' % g)
+    # Kekule hexagon: three alternating double bonds
+    R, r = 12.500, 8.200
+    v = [(16 + R * math.sin(math.radians(60 * k)), 16 - R * math.cos(math.radians(60 * k))) for k in range(6)]
+    w = [(16 + r * math.sin(math.radians(60 * k)), 16 - r * math.cos(math.radians(60 * k))) for k in range(6)]
+    g = i.lin(0, 3, 0, 29, (0, "#4a4a58"), (1, "#101018"))
+    pts = " ".join("%.2f,%.2f" % q for q in v)
+    i.add('<polygon points="%s" fill="#ffffff" fill-opacity=".45" stroke="%s" stroke-width="2.600" stroke-linejoin="round"/>' % (pts, g))
+    for k in (0, 2, 4):
+        a, b = w[k], w[(k + 1) % 6]
+        t = .16
+        x1, y1 = a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])
+        x2, y2 = b[0] + t * (a[0] - b[0]), b[1] + t * (a[1] - b[1])
+        i.add('<path d="M%.2f %.2fL%.2f %.2f" stroke="%s" stroke-width="2.200" stroke-linecap="round"/>' % (x1, y1, x2, y2, g))
 
 
 @icon
 def styles(i):
-    i.shadow(16, 30, 12, 1.2, .15)
-    r = i.lin(0, 8, 0, 26, (0, "#ff8a80"), (.5, "#d81818"), (1, "#7c0808"))
-    for d in ("M3.500 17L22 5.500", "M5 26L24 14"):
-        i.add('<path d="%s" stroke="#660000" stroke-width="5.200" stroke-linecap="round"/><path d="%s" stroke="%s" stroke-width="3.600" stroke-linecap="round"/>' % (d, d, r))
-    for (x, y, rr) in ((24, 6, 4.2), (13, 12, 4), (26, 20, 4.4)):
-        i.sphere(x, y, rr, "#d0e0ff", "#2a6af0", "#0c2a9a", rim="#0a2070")
+    i.shadow(16, 30.5, 12, 1.2, .15)
+    # blue beta-strand arrow with a twist (light face, then dark face)
+    bl = i.lin(0, 18, 0, 30, (0, "#8cb8ff"), (1, "#1c46c8"))
+    bd = i.lin(0, 18, 0, 30, (0, "#2a56d8"), (1, "#0c2070"))
+    i.add('<path d="M2 28L14 22l1.500 3.200z" fill="%s" stroke="#0a1c6a" stroke-width=".7" stroke-linejoin="round"/>' % bd)
+    i.add('<path d="M14 22L20 19l4-.500-1.500-4.500 8 7.500-8.500 6.500.5-4.500-4.500 1-5 2.500z" fill="%s" stroke="#0a1c6a" stroke-width=".8" stroke-linejoin="round"/>' % bl)
+    i.add('<path d="M20 19l4-.500 1.700 1.500-5 2.500z" fill="%s" opacity=".55"/>' % bd)
+    # red helix ribbon
+    i.add('<g transform="translate(4 2) scale(.88) rotate(-32 13 11)">')
+    back = i.lin(0, 5, 0, 17, (0, "#a01010"), (1, "#500404"))
+    front = i.lin(0, 5, 0, 17, (0, "#ffa090"), (.5, "#e02020"), (1, "#8a0808"))
+    for k in range(4):
+        x = 1.500 + 5.600 * k
+        i.add('<path d="M%s 7.500Q%s 11 %s 14.500" fill="none" stroke="#3a0000" stroke-width="3.600" stroke-linecap="butt"/>' % (x + 4, x + 4.500, x + 2))
+        i.add('<path d="M%s 7.500Q%s 11 %s 14.500" fill="none" stroke="%s" stroke-width="2.400"/>' % (x + 4, x + 4.500, x + 2, back))
+    for k in range(4):
+        x = 1.500 + 5.600 * k
+        i.add('<path d="M%s 6.500Q%s 10.500 %s 15.500" fill="none" stroke="#4a0000" stroke-width="4.600" stroke-linecap="round"/>' % (x, x + 1.500, x + 4))
+        i.add('<path d="M%s 6.500Q%s 10.500 %s 15.500" fill="none" stroke="%s" stroke-width="3.200" stroke-linecap="round"/>' % (x, x + 1.500, x + 4, front))
+    i.add('</g>')
 
 
 @icon
@@ -272,15 +335,35 @@ def textcolor(i):
 
 @icon
 def periodic(i):
-    rows = ["N.......N", "MM..SNNNN", "MM..MSNNN", "MMMMMSSNN", "MMMMMMSSN"]
-    cols = {"M": ("#6ab4f0", "#0b5fb0"), "S": ("#ffd060", "#d08000"), "N": ("#6ee0b0", "#0a9060")}
-    for r, row in enumerate(rows):
-        for c, k in enumerate(row):
-            if k == ".":
+    # 18 columns x 7 periods + detached f-block, square cells, canvas 32 wide
+    c = 1.700
+    ox, oy = (32 - 18 * c) / 2, 6.500
+    pal = {"s": ("#ff9a8a", "#d83a2a"), "p": ("#ffe070", "#d49a00"),
+           "d": ("#8cc4ff", "#2a6ad0"), "f": ("#90e8a8", "#1e9a48")}
+    def cell(col, row, k, dy=0):
+        x, y = ox + col * c, oy + row * c + dy
+        g = i.lin(0, y, 0, y + c, (0, pal[k][0]), (1, pal[k][1]))
+        i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>' % (x + .1, y + .1, c - .2, c - .2, g))
+    for r in range(7):
+        for col in range(18):
+            if r == 0 and 0 < col < 17:
                 continue
-            y = 3 + r * 5.2
-            g = i.lin(0, y, 0, y + 4.4, (0, cols[k][0]), (1, cols[k][1]))
-            i.add('<rect x="%s" y="%s" width="3.200" height="4.400" rx=".5" fill="%s"/>' % (2 + c * 3.3, y, g))
+            if r in (1, 2) and 1 < col < 12:
+                continue
+            if col in (0, 1):
+                k = "s"
+            elif col == 17 and r == 0 or (col >= 12):
+                k = "p" if not (r == 0) else "s"
+            else:
+                k = "d"
+            if r == 0 and col == 17:
+                k = "p"
+            if r >= 5 and col == 2:
+                k = "f"
+            cell(col, r, k)
+    for r in (0, 1):
+        for col in range(14):
+            cell(col + 2.5 - 0.5 + 0, 7 + r, "f", 0.8)
 
 
 @icon
