@@ -489,7 +489,7 @@ def walk(display, tmp, outdir, org, authArgs, name):
          "builder-generated": "%s-3-cell.png" % prefix})
     _, clog = app("ecce-calced", "ECCE_CALCED_SCRIPT", case["calced"], (1100, 900),
         {"calced-start": "%s-4-calced.png" % prefix,
-         "calced-theory": ("Theory", "%s-5-theory.png" % prefix),
+         "calced-theory": ("Editor", "%s-5-theory.png" % prefix),
          "calced-final": "%s-6-calced-ready.png" % prefix})
     #  The first "info" is before any Save: a ready calculation can be
     #  launched, the click writing the input first.
