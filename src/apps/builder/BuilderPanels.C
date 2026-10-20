@@ -1142,12 +1142,12 @@ void Builder::sizeIndexPane()
   wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
   if (!pane.IsOk()) return;
   //  A few rows, then it scrolls: the panel below needs the rest for its table.
+  //  Its share stays minimal every time, also over a saved layout that gave
+  //  the list half the column (the open panel was squashed under it).
   const int height = p_index->preferredHeight(3);
-  if (!p_indexSized) {
-    pane.dock_proportion = 1;
-    p_indexSized = true;
-  }
-  if (pane.min_size.y == height) return;
+  p_indexSized = true;
+  if (pane.min_size.y == height && pane.dock_proportion == 1) return;
+  pane.dock_proportion = 1;
   pane.MinSize(wxSize(pane.min_size.x, height)).BestSize(wxSize(400, height));
   if (pane.IsShown() && !pane.IsFloating()) updatePanes();
 }

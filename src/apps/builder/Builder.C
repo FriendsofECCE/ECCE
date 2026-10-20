@@ -1141,7 +1141,7 @@ void Builder::createToolPanels()
            .Right().Layer(1).Position(1).Resizable(true).CloseButton(false)
            .Floatable(false).MinSize(wxSize(200, 150))
            .BestSize(wxSize(400, 230)).Show(false);
-  indexInfo.dock_proportion = INDEX_PROPORTION;
+  indexInfo.dock_proportion = 1;   // sized to its rows: sizeIndexPane
   p_mgr.AddPane(p_index, indexInfo);
 
   //  The arrow on the border between the viewer and the column: a thin

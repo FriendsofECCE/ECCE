@@ -96,7 +96,11 @@ def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel,
     os.environ["ECCE_NO_REAP"] = "1"
 
     calc = os.path.join(state, "calc-" + case)
-    makecalc.make(case, calc)
+    if os.environ.get("ECCE_CAPTURE_CALC"):
+        # a copy of a real calculation's folder instead of the made one
+        shutil.copytree(os.environ["ECCE_CAPTURE_CALC"], calc)
+    else:
+        makecalc.make(case, calc)
     results = []
 
     with xdisplay.Display() as display:
