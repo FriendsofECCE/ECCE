@@ -325,26 +325,29 @@ def rings(i):
 
 @icon
 def styles(i):
-    i.shadow(16, 30.5, 12, 1.2, .15)
-    # blue beta-strand arrow with a twist (light face, then dark face)
-    bl = i.lin(0, 18, 0, 30, (0, "#8cb8ff"), (1, "#1c46c8"))
-    bd = i.lin(0, 18, 0, 30, (0, "#2a56d8"), (1, "#0c2070"))
-    i.add('<path d="M2 28L14 22l1.500 3.200z" fill="%s" stroke="#0a1c6a" stroke-width=".7" stroke-linejoin="round"/>' % bd)
-    i.add('<path d="M14 22L20 19l4-.500-1.500-4.500 8 7.500-8.500 6.500.5-4.500-4.500 1-5 2.500z" fill="%s" stroke="#0a1c6a" stroke-width=".8" stroke-linejoin="round"/>' % bl)
-    i.add('<path d="M20 19l4-.500 1.700 1.500-5 2.500z" fill="%s" opacity=".55"/>' % bd)
-    # red helix ribbon
-    i.add('<g transform="translate(4 2) scale(.88) rotate(-32 13 11)">')
-    back = i.lin(0, 5, 0, 17, (0, "#a01010"), (1, "#500404"))
-    front = i.lin(0, 5, 0, 17, (0, "#ffa090"), (.5, "#e02020"), (1, "#8a0808"))
-    for k in range(4):
-        x = 1.500 + 5.600 * k
-        i.add('<path d="M%s 7.500Q%s 11 %s 14.500" fill="none" stroke="#3a0000" stroke-width="3.600" stroke-linecap="butt"/>' % (x + 4, x + 4.500, x + 2))
-        i.add('<path d="M%s 7.500Q%s 11 %s 14.500" fill="none" stroke="%s" stroke-width="2.400"/>' % (x + 4, x + 4.500, x + 2, back))
-    for k in range(4):
-        x = 1.500 + 5.600 * k
-        i.add('<path d="M%s 6.500Q%s 10.500 %s 15.500" fill="none" stroke="#4a0000" stroke-width="4.600" stroke-linecap="round"/>' % (x, x + 1.500, x + 4))
-        i.add('<path d="M%s 6.500Q%s 10.500 %s 15.500" fill="none" stroke="%s" stroke-width="3.200" stroke-linecap="round"/>' % (x, x + 1.500, x + 4, front))
-    i.add('</g>')
+    # A protein cartoon as in the original: a red helix below and a blue
+    # helix above, each a coiled ribbon (light front faces, dark back
+    # faces), joined by a thin black coil.
+    i.shadow(16, 30.500, 12, 1.200, .15)
+    i.add('<path d="M3 9C1.500 4 7 2.500 9 5M24 7c5 0 6 5 3 7-2 1.500-1 4 1 5.500M27.500 20.500c1 3-1 6-5 6.500" fill="none" stroke="#141414" stroke-width="1.300" stroke-linecap="round"/>')
+
+    def helix(x0, y0, x1, y1, turns, light, mid, dark, edge, amp):
+        dx, dy = (x1 - x0) / turns, (y1 - y0) / turns
+        L = (dx * dx + dy * dy) ** .5
+        px, py = -dy / L * amp, dx / L * amp
+        for k in range(turns):
+            cx, cy = x0 + dx * (k + .5), y0 + dy * (k + .5)
+            # back face (dark), then front face (light) of one turn
+            i.add('<path d="M%.2f %.2fL%.2f %.2fL%.2f %.2fL%.2f %.2fz" fill="%s" stroke="%s" stroke-width=".5" stroke-linejoin="round"/>' % (
+                cx - dx * .5 + px, cy - dy * .5 + py, cx - dx * .1 + px, cy - dy * .1 + py,
+                cx + dx * .5 - px, cy + dy * .5 - py, cx + dx * .1 - px, cy + dy * .1 - py, dark, edge))
+            g = i.lin(cx - px, cy - py, cx + px, cy + py, (0, light), (1, mid))
+            i.add('<path d="M%.2f %.2fL%.2f %.2fL%.2f %.2fL%.2f %.2fz" fill="%s" stroke="%s" stroke-width=".5" stroke-linejoin="round"/>' % (
+                cx - dx * .5 - px, cy - dy * .5 - py, cx - dx * .1 - px, cy - dy * .1 - py,
+                cx + dx * .5 + px, cy + dy * .5 + py, cx + dx * .1 + px, cy + dy * .1 + py, g, edge))
+
+    helix(9, 4, 26, 13, 4, "#9cc4ff", "#1f5ce0", "#0a2a80", "#06185a", 3.600)
+    helix(3, 15, 22, 28, 4, "#ff9a90", "#e01818", "#7a0606", "#4a0202", 3.800)
 
 
 @icon
