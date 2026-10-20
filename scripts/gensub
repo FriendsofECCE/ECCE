@@ -1308,6 +1308,25 @@ sub nwchemmd()
     $retval .= "fi\n";
   }
 
+  # NWChem finds its solvent boxes (spce.rst ...) only through an nwchemrc
+  # in the run directory (no leading dot) or $HOME; Debian's nwchem-data
+  # ships none and aborts silently in solvation. Resolved here, on the
+  # compute host. An existing run-directory nwchemrc is the user's.
+  $retval .= <<'EONWRC';
+if [ ! -e nwchemrc ]; then
+  nwsolv=
+  for d in /usr/share/nwchem/solvents "$NWCHEM_TOP/src/data/solvents" \
+      "$(dirname "$(dirname "$(command -v "$nwchem" 2>/dev/null)")")/share/nwchem/solvents"; do
+    if [ -d "$d" ]; then nwsolv=$d; break; fi
+  done
+  if [ -n "$nwsolv" ]; then
+    for s in spce meoh clfm thfs; do
+      if [ -f "$nwsolv/$s.rst" ]; then echo "$s $nwsolv/$s.rst" >> nwchemrc; fi
+    done
+  fi
+fi
+EONWRC
+
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
