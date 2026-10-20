@@ -387,6 +387,7 @@ RETIRED = {
     "Gaussian-03": "No longer supported (2026-09-22).",
     "Gaussian-98": "No longer supported (2026-09-22).",
     "GAMESS-UK": "No longer supported (2026-09-22).",
+    "Gaussian-09": "No longer supported (2026-10-20).",
     #  Disconnected in the same issue #11 batch as Gaussian-03 and
     #  Gaussian-98; listed here on that basis.
     "Amica": "No longer supported (2026-09-22).",
@@ -402,6 +403,8 @@ NOT_IN_MENU = {
              "Gaussian-98 and MetaDyn.",
     "Gaussian-03": "Disconnected 2026-08-30 (issue #11).",
     "Gaussian-98": "Disconnected 2026-08-30 (issue #11).",
+    "Gaussian-09": "Disconnected 2026-10-20 (retired); existing calculations "
+                   "still open.",
     "MetaDyn": "Disconnected 2026-08-30 (issue #11); the Metadynamics editor "
                "tool registration was archived with it.",
     "GAMESS-UK": "Disconnected 2026-09-21.  Fully wired -- guktheory.py, "

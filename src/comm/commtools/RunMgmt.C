@@ -600,6 +600,9 @@ bool RunMgmt::registerLocalMachine(string& msg)
           // A code shipped with ECCE (ECCE-QM) has no path to register.
           if (RefMachine::bundledCode(codes[i], "localhost"))
             continue;
+          // A retired code (no New Calculation entry) is not offered.
+          if (!CodeFactory::isRegistered(codes[i]))
+            continue;
 #ifdef _WIN32
           string found;  // PATH search is POSIX-only; Windows keeps the Find button
 #else
