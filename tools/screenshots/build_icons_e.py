@@ -211,13 +211,10 @@ def library(i):
 
 @icon
 def depthcue(i):
-    i.shadow(16, 30.5, 11, 1.2, .15)
-    body = i.lin(0, 6, 0, 28, (0, "#ffffff"), (.5, "#b4b8c0"), (1, "#3c4048"))
-    i.add('<path d="M3.500 7L28.500 7L21 28H11z" fill="%s" stroke="#1c1c24" stroke-width="1.400" stroke-linejoin="round"/>' % body)
-    top = i.lin(0, 3, 0, 8, (0, "#ffffff"), (1, "#d4d8e0"))
-    i.add('<path d="M3.500 7L8.500 3H23.500L28.500 7z" fill="%s" stroke="#1c1c24" stroke-width="1.200" stroke-linejoin="round"/>' % top)
-    sd = i.lin(3, 0, 12, 0, (0, "#000000", .25), (1, "#000000", 0))
-    i.add('<path d="M3.500 7L11 28L14 28L8 7z" fill="%s"/>' % sd)
+    i.shadow(16, 30, 12, 1.2, .15)
+    i.sphere(24, 21, 3.400, "#ffd0d0", "#e04040", "#8a1010", .38)
+    i.sphere(18, 17, 5.200, "#ffd0d0", "#e03030", "#880c0c", .68)
+    i.sphere(9.500, 12, 7.500, "#ffe0e0", "#e82020", "#800808", 1)
 
 
 @icon
