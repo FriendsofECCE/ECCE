@@ -1,4 +1,5 @@
 #ifdef _WIN32
+#include <algorithm>
 #include <windows.h>
 #endif
 #include <cstdint>
@@ -453,9 +454,14 @@ void CalcEd::createCodeButtons()
   wxCustomButton *codeButton;
   wxSize margins(5,5);
 
-  // Code bar groups, separated by a rule: quantum chemistry (also any code
-  // not named below) | periodic / plane-wave | molecular dynamics.
-  std::vector<wxCustomButton*> groups[3];
+  // Code bar groups, each named, separated by a rule.  A code not named
+  // here goes with the molecular codes.
+  static const char *const groupName[4] = { "Molecules:", "Semi-empirical:",
+                                            "Periodic:", "MD:" };
+  static const char *const order[] = { "ECCE-QM", "Gaussian-16", "ORCA",
+                                       "NWChem", "MOPAC", "QuantumESPRESSO",
+                                       "CP2K", "GROMACS" };
+  std::vector<std::pair<int, wxCustomButton*> > groups[4];
 
   for (size_t it = 0; it < codes.size(); it++) {
     rt = rd.getResourceType("virtual_document", "ecceCalculation", codes[it]);
@@ -470,21 +476,34 @@ void CalcEd::createCodeButtons()
       codeButton->SetClientData((void*)it);
       codeButton->SetMargins(margins);
       codeButton->SetToolTip(codes[it]);
-      const bool periodic = codes[it]=="QuantumESPRESSO" || codes[it]=="CP2K";
-      groups[codes[it]=="GROMACS" ? 2 : periodic ? 1 : 0].push_back(codeButton);
+      const string& c = codes[it];
+      const int g = c=="GROMACS" ? 3
+                  : (c=="QuantumESPRESSO" || c=="CP2K") ? 2
+                  : c=="MOPAC" ? 1 : 0;
+      int rank = 100;
+      for (int r = 0; r < (int)(sizeof order / sizeof order[0]); r++)
+        if (c == order[r]) rank = r;
+      groups[g].push_back(std::make_pair(rank, codeButton));
     }
   }
 
   bool first = true;
-  for (int g = 0; g < 3; g++) {
+  for (int g = 0; g < 4; g++) {
     if (groups[g].empty()) continue;
+    std::stable_sort(groups[g].begin(), groups[g].end(),
+        [](const std::pair<int, wxCustomButton*>& x,
+           const std::pair<int, wxCustomButton*>& y) { return x.first < y.first; });
     if (!first)
       p_codeSizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition,
                        wxSize(-1, 24), wxLI_VERTICAL), 0,
                        wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 6);
     first = false;
+    wxStaticText *name = new wxStaticText(this, wxID_ANY, groupName[g]);
+    name->SetFont(name->GetFont().Smaller());
+    name->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    p_codeSizer->Add(name, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
     for (size_t k = 0; k < groups[g].size(); k++)
-      p_codeSizer->Add(groups[g][k], 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+      p_codeSizer->Add(groups[g][k].second, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
   }
 }
 
