@@ -179,7 +179,9 @@ def runApp(display, shots, wrapper, args, env, script, size, names,
                                   if want in w[1] and w[0] != sized]
                         wid = others[0][0] if others else None
                         if wid is None:
-                            fail("no window %r for shot %s" % (want, name))
+                            fail("no window %r for shot %s (windows: %s)" % (
+                                want, name,
+                                [(w[1], w[2], w[3]) for w in shots.windowsOf(known)]))
                     if wid:
                         shots.take(wid, os.path.join(shots.outdir, target))
                 if name.endswith(".ppm"):
