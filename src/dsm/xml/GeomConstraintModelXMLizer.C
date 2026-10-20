@@ -137,6 +137,8 @@ void GeomConstraintModelXMLizer::deserializeConstraints(
     vector<int> atomIndices;
     double forceConstant = 0.0;
     double constraintValue = 0.0;
+    int scanSteps = 0;
+    double scanStep = 0.0;
     cEle = (DOMElement *) constraints->item(idx);
     DOMNodeList *children = cEle->getChildNodes();
     int numChildren = children->getLength();
@@ -159,6 +161,16 @@ void GeomConstraintModelXMLizer::deserializeConstraints(
                 sscanf(value.c_str(),"%lf",&forceConstant);
                 isRestraint = true;
              } 
+             else if (elname == "Scan") {
+                XMLCh *sn = XMLString::transcode("steps");
+                XMLCh *st = XMLString::transcode("step");
+                string a = getAsString(child->getAttribute(sn));
+                string b = getAsString(child->getAttribute(st));
+                XMLString::release(&sn);
+                XMLString::release(&st);
+                sscanf(a.c_str(),"%d",&scanSteps);
+                sscanf(b.c_str(),"%lf",&scanStep);
+             }
              else if (elname == "Value") {
                 sscanf(value.c_str(),"%lf",&constraintValue);
              }
@@ -191,6 +203,7 @@ void GeomConstraintModelXMLizer::deserializeConstraints(
         if (!isRestraint) {
           GeomConstraint *geomconstraint = new GeomConstraint((*atoms)[0], (*atoms)[1]); 
           geomconstraint->setConstraintValue(constraintValue);
+          geomconstraint->setScan(scanSteps, scanStep);
           try {
             dobject->addConstraint(geomconstraint);
           }
@@ -218,6 +231,7 @@ void GeomConstraintModelXMLizer::deserializeConstraints(
         if (!isRestraint) {
           GeomConstraint *geomconstraint = new GeomConstraint((*atoms)[0], (*atoms)[1], (*atoms)[2]); 
           geomconstraint->setConstraintValue(constraintValue);
+          geomconstraint->setScan(scanSteps, scanStep);
           try {
             dobject->addConstraint(geomconstraint);
           }
@@ -245,6 +259,7 @@ void GeomConstraintModelXMLizer::deserializeConstraints(
         if (!isRestraint) {
           GeomConstraint *geomconstraint = new GeomConstraint((*atoms)[0], (*atoms)[1], (*atoms)[2], (*atoms)[3]); 
           geomconstraint->setConstraintValue(constraintValue);
+          geomconstraint->setScan(scanSteps, scanStep);
           try {
             dobject->addConstraint(geomconstraint);
           }
@@ -389,6 +404,11 @@ string GeomConstraintModelXMLizer::serializeConstraints(vector<GeomConstraint *>
       os << "  <Value>";
       os << constraintValue;
       os << "  </Value>" << endl;
+    }
+
+    if (!isRestraint && constraint->getScanSteps() > 0) {
+      os << "  <Scan steps=\"" << constraint->getScanSteps() << "\" step=\""
+         << constraint->getScanStep() << "\"/>" << endl;
     }
 
     if (isRestraint) {

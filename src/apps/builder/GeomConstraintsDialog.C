@@ -18,6 +18,9 @@
 
 #include "Builder.H"
 #include "GeomConstraintsDialog.H"
+#include <wx/checkbox.h>
+#include <wx/spinctrl.h>
+#include <wx/textctrl.h>
 
 using std::string;
 using std::vector;
@@ -393,13 +396,57 @@ void GeomConstraintsDialog::editRow(long row)
   GeomRestraint *r = dynamic_cast<GeomRestraint*>(c);
 
   const bool length = c->getNumAtoms() == 2;
-  wxTextEntryDialog d(this, length ? "Bond length (Angstrom):"
-                                   : "Angle or torsion (degrees):",
-                      "Edit Value", wxString::Format("%g", c->getConstraintValue()));
+  const wxString unit = length ? "Angstrom" : "degrees";
+  wxDialog d(this, wxID_ANY, "Edit Value");
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  wxFlexGridSizer *grid = new wxFlexGridSizer(2, 5, 8);
+  wxTextCtrl *val = new wxTextCtrl(&d, wxID_ANY,
+                                   wxString::Format("%g", c->getConstraintValue()));
+  grid->Add(new wxStaticText(&d, wxID_ANY, length ? "Bond length (Angstrom):"
+                                          : "Angle or torsion (degrees):"),
+            0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(val, 0, wxEXPAND);
+  wxCheckBox *scan = nullptr;
+  wxSpinCtrl *steps = nullptr;
+  wxTextCtrl *step = nullptr;
+  if (!r) {
+    scan = new wxCheckBox(&d, wxID_ANY, "Scan: step this value, relaxing the rest");
+    scan->SetValue(c->getScanSteps() > 0);
+    steps = new wxSpinCtrl(&d, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
+                           wxSP_ARROW_KEYS, 1, 500,
+                           c->getScanSteps() > 0 ? c->getScanSteps() : 10);
+    step = new wxTextCtrl(&d, wxID_ANY,
+                          wxString::Format("%g", c->getScanStep() != 0.0
+                                           ? c->getScanStep() : (length ? 0.1 : 10.0)));
+    grid->Add(scan, 0, wxALIGN_CENTER_VERTICAL);
+    grid->AddSpacer(0);
+    grid->Add(new wxStaticText(&d, wxID_ANY, "Steps:"), 0, wxALIGN_CENTER_VERTICAL);
+    grid->Add(steps, 0, wxEXPAND);
+    grid->Add(new wxStaticText(&d, wxID_ANY, "Step size (" + unit + "):"),
+              0, wxALIGN_CENTER_VERTICAL);
+    grid->Add(step, 0, wxEXPAND);
+    auto enable = [=](wxCommandEvent&) {
+      steps->Enable(scan->GetValue());
+      step->Enable(scan->GetValue());
+    };
+    scan->Bind(wxEVT_CHECKBOX, enable);
+    steps->Enable(scan->GetValue());
+    step->Enable(scan->GetValue());
+  }
+  top->Add(grid, 0, wxALL | wxEXPAND, 10);
+  top->Add(d.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
+  d.SetSizerAndFit(top);
   if (d.ShowModal() != wxID_OK) return;
   double v;
-  if (!d.GetValue().ToDouble(&v)) return;
+  if (!val->GetValue().ToDouble(&v)) return;
   c->setConstraintValue(v);
+  if (scan) {
+    double sv = 0.0;
+    if (scan->GetValue() && step->GetValue().ToDouble(&sv) && sv != 0.0)
+      c->setScan(steps->GetValue(), sv);
+    else
+      c->setScan(0, 0.0);
+  }
 
   if (r) {
     wxTextEntryDialog k(this, "Spring constant:", "Edit Value",

@@ -1889,6 +1889,16 @@ add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)
 
+# tests/geomconstraint (#393): the scan setting survives the constraint XML.
+add_executable(scan_xml_test tests/geomconstraint/scan_xml_test.C)
+target_link_libraries(scan_xml_test PRIVATE
+  "$<LINK_GROUP:RESCAN,eccexml;eccetdat;ecceutil>" ${XercesC_LIBRARIES})
+add_test(NAME scan_xml COMMAND scan_xml_test)
+set_tests_properties(scan_xml PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+add_test(NAME gaussian_scan_decks
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_scan/run_tests.py)
+
 # tests/dummy_atoms (#298): dummy atom X is not an element for basis/formula.
 add_executable(dummy_fragment_test tests/dummy_atoms/dummy_fragment_test.C)
 target_link_libraries(dummy_fragment_test PRIVATE eccetdat ecceutil)

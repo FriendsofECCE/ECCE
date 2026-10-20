@@ -136,6 +136,8 @@ GeomConstraint& GeomConstraint::operator=(const GeomConstraint& rhs)
    if (this != &rhs) {
       p_atoms = rhs.p_atoms;
       setConstraintValue( rhs.getConstraintValue() );
+      p_scanSteps = rhs.p_scanSteps;
+      p_scanStep = rhs.p_scanStep;
    }
    return *this;
 }

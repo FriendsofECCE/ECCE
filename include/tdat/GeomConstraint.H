@@ -55,6 +55,12 @@ class GeomConstraint
 
     void recomputeConstraintValue();
 
+    // Relaxed scan: scanSteps > 0 makes the constraint the scan coordinate,
+    // stepped by scanStep (Angstrom or degrees) from the constraint value.
+    void setScan(int steps, double step) { p_scanSteps = steps; p_scanStep = step; }
+    int    getScanSteps() const { return p_scanSteps; }
+    double getScanStep() const { return p_scanStep; }
+
   protected:
 
     /**
@@ -65,6 +71,9 @@ class GeomConstraint
 
     /** value of constraint parameter */
     double p_constraintValue;
+
+    int p_scanSteps = 0;
+    double p_scanStep = 0.0;
 
 
 };

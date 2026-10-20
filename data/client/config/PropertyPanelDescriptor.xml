@@ -309,6 +309,14 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Relaxed Scan</name>
+    <group>Geometry</group>
+    <class>ScanPanel</class>
+    <consumer>true</consumer>
+    <property name="SCANCOORD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Vibrational Frequencies</name>
     <group>Vibrations</group>
     <class>NModePanel</class>

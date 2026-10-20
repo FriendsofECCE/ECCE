@@ -116,6 +116,7 @@
 #include "dsm/ChemistryTask.H"
 #include "wxgui/SliderCombo.H"
 #include "NModePanel.H"
+#include "ScanPanel.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -753,6 +754,22 @@ void Builder::runBuilderScript(const std::string& file)
                                                               : VIB_IR;
           fprintf(stderr, "BUILDER: spectrumcsv %s\n",
                   nm->exportSpectrumCsv(wxString::FromUTF8(w[1].c_str()), kind)
+                      ? "ok" : "failed");
+        }
+      } else if (w[0] == "scancsv" && w.size() >= 2) {
+        //  scancsv <path> [kcal]: the Relaxed Scan panel's Export .csv
+        //  (#393) without the file dialog.
+        ScanPanel *sp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
+        if (!sp) {
+          outcome = "no Relaxed Scan panel";
+        } else {
+          fprintf(stderr, "BUILDER: scancsv points=%d %s\n", sp->points(),
+                  sp->exportCsv(wxString::FromUTF8(w[1].c_str()),
+                                w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
         }
       } else if (w[0] == "overlay") {
