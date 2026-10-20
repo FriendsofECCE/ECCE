@@ -939,6 +939,16 @@ void WxLauncher::refreshRemoteSection()
         if (wxStaticText *st = wxDynamicCast(n->GetData(), wxStaticText))
             if (st->GetLabel() == "*")
                 st->Show(!hide);
+
+    // Nothing is marked required for a local job, so neither is the key.
+    if (wxWindow *key = FindWindow(ID_STATIC_WXLAUNCHER_REQUIREDFIELDSKEY))
+        if (wxSizer *row = key->GetContainingSizer())
+            for (size_t i = 0; i < row->GetItemCount(); i++)
+                if (wxStaticText *st = wxDynamicCast(row->GetItem(i)->GetWindow(), wxStaticText))
+                    if (st == key)   // emptied, not hidden: it pushes Launch right
+                        st->SetLabel(hide ? "" : "Required value");
+                    else if (st->GetLabel() == "*")
+                        st->Show(!hide);
 }
 
 
