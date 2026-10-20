@@ -119,6 +119,13 @@ int LauncherScript::runCommand(const vector<string>& w)
         if (!p_frame->selectMachine(w[1]))
             fail("machine " + w[1] + ": not in the list");
     }
+    else if (cmd == "pick" && n == 2)
+    {
+        if (!p_frame->pickMachine(w[1]))
+            fail("pick " + w[1] + ": not in the list");
+    }
+    else if (cmd == "editable" && n == 2)
+        p_frame->hookEditAllowed(w[1] == "1");
     else if (cmd == "queue" && n == 2)
     {
         if (!p_frame->selectQueue(w[1]))

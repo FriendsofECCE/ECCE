@@ -41,6 +41,12 @@ class ewxChoice : public wxChoice, public ewxStyledWindow
     virtual void SetEditable(bool editable);
     virtual bool IsEditable();
 
+    virtual void SetSelection(int n) wxOVERRIDE;
+    // The popup changes the shown entry even while the custom disabled
+    // style eats the event; the disabler puts the last accepted one back.
+    void noteSelection();
+    void restoreSelection();
+
   protected:
     bool Create();
 
@@ -52,6 +58,7 @@ class ewxChoice : public wxChoice, public ewxStyledWindow
     bool p_editable;
     ewxDisabler *p_disabler;
     int p_explicitWidth;
+    wxString p_accepted;
 };
 
 #endif

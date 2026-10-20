@@ -3257,6 +3257,25 @@ bool WxLauncher::selectMachine(const string& refname)
 }
 
 
+/**
+ *  A user's pick: the popup changes the shown entry, then the event goes
+ *  the choice's own way, through its disabler, as from the GUI.
+ */
+bool WxLauncher::pickMachine(const string& refname)
+{
+    int n = p_machinesChoice->FindString(refname);
+    if (n < 0)
+        return false;
+    p_machinesChoice->wxChoice::SetSelection(n);
+    wxCommandEvent ev(wxEVT_CHOICE, p_machinesChoice->GetId());
+    ev.SetEventObject(p_machinesChoice);
+    ev.SetInt(n);
+    ev.SetString(refname);
+    p_machinesChoice->GetEventHandler()->ProcessEvent(ev);
+    return true;
+}
+
+
 bool WxLauncher::clickMachineSettings()
 {
     wxWindow* b = FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS);

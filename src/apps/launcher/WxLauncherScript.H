@@ -9,6 +9,9 @@
  *
  *  Commands, one per line ('#' starts a comment, values may be quoted):
  *    machine NAME | queue NAME    choose, as the drop-downs do
+ *    pick NAME             choose a machine through the choice's own event
+ *                          path (a read-only Launcher must not take it)
+ *    editable 0|1          as a calculation in the Ready state (1) or not
  *    rundir PATH           fill the Run Directory field
  *    procs N               set the processors, as typed into the field
     click advanced        the Advanced fold button

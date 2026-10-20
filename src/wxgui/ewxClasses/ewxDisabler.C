@@ -8,10 +8,11 @@ using namespace std;
 // 
 
 #include "wxgui/ewxDisabler.H"
+#include "wxgui/ewxChoice.H"
 
 // TODO add other handlers here
 BEGIN_EVENT_TABLE(ewxDisabler, wxEvtHandler)
-    EVT_CHOICE( wxID_ANY, ewxDisabler::filter)
+    EVT_CHOICE( wxID_ANY, ewxDisabler::filterChoice)
     EVT_BUTTON( wxID_ANY, ewxDisabler::filter)
     EVT_CHECKBOX( wxID_ANY, ewxDisabler::filter)
     EVT_SPINCTRL( wxID_ANY, ewxDisabler::filterSpin)
@@ -46,6 +47,16 @@ bool ewxDisabler::getEnabled() const
 void ewxDisabler::filter( wxCommandEvent& event )
 {
    if (p_isEnabled) event.Skip();
+}
+void ewxDisabler::filterChoice( wxCommandEvent& event )
+{
+   ewxChoice *c = dynamic_cast<ewxChoice *>(event.GetEventObject());
+   if (p_isEnabled) {
+      if (c) c->noteSelection();
+      event.Skip();
+   } else if (c) {
+      c->restoreSelection();
+   }
 }
 void ewxDisabler::filterMouse( wxMouseEvent& event )
 {
