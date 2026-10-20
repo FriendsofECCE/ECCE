@@ -25,6 +25,7 @@
 
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
+#include <wx/dcmemory.h>
 #include <wx/panel.h>
 #include <wx/settings.h>
 
@@ -157,9 +158,17 @@ class XYPlotCanvas : public wxPanel
     int selectedCurve() const { return p_selCurve; }
     int selectedIndex() const { return p_selIndex; }
 
-    /** Where a point is drawn, from the last paint; false if off screen. */
-    bool pointPosition(int curve, int index, wxPoint *at) const
+    /**
+     * Where a point is drawn at the current size; false if off screen.
+     * Lays the plot out itself, so it works before the first paint.
+     */
+    bool pointPosition(int curve, int index, wxPoint *at)
     {
+      const wxSize size = GetClientSize();
+      if (size.x < 10 || size.y < 10) return false;
+      wxBitmap bmp(size.x, size.y);
+      wxMemoryDC dc(bmp);
+      paintOnto(dc, size);
       if (!pointOk(curve, index) || !p_laidOut) return false;
       *at = wxPoint(xOf(p_curves[curve].x[index]), yOf(p_curves[curve].y[index]));
       return p_plot.Contains(*at);
