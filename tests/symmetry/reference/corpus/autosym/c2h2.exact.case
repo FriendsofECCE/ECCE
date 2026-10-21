@@ -1,0 +1,8 @@
+# c2h2, nominal group Dinfh, exact
+program autosym
+threshold 0.01
+atoms
+H 0.000000 0.000000 -1.660000
+C 0.000000 0.000000 -0.600000
+C 0.000000 0.000000 0.600000
+H 0.000000 0.000000 1.660000

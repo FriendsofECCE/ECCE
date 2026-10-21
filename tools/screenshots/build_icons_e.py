@@ -393,35 +393,32 @@ def textcolor(i):
 
 @icon
 def periodic(i):
-    # 18 columns x 7 periods + detached f-block, square cells, canvas 32 wide
-    c = 1.700
-    ox, oy = (32 - 18 * c) / 2, 6.500
-    pal = {"s": ("#ff9a8a", "#d83a2a"), "p": ("#ffe070", "#d49a00"),
-           "d": ("#8cc4ff", "#2a6ad0"), "f": ("#90e8a8", "#1e9a48")}
-    def cell(col, row, k, dy=0):
-        x, y = ox + col * c, oy + row * c + dy
+    #  A simplified table, 10 columns x 4 periods and a detached f row, with
+    #  cells of ~2 px at 22 px: the 18-column original blurred to grey.
+    c, gap = 2.800, .5
+    ox, oy = (32 - 10 * c) / 2, 7.200
+    pal = {"s": ("#ff7a66", "#c82010"), "p": ("#ffd040", "#c88400"),
+           "d": ("#5aa8ff", "#1450c0"), "f": ("#58d880", "#10802c")}
+    cells = []
+    for r in range(4):
+        for col in range(10):
+            if r == 0 and 0 < col < 9:
+                continue
+            if r in (1, 2) and 1 < col < 7:
+                continue
+            k = "s" if col < 2 else ("d" if col < 7 else "p")
+            if r == 0:
+                k = "s" if col == 0 else "p"
+            cells.append((col, r, k, 0))
+    for col in range(2, 9):
+        cells.append((col, 4, "f", 1.0))
+    i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="1" fill="#1c2433" stroke="#1c2433" stroke-width=".8"/>'
+          % (ox - .6, oy - .6, 10 * c + 1.2, 5 * c + 1.0 + 1.2))
+    for col, r, k, dy in cells:
+        x, y = ox + col * c, oy + r * c + dy
         g = i.lin(0, y, 0, y + c, (0, pal[k][0]), (1, pal[k][1]))
-        i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>' % (x + .1, y + .1, c - .2, c - .2, g))
-    for r in range(7):
-        for col in range(18):
-            if r == 0 and 0 < col < 17:
-                continue
-            if r in (1, 2) and 1 < col < 12:
-                continue
-            if col in (0, 1):
-                k = "s"
-            elif col == 17 and r == 0 or (col >= 12):
-                k = "p" if not (r == 0) else "s"
-            else:
-                k = "d"
-            if r == 0 and col == 17:
-                k = "p"
-            if r >= 5 and col == 2:
-                k = "f"
-            cell(col, r, k)
-    for r in (0, 1):
-        for col in range(14):
-            cell(col + 2.5 - 0.5 + 0, 7 + r, "f", 0.8)
+        i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>'
+              % (x + gap / 2, y + gap / 2, c - gap, c - gap, g))
 
 
 @icon
@@ -429,6 +426,168 @@ def element(i):
     i.shadow(16, 30, 11, 1.4, .2)
     i.sphere(16, 16, 12, "#f4f4f6", "#9096a2", "#40454f", rim="#30343c")
 
+
+#  Manipulator and Measure toolbars (Classic ECCE sphere22/rotation22 and
+#  measure_*): candidates, not wired in until reviewed.
+def red_x(i):
+    for d in ("M5 5L27 27", "M27 5L5 27"):
+        i.add('<path d="%s" stroke="#7a0000" stroke-width="3.6" stroke-linecap="round"/>' % d)
+        i.add('<path d="%s" stroke="#ff3a2a" stroke-width="2.2" stroke-linecap="round"/>' % d)
+
+
+def mesh_sphere(i):
+    i.shadow(16, 29.5, 10, 1.3, .2)
+    i.sphere(16, 16, 12, "#eef4ee", "#9cb0a0", "#3a4a40", opacity=.9, rim="#24302a")
+    for ry in (12, 7.5, 3):
+        i.add('<ellipse cx="16" cy="16" rx="%s" ry="12" fill="none" stroke="#1e5a32" '
+              'stroke-width=".7" stroke-opacity=".8"/>' % ry)
+    for dy, rx in ((0, 12), (-6.5, 10.1), (6.5, 10.1)):
+        i.add('<ellipse cx="16" cy="%s" rx="%s" ry="%s" fill="none" stroke="#1e5a32" '
+              'stroke-width=".7" stroke-opacity=".8"/>' % (16 + dy, rx, rx * .28))
+
+
+@icon
+def manip_sphere(i):
+    mesh_sphere(i)
+
+
+@icon
+def manip_nosphere(i):
+    mesh_sphere(i)
+    red_x(i)
+
+
+def wheel(i):
+    g = i.lin(0, 15, 0, 17, (0, "#c8ccd4"), (1, "#5a606c"))
+    i.add('<path d="M3 16H29" stroke="#3a3e48" stroke-width="2.4" stroke-linecap="round"/>')
+    i.add('<path d="M3 16H29" stroke="%s" stroke-width="1.2" stroke-linecap="round"/>' % g)
+    i.sphere(5.5, 16, 3.3, "#ffffff", "#a8acb4", "#4a4e58", rim="#30343c")
+    i.sphere(26.5, 16, 3.3, "#ffffff", "#a8acb4", "#4a4e58", rim="#30343c")
+    i.add('<ellipse cx="16" cy="16" rx="5" ry="13" fill="none" stroke="#1a1c22" stroke-width="2.6"/>')
+    i.add('<ellipse cx="16" cy="16" rx="5" ry="13" fill="none" stroke="#7a808c" stroke-width="1.1"/>')
+    i.add('<path d="M20.4 9.5l1.8 -3.6l1 4z" fill="#1a1c22"/>')
+    i.sphere(16, 16, 2.4, "#ffffff", "#a8acb4", "#4a4e58", rim="#30343c")
+
+
+@icon
+def manip_wheel(i):
+    wheel(i)
+
+
+@icon
+def manip_nowheel(i):
+    wheel(i)
+    red_x(i)
+
+
+def ink(i):
+    return i.lin(0, 4, 0, 28, (0, "#4a4e58"), (1, "#0c0e14"))
+
+
+def length_glyph(i, y=16, x0=3, x1=29, h=6):
+    g = ink(i)
+    i.add('<path d="M%s %sv%sM%s %sv%s" stroke="#0c0e14" stroke-width="1.6"/>'
+          % (x0, y - h / 2, h, x1, y - h / 2, h))
+    i.add('<path d="M%s %sH%s" stroke="%s" stroke-width="2"/>' % (x0 + 4, y, x1 - 4, g))
+    for xa, sgn in ((x0 + .8, 1), (x1 - .8, -1)):
+        i.add('<path d="M%s %sl%s %sv%sz" fill="%s" stroke="#0c0e14" stroke-width=".6" '
+              'stroke-linejoin="round"/>' % (xa, y, 5.5 * sgn, -3.2, 6.4, g))
+
+
+def stick(i, x1, y1, x2, y2, w=2.6, s=1.0):
+    g = i.lin(x1, y1, x2, y2, (0, "#e8eaee"), (1, "#7c828e"))
+    i.add('<path d="M%s %sL%s %s" stroke="#30343c" stroke-width="%s" stroke-linecap="round"/>'
+          % (x1, y1, x2, y2, (w + 1.2) * s))
+    i.add('<path d="M%s %sL%s %s" stroke="%s" stroke-width="%s" stroke-linecap="round"/>'
+          % (x1, y1, x2, y2, g, w * s))
+
+
+def oxygen(i, x, y, r):
+    i.sphere(x, y, r, "#ffb0a8", "#e02818", "#7a0a04", rim="#4a0602")
+
+
+def hydrogen(i, x, y, r):
+    i.sphere(x, y, r, "#ffffff", "#d8dade", "#7a7e88", rim="#4a4e58")
+
+
+def distance_glyph(i, s=1.0, ox=0, oy=0):
+    #  Two atoms with a double-headed arrow between them.
+    P = lambda x, y: (ox + x * s, oy + y * s)
+    A, B = P(4.5, 16), P(27.5, 16)
+    oxygen(i, A[0], A[1], 4 * s)
+    oxygen(i, B[0], B[1], 4 * s)
+    x0, x1, y = A[0] + 4.8 * s, B[0] - 4.8 * s, A[1]
+    g = i.lin(0, y - 2, 0, y + 2, (0, "#5a8cf0"), (1, "#0c3fa8"))
+    i.add('<path d="M%.2f %.2fH%.2f" stroke="%s" stroke-width="%s"/>'
+          % (x0 + 3 * s, y, x1 - 3 * s, g, 1.8 * s))
+    for xa, sgn in ((x0, 1), (x1, -1)):
+        i.add('<path d="M%.2f %.2fl%.2f %.2fv%.2fz" fill="%s" stroke="#0c2c78" '
+              'stroke-width="%s" stroke-linejoin="round"/>'
+              % (xa, y, 3.6 * sgn * s, -2.6 * s, 5.2 * s, g, .5 * s))
+
+
+def angle_glyph(i, s=1.0, ox=0, oy=0):
+    #  Water with the H-O-H angle marked.
+    P = lambda x, y: (ox + x * s, oy + y * s)
+    O, H1, H2 = P(16, 9), P(5, 25), P(27, 25)
+    stick(i, O[0], O[1], H1[0], H1[1], s=s)
+    stick(i, O[0], O[1], H2[0], H2[1], s=s)
+    R = 9 * s
+    import math
+    a1 = math.atan2(H1[1] - O[1], H1[0] - O[0])
+    a2 = math.atan2(H2[1] - O[1], H2[0] - O[0])
+    p1 = (O[0] + R * math.cos(a1), O[1] + R * math.sin(a1))
+    p2 = (O[0] + R * math.cos(a2), O[1] + R * math.sin(a2))
+    i.add('<path d="M%.2f %.2fA%.2f %.2f 0 0 0 %.2f %.2f" fill="none" stroke="#1848c8" '
+          'stroke-width="%s" stroke-linecap="round"/>' % (p1 + (R, R) + p2 + (1.8 * s,)))
+    hydrogen(i, H1[0], H1[1], 3.6 * s)
+    hydrogen(i, H2[0], H2[1], 3.6 * s)
+    oxygen(i, O[0], O[1], 5 * s)
+
+
+def torsion_glyph(i, s=1.0, ox=0, oy=0):
+    #  H2O2 along its O-O bond: one H up in front, one down behind, and the
+    #  dihedral between the two O-H bonds marked.
+    P = lambda x, y: (ox + x * s, oy + y * s)
+    O1, O2 = P(11, 17), P(21, 15)
+    H1, H2 = P(6, 5), P(27, 26)
+    stick(i, O2[0], O2[1], H2[0], H2[1], s=s)       # behind
+    hydrogen(i, H2[0], H2[1], 3.2 * s)
+    stick(i, O1[0], O1[1], O2[0], O2[1], s=s)
+    oxygen(i, O2[0], O2[1], 4.6 * s)
+    stick(i, O1[0], O1[1], H1[0], H1[1], s=s)
+    oxygen(i, O1[0], O1[1], 4.6 * s)
+    hydrogen(i, H1[0], H1[1], 3.6 * s)
+    a, b = P(8.5, 10.5), P(25, 22.5)
+    i.add('<path d="M%.2f %.2fC%.2f %.2f %.2f %.2f %.2f %.2f" fill="none" stroke="#1848c8" '
+          'stroke-width="%s" stroke-linecap="round"/>'
+          % (a + P(20, 2) + P(30, 12) + b + (1.6 * s,)))
+    #  arrowhead at b
+    i.add('<path d="M%.2f %.2fl%.2f %.2fl%.2f %.2fz" fill="#1848c8"/>'
+          % (b[0] + 1.2 * s, b[1] + 1.8 * s, -3.6 * s, -0.6 * s, 2.2 * s, -3 * s))
+
+
+@icon
+def measure_length(i):
+    distance_glyph(i)
+
+
+@icon
+def measure_angle(i):
+    angle_glyph(i)
+
+
+@icon
+def measure_torsion(i):
+    torsion_glyph(i)
+
+
+@icon
+def measure_clear(i):
+    distance_glyph(i, .55, 7, -2)
+    angle_glyph(i, .5, 1, 13)
+    torsion_glyph(i, .5, 15, 13)
+    red_x(i)
 
 def build():
     os.makedirs(OUT, exist_ok=True)

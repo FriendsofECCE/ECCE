@@ -28,6 +28,28 @@ Frequency=last
 End=Largest change from initial coordinates
 [END]
 
+# Relaxed scan structures (#410): needs the whole log, since a point's
+# converged geometry is only known from the "Optimization completed" after it.
+[SCANGEOM]
+Script=gaussian-16.scangeom
+File=g16.g16out
+Begin=g16.g16out
+[END]
+
+[IRCCOORD][IRCENERGY]
+Script=gaussian-16.irc
+Begin=Energies reported relative to the TS energy
+Frequency=last
+End=Total number of points
+[END]
+
+[IRCGEOM]
+Script=gaussian-16.ircgeom
+Begin=CURRENT STRUCTURE
+Frequency=all
+End=CHANGE IN THE REACTION COORDINATE
+[END]
+
 [GEOMTRACE]
 Script=gaussian-16.geomtrace
 Begin=Input orientation\:
@@ -275,6 +297,17 @@ Begin= I\. ATTRACTORS
 Skip=0
 Frequency=last
 End=^ Total\s+\d+\.\d+\s+\d+\.\d+
+[END]
+
+# TD-DFT/CIS excited states.  One block per geometry, so an Opt+TD job
+# prints several; the last is the converged geometry.  End is the line that
+# follows the last root's transitions in every TD run.
+[EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS]
+Script=gaussian-16.excited
+Begin=Excitation energies and oscillator strengths
+Skip=0
+Frequency=last
+End=SavETr:
 [END]
 
 [NPA]

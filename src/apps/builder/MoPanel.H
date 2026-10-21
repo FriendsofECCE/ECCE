@@ -45,6 +45,8 @@ class MoPanel : public MoGUI,
   static const wxWindowID ID_SLIDER;
 
   public:
+    //  The orbital table with a dozen rows, the composition and controls.
+    virtual int openingHeight() const { return 460; }
     MoPanel();
     MoPanel(IPropCalculation *calculation,
             wxWindow *parent, wxWindowID id=wxID_ANY,

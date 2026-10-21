@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of co2, group D4H
+program genmol
+threshold 0.01
+group D4H
+atoms
+C 0.000000 0.000000 0.000000
+O 0.000000 0.000000 -1.160000

@@ -1,0 +1,1969 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    g16-hcn-irc
+desc:    gaussian-16.desc
+fixture: gaussian-16/hcn_irc.log (9621 lines)
+args:    '.' 'IRC' 'SCF' 'RHF' '0'
+
+[ORBOCC1][ORBOCCBETA]  Script=gaussian-16.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=Orbital symmetries
+  End=Condensed to atoms
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=3285 fed=11 rc=0 first-fed=' Orbital symmetries:'
+    key: ORBOCC
+      size: 20
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+      values: 2 2 2 2 2 2 2 0 0 0 0 0 0 0 0 0 0 0 0 0
+    key: ORBSYM
+      size: 20
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+      values: A' A' A' A' A' A" A' A' A" A' A' A" A' A' A' A' A" A' A' A'
+
+[IRCCOORD][IRCENERGY]  Script=gaussian-16.irc  Freq=last  Skip=-  Lines=-
+  Begin=Energies reported relative to the TS energy
+  End=Total number of points
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=9497 fed=25 rc=0 first-fed=' Energies reported relative to the TS energy of         -92.246043'
+    key: IRCCOORD
+      size: 17
+      values: -0.86757 -0.75913 -0.65068 -0.54224 -0.43379 -0.32535 -0.21690 -0.10847 0.00000 0.10847 0.21690 0.32533 0.43377 0.54221 0.65065 0.75910 0.86754
+      units: sqrt(amu)*bohr
+    key: IRCENERGY
+      size: 17
+      values: -92.261743 -92.258593 -92.255673 -92.253023 -92.250693 -92.248763 -92.247293 -92.246363 -92.246043 -92.246383 -92.247403 -92.249123 -92.251513 -92.254543 -92.258163 -92.262293 -92.266863
+      units: Hartree
+
+[IRCGEOM]  Script=gaussian-16.ircgeom  Freq=all  Skip=-  Lines=-
+  Begin=CURRENT STRUCTURE
+  End=CHANGE IN THE REACTION COORDINATE
+  begins=16 delivered=16 buffered_away=0
+  block 1: begin-line=4607 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.614494 0.116817 0.000000 0.527857 -0.183278 -0.000000 -0.017565 1.155608 0.000000
+      units: Hartree
+  block 2: begin-line=4937 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.610609 0.120040 -0.000000 0.528105 -0.187226 0.000000 -0.067301 1.172104 0.000000
+      units: Hartree
+  block 3: begin-line=5270 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.606604 0.123320 0.000000 0.528269 -0.191127 0.000000 -0.117356 1.187289 -0.000000
+      units: Hartree
+  block 4: begin-line=5603 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.602484 0.126666 0.000000 0.528357 -0.194982 -0.000000 -0.167717 1.201040 0.000000
+      units: Hartree
+  block 5: begin-line=5936 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.598253 0.130091 -0.000000 0.528369 -0.198791 -0.000000 -0.218362 1.213206 0.000000
+      units: Hartree
+  block 6: begin-line=6256 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.593917 0.133606 -0.000000 0.528310 -0.202555 -0.000000 -0.269255 1.223674 0.000000
+      units: Hartree
+  block 7: begin-line=6576 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.589485 0.137220 -0.000000 0.528183 -0.206274 -0.000000 -0.320348 1.232346 0.000000
+      units: Hartree
+  block 8: begin-line=6896 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.584968 0.140943 -0.000000 0.527993 -0.209951 -0.000000 -0.371582 1.239145 0.000000
+      units: Hartree
+  block 9: begin-line=7248 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.621965 0.110480 0.000000 0.527150 -0.175275 -0.000000 0.081218 1.119863 0.000000
+      units: Hartree
+  block 10: begin-line=7565 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.625563 0.107326 0.000000 0.526698 -0.171229 0.000000 0.130365 1.101188 -0.000000
+      units: Hartree
+  block 11: begin-line=7882 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.629077 0.104163 -0.000000 0.526175 -0.167162 -0.000000 0.179485 1.082347 0.000000
+      units: Hartree
+  block 12: begin-line=8199 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.632528 0.100970 -0.000000 0.525587 -0.163094 -0.000000 0.228748 1.063831 0.000000
+      units: Hartree
+  block 13: begin-line=8519 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.635929 0.097729 -0.000000 0.524935 -0.159041 -0.000000 0.278314 1.046115 0.000000
+      units: Hartree
+  block 14: begin-line=8839 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.639289 0.094425 -0.000000 0.524217 -0.155021 -0.000000 0.328301 1.029595 0.000000
+      units: Hartree
+  block 15: begin-line=9159 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.642602 0.091055 -0.000000 0.523427 -0.151046 -0.000000 0.378749 1.014476 0.000000
+      units: Hartree
+  block 16: begin-line=9478 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.645857 0.087625 -0.000000 0.522559 -0.147114 -0.000000 0.429600 1.000677 0.000000
+      units: Hartree
+
+[GEOMTRACE]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+  Begin=Input orientation\:
+  End=--------------------------------------
+  begins=27 delivered=27 buffered_away=0
+  block 1: begin-line=157 fed=4 rc=0 first-fed='      1          6           0        0.000000    0.000000    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.000000 1.170000 0.000000 0.000000 0.900000 1.150000 0.000000
+      units: Hartree
+  block 2: begin-line=641 fed=4 rc=0 first-fed='      1          6           0        0.052048    0.108735   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.052048 0.108735 -0.000000 1.218893 -0.071540 0.000000 0.799058 1.112805 0.000000
+      units: Hartree
+  block 3: begin-line=983 fed=4 rc=0 first-fed='      1          6           0        0.108339    0.176322   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.108339 0.176322 -0.000000 1.244300 -0.153041 0.000000 0.717361 1.126719 -0.000000
+      units: Hartree
+  block 4: begin-line=1323 fed=4 rc=0 first-fed='      1          6           0        0.053276    0.073817   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.053276 0.073817 -0.000000 1.224375 -0.124539 0.000000 0.792349 1.200722 -0.000000
+      units: Hartree
+  block 5: begin-line=1663 fed=4 rc=0 first-fed='      1          6           0        0.100385    0.141430   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.100385 0.141430 -0.000000 1.239433 -0.177182 0.000000 0.730182 1.185753 -0.000000
+      units: Hartree
+  block 6: begin-line=2002 fed=4 rc=0 first-fed='      1          6           0        0.080744    0.122166   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.080744 0.122166 -0.000000 1.234250 -0.146902 0.000000 0.755006 1.174736 -0.000000
+      units: Hartree
+  block 7: begin-line=2330 fed=4 rc=0 first-fed='      1          6           0        0.092138    0.144038   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.092138 0.144038 -0.000000 1.237743 -0.150783 0.000000 0.740118 1.156746 -0.000000
+      units: Hartree
+  block 8: begin-line=2658 fed=4 rc=0 first-fed='      1          6           0        0.091402    0.139258   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.091402 0.139258 -0.000000 1.237178 -0.154023 0.000000 0.741420 1.164765 -0.000000
+      units: Hartree
+  block 9: begin-line=2959 fed=4 rc=0 first-fed='      1          6           0        0.091309    0.139462   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.091309 0.139462 -0.000000 1.237143 -0.153470 0.000000 0.741548 1.164007 -0.000000
+      units: Hartree
+  block 10: begin-line=3244 fed=4 rc=0 first-fed='      1          6           0        0.091309    0.139462   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.091309 0.139462 -0.000000 1.237143 -0.153470 0.000000 0.741548 1.164007 -0.000000
+      units: Hartree
+  block 11: begin-line=4254 fed=4 rc=0 first-fed='      1          6           0       -0.614556    0.116797   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.614556 0.116797 -0.000000 0.527900 -0.183298 0.000000 -0.017427 1.156127 -0.000000
+      units: Hartree
+  block 12: begin-line=4629 fed=4 rc=0 first-fed='      1          6           0       -0.610687    0.120002    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.610687 0.120002 0.000000 0.528158 -0.187254 -0.000000 -0.067087 1.172942 0.000000
+      units: Hartree
+  block 13: begin-line=4959 fed=4 rc=0 first-fed='      1          6           0       -0.606663    0.123285   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.606663 0.123285 -0.000000 0.528308 -0.191150 0.000000 -0.117187 1.188023 0.000000
+      units: Hartree
+  block 14: begin-line=5292 fed=4 rc=0 first-fed='      1          6           0       -0.602529    0.126631    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.602529 0.126631 0.000000 0.528386 -0.195001 -0.000000 -0.167582 1.201716 -0.000000
+      units: Hartree
+  block 15: begin-line=5625 fed=4 rc=0 first-fed='      1          6           0       -0.598288    0.130058   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.598288 0.130058 -0.000000 0.528393 -0.198807 -0.000000 -0.218260 1.213822 0.000000
+      units: Hartree
+  block 16: begin-line=5958 fed=4 rc=0 first-fed='      1          6           0       -0.593945    0.133573   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.593945 0.133573 -0.000000 0.528330 -0.202568 -0.000000 -0.269181 1.224242 0.000000
+      units: Hartree
+  block 17: begin-line=6278 fed=4 rc=0 first-fed='      1          6           0       -0.589507    0.137188   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.589507 0.137188 -0.000000 0.528199 -0.206285 -0.000000 -0.320298 1.232873 0.000000
+      units: Hartree
+  block 18: begin-line=6598 fed=4 rc=0 first-fed='      1          6           0       -0.584984    0.140912   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.584984 0.140912 -0.000000 0.528006 -0.209961 -0.000000 -0.371553 1.239638 0.000000
+      units: Hartree
+  block 19: begin-line=6921 fed=4 rc=0 first-fed='      1          6           0       -0.622022    0.110473   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.622022 0.110473 -0.000000 0.527191 -0.175296 0.000000 0.081328 1.120233 -0.000000
+      units: Hartree
+  block 20: begin-line=7270 fed=4 rc=0 first-fed='      1          6           0       -0.625627    0.107325    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.625627 0.107325 0.000000 0.526746 -0.171250 -0.000000 0.130455 1.101499 0.000000
+      units: Hartree
+  block 21: begin-line=7587 fed=4 rc=0 first-fed='      1          6           0       -0.629115    0.104173    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.629115 0.104173 0.000000 0.526209 -0.167169 0.000000 0.179467 1.082331 -0.000000
+      units: Hartree
+  block 22: begin-line=7904 fed=4 rc=0 first-fed='      1          6           0       -0.632550    0.100989   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.632550 0.100989 -0.000000 0.525614 -0.163090 -0.000000 0.228644 1.063564 0.000000
+      units: Hartree
+  block 23: begin-line=8221 fed=4 rc=0 first-fed='      1          6           0       -0.635944    0.097751   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.635944 0.097751 -0.000000 0.524958 -0.159029 -0.000000 0.278156 1.045682 0.000000
+      units: Hartree
+  block 24: begin-line=8541 fed=4 rc=0 first-fed='      1          6           0       -0.639301    0.094447   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.639301 0.094447 -0.000000 0.524239 -0.155004 -0.000000 0.328127 1.029089 0.000000
+      units: Hartree
+  block 25: begin-line=8861 fed=4 rc=0 first-fed='      1          6           0       -0.642617    0.091074   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.642617 0.091074 -0.000000 0.523450 -0.151028 -0.000000 0.378599 1.014012 0.000000
+      units: Hartree
+  block 26: begin-line=9181 fed=4 rc=0 first-fed='      1          6           0       -0.645876    0.087638   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.645876 0.087638 -0.000000 0.522582 -0.147102 -0.000000 0.429503 1.000360 0.000000
+      units: Hartree
+  block 27: begin-line=9527 fed=4 rc=0 first-fed='      1          6           0       -0.645876    0.087638   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.645876 0.087638 -0.000000 0.522582 -0.147102 -0.000000 0.429503 1.000360 0.000000
+      units: Hartree
+
+[GEOMTRACE1]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+  Begin=Standard orientation\:
+  End=--------------------------------------
+  begins=10 delivered=10 buffered_away=0
+  block 1: begin-line=177 fed=4 rc=0 first-fed='      1          6           0        0.082143    0.649286    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.082143 0.649286 0.000000 0.082143 -0.520714 0.000000 -1.067857 -0.250714 0.000000
+      units: Hartree
+  block 2: begin-line=662 fed=4 rc=0 first-fed='      1          6           0        0.079025    0.632126    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.079025 0.632126 0.000000 0.079025 -0.548563 0.000000 -1.027330 0.047183 0.000000
+      units: Hartree
+  block 3: begin-line=1004 fed=4 rc=0 first-fed='      1          6           0        0.077314    0.614249    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.077314 0.614249 0.000000 0.077314 -0.568496 -0.000000 -1.005085 0.293979 0.000000
+      units: Hartree
+  block 4: begin-line=1344 fed=4 rc=0 first-fed='      1          6           0        0.088179    0.632496   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.088179 0.632496 -0.000000 0.088179 -0.555281 0.000000 -1.146325 0.091992 -0.000000
+      units: Hartree
+  block 5: begin-line=1684 fed=4 rc=0 first-fed='      1          6           0        0.083955    0.614613    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.083955 0.614613 0.000000 0.083955 -0.568156 -0.000000 -1.091417 0.289414 0.000000
+      units: Hartree
+  block 6: begin-line=2023 fed=4 rc=0 first-fed='      1          6           0        0.084159    0.622059   -0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.084159 0.622059 -0.000000 0.084159 -0.562412 0.000000 -1.094061 0.204529 0.000000
+      units: Hartree
+  block 7: begin-line=2351 fed=4 rc=0 first-fed='      1          6           0        0.081589    0.618262    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.081589 0.618262 0.000000 0.081589 -0.564671 -0.000000 -1.060658 0.243125 0.000000
+      units: Hartree
+  block 8: begin-line=2679 fed=4 rc=0 first-fed='      1          6           0        0.082476    0.618173    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.082476 0.618173 0.000000 0.082476 -0.564542 -0.000000 -1.072188 0.242755 -0.000000
+      units: Hartree
+  block 9: begin-line=2980 fed=4 rc=0 first-fed='      1          6           0        0.082405    0.618215    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.082405 0.618215 0.000000 0.082405 -0.564470 -0.000000 -1.071269 0.242000 0.000000
+      units: Hartree
+  block 10: begin-line=3265 fed=4 rc=0 first-fed='      1          6           0        0.082405    0.618215    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: 0.082405 0.618215 0.000000 0.082405 -0.564470 -0.000000 -1.071269 0.242000 0.000000
+      units: Hartree
+
+[EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
+  Begin=Cartesian Forces\:
+  begins=25 delivered=25 buffered_away=0
+  block 1: begin-line=570 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.063920955 RMS     0.031344116'
+    (script emitted no property)
+  block 2: begin-line=935 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.027033779 RMS     0.013175197'
+    (script emitted no property)
+  block 3: begin-line=1277 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.037642929 RMS     0.016172974'
+    (script emitted no property)
+  block 4: begin-line=1617 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.031864735 RMS     0.013709260'
+    (script emitted no property)
+  block 5: begin-line=1957 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.008428449 RMS     0.005068260'
+    (script emitted no property)
+  block 6: begin-line=2285 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.010898486 RMS     0.004508304'
+    (script emitted no property)
+  block 7: begin-line=2613 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.004624197 RMS     0.002081062'
+    (script emitted no property)
+  block 8: begin-line=2915 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.000342297 RMS     0.000196983'
+    (script emitted no property)
+  block 9: begin-line=3186 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.000036690 RMS     0.000016679'
+    (script emitted no property)
+  block 10: begin-line=4576 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.005932856 RMS     0.003558730'
+    (script emitted no property)
+  block 11: begin-line=4909 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.011917361 RMS     0.007226823'
+    (script emitted no property)
+  block 12: begin-line=5239 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.017810738 RMS     0.010889793'
+    (script emitted no property)
+  block 13: begin-line=5572 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.023322337 RMS     0.014465804'
+    (script emitted no property)
+  block 14: begin-line=5905 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.028295347 RMS     0.017845774'
+    (script emitted no property)
+  block 15: begin-line=6225 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.033043893 RMS     0.020935559'
+    (script emitted no property)
+  block 16: begin-line=6545 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.037795280 RMS     0.023658538'
+    (script emitted no property)
+  block 17: begin-line=6865 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.041862467 RMS     0.025960801'
+    (script emitted no property)
+  block 18: begin-line=7217 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.005836750 RMS     0.003264664'
+    (script emitted no property)
+  block 19: begin-line=7537 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.011160458 RMS     0.006246419'
+    (script emitted no property)
+  block 20: begin-line=7854 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.015761260 RMS     0.008867705'
+    (script emitted no property)
+  block 21: begin-line=8171 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.019607260 RMS     0.011085177'
+    (script emitted no property)
+  block 22: begin-line=8488 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.022671193 RMS     0.012911798'
+    (script emitted no property)
+  block 23: begin-line=8808 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.025051418 RMS     0.014405232'
+    (script emitted no property)
+  block 24: begin-line=9128 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.026964819 RMS     0.015654060'
+    (script emitted no property)
+  block 25: begin-line=9447 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.028670764 RMS     0.016746144'
+    (script emitted no property)
+
+[EGRADVEC]  Script=gaussian-16.egradvec  Freq=last  Skip=3  Lines=-
+  Begin=             Forces
+  End=--------------------------------------
+  begins=25 delivered=1 buffered_away=24
+  block 1: begin-line=9440 fed=4 rc=0 first-fed='      1        6          -0.020139505   -0.021865782   -0.000000000'
+    key: EGRADVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: 0.020139505 0.021865782 -0.000000000 0.006798378 -0.028670764 0.000000000 -0.026937883 0.006804982 -0.000000000
+      units: Hartree/Bohr
+
+[DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
+  Begin=Delta\-E
+  begins=266 delivered=266 buffered_away=0
+  block 1: begin-line=264 fed=1 rc=0 first-fed=' E= -92.2574981874302     Delta-E=       -0.041641792256 Rises=F Damp=F'
+    (script emitted no property)
+  block 2: begin-line=276 fed=1 rc=0 first-fed=' E= -92.2606987163637     Delta-E=       -0.003200528933 Rises=F Damp=F'
+    (script emitted no property)
+  block 3: begin-line=288 fed=1 rc=0 first-fed=' E= -92.2615443406383     Delta-E=       -0.000845624275 Rises=F Damp=F'
+    (script emitted no property)
+  block 4: begin-line=300 fed=1 rc=0 first-fed=' E= -92.2616241443197     Delta-E=       -0.000079803681 Rises=F Damp=F'
+    (script emitted no property)
+  block 5: begin-line=312 fed=1 rc=0 first-fed=' E= -92.2616310073977     Delta-E=       -0.000006863078 Rises=F Damp=F'
+    (script emitted no property)
+  block 6: begin-line=323 fed=1 rc=0 first-fed=' E= -92.2616312435832     Delta-E=       -0.000000236185 Rises=F Damp=F'
+    (script emitted no property)
+  block 7: begin-line=336 fed=1 rc=0 first-fed=' E= -92.2616312578650     Delta-E=       -0.000000014282 Rises=F Damp=F'
+    (script emitted no property)
+  block 8: begin-line=349 fed=1 rc=0 first-fed=' E= -92.2616312588828     Delta-E=       -0.000000001018 Rises=F Damp=F'
+    (script emitted no property)
+  block 9: begin-line=362 fed=1 rc=0 first-fed=' E= -92.2616312589050     Delta-E=       -0.000000000022 Rises=F Damp=F'
+    (script emitted no property)
+  block 10: begin-line=375 fed=1 rc=0 first-fed=' E= -92.2616312589079     Delta-E=       -0.000000000003 Rises=F Damp=F'
+    (script emitted no property)
+  block 11: begin-line=388 fed=1 rc=0 first-fed=' E= -92.2616312589079     Delta-E=        0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 12: begin-line=753 fed=1 rc=0 first-fed=' E= -92.2092116621312     Delta-E=        0.020182883300 Rises=F Damp=F'
+    (script emitted no property)
+  block 13: begin-line=765 fed=1 rc=0 first-fed=' E= -92.2459734727212     Delta-E=       -0.036761810590 Rises=F Damp=F'
+    (script emitted no property)
+  block 14: begin-line=776 fed=1 rc=0 first-fed=' E= -92.2481888121496     Delta-E=       -0.002215339428 Rises=F Damp=F'
+    (script emitted no property)
+  block 15: begin-line=787 fed=1 rc=0 first-fed=' E= -92.2490535899486     Delta-E=       -0.000864777799 Rises=F Damp=F'
+    (script emitted no property)
+  block 16: begin-line=798 fed=1 rc=0 first-fed=' E= -92.2491818005396     Delta-E=       -0.000128210591 Rises=F Damp=F'
+    (script emitted no property)
+  block 17: begin-line=809 fed=1 rc=0 first-fed=' E= -92.2491992718853     Delta-E=       -0.000017471346 Rises=F Damp=F'
+    (script emitted no property)
+  block 18: begin-line=822 fed=1 rc=0 first-fed=' E= -92.2492009050050     Delta-E=       -0.000001633120 Rises=F Damp=F'
+    (script emitted no property)
+  block 19: begin-line=835 fed=1 rc=0 first-fed=' E= -92.2492010070670     Delta-E=       -0.000000102062 Rises=F Damp=F'
+    (script emitted no property)
+  block 20: begin-line=848 fed=1 rc=0 first-fed=' E= -92.2492010117170     Delta-E=       -0.000000004650 Rises=F Damp=F'
+    (script emitted no property)
+  block 21: begin-line=861 fed=1 rc=0 first-fed=' E= -92.2492010122365     Delta-E=       -0.000000000520 Rises=F Damp=F'
+    (script emitted no property)
+  block 22: begin-line=874 fed=1 rc=0 first-fed=' E= -92.2492010122427     Delta-E=       -0.000000000006 Rises=F Damp=F'
+    (script emitted no property)
+  block 23: begin-line=887 fed=1 rc=0 first-fed=' E= -92.2492010122427     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 24: begin-line=1095 fed=1 rc=0 first-fed=' E= -92.2042416312735     Delta-E=        0.023746183918 Rises=F Damp=F'
+    (script emitted no property)
+  block 25: begin-line=1107 fed=1 rc=0 first-fed=' E= -92.2413282663827     Delta-E=       -0.037086635109 Rises=F Damp=F'
+    (script emitted no property)
+  block 26: begin-line=1118 fed=1 rc=0 first-fed=' E= -92.2429020042669     Delta-E=       -0.001573737884 Rises=F Damp=F'
+    (script emitted no property)
+  block 27: begin-line=1129 fed=1 rc=0 first-fed=' E= -92.2436049393713     Delta-E=       -0.000702935104 Rises=F Damp=F'
+    (script emitted no property)
+  block 28: begin-line=1140 fed=1 rc=0 first-fed=' E= -92.2437339152937     Delta-E=       -0.000128975922 Rises=F Damp=F'
+    (script emitted no property)
+  block 29: begin-line=1151 fed=1 rc=0 first-fed=' E= -92.2437488997758     Delta-E=       -0.000014984482 Rises=F Damp=F'
+    (script emitted no property)
+  block 30: begin-line=1164 fed=1 rc=0 first-fed=' E= -92.2437501044387     Delta-E=       -0.000001204663 Rises=F Damp=F'
+    (script emitted no property)
+  block 31: begin-line=1177 fed=1 rc=0 first-fed=' E= -92.2437501878794     Delta-E=       -0.000000083441 Rises=F Damp=F'
+    (script emitted no property)
+  block 32: begin-line=1190 fed=1 rc=0 first-fed=' E= -92.2437501962134     Delta-E=       -0.000000008334 Rises=F Damp=F'
+    (script emitted no property)
+  block 33: begin-line=1203 fed=1 rc=0 first-fed=' E= -92.2437501976620     Delta-E=       -0.000000001449 Rises=F Damp=F'
+    (script emitted no property)
+  block 34: begin-line=1216 fed=1 rc=0 first-fed=' E= -92.2437501976695     Delta-E=       -0.000000000007 Rises=F Damp=F'
+    (script emitted no property)
+  block 35: begin-line=1229 fed=1 rc=0 first-fed=' E= -92.2437501976696     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 36: begin-line=1435 fed=1 rc=0 first-fed=' E= -92.2000105367571     Delta-E=        0.029428471405 Rises=F Damp=F'
+    (script emitted no property)
+  block 37: begin-line=1447 fed=1 rc=0 first-fed=' E= -92.2432707316734     Delta-E=       -0.043260194916 Rises=F Damp=F'
+    (script emitted no property)
+  block 38: begin-line=1458 fed=1 rc=0 first-fed=' E= -92.2445160671452     Delta-E=       -0.001245335472 Rises=F Damp=F'
+    (script emitted no property)
+  block 39: begin-line=1469 fed=1 rc=0 first-fed=' E= -92.2449747532210     Delta-E=       -0.000458686076 Rises=F Damp=F'
+    (script emitted no property)
+  block 40: begin-line=1480 fed=1 rc=0 first-fed=' E= -92.2450556592762     Delta-E=       -0.000080906055 Rises=F Damp=F'
+    (script emitted no property)
+  block 41: begin-line=1491 fed=1 rc=0 first-fed=' E= -92.2450650217684     Delta-E=       -0.000009362492 Rises=F Damp=F'
+    (script emitted no property)
+  block 42: begin-line=1504 fed=1 rc=0 first-fed=' E= -92.2450655623359     Delta-E=       -0.000000540567 Rises=F Damp=F'
+    (script emitted no property)
+  block 43: begin-line=1517 fed=1 rc=0 first-fed=' E= -92.2450656252058     Delta-E=       -0.000000062870 Rises=F Damp=F'
+    (script emitted no property)
+  block 44: begin-line=1530 fed=1 rc=0 first-fed=' E= -92.2450656266271     Delta-E=       -0.000000001421 Rises=F Damp=F'
+    (script emitted no property)
+  block 45: begin-line=1543 fed=1 rc=0 first-fed=' E= -92.2450656266669     Delta-E=       -0.000000000040 Rises=F Damp=F'
+    (script emitted no property)
+  block 46: begin-line=1556 fed=1 rc=0 first-fed=' E= -92.2450656266768     Delta-E=       -0.000000000010 Rises=F Damp=F'
+    (script emitted no property)
+  block 47: begin-line=1569 fed=1 rc=0 first-fed=' E= -92.2450656266770     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 48: begin-line=1775 fed=1 rc=0 first-fed=' E= -92.2044421948885     Delta-E=        0.032638431816 Rises=F Damp=F'
+    (script emitted no property)
+  block 49: begin-line=1787 fed=1 rc=0 first-fed=' E= -92.2446428645670     Delta-E=       -0.040200669678 Rises=F Damp=F'
+    (script emitted no property)
+  block 50: begin-line=1798 fed=1 rc=0 first-fed=' E= -92.2456182797551     Delta-E=       -0.000975415188 Rises=F Damp=F'
+    (script emitted no property)
+  block 51: begin-line=1809 fed=1 rc=0 first-fed=' E= -92.2460450896831     Delta-E=       -0.000426809928 Rises=F Damp=F'
+    (script emitted no property)
+  block 52: begin-line=1820 fed=1 rc=0 first-fed=' E= -92.2461254827986     Delta-E=       -0.000080393116 Rises=F Damp=F'
+    (script emitted no property)
+  block 53: begin-line=1831 fed=1 rc=0 first-fed=' E= -92.2461328662483     Delta-E=       -0.000007383450 Rises=F Damp=F'
+    (script emitted no property)
+  block 54: begin-line=1844 fed=1 rc=0 first-fed=' E= -92.2461333808333     Delta-E=       -0.000000514585 Rises=F Damp=F'
+    (script emitted no property)
+  block 55: begin-line=1857 fed=1 rc=0 first-fed=' E= -92.2461334056219     Delta-E=       -0.000000024789 Rises=F Damp=F'
+    (script emitted no property)
+  block 56: begin-line=1870 fed=1 rc=0 first-fed=' E= -92.2461334075686     Delta-E=       -0.000000001947 Rises=F Damp=F'
+    (script emitted no property)
+  block 57: begin-line=1883 fed=1 rc=0 first-fed=' E= -92.2461334080919     Delta-E=       -0.000000000523 Rises=F Damp=F'
+    (script emitted no property)
+  block 58: begin-line=1896 fed=1 rc=0 first-fed=' E= -92.2461334081088     Delta-E=       -0.000000000017 Rises=F Damp=F'
+    (script emitted no property)
+  block 59: begin-line=1909 fed=1 rc=0 first-fed=' E= -92.2461334081092     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 60: begin-line=2115 fed=1 rc=0 first-fed=' E= -92.2455570287314     Delta-E=       -0.001260811372 Rises=F Damp=F'
+    (script emitted no property)
+  block 61: begin-line=2127 fed=1 rc=0 first-fed=' E= -92.2457791101273     Delta-E=       -0.000222081396 Rises=F Damp=F'
+    (script emitted no property)
+  block 62: begin-line=2139 fed=1 rc=0 first-fed=' E= -92.2458714389632     Delta-E=       -0.000092328836 Rises=F Damp=F'
+    (script emitted no property)
+  block 63: begin-line=2151 fed=1 rc=0 first-fed=' E= -92.2458892957404     Delta-E=       -0.000017856777 Rises=F Damp=F'
+    (script emitted no property)
+  block 64: begin-line=2163 fed=1 rc=0 first-fed=' E= -92.2458906655802     Delta-E=       -0.000001369840 Rises=F Damp=F'
+    (script emitted no property)
+  block 65: begin-line=2174 fed=1 rc=0 first-fed=' E= -92.2458907748871     Delta-E=       -0.000000109307 Rises=F Damp=F'
+    (script emitted no property)
+  block 66: begin-line=2187 fed=1 rc=0 first-fed=' E= -92.2458907861744     Delta-E=       -0.000000011287 Rises=F Damp=F'
+    (script emitted no property)
+  block 67: begin-line=2200 fed=1 rc=0 first-fed=' E= -92.2458907862882     Delta-E=       -0.000000000114 Rises=F Damp=F'
+    (script emitted no property)
+  block 68: begin-line=2213 fed=1 rc=0 first-fed=' E= -92.2458907862992     Delta-E=       -0.000000000011 Rises=F Damp=F'
+    (script emitted no property)
+  block 69: begin-line=2226 fed=1 rc=0 first-fed=' E= -92.2458907863012     Delta-E=       -0.000000000002 Rises=F Damp=F'
+    (script emitted no property)
+  block 70: begin-line=2239 fed=1 rc=0 first-fed=' E= -92.2458907863012     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 71: begin-line=2443 fed=1 rc=0 first-fed=' E= -92.2458940582576     Delta-E=       -0.000588566327 Rises=F Damp=F'
+    (script emitted no property)
+  block 72: begin-line=2455 fed=1 rc=0 first-fed=' E= -92.2459572809842     Delta-E=       -0.000063222727 Rises=F Damp=F'
+    (script emitted no property)
+  block 73: begin-line=2467 fed=1 rc=0 first-fed=' E= -92.2459849473947     Delta-E=       -0.000027666411 Rises=F Damp=F'
+    (script emitted no property)
+  block 74: begin-line=2479 fed=1 rc=0 first-fed=' E= -92.2459897969109     Delta-E=       -0.000004849516 Rises=F Damp=F'
+    (script emitted no property)
+  block 75: begin-line=2491 fed=1 rc=0 first-fed=' E= -92.2459903107078     Delta-E=       -0.000000513797 Rises=F Damp=F'
+    (script emitted no property)
+  block 76: begin-line=2502 fed=1 rc=0 first-fed=' E= -92.2459903577810     Delta-E=       -0.000000047073 Rises=F Damp=F'
+    (script emitted no property)
+  block 77: begin-line=2515 fed=1 rc=0 first-fed=' E= -92.2459903637927     Delta-E=       -0.000000006012 Rises=F Damp=F'
+    (script emitted no property)
+  block 78: begin-line=2528 fed=1 rc=0 first-fed=' E= -92.2459903639283     Delta-E=       -0.000000000136 Rises=F Damp=F'
+    (script emitted no property)
+  block 79: begin-line=2541 fed=1 rc=0 first-fed=' E= -92.2459903639385     Delta-E=       -0.000000000010 Rises=F Damp=F'
+    (script emitted no property)
+  block 80: begin-line=2554 fed=1 rc=0 first-fed=' E= -92.2459903639409     Delta-E=       -0.000000000002 Rises=F Damp=F'
+    (script emitted no property)
+  block 81: begin-line=2567 fed=1 rc=0 first-fed=' E= -92.2459903639409     Delta-E=        0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 82: begin-line=2760 fed=1 rc=0 first-fed=' E= -92.2460402441735     Delta-E=       -0.000032730960 Rises=F Damp=F'
+    (script emitted no property)
+  block 83: begin-line=2772 fed=1 rc=0 first-fed=' E= -92.2460417743749     Delta-E=       -0.000001530201 Rises=F Damp=F'
+    (script emitted no property)
+  block 84: begin-line=2784 fed=1 rc=0 first-fed=' E= -92.2460423005978     Delta-E=       -0.000000526223 Rises=F Damp=F'
+    (script emitted no property)
+  block 85: begin-line=2795 fed=1 rc=0 first-fed=' E= -92.2460423834803     Delta-E=       -0.000000082882 Rises=F Damp=F'
+    (script emitted no property)
+  block 86: begin-line=2806 fed=1 rc=0 first-fed=' E= -92.2460423973998     Delta-E=       -0.000000013920 Rises=F Damp=F'
+    (script emitted no property)
+  block 87: begin-line=2817 fed=1 rc=0 first-fed=' E= -92.2460423990061     Delta-E=       -0.000000001606 Rises=F Damp=F'
+    (script emitted no property)
+  block 88: begin-line=2830 fed=1 rc=0 first-fed=' E= -92.2460423992821     Delta-E=       -0.000000000276 Rises=F Damp=F'
+    (script emitted no property)
+  block 89: begin-line=2843 fed=1 rc=0 first-fed=' E= -92.2460423992996     Delta-E=       -0.000000000018 Rises=F Damp=F'
+    (script emitted no property)
+  block 90: begin-line=2856 fed=1 rc=0 first-fed=' E= -92.2460423993001     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 91: begin-line=2869 fed=1 rc=0 first-fed=' E= -92.2460423993001     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 92: begin-line=3059 fed=1 rc=0 first-fed=' E= -92.2460426266716     Delta-E=       -0.000000279929 Rises=F Damp=F'
+    (script emitted no property)
+  block 93: begin-line=3070 fed=1 rc=0 first-fed=' E= -92.2460426528676     Delta-E=       -0.000000026196 Rises=F Damp=F'
+    (script emitted no property)
+  block 94: begin-line=3081 fed=1 rc=0 first-fed=' E= -92.2460426573651     Delta-E=       -0.000000004498 Rises=F Damp=F'
+    (script emitted no property)
+  block 95: begin-line=3092 fed=1 rc=0 first-fed=' E= -92.2460426595130     Delta-E=       -0.000000002148 Rises=F Damp=F'
+    (script emitted no property)
+  block 96: begin-line=3103 fed=1 rc=0 first-fed=' E= -92.2460426598533     Delta-E=       -0.000000000340 Rises=F Damp=F'
+    (script emitted no property)
+  block 97: begin-line=3114 fed=1 rc=0 first-fed=' E= -92.2460426598674     Delta-E=       -0.000000000014 Rises=F Damp=F'
+    (script emitted no property)
+  block 98: begin-line=3127 fed=1 rc=0 first-fed=' E= -92.2460426598691     Delta-E=       -0.000000000002 Rises=F Damp=F'
+    (script emitted no property)
+  block 99: begin-line=3140 fed=1 rc=0 first-fed=' E= -92.2460426598693     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 100: begin-line=4336 fed=1 rc=0 first-fed=' E= -92.2462244017703     Delta-E=       -0.000589170756 Rises=F Damp=F'
+    (script emitted no property)
+  block 101: begin-line=4348 fed=1 rc=0 first-fed=' E= -92.2463274592692     Delta-E=       -0.000103057499 Rises=F Damp=F'
+    (script emitted no property)
+  block 102: begin-line=4360 fed=1 rc=0 first-fed=' E= -92.2463699508179     Delta-E=       -0.000042491549 Rises=F Damp=F'
+    (script emitted no property)
+  block 103: begin-line=4372 fed=1 rc=0 first-fed=' E= -92.2463791165506     Delta-E=       -0.000009165733 Rises=F Damp=F'
+    (script emitted no property)
+  block 104: begin-line=4384 fed=1 rc=0 first-fed=' E= -92.2463798687555     Delta-E=       -0.000000752205 Rises=F Damp=F'
+    (script emitted no property)
+  block 105: begin-line=4395 fed=1 rc=0 first-fed=' E= -92.2463799337519     Delta-E=       -0.000000064996 Rises=F Damp=F'
+    (script emitted no property)
+  block 106: begin-line=4408 fed=1 rc=0 first-fed=' E= -92.2463799407511     Delta-E=       -0.000000006999 Rises=F Damp=F'
+    (script emitted no property)
+  block 107: begin-line=4421 fed=1 rc=0 first-fed=' E= -92.2463799410625     Delta-E=       -0.000000000311 Rises=F Damp=F'
+    (script emitted no property)
+  block 108: begin-line=4434 fed=1 rc=0 first-fed=' E= -92.2463799411318     Delta-E=       -0.000000000069 Rises=F Damp=F'
+    (script emitted no property)
+  block 109: begin-line=4447 fed=1 rc=0 first-fed=' E= -92.2463799411331     Delta-E=       -0.000000000001 Rises=F Damp=F'
+    (script emitted no property)
+  block 110: begin-line=4460 fed=1 rc=0 first-fed=' E= -92.2463799411331     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 111: begin-line=4722 fed=1 rc=0 first-fed=' E= -92.2472470093268     Delta-E=       -0.000576758125 Rises=F Damp=F'
+    (script emitted no property)
+  block 112: begin-line=4734 fed=1 rc=0 first-fed=' E= -92.2473498300465     Delta-E=       -0.000102820720 Rises=F Damp=F'
+    (script emitted no property)
+  block 113: begin-line=4746 fed=1 rc=0 first-fed=' E= -92.2473908249352     Delta-E=       -0.000040994889 Rises=F Damp=F'
+    (script emitted no property)
+  block 114: begin-line=4758 fed=1 rc=0 first-fed=' E= -92.2474011889288     Delta-E=       -0.000010363994 Rises=F Damp=F'
+    (script emitted no property)
+  block 115: begin-line=4770 fed=1 rc=0 first-fed=' E= -92.2474022048310     Delta-E=       -0.000001015902 Rises=F Damp=F'
+    (script emitted no property)
+  block 116: begin-line=4781 fed=1 rc=0 first-fed=' E= -92.2474023055225     Delta-E=       -0.000000100691 Rises=F Damp=F'
+    (script emitted no property)
+  block 117: begin-line=4794 fed=1 rc=0 first-fed=' E= -92.2474023178746     Delta-E=       -0.000000012352 Rises=F Damp=F'
+    (script emitted no property)
+  block 118: begin-line=4807 fed=1 rc=0 first-fed=' E= -92.2474023188801     Delta-E=       -0.000000001006 Rises=F Damp=F'
+    (script emitted no property)
+  block 119: begin-line=4820 fed=1 rc=0 first-fed=' E= -92.2474023190306     Delta-E=       -0.000000000150 Rises=F Damp=F'
+    (script emitted no property)
+  block 120: begin-line=4833 fed=1 rc=0 first-fed=' E= -92.2474023190316     Delta-E=       -0.000000000001 Rises=F Damp=F'
+    (script emitted no property)
+  block 121: begin-line=4846 fed=1 rc=0 first-fed=' E= -92.2474023190316     Delta-E=        0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 122: begin-line=5052 fed=1 rc=0 first-fed=' E= -92.2489622628210     Delta-E=       -0.000565031229 Rises=F Damp=F'
+    (script emitted no property)
+  block 123: begin-line=5064 fed=1 rc=0 first-fed=' E= -92.2490650684686     Delta-E=       -0.000102805648 Rises=F Damp=F'
+    (script emitted no property)
+  block 124: begin-line=5076 fed=1 rc=0 first-fed=' E= -92.2491046066265     Delta-E=       -0.000039538158 Rises=F Damp=F'
+    (script emitted no property)
+  block 125: begin-line=5088 fed=1 rc=0 first-fed=' E= -92.2491163904124     Delta-E=       -0.000011783786 Rises=F Damp=F'
+    (script emitted no property)
+  block 126: begin-line=5100 fed=1 rc=0 first-fed=' E= -92.2491177872505     Delta-E=       -0.000001396838 Rises=F Damp=F'
+    (script emitted no property)
+  block 127: begin-line=5111 fed=1 rc=0 first-fed=' E= -92.2491179404653     Delta-E=       -0.000000153215 Rises=F Damp=F'
+    (script emitted no property)
+  block 128: begin-line=5124 fed=1 rc=0 first-fed=' E= -92.2491179601697     Delta-E=       -0.000000019704 Rises=F Damp=F'
+    (script emitted no property)
+  block 129: begin-line=5137 fed=1 rc=0 first-fed=' E= -92.2491179620956     Delta-E=       -0.000000001926 Rises=F Damp=F'
+    (script emitted no property)
+  block 130: begin-line=5150 fed=1 rc=0 first-fed=' E= -92.2491179622894     Delta-E=       -0.000000000194 Rises=F Damp=F'
+    (script emitted no property)
+  block 131: begin-line=5163 fed=1 rc=0 first-fed=' E= -92.2491179622898     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 132: begin-line=5176 fed=1 rc=0 first-fed=' E= -92.2491179622899     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 133: begin-line=5385 fed=1 rc=0 first-fed=' E= -92.2513562860222     Delta-E=       -0.000547526295 Rises=F Damp=F'
+    (script emitted no property)
+  block 134: begin-line=5397 fed=1 rc=0 first-fed=' E= -92.2514580398917     Delta-E=       -0.000101753870 Rises=F Damp=F'
+    (script emitted no property)
+  block 135: begin-line=5409 fed=1 rc=0 first-fed=' E= -92.2514955468010     Delta-E=       -0.000037506909 Rises=F Damp=F'
+    (script emitted no property)
+  block 136: begin-line=5421 fed=1 rc=0 first-fed=' E= -92.2515087588623     Delta-E=       -0.000013212061 Rises=F Damp=F'
+    (script emitted no property)
+  block 137: begin-line=5433 fed=1 rc=0 first-fed=' E= -92.2515105912274     Delta-E=       -0.000001832365 Rises=F Damp=F'
+    (script emitted no property)
+  block 138: begin-line=5444 fed=1 rc=0 first-fed=' E= -92.2515108028794     Delta-E=       -0.000000211652 Rises=F Damp=F'
+    (script emitted no property)
+  block 139: begin-line=5457 fed=1 rc=0 first-fed=' E= -92.2515108302548     Delta-E=       -0.000000027375 Rises=F Damp=F'
+    (script emitted no property)
+  block 140: begin-line=5470 fed=1 rc=0 first-fed=' E= -92.2515108331354     Delta-E=       -0.000000002881 Rises=F Damp=F'
+    (script emitted no property)
+  block 141: begin-line=5483 fed=1 rc=0 first-fed=' E= -92.2515108333430     Delta-E=       -0.000000000208 Rises=F Damp=F'
+    (script emitted no property)
+  block 142: begin-line=5496 fed=1 rc=0 first-fed=' E= -92.2515108333433     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 143: begin-line=5509 fed=1 rc=0 first-fed=' E= -92.2515108333433     Delta-E=        0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 144: begin-line=5718 fed=1 rc=0 first-fed=' E= -92.2543921108567     Delta-E=       -0.000527189434 Rises=F Damp=F'
+    (script emitted no property)
+  block 145: begin-line=5730 fed=1 rc=0 first-fed=' E= -92.2544918347670     Delta-E=       -0.000099723910 Rises=F Damp=F'
+    (script emitted no property)
+  block 146: begin-line=5742 fed=1 rc=0 first-fed=' E= -92.2545270479591     Delta-E=       -0.000035213192 Rises=F Damp=F'
+    (script emitted no property)
+  block 147: begin-line=5754 fed=1 rc=0 first-fed=' E= -92.2545414962586     Delta-E=       -0.000014448300 Rises=F Damp=F'
+    (script emitted no property)
+  block 148: begin-line=5766 fed=1 rc=0 first-fed=' E= -92.2545437953056     Delta-E=       -0.000002299047 Rises=F Damp=F'
+    (script emitted no property)
+  block 149: begin-line=5777 fed=1 rc=0 first-fed=' E= -92.2545440646714     Delta-E=       -0.000000269366 Rises=F Damp=F'
+    (script emitted no property)
+  block 150: begin-line=5790 fed=1 rc=0 first-fed=' E= -92.2545440991377     Delta-E=       -0.000000034466 Rises=F Damp=F'
+    (script emitted no property)
+  block 151: begin-line=5803 fed=1 rc=0 first-fed=' E= -92.2545441028808     Delta-E=       -0.000000003743 Rises=F Damp=F'
+    (script emitted no property)
+  block 152: begin-line=5816 fed=1 rc=0 first-fed=' E= -92.2545441030845     Delta-E=       -0.000000000204 Rises=F Damp=F'
+    (script emitted no property)
+  block 153: begin-line=5829 fed=1 rc=0 first-fed=' E= -92.2545441030847     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 154: begin-line=5842 fed=1 rc=0 first-fed=' E= -92.2545441030846     Delta-E=        0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 155: begin-line=6051 fed=1 rc=0 first-fed=' E= -92.2580143055250     Delta-E=       -0.000504038252 Rises=F Damp=F'
+    (script emitted no property)
+  block 156: begin-line=6063 fed=1 rc=0 first-fed=' E= -92.2581108654964     Delta-E=       -0.000096559971 Rises=F Damp=F'
+    (script emitted no property)
+  block 157: begin-line=6075 fed=1 rc=0 first-fed=' E= -92.2581435207360     Delta-E=       -0.000032655240 Rises=F Damp=F'
+    (script emitted no property)
+  block 158: begin-line=6087 fed=1 rc=0 first-fed=' E= -92.2581588453787     Delta-E=       -0.000015324643 Rises=F Damp=F'
+    (script emitted no property)
+  block 159: begin-line=6099 fed=1 rc=0 first-fed=' E= -92.2581615976814     Delta-E=       -0.000002752303 Rises=F Damp=F'
+    (script emitted no property)
+  block 160: begin-line=6110 fed=1 rc=0 first-fed=' E= -92.2581619158601     Delta-E=       -0.000000318179 Rises=F Damp=F'
+    (script emitted no property)
+  block 161: begin-line=6123 fed=1 rc=0 first-fed=' E= -92.2581619561891     Delta-E=       -0.000000040329 Rises=F Damp=F'
+    (script emitted no property)
+  block 162: begin-line=6136 fed=1 rc=0 first-fed=' E= -92.2581619606038     Delta-E=       -0.000000004415 Rises=F Damp=F'
+    (script emitted no property)
+  block 163: begin-line=6149 fed=1 rc=0 first-fed=' E= -92.2581619607909     Delta-E=       -0.000000000187 Rises=F Damp=F'
+    (script emitted no property)
+  block 164: begin-line=6162 fed=1 rc=0 first-fed=' E= -92.2581619607912     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 165: begin-line=6371 fed=1 rc=0 first-fed=' E= -92.2621520139647     Delta-E=       -0.000478870364 Rises=F Damp=F'
+    (script emitted no property)
+  block 166: begin-line=6383 fed=1 rc=0 first-fed=' E= -92.2622443640845     Delta-E=       -0.000092350120 Rises=F Damp=F'
+    (script emitted no property)
+  block 167: begin-line=6395 fed=1 rc=0 first-fed=' E= -92.2622742912110     Delta-E=       -0.000029927127 Rises=F Damp=F'
+    (script emitted no property)
+  block 168: begin-line=6407 fed=1 rc=0 first-fed=' E= -92.2622900358599     Delta-E=       -0.000015744649 Rises=F Damp=F'
+    (script emitted no property)
+  block 169: begin-line=6419 fed=1 rc=0 first-fed=' E= -92.2622931900134     Delta-E=       -0.000003154153 Rises=F Damp=F'
+    (script emitted no property)
+  block 170: begin-line=6430 fed=1 rc=0 first-fed=' E= -92.2622935427321     Delta-E=       -0.000000352719 Rises=F Damp=F'
+    (script emitted no property)
+  block 171: begin-line=6443 fed=1 rc=0 first-fed=' E= -92.2622935874216     Delta-E=       -0.000000044690 Rises=F Damp=F'
+    (script emitted no property)
+  block 172: begin-line=6456 fed=1 rc=0 first-fed=' E= -92.2622935922447     Delta-E=       -0.000000004823 Rises=F Damp=F'
+    (script emitted no property)
+  block 173: begin-line=6469 fed=1 rc=0 first-fed=' E= -92.2622935924076     Delta-E=       -0.000000000163 Rises=F Damp=F'
+    (script emitted no property)
+  block 174: begin-line=6482 fed=1 rc=0 first-fed=' E= -92.2622935924077     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 175: begin-line=6691 fed=1 rc=0 first-fed=' E= -92.2667237076595     Delta-E=       -0.000452539165 Rises=F Damp=F'
+    (script emitted no property)
+  block 176: begin-line=6703 fed=1 rc=0 first-fed=' E= -92.2668110345742     Delta-E=       -0.000087326915 Rises=F Damp=F'
+    (script emitted no property)
+  block 177: begin-line=6715 fed=1 rc=0 first-fed=' E= -92.2668381427814     Delta-E=       -0.000027108207 Rises=F Damp=F'
+    (script emitted no property)
+  block 178: begin-line=6727 fed=1 rc=0 first-fed=' E= -92.2668538297088     Delta-E=       -0.000015686927 Rises=F Damp=F'
+    (script emitted no property)
+  block 179: begin-line=6739 fed=1 rc=0 first-fed=' E= -92.2668573061806     Delta-E=       -0.000003476472 Rises=F Damp=F'
+    (script emitted no property)
+  block 180: begin-line=6750 fed=1 rc=0 first-fed=' E= -92.2668576774197     Delta-E=       -0.000000371239 Rises=F Damp=F'
+    (script emitted no property)
+  block 181: begin-line=6763 fed=1 rc=0 first-fed=' E= -92.2668577249829     Delta-E=       -0.000000047563 Rises=F Damp=F'
+    (script emitted no property)
+  block 182: begin-line=6776 fed=1 rc=0 first-fed=' E= -92.2668577299278     Delta-E=       -0.000000004945 Rises=F Damp=F'
+    (script emitted no property)
+  block 183: begin-line=6789 fed=1 rc=0 first-fed=' E= -92.2668577300634     Delta-E=       -0.000000000136 Rises=F Damp=F'
+    (script emitted no property)
+  block 184: begin-line=6802 fed=1 rc=0 first-fed=' E= -92.2668577300637     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 185: begin-line=7013 fed=1 rc=0 first-fed=' E= -92.2053025498317     Delta-E=       -0.015951512691 Rises=F Damp=F'
+    (script emitted no property)
+  block 186: begin-line=7024 fed=1 rc=0 first-fed=' E= -92.2436042459549     Delta-E=       -0.038301696123 Rises=F Damp=F'
+    (script emitted no property)
+  block 187: begin-line=7036 fed=1 rc=0 first-fed=' E= -92.2457256535969     Delta-E=       -0.002121407642 Rises=F Damp=F'
+    (script emitted no property)
+  block 188: begin-line=7048 fed=1 rc=0 first-fed=' E= -92.2461858127502     Delta-E=       -0.000460159153 Rises=F Damp=F'
+    (script emitted no property)
+  block 189: begin-line=7060 fed=1 rc=0 first-fed=' E= -92.2463101710195     Delta-E=       -0.000124358269 Rises=F Damp=F'
+    (script emitted no property)
+  block 190: begin-line=7072 fed=1 rc=0 first-fed=' E= -92.2463549163152     Delta-E=       -0.000044745296 Rises=F Damp=F'
+    (script emitted no property)
+  block 191: begin-line=7087 fed=1 rc=0 first-fed=' E= -92.2463617541516     Delta-E=       -0.000006837836 Rises=F Damp=F'
+    (script emitted no property)
+  block 192: begin-line=7100 fed=1 rc=0 first-fed=' E= -92.2463619352321     Delta-E=       -0.000000181081 Rises=F Damp=F'
+    (script emitted no property)
+  block 193: begin-line=7113 fed=1 rc=0 first-fed=' E= -92.2463619395451     Delta-E=       -0.000000004313 Rises=F Damp=F'
+    (script emitted no property)
+  block 194: begin-line=7126 fed=1 rc=0 first-fed=' E= -92.2463619399527     Delta-E=       -0.000000000408 Rises=F Damp=F'
+    (script emitted no property)
+  block 195: begin-line=7139 fed=1 rc=0 first-fed=' E= -92.2463619399933     Delta-E=       -0.000000000041 Rises=F Damp=F'
+    (script emitted no property)
+  block 196: begin-line=7152 fed=1 rc=0 first-fed=' E= -92.2463619399941     Delta-E=       -0.000000000001 Rises=F Damp=F'
+    (script emitted no property)
+  block 197: begin-line=7363 fed=1 rc=0 first-fed=' E= -92.2471313055981     Delta-E=       -0.000611339038 Rises=F Damp=F'
+    (script emitted no property)
+  block 198: begin-line=7375 fed=1 rc=0 first-fed=' E= -92.2472363613456     Delta-E=       -0.000105055747 Rises=F Damp=F'
+    (script emitted no property)
+  block 199: begin-line=7387 fed=1 rc=0 first-fed=' E= -92.2472804703255     Delta-E=       -0.000044108980 Rises=F Damp=F'
+    (script emitted no property)
+  block 200: begin-line=7399 fed=1 rc=0 first-fed=' E= -92.2472880476651     Delta-E=       -0.000007577340 Rises=F Damp=F'
+    (script emitted no property)
+  block 201: begin-line=7411 fed=1 rc=0 first-fed=' E= -92.2472885923399     Delta-E=       -0.000000544675 Rises=F Damp=F'
+    (script emitted no property)
+  block 202: begin-line=7422 fed=1 rc=0 first-fed=' E= -92.2472886391509     Delta-E=       -0.000000046811 Rises=F Damp=F'
+    (script emitted no property)
+  block 203: begin-line=7435 fed=1 rc=0 first-fed=' E= -92.2472886443193     Delta-E=       -0.000000005168 Rises=F Damp=F'
+    (script emitted no property)
+  block 204: begin-line=7448 fed=1 rc=0 first-fed=' E= -92.2472886444721     Delta-E=       -0.000000000153 Rises=F Damp=F'
+    (script emitted no property)
+  block 205: begin-line=7461 fed=1 rc=0 first-fed=' E= -92.2472886445002     Delta-E=       -0.000000000028 Rises=F Damp=F'
+    (script emitted no property)
+  block 206: begin-line=7474 fed=1 rc=0 first-fed=' E= -92.2472886445010     Delta-E=       -0.000000000001 Rises=F Damp=F'
+    (script emitted no property)
+  block 207: begin-line=7680 fed=1 rc=0 first-fed=' E= -92.2485991260905     Delta-E=       -0.000616706891 Rises=F Damp=F'
+    (script emitted no property)
+  block 208: begin-line=7692 fed=1 rc=0 first-fed=' E= -92.2487051148896     Delta-E=       -0.000105988799 Rises=F Damp=F'
+    (script emitted no property)
+  block 209: begin-line=7704 fed=1 rc=0 first-fed=' E= -92.2487499593186     Delta-E=       -0.000044844429 Rises=F Damp=F'
+    (script emitted no property)
+  block 210: begin-line=7716 fed=1 rc=0 first-fed=' E= -92.2487573779654     Delta-E=       -0.000007418647 Rises=F Damp=F'
+    (script emitted no property)
+  block 211: begin-line=7728 fed=1 rc=0 first-fed=' E= -92.2487579303098     Delta-E=       -0.000000552344 Rises=F Damp=F'
+    (script emitted no property)
+  block 212: begin-line=7739 fed=1 rc=0 first-fed=' E= -92.2487579797743     Delta-E=       -0.000000049465 Rises=F Damp=F'
+    (script emitted no property)
+  block 213: begin-line=7752 fed=1 rc=0 first-fed=' E= -92.2487579855323     Delta-E=       -0.000000005758 Rises=F Damp=F'
+    (script emitted no property)
+  block 214: begin-line=7765 fed=1 rc=0 first-fed=' E= -92.2487579857892     Delta-E=       -0.000000000257 Rises=F Damp=F'
+    (script emitted no property)
+  block 215: begin-line=7778 fed=1 rc=0 first-fed=' E= -92.2487579858266     Delta-E=       -0.000000000037 Rises=F Damp=F'
+    (script emitted no property)
+  block 216: begin-line=7791 fed=1 rc=0 first-fed=' E= -92.2487579858271     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 217: begin-line=7997 fed=1 rc=0 first-fed=' E= -92.2505339943610     Delta-E=       -0.000620784517 Rises=F Damp=F'
+    (script emitted no property)
+  block 218: begin-line=8009 fed=1 rc=0 first-fed=' E= -92.2506411572134     Delta-E=       -0.000107162852 Rises=F Damp=F'
+    (script emitted no property)
+  block 219: begin-line=8021 fed=1 rc=0 first-fed=' E= -92.2506865209866     Delta-E=       -0.000045363773 Rises=F Damp=F'
+    (script emitted no property)
+  block 220: begin-line=8033 fed=1 rc=0 first-fed=' E= -92.2506939271885     Delta-E=       -0.000007406202 Rises=F Damp=F'
+    (script emitted no property)
+  block 221: begin-line=8045 fed=1 rc=0 first-fed=' E= -92.2506945077958     Delta-E=       -0.000000580607 Rises=F Damp=F'
+    (script emitted no property)
+  block 222: begin-line=8056 fed=1 rc=0 first-fed=' E= -92.2506945589981     Delta-E=       -0.000000051202 Rises=F Damp=F'
+    (script emitted no property)
+  block 223: begin-line=8069 fed=1 rc=0 first-fed=' E= -92.2506945644563     Delta-E=       -0.000000005458 Rises=F Damp=F'
+    (script emitted no property)
+  block 224: begin-line=8082 fed=1 rc=0 first-fed=' E= -92.2506945647192     Delta-E=       -0.000000000263 Rises=F Damp=F'
+    (script emitted no property)
+  block 225: begin-line=8095 fed=1 rc=0 first-fed=' E= -92.2506945647516     Delta-E=       -0.000000000032 Rises=F Damp=F'
+    (script emitted no property)
+  block 226: begin-line=8108 fed=1 rc=0 first-fed=' E= -92.2506945647519     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 227: begin-line=8314 fed=1 rc=0 first-fed=' E= -92.2528605498236     Delta-E=       -0.000622053715 Rises=F Damp=F'
+    (script emitted no property)
+  block 228: begin-line=8326 fed=1 rc=0 first-fed=' E= -92.2529683547444     Delta-E=       -0.000107804921 Rises=F Damp=F'
+    (script emitted no property)
+  block 229: begin-line=8338 fed=1 rc=0 first-fed=' E= -92.2530137474410     Delta-E=       -0.000045392697 Rises=F Damp=F'
+    (script emitted no property)
+  block 230: begin-line=8350 fed=1 rc=0 first-fed=' E= -92.2530211033046     Delta-E=       -0.000007355864 Rises=F Damp=F'
+    (script emitted no property)
+  block 231: begin-line=8362 fed=1 rc=0 first-fed=' E= -92.2530216928408     Delta-E=       -0.000000589536 Rises=F Damp=F'
+    (script emitted no property)
+  block 232: begin-line=8373 fed=1 rc=0 first-fed=' E= -92.2530217419777     Delta-E=       -0.000000049137 Rises=F Damp=F'
+    (script emitted no property)
+  block 233: begin-line=8386 fed=1 rc=0 first-fed=' E= -92.2530217463755     Delta-E=       -0.000000004398 Rises=F Damp=F'
+    (script emitted no property)
+  block 234: begin-line=8399 fed=1 rc=0 first-fed=' E= -92.2530217466041     Delta-E=       -0.000000000229 Rises=F Damp=F'
+    (script emitted no property)
+  block 235: begin-line=8412 fed=1 rc=0 first-fed=' E= -92.2530217466301     Delta-E=       -0.000000000026 Rises=F Damp=F'
+    (script emitted no property)
+  block 236: begin-line=8425 fed=1 rc=0 first-fed=' E= -92.2530217466304     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 237: begin-line=8634 fed=1 rc=0 first-fed=' E= -92.2555113623378     Delta-E=       -0.000619387471 Rises=F Damp=F'
+    (script emitted no property)
+  block 238: begin-line=8646 fed=1 rc=0 first-fed=' E= -92.2556184183186     Delta-E=       -0.000107055981 Rises=F Damp=F'
+    (script emitted no property)
+  block 239: begin-line=8658 fed=1 rc=0 first-fed=' E= -92.2556630644396     Delta-E=       -0.000044646121 Rises=F Damp=F'
+    (script emitted no property)
+  block 240: begin-line=8670 fed=1 rc=0 first-fed=' E= -92.2556701837034     Delta-E=       -0.000007119264 Rises=F Damp=F'
+    (script emitted no property)
+  block 241: begin-line=8682 fed=1 rc=0 first-fed=' E= -92.2556707439623     Delta-E=       -0.000000560259 Rises=F Damp=F'
+    (script emitted no property)
+  block 242: begin-line=8693 fed=1 rc=0 first-fed=' E= -92.2556707885724     Delta-E=       -0.000000044610 Rises=F Damp=F'
+    (script emitted no property)
+  block 243: begin-line=8706 fed=1 rc=0 first-fed=' E= -92.2556707917005     Delta-E=       -0.000000003128 Rises=F Damp=F'
+    (script emitted no property)
+  block 244: begin-line=8719 fed=1 rc=0 first-fed=' E= -92.2556707918975     Delta-E=       -0.000000000197 Rises=F Damp=F'
+    (script emitted no property)
+  block 245: begin-line=8732 fed=1 rc=0 first-fed=' E= -92.2556707919194     Delta-E=       -0.000000000022 Rises=F Damp=F'
+    (script emitted no property)
+  block 246: begin-line=8745 fed=1 rc=0 first-fed=' E= -92.2556707919198     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 247: begin-line=8954 fed=1 rc=0 first-fed=' E= -92.2584338858528     Delta-E=       -0.000611653219 Rises=F Damp=F'
+    (script emitted no property)
+  block 248: begin-line=8966 fed=1 rc=0 first-fed=' E= -92.2585381931665     Delta-E=       -0.000104307314 Rises=F Damp=F'
+    (script emitted no property)
+  block 249: begin-line=8978 fed=1 rc=0 first-fed=' E= -92.2585811841865     Delta-E=       -0.000042991020 Rises=F Damp=F'
+    (script emitted no property)
+  block 250: begin-line=8990 fed=1 rc=0 first-fed=' E= -92.2585878454957     Delta-E=       -0.000006661309 Rises=F Damp=F'
+    (script emitted no property)
+  block 251: begin-line=9002 fed=1 rc=0 first-fed=' E= -92.2585883376895     Delta-E=       -0.000000492194 Rises=F Damp=F'
+    (script emitted no property)
+  block 252: begin-line=9013 fed=1 rc=0 first-fed=' E= -92.2585883765172     Delta-E=       -0.000000038828 Rises=F Damp=F'
+    (script emitted no property)
+  block 253: begin-line=9026 fed=1 rc=0 first-fed=' E= -92.2585883784577     Delta-E=       -0.000000001940 Rises=F Damp=F'
+    (script emitted no property)
+  block 254: begin-line=9039 fed=1 rc=0 first-fed=' E= -92.2585883786316     Delta-E=       -0.000000000174 Rises=F Damp=F'
+    (script emitted no property)
+  block 255: begin-line=9052 fed=1 rc=0 first-fed=' E= -92.2585883786512     Delta-E=       -0.000000000020 Rises=F Damp=F'
+    (script emitted no property)
+  block 256: begin-line=9065 fed=1 rc=0 first-fed=' E= -92.2585883786515     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+  block 257: begin-line=9274 fed=1 rc=0 first-fed=' E= -92.2615913620393     Delta-E=       -0.000598378513 Rises=F Damp=F'
+    (script emitted no property)
+  block 258: begin-line=9286 fed=1 rc=0 first-fed=' E= -92.2616910084357     Delta-E=       -0.000099646396 Rises=F Damp=F'
+    (script emitted no property)
+  block 259: begin-line=9298 fed=1 rc=0 first-fed=' E= -92.2617315908611     Delta-E=       -0.000040582425 Rises=F Damp=F'
+    (script emitted no property)
+  block 260: begin-line=9310 fed=1 rc=0 first-fed=' E= -92.2617376686190     Delta-E=       -0.000006077758 Rises=F Damp=F'
+    (script emitted no property)
+  block 261: begin-line=9321 fed=1 rc=0 first-fed=' E= -92.2617380701007     Delta-E=       -0.000000401482 Rises=F Damp=F'
+    (script emitted no property)
+  block 262: begin-line=9332 fed=1 rc=0 first-fed=' E= -92.2617381018140     Delta-E=       -0.000000031713 Rises=F Damp=F'
+    (script emitted no property)
+  block 263: begin-line=9345 fed=1 rc=0 first-fed=' E= -92.2617381028670     Delta-E=       -0.000000001053 Rises=F Damp=F'
+    (script emitted no property)
+  block 264: begin-line=9358 fed=1 rc=0 first-fed=' E= -92.2617381029971     Delta-E=       -0.000000000130 Rises=F Damp=F'
+    (script emitted no property)
+  block 265: begin-line=9371 fed=1 rc=0 first-fed=' E= -92.2617381030149     Delta-E=       -0.000000000018 Rises=F Damp=F'
+    (script emitted no property)
+  block 266: begin-line=9384 fed=1 rc=0 first-fed=' E= -92.2617381030152     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    (script emitted no property)
+
+[RMSDP]  Script=gaussian-16.rmsdp  Freq=all  Skip=0  Lines=1
+  Begin=RMSDP
+  begins=291 delivered=291 buffered_away=0
+  block 1: begin-line=261 fed=1 rc=0 first-fed=' RMSDP=9.71D-03 MaxDP=5.60D-02              OVMax= 8.59D-02'
+    (script emitted no property)
+  block 2: begin-line=273 fed=1 rc=0 first-fed=' RMSDP=3.33D-03 MaxDP=1.63D-02 DE=-4.16D-02 OVMax= 2.37D-02'
+    (script emitted no property)
+  block 3: begin-line=285 fed=1 rc=0 first-fed=' RMSDP=1.38D-03 MaxDP=9.75D-03 DE=-3.20D-03 OVMax= 1.14D-02'
+    (script emitted no property)
+  block 4: begin-line=297 fed=1 rc=0 first-fed=' RMSDP=3.92D-04 MaxDP=2.84D-03 DE=-8.46D-04 OVMax= 3.57D-03'
+    (script emitted no property)
+  block 5: begin-line=309 fed=1 rc=0 first-fed=' RMSDP=1.86D-04 MaxDP=1.11D-03 DE=-7.98D-05 OVMax= 1.26D-03'
+    (script emitted no property)
+  block 6: begin-line=320 fed=1 rc=0 first-fed=' RMSDP=3.46D-05 MaxDP=1.92D-04 DE=-6.86D-06 OVMax= 2.90D-04'
+    (script emitted no property)
+  block 7: begin-line=333 fed=1 rc=0 first-fed=' RMSDP=7.95D-06 MaxDP=3.28D-05 DE=-2.36D-07 OVMax= 9.94D-05'
+    (script emitted no property)
+  block 8: begin-line=346 fed=1 rc=0 first-fed=' RMSDP=2.71D-06 MaxDP=1.35D-05 DE=-1.43D-08 OVMax= 3.11D-05'
+    (script emitted no property)
+  block 9: begin-line=359 fed=1 rc=0 first-fed=' RMSDP=3.43D-07 MaxDP=2.51D-06 DE=-1.02D-09 OVMax= 2.76D-06'
+    (script emitted no property)
+  block 10: begin-line=372 fed=1 rc=0 first-fed=' RMSDP=1.00D-07 MaxDP=5.32D-07 DE=-2.22D-11 OVMax= 1.13D-06'
+    (script emitted no property)
+  block 11: begin-line=385 fed=1 rc=0 first-fed=' RMSDP=2.11D-08 MaxDP=1.16D-07 DE=-2.96D-12 OVMax= 2.88D-07'
+    (script emitted no property)
+  block 12: begin-line=398 fed=1 rc=0 first-fed=' RMSDP=3.15D-09 MaxDP=2.40D-08 DE= 1.42D-14 OVMax= 2.63D-08'
+    (script emitted no property)
+  block 13: begin-line=750 fed=1 rc=0 first-fed=' RMSDP=1.11D-02 MaxDP=5.25D-02              OVMax= 0.00D+00'
+    (script emitted no property)
+  block 14: begin-line=762 fed=1 rc=0 first-fed=' RMSDP=5.83D-03 MaxDP=3.34D-02 DE= 2.02D-02 OVMax= 5.48D-02'
+    (script emitted no property)
+  block 15: begin-line=773 fed=1 rc=0 first-fed=' RMSDP=2.75D-03 MaxDP=1.03D-02 DE=-3.68D-02 OVMax= 2.20D-02'
+    (script emitted no property)
+  block 16: begin-line=784 fed=1 rc=0 first-fed=' RMSDP=1.08D-03 MaxDP=5.08D-03 DE=-2.22D-03 OVMax= 1.32D-02'
+    (script emitted no property)
+  block 17: begin-line=795 fed=1 rc=0 first-fed=' RMSDP=6.07D-04 MaxDP=2.71D-03 DE=-8.65D-04 OVMax= 5.85D-03'
+    (script emitted no property)
+  block 18: begin-line=806 fed=1 rc=0 first-fed=' RMSDP=2.11D-04 MaxDP=1.04D-03 DE=-1.28D-04 OVMax= 2.62D-03'
+    (script emitted no property)
+  block 19: begin-line=819 fed=1 rc=0 first-fed=' RMSDP=8.02D-05 MaxDP=3.95D-04 DE=-1.75D-05 OVMax= 9.77D-04'
+    (script emitted no property)
+  block 20: begin-line=832 fed=1 rc=0 first-fed=' RMSDP=2.93D-05 MaxDP=1.79D-04 DE=-1.63D-06 OVMax= 2.11D-04'
+    (script emitted no property)
+  block 21: begin-line=845 fed=1 rc=0 first-fed=' RMSDP=5.68D-06 MaxDP=3.40D-05 DE=-1.02D-07 OVMax= 5.08D-05'
+    (script emitted no property)
+  block 22: begin-line=858 fed=1 rc=0 first-fed=' RMSDP=1.78D-06 MaxDP=8.02D-06 DE=-4.65D-09 OVMax= 2.23D-05'
+    (script emitted no property)
+  block 23: begin-line=871 fed=1 rc=0 first-fed=' RMSDP=1.84D-07 MaxDP=9.45D-07 DE=-5.20D-10 OVMax= 1.71D-06'
+    (script emitted no property)
+  block 24: begin-line=884 fed=1 rc=0 first-fed=' RMSDP=2.66D-08 MaxDP=1.16D-07 DE=-6.14D-12 OVMax= 2.26D-07'
+    (script emitted no property)
+  block 25: begin-line=899 fed=1 rc=0 first-fed=' RMSDP=2.72D-09 MaxDP=1.29D-08 DE=-4.26D-14 OVMax= 2.13D-08'
+    (script emitted no property)
+  block 26: begin-line=1092 fed=1 rc=0 first-fed=' RMSDP=1.33D-02 MaxDP=1.08D-01              OVMax= 0.00D+00'
+    (script emitted no property)
+  block 27: begin-line=1104 fed=1 rc=0 first-fed=' RMSDP=5.63D-03 MaxDP=3.96D-02 DE= 2.37D-02 OVMax= 4.83D-02'
+    (script emitted no property)
+  block 28: begin-line=1115 fed=1 rc=0 first-fed=' RMSDP=2.43D-03 MaxDP=1.23D-02 DE=-3.71D-02 OVMax= 1.78D-02'
+    (script emitted no property)
+  block 29: begin-line=1126 fed=1 rc=0 first-fed=' RMSDP=1.11D-03 MaxDP=9.01D-03 DE=-1.57D-03 OVMax= 1.19D-02'
+    (script emitted no property)
+  block 30: begin-line=1137 fed=1 rc=0 first-fed=' RMSDP=6.59D-04 MaxDP=3.68D-03 DE=-7.03D-04 OVMax= 6.97D-03'
+    (script emitted no property)
+  block 31: begin-line=1148 fed=1 rc=0 first-fed=' RMSDP=2.09D-04 MaxDP=8.74D-04 DE=-1.29D-04 OVMax= 2.97D-03'
+    (script emitted no property)
+  block 32: begin-line=1161 fed=1 rc=0 first-fed=' RMSDP=7.24D-05 MaxDP=4.09D-04 DE=-1.50D-05 OVMax= 7.33D-04'
+    (script emitted no property)
+  block 33: begin-line=1174 fed=1 rc=0 first-fed=' RMSDP=2.25D-05 MaxDP=1.24D-04 DE=-1.20D-06 OVMax= 1.80D-04'
+    (script emitted no property)
+  block 34: begin-line=1187 fed=1 rc=0 first-fed=' RMSDP=6.21D-06 MaxDP=3.37D-05 DE=-8.34D-08 OVMax= 6.79D-05'
+    (script emitted no property)
+  block 35: begin-line=1200 fed=1 rc=0 first-fed=' RMSDP=3.06D-06 MaxDP=1.41D-05 DE=-8.33D-09 OVMax= 4.09D-05'
+    (script emitted no property)
+  block 36: begin-line=1213 fed=1 rc=0 first-fed=' RMSDP=2.08D-07 MaxDP=8.36D-07 DE=-1.45D-09 OVMax= 2.49D-06'
+    (script emitted no property)
+  block 37: begin-line=1226 fed=1 rc=0 first-fed=' RMSDP=4.46D-08 MaxDP=4.08D-07 DE=-7.46D-12 OVMax= 3.26D-07'
+    (script emitted no property)
+  block 38: begin-line=1241 fed=1 rc=0 first-fed=' RMSDP=7.35D-09 MaxDP=6.19D-08 DE=-1.28D-13 OVMax= 5.27D-08'
+    (script emitted no property)
+  block 39: begin-line=1432 fed=1 rc=0 first-fed=' RMSDP=1.13D-02 MaxDP=5.29D-02              OVMax= 0.00D+00'
+    (script emitted no property)
+  block 40: begin-line=1444 fed=1 rc=0 first-fed=' RMSDP=5.12D-03 MaxDP=2.88D-02 DE= 2.94D-02 OVMax= 5.06D-02'
+    (script emitted no property)
+  block 41: begin-line=1455 fed=1 rc=0 first-fed=' RMSDP=2.22D-03 MaxDP=1.02D-02 DE=-4.33D-02 OVMax= 1.61D-02'
+    (script emitted no property)
+  block 42: begin-line=1466 fed=1 rc=0 first-fed=' RMSDP=8.17D-04 MaxDP=6.10D-03 DE=-1.25D-03 OVMax= 1.01D-02'
+    (script emitted no property)
+  block 43: begin-line=1477 fed=1 rc=0 first-fed=' RMSDP=5.39D-04 MaxDP=3.58D-03 DE=-4.59D-04 OVMax= 4.70D-03'
+    (script emitted no property)
+  block 44: begin-line=1488 fed=1 rc=0 first-fed=' RMSDP=2.09D-04 MaxDP=1.17D-03 DE=-8.09D-05 OVMax= 2.10D-03'
+    (script emitted no property)
+  block 45: begin-line=1501 fed=1 rc=0 first-fed=' RMSDP=4.00D-05 MaxDP=1.49D-04 DE=-9.36D-06 OVMax= 4.77D-04'
+    (script emitted no property)
+  block 46: begin-line=1514 fed=1 rc=0 first-fed=' RMSDP=1.66D-05 MaxDP=7.39D-05 DE=-5.41D-07 OVMax= 1.81D-04'
+    (script emitted no property)
+  block 47: begin-line=1527 fed=1 rc=0 first-fed=' RMSDP=2.90D-06 MaxDP=1.41D-05 DE=-6.29D-08 OVMax= 2.53D-05'
+    (script emitted no property)
+  block 48: begin-line=1540 fed=1 rc=0 first-fed=' RMSDP=4.10D-07 MaxDP=2.25D-06 DE=-1.42D-09 OVMax= 3.92D-06'
+    (script emitted no property)
+  block 49: begin-line=1553 fed=1 rc=0 first-fed=' RMSDP=2.38D-07 MaxDP=1.07D-06 DE=-3.97D-11 OVMax= 2.80D-06'
+    (script emitted no property)
+  block 50: begin-line=1566 fed=1 rc=0 first-fed=' RMSDP=3.59D-08 MaxDP=1.55D-07 DE=-9.95D-12 OVMax= 3.91D-07'
+    (script emitted no property)
+  block 51: begin-line=1581 fed=1 rc=0 first-fed=' RMSDP=9.38D-09 MaxDP=6.81D-08 DE=-1.42D-13 OVMax= 8.88D-08'
+    (script emitted no property)
+  block 52: begin-line=1772 fed=1 rc=0 first-fed=' RMSDP=1.22D-02 MaxDP=9.17D-02              OVMax= 0.00D+00'
+    (script emitted no property)
+  block 53: begin-line=1784 fed=1 rc=0 first-fed=' RMSDP=4.08D-03 MaxDP=2.66D-02 DE= 3.26D-02 OVMax= 3.36D-02'
+    (script emitted no property)
+  block 54: begin-line=1795 fed=1 rc=0 first-fed=' RMSDP=1.90D-03 MaxDP=1.02D-02 DE=-4.02D-02 OVMax= 1.56D-02'
+    (script emitted no property)
+  block 55: begin-line=1806 fed=1 rc=0 first-fed=' RMSDP=8.45D-04 MaxDP=6.70D-03 DE=-9.75D-04 OVMax= 9.65D-03'
+    (script emitted no property)
+  block 56: begin-line=1817 fed=1 rc=0 first-fed=' RMSDP=5.56D-04 MaxDP=3.34D-03 DE=-4.27D-04 OVMax= 5.76D-03'
+    (script emitted no property)
+  block 57: begin-line=1828 fed=1 rc=0 first-fed=' RMSDP=1.58D-04 MaxDP=5.39D-04 DE=-8.04D-05 OVMax= 2.19D-03'
+    (script emitted no property)
+  block 58: begin-line=1841 fed=1 rc=0 first-fed=' RMSDP=4.74D-05 MaxDP=2.61D-04 DE=-7.38D-06 OVMax= 5.49D-04'
+    (script emitted no property)
+  block 59: begin-line=1854 fed=1 rc=0 first-fed=' RMSDP=1.14D-05 MaxDP=6.02D-05 DE=-5.15D-07 OVMax= 1.07D-04'
+    (script emitted no property)
+  block 60: begin-line=1867 fed=1 rc=0 first-fed=' RMSDP=2.73D-06 MaxDP=1.46D-05 DE=-2.48D-08 OVMax= 2.81D-05'
+    (script emitted no property)
+  block 61: begin-line=1880 fed=1 rc=0 first-fed=' RMSDP=1.74D-06 MaxDP=8.08D-06 DE=-1.95D-09 OVMax= 2.24D-05'
+    (script emitted no property)
+  block 62: begin-line=1893 fed=1 rc=0 first-fed=' RMSDP=3.16D-07 MaxDP=1.37D-06 DE=-5.23D-10 OVMax= 4.14D-06'
+    (script emitted no property)
+  block 63: begin-line=1906 fed=1 rc=0 first-fed=' RMSDP=6.56D-08 MaxDP=6.29D-07 DE=-1.69D-11 OVMax= 4.51D-07'
+    (script emitted no property)
+  block 64: begin-line=1921 fed=1 rc=0 first-fed=' RMSDP=8.84D-09 MaxDP=8.75D-08 DE=-3.98D-13 OVMax= 5.91D-08'
+    (script emitted no property)
+  block 65: begin-line=2112 fed=1 rc=0 first-fed=' RMSDP=1.87D-03 MaxDP=1.46D-02              OVMax= 1.38D-02'
+    (script emitted no property)
+  block 66: begin-line=2124 fed=1 rc=0 first-fed=' RMSDP=9.11D-04 MaxDP=5.19D-03 DE=-1.26D-03 OVMax= 8.20D-03'
+    (script emitted no property)
+  block 67: begin-line=2136 fed=1 rc=0 first-fed=' RMSDP=4.31D-04 MaxDP=3.54D-03 DE=-2.22D-04 OVMax= 4.73D-03'
+    (script emitted no property)
+  block 68: begin-line=2148 fed=1 rc=0 first-fed=' RMSDP=2.89D-04 MaxDP=1.86D-03 DE=-9.23D-05 OVMax= 2.66D-03'
+    (script emitted no property)
+  block 69: begin-line=2160 fed=1 rc=0 first-fed=' RMSDP=7.73D-05 MaxDP=3.16D-04 DE=-1.79D-05 OVMax= 8.36D-04'
+    (script emitted no property)
+  block 70: begin-line=2171 fed=1 rc=0 first-fed=' RMSDP=2.03D-05 MaxDP=9.75D-05 DE=-1.37D-06 OVMax= 2.16D-04'
+    (script emitted no property)
+  block 71: begin-line=2184 fed=1 rc=0 first-fed=' RMSDP=8.73D-06 MaxDP=6.25D-05 DE=-1.09D-07 OVMax= 7.41D-05'
+    (script emitted no property)
+  block 72: begin-line=2197 fed=1 rc=0 first-fed=' RMSDP=7.22D-07 MaxDP=4.02D-06 DE=-1.13D-08 OVMax= 6.92D-06'
+    (script emitted no property)
+  block 73: begin-line=2210 fed=1 rc=0 first-fed=' RMSDP=1.99D-07 MaxDP=8.77D-07 DE=-1.14D-10 OVMax= 1.98D-06'
+    (script emitted no property)
+  block 74: begin-line=2223 fed=1 rc=0 first-fed=' RMSDP=1.03D-07 MaxDP=5.28D-07 DE=-1.10D-11 OVMax= 1.09D-06'
+    (script emitted no property)
+  block 75: begin-line=2236 fed=1 rc=0 first-fed=' RMSDP=2.14D-08 MaxDP=8.53D-08 DE=-1.93D-12 OVMax= 2.34D-07'
+    (script emitted no property)
+  block 76: begin-line=2249 fed=1 rc=0 first-fed=' RMSDP=3.89D-09 MaxDP=2.96D-08 DE=-2.84D-14 OVMax= 3.42D-08'
+    (script emitted no property)
+  block 77: begin-line=2440 fed=1 rc=0 first-fed=' RMSDP=1.01D-03 MaxDP=5.12D-03              OVMax= 9.96D-03'
+    (script emitted no property)
+  block 78: begin-line=2452 fed=1 rc=0 first-fed=' RMSDP=5.05D-04 MaxDP=2.34D-03 DE=-5.89D-04 OVMax= 3.98D-03'
+    (script emitted no property)
+  block 79: begin-line=2464 fed=1 rc=0 first-fed=' RMSDP=2.00D-04 MaxDP=1.53D-03 DE=-6.32D-05 OVMax= 2.01D-03'
+    (script emitted no property)
+  block 80: begin-line=2476 fed=1 rc=0 first-fed=' RMSDP=1.33D-04 MaxDP=8.13D-04 DE=-2.77D-05 OVMax= 1.13D-03'
+    (script emitted no property)
+  block 81: begin-line=2488 fed=1 rc=0 first-fed=' RMSDP=4.24D-05 MaxDP=2.04D-04 DE=-4.85D-06 OVMax= 4.59D-04'
+    (script emitted no property)
+  block 82: begin-line=2499 fed=1 rc=0 first-fed=' RMSDP=1.10D-05 MaxDP=4.06D-05 DE=-5.14D-07 OVMax= 1.57D-04'
+    (script emitted no property)
+  block 83: begin-line=2512 fed=1 rc=0 first-fed=' RMSDP=5.33D-06 MaxDP=2.58D-05 DE=-4.71D-08 OVMax= 6.69D-05'
+    (script emitted no property)
+  block 84: begin-line=2525 fed=1 rc=0 first-fed=' RMSDP=8.29D-07 MaxDP=4.10D-06 DE=-6.01D-09 OVMax= 7.98D-06'
+    (script emitted no property)
+  block 85: begin-line=2538 fed=1 rc=0 first-fed=' RMSDP=2.06D-07 MaxDP=1.11D-06 DE=-1.36D-10 OVMax= 2.29D-06'
+    (script emitted no property)
+  block 86: begin-line=2551 fed=1 rc=0 first-fed=' RMSDP=1.22D-07 MaxDP=5.74D-07 DE=-1.03D-11 OVMax= 1.56D-06'
+    (script emitted no property)
+  block 87: begin-line=2564 fed=1 rc=0 first-fed=' RMSDP=1.75D-08 MaxDP=1.28D-07 DE=-2.39D-12 OVMax= 1.57D-07'
+    (script emitted no property)
+  block 88: begin-line=2577 fed=1 rc=0 first-fed=' RMSDP=3.87D-09 MaxDP=3.97D-08 DE= 0.00D+00 OVMax= 2.42D-08'
+    (script emitted no property)
+  block 89: begin-line=2757 fed=1 rc=0 first-fed=' RMSDP=2.60D-04 MaxDP=1.60D-03              OVMax= 1.90D-03'
+    (script emitted no property)
+  block 90: begin-line=2769 fed=1 rc=0 first-fed=' RMSDP=7.09D-05 MaxDP=4.38D-04 DE=-3.27D-05 OVMax= 5.96D-04'
+    (script emitted no property)
+  block 91: begin-line=2781 fed=1 rc=0 first-fed=' RMSDP=3.00D-05 MaxDP=1.21D-04 DE=-1.53D-06 OVMax= 2.17D-04'
+    (script emitted no property)
+  block 92: begin-line=2792 fed=1 rc=0 first-fed=' RMSDP=1.46D-05 MaxDP=8.22D-05 DE=-5.26D-07 OVMax= 1.30D-04'
+    (script emitted no property)
+  block 93: begin-line=2803 fed=1 rc=0 first-fed=' RMSDP=7.42D-06 MaxDP=2.69D-05 DE=-8.29D-08 OVMax= 6.61D-05'
+    (script emitted no property)
+  block 94: begin-line=2814 fed=1 rc=0 first-fed=' RMSDP=2.45D-06 MaxDP=1.19D-05 DE=-1.39D-08 OVMax= 2.95D-05'
+    (script emitted no property)
+  block 95: begin-line=2827 fed=1 rc=0 first-fed=' RMSDP=1.18D-06 MaxDP=6.30D-06 DE=-1.61D-09 OVMax= 1.48D-05'
+    (script emitted no property)
+  block 96: begin-line=2840 fed=1 rc=0 first-fed=' RMSDP=3.43D-07 MaxDP=2.14D-06 DE=-2.76D-10 OVMax= 4.22D-06'
+    (script emitted no property)
+  block 97: begin-line=2853 fed=1 rc=0 first-fed=' RMSDP=4.10D-08 MaxDP=1.97D-07 DE=-1.76D-11 OVMax= 3.81D-07'
+    (script emitted no property)
+  block 98: begin-line=2866 fed=1 rc=0 first-fed=' RMSDP=1.32D-08 MaxDP=5.46D-08 DE=-4.69D-13 OVMax= 1.90D-07'
+    (script emitted no property)
+  block 99: begin-line=2879 fed=1 rc=0 first-fed=' RMSDP=2.95D-09 MaxDP=1.36D-08 DE=-1.42D-14 OVMax= 3.48D-08'
+    (script emitted no property)
+  block 100: begin-line=3056 fed=1 rc=0 first-fed=' RMSDP=2.94D-05 MaxDP=2.09D-04              OVMax= 1.28D-04'
+    (script emitted no property)
+  block 101: begin-line=3067 fed=1 rc=0 first-fed=' RMSDP=9.56D-06 MaxDP=5.76D-05 DE=-2.80D-07 OVMax= 7.79D-05'
+    (script emitted no property)
+  block 102: begin-line=3078 fed=1 rc=0 first-fed=' RMSDP=2.94D-06 MaxDP=2.26D-05 DE=-2.62D-08 OVMax= 3.55D-05'
+    (script emitted no property)
+  block 103: begin-line=3089 fed=1 rc=0 first-fed=' RMSDP=2.87D-06 MaxDP=1.66D-05 DE=-4.50D-09 OVMax= 2.88D-05'
+    (script emitted no property)
+  block 104: begin-line=3100 fed=1 rc=0 first-fed=' RMSDP=1.30D-06 MaxDP=5.32D-06 DE=-2.15D-09 OVMax= 1.48D-05'
+    (script emitted no property)
+  block 105: begin-line=3111 fed=1 rc=0 first-fed=' RMSDP=2.72D-07 MaxDP=1.49D-06 DE=-3.40D-10 OVMax= 2.30D-06'
+    (script emitted no property)
+  block 106: begin-line=3124 fed=1 rc=0 first-fed=' RMSDP=1.00D-07 MaxDP=6.79D-07 DE=-1.41D-11 OVMax= 9.20D-07'
+    (script emitted no property)
+  block 107: begin-line=3137 fed=1 rc=0 first-fed=' RMSDP=2.64D-08 MaxDP=1.33D-07 DE=-1.68D-12 OVMax= 3.06D-07'
+    (script emitted no property)
+  block 108: begin-line=3150 fed=1 rc=0 first-fed=' RMSDP=7.93D-09 MaxDP=3.71D-08 DE=-2.27D-13 OVMax= 9.15D-08'
+    (script emitted no property)
+  block 109: begin-line=4333 fed=1 rc=0 first-fed=' RMSDP=1.39D-03 MaxDP=1.19D-02              OVMax= 8.49D-03'
+    (script emitted no property)
+  block 110: begin-line=4345 fed=1 rc=0 first-fed=' RMSDP=6.43D-04 MaxDP=3.71D-03 DE=-5.89D-04 OVMax= 6.05D-03'
+    (script emitted no property)
+  block 111: begin-line=4357 fed=1 rc=0 first-fed=' RMSDP=2.95D-04 MaxDP=2.65D-03 DE=-1.03D-04 OVMax= 3.02D-03'
+    (script emitted no property)
+  block 112: begin-line=4369 fed=1 rc=0 first-fed=' RMSDP=2.10D-04 MaxDP=1.28D-03 DE=-4.25D-05 OVMax= 2.01D-03'
+    (script emitted no property)
+  block 113: begin-line=4381 fed=1 rc=0 first-fed=' RMSDP=5.83D-05 MaxDP=2.35D-04 DE=-9.17D-06 OVMax= 6.26D-04'
+    (script emitted no property)
+  block 114: begin-line=4392 fed=1 rc=0 first-fed=' RMSDP=1.67D-05 MaxDP=8.02D-05 DE=-7.52D-07 OVMax= 1.60D-04'
+    (script emitted no property)
+  block 115: begin-line=4405 fed=1 rc=0 first-fed=' RMSDP=6.53D-06 MaxDP=4.16D-05 DE=-6.50D-08 OVMax= 5.50D-05'
+    (script emitted no property)
+  block 116: begin-line=4418 fed=1 rc=0 first-fed=' RMSDP=9.53D-07 MaxDP=4.38D-06 DE=-7.00D-09 OVMax= 1.22D-05'
+    (script emitted no property)
+  block 117: begin-line=4431 fed=1 rc=0 first-fed=' RMSDP=6.19D-07 MaxDP=3.29D-06 DE=-3.11D-10 OVMax= 6.91D-06'
+    (script emitted no property)
+  block 118: begin-line=4444 fed=1 rc=0 first-fed=' RMSDP=8.90D-08 MaxDP=4.39D-07 DE=-6.93D-11 OVMax= 9.89D-07'
+    (script emitted no property)
+  block 119: begin-line=4457 fed=1 rc=0 first-fed=' RMSDP=1.33D-08 MaxDP=1.14D-07 DE=-1.26D-12 OVMax= 1.16D-07'
+    (script emitted no property)
+  block 120: begin-line=4470 fed=1 rc=0 first-fed=' RMSDP=2.62D-09 MaxDP=2.75D-08 DE=-2.84D-14 OVMax= 1.59D-08'
+    (script emitted no property)
+  block 121: begin-line=4719 fed=1 rc=0 first-fed=' RMSDP=1.50D-03 MaxDP=1.41D-02              OVMax= 7.03D-03'
+    (script emitted no property)
+  block 122: begin-line=4731 fed=1 rc=0 first-fed=' RMSDP=6.56D-04 MaxDP=3.76D-03 DE=-5.77D-04 OVMax= 6.49D-03'
+    (script emitted no property)
+  block 123: begin-line=4743 fed=1 rc=0 first-fed=' RMSDP=2.95D-04 MaxDP=2.76D-03 DE=-1.03D-04 OVMax= 2.87D-03'
+    (script emitted no property)
+  block 124: begin-line=4755 fed=1 rc=0 first-fed=' RMSDP=2.23D-04 MaxDP=1.27D-03 DE=-4.10D-05 OVMax= 2.31D-03'
+    (script emitted no property)
+  block 125: begin-line=4767 fed=1 rc=0 first-fed=' RMSDP=6.94D-05 MaxDP=2.93D-04 DE=-1.04D-05 OVMax= 7.19D-04'
+    (script emitted no property)
+  block 126: begin-line=4778 fed=1 rc=0 first-fed=' RMSDP=2.13D-05 MaxDP=8.77D-05 DE=-1.02D-06 OVMax= 1.95D-04'
+    (script emitted no property)
+  block 127: begin-line=4791 fed=1 rc=0 first-fed=' RMSDP=8.12D-06 MaxDP=4.29D-05 DE=-1.01D-07 OVMax= 8.29D-05'
+    (script emitted no property)
+  block 128: begin-line=4804 fed=1 rc=0 first-fed=' RMSDP=1.83D-06 MaxDP=8.28D-06 DE=-1.24D-08 OVMax= 2.22D-05'
+    (script emitted no property)
+  block 129: begin-line=4817 fed=1 rc=0 first-fed=' RMSDP=9.43D-07 MaxDP=4.67D-06 DE=-1.01D-09 OVMax= 1.10D-05'
+    (script emitted no property)
+  block 130: begin-line=4830 fed=1 rc=0 first-fed=' RMSDP=6.43D-08 MaxDP=3.25D-07 DE=-1.50D-10 OVMax= 6.91D-07'
+    (script emitted no property)
+  block 131: begin-line=4843 fed=1 rc=0 first-fed=' RMSDP=1.34D-08 MaxDP=1.29D-07 DE=-9.66D-13 OVMax= 1.05D-07'
+    (script emitted no property)
+  block 132: begin-line=4856 fed=1 rc=0 first-fed=' RMSDP=2.60D-09 MaxDP=2.78D-08 DE= 1.42D-14 OVMax= 1.46D-08'
+    (script emitted no property)
+  block 133: begin-line=5049 fed=1 rc=0 first-fed=' RMSDP=1.61D-03 MaxDP=1.62D-02              OVMax= 6.84D-03'
+    (script emitted no property)
+  block 134: begin-line=5061 fed=1 rc=0 first-fed=' RMSDP=6.72D-04 MaxDP=4.55D-03 DE=-5.65D-04 OVMax= 6.83D-03'
+    (script emitted no property)
+  block 135: begin-line=5073 fed=1 rc=0 first-fed=' RMSDP=2.93D-04 MaxDP=2.80D-03 DE=-1.03D-04 OVMax= 2.71D-03'
+    (script emitted no property)
+  block 136: begin-line=5085 fed=1 rc=0 first-fed=' RMSDP=2.34D-04 MaxDP=1.34D-03 DE=-3.95D-05 OVMax= 2.58D-03'
+    (script emitted no property)
+  block 137: begin-line=5097 fed=1 rc=0 first-fed=' RMSDP=8.20D-05 MaxDP=3.42D-04 DE=-1.18D-05 OVMax= 9.10D-04'
+    (script emitted no property)
+  block 138: begin-line=5108 fed=1 rc=0 first-fed=' RMSDP=2.65D-05 MaxDP=9.51D-05 DE=-1.40D-06 OVMax= 2.69D-04'
+    (script emitted no property)
+  block 139: begin-line=5121 fed=1 rc=0 first-fed=' RMSDP=9.72D-06 MaxDP=4.24D-05 DE=-1.53D-07 OVMax= 1.08D-04'
+    (script emitted no property)
+  block 140: begin-line=5134 fed=1 rc=0 first-fed=' RMSDP=2.72D-06 MaxDP=1.28D-05 DE=-1.97D-08 OVMax= 3.21D-05'
+    (script emitted no property)
+  block 141: begin-line=5147 fed=1 rc=0 first-fed=' RMSDP=1.07D-06 MaxDP=4.95D-06 DE=-1.93D-09 OVMax= 1.25D-05'
+    (script emitted no property)
+  block 142: begin-line=5160 fed=1 rc=0 first-fed=' RMSDP=5.04D-08 MaxDP=2.48D-07 DE=-1.94D-10 OVMax= 5.02D-07'
+    (script emitted no property)
+  block 143: begin-line=5173 fed=1 rc=0 first-fed=' RMSDP=1.31D-08 MaxDP=1.32D-07 DE=-4.26D-13 OVMax= 9.78D-08'
+    (script emitted no property)
+  block 144: begin-line=5186 fed=1 rc=0 first-fed=' RMSDP=2.40D-09 MaxDP=2.57D-08 DE=-5.68D-14 OVMax= 1.27D-08'
+    (script emitted no property)
+  block 145: begin-line=5382 fed=1 rc=0 first-fed=' RMSDP=1.71D-03 MaxDP=1.80D-02              OVMax= 6.83D-03'
+    (script emitted no property)
+  block 146: begin-line=5394 fed=1 rc=0 first-fed=' RMSDP=6.87D-04 MaxDP=5.46D-03 DE=-5.48D-04 OVMax= 7.05D-03'
+    (script emitted no property)
+  block 147: begin-line=5406 fed=1 rc=0 first-fed=' RMSDP=2.86D-04 MaxDP=2.75D-03 DE=-1.02D-04 OVMax= 2.53D-03'
+    (script emitted no property)
+  block 148: begin-line=5418 fed=1 rc=0 first-fed=' RMSDP=2.44D-04 MaxDP=1.49D-03 DE=-3.75D-05 OVMax= 2.81D-03'
+    (script emitted no property)
+  block 149: begin-line=5430 fed=1 rc=0 first-fed=' RMSDP=9.40D-05 MaxDP=3.73D-04 DE=-1.32D-05 OVMax= 1.09D-03'
+    (script emitted no property)
+  block 150: begin-line=5441 fed=1 rc=0 first-fed=' RMSDP=3.13D-05 MaxDP=1.22D-04 DE=-1.83D-06 OVMax= 3.37D-04'
+    (script emitted no property)
+  block 151: begin-line=5454 fed=1 rc=0 first-fed=' RMSDP=1.10D-05 MaxDP=5.03D-05 DE=-2.12D-07 OVMax= 1.28D-04'
+    (script emitted no property)
+  block 152: begin-line=5467 fed=1 rc=0 first-fed=' RMSDP=3.53D-06 MaxDP=1.80D-05 DE=-2.74D-08 OVMax= 4.14D-05'
+    (script emitted no property)
+  block 153: begin-line=5480 fed=1 rc=0 first-fed=' RMSDP=1.11D-06 MaxDP=5.00D-06 DE=-2.88D-09 OVMax= 1.25D-05'
+    (script emitted no property)
+  block 154: begin-line=5493 fed=1 rc=0 first-fed=' RMSDP=4.02D-08 MaxDP=2.19D-07 DE=-2.08D-10 OVMax= 3.74D-07'
+    (script emitted no property)
+  block 155: begin-line=5506 fed=1 rc=0 first-fed=' RMSDP=1.19D-08 MaxDP=1.21D-07 DE=-3.41D-13 OVMax= 8.77D-08'
+    (script emitted no property)
+  block 156: begin-line=5519 fed=1 rc=0 first-fed=' RMSDP=2.09D-09 MaxDP=2.18D-08 DE= 0.00D+00 OVMax= 1.05D-08'
+    (script emitted no property)
+  block 157: begin-line=5715 fed=1 rc=0 first-fed=' RMSDP=1.78D-03 MaxDP=1.93D-02              OVMax= 6.86D-03'
+    (script emitted no property)
+  block 158: begin-line=5727 fed=1 rc=0 first-fed=' RMSDP=6.98D-04 MaxDP=6.18D-03 DE=-5.27D-04 OVMax= 7.16D-03'
+    (script emitted no property)
+  block 159: begin-line=5739 fed=1 rc=0 first-fed=' RMSDP=2.76D-04 MaxDP=2.65D-03 DE=-9.97D-05 OVMax= 2.34D-03'
+    (script emitted no property)
+  block 160: begin-line=5751 fed=1 rc=0 first-fed=' RMSDP=2.51D-04 MaxDP=1.61D-03 DE=-3.52D-05 OVMax= 2.98D-03'
+    (script emitted no property)
+  block 161: begin-line=5763 fed=1 rc=0 first-fed=' RMSDP=1.05D-04 MaxDP=4.08D-04 DE=-1.44D-05 OVMax= 1.26D-03'
+    (script emitted no property)
+  block 162: begin-line=5774 fed=1 rc=0 first-fed=' RMSDP=3.53D-05 MaxDP=1.50D-04 DE=-2.30D-06 OVMax= 3.95D-04'
+    (script emitted no property)
+  block 163: begin-line=5787 fed=1 rc=0 first-fed=' RMSDP=1.18D-05 MaxDP=5.70D-05 DE=-2.69D-07 OVMax= 1.42D-04'
+    (script emitted no property)
+  block 164: begin-line=5800 fed=1 rc=0 first-fed=' RMSDP=4.24D-06 MaxDP=2.52D-05 DE=-3.45D-08 OVMax= 4.85D-05'
+    (script emitted no property)
+  block 165: begin-line=5813 fed=1 rc=0 first-fed=' RMSDP=1.10D-06 MaxDP=4.79D-06 DE=-3.74D-09 OVMax= 1.19D-05'
+    (script emitted no property)
+  block 166: begin-line=5826 fed=1 rc=0 first-fed=' RMSDP=3.29D-08 MaxDP=1.62D-07 DE=-2.04D-10 OVMax= 2.83D-07'
+    (script emitted no property)
+  block 167: begin-line=5839 fed=1 rc=0 first-fed=' RMSDP=1.02D-08 MaxDP=1.01D-07 DE=-2.13D-13 OVMax= 7.62D-08'
+    (script emitted no property)
+  block 168: begin-line=5852 fed=1 rc=0 first-fed=' RMSDP=1.72D-09 MaxDP=1.74D-08 DE= 9.95D-14 OVMax= 8.45D-09'
+    (script emitted no property)
+  block 169: begin-line=6048 fed=1 rc=0 first-fed=' RMSDP=1.83D-03 MaxDP=2.02D-02              OVMax= 6.82D-03'
+    (script emitted no property)
+  block 170: begin-line=6060 fed=1 rc=0 first-fed=' RMSDP=7.02D-04 MaxDP=6.68D-03 DE=-5.04D-04 OVMax= 7.16D-03'
+    (script emitted no property)
+  block 171: begin-line=6072 fed=1 rc=0 first-fed=' RMSDP=2.64D-04 MaxDP=2.49D-03 DE=-9.66D-05 OVMax= 2.15D-03'
+    (script emitted no property)
+  block 172: begin-line=6084 fed=1 rc=0 first-fed=' RMSDP=2.54D-04 MaxDP=1.68D-03 DE=-3.27D-05 OVMax= 3.09D-03'
+    (script emitted no property)
+  block 173: begin-line=6096 fed=1 rc=0 first-fed=' RMSDP=1.15D-04 MaxDP=4.81D-04 DE=-1.53D-05 OVMax= 1.41D-03'
+    (script emitted no property)
+  block 174: begin-line=6107 fed=1 rc=0 first-fed=' RMSDP=3.83D-05 MaxDP=1.72D-04 DE=-2.75D-06 OVMax= 4.39D-04'
+    (script emitted no property)
+  block 175: begin-line=6120 fed=1 rc=0 first-fed=' RMSDP=1.24D-05 MaxDP=6.08D-05 DE=-3.18D-07 OVMax= 1.51D-04'
+    (script emitted no property)
+  block 176: begin-line=6133 fed=1 rc=0 first-fed=' RMSDP=4.83D-06 MaxDP=3.17D-05 DE=-4.03D-08 OVMax= 5.32D-05'
+    (script emitted no property)
+  block 177: begin-line=6146 fed=1 rc=0 first-fed=' RMSDP=1.07D-06 MaxDP=5.32D-06 DE=-4.41D-09 OVMax= 1.18D-05'
+    (script emitted no property)
+  block 178: begin-line=6159 fed=1 rc=0 first-fed=' RMSDP=2.94D-08 MaxDP=1.16D-07 DE=-1.87D-10 OVMax= 2.51D-07'
+    (script emitted no property)
+  block 179: begin-line=6172 fed=1 rc=0 first-fed=' RMSDP=8.44D-09 MaxDP=7.94D-08 DE=-2.42D-13 OVMax= 6.51D-08'
+    (script emitted no property)
+  block 180: begin-line=6368 fed=1 rc=0 first-fed=' RMSDP=1.84D-03 MaxDP=2.05D-02              OVMax= 6.73D-03'
+    (script emitted no property)
+  block 181: begin-line=6380 fed=1 rc=0 first-fed=' RMSDP=6.99D-04 MaxDP=6.95D-03 DE=-4.79D-04 OVMax= 7.06D-03'
+    (script emitted no property)
+  block 182: begin-line=6392 fed=1 rc=0 first-fed=' RMSDP=2.50D-04 MaxDP=2.30D-03 DE=-9.24D-05 OVMax= 1.96D-03'
+    (script emitted no property)
+  block 183: begin-line=6404 fed=1 rc=0 first-fed=' RMSDP=2.52D-04 MaxDP=1.69D-03 DE=-2.99D-05 OVMax= 3.13D-03'
+    (script emitted no property)
+  block 184: begin-line=6416 fed=1 rc=0 first-fed=' RMSDP=1.24D-04 MaxDP=5.42D-04 DE=-1.57D-05 OVMax= 1.53D-03'
+    (script emitted no property)
+  block 185: begin-line=6427 fed=1 rc=0 first-fed=' RMSDP=4.00D-05 MaxDP=1.87D-04 DE=-3.15D-06 OVMax= 4.69D-04'
+    (script emitted no property)
+  block 186: begin-line=6440 fed=1 rc=0 first-fed=' RMSDP=1.28D-05 MaxDP=6.51D-05 DE=-3.53D-07 OVMax= 1.59D-04'
+    (script emitted no property)
+  block 187: begin-line=6453 fed=1 rc=0 first-fed=' RMSDP=5.27D-06 MaxDP=3.68D-05 DE=-4.47D-08 OVMax= 5.57D-05'
+    (script emitted no property)
+  block 188: begin-line=6466 fed=1 rc=0 first-fed=' RMSDP=1.01D-06 MaxDP=5.75D-06 DE=-4.82D-09 OVMax= 1.13D-05'
+    (script emitted no property)
+  block 189: begin-line=6479 fed=1 rc=0 first-fed=' RMSDP=2.96D-08 MaxDP=1.11D-07 DE=-1.63D-10 OVMax= 2.36D-07'
+    (script emitted no property)
+  block 190: begin-line=6492 fed=1 rc=0 first-fed=' RMSDP=7.18D-09 MaxDP=6.06D-08 DE=-1.28D-13 OVMax= 5.59D-08'
+    (script emitted no property)
+  block 191: begin-line=6688 fed=1 rc=0 first-fed=' RMSDP=1.82D-03 MaxDP=2.02D-02              OVMax= 6.61D-03'
+    (script emitted no property)
+  block 192: begin-line=6700 fed=1 rc=0 first-fed=' RMSDP=6.86D-04 MaxDP=7.00D-03 DE=-4.53D-04 OVMax= 6.88D-03'
+    (script emitted no property)
+  block 193: begin-line=6712 fed=1 rc=0 first-fed=' RMSDP=2.35D-04 MaxDP=2.09D-03 DE=-8.73D-05 OVMax= 1.78D-03'
+    (script emitted no property)
+  block 194: begin-line=6724 fed=1 rc=0 first-fed=' RMSDP=2.45D-04 MaxDP=1.65D-03 DE=-2.71D-05 OVMax= 3.11D-03'
+    (script emitted no property)
+  block 195: begin-line=6736 fed=1 rc=0 first-fed=' RMSDP=1.30D-04 MaxDP=5.91D-04 DE=-1.57D-05 OVMax= 1.63D-03'
+    (script emitted no property)
+  block 196: begin-line=6747 fed=1 rc=0 first-fed=' RMSDP=4.06D-05 MaxDP=1.94D-04 DE=-3.48D-06 OVMax= 4.85D-04'
+    (script emitted no property)
+  block 197: begin-line=6760 fed=1 rc=0 first-fed=' RMSDP=1.30D-05 MaxDP=6.89D-05 DE=-3.71D-07 OVMax= 1.69D-04'
+    (script emitted no property)
+  block 198: begin-line=6773 fed=1 rc=0 first-fed=' RMSDP=5.54D-06 MaxDP=4.01D-05 DE=-4.76D-08 OVMax= 5.62D-05'
+    (script emitted no property)
+  block 199: begin-line=6786 fed=1 rc=0 first-fed=' RMSDP=9.44D-07 MaxDP=5.87D-06 DE=-4.94D-09 OVMax= 1.05D-05'
+    (script emitted no property)
+  block 200: begin-line=6799 fed=1 rc=0 first-fed=' RMSDP=3.18D-08 MaxDP=1.24D-07 DE=-1.36D-10 OVMax= 2.28D-07'
+    (script emitted no property)
+  block 201: begin-line=6812 fed=1 rc=0 first-fed=' RMSDP=6.45D-09 MaxDP=4.76D-08 DE=-2.84D-13 OVMax= 4.88D-08'
+    (script emitted no property)
+  block 202: begin-line=7010 fed=1 rc=0 first-fed=' RMSDP=1.91D-02 MaxDP=1.45D-01              OVMax= 0.00D+00'
+    (script emitted no property)
+  block 203: begin-line=7021 fed=1 rc=0 first-fed=' RMSDP=1.02D-02 MaxDP=7.04D-02 DE=-1.60D-02 OVMax= 6.86D-02'
+    (script emitted no property)
+  block 204: begin-line=7033 fed=1 rc=0 first-fed=' RMSDP=2.73D-03 MaxDP=2.17D-02 DE=-3.83D-02 OVMax= 1.95D-02'
+    (script emitted no property)
+  block 205: begin-line=7045 fed=1 rc=0 first-fed=' RMSDP=1.32D-03 MaxDP=1.18D-02 DE=-2.12D-03 OVMax= 1.21D-02'
+    (script emitted no property)
+  block 206: begin-line=7057 fed=1 rc=0 first-fed=' RMSDP=6.16D-04 MaxDP=3.44D-03 DE=-4.60D-04 OVMax= 7.02D-03'
+    (script emitted no property)
+  block 207: begin-line=7069 fed=1 rc=0 first-fed=' RMSDP=4.01D-04 MaxDP=1.86D-03 DE=-1.24D-04 OVMax= 4.36D-03'
+    (script emitted no property)
+  block 208: begin-line=7084 fed=1 rc=0 first-fed=' RMSDP=2.04D-04 MaxDP=1.02D-03 DE=-4.47D-05 OVMax= 2.07D-03'
+    (script emitted no property)
+  block 209: begin-line=7097 fed=1 rc=0 first-fed=' RMSDP=3.63D-05 MaxDP=2.99D-04 DE=-6.84D-06 OVMax= 2.54D-04'
+    (script emitted no property)
+  block 210: begin-line=7110 fed=1 rc=0 first-fed=' RMSDP=4.37D-06 MaxDP=1.96D-05 DE=-1.81D-07 OVMax= 3.81D-05'
+    (script emitted no property)
+  block 211: begin-line=7123 fed=1 rc=0 first-fed=' RMSDP=1.11D-06 MaxDP=4.69D-06 DE=-4.31D-09 OVMax= 1.41D-05'
+    (script emitted no property)
+  block 212: begin-line=7136 fed=1 rc=0 first-fed=' RMSDP=4.59D-07 MaxDP=1.65D-06 DE=-4.08D-10 OVMax= 4.71D-06'
+    (script emitted no property)
+  block 213: begin-line=7149 fed=1 rc=0 first-fed=' RMSDP=6.50D-08 MaxDP=2.60D-07 DE=-4.07D-11 OVMax= 6.90D-07'
+    (script emitted no property)
+  block 214: begin-line=7164 fed=1 rc=0 first-fed=' RMSDP=9.08D-09 MaxDP=4.08D-08 DE=-7.11D-13 OVMax= 7.42D-08'
+    (script emitted no property)
+  block 215: begin-line=7360 fed=1 rc=0 first-fed=' RMSDP=1.18D-03 MaxDP=8.25D-03              OVMax= 8.55D-03'
+    (script emitted no property)
+  block 216: begin-line=7372 fed=1 rc=0 first-fed=' RMSDP=6.33D-04 MaxDP=3.43D-03 DE=-6.11D-04 OVMax= 4.81D-03'
+    (script emitted no property)
+  block 217: begin-line=7384 fed=1 rc=0 first-fed=' RMSDP=2.83D-04 MaxDP=2.05D-03 DE=-1.05D-04 OVMax= 3.30D-03'
+    (script emitted no property)
+  block 218: begin-line=7396 fed=1 rc=0 first-fed=' RMSDP=1.84D-04 MaxDP=1.20D-03 DE=-4.41D-05 OVMax= 1.76D-03'
+    (script emitted no property)
+  block 219: begin-line=7408 fed=1 rc=0 first-fed=' RMSDP=4.24D-05 MaxDP=1.62D-04 DE=-7.58D-06 OVMax= 5.25D-04'
+    (script emitted no property)
+  block 220: begin-line=7419 fed=1 rc=0 first-fed=' RMSDP=1.26D-05 MaxDP=7.13D-05 DE=-5.45D-07 OVMax= 1.34D-04'
+    (script emitted no property)
+  block 221: begin-line=7432 fed=1 rc=0 first-fed=' RMSDP=5.96D-06 MaxDP=3.97D-05 DE=-4.68D-08 OVMax= 4.81D-05'
+    (script emitted no property)
+  block 222: begin-line=7445 fed=1 rc=0 first-fed=' RMSDP=9.68D-07 MaxDP=5.98D-06 DE=-5.17D-09 OVMax= 7.32D-06'
+    (script emitted no property)
+  block 223: begin-line=7458 fed=1 rc=0 first-fed=' RMSDP=3.96D-07 MaxDP=1.81D-06 DE=-1.53D-10 OVMax= 4.75D-06'
+    (script emitted no property)
+  block 224: begin-line=7471 fed=1 rc=0 first-fed=' RMSDP=6.31D-08 MaxDP=2.81D-07 DE=-2.82D-11 OVMax= 7.76D-07'
+    (script emitted no property)
+  block 225: begin-line=7484 fed=1 rc=0 first-fed=' RMSDP=7.65D-09 MaxDP=3.65D-08 DE=-7.82D-13 OVMax= 6.57D-08'
+    (script emitted no property)
+  block 226: begin-line=7677 fed=1 rc=0 first-fed=' RMSDP=1.11D-03 MaxDP=7.89D-03              OVMax= 9.26D-03'
+    (script emitted no property)
+  block 227: begin-line=7689 fed=1 rc=0 first-fed=' RMSDP=6.34D-04 MaxDP=3.22D-03 DE=-6.17D-04 OVMax= 4.29D-03'
+    (script emitted no property)
+  block 228: begin-line=7701 fed=1 rc=0 first-fed=' RMSDP=2.76D-04 MaxDP=1.73D-03 DE=-1.06D-04 OVMax= 3.43D-03'
+    (script emitted no property)
+  block 229: begin-line=7713 fed=1 rc=0 first-fed=' RMSDP=1.76D-04 MaxDP=1.12D-03 DE=-4.48D-05 OVMax= 1.77D-03'
+    (script emitted no property)
+  block 230: begin-line=7725 fed=1 rc=0 first-fed=' RMSDP=3.93D-05 MaxDP=1.93D-04 DE=-7.42D-06 OVMax= 5.08D-04'
+    (script emitted no property)
+  block 231: begin-line=7736 fed=1 rc=0 first-fed=' RMSDP=1.32D-05 MaxDP=7.07D-05 DE=-5.52D-07 OVMax= 1.36D-04'
+    (script emitted no property)
+  block 232: begin-line=7749 fed=1 rc=0 first-fed=' RMSDP=6.35D-06 MaxDP=3.49D-05 DE=-4.95D-08 OVMax= 5.68D-05'
+    (script emitted no property)
+  block 233: begin-line=7762 fed=1 rc=0 first-fed=' RMSDP=1.31D-06 MaxDP=8.34D-06 DE=-5.76D-09 OVMax= 1.05D-05'
+    (script emitted no property)
+  block 234: begin-line=7775 fed=1 rc=0 first-fed=' RMSDP=4.75D-07 MaxDP=2.02D-06 DE=-2.57D-10 OVMax= 5.85D-06'
+    (script emitted no property)
+  block 235: begin-line=7788 fed=1 rc=0 first-fed=' RMSDP=4.78D-08 MaxDP=1.89D-07 DE=-3.74D-11 OVMax= 5.54D-07'
+    (script emitted no property)
+  block 236: begin-line=7801 fed=1 rc=0 first-fed=' RMSDP=6.52D-09 MaxDP=2.66D-08 DE=-4.55D-13 OVMax= 5.29D-08'
+    (script emitted no property)
+  block 237: begin-line=7994 fed=1 rc=0 first-fed=' RMSDP=1.07D-03 MaxDP=7.43D-03              OVMax= 1.05D-02'
+    (script emitted no property)
+  block 238: begin-line=8006 fed=1 rc=0 first-fed=' RMSDP=6.36D-04 MaxDP=2.99D-03 DE=-6.21D-04 OVMax= 4.52D-03'
+    (script emitted no property)
+  block 239: begin-line=8018 fed=1 rc=0 first-fed=' RMSDP=2.68D-04 MaxDP=1.40D-03 DE=-1.07D-04 OVMax= 3.68D-03'
+    (script emitted no property)
+  block 240: begin-line=8030 fed=1 rc=0 first-fed=' RMSDP=1.70D-04 MaxDP=1.01D-03 DE=-4.54D-05 OVMax= 1.83D-03'
+    (script emitted no property)
+  block 241: begin-line=8042 fed=1 rc=0 first-fed=' RMSDP=3.87D-05 MaxDP=2.16D-04 DE=-7.41D-06 OVMax= 5.13D-04'
+    (script emitted no property)
+  block 242: begin-line=8053 fed=1 rc=0 first-fed=' RMSDP=1.43D-05 MaxDP=6.99D-05 DE=-5.81D-07 OVMax= 1.47D-04'
+    (script emitted no property)
+  block 243: begin-line=8066 fed=1 rc=0 first-fed=' RMSDP=6.35D-06 MaxDP=2.84D-05 DE=-5.12D-08 OVMax= 5.62D-05'
+    (script emitted no property)
+  block 244: begin-line=8079 fed=1 rc=0 first-fed=' RMSDP=1.40D-06 MaxDP=9.48D-06 DE=-5.46D-09 OVMax= 1.13D-05'
+    (script emitted no property)
+  block 245: begin-line=8092 fed=1 rc=0 first-fed=' RMSDP=4.41D-07 MaxDP=1.73D-06 DE=-2.63D-10 OVMax= 5.45D-06'
+    (script emitted no property)
+  block 246: begin-line=8105 fed=1 rc=0 first-fed=' RMSDP=4.47D-08 MaxDP=2.25D-07 DE=-3.23D-11 OVMax= 4.74D-07'
+    (script emitted no property)
+  block 247: begin-line=8118 fed=1 rc=0 first-fed=' RMSDP=6.06D-09 MaxDP=2.34D-08 DE=-3.69D-13 OVMax= 4.36D-08'
+    (script emitted no property)
+  block 248: begin-line=8311 fed=1 rc=0 first-fed=' RMSDP=1.05D-03 MaxDP=6.84D-03              OVMax= 1.18D-02'
+    (script emitted no property)
+  block 249: begin-line=8323 fed=1 rc=0 first-fed=' RMSDP=6.37D-04 MaxDP=2.73D-03 DE=-6.22D-04 OVMax= 4.67D-03'
+    (script emitted no property)
+  block 250: begin-line=8335 fed=1 rc=0 first-fed=' RMSDP=2.60D-04 MaxDP=1.12D-03 DE=-1.08D-04 OVMax= 3.81D-03'
+    (script emitted no property)
+  block 251: begin-line=8347 fed=1 rc=0 first-fed=' RMSDP=1.63D-04 MaxDP=8.85D-04 DE=-4.54D-05 OVMax= 1.75D-03'
+    (script emitted no property)
+  block 252: begin-line=8359 fed=1 rc=0 first-fed=' RMSDP=3.86D-05 MaxDP=2.27D-04 DE=-7.36D-06 OVMax= 5.30D-04'
+    (script emitted no property)
+  block 253: begin-line=8370 fed=1 rc=0 first-fed=' RMSDP=1.51D-05 MaxDP=7.04D-05 DE=-5.90D-07 OVMax= 1.48D-04'
+    (script emitted no property)
+  block 254: begin-line=8383 fed=1 rc=0 first-fed=' RMSDP=5.77D-06 MaxDP=2.90D-05 DE=-4.91D-08 OVMax= 4.99D-05'
+    (script emitted no property)
+  block 255: begin-line=8396 fed=1 rc=0 first-fed=' RMSDP=1.35D-06 MaxDP=9.69D-06 DE=-4.40D-09 OVMax= 1.07D-05'
+    (script emitted no property)
+  block 256: begin-line=8409 fed=1 rc=0 first-fed=' RMSDP=3.97D-07 MaxDP=1.45D-06 DE=-2.29D-10 OVMax= 4.90D-06'
+    (script emitted no property)
+  block 257: begin-line=8422 fed=1 rc=0 first-fed=' RMSDP=4.39D-08 MaxDP=2.40D-07 DE=-2.60D-11 OVMax= 4.55D-07'
+    (script emitted no property)
+  block 258: begin-line=8435 fed=1 rc=0 first-fed=' RMSDP=6.21D-09 MaxDP=3.35D-08 DE=-2.98D-13 OVMax= 3.55D-08'
+    (script emitted no property)
+  block 259: begin-line=8631 fed=1 rc=0 first-fed=' RMSDP=1.05D-03 MaxDP=6.72D-03              OVMax= 9.70D-03'
+    (script emitted no property)
+  block 260: begin-line=8643 fed=1 rc=0 first-fed=' RMSDP=6.34D-04 MaxDP=3.24D-03 DE=-6.19D-04 OVMax= 4.72D-03'
+    (script emitted no property)
+  block 261: begin-line=8655 fed=1 rc=0 first-fed=' RMSDP=2.52D-04 MaxDP=1.18D-03 DE=-1.07D-04 OVMax= 3.06D-03'
+    (script emitted no property)
+  block 262: begin-line=8667 fed=1 rc=0 first-fed=' RMSDP=1.57D-04 MaxDP=7.38D-04 DE=-4.46D-05 OVMax= 1.44D-03'
+    (script emitted no property)
+  block 263: begin-line=8679 fed=1 rc=0 first-fed=' RMSDP=3.77D-05 MaxDP=2.24D-04 DE=-7.12D-06 OVMax= 5.25D-04'
+    (script emitted no property)
+  block 264: begin-line=8690 fed=1 rc=0 first-fed=' RMSDP=1.53D-05 MaxDP=8.14D-05 DE=-5.60D-07 OVMax= 1.45D-04'
+    (script emitted no property)
+  block 265: begin-line=8703 fed=1 rc=0 first-fed=' RMSDP=4.76D-06 MaxDP=2.75D-05 DE=-4.46D-08 OVMax= 4.13D-05'
+    (script emitted no property)
+  block 266: begin-line=8716 fed=1 rc=0 first-fed=' RMSDP=1.26D-06 MaxDP=9.37D-06 DE=-3.13D-09 OVMax= 1.00D-05'
+    (script emitted no property)
+  block 267: begin-line=8729 fed=1 rc=0 first-fed=' RMSDP=3.67D-07 MaxDP=1.44D-06 DE=-1.97D-10 OVMax= 4.52D-06'
+    (script emitted no property)
+  block 268: begin-line=8742 fed=1 rc=0 first-fed=' RMSDP=4.30D-08 MaxDP=2.12D-07 DE=-2.20D-11 OVMax= 4.62D-07'
+    (script emitted no property)
+  block 269: begin-line=8755 fed=1 rc=0 first-fed=' RMSDP=6.70D-09 MaxDP=4.37D-08 DE=-3.69D-13 OVMax= 3.89D-08'
+    (script emitted no property)
+  block 270: begin-line=8951 fed=1 rc=0 first-fed=' RMSDP=1.07D-03 MaxDP=6.71D-03              OVMax= 8.87D-03'
+    (script emitted no property)
+  block 271: begin-line=8963 fed=1 rc=0 first-fed=' RMSDP=6.25D-04 MaxDP=3.64D-03 DE=-6.12D-04 OVMax= 4.65D-03'
+    (script emitted no property)
+  block 272: begin-line=8975 fed=1 rc=0 first-fed=' RMSDP=2.42D-04 MaxDP=1.22D-03 DE=-1.04D-04 OVMax= 2.82D-03'
+    (script emitted no property)
+  block 273: begin-line=8987 fed=1 rc=0 first-fed=' RMSDP=1.50D-04 MaxDP=6.85D-04 DE=-4.30D-05 OVMax= 1.46D-03'
+    (script emitted no property)
+  block 274: begin-line=8999 fed=1 rc=0 first-fed=' RMSDP=3.57D-05 MaxDP=2.08D-04 DE=-6.66D-06 OVMax= 4.88D-04'
+    (script emitted no property)
+  block 275: begin-line=9010 fed=1 rc=0 first-fed=' RMSDP=1.51D-05 MaxDP=8.53D-05 DE=-4.92D-07 OVMax= 1.41D-04'
+    (script emitted no property)
+  block 276: begin-line=9023 fed=1 rc=0 first-fed=' RMSDP=3.51D-06 MaxDP=2.22D-05 DE=-3.88D-08 OVMax= 3.14D-05'
+    (script emitted no property)
+  block 277: begin-line=9036 fed=1 rc=0 first-fed=' RMSDP=1.16D-06 MaxDP=8.60D-06 DE=-1.94D-09 OVMax= 9.41D-06'
+    (script emitted no property)
+  block 278: begin-line=9049 fed=1 rc=0 first-fed=' RMSDP=3.52D-07 MaxDP=1.48D-06 DE=-1.74D-10 OVMax= 4.34D-06'
+    (script emitted no property)
+  block 279: begin-line=9062 fed=1 rc=0 first-fed=' RMSDP=4.22D-08 MaxDP=1.55D-07 DE=-1.96D-11 OVMax= 4.84D-07'
+    (script emitted no property)
+  block 280: begin-line=9075 fed=1 rc=0 first-fed=' RMSDP=7.21D-09 MaxDP=4.67D-08 DE=-3.13D-13 OVMax= 4.76D-08'
+    (script emitted no property)
+  block 281: begin-line=9271 fed=1 rc=0 first-fed=' RMSDP=1.10D-03 MaxDP=6.59D-03              OVMax= 9.09D-03'
+    (script emitted no property)
+  block 282: begin-line=9283 fed=1 rc=0 first-fed=' RMSDP=6.10D-04 MaxDP=3.87D-03 DE=-5.98D-04 OVMax= 4.47D-03'
+    (script emitted no property)
+  block 283: begin-line=9295 fed=1 rc=0 first-fed=' RMSDP=2.32D-04 MaxDP=1.27D-03 DE=-9.96D-05 OVMax= 2.75D-03'
+    (script emitted no property)
+  block 284: begin-line=9307 fed=1 rc=0 first-fed=' RMSDP=1.44D-04 MaxDP=6.55D-04 DE=-4.06D-05 OVMax= 1.43D-03'
+    (script emitted no property)
+  block 285: begin-line=9318 fed=1 rc=0 first-fed=' RMSDP=3.30D-05 MaxDP=1.80D-04 DE=-6.08D-06 OVMax= 4.23D-04'
+    (script emitted no property)
+  block 286: begin-line=9329 fed=1 rc=0 first-fed=' RMSDP=1.44D-05 MaxDP=8.04D-05 DE=-4.01D-07 OVMax= 1.34D-04'
+    (script emitted no property)
+  block 287: begin-line=9342 fed=1 rc=0 first-fed=' RMSDP=2.40D-06 MaxDP=1.65D-05 DE=-3.17D-08 OVMax= 2.18D-05'
+    (script emitted no property)
+  block 288: begin-line=9355 fed=1 rc=0 first-fed=' RMSDP=9.19D-07 MaxDP=6.80D-06 DE=-1.05D-09 OVMax= 7.80D-06'
+    (script emitted no property)
+  block 289: begin-line=9368 fed=1 rc=0 first-fed=' RMSDP=3.39D-07 MaxDP=1.50D-06 DE=-1.30D-10 OVMax= 4.17D-06'
+    (script emitted no property)
+  block 290: begin-line=9381 fed=1 rc=0 first-fed=' RMSDP=4.20D-08 MaxDP=1.74D-07 DE=-1.78D-11 OVMax= 5.17D-07'
+    (script emitted no property)
+  block 291: begin-line=9394 fed=1 rc=0 first-fed=' RMSDP=7.47D-09 MaxDP=4.46D-08 DE=-3.41D-13 OVMax= 5.43D-08'
+    (script emitted no property)
+
+[KE][NNREPUL]  Script=gaussian-16.ke  Freq=all  Skip=0  Lines=1
+  Begin=N\-N\=
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=531 fed=1 rc=0 first-fed=' N-N= 2.430615744716D+01 E-N=-2.642957608600D+02  KE= 9.215246440715D+01'
+    key: NNREPUL
+      size: 1
+      values: 2.430615744716e+01
+      units: Hartree
+    key: KE
+      size: 1
+      values: 9.215246440715e+01
+      units: Hartree
+  block 2: begin-line=3329 fed=1 rc=0 first-fed=' N-N= 2.404045241636D+01 E-N=-2.636368654070D+02  KE= 9.207373554201D+01'
+    key: NNREPUL
+      size: 1
+      values: 2.404045241636e+01
+      units: Hartree
+    key: KE
+      size: 1
+      values: 9.207373554201e+01
+      units: Hartree
+  block 3: begin-line=4540 fed=1 rc=0 first-fed=' N-N= 2.402604210369D+01 E-N=-2.636246480969D+02  KE= 9.207219072138D+01'
+    key: NNREPUL
+      size: 1
+      values: 2.402604210369e+01
+      units: Hartree
+    key: KE
+      size: 1
+      values: 9.207219072138e+01
+      units: Hartree
+  block 4: begin-line=9606 fed=1 rc=0 first-fed=' N-N= 2.411722175413D+01 E-N=-2.638266135857D+02  KE= 9.209969809644D+01'
+    key: NNREPUL
+      size: 1
+      values: 2.411722175413e+01
+      units: Hartree
+    key: KE
+      size: 1
+      values: 9.209969809644e+01
+      units: Hartree
+
+[VIB][VIBFREQ][VIBIR][VIBRAM][VIBSYM]  Script=gaussian-16.vib  Freq=first  Skip=-  Lines=-
+  Begin=reduced masses \(AMU\), force constants \(mDyne\/A\)
+  End=-------------------
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=3739 fed=17 rc=0 first-fed=' incident light, reduced masses (AMU), force constants (mDyne/A),'
+    key: VIB
+      size: 3 3 3
+      vectorlabels: 1-A' 2-A' 3-A'
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -8.000000000000000e-02 -5.000000000000000e-02 -0.000000000000000e+00 7.000000000000001e-02 -3.000000000000000e-02 -0.000000000000000e+00 -1.000000000000000e-01 9.900000000000000e-01 0.000000000000000e+00 -1.000000000000000e-02 7.300000000000000e-01 0.000000000000000e+00 2.000000000000000e-02 -6.400000000000000e-01 -0.000000000000000e+00 -1.300000000000000e-01 2.000000000000000e-01 0.00000000000000 ...[608 chars]
+      units: Angstrom
+    key: VIBFREQ
+      size: 3
+      rowlabels: 1-A' 2-A' 3-A'
+      values: -1216.1021 2127.2465 2452.2053
+      units: cm-1
+    key: VIBIR
+      size: 3
+      rowlabels: 1-A' 2-A' 3-A'
+      values: 18.6276 18.8986 128.1009
+      units: KM/Mole
+    key: VIBRAM
+      size: 3
+      rowlabels: 1-A' 2-A' 3-A'
+      values: 5.3581 18.6777 48.9334
+      units: A^4/AMU
+    key: VIBSYM
+      size: 3
+      rowlabels: 1-A' 2-A' 3-A'
+      values: A' A' A'
+
+[NULL1]  Script=gaussian-16.null  Freq=first  Skip=-  Lines=-
+  Begin=Proceeding to internal job step
+  End=Harmonic frequencies
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=3355 fed=383 rc=0 first-fed=' Link1:  Proceeding to internal job step number  2.'
+    (script emitted no property)
+
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
+  Begin= Thermochemistry
+  End=Cartesian Forces
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=3756 fed=117 rc=0 first-fed=' - Thermochemistry -'
+    key: EZEROPT
+      size: 1
+      values: 0.010433
+      units: Hartree
+    key: ETHERM
+      size: 1
+      values: -92.232777
+      units: Hartree
+    key: ENTHALPY
+      size: 1
+      values: -92.231833
+      units: Hartree
+    key: ENTROPY
+      size: 1
+      values: 0.02479335
+      units: Hartree
+    key: EGIBBS
+      size: 1
+      values: -92.256626
+      units: Hartree
+    key: THERMOTEMP
+      size: 1
+      values: 298.150
+      units: Kelvin
+    key: THERMOPRES
+      size: 1
+      values: 1.00000
+      units: atm
+
+[DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
+  Begin=Dipole moment \(field\-independent basis\, Debye\)\:
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=9589 fed=1 rc=0 first-fed='    X=              0.1920    Y=              1.5287    Z=              0.0000  Tot=              1.5408'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0.1920 1.5287 0.0000
+      units: Debye
+
+[QUADPOLE1]  Script=gaussian-16.quadpole  Freq=last  Skip=1  Lines=-
+  Begin=Quadrupole moment \(field\-independent basis\, Debye\-Ang\)\:
+  End=Traceless
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=9591 fed=3 rc=0 first-fed='   XX=            -14.8466   YY=             -9.8494   ZZ=            -12.0559'
+    key: QUADPOLE
+      size: 6
+      rowlabels: XX XY XZ YY YZ ZZ
+      values: -14.8466 1.7080 0.0000 -9.8494 0.0000 -12.0559
+
+[OCTAPOLE2]  Script=gaussian-16.octapole  Freq=last  Skip=1  Lines=3
+  Begin=Octapole moment \(field\-independent basis\, Debye\-Ang\*\*2\)\:
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=9597 fed=3 rc=0 first-fed='  XXX=              3.1877  YYY=              0.4784  ZZZ=              0.0000  XYY=              1.0954'
+    key: OCTAPOLE
+      size: 10
+      rowlabels: XXX YYY ZZZ XYY XXY XXZ XZZ YZZ YYZ XYZ
+      values: 3.1877 0.4784 0.0000 1.0954 -0.4288 0.0000 0.5607 -0.3221 0.0000 0.0000
+
+[HEXPOLE]  Script=gaussian-16.hexpole  Freq=last  Skip=1  Lines=4
+  Begin=Hexadecapole moment \(field\-independent basis\, Debye\-Ang\*\*3\)\:
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=9601 fed=4 rc=0 first-fed=' XXXX=            -41.2556 YYYY=            -12.3389 ZZZZ=            -10.7591 XXXY=              3.0864'
+    key: HEXPOLE
+      size: 15
+      rowlabels: XXXX YYYY ZZZZ XXXY XXXZ YYYX YYYZ ZZZX ZZZY XXYY XXZZ YYZZ XXYZ YYXZ ZZXY
+      values: -41.2556 -12.3389 -10.7591 3.0864 0.0000 2.8588 0.0000 -0.0000 -0.0000 -8.4638 -8.1653 -4.1707 -0.0000 0.0000 0.7256
+
+[POLARIZ1][HYPERPOL1]  Script=gaussian-16.db  Freq=last  Skip=-  Lines=-
+  Begin=l9999\.exe
+  End=Job cpu
+  begins=3 delivered=1 buffered_away=2
+  block 1: begin-line=9611 fed=8 rc=0 first-fed=' (Enter /opt/gaussian/g16/l9999.exe)'
+    key: CPUSEC
+      size: 1
+      values: 8.4
+
+[MULLIKEN]  Script=gaussian-16.mulliken  Freq=all  Skip=2  Lines=-
+  Begin= Mulliken (atomic )?charges( and spin densities)?\:
+  End= Sum of Mulliken
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=492 fed=4 rc=0 first-fed='     1  C    0.213435'
+    key: MULLIKEN
+      size: 3
+      values: 0.213435 -0.533734 0.320299
+      units: e
+  block 2: begin-line=3300 fed=4 rc=0 first-fed='     1  C    0.077048'
+    key: MULLIKEN
+      size: 3
+      values: 0.077048 -0.364688 0.287640
+      units: e
+  block 3: begin-line=4511 fed=4 rc=0 first-fed='     1  C    0.061851'
+    key: MULLIKEN
+      size: 3
+      values: 0.061851 -0.349581 0.287730
+      units: e
+  block 4: begin-line=9567 fed=4 rc=0 first-fed='     1  C    0.210720'
+    key: MULLIKEN
+      size: 3
+      values: 0.210720 -0.525300 0.314580
+      units: e
+
+[APT]  Script=gaussian-16.apt  Freq=last  Skip=2  Lines=-
+  Begin= APT charges\:
+  End= Sum of APT
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=9577 fed=4 rc=0 first-fed='     1  C    0.090390'
+    key: APT
+      size: 3
+      values: 0.090390 -0.457149 0.366759
+      units: e
+
+[ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
+  Begin=SCF Done\:
+  begins=25 delivered=25 buffered_away=0
+  block 1: begin-line=400 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2616312589     A.U. after   12 cycles'
+    (script emitted no property)
+  block 2: begin-line=901 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2492010122     A.U. after   13 cycles'
+    (script emitted no property)
+  block 3: begin-line=1243 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2437501977     A.U. after   13 cycles'
+    (script emitted no property)
+  block 4: begin-line=1583 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2450656267     A.U. after   13 cycles'
+    (script emitted no property)
+  block 5: begin-line=1923 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2461334081     A.U. after   13 cycles'
+    (script emitted no property)
+  block 6: begin-line=2251 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2458907863     A.U. after   12 cycles'
+    (script emitted no property)
+  block 7: begin-line=2579 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2459903639     A.U. after   12 cycles'
+    (script emitted no property)
+  block 8: begin-line=2881 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2460423993     A.U. after   11 cycles'
+    (script emitted no property)
+  block 9: begin-line=3152 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2460426599     A.U. after    9 cycles'
+    (script emitted no property)
+  block 10: begin-line=4472 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2463799411     A.U. after   12 cycles'
+    (script emitted no property)
+  block 11: begin-line=4858 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2474023190     A.U. after   12 cycles'
+    (script emitted no property)
+  block 12: begin-line=5188 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2491179623     A.U. after   12 cycles'
+    (script emitted no property)
+  block 13: begin-line=5521 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2515108333     A.U. after   12 cycles'
+    (script emitted no property)
+  block 14: begin-line=5854 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2545441031     A.U. after   12 cycles'
+    (script emitted no property)
+  block 15: begin-line=6174 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2581619608     A.U. after   11 cycles'
+    (script emitted no property)
+  block 16: begin-line=6494 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2622935924     A.U. after   11 cycles'
+    (script emitted no property)
+  block 17: begin-line=6814 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2668577301     A.U. after   11 cycles'
+    (script emitted no property)
+  block 18: begin-line=7166 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2463619400     A.U. after   13 cycles'
+    (script emitted no property)
+  block 19: begin-line=7486 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2472886445     A.U. after   11 cycles'
+    (script emitted no property)
+  block 20: begin-line=7803 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2487579858     A.U. after   11 cycles'
+    (script emitted no property)
+  block 21: begin-line=8120 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2506945648     A.U. after   11 cycles'
+    (script emitted no property)
+  block 22: begin-line=8437 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2530217466     A.U. after   11 cycles'
+    (script emitted no property)
+  block 23: begin-line=8757 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2556707919     A.U. after   11 cycles'
+    (script emitted no property)
+  block 24: begin-line=9077 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2585883787     A.U. after   11 cycles'
+    (script emitted no property)
+  block 25: begin-line=9396 fed=1 rc=0 first-fed=' SCF Done:  E(RHF) =  -92.2617381030     A.U. after   11 cycles'
+    (script emitted no property)
+
+[PNTGRP]  Script=gaussian-16.symmetry  Freq=all  Skip=0  Lines=1
+  Begin= Full point group
+  begins=27 delivered=27 buffered_away=0
+  block 1: begin-line=174 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 2: begin-line=658 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 3: begin-line=1000 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 4: begin-line=1340 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 5: begin-line=1680 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 6: begin-line=2019 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 7: begin-line=2347 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 8: begin-line=2675 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 9: begin-line=2976 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 10: begin-line=3261 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 11: begin-line=4272 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 12: begin-line=4647 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 13: begin-line=4977 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 14: begin-line=5310 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 15: begin-line=5643 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 16: begin-line=5976 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 17: begin-line=6296 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 18: begin-line=6616 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 19: begin-line=6939 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 20: begin-line=7288 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 21: begin-line=7605 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 22: begin-line=7922 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 23: begin-line=8239 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 24: begin-line=8559 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 25: begin-line=8879 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 26: begin-line=9199 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+  block 27: begin-line=9545 fed=1 rc=0 first-fed=' Full point group                 CS      NOp   2'
+    key: PNTGRP
+      size: 1
+      values: CS
+

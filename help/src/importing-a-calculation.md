@@ -70,6 +70,22 @@ The Builder has the same entry under **File > Import Calculation from
 Output File...**. It puts the calculation in your home folder instead of a
 project, and opens it in the Builder.
 
+## Import a GROMACS run
+
+A finished GROMACS run in a folder can be imported as a GROMACS MD study.
+The folder holds one subfolder for each task, in run order, for example
+`1-prepare`, `2-optimize`, `3-equilibrate` and `4-dynamics`. The word
+`prepare`, `optimize`, `equilibrate` or `dynamics` in the subfolder name
+tells ECCE the kind of task. A study may start at any task.
+
+1. In the Organizer, select the project that should hold the study.
+2. Choose **File > Import GROMACS Run...**.
+3. In the window "Choose the directory of the GROMACS run", select the
+   folder and click **OK**.
+
+The study is named after the folder. The results of each task appear
+shortly after the import, as they do for a run that ECCE started.
+
 ## Look at the results
 
 1. Select the imported calculation in the Organizer.
@@ -106,7 +122,7 @@ each code supplies is listed in its parse specification
 ### Orbitals
 
 1. Choose **Properties > MOs**. The panel lists the orbitals in a table, one
-   row for each. The columns are **MO**, **E(Hartree)**, **Occ** and **#**,
+   row for each. The columns are **MO**, **E (Hartree)** and **Occ #**,
    and the rows are sorted by energy.
 2. In the choice next to **Compute**, choose **MO**, **Density** or **Spin
    Density**.

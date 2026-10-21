@@ -128,6 +128,9 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (NEB-TS)</runtype>
+    <runtype>Transition State (NEB-TS) + Frequencies</runtype>
+    <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
   </Theory>
   <Theory category="SCF" name="UHF">
@@ -136,6 +139,9 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (NEB-TS)</runtype>
+    <runtype>Transition State (NEB-TS) + Frequencies</runtype>
+    <runtype>IRC</runtype>
   </Theory>
   <Theory category="DFT" name="RDFT">
     <runtype>Energy</runtype>
@@ -143,6 +149,9 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (NEB-TS)</runtype>
+    <runtype>Transition State (NEB-TS) + Frequencies</runtype>
+    <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
   </Theory>
   <Theory category="DFT" name="UDFT">
@@ -151,6 +160,9 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (NEB-TS)</runtype>
+    <runtype>Transition State (NEB-TS) + Frequencies</runtype>
+    <runtype>IRC</runtype>
   </Theory>
 
   <!-- MP2 and coupled cluster (issue #91). Runtypes are deliberately
@@ -249,6 +261,11 @@
        for the guess it reads. -->
   <Output type="auxiliary" mimetype="chemical/x-orca-gbw">orca.orcain.gbw</Output>
   <Input   type="auxiliary" mimetype="chemical/x-orca-guess">guess.gbwin</Input>
+  <!-- NEB-TS (#419): product and optional TS guess structure, written by
+       CalcEd as inputs of the calculation and copied to the run directory
+       with the deck.  Matched by name. -->
+  <Input   type="auxiliary" mimetype="chemical/x-orca-neb">neb_product.xyz</Input>
+  <Input   type="auxiliary" mimetype="chemical/x-orca-neb">neb_guess.xyz</Input>
 </DataFiles>
 
 <!-- Names of files required for code integration.  These files are

@@ -1,0 +1,20 @@
+#!/usr/bin/env perl
+# TD-DFT / CIS excited states from the "Excitation energies and oscillator
+# strengths" block:
+#  Excited State   2:      Singlet-B2     6.9037 eV  179.59 nm  f=0.0301  <S**2>=0.000
+#        8 -> 10         0.70285
+$| = 1;
+use FindBin;
+require "$FindBin::Bin/excited.pl";
+my @st;
+while (<STDIN>) {
+  if (/^\s*Excited State\s+\d+:\s+(.*?)\s+(-?\d+\.\d+) eV\s+\d+\.\d+ nm\s+f=(\d+\.\d+)/) {
+    push(@st, { label => $1, ev => $2, f => $3, trans => [] });
+  } elsif (@st && /^\s+(\d+)\s*(->|<-)\s*(\d+)\s+(-?\d+\.\d+)\s*$/) {
+    #  "<-" is the de-excitation amplitude of a full (non-TDA) TD run.
+    my ($from, $to) = $2 eq "->" ? ($1, $3) : ($3, $1);
+    push(@{$st[-1]{trans}}, "$from>$to:$4");
+  }
+}
+&emitExcited(@st);
+exit(0);

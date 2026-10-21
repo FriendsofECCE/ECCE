@@ -1,0 +1,8 @@
+# getfrag's irreducible atoms of xeof4, group C4V
+program genmol
+threshold 0.01
+group C4V
+atoms
+Xe -0.000000 -0.000000 -0.019622
+O 0.000000 0.000000 1.680378
+F 1.950000 0.000000 -0.319622

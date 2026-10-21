@@ -317,11 +317,38 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Pull Force</name>
+    <group>Energies</group>
+    <class>PullPanel</class>
+    <consumer>true</consumer>
+    <property name="PULLFORCE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>IRC Path</name>
+    <group>Geometry</group>
+    <class>IRCPanel</class>
+    <consumer>true</consumer>
+    <property name="IRCCOORD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Vibrational Frequencies</name>
     <group>Vibrations</group>
     <class>NModePanel</class>
     <consumer>true</consumer>
     <property name="VIB"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>UV-vis Spectrum</name>
+    <group>Excited states</group>
+    <class>UvVisPanel</class>
+    <consumer>true</consumer>
+    <property name="EXCIENERGY"/>
+    <property name="EXCIOSC"/>
+    <property name="EXCISYM"/>
+    <property name="EXCITRANS"/>
   </PropertyPanel>
 
   <PropertyPanel>

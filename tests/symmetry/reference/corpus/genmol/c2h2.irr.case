@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of c2h2, group D4H
+program genmol
+threshold 0.01
+group D4H
+atoms
+C 0.000000 0.000000 -0.600000
+H 0.000000 0.000000 -1.660000

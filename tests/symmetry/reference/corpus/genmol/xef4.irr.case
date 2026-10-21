@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of xef4, group D4H
+program genmol
+threshold 0.01
+group D4H
+atoms
+Xe -0.000000 -0.000000 -0.000000
+F 1.950000 0.000000 -0.000000

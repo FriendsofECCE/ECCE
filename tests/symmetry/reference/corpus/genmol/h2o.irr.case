@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of h2o, group C2V
+program genmol
+threshold 0.01
+group C2V
+atoms
+O -0.000000 -0.000000 -0.065638
+H -0.757200 0.000000 0.520862

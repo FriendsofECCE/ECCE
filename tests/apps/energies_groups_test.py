@@ -165,6 +165,17 @@ def main():
             first, opened, total_folded = sets
             fits = fitLines(text)
             check(len(fits) > 0, "the rows report their positions")
+            sel = [l.split(" | ")[-1] for l in text.splitlines()
+                   if l.startswith("BUILDER: selectable ")]
+            check(sel and all(v.strip() == "1" for v in sel),
+                  "every value can be selected with the mouse (#408): %s" % sel)
+            #  one label per row holds name, value and unit together
+            labels = [l.split(" | ") for l in text.splitlines()
+                      if l.startswith("BUILDER: selectable ")]
+            check(labels and all(len(x) >= 3 and x[0].split("BUILDER: selectable ")[1][:12] in x[1]
+                                 for x in labels),
+                  "each row is one label that carries its name: %s" %
+                  [x for x in labels if not (len(x) >= 3 and x[0].split("BUILDER: selectable ")[1][:12] in x[1])][:3])
             clipped = [f[0] for f in fits if f[2] > f[3] or f[1] > f[3]]
             check(not clipped, "every value and unit lies inside the panel "
                   "(panel %s px): %s" % (fits[0][3] if fits else "?", clipped))

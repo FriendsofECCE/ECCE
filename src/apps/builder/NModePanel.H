@@ -1,6 +1,7 @@
 #ifndef NMODEPANEL__H
 #define NMODEPANEL__H
 
+#include <memory>
 #include <vector>
 #include "wxgui/TearableContentProvider.H"
 
@@ -64,6 +65,7 @@ class NModePanel : public NModesGUI,
 
       /** Room for the compact spectrum, not just a grip. */
       virtual int minimumHeight() const { return 360; }
+      virtual int openingHeight() const { return 440; }
 
       virtual void receiveFocus();
       virtual void loseFocus();
@@ -74,6 +76,11 @@ class NModePanel : public NModesGUI,
       /** The spectrum as CSV (#392); false if the file cannot be written.
           The curve covers the data's full wavenumber range at 1 cm-1. */
       bool exportSpectrumCsv(const wxString& path, VibKind kind);
+
+      /** Another calculation of the same folder as a second curve in the
+          spectrum (#173); "" removes it.  False if there is no such
+          calculation with IR or Raman data. */
+      bool compareWith(const string& name);
       VibKind spectrumKindShown() const;
 
       /** The structure in the viewer is the one these modes belong to:
@@ -101,6 +108,8 @@ class NModePanel : public NModesGUI,
       void openSpectrumWindow();
       void dumpSpectrumIfRequested();
       void exportSpectrumDialog();
+      void compareDialog();
+      vector<IPropCalculation*> comparableCalculations();
       void applySpectrumSettings();
       void updateVectors(int mode,
                          float amplitude,
@@ -133,6 +142,8 @@ class NModePanel : public NModesGUI,
       SpectrumCanvas *p_spectrum;
       wxWeakRef<wxFrame> p_spectrumFrame;        // "Open in window"
       wxWeakRef<SpectrumCanvas> p_spectrumPop;
+      std::shared_ptr<VibSpectrum> p_compare;   // the second curve, if any
+      string p_compareName, p_compareCode;
       wxTextCtrl *p_fwhmText;
       wxTextCtrl *p_scaleText;
 
@@ -160,11 +171,11 @@ class NModePanel : public NModesGUI,
       vector<string> p_codeSym;
       vector<wxString> p_modeFull;   // untruncated Mode cells
       //  The selected mode's frequency and description: under the table, and
-      //  under the plot in the Graph view (p_graphFreq, p_graphDetail).
+      //  under the plot in the Graph view, frequency first (p_graphParts).
       wxStaticText *p_modeDetail = NULL;
-      wxStaticText *p_graphFreq = NULL;
       wxStaticText *p_graphDetail = NULL;
       std::vector<wxString> p_detailParts;
+      std::vector<wxString> p_graphParts;
       wxString p_detailText;          // unwrapped, for re-wrapping on a resize
       int         p_mode;
       int         p_numAnimations;

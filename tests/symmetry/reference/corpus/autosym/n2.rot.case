@@ -1,0 +1,6 @@
+# n2, nominal group Dinfh, rot
+program autosym
+threshold 0.01
+atoms
+N 1.311518 0.191781 -0.698186
+N 0.262755 0.198866 -0.366456

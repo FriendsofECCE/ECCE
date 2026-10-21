@@ -371,7 +371,8 @@ string GmxPrepare::verifyText()
          box = water ? string("unit cell kept; c lengthened by a ") + d + " nm water layer"
                      : "unit cell kept, no water layer";
       else
-         box = m->boxType() + ", " + d + " nm from the solute";
+         box = m->boxType() + ", " + d + " nm from the solute" +
+               (m->boxCenter().empty() ? "" : ", solute centred at " + m->boxCenter() + " nm");
       string ions;
       if (!water) {
          ions = "none (no solvent to replace)";
@@ -409,8 +410,9 @@ string GmxPrepare::verifyText()
         << (water ? num : "none") << " nm)\n";
    } else {
       snprintf(num, sizeof num, "%g", m->boxDistance());
-      o << "2. gmx editconf -f step1.gro -o step2.gro -c -bt " << m->boxType()
-        << " -d " << num << "\n";
+      o << "2. gmx editconf -f step1.gro -o step2.gro -c"
+        << (m->boxCenter().empty() ? "" : " -center " + m->boxCenter())
+        << " -bt " << m->boxType() << " -d " << num << "\n";
    }
    if (water) {
       o << "3. gmx solvate -cp step2.gro -cs " << wbox

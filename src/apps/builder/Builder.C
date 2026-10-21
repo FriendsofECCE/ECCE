@@ -18,6 +18,7 @@ using std::vector;
 #include <unistd.h>
 
 // Remove some of these three once the calls are in SoWx::init
+#include "inv/nodes/SoCamera.H"
 #include "inv/nodes/SoPerspectiveCamera.H"
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSeparator.H"
@@ -191,6 +192,7 @@ using std::vector;
 #include "DefaultCalculation.H"
 #include "Dna.H"
 #include "MiniPerTab.H"
+#include "ElementChooser.H"
 #include "OpenCalculationDialog.H"
 #include "ImportCalculationDialog.H"
 #include "Peptide.H"
@@ -782,16 +784,16 @@ void Builder::createToolbar()
     p_manipulatorToolbar->SetToolPacking(0);
     p_manipulatorToolbar->SetToolBitmapSize(wxSize(22, 22));
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_SPHERE,
-            _T(""), ewxBitmap("sphere22.png", wxBITMAP_TYPE_PNG),
+            _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_sphere.svg", wxSize(22, 22)),
             _("Create Sphere Manipulator"), wxITEM_NORMAL);
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_NOSPHERE,
-            _T(""), ewxBitmap("nosphere22.png", wxBITMAP_TYPE_PNG),
+            _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_nosphere.svg", wxSize(22, 22)),
             _("Clear Sphere Manipulator"), wxITEM_NORMAL);
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_WHEEL,
-            _T(""), ewxBitmap("rotation22.png", wxBITMAP_TYPE_PNG),
+            _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_wheel.svg", wxSize(22, 22)),
             _("Create Wheel Manipulator"), wxITEM_NORMAL);
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_NOWHEEL,
-            _T(""), ewxBitmap("norotation22.png", wxBITMAP_TYPE_PNG),
+            _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_nowheel.svg", wxSize(22, 22)),
             _("Clear Wheel Manipulator"), wxITEM_NORMAL);
     
     p_measureToolbar = new wxToolBar(this, ID_MEASURE_TOOLBAR,
@@ -801,16 +803,16 @@ void Builder::createToolbar()
     p_measureToolbar->SetToolPacking(0);
     p_measureToolbar->SetToolBitmapSize(wxSize(22, 22));
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_DIST, _T(""),
-            ewxBitmap("measure_length.png",wxBITMAP_TYPE_PNG),
+            ewxBitmap::colorIcon("svg/candidates/e/measure_length.svg", wxSize(22, 22)),
             _("Measure Distance"), wxITEM_NORMAL);
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_ANGLE, _T(""),
-            ewxBitmap("measure_angle.png",wxBITMAP_TYPE_PNG),
+            ewxBitmap::colorIcon("svg/candidates/e/measure_angle.svg", wxSize(22, 22)),
             _("Measure Angle"), wxITEM_NORMAL);
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_TORSION, _T(""),
-            ewxBitmap("measure_torsion.png",wxBITMAP_TYPE_PNG),
-            _("Measure Torsion"), wxITEM_NORMAL);
+            ewxBitmap::colorIcon("svg/candidates/e/measure_torsion.svg", wxSize(22, 22)),
+            _("Measure Dihedral Angle"), wxITEM_NORMAL);
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_CLEAR, _T(""),
-            ewxBitmap("measure_clear.png",wxBITMAP_TYPE_PNG),
+            ewxBitmap::colorIcon("svg/candidates/e/measure_clear.svg", wxSize(22, 22)),
             _("Measure Clear"), wxITEM_NORMAL);
 
     addToolBar(p_fileToolbar, NAME_TOOLBAR_FILE);
@@ -2668,6 +2670,25 @@ void Builder::center()
    delete cmd;
 }
 
+//  Whether an atom lies outside the 3-D view (a margin of 4 % keeps an
+//  atom's sphere from being cut at the edge).
+bool Builder::atomsOutsideView()
+{
+   SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+   if (!frag || !p_viewer || !p_viewer->getCamera()) return false;
+   const SbViewportRegion& vpr = p_viewer->getViewportRegion();
+   SbViewVolume vv =
+       p_viewer->getCamera()->getViewVolume(vpr.getViewportAspectRatio());
+   const float lo = 0.04f, hi = 0.96f;
+   for (int i = 0; i < frag->numAtoms(); i++) {
+      SbVec3f d;
+      vv.projectToScreen(frag->getAtomCoordinates(i), d);
+      if (d[0] < lo || d[0] > hi || d[1] < lo || d[1] > hi) return true;
+   }
+   return false;
+}
+
+
 bool Builder::isAutoCenter() const
 {
   return getToolState(ViewerEvtHandler::ID_AUTO_NORMALIZE);
@@ -2721,6 +2742,11 @@ bool Builder::execute(Command *cmd, bool batch)
          if (!batch) {
             if ((isAutoCenter() && !dynamic_cast<PropCmd*>(cmd)) ||
                   (startNumAtoms == 0 && getSG()->getFragment()->numAtoms() > 0)) {
+               center();
+            } else if (didit && !dynamic_cast<PropCmd*>(cmd) &&
+                       atomsOutsideView()) {
+               //  An edit (Add H, a new atom) put atoms outside the view:
+               //  show the whole structure again (#409).
                center();
             }
          }
@@ -3615,9 +3641,13 @@ void Builder::OnModeElementList( wxCommandEvent& event )
 //  The periodic table, below the element tool's arrow, not at the pointer.
 TearableContent *Builder::showElementChooser()
 {
-  PerTabPanel *pertab = new PerTabPanel(this, false,
-          ID_ITEM_DEFAULT, false, true, true);
-  pertab->SetName("Elements");
+  wxWindow *pertab;
+  if (ElementChooser::enabled()) {
+    pertab = new ElementChooser(this, p_currentElement);
+  } else {
+    pertab = new PerTabPanel(this, false, ID_ITEM_DEFAULT, false, true, true);
+    pertab->SetName("Elements");
+  }
   TearableContent *tc = new TearableContent(pertab);
   //  A drop-down below the selector tool, else below the toolbar under the
   //  pointer. Position() opens at origin + size, so a zero width keeps the
@@ -7004,7 +7034,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
                           .indexOf(name);
       if (isColumnMode()) {
         info.Right().Layer(1).Row(0).Position(2 + (order < 0 ? 500 : order));
-        info.PinButton(p_panelMode != PANELS_DETAIL);
+        info.PinButton(true);
         if (p_panelMode == PANELS_DETAIL) {
           info.dock_proportion = detailProportion();
         }

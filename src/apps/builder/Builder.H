@@ -199,10 +199,11 @@ class Builder: public BuilderGUI,
     //  them moves it, and the saved layout keeps the result.
     static const int INDEX_PROPORTION = 100;
     static const int DETAIL_PROPORTION = 100;
-    //  A short screen gives the open panel (a table needs rows) more of the
-    //  column than the list, which scrolls.
-    static int detailProportion()
-    { return wxGetDisplaySize().y < 900 ? 220 : DETAIL_PROPORTION; }
+    //  The open panel takes all the height the list does not need for its
+    //  rows, whatever share a dragged sash or a saved layout gave the list
+    //  (462 against 100 left MOs and Charges a caption and a sliver).
+    //  Below the 300000 a panel holds while it needs more room.
+    static int detailProportion() { return 100000; }
 
     //  How the side panels are organised (View > Panel layout).  Classic
     //  is the original arrangement; the other three put everything in one
@@ -275,6 +276,7 @@ class Builder: public BuilderGUI,
       GeomConstraintsDialog *constraintsDialog() { return p_constraintsDialog; }
       virtual void center();
       virtual bool isAutoCenter() const;
+      bool atomsOutsideView();
       virtual bool isSelectModeDrag() const;
       virtual bool areLabelsOn() const;
 

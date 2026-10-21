@@ -1,0 +1,6 @@
+# co, nominal group Cinfv, d0.02
+program autosym
+threshold 0.01
+atoms
+C 0.073431 2.362946 2.658445
+O 1.128767 2.366536 2.242173

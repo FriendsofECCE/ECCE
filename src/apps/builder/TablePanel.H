@@ -16,6 +16,8 @@ class TablePanel : public TableGUI
    DECLARE_EVENT_TABLE()
 
    public:
+      //  Geometry trace and the other tables: rows to read, not a sliver.
+      virtual int openingHeight() const { return 380; }
       TablePanel();
       TablePanel(IPropCalculation *calculation,
             wxWindow *parent, wxWindowID id=wxID_ANY,

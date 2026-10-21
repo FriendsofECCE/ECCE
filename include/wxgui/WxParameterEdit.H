@@ -64,6 +64,7 @@ class WxParameterEdit:  public ewxPanel
         void            windowResizeCB(wxSizeEvent& event);
 
         bool            getRangeVisible();
+        string          getRangeLabel();
         void            setRangeVisible(bool vsbl);
 
         int             getValue();

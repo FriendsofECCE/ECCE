@@ -203,6 +203,28 @@ if (defined($p{"ES.Runtype.MD.Pressure"})) {
     if (get("Interaction", "GmxNstpcouple", 0) > 0);
 }
 
+# centre-of-mass pulling between two groups (dynamics only)
+if (get("Interaction", "GmxPull", 0) == 1 && $runtype{$task} eq "Dynamics") {
+  my ($g1, $g2) = (get("Interaction", "GmxPullGroup1", ""),
+                   get("Interaction", "GmxPullGroup2", ""));
+  $g1 =~ s/^\s+|\s+$//g; $g2 =~ s/^\s+|\s+$//g;
+  die "md.gmxtask: pulling needs two group names.\n" if ($g1 eq "" || $g2 eq "");
+  die "md.gmxtask: a pull group name may not contain spaces.\n"
+    if ($g1 =~ /\s/ || $g2 =~ /\s/);
+  my $dim = get("Interaction", "GmxPullDim", "Y Y Y");
+  die "md.gmxtask: pull dimensions are three of Y/N, not '$dim'.\n"
+    if ($dim !~ /^[YN] [YN] [YN]$/);
+  my $geom = get("Interaction", "GmxPullGeom", 0) == 1 ? "direction" : "distance";
+  my $axis = get("Interaction", "GmxPullAxis", 2);
+  my @vec = (0, 0, 0); $vec[$axis] = 1 if ($axis >= 0 && $axis <= 2);
+  $p{"ES.Runtype.MD.PullGroups"} = "$g1 $g2";
+  $p{"ES.Runtype.MD.PullGeometry"} = $geom;
+  $p{"ES.Runtype.MD.PullVec"} = join(" ", @vec) if ($geom eq "direction");
+  $p{"ES.Runtype.MD.PullDim"} = $dim;
+  $p{"ES.Runtype.MD.PullRate"} = get("Interaction", "GmxPullRate", 0.01);
+  $p{"ES.Runtype.MD.PullK"} = get("Interaction", "GmxPullK", 1000);
+}
+
 # lines of the user's own, merged over ours by ai.gromacs
 my @extra = grep { /\S/ } split(/\n/, get("Interaction", "GmxExtraMdp", ""));
 $p{"ES.Runtype.MD.ExtraLines"} = join("|", @extra) if (@extra);

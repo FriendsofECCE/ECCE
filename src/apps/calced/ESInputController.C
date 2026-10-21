@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <fstream>
 #include <iostream>
   using std::cerr;
@@ -32,6 +33,7 @@
 #include "dsm/VDoc.H"
 
 #include "CalcEd.H"
+#include "QstStructures.H"
 
 
 string CalcEd::changeWD(const string& newDir)
@@ -62,6 +64,42 @@ bool CalcEd::write_cs(const string& output_file)
   }
 
   return status;
+}
+
+bool CalcEd::write_qst(const string& base)
+{
+  p_qstStatus.clear();
+  p_qstDetail.clear();
+  for (char k = '1'; k <= '3'; k++)
+    remove((base + ".qst" + k + ".frag").c_str());
+
+  remove("neb_product.xyz");
+  remove("neb_guess.xyz");
+
+  GUIValues* g = p_iCalc->guiparams();
+  const string rt = p_iCalc->runtype().name();
+  const bool neb = rt.compare(0, 25, "Transition State (NEB-TS)") == 0;
+  if (!g || (!neb && rt.compare(0, 22, "Transition State (QST)") != 0))
+    return true;
+
+  string status, warning;
+  const bool ok = neb ? nebWriteStructureFiles(p_iCalc, status, warning, &p_qstDetail)
+                      : qstWriteStructureFiles(p_iCalc, base, status, warning, &p_qstDetail);
+  p_qstStatus = status;
+  if (!warning.empty())
+    p_inputGenWarnings.push_back(std::make_pair(
+        string(neb ? "NEB-TS" : "Opt"), warning));
+  return ok;
+}
+
+// The status line stays one line; the full matching report is on hover.
+void CalcEd::setMatchTooltip()
+{
+  const wxString tip = wxString::FromUTF8(p_qstDetail.c_str());
+  p_feedback->SetToolTip(tip);
+  for (wxWindowList::iterator it = p_feedback->GetChildren().begin();
+       it != p_feedback->GetChildren().end(); ++it)
+    (*it)->SetToolTip(tip);
 }
 
 bool CalcEd::write_esp(const string& output_file, bool& file_flag)
@@ -387,6 +425,9 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
       if (!write_cs(frag_file))
         message = "Input files could not be generated--failed writing "
                   "chemical system";
+      else if (!write_qst(tempFileName))
+        message = "Input files could not be generated--failed writing "
+                  "the QST structures";
       else if (!write_esp(esp_file, esp_file_flag))
         message ="Input files could not be generated--failed writing "
                  "ESP file";
@@ -512,6 +553,18 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
                           "copy to DAV failed";
         
               ifs.close();
+
+              // NEB-TS product / TS guess structures: inputs of the
+              // calculation, copied to the run directory with the deck
+              const char* nebFiles[2] = {"neb_product.xyz", "neb_guess.xyz"};
+              for (int k = 0; k < 2 && status; k++) {
+                ifstream nebIn(nebFiles[k]);
+                if (nebIn && !p_iCalc->putInputFile(nebFiles[k], &nebIn)) {
+                  status = false;
+                  message = string("Input files could not be generated--") +
+                            nebFiles[k] + " copy to DAV failed";
+                }
+              }
 
               // auxiliary basis set files (Amica)
               TypedFile auxInputFile =

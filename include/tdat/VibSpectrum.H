@@ -13,6 +13,7 @@
 #ifndef VIBSPECTRUM_HH
 #define VIBSPECTRUM_HH
 
+#include <memory>
 #include <string>
 #include <vector>
 using std::string;
@@ -53,15 +54,25 @@ class SpectrumAxis
     void pan(double delta);
     void reset();
 
-    /** Narrowest window allowed, cm-1. */
+    /** Narrowest window allowed for wavenumbers, cm-1. */
     static double minSpan() { return 20.0; }
+    /** Narrowest window for another unit (eV, nm); default minSpan(). */
+    void setMinSpan(double span) { p_minSpan = span; }
 
   private:
     void clamp();
 
     double p_fullLo, p_fullHi, p_lo, p_hi;
     bool   p_reversed;
+    double p_minSpan;
 };
+
+/**
+ * What the x axis of a VibSpectrum measures.  Wavenumbers are the IR and
+ * Raman case; the electronic (UV-vis) spectrum stores energies in eV and can
+ * be drawn against energy or wavelength (#383).
+ */
+enum SpectrumXUnit { X_WAVENUMBER = 0, X_EV = 1, X_NM = 2 };
 
 /** Tick positions for an axis: round numbers, 1, 2 or 5 times 10^n. */
 struct SpectrumTicks
@@ -103,6 +114,44 @@ class VibSpectrum
     VibSpectrum();
 
     /**
+     * Make this an electronic spectrum (#383): the "modes" are excited
+     * states whose positions, given to setModes in eV, are drawn against
+     * eV or nm (hc/E), the intensities are oscillator strengths ("f") and
+     * the width is in eV.  The envelope is evaluated in eV whatever the axis,
+     * so a wavelength axis shows the same curve, not a Jacobian-stretched one.
+     * Anything but X_WAVENUMBER also drops the vibrational conventions: no
+     * near-zero or imaginary modes, no frequency scale.
+     */
+    void setXUnit(SpectrumXUnit unit) { p_x = unit; }
+    SpectrumXUnit xUnit() const { return p_x; }
+    bool electronic() const { return p_x != X_WAVENUMBER; }
+
+    /** Energy in eV of a position on the current axis, and the reverse. */
+    double toEv(double x) const;
+    double fromEv(double ev) const;
+    /** hc in eV nm. */
+    static double evNm() { return 1239.8419843320026; }
+
+    /** The unit's name for labels, UTF-8: "cm⁻¹", "eV" or "nm". */
+    string positionUnit() const;
+    /** Axis title under the plot, e.g. "Wavenumber (cm⁻¹, scaled by 0.96)". */
+    string xTitle() const;
+    /** Title of the broadened curve's axis, e.g. "IR envelope (km/mol per cm⁻¹)". */
+    string envelopeTitle(VibKind kind) const;
+    /** "Mode" or "State". */
+    string itemWord() const;
+    /** Hover line for a stick's position: "1789.3 cm⁻¹", "4.018 eV (308.5 nm)". */
+    string positionText(const VibStick& stick) const;
+    /** Prefix of the hover's intensity line: "IR  ", "Raman  " or "f  ". */
+    string intensityName(VibKind kind) const;
+    /** What the plot says when it has nothing to draw. */
+    string emptyMessage() const;
+    /** Free text per mode for the exports (excited-state transitions). */
+    void setNotes(const vector<string>& notes) { p_notes = notes; }
+    string note(int i) const
+    { return i >= 0 && i < (int)p_notes.size() ? p_notes[i] : string(); }
+
+    /**
      * The modes, from VIBFREQ and (optionally) VIBSYM.  Clears any
      * intensities.  `irreps` may be empty or shorter than the list.
      */
@@ -128,16 +177,28 @@ class VibSpectrum
     bool   relative(VibKind kind) const { return p_relative[kind]; }
 
     /** Frequency scaling factor, applied to every wavenumber. */
-    void   setScale(double scale) { p_scale = scale > 0 ? scale : 1.0; }
+    void   setScale(double scale)
+    {
+      p_scale = scale > 0 ? scale : 1.0;
+      if (p_cmp) p_cmp->p_scale = p_scale;
+    }
     double scale() const { return p_scale; }
 
     /**
      * Full width at half maximum of the broadening, cm-1.  0 means
      * sticks only.
      */
-    void   setFwhm(double fwhm) { p_fwhm = fwhm > 0 ? fwhm : 0.0; }
+    void   setFwhm(double fwhm)
+    {
+      p_fwhm = fwhm > 0 ? fwhm : 0.0;
+      if (p_cmp) p_cmp->p_fwhm = p_fwhm;
+    }
     double fwhm() const { return p_fwhm; }
-    void      setLineShape(LineShape shape) { p_shape = shape; }
+    void      setLineShape(LineShape shape)
+    {
+      p_shape = shape;
+      if (p_cmp) p_cmp->p_shape = shape;
+    }
     LineShape lineShape() const { return p_shape; }
 
     /**
@@ -148,7 +209,11 @@ class VibSpectrum
     static double zeroTolerance() { return 10.0; }
 
     /** Scaled wavenumber of mode i. */
-    double wavenumber(int i) const { return p_freq[i] * p_scale; }
+    double wavenumber(int i) const
+    {
+      const double v = p_freq[i] * p_scale;
+      return p_x == X_NM ? fromEv(v) : v;     // the position on the axis
+    }
     bool   isVibration(int i) const;
     bool   isImaginary(int i) const;
 
@@ -183,12 +248,39 @@ class VibSpectrum
     /** Area-normalised line shape, 1/cm-1, centred on zero. */
     static double lineValue(LineShape shape, double offset, double fwhm);
 
+    /** What this spectrum is called in a key and a CSV header. */
+    void setLabel(const string& label) { p_label = label; }
+    const string& label() const { return p_label; }
+
+    /**
+     * A second spectrum of another calculation, drawn and exported beside
+     * this one (#173).  It takes this one's scaling factor, line width and
+     * shape, so the two curves differ only in what was calculated.  Where
+     * one of them has a known unit and the other only relative numbers,
+     * the other is scaled so its tallest stick matches (compareFactor).
+     */
+    void setCompare(const VibSpectrum& other, const string& label);
+    void clearCompare() { p_cmp.reset(); }
+    /** True when a second spectrum is set and has this kind. */
+    bool hasCompare(VibKind kind) const { return p_cmp && p_cmp->p_has[kind]; }
+    const string& compareLabel() const { return p_cmpLabel; }
+    /** Sticks / envelope of the second spectrum, in this one's scale. */
+    vector<VibStick> compareSticks(VibKind kind) const;
+    double compareEnvelope(VibKind kind, double wavenumber) const;
+    double compareFactor(VibKind kind) const;
+
     /** Whether the code's units string is one we know how to label. */
     static bool knownIntensityUnits(VibKind kind, const string& units);
 
   private:
     double drawn(VibKind kind, int i) const;
+    void electronicRange(double minPos, double maxPos, bool any,
+                         double *lo, double *hi) const;
+    /** Position in the unit the stored values are in (cm-1 or eV), scaled. */
+    double nativeOf(double x) const { return p_x == X_NM ? toEv(x) : x; }
 
+    SpectrumXUnit  p_x;
+    vector<string> p_notes;
     vector<double> p_freq;
     vector<string> p_irrep;
     vector<double> p_inten[2];
@@ -197,6 +289,8 @@ class VibSpectrum
     string         p_units[2];
     double         p_scale, p_fwhm;
     LineShape      p_shape;
+    string         p_label, p_cmpLabel;
+    std::shared_ptr<VibSpectrum> p_cmp;
 };
 
 /** What the CSV header says about where the spectrum came from. */
@@ -204,6 +298,7 @@ struct SpectrumCsvInfo
 {
     string calculation;
     string code;
+    string compareCode;     // of the second spectrum, if one is set
 };
 
 /**
@@ -211,7 +306,9 @@ struct SpectrumCsvInfo
  * mode, scaled wavenumber, the intensities present, symmetry), a blank line,
  * then the broadened curve of `kind` as x, y on a grid of `step` cm-1 from
  * lo to hi (no curve when the width is 0).  Numbers are written in the C
- * locale, so a decimal comma never splits a field.
+ * locale, so a decimal comma never splits a field.  With a second spectrum
+ * set (VibSpectrum::setCompare) its sticks follow in a block of their own and
+ * its curve is a third column, headed by the two calculations' names.
  */
 string vibSpectrumCsv(const VibSpectrum& spectrum, VibKind kind,
                       const SpectrumCsvInfo& info,

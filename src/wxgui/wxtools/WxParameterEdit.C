@@ -253,6 +253,12 @@ bool WxParameterEdit::getRangeVisible()
 }
 
 
+string WxParameterEdit::getRangeLabel()
+{
+    return (string)(p_rangeStaticText->GetLabel());
+}
+
+
 void WxParameterEdit::setRangeVisible(bool vsbl)
 {
     p_rangeStaticText->Show(vsbl);

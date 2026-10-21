@@ -12,9 +12,16 @@
 #include <wx/stattext.h>
 
 #include "tdat/PropVector.H"
+#include "tdat/PropTSVecTable.H"
 #include "tdat/TProperty.H"
 #include "dsm/IPropCalculation.H"
+#include "viz/GTStepCmd.H"
+#include "viz/SGContainer.H"
+#include "viz/SGFragment.H"
+#include "util/EventDispatcher.H"
+#include "util/Event.H"
 #include "XYPlotCanvas.H"
+#include "PointCalc.H"
 
 #include "ScanPanel.H"
 
@@ -23,6 +30,7 @@ const double HARTREE_KJ = 2625.4996;
 const double HARTREE_KCAL = 627.5095;
 const wxWindowID ID_UNIT = wxNewId();
 const wxWindowID ID_EXPORT = wxNewId();
+const wxWindowID ID_NEWCALC = wxNewId();
 
 double factor(bool kcal) { return kcal ? HARTREE_KCAL : HARTREE_KJ; }
 }
@@ -49,17 +57,17 @@ std::string scanCsv(const std::vector<double>& coord,
   return out.str();
 }
 
-IMPLEMENT_DYNAMIC_CLASS(ScanPanel, PropertyPanel)
+IMPLEMENT_DYNAMIC_CLASS(ScanPanel, VizPropertyPanel)
 
 ScanPanel::ScanPanel()
-  : PropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL)
+  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL)
 {
 }
 
 ScanPanel::ScanPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : PropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL)
+  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -72,7 +80,7 @@ bool ScanPanel::Create(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
 {
-  if (!PropertyPanel::Create(calculation, parent, id, pos, size, style, name)) {
+  if (!VizPropertyPanel::Create(calculation, parent, id, pos, size, style, name)) {
     wxFAIL_MSG( wxT("ScanPanel creation failed") );
     return false;
   }
@@ -87,11 +95,14 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   p_unit->SetSelection(0);
   bar->Add(p_unit, 0, wxRIGHT, 12);
   bar->AddStretchSpacer();
+  bar->Add(new wxButton(this, ID_NEWCALC, "New calculation from this point"), 0,
+           wxRIGHT, 6);
   bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0);
   GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
   p_plot = new XYPlotCanvas(this);
   p_plot->SetMinSize(wxSize(300, 180));
+  p_plot->setPointHandler([this](int, int index) { showPoint(index); });
   GetSizer()->Add(p_plot, 3, wxEXPAND);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
@@ -105,6 +116,7 @@ bool ScanPanel::Create(IPropCalculation *calculation,
 
   Bind(wxEVT_CHOICE, &ScanPanel::OnUnit, this, ID_UNIT);
   Bind(wxEVT_BUTTON, &ScanPanel::OnExport, this, ID_EXPORT);
+  Bind(wxEVT_BUTTON, &ScanPanel::OnNewCalc, this, ID_NEWCALC);
 
   fill();
   return true;
@@ -114,6 +126,7 @@ void ScanPanel::fill()
 {
   p_coord.clear();
   p_hartree.clear();
+  p_frame.clear();
   IPropCalculation *calc = getCalculation();
   PropVector *c = calc ? dynamic_cast<PropVector*>(calc->getProperty("SCANCOORD")) : 0;
   PropVector *e = calc ? dynamic_cast<PropVector*>(calc->getProperty("SCANENERGY")) : 0;
@@ -122,6 +135,13 @@ void ScanPanel::fill()
   p_coord.assign(c->values().begin(), c->values().begin() + n);
   p_hartree.assign(e->values().begin(), e->values().begin() + n);
   p_coordUnit = c->units() == "Degree" ? "degree" : "angstrom";
+
+  // One structure per point, or none: a partial set cannot be matched up.
+  PropTSVecTable *geom =
+      calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("SCANGEOM")) : 0;
+  p_frame.assign(n, -1);
+  if (geom && geom->tables() == n)
+    for (size_t i = 0; i < n; i++) p_frame[i] = (int)i;
 
   const bool kcal = p_unit->GetSelection() == 1;
   const wxString unit = kcal ? "kcal/mol" : "kJ/mol";
@@ -148,6 +168,49 @@ void ScanPanel::fill()
         wxString::Format("%.3f", (p_hartree[i] - lo) * factor(kcal)));
   }
   p_grid->AutoSizeColumns();
+}
+
+int ScanPanel::showPoint(int index)
+{
+  if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0) return -1;
+  IPropCalculation *calc = getCalculation();
+  if (!calc) return -1;
+  p_selected = index;
+  SGContainer& sg = getFW().getSceneGraph();
+  Command *cmd = new GTStepCmd("Scan Step", &sg, calc);
+  cmd->getParameter("Index")->setInteger(p_frame[index]);
+  cmd->getParameter("PropKey")->setString("SCANGEOM");
+  cmd->execute();
+  delete cmd;
+  // Bonds differ between points, so redo them from the new geometry.
+  SGFragment *frag = sg.getFragment();
+  frag->deleteAllBonds();
+  frag->addCovalentBonds();
+  frag->touchNumbers();
+  sg.touchChemDisplay();
+  ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
+  return p_frame[index];
+}
+
+std::string ScanPanel::newCalcFromPoint(int index)
+{
+  if (index < 0) index = p_selected;
+  std::string why;
+  std::string url;
+  if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0)
+    why = "Click a point in the plot first; this scan has no structure for it.";
+  else
+    url = ::newCalcFromPoint(getCalculation(), "SCANGEOM", p_frame[index],
+                             index + 1, why);
+  if (url.empty() && !why.empty())
+    wxMessageBox(wxString::FromUTF8(why.c_str()), "New calculation",
+                 wxOK | wxICON_WARNING, this);
+  return url;
+}
+
+void ScanPanel::OnNewCalc(wxCommandEvent&)
+{
+  newCalcFromPoint();
 }
 
 void ScanPanel::OnUnit(wxCommandEvent&)

@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of co, group C4V
+program genmol
+threshold 0.01
+group C4V
+atoms
+O 0.000000 0.000000 0.483516
+C 0.000000 0.000000 -0.644484

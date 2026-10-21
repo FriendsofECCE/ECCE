@@ -1,0 +1,6 @@
+# getfrag's irreducible atoms of p4, group TD
+program genmol
+threshold 0.01
+group TD
+atoms
+P 0.780000 0.780000 0.780000

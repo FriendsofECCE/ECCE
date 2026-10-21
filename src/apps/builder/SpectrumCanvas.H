@@ -216,7 +216,7 @@ class SpectrumCanvas : public wxPanel
                          haveIr ? VIB_IR : VIB_RAMAN).empty();
       if (!any) {
         const wxString msg = wxString::FromUTF8(
-            "This calculation has no infrared or Raman intensities.");
+            p_s->spec.emptyMessage().c_str());
         dc.SetFont(*wxNORMAL_FONT);
         wxSize e = dc.GetTextExtent(msg);
         dc.DrawText(msg, (size.x - e.x) / 2, (size.y - e.y) / 2);
@@ -286,10 +286,7 @@ class SpectrumCanvas : public wxPanel
 
       //  X axis title under the bottom pane.
       const wxRect last = p_panes.back();
-      wxString xtitle = wxString::FromUTF8("Wavenumber (cm\xE2\x81\xBB\xC2\xB9");
-      if (std::fabs(p_s->spec.scale() - 1.0) > 1e-9)
-        xtitle += wxString::Format(", scaled by %g", p_s->spec.scale());
-      xtitle += ")";
+      const wxString xtitle = wxString::FromUTF8(p_s->spec.xTitle().c_str());
       dc.SetFont(*wxNORMAL_FONT);
       dc.SetTextForeground(p_palette.text);
       wxSize te = dc.GetTextExtent(xtitle);
@@ -361,6 +358,9 @@ class SpectrumCanvas : public wxPanel
     {
       double lo, hi;
       p_s->spec.defaultRange(&lo, &hi);
+      p_s->axis.setMinSpan(p_s->spec.xUnit() == X_EV ? 0.5
+                           : p_s->spec.xUnit() == X_NM ? 10.0
+                           : SpectrumAxis::minSpan());
       p_s->axis.setFull(lo, hi);
       p_cacheValid = false;
       p_band = false;
@@ -385,18 +385,13 @@ class SpectrumCanvas : public wxPanel
         p_cacheValid = true;
       }
       PaneScale s;
-      const wxString name = kind == VIB_IR ? "IR" : "Raman";
-      const wxString unit = utf8(p_s->spec.unitLabel(kind).c_str());
-      const wxString inv = utf8(" per cm\xE2\x81\xBB\xC2\xB9");
-      const wxString rel = p_s->spec.relative(kind) ? wxString("relative")
-                                                 : unit;
       s.hasRight = envelope && p_s->showSticks && !compact;
       s.sticksOnLeft = !envelope || p_s->showSticks;
       Axis sticks, env;
       sticks.y = niceYAxis(p_maxStick[kind], compact ? 3 : 4);
       sticks.title = utf8(p_s->spec.axisLabel(kind).c_str());
       env.y = niceYAxis(p_maxEnv[kind], compact ? 3 : 4);
-      env.title = name + " envelope (" + rel + inv + ")";
+      env.title = utf8(p_s->spec.envelopeTitle(kind).c_str());
       if (s.sticksOnLeft) { s.left = sticks; s.right = env; }
       else { s.left = env; s.right = sticks; }
       return s;
@@ -510,7 +505,39 @@ class SpectrumCanvas : public wxPanel
           if (s.mode == p_s->selected) paintSelection(dc, pane, x, y, s.mode);
         }
       }
+      //  The second calculation (#173), in its own colour on the same
+      //  axes: its curve outline and, with the sticks, thin sticks.  Not
+      //  clickable; the table and the mode animation belong to the first.
+      const bool second = p_s->spec.hasCompare(kind);
+      if (second) {
+        const wxColour other = p_palette.series(3);
+        if (envelope) {
+          std::vector<wxPoint> c2;
+          for (int px = 0; px < pane.width; px++) {
+            const double wn = p_s->axis.fromFraction(
+                (px + 0.5) / (double)pane.width);
+            c2.push_back(wxPoint(pane.x + px,
+                                 yOf(pane, p_s->spec.compareEnvelope(kind, wn),
+                                     envAxis.y.top)));
+          }
+          if (c2.size() > 1) {
+            dc.SetPen(wxPen(other, 2));
+            dc.DrawLines((int)c2.size(), &c2[0]);
+          }
+        }
+        if (drawSticks) {
+          const std::vector<VibStick> cs = p_s->spec.compareSticks(kind);
+          dc.SetPen(wxPen(other, 1));
+          for (size_t i = 0; i < cs.size(); i++) {
+            if (cs[i].wavenumber < lo || cs[i].wavenumber > hi) continue;
+            const int x = xOf(pane, cs[i].wavenumber);
+            dc.DrawLine(x, base, x, yOf(pane, cs[i].intensity,
+                                        sc.left.y.top));
+          }
+        }
+      }
       dc.DestroyClippingRegion();
+      if (second) paintKey(dc, pane, series, p_palette.series(3));
 
       //  Frame, ticks and labels.
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -586,6 +613,33 @@ class SpectrumCanvas : public wxPanel
                   std::max(pane.y, top - e.y - 2));
     }
 
+    //  Which curve is which calculation: a swatch and a name each, at the
+    //  top left of the pane.
+    void paintKey(wxDC& dc, const wxRect& pane, const wxColour& first,
+                  const wxColour& second)
+    {
+      dc.SetFont(*wxSMALL_FONT);
+      const wxString names[2] = {
+        wxString::FromUTF8(p_s->spec.label().c_str()),
+        wxString::FromUTF8(p_s->spec.compareLabel().c_str()) };
+      const wxColour cols[2] = { first, second };
+      const int rowH = dc.GetCharHeight() + 2;
+      int w = 0;
+      for (int i = 0; i < 2; i++) w = std::max(w, dc.GetTextExtent(names[i]).x);
+      w += 34;
+      dc.SetPen(wxPen(p_palette.grid, 1));
+      dc.SetBrush(wxBrush(SpectrumPalette::mix(p_palette.background,
+                                               p_palette.text, 0.03)));
+      dc.DrawRectangle(pane.x + 6, pane.y + 4, w, 2 * rowH + 6);
+      for (int i = 0; i < 2; i++) {
+        const int y = pane.y + 7 + i * rowH;
+        dc.SetPen(wxPen(cols[i], 3));
+        dc.DrawLine(pane.x + 11, y + rowH / 2, pane.x + 27, y + rowH / 2);
+        dc.SetTextForeground(p_palette.text);
+        dc.DrawText(names[i], pane.x + 32, y);
+      }
+    }
+
     //  IR | Raman, at the top right of the plot: which pane the compact
     //  layout shows.
     void paintToggle(wxDC& dc, const wxRect& pane, bool haveIr, bool haveRaman)
@@ -631,19 +685,21 @@ class SpectrumCanvas : public wxPanel
       for (size_t i = 0; i < s.size(); i++)
         if (s[i].mode == p_hoverMode) at = &s[i];
       if (at == 0) return;
-      wxString head = wxString::Format("Mode %d", at->mode + 1);
+      wxString head = utf8(p_s->spec.itemWord().c_str()) +
+                      wxString::Format(" %d", at->mode + 1);
       if (!at->irrep.empty()) head += "  " + utf8(at->irrep.c_str());
       lines.push_back(head);
-      lines.push_back(wxString::Format("%.1f", at->wavenumber) +
-                      utf8(" cm\xE2\x81\xBB\xC2\xB9") +
+      lines.push_back(utf8(p_s->spec.positionText(*at).c_str()) +
                       (at->imaginary ? wxString(" (imaginary)") : wxString()));
       for (int k = 0; k < 2; k++) {
         const std::vector<VibStick> ks = p_s->spec.sticks((VibKind)k);
         for (size_t i = 0; i < ks.size(); i++)
           if (ks[i].mode == p_hoverMode)
-            lines.push_back(wxString(k == VIB_IR ? "IR  " : "Raman  ") +
-                            wxString::Format("%.2f ", ks[i].intensity) +
-                            utf8(p_s->spec.unitLabel((VibKind)k).c_str()));
+            lines.push_back(utf8(p_s->spec.intensityName((VibKind)k).c_str()) +
+                            (p_s->spec.electronic()
+                               ? wxString::Format("%.4f", ks[i].intensity)
+                               : wxString::Format("%.2f ", ks[i].intensity) +
+                                 utf8(p_s->spec.unitLabel((VibKind)k).c_str())));
       }
       dc.SetFont(*wxSMALL_FONT);
       int w = 0;

@@ -306,6 +306,38 @@ sub GMXGroupDefs {
   return $_;
 }
 
+#  The pull code: one umbrella coordinate between the centres of mass of two
+#  groups, starting from their present distance.  Positions and forces are
+#  written every 50 steps to pullx.xvg and pullf.xvg.
+sub GMXPull {
+  my @l = ();
+  $_ = "";
+  my @g = &groupList("ES.Runtype.MD.PullGroups");
+  return "" if (@g != 2);
+  my $geom = &stringOr("ES.Runtype.MD.PullGeometry", "distance");
+  push(@l, "pull                      = yes");
+  #  A chain is often longer than half the box, and grompp then insists on a
+  #  hand-picked pbc atom; the previous step's COM as reference needs none.
+  push(@l, "pull-pbc-ref-prev-step-com = yes");
+  push(@l, "pull-ngroups              = 2");
+  push(@l, "pull-ncoords              = 1");
+  push(@l, "pull-group1-name          = $g[0]");
+  push(@l, "pull-group2-name          = $g[1]");
+  push(@l, "pull-coord1-type          = umbrella");
+  push(@l, "pull-coord1-geometry      = $geom");
+  push(@l, "pull-coord1-vec           = " . $AbiDict{"ES.Runtype.MD.PullVec"})
+    if ($geom eq "direction");
+  push(@l, "pull-coord1-dim           = " . &stringOr("ES.Runtype.MD.PullDim", "Y Y Y"));
+  push(@l, "pull-coord1-groups        = 1 2");
+  push(@l, "pull-coord1-start         = yes");
+  push(@l, "pull-coord1-rate          = " . &numOr("ES.Runtype.MD.PullRate", 0.01));
+  push(@l, "pull-coord1-k             = " . &numOr("ES.Runtype.MD.PullK", 1000));
+  push(@l, "pull-nstxout              = 50");
+  push(@l, "pull-nstfout              = 50");
+  $_ = join("\n", @l);
+  return $_;
+}
+
 sub GMXConstraints {
   my @l = ();
   my $constraints = &stringOr("ES.Runtype.MD.Constraints", "h-bonds");

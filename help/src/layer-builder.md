@@ -20,7 +20,7 @@ included.
 In the Layer Builder panel:
 
 - **Layers**: the number of layers in the new cell.
-- **Spacing (A)**: the distance from one layer to the next, measured along
+- **Spacing (Å)**: the distance from one layer to the next, measured along
   the normal of the a-b plane. The new cell has the same a and b, and its
   c has the height **Layers x Spacing** along that normal. If the old c
   was tilted, its sideways part is kept, so the angles of a tilted cell
@@ -29,11 +29,11 @@ In the Layer Builder panel:
   from the one below it, as fractions of a and b. The shift adds up: layer
   *i* is displaced *i* times the shift. Two layers in AB stacking need the
   shift once; for ABC stacking use three layers.
-- **Ion**, **n**, **q**, **min A** (two rows): an element symbol, how many
+- **Ion**, **n**, **q**, **min Å** (two rows): an element symbol, how many
   of them go in **each** gap between layers, their charge, and the smallest
   distance each may have to any atom already there. The charge is stored as
   the atom's charge.
-- **Water**, **min A**: how many water molecules go in each gap, and the
+- **Water**, **min Å**: how many water molecules go in each gap, and the
   smallest distance from a water oxygen to any atom already there. Each
   water is a whole molecule with an O-H distance of 0.9572 A and an H-O-H
   angle of 104.52 degrees, in a random orientation.

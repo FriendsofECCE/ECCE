@@ -1,0 +1,7 @@
+# P63/mmc; the Builder passes the name as in data/client/config/SpaceGroups
+program genmollat
+threshold 0.1
+group P63/mmc
+lattice 5 5 7 90 90 120
+atoms
+C 0.120000 0.210000 0.330000

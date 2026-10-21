@@ -38,6 +38,7 @@
 
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxNonBoldLabel.H"
+#include "wxgui/ewxSelectableText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/EcceTool.H"
 #include "wxgui/WxResourceImageList.H"
@@ -239,12 +240,13 @@ void CalculationContextPanel::updateProgress()
     TProperty *te = task && !hof ? task->getProperty("TE") : 0;
     TProperty *e = hof ? hof : te;
     if (e) {
-      const string units = e->units() == "NA" ? "" : " " + unitLabel(e->units());
+      const string unit = e->units() == "NA" ? "" : unitLabel(e->units());
+      const string value = valueLabel(e->scalarize(), 6);
       char line[128];
       snprintf(line, sizeof line, "%s %s%s",
                hof ? "Heat of formation" : "Final energy",
-               valueLabel(e->scalarize(), 6).c_str(), units.c_str());
-      p_progressBox->setFinalEnergy(line);
+               value.c_str(), unit.empty() ? "" : (" " + unit).c_str());
+      p_progressBox->setFinalEnergy(line, value, unit);
     }
   }
 
@@ -523,6 +525,7 @@ wxBoxSizer* CalculationContextPanel::createPropLabel(ResourceProperty *resProp)
       wxDefaultSize,            //    unique name next
       0,                        // no special styles set (default)
       resProp->getLabel()); // how we will refer to this window later
+  ewxMakeSelectable(text);  // names can be selected and copied too (#408)
 
   // add label to sizer to return
   box->Add(text,
@@ -594,6 +597,7 @@ wxBoxSizer* CalculationContextPanel::createPropHolder(ResourceProperty *resProp)
       wxDefaultSize,            //      unique name next
       0,                        // no special styles set (default)
       resProp->getName());  // how we will refer to this window later
+  ewxMakeSelectable(text);  // values can be selected and copied (#408)
 
   // add text portion of the property to sizer to return
   box->Add(text,

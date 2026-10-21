@@ -49,3 +49,13 @@ Rev C.01, NWChem 7.2.3):
   charges sum to about -0.002, not 0, so tests must not use a `sum` check.
 - Gaussian does one ESP fit per job: `Pop=(MK,CHelpG)` fits once, so the
   dialog offers a choice (`ES.Theory.ESPCharges`), not two tick boxes.
+
+Checked end to end for NPA (G16 `Pop=NPA`, ORCA `! NBO`; the ORCA output in the
+parser fixtures is a real NBO 7 run, values identical): parse golden, Props
+file, Properties menu entry "Natural (NPA) Charges", per-atom table and red/blue
+atom colouring all work with no C++ change. To look at any scheme headless:
+`PANELS_REPO_CLIENT=1 ECCE_CAPTURE_CALC=<dir from tests/spectrum/makecalc.py>
+tests/panels/capture.py --builder ... --descriptor data/client/config/PropertyPanelDescriptor.xml
+--open-panel "Natural (NPA) Charges"` (makecalc writes MULLIKEN/NPA/APT/ESPFIT
+when the case has them; PANELS_REPO_CLIENT is needed when the builder is newer
+than /opt/ecce, else pixmap dialogs block the capture).

@@ -1,0 +1,7 @@
+# hocl, nominal group Cs, d0.06
+program autosym
+threshold 0.01
+atoms
+O -1.621669 0.026880 -0.940390
+Cl -2.748243 -0.690156 0.128456
+H -0.733547 -0.236262 -0.595461

@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of nh3, group C3V
+program genmol
+threshold 0.01
+group C3V
+atoms
+N 0.000000 0.000000 0.067478
+H 0.664680 0.664680 -0.312522

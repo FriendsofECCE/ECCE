@@ -41,6 +41,7 @@ void AtomLabelsCmd::init()
 {
   addParameter(new CommandParameter("type", AtomLabelsCmd::ELEMENT));
   setHelpMessage("Atom Labels");
+  p_labelsShown = false;
 }
 
 
@@ -106,6 +107,10 @@ bool AtomLabelsCmd::execute()
     }
   }
 
+  // Undo restores this; it is not implied by the labels themselves.
+  p_labelsShown = sg->getNumDisplayStyles() > 0 &&
+                  sg->getChemDisplayParam(0)->showAtomLabels.getValue();
+
   // tells MI to turn them on or off per display style
   sg->setAtomLabels((type!=AtomLabelsCmd::NONE) || (!applytoall));
 
@@ -124,7 +129,10 @@ void AtomLabelsCmd::undo()
     atom = (*atoms)[p_targets[idx]];
     atom->displayLabel(p_labels[idx]);
   }
-  sg->setAtomLabels(targetSize);
+  //  Restore the previous state: forcing labels on whenever any atom was a
+  //  target left them on, with empty text, after the Save thumbnail, and
+  //  a click on an atom then selected nothing (#423).
+  sg->setAtomLabels(p_labelsShown);
 }
 
 

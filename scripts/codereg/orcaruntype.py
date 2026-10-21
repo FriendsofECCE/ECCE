@@ -1,4 +1,9 @@
 from templates import *
+from calcpick import *
+
+NEB_RUNTYPES = ("Transition State (NEB-TS)",
+                "Transition State (NEB-TS) + Frequencies")
+FREQ_RUNTYPES = ("Vibration", "GeoVib", NEB_RUNTYPES[1])
 
 # ECCE ORCA "Runtype Details" dialog (issue #38, reduced scope).
 #
@@ -67,8 +72,35 @@ class OrcaRunTypePanel(EccePanel):
             convergenceSizer.AddWidget(self.gradient)
             self.panelSizer.Add(convergenceSizer)
 
-        if (EcceGlobals.RunType == "Vibration" or
-            EcceGlobals.RunType == "GeoVib"):
+        # NEB-TS: this calculation's structure is the reactant; the product
+        # (and optionally a TS guess) come from other calculations.
+        if EcceGlobals.RunType in NEB_RUNTYPES:
+            nebSizer = EcceBoxSizer(self, label="Transition State (NEB-TS)",
+                                    cols=1)
+            cands = qstCandidates()
+            self.nebProduct = CalcChoice(self, cands,
+                                         name="ES.Runtype.NEB.Product",
+                                         default=0,
+                                         label="Product:")
+            nebSizer.AddWidget(self.nebProduct)
+            self.nebGuess = CalcChoice(self, cands,
+                                       name="ES.Runtype.NEB.Guess",
+                                       default=0,
+                                       label="TS guess (optional):")
+            nebSizer.AddWidget(self.nebGuess)
+            self.nebImages = EcceSpinCtrl(self,
+                                          hardRange="[2..)",
+                                          softRange="[2..32]",
+                                          name="ES.Runtype.NEB.Images",
+                                          default=8,
+                                          label="Images:",
+                                          export=1)
+            nebSizer.AddWidget(self.nebImages)
+            self.nebStatus = wx.StaticText(self, -1, "")
+            nebSizer.Add(self.nebStatus, 0, wx.ALL, 3)
+            self.panelSizer.Add(nebSizer)
+
+        if EcceGlobals.RunType in FREQ_RUNTYPES:
             vibSizer = EcceBoxSizer(self, label="Frequencies", cols=1)
 
             vibMethodChoice = ["Analytic",
@@ -96,6 +128,34 @@ class OrcaRunTypePanel(EccePanel):
                                          export=1)
             vibSizer.AddWidget(self.useRaman)
             self.panelSizer.Add(vibSizer)
+
+        # IRC from a transition state (issue #417). The input geometry must
+        # already be the TS; the initial Hessian is computed in the same job.
+        if EcceGlobals.RunType == "IRC":
+            ircSizer = EcceBoxSizer(self, label="Reaction Path", cols=1)
+            self.ircSteps = EcceSpinCtrl(self,
+                                         hardRange="[1..)",
+                                         softRange="[1..200]",
+                                         name="ES.Runtype.IRC.MaximumStepsValue",
+                                         default=20,
+                                         label="Max Steps per direction:",
+                                         export=1)
+            ircSizer.AddWidget(self.ircSteps)
+            self.ircDirection = EcceComboBox(self,
+                                             choices=["Both", "Forward", "Backward"],
+                                             name="ES.Runtype.IRC.Direction",
+                                             default=0,
+                                             label="Direction:",
+                                             export=1)
+            ircSizer.AddWidget(self.ircDirection)
+            self.ircHess = EcceComboBox(self,
+                                        choices=["Analytic", "Numerical"],
+                                        name="ES.Runtype.IRC.InitHess",
+                                        default=0,
+                                        label="Initial Hessian:",
+                                        export=1)
+            ircSizer.AddWidget(self.ircHess)
+            self.panelSizer.Add(ircSizer)
 
         # Mulliken and Loewdin come with every ORCA job; these must be asked
         # for. ORCA computes them from the converged density of whatever job
@@ -131,6 +191,13 @@ class OrcaRunTypePanel(EccePanel):
         self.AddButtons()
 
     def CheckDependency(self):
+        if EcceGlobals.RunType in NEB_RUNTYPES:
+            if not self.nebProduct.GetValue():
+                self.nebStatus.SetLabel("Pick the product calculation.")
+            elif self.nebProduct.GetValue() == self.nebGuess.GetValue():
+                self.nebStatus.SetLabel("Warning: product and TS guess are the same calculation.")
+            else:
+                self.nebStatus.SetLabel("")
         if (EcceGlobals.RunType == "Geometry" or
             EcceGlobals.RunType == "GeoVib"):
             self.stepSpin.Enable(self.stepCheckBox.GetValue())

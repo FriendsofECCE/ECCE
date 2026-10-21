@@ -1,0 +1,7 @@
+# h2o distorted 0.02 at threshold 0.001
+program autosym
+threshold 0.001
+atoms
+O 0.017642 0.004417 0.104213
+H 0.015434 0.756511 -0.463372
+H 0.017713 -0.748249 -0.471975

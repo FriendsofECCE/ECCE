@@ -1,0 +1,7 @@
+# co in autosym's frame (C4V), distorted 0.004
+program cleansym
+threshold 0.01
+group C4V
+atoms
+C -0.002515 -0.002779 -0.645902
+O -0.001972 0.001018 0.484401

@@ -25,6 +25,7 @@
 //    save                        File > Save
 //    savemenu                    the File > Save menu event, if enabled
 //    savestate                   dirty flag and Save menu/toolbar enabled state
+//    context URL                 switch to (or back to) calculation URL
 //    info                       atoms and lattice, on stderr
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select I                    select atom (or Nub) I, as a click does; -1 none
@@ -49,6 +50,9 @@
 //    overlay                     the column's tab (1 = Properties), and for
 //                                each viewer panel: shown, viz focus
 //    rows PANEL                  the rows of a key/value panel (Energies)
+//    tablecopy PANEL             Copy all of the first table in PANEL
+//    inview                      whether an atom is outside the 3-D view
+//    zoom F                      camera view angle/height times F (<1: in)
 //    fold PANEL GROUP            a click on that group's heading
 //    vector PROP                 each arrow under PROP's property switch, as
 //                                drawn: start, unit direction, farthest
@@ -60,6 +64,9 @@
 //                                length and unit direction, Angstrom
 //    pertab A                    press the Build panel's periodic-table button,
 //                                pick element A in it, report the Build element
+//    chooser kind|pick SYM|search TEXT|enter TEXT|shot NAME|close
+//                                the element chooser popup: pick an element,
+//                                type a search, press Enter in it, save a PNG
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -75,6 +82,7 @@
 #include <wx/checkbox.h>
 #include <wx/dcmemory.h>
 #include <wx/dcscreen.h>
+#include <wx/weakref.h>
 #include <wx/image.h>
 #include <wx/menu.h>
 #include <wx/textctrl.h>
@@ -99,11 +107,13 @@
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
 #include "MiniPerTab.H"
+#include "ElementChooser.H"
 #include "viz/VRVector.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 
 #include "viz/FindSymmetryCmd.H"
+#include "wxgui/ewxGrid.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxProgressDialog.H"
 #include "wxgui/PerTabPanel.H"
@@ -113,11 +123,15 @@
 #include "GeomConstraintsDialog.H"
 #include "inv/SoWx/SoWxRenderArea.H"
 #include "inv/nodes/SoCamera.H"
+#include "inv/nodes/SoOrthographicCamera.H"
+#include "inv/nodes/SoPerspectiveCamera.H"
 #include "wxviz/SGViewer.H"
 #include "dsm/ChemistryTask.H"
 #include "wxgui/SliderCombo.H"
 #include "NModePanel.H"
 #include "ScanPanel.H"
+#include "IRCPanel.H"
+#include "PullPanel.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -305,19 +319,71 @@ void Builder::runBuilderScript(const std::string& file)
           press.SetEventObject(button);
           button->GetEventHandler()->ProcessEvent(press);
           for (int i = 0; i < 3; i++) wxTheApp->Yield(true);
-          PerTabPanel *table =
-              dynamic_cast<PerTabPanel*>(p_pertab->tablePanel());
-          TPerTab tpt;
-          const int z = tpt.atomicNumber(w[1]);
-          if (!table) {
+          wxWindow *panel = p_pertab->tablePanel();
+          ElementChooser *table = dynamic_cast<ElementChooser*>(panel);
+          PerTabPanel *old = dynamic_cast<PerTabPanel*>(panel);
+          if (!table && !old) {
             outcome = "FAIL: the button opened no table";
           } else {
-            table->setCurrentElement(z);
-            table->fireSelectionChanged(z);
+            if (table) {
+              table->pick(w[1]);
+            } else {
+              TPerTab tpt;
+              const int z = tpt.atomicNumber(w[1]);
+              old->setCurrentElement(z);
+              old->fireSelectionChanged(z);
+            }
             fprintf(stderr, "BUILDER: pertab element=%s\n",
                     p_currentElement.c_str());
           }
         }
+      } else if (w[0] == "chooser" && w.size() >= 2) {
+        //  The element chooser popup: "chooser pick Fe", "chooser search
+        //  iron" (then "chooser enter iron" to press Enter), "chooser
+        //  shot NAME" for a screenshot of the open popup, "chooser close".
+        static wxWeakRef<TearableContent> popup;
+        if (!popup) popup = showElementChooser();
+        wxWindow *found = popup->FindWindow("Elements");
+        ElementChooser *ch = dynamic_cast<ElementChooser*>(found);
+        for (int i = 0; i < 5; i++) wxTheApp->Yield(true);
+        if (w[1] == "kind") {
+          std::string recent;
+          if (ch) for (const std::string& r : ch->recent()) recent += r + ",";
+          fprintf(stderr, "BUILDER: chooser kind=%s recent=%s\n",
+                  ch ? "new" : dynamic_cast<PerTabPanel*>(found) ? "old" : "none",
+                  recent.c_str());
+        } else if (w[1] == "screen" && w.size() == 3) {
+          //  The whole display: the Builder window with the popup over it.
+          wxScreenDC cdc;
+          const wxSize sz = wxGetDisplaySize();
+          wxBitmap bmp(sz.x, sz.y);
+          wxMemoryDC mdc(bmp);
+          mdc.Blit(0, 0, sz.x, sz.y, &cdc, 0, 0);
+          mdc.SelectObject(wxNullBitmap);
+          bmp.SaveFile(st->dir + "/" + w[2] + ".png", wxBITMAP_TYPE_PNG);
+        } else if (!ch) {
+          outcome = "FAIL: no chooser";
+        } else if (w[1] == "pick" && w.size() == 3) {
+          fprintf(stderr, "BUILDER: chooser pick %s -> %d\n", w[2].c_str(),
+                  ch->pick(w[2]) ? 1 : 0);
+          fprintf(stderr, "BUILDER: chooser element=%s\n", p_currentElement.c_str());
+        } else if ((w[1] == "search" || w[1] == "enter") && w.size() >= 3) {
+          std::string text = w[2];
+          for (size_t i = 3; i < w.size(); i++) text += " " + w[i];
+          const int n = ch->search(text, w[1] == "enter");
+          fprintf(stderr, "BUILDER: chooser matches=%d element=%s\n", n,
+                  p_currentElement.c_str());
+        } else if (w[1] == "shot" && w.size() == 3) {
+          wxScreenDC cdc;
+          const wxPoint org = ch->GetScreenPosition();
+          wxSize sz = ch->GetClientSize();
+          wxBitmap bmp(sz.x, sz.y);
+          wxMemoryDC mdc(bmp);
+          mdc.Blit(0, 0, sz.x, sz.y, &cdc, org.x, org.y);
+          mdc.SelectObject(wxNullBitmap);
+          bmp.SaveFile(st->dir + "/" + w[2] + ".png", wxBITMAP_TYPE_PNG);
+        }
+        if (w[1] == "close" && popup) popup->Dismiss();
       } else if (w[0] == "popup" && w.size() == 2) {
         //  The element chooser, as the arrow beside the element tool opens
         //  it, and where it is, straight after it is shown and half a
@@ -435,6 +501,9 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: residues=%s\n", names.c_str());
       } else if (w[0] == "save") {
         doSave();
+      } else if (w[0] == "context" && w.size() == 2) {
+        //  Switch to (or back to) calculation URL, as the Organizer does.
+        setContext(w[1]);
       } else if (w[0] == "savemenu") {
         //  File > Save as the menu or Ctrl+S sends it; ignored when disabled
         wxCommandEvent saveEv(wxEVT_MENU, wxID_SAVE);
@@ -753,12 +822,57 @@ void Builder::runBuilderScript(const std::string& file)
             fprintf(stderr, "BUILDER: row %s\n", row.c_str());
           for (const std::string& fit : kv->rowFit())
             fprintf(stderr, "BUILDER: fit %s\n", fit.c_str());
+          for (const std::string& sel : kv->rowSelectable())
+            fprintf(stderr, "BUILDER: selectable %s\n", sel.c_str());
           //  what Copy all (#408) puts on the clipboard
           wxString all = kv->copyAllText();
           all.Replace("\t", " \\t ");
           for (const wxString& line : wxSplit(all, '\n'))
             if (!line.empty())
               fprintf(stderr, "BUILDER: copy %s\n", line.ToUTF8().data());
+        }
+      } else if (w[0] == "zoom" && w.size() == 2) {
+        //  zoom F: the camera's view angle or height times F (F < 1 zooms
+        //  in), as the mouse wheel would.
+        SoCamera *cam = p_viewer->getCamera();
+        const float f = (float)atof(w[1].c_str());
+        if (SoPerspectiveCamera *pc = dynamic_cast<SoPerspectiveCamera*>(cam))
+          pc->heightAngle = pc->heightAngle.getValue() * f;
+        else if (SoOrthographicCamera *oc = dynamic_cast<SoOrthographicCamera*>(cam))
+          oc->height = oc->height.getValue() * f;
+        p_viewer->refreshRenderArea();
+      } else if (w[0] == "inview") {
+        //  inview: whether any atom is outside the 3-D view (#409).
+        fprintf(stderr, "BUILDER: inview outside=%d\n",
+                atomsOutsideView() ? 1 : 0);
+      } else if (w[0] == "tablecopy" && w.size() >= 2) {
+        //  tablecopy <panel>: what Copy all (#408) puts on the clipboard
+        //  from the first table in that panel.
+        string pane = w[1];
+        for (size_t i = 2; i < w.size(); i++) pane += " " + w[i];
+        std::function<ewxGrid*(wxWindow*)> findGrid =
+            [&findGrid](wxWindow *win) -> ewxGrid* {
+          if (ewxGrid *g = dynamic_cast<ewxGrid*>(win)) return g;
+          for (wxWindow *child : win->GetChildren())
+            if (ewxGrid *g = findGrid(child)) return g;
+          return 0;
+        };
+        wxWindow *win = p_mgr.GetPane(wxString(pane)).window;
+        ewxGrid *grid = win ? findGrid(win) : 0;
+        if (!grid) {
+          outcome = "no table in panel " + pane;
+        } else {
+          //  what a double-click on the first cell shows: selectable text
+          wxTextCtrl *cell = grid->showCellText(0, 0);
+          if (cell)
+            fprintf(stderr, "BUILDER: tablecell editable=%d selected='%s'\n",
+                    cell->IsEditable() ? 1 : 0,
+                    cell->GetStringSelection().ToUTF8().data());
+          wxString all = grid->copyText(true);
+          all.Replace("\t", " \\t ");
+          for (const wxString& line : wxSplit(all, '\n'))
+            if (!line.empty())
+              fprintf(stderr, "BUILDER: tablecopy %s\n", line.ToUTF8().data());
         }
       } else if (w[0] == "spectrumcsv" && w.size() >= 2) {
         //  spectrumcsv <path> [ir|raman]: the Vibrational Frequencies
@@ -792,6 +906,96 @@ void Builder::runBuilderScript(const std::string& file)
                   sp->exportCsv(wxString::FromUTF8(w[1].c_str()),
                                 w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
+        }
+      } else if (w[0] == "pullcsv" && w.size() >= 2) {
+        //  pullcsv <path>: the Pull Force panel's Export .csv without the
+        //  file dialog.
+        PullPanel *pp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((pp = dynamic_cast<PullPanel*>(p)) != 0) break;
+        if (!pp) {
+          outcome = "no Pull Force panel";
+        } else {
+          fprintf(stderr, "BUILDER: pullcsv points=%d %s\n", pp->points(),
+                  pp->exportCsv(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
+        }
+      } else if (w[0] == "ircpath" && w.size() >= 2) {
+        //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)
+        //  without the file dialog.
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+        if (!ip) {
+          outcome = "no IRC Path panel";
+        } else {
+          fprintf(stderr, "BUILDER: ircpath points=%d %s\n", ip->points(),
+                  ip->exportCsv(wxString::FromUTF8(w[1].c_str()),
+                                w.size() > 2 && w[2] == "kcal")
+                      ? "ok" : "failed");
+        }
+      } else if ((w[0] == "scanclick" || w[0] == "scancalc" ||
+                  w[0] == "irccalc") && w.size() >= 2) {
+        //  scanclick <i>: show scan point i; scancalc/irccalc <i>: the
+        //  "New calculation from this point" action (#410).
+        ScanPanel *sp = 0;
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+            if (!sp) sp = dynamic_cast<ScanPanel*>(p);
+            if (!ip) ip = dynamic_cast<IRCPanel*>(p);
+          }
+        const int idx = atoi(w[1].c_str());
+        if (w[0] == "irccalc" ? !ip : !sp) {
+          outcome = "no such panel";
+        } else if (w[0] == "scanclick") {
+          const int frame = sp->clickPoint(idx);
+          std::string where;
+          SGFragment *frag = getSceneGraph().getFragment();
+          for (int a = 0; frag && a < 2 && a < frag->numAtoms(); a++) {
+            const double *c = frag->atomRef(a)->coordinates();
+            char buf[96];
+            snprintf(buf, sizeof buf, " %.5f %.5f %.5f", c[0], c[1], c[2]);
+            where += buf;
+          }
+          fprintf(stderr, "BUILDER: scanclick %d frame=%d atoms:%s\n", idx, frame,
+                  where.c_str());
+        } else {
+          const std::string url = w[0] == "irccalc" ? ip->newCalcFromPoint(idx)
+                                                    : sp->newCalcFromPoint(idx);
+          fprintf(stderr, "BUILDER: %s %d url=%s\n", w[0].c_str(), idx,
+                  url.empty() ? "none" : url.c_str());
+        }
+      } else if (w[0] == "ircclick" && w.size() >= 2) {
+        //  ircclick <index>: what a click on IRC Path plot point <index>
+        //  does (#417); reports the frame shown and the first two atoms.
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+        if (!ip) {
+          outcome = "no IRC Path panel";
+        } else {
+          const int frame = ip->clickPoint(atoi(w[1].c_str()));
+          std::string where;
+          SGFragment *frag = getSceneGraph().getFragment();
+          for (int a = 0; frag && a < 2 && a < frag->numAtoms(); a++) {
+            const double *c = frag->atomRef(a)->coordinates();
+            char buf[96];
+            snprintf(buf, sizeof buf, " %.5f %.5f %.5f", c[0], c[1], c[2]);
+            where += buf;
+          }
+          if (frame < 0)
+            fprintf(stderr, "BUILDER: ircclick %s frame=none atoms:%s\n",
+                    w[1].c_str(), where.c_str());
+          else
+            fprintf(stderr, "BUILDER: ircclick %s frame=%d atoms:%s\n",
+                    w[1].c_str(), frame, where.c_str());
         }
       } else if (w[0] == "overlay") {
         std::string list;

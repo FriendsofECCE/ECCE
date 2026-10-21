@@ -52,7 +52,8 @@ names the line.
 | `temperature` | number, in K: for the thermochemistry | 298.15 |
 | `pressure` | number, in atm: for the thermochemistry | 1 |
 | `symmetry_number` | whole number: rotational symmetry number for the thermochemistry | found from the geometry |
-| `molden` | no value: also write the orbitals (and normal modes) in Molden format | off |
+| `molden` | no value: accepted and ignored; the Molden file is written by the command line option `--molden` | none |
+| `parallel_points` | `true` or `false`: with `frequency` or `optfreq`, run the displaced geometries at the same time (the environment variable `ECCE_QM_SERIAL` also runs them one after another) | `true` |
 | `conv_energy` | number, in Hartree | `1e-10` |
 | `conv_grad` | number | `1e-7` |
 
@@ -78,7 +79,7 @@ Three blocks follow the same rule, each closed by a line `end`:
   ```
 
   `bond` takes two atom numbers and a length in the unit given by `units`,
-  `angle` three atoms and a value in degrees, `torsion` four atoms and a value
+  `angle` three atoms and a value in degrees, `torsion` (or `dihedral`) four atoms and a value
   in degrees, `fix` one atom that stays where it is. Atoms are counted from 1
   in the order of the geometry block, dummy atoms included. The value is
   optional; without it the constraint keeps the value of the starting

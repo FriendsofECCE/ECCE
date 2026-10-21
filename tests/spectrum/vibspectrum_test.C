@@ -384,6 +384,100 @@ static void testCsv()
         .find("wavenumber_cm-1") == std::string::npos);
 }
 
+//  A second calculation beside the first (#173): its own modes, the
+//  first one's scale and width, numbers in the same unit.
+static void testCompare()
+{
+  VibSpectrum a = water();
+  VibSpectrum b;
+  std::vector<double> f, ir;
+  std::vector<std::string> sym;
+  f.push_back(2100.0); f.push_back(4000.0); f.push_back(4300.0);
+  ir.push_back(14.492); ir.push_back(88.5658); ir.push_back(59.9086);
+  b.setModes(f, sym);
+  b.setIntensities(VIB_IR, ir, "KM/Mole");
+
+  CHECK(!a.hasCompare(VIB_IR));
+  a.setScale(0.96);
+  a.setFwhm(20);
+  a.setCompare(b, "water-b");
+  CHECK(a.hasCompare(VIB_IR));
+  CHECK(!a.hasCompare(VIB_RAMAN));            // b has no Raman
+  CHECK(a.compareLabel() == "water-b");
+  CHECK(a.compareFactor(VIB_IR) == 1.0);
+
+  //  The second follows the first's scale, also when it changes later.
+  std::vector<VibStick> st = a.compareSticks(VIB_IR);
+  CHECK(st.size() == 3);
+  CHECK(near(st[0].wavenumber, 2100.0 * 0.96, 1e-9));
+  a.setScale(0.9);
+  CHECK(near(a.compareSticks(VIB_IR)[1].wavenumber, 4000.0 * 0.9, 1e-9));
+  a.setScale(1.0);
+  //  At a band centre the line contributes its area times the peak height
+  //  (neighbouring bands only add).
+  CHECK(a.compareEnvelope(VIB_IR, 4000.0) >=
+        88.5658 * VibSpectrum::lineValue(LINE_GAUSSIAN, 0, 20) - 1e-9);
+
+  //  The taller second spectrum sets the y range for both.
+  CHECK(near(a.maxStick(VIB_IR, 0, 5000), 88.5658, 1e-9));
+  VibSpectrum alone = water();
+  CHECK(near(alone.maxStick(VIB_IR, 0, 5000), 44.2829, 1e-9));
+
+  //  A second with only relative numbers is stretched to the first's top.
+  VibSpectrum c;
+  std::vector<double> rel;
+  rel.push_back(0.1); rel.push_back(0.5); rel.push_back(1.0);
+  c.setModes(f, sym);
+  c.setIntensities(VIB_IR, rel, "arb");
+  a.setCompare(c, "water-c");
+  CHECK(near(a.compareFactor(VIB_IR), 44.2829, 1e-9));
+  CHECK(near(a.compareSticks(VIB_IR)[2].intensity, 44.2829, 1e-9));
+  a.setCompare(b, "water-b");
+
+  //  CSV: the second's sticks in a block of their own, its curve a third
+  //  column, both calculations named.
+  SpectrumCsvInfo info;
+  info.calculation = "water-a";
+  info.compareCode = "ORCA";
+  const std::string csv = vibSpectrumCsv(a, VIB_IR, info, 3900, 4500, 1.0);
+  CHECK(csv.find("# compared with: water-b (ORCA)") != std::string::npos);
+  CHECK(csv.find("# sticks of water-b") != std::string::npos);
+  CHECK(csv.find("wavenumber_cm-1,intensity_water-a,intensity_water-b")
+        != std::string::npos);
+  std::stringstream in(csv);
+  std::string line;
+  bool inCurve = false, inB = false;
+  int rows = 0, bsticks = 0;
+  while (std::getline(in, line)) {
+    if (line.empty()) continue;
+    if (line[0] == '#') {
+      inB = line.find("sticks of") != std::string::npos;
+      continue;
+    }
+    std::vector<std::string> g = split(line, ',');
+    if (g[0] == "wavenumber_cm-1") { inCurve = true; continue; }
+    if (g[0] == "mode") continue;
+    if (inCurve) {
+      CHECK(g.size() == 3);
+      const double x = num(g[0]);
+      const double ea = a.envelope(VIB_IR, x), eb = a.compareEnvelope(VIB_IR, x);
+      CHECK(near(num(g[1]), ea, 1e-6 * (1 + ea)));
+      CHECK(near(num(g[2]), eb, 1e-6 * (1 + eb)));
+      rows++;
+    } else if (inB) {
+      CHECK(g.size() >= 3);   // an empty symmetry drops the last field
+      bsticks++;
+    }
+  }
+  CHECK(rows == 601);
+  CHECK(bsticks == 3);
+
+  a.clearCompare();
+  CHECK(!a.hasCompare(VIB_IR));
+  CHECK(vibSpectrumCsv(a, VIB_IR, info, 3900, 4500, 1.0)
+        .find("compared with") == std::string::npos);
+}
+
 int main()
 {
   testTicks();
@@ -391,6 +485,7 @@ int main()
   testLines();
   testSticks();
   testCsv();
+  testCompare();
   printf("%d checks, %d failed\n", checks, failures);
   return failures ? 1 : 0;
 }

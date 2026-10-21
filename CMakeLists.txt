@@ -573,17 +573,27 @@ ecce_app(polyed src/apps/polyrate WX
 ecce_app(solvate src/apps/solvate WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 
-# Native replacement for the wxPython Details dialogs (pilot): reads the
-# .dlg files next to scripts/codereg/*.py.  wx only, so it links nothing of
-# ECCE's; JCode::getTheoryRunTypeEditorNames starts it when ECCE_NATIVE_DIALOGS
-# is set.  Not in ECCE_GUI_APPS: no wrapper script, it is never run by hand.
+# Native replacement for the wxPython Details dialogs: reads the .dlg files
+# next to scripts/codereg/*.py.  The engine is src/wxgui/details: a wx-free
+# core (parser, rules, model; unit-tested by details_unit) and a wx view.  It
+# links nothing else of ECCE's; JCode::getTheoryRunTypeEditorNames starts it
+# when ECCE_NATIVE_DIALOGS is set.  Not in ECCE_GUI_APPS: no wrapper script,
+# it is never run by hand.
+add_library(ecce-details-core STATIC
+  src/wxgui/details/DetailsRules.cpp src/wxgui/details/DetailsModel.cpp)
+target_include_directories(ecce-details-core PUBLIC src/wxgui/details)
+add_library(ecce-details-wx STATIC src/wxgui/details/DetailsPanel.cpp)
+target_compile_definitions(ecce-details-wx PUBLIC ${wxWidgets_DEFINITIONS})
+target_include_directories(ecce-details-wx PUBLIC ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(ecce-details-wx PUBLIC ecce-details-core
+                      ${wxWidgets_LIBRARIES})
 add_executable(ecce-dialog src/apps/codereg-dialog/ecce-dialog.cpp)
-target_compile_definitions(ecce-dialog PRIVATE ${wxWidgets_DEFINITIONS})
-target_include_directories(ecce-dialog PRIVATE ${wxWidgets_INCLUDE_DIRS})
-target_link_libraries(ecce-dialog PRIVATE ${wxWidgets_LIBRARIES})
+target_link_libraries(ecce-dialog PRIVATE ecce-details-wx)
 if(WIN32)
   set_target_properties(ecce-dialog PROPERTIES WIN32_EXECUTABLE ON)
 endif()
+add_executable(details_unit_test tests/details/details_unit_test.cpp)
+target_link_libraries(details_unit_test PRIVATE ecce-details-core)
 install(TARGETS ecce-dialog RUNTIME DESTINATION bin COMPONENT client)
 
 # --- wx + GL apps ---
@@ -1891,6 +1901,17 @@ target_link_libraries(envswitches_test PRIVATE ecceutil)
 add_test(NAME envswitches COMMAND envswitches_test)
 
 # tests/formula -- the Hill-order formula shown in the Organizer.
+# tests/builder (#222): the element chooser's layout and search, no display.
+add_executable(elementlayout_test tests/builder/elementlayout_test.C)
+target_include_directories(elementlayout_test PRIVATE src/apps/builder)
+target_link_libraries(elementlayout_test PRIVATE eccetdat ecceutil)
+# The chooser alone, for screenshots on a display with no ECCE services.
+add_executable(chooser_shot tests/builder/chooser_shot.C src/apps/builder/ElementChooser.C)
+target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS})
+target_compile_definitions(chooser_shot PRIVATE ${wxWidgets_DEFINITIONS})
+target_link_libraries(chooser_shot PRIVATE eccewxgui eccewxthings eccetdat ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
+add_test(NAME elementlayout COMMAND elementlayout_test)
+
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)
@@ -1908,6 +1929,21 @@ set_tests_properties(scan_xml PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
 add_test(NAME gaussian_scan_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_scan/run_tests.py)
+# Reference test for the symmetry helpers (#422): runs the Fortran binaries of
+# this build over tests/symmetry/reference/corpus and compares with the goldens.
+add_test(NAME symmetry_reference
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/symmetry/reference/run_tests.py
+          --impl ${CMAKE_BINARY_DIR} --quiet)
+add_test(NAME symmetry_reference_determinism
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/symmetry/reference/generate_goldens.py
+          --impl ${CMAKE_BINARY_DIR} --check-determinism)
+# ORCA relaxed scan (#393): deck and a real ORCA 6 run, skipped without ORCA
+add_test(NAME orca_scan COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_scan/run_tests.py)
+set_tests_properties(orca_scan PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
+# Opt=QST2/QST3 decks for HCN<->HNC, run with Gaussian 16 when installed (#419)
+add_test(NAME gaussian_qst
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_qst/run_tests.py ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+set_tests_properties(gaussian_qst PROPERTIES TIMEOUT 1800)
 
 # tests/dummy_atoms (#298): dummy atom X is not an element for basis/formula.
 add_executable(dummy_fragment_test tests/dummy_atoms/dummy_fragment_test.C)
@@ -1957,6 +1993,20 @@ set_tests_properties(cp2k_features PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
 target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
 add_test(NAME vibspectrum COMMAND vibspectrum_test)
+# The same model as an excited-state (UV-vis) spectrum (#383).
+add_executable(uvvis_test tests/spectrum/uvvis_test.C)
+target_link_libraries(uvvis_test PRIVATE eccetdat ecceutil)
+add_test(NAME uvvis COMMAND uvvis_test)
+
+# tests/atommap -- atom mapping and alignment of reactant/product/guess (#419)
+add_executable(atommap_cli tests/atommap/atommap_cli.C)
+target_link_libraries(atommap_cli PRIVATE eccetdat ecceutil)
+add_executable(pull_analysis_test tests/pull/pull_analysis_test.C src/apps/builder/PullAnalysis.C)
+target_include_directories(pull_analysis_test PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
+add_test(NAME pull_analysis COMMAND pull_analysis_test)
+add_executable(atommap_test tests/atommap/atommap_test.C)
+target_link_libraries(atommap_test PRIVATE eccetdat ecceutil)
+add_test(NAME atommap COMMAND atommap_test ${CMAKE_SOURCE_DIR})
 
 # tests/vibanalysis -- mode symmetry and description (#367): real code output
 # through the real parsers, against textbook assignments.
@@ -2061,6 +2111,10 @@ add_test(NAME gromacs_lone_ion_names
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/gmx_ions_test.py)
 set_tests_properties(gromacs_lone_ion_names PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+add_test(NAME gromacs_prepare_options
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/prepare_options_test.py)
+set_tests_properties(gromacs_prepare_options PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 # Every tool a resource type enables has a summary view for its content type.
 add_test(NAME resource_tool_views
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -2172,14 +2226,29 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs)
 
+  add_test(NAME details_unit COMMAND details_unit_test
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/details)
+
   # The native ecce-dialog against the wxPython dialog for ECCE-QM Theory
   # Details: same settings sent, same pixels (tests/dialogs/native_test.py).
   add_test(NAME dialogs_native
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py
                    --dialog $<TARGET_FILE:ecce-dialog>)
+  # The oracle picks its Xvfb display by looking for free sockets, so two
+  # runs started together would take the same one.
   set_tests_properties(dialogs_native PROPERTIES SKIP_RETURN_CODE 77
-                       TIMEOUT 900)
+                       TIMEOUT 900 RUN_SERIAL TRUE)
+  foreach(_d orcatheory orcaruntype)
+    add_test(NAME dialogs_native_${_d}
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py
+                     --dialog $<TARGET_FILE:ecce-dialog>
+                     --py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/${_d}.py
+                     --dlg ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/${_d}.dlg)
+    set_tests_properties(dialogs_native_${_d} PROPERTIES SKIP_RETURN_CODE 77
+                         TIMEOUT 1800 RUN_SERIAL TRUE)
+  endforeach()
 
   # tests/verify -- the input-deck checker (#148).  Runs the real
   # scripts/parsers/verifyinput over decks captured from real runs and
@@ -2374,6 +2443,16 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_sash PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The Builder's new element chooser (#222) and the old popup it replaces
+  # by default, driven headless with the tree's builder binary.
+  add_test(NAME apps_builder_chooser
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/builder/chooser_drive.py
+                   $<TARGET_FILE:builder> ${CMAKE_BINARY_DIR}/chooser-drive
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  # Disabled until the driver reaches the Builder's script gate (#222).
+  set_tests_properties(apps_builder_chooser PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77 DISABLED TRUE)
   # The Calculation Editor is not frozen (no black areas) while the Code
   # Change question is open (#308).
   add_test(NAME apps_calced_code_change
@@ -2924,7 +3003,9 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/nwchem_md_walk_test.py
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
-  set_tests_properties(launch_nwchem_md_walk PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
+  # NWChem aborts in ARMCI (exit 216) beside other jobs; alone it passes.
+  set_tests_properties(launch_nwchem_md_walk PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77
+                       RUN_SERIAL TRUE)
   add_test(NAME launch_gromacs_prepare
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_prepare_test.py
@@ -2948,6 +3029,16 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # Real (xdotool) clicks on atoms still select after File > Save, a second
+  # Save and a switch back to the calculation (#423); skipped (77) without
+  # Xvfb or xdotool.
+  add_test(NAME apps_builder_save_pick
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_save_pick_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_save_pick PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # ECCE-QM Geometry and Vibration runs of water in the Builder: the IR
   # spectrum's sticks against the engine's output, the geometry trace.

@@ -1044,7 +1044,9 @@ void CalcMgr::runTestCommand(const string& line)
                   std::to_string(box->GetSize().y) +
                   " stateicon=" + (panel->getStateIcon() &&
                                    panel->getStateIcon()->outOfContact()
-                                   ? "running?" : "plain");
+                                   ? "running?" : "plain") +
+                  " copyvalue=" + box->copyText(0) +
+                  " energyselectable=" + (box->energySelectable() ? "1" : "0");
         for (const string& l : box->describe()) outcome += " | " + l;
       }
     } else if (command == "table") {
@@ -7422,7 +7424,11 @@ void CalcMgr::updateSelectionMenus()
           }
         }
       }
-      if (!shownNow) lastShown.clear();
+      //  The reason belongs to that calculation: leaving it clears it.
+      if (!shownNow && !lastShown.empty()) {
+        p_feedback->clearMessage();
+        lastShown.clear();
+      }
 
       // Only work on project, not even virtual documents
       // @todo shouldn't use hardwired string

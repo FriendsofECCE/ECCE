@@ -1,0 +1,7 @@
+# co2, nominal group Dinfh, rot
+program autosym
+threshold 0.01
+atoms
+C -2.924535 2.163404 -1.282733
+O -2.920336 2.159061 -2.442717
+O -2.928734 2.167747 -0.122748

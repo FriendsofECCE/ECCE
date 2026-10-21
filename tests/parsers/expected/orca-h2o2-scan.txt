@@ -1,0 +1,28 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    orca-h2o2-scan
+desc:    orca.desc
+fixture: orca/h2o2_dihedral_scan.out (379 lines)
+args:    '.' 'Geometry' 'SCF' 'RHF' '0'
+
+[SCANCOORD][SCANENERGY]  Script=orca.scan  Freq=last  Skip=-  Lines=-
+  Begin=RELAXED SURFACE SCAN RESULTS
+  End=Calculated Surface using the SCF energy
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=274 fed=15 rc=0 first-fed='RELAXED SURFACE SCAN RESULTS'
+    key: SCANCOORD
+      size: 7
+      values: 141.11993 171.11993 201.11993 231.11993 261.11993 291.11993 321.11993
+      units: Degree
+    key: SCANENERGY
+      size: 7
+      values: -149.94558597 -149.94581384 -149.94577698 -149.94526014 -149.94312807 -149.93829441 -149.93180233
+      units: Hartree
+
+[ETIME]  Script=orca.etime  Freq=last  Skip=0  Lines=1
+  Begin=TOTAL RUN TIME:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=379 fed=1 rc=0 first-fed='TOTAL RUN TIME: 0 days 0 hours 0 minutes 7 seconds 981 msec'
+    key: ETIME
+      size: 1
+      values: 7
+

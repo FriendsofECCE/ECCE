@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+# Relaxed scan (#410): the optimised structure of each scan point, from
+# <job>.allxyz (File= entry in orca.desc).  Frames are separated by ">" lines
+# and each starts with an atom count and a comment line.
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /Geo/i);
+
+my @frames = ([]);
+my $skip = 2;
+while (<STDIN>) {
+  if (/^\s*>\s*$/) { push(@frames, []); $skip = 2; next; }
+  if ($skip) { $skip--; next; }      # atom count, comment line
+  push(@{$frames[-1]}, " $1 $2 $3") if (/^\s*[A-Za-z]+\S*\s+(\S+)\s+(\S+)\s+(\S+)/);
+}
+foreach my $f (@frames) {
+  next unless (@$f);
+  my $labels;
+  $labels .= " $_-X" for (1 .. scalar(@$f));
+  print "key: SCANGEOM\nsize:\n1 ", scalar(@$f), " 3\nrowlabels:\n$labels\n",
+        "columnlabels:\nX Y Z\nvalues:\n", join("\n", @$f), "\nunits:\nAngstrom\nEND\n";
+}
+exit(0);

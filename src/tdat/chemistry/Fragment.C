@@ -4778,6 +4778,29 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
             atsym[1] = tolower(atnam[1]);
             atsym[2] = '\0';
           }
+          //  The element columns (77-78) win when they hold an element: a
+          //  name such as "OW  " or "HW1 " (GROMACS water, written left
+          //  aligned) reads as "Ow"/"Hw" above, so the atoms lost their
+          //  element, and bonds with it (#262).  Without them, a two-letter
+          //  guess that is no element falls back to its first letter.
+          string elem;
+          if (ilen >= 78) {
+            for (int k = 76; k < 78; k++)
+              if (!isspace((unsigned char)buf[k])) elem += buf[k];
+          }
+          if (!elem.empty() && isalpha((unsigned char)elem[0])) {
+            elem[0] = toupper(elem[0]);
+            if (elem.size() > 1) elem[1] = tolower(elem[1]);
+          } else {
+            elem.clear();
+          }
+          if (!elem.empty() && pertable.isValid(elem.c_str())) {
+            strncpy(atsym, elem.c_str(), 2);
+            atsym[elem.size()] = '\0';
+          } else if (atsym[1] != '\0' && !pertable.isValid(atsym)) {
+            char one[2] = { atsym[0], '\0' };
+            if (pertable.isValid(one)) atsym[1] = '\0';
+          }
           double xyz[3];
           xyz[0] = x;
           xyz[1] = y;

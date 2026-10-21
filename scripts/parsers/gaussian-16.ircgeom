@@ -1,0 +1,20 @@
+#!/usr/bin/env perl
+# IRC (#417): the converged structure of one path point (the "CURRENT
+# STRUCTURE" block).  One frame per call; the frames arrive FORWARD points
+# first, then REVERSE, and the IRC panel maps them onto the summary table.
+# Dummy centres are left out, as in gaussian-16.geomtrace (#27).
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /IRC/i);
+
+my (@coord, $labels, $row);
+while (<STDIN>) {
+  next unless (/^\s+\d+\s+(-?\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/);
+  next if ($1 < 0);
+  push(@coord, " $2 $3 $4");
+  $labels .= " " . (++$row) . "-X";
+}
+exit(0) unless (@coord);
+print "key: IRCGEOM\nsize:\n1 ", scalar(@coord), " 3\nrowlabels:\n$labels\n",
+      "columnlabels:\nX Y Z\nvalues:\n", join("\n", @coord), "\nunits:\nHartree\nEND\n";
+exit(0);

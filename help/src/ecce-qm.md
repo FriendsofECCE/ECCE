@@ -76,14 +76,20 @@ by side.
   exchange, exchange-correlation);
 - orbital energies and occupations, the HOMO and LUMO, and the orbital
   coefficients, so the molecular orbitals can be drawn and the orbital
-  diagram shown (the orbital diagram is off by default for this code, and is
-  switched on under Preferences);
+  diagram shown (the orbital diagram is shown by default; untick **Show the MO
+  diagram for ECCE-QM calculations** in the **Molecular orbitals** box of
+  **Edit > Preferences...** to hide it);
 - atomic charges: Mulliken always, and on request Loewdin, CHELPG and
   Merz-Kollman charges, which are ticked under **Theory Details** and listed
   under Charges in the Viewer next to the Mulliken charges. CHELPG and
   Merz-Kollman charges are fitted to the electrostatic potential and are
   less dependent on the basis set than Mulliken charges; the electrostatic
   potential surface uses the CHELPG charges when they were requested;
+- the density and its electrostatic potential, which the Viewer computes from
+  the orbitals on a grid (**Density (ESP)** in the MOs panel). Within about 0.5 Å of a
+  carbon or oxygen nucleus the grid does not resolve the 1s core density
+  exactly; the surfaces drawn (isovalue 0.002) lie far outside that region,
+  so the colours on them are not affected;
 - the dipole moment and, for open shells, the expectation value of S^2;
 - for Vibration and GeoVib, the frequencies, IR spectrum, normal modes,
   zero-point energy, thermal energy, enthalpy,

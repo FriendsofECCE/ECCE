@@ -174,18 +174,29 @@ def run(s, display, env, wrappers, png, url, name):
     dump = os.path.join(s.state, "nmode-%s.dump" % name)
     if os.path.exists(dump):
         os.unlink(dump)
-    lines = ["wait 20000", "quit"]
+    #  No exit after the dump: Copy all (#408) is read from the same run.
+    lines = ["wait 15000", "tablecopy Vibrational Frequencies", "quit"]
     text, _shots = bo.runScript(
         s, display, env, wrappers, ["-context", url], lines, png, name,
         {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies",
-         "ECCE_NMODE_TABLE_DUMP": dump, "ECCE_EXIT_AFTER_DUMP": "1",
-         "ECCE_NMODE_DETAIL_WIDTH": NARROW})
+         "ECCE_NMODE_TABLE_DUMP": dump, "ECCE_NMODE_DETAIL_WIDTH": NARROW})
     if not check(os.path.exists(dump) and os.path.getsize(dump) > 0,
                  "%s: the table dumped what it holds" % name):
         say(text[-2000:])
         return None
     check("segmentation" not in text.lower(), "%s: no crash in the Builder log" % name)
-    return readDump(dump)
+    d = readDump(dump)
+    copied = [l.split("BUILDER: tablecopy ", 1)[1] for l in text.splitlines()
+              if "BUILDER: tablecopy " in l]
+    rows = len({k[0] for k in d["cells"]}) if d else 0
+    check(len(copied) == rows + 1 and rows > 0,
+          "%s: Copy all gives the column labels and one line per row (%d for %d rows)"
+          % (name, len(copied), rows))
+    cell = [l for l in text.splitlines() if "BUILDER: tablecell " in l]
+    check(len(cell) == 1 and "editable=0" in cell[0] and "selected=''" not in cell[0],
+          "%s: a double-click on a cell shows its text read-only and selected (#408): %s"
+          % (name, cell[0] if cell else "none"))
+    return d
 
 
 def main():

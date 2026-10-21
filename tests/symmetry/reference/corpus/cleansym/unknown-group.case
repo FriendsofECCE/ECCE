@@ -1,0 +1,6 @@
+# exit status 3
+program cleansym
+threshold 0.01
+group D*H
+atoms
+O 0.000000 0.000000 0.100000

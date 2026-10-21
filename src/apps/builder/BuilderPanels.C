@@ -297,7 +297,7 @@ void Builder::applyGeometry(bool resetSizes)
       } else {
         pane.Left().Layer(2).Row(0);
       }
-      pane.PinButton(!detail);
+      pane.PinButton(true);
       if (resetSizes && !p_folded.count(pane.window)) {
         map<wxWindow*, int>::const_iterator base =
           p_baseProportion.find(pane.window);
@@ -904,6 +904,9 @@ void Builder::setDetail(wxWindow *win)
     unfocusPanel(p_detail);
   }
   p_detail = win;
+  wxAuiPaneInfo &pane = p_mgr.GetPane(win);
+  if (pane.IsOk() && pane.dock_proportion < detailProportion())
+    pane.dock_proportion = detailProportion();
   syncIndexSelection(win);
 }
 
@@ -933,6 +936,7 @@ void Builder::selectDetail(const string& name)
   if (pane.IsFloating() && pane.frame) {
     pane.frame->Raise();
   }
+  sizeIndexPane();
   updatePanes(true);
   focusShownPanel(pane.window);
   if (p_index) p_index->setSelected(name);
@@ -1094,7 +1098,19 @@ void Builder::sizeIndexPane()
   //  the list half the column (the open panel was squashed under it).
   //  All its rows when they fit; a long list stops at 40 % of the window
   //  and scrolls, so a panel with a table or plot keeps its room.
-  const int cap = std::max(150, GetClientSize().y * 2 / 5);
+  int cap = std::max(150, GetClientSize().y * 2 / 5);
+  //  List + detail: the open panel's opening height comes first; the list
+  //  gives way down to a few rows, then scrolls.
+  PropertyPanel *open = p_panelMode == PANELS_DETAIL
+      ? dynamic_cast<PropertyPanel*>(p_detail) : 0;
+  wxAuiPaneInfo &detail = open ? p_mgr.GetPane(p_detail) : wxAuiNullPaneInfo;
+  if (open && detail.IsOk() && detail.IsShown() && !detail.IsFloating() &&
+      !p_folded.count(p_detail)) {
+    const int room = pane.rect.height > 0 && detail.rect.height > 0
+        ? pane.rect.height + detail.rect.height : GetClientSize().y * 3 / 4;
+    cap = std::min(cap, std::max(p_index->preferredHeight(3),
+                                 room - open->openingHeight()));
+  }
   const int height = std::min(p_index->preferredHeight(1000), cap);
   p_indexSized = true;
   if (pane.min_size.y == height && pane.dock_proportion == 1) return;

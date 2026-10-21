@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+# IRC (#417): energy and reaction coordinate of every path point, from
+# "Summary of reaction path following".  The block lists energies relative to
+# the TS; the TS energy itself is in the line before it, so the stored
+# energies are absolute and the panel can show either.
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /IRC/i);
+
+my ($ts, $inTable, @e, @x);
+while (<STDIN>) {
+  if (/relative to the TS energy of\s+(-?\d+\.\d+)/) { $ts = $1; next; }
+  if (/RxCoord/) { $inTable = 1; next; }
+  next unless $inTable;
+  if (/^\s+\d+\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) { push(@e, $1); push(@x, $2); }
+}
+exit(0) unless (defined $ts && @e > 1);
+
+my $n = scalar(@e);
+print "key: IRCCOORD\nsize: \n$n\nvalues: \n", join("\n", @x),
+      "\nunits:\nsqrt(amu)*bohr\nEND\n";
+print "key: IRCENERGY\nsize: \n$n\nvalues: \n",
+      join("\n", map { sprintf("%.6f", $ts + $_) } @e), "\nunits:\nHartree\nEND\n";
+exit(0);

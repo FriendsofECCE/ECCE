@@ -1,0 +1,255 @@
+ Entering Gaussian System, Link 0=g16
+ Input=formaldehyde_tddft.gjf
+ Output=formaldehyde_tddft.log
+ Initial command:
+ /opt/gaussian/g16/l1.exe "/home/andy/tmp/ecce/examples-2026-10-21/Gau-1264662.inp" -scrdir="/home/andy/tmp/ecce/examples-2026-10-21/"
+ Entering Link 1 = /opt/gaussian/g16/l1.exe PID=   1264664.
+  
+ Copyright (c) 1988-2019, Gaussian, Inc.  All Rights Reserved.
+  
+ This is part of the Gaussian(R) 16 program.  It is based on
+ the Gaussian(R) 09 system (copyright 2009, Gaussian, Inc.),
+ the Gaussian(R) 03 system (copyright 2003, Gaussian, Inc.),
+ the Gaussian(R) 98 system (copyright 1998, Gaussian, Inc.),
+ the Gaussian(R) 94 system (copyright 1995, Gaussian, Inc.),
+ the Gaussian 92(TM) system (copyright 1992, Gaussian, Inc.),
+ the Gaussian 90(TM) system (copyright 1990, Gaussian, Inc.),
+ the Gaussian 88(TM) system (copyright 1988, Gaussian, Inc.),
+ the Gaussian 86(TM) system (copyright 1986, Carnegie Mellon
+ University), and the Gaussian 82(TM) system (copyright 1983,
+ Carnegie Mellon University). Gaussian is a federally registered
+ trademark of Gaussian, Inc.
+  
+ This software contains proprietary and confidential information,
+ including trade secrets, belonging to Gaussian, Inc.
+  
+ This software is provided under written license and may be
+ used, copied, transmitted, or stored only in accord with that
+ written license.
+  
+ The following legend is applicable only to US Government
+ contracts under FAR:
+  
+                    RESTRICTED RIGHTS LEGEND
+  
+ Use, reproduction and disclosure by the US Government is
+ subject to restrictions as set forth in subparagraphs (a)
+ and (c) of the Commercial Computer Software - Restricted
+ Rights clause in FAR 52.227-19.
+  
+ Gaussian, Inc.
+ 340 Quinnipiac St., Bldg. 40, Wallingford CT 06492
+  
+  
+ ---------------------------------------------------------------
+ Warning -- This program may not be used in any manner that
+ competes with the business of Gaussian, Inc. or will provide
+ assistance to any competitor of Gaussian, Inc.  The licensee
+ of this program is prohibited from giving any competitor of
+ Gaussian, Inc. access to this program.  By using this program,
+ the user acknowledges that Gaussian, Inc. is engaged in the
+ business of creating and licensing software in the field of
+ computational chemistry and represents and warrants to the
+ licensee that it is not a competitor of Gaussian, Inc. and that
+ it will not use this program in any manner prohibited above.
+ ---------------------------------------------------------------
+  
+
+ Cite this work as:
+ Gaussian 16, Revision C.01,
+ M. J. Frisch, G. W. Trucks, H. B. Schlegel, G. E. Scuseria, 
+ M. A. Robb, J. R. Cheeseman, G. Scalmani, V. Barone, 
+ G. A. Petersson, H. Nakatsuji, X. Li, M. Caricato, A. V. Marenich, 
+ J. Bloino, B. G. Janesko, R. Gomperts, B. Mennucci, H. P. Hratchian, 
+ J. V. Ortiz, A. F. Izmaylov, J. L. Sonnenberg, D. Williams-Young, 
+ F. Ding, F. Lipparini, F. Egidi, J. Goings, B. Peng, A. Petrone, 
+ T. Henderson, D. Ranasinghe, V. G. Zakrzewski, J. Gao, N. Rega, 
+ G. Zheng, W. Liang, M. Hada, M. Ehara, K. Toyota, R. Fukuda, 
+ J. Hasegawa, M. Ishida, T. Nakajima, Y. Honda, O. Kitao, H. Nakai, 
+ T. Vreven, K. Throssell, J. A. Montgomery, Jr., J. E. Peralta, 
+ F. Ogliaro, M. J. Bearpark, J. J. Heyd, E. N. Brothers, K. N. Kudin, 
+ V. N. Staroverov, T. A. Keith, R. Kobayashi, J. Normand, 
+ K. Raghavachari, A. P. Rendell, J. C. Burant, S. S. Iyengar, 
+ J. Tomasi, M. Cossi, J. M. Millam, M. Klene, C. Adamo, R. Cammi, 
+ J. W. Ochterski, R. L. Martin, K. Morokuma, O. Farkas, 
+ J. B. Foresman, and D. J. Fox, Gaussian, Inc., Wallingford CT, 2019.
+ 
+ ******************************************
+ Gaussian 16:  ES64L-G16RevC.01  3-Jul-2019
+                21-Oct-2026 
+ ******************************************
+ %nprocshared=4
+ Will use up to    4 processors via shared memory.
+ %mem=2GB
+ ----------------------------------------------
+ #p B3LYP/6-31+G(d) Opt TD(NStates=10) Pop=Full
+ ----------------------------------------------
+ 1/18=20,19=15,26=3,38=1/1,3;
+ 2/9=110,12=2,17=6,18=5,40=1/2;
+ 3/5=1,6=6,7=11,11=9,25=1,30=1,71=1,74=-5/1,2,3,8;
+ 4//1;
+ 5/5=2,38=5/2;
+ 8/6=1,10=2,108=10/1;
+ 9/15=2,41=10,42=1,70=2/14;
+ 10/5=4/2;
+ 6/7=3/1;
+ 7/12=6,13=5/1,2,3,16;
+ 1/18=20,19=15,26=3/3(2);
+ 2/9=110/2;
+ 99//99;
+ 2/9=110/2;
+ 3/5=1,6=6,7=11,11=9,25=1,30=1,71=1,74=-5/1,2,3,8;
+ 4/5=5,16=3,69=1/1;
+ 5/5=2,38=5/2;
+ 8/6=1,10=2,108=10/1;
+ 9/15=2,41=10,42=1,49=4,70=2/14;
+ 10/5=4/2;
+ 7/12=6,13=5/1,2,3,16;
+ 1/18=20,19=15,26=3/3(-8);
+ 2/9=110/2;
+ 6/7=3/1;
+ 99/9=10/99;
+ Leave Link    1 at Wed Oct 21 19:03:10 2026, MaxMem=   268435456 cpu:               0.2 elap:               0.1
+ (Enter /opt/gaussian/g16/l101.exe)
+ ----------------------------------------------------------------------
+ Formaldehyde TD-DFT, 10 singlet excited states at the optimised ground
+  state
+ ----------------------------------------------------------------------
+ Symbolic Z-matrix:
+ Charge =  0 Multiplicity = 1
+ C                     0.        0.       -0.5286 
+ O                     0.        0.        0.6774 
+ H                     0.        0.9353   -1.1129 
+ H                     0.       -0.9353   -1.1129 
+ 
+ ITRead=  0  0  0  0
+ MicOpt= -1 -1 -1 -1
+ NAtoms=      4 NQM=        4 NQMF=       0 NMMI=      0 NMMIF=      0
+                NMic=       0 NMicF=      0.
+                    Isotopes and Nuclear Properties:
+ (Nuclear quadrupole moments (NQMom) in fm**2, nuclear magnetic moments (NMagM)
+  in nuclear magnetons)
+
+  Atom         1           2           3           4
+ IAtWgt=          12          16           1           1
+ AtmWgt=  12.0000000  15.9949146   1.0078250   1.0078250
+         8        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+         9        -0.0640      0.0000     -0.0000      0.0640      0.0427
+        10        -0.0000     -0.1386     -0.0000      0.1386      0.0924
+
+ Excitation energies and oscillator strengths:
+ 
+ Excited State   1:      Singlet-A2     4.0036 eV  309.68 nm  f=0.0000  <S**2>=0.000
+       8 ->  9         0.70503
+ This state for optimization and/or second-order correction.
+ Total Energy, E(TD-HF/TD-DFT) =  -114.361650132    
+ Copying the excited state density for this state as the 1-particle RhoCI density.
+ 
+ Excited State   2:      Singlet-B2     6.9037 eV  179.59 nm  f=0.0301  <S**2>=0.000
+       8 -> 10         0.70285
+ 
+ Excited State   3:      Singlet-B2     7.6536 eV  161.99 nm  f=0.0271  <S**2>=0.000
+       8 -> 11         0.70233
+ 
+ Excited State   4:      Singlet-A1     7.8877 eV  157.19 nm  f=0.0495  <S**2>=0.000
+       8 -> 12         0.70549
+ 
+ Excited State   5:      Singlet-A2     8.3803 eV  147.95 nm  f=0.0000  <S**2>=0.000
+       8 -> 13         0.70488
+ 
+ Excited State   6:      Singlet-B1     9.0808 eV  136.53 nm  f=0.0009  <S**2>=0.000
+       6 ->  9         0.70413
+ 
+ Excited State   7:      Singlet-A1     9.5622 eV  129.66 nm  f=0.1525  <S**2>=0.000
+       7 ->  9         0.66596
+       8 -> 16        -0.18944
+ 
+ Excited State   8:      Singlet-A2    10.1956 eV  121.61 nm  f=0.0000  <S**2>=0.000
+       5 ->  9         0.70334
+ 
+ Excited State   9:      Singlet-B1    10.4146 eV  119.05 nm  f=0.0419  <S**2>=0.000
+       7 -> 10         0.70347
+ 
+ Excited State  10:      Singlet-B2    11.1694 eV  111.00 nm  f=0.1030  <S**2>=0.000
+       8 -> 14         0.67385
+       8 -> 15         0.20364
+ SavETr:  write IOETrn=   770 NScale= 10 NData=  16 NLR=1 NState=   10 LETran=     190.
+ The selected state is a singlet.
+ CISGrd: IGrad=2 NXY=2 DFT=T
+ CISAX will form     1 AO SS matrices at one time.
+ NMat=     1 NSing=     1 JSym2X=-1.
+ Leave Link  914 at Wed Oct 21 19:03:21 2026, MaxMem=   268435456 cpu:              18.2 elap:               6.3
+         6         0.0000     -0.0000     -0.2514      0.2514      0.1676
+         7        -0.0000      0.0000     -0.0000      0.0000      0.0000
+         8        -0.0721     -0.0000     -0.0000      0.0721      0.0480
+         9        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+        10        -0.0762     -0.0000     -0.0000      0.0762      0.0508
+
+ Excitation energies and oscillator strengths:
+ 
+ Excited State   1:      Singlet-A2     3.3832 eV  366.47 nm  f=0.0000  <S**2>=0.000
+       8 ->  9         0.70626
+ This state for optimization and/or second-order correction.
+ Total Energy, E(TD-HF/TD-DFT) =  -114.372435238    
+ Copying the excited state density for this state as the 1-particle RhoCI density.
+ 
+ Excited State   2:      Singlet-B2     6.9578 eV  178.19 nm  f=0.0127  <S**2>=0.000
+       8 -> 10         0.70021
+ 
+ Excited State   3:      Singlet-B2     7.6606 eV  161.85 nm  f=0.0296  <S**2>=0.000
+       8 -> 11         0.69958
+ 
+ Excited State   4:      Singlet-B1     7.8721 eV  157.50 nm  f=0.0008  <S**2>=0.000
+       6 ->  9         0.70514
+ 
+ Excited State   5:      Singlet-A1     7.9066 eV  156.81 nm  f=0.0315  <S**2>=0.000
+       8 -> 12         0.70436
+ 
+ Excited State   6:      Singlet-A1     8.2971 eV  149.43 nm  f=0.1738  <S**2>=0.000
+       7 ->  9         0.68006
+       8 -> 16        -0.14830
+ 
+ Excited State   7:      Singlet-A2     8.4586 eV  146.58 nm  f=0.0000  <S**2>=0.000
+       8 -> 13         0.70560
+ 
+ Excited State   8:      Singlet-B1     9.5805 eV  129.41 nm  f=0.0468  <S**2>=0.000
+       7 -> 10         0.70333
+ 
+ Excited State   9:      Singlet-A2     9.5907 eV  129.28 nm  f=0.0000  <S**2>=0.000
+       5 ->  9         0.70459
+ 
+ Excited State  10:      Singlet-B1    10.3687 eV  119.58 nm  f=0.0495  <S**2>=0.000
+       7 -> 11         0.70300
+ SavETr:  write IOETrn=   770 NScale= 10 NData=  16 NLR=1 NState=   10 LETran=     190.
+ The selected state is a singlet.
+ CISGrd: IGrad=2 NXY=2 DFT=T
+ CISAX will form     1 AO SS matrices at one time.
+ NMat=     1 NSing=     1 JSym2X=-1.
+ Leave Link  914 at Wed Oct 21 19:04:07 2026, MaxMem=   268435456 cpu:              15.9 elap:               6.4
+ (Enter /opt/gaussian/g16/l1002.exe)
+ Minotr:  Closed shell wavefunction.
+          Computing CIS/TDA/TD derivatives.
+          Using Z-Vector for PSCF gradient.
+ RMS     Force            0.000154     0.000300     YES
+ Maximum Displacement     0.000624     0.001800     YES
+ RMS     Displacement     0.000280     0.001200     YES
+ Predicted change in Energy=-1.485629D-07
+ Optimization completed.
+    -- Stationary point found.
+                           ----------------------------
+                           !   Optimized Parameters   !
+                           ! (Angstroms and Degrees)  !
+ --------------------------                            --------------------------
+ ! Name  Definition              Value          Derivative Info.                !
+ -0.5855852235\O,0.,0.,0.7207719506\H,0.,0.958104377,-1.1060933635\H,0.
+ ,-0.958104377,-1.1060933635\\Version=ES64L-G16RevC.01\State=1-A1\HF=-1
+ 14.4967653\RMSD=6.303e-09\RMSF=1.503e-04\Dipole=0.,0.,-0.6565173\PG=C0
+ 2V [C2(C1O1),SGV(H2)]\\@
+ The archive entry for this job was punched.
+
+
+ CHEMISTRY BEGAN BY SAYING IT WOULD CHANGE THE BASER
+ METALS INTO GOLD.  BY NOT DOING THAT IT HAS DONE MUCH
+ GREATER THINGS.  --  RALPH WALDO EMERSON
+ File lengths (MBytes):  RWF=     34 Int=      0 D2E=      0 Chk=      2 Scr=      1
+ Normal termination of Gaussian 16 at Wed Oct 21 19:04:12 2026.

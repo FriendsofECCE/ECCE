@@ -66,6 +66,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       //  the click's focus event AFTER that handoff, so taking viz focus
       //  here hid the surface the click had just built.
       virtual bool drawsInViewer() const { return false; }
+      virtual int openingHeight() const { return 460; }
 
       /**
        * A level was clicked: show that orbital in the 3-D viewer.

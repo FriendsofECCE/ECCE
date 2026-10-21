@@ -20,6 +20,7 @@
 #include "util/JobProgress.H"
 
 class wxButton;
+class wxStaticText;
 
 class ProgressBox : public wxPanel
 {
@@ -48,8 +49,15 @@ public:
            (p_finished && !p_finalEnergy.empty()); }
 
   // The plain final energy line of a finished calculation, shown after the
-  // outcome; set before set().
-  void setFinalEnergy(const std::string& line) { p_finalEnergy = line; }
+  // outcome, and its value and unit for Copy (#408); set before set().
+  void setFinalEnergy(const std::string& line, const std::string& value = "",
+                      const std::string& units = "")
+  { p_finalEnergy = line; p_finalValue = value; p_finalUnits = units; }
+  // What the right-click menu copies: 0 the final energy's value, 1 with
+  // its unit, 2 every line the box shows.
+  std::string copyText(int what) const;
+  // The final energy is shown as a selectable label (for tests).
+  bool energySelectable() const;
 
   bool collapsed() const { return p_collapsed; }
   // Folds or unfolds, remembers it for this user and lays out again.
@@ -70,6 +78,7 @@ private:
   void OnPaint(wxPaintEvent& event);
   void OnTimer(wxTimerEvent& event);
   void OnClick(wxMouseEvent& event);
+  void OnContextMenu(wxContextMenuEvent& event);
 
   // Draws (dc != 0) or only measures and places the buttons; returns the
   // size used.
@@ -87,10 +96,13 @@ private:
   double p_lastHeard;
   std::vector<std::string> p_check;
   std::string p_finalEnergy;
+  std::string p_finalValue;
+  std::string p_finalUnits;
   bool p_collapsed;
   wxTimer p_timer;
   int p_paints;
   wxButton *p_buttons[3];
+  wxStaticText *p_energyLabel;
   std::function<void(int)> p_action;
   std::function<void()> p_relayout;
 };

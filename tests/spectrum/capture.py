@@ -37,12 +37,23 @@ CLICK = {"g16-h2o-optfreq": 2, "g16-co-freq": 1,
 
 
 def overlay(builder, where):
-    """An $ECCE_HOME like /opt/ecce's whose builder is `builder`."""
+    """An $ECCE_HOME like /opt/ecce's whose builder is `builder`.  With
+    SPECTRUM_REPO_CLIENT=1 its data/client is this tree's, for a builder
+    newer than the installed one."""
     if os.path.exists(where):
         shutil.rmtree(where)
     os.makedirs(os.path.join(where, "bin"))
+    repoClient = os.environ.get("SPECTRUM_REPO_CLIENT")
     for entry in os.listdir("/opt/ecce"):
-        if entry != "bin":
+        if entry == "data" and repoClient:
+            os.makedirs(os.path.join(where, "data"))
+            for sub in os.listdir("/opt/ecce/data"):
+                if sub != "client":
+                    os.symlink(os.path.join("/opt/ecce/data", sub),
+                               os.path.join(where, "data", sub))
+            os.symlink(os.path.join(ROOT, "data", "client"),
+                       os.path.join(where, "data", "client"))
+        elif entry != "bin":
             os.symlink(os.path.join("/opt/ecce", entry),
                        os.path.join(where, entry))
     for entry in os.listdir("/opt/ecce/bin"):
@@ -112,7 +123,58 @@ def compare(case, sticks, click, axes):
     return problems
 
 
-def run(case, builder, png, timeout, window=False):
+def checkCompare(other, dump, csvPath):
+    """The second curve (#173): its sticks as the panel holds them and the
+    CSV it would export, against the numbers in the second output file."""
+    problems = []
+    reader, rel = [(r, rel) for n, r, rel in oracle.CASES if n == other][0]
+    want = reader(os.path.join(ROOT, "tests", "parsers", "fixtures", rel))
+    got = {}
+    for line in open(dump):
+        f = line.split()
+        if f[:1] == ["compare"]:
+            if f[2:3] != ["set"]:
+                problems.append("compare with %s: %s" % (other, line.strip()))
+        elif f[:1] == ["compare-stick"]:
+            got.setdefault(f[1], {})[int(f[2]) - 1] = (float(f[3]), float(f[4]))
+    for kind in ("ir", "raman"):
+        values = want[kind]
+        if not values or not any(values):
+            if got.get(kind):
+                problems.append("second %s drawn, output file has none" % kind)
+            continue
+        expect = [i for i, f in enumerate(want["freq"]) if abs(f) >= 10]
+        if sorted(got.get(kind, {})) != expect:
+            problems.append("second %s modes %s, expected %s"
+                            % (kind, sorted(got.get(kind, {})), expect))
+        for i in expect:
+            if i in got.get(kind, {}) and not (
+                    near(got[kind][i][0], want["freq"][i]) and
+                    near(got[kind][i][1], values[i])):
+                problems.append("second %s mode %d: %s, output file %s / %s"
+                                % (kind, i + 1, got[kind][i], want["freq"][i],
+                                   values[i]))
+    if not os.path.exists(csvPath):
+        return problems + ["no CSV written"]
+    text = open(csvPath).read()
+    lines = text.splitlines()
+    for need in ("# compared with: " + other, "# sticks of " + other):
+        if need not in text:
+            problems.append("CSV lacks '%s'" % need)
+    head = [l for l in lines if l.startswith("wavenumber_cm-1")]
+    if len(head) != 1 or not head[0].endswith("intensity_" + other) or \
+            head[0].count(",") != 2:
+        problems.append("curve header %s" % head)
+    else:
+        rows = lines[lines.index(head[0]) + 1:]
+        if not rows or any(len(r.split(",")) != 3 for r in rows if r):
+            problems.append("curve rows are not x,y1,y2")
+        elif not any(float(r.split(",")[2]) > 0 for r in rows if r):
+            problems.append("second curve column is all zero")
+    return problems
+
+
+def run(case, builder, png, timeout, window=False, other=None):
     import apps
     import fixture
     import isolate
@@ -129,6 +191,10 @@ def run(case, builder, png, timeout, window=False):
     calc = os.path.join(state, "calc-" + case)
     makecalc.make(case, calc)
     out = os.path.join(state, "spectrum-%s.dump" % case)
+    csvPath = os.path.join(state, "spectrum-%s.csv" % case)
+    if other:
+        calc2 = os.path.join(state, "calc-" + other)
+        makecalc.make(other, calc2)
 
     with xdisplay.Display() as display:
         log = []
@@ -147,7 +213,16 @@ def run(case, builder, png, timeout, window=False):
             restorePrefs()
             return ["fixture install failed: %s" % error]
 
+        if other:
+            url2, error = fixture.install(other, source_dir=calc2)
+            if error:
+                apps.stopServices(display)
+                restorePrefs()
+                return ["fixture install failed: %s" % error]
         env = display.env()
+        if other:
+            env["ECCE_SPECTRUM_COMPARE"] = other
+            env["ECCE_SPECTRUM_CSV"] = csvPath
         env["ECCE_OPEN_PANEL"] = "Vibrational Frequencies"
         env["ECCE_SPECTRUM_DUMP"] = out
         env["ECCE_SPECTRUM_CLICK"] = str(CLICK[case])
@@ -208,6 +283,8 @@ def run(case, builder, png, timeout, window=False):
         return ["no dump written; builder said:\n" + tail]
     sticks, click, axes = readDump(out)
     problems = compare(case, sticks, click, axes)
+    if other:
+        problems += checkCompare(other, out, csvPath)
     if png and os.path.exists(out + ".png"):
         shutil.copy(out + ".png", png[:-4] + "-canvas.png")
     print("  binary: %s" % os.path.realpath(builder))
@@ -227,6 +304,9 @@ def main():
     ap.add_argument("--screen", default=None,
                     help="Xvfb screen, e.g. 1280x720x24 (default 1280x1024)")
     ap.add_argument("--tag", default="live", help="PNG name prefix")
+    ap.add_argument("--compare", metavar="CASE",
+                    help="also draw this case's spectrum as a second curve "
+                         "(same folder) and check it and the CSV")
     args = ap.parse_args()
 
     if args.screen:
@@ -247,7 +327,8 @@ def main():
         print(case)
         png = (os.path.join(args.png, "%s-%s.png" % (args.tag, case))
                if args.png else None)
-        problems = run(case, builder, png, args.timeout, args.window)
+        problems = run(case, builder, png, args.timeout, args.window,
+                       args.compare)
         for p in problems:
             print("  FAIL  " + p)
         failed += bool(problems)

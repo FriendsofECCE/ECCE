@@ -64,6 +64,48 @@ def golden(key):
     return [float(v) for v in m.group(2).split()]
 
 
+ALLXYZ = os.path.join(REPO, "tests", "parsers", "fixtures", "orca",
+                      "h2o2_dihedral_scan.allxyz")
+
+
+def allxyzFrames():
+    """The 7 scan structures of the real ORCA .allxyz, read by regex."""
+    frames = []
+    for block in open(ALLXYZ).read().split(">"):
+        rows = re.findall(r"^\s*[A-Z][a-z]?\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)"
+                          r"\s+(-?\d+\.\d+)\s*$", block, re.M)
+        if rows:
+            frames.append([[float(v) for v in r] for r in rows])
+    return frames
+
+
+def tsvector(frames):
+    out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+           '<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" '
+           'name="SCANGEOM" rowLabel="Scan Point" rowLabels="%s" rows="%d" '
+           'units="Angstrom" vectorLabel="Coordinate" vectors="1">\n'
+           % (" ".join(str(i) for i in range(len(frames[0]))), len(frames[0]))]
+    for i, f in enumerate(frames):
+        out.append('  <step number="%d">%s</step>\n' % (
+            i + 1, "   ".join("%.6f" % v for row in f for v in row)))
+    out.append("</tsvectable>\n")
+    return "".join(out)
+
+
+def mvmCoords(path):
+    """Cartesian rows of the atom_list of a chemsys.mvm."""
+    text = open(path).read().split("atom_list:")[1].split("attr_list:")[0]
+    return [[float(v) for v in l.split()[1:4]] for l in text.strip().splitlines()]
+
+
+def metaValue(calc, key):
+    for l in open(os.path.join(calc, ".ecce-meta")).read().splitlines():
+        f = l.split("\t")
+        if len(f) >= 4 and f[1].endswith(":" + key):
+            return f[3]
+    return None
+
+
 def vector(name, values, units):
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
             '<vector name="%s" rowLabel="Scan Point" rowLabels="%s" rows="%d" '
@@ -126,11 +168,16 @@ def main():
             f.write(vector("SCANCOORD", coord, "Degree"))
         with open(os.path.join(props, "SCANENERGY"), "w") as f:
             f.write(vector("SCANENERGY", energy, "Hartree"))
+        frames = allxyzFrames()
+        assert len(frames) == 7 and all(len(f) == 4 for f in frames)
+        with open(os.path.join(props, "SCANGEOM"), "w") as f:
+            f.write(tsvector(frames))
 
         kj = os.path.join(s.state, "scan-kj.csv")
         kcal = os.path.join(s.state, "scan-kcal.csv")
         lines = ["wait 6000", "shot panel", "scancsv %s" % kj,
-                 "scancsv %s kcal" % kcal, "quit"]
+                 "scancsv %s kcal" % kcal, "scanclick 3", "scanclick 5",
+                 "scancalc 3", "quit"]
         text, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + calc + "/"],
             lines, png, "scanpanel",
@@ -159,6 +206,35 @@ def main():
                   "%s: relative energies are to the lowest point" % head[3])
         check(any(l.startswith("# calculation: ")
                   for l in open(kj).read().splitlines()), "calculation named")
+
+        # Point index 3 is frame 3 (0-based) of the structures.
+        clicks = dict((m[0], m) for m in re.findall(
+            r"BUILDER: scanclick (\d+) frame=(\S+) atoms: (\S+) (\S+) (\S+) "
+            r"(\S+) (\S+) (\S+)", text))
+        for idx in (3, 5):
+            got = clicks.get(str(idx))
+            check(got is not None and got[1] == str(idx),
+                  "click on scan point %d shows frame %d" % (idx, idx))
+            if got:
+                want = frames[idx][0] + frames[idx][1]
+                check(all(abs(float(a) - b) < 2e-5 for a, b in zip(got[2:], want)),
+                      "scan point %d: the viewer holds the ORCA structure" % idx)
+        new = os.path.join(project, "calc-h2o2-scan_point_4")
+        check("scancalc 3 url=" in text and os.path.isdir(new),
+              "scancalc 3 (the 4th point, 0-based index 3) created calc-h2o2-scan_point_4")
+        if os.path.isdir(new):
+            for key in ("application", "theory", "runtype", "basisSetDocument"):
+                check(metaValue(calc, key) is not None
+                      and metaValue(new, key) == metaValue(calc, key),
+                      "new calculation keeps %s (%s)" % (key, metaValue(new, key)))
+            check(metaValue(new, "state") == "Created",
+                  "new calculation is in the created state (%s)" % metaValue(new, "state"))
+            got = mvmCoords(os.path.join(new, "Parameters", "chemsys.mvm"))
+            check(len(got) == 4 and all(abs(a - b) < 1e-4 for r, f in zip(got, frames[3])
+                                         for a, b in zip(r, f)),
+                  "new calculation's coordinates equal SCANGEOM frame 3")
+            check(not os.path.exists(os.path.join(new, "Props", "SCANGEOM")),
+                  "the copy carries no results")
     finally:
         if display:
             display.__exit__(None, None, None)

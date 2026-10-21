@@ -57,7 +57,16 @@ def overlay(builder, where, descriptor):
             os.symlink(os.path.join("/opt/ecce/bin", entry),
                        os.path.join(where, "bin", entry))
     os.symlink(os.path.abspath(builder), os.path.join(where, "bin", "builder"))
-    if descriptor:
+    if descriptor and os.environ.get("PANELS_REPO_CLIENT"):
+        # a builder newer than the installed tree needs its data/client too
+        os.makedirs(os.path.join(where, "data"))
+        for entry in os.listdir("/opt/ecce/data"):
+            if entry != "client":
+                os.symlink(os.path.join("/opt/ecce/data", entry),
+                           os.path.join(where, "data", entry))
+        os.symlink(os.path.join(ROOT, "data", "client"),
+                   os.path.join(where, "data", "client"))
+    elif descriptor:
         client = os.path.join(where, "data", "client")
         config = os.path.join(client, "config")
         os.makedirs(config)

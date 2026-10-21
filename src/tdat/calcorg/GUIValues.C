@@ -289,7 +289,7 @@ static bool convertLegacyMemoryUnit(GUIValue& obj)
 //////////////////////////////////////////////////////////////////////////////
 int GUIValues::load(istream& inputsrc)
 {
-  static const int MAXLINE = 120;
+  static const int MAXLINE = 4096;  // calculation URLs (QST picks) exceed 120
   int ret = 0;
   char buf[MAXLINE];
   char bufdup[MAXLINE];

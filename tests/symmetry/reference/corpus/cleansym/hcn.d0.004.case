@@ -1,0 +1,8 @@
+# hcn in autosym's frame (C4V), distorted 0.004
+program cleansym
+threshold 0.01
+group C4V
+atoms
+H 0.001409 -0.003561 -1.621046
+C -0.003022 0.002992 -0.560541
+N 0.002079 0.003135 0.598161

@@ -1,0 +1,10 @@
+# ccl4 full molecule in autosym's frame, group TD
+program getfrag
+threshold 0.01
+group TD
+atoms
+C 0.000000 0.000000 0.000000
+Cl 1.020000 1.020000 1.020000
+Cl -1.020000 -1.020000 1.020000
+Cl 1.020000 -1.020000 -1.020000
+Cl -1.020000 1.020000 -1.020000

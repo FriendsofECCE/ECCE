@@ -70,6 +70,7 @@
 #include "wxgui/WxFeedback.H"
 
 #include "CalcEd.H"
+#include "QstStructures.H"
 #include "VerifyReportDialog.H"
 #include "PartialCharge.H"
 
@@ -1128,8 +1129,12 @@ void CalcEd::OnMenuCalcedRegenInputClick( wxCommandEvent& event )
   }
 
   if (generateInput(false)) {
-    if (p_inputGenWarnings.empty())
-      p_feedback->setMessage("Input file regenerated.", WxFeedback::INFO);
+    if (p_inputGenWarnings.empty()) {
+      p_feedback->setMessage("Input file regenerated." +
+                             (p_qstStatus.empty() ? string() : " " + p_qstStatus),
+                             WxFeedback::INFO);
+      setMatchTooltip();
+    }
     else
       p_feedback->setMessage("Input file regenerated with warnings. "
                              "See Verify.", WxFeedback::WARNING);
@@ -2596,12 +2601,25 @@ void CalcEd::populateRuntypes()
     TTheory theory = getTheory();
     vector<TRunType> *runTypes = p_code->runTypes(&theory);
     vector<TRunType>::iterator it;
+    //  QST and NEB-TS are being redesigned (#419): offered only with
+    //  ECCE_EXPERIMENTAL_TS set, or when the calculation already has one
+    //  (an imported job), so its run type still shows.
+    const char *ts = getenv("ECCE_EXPERIMENTAL_TS");
+    const bool offerTS = (ts && *ts && strcmp(ts, "0") != 0);
+    string current;
+    if (p_iCalc) current = p_iCalc->runtype().name();
     for (it = runTypes->begin(); it != runTypes->end(); it++) {
+      const bool tsRun = it->name().compare(0, 22, "Transition State (QST)") == 0
+                      || it->name().compare(0, 25, "Transition State (NEB-TS)") == 0;
+      if (tsRun && !offerTS && it->name() != current)
+        continue;
       if (p_frag && p_frag->numAtoms() > 1)
         choice->Append(it->name(), new ewxBoolClientData(it->noSpherical()));
       else if (it->name() != "Geometry"
             && it->name() != "Vibration"
-            && it->name() != "GeoVib")
+            && it->name() != "GeoVib"
+            && it->name().compare(0, 22, "Transition State (QST)") != 0
+            && it->name().compare(0, 25, "Transition State (NEB-TS)") != 0)
         choice->Append(it->name(), new ewxBoolClientData(it->noSpherical()));
     }
     delete runTypes;
@@ -4087,9 +4105,12 @@ void CalcEd::doSave()
     //  Following it straight up with "Calculation saved" would bury
     //  that line and imply the deck is fine when it is not.
     if (!p_inputGenFailed) {
-      if (p_inputGenWarnings.empty())
+      if (p_inputGenWarnings.empty()) {
         p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
-                               ".", WxFeedback::INFO);
+                               "." + (p_qstStatus.empty() ? string()
+                                      : " " + p_qstStatus), WxFeedback::INFO);
+        setMatchTooltip();
+      }
       else
         p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
                                ". Input file generated with warnings. "
@@ -4559,6 +4580,13 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     wxRect r = GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
+    // The dialog cannot see the project: hand the Gaussian 16 dialog the
+    // calculations it may pick for Opt=QST2/QST3.
+    if (cmd.find("ged16runtype") != string::npos ||
+        cmd.find("orcaruntype") != string::npos) {
+      const string list = qstWriteCandidateFile(qstCandidates(p_iCalc));
+      wxSetEnv("ECCE_QST_CANDIDATES", list);
+    }
     if (!launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke runtype details dialog",
                              WxFeedback::ERROR);

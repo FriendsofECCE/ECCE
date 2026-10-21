@@ -35,6 +35,28 @@ CASES = [
     # -----------------------------------------------------------------
     # Gaussian 16
     # -----------------------------------------------------------------
+    # #383: Opt+TD, 10 singlets.  The fixture keeps the first block and the
+    # last (converged geometry); the last is what is stored.  Values are the
+    # "Excited State" lines of that last block, which G16 itself prints.
+    dict(
+        name='g16-h2co-tddft',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2co_tddft.log',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no Orbital symmetries block in '
+                                         'this fixture'},
+        parse_args=('.', 'GeoVib', 'DFT', 'B3LYP', '0'),
+        expect={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(keys={
+                'EXCIENERGY': {'values': '3.3832 6.9578 7.6606 7.8721 '
+                               '7.9066 8.2971 8.4586 9.5805 9.5907 10.3687',
+                               'units': 'eV'},
+                'EXCIOSC': {'values': '0.0000 0.0127 0.0296 0.0008 0.0315 '
+                            '0.1738 0.0000 0.0468 0.0000 0.0495'},
+                'EXCISYM': {'values_contain': 'Singlet-A2 Singlet-B2'},
+                'EXCITRANS': {'values_contain': '8>9:'},
+            }),
+        },
+    ),
     dict(
         name='g16-h2o-optfreq',
         desc='gaussian-16.desc',
@@ -92,6 +114,33 @@ CASES = [
                                '-148.76499 -148.76455 -148.76161 -148.75557',
                                'units': 'Hartree'},
             }),
+        },
+    ),
+    dict(
+        name='g16-hcn-irc',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/hcn_irc.log',
+        # HF/3-21G IRC from the HCN/HNC TS, both directions, 8 points each
+        # (#417).  Values are the "Summary of reaction path following" rows
+        # (relative energies added to the printed TS energy -92.246043);
+        # 16 "CURRENT STRUCTURE" blocks give the structures.
+        silent_ok={'EGRAD': 'gated on runtype; IRC is not a Geo/Grad run',
+                   'DELTAE': 'gated on runtype', 'RMSDP': 'gated on runtype',
+                   'ESCF1][ESCFVEC': 'gated on runtype'},
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'IRCCOORD][IRCENERGY': dict(keys={
+                'IRCCOORD': {'values': '-0.86757 -0.75913 -0.65068 -0.54224 '
+                             '-0.43379 -0.32535 -0.21690 -0.10847 0.00000 '
+                             '0.10847 0.21690 0.32533 0.43377 0.54221 '
+                             '0.65065 0.75910 0.86754'},
+                'IRCENERGY': {'values': '-92.261743 -92.258593 -92.255673 '
+                              '-92.253023 -92.250693 -92.248763 -92.247293 '
+                              '-92.246363 -92.246043 -92.246383 -92.247403 '
+                              '-92.249123 -92.251513 -92.254543 -92.258163 '
+                              '-92.262293 -92.266863', 'units': 'Hartree'},
+            }),
+            'IRCGEOM': dict(min_blocks=16, keys={'IRCGEOM': {}}),
         },
     ),
     dict(
@@ -387,6 +436,69 @@ CASES = [
         expect={
             'GEOMTRACE': dict(min_blocks=2, keys={'GEOMTRACE': {
                 'size': '1 5 3'}}),
+        },
+    ),
+    # #383: TD-DFT (TDA) singlets.  Energies and f are the rows of ORCA's
+    # "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS" table
+    # (eV column, fosc column); orbital numbers are the printed ones plus 1.
+    dict(
+        name='orca-h2co-tddft',
+        desc='orca.desc',
+        fixture='orca/h2co_tddft.out',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        expect={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(keys={
+                'EXCIENERGY': {'values': '4.018493 8.255707 9.154494 '
+                               '9.697642 10.280808 11.085267 11.610178 '
+                               '11.620493 13.143637 13.187152', 'units': 'eV'},
+                'EXCIOSC': {'values': '0.000000000 0.152342124 0.002342139 '
+                            '0.004444079 0.000000000 0.012484217 '
+                            '0.002710603 0.538095669 0.000000000 '
+                            '0.131140061'},
+                'EXCISYM': {'values_contain': 'Singlet Singlet'},
+                'EXCITRANS': {'values_contain': '8a>9a:0.99901186'},
+            }),
+        },
+    ),
+    dict(
+        name='orca-hcn-irc',
+        desc='orca.desc',
+        fixture='orca/hcn_irc.out',
+        # OptTS then IRC (10 iterations per direction, #417).  Energies are
+        # the "IRC PATH SUMMARY" rows; the TS is row 11 of 21.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'IRCCOORD][IRCENERGY': dict(keys={
+                'IRCCOORD': {'values': '-10 -9 -8 -7 -6 -5 -4 -3 -2 -1 0 '
+                             '1 2 3 4 5 6 7 8 9 10'},
+                'IRCENERGY': {'values': '-92.343482 -92.335119 -92.324933 '
+                              '-92.313264 -92.300378 -92.287038 -92.274821 '
+                              '-92.262659 -92.254380 -92.248100 -92.246043 '
+                              '-92.247913 -92.253878 -92.256148 -92.259286 '
+                              '-92.263157 -92.266891 -92.271134 -92.275319 '
+                              '-92.279805 -92.284290', 'units': 'Hartree'},
+            }),
+        },
+    ),
+    dict(
+        name='orca-h2o2-scan',
+        desc='orca.desc',
+        fixture='orca/h2o2_dihedral_scan.out',
+        # HF/3-21G, Scan D 2 0 1 3 = 141.11993, 321.11993, 7 (#393); the
+        # optimisation steps in the middle of the output are cut out.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={
+            'SCANCOORD][SCANENERGY': dict(keys={
+                'SCANCOORD': {'values': '141.11993 171.11993 201.11993 '
+                              '231.11993 261.11993 291.11993 321.11993'},
+                'SCANENERGY': {'values': '-149.94558597 -149.94581384 '
+                               '-149.94577698 -149.94526014 -149.94312807 '
+                               '-149.93829441 -149.93180233',
+                               'units': 'Hartree'},
+            }),
         },
     ),
     dict(
@@ -2387,6 +2499,33 @@ CASES = [
 # and silently drops -- reported live from a real NH3 optimisation import.
 # The fixture is that real fort.7, copied in verbatim.
 MOFILE_CASES = [
+    # G16 relaxed scan structures (#410): the whole log, one frame per
+    # "Optimization completed" (7 scan points).
+    dict(
+        name='g16-h2o2-scan-scangeom',
+        script='gaussian-16.scangeom',
+        fixture='gaussian-16/h2o2_dihedral_scan.log',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={'SCANGEOM': {'size': '1 4 3', 'columnlabels': 'X Y Z'}},
+    ),
+    # ORCA relaxed scan structures (#410): real ORCA 6.1.1 .allxyz of the
+    # h2o2 dihedral scan (7 points); the last frame is point 7.
+    dict(
+        name='orca-h2o2-scan-scangeom',
+        script='orca.scangeom',
+        fixture='orca/h2o2_dihedral_scan.allxyz',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={'SCANGEOM': {'size': '1 4 3', 'columnlabels': 'X Y Z'}},
+    ),
+    # The IRC structures of the real ORCA HCN run (#417), a File= entry:
+    # 21 frames, path order; this is the last (point +10).
+    dict(
+        name='orca-hcn-irc-ircgeom',
+        script='orca.ircgeom',
+        fixture='orca/hcn_irc_IRC_Full_trj.xyz',
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={'IRCGEOM': {'size': '1 3 3', 'columnlabels': 'X Y Z'}},
+    ),
     dict(
         name='g16-nh3-opt-nopopfull-mofile',
         script='gaussian-16.mo',

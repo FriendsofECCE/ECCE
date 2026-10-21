@@ -1,0 +1,8 @@
+# h2o full molecule in autosym's frame, group C2V
+program getfrag
+threshold 0.01
+group C2V
+atoms
+O -0.000000 -0.000000 -0.065638
+H -0.757200 0.000000 0.520862
+H 0.757200 -0.000000 0.520862

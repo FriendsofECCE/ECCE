@@ -1,0 +1,11 @@
+# twisted-ethene full molecule in autosym's frame, group D2
+program getfrag
+threshold 0.01
+group D2
+atoms
+C -0.000000 -0.670000 0.000000
+C 0.000000 0.670000 0.000000
+H 0.930000 -1.240000 0.160000
+H -0.930000 1.240000 0.160000
+H -0.930000 -1.240000 -0.160000
+H 0.930000 1.240000 -0.160000

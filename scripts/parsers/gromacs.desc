@@ -92,6 +92,14 @@ File=ecce-parse-traj.txt
 Begin=ecce-parse-traj.txt
 [END]
 
+# The pull code's coordinate and force (gensub joins pullx.xvg and pullf.xvg
+# into ecce-parse-pull.txt when the run pulled).
+[PULLTIME][PULLDIST][PULLFORCE]
+Script=gromacs.pull
+File=ecce-parse-pull.txt
+Begin=ecce-parse-pull.txt
+[END]
+
 # Job progress for the Organizer's Progress box (#284).  No Script: these
 # only feed the monitor's live snapshot.  mdrun echoes the integrator and
 # nsteps in its log; the stage is named by the integrator (md, steep, ...)

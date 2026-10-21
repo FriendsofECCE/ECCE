@@ -1,0 +1,9 @@
+# p4 in autosym's frame (TD), distorted 0.004
+program cleansym
+threshold 0.01
+group TD
+atoms
+P 0.781283 0.781449 0.778405
+P -0.783777 -0.780901 0.777554
+P 0.776394 -0.781849 -0.778791
+P -0.780901 0.783932 -0.779799

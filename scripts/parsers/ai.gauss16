@@ -1133,6 +1133,11 @@ sub DFTOptions {
 #      Returns the runtype (a.k.a. Task)
 #       
 ############################################################################## 
+sub isQstRunType {
+  my ($runtype) = @_;
+  return defined($runtype) && $runtype =~ /^Transition State \(QST\)/;
+}
+
 sub RunType {
   local($runtype) = @_;
   local($result);
@@ -1154,6 +1159,10 @@ sub RunType {
     $result = "AIM(BondOrders) ";
   } elsif ($runtype eq "GeoVib") {
     $result = "Opt".&GeomOptions()." Freq".&VibOptions();
+  } elsif (&isQstRunType($runtype)) {
+    # Opt=QST2/QST3 is the whole task; the frequency variant adds Freq.
+    $result = "Opt".&GeomOptions();
+    $result .= " Freq".&VibOptions() if ($runtype =~ /Frequencies$/);
   } elsif ($runtype eq "IRC") {
     $result = "IRC=(calcfc)";
   } else {
@@ -1366,13 +1375,17 @@ sub GeomOptions {
   
   $result = "=(";
   $result .= &ZcoordConstraints();
-  $result .= &StationaryPointType($AbiDict{"SearchFor"});
+  $result .= &StationaryPointType(&isQstRunType($AbiDict{"RunType"})
+                                  ? "Transition State (QST)"
+                                  : $AbiDict{"SearchFor"});
   $result .= &ConvergenceToleranceGeom
              ($AbiDict{"ES.Runtype.GeomOpt.ConvergenceGradient"});
   $result .= 
     &FlaggedConvergenceIterations(
     $AbiDict{"ES.Runtype.GeomOpt.MaximumStepsValue"});
-  $result .= &ComputeHessian($AbiDict{"InitialHessian"});
+  if (!&isQstRunType($AbiDict{"RunType"})) {
+    $result .= &ComputeHessian($AbiDict{"InitialHessian"});
+  }
 
   if ($AbiDict{"ES.Theory.UseCartesian"}) {
     $result .= "Cartesian"; 
@@ -1482,7 +1495,8 @@ sub VibOptions {
 ##############################################################################
 sub verifyVibOptions {
   my $runtype = $AbiDict{"RunType"};
-  return unless ($runtype eq "Vibration" || $runtype eq "GeoVib");
+  return unless ($runtype eq "Vibration" || $runtype eq "GeoVib" ||
+                 $runtype eq "Transition State (QST) + Frequencies");
 
   if ($AbiDict{"ES.Runtype.Vibration.ComputeRaman"} &&
       $AbiDict{"ES.Runtype.Vibration.Method"} eq "Numerical 2nd Derivative") {
@@ -1593,8 +1607,60 @@ sub StationaryPointType {
   local($result) = "";
   if ($statPtType eq "Transition State") {
     $result = "TS noeigen calcfc ";
+  } elsif ($statPtType eq "Transition State (QST)") {
+    # QST2 reads reactant+product, QST3 adds the TS guess; the structures
+    # follow the geometry (see qstStructures).
+    $result = (&qstStructures() == 3) ? "QST3 " : "QST2 ";
   }
   return $result;
+}
+
+# The structures CalcEd wrote next to the .frag, already in the order
+# Gaussian wants and mapped onto this calculation's atom order:
+# <name>.qst1.frag reactant, .qst2.frag product, .qst3.frag TS guess (QST3
+# only).  Returns how many there are (2 or 3).
+sub qstStructures {
+  @qstBlocks = ();
+  if (!&isQstRunType($AbiDict{"RunType"})) { return 0; }
+  for (my $k = 1; $k <= 3; $k++) {
+    my $file = "$opt_n.qst$k.frag";
+    last if (! -r $file);
+    open(QSTF, $file) || die "ai.gauss16 error: cannot read $file\n";
+    my %b = (tags => [], xyz => [], title => "", n => 0);
+    <QSTF>;
+    while (<QSTF>) {
+      if (/^title:\s*(\S+)/) { $b{title} = $1; }
+      elsif (/^num_atoms:\s*(\d+)/) { $b{n} = $1; }
+      elsif (/^atom_list:/) {
+        for (my $i = 0; $i < $b{n}; $i++) {
+          my ($t, $x, $y, $z) = split(' ', scalar(<QSTF>));
+          push(@{$b{tags}}, $t);
+          push(@{$b{xyz}}, "$x     $y     $z");
+        }
+      }
+    }
+    close(QSTF);
+    push(@qstBlocks, \%b);
+  }
+  if (@qstBlocks < 2) {
+    die "ai.gauss16 error: Transition State (QST) needs a reactant and a " .
+        "product structure: pick both calculations in the Runtype Details.\n";
+  }
+  for (my $k = 0; $k < @qstBlocks; $k++) {
+    my $b = $qstBlocks[$k];
+    if ($b->{n} != $chemsys_atoms) {
+      die "ai.gauss16 error: QST structures must have the same atoms: " .
+          "this calculation has $chemsys_atoms atoms, $b->{title} has $b->{n}.\n";
+    }
+    for (my $i = 0; $i < $b->{n}; $i++) {
+      if ($b->{tags}[$i] ne $tags{$i}) {
+        die "ai.gauss16 error: QST structures must list the atoms in the " .
+            "same order: atom " . ($i+1) . " is $tags{$i} here and " .
+            "$b->{tags}[$i] in $b->{title}.\n";
+      }
+    }
+  }
+  return scalar(@qstBlocks);
 }    
 
 ##############################################################################
@@ -1606,13 +1672,31 @@ sub StationaryPointType {
 sub chemsys {
   local($symbol);
   ($chemsys_atoms != 0) || die "ai.gauss09 error:  Fragment has no atoms!\n";
+  my $qst = &qstStructures();
   for ($index = 0; $index < $chemsys_atoms; $index++) {
     $symbol = $tags{$index};
+    if ($qst) {
+      print(NEWFILE " $symbol     $qstBlocks[0]->{xyz}[$index]\n");
+      next;
+    }
     print(NEWFILE " $symbol     $coords{$index,0}     ");
     print(NEWFILE "$coords{$index,1}     $coords{$index,2}\n");
   }
+  # Opt=QST2/QST3: each further structure is its own title, charge and
+  # multiplicity, geometry block, separated by blank lines.
+  if ($qst) {
+    for (my $k = 1; $k < @qstBlocks; $k++) {
+      my $b = $qstBlocks[$k];
+      my $role = ($k == 1) ? "Product" : "TS_guess";
+      print(NEWFILE "\n${role}_$b->{title}\n\n" .
+                    &ChargeAndMultiplicity() . "\n");
+      for (my $i = 0; $i < $b->{n}; $i++) {
+        print(NEWFILE " $b->{tags}[$i]     $b->{xyz}[$i]\n");
+      }
+    }
+  }
   $runtype = $AbiDict{"RunType"};
-  if (@geo_zcoords > 0 && $runtype =~ /geo/i) {
+  if (@geo_zcoords > 0 && $runtype =~ /geo/i && !$qst) {
     print(NEWFILE "\n");
     for ($i = 0; $i<@geo_zcoords; $i++) {
       print(NEWFILE "$geo_zcoords[$i]");

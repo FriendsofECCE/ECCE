@@ -131,10 +131,10 @@ sub parseKeywordLine {
   # left blank). NMR is now handled properly (-> Magnetic); this list
   # is deliberately short (just what's been tested) and not exhaustive
   # of every ORCA runtype keyword.
-  my %unsupportedRuntypeTokens = map { $_ => 1 } ("IRC","NEB","SCANTS");
+  my %unsupportedRuntypeTokens = map { $_ => 1 } ("NEB","SCANTS");
 
   my ($sawHF, $sawUHF, $sawRKS, $sawUKS,
-      $sawOpt, $sawFreq, $sawEnGrad, $sawNMR, $sawUnsupportedRuntype);
+      $sawOpt, $sawFreq, $sawEnGrad, $sawNMR, $sawIRC, $sawNebTS, $sawUnsupportedRuntype);
   foreach my $tok (@tokens) {
     my $ucTok = uc($tok);
     # RHF as well as HF: ai.orca only ever emits bare "HF" for a
@@ -153,6 +153,8 @@ sub parseKeywordLine {
     elsif ($ucTok =~ /^(NUM|AN)?FREQ$/) { $sawFreq = 1; }
     elsif ($ucTok eq "ENGRAD") { $sawEnGrad = 1; }
     elsif ($ucTok eq "NMR") { $sawNMR = 1; }
+    elsif ($ucTok eq "IRC") { $sawIRC = 1; }
+    elsif ($ucTok eq "NEB-TS") { $sawNebTS = 1; }
     elsif (exists($unsupportedRuntypeTokens{$ucTok})) { $sawUnsupportedRuntype = 1; }
     # Any other token is either a basis name or an auxiliary/
     # performance keyword (RIJCOSX, def2/J, TightSCF, ...) that ORCA
@@ -185,11 +187,16 @@ sub parseKeywordLine {
     $restrictionFromMult = 1;
   }
 
-  if ($sawOpt && $sawFreq) { $runType = "GeoVib"; }
+  if ($sawNebTS) {
+    $runType = $sawFreq ? "Transition State (NEB-TS) + Frequencies"
+                        : "Transition State (NEB-TS)";
+  }
+  elsif ($sawOpt && $sawFreq) { $runType = "GeoVib"; }
   elsif ($sawOpt) { $runType = "Geometry"; }
   elsif ($sawFreq) { $runType = "Vibration"; }
   elsif ($sawEnGrad) { $runType = "Gradient"; }
   elsif ($sawNMR) { $runType = "Magnetic"; }
+  elsif ($sawIRC) { $runType = "IRC"; }
   elsif ($sawUnsupportedRuntype) { $runType = undef; }
   else { $runType = "Energy"; }
 }

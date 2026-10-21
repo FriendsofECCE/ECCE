@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of c5h5, group D5H
+program genmol
+threshold 0.01
+group D5H
+atoms
+C 0.705342 -0.970820 -0.000000
+H 1.293130 -1.779840 -0.000000

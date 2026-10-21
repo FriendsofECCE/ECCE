@@ -297,7 +297,13 @@ sub SymmetryToken {
   my $shared = $AbiDict{"ES.Theory.UseSymmetry"};
   my $mine   = $AbiDict{"ES.Theory.SCF.UseSymmetry"};
   my $wanted = defined($shared) ? $shared : $mine;
-  if (defined($wanted) && $wanted eq "1") {
+  #  ORCA 6.1.1 NEB-TS aborts in pointgroup.cpp with UseSym (it cannot
+  #  read the per-image symmetry file), and a relaxed scan aborts when the
+  #  point group changes along it (H2O2 through 180 deg: "Occurrence of
+  #  irrep Bg is not an integer"), so both run without it.
+  my $runtype = $AbiDict{"RunType"};
+  my $scan = (@orcaScans && $runtype =~ /Geo/i);
+  if (defined($wanted) && $wanted eq "1" && !&IsNebTS($runtype) && !$scan) {
     $result = "UseSym";
   }
   return $result;
@@ -534,7 +540,7 @@ sub GeomConvergenceToken {
 # of the analytic Hessian path.
 sub FreqMethodToken {
   my $runtype = $AbiDict{"RunType"};
-  return "" if ($runtype !~ /Vib/i);
+  return "" if (!&HasFrequencies($runtype));
   return ($AbiDict{"ES.Runtype.Vibration.Method"} eq "Numerical") ?
     "NumFreq" : "";
 }
@@ -568,7 +574,7 @@ sub ORCABlocks {
   # cannot do.
   my $elprop = "  Quadrupole true\n";
   if ($AbiDict{"ES.Runtype.Vibration.UseRaman"} eq "1" &&
-      $AbiDict{"RunType"} =~ /Vib/i) {
+      &HasFrequencies($AbiDict{"RunType"})) {
     $elprop .= "  Polar 1\n";
   }
   $result .= "%elprop\n" . $elprop . "end\n";
@@ -626,7 +632,20 @@ sub ORCABlocks {
     $geom .= "  MaxIter $maxsteps\n" if ($maxsteps ne "");
     $geom .= " Constraints\n" . join("", @orcaConstraints) . " end\n"
       if (@orcaConstraints);
+    $geom .= join("", @orcaScans);
     $result .= "%geom\n" . $geom . "end\n" if ($geom ne "");
+  }
+  $result .= &NebBlock() if (&IsNebTS($runtype));
+  if ($runtype eq "IRC") {
+    # ORCA has no ECCE-side Hessian file to read back, so the initial
+    # Hessian is always computed here (calc_anfreq unless asked numerical).
+    my $maxsteps = $AbiDict{"ES.Runtype.IRC.MaximumStepsValue"};
+    my $dir = lc($AbiDict{"ES.Runtype.IRC.Direction"});
+    $dir = "both" if ($dir !~ /^(both|forward|backward)$/);
+    my $hess = ($AbiDict{"ES.Runtype.IRC.InitHess"} eq "Numerical") ?
+               "calc_numfreq" : "calc_anfreq";
+    $maxsteps = 20 if ($maxsteps eq "");
+    $result .= "%irc\n  MaxIter $maxsteps\n  InitHess $hess\n  Direction $dir\nend\n";
   }
   $_ = $result;
   return $result;
@@ -730,6 +749,32 @@ sub DFTXCFun {
   return $map{$xcFun} || $xcFun;
 }
 
+# NEB-TS (#419): reactant is this calculation, the product (and an optional
+# TS guess) are .xyz files CalcEd wrote next to the generator files; they
+# are staged to the run directory as auxiliary input files.
+sub IsNebTS {
+  my ($runtype) = @_;
+  return ($runtype =~ /^Transition State \(NEB-TS\)/) ? 1 : 0;
+}
+
+sub HasFrequencies {
+  my ($runtype) = @_;
+  return ($runtype =~ /Vib/i ||
+          $runtype eq "Transition State (NEB-TS) + Frequencies") ? 1 : 0;
+}
+
+sub NebBlock {
+  if (! -r "neb_product.xyz") {
+    die "ai.orca error: Transition State (NEB-TS) needs a product structure: " .
+        "pick the product calculation in the Runtype Details.\n";
+  }
+  my $images = $AbiDict{"ES.Runtype.NEB.Images"};
+  $images = 8 if ($images eq "");
+  my $neb = "%neb\n  NEB_End_XYZFile \"neb_product.xyz\"\n";
+  $neb .= "  NEB_TS_XYZFile \"neb_guess.xyz\"\n" if (-r "neb_guess.xyz");
+  return $neb . "  Nimages $images\nend\n";
+}
+
 sub RunType {
   my ($runtype) = @_;
   my $result;
@@ -746,8 +791,14 @@ sub RunType {
     $result = "Opt Freq";
   } elsif ($runtype eq "Magnetic") {
     $result = "NMR";
+  } elsif ($runtype eq "IRC") {
+    $result = "IRC";
+  } elsif ($runtype eq "Transition State (NEB-TS)") {
+    $result = "NEB-TS";
+  } elsif ($runtype eq "Transition State (NEB-TS) + Frequencies") {
+    $result = "NEB-TS Freq";
   } else {
-    die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic only)\n";
+    die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic/IRC/NEB-TS only)\n";
   }
   return $result;
 }
@@ -863,19 +914,28 @@ sub readChemSys {
 # atom (DA) is a numbered centre, so the indices are used unchanged.
 sub readCnstrntFile {
   @orcaConstraints = ();
+  @orcaScans = ();
   return if ($CnstrntFILE eq "" || !open(GEOCNST, $CnstrntFILE));
   while (<GEOCNST>) {
     next unless (/<Constraint\s/i);
     my ($type, $value, @group) = ("", "");
+    my ($scanSteps, $scanStep) = (0, 0);
     $type = lc $1 if (/type\s*=\s*"\s*(\S*)\s*"/i);
     while (<GEOCNST>) {
       last if (/<\/Constraint>/i);
       $value = $1 if (/<Value>\s*(\S*)\s*<\/Value>/i);
       @group = split(' ', $1) if (/<Group>(.*)<\/Group>/i);
+      ($scanSteps, $scanStep) = ($1, $2)
+        if (/<Scan\s+steps="(\d+)"\s+step="([^"]+)"/i);
     }
     my $letter = $type eq "bond" ? "B" : $type eq "angle" ? "A" :
                  $type eq "torsion" ? "D" : "";
-    if ($letter ne "") {
+    if ($letter ne "" && $scanSteps > 0) {
+      # Same points as Gaussian's 'S n step': n steps, so n+1 points.
+      my $end = $value + $scanSteps * $scanStep;
+      push(@orcaScans, sprintf("  Scan %s %s = %s, %s, %d end\n",
+                               $letter, "@group", $value, $end, $scanSteps + 1));
+    } elsif ($letter ne "") {
       push(@orcaConstraints, "  { $letter @group $value C }\n");
     } elsif ($type eq "fixed") {
       push(@orcaConstraints, map { "  { C $_ C }\n" } @group);

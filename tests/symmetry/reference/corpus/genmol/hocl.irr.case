@@ -1,0 +1,8 @@
+# getfrag's irreducible atoms of hocl, group CS
+program genmol
+threshold 0.01
+group CS
+atoms
+Cl 0.003459 -0.557051 0.000000
+O -0.061741 1.131691 0.000000
+H 0.859850 1.367422 0.000000

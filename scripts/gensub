@@ -1557,11 +1557,11 @@ sub gromacsPrepare()
 
 @@CC@@ - Read the recipe; md.gmxprep has checked every value.
 SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1 NEUT=1
-BOX=dodecahedron DIST=1.0 CONC=0.15 RMIN=0.6 PNAME=NA NNAME=CL PQ=1
+BOX=dodecahedron DIST=1.0 CENTER= CONC=0.15 RMIN=0.6 PNAME=NA NNAME=CL PQ=1
 while IFS='=' read -r k v; do
   case "$k" in
     SOURCE) SOURCE=$v;; FF) FF=$v;; WATER) WATER=$v;; HIS) HIS=$v;;
-    IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;;
+    IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;; CENTER) CENTER=$v;;
     CONC) CONC=$v;; RMIN) RMIN=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;; PQ) PQ=$v;;
   esac
 done < @@IN@@
@@ -1653,6 +1653,15 @@ GENION_RMIN=""
       prepRun "$gmx" pdb2gmx -f "$pdb" -ff "$FF" -water "$WATER" $opts \
           -o step1.gro -p topol.top -i posre.itp || exit 1
       cp prep.step prep.pdb2gmx
+      # Unmerged chains all restrain under the one name POSRES; give each its
+      # own POSRES_<chain id> too, so a run can restrain some chains only.
+      for f in topol_*_chain_*.itp; do
+        [ -f "$f" ] || continue
+        cid=${f##*_chain_}; cid=${cid%.itp}
+        [ -f "posre_${f#topol_}" ] || continue
+        printf '\n; Position restraints for this chain alone\n#ifdef POSRES_%s\n#include "posre_%s"\n#endif\n' \
+          "$cid" "${f#topol_}" >> "$f"
+      done
       ;;
     *) echo "Unknown SOURCE $SOURCE" >> @@OUT@@; exit 1;;
   esac
@@ -1682,7 +1691,10 @@ GENION_RMIN=""
           acosd((a * v2x + v1y * b + v1z * v2z) / (la * lb)) }' > prep.step
     BOX=cell
   else
-    prepRun "$gmx" editconf -f step1.gro -o step2.gro -c -bt "$BOX" -d "$DIST" || exit 1
+    # the box is sized round the solute, which is then placed at CENTER
+    CENTERARG=""
+    [ -n "$CENTER" ] && CENTERARG="-center $CENTER"
+    prepRun "$gmx" editconf -f step1.gro -o step2.gro -c $CENTERARG -bt "$BOX" -d "$DIST" || exit 1
   fi
   cp prep.step prep.editconf
 
@@ -1942,6 +1954,13 @@ sub gromacs()
     $retval .= "  if [ -s traj.xtc ] && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f traj.xtc -pbc mol -ur compact -o ecce_traj.pdb >> $::logfile 2>&1; then\n";
     $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj.pdb`\n";
     $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce-parse-traj.txt\n";
+    $retval .= "  fi\n";
+    #  A pulling run: coordinate and force joined, for gromacs.pull.
+    $retval .= "  if [ -s pullx.xvg ] && [ -s pullf.xvg ]; then\n";
+    $retval .= "    grep -v '^[#@]' pullx.xvg | awk '{print \$1, \$2}' > ecce_pullx.tmp\n";
+    $retval .= "    grep -v '^[#@]' pullf.xvg | awk '{print \$2}' > ecce_pullf.tmp\n";
+    $retval .= "    paste -d' ' ecce_pullx.tmp ecce_pullf.tmp | awk '{print \"ECCE-PULL \" \$0}' > ecce-parse-pull.txt\n";
+    $retval .= "    rm -f ecce_pullx.tmp ecce_pullf.tmp\n";
     $retval .= "  fi\n";
     $retval .= "  $::CC - The final structure as PDB: what the Builder shows.\n";
     $retval .= "  \"\$gmx\" editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";

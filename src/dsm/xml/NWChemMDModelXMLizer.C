@@ -132,6 +132,22 @@ void NWChemMDModelXMLizer::deserialize(const string& data,
             if (value.length() > 0) run.nstpcouple = atoi(value.c_str());
             value = getTagValue(iroot, "GmxExtraMdp");
             if (value.length() > 0) run.extraMdp = value;
+            value = getTagValue(iroot, "GmxPull");
+            if (value.length() > 0) run.pull = atoi(value.c_str()) != 0;
+            value = getTagValue(iroot, "GmxPullGroup1");
+            if (value.length() > 0) run.pullGroup1 = value;
+            value = getTagValue(iroot, "GmxPullGroup2");
+            if (value.length() > 0) run.pullGroup2 = value;
+            value = getTagValue(iroot, "GmxPullGeom");
+            if (value.length() > 0) run.pullGeom = atoi(value.c_str());
+            value = getTagValue(iroot, "GmxPullAxis");
+            if (value.length() > 0) run.pullAxis = atoi(value.c_str());
+            value = getTagValue(iroot, "GmxPullDim");
+            if (value.length() > 0) run.pullDim = value;
+            value = getTagValue(iroot, "GmxPullRate");
+            if (value.length() > 0) run.pullRate = atof(value.c_str());
+            value = getTagValue(iroot, "GmxPullK");
+            if (value.length() > 0) run.pullK = atof(value.c_str());
             imodel->setGromacsRun(run);
           }
           value = getTagValue(iroot, "EwaldConvergence");
@@ -978,6 +994,22 @@ void NWChemMDModelXMLizer::dumpInteraction(InteractionModel *model, ostream &os)
       os << "    <GmxNstpcouple>" << g.nstpcouple << "</GmxNstpcouple>" << endl;
     if (g.extraMdp != d.extraMdp)
       os << "    <GmxExtraMdp>" << xmlText(g.extraMdp) << "</GmxExtraMdp>" << endl;
+    if (g.pull != d.pull)
+      os << "    <GmxPull>" << (g.pull ? 1 : 0) << "</GmxPull>" << endl;
+    if (g.pullGroup1 != d.pullGroup1)
+      os << "    <GmxPullGroup1>" << xmlText(g.pullGroup1) << "</GmxPullGroup1>" << endl;
+    if (g.pullGroup2 != d.pullGroup2)
+      os << "    <GmxPullGroup2>" << xmlText(g.pullGroup2) << "</GmxPullGroup2>" << endl;
+    if (g.pullGeom != d.pullGeom)
+      os << "    <GmxPullGeom>" << g.pullGeom << "</GmxPullGeom>" << endl;
+    if (g.pullAxis != d.pullAxis)
+      os << "    <GmxPullAxis>" << g.pullAxis << "</GmxPullAxis>" << endl;
+    if (g.pullDim != d.pullDim)
+      os << "    <GmxPullDim>" << xmlText(g.pullDim) << "</GmxPullDim>" << endl;
+    if (g.pullRate != d.pullRate)
+      os << "    <GmxPullRate>" << g.pullRate << "</GmxPullRate>" << endl;
+    if (g.pullK != d.pullK)
+      os << "    <GmxPullK>" << g.pullK << "</GmxPullK>" << endl;
   }
   if (model->getEwaldConvergence() != model->EWALDCONVRG) {
     os << "    <EwaldConvergence>" << model->getEwaldConvergence()

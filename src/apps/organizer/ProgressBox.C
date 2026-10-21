@@ -8,12 +8,16 @@
 #include <ctime>
 
 #include <wx/button.h>
+#include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
+#include <wx/menu.h>
 #include <wx/settings.h>
+#include <wx/stattext.h>
 
 #include "wxgui/PlotStyle.H"
 #include "wxgui/ewxConfig.H"
+#include "wxgui/ewxSelectableText.H"
 #include "wxgui/ewxThemeColours.H"
 
 #include "ProgressBox.H"
@@ -46,7 +50,12 @@ ProgressBox::ProgressBox(wxWindow *parent)
   Bind(wxEVT_PAINT, &ProgressBox::OnPaint, this);
   Bind(wxEVT_TIMER, &ProgressBox::OnTimer, this);
   Bind(wxEVT_LEFT_DOWN, &ProgressBox::OnClick, this);
+  Bind(wxEVT_CONTEXT_MENU, &ProgressBox::OnContextMenu, this);
   ewxConfig::getConfig(INIFILE)->Read(FOLDKEY, &p_collapsed);
+  p_energyLabel = new wxStaticText(this, wxID_ANY, "");
+  ewxMakeSelectable(p_energyLabel);
+  p_energyLabel->Hide();
+  p_energyLabel->Bind(wxEVT_CONTEXT_MENU, &ProgressBox::OnContextMenu, this);
   for (int i = 0; i < 3; i++) {
     p_buttons[i] = new wxButton(this, wxID_ANY, ACTIONS[i]);
     p_buttons[i]->Hide();
@@ -132,6 +141,39 @@ vector<string> ProgressBox::outcome() const
   vector<string> out = p_progress.summary(p_completed);
   if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
   return out;
+}
+
+
+string ProgressBox::copyText(int what) const
+{
+  if (what == 0) return p_finalValue;
+  if (what == 1)
+    return p_finalValue.empty() || p_finalUnits.empty()
+               ? p_finalValue : p_finalValue + " " + p_finalUnits;
+  string all;
+  for (const string& line : describe()) all += line + "\n";
+  return all;
+}
+
+
+void ProgressBox::OnContextMenu(wxContextMenuEvent&)
+{
+  wxMenu menu;
+  const int ids[3] = { wxNewId(), wxNewId(), wxNewId() };
+  if (!p_finalValue.empty()) {
+    menu.Append(ids[0], "Copy energy");
+    menu.Append(ids[1], "Copy energy with unit");
+  }
+  menu.Append(ids[2], "Copy all");
+  menu.Bind(wxEVT_MENU, [this, ids](wxCommandEvent& e) {
+    for (int i = 0; i < 3; i++)
+      if (e.GetId() == ids[i] && wxTheClipboard->Open()) {
+        wxTheClipboard->SetData(
+            new wxTextDataObject(wxString::FromUTF8(copyText(i).c_str())));
+        wxTheClipboard->Close();
+      }
+  });
+  PopupMenu(&menu);
 }
 
 
@@ -239,6 +281,7 @@ wxSize ProgressBox::layout(wxDC *dc)
 {
   const bool lost = outOfContact();
   bool buttonsShown = false;
+  bool energyShown = false;
   wxSize size(0, 0);
   if (wanted()) {
     wxFont normal = GetFont();
@@ -383,7 +426,17 @@ wxSize ProgressBox::layout(wxDC *dc)
         // A finished job keeps its plots; the outcome goes under them.
         if (p_finished) {
           for (const string& s : outcome()) {
-            if (dc) {
+            //  The final energy is a real label, so it can be selected and
+            //  copied (#408); placed when measuring, like the buttons.
+            if (s == p_finalEnergy) {
+              if (!dc) {
+                p_energyLabel->SetLabel(U(s));
+                p_energyLabel->SetForegroundColour(text);
+                p_energyLabel->SetSize(0, y, m.GetTextExtent(U(s)).x + 2, lh);
+                p_energyLabel->Show();
+              }
+              energyShown = true;
+            } else if (dc) {
               dc->SetTextForeground(text);
               dc->DrawText(U(s), 0, y);
             }
@@ -433,6 +486,7 @@ wxSize ProgressBox::layout(wxDC *dc)
   }
   if (!dc && !buttonsShown)
     for (int i = 0; i < 3; i++) p_buttons[i]->Hide();
+  if (!dc && !energyShown) p_energyLabel->Hide();
   return size;
 }
 
@@ -451,4 +505,10 @@ void ProgressBox::OnPaint(wxPaintEvent&)
 void ProgressBox::OnTimer(wxTimerEvent&)
 {
   if (IsShownOnScreen()) Refresh(false);
+}
+
+
+bool ProgressBox::energySelectable() const
+{
+  return p_energyLabel->IsShown() && ewxIsSelectable(p_energyLabel);
 }
