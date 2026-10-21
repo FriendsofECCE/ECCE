@@ -598,7 +598,8 @@ jobs:
             mingw-w64-ucrt-x86_64-glib2 mingw-w64-ucrt-x86_64-libjpeg-turbo
             mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-mosquitto
             mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf
-            mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-wxwidgets3.2-msw
+            mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-numpy
+            mingw-w64-ucrt-x86_64-wxwidgets3.2-msw
             mingw-w64-ucrt-x86_64-xerces-c
 
       # The build is ~20 minutes cold; ccache makes a rerun after a small
