@@ -35,6 +35,13 @@ Frequency=last
 End=SUGGESTED CITATIONS FOR THIS RUN
 [END]
 
+# ORCA names the file after the input, which ECCE always calls orca.orcain.
+[IRCGEOM]
+Script=orca.ircgeom
+File=orca.orcain_IRC_Full_trj.xyz
+Begin=orca.orcain_IRC_Full_trj.xyz
+[END]
+
 [GEOMTRACE]
 Script=orca.geomtrace
 Begin=CARTESIAN COORDINATES \(ANGSTROEM\)

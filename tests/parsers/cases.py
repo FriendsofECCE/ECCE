@@ -2435,6 +2435,15 @@ CASES = [
 # and silently drops -- reported live from a real NH3 optimisation import.
 # The fixture is that real fort.7, copied in verbatim.
 MOFILE_CASES = [
+    # The IRC structures of the real ORCA HCN run (#417), a File= entry:
+    # 21 frames, path order; this is the last (point +10).
+    dict(
+        name='orca-hcn-irc-ircgeom',
+        script='orca.ircgeom',
+        fixture='orca/hcn_irc_IRC_Full_trj.xyz',
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={'IRCGEOM': {'size': '1 3 3', 'columnlabels': 'X Y Z'}},
+    ),
     dict(
         name='g16-nh3-opt-nopopfull-mofile',
         script='gaussian-16.mo',

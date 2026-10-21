@@ -128,6 +128,7 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
   </Theory>
   <Theory category="SCF" name="UHF">
@@ -136,6 +137,7 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
   </Theory>
   <Theory category="DFT" name="RDFT">
     <runtype>Energy</runtype>
@@ -143,6 +145,7 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
   </Theory>
   <Theory category="DFT" name="UDFT">
@@ -151,6 +154,7 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>IRC</runtype>
   </Theory>
 
   <!-- MP2 and coupled cluster (issue #91). Runtypes are deliberately

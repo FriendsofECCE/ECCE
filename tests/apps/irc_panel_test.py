@@ -95,6 +95,63 @@ def vector(name, values, units):
                len(values), units, "   ".join("%.6f" % v for v in values)))
 
 
+ORCA_DIR = os.path.join(REPO, "tests", "parsers", "fixtures", "orca")
+
+
+def orcaPath():
+    """IRC PATH SUMMARY energies of the real ORCA output and the structures of
+    its _IRC_Full_trj.xyz (path order, TS in the middle), read by regex."""
+    text = open(os.path.join(ORCA_DIR, "hcn_irc.out")).read()
+    table = text.split("IRC PATH SUMMARY")[1].split("SUGGESTED CITATIONS")[0]
+    energy = [float(m) for m in re.findall(
+        r"^\s+\d+\s+(-?\d+\.\d+)\s+-?\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+", table, re.M)]
+    frames = []
+    for block in open(os.path.join(ORCA_DIR, "hcn_irc_IRC_Full_trj.xyz")).read().split("\n3\n"):
+        rows = re.findall(r"^\s*[A-Z][a-z]?\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$",
+                          block, re.M)
+        if rows:
+            frames.append([[float(v) for v in r] for r in rows])
+    return energy, frames
+
+
+def orcaCase(s, display, env, wrappers, project, png):
+    """The panel on an ORCA path: one structure per point, TS included."""
+    energy, frames = orcaPath()
+    assert len(energy) == 21 and len(frames) == 21
+    coord = [float(i - 10) for i in range(21)]
+    calc = os.path.join(project, "calc-orca-irc")
+    shutil.rmtree(calc, ignore_errors=True)
+    shutil.copytree(BASE, calc, symlinks=True)
+    props = os.path.join(calc, "Props")
+    for name in os.listdir(props):
+        if name != "ESCF":
+            os.unlink(os.path.join(props, name))
+    with open(os.path.join(calc, "Parameters", "chemsys.mvm"), "w") as f:
+        f.write(HCN)
+    with open(os.path.join(props, "IRCCOORD"), "w") as f:
+        f.write(vector("IRCCOORD", coord, "Point"))
+    with open(os.path.join(props, "IRCENERGY"), "w") as f:
+        f.write(vector("IRCENERGY", energy, "Hartree"))
+    with open(os.path.join(props, "IRCGEOM"), "w") as f:
+        f.write(tsvector(frames))
+    lines = ["wait 6000", "ircclick 10", "ircclick 3", "ircclick 17", "ircclick 0", "quit"]
+    text, _ = bo.runScript(
+        s, display, env, wrappers, ["-context", "file://" + calc + "/"],
+        lines, png, "ircorca",
+        {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "IRC Path"})
+    clicks = dict((m[0], m) for m in re.findall(
+        r"BUILDER: ircclick (\d+) frame=(\S+) atoms: (\S+) (\S+) (\S+) "
+        r"(\S+) (\S+) (\S+)", text))
+    for idx in (10, 3, 17, 0):
+        got = clicks.get(str(idx))
+        check(got is not None and got[1] == str(idx),
+              "ORCA: click on point %d shows frame %d" % (idx, idx))
+        if got:
+            want = frames[idx][0] + frames[idx][1]
+            check(all(abs(float(a) - b) < 2e-5 for a, b in zip(got[2:], want)),
+                  "ORCA point %d: the viewer holds the trajectory's structure" % idx)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
@@ -207,6 +264,7 @@ def main():
               "the TS point has no structure")
         check(any(l.startswith("# calculation: ")
                   for l in open(kj).read().splitlines()), "calculation named")
+        orcaCase(s, display, env, wrappers, project, png)
     finally:
         if display:
             display.__exit__(None, None, None)
