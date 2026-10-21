@@ -3030,6 +3030,16 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # Real (xdotool) clicks on atoms still select after File > Save, a second
+  # Save and a switch back to the calculation (#423); skipped (77) without
+  # Xvfb or xdotool.
+  add_test(NAME apps_builder_save_pick
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_save_pick_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_save_pick PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # ECCE-QM Geometry and Vibration runs of water in the Builder: the IR
   # spectrum's sticks against the engine's output, the geometry trace.
   add_test(NAME apps_ecceqm_vib_builder
