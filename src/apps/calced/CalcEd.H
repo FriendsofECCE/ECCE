@@ -274,6 +274,8 @@ class CalcEd: public CalcEdGUI,
     // input file generation, aka InputController
     string changeWD(const string& newDir);
     bool write_cs(const string& output_file);
+    /** Opt=QST2/QST3 structures next to the .frag (#419). */
+    bool write_qst(const string& baseName);
     bool write_esp(const string& output_file, bool& file_flag);
     bool write_constraints(const string& output_file, bool& file_flag);
     bool write_gbsconfig(const string& output_file, const bool& useExpCoeff,
@@ -394,6 +396,10 @@ class CalcEd: public CalcEdGUI,
      *  written; Verify shows these, anchored on the first deck line
      *  containing the anchor.  Cleared on every generation. */
     vector<pair<string, string> > p_inputGenWarnings;
+
+    /** What the QST structure mapping did, from the last generation; empty
+     *  for any other run type. */
+    string p_qstStatus;
 
     /** Persist/restore p_inputGenWarnings as a DAV property on the
      *  calculation, so the lamp describes the deck on the server and

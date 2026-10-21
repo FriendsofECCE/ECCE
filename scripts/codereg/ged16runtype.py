@@ -1,5 +1,45 @@
 from templates import *
 
+def qstCandidates():
+    """Calculations of this project that have a structure, as CalcEd lists
+    them in the file named by ECCE_QST_CANDIDATES: name, URL, kind per line
+    (kind "optimised" or "input").  The dialog cannot see the project."""
+    out = []
+    try:
+        with open(os.environ.get("ECCE_QST_CANDIDATES", "")) as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) == 3:
+                    out.append(parts)
+    except OSError:
+        pass
+    return out
+
+
+class CalcChoice(EcceComboBox):
+    """A choice that shows calculation names and stores their URLs."""
+
+    def __init__(self, parent, entries, **kw):
+        self.urls = [""] + [e[1] for e in entries]
+        labels = ["(none)"] + ["%s (%s structure)" % (e[0], e[2])
+                               for e in entries]
+        EcceComboBox.__init__(self, parent, choices=labels, **kw)
+
+    def GetValue(self):
+        sel = self.combo.GetSelection()
+        return self.urls[sel] if sel >= 0 else ""
+
+    def SetValue(self, val):
+        self.combo.SetSelection(self.urls.index(val)
+                                if val in self.urls else 0)
+
+    def ExportSetting(self):
+        needExport = 1 if (self.export or self.NotDefault()) else 0
+        return (self.combo.GetName() + "|" + self.GetValue() + "||" +
+                str(int(self.combo.IsEnabled())) + "|" + str(needExport) +
+                "|menu_input")
+
+
 class Ged16RunTypeFrame(EcceFrame):
     def __init__(self, parent, title, app, helpURL=""):
         EcceFrame.__init__(self, parent, title)
@@ -53,7 +93,8 @@ class Ged16RunTypePanel(EccePanel):
                                          cols = 2)
             
             findChoice = ["Minimum",
-                          "Transition State"]
+                          "Transition State",
+                          "Transition State (QST)"]
             findDefault = 0
             if (EcceGlobals.ReactionStudyFlag!=0 and
                 EcceGlobals.CalculationName=="Transition-State"):
@@ -133,7 +174,32 @@ class Ged16RunTypePanel(EccePanel):
                                         label = "Initial Source:")
             hessianSizer.AddWidget(self.hessian)
             
+            # QST2/QST3: reactant and product (and optionally this
+            # calculation as the TS guess) come from other calculations.
+            qstSizer = EcceBoxSizer(self,
+                                    label = "Transition State (QST)",
+                                    cols = 1)
+            cands = qstCandidates()
+            self.qstReactant = CalcChoice(self, cands,
+                                          name = "ES.Runtype.GeomOpt.QSTReactant",
+                                          default = 0,
+                                          label = "Reactant:")
+            qstSizer.AddWidget(self.qstReactant)
+            self.qstProduct = CalcChoice(self, cands,
+                                         name = "ES.Runtype.GeomOpt.QSTProduct",
+                                         default = 0,
+                                         label = "Product:")
+            qstSizer.AddWidget(self.qstProduct)
+            self.qstGuess = EcceCheckBox(self,
+                                         label = " Use this calculation's structure as the TS guess (QST3)",
+                                         name = "ES.Runtype.GeomOpt.QSTGuess",
+                                         default = 0)
+            qstSizer.AddWidget(self.qstGuess)
+            self.qstStatus = wx.StaticText(self, -1, "")
+            qstSizer.Add(self.qstStatus, 0, wx.ALL, 3)
+
             self.panelSizer.Add(geometrySizer)
+            self.panelSizer.Add(qstSizer)
             self.panelSizer.Add(convergenceSizer)
             self.panelSizer.Add(hessianSizer)
             
@@ -371,6 +437,21 @@ class Ged16RunTypePanel(EccePanel):
             if (len(self.hessianChoice) == 2 and
                 self.find.GetSelection() == 1):
                 self.hessian.SetSelection(1)
+            qst = (self.find.GetSelection() == 2)
+            self.qstReactant.Enable(qst)
+            self.qstProduct.Enable(qst)
+            self.qstGuess.Enable(qst)
+            self.hessian.Enable(not qst)
+            if qst:
+                if not (self.qstReactant.GetValue() and
+                        self.qstProduct.GetValue()):
+                    self.qstStatus.SetLabel("Pick the reactant and product calculations.")
+                elif (self.qstReactant.GetValue() == self.qstProduct.GetValue()):
+                    self.qstStatus.SetLabel("Warning: reactant and product are the same calculation.")
+                else:
+                    self.qstStatus.SetLabel("")
+            else:
+                self.qstStatus.SetLabel("")
         if EcceGlobals.RunType == "Polarizability":
             self.efstepInput.Enable(self.polarMethod.GetValue() !=
                                     "Analytic Polariz. + Hyperpol.")
