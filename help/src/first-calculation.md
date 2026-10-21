@@ -135,24 +135,25 @@ Electronic Structure Editor ask before they replace it.
    Or select the calculation in the Organizer and choose **Tools >
    Launcher...** (Ctrl+L).
 2. In the Launcher, choose `localhost` in **Machine:**.
-3. In **Run Directory:**, enter a folder in your home directory where the
-   job may run, for example `/home/<you>/ecce-runs`. The field is marked
-   `*`, which means it is required. The field starts with the directory
-   you used last for this machine. The path must start with `/` or `~`.
-   ECCE creates the folder, with its parents, if it does not exist.
-4. Leave **Username:** as it is. The field starts with your own user name,
-   which runs the job on this computer.
-5. Click **Launch**.
+3. **Run Directory:** starts as `ecce-runs` in your home folder (for example
+   `/home/<you>/ecce-runs`) when no directory is saved for this machine.
+   Change it if you want the job to run elsewhere. The path must start
+   with `/` or `~`. ECCE creates the folder, with its parents, if it does
+   not exist.
+4. Click **Launch**.
 
 The Launcher shows progress messages and, at the end, "Successfully
 submitted job."
 
-For `localhost` the Launcher shows **Processors:**, **Priority:**, the
-**Remote Machine Access** fields (**Username:**, **Password:**, **Remote
-Shell:**), **Run Directory:** and **Scratch Directory:**. It does not show
-**Queue:**, **Nodes:**, **Alloc. Account:**, **Wall Time Limit:**,
-**Scratch Space:** and **Memory Limit:**: those belong to machines that run
-jobs through a batch queue.
+For `localhost` the Launcher shows **Processors:**, **Priority:** and **Run
+Directory:**. There are no login, password or remote shell fields: the job
+runs as you, on this computer. **Scratch Directory:**, **Username:** and
+**Machine settings...** are under **Advanced**, which is closed until you
+click it. **Queue:**, **Nodes:**, **Alloc. Account:**, **Wall Time Limit:**,
+**Scratch Space:** and **Memory Limit:** belong to machines that run jobs
+through a batch queue, and appear for those machines. A machine reached
+over the network shows the **Remote Machine Access** fields (**Username:**,
+**Password:**, **Remote Shell:**).
 
 ![The Launcher](img/launcher-localhost.png)
 
