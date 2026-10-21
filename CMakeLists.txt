@@ -573,17 +573,27 @@ ecce_app(polyed src/apps/polyrate WX
 ecce_app(solvate src/apps/solvate WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 
-# Native replacement for the wxPython Details dialogs (pilot): reads the
-# .dlg files next to scripts/codereg/*.py.  wx only, so it links nothing of
-# ECCE's; JCode::getTheoryRunTypeEditorNames starts it when ECCE_NATIVE_DIALOGS
-# is set.  Not in ECCE_GUI_APPS: no wrapper script, it is never run by hand.
+# Native replacement for the wxPython Details dialogs: reads the .dlg files
+# next to scripts/codereg/*.py.  The engine is src/wxgui/details: a wx-free
+# core (parser, rules, model; unit-tested by details_unit) and a wx view.  It
+# links nothing else of ECCE's; JCode::getTheoryRunTypeEditorNames starts it
+# when ECCE_NATIVE_DIALOGS is set.  Not in ECCE_GUI_APPS: no wrapper script,
+# it is never run by hand.
+add_library(ecce-details-core STATIC
+  src/wxgui/details/DetailsRules.cpp src/wxgui/details/DetailsModel.cpp)
+target_include_directories(ecce-details-core PUBLIC src/wxgui/details)
+add_library(ecce-details-wx STATIC src/wxgui/details/DetailsPanel.cpp)
+target_compile_definitions(ecce-details-wx PUBLIC ${wxWidgets_DEFINITIONS})
+target_include_directories(ecce-details-wx PUBLIC ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(ecce-details-wx PUBLIC ecce-details-core
+                      ${wxWidgets_LIBRARIES})
 add_executable(ecce-dialog src/apps/codereg-dialog/ecce-dialog.cpp)
-target_compile_definitions(ecce-dialog PRIVATE ${wxWidgets_DEFINITIONS})
-target_include_directories(ecce-dialog PRIVATE ${wxWidgets_INCLUDE_DIRS})
-target_link_libraries(ecce-dialog PRIVATE ${wxWidgets_LIBRARIES})
+target_link_libraries(ecce-dialog PRIVATE ecce-details-wx)
 if(WIN32)
   set_target_properties(ecce-dialog PROPERTIES WIN32_EXECUTABLE ON)
 endif()
+add_executable(details_unit_test tests/details/details_unit_test.cpp)
+target_link_libraries(details_unit_test PRIVATE ecce-details-core)
 install(TARGETS ecce-dialog RUNTIME DESTINATION bin COMPONENT client)
 
 # --- wx + GL apps ---
@@ -2185,6 +2195,9 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs)
+
+  add_test(NAME details_unit COMMAND details_unit_test
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/details)
 
   # The native ecce-dialog against the wxPython dialog for ECCE-QM Theory
   # Details: same settings sent, same pixels (tests/dialogs/native_test.py).

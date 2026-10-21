@@ -1,0 +1,24 @@
+# One of each .dlg construct, for tests/details and tests/dialogs/native_test.py
+# (no Python twin).  Grammar: docs/claude/codereg/dlg-grammar.md.
+list FUNCS = SVWN|PBE|B3LYP|PBE0
+list OPENSHELL = DFT|UHF
+
+dialog title="Grammar test" minwidth=300
+
+box label="Functional for $theory" when="category in @OPENSHELL && mult >= 1"
+combo name=T.Func label="Functional:" choices=@FUNCS default=PBE default_if="runtype==Opt => B3LYP; category==UHF => SVWN" export_if="default!=@0"
+check name=T.Flag label=" Flag" default=0 export=1
+radiopair name=T.Pair first="One" second="Two" enable_if="T.Flag==1"
+
+box label="Hidden" when="category==Nothing"
+check name=T.Hidden label=" never built"
+
+box label="Numbers"
+force name=T.Flag value=1 when="T.Func==PBE0" silent=1
+force name=T.Conv value=2.5 when="T.Core>3"
+status text="Frozen core above 3 of $nocc occupied" when="T.Core>3"
+int name=T.Core label="Core:" default=0 soft="[0..$nfrozen]" hard="[0..$nocc]" unit=orbitals enable_if="T.Flag==1"
+float name=T.Conv label="Conv:" default=1.0 soft="(0..1]" hard="[0..10]" unit=Hartree
+text name=T.Text label="Text:" default=abc
+note label="Closed shell" show_if="mult<=1 || theory==HF && !T.Flag"
+calcpick name=T.Guess label="Guess from:"
