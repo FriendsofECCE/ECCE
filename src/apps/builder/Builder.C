@@ -782,16 +782,16 @@ void Builder::createToolbar()
     p_manipulatorToolbar->SetToolPacking(0);
     p_manipulatorToolbar->SetToolBitmapSize(wxSize(22, 22));
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_SPHERE,
-            _T(""), ewxBitmap("sphere22.png", wxBITMAP_TYPE_PNG),
+            _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_sphere.svg", wxSize(22, 22)),
             _("Create Sphere Manipulator"), wxITEM_NORMAL);
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_NOSPHERE,
-            _T(""), ewxBitmap("nosphere22.png", wxBITMAP_TYPE_PNG),
+            _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_nosphere.svg", wxSize(22, 22)),
             _("Clear Sphere Manipulator"), wxITEM_NORMAL);
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_WHEEL,
-            _T(""), ewxBitmap("rotation22.png", wxBITMAP_TYPE_PNG),
+            _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_wheel.svg", wxSize(22, 22)),
             _("Create Wheel Manipulator"), wxITEM_NORMAL);
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_NOWHEEL,
-            _T(""), ewxBitmap("norotation22.png", wxBITMAP_TYPE_PNG),
+            _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_nowheel.svg", wxSize(22, 22)),
             _("Clear Wheel Manipulator"), wxITEM_NORMAL);
     
     p_measureToolbar = new wxToolBar(this, ID_MEASURE_TOOLBAR,
@@ -801,16 +801,16 @@ void Builder::createToolbar()
     p_measureToolbar->SetToolPacking(0);
     p_measureToolbar->SetToolBitmapSize(wxSize(22, 22));
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_DIST, _T(""),
-            ewxBitmap("measure_length.png",wxBITMAP_TYPE_PNG),
+            ewxBitmap::colorIcon("svg/candidates/e/measure_length.svg", wxSize(22, 22)),
             _("Measure Distance"), wxITEM_NORMAL);
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_ANGLE, _T(""),
-            ewxBitmap("measure_angle.png",wxBITMAP_TYPE_PNG),
+            ewxBitmap::colorIcon("svg/candidates/e/measure_angle.svg", wxSize(22, 22)),
             _("Measure Angle"), wxITEM_NORMAL);
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_TORSION, _T(""),
-            ewxBitmap("measure_torsion.png",wxBITMAP_TYPE_PNG),
+            ewxBitmap::colorIcon("svg/candidates/e/measure_torsion.svg", wxSize(22, 22)),
             _("Measure Torsion"), wxITEM_NORMAL);
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_CLEAR, _T(""),
-            ewxBitmap("measure_clear.png",wxBITMAP_TYPE_PNG),
+            ewxBitmap::colorIcon("svg/candidates/e/measure_clear.svg", wxSize(22, 22)),
             _("Measure Clear"), wxITEM_NORMAL);
 
     addToolBar(p_fileToolbar, NAME_TOOLBAR_FILE);

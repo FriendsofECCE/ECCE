@@ -2924,7 +2924,9 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/nwchem_md_walk_test.py
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
-  set_tests_properties(launch_nwchem_md_walk PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
+  # NWChem aborts in ARMCI (exit 216) beside other jobs; alone it passes.
+  set_tests_properties(launch_nwchem_md_walk PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77
+                       RUN_SERIAL TRUE)
   add_test(NAME launch_gromacs_prepare
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_prepare_test.py
