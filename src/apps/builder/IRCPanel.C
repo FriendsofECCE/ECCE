@@ -22,6 +22,7 @@
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
 #include "XYPlotCanvas.H"
+#include "PointCalc.H"
 
 #include "IRCPanel.H"
 
@@ -30,6 +31,7 @@ const double HARTREE_KJ = 2625.4996;
 const double HARTREE_KCAL = 627.5095;
 const wxWindowID ID_UNIT = wxNewId();
 const wxWindowID ID_EXPORT = wxNewId();
+const wxWindowID ID_NEWCALC = wxNewId();
 
 double factor(bool kcal) { return kcal ? HARTREE_KCAL : HARTREE_KJ; }
 
@@ -128,6 +130,8 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_unit->SetSelection(0);
   bar->Add(p_unit, 0, wxRIGHT, 12);
   bar->AddStretchSpacer();
+  bar->Add(new wxButton(this, ID_NEWCALC, "New calculation from this point"), 0,
+           wxRIGHT, 6);
   bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0);
   GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
@@ -147,6 +151,7 @@ bool IRCPanel::Create(IPropCalculation *calculation,
 
   Bind(wxEVT_CHOICE, &IRCPanel::OnUnit, this, ID_UNIT);
   Bind(wxEVT_BUTTON, &IRCPanel::OnExport, this, ID_EXPORT);
+  Bind(wxEVT_BUTTON, &IRCPanel::OnNewCalc, this, ID_NEWCALC);
 
   fill();
   return true;
@@ -202,6 +207,7 @@ int IRCPanel::showPoint(int index)
   if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0) return -1;
   IPropCalculation *calc = getCalculation();
   if (!calc) return -1;
+  p_selected = index;
   SGContainer& sg = getFW().getSceneGraph();
   Command *cmd = new GTStepCmd("IRC Step", &sg, calc);
   cmd->getParameter("Index")->setInteger(p_frame[index]);
@@ -216,6 +222,28 @@ int IRCPanel::showPoint(int index)
   sg.touchChemDisplay();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
   return p_frame[index];
+}
+
+std::string IRCPanel::newCalcFromPoint(int index)
+{
+  if (index < 0) index = p_selected;
+  std::string why;
+  std::string url;
+  if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0)
+    why = "Click a point in the plot first; the transition state itself has no "
+          "stored structure in a Gaussian IRC (use its own calculation).";
+  else
+    url = ::newCalcFromPoint(getCalculation(), "IRCGEOM", p_frame[index],
+                             index + 1, why);
+  if (url.empty() && !why.empty())
+    wxMessageBox(wxString::FromUTF8(why.c_str()), "New calculation",
+                 wxOK | wxICON_WARNING, this);
+  return url;
+}
+
+void IRCPanel::OnNewCalc(wxCommandEvent&)
+{
+  newCalcFromPoint();
 }
 
 void IRCPanel::OnUnit(wxCommandEvent&)

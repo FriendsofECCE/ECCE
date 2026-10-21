@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "PropertyPanel.H"
+#include "VizPropertyPanel.H"
 
 class wxChoice;
 class wxGrid;
@@ -11,9 +11,10 @@ class XYPlotCanvas;
 
 /**
  * Relaxed scan (#393): energy of each optimised scan point, relative to the
- * lowest, against the scanned coordinate.
+ * lowest, against the scanned coordinate; a click on a point shows its
+ * structure in the viewer, and a button starts a calculation from it (#410).
  */
-class ScanPanel : public PropertyPanel
+class ScanPanel : public VizPropertyPanel
 {
    DECLARE_DYNAMIC_CLASS(ScanPanel)
 
@@ -39,6 +40,15 @@ class ScanPanel : public PropertyPanel
       /** Number of scan points shown. */
       int points() const { return (int)p_coord.size(); }
 
+      /**
+       * What a click on plot point <index> does; returns the SCANGEOM frame
+       * shown, or -1 if the point has no structure.
+       */
+      int clickPoint(int index) { return showPoint(index); }
+
+      /** New calculation from point <index> (default: the clicked one); URL or "". */
+      std::string newCalcFromPoint(int index = -1);
+
       /** The scan as CSV; false if the file cannot be written. */
       bool exportCsv(const wxString& path, bool kcal);
 
@@ -46,11 +56,15 @@ class ScanPanel : public PropertyPanel
       void fill();
       void OnUnit(wxCommandEvent& event);
       void OnExport(wxCommandEvent& event);
+      void OnNewCalc(wxCommandEvent& event);
+      int showPoint(int index);
 
    private:
       std::vector<double> p_coord;
       std::vector<double> p_hartree;
       std::string p_coordUnit;
+      std::vector<int> p_frame; // plot point -> SCANGEOM frame, -1 if none
+      int p_selected;           // last clicked point, -1 if none
       wxChoice *p_unit;
       XYPlotCanvas *p_plot;
       wxGrid *p_grid;
