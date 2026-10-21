@@ -19,6 +19,7 @@
  * stored on its Parameters documents, must be the calculation's, as the
  * Organizer's summary panel reads them.
  */
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -166,6 +167,53 @@ int main(int argc, char **argv)
       Fragment frag(names[i], tags, xyz, 0, 0);
       frag.setLattice(new LatticeDef(3.84, 3.84, 3.84, 60.0, 60.0, 60.0));
       check(icalc->fragment(&frag), "two silicon atoms and a cell stored");
+      cout << calc->getURL().toString() << endl;
+    }
+    return failures ? 1 : 0;
+  }
+
+  if (mode == "qst") {
+    // qst <dir> <name>=<file.xyz> ...: Gaussian-16 calculations in proj-qst,
+    // each holding the structure of its xyz file (bonds by distance), for
+    // the Opt=QST2/QST3 end-to-end test (#419).
+    Resource *top = EDSIFactory::getResource(EcceURL("file://" + root));
+    ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+    ResourceType *projType = rd.getResourceType("collection", "ecceProject", "");
+    ResourceType *calcType = rd.getResourceType("virtual_document",
+                                                "ecceCalculation", "Gaussian-16");
+    Resource *proj = top && projType ? top->createChild("proj-qst", projType) : 0;
+    for (int a = 3; a < argc; a++) {
+      string spec = argv[a];
+      size_t eq = spec.find('=');
+      string name = spec.substr(0, eq);
+      ifstream in(spec.substr(eq + 1).c_str());
+      int n = 0;
+      string line;
+      getline(in, line);
+      n = atoi(line.c_str());
+      getline(in, line);
+      vector<string> tags;
+      vector<double> xyz;
+      for (int i = 0; i < n; i++) {
+        string e; double x, y, z;
+        in >> e >> x >> y >> z;
+        tags.push_back(e);
+        xyz.push_back(x); xyz.push_back(y); xyz.push_back(z);
+      }
+      vector<int> bonds;
+      for (int i = 0; i < n; i++)
+        for (int j = i + 1; j < n; j++) {
+          double d2 = 0;
+          for (int k = 0; k < 3; k++)
+            d2 += (xyz[3*i+k] - xyz[3*j+k]) * (xyz[3*i+k] - xyz[3*j+k]);
+          if (d2 < 1.6 * 1.6) { bonds.push_back(i); bonds.push_back(j); }
+        }
+      Resource *calc = proj && calcType ? proj->createChild(name, calcType) : 0;
+      ICalculation *icalc = dynamic_cast<ICalculation*>(calc);
+      check(icalc != 0, "Gaussian-16 calculation " + name + " created");
+      if (!icalc) return 1;
+      Fragment frag(name, tags, &xyz[0], (int)bonds.size() / 2, &bonds[0]);
+      check(icalc->fragment(&frag), "structure stored in " + name);
       cout << calc->getURL().toString() << endl;
     }
     return failures ? 1 : 0;

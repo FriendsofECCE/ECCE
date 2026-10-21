@@ -8,6 +8,8 @@
 //    basis NAME               the quick-pick basis set menu entry NAME
 //    gui KEY VALUE            what the Details dialog sends when that field
 //                             changes (the same message over the same path)
+//    guiw KEY VALUE          as gui, marked to be written, which is what the
+//                             dialog sends for a value that is not the default
 //    details theory|runtype   the "Theory Details..." / "Runtype Details..."
 //                             button (opens the real dialog)
 //    close-details            close the dialogs, as OK does
@@ -15,6 +17,8 @@
 //    dismiss                  close a modal dialog (OK)
 //    code NAME                a click on that code's button in the Code row
 //    wmcommand ID             (Windows) the message a menu item click sends
+//    qst-candidates           the list handed to the Gaussian 16 runtype
+//                             dialog (ECCE_QST_CANDIDATES), on stderr
 //    enabled                  which main controls are enabled, and the state
 //    info                     the current choices, GUI values and the
 //                             Verify lamp ("verify="), on stderr
@@ -134,14 +138,14 @@ void CalcEd::runCalcEdScript(const string& file)
       } else if (w[0] == "runtype" && w.size() >= 2) {
         if (!choose(ID_CHOICE_CALCED_RUNTYPE, rest(1)))
           outcome = "FAIL: no such runtype";
-      } else if (w[0] == "gui" && w.size() >= 3) {
+      } else if ((w[0] == "gui" || w[0] == "guiw") && w.size() >= 3) {
         GUIValue *old = p_GUIValues->get(w[1]);
         if (!old) {
           outcome = "FAIL: no GUI value " + w[1];
         } else {
           std::string msg = w[1] + "|" + rest(2) + "|" + old->m_units + "|" +
               (old->m_sensitive ? "1" : "0") + "|" +
-              (old->m_write ? "1" : "0") + "|" + old->m_type + "\n";
+              (old->m_write || w[0] == "guiw" ? "1" : "0") + "|" + old->m_type + "\n";
           if (w[1].find("ES.Runtype.") == 0)
             processRuntypeInput(msg.c_str());
           else
@@ -181,6 +185,12 @@ void CalcEd::runCalcEdScript(const string& file)
           ev.SetEventObject(hit);
           OnButtonCalcedCodeClick(ev);
         }
+      } else if (w[0] == "qst-candidates") {
+        // what the dialog was given: the file CalcEd wrote for it
+        const char *f = getenv("ECCE_QST_CANDIDATES");
+        std::ifstream cand(f ? f : "");
+        for (std::string l; std::getline(cand, l); )
+          fprintf(stderr, "CALCED: qst-candidate %s\n", l.c_str());
       } else if (w[0] == "enabled") {
         // which of the main controls are enabled, as a user sees them
         const struct { const char *name; wxWindowID id; } ctl[] = {
@@ -215,7 +225,14 @@ void CalcEd::runCalcEdScript(const string& file)
         closeRuntypeApp(true);
       } else if (w[0] == "button" && w.size() == 2) {
         bool ok;
-        if (w[1] == "save") {
+        if (w[1] == "save-keep") {
+          // as Save with Shift held: the generator's files stay for a test
+          p_testKeepParams = true;
+          wxCommandEvent ev(wxEVT_MENU, wxID_SAVE);
+          GetEventHandler()->ProcessEvent(ev);
+          p_testKeepParams = false;
+          ok = true;
+        } else if (w[1] == "save") {
           wxCommandEvent ev(wxEVT_MENU, wxID_SAVE);
           GetEventHandler()->ProcessEvent(ev);   // Save skips the event
           ok = true;
