@@ -12,7 +12,6 @@ Source of ECCE's built-in help (issue #219).
   conversion is not implemented yet.
 
 Writing rules: short, task-oriented, one action per numbered step. Every
-menu item, button, dialog and field name is copied from the source. Each
-file ends with a `<!-- sources: ... -->` comment listing where the labels
-were found, and anything not confirmed from the code is marked
-`[TO CHECK: ...]`.
+menu item, button, dialog and field name is copied exactly from the program.
+Pages carry no source lists: no file names, line numbers or source comments.
+Anything not confirmed in the program is marked `[TO CHECK: ...]`.
