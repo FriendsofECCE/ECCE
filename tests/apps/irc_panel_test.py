@@ -114,6 +114,20 @@ def orcaPath():
     return energy, frames
 
 
+def mvmCoords(path):
+    """Cartesian rows of the atom_list of a chemsys.mvm."""
+    text = open(path).read().split("atom_list:")[1].split("attr_list:")[0]
+    return [[float(v) for v in l.split()[1:4]] for l in text.strip().splitlines()]
+
+
+def metaValue(calc, key):
+    for l in open(os.path.join(calc, ".ecce-meta")).read().splitlines():
+        f = l.split("\t")
+        if len(f) >= 4 and f[1].endswith(":" + key):
+            return f[3]
+    return None
+
+
 def orcaCase(s, display, env, wrappers, project, png):
     """The panel on an ORCA path: one structure per point, TS included."""
     energy, frames = orcaPath()
@@ -134,7 +148,8 @@ def orcaCase(s, display, env, wrappers, project, png):
         f.write(vector("IRCENERGY", energy, "Hartree"))
     with open(os.path.join(props, "IRCGEOM"), "w") as f:
         f.write(tsvector(frames))
-    lines = ["wait 6000", "ircclick 10", "ircclick 3", "ircclick 17", "ircclick 0", "quit"]
+    lines = ["wait 6000", "ircclick 10", "ircclick 3", "ircclick 17", "ircclick 0",
+             "irccalc 3", "quit"]
     text, _ = bo.runScript(
         s, display, env, wrappers, ["-context", "file://" + calc + "/"],
         lines, png, "ircorca",
@@ -150,6 +165,20 @@ def orcaCase(s, display, env, wrappers, project, png):
             want = frames[idx][0] + frames[idx][1]
             check(all(abs(float(a) - b) < 2e-5 for a, b in zip(got[2:], want)),
                   "ORCA point %d: the viewer holds the trajectory's structure" % idx)
+    new = os.path.join(project, "calc-orca-irc_point_4")
+    check("irccalc 3 url=" in text and os.path.isdir(new),
+          "irccalc 3 created calc-orca-irc_point_4")
+    if os.path.isdir(new):
+        for key in ("application", "theory", "runtype", "basisSetDocument"):
+            check(metaValue(calc, key) is not None
+                  and metaValue(new, key) == metaValue(calc, key),
+                  "new calculation keeps %s (%s)" % (key, metaValue(new, key)))
+        check(metaValue(new, "state") == "Created",
+              "new calculation is in the created state (%s)" % metaValue(new, "state"))
+        got = mvmCoords(os.path.join(new, "Parameters", "chemsys.mvm"))
+        check(len(got) == 3 and all(abs(a - b) < 1e-4 for r, f in zip(got, frames[3])
+                                     for a, b in zip(r, f)),
+              "new calculation's coordinates equal IRC frame 3")
 
 
 def main():
