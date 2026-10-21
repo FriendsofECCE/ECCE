@@ -32,6 +32,7 @@ protected:
 
   vector<int> p_targets;
   vector<string> p_labels;
+  bool p_labelsShown;   // showAtomLabels before execute()
 
   wxWindow *p_sender;
 

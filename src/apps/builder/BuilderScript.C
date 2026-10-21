@@ -25,6 +25,7 @@
 //    save                        File > Save
 //    savemenu                    the File > Save menu event, if enabled
 //    savestate                   dirty flag and Save menu/toolbar enabled state
+//    context URL                 switch to (or back to) calculation URL
 //    info                       atoms and lattice, on stderr
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select I                    select atom (or Nub) I, as a click does; -1 none
@@ -500,6 +501,9 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: residues=%s\n", names.c_str());
       } else if (w[0] == "save") {
         doSave();
+      } else if (w[0] == "context" && w.size() == 2) {
+        //  Switch to (or back to) calculation URL, as the Organizer does.
+        setContext(w[1]);
       } else if (w[0] == "savemenu") {
         //  File > Save as the menu or Ctrl+S sends it; ignored when disabled
         wxCommandEvent saveEv(wxEVT_MENU, wxID_SAVE);
