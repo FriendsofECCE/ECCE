@@ -87,6 +87,8 @@
     <runtype>Vibration</runtype>
 <!--    <runtype>Absorbance</runtype> -->
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
     <runtype>Polarizability</runtype>
@@ -98,6 +100,8 @@
     <runtype>Vibration</runtype>
     <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SCF" name="UHF">
@@ -107,6 +111,8 @@
     <runtype>Vibration</runtype>
     <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
     <runtype>Polarizability</runtype>
@@ -118,6 +124,8 @@
     <runtype>Vibration</runtype>
     <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
     <runtype>Polarizability</runtype>
@@ -129,6 +137,8 @@
     <runtype>Vibration</runtype>
     <runtype>Absorbance</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
   </Theory>
@@ -138,6 +148,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="UCNDO" needsBasis="false">
@@ -146,6 +158,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="RINDO" needsBasis="false">
@@ -154,6 +168,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="UINDO" needsBasis="false">
@@ -162,6 +178,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="RMINDO3" needsBasis="false">
@@ -170,6 +188,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="RMINDO3" needsBasis="false">
@@ -181,6 +201,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="RMNDO" needsBasis="false">
@@ -189,6 +211,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="ROMNDO" needsBasis="false">
@@ -200,6 +224,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="RAM1" needsBasis="false">
@@ -208,6 +234,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="ROAM1" needsBasis="false">
@@ -219,6 +247,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="RPM3" needsBasis="false">
@@ -227,6 +257,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="UPM3" needsBasis="false">
@@ -235,6 +267,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
     <Theory category="SE" name="RPM6" needsBasis="false">
@@ -243,6 +277,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
   <Theory category="SE" name="UPM6" needsBasis="false">
@@ -251,6 +287,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
    <Theory category="SE" name="RPM7" needsBasis="false">
@@ -259,6 +297,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
    <Theory category="SE" name="UPM7" needsBasis="false">
@@ -267,6 +307,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
  <Theory category="MP" name="RMP2">
@@ -275,6 +317,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -288,6 +332,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -297,6 +343,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -306,6 +354,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -325,6 +375,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -334,6 +386,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -358,6 +412,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -367,6 +423,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -386,6 +444,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -395,6 +455,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -404,6 +466,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -413,6 +477,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -422,6 +488,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -431,6 +499,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -440,6 +510,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
@@ -449,6 +521,8 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Transition State (QST)</runtype>
+    <runtype>Transition State (QST) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Polarizability</runtype>
   </Theory>
