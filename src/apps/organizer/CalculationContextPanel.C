@@ -525,6 +525,7 @@ wxBoxSizer* CalculationContextPanel::createPropLabel(ResourceProperty *resProp)
       wxDefaultSize,            //    unique name next
       0,                        // no special styles set (default)
       resProp->getLabel()); // how we will refer to this window later
+  ewxMakeSelectable(text);  // names can be selected and copied too (#408)
 
   // add label to sizer to return
   box->Add(text,
