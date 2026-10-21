@@ -12,6 +12,7 @@
 #include "util/Preferences.H"
 #include "tdat/TPerTab.H"
 #include "wxgui/ewxColor.H"
+#include <cstdlib>
 #include "wxgui/ewxConfig.H"
 
 #include "ElementChooser.H"
@@ -87,6 +88,16 @@ void ElementChooser::OnSize(wxSizeEvent& e)
                     p_search->GetBestSize().y);
   Refresh();
   e.Skip();
+}
+
+
+bool ElementChooser::enabled()
+{
+  const char *env = getenv("ECCE_NEW_PERTABLE");
+  if (env && *env) return std::string(env) != "0";
+  bool on = false;
+  ewxConfig::getConfig("wxbuilder.ini")->Read("/ElementChooser/Enabled", &on, false);
+  return on;
 }
 
 

@@ -463,7 +463,13 @@ void MiniPerTab::OnRemoveClick(wxCommandEvent &event)
 
 void MiniPerTab::OnMoreClick(wxCommandEvent &event)
 {
-  ElementChooser *pertab = new ElementChooser(this, p_elements[p_replaceIndex]);
+  wxWindow *pertab;
+  if (ElementChooser::enabled()) {
+    pertab = new ElementChooser(this, p_elements[p_replaceIndex]);
+  } else {
+    pertab = new PerTabPanel(this, false, ID_ITEM_DEFAULT, false, true, true);
+    pertab->SetName("Elements");
+  }
   TearableContent *tc = new TearableContent(pertab);
   p_table = pertab;
   int w, h;

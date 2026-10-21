@@ -3641,7 +3641,13 @@ void Builder::OnModeElementList( wxCommandEvent& event )
 //  The periodic table, below the element tool's arrow, not at the pointer.
 TearableContent *Builder::showElementChooser()
 {
-  ElementChooser *pertab = new ElementChooser(this, p_currentElement);
+  wxWindow *pertab;
+  if (ElementChooser::enabled()) {
+    pertab = new ElementChooser(this, p_currentElement);
+  } else {
+    pertab = new PerTabPanel(this, false, ID_ITEM_DEFAULT, false, true, true);
+    pertab->SetName("Elements");
+  }
   TearableContent *tc = new TearableContent(pertab);
   //  A drop-down below the selector tool, else below the toolbar under the
   //  pointer. Position() opens at origin + size, so a zero width keeps the

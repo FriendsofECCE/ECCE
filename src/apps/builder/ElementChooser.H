@@ -17,9 +17,14 @@ class ElementChooser : public wxPanel
 public:
   ElementChooser(wxWindow *parent, const std::string& current);
 
+  // The chooser is opt-in: ECCE_NEW_PERTABLE=1 or /ElementChooser/Enabled=1
+  // in wxbuilder.ini; otherwise the Builder keeps the PerTabPanel popup.
+  static bool enabled();
+
   // Hooks for scripts and tests; each acts as the matching click or key.
   bool pick(const std::string& symbol);
   int search(const std::string& text, bool pressEnter);
+  std::vector<std::string> recent() const { return p_recent; }
   std::string currentElement() const { return p_current; }
 
   // kind: 0 table, 1 recent, 2 common; z < 0 is a "57-71"/"89-103" placeholder.

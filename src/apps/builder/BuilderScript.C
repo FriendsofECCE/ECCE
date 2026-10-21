@@ -63,7 +63,7 @@
 //                                length and unit direction, Angstrom
 //    pertab A                    press the Build panel's periodic-table button,
 //                                pick element A in it, report the Build element
-//    chooser pick SYM|search TEXT|enter TEXT|shot NAME|close
+//    chooser kind|pick SYM|search TEXT|enter TEXT|shot NAME|close
 //                                the element chooser popup: pick an element,
 //                                type a search, press Enter in it, save a PNG
 //    quit
@@ -317,12 +317,20 @@ void Builder::runBuilderScript(const std::string& file)
           press.SetEventObject(button);
           button->GetEventHandler()->ProcessEvent(press);
           for (int i = 0; i < 3; i++) wxTheApp->Yield(true);
-          ElementChooser *table =
-              dynamic_cast<ElementChooser*>(p_pertab->tablePanel());
-          if (!table) {
+          wxWindow *panel = p_pertab->tablePanel();
+          ElementChooser *table = dynamic_cast<ElementChooser*>(panel);
+          PerTabPanel *old = dynamic_cast<PerTabPanel*>(panel);
+          if (!table && !old) {
             outcome = "FAIL: the button opened no table";
           } else {
-            table->pick(w[1]);
+            if (table) {
+              table->pick(w[1]);
+            } else {
+              TPerTab tpt;
+              const int z = tpt.atomicNumber(w[1]);
+              old->setCurrentElement(z);
+              old->fireSelectionChanged(z);
+            }
             fprintf(stderr, "BUILDER: pertab element=%s\n",
                     p_currentElement.c_str());
           }
@@ -333,10 +341,25 @@ void Builder::runBuilderScript(const std::string& file)
         //  shot NAME" for a screenshot of the open popup, "chooser close".
         static wxWeakRef<TearableContent> popup;
         if (!popup) popup = showElementChooser();
-        ElementChooser *ch = dynamic_cast<ElementChooser*>(
-            popup->FindWindow("Elements"));
+        wxWindow *found = popup->FindWindow("Elements");
+        ElementChooser *ch = dynamic_cast<ElementChooser*>(found);
         for (int i = 0; i < 5; i++) wxTheApp->Yield(true);
-        if (!ch) {
+        if (w[1] == "kind") {
+          std::string recent;
+          if (ch) for (const std::string& r : ch->recent()) recent += r + ",";
+          fprintf(stderr, "BUILDER: chooser kind=%s recent=%s\n",
+                  ch ? "new" : dynamic_cast<PerTabPanel*>(found) ? "old" : "none",
+                  recent.c_str());
+        } else if (w[1] == "screen" && w.size() == 3) {
+          //  The whole display: the Builder window with the popup over it.
+          wxScreenDC cdc;
+          const wxSize sz = wxGetDisplaySize();
+          wxBitmap bmp(sz.x, sz.y);
+          wxMemoryDC mdc(bmp);
+          mdc.Blit(0, 0, sz.x, sz.y, &cdc, 0, 0);
+          mdc.SelectObject(wxNullBitmap);
+          bmp.SaveFile(st->dir + "/" + w[2] + ".png", wxBITMAP_TYPE_PNG);
+        } else if (!ch) {
           outcome = "FAIL: no chooser";
         } else if (w[1] == "pick" && w.size() == 3) {
           fprintf(stderr, "BUILDER: chooser pick %s -> %d\n", w[2].c_str(),
