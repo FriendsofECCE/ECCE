@@ -1,0 +1,6 @@
+# n2, nominal group Dinfh, d0.003
+program autosym
+threshold 0.01
+atoms
+N 2.164986 0.221419 0.728830
+N 1.849217 -0.833566 0.785759

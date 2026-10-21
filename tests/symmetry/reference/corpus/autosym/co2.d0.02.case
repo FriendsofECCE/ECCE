@@ -1,0 +1,7 @@
+# co2, nominal group Dinfh, d0.02
+program autosym
+threshold 0.01
+atoms
+C -1.966786 0.225364 0.473794
+O -2.407266 -0.837200 0.547871
+O -1.502311 1.291293 0.389335

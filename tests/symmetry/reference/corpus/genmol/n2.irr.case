@@ -1,0 +1,6 @@
+# getfrag's irreducible atoms of n2, group D4H
+program genmol
+threshold 0.01
+group D4H
+atoms
+N 0.000000 0.000000 -0.550000

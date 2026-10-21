@@ -1,0 +1,9 @@
+# getfrag's irreducible atoms of c2h2f2cl2-anti, group CI
+program genmol
+threshold 0.01
+group CI
+atoms
+C -0.480242 0.612046 0.012915
+H -0.350638 1.084920 0.974680
+F -1.808969 0.438624 -0.015559
+Cl 0.246999 2.198024 -0.013413

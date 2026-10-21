@@ -1,0 +1,7 @@
+# P3; the Builder passes the name as in data/client/config/SpaceGroups
+program genmollat
+threshold 0.1
+group P3
+lattice 5 5 7 90 90 120
+atoms
+C 0.120000 0.210000 0.330000

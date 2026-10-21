@@ -1,0 +1,10 @@
+# ch2clf in autosym's frame (CS), distorted 0.03
+program cleansym
+threshold 0.05
+group CS
+atoms
+C -0.603592 -0.490285 0.026691
+F 0.308276 -1.495898 0.010029
+Cl 0.096653 1.040260 -0.008554
+H -1.253723 -0.581281 0.896539
+H -1.261972 -0.608429 -0.882544

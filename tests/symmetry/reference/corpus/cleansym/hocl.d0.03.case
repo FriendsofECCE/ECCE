@@ -1,0 +1,8 @@
+# hocl in autosym's frame (CS), distorted 0.03
+program cleansym
+threshold 0.05
+group CS
+atoms
+O -0.032534 1.102356 -0.010605
+Cl -0.011114 -0.564614 -0.020369
+H 0.868525 1.358959 0.004390

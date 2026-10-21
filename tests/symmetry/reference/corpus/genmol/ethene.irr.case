@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of ethene, group D2H
+program genmol
+threshold 0.01
+group D2H
+atoms
+C 0.000000 0.667000 -0.000000
+H -0.920000 1.240000 -0.000000

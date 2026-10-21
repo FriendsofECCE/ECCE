@@ -1,0 +1,9 @@
+# h2o2 in autosym's frame (C2), distorted 0.004
+program cleansym
+threshold 0.01
+group C2
+atoms
+O -0.049725 -0.720757 -0.035043
+O 0.051748 0.726341 -0.034628
+H 0.692463 -0.853695 0.519036
+H -0.687773 0.851826 0.519786

@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of ethane, group D3D
+program genmol
+threshold 0.01
+group D3D
+atoms
+C 0.000000 0.000000 -0.765000
+H 0.994903 0.266583 -1.150000

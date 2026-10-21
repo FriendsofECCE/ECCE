@@ -1,0 +1,7 @@
+# Ia-3d; the Builder passes the name as in data/client/config/SpaceGroups
+program genmollat
+threshold 0.1
+group Ia-3d
+lattice 5 5 5 90 90 90
+atoms
+C 0.120000 0.210000 0.330000

@@ -1,0 +1,8 @@
+# h2o in autosym's frame (C2V), distorted 0.03
+program cleansym
+threshold 0.05
+group C2V
+atoms
+O 0.019382 0.015328 -0.053505
+H -0.732605 0.007515 0.505950
+H 0.754207 -0.003020 0.494307

@@ -1,0 +1,7 @@
+# hand-written irreducible water
+program genmol
+threshold 0.01
+group C2V
+atoms
+O 0.000000 0.000000 0.117300
+H 0.000000 0.757200 -0.469200

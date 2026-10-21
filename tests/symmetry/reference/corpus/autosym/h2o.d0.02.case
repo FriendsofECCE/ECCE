@@ -1,0 +1,7 @@
+# h2o, nominal group C2v, d0.02
+program autosym
+threshold 0.01
+atoms
+H 1.473400 2.894710 -2.794315
+H 0.073033 2.561109 -3.232564
+O 0.601811 2.714851 -2.467999

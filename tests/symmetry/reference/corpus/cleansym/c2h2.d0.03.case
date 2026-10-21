@@ -1,0 +1,9 @@
+# c2h2 in autosym's frame (D4H), distorted 0.03
+program cleansym
+threshold 0.05
+group D4H
+atoms
+H 0.009911 -0.007428 -1.631439
+C 0.029182 -0.001325 -0.590357
+C 0.012173 -0.005035 0.571826
+H -0.020062 0.029694 1.646291

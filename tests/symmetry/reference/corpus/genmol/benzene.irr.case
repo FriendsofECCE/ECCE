@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of benzene, group D6H
+program genmol
+threshold 0.01
+group D6H
+atoms
+C 0.989949 0.989949 -0.000000
+H 1.753625 1.753625 -0.000000

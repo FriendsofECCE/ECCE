@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of b12h12, group TH
+program genmol
+threshold 0.01
+group TH
+atoms
+B -0.000000 -1.440050 0.890000
+H -0.000000 -2.459410 1.520000

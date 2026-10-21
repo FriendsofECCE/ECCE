@@ -1,0 +1,6 @@
+# hcl, nominal group Cinfv, d0.008
+program autosym
+threshold 0.01
+atoms
+H 1.559784 -1.245727 2.603235
+Cl 0.369843 -0.864824 2.338691

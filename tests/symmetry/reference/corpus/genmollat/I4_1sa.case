@@ -1,0 +1,7 @@
+# I4_1/a; the Builder passes the name as in data/client/config/SpaceGroups
+program genmollat
+threshold 0.1
+group I4_1/a
+lattice 5 5 7 90 90 90
+atoms
+C 0.120000 0.210000 0.330000
