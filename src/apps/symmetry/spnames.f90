@@ -163,19 +163,23 @@ contains
       subroutine getindices(itype,numgrp,group_name)
       integer*4 itype,numgrp
       character*(*) group_name
-      character*(11) tmp
+      character*(11) tmp, want
 !
-!     determine the type and index from the name
+!     determine the type and index from the name; the name asked for is
+!     normalised like the tables, or 'P2_1/c' (as the Builder lists it)
+!     never matches 'P21/c'
 !     We look in 3d first, then 2d, then 1d, then point group
 !
 
       itype = -1
       numgrp = -1 
+      want = '           '
+      call hackname(group_name, want)
 !      character*10 spgnam(230),lyrnam(80),linenam(99),molname(46)
        do i=1,230
          tmp = '           '
          call hackname(spgnam(i), tmp)
-         if (group_name .EQ. tmp) then
+         if (want .EQ. tmp) then
             itype = 3
             numgrp = i
          endif
@@ -185,7 +189,7 @@ contains
          do i=1,80
             tmp = '           '
             call hackname(lyrnam(i), tmp)
-            if (group_name .EQ. tmp) then
+            if (want .EQ. tmp) then
                itype = 2
                numgrp = i
             endif
@@ -196,7 +200,7 @@ contains
          do i=1,99
             tmp = '           '
             call hackname(linenam(i), tmp)
-            if (group_name .EQ. tmp) then
+            if (want .EQ. tmp) then
                itype = 1
                numgrp = i
             endif
@@ -207,7 +211,7 @@ contains
          do i=1,46
             tmp = '           '
             call hackname(molname(i), tmp)
-            if (group_name .EQ. tmp) then
+            if (want .EQ. tmp) then
                itype = 0
                numgrp = i
             endif
