@@ -1920,10 +1920,16 @@ void WxLauncher::refreshMemoryLimit(const Queue *slctQueue)
         if (value == 0)
             value = ((dflt == 0) ? (vmax / 10) : dflt);
 
-        if (value > vmax)
+        //  0 (a machine without queues) and Queue's INT_MAX (a queue
+        //  without memLimit) mean no limit: no upper bound shown, and the
+        //  saved value stands.
+        const bool limited = vmax > 0 && vmax < (unsigned long)INT_MAX;
+        if (limited && value > vmax)
             value = vmax / 2;
 
-        p_maxMemoryParamEdit->setRange(0, MemoryUnits::mbToGB(vmax));
+        p_maxMemoryParamEdit->setRange(0, limited ? MemoryUnits::mbToGB(vmax)
+                                                  : 65536);
+        p_maxMemoryParamEdit->setRangeVisible(limited);
         p_maxMemoryParamEdit->setValue(MemoryUnits::mbToGB(value));
         p_maxMemoryParamEdit->setUnitsLabel("GB");
         // The generated layout hides the units label; show it once it has text.
@@ -1961,10 +1967,13 @@ void WxLauncher::refreshScratchSpace(const Queue *slctQueue)
         if (value == 0)
             value = ((dflt > 0) ? dflt : (vmax / 10));
 
-        if (value > vmax)
+        //  No limit as for the memory limit.
+        const bool limited = vmax > 0 && vmax < (unsigned long)INT_MAX;
+        if (limited && value > vmax)
             value = vmax / 2;
 
-        p_minScratchParamEdit->setRange(0, vmax);
+        p_minScratchParamEdit->setRange(0, limited ? (int)vmax : 100000000);
+        p_minScratchParamEdit->setRangeVisible(limited);
         p_minScratchParamEdit->setValue(value);
         p_minScratchParamEdit->setUnitsLabel(units);
         p_minScratchParamEdit->setUnitsVisible(true);
@@ -3355,6 +3364,9 @@ string WxLauncher::hookGet(const string& what)
         return StringConverter::toString(p_wkstnProcsParamEdit->getValue());
     if (what == "memory")
         return StringConverter::toString(p_maxMemoryParamEdit->getValue());
+    if (what == "memrange")
+        return p_maxMemoryParamEdit->getRangeVisible()
+                   ? p_maxMemoryParamEdit->getRangeLabel() : "";
     if (what == "memunits")
         return p_maxMemoryParamEdit->getUnitsVisible()
                    ? p_maxMemoryParamEdit->getUnitsLabel() : "";

@@ -267,6 +267,7 @@ expect machine keb
 expect queue batch
 expect rundir /proj/andy/ecce
 expect block 1
+expect memrange ''
 %s
 pick nio
 expect machine nio
@@ -274,7 +275,8 @@ expect queue debug
 expect rundir /home/andy/jobs
 quit
 """ % shot)
-    clean(p, "a picked machine: refused while read-only, every field follows when editable")
+    clean(p, "a picked machine: refused while read-only, every field follows when editable; "
+             "a queue without a memory limit shows no [0..0] range")
     shutil.rmtree(tmp + "-pick", ignore_errors=True)
 
 
