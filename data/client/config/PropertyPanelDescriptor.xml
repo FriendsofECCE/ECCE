@@ -317,6 +317,14 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>IRC Path</name>
+    <group>Geometry</group>
+    <class>IRCPanel</class>
+    <consumer>true</consumer>
+    <property name="IRCCOORD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Vibrational Frequencies</name>
     <group>Vibrations</group>
     <class>NModePanel</class>

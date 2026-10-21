@@ -124,6 +124,7 @@
 #include "wxgui/SliderCombo.H"
 #include "NModePanel.H"
 #include "ScanPanel.H"
+#include "IRCPanel.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -841,6 +842,22 @@ void Builder::runBuilderScript(const std::string& file)
         } else {
           fprintf(stderr, "BUILDER: scancsv points=%d %s\n", sp->points(),
                   sp->exportCsv(wxString::FromUTF8(w[1].c_str()),
+                                w.size() > 2 && w[2] == "kcal")
+                      ? "ok" : "failed");
+        }
+      } else if (w[0] == "ircpath" && w.size() >= 2) {
+        //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)
+        //  without the file dialog.
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+        if (!ip) {
+          outcome = "no IRC Path panel";
+        } else {
+          fprintf(stderr, "BUILDER: ircpath points=%d %s\n", ip->points(),
+                  ip->exportCsv(wxString::FromUTF8(w[1].c_str()),
                                 w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
         }
