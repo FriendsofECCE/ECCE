@@ -24,8 +24,10 @@ used the Organizer before.
   ```
 
   Check that `gmx` is found with `which gmx`. The machine `localhost` must
-  know where it is: the file `~/.ECCE/CONFIG.localhost` has a line
-  `GROMACS: /usr/bin/gmx` (see [Machines](machines.md)).
+  know where it is: choose **Tools > Register Machines...**, select
+  `localhost`, and on the **Codes** tab select GROMACS and press **Find**,
+  then save (see [Machines](machines.md)). A job fails with "Path for GROMACS
+  not found" without it.
 - The protein as a PDB file. 1L2Y can be downloaded from the Protein Data Bank
   (`https://files.rcsb.org/download/1L2Y.pdb`). The model with the lowest
   number is the one to keep if the file holds several.
