@@ -1044,7 +1044,8 @@ void CalcMgr::runTestCommand(const string& line)
                   std::to_string(box->GetSize().y) +
                   " stateicon=" + (panel->getStateIcon() &&
                                    panel->getStateIcon()->outOfContact()
-                                   ? "running?" : "plain");
+                                   ? "running?" : "plain") +
+                  " copyvalue=" + box->copyText(0);
         for (const string& l : box->describe()) outcome += " | " + l;
       }
     } else if (command == "table") {

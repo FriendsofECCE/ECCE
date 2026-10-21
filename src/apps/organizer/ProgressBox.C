@@ -8,8 +8,10 @@
 #include <ctime>
 
 #include <wx/button.h>
+#include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
+#include <wx/menu.h>
 #include <wx/settings.h>
 
 #include "wxgui/PlotStyle.H"
@@ -46,6 +48,7 @@ ProgressBox::ProgressBox(wxWindow *parent)
   Bind(wxEVT_PAINT, &ProgressBox::OnPaint, this);
   Bind(wxEVT_TIMER, &ProgressBox::OnTimer, this);
   Bind(wxEVT_LEFT_DOWN, &ProgressBox::OnClick, this);
+  Bind(wxEVT_CONTEXT_MENU, &ProgressBox::OnContextMenu, this);
   ewxConfig::getConfig(INIFILE)->Read(FOLDKEY, &p_collapsed);
   for (int i = 0; i < 3; i++) {
     p_buttons[i] = new wxButton(this, wxID_ANY, ACTIONS[i]);
@@ -132,6 +135,39 @@ vector<string> ProgressBox::outcome() const
   vector<string> out = p_progress.summary(p_completed);
   if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
   return out;
+}
+
+
+string ProgressBox::copyText(int what) const
+{
+  if (what == 0) return p_finalValue;
+  if (what == 1)
+    return p_finalValue.empty() || p_finalUnits.empty()
+               ? p_finalValue : p_finalValue + " " + p_finalUnits;
+  string all;
+  for (const string& line : describe()) all += line + "\n";
+  return all;
+}
+
+
+void ProgressBox::OnContextMenu(wxContextMenuEvent&)
+{
+  wxMenu menu;
+  const int ids[3] = { wxNewId(), wxNewId(), wxNewId() };
+  if (!p_finalValue.empty()) {
+    menu.Append(ids[0], "Copy energy");
+    menu.Append(ids[1], "Copy energy with unit");
+  }
+  menu.Append(ids[2], "Copy all");
+  menu.Bind(wxEVT_MENU, [this, ids](wxCommandEvent& e) {
+    for (int i = 0; i < 3; i++)
+      if (e.GetId() == ids[i] && wxTheClipboard->Open()) {
+        wxTheClipboard->SetData(
+            new wxTextDataObject(wxString::FromUTF8(copyText(i).c_str())));
+        wxTheClipboard->Close();
+      }
+  });
+  PopupMenu(&menu);
 }
 
 
