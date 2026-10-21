@@ -137,6 +137,24 @@ namespace {
 
 struct Row { string key, value, units, group; size_t order; };
 
+//  "name   value   unit" with the value right-aligned under the widest
+//  value; a name wider than the column is cut with "...".
+static wxString rowText(const Row& row, int keyW,
+                        int valW, int spaceW, wxDC& dc)
+{
+  wxString key = wxString::FromUTF8(row.key);
+  while (key.length() > 4 && dc.GetTextExtent(key).x > keyW)
+    key = key.Left(key.length() - 4) + "...";
+  const wxString value = wxString::FromUTF8(row.value);
+  const int gap = 3 * spaceW;
+  int pad1 = (keyW - dc.GetTextExtent(key).x + gap + spaceW / 2) / spaceW;
+  int pad2 = (valW - dc.GetTextExtent(value).x + gap + spaceW / 2) / spaceW;
+  wxString out = key + wxString(' ', std::max(pad1, 1)) + value;
+  if (!row.units.empty())
+    out += wxString(' ', std::max(pad2, 1)) + wxString::FromUTF8(row.units);
+  return out;
+}
+
 //  n significant figures without an exponent, so a large energy reads
 //  -64995, not -6.4995e+04.
 string sigFigs(double v, int n)
@@ -337,6 +355,15 @@ void KeyValuePropertyPanel::refresh()
   const long left = wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL;
   //  The panel's own sizer has no border, so values touched the edge.
   const int PAD = 8;
+  wxClientDC dc(this);
+  dc.SetFont(GetFont());
+  const int spaceW = std::max(1, dc.GetTextExtent(" ").x);
+  int keyW = 0, valW = 0;
+  for (const Row& r : rows) {
+    keyW = std::max(keyW, dc.GetTextExtent(wxString::FromUTF8(r.key)).x);
+    valW = std::max(valW, dc.GetTextExtent(wxString::FromUTF8(r.value)).x);
+  }
+  keyW = std::min(keyW, 28 * dc.GetCharWidth());   // longer names are cut
   for (const char *groupName : GROUPS) {
     const string name = groupName;
     vector<const Row*> members;
@@ -385,25 +412,20 @@ void KeyValuePropertyPanel::refresh()
     }
     if (!folded) {
       for (const Row *row : members) {
-        ewxNonBoldLabel *key = new ewxNonBoldLabel(this, wxID_ANY,
-            wxString::FromUTF8(row->key), wxDefaultPosition, wxDefaultSize,
-            wxST_ELLIPSIZE_END);
-        key->SetToolTip(wxString::FromUTF8(row->key));
-        key->SetMinSize(wxSize(labelMin(key), -1));
-        sizer->Add(key, 1, wxEXPAND|wxALIGN_CENTER_VERTICAL|wxLEFT, PAD);
-        //  Selectable, so a value can be dragged over and copied (#408).
-        wxWindow *value = ewxSelectableValue(this,
-                                      wxString::FromUTF8(row->value), wxTE_RIGHT);
-        sizer->Add(value, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL);
-        wxWindow *unit = new ewxNonBoldLabel(this, wxID_ANY,
-                                         wxString::FromUTF8(row->units));
-        sizer->Add(unit, 0, left|wxRIGHT, PAD);
-        p_rowWindows.push_back({row->key, value, unit, row->value, row->units});
+        //  One selectable label per row, so a drag takes name, value and
+        //  unit together (#408); the columns are lined up with padding
+        //  measured in pixels, since a label has no tab stops.
+        const wxString text = rowText(*row, keyW, valW, spaceW, dc);
+        wxWindow *value = ewxSelectableValue(this, text, 0);
+        value->SetToolTip(wxString::FromUTF8(row->key));
+        sizer->Add(value, 0, left|wxLEFT|wxRIGHT, PAD);
+        sizer->AddSpacer(0);
+        sizer->AddSpacer(0);
+        p_rowWindows.push_back({row->key, value, value, row->value, row->units});
         const string rowKey = row->key;
-        for (wxWindow *w : {static_cast<wxWindow*>(key), value, unit})
-          w->Bind(wxEVT_CONTEXT_MENU, [this, rowKey](wxContextMenuEvent&) {
-            copyMenu(rowKey);
-          });
+        value->Bind(wxEVT_CONTEXT_MENU, [this, rowKey](wxContextMenuEvent&) {
+          copyMenu(rowKey);
+        });
         p_rows.push_back("R " + row->key + " | " + row->value + " | " +
                          row->units);
       }
@@ -420,7 +442,8 @@ std::vector<std::string> KeyValuePropertyPanel::rowSelectable() const
 {
   std::vector<std::string> out;
   for (const RowWindows& r : p_rowWindows)
-    out.push_back(r.key + " | " + (ewxIsSelectable(r.value) ? "1" : "0"));
+    out.push_back(r.key + " | " + std::string(r.value->GetLabel().ToUTF8()) +
+                  " | " + (ewxIsSelectable(r.value) ? "1" : "0"));
   return out;
 }
 

@@ -77,8 +77,8 @@ WxMeasurePrompt::WxMeasurePrompt(wxWindow *parent,
        max = 360.0;
 
     } else if (type == TORSION) {
-       SetTitle("Edit Torsion");
-       message = "Enter new torsion.  Fourth atom selected will move.";
+       SetTitle("Edit Dihedral Angle");
+       message = "Enter new dihedral angle.  Fourth atom selected will move.";
        tglmsg = "Rotate group about bond.";
        tip = "if set, all atoms connected to the central bond will rotate.\n"
              "Otherwise, only atoms connected the the last atom selected will be rotated.";

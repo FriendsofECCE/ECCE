@@ -35,7 +35,7 @@ MeasureTorsionCmd::~MeasureTorsionCmd()
 
 void MeasureTorsionCmd::init()
 {
-   setHelpMessage("Torsion: Select four atoms to display a dihedral measurement.  "
+   setHelpMessage("Dihedral angle: Select four atoms to display a dihedral measurement.  "
          "Once the measurement is displayed, click on the plane to edit the "
          "angle.  The last atom selected will move.");
 }
