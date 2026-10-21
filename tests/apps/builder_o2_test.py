@@ -31,6 +31,8 @@ CASES = (
     #  to it), then the new O double-clicked.
     ("atom", START + ["selectelem O", "click", "info", "bonds O O",
                       "dclick O", "info", "bonds O O"]),
+    #  Add H on a lone O: the view zooms out if the water leaves it (#409).
+    ("addh", START + ["zoom 0.45", "cmd addh", "info", "inview"]),
     #  Tools > Layer Builder is a pane of its own (#401).
     ("layerpane", ["wait 2000", "panel Layer Builder",
                    "panesize Layer Builder"]),
@@ -61,6 +63,11 @@ def problems(name, log):
     if name == "atom" and (len(n) < 3 or n[2][0] - n[2][1] != 3):
         found.append("double-click on an O: atoms, nubs %s -> %s; "
                      "expected exactly one more O" % (n[1:2], n[2:3]))
+    if name == "addh":
+        if not n or n[-1][0] - n[-1][1] != 3:
+            found.append("Add H on O: atoms, nubs %s; expected water" % (n[-1:],))
+        if not re.search(r"BUILDER: inview outside=0", log):
+            found.append("after Add H an atom is outside the view (#409)")
     if name == "layerpane" and not re.search(
             r"PANESIZE Layer Builder: shown", log):
         found.append("Tools > Layer Builder did not show its pane")

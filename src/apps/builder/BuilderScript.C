@@ -50,6 +50,8 @@
 //                                each viewer panel: shown, viz focus
 //    rows PANEL                  the rows of a key/value panel (Energies)
 //    tablecopy PANEL             Copy all of the first table in PANEL
+//    inview                      whether an atom is outside the 3-D view
+//    zoom F                      camera view angle/height times F (<1: in)
 //    fold PANEL GROUP            a click on that group's heading
 //    vector PROP                 each arrow under PROP's property switch, as
 //                                drawn: start, unit direction, farthest
@@ -115,6 +117,8 @@
 #include "GeomConstraintsDialog.H"
 #include "inv/SoWx/SoWxRenderArea.H"
 #include "inv/nodes/SoCamera.H"
+#include "inv/nodes/SoOrthographicCamera.H"
+#include "inv/nodes/SoPerspectiveCamera.H"
 #include "wxviz/SGViewer.H"
 #include "dsm/ChemistryTask.H"
 #include "wxgui/SliderCombo.H"
@@ -764,6 +768,20 @@ void Builder::runBuilderScript(const std::string& file)
             if (!line.empty())
               fprintf(stderr, "BUILDER: copy %s\n", line.ToUTF8().data());
         }
+      } else if (w[0] == "zoom" && w.size() == 2) {
+        //  zoom F: the camera's view angle or height times F (F < 1 zooms
+        //  in), as the mouse wheel would.
+        SoCamera *cam = p_viewer->getCamera();
+        const float f = (float)atof(w[1].c_str());
+        if (SoPerspectiveCamera *pc = dynamic_cast<SoPerspectiveCamera*>(cam))
+          pc->heightAngle = pc->heightAngle.getValue() * f;
+        else if (SoOrthographicCamera *oc = dynamic_cast<SoOrthographicCamera*>(cam))
+          oc->height = oc->height.getValue() * f;
+        p_viewer->refreshRenderArea();
+      } else if (w[0] == "inview") {
+        //  inview: whether any atom is outside the 3-D view (#409).
+        fprintf(stderr, "BUILDER: inview outside=%d\n",
+                atomsOutsideView() ? 1 : 0);
       } else if (w[0] == "tablecopy" && w.size() >= 2) {
         //  tablecopy <panel>: what Copy all (#408) puts on the clipboard
         //  from the first table in that panel.

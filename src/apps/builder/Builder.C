@@ -18,6 +18,7 @@ using std::vector;
 #include <unistd.h>
 
 // Remove some of these three once the calls are in SoWx::init
+#include "inv/nodes/SoCamera.H"
 #include "inv/nodes/SoPerspectiveCamera.H"
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSeparator.H"
@@ -2668,6 +2669,25 @@ void Builder::center()
    delete cmd;
 }
 
+//  Whether an atom lies outside the 3-D view (a margin of 4 % keeps an
+//  atom's sphere from being cut at the edge).
+bool Builder::atomsOutsideView()
+{
+   SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+   if (!frag || !p_viewer || !p_viewer->getCamera()) return false;
+   const SbViewportRegion& vpr = p_viewer->getViewportRegion();
+   SbViewVolume vv =
+       p_viewer->getCamera()->getViewVolume(vpr.getViewportAspectRatio());
+   const float lo = 0.04f, hi = 0.96f;
+   for (int i = 0; i < frag->numAtoms(); i++) {
+      SbVec3f d;
+      vv.projectToScreen(frag->getAtomCoordinates(i), d);
+      if (d[0] < lo || d[0] > hi || d[1] < lo || d[1] > hi) return true;
+   }
+   return false;
+}
+
+
 bool Builder::isAutoCenter() const
 {
   return getToolState(ViewerEvtHandler::ID_AUTO_NORMALIZE);
@@ -2721,6 +2741,11 @@ bool Builder::execute(Command *cmd, bool batch)
          if (!batch) {
             if ((isAutoCenter() && !dynamic_cast<PropCmd*>(cmd)) ||
                   (startNumAtoms == 0 && getSG()->getFragment()->numAtoms() > 0)) {
+               center();
+            } else if (didit && !dynamic_cast<PropCmd*>(cmd) &&
+                       atomsOutsideView()) {
+               //  An edit (Add H, a new atom) put atoms outside the view:
+               //  show the whole structure again (#409).
                center();
             }
          }

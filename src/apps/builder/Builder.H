@@ -276,6 +276,7 @@ class Builder: public BuilderGUI,
       GeomConstraintsDialog *constraintsDialog() { return p_constraintsDialog; }
       virtual void center();
       virtual bool isAutoCenter() const;
+      bool atomsOutsideView();
       virtual bool isSelectModeDrag() const;
       virtual bool areLabelsOn() const;
 
