@@ -628,6 +628,7 @@ sub ORCABlocks {
     $geom .= "  MaxIter $maxsteps\n" if ($maxsteps ne "");
     $geom .= " Constraints\n" . join("", @orcaConstraints) . " end\n"
       if (@orcaConstraints);
+    $geom .= join("", @orcaScans);
     $result .= "%geom\n" . $geom . "end\n" if ($geom ne "");
   }
   $result .= &NebBlock() if (&IsNebTS($runtype));
@@ -909,19 +910,28 @@ sub readChemSys {
 # atom (DA) is a numbered centre, so the indices are used unchanged.
 sub readCnstrntFile {
   @orcaConstraints = ();
+  @orcaScans = ();
   return if ($CnstrntFILE eq "" || !open(GEOCNST, $CnstrntFILE));
   while (<GEOCNST>) {
     next unless (/<Constraint\s/i);
     my ($type, $value, @group) = ("", "");
+    my ($scanSteps, $scanStep) = (0, 0);
     $type = lc $1 if (/type\s*=\s*"\s*(\S*)\s*"/i);
     while (<GEOCNST>) {
       last if (/<\/Constraint>/i);
       $value = $1 if (/<Value>\s*(\S*)\s*<\/Value>/i);
       @group = split(' ', $1) if (/<Group>(.*)<\/Group>/i);
+      ($scanSteps, $scanStep) = ($1, $2)
+        if (/<Scan\s+steps="(\d+)"\s+step="([^"]+)"/i);
     }
     my $letter = $type eq "bond" ? "B" : $type eq "angle" ? "A" :
                  $type eq "torsion" ? "D" : "";
-    if ($letter ne "") {
+    if ($letter ne "" && $scanSteps > 0) {
+      # Same points as Gaussian's 'S n step': n steps, so n+1 points.
+      my $end = $value + $scanSteps * $scanStep;
+      push(@orcaScans, sprintf("  Scan %s %s = %s, %s, %d end\n",
+                               $letter, "@group", $value, $end, $scanSteps + 1));
+    } elsif ($letter ne "") {
       push(@orcaConstraints, "  { $letter @group $value C }\n");
     } elsif ($type eq "fixed") {
       push(@orcaConstraints, map { "  { C $_ C }\n" } @group);

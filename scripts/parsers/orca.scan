@@ -1,0 +1,30 @@
+#!/usr/bin/env perl
+# Relaxed scan (#393): ORCA's "RELAXED SURFACE SCAN RESULTS", "Actual Energy"
+# table: scanned value and optimised energy (Eh) per point.  One scanned
+# coordinate only (two columns).  The table does not say what was scanned, so
+# the unit comes from the "Scan B|A|D" line of the input (orca.orcain, in the
+# job directory); without it, values all below 10 are taken as Angstrom.
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /Geo/i);
+
+my (@c, @e);
+while (<STDIN>) {
+  next unless (/^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/);
+  push(@c, sprintf("%.5f", $1));
+  push(@e, $2);
+}
+exit(0) unless (@c > 1);
+
+my $bond;
+if (open(my $in, "<", "orca.orcain")) {
+  while (<$in>) { $bond = ($1 =~ /^B/i) if (/^\s*Scan\s+([BAD])\b/i); }
+  close($in);
+}
+$bond = !grep { abs($_) >= 10 } @c unless defined $bond;
+
+my $n = scalar(@c);
+print "key: SCANCOORD\nsize: \n$n\nvalues: \n", join("\n", @c), "\nunits:\n",
+      ($bond ? "Angstrom" : "Degree"), "\nEND\n";
+print "key: SCANENERGY\nsize: \n$n\nvalues: \n", join("\n", @e), "\nunits:\nHartree\nEND\n";
+exit(0);
