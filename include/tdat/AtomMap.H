@@ -74,6 +74,15 @@ class AtomMap
                               const vector<double>& movCoords,
                               const vector<int>& map);
 
+   /** The fit the report uses: heavy (non-H) atoms only when there are at
+    *  least 3, since H atoms are what moves in a reaction; otherwise all
+    *  atoms, mass-weighted.  movElements are the moving structure's symbols.
+    *  rmsdBefore/After still run over all mapped atoms. */
+   static AtomAlignment alignHeavy(const vector<double>& refCoords,
+                                   const vector<double>& movCoords,
+                                   const vector<int>& map,
+                                   const vector<string>& movElements);
+
    static void apply(const AtomAlignment& a, vector<double>& coords);
 
    /** The moving structure in reference order: out[map[i]] = in[i]. */
