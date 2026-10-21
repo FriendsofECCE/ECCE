@@ -161,7 +161,8 @@ def make(caseName, out):
         if key in props:
             write(key, vecstring(key, props[key], "Excited State"))
     for key in CHARGE_KEYS:
-        if key in props:
+        #  Per-atom values need the base calculation's three atoms (water).
+        if key in props and "VIBFREQ" in props:
             write(key, atomvector(key, props[key]))
     if "VIBSYM" in props and "VIBFREQ" in props:
         write("VIBSYM", vecstring("VIBSYM", props["VIBSYM"]))
