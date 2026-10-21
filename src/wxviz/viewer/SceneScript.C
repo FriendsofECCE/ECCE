@@ -378,6 +378,29 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     val.getParameter("Value")->setDouble(log10(0.002));
     val.getParameter("transparency")->setDouble(0.0);
     val.execute();
+  } else if (c == "espdump" && w.size() == 2) {
+    //  "espdump <file>": the current grid (after "esp") for a numeric check
+    //  against another program: a header line with the dimensions, origin and
+    //  corner (Angstrom), then the density and the potential (Hartree/e) per
+    //  node, z fastest (the SingleGrid itself runs x fastest).
+    SingleGrid *grid = p_sg->getCurrentGrid();
+    if (!grid || !grid->fieldData() || !grid->colorFieldData())
+      return fail("espdump: no ESP grid");
+    int *n = grid->dimensions();
+    double *o = grid->origin(), *k = grid->corner();
+    FILE *fp = fopen(w[1].c_str(), "w");
+    if (!fp) return fail("espdump: cannot write " + w[1]);
+    fprintf(fp, "%d %d %d %.8f %.8f %.8f %.8f %.8f %.8f\n", n[0], n[1], n[2],
+            o[0], o[1], o[2], k[0], k[1], k[2]);
+    float *d = grid->fieldData(), *v = grid->colorFieldData();
+    //  SingleGrid keeps x fastest; written z fastest, the order of a cube file.
+    for (int ix = 0; ix < n[0]; ix++)
+      for (int iy = 0; iy < n[1]; iy++)
+        for (int iz = 0; iz < n[2]; iz++) {
+          const long i = ix + (long)n[0] * (iy + (long)n[1] * iz);
+          fprintf(fp, "%.8e %.8e\n", d[i], v[i]);
+        }
+    fclose(fp);
   } else if (c == "esptest") {
     //  Synthetic potential-mapped density over benzene, through the same
     //  commands and transparency request MoPanel uses for "Density (ESP)":
