@@ -28,6 +28,20 @@ Frequency=last
 End=Largest change from initial coordinates
 [END]
 
+[IRCCOORD][IRCENERGY]
+Script=gaussian-16.irc
+Begin=Energies reported relative to the TS energy
+Frequency=last
+End=Total number of points
+[END]
+
+[IRCGEOM]
+Script=gaussian-16.ircgeom
+Begin=CURRENT STRUCTURE
+Frequency=all
+End=CHANGE IN THE REACTION COORDINATE
+[END]
+
 [GEOMTRACE]
 Script=gaussian-16.geomtrace
 Begin=Input orientation\:

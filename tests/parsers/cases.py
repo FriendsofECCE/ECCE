@@ -95,6 +95,33 @@ CASES = [
         },
     ),
     dict(
+        name='g16-hcn-irc',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/hcn_irc.log',
+        # HF/3-21G IRC from the HCN/HNC TS, both directions, 8 points each
+        # (#417).  Values are the "Summary of reaction path following" rows
+        # (relative energies added to the printed TS energy -92.246043);
+        # 16 "CURRENT STRUCTURE" blocks give the structures.
+        silent_ok={'EGRAD': 'gated on runtype; IRC is not a Geo/Grad run',
+                   'DELTAE': 'gated on runtype', 'RMSDP': 'gated on runtype',
+                   'ESCF1][ESCFVEC': 'gated on runtype'},
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'IRCCOORD][IRCENERGY': dict(keys={
+                'IRCCOORD': {'values': '-0.86757 -0.75913 -0.65068 -0.54224 '
+                             '-0.43379 -0.32535 -0.21690 -0.10847 0.00000 '
+                             '0.10847 0.21690 0.32533 0.43377 0.54221 '
+                             '0.65065 0.75910 0.86754'},
+                'IRCENERGY': {'values': '-92.261743 -92.258593 -92.255673 '
+                              '-92.253023 -92.250693 -92.248763 -92.247293 '
+                              '-92.246363 -92.246043 -92.246383 -92.247403 '
+                              '-92.249123 -92.251513 -92.254543 -92.258163 '
+                              '-92.262293 -92.266863', 'units': 'Hartree'},
+            }),
+            'IRCGEOM': dict(min_blocks=16, keys={'IRCGEOM': {}}),
+        },
+    ),
+    dict(
         name='g16-co-freq',
         desc='gaussian-16.desc',
         fixture='gaussian-16/co_freq.log',
@@ -387,6 +414,27 @@ CASES = [
         expect={
             'GEOMTRACE': dict(min_blocks=2, keys={'GEOMTRACE': {
                 'size': '1 5 3'}}),
+        },
+    ),
+    dict(
+        name='orca-hcn-irc',
+        desc='orca.desc',
+        fixture='orca/hcn_irc.out',
+        # OptTS then IRC (10 iterations per direction, #417).  Energies are
+        # the "IRC PATH SUMMARY" rows; the TS is row 11 of 21.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'IRCCOORD][IRCENERGY': dict(keys={
+                'IRCCOORD': {'values': '-10 -9 -8 -7 -6 -5 -4 -3 -2 -1 0 '
+                             '1 2 3 4 5 6 7 8 9 10'},
+                'IRCENERGY': {'values': '-92.343482 -92.335119 -92.324933 '
+                              '-92.313264 -92.300378 -92.287038 -92.274821 '
+                              '-92.262659 -92.254380 -92.248100 -92.246043 '
+                              '-92.247913 -92.253878 -92.256148 -92.259286 '
+                              '-92.263157 -92.266891 -92.271134 -92.275319 '
+                              '-92.279805 -92.284290', 'units': 'Hartree'},
+            }),
         },
     ),
     dict(

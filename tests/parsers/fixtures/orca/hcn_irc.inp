@@ -1,0 +1,19 @@
+! HF 3-21G TightSCF OptTS
+%geom
+  Calc_Hess true
+end
+
+* xyz 0 1
+C   0.091309   0.139462   0.000000
+N   1.237143  -0.153470   0.000000
+H   0.741548   1.164007   0.000000
+*
+
+$new_job
+! HF 3-21G TightSCF IRC
+%irc
+  MaxIter 10
+  InitHess calc_anfreq
+  Direction both
+end
+* xyzfile 0 1 hcn_irc.xyz

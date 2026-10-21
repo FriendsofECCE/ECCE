@@ -223,6 +223,9 @@ ESP		Electro Static Potential		ESPVEC		Energy		PropVector<Grid>
 Geometry	GeometryTrace				GEOMTRACE	Length		PropTSVecTable<Geometry Step,Atom,Coordinate>
 Geometry	Scan Coordinate				SCANCOORD	NA		PropVector<Scan Point>
 Geometry	Scan Energy				SCANENERGY	Energy		PropVector<Scan Point>
+Geometry	IRC Coordinate				IRCCOORD	NA		PropVector<IRC Point>
+Geometry	IRC Energy				IRCENERGY	Energy		PropVector<IRC Point>
+Geometry	IRC Structures				IRCGEOM		Length		PropTSVecTable<IRC Step,Atom,Coordinate>
 Geometry	Lattice Vectors				LATTICEVEC	Length		PropTSVecTable<Geometry Step,Coordinate,Coordinate>
 #
 #							   		     
