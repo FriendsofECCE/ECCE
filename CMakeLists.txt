@@ -1901,6 +1901,17 @@ target_link_libraries(envswitches_test PRIVATE ecceutil)
 add_test(NAME envswitches COMMAND envswitches_test)
 
 # tests/formula -- the Hill-order formula shown in the Organizer.
+# tests/builder (#222): the element chooser's layout and search, no display.
+add_executable(elementlayout_test tests/builder/elementlayout_test.C)
+target_include_directories(elementlayout_test PRIVATE src/apps/builder)
+target_link_libraries(elementlayout_test PRIVATE eccetdat ecceutil)
+# The chooser alone, for screenshots on a display with no ECCE services.
+add_executable(chooser_shot tests/builder/chooser_shot.C src/apps/builder/ElementChooser.C)
+target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS})
+target_compile_definitions(chooser_shot PRIVATE ${wxWidgets_DEFINITIONS})
+target_link_libraries(chooser_shot PRIVATE eccewxgui eccewxthings eccetdat ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
+add_test(NAME elementlayout COMMAND elementlayout_test)
+
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)

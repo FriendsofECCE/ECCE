@@ -32,6 +32,7 @@
 #include "wxviz/ViewerEvtHandler.H"
 
 #include "MiniPerTab.H"
+#include "ElementChooser.H"
 
 
 // Jmol's element colours: a small chip next to the symbol keeps the colour
@@ -462,10 +463,8 @@ void MiniPerTab::OnRemoveClick(wxCommandEvent &event)
 
 void MiniPerTab::OnMoreClick(wxCommandEvent &event)
 {
-  PerTabPanel *pertab = new PerTabPanel(this, false,
-          ID_ITEM_DEFAULT, false, true, true);
+  ElementChooser *pertab = new ElementChooser(this, p_elements[p_replaceIndex]);
   TearableContent *tc = new TearableContent(pertab);
-  pertab->SetName("Elements");
   p_table = pertab;
   int w, h;
   pertab->GetSize(&w, &h);
