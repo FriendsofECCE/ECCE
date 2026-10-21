@@ -68,12 +68,12 @@ def labels(flat, count):
     return text if text else " ".join(str(i + 1) for i in range(count))
 
 
-def vector(key, flat):
+def vector(key, flat, rowLabel="Normal Mode"):
     values = flat["values"].split()
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
-            '<vector name="%s" rowLabel="Normal Mode" rowLabels="%s" '
+            '<vector name="%s" rowLabel="%s" rowLabels="%s" '
             'rows="%d" units="%s">%s</vector>\n'
-            % (key, labels(flat, len(values)), len(values),
+            % (key, rowLabel, labels(flat, len(values)), len(values),
                flat.get("units", "NA"), "   ".join(values)))
 
 
@@ -87,12 +87,16 @@ def atomvector(key, flat):
             % (key, len(values), "   ".join(values)))
 
 
-def vecstring(key, flat):
+def vecstring(key, flat, rowLabel="Normal Mode"):
     values = flat["values"].split()
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
-            '<vecstring name="%s" rowLabel="Normal Mode" rows="%d" '
+            '<vecstring name="%s" rowLabel="%s" rows="%d" '
             'units="NA">%s</vecstring>\n'
-            % (key, len(values), "   ".join(values)))
+            % (key, rowLabel, len(values), "   ".join(values)))
+
+
+EXCITED_KEYS = ("EXCIENERGY", "EXCIOSC")
+EXCITED_STRINGS = ("EXCISYM", "EXCITRANS")
 
 
 def vectable(flat):
@@ -121,32 +125,47 @@ def make(caseName, out):
         shutil.rmtree(out)
     shutil.copytree(BASE, out)
     pdir = os.path.join(out, "Props")
+    #  Every property's metadata is a copy of VIBFREQ's, which may be dropped.
+    with open(os.path.join(pdir, ".DAV", "VIBFREQ"), "rb") as f:
+        metaBytes = f.read()
 
     def write(key, text):
         with open(os.path.join(pdir, key), "w") as f:
             f.write(text)
         meta = os.path.join(pdir, ".DAV", key)
         if not os.path.exists(meta):
-            shutil.copy(os.path.join(pdir, ".DAV", "VIBFREQ"), meta)
+            with open(meta, "wb") as f:
+                f.write(metaBytes)
 
     def drop(key):
         for path in (os.path.join(pdir, key), os.path.join(pdir, ".DAV", key)):
             if os.path.exists(path):
                 os.remove(path)
 
-    write("VIBFREQ", vector("VIBFREQ", props["VIBFREQ"]))
-    write("VIB", vectable(props["VIB"]))
+    if "VIBFREQ" in props:
+        write("VIBFREQ", vector("VIBFREQ", props["VIBFREQ"]))
+        write("VIB", vectable(props["VIB"]))
+    else:
+        #  An excited-state case: the water vibrations are not its results.
+        for key in ("VIBFREQ", "VIB", "VIBIR", "VIBRAM", "VIBSYM"):
+            drop(key)
     for key in ("VIBIR", "VIBRAM"):
-        if key in props:
+        if key in props and "VIBFREQ" in props:
             write(key, vector(key, props[key]))
         else:
             drop(key)
+    for key in EXCITED_KEYS:
+        if key in props:
+            write(key, vector(key, props[key], "Excited State"))
+    for key in EXCITED_STRINGS:
+        if key in props:
+            write(key, vecstring(key, props[key], "Excited State"))
     for key in CHARGE_KEYS:
         if key in props:
             write(key, atomvector(key, props[key]))
-    if "VIBSYM" in props:
+    if "VIBSYM" in props and "VIBFREQ" in props:
         write("VIBSYM", vecstring("VIBSYM", props["VIBSYM"]))
-    if props["VIB"]["size"].split()[1] == "2":
+    if "VIB" in props and props["VIB"]["size"].split()[1] == "2":
         with open(os.path.join(out, "Parameters", "chemsys.mvm"), "w") as f:
             f.write(CO_MVM)
     return props
@@ -158,4 +177,5 @@ if __name__ == "__main__":
         sys.exit(2)
     got = make(sys.argv[1], sys.argv[2])
     print("%s: %s" % (sys.argv[1],
-                      ", ".join(k for k in sorted(got) if k.startswith("VIB"))))
+                      ", ".join(k for k in sorted(got)
+                                if k.startswith(("VIB", "EXCI")))))

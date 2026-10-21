@@ -52,6 +52,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Ball and Stick spent most of its frame in the bond-cap test, O(atoms x bonds) (#224)](bond-cap-test-was-quadratic.md)
 - [The unit cell is drawn only while the Periodic Builder panel is open](unit-cell-drawn-only-by-the-periodic-builder.md)
 - [The Vibrational Frequencies graph is `SpectrumCanvas` over the wx-free `VibSpectrum` model (#214)](vibrational-spectrum-canvas-214.md)
+- [The UV-vis Spectrum panel is the same canvas over `VibSpectrum` in electronic mode; the width is in eV on a nm axis too (#383)](uvvis-spectrum-is-the-vibspectrum-model-in-electronic-mode-383.md)
 - [Builder panel layouts (View > Panel layout): every pane stays an AUI pane; the one-column modes hide the inactive tab's panes](builder-panel-layouts-one-column.md)
 - [A structure opened from a file is not a calculation: `AbstractPropCalculation::getProperty()` throws](structure-file-calculations-throw-on-getproperty.md)
 - [wxMSW paints every intermediate state: panes before AUI places them, menu bars item by item; a disabled active window hands the activation away (#254, #255, #256)](windows-every-intermediate-state-is-painted.md)

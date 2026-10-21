@@ -503,6 +503,18 @@ End=CHEMICAL SHIELDING SUMMARY
 # only feed the monitor's live snapshot, not the property table.
 # SCF: the energy tolerance is printed once per SCF in its settings (the
 # geometry block's own "Energy Change TolE" has no leading space).
+# TD-DFT/CIS excited states (#383).  One block from the first "EXCITED
+# STATES" header through the electric-dipole absorption table, so both the
+# state listing and the spectrum rows reach orca.excited.  End is the velocity
+# table's header, which no other entry begins on.
+[EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS]
+Script=orca.excited
+Begin=^TD-DFT(/TDA)? EXCITED STATES
+Skip=0
+Frequency=last
+End=ABSORPTION SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS
+[END]
+
 [PROGRESS]
 Begin=^ Energy Change\s+TolE\s+\.{4}\s+(\S+) Eh
 Remember=scftol

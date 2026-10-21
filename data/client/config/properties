@@ -237,6 +237,14 @@ Vibration	Raman Activities			VIBRAM		RamanIntensity	PropVector<Normal Mode>
 Vibration	Raman Depolarization			VIBRAMDEPOL	NA		PropVector<Normal Mode>
 Vibration	Vib Mode Symmetries			VIBSYM		NA		PropVecString<Normal Mode>
 #
+#  TD-DFT/CIS excited states (#383), one row per root.  Energies are in eV,
+#  oscillator strengths dimensionless; EXCITRANS holds "from>to:coefficient"
+#  items per root (see scripts/parsers/excited.pl).
+EStruct	Excited-State Energies			EXCIENERGY	NA		PropVector<Excited State>
+EStruct	Excited-State Oscillator Strengths	EXCIOSC		NA		PropVector<Excited State>
+EStruct	Excited-State Symmetries		EXCISYM		NA		PropVecString<Excited State>
+EStruct	Excited-State Transitions		EXCITRANS	NA		PropVecString<Excited State>
+#
 #  Freq=Anharmonic (Gaussian 16).  Second-order perturbative fundamental
 #  bands: the anharmonic transition energy and integrated IR intensity,
 #  one per normal mode.  Displayed by DefaultVecPanel.

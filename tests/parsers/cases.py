@@ -35,6 +35,28 @@ CASES = [
     # -----------------------------------------------------------------
     # Gaussian 16
     # -----------------------------------------------------------------
+    # #383: Opt+TD, 10 singlets.  The fixture keeps the first block and the
+    # last (converged geometry); the last is what is stored.  Values are the
+    # "Excited State" lines of that last block, which G16 itself prints.
+    dict(
+        name='g16-h2co-tddft',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2co_tddft.log',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no Orbital symmetries block in '
+                                         'this fixture'},
+        parse_args=('.', 'GeoVib', 'DFT', 'B3LYP', '0'),
+        expect={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(keys={
+                'EXCIENERGY': {'values': '3.3832 6.9578 7.6606 7.8721 '
+                               '7.9066 8.2971 8.4586 9.5805 9.5907 10.3687',
+                               'units': 'eV'},
+                'EXCIOSC': {'values': '0.0000 0.0127 0.0296 0.0008 0.0315 '
+                            '0.1738 0.0000 0.0468 0.0000 0.0495'},
+                'EXCISYM': {'values_contain': 'Singlet-A2 Singlet-B2'},
+                'EXCITRANS': {'values_contain': '8>9:'},
+            }),
+        },
+    ),
     dict(
         name='g16-h2o-optfreq',
         desc='gaussian-16.desc',
@@ -414,6 +436,29 @@ CASES = [
         expect={
             'GEOMTRACE': dict(min_blocks=2, keys={'GEOMTRACE': {
                 'size': '1 5 3'}}),
+        },
+    ),
+    # #383: TD-DFT (TDA) singlets.  Energies and f are the rows of ORCA's
+    # "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS" table
+    # (eV column, fosc column); orbital numbers are the printed ones plus 1.
+    dict(
+        name='orca-h2co-tddft',
+        desc='orca.desc',
+        fixture='orca/h2co_tddft.out',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        expect={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(keys={
+                'EXCIENERGY': {'values': '4.018493 8.255707 9.154494 '
+                               '9.697642 10.280808 11.085267 11.610178 '
+                               '11.620493 13.143637 13.187152', 'units': 'eV'},
+                'EXCIOSC': {'values': '0.000000000 0.152342124 0.002342139 '
+                            '0.004444079 0.000000000 0.012484217 '
+                            '0.002710603 0.538095669 0.000000000 '
+                            '0.131140061'},
+                'EXCISYM': {'values_contain': 'Singlet Singlet'},
+                'EXCITRANS': {'values_contain': '8a>9a:0.99901186'},
+            }),
         },
     ),
     dict(

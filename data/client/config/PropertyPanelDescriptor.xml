@@ -333,6 +333,17 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>UV-vis Spectrum</name>
+    <group>Excited states</group>
+    <class>UvVisPanel</class>
+    <consumer>true</consumer>
+    <property name="EXCIENERGY"/>
+    <property name="EXCIOSC"/>
+    <property name="EXCISYM"/>
+    <property name="EXCITRANS"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Dipole Moment</name>
     <group>Electric properties</group>
     <class>MomentsPanel</class>
