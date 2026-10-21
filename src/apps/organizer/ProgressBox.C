@@ -13,9 +13,11 @@
 #include <wx/dcclient.h>
 #include <wx/menu.h>
 #include <wx/settings.h>
+#include <wx/stattext.h>
 
 #include "wxgui/PlotStyle.H"
 #include "wxgui/ewxConfig.H"
+#include "wxgui/ewxSelectableText.H"
 #include "wxgui/ewxThemeColours.H"
 
 #include "ProgressBox.H"
@@ -50,6 +52,10 @@ ProgressBox::ProgressBox(wxWindow *parent)
   Bind(wxEVT_LEFT_DOWN, &ProgressBox::OnClick, this);
   Bind(wxEVT_CONTEXT_MENU, &ProgressBox::OnContextMenu, this);
   ewxConfig::getConfig(INIFILE)->Read(FOLDKEY, &p_collapsed);
+  p_energyLabel = new wxStaticText(this, wxID_ANY, "");
+  ewxMakeSelectable(p_energyLabel);
+  p_energyLabel->Hide();
+  p_energyLabel->Bind(wxEVT_CONTEXT_MENU, &ProgressBox::OnContextMenu, this);
   for (int i = 0; i < 3; i++) {
     p_buttons[i] = new wxButton(this, wxID_ANY, ACTIONS[i]);
     p_buttons[i]->Hide();
@@ -275,6 +281,7 @@ wxSize ProgressBox::layout(wxDC *dc)
 {
   const bool lost = outOfContact();
   bool buttonsShown = false;
+  bool energyShown = false;
   wxSize size(0, 0);
   if (wanted()) {
     wxFont normal = GetFont();
@@ -419,7 +426,17 @@ wxSize ProgressBox::layout(wxDC *dc)
         // A finished job keeps its plots; the outcome goes under them.
         if (p_finished) {
           for (const string& s : outcome()) {
-            if (dc) {
+            //  The final energy is a real label, so it can be selected and
+            //  copied (#408); placed when measuring, like the buttons.
+            if (s == p_finalEnergy) {
+              if (!dc) {
+                p_energyLabel->SetLabel(U(s));
+                p_energyLabel->SetForegroundColour(text);
+                p_energyLabel->SetSize(0, y, m.GetTextExtent(U(s)).x + 2, lh);
+                p_energyLabel->Show();
+              }
+              energyShown = true;
+            } else if (dc) {
               dc->SetTextForeground(text);
               dc->DrawText(U(s), 0, y);
             }
@@ -469,6 +486,7 @@ wxSize ProgressBox::layout(wxDC *dc)
   }
   if (!dc && !buttonsShown)
     for (int i = 0; i < 3; i++) p_buttons[i]->Hide();
+  if (!dc && !energyShown) p_energyLabel->Hide();
   return size;
 }
 
@@ -487,4 +505,10 @@ void ProgressBox::OnPaint(wxPaintEvent&)
 void ProgressBox::OnTimer(wxTimerEvent&)
 {
   if (IsShownOnScreen()) Refresh(false);
+}
+
+
+bool ProgressBox::energySelectable() const
+{
+  return p_energyLabel->IsShown() && ewxIsSelectable(p_energyLabel);
 }

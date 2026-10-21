@@ -38,6 +38,7 @@
 
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxNonBoldLabel.H"
+#include "wxgui/ewxSelectableText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/EcceTool.H"
 #include "wxgui/WxResourceImageList.H"
@@ -595,6 +596,7 @@ wxBoxSizer* CalculationContextPanel::createPropHolder(ResourceProperty *resProp)
       wxDefaultSize,            //      unique name next
       0,                        // no special styles set (default)
       resProp->getName());  // how we will refer to this window later
+  ewxMakeSelectable(text);  // values can be selected and copied (#408)
 
   // add text portion of the property to sizer to return
   box->Add(text,

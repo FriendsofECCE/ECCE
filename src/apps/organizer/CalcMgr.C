@@ -1045,7 +1045,8 @@ void CalcMgr::runTestCommand(const string& line)
                   " stateicon=" + (panel->getStateIcon() &&
                                    panel->getStateIcon()->outOfContact()
                                    ? "running?" : "plain") +
-                  " copyvalue=" + box->copyText(0);
+                  " copyvalue=" + box->copyText(0) +
+                  " energyselectable=" + (box->energySelectable() ? "1" : "0");
         for (const string& l : box->describe()) outcome += " | " + l;
       }
     } else if (command == "table") {

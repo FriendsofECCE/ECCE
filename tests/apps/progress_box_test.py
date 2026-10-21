@@ -188,6 +188,8 @@ def run(display, pngs):
         energy = re.search(r"summary: Final energy (\S+) Hartree$", completed)
         check(energy is not None and field(completed, "copyvalue") == energy.group(1),
               "completed: Copy energy gives the value shown (#408)", completed)
+        check(field(completed, "energyselectable") == "1",
+              "completed: the final energy can be selected with the mouse (#408)", completed)
         check(field(none, "shown") == "0", "never launched: no box", none)
         for n in ("progress-running-stored.png", "progress-running-live.png",
                   "progress-completed.png"):

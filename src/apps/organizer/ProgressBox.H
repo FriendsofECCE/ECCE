@@ -20,6 +20,7 @@
 #include "util/JobProgress.H"
 
 class wxButton;
+class wxStaticText;
 
 class ProgressBox : public wxPanel
 {
@@ -55,6 +56,8 @@ public:
   // What the right-click menu copies: 0 the final energy's value, 1 with
   // its unit, 2 every line the box shows.
   std::string copyText(int what) const;
+  // The final energy is shown as a selectable label (for tests).
+  bool energySelectable() const;
 
   bool collapsed() const { return p_collapsed; }
   // Folds or unfolds, remembers it for this user and lays out again.
@@ -99,6 +102,7 @@ private:
   wxTimer p_timer;
   int p_paints;
   wxButton *p_buttons[3];
+  wxStaticText *p_energyLabel;
   std::function<void(int)> p_action;
   std::function<void()> p_relayout;
 };
