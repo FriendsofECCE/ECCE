@@ -1974,6 +1974,10 @@ set_tests_properties(cp2k_features PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
 target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
 add_test(NAME vibspectrum COMMAND vibspectrum_test)
+# The same model as an excited-state (UV-vis) spectrum (#383).
+add_executable(uvvis_test tests/spectrum/uvvis_test.C)
+target_link_libraries(uvvis_test PRIVATE eccetdat ecceutil)
+add_test(NAME uvvis COMMAND uvvis_test)
 
 # tests/atommap -- atom mapping and alignment of reactant/product/guess (#419)
 add_executable(atommap_cli tests/atommap/atommap_cli.C)

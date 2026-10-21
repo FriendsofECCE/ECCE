@@ -299,6 +299,17 @@ Frequency=last
 End=^ Total\s+\d+\.\d+\s+\d+\.\d+
 [END]
 
+# TD-DFT/CIS excited states.  One block per geometry, so an Opt+TD job
+# prints several; the last is the converged geometry.  End is the line that
+# follows the last root's transitions in every TD run.
+[EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS]
+Script=gaussian-16.excited
+Begin=Excitation energies and oscillator strengths
+Skip=0
+Frequency=last
+End=SavETr:
+[END]
+
 [NPA]
 Script=gaussian-16.npa
 Begin= Summary of Natural Population Analysis

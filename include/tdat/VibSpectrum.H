@@ -54,15 +54,25 @@ class SpectrumAxis
     void pan(double delta);
     void reset();
 
-    /** Narrowest window allowed, cm-1. */
+    /** Narrowest window allowed for wavenumbers, cm-1. */
     static double minSpan() { return 20.0; }
+    /** Narrowest window for another unit (eV, nm); default minSpan(). */
+    void setMinSpan(double span) { p_minSpan = span; }
 
   private:
     void clamp();
 
     double p_fullLo, p_fullHi, p_lo, p_hi;
     bool   p_reversed;
+    double p_minSpan;
 };
+
+/**
+ * What the x axis of a VibSpectrum measures.  Wavenumbers are the IR and
+ * Raman case; the electronic (UV-vis) spectrum stores energies in eV and can
+ * be drawn against energy or wavelength (#383).
+ */
+enum SpectrumXUnit { X_WAVENUMBER = 0, X_EV = 1, X_NM = 2 };
 
 /** Tick positions for an axis: round numbers, 1, 2 or 5 times 10^n. */
 struct SpectrumTicks
@@ -102,6 +112,44 @@ class VibSpectrum
 {
   public:
     VibSpectrum();
+
+    /**
+     * Make this an electronic spectrum (#383): the "modes" are excited
+     * states whose positions, given to setModes in eV, are drawn against
+     * eV or nm (hc/E), the intensities are oscillator strengths ("f") and
+     * the width is in eV.  The envelope is evaluated in eV whatever the axis,
+     * so a wavelength axis shows the same curve, not a Jacobian-stretched one.
+     * Anything but X_WAVENUMBER also drops the vibrational conventions: no
+     * near-zero or imaginary modes, no frequency scale.
+     */
+    void setXUnit(SpectrumXUnit unit) { p_x = unit; }
+    SpectrumXUnit xUnit() const { return p_x; }
+    bool electronic() const { return p_x != X_WAVENUMBER; }
+
+    /** Energy in eV of a position on the current axis, and the reverse. */
+    double toEv(double x) const;
+    double fromEv(double ev) const;
+    /** hc in eV nm. */
+    static double evNm() { return 1239.8419843320026; }
+
+    /** The unit's name for labels, UTF-8: "cm⁻¹", "eV" or "nm". */
+    string positionUnit() const;
+    /** Axis title under the plot, e.g. "Wavenumber (cm⁻¹, scaled by 0.96)". */
+    string xTitle() const;
+    /** Title of the broadened curve's axis, e.g. "IR envelope (km/mol per cm⁻¹)". */
+    string envelopeTitle(VibKind kind) const;
+    /** "Mode" or "State". */
+    string itemWord() const;
+    /** Hover line for a stick's position: "1789.3 cm⁻¹", "4.018 eV (308.5 nm)". */
+    string positionText(const VibStick& stick) const;
+    /** Prefix of the hover's intensity line: "IR  ", "Raman  " or "f  ". */
+    string intensityName(VibKind kind) const;
+    /** What the plot says when it has nothing to draw. */
+    string emptyMessage() const;
+    /** Free text per mode for the exports (excited-state transitions). */
+    void setNotes(const vector<string>& notes) { p_notes = notes; }
+    string note(int i) const
+    { return i >= 0 && i < (int)p_notes.size() ? p_notes[i] : string(); }
 
     /**
      * The modes, from VIBFREQ and (optionally) VIBSYM.  Clears any
@@ -161,7 +209,11 @@ class VibSpectrum
     static double zeroTolerance() { return 10.0; }
 
     /** Scaled wavenumber of mode i. */
-    double wavenumber(int i) const { return p_freq[i] * p_scale; }
+    double wavenumber(int i) const
+    {
+      const double v = p_freq[i] * p_scale;
+      return p_x == X_NM ? fromEv(v) : v;     // the position on the axis
+    }
     bool   isVibration(int i) const;
     bool   isImaginary(int i) const;
 
@@ -222,7 +274,13 @@ class VibSpectrum
 
   private:
     double drawn(VibKind kind, int i) const;
+    void electronicRange(double minPos, double maxPos, bool any,
+                         double *lo, double *hi) const;
+    /** Position in the unit the stored values are in (cm-1 or eV), scaled. */
+    double nativeOf(double x) const { return p_x == X_NM ? toEv(x) : x; }
 
+    SpectrumXUnit  p_x;
+    vector<string> p_notes;
     vector<double> p_freq;
     vector<string> p_irrep;
     vector<double> p_inten[2];

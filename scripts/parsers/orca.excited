@@ -1,0 +1,29 @@
+#!/usr/bin/env perl
+# TD-DFT excited states: the "STATE n:" listing (multiplicity, leading
+# transitions) and, from the same block, ABSORPTION SPECTRUM VIA TRANSITION
+# ELECTRIC DIPOLE MOMENTS (energy and oscillator strength, 6 and 9 digits).
+#  STATE  2:  E=   0.303392 au      8.256 eV    66586.8 cm**-1 <S**2> =   0.000000 Mult 1
+#      7a ->   9a  :     0.995362 (c= -0.99767817)
+#   0-1A  ->  2-1A    8.255707   66586.8   150.2   0.152342124 ...
+# ORCA counts orbitals from 0; they are written 1-based here.
+$| = 1;
+use FindBin;
+require "$FindBin::Bin/excited.pl";
+my %mult = (1 => "Singlet", 2 => "Doublet", 3 => "Triplet");
+my (@st, %spec);
+while (<STDIN>) {
+  if (/^STATE\s+(\d+):\s+E=\s*\S+ au\s+(-?\d+\.\d+) eV.*Mult\s+(\d+)/) {
+    push(@st, { n => $1, m => $3, ev => $2, f => "0.0",
+                label => ($mult{$3} || "Mult$3"), trans => [] });
+  } elsif (@st && /^\s+(\d+)([ab])\s*->\s*(\d+)([ab])\s*:\s+\S+\s+\(c=\s*(-?\d+\.\d+)\)/) {
+    push(@{$st[-1]{trans}}, ($1 + 1) . "$2>" . ($3 + 1) . "$4:$5");
+  } elsif (/^\s*\d+-\d+\S*\s+->\s+(\d+)-(\d+)\S*\s+(\d+\.\d+)\s+\d+\.\d+\s+\d+\.\d+\s+(\d+\.\d+)/) {
+    $spec{"$2/$1"} = [ $3, $4 ];
+  }
+}
+foreach my $s (@st) {
+  my $r = $spec{"$s->{m}/$s->{n}"};
+  if ($r) { $s->{ev} = $r->[0]; $s->{f} = $r->[1]; }
+}
+&emitExcited(@st);
+exit(0);
