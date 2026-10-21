@@ -510,7 +510,39 @@ class SpectrumCanvas : public wxPanel
           if (s.mode == p_s->selected) paintSelection(dc, pane, x, y, s.mode);
         }
       }
+      //  The second calculation (#173), in its own colour on the same
+      //  axes: its curve outline and, with the sticks, thin sticks.  Not
+      //  clickable; the table and the mode animation belong to the first.
+      const bool second = p_s->spec.hasCompare(kind);
+      if (second) {
+        const wxColour other = p_palette.series(3);
+        if (envelope) {
+          std::vector<wxPoint> c2;
+          for (int px = 0; px < pane.width; px++) {
+            const double wn = p_s->axis.fromFraction(
+                (px + 0.5) / (double)pane.width);
+            c2.push_back(wxPoint(pane.x + px,
+                                 yOf(pane, p_s->spec.compareEnvelope(kind, wn),
+                                     envAxis.y.top)));
+          }
+          if (c2.size() > 1) {
+            dc.SetPen(wxPen(other, 2));
+            dc.DrawLines((int)c2.size(), &c2[0]);
+          }
+        }
+        if (drawSticks) {
+          const std::vector<VibStick> cs = p_s->spec.compareSticks(kind);
+          dc.SetPen(wxPen(other, 1));
+          for (size_t i = 0; i < cs.size(); i++) {
+            if (cs[i].wavenumber < lo || cs[i].wavenumber > hi) continue;
+            const int x = xOf(pane, cs[i].wavenumber);
+            dc.DrawLine(x, base, x, yOf(pane, cs[i].intensity,
+                                        sc.left.y.top));
+          }
+        }
+      }
       dc.DestroyClippingRegion();
+      if (second) paintKey(dc, pane, series, p_palette.series(3));
 
       //  Frame, ticks and labels.
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -584,6 +616,33 @@ class SpectrumCanvas : public wxPanel
       dc.DrawText(t, std::min(std::max(x - e.x / 2, pane.x),
                               pane.GetRight() - e.x),
                   std::max(pane.y, top - e.y - 2));
+    }
+
+    //  Which curve is which calculation: a swatch and a name each, at the
+    //  top left of the pane.
+    void paintKey(wxDC& dc, const wxRect& pane, const wxColour& first,
+                  const wxColour& second)
+    {
+      dc.SetFont(*wxSMALL_FONT);
+      const wxString names[2] = {
+        wxString::FromUTF8(p_s->spec.label().c_str()),
+        wxString::FromUTF8(p_s->spec.compareLabel().c_str()) };
+      const wxColour cols[2] = { first, second };
+      const int rowH = dc.GetCharHeight() + 2;
+      int w = 0;
+      for (int i = 0; i < 2; i++) w = std::max(w, dc.GetTextExtent(names[i]).x);
+      w += 34;
+      dc.SetPen(wxPen(p_palette.grid, 1));
+      dc.SetBrush(wxBrush(SpectrumPalette::mix(p_palette.background,
+                                               p_palette.text, 0.03)));
+      dc.DrawRectangle(pane.x + 6, pane.y + 4, w, 2 * rowH + 6);
+      for (int i = 0; i < 2; i++) {
+        const int y = pane.y + 7 + i * rowH;
+        dc.SetPen(wxPen(cols[i], 3));
+        dc.DrawLine(pane.x + 11, y + rowH / 2, pane.x + 27, y + rowH / 2);
+        dc.SetTextForeground(p_palette.text);
+        dc.DrawText(names[i], pane.x + 32, y);
+      }
     }
 
     //  IR | Raman, at the top right of the plot: which pane the compact

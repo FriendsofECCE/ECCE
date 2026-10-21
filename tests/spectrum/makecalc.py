@@ -77,6 +77,16 @@ def vector(key, flat):
                flat.get("units", "NA"), "   ".join(values)))
 
 
+CHARGE_KEYS = ("MULLIKEN", "NPA", "APT", "ESPFIT")
+
+
+def atomvector(key, flat):
+    values = flat["values"].split()
+    return ('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+            '<vector name="%s" rowLabel="Atom" rows="%d" units="e">%s</vector>\n'
+            % (key, len(values), "   ".join(values)))
+
+
 def vecstring(key, flat):
     values = flat["values"].split()
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
@@ -131,6 +141,9 @@ def make(caseName, out):
             write(key, vector(key, props[key]))
         else:
             drop(key)
+    for key in CHARGE_KEYS:
+        if key in props:
+            write(key, atomvector(key, props[key]))
     if "VIBSYM" in props:
         write("VIBSYM", vecstring("VIBSYM", props["VIBSYM"]))
     if props["VIB"]["size"].split()[1] == "2":

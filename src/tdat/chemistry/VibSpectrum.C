@@ -289,6 +289,45 @@ double VibSpectrum::envelope(VibKind kind, double wn) const
   return sum;
 }
 
+void VibSpectrum::setCompare(const VibSpectrum& other, const string& label)
+{
+  p_cmp.reset(new VibSpectrum(other));
+  p_cmp->p_cmp.reset();
+  p_cmp->p_scale = p_scale;
+  p_cmp->p_fwhm = p_fwhm;
+  p_cmp->p_shape = p_shape;
+  p_cmpLabel = label;
+}
+
+//  Both known units (km/mol) or both relative: as printed.  Otherwise the
+//  second is stretched so its tallest stick equals this one's.
+double VibSpectrum::compareFactor(VibKind kind) const
+{
+  if (!hasCompare(kind) || !p_has[kind]) return 1.0;
+  if (p_relative[kind] == p_cmp->p_relative[kind]) return 1.0;
+  double mine = 0, theirs = 0;
+  const vector<VibStick> a = sticks(kind), b = p_cmp->sticks(kind);
+  for (size_t i = 0; i < a.size(); i++) mine = max(mine, a[i].intensity);
+  for (size_t i = 0; i < b.size(); i++) theirs = max(theirs, b[i].intensity);
+  return theirs > 0 && mine > 0 ? mine / theirs : 1.0;
+}
+
+vector<VibStick> VibSpectrum::compareSticks(VibKind kind) const
+{
+  vector<VibStick> out;
+  if (!hasCompare(kind)) return out;
+  out = p_cmp->sticks(kind);
+  const double f = compareFactor(kind);
+  for (size_t i = 0; i < out.size(); i++) out[i].intensity *= f;
+  return out;
+}
+
+double VibSpectrum::compareEnvelope(VibKind kind, double wn) const
+{
+  if (!hasCompare(kind)) return 0.0;
+  return p_cmp->envelope(kind, wn) * compareFactor(kind);
+}
+
 double VibSpectrum::maxStick(VibKind kind, double lo, double hi) const
 {
   double m = 0;
@@ -296,22 +335,34 @@ double VibSpectrum::maxStick(VibKind kind, double lo, double hi) const
   for (size_t i = 0; i < s.size(); i++)
     if (s[i].wavenumber >= lo && s[i].wavenumber <= hi)
       m = max(m, s[i].intensity);
+  const vector<VibStick> c = compareSticks(kind);
+  for (size_t i = 0; i < c.size(); i++)
+    if (c[i].wavenumber >= lo && c[i].wavenumber <= hi)
+      m = max(m, c[i].intensity);
   return m;
 }
 
 double VibSpectrum::maxEnvelope(VibKind kind, double lo, double hi) const
 {
-  if (!p_has[kind] || !(p_fwhm > 0) || !(hi > lo)) return 0.0;
+  if (!(p_fwhm > 0) || !(hi > lo) || (!p_has[kind] && !hasCompare(kind)))
+    return 0.0;
   //  Sampled finely enough to find the top of the narrowest line, and at
   //  each band centre, which is where a lone line peaks.
   const int n = (int)min(20000.0, max(200.0, 8.0 * (hi - lo) / p_fwhm));
   double m = 0;
-  for (int i = 0; i <= n; i++)
-    m = max(m, envelope(kind, lo + (hi - lo) * i / n));
+  for (int i = 0; i <= n; i++) {
+    const double x = lo + (hi - lo) * i / n;
+    m = max(m, max(envelope(kind, x), compareEnvelope(kind, x)));
+  }
   for (int i = 0; i < (int)p_freq.size(); i++) {
     const double c = wavenumber(i);
     if (c >= lo && c <= hi) m = max(m, envelope(kind, c));
   }
+  if (p_cmp)
+    for (int i = 0; i < (int)p_cmp->p_freq.size(); i++) {
+      const double c = p_cmp->wavenumber(i);
+      if (c >= lo && c <= hi) m = max(m, compareEnvelope(kind, c));
+    }
   return m;
 }
 
@@ -326,6 +377,14 @@ void VibSpectrum::defaultRange(double *lo, double *hi) const
     if (isImaginary(i)) minImag = min(minImag, w);
     else { minReal = min(minReal, w); maxReal = max(maxReal, w); }
   }
+  if (p_cmp)
+    for (int i = 0; i < (int)p_cmp->p_freq.size(); i++) {
+      if (!p_cmp->isVibration(i)) continue;
+      const double w = p_cmp->wavenumber(i);
+      any = true;
+      if (p_cmp->isImaginary(i)) minImag = min(minImag, w);
+      else { minReal = min(minReal, w); maxReal = max(maxReal, w); }
+    }
   if (!any || maxReal < 0) { *lo = 0; *hi = 4000; return; }
   //  The margin grows with the range: 100 cm-1 is a few pixels in the
   //  docked panel, and a band at the edge looked cut off.
@@ -339,6 +398,15 @@ void VibSpectrum::defaultRange(double *lo, double *hi) const
   *hi = h;
 }
 
+//  A calculation's name as a column heading: nothing that splits a field.
+static string headingOf(const string& name, const char *fallback)
+{
+  string t;
+  for (size_t i = 0; i < name.size(); i++)
+    t += (name[i] == ',' || name[i] == '"' || name[i] == '\n') ? '_' : name[i];
+  return t.empty() ? string(fallback) : t;
+}
+
 string vibSpectrumCsv(const VibSpectrum& s, VibKind kind,
                       const SpectrumCsvInfo& info,
                       double lo, double hi, double step)
@@ -347,6 +415,9 @@ string vibSpectrumCsv(const VibSpectrum& s, VibKind kind,
   out.imbue(std::locale::classic());
   out.precision(8);
   const bool curve = s.fwhm() > 0 && step > 0 && hi > lo;
+  const bool second = s.hasCompare(kind);
+  const string nameA = headingOf(info.calculation, "first");
+  const string nameB = headingOf(s.compareLabel(), "second");
 
   out << "# ECCE vibrational spectrum\n";
   out << "# calculation: " << info.calculation << "\n";
@@ -358,6 +429,11 @@ string vibSpectrumCsv(const VibSpectrum& s, VibKind kind,
       << (curve ? (s.lineShape() == LINE_LORENTZIAN ? "Lorentzian" : "Gaussian")
                 : "none")
       << ", FWHM " << s.fwhm() << " cm-1\n";
+  if (second) {
+    out << "# compared with: " << s.compareLabel();
+    if (!info.compareCode.empty()) out << " (" << info.compareCode << ")";
+    out << ", same scaling factor and broadening\n";
+  }
   out << "# wavenumbers are scaled; the curve is intensity per cm-1\n";
   out << "# sticks\n";
   out << "mode,frequency_cm-1";
@@ -379,14 +455,29 @@ string vibSpectrumCsv(const VibSpectrum& s, VibKind kind,
     out << "," << base[i].irrep << "\n";
   }
 
+  if (second) {
+    out << "\n# sticks of " << s.compareLabel() << "\n";
+    out << "mode,frequency_cm-1,intensity,symmetry\n";
+    const vector<VibStick> cs = s.compareSticks(kind);
+    for (size_t i = 0; i < cs.size(); i++)
+      out << cs[i].mode + 1 << "," << cs[i].wavenumber << ","
+          << cs[i].intensity << "," << cs[i].irrep << "\n";
+  }
+
   if (curve) {
     out << "\n# broadened curve, " << step << " cm-1 grid from " << lo
         << " to " << hi << "\n";
-    out << "wavenumber_cm-1,intensity\n";
+    if (second)
+      out << "wavenumber_cm-1,intensity_" << nameA << ",intensity_" << nameB
+          << "\n";
+    else
+      out << "wavenumber_cm-1,intensity\n";
     const long n = (long)std::floor((hi - lo) / step + 1e-9);
     for (long i = 0; i <= n; i++) {
       const double x = lo + i * step;
-      out << x << "," << s.envelope(kind, x) << "\n";
+      out << x << "," << s.envelope(kind, x);
+      if (second) out << "," << s.compareEnvelope(kind, x);
+      out << "\n";
     }
   }
   return out.str();
