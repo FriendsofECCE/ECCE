@@ -96,6 +96,7 @@ def makeProject(folder):
     shutil.rmtree(folder, ignore_errors=True)
     user = os.path.join(folder, "users", "local")
     os.makedirs(user)
+    os.environ["ECCE_EXPERIMENTAL_TS"] = "1"   # QST is offered only then (#419)
     env = dict(os.environ, ECCE_HOME=apps.INSTALL, ECCE_LOCAL_DATA=folder,
                ECCE_REALUSER=getpass.getuser(), ECCE_NO_MESSAGING="1",
                LD_LIBRARY_PATH=build)

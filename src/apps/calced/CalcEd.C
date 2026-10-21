@@ -2601,7 +2601,18 @@ void CalcEd::populateRuntypes()
     TTheory theory = getTheory();
     vector<TRunType> *runTypes = p_code->runTypes(&theory);
     vector<TRunType>::iterator it;
+    //  QST and NEB-TS are being redesigned (#419): offered only with
+    //  ECCE_EXPERIMENTAL_TS set, or when the calculation already has one
+    //  (an imported job), so its run type still shows.
+    const char *ts = getenv("ECCE_EXPERIMENTAL_TS");
+    const bool offerTS = (ts && *ts && strcmp(ts, "0") != 0);
+    string current;
+    if (p_iCalc) current = p_iCalc->runtype().name();
     for (it = runTypes->begin(); it != runTypes->end(); it++) {
+      const bool tsRun = it->name().compare(0, 22, "Transition State (QST)") == 0
+                      || it->name().compare(0, 25, "Transition State (NEB-TS)") == 0;
+      if (tsRun && !offerTS && it->name() != current)
+        continue;
       if (p_frag && p_frag->numAtoms() > 1)
         choice->Append(it->name(), new ewxBoolClientData(it->noSpherical()));
       else if (it->name() != "Geometry"
