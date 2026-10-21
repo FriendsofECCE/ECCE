@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <fstream>
 #include <iostream>
   using std::cerr;
@@ -32,6 +33,7 @@
 #include "dsm/VDoc.H"
 
 #include "CalcEd.H"
+#include "QstStructures.H"
 
 
 string CalcEd::changeWD(const string& newDir)
@@ -62,6 +64,27 @@ bool CalcEd::write_cs(const string& output_file)
   }
 
   return status;
+}
+
+bool CalcEd::write_qst(const string& base)
+{
+  p_qstStatus.clear();
+  for (char k = '1'; k <= '3'; k++)
+    remove((base + ".qst" + k + ".frag").c_str());
+
+  GUIValues* g = p_iCalc->guiparams();
+  GUIValue* find = g ? g->get("ES.Runtype.GeomOpt.SearchFor") : 0;
+  const string rt = p_iCalc->runtype().name();
+  if (!find || find->getValueAsString() != "Transition State (QST)" ||
+      (rt != "Geometry" && rt != "GeoVib"))
+    return true;
+
+  string status, warning;
+  const bool ok = qstWriteStructureFiles(p_iCalc, base, status, warning);
+  p_qstStatus = status;
+  if (!warning.empty())
+    p_inputGenWarnings.push_back(std::make_pair(string("Opt"), warning));
+  return ok;
 }
 
 bool CalcEd::write_esp(const string& output_file, bool& file_flag)
@@ -387,6 +410,9 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
       if (!write_cs(frag_file))
         message = "Input files could not be generated--failed writing "
                   "chemical system";
+      else if (!write_qst(tempFileName))
+        message = "Input files could not be generated--failed writing "
+                  "the QST structures";
       else if (!write_esp(esp_file, esp_file_flag))
         message ="Input files could not be generated--failed writing "
                  "ESP file";

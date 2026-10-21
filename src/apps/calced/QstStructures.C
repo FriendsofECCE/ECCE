@@ -1,0 +1,167 @@
+#include <cstdio>
+#include <fstream>
+#include <sstream>
+
+#include "dsm/EDSIFactory.H"
+#include "dsm/ICalculation.H"
+#include "dsm/ResourceDescriptor.H"
+#include "tdat/AtomMap.H"
+#include "tdat/Fragment.H"
+#include "tdat/GUIValues.H"
+#include "tdat/TAtm.H"
+#include "util/EcceURL.H"
+#include "util/TempStorage.H"
+#include "util/SFile.H"
+
+#include "QstStructures.H"
+
+bool qstFinalStructure(PropertyTask* calc, std::vector<std::string>& el,
+                       std::vector<double>& xyz, bool& optimised)
+{
+   el.clear();
+   xyz.clear();
+   optimised = false;
+   if (!calc) return false;
+   Fragment* frag = calc->fragment();
+   if (!frag) return false;
+   optimised = calc->getFragmentStep(frag, -1);
+   for (size_t i = 0; i < frag->numAtoms(); i++) {
+      const TAtm* a = frag->atomRef((int)i);
+      el.push_back(a->atomicSymbol());
+      const double* c = a->coordinates();
+      xyz.push_back(c[0]); xyz.push_back(c[1]); xyz.push_back(c[2]);
+   }
+   delete frag;
+   return !el.empty();
+}
+
+std::vector<QstEntry> qstCandidates(ICalculation* self)
+{
+   std::vector<QstEntry> out;
+   Resource* parent = EDSIFactory::getResource(self->getURL().getParent());
+   if (!parent) return out;
+   std::vector<Resource*>* kids = parent->getChildren();
+   if (!kids) return out;
+   for (size_t i = 0; i < kids->size(); i++) {
+      ICalculation* c = dynamic_cast<ICalculation*>((*kids)[i]);
+      if (!c || c->getURL().toString() == self->getURL().toString()) continue;
+      std::vector<std::string> el;
+      std::vector<double> xyz;
+      bool opt;
+      if (!qstFinalStructure(c, el, xyz, opt)) continue;
+      QstEntry e;
+      e.name = c->getName();
+      e.url = c->getURL().toString();
+      e.kind = opt ? "optimised" : "input";
+      out.push_back(e);
+   }
+   return out;
+}
+
+std::string qstWriteCandidateFile(const std::vector<QstEntry>& entries)
+{
+   SFile* f = TempStorage::getTempFile();
+   if (!f) return "";
+   const std::string path = f->path();
+   delete f;
+   std::ofstream os(path.c_str());
+   if (!os) return "";
+   for (size_t i = 0; i < entries.size(); i++)
+      os << entries[i].name << '\t' << entries[i].url << '\t'
+         << entries[i].kind << '\n';
+   return path;
+}
+
+static bool writeFrag(const std::string& file, const std::string& title,
+                      const std::vector<std::string>& el,
+                      const std::vector<double>& xyz)
+{
+   std::ofstream os(file.c_str());
+   if (!os) return false;
+   os.precision(10);
+   os << "ecce\nnum_atoms: " << el.size() << "\ntitle: " << title
+      << "\natom_info: symbol x y z\natom_list:\n";
+   for (size_t i = 0; i < el.size(); i++)
+      os << el[i] << ' ' << xyz[3*i] << ' ' << xyz[3*i+1] << ' '
+         << xyz[3*i+2] << '\n';
+   return (bool)os;
+}
+
+static std::string value(GUIValues* g, const char* key)
+{
+   GUIValue* v = g ? g->get(key) : 0;
+   return v ? v->getValueAsString() : "";
+}
+
+bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
+                            std::string& status, std::string& warning)
+{
+   status.clear();
+   warning.clear();
+   GUIValues* g = self->guiparams();
+   const std::string urls[3] = {
+      value(g, "ES.Runtype.GeomOpt.QSTReactant"),
+      value(g, "ES.Runtype.GeomOpt.QSTProduct"), "" };
+   const bool guess = value(g, "ES.Runtype.GeomOpt.QSTGuess") == "1";
+   if (urls[0].empty() || urls[1].empty()) {
+      warning = "Transition State (QST): pick the reactant and product "
+                "calculations in the Runtype Details.";
+      return true;
+   }
+
+   // The calculation's own structure fixes the atom order; with the tick it
+   // is the TS guess.
+   std::vector<std::string> refEl;
+   std::vector<double> ref;
+   bool refOpt;
+   if (!qstFinalStructure(self, refEl, ref, refOpt)) return false;
+
+   std::vector<std::string> els[3];
+   std::vector<double> xyz[3];
+   const char* role[3] = {"Reactant", "Product", "TS guess"};
+   int n = 2 + (guess ? 1 : 0);
+   std::ostringstream st, rm, wr;
+   for (int k = 0; k < n; k++) {
+      std::string title = role[k];
+      if (k < 2) {
+         PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(urls[k].c_str()));
+         bool opt;
+         if (!qstFinalStructure(t, els[k], xyz[k], opt)) {
+            warning = std::string("Transition State (QST): the ") + role[k] +
+                      " calculation has no structure.";
+            return true;
+         }
+         title = t->getName();
+      } else {
+         els[k] = refEl;
+         xyz[k] = ref;
+         title = "this_calculation";
+      }
+      const AtomMapResult r = AtomMap::map(refEl, ref, els[k], xyz[k]);
+      if (!r.ok) {
+         warning = std::string("Transition State (QST): ") + role[k] +
+                   ": " + r.error + " The input is not complete.";
+         return true;
+      }
+      AtomMap::apply(r.alignment, xyz[k]);
+      xyz[k] = AtomMap::renumber(xyz[k], r.map);
+      els[k] = AtomMap::renumber(els[k], r.map);
+      st << role[k] << " renumbered: " << r.nChanged
+         << " atoms changed place. ";
+      char buf[32];
+      sprintf(buf, "%.2f", r.alignment.rmsdAfter);
+      rm << (k ? ", " : "") << buf << " A (" << role[k] << ")";
+      if (!r.far.empty())
+         wr << role[k] << ": " << r.far.size()
+            << " atom(s) move more than 1 A after alignment. ";
+      if (!writeFrag(base + ".qst" + char('1'+k) + ".frag", title, els[k],
+                     xyz[k]))
+         return false;
+   }
+   char cnt[16];
+   sprintf(cnt, "%d", (int)refEl.size());
+   status = std::string("Atoms matched (") + cnt + "). " + st.str() +
+            "Aligned: RMSD " + rm.str() + ".";
+   warning = wr.str();
+   return true;
+}

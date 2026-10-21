@@ -70,6 +70,7 @@
 #include "wxgui/WxFeedback.H"
 
 #include "CalcEd.H"
+#include "QstStructures.H"
 #include "VerifyReportDialog.H"
 #include "PartialCharge.H"
 
@@ -1129,7 +1130,9 @@ void CalcEd::OnMenuCalcedRegenInputClick( wxCommandEvent& event )
 
   if (generateInput(false)) {
     if (p_inputGenWarnings.empty())
-      p_feedback->setMessage("Input file regenerated.", WxFeedback::INFO);
+      p_feedback->setMessage("Input file regenerated." +
+                             (p_qstStatus.empty() ? string() : " " + p_qstStatus),
+                             WxFeedback::INFO);
     else
       p_feedback->setMessage("Input file regenerated with warnings. "
                              "See Verify.", WxFeedback::WARNING);
@@ -4089,7 +4092,8 @@ void CalcEd::doSave()
     if (!p_inputGenFailed) {
       if (p_inputGenWarnings.empty())
         p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
-                               ".", WxFeedback::INFO);
+                               "." + (p_qstStatus.empty() ? string()
+                                      : " " + p_qstStatus), WxFeedback::INFO);
       else
         p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
                                ". Input file generated with warnings. "
@@ -4559,6 +4563,12 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     wxRect r = GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
+    // The dialog cannot see the project: hand the Gaussian 16 dialog the
+    // calculations it may pick for Opt=QST2/QST3.
+    if (cmd.find("ged16runtype") != string::npos) {
+      const string list = qstWriteCandidateFile(qstCandidates(p_iCalc));
+      wxSetEnv("ECCE_QST_CANDIDATES", list);
+    }
     if (!launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke runtype details dialog",
                              WxFeedback::ERROR);

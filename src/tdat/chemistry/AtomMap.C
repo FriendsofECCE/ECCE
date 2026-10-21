@@ -108,28 +108,32 @@ static double rmsdOf(const vector<double>& ref, const vector<double>& mov,
    return map.empty() ? 0.0 : sqrt(s/map.size());
 }
 
-AtomAlignment AtomMap::align(const vector<double>& ref,
-                             const vector<double>& mov,
-                             const vector<int>& map)
+// Weighted Kabsch; weight[i] == 0 leaves atom i out of the fit.
+static AtomAlignment alignWeighted(const vector<double>& ref,
+                                   const vector<double>& mov,
+                                   const vector<int>& map,
+                                   const vector<double>& weight)
 {
    AtomAlignment al;
    const size_t n = map.size();
    if (n == 0) return al;
    al.rmsdBefore = rmsdOf(ref, mov, map);
 
-   double cm[3] = {0,0,0}, cr[3] = {0,0,0};
-   for (size_t i = 0; i < n; i++)
+   double cm[3] = {0,0,0}, cr[3] = {0,0,0}, wsum = 0.0;
+   for (size_t i = 0; i < n; i++) {
+      wsum += weight[i];
       for (int k = 0; k < 3; k++) {
-         cm[k] += mov[3*i+k];
-         cr[k] += ref[3*map[i]+k];
+         cm[k] += weight[i]*mov[3*i+k];
+         cr[k] += weight[i]*ref[3*map[i]+k];
       }
-   for (int k = 0; k < 3; k++) { cm[k] /= n; cr[k] /= n; }
+   }
+   for (int k = 0; k < 3; k++) { cm[k] /= wsum; cr[k] /= wsum; }
 
    double S[3][3] = {{0,0,0},{0,0,0},{0,0,0}};   // S[a][b] = sum m_a r_b
    for (size_t i = 0; i < n; i++)
       for (int a = 0; a < 3; a++)
          for (int b = 0; b < 3; b++)
-            S[a][b] += (mov[3*i+a]-cm[a]) * (ref[3*map[i]+b]-cr[b]);
+            S[a][b] += weight[i] * (mov[3*i+a]-cm[a]) * (ref[3*map[i]+b]-cr[b]);
 
    double N[16] = {
       S[0][0]+S[1][1]+S[2][2], S[1][2]-S[2][1], S[2][0]-S[0][2], S[0][1]-S[1][0],
@@ -155,9 +159,48 @@ AtomAlignment AtomMap::align(const vector<double>& ref,
       al.t[a] = cr[a] - (R[3*a]*cm[0] + R[3*a+1]*cm[1] + R[3*a+2]*cm[2]);
 
    vector<double> moved(mov);
-   apply(al, moved);
+   AtomMap::apply(al, moved);
    al.rmsdAfter = rmsdOf(ref, moved, map);
    return al;
+}
+
+AtomAlignment AtomMap::align(const vector<double>& ref,
+                             const vector<double>& mov,
+                             const vector<int>& map)
+{
+   return alignWeighted(ref, mov, map, vector<double>(map.size(), 1.0));
+}
+
+// Masses for the mass-weighted fallback: only the ratios matter.
+static double massOf(const string& el)
+{
+   static const char* sym[] = {"H","He","Li","Be","B","C","N","O","F","Ne",
+      "Na","Mg","Al","Si","P","S","Cl","Ar","K","Ca","Sc","Ti","V","Cr","Mn",
+      "Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr"};
+   static const double m[] = {1.008,4.003,6.94,9.012,10.81,12.011,14.007,
+      15.999,18.998,20.18,22.99,24.305,26.982,28.085,30.974,32.06,35.45,
+      39.948,39.098,40.078,44.956,47.867,50.942,51.996,54.938,55.845,58.933,
+      58.693,63.546,65.38,69.723,72.63,74.922,78.971,79.904,83.798};
+   for (size_t i = 0; i < sizeof(sym)/sizeof(sym[0]); i++)
+      if (el == sym[i]) return m[i];
+   return 100.0;   // heavier than anything tabulated; rare in these inputs
+}
+
+AtomAlignment AtomMap::alignHeavy(const vector<double>& ref,
+                                  const vector<double>& mov,
+                                  const vector<int>& map,
+                                  const vector<string>& movEl)
+{
+   vector<double> w(map.size());
+   int heavy = 0;
+   for (size_t i = 0; i < map.size(); i++) {
+      const bool h = (movEl[i] == "H" || movEl[i] == "D" || movEl[i] == "T");
+      w[i] = h ? 0.0 : 1.0;
+      heavy += !h;
+   }
+   if (heavy < 3)
+      for (size_t i = 0; i < map.size(); i++) w[i] = massOf(movEl[i]);
+   return alignWeighted(ref, mov, map, w);
 }
 
 void AtomMap::apply(const AtomAlignment& a, vector<double>& c)
@@ -481,7 +524,7 @@ AtomMapResult AtomMap::map(const vector<string>& refEl, const vector<double>& re
    res.map = best;
    res.identity = (best == ident);
    for (size_t i = 0; i < n; i++) if (best[i] != (int)i) res.nChanged++;
-   res.alignment = align(ref, mov, best);
+   res.alignment = alignHeavy(ref, mov, best, movEl);
    vector<double> placed(mov);
    apply(res.alignment, placed);
    res.displacement.resize(n);

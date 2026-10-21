@@ -247,6 +247,30 @@ static void testReaction(const std::string& root)
    }
 }
 
+// Alignment rule (#419): with >= 3 heavy atoms the fit uses them alone, so a
+// moved H cannot drag the skeleton; with fewer (HCN/HNC above) the fit is
+// mass-weighted over all atoms and the H shows up as the misfit.
+static void testHeavyAlignment(const std::string& root)
+{
+   Xyz p;
+   readMvm(root + "/data/client/StructureLibrary/SimpleStructures/Miscellaneous2/Propane.mvm", p);
+   Xyz q = p;
+   int h = -1;
+   for (size_t i = 0; i < p.el.size(); i++) if (p.el[i] == "H") { h = (int)i; break; }
+   for (int k = 0; k < 3; k++) q.c[3*h+k] += 2.0;
+   std::vector<int> order(p.el.size());
+   for (size_t i = 0; i < order.size(); i++) order[i] = (int)i;
+   const Xyz m = scramble(q, order, true);
+   const AtomMapResult r = AtomMap::map(p.el, p.c, m.el, m.c);
+   CHECK(r.ok && r.identity, "propane with one displaced H keeps its order");
+   if (!r.ok) return;
+   double heavyMax = 0;
+   for (size_t i = 0; i < p.el.size(); i++)
+      if (p.el[i] != "H") heavyMax = std::max(heavyMax, r.displacement[i]);
+   CHECK(heavyMax < 1e-3, "heavy atoms must superpose exactly, worst %g", heavyMax);
+   CHECK(r.far.size() == 1 && r.far[0] == h, "only the displaced H is flagged (%d)", (int)r.far.size());
+}
+
 static void testErrors(const std::string& root)
 {
    Xyz p, e;
@@ -272,6 +296,7 @@ int main(int argc, char** argv)
    testPermutations(root);
    testIdentity(root);
    testReaction(root);
+   testHeavyAlignment(root);
    testErrors(root);
    printf(failures ? "%d FAILURES\n" : "all atommap tests passed\n", failures);
    return failures ? 1 : 0;
