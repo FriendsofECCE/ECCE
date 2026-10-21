@@ -49,6 +49,7 @@
 //    overlay                     the column's tab (1 = Properties), and for
 //                                each viewer panel: shown, viz focus
 //    rows PANEL                  the rows of a key/value panel (Energies)
+//    tablecopy PANEL             Copy all of the first table in PANEL
 //    fold PANEL GROUP            a click on that group's heading
 //    vector PROP                 each arrow under PROP's property switch, as
 //                                drawn: start, unit direction, farthest
@@ -104,6 +105,7 @@
 #include "viz/SGFragment.H"
 
 #include "viz/FindSymmetryCmd.H"
+#include "wxgui/ewxGrid.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxProgressDialog.H"
 #include "wxgui/PerTabPanel.H"
@@ -759,6 +761,29 @@ void Builder::runBuilderScript(const std::string& file)
           for (const wxString& line : wxSplit(all, '\n'))
             if (!line.empty())
               fprintf(stderr, "BUILDER: copy %s\n", line.ToUTF8().data());
+        }
+      } else if (w[0] == "tablecopy" && w.size() >= 2) {
+        //  tablecopy <panel>: what Copy all (#408) puts on the clipboard
+        //  from the first table in that panel.
+        string pane = w[1];
+        for (size_t i = 2; i < w.size(); i++) pane += " " + w[i];
+        std::function<ewxGrid*(wxWindow*)> findGrid =
+            [&findGrid](wxWindow *win) -> ewxGrid* {
+          if (ewxGrid *g = dynamic_cast<ewxGrid*>(win)) return g;
+          for (wxWindow *child : win->GetChildren())
+            if (ewxGrid *g = findGrid(child)) return g;
+          return 0;
+        };
+        wxWindow *win = p_mgr.GetPane(wxString(pane)).window;
+        ewxGrid *grid = win ? findGrid(win) : 0;
+        if (!grid) {
+          outcome = "no table in panel " + pane;
+        } else {
+          wxString all = grid->copyText(true);
+          all.Replace("\t", " \\t ");
+          for (const wxString& line : wxSplit(all, '\n'))
+            if (!line.empty())
+              fprintf(stderr, "BUILDER: tablecopy %s\n", line.ToUTF8().data());
         }
       } else if (w[0] == "spectrumcsv" && w.size() >= 2) {
         //  spectrumcsv <path> [ir|raman]: the Vibrational Frequencies
