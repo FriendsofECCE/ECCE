@@ -192,6 +192,10 @@ def run(s, display, env, wrappers, png, url, name):
     check(len(copied) == rows + 1 and rows > 0,
           "%s: Copy all gives the column labels and one line per row (%d for %d rows)"
           % (name, len(copied), rows))
+    cell = [l for l in text.splitlines() if "BUILDER: tablecell " in l]
+    check(len(cell) == 1 and "editable=0" in cell[0] and "selected=''" not in cell[0],
+          "%s: a double-click on a cell shows its text read-only and selected (#408): %s"
+          % (name, cell[0] if cell else "none"))
     return d
 
 

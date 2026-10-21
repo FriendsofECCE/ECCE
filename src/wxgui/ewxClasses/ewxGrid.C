@@ -24,6 +24,7 @@ BEGIN_EVENT_TABLE(ewxGrid, wxGrid)
   EVT_MENU(ID_COPY, ewxGrid::OnCopyClick)
   EVT_MENU(ID_COPY_ALL, ewxGrid::OnCopyClick)
   EVT_KEY_DOWN(ewxGrid::OnKeyDown)
+  EVT_GRID_CELL_LEFT_DCLICK(ewxGrid::OnCellDClick)
 END_EVENT_TABLE()
 
 
@@ -35,6 +36,7 @@ ewxGrid::ewxGrid(wxWindow* parent, wxWindowID id,
   , p_contextMenuEnabled(true)
   , p_clickRow(-1)
   , p_clickCol(-1)
+  , p_cellText(0)
 {
   PushEventHandler(new ewxHelpHandler(this));
 
@@ -66,6 +68,7 @@ ewxGrid::ewxGrid(wxWindow* parent, wxWindowID id,
 
 ewxGrid::~ewxGrid()
 {
+  closeCellText();
   PopEventHandler(true);
 }
 
@@ -199,3 +202,52 @@ void ewxGrid::OnExportClick(wxCommandEvent& event)
   event.Skip();
 }
 
+
+
+void ewxGrid::OnCellDClick(wxGridEvent& event)
+{
+  event.Skip();
+  //  Editable cells have their own editor; a grid without the context
+  //  menu (the Organizer's project table) uses the double-click itself.
+  if (!p_contextMenuEnabled ||
+      (IsEditable() && !IsReadOnly(event.GetRow(), event.GetCol())))
+    return;
+  showCellText(event.GetRow(), event.GetCol());
+}
+
+
+wxTextCtrl *ewxGrid::showCellText(int row, int col)
+{
+  closeCellText();
+  if (row < 0 || col < 0 || row >= GetNumberRows() || col >= GetNumberCols())
+    return 0;
+  MakeCellVisible(row, col);
+  wxRect r = CellToRect(row, col);
+  int x = 0, y = 0;
+  CalcScrolledPosition(r.x, r.y, &x, &y);
+  p_cellText = new wxTextCtrl(GetGridWindow(), wxID_ANY,
+      clipCell(GetCellValue(row, col)), wxPoint(x, y), r.GetSize(),
+      wxTE_READONLY | wxTE_PROCESS_ENTER | wxBORDER_SIMPLE);
+  p_cellText->SetFocus();
+  p_cellText->SelectAll();
+  p_cellText->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
+    CallAfter([this]() { closeCellText(); });
+    e.Skip();
+  });
+  p_cellText->Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+    if (e.GetKeyCode() == WXK_ESCAPE || e.GetKeyCode() == WXK_RETURN)
+      CallAfter([this]() { closeCellText(); SetFocus(); });
+    else
+      e.Skip();
+  });
+  return p_cellText;
+}
+
+
+void ewxGrid::closeCellText()
+{
+  if (!p_cellText) return;
+  wxTextCtrl *t = p_cellText;
+  p_cellText = 0;
+  t->Destroy();
+}

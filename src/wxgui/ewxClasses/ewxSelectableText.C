@@ -64,3 +64,14 @@ bool ewxIsSelectable(wxWindow *w)
 #endif
   return false;
 }
+
+
+void ewxMakeSelectable(wxWindow *label)
+{
+#if defined(__WXGTK__)
+  if (label && GTK_IS_LABEL(label->GetHandle()))
+    gtk_label_set_selectable(GTK_LABEL(label->GetHandle()), TRUE);
+#else
+  (void)label;
+#endif
+}

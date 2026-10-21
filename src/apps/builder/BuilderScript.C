@@ -781,6 +781,12 @@ void Builder::runBuilderScript(const std::string& file)
         if (!grid) {
           outcome = "no table in panel " + pane;
         } else {
+          //  what a double-click on the first cell shows: selectable text
+          wxTextCtrl *cell = grid->showCellText(0, 0);
+          if (cell)
+            fprintf(stderr, "BUILDER: tablecell editable=%d selected='%s'\n",
+                    cell->IsEditable() ? 1 : 0,
+                    cell->GetStringSelection().ToUTF8().data());
           wxString all = grid->copyText(true);
           all.Replace("\t", " \\t ");
           for (const wxString& line : wxSplit(all, '\n'))

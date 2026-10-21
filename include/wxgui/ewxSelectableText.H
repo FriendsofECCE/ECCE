@@ -27,6 +27,9 @@ class ewxSelectableText : public wxTextCtrl
 wxWindow *ewxSelectableValue(wxWindow* parent, const wxString& text,
                              long align = wxTE_LEFT);
 
+/** Lets an existing label's text be selected (GTK; elsewhere unchanged). */
+void ewxMakeSelectable(wxWindow *label);
+
 /** Whether `w` lets its text be selected (for tests). */
 bool ewxIsSelectable(wxWindow *w);
 

@@ -17,6 +17,7 @@
 #include "dsm/TaskJob.H"
 
 #include "wxgui/ewxNonBoldLabel.H"
+#include "wxgui/ewxSelectableText.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "CalcInfoPanel.H"
@@ -66,7 +67,8 @@ bool CalcInfoPanel::Create(IPropCalculation *calculation,
   p_body->SetScrollRate(0, 10);
   p_body->SetSizer(new wxFlexGridSizer(0,2,1,5));
   wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
-  outer->Add(p_body, 1, wxEXPAND);
+  //  The standard border: labels touched the left edge, long values the right.
+  outer->Add(p_body, 1, wxEXPAND | wxLEFT | wxRIGHT, 8);
   SetSizer(outer);
 
   return true;
@@ -285,6 +287,13 @@ void CalcInfoPanel::refresh()
   }
 
   //  Width from the rows; height is left to the dock, the rows scroll.
+  //  The value column can be selected and copied (#408).
+  wxSizerItemList &items = p_body->GetSizer()->GetChildren();
+  int col = 0;
+  for (wxSizerItemList::compatibility_iterator n = items.GetFirst(); n;
+       n = n->GetNext(), col = 1 - col)
+    if (col == 1 && n->GetData()->GetWindow())
+      ewxMakeSelectable(n->GetData()->GetWindow());
   p_body->FitInside();
   SetMinSize(wxSize(p_body->GetSizer()->GetMinSize().x, -1));
   Layout();
