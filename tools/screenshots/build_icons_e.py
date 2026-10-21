@@ -497,24 +497,61 @@ def length_glyph(i, y=16, x0=3, x1=29, h=6):
               'stroke-linejoin="round"/>' % (xa, y, 5.5 * sgn, -3.2, 6.4, g))
 
 
+def stick(i, x1, y1, x2, y2, w=2.6, s=1.0):
+    g = i.lin(x1, y1, x2, y2, (0, "#e8eaee"), (1, "#7c828e"))
+    i.add('<path d="M%s %sL%s %s" stroke="#30343c" stroke-width="%s" stroke-linecap="round"/>'
+          % (x1, y1, x2, y2, (w + 1.2) * s))
+    i.add('<path d="M%s %sL%s %s" stroke="%s" stroke-width="%s" stroke-linecap="round"/>'
+          % (x1, y1, x2, y2, g, w * s))
+
+
+def oxygen(i, x, y, r):
+    i.sphere(x, y, r, "#ffb0a8", "#e02818", "#7a0a04", rim="#4a0602")
+
+
+def hydrogen(i, x, y, r):
+    i.sphere(x, y, r, "#ffffff", "#d8dade", "#7a7e88", rim="#4a4e58")
+
+
 def angle_glyph(i, s=1.0, ox=0, oy=0):
-    g = ink(i)
-    P = lambda x, y: "%s %s" % (ox + x * s, oy + y * s)
-    i.add('<path d="M%sL%sL%s" fill="none" stroke="%s" stroke-width="%s" '
-          'stroke-linejoin="miter" stroke-linecap="square"/>'
-          % (P(27, 26), P(4, 26), P(22, 7), g, 2.6 * s))
-    i.add('<path d="M%sA%s %s 0 0 0 %s" fill="none" stroke="#0c0e14" stroke-width="%s"/>'
-          % (P(15, 26), 11 * s, 11 * s, P(11.6, 18.1), 1.2 * s))
-    i.add('<path d="M%sL%s" stroke="#0c0e14" stroke-width="%s"/>' % (P(13.4, 22.6), P(16.4, 20.2), 1 * s))
+    #  Water with the H-O-H angle marked.
+    P = lambda x, y: (ox + x * s, oy + y * s)
+    O, H1, H2 = P(16, 9), P(5, 25), P(27, 25)
+    stick(i, O[0], O[1], H1[0], H1[1], s=s)
+    stick(i, O[0], O[1], H2[0], H2[1], s=s)
+    R = 9 * s
+    import math
+    a1 = math.atan2(H1[1] - O[1], H1[0] - O[0])
+    a2 = math.atan2(H2[1] - O[1], H2[0] - O[0])
+    p1 = (O[0] + R * math.cos(a1), O[1] + R * math.sin(a1))
+    p2 = (O[0] + R * math.cos(a2), O[1] + R * math.sin(a2))
+    i.add('<path d="M%.2f %.2fA%.2f %.2f 0 0 0 %.2f %.2f" fill="none" stroke="#1848c8" '
+          'stroke-width="%s" stroke-linecap="round"/>' % (p1 + (R, R) + p2 + (1.8 * s,)))
+    hydrogen(i, H1[0], H1[1], 3.6 * s)
+    hydrogen(i, H2[0], H2[1], 3.6 * s)
+    oxygen(i, O[0], O[1], 5 * s)
 
 
 def torsion_glyph(i, s=1.0, ox=0, oy=0):
-    g = ink(i)
-    pts = [(4, 4), (28, 4), (28, 10), (26.5, 10), (25.5, 7), (19, 7), (19, 25), (22, 26.2),
-           (22, 28), (10, 28), (10, 26.2), (13, 25), (13, 7), (6.5, 7), (5.5, 10), (4, 10)]
-    d = "M" + "L".join("%s %s" % (ox + x * s, oy + y * s) for x, y in pts) + "z"
-    i.add('<path d="%s" fill="%s" stroke="#000000" stroke-width="%s" stroke-linejoin="round"/>'
-          % (d, g, .5 * s))
+    #  H2O2 along its O-O bond: one H up in front, one down behind, and the
+    #  dihedral between the two O-H bonds marked.
+    P = lambda x, y: (ox + x * s, oy + y * s)
+    O1, O2 = P(11, 17), P(21, 15)
+    H1, H2 = P(6, 5), P(27, 26)
+    stick(i, O2[0], O2[1], H2[0], H2[1], s=s)       # behind
+    hydrogen(i, H2[0], H2[1], 3.2 * s)
+    stick(i, O1[0], O1[1], O2[0], O2[1], s=s)
+    oxygen(i, O2[0], O2[1], 4.6 * s)
+    stick(i, O1[0], O1[1], H1[0], H1[1], s=s)
+    oxygen(i, O1[0], O1[1], 4.6 * s)
+    hydrogen(i, H1[0], H1[1], 3.6 * s)
+    a, b = P(8.5, 10.5), P(25, 22.5)
+    i.add('<path d="M%.2f %.2fC%.2f %.2f %.2f %.2f %.2f %.2f" fill="none" stroke="#1848c8" '
+          'stroke-width="%s" stroke-linecap="round"/>'
+          % (a + P(20, 2) + P(30, 12) + b + (1.6 * s,)))
+    #  arrowhead at b
+    i.add('<path d="M%.2f %.2fl%.2f %.2fl%.2f %.2fz" fill="#1848c8"/>'
+          % (b[0] + 1.2 * s, b[1] + 1.8 * s, -3.6 * s, -0.6 * s, 2.2 * s, -3 * s))
 
 
 @icon
@@ -535,10 +572,9 @@ def measure_torsion(i):
 @icon
 def measure_clear(i):
     length_glyph(i, y=5, x0=8, x1=26, h=4)
-    torsion_glyph(i, .62, 2, 10)
-    angle_glyph(i, .62, 12, 10)
+    angle_glyph(i, .5, 1, 13)
+    torsion_glyph(i, .5, 15, 13)
     red_x(i)
-
 
 def build():
     os.makedirs(OUT, exist_ok=True)
