@@ -73,10 +73,8 @@ bool CalcEd::write_qst(const string& base)
     remove((base + ".qst" + k + ".frag").c_str());
 
   GUIValues* g = p_iCalc->guiparams();
-  GUIValue* find = g ? g->get("ES.Runtype.GeomOpt.SearchFor") : 0;
   const string rt = p_iCalc->runtype().name();
-  if (!find || find->getValueAsString() != "Transition State (QST)" ||
-      (rt != "Geometry" && rt != "GeoVib"))
+  if (!g || rt.compare(0, 22, "Transition State (QST)") != 0)
     return true;
 
   string status, warning;

@@ -76,9 +76,9 @@ def deck(work, mode, reactant, product, guess):
         write_frag(os.path.join(work, "w.qst%d.frag" % (k + 1)), name, a)
     open(os.path.join(work, "w.basis"), "w").write("useRouteCard 3-21G\n")
     open(os.path.join(work, "w.param"), "w").write(
-        "Category: SCF\nTheory: RHF\nRunType: GeoVib\nCharge: 0\n"
+        "Category: SCF\nTheory: RHF\nRunType: Transition State (QST) + Frequencies\nCharge: 0\n"
         "ChemSys.Multiplicity: 1\ntitle: w\n"
-        "ES.Runtype.GeomOpt.SearchFor: Transition State (QST)\n")
+        "")
     env = dict(os.environ, ECCE_HOME=ROOT)
     p = subprocess.run(["perl", os.path.join(PARSERS, "ai.gauss16"), "-p", "-f", "-b",
                         "-n", "w", "-t", "t.tpl"], cwd=work, env=env,

@@ -413,7 +413,10 @@ sub getRouteSection {
 sub otherOptions {
   local($line) = @_;
   $runType = "Energy";
-  if ($line =~ /opt.*freq/i) {
+  if ($line =~ /qst[23]/i) {
+    $runType = ($line =~ /freq/i) ? "Transition State (QST) + Frequencies"
+                                  : "Transition State (QST)";
+  } elsif ($line =~ /opt.*freq/i) {
     $runType = "GeoVib";
   } elsif ($line =~ /freq.*opt/i) {
     $runType = "GeoVib";

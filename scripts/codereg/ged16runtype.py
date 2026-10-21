@@ -40,6 +40,12 @@ class CalcChoice(EcceComboBox):
                 "|menu_input")
 
 
+QST_RUNTYPES = ("Transition State (QST)",
+                "Transition State (QST) + Frequencies")
+OPT_RUNTYPES = ("Geometry", "GeoVib") + QST_RUNTYPES
+FREQ_RUNTYPES = ("Vibration", "GeoVib", QST_RUNTYPES[1])
+
+
 class Ged16RunTypeFrame(EcceFrame):
     def __init__(self, parent, title, app, helpURL=""):
         EcceFrame.__init__(self, parent, title)
@@ -85,28 +91,28 @@ class Ged16RunTypePanel(EccePanel):
 
             self.panelSizer.Add(gradSizer)
             
-        if (EcceGlobals.RunType == "Geometry" or
-            EcceGlobals.RunType == "GeoVib"):
+        isQst = EcceGlobals.RunType in QST_RUNTYPES
+        if EcceGlobals.RunType in OPT_RUNTYPES:
             # GEOMETRY OPTIMIZATION
             geometrySizer = EcceBoxSizer(self,
                                          label = "Geometry Optimization",
                                          cols = 2)
             
             findChoice = ["Minimum",
-                          "Transition State",
-                          "Transition State (QST)"]
+                          "Transition State"]
             findDefault = 0
             if (EcceGlobals.ReactionStudyFlag!=0 and
                 EcceGlobals.CalculationName=="Transition-State"):
                 findDefault = 1
-            self.find = EcceComboBox(self,
-                                     choices = findChoice,
-                                     name = "ES.Runtype.GeomOpt.SearchFor",
-                                     default = findDefault,
-                                     label = "Find:")
-            if findDefault != 0:
-                self.find.export = 1
-            geometrySizer.AddWidget(self.find)
+            if not isQst:
+                self.find = EcceComboBox(self,
+                                         choices = findChoice,
+                                         name = "ES.Runtype.GeomOpt.SearchFor",
+                                         default = findDefault,
+                                         label = "Find:")
+                if findDefault != 0:
+                    self.find.export = 1
+                geometrySizer.AddWidget(self.find)
             
             # CONVERGENCE
             convergenceSizer = EcceBoxSizer(self,
@@ -138,70 +144,76 @@ class Ged16RunTypePanel(EccePanel):
                                          export = 1)
             convergenceSizer.AddWidget(self.stepSpin)
             
-            # HESSIAN
-            hessianSizer = EcceBoxSizer(self,
-                                        label = "Hessian",
-                                        cols = 2)
+            hessianSizer = None
+            if not isQst:
+                # HESSIAN
+                hessianSizer = EcceBoxSizer(self,
+                                            label = "Hessian",
+                                            cols = 2)
             
-            if (EcceGlobals.Category == "SCF" or
-                EcceGlobals.Category == "DFT" or
-                (EcceGlobals.Category == "MP" and
-                 (EcceGlobals.Theory == "RMP2" or
-                  EcceGlobals.Theory == "UMP2" or
-                  EcceGlobals.Theory == "RMP3" or
-                  EcceGlobals.Theory == "UMP3" or
-                  EcceGlobals.Theory == "RMP4(SDQ)" or
-                  EcceGlobals.Theory == "UMP4(SDQ)")) or
-                (EcceGlobals.Category == "CC" and
-                 (EcceGlobals.Theory == "RQCISD" or
-                  EcceGlobals.Theory == "UQCISD"))):
-                self.hessianChoice = ["Valence Force Field",
-                                      "Calculate"]
-            else:
-                self.hessianChoice = ["Valence Force Field"]
-            #  By name, and guarded: hessianChoice is "Calculate" only for
-            #  the theories above, so a bare index 1 is past the end of the
-            #  one-entry list for every other theory -- and wx.Choice ignores
-            #  an out-of-range SetSelection() silently, leaving the combo
-            #  blank and GetValue() returning "".  CheckDependency() below
-            #  already carries the len()==2 guard this line was missing.
-            self.hessian = EcceComboBox(self,
-                                        choices = self.hessianChoice,
-                                        name = "ES.Runtype.GeomOpt.InitialHessian",
-                                        default = (self.hessianChoice.index("Calculate")
-                                                   if "Calculate" in self.hessianChoice
-                                                   else 0),
-                                        label = "Initial Source:")
-            hessianSizer.AddWidget(self.hessian)
+                if (EcceGlobals.Category == "SCF" or
+                    EcceGlobals.Category == "DFT" or
+                    (EcceGlobals.Category == "MP" and
+                     (EcceGlobals.Theory == "RMP2" or
+                      EcceGlobals.Theory == "UMP2" or
+                      EcceGlobals.Theory == "RMP3" or
+                      EcceGlobals.Theory == "UMP3" or
+                      EcceGlobals.Theory == "RMP4(SDQ)" or
+                      EcceGlobals.Theory == "UMP4(SDQ)")) or
+                    (EcceGlobals.Category == "CC" and
+                     (EcceGlobals.Theory == "RQCISD" or
+                      EcceGlobals.Theory == "UQCISD"))):
+                    self.hessianChoice = ["Valence Force Field",
+                                          "Calculate"]
+                else:
+                    self.hessianChoice = ["Valence Force Field"]
+                #  By name, and guarded: hessianChoice is "Calculate" only for
+                #  the theories above, so a bare index 1 is past the end of the
+                #  one-entry list for every other theory -- and wx.Choice ignores
+                #  an out-of-range SetSelection() silently, leaving the combo
+                #  blank and GetValue() returning "".  CheckDependency() below
+                #  already carries the len()==2 guard this line was missing.
+                self.hessian = EcceComboBox(self,
+                                            choices = self.hessianChoice,
+                                            name = "ES.Runtype.GeomOpt.InitialHessian",
+                                            default = (self.hessianChoice.index("Calculate")
+                                                       if "Calculate" in self.hessianChoice
+                                                       else 0),
+                                            label = "Initial Source:")
+                hessianSizer.AddWidget(self.hessian)
             
-            # QST2/QST3: reactant and product (and optionally this
-            # calculation as the TS guess) come from other calculations.
-            qstSizer = EcceBoxSizer(self,
-                                    label = "Transition State (QST)",
-                                    cols = 1)
-            cands = qstCandidates()
-            self.qstReactant = CalcChoice(self, cands,
-                                          name = "ES.Runtype.GeomOpt.QSTReactant",
-                                          default = 0,
-                                          label = "Reactant:")
-            qstSizer.AddWidget(self.qstReactant)
-            self.qstProduct = CalcChoice(self, cands,
-                                         name = "ES.Runtype.GeomOpt.QSTProduct",
-                                         default = 0,
-                                         label = "Product:")
-            qstSizer.AddWidget(self.qstProduct)
-            self.qstGuess = EcceCheckBox(self,
-                                         label = " Use this calculation's structure as the TS guess (QST3)",
-                                         name = "ES.Runtype.GeomOpt.QSTGuess",
-                                         default = 0)
-            qstSizer.AddWidget(self.qstGuess)
-            self.qstStatus = wx.StaticText(self, -1, "")
-            qstSizer.Add(self.qstStatus, 0, wx.ALL, 3)
+            if isQst:
+                # QST2/QST3: reactant and product (and optionally this
+                # calculation as the TS guess) come from other calculations.
+                qstSizer = EcceBoxSizer(self,
+                                        label = "Transition State (QST)",
+                                        cols = 1)
+                cands = qstCandidates()
+                self.qstReactant = CalcChoice(self, cands,
+                                              name = "ES.Runtype.GeomOpt.QSTReactant",
+                                              default = 0,
+                                              label = "Reactant:")
+                qstSizer.AddWidget(self.qstReactant)
+                self.qstProduct = CalcChoice(self, cands,
+                                             name = "ES.Runtype.GeomOpt.QSTProduct",
+                                             default = 0,
+                                             label = "Product:")
+                qstSizer.AddWidget(self.qstProduct)
+                self.qstGuess = EcceCheckBox(self,
+                                             label = " Use this calculation's structure as the TS guess (QST3)",
+                                             name = "ES.Runtype.GeomOpt.QSTGuess",
+                                             default = 0)
+                qstSizer.AddWidget(self.qstGuess)
+                self.qstStatus = wx.StaticText(self, -1, "")
+                qstSizer.Add(self.qstStatus, 0, wx.ALL, 3)
 
-            self.panelSizer.Add(geometrySizer)
-            self.panelSizer.Add(qstSizer)
+            if isQst:
+                self.panelSizer.Add(qstSizer)
+            else:
+                self.panelSizer.Add(geometrySizer)
             self.panelSizer.Add(convergenceSizer)
-            self.panelSizer.Add(hessianSizer)
+            if hessianSizer is not None:
+                self.panelSizer.Add(hessianSizer)
             
         if EcceGlobals.RunType == "Polarizability":
             polarSizer = EcceBoxSizer(self,
@@ -249,8 +261,7 @@ class Ged16RunTypePanel(EccePanel):
 
             self.panelSizer.Add(polarSizer)
 
-        if (EcceGlobals.RunType == "Vibration" or
-            EcceGlobals.RunType == "GeoVib"):
+        if EcceGlobals.RunType in FREQ_RUNTYPES:
             vibSizer = EcceBoxSizer(self, "IR/Raman", 1)
             vibMethodEnable = True
             if (EcceGlobals.Theory == "RHF" or
@@ -431,17 +442,12 @@ class Ged16RunTypePanel(EccePanel):
         self.AddButtons()
 
     def CheckDependency(self):
-        if (EcceGlobals.RunType == "Geometry" or
-            EcceGlobals.RunType == "GeoVib"):
+        if EcceGlobals.RunType in OPT_RUNTYPES:
             self.stepSpin.Enable(self.stepCheckBox.GetValue())
-            if (len(self.hessianChoice) == 2 and
-                self.find.GetSelection() == 1):
+            qst = EcceGlobals.RunType in QST_RUNTYPES
+            if not qst and (len(self.hessianChoice) == 2 and
+                            self.find.GetSelection() == 1):
                 self.hessian.SetSelection(1)
-            qst = (self.find.GetSelection() == 2)
-            self.qstReactant.Enable(qst)
-            self.qstProduct.Enable(qst)
-            self.qstGuess.Enable(qst)
-            self.hessian.Enable(not qst)
             if qst:
                 if not (self.qstReactant.GetValue() and
                         self.qstProduct.GetValue()):
@@ -450,13 +456,10 @@ class Ged16RunTypePanel(EccePanel):
                     self.qstStatus.SetLabel("Warning: reactant and product are the same calculation.")
                 else:
                     self.qstStatus.SetLabel("")
-            else:
-                self.qstStatus.SetLabel("")
         if EcceGlobals.RunType == "Polarizability":
             self.efstepInput.Enable(self.polarMethod.GetValue() !=
                                     "Analytic Polariz. + Hyperpol.")
-        if (EcceGlobals.RunType == "Vibration" or
-            EcceGlobals.RunType == "GeoVib"):
+        if EcceGlobals.RunType in FREQ_RUNTYPES:
             self.fdStep.Enable(self.vibMethod.GetValue() != "Analytic")
 
             #  Both of these combinations are fatal in Gaussian 16, not
