@@ -430,6 +430,116 @@ def element(i):
     i.sphere(16, 16, 12, "#f4f4f6", "#9096a2", "#40454f", rim="#30343c")
 
 
+#  Manipulator and Measure toolbars (Classic ECCE sphere22/rotation22 and
+#  measure_*): candidates, not wired in until reviewed.
+def red_x(i):
+    for d in ("M5 5L27 27", "M27 5L5 27"):
+        i.add('<path d="%s" stroke="#7a0000" stroke-width="3.6" stroke-linecap="round"/>' % d)
+        i.add('<path d="%s" stroke="#ff3a2a" stroke-width="2.2" stroke-linecap="round"/>' % d)
+
+
+def mesh_sphere(i):
+    i.shadow(16, 29.5, 10, 1.3, .2)
+    i.sphere(16, 16, 12, "#eef4ee", "#9cb0a0", "#3a4a40", opacity=.9, rim="#24302a")
+    for ry in (12, 7.5, 3):
+        i.add('<ellipse cx="16" cy="16" rx="%s" ry="12" fill="none" stroke="#1e5a32" '
+              'stroke-width=".7" stroke-opacity=".8"/>' % ry)
+    for dy, rx in ((0, 12), (-6.5, 10.1), (6.5, 10.1)):
+        i.add('<ellipse cx="16" cy="%s" rx="%s" ry="%s" fill="none" stroke="#1e5a32" '
+              'stroke-width=".7" stroke-opacity=".8"/>' % (16 + dy, rx, rx * .28))
+
+
+@icon
+def manip_sphere(i):
+    mesh_sphere(i)
+
+
+@icon
+def manip_nosphere(i):
+    mesh_sphere(i)
+    red_x(i)
+
+
+def wheel(i):
+    g = i.lin(0, 15, 0, 17, (0, "#c8ccd4"), (1, "#5a606c"))
+    i.add('<path d="M3 16H29" stroke="#3a3e48" stroke-width="2.4" stroke-linecap="round"/>')
+    i.add('<path d="M3 16H29" stroke="%s" stroke-width="1.2" stroke-linecap="round"/>' % g)
+    i.sphere(5.5, 16, 3.3, "#ffffff", "#a8acb4", "#4a4e58", rim="#30343c")
+    i.sphere(26.5, 16, 3.3, "#ffffff", "#a8acb4", "#4a4e58", rim="#30343c")
+    i.add('<ellipse cx="16" cy="16" rx="5" ry="13" fill="none" stroke="#1a1c22" stroke-width="2.6"/>')
+    i.add('<ellipse cx="16" cy="16" rx="5" ry="13" fill="none" stroke="#7a808c" stroke-width="1.1"/>')
+    i.add('<path d="M20.4 9.5l1.8 -3.6l1 4z" fill="#1a1c22"/>')
+    i.sphere(16, 16, 2.4, "#ffffff", "#a8acb4", "#4a4e58", rim="#30343c")
+
+
+@icon
+def manip_wheel(i):
+    wheel(i)
+
+
+@icon
+def manip_nowheel(i):
+    wheel(i)
+    red_x(i)
+
+
+def ink(i):
+    return i.lin(0, 4, 0, 28, (0, "#4a4e58"), (1, "#0c0e14"))
+
+
+def length_glyph(i, y=16, x0=3, x1=29, h=6):
+    g = ink(i)
+    i.add('<path d="M%s %sv%sM%s %sv%s" stroke="#0c0e14" stroke-width="1.6"/>'
+          % (x0, y - h / 2, h, x1, y - h / 2, h))
+    i.add('<path d="M%s %sH%s" stroke="%s" stroke-width="2"/>' % (x0 + 4, y, x1 - 4, g))
+    for xa, sgn in ((x0 + .8, 1), (x1 - .8, -1)):
+        i.add('<path d="M%s %sl%s %sv%sz" fill="%s" stroke="#0c0e14" stroke-width=".6" '
+              'stroke-linejoin="round"/>' % (xa, y, 5.5 * sgn, -3.2, 6.4, g))
+
+
+def angle_glyph(i, s=1.0, ox=0, oy=0):
+    g = ink(i)
+    P = lambda x, y: "%s %s" % (ox + x * s, oy + y * s)
+    i.add('<path d="M%sL%sL%s" fill="none" stroke="%s" stroke-width="%s" '
+          'stroke-linejoin="miter" stroke-linecap="square"/>'
+          % (P(27, 26), P(4, 26), P(22, 7), g, 2.6 * s))
+    i.add('<path d="M%sA%s %s 0 0 0 %s" fill="none" stroke="#0c0e14" stroke-width="%s"/>'
+          % (P(15, 26), 11 * s, 11 * s, P(11.6, 18.1), 1.2 * s))
+    i.add('<path d="M%sL%s" stroke="#0c0e14" stroke-width="%s"/>' % (P(13.4, 22.6), P(16.4, 20.2), 1 * s))
+
+
+def torsion_glyph(i, s=1.0, ox=0, oy=0):
+    g = ink(i)
+    pts = [(4, 4), (28, 4), (28, 10), (26.5, 10), (25.5, 7), (19, 7), (19, 25), (22, 26.2),
+           (22, 28), (10, 28), (10, 26.2), (13, 25), (13, 7), (6.5, 7), (5.5, 10), (4, 10)]
+    d = "M" + "L".join("%s %s" % (ox + x * s, oy + y * s) for x, y in pts) + "z"
+    i.add('<path d="%s" fill="%s" stroke="#000000" stroke-width="%s" stroke-linejoin="round"/>'
+          % (d, g, .5 * s))
+
+
+@icon
+def measure_length(i):
+    length_glyph(i)
+
+
+@icon
+def measure_angle(i):
+    angle_glyph(i)
+
+
+@icon
+def measure_torsion(i):
+    torsion_glyph(i)
+
+
+@icon
+def measure_clear(i):
+    length_glyph(i, y=5, x0=8, x1=26, h=4)
+    torsion_glyph(i, .62, 2, 10)
+    angle_glyph(i, .62, 12, 10)
+    red_x(i)
+
+
 def build():
     os.makedirs(OUT, exist_ok=True)
     for name, f in ICONS.items():
