@@ -24,7 +24,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.3.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.3.0)),
+  [9.3.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.3.1)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -43,17 +43,11 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.0
 
-- Values can be selected with the mouse and copied: in Energies and
-  Calculation Summary, in tables (double-click a cell), and in the
-  Organizer's Progress box; tables also have Copy and Copy all.
-- In the panel layout with the Properties list, the open panel gets its
-  height and every panel can be folded again.
-- IRC: the reaction path from Gaussian 16 and ORCA, plotted as energy against
-  the reaction coordinate; a click on a point shows its structure.
-- Transition states from reactant and product (Gaussian 16 QST2/QST3): pick
-  the calculations in the Calculation Editor; ECCE matches and aligns the atoms.
-- New icons for the Manipulator and Measure toolbars.
-- Help pages checked against the program, menu by menu.
+- Transition states from two calculations (Gaussian 16 QST2/QST3, ORCA
+  NEB-TS), redesigned: the transition-state job refers to the reactant and
+  product calculations and reports the barrier and reaction energy.
+- The Calculation Editor's Details windows in C++ instead of Python, starting
+  with ORCA and Gaussian 16 (the ORCA ones are a preview in 9.3.1).
 
 ## First steps
 
