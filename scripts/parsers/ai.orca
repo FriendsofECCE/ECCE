@@ -628,6 +628,17 @@ sub ORCABlocks {
       if (@orcaConstraints);
     $result .= "%geom\n" . $geom . "end\n" if ($geom ne "");
   }
+  if ($runtype eq "IRC") {
+    # ORCA has no ECCE-side Hessian file to read back, so the initial
+    # Hessian is always computed here (calc_anfreq unless asked numerical).
+    my $maxsteps = $AbiDict{"ES.Runtype.IRC.MaximumStepsValue"};
+    my $dir = lc($AbiDict{"ES.Runtype.IRC.Direction"});
+    $dir = "both" if ($dir !~ /^(both|forward|backward)$/);
+    my $hess = ($AbiDict{"ES.Runtype.IRC.InitHess"} eq "Numerical") ?
+               "calc_numfreq" : "calc_anfreq";
+    $maxsteps = 20 if ($maxsteps eq "");
+    $result .= "%irc\n  MaxIter $maxsteps\n  InitHess $hess\n  Direction $dir\nend\n";
+  }
   $_ = $result;
   return $result;
 }
@@ -746,8 +757,10 @@ sub RunType {
     $result = "Opt Freq";
   } elsif ($runtype eq "Magnetic") {
     $result = "NMR";
+  } elsif ($runtype eq "IRC") {
+    $result = "IRC";
   } else {
-    die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic only)\n";
+    die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic/IRC only)\n";
   }
   return $result;
 }

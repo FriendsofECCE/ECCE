@@ -97,6 +97,34 @@ class OrcaRunTypePanel(EccePanel):
             vibSizer.AddWidget(self.useRaman)
             self.panelSizer.Add(vibSizer)
 
+        # IRC from a transition state (issue #417). The input geometry must
+        # already be the TS; the initial Hessian is computed in the same job.
+        if EcceGlobals.RunType == "IRC":
+            ircSizer = EcceBoxSizer(self, label="Reaction Path", cols=1)
+            self.ircSteps = EcceSpinCtrl(self,
+                                         hardRange="[1..)",
+                                         softRange="[1..200]",
+                                         name="ES.Runtype.IRC.MaximumStepsValue",
+                                         default=20,
+                                         label="Max Steps per direction:",
+                                         export=1)
+            ircSizer.AddWidget(self.ircSteps)
+            self.ircDirection = EcceComboBox(self,
+                                             choices=["Both", "Forward", "Backward"],
+                                             name="ES.Runtype.IRC.Direction",
+                                             default=0,
+                                             label="Direction:",
+                                             export=1)
+            ircSizer.AddWidget(self.ircDirection)
+            self.ircHess = EcceComboBox(self,
+                                        choices=["Analytic", "Numerical"],
+                                        name="ES.Runtype.IRC.InitHess",
+                                        default=0,
+                                        label="Initial Hessian:",
+                                        export=1)
+            ircSizer.AddWidget(self.ircHess)
+            self.panelSizer.Add(ircSizer)
+
         # Mulliken and Loewdin come with every ORCA job; these must be asked
         # for. ORCA computes them from the converged density of whatever job
         # ran, so they are offered for every run type. NBO needs NBOEXE in

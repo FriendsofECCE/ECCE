@@ -1,0 +1,26 @@
+#!/usr/bin/env perl
+# IRC (#417): the structures of an ORCA IRC, from <job>_IRC_Full_trj.xyz
+# (File= entry in orca.desc).  One IRCGEOM table per frame, in path order with
+# the TS in the middle: the same order as the IRC PATH SUMMARY rows.
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /IRC/i);
+
+my @lines = <STDIN>;
+while (@lines) {
+  my $n = shift(@lines);
+  last unless ($n =~ /^\s*(\d+)\s*$/);
+  $n = $1;
+  shift(@lines);                       # comment line
+  my (@coord, $labels);
+  for my $i (1 .. $n) {
+    my $l = shift(@lines);
+    last unless (defined $l && $l =~ /^\s*\S+\s+(\S+)\s+(\S+)\s+(\S+)/);
+    push(@coord, " $1 $2 $3");
+    $labels .= " $i-X";
+  }
+  next unless (@coord == $n);
+  print "key: IRCGEOM\nsize:\n1 $n 3\nrowlabels:\n$labels\n",
+        "columnlabels:\nX Y Z\nvalues:\n", join("\n", @coord), "\nEND\n";
+}
+exit(0);

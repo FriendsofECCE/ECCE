@@ -76,6 +76,11 @@ std::vector<int> ircFrameMap(const std::vector<double>& coord, int frames)
     if ((size_t)i == ts) continue;
     if (coord[i] > 0) nF++; else nR++;
   }
+  // ORCA stores one structure per summary row, TS included, in path order.
+  if (frames == n) {
+    for (int i = 0; i < n; i++) map[i] = i;
+    return map;
+  }
   if (frames != nF + nR) return map;
   // Points are in path order, so counting away from the TS gives the rank.
   int rank = 0;
