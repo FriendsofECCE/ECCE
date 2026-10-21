@@ -513,16 +513,12 @@ def hydrogen(i, x, y, r):
     i.sphere(x, y, r, "#ffffff", "#d8dade", "#7a7e88", rim="#4a4e58")
 
 
-def carbon(i, x, y, r):
-    i.sphere(x, y, r, "#d0d4da", "#6a707c", "#22262e", rim="#16181e")
-
-
 def distance_glyph(i, s=1.0, ox=0, oy=0):
     #  Two atoms with a double-headed arrow between them.
     P = lambda x, y: (ox + x * s, oy + y * s)
     A, B = P(4.5, 16), P(27.5, 16)
-    carbon(i, A[0], A[1], 4 * s)
-    carbon(i, B[0], B[1], 4 * s)
+    oxygen(i, A[0], A[1], 4 * s)
+    oxygen(i, B[0], B[1], 4 * s)
     x0, x1, y = A[0] + 4.8 * s, B[0] - 4.8 * s, A[1]
     g = i.lin(0, y - 2, 0, y + 2, (0, "#5a8cf0"), (1, "#0c3fa8"))
     i.add('<path d="M%.2f %.2fH%.2f" stroke="%s" stroke-width="%s"/>'
