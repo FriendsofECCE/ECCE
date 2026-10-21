@@ -72,16 +72,22 @@ bool CalcEd::write_qst(const string& base)
   for (char k = '1'; k <= '3'; k++)
     remove((base + ".qst" + k + ".frag").c_str());
 
+  remove("neb_product.xyz");
+  remove("neb_guess.xyz");
+
   GUIValues* g = p_iCalc->guiparams();
   const string rt = p_iCalc->runtype().name();
-  if (!g || rt.compare(0, 22, "Transition State (QST)") != 0)
+  const bool neb = rt.compare(0, 25, "Transition State (NEB-TS)") == 0;
+  if (!g || (!neb && rt.compare(0, 22, "Transition State (QST)") != 0))
     return true;
 
   string status, warning;
-  const bool ok = qstWriteStructureFiles(p_iCalc, base, status, warning);
+  const bool ok = neb ? nebWriteStructureFiles(p_iCalc, status, warning)
+                      : qstWriteStructureFiles(p_iCalc, base, status, warning);
   p_qstStatus = status;
   if (!warning.empty())
-    p_inputGenWarnings.push_back(std::make_pair(string("Opt"), warning));
+    p_inputGenWarnings.push_back(std::make_pair(
+        string(neb ? "NEB-TS" : "Opt"), warning));
   return ok;
 }
 
@@ -536,6 +542,18 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
                           "copy to DAV failed";
         
               ifs.close();
+
+              // NEB-TS product / TS guess structures: inputs of the
+              // calculation, copied to the run directory with the deck
+              const char* nebFiles[2] = {"neb_product.xyz", "neb_guess.xyz"};
+              for (int k = 0; k < 2 && status; k++) {
+                ifstream nebIn(nebFiles[k]);
+                if (nebIn && !p_iCalc->putInputFile(nebFiles[k], &nebIn)) {
+                  status = false;
+                  message = string("Input files could not be generated--") +
+                            nebFiles[k] + " copy to DAV failed";
+                }
+              }
 
               // auxiliary basis set files (Amica)
               TypedFile auxInputFile =

@@ -93,6 +93,26 @@ static std::string value(GUIValues* g, const char* key)
    return v ? v->getValueAsString() : "";
 }
 
+/** Renumbers and aligns (els, xyz) onto the reference structure.  false,
+ *  with warning set, when the atoms do not match. */
+static bool mapOnto(const std::vector<std::string>& refEl,
+                    const std::vector<double>& ref,
+                    std::vector<std::string>& els, std::vector<double>& xyz,
+                    const char* role, const char* runtype,
+                    AtomMapResult& r, std::string& warning)
+{
+   r = AtomMap::map(refEl, ref, els, xyz);
+   if (!r.ok) {
+      warning = std::string(runtype) + ": " + role + ": " + r.error +
+                " The input is not complete.";
+      return false;
+   }
+   AtomMap::apply(r.alignment, xyz);
+   xyz = AtomMap::renumber(xyz, r.map);
+   els = AtomMap::renumber(els, r.map);
+   return true;
+}
+
 bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
                             std::string& status, std::string& warning)
 {
@@ -137,15 +157,10 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
          xyz[k] = ref;
          title = "this_calculation";
       }
-      const AtomMapResult r = AtomMap::map(refEl, ref, els[k], xyz[k]);
-      if (!r.ok) {
-         warning = std::string("Transition State (QST): ") + role[k] +
-                   ": " + r.error + " The input is not complete.";
+      AtomMapResult r;
+      if (!mapOnto(refEl, ref, els[k], xyz[k], role[k], "Transition State (QST)",
+                   r, warning))
          return true;
-      }
-      AtomMap::apply(r.alignment, xyz[k]);
-      xyz[k] = AtomMap::renumber(xyz[k], r.map);
-      els[k] = AtomMap::renumber(els[k], r.map);
       st << role[k] << " renumbered: " << r.nChanged
          << " atoms changed place. ";
       char buf[32];
@@ -157,6 +172,79 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
       if (!writeFrag(base + ".qst" + char('1'+k) + ".frag", title, els[k],
                      xyz[k]))
          return false;
+   }
+   char cnt[16];
+   sprintf(cnt, "%d", (int)refEl.size());
+   status = std::string("Atoms matched (") + cnt + "). " + st.str() +
+            "Aligned: RMSD " + rm.str() + ".";
+   warning = wr.str();
+   return true;
+}
+
+static bool writeXyz(const std::string& file, const std::string& title,
+                     const std::vector<std::string>& el,
+                     const std::vector<double>& xyz)
+{
+   std::ofstream os(file.c_str());
+   if (!os) return false;
+   os.precision(10);
+   os << el.size() << '\n' << title << '\n';
+   for (size_t i = 0; i < el.size(); i++)
+      os << el[i] << ' ' << xyz[3*i] << ' ' << xyz[3*i+1] << ' '
+         << xyz[3*i+2] << '\n';
+   return (bool)os;
+}
+
+bool nebWriteStructureFiles(ICalculation* self, std::string& status,
+                            std::string& warning)
+{
+   status.clear();
+   warning.clear();
+   remove("neb_product.xyz");
+   remove("neb_guess.xyz");
+   GUIValues* g = self->guiparams();
+   const std::string urls[2] = { value(g, "ES.Runtype.NEB.Product"),
+                                 value(g, "ES.Runtype.NEB.Guess") };
+   if (urls[0].empty()) {
+      warning = "Transition State (NEB-TS): pick the product calculation "
+                "in the Runtype Details.";
+      return true;
+   }
+
+   // This calculation's own structure is the reactant and fixes the order.
+   std::vector<std::string> refEl;
+   std::vector<double> ref;
+   bool refOpt;
+   if (!qstFinalStructure(self, refEl, ref, refOpt)) return false;
+
+   const char* role[2] = {"Product", "TS guess"};
+   const char* file[2] = {"neb_product.xyz", "neb_guess.xyz"};
+   std::ostringstream st, rm, wr;
+   int done = 0;
+   for (int k = 0; k < 2; k++) {
+      if (urls[k].empty()) continue;
+      std::vector<std::string> el;
+      std::vector<double> xyz;
+      bool opt;
+      PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(urls[k].c_str()));
+      if (!qstFinalStructure(t, el, xyz, opt)) {
+         warning = std::string("Transition State (NEB-TS): the ") + role[k] +
+                   " calculation has no structure.";
+         return true;
+      }
+      AtomMapResult r;
+      if (!mapOnto(refEl, ref, el, xyz, role[k], "Transition State (NEB-TS)",
+                   r, warning))
+         return true;
+      st << role[k] << " renumbered: " << r.nChanged
+         << " atoms changed place. ";
+      char buf[32];
+      sprintf(buf, "%.2f", r.alignment.rmsdAfter);
+      rm << (done++ ? ", " : "") << buf << " A (" << role[k] << ")";
+      if (!r.far.empty())
+         wr << role[k] << ": " << r.far.size()
+            << " atom(s) move more than 1 A after alignment. ";
+      if (!writeXyz(file[k], t->getName(), el, xyz)) return false;
    }
    char cnt[16];
    sprintf(cnt, "%d", (int)refEl.size());

@@ -41,4 +41,10 @@ std::string qstWriteCandidateFile(const std::vector<QstEntry>& entries);
 bool qstWriteStructureFiles(ICalculation* self, const std::string& baseName,
                             std::string& status, std::string& warning);
 
+/** ORCA NEB-TS: writes neb_product.xyz (and neb_guess.xyz when picked) in
+ *  the working directory, each mapped and aligned onto self's structure,
+ *  which is the reactant.  Same status/warning contract as above. */
+bool nebWriteStructureFiles(ICalculation* self, std::string& status,
+                            std::string& warning);
+
 #endif
