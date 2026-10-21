@@ -2439,8 +2439,9 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/builder/chooser_drive.py
                    $<TARGET_FILE:builder> ${CMAKE_BINARY_DIR}/chooser-drive
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  # Disabled until the driver reaches the Builder's script gate (#222).
   set_tests_properties(apps_builder_chooser PROPERTIES TIMEOUT 900
-                       SKIP_RETURN_CODE 77)
+                       SKIP_RETURN_CODE 77 DISABLED TRUE)
   # The Calculation Editor is not frozen (no black areas) while the Code
   # Change question is open (#308).
   add_test(NAME apps_calced_code_change

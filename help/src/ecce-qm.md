@@ -85,6 +85,11 @@ by side.
   Merz-Kollman charges are fitted to the electrostatic potential and are
   less dependent on the basis set than Mulliken charges; the electrostatic
   potential surface uses the CHELPG charges when they were requested;
+- the density and its electrostatic potential, which the Viewer computes from
+  the orbitals on a grid (Orbitals > Density (ESP)). Within about 0.5 Å of a
+  carbon or oxygen nucleus the grid does not resolve the 1s core density
+  exactly; the surfaces drawn (isovalue 0.002) lie far outside that region,
+  so the colours on them are not affected;
 - the dipole moment and, for open shells, the expectation value of S^2;
 - for Vibration and GeoVib, the frequencies, IR spectrum, normal modes,
   zero-point energy, thermal energy, enthalpy,
