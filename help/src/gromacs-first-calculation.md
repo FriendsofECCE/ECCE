@@ -40,7 +40,7 @@ tasks after it.
    Project...**. Enter `gromacs-tutorial` and click **OK**.
 2. Select the project and choose **File > New > GROMACS MD Study...**.
    Enter `trpcage` and click **OK**.
-3. Add the five tasks. Each time, select the study first, then choose:
+3. Add the five tasks (the File menu holds the same entries). Each time, select the study first, then choose:
    1. **File > New > GROMACS MD Prepare...**
    2. **File > New > GROMACS MD Optimize...**
    3. **File > New > GROMACS MD Equilibrate...** (constant volume)
@@ -52,8 +52,8 @@ itself. Nothing is attached by hand.
 
 ## 2. Prepare
 
-1. Select **Prepare** and click the **GROMACS MD Prepare** button below its
-   details in the Organizer. Its editor opens.
+1. Select **Prepare** and click the **GROMACS MD Prepare Editor** button below
+   its details in the Organizer.
 2. Under **Structure**, choose **Source:** `Protein (pdb2gmx)`, and
    **Structure:** `PDB file...`. A file dialog opens. Choose `1l2y.pdb`:
    ECCE ships it in its examples folder, on Linux
@@ -77,9 +77,10 @@ makes up for the net charge of the protein, and salt.
 
 ## 3. Optimize
 
-1. Select **Optimize** and click **GROMACS MD Optimize**.
-2. The **Inputs** page says `topology: ecceSession.gmxtop (from Prepare)`,
-   `structure: ecceSession_ecceMdPrepare.gro (from Prepare)` and `Ready`.
+1. Select **Optimize** and click **GROMACS MD Optimize Editor**.
+2. The **Inputs** page shows the topology and the starting structure, each
+   marked `(from Prepare)`, and the status `Ready: a topology and a starting
+   structure are attached.`
 3. On the **Optimize** page, set the number of steps to `200`. The method
    is steepest descent.
 4. Click **Launch...**, then **Launch**.
@@ -92,7 +93,7 @@ around the protein.
 
 ## 4. Equilibrate
 
-1. Select the first **Equilibrate** and click **GROMACS MD Equilibrate**.
+1. Select the first **Equilibrate** and click **GROMACS MD Dynamics Editor**.
    The **Inputs** page now takes the structure from Optimize.
 2. On the **Dynamics** page, set **Data Collection Steps:** to `1000`. The
    **Time Step** is `0.002` ps, so this is 2 ps. The **Temperature** tab
@@ -108,7 +109,7 @@ The run above holds the temperature only, so the box keeps its volume. A
 second Equilibrate lets the density settle at 1 bar before the production
 run.
 
-1. Select the second **Equilibrate** and click **GROMACS MD Equilibrate**.
+1. Select the second **Equilibrate** and click **GROMACS MD Dynamics Editor**.
    Tick **Continue from the previous task's
    structure and velocities**, so that it carries on from the first
    Equilibrate instead of drawing new velocities.
@@ -121,7 +122,7 @@ run.
 
 ## 6. Dynamics
 
-1. Select the last task, **Dynamics**, open its editor in the same way and
+1. Select the last task, **Dynamics**, open its editor in the same way (**GROMACS MD Dynamics Editor**) and
    set **Data Collection Steps:** to `2000` (4 ps).
 2. The box **Continue from the previous task's structure and velocities**
    is ticked, because the task before it is an Equilibrate: the run starts
