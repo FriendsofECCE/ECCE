@@ -13,6 +13,7 @@
 #ifndef VIBSPECTRUM_HH
 #define VIBSPECTRUM_HH
 
+#include <memory>
 #include <string>
 #include <vector>
 using std::string;
@@ -128,16 +129,28 @@ class VibSpectrum
     bool   relative(VibKind kind) const { return p_relative[kind]; }
 
     /** Frequency scaling factor, applied to every wavenumber. */
-    void   setScale(double scale) { p_scale = scale > 0 ? scale : 1.0; }
+    void   setScale(double scale)
+    {
+      p_scale = scale > 0 ? scale : 1.0;
+      if (p_cmp) p_cmp->p_scale = p_scale;
+    }
     double scale() const { return p_scale; }
 
     /**
      * Full width at half maximum of the broadening, cm-1.  0 means
      * sticks only.
      */
-    void   setFwhm(double fwhm) { p_fwhm = fwhm > 0 ? fwhm : 0.0; }
+    void   setFwhm(double fwhm)
+    {
+      p_fwhm = fwhm > 0 ? fwhm : 0.0;
+      if (p_cmp) p_cmp->p_fwhm = p_fwhm;
+    }
     double fwhm() const { return p_fwhm; }
-    void      setLineShape(LineShape shape) { p_shape = shape; }
+    void      setLineShape(LineShape shape)
+    {
+      p_shape = shape;
+      if (p_cmp) p_cmp->p_shape = shape;
+    }
     LineShape lineShape() const { return p_shape; }
 
     /**
@@ -183,6 +196,27 @@ class VibSpectrum
     /** Area-normalised line shape, 1/cm-1, centred on zero. */
     static double lineValue(LineShape shape, double offset, double fwhm);
 
+    /** What this spectrum is called in a key and a CSV header. */
+    void setLabel(const string& label) { p_label = label; }
+    const string& label() const { return p_label; }
+
+    /**
+     * A second spectrum of another calculation, drawn and exported beside
+     * this one (#173).  It takes this one's scaling factor, line width and
+     * shape, so the two curves differ only in what was calculated.  Where
+     * one of them has a known unit and the other only relative numbers,
+     * the other is scaled so its tallest stick matches (compareFactor).
+     */
+    void setCompare(const VibSpectrum& other, const string& label);
+    void clearCompare() { p_cmp.reset(); }
+    /** True when a second spectrum is set and has this kind. */
+    bool hasCompare(VibKind kind) const { return p_cmp && p_cmp->p_has[kind]; }
+    const string& compareLabel() const { return p_cmpLabel; }
+    /** Sticks / envelope of the second spectrum, in this one's scale. */
+    vector<VibStick> compareSticks(VibKind kind) const;
+    double compareEnvelope(VibKind kind, double wavenumber) const;
+    double compareFactor(VibKind kind) const;
+
     /** Whether the code's units string is one we know how to label. */
     static bool knownIntensityUnits(VibKind kind, const string& units);
 
@@ -197,6 +231,8 @@ class VibSpectrum
     string         p_units[2];
     double         p_scale, p_fwhm;
     LineShape      p_shape;
+    string         p_label, p_cmpLabel;
+    std::shared_ptr<VibSpectrum> p_cmp;
 };
 
 /** What the CSV header says about where the spectrum came from. */
@@ -204,6 +240,7 @@ struct SpectrumCsvInfo
 {
     string calculation;
     string code;
+    string compareCode;     // of the second spectrum, if one is set
 };
 
 /**
@@ -211,7 +248,9 @@ struct SpectrumCsvInfo
  * mode, scaled wavenumber, the intensities present, symmetry), a blank line,
  * then the broadened curve of `kind` as x, y on a grid of `step` cm-1 from
  * lo to hi (no curve when the width is 0).  Numbers are written in the C
- * locale, so a decimal comma never splits a field.
+ * locale, so a decimal comma never splits a field.  With a second spectrum
+ * set (VibSpectrum::setCompare) its sticks follow in a block of their own and
+ * its curve is a third column, headed by the two calculations' names.
  */
 string vibSpectrumCsv(const VibSpectrum& spectrum, VibKind kind,
                       const SpectrumCsvInfo& info,

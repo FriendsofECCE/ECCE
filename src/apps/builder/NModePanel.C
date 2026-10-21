@@ -39,6 +39,8 @@
 #include "util/EcceURL.H"
 #include <wx/filedlg.h>
 #include "dsm/IPropCalculation.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/Resource.H"
 
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxColorDialog.H"
@@ -589,6 +591,13 @@ void NModePanel::createSpectrumPane()
       viewSizer->Insert(at + 2, exportCsv, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
       exportCsv->Bind(wxEVT_BUTTON,
                       [this](wxCommandEvent&) { exportSpectrumDialog(); });
+      wxButton *compare = new wxButton(viewBox->GetParent(), wxID_ANY,
+                                       "Compare...");
+      compare->SetToolTip("Draw the IR or Raman spectrum of another "
+                          "calculation in this folder as a second curve.");
+      viewSizer->Insert(at + 3, compare, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      compare->Bind(wxEVT_BUTTON,
+                    [this](wxCommandEvent&) { compareDialog(); });
    }
 
    //  The wrap sizers under the plot learn their width only in a layout, so
@@ -667,6 +676,7 @@ bool NModePanel::exportSpectrumCsv(const wxString& path, VibKind kind)
    ChemistryTask *task = dynamic_cast<ChemistryTask*>(calc);
    const JCode *code = task ? task->application() : 0;
    info.code = code ? code->name() : string();
+   info.compareCode = p_compareCode;
 
    const string text = vibSpectrumCsv(spec, kind, info,
                                       p_spectrum->axis().fullLo(),
@@ -773,23 +783,16 @@ int NModePanel::getSelectedMode() const
 
 
 
-bool NModePanel::fillGraph()
+//  The spectrum a calculation holds, for this panel's own calculation and
+//  for one it is compared with.  False without frequencies.
+static bool spectrumOf(IPropCalculation *expt, VibSpectrum& spectrum,
+                       bool *hasIntensities = 0)
 {
-  IPropCalculation *expt = getCalculation();
-  if (expt == 0) {
-    wxFAIL_MSG( wxT("No calculation pointer available.") );
-    return false;
-  }
-
   PropVector *vec =  (PropVector*) expt->getProperty("VIBFREQ");
   PropVector *ivec = (PropVector*) expt->getProperty("VIBIR");
   PropVector *rvec = (PropVector*) expt->getProperty("VIBRAM");
   PropVecString *symvec = (PropVecString*) expt->getProperty("VIBSYM");
-
-  if (vec == 0) {
-    wxFAIL_MSG( wxT("No frequency data available.") );
-    return false;
-  }
+  if (vec == 0) return false;
 
   //  A property the code did not produce gets no pane, rather than a
   //  flat set of unit spikes standing in for it (see fillTable()).
@@ -804,13 +807,110 @@ bool NModePanel::fillGraph()
                                                       : string());
   }
 
-  VibSpectrum spectrum;
   spectrum.setModes(freq, irrep);
   if (ivec != 0) spectrum.setIntensities(VIB_IR, ir, ivec->units());
   if (rvec != 0) spectrum.setIntensities(VIB_RAMAN, raman, rvec->units());
+  if (hasIntensities != 0) *hasIntensities = ivec != 0 || rvec != 0;
+  return true;
+}
+
+
+bool NModePanel::fillGraph()
+{
+  IPropCalculation *expt = getCalculation();
+  if (expt == 0) {
+    wxFAIL_MSG( wxT("No calculation pointer available.") );
+    return false;
+  }
+
+  VibSpectrum spectrum;
+  bool any = false;
+  if (!spectrumOf(expt, spectrum, &any)) {
+    wxFAIL_MSG( wxT("No frequency data available.") );
+    return false;
+  }
+  spectrum.setLabel(expt->getURL().getFilePathTail());
+  if (p_compare) spectrum.setCompare(*p_compare, p_compareName);
   p_spectrum->setSpectrum(spectrum);
 
-  return ivec != 0 || rvec != 0;
+  return any;
+}
+
+
+/**
+ * The spectrum of another calculation in the same folder as a second curve
+ * (#173).  `name` is the calculation's name; empty removes the second curve.
+ * False if no calculation of that name holds IR or Raman data.
+ */
+bool NModePanel::compareWith(const string& name)
+{
+  IPropCalculation *calc = getCalculation();
+  if (calc == 0 || p_spectrum == 0) return false;
+  if (name.empty()) {
+    p_compare.reset();
+    p_compareName.clear();
+    p_compareCode.clear();
+    fillGraph();
+    return true;
+  }
+  const vector<IPropCalculation*> found = comparableCalculations();
+  for (size_t i = 0; i < found.size(); i++) {
+    if (found[i]->getURL().getFilePathTail() != name) continue;
+    std::shared_ptr<VibSpectrum> other(new VibSpectrum());
+    if (!spectrumOf(found[i], *other) ||
+        !(other->has(VIB_IR) || other->has(VIB_RAMAN))) return false;
+    p_compare = other;
+    p_compareName = name;
+    ChemistryTask *task = dynamic_cast<ChemistryTask*>(found[i]);
+    const JCode *code = task ? task->application() : 0;
+    p_compareCode = code ? code->name() : string();
+    fillGraph();
+    return true;
+  }
+  return false;
+}
+
+
+/** The other calculations in this one's folder that have IR or Raman data. */
+vector<IPropCalculation*> NModePanel::comparableCalculations()
+{
+  vector<IPropCalculation*> out;
+  IPropCalculation *calc = getCalculation();
+  if (calc == 0) return out;
+  Resource *folder = EDSIFactory::getResource(calc->getURL().getParent());
+  vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+  if (kids == 0) return out;
+  const string own = calc->getURL().getFilePathTail();
+  for (size_t i = 0; i < kids->size(); i++) {
+    IPropCalculation *other = dynamic_cast<IPropCalculation*>((*kids)[i]);
+    if (other == 0 || (*kids)[i]->getName() == own) continue;
+    if (other->getProperty("VIBFREQ") == 0) continue;
+    if (other->getProperty("VIBIR") == 0 && other->getProperty("VIBRAM") == 0)
+      continue;
+    out.push_back(other);
+  }
+  return out;
+}
+
+
+void NModePanel::compareDialog()
+{
+  wxBusyCursor busy;
+  const vector<IPropCalculation*> found = comparableCalculations();
+  if (found.empty()) {
+    wxMessageBox("No other calculation in this folder has IR or Raman data.",
+                 "Compare spectra", wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  wxArrayString names;
+  names.Add("(none: this calculation only)");
+  for (size_t i = 0; i < found.size(); i++)
+    names.Add(wxString::FromUTF8(found[i]->getURL().getFilePathTail().c_str()));
+  const int at = wxGetSingleChoiceIndex(
+      "Draw the spectrum of this calculation as a second curve, with the "
+      "same scaling factor and line width:", "Compare spectra", names, this);
+  if (at < 0) return;
+  compareWith(at == 0 ? string() : found[at - 1]->getURL().getFilePathTail());
 }
 
 
@@ -825,6 +925,13 @@ void NModePanel::dumpSpectrumIfRequested()
 {
    const char *path = getenv("ECCE_SPECTRUM_DUMP");
    if (path == 0 || p_spectrum == 0) return;
+
+   //  ECCE_SPECTRUM_COMPARE=<calculation>: the second curve before painting;
+   //  ECCE_SPECTRUM_CSV=<path>: the CSV an export would write.
+   const char *other = getenv("ECCE_SPECTRUM_COMPARE");
+   const bool compared = other != 0 && compareWith(other);
+   const char *csv = getenv("ECCE_SPECTRUM_CSV");
+   if (csv != 0) exportSpectrumCsv(csv, spectrumKindShown());
 
    const wxSize size(1000, 700);
    wxBitmap bitmap(size.x, size.y, 24);
@@ -849,6 +956,16 @@ void NModePanel::dumpSpectrumIfRequested()
                     st[i].wavenumber, st[i].intensity,
                     st[i].irrep.empty() ? "-" : st[i].irrep.c_str(), at.x,
                     at.y, st[i].imaginary ? " imaginary" : "");
+         }
+      }
+      if (other != 0) {
+         fprintf(out, "compare %s %s\n", other, compared ? "set" : "FAILED");
+         for (int k = 0; k < 2; k++) {
+            const vector<VibStick> cs = s.compareSticks((VibKind)k);
+            for (size_t i = 0; i < cs.size(); i++)
+               fprintf(out, "compare-stick %s %d %.8f %.10g\n",
+                       k == VIB_IR ? "ir" : "raman", cs[i].mode + 1,
+                       cs[i].wavenumber, cs[i].intensity);
          }
       }
       //  ECCE_SPECTRUM_WINDOW=1: open the pop-out and click in IT.
