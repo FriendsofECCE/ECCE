@@ -235,9 +235,14 @@ wxTextCtrl *ewxGrid::showCellText(int row, int col)
     e.Skip();
   });
   p_cellText->Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+    //  Taken here, before any window-level Ctrl+C/Ctrl+A binding sees them.
+    const bool ctrl = e.GetModifiers() == wxMOD_CONTROL;
     if (e.GetKeyCode() == WXK_ESCAPE || e.GetKeyCode() == WXK_RETURN)
       CallAfter([this]() { closeCellText(); SetFocus(); });
-    else
+    else if (ctrl && (e.GetKeyCode() == 'C' || e.GetKeyCode() == 'A') && p_cellText) {
+      if (e.GetKeyCode() == 'C') p_cellText->Copy();
+      else p_cellText->SelectAll();
+    } else
       e.Skip();
   });
   return p_cellText;
