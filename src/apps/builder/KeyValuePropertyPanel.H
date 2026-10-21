@@ -35,6 +35,7 @@ class KeyValuePropertyPanel : public PropertyPanel
     bool toggleGroup(const std::string& group);
     // Per row "<key> | <value right edge> | <unit right edge> | <panel width>"
     // in panel pixels, so a test can see whether a unit is cut off.
+    std::vector<std::string> rowSelectable() const;
     std::vector<std::string> rowFit() const;
     // What the right-click menu copies (#408): one row's value, with or
     // without its unit, or every row as "key<TAB>value<TAB>unit" lines.

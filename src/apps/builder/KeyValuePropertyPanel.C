@@ -21,6 +21,7 @@
 
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxNonBoldLabel.H"
+#include "wxgui/ewxSelectableText.H"
 #include "wxgui/ewxStaticText.H"
 #include <wx/clipbrd.h>
 #include <wx/menu.h>
@@ -390,8 +391,9 @@ void KeyValuePropertyPanel::refresh()
         key->SetToolTip(wxString::FromUTF8(row->key));
         key->SetMinSize(wxSize(labelMin(key), -1));
         sizer->Add(key, 1, wxEXPAND|wxALIGN_CENTER_VERTICAL|wxLEFT, PAD);
-        wxWindow *value = new ewxStaticText(this, wxID_ANY,
-                                      wxString::FromUTF8(row->value));
+        //  Selectable, so a value can be dragged over and copied (#408).
+        wxWindow *value = ewxSelectableValue(this,
+                                      wxString::FromUTF8(row->value), wxTE_RIGHT);
         sizer->Add(value, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL);
         wxWindow *unit = new ewxNonBoldLabel(this, wxID_ANY,
                                          wxString::FromUTF8(row->units));
@@ -411,6 +413,15 @@ void KeyValuePropertyPanel::refresh()
 
   sizer->Fit(this);
   sizer->SetSizeHints(this);
+}
+
+
+std::vector<std::string> KeyValuePropertyPanel::rowSelectable() const
+{
+  std::vector<std::string> out;
+  for (const RowWindows& r : p_rowWindows)
+    out.push_back(r.key + " | " + (ewxIsSelectable(r.value) ? "1" : "0"));
+  return out;
 }
 
 

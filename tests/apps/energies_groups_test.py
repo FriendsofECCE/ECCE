@@ -165,6 +165,10 @@ def main():
             first, opened, total_folded = sets
             fits = fitLines(text)
             check(len(fits) > 0, "the rows report their positions")
+            sel = [l.split(" | ")[-1] for l in text.splitlines()
+                   if l.startswith("BUILDER: selectable ")]
+            check(sel and all(v.strip() == "1" for v in sel),
+                  "every value can be selected with the mouse (#408): %s" % sel)
             clipped = [f[0] for f in fits if f[2] > f[3] or f[1] > f[3]]
             check(not clipped, "every value and unit lies inside the panel "
                   "(panel %s px): %s" % (fits[0][3] if fits else "?", clipped))

@@ -755,6 +755,8 @@ void Builder::runBuilderScript(const std::string& file)
             fprintf(stderr, "BUILDER: row %s\n", row.c_str());
           for (const std::string& fit : kv->rowFit())
             fprintf(stderr, "BUILDER: fit %s\n", fit.c_str());
+          for (const std::string& sel : kv->rowSelectable())
+            fprintf(stderr, "BUILDER: selectable %s\n", sel.c_str());
           //  what Copy all (#408) puts on the clipboard
           wxString all = kv->copyAllText();
           all.Replace("\t", " \\t ");
