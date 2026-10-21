@@ -1,0 +1,7 @@
+# getfrag's irreducible atoms of hcl, group C4V
+program genmol
+threshold 0.01
+group C4V
+atoms
+Cl 0.000000 0.000000 0.035717
+H 0.000000 0.000000 -1.239283

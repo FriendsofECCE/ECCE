@@ -1,0 +1,10 @@
+# chf3 full molecule in autosym's frame, group C3V
+program getfrag
+threshold 0.01
+group C3V
+atoms
+C 0.000000 0.000000 0.350689
+H 0.000000 0.000000 1.440689
+F 0.876812 0.876812 -0.099311
+F -1.197747 0.320935 -0.099311
+F 0.320935 -1.197747 -0.099311

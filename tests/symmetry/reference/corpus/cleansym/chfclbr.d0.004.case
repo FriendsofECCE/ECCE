@@ -1,0 +1,10 @@
+# chfclbr in autosym's frame (C1), distorted 0.004
+program cleansym
+threshold 0.01
+group C1
+atoms
+C 0.543299 0.726231 0.435379
+H 0.664043 0.792706 1.511280
+F 1.740021 0.959484 -0.167694
+Cl -0.766612 2.006582 -0.054287
+Br -0.172056 -1.244687 -0.018272

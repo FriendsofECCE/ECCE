@@ -1,0 +1,9 @@
+# nh3 in autosym's frame (C3V), distorted 0.03
+program cleansym
+threshold 0.05
+group C3V
+atoms
+N -0.008013 -0.006228 0.050636
+H 0.668530 0.649908 -0.332556
+H -0.927837 0.256435 -0.293610
+H 0.271581 -0.927159 -0.301437

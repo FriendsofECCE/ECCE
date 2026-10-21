@@ -1,0 +1,10 @@
+# full molecule is returned unchanged (docs/claude/codereg/genmol-is-handed-the-whole-molecule.md)
+program genmol
+threshold 0.01
+group CS
+atoms
+C -0.607026 -0.493896 0.000000
+F 0.316798 -1.491969 0.000000
+Cl 0.109328 1.013995 0.000000
+H -1.268786 -0.588628 0.880000
+H -1.268786 -0.588628 -0.880000

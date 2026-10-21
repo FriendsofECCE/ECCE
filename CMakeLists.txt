@@ -1929,6 +1929,14 @@ set_tests_properties(scan_xml PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
 add_test(NAME gaussian_scan_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_scan/run_tests.py)
+# Reference test for the symmetry helpers (#422): runs the Fortran binaries of
+# this build over tests/symmetry/reference/corpus and compares with the goldens.
+add_test(NAME symmetry_reference
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/symmetry/reference/run_tests.py
+          --impl ${CMAKE_BINARY_DIR} --quiet)
+add_test(NAME symmetry_reference_determinism
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/symmetry/reference/generate_goldens.py
+          --impl ${CMAKE_BINARY_DIR} --check-determinism)
 # ORCA relaxed scan (#393): deck and a real ORCA 6 run, skipped without ORCA
 add_test(NAME orca_scan COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_scan/run_tests.py)
 set_tests_properties(orca_scan PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)

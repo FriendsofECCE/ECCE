@@ -1,0 +1,8 @@
+# getfrag's irreducible atoms of chf3, group C3V
+program genmol
+threshold 0.01
+group C3V
+atoms
+C 0.000000 0.000000 0.350689
+H 0.000000 0.000000 1.440689
+F 0.876812 0.876812 -0.099311

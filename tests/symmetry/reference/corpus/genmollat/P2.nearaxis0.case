@@ -1,0 +1,7 @@
+# atom 0 from the 2-fold axis, threshold 0.1
+program genmollat
+threshold 0.1
+group P2
+lattice 5 6 7 90 100 90
+atoms
+C 0.000000 0.250000 0.000000

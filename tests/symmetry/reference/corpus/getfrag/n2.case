@@ -1,0 +1,7 @@
+# n2 full molecule in autosym's frame, group D4H
+program getfrag
+threshold 0.01
+group D4H
+atoms
+N 0.000000 0.000000 -0.550000
+N 0.000000 0.000000 0.550000

@@ -1,0 +1,9 @@
+# h2o2 full molecule in autosym's frame, group C2
+program getfrag
+threshold 0.01
+group C2
+atoms
+O -0.051277 -0.723184 -0.032601
+O 0.051277 0.723184 -0.032601
+H 0.691540 -0.851042 0.517399
+H -0.691540 0.851042 0.517399

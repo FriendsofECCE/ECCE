@@ -1,0 +1,10 @@
+# ch2f2 full molecule in autosym's frame, group CS
+program getfrag
+threshold 0.01
+group CS
+atoms
+C 0.560399 -0.000000 0.000000
+F -0.239601 0.000000 -1.100000
+F -0.239601 -0.000000 1.100000
+H 1.180399 -0.900000 -0.000000
+H 1.180399 0.900000 0.000000

@@ -1,0 +1,9 @@
+# bf3 in autosym's frame (D3H), distorted 0.004
+program cleansym
+threshold 0.01
+group D3H
+atoms
+B 0.002105 -0.003915 -0.001258
+F 0.927637 0.923295 0.003513
+F -1.261736 0.339010 0.000640
+F 0.336413 -1.266518 0.002574

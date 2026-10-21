@@ -1,0 +1,8 @@
+# getfrag's irreducible atoms of s4-generic, group S4
+program genmol
+threshold 0.01
+group S4
+atoms
+C 0.000000 0.000000 0.000000
+N 1.360147 0.000000 0.500000
+O 2.558547 0.154395 0.200000

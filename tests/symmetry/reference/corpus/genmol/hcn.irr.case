@@ -1,0 +1,8 @@
+# getfrag's irreducible atoms of hcn, group C4V
+program genmol
+threshold 0.01
+group C4V
+atoms
+C 0.000000 0.000000 -0.559560
+H 0.000000 0.000000 -1.624560
+N 0.000000 0.000000 0.596440

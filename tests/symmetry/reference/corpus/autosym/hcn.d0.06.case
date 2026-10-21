@@ -1,0 +1,7 @@
+# hcn, nominal group Cinfv, d0.06
+program autosym
+threshold 0.01
+atoms
+C 2.237217 2.940182 2.071998
+H 1.231134 2.390812 2.324023
+N 3.233544 3.451770 1.865442

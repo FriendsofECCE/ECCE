@@ -1,0 +1,9 @@
+# nh3 full molecule in autosym's frame, group C3V
+program getfrag
+threshold 0.01
+group C3V
+atoms
+N 0.000000 0.000000 0.067478
+H 0.664680 0.664680 -0.312522
+H -0.907970 0.243290 -0.312522
+H 0.243290 -0.907970 -0.312522

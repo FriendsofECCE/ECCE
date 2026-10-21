@@ -1,0 +1,10 @@
+# ccl4 in autosym's frame (TD), distorted 0.004
+program cleansym
+threshold 0.01
+group TD
+atoms
+C 0.002372 0.001146 -0.002506
+Cl 1.017954 1.023996 1.017431
+Cl -1.020079 -1.022784 1.019828
+Cl 1.019139 -1.019003 -1.019707
+Cl -1.018534 1.019224 -1.019363

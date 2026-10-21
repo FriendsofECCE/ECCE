@@ -1,0 +1,8 @@
+# NaCl motif
+program genmollat
+threshold 0.1
+group Fm-3m
+lattice 5 5 5 90 90 90
+atoms
+Na 0.000000 0.000000 0.000000
+Cl 0.500000 0.500000 0.500000

@@ -1,0 +1,8 @@
+# getfrag's irreducible atoms of boh3-propeller, group C3
+program genmol
+threshold 0.01
+group C3
+atoms
+B 0.000000 0.000000 -0.142873
+O -0.685000 1.186450 0.007127
+H -1.567820 1.115540 0.407127

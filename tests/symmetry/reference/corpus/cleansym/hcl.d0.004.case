@@ -1,0 +1,7 @@
+# hcl in autosym's frame (C4V), distorted 0.004
+program cleansym
+threshold 0.01
+group C4V
+atoms
+H 0.003066 0.002623 -1.239164
+Cl 0.002154 0.000847 0.032346
