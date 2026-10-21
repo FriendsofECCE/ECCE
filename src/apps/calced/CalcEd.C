@@ -1478,20 +1478,20 @@ void CalcEd::refreshConstraintCount()
 }
 
 
-/// "2 constraints defined: used only by geometry optimisations", or empty.
+/// "2 constraints (optimisations only)", or empty.
 string CalcEd::constraintNote() const
 {
   if (p_constraintCount <= 0) return "";
   char buf[96];
-  snprintf(buf, sizeof buf, "%d constraint%s defined", p_constraintCount,
+  snprintf(buf, sizeof buf, "%d constraint%s", p_constraintCount,
            p_constraintCount == 1 ? "" : "s");
   string note = buf;
   bool supported = true;
   if (p_code) p_code->get_bool("SupportsConstraints", supported);
   if (!supported)
-    note += ": " + p_codeName + " does not use geometry constraints";
+    note += " (not used by " + p_codeName + ")";
   else if (!GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString()))
-    note += ": used only by geometry optimisations";
+    note += " (optimisations only)";
   return note;
 }
 
@@ -2705,9 +2705,11 @@ void CalcEd::populateSummaryField(const string& summaryType)
           }
         }
       }
-      if (isNested && count > 0) {
-        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY,
-                topLabel), 0, 0, 0);
+      //  A group heading ("SCF Convergence-") goes in front of each label
+      //  ("SCF Conv. Density") instead of on a line of its own; the full
+      //  text is the tooltip.  A toggle group keeps its heading line.
+      if (isNested && toggleSet && count > 0) {
+        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, topLabel), 0, 0, 0);
         sizer->AddSpacer(1);
       }
       for (size_t i = 0; i < keys.size(); i++) {
@@ -2722,12 +2724,22 @@ void CalcEd::populateSummaryField(const string& summaryType)
           if (toggleSet) {
             if (value == "true") {
               sizer->Add(new ewxStaticText(this, wxID_ANY, labels[i]),
-                         0, isNested ? wxALIGN_RIGHT : 0, 0);
+                         0, isNested ? wxLEFT : 0, isNested ? FromDIP(12) : 0);
               sizer->AddSpacer(0);
             }
           } else {
-            sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, labels[i]),
-                       0, isNested ? wxALIGN_RIGHT : 0, 0);
+            wxString full = wxString::FromUTF8(labels[i]);
+            wxString shown = full;
+            if (isNested) {
+              wxString head = wxString::FromUTF8(topLabel);
+              if (head.EndsWith("-")) head.RemoveLast();
+              full = head + " " + full;
+              shown = full;
+              shown.Replace("Convergence", "Conv.");
+            }
+            ewxNonBoldLabel *lab = new ewxNonBoldLabel(this, wxID_ANY, shown);
+            if (shown != full) lab->SetToolTip(full);
+            sizer->Add(lab, 0, wxRIGHT, 0);
             wxSizer *valSizer = new wxBoxSizer(wxHORIZONTAL);
             valSizer->Add(new ewxStaticText(this, wxID_ANY, value),
                           0, wxLEFT, 2);

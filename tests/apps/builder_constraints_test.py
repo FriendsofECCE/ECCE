@@ -122,14 +122,14 @@ def deckCase(display, url, calcdir, expectZcoord, label):
     want = ("" if expectZcoord is None else "")
     if expectZcoord:
         check(m is not None and m.group(1) == "1" and m.group(2) == "1" and
-              m.group(3).strip() == "1 constraint defined",
+              m.group(3).strip() == "1 constraint",
               "%s: the editor notes the constraint, no restriction: %s" %
               (label, m.group(3) if m else "?"), run_tests._tail(log, 20))
         check(not re.search(r"CALCED: verify (UNSURE|other)", log),
               "%s: Verify has nothing to add: %s" % (label, re.findall(r"CALCED: verify.*", log)))
     else:
         check(m is not None and m.group(1) == "1" and m.group(2) == "2" and
-              m.group(3).strip() == "2 constraints defined: used only by geometry optimisations",
+              m.group(3).strip() == "2 constraints (optimisations only)",
               "%s: the editor says the constraints are used only by geometry "
               "optimisations: %s" % (label, m.group(3) if m else "?"), run_tests._tail(log, 20))
         v = re.search(r"CALCED: verify UNSURE: (.*)", log)
