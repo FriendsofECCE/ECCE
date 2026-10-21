@@ -438,6 +438,25 @@ CASES = [
         },
     ),
     dict(
+        name='orca-h2o2-scan',
+        desc='orca.desc',
+        fixture='orca/h2o2_dihedral_scan.out',
+        # HF/3-21G, Scan D 2 0 1 3 = 141.11993, 321.11993, 7 (#393); the
+        # optimisation steps in the middle of the output are cut out.
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={
+            'SCANCOORD][SCANENERGY': dict(keys={
+                'SCANCOORD': {'values': '141.11993 171.11993 201.11993 '
+                              '231.11993 261.11993 291.11993 321.11993'},
+                'SCANENERGY': {'values': '-149.94558597 -149.94581384 '
+                               '-149.94577698 -149.94526014 -149.94312807 '
+                               '-149.93829441 -149.93180233',
+                               'units': 'Hartree'},
+            }),
+        },
+    ),
+    dict(
         name='orca-h2o-opt',
         desc='orca.desc',
         fixture='orca/h2o_opt.out',

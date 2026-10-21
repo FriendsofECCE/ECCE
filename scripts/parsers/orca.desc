@@ -35,6 +35,15 @@ Frequency=last
 End=SUGGESTED CITATIONS FOR THIS RUN
 [END]
 
+# Relaxed scan (#393): the optimised energy of each scan point.  Ends on the
+# second table's heading, which no other entry begins on.
+[SCANCOORD][SCANENERGY]
+Script=orca.scan
+Begin=RELAXED SURFACE SCAN RESULTS
+Frequency=last
+End=Calculated Surface using the SCF energy
+[END]
+
 # ORCA names the file after the input, which ECCE always calls orca.orcain.
 [IRCGEOM]
 Script=orca.ircgeom
