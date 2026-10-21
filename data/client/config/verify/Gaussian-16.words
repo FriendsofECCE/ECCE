@@ -12,6 +12,9 @@ $argv[2]
 $argv[3]\n
 $atom
 $atom-ecp
+$b->{tags}[$i]
+$b->{title}.\n
+$b->{xyz}[$i]\n
 $basisfile
 $basisfile\n
 $bs_name\n
@@ -24,6 +27,7 @@ $env{ecce_home}
 $exponent
 $extrabasis\n
 $extraroute
+$file\n
 $fragfile
 $fragfile\n
 $geo_zcoords[$i]
@@ -41,12 +45,14 @@ $nametobasis{$oldbasis}
 $nstep
 $numcomponents
 $numelectrons\n
+$opt_n.qst$k.frag
 $opt_n\.basis
 $opt_n\.con
 $opt_n\.frag
 $opt_n\.param
 $primcnt\n
 $prim{rexponent}
+$qstblocks[0]->{xyz}[$index]\n
 $result\
 $revision:
 $revision\n
@@ -54,9 +60,13 @@ $scanstep\n
 $scansteps
 $shelltype\n
 $symbol
+$tags{$i}
 $theory\n
 $value
 $wrote
+$x
+$y
+$z
 %-2s%3d
 %-46s
 %16.8f
@@ -134,6 +144,7 @@ $wrote
 \'$result\'
 \d+
 \n
+\n${role}_$b->{title}\n\n
 \niop
 \s*
 \s*\
@@ -172,6 +183,7 @@ atomic
 atoms
 atoms!\n
 atoms-in-molecules
+atoms:
 aug-cc-pv5z
 aug-cc-pv6z
 aug-cc-pvdz
@@ -489,6 +501,7 @@ hcth407
 hcth93
 helium
 help\n
+here
 higher
 highest
 hirshfeld
@@ -518,6 +531,7 @@ iop
 irc
 iridium
 iron
+is
 iscf
 iterative
 itself
@@ -534,6 +548,7 @@ lead
 lee-yang-parr
 library
 line
+list
 listing
 literal
 lithium
@@ -595,6 +610,7 @@ mpw1pw91
 mpw3pbe
 mpwpw91
 multiplicity
+must
 n12
 n12sx
 name_gbs
@@ -638,6 +654,7 @@ options:
 optx
 or
 orbitals
+order:
 origin
 osmium
 oxygen
@@ -678,6 +695,7 @@ potential
 praseodymium
 pressure
 print\n
+product
 projected
 promethium
 protactinium
@@ -689,6 +707,9 @@ pw6b95d3
 pw91
 pw91pw91
 qc
+qst
+qst2
+qst3
 quadratic
 r
 radium
@@ -733,6 +754,7 @@ s4
 s6
 s8
 samarium
+same
 savenbos
 savenormalmodes
 scandium
@@ -781,6 +803,7 @@ sto-3g*
 sto-6g
 stop
 strontium
+structures
 sub
 subroutine
 substitution
@@ -832,6 +855,7 @@ transition
 translation
 true
 ts
+ts_guess
 tungsten
 type:
 tzv
