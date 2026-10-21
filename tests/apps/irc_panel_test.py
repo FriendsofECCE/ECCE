@@ -62,6 +62,31 @@ def logPath():
     return ([float(r[1]) for r in rows], [ts + float(r[0]) for r in rows], ts)
 
 
+def logFrames():
+    """The CURRENT STRUCTURE blocks of the log, in Gaussian's order: FORWARD
+    points 1..n, then REVERSE 1..m (Cartesian rows, Angstrom)."""
+    frames = []
+    for block in open(LOG).read().split("CURRENT STRUCTURE")[1:]:
+        block = block.split("CHANGE IN THE REACTION COORDINATE")[0]
+        frames.append([[float(v) for v in m] for m in re.findall(
+            r"^\s+\d+\s+\d+\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$",
+            block, re.M)])
+    return frames
+
+
+def tsvector(frames):
+    out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+           '<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" '
+           'name="IRCGEOM" rowLabel="IRC Step" rowLabels="%s" rows="%d" '
+           'units="Angstrom" vectorLabel="Coordinate" vectors="1">\n'
+           % (" ".join(str(i) for i in range(len(frames[0]))), len(frames[0]))]
+    for i, f in enumerate(frames):
+        out.append('  <step number="%d">%s</step>\n' % (
+            i + 1, "   ".join("%.6f" % v for row in f for v in row)))
+    out.append("</tsvectable>\n")
+    return "".join(out)
+
+
 def vector(name, values, units):
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
             '<vector name="%s" rowLabel="IRC Point" rowLabels="%s" rows="%d" '
@@ -126,10 +151,15 @@ def main():
         with open(os.path.join(props, "IRCENERGY"), "w") as f:
             f.write(vector("IRCENERGY", energy, "Hartree"))
 
+        frames = logFrames()
+        assert len(frames) == 16 and all(len(f) == 3 for f in frames)
+        with open(os.path.join(props, "IRCGEOM"), "w") as f:
+            f.write(tsvector(frames))
+
         kj = os.path.join(s.state, "irc-kj.csv")
         kcal = os.path.join(s.state, "irc-kcal.csv")
         lines = ["wait 6000", "shot panel", "ircpath %s" % kj,
-                 "ircpath %s kcal" % kcal, "quit"]
+                 "ircpath %s kcal" % kcal, "ircclick 11", "ircclick 5", "ircclick 8", "quit"]
         text, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + calc + "/"],
             lines, png, "ircpanel",
@@ -159,6 +189,22 @@ def main():
         ts_row = [l.split(",") for l in open(kj).read().splitlines()
                   if l and not l.startswith("#")][1:][8]
         check(abs(float(ts_row[3])) < 1e-6, "the TS row (coordinate 0) is the zero")
+        # Summary index 8 is the TS.  Index 11 is forward point 3 (frame 2),
+        # index 5 reverse point 3 (frame 8+3-1 = 10); the log is the oracle.
+        clicks = dict((m[0], m) for m in re.findall(
+            r"BUILDER: ircclick (\d+) frame=(\S+) atoms: (\S+) (\S+) (\S+) "
+            r"(\S+) (\S+) (\S+)", text))
+        for idx, frame in (("11", 2), ("5", 10)):
+            got = clicks.get(idx)
+            check(got is not None and got[1] == str(frame),
+                  "click on point %s shows frame %d" % (idx, frame))
+            if got:
+                want = frames[frame][0] + frames[frame][1]
+                check(all(abs(float(a) - b) < 2e-5
+                          for a, b in zip(got[2:], want)),
+                      "point %s: the viewer holds the log's structure" % idx)
+        check(clicks.get("8", ("", "", ""))[1] == "none",
+              "the TS point has no structure")
         check(any(l.startswith("# calculation: ")
                   for l in open(kj).read().splitlines()), "calculation named")
     finally:

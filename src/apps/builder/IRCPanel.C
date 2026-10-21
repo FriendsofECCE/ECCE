@@ -192,11 +192,11 @@ void IRCPanel::fill()
   p_grid->AutoSizeColumns();
 }
 
-void IRCPanel::showPoint(int index)
+int IRCPanel::showPoint(int index)
 {
-  if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0) return;
+  if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0) return -1;
   IPropCalculation *calc = getCalculation();
-  if (!calc) return;
+  if (!calc) return -1;
   SGContainer& sg = getFW().getSceneGraph();
   Command *cmd = new GTStepCmd("IRC Step", &sg, calc);
   cmd->getParameter("Index")->setInteger(p_frame[index]);
@@ -210,6 +210,7 @@ void IRCPanel::showPoint(int index)
   frag->touchNumbers();
   sg.touchChemDisplay();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
+  return p_frame[index];
 }
 
 void IRCPanel::OnUnit(wxCommandEvent&)

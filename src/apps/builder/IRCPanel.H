@@ -39,6 +39,13 @@ class IRCPanel : public VizPropertyPanel
       /** Number of scan points shown. */
       int points() const { return (int)p_coord.size(); }
 
+      /**
+       * What a click on plot point <index> does; returns the IRCGEOM frame
+       * shown, or -1 if the point has none (the TS, or no usable frames).
+       * For scripts and tests.
+       */
+      int clickPoint(int index) { return showPoint(index); }
+
       /** The path as CSV; false if the file cannot be written. */
       bool exportCsv(const wxString& path, bool kcal);
 
@@ -46,7 +53,7 @@ class IRCPanel : public VizPropertyPanel
       void fill();
       void OnUnit(wxCommandEvent& event);
       void OnExport(wxCommandEvent& event);
-      void showPoint(int index);
+      int showPoint(int index);
 
    private:
       std::vector<double> p_coord;
