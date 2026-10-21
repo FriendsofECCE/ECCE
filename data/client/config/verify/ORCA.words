@@ -14,6 +14,7 @@ $env{ecce_home}/scripts/parsers
 $fragfile\n
 $func
 $functional
+$images\nend\n
 $letter
 $lmax\n
 $maxcore.
@@ -45,12 +46,14 @@ $wrote
 %3d%17.8f%18.8f%4d\n
 %basis\n
 %cpcm\n
+%d
 %d\n
 %elprop
 %elprop\n
 %geom\n
 %maxcore
 %moinp
+%neb\n
 %output\n
 %s
 %scf\n
@@ -114,6 +117,7 @@ $wrote
 [ecce-ai]
 [polar]:
 \'$result\'
+\d+
 \n
 \nend\n
 \s*
@@ -165,6 +169,7 @@ basis>/c
 be
 blyp
 bond
+both
 bp86
 bytes
 c
@@ -187,6 +192,9 @@ c6v
 c7
 c8
 calc's
+calc_anfreq
+calc_numfreq
+calculation
 cam-b3lyp
 cannot
 category
@@ -249,6 +257,7 @@ def2-tzvpp
 def2/j
 descriptive
 details
+details.\n
 dft
 dictionary
 differs
@@ -271,6 +280,10 @@ error
 error:
 es.runtype.geomopt.convergencegradient
 es.runtype.geomopt.maximumstepsvalue
+es.runtype.irc.direction
+es.runtype.irc.inithess
+es.runtype.irc.maximumstepsvalue
+es.runtype.neb.images
 es.runtype.orca.usechelpg
 es.runtype.orca.usehirshfeld
 es.runtype.orca.usembis
@@ -329,6 +342,7 @@ implausible
 in
 input
 input.
+irc
 is
 it
 it.\n
@@ -368,9 +382,15 @@ must
 n_core
 name_gbs
 nbo
+neb-ts
+neb_end_xyzfile
+neb_guess.xyz
+neb_product.xyz
+neb_ts_xyzfile
 need
 newecp
 newgto
+nimages
 nmr
 no
 none
@@ -412,6 +432,7 @@ polarization
 potential
 print[p_mos]
 print[p_orben]
+product
 pvdz
 pwpb95
 quadrupole
@@ -436,6 +457,7 @@ s-f
 s4
 s6
 s8
+scan
 set
 setting
 settings
@@ -444,6 +466,7 @@ smd.\n
 smdsolvent
 solvation
 sp
+state
 sto-3g
 sub
 subroutine
@@ -475,6 +498,7 @@ tolerances
 torsion
 tpss
 tpssh
+transition
 treating
 true\n
 turn
