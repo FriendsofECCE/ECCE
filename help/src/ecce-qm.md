@@ -86,7 +86,7 @@ by side.
   less dependent on the basis set than Mulliken charges; the electrostatic
   potential surface uses the CHELPG charges when they were requested;
 - the density and its electrostatic potential, which the Viewer computes from
-  the orbitals on a grid (Orbitals > Density (ESP)). Within about 0.5 Å of a
+  the orbitals on a grid (**Density (ESP)** in the MOs panel). Within about 0.5 Å of a
   carbon or oxygen nucleus the grid does not resolve the 1s core density
   exactly; the surfaces drawn (isovalue 0.002) lie far outside that region,
   so the colours on them are not affected;
