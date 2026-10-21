@@ -19,6 +19,7 @@
  * stored on its Parameters documents, must be the calculation's, as the
  * Organizer's summary panel reads them.
  */
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -175,12 +176,14 @@ int main(int argc, char **argv)
   if (mode == "qst") {
     // qst <dir> <name>=<file.xyz> ...: Gaussian-16 calculations in proj-qst,
     // each holding the structure of its xyz file (bonds by distance), for
-    // the Opt=QST2/QST3 end-to-end test (#419).
+    // the Opt=QST2/QST3 end-to-end test (#419).  ECCE_QST_CODE names another
+    // code for the same project (the ORCA NEB-TS test).
     Resource *top = EDSIFactory::getResource(EcceURL("file://" + root));
     ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
     ResourceType *projType = rd.getResourceType("collection", "ecceProject", "");
     ResourceType *calcType = rd.getResourceType("virtual_document",
-                                                "ecceCalculation", "Gaussian-16");
+                                                "ecceCalculation",
+                                                getenv("ECCE_QST_CODE") ? getenv("ECCE_QST_CODE") : "Gaussian-16");
     Resource *proj = top && projType ? top->createChild("proj-qst", projType) : 0;
     for (int a = 3; a < argc; a++) {
       string spec = argv[a];

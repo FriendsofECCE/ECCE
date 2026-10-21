@@ -534,7 +534,7 @@ sub GeomConvergenceToken {
 # of the analytic Hessian path.
 sub FreqMethodToken {
   my $runtype = $AbiDict{"RunType"};
-  return "" if ($runtype !~ /Vib/i);
+  return "" if (!&HasFrequencies($runtype));
   return ($AbiDict{"ES.Runtype.Vibration.Method"} eq "Numerical") ?
     "NumFreq" : "";
 }
@@ -568,7 +568,7 @@ sub ORCABlocks {
   # cannot do.
   my $elprop = "  Quadrupole true\n";
   if ($AbiDict{"ES.Runtype.Vibration.UseRaman"} eq "1" &&
-      $AbiDict{"RunType"} =~ /Vib/i) {
+      &HasFrequencies($AbiDict{"RunType"})) {
     $elprop .= "  Polar 1\n";
   }
   $result .= "%elprop\n" . $elprop . "end\n";
@@ -628,6 +628,7 @@ sub ORCABlocks {
       if (@orcaConstraints);
     $result .= "%geom\n" . $geom . "end\n" if ($geom ne "");
   }
+  $result .= &NebBlock() if (&IsNebTS($runtype));
   if ($runtype eq "IRC") {
     # ORCA has no ECCE-side Hessian file to read back, so the initial
     # Hessian is always computed here (calc_anfreq unless asked numerical).
@@ -741,6 +742,32 @@ sub DFTXCFun {
   return $map{$xcFun} || $xcFun;
 }
 
+# NEB-TS (#419): reactant is this calculation, the product (and an optional
+# TS guess) are .xyz files CalcEd wrote next to the generator files; they
+# are staged to the run directory as auxiliary input files.
+sub IsNebTS {
+  my ($runtype) = @_;
+  return ($runtype =~ /^Transition State \(NEB-TS\)/) ? 1 : 0;
+}
+
+sub HasFrequencies {
+  my ($runtype) = @_;
+  return ($runtype =~ /Vib/i ||
+          $runtype eq "Transition State (NEB-TS) + Frequencies") ? 1 : 0;
+}
+
+sub NebBlock {
+  if (! -r "neb_product.xyz") {
+    die "ai.orca error: Transition State (NEB-TS) needs a product structure: " .
+        "pick the product calculation in the Runtype Details.\n";
+  }
+  my $images = $AbiDict{"ES.Runtype.NEB.Images"};
+  $images = 8 if ($images eq "");
+  my $neb = "%neb\n  NEB_End_XYZFile \"neb_product.xyz\"\n";
+  $neb .= "  NEB_TS_XYZFile \"neb_guess.xyz\"\n" if (-r "neb_guess.xyz");
+  return $neb . "  Nimages $images\nend\n";
+}
+
 sub RunType {
   my ($runtype) = @_;
   my $result;
@@ -759,8 +786,12 @@ sub RunType {
     $result = "NMR";
   } elsif ($runtype eq "IRC") {
     $result = "IRC";
+  } elsif ($runtype eq "Transition State (NEB-TS)") {
+    $result = "NEB-TS";
+  } elsif ($runtype eq "Transition State (NEB-TS) + Frequencies") {
+    $result = "NEB-TS Freq";
   } else {
-    die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic/IRC only)\n";
+    die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic/IRC/NEB-TS only)\n";
   }
   return $result;
 }

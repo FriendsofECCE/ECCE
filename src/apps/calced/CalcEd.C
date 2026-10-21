@@ -2605,7 +2605,8 @@ void CalcEd::populateRuntypes()
       else if (it->name() != "Geometry"
             && it->name() != "Vibration"
             && it->name() != "GeoVib"
-            && it->name().compare(0, 22, "Transition State (QST)") != 0)
+            && it->name().compare(0, 22, "Transition State (QST)") != 0
+            && it->name().compare(0, 25, "Transition State (NEB-TS)") != 0)
         choice->Append(it->name(), new ewxBoolClientData(it->noSpherical()));
     }
     delete runTypes;
@@ -4566,7 +4567,8 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
              r.x, r.y, r.width, r.height));
     // The dialog cannot see the project: hand the Gaussian 16 dialog the
     // calculations it may pick for Opt=QST2/QST3.
-    if (cmd.find("ged16runtype") != string::npos) {
+    if (cmd.find("ged16runtype") != string::npos ||
+        cmd.find("orcaruntype") != string::npos) {
       const string list = qstWriteCandidateFile(qstCandidates(p_iCalc));
       wxSetEnv("ECCE_QST_CANDIDATES", list);
     }
