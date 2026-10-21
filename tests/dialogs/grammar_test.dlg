@@ -17,8 +17,9 @@ box label="Numbers"
 force name=T.Flag value=1 when="T.Func==PBE0" silent=1
 force name=T.Conv value=2.5 when="T.Core>3"
 status text="Frozen core above 3 of $nocc occupied" when="T.Core>3"
-int name=T.Core label="Core:" default=0 soft="[0..$nfrozen]" hard="[0..$nocc]" unit=orbitals enable_if="T.Flag==1"
+int name=T.Core label="Core:" default=0 soft="[0..$nfrozen]" hard="[0..$nocc]" hard_if="nocc<0 => [0..0]" unit=orbitals enable_if="T.Flag==1"
 float name=T.Conv label="Conv:" default=1.0 soft="(0..1]" hard="[0..10]" unit=Hartree
 text name=T.Text label="Text:" default=abc
 note label="Closed shell" show_if="mult<=1 || theory==HF && !T.Flag"
 calcpick name=T.Guess label="Guess from:"
+float name=T.Exp label="Exp:" default=1e-08 exp=1 hard="(0..)"

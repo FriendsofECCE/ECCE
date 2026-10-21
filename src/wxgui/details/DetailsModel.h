@@ -41,6 +41,7 @@ struct Item {
   std::string soft, hard;                    // ranges, as templates.py
   Strings choices, urls;                     // urls: calcpick only
   int exportFlag = 0;
+  bool exp = false;                          // float: power of ten only
   int box = -1;
   // run time
   std::string value, saved;
@@ -84,6 +85,7 @@ public:
   void close();
   bool anyNotDefault() const;
   std::string exportLine(int index) const;
+  int exportDeclared(const Item& it) const;
   // JSON of what the dialog would show for this argv, defaults only.
   std::string inventoryJson();
   void checkDependency();
@@ -106,7 +108,7 @@ private:
   struct Step {
     enum Type { ItemRule, Force, StatusMsg } type;
     int item = -1;
-    std::string target, value, when, text;
+    std::string target, value, when, text, before;
     bool silent = false, on = false;
   };
   std::vector<Step> steps_;

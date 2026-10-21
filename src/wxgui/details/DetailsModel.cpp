@@ -157,13 +157,19 @@ bool Model::sendsOnEnable(const Item& it) const
          k == "text";
 }
 
-string Model::exportLine(int index) const
+int Model::exportDeclared(const Item& it) const
 {
-  const Item& it = items_[index];
   int need = it.kind == "radiopair" ? 1 : it.exportFlag;
   if (!need && !it.exportIf.empty() &&
       const_cast<Model*>(this)->eval(it.exportIf, true, &it))
     need = 1;
+  return need;
+}
+
+string Model::exportLine(int index) const
+{
+  const Item& it = items_[index];
+  int need = exportDeclared(it);
   if (notDefault(it)) need = 1;
   return it.name + "|" + it.value + "|" + unitOf(it) + "|" +
          (it.enabled ? "1" : "0") + "|" + std::to_string(need) + "|" +
@@ -288,6 +294,12 @@ void Model::userEdit(int index, const string& text)
     if (!inRange(it.soft, v, msg))
       say("Warning: Value outside recommended range--typically " + msg,
           WARNING);
+    if (it.exp && std::isfinite(v) && v > 0 && std::log10(v) != std::trunc(std::log10(v))) {
+      say("Error: Require a number that is exactly power of 10", ERROR);
+      it.value = pyFloatStr(it.savedNum);
+      touch(index);
+      return;
+    }
     if (v != it.savedNum) changed(index);
   } else if (it.kind == "int") {
     it.value = normalize(it, text);
@@ -428,6 +440,7 @@ bool Model::build(string& error)
       it.soft = substitute(L.get("soft"), argv);
       it.hard = substitute(L.get("hard"), argv);
       it.exportFlag = atoi(L.get("export", "0").c_str());
+      it.exp = L.get("exp", "0") == "1";
       it.enableIf = L.get("enable_if");
       it.showIf = L.get("show_if");
       it.exportIf = L.get("export_if");
@@ -444,6 +457,13 @@ bool Model::build(string& error)
         }
       }
       it.def = substitute(it.def, argv);
+      for (const string& cl : split(L.get("hard_if"), ';')) {
+        size_t arrow = cl.find("=>");
+        if (arrow != string::npos && eval(cl.substr(0, arrow), false)) {
+          it.hard = substitute(trim(cl.substr(arrow + 2)), argv);
+          break;
+        }
+      }
       if (c == "combo") {
         string ch = L.get("choices");
         if (!ch.empty() && ch[0] == '@') {
@@ -491,11 +511,26 @@ bool Model::build(string& error)
         Step st;
         st.type = Step::ItemRule;
         st.item = (int)items_.size() - 1;
+        st.before = L.get("dep_before");
         steps_.push_back(st);
       }
     } else {
       error = "unknown command: " + c;
       return false;
+    }
+  }
+  // dep_before=NAME: run this rule just before NAME's (wx evaluates in code
+  // order, which can differ from the order the widgets are created in).
+  for (size_t a = 0; a < steps_.size(); a++) {
+    if (steps_[a].before.empty()) continue;
+    int tgt = find(steps_[a].before);
+    for (size_t b = 0; b < steps_.size() && tgt >= 0; b++) {
+      if (steps_[b].type != Step::ItemRule || steps_[b].item != tgt) continue;
+      Step mv = steps_[a];
+      steps_.erase(steps_.begin() + a);
+      if (b > a) b--;
+      steps_.insert(steps_.begin() + b, mv);
+      break;
     }
   }
   return true;
@@ -518,7 +553,7 @@ string Model::inventoryJson()
          jstr(typeName(it)) + ", \"choices\": " + jlist(it.choices) +
          ", \"default\": " + jstr(it.def) + ", \"value\": " +
          jstr(it.value) + ", \"export\": " +
-         std::to_string(it.kind == "radiopair" ? 1 : it.exportFlag) +
+         std::to_string(exportDeclared(it)) +
          ", \"unit\": " + jstr(unitOf(it)) + ", \"softRange\": " +
          jstr(it.soft) + ", \"hardRange\": " + jstr(it.hard) +
          ", \"enabled\": " + (it.enabled ? "true" : "false") + "}";

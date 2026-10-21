@@ -2213,7 +2213,7 @@ if(PYTHON3_EXECUTABLE)
   # runs started together would take the same one.
   set_tests_properties(dialogs_native PROPERTIES SKIP_RETURN_CODE 77
                        TIMEOUT 900 RUN_SERIAL TRUE)
-  foreach(_d orcatheory orcaruntype)
+  foreach(_d orcatheory orcaruntype ged16theory ged16runtype)
     add_test(NAME dialogs_native_${_d}
              COMMAND ${PYTHON3_EXECUTABLE}
                      ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py

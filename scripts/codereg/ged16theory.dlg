@@ -1,0 +1,89 @@
+# Gaussian 16 Theory Details for the native engine (bin/ecce-dialog), the same
+# dialog as ged16theory.py.  Keep the two in step: tests/dialogs/native_test.py
+# compares what they send.  Choice lists must match ai.gauss16.  Memory is
+# entered in GB; the wire format is unchanged.
+
+list DQ = RMP4(DQ)|UMP4(DQ)
+list CORR = MP|CC|CI
+list SEDIIS = RMINDO3|ROMINDO3|UMINDO3|RMNDO|ROMNDO|UMNDO|RAM1|UAM1
+list ENERGYLIKE = Energy|Vibration|Polarizability|Magnetic
+
+dialog title="ECCE Gaussian-16 Editor: Theory Details" minwidth=380
+
+box label="SCF" cols=2
+combo name=ES.Theory.SCF.Direct label="SCF Computed:" choices="Direct|In Core|To Disk" default=Direct
+combo name=ES.Theory.SCF.InitialGuess label="Orbital Initial Guess:" choices="Gaussian Guess|Core Hamiltonian|Extended Huckel" default="Gaussian Guess" when="category!=SE"
+combo name=ES.Theory.SCF.InitialGuess label="Orbital Initial Guess:" choices="Gaussian Guess|Extended Huckel" default="Gaussian Guess" when="category==SE"
+
+box label="General Options" cols=2
+check name=ES.Theory.CreateCheckpoint label=" Create Checkpoint File" default=1 export=1
+check name=ES.Theory.UseCartesian label=" Use Cartesian Coordinates" default=0 export=1
+check name=ES.Theory.UseNBO label=" Do NBO calculation" default=0 export=1
+combo name=ES.Theory.NBOVersion label="NBO version:" choices="NBO 7|NBO 6" default="NBO 7" export=1
+check name=ES.Theory.UseHirshfeld label=" Hirshfeld and CM5 charges" default=0 export=1
+combo name=ES.Theory.ESPCharges label="ESP-fitted charges:" choices="None|Merz-Kollman|CHelpG" default=None
+check name=ES.Theory.UseMayer label=" Do Mayer BO" default=0 export=1
+check name=ES.Theory.UseAIM label=" Do AIM CP" default=0 export=1
+
+box label="Memory Limit" cols=4 when="category!=SCF"
+check name=ES.Theory.SCF.Memory label=" Memory:" default=1
+int name=ES.Theory.SCF.MemorySize default=6 hard="[0..)" unit=Gigabytes export=1 enable_if="ES.Theory.SCF.Memory==1"
+
+box label="Memory/Disk Limits" cols=4 when="category==SCF"
+check name=ES.Theory.SCF.Memory label=" Memory:" default=1
+int name=ES.Theory.SCF.MemorySize default=6 hard="[0..)" unit=Gigabytes export=1 enable_if="ES.Theory.SCF.Memory==1"
+check name=ES.Theory.SCF.Disk label=" Disk:" default=0
+int name=ES.Theory.SCF.DiskSize default=64 hard="[0..)" unit=Megawords export=1 enable_if="ES.Theory.SCF.Disk==1"
+
+box label="SCF Convergence" cols=2
+float name=ES.Theory.SCF.ConvergenceDensity.Value label="Delta Density:" default=1e-08 default_if="runtype==Energy && category!=MP && category!=CC && category!=CI => 0.0001" soft="[1e-10..1e-2]" hard="(0..)" exp=1
+combo name=ES.Theory.SCF.ConvergenceAlgorithm label="Algorithm:" choices="DIIS|Iterative SCF|Quadratic" default=DIIS when="category==DFT || category==MP || category==CC || category==CI || category==SCF && theory!=ROHF"
+combo name=ES.Theory.SCF.ConvergenceAlgorithm label="Algorithm:" choices="DIIS|Iterative SCF" default=DIIS when="category==SCF && theory==ROHF"
+combo name=ES.Theory.SCF.ConvergenceAlgorithm label="Algorithm:" choices="DIIS|Iterative SCF" default="Iterative SCF" when="category==SE && theory in @SEDIIS"
+combo name=ES.Theory.SCF.ConvergenceAlgorithm label="Algorithm:" choices="Iterative SCF" default="Iterative SCF" when="category==SE && theory not in @SEDIIS"
+int name=ES.Theory.SCF.ConvergenceIterations label="Max. Iterations:" default=64 hard="[0..)"
+check name=ES.Theory.SCF.LevelShift label=" Level Shift Size: " default=0
+float name=ES.Theory.SCF.LevelShiftSize default=0.1 hard="[0..)" unit=Hartree export=1 enable_if="ES.Theory.SCF.LevelShift==1"
+
+# PBE0 by name; reaction studies default to M06L.
+box label="DFT Convergence" cols=1 when="category==DFT"
+combo name=ES.Theory.DFT.XCFunctionals label="Combined XC:" choices="None|APF (hybrid)|APFD (hybrid)|B1B95 (hybrid)|B1LYP (hybrid)|B3LYP (hybrid)|B3P86 (hybrid)|B3PW91 (hybrid)|B97D (nonlocal)|B97D3 (nonlocal)|BB1K (hybrid)|BB95 (hybrid)|Becke Half and Half (hybrid)|Becke Half and LYP Half (hybrid)|Becke97 (1) (hybrid)|Becke97 (2) (hybrid)|Becke98 (hybrid)|BLYP (nonlocal)|BMK (hybrid)|BP86 (GGA)|CAM-B3LYP (range)|DSDPBEP86 (double-hybrid)|HCTH (nonlocal)|HCTH/147 (nonlocal)|HCTH/407 (nonlocal)|HCTH/93 (nonlocal)|HISSbPBE (range)|HSEH1PBE (range)|LC-wHPBE (range)|LC-wPBE (range)|M05 (hybrid)|M052X (hybrid)|M06 (hybrid)|M062X (hybrid)|M06HF (hybrid)|M06L (meta-GGA)|M08HX (hybrid)|M11 (range)|M11L (nonlocal)|MN12L (nonlocal)|MN12SX (range)|MN15 (hybrid)|MN15L (nonlocal)|MN15M11 (range)|MPW1K (hybrid)|MPW1LYP (hybrid)|MPW1PBE (hybrid)|MPW1PW91 (hybrid)|MPw3PBE (hybrid)|MPWPW91 (hybrid)|N12 (nonlocal)|N12SX (range)|O3LYP (hybrid)|OHSE1PBE (range)|OHSE2PBE (range)|OPBE (GGA)|PBE (GGA)|PBE0 (hybrid)|PBE0DH (double-hybrid)|PBE1PBE (hybrid)|PBEh1PBE (hybrid)|PBEQIDH (double-hybrid)|PW6B95 (hybrid)|PW6B95D3 (hybrid)|PW91PW91 (GGA)|SOGGA11 (nonlocal)|SOGGA11X (hybrid)|SVWN 1/RPA (local)|SVWN 5 (local)|tHCTH (nonlocal)|tHCTHhyb (hybrid)|TPSSh (hybrid)|VSXC (nonlocal)|wB97 (range)|wB97X (range)|wB97XD (range)|X3LYP (hybrid)" default="PBE0 (hybrid)" default_if="rxn!=0 => M06L (meta-GGA)" export_if="default!=@0"
+combo name=ES.Theory.DFT.ExchangeFunctionals label="Exchange:" choices="Slater (local)|X-Alpha (local)|Becke88 (nonlocal)|Perdew-Wang 91|Modified Perdew-Wang 91|Gill 96|PBE 96|OPTX|TPSS|RevTPSS|Becke89|PKZB|wPBEh|PBEh" default="Slater (local)" export=1 enable_if="ES.Theory.DFT.XCFunctionals==None"
+combo name=ES.Theory.DFT.CorrelationFunctionals label="Correlation:" choices="VWN 5 (local)|VWN 1/RPA (local)|Perdew 1981 (local)|Lee-Yang-Parr (nonlocal)|Perdew 1986 (nonlocal)|Perdew 1991 (nonlocal)|Becke95 (nonlocal)|PBE 96 (nonlocal)|TPSS|RevTPSS|KCIS|BRC|PKZB" default="VWN 5 (local)" export=1 enable_if="ES.Theory.DFT.XCFunctionals==None"
+combo name=ES.Theory.DFT.GridDensity label="Grid Quality:" choices="Super Fine|Ultra Fine|Fine|Coarse" default="Ultra Fine"
+combo name=ES.Theory.DFT.Dispersion label="Dispersion:" choices="None|Grimme D2|Grimme D3|Grimme D3(BJ)|Petersson-Frisch" default=None export=1
+
+# CC/CI only as an energy: no analytic gradients for them in Gaussian.
+box label="Solvation" cols=2 when="category==DFT || category==SCF || (category==CC || category==CI) && runtype==Energy"
+check name=ES.Theory.SCF.UseSCRF label=" Use SCRF" default=0
+combo name=ES.Theory.SCF.SCRF label="SCRF type:" choices="PCM|CPCM|IPCM|SCIPCM|SMD|Dipole" default=PCM enable_if="ES.Theory.SCF.UseSCRF==1"
+combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="Water|Acetonitrile|Methanol|Ethanol|Manual|1,4-Dioxane|methylcyclohexane|Benzene|Chloroform|Diethylether|Dichloromethane|Dichloroethane|Carbontetrachloride|Toluene|Chlorobenzene|Nitromethane|Heptane|Aniline|Acetone|Tetrahydrofuran|Dimethylsulfoxide|Argon|Krypton|Xenon|n-Octanol|1-Butanol|Cyclohexane|Isoquinoline|Quinoline|n,n-dimethylformamide" default=Water enable_if="ES.Theory.SCF.UseSCRF==1" dep_before=ES.Theory.SCF.SCRF
+float name=ES.Theory.SCF.Dielectric label="Dielectric Constant:" default=78.4 hard="(0..)" unit=Debye enable_if="ES.Theory.SCF.UseSCRF==1 && ES.Theory.SCF.Solvent==Manual"
+
+box label="Theory Options - MP" cols=2 when="category==MP"
+combo name=ES.Theory.MP.Direct label="Computed:" choices="Direct|Full-Direct|Semi-Direct|In Core" default=Direct
+
+box label="Solvation" cols=2 when="category==MP"
+check name=ES.Theory.SCF.UseSCRF label=" Use SCRF" default=0
+combo name=ES.Theory.SCF.SCRF label="SCRF type:" choices="PCM|CPCM|IPCM|SCIPCM|SMD|Dipole" default=PCM enable_if="ES.Theory.SCF.UseSCRF==1"
+combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="Water|Acetonitrile|Methanol|Ethanol|Manual|1,4-Dioxane|methylcyclohexane|Benzene|Chloroform|Diethylether|Dichloromethane|Dichloroethane|Carbontetrachloride|Toluene|Chlorobenzene|Nitromethane|Heptane|Aniline|Acetone|Tetrahydrofuran|Dimethylsulfoxide|Argon|Krypton|Xenon|n-Octanol|1-Butanol|Cyclohexane|Isoquinoline|Quinoline|n,n-dimethylformamide" default=Water enable_if="ES.Theory.SCF.UseSCRF==1" dep_before=ES.Theory.SCF.SCRF
+float name=ES.Theory.SCF.Dielectric label="Dielectric Constant:" default=78.4 hard="(0..)" unit=Debye enable_if="ES.Theory.SCF.UseSCRF==1 && ES.Theory.SCF.Solvent==Manual"
+
+box label="Theory Options - CC" cols=2 when="category==CC"
+float name=ES.Theory.CC.ConvergenceEnergy.Value label="Delta Energy:" default=1e-08 default_if="runtype in @ENERGYLIKE => 1e-07" unit=Hartree hard="(0.0..)" soft="[1e-12..1e-2]"
+int name=ES.Theory.CC.ConvergenceIterations label="Max. Iterations:" default=50 hard="[0..)"
+
+box label="Theory Options - CI" cols=2 when="category==CI"
+float name=ES.Theory.CI.ConvergenceEnergy.Value label="Delta Energy:" default=1e-08 default_if="runtype in @ENERGYLIKE => 1e-07" unit=Hartree hard="(0.0..)" soft="[1e-12..1e-2]"
+int name=ES.Theory.CI.ConvergenceIterations label="Max. Iterations:" default=50 hard="[0..)"
+int name=ES.Theory.CI.ConvergenceStates label="States to Converge:" default=1 hard="[1..)"
+
+box label="Frozen Core Options" cols=2 when="category in @CORR"
+check name=ES.Theory.UseFrozenCores label=" Use Frozen Core Orbitals" default=1 default_if="theory in @DQ => 0; nfrozen==-1 => 0" export=1 enable_if="theory not in @DQ && nfrozen!=-1"
+int name=ES.Theory.CorrelOrb.FrozenCoreValue label="Freeze:" default=$nfrozen default_if="nfrozen<0 => 0" hard="[0..$nocc]" export=1 enable_if="ES.Theory.UseFrozenCores==1"
+check name=ES.Theory.CorrelOrb.ExcludedVirtual label=" Number to Exclude:" default=0
+int name=ES.Theory.CorrelOrb.ExcludedVirtualValue default=0 hard="[0..$nvirt]" hard_if="nvirt<0 => [0..0]" export=1 enable_if="ES.Theory.CorrelOrb.ExcludedVirtual==1"
+
+# Expert free text appended verbatim to the route card; not checked.
+box label="Additional Route Options (expert)" cols=1
+text name=ES.Theory.AdditionalRouteOptions label="Append to route card:" export=1
