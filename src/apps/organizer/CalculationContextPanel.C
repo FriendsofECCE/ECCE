@@ -20,6 +20,7 @@
 #include "util/TDateTime.H"
 #include "tdat/TFormula.H"
 #include "tdat/TProperty.H"
+#include "tdat/PropVector.H"
 #include "util/TempStorage.H"
 #include "util/NullPointerException.H"
 
@@ -238,13 +239,20 @@ void CalculationContextPanel::updateProgress()
     // MOPAC's TE is its heat of formation, so it is named as such.
     TProperty *hof = task ? task->getProperty("HFENERGY") : 0;
     TProperty *te = task && !hof ? task->getProperty("TE") : 0;
+    // In a relaxed scan TE is whichever SCF the code printed last; the
+    // result is the last point's optimised energy.
+    PropVector *scan = task ? dynamic_cast<PropVector*>(task->getProperty("SCANENERGY")) : 0;
+    const bool scanned = scan && !scan->values().empty();
     TProperty *e = hof ? hof : te;
-    if (e) {
-      const string unit = e->units() == "NA" ? "" : unitLabel(e->units());
-      const string value = valueLabel(e->scalarize(), 6);
+    if (e || scanned) {
+      const string unit = scanned ? "Hartree"
+                        : e->units() == "NA" ? "" : unitLabel(e->units());
+      const string value = scanned ? valueLabel(scan->values().back(), 6)
+                                   : valueLabel(e->scalarize(), 6);
       char line[128];
       snprintf(line, sizeof line, "%s %s%s",
-               hof ? "Heat of formation" : "Final energy",
+               scanned ? "Final energy (last scan point)"
+                       : hof ? "Heat of formation" : "Final energy",
                value.c_str(), unit.empty() ? "" : (" " + unit).c_str());
       p_progressBox->setFinalEnergy(line, value, unit);
     }

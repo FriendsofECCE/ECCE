@@ -6917,6 +6917,7 @@ void CalcMgr::applyQueuedUpdates()
     p_testApplied++;
     EcceURL url(todo[i].second);
     if (todo[i].first == UPDATE_ADDED) updateAddNode(url);
+    else if (todo[i].first == UPDATE_ADDED_SELECT) updateAddNode(url, true);
     else if (todo[i].first == UPDATE_REMOVED) updateRemoveNode(url);
     else updateUrl(url);
   }
@@ -6927,13 +6928,14 @@ void CalcMgr::applyQueuedUpdates()
  * Refresh the context panel and tree ctrl when the resource associated with
  * the URL got added
  */
-void CalcMgr::updateAddNode(const EcceURL & url)
+void CalcMgr::updateAddNode(const EcceURL & url, bool select)
 {
   if (findNode(url.getParent(), false, false)) {
     p_treeCtrl->addToTree(url);
   
     if (url.getParent() == p_treeCtrl->getSelection()->getUrl()) {
       setContextPanel();
+      if (select && p_contextPanel) p_contextPanel->selectResource(url);
     }
   }
 }

@@ -177,7 +177,10 @@ def main():
         kcal = os.path.join(s.state, "scan-kcal.csv")
         lines = ["wait 6000", "shot panel", "scancsv %s" % kj,
                  "scancsv %s kcal" % kcal, "scanclick 3", "scanclick 5",
-                 "scancalc 3", "quit"]
+                 "scanrow 2", "scanstep next", "scanstep last",
+                 "scanstep next", "scanstep first", "scanstep prev",
+                 "scanclick 4", "shot selected", "scanstatus",
+                 "scancalc 3", "scanstatus", "shot created", "quit"]
         text, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + calc + "/"],
             lines, png, "scanpanel",
@@ -219,6 +222,25 @@ def main():
                 want = frames[idx][0] + frames[idx][1]
                 check(all(abs(float(a) - b) < 2e-5 for a, b in zip(got[2:], want)),
                       "scan point %d: the viewer holds the ORCA structure" % idx)
+        # Table rows, playback and plot clicks move one selection, and the
+        # viewer follows it.
+        seq = [(m[0], int(m[1]), int(m[2]), int(m[3]), m[4:]) for m in re.findall(
+            r"BUILDER: scan(?:row|step) (\S+) point=(-?\d+) row=(-?\d+) "
+            r"marker=(-?\d+) atoms: (\S+) (\S+) (\S+) (\S+) (\S+) (\S+)", text)]
+        check(len(seq) == 6, "scanrow and 5 scanstep commands answered (%d)" % len(seq))
+        want = [("2", 2), ("next", 3), ("last", 6), ("next", 6), ("first", 0), ("prev", 0)]
+        for (arg, point, row, marker, atoms), (warg, wpoint) in zip(seq, want):
+            check(point == row == marker == wpoint,
+                  "%s: selection, table row and plot marker agree on point %d "
+                  "(got %d/%d/%d)" % (arg, wpoint, point, row, marker))
+            xyz = frames[wpoint][0] + frames[wpoint][1]
+            check(all(abs(float(a) - b) < 2e-5 for a, b in zip(atoms, xyz)),
+                  "%s: the viewer holds the structure of point %d" % (arg, wpoint))
+        check(re.search(r"scanclick 4 frame=4", text) is not None,
+              "a plot click on point 4 shows frame 4")
+        st = re.findall(r"BUILDER: scanstatus \[(.*)\]", text)
+        check(len(st) == 2 and st[0] == "" and st[1].startswith("Created calc-h2o2-scan_point_4"),
+              "status line: empty, then names the new calculation (%s)" % st)
         new = os.path.join(project, "calc-h2o2-scan_point_4")
         check("scancalc 3 url=" in text and os.path.isdir(new),
               "scancalc 3 (the 4th point, 0-based index 3) created calc-h2o2-scan_point_4")

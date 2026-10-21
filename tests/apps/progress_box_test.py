@@ -111,6 +111,12 @@ def run(display, pngs):
         done = makeCalc(project, "water-done", "Complete",
                         DONE.format(**stamp))
         fresh = makeCalc(project, "water-new", "Created", None)
+        scan = makeCalc(project, "water-scan", "Complete", DONE.format(**stamp))
+        with open(os.path.join(scan, "Props", "SCANENERGY"), "w") as handle:
+            handle.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+                         '<vector name="SCANENERGY" rowLabel="Scan Point" '
+                         'rowLabels="1-A 2-A 3-A" rows="3" units="Hartree">'
+                         '-76.40000   -76.41000   -76.40500</vector>\n')
         live = os.path.join(work, "live.txt")
         with open(live, "w") as handle:
             handle.write(LIVE.format(sent=now, at=int(now)))
@@ -132,6 +138,8 @@ def run(display, pngs):
                 "snap " + png("progress-completed.png"),
                 "summary file://" + fresh,
                 "progressbox",
+                "summary file://" + scan,
+                "progressbox",
             ]) + "\n")
         result = apps.run(display, "organizer", windowTimeout=60, settle=45,
                           env={"ECCE_TEST_ORGANIZER": cmds,
@@ -143,13 +151,13 @@ def run(display, pngs):
             return
         boxes = answers(log, "progressbox")
         counts = answers(log, "counts")
-        if not check(len(boxes) == 4 and len(counts) == 2,
+        if not check(len(boxes) == 5 and len(counts) == 2,
                      "every command answered (%d boxes, %d counts)" % (len(boxes), len(counts)),
                      run_tests._tail(log, 30)):
             return
         for b in boxes:
             print("      " + b)
-        stored, after, completed, none = boxes
+        stored, after, completed, none, scanned = boxes
 
         def field(b, k):
             m = re.search(r"\b%s=(\S+)" % k, b)
@@ -190,6 +198,8 @@ def run(display, pngs):
               "completed: Copy energy gives the value shown (#408)", completed)
         check(field(completed, "energyselectable") == "1",
               "completed: the final energy can be selected with the mouse (#408)", completed)
+        check(scanned.endswith("summary: Final energy (last scan point) -76.405 Hartree"),
+              "relaxed scan: the final energy is the last scan point's", scanned)
         check(field(none, "shown") == "0", "never launched: no box", none)
         for n in ("progress-running-stored.png", "progress-running-live.png",
                   "progress-completed.png"):
