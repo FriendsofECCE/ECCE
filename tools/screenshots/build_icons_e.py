@@ -393,35 +393,32 @@ def textcolor(i):
 
 @icon
 def periodic(i):
-    # 18 columns x 7 periods + detached f-block, square cells, canvas 32 wide
-    c = 1.700
-    ox, oy = (32 - 18 * c) / 2, 6.500
-    pal = {"s": ("#ff9a8a", "#d83a2a"), "p": ("#ffe070", "#d49a00"),
-           "d": ("#8cc4ff", "#2a6ad0"), "f": ("#90e8a8", "#1e9a48")}
-    def cell(col, row, k, dy=0):
-        x, y = ox + col * c, oy + row * c + dy
+    #  A simplified table, 10 columns x 4 periods and a detached f row, with
+    #  cells of ~2 px at 22 px: the 18-column original blurred to grey.
+    c, gap = 2.800, .5
+    ox, oy = (32 - 10 * c) / 2, 7.200
+    pal = {"s": ("#ff7a66", "#c82010"), "p": ("#ffd040", "#c88400"),
+           "d": ("#5aa8ff", "#1450c0"), "f": ("#58d880", "#10802c")}
+    cells = []
+    for r in range(4):
+        for col in range(10):
+            if r == 0 and 0 < col < 9:
+                continue
+            if r in (1, 2) and 1 < col < 7:
+                continue
+            k = "s" if col < 2 else ("d" if col < 7 else "p")
+            if r == 0:
+                k = "s" if col == 0 else "p"
+            cells.append((col, r, k, 0))
+    for col in range(2, 9):
+        cells.append((col, 4, "f", 1.0))
+    i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="1" fill="#1c2433" stroke="#1c2433" stroke-width=".8"/>'
+          % (ox - .6, oy - .6, 10 * c + 1.2, 5 * c + 1.0 + 1.2))
+    for col, r, k, dy in cells:
+        x, y = ox + col * c, oy + r * c + dy
         g = i.lin(0, y, 0, y + c, (0, pal[k][0]), (1, pal[k][1]))
-        i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>' % (x + .1, y + .1, c - .2, c - .2, g))
-    for r in range(7):
-        for col in range(18):
-            if r == 0 and 0 < col < 17:
-                continue
-            if r in (1, 2) and 1 < col < 12:
-                continue
-            if col in (0, 1):
-                k = "s"
-            elif col == 17 and r == 0 or (col >= 12):
-                k = "p" if not (r == 0) else "s"
-            else:
-                k = "d"
-            if r == 0 and col == 17:
-                k = "p"
-            if r >= 5 and col == 2:
-                k = "f"
-            cell(col, r, k)
-    for r in (0, 1):
-        for col in range(14):
-            cell(col + 2.5 - 0.5 + 0, 7 + r, "f", 0.8)
+        i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>'
+              % (x + gap / 2, y + gap / 2, c - gap, c - gap, g))
 
 
 @icon
