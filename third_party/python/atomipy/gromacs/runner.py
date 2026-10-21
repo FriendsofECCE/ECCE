@@ -44,52 +44,6 @@ def write_freeze_ndx(workdir, n_frozen, n_total, *, group="frozen", ndx="index.n
     return ndx
 
 
-def write_index_ndx(workdir, groups, *, ndx="index.ndx", n_total=None):
-    """Write a GROMACS index file from ``{group_name: [1-based atom indices]}``.
-
-    General version of :func:`write_freeze_ndx` — used to define the pull groups for
-    umbrella sampling (e.g. two molecules whose COM distance is the reaction coordinate).
-    If ``n_total`` is given, a ``[ System ]`` group of all atoms is written first. Returns
-    the ndx filename (relative to ``workdir``).
-    """
-    def _emit(name, idxs):
-        out = [f"[ {name} ]"]
-        idxs = list(idxs)
-        for i in range(0, len(idxs), 15):
-            out.append(" ".join(str(int(x)) for x in idxs[i:i + 15]))
-        return out
-    lines = []
-    if n_total is not None:
-        lines += _emit("System", list(range(1, int(n_total) + 1)))
-    for name, idxs in groups.items():
-        lines += _emit(name, idxs)
-    (Path(workdir) / ndx).write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return ndx
-
-
-def group_indices(atoms, *, molid=None, resname=None, element=None, atom_type=None):
-    """Return the 1-based atom indices in ``atoms`` matching ALL given criteria.
-
-    Convenience for building pull groups from an atomipy atom list — e.g.
-    ``group_indices(atoms, molid=1)`` (one molecule/slab) or
-    ``group_indices(atoms, resname='MOL')`` (an adsorbate). Criteria left as ``None`` are
-    ignored; ``molid``/``resname``/``element``/``atom_type`` may be a value or a set/list.
-    """
-    def _match(val, crit):
-        if crit is None:
-            return True
-        if isinstance(crit, (set, list, tuple)):
-            return val in crit
-        return val == crit
-    out = []
-    for i, a in enumerate(atoms, start=1):
-        el = a.get("element") or a.get("type")
-        if (_match(a.get("molid"), molid) and _match(a.get("resname"), resname)
-                and _match(el, element) and _match(a.get("type"), atom_type)):
-            out.append(i)
-    return out
-
-
 def _default_gmx():
     """Preferred default GROMACS when the user hasn't specified a path.
 
@@ -194,7 +148,7 @@ def _active_atomtypes(ffdir, defines):
     """Set of [atomtypes] names active in ffnonbonded.itp under the given defines.
 
     Honors #ifdef/#ifndef/#else/#endif so the result reflects which mineral
-    parameter block (GMINFF_k* vs CLAYFF_EXT, ion sets, …) is selected. Returns
+    parameter block (MINFF_k* vs CLAYFF_EXT, ion sets, …) is selected. Returns
     None if ffnonbonded.itp is absent.
     """
     fn = Path(ffdir) / "ffnonbonded.itp"
@@ -321,7 +275,7 @@ def stage_minff(workdir, *, minff_src=None, sanitize=True, defines=None):
 
     Lighter than stage_run_dir: only the force field. Use when the topology and
     coordinates were already written into ``workdir`` (e.g. by the web-module
-    codegen). ``defines`` (the active FF defines, e.g. ['GMINFF_k500','OPC3'] or
+    codegen). ``defines`` (the active FF defines, e.g. ['MINFF_k500','OPC3'] or
     ['CLAYFF_EXT', …]) makes sanitization define-aware. Returns #lines sanitized.
     """
     wd = Path(workdir)
@@ -533,182 +487,6 @@ def energy_timeseries(workdir, edr, *, terms=None, gmx="gmx", out="energy.xvg", 
     if proc.returncode != 0 or not xvg.exists():
         return None
     return _parse_xvg(xvg)
-
-
-def run_bar(workdir, dhdl_files, *, out="bar.xvg", oi="barint.xvg", begin=None,
-            gmx="gmx", on_line=None):
-    """Run ``gmx bar`` on per-window ``dhdl.xvg`` files and parse the total ΔG.
-
-    Combines the free-energy windows of an alchemical (FEP) sweep — one ``dhdl.xvg``
-    per ``init-lambda-state`` (see :func:`atomipy.gromacs.fep_mdp_extra`) — with the
-    Bennett Acceptance Ratio estimator built into GROMACS. Needs at least two files.
-
-    Returns ``None`` on failure, else::
-
-        {'dG': float, 'dG_err': float, 'unit': 'kJ/mol',
-         'intervals': [{'from','to','dG','err'}, ...], 'bar_xvg': path, 'stdout': str}
-    """
-    wd = Path(workdir)
-    files = [f for f in dhdl_files if (wd / f).exists()]
-    if len(files) < 2:
-        return None
-    gmxcmd, libs = _resolve_gmx(gmx)
-    env = _gmx_env(libs)
-    cmd = [gmxcmd, "bar", "-f", *files, "-o", out, "-oi", oi]
-    if begin is not None:
-        cmd += ["-b", str(begin)]
-    if on_line:
-        on_line("$ " + " ".join(cmd))
-    proc = subprocess.run(cmd, cwd=str(wd), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", env=env)
-    blob = (proc.stdout or "") + "\n" + (proc.stderr or "")
-    if on_line:
-        for ln in blob.splitlines():
-            on_line(ln)
-    if proc.returncode != 0:
-        return None
-    # gmx bar prints per-interval and a 'total' line, e.g.:
-    #   lam_A - lam_B,   DG  1.234 +/- 0.056
-    #   total  0 - 1,    DG  5.678 +/- 0.123
-    rx = re.compile(r"([-\d.eE+]+)\s*-\s*([-\d.eE+]+)\s*,\s*DG\s+([-\d.eE+]+)\s*\+/-\s*([-\d.eE+]+)")
-    intervals, total = [], None
-    for ln in blob.splitlines():
-        m = rx.search(ln)
-        if not m:
-            continue
-        row = {"from": m.group(1), "to": m.group(2),
-               "dG": float(m.group(3)), "err": float(m.group(4))}
-        if ln.strip().lower().startswith("total"):
-            total = row
-        else:
-            intervals.append(row)
-    if total is None and intervals:   # fall back: sum the intervals (errors in quadrature)
-        total = {"dG": sum(r["dG"] for r in intervals),
-                 "err": sum(r["err"] ** 2 for r in intervals) ** 0.5}
-    if total is None:
-        return None
-    return {"dG": total["dG"], "dG_err": total.get("err"), "unit": "kJ/mol",
-            "intervals": intervals, "bar_xvg": str(wd / out), "stdout": blob}
-
-
-def _sample_frames_by_spacing(distances, spacing):
-    """Pick frame indices spaced ~``spacing`` apart along ``distances`` (a monotonic-ish
-    reaction coordinate). Greedy: start at frame 0, then repeatedly jump to the frame
-    closest to current + spacing. Mirrors Lemkul/Harms' setupUmbrella sampleDistances."""
-    cur, sel = 0, [0]
-    n = len(distances)
-    while cur < n:
-        target = distances[cur] + spacing
-        rest = distances[cur:]
-        nxt = min(range(len(rest)), key=lambda j: abs(target - rest[j])) + cur
-        if nxt == cur:
-            break
-        sel.append(nxt)
-        cur = nxt
-    return sel
-
-
-def _parse_xvg_xy(path):
-    """Parse a 2-column .xvg into [(x, y), ...] (skips @/# header lines)."""
-    rows = []
-    for ln in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
-        s = ln.strip()
-        if not s or s.startswith(("#", "@", "&")):
-            continue
-        parts = s.split()
-        try:
-            rows.append((float(parts[0]), float(parts[1])))
-        except (ValueError, IndexError):
-            continue
-    return rows
-
-
-def extract_umbrella_windows(workdir, pull_tpr, pull_traj, ndx, group1, group2, *,
-                             spacing, gmx="gmx", out_prefix="umbrella_conf", on_line=None):
-    """Turn an SMD pull trajectory into umbrella windows spaced ~``spacing`` nm apart.
-
-    Runs ``gmx distance`` over ``pull_traj`` to get the COM(``group1``,``group2``) distance
-    per frame, selects a subset of frames spaced ~``spacing`` along that coordinate, and
-    dumps each selected frame's structure with ``gmx trjconv -dump``. Returns
-    ``[(frame_gro_filename, com_distance_nm), ...]`` — one per umbrella window — or ``[]``.
-    """
-    wd = Path(workdir)
-    gmxcmd, libs = _resolve_gmx(gmx)
-    env = _gmx_env(libs)
-
-    def _run(cmd, stdin=None):
-        p = subprocess.run(cmd, cwd=str(wd), env=env, input=stdin, capture_output=True,
-                           text=True, encoding="utf-8", errors="replace")
-        if on_line:
-            for ln in (p.stdout + p.stderr).splitlines():
-                on_line(ln)
-        return p
-
-    sel = f'com of group "{group1}" plus com of group "{group2}"'
-    p = _run([gmxcmd, "distance", "-s", pull_tpr, "-f", pull_traj, "-n", ndx,
-              "-select", sel, "-oall", "umbrella_alldist.xvg"])
-    if p.returncode != 0 or not (wd / "umbrella_alldist.xvg").exists():
-        return []
-    table = _parse_xvg_xy(wd / "umbrella_alldist.xvg")   # [(time, distance), ...]
-    if len(table) < 2:
-        return []
-    chosen = _sample_frames_by_spacing([d for _, d in table], spacing)
-    windows = []
-    for wi, fi in enumerate(chosen):
-        t, d = table[fi]
-        gro = f"{out_prefix}{wi}.gro"
-        _run([gmxcmd, "trjconv", "-s", pull_tpr, "-f", pull_traj, "-dump", str(t), "-o", gro],
-             stdin="0\n")   # group 0 = System (all atoms)
-        if (wd / gro).exists():
-            windows.append((gro, d))
-    return windows
-
-
-def run_wham(workdir, tpr_files, pullf_files, *, out="profile.xvg", hist="histo.xvg",
-             unit="kJ", begin=None, bootstrap=None, gmx="gmx", on_line=None):
-    """Run ``gmx wham`` on the umbrella windows and parse the PMF profile.
-
-    ``tpr_files`` and ``pullf_files`` are equal-length lists (one per window) of the
-    window ``.tpr`` and ``pullf.xvg`` filenames. Returns ``None`` on failure, else::
-
-        {'pmf': [(xi, G), ...], 'dG': float, 'xi_min': float, 'xi_max': float,
-         'unit': 'kJ/mol', 'profile_xvg': path, 'histo_xvg': path, 'stdout': str}
-
-    ``dG`` is the PMF range (max − min) — for a dissociation profile that is the well
-    depth relative to the unbound plateau. Set ``bootstrap`` (e.g. 100) for error bars.
-    """
-    wd = Path(workdir)
-    if len(tpr_files) < 2 or len(pullf_files) < 2:
-        return None
-    gmxcmd, libs = _resolve_gmx(gmx)
-    env = _gmx_env(libs)
-    (wd / "wham_tpr.dat").write_text("\n".join(tpr_files) + "\n", encoding="utf-8")
-    (wd / "wham_pullf.dat").write_text("\n".join(pullf_files) + "\n", encoding="utf-8")
-    cmd = [gmxcmd, "wham", "-it", "wham_tpr.dat", "-if", "wham_pullf.dat",
-           "-o", out, "-hist", hist, "-unit", unit]
-    if begin is not None:
-        cmd += ["-b", str(begin)]
-    if bootstrap:
-        cmd += ["-nBootstrap", str(int(bootstrap)), "-bsres", "wham_bsres.xvg"]
-    if on_line:
-        on_line("$ " + " ".join(cmd))
-    proc = subprocess.run(cmd, cwd=str(wd), env=env, capture_output=True, text=True,
-                          encoding="utf-8", errors="replace")
-    blob = (proc.stdout or "") + "\n" + (proc.stderr or "")
-    if on_line:
-        for ln in blob.splitlines():
-            on_line(ln)
-    if proc.returncode != 0 or not (wd / out).exists():
-        return None
-    pmf = _parse_xvg_xy(wd / out)
-    if not pmf:
-        return None
-    gs = [g for _, g in pmf if g == g]   # drop NaNs
-    dG = (max(gs) - min(gs)) if gs else None
-    unit_label = {"kJ": "kJ/mol", "kCal": "kcal/mol", "kT": "kT"}.get(unit, unit)
-    return {"pmf": pmf, "dG": dG, "xi_min": pmf[0][0], "xi_max": pmf[-1][0],
-            "unit": unit_label, "profile_xvg": str(wd / out),
-            "histo_xvg": str(wd / hist), "stdout": blob}
 
 
 def _stream(cmd, cwd, env):

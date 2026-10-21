@@ -38,7 +38,7 @@ def normalize_box(Box):
 
 def Box_dim2Cell(Box_dim):
     """
-    Convert Box_dim to Box matrix and Cell parameters.
+    Convert Box_dim to Cell parameters [a, b, c, alfa, beta, gamma].
     
     Box_dim is a 1D array or list of Box dimensions, typically in Angstroms.
     For an orthogonal Box, Box_dim is [Lx, Ly, Lz].
@@ -53,8 +53,14 @@ def Box_dim2Cell(Box_dim):
             Length 9: [xx, xy, xz, yx, yy, yz, zx, zy, zz] - full 3×3 matrix in row-major order
     
     Returns:
-        Box: A 3×3 numpy array representing the Box matrix
-        Cell: A 1×6 numpy array with [a, b, c, alfa, beta, gamma]
+        Cell: A 1×6 numpy array with [a, b, c, alfa, beta, gamma]. Only the Cell is returned
+        (the Box matrix that earlier versions of this docstring promised is not).
+
+    Note:
+        A length-6 input is read as angles when its last three values are all between 0 and 180,
+        otherwise as GROMACS tilt vectors [Lx, Ly, Lz, xy, xz, yz]. A tilt box with small positive
+        tilts (for example xy=2, xz=3, yz=1 Angstrom) is therefore read as angles. Pass such a box as
+        a 9-value Box_dim, or give the angles explicitly.
     """
     if Box_dim is None:
         return np.array([50.0, 50.0, 50.0, 90.0, 90.0, 90.0])

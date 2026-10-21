@@ -41,6 +41,7 @@ MASS -1 Osih   15.99941   ! Edge Si-O-H
 MASS -1 Fs     18.99840   ! Fluorine, Ex. Hectorite
 MASS -1 Mgh    24.30500   ! Mg hydroxide, Ex. Brucite
 MASS -1 Mgo    24.30500   ! Mg oxide, Ex. Periclase
+MASS -1 Mge    24.30500   ! Mg edge, not rigorously tested
 MASS -1 Alo    26.98154   ! Octahedral Al, Ex. Corundum
 MASS -1 Ale    26.98154   ! Edge Al
 MASS -1 Alt    26.98154   ! Tetrahedral Al
@@ -173,11 +174,12 @@ Osi       0.0      -0.163406     1.7815    ! Edge Si-O
 Osih      0.0      -0.163406     1.7815    ! Edge Si-O-H
 !
 ! Fluorine
-Fs        0.0      -0.045186     1.7747    ! Fluorine
+Fs        0.0      -0.046073     1.7826    ! Fluorine
 !
 ! Magnesium types
 Mgh       0.0      -0.236294     1.0555    ! Mg hydroxide
 Mgo       0.0      -0.175459     1.0975    ! Mg oxide
+Mge       0.0      -0.175459     1.0975    ! Mg edge, not rigorously tested
 !
 ! Aluminum types
 Alo       0.0      -0.113263     0.8087    ! Octahedral Al
@@ -188,8 +190,8 @@ Alt       0.0      -0.042601     0.9498    ! Tetrahedral Al
 Sit       0.0      -0.100961     0.4615    ! Tetrahedral Si
 !
 ! Calcium types
-Cah       0.0      -0.208675     1.5256    ! Ca hydroxide
-Cao       0.0      -0.349312     1.4634    ! Ca oxide
+Cah       0.0      -0.208599     1.4299    ! Ca hydroxide
+Cao       0.0      -0.376984     1.5115    ! Ca oxide
 !
 ! Iron types Fe2+
 Fet2      0.0      -0.040930     0.8266    ! Tetrahedral Fe2+

@@ -114,6 +114,9 @@ displacement_distribution = analysis.displacement_distribution
 find_hbonds = analysis.find_hbonds
 hbonds_frames = analysis.hbonds_frames
 vacf = analysis.vacf
+from . import distortion
+tetrahedral_rotation = distortion.tetrahedral_rotation
+tetrahedral_rotation_files = distortion.tetrahedral_rotation_files
 from .bond_angle import bond_angle, bond_angle_dihedral
 
 # ===== Cell and coordinate transformation functions =====
@@ -137,6 +140,7 @@ direct_fractional_to_cartesian = transform.direct_fractional_to_cartesian
 
 from . import replicate
 replicate_system = replicate.replicate_system
+reduce_supercell = replicate.reduce_supercell
 
 from . import move
 translate = move.translate
@@ -259,7 +263,7 @@ except ImportError:
     pass
 
 # Version information
-__version__ = "0.97"
+__version__ = "0.98"
 
 # Expose key functions at the package level
 __all__ = [
@@ -295,7 +299,7 @@ __all__ = [
     'get_radius', 'bond_distance',
     'unwrap_coordinates', 'calculate_rdf', 'coordination_number', 'closest_atom', 'min_distances',
     'density_profile', 'rdf_frames', 'density_frames', 'msd', 'displacement_distribution',
-    'find_hbonds', 'hbonds_frames', 'vacf',
+    'find_hbonds', 'hbonds_frames', 'vacf', 'tetrahedral_rotation', 'tetrahedral_rotation_files',
     'xrd', 'occupancy_atom', 'atomic_scattering_factors', 'calculate_multiplicity', 'bragg_law',
     'miller_planes', 'd_spacing', 'cut_miller', 'cut_planes', 'hkil_to_hkl',
     'build_cell', 'make_lattice', 'lattice_types',

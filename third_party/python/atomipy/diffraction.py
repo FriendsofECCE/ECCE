@@ -78,6 +78,7 @@ two_theta, intensity, fig = xrd(
 ```
 """
 
+import warnings
 import numpy as np
 from .distances import dist_matrix
 from .cell_utils import normalize_box
@@ -338,8 +339,11 @@ def atomic_scattering_factors(atom_label, wavelength, two_theta, b_iso=0.0):
         atom_label = atom_label[1:]
 
         # Handle common ionic forms
-    if atom_label in ['O', 'O1-', 'O2-']:
-        atom_label = atom_label + '1-'
+    if atom_label == 'O':
+        # A bare oxygen is O1-, as in the MATLAB implementation. Explicit 'O1-' and 'O2-' are
+        # used as given; they used to become 'O1-1-' / 'O2-1-', match nothing, and silently fall
+        # back to neutral oxygen.
+        atom_label = 'O1-'
 
 
     # Handle common ionic forms
@@ -401,7 +405,8 @@ def atomic_scattering_factors(atom_label, wavelength, two_theta, b_iso=0.0):
             if row[0] == 'O':
                 idx = i
                 break
-        print(f"Warning: Could not find element {atom_label} in Waasmaier-Kirfel table. Using O (Oxygen) instead.")
+        warnings.warn(f"Could not find element {atom_label} in Waasmaier-Kirfel table. "
+                      f"Using O (Oxygen) instead.", RuntimeWarning, stacklevel=2)
     
     # Extract coefficients from the selected row
     # Label, AtomicNumber, Charge, AtomicWeight, Debye, a1, a2, a3, a4, a5, c, b1, b2, b3, b4, b5
@@ -553,6 +558,42 @@ def bragg_law(wavelength, value, mode='distance', n=1):
         return (n * wavelength) / (2 * np.sin(np.radians(value / 2)))
     else:
         raise ValueError("Mode must be 'distance' or 'twotheta'")
+
+
+def _accumulate_profile(centres, weights, widths, grid, shape):
+    """Sum one peak profile per reflection onto the 2theta grid, in chunks.
+
+    Writing this as one broadcast -- np.meshgrid(grid, centres) and a single
+    (n_reflections x n_grid) array -- is the obvious NumPy phrasing, but for
+    127k reflections against a 4401-point scan that is two 4.5 GB float arrays
+    plus a third for the peaks.  The sum is the same taken a slice at a time,
+    and the arithmetic is identical, so the result is unchanged to the last
+    bit while nothing larger than one chunk is ever held.
+
+    Parameters
+    ----------
+    centres : 2theta of each reflection
+    weights : |F|^2 of each reflection
+    widths  : FWHM of each reflection
+    grid    : the 2theta scan
+    shape   : 'gaussian' or 'lorentzian'
+    """
+    out = np.zeros(grid.size, dtype=float)
+    if centres.size == 0:
+        return out
+    # ~32 MB per temporary, whatever the scan length
+    chunk = max(1, int(4_000_000 // max(grid.size, 1)))
+    for start in range(0, centres.size, chunk):
+        stop = min(start + chunk, centres.size)
+        delta = grid[np.newaxis, :] - centres[start:stop, np.newaxis]
+        w = widths[start:stop, np.newaxis]
+        if shape == 'gaussian':
+            c_g = w / (2 * np.sqrt(2 * np.log(2)))
+            block = weights[start:stop, np.newaxis] * np.exp(-delta**2 / (2 * c_g**2))
+        else:
+            block = weights[start:stop, np.newaxis] / (delta**2 + (0.5 * w)**2)
+        out += block.sum(axis=0)
+    return out
 
 
 def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02, 
@@ -780,17 +821,23 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
     k_values = np.arange(-kmax, kmax + 1)
     l_values = np.arange(-lmax, lmax + 1)
     
-    hkl_list = []
-    for h in h_values:
-        for k in k_values:
-            for l in l_values:
-                if not (h == 0 and k == 0 and l == 0):  # Exclude 000 reflection
-                    hkl_list.append([h, k, l])
-    
-    hkl = np.array(hkl_list)
-    h = hkl[:, 0]
-    k = hkl[:, 1] 
-    l = hkl[:, 2]
+    # Built with meshgrid rather than a triple Python loop: for a 31x36x38 A
+    # box this is ~397k iterations of list.append, which costs more than the
+    # diffraction physics that follows it.  The ordering (l fastest, then k,
+    # then h) matches the loop it replaces, and the grid shape is kept so the
+    # structure factor below can be assembled on it.
+    hgrid, kgrid, lgrid = np.meshgrid(h_values, k_values, l_values, indexing='ij')
+    grid_shape = hgrid.shape
+    h = hgrid.reshape(-1)
+    k = kgrid.reshape(-1)
+    l = lgrid.reshape(-1)
+    nonzero = ~((h == 0) & (k == 0) & (l == 0))    # exclude the 000 reflection
+    # Where each surviving reflection sits on the full grid, so the separable
+    # structure factor can be computed on the grid and read back out here.
+    grid_index = np.arange(h.size)[nonzero]
+    h = h[nonzero]; k = k[nonzero]; l = l[nonzero]
+    hkl = np.column_stack((h, k, l))
+    n_generated = hkl.shape[0]      # reported later, before the range filter
     
     print(f"Generated {len(hkl)} reflections")
     
@@ -830,6 +877,7 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
         & (two_theta_disc <= two_theta_range[1])
     )
     hkl = hkl[valid_indices]
+    grid_index = grid_index[valid_indices]
     h = h[valid_indices]
     k = k[valid_indices]
     l = l[valid_indices]
@@ -857,33 +905,16 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
         if neutral_atoms:
             scattering_label = f"{atom_type}0"
         else:
-            # Use ionic forms for common ions
-            if atom_type == 'Na':
-                scattering_label = 'Na+1'
-            elif atom_type == 'Cl':
-                scattering_label = 'Cl-1'
-            elif atom_type == 'K':
-                scattering_label = 'K+1'
-            elif atom_type == 'Ca':
-                scattering_label = 'Ca+'
-            elif atom_type == 'Mg':
-                scattering_label = 'Mg+1'
-            elif atom_type == 'Al':
-                scattering_label = 'Al+1.5'
-            elif atom_type == 'Fe':
-                scattering_label = 'Fe+1.5'
-            elif atom_type == 'Si':
-                scattering_label = 'Si+2'
-            elif atom_type == 'O':
-                scattering_label = 'O-2'
-            elif atom_type == 'F':
-                scattering_label = 'F-1'
-            elif atom_type == 'S':
-                scattering_label = 'S-2'
-            # Add more ionic forms as needed
-            # If no ionic form is defined, use neutral atom
-            else:
-                scattering_label = atom_type
+            # Ionic forms for common ions, in the Waasmaier-Kirfel table's
+            # number-first spelling ('Na1+', not 'Na+1'). The old sign-first labels
+            # matched nothing and every ion silently fell back to its NEUTRAL form.
+            # Oxidation states follow the MATLAB xrd_atom reference (O1-, Mg2+). 'S'
+            # has no ionic entry in the table, so it stays neutral by design.
+            _ionic = {
+                'Na': 'Na1+', 'Cl': 'Cl1-', 'K': 'K1+', 'Ca': 'Ca2+', 'Mg': 'Mg2+',
+                'Al': 'Al1.5+', 'Fe': 'Fe1.5+', 'Si': 'Si2+', 'O': 'O1-', 'F': 'F1-',
+            }
+            scattering_label = _ionic.get(atom_type, atom_type)
         
         # Calculate scattering factors
         f_values, _, _ = atomic_scattering_factors(scattering_label, wavelength, two_theta_disc, 0.0)
@@ -898,9 +929,29 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
         
         print(f"Processing {len(type_indices)} atoms of type {atom_type}")
         
-        # Vectorized calculation for all atoms of this type
+        # The phase sum for this atom type, computed on the h,k,l grid.
+        #
+        # The straightforward way to write this is to broadcast every atom
+        # against every reflection at once:
+        #
+        #     phases = 2j*np.pi*(h[None,:]*x[:,None] + k[None,:]*y[:,None] + ...)
+        #     contributions = f[None,:] * occ[:,None] * temp * np.exp(phases)
+        #     f_hkl += contributions.sum(axis=0)
+        #
+        # which is correct but allocates several (n_atoms x n_hkl) complex
+        # arrays.  For 720 atoms of one type against 139k reflections that is
+        # 1.6 GB apiece and about 6 GB live at once, so a 4000-atom box spends
+        # its time swapping rather than computing.
+        #
+        # The phase factor separates, though:
+        #
+        #     exp(2*pi*i*(h*x + k*y + l*z)) = Ex(h,n) * Ey(k,n) * Ez(l,n)
+        #
+        # so one table per axis costs n_atoms*(nH+nK+nL) exponentials instead
+        # of n_atoms*n_hkl -- 909k rather than 1.6e9 for that box -- and the
+        # rest is a complex matrix product.  Nothing larger than the
+        # reflection grid is ever allocated.
         if len(type_indices) > 0:
-            # Get arrays for this atom type
             idx_array = np.array(type_indices)
             b_type = b_values[idx_array]
             occ_type = occupancy_values[idx_array]
@@ -908,23 +959,35 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
             y_type = y_frac[idx_array]
             z_type = z_frac[idx_array]
             
-            # Vectorized temperature factor calculation
             sin_theta_lambda = np.sin(np.radians(two_theta_disc / 2)) / wavelength
-            temp_factors = np.exp(-b_type[:, np.newaxis] * sin_theta_lambda[np.newaxis, :]**2)
             
-            # Vectorized phase factor calculation: 2πi(hx + ky + lz)
-            phases = 2j * np.pi * (h[np.newaxis, :] * x_type[:, np.newaxis] + 
-                                   k[np.newaxis, :] * y_type[:, np.newaxis] + 
-                                   l[np.newaxis, :] * z_type[:, np.newaxis])
-            
-            # Vectorized contribution calculation
-            contributions = (f_values[np.newaxis, :] * 
-                           occ_type[:, np.newaxis] * 
-                           temp_factors * 
-                           np.exp(phases))
-            
-            # Sum contributions from all atoms of this type
-            f_hkl += np.sum(contributions, axis=0)
+            nH, nK, nL = grid_shape
+            # Atoms of this type that share a B factor share a Debye-Waller
+            # term, which is what lets that term come out of the phase sum.
+            for b_val in np.unique(b_type):
+                sub = np.flatnonzero(b_type == b_val)
+                xs = x_type[sub]; ys = y_type[sub]; zs = z_type[sub]
+                ws = occ_type[sub]
+                
+                Ex = np.exp(2j * np.pi * np.outer(h_values, xs))    # nH x n_sub
+                Ey = np.exp(2j * np.pi * np.outer(k_values, ys))    # nK x n_sub
+                Ez = np.exp(2j * np.pi * np.outer(l_values, zs))    # nL x n_sub
+                Ezw = (Ez * ws).T                                   # n_sub x nL
+                
+                Se = np.empty(grid_shape, dtype=complex)
+                # Friedel's law: these are Waasmaier-Kirfel f0 with no
+                # anomalous terms, so every scattering factor is real and
+                # F(-h,-k,-l) = conj(F(h,k,l)) exactly.  Only h >= 0 is
+                # computed; the rest is the conjugate mirror.
+                ih0 = int(np.searchsorted(h_values, 0))
+                for ih in range(ih0, nH):
+                    # (nK x n_sub) @ (n_sub x nL) -> nK x nL, one gemm per h
+                    Se[ih] = (Ey * Ex[ih]) @ Ezw
+                if ih0 > 0:
+                    Se[:ih0] = np.conj(Se[nH - 1:nH - 1 - ih0:-1, ::-1, ::-1])
+                
+                dw = np.exp(-b_val * sin_theta_lambda**2)
+                f_hkl += f_values * dw * Se.reshape(-1)[grid_index]
     
     # Calculate |F|^2
     f_squared = np.real(f_hkl * np.conj(f_hkl))
@@ -968,15 +1031,9 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
         # Vectorized Gaussian width parameters
         c_g_array = fwhm_array / (2 * np.sqrt(2 * np.log(2)))
         
-        # Vectorized Gaussian peak calculation
-        # Create meshgrid for broadcasting
-        twotheta_mesh, twotheta_disc_mesh = np.meshgrid(exp_twotheta, two_theta_disc)
-        c_g_mesh = c_g_array[:, np.newaxis]
-        f_squared_mesh = f_squared[:, np.newaxis]
-        
-        # Calculate all Gaussian peaks at once
-        gauss_peaks = f_squared_mesh * np.exp(-(twotheta_mesh - twotheta_disc_mesh)**2 / (2 * c_g_mesh**2))
-        gauss_component = np.sum(gauss_peaks, axis=0)
+        # Accumulated in chunks; see _accumulate_profile for why.
+        gauss_component = _accumulate_profile(
+            two_theta_disc, f_squared, fwhm_array, exp_twotheta, 'gaussian')
         
         if np.max(gauss_component) > 0:
             gauss_part = gauss_component / np.max(gauss_component)
@@ -997,20 +1054,9 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
                           np.where((h == 0) & (k == 0), fwhm_00l,  # 00l reflections
                                   fwhm_hkl))  # general hkl reflections
         
-        # Vectorized Lorentzian peak calculation
-        # Reuse meshgrids if they exist, otherwise create them
-        if lorentzian_factor < 1:
-            # Meshgrids already exist from Gaussian calculation
-            pass
-        else:
-            twotheta_mesh, twotheta_disc_mesh = np.meshgrid(exp_twotheta, two_theta_disc)
-            f_squared_mesh = f_squared[:, np.newaxis]
-        
-        fwhm_lorentz_mesh = fwhm_lorentz[:, np.newaxis]
-        
-        # Calculate all Lorentzian peaks at once
-        lorentz_peaks = f_squared_mesh / ((twotheta_mesh - twotheta_disc_mesh)**2 + (0.5 * fwhm_lorentz_mesh)**2)
-        lorentz_component = np.sum(lorentz_peaks, axis=0)
+        # Accumulated in chunks; see _accumulate_profile for why.
+        lorentz_component = _accumulate_profile(
+            two_theta_disc, f_squared, fwhm_lorentz, exp_twotheta, 'lorentzian')
         
         if np.max(lorentz_component) > 0:
             lorentz_part = lorentz_component / np.max(lorentz_component)
@@ -1063,7 +1109,7 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
             f.write(f"h_max = {hmax}\n")
             f.write(f"k_max = {kmax}\n")
             f.write(f"l_max = {lmax}\n")
-            f.write(f"Total reflections generated: {len(hkl_list)}\n")
+            f.write(f"Total reflections generated: {n_generated}\n")
             f.write(f"Valid reflections in 2θ range: {len(two_theta_disc)}\n")
         
         # Save atomic scattering factors to a text file

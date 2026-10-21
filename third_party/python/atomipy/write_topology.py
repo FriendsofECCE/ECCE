@@ -20,6 +20,25 @@ from .topology import validate as tvalidate
 from .topology.model import Topology
 from ._provenance import provenance_string
 
+
+def _charmm_safe_type(name: str) -> str:
+    """Make an atom-type name safe for CHARMM/NAMD (PSF + .prm).
+
+    CHARMM treats ``+ - * % # ?`` as wildcards in parameter-file atom-type
+    specifications, so a signed ionic type like ``Ca2+`` or ``Cl-`` would be
+    misinterpreted. Emit the UN-signed name by dropping the +/- sign (Na+ -> Na,
+    Cl- -> Cl, F- -> F). The charge-magnitude digit is kept so different
+    oxidation states stay distinct (Ca2+ -> Ca2, Al3+ -> Al3; Cu+ -> Cu vs
+    Cu2+ -> Cu2). Any other non-alphanumeric char becomes '_'. Applied
+    identically to the PSF type column and the companion .prm so they match.
+    """
+    if not name:
+        return name
+    out = name.replace("+", "").replace("-", "")   # drop the ionic sign
+    out = "".join(c if (c.isalnum() or c == "_") else "_" for c in out)
+    return out
+
+
 # Parameter emission order per (category, form) for fixed-column file formats.
 _PARAM_ORDER = {
     ("bond", "harmonic"): ["b0", "k"],
@@ -508,9 +527,12 @@ def write_psf(topology: Topology, file_path: str, *, prm_out: Optional[str] = No
     # !NATOM
     lines.append(f"{len(topology.atoms):>8d} !NATOM")
     for a in topology.atoms:
+        # CHARMM type names must avoid +/-/* (parameter-matching wildcards) so
+        # signed ionic solutes (Na+, Ca2+, Cl-) map to Nap/Ca2p/Clm here and in
+        # the companion .prm.
         lines.append(
             f"{a.id + 1:>10d} {segid:<8s} {a.residue_id:<8d} {a.residue_name:<8s} "
-            f"{(a.name or a.type):<8s} {(a.type or 'X'):<6s} "
+            f"{(a.name or a.type):<8s} {_charmm_safe_type(a.type or 'X'):<6s} "
             f"{(a.charge or 0.0):>10.6f} {(a.mass or 0.0):>13.4f}{0:>12d}")
     lines.append("")
     lines += section("NBOND: bonds", [(b.i + 1, b.j + 1) for b in topology.bonds],
@@ -536,7 +558,10 @@ def _write_prm(topology: Topology, path: str):
     """Companion CHARMM .prm. Per-site uniqueness via site_label->unique type
     names so same-FF-type sites with different params stay distinct."""
     c = "charmm"
-    site_type = ttyping.extract_atom_types_by_site(topology)
+    # CHARMM-safe type names (sign -> letter) so the emitted .prm matches the .psf
+    # and CHARMM does not read +/- as parameter wildcards.
+    site_type = {k: _charmm_safe_type(v)
+                 for k, v in ttyping.extract_atom_types_by_site(topology).items()}
     lines = [f"* {provenance_string()} — CHARMM parameter file", "*", "", "BONDS"]
     seen = set()
     for b in topology.bonds:

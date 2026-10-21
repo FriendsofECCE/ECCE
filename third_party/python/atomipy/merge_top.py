@@ -29,7 +29,7 @@ merge_top_files(*pairs, out_top, out_gro, defines=None, box=None)
     Reads each pair with import_gaff_top + import_conf, merges, writes files.
 
 write_merged_top(atoms_merged, itp_merged, box_merged, out_top, out_gro,
-                 mineral_ff='minff', minff_variant='GMINFF_k500',
+                 mineral_ff='minff', minff_variant='MINFF_k500',
                  water_model='spce', ion_model='SPCE_HFE_LM',
                  molecule_name='System')
     Writes the final self-contained .top and .gro files.
@@ -45,6 +45,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from ._provenance import provenance_string
+from .minff_defines import minff_defines
 
 # atomipy-native atom dict type alias for documentation
 AtomList = List[Dict[str, Any]]
@@ -576,6 +577,7 @@ def _split_mineral_components_by_resname(components):
     only to parts that are genuinely separate molecules (stacked layers have no inter-layer
     bonds, so this is safe).
     """
+    from .composition import classify_atom
     out = []
     for c in components:
         atoms = c.get('atoms', [])
@@ -590,11 +592,23 @@ def _split_mineral_components_by_resname(components):
                 groups[rn] = []
                 order.append(rn)
             groups[rn].append(a)
-        if len(order) <= 1:
+        # Fast path: a single mineral resname with no ion/water passes through unchanged.
+        if len(order) == 1 and classify_atom(groups[order[0]][0]) not in ('ion', 'water'):
             out.append(c)
             continue
         for rn in order:
-            out.append({'atoms': groups[rn], 'itp': None, 'box': c.get('box')})
+            grp = groups[rn]
+            comp = {'atoms': grp, 'itp': None, 'box': c.get('box')}
+            # Ion/water groups must NOT become a mineral [ moleculetype ]: they would
+            # carry an unsigned atomtype (e.g. 'Na' from the assigned fftype) that the
+            # forcefield does not define (ffnonbonded defines the signed 'Na+'), so grompp
+            # fails with "Atomtype Na not found". Flag them so merge_top keeps the atoms in
+            # the system (for the .gro and the [ molecules ] count) but leaves their
+            # [ moleculetype ] to min.ff/ions.itp (and the water .itp).
+            kind = classify_atom(grp[0])
+            if kind in ('ion', 'water'):
+                comp['_passthrough'] = kind
+            out.append(comp)
     return out
 
 
@@ -646,7 +660,9 @@ def merge_top(
     original_itps = []
     for c in components:
         raw_itp = c.get('itp')
-        if raw_itp is None:
+        if c.get('_passthrough'):
+            raw_itp = {}   # ion/water: no mineral itp — min.ff/ions.itp + water .itp provide it
+        elif raw_itp is None:
             raw_itp = _build_mineral_itp(c.get('atoms', []), c.get('box'))
         itp_list.append(_normalize_itp(raw_itp))
         original_itps.append(raw_itp)
@@ -692,6 +708,24 @@ def merge_top(
         atoms_in = comp.get('atoms', [])
         n_atoms  = len(atoms_in)
         if n_atoms == 0:
+            continue
+
+        # Ion/water passthrough: add the atoms to the merged system (so the .gro and the
+        # get_mol_sequence-based [ molecules ] count are correct) but emit NO mineral
+        # [ moleculetype ] — min.ff/ions.itp and the water .itp provide those, with the
+        # correct signed ion atomtypes ('Na+', not 'Na'). Resnames are kept as-is so
+        # get_mol_sequence names the molecules correctly.
+        if comp.get('_passthrough'):
+            for local_i, atom in enumerate(atoms_in):
+                new_atom = dict(atom)
+                new_atom['index'] = atom_offset + local_i + 1
+                new_atom['molid'] = molid_offset + int(atom.get('molid', 1))
+                if 'component' not in new_atom:
+                    new_atom['component'] = comp_idx
+                atoms_merged.append(new_atom)
+            molids = [int(a.get('molid', 1)) for a in atoms_in]
+            molid_offset += max(molids) - min(molids) + 1
+            atom_offset += n_atoms
             continue
 
         # Determine a unique molecule name for this component
@@ -824,6 +858,106 @@ def merge_top(
 # File-level writer
 # ---------------------------------------------------------------------------
 
+def _renumber_molids_contiguous(atoms):
+    """Reassign globally-unique, 1-based molids by contiguous runs: a new molecule
+    starts whenever the incoming molid changes between consecutive atoms.
+
+    This repairs molid *collisions* between non-adjacent molecules that came from
+    different build branches (e.g. an ion at molid 35 and the first organic also
+    at molid 35, because the organic branch was never offset past the ions).
+    ``get_mol_sequence`` keys the [ molecules ] table on globally-unique molids,
+    so a collision silently merges two molecules into one entry — the topology
+    then has one molecule fewer than the .gro and grompp aborts with
+    "number of coordinates ... does not match topology". Each molecule's atoms are
+    contiguous in a GROMACS-ordered system, so renumbering by runs is safe and
+    makes the [ molecules ] count match the coordinates exactly.
+    """
+    if not atoms:
+        return
+    _sentinel = object()
+    prev = _sentinel
+    new_id = 0
+    for a in atoms:
+        cur = a.get('molid', 1)
+        if cur != prev:
+            new_id += 1
+            prev = cur
+        a['molid'] = new_id
+
+
+def _hoist_organic_atomtypes(organic_itps, out_top_dir):
+    """Split each organic (GAFF/ACPYPE) .itp into its [ atomtypes ] block and the
+    rest of the topology.
+
+    GROMACS requires every [ atomtypes ] directive to appear before the first
+    [ moleculetype ]. An ACPYPE ``*_GMX.itp`` opens with its own [ atomtypes ]
+    block, so #including it *after* the mineral moleculetypes makes grompp abort
+    with "Invalid order for directive atomtypes". We therefore lift the atomtypes
+    out and emit them in the hoisted atomtypes region of the merged .top, writing
+    an atomtype-free ``<stem>_mt.itp`` that is #included where the molecule
+    topology belongs.
+
+    Returns ``(atomtype_lines, include_names)`` where ``atomtype_lines`` are the
+    de-duplicated body rows of every organic [ atomtypes ] block (type name is the
+    first whitespace token) and ``include_names`` are the basenames to #include in
+    place of the originals (the rewritten ``_mt.itp`` when a split happened, else
+    the original basename).
+    """
+    atomtype_lines = []
+    seen_types = set()
+    include_names = []
+    for oitp in organic_itps or []:
+        base = os.path.basename(oitp)
+        src = os.path.join(out_top_dir or '.', base)
+        try:
+            with open(src, 'r', encoding='utf-8') as fh:
+                lines = fh.readlines()
+        except OSError:
+            # Can't read it here — fall back to including it verbatim.
+            include_names.append(base)
+            continue
+
+        in_at = False
+        has_at = False
+        rest = []
+        for ln in lines:
+            s = ln.strip()
+            if s.startswith('[') and s.endswith(']'):
+                directive = s.strip('[] ').lower()
+                in_at = (directive == 'atomtypes')
+                if in_at:
+                    has_at = True
+                    continue  # drop the [ atomtypes ] header from the rest file
+            if in_at:
+                # Collect atomtype rows (skip blanks/comments), de-dup by type name.
+                if s and not s.startswith(';'):
+                    key = s.split()[0]
+                    if key not in seen_types:
+                        seen_types.add(key)
+                        atomtype_lines.append(ln.rstrip('\n'))
+                continue
+            rest.append(ln)
+
+        if not has_at:
+            include_names.append(base)
+            continue
+
+        stem, ext = os.path.splitext(base)
+        mt_name = f"{stem}_mt{ext or '.itp'}"
+        try:
+            with open(os.path.join(out_top_dir or '.', mt_name), 'w', encoding='utf-8') as fh:
+                fh.write(f'; atomtypes hoisted into the merged .top (see merge_top.py); '
+                         f'molecule topology only\n')
+                fh.writelines(rest)
+            include_names.append(mt_name)
+        except OSError:
+            # Couldn't write the split file — include the original and hope the
+            # ordering works (pure-organic systems are fine either way).
+            include_names.append(base)
+
+    return atomtype_lines, include_names
+
+
 def write_merged_top(
     atoms_merged: AtomList,
     itp_merged:   ITPDict,
@@ -833,7 +967,7 @@ def write_merged_top(
     *,
     # Mineral force field include
     mineral_ff:    str  = 'minff',
-    minff_variant: str  = 'GMINFF_k500',
+    minff_variant: str  = 'MINFF_k500',
     water_model:   str  = 'spce',
     ion_model:     str  = 'SPCE_HFE_LM',
     molecule_name: str  = 'Mixed System',
@@ -842,7 +976,7 @@ def write_merged_top(
     # Angle force constant Ka (kJ/mol/rad²) for mineral O-M-O / M-O-M angles.
     # None  -> emit NO [ angles ] at all (CLAYFF default, MINFF "No angles").
     # 0/250/500/1500 -> write explicit angles: scanned θ0 for metal angles at
-    # this Ka, and the standard θ0/k for M-O-H. The GMINFF_k nonbonded block is
+    # this Ka, and the standard θ0/k for M-O-H. The MINFF_k nonbonded block is
     # unaffected (written separately).
     angle_ka:  Optional[float] = 500.0,
     # Optional explicit [ molecules ] override: a sequence of (name, count) pairs.
@@ -875,13 +1009,32 @@ def write_merged_top(
     out_top        : path for the output .top file
     out_gro        : path for the output .gro file
     mineral_ff     : 'minff', 'clayff', or 'gminff' — selects the #ifdef macro
-    minff_variant  : preprocessor define for the mineral FF variant
+    minff_variant  : preprocessor define for the general MINFF set, i.e. the angle force
+                     constant ('MINFF_k0', 'MINFF_k250', 'MINFF_k500', 'MINFF_k1500').
+                     The pre-v1.0 'GMINFF_k500' is still accepted, with a FutureWarning.
+                     Tailored (TMINFF) sets are not supported here: they need two defines
+                     and the ffnonbonded_tminff.itp / ffbonded_tminff.itp includes.
     water_model    : water model include (spce, opc3, tip3p, ...)
     ion_model      : ion parametrisation set (SPCE_HFE_LM, OPC3_IOD_LM, ...)
     organic_itps   : list of organic .itp filenames to #include (relative paths)
     """
     from .write_conf import gro  as write_gro_fn
     from .cell_utils  import Cell2Box_dim
+
+    # The defines that select the general MINFF set. Done first, so that a variant that
+    # cannot work is reported before any file is written (a define that selects nothing
+    # only shows up later as undeclared atomtypes in grompp).
+    _minff_flags = minff_defines(minff_variant)
+    if len(_minff_flags) > 1:
+        raise ValueError(
+            f"minff_variant={minff_variant!r} selects a tailored (TMINFF) set "
+            f"({', '.join('-D' + d for d in _minff_flags)}), which write_merged_top does not "
+            "support: it includes the general ffnonbonded.itp/ffbonded.itp only")
+
+    # Repair any molid collisions between non-adjacent molecules from different
+    # build branches before the .gro and [ molecules ] table are derived from them
+    # (both key on molid), so their molecule counts can never disagree.
+    _renumber_molids_contiguous(atoms_merged)
 
     total_charge = sum(_charge_to_float(a.get('charge')) for a in atoms_merged)
 
@@ -967,7 +1120,8 @@ def write_merged_top(
             # Activate only the atomtype blocks the system actually uses, so a
             # MINFF-free / ion-free topology never pulls in unused parameter sets.
             if has_mineral:
-                f.write(f'#define {minff_variant}\n')
+                for _minff_define in _minff_flags:
+                    f.write(f'#define {_minff_define}\n')
             if has_water:
                 # Activate the water-model atomtype block (#ifdef OPC3 / SPCE /
                 # TIP4PEW / ...) in ffnonbonded.itp. The water .itp only
@@ -986,6 +1140,22 @@ def write_merged_top(
                 f.write('#include "min.ff/ffbonded.itp"\n')  # O-H + edge bond/angle types
             f.write('\n')
 
+        # Organic (GAFF/ACPYPE) [ atomtypes ] must precede every [ moleculetype ],
+        # so hoist them here — above the mineral moleculetype includes — and #include
+        # only the atomtype-free molecule topology below. Otherwise grompp aborts:
+        # "Invalid order for directive atomtypes".
+        _organic_includes = list(organic_itps) if organic_itps else None
+        if organic_itps:
+            _org_at_lines, _organic_includes = _hoist_organic_atomtypes(
+                organic_itps, os.path.dirname(out_top))
+            if _org_at_lines:
+                f.write('; Organic (GAFF) atomtypes — hoisted so they precede all moleculetypes\n')
+                f.write('[ atomtypes ]\n')
+                f.write(';name   bond_type     mass     charge   ptype   sigma         epsilon\n')
+                for _l in _org_at_lines:
+                    f.write(_l + '\n')
+                f.write('\n')
+
         # Mineral moleculetype(s): one self-contained .itp per slab, #included like the
         # water/ion topologies (local 1-based indexing + a shared '#ifdef POSRES' block).
         if has_mineral:
@@ -997,10 +1167,11 @@ def write_merged_top(
                     f.write(f'#include "{_fn}"\n')
                 f.write('\n')
 
-        # Organic itp includes (GAFF atomtypes + molecule topology, incl. explicit [ pairs ])
-        if organic_itps:
+        # Organic molecule topologies (atomtypes already hoisted above; these are the
+        # atomtype-free *_mt.itp rewrites, incl. explicit [ pairs ])
+        if _organic_includes:
             f.write('; Organic molecule topologies\n')
-            for oitp in organic_itps:
+            for oitp in _organic_includes:
                 f.write(f'#include "{os.path.basename(oitp)}"\n')
             f.write('\n')
 
@@ -1189,7 +1360,7 @@ def merge_top_files(
     defines: Optional[list] = None,
     box: Optional[list] = None,
     mineral_ff: str = 'minff',
-    minff_variant: str = 'GMINFF_k500',
+    minff_variant: str = 'MINFF_k500',
     water_model: str = 'spce',
     ion_model: str = 'SPCE_HFE_LM',
     angle_ka: Optional[float] = 500.0,

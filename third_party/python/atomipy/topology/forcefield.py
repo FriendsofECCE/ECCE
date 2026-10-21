@@ -199,7 +199,7 @@ def _itp_bonded(ln, fff: ForceField, category, natoms, allow_two_type=False):
 
 def from_json(path: str, *, variant: Optional[str] = None, name: str = "") -> ForceField:
     """Read FF params from a bundled ffparams/*.json. `variant` selects a
-    nonbonded block (e.g. 'GMINFF_k500'); bond/angle types are shared top-level."""
+    nonbonded block (e.g. 'MINFF_k500'); bond/angle types are shared top-level."""
     full = path
     if not os.path.isabs(path) and not os.path.exists(path):
         full = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ffparams", path)

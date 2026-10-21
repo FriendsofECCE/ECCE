@@ -102,7 +102,7 @@ def read_forcefield_itp(paths, *, defines=None, include_dirs=None):
 
 def read_forcefield_json(path, *, variant=None):
     """Read a ForceField from a bundled ffparams/*.json (variant selects a
-    nonbonded block, e.g. 'GMINFF_k500')."""
+    nonbonded block, e.g. 'MINFF_k500')."""
     from .topology import forcefield as _ff
     return _ff.from_json(path, variant=variant)
 

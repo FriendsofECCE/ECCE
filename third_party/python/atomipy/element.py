@@ -46,8 +46,12 @@ def element(atoms):
         # If 'element' is already provided and non-empty (e.g., from PDB cols 77-78),
         # trust it, standardize capitalization, and update type to match.
         current_element = atom.get('element')
-        if isinstance(current_element, str) and current_element.strip():
-            # Standardize to capitalized form (e.g., 'al' -> 'Al', 'AL' -> 'Al')
+        if (isinstance(current_element, str) and current_element.strip()
+                and current_element.strip().upper() != 'X'):
+            # Standardize to capitalized form (e.g., 'al' -> 'Al', 'AL' -> 'Al').
+            # 'X' is gemmi's "unknown element" placeholder (e.g. an AMCSD CIF whose
+            # site labels aren't element symbols) — don't trust it; fall through to
+            # the label/type prefix logic below so it can still be resolved.
             atom['element'] = current_element.strip().capitalize()
             atom['type'] = atom['element']
             continue
@@ -108,6 +112,9 @@ def element(atoms):
             atom['element'] = 'Ow'
         elif atomtype_lower.startswith('hw'):
             atom['element'] = 'Hw'
+        elif atomtype_lower.startswith('wat'):
+            # Water-oxygen site label (e.g. AMCSD ice CIFs label O positions 'Wat1').
+            atom['element'] = 'O'
         elif atomtype_lower.startswith('o'):
             atom['element'] = 'O'
         elif atomtype_lower.startswith('h'):

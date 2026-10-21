@@ -6,8 +6,8 @@ both before every release; the rule and the checks are in
 
 ## python/atomipy
 
-atomipy 0.97 (MIT, `python/atomipy/LICENSE`), from
-https://pypi.org/project/atomipy/0.97/ (sdist `atomipy-0.97.tar.gz`).
+atomipy 0.98 (MIT, `python/atomipy/LICENSE`), from
+https://pypi.org/project/atomipy/0.98/ (sdist `atomipy-0.98.tar.gz`).
 The package is unmodified except that the unused structure libraries
 `structures/crystals`, `structures/minerals`, `structures/molecules` and
 `structures/organics` (70 MB of CIF/cjson data that ECCE never loads) are

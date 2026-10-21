@@ -173,12 +173,12 @@ Cah       0.0      -0.0000050298 3.1244    ! Ca hydroxide
 Cao       0.0      -0.0000050298 3.1244    ! Ca oxide
 !
 ! Iron types (CLAYFF has single Feo; also include Fe2o/Fe3o for ap.clayff())
-! sigma=0.407222 nm, epsilon=3.77671e-05 kJ/mol
-Feo       0.0      -0.0000090266 2.2855    ! Octahedral Fe
-Fe2o      0.0      -0.0000090266 2.2855    ! Octahedral Fe2+
-Fe3o      0.0      -0.0000090266 2.2855    ! Octahedral Fe3+
-Fe2t      0.0      -0.0000090266 2.2855    ! Tetrahedral Fe2+
-Fe3t      0.0      -0.0000090266 2.2855    ! Tetrahedral Fe3+
+! sigma=0.490620 nm, epsilon=3.77807e-06 kJ/mol (the CLAYFF Fe3+ value, see SI of doi.org/10.1021/acs.jpcc.1c04600)
+Feo       0.0      -0.0000009030 2.7535    ! Octahedral Fe
+Fe2o      0.0      -0.0000009030 2.7535    ! Octahedral Fe2+
+Fe3o      0.0      -0.0000009030 2.7535    ! Octahedral Fe3+
+Fe2t      0.0      -0.0000009030 2.7535    ! Tetrahedral Fe2+
+Fe3t      0.0      -0.0000009030 2.7535    ! Tetrahedral Fe3+
 !
 ! Titanium (using MINFF value - CLAYFF does not define Ti explicitly)
 Tio       0.0      -0.192681     1.0563    ! Ti oxide

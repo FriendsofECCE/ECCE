@@ -13,7 +13,7 @@ atoms = ap.clayff(atoms, Box) # Assign CLAYFF types
 import numpy as np
 from .bond_angle import bond_angle
 from .cell_utils import Box_dim2Cell, Cell2Box_dim, normalize_box
-from .charge import charge_minff, charge_clayff, assign_formal_charges
+from .charge import charge_minff, charge_clayff, assign_formal_charges, monatomic_ion_charge
 from .element import element  # Correct function name is 'element' not 'set_element'
 from .mass import set_atomic_masses
 
@@ -388,6 +388,8 @@ def minff(atoms, Box, ffname='minff', rmaxlong=2.45, rmaxH=1.2, log=False, log_f
     are standardized (e.g., 'Ow', 'Hw', 'Na') and preserved, skipping the structural type assignment.
     
     For details, see the MINFF forcefield documentation at https://github.com/mholmboe/minff.
+    If you use MINFF, please cite: Holmboe, M., Lavauzelle, N., Swai, R. E. (2026), MINFF: A Family of
+    Classical Force Fields for Minerals with Tunable Angle Terms, arXiv preprint, doi:10.48550/arXiv.2610.18220.
     
     Args:
         atoms: A list of atom dictionaries, each atom is expected to have position coordinates
@@ -413,6 +415,17 @@ def minff(atoms, Box, ffname='minff', rmaxlong=2.45, rmaxH=1.2, log=False, log_f
     atoms = ap.minff(atoms, Box)
     atoms = ap.minff(atoms, [50, 50, 50], log=True, log_file="minff_stats.log")
     """
+    # Capture each monatomic counter-ion's full formal charge from its (possibly signed)
+    # input label NOW, before element()/typing normalize the label and drop the
+    # sign/charge-state (e.g. Fe2+ vs Fe3+). Keyed by the stable atom index so it
+    # survives any later copy/reorder; re-applied after the MINFF charge pass, whose
+    # table only covers a few ions.
+    _ion_formal_charges = {
+        a.get('index'): monatomic_ion_charge(a)
+        for a in atoms if a.get('index') is not None
+    }
+    _ion_formal_charges = {k: v for k, v in _ion_formal_charges.items() if v is not None}
+
     # Set the atoms chemical element names
     atoms = element(atoms)  # Use correct function name 'element'
 
@@ -667,6 +680,22 @@ def minff(atoms, Box, ffname='minff', rmaxlong=2.45, rmaxH=1.2, log=False, log_f
                 
                 if o_neighbors == 6:
                     atom['fftype'] = 'Cao'  # Octahedral Ca
+
+                    # Same composition logic as for Mg: Cah for Ca in hydroxides and
+                    # Ca-silicates, Cao for lime and Al-rich silicates
+                    h_count = sum(1 for a in atoms if a.get('element') == 'H')
+                    ca_count = sum(1 for a in atoms if a.get('element') == 'Ca')
+                    si_count = sum(1 for a in atoms if a.get('element') == 'Si')
+                    al_count = sum(1 for a in atoms if a.get('element') == 'Al')
+
+                    if ca_count > si_count:
+                        atom['fftype'] = 'Cao'  # E.g. in lime
+                        if ca_count < h_count:
+                            atom['fftype'] = 'Cah'  # E.g. in portlandite
+                    elif ca_count < si_count:
+                        atom['fftype'] = 'Cah'
+                        if al_count > ca_count:
+                            atom['fftype'] = 'Cao'  # E.g. in Al-rich silicates
                 elif o_neighbors == 4:
                     atom['fftype'] = 'Cah'  # 4-coordinated Ca
                 elif f_neighbors == 8:
@@ -912,6 +941,15 @@ def minff(atoms, Box, ffname='minff', rmaxlong=2.45, rmaxH=1.2, log=False, log_f
     # By default, apply charges to all atoms (set resname=None)
     # To limit charge assignment to specific residues, provide a resname (e.g., 'MIN')
     atoms = charge_minff(atoms, Box, atom_labels, charges, resname=None)
+
+    # Restore the full formal charge of every monatomic counter-ion (captured above),
+    # so ions outside the small MINFF charge table (Li+, Rb+, Mg2+, Sr2+, Ba2+, Al3+,
+    # F-, Br-, I-, Fe2+/Fe3+, ...) keep their proper charge instead of falling to 0.
+    if _ion_formal_charges:
+        for a in atoms:
+            q = _ion_formal_charges.get(a.get('index'))
+            if q is not None:
+                a['charge'] = q
     
     # Find unique types of atomtypes and their neighbors
     # This is equivalent to the MATLAB code for finding unique types after atom type assignment
@@ -1069,6 +1107,15 @@ def clayff(atoms, Box, ffname='clayff', rmaxlong=2.45, rmaxH=1.2, log=False, log
     atoms = ap.clayff(atoms, [40, 40, 40], log=True)
     """
     # Set the atoms chemical element names
+    # Capture each monatomic counter-ion's full formal charge from its (possibly signed)
+    # input label before element()/typing normalize the label and drop the
+    # sign/charge-state; re-applied after the CLAYFF charge pass (see minff for rationale).
+    _ion_formal_charges = {
+        a.get('index'): monatomic_ion_charge(a)
+        for a in atoms if a.get('index') is not None
+    }
+    _ion_formal_charges = {k: v for k, v in _ion_formal_charges.items() if v is not None}
+
     atoms = element(atoms)  # Use correct function name 'element'
 
    # First assign formal charges to all atoms (especially for ions and water)
@@ -1526,6 +1573,14 @@ def clayff(atoms, Box, ffname='clayff', rmaxlong=2.45, rmaxH=1.2, log=False, log
     # By default, apply charges to all atoms (set resname=None)
     # To limit charge assignment to specific residues, provide a resname (e.g., 'MIN')
     atoms = charge_clayff(atoms, Box, atom_labels, charges, resname=None)
+
+    # Restore the full formal charge of every monatomic counter-ion (captured above),
+    # so ions outside the small CLAYFF charge table keep their proper charge, not 0.
+    if _ion_formal_charges:
+        for a in atoms:
+            q = _ion_formal_charges.get(a.get('index'))
+            if q is not None:
+                a['charge'] = q
     
     # Find unique types of atomtypes and their neighbors
     # This is equivalent to the MATLAB code for finding unique types after atom type assignment

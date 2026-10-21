@@ -9,6 +9,8 @@ This directory provides force field data in two distinct formats:
 
 The JSON files include atomtype definitions, non-bonded parameters (sigma, epsilon), and bonded parameters (bondtypes, angletypes) for the [**MINFF**](https://github.com/mholmboe/minff) forcefield, TMINFF, ion parameters, and water models.
 
+Please cite the MINFF preprint if you use these parameters: Holmboe, M., Lavauzelle, N., Swai, R. E. (2026). *MINFF: A Family of Classical Force Fields for Minerals with Tunable Angle Terms.* arXiv preprint. [doi:10.48550/arXiv.2610.18220](https://doi.org/10.48550/arXiv.2610.18220).
+
 ## Usage with atomipy
 
 To fetch parameters, you must specify the blocks you want to load (e.g., a mineral block, an ion set, and a water model).
@@ -20,7 +22,7 @@ import atomipy as ap
 # Example: GMINFF k500 + OPC3 water + OPC3 HFE ions
 ff = ap.load_forcefield(
     'GMINFF/gminff_all.json', 
-    blocks=['GMINFF_k500', 'OPC3', 'OPC3_HFE_LM']
+    blocks=['MINFF_k500', 'OPC3', 'OPC3_HFE_LM']
 )
 
 # Load TMINFF parameters
@@ -47,7 +49,9 @@ print(blocks)
 
 ### General Minerals (GMINFF)
 Used in `GMINFF/gminff_all.json`.
-- `GMINFF_k0`, `GMINFF_k250`, `GMINFF_k500`, `GMINFF_k1500`
+- `MINFF_k0`, `MINFF_k250`, `MINFF_k500`, `MINFF_k1500`
+  (these were named `GMINFF_k*` before MINFF v1.0; the block name now matches
+  the Gromacs define, which for the general sets is `-DMINFF_k500` alone)
 - `CLAYFF_2004`
 - `CLAYFF_EXT`
 
@@ -102,7 +106,15 @@ Bonded parameters are sparse in MINFF as it is primarily a non-bonded force fiel
 
 Atomipy automatically maps common atom type names to JSON forcefield keys:
 - `Ow` → `OW_opc3`, `Hw` → `HW_opc3`
-- `Na` → `Na+`, `K` → `K+`, `Cl` → `Cl−`
+- `Na` → `Na+`, `K` → `K+`, `Cl` → `Cl-`
+
+All ion atomtypes are signed, in both the `.itp` and the `.json` files, using an ASCII
+`+` or `-`. Monovalent ions carry the sign alone (`Na+`, `Cl-`); polyvalent ions carry the
+charge state first (`Ca2+`, `Fe3+`, `Th4+`). This holds for every ion set, including the
+older Joung–Cheatham, Åqvist and Babu–Lim sets, which were previously unsigned in the
+`.itp` files. Note that residue and moleculetype names remain unsigned (`Na`, `Ca`), since
+those are what the `[ molecules ]` section of a `.top` and the residue field of a `.gro`
+or `.pdb` refer to.
 
 ## Generating JSON Files (gmx2json.py)
 

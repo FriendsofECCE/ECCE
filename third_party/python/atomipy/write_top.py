@@ -71,8 +71,7 @@ def is_solvent_or_ion(atom):
     solvent_ion_resnames = {
         'SOL', 'WAT', 'HOH', 'TIP3', 'OPC', 'OPC3', 'SPC', 'SPCE', 'TIP4', 'TIP5',
         'ION', 'NA', 'CL', 'K', 'LI', 'CS', 'RB', 'F', 'BR', 'I', 'CA', 'MG', 'ZN',
-        'NA+', 'CL-', 'CL−', 'K+', 'LI+', 'CS+', 'RB+', 'F-', 'F−', 'BR-', 'BR−',
-        'I-', 'I−', 'CA2+', 'MG2+', 'ZN2+'
+        'NA+', 'CL-', 'K+', 'LI+', 'CS+', 'RB+', 'F-', 'BR-', 'I-', 'CA2+', 'MG2+', 'ZN2+'
     }
     if res and res not in solvent_ion_resnames:
         return False
@@ -92,7 +91,7 @@ def is_solvent_or_ion(atom):
         return True
         
     # Standard ion resnames
-    if res in ('ION', 'NA', 'CL', 'K', 'LI', 'CS', 'RB', 'F', 'BR', 'I', 'CA', 'MG', 'ZN', 'NA+', 'CL-', 'CL−', 'K+', 'LI+', 'CS+', 'RB+', 'F-', 'F−', 'BR-', 'BR−', 'I-', 'I−', 'CA2+', 'MG2+', 'ZN2+'):
+    if res in ('ION', 'NA', 'CL', 'K', 'LI', 'CS', 'RB', 'F', 'BR', 'I', 'CA', 'MG', 'ZN', 'NA+', 'CL-', 'K+', 'LI+', 'CS+', 'RB+', 'F-', 'BR-', 'I-', 'CA2+', 'MG2+', 'ZN2+'):
         return True
         
     # Standard water atom types
@@ -1177,7 +1176,7 @@ def lmp(atoms, Box=None, file_path=None, forcefield=None, rmaxH=1.2, rmaxM=2.45,
     
     # With forcefield parameters from JSON (uses bundled data)
     import atomipy as ap
-    ff = ap.load_forcefield('GMINFF/gminff_opc3_hfe_lm_k500.json', blocks=['GMINFF_k500'])
+    ff = ap.load_forcefield('GMINFF/gminff_opc3_hfe_lm_k500.json', blocks=['MINFF_k500'])
     ap.write_lmp(atoms, Box, "system.data", forcefield=ff)
     """
     import numpy as np

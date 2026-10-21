@@ -233,7 +233,11 @@ def center(atoms, Box=None, resname="all", dim="xyz"):
     
     # Calculate geometric center of the atoms to be centered
     num_atoms = len(atoms_to_center)
-    
+
+    if num_atoms == 0:
+        print("Warning: center() received no atoms to center. Returning atoms unchanged.")
+        return atoms_copy
+
     # Calculate geometric center
     center_x = sum(atom['x'] for atom in atoms_to_center) / num_atoms
     center_y = sum(atom['y'] for atom in atoms_to_center) / num_atoms

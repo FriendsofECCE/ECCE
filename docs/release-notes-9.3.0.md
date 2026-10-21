@@ -71,6 +71,9 @@ Rebuilt as a model-first fragment-orbital diagram: choose it by picking one atom
 - **Relaxed scan plot:** the scanned coordinate was taken from a bond that hardly moved, and a dihedral scan through 180 degrees was unwrapped wrongly (#396).
 - **Help pages:** the walkthroughs use the Organizer's tool buttons and are reworded to match the windows.
 
+## Bundled for GROMACS minerals
+- atomipy 0.98 and min.ff at commit d12b895 (the newest min.ff renames its parameter files, which ECCE does not follow yet), tested with the MINFF and ClayFF suites.
+
 ## Known issues
 - **GROMACS, CP2K and Quantum ESPRESSO** remain experimental.
 - **The MO diagram** is experimental.

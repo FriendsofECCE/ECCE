@@ -44,9 +44,9 @@ def load_minff_into_openmm(
         Path to the matching .gro coordinate file.
     defines : dict[str, str] or list[str]
         Preprocessor variables to activate, equivalent to the GROMACS .mdp
-        directive `define = -DGMINFF_k500 -DOPC3_IOD_LM -DOPC3`. Either:
-          - dict form: {'GMINFF_k500': '', 'OPC3_IOD_LM': '', 'OPC3': ''}
-          - list form: ['GMINFF_k500', 'OPC3_IOD_LM', 'OPC3']  (auto-converted)
+        directive `define = -DMINFF_k500 -DOPC3_IOD_LM -DOPC3`. Either:
+          - dict form: {'MINFF_k500': '', 'OPC3_IOD_LM': '', 'OPC3': ''}
+          - list form: ['MINFF_k500', 'OPC3_IOD_LM', 'OPC3']  (auto-converted)
         The empty-string values are sufficient for plain #ifdef checks.
     include_dir : str or None
         Directory containing the MINFF .itp files referenced by `#include`

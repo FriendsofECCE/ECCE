@@ -11,7 +11,45 @@ It provides functions to:
 """
 
 import copy
+import re
 from .bond_angle import bond_angle
+
+# Full formal charge of a bare monatomic counter-ion, keyed by element (uppercase).
+# Fe is intentionally omitted: Fe2+/Fe3+ are ambiguous from the bare element and are
+# resolved only from a signed label (see monatomic_ion_charge).
+_MONATOMIC_ION_DEFAULT_CHARGE = {
+    'LI': 1.0, 'NA': 1.0, 'K': 1.0, 'RB': 1.0, 'CS': 1.0,
+    'F': -1.0, 'CL': -1.0, 'BR': -1.0, 'I': -1.0,
+    'MG': 2.0, 'CA': 2.0, 'SR': 2.0, 'BA': 2.0, 'ZN': 2.0,
+    'AL': 3.0, 'FE': 3.0,   # bare Fe -> common Fe3+; a Fe2+ ion must be labelled 'Fe2+'
+}
+_SIGNED_ION_RE = re.compile(r'^([A-Za-z]{1,2})(\d?)([+-])$')
+
+
+def monatomic_ion_charge(atom):
+    """Return the full formal charge of a monatomic counter-ion, or None.
+
+    Parses a signed ion label exactly, including the charge state of polyvalent ions
+    (``Na+``->+1, ``Cl-``->-1, ``Ca2+``->+2, ``Al3+``->+3, ``Fe2+``->+2, ``Fe3+``->+3),
+    and also recognizes a bare ion element whose residue names it as an ion
+    (``resname`` equal to the element, ``ION`` or ``IONS``).
+
+    Returns None for framework/mineral atoms (e.g. ``Alo``, ``Sit``, ``Mgo``) so they
+    are left to the MINFF/CLAYFF charge tables — the MINFF/CLAYFF ion tables only cover
+    a handful of ions, so without this Li+, Mg2+, Al3+, F-, Fe3+, ... would be left at 0.
+    """
+    name = str(atom.get('type') or atom.get('fftype') or atom.get('name') or '').strip()
+    m = _SIGNED_ION_RE.match(name)
+    if m:
+        mag = int(m.group(2)) if m.group(2) else 1
+        return float(mag) if m.group(3) == '+' else -float(mag)
+    el = str(atom.get('element') or '').strip()
+    base = (el or name).strip().upper()
+    rn = str(atom.get('resname') or '').strip().upper()
+    if base in _MONATOMIC_ION_DEFAULT_CHARGE and rn in {base, 'ION', 'IONS'}:
+        return _MONATOMIC_ION_DEFAULT_CHARGE[base]
+    return None
+
 
 # =====================================================
 # Formal charge functions (from charge_formal.py)

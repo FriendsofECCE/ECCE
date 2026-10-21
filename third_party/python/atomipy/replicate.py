@@ -335,3 +335,152 @@ def update_atom_indices(atoms):
     for i, atom in enumerate(atoms):
         atom['index'] = i + 1
     return atoms
+
+
+def reduce_supercell(atoms, box, replicate=[1, 1, 1], merge=True,
+                     tol=0.02, set_occupancy=True, keep_resname=True,
+                     renumber_index=True):
+    """Reduce a replicated system back to a single unit cell.
+
+    The exact inverse of :func:`replicate_system`, and follows the same route
+    so that the two round-trip:
+
+    1. convert to fractional coordinates of the *supercell*,
+    2. multiply by the replication factors and take the fractional part, which
+       maps every image onto the same unit cell,
+    3. divide the cell lengths by the replication factors, angles unchanged,
+    4. convert back to cartesian.
+
+    Working in fractional coordinates rather than on cartesian z matters for a
+    triclinic cell, where the axes are not orthogonal and a cartesian fold
+    would shear the result.
+
+    Parameters
+    ----------
+    atoms : list of dict
+        Atom dictionaries with cartesian ``x``, ``y``, ``z``.
+    box : list
+        Cell as ``[a, b, c, alpha, beta, gamma]`` or Box_dim, as for
+        :func:`replicate_system`.
+    replicate : list of 3 int
+        The replication that produced this system.
+    merge : bool
+        Merge atoms of the same type that land within ``tol`` of one another
+        after folding.  Images of one crystallographic site coincide exactly in
+        an ideal crystal and approximately in an MD snapshot, so merging turns
+        n1*n2*n3 images back into one site.
+    tol : float
+        Merge radius in Angstrom.
+    set_occupancy : bool
+        Give each merged site an occupancy equal to the number of atoms merged
+        divided by the number of cells, so a fully occupied site returns 1.0
+        and a partially occupied one keeps its fraction.  Without merging,
+        every atom simply gets 1 / (n1*n2*n3).
+
+    Returns
+    -------
+    (atoms, box) : the reduced atom list and the unit cell.
+
+    Notes
+    -----
+    For a snapshot of a mobile species such as interlayer water the images do
+    *not* coincide: the molecules occupy different positions in each cell.
+    Merging then averages them into one site, which is meaningful only if you
+    want a mean structure.  Set ``merge=False`` to keep every atom with a
+    fractional occupancy instead, which preserves the distribution.
+    """
+    import numpy as np
+    from .transform import cartesian_to_fractional, fractional_to_cartesian
+    from .cell_utils import Box_dim2Cell
+
+    n = np.asarray(replicate, dtype=int)
+    if n.size != 3 or np.any(n < 1):
+        raise ValueError(f'replicate must be three positive integers, got {replicate}')
+    n_cells = int(np.prod(n))
+
+    cell = list(box) if len(box) == 6 else Box_dim2Cell(box)
+    frac = cartesian_to_fractional(atoms=None,
+                                   cart_coords=np.array([[a['x'], a['y'], a['z']]
+                                                         for a in atoms], dtype=float),
+                                   Box=cell, add_to_atoms=False)
+    frac = np.asarray(frac, dtype=float)
+    folded = np.mod(frac * n[None, :], 1.0)
+
+    small_cell = [cell[0] / n[0], cell[1] / n[1], cell[2] / n[2],
+                  cell[3], cell[4], cell[5]]
+    cart = np.asarray(fractional_to_cartesian(atoms=None, frac_coords=folded,
+                                              Box=small_cell, add_to_atoms=False),
+                      dtype=float)
+
+    out = []
+    for src, xyz in zip(atoms, cart):
+        a = dict(src)
+        a['x'], a['y'], a['z'] = (float(v) for v in xyz)
+        if not keep_resname:
+            a.pop('resname', None)
+        a['occupancy'] = 1.0 / n_cells
+        out.append(a)
+
+    if merge:
+        out = _merge_coincident(out, small_cell, tol, n_cells, set_occupancy)
+    elif set_occupancy:
+        for a in out:
+            a['occupancy'] = 1.0 / n_cells
+
+    if renumber_index:
+        for i, a in enumerate(out, start=1):
+            a['index'] = i
+    return out, small_cell
+
+
+def _merge_coincident(atoms, cell, tol, n_cells, set_occupancy):
+    """Group atoms of one type lying within ``tol``, honouring periodicity."""
+    import numpy as np
+    from .transform import cartesian_to_fractional
+
+    if not atoms:
+        return atoms
+    frac = np.asarray(cartesian_to_fractional(
+        atoms=None,
+        cart_coords=np.array([[a['x'], a['y'], a['z']] for a in atoms], dtype=float),
+        Box=cell, add_to_atoms=False), dtype=float)
+
+    # tolerance expressed in fractional units along each axis
+    ftol = np.array([tol / max(cell[0], 1e-9), tol / max(cell[1], 1e-9),
+                     tol / max(cell[2], 1e-9)])
+
+    buckets = {}
+    for i, a in enumerate(atoms):
+        buckets.setdefault((a.get('type'), a.get('resname')), []).append(i)
+
+    merged = []
+    for _, idx in buckets.items():
+        used = np.zeros(len(idx), dtype=bool)
+        for p, ip in enumerate(idx):
+            if used[p]:
+                continue
+            group = [ip]
+            used[p] = True
+            for q in range(p + 1, len(idx)):
+                if used[q]:
+                    continue
+                d = frac[idx[q]] - frac[ip]
+                d -= np.round(d)                       # minimum image
+                if np.all(np.abs(d) <= ftol):
+                    group.append(idx[q])
+                    used[q] = True
+            base = dict(atoms[group[0]])
+            ref = frac[group[0]]
+            disp = np.array([frac[g] - ref - np.round(frac[g] - ref)
+                             for g in group])
+            mean_frac = ref + disp.mean(axis=0)
+            from .transform import fractional_to_cartesian
+            xyz = np.asarray(fractional_to_cartesian(
+                atoms=None, frac_coords=np.mod(mean_frac, 1.0)[None, :],
+                Box=cell, add_to_atoms=False), dtype=float)[0]
+            base['x'], base['y'], base['z'] = (float(v) for v in xyz)
+            if set_occupancy:
+                base['occupancy'] = len(group) / n_cells
+            merged.append(base)
+    merged.sort(key=lambda a: (a.get('resname') or '', a['z']))
+    return merged

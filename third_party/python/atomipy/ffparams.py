@@ -13,7 +13,7 @@ import atomipy as ap
 # Load MINFF parameters for LAMMPS (uses bundled data)
 ff = ap.load_forcefield(
     'GMINFF/gminff_opc3_hfe_lm_k500.json',
-    blocks=['GMINFF_k500']
+    blocks=['MINFF_k500']
 )
 
 # Use with LAMMPS writer
@@ -138,7 +138,7 @@ def get_atomtypes(json_data, blocks=None):
     
     Args:
         json_data: Parsed JSON data from load_json().
-        blocks: List of block names to include (e.g., ['GMINFF_k500', 'OPC3_HFE_LM']).
+        blocks: List of block names to include (e.g., ['MINFF_k500', 'OPC3_HFE_LM']).
                 If None, includes all available blocks.
     
     Returns:
@@ -147,7 +147,7 @@ def get_atomtypes(json_data, blocks=None):
     Examples
     --------
     data = load_json('GMINFF/gminff_opc3_hfe_lm_k500.json')
-    atomtypes = get_atomtypes(data, blocks=['GMINFF_k500'])
+    atomtypes = get_atomtypes(data, blocks=['MINFF_k500'])
     print(atomtypes['Sit'])  # {'mass': 28.085, 'sigma': 0.093467, 'epsilon': 0.458196, ...}
     """
     atomtypes = {}
@@ -237,7 +237,7 @@ def load_forcefield(json_path, blocks=None, units='lammps'):
     # Load MINFF with OPC3 water for LAMMPS (uses bundled data)
     ff = ap.load_forcefield(
         'GMINFF/gminff_opc3_hfe_lm_k500.json',
-        blocks=['GMINFF_k500', 'OPC3_HFE_LM']
+        blocks=['MINFF_k500', 'OPC3_HFE_LM']
     )
     
     # Write LAMMPS data file with Pair Coeffs
@@ -271,7 +271,7 @@ def list_blocks(json_path):
     Examples
     --------
     blocks = list_blocks('GMINFF/gminff_opc3_hfe_lm_k500.json')
-    print(blocks)  # ['GMINFF_k500', 'OPC3_HFE_LM']
+    print(blocks)  # ['MINFF_k500', 'OPC3_HFE_LM']
     """
     json_data = load_json(json_path)
     

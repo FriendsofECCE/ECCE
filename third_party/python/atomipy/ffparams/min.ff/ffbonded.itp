@@ -1,3 +1,9 @@
+; This is basically a copy of the ffbonded_gminff.itp file
+;
+; If you use MINFF, please cite Holmboe, Lavauzelle and Swai, "MINFF: A Family of
+; Classical Force Fields for Minerals with Tunable Angle Terms", arXiv:2610.18220,
+; doi.org/10.48550/arXiv.2610.18220
+;
 [ bondtypes ]
 ;i      j	   func     b0	    kb
 ; Bonds are defined elsewhere, in each respective .itp file
@@ -7,9 +13,9 @@ Ohmg    H		1   	0.09572	441050
 Oalh    H		1   	0.09572	441050
 Oalhh   H		1   	0.09572	441050
 Osih    H		1   	0.09572	441050
-Alo		Oalh    1   	0.195   441050
-Alo		Oalhh   1   	0.195 	441050
-Sit		Osih	1   	0.160   441050
+Alo		Oalh    1   	0.195   251040
+Alo		Oalhh   1   	0.195 	251040
+Sit		Osih	1   	0.160   251040
 
 [ angletypes ]
 ;i      j       k	func	th0	cth

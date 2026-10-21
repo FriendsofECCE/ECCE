@@ -1,0 +1,997 @@
+{
+  "nonbonded_blocks": {
+    "MINFF_k250": {
+      "atomtypes": {
+        "H": {
+          "mass": 1.00794,
+          "charge": 0.4,
+          "ptype": "A",
+          "sigma": 0.0,
+          "epsilon": 0.0
+        },
+        "He": {
+          "mass": 1.00794,
+          "charge": 0.4,
+          "ptype": "A",
+          "sigma": 0.0,
+          "epsilon": 0.0
+        },
+        "Lio": {
+          "mass": 6.94,
+          "charge": 0.86,
+          "ptype": "A",
+          "sigma": 0.192274,
+          "epsilon": 0.219667
+        },
+        "Oahs": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Oal": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Oalh": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Oalhh": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Oalsi": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Oalt": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Ob": {
+          "mass": 15.99941,
+          "charge": -0.942,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Obt": {
+          "mass": 15.99941,
+          "charge": -0.942,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Obs": {
+          "mass": 15.99941,
+          "charge": -1.1665,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Odsub": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Oh": {
+          "mass": 15.99941,
+          "charge": -0.942,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Ohmg": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Oli": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Omg": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Op": {
+          "mass": 15.99941,
+          "charge": -0.942,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Ops": {
+          "mass": 15.99941,
+          "charge": -0.942,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Osi": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Osih": {
+          "mass": 15.99941,
+          "charge": -0.89517,
+          "ptype": "A",
+          "sigma": 0.317427,
+          "epsilon": 0.68369
+        },
+        "Fs": {
+          "mass": 18.9984,
+          "charge": -0.76,
+          "ptype": "A",
+          "sigma": 0.318354,
+          "epsilon": 0.189745
+        },
+        "Mgh": {
+          "mass": 24.305,
+          "charge": 1.74,
+          "ptype": "A",
+          "sigma": 0.186611,
+          "epsilon": 0.960819
+        },
+        "Mge": {
+          "mass": 24.305,
+          "charge": 1.635,
+          "ptype": "A",
+          "sigma": 0.196144,
+          "epsilon": 0.744317
+        },
+        "Mgo": {
+          "mass": 24.305,
+          "charge": 1.562,
+          "ptype": "A",
+          "sigma": 0.196144,
+          "epsilon": 0.744317
+        },
+        "Alo": {
+          "mass": 26.98154,
+          "charge": 1.782,
+          "ptype": "A",
+          "sigma": 0.143862,
+          "epsilon": 0.466201
+        },
+        "Ale": {
+          "mass": 26.98154,
+          "charge": 1.985,
+          "ptype": "A",
+          "sigma": 0.159028,
+          "epsilon": 0.369202
+        },
+        "Alt": {
+          "mass": 26.98154,
+          "charge": 1.782,
+          "ptype": "A",
+          "sigma": 0.170069,
+          "epsilon": 0.176182
+        },
+        "Sit": {
+          "mass": 28.08538,
+          "charge": 1.884,
+          "ptype": "A",
+          "sigma": 0.091168,
+          "epsilon": 0.443611
+        },
+        "Cah": {
+          "mass": 40.078,
+          "charge": 1.52,
+          "ptype": "A",
+          "sigma": 0.255577,
+          "epsilon": 0.908704
+        },
+        "Cao": {
+          "mass": 40.078,
+          "charge": 1.66,
+          "ptype": "A",
+          "sigma": 0.270104,
+          "epsilon": 1.511493
+        },
+        "Fet2": {
+          "mass": 55.845,
+          "charge": 1.184,
+          "ptype": "A",
+          "sigma": 0.147279,
+          "epsilon": 0.171251
+        },
+        "Fee2": {
+          "mass": 55.845,
+          "charge": 1.32,
+          "ptype": "A",
+          "sigma": 0.220018,
+          "epsilon": 0.210001
+        },
+        "Feo2": {
+          "mass": 55.845,
+          "charge": 1.184,
+          "ptype": "A",
+          "sigma": 0.220018,
+          "epsilon": 0.210001
+        },
+        "Fet3": {
+          "mass": 55.845,
+          "charge": 1.5,
+          "ptype": "A",
+          "sigma": 0.187131,
+          "epsilon": 0.113822
+        },
+        "Fee3": {
+          "mass": 55.845,
+          "charge": 1.75,
+          "ptype": "A",
+          "sigma": 0.169854,
+          "epsilon": 0.370788
+        },
+        "Feo3": {
+          "mass": 55.845,
+          "charge": 1.5,
+          "ptype": "A",
+          "sigma": 0.169854,
+          "epsilon": 0.370788
+        },
+        "Tio": {
+          "mass": 47.867,
+          "charge": 2.48,
+          "ptype": "A",
+          "sigma": 0.189407,
+          "epsilon": 0.806691
+        }
+      }
+    },
+    "OPC3_HFE_LM": {
+      "atomtypes": {
+        "Li+": {
+          "mass": 6.941,
+          "charge": 1.0,
+          "ptype": "A",
+          "sigma": 0.226288,
+          "epsilon": 0.0136252
+        },
+        "F-": {
+          "mass": 18.9984,
+          "charge": -1.0,
+          "ptype": "A",
+          "sigma": 0.323931,
+          "epsilon": 0.953762
+        },
+        "Na+": {
+          "mass": 22.9897,
+          "charge": 1.0,
+          "ptype": "A",
+          "sigma": 0.261746,
+          "epsilon": 0.126029
+        },
+        "Cl-": {
+          "mass": 35.453,
+          "charge": -1.0,
+          "ptype": "A",
+          "sigma": 0.410882,
+          "epsilon": 2.68724
+        },
+        "K+": {
+          "mass": 39.0983,
+          "charge": 1.0,
+          "ptype": "A",
+          "sigma": 0.30344,
+          "epsilon": 0.586672
+        },
+        "Cu+": {
+          "mass": 63.546,
+          "charge": 1.0,
+          "ptype": "A",
+          "sigma": 0.213994,
+          "epsilon": 0.00469863
+        },
+        "Br-": {
+          "mass": 79.904,
+          "charge": -1.0,
+          "ptype": "A",
+          "sigma": 0.445628,
+          "epsilon": 3.18294
+        },
+        "Rb+": {
+          "mass": 85.4678,
+          "charge": 1.0,
+          "ptype": "A",
+          "sigma": 0.320724,
+          "epsilon": 0.891731
+        },
+        "Ag+": {
+          "mass": 107.8682,
+          "charge": 1.0,
+          "ptype": "A",
+          "sigma": 0.23787,
+          "epsilon": 0.0318714
+        },
+        "I-": {
+          "mass": 126.9045,
+          "charge": -1.0,
+          "ptype": "A",
+          "sigma": 0.49534,
+          "epsilon": 3.64744
+        },
+        "Cs+": {
+          "mass": 132.9055,
+          "charge": 1.0,
+          "ptype": "A",
+          "sigma": 0.350123,
+          "epsilon": 1.49632
+        },
+        "Tl+": {
+          "mass": 204.3833,
+          "charge": 1.0,
+          "ptype": "A",
+          "sigma": 0.299698,
+          "epsilon": 0.528389
+        },
+        "Be2+": {
+          "mass": 9.0122,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.166598,
+          "epsilon": 8.53536e-06
+        },
+        "Mg2+": {
+          "mass": 24.305,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.232703,
+          "epsilon": 0.0221842
+        },
+        "Ca2+": {
+          "mass": 40.078,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.274575,
+          "epsilon": 0.223043
+        },
+        "V2+": {
+          "mass": 50.9415,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.233415,
+          "epsilon": 0.0233573
+        },
+        "Cr2+": {
+          "mass": 51.9961,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.23003,
+          "epsilon": 0.0182019
+        },
+        "Mn2+": {
+          "mass": 54.938,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.241077,
+          "epsilon": 0.0394048
+        },
+        "Fe2+": {
+          "mass": 55.845,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.231634,
+          "epsilon": 0.0205142
+        },
+        "Co2+": {
+          "mass": 58.9332,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.219696,
+          "epsilon": 0.0078745
+        },
+        "Ni2+": {
+          "mass": 58.6934,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.210074,
+          "epsilon": 0.00321503
+        },
+        "Cu2+": {
+          "mass": 63.546,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.207758,
+          "epsilon": 0.002544
+        },
+        "Zn2+": {
+          "mass": 65.39,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.213816,
+          "epsilon": 0.00462035
+        },
+        "Sr2+": {
+          "mass": 87.62,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.298807,
+          "epsilon": 0.51497
+        },
+        "Pd2+": {
+          "mass": 106.42,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.220408,
+          "epsilon": 0.00837582
+        },
+        "Ag2+": {
+          "mass": 107.8682,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.228783,
+          "epsilon": 0.0165545
+        },
+        "Cd2+": {
+          "mass": 112.411,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.24179,
+          "epsilon": 0.041255
+        },
+        "Sn2+": {
+          "mass": 118.71,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.277248,
+          "epsilon": 0.248151
+        },
+        "Ba2+": {
+          "mass": 137.327,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.327851,
+          "epsilon": 1.03138
+        },
+        "Sm2+": {
+          "mass": 150.36,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.299877,
+          "epsilon": 0.531094
+        },
+        "Eu2+": {
+          "mass": 151.964,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.297738,
+          "epsilon": 0.499106
+        },
+        "Yb2+": {
+          "mass": 173.04,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.273328,
+          "epsilon": 0.211921
+        },
+        "Ra2+": {
+          "mass": 186.207,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.327851,
+          "epsilon": 1.03138
+        },
+        "Pt2+": {
+          "mass": 195.078,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.212925,
+          "epsilon": 0.00424538
+        },
+        "Hg2+": {
+          "mass": 200.59,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.241077,
+          "epsilon": 0.0394048
+        },
+        "Pb2+": {
+          "mass": 207.2,
+          "charge": 2.0,
+          "ptype": "A",
+          "sigma": 0.289364,
+          "epsilon": 0.384128
+        },
+        "Al3+": {
+          "mass": 26.9815,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.179071,
+          "epsilon": 6.8241e-05
+        },
+        "Cr3+": {
+          "mass": 51.9961,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.216845,
+          "epsilon": 0.00611383
+        },
+        "Fe3+": {
+          "mass": 55.845,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.199739,
+          "epsilon": 0.00106479
+        },
+        "Y3+": {
+          "mass": 88.9059,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.259786,
+          "epsilon": 0.114435
+        },
+        "Zr4+": {
+          "mass": 91.224,
+          "charge": 4.0,
+          "ptype": "A",
+          "sigma": 0.208292,
+          "epsilon": 0.00268701
+        },
+        "In3+": {
+          "mass": 114.818,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.221121,
+          "epsilon": 0.00890364
+        },
+        "La3+": {
+          "mass": 138.9055,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.293284,
+          "epsilon": 0.435864
+        },
+        "Ce3+": {
+          "mass": 140.116,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.286869,
+          "epsilon": 0.353159
+        },
+        "Ce4+": {
+          "mass": 140.116,
+          "charge": 4.0,
+          "ptype": "A",
+          "sigma": 0.244106,
+          "epsilon": 0.0477414
+        },
+        "Pr3+": {
+          "mass": 140.9077,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.282059,
+          "epsilon": 0.297782
+        },
+        "Nd3+": {
+          "mass": 144.24,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.278317,
+          "epsilon": 0.258685
+        },
+        "Sm3+": {
+          "mass": 150.36,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.272793,
+          "epsilon": 0.207269
+        },
+        "Eu3+": {
+          "mass": 151.964,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.269764,
+          "epsilon": 0.182199
+        },
+        "Gd3+": {
+          "mass": 157.25,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.268161,
+          "epsilon": 0.1698
+        },
+        "Tb3+": {
+          "mass": 158.9253,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.263528,
+          "epsilon": 0.137276
+        },
+        "Dy3+": {
+          "mass": 162.5,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.26139,
+          "epsilon": 0.123861
+        },
+        "Er3+": {
+          "mass": 167.259,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.255332,
+          "epsilon": 0.0909821
+        },
+        "Tm3+": {
+          "mass": 168.9342,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.25355,
+          "epsilon": 0.0826724
+        },
+        "Lu3+": {
+          "mass": 174.967,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.25355,
+          "epsilon": 0.0826724
+        },
+        "Hf4+": {
+          "mass": 178.49,
+          "charge": 4.0,
+          "ptype": "A",
+          "sigma": 0.202056,
+          "epsilon": 0.00138323
+        },
+        "Tl3+": {
+          "mass": 204.3833,
+          "charge": 3.0,
+          "ptype": "A",
+          "sigma": 0.223259,
+          "epsilon": 0.010657
+        },
+        "Th4+": {
+          "mass": 232.0381,
+          "charge": 4.0,
+          "ptype": "A",
+          "sigma": 0.262815,
+          "epsilon": 0.132695
+        },
+        "U4+": {
+          "mass": 238.0289,
+          "charge": 4.0,
+          "ptype": "A",
+          "sigma": 0.22219,
+          "epsilon": 0.00974746
+        },
+        "Pu4+": {
+          "mass": 244.0,
+          "charge": 4.0,
+          "ptype": "A",
+          "sigma": 0.233059,
+          "epsilon": 0.0227646
+        }
+      }
+    }
+  },
+  "common_atomtypes": {},
+  "bondtypes": [
+    {
+      "atoms": [
+        "Oh",
+        "H"
+      ],
+      "func": 1,
+      "length": 0.09572,
+      "k": 441050.0
+    },
+    {
+      "atoms": [
+        "Ob",
+        "H"
+      ],
+      "func": 1,
+      "length": 0.09572,
+      "k": 441050.0
+    },
+    {
+      "atoms": [
+        "Ohmg",
+        "H"
+      ],
+      "func": 1,
+      "length": 0.09572,
+      "k": 441050.0
+    },
+    {
+      "atoms": [
+        "Oalh",
+        "H"
+      ],
+      "func": 1,
+      "length": 0.09572,
+      "k": 441050.0
+    },
+    {
+      "atoms": [
+        "Oalhh",
+        "H"
+      ],
+      "func": 1,
+      "length": 0.09572,
+      "k": 441050.0
+    },
+    {
+      "atoms": [
+        "Osih",
+        "H"
+      ],
+      "func": 1,
+      "length": 0.09572,
+      "k": 441050.0
+    },
+    {
+      "atoms": [
+        "Alo",
+        "Oalh"
+      ],
+      "func": 1,
+      "length": 0.195,
+      "k": 251040.0
+    },
+    {
+      "atoms": [
+        "Alo",
+        "Oalhh"
+      ],
+      "func": 1,
+      "length": 0.195,
+      "k": 251040.0
+    },
+    {
+      "atoms": [
+        "Sit",
+        "Osih"
+      ],
+      "func": 1,
+      "length": 0.16,
+      "k": 251040.0
+    }
+  ],
+  "angletypes": [
+    {
+      "atoms": [
+        "H",
+        "Oh",
+        "Alo"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Oh",
+        "Mgh"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Oh",
+        "Mgo"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Oh",
+        "Feo2"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Oh",
+        "Feo3"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Oh",
+        "Feo"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Oh",
+        "Cah"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Ohmg",
+        "Mgh"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Ohmg",
+        "Mgo"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Ohmg",
+        "Alo"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Oalh",
+        "Alo"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Oalhh",
+        "Alo"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    },
+    {
+      "atoms": [
+        "H",
+        "Osih",
+        "Sit"
+      ],
+      "func": 1,
+      "theta0": 110.0,
+      "k": 125.52
+    }
+  ],
+  "metadata": {
+    "variant": null,
+    "source": "MINFF",
+    "notes": [
+      "The charges of the oxygen atomtypes should ideally be calculated by the charge smearing equation; see the MINFF reference paper doi.org/10.48550/arXiv.2610.18220."
+    ],
+    "nonbonded_file": "min.ff/ffnonbonded_gminff.itp",
+    "bonded_file": "min.ff/ffbonded.itp",
+    "available_blocks": [
+      "MINFF_k0",
+      "MINFF_k250",
+      "MINFF_k500",
+      "MINFF_k1500",
+      "CLAYFF_2004",
+      "CLAYFF_EXT",
+      "SPC_JC",
+      "SPCE_JC",
+      "TIP3P_JC",
+      "TIP4P_JC",
+      "TIP5P_JC",
+      "TIP3P_BL",
+      "SPC_AQVIST",
+      "all_IOD_LM",
+      "SPCE_HFE_LM",
+      "TIP3P_HFE_LM",
+      "TIP4PEW_HFE_LM",
+      "OPC3_HFE_LM",
+      "OPC_HFE_LM",
+      "TIP3PFB_HFE_LM",
+      "TIP4PFB_HFE_LM",
+      "OPC3_IOD_LM",
+      "OPC_IOD_LM",
+      "TIP3PFB_IOD_LM",
+      "TIP4PFB_IOD_LM",
+      "OPC3_CM_LM",
+      "OPC_CM_LM",
+      "TIP3PFB_CM_LM",
+      "TIP4PFB_CM_LM",
+      "SPCE_IOD_LM",
+      "TIP3P_IOD_LM",
+      "TIP4PEW_IOD_LM",
+      "OPC3_ZQ",
+      "OPC_ZQ",
+      "SPCE_ZQ",
+      "SPCEB_ZQ",
+      "TIP3P_ZQ",
+      "TIP3PFB_ZQ",
+      "TIP4P2005_ZQ",
+      "TIP4PD_ZQ",
+      "TIP4PEW_ZQ",
+      "TIP4PFB_ZQ",
+      "A99SBDISP_ZQ",
+      "OPC3",
+      "OPC",
+      "SPC",
+      "SPCE",
+      "TIP3P",
+      "TIPS3P",
+      "TIP3PFB",
+      "TIP4P",
+      "TIP4P2005",
+      "TIP4PEW",
+      "TIP4PICE",
+      "TIP4PF",
+      "TIP4PFB",
+      "TIP5P",
+      "DUMMY"
+    ],
+    "selected_blocks": [
+      "MINFF_k250",
+      "OPC3_HFE_LM"
+    ],
+    "units": {
+      "mass": "u",
+      "charge": "e",
+      "sigma": "nm",
+      "epsilon": "kJ/mol",
+      "bond_length": "nm",
+      "bond_force_constant": "kJ/(mol*nm^2)",
+      "angle": "deg",
+      "angle_force_constant": "kJ/(mol*rad^2)"
+    }
+  }
+}

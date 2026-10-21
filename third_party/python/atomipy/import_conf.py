@@ -208,6 +208,7 @@ def gro(file_path):
             "element": None,
             "type": atname,  # Store atom name in type field
             "fftype": atname,  # Store atom name in type field
+            "occupancy": 1.0,  # GRO has no occupancy column; default to 1.0 (matches import_pdb)
             "is_nm": False  # Mark that coordinates are now in Angstroms
         }
         atoms.append(atom)
@@ -493,14 +494,16 @@ def cif(file_path, expand_symmetry=True):
     for site in ss.sites:
         if not site.element or site.element.name in ("X", ""):
             letters = "".join(ch for ch in site.label if ch.isalpha())
-            if letters:
-                try:
-                    site.element = gemmi.Element(letters[:2].capitalize())
-                except Exception:
-                    try:
-                        site.element = gemmi.Element(letters[:1].upper())
-                    except Exception:
-                        pass
+            # gemmi.Element() does NOT raise on an unknown symbol — it returns the
+            # 'X' placeholder. Only accept an unambiguous 2-letter element symbol
+            # here (e.g. 'Ca1' -> Ca, 'Mg1' -> Mg). Do NOT fall back to the first
+            # letter: that turns water-oxygen labels like 'Wat1' into tungsten ('W').
+            # Anything not resolved is left for element_module.element() below, which
+            # knows the domain labels ('Wat' -> O, 'Ow'/'Hw', 'Sod' -> Na, ...).
+            if len(letters) >= 2:
+                _cand = gemmi.Element(letters[:2].capitalize())
+                if _cand.name not in ("X", ""):
+                    site.element = _cand
 
     cell = ss.cell
     Cell = [cell.a, cell.b, cell.c, cell.alpha, cell.beta, cell.gamma]

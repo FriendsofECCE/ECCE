@@ -10,6 +10,21 @@ try:
 except ImportError:
     has_tqdm = False
 
+def _perp_widths(H):
+    """Perpendicular widths of a (triclinic) cell with lattice vectors as the columns of H.
+
+    The width along a is V/|b x c|, etc. For a tilted cell this is smaller than the
+    diagonal element H[i, i], so cell-list bins must be sized from it to keep the
+    +/-1 bin stencil large enough to cover the cutoff.
+    """
+    H = np.asarray(H, dtype=float)
+    a, b, c = H[:, 0], H[:, 1], H[:, 2]
+    vol = abs(np.dot(a, np.cross(b, c)))
+    return np.array([vol / np.linalg.norm(np.cross(b, c)),
+                     vol / np.linalg.norm(np.cross(c, a)),
+                     vol / np.linalg.norm(np.cross(a, b))])
+
+
 def _images_needed(Cell, cutoff):
     """Return (nx, ny, nz) image counts needed to capture all neighbours
     within `cutoff` Angstrom of an atom in the home cell."""
@@ -403,9 +418,9 @@ def cell_list_dist_matrix(atoms, Box, cutoff=2.45, rmaxH=1.2, H_type='H'):
     max_cutoff = max(cutoff, rmaxH)
     
     # Effective box widths in each direction
-    # For triclinic, we use the perpendicular widths (projections)
-    # Using cz, by, ax is a safe approximation for orthogonal-like cells
-    n_cells = np.maximum(np.floor(np.array([ax, by, cz]) / max_cutoff), 1).astype(int)
+    # For triclinic, we use the perpendicular widths (projections); the diagonal
+    # elements overestimate them in tilted cells and make the bins too narrow
+    n_cells = np.maximum(np.floor(_perp_widths(H) / max_cutoff), 1).astype(int)
     
     # Map fractional coords to integer cell indices
     cell_idx = np.floor(frac_coords * n_cells).astype(int)
@@ -603,7 +618,7 @@ def neighbor_list_fast(atoms, Box, cutoff=2.45, rmaxH=None, H_type='H'):
     max_cutoff = max(cutoff, rmaxH)
     # Effective box widths in each direction
     if is_periodic:
-        n_cells = np.maximum(np.floor(np.array([H[0,0], H[1,1], H[2,2]]) / max_cutoff), 1).astype(int)
+        n_cells = np.maximum(np.floor(_perp_widths(H) / max_cutoff), 1).astype(int)
     else:
         n_cells = np.maximum(np.floor(Box_dim / max_cutoff), 1).astype(int)
         
