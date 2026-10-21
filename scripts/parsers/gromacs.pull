@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+################################################################################
+# Purpose:
+# The pull code's output of a GROMACS run: gensub joins pullx.xvg (the pull
+# coordinate, nm) and pullf.xvg (its force, kJ/mol/nm) into ecce-parse-pull.txt,
+#     ECCE-PULL <time ps> <coordinate> <force>
+# one line per output frame, which become the vectors PULLTIME, PULLDIST and
+# PULLFORCE of the Pull Force panel.
+################################################################################
+
+$| = 1;
+my (@t, @x, @f);
+while (<STDIN>) {
+  next if (!/^ECCE-PULL\s+(\S+)\s+(\S+)\s+(\S+)\s*$/);
+  push(@t, $1); push(@x, $2); push(@f, $3);
+}
+exit(0) if (@t < 2);
+my $n = scalar(@t);
+foreach my $v (["PULLTIME", "ps", \@t], ["PULLDIST", "nm", \@x],
+               ["PULLFORCE", "kJ/mol/nm", \@f]) {
+  print "key: $v->[0]\nsize:\n$n\nvalues:\n", join("\n", map { " $_" } @{$v->[2]}),
+        "\nunits:\n$v->[1]\nEND\n";
+}
+exit(0);

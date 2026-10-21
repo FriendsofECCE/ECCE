@@ -125,6 +125,7 @@
 #include "NModePanel.H"
 #include "ScanPanel.H"
 #include "IRCPanel.H"
+#include "PullPanel.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -844,6 +845,20 @@ void Builder::runBuilderScript(const std::string& file)
                   sp->exportCsv(wxString::FromUTF8(w[1].c_str()),
                                 w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
+        }
+      } else if (w[0] == "pullcsv" && w.size() >= 2) {
+        //  pullcsv <path>: the Pull Force panel's Export .csv without the
+        //  file dialog.
+        PullPanel *pp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((pp = dynamic_cast<PullPanel*>(p)) != 0) break;
+        if (!pp) {
+          outcome = "no Pull Force panel";
+        } else {
+          fprintf(stderr, "BUILDER: pullcsv points=%d %s\n", pp->points(),
+                  pp->exportCsv(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
         }
       } else if (w[0] == "ircpath" && w.size() >= 2) {
         //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)
