@@ -46,6 +46,9 @@ class IRCPanel : public VizPropertyPanel
        */
       int clickPoint(int index) { return showPoint(index); }
 
+      /** New calculation from point <index> (default: the clicked one); URL or "". */
+      std::string newCalcFromPoint(int index = -1);
+
       /** The path as CSV; false if the file cannot be written. */
       bool exportCsv(const wxString& path, bool kcal);
 
@@ -53,12 +56,14 @@ class IRCPanel : public VizPropertyPanel
       void fill();
       void OnUnit(wxCommandEvent& event);
       void OnExport(wxCommandEvent& event);
+      void OnNewCalc(wxCommandEvent& event);
       int showPoint(int index);
 
    private:
       std::vector<double> p_coord;
       std::vector<double> p_hartree;
       std::string p_coordUnit;
+      int p_selected = -1;      // last clicked point
       std::vector<int> p_frame; // plot point -> IRCGEOM frame, -1 if none
       wxChoice *p_unit;
       XYPlotCanvas *p_plot;

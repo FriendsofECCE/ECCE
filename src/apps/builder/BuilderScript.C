@@ -861,6 +861,39 @@ void Builder::runBuilderScript(const std::string& file)
                                 w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
         }
+      } else if ((w[0] == "scanclick" || w[0] == "scancalc" ||
+                  w[0] == "irccalc") && w.size() >= 2) {
+        //  scanclick <i>: show scan point i; scancalc/irccalc <i>: the
+        //  "New calculation from this point" action (#410).
+        ScanPanel *sp = 0;
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+            if (!sp) sp = dynamic_cast<ScanPanel*>(p);
+            if (!ip) ip = dynamic_cast<IRCPanel*>(p);
+          }
+        const int idx = atoi(w[1].c_str());
+        if (w[0] == "irccalc" ? !ip : !sp) {
+          outcome = "no such panel";
+        } else if (w[0] == "scanclick") {
+          const int frame = sp->clickPoint(idx);
+          std::string where;
+          SGFragment *frag = getSceneGraph().getFragment();
+          for (int a = 0; frag && a < 2 && a < frag->numAtoms(); a++) {
+            const double *c = frag->atomRef(a)->coordinates();
+            char buf[96];
+            snprintf(buf, sizeof buf, " %.5f %.5f %.5f", c[0], c[1], c[2]);
+            where += buf;
+          }
+          fprintf(stderr, "BUILDER: scanclick %d frame=%d atoms:%s\n", idx, frame,
+                  where.c_str());
+        } else {
+          const std::string url = w[0] == "irccalc" ? ip->newCalcFromPoint(idx)
+                                                    : sp->newCalcFromPoint(idx);
+          fprintf(stderr, "BUILDER: %s %d url=%s\n", w[0].c_str(), idx,
+                  url.empty() ? "none" : url.c_str());
+        }
       } else if (w[0] == "ircclick" && w.size() >= 2) {
         //  ircclick <index>: what a click on IRC Path plot point <index>
         //  does (#417); reports the frame shown and the first two atoms.

@@ -2454,6 +2454,24 @@ CASES = [
 # and silently drops -- reported live from a real NH3 optimisation import.
 # The fixture is that real fort.7, copied in verbatim.
 MOFILE_CASES = [
+    # G16 relaxed scan structures (#410): the whole log, one frame per
+    # "Optimization completed" (7 scan points).
+    dict(
+        name='g16-h2o2-scan-scangeom',
+        script='gaussian-16.scangeom',
+        fixture='gaussian-16/h2o2_dihedral_scan.log',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={'SCANGEOM': {'size': '1 4 3', 'columnlabels': 'X Y Z'}},
+    ),
+    # ORCA relaxed scan structures (#410): real ORCA 6.1.1 .allxyz of the
+    # h2o2 dihedral scan (7 points); the last frame is point 7.
+    dict(
+        name='orca-h2o2-scan-scangeom',
+        script='orca.scangeom',
+        fixture='orca/h2o2_dihedral_scan.allxyz',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={'SCANGEOM': {'size': '1 4 3', 'columnlabels': 'X Y Z'}},
+    ),
     # The IRC structures of the real ORCA HCN run (#417), a File= entry:
     # 21 frames, path order; this is the last (point +10).
     dict(
