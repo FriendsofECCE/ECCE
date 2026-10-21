@@ -1958,6 +1958,13 @@ add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
 target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
 add_test(NAME vibspectrum COMMAND vibspectrum_test)
 
+# tests/atommap -- atom mapping and alignment of reactant/product/guess (#419)
+add_executable(atommap_cli tests/atommap/atommap_cli.C)
+target_link_libraries(atommap_cli PRIVATE eccetdat ecceutil)
+add_executable(atommap_test tests/atommap/atommap_test.C)
+target_link_libraries(atommap_test PRIVATE eccetdat ecceutil)
+add_test(NAME atommap COMMAND atommap_test ${CMAKE_SOURCE_DIR})
+
 # tests/vibanalysis -- mode symmetry and description (#367): real code output
 # through the real parsers, against textbook assignments.
 add_executable(vibanalysis_cli tests/vibanalysis/vibanalysis_cli.C)
