@@ -77,7 +77,9 @@ MachinePreferences::MachinePreferences(string key)
     p_maxWallTime = 0;
     p_memoryLimit = 0;
     p_scratchSpace = 0;
-    p_priority = 1;
+    //  0 is what the Launcher shows as Normal; 1 sent "nice -1" with every
+    //  launch, and Windows' bundled shell had no nice to run it.
+    p_priority = 0;
 }
 
 
