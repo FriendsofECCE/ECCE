@@ -65,6 +65,6 @@ std::string newCalcFromPoint(IPropCalculation *calc, const std::string& key,
   snprintf(suffix, sizeof suffix, "_point_%d", point);
   EcceURL named = url.getParent().getChild(url.getFilePathTail() + suffix);
   if (copy->move(named)) copyUrl = named;
-  EDSIFactory::notifyCreate(copyUrl.toString());
+  EDSIFactory::notifyCreate(copyUrl.toString(), true);
   return copyUrl.toString();
 }

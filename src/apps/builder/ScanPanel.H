@@ -7,6 +7,9 @@
 
 class wxChoice;
 class wxGrid;
+class wxGridEvent;
+class wxStaticText;
+class PlaybackControl;
 class XYPlotCanvas;
 
 /**
@@ -44,7 +47,25 @@ class ScanPanel : public VizPropertyPanel
        * What a click on plot point <index> does; returns the SCANGEOM frame
        * shown, or -1 if the point has no structure.
        */
-      int clickPoint(int index) { return showPoint(index); }
+      int clickPoint(int index) { return selectPoint(index); }
+
+      /** Step the playback control: "first", "prev", "next", "last"; the point now selected. */
+      int step(const std::string& which);
+
+      /** The selected point (plot marker, table row, playback), -1 if none. */
+      int selectedPoint() const { return p_selected; }
+
+      /** What a click on table row <index> does. */
+      void selectRow(int index);
+
+      /** The plot marker's point, -1 if none. */
+      int markerPoint() const;
+
+      /** The row selected in the table, -1 if none. */
+      int selectedRow() const;
+
+      /** The status line next to the playback buttons. */
+      wxString status() const;
 
       /** New calculation from point <index> (default: the clicked one); URL or "". */
       std::string newCalcFromPoint(int index = -1);
@@ -57,7 +78,16 @@ class ScanPanel : public VizPropertyPanel
       void OnUnit(wxCommandEvent& event);
       void OnExport(wxCommandEvent& event);
       void OnNewCalc(wxCommandEvent& event);
+      void OnRow(wxGridEvent& event);
+      void OnPlayback(wxCommandEvent& event);
+      virtual void receiveFocus();
+      virtual void loseFocus();
       int showPoint(int index);
+      /** Show point <index> and move the plot marker, table row and playback to it. */
+      int selectPoint(int index);
+      void setStatus(const wxString& text);
+
+      DECLARE_EVENT_TABLE()
 
    private:
       std::vector<double> p_coord;
@@ -68,6 +98,10 @@ class ScanPanel : public VizPropertyPanel
       wxChoice *p_unit;
       XYPlotCanvas *p_plot;
       wxGrid *p_grid;
+      wxStaticText *p_status;
+      PlaybackControl *p_playback;
+      int p_delay;
+      bool p_syncing;           // selectPoint is moving the row; ignore its event
 };
 
 /**

@@ -325,7 +325,8 @@ void CalcMgrApp::msgRenameMCB(JMSMessage& msg)
 void CalcMgrApp::msgURLCreatedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
-  p_calcMgr->queueUpdate(CalcMgr::UPDATE_ADDED, url);
+  p_calcMgr->queueUpdate(msg.getProperty("select") == "1"
+                         ? CalcMgr::UPDATE_ADDED_SELECT : CalcMgr::UPDATE_ADDED, url);
 }
 
 

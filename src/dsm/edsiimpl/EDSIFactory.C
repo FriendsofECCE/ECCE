@@ -566,11 +566,13 @@ JMSPublisher * EDSIFactory::getPublisher(const string &app_name)
  * Let the world know a Resource was created at the given url.
  *
  * @param url where the new Resource was created
+ * @param select ask the Organizer to select it, as for a duplicate
  */
-void EDSIFactory::notifyCreate(const string & url)
+void EDSIFactory::notifyCreate(const string & url, bool select)
 {
   JMSMessage *msg = getPublisher()->newMessage();
   msg->addProperty("url", url);
+  if (select) msg->addProperty("select", "1");
   getPublisher()->publish("ecce_url_created", *msg);
   delete msg;
 }
