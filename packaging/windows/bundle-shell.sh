@@ -36,6 +36,12 @@ done | sort -u | while read -r dll; do [ "$dll" -ef "$dest/${dll##*/}" ] || cp -
 # of /c, which is where the job scripts expect them.
 mkdir -p "$dest/../../etc" "$dest/../../tmp"
 echo 'none / cygdrive binary,posix=0,noacl,user 0 0' > "$dest/../../etc/fstab"
+# Users and groups from local files only: by default MSYS asks Active
+# Directory on every start, and on a domain laptop away from its domain
+# controller each bash start then took 4.5 s instead of 0.05 s.
+printf 'passwd: files\ngroup: files\n' > "$dest/../../etc/nsswitch.conf"
+# The MSI drops empty folders; without /tmp bash warns on every start.
+echo 'MSYS /tmp for ECCE' > "$dest/../../tmp/README"
 
 echo "bundled $(ls "$dest" | wc -l) files into $dest:"
 ls "$dest"
