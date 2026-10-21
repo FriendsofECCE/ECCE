@@ -43,7 +43,13 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.0
 
-Nothing announced yet.
+- Values can be selected with the mouse and copied: in Energies and
+  Calculation Summary, in tables (double-click a cell), and in the
+  Organizer's Progress box; tables also have Copy and Copy all.
+- In the panel layout with the Properties list, the open panel gets its
+  height and every panel can be folded again.
+- New icons for the Manipulator and Measure toolbars.
+- Help pages checked against the program, menu by menu.
 
 ## First steps
 
