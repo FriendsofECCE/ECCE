@@ -7424,7 +7424,11 @@ void CalcMgr::updateSelectionMenus()
           }
         }
       }
-      if (!shownNow) lastShown.clear();
+      //  The reason belongs to that calculation: leaving it clears it.
+      if (!shownNow && !lastShown.empty()) {
+        p_feedback->clearMessage();
+        lastShown.clear();
+      }
 
       // Only work on project, not even virtual documents
       // @todo shouldn't use hardwired string

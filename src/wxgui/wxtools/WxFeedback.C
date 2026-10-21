@@ -306,6 +306,14 @@ void WxFeedback::setMessage(const string& message,
    //  that drive a window through its script hook.
    if (getenv("ECCE_FEEDBACK_STDERR"))
       fprintf(stderr, "FEEDBACK: %s\n", message.c_str());
+   //  A warning or error with nothing to say (an empty failure reason, a
+   //  lone "?") only buries the earlier message under a bare label.
+   if (severity != WxFeedback::INFO) {
+      const size_t a = message.find_first_not_of(" \t\r\n\"'");
+      const size_t b = message.find_last_not_of(" \t\r\n\"'");
+      if (a == string::npos || (a == b && message[a] == '?'))
+         return;
+   }
    // Magic function that flushes the wxWidgets event queue
    // This is needed in certain instances when the message area is updated,
    // but control is not returned to the event loop.
