@@ -10,6 +10,7 @@
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/event.h>
 
 #include "tdat/PropVector.H"
 #include "tdat/PropTSVecTable.H"
@@ -22,6 +23,8 @@
 #include "util/Event.H"
 #include "XYPlotCanvas.H"
 #include "PointCalc.H"
+#include "wxgui/PlaybackControl.H"
+#include "util/EcceURL.H"
 
 #include "ScanPanel.H"
 
@@ -31,6 +34,7 @@ const double HARTREE_KCAL = 627.5095;
 const wxWindowID ID_UNIT = wxNewId();
 const wxWindowID ID_EXPORT = wxNewId();
 const wxWindowID ID_NEWCALC = wxNewId();
+const wxWindowID ID_PLAYBACK = wxNewId();
 
 double factor(bool kcal) { return kcal ? HARTREE_KCAL : HARTREE_KJ; }
 }
@@ -59,15 +63,22 @@ std::string scanCsv(const std::vector<double>& coord,
 
 IMPLEMENT_DYNAMIC_CLASS(ScanPanel, VizPropertyPanel)
 
+BEGIN_EVENT_TABLE(ScanPanel, VizPropertyPanel)
+  EVT_COMMAND(ID_PLAYBACK, wxEVT_PLAYBACK_TICK_EVENT, ScanPanel::OnPlayback)
+  EVT_COMMAND(ID_PLAYBACK, wxEVT_PLAYBACK_LOOP_EVENT, ScanPanel::OnPlayback)
+END_EVENT_TABLE()
+
 ScanPanel::ScanPanel()
-  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL)
+  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL),
+    p_status(NULL), p_playback(NULL), p_delay(500), p_syncing(false)
 {
 }
 
 ScanPanel::ScanPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL)
+  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL),
+    p_status(NULL), p_playback(NULL), p_delay(500), p_syncing(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -102,8 +113,18 @@ bool ScanPanel::Create(IPropCalculation *calculation,
 
   p_plot = new XYPlotCanvas(this);
   p_plot->SetMinSize(wxSize(300, 180));
-  p_plot->setPointHandler([this](int, int index) { showPoint(index); });
+  p_plot->setPointHandler([this](int, int index) { selectPoint(index); });
   GetSizer()->Add(p_plot, 3, wxEXPAND);
+
+  wxBoxSizer *play = new wxBoxSizer(wxHORIZONTAL);
+  p_playback = new PlaybackControl(this, ID_PLAYBACK);
+  p_playback->SetDelay(&p_delay);
+  p_playback->SetStopIndex(0L);
+  if (wxWindow *rec = FindWindow(PlaybackControl::ID_RECORD)) rec->Hide();
+  play->Add(p_playback, 0, wxALIGN_CENTER_VERTICAL);
+  p_status = new wxStaticText(this, wxID_ANY, "");
+  GetSizer()->Add(play, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
+  GetSizer()->Add(p_status, 0, wxEXPAND | wxALL, 4);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
@@ -114,6 +135,7 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   p_grid->SetColLabelValue(2, "Relative");
   GetSizer()->Add(p_grid, 2, wxEXPAND | wxALL, 3);
 
+  p_grid->Bind(wxEVT_GRID_SELECT_CELL, &ScanPanel::OnRow, this);
   Bind(wxEVT_CHOICE, &ScanPanel::OnUnit, this, ID_UNIT);
   Bind(wxEVT_BUTTON, &ScanPanel::OnExport, this, ID_EXPORT);
   Bind(wxEVT_BUTTON, &ScanPanel::OnNewCalc, this, ID_NEWCALC);
@@ -143,6 +165,7 @@ void ScanPanel::fill()
   if (geom && geom->tables() == n)
     for (size_t i = 0; i < n; i++) p_frame[i] = (int)i;
 
+  if (p_playback) p_playback->SetStopIndex(n ? (long)n - 1 : 0);
   const bool kcal = p_unit->GetSelection() == 1;
   const wxString unit = kcal ? "kcal/mol" : "kJ/mol";
   const double lo = n ? *std::min_element(p_hartree.begin(), p_hartree.end()) : 0;
@@ -192,6 +215,95 @@ int ScanPanel::showPoint(int index)
   return p_frame[index];
 }
 
+int ScanPanel::selectPoint(int index)
+{
+  if (index < 0 || index >= (int)p_coord.size()) return -1;
+  p_selected = index;
+  p_syncing = true;
+  p_plot->setSelectedPoint(0, index);
+  p_grid->SelectRow(index);
+  p_grid->GoToCell(index, 0);
+  p_syncing = false;
+  if (p_playback) p_playback->SetCurrentStep((long)index);
+  return showPoint(index);
+}
+
+void ScanPanel::OnRow(wxGridEvent& event)
+{
+  event.Skip();
+  if (!p_syncing) selectPoint(event.GetRow());
+}
+
+void ScanPanel::OnPlayback(wxCommandEvent& event)
+{
+  selectPoint((int)event.GetExtraLong());
+}
+
+int ScanPanel::step(const std::string& which)
+{
+  const int n = points();
+  if (!n) return -1;
+  int i = p_selected < 0 ? 0 : p_selected;
+  if (which == "first") i = 0;
+  else if (which == "last") i = n - 1;
+  else if (which == "prev") i = std::max(0, i - 1);
+  else if (which == "next") i = std::min(n - 1, i + 1);
+  selectPoint(i);
+  return p_selected;
+}
+
+void ScanPanel::selectRow(int index)
+{
+  if (index >= 0 && index < points()) p_grid->GoToCell(index, 0);
+}
+
+int ScanPanel::markerPoint() const
+{
+  return p_plot->selectedIndex();
+}
+
+int ScanPanel::selectedRow() const
+{
+  wxArrayInt rows = p_grid->GetSelectedRows();
+  return rows.GetCount() ? rows[0] : -1;
+}
+
+wxString ScanPanel::status() const
+{
+  return p_status ? p_status->GetLabel() : wxString();
+}
+
+void ScanPanel::setStatus(const wxString& text)
+{
+  if (p_status) p_status->SetLabel(text);
+}
+
+// The box shows the selected scan point; unticked, the calculation's own
+// last structure comes back.
+void ScanPanel::receiveFocus()
+{
+  if (p_selected >= 0) showPoint(p_selected);
+}
+
+void ScanPanel::loseFocus()
+{
+  IPropCalculation *calc = getCalculation();
+  PropTSVecTable *trace =
+      calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE")) : 0;
+  if (!trace || trace->tables() == 0) return;
+  SGContainer& sg = getFW().getSceneGraph();
+  Command *cmd = new GTStepCmd("Trace Step", &sg, calc);
+  cmd->getParameter("Index")->setInteger((int)trace->tables() - 1);
+  cmd->execute();
+  delete cmd;
+  SGFragment *frag = sg.getFragment();
+  frag->deleteAllBonds();
+  frag->addCovalentBonds();
+  frag->touchNumbers();
+  sg.touchChemDisplay();
+  ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
+}
+
 std::string ScanPanel::newCalcFromPoint(int index)
 {
   if (index < 0) index = p_selected;
@@ -202,9 +314,14 @@ std::string ScanPanel::newCalcFromPoint(int index)
   else
     url = ::newCalcFromPoint(getCalculation(), "SCANGEOM", p_frame[index],
                              index + 1, why);
-  if (url.empty() && !why.empty())
+  if (url.empty() && !why.empty()) {
+    setStatus(wxString::FromUTF8(why.c_str()));
     wxMessageBox(wxString::FromUTF8(why.c_str()), "New calculation",
                  wxOK | wxICON_WARNING, this);
+  } else if (!url.empty()) {
+    setStatus("Created " + wxString::FromUTF8(EcceURL(url).getFilePathTail().c_str()) +
+              " from point " + wxString::Format("%d", index + 1));
+  }
   return url;
 }
 

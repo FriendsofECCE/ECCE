@@ -283,12 +283,13 @@ public:
   void redrawStateIcons();
   void updateName(const EcceURL & oldUrl, const EcceURL & newUrl);
   void updateUrl(const EcceURL & url);
-  void updateAddNode(const EcceURL & url);
+  void updateAddNode(const EcceURL & url, bool select = false);
   void updateRemoveNode(const EcceURL & url);
   // The broker's ecce_url_* notices.  One Save or Launch sends several in a
   // row, and each rebuilt the tree and the summary (a visible flicker on
   // MSW); they are collected and applied together under one Freeze.
-  enum UpdateKind { UPDATE_CHANGED, UPDATE_ADDED, UPDATE_REMOVED };
+  enum UpdateKind { UPDATE_CHANGED, UPDATE_ADDED, UPDATE_REMOVED,
+                    UPDATE_ADDED_SELECT };
   void queueUpdate(UpdateKind kind, const EcceURL & url);
   // ecce_url_progress (#284): the newest snapshot per calculation, kept so
   // that selecting a running calculation shows it at once.  Empty text

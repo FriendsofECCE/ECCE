@@ -74,7 +74,7 @@ class EDSIFactory {
     // messaging
     //////////////
     static JMSPublisher * getPublisher(const string &app_name = "EDSIFactory");
-    static void notifyCreate(const string & url);
+    static void notifyCreate(const string & url, bool select = false);
     static void notifyRename(const string & oldurl, const string & newurl);
     static void notifyRemove(const string & url);
     static void notifyProperty(const string & url, const string & name, 

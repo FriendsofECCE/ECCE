@@ -970,6 +970,41 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: %s %d url=%s\n", w[0].c_str(), idx,
                   url.empty() ? "none" : url.c_str());
         }
+      } else if ((w[0] == "scanrow" || w[0] == "scanstep") && w.size() >= 2) {
+        //  scanrow <i>: a click on table row i; scanstep first|prev|next|last:
+        //  the playback buttons.  Reports the selection and the viewer's
+        //  first two atoms.
+        ScanPanel *sp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
+        if (!sp) {
+          outcome = "no Relaxed Scan panel";
+        } else {
+          if (w[0] == "scanrow") sp->selectRow(atoi(w[1].c_str()));
+          else sp->step(w[1]);
+          std::string where;
+          SGFragment *frag = getSceneGraph().getFragment();
+          for (int a = 0; frag && a < 2 && a < frag->numAtoms(); a++) {
+            const double *c = frag->atomRef(a)->coordinates();
+            char buf[96];
+            snprintf(buf, sizeof buf, " %.5f %.5f %.5f", c[0], c[1], c[2]);
+            where += buf;
+          }
+          fprintf(stderr, "BUILDER: %s %s point=%d row=%d marker=%d atoms:%s\n",
+                  w[0].c_str(), w[1].c_str(), sp->selectedPoint(),
+                  sp->selectedRow(), sp->markerPoint(), where.c_str());
+        }
+      } else if (w[0] == "scanstatus") {
+        //  scanstatus: the Relaxed Scan panel's status line
+        ScanPanel *sp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
+        fprintf(stderr, "BUILDER: scanstatus [%s]\n",
+                sp ? sp->status().utf8_str().data() : "no panel");
       } else if (w[0] == "ircclick" && w.size() >= 2) {
         //  ircclick <index>: what a click on IRC Path plot point <index>
         //  does (#417); reports the frame shown and the first two atoms.
