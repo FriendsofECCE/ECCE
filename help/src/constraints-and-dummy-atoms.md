@@ -68,6 +68,20 @@ The dialog reports what the code of the calculation cannot do. NWChem, for
 example, cannot combine **Fix Atoms** with a bond, angle or torsion
 constraint: choose one of the two.
 
+## Scan a coordinate (Gaussian 16)
+
+**Scan...** in the dialog steps a bond length, an angle or a torsion in
+equal steps and relaxes the rest of the molecule at each step. It is
+available for Gaussian 16 calculations.
+
+1. Select the atoms in the 3D view, as for any constraint.
+2. Press **Scan...** and enter **Steps:** and the step size.
+3. Save the calculation, and run it as usual.
+4. In the Viewer, choose **Properties > Relaxed Scan**. The panel plots the
+   energy against the scanned coordinate and lists the points. Choose the
+   **Energy unit:** (kJ/mol or kcal/mol) and click **Export .csv...** to
+   save the table.
+
 ## Dummy atoms
 
 The element `X` is the dummy atom. In the Build panel, open **More...** for the
