@@ -202,11 +202,14 @@ bool NModePanel::Create(IPropCalculation *calculation,
       //  A window made now is shown whatever its sizer item's state is.
       p_modeDetail->Show(!isGraphShown());
    }
-   for (wxStaticText *t : { p_modeDetail, p_graphDetail })
-      t->Bind(wxEVT_SIZE, [this, t](wxSizeEvent& e) {
-         setWrapped(t, p_detailParts);
-         e.Skip();
-      });
+   p_modeDetail->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+      setWrapped(p_modeDetail, p_detailParts);
+      e.Skip();
+   });
+   p_graphDetail->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+      setWrapped(p_graphDetail, p_graphParts);
+      e.Skip();
+   });
    p_grid->GetGridWindow()->Bind(wxEVT_MOTION, &NModePanel::OnGridMotion, this);
    p_grid->GetGridColLabelWindow()->Bind(wxEVT_MOTION, &NModePanel::OnLabelMotion, this);
    p_grid->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { fitModeColumn(); e.Skip(); });
@@ -475,14 +478,11 @@ void NModePanel::createSpectrumPane()
    p_spectrum->setShowSticks(sticks);
    col->Add(p_spectrum, 1, wxEXPAND);
 
-   //  The selected mode: its frequency on one line, its description on a
-   //  full-width line of its own under the plot (see showModeDetail()).
-   p_graphFreq = new wxStaticText(pane, wxID_ANY, "");
-   p_graphFreq->SetMinSize(wxSize(50, -1));
-   col->Add(p_graphFreq, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
+   //  The selected mode, frequency first, wrapped into two lines under the
+   //  plot (see showModeDetail()); every line here is taken from the plot.
    p_graphDetail = new wxStaticText(pane, wxID_ANY, "");
    p_graphDetail->SetMinSize(wxSize(50, 2*p_graphDetail->GetCharHeight() + 2));
-   col->Add(p_graphDetail, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
+   col->Add(p_graphDetail, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
 
    wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
    const int gap = 6;
@@ -555,7 +555,6 @@ void NModePanel::createSpectrumPane()
           col->IsShown(p_graphDetail) != text) {
          col->Show(p_spectrum, plot);
          col->Show(row, settings);
-         col->Show(p_graphFreq, text);
          col->Show(p_graphDetail, text);
          col->Show(noRoom, !plot);
       }
@@ -1317,8 +1316,9 @@ void NModePanel::showModeDetail(int row)
    p_detailText = text;
    p_detailParts = vparts;
    setWrapped(p_modeDetail, vparts);
-   if (p_graphFreq != 0) p_graphFreq->SetLabel(freq);
-   setWrapped(p_graphDetail, vparts);
+   p_graphParts = vparts;
+   if (!freq.empty()) p_graphParts.insert(p_graphParts.begin(), freq);
+   setWrapped(p_graphDetail, p_graphParts);
 }
 
 

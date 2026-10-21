@@ -160,11 +160,11 @@ class NModePanel : public NModesGUI,
       vector<string> p_codeSym;
       vector<wxString> p_modeFull;   // untruncated Mode cells
       //  The selected mode's frequency and description: under the table, and
-      //  under the plot in the Graph view (p_graphFreq, p_graphDetail).
+      //  under the plot in the Graph view, frequency first (p_graphParts).
       wxStaticText *p_modeDetail = NULL;
-      wxStaticText *p_graphFreq = NULL;
       wxStaticText *p_graphDetail = NULL;
       std::vector<wxString> p_detailParts;
+      std::vector<wxString> p_graphParts;
       wxString p_detailText;          // unwrapped, for re-wrapping on a resize
       int         p_mode;
       int         p_numAnimations;
