@@ -184,8 +184,8 @@ def main():
             sym.check(len(dirs) == 2, "two saves kept their files (%s)" % dirs, tail)
             status = re.findall(r"(Calculation saved as [^\n]*)", log)
             print("status lines:", status)
-            sym.check(len(status) == 2 and all("Atoms matched" in s for s in status),
-                      "the status line reports the atom matching", tail)
+            sym.check(len(status) == 2 and all("Matched" in s for s in status),
+                      "the one-line status reports the atom matching (Matched N atoms; moved: ...; RMSD)", tail)
             if len(dirs) == 2:
                 for mode, d, want in (("QST2", dirs[0], [1, 2]),
                                       ("QST3", dirs[1], [1, 2, 3])):

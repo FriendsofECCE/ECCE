@@ -114,7 +114,8 @@ static bool mapOnto(const std::vector<std::string>& refEl,
 }
 
 bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
-                            std::string& status, std::string& warning)
+                            std::string& status, std::string& warning,
+                            std::string* detail)
 {
    status.clear();
    warning.clear();
@@ -140,7 +141,7 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
    std::vector<double> xyz[3];
    const char* role[3] = {"Reactant", "Product", "TS guess"};
    int n = 2 + (guess ? 1 : 0);
-   std::ostringstream st, rm, wr;
+   std::ostringstream st, rm, wr, dt;
    for (int k = 0; k < n; k++) {
       std::string title = role[k];
       if (k < 2) {
@@ -161,11 +162,12 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
       if (!mapOnto(refEl, ref, els[k], xyz[k], role[k], "Transition State (QST)",
                    r, warning))
          return true;
-      st << role[k] << " renumbered: " << r.nChanged
+      st << (st.tellp() ? ", " : "") << role[k] << " " << r.nChanged;
+      dt << role[k] << " renumbered: " << r.nChanged
          << " atoms changed place. ";
       char buf[32];
       sprintf(buf, "%.2f", r.alignment.rmsdAfter);
-      rm << (k ? ", " : "") << buf << " A (" << role[k] << ")";
+      rm << (k ? "/" : "") << buf;
       if (!r.far.empty())
          wr << role[k] << ": " << r.far.size()
             << " atom(s) move more than 1 A after alignment. ";
@@ -175,9 +177,13 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
    }
    char cnt[16];
    sprintf(cnt, "%d", (int)refEl.size());
-   status = std::string("Atoms matched (") + cnt + "). " + st.str() +
-            "Aligned: RMSD " + rm.str() + ".";
+   status = std::string("Matched ") + cnt + " atoms; moved: " + st.str() +
+            "; RMSD " + rm.str() + " \xC3\x85";
    warning = wr.str();
+   if (detail)
+      *detail = std::string("Atoms matched (") + cnt + "). " + dt.str() +
+                "Aligned onto this calculation, RMSD " + rm.str() +
+                " \xC3\x85.";
    return true;
 }
 
@@ -196,7 +202,7 @@ static bool writeXyz(const std::string& file, const std::string& title,
 }
 
 bool nebWriteStructureFiles(ICalculation* self, std::string& status,
-                            std::string& warning)
+                            std::string& warning, std::string* detail)
 {
    status.clear();
    warning.clear();
@@ -219,7 +225,7 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
 
    const char* role[2] = {"Product", "TS guess"};
    const char* file[2] = {"neb_product.xyz", "neb_guess.xyz"};
-   std::ostringstream st, rm, wr;
+   std::ostringstream st, rm, wr, dt;
    int done = 0;
    for (int k = 0; k < 2; k++) {
       if (urls[k].empty()) continue;
@@ -236,11 +242,12 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
       if (!mapOnto(refEl, ref, el, xyz, role[k], "Transition State (NEB-TS)",
                    r, warning))
          return true;
-      st << role[k] << " renumbered: " << r.nChanged
+      st << (st.tellp() ? ", " : "") << role[k] << " " << r.nChanged;
+      dt << role[k] << " renumbered: " << r.nChanged
          << " atoms changed place. ";
       char buf[32];
       sprintf(buf, "%.2f", r.alignment.rmsdAfter);
-      rm << (done++ ? ", " : "") << buf << " A (" << role[k] << ")";
+      rm << (done++ ? "/" : "") << buf;
       if (!r.far.empty())
          wr << role[k] << ": " << r.far.size()
             << " atom(s) move more than 1 A after alignment. ";
@@ -248,8 +255,12 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
    }
    char cnt[16];
    sprintf(cnt, "%d", (int)refEl.size());
-   status = std::string("Atoms matched (") + cnt + "). " + st.str() +
-            "Aligned: RMSD " + rm.str() + ".";
+   status = std::string("Matched ") + cnt + " atoms; moved: " + st.str() +
+            "; RMSD " + rm.str() + " \xC3\x85";
    warning = wr.str();
+   if (detail)
+      *detail = std::string("Atoms matched (") + cnt + "). " + dt.str() +
+                "Aligned onto this calculation, RMSD " + rm.str() +
+                " \xC3\x85.";
    return true;
 }
