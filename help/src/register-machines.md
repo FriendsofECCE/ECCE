@@ -15,11 +15,11 @@ are:
 
 | Tab | What it holds |
 |---|---|
-| **Machine** | **Machine** (the host name), **Name**, vendor, model, processor, number of processors and nodes. |
+| **Machine** | **Machine** (the host name), **Name**, **Vendor**, **Model**, **Processor**, **Nodes** and **Processors**, and four values that are yours only: **Run directory**, **Scratch directory**, **Account** and **Username**. The Launcher starts from them. |
 | **Connection** | The remote environment (**Shell**, which is bash unless you choose another, and the script run at login), the login host, paths on the remote machine, and **How jobs reach this machine**. |
-| **Codes** | One entry per code: **Program** (the full path to the executable), **Environment variables**, **Command line**, and under **Advanced** commands run before and after the program and files to remove. |
+| **Codes** | One entry per code: **Modules** (environment modules loaded before the code runs), **Program** (the full path to the executable), **Environment variables**, **Command line**, and under **Advanced** commands run before and after the program and files to remove. |
 | **Job script** | The request lines for the queue manager, and the commands run before and after the calculation. |
-| **Queues** | **Queue manager**, **Allocation accounts used**, **Default account**, and each queue with its limits and defaults. |
+| **Queues** | **Queue manager**, **Allocation accounts used**, and each queue with its limits and defaults. |
 
 The buttons at the bottom are **Help**, **Delete Machine**, **New
 Machine**, **Close** and **Save**. A line below the tabs, "Saved in ...",
@@ -199,8 +199,8 @@ sent.
 1. Open the **Queues** tab.
 2. In **Queue manager**, choose the batch system, for example Slurm.
    Tick **Allocation accounts used** if jobs are charged to an account, and
-   enter your **Default account** if you have one. It is kept for you only; the
-   Launcher offers it, and **Preview job script...** and **Test submission...**
+   enter your **Account** on the **Machine** tab if you have one. It is kept for
+   you only; the Launcher offers it, and **Preview job script...** and **Test submission...**
    use it. Some machines refuse a job that names no account.
 3. Choose a queue in **Queues**, or type a new **Name**.
 4. For each row, enter the limit in the field marked **max** (and
@@ -270,7 +270,7 @@ the tab that produced it, and coloured the same way.
 2. Choose the **Code** and the **Queue**, and set **Nodes**, **Processors
    (total)**, **Wall time (hours)** and **Memory (GB)** to what a job would
    ask for. Choosing a queue fills in its defaults. **Account** starts as the
-   **Default account** and can be changed here; a line that uses it, such as
+   **Account** of the **Machine** tab and can be changed here; a line that uses it, such as
    `#SBATCH --account=proj1`, shows in the script before anything is
    submitted. Click **Show Script**.
 3. Read the script. The label at the start of each line is one of:
@@ -311,7 +311,7 @@ unless you click **Run Test**.
 
 1. Open the **Queues** tab and click **Test submission...**.
 2. Choose the **Queue**, and the processors, wall time and memory to ask for.
-   **Account** starts as the **Default account**; enter the account here if
+   **Account** starts as the **Account** of the **Machine** tab; enter the account here if
    the machine refuses jobs without one.
 3. For PBS, LSF and Moab, tick the box that says the script is submitted on
    hold and cancelled. **Run Test** stays disabled until you do.
@@ -349,6 +349,10 @@ still apply.
 Put a command on the **Job script** tab if every code needs it, for
 example `module load openmpi`. Put it on the **Codes** tab if only one
 code does, for example the environment of Gaussian 16.
+
+To load environment modules for one code only, enter their names, separated
+by spaces, in **Modules** on the **Codes** tab. The job script runs `module
+load` with them before that code's commands.
 
 Commands such as `module load` work in job scripts. Job scripts run under
 `sh`, where the module system is not set up on its own, so ECCE sets it up
