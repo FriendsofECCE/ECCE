@@ -182,7 +182,7 @@ def main():
         out = ed.cmd("attach-inc " + incl)
         check(out.startswith("ok"), "an include file attaches: %s" % out)
         out = ed.cmd("inputs")
-        check("conf.gro" in out and "topol.gmxtop" in out and "includes: 1" in out
+        check("conf.gro" in out and "topol.top" in out and "includes: 1" in out
               and "Ready" in out, "the page lists them and says Ready: %s" % out)
         task = opt.replace("file://", "").rstrip("/")
         files = sorted(os.listdir(os.path.join(task, "Inputs")))

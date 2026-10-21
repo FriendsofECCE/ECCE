@@ -113,9 +113,7 @@ GromacsInputsPanel::GromacsInputsPanel(MDEdBase *owner, wxWindow *parent)
   ewxStaticText *intro = new ewxStaticText(this, wxID_ANY,
       _("GROMACS runs a system you have built elsewhere (pdb2gmx, CHARMM-GUI, "
         "a collaborator). Attach its topology and starting structure here; a "
-        "task without its own uses those of an earlier task in the study. "
-        "A topology is kept as .gmxtop so it cannot be mistaken for an "
-        "NWChem topology; the job still sees it as topol.top."));
+        "task without its own uses those of an earlier task in the study."));
   makeWrapping(intro);
   setWrapped(intro, intro->GetLabel());
   top->Add(intro, 0, wxALL | wxEXPAND, 10);
@@ -222,6 +220,11 @@ bool GromacsInputsPanel::describe(int fileType, string& text, bool& own) const
     if (!names.empty()) {
       own = first;
       text = names[0];
+      //  Stored as .gmxtop (not an NWChem topology); attached as .top.
+      const string stored = ".gmxtop";
+      if (text.size() > stored.size() &&
+          text.compare(text.size() - stored.size(), stored.size(), stored) == 0)
+        text.replace(text.size() - stored.size(), stored.size(), ".top");
       if (!first) text += "   (from " + t->getName() + ")";
       return true;
     }
@@ -274,7 +277,10 @@ void GromacsInputsPanel::refresh()
   p_removeInc->Enable(false);
 
   string why;
-  if (inputsReady(why)) {
+  if (inputsReady(why) && !p_editable) {
+    setWrapped(p_status, _("The calculation has been submitted or has run: "
+                           "its inputs stay as they are until Reset."));
+  } else if (inputsReady(why)) {
     setWrapped(p_status, _("Ready: a topology and a starting structure are attached."));
   } else {
     setWrapped(p_status, wxString::FromUTF8(("Not ready to run: " + why).c_str()));
