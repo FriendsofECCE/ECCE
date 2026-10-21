@@ -2207,6 +2207,16 @@ if(PYTHON3_EXECUTABLE)
                    --dialog $<TARGET_FILE:ecce-dialog>)
   set_tests_properties(dialogs_native PROPERTIES SKIP_RETURN_CODE 77
                        TIMEOUT 900)
+  foreach(_d orcatheory orcaruntype)
+    add_test(NAME dialogs_native_${_d}
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py
+                     --dialog $<TARGET_FILE:ecce-dialog>
+                     --py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/${_d}.py
+                     --dlg ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/${_d}.dlg)
+    set_tests_properties(dialogs_native_${_d} PROPERTIES SKIP_RETURN_CODE 77
+                         TIMEOUT 1800)
+  endforeach()
 
   # tests/verify -- the input-deck checker (#148).  Runs the real
   # scripts/parsers/verifyinput over decks captured from real runs and

@@ -2,7 +2,7 @@
 type: map
 title: ".dlg grammar and the engine behind it: what each line means and which Python behaviour it reproduces"
 area: codereg
-paths: ["src/wxgui/details", "src/apps/codereg-dialog/ecce-dialog.cpp", "scripts/codereg/ecceqmtheory.dlg", "tests/dialogs/grammar_test.dlg", "tests/dialogs/native_test.py", "tests/details/details_unit_test.cpp"]
+paths: ["src/wxgui/details", "src/apps/codereg-dialog/ecce-dialog.cpp", "scripts/codereg/ecceqmtheory.dlg", "scripts/codereg/orcatheory.dlg", "scripts/codereg/orcaruntype.dlg", "tests/dialogs/grammar_test.dlg", "tests/dialogs/native_test.py", "tests/details/details_unit_test.cpp"]
 issues: [411]
 ---
 Engine: `src/wxgui/details/` = `DetailsRules` (line parser, expressions, ranges,
@@ -57,5 +57,15 @@ control; depth of nested dependency passes is capped at 8.
 structure)` from the tab file in `ECCE_QST_CANDIDATES` (3 fields per line),
 stores the URL, empty unit, `menu_input`, default (none).
 
-Not done yet: `text` widgets are a guess at the Python class (its source was not
-compared), unit text is only sent for int/float, no C++ hook registry.
+**text** = EcceTextInput: sends `name|value||enabled|export|text_input` (empty unit
+always), sends again when its enabled state changes, like combo/number. inRange
+messages print a bound like Python `str()`: an integer bound as `1`, a float
+bound as `1.0`/`0.5`.
+
+Not done yet: no C++ hook registry.
+
+**Oracle notes.** Sizer-based Python widgets (combo, text) have no `IsEnabled`,
+so the inventory diff skips `enabled` for them; the lines they send cover it.
+A `status` goes to the message area on a false-to-true change; the Python NEB
+dialog showed it as a label inside the box, so the native window has no empty
+line there.

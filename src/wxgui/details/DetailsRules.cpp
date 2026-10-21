@@ -330,12 +330,17 @@ bool rangeBounds(const string& range, bool& hasLo, double& lo, bool& hasHi,
   return true;
 }
 
-static string num(double v)
+// templates.py takes a bound as int() when it parses as one, else float(),
+// and prints it with str(): "[1..)" says 1, "[1.0..)" says 1.0.
+static string boundStr(const string& text, double v)
 {
-  double ip;
-  if (std::modf(v, &ip) == 0.0 && std::fabs(v) < 1e15)
-    return std::to_string((long long)v);
-  return pyFloatStr(v);
+  size_t b = text.find_first_not_of(" \t");
+  size_t e = text.find_last_not_of(" \t");
+  string t = b == string::npos ? "" : text.substr(b, e - b + 1);
+  size_t d = (!t.empty() && (t[0] == '-' || t[0] == '+')) ? 1 : 0;
+  bool isInt = t.size() > d &&
+               t.find_first_not_of("0123456789", d) == string::npos;
+  return isInt ? std::to_string((long long)v) : pyFloatStr(v);
 }
 
 bool inRange(const string& range, double v, string& msg)
@@ -344,20 +349,24 @@ bool inRange(const string& range, double v, string& msg)
   bool hasLo, hasHi;
   double lo = 0, hi = 0;
   if (!rangeBounds(range, hasLo, lo, hasHi, hi)) return true;
+  if (!hasLo && !hasHi) return true;
+  size_t dots = range.find("..");
+  string loText = range.substr(1, dots - 1);
+  string hiText = range.substr(dots + 2, range.size() - dots - 3);
   bool ok = true;
   if (hasLo) {
     if (range[0] == '(') {
-      if (v <= lo) { msg = "greater than " + num(lo) + "."; ok = false; }
+      if (v <= lo) { msg = "greater than " + boundStr(loText, lo) + "."; ok = false; }
     } else if (v < lo) {
-      msg = "greater than or equal to " + num(lo) + ".";
+      msg = "greater than or equal to " + boundStr(loText, lo) + ".";
       ok = false;
     }
   }
   if (hasHi) {
     if (range.back() == ')') {
-      if (v >= hi) { msg = "less than " + num(hi) + "."; ok = false; }
+      if (v >= hi) { msg = "less than " + boundStr(hiText, hi) + "."; ok = false; }
     } else if (v > hi) {
-      msg = "less than or equal to " + num(hi) + ".";
+      msg = "less than or equal to " + boundStr(hiText, hi) + ".";
       ok = false;
     }
   }

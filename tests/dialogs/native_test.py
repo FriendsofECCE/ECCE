@@ -132,7 +132,10 @@ def run1(cmd, env, cwd, restoreLines, ov, flag, timeout, shot):
             subprocess.run(["import", "-window", "root", shot], env=env,
                            capture_output=True)
         proc.kill()
-        err = proc.communicate()[1].decode(errors="replace")
+        try:
+            err = proc.communicate(timeout=10)[1].decode(errors="replace")
+        except subprocess.TimeoutExpired:
+            err = "(stderr still held open after kill)"
         return lines, err, done
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -205,6 +208,14 @@ def restoreCases(inv):
     un = [w for w in ws if w["unit"] and w["kind"] in ("int", "float")]
     if un:
         cases.append(("stale unit", [line(un[0], value="7", unit="Bogus")]))
+    cp = [w for w in ws if w["kind"] == "calcpick"]
+    if cp:
+        urls = ("file:///proj/opt1", "file:///proj/in1", "file:///proj/gone")
+        cases.append(("calcpick same", [line(w, urls[0]) for w in cp]))
+        cases.append(("calcpick different",
+                      [line(w, urls[i % 2]) for i, w in enumerate(cp)]))
+        cases.append(("calcpick first only", [line(cp[0], urls[1])]))
+        cases.append(("calcpick unknown url", [line(cp[0], urls[2])]))
     cases.append(("unknown key", ["ES.Nothing|7||1|1|integer_input"]))
     return cases
 
@@ -268,7 +279,10 @@ def inventoryDiff(py, native):
                     out.append("%s: %s %r vs %r" % (name, key, live.get(key), w[key]))
         if int(live.get("export") or 0) != w["export"]:
             out.append("%s: export %r vs %r" % (name, live.get("export"), w["export"]))
-        if bool(live.get("enabled", True)) != w["enabled"]:
+        # Sizer-based widgets (combo, text) have no IsEnabled: None = unknown;
+        # their enabled bit is checked through the lines they send.
+        if live.get("enabled") is not None and \
+                bool(live["enabled"]) != w["enabled"]:
             out.append("%s: enabled %r vs %r" % (name, live.get("enabled"),
                                                  w["enabled"]))
     for name, w in nat.items():
@@ -348,6 +362,7 @@ def main():
                ECCE_QST_CANDIDATES=cand,
                ECCE_REALUSERHOME=tempfile.gettempdir() + "/none")
     env.pop("WAYLAND_DISPLAY", None)
+    os.environ["ECCE_QST_CANDIDATES"] = cand   # for the Python inventory run
     pyCmd = [sys.executable, py]
     nativeCmd = [binary, dlg]
     failed = 0
