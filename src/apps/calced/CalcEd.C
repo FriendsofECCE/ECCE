@@ -1129,10 +1129,12 @@ void CalcEd::OnMenuCalcedRegenInputClick( wxCommandEvent& event )
   }
 
   if (generateInput(false)) {
-    if (p_inputGenWarnings.empty())
+    if (p_inputGenWarnings.empty()) {
       p_feedback->setMessage("Input file regenerated." +
                              (p_qstStatus.empty() ? string() : " " + p_qstStatus),
                              WxFeedback::INFO);
+      setMatchTooltip();
+    }
     else
       p_feedback->setMessage("Input file regenerated with warnings. "
                              "See Verify.", WxFeedback::WARNING);
@@ -4092,10 +4094,12 @@ void CalcEd::doSave()
     //  Following it straight up with "Calculation saved" would bury
     //  that line and imply the deck is fine when it is not.
     if (!p_inputGenFailed) {
-      if (p_inputGenWarnings.empty())
+      if (p_inputGenWarnings.empty()) {
         p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
                                "." + (p_qstStatus.empty() ? string()
                                       : " " + p_qstStatus), WxFeedback::INFO);
+        setMatchTooltip();
+      }
       else
         p_feedback->setMessage("Calculation saved as " + p_iCalc->getName() +
                                ". Input file generated with warnings. "

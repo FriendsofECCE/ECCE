@@ -65,7 +65,7 @@ def main():
             dirs = re.findall(r"generator files kept in (\S+)", log)
             sym.check(len(dirs) == 1, "the save kept its files (%s)" % dirs, tail)
             status = re.findall(r"(Calculation saved as [^\n]*)", log)
-            sym.check(len(status) == 1 and "Atoms matched" in status[0],
+            sym.check(len(status) == 1 and "Matched" in status[0],
                       "the status line reports the atom matching (%s)" % status, tail)
             if len(dirs) == 1:
                 d = dirs[0]

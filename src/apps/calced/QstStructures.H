@@ -36,15 +36,16 @@ std::string qstWriteCandidateFile(const std::vector<QstEntry>& entries);
 /** Writes <name>.qst1.frag ... for the reactant, product and optional TS
  *  guess picked in self's runtype settings, each mapped and aligned onto
  *  self's structure, in the order Gaussian wants.  status is the line shown
- *  to the user; warning is non-empty when the structures do not fit
+ *  to the user (one line), detail the long form for a tooltip; warning is non-empty when the structures do not fit
  *  together (never blocking).  Returns false only on a file error. */
 bool qstWriteStructureFiles(ICalculation* self, const std::string& baseName,
-                            std::string& status, std::string& warning);
+                            std::string& status, std::string& warning,
+                            std::string* detail = 0);
 
 /** ORCA NEB-TS: writes neb_product.xyz (and neb_guess.xyz when picked) in
  *  the working directory, each mapped and aligned onto self's structure,
  *  which is the reactant.  Same status/warning contract as above. */
 bool nebWriteStructureFiles(ICalculation* self, std::string& status,
-                            std::string& warning);
+                            std::string& warning, std::string* detail = 0);
 
 #endif

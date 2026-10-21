@@ -69,6 +69,7 @@ bool CalcEd::write_cs(const string& output_file)
 bool CalcEd::write_qst(const string& base)
 {
   p_qstStatus.clear();
+  p_qstDetail.clear();
   for (char k = '1'; k <= '3'; k++)
     remove((base + ".qst" + k + ".frag").c_str());
 
@@ -82,13 +83,23 @@ bool CalcEd::write_qst(const string& base)
     return true;
 
   string status, warning;
-  const bool ok = neb ? nebWriteStructureFiles(p_iCalc, status, warning)
-                      : qstWriteStructureFiles(p_iCalc, base, status, warning);
+  const bool ok = neb ? nebWriteStructureFiles(p_iCalc, status, warning, &p_qstDetail)
+                      : qstWriteStructureFiles(p_iCalc, base, status, warning, &p_qstDetail);
   p_qstStatus = status;
   if (!warning.empty())
     p_inputGenWarnings.push_back(std::make_pair(
         string(neb ? "NEB-TS" : "Opt"), warning));
   return ok;
+}
+
+// The status line stays one line; the full matching report is on hover.
+void CalcEd::setMatchTooltip()
+{
+  const wxString tip = wxString::FromUTF8(p_qstDetail.c_str());
+  p_feedback->SetToolTip(tip);
+  for (wxWindowList::iterator it = p_feedback->GetChildren().begin();
+       it != p_feedback->GetChildren().end(); ++it)
+    (*it)->SetToolTip(tip);
 }
 
 bool CalcEd::write_esp(const string& output_file, bool& file_flag)
