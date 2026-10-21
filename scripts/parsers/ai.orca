@@ -298,8 +298,12 @@ sub SymmetryToken {
   my $mine   = $AbiDict{"ES.Theory.SCF.UseSymmetry"};
   my $wanted = defined($shared) ? $shared : $mine;
   #  ORCA 6.1.1 NEB-TS aborts in pointgroup.cpp with UseSym (it cannot
-  #  read the per-image symmetry file), so NEB-TS runs without it.
-  if (defined($wanted) && $wanted eq "1" && !&IsNebTS($AbiDict{"RunType"})) {
+  #  read the per-image symmetry file), and a relaxed scan aborts when the
+  #  point group changes along it (H2O2 through 180 deg: "Occurrence of
+  #  irrep Bg is not an integer"), so both run without it.
+  my $runtype = $AbiDict{"RunType"};
+  my $scan = (@orcaScans && $runtype =~ /Geo/i);
+  if (defined($wanted) && $wanted eq "1" && !&IsNebTS($runtype) && !$scan) {
     $result = "UseSym";
   }
   return $result;

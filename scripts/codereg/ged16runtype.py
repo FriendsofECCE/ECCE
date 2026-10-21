@@ -420,7 +420,9 @@ class Ged16RunTypePanel(EccePanel):
         if EcceGlobals.RunType == "Polarizability":
             self.efstepInput.Enable(self.polarMethod.GetValue() !=
                                     "Analytic Polariz. + Hyperpol.")
-        if EcceGlobals.RunType in FREQ_RUNTYPES:
+        #  vibMethod.Enable() runs this before fdStep exists (ROMP2 and
+        #  other numerical-only theories); the dialog died there.
+        if EcceGlobals.RunType in FREQ_RUNTYPES and hasattr(self, "fdStep"):
             self.fdStep.Enable(self.vibMethod.GetValue() != "Analytic")
 
             #  Both of these combinations are fatal in Gaussian 16, not

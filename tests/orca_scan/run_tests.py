@@ -30,7 +30,7 @@ def deck(constraint, work):
         "<GeomConstraintModel>\n" + constraint + "</GeomConstraintModel>\n")
     open(os.path.join(work, "w.param"), "w").write(
         "Category: SCF\nTheory: RHF\nRunType: Geometry\nCharge: 0\n"
-        "ChemSys.Multiplicity: 1\n")
+        "ChemSys.Multiplicity: 1\nES.Theory.UseSymmetry: 1\n")
     env = dict(os.environ, ECCE_HOME=ROOT)
     p = subprocess.run(["perl", os.path.join(PARSERS, "ai.orca"), "-p", "-f", "-b",
                         "-c", "-n", "w", "-t", "t.tpl"], cwd=work, env=env,
@@ -57,6 +57,9 @@ def main():
                                  and "{ " not in d), want)
             if "Scan" in want:
                 check("Constraints" not in d, "no Constraints block beside the scan")
+                check("UseSym" not in d, "no UseSym in a scan (ORCA aborts when the point group changes)")
+            else:
+                check("UseSym" in d, "UseSym kept for a plain constrained optimisation")
         # Real run of the first case.
         orcas = [p for p in sorted(glob.glob("/opt/orca/orca_6*/orca")) if os.access(p, os.X_OK)]
         if not orcas:
