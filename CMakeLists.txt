@@ -2089,6 +2089,10 @@ add_test(NAME gromacs_lone_ion_names
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/gmx_ions_test.py)
 set_tests_properties(gromacs_lone_ion_names PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+add_test(NAME gromacs_prepare_options
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/prepare_options_test.py)
+set_tests_properties(gromacs_prepare_options PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 # Every tool a resource type enables has a summary view for its content type.
 add_test(NAME resource_tool_views
          COMMAND ${PYTHON3_EXECUTABLE}

@@ -30,6 +30,8 @@ class GromacsPrepareModel : public ITaskModel
       bool neutralise() const { return p_neut; }
       string boxType() const { return p_box; }
       double boxDistance() const { return p_dist; }
+      // "x y z" in nm where editconf puts the solute's centre; empty = the box centre
+      string boxCenter() const { return p_center; }
       double ionConcentration() const { return p_conc; }
       // genion -rmin (nm): how close an ion may sit to solute and to other ions
       double ionMinDistance() const { return p_rmin; }
@@ -64,6 +66,7 @@ class GromacsPrepareModel : public ITaskModel
       void neutralise(bool v) { p_neut = v; }
       void boxType(const string& v) { p_box = v; }
       void boxDistance(double v) { p_dist = v; }
+      void boxCenter(const string& v) { p_center = v; }
       void ionConcentration(double v) { p_conc = v; }
       void ionMinDistance(double v) { p_rmin = v; }
       void positiveIon(const string& v) { p_pname = v; }
@@ -88,7 +91,7 @@ class GromacsPrepareModel : public ITaskModel
       virtual void run();
 
    private:
-      string p_source, p_ff, p_water, p_his, p_box, p_pname, p_nname;
+      string p_center, p_source, p_ff, p_water, p_his, p_box, p_pname, p_nname;
       string p_mvariant, p_mmineral, p_mrep, p_msubs, p_mseed, p_mcell, p_msummary, p_mions;
       string p_mff, p_mbend;
       int p_mangle;
