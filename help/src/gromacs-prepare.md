@@ -7,8 +7,8 @@ own, so nothing has to be attached to them.
 
 ## Make the task
 
-1. In the Organizer, select a GROMACS MD study and choose **New >
-   GROMACS MD Prepare**. It is the first task of the study.
+1. In the Organizer, select a GROMACS MD study and choose **File > New >
+   GROMACS MD Prepare...**. It is the first task of the study.
 2. Choose **GROMACS MD Prepare Editor** in the Tools menu.
 
 If the structure is to come from the Builder, draw or import it in the Builder
@@ -18,7 +18,7 @@ first. A protein needs hydrogens only if you clear **Ignore hydrogens**.
 
 **Structure**
 
-- **Source:** *Protein (pdb2gmx)* or *Mineral (MINFF)*. Choosing the mineral
+- **Source:** *Protein (pdb2gmx)* or *Mineral*. Choosing the mineral
   hides the settings that belong to a protein (structure, force field,
   histidines, box type); see "A mineral" below.
 - **Structure:** *from the Builder* uses the structure of the task, as it is
@@ -29,8 +29,10 @@ first. A protein needs hydrogens only if you clear **Ignore hydrogens**.
 **Force field**
 
 - **Force field:** the force fields that come with GROMACS. *Other (GMXLIB)*
-  takes the name of a force field folder (without `.ff`) that GROMACS finds
-  in its library or in the folders named by `GMXLIB`.
+  takes the **Directory name:** of a force field folder (without `.ff`) that
+  GROMACS finds in its library or in the folders named by `GMXLIB`.
+  **Import...** adds a force field folder (`<name>.ff`) or a zip file holding
+  one to your library; its files travel with the job.
 - **Water model:** only the water models the chosen force field offers are
   listed. AMBER force fields start with TIP3P, CHARMM27 with TIP3P, OPLS-AA
   keeps TIP3P if it is chosen and otherwise offers TIP4P first, and the GROMOS
@@ -56,16 +58,24 @@ first. A protein needs hydrogens only if you clear **Ignore hydrogens**.
   at GROMACS's warning about a charged system.
 - **Salt concentration:** added on top, in mol/L. The default is 0.15. Give
   0 to neutralise only (or, with Neutralise unticked, to add no ions).
-- **Positive ion:** sodium or potassium. **Negative ion:** chloride.
+- **Minimum ion distance:** how close an ion may be placed to the solute and
+  to other ions, in nm (`genion -rmin`). The default is 0.6 nm; lower it when
+  genion stops with "No more replaceable solvent", as in a thin water layer.
+- **Positive ion:** sodium or potassium. **Negative ion:** chloride. For a
+  mineral the lists are longer (see below).
 
 Save with the **Save** button, or let Launch save for you.
 
 ## A mineral
 
-*Mineral (MINFF)* prepares a clay or other mineral with the MINFF force field.
-The topology is built on your computer when you press **Build topology**, and
+*Mineral* prepares a clay or other mineral. The topology is built on your computer when you press **Build topology**, and
 is stored in the task; Launch then only adds water and ions.
 
+- **Force field:** *MINFF* (the default) or *ClayFF*. ClayFF has its own
+  parameters, flexible SPC water and no O-M-O angles, so it has no
+  **Parameters**, **O-M-O angle constant** or **Ion parameters**; it has an
+  **M-O-H bend** (*None*, *Pouvreau 2017 (Al, Mg)* or *Cygan 2004 generic*)
+  and a **Rigid water** box instead.
 - **Unit cell:** a `.pdb`, `.gro` or `.cif` file of the mineral's unit cell,
   with its cell. **Repeat (a b c)** repeats it along the cell axes, for
   example `4 3 3`. A layer or a stack drawn in the Builder, saved as a PDB
@@ -77,6 +87,8 @@ is stored in the task; Launch then only adds water and ions.
   (TMINFF), whose name you give, for example `Montmorillonite`. **O-M-O angle
   constant** is the force constant of the angles in the mineral, in
   kJ/mol/rad2.
+- **Ion parameters:** (MINFF only) the set fitted to the hydration free energy
+  (HFE) or to the ion-oxygen distance (IOD), for the chosen water model.
 - **Water model:** the water models of MINFF. The ions in the topology are the
   ones that match it.
 - **Build topology** runs the build, and says how many atoms the mineral has,
@@ -92,8 +104,8 @@ keeps its charge and the later tasks need grompp's warning about a net charge
 to be allowed.
 
 **Ions:** with a water layer, the charge of the mineral is neutralised by
-counter-ions chosen from MINFF's ions (sodium, potassium, calcium, copper(II)
-and others); the salt concentration is added on top, 0 by default.
+counter-ions chosen from the force field's ions (for MINFF sodium, potassium,
+lithium, calcium, copper(II) and others); the salt concentration is added on top, 0 by default.
 
 The job has the same four steps as for a protein: the first reads the stored
 mineral instead of running pdb2gmx. The tasks after it run with periodic

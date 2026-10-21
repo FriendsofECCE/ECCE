@@ -32,7 +32,8 @@ instead of on all of it. The page is for Equilibrate and Dynamics tasks.
    ```
 
    or press **One group per residue name**, which makes a group of each
-   residue name in the starting structure of the task.
+   residue name in the starting structure of the task, or **One group per
+   molecule (chains)**, which makes a group of each molecule.
 2. Choose **System** or **Defined groups** for the centre-of-mass removal
    groups and for the thermostat groups. Each is chosen on its own.
 

@@ -48,7 +48,7 @@ described in:
 ## The codes
 
 ECCE sets up and runs calculations; the results come from the program that
-ran them (NWChem, Gaussian, ORCA, MOPAC, Quantum ESPRESSO or ECCE-QM).
+ran them (NWChem, Gaussian, ORCA, MOPAC, Quantum ESPRESSO, CP2K, GROMACS or ECCE-QM).
 Please also cite that program as its authors ask. ECCE-QM uses the libcint
 and libxc libraries:
 

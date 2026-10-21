@@ -149,8 +149,8 @@ The code buttons at the top show Quantum ESPRESSO selected. There is no
 
 1. In the editor, click **Launch...**.
 2. In the Launcher, choose `localhost` in **Machine:**.
-3. In **Run Directory:**, enter a folder in your home directory, for example
-   `/home/<you>/ecce-runs`.
+3. Leave **Run Directory:** at its default, the folder `ecce-runs` in your
+   home directory (or enter another folder).
 4. Click **Launch**.
 
 The Launcher ends with "Successfully submitted job." You can close it: ECCE

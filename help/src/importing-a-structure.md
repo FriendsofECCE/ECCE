@@ -102,7 +102,8 @@ then **File > Save** is enabled. It writes back into that file, in ECCE's
 format. The original file changes only when you save.
 
 For a new structure that has no file, **File > Save** is greyed out because
-there is nowhere to save it. Use **File > Save As...**. It offers the
+there is nowhere to save it, and Ctrl+S asks where to save, as **File > Save
+As...** does. It offers the
 structure formats CAR, MVM, NWChem, PDB and XYZ, and calculation types. A
 calculation can be saved into a project on the data server or into any
 folder on your disk. A calculation saved in a folder can be reopened with
