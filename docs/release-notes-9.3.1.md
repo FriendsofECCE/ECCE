@@ -17,7 +17,7 @@
 ## New
 - **UV-vis spectra from TD-DFT** (Gaussian 16, ORCA; #383): the excited states (energy, wavelength, oscillator strength, label and leading transitions), drawn as sticks and a broadened curve in nm or eV, with a table of states and Export .csv.
 - **IRC paths** (Gaussian 16, ORCA; #417): the IRC Path panel plots the energy relative to the transition state against the reaction coordinate; a click shows that structure.
-- **Relaxed scans for ORCA** (#393), and for both codes the structure of each scan point. **New calculation from this point** in the Relaxed Scan and IRC Path panels starts a calculation from a chosen point (#410).
+- **Relaxed scans for ORCA** (#393), and for both codes the structure of each scan point. **New calculation from this point** in the Relaxed Scan and IRC Path panels starts a calculation from a chosen point and selects it in the Organizer (#410). In the Relaxed Scan panel the table, the plot and the new play and step buttons move one selection, and the viewer shows that point; for a scan, the Organizer's final energy is the last point's.
 - **Compare spectra:** Compare... in the Vibrational Frequencies panel adds another calculation's IR or Raman spectrum as a second curve; both go into the .csv (#410).
 - **GROMACS** (#410): restraints per chain (unmerged chains get `POSRES_<chain>`), a solute centre for the box, and centre-of-mass pulling on dynamics tasks with a Pull Force panel (force and distance against time, .csv).
 - **Toolbars:** the Manipulator and Measure toolbars use the new icons; the Measure tool is called Dihedral Angle (#210).
@@ -30,5 +30,4 @@
 - **A new periodic table** for the Builder: `ECCE_NEW_PERTABLE=1` (#222).
 
 ## Known issues
-- **Relaxed Scan panel:** selecting a row in the table does not move the plot or the viewer, and New calculation from this point gives no message when it has made the calculation.
 - **GROMACS, CP2K and Quantum ESPRESSO** remain experimental. **The MO diagram** is experimental.
