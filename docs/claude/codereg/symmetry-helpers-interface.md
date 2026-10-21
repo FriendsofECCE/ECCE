@@ -60,11 +60,11 @@ decide deliberately, not by accident)
   the 46 names, so a following `cleansym`/`genmol` exits 3.
 - **Linear molecules**: C4V (HCN, CO, HCl) and D4H (N2, CO2, C2H2).
 - **Icosahedral B12H12 comes back TH, not IH**.
-- **genmollat matches names with underscores removed and spaces stripped**
-  (`P21/c`), but the Builder passes the names of
-  `data/client/config/SpaceGroups` (`P2_1/c`), which fail with status 255:
-  13 of the 43 sampled groups (all with a subscript). The corpus has both
-  spellings. Fixing this changes goldens; do it in the Fortran first.
+- **genmollat normalises the name it is given like its tables** (spaces and
+  underscores removed), so the Builder's `P2_1/c` (from
+  `data/client/config/SpaceGroups`) and `P21/c` give the same structure. A
+  port must keep that; the corpus has both spellings and their goldens are
+  identical.
 - genmollat compares group names case-sensitively; genmol/cleansym upper-case.
 
 Nothing about operation ORDER of symops, the numbers' printed width, or
