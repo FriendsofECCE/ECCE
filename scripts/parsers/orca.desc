@@ -44,6 +44,13 @@ Frequency=last
 End=Calculated Surface using the SCF energy
 [END]
 
+# Relaxed scan structures (#410): one frame per scan point.
+[SCANGEOM]
+Script=orca.scangeom
+File=orca.orcain.allxyz
+Begin=orca.orcain.allxyz
+[END]
+
 # ORCA names the file after the input, which ECCE always calls orca.orcain.
 [IRCGEOM]
 Script=orca.ircgeom

@@ -1,0 +1,27 @@
+#!/usr/bin/env perl
+# Relaxed scan (#410): the optimised structure of every scan point, from the
+# whole log (File= entry in gaussian-16.desc).  The last "Input orientation"
+# before an "Optimization completed" is that point's converged geometry.
+# Dummy centres are left out, as in gaussian-16.geomtrace (#27).
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /Geo/i);
+
+my (@cur, $in);
+while (<STDIN>) {
+  if (/Input orientation:/) { @cur = (); $in = 1; next; }
+  if (/Standard orientation:|Z-Matrix orientation:|Rotational constants/) { $in = 0; next; }
+  if (/Optimization completed/) {
+    next unless (@cur);
+    my $labels;
+    $labels .= " $_-X" for (1 .. scalar(@cur));
+    print "key: SCANGEOM\nsize:\n1 ", scalar(@cur), " 3\nrowlabels:\n$labels\n",
+          "columnlabels:\nX Y Z\nvalues:\n", join("\n", @cur), "\nunits:\nAngstrom\nEND\n";
+    next;
+  }
+  next unless ($in);
+  if (/^\s+\d+\s+(-?\d+)\s+\d+\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    push(@cur, " $2 $3 $4") unless ($1 < 0);
+  }
+}
+exit(0);

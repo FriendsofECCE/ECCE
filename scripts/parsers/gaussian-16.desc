@@ -28,6 +28,14 @@ Frequency=last
 End=Largest change from initial coordinates
 [END]
 
+# Relaxed scan structures (#410): needs the whole log, since a point's
+# converged geometry is only known from the "Optimization completed" after it.
+[SCANGEOM]
+Script=gaussian-16.scangeom
+File=g16.g16out
+Begin=g16.g16out
+[END]
+
 [IRCCOORD][IRCENERGY]
 Script=gaussian-16.irc
 Begin=Energies reported relative to the TS energy
