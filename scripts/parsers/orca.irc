@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+# IRC (#417): ORCA's "IRC PATH SUMMARY".  Energies are absolute (Eh); the
+# row marked "<= TS" is the origin.  ORCA prints no reaction coordinate, so
+# IRCCOORD is the signed point number counted from the TS.
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /IRC/i);
+
+my (@e, $ts);
+while (<STDIN>) {
+  next unless (/^\s*\d+\s+(-?\d+\.\d+)\s+-?\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+(\s+<=\s*TS)?/);
+  $ts = scalar(@e) if (defined $2);
+  push(@e, $1);
+}
+exit(0) unless (defined $ts && @e > 1);
+
+my $n = scalar(@e);
+print "key: IRCCOORD\nsize: \n$n\nvalues: \n", join("\n", map { $_ - $ts } (0 .. $n-1)),
+      "\nunits:\nPoint\nEND\n";
+print "key: IRCENERGY\nsize: \n$n\nvalues: \n", join("\n", @e), "\nunits:\nHartree\nEND\n";
+exit(0);

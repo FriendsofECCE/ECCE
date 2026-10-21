@@ -124,6 +124,7 @@
 #include "wxgui/SliderCombo.H"
 #include "NModePanel.H"
 #include "ScanPanel.H"
+#include "IRCPanel.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -843,6 +844,49 @@ void Builder::runBuilderScript(const std::string& file)
                   sp->exportCsv(wxString::FromUTF8(w[1].c_str()),
                                 w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
+        }
+      } else if (w[0] == "ircpath" && w.size() >= 2) {
+        //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)
+        //  without the file dialog.
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+        if (!ip) {
+          outcome = "no IRC Path panel";
+        } else {
+          fprintf(stderr, "BUILDER: ircpath points=%d %s\n", ip->points(),
+                  ip->exportCsv(wxString::FromUTF8(w[1].c_str()),
+                                w.size() > 2 && w[2] == "kcal")
+                      ? "ok" : "failed");
+        }
+      } else if (w[0] == "ircclick" && w.size() >= 2) {
+        //  ircclick <index>: what a click on IRC Path plot point <index>
+        //  does (#417); reports the frame shown and the first two atoms.
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+        if (!ip) {
+          outcome = "no IRC Path panel";
+        } else {
+          const int frame = ip->clickPoint(atoi(w[1].c_str()));
+          std::string where;
+          SGFragment *frag = getSceneGraph().getFragment();
+          for (int a = 0; frag && a < 2 && a < frag->numAtoms(); a++) {
+            const double *c = frag->atomRef(a)->coordinates();
+            char buf[96];
+            snprintf(buf, sizeof buf, " %.5f %.5f %.5f", c[0], c[1], c[2]);
+            where += buf;
+          }
+          if (frame < 0)
+            fprintf(stderr, "BUILDER: ircclick %s frame=none atoms:%s\n",
+                    w[1].c_str(), where.c_str());
+          else
+            fprintf(stderr, "BUILDER: ircclick %s frame=%d atoms:%s\n",
+                    w[1].c_str(), frame, where.c_str());
         }
       } else if (w[0] == "overlay") {
         std::string list;

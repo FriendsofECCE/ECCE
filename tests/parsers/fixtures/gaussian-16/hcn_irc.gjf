@@ -1,0 +1,14 @@
+%chk=hcn.chk
+#p HF/3-21G Opt=(TS,CalcFC,NoEigentest) Freq
+
+HCN TS guess
+
+0 1
+C   0.000000   0.000000   0.000000
+N   1.170000   0.000000   0.000000
+H   0.900000   1.150000   0.000000
+
+--Link1--
+%chk=hcn.chk
+#p HF/3-21G IRC=(RCFC,MaxPoints=8,StepSize=10) Geom=AllCheck Guess=Read
+

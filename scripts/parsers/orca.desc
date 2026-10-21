@@ -26,6 +26,15 @@
 # GitHub issue #74's "GEOMTRACE never gets extracted despite a correct
 # [Begin] match" mystery -- the Begin regex genuinely does match, but the
 # script byte after it never saw usable data.
+# IRC (#417): the summary table of an IRC job.  Ends on the citations header
+# (the table is followed by a dashes line, so a dashes End would stop early).
+[IRCCOORD][IRCENERGY]
+Script=orca.irc
+Begin=IRC PATH SUMMARY
+Frequency=last
+End=SUGGESTED CITATIONS FOR THIS RUN
+[END]
+
 [GEOMTRACE]
 Script=orca.geomtrace
 Begin=CARTESIAN COORDINATES \(ANGSTROEM\)
