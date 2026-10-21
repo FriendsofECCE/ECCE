@@ -48,6 +48,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   Organizer's Progress box; tables also have Copy and Copy all.
 - In the panel layout with the Properties list, the open panel gets its
   height and every panel can be folded again.
+- IRC: the reaction path from Gaussian 16 and ORCA, plotted as energy against
+  the reaction coordinate; a click on a point shows its structure.
 - New icons for the Manipulator and Measure toolbars.
 - Help pages checked against the program, menu by menu.
 
