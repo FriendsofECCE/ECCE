@@ -1901,6 +1901,17 @@ target_link_libraries(envswitches_test PRIVATE ecceutil)
 add_test(NAME envswitches COMMAND envswitches_test)
 
 # tests/formula -- the Hill-order formula shown in the Organizer.
+# tests/builder (#222): the element chooser's layout and search, no display.
+add_executable(elementlayout_test tests/builder/elementlayout_test.C)
+target_include_directories(elementlayout_test PRIVATE src/apps/builder)
+target_link_libraries(elementlayout_test PRIVATE eccetdat ecceutil)
+# The chooser alone, for screenshots on a display with no ECCE services.
+add_executable(chooser_shot tests/builder/chooser_shot.C src/apps/builder/ElementChooser.C)
+target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS})
+target_compile_definitions(chooser_shot PRIVATE ${wxWidgets_DEFINITIONS})
+target_link_libraries(chooser_shot PRIVATE eccewxgui eccewxthings eccetdat ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
+add_test(NAME elementlayout COMMAND elementlayout_test)
+
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)
@@ -2420,6 +2431,15 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_sash_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_sash PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # The Builder's new element chooser (#222) and the old popup it replaces
+  # by default, driven headless with the tree's builder binary.
+  add_test(NAME apps_builder_chooser
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/builder/chooser_drive.py
+                   $<TARGET_FILE:builder> ${CMAKE_BINARY_DIR}/chooser-drive
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_chooser PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # The Calculation Editor is not frozen (no black areas) while the Code
   # Change question is open (#308).

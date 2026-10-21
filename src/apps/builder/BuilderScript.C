@@ -63,6 +63,9 @@
 //                                length and unit direction, Angstrom
 //    pertab A                    press the Build panel's periodic-table button,
 //                                pick element A in it, report the Build element
+//    chooser kind|pick SYM|search TEXT|enter TEXT|shot NAME|close
+//                                the element chooser popup: pick an element,
+//                                type a search, press Enter in it, save a PNG
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -78,6 +81,7 @@
 #include <wx/checkbox.h>
 #include <wx/dcmemory.h>
 #include <wx/dcscreen.h>
+#include <wx/weakref.h>
 #include <wx/image.h>
 #include <wx/menu.h>
 #include <wx/textctrl.h>
@@ -102,6 +106,7 @@
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
 #include "MiniPerTab.H"
+#include "ElementChooser.H"
 #include "viz/VRVector.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
@@ -312,19 +317,71 @@ void Builder::runBuilderScript(const std::string& file)
           press.SetEventObject(button);
           button->GetEventHandler()->ProcessEvent(press);
           for (int i = 0; i < 3; i++) wxTheApp->Yield(true);
-          PerTabPanel *table =
-              dynamic_cast<PerTabPanel*>(p_pertab->tablePanel());
-          TPerTab tpt;
-          const int z = tpt.atomicNumber(w[1]);
-          if (!table) {
+          wxWindow *panel = p_pertab->tablePanel();
+          ElementChooser *table = dynamic_cast<ElementChooser*>(panel);
+          PerTabPanel *old = dynamic_cast<PerTabPanel*>(panel);
+          if (!table && !old) {
             outcome = "FAIL: the button opened no table";
           } else {
-            table->setCurrentElement(z);
-            table->fireSelectionChanged(z);
+            if (table) {
+              table->pick(w[1]);
+            } else {
+              TPerTab tpt;
+              const int z = tpt.atomicNumber(w[1]);
+              old->setCurrentElement(z);
+              old->fireSelectionChanged(z);
+            }
             fprintf(stderr, "BUILDER: pertab element=%s\n",
                     p_currentElement.c_str());
           }
         }
+      } else if (w[0] == "chooser" && w.size() >= 2) {
+        //  The element chooser popup: "chooser pick Fe", "chooser search
+        //  iron" (then "chooser enter iron" to press Enter), "chooser
+        //  shot NAME" for a screenshot of the open popup, "chooser close".
+        static wxWeakRef<TearableContent> popup;
+        if (!popup) popup = showElementChooser();
+        wxWindow *found = popup->FindWindow("Elements");
+        ElementChooser *ch = dynamic_cast<ElementChooser*>(found);
+        for (int i = 0; i < 5; i++) wxTheApp->Yield(true);
+        if (w[1] == "kind") {
+          std::string recent;
+          if (ch) for (const std::string& r : ch->recent()) recent += r + ",";
+          fprintf(stderr, "BUILDER: chooser kind=%s recent=%s\n",
+                  ch ? "new" : dynamic_cast<PerTabPanel*>(found) ? "old" : "none",
+                  recent.c_str());
+        } else if (w[1] == "screen" && w.size() == 3) {
+          //  The whole display: the Builder window with the popup over it.
+          wxScreenDC cdc;
+          const wxSize sz = wxGetDisplaySize();
+          wxBitmap bmp(sz.x, sz.y);
+          wxMemoryDC mdc(bmp);
+          mdc.Blit(0, 0, sz.x, sz.y, &cdc, 0, 0);
+          mdc.SelectObject(wxNullBitmap);
+          bmp.SaveFile(st->dir + "/" + w[2] + ".png", wxBITMAP_TYPE_PNG);
+        } else if (!ch) {
+          outcome = "FAIL: no chooser";
+        } else if (w[1] == "pick" && w.size() == 3) {
+          fprintf(stderr, "BUILDER: chooser pick %s -> %d\n", w[2].c_str(),
+                  ch->pick(w[2]) ? 1 : 0);
+          fprintf(stderr, "BUILDER: chooser element=%s\n", p_currentElement.c_str());
+        } else if ((w[1] == "search" || w[1] == "enter") && w.size() >= 3) {
+          std::string text = w[2];
+          for (size_t i = 3; i < w.size(); i++) text += " " + w[i];
+          const int n = ch->search(text, w[1] == "enter");
+          fprintf(stderr, "BUILDER: chooser matches=%d element=%s\n", n,
+                  p_currentElement.c_str());
+        } else if (w[1] == "shot" && w.size() == 3) {
+          wxScreenDC cdc;
+          const wxPoint org = ch->GetScreenPosition();
+          wxSize sz = ch->GetClientSize();
+          wxBitmap bmp(sz.x, sz.y);
+          wxMemoryDC mdc(bmp);
+          mdc.Blit(0, 0, sz.x, sz.y, &cdc, org.x, org.y);
+          mdc.SelectObject(wxNullBitmap);
+          bmp.SaveFile(st->dir + "/" + w[2] + ".png", wxBITMAP_TYPE_PNG);
+        }
+        if (w[1] == "close" && popup) popup->Dismiss();
       } else if (w[0] == "popup" && w.size() == 2) {
         //  The element chooser, as the arrow beside the element tool opens
         //  it, and where it is, straight after it is shown and half a
