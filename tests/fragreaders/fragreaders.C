@@ -73,6 +73,35 @@ int main(int argc, char **argv)
   snprintf(num, sizeof num, "%.1f", 2.5);
   check(string(num) == "2.5", string("printf of 2.5 gives ") + num);
 
+  //  A GROMACS structure attached to a task is stored as PDB and read back
+  //  the way MdTask::getFragment reads it (#262): atoms, elements, bonds.
+  {
+    ifstream gin(dir + "/../../gromacs_md/fixtures/conf.gro");
+    Fragment gro;
+    if (gin && gro.restoreGRO(gin, true)) {
+      ostringstream pdb;
+      gro.dumpPDB(pdb, false);
+      istringstream pin(pdb.str());
+      Fragment back;
+      back.restorePDB(pin, 1.0, true, 1, " ", true, false, " ");
+      int h0 = 0, h1 = 0;
+      for (int i = 0; i < (int)gro.numAtoms(); i++)
+        if (gro.atomRef(i)->atomicSymbol() == "H") h0++;
+      for (int i = 0; i < (int)back.numAtoms(); i++)
+        if (back.atomRef(i)->atomicSymbol() == "H") h1++;
+      cout << "gro: atoms " << gro.numAtoms() << " H " << h0 << " bonds "
+           << gro.numBonds() << "; stored and read back: atoms "
+           << back.numAtoms() << " H " << h1 << " bonds " << back.numBonds()
+           << endl;
+      check(back.numAtoms() == gro.numAtoms() && h1 == h0 && h0 > 0,
+            "attached .gro: every atom and hydrogen survives the task's PDB");
+      check(back.numBonds() == gro.numBonds() && gro.numBonds() > 0,
+            "attached .gro: the bonds survive the task's PDB");
+    } else {
+      check(false, "conf.gro fixture read");
+    }
+  }
+
   for (const char *f : {"glycine.pdb", "glycine.ent"}) {
     Fragment *frag = load(dir + "/" + f, "PDB");
     if (!frag) continue;

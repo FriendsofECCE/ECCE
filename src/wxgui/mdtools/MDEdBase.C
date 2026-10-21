@@ -32,6 +32,8 @@
 #include "util/TypedFile.H"
 #include "util/EditEvent.H"
 
+#include "tdat/Fragment.H"
+#include "tdat/TAtm.H"
 #include "tdat/TaskApp.H"
 #include "tdat/DynamicsModel.H"
 #include "tdat/AuthCache.H"
@@ -204,6 +206,7 @@ void MDEdBase::startTestHook()
  * tab <title>          select a notebook page
  * tabs                 the notebook pages, in order
  * inputs               what the Inputs page shows
+ * structure            the task's stored structure: atoms, hydrogens, bonds
  * inputs-warning       "shown" while the missing-inputs warning is in the message area
  * run                  what the Run settings page holds
  * run-set <field> <v>  set a field of that page as the user would (\n = newline)
@@ -235,6 +238,15 @@ string MDEdBase::runTestCommand(const string& line)
                                GromacsInputsPanel::INCLUDE_FILE;
       bool ok = p_gmxInputs->attachFile(kind, arg, message);
       return string(ok ? "ok: " : "refused: ") + message;
+   } else if (cmd == "structure") {
+      MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
+      Fragment frag;
+      if (task == 0 || !task->getFragment(frag)) return "no structure";
+      int h = 0;
+      for (int i = 0; i < frag.numAtoms(); i++)
+         if (frag.atomRef(i)->atomicSymbol() == "H") h++;
+      return "atoms=" + std::to_string(frag.numAtoms()) + " hydrogens=" +
+             std::to_string(h) + " bonds=" + std::to_string(frag.numBonds());
    } else if (cmd == "set-steps") {
       int n = atoi(arg.c_str());
       MDCompositeModel& m = getMDModel();
