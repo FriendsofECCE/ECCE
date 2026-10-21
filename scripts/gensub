@@ -1557,11 +1557,11 @@ sub gromacsPrepare()
 
 @@CC@@ - Read the recipe; md.gmxprep has checked every value.
 SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1 NEUT=1
-BOX=dodecahedron DIST=1.0 CONC=0.15 RMIN=0.6 PNAME=NA NNAME=CL PQ=1
+BOX=dodecahedron DIST=1.0 CENTER= CONC=0.15 RMIN=0.6 PNAME=NA NNAME=CL PQ=1
 while IFS='=' read -r k v; do
   case "$k" in
     SOURCE) SOURCE=$v;; FF) FF=$v;; WATER) WATER=$v;; HIS) HIS=$v;;
-    IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;;
+    IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;; CENTER) CENTER=$v;;
     CONC) CONC=$v;; RMIN) RMIN=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;; PQ) PQ=$v;;
   esac
 done < @@IN@@
@@ -1653,6 +1653,15 @@ GENION_RMIN=""
       prepRun "$gmx" pdb2gmx -f "$pdb" -ff "$FF" -water "$WATER" $opts \
           -o step1.gro -p topol.top -i posre.itp || exit 1
       cp prep.step prep.pdb2gmx
+      # Unmerged chains all restrain under the one name POSRES; give each its
+      # own POSRES_<chain id> too, so a run can restrain some chains only.
+      for f in topol_*_chain_*.itp; do
+        [ -f "$f" ] || continue
+        cid=${f##*_chain_}; cid=${cid%.itp}
+        [ -f "posre_${f#topol_}" ] || continue
+        printf '\n; Position restraints for this chain alone\n#ifdef POSRES_%s\n#include "posre_%s"\n#endif\n' \
+          "$cid" "${f#topol_}" >> "$f"
+      done
       ;;
     *) echo "Unknown SOURCE $SOURCE" >> @@OUT@@; exit 1;;
   esac
@@ -1682,7 +1691,10 @@ GENION_RMIN=""
           acosd((a * v2x + v1y * b + v1z * v2z) / (la * lb)) }' > prep.step
     BOX=cell
   else
-    prepRun "$gmx" editconf -f step1.gro -o step2.gro -c -bt "$BOX" -d "$DIST" || exit 1
+    # the box is sized round the solute, which is then placed at CENTER
+    CENTERARG=""
+    [ -n "$CENTER" ] && CENTERARG="-center $CENTER"
+    prepRun "$gmx" editconf -f step1.gro -o step2.gro -c $CENTERARG -bt "$BOX" -d "$DIST" || exit 1
   fi
   cp prep.step prep.editconf
 

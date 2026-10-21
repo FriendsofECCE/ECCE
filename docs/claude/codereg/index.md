@@ -176,6 +176,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [GROMACS Prepare editor (gmxprepare): MDEdBase assumes an MDCompositeModel, and a tool listed in the wrong resource type opens beside NWChem's](gromacs-prepare-editor-borrows-mdedbase-but-not-its-model.md)
 - [GROMACS Prepare results: ECCE-PREPARE lines feed the Progress box and the properties; the property script is found by the first key and must print every key](gromacs-prepare-results-are-echo-lines-the-desc-reads-twice.md)
 - [GROMACS Prepare, MINFF source: built on the client and staged as .gmxmin plus includes; a layer split over z tears; genion and ions.itp name ions differently](gromacs-prepare-minff-source-traps.md)
+- [GROMACS Prepare: merged chains give one posre.itp; unmerged chains all restrain under POSRES (gensub adds POSRES_<id>); editconf -center needs -c](gromacs-prepare-per-chain-restraints-and-box-centre.md)
 - [GROMACS Prepare, mineral source with ClayFF: build flags, hidden MINFF rows, defines live in topol.top](gromacs-prepare-clayff-source.md)
 - [The Builder draws modes on the last GEOMTRACE step, so a code that reorients must deliver one (NWChem frequency-only runs did not)](geometry-and-normal-modes-share-the-codes-frame.md)
 - [Every release updates the bundled atomipy and min.ff](every-release-updates-bundled-atomipy-and-minff.md)

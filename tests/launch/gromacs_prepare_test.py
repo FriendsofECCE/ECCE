@@ -612,6 +612,21 @@ def editor_section(s, build, rundir, png):
                 check(ed.cmd("launch") == "enabled",
                       "Launch is enabled before any Save once the setup is complete: "
                       + ed.cmd("launch"))
+                # off-centre placement: Verify shows it, a bad value is refused
+                check(ed.cmd("set center 2,2 5") == "ok", "solute centre 2 2 5 set")
+                ver = ed.cmd("verify")
+                check("-c -center 2 2 5 -bt dodecahedron -d 1" in ver
+                      and "solute centred at 2 2 5 nm" in ver,
+                      "Verify shows editconf -center: %s" % ver)
+                check(ed.cmd("set center 1 2").startswith("refused"),
+                      "two numbers are not a centre")
+                shot = os.path.join(png, "gmxprepare-center.png")
+                ed.cmd("set center 2 2 5")
+                check(ed.cmd("snap " + shot) == "saved" and os.path.exists(shot),
+                      "window shot: %s" % shot)
+                ed.cmd("save")
+                check("CENTER=2 2 5" in ed.cmd("recipe"), "Save stored CENTER=2 2 5")
+                check(ed.cmd("set center -") == "ok", "centre cleared")
                 shot = os.path.join(png, "gmxprepare.png")
                 check(ed.cmd("snap " + shot) == "saved" and os.path.exists(shot),
                       "window shot: %s" % shot)

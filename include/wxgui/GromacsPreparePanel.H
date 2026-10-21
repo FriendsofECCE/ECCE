@@ -126,7 +126,7 @@ class GromacsPreparePanel : public ewxPanel
       string p_url;
       bool p_editable;
       bool p_refreshing;
-      string p_badDistance, p_badConcentration, p_badRmin;
+      string p_badCenter, p_badDistance, p_badConcentration, p_badRmin;
       string p_buildWarnings;   // minff_topology.py warnings of the last build
       string p_cellPath;        // the unit cell chosen for MINFF, this session
       bool p_built;
@@ -157,7 +157,7 @@ class GromacsPreparePanel : public ewxPanel
       ewxCheckBox *p_ignh, *p_neut;
       ewxCheckBox *p_merge;
       ewxChoice *p_box;
-      ewxTextCtrl *p_dist;
+      ewxTextCtrl *p_dist, *p_center;
       ewxTextCtrl *p_conc;
       ewxTextCtrl *p_rmin;
       ewxChoice *p_pion;
