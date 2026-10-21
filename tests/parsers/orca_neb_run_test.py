@@ -55,7 +55,8 @@ def deck(work, runtype, product=True):
         f.write("useRouteCard 3-21G\n")
     with open(os.path.join(work, "w.param"), "w") as f:
         f.write("Category: SCF\nTheory: RHF\nRunType: %s\nCharge: 0\n"
-                "ChemSys.Multiplicity: 1\nES.Runtype.NEB.Images: 4\n" % runtype)
+                "ChemSys.Multiplicity: 1\nES.Runtype.NEB.Images: 4\n"
+                "ES.Theory.UseSymmetry: 1\n" % runtype)
     if product:
         with open(os.path.join(work, "neb_product.xyz"), "w") as f:
             f.write("3\nproduct\n" + "\n".join(frames(XYZ)[-1]) + "\n")
@@ -87,6 +88,7 @@ def main():
         print(text)
         check(re.search(r"^! .*\bNEB-TS Freq\b", text, re.M) is not None,
               "route line has NEB-TS Freq")
+        check("UseSym" not in text, "UseSym dropped for NEB-TS (ORCA aborts with it)")
         check('NEB_End_XYZFile "neb_product.xyz"' in text and "Nimages 4" in text
               and "NEB_TS_XYZFile" not in text, "%neb block without a guess")
         shutil.copy(os.path.join(work, "t.tpl"), os.path.join(work, "orca.orcain"))

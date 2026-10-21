@@ -297,7 +297,9 @@ sub SymmetryToken {
   my $shared = $AbiDict{"ES.Theory.UseSymmetry"};
   my $mine   = $AbiDict{"ES.Theory.SCF.UseSymmetry"};
   my $wanted = defined($shared) ? $shared : $mine;
-  if (defined($wanted) && $wanted eq "1") {
+  #  ORCA 6.1.1 NEB-TS aborts in pointgroup.cpp with UseSym (it cannot
+  #  read the per-image symmetry file), so NEB-TS runs without it.
+  if (defined($wanted) && $wanted eq "1" && !&IsNebTS($AbiDict{"RunType"})) {
     $result = "UseSym";
   }
   return $result;
