@@ -810,7 +810,7 @@ void Builder::createToolbar()
             _("Measure Angle"), wxITEM_NORMAL);
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_TORSION, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/measure_torsion.svg", wxSize(22, 22)),
-            _("Measure Torsion"), wxITEM_NORMAL);
+            _("Measure Dihedral Angle"), wxITEM_NORMAL);
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_CLEAR, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/measure_clear.svg", wxSize(22, 22)),
             _("Measure Clear"), wxITEM_NORMAL);
