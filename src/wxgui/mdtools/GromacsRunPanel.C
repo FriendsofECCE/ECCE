@@ -147,6 +147,65 @@ GromacsRunPanel::GromacsRunPanel(MDEdBase *owner, wxWindow *parent)
   p_pressureBox->SetSizer(prs);
   top->Add(p_pressureBox, 0, wxALL | wxEXPAND, 6);
 
+  // ---- centre-of-mass pulling (dynamics tasks) ----
+  p_pullBox = new wxPanel(this);
+  wxStaticBoxSizer *pul = new wxStaticBoxSizer(wxVERTICAL, p_pullBox,
+                                               _("Centre-of-mass pulling"));
+  wxWindow *ub = pul->GetStaticBox();
+  p_pull = new ewxCheckBox(ub, ID_RUN_FIELD, _("Pull group 2 away from group 1"));
+  p_pull->SetToolTip(_("Writes the pull code of the .mdp: a moving harmonic "
+                       "(umbrella) potential on the distance between the "
+                       "centres of mass of two groups. pullx.xvg and "
+                       "pullf.xvg come back as the Pull Force plot."));
+  pul->Add(p_pull, 0, wxALL, 4);
+  wxFlexGridSizer *g4 = new wxFlexGridSizer(2, 4, 6);
+  g4->Add(new ewxStaticText(ub, wxID_ANY, _("Group 1 (reference):")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_pullGroup1 = new ewxTextCtrl(ub, ID_RUN_FIELD, wxEmptyString,
+                                 wxDefaultPosition, wxSize(160, -1));
+  p_pullGroup1->SetToolTip(_("Name of a group defined above (or in the .ndx "
+                             "file), for example Chain_A. To hold it in "
+                             "place, tick Restrain positions with "
+                             "POSRES_<chain>."));
+  g4->Add(p_pullGroup1);
+  g4->Add(new ewxStaticText(ub, wxID_ANY, _("Group 2 (pulled):")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_pullGroup2 = new ewxTextCtrl(ub, ID_RUN_FIELD, wxEmptyString,
+                                 wxDefaultPosition, wxSize(160, -1));
+  g4->Add(p_pullGroup2);
+  g4->Add(new ewxStaticText(ub, wxID_ANY, _("Pull coordinate:")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  wxBoxSizer *geo = new wxBoxSizer(wxHORIZONTAL);
+  p_pullGeom = makeChoice(ub, "distance", "direction along axis");
+  p_pullAxis = makeChoice(ub, "x", "y", "z");
+  p_pullAxis->SetSelection(2);
+  geo->Add(p_pullGeom, 0, wxRIGHT, 6);
+  geo->Add(p_pullAxis, 0);
+  g4->Add(geo);
+  g4->Add(new ewxStaticText(ub, wxID_ANY, _("Distance measured on:")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  wxBoxSizer *dim = new wxBoxSizer(wxHORIZONTAL);
+  const char *axes[3] = {"x", "y", "z"};
+  for (int i = 0; i < 3; i++) {
+    p_pullDim[i] = new ewxCheckBox(ub, ID_RUN_FIELD, axes[i]);
+    p_pullDim[i]->SetValue(true);
+    dim->Add(p_pullDim[i], 0, wxRIGHT, 8);
+  }
+  g4->Add(dim);
+  g4->Add(new ewxStaticText(ub, wxID_ANY, _("Rate (nm/ps):")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_pullRate = new ewxTextCtrl(ub, ID_RUN_FIELD, "0.01", wxDefaultPosition,
+                               wxSize(100, -1));
+  g4->Add(p_pullRate);
+  g4->Add(new ewxStaticText(ub, wxID_ANY, _("Force constant (kJ/mol/nm^2):")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  p_pullK = new ewxTextCtrl(ub, ID_RUN_FIELD, "1000", wxDefaultPosition,
+                            wxSize(100, -1));
+  g4->Add(p_pullK);
+  pul->Add(g4, 0, wxALL, 4);
+  p_pullBox->SetSizer(pul);
+  top->Add(p_pullBox, 0, wxALL | wxEXPAND, 6);
+
   // ---- extra lines ----
   wxStaticBoxSizer *ext = new wxStaticBoxSizer(wxVERTICAL, this,
                                                _("Extra .mdp lines"));
@@ -204,11 +263,22 @@ void GromacsRunPanel::refresh()
   p_nstpcouple->ChangeValue(g.nstpcouple > 0 ?
       wxString::Format("%d", g.nstpcouple) : wxString());
   p_extra->ChangeValue(W(g.extraMdp));
+  p_pull->SetValue(g.pull);
+  p_pullGroup1->ChangeValue(W(g.pullGroup1));
+  p_pullGroup2->ChangeValue(W(g.pullGroup2));
+  p_pullGeom->SetSelection(g.pullGeom == 1 ? 1 : 0);
+  p_pullAxis->SetSelection(g.pullAxis >= 0 && g.pullAxis <= 2 ? g.pullAxis : 2);
+  for (int i = 0; i < 3; i++)
+    p_pullDim[i]->SetValue(g.pullDim.size() > (size_t)(2 * i) &&
+                           g.pullDim[2 * i] == 'Y');
+  p_pullRate->ChangeValue(wxString::Format("%g", g.pullRate));
+  p_pullK->ChangeValue(wxString::Format("%g", g.pullK));
   p_loading = false;
 
   bool dyn = m.getDynamicsModel() != 0;
   p_groupBox->Show(dyn);
   p_pressureBox->Show(dyn);
+  p_pullBox->Show(dyn);
   warn();
   Layout();
 }
@@ -231,6 +301,16 @@ void GromacsRunPanel::store()
   int n = atoi(S(p_nstpcouple->GetValue()).c_str());
   g.nstpcouple = n > 0 ? n : 0;
   g.extraMdp = S(p_extra->GetValue());
+  g.pull = p_pull->GetValue();
+  g.pullGroup1 = S(p_pullGroup1->GetValue());
+  g.pullGroup2 = S(p_pullGroup2->GetValue());
+  g.pullGeom = p_pullGeom->GetSelection() == 1 ? 1 : 0;
+  g.pullAxis = p_pullAxis->GetSelection();
+  g.pullDim = string(p_pullDim[0]->GetValue() ? "Y" : "N") + " " +
+              (p_pullDim[1]->GetValue() ? "Y" : "N") + " " +
+              (p_pullDim[2]->GetValue() ? "Y" : "N");
+  g.pullRate = atof(S(p_pullRate->GetValue()).c_str());
+  g.pullK = atof(S(p_pullK->GetValue()).c_str());
   if (g != im->getGromacsRun()) {
     im->setGromacsRun(g);
     p_owner->setSaveState(true);
@@ -248,6 +328,10 @@ void GromacsRunPanel::warn()
     const GromacsRun& g = im->getGromacsRun();
     if (m.getDynamicsModel()->getUseNPT()) {
       msg = GromacsRun::pairProblem(g.barostat, g.pcoupltype);
+    }
+    if (g.pull && (g.pullGroup1.empty() || g.pullGroup2.empty())) {
+      msg += (msg.empty() ? "" : "\n") + string(
+          "Pulling is on: name the two groups to pull between.");
     }
     bool defined = g.groups.find_first_not_of(" \t\r\n") != string::npos;
     if ((g.comGroups || g.tcGroups) && !defined) {
@@ -323,6 +407,12 @@ string GromacsRunPanel::summary()
      << " pcoupltype=" << p_pcoupltype->GetSelection()
      << " nstpcouple=" << S(p_nstpcouple->GetValue())
      << " extra=[" << oneLine(S(p_extra->GetValue())) << "]"
+     << " pull=" << (p_pull->GetValue() ? 1 : 0)
+     << " pullgroups=" << S(p_pullGroup1->GetValue()) << ","
+     << S(p_pullGroup2->GetValue())
+     << " pullgeom=" << p_pullGeom->GetSelection()
+     << " pullrate=" << S(p_pullRate->GetValue())
+     << " pullk=" << S(p_pullK->GetValue())
      << " shown=" << (p_groupBox->IsShown() ? "groups+pressure" : "basic")
      << " model-defines=" << g.defines
      << " warning=[" << oneLine(S(p_warning->GetLabel())) << "]";
@@ -342,6 +432,13 @@ string GromacsRunPanel::setField(const string& name, const string& value)
   else if (name == "tcgroups") p_tcGroups->SetSelection(atoi(value.c_str()));
   else if (name == "barostat") p_barostat->SetSelection(atoi(value.c_str()));
   else if (name == "pcoupltype") p_pcoupltype->SetSelection(atoi(value.c_str()));
+  else if (name == "pull") p_pull->SetValue(value == "1");
+  else if (name == "pullgroup1") p_pullGroup1->SetValue(v);
+  else if (name == "pullgroup2") p_pullGroup2->SetValue(v);
+  else if (name == "pullgeom") p_pullGeom->SetSelection(atoi(value.c_str()));
+  else if (name == "pullaxis") p_pullAxis->SetSelection(atoi(value.c_str()));
+  else if (name == "pullrate") p_pullRate->SetValue(v);
+  else if (name == "pullk") p_pullK->SetValue(v);
   else if (name == "fill") { fillGroups(false); return "ok"; }
   else if (name == "fillmol") { fillGroups(true); return "ok"; }
   else return "unknown field";

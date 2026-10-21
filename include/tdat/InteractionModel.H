@@ -38,6 +38,14 @@ struct GromacsRun
    int    pcoupltype;    ///< 0 isotropic, 1 semiisotropic, 2 anisotropic
    int    nstpcouple;    ///< 0: leave to grompp
    string extraMdp;      ///< lines written at the end of the .mdp
+   bool   pull;          ///< centre-of-mass pulling between two groups
+   string pullGroup1;    ///< names of index groups (GromacsRun::groups)
+   string pullGroup2;
+   int    pullGeom;      ///< 0 distance, 1 direction (along pullAxis)
+   int    pullAxis;      ///< 0 x, 1 y, 2 z
+   string pullDim;       ///< "Y Y Y": the axes the distance is measured on
+   double pullRate;      ///< nm/ps
+   double pullK;         ///< kJ/mol/nm^2
 
    /** Empty when grompp takes the barostat/type pair, else why not. */
    static string pairProblem(int barostat, int pcoupltype);

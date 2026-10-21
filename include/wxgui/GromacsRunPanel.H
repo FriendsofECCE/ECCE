@@ -70,6 +70,11 @@ class GromacsRunPanel : public ewxPanel
       ewxChoice     *p_pcoupltype;
       ewxTextCtrl   *p_nstpcouple;
       ewxTextCtrl   *p_extra;
+      wxPanel       *p_pullBox;
+      ewxCheckBox   *p_pull;
+      ewxTextCtrl   *p_pullGroup1, *p_pullGroup2, *p_pullRate, *p_pullK;
+      ewxChoice     *p_pullGeom, *p_pullAxis;
+      ewxCheckBox   *p_pullDim[3];
       ewxStaticText *p_warning;
 };
 

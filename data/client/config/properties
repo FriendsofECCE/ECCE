@@ -224,6 +224,9 @@ Geometry	GeometryTrace				GEOMTRACE	Length		PropTSVecTable<Geometry Step,Atom,Co
 Geometry	Scan Coordinate				SCANCOORD	NA		PropVector<Scan Point>
 Geometry	Scan Energy				SCANENERGY	Energy		PropVector<Scan Point>
 Geometry	Scan Structures				SCANGEOM	Length		PropTSVecTable<Scan Step,Atom,Coordinate>
+Pull	Pull Time				PULLTIME	NA		PropVector<Pull Frame>
+Pull	Pull Coordinate				PULLDIST	NA		PropVector<Pull Frame>
+Pull	Pull Force				PULLFORCE	NA		PropVector<Pull Frame>
 Geometry	IRC Coordinate				IRCCOORD	NA		PropVector<IRC Point>
 Geometry	IRC Energy				IRCENERGY	Energy		PropVector<IRC Point>
 Geometry	IRC Structures				IRCGEOM		Length		PropTSVecTable<IRC Step,Atom,Coordinate>

@@ -1955,6 +1955,13 @@ sub gromacs()
     $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj.pdb`\n";
     $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce-parse-traj.txt\n";
     $retval .= "  fi\n";
+    #  A pulling run: coordinate and force joined, for gromacs.pull.
+    $retval .= "  if [ -s pullx.xvg ] && [ -s pullf.xvg ]; then\n";
+    $retval .= "    grep -v '^[#@]' pullx.xvg | awk '{print \$1, \$2}' > ecce_pullx.tmp\n";
+    $retval .= "    grep -v '^[#@]' pullf.xvg | awk '{print \$2}' > ecce_pullf.tmp\n";
+    $retval .= "    paste -d' ' ecce_pullx.tmp ecce_pullf.tmp | awk '{print \"ECCE-PULL \" \$0}' > ecce-parse-pull.txt\n";
+    $retval .= "    rm -f ecce_pullx.tmp ecce_pullf.tmp\n";
+    $retval .= "  fi\n";
     $retval .= "  $::CC - The final structure as PDB: what the Builder shows.\n";
     $retval .= "  \"\$gmx\" editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";
     $retval .= "  ( exit \$mdrunStatus )\n";

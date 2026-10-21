@@ -35,7 +35,8 @@ const int InteractionModel::PERIODICMOL = -1;
 
 GromacsRun::GromacsRun()
   : posres(false), posresName("POSRES"), comGroups(0), tcGroups(0),
-    barostat(0), pcoupltype(0), nstpcouple(0)
+    barostat(0), pcoupltype(0), nstpcouple(0), pull(false),
+    pullGeom(0), pullAxis(2), pullDim("Y Y Y"), pullRate(0.01), pullK(1000.0)
 {
 }
 
@@ -45,7 +46,11 @@ bool GromacsRun::operator==(const GromacsRun& o) const
          posresName == o.posresName && groups == o.groups &&
          comGroups == o.comGroups && tcGroups == o.tcGroups &&
          barostat == o.barostat && pcoupltype == o.pcoupltype &&
-         nstpcouple == o.nstpcouple && extraMdp == o.extraMdp;
+         nstpcouple == o.nstpcouple && extraMdp == o.extraMdp &&
+         pull == o.pull && pullGroup1 == o.pullGroup1 &&
+         pullGroup2 == o.pullGroup2 && pullGeom == o.pullGeom &&
+         pullAxis == o.pullAxis && pullDim == o.pullDim &&
+         pullRate == o.pullRate && pullK == o.pullK;
 }
 
 // Checked against grompp 2025.2: it refuses C-rescale with anisotropic
