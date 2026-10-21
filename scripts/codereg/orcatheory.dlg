@@ -1,0 +1,27 @@
+# ORCA Theory Details for the native engine (bin/ecce-dialog), the same dialog
+# as orcatheory.py.  Keep the two in step: tests/dialogs/native_test.py compares
+# what they send.  The functional and solvent lists must match ai.orca's
+# DFTXCFun and SolvationToken tables.  Memory is entered in GB per core; ai.orca
+# converts it to the MB %maxcore wants.
+
+dialog title="ECCE ORCA Editor: Theory Details" minwidth=380
+
+box label="SCF Convergence" cols=2
+int name=ES.Theory.SCF.ConvergenceIterations label="Max. Iterations:" default=64 hard="[0..)"
+combo name=ES.Theory.SCF.ConvergenceTolerance label="Convergence:" choices="Normal|Loose|Tight|Very Tight" default=Normal export=1
+
+box label="RI Approximation" cols=2
+check name=ES.Theory.SCF.UseRIJCOSX label=" Use RIJCOSX" default=0 export=1
+combo name=ES.Theory.SCF.RIJCOSXAuxBasis label="Auxiliary Basis:" choices="def2/J|def2/JK|SARC/J" default=def2/J export=1 enable_if="ES.Theory.SCF.UseRIJCOSX==1"
+
+box label="Memory" cols=1
+int name=ES.Theory.SCF.MemorySize label="Memory Per Core:" default=1 hard="[0..512]" unit="Gigabytes / core" export=1
+
+# Alphabetical, default picked by name.
+box label="DFT Functional" cols=1 when="category==DFT"
+combo name=ES.Theory.DFT.XCFunctionals label="Functional:" choices="B2GP-PLYP|B2PLYP|B3LYP|B97-D3|B97M-V|BLYP|BP86|CAM-B3LYP|DSD-BLYP|DSD-PBEP86|M06|M062X|M06L|mPW2PLYP|PBE|PBE0|PWPB95|r2SCAN|revPBE|revTPSS|RPBE|TPSS|TPSSh|wB2PLYP|wB97M-V|wB97X-D3|wB97X-V" default=B3LYP export=1
+
+box label="Solvation" cols=2
+check name=ES.Theory.SCF.UseSolvation label=" Use implicit solvation" default=0 export=1
+combo name=ES.Theory.SCF.SolvationModel label="Model:" choices="CPCM|SMD" default=CPCM export=1 enable_if="ES.Theory.SCF.UseSolvation==1"
+combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="water|acetonitrile|acetone|ammonia|benzene|CCl4|CH2Cl2|chloroform|cyclohexane|DMF|DMSO|ethanol|heptane|hexane|methanol|nitromethane|octanol|pyridine|THF|toluene" default=water export=1 enable_if="ES.Theory.SCF.UseSolvation==1"

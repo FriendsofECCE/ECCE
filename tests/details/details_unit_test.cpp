@@ -117,6 +117,8 @@ static void numbers()
   CHECK(!inRange("(0..5]", 0, m)); CHECK_EQ(m, "greater than 0.");
   CHECK(!inRange("[1..5)", 5, m)); CHECK_EQ(m, "less than 5.");
   CHECK(!inRange("[1..5]", -1, m)); CHECK_EQ(m, "greater than or equal to 1.");
+  CHECK(!inRange("[1.0..)", 0, m)); CHECK_EQ(m, "greater than or equal to 1.0.");
+  CHECK(!inRange("(0..0.5]", 1, m)); CHECK_EQ(m, "less than or equal to 0.5.");
   CHECK(inRange("", 1e9, m));
 }
 

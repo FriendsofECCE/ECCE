@@ -13,7 +13,10 @@ returns it instead of `python3 <x>.py` only when `ECCE_NATIVE_DIALOGS` is set (n
 0), `<x>.dlg` sits next to `<x>.py` and `bin/ecce-dialog` exists; otherwise the
 Python dialog runs, so every dialog without a .dlg is unaffected.
 
-Only ECCE-QM Theory has a .dlg. Keep it in step with `ecceqmtheory.py`: the
+ECCE-QM Theory, ORCA Theory and ORCA Runtype have a .dlg (`orcatheory.dlg`,
+`orcaruntype.dlg`: ctests `dialogs_native_orcatheory`/`_orcaruntype`; the NEB
+pickers are `calcpick`, the product/guess warnings `status`). Keep each in step
+with its .py: the
 functional list and the dependency (`enable_if="mult>1"`) are written twice, and
 `tests/dialogs/native_test.py` (ctest `dialogs_native`) is what notices drift. It
 compares the lines both programs send over every context the .edml opens the
