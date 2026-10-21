@@ -1911,6 +1911,8 @@ target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INC
 target_compile_definitions(chooser_shot PRIVATE ${wxWidgets_DEFINITIONS})
 target_link_libraries(chooser_shot PRIVATE eccewxgui eccewxthings eccetdat ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
 add_test(NAME elementlayout COMMAND elementlayout_test)
+set_tests_properties(elementlayout PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=elementlayout;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/elementlayout-home")
 
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
