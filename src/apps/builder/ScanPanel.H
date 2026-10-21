@@ -34,6 +34,7 @@ class ScanPanel : public PropertyPanel
       virtual ~ScanPanel();
 
       virtual int minimumHeight() const { return 320; }
+      virtual int openingHeight() const { return 400; }
 
       /** Number of scan points shown. */
       int points() const { return (int)p_coord.size(); }

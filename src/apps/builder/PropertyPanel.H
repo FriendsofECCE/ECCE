@@ -1,6 +1,7 @@
 #ifndef PROPERTYPANEL_H_
 #define PROPERTYPANEL_H_
 
+#include <algorithm>
 #include <map>
   using std::map;
 #include <set>
@@ -81,6 +82,13 @@ class PropertyPanel : public ewxPanel
      * unreadable below some height.
      */
     virtual int minimumHeight() const { return 0; }
+
+    /**
+     * Height the panel gets when it is opened in the list + detail layout:
+     * the Properties list gives way down to its floor so the panel shows
+     * this much.  Only a floor at opening; the sash still moves.
+     */
+    virtual int openingHeight() const { return std::max(300, minimumHeight()); }
 
     /** Size for a panel that opens floating. */
     virtual wxSize preferredFloatingSize() const;

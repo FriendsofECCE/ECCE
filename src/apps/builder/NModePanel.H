@@ -64,6 +64,7 @@ class NModePanel : public NModesGUI,
 
       /** Room for the compact spectrum, not just a grip. */
       virtual int minimumHeight() const { return 360; }
+      virtual int openingHeight() const { return 440; }
 
       virtual void receiveFocus();
       virtual void loseFocus();
