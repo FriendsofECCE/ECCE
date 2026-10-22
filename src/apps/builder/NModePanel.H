@@ -54,6 +54,12 @@ class NModePanel : public NModesGUI,
       void previousStep();
       void start();
       void stop();
+      /// Upper end of the Arrow length / Amplitude slider.
+      static constexpr double MAX_SCALE = 5.0;
+      double sliderValue();
+      void restoreHome();
+      /// A value typed into the slider's field, as the panel then uses it.
+      double typeScale(double value);
       /** Space in the viewer: pause or resume a running Animation.
           False, and nothing done, when no animation is running or paused. */
       bool togglePause();

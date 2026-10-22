@@ -101,6 +101,14 @@ def main():
         if problems:
             say(log[-1500:])
 
+        log = runScript(s, env, wrappers, url, "scale",
+                        ["vibfocus", "vibscale 100", "vibvector",
+                         "vibscale 100", "vibscale -3", "vibscale 2.5",
+                         "vibstate"], png)
+        got = [float(v) for v in re.findall(r"VIBSCALE: (\S+)", log)]
+        check(got == [5.0, 5.0, 0.0, 2.5] and "VIBSTATE" in log,
+              "typed scale is clamped to 0-5 without a crash: %s" % got)
+
         runScript(s, dict(env, ECCE_OPEN_PANEL="Vibrational Frequencies"),
                   wrappers, url, "shot",
                   ["vibfocus", "vibanim", "vibstep 3",

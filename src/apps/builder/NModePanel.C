@@ -224,7 +224,7 @@ bool NModePanel::Create(IPropCalculation *calculation,
    ewxPanel *p = new ewxPanel(this);
    p_sliderSizer->Add(p, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
    p_slider = new SliderCombo(p, ID_SLIDER);
-   p_slider->SetRange((float)0.0, (float)30.0);
+   p_slider->SetRange(0.0, MAX_SCALE);
    p_slider->SetToolTip("Length of the displacement arrows, or the "
                         "amplitude of the animation");
 
@@ -1559,14 +1559,32 @@ void NModePanel::showMode(int index)
 
 }
 
+// Larger arrows or amplitudes are absurd; a typed or stored value is cut to
+// the slider's range instead of reaching the commands.
+double NModePanel::sliderValue()
+{
+   double value = p_slider->GetFloatValue();
+   if (value < 0.0 || value > MAX_SCALE) {
+      value = value < 0.0 ? 0.0 : MAX_SCALE;
+      p_slider->SetValue(value);
+   }
+   return value;
+}
+
+double NModePanel::typeScale(double value)
+{
+   p_slider->SetValue(value);
+   wxScrollEvent end;
+   OnEndSliderMotion(end);
+   return p_slider->GetFloatValue();
+}
+
 void NModePanel::setSlider()
 {
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
-   if (radbox->GetSelection() == 0) {
-      p_slider->SetValue(p_aniAmplitude);
-   } else {
-      p_slider->SetValue(p_vecAmplitude);
-   }
+   const double v = radbox->GetSelection() == 0 ? p_aniAmplitude
+                                                : p_vecAmplitude;
+   p_slider->SetValue(v > MAX_SCALE ? MAX_SCALE : v);
 }
 
 void NModePanel::processStep(int step)
@@ -1761,7 +1779,7 @@ void NModePanel::OnEndSliderMotion(wxScrollEvent& event)
       event.Skip();
       return;
    }
-   double value = static_cast<double>(p_slider->GetFloatValue());
+   double value = sliderValue();
 
    WxVizToolFW& fw = getFW();
    IPropCalculation *expt = getCalculation();
@@ -1845,7 +1863,7 @@ void NModePanel::OnButtonNmodeVeccolorClick( wxCommandEvent& event )
       wxCheckBox *tgl = (wxCheckBox*)FindWindow(ID_CHECKBOX_NMODE_VECSIGN);
       bool sign = tgl->IsChecked();
 
-      updateVectors(p_mode, p_slider->GetFloatValue(), sign, bgcolor.ToStdString());
+      updateVectors(p_mode, sliderValue(), sign, bgcolor.ToStdString());
 
       btn->SetBackgroundColour(bgcolor);
 
@@ -1868,7 +1886,7 @@ void NModePanel::OnCheckboxNmodeVecsignClick( wxCommandEvent& event )
    wxButton *btn = (wxButton*)FindWindow(ID_BUTTON_NMODE_VECCOLOR);
    wxString color = btn->GetBackgroundColour().GetAsString(wxC2S_HTML_SYNTAX);
 
-   updateVectors(p_mode, p_slider->GetFloatValue(), sign, color.c_str());
+   updateVectors(p_mode, sliderValue(), sign, color.c_str());
    */
    updateVectors();
 
@@ -1972,7 +1990,7 @@ void NModePanel::updateVectors()
    wxButton *btn = (wxButton*)FindWindow(ID_BUTTON_NMODE_VECCOLOR);
    wxString color = btn->GetBackgroundColour().GetAsString(wxC2S_HTML_SYNTAX);
 
-   double value = static_cast<double>(p_slider->GetFloatValue());
+   double value = sliderValue();
 
    updateVectors(p_mode, value, sign, color.ToStdString());
 }

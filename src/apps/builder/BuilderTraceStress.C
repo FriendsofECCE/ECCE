@@ -368,6 +368,11 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
     nm->stop();
     return true;
   }
+  //  "vibscale <v>": v typed into the Arrow length / Amplitude field.
+  if (c == "vibscale" && w.size() == 2) {
+    fprintf(stderr, "VIBSCALE: %.2f\n", nm->typeScale(atof(w[1].c_str())));
+    return true;
+  }
   //  "vibspace": the Space key in the viewer.
   if (c == "vibspace") {
     fprintf(stderr, "VIBSPACE: %d\n", pauseVibrationKey() ? 1 : 0);
