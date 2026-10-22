@@ -3530,10 +3530,12 @@ void CalcEd::enableDetailsFields()
   bool hasFragment(p_frag);
 
   p_detailsBox->Enable(hasFragment);
+  //  A calculation at the defaults stores no values, yet its dialog opens
+  //  fine; only a dialog still starting has nothing to show yet.
   FindWindow(ID_BUTTON_CALCED_THEORY)->Enable(isDetailsReady()
-          && hasDetailsValues("ES.Theory"));
+          && (hasDetailsValues("ES.Theory") || !p_theoryHoldFlag));
   FindWindow(ID_BUTTON_CALCED_RUNTYPE)->Enable(isDetailsReady()
-          && p_GUIValues->containsKeyPrefix("ES.Runtype"));
+          && (hasDetailsValues("ES.Runtype") || !p_runtypeHoldFlag));
 }
 
 
@@ -4666,7 +4668,7 @@ void CalcEd::processTheoryInput(const char* databuf)
     p_theoryInitFlag = true;
 
     FindWindow(ID_BUTTON_CALCED_THEORY)->Enable(isDetailsReady() &&
-                                                p_theoryInFlag);
+                (p_theoryInFlag || hasDetailsValues("ES.Theory")));
 
     if (p_theoryHoldFlag) {
       p_theoryHoldFlag = false;
@@ -4732,7 +4734,7 @@ void CalcEd::processRuntypeInput(const char* databuf)
     p_runtypeInitFlag = true;
 
     FindWindow(ID_BUTTON_CALCED_RUNTYPE)->Enable(isDetailsReady() &&
-                                                 p_runtypeInFlag);
+                (p_runtypeInFlag || hasDetailsValues("ES.Runtype")));
 
     if (p_runtypeHoldFlag) {
       p_runtypeHoldFlag = false;

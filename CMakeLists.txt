@@ -2477,6 +2477,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_code_change PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Theory/Runtype Details buttons are enabled on open as after re-choosing
+  # (#427).
+  add_test(NAME apps_calced_details_enabled
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_details_enabled_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calced_details_enabled PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # A finished calculation without ecce:progress gets one from its stored
   # output (#284): CalcMgr::backfillProgress.
   add_test(NAME apps_progress_backfill
