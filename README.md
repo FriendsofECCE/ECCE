@@ -24,7 +24,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.3.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.3.1)),
+  [9.3.2](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.3.2)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -47,7 +47,7 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   NEB-TS), redesigned: the transition-state job refers to the reactant and
   product calculations and reports the barrier and reaction energy.
 - The Calculation Editor's Details windows in C++ instead of Python, starting
-  with ORCA and Gaussian 16 (the ORCA ones are a preview in 9.3.1).
+  with ORCA and Gaussian 16 (the ORCA ones are a preview in 9.3.2).
 
 ## First steps
 
