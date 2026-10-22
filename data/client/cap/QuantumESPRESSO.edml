@@ -134,8 +134,8 @@
     <runtype>Dynamics</runtype>
   </Theory>
 
-  <TheorySummary topLabel="Plane Waves-">
-    <item key="ES.Theory.PW.EcutWfc" label="Wavefn. Cutoff (Ry)"></item>
+  <TheorySummary>
+    <item key="ES.Theory.PW.EcutWfc" label="Ecut wfc"></item>
   </TheorySummary>
   <TheorySummary>
     <item key="ES.Theory.PW.Occupations" label="Occupations"></item>
