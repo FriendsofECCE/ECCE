@@ -72,7 +72,7 @@ MachinePreferences::MachinePreferences(string key)
     p_scratchDir = "";
     p_allocAcct = "";
 
-    p_processors = 1;
+    p_processors = 0;   // not chosen yet: the Launcher picks a default (#436)
     p_nodes = 1;
     p_maxWallTime = 0;
     p_memoryLimit = 0;

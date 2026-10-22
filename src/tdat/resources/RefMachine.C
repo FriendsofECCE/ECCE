@@ -26,6 +26,7 @@ using std::find;
 
     
 #include "util/Ecce.H"
+#include "util/CpuCores.H"
 #include "util/SFile.H"
 #include "util/EcceMap.H"
 #include "util/KeyValueReader.H"
@@ -844,6 +845,12 @@ void RefMachine::parseFile(ifstream& inFile, bool skipLocalhost)
             s_proccount_list->push_back((unsigned int)atoi(token.c_str()));
             s_nodes_list->push_back(1);
         }
+
+        // localhost is this computer: its core count is read from the
+        // hardware, not from the file (#436).  A server's own localhost row
+        // is skipped for clients above, so only this host's count is used.
+        if (s_refname_list->back() == "localhost")
+            s_proccount_list->back() = CpuCores::logical();
 
 
       // Remote Shell Support
