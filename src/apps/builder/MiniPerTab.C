@@ -365,7 +365,7 @@ void MiniPerTab::setElements()
   ewxButton *table = new ewxButton(owner, ID_SHOW_TABLE, wxEmptyString,
                                    wxDefaultPosition, wxDefaultSize,
                                    wxBU_EXACTFIT);
-  table->SetBitmap(ewxBitmap::colorIcon("svg/pertab.svg", wxSize(20, 20)));
+  table->SetBitmap(ewxBitmap::colorIcon("svg/candidates/e/periodic.svg", wxSize(20, 20)));
   table->SetToolTip(_("Periodic table: choose any element"));
   wxBoxSizer *tail = new wxBoxSizer(wxHORIZONTAL);
   tail->Add(del, 0, wxALL, 2);
