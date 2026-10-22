@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
   using std::cout;
   using std::cerr;
@@ -86,6 +87,7 @@ MullikenPanel::MullikenPanel()
     p_defGreen(0),
     p_defBlue(0),
     p_red(0),
+    p_nColors(0),
     p_green(0),
     p_blue(0),
     p_internalSelect(false)
@@ -107,6 +109,7 @@ MullikenPanel::MullikenPanel(IPropCalculation *calculation,
     p_defGreen(0),
     p_defBlue(0),
     p_red(0),
+    p_nColors(0),
     p_green(0),
     p_blue(0),
     p_internalSelect(false)
@@ -130,6 +133,7 @@ MullikenPanel::~MullikenPanel()
 void MullikenPanel::clean()
 {
    if (p_red) { delete [] p_red; p_red = 0; }
+   p_nColors = 0;
    if (p_green) { delete [] p_green; p_green = 0; }
    if (p_blue) { delete [] p_blue; p_blue = 0; }
 
@@ -318,6 +322,7 @@ void MullikenPanel::fillUI()
         wxTreeItemId myparent;
         wxTreeItemId item;
         int currow = 0;
+        nRows = std::min(nRows, (int)frag->numAtoms());
         for (int idx=0; idx<nRows; idx++) {             // loop over atoms
            sym = frag->atomRef(idx)->atomicSymbol();
            symLabel = sym;
@@ -438,6 +443,7 @@ void MullikenPanel::computeColors(const PropVector *vec, double min, double max)
       p_red = new float[nRows];
       p_green = new float[nRows];
       p_blue = new float[nRows];
+      p_nColors = nRows;
 
 
       Spectrum s(min, max, gslices);
@@ -519,7 +525,9 @@ void MullikenPanel::setColorTable()
 
    SGFragment *frag = getFW().getSceneGraph().getFragment() ;
 
-   int nAtoms = frag->numAtoms();
+   //  The charges and the structure can differ in length (atoms added
+   //  after the run); colour only the atoms both have.
+   int nAtoms = std::min((int)frag->numAtoms(), p_nColors);
    for (int idx=0; idx<nAtoms; idx++) {
       cmd->getParameter("atomIdx")->setInteger(idx);
       cmd->getParameter("red")->setDouble(p_red[idx]);
@@ -576,7 +584,7 @@ void MullikenPanel::OnAssign(wxCommandEvent& event)
    IPropCalculation *pcalc = getCalculation();
    PropVector *vec =  (PropVector*) pcalc->getProperty(p_key);
    if (vec != (PropVector*)0) {
-     int nRows = vec->rows();
+     int nRows = std::min(vec->rows(), (int)atoms->size());
      for (int idx=0; idx<nRows; idx++) {
        atom = (*atoms)[idx];
        atom->partialCharge(vec->value(idx));
