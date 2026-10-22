@@ -54,6 +54,16 @@ COMPUTATIONAL = {
     "trpcage": ["prepare:", "optimize:", "equilibrate:", "dynamics:",
                 "optimize:TE", "dynamics:TE"],
 }
+# The reactions set (ORCA): every stationary point has frequencies, the TS
+# one imaginary mode; the IRC jobs hold the path.
+REACTIONS = {
+    "butadiene": ["VIBFREQ"], "ethene": ["VIBFREQ"],
+    "da-ts": ["VIBFREQ"], "da-irc": ["IRCENERGY", "IRCCOORD", "IRCGEOM"],
+    "cyclohexene": ["VIBFREQ"],
+    "sn2-complex": ["VIBFREQ"], "sn2-ts": ["VIBFREQ"],
+    "sn2-irc": ["IRCENERGY", "IRCCOORD", "IRCGEOM"],
+    "sn2-product-complex": ["VIBFREQ"],
+}
 # The study has no thumbnail and no theory/run type of its own.
 CALCS = list(EXPECT)
 
@@ -92,14 +102,14 @@ def propsOf(project):
     return found
 
 
-def waitImported(root, projects, expect, seconds=240):
+def waitImported(root, projects, expects, seconds=240):
     """Wait until each project holds all the example calculations whose Props stopped
     changing for 20 s."""
     end = time.time() + seconds
     last, stable = None, 0
     while time.time() < end:
         now = {p: propsOf(os.path.join(root, p)) for p in projects}
-        if all(len(v) == len(expect) for v in now.values()) and now == last:
+        if all(len(now[p]) == len(expects[p]) for p in projects) and now == last:
             stable += 1
             if stable >= 10:
                 return now
@@ -153,7 +163,7 @@ def run(display, data, work):
     first = {}
 
     def firstStart(_display):
-        first["props"] = waitImported(root, ["Examples"], EXPECT)
+        first["props"] = waitImported(root, ["Examples"], {"Examples": EXPECT})
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                       env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
@@ -201,13 +211,16 @@ def run(display, data, work):
 
     with open(script, "w") as handle:
         handle.write("examples computational\nexamples computational\n"
-                     "examples general\n")
+                     "examples general\nexamples reactions\n"
+                     "examples reactions\n")
 
     box = {}
-    projects = ["Examples_Computational"]
+    projects = ["Examples_Computational", "Examples_Reactions"]
+    expects = {"Examples_Computational": COMPUTATIONAL,
+               "Examples_Reactions": REACTIONS}
 
     def inspect(_display):
-        box["props"] = waitImported(root, projects, COMPUTATIONAL)
+        box["props"] = waitImported(root, projects, expects)
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
             # Help > Report a Problem... without its dialog
@@ -237,7 +250,9 @@ def run(display, data, work):
     problems = []
     if answers != ["ok Examples_Computational created",
                    "ok Examples_Computational existing",
-                   "ok Examples existing"]:
+                   "ok Examples existing",
+                   "ok Examples_Reactions created",
+                   "ok Examples_Reactions existing"]:
         problems.append("answers %s" % answers)
     for extra in ("Examples_2", "Examples_3"):
         if os.path.exists(os.path.join(root, extra)):
@@ -247,8 +262,8 @@ def run(display, data, work):
                         % sorted(propsOf(os.path.join(root, "Examples"))))
     for project in projects:
         got = (box.get("props") or {}).get(project, {})
-        for calc, names in COMPUTATIONAL.items():
-            held = [c for c in got if c.startswith(calc)]
+        for calc, names in expects[project].items():
+            held = [c for c in got if c == calc or c.startswith(calc + "_")]
             if not held:
                 problems.append("%s: no calculation %s (have %s)"
                                 % (project, calc, sorted(got)))
@@ -260,7 +275,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*3", text):
+        if not re.search(r"exampleSet[^0-9]*4", text):
             problems.append("%s records no example-set version" % project)
     trees = re.findall(r"ECCE_TEST_ORGANIZER: tree: ok (.*)$", log, re.M)
     if not trees:
@@ -277,9 +292,9 @@ def run(display, data, work):
                 elif seen:
                     break
                 seen = label == project if depth == "1" else seen
-            if sorted(below) != sorted(COMPUTATIONAL):
+            if sorted(below) != sorted(expects[project]):
                 problems.append("tree: %s holds %s, expected %s (tree: %s)"
-                                % (project, below, sorted(COMPUTATIONAL),
+                                % (project, below, sorted(expects[project]),
                                    trees[-1]))
     # Theory and Run Type as the calculation ran (the importer's .param).
     want = {"water": "GeoVib", "benzene": "GeoVib", "ammonia": "GeoVib",
@@ -299,7 +314,8 @@ def run(display, data, work):
     if problems:
         fail(what, "; ".join(problems), log)
     else:
-        print("ok    %s: %s" % (what, ", ".join(sorted(COMPUTATIONAL))))
+        print("ok    %s: %s" % (what, ", ".join(sorted(COMPUTATIONAL) +
+                                                    sorted(REACTIONS))))
 
 
 def main():

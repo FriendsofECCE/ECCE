@@ -21,9 +21,15 @@ existing `Examples` is only recorded. The import shows "N of M - <calc>" in
 the progress dialog (and as `example progress` log lines); never Update() it
 to its maximum, which waits for a click on Close. `isolate.py` sets
 `ECCE_NO_EXAMPLE_IMPORT=1` so the other app tests start with an empty tree;
-`examples_test.py` clears it. To change the set,
+`examples_test.py` clears it. `reactions` (ORCA Diels-Alder and SN2: NEB-TS + Freq transition states, IRC) goes into
+`Examples_Reactions`. An IRC example is one folder per calculation because
+the importer reads `orca.orcain_IRC_Full_trj.xyz` beside the output, so two
+IRCs cannot share a folder; the .out names the input `orca.orcain`. Imported
+examples carry no NEB reactant/product pick, so the Reaction Energies panel
+has nothing to read for them.
+To change the set,
 add the output to the set in `exampleSets()` and the expected `Props` to
-`tests/apps/examples_test.py`, and raise `kExampleSetVersion`.
+`tests/apps/examples_test.py`, and raise `kExampleSetVersion` (4 with `reactions`).
 
 - NWChem is imported from the `ecce_print` stream (`.eprint`); a plain stdout
   output is refused. Run the input with an `ecce_print <name>.eprint` line.

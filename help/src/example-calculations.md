@@ -22,6 +22,7 @@ calculations show the run state "Imported" and take a few seconds to be read.
 |---|---|---|
 | General | `Examples` | The five calculations below. |
 | Computational | `Examples_Computational` | A GROMACS molecular dynamics study of the Trp-cage. |
+| Reactions | `Examples_Reactions` | Two reactions with transition state, frequencies and reaction path (ORCA). |
 
 If the project of a set exists already, ECCE only selects it and never
 changes it, so you can edit and delete the examples freely. The project
@@ -43,6 +44,29 @@ entries from the **Properties** menu.
 The original output and input files are in the folder
 `data/client/examples` of the ECCE installation, one folder for each set
 and in it one for each example. Gaussian is not among them, because its output may not be shipped.
+
+## The reactions set
+
+Two gas-phase reactions, each with its reactants or ion-dipole complexes, its
+transition state and the reaction path (IRC) from the transition state in
+both directions. All were run with ORCA.
+
+| Reaction | Level of theory | Calculations |
+|---|---|---|
+| Diels-Alder: s-cis-butadiene + ethene giving cyclohexene | B3LYP-D3BJ/def2-SVP | `butadiene`, `ethene`, `da-ts`, `da-irc`, `cyclohexene` |
+| SN2: Cl- + CH3Br giving CH3Cl + Br- | B3LYP-D3BJ/ma-def2-SVP (diffuse functions for the anions) | `sn2-complex`, `sn2-ts`, `sn2-irc`, `sn2-product-complex` |
+
+Every calculation except the reaction paths has frequencies, and the
+reactants, products and complexes have none that is imaginary. Open a
+transition state (`da-ts`, `sn2-ts`) in the Viewer and choose
+**Vibrations** in the Properties menu: exactly one mode has an imaginary
+frequency, and animating it shows the atoms moving along the reaction
+coordinate, the two new carbon-carbon bonds closing in the Diels-Alder
+reaction and the chloride replacing the bromide in the SN2 reaction. Open a
+reaction path (`da-irc`, `sn2-irc`) to see the energy along the path and to
+step through its structures. The Diels-Alder path ends in the boat form of
+cyclohexene, which is a few kcal/mol above the half-chair minimum that the
+`cyclohexene` calculation holds.
 
 ## How the examples were made
 

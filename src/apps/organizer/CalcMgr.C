@@ -2949,10 +2949,20 @@ const vector<ExampleSet>& exampleSets()
       "nwchem-methane/methane.eprint"}},
     {"computational", "Examples_Computational", {
       "gromacs-trpcage"}},
+    {"reactions", "Examples_Reactions", {
+      "butadiene/butadiene.out",
+      "ethene/ethene.out",
+      "da-ts/da-ts.out",
+      "da-irc/da-irc.out",
+      "cyclohexene/cyclohexene.out",
+      "sn2-complex/sn2-complex.out",
+      "sn2-ts/sn2-ts.out",
+      "sn2-irc/sn2-irc.out",
+      "sn2-product-complex/sn2-product-complex.out"}},
   };
   return sets;
 }
-const char *const kExampleSetVersion = "3";
+const char *const kExampleSetVersion = "4";
 
 string examplesDir()
 {
@@ -3178,6 +3188,25 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
                 "a task to see its inputs, energies and the trajectory."},
     {"methane", "NWChem, B3LYP/6-31G*: optimisation, frequencies and "
                 "properties, imported from NWChem's own output."},
+    {"butadiene", "ORCA, B3LYP-D3BJ/def2-SVP: optimisation and frequencies "
+                  "of the diene of the Diels-Alder reaction."},
+    {"ethene", "ORCA, B3LYP-D3BJ/def2-SVP: optimisation and frequencies of "
+               "the dienophile of the Diels-Alder reaction."},
+    {"da-ts", "ORCA, B3LYP-D3BJ/def2-SVP: the Diels-Alder transition state "
+              "(NEB-TS and frequencies). Animate the one imaginary mode."},
+    {"da-irc", "ORCA, B3LYP-D3BJ/def2-SVP: the reaction path from the "
+               "Diels-Alder transition state, both directions. The product end is "
+               "the boat form of cyclohexene."},
+    {"cyclohexene", "ORCA, B3LYP-D3BJ/def2-SVP: optimisation and frequencies "
+                    "of the Diels-Alder product."},
+    {"sn2-complex", "ORCA, B3LYP-D3BJ/ma-def2-SVP: the Cl- and CH3Br "
+                    "ion-dipole complex, optimised with frequencies."},
+    {"sn2-ts", "ORCA, B3LYP-D3BJ/ma-def2-SVP: the Walden-inversion transition "
+               "state of Cl- + CH3Br (NEB-TS and frequencies)."},
+    {"sn2-irc", "ORCA, B3LYP-D3BJ/ma-def2-SVP: the reaction path from the "
+                "SN2 transition state, both directions."},
+    {"sn2-product-complex", "ORCA, B3LYP-D3BJ/ma-def2-SVP: the CH3Cl and Br- "
+                            "ion-dipole complex, optimised with frequencies."},
   };
   vector<string> thumbUrls;
   if (Resource *projRes = EDSIFactory::getResource(project)) {
