@@ -3,7 +3,7 @@
 
     tests/apps/md_summary_test.py [--build build-cmake] [--png DIR]
 
-The Trp-cage Dynamics log of data/client/examples/gromacs-trpcage goes
+The Trp-cage Dynamics log of data/client/examples/computational/gromacs-trpcage goes
 through the real parse scripts (the eccejobmonitor replay of tests/parsers),
 the properties are stored as a calculation's Props, and the Builder (this
 tree's binaries) opens "MD Summary".  The expected numbers are read from the

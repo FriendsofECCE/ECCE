@@ -55,7 +55,7 @@ CASES = [
      "MOPAC ammonia, input far from the symmetry frame"),
     (os.path.join(REPO, "tests/progress/fixtures/mopac/gv.out"),
      "mopac.desc", "GeoVib", "MOPAC Opt then FORCE (progress fixture)"),
-    (os.path.join(REPO, "data/client/examples/mopac-ammonia/ammonia.out"),
+    (os.path.join(REPO, "data/client/examples/general/mopac-ammonia/ammonia.out"),
      "mopac.desc", "GeoVib", "MOPAC ammonia example"),
 ]
 

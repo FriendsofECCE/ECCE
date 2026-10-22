@@ -5,10 +5,12 @@
 
 A user's first Organizer imports the outputs under data/client/examples
 (ECCE-QM water, ORCA benzene, MOPAC ammonia, NWChem methane) into a new
-project Examples by itself (#302).  The ECCE_TEST_ORGANIZER command
-`examples` is the menu item: at the second start (which imports nothing)
-it makes Examples_2, and a second call Examples_3, without touching the
-first.  Each calculation must
+project Examples by itself (#302): the `general` set, five calculations.
+The ECCE_TEST_ORGANIZER command `examples SET` is the dialog's OK: at the
+second start (which imports nothing) `examples computational` makes the
+project Examples_Computational with the Trp-cage study, asking again
+(or for `general`) selects the existing project and duplicates nothing.
+Each calculation must
 carry the properties its output holds: the files under Props/ are what the
 Viewer's Properties menu is built from.  The project records the version of
 the example set.
@@ -46,12 +48,14 @@ EXPECT = {
     # SLATERBASIS: the .mgf beside the output reaches its parse on import
     "ammonia": ["MO", "VIBFREQ", "SLATERBASIS"],
     "methane": ["MO", "VIBFREQ", "MULLIKEN"],
+}
+COMPUTATIONAL = {
     # a GROMACS study: its tasks, each as "task:" and "task:PROP"
     "trpcage": ["prepare:", "optimize:", "equilibrate:", "dynamics:",
                 "optimize:TE", "dynamics:TE"],
 }
 # The study has no thumbnail and no theory/run type of its own.
-CALCS = [c for c in EXPECT if c != "trpcage"]
+CALCS = list(EXPECT)
 
 failures = []
 
@@ -88,14 +92,14 @@ def propsOf(project):
     return found
 
 
-def waitImported(root, projects, seconds=240):
+def waitImported(root, projects, expect, seconds=240):
     """Wait until each project holds all the example calculations whose Props stopped
     changing for 20 s."""
     end = time.time() + seconds
     last, stable = None, 0
     while time.time() < end:
         now = {p: propsOf(os.path.join(root, p)) for p in projects}
-        if all(len(v) == len(EXPECT) for v in now.values()) and now == last:
+        if all(len(v) == len(expect) for v in now.values()) and now == last:
             stable += 1
             if stable >= 10:
                 return now
@@ -149,11 +153,11 @@ def run(display, data, work):
     first = {}
 
     def firstStart(_display):
-        first["props"] = waitImported(root, ["Examples"])
+        first["props"] = waitImported(root, ["Examples"], EXPECT)
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                       env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
-    for line in re.findall(r"Organizer: examples imported in .*", result.log or ""):
+    for line in re.findall(r"Organizer: examples \w+ imported in .*", result.log or ""):
         print(line)
         # Printed, not asserted tightly: it was 10 s with a 1 s sleep per
         # import in the job monitor hand-over (#426).
@@ -168,12 +172,21 @@ def run(display, data, work):
              "started at %d" % (shown, began), lg)
     else:
         print("ok    the Organizer window is shown before the import starts")
+    progress = re.findall(r"Organizer: example progress: (\d+) of (\d+) - (.*)$",
+                          lg, re.M)
+    if [(a, b) for a, b, _ in progress] != [(str(i), "5") for i in range(1, 6)]:
+        fail("import progress", "progress lines %s" % progress, lg)
+    else:
+        print("ok    progress names each calculation: %s"
+              % ", ".join(n for _, _, n in progress))
     got = (first.get("props") or {}).get("Examples", {})
     if result.crashed or sorted(c.split("_")[0] for c in got) != sorted(EXPECT):
-        fail("first start imports the examples",
+        fail("first start imports exactly the general set",
              "Examples holds %s" % sorted(got), result.log)
     else:
-        print("ok    first start imports the examples into Examples")
+        print("ok    first start imports the general set into Examples")
+    if os.path.exists(os.path.join(root, "Examples_Computational")):
+        fail("first start", "also imported the computational set", "")
     # each example says what it is for in its Annotation field
     noted = []
     for calc in sorted(got):
@@ -187,13 +200,14 @@ def run(display, data, work):
         print("ok    each example has an annotation")
 
     with open(script, "w") as handle:
-        handle.write("examplesmenu\nexamples\n")
+        handle.write("examples computational\nexamples computational\n"
+                     "examples general\n")
 
     box = {}
-    projects = ["Examples", "Examples_2", "Examples_3"]
+    projects = ["Examples_Computational"]
 
     def inspect(_display):
-        box["props"] = waitImported(root, projects)
+        box["props"] = waitImported(root, projects, COMPUTATIONAL)
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
             # Help > Report a Problem... without its dialog
@@ -201,14 +215,8 @@ def run(display, data, work):
             # what the project table's Theory and Run Type columns show
             for calc in sorted(CALCS):
                 handle.write("summary file://%s\n" % os.path.join(
-                    root, "Examples_2", calc))
+                    root, "Examples", calc))
         time.sleep(12)
-        # VizThumbnail renders them in its own process
-        end = time.time() + 90
-        while time.time() < end and len(
-                thumbnails(os.path.join(root, "Examples_2"))) < len(CALCS):
-            time.sleep(2)
-        box["thumbs"] = thumbnails(os.path.join(root, "Examples_2"))
         # ecce-diagnose takes about half a minute
         end = time.time() + 120
         while time.time() < end and not glob.glob(
@@ -225,15 +233,21 @@ def run(display, data, work):
     what = "Open Example Calculations"
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
-    answers = re.findall(r"ECCE_TEST_ORGANIZER: examples: (.*)$", log, re.M)
+    answers = re.findall(r"ECCE_TEST_ORGANIZER: examples [^:]*: (.*)$", log, re.M)
     problems = []
-    if answers != ["ok Examples_3"]:
+    if answers != ["ok Examples_Computational created",
+                   "ok Examples_Computational existing",
+                   "ok Examples existing"]:
         problems.append("answers %s" % answers)
-    if os.path.exists(os.path.join(root, "Examples_4")):
-        problems.append("the second start imported the examples again")
+    for extra in ("Examples_2", "Examples_3"):
+        if os.path.exists(os.path.join(root, extra)):
+            problems.append("%s: an example set was imported twice" % extra)
+    if len(propsOf(os.path.join(root, "Examples"))) != len(EXPECT):
+        problems.append("Examples changed: %s"
+                        % sorted(propsOf(os.path.join(root, "Examples"))))
     for project in projects:
         got = (box.get("props") or {}).get(project, {})
-        for calc, names in EXPECT.items():
+        for calc, names in COMPUTATIONAL.items():
             held = [c for c in got if c.startswith(calc)]
             if not held:
                 problems.append("%s: no calculation %s (have %s)"
@@ -253,8 +267,7 @@ def run(display, data, work):
         problems.append("no tree answer")
     else:
         nodes = [t.lstrip("[") for t in trees[-1].split(" selected=")[0].split()]
-        # Examples (from the first start) is drawn collapsed here.
-        for project in projects[1:]:
+        for project in projects:
             below = []
             seen = False
             for n in nodes:
@@ -264,9 +277,10 @@ def run(display, data, work):
                 elif seen:
                     break
                 seen = label == project if depth == "1" else seen
-            if sorted(below) != sorted(EXPECT):
+            if sorted(below) != sorted(COMPUTATIONAL):
                 problems.append("tree: %s holds %s, expected %s (tree: %s)"
-                                % (project, below, sorted(EXPECT), trees[-1]))
+                                % (project, below, sorted(COMPUTATIONAL),
+                                   trees[-1]))
     # Theory and Run Type as the calculation ran (the importer's .param).
     want = {"water": "GeoVib", "benzene": "GeoVib", "ammonia": "GeoVib",
             "methane": "GeoVib"}
@@ -282,15 +296,10 @@ def run(display, data, work):
         if not rt or runtype not in rt.group(1):
             problems.append("%s: run type not %s (%s)" % (calc, runtype, s))
     problems += reportProblemProblems(log)
-    requested = re.findall(r"thumbnails requested for (\d+) example", log)
-    if requested[:2] != [str(len(CALCS))] * 2:
-        problems.append("thumbnail requests: %s" % requested)
-    if len(box.get("thumbs", ())) != len(CALCS):
-        problems.append("thumbnails stored for %s" % sorted(box.get("thumbs", ())))
     if problems:
         fail(what, "; ".join(problems), log)
     else:
-        print("ok    %s: %s" % (what, ", ".join(sorted(EXPECT))))
+        print("ok    %s: %s" % (what, ", ".join(sorted(COMPUTATIONAL))))
 
 
 def main():

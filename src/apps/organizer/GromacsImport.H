@@ -1,6 +1,9 @@
 #ifndef GROMACSIMPORT_HH
 #define GROMACSIMPORT_HH
 
+#include <functional>
+#include <string>
+
 #include <string>
 
 class Resource;
@@ -31,10 +34,15 @@ class Resource;
  * monitor, which parses it with gromacs.desc and stores the result as for
  * a live run, so they appear shortly after this returns.
  *
+ * beforeTask(kind) is called before each task is parsed (a task takes a
+ * few seconds), so the caller can keep its progress display and window alive.
+ *
  * Returns the study's URL, or "" with the reason in message (a failure
  * after the study was made returns its URL with the reason in message).
  */
 std::string importGromacsRun(Resource* parent, const std::string& studyName,
-                             const std::string& runDir, std::string& message);
+                             const std::string& runDir, std::string& message,
+                             const std::function<void(const std::string&)>&
+                                 beforeTask = nullptr);
 
 #endif

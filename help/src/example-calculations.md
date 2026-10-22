@@ -6,28 +6,31 @@ computational chemistry code installed.
 
 ## Open them
 
-The first time you start ECCE, the Organizer imports the examples by itself
-into a project called `Examples`. It does this once: if you delete the
-project, it does not come back at the next start, and an `Examples` project
-you already have is left as it is.
+The first time you start ECCE, the Organizer imports the `general` set of
+examples by itself into a project called `Examples`. It does this once: if
+you delete the project, it does not come back at the next start, and an
+`Examples` project you already have is left as it is.
 
-To get a fresh copy, choose **File > Open Example Calculations** in the
-Organizer. ECCE makes a
-new project called `Examples` in your home folder and imports the five
-outputs into it, as described in
-[Importing a calculation](importing-a-calculation.md). The calculations show
-the run state "Imported" and take a few seconds to be read.
+The examples come in sets. To import another set, or to find the first one
+again, choose **File > Open Example Calculations** in the Organizer. A small
+window lists the sets with a line on what each holds; choose one and click
+**OK**. ECCE imports the set into its own project in your home folder, as
+described in [Importing a calculation](importing-a-calculation.md). The
+calculations show the run state "Imported" and take a few seconds to be read.
 
-Each time you choose the entry, ECCE makes a fresh copy. If `Examples`
-exists already, the new project is called `Examples_2`, then `Examples_3`,
-and so on. ECCE never changes or deletes a project you already have, so you
-can edit and delete the examples freely. The project remembers which version
-of the example set it was made from.
+| Set | Project | Holds |
+|---|---|---|
+| General | `Examples` | The five calculations below. |
+| Computational | `Examples_Computational` | A GROMACS molecular dynamics study of the Trp-cage. |
+
+If the project of a set exists already, ECCE only selects it and never
+changes it, so you can edit and delete the examples freely. The project
+remembers which version of the example sets it was made from.
 
 Select a calculation and click **Viewer**, then open
 entries from the **Properties** menu.
 
-## The five examples
+## The general set
 
 | Calculation | Code | What was run | What it shows |
 |---|---|---|---|
@@ -38,8 +41,8 @@ entries from the **Properties** menu.
 | `methane` | NWChem | B3LYP/6-31G*, geometry optimisation, frequencies and properties | Molecular orbitals, vibrational frequencies and Mulliken charges. |
 
 The original output and input files are in the folder
-`data/client/examples` of the ECCE installation, one folder for each
-example. Gaussian is not among them, because its output may not be shipped.
+`data/client/examples` of the ECCE installation, one folder for each set
+and in it one for each example. Gaussian is not among them, because its output may not be shipped.
 
 ## How the examples were made
 

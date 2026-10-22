@@ -239,7 +239,8 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
 }  // namespace
 
 string importGromacsRun(Resource* parent, const string& studyName,
-                        const string& runDir, string& message)
+                        const string& runDir, string& message,
+                        const std::function<void(const string&)>& beforeTask)
 {
   ResourceType* studyType = typeNamed("gromacs_md_study");
   if (!parent || !studyType) {
@@ -272,6 +273,7 @@ string importGromacsRun(Resource* parent, const string& studyName,
       return study->getURL().toString();
     }
     session->addMemberAsTarget(task, 0);
+    if (beforeTask) beforeTask(kind);
     string why;
     if (!importTask(md, runDir + "/" + tasks[i], kind == "prepare", why)) {
       message = tasks[i] + ": " + why;
