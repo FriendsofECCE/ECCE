@@ -13,6 +13,7 @@ using namespace ecce;
 #include "wxgui/ewxPanel.H"
 #include "wxviz/WxVizTool.H"
 
+#include <wx/sizer.h>
 #include <wx/weakref.h>
 #include <wx/window.h>
 
@@ -32,8 +33,9 @@ class wxConfigBase;
 ////@end control identifiers
 
 enum {
-  NUM_ELT_BTN = 12,
-  ID_ELT_BASE = 8000,  // Need to reserve at least a range of 12
+  NUM_ELT_BTN = 10,
+  ELT_FIRST_REPLACEABLE = 6,  // slots from here on follow the user's picks
+  ID_ELT_BASE = 8000,  // Need to reserve at least a range of 10
   ID_SHOW_TABLE = 8100,
   ID_BOND_SEL,
   ID_SHAPE_SEL
@@ -94,7 +96,7 @@ protected:
 
   ewxPanel *p_extensionPanel;
   wxSizer* p_sizer;
-  wxWrapSizer *p_gridSizer;
+  wxFlexGridSizer *p_gridSizer;
 
   string p_elements[NUM_ELT_BTN];
   wxToggleButton * p_eltBtns[NUM_ELT_BTN];

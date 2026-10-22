@@ -95,8 +95,6 @@ BEGIN_EVENT_TABLE( MiniPerTab, ewxPanel )
   EVT_TOGGLEBUTTON(7+ID_ELT_BASE, MiniPerTab::OnElementClick)
   EVT_TOGGLEBUTTON(8+ID_ELT_BASE, MiniPerTab::OnElementClick)
   EVT_TOGGLEBUTTON(9+ID_ELT_BASE, MiniPerTab::OnElementClick)
-  EVT_TOGGLEBUTTON(10+ID_ELT_BASE, MiniPerTab::OnElementClick)
-  EVT_TOGGLEBUTTON(11+ID_ELT_BASE, MiniPerTab::OnElementClick)
   // EVT_BUTTON(ViewerEvtHandler::ID_ADD_H, MiniPerTab::OnAddhClick)
   // EVT_BUTTON(ViewerEvtHandler::ID_DEL_H, MiniPerTab::OnRemovehClick)
   // EVT_BUTTON(ViewerEvtHandler::ID_CLEAN_COORD, MiniPerTab::OnCleanClick)
@@ -120,22 +118,11 @@ MiniPerTab::MiniPerTab( wxWindow* parent, wxWindowID id, const wxPoint& pos,
 {
   subscribe();
 
-  p_elements[0] = "H";
-  p_elements[1] = "C";
-  p_elements[2] = "N";
-  p_elements[3] = "O";
+  static const char *const start[NUM_ELT_BTN] = {
+    "H", "C", "N", "O", "F", "Si", "P", "S", "Cl", "Na"};
+  for (int i = 0; i < NUM_ELT_BTN; ++i) p_elements[i] = start[i];
 
-  p_elements[4] = "F";
-  p_elements[5] = "Si";
-  p_elements[6] = "P";
-  p_elements[7] = "S";
-
-  p_elements[8] = "Cl";
-  p_elements[9] = "K";
-  p_elements[10] = "Ca";
-  p_elements[11] = "Mg";
-
-  p_replaceIndex = 8;
+  p_replaceIndex = ELT_FIRST_REPLACEABLE;
 
   Create(parent, id, pos, size, style);
 }
@@ -172,15 +159,15 @@ void MiniPerTab::CreateControls()
   p_sizer = new wxBoxSizer(wxVERTICAL);
   SetSizer(p_sizer);
 
-  p_gridSizer = new wxWrapSizer(wxHORIZONTAL);
+  p_gridSizer = new wxFlexGridSizer(5, 0, 0);
   p_sizer->Add(p_gridSizer, 0, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Add H / Del H / Clean go on their own row now, split from the bond
   // and shape selectors below -- keeping all five together on one row
   // made this the pane's widest row once the element grid below was
   // tightened up, defeating the point of tightening it.
-  wxBoxSizer * htopSizer = new wxBoxSizer(wxHORIZONTAL);
-  wxWrapSizer * hSizer = new wxWrapSizer(wxHORIZONTAL);
+  wxWrapSizer * htopSizer = new wxWrapSizer(wxHORIZONTAL);
+  wxBoxSizer * hSizer = new wxBoxSizer(wxHORIZONTAL);
 
   // wxDefaultSize + wxBU_EXACTFIT, not a hardcoded wxSize(48,24) -- the
   // same GTK3 theme padding problem the element buttons have (see
@@ -207,6 +194,19 @@ void MiniPerTab::CreateControls()
   htopSizer->Add(clean, 0, wxCENTER|wxALL, 2);
   Connect(ViewerEvtHandler::ID_CLEAN_COORD, wxEVT_COMMAND_BUTTON_CLICKED,
           wxCommandEventHandler(MiniPerTab::OnCleanClick));
+
+  //  Same row: Delete, and the periodic table for an element none of the
+  //  buttons has.
+  ewxButton *del = new ewxButton(this, wxID_REMOVE, "Delete",
+                                 wxDefaultPosition, wxDefaultSize,
+                                 wxBU_EXACTFIT);
+  htopSizer->Add(del, 0, wxCENTER|wxALL, 2);
+  ewxButton *table = new ewxButton(this, ID_SHOW_TABLE, wxEmptyString,
+                                   wxDefaultPosition, wxDefaultSize,
+                                   wxBU_EXACTFIT);
+  table->SetBitmap(ewxBitmap::colorIcon("svg/candidates/e/periodic.svg", wxSize(20, 20)));
+  table->SetToolTip(_("Periodic table: choose any element"));
+  htopSizer->Add(table, 0, wxCENTER|wxALL, 2);
 
   wxArrayString shapeLabels;
   shapeLabels.Add( ShapeData::shapeToString(ShapeData::lone) );
@@ -239,11 +239,12 @@ void MiniPerTab::CreateControls()
   shapeImages.Add( ShapeData::shapeToImage(ShapeData::decahedral) );
 
   p_shapes = new ImageDropDown(this, ID_SHAPE_SEL, wxEmptyString,
-                               wxDefaultPosition, wxSize(60, 32),
+                               wxDefaultPosition, wxSize(-1, 32),
                                shapeLabels, shapeImages,
                                wxSize(24, 24),
                                wxCB_READONLY);//|wxODCB_DCLICK_CYCLES);
   p_shapes->SetSelection(6);
+  p_shapes->SetMinSize(wxSize(p_shapes->GetMinSize().x + 12, -1));
 
 
   //  The bond kind, with its name: choosing one enters Bond mode, where two
@@ -254,10 +255,12 @@ void MiniPerTab::CreateControls()
   bondImages.Add(TBond::orderToImage(TBond::Single));
   bondImages.Add(TBond::orderToImage(TBond::Metal));
   p_bonds = new ImageDropDown(this, ID_BOND_SEL, wxEmptyString,
-                              wxDefaultPosition, wxSize(100, 30),
+                              wxDefaultPosition, wxSize(-1, 32),
                               bondLabels, bondImages, wxSize(24, 24),
                               wxCB_READONLY);
   p_bonds->SetSelection(0);
+  // The control's own estimate leaves the longest name touching the arrow.
+  p_bonds->SetMinSize(wxSize(p_bonds->GetMinSize().x + 12, -1));
   p_bonds->SetToolTip("Bond type made in Bond mode; choosing one enters "
                       "Bond mode: click two atoms to bond them");
   hSizer->Add(p_bonds, 0, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxBOTTOM, 2);
@@ -274,9 +277,10 @@ void MiniPerTab::CreateControls()
 
 void MiniPerTab::restoreSettings(wxConfigBase * config)
 {
-  for (int i=8; i<12; ++i) {
+  // A new key group: the 12-button lists of older versions are not read.
+  for (int i=ELT_FIRST_REPLACEABLE; i<NUM_ELT_BTN; ++i) {
     wxString elt;
-    config->Read("/MiniPerTab/"+StringConverter::toString(i), &elt,
+    config->Read("/MiniPerTab10/"+StringConverter::toString(i), &elt,
                  p_elements[i].c_str());
     p_elements[i] = elt.c_str();
   }
@@ -286,8 +290,8 @@ void MiniPerTab::restoreSettings(wxConfigBase * config)
 
 void MiniPerTab::saveSettings(wxConfigBase * config)
 {
-  for (int i=8; i<12; ++i) {
-    config->Write("/MiniPerTab/"+StringConverter::toString(i), wxString(p_elements[i]));
+  for (int i=ELT_FIRST_REPLACEABLE; i<NUM_ELT_BTN; ++i) {
+    config->Write("/MiniPerTab10/"+StringConverter::toString(i), wxString(p_elements[i]));
   }
 }
 
@@ -308,7 +312,7 @@ void MiniPerTab::setElements()
   Preferences prefs("PerTable");
   string color;
 
-  // Create all twelve element toggle buttons first (not yet placed in the
+  // Create all ten element toggle buttons first (not yet placed in the
   // grid), size them uniformly from their own content, then lay out the
   // grid. wxBU_EXACTFIT (replacing the old wxSize(28,24)/wxDefaultSize
   // guess -- see the earlier note about "Negative content width" GTK
@@ -351,27 +355,9 @@ void MiniPerTab::setElements()
     p_eltBtns[index]->SetMinSize(uniform);
   }
 
-  //  Element buttons wrap onto further lines when the pane is narrow, in
-  //  the order of the two-row grid they form when it is wide; Delete and
-  //  the periodic table stay together at the end.
-  for (int row = 0; row < 2; ++row) {
-    for (int col = 0; col < 6; ++col) {
-      p_gridSizer->Add(p_eltBtns[col * 2 + row], 0, wxALL, 2);
-    }
-  }
-  ewxButton *del = new ewxButton(owner, wxID_REMOVE, "Delete",
-                                 wxDefaultPosition, wxDefaultSize,
-                                 wxBU_EXACTFIT);
-  //  The periodic table, for an element none of the buttons has.
-  ewxButton *table = new ewxButton(owner, ID_SHOW_TABLE, wxEmptyString,
-                                   wxDefaultPosition, wxDefaultSize,
-                                   wxBU_EXACTFIT);
-  table->SetBitmap(ewxBitmap::colorIcon("svg/candidates/e/periodic.svg", wxSize(20, 20)));
-  table->SetToolTip(_("Periodic table: choose any element"));
-  wxBoxSizer *tail = new wxBoxSizer(wxHORIZONTAL);
-  tail->Add(del, 0, wxALL, 2);
-  tail->Add(table, 0, wxALL, 2);
-  p_gridSizer->Add(tail, 0, wxLEFT, 6);
+  //  Five per row, in order.
+  for (index = 0; index < NUM_ELT_BTN; ++index)
+    p_gridSizer->Add(p_eltBtns[index], 0, wxALL, 2);
 
   // Check the default Carbon button
   p_eltBtns[1]->SetValue(true);
@@ -544,6 +530,6 @@ void MiniPerTab::onElementChanged(string elt)
     p_eltBtns[p_replaceIndex]->SetFocus();
     ++p_replaceIndex;
     if (p_replaceIndex == NUM_ELT_BTN)
-      p_replaceIndex = 8;
+      p_replaceIndex = ELT_FIRST_REPLACEABLE;
   }
 }
