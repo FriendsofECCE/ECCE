@@ -29,6 +29,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Normal-mode arrows start on the drawn sphere, have a fixed thickness, and the longest tip is 1 A out (#228)](normal-mode-arrows-start-on-the-atom-sphere.md)
 - [The dipole arrow is 0.5 A per Debye from the centre of nuclear charge, along mu (negative to positive end) (#266)](dipole-arrow-length-origin-convention.md)
 - [The polarizability is one translucent ellipsoid on the principal axes, centred on the centre of nuclear charge (#279)](polarizability-ellipsoid-convention.md)
+- [Quadrupole, octupole and hexadecapole are angular surfaces of the traceless part, signed colours (#428)](multipole-surfaces-428.md)
 - [`tools/coin/compare.sh` renders a fixed scene set with both viewer builds (#166 stage 2); harness pitfalls](tools-coin-compare-sh-renders-both-viewer-builds.md)
 - [Atom labels drew nothing in 9.x: the sh wrappers dropped `FL_FONT_PATH`; flclient now defaults to `$ECCE_HOME/data/client/fonts`](atom-labels-need-the-bundled-font-fl-font-path.md)
 - [Builder Reset View (toolbar, Render menu, Home) is camera only; the old home button restored a pre-molecule camera](builder-reset-view-is-camera-only-home-key.md)

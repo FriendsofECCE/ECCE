@@ -141,18 +141,24 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
       wxBoxSizer *optionsSizer = new wxBoxSizer(wxHORIZONTAL);
       panel->GetSizer()->Add(optionsSizer, 0, wxALIGN_LEFT|wxALL, 0);
 
-       // A button to control color
-       optionsSizer->AddSpacer(3);
-       ewxStaticText* label = new ewxStaticText( panel, wxID_STATIC, _("Tensor Color:"), wxDefaultPosition, wxDefaultSize, 0 );
-       optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
-       ewxButton* colorbtn = new ewxButton( panel, ID_BUTTON_MOMENTS_VECCOLOR, _T(""), wxDefaultPosition, wxSize(24, 24), wxBU_EXACTFIT );
-       optionsSizer->Add(colorbtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+       // A button to control color (the multipole surfaces use a fixed
+       // pair, blue for positive and vermillion for negative)
+       ewxButton* colorbtn = NULL;
+       ewxStaticText* label = NULL;
+       if (!isMultipole()) {
+          label = new ewxStaticText( panel, wxID_STATIC, _("Tensor Color:"), wxDefaultPosition, wxDefaultSize, 0 );
+          optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+          colorbtn = new ewxButton( panel, ID_BUTTON_MOMENTS_VECCOLOR, _T(""), wxDefaultPosition, wxSize(24, 24), wxBU_EXACTFIT );
+          optionsSizer->Add(colorbtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+       }
 
        optionsSizer->AddSpacer(3);
        label = new ewxStaticText( panel, wxID_STATIC,
              isDipole() ? wxString::FromUTF8("Length, \u00c5 per D:") :
              isPolarizability() ?
-                wxString::FromUTF8("Size, \u00c5 per 10 a.u.:") : _("Scale:"),
+                wxString::FromUTF8("Size, \u00c5 per 10 a.u.:") :
+             isMultipole() ? wxString::FromUTF8("Largest lobe, \u00c5:") :
+             _("Scale:"),
              wxDefaultPosition, wxDefaultSize, 0 );
        optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
@@ -160,7 +166,7 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
       wxString color = config->Read(getConfigKey().c_str(),
             isPolarizability() ? "#56b4e9" : "yellow");
-      colorbtn->SetBackgroundColour(wxColour(color));
+      if (colorbtn) colorbtn->SetBackgroundColour(wxColour(color));
 
       // Add the slider
       ewxPanel *p = new ewxPanel(this);
@@ -174,6 +180,11 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
          p_slider->SetRange(0.01, 20.0);
          p_slider->SetToolTip(wxString::FromUTF8(
                "Semi-axis length in \u00c5 per 10 a.u. of polarizability"));
+      } else if (isMultipole()) {
+         p_slider->SetRange(0.1, 30.0);
+         p_slider->SetToolTip(wxString::FromUTF8(
+               "Distance from the origin to the tip of the largest lobe, "
+               "\u00c5"));
       } else {
          p_slider->SetRange(0.1,10000.0);
          p_slider->SetToolTip("Scale");

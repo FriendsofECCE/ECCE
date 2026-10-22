@@ -62,7 +62,10 @@
 //    ellipsoid PROP              each sphere under PROP's property switch, as
 //                                drawn: centre, and its three axes as semi-axis
 //                                length and unit direction, Angstrom
-//    pertab A                    press the Build panel's periodic-table button,
+//    surface PROP                each angular surface (multipole moment) under
+//                                PROP's property switch: vertices, triangles,
+//                                centre, farthest vertex (Angstrom)
+//    pertab A                   press the Build panel's periodic-table button,
 //                                pick element A in it, report the Build element
 //    chooser kind|pick SYM|search TEXT|enter TEXT|shot NAME|close
 //                                the element chooser popup: pick an element,
@@ -94,6 +97,8 @@
 #include "inv/actions/SoCallbackAction.H"
 #include "inv/actions/SoGetMatrixAction.H"
 #include "inv/nodes/SoSphere.H"
+#include "inv/nodes/SoIndexedFaceSet.H"
+#include "inv/nodes/SoCoordinate3.H"
 #include "inv/actions/SoSearchAction.H"
 #include "inv/nodes/SoShape.H"
 #include "inv/nodes/SoSwitch.H"
@@ -1163,6 +1168,33 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "\n");
         }
         fprintf(stderr, "BUILDER: ellipsoid %s count=%d\n", w[1].c_str(),
+                sa.getPaths().getLength());
+      } else if (w[0] == "surface" && w.size() == 2) {
+        SoSearchAction sa;
+        sa.setType(SoIndexedFaceSet::getClassTypeId(), FALSE);
+        sa.setInterest(SoSearchAction::ALL);
+        sa.apply(getSG()->getPropertySwitch(w[1]));
+        for (int k = 0; k < sa.getPaths().getLength(); k++) {
+          SoGetMatrixAction ma(SbViewportRegion(100, 100));
+          ma.apply(sa.getPaths()[k]);
+          const SbMatrix m = ma.getMatrix();
+          SoIndexedFaceSet *fs =
+              (SoIndexedFaceSet*) sa.getPaths()[k]->getTail();
+          SoSearchAction ca;
+          ca.setType(SoCoordinate3::getClassTypeId(), FALSE);
+          ca.apply(sa.getPaths()[k]->getNodeFromTail(1));
+          SoCoordinate3 *cs = ca.getPath() ?
+              (SoCoordinate3*) ca.getPath()->getTail() : NULL;
+          float reach = 0.f;
+          const int nv = cs ? cs->point.getNum() : 0;
+          for (int i = 0; i < nv; i++)
+            reach = std::max(reach, cs->point[i].length());
+          fprintf(stderr, "BUILDER: surface %s %d vertices=%d triangles=%d "
+                  "centre=%.4f,%.4f,%.4f farthest=%.4f\n", w[1].c_str(), k,
+                  nv, fs->coordIndex.getNum()/4, m[3][0], m[3][1], m[3][2],
+                  reach);
+        }
+        fprintf(stderr, "BUILDER: surface %s count=%d\n", w[1].c_str(),
                 sa.getPaths().getLength());
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");

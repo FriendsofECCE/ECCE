@@ -40,10 +40,18 @@ class QuadPolePanel : public MomentsPanel
    protected:
       virtual void fillTable();
       virtual void showVectors(bool guessScale);
-      // Only the polarizability is drawn (as an ellipsoid); the other
-      // tensors show their table.
-      virtual bool drawsOverlay() const { return isPolarizability(); }
+      // The polarizability (an ellipsoid) and the quadrupole to hexadecapole
+      // (angular surfaces) are drawn; the other tensors show their table.
+      virtual bool drawsOverlay() const
+         { return isPolarizability() || isMultipole(); }
       virtual bool isPolarizability() const;
+      virtual bool isMultipole() const;
+      void showMultipole(bool guessScale);
+
+      // For the multipoles: the code's name (it fixes the units) and the
+      // origin choice ("charge" or "mass") of the surface.
+      string p_code;
+      string p_origin;
 
       bool p_useOriginalGeomHack;
 
