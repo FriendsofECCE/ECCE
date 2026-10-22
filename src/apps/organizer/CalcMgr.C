@@ -3047,7 +3047,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     message = "There is no example set " + setId + ".";
     return "";
   }
-  const string dir = examplesDir();
+  const string dir = examplesDir() + set->id + "/";
   EDSIServerCentral central;
   EcceURL home = central.getDefaultUserHome();
   Resource *homeRes = EDSIFactory::getResource(home);
@@ -3106,17 +3106,32 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         wxPD_APP_MODAL | wxPD_SMOOTH);
     int step = 0;
     for (const char *rel : set->outputs) {
+      // "mopac-ammonia/ammonia.out" is shown as "MOPAC ammonia"
+      string label = rel;
       {
-        string label = rel;
+        static const struct { const char *key, *shown; } kCodes[] = {
+          {"ecceqm", "ECCE-QM"}, {"mopac", "MOPAC"}, {"nwchem", "NWChem"},
+          {"orca", "ORCA"}, {"gromacs", "GROMACS"}};
         size_t dash = label.find('-'), slash = label.find('/');
-        if (dash != string::npos)
-          label = label.substr(dash + 1, slash == string::npos ? string::npos
-                                                               : slash - dash - 1);
-        progress.Update(step, wxString::Format(
-            _("Importing example calculations: %s (%d of %d)"),
-            label.c_str(), step + 1, nExamples));
-        step++;
+        size_t from = dash == string::npos ? 0 : dash + 1;
+        string code = label.substr(0, dash);
+        string what = label.substr(from, slash == string::npos
+                                         ? string::npos : slash - from);
+        for (const auto &c : kCodes)
+          if (code == c.key) code = c.shown;
+        label = code + " " + what;
       }
+      step++;
+      // Update() also pumps events: the window keeps painting and answering.
+      auto show = [&](const string &detail) {
+        string text = string("Importing example calculations: ") +
+            std::to_string(step) + " of " + std::to_string(nExamples) + " - " +
+            label + detail;
+        progress.Update(step - 1, wxString::FromUTF8(text.c_str()));
+        cerr << "Organizer: example progress: " << step << " of "
+             << nExamples << " - " << label << detail << endl;
+      };
+      show("");
       // A directory is a GROMACS run (GromacsImport.H), a study named
       // after the example.
       struct stat st;
@@ -3124,8 +3139,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         string why, name = rel;
         if (name.compare(0, 8, "gromacs-") == 0) name = name.substr(8);
         const auto g0 = std::chrono::steady_clock::now();
-        if (importGromacsRun(proj, name, dir + rel, why).empty() ||
-            !why.empty())
+        if (importGromacsRun(proj, name, dir + rel, why,
+                             [&](const string &task) {
+                               show(" (" + task + ")");
+                             }).empty() || !why.empty())
           p_batchError = why;
         gmxSeconds += std::chrono::duration<double>(
             std::chrono::steady_clock::now() - g0).count();
@@ -3133,6 +3150,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         dlg.importFile(dir + rel);
       }
     }
+    // Not the maximum: wxProgressDialog then waits for a click on Close.
+    progress.Update(nExamples - 1, _("Reading results..."));
   }
   p_batchImport = false;
   cerr << "Organizer: examples " << set->id << " imported in "
@@ -3194,7 +3213,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     p_batchError.clear();
     return "";
   }
-  message = "Example calculations are being imported into " + name + ".";
+  message = "Reading the results of the example calculations in " +
+            name + "...";
   return name;
 }
 

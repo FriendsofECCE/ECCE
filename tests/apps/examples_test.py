@@ -157,7 +157,7 @@ def run(display, data, work):
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                       env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
-    for line in re.findall(r"Organizer: examples imported in .*", result.log or ""):
+    for line in re.findall(r"Organizer: examples \w+ imported in .*", result.log or ""):
         print(line)
     lg = result.log or ""
     shown = lg.find("Organizer: window shown")
@@ -228,7 +228,7 @@ def run(display, data, work):
     what = "Open Example Calculations"
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
-    answers = re.findall(r"ECCE_TEST_ORGANIZER: examples: (.*)$", log, re.M)
+    answers = re.findall(r"ECCE_TEST_ORGANIZER: examples [^:]*: (.*)$", log, re.M)
     problems = []
     if answers != ["ok Examples_Computational created",
                    "ok Examples_Computational existing",
