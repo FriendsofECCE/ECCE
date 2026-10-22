@@ -4939,6 +4939,17 @@ void CalcEd::refreshTsBox()
     p_tsSourceChoice->GetContainingSizer()->ShowItems(tsOffered() || p_tsSource);
   }
   p_tsPanel->Show(p_tsSource);
+
+  // QST and NEB-TS always run without symmetry (stage A), so the box says so.
+  if (wxWindow *sym = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY)) {
+    if (p_tsSource) {
+      if (getUseSymmetry() || useSymmetryBox()) setUseSymmetry(false);
+      sym->Enable(false);
+    } else {
+      sym->Enable(!p_iCalc ||
+                  p_iCalc->getState() < ResourceDescriptor::STATE_SUBMITTED);
+    }
+  }
   if (!p_tsSource) return;
 
   p_tsUrls.clear();
