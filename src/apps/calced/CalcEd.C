@@ -3497,7 +3497,6 @@ void CalcEd::enableChemSysFields()
   p_builderTool->Enable(hasCalc && !p_tsSource);
   if (p_tsPanel) {
     for (int k = 0; k < 3; k++) p_tsChoice[k]->Enable(!isSubmitted);
-    if (p_tsSourceChoice) p_tsSourceChoice->Enable(!isSubmitted);
   }
   FindWindow(ID_TEXTCTRL_CALCED_NAME)->Enable(!isSubmitted && hasFragment);
   FindWindow(ID_STATIC_CALCED_CHARGE)->Enable(!isSubmitted && hasFragment &&
@@ -3557,6 +3556,8 @@ void CalcEd::enableDetailsFields()
 }
 
 
+static bool tsOffered();
+
 /**
  * The first thing the user still has to supply, for the greyed-out
  * buttons; empty when nothing is missing or the run is past setup.
@@ -3569,8 +3570,9 @@ string CalcEd::notReadyReason(int *box) const
   if (!p_frag) {
     *box = BOX_CHEMSYS;
     if (p_tsSource)
-      return "Not ready: pick the reactant calculation (Structure from: "
-             "Other calculations).";
+      return "Not ready: pick the reactant calculation (TS Search).";
+    if (tsOffered())
+      return "Not ready: build a molecule (Builder) or use TS Search.";
     return "Not ready: build or import a molecule (Builder).";
   }
   if (p_frag->containsNubs()) {
@@ -4836,18 +4838,16 @@ void CalcEd::createTsControls()
   wxSizer *col = item ? item->GetSizer() : 0;
   if (!col) return;
 
-  wxBoxSizer *srcRow = new wxBoxSizer(wxHORIZONTAL);
-  srcRow->Add(new wxStaticText(p_chemSysInner, wxID_ANY, "Structure from:"), 0,
-              wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-  wxString srcs[2] = { "Builder", "Other calculations (transition state)" };
-  p_tsSourceChoice = new wxChoice(p_chemSysInner, wxID_ANY, wxDefaultPosition,
-                                  wxDefaultSize, 2, srcs);
-  p_tsSourceChoice->SetSelection(0);
-  p_tsSourceChoice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
-    tsSourceChanged(p_tsSourceChoice->GetSelection() == 1);
+  // Beside the Builder button; shown only while there is no structure yet.
+  p_tsSearchBtn = new wxButton(p_chemSysInner, wxID_ANY, "TS Search",
+                               wxDefaultPosition, wxSize(64, 64));
+  p_tsSearchBtn->SetToolTip("Take the structures from other calculations "
+                            "(reactant, product, TS guess)");
+  p_tsSearchBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    tsSourceChanged(true);
   });
-  srcRow->Add(p_tsSourceChoice, 0, wxALIGN_CENTER_VERTICAL);
-  col->Insert(0, srcRow, 0, wxBOTTOM, 4);
+  p_chemSysInner->GetSizer()->Insert(1, p_tsSearchBtn, 0, wxALIGN_TOP | wxALL, 5);
+  p_tsSearchBtn->Show(false);
 
   p_tsPanel = new wxPanel(p_chemSysInner);
   wxBoxSizer *v = new wxBoxSizer(wxVERTICAL);
@@ -4867,18 +4867,15 @@ void CalcEd::createTsControls()
   }
   v->Add(g, 0, wxEXPAND);
   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
-  p_tsLine = new wxStaticText(p_tsPanel, wxID_ANY, "", wxDefaultPosition,
-                              wxSize(260, -1), wxST_ELLIPSIZE_END);
-  row->Add(p_tsLine, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+  p_tsLine = new wxStaticText(p_tsPanel, wxID_ANY, "");
+  v->Add(p_tsLine, 0, wxEXPAND | wxTOP, 4);
   wxButton *map = new wxButton(p_tsPanel, wxID_ANY, "Show mapping");
   map->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { showTsMapping(); });
   row->Add(map, 0);
-  v->Add(row, 0, wxEXPAND | wxTOP, 4);
+  v->Add(row, 0, wxTOP, 4);
   p_tsPanel->SetSizer(v);
-  col->Insert(1, p_tsPanel, 0, wxBOTTOM, 4);
+  col->Insert(0, p_tsPanel, 0, wxBOTTOM, 4);
   p_tsPanel->Show(false);
-  p_tsSourceChoice->GetParent()->Layout();
-  srcRow->ShowItems(tsOffered());
 }
 
 // The source is "other" when the calculation stores a reactant pick.
@@ -4934,11 +4931,11 @@ void CalcEd::syncTsKeys()
 void CalcEd::refreshTsBox()
 {
   if (!p_tsPanel) return;
-  if (p_tsSourceChoice) {
-    p_tsSourceChoice->SetSelection(p_tsSource ? 1 : 0);
-    p_tsSourceChoice->GetContainingSizer()->ShowItems(tsOffered() || p_tsSource);
+  if (p_tsSearchBtn) {
+    p_tsSearchBtn->Show(tsOffered() && !p_frag && !p_tsSource);
   }
   p_tsPanel->Show(p_tsSource);
+  p_chemSysInner->Layout();
 
   // QST and NEB-TS always run without symmetry (stage A), so the box says so.
   if (wxWindow *sym = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY)) {
@@ -4977,6 +4974,7 @@ void CalcEd::refreshTsBox()
          : p_tsPick[1].empty() ? "Pick the product." : "Save to match the atoms.";
   const wxString txt = wxString::FromUTF8(line.c_str());
   p_tsLine->SetLabel(txt);
+  p_tsLine->Wrap(300);
   p_tsLine->SetToolTip(wxString::FromUTF8(p_qstDetail.c_str()));
   p_tsPanel->GetContainingSizer()->Layout();
 }

@@ -9,7 +9,7 @@ tests/parsers/fixtures/gaussian-16/hcn_irc.log (the TS energy and the two
 ends of its path, read by regex here) plus constructed ZPE/H/G values.  The
 Builder opens the TS job's Reaction Energies panel and the script command
 "rxnenergies" exports the CSV, which must hold the differences worked out
-here.  Also: a product with another basis set (warning, numbers kept), a
+here.  Also: a product with another basis set (no energies, the difference named), a
 reactant with no optimised geometry (no energies, says why), and an ordinary
 calculation (no panel).  Exit status 77 (skip) without Xvfb, import or
 binaries.
@@ -196,6 +196,12 @@ def main():
                                        "no optimised geometry" in l for l in lines),
                       "no optimised reactant: no energies, and the reason is named")
                 continue
+            if case == "warn":
+                check(not data and any("NO ENERGIES" in l and "basis set differs" in l and
+                                       "product cc-pVDZ" in l for l in lines),
+                      "a different basis set: no energies, the reason names what differs")
+                check("rxnenergies levels=0" in text, "the panel holds no levels")
+                continue
             check(sorted(data) == sorted(want), "%s: four levels E, E + ZPE, H, G" % case)
             for scale, path in ((KJ, out), (KCAL, kcal)):
                 _, h2, d2 = rows(path)
@@ -207,13 +213,9 @@ def main():
                           and abs(float(r[5]) - (c - a) * scale) < 1e-3)
                     check(ok, "%s %s: %s barrier and reaction energy" % (
                           case, h2[4].split("_", 1)[1], label))
-            if case == "ok":
-                check(not warnings, "matching calculations: no warning")
-                check(float(data["E"][4]) > 0, "the barrier is positive")
-            else:
-                check(len(warnings) == 1 and "basis set differs" in warnings[0]
-                      and "product cc-pVDZ" in warnings[0],
-                      "the basis difference is named in a warning (%s)" % warnings)
+            check(not warnings and not any("NO ENERGIES" in l for l in lines),
+                  "matching calculations: no warning, no problem")
+            check(float(data["E"][4]) > 0, "the barrier is positive")
 
         # An ordinary calculation has no Reaction Energies panel.
         text, _ = run(s, display, env, wrappers, react, png, "rxnplain",

@@ -415,13 +415,13 @@ class CalcEd: public CalcEdGUI,
     string p_qstDetail;
     string p_qstTable;
 
-    /** Structure from "Other calculations (transition state)" and the picks,
+    /** Structure from other calculations (TS Search button) and the picks,
      *  as URLs; p_tsUrls/p_tsNames list the choices after "(none)". */
     bool   p_tsSource = false;
     string p_tsPick[3];
     vector<string> p_tsUrls;
     vector<string> p_tsNames;
-    wxChoice       *p_tsSourceChoice = 0;
+    wxButton       *p_tsSearchBtn = 0;
     wxChoice       *p_tsChoice[3] = {0, 0, 0};
     wxPanel        *p_tsPanel = 0;
     wxStaticText   *p_tsLine = 0;

@@ -13,7 +13,7 @@ void compare(RxnResult& r, const char *what, const std::string v[3])
   std::string t = std::string(what) + " differs: ";
   for (int i = 0; i < 3; i++)
     t += std::string(i ? "; " : "") + ROLE[i] + " " + (v[i].empty() ? "(none)" : v[i]);
-  r.warnings.push_back(t + ".");
+  r.problems.push_back(t + ".");
 }
 }
 
@@ -43,6 +43,8 @@ RxnResult rxnAnalyse(const RxnState s[3])
   compare(r, "solvent model", sv);
   compare(r, "charge", ch);
   compare(r, "multiplicity", mu);
+  // Energies from different settings are not comparable: show none.
+  if (!r.problems.empty()) return r;
 
   RxnLevel e;
   e.label = "E";

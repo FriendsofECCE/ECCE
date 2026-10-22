@@ -153,14 +153,18 @@ def main():
         os.environ["ECCE_LOCAL_DATA"] = folder
         restorePrefs = fixture.settleUpgradeNotices()
         try:
-            steps = ["wait 9000", "ts-state",
-                     "ts-source other", "wait 1500", "ts-state",
-                     "ts-pick reactant react", "wait 7000", "ts-state",
+            shots = os.environ.get("ECCE_QST_SHOTS")
+            steps = ["wait 9000", "ts-state"]
+            if shots:
+                steps += ["shot qst0-editor"]
+            steps += ["ts-source other", "wait 1500", "ts-state"]
+            if shots:
+                steps += ["shot qst1-editor"]
+            steps += ["ts-pick reactant react", "wait 7000", "ts-state",
                      "runtype Transition State (QST)", "wait 3000", "ready",
                      "basis 6-31G", "wait 1500",
                      "ts-pick product prod",
                      "button save-keep", "wait 6000"]
-            shots = os.environ.get("ECCE_QST_SHOTS")
             if shots:
                 steps += ["shot qst2-editor"]
             steps += ["ts-pick guess guess", "button save-keep", "wait 6000", "ts-state"]
@@ -171,7 +175,7 @@ def main():
                 os.makedirs(shots, exist_ok=True)
                 threading.Thread(target=photographer, daemon=True, args=(
                     display, fixture.stateDir(), shots,
-                    ["qst2-editor", "qst3-editor"])).start()
+                    ["qst0-editor", "qst1-editor", "qst2-editor", "qst3-editor"])).start()
             log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT", steps,
                                urls["ts"] + "/")
             tail = run_tests._tail(log, 40)
@@ -179,10 +183,25 @@ def main():
             print("ts-state:", *states, sep="\n  ")
             sym.check(len(states) >= 4, "four ts-state reports (%d)" % len(states), tail)
             if len(states) >= 4:
-                sym.check("source=builder builder=on panel=hidden atoms=-1" in states[0],
-                          "a new calculation starts with the Builder source, no atoms", tail)
-                sym.check("source=other builder=off panel=shown atoms=-1" in states[1],
-                          "choosing Other calculations shows the pickers, Builder off", tail)
+                sym.check("source=builder builder=on search=shown panel=hidden" in states[0]
+                          and "atoms=-1" in states[0],
+                          "a new calculation with no structure shows the TS Search button", tail)
+                sym.check("reason=Not ready: build a molecule (Builder) or use TS Search." in states[0],
+                          "the not-ready message names both routes (%s)" % states[0], tail)
+                sym.check("source=other builder=off search=hidden panel=shown" in states[1]
+                          and "atoms=-1" in states[1],
+                          "TS Search shows the pickers, Builder off, the button is gone", tail)
+                sym.check("reason=Not ready: pick the reactant calculation (TS Search)." in states[1],
+                          "the not-ready message points at the pickers", tail)
+                for i in (1, 2, 3):
+                    sym.check("symmetry=off" in states[i],
+                              "Use symmetry is greyed for the TS source (state %d)" % i, tail)
+                sym.check("search=hidden" in states[2],
+                          "with a structure the TS Search button stays hidden", tail)
+                sym.check(re.search(r"line=Matched 3 atoms \u00b7 .*renumbered \(\d+ moved\).* "
+                                    r"\u00b7 RMSD [\d.]+(/[\d.]+)? \u00c5 reason=", states[3]) is not None
+                          and "Reactant" not in re.search(r"line=(.*) reason=", states[3]).group(1),
+                          "the match line is short and has no Reactant (%s)" % states[3], tail)
                 sym.check("builder=off" in states[2] and "atoms=3" in states[2],
                           "the reactant becomes the structure (3 atoms), Builder stays off", tail)
                 sym.check(sorted(re.search(r"candidates=(\S*)", states[2]).group(1).split(","))

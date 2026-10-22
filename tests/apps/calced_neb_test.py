@@ -73,6 +73,8 @@ def main():
             print("ts-state:", *states, sep="\n  ")
             sym.check(len(states) >= 3, "ts-state reports (%d)" % len(states), tail)
             if len(states) >= 3:
+                sym.check("symmetry=off" in states[1] and "search=hidden" in states[1],
+                          "Use symmetry is greyed for the NEB-TS source", tail)
                 sym.check("builder=off" in states[1] and "atoms=3" in states[1],
                           "the reactant becomes the structure, Builder off", tail)
                 rts = re.search(r"runtypes=(.*) line=", states[1]).group(1).split("|")

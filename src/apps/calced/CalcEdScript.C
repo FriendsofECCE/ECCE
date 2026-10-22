@@ -17,7 +17,7 @@
 //    dismiss                  close a modal dialog (OK)
 //    code NAME                a click on that code's button in the Code row
 //    wmcommand ID             (Windows) the message a menu item click sends
-//    ts-source builder|other  the Structure from choice of the Chemical System box
+//    ts-source other          click the TS Search button (FAIL if hidden or off)
 //    ts-pick reactant|product|guess NAME / ts-state   pick a calculation; print what is shown
 //    enabled                  which main controls are enabled, and the state
 //    info                     the current choices, GUI values and the
@@ -187,11 +187,14 @@ void CalcEd::runCalcEdScript(const string& file)
           OnButtonCalcedCodeClick(ev);
         }
       } else if (w[0] == "ts-source" && w.size() == 2) {
-        if (!p_tsSourceChoice) {
-          outcome = "FAIL: no source choice";
+        // the TS Search button, as clicked; fails when it is not clickable
+        if (w[1] != "other" || !p_tsSearchBtn || !p_tsSearchBtn->IsShown()
+            || !p_tsSearchBtn->IsEnabled()) {
+          outcome = "FAIL: TS Search button not available";
         } else {
-          p_tsSourceChoice->SetSelection(w[1] == "other" ? 1 : 0);
-          tsSourceChanged(w[1] == "other");
+          wxCommandEvent ev(wxEVT_BUTTON, p_tsSearchBtn->GetId());
+          ev.SetEventObject(p_tsSearchBtn);
+          p_tsSearchBtn->GetEventHandler()->ProcessEvent(ev);
         }
       } else if (w[0] == "ts-pick" && w.size() >= 3) {
         const int role = w[1] == "reactant" ? 0 : w[1] == "product" ? 1 : 2;
@@ -210,16 +213,22 @@ void CalcEd::runCalcEdScript(const string& file)
         std::string names;
         for (size_t i = 0; i < p_tsNames.size(); i++)
           names += (i ? "," : "") + p_tsNames[i];
-        fprintf(stderr, "CALCED: ts-state source=%s builder=%s panel=%s "
+        fprintf(stderr, "CALCED: ts-state source=%s builder=%s search=%s panel=%s symmetry=%s "
                 "atoms=%d candidates=%s runtypes=",
                 p_tsSource ? "other" : "builder",
                 p_builderTool->IsEnabled() ? "on" : "off",
+                p_tsSearchBtn && p_tsSearchBtn->IsShown() ? "shown" : "hidden",
                 p_tsPanel && p_tsPanel->IsShown() ? "shown" : "hidden",
+                !FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY) ? "none" :
+                FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY)->IsEnabled() ? "on" : "off",
                 p_frag ? (int)p_frag->numAtoms() : -1, names.c_str());
         ewxChoice *rt = (ewxChoice*)FindWindow(ID_CHOICE_CALCED_RUNTYPE);
         for (unsigned i = 0; rt && i < rt->GetCount(); i++)
           fprintf(stderr, "%s%s", i ? "|" : "", rt->GetString(i).ToStdString().c_str());
-        fprintf(stderr, " line=%s\n", p_tsLine ? p_tsLine->GetLabel().ToStdString().c_str() : "");
+        wxString ln = p_tsLine ? p_tsLine->GetLabel() : wxString();
+        ln.Replace("\n", " ");
+        fprintf(stderr, " line=%s reason=%s\n", ln.ToStdString().c_str(),
+                notReadyReason().c_str());
       } else if (w[0] == "enabled") {
         // which of the main controls are enabled, as a user sees them
         const struct { const char *name; wxWindowID id; } ctl[] = {

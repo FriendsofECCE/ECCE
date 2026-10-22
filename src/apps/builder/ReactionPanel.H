@@ -2,6 +2,7 @@
 #define REACTIONPANEL__H
 
 #include <string>
+#include <wx/string.h>
 #include "PropertyPanel.H"
 #include "ReactionEnergies.H"
 
@@ -14,7 +15,7 @@ class XYPlotCanvas;
  * Reaction Energies (#419): for a transition-state job (QST, NEB-TS) the
  * barrier and reaction energy from its own final energy and those of the
  * reactant and product calculations it refers to.  A table, a three-level
- * diagram and Export .csv; warnings name what differs between the three.
+ * diagram and Export .csv; settings that differ between the three give no energies, only the reason.
  */
 class ReactionPanel : public PropertyPanel
 {
@@ -56,6 +57,7 @@ class ReactionPanel : public PropertyPanel
       wxChoice *p_unit;
       wxChoice *p_quantity;
       wxStaticText *p_text;
+      wxString p_message;
       XYPlotCanvas *p_plot;
       wxGrid *p_grid;
 };

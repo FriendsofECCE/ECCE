@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 
 #include <wx/button.h>
@@ -7,6 +8,7 @@
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/wrapsizer.h>
 
 #include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
@@ -165,36 +167,45 @@ bool ReactionPanel::Create(IPropCalculation *calculation,
   }
   SetSizer(new wxBoxSizer(wxVERTICAL));
 
-  wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
+  // A wrap sizer: in a narrow panel the controls go onto a second line.
+  wxWrapSizer *bar = new wxWrapSizer(wxHORIZONTAL);
   bar->Add(new wxStaticText(this, wxID_ANY, "Energy unit:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   p_unit = new wxChoice(this, ID_UNIT);
   p_unit->Append("kJ/mol");
   p_unit->Append("kcal/mol");
   p_unit->SetSelection(0);
-  bar->Add(p_unit, 0, wxRIGHT, 12);
+  bar->Add(p_unit, 0, wxRIGHT | wxBOTTOM, 12);
   bar->Add(new wxStaticText(this, wxID_ANY, "Diagram:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   p_quantity = new wxChoice(this, ID_QUANTITY);
-  bar->Add(p_quantity, 0);
-  bar->AddStretchSpacer();
-  bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0);
+  bar->Add(p_quantity, 0, wxRIGHT | wxBOTTOM, 12);
+  bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0, wxBOTTOM, 0);
   GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
   p_text = new wxStaticText(this, wxID_ANY, wxEmptyString);
   GetSizer()->Add(p_text, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
 
-  p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 120));
+  p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(1, 120));
   p_grid->CreateGrid(0, 5);
   p_grid->EnableEditing(false);
-  p_grid->SetRowLabelSize(60);
+  p_grid->SetDefaultCellFont(p_grid->GetDefaultCellFont().Smaller());
+  p_grid->SetLabelFont(p_grid->GetLabelFont().Smaller());
+  p_grid->SetRowLabelSize(wxGRID_AUTOSIZE);
   GetSizer()->Add(p_grid, 0, wxEXPAND | wxALL, 3);
 
   p_plot = new XYPlotCanvas(this);
-  p_plot->SetMinSize(wxSize(300, 180));
+  p_plot->SetMinSize(wxSize(1, 180));
   p_plot->setShowXAxis(false);
   GetSizer()->Add(p_plot, 1, wxEXPAND);
 
+  Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+    e.Skip();
+    if (p_text && p_text->IsShown()) {
+      p_text->SetLabel(p_message);
+      p_text->Wrap(std::max(100, GetClientSize().x - 16));
+    }
+  });
   Bind(wxEVT_CHOICE, &ReactionPanel::OnChange, this, ID_UNIT);
   Bind(wxEVT_CHOICE, &ReactionPanel::OnChange, this, ID_QUANTITY);
   Bind(wxEVT_BUTTON, &ReactionPanel::OnExport, this, ID_EXPORT);
@@ -240,18 +251,23 @@ void ReactionPanel::fill()
   for (const std::string& s : p_result.notes)
     text += wxString::FromUTF8(s.c_str()) + "\n";
   text.Trim();
+  p_message = text;
   p_text->SetLabel(text);
   p_text->SetForegroundColour(p_result.problems.empty() && p_result.warnings.empty()
                               ? GetForegroundColour() : wxColour(160, 60, 0));
   p_text->Show(!text.empty());
-  p_text->Wrap(std::max(300, GetSize().x - 20));
+  p_text->Wrap(std::max(100, GetClientSize().x - 16));
+  const bool numbers = p_result.ok();
+  p_quantity->Enable(numbers);
+  p_grid->Show(numbers);
+  p_plot->Show(numbers);
 
   if (p_grid->GetNumberRows()) p_grid->DeleteRows(0, p_grid->GetNumberRows());
   p_grid->SetColLabelValue(0, "Reactant");
   p_grid->SetColLabelValue(1, "TS");
   p_grid->SetColLabelValue(2, "Product");
-  p_grid->SetColLabelValue(3, "Barrier (" + unit + ")");
-  p_grid->SetColLabelValue(4, "Reaction (" + unit + ")");
+  p_grid->SetColLabelValue(3, wxString::FromUTF8("\xCE\x94\xE2\x80\xA1\n(") + unit + ")");
+  p_grid->SetColLabelValue(4, wxString::FromUTF8("\xCE\x94rxn\n(") + unit + ")");
   p_grid->AppendRows((int)p_result.levels.size());
   for (size_t i = 0; i < p_result.levels.size(); i++) {
     const RxnLevel& l = p_result.levels[i];
@@ -261,8 +277,10 @@ void ReactionPanel::fill()
     p_grid->SetCellValue((int)i, 3, wxString::Format("%.2f", rxnToUnit(l.barrier(), kcal)));
     p_grid->SetCellValue((int)i, 4, wxString::Format("%.2f", rxnToUnit(l.reaction(), kcal)));
   }
+  p_grid->SetColLabelSize(wxGRID_AUTOSIZE);
+  p_grid->SetRowLabelSize(wxGRID_AUTOSIZE);
   p_grid->AutoSizeColumns();
-  p_grid->SetMinSize(wxSize(300, p_grid->GetColLabelSize() +
+  p_grid->SetMinSize(wxSize(1, p_grid->GetColLabelSize() +
       (int)p_result.levels.size() * p_grid->GetDefaultRowSize() + 24));
 
   p_plot->clearCurves();

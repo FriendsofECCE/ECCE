@@ -1,3 +1,4 @@
+#include <cctype>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -190,12 +191,17 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
                    r, warning))
          return true;
       if (table) addTable(*table, role[k], refEl, r);
-      st << (st.tellp() ? ", " : "") << role[k] << " " << r.nChanged;
+      if (r.nChanged > 0) {
+         std::string lc = role[k];
+         for (char& c : lc) c = (char)tolower((unsigned char)c);
+         st << (st.tellp() ? ", " : "") << lc << " renumbered ("
+            << r.nChanged << " moved)";
+      }
       dt << role[k] << " renumbered: " << r.nChanged
          << " atoms changed place. ";
       char buf[32];
       sprintf(buf, "%.2f", r.alignment.rmsdAfter);
-      rm << (k ? "/" : "") << buf;
+      if (k > 0) rm << (rm.tellp() ? "/" : "") << buf;   // reactant is the reference
       if (!r.far.empty())
          dt << role[k] << ": " << r.far.size()
             << " atom(s) move more than 1 A after alignment (expected for "
@@ -206,8 +212,9 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
    }
    char cnt[16];
    sprintf(cnt, "%d", (int)refEl.size());
-   status = std::string("Matched ") + cnt + " atoms; moved: " + st.str() +
-            "; RMSD " + rm.str() + " \xC3\x85";
+   status = std::string("Matched ") + cnt + " atoms" +
+            (st.tellp() ? " \xC2\xB7 " + st.str() : std::string()) +
+            " \xC2\xB7 RMSD " + rm.str() + " \xC3\x85";
    warning = wr.str();
    if (detail)
       *detail = std::string("Atoms matched (") + cnt + "). " + dt.str() +
@@ -274,7 +281,12 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
                    r, warning))
          return true;
       if (table) addTable(*table, role[k], refEl, r);
-      st << (st.tellp() ? ", " : "") << role[k] << " " << r.nChanged;
+      if (r.nChanged > 0) {
+         std::string lc = role[k];
+         for (char& c : lc) c = (char)tolower((unsigned char)c);
+         st << (st.tellp() ? ", " : "") << lc << " renumbered ("
+            << r.nChanged << " moved)";
+      }
       dt << role[k] << " renumbered: " << r.nChanged
          << " atoms changed place. ";
       char buf[32];
@@ -288,8 +300,9 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
    }
    char cnt[16];
    sprintf(cnt, "%d", (int)refEl.size());
-   status = std::string("Matched ") + cnt + " atoms; moved: " + st.str() +
-            "; RMSD " + rm.str() + " \xC3\x85";
+   status = std::string("Matched ") + cnt + " atoms" +
+            (st.tellp() ? " \xC2\xB7 " + st.str() : std::string()) +
+            " \xC2\xB7 RMSD " + rm.str() + " \xC3\x85";
    warning = wr.str();
    if (detail)
       *detail = std::string("Atoms matched (") + cnt + "). " + dt.str() +

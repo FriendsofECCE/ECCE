@@ -18,3 +18,5 @@ energies and names the calculation and the reason. `EZEROPT` is the
 correction, `ENTHALPY`/`EGIBBS` are absolute (see the thermochemistry
 entry). The arithmetic is `ReactionEnergies.C`, wx-free; `rxnenergies
 <path> [kcal]` in the Builder script exports the CSV.
+A different method, basis set, solvent model, charge or multiplicity between
+the three is a problem too: no energies, only the reason.

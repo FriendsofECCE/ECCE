@@ -63,10 +63,11 @@ int main()
   s[2].basis = "cc-pVDZ";
   s[1].charge = 1;
   r = rxnAnalyse(s);
-  check(r.ok() && r.warnings.size() == 2, "two differences, two warnings, numbers kept");
-  check(has(r.warnings[0], "basis set differs") && has(r.warnings[0], "product cc-pVDZ") &&
-        has(r.warnings[1], "charge differs"), "warnings name what differs");
-  check(has(rxnCsv(r, false, "x"), "# WARNING: basis set differs"), "warning in the csv");
+  check(!r.ok() && r.levels.empty() && r.problems.size() == 2,
+        "two differences, two reasons, no energies");
+  check(has(r.problems[0], "basis set differs") && has(r.problems[0], "product cc-pVDZ") &&
+        has(r.problems[1], "charge differs"), "reasons name what differs");
+  check(has(rxnCsv(r, false, "x"), "# NO ENERGIES: basis set differs"), "reason in the csv");
 
   s[2].basis = "6-31G*";
   s[1].charge = 0;
