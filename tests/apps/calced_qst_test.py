@@ -200,6 +200,11 @@ def main():
                         sym.check(order == ["C", "N", "H"],
                                   "%s: qst%d.frag atoms C, N, H (product "
                                   "renumbered) (%s)" % (mode, k, order), tail)
+                        coords = [t for l in open(os.path.join(d, "ts.qst%d.frag" % k)).read().splitlines()
+                                  if re.match(r"[A-Z][a-z]? ", l) for t in l.split()[1:4]]
+                        sym.check(coords and all("." in t for t in coords),
+                                  "%s: qst%d.frag coordinates all carry a decimal point"
+                                  % (mode, k), tail)
                     text = ""
                     for f in os.listdir(d):
                         t = open(os.path.join(d, f), errors="replace").read()

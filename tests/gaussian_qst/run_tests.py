@@ -57,15 +57,15 @@ def read_xyz(path):
     return [(l.split()[0], [float(x) for x in l.split()[1:4]]) for l in ls if l.strip()]
 
 
-def write_frag(path, title, atoms):
+def write_frag(path, title, atoms, fmt="%.10f"):
     with open(path, "w") as f:
         f.write("ecce\nnum_atoms: %d\ntitle: %s\natom_info: symbol x y z\natom_list:\n"
                 % (len(atoms), title))
         for e, c in atoms:
-            f.write("%s %.10f %.10f %.10f\n" % ((e,) + tuple(c)))
+            f.write("%s %s %s %s\n" % ((e,) + tuple(fmt % x for x in c)))
 
 
-def deck(work, mode, reactant, product, guess):
+def deck(work, mode, reactant, product, guess, fmt="%.10f"):
     """The files CalcEd writes: all structures already mapped."""
     shutil.copy(os.path.join(PARSERS, "g16.tpl"), os.path.join(work, "t.tpl"))
     structs = [("reactant", reactant), ("product", product)]
@@ -73,7 +73,7 @@ def deck(work, mode, reactant, product, guess):
         structs.append(("guess", guess))
     write_frag(os.path.join(work, "w.frag"), "hcn", reactant)
     for k, (name, a) in enumerate(structs):
-        write_frag(os.path.join(work, "w.qst%d.frag" % (k + 1)), name, a)
+        write_frag(os.path.join(work, "w.qst%d.frag" % (k + 1)), name, a, fmt)
     open(os.path.join(work, "w.basis"), "w").write("useRouteCard 3-21G\n")
     open(os.path.join(work, "w.param"), "w").write(
         "Category: SCF\nTheory: RHF\nRunType: Transition State (QST) + Frequencies\nCharge: 0\n"
@@ -110,16 +110,29 @@ def main():
                 print(p.stderr)
                 return 1
             outs[name] = read_xyz(os.path.join(work, name + "_out.xyz"))
-        for mode in ("QST2", "QST3"):
-            d = os.path.join(work, mode)
+        # Exactly linear HCN/HNC, coordinates as the old writer printed them
+        # (bare integers).  QST2 cannot bend a collinear pair, so the bent
+        # TS guess is given.
+        lin_hcn = [("C", [0.0, 0.0, 0.0]), ("N", [0.0, 0.0, 1.15]), ("H", [0.0, 0.0, -1.07])]
+        lin_hnc = [("C", [0.0, 0.0, 0.0]), ("N", [0.0, 0.0, 1.17]), ("H", [0.0, 0.0, 2.17])]
+        for mode, r, p_, g, fmt, tag in (
+                ("QST2", hcn, outs["prod"], None, "%.10f", "QST2"),
+                ("QST3", hcn, outs["prod"], outs["guess"], "%.10f", "QST3"),
+                ("QST3", lin_hcn, lin_hnc, outs["guess"], "%g", "QST3-linear")):
+            d = os.path.join(work, tag)
             os.mkdir(d)
-            text = deck(d, mode, hcn, outs["prod"], outs["guess"])
+            text = deck(d, mode, r, p_, g, fmt)
             print("----- %s deck\n%s" % (mode, text))
             nblocks = len(re.findall(r"^0 1\b", text, re.M))
             ok = ("Opt=(%s " % mode) in text and "Freq" in text \
-                and nblocks == (2 if mode == "QST2" else 3)
+                and "NoSymm" in text and "Symmetry=" not in text \
+                and nblocks == int(mode[-1])
             for blk in re.findall(r"^0 1\n((?: *[A-Z][a-z]? .*\n)+)", text, re.M):
                 if [l.split()[0] for l in blk.splitlines()] != ["C", "N", "H"]:
+                    ok = False
+            # Gaussian stops on a coordinate without a decimal point
+            for l in re.findall(r"^ *[A-Z][a-z]? +(.*)$", text, re.M):
+                if not all("." in t for t in l.split()):
                     ok = False
             print("%-4s %s structure blocks and atom order" % ("ok" if ok else "FAIL", mode))
             fails += not ok
@@ -138,6 +151,14 @@ def main():
             log = open(os.path.join(d, "out.log")).read()
             freqs = re.findall(r"Frequencies --\s+(-?[\d.]+)", log)
             neg = [f for f in freqs if f.startswith("-")]
+            if tag.endswith("linear"):
+                # A collinear pair gives the optimiser no path to follow, so
+                # only the input is judged: it must be read and the first
+                # structure computed.
+                ok = "Wanted a floating point" not in log and "SCF Done" in log
+                print("%-4s %s Gaussian run: input read" % ("ok" if ok else "FAIL", tag))
+                fails += not ok
+                continue
             ok = "Stationary point found" in log and len(neg) == 1 \
                 and "Normal termination" in log
             print("%-4s %s Gaussian run: frequencies %s" % ("ok" if ok else "FAIL", mode, freqs[:3]))

@@ -77,6 +77,10 @@ def main():
                         order = xyzOrder(os.path.join(d, f))
                         sym.check(order == ["C", "N", "H"],
                                   "%s atoms C, N, H (renumbered) (%s)" % (f, order), tail)
+                        coords = [t for l in open(os.path.join(d, f)).read().splitlines()[2:]
+                                  for t in l.split()[1:4]]
+                        sym.check(coords and all("." in t for t in coords),
+                                  "%s: every coordinate has a decimal point" % f, tail)
                 deck = ""
                 for f in os.listdir(d):
                     if f.endswith(".orcain"):

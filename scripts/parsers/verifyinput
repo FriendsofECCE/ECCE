@@ -111,6 +111,8 @@ my $whole_early = join("", @lines);
 my $atoms = 0;
 my $firstAtom = 0;
 my $lastAtom = 0;
+my @runs;        # atoms in each consecutive block of atom lines
+my $prevAtom = 0;
 for my $i (0 .. $#lines) {
   #  Trailing tokens are allowed: MOPAC writes an optimisation flag
   #  after each coordinate, and NWChem permits a tag.
@@ -121,7 +123,17 @@ for my $i (0 .. $#lines) {
     $atoms++;
     $firstAtom = $i + 1 if (!$firstAtom);
     $lastAtom = $i + 1;
+    if ($prevAtom == $i) { $runs[-1]++ } else { push(@runs, 1) }
+    $prevAtom = $i + 1;
   }
+}
+
+#  Opt=QST2/QST3 decks carry one title/charge/geometry block per
+#  structure; each is checked against the calculation's atom count.
+my $qstWanted = 0;
+{
+  my $rc = join(" ", grep { /^\s*#/ } @lines);
+  $qstWanted = $1 if ($rc =~ /\bqst([23])\b/i);
 }
 
 if (!$atoms && $whole_early =~ /geom\s*=\s*\(?[^)\n]*check/i) {
@@ -135,6 +147,20 @@ if (!$atoms && $whole_early =~ /geom\s*=\s*\(?[^)\n]*check/i) {
   finding("BAD", 0, "geometry",
           "No geometry was found: no line holds an element symbol and " .
           "three coordinates. The calculation has nothing to run on.");
+} elsif ($qstWanted) {
+  my $ref = (defined($opt_a) && $opt_a =~ /^\d+$/ && $opt_a > 0) ? $opt_a : $runs[0];
+  if (@runs != $qstWanted) {
+    finding("BAD", $firstAtom, "geometry",
+            "Opt=QST$qstWanted needs $qstWanted structures, one after " .
+            "another, but the deck has " . scalar(@runs) . ".");
+  } elsif (grep { $_ != $ref } @runs) {
+    finding("BAD", $firstAtom, "geometry",
+            "The structures have " . join(", ", @runs) . " atoms; the " .
+            "calculation says it has $ref. Each one must have the same atoms.");
+  } else {
+    finding("GOOD", $firstAtom, "geometry",
+            "$qstWanted structures of $ref atoms each.");
+  }
 } elsif (defined($opt_a) && $opt_a =~ /^\d+$/ && $opt_a > 0 && $atoms != $opt_a) {
   finding("BAD", $firstAtom, "geometry",
           "The geometry has $atoms atoms; the calculation says it has " .
@@ -171,6 +197,8 @@ my %seen;
 my @elements;
 my @atomSymbols;
 for my $i (0 .. $#stripped) {
+  #  QST decks repeat the molecule; count its electrons once.
+  last if ($qstWanted && @runs && $i + 1 >= $firstAtom + $runs[0]);
   if ($stripped[$i] =~ /^\s*([A-Z][a-z]?|x)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
     my $element = ucfirst(lc($1));
     #  NWChem tags are case-insensitive, so a hand-typed dummy may be "x".
@@ -558,7 +586,7 @@ sub gaussian
   #  and then looks like the diagram being broken rather than like the
   #  deck having asked for this. Amber, because switching symmetry off
   #  is a legitimate thing to want.
-  if ($whole =~ /\bNoSymm\b/i) {
+  if ($whole =~ /\bNoSymm\b/i && !$qstWanted) {
     finding("UNSURE", $routeAt + 1, "symmetry",
             "This deck says NoSymm, so the calculation will report no " .
             "orbital symmetry labels -- no MO correlation diagram can " .
@@ -668,7 +696,7 @@ sub gaussian
   #  and ignores anything else, so text there is never what was meant.
   #  Any keyword that might read input keeps this quiet.
   if ($geomEnd <= $#L &&
-      $route !~ /gen|extrabasis|pseudo|modred|read|charge|massage|connect|oniom|gic|cards|extern|\@/i &&
+      $route !~ /gen|qst[23]|extrabasis|pseudo|modred|read|charge|massage|connect|oniom|gic|cards|extern|\@/i &&
       $whole !~ /--link1--/i) {
     for my $i ($geomEnd + 1 .. $#L) {
       next if ($L[$i] =~ /^\s*$/);

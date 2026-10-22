@@ -116,6 +116,8 @@ public:
     int streamFd(void);
 
     string commError(void); // Return error message string
+    // The last execout() was stopped by its timeout.
+    bool timedOut(void) const { return p_timedOut; }
 
     // Asked when an ssh host key is not in known_hosts.
     // Return true to accept and record it.  Unset, the key is refused and
@@ -221,6 +223,7 @@ private:
     string p_shell;
     string p_machine;
     string p_errMessage;
+    bool p_timedOut = false;
     Transport* p_transport;  // null until a connection is made
     bool p_ssh;              // the Transport is a RemoteTransport
     string p_scriptPrefix;   // PATH/LD_LIBRARY_PATH setup for every script

@@ -1,7 +1,8 @@
 // EcceShell on a local machine: the terminal comes from ECCE_TERMINAL like
 // the remote one, and a directory with a space and a quote reaches the shell
 // intact.  Stub terminals record their argv and run the command; a stub
-// $SHELL records where it started.  No display is needed (xset is a stub).
+// $SHELL records where it started.  The EcceShell entry points need a
+// real X display and are skipped without one.
 
 #include <cstdio>
 #include <cstdlib>
@@ -113,6 +114,7 @@ int main()
     setenv("ECCE_REALUSER", u ? u : "nobody", 1);
   }
 
+  const bool haveX = system("xset q >/dev/null 2>&1") == 0;
   put(bin + "/xset", "#!/bin/sh\nexit 0\n", true);
   put(bin + "/pwdshell", "#!/bin/sh\npwd\n", true);
   const char* terms[] = { "xterm", "gnome-terminal", "konsole", "myterm" };
@@ -176,7 +178,16 @@ int main()
         err.find("Could not find terminal") == 0);
 
   // Through the EcceShell entry points the Organizer, Launcher and MD
-  // Prepare use, on a machine registered as localhost.
+  // Prepare use, on a machine registered as localhost.  They first ask
+  // the X server with the real xset (the command runner does not see the
+  // stub), so without a display (headless offload runs) this part is skipped.
+  if (!haveX) {
+    printf("skip EcceShell entry points: no X display\n");
+    string rm = "rm -rf '" + tmp + "'";
+    if (system(rm.c_str())) {}
+    cout << (failures ? "FAILED" : "PASSED") << endl;
+    return failures ? 1 : 0;
+  }
   for (int i = 0; i < 4; i++) {
     string term = terms[i];
     setenv("ECCE_TERMINAL", (term == "myterm" ? "myterm --class ecce" :

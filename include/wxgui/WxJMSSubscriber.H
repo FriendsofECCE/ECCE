@@ -9,6 +9,8 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
   using std::map;
   using std::string;
   using std::less;
@@ -16,6 +18,7 @@
 #include "wx/wx.h"
 #include "wx/event.h"
 
+#include "util/JMSMessage.H"
 #include "wxgui/WxJMSListener.H"
 
 class WxJMSSubscriber;
@@ -58,6 +61,10 @@ class WxJMSSubscriber : public wxEvtHandler {
 
     bool holdMessages();
     bool resumeMessaging();
+    // On: callbacks wait instead of running (unlike holdMessages, nothing
+    // is dropped); off: the waiting ones run, in order, from the event
+    // loop.  For an app object that outlives its event loop.
+    void deferMessages(bool on);
     // See MqttEndpoint::answerAs.
     void answerAs(const string& alias, const string& topic);
 
@@ -71,6 +78,8 @@ class WxJMSSubscriber : public wxEvtHandler {
     wxCbMap cbStructs;               /**< holds the Ecce app's callback classes & 
                                       * functions - one pair for each 
                                       * subscription */
+    bool p_deferring = false;
+    std::vector<std::pair<string, JMSMessage> > p_deferred;
     string p_toolName;               /**< Name of tool - used to stamp messages */
     bool p_messagingEnabled;         /**< Indicates if messaging is enabled */
     bool p_started;

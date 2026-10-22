@@ -181,6 +181,9 @@ int LauncherScript::runCommand(const vector<string>& w)
         else
             fprintf(stderr, "[LAUNCHER] ok %s = '%s'\n", w[1].c_str(), got.c_str());
     }
+    else if (cmd == "print" && n == 2)
+        fprintf(stderr, "[LAUNCHER] %s = %s\n", w[1].c_str(),
+                p_frame->hookGet(w[1]).c_str());
     else if (cmd == "wait" && n == 2)
         return atoi(w[1].c_str());
     else if (cmd == "shot" && n == 2)

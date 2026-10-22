@@ -2095,8 +2095,9 @@ bool Launch::launchNormal(void)
     cout << "launch: Executing Command: " << command << endl;
 #endif
 
-  // The timeout can now be adjusted by setting an ECCE_SUBMIT_TIMEOUT
-  // environment var.  If this is not set, it defaults to 120.
+  // A submit command that cannot reach its scheduler (sbatch retrying an
+  // unreachable controller) is silent; stop it after this many seconds
+  // without output.  ECCE_SUBMIT_TIMEOUT overrides it.
   int timeOut = 120;
   if (getenv("ECCE_SUBMIT_TIMEOUT") != NULL) 
     timeOut = (int)strtol(getenv("ECCE_SUBMIT_TIMEOUT"), (char**)NULL, 10);
@@ -2118,7 +2119,13 @@ bool Launch::launchNormal(void)
     cout << "        Submit timeout: " << timeOut << " seconds" << endl;
 #endif
 
-  if (!ret) {
+  if (!ret && !bgFlag && p_connection->timedOut()) {
+    p_lastMessage = "The queue (" + p_cache->mgr->name() + ") did not answer within " +
+                    std::to_string(timeOut) + " s, so ECCE stopped the submit command. "
+                    "Check that the queue is running, then launch again.";
+    STLUtil::stripLeadingAndTrailingWhiteSpace(output);
+    p_lastMessage += output != "" ? "\nLast output: " + output : "\nThere was no output.";
+  } else if (!ret) {
     p_lastMessage = p_connection->commError();
     if (output != "") {
       p_lastMessage += "\nJob submission output: ";
