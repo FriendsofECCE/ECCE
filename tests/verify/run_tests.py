@@ -202,6 +202,10 @@ CASES = [
     #  --- the atom count disagreeing with the calculation -------------
     ("g16-water.g16in",         "Gaussian-16",    4, [("BAD", "geometry")]),
 
+    #  --- Opt=QST3: one geometry block per structure, counted per block
+    ("g16-qst3.g16in",          "Gaussian-16",    3, [("GOOD", "geometry")]),
+    ("g16-qst3-block-size.g16in", "Gaussian-16",  3, [("BAD", "geometry")]),
+
     #  --- honest ignorance, which must not read as either verdict -----
     #  A checkpoint geometry is not a missing geometry.
     ("g16-geom-check.g16in",    "Gaussian-16",    0, [("UNSURE", "geometry")]),
