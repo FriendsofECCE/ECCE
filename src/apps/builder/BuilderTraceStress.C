@@ -368,6 +368,12 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
     nm->stop();
     return true;
   }
+  //  "vibspace": the Space key in the viewer.
+  if (c == "vibspace") {
+    fprintf(stderr, "VIBSPACE: %d\n", pauseVibrationKey() ? 1 : 0);
+    spin(50);
+    return true;
+  }
   //  "vibstep <n>": n animation steps, as the timer makes them.
   if (c == "vibstep" && w.size() == 2) {
     for (int i = 0; i < atoi(w[1].c_str()); i++) {
@@ -379,9 +385,17 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
   //  "vibstate": what the panel and the viewer show, for the test to read.
   if (c == "vibstate") {
     SGContainer *sg = getSG();
-    fprintf(stderr, "VIBSTATE: atoms=%lu arrows=%d enabled=%d\n",
-            (unsigned long)sg->getFragment()->numAtoms(),
-            sg->getNMVecRoot()->getNumChildren(), nm->modesApply() ? 1 : 0);
+    //  Sum of the coordinates: equal before and after only if restored.
+    double sum = 0;
+    SGFragment *f = sg->getFragment();
+    for (size_t i = 0; i < f->numAtoms(); i++) {
+      const double *x = f->atomCoords(i);
+      sum += x[0] + 2*x[1] + 3*x[2];
+    }
+    fprintf(stderr, "VIBSTATE: atoms=%lu arrows=%d enabled=%d animating=%d "
+            "paused=%d coords=%.5f\n", (unsigned long)f->numAtoms(),
+            sg->getNMVecRoot()->getNumChildren(), nm->modesApply() ? 1 : 0,
+            nm->isAnimating() ? 1 : 0, nm->isPaused() ? 1 : 0, sum);
     return true;
   }
   //  "vibstarts": per arrow, the distance from its start to its atom's

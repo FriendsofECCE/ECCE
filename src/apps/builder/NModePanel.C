@@ -758,6 +758,9 @@ void NModePanel::showAnimationMode()
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
+
+   // Choosing Animation plays the selected mode; there is no Start button.
+   if (p_active) start();
 }
 
 void NModePanel::showVectorMode()
@@ -768,6 +771,9 @@ void NModePanel::showVectorMode()
    p_styleSizer->Layout();
 
    stop();
+
+   // The animation leaves the atoms displaced; Vector draws the equilibrium.
+   if (checkStructure()) selectFragStep(-1);
 
    // Have to update because animations overwrite the cs.
    updateVectors();
@@ -1528,6 +1534,13 @@ void NModePanel::showMode(int index)
    fw.execute(cmd2);
    p_aniAmplitude = cmd2->getParameter("Amplitude")->getDouble();
 
+   // Another mode while Animation is chosen: play that one, also after a pause.
+   wxRadioBox *vizbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   if (vizbox && vizbox->GetSelection() == 0 && p_active) {
+      p_paused = false;
+      start();
+   }
+
    setSlider();
 
    processStep(p_currentStep);
@@ -1614,6 +1627,14 @@ void NModePanel::start()
 {
    if (!checkStructure()) return;
    if (!p_animating) {
+      // Calculations without a geometry trace have no step to go back to.
+      if (p_home.empty()) {
+         SGFragment *frag = getFW().getSceneGraph().getFragment();
+         for (size_t i = 0; frag && i < frag->numAtoms(); i++) {
+            const double *x = frag->atomRef(i)->coordinates();
+            p_home.insert(p_home.end(), x, x + 3);
+         }
+      }
       p_animating = true;
       p_timer->StartOnce(animationDelay());
    }
@@ -1622,7 +1643,39 @@ void NModePanel::start()
 void NModePanel::stop()
 {
    p_animating = false;
+   p_paused = false;
    p_timer->Stop();
+   restoreHome();
+}
+
+void NModePanel::restoreHome()
+{
+   if (p_home.empty()) return;
+   std::vector<double> home;
+   home.swap(p_home);
+   SGContainer& sg = getFW().getSceneGraph();
+   SGFragment *frag = sg.getFragment();
+   // An edited structure is not ours to move back.
+   if (!frag || frag->numAtoms() * 3 != home.size() || !modesApply()) return;
+   for (size_t i = 0; i < frag->numAtoms(); i++)
+      frag->atomRef(i)->coordinates(&home[3*i]);
+   sg.touchChemDisplay(frag);
+   frag->touch();
+   sg.adjustMeasures();
+}
+
+bool NModePanel::togglePause()
+{
+   if (p_animating) {
+      p_animating = false;
+      p_paused = true;
+      p_timer->Stop();
+      return true;
+   }
+   if (!p_paused) return false;
+   p_paused = false;
+   start();
+   return true;
 }
 
 // One-shot, re-armed after each step: a repeating timer shorter than a
@@ -1754,6 +1807,8 @@ void NModePanel::OnSliderTextEnter(wxCommandEvent& event)
 
 void NModePanel::receiveFocus()
 {
+   // hasFocus() turns true only after this returns.
+   p_active = true;
    if (!checkStructure()) return;
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
    p_lastRadioSel = radbox->GetSelection();
@@ -1767,6 +1822,7 @@ void NModePanel::receiveFocus()
 
 void NModePanel::loseFocus()
 {
+   p_active = false;
    SGContainer& sg = getFW().getSceneGraph();
    sg.getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
@@ -1775,20 +1831,6 @@ void NModePanel::loseFocus()
    // Restore after the animation, never over an edited structure.
    if (checkStructure()) selectFragStep(-1);
 }
-
-void NModePanel::OnBitmapbuttonStartClick( wxCommandEvent& event )
-{
-   start();
-   event.Skip();
-}
-
-
-void NModePanel::OnBitmapbuttonStopClick( wxCommandEvent& event )
-{
-   stop();
-   event.Skip();
-}
-
 
 void NModePanel::OnButtonNmodeVeccolorClick( wxCommandEvent& event )
 {

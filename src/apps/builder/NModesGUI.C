@@ -41,8 +41,6 @@
 ////@begin XPM images
 
 ////@end XPM images
-const wxWindowID NModesGUI::ID_BITMAPBUTTON_START = wxNewId();
-const wxWindowID NModesGUI::ID_BITMAPBUTTON_STOP = wxNewId();
 const wxWindowID NModesGUI::ID_RADIOBOX_NMODE_VIZTYPE = wxNewId();
 const wxWindowID NModesGUI::ID_RADIOBOX_NMODE_DATAVIEW = wxNewId();
 const wxWindowID NModesGUI::ID_GRID_NMODE = wxNewId();
@@ -69,10 +67,6 @@ BEGIN_EVENT_TABLE( NModesGUI, VizPropertyPanel )
     EVT_RADIOBOX( ID_RADIOBOX_NMODE_VIZTYPE, NModesGUI::OnRadioboxNmodeViztypeSelected )
 
     EVT_TEXT_ENTER( ID_TEXTCTRL_NMODE_DELAY, NModesGUI::OnTextctrlNmodeDelayEnter )
-
-    EVT_BUTTON( ID_BITMAPBUTTON_START, NModesGUI::OnBitmapbuttonStartClick )
-
-    EVT_BUTTON( ID_BITMAPBUTTON_STOP, NModesGUI::OnBitmapbuttonStopClick )
 
     EVT_BUTTON( ID_BUTTON_NMODE_VECCOLOR, NModesGUI::OnButtonNmodeVeccolorClick )
 
@@ -129,46 +123,6 @@ bool NModesGUI::Create( IPropCalculation* calculation, wxWindow* parent, wxWindo
     // pitfall note.
 ////@end NModesGUI creation
     return true;
-}
-
-/*!
- * A play triangle or a stop square, drawn in the button's text colour at one
- * and two times 12 px: it needs no icon theme and no image file.
- */
-static wxBitmapBundle playGlyph(bool stop)
-{
-    const wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
-    wxVector<wxBitmap> sizes;
-    for (int scale = 1; scale <= 2; ++scale) {
-        const int n = 12 * scale;
-        wxImage img(n, n);
-        img.InitAlpha();
-        unsigned char *rgb = img.GetData();
-        unsigned char *alpha = img.GetAlpha();
-        for (int y = 0; y < n; ++y) {
-            for (int x = 0; x < n; ++x) {
-                int covered = 0;
-                for (int sy = 0; sy < 4; ++sy) {
-                    for (int sx = 0; sx < 4; ++sx) {
-                        const double px = (x + (sx + 0.5)/4)/n;
-                        const double py = (y + (sy + 0.5)/4)/n;
-                        const bool in = stop
-                            ? (px >= 0.1 && px <= 0.9 && py >= 0.1 && py <= 0.9)
-                            : (px >= 0.2 && px <= 0.92 &&
-                               fabs(py - 0.5) <= 0.45*(0.92 - px)/0.72);
-                        if (in) ++covered;
-                    }
-                }
-                const int i = y*n + x;
-                rgb[3*i] = ink.Red();
-                rgb[3*i+1] = ink.Green();
-                rgb[3*i+2] = ink.Blue();
-                alpha[i] = (unsigned char)(covered*255/16);
-            }
-        }
-        sizes.push_back(wxBitmap(img));
-    }
-    return wxBitmapBundle::FromBitmaps(sizes);
 }
 
 /*!
@@ -273,21 +227,6 @@ void NModesGUI::CreateControls()
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemVizPropertyPanel1, wxID_STATIC, _("50-5000 ms "), wxDefaultPosition, wxDefaultSize, 0 );
     p_animateSizer->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-    //  Start and Stop carry a drawn glyph and a label: a theme without the
-    //  media icons (or one that draws them in an unreadable colour) leaves
-    //  a blank button, and a button must never be blank.
-    ewxButton* itemBitmapButton16 = new ewxButton( itemVizPropertyPanel1, ID_BITMAPBUTTON_START, _("Start"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBitmapButton16->SetBitmap(playGlyph(false));
-    if (ShowToolTips())
-        itemBitmapButton16->SetToolTip(_("Start the animation of this normal mode"));
-    p_animateSizer->Add(itemBitmapButton16, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
-
-    ewxButton* itemBitmapButton18 = new ewxButton( itemVizPropertyPanel1, ID_BITMAPBUTTON_STOP, _("Stop"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBitmapButton18->SetBitmap(playGlyph(true));
-    if (ShowToolTips())
-        itemBitmapButton18->SetToolTip(_("Stop the animation"));
-    p_animateSizer->Add(itemBitmapButton18, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
-
     p_vectorSizer = new wxWrapSizer(wxHORIZONTAL);
     p_styleSizer->Add(p_vectorSizer, 0, wxEXPAND|wxALL, 0);
 
@@ -339,30 +278,6 @@ void NModesGUI::OnTextctrlNmodeDelayEnter( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_TEXT_ENTER event handler for ID_TEXTCTRL_NMODE_DELAY in NModesGUI. 
-}
-
-/*!
- * wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BITMAPBUTTON_START
- */
-
-void NModesGUI::OnBitmapbuttonStartClick( wxCommandEvent& event )
-{
-////@begin wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BITMAPBUTTON_START in NModesGUI.
-    // Before editing this code, remove the block markers.
-    event.Skip();
-////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BITMAPBUTTON_START in NModesGUI. 
-}
-
-/*!
- * wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BITMAPBUTTON_STOP
- */
-
-void NModesGUI::OnBitmapbuttonStopClick( wxCommandEvent& event )
-{
-////@begin wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BITMAPBUTTON_STOP in NModesGUI.
-    // Before editing this code, remove the block markers.
-    event.Skip();
-////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BITMAPBUTTON_STOP in NModesGUI. 
 }
 
 /*!
