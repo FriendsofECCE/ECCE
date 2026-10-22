@@ -3654,21 +3654,13 @@ void Builder::OnModeElementList( wxCommandEvent& event )
 }
 
 
-//  The periodic table, below the element tool's arrow, not at the pointer.
-TearableContent *Builder::showElementChooser()
+//  A drop-down below its mode tool, else below the toolbar under the
+//  pointer. Position() opens at origin + size, so a zero width keeps the
+//  popup's left edge on the tool's. Never under the pointer: on Windows the
+//  rest of the click then lands on the new popup and dismisses it at once.
+void Builder::popupBelowTool(TearableContent *tc, int toolId)
 {
-  wxWindow *pertab;
-  if (ElementChooser::enabled()) {
-    pertab = new ElementChooser(this, p_currentElement);
-  } else {
-    pertab = new PerTabPanel(this, false, ID_ITEM_DEFAULT, false, true, true);
-    pertab->SetName("Elements");
-  }
-  TearableContent *tc = new TearableContent(pertab);
-  //  A drop-down below the selector tool, else below the toolbar under the
-  //  pointer. Position() opens at origin + size, so a zero width keeps the
-  //  table's left edge on the tool's.
-  wxRect anchor = ewxToolRect(p_modeToolbar, ID_MODE_ELEMENT_LIST);
+  wxRect anchor = ewxToolRect(p_modeToolbar, toolId);
   if (anchor.IsEmpty()) {
     const wxPoint at = p_modeToolbar->ScreenToClient(wxGetMousePosition());
     if (wxRect(p_modeToolbar->GetClientSize()).Contains(at))
@@ -3681,6 +3673,21 @@ TearableContent *Builder::showElementChooser()
                  wxSize(0, anchor.GetHeight()));
   }
   tc->Popup();
+}
+
+
+//  The periodic table, below the element tool's arrow, not at the pointer.
+TearableContent *Builder::showElementChooser()
+{
+  wxWindow *pertab;
+  if (ElementChooser::enabled()) {
+    pertab = new ElementChooser(this, p_currentElement);
+  } else {
+    pertab = new PerTabPanel(this, false, ID_ITEM_DEFAULT, false, true, true);
+    pertab->SetName("Elements");
+  }
+  TearableContent *tc = new TearableContent(pertab);
+  popupBelowTool(tc, ID_MODE_ELEMENT_LIST);
   return tc;
 }
 
@@ -3691,8 +3698,7 @@ void Builder::OnModeShapeClick( wxCommandEvent& event )
            ShapeData::stringToShape(p_currentShapes[p_currentElement]), this);
    TearableContent *tc = new TearableContent(l);
    l->connectToolKitFW(this);
-   tc->Position(wxGetMousePosition(), wxSize(1, 1));
-   tc->Popup();
+   popupBelowTool(tc, ID_MODE_SHAPE);
 }
 
 
@@ -3708,8 +3714,7 @@ void Builder::OnModeBondClick( wxCommandEvent& event )
   BondDropDown *l = new BondDropDown(p_currentBond, this);
   TearableContent *tc = new TearableContent(l);
   l->connectToolKitFW(this);
-  tc->Position(wxGetMousePosition(), wxSize(1, 1));
-  tc->Popup();
+  popupBelowTool(tc, ID_MODE_BOND);
   toggleModeButton(event.GetId());
 }
 
