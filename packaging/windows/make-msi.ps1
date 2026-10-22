@@ -79,13 +79,11 @@ $wxs = @"
     </Property>
 
     <!-- RemoveFolderEx needs the path; the registry search finds nothing on a first install. -->
-    <SetProperty Id="SetInstPath" Property="INSTALLFOLDER_PATH" Value="[INSTALLFOLDER]"
-                 Action="SetInstPathAct" Sequence="execute" Before="Wix4RemoveFoldersEx_X64"
+    <SetProperty Id="INSTALLFOLDER_PATH" Value="[INSTALLFOLDER]" Sequence="execute" Before="Wix4RemoveFoldersEx_X64"
                  Condition="NOT INSTALLFOLDER_PATH" />
 
     <!-- Welcome, progress and exit pages; Repair/Remove when run again.  The
          licence and folder pages are skipped: the location is fixed and per-user. -->
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT"
       Value="ECCE is installed for your user only, in %LOCALAPPDATA%\Programs\ECCE. Start it from the Start menu: ECCE." />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch ECCE" />
