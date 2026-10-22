@@ -652,16 +652,6 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   restoreSettings();
 
   syncLassoType(p_currentMode);
-  //  View > Select Mode Action changes the drag box at once, not at the
-  //  next mode change.
-  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) {
-    p_viewer->setSelectModeDrag(ev.GetId() == ViewerEvtHandler::ID_SELECT_DRAG);
-    syncLassoType(p_currentMode);
-  }, ViewerEvtHandler::ID_SELECT_DRAG);
-  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) {
-    p_viewer->setSelectModeDrag(ev.GetId() == ViewerEvtHandler::ID_SELECT_DRAG);
-    syncLassoType(p_currentMode);
-  }, ViewerEvtHandler::ID_SELECT_LASSO);
 
   // For importing output files
   // Also called from the Organizer, but needed here for users who have
@@ -1984,21 +1974,20 @@ void Builder::motionChanged(const MotionData& data)
 
 }
 
+/// Select mode: a drag from empty space draws a box and a drag from a
+/// selected atom moves the selection (SGSelection decides per press).
+/// Elsewhere a click must not turn into a box.
+void Builder::syncLassoType(int modeId)
+{
+  p_viewer->getSel()->setBoxSelect(modeId == ID_MODE_SELECT);
+  p_viewer->getSel()->lassoType.setValue(SGSelection::NOLASSO);
+}
+
+
 /**
  * Set the builder mode: the one place that sets the mode in effect, the
  * viewer, the toolbar and the Mode menu together, so they cannot disagree.
  */
-/// The drag box is off with Atom Drag chosen, and in the Atom and
-/// Structure Library modes (a click there must not turn into a box).
-void Builder::syncLassoType(int modeId)
-{
-  const bool off = p_viewer->getSelectModeDrag() ||
-                   modeId == ID_MODE_ATOM || modeId == ID_MODE_STRUCTLIB;
-  p_viewer->getSel()->lassoType.setValue(off ? SGSelection::NOLASSO
-                                             : SGSelection::DRAGGER);
-}
-
-
 void Builder::setMode(int modeId)
 {
   applyMode(modeId);
@@ -2304,7 +2293,6 @@ void Builder::saveSettings()
                  IsChecked(ViewerEvtHandler::ID_RESIDUE_LABEL));
    config->Write("/BondLabels", GetMenuBar()->
                  IsChecked(ViewerEvtHandler::ID_BOND_LABEL));
-   config->Write("/SelectModeDrag", isSelectModeDrag());
    
    if (getenv("ECCE_DEVELOPER")) {
      config->Write("/ShowCmd", p_toolMenu->IsChecked(ID_SHOW_CMD));
@@ -2434,19 +2422,6 @@ void Builder::restoreSettings()
      }
      GetMenuBar()->Check(it->second, buffer);
    }
-
-   // these are radio buttons
-   tmp["/SelectModeDrag"] = ViewerEvtHandler::ID_SELECT_DRAG;
-   config->Read("/SelectModeDrag", &buffer, 1);
-   if (buffer)  {
-     evt.SetId(ViewerEvtHandler::ID_SELECT_DRAG);
-     GetMenuBar()->Check(ViewerEvtHandler::ID_SELECT_DRAG, true);
-   } else {
-     evt.SetId(ViewerEvtHandler::ID_SELECT_LASSO);
-     GetMenuBar()->Check(ViewerEvtHandler::ID_SELECT_LASSO, true);
-   }
-   evt.SetInt(1);
-   p_viewerEvtHandler->ProcessEvent(evt);
 
    if (getenv("ECCE_DEVELOPER")) {
      config->Read("/ShowCmd", &buffer, 0);
@@ -2708,7 +2683,7 @@ bool Builder::isAutoCenter() const
 
 bool Builder::isSelectModeDrag() const
 {
-  return getToolState(ViewerEvtHandler::ID_SELECT_DRAG);
+  return p_viewer->getSelectModeDrag();
 }
 
 

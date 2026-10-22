@@ -349,6 +349,8 @@ SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
   p_redrawPending = false;
   p_frameCB = 0;
   p_frameCBData = 0;
+  p_band = false;
+  p_bandX0 = p_bandY0 = p_bandX1 = p_bandY1 = 0;
 
   // wx3.x wxGLCanvas no longer implicitly creates/owns a GL context (that
   // was wx2.8 behavior) - we must create and manage one explicitly now.
@@ -1010,6 +1012,55 @@ SoGLRenderAction * SoWxRenderArea::getOverlayGLRenderAction() const
 }
 
 
+void SoWxRenderArea::setRubberBand(bool on, short x0, short y0, short x1,
+                                   short y1)
+{
+  if (!on && !p_band) return;
+  p_band = on;
+  p_bandX0 = x0; p_bandY0 = y0; p_bandX1 = x1; p_bandY1 = y1;
+  Refresh(false);
+}
+
+
+//  Drawn in the GL frame itself, after the scene, so it works the same on
+//  X11 and XWayland and needs no overlay planes.
+void SoWxRenderArea::drawRubberBand()
+{
+  GLint vp[4];
+  glGetIntegerv(GL_VIEWPORT, vp);
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+  glOrtho(0, vp[2], 0, vp[3], -1, 1);
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+  glDisable(GL_LIGHTING);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_CULL_FACE);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  const float x0 = p_bandX0 + 0.5f, y0 = p_bandY0 + 0.5f;
+  const float x1 = p_bandX1 + 0.5f, y1 = p_bandY1 + 0.5f;
+  glColor4f(0.0f, 0.45f, 0.70f, 0.15f);
+  glBegin(GL_QUADS);
+  glVertex2f(x0, y0); glVertex2f(x1, y0); glVertex2f(x1, y1); glVertex2f(x0, y1);
+  glEnd();
+  glLineWidth(2.0f);
+  glColor4f(0.90f, 0.62f, 0.0f, 1.0f);
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(x0, y0); glVertex2f(x1, y0); glVertex2f(x1, y1); glVertex2f(x0, y1);
+  glEnd();
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
+  glPopAttrib();
+}
+
+
 /**
  * This routine draws the scene graph (called by expose events and the
  * scene graph sensor)
@@ -1122,6 +1173,7 @@ void SoWxRenderArea::redraw()
   actualRedraw();
 #endif
   if (p_frameCB) p_frameCB(p_frameCBData);
+  if (p_band) drawRubberBand();
 
   // swap those buffers!
   if (isDoubleBuffer()) {

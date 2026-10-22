@@ -980,10 +980,6 @@ void ViewerEvtHandler::createOptionMenu(wxMenu * menu)
   menu->Append(ID_SHOW_RING, _("Show Aromatic Rings"), _T(""), wxITEM_CHECK);
   menu->Check(ID_SHOW_RING, true);
   menu->AppendSeparator();
-  wxMenu* selectMenu = new wxMenu;
-  selectMenu->Append(ID_SELECT_DRAG, _("Atom Drag"), _T(""), wxITEM_RADIO);
-  selectMenu->Append(ID_SELECT_LASSO, _("Lasso Select"), _T(""), wxITEM_RADIO);
-  menu->Append(ID_SELECT_ACTION, _("Select Mode Action"), selectMenu);
   menu->Append(ID_AUTO_NORMALIZE, _("Auto Normalize Display"), _T(""), wxITEM_CHECK);
   menu->Append(ID_ENABLE_SPINNING, _("Enable Spinning"), _T(""), wxITEM_CHECK);
   menu->Append(ID_AUTO_RESIDUE, _("Auto Open Residue Table"), _T(""), wxITEM_CHECK);
