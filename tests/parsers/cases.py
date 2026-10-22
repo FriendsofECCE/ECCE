@@ -2065,6 +2065,25 @@ CASES = [
         },
     ),
     dict(
+        # Relaxed scan (#450): H2O2 HF/STO-3G torsion 120 to 240 degrees in 7
+        # points.  The table is rewritten after every point so only the last
+        # counts; each point's structure is a block of its own.
+        name='ecceqm-h2o2-scan',
+        desc='ecceqm.desc',
+        fixture='ecceqm/h2o2_scan.qmout',
+        parse_args=('.', 'Geometry', 'SCF', 'HF', '0'),
+        expect={
+            'SCANCOORD][SCANENERGY': dict(keys={
+                'SCANCOORD': {'values': '120.00000 140.00000 160.00000 '
+                              '180.00000 200.00000 220.00000 240.00000',
+                              'units': 'Degree'},
+                'SCANENERGY': {'size': '7', 'units': 'Hartree'}}),
+            'SCANGEOM': dict(blocks=7, keys={'SCANGEOM': {
+                'size': '1 4 3', 'rowlabels': '1-O 2-O 3-H 4-H',
+                'units': 'Angstrom'}}),
+        },
+    ),
+    dict(
         # Geometry optimisation: one geometry/energy/gradient block per
         # step.  TE stays the final energy while TEVEC, GEOMTRACE and EGRAD
         # accumulate the trace (ORCA's RHF/STO-3G value for this molecule is

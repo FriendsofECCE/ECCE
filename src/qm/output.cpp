@@ -67,6 +67,35 @@ void write_opt_step(std::ostream& os, const OptStep& st) {
   os.flush();
 }
 
+void write_scan_table(std::ostream& os, const std::vector<ScanPointOut>& pts, bool bond) {
+  char b[160];
+  os << "begin scan_table  # point value energy(hartree) converged; unit " << (bond ? "angstrom" : "degree") << "\n";
+  for (size_t i = 0; i < pts.size(); ++i) {
+    std::snprintf(b, sizeof b, "%zu %.6f %.12f %s\n", i + 1, pts[i].value, pts[i].energy, pts[i].converged ? "yes" : "no");
+    os << b;
+  }
+  os << "end scan_table\n";
+  os.flush();
+}
+
+void write_scan_geometry(std::ostream& os, int point, double value, const Molecule& mol) {
+  char b[160];
+  std::snprintf(b, sizeof b, "begin scan_geometry  # point %d value %.6f; index symbol x y z (angstrom)\n", point, value);
+  os << b;
+  for (size_t a = 0; a < mol.atoms.size(); ++a) {
+    std::snprintf(b, sizeof b, "%zu %s %.10f %.10f %.10f\n", a + 1, element_symbol(mol.atoms[a].Z),
+                  mol.atoms[a].x[0] * kBohrToAngstrom, mol.atoms[a].x[1] * kBohrToAngstrom, mol.atoms[a].x[2] * kBohrToAngstrom);
+    os << b;
+  }
+  os << "end scan_geometry\n";
+  os.flush();
+}
+
+void write_progress_scan(std::ostream& os, int point, int points) {
+  os << "progress scan point=" << point << "/" << points << "\n";
+  os.flush();
+}
+
 // Fixed formats, so the monitor's lines do not depend on the stream's state.
 static std::string sci(double v, int digits = 2) {
   char b[32];

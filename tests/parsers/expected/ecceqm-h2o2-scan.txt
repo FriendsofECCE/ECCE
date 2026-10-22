@@ -1,0 +1,865 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    ecceqm-h2o2-scan
+desc:    ecceqm.desc
+fixture: ecceqm/h2o2_scan.qmout (852 lines)
+args:    '.' 'Geometry' 'SCF' 'HF' '0'
+
+[TE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_total\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=795 fed=1 rc=0 first-fed='energy_total -148.764987301999'
+    key: TE
+      size: 1
+      values: -148.764987301999
+      units: Hartree
+
+[TEVEC]  Script=ecceqm.parse  Freq=all  Skip=0  Lines=1
+  Begin=^energy_step\s
+  begins=29 delivered=29 buffered_away=0
+  block 1: begin-line=13 fed=1 rc=0 first-fed='energy_step -148.744539718785'
+    key: TEVEC
+      size: 1
+      values: -148.744539718785
+      units: Hartree
+  block 2: begin-line=38 fed=1 rc=0 first-fed='energy_step -148.764599317925'
+    key: TEVEC
+      size: 1
+      values: -148.764599317925
+      units: Hartree
+  block 3: begin-line=62 fed=1 rc=0 first-fed='energy_step -148.764973416432'
+    key: TEVEC
+      size: 1
+      values: -148.764973416432
+      units: Hartree
+  block 4: begin-line=85 fed=1 rc=0 first-fed='energy_step -148.764987182020'
+    key: TEVEC
+      size: 1
+      values: -148.764987182020
+      units: Hartree
+  block 5: begin-line=107 fed=1 rc=0 first-fed='energy_step -148.764987301984'
+    key: TEVEC
+      size: 1
+      values: -148.764987301984
+      units: Hartree
+  block 6: begin-line=143 fed=1 rc=0 first-fed='energy_step -148.762253975787'
+    key: TEVEC
+      size: 1
+      values: -148.762253975787
+      units: Hartree
+  block 7: begin-line=167 fed=1 rc=0 first-fed='energy_step -148.764803104599'
+    key: TEVEC
+      size: 1
+      values: -148.764803104599
+      units: Hartree
+  block 8: begin-line=190 fed=1 rc=0 first-fed='energy_step -148.764954559981'
+    key: TEVEC
+      size: 1
+      values: -148.764954559981
+      units: Hartree
+  block 9: begin-line=211 fed=1 rc=0 first-fed='energy_step -148.764954634874'
+    key: TEVEC
+      size: 1
+      values: -148.764954634874
+      units: Hartree
+  block 10: begin-line=248 fed=1 rc=0 first-fed='energy_step -148.763090488029'
+    key: TEVEC
+      size: 1
+      values: -148.763090488029
+      units: Hartree
+  block 11: begin-line=272 fed=1 rc=0 first-fed='energy_step -148.764800378881'
+    key: TEVEC
+      size: 1
+      values: -148.764800378881
+      units: Hartree
+  block 12: begin-line=295 fed=1 rc=0 first-fed='energy_step -148.764895309443'
+    key: TEVEC
+      size: 1
+      values: -148.764895309443
+      units: Hartree
+  block 13: begin-line=316 fed=1 rc=0 first-fed='energy_step -148.764895503510'
+    key: TEVEC
+      size: 1
+      values: -148.764895503510
+      units: Hartree
+  block 14: begin-line=354 fed=1 rc=0 first-fed='energy_step -148.763910443529'
+    key: TEVEC
+      size: 1
+      values: -148.763910443529
+      units: Hartree
+  block 15: begin-line=377 fed=1 rc=0 first-fed='energy_step -148.764847755753'
+    key: TEVEC
+      size: 1
+      values: -148.764847755753
+      units: Hartree
+  block 16: begin-line=399 fed=1 rc=0 first-fed='energy_step -148.764882523802'
+    key: TEVEC
+      size: 1
+      values: -148.764882523802
+      units: Hartree
+  block 17: begin-line=420 fed=1 rc=0 first-fed='energy_step -148.764882997444'
+    key: TEVEC
+      size: 1
+      values: -148.764882997444
+      units: Hartree
+  block 18: begin-line=459 fed=1 rc=0 first-fed='energy_step -148.764438858386'
+    key: TEVEC
+      size: 1
+      values: -148.764438858386
+      units: Hartree
+  block 19: begin-line=483 fed=1 rc=0 first-fed='energy_step -148.764891887817'
+    key: TEVEC
+      size: 1
+      values: -148.764891887817
+      units: Hartree
+  block 20: begin-line=505 fed=1 rc=0 first-fed='energy_step -148.764895264377'
+    key: TEVEC
+      size: 1
+      values: -148.764895264377
+      units: Hartree
+  block 21: begin-line=527 fed=1 rc=0 first-fed='energy_step -148.764895505543'
+    key: TEVEC
+      size: 1
+      values: -148.764895505543
+      units: Hartree
+  block 22: begin-line=567 fed=1 rc=0 first-fed='energy_step -148.764637339106'
+    key: TEVEC
+      size: 1
+      values: -148.764637339106
+      units: Hartree
+  block 23: begin-line=591 fed=1 rc=0 first-fed='energy_step -148.764949742199'
+    key: TEVEC
+      size: 1
+      values: -148.764949742199
+      units: Hartree
+  block 24: begin-line=614 fed=1 rc=0 first-fed='energy_step -148.764954398763'
+    key: TEVEC
+      size: 1
+      values: -148.764954398763
+      units: Hartree
+  block 25: begin-line=636 fed=1 rc=0 first-fed='energy_step -148.764954635904'
+    key: TEVEC
+      size: 1
+      values: -148.764954635904
+      units: Hartree
+  block 26: begin-line=677 fed=1 rc=0 first-fed='energy_step -148.764501084745'
+    key: TEVEC
+      size: 1
+      values: -148.764501084745
+      units: Hartree
+  block 27: begin-line=701 fed=1 rc=0 first-fed='energy_step -148.764964229328'
+    key: TEVEC
+      size: 1
+      values: -148.764964229328
+      units: Hartree
+  block 28: begin-line=724 fed=1 rc=0 first-fed='energy_step -148.764987278149'
+    key: TEVEC
+      size: 1
+      values: -148.764987278149
+      units: Hartree
+  block 29: begin-line=745 fed=1 rc=0 first-fed='energy_step -148.764987301999'
+    key: TEVEC
+      size: 1
+      values: -148.764987301999
+      units: Hartree
+
+[GEOMTRACE]  Script=ecceqm.parse  Freq=all  Skip=0  Lines=-
+  Begin=^begin geometry\b
+  End=^end geometry
+  begins=29 delivered=29 buffered_away=0
+  block 1: begin-line=15 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: 0.0328502855 0.7300126900 -0.0757599937 -0.0328502855 -0.7300126900 -0.0757599937 0.8233461783 0.8999900969 0.3757599937 -0.8233461783 -0.8999900969 0.3757599937
+      units: Angstrom
+  block 2: begin-line=40 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0114275858 0.6931707253 -0.0979388291 0.0114275858 -0.6931707253 -0.0979388291 0.8444082766 0.8852216908 0.3979388291 -0.8444082766 -0.8852216908 0.3979388291
+      units: Angstrom
+  block 3: begin-line=64 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0021154432 0.6988400442 -0.0959602132 0.0021154432 -0.6988400442 -0.0959602132 0.8493164922 0.8980882771 0.3959602132 -0.8493164922 -0.8980882771 0.3959602132
+      units: Angstrom
+  block 4: begin-line=87 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0020448039 0.6977534804 -0.0955504675 0.0020448039 -0.6977534804 -0.0955504675 0.8479874838 0.8967383683 0.3955504675 -0.8479874838 -0.8967383683 0.3955504675
+      units: Angstrom
+  block 5: begin-line=109 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0020541831 0.6976856223 -0.0955049461 0.0020541831 -0.6976856223 -0.0955049461 0.8478180667 0.8965513302 0.3955049461 -0.8478180667 -0.8965513302 0.3955049461
+      units: Angstrom
+  block 6: begin-line=145 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0541707787 0.6974383086 -0.0238588907 0.0541707787 -0.6974383086 -0.0238588907 0.8885725385 0.8967507221 0.3238588907 -0.8885725385 -0.8967507221 0.3238588907
+      units: Angstrom
+  block 7: begin-line=169 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0219765907 0.7027357001 -0.0177347380 0.0219765907 -0.7027357001 -0.0177347380 0.8931562868 0.9269722262 0.3177347380 -0.8931562868 -0.9269722262 0.3177347380
+      units: Angstrom
+  block 8: begin-line=192 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0272157873 0.6988469641 -0.0181062962 0.0272157873 -0.6988469641 -0.0181062962 0.8886819644 0.9181105999 0.3181062962 -0.8886819644 -0.9181105999 0.3181062962
+      units: Angstrom
+  block 9: begin-line=213 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0272382502 0.6988408139 -0.0181387234 0.0272382501 -0.6988408139 -0.0181387234 0.8888265038 0.9182420729 0.3181387234 -0.8888265038 -0.9182420729 0.3181387234
+      units: Angstrom
+  block 10: begin-line=250 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0635097020 0.6974016905 0.0620851527 0.0635097020 -0.6974016905 0.0620851527 0.9175812457 0.9193841744 0.2379148473 -0.9175812457 -0.9193841744 0.2379148473
+      units: Angstrom
+  block 11: begin-line=274 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0382238063 0.7021071104 0.0647146828 0.0382238063 -0.7021071104 0.0647146828 0.9176653188 0.9390127908 0.2352853172 -0.9176653188 -0.9390127908 0.2352853172
+      units: Angstrom
+  block 12: begin-line=297 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0427234532 0.6992046024 0.0645706534 0.0427234532 -0.6992046024 0.0645706534 0.9138734024 0.9315690750 0.2354293466 -0.9138734024 -0.9315690750 0.2354293466
+      units: Angstrom
+  block 13: begin-line=318 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0426626854 0.6992541230 0.0645515232 0.0426626854 -0.6992541231 0.0645515232 0.9141501990 0.9319000400 0.2354484768 -0.9141501990 -0.9319000400 0.2354484768
+      units: Angstrom
+  block 14: begin-line=356 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0610955565 0.6981293447 0.1500000000 0.0610955565 -0.6981293447 0.1500000000 0.9289167604 0.9328011031 0.1500000000 -0.9289167604 -0.9328011031 0.1500000000
+      units: Angstrom
+  block 15: begin-line=379 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0452150278 0.7010749260 0.1500000000 0.0452150278 -0.7010749260 0.1500000000 0.9248998411 0.9408961647 0.1500000000 -0.9248998411 -0.9408961647 0.1500000000
+      units: Angstrom
+  block 16: begin-line=401 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0480721880 0.6992184569 0.1500000000 0.0480721880 -0.6992184569 0.1500000000 0.9222888983 0.9359835788 0.1500000000 -0.9222888983 -0.9359835788 0.1500000000
+      units: Angstrom
+  block 17: begin-line=422 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0478754600 0.6993232711 0.1500000000 0.0478754600 -0.6993232711 0.1500000000 0.9227049876 0.9365604559 0.1500000000 -0.9227049876 -0.9365604559 0.1500000000
+      units: Angstrom
+  block 18: begin-line=461 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0476915076 0.6993358645 0.2367651894 0.0476915076 -0.6993358645 0.2367651894 0.9225570070 0.9365503252 0.0632348106 -0.9225570070 -0.9365503252 0.0632348106
+      units: Angstrom
+  block 19: begin-line=485 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0420456436 0.6999409555 0.2354518937 0.0420456436 -0.6999409555 0.2354518937 0.9149375407 0.9331263622 0.0645481063 -0.9149375407 -0.9331263622 0.0645481063
+      units: Angstrom
+  block 20: begin-line=507 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0428609488 0.6991560368 0.2354489984 0.0428609488 -0.6991560368 0.2354489984 0.9139294659 0.9314384555 0.0645510016 -0.9139294659 -0.9314384555 0.0645510016
+      units: Angstrom
+  block 21: begin-line=529 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0426320322 0.6992564247 0.2354458619 0.0426320322 -0.6992564247 0.2354458619 0.9141616737 0.9318549412 0.0645541381 -0.9141616737 -0.9318549412 0.0645541381
+      units: Angstrom
+  block 22: begin-line=569 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0241599815 0.7003814154 0.3194144562 0.0241599815 -0.7003814154 0.3194144562 0.8993648108 0.9309537517 -0.0194144562 -0.8993648108 -0.9309537517 -0.0194144562
+      units: Angstrom
+  block 23: begin-line=593 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0282592883 0.6985132458 0.3183251053 0.0282592883 -0.6985132458 0.3183251053 0.8886138960 0.9165826365 -0.0183251053 -0.8886138960 -0.9165826365 -0.0183251053
+      units: Angstrom
+  block 24: begin-line=616 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0268356007 0.6989579340 0.3180873035 0.0268356007 -0.6989579340 0.3180873035 0.8890604260 0.9181764819 -0.0180873035 -0.8890604260 -0.9181764819 -0.0180873035
+      units: Angstrom
+  block 25: begin-line=638 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0270506782 0.6988499129 0.3181356237 0.0270506782 -0.6988499129 0.3181356237 0.8890561208 0.9179996863 -0.0181356237 -0.8890561208 -0.9179996863 -0.0181356237
+      units: Angstrom
+  block 26: begin-line=679 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: 0.0082506950 0.7002406589 0.3954354744 -0.0082506950 -0.7002406589 0.3954354744 0.8610759365 0.9168982837 -0.0954354744 -0.8610759365 -0.9168982837 -0.0954354744
+      units: Angstrom
+  block 27: begin-line=703 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0037742481 0.6965251109 0.3960053732 0.0037742481 -0.6965251109 0.3960053732 0.8473636630 0.8925525831 -0.0960053732 -0.8473636630 -0.8925525831 -0.0960053732
+      units: Angstrom
+  block 28: begin-line=726 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0013670823 0.6977170927 0.3954811598 0.0013670823 -0.6977170927 0.3954811598 0.8486180024 0.8958577950 -0.0954811598 -0.8486180024 -0.8958577950 -0.0954811598
+      units: Angstrom
+  block 29: begin-line=747 fed=6 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0014348318 0.6976888347 0.3955051547 0.0014348318 -0.6976888347 0.3955051547 0.8486143480 0.8957981894 -0.0955051547 -0.8486143480 -0.8957981894 -0.0955051547
+      units: Angstrom
+
+[EGRAD][EGRADVEC]  Script=ecceqm.parse  Freq=all  Skip=0  Lines=-
+  Begin=^begin gradient\b
+  End=^end gradient
+  begins=29 delivered=29 buffered_away=0
+  block 1: begin-line=21 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.2681023986
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.1107741464 0.0921261751 0.0540376116 -0.1107741464 -0.0921261751 0.0540376116 -0.0960796465 -0.0104823188 -0.0540376116 0.0960796465 0.0104823188 -0.0540376116
+      units: Hartree/Bohr
+  block 2: begin-line=46 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0280444257
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0122676299 -0.0124216078 -0.0041028381 0.0122676299 0.0124216078 -0.0041028381 0.0066329558 -0.0032849901 0.0041028381 -0.0066329558 0.0032849901 0.0041028381
+      units: Hartree/Bohr
+  block 3: begin-line=70 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0052334809
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0014602098 0.0024228905 -0.0011174494 0.0014602098 -0.0024228905 -0.0011174494 0.0016875348 0.0005889736 0.0011174494 -0.0016875348 -0.0005889736 0.0011174494
+      units: Hartree/Bohr
+  block 4: begin-line=93 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0005239884
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0000796584 0.0001104748 -0.0002179698 0.0000796584 -0.0001104748 -0.0002179698 0.0001337922 0.0000762219 0.0002179698 -0.0001337922 -0.0000762219 0.0002179698
+      units: Hartree/Bohr
+  block 5: begin-line=115 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0002584240
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0000795473 -0.0000047014 -0.0001078747 -0.0000795473 0.0000047014 -0.0001078747 -0.0000613792 0.0000005556 0.0001078747 0.0000613792 -0.0000005556 0.0001078747
+      units: Hartree/Bohr
+  block 6: begin-line=151 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0743147105
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0426159389 -0.0042223411 -0.0097595195 0.0426159389 0.0042223411 -0.0097595195 0.0261380172 -0.0073279806 0.0097595195 -0.0261380172 0.0073279806 0.0097595195
+      units: Hartree/Bohr
+  block 7: begin-line=175 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0143785868
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0043215153 0.0086723516 0.0004461463 -0.0043215153 -0.0086723516 0.0004461463 -0.0006440218 0.0029451392 -0.0004461463 0.0006440218 -0.0029451392 -0.0004461463
+      units: Hartree/Bohr
+  block 8: begin-line=198 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0004785100
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0001230672 0.0000682720 0.0001842736 -0.0001230672 -0.0000682720 0.0001842736 -0.0001526592 -0.0000588300 -0.0001842736 0.0001526592 0.0000588300 -0.0001842736
+      units: Hartree/Bohr
+  block 9: begin-line=219 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0002565401
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0000751801 -0.0000102312 0.0001068436 0.0000751801 0.0000102312 0.0001068436 0.0000652341 0.0000079431 -0.0001068436 -0.0000652341 -0.0000079431 -0.0001068436
+      units: Hartree/Bohr
+  block 10: begin-line=256 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0644158761
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0372693016 -0.0052208994 -0.0044619153 0.0372693016 0.0052208994 -0.0044619153 0.0245304398 -0.0041090216 0.0044619153 -0.0245304398 0.0041090216 0.0044619153
+      units: Hartree/Bohr
+  block 11: begin-line=280 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0105367150
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0037081337 0.0058919959 0.0001767284 -0.0037081337 -0.0058919959 0.0001767284 -0.0004714315 0.0026001148 -0.0001767284 0.0004714315 -0.0026001148 -0.0001767284
+      units: Hartree/Bohr
+  block 12: begin-line=303 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0005078302
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0001589453 -0.0000236859 0.0000926739 -0.0001589453 0.0000236859 0.0000926739 -0.0002568537 -0.0001413167 -0.0000926739 0.0002568537 0.0001413167 -0.0000926739
+      units: Hartree/Bohr
+  block 13: begin-line=324 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0001214413
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0000412702 -0.0000165724 0.0000419139 0.0000412702 0.0000165724 0.0000419139 0.0000420852 0.0000105551 -0.0000419139 -0.0000420852 -0.0000105551 -0.0000419139
+      units: Hartree/Bohr
+  block 14: begin-line=362 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0498285256
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0280376633 -0.0048704863 -0.0000000024 0.0280376633 0.0048704863 -0.0000000024 0.0207682543 -0.0005370221 0.0000000024 -0.0207682543 0.0005370221 0.0000000024
+      units: Hartree/Bohr
+  block 15: begin-line=385 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0062699749
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0021188491 0.0035312001 0.0000000000 -0.0021188491 -0.0035312001 0.0000000000 -0.0001398942 0.0016364067 -0.0000000000 0.0001398942 -0.0016364067 -0.0000000000
+      units: Hartree/Bohr
+  block 16: begin-line=407 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0005885257
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0000919704 -0.0001010059 0.0000000000 -0.0000919704 0.0001010059 0.0000000000 -0.0003062934 -0.0002463835 -0.0000000000 0.0003062934 0.0002463835 -0.0000000000
+      units: Hartree/Bohr
+  block 17: begin-line=428 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0000701727
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0000294615 -0.0000205668 0.0000000000 0.0000294615 0.0000205668 0.0000000000 0.0000327667 0.0000098728 -0.0000000000 -0.0000327667 -0.0000098728 -0.0000000000
+      units: Hartree/Bohr
+  block 18: begin-line=467 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0338206543
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0170742476 -0.0032543432 0.0027375481 0.0170742476 0.0032543432 0.0027375481 0.0157088188 0.0028358986 -0.0027375481 -0.0157088188 -0.0028358986 -0.0027375481
+      units: Hartree/Bohr
+  block 19: begin-line=491 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0022335763
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0001668467 0.0014744933 -0.0000050566 -0.0001668467 -0.0014744933 -0.0000050566 0.0002685949 0.0004693280 0.0000050566 -0.0002685949 -0.0004693280 0.0000050566
+      units: Hartree/Bohr
+  block 20: begin-line=513 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0004072012
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0001409638 -0.0001659706 -0.0000546266 0.0001409638 0.0001659706 -0.0000546266 -0.0000483279 -0.0001648808 0.0000546266 0.0000483279 0.0001648808 0.0000546266
+      units: Hartree/Bohr
+  block 21: begin-line=535 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0000972944
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0000073795 -0.0000054655 -0.0000478527 0.0000073795 0.0000054655 -0.0000478527 0.0000079986 0.0000022423 0.0000478527 -0.0000079986 -0.0000022423 0.0000478527
+      units: Hartree/Bohr
+  block 22: begin-line=575 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0197580004
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0062657149 -0.0001414546 0.0033605459 0.0062657149 0.0001414546 0.0033605459 0.0101085621 0.0055803703 -0.0033605459 -0.0101085621 -0.0055803703 -0.0033605459
+      units: Hartree/Bohr
+  block 23: begin-line=599 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0028638161
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0016044648 -0.0007842387 0.0001806094 0.0016044648 0.0007842387 0.0001806094 0.0007898927 -0.0004713955 -0.0001806094 -0.0007898927 0.0004713955 -0.0001806094
+      units: Hartree/Bohr
+  block 24: begin-line=622 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0007890962
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0003089792 0.0002991858 -0.0002051770 -0.0003089792 -0.0002991858 -0.0002051770 -0.0002003317 0.0000450351 0.0002051770 0.0002003317 -0.0000450351 0.0002051770
+      units: Hartree/Bohr
+  block 25: begin-line=644 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0002495273
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0000555524 0.0000001226 -0.0001140224 0.0000555524 -0.0000001226 -0.0001140224 0.0000451118 0.0000029273 0.0001140224 -0.0000451118 -0.0000029273 0.0001140224
+      units: Hartree/Bohr
+  block 26: begin-line=685 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0150163493
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0028590708 0.0034615021 0.0024161730 -0.0028590708 -0.0034615021 0.0024161730 0.0049197318 0.0075305741 -0.0024161730 -0.0049197318 -0.0075305741 -0.0024161730
+      units: Hartree/Bohr
+  block 27: begin-line=709 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0062539377
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: -0.0026143990 -0.0030138998 0.0008413913 0.0026143990 0.0030138998 0.0008413913 0.0011266357 -0.0009757089 -0.0008413913 -0.0011266357 0.0009757089 -0.0008413913
+      units: Hartree/Bohr
+  block 28: begin-line=732 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0003768701
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0001921872 0.0000841526 0.0000637058 -0.0001921872 -0.0000841526 0.0000637058 -0.0001367129 0.0000138083 -0.0000637058 0.0001367129 -0.0000138083 -0.0000637058
+      units: Hartree/Bohr
+  block 29: begin-line=753 fed=6 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0002583082
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 4 3
+      rowlabels: 1 2 3 4
+      columnlabels: X Y Z
+      values: 0.0000790034 -0.0000006463 0.0001081667 -0.0000790034 0.0000006463 0.0001081667 -0.0000609852 0.0000005823 -0.0001081667 0.0000609852 -0.0000005823 -0.0001081667
+      units: Hartree/Bohr
+
+[SCANCOORD][SCANENERGY]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin scan_table\b
+  End=^end scan_table
+  begins=7 delivered=1 buffered_away=6
+  block 1: begin-line=767 fed=9 rc=0 first-fed='begin scan_table  # point value energy(hartree) converged; unit degree'
+    key: SCANCOORD
+      size: 7
+      values: 120.00000 140.00000 160.00000 180.00000 200.00000 220.00000 240.00000
+      units: Degree
+    key: SCANENERGY
+      size: 7
+      values: -148.764987301984 -148.764954634874 -148.764895503510 -148.764882997444 -148.764895505543 -148.764954635904 -148.764987301999
+      units: Hartree
+
+[SCANGEOM]  Script=ecceqm.parse  Freq=all  Skip=0  Lines=-
+  Begin=^begin scan_geometry\b
+  End=^end scan_geometry
+  begins=7 delivered=7 buffered_away=0
+  block 1: begin-line=123 fed=6 rc=0 first-fed='begin scan_geometry  # point 1 value 120.000000; index symbol x y z (angstrom)'
+    key: SCANGEOM
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0020541831 0.6976856223 -0.0955049461 0.0020541831 -0.6976856223 -0.0955049461 0.8478180667 0.8965513302 0.3955049461 -0.8478180667 -0.8965513302 0.3955049461
+      units: Angstrom
+  block 2: begin-line=227 fed=6 rc=0 first-fed='begin scan_geometry  # point 2 value 140.000000; index symbol x y z (angstrom)'
+    key: SCANGEOM
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0272382502 0.6988408139 -0.0181387234 0.0272382501 -0.6988408139 -0.0181387234 0.8888265038 0.9182420729 0.3181387234 -0.8888265038 -0.9182420729 0.3181387234
+      units: Angstrom
+  block 3: begin-line=332 fed=6 rc=0 first-fed='begin scan_geometry  # point 3 value 160.000000; index symbol x y z (angstrom)'
+    key: SCANGEOM
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0426626854 0.6992541230 0.0645515232 0.0426626854 -0.6992541231 0.0645515232 0.9141501990 0.9319000400 0.2354484768 -0.9141501990 -0.9319000400 0.2354484768
+      units: Angstrom
+  block 4: begin-line=436 fed=6 rc=0 first-fed='begin scan_geometry  # point 4 value 180.000000; index symbol x y z (angstrom)'
+    key: SCANGEOM
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0478754600 0.6993232711 0.1500000000 0.0478754600 -0.6993232711 0.1500000000 0.9227049876 0.9365604559 0.1500000000 -0.9227049876 -0.9365604559 0.1500000000
+      units: Angstrom
+  block 5: begin-line=543 fed=6 rc=0 first-fed='begin scan_geometry  # point 5 value 200.000000; index symbol x y z (angstrom)'
+    key: SCANGEOM
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0426320322 0.6992564247 0.2354458619 0.0426320322 -0.6992564247 0.2354458619 0.9141616737 0.9318549412 0.0645541381 -0.9141616737 -0.9318549412 0.0645541381
+      units: Angstrom
+  block 6: begin-line=652 fed=6 rc=0 first-fed='begin scan_geometry  # point 6 value 220.000000; index symbol x y z (angstrom)'
+    key: SCANGEOM
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0270506782 0.6988499129 0.3181356237 0.0270506782 -0.6988499129 0.3181356237 0.8890561208 0.9179996863 -0.0181356237 -0.8890561208 -0.9179996863 -0.0181356237
+      units: Angstrom
+  block 7: begin-line=761 fed=6 rc=0 first-fed='begin scan_geometry  # point 7 value 240.000000; index symbol x y z (angstrom)'
+    key: SCANGEOM
+      size: 1 4 3
+      rowlabels: 1-O 2-O 3-H 4-H
+      columnlabels: X Y Z
+      values: -0.0014348318 0.6976888347 0.3955051547 0.0014348318 -0.6976888347 0.3955051547 0.8486143480 0.8957981894 -0.0955051547 -0.8486143480 -0.8957981894 -0.0955051547
+      units: Angstrom
+
+[NNREPUL]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_nuclear\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=796 fed=1 rc=0 first-fed='energy_nuclear 37.466964555373'
+    key: NNREPUL
+      size: 1
+      values: 37.466964555373
+      units: Hartree
+
+[ONEELEC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_one_electron\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=797 fed=1 rc=0 first-fed='energy_one_electron -281.284705134850'
+    key: ONEELEC
+      size: 1
+      values: -281.284705134850
+      units: Hartree
+
+[COULOMB]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_coulomb\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=798 fed=1 rc=0 first-fed='energy_coulomb 112.373502780895'
+    key: COULOMB
+      size: 1
+      values: 112.373502780895
+      units: Hartree
+
+[EXCHANGE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_exchange_hf\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=799 fed=1 rc=0 first-fed='energy_exchange_hf -17.320749503416'
+    key: EXCHANGE
+      size: 1
+      values: -17.320749503416
+      units: Hartree
+
+[EXCORR]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_xc\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=800 fed=1 rc=0 first-fed='energy_xc 0.000000000000'
+    key: EXCORR
+      size: 1
+      values: 0.000000000000
+      units: Hartree
+
+[ETIME]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^wall_seconds\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=803 fed=1 rc=0 first-fed='wall_seconds 4.03'
+    key: ETIME
+      size: 1
+      values: 4.03
+
+[DIPOLE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^dipole_debye\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=802 fed=1 rc=0 first-fed='dipole_debye -0.000000000001 0.000000000001 -1.408014804994 1.408014804994'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: -0.000000000001 0.000000000001 -1.408014804994
+      units: Debye
+
+[MULLIKEN]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin atoms\b
+  End=^end atoms
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=804 fed=6 rc=0 first-fed='begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge'
+    key: MULLIKEN
+      size: 4
+      values: -0.188487394736 -0.188487394736 0.188487394736 0.188487394736
+      units: e
+
+[ORBENG][ORBOCC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin orbitals (restricted|alpha)
+  End=^end orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=824 fed=14 rc=0 first-fed='begin orbitals restricted  # index energy(hartree) occupation'
+    key: ORBENG
+      size: 12
+      values: -20.317875596296 -20.317089463860 -1.409916944992 -1.103683336113 -0.602177170112 -0.596477294696 -0.499960468576 -0.390167372029 -0.352251643274 0.508646432637 0.590680313012 0.615870978009
+      units: Hartree
+    key: ORBOCC
+      size: 12
+      values: 2.000000000000 2.000000000000 2.000000000000 2.000000000000 2.000000000000 2.000000000000 2.000000000000 2.000000000000 2.000000000000 0.000000000000 0.000000000000 0.000000000000
+      units: electrons
+
+[MO][MOAOORDER]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin mo_coefficients (restricted|alpha)
+  End=^end mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=838 fed=14 rc=0 first-fed='begin mo_coefficients restricted  # one line per MO: index then nbf coefficients'
+    key: MO
+      size: 12 12
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10 MO-11 MO-12
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12
+      values: -0.7028625603 -0.0191849081 -0.0018979662 0.0032529774 0.0010986167 0.7028625602 0.0191849081 -0.0018979662 0.0032529774 -0.0010986167 0.0038221360 -0.0038221360 -0.7034140087 -0.0153276512 -0.0020186961 -0.0008293253 0.0012325877 -0.7034140087 -0.0153276512 0.0020186961 0.0008293253 0.0012325877 0.0044272456 0.0044272456 0.1665783493 -0.5893802097 -0.0410891778 0.1028712667 0.0347186818 0.1665783 ...[1939 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+

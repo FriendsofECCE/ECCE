@@ -29,6 +29,11 @@ struct ScfOptions {
   int grid_angular = 590;
   bool grid_prune = true;         // thin the angular grid near the nuclei
   bool verbose = false;
+  // Unrestricted closed-shell-like start (na == nb): rotate the alpha HOMO
+  // and LUMO of the starting orbitals by 45 degrees, so that a spin-polarised
+  // (broken-symmetry) solution can be found where one exists; where it does
+  // not (a stable closed-shell solution) the SCF returns to it.
+  bool guess_mix = false;
   // Uniform electric field (a.u.): H += F.r.  Used by the finite-field
   // polarisability; the dipole printed is unchanged in definition.
   double field[3] = {0, 0, 0};

@@ -152,6 +152,48 @@ int main(int argc, char** argv) {
       return fo;
     };
 
+    if (in.scan.on) {
+      std::vector<qm::ScanPointOut> pts;
+      const bool bond = in.scan.constraint.kind == qm::GeoConstraint::Bond;
+      const double to_out = bond ? qm::kBohrToAngstrom : 180.0 / qm::kPi;
+      qm::Molecule cur = in.mol;
+      qm::OptResult res;
+      bool all = true;
+      qm::write_progress_scan(os, 0, in.scan.points);
+      for (int k = 0; k < in.scan.points; ++k) {
+        qm::OptOptions opt = in.opt;
+        qm::GeoConstraint sc = in.scan.constraint;
+        sc.value = in.scan.value(k);
+        opt.constraints.push_back(sc);
+        int last_step = 0;
+        res = qm::optimize_geometry(cur, opt, evaluate, [&](const qm::OptStep& st) {
+          qm::write_opt_step(os, st);
+          qm::write_progress_opt(os, st, opt);
+          last_step = st.index;
+        });
+        qm::write_progress_opt_end(os, last_step, res.converged);
+        if (!same(at_full, res.mol)) evaluate(res.mol);
+        all = all && res.converged;
+        qm::ScanPointOut p;
+        p.value = in.scan.value(k) * to_out;
+        p.energy = r.energy;
+        p.converged = res.converged;
+        pts.push_back(p);
+        qm::write_scan_geometry(os, k + 1, p.value, res.mol);
+        qm::write_scan_table(os, pts, bond);
+        qm::write_progress_scan(os, k + 1, in.scan.points);
+        if (verbose) std::cerr << "scan point " << k + 1 << "/" << in.scan.points << "  E = " << p.energy << "\n";
+        cur = res.mol;
+      }
+      auto cs = extra_charges();
+      auto po = polar_output();
+      qm::write_text_output(os, in, *basis, r, seconds(), &res, nullptr, cs.get(), &at_full, po.get());
+      if (!molden.empty()) {
+        std::ofstream f(molden);
+        qm::write_molden(f, in, *basis, r, nullptr);
+      }
+      return all ? 0 : 1;
+    }
     if (qm::does_optimize(in.runtype)) {
       int last_step = 0;
       qm::OptResult res = qm::optimize_geometry(in.mol, in.opt, evaluate, [&](const qm::OptStep& st) {

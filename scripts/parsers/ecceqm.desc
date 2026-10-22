@@ -41,6 +41,24 @@ Skip=0
 End=^end gradient
 [END]
 
+# Relaxed scan: the engine rewrites the table after every point, so the last
+# one is the whole scan; each point's structure is a block of its own.
+[SCANCOORD][SCANENERGY]
+Script=ecceqm.parse
+Begin=^begin scan_table\b
+Frequency=last
+Skip=0
+End=^end scan_table
+[END]
+
+[SCANGEOM]
+Script=ecceqm.parse
+Begin=^begin scan_geometry\b
+Frequency=all
+Skip=0
+End=^end scan_geometry
+[END]
+
 [NNREPUL]
 Script=ecceqm.parse
 Begin=^energy_nuclear\s
@@ -286,4 +304,9 @@ History=energy
 [PROGRESS]
 Begin=^progress freq (.*)$
 Progress=freq $1
+[END]
+
+[PROGRESS]
+Begin=^progress scan (.*)$
+Progress=scan $1
 [END]

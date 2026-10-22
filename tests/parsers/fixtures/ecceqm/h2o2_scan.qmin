@@ -1,0 +1,15 @@
+title h2o2 relaxed torsion scan
+runtype optimize
+charge 0
+multiplicity 1
+method hf
+basis STO-3G
+geometry
+O 0.000000 0.730000 0.000000
+O 0.000000 -0.730000 0.000000
+H 0.850000 0.900000 0.300000
+H -0.850000 -0.900000 0.300000
+end
+scan
+torsion 3 1 2 4 120 240 7
+end

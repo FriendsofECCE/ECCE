@@ -57,7 +57,7 @@ names the line.
 | `conv_energy` | number, in Hartree | `1e-10` |
 | `conv_grad` | number | `1e-7` |
 
-Three blocks follow the same rule, each closed by a line `end`:
+Four blocks follow the same rule, each closed by a line `end`:
 
 - `geometry` is followed by one atom per line: the element symbol and the
   three coordinates, in the unit given by `units`. The symbol `X` is a dummy
@@ -91,6 +91,24 @@ Three blocks follow the same rule, each closed by a line `end`:
   `optfreq` with constraints is refused: frequencies at a constrained
   geometry are not at a minimum. Optimise with the constraints, then run
   `frequency` without them.
+- `scan` is a relaxed scan of one internal coordinate and applies to `runtype
+  optimize`:
+
+  ```
+  scan
+    torsion 3 1 2 4 60 180 13
+  end
+  ```
+
+  The line is `bond`, `angle` or `torsion` with its atom numbers, then the
+  first value, the last value and the number of points; both end values are
+  points (60 to 180 in 13 points is a step of 10 degrees). Bond values are in
+  the unit given by `units`, angles and torsions in degrees. Each point is a
+  constrained optimisation that starts from the geometry and orbitals of the
+  previous point; the starting geometry is brought to the first value before
+  the first energy. Constraints in a `constraints` block stay in force at
+  every point. The output has a table of the points (value, energy,
+  whether the optimisation converged) and the optimised geometry of each.
 - `basis_data` gives the basis set in full: a line `shell <element> <letter>`
   with the letter S, P, D, F, G, H or I, followed by one line
   `exponent coefficient` for each primitive of that shell.
