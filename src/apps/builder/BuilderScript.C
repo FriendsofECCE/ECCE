@@ -131,6 +131,7 @@
 #include "NModePanel.H"
 #include "ScanPanel.H"
 #include "IRCPanel.H"
+#include "ReactionPanel.H"
 #include "PullPanel.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
@@ -920,6 +921,24 @@ void Builder::runBuilderScript(const std::string& file)
         } else {
           fprintf(stderr, "BUILDER: pullcsv points=%d %s\n", pp->points(),
                   pp->exportCsv(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
+        }
+      } else if (w[0] == "rxnenergies" && w.size() >= 2) {
+        //  rxnenergies <path> [kcal]: the Reaction Energies panel's Export
+        //  .csv (#419) without the file dialog.
+        ReactionPanel *rp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((rp = dynamic_cast<ReactionPanel*>(p)) != 0) break;
+        if (!rp) {
+          outcome = "no Reaction Energies panel";
+        } else {
+          fprintf(stderr, "BUILDER: rxnenergies levels=%d problems=%d warnings=%d %s\n",
+                  (int)rp->result().levels.size(), (int)rp->result().problems.size(),
+                  (int)rp->result().warnings.size(),
+                  rp->exportCsv(wxString::FromUTF8(w[1].c_str()),
+                                w.size() > 2 && w[2] == "kcal")
+                      ? "ok" : "failed");
         }
       } else if (w[0] == "ircpath" && w.size() >= 2) {
         //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)

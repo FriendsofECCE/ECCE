@@ -189,6 +189,14 @@ int main(int argc, char **argv)
       string spec = argv[a];
       size_t eq = spec.find('=');
       string name = spec.substr(0, eq);
+      if (eq + 1 >= spec.size()) {
+        // "<name>=": a calculation without a structure
+        Resource *empty = proj && calcType ? proj->createChild(name, calcType) : 0;
+        check(empty != 0, "calculation " + name + " created");
+        if (!empty) return 1;
+        cout << empty->getURL().toString() << endl;
+        continue;
+      }
       ifstream in(spec.substr(eq + 1).c_str());
       int n = 0;
       string line;

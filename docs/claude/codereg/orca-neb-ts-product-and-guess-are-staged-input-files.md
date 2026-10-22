@@ -18,8 +18,16 @@ names are listed there, so renaming a file in one place and not the other
 silently leaves it out of the job (ORCA then dies on a missing file).
 
 `removeInputFiles` clears all inputs but `guess.gbwin` on every Save, so a
-product that is no longer picked cannot linger. `orcaruntype.py` and
-`ged16runtype.py` share `calcpick.py` (candidate list and the URL-valued choice).
+product that is no longer picked cannot linger.
+
+The reactant, product and guess are picked in the Calculation Editor's Chemical
+System box ("Structure from: Other calculations (transition state)", only with
+`ECCE_EXPERIMENTAL_TS=1`), not in Runtype Details. The picks live in CalcEd
+members and are written to `ES.Runtype.GeomOpt.QST{Reactant,Product,Guess}` /
+`ES.Runtype.NEB.{Reactant,Product,Guess}` by `syncTsKeys()` on every Save and
+after a runtype reset (which deletes all `ES.Runtype` keys). QSTGuess is now a
+calculation URL, not a tick. The job's own structure is a copy of the reactant,
+which fixes the atom order the product and guess are renumbered onto.
 
 ORCA 6.1.1 `NEB-TS Freq` ends with the TS optimisation and its frequencies, so the
 existing parse patterns give the TS energy, geometry and modes (one imaginary).

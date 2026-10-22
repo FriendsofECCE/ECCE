@@ -1,7 +1,6 @@
 # ORCA Runtype Details for the native engine (bin/ecce-dialog), the same dialog
 # as orcaruntype.py.  Keep the two in step: tests/dialogs/native_test.py compares
-# what they send.  The NEB pickers read the calculation list from the file named
-# by ECCE_QST_CANDIDATES (calcpick).
+# what they send.
 
 list GEO = Geometry|GeoVib
 list NEB = Transition State (NEB-TS)|Transition State (NEB-TS) + Frequencies
@@ -16,13 +15,9 @@ int name=ES.Runtype.GeomOpt.MaximumStepsValue default=20 hard="[1..)" soft="[1..
 box label="Convergence" cols=1 when="runtype in @GEO"
 combo name=ES.Runtype.GeomOpt.ConvergenceGradient label="Gradient:" choices="Loose|Normal|Tight|Very Tight" default=Normal export=1
 
-# This calculation is the reactant; product and optional TS guess are others.
+# Reactant, product and TS guess are picked in the Calculation Editor.
 box label="Transition State (NEB-TS)" cols=1 when="runtype in @NEB"
-calcpick name=ES.Runtype.NEB.Product label="Product:"
-calcpick name=ES.Runtype.NEB.Guess label="TS guess (optional):"
 int name=ES.Runtype.NEB.Images label="Images:" default=8 hard="[2..)" soft="[2..32]" export=1
-status text="Pick the product calculation." when="!ES.Runtype.NEB.Product"
-status text="Warning: product and TS guess are the same calculation." when="ES.Runtype.NEB.Product && ES.Runtype.NEB.Product==$ES.Runtype.NEB.Guess"
 
 box label="Frequencies" cols=1 when="runtype in @FREQ"
 combo name=ES.Runtype.Vibration.Method label="Method:" choices="Analytic|Numerical" default=Analytic export=1

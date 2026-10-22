@@ -12,6 +12,7 @@
 
 class ICalculation;
 class PropertyTask;
+class Fragment;
 
 struct QstEntry
 {
@@ -25,6 +26,10 @@ struct QstEntry
  *  calculation has no structure. */
 bool qstFinalStructure(PropertyTask* calc, std::vector<std::string>& elements,
                        std::vector<double>& xyz, bool& optimised);
+
+/** A copy of a calculation's final structure, for a transition-state job to
+ *  store as its own.  Caller deletes; 0 when it has none. */
+Fragment* qstReactantFragment(const std::string& url);
 
 /** Other calculations in self's project that have a structure. */
 std::vector<QstEntry> qstCandidates(ICalculation* self);
@@ -40,12 +45,14 @@ std::string qstWriteCandidateFile(const std::vector<QstEntry>& entries);
  *  together (never blocking).  Returns false only on a file error. */
 bool qstWriteStructureFiles(ICalculation* self, const std::string& baseName,
                             std::string& status, std::string& warning,
-                            std::string* detail = 0);
+                            std::string* detail = 0,
+                            std::string* table = 0);
 
 /** ORCA NEB-TS: writes neb_product.xyz (and neb_guess.xyz when picked) in
  *  the working directory, each mapped and aligned onto self's structure,
  *  which is the reactant.  Same status/warning contract as above. */
 bool nebWriteStructureFiles(ICalculation* self, std::string& status,
-                            std::string& warning, std::string* detail = 0);
+                            std::string& warning, std::string* detail = 0,
+                            std::string* table = 0);
 
 #endif

@@ -1,5 +1,4 @@
 from templates import *
-from calcpick import *
 
 QST_RUNTYPES = ("Transition State (QST)",
                 "Transition State (QST) + Frequencies")
@@ -143,34 +142,8 @@ class Ged16RunTypePanel(EccePanel):
                                             label = "Initial Source:")
                 hessianSizer.AddWidget(self.hessian)
             
-            if isQst:
-                # QST2/QST3: reactant and product (and optionally this
-                # calculation as the TS guess) come from other calculations.
-                qstSizer = EcceBoxSizer(self,
-                                        label = "Transition State (QST)",
-                                        cols = 1)
-                cands = qstCandidates()
-                self.qstReactant = CalcChoice(self, cands,
-                                              name = "ES.Runtype.GeomOpt.QSTReactant",
-                                              default = 0,
-                                              label = "Reactant:")
-                qstSizer.AddWidget(self.qstReactant)
-                self.qstProduct = CalcChoice(self, cands,
-                                             name = "ES.Runtype.GeomOpt.QSTProduct",
-                                             default = 0,
-                                             label = "Product:")
-                qstSizer.AddWidget(self.qstProduct)
-                self.qstGuess = EcceCheckBox(self,
-                                             label = " Use this calculation's structure as the TS guess (QST3)",
-                                             name = "ES.Runtype.GeomOpt.QSTGuess",
-                                             default = 0)
-                qstSizer.AddWidget(self.qstGuess)
-                self.qstStatus = wx.StaticText(self, -1, "")
-                qstSizer.Add(self.qstStatus, 0, wx.ALL, 3)
-
-            if isQst:
-                self.panelSizer.Add(qstSizer)
-            else:
+            # The QST structures are picked in the Calculation Editor.
+            if not isQst:
                 self.panelSizer.Add(geometrySizer)
             self.panelSizer.Add(convergenceSizer)
             if hessianSizer is not None:
@@ -409,14 +382,6 @@ class Ged16RunTypePanel(EccePanel):
             if not qst and (len(self.hessianChoice) == 2 and
                             self.find.GetSelection() == 1):
                 self.hessian.SetSelection(1)
-            if qst:
-                if not (self.qstReactant.GetValue() and
-                        self.qstProduct.GetValue()):
-                    self.qstStatus.SetLabel("Pick the reactant and product calculations.")
-                elif (self.qstReactant.GetValue() == self.qstProduct.GetValue()):
-                    self.qstStatus.SetLabel("Warning: reactant and product are the same calculation.")
-                else:
-                    self.qstStatus.SetLabel("")
         if EcceGlobals.RunType == "Polarizability":
             self.efstepInput.Enable(self.polarMethod.GetValue() !=
                                     "Analytic Polariz. + Hyperpol.")

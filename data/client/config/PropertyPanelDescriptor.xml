@@ -86,6 +86,16 @@
     <property class="MDSummary"/>
   </PropertyPanel>
 
+  <!-- Transition-state jobs only (isRelevant); listed before Energies,
+       which consumes TE. -->
+  <PropertyPanel>
+    <name>Reaction Energies</name>
+    <group>Energies</group>
+    <class>ReactionPanel</class>
+    <consumer>false</consumer>
+    <property name="TE"/>
+  </PropertyPanel>
+
   <PropertyPanel>
     <name>Energies</name>
     <group>Energies</group>
