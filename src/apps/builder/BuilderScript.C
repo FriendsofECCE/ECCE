@@ -32,7 +32,7 @@
 //    select I                    select atom (or Nub) I, as a click does; -1 none
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
-//    bondorder single|metal      the order Bond mode makes
+//    bondkind covalent|metal     the kind of bond Bond mode makes
 //    clean                       the viewer's Clean command
 //    key escape                  what the Esc key does with the view focused
 //    dclick A                    a double-click on the last atom of element A
@@ -579,15 +579,13 @@ void Builder::runBuilderScript(const std::string& file)
             outcome = "ok";
             break;
           }
-      } else if (w[0] == "bondorder" && w.size() == 2) {
-        //  The order the Bond mode makes, sent as the Bond tool and the
-        //  Build panel's list send it.
-        const std::string order = w[1] == "metal" ? "Metal-Pi"
-            : w[1] == "double" ? "Double" : w[1] == "triple" ? "Triple"
-            : w[1] == "aromatic" ? "Aromatic" : "Single";
+      } else if (w[0] == "bondkind" && w.size() == 2) {
+        //  The kind of bond Bond mode makes, sent as the Bond tool sends it:
+        //  covalent or metal (a bond order is not settable).
         ecce::EventDispatcher::getDispatcher().publish(
-            ecce::Event("BondChanged", order));
-        fprintf(stderr, "BUILDER: bondorder current=%g\n", p_currentBond);
+            ecce::Event("BondChanged", w[1] == "metal" ? "Metal-Pi"
+                                                      : "Single"));
+        fprintf(stderr, "BUILDER: bondkind current=%g\n", p_currentBond);
       } else if (w[0] == "selectbonds" && frag) {
         //  The bonds between selected atoms too, as a drag box selects.
         vector<TBond*> *all = frag->bonds();
@@ -611,11 +609,16 @@ void Builder::runBuilderScript(const std::string& file)
           TBond *b = (*all)[i];
           if (b->atom1()->atomicSymbol() == "Nub" ||
               b->atom2()->atomicSymbol() == "Nub") continue;
-          fprintf(stderr, "BUILDER: bond %d-%d %s-%s order=%g drawn=%d\n",
+          const double *p = b->atom1()->coordinates();
+          const double *q = b->atom2()->coordinates();
+          fprintf(stderr, "BUILDER: bond %d-%d %s-%s order=%g drawn=%d "
+                  "len=%.3f\n",
                   b->atom1()->index(), b->atom2()->index(),
                   b->atom1()->atomicSymbol().c_str(),
                   b->atom2()->atomicSymbol().c_str(), b->order(),
-                  frag->getBondType((int32_t)i));
+                  frag->getBondType((int32_t)i),
+                  sqrt((p[0]-q[0])*(p[0]-q[0]) + (p[1]-q[1])*(p[1]-q[1]) +
+                       (p[2]-q[2])*(p[2]-q[2])));
         }
         delete all;
       } else if (w[0] == "clean") {

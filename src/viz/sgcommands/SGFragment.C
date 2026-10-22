@@ -298,6 +298,8 @@ int32_t SGFragment::getBondTo(int32_t index) const
 
 //===========================================================================
 //===========================================================================
+static bool s_showBondOrdersFlag = false;
+
 int     SGFragment::getBondType(int32_t index) const
 {
  double order;
@@ -305,12 +307,18 @@ int     SGFragment::getBondType(int32_t index) const
    order = (*p_bondIndices).mbondOrders[index];
  else
    order = (*bonds())[index]->order();
+ if (order < 1.0) return HYDROGEN_BOND;       // metal-pi stays dashed
+ //  Stored orders are Clean's bookkeeping (or a file's); every covalent
+ //  bond is drawn single unless the View switch asks for them.
+ if (!s_showBondOrdersFlag) return SINGLE_BOND;
  if (order == 2.0)      return DOUBLE_BOND;
  else if (order == 3.0) return TRIPLE_BOND;
  else if (order == 1.5) return AROMATIC_BOND;
- else if (order < 1.0) return HYDROGEN_BOND;
  return SINGLE_BOND;
 }
+
+void SGFragment::showBondOrders(bool on) { s_showBondOrdersFlag = on; }
+bool SGFragment::bondOrdersShown() { return s_showBondOrdersFlag; }
 
 
 DisplayStyle

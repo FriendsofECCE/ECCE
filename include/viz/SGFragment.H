@@ -109,6 +109,10 @@ SoINTERNAL public:
     virtual int32_t getBondFrom(int32_t index) const;
     virtual int32_t getBondTo(int32_t index) const;
     virtual int     getBondType(int32_t index) const;
+    //  View > "Show bond orders used by Clean": draw the stored orders
+    //  instead of single sticks.
+    static void     showBondOrders(bool on);
+    static bool     bondOrdersShown();
     virtual int32_t getBondIndex(int32_t index) const;
 
     // Convenience function to support fast selection filtering

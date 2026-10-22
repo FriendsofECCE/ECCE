@@ -25,13 +25,13 @@ none: it is a π ligand, bonded as described below.
 2. Choose **Mode > Add Structure**, select the ligand in the Structure
    Library, select a nub on the metal and then the ligand's nub, and click.
 
-You can also bond two nubs in Bond mode with the ordinary bond orders. A
-ligand that binds through one atom (η1) is an ordinary σ bond, drawn with the
-**Single** order.
+You can also bond two nubs in Bond mode with the **Covalent** bond kind. A
+ligand that binds through one atom (η1) is an ordinary σ bond, made the same
+way.
 
-## π ligands: the Metal order
+## π ligands: the Metal-π bond
 
-Choose the **Metal** bond order and Bond mode. Click the metal (the atom or
+Choose the **Metal-π** bond kind in the Bond tool's drop-down. Click the metal (the atom or
 one of its nubs) and then any atom of the ligand. The order of the two
 clicks does not matter.
 

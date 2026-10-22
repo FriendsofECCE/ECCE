@@ -1351,7 +1351,7 @@ Command * Builder::createModeCommand(int modeId)
         cmd->getParameter("z")->setDouble(z);
         cmd->getParameter("elem")->setString(p_currentElement);
         cmd->getParameter("geom")->setString(p_currentShapes[p_currentElement]);
-        cmd->getParameter("bondOrder")->setDouble(p_currentBond);
+        cmd->getParameter("bondOrder")->setDouble(TBond::Single);
         cmd->getParameter("resIndex")->setInteger(resIdx);
       } catch (CancelException) {}
       //  A cancelled residue prompt adds nothing (it fell into Bond mode).
@@ -2046,8 +2046,7 @@ void Builder::applyMode(int modeId)
   // Defaut cursor image for select mode
   string cursorName = "cursor.xpm";
   if (modeId == ID_MODE_ATOM)
-    cursorName = p_currentElement + "-" + 
-      TBond::orderToString(p_currentBond) + ".xpm";
+    cursorName = p_currentElement + "-Single.xpm";
   else if (modeId == ID_MODE_BOND)
     cursorName = string(TBond::orderToString(p_currentBond)) + ".xpm";
   // @todo Add structlib cursor here
@@ -3155,10 +3154,16 @@ void Builder::eventMCB(const Event& event)
      pertabPrefsMCB();
    }
    else if (name == "BondChanged") {
-     p_currentBond = TBond::strToOrder(value);
+     //  Covalent or metal-pi; a bond order is not something the user sets.
+     p_currentBond = TBond::strToOrder(value) == TBond::Metal ? TBond::Metal
+                                                              : TBond::Single;
      setMode(ID_MODE_BOND);
      updateBondIcon();
      updateModeText();
+   }
+   else if (name == "CleanReport") {
+     //  What Clean assumed and any odd bond lengths: the log, never a dialog.
+     showMessage(value, false);
    }
    else if (name == "ShapeChanged") {
      p_currentShapes[p_currentElement] = value;
@@ -3249,11 +3254,12 @@ void Builder::updateModeText()
 {
   string modeTxt = "Mode: ";
   modeTxt += s_modeText[p_currentMode-ID_MODE_SELECT];
-  //  Choosing a bond order switches to Bond mode; say so, or clicks that
+  //  Choosing the bond tool switches to Bond mode; say so, or clicks that
   //  no longer add atoms read as a fault.
   if (p_currentMode == ID_MODE_BOND)
-    modeTxt += string(" (") + TBond::orderToString(p_currentBond) +
-               "): click a bond, or two atoms, to set its order";
+    modeTxt += p_currentBond == TBond::Metal
+      ? " (metal-pi): select a metal and a pi system, then click to join them"
+      : " (covalent): click two atoms to bond them";
   Residue* res ;
 
   // add the residue edit information, if applicable

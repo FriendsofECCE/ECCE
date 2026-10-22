@@ -88,7 +88,7 @@ def counts(log):
 
 
 def piScript(first, second):
-    return ["wait 3000", "add Fe Tetrahedral 8 0 0", "bondorder metal",
+    return ["wait 3000", "add Fe Tetrahedral 8 0 0", "bondkind metal",
             "mode bond", "selectelem " + first, "addelem " + second,
             "info", "click", "info", "bonds Fe C", "bonds Fe Nub",
             "coords", "clean", "coords", "info", "quit"]
@@ -136,7 +136,7 @@ def cpCase(display, results, expect):
     log = run(display, "cp", [
         "wait 3000", "add Fe Tetrahedral 8 0 0", "select -1",
         "library Ligands Cyclopentadienyl", "click",
-        "info", "bondorder metal", "mode bond", "selectelem Fe",
+        "info", "bondkind metal", "mode bond", "selectelem Fe",
         "addelem C", "click", "info", "bonds Fe C", "coords", "clean",
         "coords", "info", "quit"])
     n = counts(log)

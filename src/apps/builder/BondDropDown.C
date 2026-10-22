@@ -62,21 +62,13 @@ bool BondDropDown::Create(double order, wxWindow* parent, wxWindowID id,
    }
 
    SetToolBitmapSize(wxSize(24, 24));
-   AddTool(SINGLE, TBond::orderToString(TBond::Single),
+   //  A bond is covalent or metal-pi; orders are not a user choice (#439).
+   AddTool(SINGLE, "Covalent",
            ewxBitmap::colorIcon(TBond::orderToImage(TBond::Single), wxSize(24, 24)),
-           TBond::orderToString(TBond::Single), wxITEM_RADIO);
-   AddTool(DOUBLE, TBond::orderToString(TBond::Double),
-           ewxBitmap::colorIcon(TBond::orderToImage(TBond::Double), wxSize(24, 24)),
-           TBond::orderToString(TBond::Double), wxITEM_RADIO);
-   AddTool(TRIPLE, TBond::orderToString(TBond::Triple),
-           ewxBitmap::colorIcon(TBond::orderToImage(TBond::Triple), wxSize(24, 24)),
-           TBond::orderToString(TBond::Triple), wxITEM_RADIO);
-   AddTool(AROMATIC, TBond::orderToString(TBond::Aromatic),
-           ewxBitmap::colorIcon(TBond::orderToImage(TBond::Aromatic), wxSize(24, 24)),
-           TBond::orderToString(TBond::Aromatic), wxITEM_RADIO);
-   AddTool(METAL, TBond::orderToString(TBond::Metal),
+           "Covalent bond", wxITEM_RADIO);
+   AddTool(METAL, "Metal-pi",
            ewxBitmap::colorIcon(TBond::orderToImage(TBond::Metal), wxSize(24, 24)),
-           TBond::orderToString(TBond::Metal), wxITEM_RADIO);
+           "Metal-pi bond (a pi ligand over a metal)", wxITEM_RADIO);
 
    Realize();
 
@@ -95,18 +87,7 @@ BondDropDown::~BondDropDown()
 
 void BondDropDown::select(double order)
 {
-   int id = SINGLE;
-   if (order == TBond::Single) {
-      id = SINGLE;
-   } else if (order == TBond::Double) {
-      id = DOUBLE;
-   } else if (order == TBond::Triple) {
-      id = TRIPLE;
-   } else if (order == TBond::Aromatic) {
-      id = AROMATIC;
-   } else if (order == TBond::Metal) {
-      id = METAL;
-   }
+   int id = order == TBond::Metal ? METAL : SINGLE;
    ToggleTool(id,true);
    p_lastId = id;
 }
@@ -114,19 +95,7 @@ void BondDropDown::select(double order)
 
 double BondDropDown::idToBondOrder(int id)
 {
-   double value = TBond::Single;
-   if (id == BondDropDown::SINGLE) {
-      value = TBond::Single;
-   } else if (id == BondDropDown::DOUBLE) {
-      value = TBond::Double;
-   } else if (id == BondDropDown::TRIPLE) {
-      value = TBond::Triple;
-   } else if (id == BondDropDown::AROMATIC) {
-      value = TBond::Aromatic;
-   } else if (id == BondDropDown::METAL) {
-      value = TBond::Metal;
-   }
-   return value;
+   return id == BondDropDown::METAL ? TBond::Metal : TBond::Single;
 }
 
 void BondDropDown::OnToolClick( wxCommandEvent& event )

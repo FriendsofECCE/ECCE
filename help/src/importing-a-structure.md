@@ -57,8 +57,10 @@ The unit cell of a periodic CAR file is not drawn when you open the file.
 Choose **Tools > Periodic Builder**; **Show Lattice** is ticked there by
 default and draws the cell.
 
-For XYZ, PDB and CAR files ECCE works out the bond orders from the
-coordinates. MVM files carry their own bonds.
+For XYZ, PDB and CAR files ECCE works out which atoms are bonded from the
+coordinates. MVM files carry their own bonds. Every bond is drawn as a single
+stick whatever order a file gives it; see [Bonds in the
+Builder](bonds-and-clean.md).
 
 To work on a file directly instead of adding it to a structure, choose
 **File > Open...** (Ctrl+O) and pick the file the same way. The Builder

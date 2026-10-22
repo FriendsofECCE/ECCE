@@ -2024,6 +2024,11 @@ add_executable(atommap_test tests/atommap/atommap_test.C)
 target_link_libraries(atommap_test PRIVATE eccetdat ecceutil)
 add_test(NAME atommap COMMAND atommap_test ${CMAKE_SOURCE_DIR})
 
+# tests/bondorder -- Clean's bond-order bookkeeping rule (#439)
+add_executable(bondorder_test tests/bondorder/bondorder_test.C)
+target_link_libraries(bondorder_test PRIVATE eccetdat ecceutil)
+add_test(NAME bondorder COMMAND bondorder_test)
+
 # tests/vibanalysis -- mode symmetry and description (#367): real code output
 # through the real parsers, against textbook assignments.
 add_executable(vibanalysis_cli tests/vibanalysis/vibanalysis_cli.C)
@@ -3090,6 +3095,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_edit_bugs PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # No bond orders in building; Clean's derived orders and bond lengths (#439).
+  add_test(NAME apps_builder_bond_model
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_bond_model_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_bond_model PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # ECCE-QM Geometry and Vibration runs of water in the Builder: the IR
   # spectrum's sticks against the engine's output, the geometry trace.

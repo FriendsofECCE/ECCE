@@ -15,6 +15,12 @@ using namespace ecce;
 #include "tdat/UFFDesc.H"
 
 #include "tdat/TBond.H"
+#include "tdat/TAtm.H"
+#include "tdat/BondOrderRule.H"
+
+#include <cmath>
+#include <cstdio>
+#include <sstream>
 
 #include "viz/CleanCmd.H"
 #include "viz/SGFragment.H"
@@ -54,6 +60,77 @@ void CleanCmd::init()
 
 
 
+//  UFF needs bond orders; the user never sets them. Derive them from the
+//  atoms' neighbour counts (BondOrderRule) and store them on the bonds;
+//  returns what was assumed, and the atoms the rule could not settle.
+static string assignBondOrders(SGFragment *frag, vector<int>& unresolved)
+{
+   vector<TBond*> *all = frag->bonds();
+   vector<string> el(frag->numAtoms());
+   for (size_t i = 0; i < frag->numAtoms(); i++)
+      el[i] = frag->atomRef(i)->atomicSymbol();
+   vector<pair<int,int> > pairs;
+   vector<TBond*> used;
+   for (TBond *b : *all) {
+      if (b->order() < 1.0) continue;          // metal-pi, hydrogen bond
+      pairs.push_back(make_pair(b->atom1()->index(), b->atom2()->index()));
+      used.push_back(b);
+   }
+   delete all;
+   BondOrderRule::Result r = BondOrderRule::perceive(el, pairs);
+   for (size_t i = 0; i < used.size(); i++) used[i]->order(r.orders[i]);
+   unresolved = r.unresolved;
+
+   ostringstream os;
+   if (!r.notes.empty()) {
+      os << "Clean treated as multiple bonds: ";
+      for (size_t i = 0; i < r.notes.size(); i++)
+         os << (i ? "; " : "") << r.notes[i];
+      os << ". ";
+   }
+   if (!r.unresolved.empty()) {
+      os << "Not resolved, treated as single and selected: ";
+      for (size_t i = 0; i < r.unresolved.size(); i++)
+         os << (i ? ", " : "") << el[r.unresolved[i]] << r.unresolved[i] + 1;
+      os << ". ";
+   }
+   return os.str();
+}
+
+//  Bonds far from the typical length for their elements and order.
+static string checkBondLengths(SGFragment *frag)
+{
+   vector<TBond*> *all = frag->bonds();
+   ostringstream os;
+   int n = 0;
+   for (TBond *b : *all) {
+      if (b->order() < 1.0) continue;
+      TAtm *a1 = b->atom1(), *a2 = b->atom2();
+      double typ = BondOrderRule::typicalLength(a1->atomicSymbol(),
+                                  a2->atomicSymbol(), b->order());
+      if (typ <= 0.0) continue;
+      const double *p = a1->coordinates(), *q = a2->coordinates();
+      double d = sqrt((p[0]-q[0])*(p[0]-q[0]) + (p[1]-q[1])*(p[1]-q[1]) +
+                      (p[2]-q[2])*(p[2]-q[2]));
+      if (fabs(d - typ) <= 0.15) continue;
+      if (n++ < 8) {
+         char buf[160];
+         snprintf(buf, sizeof buf, "%s%d-%s%d %.2f A (typical %.2f for order %g)",
+                  a1->atomicSymbol().c_str(), a1->index() + 1,
+                  a2->atomicSymbol().c_str(), a2->index() + 1, d, typ,
+                  b->order());
+         os << (n > 1 ? "; " : "") << buf;
+      }
+   }
+   delete all;
+   if (n == 0) return "";
+   string s = "Warning: bond lengths outside the typical range after Clean: " +
+              os.str();
+   if (n > 8) s += "; and more";
+   return s + ". Check the geometry.";
+}
+
+
 bool CleanCmd::execute()
 {
    bool ret = false;
@@ -84,16 +161,30 @@ bool CleanCmd::execute()
          double nonBondCutoff = getParameter("nonBondCutoff")->getDouble();
 
          vector<int> *highlight = &frag->m_atomHighLight;
+         cloneFragment(frag);
+
+         //  Before the force field is set up: it reads the bond orders then.
+         vector<int> unresolved;
+         string report = assignBondOrders(frag, unresolved);
+
          UFFDesc desc;
          ForceField forceField(frag, highlight, &desc, p_monitor);
-
-         cloneFragment(frag);
 
          forceField.optimize( iterations,
                convergence,
                nonBondCutoff
                );
          sg->fixAllNubs();
+
+         report += checkBondLengths(frag);
+         //  Unresolved atoms are selected after the optimisation (the
+         //  selection restricts it, so not before).
+         frag->m_atomHighLight = unresolved;
+         if (!report.empty()) {
+            cerr << "Clean: " << report << endl;
+            EventDispatcher::getDispatcher().publish(
+               Event("CleanReport", report));
+         }
 
 
       }
