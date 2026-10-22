@@ -2090,6 +2090,8 @@ void WxLauncher::refreshProcessors(RefMachine *machRgstn)
     }
     else if (numProcs <= 0)
         numProcs = 1;
+    // Stored, so a launch with the field untouched uses this default.
+    p_slctPrefs->setProcessors(numProcs);
 
     p_wkstnProcsParamEdit->setRange(minProcs, maxProcs);
     p_wkstnProcsParamEdit->setValue(numProcs);

@@ -402,7 +402,7 @@ Launchdata MachinePreferences::getLaunchData() const
 
     ldat.remoteShell = p_remoteShell;
     ldat.nodes = p_nodes;
-    ldat.totalprocs = p_processors;
+    ldat.totalprocs = p_processors > 0 ? p_processors : 1;   // 0 = not chosen
     ldat.machine = p_machRgstn->refname();
     ldat.rundir = p_remoteDir;
     ldat.scratchdir = p_scratchDir;
