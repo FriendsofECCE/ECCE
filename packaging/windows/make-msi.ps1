@@ -78,8 +78,9 @@ $wxs = @"
       <RegistrySearch Id="InstDir" Root="HKCU" Key="Software\FriendsofECCE\ECCE" Name="InstallDir" Type="directory" />
     </Property>
 
-    <!-- RemoveFolderEx needs the path; the registry search finds nothing on a first install. -->
-    <SetProperty Id="INSTALLFOLDER_PATH" Value="[INSTALLFOLDER]" Sequence="execute" Before="Wix4RemoveFoldersEx_X64"
+    <!-- RemoveFolderEx needs the path; the registry search finds nothing on a first install,
+         and it runs before CostInitialize, so [INSTALLFOLDER] is not resolved yet. -->
+    <SetProperty Id="INSTALLFOLDER_PATH" Value="[LocalAppDataFolder]Programs\ECCE\" Sequence="execute" Before="Wix4RemoveFoldersEx_X64"
                  Condition="NOT INSTALLFOLDER_PATH" />
 
     <!-- Welcome, progress and exit pages; Repair/Remove when run again.  The
