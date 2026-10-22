@@ -744,9 +744,11 @@ void Builder::createToolbar()
     p_modeToolbar->AddTool(ID_MODE_ELEMENT_LIST, _T(""), elementArrowIcon(),
                            _("Element selector"), wxITEM_NORMAL);
     p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeIcon(ShapeData::tetrahedral),
-                           _("Geometry"), wxITEM_NORMAL);
+                           _("Geometry of new atoms: how many bonds they make, and in which "
+                             "directions"), wxITEM_NORMAL);
     p_modeToolbar->AddTool(ID_MODE_BOND, _T(""), bondIcon(TBond::Single),
-                           _("Choose Build Bond"), wxITEM_CHECK);
+                           _("Bond: choose Covalent or Metal-pi, then click two atoms"),
+                           wxITEM_CHECK);
     wxBitmapBundle structBitmap = ewxBitmap::colorIcon("svg/candidates/e/library.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_STRUCTLIB, _T(""), structBitmap,
                            _("Import from Structure Library"), wxITEM_CHECK);
