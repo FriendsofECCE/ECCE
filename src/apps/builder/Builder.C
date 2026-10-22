@@ -7316,9 +7316,6 @@ void Builder::urlStateMCB(JMSMessage& msg)
  */
 void Builder::propertyChangeMCB(JMSMessage& msg)
 {
-  //  A running job delivers properties one at a time and each one can
-  //  create a panel; none of them may steal the viewer (#111).
-  PanelBuildGuard buildGuard(p_panelBuildDepth);
   string urlstr = msg.getProperty("url");
   //cout << "Builder::propertyChangeMCB" << endl;
   //cout << "url   = " << urlstr << endl;
@@ -7328,15 +7325,23 @@ void Builder::propertyChangeMCB(JMSMessage& msg)
   // Don't process it if we are the ones that sent it.
   // This happens with the "isReviewed" property.
   if (msg.getSender().getID() == getMyID()) return;
+  propertyChanged(urlstr, msg.getProperty("name"), msg.getProperty("value"));
+}
 
+
+void Builder::propertyChanged(const string& urlstr, const string& propName,
+                              const string& value)
+{
+  //  A running job delivers properties one at a time and each one can
+  //  create a panel; none of them may steal the viewer (#111).
+  PanelBuildGuard buildGuard(p_panelBuildDepth);
   // See if this change applies to one of our current calcs
   map<string, IPropCalculation*>::iterator iter = p_calculations.find(urlstr);
   if (iter == p_calculations.end()) return;
 
   bool needUpate = false;
   IPropCalculation *calc = iter->second;
-  string key = msg.getProperty("name");
-  string value = msg.getProperty("value");
+  string key = propName;
 
   string token;
   StringTokenizer tokenizer(key);
@@ -7354,7 +7359,7 @@ void Builder::propertyChangeMCB(JMSMessage& msg)
           PropertyPanel::getPanelsForPropertyName(urlstr, key);
   set<PropertyPanel*>::iterator panel;
   for (panel = panels.begin(); panel != panels.end(); ++panel) {
-    (*panel)->propertyUpdate(msg.getProperty("name"));
+    (*panel)->propertyUpdate(propName);
   }
   PropertyPanelFactory &ppf = PropertyPanelFactory::getPropertyPanelFactory();
   set<string> names = ppf.getPanelNamesForProperties(vector<string>(1,key));

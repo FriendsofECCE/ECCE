@@ -73,6 +73,9 @@ class ScanPanel : public VizPropertyPanel
       /** The scan as CSV; false if the file cannot be written. */
       bool exportCsv(const wxString& path, bool kcal);
 
+      /** Rebuilds from the calculation's current scan properties. */
+      virtual void refresh();
+
    protected:
       void fill();
       void OnUnit(wxCommandEvent& event);

@@ -52,6 +52,9 @@ class IRCPanel : public VizPropertyPanel
       /** The path as CSV; false if the file cannot be written. */
       bool exportCsv(const wxString& path, bool kcal);
 
+      /** Rebuilds from the calculation's current IRC properties. */
+      virtual void refresh();
+
    protected:
       void fill();
       void OnUnit(wxCommandEvent& event);
