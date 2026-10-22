@@ -25,9 +25,9 @@ Input parse_input(std::istream& in) {
   std::string method = "hf";
   int lineno = 0;
   std::vector<std::string> geom_lines;
-  bool in_basis = false, in_cons = false;
+  bool in_basis = false, in_cons = false, in_scan = false;
   struct RawCon { std::string kind; std::vector<std::string> args; int line; };
-  std::vector<RawCon> raw_cons;
+  std::vector<RawCon> raw_cons, raw_scan;
   ShellDef* cur_shell = nullptr;
   while (std::getline(in, line)) {
     ++lineno;
@@ -43,14 +43,14 @@ Input parse_input(std::istream& in) {
       geom_lines.push_back(line);
       continue;
     }
-    if (in_cons) {
-      if (k == "end") { in_cons = false; continue; }
+    if (in_cons || in_scan) {
+      if (k == "end") { in_cons = in_scan = false; continue; }
       RawCon c;
       c.kind = k;
       c.line = lineno;
       std::string w;
       while (ss >> w) c.args.push_back(w);
-      raw_cons.push_back(c);
+      (in_scan ? raw_scan : raw_cons).push_back(c);
       continue;
     }
     if (in_basis) {
@@ -77,6 +77,7 @@ Input parse_input(std::istream& in) {
     if (k == "basis_data") { in_basis = true; continue; }
     if (k == "geometry") { in_geom = true; continue; }
     if (k == "constraints") { in_cons = true; continue; }
+    if (k == "scan") { in_scan = true; continue; }
     std::string rest;
     std::getline(ss, rest);
     rest.erase(0, rest.find_first_not_of(" \t"));
@@ -89,6 +90,7 @@ Input parse_input(std::istream& in) {
     else if (k == "spherical") { std::string v = lower(rest); r.spherical = (v == "true" || v == "yes" || v == "1"); }
     else if (k == "grid") { std::stringstream g(rest); if (!(g >> r.scf.grid_radial >> r.scf.grid_angular)) throw bad("grid needs two integers"); }
     else if (k == "grid_prune") { std::string v = lower(rest); r.scf.grid_prune = (v == "true" || v == "yes" || v == "on" || v == "1"); }
+    else if (k == "guess_mix") { std::string v = lower(rest); r.scf.guess_mix = (v == "true" || v == "yes" || v == "on" || v == "1"); }
     else if (k == "units") { std::string v = lower(rest); unit = (v == "bohr" || v == "au") ? 1.0 : kAngstromToBohr; }
     else if (k == "maxiter") r.scf.max_iter = std::stoi(rest);
     else if (k == "conv_energy") r.scf.conv_energy = std::stod(rest);
@@ -178,6 +180,41 @@ Input parse_input(std::istream& in) {
       g.value = g.kind == GeoConstraint::Bond ? v * unit : v * kPi / 180.0;
     }
     r.opt.constraints.push_back(g);
+  }
+  if (!raw_scan.empty()) {
+    const RawCon& c = raw_scan[0];
+    auto bad = [&](const std::string& m) { return Error("input line " + std::to_string(c.line) + ": " + m); };
+    if (raw_scan.size() > 1) throw bad("scan: one coordinate only");
+    GeoConstraint& g = r.scan.constraint;
+    int nidx;
+    if (c.kind == "bond") { g.kind = GeoConstraint::Bond; nidx = 2; }
+    else if (c.kind == "angle") { g.kind = GeoConstraint::Angle; nidx = 3; }
+    else if (c.kind == "torsion" || c.kind == "dihedral") { g.kind = GeoConstraint::Torsion; nidx = 4; }
+    else throw bad("scan: unknown coordinate '" + c.kind + "' (bond, angle, torsion)");
+    if (static_cast<int>(c.args.size()) != nidx + 3)
+      throw bad("scan: '" + c.kind + "' needs " + std::to_string(nidx) + " atom numbers, from, to and the number of points");
+    for (int i = 0; i < nidx; ++i) {
+      int a;
+      try { a = std::stoi(c.args[i]); } catch (...) { throw bad("scan: '" + c.args[i] + "' is not an atom number"); }
+      if (a < 1 || a > nat) throw bad("scan: atom " + std::to_string(a) + " is not in the geometry");
+      g.atoms[i] = a - 1;
+      for (int j = 0; j < i; ++j)
+        if (g.atoms[j] == g.atoms[i]) throw bad("scan: an atom is named twice");
+    }
+    double v0, v1;
+    try {
+      v0 = std::stod(c.args[nidx]);
+      v1 = std::stod(c.args[nidx + 1]);
+      r.scan.points = std::stoi(c.args[nidx + 2]);
+    } catch (...) { throw bad("scan: from, to and the number of points must be numbers"); }
+    if (r.scan.points < 1) throw bad("scan: needs at least one point");
+    const double f = g.kind == GeoConstraint::Bond ? unit : kPi / 180.0;
+    r.scan.start = v0 * f;
+    r.scan.end = v1 * f;
+    g.has_value = true;
+    g.value = r.scan.start;
+    r.scan.on = true;
+    if (r.runtype != RunType::Optimize) throw bad("scan needs runtype optimize");
   }
   if (r.raman && !does_frequencies(r.runtype)) throw Error("raman needs runtype frequency or optfreq");
   if (r.field_step <= 0) throw Error("field_step must be positive");

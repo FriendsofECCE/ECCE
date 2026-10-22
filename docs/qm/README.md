@@ -171,6 +171,36 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   degrees, HF and B3LYP/6-31G* against NWChem zcoord; water bond and angle
   against ORCA `%geom Constraints`; agreement 1e-7 Eh and 1e-5 angstrom).
 
+### Relaxed scan (#450)
+
+* `scan ... end` with one line `bond|angle|torsion <atoms> <from> <to> <n>`
+  (runtype optimize only). `main.cpp` loops `optimize_geometry` over the n
+  values, adding the scanned coordinate to the constraints with that value; each
+  point starts from the previous point's optimised geometry and, through
+  `evaluate`, its converged orbitals. A point that does not converge is
+  recorded `no` and the scan goes on; the exit status is 1 then.
+* Output, after each point: `begin scan_geometry` (point, value, the atoms in
+  the `begin geometry` layout), the whole `begin scan_table` rewritten
+  (point, value, energy, converged; the unit in its header comment) and
+  `progress scan point=k/n`. The final output is that of the last point.
+  `ecceqm.desc` makes SCANGEOM of every `scan_geometry`, SCANCOORD and
+  SCANENERGY of the last table, and the `scan` stage of the progress box.
+  `ai.ecceqm` writes the block from the Builder's scan constraint (n steps
+  of a given size are n+1 points, as for ORCA); one scanned coordinate only.
+* A diatomic whose bond is held has no free coordinate: the optimiser then
+  ends at the first evaluation (the model-Hessian step is skipped for an empty
+  space).
+* `guess_mix true` (unrestricted, na = nb): the alpha HOMO and LUMO of the
+  start orbitals are rotated by 45 degrees, at every point of a scan as well,
+  so a spin-polarised solution is found where one exists (H2 beyond the
+  Coulson-Fischer point) and the SCF returns to the closed-shell one where it
+  does not. Input only; the Calculation Editor does not offer it.
+* Tests: `tests/qm/scan_test.py` (relaxed scans against ORCA 6.1.1,
+  `scan_oracle.json` from `gen_scan_oracle.py`: ethane H-C-C-H HF/STO-3G and
+  B3LYP/6-31G*, H2 RHF and UHF), `scan_deck_test.py` (ai.ecceqm to deck to
+  engine), the parser case `ecceqm-h2o2-scan` and
+  `tests/apps/ecceqm_scan_panel_test.py` (Relaxed Scan panel).
+
 ## Frequencies, IR intensities, thermochemistry (stage 3)
 
 `runtype frequency` computes the harmonic vibrations at the given geometry,

@@ -2604,6 +2604,18 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_ecceqm_builder PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The Relaxed Scan panel on an ECCE-QM scan (#450): engine output through
+  # ecceqm.parse into the panel.
+  if(ECCE_BUILD_QM)
+    add_test(NAME apps_ecceqm_scan_panel
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ecceqm_scan_panel_test.py
+                     --build ${CMAKE_BINARY_DIR}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+    set_tests_properties(apps_ecceqm_scan_panel PROPERTIES TIMEOUT 900
+                         SKIP_RETURN_CODE 77)
+  endif()
+
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
   # draws; a 23-function one gives one plain dialog; the pane fits its rows.
   add_test(NAME apps_orca_mo

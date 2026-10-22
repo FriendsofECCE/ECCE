@@ -40,6 +40,17 @@ void write_opt_step(std::ostream& os, const OptStep& st);
 void write_molden(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r,
                   const FrequencyOutput* freq = nullptr);
 
+// Relaxed scan.  The table is rewritten whole after every point (the parser
+// keeps the last), each point's geometry is its own block.
+struct ScanPointOut {
+  double value = 0;        // scanned coordinate: angstrom or degrees
+  double energy = 0;       // hartree
+  bool converged = false;
+};
+void write_scan_table(std::ostream& os, const std::vector<ScanPointOut>& pts, bool bond);
+void write_scan_geometry(std::ostream& os, int point, double value, const Molecule& mol);
+void write_progress_scan(std::ostream& os, int point, int points);
+
 // "progress ..." lines for ECCE's job monitor (ecceqm.desc [PROGRESS]):
 // one line per SCF cycle, optimisation step and frequency point, flushed at
 // once.  Values with a target are written value/target.

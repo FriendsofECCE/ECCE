@@ -278,8 +278,8 @@ OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
   };
 
   // Model Hessian, made positive definite in the vibrational space.
-  Mat H;
-  {
+  Mat H = Mat::Zero(n, n);
+  if (step_space(x).cols() > 0) {   // a diatomic with its bond held has no free coordinate
     const Mat Q = step_space(x);
     Eigen::SelfAdjointEigenSolver<Mat> es(Q.transpose() * lindh_hessian(mol) * Q);
     Vec ev = es.eigenvalues().cwiseMax(0.02).cwiseMin(1.5);

@@ -62,6 +62,34 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
     print "key: GEOMTRACE\nsize:\n1 ", scalar(@rows), " 3\nrowlabels:\n$labels\n";
     print "columnlabels:\nX Y Z\nvalues:\n", join("\n", @rows), "\nunits:\nAngstrom\nEND\n";
   }
+} elsif ($first =~ /^begin scan_table\b/) {
+  # point value energy converged; the unit is in the header comment
+  my (@c, @e);
+  my $unit = ($first =~ /unit\s+bond|unit\s+angstrom/i) ? "Angstrom" : "Degree";
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    next if (@f < 3);
+    push(@c, sprintf("%.5f", $f[1]));
+    push(@e, $f[2]);
+  }
+  if (@c) {
+    &vectorProp("SCANCOORD", \@c, $unit);
+    &vectorProp("SCANENERGY", \@e, "Hartree");
+  }
+} elsif ($first =~ /^begin scan_geometry\b/) {
+  my (@rows, $labels);
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    next if (@f < 5);
+    push(@rows, " $f[2] $f[3] $f[4]");
+    $labels .= " $f[0]-$f[1]";
+  }
+  if (@rows) {
+    print "key: SCANGEOM\nsize:\n1 ", scalar(@rows), " 3\nrowlabels:\n$labels\n";
+    print "columnlabels:\nX Y Z\nvalues:\n", join("\n", @rows), "\nunits:\nAngstrom\nEND\n";
+  }
 } elsif ($first =~ /^begin gradient\b/) {
   # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
   my (@rows, @v);

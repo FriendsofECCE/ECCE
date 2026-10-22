@@ -153,6 +153,13 @@ if(QM_PYTHON3)
   # when neither is installed.
   add_test(NAME qm_constraints COMMAND ${QM_PYTHON3} ${_qm_tests}/constraint_test.py $<TARGET_FILE:ecce-qm>)
   set_tests_properties(qm_constraints PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  # Relaxed scans (#450) against ORCA (tests/qm/scan_oracle.json), and the
+  # parser keys made of them; the full list adds B3LYP ethane and UHF H2.
+  add_test(NAME qm_scan_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/scan_test.py $<TARGET_FILE:ecce-qm> --quick)
+  add_test(NAME qm_scan COMMAND ${QM_PYTHON3} ${_qm_tests}/scan_test.py $<TARGET_FILE:ecce-qm>)
+  add_test(NAME qm_scan_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/scan_deck_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_scan_quick PROPERTIES TIMEOUT 1800)
+  set_tests_properties(qm_scan PROPERTIES TIMEOUT 7200)
   set_tests_properties(qm_freq_quick PROPERTIES TIMEOUT 1800)
   set_tests_properties(qm_freq PROPERTIES TIMEOUT 7200)
   set_tests_properties(qm_gradient_quick qm_opt_quick PROPERTIES TIMEOUT 1800)

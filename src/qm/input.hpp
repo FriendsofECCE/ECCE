@@ -13,6 +13,9 @@
 //   grid_prune <true|false>      thin the angular grid near the nuclei
 //                                (default true; false = full grid everywhere)
 //   units <angstrom|bohr>        geometry units, default angstrom
+//   guess_mix <true|false>       unrestricted singlet: start from a 45 degree
+//                                HOMO/LUMO mix of the alpha orbitals (broken
+//                                symmetry; default false)
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
 //   runtype <energy|gradient|optimize|frequency|optfreq>   default energy;
@@ -47,6 +50,14 @@
 //                                "torsion a b c d [deg]", "fix a"; atoms count
 //                                from 1 including dummies, no value = keep the
 //                                starting one
+//   scan ... end                 optimize: relaxed scan of one internal
+//                                coordinate, one line "bond a b from to n",
+//                                "angle a b c from to n" or "torsion a b c d
+//                                from to n" (n points, from and to included;
+//                                geometry units or degrees).  Each point is
+//                                a constrained optimisation that starts from
+//                                the previous point's geometry and orbitals;
+//                                the other constraints stay in force
 #pragma once
 #include <iosfwd>
 #include <map>
@@ -65,6 +76,16 @@ enum class RunType { Energy, Gradient, Optimize, Frequency, OptFreq };
 inline bool does_frequencies(RunType t) { return t == RunType::Frequency || t == RunType::OptFreq; }
 inline bool does_optimize(RunType t) { return t == RunType::Optimize || t == RunType::OptFreq; }
 
+// A relaxed scan: constraint.value runs from start to end (bohr or radians)
+// in points steps.
+struct ScanSpec {
+  bool on = false;
+  GeoConstraint constraint;
+  double start = 0, end = 0;
+  int points = 0;
+  double value(int k) const { return points < 2 ? start : start + (end - start) * k / (points - 1); }
+};
+
 struct Input {
   std::string title;
   Molecule mol;
@@ -75,6 +96,7 @@ struct Input {
   ChargeOptions charges;  // extra charge sets (keyword "charges")
   RunType runtype = RunType::Energy;
   OptOptions opt;
+  ScanSpec scan;
   // Frequency runs: Cartesian step of the finite-difference Hessian (bohr),
   // temperature (K) and pressure (atm) of the thermochemistry, rotational
   // symmetry number (0: worked out from the geometry).

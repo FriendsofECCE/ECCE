@@ -146,6 +146,14 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   // against this S (Cholesky keeps the beta set inside the alpha set for
   // ROHF), or else a superposition of spin-averaged atomic densities.
   Mat Da, Db;
+  auto mix_frontier = [&](Mat C) {
+    if (!(opt.guess_mix && ref == Reference::Unrestricted && na == nb && na > 0 && na < C.cols())) return C;
+    const Vec h = C.col(na - 1), l = C.col(na);
+    const double t = std::sqrt(0.5);
+    C.col(na - 1) = t * (h + l);
+    C.col(na) = t * (l - h);
+    return C;
+  };
   const bool have_guess = guess && guess->converged && guess->C_a.rows() == n && guess->C_a.cols() == n &&
                           guess->nalpha == na && guess->nbeta == nb;
   if (have_guess) {
@@ -155,7 +163,7 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
       Mat L = llt.matrixL();
       return Mat(Co * L.transpose().inverse());
     };
-    const Mat Oa = orth(guess->C_a, na);
+    const Mat Oa = orth(mix_frontier(guess->C_a), na);
     if (ref == Reference::Unrestricted) {
       Da = density(Oa, na);
       Db = density(orth(guess->C_b, nb), nb);
@@ -282,6 +290,7 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     }
     Eold = E;
     if (!first || ref != Reference::RestrictedOpen) diis.push(F, err);
+    const bool first_pass = first;
     first = false;
     Mat Fx = diis.empty() ? F : diis.extrapolate();
     if (closed) {
@@ -290,6 +299,7 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     } else if (ref == Reference::Unrestricted) {
       diagonalize(Fx.leftCols(n), X, eps_a, Ca);
       diagonalize(Fx.rightCols(n), X, eps_b, Cb);
+      if (first_pass) Ca = mix_frontier(Ca);
       Da = density(Ca, na);
       Db = density(Cb, nb);
     } else {

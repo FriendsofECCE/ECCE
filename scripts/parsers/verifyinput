@@ -1728,7 +1728,7 @@ sub ecceqm
     qw(title charge multiplicity method basis spherical grid grid_prune
        charges units maxiter conv_energy conv_grad molden runtype maxsteps opt_conv
        hessian_step temperature pressure symmetry_number
-       polarizability polarisability raman field_step parallel_points);
+       polarizability polarisability raman field_step parallel_points guess_mix);
   my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
   my $INT = qr/[-+]?\d+/;
 
@@ -1737,6 +1737,7 @@ sub ecceqm
   my ($geomOpen, $geomClose, $basisOpen, $basisClose) = (0, 0, 0, 0);
   my ($inGeom, $inBasis, $shells, $primitives, $curShell) = (0, 0, 0, 0, 0);
   my ($inCons, $consOpen, $consClose) = (0, 0, 0);
+  my $inScan = 0;
   my @consAtoms;     # [line, atom number] to check against the geometry
   my %covered;
   my ($bad, $geomAtoms, $basisName) = (0, 0, "");
@@ -1773,6 +1774,26 @@ sub ecceqm
       next;
     }
 
+    if ($inScan) {
+      if ($k eq "end") { $inScan = 0; next; }
+      my %need = (bond => 2, angle => 3, torsion => 4, dihedral => 4);
+      my @w = split(' ', $rest);
+      if (!exists($need{$k})) {
+        finding("BAD", $n, "scan",
+                "\"$key\" is not a coordinate ecce-qm can scan (bond, " .
+                "angle or torsion); ecce-qm stops on it.");
+        $bad++;
+      } elsif (@w != $need{$k} + 3 ||
+               grep { $_ !~ /^\d+$/ } @w[0 .. $need{$k} - 1, $need{$k} + 2] ||
+               grep { $_ !~ /^$NUM$/ } @w[$need{$k}, $need{$k} + 1]) {
+        finding("BAD", $n, "scan",
+                "'$k' in a scan needs $need{$k} atom numbers, a start value, " .
+                "an end value and the number of points; ecce-qm stops on " .
+                "this line.");
+        $bad++;
+      }
+      next;
+    }
     if ($inCons) {
       if ($k eq "end") { $inCons = 0; $consClose = $n; next; }
       my %need = (bond => 2, angle => 3, torsion => 4, dihedral => 4, fix => 1);
@@ -1839,6 +1860,7 @@ sub ecceqm
     }
 
     if ($k eq "geometry")   { $inGeom = 1; $geomOpen = $n; next; }
+    if ($k eq "scan")       { $inScan = 1; next; }
     if ($k eq "constraints") { $inCons = 1; $consOpen = $n; next; }
     if ($k eq "basis_data") { $inBasis = 1; $basisOpen = $n; next; }
 

@@ -433,18 +433,26 @@ sub readChemSys {
 # engine from 1, both count a dummy atom; values are Angstrom and degrees.
 sub readCnstrntFile {
   @qmConstraints = ();
+  @qmScans = ();
   return if ($CnstrntFILE eq "" || !open(GEOCNST, $CnstrntFILE));
   while (<GEOCNST>) {
     next unless (/<Constraint\s/i);
     my ($type, $value, @group) = ("", "");
+    my ($scanSteps, $scanStep) = (0, 0);
     $type = lc $1 if (/type\s*=\s*"\s*(\S*)\s*"/i);
     while (<GEOCNST>) {
       last if (/<\/Constraint>/i);
       $value = $1 if (/<Value>\s*(\S*)\s*<\/Value>/i);
       @group = split(' ', $1) if (/<Group>(.*)<\/Group>/i);
+      ($scanSteps, $scanStep) = ($1, $2)
+        if (/<Scan\s+steps="(\d+)"\s+step="([^"]+)"/i);
     }
     my @atoms = map { $_ + 1 } @group;
-    if ($type eq "bond" || $type eq "angle" || $type eq "torsion") {
+    if (($type eq "bond" || $type eq "angle" || $type eq "torsion") && $scanSteps > 0) {
+      # n steps are n+1 points, as for ORCA and Gaussian.
+      push(@qmScans, sprintf("  %s @atoms %s %s %d\n", $type, $value,
+                             $value + $scanSteps * $scanStep, $scanSteps + 1));
+    } elsif ($type eq "bond" || $type eq "angle" || $type eq "torsion") {
       push(@qmConstraints, "  $type @atoms $value\n");
     } elsif ($type eq "fixed") {
       push(@qmConstraints, map { "  fix $_\n" } @atoms);
@@ -464,6 +472,12 @@ sub QMConstraints {
   }
   if (@qmConstraints && $AbiDict{"RunType"} eq "Geometry") {
     $result = "constraints\n" . join("", @qmConstraints) . "end";
+  }
+  if (@qmScans && $AbiDict{"RunType"} eq "Geometry") {
+    die "ai.ecceqm error: a relaxed scan scans one coordinate; " .
+        scalar(@qmScans) . " are marked in the Builder\n" if (@qmScans > 1);
+    $result .= "\n" if ($result ne "");
+    $result .= "scan\n" . join("", @qmScans) . "end";
   }
   $_ = $result;
   return $result;
