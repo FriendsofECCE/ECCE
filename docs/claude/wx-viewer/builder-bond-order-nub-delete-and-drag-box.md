@@ -32,3 +32,11 @@ Script hooks: `bondorder single|double|triple|aromatic|metal` (sends
 BondChanged), `bondorders`, `selectbonds`, `selection`, `coords`.
 Test: `tests/apps/builder_edit_bugs_test.py`
 (`apps_builder_edit_bugs`).
+
+Since #434 (on by default, off with `ECCE_MULTIBOND_CYLINDERS=0`): Ball and Stick
+and Stick draw double/triple/aromatic bonds as parallel cylinders
+(`ChemDisplay::renderMultiBondCylinders`, own pass; the single-bond pass
+gets a list without them). The live single-bond path is `clipNormalCylinder*`
+in `ChemDisplayCylindersLOD.C`, not `normalCylinder*` (`clipBonds` is true).
+Headless view: `viewer-scenes` systems `ethene`, `acetylene`, `co2`,
+`benzene-kekule`, `benzene-arom`.

@@ -780,6 +780,13 @@ void bBoxResiduesNone(SoState *state, ChemDisplayParam *cdp,
                                  const MFVec2i &normalIndex,
                                  const MFVec2i &highlightIndex);
     void    renderBondsAsCylinders(SoGLRenderAction *action);
+    // Unless ECCE_MULTIBOND_CYLINDERS=0: double/triple/aromatic bonds as
+    // parallel cylinders in Ball and Stick / Stick.
+    static bool multiBondCylinders();
+    void    renderMultiBondCylinders(SoState *state, const ChemColor *chemColor,
+                                     const ChemDisplayParam *cdp,
+                                     const ChemBaseData *chemData,
+                                     const MFVec2i &bondList);
     void    renderBondsAsWireframe(SoGLRenderAction *action);
     void    renderAtomLabelsWithWireframe(SoGLRenderAction *action);
     void    renderAtomLabelsWithCylinders(SoGLRenderAction *action);
