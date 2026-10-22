@@ -460,7 +460,7 @@ void CalcEdGUI::CreateControls()
     wxStaticBoxSizer* itemStaticBoxSizer67 = new wxStaticBoxSizer(p_detailsBox, wxHORIZONTAL);
     itemBoxSizer11->Add(itemStaticBoxSizer67, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
 
-    //  One layout for every code: choices, the three buttons, then the two
+    //  One layout for every code: choices, their Details buttons, then the two
     //  summaries as columns that share their x position with the choices.
     wxGridBagSizer* settingsGrid = new wxGridBagSizer(FromDIP(4), FromDIP(16));
     itemStaticBoxSizer67->Add(settingsGrid, 1, wxALIGN_TOP|wxALL, FromDIP(10));
@@ -481,12 +481,11 @@ void CalcEdGUI::CreateControls()
     runtypeRow->Add(itemChoice80, 0, wxALIGN_CENTER_VERTICAL, 0);
     settingsGrid->Add(runtypeRow, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
 
-    wxBoxSizer* detailButtons = new wxBoxSizer(wxHORIZONTAL);
-    detailButtons->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_THEORY, _("Theory Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
-                       0, wxRIGHT, 8);
-    detailButtons->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
-                       0, wxRIGHT, 8);
-    settingsGrid->Add(detailButtons, wxGBPosition(1, 0), wxGBSpan(1, 2), wxALIGN_LEFT);
+    //  Each Details button sits under its own choice.
+    settingsGrid->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_THEORY, _("Theory Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
+                      wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
+    settingsGrid->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
+                      wxGBPosition(1, 1), wxDefaultSpan, wxALIGN_LEFT);
 
     p_theoryDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
     settingsGrid->Add(p_theoryDetailsSizer, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_LEFT|wxTOP, 4);
