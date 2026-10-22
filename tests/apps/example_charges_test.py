@@ -31,7 +31,7 @@ import harness  # noqa: E402
 from harness import say  # noqa: E402
 
 GUI = ("builder", "organizer")
-OUTPUT = os.path.join(REPO, "data", "client", "examples", "mopac-ammonia",
+OUTPUT = os.path.join(REPO, "data", "client", "examples", "general", "mopac-ammonia",
                       "ammonia.out")
 CHARGES = "Mulliken Charges"
 
