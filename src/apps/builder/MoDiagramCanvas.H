@@ -75,7 +75,10 @@ class MoDiagramCanvas : public wxPanel
   public:
 
     MoDiagramCanvas(wxWindow *parent)
-      : wxPanel(parent, wxID_ANY), p_owner(0), p_haveFragments(false),
+      //  Drawn to the whole size: on MSW a resize would otherwise repaint
+      //  only the new strip (see SpectrumCanvas).
+      : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                wxFULL_REPAINT_ON_RESIZE), p_owner(0), p_haveFragments(false),
         p_showEnergies(true),
         p_placed(), p_notes(), p_sketchColumn(0), p_outward(-1)
     {

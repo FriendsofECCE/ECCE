@@ -2,8 +2,8 @@
 type: pitfall
 title: "wxMSW: 16-bit menu ids, no right-click selection, no manifest, text-mode 0x1A, a grey frame, no alpha by default, console windows from system()/popen()"
 area: wx-viewer
-paths: ["packaging/windows/ecce.rc", "src/apps/calced/CalcEd.C", "src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/ChemistryTask.C", "src/dsm/edsiimpl/Resource.C", "src/wxgui/ewxClasses/ewxStyledWindow.C", "src/inv/wxinv/SoWxViewer.C", "src/apps/builder/Builder.C", "src/apps/builder/VizPropertyPanel.C", "include/util/Ecce.H", "src/tdat/chemistry/MoFragments.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "src/util/command/CommandWrapper.C", "tests/windows/probe_win.py", "src/wxgui/wxdialogs/WindowShot.C", "src/apps/builder/NModePanel.C", "src/apps/builder/StructLib.C", "src/apps/builder/KeyValuePropertyPanel.C", "include/wxgui/WxResourceTreeCtrl.H"]
-issues: [133]
+paths: ["packaging/windows/ecce.rc", "src/apps/calced/CalcEd.C", "src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/ChemistryTask.C", "src/dsm/edsiimpl/Resource.C", "src/wxgui/ewxClasses/ewxStyledWindow.C", "src/inv/wxinv/SoWxViewer.C", "src/apps/builder/Builder.C", "src/apps/builder/VizPropertyPanel.C", "include/util/Ecce.H", "src/tdat/chemistry/MoFragments.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "src/util/command/CommandWrapper.C", "tests/windows/probe_win.py", "src/wxgui/wxdialogs/WindowShot.C", "src/apps/builder/NModePanel.C", "src/apps/builder/StructLib.C", "src/apps/builder/KeyValuePropertyPanel.C", "include/wxgui/WxResourceTreeCtrl.H", "src/apps/builder/SpectrumCanvas.H", "src/apps/builder/XYPlotCanvas.H", "src/apps/builder/MoDiagramCanvas.H"]
+issues: [133, 445]
 ---
 Each of these worked on GTK and failed silently on Windows:
 
@@ -65,3 +65,12 @@ Each of these worked on GTK and failed silently on Windows:
 `tests/windows/probe_win.py` checks the first, second and fourth through
 the apps' hooks; `tests/windows/winshot.ps1` photographs windows, which
 needs the interactive desktop (an ssh session has none).
+
+## Custom-painted canvases need wxFULL_REPAINT_ON_RESIZE (#445)
+A canvas that paints its whole layout from its client size must be created
+with `wxFULL_REPAINT_ON_RESIZE`. Without the flag, wxMSW invalidates only the
+newly exposed strip when the window grows. The strip shows part of the new,
+larger layout while the rest still shows the old one, and hit-testing uses
+the new layout, so clicks miss what is on screen. GTK3 repaints the whole
+widget and hides the bug. Applied to SpectrumCanvas, XYPlotCanvas and
+MoDiagramCanvas.
