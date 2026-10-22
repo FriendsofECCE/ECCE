@@ -24,8 +24,12 @@
   using std::ostrstream;
 #include <unistd.h>
 #include <memory>
+#include <atomic>
+#include <future>
+#include <thread>
 #include <wx/timer.h>
 #include "wxgui/WindowShot.H"
+#include "wxgui/WxJMSSubscriber.H"
 
 #include "util/BadValueException.H"
 #include "util/BrowserHelp.H"
@@ -3701,6 +3705,17 @@ void MDPrep::OnButtonMdprepLocalClick(wxCommandEvent &event)
       Launch *launch = new Launch(calc, kvargs, true);
       bool valid = true;
 
+      // Steps wait on ssh and the queue; they run on a worker thread while
+      // this one handles events.  Input is off and broker messages wait, so
+      // nothing else touches the calculation meanwhile.
+      struct DeferMessages {
+         WxJMSSubscriber *s;
+         DeferMessages() : s(dynamic_cast<WxJMSSubscriber*>(wxTheApp))
+            { if (s) s->deferMessages(true); }
+         ~DeferMessages() { if (s) s->deferMessages(false); }
+      } defer;
+      wxWindowDisabler noInput(p_progressDialog);
+
       int progress = 40;
       string msg;
       while (valid && !launch->done()) {
@@ -3710,7 +3725,7 @@ void MDPrep::OnButtonMdprepLocalClick(wxCommandEvent &event)
 
          p_feedback->setMessage(launch->description(), WxFeedback::INFO);
 
-         if (!(valid = launch->nextOperation())) {
+         if (!(valid = runLaunchStep(launch))) {
             p_feedback->setMessage(launch->message(), WxFeedback::ERROR);
          } else if (launch->message() != "") {
             p_feedback->setMessage(launch->message(), WxFeedback::WARNING);
@@ -3744,6 +3759,37 @@ void MDPrep::OnButtonMdprepLocalClick(wxCommandEvent &event)
    } catch (EcceException& ex) {
      p_feedback->setMessage(ex.what(), WxFeedback::ERROR);
    }
+}
+
+
+bool MDPrep::runLaunchStep(Launch *launch)
+{
+   std::atomic<bool> finished(false);
+   bool ok = false;
+   std::thread worker([launch, &ok, &finished]() {
+      try { ok = launch->nextOperation(); }
+      catch (...) { ok = false; }
+      finished = true;
+   });
+   while (!finished) {
+      wxTheApp->Yield(true);
+      wxMilliSleep(20);
+   }
+   worker.join();
+   return ok;
+}
+
+
+// A step's data-server login window must be built on the GUI thread.
+bool MDPrep::getAuthorization(AuthEvent& event)
+{
+   if (wxThread::IsMain())
+      return WxDavAuth::getAuthorization(event);
+   std::promise<bool> answer;
+   wxTheApp->CallAfter([this, &event, &answer]() {
+      answer.set_value(WxDavAuth::getAuthorization(event));
+   });
+   return answer.get_future().get();
 }
 
 

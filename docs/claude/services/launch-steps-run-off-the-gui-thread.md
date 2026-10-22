@@ -19,8 +19,9 @@ shared between the two threads, so while the loop runs:
   sends it to the GUI thread with CallAfter and waits.
 
 Anything new that a step calls must stay free of wx, or go through the GUI
-thread the same way. Other `Launch` users (launchjob, MDPrep, JobParser) still
-call `nextOperation` on their own thread.
+thread the same way. MD Prepare runs its steps the same way
+(`MDPrep::runLaunchStep`, `MDPrep::getAuthorization`); launchjob and
+JobParser have no GUI and call `nextOperation` directly.
 
 The submit command's timeout (`ECCE_SUBMIT_TIMEOUT`, default 120 s) is an idle
 limit: it counts from the last output, so a client that keeps printing retry
