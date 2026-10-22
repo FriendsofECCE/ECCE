@@ -1402,43 +1402,6 @@ void CalcEd::OnButtonCalcedPartialClick( wxCommandEvent& event )
 }
 
 
-void CalcEd::OnButtonCalcedConstraintClick( wxCommandEvent& event )
-{
-  openConstraints();
-  event.Skip();
-}
-
-
-/**
- * Constraints belong to the structure, so they are defined in the Builder
- * (Tools > Geometry Constraints) with the atoms selected there.
- */
-void CalcEd::openConstraints()
-{
-  const string url = getContext();
-  Target gateway(GATEWAY, "");
-  JMSMessage *msg = newMessage();
-  msg->addProperty("action", "start");
-  publish("ecce_activity", *msg);
-  delete msg;
-
-  msg = newMessage(gateway);
-  msg->markAsPointToPoint();
-  Resource *resource = EDSIFactory::getResource(url);
-  ResourceType *resourceType = resource ? resource->getDescriptor() : 0;
-  if (resourceType) {
-    vector<ResourceTool*> tools = resourceType->getTools();
-    for (size_t i = 0; i < tools.size(); i++) {
-      if (tools[i]->getName() == BUILDER) {
-        invoke(*msg, tools[i]->getName(), 0, url, "constraints");
-        break;
-      }
-    }
-  }
-  delete msg;
-}
-
-
 /**
  * Persistently delete the esp constraint model and clean up memory.
  */
@@ -1478,21 +1441,27 @@ void CalcEd::refreshConstraintCount()
 }
 
 
-/// "2 constraints (optimisations only)", or empty.
+/// "2 constraints, not used by an Energy run", or empty when the run type
+/// and code use them (they are edited in the Builder, not here).
 string CalcEd::constraintNote() const
 {
   if (p_constraintCount <= 0) return "";
-  char buf[96];
-  snprintf(buf, sizeof buf, "%d constraint%s", p_constraintCount,
-           p_constraintCount == 1 ? "" : "s");
-  string note = buf;
   bool supported = true;
   if (p_code) p_code->get_bool("SupportsConstraints", supported);
-  if (!supported)
-    note += " (not used by " + p_codeName + ")";
-  else if (!GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString()))
-    note += " (optimisations only)";
-  return note;
+  string why;
+  if (!supported) {
+    why = "not used by " + p_codeName;
+  } else if (!GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString())) {
+    const string rt = getRuntypeName().ToStdString();
+    const bool vowel = !rt.empty() && strchr("AEIOUaeiou", rt[0]);
+    why = string("not used by ") + (vowel ? "an " : "a ") + rt + " run";
+  } else {
+    return "";
+  }
+  char buf[96];
+  snprintf(buf, sizeof buf, "%d constraint%s, ", p_constraintCount,
+           p_constraintCount == 1 ? "" : "s");
+  return buf + why;
 }
 
 
@@ -3803,10 +3772,8 @@ void CalcEd::showGeomEditor()
     p_code->get_bool("SupportsConstraints", supportsConstraints);
   }
 
-  // Any run type: the constraints belong to the structure, the run type only
-  // decides whether the input uses them (see the note beside the button).
-  FindWindow(ID_BUTTON_CALCED_CONSTRAINT)->Show(!isSubmitted
-          && hasFragment && supportsConstraints);
+  // The constraints belong to the structure; only a warning shows here, when
+  // the run type or code leaves them out.
   const string note = constraintNote();
   p_constraintNote->SetLabel(wxString::FromUTF8(note));
   p_constraintNote->SetToolTip(wxString::FromUTF8(note));

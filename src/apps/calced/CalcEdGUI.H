@@ -142,9 +142,6 @@ public:
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_PARTIAL
     virtual    void OnButtonCalcedPartialClick( wxCommandEvent& event );
 
-    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT
-    virtual    void OnButtonCalcedConstraintClick( wxCommandEvent& event );
-
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_GUESS_DEFAULT
     virtual    void OnButtonCalcedGuessDefaultClick( wxCommandEvent& event );
 
@@ -225,7 +222,6 @@ public:
     static const wxWindowID ID_BUTTON_CALCED_BASIS_QUICK;
     static const wxWindowID ID_MENU_FEEDBACK;
     static const wxWindowID ID_CHOICE_CALCED_RUNTYPE;
-    static const wxWindowID ID_BUTTON_CALCED_CONSTRAINT;
     static const wxWindowID ID_LABEL_CALCED_CD;
     static const wxWindowID ID_CALCED_FRAME;
     static const wxWindowID ID_STATICTEXT_CALCED_XC;

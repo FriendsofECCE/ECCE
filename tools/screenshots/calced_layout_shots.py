@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The Calculation Editor on ready NWChem, ORCA, Gaussian 16 and ECCE-QM calculations, at the default and a narrow width,
-headlessly in local data mode (Geometry Constraints is in the Settings box).
+headlessly in local data mode (editor minimum width comes from the Settings box).
 
     ECCE_TEST_HOME=<install> ECCE_TEST_WRAPPERS=<install bin> \\
         tools/screenshots/calced_layout_shots.py --out DIR [--tmp DIR]

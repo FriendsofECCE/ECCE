@@ -243,10 +243,9 @@ void CalcEd::runCalcEdScript(const string& file)
         }
         if (!ok) outcome = "FAIL: " + w[1] + " not available";
       } else if (w[0] == "constraints") {
-        //  The Geometry Constraints button and the note beside it (#306)
-        wxWindow *b = FindWindow(ID_BUTTON_CALCED_CONSTRAINT);
-        fprintf(stderr, "CALCED: constraints button=%d count=%d note=%s\n",
-                b && b->IsShown() ? 1 : 0, p_constraintCount,
+        //  The constraint count and the warning in the Settings box (#306)
+        fprintf(stderr, "CALCED: constraints count=%d note=%s\n",
+                p_constraintCount,
                 constraintNote().c_str());
         {
           //  and what Verify says about them

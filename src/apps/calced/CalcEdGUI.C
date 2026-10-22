@@ -82,7 +82,6 @@ const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_PARTIAL = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_BASIS_QUICK = wxNewId();
 const wxWindowID CalcEdGUI::ID_MENU_FEEDBACK = wxNewId();
 const wxWindowID CalcEdGUI::ID_CHOICE_CALCED_RUNTYPE = wxNewId();
-const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_CONSTRAINT = wxNewId();
 const wxWindowID CalcEdGUI::ID_LABEL_CALCED_CD = wxNewId();
 const wxWindowID CalcEdGUI::ID_CALCED_FRAME = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_XC = wxNewId();
@@ -140,7 +139,6 @@ BEGIN_EVENT_TABLE( CalcEdGUI, ewxFrame )
 
     EVT_BUTTON( ID_BUTTON_CALCED_PARTIAL, CalcEdGUI::OnButtonCalcedPartialClick )
 
-    EVT_BUTTON( ID_BUTTON_CALCED_CONSTRAINT, CalcEdGUI::OnButtonCalcedConstraintClick )
 
     EVT_BUTTON( ID_BUTTON_CALCED_FINAL_EDIT, CalcEdGUI::OnButtonCalcedFinalEditClick )
     EVT_BUTTON( ID_BUTTON_CALCED_VERIFY, CalcEdGUI::OnButtonCalcedVerifyClick )
@@ -465,7 +463,7 @@ void CalcEdGUI::CreateControls()
     //  One layout for every code: choices, the three buttons, then the two
     //  summaries as columns that share their x position with the choices.
     wxGridBagSizer* settingsGrid = new wxGridBagSizer(FromDIP(4), FromDIP(16));
-    itemStaticBoxSizer67->Add(settingsGrid, 1, wxALIGN_TOP|wxALL, 5);
+    itemStaticBoxSizer67->Add(settingsGrid, 1, wxALIGN_TOP|wxALL, FromDIP(10));
 
     wxBoxSizer* theoryRow = new wxBoxSizer(wxHORIZONTAL);
     theoryRow->Add(new ewxStaticText( itemFrame1, wxID_STATIC, _("Theory:"), wxDefaultPosition, wxDefaultSize, 0 ),
@@ -488,9 +486,6 @@ void CalcEdGUI::CreateControls()
                        0, wxRIGHT, 8);
     detailButtons->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
                        0, wxRIGHT, 8);
-    ewxButton* itemButton85 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_CONSTRAINT, _("Geometry Constraints..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemButton85->Show(false);
-    detailButtons->Add(itemButton85, 0, 0, 0);
     settingsGrid->Add(detailButtons, wxGBPosition(1, 0), wxGBSpan(1, 2), wxALIGN_LEFT);
 
     p_theoryDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
@@ -845,18 +840,6 @@ void CalcEdGUI::OnButtonCalcedPartialClick( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_PARTIAL in CalcEdGUI. 
-}
-
-/*!
- * wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT
- */
-
-void CalcEdGUI::OnButtonCalcedConstraintClick( wxCommandEvent& event )
-{
-////@begin wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT in CalcEdGUI.
-    // Before editing this code, remove the block markers.
-    event.Skip();
-////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT in CalcEdGUI. 
 }
 
 /*!
