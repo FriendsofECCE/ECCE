@@ -145,7 +145,10 @@ def tinted(path, which):
     p = numpy.asarray(img.convert("RGB").crop(box)).astype(int)
     r, g, b = p[..., 0], p[..., 1], p[..., 2]
     if which == "yellow":
-        return int(((r > 120) & (g > 120) & (b < 60)).sum())
+        # Pure yellow, or the arrow's see-through part blended at 40 %
+        # over the atoms (about 113,113,10): red and green alike, no blue.
+        return int(((r > 80) & (g > 80) & (b < 60) &
+                    (abs(r - g) < 25)).sum())
     # The charge blue is lit and shaded by the viewer, so its green channel
     # is about half its blue (e.g. 60,111,241), not near zero: test for a
     # clearly blue hue. White hydrogens and red oxygen never satisfy it.

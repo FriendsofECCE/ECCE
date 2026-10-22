@@ -10,6 +10,9 @@
 #include <GL/gl.h>
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoCallback.H"
+#ifdef OIV_COIN
+#include <Inventor/nodes/SoTransparencyType.h>
+#endif
 #include "inv/nodes/SoCone.H"
 #include "inv/nodes/SoCylinder.H"
 #include "inv/nodes/SoTranslation.H"
@@ -129,6 +132,13 @@ void VRVector::showThroughMolecule()
    throughMat->transparency.setValue(0.6f);
 
    SoSeparator *geo = new SoSeparator;
+#ifdef OIV_COIN
+   //  The viewer's default is screen-door transparency, which draws this
+   //  pass as a checkerboard; blend it instead.
+   SoTransparencyType *blend = new SoTransparencyType;
+   blend->value = SoTransparencyType::BLEND;
+   geo->addChild(blend);
+#endif
    geo->addChild(throughMat);
    geo->addChild(scal);
    geo->addChild(shaftTrans);
