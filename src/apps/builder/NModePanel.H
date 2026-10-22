@@ -91,6 +91,13 @@ class NModePanel : public NModesGUI,
           The curve covers the data's full wavenumber range at 1 cm-1. */
       bool exportSpectrumCsv(const wxString& path, VibKind kind);
 
+      /** Test hook (#445): a left click on mode `mode` (0-based) in the
+          graph; `mismatch` gets the share of canvas pixels on screen that
+          differ from the layout the click is tested on, `selected` the
+          mode selected afterwards.  False if the graph is hidden or the
+          mode has no stick. */
+      bool scriptSpectrumClick(int mode, double *mismatch, int *selected);
+
       /** Another calculation of the same folder as a second curve in the
           spectrum (#173); "" removes it.  False if there is no such
           calculation with IR or Raman data. */

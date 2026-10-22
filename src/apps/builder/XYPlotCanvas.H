@@ -43,8 +43,9 @@ class XYPlotCanvas : public wxPanel
     typedef std::function<void(int curve, int index)> PointHandler;
 
     XYPlotCanvas(wxWindow *parent)
+      //  Full repaint on resize: see SpectrumCanvas.
       : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                wxWANTS_CHARS),
+                wxWANTS_CHARS | wxFULL_REPAINT_ON_RESIZE),
         p_palette(PlotPalette::system()), p_showKey(false), p_showXAxis(true),
         p_selCurve(-1), p_selIndex(-1), p_hoverCurve(-1), p_hoverIndex(-1),
         p_zoomed(false), p_xPad(0), p_pressed(false), p_dragging(false),
