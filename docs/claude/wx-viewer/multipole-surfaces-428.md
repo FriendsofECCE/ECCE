@@ -24,10 +24,13 @@ switch.
   spherical-harmonic parts of degree < k (quadrature projection, then a fit
   of the degree-k monomials), so the surface is the pure rank-k multipole.
   The table still shows what the code printed.
-- **Origin.** The parsers do not read it. The panel says: ORCA centre of mass
-  (the output states it, and the surface is drawn there); Gaussian centre of
-  nuclear charge (standard orientation, not stated in the output); anything
-  else "as in the output (not stated)", drawn at the centre of nuclear charge.
+- **Origin.** The parsers do not read it. ORCA states "Choice of electric
+  origin: Center of mass", so ORCA surfaces are drawn there. NWChem prints
+  "Multipole analysis of the density wrt the origin" and Gaussian reports
+  about its coordinate origin, so every other code is drawn at (0,0,0) of
+  the output's frame. That is the centre of nuclear charge only in
+  Gaussian's standard orientation and NWChem's first geometry: NoSymm
+  Gaussian runs and later NWChem optimisation steps are not re-centred.
 - **Scale.** The slider is the length of the largest lobe in Angstrom (the
   same resolution for every molecule and rank); the default is 1.5 times the
   farthest atom from the origin. The command's Amplitude is Angstrom per

@@ -548,8 +548,8 @@ def polarCase(s, display, env, wrappers, png):
 
 def multipoleCase(s, display, env, wrappers, png):
     """#428: quadrupole, octupole and hexadecapole as angular surfaces, on
-    the Gaussian water (all three stored), centred on the centre of nuclear
-    charge, the largest lobe 1.5 times the molecule's radius."""
+    the Gaussian water (all three stored), centred on the output's origin,
+    the largest lobe 1.5 times the molecule's radius."""
     import numpy
     say("Multipoles: angular surfaces r = s|f(n)| (#428)")
     project = os.path.join(s.localData(), "users", "local", "overlay")
@@ -587,9 +587,10 @@ def multipoleCase(s, display, env, wrappers, png):
             continue
         kv = dict(p.split("=") for p in found[0].split()[4:])
         centre = numpy.array([float(x) for x in kv["centre"].split(",")])
-        check(numpy.abs(centre - want).max() < 0.002,
-              "%s: centred on the centre of nuclear charge %s (%s)"
-              % (tag, numpy.round(want, 4), numpy.round(centre, 4)))
+        # Gaussian reports the moments about its coordinate origin.
+        check(numpy.abs(centre).max() < 0.002,
+              "%s: centred on the output's origin (%s)"
+              % (tag, numpy.round(centre, 4)))
         check(int(kv["vertices"]) == 10242 and int(kv["triangles"]) == 20480,
               "%s: icosphere mesh %s vertices" % (tag, kv["vertices"]))
         reach = float(kv["farthest"])

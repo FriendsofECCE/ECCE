@@ -100,17 +100,12 @@ bool QuadPolePanel::Create(IPropCalculation *calculation,
      string up = p_code;
      for (size_t i = 0; i < up.size(); i++) up[i] = (char)toupper((unsigned char)up[i]);
      const bool orca = up.find("ORCA") != string::npos;
-     const bool gaussian = up.find("GAUSSIAN") != string::npos;
-     p_origin = orca ? "mass" : "charge";
+     p_origin = orca ? "mass" : "origin";
      wxString origin = orca ?
         wxString::FromUTF8("Origin: centre of mass (the ORCA output states "
                            "\"Choice of electric origin: Center of mass\").") :
-        gaussian ?
-        wxString::FromUTF8("Origin: centre of nuclear charge (Gaussian's "
-                           "standard orientation; the output does not "
-                           "state it).") :
-        wxString::FromUTF8("Origin: as in the output (not stated); drawn at "
-                           "the centre of nuclear charge.");
+        wxString::FromUTF8("Origin: the coordinate origin of the output, "
+                           "about which the code reports the moments.");
      int rank = AddMultipoleCmd::rankOf(*keys.begin());
      wxString note = wxString::Format(wxString::FromUTF8(
         "Surface r = s|f(n)|, f(n) = \u03a3 T n n%s; blue where f > 0, "
