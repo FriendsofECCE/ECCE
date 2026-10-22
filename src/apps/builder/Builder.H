@@ -393,6 +393,7 @@ class Builder: public BuilderGUI,
       void deleteKey();
       virtual void OnModeShapeClick( wxCommandEvent& event );
       virtual void OnModeBondClick( wxCommandEvent& event );
+      void syncLassoType(int modeId);
 
       // Context menu events
               void OnContextRadioClick( wxCommandEvent& event );

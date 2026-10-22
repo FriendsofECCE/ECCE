@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+"""Builder: bond orders, deleting atoms with nubs, the select-mode drag box.
+
+    tests/apps/builder_edit_bugs_test.py [--build DIR] [--keep] [--shots DIR]
+
+Headless on benzene.car through ECCE_BUILDER_SCRIPT, with the events the GUI
+sends: the bond order chosen as the Bond tool and the Build panel's list
+choose it (BondChanged), then Bond mode on two picked atoms, both for a bond
+that exists and for a new bond between two molecules ("Align molecules?"
+answered Yes, the default).  Deleting two bonded atoms together with their
+bond (as a drag box selects them) must take their nubs along.  A real drag
+in Select mode through the X server (xdotool) with Lasso Select chosen must
+select the atoms inside the box.
+
+Exit status 77 (skip) without Xvfb, xdotool or the built Builder.
+"""
+import argparse
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(REPO, "tests", "launch"))
+
+import builder_overlay_test as bo  # noqa: E402
+import harness  # noqa: E402
+from harness import say  # noqa: E402
+
+STRUCTURE = os.path.join(REPO, "tests", "fragreaders", "data", "benzene.car")
+failures = []
+
+
+def check(ok, what):
+    say("%s  %s" % ("ok  " if ok else "FAIL", what))
+    if not ok:
+        failures.append(what)
+    return ok
+
+
+def drag(env, x0, y0, x1, y1):
+    subprocess.run(["xdotool", "mousemove", str(x0), str(y0)], env=env)
+    time.sleep(0.3)
+    subprocess.run(["xdotool", "mousedown", "1"], env=env)
+    for i in range(1, 11):
+        subprocess.run(["xdotool", "mousemove",
+                        str(x0 + (x1 - x0) * i // 10),
+                        str(y0 + (y1 - y0) * i // 10)], env=env)
+        time.sleep(0.05)
+    time.sleep(0.3)
+    subprocess.run(["xdotool", "mouseup", "1"], env=env)
+    time.sleep(1.0)
+
+
+def runBuilder(s, env, wrappers, name, lines, shots=None, extra=None):
+    """Runs the Builder on benzene; at "shot dragN" drags across the view
+    between the last two viewpos points, at "shot picN" saves the screen."""
+    work = os.path.join(s.state, name)
+    shutil.rmtree(work, ignore_errors=True)
+    os.makedirs(work)
+    script = os.path.join(work, "script")
+    with open(script, "w") as handle:
+        handle.write("\n".join(lines) + "\n")
+    log = os.path.join(work, "builder.log")
+    runEnv = dict(env, ECCE_BUILDER_SCRIPT=script, **(extra or {}))
+    proc = subprocess.Popen([os.path.join(wrappers, "ecce-builder"),
+                             STRUCTURE], env=runEnv,
+                            cwd=os.path.join(s.home, "bin"),
+                            stdout=open(log, "w"), stderr=subprocess.STDOUT,
+                            start_new_session=True)
+    pending = [l.split()[1] for l in lines if l.startswith("shot ")]
+    deadline = time.time() + 300
+    try:
+        while pending and time.time() < deadline and proc.poll() is None:
+            ready = os.path.join(work, pending[0] + ".ready")
+            if os.path.exists(ready):
+                with open(log, errors="replace") as handle:
+                    text = handle.read()
+                if pending[0].startswith("drag"):
+                    pts = re.findall(r"BUILDER: viewpos \S+ at (-?\d+) (-?\d+)",
+                                     text)[-2:]
+                    if len(pts) == 2:
+                        drag(env, *[int(v) for p in pts for v in p])
+                elif shots:
+                    subprocess.run(["import", "-window", "root",
+                                    os.path.join(shots, pending[0] + ".png")],
+                                   env=env)
+                os.unlink(ready)
+                open(os.path.join(work, pending[0] + ".go"), "w").close()
+                pending.pop(0)
+            time.sleep(0.3)
+        while proc.poll() is None and time.time() < deadline:
+            with open(log, errors="replace") as handle:
+                if "ECCE_BUILDER_SCRIPT: quit" in handle.read():
+                    break
+            time.sleep(0.5)
+        time.sleep(2)
+    finally:
+        bo.stop(proc)
+    with open(log, errors="replace") as handle:
+        return handle.read()
+
+
+def orders(text):
+    """Each 'bondorders' dump: {(sym1, sym2, i, j): (order, drawn)}."""
+    out, cur = [], None
+    for line in text.splitlines():
+        m = re.search(r"BUILDER: bond (\d+)-(\d+) (\w+)-(\w+) order=(\S+) "
+                      r"drawn=(\d+)", line)
+        if m:
+            if cur is None:
+                cur = {}
+                out.append(cur)
+            cur[tuple(sorted((m.group(3), m.group(4)))) +
+                (int(m.group(1)), int(m.group(2)))] = (float(m.group(5)),
+                                                       int(m.group(6)))
+        elif cur is not None:
+            cur = None
+    return out
+
+
+def bondOf(dump, a, b):
+    for key, val in dump.items():
+        if key[:2] == tuple(sorted((a, b))):
+            return key, val
+    return None, None
+
+
+def orderCase(s, env, wrappers, shots):
+    # The type the display gets: ChemBaseData SINGLE_BOND 1, DOUBLE 2, TRIPLE 3.
+    lines = ["wait 3000", "bondorders",
+             "bondorder double", "selectelem C", "addelem C", "click",
+             "bondorders",
+             "bondorder triple", "selectelem C", "addelem C", "click",
+             "bondorders",
+             "select -1", "add C Tetrahedral 8 0 0", "select -1",
+             "add O Bent 12 0 0",
+             "bondorder double", "selectelem O", "addelem C", "click",
+             "bondorders", "wait 1000", "shot picorders", "quit"]
+    text = runBuilder(s, env, wrappers, "orders", lines, shots,
+                      {"ECCE_TEST_DIALOG_CLOSE": "1",
+                       "ECCE_TEST_DIALOG_ANSWER": "yes"})
+    cur = re.findall(r"BUILDER: bondorder current=(\S+)", text)
+    check(cur[:3] == ["2", "3", "2"],
+          "the chosen order reaches the Bond mode (%s)" % cur)
+    d = orders(text)
+    if not check(len(d) == 4, "four bond dumps (%d)" % len(d)):
+        say("\n".join("      | " + l for l in text.splitlines()[-30:]))
+        return
+    c1c6 = [k for k in d[0] if k[2:] in ((0, 5), (5, 0))]
+    check(bool(c1c6), "benzene has a C1-C6 bond (%s)" % list(d[0]))
+    if c1c6:
+        k = c1c6[0]
+        check(d[1].get(k) == (2.0, 2),
+              "an existing C-C bond becomes double, stored and passed to "
+              "the display "
+              "(%s)" % (d[1].get(k),))
+        check(d[2].get(k) == (3.0, 3),
+              "and then triple (%s)" % (d[2].get(k),))
+    _, co = bondOf(d[3], "C", "O")
+    check(co == (2.0, 2),
+          "a new bond between two molecules, aligned, is double (%s)"
+          % (co,))
+
+
+def deleteCase(s, env, wrappers):
+    lines = ["wait 3000", "select -1", "add Si Tetrahedral 8 0 0",
+             "mode atom", "element Si", "selectnub Si", "click", "info",
+             "selectelem Si", "addelem Si", "selectbonds", "selection",
+             "key delete", "info", "quit"]
+    text = runBuilder(s, env, wrappers, "delete", lines)
+    n = [(int(a), int(b)) for a, b in
+         re.findall(r"BUILDER: atoms=(\d+) lattice=\w+ nubs=(\d+)", text)]
+    sel = re.findall(r"BUILDER: selection atoms=(\d+) bonds=(\d+)", text)
+    if not check(len(n) == 2 and sel,
+                 "the script ran (%s, %s)" % (n, sel)):
+        say("\n".join("      | " + l for l in text.splitlines()[-30:]))
+        return
+    check(n[0] == (20, 6), "Si2 with six nubs next to benzene (%s)"
+          % (n[0],))
+    check(sel[0] == ("2", "1"), "both Si and their bond selected (%s)"
+          % (sel[0],))
+    check(n[1] == (12, 0),
+          "deleting them takes their nubs along (atoms, nubs: %s)"
+          % (n[1],))
+
+
+def lassoCase(s, env, wrappers):
+    lines = ["wait 3000", "mode select", "selectaction lasso", "selection",
+             "viewpos 0.02 0.02", "viewpos 0.98 0.98", "shot drag1",
+             "wait 500", "selection", "quit"]
+    text = runBuilder(s, env, wrappers, "lasso", lines)
+    sel = re.findall(r"BUILDER: selection atoms=(\d+) bonds=\d+ drag=(\d) "
+                     r"lasso=(\d)", text)
+    if not check(len(sel) == 2, "the script ran (%s)" % sel):
+        say("\n".join("      | " + l for l in text.splitlines()[-30:]))
+        return
+    check(sel[0][1:] == ("0", "2"),
+          "Lasso Select turns the drag box on at once (drag, lasso: %s)"
+          % (sel[0][1:],))
+    check(int(sel[1][0]) == 12,
+          "a drag across the view selects the 12 atoms (%s)" % sel[1][0])
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
+    ap.add_argument("--keep", action="store_true")
+    ap.add_argument("--shots", help="save screen shots here")
+    args = ap.parse_args()
+    build = os.path.abspath(args.build)
+    for tool in ("Xvfb", "xdotool"):
+        if not shutil.which(tool):
+            harness.skip("%s is not installed" % tool)
+    harness.prerequisites(build, ())
+    if not os.access(os.path.join(build, "builder"), os.X_OK):
+        harness.skip("builder is not built in %s" % build)
+    import xdisplay
+
+    s = harness.Session(build, "editbugs", {}, local=True, keep=args.keep)
+    for exe in bo.GUI:
+        harness.link(os.path.join(build, exe), os.path.join(s.home, "bin", exe))
+    wrappers = os.path.join(s.state, "wrappers")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+    say("binary: %s" % os.path.realpath(os.path.join(s.home, "bin", "builder")))
+
+    display = None
+    try:
+        if not s.services(True):
+            check(False, "services came up")
+            return 1
+        xdisplay.SCREEN = "1366x768x24"
+        display = xdisplay.Display().__enter__()
+        env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
+                     "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        shots = os.path.abspath(args.shots) if args.shots else None
+        if shots:
+            os.makedirs(shots, exist_ok=True)
+        orderCase(s, env, wrappers, shots)
+        deleteCase(s, env, wrappers)
+        lassoCase(s, env, wrappers)
+    finally:
+        if display:
+            display.__exit__(None, None, None)
+        s.stop()
+    say("FAILED: " + "; ".join(failures) if failures else "PASSED")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

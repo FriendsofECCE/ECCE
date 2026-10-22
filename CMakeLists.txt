@@ -3045,6 +3045,16 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_save_pick PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Builder bond orders from the Bond tool, deleting atoms with their nubs,
+  # a Select-mode drag box through the X server; skipped (77) without Xvfb
+  # or xdotool.
+  add_test(NAME apps_builder_edit_bugs
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_edit_bugs_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_edit_bugs PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # ECCE-QM Geometry and Vibration runs of water in the Builder: the IR
   # spectrum's sticks against the engine's output, the geometry trace.
   add_test(NAME apps_ecceqm_vib_builder
