@@ -91,6 +91,19 @@ $wxs = @"
     <CustomAction Id="LaunchEcce" Directory="INSTALLFOLDER" Impersonate="yes" Return="asyncNoWait"
       ExeCommand="&quot;[SystemFolder]wscript.exe&quot; //B //Nologo &quot;[INSTALLFOLDER]ecce.vbs&quot;" />
     <UI>
+      <!-- Windows Installer shows an action's default template when none is given: 'File: [1], Directory: [9], Size: [6]'. -->
+      <ProgressText Action="InstallFiles" Message="Copying files" Template="" />
+      <ProgressText Action="RemoveFiles" Message="Removing files" Template="" />
+      <ProgressText Action="CreateShortcuts" Message="Creating shortcuts" Template="" />
+      <ProgressText Action="RemoveShortcuts" Message="Removing shortcuts" Template="" />
+      <ProgressText Action="WriteRegistryValues" Message="Writing registry values" Template="" />
+      <ProgressText Action="RemoveRegistryValues" Message="Removing registry values" Template="" />
+      <ProgressText Action="CreateFolders" Message="Creating folders" Template="" />
+      <ProgressText Action="RemoveFolders" Message="Removing folders" Template="" />
+      <ProgressText Action="RegisterProduct" Message="Registering product" Template="" />
+      <ProgressText Action="PublishFeatures" Message="Publishing features" Template="" />
+      <ProgressText Action="UnpublishFeatures" Message="Unpublishing features" Template="" />
+      <ProgressText Action="RemoveExistingProducts" Message="Removing the previous version" Template="" />
       <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
       <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="5" Condition="NOT Installed" />
       <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="5" Condition="NOT Installed" />
