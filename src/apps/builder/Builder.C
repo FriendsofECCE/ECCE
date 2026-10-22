@@ -746,9 +746,6 @@ void Builder::createToolbar()
     p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeIcon(ShapeData::tetrahedral),
                            _("Geometry of new atoms: how many bonds they make, and in which "
                              "directions"), wxITEM_NORMAL);
-    p_modeToolbar->AddTool(ID_MODE_BOND, _T(""), bondIcon(TBond::Single),
-                           _("Bond: choose Covalent or Metal-pi, then click two atoms"),
-                           wxITEM_CHECK);
     wxBitmapBundle structBitmap = ewxBitmap::colorIcon("svg/candidates/e/library.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_STRUCTLIB, _T(""), structBitmap,
                            _("Import from Structure Library"), wxITEM_CHECK);
@@ -2125,7 +2122,7 @@ int Builder::getMode()
  */
 void Builder::updateBondIcon()
 {
-  p_modeToolbar->SetToolNormalBitmap(ID_MODE_BOND, bondIcon(p_currentBond));
+  //  No toolbar tool: the Build panel shows the bond kind.
 }
 
 
@@ -2264,7 +2261,6 @@ void Builder::toggleModeButton(int modeId)
   p_modeToolbar->ToggleTool(ID_MODE_TRANSLATE, modeId == ID_MODE_TRANSLATE);
   p_modeToolbar->ToggleTool(ID_MODE_ZOOM, modeId == ID_MODE_ZOOM);
   p_modeToolbar->ToggleTool(ID_MODE_ATOM, modeId == ID_MODE_ATOM);
-  p_modeToolbar->ToggleTool(ID_MODE_BOND, modeId == ID_MODE_BOND);
   p_modeToolbar->ToggleTool(ID_MODE_STRUCTLIB, modeId == ID_MODE_STRUCTLIB);
 
   p_modeMenu->Check(modeId, true);
@@ -3264,7 +3260,8 @@ void Builder::updateModeText()
 {
   string modeTxt = "Mode: ";
   modeTxt += s_modeText[p_currentMode-ID_MODE_SELECT];
-  //  Choosing the bond tool switches to Bond mode; say so, or clicks that
+  //  Choosing a bond kind in the Build panel switches to Bond mode; say so,
+  //  or clicks that
   //  no longer add atoms read as a fault.
   if (p_currentMode == ID_MODE_BOND)
     modeTxt += p_currentBond == TBond::Metal
@@ -3704,18 +3701,10 @@ void Builder::OnModeShapeClick( wxCommandEvent& event )
 
 void Builder::OnModeBondClick( wxCommandEvent& event )
 {
-  // Same shape as OnModeElementClick's #158 fix above, found by
-  // inspection (getToolState(ID_MODE_BOND) has the identical
-  // stale-read-before-sync problem) -- fixed alongside it rather than
-  // left to reproduce separately.
+  //  Mode > Bond: the bond kind is the Build panel's choice; publishing it
+  //  enters Bond mode (there is no toolbar tool or drop-down any more).
   Event evt("BondChanged", TBond::orderToString(p_currentBond));
   EventDispatcher::getDispatcher().publish(evt);
-
-  BondDropDown *l = new BondDropDown(p_currentBond, this);
-  TearableContent *tc = new TearableContent(l);
-  l->connectToolKitFW(this);
-  popupBelowTool(tc, ID_MODE_BOND);
-  toggleModeButton(event.GetId());
 }
 
 

@@ -102,6 +102,7 @@ BEGIN_EVENT_TABLE( MiniPerTab, ewxPanel )
   // EVT_BUTTON(ViewerEvtHandler::ID_CLEAN_COORD, MiniPerTab::OnCleanClick)
   EVT_BUTTON(wxID_REMOVE, MiniPerTab::OnRemoveClick)
   EVT_BUTTON(ID_SHOW_TABLE, MiniPerTab::OnMoreClick)
+  EVT_COMBOBOX(ID_BOND_SEL, MiniPerTab::OnBondSel)
   EVT_COMBOBOX(ID_SHAPE_SEL, MiniPerTab::OnShapeSel)
   //  EVT_CHILD_FOCUS(MiniPerTab::OnChildFocus)
 END_EVENT_TABLE()
@@ -244,6 +245,22 @@ void MiniPerTab::CreateControls()
                                wxCB_READONLY);//|wxODCB_DCLICK_CYCLES);
   p_shapes->SetSelection(6);
 
+
+  //  The bond kind, with its name: choosing one enters Bond mode, where two
+  //  clicks join atoms (#439: no orders, only covalent or metal-pi).
+  wxArrayString bondLabels, bondImages;
+  bondLabels.Add("Covalent");
+  bondLabels.Add("Metal-pi");
+  bondImages.Add(TBond::orderToImage(TBond::Single));
+  bondImages.Add(TBond::orderToImage(TBond::Metal));
+  p_bonds = new ImageDropDown(this, ID_BOND_SEL, wxEmptyString,
+                              wxDefaultPosition, wxSize(100, 30),
+                              bondLabels, bondImages, wxSize(24, 24),
+                              wxCB_READONLY);
+  p_bonds->SetSelection(0);
+  p_bonds->SetToolTip("Bond kind; choosing one enters Bond mode: click two "
+                      "atoms to join them");
+  hSizer->Add(p_bonds, 0, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxBOTTOM, 2);
   hSizer->Add(p_shapes, 0, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
   p_sizer->Add(htopSizer, 0, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 2);
@@ -369,6 +386,9 @@ void MiniPerTab::eventMCB(const Event& event)
    if (name == "ElementChanged") {
      onElementChanged(value);
    }
+   else if (name == "BondChanged") {
+     p_bonds->SetSelection(TBond::strToOrder(value) == TBond::Metal ? 1 : 0);
+   }
    else if (name == "ShapeChanged") {
      p_shapes->SetStringSelection(value);
      p_shapes->SetFocus();
@@ -452,6 +472,16 @@ void MiniPerTab::OnMoreClick(wxCommandEvent &event)
 }
 
 
+
+
+void MiniPerTab::OnBondSel(wxCommandEvent &event)
+{
+  const double order = p_bonds->GetSelection() == 1 ? TBond::Metal
+                                                    : TBond::Single;
+  EventDispatcher::getDispatcher().publish(
+      Event("BondChanged", TBond::orderToString(order)));
+  event.Skip();
+}
 
 
 void MiniPerTab::OnShapeSel(wxCommandEvent &event)
