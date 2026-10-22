@@ -663,6 +663,13 @@ SFile SymmetryOps::dumpCoordinates(const Fragment& frag, int nGhosts,
  * x y z
  * ...
  */
+// Atoms on a symmetry element have a coordinate that is exactly 0 in
+// the group's frame; the helpers return rounding noise (1e-15) instead.
+static double snapZero(double v)
+{
+   return fabs(v) < 1.0e-10 ? 0.0 : v;
+}
+
 void SymmetryOps::loadCoordinates(Fragment& frag, const vector<int>& indices,
       const SFile& outFile) 
 {
@@ -689,7 +696,7 @@ void SymmetryOps::loadCoordinates(Fragment& frag, const vector<int>& indices,
           x = strtod(buf, &tail);
           y = strtod(tail, &tail);
           z = strtod(tail, &tail);
-          atm->coordinates(x,y,z);
+          atm->coordinates(snapZero(x), snapZero(y), snapZero(z));
        }
        fclose(fp);
     } else {
@@ -729,7 +736,7 @@ string SymmetryOps::readSymmetry(Fragment& frag, const vector<int>& indices,
          x = strtod(buf, &tail);
          y = strtod(tail, &tail);
          z = strtod(tail, &tail);
-         atm->coordinates(x,y,z);
+         atm->coordinates(snapZero(x), snapZero(y), snapZero(z));
       }
 
       // make symmetry conform to upper/lower case convention
