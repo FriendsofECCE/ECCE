@@ -350,10 +350,10 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
 
 vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
 {
-  // The outer loops first: optimisation, then frequencies, then the SCF
-  // inside them; other stages in the order they appeared.
+  // The innermost loop at the top: SCF, optimisation, scan (the outermost),
+  // then frequencies; other stages in the order they appeared.
   vector<Block> out;
-  static const char *order[] = {"scan", "opt", "freq", "scf"};
+  static const char *order[] = {"scf", "opt", "scan", "freq"};
   for (const char *name : order)
     if (const Stage *st = stage(name)) out.push_back(stageBlock(*st, age, finished));
   for (const auto& st : p_stages)
