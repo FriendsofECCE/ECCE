@@ -52,21 +52,21 @@ int main()
   check(!JobProgress::split("yes", v, t, hasT), "not a number");
 
   vector<JobProgress::Block> blocks = p.running(40);
-  check(blocks.size() == 3 && blocks[0].title == "Optimisation" &&
-        blocks[1].title == "Frequencies" && blocks[2].title == "SCF",
-        "optimisation, frequencies, then SCF");
-  const JobProgress::Block& opt = blocks[0];
+  check(blocks.size() == 3 && blocks[0].title == "SCF" &&
+        blocks[1].title == "Optimisation" && blocks[2].title == "Frequencies",
+        "SCF, optimisation, then frequencies");
+  const JobProgress::Block& opt = blocks[1];
   int met = 0, unmet = 0;
   for (const auto& c : opt.criteria) (c.met ? met : unmet)++;
   check(opt.criteria.size() == 3 && met == 2 && unmet == 1,
         "criteria against targets: max force not met, RMS force and dE met");
   check(opt.plot.size() == 4 && !opt.plotLog, "an energy plot per step");
-  const JobProgress::Block& freq = blocks[1];
+  const JobProgress::Block& freq = blocks[2];
   check(freq.bar && fabs(freq.fraction - 14.0 / 54) < 1e-9, "the frequency bar");
   check(has(freq.lines, "point 14 of 54") && has(freq.lines, "about 80 s left"),
         "frequency point and the time left after 40 s: " +
         (freq.lines.empty() ? string() : freq.lines[0]));
-  const JobProgress::Block& s = blocks[2];
+  const JobProgress::Block& s = blocks[0];
   check(s.plotLog && s.plot.size() == 3 && fabs(s.plot[2] - log10(3.1e-6)) < 1e-9,
         "log |dE| per SCF cycle");
 
@@ -111,13 +111,13 @@ int main()
     sc.parse("# seq=7\nopt step=2 energy=-1.5\nopt~ energy=-1.1,-1.2,-1.3,-1.4,-1.5\n"
              "scan point=4/11\n");
     vector<JobProgress::Block> sb = sc.running(0);
-    check(sb.size() == 2 && sb[0].title == "Scan" && has(sb[0].lines, "point 4 of 11") &&
-          sb[1].plot.size() == 5, "a scan: point 4 of 11, then the step plot");
+    check(sb.size() == 2 && sb[1].title == "Scan" && has(sb[1].lines, "point 4 of 11") &&
+          sb[0].plot.size() == 5, "a scan: the step plot, then point 4 of 11");
     sc.parse("# seq=8\nscan point=4/\nopt step=1\n");
-    check(has(sc.running(0)[0].lines, "point 4") && !sc.running(0)[0].bar,
+    check(has(sc.running(0)[1].lines, "point 4") && !sc.running(0)[1].bar,
           "a scan without a known total");
     sc.parse("# seq=9\nscan point=12/11\nopt step=1\n");
-    check(has(sc.running(0)[0].lines, "point 12") && !sc.running(0)[0].bar,
+    check(has(sc.running(0)[1].lines, "point 12") && !sc.running(0)[1].bar,
           "a total smaller than the point (several scanned parameters) is dropped");
   }
   r.parse("# seq=6\nsteep point=4/200 converged=yes\n");

@@ -205,6 +205,14 @@ int ProgressBox::headingHeight() const
 }
 
 
+// The section and the quantity a plot shows.
+static string plotCaption(const JobProgress::Block& b)
+{
+  return b.title + ": " + b.plotLabel +
+         (b.title == "Optimisation" ? ", all points" : "");
+}
+
+
 vector<string> ProgressBox::describe() const
 {
   vector<string> out;
@@ -234,9 +242,10 @@ vector<string> ProgressBox::describe() const
       out.push_back(f);
     }
     if (!b.plot.empty())
-      out.push_back("  plot " + b.plotLabel + " (" +
+      out.push_back("  plot " + plotCaption(b) + " (" +
                     std::to_string(b.plot.size()) + " points)");
   }
+  for (const string& g : p_geom) out.push_back("geom " + g);
   if (p_finished)
     for (const string& s : outcome())
       out.push_back("summary: " + s);
@@ -387,13 +396,25 @@ wxSize ProgressBox::layout(wxDC *dc)
             cellW = std::max(cellW, m.GetTextExtent(U(c.label + " " + c.value +
                                                        " " + CHECK)).x);
         const int x0 = titleW + gap;
-        const int textAvail = availW - x0;
-        const int barW = std::min(FromDIP(240), textAvail);
-        const int cols = 2 * cellW + gap <= textAvail ? 2 : 1;
         const wxColour series = lost ? fg : pal.series(0);
+        p_geom.clear();
 
         for (const auto& b : blocks) {
           const int y0 = y;
+          //  A plot goes to the right of its section's text when at least
+          //  ~150 px of text remain, else directly under it.
+          int pw = 0, ph = 0;
+          if (!b.plot.empty()) {
+            m.SetFont(small);
+            pw = std::min(availW, std::max(FromDIP(260),
+                          m.GetTextExtent(U(plotCaption(b))).x + 2));
+            ph = minPlotH + m.GetCharHeight() + 2;
+            m.SetFont(normal);
+          }
+          const bool beside = pw > 0 && availW - pw - gap - x0 >= FromDIP(150);
+          const int textAvail = (beside ? availW - pw - gap : availW) - x0;
+          const int barW = std::min(FromDIP(240), textAvail);
+          const int cols = 2 * cellW + gap <= textAvail ? 2 : 1;
           if (dc) {
             dc->SetFont(bold);
             dc->SetTextForeground(fg);
@@ -436,30 +457,21 @@ wxSize ProgressBox::layout(wxDC *dc)
           // or the next title is drawn over it.
           y = std::max(y, y0 + lh);
           y += lh / 3;
-        }
-
-        vector<const JobProgress::Block*> plots;
-        for (const auto& b : blocks)
-          if (!b.plot.empty()) plots.push_back(&b);
-        if (!plots.empty()) {
-          const int pg = FromDIP(10);
-          const int n = (int)plots.size();
-          const int perRow = std::min(n, std::max(1, (availW + pg) / (minPlotW + pg)));
-          const int pw = std::min(FromDIP(260),
-                                  (availW - (perRow - 1) * pg) / perRow);
-          m.SetFont(small);
-          const int ph = minPlotH + m.GetCharHeight() + 2;
-          m.SetFont(normal);
-          for (int i = 0; i < n; i++) {
-            const wxRect r((i % perRow) * (pw + pg), y + (i / perRow) * (ph + pg),
-                           pw, ph);
+          const int textEnd = y;
+          if (!b.plot.empty()) {
+            const wxRect r = beside ? wxRect(availW - pw, y0, pw, ph)
+                                    : wxRect(0, y, pw, ph);
             if (dc) {
-              drawPlot(*dc, r, plots[i]->plot, plots[i]->plotLabel, pal, small,
-                       series);
+              drawPlot(*dc, r, b.plot, plotCaption(b), pal, small, series);
               dc->SetFont(normal);
             }
+            p_geom.push_back(b.title + " text " + std::to_string(y0) + " " +
+                             std::to_string(textEnd) + " plot " +
+                             std::to_string(r.x) + " " + std::to_string(r.y) +
+                             " " + std::to_string(r.width) + " " +
+                             std::to_string(r.height));
+            y = beside ? std::max(y, y0 + ph + lh / 3) : y + ph + FromDIP(6);
           }
-          y += ((n + perRow - 1) / perRow) * (ph + pg);
         }
 
         // A finished job keeps its plots; the outcome goes under them.
