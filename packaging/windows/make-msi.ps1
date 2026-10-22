@@ -91,7 +91,7 @@ $wxs = @"
     <CustomAction Id="LaunchEcce" Directory="INSTALLFOLDER" Impersonate="yes" Return="asyncNoWait"
       ExeCommand="&quot;[SystemFolder]wscript.exe&quot; //B //Nologo &quot;[INSTALLFOLDER]ecce.vbs&quot;" />
     <UI>
-      <!-- Windows Installer shows an action's default template when the row has no Template: 'File: [1], Directory: [9], Size: [6]'. -->
+      <!-- Without an ActionText row the progress page prints the default template, 'File: [1], Directory: [9], Size: [6]'; a row with no Template prints only the Message. -->
       <ProgressText Action="InstallFiles" Message="Copying files" />
       <ProgressText Action="RemoveFiles" Message="Removing files" />
       <ProgressText Action="CreateShortcuts" Message="Creating shortcuts" />
