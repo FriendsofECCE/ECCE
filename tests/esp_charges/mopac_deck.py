@@ -8,13 +8,15 @@ PARSERS = os.path.join(ROOT, "scripts", "parsers")
 
 
 def deck(extra):
+    if not any(e.startswith("RunType:") for e in extra):
+        extra = ["RunType: Energy"] + extra
     work = tempfile.mkdtemp(prefix="ecce-mopesp-")
     try:
         shutil.copy(os.path.join(PARSERS, "mopac.tpl"), os.path.join(work, "t.tpl"))
         open(os.path.join(work, "w.frag"), "w").write(
             "# frag\nnum_atoms: 3\ntitle: water\natom_info: symbol\natom_list:\n"
             "O 0.0 0.0 0.1173\nH 0.0 0.7572 -0.4692\nH 0.0 -0.7572 -0.4692\n")
-        params = ["Category: SE", "Theory: RPM7", "RunType: Energy", "Charge: 0",
+        params = ["Category: SE", "Theory: RPM7", "Charge: 0",
                   "ChemSys.Multiplicity: 1"] + extra
         open(os.path.join(work, "w.param"), "w").write("\n".join(params) + "\n")
         env = dict(os.environ, ECCE_HOME=ROOT)

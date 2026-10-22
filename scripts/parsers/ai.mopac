@@ -282,6 +282,13 @@ sub MOPACHeader {
 # MOPAC has no single keyword that does "optimize then compute the
 # Hessian" (unlike ORCA's "! Opt Freq" or Gaussian's "Opt Freq"), so the
 # two-data-set form is the only way to express GeoVib.
+# Thermochemistry is on unless the calculation stored an explicit 0, so
+# runs never opened in Runtype Details get it too.  Bare THERMO is 298 K.
+sub ThermoOn {
+  my $t = $AbiDict{"ES.Runtype.Vibration.Thermo"};
+  return (!defined($t) || $t ne "0") ? 1 : 0;
+}
+
 sub MOPACSecondJob {
   my $result = "";
   if ($AbiDict{"RunType"} eq "GeoVib") {
@@ -289,7 +296,7 @@ sub MOPACSecondJob {
     push(@kw, &HamiltonianKeyword);
     push(@kw, "UHF") if (&IsUnrestricted);
     push(@kw, "FORCE");
-    push(@kw, "THERMO") if ($AbiDict{"ES.Runtype.Vibration.Thermo"} eq "1");
+    push(@kw, "THERMO") if (&ThermoOn);
     push(@kw, "OLDGEO");
     push(@kw, "CHARGE=" . &Charge);
     push(@kw, &SpinKeyword);
@@ -448,7 +455,7 @@ sub RunTypeKeywords {
     push(@kw, &MaxCyclesToken);
   } elsif ($runtype eq "Vibration") {
     push(@kw, "FORCE");
-    push(@kw, "THERMO") if ($AbiDict{"ES.Runtype.Vibration.Thermo"} eq "1");
+    push(@kw, "THERMO") if (&ThermoOn);
   } else {
     die "ai.mopac error: unsupported runtype '$runtype' (reduced scope " .
         "covers Energy/Gradient/Geometry/Vibration/GeoVib only)\n";
