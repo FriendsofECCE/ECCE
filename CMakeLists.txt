@@ -1895,6 +1895,11 @@ add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
 target_link_libraries(sitehide_test PRIVATE ecceutil)
 add_test(NAME sitehide COMMAND sitehide_test)
 
+# tests/cpucores (#436): physical/logical core counts.
+add_executable(cpucores_test tests/cpucores/cpucores_test.C)
+target_link_libraries(cpucores_test PRIVATE ecceutil)
+add_test(NAME cpucores COMMAND cpucores_test)
+
 # Preferences > Advanced switches reach started programs' environment (#307).
 add_executable(envswitches_test tests/envswitches/envswitches_test.C)
 target_link_libraries(envswitches_test PRIVATE ecceutil)
@@ -1917,6 +1922,12 @@ set_tests_properties(elementlayout PROPERTIES
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)
+
+# tests/multipole (#428): angular surfaces of the quadrupole to hexadecapole.
+add_executable(multipole_test tests/multipole/multipole_test.C)
+target_link_libraries(multipole_test PRIVATE ecceutil)
+target_compile_definitions(multipole_test PRIVATE ECCE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+add_test(NAME multipole COMMAND multipole_test)
 
 # tests/geomconstraint (#393): the scan setting survives the constraint XML.
 add_executable(scan_xml_test tests/geomconstraint/scan_xml_test.C)
@@ -3034,6 +3045,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # The MOPAC ammonia example's charges colour the atoms without closing the
+  # Builder (#429); skipped (77) without Xvfb, import or python3-pil.
+  add_test(NAME apps_example_charges
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/example_charges_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_example_charges PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # Real (xdotool) clicks on atoms still select after File > Save, a second
   # Save and a switch back to the calculation (#423); skipped (77) without

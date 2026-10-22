@@ -385,6 +385,22 @@
     <property name="QUADPOLE"/>
   </PropertyPanel>
 
+  <PropertyPanel>
+    <name>Octupole Moment</name>
+    <group>Electric properties</group>
+    <class>QuadPolePanel</class>
+    <consumer>true</consumer>
+    <property name="OCTAPOLE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Hexadecapole Moment</name>
+    <group>Electric properties</group>
+    <class>QuadPolePanel</class>
+    <consumer>true</consumer>
+    <property name="HEXPOLE"/>
+  </PropertyPanel>
+
   <!-- QuadPolePanel lays a PropVector out three values to a row, which is
        exactly a 3x3 tensor.  Plane-wave stress from Quantum ESPRESSO is
        its first user; before this the Runtype Details "Stress" checkbox

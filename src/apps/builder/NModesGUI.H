@@ -111,6 +111,7 @@ public:
     wxBoxSizer* p_gridPlotSizer;
     wxBoxSizer* p_;
     wxBoxSizer* p_sliderSizer;
+    wxStaticText* p_scaleLabel;
     wxBoxSizer* p_styleSizer;
     wxBoxSizer* p_animateSizer;
     wxBoxSizer* p_vectorSizer;

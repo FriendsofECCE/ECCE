@@ -225,7 +225,8 @@ bool NModePanel::Create(IPropCalculation *calculation,
    p_sliderSizer->Add(p, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
    p_slider = new SliderCombo(p, ID_SLIDER);
    p_slider->SetRange((float)0.0, (float)30.0);
-   p_slider->SetToolTip("Scale");
+   p_slider->SetToolTip("Length of the displacement arrows, or the "
+                        "amplitude of the animation");
 
 
    // Nicer to open in vector display?
@@ -503,7 +504,7 @@ void NModePanel::createSpectrumPane()
       "gas-phase spectrum."));
    row->Add(p_fwhmText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
 
-   row->Add(new wxStaticText(pane, wxID_ANY, "Freq. scale:"),
+   row->Add(new wxStaticText(pane, wxID_ANY, "Freq. factor:"),
             0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
    p_scaleText = new wxTextCtrl(pane, wxID_ANY,
                   wxString::Format("%g", scale), wxDefaultPosition,
@@ -740,6 +741,7 @@ void NModePanel::showAnimationMode()
 {
    p_styleSizer->Show(p_animateSizer,1);
    p_styleSizer->Show(p_vectorSizer,0);
+   p_scaleLabel->SetLabel(_("Amplitude:"));
    p_styleSizer->Layout();
 
    SGContainer& sg = getFW().getSceneGraph();
@@ -752,6 +754,7 @@ void NModePanel::showVectorMode()
 {
    p_styleSizer->Show(p_animateSizer,0);
    p_styleSizer->Show(p_vectorSizer,1);
+   p_scaleLabel->SetLabel(_("Arrow length:"));
    p_styleSizer->Layout();
 
    stop();

@@ -72,7 +72,7 @@ MachinePreferences::MachinePreferences(string key)
     p_scratchDir = "";
     p_allocAcct = "";
 
-    p_processors = 1;
+    p_processors = 0;   // not chosen yet: the Launcher picks a default (#436)
     p_nodes = 1;
     p_maxWallTime = 0;
     p_memoryLimit = 0;
@@ -402,7 +402,7 @@ Launchdata MachinePreferences::getLaunchData() const
 
     ldat.remoteShell = p_remoteShell;
     ldat.nodes = p_nodes;
-    ldat.totalprocs = p_processors;
+    ldat.totalprocs = p_processors > 0 ? p_processors : 1;   // 0 = not chosen
     ldat.machine = p_machRgstn->refname();
     ldat.rundir = p_remoteDir;
     ldat.scratchdir = p_scratchDir;

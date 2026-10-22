@@ -192,6 +192,10 @@ protected:
   void setFrameCallback(FrameCallback cb, void *userData)
     { p_frameCB = cb; p_frameCBData = userData; }
 
+  // A rubber-band rectangle drawn over the finished scene, in viewport
+  // pixels (origin bottom left); the caller moves it and it repaints.
+  void setRubberBand(bool on, short x0, short y0, short x1, short y1);
+
  protected:
   virtual void redrawOverlay();
   virtual void actualOverlayRedraw();
@@ -301,6 +305,9 @@ private:
 
   FrameCallback p_frameCB;
   void *p_frameCBData;
+  bool p_band;
+  short p_bandX0, p_bandY0, p_bandX1, p_bandY1;
+  void drawRubberBand();
 
   void applyTransparency();
   void timeFrame(double ms);

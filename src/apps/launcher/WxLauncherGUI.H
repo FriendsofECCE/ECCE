@@ -204,6 +204,7 @@ public:
     static const wxWindowID ID_FEEDBACK_WXLAUNCHER_MESSAGES;
     static const wxWindowID ID_PANEL_WXLAUNCHER_BATCHSPCFC;
     static const wxWindowID ID_PANEL_WXLAUNCHER_WKSTNPROCS;
+    static const wxWindowID ID_STATIC_WXLAUNCHER_CORESWARN;
     static const wxWindowID ID_PARAMEDIT_WXLAUNCHER_BATCHNODES;
     static const wxWindowID ID_STATIC_WXLAUNCHER_QUEUELABELRIGHT;
     static const wxWindowID ID_PANEL_WXLAUNCHER_WALLTIME;

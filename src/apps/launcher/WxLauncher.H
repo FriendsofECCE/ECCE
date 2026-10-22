@@ -195,6 +195,7 @@ class WxLauncher : public WxLauncherGUI,
         void refreshNodes(int numProcs, int maxNodes);
 
         void refreshProcessors(RefMachine *machRgstn);
+        void refreshCoresWarning();
 
         void refreshPasswords(const string& shellName,
                               const string& machName, const string& user);
@@ -244,6 +245,8 @@ class WxLauncher : public WxLauncherGUI,
         ewxPanel            *p_wkstnSpcfcPanel;
 
         WxParameterEdit     *p_wkstnProcsParamEdit;
+        ewxStaticText       *p_coresWarnStaticText;
+        bool                 p_localCores;   // the machine is this computer
         ewxPanel            *p_priorityPanel;
         ewxChoice           *p_priorityChoice;
 

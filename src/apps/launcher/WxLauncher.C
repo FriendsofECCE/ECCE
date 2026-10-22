@@ -31,6 +31,7 @@
 #include "util/SFile.H"
 #include "util/STLUtil.H"
 #include "util/StringConverter.H"
+#include "util/CpuCores.H"
 #include "util/StringTokenizer.H"
 #include "util/TempStorage.H"
 #include "util/TypedFile.H"
@@ -206,6 +207,8 @@ void WxLauncher::createControls()
     p_wkstnSpcfcPanel       = (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_WRKSTSPCFC));
 
     p_wkstnProcsParamEdit   = (WxParameterEdit *)(FindWindow(ID_PARAMEDIT_WXLAUNCHER_WKSTNPROCS));
+    p_coresWarnStaticText   = (ewxStaticText *)(FindWindow(ID_STATIC_WXLAUNCHER_CORESWARN));
+    p_localCores            = false;
     p_priorityPanel         =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_PRIORITY));
     p_priorityChoice        =       (ewxChoice *)(FindWindow(ID_CHOICE_WXLAUNCHER_PRIORITY));
     p_priorityChoice->Append("Normal");
@@ -642,6 +645,7 @@ void WxLauncher::wkstnProcsParamValueChangedCB(wxCommandEvent& event)
     {
         p_prefsEdited = true;
 
+        this->refreshCoresWarning();
         this->refreshLaunchControls();
     }
 }
@@ -2075,9 +2079,50 @@ void WxLauncher::refreshProcessors(RefMachine *machRgstn)
     int minProcs = 1;
     int maxProcs = machRgstn->proccount();
 
+    // This computer: up to its hardware threads, defaulting to the physical
+    // cores, since hyperthreads rarely help quantum chemistry (#436).
+    p_localCores = (machRgstn->refname() == "localhost");
+    if (p_localCores)
+    {
+        maxProcs = CpuCores::logical();
+        if (numProcs <= 0)
+            numProcs = CpuCores::physical();
+    }
+    else if (numProcs <= 0)
+        numProcs = 1;
+    // Stored, so a launch with the field untouched uses this default.
+    p_slctPrefs->setProcessors(numProcs);
+
     p_wkstnProcsParamEdit->setRange(minProcs, maxProcs);
     p_wkstnProcsParamEdit->setValue(numProcs);
     p_wkstnProcsParamEdit->Update();
+
+    if (p_localCores)
+    {
+        string label = "of " + StringConverter::toString((int)CpuCores::physical()) + " cores";
+        if (CpuCores::logical() != CpuCores::physical())
+            label += " (" + StringConverter::toString((int)CpuCores::logical()) + " threads)";
+        p_wkstnProcsParamEdit->setUnitsLabel(label);
+    }
+    p_wkstnProcsParamEdit->setUnitsVisible(p_localCores);
+    this->refreshCoresWarning();
+}
+
+
+/**
+ *  A plain warning, never a block, when the local run asks for more
+ *  processors than there are physical cores.
+ */
+void WxLauncher::refreshCoresWarning()
+{
+    int phys = (int)CpuCores::physical();
+    bool warn = p_localCores && p_wkstnProcsParamEdit->getValue() > phys;
+    p_coresWarnStaticText->SetLabel(warn
+        ? "More than the " + StringConverter::toString(phys) +
+          " physical cores: hyperthreads rarely speed up quantum chemistry."
+        : "");
+    p_coresWarnStaticText->Show(warn);
+    p_coresWarnStaticText->GetContainingSizer()->Layout();
 }
 
 
@@ -3396,6 +3441,7 @@ void WxLauncher::setProcessors(int n)
         p_batchProcsParamEdit->setValue(n);
     else
         p_wkstnProcsParamEdit->setValue(n);
+    this->refreshCoresWarning();
     p_prefsEdited = true;
     this->ensureEditsApplied(false);
 }
@@ -3423,6 +3469,14 @@ string WxLauncher::hookGet(const string& what)
         return StringConverter::toString(p_batchProcsParamEdit->getValue());
     if (what == "wsprocs")
         return StringConverter::toString(p_wkstnProcsParamEdit->getValue());
+    if (what == "wsprocsmax")
+        return StringConverter::toString(p_wkstnProcsParamEdit->getMaximum());
+    if (what == "wsprocslabel")
+        return p_wkstnProcsParamEdit->getUnitsVisible()
+                   ? p_wkstnProcsParamEdit->getUnitsLabel() : "";
+    if (what == "coreswarn")
+        return p_coresWarnStaticText->IsShown()
+                   ? (string)p_coresWarnStaticText->GetLabel() : "";
     if (what == "memory")
         return StringConverter::toString(p_maxMemoryParamEdit->getValue());
     if (what == "memrange")

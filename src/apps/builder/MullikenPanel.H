@@ -86,6 +86,7 @@ class MullikenPanel : public VizPropertyPanel,
 
      // our colors
      float *p_red;
+     int p_nColors;   // length of p_red/p_green/p_blue
      float *p_green;
      float *p_blue;
 

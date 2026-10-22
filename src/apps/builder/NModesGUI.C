@@ -105,6 +105,7 @@ bool NModesGUI::Create( IPropCalculation* calculation, wxWindow* parent, wxWindo
     p_gridPlotSizer = NULL;
     p_ = NULL;
     p_sliderSizer = NULL;
+    p_scaleLabel = NULL;
     p_styleSizer = NULL;
     p_animateSizer = NULL;
     p_vectorSizer = NULL;
@@ -249,8 +250,9 @@ void NModesGUI::CreateControls()
     p_sliderSizer = new wxBoxSizer(wxHORIZONTAL);
     p_->Add(p_sliderSizer, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-    ewxStaticText* itemStaticText9 = new ewxStaticText( itemVizPropertyPanel1, wxID_STATIC, _("Scale:"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_sliderSizer->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    //  Named for what it changes in the current view (NModePanel sets it).
+    p_scaleLabel = new ewxStaticText( itemVizPropertyPanel1, wxID_STATIC, _("Arrow length:"), wxDefaultPosition, wxDefaultSize, 0 );
+    p_sliderSizer->Add(p_scaleLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_styleSizer = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer5->Add(p_styleSizer, 0, wxEXPAND|wxALL, 0);

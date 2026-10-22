@@ -6,12 +6,15 @@
 //  using std::copy;
   using std::fill;
 #include <limits>
+#include <cctype>
+#include <vector>
 
 #include "wx/grid.h" 
 #include <wx/link.h>
 
 #include "util/InternalException.H"
 #include "util/PreferenceLabels.H"
+#include "util/Multipole.H"
 
 #include "tdat/PropVector.H"
 
@@ -24,6 +27,10 @@
 #include "wxgui/ewxStaticText.H"
 
 #include "viz/AddPolarizabilityCmd.H"
+#include "viz/AddMultipoleCmd.H"
+
+#include "dsm/JCode.H"
+#include "dsm/PropertyTask.H"
 
 #include "wxviz/WxVizToolFW.H"
 
@@ -87,6 +94,32 @@ bool QuadPolePanel::Create(IPropCalculation *calculation,
      }
   }
 
+  if (isMultipole()) {
+     if (calculation && task && task->application())
+        p_code = task->application()->name();
+     string up = p_code;
+     for (size_t i = 0; i < up.size(); i++) up[i] = (char)toupper((unsigned char)up[i]);
+     const bool orca = up.find("ORCA") != string::npos;
+     p_origin = orca ? "mass" : "origin";
+     wxString origin = orca ?
+        wxString::FromUTF8("Origin: centre of mass (the ORCA output states "
+                           "\"Choice of electric origin: Center of mass\").") :
+        wxString::FromUTF8("Origin: the coordinate origin of the output, "
+                           "about which the code reports the moments.");
+     int rank = AddMultipoleCmd::rankOf(*keys.begin());
+     wxString note = wxString::Format(wxString::FromUTF8(
+        "Surface r = s|f(n)|, f(n) = \u03a3 T n n%s; blue where f > 0, "
+        "vermillion where f < 0. Table values are as the code printed them "
+        "(including traces); the surface shows the traceless part, "
+        "in D\u00b7\u00c5^%d.\n%s"),
+        rank == 2 ? "" : rank == 3 ? " n" : " n n", rank - 1, origin);
+     ewxStaticText *text = new ewxStaticText(this, wxID_STATIC, note);
+     text->Wrap(300);
+     GetSizer()->Add(text, 0, wxALIGN_LEFT|wxALL, 3);
+     p_axesText = new ewxStaticText(this, wxID_STATIC, wxEmptyString);
+     GetSizer()->Add(p_axesText, 0, wxALIGN_LEFT|wxALL, 3);
+  }
+
   if (isPolarizability()) {
      PropVector *vec = (PropVector*) calculation->getProperty(*keys.begin());
      double ew[3], ev[3][3];
@@ -127,6 +160,12 @@ bool QuadPolePanel::isPolarizability() const
 
 QuadPolePanel::~QuadPolePanel()
 {
+}
+
+bool QuadPolePanel::isMultipole() const
+{
+  set<string> keys = getPropertyNames();
+  return keys.size() > 0 && AddMultipoleCmd::rankOf(*keys.begin()) > 0;
 }
 
 bool QuadPolePanel::isRelevant(IPropCalculation *propCalc) const
@@ -188,6 +227,10 @@ void QuadPolePanel::fillTable()
 
 void QuadPolePanel::showVectors(bool guessScale)
 {
+   if (isMultipole() && p_slider) {
+      showMultipole(guessScale);
+      return;
+   }
    if (!isPolarizability() || !p_slider) return;
 
    WxVizToolFW& fw = getFW();
@@ -225,11 +268,47 @@ void QuadPolePanel::showVectors(bool guessScale)
 }
 
 
+/**
+ * The slider is the length of the largest lobe in Angstrom; the command
+ * takes Angstrom per D.Angstrom^(k-1).
+ */
+void QuadPolePanel::showMultipole(bool guessScale)
+{
+   WxVizToolFW& fw = getFW();
+   IPropCalculation *expt = getCalculation();
+   SGContainer& sg = fw.getSceneGraph();
+   const string prop = *(getPropertyNames().begin());
+   const int rank = AddMultipoleCmd::rankOf(prop);
+
+   vector<double> full;
+   if (!AddMultipoleCmd::tensor((PropVector*) expt->getProperty(prop), rank,
+                                p_code, full))
+      return;
+   const double fmax = Multipole::maxAbs(rank, full);
+   if (fmax <= 0.0) return;
+
+   Command *cmd = new AddMultipoleCmd("Multipole", &sg, expt);
+   cmd->getParameter("property")->setString(prop);
+   cmd->getParameter("Code")->setString(p_code);
+   cmd->getParameter("Center")->setString(p_origin);
+   cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue()/fmax);
+   if (guessScale) cmd->getParameter("newData")->setBoolean(true);
+   fw.execute(cmd);
+
+   const double scale = cmd->getParameter("Amplitude")->getDouble();
+   if (guessScale) p_slider->SetValue(scale*fmax);
+   if (p_axesText)
+      p_axesText->SetLabel(wxString::Format(wxString::FromUTF8(
+         "Largest |f| = %.3f D\u00b7\u00c5^%d; scale %.4f \u00c5 per unit"),
+         fmax, rank - 1, scale));
+}
+
+
 void QuadPolePanel::receiveFocus()
 {
    //cout << "Using geometry " << (p_useOriginalGeomHack ? -2 : -1) << endl;
    selectFragStep(p_useOriginalGeomHack ? -2 : -1);
-   if (isPolarizability()) {
+   if (isPolarizability() || isMultipole()) {
       // The molecule has to show through the ellipsoid.
       getFW().getViewer().setTransparencyType(
          SoGLRenderAction::SORTED_OBJECT_BLEND);
@@ -245,7 +324,7 @@ void QuadPolePanel::receiveFocus()
 void QuadPolePanel::loseFocus()
 {
    selectFragStep(-1);  // restore to default
-   if (isPolarizability()) {
+   if (isPolarizability() || isMultipole()) {
       getFW().getViewer().setTransparencyType(SoGLRenderAction::DELAYED_ADD);
    }
    SGContainer& sg = getFW().getSceneGraph();

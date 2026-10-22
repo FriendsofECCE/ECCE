@@ -263,6 +263,7 @@ public:
   virtual void unregisterDevice(SoWxDevice *device);
   virtual SoSceneManager * getSceneManager() const;
   virtual SbBool isClearBeforeRender() const;
+  void setRubberBand(bool on, short x0, short y0, short x1, short y1);
 
   virtual void actualRedraw();
   virtual void processEvent(wxEvent * event);

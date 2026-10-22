@@ -62,7 +62,10 @@
 //    ellipsoid PROP              each sphere under PROP's property switch, as
 //                                drawn: centre, and its three axes as semi-axis
 //                                length and unit direction, Angstrom
-//    pertab A                    press the Build panel's periodic-table button,
+//    surface PROP                each angular surface (multipole moment) under
+//                                PROP's property switch: vertices, triangles,
+//                                centre, farthest vertex (Angstrom)
+//    pertab A                   press the Build panel's periodic-table button,
 //                                pick element A in it, report the Build element
 //    chooser kind|pick SYM|search TEXT|enter TEXT|shot NAME|close
 //                                the element chooser popup: pick an element,
@@ -94,6 +97,8 @@
 #include "inv/actions/SoCallbackAction.H"
 #include "inv/actions/SoGetMatrixAction.H"
 #include "inv/nodes/SoSphere.H"
+#include "inv/nodes/SoIndexedFaceSet.H"
+#include "inv/nodes/SoCoordinate3.H"
 #include "inv/actions/SoSearchAction.H"
 #include "inv/nodes/SoShape.H"
 #include "inv/nodes/SoSwitch.H"
@@ -582,14 +587,6 @@ void Builder::runBuilderScript(const std::string& file)
         ecce::EventDispatcher::getDispatcher().publish(
             ecce::Event("BondChanged", order));
         fprintf(stderr, "BUILDER: bondorder current=%g\n", p_currentBond);
-      } else if (w[0] == "selectaction" && w.size() == 2) {
-        //  View > Select Mode Action: Atom Drag or Lasso Select.
-        const int id = w[1] == "lasso" ? ViewerEvtHandler::ID_SELECT_LASSO
-                                       : ViewerEvtHandler::ID_SELECT_DRAG;
-        GetMenuBar()->Check(id, true);
-        wxCommandEvent ev(wxEVT_MENU, id);
-        ev.SetInt(1);
-        GetEventHandler()->ProcessEvent(ev);
       } else if (w[0] == "selectbonds" && frag) {
         //  The bonds between selected atoms too, as a drag box selects.
         vector<TBond*> *all = frag->bonds();
@@ -602,12 +599,9 @@ void Builder::runBuilderScript(const std::string& file)
         }
         delete all;
       } else if (w[0] == "selection" && frag) {
-        //  What is selected, and whether a drag in the view draws a box.
-        fprintf(stderr, "BUILDER: selection atoms=%d bonds=%d drag=%d "
-                "lasso=%d\n", (int)frag->m_atomHighLight.size(),
-                (int)frag->m_bondHighLight.size(),
-                p_viewer->getSelectModeDrag() ? 1 : 0,
-                (int)p_viewer->getSel()->lassoType.getValue());
+        fprintf(stderr, "BUILDER: selection atoms=%d bonds=%d\n",
+                (int)frag->m_atomHighLight.size(),
+                (int)frag->m_bondHighLight.size());
       } else if (w[0] == "bondorders" && frag) {
         //  Each bond between real atoms: its stored order and the type
         //  the display draws it as.
@@ -1174,6 +1168,33 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "\n");
         }
         fprintf(stderr, "BUILDER: ellipsoid %s count=%d\n", w[1].c_str(),
+                sa.getPaths().getLength());
+      } else if (w[0] == "surface" && w.size() == 2) {
+        SoSearchAction sa;
+        sa.setType(SoIndexedFaceSet::getClassTypeId(), FALSE);
+        sa.setInterest(SoSearchAction::ALL);
+        sa.apply(getSG()->getPropertySwitch(w[1]));
+        for (int k = 0; k < sa.getPaths().getLength(); k++) {
+          SoGetMatrixAction ma(SbViewportRegion(100, 100));
+          ma.apply(sa.getPaths()[k]);
+          const SbMatrix m = ma.getMatrix();
+          SoIndexedFaceSet *fs =
+              (SoIndexedFaceSet*) sa.getPaths()[k]->getTail();
+          SoSearchAction ca;
+          ca.setType(SoCoordinate3::getClassTypeId(), FALSE);
+          ca.apply(sa.getPaths()[k]->getNodeFromTail(1));
+          SoCoordinate3 *cs = ca.getPath() ?
+              (SoCoordinate3*) ca.getPath()->getTail() : NULL;
+          float reach = 0.f;
+          const int nv = cs ? cs->point.getNum() : 0;
+          for (int i = 0; i < nv; i++)
+            reach = std::max(reach, cs->point[i].length());
+          fprintf(stderr, "BUILDER: surface %s %d vertices=%d triangles=%d "
+                  "centre=%.4f,%.4f,%.4f farthest=%.4f\n", w[1].c_str(), k,
+                  nv, fs->coordIndex.getNum()/4, m[3][0], m[3][1], m[3][2],
+                  reach);
+        }
+        fprintf(stderr, "BUILDER: surface %s count=%d\n", w[1].c_str(),
                 sa.getPaths().getLength());
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");

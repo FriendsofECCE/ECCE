@@ -117,6 +117,13 @@ public:
 
   void stopProcessing2DMotion();
 
+  /* On (Builder Select mode): a press on empty space drags a rubber-band
+     box that selects on release, a press on a selected atom moves the
+     selection after the drag delay, a press on any other atom only
+     selects it.  Off: lassoType and the viewer's select-mode-drag flag
+     decide as before. */
+  void setBoxSelect(bool on);
+
 
   void setViewer(SGViewer * );
   SGViewer * viewer();
@@ -179,6 +186,17 @@ private:
      to decide between move and regular selection processing */
   bool p_isdown;
   unsigned long p_down;
+
+  bool p_boxSelect;
+  /** The press that is down began on a selected atom (may move it). */
+  bool p_dragStarts;
+  /** The press that is down is drawing a box. */
+  bool p_banding;
+  short p_bandX0, p_bandY0;
+
+  void chooseGesture(SoHandleEventAction *action);
+  bool atomSelected(int atom) const;
+  void showBand(bool on, short x1 = 0, short y1 = 0);
 
   /** Holds starting x point for current motion event in real coords. */
   float               p_motionx;

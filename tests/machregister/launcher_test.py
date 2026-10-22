@@ -280,6 +280,44 @@ quit
     shutil.rmtree(tmp + "-pick", ignore_errors=True)
 
 
+def cores_check(disp, build, tmp):
+    """The local machine offers 1..logical cores, starts at the physical
+    count, says so beside the field, and warns (never blocks) above it (#436)."""
+    logical = os.cpu_count()
+    cores = set()
+    try:
+        out = subprocess.run(["lscpu", "-p=CORE,SOCKET"], stdout=subprocess.PIPE,
+                             text=True, timeout=20).stdout
+        cores = {l for l in out.splitlines() if l and not l.startswith("#")}
+    except (OSError, subprocess.SubprocessError):
+        pass
+    if not cores:
+        print("SKIP cores_check: no lscpu")
+        return
+    phys = len(cores)
+    label = "of %d cores" % phys + (" (%d threads)" % logical if logical != phys else "")
+    warn = ("More than the %d physical cores: hyperthreads rarely speed up "
+            "quantum chemistry." % phys)
+    e = g.Env(tmp, "launcher-cores")
+    script = """
+machine localhost
+expect wsprocs %d
+expect wsprocsmax %d
+expect wsprocslabel "%s"
+expect coreswarn ""
+procs %d
+expect coreswarn ""
+procs 1
+expect wsprocs 1
+""" % (phys, logical, label, phys)
+    if logical > phys:
+        script += 'procs %d\nexpect coreswarn "%s"\nexpect wsprocs %d\nprocs %d\nexpect coreswarn ""\n' % (
+            logical, warn, logical, phys)
+    script += "machine mine\nexpect wsprocslabel \"\"\nexpect coreswarn \"\"\nquit\n"
+    p = run_launcher(disp, build, e, script)
+    clean(p, "local cores: default %d, range 1..%d, label, warning" % (phys, logical))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
@@ -362,6 +400,7 @@ quit
         local_section_check(disp, build, tmp, pngs)
         pick_check(disp, build, tmp, pngs)
         mpi_check(disp, build, tmp)
+        cores_check(disp, build, tmp)
         launchwarn_check(disp, build, tmp)
     finally:
         disp.__exit__(None, None, None)
