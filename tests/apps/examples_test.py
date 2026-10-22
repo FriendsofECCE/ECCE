@@ -155,6 +155,11 @@ def run(display, data, work):
                       env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
     for line in re.findall(r"Organizer: examples imported in .*", result.log or ""):
         print(line)
+        # Printed, not asserted tightly: it was 10 s with a 1 s sleep per
+        # import in the job monitor hand-over (#426).
+        took = float(re.search(r"in ([0-9.]+) s", line).group(1))
+        if took > 60:
+            fail("examples import time", "%.1f s (limit 60 s)" % took)
     lg = result.log or ""
     shown = lg.find("Organizer: window shown")
     began = lg.find("Organizer: examples import started")

@@ -438,11 +438,13 @@ void AuthCache::pipeOut(const string& pipeName)
     // hangs forever. O_NONBLOCK makes open() fail immediately with ENXIO
     // instead of blocking when there's no reader yet, so poll for up to
     // 10 seconds (matching pipeIn()'s own existing timeout) rather than
-    // waiting indefinitely.
+    // waiting indefinitely.  The reader normally opens within milliseconds,
+    // so poll at 20 ms: a 1 s sleep here cost every import and launch a
+    // second.
     int fd = -1;
-    for (int it = 0; it < 10 && fd == -1; it++) {
+    for (int it = 0; it < 500 && fd == -1; it++) {
       fd = open(pipeName.c_str(), O_WRONLY|O_NONBLOCK);
-      if (fd == -1) sleep(1);
+      if (fd == -1) usleep(20000);
     }
     if (fd != -1) {
       string line;
