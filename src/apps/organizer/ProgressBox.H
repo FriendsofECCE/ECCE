@@ -102,6 +102,8 @@ private:
   bool p_collapsed;
   wxTimer p_timer;
   int p_paints;
+  // Per section of the last layout, for tests: text rows and plot frame.
+  std::vector<std::string> p_geom;
   int p_laidOutWidth = 0;
   wxButton *p_buttons[3];
   wxStaticText *p_energyLabel;

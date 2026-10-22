@@ -108,6 +108,36 @@ def check(ok, what, detail=""):
     return ok
 
 
+def checkLayout(tag, b):
+    """Sections run SCF, Optimisation, Scan, Frequencies; each plot is beside
+    its section's text or directly under it, and nothing overlaps."""
+    titles = [t for t in re.findall(r"\| (?:\(grey\) )?(SCF|Optimisation|Scan|Frequencies): ", b)]
+    seen = []
+    for t in titles:
+        if t not in seen:
+            seen.append(t)
+    want = [t for t in ("SCF", "Optimisation", "Scan", "Frequencies") if t in seen]
+    check(seen == want, "%s: sections in the order SCF, Optimisation, Scan, "
+          "Frequencies (%s)" % (tag, ", ".join(seen)), b)
+    prevBottom = 0
+    for g in re.finditer(r"\| geom (\w+) text (\d+) (\d+) plot (\d+) (\d+) (\d+) (\d+)", b):
+        title = g.group(1)
+        y0, textEnd, px, py, pw, ph = [int(g.group(i)) for i in range(2, 8)]
+        beside = py == y0 and px > 0
+        under = py == textEnd and px == 0
+        check(beside or under, "%s: the %s plot is beside its text or directly "
+              "under it (%s)" % (tag, title, "beside" if beside else "under"),
+              g.group(0))
+        check(y0 >= prevBottom, "%s: the %s section starts below the previous "
+              "plot" % (tag, title), g.group(0))
+        prevBottom = max(textEnd, py + ph)
+    caps = {"SCF": "SCF: log |\u0394E| per cycle",
+            "Optimisation": "Optimisation: energy per step, all points"}
+    for title, cap in caps.items():
+        if re.search(r"\| geom %s " % title, b):
+            check(("plot " + cap) in b, "%s: caption '%s'" % (tag, cap), b)
+
+
 def run(display, pngs):
     data = tempfile.mkdtemp(prefix="ecce-progress-data-")
     work = tempfile.mkdtemp(prefix="ecce-progress-")
@@ -197,8 +227,8 @@ def run(display, pngs):
         check("Optimisation: step 4" in stored and "max force 4.1e-04 (limit 3e-04) \u2717" in stored
               and "RMS force 8.0e-05 (limit 1e-04) \u2713" in stored,
               "running (stored): step, criteria against targets", stored)
-        check("plot energy per step (4 points)" in stored and
-              "plot log |\u0394E| per cycle (6 points)" in stored,
+        check("plot Optimisation: energy per step, all points (4 points)" in stored and
+              "plot SCF: log |\u0394E| per cycle (6 points)" in stored,
               "running (stored): the energy and SCF plots", stored)
         check(re.search(r"updated (19|2\d) s ago", stored) is not None,
               "running (stored): updated about 20 s ago, from the job store's stamp", stored)
@@ -216,8 +246,8 @@ def run(display, pngs):
         check("Optimisation converged in 6 steps" in completed and
               "Frequencies: 3 real, 0 imaginary" in completed and
               "ZPE 0.021346 hartree" in completed and
-              "plot energy per step" in completed and
-              completed.index("plot energy") < completed.index("summary: ") and
+              "plot Optimisation: energy per step, all points" in completed and
+              completed.index("plot Optimisation") < completed.index("summary: ") and
               "s left" not in completed and "updated" not in completed,
               "completed: the plots stay, the outcome lines follow them", completed)
         check(re.search(r"summary: Final energy -?\d+\.\d{6} Hartree$", completed)
@@ -232,10 +262,14 @@ def run(display, pngs):
               "relaxed scan: the final energy is the last scan point's", scanned)
         for tag, b in (("1024x600", scan1), ("1366x768", scan2), ("1920x1080", scan3)):
             check("Scan: point 5 of 5" in b and "bar 1.00" in b and
-                  "plot energy per step (39 points)" in b and
-                  "plot log |\u0394E| per cycle (4 points)" in b,
+                  "plot Optimisation: energy per step, all points (39 points)" in b and
+                  "plot SCF: log |\u0394E| per cycle (4 points)" in b,
                   "relaxed scan (%s): point 5 of 5, every optimisation step "
                   "of all 5 points in the energy plot" % tag, b)
+        for tag, b in (("stored", stored), ("live", after), ("completed", completed),
+                       ("scan 1024x600", scan1), ("scan 640x600", narrow),
+                       ("scan 1366x768", scan2), ("scan 1920x1080", scan3)):
+            checkLayout(tag, b)
         check(field(none, "shown") == "0", "never launched: no box", none)
         for n in ("progress-running-stored.png", "progress-running-live.png",
                   "progress-completed.png", "progress-scan-1024x600.png",
