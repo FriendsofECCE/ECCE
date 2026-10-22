@@ -13,6 +13,10 @@ Water's modes have three atoms.  Once the structure in the viewer is no
 longer water (a supercell, an atom added), the panel must neither animate
 nor draw arrows, must leave the edited structure alone, and must say why;
 on the unedited water it works as before.
+
+The "autoplay" case checks the panel has no Start or Stop (#443): choosing
+Animation animates at once, another mode animates that one, Space pauses and
+resumes, and Vector or giving up the viewer stops and restores the atoms.
 """
 import argparse
 import os
@@ -32,6 +36,11 @@ MARKERS = ("ended by SIG", "Segmentation fault", "double free or corruption",
            "terminate called", "Unhandled standard exception",
            "Unhandled unknown exception")
 
+AUTOPLAY = ["vibfocus", "vibstate", "vibanim", "vibstep 3", "vibstate",
+            "vibmode 1", "vibstep 3", "vibstate", "vibspace", "vibstate",
+            "vibspace", "vibstate", "vibvector", "vibstate", "vibanim",
+            "vibstate", "vibunfocus", "vibstate"]
+
 #  Everything a user can do with the panel, then what it shows.
 USE = ["vibfocus", "vibanim", "vibmode 1", "vibstep 20", "vibplay 300",
        "vibvector", "vibmode 2", "vibstate", "vibanim", "vibstep 5",
@@ -45,14 +54,40 @@ CASES = (
     ("unedited", USE, (3, 3, 1), 3),
     ("supercell", SUPERCELL + USE, (24, 0, 0), 24),
     ("added-atom", ["cmd add"] + USE, (8, 0, 0), 8),
+    ("autoplay", AUTOPLAY, None, 3),
 )
 
 
+STATE = (r"VIBSTATE: atoms=(\d+) arrows=(-?\d+) enabled=(\d) "
+         r"animating=(\d) paused=(\d) coords=(-?[\d.]+)")
+
 def states(log):
     """[(atoms, arrows, enabled)] from the VIBSTATE lines."""
-    return [tuple(int(v) for v in m)
-            for m in re.findall(r"VIBSTATE: atoms=(\d+) arrows=(-?\d+) "
-                                r"enabled=(\d)", log)]
+    return [tuple(int(v) for v in m[:3]) for m in re.findall(STATE, log)]
+
+
+def autoplayProblems(log):
+    """What is wrong with the VIBSTATE lines of the autoplay script."""
+    got = [(int(m[3]), int(m[4]), float(m[5])) for m in re.findall(STATE, log)]
+    if len(got) != 8:
+        return ["%d VIBSTATE lines, expected 8" % len(got)]
+    home = got[0][2]
+    #  (animating, paused) after each step of the script
+    want = [(0, 0), (1, 0), (1, 0), (0, 1), (1, 0), (0, 0), (1, 0), (0, 0)]
+    out = []
+    for i, w in enumerate(want):
+        if got[i][:2] != w:
+            out.append("state %d: animating/paused %s, expected %s"
+                       % (i, got[i][:2], w))
+    if abs(got[1][2] - home) < 1e-6:
+        out.append("Animation left the atoms where they were")
+    if not out and "VIBSPACE: 1" not in log:
+        out.append("Space did nothing")
+    for i in (5, 7):
+        if abs(got[i][2] - home) > 1e-6:
+            out.append("state %d: atoms not restored (%.6f, was %.6f)"
+                       % (i, got[i][2], home))
+    return out
 
 
 def runCase(display, results, case, args, timeout):
@@ -88,6 +123,9 @@ def runCase(display, results, case, args, timeout):
     elif found:
         results.fail(what, "its output contains %s\n%s"
                      % (", ".join(repr(m) for m in found), tail))
+    elif first is None:
+        for problem in autoplayProblems(log):
+            results.fail(what, problem + "\n" + tail)
     elif len(got) != 2:
         results.fail(what, "%d VIBSTATE lines, expected 2\n%s"
                      % (len(got), tail))

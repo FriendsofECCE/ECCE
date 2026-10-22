@@ -54,6 +54,17 @@ class NModePanel : public NModesGUI,
       void previousStep();
       void start();
       void stop();
+      /// Upper end of the Arrow length / Amplitude slider.
+      static constexpr double MAX_SCALE = 5.0;
+      double sliderValue();
+      void restoreHome();
+      /// A value typed into the slider's field, as the panel then uses it.
+      double typeScale(double value);
+      /** Space in the viewer: pause or resume a running Animation.
+          False, and nothing done, when no animation is running or paused. */
+      bool togglePause();
+      bool isAnimating() const { return p_animating; }
+      bool isPaused() const { return p_paused; }
       int animationDelay();
       bool isGraphShown();
 
@@ -122,8 +133,6 @@ class NModePanel : public NModesGUI,
       void OnMenuClick( wxCommandEvent& event );
       void OnMenuButtonClick( wxCommandEvent& event );
       void OnTextctrlNmodeDelayEnter( wxCommandEvent& event );
-      void OnBitmapbuttonStartClick( wxCommandEvent& event );
-      void OnBitmapbuttonStopClick( wxCommandEvent& event );
       void OnButtonNmodeVeccolorClick( wxCommandEvent& event );
       void OnEndSliderMotion(wxScrollEvent& event);
       void OnSliderTextEnter(wxCommandEvent& event);
@@ -149,6 +158,9 @@ class NModePanel : public NModesGUI,
       wxTextCtrl *p_scaleText;
 
       wxTimer *p_timer;
+      std::vector<double> p_home;   // atoms as they were before the animation
+      bool p_active = false;     // the panel has taken the viewer
+      bool p_paused = false;     // Space stopped the timer, mode still Animation
       bool p_animating;          // from Start until Stop or a structure change
 
       /* scaling factor */

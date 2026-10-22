@@ -311,6 +311,8 @@ class Builder: public BuilderGUI,
       void setMode(int modeId);
       void applyMode(int modeId);
       bool escapeKey();
+      /// Space pauses or resumes a running vibration Animation; true if it did.
+      bool pauseVibrationKey();
       void selectAllKey();
       int getMode();
 

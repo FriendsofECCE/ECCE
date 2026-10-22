@@ -198,6 +198,9 @@ using std::vector;
 #include "Peptide.H"
 #include "PropertyIndexPanel.H"
 #include "PropertyPanel.H"
+#include "inv/SoWx/SoWxRenderArea.H"
+#include "wxgui/SliderCombo.H"
+#include "NModePanel.H"
 #include "Cube.H"
 #include "MoPanel.H"
 #include "MoDiagramPanel.H"
@@ -561,7 +564,12 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Builder::OnKeyDown));
   //  The canvas has the focus, so the frame sees Esc only through the hook.
   Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& ev) {
-    if (ev.GetKeyCode() != WXK_ESCAPE || !escapeKey()) ev.Skip();
+    const int key = ev.GetKeyCode();
+    //  Space is the viewer's alone: a button or text field keeps it.
+    if (key == WXK_SPACE && dynamic_cast<SoWxRenderArea*>(wxWindow::FindFocus())
+        && pauseVibrationKey())
+      return;
+    if (key != WXK_ESCAPE || !escapeKey()) ev.Skip();
   });
   //  Key events go to the focused child (the 3-D canvas), never the frame,
   //  so Delete is an accelerator: deleteKey leaves editable text fields alone.
@@ -3771,6 +3779,17 @@ void Builder::OnKeyDown(wxKeyEvent& event)
       escapeKey();
    }
    event.Skip();
+}
+
+
+bool Builder::pauseVibrationKey()
+{
+  if (!p_calculation) return false;
+  for (PropertyPanel *p :
+       PropertyPanel::getPanels(p_calculation->getURL().toString()))
+    if (NModePanel *nm = dynamic_cast<NModePanel*>(p))
+      if (nm->hasFocus() && nm->togglePause()) return true;
+  return false;
 }
 
 

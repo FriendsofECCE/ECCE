@@ -228,9 +228,9 @@ calculation:
 3. Save and launch as before.
 4. In the Viewer, choose **Properties > Vibrational Frequencies**.
 5. Use the **Table** and **Graph** tabs to see the three frequencies.
-6. Select a frequency and click the button with the tooltip **animate
-   normal mode** to see the motion. **Scale:** sets the size of the
-   displacement and **Delay:** the speed. **stop animation** ends it.
+6. Choose **Animation** and select a frequency to see the motion.
+   **Amplitude:** sets the size of the displacement and **Delay:** the
+   speed. **Vector** shows arrows and stops the animation.
 
 A geometry optimisation that has reached a minimum has no imaginary
 frequencies.
