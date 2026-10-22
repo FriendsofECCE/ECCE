@@ -390,6 +390,7 @@ class Builder: public BuilderGUI,
       virtual void OnModeElementClick( wxCommandEvent& event );
       void OnModeElementList( wxCommandEvent& event );
       TearableContent *showElementChooser();
+      void popupBelowTool(TearableContent *tc, int toolId);
       /// Ctrl+X/C/V/Z: edit the focused text field, else the structure.
       void editShortcut(int accelId);
       void deleteKey();

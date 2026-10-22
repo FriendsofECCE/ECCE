@@ -23,14 +23,14 @@ class BondDropDown : public wxToolBar,
       BondDropDown(double order, wxWindow* parent, wxWindowID id = wxID_ANY,
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
-              long style = wxTB_VERTICAL|wxNO_BORDER,
+              long style = wxTB_VERTICAL|wxTB_TEXT|wxTB_HORZ_TEXT|wxNO_BORDER,
               const wxString& name = "Bond Order");
       virtual ~BondDropDown();
 
       bool Create(double order, wxWindow* parent, wxWindowID id = wxID_ANY,
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
-              long style = wxTB_VERTICAL|wxNO_BORDER,
+              long style = wxTB_VERTICAL|wxTB_TEXT|wxTB_HORZ_TEXT|wxNO_BORDER,
               const wxString& name = "Bond Order");
 
       void select(double order);
