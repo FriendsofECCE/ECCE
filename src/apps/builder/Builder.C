@@ -3163,7 +3163,15 @@ void Builder::eventMCB(const Event& event)
    }
    else if (name == "CleanReport") {
      //  What Clean assumed and any odd bond lengths: the log, never a dialog.
-     showMessage(value, false);
+     //  Assumed orders alone are routine, so a note, not a warning.
+     if (value.find("Warning") == string::npos &&
+         value.find("Not resolved") == string::npos) {
+       if (getenv("ECCE_BUILDER_SCRIPT"))
+         fprintf(stderr, "BUILDER: message: %s\n", value.c_str());
+       wxLogMessage("%s", value.c_str());
+     } else {
+       showMessage(value, false);
+     }
    }
    else if (name == "ShapeChanged") {
      p_currentShapes[p_currentElement] = value;
