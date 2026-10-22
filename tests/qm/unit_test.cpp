@@ -10,6 +10,8 @@
 #include "ao.hpp"
 #include "basis.hpp"
 #include "grid.hpp"
+#include "gradient.hpp"
+#include "scf.hpp"
 #include "integrals.hpp"
 #include "vibration.hpp"
 #include <array>
@@ -159,6 +161,37 @@ int main(int argc, char** argv) {
     Thermo t = thermochemistry(ar, none, 298.15, 1e5 / 101325.0, 0);
     const double sJ = t.s_trans * 4.3597447222071e-18 * 6.02214076e23;
     check(none.ntransrot == 3 && std::fabs(sJ - 154.846) < 0.02, "Ar translational entropy", sJ);
+  }
+
+  // Displaced points run side by side must give the Hessian and dipole
+  // derivatives of the serial loop (water, B3LYP/6-31G*, coarse grid).
+  {
+    Molecule w;
+    w.atoms = {{8, {0, 0, 0.2216}}, {1, {0, 1.4309, -0.8867}}, {1, {0, -1.4309, -0.8867}}};
+    ScfOptions so;
+    so.method = "b3lyp";
+    so.grid_radial = 50;
+    so.grid_angular = 194;
+    so.conv_grad = 1e-8;
+    so.conv_energy = 1e-11;
+    Basis b0(w, lib, "6-31G*", 1);
+    const ScfResult ref = run_scf(b0, w, so);
+    auto point = [&](const Molecule& m) {
+      Basis b(m, lib, "6-31G*", 1);
+      ScfResult r = run_scf(b, m, so, &ref);
+      PointEval pe;
+      pe.grad = scf_gradient(b, m, so, r);
+      for (int k = 0; k < 3; ++k) pe.dipole[k] = r.dipole[k];
+      return pe;
+    };
+    int calls = 0;
+    Derivatives ds = finite_difference_derivatives(w, 0.005, point);
+    Derivatives dp = finite_difference_derivatives(w, 0.005, point, [&](int, int) { ++calls; }, 3, 1);
+    check(calls == 18, "parallel points: on_point called once per point", calls);
+    check((ds.hessian - dp.hessian).cwiseAbs().maxCoeff() < 1e-7, "parallel Hessian equals serial",
+          (ds.hessian - dp.hessian).cwiseAbs().maxCoeff());
+    check((ds.dmu - dp.dmu).cwiseAbs().maxCoeff() < 1e-7, "parallel dipole derivatives equal serial",
+          (ds.dmu - dp.dmu).cwiseAbs().maxCoeff());
   }
 
   return fails ? 1 : 0;
