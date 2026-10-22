@@ -176,7 +176,7 @@ and `opt_conv normal|tight` (default normal) tune the latter.
 `runtype frequency` computes the harmonic vibrations at the given geometry,
 `runtype optfreq` optimises first (and does nothing more if the optimisation
 did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
-`temperature` (K, 298.15), `pressure` (atm, 1), `symmetry_number` (default: worked out).
+`numeric_hessian` (`true` forces finite differences; closed-shell RHF is analytic by default, also `ECCE_QM_NUMERIC_HESSIAN` in the environment), `temperature` (K, 298.15), `pressure` (atm, 1), `symmetry_number` (default: worked out).
 
 * Hessian (`vibration.cpp`): central differences of the analytic gradient over
   every Cartesian coordinate, step 0.005 bohr, so 6N gradient evaluations

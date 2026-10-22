@@ -32,6 +32,9 @@
 //   parallel_points <true|false>  frequency: run displaced points concurrently
 //                                when memory allows (default true; also off
 //                                with ECCE_QM_SERIAL in the environment)
+//   numeric_hessian <true|false>  frequency: force the finite-difference Hessian; by
+//                                default closed-shell RHF frequencies are analytic
+//                                (also forced by ECCE_QM_NUMERIC_HESSIAN in the environment)
 //   field_step <au>              finite-field step, default 0.001
 //   maxsteps <n>                 optimize: most energy+gradient evaluations (100)
 //   opt_conv <normal|tight>      optimize: ORCA's Opt or TightOpt thresholds
@@ -79,6 +82,7 @@ struct Input {
   int symmetry_number = 0;
   bool polarizability = false, raman = false;
   bool parallel_points = true;
+  bool numeric_hessian = false;  // frequency: finite differences even where the analytic Hessian applies
   double field_step = 0.001;   // a.u.
   // Z -> shells from a basis_data block (empty: use the library).
   std::map<int, std::vector<ShellDef>> explicit_basis;

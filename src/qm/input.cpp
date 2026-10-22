@@ -115,6 +115,10 @@ Input parse_input(std::istream& in) {
       const std::string v = lower(rest);
       r.parallel_points = (v == "true" || v == "yes" || v == "on" || v == "1");
     }
+    else if (k == "numeric_hessian") {
+      const std::string v = lower(rest);
+      r.numeric_hessian = (v == "true" || v == "yes" || v == "on" || v == "1");
+    }
     else if (k == "field_step") r.field_step = std::stod(rest);
     else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
     else if (k == "opt_conv") r.opt.set_convergence(lower(rest));

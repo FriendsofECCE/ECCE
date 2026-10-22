@@ -11,6 +11,7 @@
 #include "basis.hpp"
 #include "grid.hpp"
 #include "gradient.hpp"
+#include "hessian.hpp"
 #include "scf.hpp"
 #include "integrals.hpp"
 #include "vibration.hpp"
@@ -192,6 +193,50 @@ int main(int argc, char** argv) {
           (ds.hessian - dp.hessian).cwiseAbs().maxCoeff());
     check((ds.dmu - dp.dmu).cwiseAbs().maxCoeff() < 1e-7, "parallel dipole derivatives equal serial",
           (ds.dmu - dp.dmu).cwiseAbs().maxCoeff());
+  }
+
+  // Analytic RHF Hessian, dipole derivatives and harmonic frequencies against
+  // finite differences of the analytic gradient (slightly distorted
+  // geometries, so the gradient is not zero).
+  {
+    struct Case { const char* name; const char* basis; std::vector<std::array<double, 4>> atoms; };
+    const std::vector<Case> cases = {
+        {"H2O", "STO-3G", {{8, 0, 0, 0.2216}, {1, 0, 1.4309, -0.8867}, {1, 0, -1.37, -0.9}}},
+        {"H2O", "6-31G*", {{8, 0, 0, 0.2216}, {1, 0, 1.4309, -0.8867}, {1, 0, -1.37, -0.9}}},
+        {"NH3", "STO-3G", {{7, 0, 0, 0.12}, {1, 1.77, 0, -0.55}, {1, -0.9, 1.5, -0.5}, {1, -0.85, -1.55, -0.6}}},
+        {"NH3", "6-31G*", {{7, 0, 0, 0.12}, {1, 1.77, 0, -0.55}, {1, -0.9, 1.5, -0.5}, {1, -0.85, -1.55, -0.6}}},
+        {"C2H4", "STO-3G", {{6, 0, 0, 1.26}, {6, 0, 0.1, -1.27}, {1, 0, 1.75, 2.33}, {1, 0.1, -1.75, 2.35}, {1, 0, 1.72, -2.36}, {1, 0, -1.74, -2.33}}},
+        {"C2H4", "6-31G*", {{6, 0, 0, 1.26}, {6, 0, 0.1, -1.27}, {1, 0, 1.75, 2.33}, {1, 0.1, -1.75, 2.35}, {1, 0, 1.72, -2.36}, {1, 0, -1.74, -2.33}}}};
+    for (const Case& cs : cases) {
+      Molecule m;
+      for (auto& r : cs.atoms) { Atom a; a.Z = static_cast<int>(r[0]); for (int k = 0; k < 3; ++k) a.x[k] = r[k + 1]; m.atoms.push_back(a); }
+      ScfOptions so;
+      so.conv_grad = 1e-9;
+      so.conv_energy = 1e-12;
+      Basis b0(m, lib, cs.basis, 1);
+      const ScfResult ref = run_scf(b0, m, so);
+      auto point = [&](const Molecule& mm) {
+        Basis b(mm, lib, cs.basis, 1);
+        ScfResult r = run_scf(b, mm, so, &ref);
+        PointEval pe;
+        pe.grad = scf_gradient(b, mm, so, r);
+        for (int k = 0; k < 3; ++k) pe.dipole[k] = r.dipole[k];
+        return pe;
+      };
+      const Derivatives num = finite_difference_derivatives(m, 0.002, point);  // the step's own error is ~1e-5 at 0.005
+      const Derivatives ana = rhf_hessian(b0, m, so, ref);
+      const std::string tag = std::string(cs.name) + "/" + cs.basis;
+      check((ana.hessian - num.hessian).cwiseAbs().maxCoeff() < 1e-5, "analytic Hessian matches finite difference " + tag,
+            (ana.hessian - num.hessian).cwiseAbs().maxCoeff());
+      {
+        const VibResult va = analyse_vibrations(m, ana), vn = analyse_vibrations(m, num);
+        double df = 0;
+        for (size_t k = 0; k < va.freq.size() && k < vn.freq.size(); ++k) df = std::max(df, std::fabs(va.freq[k] - vn.freq[k]));
+        check(va.freq.size() == vn.freq.size() && df < 0.1, "analytic frequencies match finite difference (cm-1) " + tag, df);
+      }
+      check((ana.dmu - num.dmu).cwiseAbs().maxCoeff() < 1e-5, "analytic dipole derivatives match finite difference " + tag,
+            (ana.dmu - num.dmu).cwiseAbs().maxCoeff());
+    }
   }
 
   return fails ? 1 : 0;
