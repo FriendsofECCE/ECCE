@@ -599,6 +599,16 @@ void NModePanel::createSpectrumPane()
       viewSizer->Insert(at + 3, compare, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
       compare->Bind(wxEVT_BUTTON,
                     [this](wxCommandEvent&) { compareDialog(); });
+      //  Enabled, not hidden, so the row does not reflow at narrow widths.
+      p_compareRemove = new wxButton(viewBox->GetParent(), wxID_ANY,
+                                     "Remove comparison");
+      p_compareRemove->SetToolTip("Remove the second curve and show this "
+                                  "calculation only.");
+      p_compareRemove->Enable(false);
+      viewSizer->Insert(at + 4, p_compareRemove, 0,
+                        wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      p_compareRemove->Bind(wxEVT_BUTTON,
+                    [this](wxCommandEvent&) { compareWith(string()); });
    }
 
    //  The wrap sizers under the plot learn their width only in a layout, so
@@ -853,6 +863,7 @@ bool NModePanel::compareWith(const string& name)
     p_compare.reset();
     p_compareName.clear();
     p_compareCode.clear();
+    if (p_compareRemove) p_compareRemove->Enable(false);
     fillGraph();
     return true;
   }
@@ -867,6 +878,7 @@ bool NModePanel::compareWith(const string& name)
     ChemistryTask *task = dynamic_cast<ChemistryTask*>(found[i]);
     const JCode *code = task ? task->application() : 0;
     p_compareCode = code ? code->name() : string();
+    if (p_compareRemove) p_compareRemove->Enable(true);
     fillGraph();
     return true;
   }
@@ -970,6 +982,22 @@ void NModePanel::dumpSpectrumIfRequested()
                        k == VIB_IR ? "ir" : "raman", cs[i].mode + 1,
                        cs[i].wavenumber, cs[i].intensity);
          }
+      }
+      //  ECCE_SPECTRUM_REMOVE_COMPARE=1: click "Remove comparison" and
+      //  report the button and the second curve before and after.
+      if (other != 0 && getenv("ECCE_SPECTRUM_REMOVE_COMPARE") != 0 &&
+          p_compareRemove != 0) {
+         auto second = [&]() {
+            return (int)(p_spectrum->spectrum().compareSticks(VIB_IR).size() +
+                         p_spectrum->spectrum().compareSticks(VIB_RAMAN).size());
+         };
+         fprintf(out, "remove-button before enabled %d compare-sticks %d\n",
+                 p_compareRemove->IsEnabled() ? 1 : 0, second());
+         wxCommandEvent ev(wxEVT_BUTTON, p_compareRemove->GetId());
+         ev.SetEventObject(p_compareRemove);
+         p_compareRemove->GetEventHandler()->ProcessEvent(ev);
+         fprintf(out, "remove-button after enabled %d compare-sticks %d\n",
+                 p_compareRemove->IsEnabled() ? 1 : 0, second());
       }
       //  ECCE_SPECTRUM_WINDOW=1: open the pop-out and click in IT.
       SpectrumCanvas *clicker = p_spectrum;
