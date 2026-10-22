@@ -98,6 +98,16 @@ bool WxJMSSubscriber::resumeMessaging() {
   return true;
 }
 
+void WxJMSSubscriber::deferMessages(bool on) {
+  p_deferring = on;
+  if (on || p_deferred.empty() || !wxTheApp) return;
+  auto waiting = std::make_shared<std::vector<std::pair<string, JMSMessage> > >();
+  waiting->swap(p_deferred);
+  wxTheApp->CallAfter([this, waiting]() {
+    for (auto& m : *waiting) deliver(m.first, m.second);
+  });
+}
+
 /**
  * Records the callback; only one subscription per topic.
  */
@@ -169,6 +179,10 @@ string WxJMSSubscriber::getMyID() const {
  * GUI thread: finds the callback for the topic and makes the call.
  */
 void WxJMSSubscriber::deliver(const string& topic, JMSMessage& msg) {
+  if (p_deferring) {
+    p_deferred.emplace_back(topic, msg);
+    return;
+  }
   wxCbMap::iterator it = cbStructs.find(topic);
   if (it == cbStructs.end()) return;
 
