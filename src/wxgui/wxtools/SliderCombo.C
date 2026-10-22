@@ -35,6 +35,21 @@ bool SliderComboPopup::Create(wxWindow *parent)
   // and behaves more like the old calcviewer.  Seems better...
   // See SliderCombo class also - must be reset when the range is changed.
   SetPageSize(GetLineSize());
+
+  //  The popup is a top-level window, so its scroll events do not
+  //  propagate to the combo on every platform (on Windows they never
+  //  arrived); hand each one to the combo directly.
+  for (const wxEventTypeTag<wxScrollEvent>& t : { wxEVT_SCROLL_TOP, wxEVT_SCROLL_BOTTOM,
+                         wxEVT_SCROLL_LINEUP, wxEVT_SCROLL_LINEDOWN,
+                         wxEVT_SCROLL_PAGEUP, wxEVT_SCROLL_PAGEDOWN,
+                         wxEVT_SCROLL_THUMBTRACK, wxEVT_SCROLL_THUMBRELEASE,
+                         wxEVT_SCROLL_CHANGED }) {
+    //  Not skipped: where the event does propagate, it arrives once.
+    Bind(t, [this](wxScrollEvent& event) {
+      wxScrollEvent copy(event);
+      GetComboCtrl()->GetEventHandler()->ProcessEvent(copy);
+    });
+  }
   return ret;
 }
 
