@@ -283,7 +283,8 @@ sub MOPACHeader {
 # Hessian" (unlike ORCA's "! Opt Freq" or Gaussian's "Opt Freq"), so the
 # two-data-set form is the only way to express GeoVib.
 # Thermochemistry is on unless the calculation stored an explicit 0, so
-# runs never opened in Runtype Details get it too.  Bare THERMO is 298 K.
+# runs never opened in Runtype Details get it too.  Bare THERMO gives
+# 298 K plus 200-400 K in 10 K steps.
 sub ThermoOn {
   my $t = $AbiDict{"ES.Runtype.Vibration.Thermo"};
   return (!defined($t) || $t ne "0") ? 1 : 0;
