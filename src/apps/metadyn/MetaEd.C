@@ -1234,10 +1234,12 @@ void MetaEd::enableDetailsFields()
   bool hasFragment(p_frag);
 
   p_detailsBox->Enable(hasFragment);
+  //  A calculation at the defaults stores no values, yet its dialog opens
+  //  fine; only a dialog still starting has nothing to show yet (#427).
   FindWindow(ID_BUTTON_METAED_THEORY)->Enable(isDetailsReady()
-          && p_GUIValues->containsKeyPrefix("ES.Theory"));
+          && (p_GUIValues->containsKeyPrefix("ES.Theory") || !p_theoryHoldFlag));
   FindWindow(ID_BUTTON_METAED_RUNTYPE)->Enable(isDetailsReady()
-          && p_GUIValues->containsKeyPrefix("ES.Runtype"));
+          && (p_GUIValues->containsKeyPrefix("ES.Runtype") || !p_runtypeHoldFlag));
 }
 
 
@@ -1922,7 +1924,7 @@ void MetaEd::processTheoryInput(const char* databuf)
     p_theoryInitFlag = true;
 
     FindWindow(ID_BUTTON_METAED_THEORY)->Enable(isDetailsReady() &&
-                                                p_theoryInFlag);
+        (p_theoryInFlag || p_GUIValues->containsKeyPrefix("ES.Theory")));
 
     if (p_theoryHoldFlag) {
       p_theoryHoldFlag = false;
@@ -1986,7 +1988,7 @@ void MetaEd::processRuntypeInput(const char* databuf)
     p_runtypeInitFlag = true;
 
     FindWindow(ID_BUTTON_METAED_RUNTYPE)->Enable(isDetailsReady() &&
-                                                 p_runtypeInFlag);
+        (p_runtypeInFlag || p_GUIValues->containsKeyPrefix("ES.Runtype")));
 
     if (p_runtypeHoldFlag) {
       p_runtypeHoldFlag = false;
