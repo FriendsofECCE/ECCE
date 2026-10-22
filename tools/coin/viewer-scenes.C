@@ -21,6 +21,8 @@
 #include "viz/NodesInit.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "tdat/TBond.H"
+#include "tdat/TAtm.H"
 
 #include "wxviz/SGContainerManager.H"
 #include "wxviz/SGSelection.H"
@@ -29,6 +31,7 @@
 #include "wxviz/VizRender.H"
 
 using std::string;
+using std::vector;
 
 namespace {
 
@@ -75,6 +78,16 @@ string xyzFor(const string& sys)
     size_t n;
     while ((n = fread(buf, 1, sizeof buf, f)) > 0) o.write(buf, n);
     fclose(f);
+  }
+  else if (sys == "ethene") {
+    o << "6\nethene\nC 0 0 0.6695\nC 0 0 -0.6695\nH 0 0.9289 1.2321\n"
+         "H 0 -0.9289 1.2321\nH 0 0.9289 -1.2321\nH 0 -0.9289 -1.2321\n";
+  } else if (sys == "acetylene") {
+    o << "4\nacetylene\nC 0 0 0.6\nC 0 0 -0.6\nH 0 0 1.665\nH 0 0 -1.665\n";
+  } else if (sys == "co2") {
+    o << "3\nco2\nC 0 0 0\nO 0 0 1.16\nO 0 0 -1.16\n";
+  } else if (sys == "benzene-kekule" || sys == "benzene-arom") {
+    return xyzFor("benzene");
   }
   else if (sys == "waterbox") {
     //  data/client/solvents/water216.xyz, 2x2x2: 5184 atoms (the file's
@@ -164,6 +177,37 @@ int ScenesApp::OnRun()
   SGFragment *frag = sg->getFragment();
   std::istringstream in(xyz);
   if (!frag->restoreXYZ(in, 1.0, true)) { fprintf(stderr, "bad xyz\n"); return 1; }
+  //  Bond orders the distance rule cannot give: C=C, C#C, C=O, Kekule or
+  //  aromatic benzene (ECCE_SCENE_ORDERS is not needed for the rest).
+  {
+    const bool kekule = sys == "benzene-kekule", arom = sys == "benzene-arom";
+    vector<TBond*> *allBonds = frag->bonds();
+    for (size_t b = 0; b < allBonds->size(); b++) {
+      TBond *bond = (*allBonds)[b];
+      const string e1 = bond->atom1()->atomicSymbol(),
+                   e2 = bond->atom2()->atomicSymbol();
+      if (e1 == "C" && e2 == "C") {
+        if (sys == "ethene") bond->order(2.0);
+        else if (sys == "acetylene") bond->order(3.0);
+        else if (kekule) {
+          //  Ring atoms sit at multiples of 60 degrees; bond i-(i+1) is
+          //  double for even i.
+          int sector[2];
+          const TAtm *ends[2] = { bond->atom1(), bond->atom2() };
+          for (int k = 0; k < 2; k++) {
+            const double *c = ends[k]->coordinates();
+            sector[k] = ((int)floor(atan2(c[1], c[0]) / (M_PI / 3) + 0.5) + 6) % 6;
+          }
+          const int lo = ((sector[0] + 1) % 6 == sector[1]) ? sector[0] : sector[1];
+          bond->order(lo % 2 ? 1.0 : 2.0);
+        }
+        else if (arom) bond->order(1.5);
+      } else if (sys == "co2" && (e1 == "O" || e2 == "O")) {
+        bond->order(2.0);
+      }
+    }
+    delete allBonds;
+  }
   frag->touchNumbers();
   sg->touchChemDisplay();
   p_viewer->viewAll();

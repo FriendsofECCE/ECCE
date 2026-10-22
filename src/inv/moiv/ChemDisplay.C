@@ -4647,7 +4647,10 @@ ChemDisplay::generateDoubleBondList(ChemBaseData *chemData,
         if (cdp->getShowRings()) {
            int style = cdp->displayStyle.getValue();
            if (style == ChemDisplayParam::DISPLAY_WIREFRAME ||
-                 style == ChemDisplayParam::DISPLAY_BALLWIRE) {
+                 style == ChemDisplayParam::DISPLAY_BALLWIRE ||
+                 (multiBondCylinders() &&
+                  (style == ChemDisplayParam::DISPLAY_BALLSTICK ||
+                   style == ChemDisplayParam::DISPLAY_STICK))) {
               // Search for rings
               ChemSSSR *sssr = new ChemSSSR(globalNumberOfAtoms, localNumberOfBonds, 
                     atch,this);
@@ -4780,7 +4783,9 @@ ChemDisplay::generateDoubleBondList(ChemBaseData *chemData,
 
 	for (i = 0; i < localNumberOfBonds; i++) {
 		if (((bondAttributes[i].type == ChemBaseData::DOUBLE_BOND) ||
-			(bondAttributes[i].type == ChemBaseData::RESONANCE_BOND)) &&
+			(bondAttributes[i].type == ChemBaseData::RESONANCE_BOND) ||
+			(multiBondCylinders() &&
+			 bondAttributes[i].type == ChemBaseData::AROMATIC_BOND)) &&
 			(bondAttributes[i].perpNormal == junkVec)) {
 			atom1 = bondAttributes[i].from;
 			atom2 = bondAttributes[i].to;

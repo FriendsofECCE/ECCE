@@ -74,6 +74,7 @@
 #include "inv/ChemKit/ChemPerPixel.H"
 #include "inv/ChemKit/ChemDetail.H"
 #include "inv/ChemKit/ChemDisplay.H"
+#include "inv/ChemKit/ChemBondStuff.H"
 #include "inv/ChemKit/ChemBaseDataElement.H"
 #include "inv/ChemKit/ChemColorElement.H"
 #include "inv/ChemKit/ChemDisplayParamElement.H"
@@ -395,28 +396,59 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 		cylStyle != ChemDisplayParam::BONDCYLINDER_LOD_ROUNDCAP &&
 		ChemPerPixel::begin(state);
 
+	//  Multiple bonds get a pass of their own; the single-bond pass must
+	//  not draw their axis cylinder as well.
+	MFVec2i singleBonds, multiBonds;
+	const MFVec2i *normalBonds = &vnormalBondIndex;
+	if (multiBondCylinders() && cdp->showMultipleBonds.getValue() &&
+		bondAttributes != NULL) {
+		const int nRanges = vnormalBondIndex.getNum();
+		for (int r = 0; r < nRanges; r++) {
+			int32_t b0, b1;
+			vnormalBondIndex[r].getValue(b0, b1);
+			b1 = (b1 == CHEM_DISPLAY_USE_REST_OF_BONDS) ?
+				globalNumberOfBonds : b0 + b1;
+			for (int32_t bd = b0; bd < b1; bd++) {
+				const int t = chemData->getBondType(bd);
+				const bool multi = t == ChemBaseData::DOUBLE_BOND ||
+					t == ChemBaseData::TRIPLE_BOND ||
+					t == ChemBaseData::RESONANCE_BOND ||
+					t == ChemBaseData::AROMATIC_BOND;
+				MFVec2i &dst = multi ? multiBonds : singleBonds;
+				const int n = dst.getNum();
+				SbVec2i last;
+				if (n > 0) last = dst[n - 1];
+				if (n > 0 && last[0] + last[1] == bd)
+					dst.set1Value(n - 1, SbVec2i(last[0], last[1] + 1));
+				else
+					dst.set1Value(n, SbVec2i(bd, 1));
+			}
+		}
+		normalBonds = &singleBonds;
+	}
+
 	// Render the cylinders
 	switch (chemColor->bondColorBinding.getValue()) {
 	  case ChemColor::BOND_OVERALL:
-		normalCylinderOV(vnormalBondIndex, state, chemColor->bondColor[0],
+		normalCylinderOV(*normalBonds, state, chemColor->bondColor[0],
 			cdp, chemData);
 		highlightCylinderOV(vhighlightBondIndex, state, chemColor, cdp, 
 			chemData);
 		break;
 	  case ChemColor::BOND_PER_BOND:
-		normalCylinderBB(vnormalBondIndex, state, chemColor, cdp, chemData);
+		normalCylinderBB(*normalBonds, state, chemColor, cdp, chemData);
 		highlightCylinderBB(vhighlightBondIndex, state, chemColor, cdp, 
 			chemData);
 		break;
 	  case ChemColor::BOND_PER_BOND_INDEXED:
-		normalCylinderBI(vnormalBondIndex, state, chemColor, cdp, chemData);
+		normalCylinderBI(*normalBonds, state, chemColor, cdp, chemData);
 		highlightCylinderBI(vhighlightBondIndex, state, chemColor, cdp, 
 			chemData);
 		break;
 	  case ChemColor::BOND_PER_ATOM:
 		switch (chemColor->atomColorBinding.getValue()) {
 		  case ChemColor::ATOM_OVERALL:
-			normalCylinderOV(vnormalBondIndex, state, chemColor->atomColor[0],
+			normalCylinderOV(*normalBonds, state, chemColor->atomColor[0],
 				cdp, chemData);
 			highlightCylinderOV(vhighlightBondIndex, state, chemColor, cdp, 
 				chemData);
@@ -425,7 +457,7 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 // --> roundcap optimization
 //			normalCylinderBAAA(normalBondIndex, state, chemColor, cdp, 
 //				chemData);
-			normalCylinderBAAA(vnormalBondIndex, state, chemColor, cdp, 
+			normalCylinderBAAA(*normalBonds, state, chemColor, cdp, 
 				chemData,action);
 // <-- roundcap optimization
 			highlightCylinderBAAA(vhighlightBondIndex, state, chemColor, 
@@ -435,7 +467,7 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 // --> roundcap optimization
 //			normalCylinderBAAI(normalBondIndex, state, chemColor, cdp, 
 //				chemData);
-			normalCylinderBAAI(vnormalBondIndex, state, chemColor, cdp, 
+			normalCylinderBAAI(*normalBonds, state, chemColor, cdp, 
 				chemData,action);
 // <-- roundcap optimization
 			highlightCylinderBAAI(vhighlightBondIndex, state, chemColor, 
@@ -447,19 +479,19 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 	  case ChemColor::BOND_PER_ATOM_HALF_BONDED:
 		switch (chemColor->atomColorBinding.getValue()) {
 		  case ChemColor::ATOM_OVERALL:
-			normalCylinderOV(vnormalBondIndex, state, chemColor->atomColor[0],
+			normalCylinderOV(*normalBonds, state, chemColor->atomColor[0],
 				cdp, chemData);
 			highlightCylinderOV(vhighlightBondIndex, state, chemColor, cdp, 
 				chemData);
 			break;
 		  case ChemColor::ATOM_PER_ATOM:
-			normalCylinderBHAA(vnormalBondIndex, state, chemColor, cdp, 
+			normalCylinderBHAA(*normalBonds, state, chemColor, cdp, 
 				chemData);
 			highlightCylinderBHAA(vhighlightBondIndex, state, chemColor, 
 				cdp, chemData);
 			break;
 		  case ChemColor::ATOM_PER_ATOM_INDEXED:
-			normalCylinderBHAI(vnormalBondIndex, state, chemColor, cdp, 
+			normalCylinderBHAI(*normalBonds, state, chemColor, cdp, 
 				chemData);
 			highlightCylinderBHAI(vhighlightBondIndex, state, chemColor, 
 				cdp, chemData);
@@ -470,6 +502,9 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 	  default:
 		break;
 	}
+
+	if (normalBonds != &vnormalBondIndex && multiBonds.getNum() > 0)
+		renderMultiBondCylinders(state, chemColor, cdp, chemData, multiBonds);
 
 	if (perPixel) ChemPerPixel::end();
 
@@ -482,6 +517,198 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 // <-- EGB && SGB
 
 	endSolidShape(action);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+//
+//  Multiple bonds as parallel cylinders (ECCE_MULTIBOND_CYLINDERS=1).
+//  Double: two thin cylinders, side by side about the axis.  Triple: three.
+//  A double bond on a ring side, and aromatic: the full cylinder on the
+//  axis plus a thin one towards the ring, ends cut back as the wireframe
+//  does.  The offset is in the plane of the neighbouring bonds (perpNormal).
+
+bool
+ChemDisplay::multiBondCylinders()
+{
+	static const bool on = getenv("ECCE_MULTIBOND_CYLINDERS") != NULL &&
+		getenv("ECCE_MULTIBOND_CYLINDERS")[0] == '1';
+	return on;
+}
+
+namespace {
+
+struct MultiPart {
+	float offset;		// along the perpendicular
+	float radius;
+	float cutback;		// extra shortening at both ends, along the bond
+};
+
+//  Fills the parts of a bond of this type; returns their number (0 = not
+//  a multiple bond).
+int multiBondParts(int type, bool ringSide, float rad, float sep,
+	MultiPart parts[3])
+{
+	const float tan30 = 0.577f;
+	if (type == ChemBaseData::TRIPLE_BOND) {
+		const float r = rad * 0.45f;
+		const float s = sep > 2.3f * r ? sep : 2.3f * r;
+		parts[0] = MultiPart{-s, r, 0.0f};
+		parts[1] = MultiPart{0.0f, r, 0.0f};
+		parts[2] = MultiPart{s, r, 0.0f};
+		return 3;
+	}
+	if (type == ChemBaseData::AROMATIC_BOND || ringSide) {
+		const float r = rad * 0.5f;
+		const float o = rad + r + 0.03f * rad / 0.15f;
+		parts[0] = MultiPart{0.0f, rad, 0.0f};
+		parts[1] = MultiPart{o, r, o * tan30};
+		return 2;
+	}
+	if (type == ChemBaseData::DOUBLE_BOND ||
+		type == ChemBaseData::RESONANCE_BOND) {
+		const float r = rad * 0.5f;
+		const float s = sep > 2.3f * r ? sep : 2.3f * r;
+		parts[0] = MultiPart{-0.5f * s, r, 0.0f};
+		parts[1] = MultiPart{0.5f * s, r, 0.0f};
+		return 2;
+	}
+	return 0;
+}
+
+}
+
+void
+ChemDisplay::renderMultiBondCylinders(SoState *state,
+	const ChemColor *chemColor, const ChemDisplayParam *cdp,
+	const ChemBaseData *chemData, const MFVec2i &theBondIndex)
+{
+	const int displayStyle = cdp->bondCylinderDisplayStyle.getValue();
+	const SbBool doHydrogens = cdp->showHydrogens.getValue();
+	const float rad = cdp->bondCylinderRadius.getValue();
+	const float sep = cdp->multipleBondSeparation.getValue();
+	SoGLRenderAction *action = (SoGLRenderAction *)state->getAction();
+
+	glColorMaterial(GL_FRONT, GL_DIFFUSE);
+	glEnable(GL_COLOR_MATERIAL);
+
+	PRE_ADJUST_CYLINDER
+	const bool ball = cdp->displayStyle.getValue() !=
+		ChemDisplayParam::DISPLAY_STICK;
+
+	const SbColor *bondColors = chemColor->bondColor.getValues(0);
+	const SbColor *atomColors = chemColor->atomColor.getValues(0);
+	const int bondBinding = chemColor->bondColorBinding.getValue();
+	const int atomBinding = chemColor->atomColorBinding.getValue();
+
+	BONDLOOP_START(theBondIndex)
+		BNDDUP(theBond);
+		const int32_t from = chemData->getBondFrom(theBond);
+		const int32_t to = chemData->getBondTo(theBond);
+		if (!doHydrogens && ((chemData->getAtomicNumber(from) == 1) ||
+			(chemData->getAtomicNumber(to) == 1))) continue;
+
+		const ChemBondStuff &attr = bondAttributes[bondAttributesIndex[theBond]];
+		const int type = chemData->getBondType(theBond);
+		MultiPart parts[3];
+		const int nParts = multiBondParts(type, !attr.isSymmetric && attr.perpNormal[0] < 9000.0f,
+			rad, sep, parts);
+		if (nParts == 0) continue;
+
+		const SbVec3f c1 = chemData->getAtomCoordinates(from).getValue();
+		const SbVec3f c2 = chemData->getAtomCoordinates(to).getValue();
+		SbVec3f axis = c2 - c1;
+		const float len = axis.length();
+		if (len < 1e-6f) continue;
+		axis *= 1.0f / len;
+
+		// Offset direction: the neighbours' plane, else any stable
+		// perpendicular.
+		SbVec3f perp = attr.perpNormal;
+		if (perp[0] > 9000.0f || fabsf(perp.dot(axis)) > 0.5f ||
+			perp.length() < 0.5f) {
+			perp = axis.cross(fabsf(axis[1]) < 0.9f ?
+				SbVec3f(0, 1, 0) : SbVec3f(1, 0, 0));
+		}
+		else {
+			perp -= axis * perp.dot(axis);
+		}
+		perp.normalize();
+
+		float R1 = 0.0f, R2 = 0.0f;
+		bool ballFrom = false, ballTo = false;
+		if (ball) {
+			bool renderFrom, renderTo;
+			ADJUST_CYLINDER(from, renderFrom);
+			ADJUST_CYLINDER(to, renderTo);
+			ballFrom = renderFrom;
+			ballTo = renderTo;
+			switch (chemRadii->atomRadiiBinding.getValue()) {
+			  case ChemRadii::RADII_OVERALL:
+				R1 = R2 = atomRadii[0] * radScale;
+				break;
+			  case ChemRadii::RADII_PER_ATOM:
+				R1 = atomRadii[from] * radScale;
+				R2 = atomRadii[to] * radScale;
+				break;
+			  case ChemRadii::RADII_PER_ATOM_INDEXED:
+				R1 = atomRadii[chemData->getAtomIndex(from)] * radScale;
+				R2 = atomRadii[chemData->getAtomIndex(to)] * radScale;
+				break;
+			  default:
+				break;
+			}
+		}
+
+		SbColor colorFrom(0.7f, 0.7f, 0.7f), colorTo(0.7f, 0.7f, 0.7f);
+		switch (bondBinding) {
+		  case ChemColor::BOND_OVERALL:
+			colorFrom = colorTo = bondColors[0];
+			break;
+		  case ChemColor::BOND_PER_BOND:
+			colorFrom = colorTo = bondColors[theBond];
+			break;
+		  case ChemColor::BOND_PER_BOND_INDEXED:
+			colorFrom = colorTo = bondColors[chemData->getBondIndex(theBond)];
+			break;
+		  default:
+			if (atomBinding == ChemColor::ATOM_OVERALL) {
+				colorFrom = colorTo = atomColors[0];
+			}
+			else if (atomBinding == ChemColor::ATOM_PER_ATOM_INDEXED) {
+				colorFrom = atomColors[chemData->getAtomIndex(from)];
+				colorTo = atomColors[chemData->getAtomIndex(to)];
+			}
+			else {
+				colorFrom = atomColors[from];
+				colorTo = atomColors[to];
+			}
+			break;
+		}
+
+		const SbVec2i fromTo(from, to);
+		for (int k = 0; k < nParts; k++) {
+			const MultiPart &part = parts[k];
+			const float lateral = fabsf(part.offset) + part.radius;
+			//  End inside the ball, below where it would show.
+			float z1 = part.cutback, z2 = part.cutback;
+			if (ballFrom && R1 > lateral)
+				z1 += 0.9f * sqrtf(R1 * R1 - lateral * lateral);
+			if (ballTo && R2 > lateral)
+				z2 += 0.9f * sqrtf(R2 * R2 - lateral * lateral);
+			if (z1 + z2 > 0.9f * len) {
+				const float f = 0.9f * len / (z1 + z2);
+				z1 *= f;
+				z2 *= f;
+			}
+			const SbVec3f shift = perp * part.offset;
+			unitCylinder->renderHalfBonded(c1 + axis * z1 + shift,
+				c2 - axis * z2 + shift, part.radius, colorFrom, colorTo,
+				lastCylinderDoNormals, lastCylinderDoTextures,
+				displayStyle, fromTo, this, action);
+		}
+	BONDLOOP_END
+	glDisable(GL_COLOR_MATERIAL);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1920,8 +2147,21 @@ ChemDisplay::pickBondsAsCylinders(SoRayPickAction *action)
 
 
 		// Construct an infinite cylinder to test sides for intersection
+		float pickRad = rad;
+		if (multiBondCylinders() && cdp->showMultipleBonds.getValue() &&
+			bondAttributes != NULL) {
+			MultiPart parts[3];
+			const int n = multiBondParts(chemData->getBondType(theBond),
+				!bondAttributes[bondAttributesIndex[theBond]].isSymmetric &&
+				bondAttributes[bondAttributesIndex[theBond]].perpNormal[0] < 9000.0f,
+				rad, cdp->multipleBondSeparation.getValue(), parts);
+			for (int k = 0; k < n; k++) {
+				const float e = fabsf(parts[k].offset) + parts[k].radius;
+				if (e > pickRad) pickRad = e;
+			}
+		}
 		SbCylinder		infiniteCyl;
-		infiniteCyl.setValue(cylinderAxis, rad);
+		infiniteCyl.setValue(cylinderAxis, pickRad);
 
 		// See if the line intersects the cylinder
 		if (infiniteCyl.intersect(pickLine, enterPoint, exitPoint)) {
