@@ -1895,6 +1895,11 @@ add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
 target_link_libraries(sitehide_test PRIVATE ecceutil)
 add_test(NAME sitehide COMMAND sitehide_test)
 
+# tests/cpucores (#436): physical/logical core counts.
+add_executable(cpucores_test tests/cpucores/cpucores_test.C)
+target_link_libraries(cpucores_test PRIVATE ecceutil)
+add_test(NAME cpucores COMMAND cpucores_test)
+
 # Preferences > Advanced switches reach started programs' environment (#307).
 add_executable(envswitches_test tests/envswitches/envswitches_test.C)
 target_link_libraries(envswitches_test PRIVATE ecceutil)

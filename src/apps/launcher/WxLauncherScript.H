@@ -32,7 +32,8 @@
  *    expect KEY VALUE      KEY: request | machine | machines | queues |
  *                          block | password | username | scratchdir |
  *                          advanced | rundir | connect | launchable |
- *                          queue | procs | wsprocs | procsmax | memory | memunits |
+ *                          queue | procs | wsprocs | wsprocsmax | wsprocslabel |
+ *                          coreswarn | procsmax | memory | memunits |
  *                          scratchunits | button
  *    wait MS | shot FILE | quit
  */

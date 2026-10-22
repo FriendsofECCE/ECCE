@@ -85,6 +85,7 @@ const wxWindowID WxLauncherGUI::ID_MENUITEM_WXLAUNCHER_STAGELAUNCH = wxNewId();
 const wxWindowID WxLauncherGUI::ID_FEEDBACK_WXLAUNCHER_MESSAGES = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_BATCHSPCFC = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_WKSTNPROCS = wxNewId();
+const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_CORESWARN = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PARAMEDIT_WXLAUNCHER_BATCHNODES = wxNewId();
 const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_QUEUELABELRIGHT = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_WALLTIME = wxNewId();
@@ -309,6 +310,11 @@ void WxLauncherGUI::CreateControls()
     itemWxParameterEdit20->setUnitsVisible(0);
     itemWxParameterEdit20->setValue(1);
     itemFlexGridSizer17->Add(itemWxParameterEdit20, 0, wxALIGN_LEFT|wxALIGN_BOTTOM, 3);
+
+    ewxStaticText* coresWarn = new ewxStaticText( itemPanel14, ID_STATIC_WXLAUNCHER_CORESWARN, _T(""), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
+    coresWarn->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::UNSURE));
+    itemFlexGridSizer15->Add(coresWarn, 0, wxALIGN_LEFT|wxALL, 3);
+    coresWarn->Hide();
 
     ewxPanel* itemPanel21 = new ewxPanel( itemPanel14, ID_PANEL_WXLAUNCHER_PRIORITY, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemFlexGridSizer15->Add(itemPanel21, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
