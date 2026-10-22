@@ -465,6 +465,7 @@ void MDEdBase::enableLaunch(bool flag)
 
 void MDEdBase::gromacsInputsChanged()
 {
+  if (p_gmxRun) p_gmxRun->refreshChains();
   enableLaunch(p_launchWanted);
 }
 
