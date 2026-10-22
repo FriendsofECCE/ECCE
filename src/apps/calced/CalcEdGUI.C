@@ -461,8 +461,8 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer11->Add(itemStaticBoxSizer67, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
 
     //  One layout for every code.  Columns: label, choice, label, choice;
-    //  each Details button sits under its choice, each summary spans its
-    //  label and choice.
+    //  each Details button sits under its choice at the same width, each
+    //  summary spans its label and choice.
     wxGridBagSizer* settingsGrid = new wxGridBagSizer(FromDIP(4), FromDIP(5));
     itemStaticBoxSizer67->Add(settingsGrid, 1, wxALIGN_TOP|wxALL, FromDIP(10));
 
@@ -470,18 +470,18 @@ void CalcEdGUI::CreateControls()
                       wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
     wxString* itemChoice72Strings = NULL;
     ewxChoice* itemChoice72 = new ewxChoice( itemFrame1, ID_CHOICE_CALCED_THEORY, wxDefaultPosition, wxDefaultSize, 0, itemChoice72Strings, 0 );
-    settingsGrid->Add(itemChoice72, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL);
+    settingsGrid->Add(itemChoice72, wxGBPosition(0, 1), wxDefaultSpan, wxEXPAND);
 
     settingsGrid->Add(new ewxStaticText( itemFrame1, wxID_STATIC, _("Runtype:"), wxDefaultPosition, wxDefaultSize, 0 ),
                       wxGBPosition(0, 2), wxDefaultSpan, wxALIGN_CENTER_VERTICAL|wxLEFT, FromDIP(11));
     wxString* itemChoice80Strings = NULL;
     ewxChoice* itemChoice80 = new ewxChoice( itemFrame1, ID_CHOICE_CALCED_RUNTYPE, wxDefaultPosition, wxDefaultSize, 0, itemChoice80Strings, 0 );
-    settingsGrid->Add(itemChoice80, wxGBPosition(0, 3), wxDefaultSpan, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL);
+    settingsGrid->Add(itemChoice80, wxGBPosition(0, 3), wxDefaultSpan, wxEXPAND);
 
     settingsGrid->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_THEORY, _("Theory Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
-                      wxGBPosition(1, 1), wxDefaultSpan, wxALIGN_LEFT);
+                      wxGBPosition(1, 1), wxDefaultSpan, wxEXPAND);
     settingsGrid->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
-                      wxGBPosition(1, 3), wxDefaultSpan, wxALIGN_LEFT);
+                      wxGBPosition(1, 3), wxDefaultSpan, wxEXPAND);
 
     p_theoryDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
     settingsGrid->Add(p_theoryDetailsSizer, wxGBPosition(2, 0), wxGBSpan(1, 2), wxALIGN_LEFT);
