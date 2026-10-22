@@ -72,6 +72,7 @@ public:
   static const wxWindowID ID_LABEL_TYPE;
   static const wxWindowID ID_ATOM_LABEL;
   static const wxWindowID ID_BOND_LABEL;
+  static const wxWindowID ID_SHOW_CLEAN_ORDERS;
   static const wxWindowID ID_RESIDUE_LABEL;
   static const wxWindowID ID_CORNER_LABELS;
   static const wxWindowID ID_SHOW_AXES;
@@ -118,6 +119,7 @@ public:
   VizStyleChooser *openStyleChooser();
   virtual void showAtomLabel(wxCommandEvent & event);
   virtual void showBondLabel(wxCommandEvent & event);
+  virtual void showCleanOrders(wxCommandEvent & event);
   virtual void selectModeAction(wxCommandEvent & event);
   virtual void showResidueLabel(wxCommandEvent & event);
   virtual void showCornerLabels(wxCommandEvent & event);

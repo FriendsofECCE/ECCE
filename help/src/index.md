@@ -81,6 +81,8 @@ describe what you did and what happened.
 15. [GROMACS MD: run settings](gromacs-md-settings.md): defines and position
    restraints, groups by residue name, the barostat and its coupling type,
    and extra `.mdp` lines.
+16. [Bonds in the Builder](bonds-and-clean.md): bonds have no order; the atom's
+   geometry decides, and what Clean assumes.
 
 Reference:
 

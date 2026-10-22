@@ -102,7 +102,6 @@ BEGIN_EVENT_TABLE( MiniPerTab, ewxPanel )
   // EVT_BUTTON(ViewerEvtHandler::ID_CLEAN_COORD, MiniPerTab::OnCleanClick)
   EVT_BUTTON(wxID_REMOVE, MiniPerTab::OnRemoveClick)
   EVT_BUTTON(ID_SHOW_TABLE, MiniPerTab::OnMoreClick)
-  EVT_COMBOBOX(ID_BOND_SEL, MiniPerTab::OnBondSel)
   EVT_COMBOBOX(ID_SHAPE_SEL, MiniPerTab::OnShapeSel)
   //  EVT_CHILD_FOCUS(MiniPerTab::OnChildFocus)
 END_EVENT_TABLE()
@@ -207,29 +206,6 @@ void MiniPerTab::CreateControls()
   htopSizer->Add(clean, 0, wxCENTER|wxALL, 2);
   Connect(ViewerEvtHandler::ID_CLEAN_COORD, wxEVT_COMMAND_BUTTON_CLICKED,
           wxCommandEventHandler(MiniPerTab::OnCleanClick));
-
-  wxArrayString bondLabels;
-  bondLabels.Add( TBond::orderToString(TBond::Single));
-  bondLabels.Add( TBond::orderToString(TBond::Double));
-  bondLabels.Add( TBond::orderToString(TBond::Triple));
-  bondLabels.Add( TBond::orderToString(TBond::Aromatic));
-  bondLabels.Add( TBond::orderToString(TBond::Metal));
-
-  wxArrayString bondImages;
-  bondImages.Add( TBond::orderToImage(TBond::Single) );
-  bondImages.Add( TBond::orderToImage(TBond::Double) );
-  bondImages.Add( TBond::orderToImage(TBond::Triple) );
-  bondImages.Add( TBond::orderToImage(TBond::Aromatic) );
-  bondImages.Add( TBond::orderToImage(TBond::Metal) );
-
-  p_bonds = new ImageDropDown(this, ID_BOND_SEL, wxEmptyString,
-                              wxDefaultPosition, wxSize(100, 30),
-                              bondLabels, bondImages,
-                              wxSize(24, 24),
-                              wxCB_READONLY);//|wxODCB_DCLICK_CYCLES); //|wxNO_BORDER);
-  p_bonds->SetSelection(0);
-
-  hSizer->Add(p_bonds, 0, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
   wxArrayString shapeLabels;
   shapeLabels.Add( ShapeData::shapeToString(ShapeData::lone) );
@@ -393,10 +369,6 @@ void MiniPerTab::eventMCB(const Event& event)
    if (name == "ElementChanged") {
      onElementChanged(value);
    }
-   else if (name == "BondChanged") {
-     p_bonds->SetStringSelection(value);
-     p_bonds->SetFocus();
-   }
    else if (name == "ShapeChanged") {
      p_shapes->SetStringSelection(value);
      p_shapes->SetFocus();
@@ -480,12 +452,6 @@ void MiniPerTab::OnMoreClick(wxCommandEvent &event)
 }
 
 
-void MiniPerTab::OnBondSel(wxCommandEvent &event)
-{
-  string bond = p_bonds->wxItemContainerImmutable::GetStringSelection().ToStdString();
-  EventDispatcher::getDispatcher().publish(Event("BondChanged", bond));
-  event.Skip();
-}
 
 
 void MiniPerTab::OnShapeSel(wxCommandEvent &event)

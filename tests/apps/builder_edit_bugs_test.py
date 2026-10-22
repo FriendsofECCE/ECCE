@@ -2,12 +2,11 @@
 """Builder: bond orders, deleting atoms with nubs, the select-mode drag box.
 
     tests/apps/builder_edit_bugs_test.py [--build DIR] [--keep] [--shots DIR]
-
 Headless on benzene.car through ECCE_BUILDER_SCRIPT, with the events the GUI
-sends: the bond order chosen as the Bond tool and the Build panel's list
-choose it (BondChanged), then Bond mode on two picked atoms, both for a bond
-that exists and for a new bond between two molecules ("Align molecules?"
-answered Yes, the default).  Deleting two bonded atoms together with their
+sends: the bond kind (covalent or metal-pi; no orders exist) chosen as the
+Bond tool, then Bond mode on two picked atoms for a new bond between two
+molecules ("Align molecules?" answered Yes, the default).  Deleting two
+bonded atoms together with their
 bond (as a drag box selects them) must take their nubs along.  A real drag
 in Select mode through the X server (xdotool): a drag from empty space draws
 a box (screen shot taken mid-drag) and selects the atoms inside it without
@@ -60,7 +59,8 @@ def drag(env, x0, y0, x1, y1, shot=None):
     time.sleep(1.0)
 
 
-def runBuilder(s, env, wrappers, name, lines, shots=None, extra=None):
+def runBuilder(s, env, wrappers, name, lines, shots=None, extra=None,
+               structure=STRUCTURE):
     """Runs the Builder on benzene; at "shot dragN" drags across the view
     between the last two viewpos points, at "shot picN" saves the screen."""
     work = os.path.join(s.state, name)
@@ -71,8 +71,8 @@ def runBuilder(s, env, wrappers, name, lines, shots=None, extra=None):
         handle.write("\n".join(lines) + "\n")
     log = os.path.join(work, "builder.log")
     runEnv = dict(env, ECCE_BUILDER_SCRIPT=script, **(extra or {}))
-    proc = subprocess.Popen([os.path.join(wrappers, "ecce-builder"),
-                             STRUCTURE], env=runEnv,
+    proc = subprocess.Popen([os.path.join(wrappers, "ecce-builder")] +
+                            ([structure] if structure else []), env=runEnv,
                             cwd=os.path.join(s.home, "bin"),
                             stdout=open(log, "w"), stderr=subprocess.STDOUT,
                             start_new_session=True)
@@ -140,40 +140,37 @@ def bondOf(dump, a, b):
 
 
 def orderCase(s, env, wrappers, shots):
-    # The type the display gets: ChemBaseData SINGLE_BOND 1, DOUBLE 2, TRIPLE 3.
+    # No bond order is settable; a bond is covalent (display SINGLE_BOND 1)
+    # or metal-pi.  Clean stores its own bookkeeping orders, which are still
+    # drawn single.
     lines = ["wait 3000", "bondorders",
-             "bondorder double", "selectelem C", "addelem C", "click",
-             "bondorders",
-             "bondorder triple", "selectelem C", "addelem C", "click",
-             "bondorders",
+             "bondkind metal", "bondkind covalent",
              "select -1", "add C Tetrahedral 8 0 0", "select -1",
              "add O Bent 12 0 0",
-             "bondorder double", "selectelem O", "addelem C", "click",
-             "bondorders", "wait 1000", "shot picorders", "quit"]
+             "selectelem O", "addelem C", "click",
+             "bondorders", "clean", "wait 2000", "bondorders",
+             "wait 1000", "shot picorders", "quit"]
     text = runBuilder(s, env, wrappers, "orders", lines, shots,
                       {"ECCE_TEST_DIALOG_CLOSE": "1",
                        "ECCE_TEST_DIALOG_ANSWER": "yes"})
-    cur = re.findall(r"BUILDER: bondorder current=(\S+)", text)
-    check(cur[:3] == ["2", "3", "2"],
-          "the chosen order reaches the Bond mode (%s)" % cur)
+    cur = re.findall(r"BUILDER: bondkind current=(\S+)", text)
+    check(cur[:2] == ["0.5", "1"],
+          "the Bond tool offers covalent and metal-pi only (%s)" % cur)
     d = orders(text)
-    if not check(len(d) == 4, "four bond dumps (%d)" % len(d)):
+    if not check(len(d) == 3, "three bond dumps (%d)" % len(d)):
         say("\n".join("      | " + l for l in text.splitlines()[-30:]))
         return
-    c1c6 = [k for k in d[0] if k[2:] in ((0, 5), (5, 0))]
-    check(bool(c1c6), "benzene has a C1-C6 bond (%s)" % list(d[0]))
-    if c1c6:
-        k = c1c6[0]
-        check(d[1].get(k) == (2.0, 2),
-              "an existing C-C bond becomes double, stored and passed to "
-              "the display "
-              "(%s)" % (d[1].get(k),))
-        check(d[2].get(k) == (3.0, 3),
-              "and then triple (%s)" % (d[2].get(k),))
-    _, co = bondOf(d[3], "C", "O")
-    check(co == (2.0, 2),
-          "a new bond between two molecules, aligned, is double (%s)"
-          % (co,))
+    _, co = bondOf(d[1], "C", "O")
+    check(co is not None and co[0] == 1.0 and co[1] == 1,
+          "a new bond between two molecules is covalent single (%s)" % (co,))
+    c1c6 = [k for k in d[2] if k[2:] in ((0, 5), (5, 0))]
+    check(bool(c1c6) and d[2][c1c6[0]][1] == 1,
+          "benzene after Clean: the bond is drawn single (%s)"
+          % (d[2].get(c1c6[0]) if c1c6 else None,))
+    check(all(v[1] == 1 for v in d[2].values()),
+          "every bond is drawn as a single stick")
+    check(any(v[0] == 1.5 for v in d[2].values()),
+          "Clean kept aromatic bookkeeping orders")
 
 
 def deleteCase(s, env, wrappers):

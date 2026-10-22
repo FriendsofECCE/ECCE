@@ -32,6 +32,8 @@
 #include "viz/AtomLabelsCmd.H"
 #include "viz/CenterCmd.H"
 #include "viz/CleanCmd.H"
+#include "viz/SGFragment.H"
+#include "inv/ChemKit/ChemDisplay.H"
 #include "viz/ClearMeasuresCmd.H"
 #include "viz/ClearResidueInfoCmd.H"
 #include "viz/MakeResidueCmd.H"
@@ -111,6 +113,7 @@ const wxWindowID ViewerEvtHandler::ID_LABEL_CHARGE4 = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_LABEL_TYPE = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_ATOM_LABEL = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_BOND_LABEL = wxNewId();
+const wxWindowID ViewerEvtHandler::ID_SHOW_CLEAN_ORDERS = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_RESIDUE_LABEL = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_CORNER_LABELS = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_SHOW_AXES = wxNewId();
@@ -191,6 +194,8 @@ BEGIN_EVENT_TABLE(ViewerEvtHandler, wxEvtHandler)
           ViewerEvtHandler::showAtomLabel)
   EVT_MENU(ID_BOND_LABEL,
            ViewerEvtHandler::showBondLabel)
+  EVT_MENU(ID_SHOW_CLEAN_ORDERS,
+           ViewerEvtHandler::showCleanOrders)
   EVT_MENU(ID_RESIDUE_LABEL,
            ViewerEvtHandler::showResidueLabel)
   EVT_MENU(ID_CORNER_LABELS,
@@ -418,6 +423,19 @@ void ViewerEvtHandler::showBondLabel(wxCommandEvent & event)
   WxVizToolFW& fw = getFW();
   SGContainer& sg = fw.getSceneGraph();
   sg.setBondLabels(event.IsChecked());
+}
+
+
+//  Bonds draw single; this draws the orders Clean stored on them instead.
+void ViewerEvtHandler::showCleanOrders(wxCommandEvent & event)
+{
+  SGFragment::showBondOrders(event.IsChecked());
+  ChemDisplay::forceMultiBondCylinders(event.IsChecked());
+  WxVizToolFW& fw = getFW();
+  SGContainer& sg = fw.getSceneGraph();
+  SGFragment *frag = sg.getFragment();
+  frag->touchNumbers();
+  sg.touchChemDisplay();
 }
 
 
@@ -985,6 +1003,9 @@ void ViewerEvtHandler::createOptionMenu(wxMenu * menu)
   menu->Append(ID_AUTO_RESIDUE, _("Auto Open Residue Table"), _T(""), wxITEM_CHECK);
   menu->AppendSeparator();
   menu->Append(ID_CLEAN_PARAMETER, _("Clean Parameters..."), _T(""), wxITEM_NORMAL);
+  wxMenu* advMenu = new wxMenu;
+  advMenu->Append(ID_SHOW_CLEAN_ORDERS, _("Show Bond Orders Used by Clean"), _T(""), wxITEM_CHECK);
+  menu->Append(wxID_ANY, _("Advanced"), advMenu);
   menu->Append(ID_RESET_PERSPECTIVE, _("Reset Default Tools/Toolbars"), _T(""), wxITEM_NORMAL);
 }
 

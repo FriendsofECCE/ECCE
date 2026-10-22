@@ -219,6 +219,8 @@ class CHEMKIT_DLL_API ChemDisplay : public SoNonIndexedShape {
     // DISPLAY_STICK, which always does). Valid during GLRender only.
     SbBool           bondCapAtAtom(int32_t atom) const
         { return !(atom >= capRestStart || atom <= capLowMax); }
+    // The View switch "Show Bond Orders Used by Clean" (#439).
+    static void forceMultiBondCylinders(bool on);
 
   protected:
     virtual void    generatePrimitives(SoAction *action);
@@ -780,7 +782,7 @@ void bBoxResiduesNone(SoState *state, ChemDisplayParam *cdp,
                                  const MFVec2i &normalIndex,
                                  const MFVec2i &highlightIndex);
     void    renderBondsAsCylinders(SoGLRenderAction *action);
-    // Unless ECCE_MULTIBOND_CYLINDERS=0: double/triple/aromatic bonds as
+    // Only with ECCE_MULTIBOND_CYLINDERS=1 or the View switch: double/triple/aromatic bonds as
     // parallel cylinders in Ball and Stick / Stick.
     static bool multiBondCylinders();
     void    renderMultiBondCylinders(SoState *state, const ChemColor *chemColor,

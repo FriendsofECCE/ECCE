@@ -35,7 +35,6 @@ enum {
   NUM_ELT_BTN = 12,
   ID_ELT_BASE = 8000,  // Need to reserve at least a range of 12
   ID_SHOW_TABLE = 8100,
-  ID_BOND_SEL,
   ID_SHAPE_SEL
 };
   
@@ -81,7 +80,6 @@ protected:
   void OnCleanClick(wxCommandEvent &event);
   void OnRemoveClick(wxCommandEvent &event);
   void OnMoreClick(wxCommandEvent &event);
-  void OnBondSel(wxCommandEvent &event);
   void OnShapeSel(wxCommandEvent &event);
   void OnElementClick(wxCommandEvent &event);
   void onElementChanged(string elt);
@@ -100,7 +98,6 @@ protected:
   wxToggleButton * p_eltBtns[NUM_ELT_BTN];
   int p_replaceIndex;
 
-  ImageDropDown * p_bonds;
   ImageDropDown * p_shapes;
   wxWeakRef<wxWindow> p_table;
 };

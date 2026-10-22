@@ -26,7 +26,8 @@ distance at which to look at them.
 When you draw a bond in the Builder, ECCE places the second atom at the sum of
 the two atoms' single-bond radii, which is a long bond for a molecule such as
 N2 or CO (1.50 Angstrom instead of about 1.1). **Build > Clean** shortens it,
-but only as far as the bond order you have set allows. The order of the
+but only as far as the bond ECCE takes it to be (single, double or triple,
+see [Bonds in the Builder](bonds-and-clean.md)) allows. The order of the
 orbitals, and so which one is the highest occupied, can depend on the bond
 length: for N2 and CO the order at the drawn length differs from the order
 at the measured one. Starting from the library avoids that, and every

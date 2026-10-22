@@ -28,12 +28,13 @@ The box is drawn by `SoWxRenderArea::drawRubberBand` in the GL frame after
 the scene (pixel corners from `SGSelection`), not by the overlay scene
 graph, which is still a stub.
 
-Script hooks: `bondorder single|double|triple|aromatic|metal` (sends
-BondChanged), `bondorders`, `selectbonds`, `selection`, `coords`.
+Script hooks: `bondkind covalent|metal` (sends BondChanged; since #439 no
+order is settable), `bondorders` (now with `len=`), `selectbonds`, `selection`, `coords`.
 Test: `tests/apps/builder_edit_bugs_test.py`
 (`apps_builder_edit_bugs`).
 
-Since #434 (on by default, off with `ECCE_MULTIBOND_CYLINDERS=0`): Ball and Stick
+Since #434 (OFF since #439: only with `ECCE_MULTIBOND_CYLINDERS=1` or the
+Options > Advanced switch; see bond-orders-are-clean-bookkeeping.md): Ball and Stick
 and Stick draw double/triple/aromatic bonds as parallel cylinders
 (`ChemDisplay::renderMultiBondCylinders`, own pass; the single-bond pass
 gets a list without them). The live single-bond path is `clipNormalCylinder*`
