@@ -61,6 +61,17 @@ freq point=54/54 done=yes real=3 imaginary=0 zpe=0.0213456789 eta=0
 scf cycle=10 energy=-76.4089397700 converged=yes
 """
 
+# The last snapshot the monitor makes over a real ORCA relaxed scan (ethane
+# H-C-C-H, HF/STO-3G, 5 points; tests/progress/fixtures/orca/scan.out).
+SCAN = """# seq=4 sent={sent:.3f} at={at}
+scan point=5/5
+opt step=6 energy=-78.306179011 dE=-0.0000048721/0.0000050000 rmsgrad=0.0000986701/0.0001000000 maxgrad=0.0002091017/0.0003000000 rmsstep=0.0005809189/0.0020000000 maxstep=0.0011084890/0.0040000000 converged=yes
+opt~ energy=-77.976865472,-78.037906627,-78.088807343,-78.142939814,-78.186026780,-78.219840446,-78.244953808,-78.260322404,-78.273842735,-78.289991238,-78.301966685,-78.305590245,-78.306092531,-78.306170728,-78.306178683,-78.287533444,-78.296960682,-78.301882132,-78.303878740,-78.303958175,-78.303962346,-78.282402350,-78.292240938,-78.297911973,-78.301398194,-78.301598994,-78.301604758,-78.284318355,-78.294198187,-78.300078089,-78.303780376,-78.303959186,-78.303964756,-78.290071304,-78.299244658,-78.304114959,-78.306111127,-78.306174138,-78.306179011
+scf cycle=4 energy=-78.3061796133648329 dE=-2.14e-09/1.000e-08
+scf~ dE=0.00e+00,-8.70e-08,-1.79e-08,-2.14e-09
+
+"""
+
 failures = []
 
 
@@ -117,6 +128,8 @@ def run(display, pngs):
                          '<vector name="SCANENERGY" rowLabel="Scan Point" '
                          'rowLabels="1-A 2-A 3-A" rows="3" units="Hartree">'
                          '-76.40000   -76.41000   -76.40500</vector>\n')
+        scanrun = makeCalc(project, "ethane-scan", "Running",
+                           SCAN.format(**stamp))
         live = os.path.join(work, "live.txt")
         with open(live, "w") as handle:
             handle.write(LIVE.format(sent=now, at=int(now)))
@@ -140,6 +153,23 @@ def run(display, pngs):
                 "progressbox",
                 "summary file://" + scan,
                 "progressbox",
+                "summary file://" + scanrun,
+                "size 1024 600",
+                "progressbox",
+                "showbox",
+                "snap " + png("progress-scan-1024x600.png"),
+                "size 640 600",
+                "progressbox",
+                "showbox",
+                "snap " + png("progress-scan-640x600.png"),
+                "size 1366 768",
+                "progressbox",
+                "showbox",
+                "snap " + png("progress-scan-1366x768.png"),
+                "size 1920 1080",
+                "progressbox",
+                "showbox",
+                "snap " + png("progress-scan-1920x1080.png"),
             ]) + "\n")
         result = apps.run(display, "organizer", windowTimeout=60, settle=45,
                           env={"ECCE_TEST_ORGANIZER": cmds,
@@ -151,13 +181,13 @@ def run(display, pngs):
             return
         boxes = answers(log, "progressbox")
         counts = answers(log, "counts")
-        if not check(len(boxes) == 5 and len(counts) == 2,
+        if not check(len(boxes) == 9 and len(counts) == 2,
                      "every command answered (%d boxes, %d counts)" % (len(boxes), len(counts)),
                      run_tests._tail(log, 30)):
             return
         for b in boxes:
             print("      " + b)
-        stored, after, completed, none, scanned = boxes
+        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3 = boxes
 
         def field(b, k):
             m = re.search(r"\b%s=(\S+)" % k, b)
@@ -200,9 +230,17 @@ def run(display, pngs):
               "completed: the final energy can be selected with the mouse (#408)", completed)
         check(scanned.endswith("summary: Final energy (last scan point) -76.405 Hartree"),
               "relaxed scan: the final energy is the last scan point's", scanned)
+        for tag, b in (("1024x600", scan1), ("1366x768", scan2), ("1920x1080", scan3)):
+            check("Scan: point 5 of 5" in b and "bar 1.00" in b and
+                  "plot energy per step (39 points)" in b and
+                  "plot log |\u0394E| per cycle (4 points)" in b,
+                  "relaxed scan (%s): point 5 of 5, every optimisation step "
+                  "of all 5 points in the energy plot" % tag, b)
         check(field(none, "shown") == "0", "never launched: no box", none)
         for n in ("progress-running-stored.png", "progress-running-live.png",
-                  "progress-completed.png"):
+                  "progress-completed.png", "progress-scan-1024x600.png",
+                  "progress-scan-640x600.png", "progress-scan-1366x768.png",
+                  "progress-scan-1920x1080.png"):
             check(os.path.getsize(png(n)) > 1000 if os.path.exists(png(n)) else False,
                   "saved " + n)
     finally:

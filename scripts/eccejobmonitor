@@ -155,6 +155,7 @@ my $gProgDirty = 0;
 my $gProgLastSent = 0;
 my $gProgSeq = 0;
 my $gProgHistMax = 60;	# values kept per history
+my $gProgOptHistMax = 150;	# the optimisation's spans a whole scan
 my $gHiRes = eval { require Time::HiRes; 1 };
 
 # Order in which parse types were read from the descriptor file.
@@ -4452,11 +4453,15 @@ sub ProgressLine
             ($rec) = ($set{$recKey} =~ /^(-?\d+)/);
             if (defined $rec && defined $$st{'rec'} && $rec != $$st{'rec'})
             {
+                #  The optimisation's history belongs to the whole job
+                #  (a scan or IRC restarts the steps at every point); an
+                #  SCF's to its own run.
                 if ($rec < $$st{'rec'})
                 {
-                    $$st{'hist'} = [];
+                    $$st{'hist'} = [] unless ($stage eq 'opt');
                     delete $$st{'t0'};
                 }
+                $$st{'fresh'} = 1;
                 $$st{'keys'} = [];
                 $$st{'f'} = {};
             }
@@ -4475,14 +4480,16 @@ sub ProgressLine
             my ($v) = split '/', $set{$hk};
             my $h = $$st{'hist'};
             $$st{'histKey'} = $hk;
-            if (@$h && defined $rec && $$h[-1][0] == $rec)
+            if (@$h && defined $rec && !$$st{'fresh'} && $$h[-1][0] == $rec)
             {
                 $$h[-1][1] = $v;
             }
             else
             {
                 push @$h, [(defined $rec ? $rec : scalar @$h), $v];
-                shift @$h while (@$h > $gProgHistMax);
+                my $max = $stage eq 'opt' ? $gProgOptHistMax : $gProgHistMax;
+                shift @$h while (@$h > $max);
+                $$st{'fresh'} = 0;
             }
         }
 
@@ -4538,7 +4545,7 @@ sub ProgressFlush
 
     my @stages = sort { $gProg{$a}{'order'} <=> $gProg{$b}{'order'} }
                  keys %gProg;
-    my $keep = $gProgHistMax;
+    my $keep = $gProgOptHistMax;
     my $text;
     my $limit = $MSG_MAXLEN - length($MSG_TYPE_PROG) - 1;
     for (;;)
@@ -4552,7 +4559,9 @@ sub ProgressFlush
             my $h = $$st{'hist'};
             if ($keep > 0 && @$h)
             {
-                my $from = @$h > $keep ? @$h - $keep : 0;
+                my $k = ($stage ne 'opt' && $keep > $gProgHistMax)
+                        ? $gProgHistMax : $keep;
+                my $from = @$h > $k ? @$h - $k : 0;
                 $text .= "$stage~ $$st{'histKey'}="
                     . join(',', map { $$_[1] } @$h[$from .. $#$h]) . "\n";
             }

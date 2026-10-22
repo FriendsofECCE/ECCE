@@ -77,3 +77,13 @@ A code gets progress in the Organizer by `.desc` entries alone:
 `tests/progress/monitor_test.py` (ctest `progress-monitor`) runs the real
 monitor over a made-up output; `tests/launch/ecceqm_test.py` checks the
 messages of a real GeoVib run as the Organizer receives them.
+
+- **`opt` history spans the job (#457).** A step number that goes down
+  (a relaxed scan or IRC starting the next point) clears an SCF's history
+  but not the `opt` stage's, so the box's energy plot shows one descent per
+  point; `opt` keeps up to 150 values, other stages 60, and the message
+  trimming drops the oldest first. A `scan point=k/n` stage (ORCA: the scan
+  header's `steps =`; Gaussian 16: `on scan point k out of n`) gives the
+  "point 4 of 11" line; for several scanned parameters ORCA's total is the
+  last parameter's, so the box drops a total smaller than the point. A
+  code whose `opt` history is not an energy (Gaussian 16: dE) plots that.

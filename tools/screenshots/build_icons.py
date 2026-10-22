@@ -141,20 +141,6 @@ def shape(name):
     return svg("\n".join(s for _, s in items))
 
 
-# ---- the periodic table button ---------------------------------------------
-def pertab():
-    rows = ["N.......N", "MM..SNNNN", "MM..MSNNN", "MMMMMSSNN", "MMMMMMSSN"]
-    col = {"M": "#0072B2", "S": "#E69F00", "N": "#009E73"}
-    out = []
-    for r, row in enumerate(rows):
-        for c, k in enumerate(row):
-            if k != ".":
-                out.append('<rect x="%s" y="%s" width="2.1" height="3.7" '
-                           'fill="%s"/>' % (f(2.4 + c * 2.35),
-                                            f(2.6 + r * 4.1), col[k]))
-    return svg("\n".join(out))
-
-
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
@@ -163,7 +149,6 @@ def main():
     files = {"bond-%s.svg" % k: bond(k) for k in
              ("single", "double", "triple", "aromatic", "metal")}
     files.update({"shape-%s.svg" % n: shape(n) for n in SHAPES})
-    files["pertab.svg"] = pertab()
     for name, text in files.items():
         with open(os.path.join(out, name), "w") as h:
             h.write(text)

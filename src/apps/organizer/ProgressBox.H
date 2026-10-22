@@ -77,6 +77,7 @@ public:
 private:
   void OnPaint(wxPaintEvent& event);
   void OnTimer(wxTimerEvent& event);
+  void OnSize(wxSizeEvent& event);
   void OnClick(wxMouseEvent& event);
   void OnContextMenu(wxContextMenuEvent& event);
 
@@ -101,6 +102,7 @@ private:
   bool p_collapsed;
   wxTimer p_timer;
   int p_paints;
+  int p_laidOutWidth = 0;
   wxButton *p_buttons[3];
   wxStaticText *p_energyLabel;
   std::function<void(int)> p_action;

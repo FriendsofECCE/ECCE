@@ -393,30 +393,40 @@ def textcolor(i):
 
 @icon
 def periodic(i):
-    #  A simplified table, 10 columns x 4 periods and a detached f row, with
-    #  cells of ~2 px at 22 px: the 18-column original blurred to grey.
-    c, gap = 2.800, .5
-    ox, oy = (32 - 10 * c) / 2, 7.200
-    pal = {"s": ("#ff7a66", "#c82010"), "p": ("#ffd040", "#c88400"),
-           "d": ("#5aa8ff", "#1450c0"), "f": ("#58d880", "#10802c")}
+    #  Table of 10 columns, 7 periods and a detached 2 x 7 f block; cells
+    #  touch and carry a thin outline so they stay separate at 20-22 px.
+    #  Gradients are per-cell objectBoundingBox ones, hence own ids.
+    c, fgap, sw, dcols, pcols = 2.55, 1.4, .28, 5, 5
+    pal = {"s": ("#ff7a66", "#c82010", "#7a1008"), "p": ("#ffd040", "#c88400", "#7a5000"),
+           "d": ("#5aa8ff", "#1450c0", "#0a2c70"), "f": ("#58d880", "#10802c", "#08481a")}
+    ncol = 2 + dcols + pcols
+    ox = (32 - ncol * c) / 2
+    oy = (32 - (9 * c + fgap)) / 2
     cells = []
-    for r in range(4):
-        for col in range(10):
-            if r == 0 and 0 < col < 9:
-                continue
-            if r in (1, 2) and 1 < col < 7:
-                continue
-            k = "s" if col < 2 else ("d" if col < 7 else "p")
+    for r in range(7):
+        for col in range(ncol):
+            d = 2 <= col < 2 + dcols
             if r == 0:
-                k = "s" if col == 0 else "p"
+                if col == 0:
+                    k = "s"
+                elif col == ncol - 1:
+                    k = "p"
+                else:
+                    continue
+            elif r in (1, 2) and d:
+                continue
+            else:
+                k = "s" if col < 2 else ("d" if d else "p")
             cells.append((col, r, k, 0))
-    for col in range(2, 9):
-        cells.append((col, 4, "f", 1.0))
+    for fr in range(2):
+        for j in range(7):
+            cells.append((2 + j, 7 + fr, "f", fgap))
+    for k, (a, b, e) in pal.items():
+        i.defs.append('<linearGradient id="%s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%s"/><stop offset="1" stop-color="%s"/></linearGradient>' % (k, a, b))
     for col, r, k, dy in cells:
         x, y = ox + col * c, oy + r * c + dy
-        g = i.lin(0, y, 0, y + c, (0, pal[k][0]), (1, pal[k][1]))
-        i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>'
-              % (x + gap / 2, y + gap / 2, c - gap, c - gap, g))
+        i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="url(#%s)" stroke="%s" stroke-width="%s"/>'
+              % (x, y, c, c, k, pal[k][2], sw))
 
 
 @icon

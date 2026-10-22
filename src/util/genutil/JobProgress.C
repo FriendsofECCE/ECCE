@@ -109,6 +109,7 @@ string JobProgress::title(const string& stage)
   if (stage == "opt") return "Optimisation";
   if (stage == "scf") return "SCF";
   if (stage == "freq") return "Frequencies";
+  if (stage == "scan") return "Scan";
   if (stage == "prepare") return "Prepare";
   // GROMACS names the stage by its integrator.
   if (stage == "steep" || stage == "cg" || stage == "l-bfgs" || stage == "nm")
@@ -255,7 +256,19 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
                    : !st.field("istep").empty() ? "istep" : "";
   const string recName = rec == "istep" ? "step" : rec;
   string first;
-  if (rec == "point") {
+  if (st.name == "scan") {
+    // The total may be unknown, or wrong for a multi-parameter scan.
+    double k = 0, n = 0;
+    bool hasN = false;
+    if (split(st.field("point"), k, n, hasN)) {
+      first = fmt("point %.0f", k);
+      if (hasN && n >= k) {
+        first += fmt(" of %.0f", n);
+        b.bar = true;
+        b.fraction = std::min(1.0, k / n);
+      }
+    }
+  } else if (rec == "point") {
     double k = 0, n = 0;
     bool hasN;
     if (split(st.field("point"), k, n, hasN) && hasN && n > 0) {
@@ -340,11 +353,12 @@ vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
   // The outer loops first: optimisation, then frequencies, then the SCF
   // inside them; other stages in the order they appeared.
   vector<Block> out;
-  static const char *order[] = {"opt", "freq", "scf"};
+  static const char *order[] = {"scan", "opt", "freq", "scf"};
   for (const char *name : order)
     if (const Stage *st = stage(name)) out.push_back(stageBlock(*st, age, finished));
   for (const auto& st : p_stages)
-    if (st.name != "opt" && st.name != "freq" && st.name != "scf")
+    if (st.name != "scan" && st.name != "opt" && st.name != "freq" &&
+        st.name != "scf")
       out.push_back(stageBlock(st, age, finished));
   return out;
 }
