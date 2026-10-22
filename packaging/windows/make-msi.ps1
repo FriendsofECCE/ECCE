@@ -1,7 +1,7 @@
 # Builds a per-user MSI (no admin, installs under %LOCALAPPDATA%\Programs\ECCE)
 # from a finished install tree, i.e. the one the zip is made from.
 #   make-msi.ps1 -Tree stage\ecce -Version 9.0.0-alpha.6 -Out dist\ECCE-windows-9.0.0-alpha.6.msi
-# Needs the .NET tool "wix" (v5) and its Util extension; see build.yml.
+# Needs the .NET tool "wix" (v5) and its Util and UI extensions; see build.yml.
 # WiX is run directly: CPack's WiX generator wants to do the install step
 # itself, but this tree is completed afterwards by the bundle scripts.
 param([string]$Tree, [string]$Version, [string]$Out)
@@ -64,7 +64,7 @@ foreach ($m in [regex]::Matches($sb.ToString(), 'Component Id="(c\d+)"')) {
 # Fixed: the same product line must keep the same UpgradeCode.
 $upgrade = "6b1f5d0e-3c52-4c0a-9a43-2f6f3c1e9d17"
 $wxs = @"
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="ECCE" Manufacturer="FriendsofECCE" Version="$msiVer" UpgradeCode="$upgrade"
            Scope="perUser" InstallerVersion="500" Language="1033">
     <MajorUpgrade AllowSameVersionUpgrades="yes" Schedule="afterInstallValidate"
@@ -77,6 +77,27 @@ $wxs = @"
     <Property Id="INSTALLFOLDER_PATH">
       <RegistrySearch Id="InstDir" Root="HKCU" Key="Software\FriendsofECCE\ECCE" Name="InstallDir" Type="directory" />
     </Property>
+
+    <!-- RemoveFolderEx needs the path; the registry search finds nothing on a first install. -->
+    <SetProperty Id="SetInstPath" Property="INSTALLFOLDER_PATH" Value="[INSTALLFOLDER]"
+                 Action="SetInstPathAct" Sequence="execute" Before="Wix4RemoveFoldersEx_X64"
+                 Condition="NOT INSTALLFOLDER_PATH" />
+
+    <!-- Welcome, progress and exit pages; Repair/Remove when run again.  The
+         licence and folder pages are skipped: the location is fixed and per-user. -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT"
+      Value="ECCE is installed for your user only, in %LOCALAPPDATA%\Programs\ECCE. Start it from the Start menu: ECCE." />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch ECCE" />
+    <CustomAction Id="LaunchEcce" Directory="INSTALLFOLDER" Impersonate="yes" Return="asyncNoWait"
+      ExeCommand="&quot;[SystemFolder]wscript.exe&quot; //B //Nologo &quot;[INSTALLFOLDER]ecce.vbs&quot;" />
+    <UI>
+      <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="5" Condition="NOT Installed" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="5" Condition="NOT Installed" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchEcce" Order="999"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="ProgramsDir" Name="Programs">
@@ -112,6 +133,6 @@ $wxsFile = "$work\ecce.wxs"
 [IO.File]::WriteAllText($wxsFile, $wxs, (New-Object Text.UTF8Encoding $false))
 New-Item -ItemType Directory -Force (Split-Path -Parent $Out) | Out-Null
 # (wix build does no ICE validation; per-user files would trip ICE38/64/91.)
-wix build -arch x64 -ext WixToolset.Util.wixext -o $Out $wxsFile
+wix build -arch x64 -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext -o $Out $wxsFile
 if ($LASTEXITCODE -ne 0) { throw "wix build failed" }
 "{0}: {1:N1} MB, ProductVersion {2}" -f $Out, ((Get-Item $Out).Length / 1MB), $msiVer

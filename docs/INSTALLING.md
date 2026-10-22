@@ -58,7 +58,12 @@ your `PATH`.
   `ECCE-windows-<version>.msi` (no administrator rights needed; start
   ECCE from the Start menu), and the same files as a zip (unpack it and
   run `ecce.cmd`). Windows shows a SmartScreen warning at first, because
-  the client is not signed: choose More info > Run anyway.
+  the client is not signed: choose More info > Run anyway. The installer
+  puts ECCE in `%LOCALAPPDATA%\Programs\ECCE` for your user only and adds
+  Start menu > ECCE; its last page says so. Running the same `.msi` again
+  offers Repair or Remove. If you use the zip, right-click it > Properties
+  > Unblock, or run `Unblock-File` on it in PowerShell, before extracting;
+  otherwise Windows blocks `ecce.cmd`.
 * **Chromebook** (untested): through ChromeOS's Linux environment with a
   Debian 13 container; see [CHROMEBOOK.md](CHROMEBOOK.md).
 
