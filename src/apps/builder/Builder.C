@@ -744,8 +744,8 @@ void Builder::createToolbar()
     p_modeToolbar->AddTool(ID_MODE_ELEMENT_LIST, _T(""), elementArrowIcon(),
                            _("Element selector"), wxITEM_NORMAL);
     p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeIcon(ShapeData::tetrahedral),
-                           _("Geometry of new atoms: how many bonds they make, and in which "
-                             "directions"), wxITEM_NORMAL);
+                           _("Coordination geometry of atoms added in Build mode"),
+                           wxITEM_NORMAL);
     wxBitmapBundle structBitmap = ewxBitmap::colorIcon("svg/candidates/e/library.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_STRUCTLIB, _T(""), structBitmap,
                            _("Import from Structure Library"), wxITEM_CHECK);

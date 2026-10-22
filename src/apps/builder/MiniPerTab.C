@@ -258,9 +258,10 @@ void MiniPerTab::CreateControls()
                               bondLabels, bondImages, wxSize(24, 24),
                               wxCB_READONLY);
   p_bonds->SetSelection(0);
-  p_bonds->SetToolTip("Bond kind; choosing one enters Bond mode: click two "
-                      "atoms to join them");
+  p_bonds->SetToolTip("Bond type made in Bond mode; choosing one enters "
+                      "Bond mode: click two atoms to bond them");
   hSizer->Add(p_bonds, 0, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxBOTTOM, 2);
+  p_shapes->SetToolTip("Coordination geometry of atoms added in Build mode");
   hSizer->Add(p_shapes, 0, wxALIGN_BOTTOM|wxLEFT|wxRIGHT|wxBOTTOM, 2);
 
   p_sizer->Add(htopSizer, 0, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 2);
