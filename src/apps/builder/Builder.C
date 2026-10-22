@@ -3158,6 +3158,7 @@ void Builder::eventMCB(const Event& event)
      p_currentBond = TBond::strToOrder(value);
      setMode(ID_MODE_BOND);
      updateBondIcon();
+     updateModeText();
    }
    else if (name == "ShapeChanged") {
      p_currentShapes[p_currentElement] = value;
@@ -3248,6 +3249,11 @@ void Builder::updateModeText()
 {
   string modeTxt = "Mode: ";
   modeTxt += s_modeText[p_currentMode-ID_MODE_SELECT];
+  //  Choosing a bond order switches to Bond mode; say so, or clicks that
+  //  no longer add atoms read as a fault.
+  if (p_currentMode == ID_MODE_BOND)
+    modeTxt += string(" (") + TBond::orderToString(p_currentBond) +
+               "): click a bond, or two atoms, to set its order";
   Residue* res ;
 
   // add the residue edit information, if applicable
