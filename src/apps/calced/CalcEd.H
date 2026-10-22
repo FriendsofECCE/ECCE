@@ -277,6 +277,17 @@ class CalcEd: public CalcEdGUI,
     /** Opt=QST2/QST3 structures next to the .frag (#419). */
     bool write_qst(const string& baseName);
     void setMatchTooltip();
+
+    // Transition-state source of the structure (#419): reactant, product and
+    // TS guess are other calculations of the project.
+    void createTsControls();
+    void loadTsKeys();
+    void syncTsKeys();
+    void refreshTsBox();
+    void tsSourceChanged(bool other);
+    void tsPicked(int role, int sel);
+    void showTsMapping();
+    bool tsRuntypeSelected() const;
     bool write_esp(const string& output_file, bool& file_flag);
     bool write_constraints(const string& output_file, bool& file_flag);
     bool write_gbsconfig(const string& output_file, const bool& useExpCoeff,
@@ -402,6 +413,19 @@ class CalcEd: public CalcEdGUI,
      *  for any other run type. */
     string p_qstStatus;
     string p_qstDetail;
+    string p_qstTable;
+
+    /** Structure from other calculations (TS Search button) and the picks,
+     *  as URLs; p_tsUrls/p_tsNames list the choices after "(none)". */
+    bool   p_tsSource = false;
+    string p_tsPick[3];
+    vector<string> p_tsUrls;
+    vector<string> p_tsNames;
+    wxButton       *p_tsSearchBtn = 0;
+    wxChoice       *p_tsChoice[3] = {0, 0, 0};
+    wxPanel        *p_tsPanel = 0;
+    wxStaticText   *p_tsLine = 0;
+    wxStaticText   *p_tsNote = 0;
 
     /** Persist/restore p_inputGenWarnings as a DAV property on the
      *  calculation, so the lamp describes the deck on the server and

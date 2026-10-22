@@ -1,5 +1,4 @@
 from templates import *
-from calcpick import *
 
 NEB_RUNTYPES = ("Transition State (NEB-TS)",
                 "Transition State (NEB-TS) + Frequencies")
@@ -72,22 +71,10 @@ class OrcaRunTypePanel(EccePanel):
             convergenceSizer.AddWidget(self.gradient)
             self.panelSizer.Add(convergenceSizer)
 
-        # NEB-TS: this calculation's structure is the reactant; the product
-        # (and optionally a TS guess) come from other calculations.
+        # Reactant, product and TS guess are picked in the Calculation Editor.
         if EcceGlobals.RunType in NEB_RUNTYPES:
             nebSizer = EcceBoxSizer(self, label="Transition State (NEB-TS)",
                                     cols=1)
-            cands = qstCandidates()
-            self.nebProduct = CalcChoice(self, cands,
-                                         name="ES.Runtype.NEB.Product",
-                                         default=0,
-                                         label="Product:")
-            nebSizer.AddWidget(self.nebProduct)
-            self.nebGuess = CalcChoice(self, cands,
-                                       name="ES.Runtype.NEB.Guess",
-                                       default=0,
-                                       label="TS guess (optional):")
-            nebSizer.AddWidget(self.nebGuess)
             self.nebImages = EcceSpinCtrl(self,
                                           hardRange="[2..)",
                                           softRange="[2..32]",
@@ -96,8 +83,6 @@ class OrcaRunTypePanel(EccePanel):
                                           label="Images:",
                                           export=1)
             nebSizer.AddWidget(self.nebImages)
-            self.nebStatus = wx.StaticText(self, -1, "")
-            nebSizer.Add(self.nebStatus, 0, wx.ALL, 3)
             self.panelSizer.Add(nebSizer)
 
         if EcceGlobals.RunType in FREQ_RUNTYPES:
@@ -191,13 +176,6 @@ class OrcaRunTypePanel(EccePanel):
         self.AddButtons()
 
     def CheckDependency(self):
-        if EcceGlobals.RunType in NEB_RUNTYPES:
-            if not self.nebProduct.GetValue():
-                self.nebStatus.SetLabel("Pick the product calculation.")
-            elif self.nebProduct.GetValue() == self.nebGuess.GetValue():
-                self.nebStatus.SetLabel("Warning: product and TS guess are the same calculation.")
-            else:
-                self.nebStatus.SetLabel("")
         if (EcceGlobals.RunType == "Geometry" or
             EcceGlobals.RunType == "GeoVib"):
             self.stepSpin.Enable(self.stepCheckBox.GetValue())

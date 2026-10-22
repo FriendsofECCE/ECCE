@@ -70,6 +70,7 @@ bool CalcEd::write_qst(const string& base)
 {
   p_qstStatus.clear();
   p_qstDetail.clear();
+  p_qstTable.clear();
   for (char k = '1'; k <= '3'; k++)
     remove((base + ".qst" + k + ".frag").c_str());
 
@@ -83,8 +84,10 @@ bool CalcEd::write_qst(const string& base)
     return true;
 
   string status, warning;
-  const bool ok = neb ? nebWriteStructureFiles(p_iCalc, status, warning, &p_qstDetail)
-                      : qstWriteStructureFiles(p_iCalc, base, status, warning, &p_qstDetail);
+  const bool ok = neb ? nebWriteStructureFiles(p_iCalc, status, warning, &p_qstDetail,
+                                       &p_qstTable)
+                      : qstWriteStructureFiles(p_iCalc, base, status, warning,
+                                               &p_qstDetail, &p_qstTable);
   p_qstStatus = status;
   if (!warning.empty())
     p_inputGenWarnings.push_back(std::make_pair(
