@@ -20,6 +20,8 @@
 
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
+#include <wx/dcmemory.h>
+#include <wx/image.h>
 #include <wx/panel.h>
 #include <wx/settings.h>
 
@@ -58,8 +60,11 @@ class SpectrumCanvas : public wxPanel
   public:
 
     SpectrumCanvas(wxWindow *parent)
+      //  The layout depends on the size, so a resize must repaint all of
+      //  it: wxMSW otherwise invalidates only the newly exposed strip, and
+      //  the rest keeps the old layout while hit-testing uses the new one.
       : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                wxWANTS_CHARS),
+                wxWANTS_CHARS | wxFULL_REPAINT_ON_RESIZE),
         p_owner(0), p_palette(SpectrumPalette::system()),
         p_s(new SpectrumShared), p_kindShown(VIB_IR), p_compactBelow(320),
         p_hoverKind(VIB_IR),
@@ -307,6 +312,34 @@ class SpectrumCanvas : public wxPanel
     }
 
     /** What a click at this point does: tell the owner which mode. */
+    /** Share of the canvas pixels on screen that differ from a fresh paint
+        at the current size: how far what the user sees is from what
+        hit-testing uses.  For test hooks; needs the window visible. */
+    double screenMismatch()
+    {
+      Update();
+      const wxSize sz = GetClientSize();
+      if (sz.x <= 0 || sz.y <= 0) return 1.0;
+      wxBitmap screen(sz.x, sz.y, 24), fresh(sz.x, sz.y, 24);
+      {
+        wxClientDC cdc(this);
+        wxMemoryDC m(screen);
+        m.Blit(0, 0, sz.x, sz.y, &cdc, 0, 0);
+      }
+      {
+        wxMemoryDC m(fresh);
+        paintOnto(m, sz);
+      }
+      const wxImage a = screen.ConvertToImage(), b = fresh.ConvertToImage();
+      const unsigned char *pa = a.GetData(), *pb = b.GetData();
+      long differ = 0;
+      const long n = (long)sz.x * sz.y;
+      for (long i = 0; i < n; i++)
+        if (pa[3*i] != pb[3*i] || pa[3*i+1] != pb[3*i+1] ||
+            pa[3*i+2] != pb[3*i+2]) differ++;
+      return differ / (double)n;
+    }
+
     bool clickAt(const wxPoint& p)
     {
       const Hit *h = hitAt(p);

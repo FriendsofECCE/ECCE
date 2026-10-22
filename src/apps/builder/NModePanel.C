@@ -388,6 +388,30 @@ void NModePanel::OnDataViewSelected( wxCommandEvent& event )
 }
 
 
+bool NModePanel::scriptSpectrumClick(int mode, double *mismatch,
+                                     int *selected)
+{
+   if (!p_isValid || !isGraphShown()) return false;
+   *mismatch = p_spectrum->screenMismatch();
+   const VibSpectrum& s = p_spectrum->spectrum();
+   const VibKind kind = s.has(VIB_IR) ? VIB_IR : VIB_RAMAN;
+   wxPoint at;
+   if (!p_spectrum->stickPosition(kind, mode, &at)) return false;
+   //  The press and release of a left click, a few pixels below the top
+   //  of the stick, through the canvas's own handlers.
+   const wxEventType types[] = {wxEVT_LEFT_DOWN, wxEVT_LEFT_UP};
+   for (wxEventType t : types) {
+      wxMouseEvent e(t);
+      e.SetPosition(wxPoint(at.x, at.y + 3));
+      e.SetEventObject(p_spectrum);
+      e.m_leftDown = t == wxEVT_LEFT_DOWN;
+      p_spectrum->GetEventHandler()->ProcessEvent(e);
+   }
+   *selected = p_spectrum->selected();
+   return true;
+}
+
+
 void NModePanel::showTable()
 {
    p_gridPlotSizer->Show((size_t)0,true);

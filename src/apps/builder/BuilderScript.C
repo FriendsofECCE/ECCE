@@ -6,6 +6,7 @@
 //    add ELEM SHAPE X Y Z        a click in the 3D view in Atom mode
 //    panel NAME                  Tools > NAME (shows the panel)
 //    panesize NAME               the docked pane's rectangle and height floor
+//    specclick MODE              left click on a mode in the spectrum graph (#445)
 //    cmd TEXT                 a Builder command line (addh, center, ...)
 //    pbc ...                     Periodic Builder, see PBC::scriptCommand
 //    library PATH [ENTRY]        the Structure Library pane: open the folder
@@ -936,6 +937,26 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: spectrumcsv %s\n",
                   nm->exportSpectrumCsv(wxString::FromUTF8(w[1].c_str()), kind)
                       ? "ok" : "failed");
+        }
+      } else if (w[0] == "specclick" && w.size() == 2) {
+        //  specclick <mode, 1-based>: a left click on that mode's stick in
+        //  the Vibrational Frequencies graph (#445), and how much of the
+        //  canvas on screen differs from the layout the click is tested on.
+        NModePanel *nm = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
+        double mismatch = 1.0;
+        int selected = -1;
+        const int mode = atoi(w[1].c_str());
+        if (!nm) {
+          outcome = "no Vibrational Frequencies panel";
+        } else if (!nm->scriptSpectrumClick(mode - 1, &mismatch, &selected)) {
+          outcome = "no graph or no stick for that mode";
+        } else {
+          fprintf(stderr, "BUILDER: specclick mode %d: screen mismatch "
+                  "%.4f, selected mode %d\n", mode, mismatch, selected + 1);
         }
       } else if (w[0] == "scancsv" && w.size() >= 2) {
         //  scancsv <path> [kcal]: the Relaxed Scan panel's Export .csv
