@@ -1588,8 +1588,9 @@ void NModePanel::showMode(int index)
 double NModePanel::sliderValue()
 {
    double value = p_slider->GetFloatValue();
-   if (value < 0.0 || value > MAX_SCALE) {
-      value = value < 0.0 ? 0.0 : MAX_SCALE;
+   const double top = maxScale();
+   if (value < 0.0 || value > top) {
+      value = value < 0.0 ? 0.0 : top;
       p_slider->SetValue(value);
    }
    return value;
@@ -1603,12 +1604,20 @@ double NModePanel::typeScale(double value)
    return p_slider->GetFloatValue();
 }
 
+double NModePanel::maxScale()
+{
+   wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   return radbox && radbox->GetSelection() == 0 ? MAX_AMPLITUDE : MAX_SCALE;
+}
+
 void NModePanel::setSlider()
 {
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
    const double v = radbox->GetSelection() == 0 ? p_aniAmplitude
                                                 : p_vecAmplitude;
-   p_slider->SetValue(v > MAX_SCALE ? MAX_SCALE : v);
+   const double top = maxScale();
+   p_slider->SetRange(0.0, top);
+   p_slider->SetValue(v > top ? top : v);
 }
 
 void NModePanel::processStep(int step)

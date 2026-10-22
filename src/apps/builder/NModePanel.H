@@ -54,8 +54,11 @@ class NModePanel : public NModesGUI,
       void previousStep();
       void start();
       void stop();
-      /// Upper end of the Arrow length / Amplitude slider.
+      /// Upper end of the slider: arrow length in Vector, amplitude in
+      /// Animation (beyond 1.5 the molecule flies apart).
       static constexpr double MAX_SCALE = 5.0;
+      static constexpr double MAX_AMPLITUDE = 1.5;
+      double maxScale();
       double sliderValue();
       void restoreHome();
       /// A value typed into the slider's field, as the panel then uses it.
