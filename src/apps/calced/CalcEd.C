@@ -735,6 +735,7 @@ void CalcEd::doSetContext(const string& codeName)
 
   createCodeButtons();
   setCurrentCodeButton(p_code->name());
+  loadTsKeys();
 
   p_frag = p_iCalc->fragment();
   if (p_frag) {
@@ -1980,6 +1981,7 @@ void CalcEd::CreateControls()
 
   replaceBuilderButton();
   replaceBasisSetButton();
+  createTsControls();
 
   //  tests/apps/clip_test.py: show Save, which appears with unsaved edits.
   if (getenv("ECCE_CLIP_AUDIT") != 0) {
@@ -2611,7 +2613,9 @@ void CalcEd::populateRuntypes()
     for (it = runTypes->begin(); it != runTypes->end(); it++) {
       const bool tsRun = it->name().compare(0, 22, "Transition State (QST)") == 0
                       || it->name().compare(0, 25, "Transition State (NEB-TS)") == 0;
-      if (tsRun && !offerTS && it->name() != current)
+      if (tsRun && !(offerTS && p_tsSource) && it->name() != current)
+        continue;
+      if (p_tsSource && !tsRun)
         continue;
       if (p_frag && p_frag->numAtoms() > 1)
         choice->Append(it->name(), new ewxBoolClientData(it->noSpherical()));
@@ -2785,6 +2789,7 @@ void CalcEd::resetRuntypeDetails()
 {
   if (p_GUIValues) {
     p_GUIValues->deletePrefix("ES.Runtype");
+    syncTsKeys();
   }
 
   if (!p_startUp) {
@@ -3227,6 +3232,7 @@ void CalcEd::refreshAllFields()
 void CalcEd::refreshChemSysFields()
 {
   refreshChemSysThumb();
+  refreshTsBox();
 
   if (p_frag && p_fullFrag) {
     setUseIrreducible(p_frag->useSymmetry());
@@ -3488,7 +3494,11 @@ void CalcEd::enableChemSysFields()
                          ResourceDescriptor::AT_REACTION_STUDY;
   }
 
-  p_builderTool->Enable(hasCalc);
+  p_builderTool->Enable(hasCalc && !p_tsSource);
+  if (p_tsPanel) {
+    for (int k = 0; k < 3; k++) p_tsChoice[k]->Enable(!isSubmitted);
+    if (p_tsSourceChoice) p_tsSourceChoice->Enable(!isSubmitted);
+  }
   FindWindow(ID_TEXTCTRL_CALCED_NAME)->Enable(!isSubmitted && hasFragment);
   FindWindow(ID_STATIC_CALCED_CHARGE)->Enable(!isSubmitted && hasFragment &&
                                               !isReaction);
@@ -3558,6 +3568,9 @@ string CalcEd::notReadyReason(int *box) const
   *box = BOX_NONE;
   if (!p_frag) {
     *box = BOX_CHEMSYS;
+    if (p_tsSource)
+      return "Not ready: pick the reactant calculation (Structure from: "
+             "Other calculations).";
     return "Not ready: build or import a molecule (Builder).";
   }
   if (p_frag->containsNubs()) {
@@ -4081,6 +4094,7 @@ void CalcEd::doSave()
 
     // save GUIValues; the input is generated from what the box shows
     storeUseSymmetry(useSymmetryBox());
+    syncTsKeys();
     p_iCalc->guiparams(p_GUIValues);
 
     // determine whether to save intermediate files for debugging
@@ -4117,6 +4131,7 @@ void CalcEd::doSave()
                                "See Verify.", WxFeedback::WARNING);
     }
     enableLaunch();
+    refreshTsBox();
 
     if (saveCode)    urlChangeNotify("ecce_url_code");
     if (saveFrag)    urlChangeNotify("ecce_url_subject");
@@ -4580,13 +4595,6 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     wxRect r = GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
-    // The dialog cannot see the project: hand the Gaussian 16 dialog the
-    // calculations it may pick for Opt=QST2/QST3.
-    if (cmd.find("ged16runtype") != string::npos ||
-        cmd.find("orcaruntype") != string::npos) {
-      const string list = qstWriteCandidateFile(qstCandidates(p_iCalc));
-      wxSetEnv("ECCE_QST_CANDIDATES", list);
-    }
     if (!launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke runtype details dialog",
                              WxFeedback::ERROR);
@@ -4800,3 +4808,209 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
   }
 }
 
+
+
+// ---- Transition-state structure source (#419) ------------------------------
+
+static bool tsOffered()
+{
+  const char *ts = getenv("ECCE_EXPERIMENTAL_TS");
+  return ts && *ts && strcmp(ts, "0") != 0;
+}
+
+bool CalcEd::tsRuntypeSelected() const
+{
+  const wxString rt = getRuntypeName();
+  return rt.StartsWith("Transition State (QST)")
+      || rt.StartsWith("Transition State (NEB-TS)");
+}
+
+static const char *const kTsKeys[] = {
+  "ES.Runtype.GeomOpt.QSTReactant", "ES.Runtype.GeomOpt.QSTProduct",
+  "ES.Runtype.GeomOpt.QSTGuess", "ES.Runtype.NEB.Reactant",
+  "ES.Runtype.NEB.Product", "ES.Runtype.NEB.Guess" };
+
+void CalcEd::createTsControls()
+{
+  wxSizerItem *item = p_chemSysInner->GetSizer()->GetItem((size_t)1);
+  wxSizer *col = item ? item->GetSizer() : 0;
+  if (!col) return;
+
+  wxBoxSizer *srcRow = new wxBoxSizer(wxHORIZONTAL);
+  srcRow->Add(new wxStaticText(p_chemSysInner, wxID_ANY, "Structure from:"), 0,
+              wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+  wxString srcs[2] = { "Builder", "Other calculations (transition state)" };
+  p_tsSourceChoice = new wxChoice(p_chemSysInner, wxID_ANY, wxDefaultPosition,
+                                  wxDefaultSize, 2, srcs);
+  p_tsSourceChoice->SetSelection(0);
+  p_tsSourceChoice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
+    tsSourceChanged(p_tsSourceChoice->GetSelection() == 1);
+  });
+  srcRow->Add(p_tsSourceChoice, 0, wxALIGN_CENTER_VERTICAL);
+  col->Insert(0, srcRow, 0, wxBOTTOM, 4);
+
+  p_tsPanel = new wxPanel(p_chemSysInner);
+  wxBoxSizer *v = new wxBoxSizer(wxVERTICAL);
+  p_tsNote = new wxStaticText(p_tsPanel, wxID_ANY,
+      "Structure taken from the reactant (not edited in the Builder).");
+  v->Add(p_tsNote, 0, wxBOTTOM, 3);
+  wxFlexGridSizer *g = new wxFlexGridSizer(2, 3, 5);
+  const char *labels[3] = { "Reactant:", "Product:", "TS guess (optional):" };
+  for (int k = 0; k < 3; k++) {
+    g->Add(new wxStaticText(p_tsPanel, wxID_ANY, labels[k]), 0,
+           wxALIGN_CENTER_VERTICAL);
+    p_tsChoice[k] = new wxChoice(p_tsPanel, wxID_ANY);
+    p_tsChoice[k]->Bind(wxEVT_CHOICE, [this, k](wxCommandEvent&) {
+      tsPicked(k, p_tsChoice[k]->GetSelection());
+    });
+    g->Add(p_tsChoice[k], 1, wxEXPAND);
+  }
+  v->Add(g, 0, wxEXPAND);
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  p_tsLine = new wxStaticText(p_tsPanel, wxID_ANY, "", wxDefaultPosition,
+                              wxSize(260, -1), wxST_ELLIPSIZE_END);
+  row->Add(p_tsLine, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+  wxButton *map = new wxButton(p_tsPanel, wxID_ANY, "Show mapping");
+  map->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { showTsMapping(); });
+  row->Add(map, 0);
+  v->Add(row, 0, wxEXPAND | wxTOP, 4);
+  p_tsPanel->SetSizer(v);
+  col->Insert(1, p_tsPanel, 0, wxBOTTOM, 4);
+  p_tsPanel->Show(false);
+  p_tsSourceChoice->GetParent()->Layout();
+  srcRow->ShowItems(tsOffered());
+}
+
+// The source is "other" when the calculation stores a reactant pick.
+void CalcEd::loadTsKeys()
+{
+  p_tsSource = false;
+  for (int k = 0; k < 3; k++) p_tsPick[k].clear();
+  p_qstStatus.clear();
+  p_qstDetail.clear();
+  p_qstTable.clear();
+  GUIValues *g = p_iCalc ? p_iCalc->guiparams() : 0;
+  if (g) {
+    auto val = [g](const char *key) {
+      GUIValue *v = g->get(key);
+      return v ? v->getValueAsString() : string();
+    };
+    const bool neb = p_iCalc->runtype().name().compare(0, 25,
+                                      "Transition State (NEB-TS)") == 0;
+    p_tsPick[0] = val(neb ? kTsKeys[3] : kTsKeys[0]);
+    p_tsPick[1] = val(neb ? kTsKeys[4] : kTsKeys[1]);
+    p_tsPick[2] = val(neb ? kTsKeys[5] : kTsKeys[2]);
+    p_tsSource = !p_tsPick[0].empty();
+    delete g;
+  }
+}
+
+// The stored keys are what the input generators read; the picks themselves
+// live in members so a runtype or theory reset cannot lose them.
+void CalcEd::syncTsKeys()
+{
+  if (!p_GUIValues) return;
+  for (const char *key : kTsKeys) {
+    GUIValues::iterator it = p_GUIValues->find(key);
+    if (it != p_GUIValues->end()) {
+      delete it->second;
+      p_GUIValues->erase(it);
+    }
+  }
+  if (!p_tsSource || !tsRuntypeSelected()) return;
+  const bool neb = getRuntypeName().StartsWith("Transition State (NEB-TS)");
+  for (int k = 0; k < 3; k++) {
+    if (p_tsPick[k].empty()) continue;
+    GUIValue *e = new GUIValue();
+    e->m_key = kTsKeys[(neb ? 3 : 0) + k];
+    e->m_type = "menu_input";
+    e->m_sensitive = true;
+    e->m_write = true;
+    p_GUIValues->set(e->m_key, e);
+    e->setValue(p_tsPick[k]);
+  }
+}
+
+void CalcEd::refreshTsBox()
+{
+  if (!p_tsPanel) return;
+  if (p_tsSourceChoice) {
+    p_tsSourceChoice->SetSelection(p_tsSource ? 1 : 0);
+    p_tsSourceChoice->GetContainingSizer()->ShowItems(tsOffered() || p_tsSource);
+  }
+  p_tsPanel->Show(p_tsSource);
+  if (!p_tsSource) return;
+
+  p_tsUrls.clear();
+  p_tsNames.clear();
+  if (p_iCalc) {
+    vector<QstEntry> cands = qstCandidates(p_iCalc);
+    for (size_t i = 0; i < cands.size(); i++) {
+      p_tsUrls.push_back(cands[i].url);
+      p_tsNames.push_back(cands[i].name);
+    }
+  }
+  for (int k = 0; k < 3; k++) {
+    p_tsChoice[k]->Clear();
+    p_tsChoice[k]->Append("(none)");
+    int sel = 0;
+    for (size_t i = 0; i < p_tsUrls.size(); i++) {
+      p_tsChoice[k]->Append(wxString::FromUTF8(p_tsNames[i].c_str()));
+      if (p_tsUrls[i] == p_tsPick[k]) sel = (int)i + 1;
+    }
+    p_tsChoice[k]->SetSelection(sel);
+  }
+  string line = p_qstStatus;
+  if (line.empty())
+    line = p_tsPick[0].empty() ? "Pick the reactant."
+         : p_tsPick[1].empty() ? "Pick the product." : "Save to match the atoms.";
+  const wxString txt = wxString::FromUTF8(line.c_str());
+  p_tsLine->SetLabel(txt);
+  p_tsLine->SetToolTip(wxString::FromUTF8(p_qstDetail.c_str()));
+  p_tsPanel->GetContainingSizer()->Layout();
+}
+
+void CalcEd::tsSourceChanged(bool other)
+{
+  if (p_tsSource == other) return;
+  p_tsSource = other;
+  if (p_iCalc && p_iCalc->getState() <= ResourceDescriptor::STATE_READY) {
+    enableSave();
+    if (p_frag) {
+      populateRuntypes();
+      setRuntype(p_lastRuntype);
+    }
+  }
+  updateAllFields();
+}
+
+void CalcEd::tsPicked(int role, int sel)
+{
+  const string url = (sel > 0 && sel - 1 < (int)p_tsUrls.size())
+                         ? p_tsUrls[sel - 1] : string();
+  p_tsPick[role] = url;
+  if (!p_iCalc || p_iCalc->getState() > ResourceDescriptor::STATE_READY) return;
+  if (role == 0 && !url.empty()) {
+    Fragment *f = qstReactantFragment(url);
+    if (f) {
+      p_iCalc->fragment(f);
+      delete f;
+      wxCommandEvent ev;
+      subjectMCB(ev);
+      return;
+    }
+    p_feedback->setMessage("The reactant calculation has no structure.",
+                           WxFeedback::WARNING);
+  }
+  enableSave();
+  refreshTsBox();
+}
+
+void CalcEd::showTsMapping()
+{
+  string text = p_qstTable.empty()
+      ? "No atom mapping yet: pick the reactant and product and save."
+      : p_qstDetail + "\n\n" + p_qstTable;
+  wxMessageBox(wxString::FromUTF8(text.c_str()), "Atom mapping",
+               wxOK, this);
+}

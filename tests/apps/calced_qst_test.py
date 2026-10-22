@@ -2,13 +2,14 @@
 """
 Gaussian 16 Opt=QST2/QST3 through the real Calculation Editor (#419).
 
-A local project holds three Gaussian-16 calculations built from the end
-points of tests/parsers/fixtures/gaussian-16/hcn_irc.log: "react" (HCN),
-"prod" (HNC written H, N, C) and "ts" (the TS calculation, C, N, H).  The
-editor opens "ts", its Runtype Details dialog is started (ECCE_CALCED_SCRIPT
-"details runtype"), and the script checks the candidate list handed to the
-dialog, picks Transition State (QST), reactant and product through the
-message the dialog sends, saves, then ticks the QST3 guess and saves again.
+A local project holds Gaussian-16 calculations built from the end points of
+tests/parsers/fixtures/gaussian-16/hcn_irc.log: "react" (HCN), "prod" (HNC
+written H, N, C), "guess" (the TS geometry) and "ts", a NEW calculation with
+no structure.  The editor opens "ts": Structure from "Other calculations
+(transition state)" is chosen, the reactant is picked (its structure becomes
+the calculation's own, the Builder button is off, only the QST run types are
+offered), Transition State (QST) is chosen, the product is picked, the
+calculation is saved; then the TS guess is picked and it is saved again.
 Each save's kept generator directory is read: the .qstN.frag files CalcEd
 writes, the deck's Opt=(QST2|QST3), block order and atom order, and the
 status line shown to the user.
@@ -71,7 +72,8 @@ def writeXyz(path, atoms):
 
 
 def makeProject(folder):
-    """proj-qst with react, prod, ts: ({name: url}, None) or (None, error)."""
+    """proj-qst with react, prod, guess and an empty ts:
+    ({name: url}, None) or (None, error)."""
     build = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
     xyz = os.path.join(fixture.stateDir(), "qst-xyz")
     shutil.rmtree(xyz, ignore_errors=True)
@@ -81,7 +83,7 @@ def makeProject(folder):
     hnc = min(pts, key=lambda a: dist(a[1][1], a[2][1]))
     writeXyz(os.path.join(xyz, "react.xyz"), hcn)
     writeXyz(os.path.join(xyz, "prod.xyz"), [hnc[2], hnc[1], hnc[0]])
-    writeXyz(os.path.join(xyz, "ts.xyz"), points(True)[-1])
+    writeXyz(os.path.join(xyz, "guess.xyz"), points(True)[-1])
     driver = os.path.join(fixture.stateDir(), "resourceTest")
     libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
             "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
@@ -96,19 +98,19 @@ def makeProject(folder):
     shutil.rmtree(folder, ignore_errors=True)
     user = os.path.join(folder, "users", "local")
     os.makedirs(user)
-    os.environ["ECCE_EXPERIMENTAL_TS"] = "1"   # QST is offered only then (#419)
+    os.environ["ECCE_EXPERIMENTAL_TS"] = "1"   # source and QST are offered only then (#419)
     env = dict(os.environ, ECCE_HOME=apps.INSTALL, ECCE_LOCAL_DATA=folder,
                ECCE_REALUSER=getpass.getuser(), ECCE_NO_MESSAGING="1",
                LD_LIBRARY_PATH=build)
     done = subprocess.run(
         [driver, "qst", user] + ["%s=%s" % (n, os.path.join(xyz, n + ".xyz"))
-                                 for n in ("react", "prod", "ts")],
+                                 for n in ("react", "prod", "guess")] + ["ts="],
         env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out = done.stdout.decode()
     urls = re.findall(r"^(file://\S+)$", out, re.M)
-    if done.returncode != 0 or len(urls) != 3:
+    if done.returncode != 0 or len(urls) != 4:
         return None, out[-1500:]
-    return dict(zip(("react", "prod", "ts"), urls)), None
+    return dict(zip(("react", "prod", "guess", "ts"), urls)), None
 
 
 def atomsOf(path):
@@ -151,42 +153,50 @@ def main():
         os.environ["ECCE_LOCAL_DATA"] = folder
         restorePrefs = fixture.settleUpgradeNotices()
         try:
-            steps = ["wait 9000", "ready", "runtype Transition State (QST)", "wait 3000", "ready",
+            steps = ["wait 9000", "ts-state",
+                     "ts-source other", "wait 1500", "ts-state",
+                     "ts-pick reactant react", "wait 7000", "ts-state",
+                     "runtype Transition State (QST)", "wait 3000", "ready",
                      "basis 6-31G", "wait 1500",
-                     "details runtype", "wait 8000", "qst-candidates",
-                     "guiw %sQSTReactant %s" % (KEY, urls["react"]),
-                     "guiw %sQSTProduct %s" % (KEY, urls["prod"]),
-                     "guivalue %sQSTReactant" % KEY,
+                     "ts-pick product prod",
                      "button save-keep", "wait 6000"]
             shots = os.environ.get("ECCE_QST_SHOTS")
             if shots:
-                # the editor after Save, then the dialog reopened with the picks
-                steps += ["shot qst2-editor", "close-details", "details runtype",
-                          "wait 7000", "shot qst2-dialog"]
-            steps += ["guiw %sQSTGuess 1" % KEY, "button save-keep", "wait 6000"]
+                steps += ["shot qst2-editor"]
+            steps += ["ts-pick guess guess", "button save-keep", "wait 6000", "ts-state"]
             if shots:
-                steps += ["shot qst3-editor", "close-details", "details runtype",
-                          "wait 7000", "shot qst3-dialog"]
+                steps += ["shot qst3-editor"]
             steps += ["quit"]
             if shots:
                 os.makedirs(shots, exist_ok=True)
                 threading.Thread(target=photographer, daemon=True, args=(
                     display, fixture.stateDir(), shots,
-                    ["qst2-editor", "qst2-dialog", "qst3-editor",
-                     "qst3-dialog"])).start()
+                    ["qst2-editor", "qst3-editor"])).start()
             log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT", steps,
                                urls["ts"] + "/")
             tail = run_tests._tail(log, 40)
-            cands = re.findall(r"CALCED: qst-candidate (\S+)\t(\S+)\t(\S+)", log)
-            sym.check(sorted(c[0] for c in cands) == ["prod", "react"],
-                      "the dialog is offered prod and react, not ts (%s)"
-                      % [c[0] for c in cands], tail)
+            states = re.findall(r"CALCED: ts-state (.*)", log)
+            print("ts-state:", *states, sep="\n  ")
+            sym.check(len(states) >= 4, "four ts-state reports (%d)" % len(states), tail)
+            if len(states) >= 4:
+                sym.check("source=builder builder=on panel=hidden atoms=-1" in states[0],
+                          "a new calculation starts with the Builder source, no atoms", tail)
+                sym.check("source=other builder=off panel=shown atoms=-1" in states[1],
+                          "choosing Other calculations shows the pickers, Builder off", tail)
+                sym.check("builder=off" in states[2] and "atoms=3" in states[2],
+                          "the reactant becomes the structure (3 atoms), Builder stays off", tail)
+                sym.check(sorted(re.search(r"candidates=(\S*)", states[2]).group(1).split(","))
+                          == ["guess", "prod", "react"],
+                          "the pickers list react, prod and guess, not ts (%s)" % states[2], tail)
+                rts = re.search(r"runtypes=(.*) line=", states[2]).group(1).split("|")
+                sym.check(rts == ["Transition State (QST)", "Transition State (QST) + Frequencies"],
+                          "only the QST run types are offered (%s)" % rts, tail)
             dirs = re.findall(r"generator files kept in (\S+)", log)
             sym.check(len(dirs) == 2, "two saves kept their files (%s)" % dirs, tail)
             status = re.findall(r"(Calculation saved as [^\n]*)", log)
             print("status lines:", status)
-            sym.check(len(status) == 2 and all("Matched" in s for s in status),
-                      "the one-line status reports the atom matching (Matched N atoms; moved: ...; RMSD)", tail)
+            sym.check(len(status) == 3 and all("Matched" in s for s in status[1:]),
+                      "the one-line status of both explicit saves reports the atom matching (the first save is the auto-save of the reactant pick)", tail)
             if len(dirs) == 2:
                 for mode, d, want in (("QST2", dirs[0], [1, 2]),
                                       ("QST3", dirs[1], [1, 2, 3])):

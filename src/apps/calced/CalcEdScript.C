@@ -17,8 +17,8 @@
 //    dismiss                  close a modal dialog (OK)
 //    code NAME                a click on that code's button in the Code row
 //    wmcommand ID             (Windows) the message a menu item click sends
-//    qst-candidates           the list handed to the Gaussian 16 runtype
-//                             dialog (ECCE_QST_CANDIDATES), on stderr
+//    ts-source builder|other  the Structure from choice of the Chemical System box
+//    ts-pick reactant|product|guess NAME / ts-state   pick a calculation; print what is shown
 //    enabled                  which main controls are enabled, and the state
 //    info                     the current choices, GUI values and the
 //                             Verify lamp ("verify="), on stderr
@@ -47,6 +47,7 @@
 #include "wxgui/ewxThemeColours.H"
 
 #include "CalcEd.H"
+#include "wxgui/EcceTool.H"
 
 namespace {
 
@@ -185,12 +186,40 @@ void CalcEd::runCalcEdScript(const string& file)
           ev.SetEventObject(hit);
           OnButtonCalcedCodeClick(ev);
         }
-      } else if (w[0] == "qst-candidates") {
-        // what the dialog was given: the file CalcEd wrote for it
-        const char *f = getenv("ECCE_QST_CANDIDATES");
-        std::ifstream cand(f ? f : "");
-        for (std::string l; std::getline(cand, l); )
-          fprintf(stderr, "CALCED: qst-candidate %s\n", l.c_str());
+      } else if (w[0] == "ts-source" && w.size() == 2) {
+        if (!p_tsSourceChoice) {
+          outcome = "FAIL: no source choice";
+        } else {
+          p_tsSourceChoice->SetSelection(w[1] == "other" ? 1 : 0);
+          tsSourceChanged(w[1] == "other");
+        }
+      } else if (w[0] == "ts-pick" && w.size() >= 3) {
+        const int role = w[1] == "reactant" ? 0 : w[1] == "product" ? 1 : 2;
+        const std::string want = rest(2);
+        int sel = want == "(none)" ? 0 : -1;
+        for (size_t i = 0; i < p_tsNames.size(); i++)
+          if (p_tsNames[i] == want) sel = (int)i + 1;
+        if (sel < 0 || !p_tsChoice[role]) {
+          outcome = "FAIL: no such calculation to pick";
+        } else {
+          p_tsChoice[role]->SetSelection(sel);
+          tsPicked(role, sel);
+        }
+      } else if (w[0] == "ts-state") {
+        // what a user sees of the structure source
+        std::string names;
+        for (size_t i = 0; i < p_tsNames.size(); i++)
+          names += (i ? "," : "") + p_tsNames[i];
+        fprintf(stderr, "CALCED: ts-state source=%s builder=%s panel=%s "
+                "atoms=%d candidates=%s runtypes=",
+                p_tsSource ? "other" : "builder",
+                p_builderTool->IsEnabled() ? "on" : "off",
+                p_tsPanel && p_tsPanel->IsShown() ? "shown" : "hidden",
+                p_frag ? (int)p_frag->numAtoms() : -1, names.c_str());
+        ewxChoice *rt = (ewxChoice*)FindWindow(ID_CHOICE_CALCED_RUNTYPE);
+        for (unsigned i = 0; rt && i < rt->GetCount(); i++)
+          fprintf(stderr, "%s%s", i ? "|" : "", rt->GetString(i).ToStdString().c_str());
+        fprintf(stderr, " line=%s\n", p_tsLine ? p_tsLine->GetLabel().ToStdString().c_str() : "");
       } else if (w[0] == "enabled") {
         // which of the main controls are enabled, as a user sees them
         const struct { const char *name; wxWindowID id; } ctl[] = {

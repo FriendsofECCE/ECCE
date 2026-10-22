@@ -35,6 +35,15 @@ bool qstFinalStructure(PropertyTask* calc, std::vector<std::string>& el,
    return !el.empty();
 }
 
+Fragment* qstReactantFragment(const std::string& url)
+{
+   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(url.c_str()));
+   Fragment* frag = t ? t->fragment() : 0;
+   if (!frag) return 0;
+   t->getFragmentStep(frag, -1);
+   return frag;
+}
+
 std::vector<QstEntry> qstCandidates(ICalculation* self)
 {
    std::vector<QstEntry> out;
@@ -70,6 +79,27 @@ std::string qstWriteCandidateFile(const std::vector<QstEntry>& entries)
       os << entries[i].name << '\t' << entries[i].url << '\t'
          << entries[i].kind << '\n';
    return path;
+}
+
+/** One block of the "Show mapping" text: reactant atom -> the number the
+ *  atom has in this structure's own order, far movers flagged. */
+static void addTable(std::string& out, const char* role,
+                     const std::vector<std::string>& refEl,
+                     const AtomMapResult& r)
+{
+   out += std::string(role) + ": reactant atom -> atom number in the " + role +
+          "\n";
+   for (size_t j = 0; j < refEl.size(); j++) {
+      int from = -1;
+      for (size_t i = 0; i < r.map.size(); i++)
+         if (r.map[i] == (int)j) from = (int)i;
+      char buf[96];
+      sprintf(buf, "  %s%zu -> %d", refEl[j].c_str(), j + 1, from + 1);
+      out += buf;
+      for (size_t i = 0; i < r.far.size(); i++)
+         if (r.far[i] == from) out += "   (moves more than 1 A)";
+      out += '\n';
+   }
 }
 
 static bool writeFrag(const std::string& file, const std::string& title,
@@ -116,23 +146,25 @@ static bool mapOnto(const std::vector<std::string>& refEl,
 
 bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
                             std::string& status, std::string& warning,
-                            std::string* detail)
+                            std::string* detail, std::string* table)
 {
    status.clear();
+   if (table) table->clear();
    warning.clear();
    GUIValues* g = self->guiparams();
    const std::string urls[3] = {
       value(g, "ES.Runtype.GeomOpt.QSTReactant"),
-      value(g, "ES.Runtype.GeomOpt.QSTProduct"), "" };
-   const bool guess = value(g, "ES.Runtype.GeomOpt.QSTGuess") == "1";
+      value(g, "ES.Runtype.GeomOpt.QSTProduct"),
+      value(g, "ES.Runtype.GeomOpt.QSTGuess") };
+   const bool guess = !urls[2].empty();
    if (urls[0].empty() || urls[1].empty()) {
       warning = "Transition State (QST): pick the reactant and product "
-                "calculations in the Runtype Details.";
+                "calculations in the Calculation Editor.";
       return true;
    }
 
-   // The calculation's own structure fixes the atom order; with the tick it
-   // is the TS guess.
+   // The calculation's own structure (a copy of the reactant) fixes the
+   // atom order.
    std::vector<std::string> refEl;
    std::vector<double> ref;
    bool refOpt;
@@ -145,24 +177,19 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
    std::ostringstream st, rm, wr, dt;
    for (int k = 0; k < n; k++) {
       std::string title = role[k];
-      if (k < 2) {
-         PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(urls[k].c_str()));
-         bool opt;
-         if (!qstFinalStructure(t, els[k], xyz[k], opt)) {
-            warning = std::string("Transition State (QST): the ") + role[k] +
-                      " calculation has no structure.";
-            return true;
-         }
-         title = t->getName();
-      } else {
-         els[k] = refEl;
-         xyz[k] = ref;
-         title = "this_calculation";
+      PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(urls[k].c_str()));
+      bool opt;
+      if (!qstFinalStructure(t, els[k], xyz[k], opt)) {
+         warning = std::string("Transition State (QST): the ") + role[k] +
+                   " calculation has no structure.";
+         return true;
       }
+      title = t->getName();
       AtomMapResult r;
       if (!mapOnto(refEl, ref, els[k], xyz[k], role[k], "Transition State (QST)",
                    r, warning))
          return true;
+      if (table) addTable(*table, role[k], refEl, r);
       st << (st.tellp() ? ", " : "") << role[k] << " " << r.nChanged;
       dt << role[k] << " renumbered: " << r.nChanged
          << " atoms changed place. ";
@@ -205,9 +232,10 @@ static bool writeXyz(const std::string& file, const std::string& title,
 }
 
 bool nebWriteStructureFiles(ICalculation* self, std::string& status,
-                            std::string& warning, std::string* detail)
+                            std::string& warning, std::string* detail, std::string* table)
 {
    status.clear();
+   if (table) table->clear();
    warning.clear();
    remove("neb_product.xyz");
    remove("neb_guess.xyz");
@@ -216,11 +244,11 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
                                  value(g, "ES.Runtype.NEB.Guess") };
    if (urls[0].empty()) {
       warning = "Transition State (NEB-TS): pick the product calculation "
-                "in the Runtype Details.";
+                "in the Calculation Editor.";
       return true;
    }
 
-   // This calculation's own structure is the reactant and fixes the order.
+   // This calculation's own structure (a copy of the reactant) fixes the order.
    std::vector<std::string> refEl;
    std::vector<double> ref;
    bool refOpt;
@@ -245,6 +273,7 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
       if (!mapOnto(refEl, ref, el, xyz, role[k], "Transition State (NEB-TS)",
                    r, warning))
          return true;
+      if (table) addTable(*table, role[k], refEl, r);
       st << (st.tellp() ? ", " : "") << role[k] << " " << r.nChanged;
       dt << role[k] << " renumbered: " << r.nChanged
          << " atoms changed place. ";
