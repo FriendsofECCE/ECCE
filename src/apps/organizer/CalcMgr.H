@@ -112,10 +112,11 @@ public:
   /// Imports runDir into the selection's project; "" with message on failure.
   string importGromacsFrom(const string& runDir, string& message);
 
-  /// Imports the shipped example calculations into a new project
-  /// "Examples" (never an existing one); returns its name, "" on failure.
-  string openExamples(string& message);
-  /// At a user's first start, imports the examples into "Examples" once.
+  /// Imports the example set setId (general, computational) into its own
+  /// project, or selects that project if it exists; returns the project's
+  /// name, "" on failure.  created says whether it was imported now.
+  string openExampleSet(const string& setId, string& message, bool& created);
+  /// At a user's first start, imports the general set into "Examples" once.
   void importExamplesOnce();
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXPORT
@@ -573,7 +574,7 @@ protected:
   std::vector<std::pair<UpdateKind, string> > p_queuedUpdates;
   wxTimer *p_updateTimer = 0;
   // For the "counts" test command.
-  // True while openExamples() imports several outputs: the tree is rebuilt
+  // True while openExampleSet() imports several outputs: the tree is rebuilt
   // once at the end, not after each calculation (#263).
   bool p_batchImport = false;
   std::string p_batchError;     // the first import that failed in the batch
