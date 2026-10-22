@@ -522,7 +522,7 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 
 ////////////////////////////////////////////////////////////////////////
 //
-//  Multiple bonds as parallel cylinders (ECCE_MULTIBOND_CYLINDERS=1).
+//  Multiple bonds as parallel cylinders (off with ECCE_MULTIBOND_CYLINDERS=0).
 //  Double: two thin cylinders, side by side about the axis.  Triple: three.
 //  A double bond on a ring side, and aromatic: the full cylinder on the
 //  axis plus a thin one towards the ring, ends cut back as the wireframe
@@ -531,8 +531,8 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 bool
 ChemDisplay::multiBondCylinders()
 {
-	static const bool on = getenv("ECCE_MULTIBOND_CYLINDERS") != NULL &&
-		getenv("ECCE_MULTIBOND_CYLINDERS")[0] == '1';
+	static const bool on = getenv("ECCE_MULTIBOND_CYLINDERS") == NULL ||
+		getenv("ECCE_MULTIBOND_CYLINDERS")[0] != '0';
 	return on;
 }
 

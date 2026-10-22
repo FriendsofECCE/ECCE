@@ -780,7 +780,7 @@ void bBoxResiduesNone(SoState *state, ChemDisplayParam *cdp,
                                  const MFVec2i &normalIndex,
                                  const MFVec2i &highlightIndex);
     void    renderBondsAsCylinders(SoGLRenderAction *action);
-    // Opt-in (ECCE_MULTIBOND_CYLINDERS=1): double/triple/aromatic bonds as
+    // Unless ECCE_MULTIBOND_CYLINDERS=0: double/triple/aromatic bonds as
     // parallel cylinders in Ball and Stick / Stick.
     static bool multiBondCylinders();
     void    renderMultiBondCylinders(SoState *state, const ChemColor *chemColor,

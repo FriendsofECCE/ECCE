@@ -33,7 +33,7 @@ BondChanged), `bondorders`, `selectbonds`, `selection`, `coords`.
 Test: `tests/apps/builder_edit_bugs_test.py`
 (`apps_builder_edit_bugs`).
 
-Experiment `ECCE_MULTIBOND_CYLINDERS=1` (off by default): Ball and Stick
+Since #434 (on by default, off with `ECCE_MULTIBOND_CYLINDERS=0`): Ball and Stick
 and Stick draw double/triple/aromatic bonds as parallel cylinders
 (`ChemDisplay::renderMultiBondCylinders`, own pass; the single-bond pass
 gets a list without them). The live single-bond path is `clipNormalCylinder*`
