@@ -44,6 +44,8 @@
 //                                waits for NAME.go: the test photographs the
 //                                window meanwhile
 //    symmetry                    Symmetry > Find, then the point group
+//    coordsraw                   every atom's coordinates at %.17g
+//    atomtable                   the shown text of each Atom Table row
 //    progress N                  the MO Compute progress dialog, N seconds
 //    property NAME               a click on Properties > NAME (toggles it)
 //    list NAME                   a click on NAME in the Properties list
@@ -750,6 +752,34 @@ void Builder::runBuilderScript(const std::string& file)
                   frag->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
         }
         fprintf(stderr, "BUILDER: formula=%s\n", frag->formula().c_str());
+      } else if (w[0] == "coordsraw" && frag) {
+        for (size_t i = 0; i < frag->numAtoms(); i++) {
+          const double *c = frag->atomRef(i)->coordinates();
+          fprintf(stderr, "BUILDER: rawatom %d %.17g %.17g %.17g\n",
+                  (int)i + 1, c[0], c[1], c[2]);
+        }
+      } else if (w[0] == "atomtable") {
+        //  atomtable: the text of every cell of the Atom Table, as shown.
+        std::function<ewxGrid*(wxWindow*)> findGrid =
+            [&findGrid](wxWindow *win) -> ewxGrid* {
+          if (ewxGrid *gr = dynamic_cast<ewxGrid*>(win)) return gr;
+          for (wxWindow *child : win->GetChildren())
+            if (ewxGrid *gr = findGrid(child)) return gr;
+          return 0;
+        };
+        wxWindow *win = p_mgr.GetPane(NAME_TOOL_ATOM_TABLE).window;
+        ewxGrid *g = win ? findGrid(win) : 0;
+        if (!g) {
+          outcome = "no table";
+        } else {
+          for (int r = 0; r < g->GetNumberRows(); r++) {
+            wxString row;
+            for (int c = 0; c < g->GetNumberCols(); c++)
+              row += g->GetCellValue(r, c) + "|";
+            fprintf(stderr, "BUILDER: tablerow %d %s\n", r,
+                    row.ToUTF8().data());
+          }
+        }
       } else if (w[0] == "constraints" && w.size() >= 2) {
         //  Geometry Constraints (#306): "show", "select I J ..", "press
         //  constrain|restrain|fix yes|no", "list", "stored".

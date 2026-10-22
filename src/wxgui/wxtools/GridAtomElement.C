@@ -12,6 +12,8 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include <cmath>
+#include <cstdio>
   using std::cout;
   using std::cerr;
   using std::endl;
@@ -102,6 +104,14 @@ GridAtomElement::~GridAtomElement()
 }
 
 
+// Fixed 6 decimals; |v| < 5e-7 would print as -0.000000, so it is 0.
+static std::string coordText(double v)
+{
+  char buf[64];
+  snprintf(buf, sizeof buf, "%.6f", fabs(v) < 5.0e-7 ? 0.0 : v);
+  return buf;
+}
+
 wxString GridAtomElement::getAtomValue(TAtm *atom)
 {
   wxString ret;
@@ -140,13 +150,13 @@ wxString GridAtomElement::getAtomValue(TAtm *atom)
       ret = hasResidue ? atom->segment() : "";
       break;
     case AtomProperty::AP_XCOORD:
-      ret = StringConverter::toString(atom->coordinates()[0]);
+      ret = coordText(atom->coordinates()[0]);
       break;
     case AtomProperty::AP_YCOORD:
-      ret = StringConverter::toString(atom->coordinates()[1]);
+      ret = coordText(atom->coordinates()[1]);
       break;
     case AtomProperty::AP_ZCOORD:
-      ret = StringConverter::toString(atom->coordinates()[2]);
+      ret = coordText(atom->coordinates()[2]);
       break;
     case AtomProperty::AP_MASS:
       ret = StringConverter::toString(atom->getMass());
