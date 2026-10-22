@@ -503,6 +503,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 collapse events during it, then the tree
  * size <w> <h>   resize the Organizer window
  * firstvisible    the label of the tree's top visible row (its scroll)
+ * showbox         scroll the summary panel so that the Progress box is at
+ *                 its top
  * progressbox     the shown summary's Progress box: shown or not, its
  *                 paints and the lines it draws, separated by " | "
  * contact <url> lost <epoch>|ok
@@ -1042,6 +1044,19 @@ void CalcMgr::runTestCommand(const string& line)
       wxTreeItemId first = p_treeCtrl->GetFirstVisibleItem();
       outcome = first.IsOk() ? string(p_treeCtrl->GetItemText(first).utf8_str())
                              : string("none");
+    } else if (command == "showbox") {
+      CalculationContextPanel *panel =
+          dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      ProgressBox *box = panel ? panel->getProgressBox() : 0;
+      for (int i = 0; i < 5; i++) wxYield();
+      if (box) {
+        int py = 1;
+        panel->GetScrollPixelsPerUnit(0, &py);
+        panel->Scroll(-1, panel->CalcUnscrolledPosition(box->GetPosition()).y /
+                              std::max(1, py));
+        for (int i = 0; i < 5; i++) wxYield();
+      }
+      outcome = box ? "scrolled" : "no box";
     } else if (command == "progressbox") {
       CalculationContextPanel *panel =
           dynamic_cast<CalculationContextPanel*>(p_contextPanel);

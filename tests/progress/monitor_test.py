@@ -186,7 +186,7 @@ def main():
               "scf history restarted with the last SCF (5 values): %s" % hist)
         ohist = last.get("opt~", "")
         n = len(ohist[7:].split(",")) if ohist.startswith("energy=") else 0
-        check(10 <= n <= 60, "opt history kept, trimmed to fit (%d values)" % n)
+        check(n == 80, "opt history spans the whole job, past the 60 other stages keep (%d values)" % n)
         geo = [p for _, p in msgs if "\0GEOMTRACE\0" in p and "progress freq point=0/18" in p]
         check(len(geo) == 1, "the progress line inside a geometry block stays in that block")
         check_remember_and_second_file()

@@ -104,6 +104,22 @@ int main()
     check(ms.size() == 1 && ms[0].find("Optimisation") == string::npos,
           "an md run is not reported as an unconverged optimisation");
   }
+  {
+    // A relaxed scan: its point first, then the optimisation; the total is
+    // shown only when known and not smaller than the point.
+    JobProgress sc;
+    sc.parse("# seq=7\nopt step=2 energy=-1.5\nopt~ energy=-1.1,-1.2,-1.3,-1.4,-1.5\n"
+             "scan point=4/11\n");
+    vector<JobProgress::Block> sb = sc.running(0);
+    check(sb.size() == 2 && sb[0].title == "Scan" && has(sb[0].lines, "point 4 of 11") &&
+          sb[1].plot.size() == 5, "a scan: point 4 of 11, then the step plot");
+    sc.parse("# seq=8\nscan point=4/\nopt step=1\n");
+    check(has(sc.running(0)[0].lines, "point 4") && !sc.running(0)[0].bar,
+          "a scan without a known total");
+    sc.parse("# seq=9\nscan point=12/11\nopt step=1\n");
+    check(has(sc.running(0)[0].lines, "point 12") && !sc.running(0)[0].bar,
+          "a total smaller than the point (several scanned parameters) is dropped");
+  }
   r.parse("# seq=6\nsteep point=4/200 converged=yes\n");
   check(has(r.summary(true), "Minimisation converged in 4 steps"),
         "minimisation summary");

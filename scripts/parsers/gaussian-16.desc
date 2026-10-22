@@ -548,6 +548,12 @@ Begin=^ Step number\s+(\d+) out of a maximum of(?>\s+)(?!2\s*$)
 Progress=opt step=$1
 [END]
 
+# A relaxed scan prints its point on every optimiser step.
+[PROGRESS]
+Begin=^ Step number\s+\d+ out of a maximum of\s+\d+ on scan point\s+(\d+) out of\s+(\d+)
+Progress=scan point=$1/$2
+[END]
+
 [PROGRESS]
 Begin=^ DE=\s*(-?\d\.\d+)D([-+]\d+) DEPred
 Progress=opt dE=$1e$2

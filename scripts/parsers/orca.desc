@@ -526,6 +526,19 @@ Progress=scf cycle=$1 energy=$2 dE=$3/{scftol}
 History=dE
 [END]
 
+# A relaxed scan: the number of points is in the scan header (one scanned
+# parameter; for several the last one is kept and the box drops a total
+# smaller than the point number).
+[PROGRESS]
+Begin=range=\s*-?\d+\.\d+ \.\. -?\d+\.\d+\s+steps =\s+(\d+)
+Remember=scanpts
+[END]
+
+[PROGRESS]
+Begin=RELAXED SURFACE SCAN STEP\s+(\d+)
+Progress=scan point=$1/{scanpts}
+[END]
+
 # One entry per line of ORCA's convergence table; the cycle line comes
 # first so that it starts the record.
 [PROGRESS]
