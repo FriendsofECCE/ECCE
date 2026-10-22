@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-<line x1="12" y1="9.5" x2="5.12" y2="10.37" stroke="#9a9a9a" stroke-width="1.6"/><line x1="11.96" y1="9.15" x2="5.08" y2="10.02" stroke="#d4d4d4" stroke-width="0.48"/>
+<line x1="12" y1="9.5" x2="5.12" y2="10.37" stroke="#5a5a5a" stroke-width="1.6"/><line x1="11.96" y1="9.15" x2="5.08" y2="10.02" stroke="#9a9a9a" stroke-width="0.48"/>
 <radialGradient id="g26" gradientUnits="userSpaceOnUse" cx="4.38" cy="9.52" r="3.18" fx="4.38" fy="9.52"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="5.12" cy="10.37" r="2.12" fill="url(#g26)" stroke="#6a6a6a" stroke-width="0.6"/>
-<line x1="12" y1="9.5" x2="19.16" y2="10.57" stroke="#9a9a9a" stroke-width="1.6"/><line x1="12.05" y1="9.15" x2="19.21" y2="10.22" stroke="#d4d4d4" stroke-width="0.48"/>
+<line x1="12" y1="9.5" x2="19.16" y2="10.57" stroke="#5a5a5a" stroke-width="1.6"/><line x1="12.05" y1="9.15" x2="19.21" y2="10.22" stroke="#9a9a9a" stroke-width="0.48"/>
 <radialGradient id="g24" gradientUnits="userSpaceOnUse" cx="18.41" cy="9.72" r="3.21" fx="18.41" fy="9.72"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="19.16" cy="10.57" r="2.14" fill="url(#g24)" stroke="#6a6a6a" stroke-width="0.6"/>
-<radialGradient id="g27" gradientUnits="userSpaceOnUse" cx="10.78" cy="8.1" r="5.25" fx="10.78" fy="8.1"><stop offset="0" stop-color="#e4e4e4"/><stop offset="0.5" stop-color="#909090"/><stop offset="1" stop-color="#4a4a4a"/></radialGradient><circle cx="12" cy="9.5" r="3.5" fill="url(#g27)"/>
-<line x1="12" y1="9.5" x2="11.72" y2="15.41" stroke="#9a9a9a" stroke-width="1.6"/><line x1="11.65" y1="9.48" x2="11.37" y2="15.4" stroke="#d4d4d4" stroke-width="0.48"/>
+<radialGradient id="g27" gradientUnits="userSpaceOnUse" cx="10.78" cy="8.1" r="5.25" fx="10.78" fy="8.1"><stop offset="0" stop-color="#c8c8c8"/><stop offset="0.5" stop-color="#606060"/><stop offset="1" stop-color="#202020"/></radialGradient><circle cx="12" cy="9.5" r="3.5" fill="url(#g27)"/>
+<line x1="12" y1="9.5" x2="11.72" y2="15.41" stroke="#5a5a5a" stroke-width="1.6"/><line x1="11.65" y1="9.48" x2="11.37" y2="15.4" stroke="#9a9a9a" stroke-width="0.48"/>
 <radialGradient id="g25" gradientUnits="userSpaceOnUse" cx="10.84" cy="14.41" r="3.78" fx="10.84" fy="14.41"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="11.72" cy="15.41" r="2.52" fill="url(#g25)" stroke="#6a6a6a" stroke-width="0.6"/>
 </svg>

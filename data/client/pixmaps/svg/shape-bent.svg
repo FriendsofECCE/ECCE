@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-<line x1="12" y1="9" x2="5.22" y2="14.29" stroke="#9a9a9a" stroke-width="1.6"/><line x1="11.78" y1="8.72" x2="5.01" y2="14.02" stroke="#d4d4d4" stroke-width="0.48"/>
-<line x1="12" y1="9" x2="18.78" y2="14.29" stroke="#9a9a9a" stroke-width="1.6"/><line x1="12.22" y1="8.72" x2="18.99" y2="14.02" stroke="#d4d4d4" stroke-width="0.48"/>
-<radialGradient id="g19" gradientUnits="userSpaceOnUse" cx="10.78" cy="7.6" r="5.25" fx="10.78" fy="7.6"><stop offset="0" stop-color="#e4e4e4"/><stop offset="0.5" stop-color="#909090"/><stop offset="1" stop-color="#4a4a4a"/></radialGradient><circle cx="12" cy="9" r="3.5" fill="url(#g19)"/>
+<line x1="12" y1="9" x2="5.22" y2="14.29" stroke="#5a5a5a" stroke-width="1.6"/><line x1="11.78" y1="8.72" x2="5.01" y2="14.02" stroke="#9a9a9a" stroke-width="0.48"/>
+<line x1="12" y1="9" x2="18.78" y2="14.29" stroke="#5a5a5a" stroke-width="1.6"/><line x1="12.22" y1="8.72" x2="18.99" y2="14.02" stroke="#9a9a9a" stroke-width="0.48"/>
+<radialGradient id="g19" gradientUnits="userSpaceOnUse" cx="10.78" cy="7.6" r="5.25" fx="10.78" fy="7.6"><stop offset="0" stop-color="#c8c8c8"/><stop offset="0.5" stop-color="#606060"/><stop offset="1" stop-color="#202020"/></radialGradient><circle cx="12" cy="9" r="3.5" fill="url(#g19)"/>
 <radialGradient id="g17" gradientUnits="userSpaceOnUse" cx="4.42" cy="13.37" r="3.45" fx="4.42" fy="13.37"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="5.22" cy="14.29" r="2.3" fill="url(#g17)" stroke="#6a6a6a" stroke-width="0.6"/>
 <radialGradient id="g18" gradientUnits="userSpaceOnUse" cx="17.97" cy="13.37" r="3.45" fx="17.97" fy="13.37"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="18.78" cy="14.29" r="2.3" fill="url(#g18)" stroke="#6a6a6a" stroke-width="0.6"/>
 </svg>

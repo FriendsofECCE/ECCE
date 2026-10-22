@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-<line x1="12" y1="12" x2="20.6" y2="12" stroke="#9a9a9a" stroke-width="1.6"/><line x1="12" y1="11.65" x2="20.6" y2="11.65" stroke="#d4d4d4" stroke-width="0.48"/>
-<line x1="12" y1="12" x2="3.4" y2="12" stroke="#9a9a9a" stroke-width="1.6"/><line x1="12" y1="11.65" x2="3.4" y2="11.65" stroke="#d4d4d4" stroke-width="0.48"/>
-<line x1="12" y1="12" x2="12" y2="3.4" stroke="#9a9a9a" stroke-width="1.6"/><line x1="11.65" y1="12" x2="11.65" y2="3.4" stroke="#d4d4d4" stroke-width="0.48"/>
-<line x1="12" y1="12" x2="12" y2="20.6" stroke="#9a9a9a" stroke-width="1.6"/><line x1="12.35" y1="12" x2="12.35" y2="20.6" stroke="#d4d4d4" stroke-width="0.48"/>
-<radialGradient id="g37" gradientUnits="userSpaceOnUse" cx="10.78" cy="10.6" r="5.25" fx="10.78" fy="10.6"><stop offset="0" stop-color="#e4e4e4"/><stop offset="0.5" stop-color="#909090"/><stop offset="1" stop-color="#4a4a4a"/></radialGradient><circle cx="12" cy="12" r="3.5" fill="url(#g37)"/>
+<line x1="12" y1="12" x2="20.6" y2="12" stroke="#5a5a5a" stroke-width="1.6"/><line x1="12" y1="11.65" x2="20.6" y2="11.65" stroke="#9a9a9a" stroke-width="0.48"/>
+<line x1="12" y1="12" x2="3.4" y2="12" stroke="#5a5a5a" stroke-width="1.6"/><line x1="12" y1="11.65" x2="3.4" y2="11.65" stroke="#9a9a9a" stroke-width="0.48"/>
+<line x1="12" y1="12" x2="12" y2="3.4" stroke="#5a5a5a" stroke-width="1.6"/><line x1="11.65" y1="12" x2="11.65" y2="3.4" stroke="#9a9a9a" stroke-width="0.48"/>
+<line x1="12" y1="12" x2="12" y2="20.6" stroke="#5a5a5a" stroke-width="1.6"/><line x1="12.35" y1="12" x2="12.35" y2="20.6" stroke="#9a9a9a" stroke-width="0.48"/>
+<radialGradient id="g37" gradientUnits="userSpaceOnUse" cx="10.78" cy="10.6" r="5.25" fx="10.78" fy="10.6"><stop offset="0" stop-color="#c8c8c8"/><stop offset="0.5" stop-color="#606060"/><stop offset="1" stop-color="#202020"/></radialGradient><circle cx="12" cy="12" r="3.5" fill="url(#g37)"/>
 <radialGradient id="g33" gradientUnits="userSpaceOnUse" cx="19.8" cy="11.08" r="3.45" fx="19.8" fy="11.08"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="20.6" cy="12" r="2.3" fill="url(#g33)" stroke="#6a6a6a" stroke-width="0.6"/>
 <radialGradient id="g34" gradientUnits="userSpaceOnUse" cx="2.6" cy="11.08" r="3.45" fx="2.6" fy="11.08"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="3.4" cy="12" r="2.3" fill="url(#g34)" stroke="#6a6a6a" stroke-width="0.6"/>
 <radialGradient id="g35" gradientUnits="userSpaceOnUse" cx="11.2" cy="2.48" r="3.45" fx="11.2" fy="2.48"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="12" cy="3.4" r="2.3" fill="url(#g35)" stroke="#6a6a6a" stroke-width="0.6"/>

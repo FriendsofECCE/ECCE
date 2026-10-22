@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-<line x1="4.6" y1="9.5" x2="19.4" y2="9.5" stroke="#9a9a9a" stroke-width="1.8"/><line x1="4.6" y1="9.1" x2="19.4" y2="9.1" stroke="#d4d4d4" stroke-width="0.54"/>
-<line x1="4.6" y1="14.5" x2="19.4" y2="14.5" stroke="#9a9a9a" stroke-width="1.8"/><line x1="4.6" y1="14.1" x2="19.4" y2="14.1" stroke="#d4d4d4" stroke-width="0.54"/>
-<radialGradient id="g3" gradientUnits="userSpaceOnUse" cx="3.34" cy="10.56" r="5.4" fx="3.34" fy="10.56"><stop offset="0" stop-color="#e4e4e4"/><stop offset="0.5" stop-color="#909090"/><stop offset="1" stop-color="#4a4a4a"/></radialGradient><circle cx="4.6" cy="12" r="3.6" fill="url(#g3)"/>
-<radialGradient id="g4" gradientUnits="userSpaceOnUse" cx="18.14" cy="10.56" r="5.4" fx="18.14" fy="10.56"><stop offset="0" stop-color="#e4e4e4"/><stop offset="0.5" stop-color="#909090"/><stop offset="1" stop-color="#4a4a4a"/></radialGradient><circle cx="19.4" cy="12" r="3.6" fill="url(#g4)"/>
+<line x1="4.6" y1="9.5" x2="19.4" y2="9.5" stroke="#5a5a5a" stroke-width="1.8"/><line x1="4.6" y1="9.1" x2="19.4" y2="9.1" stroke="#9a9a9a" stroke-width="0.54"/>
+<line x1="4.6" y1="14.5" x2="19.4" y2="14.5" stroke="#5a5a5a" stroke-width="1.8"/><line x1="4.6" y1="14.1" x2="19.4" y2="14.1" stroke="#9a9a9a" stroke-width="0.54"/>
+<radialGradient id="g3" gradientUnits="userSpaceOnUse" cx="3.34" cy="10.56" r="5.4" fx="3.34" fy="10.56"><stop offset="0" stop-color="#c8c8c8"/><stop offset="0.5" stop-color="#606060"/><stop offset="1" stop-color="#202020"/></radialGradient><circle cx="4.6" cy="12" r="3.6" fill="url(#g3)"/>
+<radialGradient id="g4" gradientUnits="userSpaceOnUse" cx="18.14" cy="10.56" r="5.4" fx="18.14" fy="10.56"><stop offset="0" stop-color="#c8c8c8"/><stop offset="0.5" stop-color="#606060"/><stop offset="1" stop-color="#202020"/></radialGradient><circle cx="19.4" cy="12" r="3.6" fill="url(#g4)"/>
 </svg>
