@@ -399,6 +399,25 @@ wxSize ProgressBox::layout(wxDC *dc)
         const wxColour series = lost ? fg : pal.series(0);
         p_geom.clear();
 
+        //  The plots share one column just right of the widest section text,
+        //  so each stays next to its own lines instead of at the box's edge.
+        int textNat = 0, plotNat = 0;
+        for (const auto& b : blocks) {
+          for (const string& l : b.lines)
+            textNat = std::max(textNat, m.GetTextExtent(U(l)).x);
+          if (!b.criteria.empty())
+            textNat = std::max(textNat, b.criteria.size() > 1 ? 2 * cellW + gap
+                                                              : cellW);
+          if (b.bar) textNat = std::max(textNat, FromDIP(240));
+          if (!b.plot.empty()) {
+            m.SetFont(small);
+            plotNat = std::max(plotNat, std::max(FromDIP(260),
+                          m.GetTextExtent(U(plotCaption(b))).x + 2));
+            m.SetFont(normal);
+          }
+        }
+        const int plotX = std::min(availW - plotNat, x0 + textNat + 2 * gap);
+
         for (const auto& b : blocks) {
           const int y0 = y;
           //  A plot goes to the right of its section's text when at least
@@ -411,8 +430,8 @@ wxSize ProgressBox::layout(wxDC *dc)
             ph = minPlotH + m.GetCharHeight() + 2;
             m.SetFont(normal);
           }
-          const bool beside = pw > 0 && availW - pw - gap - x0 >= FromDIP(150);
-          const int textAvail = (beside ? availW - pw - gap : availW) - x0;
+          const bool beside = pw > 0 && plotX - gap - x0 >= FromDIP(150);
+          const int textAvail = (beside ? plotX - gap : availW) - x0;
           const int barW = std::min(FromDIP(240), textAvail);
           const int cols = 2 * cellW + gap <= textAvail ? 2 : 1;
           if (dc) {
@@ -459,7 +478,7 @@ wxSize ProgressBox::layout(wxDC *dc)
           y += lh / 3;
           const int textEnd = y;
           if (!b.plot.empty()) {
-            const wxRect r = beside ? wxRect(availW - pw, y0, pw, ph)
+            const wxRect r = beside ? wxRect(plotX, y0, pw, ph)
                                     : wxRect(0, y, pw, ph);
             if (dc) {
               drawPlot(*dc, r, b.plot, plotCaption(b), pal, small, series);
