@@ -102,7 +102,7 @@ class MopacRunTypePanel(EccePanel):
             self.thermo = EcceCheckBox(self,
                                        label=" Thermochemistry (THERMO)",
                                        name="ES.Runtype.Vibration.Thermo",
-                                       default=False,
+                                       default=True,
                                        export=1)
             vibSizer.AddWidget(self.thermo)
             self.panelSizer.Add(vibSizer)
