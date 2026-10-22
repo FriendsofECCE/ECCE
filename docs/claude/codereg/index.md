@@ -81,6 +81,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [QE dispersion (vdw_corr): one output label per method, all read into EDISP](qe-dispersion-correction-prints-a-different-label-per-method.md)
 - [Per-atom charge schemes: one parser helper, one panel class](atomic-charge-schemes-share-one-panel-class.md)
 - [ECCE-QM extra charge sets: input keyword, output blocks, three ECCE keys](ecceqm-extra-charges-are-a-keyword.md)
+- [ECCE-QM analytic RHF Hessian: libcint derivative sign, ordered-pair double counting, scope](ecceqm-analytic-hessian-conventions.md)
 - [A `.desc` bracket group's names are labels, not the stored key](labels-not-the-stored-key.md)
 - [NWChem's `.desc` `Begin` patterns match the `ecce_print` trace file, not NWChem's stdout](nwchems-desc-begin-patterns-begin-end-task.md)
 - [NWChem MP2 and coupled cluster: which module each theory uses, and why MP/CC decks once aborted (#297)](nwchem-mp2-and-coupled-cluster-297.md)

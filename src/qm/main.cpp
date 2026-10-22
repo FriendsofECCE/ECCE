@@ -1,6 +1,7 @@
 // ecce-qm: command line driver.
 //   ecce-qm [--basis-dir DIR] [--molden FILE] [-o OUT] [-v] input.qm
 #include <chrono>
+#include <cstdlib>
 #include <cmath>
 #include <fstream>
 #include <memory>
@@ -12,6 +13,7 @@
 #include "basis.hpp"
 #include "charges.hpp"
 #include "gradient.hpp"
+#include "hessian.hpp"
 #include "input.hpp"
 #include "integrals.hpp"
 #include "output.hpp"
@@ -106,12 +108,34 @@ int main(int argc, char** argv) {
       qm::FrequencyOutput fo;
       fo.step = in.hessian_step;
       for (double v : g0) fo.max_gradient = std::max(fo.max_gradient, std::fabs(v));
-      const qm::ScfResult r_ref = r;
+      qm::ScfResult r_ref = r;
       qm::ScfOptions so = in.scf;
       so.conv_grad = std::min(so.conv_grad, 1e-8);
       so.conv_energy = std::min(so.conv_energy, 1e-11);
       so.max_iter = std::max(so.max_iter, 200);
       so.on_cycle = [&](const qm::ScfCycle& c) { qm::write_progress_scf(os, c, so); };
+      // Closed-shell RHF: analytic Hessian and dipole derivatives (one tightly
+      // converged SCF).  Raman needs polarisability derivatives, and the
+      // in-core integrals may not fit; both keep the finite-difference path.
+      if (!in.numeric_hessian && !std::getenv("ECCE_QM_NUMERIC_HESSIAN") && !in.raman &&
+          qm::analytic_hessian_available(in.scf, r_ref)) {
+        try {
+          qm::ScfOptions so2 = so;
+          so2.on_cycle = nullptr;
+          qm::ScfResult rt = qm::run_scf(*basis, ref, so2, &r_ref);
+          if (!rt.converged) throw qm::Error("SCF did not converge");
+          const int np = 3 * static_cast<int>(ref.atoms.size());
+          qm::write_progress_freq(os, 0, np);
+          qm::Derivatives d = qm::rhf_hessian(*basis, ref, so2, rt);
+          fo.step = 0;  // no displacements
+          fo.vib = qm::analyse_vibrations(ref, d);
+          fo.thermo = qm::thermochemistry(ref, fo.vib, in.temperature, in.pressure, in.symmetry_number);
+          qm::write_progress_freq_end(os, np, fo);
+          return fo;
+        } catch (const qm::Error& e) {
+          std::cerr << "ecce-qm: analytic Hessian unavailable (" << e.what() << "); using finite differences\n";
+        }
+      }
       // Displaced points run side by side when memory allows; the per-cycle
       // SCF lines of concurrent points would interleave, so they are dropped.
       qm::Concurrency conc;

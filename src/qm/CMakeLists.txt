@@ -87,7 +87,7 @@ FetchContent_MakeAvailable(libcint)
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
   molecule.cpp basislib.cpp basis.cpp integrals.cpp ao.cpp grid.cpp xc.cpp
-  scf.cpp charges.cpp gradient.cpp optimizer.cpp vibration.cpp polar.cpp input.cpp output.cpp)
+  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp vibration.cpp polar.cpp input.cpp output.cpp)
 target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include)
 target_link_libraries(eccems PUBLIC Eigen3::Eigen cint qm_xc)
 if(OpenMP_CXX_FOUND)
