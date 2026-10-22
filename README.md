@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.13** — In the Builder, clicks on atoms select them again after
+  File > Save; before, a saved calculation ignored atom picks until ECCE
+  was restarted.
 - **v8.18.12** — The Viewer no longer crashes opening the MOs of a calculation
   with many orbitals (ORCA above about 245): parsed results longer than
   2048 bytes per line were cut when stored.
