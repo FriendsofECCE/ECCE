@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""The Calculation Editor on a ready NWChem and a ready ORCA calculation,
-headlessly in local data mode (Geometry Constraints is in the Settings box).
+"""The Calculation Editor on ready NWChem, ORCA, Gaussian 16 and ECCE-QM calculations, at the default and a narrow width,
+headlessly in local data mode (editor minimum width comes from the Settings box).
 
     ECCE_TEST_HOME=<install> ECCE_TEST_WRAPPERS=<install bin> \\
         tools/screenshots/calced_layout_shots.py --out DIR [--tmp DIR]
@@ -23,7 +23,12 @@ import isolate     # noqa: E402
 import xdisplay    # noqa: E402
 
 FIXTURES = os.path.join(ROOT, "tests", "apps", "fixtures")
-CASES = [("nwchem", "calc-water-opt"), ("orca", "calc-orca-water-ccpvdz")]
+CASES = [("nwchem", os.path.join(FIXTURES, "calc-water-opt")),
+         ("orca", os.path.join(FIXTURES, "calc-orca-water-ccpvdz")),
+         ("g16", os.path.join(FIXTURES, "calc-polar-h2o-g16")),
+         ("ecceqm", os.path.join(ROOT, "tests", "ecceqm", "fixtures", "h2o-geovib"))]
+# default editor size, then a narrow window
+SIZES = [("default", None), ("narrow", (300, 700))]
 
 
 def main():
@@ -50,17 +55,26 @@ def main():
             data.reset()
             apps.run(display, "organizer", windowTimeout=60, settle=20)
             for name, fixture in CASES:
+                if os.environ.get("SHOT_ONLY") and name not in os.environ["SHOT_ONLY"].split(","):
+                    continue
                 data.reset()
                 data.project()
-                help_shots.FIXTURE = os.path.join(FIXTURES, fixture)
+                help_shots.FIXTURE = fixture
                 data.calc("Ready", props=False, name=name)
-                err = help_shots.shootWindow(
-                    display, options.tmp, options.out, "calced-" + name,
-                    "ecce-calced", ["-context", data.url("tutorial", name)],
-                    env, settle=30)
-                if err:
-                    print("  %s: %s" % (name, err))
-                    failed += 1
+                for sizeName, size in SIZES:
+                    for attempt in range(3):
+                        try:
+                            err = help_shots.shootWindow(
+                                display, options.tmp, options.out,
+                                "calced-%s-%s" % (name, sizeName), "ecce-calced",
+                                ["-context", data.url("tutorial", name)],
+                                env, size=size, settle=30)
+                            break
+                        except subprocess.CalledProcessError as exc:
+                            err = "window went away; windows now: %s" % display.windows()
+                    if err:
+                        print("  %s: %s" % (name, err))
+                        failed += 1
         finally:
             os.environ.pop("ECCE_NO_REAP", None)
             apps.stopServices(display)

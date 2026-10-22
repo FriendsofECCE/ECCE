@@ -118,20 +118,18 @@ def deckCase(display, url, calcdir, expectZcoord, label):
               r"ECCE_CALCED_SCRIPT|FEEDBACK|notready|CALCED: theory", l)))
     if d is None:
         return
-    m = re.search(r"CALCED: constraints button=(\d) count=(\d+) note=(.*)", log)
-    want = ("" if expectZcoord is None else "")
+    m = re.search(r"CALCED: constraints count=(\d+) note=(.*)", log)
     if expectZcoord:
-        check(m is not None and m.group(1) == "1" and m.group(2) == "1" and
-              m.group(3).strip() == "1 constraint defined",
-              "%s: the editor notes the constraint, no restriction: %s" %
-              (label, m.group(3) if m else "?"), run_tests._tail(log, 20))
+        check(m is not None and m.group(1) == "1" and m.group(2).strip() == "",
+              "%s: the editor holds the constraint and shows no warning: %s" %
+              (label, m.group(2) if m else "?"), run_tests._tail(log, 20))
         check(not re.search(r"CALCED: verify (UNSURE|other)", log),
               "%s: Verify has nothing to add: %s" % (label, re.findall(r"CALCED: verify.*", log)))
     else:
-        check(m is not None and m.group(1) == "1" and m.group(2) == "2" and
-              m.group(3).strip() == "2 constraints defined: used only by geometry optimisations",
-              "%s: the editor says the constraints are used only by geometry "
-              "optimisations: %s" % (label, m.group(3) if m else "?"), run_tests._tail(log, 20))
+        check(m is not None and m.group(1) == "2" and
+              m.group(2).strip() == "2 constraints, not used by an Energy run",
+              "%s: the editor warns the run type ignores the constraints: %s" %
+              (label, m.group(2) if m else "?"), run_tests._tail(log, 20))
         v = re.search(r"CALCED: verify UNSURE: (.*)", log)
         check(v is not None and "left out of this input" in v.group(1),
               "%s: Verify notes it: %s" % (label, v.group(1) if v else "?"))

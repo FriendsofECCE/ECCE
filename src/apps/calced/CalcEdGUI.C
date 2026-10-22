@@ -37,6 +37,7 @@
 ////@end includes
 
 #include "wxgui/ewxBitmap.H"
+#include <wx/gbsizer.h>
 
 #include "CalcEdGUI.H"
 
@@ -81,7 +82,6 @@ const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_PARTIAL = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_BASIS_QUICK = wxNewId();
 const wxWindowID CalcEdGUI::ID_MENU_FEEDBACK = wxNewId();
 const wxWindowID CalcEdGUI::ID_CHOICE_CALCED_RUNTYPE = wxNewId();
-const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_CONSTRAINT = wxNewId();
 const wxWindowID CalcEdGUI::ID_LABEL_CALCED_CD = wxNewId();
 const wxWindowID CalcEdGUI::ID_CALCED_FRAME = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_XC = wxNewId();
@@ -139,7 +139,6 @@ BEGIN_EVENT_TABLE( CalcEdGUI, ewxFrame )
 
     EVT_BUTTON( ID_BUTTON_CALCED_PARTIAL, CalcEdGUI::OnButtonCalcedPartialClick )
 
-    EVT_BUTTON( ID_BUTTON_CALCED_CONSTRAINT, CalcEdGUI::OnButtonCalcedConstraintClick )
 
     EVT_BUTTON( ID_BUTTON_CALCED_FINAL_EDIT, CalcEdGUI::OnButtonCalcedFinalEditClick )
     EVT_BUTTON( ID_BUTTON_CALCED_VERIFY, CalcEdGUI::OnButtonCalcedVerifyClick )
@@ -461,61 +460,40 @@ void CalcEdGUI::CreateControls()
     wxStaticBoxSizer* itemStaticBoxSizer67 = new wxStaticBoxSizer(p_detailsBox, wxHORIZONTAL);
     itemBoxSizer11->Add(itemStaticBoxSizer67, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
 
-    wxBoxSizer* itemBoxSizer68 = new wxBoxSizer(wxVERTICAL);
-    itemStaticBoxSizer67->Add(itemBoxSizer68, 0, wxALIGN_TOP, 5);
+    //  One layout for every code.  Columns: label, choice, label, choice;
+    //  each Details button sits under its choice at the same width, each
+    //  summary spans its label and choice.
+    wxGridBagSizer* settingsGrid = new wxGridBagSizer(FromDIP(4), FromDIP(5));
+    itemStaticBoxSizer67->Add(settingsGrid, 1, wxALIGN_TOP|wxALL, FromDIP(10));
 
-    wxBoxSizer* itemBoxSizer69 = new wxBoxSizer(wxVERTICAL);
-    itemBoxSizer68->Add(itemBoxSizer69, 0, wxALIGN_LEFT, 5);
-
-    wxBoxSizer* itemBoxSizer70 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer69->Add(itemBoxSizer70, 0, wxALIGN_LEFT|wxLEFT, 5);
-
-    ewxStaticText* itemStaticText71 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Theory:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer70->Add(itemStaticText71, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
+    settingsGrid->Add(new ewxStaticText( itemFrame1, wxID_STATIC, _("Theory:"), wxDefaultPosition, wxDefaultSize, 0 ),
+                      wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
     wxString* itemChoice72Strings = NULL;
     ewxChoice* itemChoice72 = new ewxChoice( itemFrame1, ID_CHOICE_CALCED_THEORY, wxDefaultPosition, wxDefaultSize, 0, itemChoice72Strings, 0 );
-    itemBoxSizer70->Add(itemChoice72, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    settingsGrid->Add(itemChoice72, wxGBPosition(0, 1), wxDefaultSpan, wxEXPAND);
 
-    ewxButton* itemButton73 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_THEORY, _("Theory Details..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer69->Add(itemButton73, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
-
-    p_theoryDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
-    itemBoxSizer68->Add(p_theoryDetailsSizer, 0, wxALIGN_LEFT|wxLEFT, 5);
-
-    itemStaticBoxSizer67->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
-    wxBoxSizer* itemBoxSizer76 = new wxBoxSizer(wxVERTICAL);
-    itemStaticBoxSizer67->Add(itemBoxSizer76, 0, wxALIGN_TOP, 5);
-
-    wxBoxSizer* itemBoxSizer77 = new wxBoxSizer(wxVERTICAL);
-    itemBoxSizer76->Add(itemBoxSizer77, 0, wxALIGN_LEFT, 5);
-
-    wxBoxSizer* itemBoxSizer78 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer77->Add(itemBoxSizer78, 0, wxALIGN_LEFT|wxLEFT, 5);
-
-    ewxStaticText* itemStaticText79 = new ewxStaticText( itemFrame1, wxID_STATIC, _("Runtype:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer78->Add(itemStaticText79, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
+    settingsGrid->Add(new ewxStaticText( itemFrame1, wxID_STATIC, _("Runtype:"), wxDefaultPosition, wxDefaultSize, 0 ),
+                      wxGBPosition(0, 2), wxDefaultSpan, wxALIGN_CENTER_VERTICAL|wxLEFT, FromDIP(11));
     wxString* itemChoice80Strings = NULL;
     ewxChoice* itemChoice80 = new ewxChoice( itemFrame1, ID_CHOICE_CALCED_RUNTYPE, wxDefaultPosition, wxDefaultSize, 0, itemChoice80Strings, 0 );
-    itemBoxSizer78->Add(itemChoice80, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    settingsGrid->Add(itemChoice80, wxGBPosition(0, 3), wxDefaultSpan, wxEXPAND);
 
-    ewxButton* itemButton81 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer77->Add(itemButton81, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+    settingsGrid->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_THEORY, _("Theory Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
+                      wxGBPosition(1, 1), wxDefaultSpan, wxEXPAND);
+    settingsGrid->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
+                      wxGBPosition(1, 3), wxDefaultSpan, wxEXPAND);
 
-    //  In the Settings box, not the bottom row, which it made wider.
-    ewxButton* itemButton85 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_CONSTRAINT, _("Geometry Constraints..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemButton85->Show(false);
-    itemBoxSizer77->Add(itemButton85, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+    p_theoryDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
+    settingsGrid->Add(p_theoryDetailsSizer, wxGBPosition(2, 0), wxGBSpan(1, 2), wxALIGN_LEFT);
 
-    //  "2 constraints defined: used only by geometry optimisations"
-    p_constraintNote = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer77->Add(p_constraintNote, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
-    p_constraintNote->Show(false);
-
+    //  "2 constraints (optimisations only)", under the runtype summary
+    wxBoxSizer* runtypeColumn = new wxBoxSizer(wxVERTICAL);
     p_runtypeDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
-    itemBoxSizer76->Add(p_runtypeDetailsSizer, 0, wxALIGN_LEFT|wxLEFT, 5);
+    runtypeColumn->Add(p_runtypeDetailsSizer, 0, wxALIGN_LEFT, 0);
+    p_constraintNote = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+    runtypeColumn->Add(p_constraintNote, 0, wxALIGN_LEFT|wxTOP, 2);
+    p_constraintNote->Show(false);
+    settingsGrid->Add(runtypeColumn, wxGBPosition(2, 2), wxGBSpan(1, 2), wxALIGN_LEFT|wxLEFT, FromDIP(11));
 
     //  "Initial guess: MOs from <calculation>", shown only when the
     //  calculation carries the orbitals of an earlier one.
@@ -857,18 +835,6 @@ void CalcEdGUI::OnButtonCalcedPartialClick( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_PARTIAL in CalcEdGUI. 
-}
-
-/*!
- * wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT
- */
-
-void CalcEdGUI::OnButtonCalcedConstraintClick( wxCommandEvent& event )
-{
-////@begin wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT in CalcEdGUI.
-    // Before editing this code, remove the block markers.
-    event.Skip();
-////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT in CalcEdGUI. 
 }
 
 /*!

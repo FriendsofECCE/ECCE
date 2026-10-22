@@ -1403,43 +1403,6 @@ void CalcEd::OnButtonCalcedPartialClick( wxCommandEvent& event )
 }
 
 
-void CalcEd::OnButtonCalcedConstraintClick( wxCommandEvent& event )
-{
-  openConstraints();
-  event.Skip();
-}
-
-
-/**
- * Constraints belong to the structure, so they are defined in the Builder
- * (Tools > Geometry Constraints) with the atoms selected there.
- */
-void CalcEd::openConstraints()
-{
-  const string url = getContext();
-  Target gateway(GATEWAY, "");
-  JMSMessage *msg = newMessage();
-  msg->addProperty("action", "start");
-  publish("ecce_activity", *msg);
-  delete msg;
-
-  msg = newMessage(gateway);
-  msg->markAsPointToPoint();
-  Resource *resource = EDSIFactory::getResource(url);
-  ResourceType *resourceType = resource ? resource->getDescriptor() : 0;
-  if (resourceType) {
-    vector<ResourceTool*> tools = resourceType->getTools();
-    for (size_t i = 0; i < tools.size(); i++) {
-      if (tools[i]->getName() == BUILDER) {
-        invoke(*msg, tools[i]->getName(), 0, url, "constraints");
-        break;
-      }
-    }
-  }
-  delete msg;
-}
-
-
 /**
  * Persistently delete the esp constraint model and clean up memory.
  */
@@ -1479,21 +1442,27 @@ void CalcEd::refreshConstraintCount()
 }
 
 
-/// "2 constraints defined: used only by geometry optimisations", or empty.
+/// "2 constraints, not used by an Energy run", or empty when the run type
+/// and code use them (they are edited in the Builder, not here).
 string CalcEd::constraintNote() const
 {
   if (p_constraintCount <= 0) return "";
-  char buf[96];
-  snprintf(buf, sizeof buf, "%d constraint%s defined", p_constraintCount,
-           p_constraintCount == 1 ? "" : "s");
-  string note = buf;
   bool supported = true;
   if (p_code) p_code->get_bool("SupportsConstraints", supported);
-  if (!supported)
-    note += ": " + p_codeName + " does not use geometry constraints";
-  else if (!GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString()))
-    note += ": used only by geometry optimisations";
-  return note;
+  string why;
+  if (!supported) {
+    why = "not used by " + p_codeName;
+  } else if (!GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString())) {
+    const string rt = getRuntypeName().ToStdString();
+    const bool vowel = !rt.empty() && strchr("AEIOUaeiou", rt[0]);
+    why = string("not used by ") + (vowel ? "an " : "a ") + rt + " run";
+  } else {
+    return "";
+  }
+  char buf[96];
+  snprintf(buf, sizeof buf, "%d constraint%s, ", p_constraintCount,
+           p_constraintCount == 1 ? "" : "s");
+  return buf + why;
 }
 
 
@@ -2709,9 +2678,11 @@ void CalcEd::populateSummaryField(const string& summaryType)
           }
         }
       }
-      if (isNested && count > 0) {
-        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY,
-                topLabel), 0, 0, 0);
+      //  A group heading ("SCF Convergence-") goes in front of each label
+      //  ("SCF Conv. Density") instead of on a line of its own; the full
+      //  text is the tooltip.  A toggle group keeps its heading line.
+      if (isNested && toggleSet && count > 0) {
+        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, topLabel), 0, 0, 0);
         sizer->AddSpacer(1);
       }
       for (size_t i = 0; i < keys.size(); i++) {
@@ -2726,12 +2697,22 @@ void CalcEd::populateSummaryField(const string& summaryType)
           if (toggleSet) {
             if (value == "true") {
               sizer->Add(new ewxStaticText(this, wxID_ANY, labels[i]),
-                         0, isNested ? wxALIGN_RIGHT : 0, 0);
+                         0, isNested ? wxLEFT : 0, isNested ? FromDIP(12) : 0);
               sizer->AddSpacer(0);
             }
           } else {
-            sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, labels[i]),
-                       0, isNested ? wxALIGN_RIGHT : 0, 0);
+            wxString full = wxString::FromUTF8(labels[i]);
+            wxString shown = full;
+            if (isNested) {
+              wxString head = wxString::FromUTF8(topLabel);
+              if (head.EndsWith("-")) head.RemoveLast();
+              full = head + " " + full;
+              shown = full;
+              shown.Replace("Convergence", "Conv.");
+            }
+            ewxNonBoldLabel *lab = new ewxNonBoldLabel(this, wxID_ANY, shown);
+            if (shown != full) lab->SetToolTip(full);
+            sizer->Add(lab, 0, wxRIGHT, 0);
             wxSizer *valSizer = new wxBoxSizer(wxHORIZONTAL);
             valSizer->Add(new ewxStaticText(this, wxID_ANY, value),
                           0, wxLEFT, 2);
@@ -3806,10 +3787,8 @@ void CalcEd::showGeomEditor()
     p_code->get_bool("SupportsConstraints", supportsConstraints);
   }
 
-  // Any run type: the constraints belong to the structure, the run type only
-  // decides whether the input uses them (see the note beside the button).
-  FindWindow(ID_BUTTON_CALCED_CONSTRAINT)->Show(!isSubmitted
-          && hasFragment && supportsConstraints);
+  // The constraints belong to the structure; only a warning shows here, when
+  // the run type or code leaves them out.
   const string note = constraintNote();
   p_constraintNote->SetLabel(wxString::FromUTF8(note));
   p_constraintNote->SetToolTip(wxString::FromUTF8(note));

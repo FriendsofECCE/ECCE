@@ -115,7 +115,6 @@ class CalcEd: public CalcEdGUI,
     virtual void OnButtonCalcedTheoryClick( wxCommandEvent& event );
     virtual void OnButtonCalcedRuntypeClick( wxCommandEvent& event );
     virtual void OnButtonCalcedPartialClick( wxCommandEvent& event );
-    virtual void OnButtonCalcedConstraintClick( wxCommandEvent& event );
     virtual void OnButtonCalcedGuessDefaultClick( wxCommandEvent& event );
     virtual void OnButtonCalcedFinalEditClick( wxCommandEvent& event );
     virtual void OnButtonCalcedVerifyClick( wxCommandEvent& event );
@@ -245,7 +244,6 @@ class CalcEd: public CalcEdGUI,
     /// reports how many the structure has and opens the Builder for them.
     void refreshConstraintCount();
     string constraintNote() const;
-    void openConstraints();
     void updateESPModel();
     void clearESPModel();
 
