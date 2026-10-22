@@ -2981,6 +2981,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # The Run settings page's per-chain "Restrain chain" boxes on a prepared
+  # two-chain system; grompp counts the restrained atoms.
+  add_test(NAME launch_gromacs_chain_posres
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_chain_posres_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_chain_posres PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # A GROMACS Prepare (pdb2gmx, editconf, solvate, genion) and the Optimize
   # after it, through the real launch path; skipped (77) without gmx.
   # The GROMACS tutorial (help/src/gromacs-first-calculation.md): a protein

@@ -5,7 +5,9 @@
 #define _GROMACSRUNPANEL_H_
 
 #include <string>
+#include <vector>
 using std::string;
+using std::vector;
 
 #include "wxgui/ewxPanel.H"
 
@@ -32,6 +34,9 @@ class GromacsRunPanel : public ewxPanel
       /** Show the model's values; hides what the task cannot use. */
       void refresh();
 
+      /** Re-read the chains of the topology (after the Inputs page changed). */
+      void refreshChains();
+
       /** False once the task is submitted. */
       void setEditable(bool editable);
 
@@ -40,18 +45,21 @@ class GromacsRunPanel : public ewxPanel
 
       /**
        * Set a field as the user would (through its widget and event):
-       * defines, posres, posresname, groups, comgroups, tcgroups,
+       * defines, posres, posresname, chain:<id>, groups, comgroups, tcgroups,
        * barostat, pcoupltype, nstpcouple, extra, or "fill".
        */
       string setField(const string& name, const string& value);
 
    protected:
       void OnChanged(wxCommandEvent& event);
+      void OnChain(wxCommandEvent& event);
       void OnFill(wxCommandEvent& event);
       void OnFillMolecules(wxCommandEvent& event);
 
    private:
       void store();
+      void setChain(wxObject *box);
+      string chainSummary();
       void warn();
       void fillGroups(bool molecules);
 
@@ -61,6 +69,10 @@ class GromacsRunPanel : public ewxPanel
       ewxTextCtrl   *p_defines;
       ewxCheckBox   *p_posres;
       ewxTextCtrl   *p_posresName;
+      wxWindow      *p_defsBox;
+      wxSizer       *p_chainRow;
+      vector<string> p_chainIds;
+      vector<ewxCheckBox*> p_chainBoxes;
       wxWindow      *p_groupBox;
       ewxTextCtrl   *p_groups;
       ewxChoice     *p_comGroups;

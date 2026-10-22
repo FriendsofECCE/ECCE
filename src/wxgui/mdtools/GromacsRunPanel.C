@@ -7,6 +7,9 @@
 
 #include <cstdlib>
 #include <sstream>
+#include <vector>
+
+#include <wx/wrapsizer.h>
 
 #include "dsm/MDCompositeModel.H"
 #include "tdat/DynamicsModel.H"
@@ -24,6 +27,7 @@
 static const wxWindowID ID_RUN_FIELD = wxNewId();
 static const wxWindowID ID_RUN_FILL  = wxNewId();
 static const wxWindowID ID_RUN_FILLMOL = wxNewId();
+static const wxWindowID ID_RUN_CHAIN = wxNewId();
 
 static wxString W(const string& s) { return wxString::FromUTF8(s.c_str()); }
 static string S(const wxString& w) { return string(w.ToUTF8()); }
@@ -76,6 +80,9 @@ GromacsRunPanel::GromacsRunPanel(MDEdBase *owner, wxWindow *parent)
   pr->Add(p_posresName, 0);
   g1->Add(pr, 0);
   defs->Add(g1, 0, wxALL | wxEXPAND, 6);
+  p_defsBox = db;
+  p_chainRow = new wxWrapSizer(wxHORIZONTAL);
+  defs->Add(p_chainRow, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 6);
   top->Add(defs, 0, wxALL | wxEXPAND, 6);
 
   // ---- groups by residue name (dynamics tasks) ----
@@ -229,6 +236,7 @@ GromacsRunPanel::GromacsRunPanel(MDEdBase *owner, wxWindow *parent)
   Bind(wxEVT_TEXT, &GromacsRunPanel::OnChanged, this, ID_RUN_FIELD);
   Bind(wxEVT_CHECKBOX, &GromacsRunPanel::OnChanged, this, ID_RUN_FIELD);
   Bind(wxEVT_CHOICE, &GromacsRunPanel::OnChanged, this, ID_RUN_FIELD);
+  Bind(wxEVT_CHECKBOX, &GromacsRunPanel::OnChain, this, ID_RUN_CHAIN);
   Bind(wxEVT_BUTTON, &GromacsRunPanel::OnFill, this, ID_RUN_FILL);
   Bind(wxEVT_BUTTON, &GromacsRunPanel::OnFillMolecules, this, ID_RUN_FILLMOL);
 }
@@ -276,6 +284,7 @@ void GromacsRunPanel::refresh()
   p_loading = false;
 
   bool dyn = m.getDynamicsModel() != 0;
+  refreshChains();
   p_groupBox->Show(dyn);
   p_pressureBox->Show(dyn);
   p_pullBox->Show(dyn);
@@ -344,8 +353,95 @@ void GromacsRunPanel::warn()
   Layout();
 }
 
+// Chains that pdb2gmx left unmerged are molecules named <x>_chain_<id>; the
+// prepared topology restrains each under POSRES_<id>.  Merged or unprepared
+// topologies have none, and then no boxes are shown.
+static vector<string> chainIds(const vector<string>& molecules)
+{
+  vector<string> ids;
+  const string key = "_chain_";
+  for (size_t i = 0; i < molecules.size(); i++) {
+    size_t p = molecules[i].rfind(key);
+    if (p == string::npos || p + key.size() >= molecules[i].size()) continue;
+    string id = molecules[i].substr(p + key.size());
+    bool seen = false;
+    for (size_t j = 0; j < ids.size(); j++) if (ids[j] == id) seen = true;
+    if (!seen) ids.push_back(id);
+  }
+  return ids;
+}
+
+static vector<string> words(const string& s)
+{
+  vector<string> w;
+  std::istringstream in(s);
+  string t;
+  while (in >> t) w.push_back(t);
+  return w;
+}
+
+void GromacsRunPanel::refreshChains()
+{
+  if (p_chainRow == 0) return;
+  GromacsInputsPanel *in = p_owner ? p_owner->gromacsInputs() : 0;
+  vector<string> ids = in ? chainIds(in->moleculeNames()) : vector<string>();
+  if (ids != p_chainIds) {
+    p_chainRow->Clear(true);
+    p_chainBoxes.clear();
+    p_chainIds = ids;
+    for (size_t i = 0; i < ids.size(); i++) {
+      ewxCheckBox *cb = new ewxCheckBox(p_defsBox, ID_RUN_CHAIN,
+          wxString::Format(_("Restrain chain %s"), W(ids[i])));
+      cb->SetToolTip(wxString::Format(_("Adds -DPOSRES_%s to the defines. "
+          "The prepared topology restrains this chain alone under that name."),
+          W(ids[i])));
+      p_chainRow->Add(cb, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, 12);
+      p_chainBoxes.push_back(cb);
+    }
+  }
+  vector<string> have = words(S(p_defines->GetValue()));
+  for (size_t i = 0; i < p_chainIds.size(); i++) {
+    string flag = "-DPOSRES_" + p_chainIds[i];
+    bool on = false;
+    for (size_t j = 0; j < have.size(); j++) if (have[j] == flag) on = true;
+    p_chainBoxes[i]->SetValue(on);
+  }
+  Layout();
+}
+
+// A chain box adds or removes its flag in the Defines field, leaving the
+// rest of what the user typed alone.
+void GromacsRunPanel::OnChain(wxCommandEvent& event)
+{
+  setChain(event.GetEventObject());
+  event.Skip();
+}
+
+void GromacsRunPanel::setChain(wxObject *box)
+{
+  vector<string> have = words(S(p_defines->GetValue()));
+  string out;
+  for (size_t i = 0; i < p_chainIds.size(); i++) {
+    if (box != p_chainBoxes[i]) continue;
+    string flag = "-DPOSRES_" + p_chainIds[i];
+    bool on = p_chainBoxes[i]->GetValue();
+    bool found = false;
+    vector<string> kept;
+    for (size_t j = 0; j < have.size(); j++) {
+      if (have[j] == flag) { found = true; if (on) kept.push_back(have[j]); }
+      else kept.push_back(have[j]);
+    }
+    if (on && !found) kept.push_back(flag);
+    have = kept;
+  }
+  for (size_t j = 0; j < have.size(); j++) out += (j ? " " : "") + have[j];
+  p_defines->ChangeValue(W(out));
+  store();
+}
+
 void GromacsRunPanel::OnChanged(wxCommandEvent& event)
 {
+  if (!p_loading && event.GetEventObject() == p_defines) refreshChains();
   store();
   event.Skip();
 }
@@ -391,6 +487,15 @@ static string oneLine(string s)
   return s;
 }
 
+// "A:1,B:0" (ticked or not), "none" without chain boxes.
+string GromacsRunPanel::chainSummary()
+{
+  string out;
+  for (size_t i = 0; i < p_chainIds.size(); i++)
+    out += (i ? "," : "") + p_chainIds[i] + ":" + (p_chainBoxes[i]->GetValue() ? "1" : "0");
+  return out.empty() ? "none" : out;
+}
+
 string GromacsRunPanel::summary()
 {
   InteractionModel *im = p_owner->getMDModel().getInteractionModel();
@@ -400,6 +505,7 @@ string GromacsRunPanel::summary()
   os << "defines=" << S(p_defines->GetValue())
      << " posres=" << (p_posres->GetValue() ? 1 : 0)
      << " posresname=" << S(p_posresName->GetValue())
+     << " chains=" << chainSummary()
      << " groups=[" << oneLine(S(p_groups->GetValue())) << "]"
      << " comgroups=" << p_comGroups->GetSelection()
      << " tcgroups=" << p_tcGroups->GetSelection()
@@ -425,6 +531,16 @@ string GromacsRunPanel::setField(const string& name, const string& value)
   if (name == "defines") p_defines->SetValue(v);
   else if (name == "posres") p_posres->SetValue(value == "1");
   else if (name == "posresname") p_posresName->SetValue(v);
+  else if (name.compare(0, 6, "chain:") == 0) {
+    refreshChains();
+    for (size_t i = 0; i < p_chainIds.size(); i++) {
+      if (p_chainIds[i] != name.substr(6)) continue;
+      p_chainBoxes[i]->SetValue(value == "1");
+      setChain(p_chainBoxes[i]);
+      return "ok";
+    }
+    return "no such chain";
+  }
   else if (name == "groups") p_groups->SetValue(v);
   else if (name == "extra") p_extra->SetValue(v);
   else if (name == "nstpcouple") p_nstpcouple->SetValue(v);
