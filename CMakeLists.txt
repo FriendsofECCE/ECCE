@@ -3040,6 +3040,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # The MOPAC ammonia example's charges colour the atoms without closing the
+  # Builder (#429); skipped (77) without Xvfb, import or python3-pil.
+  add_test(NAME apps_example_charges
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/example_charges_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_example_charges PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Real (xdotool) clicks on atoms still select after File > Save, a second
   # Save and a switch back to the calculation (#423); skipped (77) without
   # Xvfb or xdotool.
