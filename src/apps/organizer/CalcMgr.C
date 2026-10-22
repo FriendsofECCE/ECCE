@@ -456,9 +456,10 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
 /**
  * treeflags      the tree with "+" (expander) and "-" (open) on each node
- * examplesmenu   the same through the menu item's own handler
- * examples        File > Open Example Calculations: a new project
- *                 Examples (Examples_2, ...) with the shipped examples
+ * examples [set]  import an example set (default general) as the dialog's
+ *                 OK does: "ok <project> created|existing"
+ * examplesdialog  show File > Open Example Calculations' dialog, non-modal
+ * examplesmenu    the menu item's own handler (opens the modal dialog)
  * import <file>   import <file> into session-test, as File > Import
  *                 Calculation from Output File does
  * walk            select and expand every node below the home, as a user
@@ -517,6 +518,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * answer ok|stop  answer the modal dialog that is open (Quit ECCE) with OK
  *                 or Quit and Stop Server
  */
+static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
+
 void CalcMgr::runTestCommand(const string& line)
 {
   string outcome;
@@ -541,11 +544,21 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = "done";
     } else if (command == "examples") {
       // File > Open Example Calculations
+      // "examples SET" imports a set without the dialog (default general)
       string message;
-      string made = openExamples(message);
-      outcome = made.empty() ? "not made: " + message : "ok " + made;
+      const string set = line.size() > command.size() + 1 ? calcName : "general";
+      bool created = false;
+      string made = openExampleSet(set, message,
+                                   created);
+      outcome = made.empty() ? "not made: " + message
+                             : "ok " + made + (created ? " created" : " existing");
+    } else if (command == "examplesdialog") {
+      // the dialog, shown without blocking, for a screenshot
+      int unused = -1;
+      makeExamplesDialog(this, &unused)->Show();
+      outcome = "ok";
     } else if (command == "examplesmenu") {
-      // the menu item itself (disabler, message), not openExamples() alone
+      // the menu item itself (disabler, message), not openExampleSet() alone
       wxCommandEvent ev(wxEVT_COMMAND_MENU_SELECTED,
                         CalcMgrGUI::wxID_OPENEXAMPLES);
       ProcessEvent(ev);
@@ -2908,40 +2921,133 @@ void CalcMgr::OnImportGromacsClick( wxCommandEvent& event )
 }
 
 
+/**
+ * The shipped example calculations are program outputs (data/client/examples/
+ * <set>/<calc>), imported as any output is.  Each set goes into its own
+ * project, once: asking again selects it, so a user's own copy is never
+ * overwritten.  Its "ecce:exampleSet" metadata says which version of the
+ * example sets it was made from, for a later "newer examples" notice.
+ * A set is listed only if its folder holds a set.txt (display name, then
+ * one line of description).
+ */
+namespace {
+struct ExampleSet {
+  const char *id;            // folder name under data/client/examples
+  const char *project;       // project names allow no spaces
+  vector<const char *> outputs;
+};
+// "general" keeps the project name earlier versions used.  At most five
+// calculations there: it is imported at every user's first start.
+const vector<ExampleSet>& exampleSets()
+{
+  static const vector<ExampleSet> sets = {
+    {"general", "Examples", {
+      "ecceqm-water/water.qmout",
+      "orca-benzene/benzene.out",
+      "ecceqm-ethanol/ethanol.qmout",
+      "mopac-ammonia/ammonia.out",
+      "nwchem-methane/methane.eprint"}},
+    {"computational", "Examples_Computational", {
+      "gromacs-trpcage"}},
+  };
+  return sets;
+}
+const char *const kExampleSetVersion = "3";
+
+string examplesDir()
+{
+  return string(Ecce::ecceHome()) + "/data/client/examples/";
+}
+
+// The first two lines of <set>/set.txt; false if the set is not installed.
+bool exampleSetText(const ExampleSet& set, string& title, string& line)
+{
+  std::ifstream in(examplesDir() + set.id + "/set.txt");
+  if (!in || !std::getline(in, title) || title.empty()) return false;
+  std::getline(in, line);
+  return true;
+}
+}
+
+// The dialog behind File > Open Example Calculations: the sets in a
+// drop-down, the chosen one's description beneath it.  *chosen is the
+// index into exampleSets() after OK.
+static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen)
+{
+  wxDialog *dlg = new wxDialog(parent, wxID_ANY, _("Open Example Calculations"));
+  vector<wxString> names, lines;
+  vector<int> index;
+  const vector<ExampleSet>& sets = exampleSets();
+  for (size_t i = 0; i < sets.size(); i++) {
+    string title, line;
+    if (!exampleSetText(sets[i], title, line)) continue;
+    names.push_back(wxString::FromUTF8(title.c_str()));
+    lines.push_back(wxString::FromUTF8(line.c_str()));
+    index.push_back((int)i);
+  }
+  wxChoice *choice = new wxChoice(dlg, wxID_ANY);
+  for (const wxString& n : names) choice->Append(n);
+  if (!names.empty()) choice->SetSelection(0);
+  wxStaticText *text = new wxStaticText(dlg, wxID_ANY,
+      names.empty() ? wxString() : lines[0]);
+  text->Wrap(380);
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(new wxStaticText(dlg, wxID_ANY, _("Example set:")), 0,
+           wxLEFT | wxRIGHT | wxTOP, 12);
+  top->Add(choice, 0, wxEXPAND | wxALL, 12);
+  top->Add(text, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
+  top->Add(dlg->CreateButtonSizer(wxOK | wxCANCEL), 0, wxEXPAND | wxALL, 12);
+  dlg->SetSizerAndFit(top);
+  dlg->SetMinSize(wxSize(420, -1));
+  dlg->Fit();
+  choice->Bind(wxEVT_CHOICE, [=](wxCommandEvent&) {
+    int sel = choice->GetSelection();
+    if (sel >= 0 && sel < (int)lines.size()) {
+      text->SetLabel(lines[sel]);
+      text->Wrap(380);
+      dlg->Fit();
+    }
+  });
+  dlg->Bind(wxEVT_BUTTON, [=](wxCommandEvent& ev) {
+    int sel = choice->GetSelection();
+    if (chosen) *chosen = (sel >= 0 && sel < (int)index.size()) ? index[sel] : -1;
+    ev.Skip();
+  }, wxID_OK);
+  return dlg;
+}
+
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_OPENEXAMPLES
  */
 void CalcMgr::OnOpenExamplesClick( wxCommandEvent& event )
 {
+  int chosen = -1;
+  wxDialog *dlg = makeExamplesDialog(this, &chosen);
+  const int rc = dlg->ShowModal();
+  dlg->Destroy();
+  if (rc != wxID_OK || chosen < 0) return;
   startDisabler();
   string message;
-  if (openExamples(message).empty())
+  bool created = false;
+  if (openExampleSet(exampleSets()[chosen].id, message, created).empty())
     setMessage(message, WxFeedback::ERROR);
   else
     setMessage(message, WxFeedback::INFO);
   stopDisabler();
 }
 
-
-/**
- * The shipped example calculations are program outputs (data/client/examples),
- * imported as any output is.  Each call makes a fresh project, so a user's
- * own copy is never overwritten; its "ecce:exampleSet" metadata says which
- * version of the set it holds, for a later "newer examples" notice.
- */
-static const char *const kExampleOutputs[] = {
-  "ecceqm-water/water.qmout",
-  "orca-benzene/benzene.out",
-  "ecceqm-ethanol/ethanol.qmout",
-  "mopac-ammonia/ammonia.out",
-  "nwchem-methane/methane.eprint",
-  "gromacs-trpcage",
-};
-static const char *const kExampleSetVersion = "3";
-
-string CalcMgr::openExamples(string& message)
+string CalcMgr::openExampleSet(const string& setId, string& message,
+                               bool& created)
 {
-  const string dir = string(Ecce::ecceHome()) + "/data/client/examples/";
+  created = false;
+  const ExampleSet *set = nullptr;
+  for (const ExampleSet& s : exampleSets())
+    if (setId == s.id) set = &s;
+  if (!set) {
+    message = "There is no example set " + setId + ".";
+    return "";
+  }
+  const string dir = examplesDir() + set->id + "/";
   EDSIServerCentral central;
   EcceURL home = central.getDefaultUserHome();
   Resource *homeRes = EDSIFactory::getResource(home);
@@ -2949,7 +3055,7 @@ string CalcMgr::openExamples(string& message)
     message = "Cannot reach your home folder for the examples.";
     return "";
   }
-  for (const char *rel : kExampleOutputs) {
+  for (const char *rel : set->outputs) {
     if (!SFile(dir + rel).exists()) {
       message = "The example calculations are not installed (" + dir + rel +
                 " is missing).";
@@ -2957,10 +3063,14 @@ string CalcMgr::openExamples(string& message)
     }
   }
 
-  // Project names allow no spaces (NameRule of the project type).
-  string name = "Examples";
-  for (int n = 2; EDSIFactory::getResource(home.getChild(name)); n++)
-    name = "Examples_" + std::to_string(n);
+  const string name = set->project;
+  if (EDSIFactory::getResource(home.getChild(name))) {
+    findNode(home.getChild(name), true, true);
+    setContextPanel();
+    message = "The example calculations are in the project " + name + ".";
+    return name;
+  }
+  created = true;
 
   Resource *proj = homeRes->createChild(name,
       ResourceDescriptor::getResourceDescriptor().getResourceType(
@@ -2988,25 +3098,40 @@ string CalcMgr::openExamples(string& message)
   {
     WxCalcImport dlg(this);
     dlg.registerListener(this);
-    const int nExamples = sizeof(kExampleOutputs) / sizeof(*kExampleOutputs);
+    const int nExamples = set->outputs.size();
     // Shown at once: the import is always slow, and the window was
     // otherwise silent for its whole length.
     ewxProgressDialog progress(_("Example calculations"),
         _("Importing example calculations"), nExamples, this,
         wxPD_APP_MODAL | wxPD_SMOOTH);
     int step = 0;
-    for (const char *rel : kExampleOutputs) {
+    for (const char *rel : set->outputs) {
+      // "mopac-ammonia/ammonia.out" is shown as "MOPAC ammonia"
+      string label = rel;
       {
-        string label = rel;
+        static const struct { const char *key, *shown; } kCodes[] = {
+          {"ecceqm", "ECCE-QM"}, {"mopac", "MOPAC"}, {"nwchem", "NWChem"},
+          {"orca", "ORCA"}, {"gromacs", "GROMACS"}};
         size_t dash = label.find('-'), slash = label.find('/');
-        if (dash != string::npos)
-          label = label.substr(dash + 1, slash == string::npos ? string::npos
-                                                               : slash - dash - 1);
-        progress.Update(step, wxString::Format(
-            _("Importing example calculations: %s (%d of %d)"),
-            label.c_str(), step + 1, nExamples));
-        step++;
+        size_t from = dash == string::npos ? 0 : dash + 1;
+        string code = label.substr(0, dash);
+        string what = label.substr(from, slash == string::npos
+                                         ? string::npos : slash - from);
+        for (const auto &c : kCodes)
+          if (code == c.key) code = c.shown;
+        label = code + " " + what;
       }
+      step++;
+      // Update() also pumps events: the window keeps painting and answering.
+      auto show = [&](const string &detail) {
+        string text = string("Importing example calculations: ") +
+            std::to_string(step) + " of " + std::to_string(nExamples) + " - " +
+            label + detail;
+        progress.Update(step - 1, wxString::FromUTF8(text.c_str()));
+        cerr << "Organizer: example progress: " << step << " of "
+             << nExamples << " - " << label << detail << endl;
+      };
+      show("");
       // A directory is a GROMACS run (GromacsImport.H), a study named
       // after the example.
       struct stat st;
@@ -3014,8 +3139,10 @@ string CalcMgr::openExamples(string& message)
         string why, name = rel;
         if (name.compare(0, 8, "gromacs-") == 0) name = name.substr(8);
         const auto g0 = std::chrono::steady_clock::now();
-        if (importGromacsRun(proj, name, dir + rel, why).empty() ||
-            !why.empty())
+        if (importGromacsRun(proj, name, dir + rel, why,
+                             [&](const string &task) {
+                               show(" (" + task + ")");
+                             }).empty() || !why.empty())
           p_batchError = why;
         gmxSeconds += std::chrono::duration<double>(
             std::chrono::steady_clock::now() - g0).count();
@@ -3023,9 +3150,11 @@ string CalcMgr::openExamples(string& message)
         dlg.importFile(dir + rel);
       }
     }
+    // Not the maximum: wxProgressDialog then waits for a click on Close.
+    progress.Update(nExamples - 1, _("Reading results..."));
   }
   p_batchImport = false;
-  cerr << "Organizer: examples imported in "
+  cerr << "Organizer: examples " << set->id << " imported in "
        << std::chrono::duration<double>(
               std::chrono::steady_clock::now() - t0).count()
        << " s, of which the GROMACS run " << gmxSeconds << " s" << endl;
@@ -3084,7 +3213,8 @@ string CalcMgr::openExamples(string& message)
     p_batchError.clear();
     return "";
   }
-  message = "Example calculations are being imported into " + name + ".";
+  message = "Reading the results of the example calculations in " +
+            name + "...";
   return name;
 }
 
@@ -3114,14 +3244,15 @@ void CalcMgr::importExamplesOnce()
   } else {
     startDisabler();
     string message;
-    made = openExamples(message);
+    bool created = false;
+    made = openExampleSet("general", message, created);
     stopDisabler();
     if (made.empty()) {
       setMessage(message, WxFeedback::WARNING);
       return;
     }
     setMessage("The example calculations are in the project " + made +
-               "; File > Open Example Calculations makes a fresh copy.",
+               "; File > Open Example Calculations has more.",
                WxFeedback::INFO);
   }
   prefs.setString("Organizer.ExampleSet", kExampleSetVersion);
@@ -7150,7 +7281,7 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
 
     // get the parent of the calculation
     if (p_batchImport) {
-      // openExamples() rebuilds the project's subtree once, at the end.
+      // openExampleSet() rebuilds the project's subtree once, at the end.
     } else if (parentData != (WxResourceTreeItemData*)0) {
       p_treeCtrl->refresh(parentData);
     }

@@ -54,6 +54,20 @@ class NModePanel : public NModesGUI,
       void previousStep();
       void start();
       void stop();
+      /// Upper end of the slider: arrow length in Vector, amplitude in
+      /// Animation (beyond 1.5 the molecule flies apart).
+      static constexpr double MAX_SCALE = 5.0;
+      static constexpr double MAX_AMPLITUDE = 1.5;
+      double maxScale();
+      double sliderValue();
+      void restoreHome();
+      /// A value typed into the slider's field, as the panel then uses it.
+      double typeScale(double value);
+      /** Space in the viewer: pause or resume a running Animation.
+          False, and nothing done, when no animation is running or paused. */
+      bool togglePause();
+      bool isAnimating() const { return p_animating; }
+      bool isPaused() const { return p_paused; }
       int animationDelay();
       bool isGraphShown();
 
@@ -76,6 +90,13 @@ class NModePanel : public NModesGUI,
       /** The spectrum as CSV (#392); false if the file cannot be written.
           The curve covers the data's full wavenumber range at 1 cm-1. */
       bool exportSpectrumCsv(const wxString& path, VibKind kind);
+
+      /** Test hook (#445): a left click on mode `mode` (0-based) in the
+          graph; `mismatch` gets the share of canvas pixels on screen that
+          differ from the layout the click is tested on, `selected` the
+          mode selected afterwards.  False if the graph is hidden or the
+          mode has no stick. */
+      bool scriptSpectrumClick(int mode, double *mismatch, int *selected);
 
       /** Another calculation of the same folder as a second curve in the
           spectrum (#173); "" removes it.  False if there is no such
@@ -122,8 +143,6 @@ class NModePanel : public NModesGUI,
       void OnMenuClick( wxCommandEvent& event );
       void OnMenuButtonClick( wxCommandEvent& event );
       void OnTextctrlNmodeDelayEnter( wxCommandEvent& event );
-      void OnBitmapbuttonStartClick( wxCommandEvent& event );
-      void OnBitmapbuttonStopClick( wxCommandEvent& event );
       void OnButtonNmodeVeccolorClick( wxCommandEvent& event );
       void OnEndSliderMotion(wxScrollEvent& event);
       void OnSliderTextEnter(wxCommandEvent& event);
@@ -144,10 +163,14 @@ class NModePanel : public NModesGUI,
       wxWeakRef<SpectrumCanvas> p_spectrumPop;
       std::shared_ptr<VibSpectrum> p_compare;   // the second curve, if any
       string p_compareName, p_compareCode;
+      wxButton *p_compareRemove = 0;
       wxTextCtrl *p_fwhmText;
       wxTextCtrl *p_scaleText;
 
       wxTimer *p_timer;
+      std::vector<double> p_home;   // atoms as they were before the animation
+      bool p_active = false;     // the panel has taken the viewer
+      bool p_paused = false;     // Space stopped the timer, mode still Animation
       bool p_animating;          // from Start until Stop or a structure change
 
       /* scaling factor */

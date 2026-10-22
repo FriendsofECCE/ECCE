@@ -201,14 +201,8 @@
     <item key="ES.Theory.SCF.Precise" label="Precise"></item>
   </TheorySummary>
 
-  <RuntypeSummary topLabel="Geom. Convergence-">
-    <item key="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Gradient Norm"></item>
-  </RuntypeSummary>
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>
-  </RuntypeSummary>
-  <RuntypeSummary>
-    <item key="ES.Runtype.Vibration.Thermo" label="Thermochemistry"></item>
   </RuntypeSummary>
 </Editor>
 

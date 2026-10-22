@@ -146,9 +146,13 @@ orbital energies and occupations.
 
 1. Choose **Properties > Vibrational Frequencies**.
 2. Use the **Table** and **Graph** tabs to see the frequencies.
-3. Select a frequency and click the button with the tooltip **animate
-   normal mode**. **Scale:** sets the size of the displacement and
-   **Delay:** the speed. **stop animation** ends it.
+3. Choose **Animation** to see the selected vibration move at once, and
+   select another frequency to animate that one. **Amplitude:** sets the
+   size of the displacement and **Delay:** the speed. With the pointer
+   over the 3-D view, **Space** pauses the animation and resumes it, for
+   a measurement or a picture of a displaced structure. **Vector** shows
+   arrows instead and stops the animation, as does closing the panel or
+   choosing another property; the structure is back as calculated.
 
 The **Table** has a row for each vibration:
 

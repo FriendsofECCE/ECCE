@@ -5,19 +5,24 @@ area: codereg
 paths: ["data/client/examples", "src/apps/organizer/CalcMgr.C", "scripts/parsers/MOPAC.expt", "data/client/cap/MOPAC.edml", "tests/apps/examples_test.py"]
 issues: [302]
 ---
-`data/client/examples/<name>/` holds an output and its input (ECCE-QM water
+`data/client/examples/<set>/<name>/` holds an output and its input (ECCE-QM water
 and ethanol (Raman), ORCA benzene, MOPAC ammonia, NWChem methane), not a stored calculation: they
 go through the ordinary importer, so they stay valid when the stored format
-changes. `CalcMgr::openExamples` (menu item and the `examples` command of
-`ECCE_TEST_ORGANIZER`) makes project `Examples`, or `Examples_2`, ... (project
-names allow no spaces), sets `ecce:exampleSet` (the set version) on it, and
-imports each output; it never touches an existing project. At a user's
-first start `CalcMgr::importExamplesOnce` (CallAfter from the constructor)
-does the same once into `Examples`, recorded as the `Organizer.ExampleSet`
-preference; an existing `Examples` is only recorded. `isolate.py` sets
+changes. Folders are grouped in sets (`general`: at most five calcs, imported at first
+start into `Examples`; `computational`: the GROMACS Trp-cage, into
+`Examples_Computational`), each with a `set.txt` (display name, one line).
+`CalcMgr::openExampleSet` (File > Open Example Calculations asks which set;
+`examples SET` of `ECCE_TEST_ORGANIZER` skips the dialog) imports a set into
+its project, or only selects that project if it exists, and sets
+`ecce:exampleSet` (the set version) on it. At a user's first start
+`CalcMgr::importExamplesOnce` (CallAfter from the constructor) imports
+`general` once, recorded as the `Organizer.ExampleSet` preference; an
+existing `Examples` is only recorded. The import shows "N of M - <calc>" in
+the progress dialog (and as `example progress` log lines); never Update() it
+to its maximum, which waits for a click on Close. `isolate.py` sets
 `ECCE_NO_EXAMPLE_IMPORT=1` so the other app tests start with an empty tree;
 `examples_test.py` clears it. To change the set,
-add the output to `kExampleOutputs` and the expected `Props` to
+add the output to the set in `exampleSets()` and the expected `Props` to
 `tests/apps/examples_test.py`, and raise `kExampleSetVersion`.
 
 - NWChem is imported from the `ecce_print` stream (`.eprint`); a plain stdout

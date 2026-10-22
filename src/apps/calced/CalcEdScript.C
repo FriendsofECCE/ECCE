@@ -236,6 +236,8 @@ void CalcEd::runCalcEdScript(const string& file)
           {"charge", ID_COMBOBOX_CALCED_CHARGE},
           {"spin-label", ID_STATIC_CALCED_SPIN_MULT},
           {"theory", ID_CHOICE_CALCED_THEORY},
+          {"theory-details", ID_BUTTON_CALCED_THEORY},
+          {"runtype-details", ID_BUTTON_CALCED_RUNTYPE},
           {"basis-quick", ID_BUTTON_CALCED_BASIS_QUICK},
           {"verify", ID_BUTTON_CALCED_VERIFY},
           {"finaledit", ID_BUTTON_CALCED_FINAL_EDIT},

@@ -82,12 +82,6 @@ public:
     /// wxEVT_COMMAND_TEXT_ENTER event handler for ID_TEXTCTRL_NMODE_DELAY
     virtual    void OnTextctrlNmodeDelayEnter( wxCommandEvent& event );
 
-    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BITMAPBUTTON_START
-    virtual    void OnBitmapbuttonStartClick( wxCommandEvent& event );
-
-    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BITMAPBUTTON_STOP
-    virtual    void OnBitmapbuttonStopClick( wxCommandEvent& event );
-
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_NMODE_VECCOLOR
     virtual    void OnButtonNmodeVeccolorClick( wxCommandEvent& event );
 
@@ -115,8 +109,6 @@ public:
     wxBoxSizer* p_styleSizer;
     wxBoxSizer* p_animateSizer;
     wxBoxSizer* p_vectorSizer;
-    static const wxWindowID ID_BITMAPBUTTON_START;
-    static const wxWindowID ID_BITMAPBUTTON_STOP;
     static const wxWindowID ID_RADIOBOX_NMODE_VIZTYPE;
     /** Graph-or-table for the frequency list; orthogonal to the
         Animation/Vector choice above, which is about the 3-D view. */

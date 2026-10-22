@@ -412,8 +412,6 @@ def periodic(i):
             cells.append((col, r, k, 0))
     for col in range(2, 9):
         cells.append((col, 4, "f", 1.0))
-    i.add('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="1" fill="#1c2433" stroke="#1c2433" stroke-width=".8"/>'
-          % (ox - .6, oy - .6, 10 * c + 1.2, 5 * c + 1.0 + 1.2))
     for col, r, k, dy in cells:
         x, y = ox + col * c, oy + r * c + dy
         g = i.lin(0, y, 0, y + c, (0, pal[k][0]), (1, pal[k][1]))

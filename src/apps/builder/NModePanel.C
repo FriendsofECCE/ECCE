@@ -224,7 +224,7 @@ bool NModePanel::Create(IPropCalculation *calculation,
    ewxPanel *p = new ewxPanel(this);
    p_sliderSizer->Add(p, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
    p_slider = new SliderCombo(p, ID_SLIDER);
-   p_slider->SetRange((float)0.0, (float)30.0);
+   p_slider->SetRange(0.0, MAX_SCALE);
    p_slider->SetToolTip("Length of the displacement arrows, or the "
                         "amplitude of the animation");
 
@@ -385,6 +385,30 @@ void NModePanel::OnDataViewSelected( wxCommandEvent& event )
    //  Remembered the same way the tear-off menu remembered it.
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
    config->Write("NMode/View", (int)(event.GetSelection() == 0 ? GRAPH : TABLE));
+}
+
+
+bool NModePanel::scriptSpectrumClick(int mode, double *mismatch,
+                                     int *selected)
+{
+   if (!p_isValid || !isGraphShown()) return false;
+   *mismatch = p_spectrum->screenMismatch();
+   const VibSpectrum& s = p_spectrum->spectrum();
+   const VibKind kind = s.has(VIB_IR) ? VIB_IR : VIB_RAMAN;
+   wxPoint at;
+   if (!p_spectrum->stickPosition(kind, mode, &at)) return false;
+   //  The press and release of a left click, a few pixels below the top
+   //  of the stick, through the canvas's own handlers.
+   const wxEventType types[] = {wxEVT_LEFT_DOWN, wxEVT_LEFT_UP};
+   for (wxEventType t : types) {
+      wxMouseEvent e(t);
+      e.SetPosition(wxPoint(at.x, at.y + 3));
+      e.SetEventObject(p_spectrum);
+      e.m_leftDown = t == wxEVT_LEFT_DOWN;
+      p_spectrum->GetEventHandler()->ProcessEvent(e);
+   }
+   *selected = p_spectrum->selected();
+   return true;
 }
 
 
@@ -599,6 +623,16 @@ void NModePanel::createSpectrumPane()
       viewSizer->Insert(at + 3, compare, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
       compare->Bind(wxEVT_BUTTON,
                     [this](wxCommandEvent&) { compareDialog(); });
+      //  Enabled, not hidden, so the row does not reflow at narrow widths.
+      p_compareRemove = new wxButton(viewBox->GetParent(), wxID_ANY,
+                                     "Remove comparison");
+      p_compareRemove->SetToolTip("Remove the second curve and show this "
+                                  "calculation only.");
+      p_compareRemove->Enable(false);
+      viewSizer->Insert(at + 4, p_compareRemove, 0,
+                        wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      p_compareRemove->Bind(wxEVT_BUTTON,
+                    [this](wxCommandEvent&) { compareWith(string()); });
    }
 
    //  The wrap sizers under the plot learn their width only in a layout, so
@@ -748,6 +782,9 @@ void NModePanel::showAnimationMode()
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
+
+   // Choosing Animation plays the selected mode; there is no Start button.
+   if (p_active) start();
 }
 
 void NModePanel::showVectorMode()
@@ -758,6 +795,9 @@ void NModePanel::showVectorMode()
    p_styleSizer->Layout();
 
    stop();
+
+   // The animation leaves the atoms displaced; Vector draws the equilibrium.
+   if (checkStructure()) selectFragStep(-1);
 
    // Have to update because animations overwrite the cs.
    updateVectors();
@@ -853,6 +893,7 @@ bool NModePanel::compareWith(const string& name)
     p_compare.reset();
     p_compareName.clear();
     p_compareCode.clear();
+    if (p_compareRemove) p_compareRemove->Enable(false);
     fillGraph();
     return true;
   }
@@ -867,6 +908,7 @@ bool NModePanel::compareWith(const string& name)
     ChemistryTask *task = dynamic_cast<ChemistryTask*>(found[i]);
     const JCode *code = task ? task->application() : 0;
     p_compareCode = code ? code->name() : string();
+    if (p_compareRemove) p_compareRemove->Enable(true);
     fillGraph();
     return true;
   }
@@ -970,6 +1012,22 @@ void NModePanel::dumpSpectrumIfRequested()
                        k == VIB_IR ? "ir" : "raman", cs[i].mode + 1,
                        cs[i].wavenumber, cs[i].intensity);
          }
+      }
+      //  ECCE_SPECTRUM_REMOVE_COMPARE=1: click "Remove comparison" and
+      //  report the button and the second curve before and after.
+      if (other != 0 && getenv("ECCE_SPECTRUM_REMOVE_COMPARE") != 0 &&
+          p_compareRemove != 0) {
+         auto second = [&]() {
+            return (int)(p_spectrum->spectrum().compareSticks(VIB_IR).size() +
+                         p_spectrum->spectrum().compareSticks(VIB_RAMAN).size());
+         };
+         fprintf(out, "remove-button before enabled %d compare-sticks %d\n",
+                 p_compareRemove->IsEnabled() ? 1 : 0, second());
+         wxCommandEvent ev(wxEVT_BUTTON, p_compareRemove->GetId());
+         ev.SetEventObject(p_compareRemove);
+         p_compareRemove->GetEventHandler()->ProcessEvent(ev);
+         fprintf(out, "remove-button after enabled %d compare-sticks %d\n",
+                 p_compareRemove->IsEnabled() ? 1 : 0, second());
       }
       //  ECCE_SPECTRUM_WINDOW=1: open the pop-out and click in IT.
       SpectrumCanvas *clicker = p_spectrum;
@@ -1500,6 +1558,13 @@ void NModePanel::showMode(int index)
    fw.execute(cmd2);
    p_aniAmplitude = cmd2->getParameter("Amplitude")->getDouble();
 
+   // Another mode while Animation is chosen: play that one, also after a pause.
+   wxRadioBox *vizbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   if (vizbox && vizbox->GetSelection() == 0 && p_active) {
+      p_paused = false;
+      start();
+   }
+
    setSlider();
 
    processStep(p_currentStep);
@@ -1518,14 +1583,41 @@ void NModePanel::showMode(int index)
 
 }
 
+// Larger arrows or amplitudes are absurd; a typed or stored value is cut to
+// the slider's range instead of reaching the commands.
+double NModePanel::sliderValue()
+{
+   double value = p_slider->GetFloatValue();
+   const double top = maxScale();
+   if (value < 0.0 || value > top) {
+      value = value < 0.0 ? 0.0 : top;
+      p_slider->SetValue(value);
+   }
+   return value;
+}
+
+double NModePanel::typeScale(double value)
+{
+   p_slider->SetValue(value);
+   wxScrollEvent end;
+   OnEndSliderMotion(end);
+   return p_slider->GetFloatValue();
+}
+
+double NModePanel::maxScale()
+{
+   wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   return radbox && radbox->GetSelection() == 0 ? MAX_AMPLITUDE : MAX_SCALE;
+}
+
 void NModePanel::setSlider()
 {
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
-   if (radbox->GetSelection() == 0) {
-      p_slider->SetValue(p_aniAmplitude);
-   } else {
-      p_slider->SetValue(p_vecAmplitude);
-   }
+   const double v = radbox->GetSelection() == 0 ? p_aniAmplitude
+                                                : p_vecAmplitude;
+   const double top = maxScale();
+   p_slider->SetRange(0.0, top);
+   p_slider->SetValue(v > top ? top : v);
 }
 
 void NModePanel::processStep(int step)
@@ -1586,6 +1678,14 @@ void NModePanel::start()
 {
    if (!checkStructure()) return;
    if (!p_animating) {
+      // Calculations without a geometry trace have no step to go back to.
+      if (p_home.empty()) {
+         SGFragment *frag = getFW().getSceneGraph().getFragment();
+         for (size_t i = 0; frag && i < frag->numAtoms(); i++) {
+            const double *x = frag->atomRef(i)->coordinates();
+            p_home.insert(p_home.end(), x, x + 3);
+         }
+      }
       p_animating = true;
       p_timer->StartOnce(animationDelay());
    }
@@ -1594,7 +1694,39 @@ void NModePanel::start()
 void NModePanel::stop()
 {
    p_animating = false;
+   p_paused = false;
    p_timer->Stop();
+   restoreHome();
+}
+
+void NModePanel::restoreHome()
+{
+   if (p_home.empty()) return;
+   std::vector<double> home;
+   home.swap(p_home);
+   SGContainer& sg = getFW().getSceneGraph();
+   SGFragment *frag = sg.getFragment();
+   // An edited structure is not ours to move back.
+   if (!frag || frag->numAtoms() * 3 != home.size() || !modesApply()) return;
+   for (size_t i = 0; i < frag->numAtoms(); i++)
+      frag->atomRef(i)->coordinates(&home[3*i]);
+   sg.touchChemDisplay(frag);
+   frag->touch();
+   sg.adjustMeasures();
+}
+
+bool NModePanel::togglePause()
+{
+   if (p_animating) {
+      p_animating = false;
+      p_paused = true;
+      p_timer->Stop();
+      return true;
+   }
+   if (!p_paused) return false;
+   p_paused = false;
+   start();
+   return true;
 }
 
 // One-shot, re-armed after each step: a repeating timer shorter than a
@@ -1680,7 +1812,7 @@ void NModePanel::OnEndSliderMotion(wxScrollEvent& event)
       event.Skip();
       return;
    }
-   double value = static_cast<double>(p_slider->GetFloatValue());
+   double value = sliderValue();
 
    WxVizToolFW& fw = getFW();
    IPropCalculation *expt = getCalculation();
@@ -1726,6 +1858,8 @@ void NModePanel::OnSliderTextEnter(wxCommandEvent& event)
 
 void NModePanel::receiveFocus()
 {
+   // hasFocus() turns true only after this returns.
+   p_active = true;
    if (!checkStructure()) return;
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
    p_lastRadioSel = radbox->GetSelection();
@@ -1739,6 +1873,7 @@ void NModePanel::receiveFocus()
 
 void NModePanel::loseFocus()
 {
+   p_active = false;
    SGContainer& sg = getFW().getSceneGraph();
    sg.getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
@@ -1747,20 +1882,6 @@ void NModePanel::loseFocus()
    // Restore after the animation, never over an edited structure.
    if (checkStructure()) selectFragStep(-1);
 }
-
-void NModePanel::OnBitmapbuttonStartClick( wxCommandEvent& event )
-{
-   start();
-   event.Skip();
-}
-
-
-void NModePanel::OnBitmapbuttonStopClick( wxCommandEvent& event )
-{
-   stop();
-   event.Skip();
-}
-
 
 void NModePanel::OnButtonNmodeVeccolorClick( wxCommandEvent& event )
 {
@@ -1775,7 +1896,7 @@ void NModePanel::OnButtonNmodeVeccolorClick( wxCommandEvent& event )
       wxCheckBox *tgl = (wxCheckBox*)FindWindow(ID_CHECKBOX_NMODE_VECSIGN);
       bool sign = tgl->IsChecked();
 
-      updateVectors(p_mode, p_slider->GetFloatValue(), sign, bgcolor.ToStdString());
+      updateVectors(p_mode, sliderValue(), sign, bgcolor.ToStdString());
 
       btn->SetBackgroundColour(bgcolor);
 
@@ -1798,7 +1919,7 @@ void NModePanel::OnCheckboxNmodeVecsignClick( wxCommandEvent& event )
    wxButton *btn = (wxButton*)FindWindow(ID_BUTTON_NMODE_VECCOLOR);
    wxString color = btn->GetBackgroundColour().GetAsString(wxC2S_HTML_SYNTAX);
 
-   updateVectors(p_mode, p_slider->GetFloatValue(), sign, color.c_str());
+   updateVectors(p_mode, sliderValue(), sign, color.c_str());
    */
    updateVectors();
 
@@ -1902,7 +2023,7 @@ void NModePanel::updateVectors()
    wxButton *btn = (wxButton*)FindWindow(ID_BUTTON_NMODE_VECCOLOR);
    wxString color = btn->GetBackgroundColour().GetAsString(wxC2S_HTML_SYNTAX);
 
-   double value = static_cast<double>(p_slider->GetFloatValue());
+   double value = sliderValue();
 
    updateVectors(p_mode, value, sign, color.ToStdString());
 }

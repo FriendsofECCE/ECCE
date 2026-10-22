@@ -32,3 +32,9 @@ g16-h2o-optfreq` installs both calculations in the fixture account and checks
 the second's sticks and the CSV against the output file's own numbers;
 `SPECTRUM_REPO_CLIENT=1` is needed when the builder is newer than /opt/ecce.
 Unit test: `vibspectrum_test` (`testCompare`).
+
+"Remove comparison" (#425) sits after Compare... and is enabled only while a
+second curve is held; it calls `compareWith("")`, as choosing (none) does.
+`ECCE_SPECTRUM_REMOVE_COMPARE=1` clicks it from the dump hook and writes
+`remove-button before/after` lines; `capture.py --compare` checks them
+(`SPECTRUM_KEEP_COMPARE=1` skips the click, for a screenshot).
