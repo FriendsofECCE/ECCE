@@ -337,7 +337,10 @@ sub G09Route {
   $route .= &SCFOptions;
   $route .= &SCRFOptions;
 #  $route .= &AIMOptions;
-  $route .= &Symmetry($AbiDict{"UseSymmetry"}, $AbiDict{"Symmetry"});
+  # QST runs take their geometries from other calculations and need the
+  # bend a symmetrised structure would have removed, so no symmetry.
+  $route .= &isQstRunType($AbiDict{"RunType"}) ? "NoSymm "
+      : &Symmetry($AbiDict{"UseSymmetry"}, $AbiDict{"Symmetry"});
   # This is so we can detect the basis set on import.
   # - GFInput flag is unneeded to dump basissets - jmc
   #$route .= " GFInput";
@@ -1635,6 +1638,8 @@ sub qstStructures {
         for (my $i = 0; $i < $b{n}; $i++) {
           my ($t, $x, $y, $z) = split(' ', scalar(<QSTF>));
           push(@{$b{tags}}, $t);
+          # Gaussian rejects a coordinate written without a decimal point.
+          ($x, $y, $z) = map { /^[-+]?\d+$/ ? sprintf("%.8f", $_) : $_ } ($x, $y, $z);
           push(@{$b{xyz}}, "$x     $y     $z");
         }
       }

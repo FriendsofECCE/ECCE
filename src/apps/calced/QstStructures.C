@@ -78,7 +78,8 @@ static bool writeFrag(const std::string& file, const std::string& title,
 {
    std::ofstream os(file.c_str());
    if (!os) return false;
-   os.precision(10);
+   os.setf(std::ios::fixed);
+   os.precision(8);
    os << "ecce\nnum_atoms: " << el.size() << "\ntitle: " << title
       << "\natom_info: symbol x y z\natom_list:\n";
    for (size_t i = 0; i < el.size(); i++)
@@ -169,8 +170,9 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
       sprintf(buf, "%.2f", r.alignment.rmsdAfter);
       rm << (k ? "/" : "") << buf;
       if (!r.far.empty())
-         wr << role[k] << ": " << r.far.size()
-            << " atom(s) move more than 1 A after alignment. ";
+         dt << role[k] << ": " << r.far.size()
+            << " atom(s) move more than 1 A after alignment (expected for "
+               "an isomerisation). ";
       if (!writeFrag(base + ".qst" + char('1'+k) + ".frag", title, els[k],
                      xyz[k]))
          return false;
@@ -193,7 +195,8 @@ static bool writeXyz(const std::string& file, const std::string& title,
 {
    std::ofstream os(file.c_str());
    if (!os) return false;
-   os.precision(10);
+   os.setf(std::ios::fixed);
+   os.precision(8);
    os << el.size() << '\n' << title << '\n';
    for (size_t i = 0; i < el.size(); i++)
       os << el[i] << ' ' << xyz[3*i] << ' ' << xyz[3*i+1] << ' '
@@ -249,8 +252,9 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
       sprintf(buf, "%.2f", r.alignment.rmsdAfter);
       rm << (done++ ? "/" : "") << buf;
       if (!r.far.empty())
-         wr << role[k] << ": " << r.far.size()
-            << " atom(s) move more than 1 A after alignment. ";
+         dt << role[k] << ": " << r.far.size()
+            << " atom(s) move more than 1 A after alignment (expected for "
+               "an isomerisation). ";
       if (!writeXyz(file[k], t->getName(), el, xyz)) return false;
    }
    char cnt[16];
