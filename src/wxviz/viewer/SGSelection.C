@@ -77,6 +77,10 @@ void SGSelection::constructorCommon()
   p_inMotion = false;
   p_isdown = false;
   p_down = 0;
+  p_boxSelect = false;
+  p_dragStarts = false;
+  p_banding = false;
+  p_bandX0 = p_bandY0 = 0;
 
   // This doesn't seem to do anything.  You can see I tested it with
   // a large number.
@@ -462,6 +466,60 @@ bool SGSelection::readLassoSelection(SGFragment *sgfrag)
 void SGSelection::stopProcessing2DMotion()
 {
   p_inMotion = false;
+  showBand(false);
+}
+
+void SGSelection::setBoxSelect(bool on)
+{
+  p_boxSelect = on;
+  showBand(false);
+}
+
+bool SGSelection::atomSelected(int atom) const
+{
+  for (int d = 0; d < getNumDisplaysSelected(); d++) {
+    const MFVec2i &ranges = getDisplayPath(d)->getAtomIndex();
+    for (int i = 0; i < ranges.getNum(); i++) {
+      int32_t start, count;
+      ranges[i].getValue(start, count);
+      if (atom >= start && atom < start + count) return true;
+    }
+  }
+  return false;
+}
+
+//  The rubber band is drawn by the render area after the scene, from the
+//  pixel corners kept here.
+void SGSelection::showBand(bool on, short x1, short y1)
+{
+  p_banding = on && p_banding;
+  if (!p_viewer) return;
+  p_viewer->setRubberBand(p_banding, p_bandX0, p_bandY0, x1, y1);
+}
+
+//  Decides at the press what the drag will be: a box from empty space,
+//  a move from a selected atom, nothing from any other pick.
+void SGSelection::chooseGesture(SoHandleEventAction *action)
+{
+  const SoPickedPoint *pp = action->getPickedPoint();
+  bool onSelectedAtom = false;
+  if (pp) {
+    ChemPath *cp = processPickedPoint(pp);
+    if (cp && cp->isOfType(ChemDisplayPath::getClassTypeId())) {
+      vector<int> atoms;
+      readAtomSelection(*(ChemDisplayPath*)cp, atoms);
+      onSelectedAtom = !atoms.empty() && atomSelected(atoms[0]);
+    }
+  }
+  p_dragStarts = onSelectedAtom;
+  const bool box = !pp;
+  lassoType.setValue(box ? ChemSelection::DRAGGER : ChemSelection::NOLASSO);
+  p_banding = box;
+  if (box) {
+    const SbVec2s pos = action->getEvent()->getPosition();
+    p_bandX0 = pos[0];
+    p_bandY0 = pos[1];
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -490,6 +548,10 @@ void SGSelection::handleEvent(SoHandleEventAction *action)
 
   const SoEvent *event = action->getEvent();
 
+  const bool button1Down = p_boxSelect &&
+      SoMouseButtonEvent::isButtonPressEvent(event,
+                                             SoMouseButtonEvent::BUTTON1);
+  if (button1Down) chooseGesture(action);
 
   // Do what ChemSel has to do 
   // The new exception is that we don't pass the event on if we are doing 2d drag
@@ -519,7 +581,14 @@ void SGSelection::handleEvent(SoHandleEventAction *action)
   }
 // -----------------------------------------------------------------------------
 
-  if (viewer()->getSelectModeDrag() && p_isdown) {
+  if (p_banding && p_isdown &&
+      event->isOfType(SoLocation2Event::getClassTypeId())) {
+    const SbVec2s pos = event->getPosition();
+    showBand(true, pos[0], pos[1]);
+  }
+
+  if ((p_boxSelect ? p_dragStarts : viewer()->getSelectModeDrag()) &&
+      p_isdown) {
      // If we have recorded that down was pressed (but not up yet)
      // then if some time has elapsed and we aren't already in 2d move mode,
      // go into 2d move mode.
@@ -623,6 +692,11 @@ void SGSelection::handleEvent(SoHandleEventAction *action)
       if (be->getState() == SoButtonEvent::UP) {
          p_isdown = false;
          p_down = 0;
+         p_dragStarts = false;
+         if (p_boxSelect) {
+            showBand(false);
+            lassoType.setValue(ChemSelection::NOLASSO);
+         }
 
          mouseUpPickPath = copyFromThis(pickPath);
          if (p_inMotion) {

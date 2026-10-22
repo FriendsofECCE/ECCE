@@ -18,13 +18,17 @@ drag box or Select All selects them) rebuilt the delete list from the
 highlight alone and dropped the nubs `syncNubSelection` added: each nub
 stayed and gained a nub of its own.
 
-Drag box: `lassoType` is NOLASSO with Atom Drag (the default since PNNL)
-and in the Atom and Structure Library modes (`Builder::syncLassoType`);
-the View menu's Select Mode Action now applies at once. The box itself is
-never drawn: the wx port never set the overlay scene graph (`SGViewer`,
-`SoWxRenderArea::redrawOverlay` are stubs); the selection on release works.
+Select mode (Builder): `SGSelection::chooseGesture` decides at the press.
+Empty space starts a box (`lassoType` DRAGGER for that press only), a
+selected atom may move the selection after the 333 ms drag delay, any other
+pick only click-selects (a drag from an unselected atom moves nothing).
+`Builder::syncLassoType` turns this on in Select mode only; the View >
+Select Mode Action menu is gone and `/SelectModeDrag` is no longer read.
+The box is drawn by `SoWxRenderArea::drawRubberBand` in the GL frame after
+the scene (pixel corners from `SGSelection`), not by the overlay scene
+graph, which is still a stub.
 
 Script hooks: `bondorder single|double|triple|aromatic|metal` (sends
-BondChanged), `bondorders`, `selectbonds`, `selection`, `selectaction
-drag|lasso`. Test: `tests/apps/builder_edit_bugs_test.py`
+BondChanged), `bondorders`, `selectbonds`, `selection`, `coords`.
+Test: `tests/apps/builder_edit_bugs_test.py`
 (`apps_builder_edit_bugs`).

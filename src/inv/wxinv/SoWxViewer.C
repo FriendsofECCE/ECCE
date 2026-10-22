@@ -2461,6 +2461,13 @@ void SoWxViewer::getAntialiasing(SbBool &smoothing, int &numPasses) const
  * Set the window background color when in RGB mode.
  * (default to black (0,0,0));
  */
+void SoWxViewer::setRubberBand(bool on, short x0, short y0, short x1,
+                               short y1)
+{
+  p_renderArea->setRubberBand(on, x0, y0, x1, y1);
+}
+
+
 void SoWxViewer::setBackgroundColor(const SbColor &c)
 {
   p_renderArea->setBackgroundColor(c);
