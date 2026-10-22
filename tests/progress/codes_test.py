@@ -115,6 +115,17 @@ case("orca opt, not converged", "orca.desc", fx("orca", "optmax.out"),
 case("orca numerical frequencies", "orca.desc", fx("orca", "numfreq.out"),
      {"freq": {"point": "12/12", "done": "yes", "zpe": has("0.0229")}})
 
+# A relaxed scan: one record per scan point; the optimisation's history is
+# the whole job's, one descent per point (5 points, 39 steps).
+case("orca relaxed scan (ethane dihedral, HF/STO-3G, 5 points)", "orca.desc",
+     fx("orca", "scan.out"),
+     {"scan": {"point": "5/5"}, "opt": {"converged": "yes", "step": "6"}},
+     {"opt": (39, 39)})
+case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
+     fx("gaussian-16", "h2o2_dihedral_scan.log"),
+     {"scan": {"point": "7/7"}, "opt": {"converged": "yes"}},
+     {"opt": (13, 20)})
+
 case("gaussian-16 opt+freq (B3LYP/6-31G*, #P)", "gaussian-16.desc", fx("gaussian-16", "nh3_optfreq.log"),
      {"opt": {"step": "4", "converged": "yes", "maxgrad": target, "rmsgrad": target,
               "maxstep": target, "rmsstep": target, "dE": lambda v: "e-" in v},

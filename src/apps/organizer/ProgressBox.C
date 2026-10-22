@@ -7,6 +7,7 @@
 #include <cmath>
 #include <ctime>
 
+#include <wx/arrstr.h>
 #include <wx/button.h>
 #include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
@@ -49,6 +50,7 @@ ProgressBox::ProgressBox(wxWindow *parent)
   SetBackgroundStyle(wxBG_STYLE_PAINT);
   Bind(wxEVT_PAINT, &ProgressBox::OnPaint, this);
   Bind(wxEVT_TIMER, &ProgressBox::OnTimer, this);
+  Bind(wxEVT_SIZE, &ProgressBox::OnSize, this);
   Bind(wxEVT_LEFT_DOWN, &ProgressBox::OnClick, this);
   Bind(wxEVT_CONTEXT_MENU, &ProgressBox::OnContextMenu, this);
   ewxConfig::getConfig(INIFILE)->Read(FOLDKEY, &p_collapsed);
@@ -277,6 +279,26 @@ static void drawPlot(wxDC& dc, const wxRect& r, const vector<double>& v,
 }
 
 
+// `s` broken at spaces into rows no wider than `width` (a longer word keeps
+// its own row).
+static vector<wxString> wrapLine(wxDC& dc, const string& s, int width)
+{
+  vector<wxString> rows;
+  wxString cur;
+  for (const wxString& word : wxSplit(U(s), ' ')) {
+    const wxString t = cur.empty() ? word : cur + " " + word;
+    if (!cur.empty() && dc.GetTextExtent(t).x > width) {
+      rows.push_back(cur);
+      cur = word;
+    } else {
+      cur = t;
+    }
+  }
+  rows.push_back(cur);
+  return rows;
+}
+
+
 wxSize ProgressBox::layout(wxDC *dc)
 {
   const bool lost = outOfContact();
@@ -321,8 +343,21 @@ wxSize ProgressBox::layout(wxDC *dc)
       w = headW + gap + m.GetTextExtent(U(line)).x;
       size = wxSize(w, headingHeight());
     } else {
-      w = headW;
       y += headingHeight() + FromDIP(2);
+
+      vector<JobProgress::Block> blocks =
+          p_progress.running(std::max(0.0, age()), p_finished);
+      int titleW = 0;
+      m.SetFont(bold);
+      for (const auto& b : blocks)
+        titleW = std::max(titleW, m.GetTextExtent(U(b.title)).x);
+      m.SetFont(normal);
+      // The narrowest the box is ever laid out: one plot, or a title and a
+      // little text.  Wider than this it wraps instead of growing.
+      const int minPlotW = FromDIP(160), minPlotH = FromDIP(70);
+      w = std::max(std::max(headW, minPlotW), titleW + gap + FromDIP(120));
+      const int clientW = GetClientSize().x;
+      const int availW = std::max(clientW > 0 ? clientW : FromDIP(600), w);
 
       {
         if (lost) {
@@ -330,46 +365,31 @@ wxSize ProgressBox::layout(wxDC *dc)
               JobProgress::lastHeardText(p_lastHeard, (double)time(0));
           const string b = "The job may still be running; ECCE keeps trying "
                            "to reach its monitor.";
-          if (dc) {
-            dc->SetTextForeground(amber);
-            dc->DrawText(U(a), 0, y);
-            dc->SetTextForeground(text);
-            dc->DrawText(U(b), 0, y + lh);
+          if (dc) dc->SetTextForeground(amber);
+          for (const wxString& r : wrapLine(m, a, availW)) {
+            if (dc) dc->DrawText(r, 0, y);
+            y += lh;
           }
-          w = std::max(w, std::max(m.GetTextExtent(U(a)).x,
-                                   m.GetTextExtent(U(b)).x));
-          y += 2 * lh + lh / 3;
+          if (dc) dc->SetTextForeground(text);
+          for (const wxString& r : wrapLine(m, b, availW)) {
+            if (dc) dc->DrawText(r, 0, y);
+            y += lh;
+          }
+          y += lh / 3;
         }
 
-        vector<JobProgress::Block> blocks =
-            p_progress.running(std::max(0.0, age()), p_finished);
-        // Titles in one column; text after them; plots at the right.
-        int titleW = 0, cellW = 0;
-        m.SetFont(bold);
-        for (const auto& b : blocks)
-          titleW = std::max(titleW, m.GetTextExtent(U(b.title)).x);
+        // Titles in one column; text after them, wrapped to what is left;
+        // the plots go under the text, side by side while they fit.
+        int cellW = 0;
         m.SetFont(normal);
         for (const auto& b : blocks)
           for (const auto& c : b.criteria)
             cellW = std::max(cellW, m.GetTextExtent(U(c.label + " " + c.value +
                                                        " " + CHECK)).x);
         const int x0 = titleW + gap;
-        const int barW = FromDIP(240);
-        // The text column is as wide as its widest line; plots go after it.
-        int textW = 0;
-        bool anyPlot = false;
-        for (const auto& b : blocks) {
-          for (const string& l : b.lines)
-            textW = std::max(textW, m.GetTextExtent(U(l)).x);
-          if (!b.criteria.empty())
-            textW = std::max(textW, (b.criteria.size() > 1 ? 2 : 1) * cellW + gap);
-          if (b.bar) textW = std::max(textW, barW);
-          anyPlot = anyPlot || !b.plot.empty();
-        }
-        const int plotW = FromDIP(160), plotH = 3 * lh;
-        const int plotX = x0 + textW + gap;
-        if (!blocks.empty())
-          w = std::max(w, anyPlot ? plotX + plotW : x0 + textW);
+        const int textAvail = availW - x0;
+        const int barW = std::min(FromDIP(240), textAvail);
+        const int cols = 2 * cellW + gap <= textAvail ? 2 : 1;
         const wxColour series = lost ? fg : pal.series(0);
 
         for (const auto& b : blocks) {
@@ -380,13 +400,14 @@ wxSize ProgressBox::layout(wxDC *dc)
             dc->DrawText(U(b.title), 0, y);
             dc->SetFont(normal);
           }
-          for (const string& l : b.lines) {
-            if (dc) dc->DrawText(U(l), x0, y);
-            y += lh;
-          }
+          for (const string& l : b.lines)
+            for (const wxString& r : wrapLine(m, l, textAvail)) {
+              if (dc) dc->DrawText(r, x0, y);
+              y += lh;
+            }
           for (size_t i = 0; i < b.criteria.size(); i++) {
             const auto& c = b.criteria[i];
-            const int x = x0 + (int)(i % 2) * (cellW + gap);
+            const int x = x0 + (int)(i % cols) * (cellW + gap);
             if (dc) {
               const wxString t = U(c.label + " " + c.value + " ");
               dc->SetTextForeground(fg);
@@ -394,7 +415,8 @@ wxSize ProgressBox::layout(wxDC *dc)
               dc->SetTextForeground(lost ? fg : c.met ? pal.raman : pal.imaginary);
               dc->DrawText(U(c.met ? CHECK : CROSS), x + dc->GetTextExtent(t).x, y);
             }
-            if (i % 2 == 1 || i + 1 == b.criteria.size()) y += lh;
+            if ((int)(i % cols) == cols - 1 || i + 1 == b.criteria.size())
+              y += lh;
           }
           if (b.bar) {
             const wxRect bar(x0, y + lh / 5, barW, lh * 3 / 5);
@@ -410,17 +432,34 @@ wxSize ProgressBox::layout(wxDC *dc)
             }
             y += lh;
           }
-          if (!b.plot.empty()) {
-            if (dc)
-              drawPlot(*dc, wxRect(plotX, y0, plotW, plotH), b.plot,
-                       b.plotLabel, pal, small, series);
-            y = std::max(y, y0 + plotH);
-            if (dc) dc->SetFont(normal);
-          }
           // A stage with no line yet (a title only) still takes its own row,
           // or the next title is drawn over it.
           y = std::max(y, y0 + lh);
           y += lh / 3;
+        }
+
+        vector<const JobProgress::Block*> plots;
+        for (const auto& b : blocks)
+          if (!b.plot.empty()) plots.push_back(&b);
+        if (!plots.empty()) {
+          const int pg = FromDIP(10);
+          const int n = (int)plots.size();
+          const int perRow = std::min(n, std::max(1, (availW + pg) / (minPlotW + pg)));
+          const int pw = std::min(FromDIP(260),
+                                  (availW - (perRow - 1) * pg) / perRow);
+          m.SetFont(small);
+          const int ph = minPlotH + m.GetCharHeight() + 2;
+          m.SetFont(normal);
+          for (int i = 0; i < n; i++) {
+            const wxRect r((i % perRow) * (pw + pg), y + (i / perRow) * (ph + pg),
+                           pw, ph);
+            if (dc) {
+              drawPlot(*dc, r, plots[i]->plot, plots[i]->plotLabel, pal, small,
+                       series);
+              dc->SetFont(normal);
+            }
+          }
+          y += ((n + perRow - 1) / perRow) * (ph + pg);
         }
 
         // A finished job keeps its plots; the outcome goes under them.
@@ -436,12 +475,14 @@ wxSize ProgressBox::layout(wxDC *dc)
                 p_energyLabel->Show();
               }
               energyShown = true;
-            } else if (dc) {
-              dc->SetTextForeground(text);
-              dc->DrawText(U(s), 0, y);
+              y += lh;
+            } else {
+              if (dc) dc->SetTextForeground(text);
+              for (const wxString& r : wrapLine(m, s, availW)) {
+                if (dc) dc->DrawText(r, 0, y);
+                y += lh;
+              }
             }
-            w = std::max(w, m.GetTextExtent(U(s)).x);
-            y += lh;
           }
         }
 
@@ -457,10 +498,16 @@ wxSize ProgressBox::layout(wxDC *dc)
         }
 
         if (lost) {
-          // Real buttons, placed here when measuring (dc == 0).
+          // Real buttons, placed here when measuring (dc == 0); a row that
+          // does not fit goes on to the next.
           int x = 0, bh = 0;
           for (int i = 0; i < 3; i++) {
             const wxSize bs = p_buttons[i]->GetBestSize();
+            if (x > 0 && x + bs.x > availW) {
+              x = 0;
+              y += bh + FromDIP(4);
+              bh = 0;
+            }
             if (!dc) {
               p_buttons[i]->SetSize(x, y, bs.x, bs.y);
               p_buttons[i]->Show();
@@ -469,16 +516,13 @@ wxSize ProgressBox::layout(wxDC *dc)
             bh = std::max(bh, bs.y);
           }
           buttonsShown = true;
-          w = std::max(w, x);
           y += bh + FromDIP(4);
-          for (const string& l : p_check) {
-            if (dc) {
-              dc->SetTextForeground(text);
-              dc->DrawText(U(l), 0, y);
+          if (dc) dc->SetTextForeground(text);
+          for (const string& l : p_check)
+            for (const wxString& r : wrapLine(m, l, availW)) {
+              if (dc) dc->DrawText(r, 0, y);
+              y += lh;
             }
-            w = std::max(w, m.GetTextExtent(U(l)).x);
-            y += lh;
-          }
         }
         size = wxSize(w, y);
       }
@@ -499,6 +543,21 @@ void ProgressBox::OnPaint(wxPaintEvent&)
   dc.SetFont(GetFont());
   p_paints++;
   layout(&dc);
+}
+
+
+// The height depends on the width (text and plots wrap), so a new width
+// can need a new height; the parent lays out again for it.
+void ProgressBox::OnSize(wxSizeEvent& event)
+{
+  event.Skip();
+  if (!wanted() || p_collapsed || GetClientSize().x == p_laidOutWidth) return;
+  p_laidOutWidth = GetClientSize().x;
+  const wxSize want = layout(0);
+  if (want != GetMinSize()) {
+    SetMinSize(want);
+    CallAfter([this]() { if (p_relayout) p_relayout(); });
+  }
 }
 
 
