@@ -1159,6 +1159,7 @@ bool RCommand::execout(const string& command, string& output,
                        const string& errorMessage, const int& timeout)
 {
   output = "";
+  p_timedOut = false;
   if (!p_connected) return false;
 
   if (command == "\003") {
@@ -1190,6 +1191,7 @@ bool RCommand::execout(const string& command, string& output,
   bool status = false;
 
   if (r.timedOut) {
+    p_timedOut = true;
     p_errMessage = "Unexpected timeout executing command " + command;
   } else if (r.status < 0) {
     p_errMessage = "Unable to execute command " + command +

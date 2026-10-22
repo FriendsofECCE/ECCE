@@ -303,6 +303,12 @@ def main():
         return dryRun(name, args)
 
     if name in ("qsub", "bsub", "msub"):
+        #  <spool>/<mgr>/slow_submit: wait that many seconds first, silently,
+        #  as sbatch does while it cannot reach its controller (#424).
+        slow = os.path.join(SPOOL, mgr, "slow_submit")
+        if os.path.exists(slow):
+            time.sleep(float(open(slow).read().strip() or 0))
+            return 1
         text = readScript(args)
         queue = queueOf(text)
         held = ("-h" in args) if name in ("qsub", "msub") else ("-H" in args)

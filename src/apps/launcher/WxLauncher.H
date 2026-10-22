@@ -117,6 +117,8 @@ class WxLauncher : public WxLauncherGUI,
         bool confirmMpiLauncher(const string& code);
         bool confirmQmSize();
         bool confirmLaunchWarning(const string& text);
+        // A launch step runs off the GUI thread; its login window must not.
+        bool getAuthorization(AuthEvent& event);
         void setProcessors(int n);
         void stageLaunchMenuItemClickCB(wxCommandEvent& event);
         void finishLaunchMenuItemClickCB(wxCommandEvent& event);
@@ -326,6 +328,9 @@ class WxLauncher : public WxLauncherGUI,
         bool                 p_editAllwd;
         bool                 p_jobStaged;
         Launch              *p_launchData;
+        bool runLaunchStep();
+        int                  p_stepPumps = 0;   // event passes in the last step
+        string               p_launchError;     // last step's failure, for the hook
  };
 
 

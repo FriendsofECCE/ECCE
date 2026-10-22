@@ -876,6 +876,84 @@ class Live(object):
             self.preserve(name, jobdir)
         rep.done()
 
+    def slowSubmit(self, build):
+        """A submit command that hangs (#424): Launch stops it after
+        ECCE_SUBMIT_TIMEOUT seconds with a plain message, and the Launcher
+        window keeps handling events while it waits."""
+        rep, s = self.rep, self.s
+        machine = MANAGERS["pbs"][2]
+        flag = os.path.join(self.stub, "..", "spool", "pbs", "slow_submit")
+        os.makedirs(os.path.dirname(flag), exist_ok=True)
+        with open(flag, "w") as h:
+            h.write("10\n")
+        want = "The queue (PBS) did not answer within 3 s"
+        try:
+            rep.row(self.suite, "pbs", "stdio", "slow-submit")
+            rundir = os.path.join(s.state, "jobs")
+            os.makedirs(rundir, exist_ok=True)
+            url, out = s.create("qslow%d" % (int(time.time()) % 100000), "mopac_es",
+                                MOPAC_DECK, "mopac.mop", rundir, machine=machine,
+                                extra=["queue=" + LIVE_QUEUE.get("pbs", "normal")])
+            if rep.check(url is not None, "calculation created"):
+                t0 = time.time()
+                rc, out = s.driver("launch", url, extra={"ECCE_SUBMIT_TIMEOUT": "3"})
+                took = time.time() - t0
+                rep.check(rc != 0 and want in out,
+                          "launchjob reports the unanswered queue: %s" % out.strip()[-300:])
+                rep.check(took < 9, "it stopped the submit after 3 s (%.1f s)" % took)
+            rep.done()
+
+            rep.row(self.suite, "pbs", "launcher", "slow-submit")
+            try:
+                from xdisplay import Display
+                disp = Display()
+                disp.__enter__()
+            except Exception as exc:
+                rep.note("no Xvfb: " + str(exc))
+                rep.done()
+                return
+            try:
+                url, out = s.create("qslowgui%d" % (int(time.time()) % 100000), "mopac_es",
+                                    MOPAC_DECK, "mopac.mop", rundir, machine=machine,
+                                    extra=["queue=" + LIVE_QUEUE.get("pbs", "normal")])
+                if not rep.check(url is not None, "calculation created"):
+                    rep.done()
+                    return
+                #  The Launcher enables Launch only with a username field (UN)
+                #  and, with AA, a typed account: this machine gets UN, no AA.
+                mymach = os.path.join(s.state, ".ECCE", "MyMachines")
+                with open(mymach) as h:
+                    saved = h.read()
+                with open(mymach, "w") as h:
+                    h.write(saved.replace("MN:RD:SD:Q:TL:MM:SS:AA", "UN:MN:RD:SD:Q:TL:MM:SS"))
+                script = os.path.join(s.state, "slow-launcher-script")
+                with open(script, "w") as h:
+                    h.write("wait 3000\nmachine %s\nrundir %s\nwait 1500\n"
+                            "print launchable\nlaunch\nprint pumps\nprint launcherror\n"
+                            "quit\n" % (machine, os.path.join(rundir, "gui")))
+                exe = os.path.join(build, "launcher")
+                rc, out = s.run([exe, "-pipe", s.authFile(), "-context", url],
+                                extra={"DISPLAY": disp.name, "ECCE_SUBMIT_TIMEOUT": "3",
+                                       "ECCE_LAUNCHER_SCRIPT": script},
+                                cwd=os.path.join(s.home, "bin"), timeout=120)
+                with open(mymach, "w") as h:
+                    h.write(saved)
+                rep.check("binary=" + exe in out, "the Launcher under test is " + exe)
+                m = re.search(r"\[LAUNCHER\] pumps = (\d+)", out)
+                pumps = int(m.group(1)) if m else -1
+                #  20 ms per pass: a 3 s wait gives ~150; a blocked thread gives 0.
+                rep.check(pumps >= 50, "the window handled events during the "
+                          "submit (%d passes)" % pumps)
+                rep.check(re.search(r"\[LAUNCHER\] launcherror = " + re.escape(want), out)
+                          is not None, "the Launcher shows the unanswered queue")
+                if rep.cur["fails"]:
+                    say("\n".join("      | " + l for l in out.strip().splitlines()[-15:]))
+            finally:
+                disp.__exit__(None, None, None)
+            rep.done()
+        finally:
+            os.unlink(flag)
+
     def preserve(self, name, jobdir):
         """Keep a failed job's run directory and monitor logs past the next run."""
         dest = os.path.join(self.s.state, "failed", name)
@@ -944,6 +1022,8 @@ def liveSuite(args, rep, suite, managers, stubdir=None):
                         live.run(m, code)
                 if not args.no_kill and (not args.code or "mopac" in args.code):
                     live.run(m, "mopac", kill=True)
+        if stubdir and "pbs" in managers:
+            live.slowSubmit(build)
         outside = [p for p in s.seen.values() if os.path.dirname(p) != s.build]
         if outside:
             rep.row(suite, "-", "-", "binaries")
