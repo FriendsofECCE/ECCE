@@ -68,6 +68,8 @@ class MomentsPanel : public VizPropertyPanel
       bool isDipole();
       virtual bool drawsOverlay() const { return true; }
       virtual bool isPolarizability() const { return false; }
+      // Quadrupole, octupole, hexadecapole: drawn as angular surfaces.
+      virtual bool isMultipole() const { return false; }
 
 };
 

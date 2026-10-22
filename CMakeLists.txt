@@ -1923,6 +1923,12 @@ add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)
 
+# tests/multipole (#428): angular surfaces of the quadrupole to hexadecapole.
+add_executable(multipole_test tests/multipole/multipole_test.C)
+target_link_libraries(multipole_test PRIVATE ecceutil)
+target_compile_definitions(multipole_test PRIVATE ECCE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+add_test(NAME multipole COMMAND multipole_test)
+
 # tests/geomconstraint (#393): the scan setting survives the constraint XML.
 add_executable(scan_xml_test tests/geomconstraint/scan_xml_test.C)
 if(APPLE)   # ld64 resolves the cycles itself and has no RESCAN group

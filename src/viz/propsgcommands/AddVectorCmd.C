@@ -158,6 +158,13 @@ void AddVectorCmd::getCenters(vector<double*>& centers)
    } else if (centerChoice == "charge" || centerChoice == "mass") {
       getSingleCenter(centers);
 
+   } else if (centerChoice == "origin") {
+      //  The coordinate origin of the output, about which a code that
+      //  states no other origin reports its moments.
+      double *c = new double[3];
+      c[0] = c[1] = c[2] = 0.0;
+      centers.push_back(c);
+
    } else {
       INTERNALEXCEPTION(0, "Trying to draw vector with  unknown center type: "
             + centerChoice);

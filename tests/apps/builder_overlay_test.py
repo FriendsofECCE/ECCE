@@ -301,9 +301,10 @@ def overlayCase(s, display, env, wrappers, png):
             check((n > 3) == want, "%s: %d yellow pixels in the viewer"
                   % (name, n))
 
-    say("Quadrupole Moment draws no arrow (#266) and no ellipsoid (#279)")
+    say("Quadrupole Moment draws no arrow (#266), no ellipsoid (#279), "
+        "an angular surface (#428)")
     lines = ["wait 4000", "list Quadrapole Moment", "wait 1500", "overlay",
-             "ellipsoid QUADPOLE", "shot quad", "quit"]
+             "ellipsoid QUADPOLE", "surface QUADPOLE", "shot quad", "quit"]
     text, shots = runScript(s, display, env, wrappers, ["-context", url],
                             lines, png, "quad",
                             {"ECCE_PANEL_MODE": "detail"})
@@ -312,6 +313,8 @@ def overlayCase(s, display, env, wrappers, png):
         check(n <= 3, "quad: %d yellow pixels in the viewer" % n)
     check("BUILDER: ellipsoid QUADPOLE count=0" in text,
           "no ellipsoid under the quadrupole")
+    check("BUILDER: surface QUADPOLE count=1" in text,
+          "the quadrupole is one angular surface (#428)")
     hfCase(s, display, env, wrappers, png)
     polarCase(s, display, env, wrappers, png)
 
@@ -543,6 +546,63 @@ def polarCase(s, display, env, wrappers, png):
 
 
 
+def multipoleCase(s, display, env, wrappers, png):
+    """#428: quadrupole, octupole and hexadecapole as angular surfaces, on
+    the Gaussian water (all three stored), centred on the output's origin,
+    the largest lobe 1.5 times the molecule's radius."""
+    import numpy
+    say("Multipoles: angular surfaces r = s|f(n)| (#428)")
+    project = os.path.join(s.localData(), "users", "local", "overlay")
+    # A Gaussian 16 calculation shell (it has the metadata) holding the water
+    # structure and the three moments of calc-water-vib.
+    name = "calc-multipole-h2o-g16"
+    vib = os.path.join(HERE, "fixtures", "calc-water-vib")
+    calc = os.path.join(project, name)
+    shutil.rmtree(calc, ignore_errors=True)
+    shutil.copytree(os.path.join(HERE, "fixtures", "calc-polar-h2o-g16"), calc,
+                    symlinks=True)
+    shutil.copy(os.path.join(vib, "Parameters", "chemsys.mvm"),
+                os.path.join(calc, "Parameters", "chemsys.mvm"))
+    for prop in ("QUADPOLE", "OCTAPOLE", "HEXPOLE"):
+        shutil.copy(os.path.join(vib, "Props", prop),
+                    os.path.join(calc, "Props", prop))
+    atoms = polarAtoms(calc)
+    z = numpy.array([{"H": 1, "O": 8}[a] for a, _ in atoms], float)
+    xyz = numpy.array([p for _, p in atoms])
+    want = (z[:, None] * xyz).sum(axis=0) / z.sum()
+    radius = max(1.0, numpy.linalg.norm(xyz - want, axis=1).max())
+    for label, prop, tag in (("Quadrapole Moment", "QUADPOLE", "quadrupole"),
+                             ("Octupole Moment", "OCTAPOLE", "octupole"),
+                             ("Hexadecapole Moment", "HEXPOLE", "hexadecapole")):
+        lines = ["wait 4000", "shot plain", "list " + label, "wait 1500",
+                 "overlay", "surface " + prop, "shot " + tag, "quit"]
+        text, shots = runScript(s, display, env, wrappers,
+                                ["-context", "file://" + calc + "/"], lines,
+                                png, "multipole-428-" + tag,
+                                {"ECCE_PANEL_MODE": "detail"})
+        found = [l for l in text.splitlines()
+                 if l.startswith("BUILDER: surface %s 0 " % prop)]
+        if not check(len(found) == 1, "%s: one surface" % tag):
+            say(text[-2000:])
+            continue
+        kv = dict(p.split("=") for p in found[0].split()[4:])
+        centre = numpy.array([float(x) for x in kv["centre"].split(",")])
+        # Gaussian reports the moments about its coordinate origin.
+        check(numpy.abs(centre).max() < 0.002,
+              "%s: centred on the output's origin (%s)"
+              % (tag, numpy.round(centre, 4)))
+        check(int(kv["vertices"]) == 10242 and int(kv["triangles"]) == 20480,
+              "%s: icosphere mesh %s vertices" % (tag, kv["vertices"]))
+        reach = float(kv["farthest"])
+        check(abs(reach - 1.5 * radius) < 0.05 * radius,
+              "%s: largest lobe %.3f A, 1.5 x radius %.3f A"
+              % (tag, reach, radius))
+        if "plain" in shots and tag in shots:
+            n = differs(shots["plain"], shots[tag])
+            check(n > 500, "%s: the surface changes %d viewer pixels"
+                  % (tag, n))
+
+
 def dipoleArrow(text):
     """#266: the arrow as drawn is 0.5 A per Debye from the centre of nuclear
     charge, along mu (negative to positive end), with a constant shaft."""
@@ -753,7 +813,7 @@ def main():
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     ap.add_argument("--png")
     ap.add_argument("--only", choices=("overlay", "thumbnail", "new", "hf", "colours",
-                                           "prefs"))
+                                           "prefs", "multipole"))
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -803,6 +863,8 @@ def main():
             coloursCase(s, display, env, wrappers, png)
         if args.only in (None, "overlay"):
             overlayCase(s, display, env, wrappers, png)
+        if args.only in (None, "multipole"):
+            multipoleCase(s, display, env, wrappers, png)
         if args.only in (None, "thumbnail"):
             thumbnailCase(s, display, env, wrappers, png)
         if args.only in (None, "new"):
