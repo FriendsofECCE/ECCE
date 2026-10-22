@@ -651,11 +651,17 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   // call to setContext.  OnNewClick above calls setContext.
   restoreSettings();
 
-  if (p_viewer->getSelectModeDrag()) {
-    p_viewer->getSel()->lassoType.setValue(SGSelection::NOLASSO);
-  } else {
-    p_viewer->getSel()->lassoType.setValue(SGSelection::DRAGGER);
-  }
+  syncLassoType(p_currentMode);
+  //  View > Select Mode Action changes the drag box at once, not at the
+  //  next mode change.
+  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) {
+    p_viewer->setSelectModeDrag(ev.GetId() == ViewerEvtHandler::ID_SELECT_DRAG);
+    syncLassoType(p_currentMode);
+  }, ViewerEvtHandler::ID_SELECT_DRAG);
+  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) {
+    p_viewer->setSelectModeDrag(ev.GetId() == ViewerEvtHandler::ID_SELECT_DRAG);
+    syncLassoType(p_currentMode);
+  }, ViewerEvtHandler::ID_SELECT_LASSO);
 
   // For importing output files
   // Also called from the Organizer, but needed here for users who have
@@ -1982,6 +1988,17 @@ void Builder::motionChanged(const MotionData& data)
  * Set the builder mode: the one place that sets the mode in effect, the
  * viewer, the toolbar and the Mode menu together, so they cannot disagree.
  */
+/// The drag box is off with Atom Drag chosen, and in the Atom and
+/// Structure Library modes (a click there must not turn into a box).
+void Builder::syncLassoType(int modeId)
+{
+  const bool off = p_viewer->getSelectModeDrag() ||
+                   modeId == ID_MODE_ATOM || modeId == ID_MODE_STRUCTLIB;
+  p_viewer->getSel()->lassoType.setValue(off ? SGSelection::NOLASSO
+                                             : SGSelection::DRAGGER);
+}
+
+
 void Builder::setMode(int modeId)
 {
   applyMode(modeId);
@@ -2066,13 +2083,7 @@ void Builder::applyMode(int modeId)
   // If we are going into atom mode then lets not use the lasso.
   // This avoids the situation where you have to be so careful not
   // to move the mouse while inserting an atom.
-  if (!p_viewer->getSelectModeDrag()) {
-    if (modeId == ID_MODE_ATOM || modeId == ID_MODE_STRUCTLIB) {
-      p_viewer->getSel()->lassoType.setValue(SGSelection::NOLASSO);
-    } else {
-      p_viewer->getSel()->lassoType.setValue(SGSelection::DRAGGER);
-    }
-  }
+  syncLassoType(modeId);
 
   // save new value for lastMode
   p_currentMode = modeId;

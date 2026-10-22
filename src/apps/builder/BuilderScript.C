@@ -105,6 +105,10 @@
 #include "wxviz/MoleculeDataTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/TBond.H"
+#include "util/EventDispatcher.H"
+#include "util/Event.H"
+#include "wxviz/ViewerEvtHandler.H"
+#include "wxviz/SGSelection.H"
 #include "tdat/TPerTab.H"
 #include "MiniPerTab.H"
 #include "ElementChooser.H"
@@ -570,8 +574,55 @@ void Builder::runBuilderScript(const std::string& file)
             break;
           }
       } else if (w[0] == "bondorder" && w.size() == 2) {
-        //  The order the Bond mode makes (the Bond tool's choice).
-        p_currentBond = w[1] == "metal" ? TBond::Metal : TBond::Single;
+        //  The order the Bond mode makes, sent as the Bond tool and the
+        //  Build panel's list send it.
+        const std::string order = w[1] == "metal" ? "Metal-Pi"
+            : w[1] == "double" ? "Double" : w[1] == "triple" ? "Triple"
+            : w[1] == "aromatic" ? "Aromatic" : "Single";
+        ecce::EventDispatcher::getDispatcher().publish(
+            ecce::Event("BondChanged", order));
+        fprintf(stderr, "BUILDER: bondorder current=%g\n", p_currentBond);
+      } else if (w[0] == "selectaction" && w.size() == 2) {
+        //  View > Select Mode Action: Atom Drag or Lasso Select.
+        const int id = w[1] == "lasso" ? ViewerEvtHandler::ID_SELECT_LASSO
+                                       : ViewerEvtHandler::ID_SELECT_DRAG;
+        GetMenuBar()->Check(id, true);
+        wxCommandEvent ev(wxEVT_MENU, id);
+        ev.SetInt(1);
+        GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "selectbonds" && frag) {
+        //  The bonds between selected atoms too, as a drag box selects.
+        vector<TBond*> *all = frag->bonds();
+        const vector<int>& hl = frag->m_atomHighLight;
+        for (size_t i = 0; i < all->size(); i++) {
+          TBond *b = (*all)[i];
+          if (find(hl.begin(), hl.end(), b->atom1()->index()) != hl.end() &&
+              find(hl.begin(), hl.end(), b->atom2()->index()) != hl.end())
+            frag->m_bondHighLight.push_back((int)i);
+        }
+        delete all;
+      } else if (w[0] == "selection" && frag) {
+        //  What is selected, and whether a drag in the view draws a box.
+        fprintf(stderr, "BUILDER: selection atoms=%d bonds=%d drag=%d "
+                "lasso=%d\n", (int)frag->m_atomHighLight.size(),
+                (int)frag->m_bondHighLight.size(),
+                p_viewer->getSelectModeDrag() ? 1 : 0,
+                (int)p_viewer->getSel()->lassoType.getValue());
+      } else if (w[0] == "bondorders" && frag) {
+        //  Each bond between real atoms: its stored order and the type
+        //  the display draws it as.
+        vector<TBond*> *all = frag->bonds();
+        for (size_t i = 0; i < all->size(); i++) {
+          TBond *b = (*all)[i];
+          if (b->atom1()->atomicSymbol() == "Nub" ||
+              b->atom2()->atomicSymbol() == "Nub") continue;
+          fprintf(stderr, "BUILDER: bond %d-%d %s-%s order=%g drawn=%d\n",
+                  b->atom1()->index(), b->atom2()->index(),
+                  b->atom1()->atomicSymbol().c_str(),
+                  b->atom2()->atomicSymbol().c_str(), b->order(),
+                  frag->getBondType((int32_t)i));
+        }
+        delete all;
       } else if (w[0] == "clean") {
         //  The Clean command of the viewer's menu, with its default settings.
         execute(new CleanCmd("Force Field Clean", getSG(), 0));

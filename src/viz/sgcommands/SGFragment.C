@@ -3567,6 +3567,12 @@ bool SGFragment::deleteSelectedAtomsAndBonds(vector<bool>& atomsToDelete)
       iat = m_atomHighLight[i];
       saveHighLight.push_back(atomRef(iat));
    }
+   //  What to delete includes the nubs syncNubSelection added to the
+   //  highlighted atoms; rebuilding it from the highlight alone left them.
+   vector<TAtm*> saveToDelete;
+   for (i=0; i<(int)atomsToDelete.size(); i++) {
+      if (atomsToDelete[i]) saveToDelete.push_back(atomRef(i));
+   }
 
    int nBonds = m_bondHighLight.size();
    TBond *bond;
@@ -3630,9 +3636,9 @@ bool SGFragment::deleteSelectedAtomsAndBonds(vector<bool>& atomsToDelete)
    for (i=0; i<nTotAtoms; i++) {
       atomsToDelete.push_back(false);
    }
-   for (i=0; i<nAtoms; i++) {
-      atomsToDelete[m_atomHighLight[i]] = true;
-   } 
+   for (i=0; i<(int)saveToDelete.size(); i++) {
+      atomsToDelete[saveToDelete[i]->index()] = true;
+   }
    ret |= deleteSelectedAtoms(atomsToDelete);
 
 

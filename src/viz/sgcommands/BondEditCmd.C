@@ -248,7 +248,7 @@ bool BondEditCmd::execute()
             RNAangle = true;
 
           FragUtil fragutil(frag);
-          fragutil.bondParts(parent1,nub1,parent2,nub2,1.0,&atoms);
+          fragutil.bondParts(parent1,nub1,parent2,nub2,order,&atoms);
           vector<TAtm*>::iterator it = atoms.begin();
           while (it != atoms.end()) {
             if ((*it) == nub1) {

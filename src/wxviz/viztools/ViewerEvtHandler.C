@@ -427,6 +427,8 @@ void ViewerEvtHandler::selectModeAction(wxCommandEvent & event)
   SGViewer& viewer = fw.getViewer();
   bool dragFlag = event.GetId()==ID_SELECT_DRAG;
   viewer.setSelectModeDrag(dragFlag);
+  // The frame may tie its drag box to the choice (the Builder does).
+  event.Skip();
 }
 
 
