@@ -708,8 +708,11 @@ char* PropertyDoc::values(unsigned long index)
      case TProperty::PROPVECSTRING     :
      case TProperty::PROPTABLE         :
      {
+       //  A stored property can be an empty element (no values written);
+       //  callers treat NULL as "no values" and drop the property.
        DOMNode *child = rootElement->getFirstChild();
-       ret = XMLString::transcode(child->getNodeValue());
+       if (child && child->getNodeType() == DOMNode::TEXT_NODE)
+         ret = XMLString::transcode(child->getNodeValue());
        break;
      }
      case TProperty::PROPVECTABLE      : 
