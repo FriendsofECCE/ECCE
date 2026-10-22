@@ -144,6 +144,7 @@ class NModePanel : public NModesGUI,
       wxWeakRef<SpectrumCanvas> p_spectrumPop;
       std::shared_ptr<VibSpectrum> p_compare;   // the second curve, if any
       string p_compareName, p_compareCode;
+      wxButton *p_compareRemove = 0;
       wxTextCtrl *p_fwhmText;
       wxTextCtrl *p_scaleText;
 

@@ -130,11 +130,16 @@ def checkCompare(other, dump, csvPath):
     reader, rel = [(r, rel) for n, r, rel in oracle.CASES if n == other][0]
     want = reader(os.path.join(ROOT, "tests", "parsers", "fixtures", rel))
     got = {}
+    seen = {}
     for line in open(dump):
         f = line.split()
         if f[:1] == ["compare"]:
             if f[2:3] != ["set"]:
                 problems.append("compare with %s: %s" % (other, line.strip()))
+        elif f[:2] == ["remove-button", "before"]:
+            seen["before"] = (f[3], f[5])
+        elif f[:2] == ["remove-button", "after"]:
+            seen["after"] = (f[3], f[5])
         elif f[:1] == ["compare-stick"]:
             got.setdefault(f[1], {})[int(f[2]) - 1] = (float(f[3]), float(f[4]))
     for kind in ("ir", "raman"):
@@ -154,6 +159,20 @@ def checkCompare(other, dump, csvPath):
                 problems.append("second %s mode %d: %s, output file %s / %s"
                                 % (kind, i + 1, got[kind][i], want["freq"][i],
                                    values[i]))
+    #  "Remove comparison" (#425): enabled with a second curve, and clicking
+    #  it removes that curve and disables the button.
+    b, a = seen.get("before"), seen.get("after")
+    if os.environ.get("SPECTRUM_KEEP_COMPARE"):
+        pass
+    elif b is None or a is None:
+        problems.append("no remove-button lines in the dump")
+    else:
+        if b[0] != "1" or int(b[1]) == 0:
+            problems.append("before the click: button enabled %s, second "
+                            "curve sticks %s" % b)
+        if a != ("0", "0"):
+            problems.append("after the click: button enabled %s, second "
+                            "curve sticks %s" % a)
     if not os.path.exists(csvPath):
         return problems + ["no CSV written"]
     text = open(csvPath).read()
@@ -222,6 +241,9 @@ def run(case, builder, png, timeout, window=False, other=None):
         env = display.env()
         if other:
             env["ECCE_SPECTRUM_COMPARE"] = other
+            #  SPECTRUM_KEEP_COMPARE=1 leaves the comparison up for a PNG.
+            if not os.environ.get("SPECTRUM_KEEP_COMPARE"):
+                env["ECCE_SPECTRUM_REMOVE_COMPARE"] = "1"
             env["ECCE_SPECTRUM_CSV"] = csvPath
         env["ECCE_OPEN_PANEL"] = "Vibrational Frequencies"
         env["ECCE_SPECTRUM_DUMP"] = out
