@@ -28,7 +28,7 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
-  [8.18.12](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.12)),
+  [8.18.13](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.13)),
   Linux only: the older line, which still gets bug fixes.
 
 | System | File | Install |

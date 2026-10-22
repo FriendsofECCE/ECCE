@@ -38,6 +38,9 @@ class WxJMSMessageDispatch;
  * GUI Implementation of NWChem MD prepare module.
  */
 
+class Launch;
+class AuthEvent;
+
 class MDPrep: public MDPrepGUI, 
               public WxJMSListener, 
               public TaskApp,
@@ -95,6 +98,8 @@ class MDPrep: public MDPrepGUI,
 
    protected:
       void initProgressDialog();
+      bool runLaunchStep(Launch *launch);
+      bool getAuthorization(AuthEvent& event);
       void reloadFragSummary(MdTask *task);
       void generateInputFile(MdTask *task);
       void saveModelAndInputFile(MdTask *task);

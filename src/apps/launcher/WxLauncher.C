@@ -11,6 +11,9 @@
 #include <ios>
     using std::ios;
 #include <algorithm>
+#include <atomic>
+#include <future>
+#include <thread>
     using std::find;
     using std::min;
     using std::max;
@@ -20,6 +23,7 @@
 
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
+#include "wxgui/WxJMSSubscriber.H"
 #include "util/Ecce.H"
 #include "util/EcceSortedVector.H"
 #include "util/ErrMsg.H"
@@ -2704,14 +2708,29 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
 
     p_launchData = new Launch(p_taskJob, kvargs, doLaunch);
     bool valid = true;
+    p_launchError = "";
+
+    //  Broker messages (state, invoke, quit, machine changes) touch the
+    //  calculation the steps are using: they wait until the launch ends.
+    struct DeferMessages {
+        WxJMSSubscriber *s;
+        DeferMessages() : s(dynamic_cast<WxJMSSubscriber*>(wxTheApp))
+            { if (s) s->deferMessages(true); }
+        ~DeferMessages() { if (s) s->deferMessages(false); }
+    } defer;
+    //  No input while the steps run; the window still repaints.
+    wxWindowDisabler noInput;
 
     while (valid && !p_launchData->done())
     {
         string dscpn = p_launchData->description();
         p_messagesFeedback->setMessage(dscpn, WxFeedback::INFO, false, true);
 
-        if (!(valid = p_launchData->nextOperation()))
+        if (!(valid = runLaunchStep()))
+        {
+            p_launchError = p_launchData->message();
             p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::ERROR, false, true);
+        }
 
         else if (p_launchData->message() != "")
             p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::WARNING, false, true);
@@ -2797,6 +2816,48 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
             this->refreshLaunchControls();
         }
     }
+}
+
+
+/**
+ * One launch step on a worker thread while this thread keeps handling
+ * events: steps wait on ssh, the data server and the queue's submit command,
+ * and a window that stops answering is offered for killing by the desktop.
+ * The caller has disabled input and deferred broker messages, so nothing
+ * else touches the calculation meanwhile.
+ */
+bool WxLauncher::runLaunchStep()
+{
+    std::atomic<bool> finished(false);
+    bool ok = false;
+    Launch *launch = p_launchData;
+    std::thread worker([launch, &ok, &finished]() {
+        try { ok = launch->nextOperation(); }
+        catch (...) { ok = false; }
+        finished = true;
+    });
+    p_stepPumps = 0;
+    while (!finished)
+    {
+        wxTheApp->Yield(true);
+        p_stepPumps++;
+        wxMilliSleep(20);
+    }
+    worker.join();
+    return ok;
+}
+
+
+bool WxLauncher::getAuthorization(AuthEvent& event)
+{
+    if (wxThread::IsMain())
+        return WxDavAuth::getAuthorization(event);
+    //  Asked from runLaunchStep's worker: runLaunchStep's loop runs this.
+    std::promise<bool> answer;
+    wxTheApp->CallAfter([this, &event, &answer]() {
+        answer.set_value(WxDavAuth::getAuthorization(event));
+    });
+    return answer.get_future().get();
 }
 
 
@@ -3388,6 +3449,10 @@ string WxLauncher::hookGet(const string& what)
         return STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue());
     if (what == "connect")
         return this->checkConnectAllowed() ? "1" : "0";
+    if (what == "pumps")
+        return StringConverter::toString(p_stepPumps);
+    if (what == "launcherror")
+        return p_launchError;
     if (what == "launchable")
         return p_launchButton->IsEnabled() ? "1" : "0";
     if (what == "button")
