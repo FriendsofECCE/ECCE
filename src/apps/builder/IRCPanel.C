@@ -202,6 +202,14 @@ void IRCPanel::fill()
   p_grid->AutoSizeColumns();
 }
 
+// As in ScanPanel: the structures arrive after the energies on a live job.
+void IRCPanel::refresh()
+{
+  fill();
+  if (p_selected >= (int)p_coord.size()) p_selected = -1;
+  if (p_selected >= 0 && hasFocus()) showPoint(p_selected);
+}
+
 int IRCPanel::showPoint(int index)
 {
   if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0) return -1;

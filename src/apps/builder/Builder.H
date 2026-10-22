@@ -425,6 +425,9 @@ class Builder: public BuilderGUI,
       void urlRemoveMCB(JMSMessage& msg);
       void urlStateMCB(JMSMessage& msg);
       void propertyChangeMCB(JMSMessage& msg);
+      /** What a property-change message does; also the script hook "propchange". */
+      void propertyChanged(const string& url, const string& name,
+                           const string& value);
 
       void quit(const bool& allowCancel = true);
 

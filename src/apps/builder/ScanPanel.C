@@ -193,6 +193,22 @@ void ScanPanel::fill()
   p_grid->AutoSizeColumns();
 }
 
+// A running job delivers the energies before the structures (those are
+// parsed from a separate file at the end), so the panel must refill when
+// they arrive, or its points stay without a structure to show.
+void ScanPanel::refresh()
+{
+  fill();
+  if (p_selected >= (int)p_coord.size()) p_selected = -1;
+  if (p_selected < 0) return;
+  p_syncing = true;
+  p_plot->setSelectedPoint(0, p_selected);
+  p_grid->SelectRow(p_selected);
+  p_syncing = false;
+  if (p_playback) p_playback->SetCurrentStep((long)p_selected);
+  if (hasFocus()) showPoint(p_selected);
+}
+
 int ScanPanel::showPoint(int index)
 {
   if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0) return -1;

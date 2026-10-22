@@ -1114,6 +1114,14 @@ void Builder::runBuilderScript(const std::string& file)
                   w[0].c_str(), w[1].c_str(), sp->selectedPoint(),
                   sp->selectedRow(), sp->markerPoint(), where.c_str());
         }
+      } else if (w[0] == "propchange" && w.size() >= 2 && p_calculation) {
+        //  propchange <KEY>: what a running job's property message does.
+        //  The context key, which property messages carry as their url.
+        std::string url = p_calculation->getURL().toString();
+        for (const auto& c : p_calculations)
+          if (c.second == p_calculation) url = c.first;
+        propertyChanged(url, w[1], "");
+        fprintf(stderr, "BUILDER: propchange %s\n", w[1].c_str());
       } else if (w[0] == "scanstatus") {
         //  scanstatus: the Relaxed Scan panel's status line
         ScanPanel *sp = 0;
