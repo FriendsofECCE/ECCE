@@ -1,0 +1,22 @@
+# built model (ideal geometry)
+# Reference: Ideal tetrahedron, typical Cr-O 1.65 A
+# formula: CrO4
+title:          [CrO4]2-
+type:           molecule
+cell_units:     angstroms
+charge:         -2
+num_atoms:      5
+atom_info:      symbol cart
+atom_list:
+  Cr      0.00000      0.00000      0.00000
+  O       0.95263      0.95263      0.95263
+  O       0.95263     -0.95263     -0.95263
+  O      -0.95263      0.95263     -0.95263
+  O      -0.95263     -0.95263      0.95263
+num_bonds:      4
+bond_info:     order
+bond_list:
+ 1  2  1.00000
+ 1  3  1.00000
+ 1  4  1.00000
+ 1  5  1.00000
