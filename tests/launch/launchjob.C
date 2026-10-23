@@ -96,6 +96,7 @@
 #include "dsm/TaskJob.H"
 #include "tdat/Fragment.H"
 #include "dsm/VDoc.H"
+#include "util/TDateTime.H"
 #include "tdat/AuthCache.H"
 #include "tdat/DefaultDavAuth.H"
 #include "tdat/GUIValues.H"
@@ -721,6 +722,22 @@ int main(int argc, char** argv)
          << " outputTime=" << c.outputTime << " machineNow=" << c.machineNow
          << " status=" << (c.status.empty() ? "-" : c.status) << endl;
     return c.reached ? 0 : 1;
+  }
+  if (mode == "dates") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    // Stored value, then as the Organizer shows it with its default.
+    string dates[2] = {t->getStartDate(), t->getCompletionDate()};
+    const char* names[2] = {"start", "completion"};
+    for (int i = 0; i < 2; i++) {
+      string shown;
+      if (!dates[i].empty())
+        shown = TDateTime(dates[i]).toString(TDateTime::AmericanLocale,
+                  TDateTime::withSeconds(TDateTime::HM24));
+      cout << names[i] << ": " << dates[i] << endl;
+      cout << "shown " << names[i] << ": " << shown << endl;
+    }
+    return 0;
   }
   if (mode == "jobid") {
     TaskJob* t = getTask(a[0]);
