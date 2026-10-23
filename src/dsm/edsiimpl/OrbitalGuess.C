@@ -22,21 +22,25 @@ EcceURL keptOrbitals(const TaskJob *calc)
   const JCode *code = calc->application();
   if (code == 0) return none;
   vector<TypedFile> declared = code->getCodeFiles(JCode::AUXILIARY_OUTPUT);
+  //  A code with several auxiliary outputs (Gaussian's fort.7 as well)
+  //  names the one that holds the orbitals.
+  string only;
+  code->get_string("RetainOutputFile", only);
   vector<EcceURL> stored = calc->getDataFiles(JCode::AUXILIARY_OUTPUT);
-  for (size_t i = 0; i < stored.size(); i++)
+  for (size_t i = 0; i < stored.size(); i++) {
+    if (!only.empty()) {
+      if (stored[i].getFilePathTail() == only) return stored[i];
+      continue;
+    }
     for (size_t d = 0; d < declared.size(); d++)
       if (stored[i].getFilePathTail() == declared[d].name()) return stored[i];
+  }
   return none;
 }
 
 bool readsGuess(const TaskJob *calc)
 {
-  const JCode *code = calc->application();
-  if (code == 0) return false;
-  vector<TypedFile> in = code->getCodeFiles(JCode::AUXILIARY_INPUT);
-  for (size_t i = 0; i < in.size(); i++)
-    if (in[i].name() == TaskJob::orbitalGuessFile()) return true;
-  return false;
+  return !calc->orbitalGuessFile().empty();
 }
 
 }
@@ -47,12 +51,14 @@ bool OrbitalGuess::available(const TaskJob *source, string &why)
   why.clear();
   if (source == 0 || !readsGuess(source)) {
     why = "Only a calculation of a code that can start from earlier "
-          "orbitals (ORCA) can be duplicated with its final orbitals.";
+          "orbitals (ORCA, Gaussian 16) can be duplicated with its final "
+          "orbitals.";
     return false;
   }
   if (keptOrbitals(source).toString().empty()) {
     why = "This calculation has no stored orbital file. It is kept for "
-          "runs made with this version of ECCE, once the run has finished.";
+          "runs made with this version of ECCE, once the run has finished "
+          "(Gaussian: with Create Checkpoint File on).";
     return false;
   }
   return true;
@@ -75,7 +81,7 @@ bool OrbitalGuess::attach(TaskJob *target, TaskJob *source, string &why)
     return false;
   }
   std::ifstream in(temp->path().c_str(), std::ios::in | std::ios::binary);
-  bool ok = target->putInputFile(TaskJob::orbitalGuessFile(), &in);
+  bool ok = target->putInputFile(target->orbitalGuessFile(), &in);
   in.close();
   temp->remove();
   delete temp;

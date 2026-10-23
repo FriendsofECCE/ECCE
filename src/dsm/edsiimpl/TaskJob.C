@@ -703,9 +703,14 @@ string TaskJob::inputWarningsProp()
 }
 
 
-string TaskJob::orbitalGuessFile()
+string TaskJob::orbitalGuessFile() const
 {
-  return "guess.gbwin";
+  const JCode *code = application();
+  if (code == 0) return string();
+  vector<TypedFile> in = code->getCodeFiles(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < in.size(); i++)
+    if (in[i].name().compare(0, 6, "guess.") == 0) return in[i].name();
+  return string();
 }
 
 
@@ -724,9 +729,11 @@ string TaskJob::orbitalGuessBasisProp()
 bool TaskJob::hasOrbitalGuess() const
 {
   try {
+    const string name = orbitalGuessFile();
+    if (name.empty()) return false;
     vector<EcceURL> urls = getVDoc()->getInputs();
     for (size_t i = 0; i < urls.size(); i++)
-      if (urls[i].getFilePathTail() == orbitalGuessFile()) return true;
+      if (urls[i].getFilePathTail() == name) return true;
   }
   catch (...) {}
   return false;

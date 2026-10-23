@@ -147,7 +147,9 @@ class TaskJob : public Job,
           that this calculation's own regenerated deck does not remove
           them.  The two properties name the calculation they came from
           and its basis set, for the Calculation Editor to show. */
-      static string orbitalGuessFile();
+      /** Name of the guess input the code declares (an auxiliary input
+          called guess.*), "" for a code without one. */
+      string orbitalGuessFile() const;
       static string orbitalGuessSourceProp();
       static string orbitalGuessBasisProp();
       virtual bool hasOrbitalGuess() const;

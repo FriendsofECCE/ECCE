@@ -3460,7 +3460,9 @@ bool CalcEd::deckNamesOrbitalGuess()
     string text;
     StringConverter::streamToText(*is, text);
     delete is;
-    return text.find(TaskJob::orbitalGuessFile()) != string::npos;
+    TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
+    string name = job != 0 ? job->orbitalGuessFile() : string();
+    return !name.empty() && text.find(name) != string::npos;
   } catch (...) {
     return true;
   }
