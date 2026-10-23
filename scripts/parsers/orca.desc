@@ -587,6 +587,41 @@ Begin=The optimization did not converge but reached the maximum number of
 Progress=opt converged=no
 [END]
 
+# NEB, NEB-CI and NEB-TS (#466): one record per L-BFGS iteration.  The
+# energy is relative to the reactant (ORCA prints no absolute one), so it
+# is "erel", not "energy".  The thresholds are printed once in the NEB
+# settings; the climbing-image columns exist only after the switch-on.
+[PROGRESS]
+Begin=Max\(\|Fp\|\)\s+\.{4}\s+(\d\.\d+e[-+]\d+) Eh/Bohr
+Remember=nebmaxf
+[END]
+
+[PROGRESS]
+Begin=RMS\(Fp\)\s+\.{4}\s+(\d\.\d+e[-+]\d+) Eh/Bohr
+Remember=nebrmsf
+[END]
+
+[PROGRESS]
+Begin=Max\(\|F\|\)\s+\.{4}\s+(\d\.\d+e[-+]\d+) Eh/Bohr
+Remember=nebmaxc
+[END]
+
+[PROGRESS]
+Begin=RMS\(F\)\s+\.{4}\s+(\d\.\d+e[-+]\d+) Eh/Bohr
+Remember=nebrmsc
+[END]
+
+[PROGRESS]
+Begin=^\s+LBFGS\s+(\d+)\s+\d+\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+\d+\.\d+
+Progress=neb iter=$1 erel=$2 maxforce=$3/{nebmaxf} rmsforce=$4/{nebrmsf}
+History=erel
+[END]
+
+[PROGRESS]
+Begin=^\s+LBFGS\s+\d+\s+\d+\s+-?\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+(\d+\.\d+)\s+(\d+\.\d+)
+Progress=neb maxcforce=$1/{nebmaxc} rmscforce=$2/{nebrmsc}
+[END]
+
 # Numerical frequencies count displaced geometries; an analytic Hessian
 # has no steps, so only the closing line (with the zero-point energy) shows.
 [PROGRESS]

@@ -120,6 +120,26 @@ int main()
     check(has(sc.running(0)[1].lines, "point 12") && !sc.running(0)[1].bar,
           "a total smaller than the point (several scanned parameters) is dropped");
   }
+  {
+    // NEB (#466): the last snapshot over a real ORCA NEB-TS run (HCN -> HNC).
+    JobProgress nb;
+    nb.parse("# seq=9\nneb iter=15 erel=0.097436 maxforce=0.004704/2.00e-02 "
+             "rmsforce=0.001211/1.00e-02 maxcforce=0.000999/2.00e-03 "
+             "rmscforce=0.000530/1.00e-03\n"
+             "neb~ erel=0.107317,0.103988,0.101228,0.097268,0.097091\n"
+             "opt step=3 energy=-92.246 converged=yes\n");
+    vector<JobProgress::Block> bb = nb.running(0);
+    check(bb.size() == 2 && bb[0].title == "Optimisation" && bb[1].title == "NEB" &&
+          has(bb[1].lines, "iteration 15") &&
+          has(bb[1].lines, "E(highest image) - E(reactant) (Eh) 0.097436") &&
+          bb[1].criteria.size() == 4 && bb[1].plot.size() == 5 && !bb[1].plotLog,
+          "a NEB: iteration, energy line, four force criteria, linear plot");
+    int met = 0;
+    for (const auto& c : bb[1].criteria) met += c.met;
+    check(met == 4 && bb[1].criteria[2].label == "max force, climbing image" &&
+          bb[1].criteria[2].value == "1.0e-03 (limit 2e-03)",
+          "NEB criteria against their limits: " + bb[1].criteria[2].value);
+  }
   r.parse("# seq=6\nsteep point=4/200 converged=yes\n");
   check(has(r.summary(true), "Minimisation converged in 4 steps"),
         "minimisation summary");
