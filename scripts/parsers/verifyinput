@@ -1799,7 +1799,7 @@ sub ecceqm
        charges units maxiter conv_energy conv_grad molden runtype maxsteps opt_conv
        hessian_step temperature pressure symmetry_number
        polarizability polarisability raman field_step parallel_points guess_mix
-       numeric_hessian ts_hessian_every);
+       numeric_hessian ts_hessian_every read_orbitals write_orbitals);
   my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
   my $INT = qr/[-+]?\d+/;
 
