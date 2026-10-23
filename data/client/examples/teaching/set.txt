@@ -1,2 +1,2 @@
 Teaching
-MO theory of the diatomics H2, He2, N2, O2 (triplet), F2, CO and HF with ECCE-QM: orbitals, MO diagrams and contour maps.
+MO theory of the diatomics H2, He2, N2, O2 (triplet), F2, CO and HF with ECCE-QM, and the Quantum ESPRESSO crystals Al (fcc), Na (bcc) and alpha-Po (primitive cubic).
