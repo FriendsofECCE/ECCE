@@ -189,3 +189,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [GROMACS Prepare, imported force fields: per-user library on the client, staged with the Prepare as <name>.ff__SLASH__<file>.gmxff inputs](gromacs-prepare-imported-force-fields.md)
 - [ORCA IRC (#417): the structures are in <input>_IRC_Full_trj.xyz, one frame per summary row, TS included](orca-irc-structures-live-in-a-file-named-after-the-input.md)
 - [ECCE-QM relaxed scans (#450): scan block, the rewritten scan_table (Frequency=last), scan_geometry per point, guess_mix for UHF](ecceqm-relaxed-scan-450.md)
+- [ECCE-QM transition-state search (#452): runtype ts, P-RFO with mode following, run type name, why QST/NEB-TS are not used](ecceqm-ts-452.md)

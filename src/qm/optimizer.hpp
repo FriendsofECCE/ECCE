@@ -29,6 +29,7 @@ struct OptOptions {
   double max_step = 4e-3, rms_step = 2e-3;
   double d_energy = 5e-6;
   double trust = 0.3, trust_max = 1.0;  // bohr, length of the whole step
+  int ts_hessian_every = 0;      // optimize_ts: recompute the Hessian every n steps (0: update only)
   // Held exactly at every step.  Dummy atoms that no constraint names stay
   // where they are; one that a bond, angle or torsion names moves with it.
   std::vector<GeoConstraint> constraints;
@@ -63,6 +64,18 @@ struct OptResult {
 OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
                             const std::function<OptEval(const Molecule&)>& eval,
                             const std::function<void(const OptStep&)>& on_step);
+
+// Transition-state search: partitioned rational function steps (uphill along
+// one Hessian mode, downhill along the rest) from the Hessian that hessian()
+// computes at the start geometry, kept up to date by Bofill updates.  The
+// followed mode starts as the lowest and afterwards is the one that overlaps
+// most with the previous step's.  Convergence as in optimize_geometry; no
+// constraints.  hessian(mol) is called after eval(mol) at the same geometry,
+// returns 3N x 3N in hartree/bohr^2.
+OptResult optimize_ts(const Molecule& start, const OptOptions& opt,
+                      const std::function<OptEval(const Molecule&)>& eval,
+                      const std::function<Mat(const Molecule&)>& hessian,
+                      const std::function<void(const OptStep&)>& on_step);
 
 // Lindh's model Hessian (stretches, bends, torsions), in Cartesians, bohr
 // and hartree.  Exposed for tests.

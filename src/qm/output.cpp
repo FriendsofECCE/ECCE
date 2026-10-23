@@ -221,7 +221,7 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "format_version 1\n";
   os << "program ecce-qm 0.1\n";
   os << "title " << in.title << "\n";
-  static const char* kRunNames[] = {"energy", "gradient", "optimize", "frequency", "optfreq"};
+  static const char* kRunNames[] = {"energy", "gradient", "optimize", "frequency", "optfreq", "ts"};
   os << "runtype " << kRunNames[static_cast<int>(in.runtype)] << "\n";
   os << "method " << in.scf.method << "\n";
   os << "reference " << ref_name(r.reference, dft) << "\n";

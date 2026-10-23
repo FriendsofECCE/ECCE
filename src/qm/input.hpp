@@ -18,12 +18,17 @@
 //                                symmetry; default false)
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
-//   runtype <energy|gradient|optimize|frequency|optfreq>   default energy;
+//   runtype <energy|gradient|optimize|frequency|optfreq|ts>   default energy;
 //                                gradient adds the analytic nuclear gradient,
 //                                optimize moves the nuclei to a minimum
 //                                (Cartesian BFGS), frequency adds harmonic
 //                                frequencies, IR intensities and
-//                                thermochemistry, optfreq does both
+//                                thermochemistry, optfreq does both, ts
+//                                optimises to a first-order saddle point
+//                                (partitioned RFO from a computed Hessian,
+//                                Bofill updates) and then runs frequencies
+//   ts_hessian_every <n>         ts: recompute the Hessian every n steps
+//                                (default 0: only at the start)
 //   hessian_step <bohr>          frequency: finite-difference step (0.005)
 //   temperature <K>, pressure <atm>   thermochemistry (298.15, 1)
 //   symmetry_number <n>          rotational symmetry number (default: from the geometry)
@@ -71,10 +76,10 @@
 
 namespace qm {
 
-enum class RunType { Energy, Gradient, Optimize, Frequency, OptFreq };
+enum class RunType { Energy, Gradient, Optimize, Frequency, OptFreq, TS };
 
-inline bool does_frequencies(RunType t) { return t == RunType::Frequency || t == RunType::OptFreq; }
-inline bool does_optimize(RunType t) { return t == RunType::Optimize || t == RunType::OptFreq; }
+inline bool does_frequencies(RunType t) { return t == RunType::Frequency || t == RunType::OptFreq || t == RunType::TS; }
+inline bool does_optimize(RunType t) { return t == RunType::Optimize || t == RunType::OptFreq || t == RunType::TS; }
 
 // A relaxed scan: constraint.value runs from start to end (bohr or radians)
 // in points steps.
