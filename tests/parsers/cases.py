@@ -2370,6 +2370,20 @@ CASES = [
         },
     ),
     dict(
+        name='g16-octane-cpcm',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/octane_pcm.log',
+        # HF/STO-3G CPCM(water) Opt=Loose, 9 steps.  With 26 cavity spheres
+        # G16 prints no "Spheres list", so the PCM block must end on the
+        # rule after "Solvent :" or it swallows every later property (#491).
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={
+            'GEOMTRACE': dict(blocks=9),
+            'SOLVMODEL': dict(keys={
+                'SOLVMODEL': {'values': 'C-PCM, Water', 'units': 'NA'}}),
+        },
+    ),
+    dict(
         name='orca-h2o-smd',
         desc='orca.desc',
         fixture='orca/h2o_smd.out',

@@ -425,9 +425,9 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
 
 [SOLVMODEL]  Script=gaussian-16.solvmodel  Freq=last  Skip=-  Lines=-
   Begin=Polarizable Continuum Model \(PCM\)
-  End=Spheres list
+  End=^ -{20,}\s*$
   begins=3 delivered=1 buffered_away=2
-  block 1: begin-line=921 fed=21 rc=0 first-fed=' Polarizable Continuum Model (PCM)'
+  block 1: begin-line=921 fed=20 rc=0 first-fed=' Polarizable Continuum Model (PCM)'
     key: SOLVMODEL
       size: 1
       values: SMD, Water

@@ -174,12 +174,15 @@ Frequency=last
 End=Cartesian Forces
 [END]
 
-# Model and solvent from the last PCM block (the final geometry).
+# Model and solvent from the last PCM block (the final geometry).  End on
+# the rule after "Solvent :": G16 prints "Spheres list" only for a small
+# cavity (none at 26 spheres), and a block that never ends swallows every
+# later property of the run.
 [SOLVMODEL]
 Script=gaussian-16.solvmodel
 Begin=Polarizable Continuum Model \(PCM\)
 Frequency=last
-End=Spheres list
+End=^ -{20,}\s*$
 [END]
 
 # SMD only; PCM prints no solvation term of its own.
