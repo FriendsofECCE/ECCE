@@ -79,6 +79,7 @@ class AuthCache
     void pipeOutHandle(void *writeHandle);
 #endif
     void msgIn(const JMSMessage& msg, const string& callerID);
+    static bool privateBroker();
     static void pipeClean(const string& pipeName);
 
     virtual BasicAuth *getAuthentication(const string& url, 

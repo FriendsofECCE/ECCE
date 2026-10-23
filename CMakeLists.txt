@@ -2232,6 +2232,16 @@ if(TARGET ecce_users_auth)
   set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
 set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+
+# A compute machine's password learned in one process reaches the others of
+# a local session over the Unix-socket broker (#487).
+add_executable(authcache_relay_test tests/mqtt/authcache_relay_test.C)
+target_include_directories(authcache_relay_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(authcache_relay_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME authcache-relay COMMAND authcache_relay_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(authcache-relay PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
 endif()
 
 # tests/tls -- https data-server client (#236): pinned certificate, CA mode
