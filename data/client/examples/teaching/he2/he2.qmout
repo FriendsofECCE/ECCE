@@ -1,0 +1,55 @@
+progress scf cycle=1 energy=-5.7998060406 grad=2.91e-03/1e-07
+progress scf cycle=2 energy=-5.7998083933 dE=-2.35e-06/1e-10 grad=5.78e-05/1e-07
+progress scf cycle=3 energy=-5.7998084059 dE=-1.26e-08/1e-10 grad=1.52e-05/1e-07
+progress scf cycle=4 energy=-5.7998084063 dE=-4.16e-10/1e-10 grad=1.70e-08/1e-07
+progress scf cycle=5 energy=-5.7998084063 dE=2.66e-15/1e-10 grad=2.37e-11/1e-07 converged=yes
+# ecce-qm output, format version 1
+format_version 1
+program ecce-qm 0.1
+title He2, B3LYP/6-31G*, single point
+runtype energy
+method b3lyp
+reference rks
+basis 6-31G*
+spherical true
+grid 99 590
+charge 0
+multiplicity 1
+nbf 4
+nalpha 2
+nbeta 2
+converged yes
+iterations 5
+energy_total -5.799808406303
+energy_nuclear 0.705569614537
+energy_one_electron -9.175035798482
+energy_coulomb 4.812708424962
+energy_exchange_hf -0.410711683847
+energy_xc -1.732338963474
+grid_electrons 4.000000019828
+dipole_au -0.000000000000 0.000000000000 0.000000000000
+dipole_debye -0.000000000000 0.000000000000 0.000000000000 0.000000000000
+wall_seconds 0.05
+begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge
+0 He 2 -1.500000000000 0.000000000000 0.000000000000 0.000000000000
+1 He 2 1.500000000000 0.000000000000 0.000000000000 -0.000000000000
+end atoms
+begin ao_labels  # index label, order of the MO coefficients
+1 0He 1s
+2 0He 2s
+3 1He 1s
+4 1He 2s
+end ao_labels
+begin orbitals restricted  # index energy(hartree) occupation
+1 -0.647999245918 2.000000000000
+2 -0.644429123822 2.000000000000
+3 1.100460066762 0.000000000000
+4 1.146561406166 0.000000000000
+end orbitals
+begin mo_coefficients restricted  # one line per MO: index then nbf coefficients
+1 0.4167347929 0.3642104868 0.4167347929 0.3642104868
+2 0.4204441016 0.3622525841 -0.4204441016 -0.3622525841
+3 -0.8114658193 0.8322398203 -0.8114658193 0.8322398203
+4 0.8147621678 -0.8464292470 -0.8147621678 0.8464292470
+end mo_coefficients
+end_of_output

@@ -1,0 +1,10 @@
+title He2, B3LYP/6-31G*, single point
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype energy
+geometry
+ He   -1.5000 0.0000000000 0.0000000000
+ He    1.5000 0.0000000000 0.0000000000
+end

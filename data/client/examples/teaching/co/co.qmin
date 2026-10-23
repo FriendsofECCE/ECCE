@@ -1,0 +1,10 @@
+title CO, B3LYP/6-31G*, single point
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype energy
+geometry
+ C   -0.5640 0.0000000000 0.0000000000
+ O    0.5640 0.0000000000 0.0000000000
+end
