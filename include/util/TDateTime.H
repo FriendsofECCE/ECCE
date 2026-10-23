@@ -73,6 +73,10 @@ public:
   static string getDateFormatName(TDateTime::DateFormat id);
   static string getTimeFormatName(TDateTime::TimeFormat id);
 
+  // Job start and end times are shown to the second whatever the
+  // preference, so a run of under a minute is not 0 (#463).
+  static TimeFormat withSeconds(TimeFormat id);
+
 protected:
 
         void initTimeZone();

@@ -698,7 +698,7 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
     if (success && valuestr != "") {
       TDateTime datetime(valuestr);
       valuestr = datetime.toString((TDateTime::DateFormat)dateFormat,
-                                   (TDateTime::TimeFormat)timeFormat);
+                   TDateTime::withSeconds((TDateTime::TimeFormat)timeFormat));
     }
     prop->SetLabel(valuestr);
   }
