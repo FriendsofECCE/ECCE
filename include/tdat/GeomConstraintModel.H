@@ -43,6 +43,19 @@ class GeomConstraintModel : public Serializable
       static bool usedByRunType(const std::string& runtype)
       { return runtype == "Geometry" || runtype == "GeoVib"; }
 
+      /// What the code's ai.* script does with stored constraints and scans
+      /// for a run type: take them, leave them out (the input is written
+      /// without), or die (no input).  ECCE-QM dies for GeoVib and Opt-TS,
+      /// whose results would be at a constrained geometry.
+      enum Use { USED, IGNORED, REFUSED };
+      static Use useBy(const std::string& code, const std::string& runtype)
+      {
+        if (code == "ECCE-QM" &&
+            (runtype == "GeoVib" || runtype == "Transition State (Opt-TS)"))
+          return REFUSED;
+        return usedByRunType(runtype) ? USED : IGNORED;
+      }
+
       GeomConstraintModel(const Fragment& frag, 
                           const GeomConstraintRules& rules);
       GeomConstraintModel(const GeomConstraintModel& rhs); 

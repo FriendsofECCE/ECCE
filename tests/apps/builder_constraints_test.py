@@ -120,8 +120,9 @@ def deckCase(display, url, calcdir, expectZcoord, label):
         return
     m = re.search(r"CALCED: constraints count=(\d+) note=(.*)", log)
     if expectZcoord:
-        check(m is not None and m.group(1) == "1" and m.group(2).strip() == "",
-              "%s: the editor holds the constraint and shows no warning: %s" %
+        check(m is not None and m.group(1) == "1" and
+              m.group(2).strip() == "1 constraint, used by this Geometry run",
+              "%s: the editor holds the constraint and says it is used: %s" %
               (label, m.group(2) if m else "?"), run_tests._tail(log, 20))
         check(not re.search(r"CALCED: verify (UNSURE|other)", log),
               "%s: Verify has nothing to add: %s" % (label, re.findall(r"CALCED: verify.*", log)))

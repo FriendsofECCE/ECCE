@@ -18,6 +18,7 @@ using std::vector;
 #include "tdat/TRunType.H"
 #include "tdat/TTheory.H"
 #include "tdat/ESPConstraintModel.H"
+#include "tdat/GeomConstraintModel.H"
 
 #include "wxgui/WxFeedback.H"
 #include "wxgui/FeedbackSaveHandler.H"
@@ -244,6 +245,8 @@ class CalcEd: public CalcEdGUI,
     /// reports how many the structure has and opens the Builder for them.
     void refreshConstraintCount();
     string constraintNote() const;
+    /// What this code's input does with them for the chosen run type.
+    GeomConstraintModel::Use constraintUse() const;
     void updateESPModel();
     void clearESPModel();
 
@@ -366,6 +369,9 @@ class CalcEd: public CalcEdGUI,
 
     /** how many geometry constraints the calculation holds. */
     int p_constraintCount;
+    /** of those, the ones that are not a scan, and each scan as text. */
+    int p_fixedCount = 0;
+    vector<string> p_scanTexts;
 
     /** the partial charge dialog. */
     PartialCharge   *p_partialCharge;

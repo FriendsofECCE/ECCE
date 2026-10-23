@@ -148,8 +148,10 @@ bool CalcEd::write_esp(const string& output_file, bool& file_flag)
 
 bool CalcEd::write_constraints(const string& output_file, bool& file_flag)
 {
-  // only a run type that uses constraints gets them; they stay stored
-  if (!GeomConstraintModel::usedByRunType(p_iCalc->runtype().name())) {
+  // Only a run type that takes them (or a code that must refuse them) gets
+  // the file; otherwise they stay stored and the input is written without.
+  if (GeomConstraintModel::useBy(p_codeName, p_iCalc->runtype().name()) ==
+      GeomConstraintModel::IGNORED) {
     // it's not an error to bail early if not the correct runtype
     return true;
   }
