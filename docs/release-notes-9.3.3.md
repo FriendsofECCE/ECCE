@@ -6,6 +6,7 @@
 
 ## Fixes
 - **A failed job keeps its output, status and progress** (#470, #467). A job whose output ended inside a block of the code's parse description killed the job monitor, so nothing was stored; the open block is now dropped and the rest is stored.
+- **Gaussian 16 with a solvent (PCM/CPCM): properties are stored again for larger molecules** (#491). For a cavity of more than a few spheres Gaussian does not print the line that closed the solvent block, so every later result of the run (energies, orbitals, the geometry trace, frequencies) was lost, during the run and at the end.
 - **GROMACS: structures of a triclinic (dodecahedral) box are shown wrapped into the compact cell**, with molecules kept whole (#476).
 - **GROMACS Progress box:** plots for energy minimisation and dynamics, read from the log, the table and the energy file (#477).
 - **GROMACS Inputs page:** each file name is on its own line under its label and buttons, so long names are no longer cut off.
