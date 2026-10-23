@@ -148,21 +148,16 @@ bool MoAoBasis::functionCounts(IPropCalculation *expt,
 }
 
 
-bool MoAoBasis::overlapMatrix(IPropCalculation *expt,
-                              const vector<string>& storedElements,
-                              const vector<double>& storedCoords, int width,
-                              vector<int>& perAtom, vector<double>& Sflat,
-                              std::function<void(double)> onRow,
-                              vector<EspBasisFunction> *basisOut)
+bool MoAoBasis::flatBasis(IPropCalculation *expt,
+                          const vector<string>& storedElements,
+                          const vector<double>& storedCoords, int width,
+                          vector<EspBasisFunction>& basisOut)
 {
-  perAtom.clear();
-  Sflat.clear();
-
+  basisOut.clear();
   ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
   const unsigned long natoms = storedElements.size();
   if (escalc == 0 || natoms == 0 || storedCoords.size() != natoms*3)
     return false;
-
   TGBSConfig *config = escalc->gbsConfig();
   if (config == 0 || config->empty()) {
     TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
@@ -201,6 +196,29 @@ bool MoAoBasis::overlapMatrix(IPropCalculation *expt,
   delete config;
   if (basis.empty()) return false;
   for (size_t i = 0; i < basis.size(); i++) if (basis[i].empty()) return false;
+  basisOut.swap(basis);
+  return true;
+}
+
+
+
+bool MoAoBasis::overlapMatrix(IPropCalculation *expt,
+                              const vector<string>& storedElements,
+                              const vector<double>& storedCoords, int width,
+                              vector<int>& perAtom, vector<double>& Sflat,
+                              std::function<void(double)> onRow,
+                              vector<EspBasisFunction> *basisOut)
+{
+  perAtom.clear();
+  Sflat.clear();
+
+  perAtom.clear();
+  Sflat.clear();
+
+  vector<EspBasisFunction> basis;
+  if (!flatBasis(expt, storedElements, storedCoords, width, basis))
+    return false;
+  const unsigned long natoms = storedElements.size();
 
   {
     size_t i = 0;

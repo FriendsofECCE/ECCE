@@ -135,6 +135,16 @@ class MoAoBasis
                                vector<int> *shellSeq = 0,
                                vector<int> *component = 0);
 
+    /**
+     * The basis flattened into one function per coefficient column, in
+     * the stored frame (Angstrom coordinates in, bohr centres out); the
+     * same two-try Cartesian/spherical rule as build().
+     */
+    static bool flatBasis(IPropCalculation *calc,
+                          const vector<string>& symbols,
+                          const vector<double>& coordsAng, int width,
+                          vector<EspBasisFunction>& basisOut);
+
     /** The real overlap matrix and per-atom counts (see build()). */
     static bool overlapMatrix(IPropCalculation *calc,
                               const vector<string>& symbols,

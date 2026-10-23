@@ -516,6 +516,13 @@ target_include_directories(fragorb PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(fragorb PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
+# The density or one MO on a plane through a molecule (#215); a development
+# tool like fragorb, not installed.
+add_executable(densityplane src/apps/densityplane/densityplane.C)
+target_include_directories(densityplane PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(densityplane PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
 # flock(1) for the session scripts where util-linux is absent (macOS).
 if(NOT WIN32)   # the Windows client has no session scripts (#133)
   add_executable(ecce-flock src/apps/flock/ecce-flock.c)
@@ -1916,8 +1923,25 @@ target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INC
 target_compile_definitions(chooser_shot PRIVATE ${wxWidgets_DEFINITIONS})
 target_link_libraries(chooser_shot PRIVATE eccewxgui eccewxthings eccetdat ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
 add_test(NAME elementlayout COMMAND elementlayout_test)
+# The Density Map's picture of a calculation folder without the Builder (#215).
+add_executable(densitymap_shot tests/builder/densitymap_shot.C src/apps/builder/DensityMapDraw.C)
+target_include_directories(densitymap_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS} ${XercesC_INCLUDE_DIRS})
+target_compile_definitions(densitymap_shot PRIVATE ${wxWidgets_DEFINITIONS})
+target_link_libraries(densitymap_shot PRIVATE eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
+
 set_tests_properties(elementlayout PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=elementlayout;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/elementlayout-home")
+
+# tests/tdat/densityplane_test (#215): plane model, offset, degenerate sum.
+add_executable(densityplane_test tests/tdat/densityplane_test.C)
+target_include_directories(densityplane_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(densityplane_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME densityplane
+  COMMAND densityplane_test ${CMAKE_SOURCE_DIR}/tests/builder/densitymap-fixtures)
+set_tests_properties(densityplane PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityplane;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityplane-home")
 
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)

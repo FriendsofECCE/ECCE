@@ -20,6 +20,7 @@
 #include "Builder.H"
 #include "PropertyPanel.H"
 #include "MoPanel.H"
+#include "DensityMapPanel.H"
 
 
 namespace {
@@ -126,5 +127,96 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   p_mgr.Update();
   settle(300);
   fprintf(stderr, "PLOTSHOT: %s %dx%d\n", w[1].c_str(), r.width, r.height);
+  return true;
+}
+
+
+//  Scene commands for the Density Map panel (#215); each GUI action has one:
+//    densitymap <name> <w> <h> <orbital|0|sumN> <alpha|beta> <plane 0-3> [a b c]
+//    dmpick A B [C]       atoms picked in the 3-D view (1-based)
+//    dmoffset X [drag]    the offset slider, A
+//    dmview rx ry rz ux uy uz | dmviewcurrent     "Use this view"
+//    dmfollow N           select MO N in the MOs panel
+//    dmcsv <name> | dmpng <name> <w> <h> | dmstate | dmhide | dmclose
+bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
+                                const string& outdir)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane("Density Map");
+  if (!pane.IsOk()) return s.fail(w[0] + ": no Density Map panel");
+  if (w[0] == "dmhide") {
+    //  As the menu's untick does; a ticked entry would bring the pane back.
+    for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
+      wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+      if (item != 0 && item->GetItemLabelText() == "Density Map") item->Check(false);
+    }
+    pane.Hide();
+    updatePanes(true);
+    return true;
+  }
+  if (!pane.IsShown() && w[0] != "dmstate") {
+    pane.Show(true);
+    for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
+      wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+      if (item != 0 && item->GetItemLabelText() == "Density Map") item->Check(true);
+    }
+    updatePanes(true);
+  }
+  DensityMapPanel *dm = 0;
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(p_calculation->getURL().toString());
+  for (set<PropertyPanel*>::iterator it = panels.begin();
+       it != panels.end() && !dm; ++it)
+    dm = dynamic_cast<DensityMapPanel*>(*it);
+  if (!dm) return s.fail(w[0] + ": no Density Map panel for this calculation");
+  dm->ensureInitialized();
+  const std::string& cmd = w[0];
+  bool ok = true;
+  if (cmd == "densitymap") {
+    if (w.size() < 7)
+      return s.fail("densitymap <name> <w> <h> <orbital|0|sumN> <alpha|beta> "
+                    "<plane 0-3> [a b c]");
+    const bool sum = w[4].compare(0, 3, "sum") == 0;
+    const int orbital = atoi(w[4].c_str() + (sum ? 3 : 0));
+    const int a = w.size() > 7 ? atoi(w[7].c_str()) : 0;
+    const int b = w.size() > 8 ? atoi(w[8].c_str()) : 0;
+    const int c = w.size() > 9 ? atoi(w[9].c_str()) : 0;
+    if (!dm->setView(orbital, w[5] == "beta", atoi(w[6].c_str()), a, b, c, sum))
+      return s.fail("densitymap: the plane or orbital was refused");
+    if (!dm->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
+                     atoi(w[3].c_str())))
+      return s.fail("densitymap: cannot write " + w[1] + ".png");
+  } else if (cmd == "dmpick" && w.size() >= 3) {
+    vector<int> atoms;
+    for (size_t i = 1; i < w.size(); i++) atoms.push_back(atoi(w[i].c_str()));
+    ok = dm->pickAtoms(atoms);
+  } else if (cmd == "dmoffset" && w.size() >= 2) {
+    ok = dm->setOffset(atof(w[1].c_str()), w.size() > 2 && w[2] == "drag");
+  } else if (cmd == "dmview" && w.size() == 7) {
+    const double r[3] = { atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str()) };
+    const double u[3] = { atof(w[4].c_str()), atof(w[5].c_str()), atof(w[6].c_str()) };
+    ok = dm->useView(r, u);
+  } else if (cmd == "dmviewcurrent") {
+    ok = dm->useCurrentView();
+  } else if (cmd == "dmfollow" && w.size() >= 2) {
+    set<PropertyPanel*> all =
+        PropertyPanel::getPanels(p_calculation->getURL().toString());
+    ok = false;
+    for (set<PropertyPanel*>::iterator it = all.begin(); it != all.end(); ++it)
+      if (MoPanel *mo = dynamic_cast<MoPanel*>(*it))
+        ok = mo->selectRowForMo(atoi(w[1].c_str()));
+  } else if (cmd == "dmcsv" && w.size() == 2) {
+    ok = dm->exportCsv(wxString(outdir + "/" + w[1] + ".csv"));
+  } else if (cmd == "dmpng" && w.size() == 4) {
+    ok = dm->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
+                     atoi(w[3].c_str()));
+  } else if (cmd == "dmclose") {
+    //  What setDetail does to a panel another one replaces.
+    dm->Show(false);
+  } else if (cmd != "dmstate") {
+    return s.fail("unknown density map command: " + cmd);
+  }
+  if (!ok) return s.fail(cmd + ": refused");
+  const std::string st = dm->state();
+  fprintf(stderr, "DENSITYMAP: %s\n%s", cmd.c_str(), st.c_str());
   return true;
 }

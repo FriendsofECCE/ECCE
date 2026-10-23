@@ -319,6 +319,15 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Density Map</name>
+    <group>Orbitals</group>
+    <class>DensityMapPanel</class>
+    <consumer>false</consumer>
+    <allowPin>false</allowPin>
+    <property name="ORBOCC"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Relaxed Scan</name>
     <group>Geometry</group>
     <class>ScanPanel</class>

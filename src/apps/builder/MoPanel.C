@@ -54,6 +54,7 @@
 
 #include "Builder.H"
 #include "MoPanel.H"
+#include "DensityMapPanel.H"
 #include "GridDlg.H"
 #include "MoCoeffs.H"
 
@@ -778,10 +779,45 @@ void MoPanel::fillGraph(bool haveTypes)
 }
 
 
+//  Select the row of MO `number` (1-based, alpha) as a click on it does.
+bool MoPanel::selectRowForMo(int number)
+{
+   ensureInitialized();
+   if (p_mogrid == 0) return false;
+   const int offset = p_mogrid->GetColLabelValue(0) == "Type" ? 1 : 0;
+   for (int row = 0; row < p_mogrid->GetNumberRows(); row++) {
+      if (offset == 1 && p_mogrid->GetCellValue(row, 0) != "alpha") continue;
+      long n = 0;
+      if (p_mogrid->GetCellValue(row, offset).ToLong(&n) && n == number) {
+         selectMo(row);
+         return true;
+      }
+   }
+   return false;
+}
+
+
+//  The Density Map panel follows the orbital chosen here (#215).
+void MoPanel::tellDensityMap()
+{
+   IPropCalculation *calc = getCalculation();
+   if (calc == 0 || p_mogrid == 0 || p_selectedRow < 0 ||
+       p_selectedRow >= p_mogrid->GetNumberRows())
+      return;
+   std::set<PropertyPanel*> panels = PropertyPanel::getPanels(calc->getURL().toString());
+   for (std::set<PropertyPanel*>::iterator it = panels.begin();
+        it != panels.end(); ++it) {
+      DensityMapPanel *dm = dynamic_cast<DensityMapPanel*>(*it);
+      if (dm) dm->followMo(getSelectedMo(), getSelectedType() == "beta");
+   }
+}
+
+
 void MoPanel::selectMo(int index)
 {
    p_selectedRow = index;
    p_mogrid->SelectRow(index);
+   tellDensityMap();
 
    //  Scrolling now would be a no-op: the table is filled while the panel
    //  is still off screen, and AutoSize() has just made the grid tall
@@ -1549,6 +1585,7 @@ void MoPanel::OnGridOkButton(wxCommandEvent& evt)
 void MoPanel::OnMoSelection(wxGridEvent& event)
 {
    p_selectedRow = event.GetRow();
+   tellDensityMap();
    chooseMoFieldType();
    showComposition();
    showCoeffs(false);
