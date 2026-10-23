@@ -21,8 +21,7 @@ silently leaves it out of the job (ORCA then dies on a missing file).
 product that is no longer picked cannot linger.
 
 The reactant, product and guess are picked in the Calculation Editor's Chemical
-System box ("Structure from: Other calculations (transition state)", only with
-`ECCE_EXPERIMENTAL_TS=1`), not in Runtype Details. The picks live in CalcEd
+System box (the TS Search button), not in Runtype Details. The picks live in CalcEd
 members and are written to `ES.Runtype.GeomOpt.QST{Reactant,Product,Guess}` /
 `ES.Runtype.NEB.{Reactant,Product,Guess}` by `syncTsKeys()` on every Save and
 after a runtype reset (which deletes all `ES.Runtype` keys). QSTGuess is now a

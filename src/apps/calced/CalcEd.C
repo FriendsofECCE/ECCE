@@ -2572,17 +2572,14 @@ void CalcEd::populateRuntypes()
     TTheory theory = getTheory();
     vector<TRunType> *runTypes = p_code->runTypes(&theory);
     vector<TRunType>::iterator it;
-    //  QST and NEB-TS are being redesigned (#419): offered only with
-    //  ECCE_EXPERIMENTAL_TS set, or when the calculation already has one
-    //  (an imported job), so its run type still shows.
-    const char *ts = getenv("ECCE_EXPERIMENTAL_TS");
-    const bool offerTS = (ts && *ts && strcmp(ts, "0") != 0);
+    //  QST and NEB-TS need a reactant picked through TS Search; without one
+    //  only an imported job's own run type still shows.
     string current;
     if (p_iCalc) current = p_iCalc->runtype().name();
     for (it = runTypes->begin(); it != runTypes->end(); it++) {
       const bool tsRun = it->name().compare(0, 22, "Transition State (QST)") == 0
                       || it->name().compare(0, 25, "Transition State (NEB-TS)") == 0;
-      if (tsRun && !(offerTS && p_tsSource) && it->name() != current)
+      if (tsRun && !p_tsSource && it->name() != current)
         continue;
       if (p_tsSource && !tsRun)
         continue;
@@ -3539,7 +3536,6 @@ void CalcEd::enableDetailsFields()
 }
 
 
-static bool tsOffered();
 
 /**
  * The first thing the user still has to supply, for the greyed-out
@@ -3554,9 +3550,7 @@ string CalcEd::notReadyReason(int *box) const
     *box = BOX_CHEMSYS;
     if (p_tsSource)
       return "Not ready: pick the reactant calculation (TS Search).";
-    if (tsOffered())
-      return "Not ready: build a molecule (Builder) or use TS Search.";
-    return "Not ready: build or import a molecule (Builder).";
+    return "Not ready: build a molecule (Builder) or use TS Search.";
   }
   if (p_frag->containsNubs()) {
     *box = BOX_CHEMSYS;
@@ -4795,12 +4789,6 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
 
 // ---- Transition-state structure source (#419) ------------------------------
 
-static bool tsOffered()
-{
-  const char *ts = getenv("ECCE_EXPERIMENTAL_TS");
-  return ts && *ts && strcmp(ts, "0") != 0;
-}
-
 bool CalcEd::tsRuntypeSelected() const
 {
   const wxString rt = getRuntypeName();
@@ -4923,7 +4911,7 @@ void CalcEd::refreshTsBox()
 {
   if (!p_tsPanel) return;
   if (p_tsSearchBtn) {
-    p_tsSearchBtn->Show(tsOffered() && !p_frag && !p_tsSource);
+    p_tsSearchBtn->Show(!p_frag && !p_tsSource);
   }
   p_tsPanel->Show(p_tsSource);
   p_chemSysInner->Layout();

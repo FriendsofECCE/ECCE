@@ -40,7 +40,6 @@ def xyzOrder(path):
 
 def main():
     os.environ["ECCE_QST_CODE"] = "ORCA"
-    os.environ["ECCE_EXPERIMENTAL_TS"] = "1"   # NEB-TS is offered only then (#419)
 
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "neb-localdata")
