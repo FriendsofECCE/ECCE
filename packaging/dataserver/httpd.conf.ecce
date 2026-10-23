@@ -236,6 +236,8 @@ AddType  chemical/x-orca-gbw    .gbw
 AddType  chemical/x-orca-guess   .gbwin
 AddType  chemical/x-gaussian-16-chk    .chk
 AddType  chemical/x-gaussian-16-guess  .chkin
+AddType  chemical/x-nwchem-movecs      .movecs
+AddType  chemical/x-nwchem-guess       .movecsin
 
 # ECCE-QM, the bundled engine: distinctive extensions, as for ORCA above.
 AddType  chemical/x-ecceqm-input  .qmin

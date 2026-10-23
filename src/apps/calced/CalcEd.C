@@ -3405,7 +3405,8 @@ void CalcEd::refreshBasisSetFields()
 /**
  * The initial-guess line under the Settings box: shown only when this
  * calculation carries the orbitals of an earlier one.  A different basis
- * set is a warning-free fact here, the code projects the orbitals.
+ * set is a warning-free fact here, the code projects the orbitals, except
+ * for NWChem.
  */
 void CalcEd::refreshOrbitalGuess()
 {
@@ -3428,8 +3429,15 @@ void CalcEd::refreshOrbitalGuess()
       //  The importer stores the name in lower case, the library in mixed.
       if (p_basis != 0 && !was.empty() &&
           wxString::FromUTF8(was).CmpNoCase(
-              wxString::FromUTF8(p_basis->name())) != 0)
-        text += " (projected from " + was + ")";
+              wxString::FromUTF8(p_basis->name())) != 0) {
+        //  The deck has no "vectors input project": NWChem stops on a
+        //  vectors file of another basis.
+        if (p_codeName == "NWChem")
+          text += "; NWChem needs the same basis set (" + was +
+                  "): choose it again or use the default guess";
+        else
+          text += " (projected from " + was + ")";
+      }
       //  A deck made before the orbitals were attached does not read them,
       //  and Save does nothing unless something is marked changed.
       if (editable && !deckNamesOrbitalGuess()) {

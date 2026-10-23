@@ -51,7 +51,7 @@ bool OrbitalGuess::available(const TaskJob *source, string &why)
   why.clear();
   if (source == 0 || !readsGuess(source)) {
     why = "Only a calculation of a code that can start from earlier "
-          "orbitals (ORCA, Gaussian 16) can be duplicated with its final "
+          "orbitals (ORCA, Gaussian 16, NWChem) can be duplicated with its final "
           "orbitals.";
     return false;
   }
