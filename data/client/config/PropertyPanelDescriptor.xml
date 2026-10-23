@@ -319,6 +319,15 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Density Map</name>
+    <group>Orbitals</group>
+    <class>DensityMapPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="MO"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Relaxed Scan</name>
     <group>Geometry</group>
     <class>ScanPanel</class>
