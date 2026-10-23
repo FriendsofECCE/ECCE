@@ -1,11 +1,11 @@
 # built model (drawn by the maintainer)
 # Reference: Drawn by the maintainer (no publication)
-# charge from Nb(V), Ti(IV), O(2-) with the O-O pair at 1.55 A as one peroxo O2(2-)
-# formula: Nb16Ti4O52
-title:          [Nb16Ti4O52]6-
+# charge from Nb(V) and O(2-)
+# formula: Nb20O52
+title:          [Nb20O52]4-
 type:           molecule
 cell_units:     angstroms
-charge:         -6
+charge:         -4
 num_atoms:      72
 atom_info:      symbol cart
 atom_list:
@@ -76,12 +76,12 @@ atom_list:
   O       0.11156     -2.45824     -3.41587
   Nb     -1.62020     -2.51715     -2.58826
   O      -1.27157     -4.23994     -2.50067
-  Ti     -3.67433     -0.42218     -1.82474
-  Ti     -1.29727     -0.51450     -0.54349
-  Ti      3.70513      0.94813      1.74246
-  Ti      1.23239      0.07246      0.63787
+  Nb     -3.67433     -0.42218     -1.82474
+  Nb     -1.29727     -0.51450     -0.54349
+  Nb      3.70513      0.94813      1.74246
+  Nb      1.23239      0.07246      0.63787
   O       2.35182     -2.10798     -1.18810
-num_bonds:      122
+num_bonds:      121
 bond_info:     order
 bond_list:
  1  2  1.00000
@@ -185,7 +185,6 @@ bond_list:
  48  49  1.00000
  48  50  1.00000
  48  56  1.00000
- 49  50  1.00000
  49  62  1.00000
  49  68  1.00000
  50  62  1.00000

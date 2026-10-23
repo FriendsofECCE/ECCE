@@ -1,8 +1,8 @@
 # built model (drawn by the maintainer)
 # Reference: Drawn by the maintainer (no publication)
-# charge as set in the drawn model (0); the oxidation states of the atoms give 8-
-# formula: Nb24Ti4O60
-title:          [Nb24Ti4O60]0+
+# drawing incomplete: Nb(V) and O(2-) give 20+, so charge left at 0 until the missing O are drawn
+# formula: Nb28O60
+title:          [Nb28O60]0+
 type:           molecule
 cell_units:     angstroms
 charge:         0
@@ -76,10 +76,10 @@ atom_list:
   O       0.13770     -2.23232     -2.79512
   Nb     -1.73268     -2.51764     -2.39219
   O      -1.37770     -4.48601     -2.20713
-  Ti     -3.88372     -0.57651     -1.87160
-  Ti     -1.34471     -0.27039     -0.59671
-  Ti      3.87418      0.82401      1.84715
-  Ti      1.28577      0.19144      0.64690
+  Nb     -3.88372     -0.57651     -1.87160
+  Nb     -1.34471     -0.27039     -0.59671
+  Nb      3.87418      0.82401      1.84715
+  Nb      1.28577      0.19144      0.64690
   O       2.67098     -1.83755     -1.50751
   Nb     -0.35500     -2.11658      1.43937
   O       0.03557     -3.99875      1.45705
