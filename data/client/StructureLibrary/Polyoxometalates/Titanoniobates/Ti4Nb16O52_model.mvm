@@ -1,11 +1,11 @@
 # built model (drawn by the maintainer)
 # Reference: Drawn by the maintainer (no publication)
-# charge as set in the drawn model (0); the oxidation states of the atoms give 8-
+# charge from Nb(V), Ti(IV), O(2-) with the O-O pair at 1.55 A as one peroxo O2(2-)
 # formula: Nb16Ti4O52
-title:          [Nb16Ti4O52]0+
+title:          [Nb16Ti4O52]6-
 type:           molecule
 cell_units:     angstroms
-charge:         0
+charge:         -6
 num_atoms:      72
 atom_info:      symbol cart
 atom_list:
