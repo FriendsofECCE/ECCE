@@ -33,6 +33,8 @@
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
 
+#include <regex>
+
 #include "tdat/Queue.H"
 #include "tdat/QueueMgr.H"
 
@@ -532,22 +534,18 @@ void MachineBrowser::refreshControls()
             string mngrName = isWkstn ? "Shell" : queueMngr->queueMgrName();
             const RefQueueManager *refQMngr = RefQueueManager::lookup(mngrName);
 
-            p_statusQueries[0] = refQMngr->queryMachineCommand();
-            p_statusQueries[1] = refQMngr->queryDiskUsageCommand();
-
-            string cmnd = refQMngr->queryQueueCommand();
-
-            if (!isWkstn)
-            {
-                int chpos = cmnd.find("##queue##");
-
-                if (chpos != string::npos)
-                {
-                    cmnd.replace(chpos, 9, prefs->getQueueName());
-                }
-            }
-
-            p_statusQueries[2] = cmnd;
+            //  Any of the three may name the queue (Slurm: sinfo -p ##queue##);
+            //  without one the option goes too, so the command shows them all.
+            string queue = isWkstn ? "" : prefs->getQueueName();
+            auto withQueue = [&queue](const string& cmnd) {
+              if (!queue.empty())
+                return std::regex_replace(cmnd, std::regex("##queue##"), queue);
+              return std::regex_replace(cmnd,
+                                        std::regex("( +-[A-Za-z-]+)? *##queue##"), "");
+            };
+            p_statusQueries[0] = withQueue(refQMngr->queryMachineCommand());
+            p_statusQueries[1] = withQueue(refQMngr->queryDiskUsageCommand());
+            p_statusQueries[2] = withQueue(refQMngr->queryQueueCommand());
 
             p_modeDscpns[0] = "Machine Status";
             p_modeDscpns[1] = "Disk Usage";
