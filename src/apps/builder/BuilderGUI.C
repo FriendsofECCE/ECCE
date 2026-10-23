@@ -44,6 +44,7 @@ const wxWindowID BuilderGUI::ID_SELECT_REVERSE = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_MOLECULE = wxNewId();
 const wxWindowID BuilderGUI::ID_DUMPSG = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_SOLVENT = wxNewId();
+const wxWindowID BuilderGUI::ID_SELECT_IONS = wxNewId();
 const wxWindowID BuilderGUI::ID_SAVE_THUMB = wxNewId();
 const wxWindowID BuilderGUI::ID_SUPPORT = wxNewId();
 const wxWindowID BuilderGUI::ID_MODE_PREV = wxNewId();
@@ -105,6 +106,7 @@ BEGIN_EVENT_TABLE( BuilderGUI, ewxTool )
     EVT_MENU( ID_SELECT_MOLECULE, BuilderGUI::OnSelectMoleculeClick )
 
     EVT_MENU( ID_SELECT_SOLVENT, BuilderGUI::OnSelectSolventClick )
+    EVT_MENU( ID_SELECT_IONS, BuilderGUI::OnSelectIonsClick )
 
     EVT_MENU( ID_SELECT_BACKBONE, BuilderGUI::OnSelectBackboneClick )
 
@@ -196,6 +198,7 @@ void BuilderGUI::CreateControls()
     itemMenu16->Append(wxID_SELECTALL, _("Select All\tCtrl+a"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_MOLECULE, _("Select Molecule"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SOLVENT, _("Select Solvent"), _T(""), wxITEM_NORMAL);
+    itemMenu16->Append(ID_SELECT_IONS, _("Select Ions"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_BACKBONE, _("Select Backbone"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SIDECHAINS, _("Select Side Chains"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_REVERSE, _("Reverse Selection\tCtrl+r"), _T(""), wxITEM_NORMAL);
@@ -515,7 +518,12 @@ void BuilderGUI::OnSelectSolventClick( wxCommandEvent& event )
 ////@begin wxEVT_COMMAND_MENU_SELECTED event handler for ID_SELECT_SOLVENT in BuilderGUI.
     // Before editing this code, remove the block markers.
     event.Skip();
-////@end wxEVT_COMMAND_MENU_SELECTED event handler for ID_SELECT_SOLVENT in BuilderGUI. 
+////@end wxEVT_COMMAND_MENU_SELECTED event handler for ID_SELECT_SOLVENT in BuilderGUI.
+}
+
+void BuilderGUI::OnSelectIonsClick( wxCommandEvent& event )
+{
+    event.Skip();
 }
 
 /*!

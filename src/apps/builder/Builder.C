@@ -3379,6 +3379,17 @@ void Builder::OnSelectSolventClick( wxCommandEvent& event )
 
 
 /**
+ * Select single-atom ions (by residue name, or unbonded ion elements).
+ */
+void Builder::OnSelectIonsClick( wxCommandEvent& event )
+{
+   Command *cmd = new SelectCmd("Select Ions", getSG());
+   cmd->getParameter("ions")->setBoolean(true);
+   execute(cmd);
+}
+
+
+/**
  * Select backbone atoms of recognized biological structure (chain of
  * amino acids)
  */
