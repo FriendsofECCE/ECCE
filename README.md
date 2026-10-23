@@ -48,6 +48,13 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   product calculations and reports the barrier and reaction energy.
 - The Calculation Editor's Details windows in C++ instead of Python, starting
   with ORCA and Gaussian 16 (the ORCA ones are a preview in 9.3.2).
+- ECCE-QM: relaxed scans of a bond, angle or torsion; transition-state search
+  from one structure (Opt-TS) with frequencies after; analytic RHF Hessian, so
+  closed-shell frequencies run several times faster.
+- TD-DFT options (number of states, singlets/triplets, Tamm–Dancoff) in the
+  ORCA and Gaussian 16 editors; UV-vis transitions listed as HOMO/LUMO with
+  % weight.
+- A failed job keeps its output file, its status and its progress.
 
 ## First steps
 
