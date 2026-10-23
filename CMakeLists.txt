@@ -2608,6 +2608,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_close PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # A calculation without propertyCollection/runLogDocument in its
+  # .ecce-meta must not end the Organizer (#489).
+  add_test(NAME apps_organizer_bad_meta
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_bad_meta_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_bad_meta PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Modal dialogs are shown without the busy cursor and presented
   # (ewxModalGuard); ECCE_DEBUG_MODAL.
   add_test(NAME apps_modal_guard
