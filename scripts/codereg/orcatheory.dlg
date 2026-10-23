@@ -25,3 +25,11 @@ box label="Solvation" cols=2
 check name=ES.Theory.SCF.UseSolvation label=" Use implicit solvation" default=0 export=1
 combo name=ES.Theory.SCF.SolvationModel label="Model:" choices="CPCM|SMD" default=CPCM export=1 enable_if="ES.Theory.SCF.UseSolvation==1"
 combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="water|acetonitrile|acetone|ammonia|benzene|CCl4|CH2Cl2|chloroform|cyclohexane|DMF|DMSO|ethanol|heptane|hexane|methanol|nitromethane|octanol|pyridine|THF|toluene" default=water export=1 enable_if="ES.Theory.SCF.UseSolvation==1"
+
+# ai.orca writes a %tddft block (no triplets-only choice: `triplets true` adds them to the singlets); TD-DFT/CIS needs an SCF reference.
+list TDCAT = SCF|DFT
+box label="Excited States (TD-DFT)" cols=2 when="category in @TDCAT"
+check name=ES.Theory.TDDFT.Use label=" Calculate excited states" default=0 export=1
+int name=ES.Theory.TDDFT.NStates label="Number of states:" default=10 hard="[1..)" export=1 enable_if="ES.Theory.TDDFT.Use==1"
+combo name=ES.Theory.TDDFT.Spin label="Spin:" choices="Singlets|Singlets and triplets" default=Singlets export=1 enable_if="ES.Theory.TDDFT.Use==1"
+check name=ES.Theory.TDDFT.TDA label=" Tamm-Dancoff approximation" default=0 export=1 enable_if="ES.Theory.TDDFT.Use==1"

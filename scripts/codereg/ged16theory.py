@@ -627,6 +627,43 @@ class Ged16TheoryPanel(EccePanel):
             fzSizer.AddWidget(self.exSpin)
             self.panelSizer.Add(fzSizer)
 
+        # EXCITED STATES -- ai.gauss16 writes TD(...) or TDA(...) on the
+        # route card.  SCF and DFT only; ROHF has no TD in Gaussian (the
+        # input checker warns).
+        if EcceGlobals.Category in ("SCF", "DFT"):
+            tdSizer = EcceBoxSizer(self,
+                                   label = "Excited States (TD-DFT)",
+                                   cols = 2)
+            self.useTDDFT = EcceCheckBox(self,
+                                         label = " Calculate excited states",
+                                         name = "ES.Theory.TDDFT.Use",
+                                         default = False,
+                                         export = 1)
+            tdSizer.AddWidget(self.useTDDFT)
+            self.tdRoots = EcceSpinCtrl(self,
+                                        hardRange = "[1..)",
+                                        name = "ES.Theory.TDDFT.NStates",
+                                        default = 10,
+                                        label = "Number of states:",
+                                        export = 1)
+            tdSizer.AddWidget(self.tdRoots)
+            self.tdSpin = EcceComboBox(self,
+                                       choices = ["Singlets",
+                                                  "Triplets",
+                                                  "Singlets and triplets"],
+                                       name = "ES.Theory.TDDFT.Spin",
+                                       default = 0,
+                                       label = "Spin:",
+                                       export = 1)
+            tdSizer.AddWidget(self.tdSpin)
+            self.tdTDA = EcceCheckBox(self,
+                                      label = " Tamm-Dancoff approximation",
+                                      name = "ES.Theory.TDDFT.TDA",
+                                      default = False,
+                                      export = 1)
+            tdSizer.AddWidget(self.tdTDA)
+            self.panelSizer.Add(tdSizer)
+
         #  -------------------------------------------------------------
         #  Additional route options (issue #113).
         #
@@ -788,6 +825,12 @@ class Ged16TheoryPanel(EccePanel):
         if EcceGlobals.Category == "DFT":
             self.exFunc.Enable(not self.xcFunc.GetSelection())
             self.corrFunc.Enable(not self.xcFunc.GetSelection())
+
+        if EcceGlobals.Category in ("SCF", "DFT"):
+            useTD = self.useTDDFT.GetValue()
+            self.tdRoots.Enable(useTD)
+            self.tdSpin.Enable(useTD)
+            self.tdTDA.Enable(useTD)
 
         # SCRF solvation -- CAO
         # Must list exactly the categories that call addSolvationBox()

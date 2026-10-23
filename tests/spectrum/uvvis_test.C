@@ -74,6 +74,49 @@ static void testTransitions()
   CHECK(s.transitionLines(1).empty());
 }
 
+static void testOrbitalLabels()
+{
+  CHECK(ExcitedStates::orbitalLabel(8, 8) == "HOMO");
+  CHECK(ExcitedStates::orbitalLabel(7, 8) == "HOMO-1");
+  CHECK(ExcitedStates::orbitalLabel(1, 8) == "HOMO-7");
+  CHECK(ExcitedStates::orbitalLabel(9, 8) == "LUMO");
+  CHECK(ExcitedStates::orbitalLabel(11, 8) == "LUMO+2");
+  CHECK(ExcitedStates::orbitalLabel(5, 0) == "MO 5");     // HOMO unknown
+  char sp = 0;
+  CHECK(ExcitedStates::orbitalNumber("11a", &sp) == 11 && sp == 'a');
+  CHECK(ExcitedStates::orbitalNumber("7", &sp) == 7 && sp == 0);
+
+  //  ORCA: formaldehyde has 8 occupied orbitals, state 4 is HOMO-1/HOMO ->
+  //  LUMO/LUMO+2 and its printed weights (c squared) sum to about 1.
+  ExcitedStates s = formaldehyde();
+  s.setHomo(8);
+  std::vector<std::string> l = s.transitionLabels(3);
+  CHECK(l.size() == 3);
+  CHECK(l[0].find("HOMO -> LUMO+2   ") == 0);
+  CHECK(l[0].find("67.2 %") != std::string::npos);          // 0.82003823^2
+  CHECK(l[0].find("[MO 8 -> 11]") != std::string::npos);
+  CHECK(l[1].find("HOMO-1 -> LUMO   29.7 %") == 0);         // 0.54516175^2
+  CHECK(l[2].find("HOMO-3 -> LUMO+2   1.1 %") == 0);        // 0.10717351^2
+  CHECK(s.transitionLabels(0)[0].find("HOMO -> LUMO   99.8 %") == 0);
+
+  //  Without occupations the HOMO is the highest occupied orbital named.
+  const ExcitedStates g = formaldehyde();
+  CHECK(g.homo(0) == 8);
+
+  //  Gaussian restricted singlet: no spin letters, 2 c^2 (0.70626 -> 99.8 %).
+  std::vector<double> ev(1, 3.38), f(1, 0.0);
+  std::vector<std::string> label(1, "Singlet-A2"), tr(1, "8>9:0.70626");
+  ExcitedStates gs;
+  gs.set(ev, f, label, tr);
+  gs.setHomo(8);
+  CHECK(gs.transitionLabels(0)[0].find("HOMO -> LUMO   99.8 %") == 0);
+  //  An unlabelled (open-shell) state without letters keeps c^2.
+  label[0] = "?Spin-A";
+  gs.set(ev, f, label, tr);
+  gs.setHomo(8);
+  CHECK(gs.transitionLabels(0)[0].find("HOMO -> LUMO   49.9 %") == 0);
+}
+
 static void testSticksAndAxis()
 {
   const ExcitedStates s = formaldehyde();
@@ -198,6 +241,7 @@ int main()
 {
   testWavelength();
   testTransitions();
+  testOrbitalLabels();
   testSticksAndAxis();
   testEnvelope();
   testCsv();

@@ -1953,6 +1953,9 @@ add_test(NAME symmetry_reference_determinism
 # ORCA relaxed scan (#393): deck and a real ORCA 6 run, skipped without ORCA
 add_test(NAME orca_scan COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_scan/run_tests.py)
 set_tests_properties(orca_scan PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
+# TD-DFT options reach the ORCA and Gaussian 16 decks (#383).
+add_test(NAME tddft_setup COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/tddft/run_tests.py)
+set_tests_properties(tddft_setup PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
 # Opt=QST2/QST3 decks for HCN<->HNC, run with Gaussian 16 when installed (#419)
 add_test(NAME gaussian_qst
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_qst/run_tests.py ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})

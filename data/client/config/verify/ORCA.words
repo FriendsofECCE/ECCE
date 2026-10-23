@@ -26,6 +26,7 @@ $message\n
 $model
 $namebasis
 $nametobasis{$oldbasis}\n
+$nroots\n
 $numelectrons\n
 $opt_n.basis
 $opt_n.con
@@ -57,6 +58,7 @@ $wrote
 %output\n
 %s
 %scf\n
+%tddft\n
 &$sub
 &$subname
 &$subname;
@@ -301,10 +303,15 @@ es.theory.scf.solvent
 es.theory.scf.userijcosx
 es.theory.scf.usesolvation
 es.theory.scf.usesymmetry
+es.theory.tddft.nstates
+es.theory.tddft.spin
+es.theory.tddft.tda
+es.theory.tddft.use
 es.theory.usesymmetry
 expected
 exponent
 f
+false
 file
 file:
 fixed
@@ -396,6 +403,7 @@ no
 none
 normal
 not
+nroots
 numerical
 numfreq
 nwchem
@@ -481,6 +489,7 @@ symmetry
 t
 tag
 td
+tda
 template
 text
 th
@@ -500,6 +509,8 @@ tpss
 tpssh
 transition
 treating
+triplets
+true
 true\n
 turn
 tzv

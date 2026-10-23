@@ -247,6 +247,40 @@ class OrcaTheoryPanel(EccePanel):
         solvSizer.AddWidget(self.solvent)
         self.panelSizer.Add(solvSizer)
 
+        # EXCITED STATES -- ai.orca writes a %tddft block.  No triplets-only
+        # choice: ORCA's `triplets true` adds them to the singlets.  Only SCF and DFT
+        # categories: ORCA's TD-DFT/CIS needs an SCF reference.
+        if EcceGlobals.Category in ("SCF", "DFT"):
+            tdSizer = EcceBoxSizer(self, label="Excited States (TD-DFT)", cols=2)
+            self.useTDDFT = EcceCheckBox(self,
+                                         label=" Calculate excited states",
+                                         name="ES.Theory.TDDFT.Use",
+                                         default=False,
+                                         export=1)
+            tdSizer.AddWidget(self.useTDDFT)
+            self.tdRoots = EcceSpinCtrl(self,
+                                        hardRange="[1..)",
+                                        name="ES.Theory.TDDFT.NStates",
+                                        default=10,
+                                        label="Number of states:",
+                                        export=1)
+            tdSizer.AddWidget(self.tdRoots)
+            self.tdSpin = EcceComboBox(self,
+                                       choices=["Singlets",
+                                                "Singlets and triplets"],
+                                       name="ES.Theory.TDDFT.Spin",
+                                       default=0,
+                                       label="Spin:",
+                                       export=1)
+            tdSizer.AddWidget(self.tdSpin)
+            self.tdTDA = EcceCheckBox(self,
+                                      label=" Tamm-Dancoff approximation",
+                                      name="ES.Theory.TDDFT.TDA",
+                                      default=False,
+                                      export=1)
+            tdSizer.AddWidget(self.tdTDA)
+            self.panelSizer.Add(tdSizer)
+
         self.AddButtons()
 
     def CheckDependency(self):
@@ -256,6 +290,11 @@ class OrcaTheoryPanel(EccePanel):
         useSolv = self.useSolvation.GetValue()
         self.solvModel.Enable(useSolv)
         self.solvent.Enable(useSolv)
+        if EcceGlobals.Category in ("SCF", "DFT"):
+            useTD = self.useTDDFT.GetValue()
+            self.tdRoots.Enable(useTD)
+            self.tdSpin.Enable(useTD)
+            self.tdTDA.Enable(useTD)
 
 
 frame = OrcaTheoryFrame(None,

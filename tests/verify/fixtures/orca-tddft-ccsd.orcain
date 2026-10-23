@@ -1,0 +1,13 @@
+! DLPNO-CCSD def2-SVP
+%tddft
+  nroots 5
+  triplets true
+  tda false
+end
+
+* xyz 0 1
+ C 0.0 0.0 0.0
+ O 0.0 0.0 1.21
+ H 0.94 0.0 -0.59
+ H -0.94 0.0 -0.59
+*

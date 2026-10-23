@@ -587,6 +587,18 @@ sub ORCABlocks {
     $solvent = "water" if ($solvent eq "");
     $result .= "%cpcm\n  smd true\n  SMDsolvent \"" . $solvent . "\"\nend\n";
   }
+  #  TD-DFT/CIS.  ORCA's UKS has no singlet/triplet split, so triplets
+  #  are only requested for restricted references.
+  if ($AbiDict{"ES.Theory.TDDFT.Use"} eq "1") {
+    my $nroots = int($AbiDict{"ES.Theory.TDDFT.NStates"} || 10);
+    $nroots = 10 if ($nroots < 1);
+    $result .= "%tddft\n  nroots $nroots\n";
+    $result .= "  triplets true\n"
+      if ($AbiDict{"ES.Theory.TDDFT.Spin"} =~ /triplets/i &&
+          $AbiDict{"Theory"} !~ /^U/);
+    $result .= "  tda " . ($AbiDict{"ES.Theory.TDDFT.TDA"} eq "1" ? "true" : "false") . "\n";
+    $result .= "end\n";
+  }
   # %maxcore is memory per core, in MB -- the Theory Details dialog takes
   # GB (per-core) for UX consistency with the other codes, so convert.
   my $maxcoreGB = $AbiDict{"ES.Theory.SCF.MemorySize"};

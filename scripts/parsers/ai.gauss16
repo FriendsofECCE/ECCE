@@ -336,6 +336,7 @@ sub G09Route {
   $route .= &RunType($AbiDict{"RunType"});
   $route .= &SCFOptions;
   $route .= &SCRFOptions;
+  $route .= &TDOptions;
 #  $route .= &AIMOptions;
   # QST runs take their geometries from other calculations and need the
   # bend a symmetrised structure would have removed, so no symmetry.
@@ -1266,6 +1267,29 @@ sub AIMOptions {
   }
 }
 
+
+
+##############################################################################
+#
+#  TD-DFT / TD-HF excited states.  TDA(...) is the Tamm-Dancoff form of TD.
+#  Spin is left out for open-shell references, where Gaussian has no
+#  singlet/triplet split.
+#
+##############################################################################
+sub TDOptions {
+  return "" unless ($AbiDict{"ES.Theory.TDDFT.Use"} eq "1");
+  my $n = int($AbiDict{"ES.Theory.TDDFT.NStates"} || 10);
+  $n = 10 if ($n < 1);
+  my $opts = "NStates=$n";
+  my $spin = $AbiDict{"ES.Theory.TDDFT.Spin"};
+  if ($AbiDict{"Theory"} !~ /^U/) {
+    if ($spin =~ /and/i)         { $opts .= ",50-50"; }
+    elsif ($spin =~ /triplet/i)  { $opts .= ",Triplets"; }
+    else                         { $opts .= ",Singlets"; }
+  }
+  my $key = ($AbiDict{"ES.Theory.TDDFT.TDA"} eq "1") ? "TDA" : "TD";
+  return "$key($opts) ";
+}
 
 
 ##############################################################################

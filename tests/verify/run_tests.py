@@ -69,6 +69,10 @@ CASES = [
                                                       ("GOOD", "geometry")]),
     #  #75: the deck a duplicate with final orbitals generates; MORead is a
     #  keyword ECCE writes, so it must not be reported as unknown.
+    ("orca-tddft.orcain",     "ORCA",             4, [("GOOD", "excited"),
+                                                      ("GOOD", "geometry")]),
+    ("g16-td.g16in",          "Gaussian-16",      4, [("GOOD", "excited"),
+                                                      ("GOOD", "geometry")]),
     ("orca-moread.orcain",    "ORCA",             3, [("GOOD", "route"),
                                                       ("GOOD", "geometry")]),
     #  #148 "the miss found live": the ECP ORCA deck from
@@ -198,6 +202,12 @@ CASES = [
     ("nwchem-fixed-and-zcoord.nw", "NWChem",      4, [("BAD", "constraints")]),
     ("nwchem-zcoord-noautoz.nw",   "NWChem",      4, [("BAD", "constraints")]),
     ("orca-no-route.orcain",    "ORCA",           8, [("BAD", "route")]),
+    #  #383: TD-DFT input.  A normal request is clean; nroots/NStates of 0 is
+    #  wrong by construction; the others are only worth a word.
+    ("orca-tddft-nroots0.orcain", "ORCA",         4, [("BAD", "excited")]),
+    ("orca-tddft-ccsd.orcain",  "ORCA",           4, [("UNSURE", "excited")]),
+    ("g16-td-nstates0.g16in",   "Gaussian-16",    4, [("UNSURE", "excited")]),
+    ("g16-td-opt.g16in",        "Gaussian-16",    4, [("UNSURE", "excited")]),
 
     #  --- the atom count disagreeing with the calculation -------------
     ("g16-water.g16in",         "Gaussian-16",    4, [("BAD", "geometry")]),
