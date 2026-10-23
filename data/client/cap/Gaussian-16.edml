@@ -574,6 +574,12 @@
   <Output type="parse" verifypattern="Gaussian 16, Revision" mimetype="chemical/x-gaussian-16-output">g16.out</Output>
   <Output type="auxiliary" mimetype="chemical/x-gaussian-16-mo">fort.7</Output>
   <Output type="property" mimetype="chemical/x-gaussian-cube">CUBE</Output>
+  <!-- The checkpoint (binary) is kept for "Duplicate with Final Orbitals"; the
+       deck names it g16.chk whatever the calculation is called. The input copy
+       has its own name and type so a calculation's own .chk is never taken for
+       the guess it reads. -->
+  <Output type="auxiliary" mimetype="chemical/x-gaussian-16-chk">g16.chk</Output>
+  <Input   type="auxiliary" mimetype="chemical/x-gaussian-16-guess">guess.chkin</Input>
 </DataFiles>
 
 <!-- Names of files required for code integration.  These files are
@@ -585,6 +591,7 @@
   <Importer>Gaussian-16.expt </Importer>
   <ParseSpecification>gaussian-16.desc </ParseSpecification>
   <LaunchPreprocessor>gaussian-16.launchpp </LaunchPreprocessor>
+  <RetainOutputFile>g16.chk</RetainOutputFile>
   <BasisTranslationScript>std2Gaussian-16</BasisTranslationScript>
 </IntegrationFiles>
 

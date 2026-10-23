@@ -256,10 +256,16 @@ sub modifyInputFile {
 sub CheckpointFile {
   my  $result;
 
+  #  %OldChk reads the staged guess copy and %Chk writes a new file, so the
+  #  guess is never overwritten and the fixed names do not depend on the
+  #  calculation's name (the stored g16.chk is what the next duplicate reads).
   $result = "";
+  $result = "%OldChk=" . &OrbitalGuessFile() . "\n"
+    if (&OrbitalGuessFile() ne "");
   if ($AbiDict{"CreateCheckpoint"} == 1) {
-    $result = "%Chk=" . $AbiDict{"title"} . ".chk";
+    $result .= "%Chk=g16.chk";
   }
+  $result =~ s/\n$//;
   $_ = $result;
   return $result;
 }
@@ -346,7 +352,8 @@ sub G09Route {
   # - GFInput flag is unneeded to dump basissets - jmc
   #$route .= " GFInput";
   $route .= &IntOptions ;
-  $route .= &InitialGuess($AbiDict{"SCF.InitialGuess"});
+  $route .= (&OrbitalGuessFile() ne "") ? "Guess=Read "
+          : &InitialGuess($AbiDict{"SCF.InitialGuess"});
   $route .= &MaxDisk($AbiDict{"DiskSize"});
   if ($AbiDict{"Category"} ne "SE") {
     $route .= " Punch=(MO)";
@@ -2026,6 +2033,13 @@ sub InitialGuess {
     $result = "";
   }
   return $result;
+}
+
+#  The checkpoint of an earlier calculation, attached by CalcEd only while
+#  the file is among this calculation's inputs.
+sub OrbitalGuessFile {
+  my $f = $AbiDict{"ES.Theory.SCF.OrbitalGuessFile"};
+  return defined($f) ? $f : "";
 }
 
 ##

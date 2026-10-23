@@ -3064,6 +3064,21 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_orca_guess_central PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
 
+  # #407: a Gaussian 16 job's checkpoint as the guess of the next; skipped (77)
+  # without Gaussian 16 under /opt/gaussian/g16.
+  add_test(NAME launch_g16_guess
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/g16_guess_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_g16_guess PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_g16_guess_central
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/g16_guess_test.py
+                   --build ${CMAKE_BINARY_DIR} --central
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_g16_guess_central PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # A GROMACS MD study through the real editors (private Xvfb), launches and
   # results; skipped (77) without gmx or Xvfb.  Needs the GUI apps built.
   add_test(NAME launch_gromacs

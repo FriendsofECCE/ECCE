@@ -138,6 +138,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Codereg dialogs are never told which elements the structure contains](codereg-dialogs-are-never-told-which-elements.md)
 - [CalcEd's own ES.Theory.UseSymmetry key is lost whenever p_GUIValues is replaced](calced-owns-use-symmetry-key.md)
 - [ORCA final orbitals as the next job's guess (#75): five silent traps on the way from the .gbw to MORead](orca-final-orbitals-as-the-next-jobs-guess-75.md)
+- [Gaussian 16 final orbitals as the next job's guess (#407): the checkpoint travels as guess.chkin with %OldChk](g16-final-orbitals-checkpoint-as-guess-407.md)
 - [genmol is handed the whole molecule after the Builder's Find, and must return it unchanged](genmol-is-handed-the-whole-molecule.md)
 - [The Fortran symmetry helpers: how ECCE calls them, and which parts of their output are contract (#422)](symmetry-helpers-interface.md)
 - [A dialog's choice string must match the generator's expected string EXACTLY, or selecting it silently emits nothing](a-dialogs-choice-string-must-match-the.md)

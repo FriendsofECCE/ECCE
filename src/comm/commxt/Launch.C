@@ -779,7 +779,7 @@ bool Launch::validateCalculation(void)
           for (int ib=0; ib<basvec.size(); ib++) {
             //  Binary, and the stream form of a stored file stops at the
             //  first NUL byte, so this one goes straight to a file.
-            if (basvec[ib].getFilePathTail() == TaskJob::orbitalGuessFile()) {
+            if (basvec[ib].getFilePathTail() == p_taskjob->orbitalGuessFile()) {
               inputFilePath = p_cache->directory + "/" +
                               basvec[ib].getFilePathTail();
               SFile guessDest(inputFilePath);
@@ -1408,7 +1408,10 @@ bool Launch::generateJobMonitoringFiles(void)
       const JCode* jc = p_taskjob->application();
       string aux = (*p_options)["##auxiliary##"];
       substituteRealFileName(aux);
-      if (jc != 0 && !aux.empty() &&
+      string only;
+      if (jc != 0 && jc->get_string("RetainOutputFile", only) && !only.empty())
+        monitorConfigFile << "filesToTransfer " << only << endl;
+      else if (jc != 0 && !aux.empty() &&
           jc->get_string("RetainAuxiliaryOutput", retain) && retain == "yes")
         monitorConfigFile << "filesToTransfer " << aux << endl;
     }

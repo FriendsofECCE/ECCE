@@ -56,6 +56,8 @@ chemical/x-orca-input                    .orcain
 chemical/x-orca-output                   .orcaout
 chemical/x-orca-gbw                      .gbw
 chemical/x-orca-guess                    .gbwin
+chemical/x-gaussian-16-chk               .chk
+chemical/x-gaussian-16-guess             .chkin
 chemical/x-ecceqm-input                  .qmin
 chemical/x-ecceqm-output                 .qmout
 chemical/x-mopac-input                   .mop

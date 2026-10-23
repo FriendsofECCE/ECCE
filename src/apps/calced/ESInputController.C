@@ -331,7 +331,7 @@ bool CalcEd::write_setup(const string& output_file)
     //  calculation, so it is added here and not kept in p_GUIValues.
     TaskJob *guessJob = dynamic_cast<TaskJob*>(p_iCalc);
     if (guessJob != 0 && guessJob->hasOrbitalGuess())
-      os << "ES.Theory.SCF.OrbitalGuessFile: " << TaskJob::orbitalGuessFile()
+      os << "ES.Theory.SCF.OrbitalGuessFile: " << guessJob->orbitalGuessFile()
          << endl;
 
     os.close();

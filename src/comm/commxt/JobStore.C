@@ -1521,7 +1521,11 @@ void interactGetFiles(void)
   {
     const JCode *jc = calculation->application();
     string retain;
-    if (jc != 0 && jc->get_string("RetainAuxiliaryOutput", retain) &&
+    string only;
+    if (jc != 0 && jc->get_string("RetainOutputFile", only) && !only.empty()) {
+      if (localconn->exists(tmpStorage + "/" + only))
+        calcPutOutFileName(only, "");
+    } else if (jc != 0 && jc->get_string("RetainAuxiliaryOutput", retain) &&
         retain == "yes") {
       vector<TypedFile> aux = jc->getCodeFiles(JCode::AUXILIARY_OUTPUT);
       for (size_t a = 0; a < aux.size(); a++) {
