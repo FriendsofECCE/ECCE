@@ -345,7 +345,7 @@ void GromacsRunPanel::warn()
     bool defined = g.groups.find_first_not_of(" \t\r\n") != string::npos;
     if ((g.comGroups || g.tcGroups) && !defined) {
       msg += (msg.empty() ? "" : "\n") + string(
-          "Defined groups are chosen but no group is defined.");
+          "Defined groups are chosen but no group is defined: System is used instead.");
     }
   }
   p_warning->SetLabel(W(msg));

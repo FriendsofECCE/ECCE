@@ -130,11 +130,13 @@ def text_tests():
     k = keys(mdp)
     check(k["tc-grps"] == ["MMT Water_and_ions"] and "comm-grps" not in k,
           "the two group choices are independent")
-    r = rt.run([os.path.join(PARSERS, "md.gmxtask")],
-               input=rt.model(EQ, dynamics=npt(),
-                              interaction=tag("GmxTcGroups", 1)).encode())
-    check(r[0] != 0 and "none is defined" in r[1],
-          "defined groups chosen with none defined is an error, not System")
+    rc, mdp = mdp_of(EQ, dynamics=npt(),
+                     interaction=tag("GmxComGroups", 1) + tag("GmxTcGroups", 1))
+    k = keys(mdp)
+    check(rc == 0 and k["tc-grps"] == ["System"] and "comm-grps" not in k
+          and "; Note: ComGroups and TcGroups use the defined groups, but none is defined"
+          in mdp,
+          "defined groups chosen with none defined: System and a note, no error")
 
     print("== extra lines")
     extra = ("DispCorr = EnerPres\nFourierSpacing = 0.16 ; grid\n"

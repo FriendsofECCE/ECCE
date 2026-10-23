@@ -186,12 +186,17 @@ foreach my $line (split(/\n/, get("Interaction", "GmxGroups", ""))) {
 if (@groups) {
   $p{"ES.Runtype.MD.GroupDefs"} = join("|", map { "$_->[0]=$_->[1]" } @groups);
 }
+my @nogroups;
 foreach my $pair (["GmxComGroups", "ComGroups"], ["GmxTcGroups", "TcGroups"]) {
   next if (get("Interaction", $pair->[0], 0) != 1 || $runtype{$task} ne "Dynamics");
-  die "md.gmxtask: $pair->[1] use the defined groups, but none is defined.\n"
-    if (!@groups);
+  if (!@groups) {   # a stale choice must not stop the run: System, and say so
+    push(@nogroups, $pair->[1]);
+    next;
+  }
   $p{"ES.Runtype.MD.$pair->[1]"} = join(" ", map { $_->[0] } @groups);
 }
+
+$p{"ES.Runtype.MD.GroupsNote"} = join(" and ", @nogroups) if (@nogroups);
 
 # barostat, coupling type, how often
 if (defined($p{"ES.Runtype.MD.Pressure"})) {
