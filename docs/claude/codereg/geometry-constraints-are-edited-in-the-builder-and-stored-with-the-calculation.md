@@ -25,14 +25,11 @@ Which run types use the constraints is `GeomConstraintModel::usedByRunType` (Geo
 GeoVib); `write_constraints` leaves the file out for any other, so the writers never
 see them. The editor's note and Verify (`constraints` finding) say so.
 
-The editor's Settings line is shown for every run type (#461) and names a
-scan (#456), from `GeomConstraintModel::useBy(code, runtype)`: USED
-(Geometry, GeoVib), IGNORED (every other run type: no file is written) or
-REFUSED. Only ECCE-QM refuses: `ai.ecceqm` dies for constraints or a scan
-with GeoVib and Opt-TS. `write_constraints` therefore writes the file for
-those two run types, or the die would be dead code and the constraints
-silently dropped. ORCA and Gaussian 16 take them for Geometry and GeoVib
-(ORCA matches `/Geo/`; Gaussian puts ModRedundant in Opt for both).
+The Settings line in the editor and the note in the Builder dialog both come
+from `GeomConstraintModel::useBy(code, runtype)` and `notUsedText`: USED
+(Geometry, GeoVib) or IGNORED (every other run type: no file is written).
+ECCE-QM also ignores them for GeoVib, whose frequencies would be at a
+constrained geometry. Nothing refuses: a warning never blocks.
 
 The dummy atom X is shaped "Lone" in the Build panel, and `FragUtil::addToNub` returns
 without doing anything for a Lone shape, so X could not be put on an open site;

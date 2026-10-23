@@ -229,11 +229,12 @@ string GeomConstraintsDialog::noteText() const
          "with the structure.";
   } else if (runtype.empty()) {
     s += ": they are saved with the calculation.";
-  } else if (GeomConstraintModel::usedByRunType(runtype)) {
+  } else if (GeomConstraintModel::useBy(code, runtype) ==
+             GeomConstraintModel::USED) {
     s += ": used by this calculation (run type " + runtype + ").";
   } else {
-    s += ": used only by geometry optimisations (the run type here is " +
-         runtype + "). They are kept with the structure.";
+    s += ": " + GeomConstraintModel::notUsedText(code, runtype) +
+         ". They are kept with the structure.";
   }
   return s;
 }

@@ -4,10 +4,10 @@ The Calculation Editor's constraints line (#456, #461).
 
 The Builder's constraints and scan are stored with the calculation.  The
 Settings box must show them for every run type and say whether this code's
-input uses them, leaves them out, or refuses them (ai.ecceqm dies for GeoVib
+input uses them or leaves them out (ECCE-QM leaves them out of GeoVib
 and Opt-TS), and name a relaxed scan.  The CalcEd script command
 "constraints" prints the line; ECCE_CONSTRAINTS_PNG_DIR, when set, gets
-photographs of the editor for a scan and for a refused combination.
+photographs of the editor for a scan and for an ignored combination.
 
 Each calculation holds a fixed O-H bond and a scan of the H-O-H angle.  Same
 installed tree, isolation and services as run_tests.py.  Exit 77 (skip)
@@ -42,15 +42,16 @@ LINE = re.compile(r"CALCED: constraints count=(\d+) note=(.*)")
 
 # label, fixture, [(run type, line the editor shows)]
 USED = "1 constraint, used by this %s run | " + SCAN + ", used by this %s run"
+NOGV = ("1 constraint, not used by a GeoVib run (frequencies need an unconstrained minimum) | "
+        + SCAN + ", not used by a GeoVib run (frequencies need an unconstrained minimum)")
+NOTS = ("1 constraint, not used by a transition-state search | "
+        + SCAN + ", not used by a transition-state search")
 CASES = [
     ("ECCE-QM", os.path.join(REPO, "tests", "ecceqm", "fixtures", "h2o-geometry"), [
         ("Energy", "1 constraint, not used by an Energy run | " + SCAN + ", not used by an Energy run"),
         ("Geometry", USED),
-        ("GeoVib", "1 constraint, ECCE-QM refuses them for GeoVib, so no input is written | "
-                   + SCAN + ", ECCE-QM refuses them for GeoVib, so no input is written"),
-        ("Transition State (Opt-TS)",
-         "1 constraint, ECCE-QM refuses them for Transition State (Opt-TS), so no input is written | "
-         + SCAN + ", ECCE-QM refuses them for Transition State (Opt-TS), so no input is written"),
+        ("GeoVib", NOGV),
+        ("Transition State (Opt-TS)", NOTS),
     ]),
     ("ORCA", os.path.join(FIX, "calc-orca-water-ccpvdz"), [
         ("Geometry", USED), ("GeoVib", USED),
@@ -126,7 +127,7 @@ def main():
                     if pngDir and (label, runtype) == ("ORCA", "Geometry"):
                         shot = "constraints-scan-orca-geometry"
                     elif pngDir and (label, runtype) == ("ECCE-QM", "GeoVib"):
-                        shot = "constraints-refused-ecceqm-geovib"
+                        shot = "constraints-ignored-ecceqm-geovib"
                     if shot:
                         shots.append(shot)
                         steps += ["wait 1500", "shot " + shot]

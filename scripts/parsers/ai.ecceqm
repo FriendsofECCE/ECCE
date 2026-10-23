@@ -466,20 +466,10 @@ sub readCnstrntFile {
   close(GEOCNST);
 }
 
-# Only a geometry optimisation uses them.  GeoVib would report frequencies at
-# a constrained geometry, which is not a minimum, so it is refused here.
+# Only a geometry optimisation uses them.  The editor writes no constraint
+# file for any other run type, so there is nothing to refuse here.
 sub QMConstraints {
   my $result = "";
-  my $any = (@qmConstraints || @qmScans);
-  if ($any && $AbiDict{"RunType"} eq "Transition State (Opt-TS)") {
-    die "ai.ecceqm error: a transition-state search takes no geometry " .
-        "constraints or scan. Remove them, or use Geometry for a constrained optimisation.\n";
-  }
-  if ($any && $AbiDict{"RunType"} eq "GeoVib") {
-    die "ai.ecceqm error: GeoVib with geometry constraints or a scan would give " .
-        "frequencies at a constrained geometry, which is not a minimum. " .
-        "Run Geometry with the constraints, then Vibration without them.\n";
-  }
   if (@qmConstraints && $AbiDict{"RunType"} eq "Geometry") {
     $result = "constraints\n" . join("", @qmConstraints) . "end";
   }

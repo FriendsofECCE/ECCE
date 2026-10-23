@@ -1487,21 +1487,10 @@ string CalcEd::constraintNote() const
   bool supported = true;
   if (p_code) p_code->get_bool("SupportsConstraints", supported);
   const string rt = getRuntypeName().ToStdString();
-  const bool vowel = !rt.empty() && strchr("AEIOUaeiou", rt[0]);
-  string fate;
-  if (!supported) {
-    fate = "not used by " + p_codeName;
-  } else {
-    switch (constraintUse()) {
-      case GeomConstraintModel::USED:
-        fate = "used by this " + rt + " run"; break;
-      case GeomConstraintModel::IGNORED:
-        fate = string("not used by ") + (vowel ? "an " : "a ") + rt + " run"; break;
-      case GeomConstraintModel::REFUSED:
-        fate = p_codeName + " refuses them for " + rt + ", so no input is written";
-        break;
-    }
-  }
+  const string fate = !supported ? "not used by " + p_codeName
+      : constraintUse() == GeomConstraintModel::USED
+          ? "used by this " + rt + " run"
+          : GeomConstraintModel::notUsedText(p_codeName, rt);
   string note;
   if (p_fixedCount > 0) {
     char buf[96];
