@@ -152,7 +152,7 @@ private:
 
   const static int p_fontSizeDefault = 1;  // Medium
   const static int p_dateFormatDefault = 0;
-  const static int p_timeFormatDefault = 0;
+  const static int p_timeFormatDefault = 2;  // TDateTime::HMS24
   // Default units family is DEFAULT_UNIT_FAMILY which is the 3rd one.
   const static int p_unitDefault = 2;
   const static int p_elementColoursDefault = 0;  // Jmol
