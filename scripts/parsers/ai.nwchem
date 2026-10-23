@@ -1318,7 +1318,13 @@ sub SCF {
 ##
 sub InitialGuess {
   local($result);
-  if ($_[0] eq "Core Hamiltonian") {
+  my $f = $AbiDict{"ES.Theory.SCF.OrbitalGuessFile"};
+  $f = "" unless defined($f);
+  if ($f ne "") {
+    # The staged movecs of an earlier calculation, read as is: same basis
+    # set only (a different one would need "project <basis> <file>").
+    $result = "input $f";
+  } elsif ($_[0] eq "Core Hamiltonian") {
     $result = "hcore";
   } elsif ($_[0] eq "NWChem Atomic Guess") {
     $result = "atomic";
@@ -1327,6 +1333,11 @@ sub InitialGuess {
     $_ = "";
     $result = "";
   }
+  # A fixed output name lets the edml retain the vectors whatever the
+  # calculation is called; only the scf and dft blocks (not nwpw) use it.
+  $result .= " output nwchem.movecs"
+    if ($AbiDict{"Category"} eq "SCF" || $AbiDict{"Category"} eq "DFT");
+  $result =~ s/^ //;
   return $result;
 }
 

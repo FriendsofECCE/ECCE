@@ -194,3 +194,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [TS Search atom mapping (#464): computed from the picks on open and on every pick, not only by a modified, ready Save](ts-mapping-is-computed-from-the-picks-not-by-save.md)
 - [TS Search warnings (#468): end points at another level, and a straight path that cannot bend; Preopt_Ends](ts-warnings-levels-and-straight-path-468.md)
 - [TD-DFT options (#383): ORCA has no triplets-only switch, c vs 2c^2 weights, vocabulary rebuild](tddft-options-orca-triplets-and-weights-383.md)
+- [NWChem final orbitals as the next job's guess (#407)](nwchem-final-orbitals-movecs-as-guess-407.md) — nwchem.movecs kept; guess.movecsin; same basis only

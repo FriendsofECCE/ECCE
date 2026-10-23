@@ -268,6 +268,12 @@
   <Output type="auxiliary" mimetype="chemical/x-nwchem-mo">movec.nw_mo</Output>
   <Output type="auxiliary" mimetype="chemistry/x-nwchem-mo">movec</Output>
   <Output type="property" mimetype="chemical/x-gaussian-cube">CUBE</Output>
+  <!-- The final MO vectors (binary) are kept for "Duplicate with Final
+       Orbitals"; the deck names them nwchem.movecs for SCF and DFT. The input
+       copy has its own name and type so a calculation's own file is never
+       taken for the guess it reads. -->
+  <Output type="auxiliary" mimetype="chemical/x-nwchem-movecs">nwchem.movecs</Output>
+  <Input   type="auxiliary" mimetype="chemical/x-nwchem-guess">guess.movecsin</Input>
   <Output type="fragment" mimetype="chemical/x-pdb"></Output>
   <Output type="restart" mimetype="chemical/x-nwchem-restart"></Output>
   <Output type="topology" mimetype="chemical/x-nwchem-topology"></Output>
@@ -286,6 +292,7 @@
   <Importer>NWChem.expt </Importer>
   <ParseSpecification>nwchem.desc </ParseSpecification>
   <LaunchPreprocessor>nwchem.launchpp </LaunchPreprocessor>
+  <RetainOutputFile>nwchem.movecs</RetainOutputFile>
   <BasisTranslationScript>std2NWChem</BasisTranslationScript>
 </IntegrationFiles>
 
