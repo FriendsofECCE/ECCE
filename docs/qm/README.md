@@ -201,6 +201,29 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   engine), the parser case `ecceqm-h2o2-scan` and
   `tests/apps/ecceqm_scan_panel_test.py` (Relaxed Scan panel).
 
+### Transition-state search (#452)
+
+* `runtype ts`: a first-order saddle point from the structure in the input,
+  then the frequency run, in the form `optfreq` uses (analytic Hessian for
+  closed-shell RHF, finite differences otherwise; `numeric_hessian true`
+  forces the latter). No constraints, no dummy atoms.
+* The step is partitioned RFO: uphill along one Hessian mode, downhill along
+  all others, capped by the trust radius. The Hessian is computed at the
+  start, then kept by Bofill updates; `ts_hessian_every n` recomputes it every
+  n steps (default 0: only at the start). The followed mode is the lowest at
+  the first step and afterwards the one with the largest overlap with the
+  previous step's, so the walk does not hop between modes. Convergence is the
+  minimiser's (`opt_conv normal|tight`, `maxsteps`).
+* Output as for an optimisation (`progress opt ...` is the Progress box's opt
+  stage, GEOMTRACE, TE), then the frequency blocks. The run fails (exit 1,
+  message on stderr) when the final frequencies do not show exactly one
+  imaginary mode.
+* The Calculation Editor offers it as the run type `Transition State
+  (Opt-TS)`; the structure in the editor is the guess. The QST and NEB-TS run
+  types (reactant/product structures, #419) are not offered for ECCE-QM.
+* Tests: `tests/qm/ts_test.py` (HCN to HNC against ORCA 6.1.1 `OptTS`,
+  `ts_oracle.json` from `gen_ts_oracle.py`).
+
 ## Frequencies, IR intensities, thermochemistry (stage 3)
 
 `runtype frequency` computes the harmonic vibrations at the given geometry,

@@ -104,10 +104,9 @@ int main(int argc, char** argv) {
     // Frequencies: finite differences of the analytic gradient around the
     // reference geometry, every displaced SCF started from the reference
     // orbitals and converged tighter than an energy needs.
-    auto frequencies = [&](const qm::Molecule& ref, const std::vector<double>& g0) {
-      qm::FrequencyOutput fo;
-      fo.step = in.hessian_step;
-      for (double v : g0) fo.max_gradient = std::max(fo.max_gradient, std::fabs(v));
+    // step is the finite-difference step used, 0 for the analytic Hessian.
+    auto derivatives = [&](const qm::Molecule& ref, double& step) {
+      step = in.hessian_step;
       qm::ScfResult r_ref = r;
       qm::ScfOptions so = in.scf;
       so.conv_grad = std::min(so.conv_grad, 1e-8);
@@ -127,11 +126,8 @@ int main(int argc, char** argv) {
           const int np = 3 * static_cast<int>(ref.atoms.size());
           qm::write_progress_freq(os, 0, np);
           qm::Derivatives d = qm::rhf_hessian(*basis, ref, so2, rt);
-          fo.step = 0;  // no displacements
-          fo.vib = qm::analyse_vibrations(ref, d);
-          fo.thermo = qm::thermochemistry(ref, fo.vib, in.temperature, in.pressure, in.symmetry_number);
-          qm::write_progress_freq_end(os, np, fo);
-          return fo;
+          step = 0;  // no displacements
+          return d;
         } catch (const qm::Error& e) {
           std::cerr << "ecce-qm: analytic Hessian unavailable (" << e.what() << "); using finite differences\n";
         }
@@ -170,9 +166,15 @@ int main(int argc, char** argv) {
         qm::write_progress_freq(os, k, n);
         if (verbose) std::cerr << "hessian point " << k << "/" << n << "\n";
       }, conc.workers, conc.threads);
+      return d;
+    };
+    auto frequencies = [&](const qm::Molecule& ref, const std::vector<double>& g0) {
+      qm::FrequencyOutput fo;
+      for (double v : g0) fo.max_gradient = std::max(fo.max_gradient, std::fabs(v));
+      const qm::Derivatives d = derivatives(ref, fo.step);
       fo.vib = qm::analyse_vibrations(ref, d);
       fo.thermo = qm::thermochemistry(ref, fo.vib, in.temperature, in.pressure, in.symmetry_number);
-      qm::write_progress_freq_end(os, points, fo);
+      qm::write_progress_freq_end(os, (fo.step == 0 ? 3 : 6) * static_cast<int>(ref.atoms.size()), fo);
       return fo;
     };
 
@@ -220,23 +222,38 @@ int main(int argc, char** argv) {
     }
     if (qm::does_optimize(in.runtype)) {
       int last_step = 0;
-      qm::OptResult res = qm::optimize_geometry(in.mol, in.opt, evaluate, [&](const qm::OptStep& st) {
+      auto on_step = [&](const qm::OptStep& st) {
         qm::write_opt_step(os, st);
         qm::write_progress_opt(os, st, in.opt);
         last_step = st.index;
         if (verbose)
           std::cerr << "step " << st.index << "  E = " << st.energy << "  max|g| = " << st.max_grad << "\n";
-      });
+      };
+      // The Hessian of the TS search is the one frequency runs use, at the
+      // geometry of the evaluation just made.
+      auto ts_hessian = [&](const qm::Molecule& m) {
+        double step;
+        return derivatives(m, step).hessian;
+      };
+      qm::OptResult res = in.runtype == qm::RunType::TS
+                              ? qm::optimize_ts(in.mol, in.opt, evaluate, ts_hessian, on_step)
+                              : qm::optimize_geometry(in.mol, in.opt, evaluate, on_step);
       qm::write_progress_opt_end(os, last_step, res.converged);
       if (!same(at_full, res.mol)) evaluate(res.mol);  // the last trial was turned down
       std::unique_ptr<qm::FrequencyOutput> fo;
-      if (in.runtype == qm::RunType::OptFreq && res.converged) fo.reset(new qm::FrequencyOutput(frequencies(res.mol.without_dummies(), res.grad)));
+      if (qm::does_frequencies(in.runtype) && res.converged) fo.reset(new qm::FrequencyOutput(frequencies(res.mol.without_dummies(), res.grad)));
       auto cs = extra_charges();
       auto po = polar_output();
       qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get(), cs.get(), &at_full, po.get());
       if (!molden.empty()) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, fo.get());
+      }
+      // A saddle point of the first order has exactly one imaginary frequency.
+      if (in.runtype == qm::RunType::TS && fo && fo->vib.n_imaginary != 1) {
+        std::cerr << "ecce-qm: the stationary point has " << fo->vib.n_imaginary
+                  << " imaginary frequencies, not one: it is not a transition state\n";
+        return 1;
       }
       return res.converged ? 0 : 1;
     }

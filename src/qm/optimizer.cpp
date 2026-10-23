@@ -374,4 +374,124 @@ OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
   return res;
 }
 
+OptResult optimize_ts(const Molecule& start, const OptOptions& opt,
+                      const std::function<OptEval(const Molecule&)>& eval,
+                      const std::function<Mat(const Molecule&)>& hessian,
+                      const std::function<void(const OptStep&)>& on_step) {
+  const int n = 3 * static_cast<int>(start.atoms.size());
+  Molecule mol = start;
+  Vec x = coords(mol);
+  OptResult res;
+  OptEval cur = eval(mol);
+  res.evaluations = 1;
+  Mat H = hessian(mol);
+  H = 0.5 * (H + H.transpose());
+  Vec g = Eigen::Map<const Vec>(cur.grad.data(), n);
+  double trust = opt.trust, last_energy = 0;
+  bool have_prev = false;
+  Vec mode_prev;   // Cartesian vector of the mode followed at the previous step
+  int since_hessian = 0;
+
+  for (;;) {
+    const Mat Q = vibrational_space(x);
+    const int m = static_cast<int>(Q.cols());
+    Vec s = Vec::Zero(n);
+    Vec mode_now;
+    if (m > 0) {
+      Eigen::SelfAdjointEigenSolver<Mat> es(Q.transpose() * H * Q);
+      const Vec e = es.eigenvalues();
+      const Mat V = es.eigenvectors();
+      const Vec F = V.transpose() * (Q.transpose() * g);
+      // The walk must not hop between modes: follow the one that looks most
+      // like the previous step's.
+      int k = 0;
+      if (mode_prev.size() > 0) {
+        double best = -1;
+        for (int i = 0; i < m; ++i) {
+          const double ov = std::fabs(mode_prev.dot(Q * V.col(i)));
+          if (ov > best) { best = ov; k = i; }
+        }
+      }
+      mode_now = Q * V.col(k);
+      Vec sq = Vec::Zero(m);
+      const double lp = 0.5 * e(k) + 0.5 * std::sqrt(e(k) * e(k) + 4 * F(k) * F(k));
+      if (std::fabs(e(k) - lp) > 1e-12) sq(k) = -F(k) / (e(k) - lp);
+      // Downhill along the others: lowest root of their augmented Hessian.
+      if (m > 1) {
+        Mat A = Mat::Zero(m, m);
+        Vec ev(m - 1), Fo(m - 1);
+        for (int i = 0, j = 0; i < m; ++i)
+          if (i != k) { ev(j) = e(i); Fo(j) = F(i); ++j; }
+        A.topLeftCorner(m - 1, m - 1) = ev.asDiagonal();
+        A.topRightCorner(m - 1, 1) = Fo;
+        A.bottomLeftCorner(1, m - 1) = Fo.transpose();
+        const double ln = Eigen::SelfAdjointEigenSolver<Mat>(A).eigenvalues()(0);
+        for (int i = 0; i < m; ++i)
+          if (i != k && std::fabs(e(i) - ln) > 1e-12) sq(i) = -F(i) / (e(i) - ln);
+      }
+      Vec sc = V * sq;
+      if (sc.norm() > trust) sc *= trust / sc.norm();
+      s = Q * sc;
+    }
+
+    OptStep st;
+    st.index = res.evaluations;
+    st.mol = mol;
+    st.energy = cur.energy;
+    st.grad = cur.grad;
+    st.max_grad = g.cwiseAbs().maxCoeff();
+    st.rms_grad = std::sqrt(g.squaredNorm() / n);
+    st.max_step = s.cwiseAbs().maxCoeff();
+    st.rms_step = std::sqrt(s.squaredNorm() / n);
+    st.d_energy = have_prev ? cur.energy - last_energy : 0.0;
+    const bool conv = st.max_grad <= opt.max_grad && st.rms_grad <= opt.rms_grad && st.max_step <= opt.max_step &&
+                      st.rms_step <= opt.rms_step && (!have_prev || std::fabs(st.d_energy) <= opt.d_energy);
+    if (on_step) on_step(st);
+    res.mol = mol;
+    res.grad = cur.grad;
+    res.energy = cur.energy;
+    if (conv) { res.converged = true; break; }
+    if (res.evaluations >= opt.max_steps) break;
+
+    Molecule trial = mol;
+    const Vec xt = x + s;
+    set_coords(trial, xt);
+    OptEval ev = eval(trial);
+    ++res.evaluations;
+    const Vec gt = Eigen::Map<const Vec>(ev.grad.data(), n);
+    const double dE = ev.energy - cur.energy, pred = g.dot(s) + 0.5 * s.dot(H * s);
+
+    if (opt.ts_hessian_every > 0 && ++since_hessian >= opt.ts_hessian_every) {
+      H = hessian(trial);
+      H = 0.5 * (H + H.transpose());
+      since_hessian = 0;
+    } else {
+      // Bofill: Murtagh-Sargent where it is accurate, Powell-symmetric-Broyden
+      // otherwise; neither forces positive curvature, which a saddle point needs.
+      const Mat P = Q * Q.transpose();
+      const Vec sp = P * s, xi = P * (gt - g) - H * sp;
+      const double ss = sp.squaredNorm(), xs = xi.dot(sp), xx = xi.squaredNorm();
+      if (ss > 1e-14 && xx > 1e-20) {
+        const double phi = xs * xs / (xx * ss);
+        if (std::fabs(xs) > 1e-14) H += phi * (xi * xi.transpose() / xs);
+        H += (1 - phi) * ((xi * sp.transpose() + sp * xi.transpose()) / ss - xs * (sp * sp.transpose()) / (ss * ss));
+      }
+    }
+
+    // The energy has no direction here, so the model is judged by how well it
+    // predicted the change, and every step is taken.
+    const double ratio = std::fabs(pred) > 1e-12 ? dE / pred : 1.0;
+    if (ratio < 0.25 || ratio > 4.0) trust = std::max(0.5 * s.norm(), 1e-2);
+    else if (ratio > 0.75 && ratio < 1.33 && s.norm() > 0.8 * trust) trust = std::min(2 * trust, opt.trust_max);
+    last_energy = cur.energy;
+    have_prev = true;
+    mode_prev = mode_now;
+    mol = trial;
+    x = xt;
+    cur = ev;
+    g = gt;
+  }
+  return res;
+}
+
 }  // namespace qm

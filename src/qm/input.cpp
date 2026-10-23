@@ -102,7 +102,8 @@ Input parse_input(std::istream& in) {
       else if (v == "optimize" || v == "opt") r.runtype = RunType::Optimize;
       else if (v == "frequency" || v == "freq") r.runtype = RunType::Frequency;
       else if (v == "optfreq") r.runtype = RunType::OptFreq;
-      else throw bad("runtype must be energy, gradient, optimize, frequency or optfreq");
+      else if (v == "ts") r.runtype = RunType::TS;
+      else throw bad("runtype must be energy, gradient, optimize, frequency, optfreq or ts");
     }
     else if (k == "hessian_step") r.hessian_step = std::stod(rest);
     else if (k == "temperature") r.temperature = std::stod(rest);
@@ -123,6 +124,7 @@ Input parse_input(std::istream& in) {
     }
     else if (k == "field_step") r.field_step = std::stod(rest);
     else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
+    else if (k == "ts_hessian_every") r.opt.ts_hessian_every = std::stoi(rest);
     else if (k == "opt_conv") r.opt.set_convergence(lower(rest));
     else if (k == "charges") {
       std::stringstream cs(lower(rest));
@@ -218,6 +220,9 @@ Input parse_input(std::istream& in) {
   }
   if (r.raman && !does_frequencies(r.runtype)) throw Error("raman needs runtype frequency or optfreq");
   if (r.field_step <= 0) throw Error("field_step must be positive");
+  if (r.runtype == RunType::TS && (!r.opt.constraints.empty() || r.mol.without_dummies().atoms.size() != r.mol.atoms.size()))
+    throw Error("runtype ts takes no constraints and no dummy atoms");
+  if (r.opt.ts_hessian_every < 0) throw Error("ts_hessian_every must not be negative");
   if (does_frequencies(r.runtype) && does_optimize(r.runtype) && !r.opt.constraints.empty())
     throw Error("optfreq with constraints: frequencies at a constrained geometry are not at a minimum; "
                 "run runtype optimize with the constraints and a separate frequency run without them");

@@ -13,7 +13,9 @@
 #       Dummy atoms (X) are written as atoms of the geometry block and the
 #       Builder's constraints as a `constraints` block (Geometry runs only).
 #       Energy, Gradient, Geometry (geometry optimisation), Vibration
-#       (frequencies, IR, thermochemistry) and GeoVib runtypes;
+#       (frequencies, IR, thermochemistry), GeoVib and Transition State
+#       (Opt-TS: saddle-point search from the editor's structure, then
+#       frequencies) runtypes;
 #       RunType() is the one place that maps them to the engine's
 #       "runtype" keyword and refuses the others.  The basis set is always
 #       written out in full by std2ECCEQM (wrECCEQMGBS.pm), so the engine
@@ -270,7 +272,8 @@ sub QMControl {
   push(@schemes, "mk") if ($AbiDict{"ES.Theory.ECCEQM.MK"} eq "1");
   $result .= "charges " . join(" ", @schemes) . "\n" if (@schemes);
   # Raman activities are only offered (and only meaningful) for frequency runs.
-  if (($AbiDict{"RunType"} eq "Vibration" || $AbiDict{"RunType"} eq "GeoVib") &&
+  if (($AbiDict{"RunType"} eq "Vibration" || $AbiDict{"RunType"} eq "GeoVib" ||
+       $AbiDict{"RunType"} eq "Transition State (Opt-TS)") &&
       $AbiDict{"ES.Runtype.Vibration.UseRaman"} eq "1") {
     $result .= "raman true\n";
   }
@@ -317,8 +320,10 @@ sub RunType {
     return "frequency";
   } elsif ($runtype eq "GeoVib") {
     return "optfreq";
+  } elsif ($runtype eq "Transition State (Opt-TS)") {
+    return "ts";
   }
-  die "ai.ecceqm error: unsupported runtype '$runtype' (ECCE-QM does Energy, Gradient, Geometry, Vibration and GeoVib)\n";
+  die "ai.ecceqm error: unsupported runtype '$runtype' (ECCE-QM does Energy, Gradient, Geometry, Vibration, GeoVib and Transition State (Opt-TS))\n";
 }
 
 # The basis_data block std2ECCEQM wrote, with its "basis <name>" line.
@@ -465,6 +470,10 @@ sub readCnstrntFile {
 # a constrained geometry, which is not a minimum, so it is refused here.
 sub QMConstraints {
   my $result = "";
+  if (@qmConstraints && $AbiDict{"RunType"} eq "Transition State (Opt-TS)") {
+    die "ai.ecceqm error: a transition-state search takes no geometry " .
+        "constraints. Remove them, or use Geometry for a constrained optimisation.\n";
+  }
   if (@qmConstraints && $AbiDict{"RunType"} eq "GeoVib") {
     die "ai.ecceqm error: GeoVib with geometry constraints would give " .
         "frequencies at a constrained geometry, which is not a minimum. " .

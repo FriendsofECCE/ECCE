@@ -18,7 +18,8 @@ class EcceqmRunTypePanel(EccePanel):
         EccePanel.__init__(self, parent, helpURL)
 
         if (EcceGlobals.RunType == "Vibration" or
-                EcceGlobals.RunType == "GeoVib"):
+                EcceGlobals.RunType == "GeoVib" or
+                EcceGlobals.RunType == "Transition State (Opt-TS)"):
             vibSizer = EcceBoxSizer(self, label="Frequencies", cols=1)
             self.useRaman = EcceCheckBox(self,
                                          label=" Raman activities (about 7 times the cost)",
