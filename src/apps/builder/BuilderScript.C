@@ -599,6 +599,36 @@ void Builder::runBuilderScript(const std::string& file)
             frag->m_bondHighLight.push_back((int)i);
         }
         delete all;
+      } else if (w[0] == "menu" && w.size() >= 2) {
+        //  "menu <Menu>|<item>": the item chosen, as a click on it sends it
+        //  (Edit|Select Solvent, Render|Wireframe from the Style submenu).
+        std::string rest = line.substr(line.find("menu") + 5);
+        size_t bar = rest.find('|');
+        int id = bar == std::string::npos ? wxNOT_FOUND
+               : GetMenuBar()->FindMenuItem(wxString(rest.substr(0, bar)),
+                                            wxString(rest.substr(bar + 1)));
+        if (id == wxNOT_FOUND) {
+          outcome = "FAIL: no menu item " + rest;
+        } else {
+          wxCommandEvent ev(wxEVT_MENU, id);
+          ev.SetEventObject(this);
+          GetEventHandler()->ProcessEvent(ev);
+        }
+      } else if (w[0] == "atomstyles" && frag) {
+        //  Each run of atoms with one style: "first-last name:style".
+        std::string out;
+        int n = frag->numAtoms(), start = 0;
+        auto key = [frag](int i) {
+          DisplayStyle ds = frag->atomRef(i)->displayStyle();
+          return ds.getName() + ":" + DisplayStyle::fromStyle(ds.getStyle());
+        };
+        for (int i = 1; i <= n; i++)
+          if (i == n || key(i) != key(start)) {
+            out += " " + std::to_string(start) + "-" + std::to_string(i - 1) +
+                   " " + key(start);
+            start = i;
+          }
+        fprintf(stderr, "BUILDER: atomstyles%s\n", out.c_str());
       } else if (w[0] == "selection" && frag) {
         fprintf(stderr, "BUILDER: selection atoms=%d bonds=%d\n",
                 (int)frag->m_atomHighLight.size(),
