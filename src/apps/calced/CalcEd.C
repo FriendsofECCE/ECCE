@@ -4879,7 +4879,23 @@ void CalcEd::loadTsKeys()
     p_tsPick[2] = val(neb ? kTsKeys[5] : kTsKeys[2]);
     p_tsSource = !p_tsPick[0].empty();
     delete g;
+    matchTsStructures(neb);
   }
+}
+
+// The mapping depends only on the picked structures, so it is shown as soon
+// as they are known, not first by a Save that regenerates the input.
+void CalcEd::matchTsStructures(bool neb)
+{
+  p_qstStatus.clear();
+  p_qstDetail.clear();
+  p_qstTable.clear();
+  if (!p_iCalc || !p_tsSource || p_tsPick[0].empty() || p_tsPick[1].empty())
+    return;
+  string warning;
+  tsMatchStructures(p_iCalc, neb, p_tsPick, p_qstStatus, warning,
+                    &p_qstDetail, &p_qstTable);
+  if (p_qstStatus.empty()) p_qstStatus = warning;
 }
 
 // The stored keys are what the input generators read; the picks themselves
@@ -4951,7 +4967,8 @@ void CalcEd::refreshTsBox()
   string line = p_qstStatus;
   if (line.empty())
     line = p_tsPick[0].empty() ? "Pick the reactant."
-         : p_tsPick[1].empty() ? "Pick the product." : "Save to match the atoms.";
+         : p_tsPick[1].empty() ? "Pick the product."
+         : "The structures could not be matched.";
   const wxString txt = wxString::FromUTF8(line.c_str());
   p_tsLine->SetLabel(txt);
   p_tsLine->Wrap(300);
@@ -4984,6 +5001,7 @@ void CalcEd::tsPicked(int role, int sel)
     if (f) {
       p_iCalc->fragment(f);
       delete f;
+      matchTsStructures(getRuntypeName().StartsWith("Transition State (NEB-TS)"));
       wxCommandEvent ev;
       subjectMCB(ev);
       return;
@@ -4991,6 +5009,7 @@ void CalcEd::tsPicked(int role, int sel)
     p_feedback->setMessage("The reactant calculation has no structure.",
                            WxFeedback::WARNING);
   }
+  matchTsStructures(getRuntypeName().StartsWith("Transition State (NEB-TS)"));
   enableSave();
   refreshTsBox();
 }
@@ -4998,7 +5017,7 @@ void CalcEd::tsPicked(int role, int sel)
 string CalcEd::tsMappingText()
 {
   return p_qstTable.empty()
-      ? "No atom mapping yet: pick the reactant and product and save."
+      ? "No atom mapping yet: pick the reactant and product."
       : p_qstDetail + "\n\n" + p_qstTable;
 }
 

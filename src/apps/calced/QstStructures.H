@@ -55,4 +55,10 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
                             std::string& warning, std::string* detail = 0,
                             std::string* table = 0);
 
+/** The same matching as the two functions above, from the reactant, product
+ *  and TS guess URLs as picked, with nothing written: the mapping needs only
+ *  the structures, not a saved deck or a basis set (#464). */
+bool tsMatchStructures(ICalculation* self, bool neb, const std::string picks[3],
+                       std::string& status, std::string& warning,
+                       std::string* detail = 0, std::string* table = 0);
 #endif

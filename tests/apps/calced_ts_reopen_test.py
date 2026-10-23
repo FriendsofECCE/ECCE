@@ -27,7 +27,7 @@ import fixture                  # noqa: E402
 import run_tests                # noqa: E402
 import symmetry_find_test as sym  # noqa: E402
 
-REOPEN = ["wait 9000", "ready", "wait 3000", "ts-state", "enabled", "ts-mapping"]
+REOPEN = ["wait 15000", "ts-state", "enabled", "ts-mapping"]
 
 
 def duplicate(folder, url):
