@@ -1917,10 +1917,10 @@ bool ModelDiagram::build(const Input& in,
                    "and the label is the dominant one; the hover text gives the split. * marks the out-of-phase combination of the leading "
                    "fragment orbitals, nb a level with under 5 % on the other fragment. For a diatomic the levels of each sigma/pi, g/u class are named "
                    "in the textbook order (2s before 2p, bonding before antibonding) whatever their s/p mixing."
-                   "\n\n**Effect on the bond.** The hover text gives d\xCE\xB5/dR, the change of the model level's energy when the bond is "
-                   "stretched, from the model run at the bond length plus and minus 0.02 \xC3\x85 (a central atom: all its bonds together; two "
-                   "fragments: their distance, both rigid). A level that rises on stretching is bonding and strengthens the bond; "
-                   "one that falls weakens it; under 0.5 eV/\xC3\x85 is called little effect.";
+                   "\n\n**Effect on the bond.** ECCE lengthens the bond slightly and checks whether the orbital's energy goes up "
+                   "or down. If it goes up, the orbital strengthens the bond; if it goes down, it weakens it. The hover text gives "
+                   "the change as d\xCE\xB5/dR; under 0.5 eV/\xC3\x85 is called little effect. This is a model estimate: for orbitals "
+                   "with only a small effect it can point the wrong way (N\xE2\x82\x82 \xCF\x83" "2p, for example).";
       out.about += "\n\nEach model level carries a short grey tag naming the fragment orbitals it is mostly made of "
                    "(shares of at least 20 %), such as Cr d or CO \xCF\x80*. Ligand-field view hides empty "
                    "ligand-centred levels such as CO \xCF\x80*; transitions into them are charge transfer, not d\xE2\x80\x93" "d.";
