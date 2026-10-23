@@ -4,7 +4,7 @@
     makecalc.py CODE MOLECULE NOISE OUTDIR [--opt] [--seed N] [--keep]
 
 CODE is g16, orca, nwchem or ecceqm; MOLECULE one of h2o, nh3, ch4, co2, c2h4, c3h6, ch3oh,
-c2, he2, n2, co, hf (the last five are Teaching > Diatomics, bond along x).
+c2h6 (staggered ethane), c2, he2, n2, co, hf (the last five are Teaching > Diatomics, bond along x).
 ecceqm runs the built-in engine (B3LYP/6-31G*), which keeps the input
 frame; --no-rotate leaves the molecule as the library has it.  NOISE
 (Angstrom) perturbs every coordinate by up to that much after a random
@@ -87,6 +87,21 @@ for _k in range(3):
             ("H", _c[0] + _r * _o[0], _c[1] + _r * _o[1], _sign * _z))
 
 
+#  Ethane, staggered, D3d, C-C along z (r(CC) 1.536, r(CH) 1.094, HCC 111.2).
+_ZC, _ZH, _RH = 0.768, 0.768 + 1.094 * math.cos(math.radians(68.8)), \
+    1.094 * math.sin(math.radians(68.8))
+MOLECULES["c2h6"] = [("C", 0.0, 0.0, _ZC), ("C", 0.0, 0.0, -_ZC)]
+for _k in range(3):
+    _t = 2 * math.pi * _k / 3
+    MOLECULES["c2h6"].append(("H", _RH * math.cos(_t), _RH * math.sin(_t), _ZH))
+for _k in range(3):
+    _t = math.pi / 3 + 2 * math.pi * _k / 3
+    MOLECULES["c2h6"].append(("H", _RH * math.cos(_t), _RH * math.sin(_t), -_ZH))
+
+#  ecceqm method keyword ("hf" gives RHF for a closed shell).
+METHOD = "b3lyp"
+
+
 def libraryDiatomics():
     """Teaching > Diatomics, read from the structure library itself."""
     folder = os.path.join(ROOT, "data", "client", "StructureLibrary",
@@ -162,8 +177,8 @@ def deck(code, atoms, opt):
     if code == "ecceqm":
         return ("ecceqm.qmin", "ecceqm.qmout",
                 "title MO diagram fixture\ncharge 0\nmultiplicity 1\n"
-                "method b3lyp\nspherical true\nbasis 6-31G*\n"
-                "geometry\n%send\n" % xyzLines(atoms))
+                "method %s\nspherical true\nbasis 6-31G*\n"
+                "geometry\n%send\n" % (METHOD, xyzLines(atoms)))
     raise SystemExit("unknown code " + code)
 
 
@@ -351,12 +366,16 @@ def main():
     ap.add_argument("--no-rotate", action="store_true")
     ap.add_argument("--spherical-flag", action="store_true",
                     help="record the basis as spherical (coordsys Y)")
+    ap.add_argument("--method", default="b3lyp",
+                    help="ecceqm only: b3lyp (default) or hf")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--save-output", help="copy the code's output here")
     a = ap.parse_args()
     #  The parser scripts find pertab.pl and friends through ECCE_HOME.
     os.environ["ECCE_HOME"] = ROOT
 
+    global METHOD
+    METHOD = a.method
     atoms = geometry(a.molecule, a.noise, a.seed, not a.no_rotate)
     deckName, outName, text = deck(a.code, atoms, a.opt)
     work = tempfile.mkdtemp(prefix="modiagram-%s-" % a.code,

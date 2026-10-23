@@ -72,6 +72,9 @@ FIXTURES = {
     #  #301: ethene and cyclopropane (makecalc.py ecceqm c2h4 / c3h6 0
     #  --no-rotate), and the atom picks that choose a diagram.
     "ecceqm-c2h4": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
+    #  #458: staggered ethane, RHF/6-31G* (makecalc.py ecceqm c2h6 0 DIR
+    #  --no-rotate --method hf), CH3 + CH3.
+    "ecceqm-c2h6": os.path.join(FIXTURES_DIR, "ecceqm-c2h6"),
     "ecceqm-c2h4-pick-c1c2": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
     "ecceqm-c3h6-pick-ring": os.path.join(FIXTURES_DIR, "ecceqm-c3h6"),
     "ecceqm-water-pick-o1": os.path.join(FIXTURES_DIR, "ecceqm-water"),

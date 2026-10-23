@@ -57,6 +57,8 @@ class ModelDiagram
     static constexpr double CHARACTER_MIN = 0.20;
     /** An overlap population this small (electrons) is non-bonding. */
     static constexpr double OP_TOLERANCE = 0.02;
+    /** Fragment-orbital make-up two partner levels must share (sum of the smaller shares). */
+    static constexpr double PAIR_SIMILAR = 0.5;
     /** Model levels this close (Hartree) are one degenerate level. */
     static constexpr double DEGENERATE = 2.0e-4;
     /** Calculated energies this close (Hartree) are not an inversion. */

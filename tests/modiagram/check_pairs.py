@@ -66,7 +66,9 @@ def check_sp_mixing(d):
 
 def check_rules(d):
     """The one pair rule (#301): in every dump each bonding level has an
-    antibonding partner of its pairing number and the reverse, nothing is
+    antibonding partner of its pairing number and the reverse (a level with no
+    partner has pairing -1 and keeps the character of its own overlap
+    population, #458), nothing is
     MIXED, and the labels follow the character (`*`, `nb`).  BF3: 3A1'/5A1'*,
     2E'/5E'* and the pi pair 1A2''/2A2''*, with 4A1' and 3E' non-bonding (merged into the F lone-pair block)."""
     bad = 0
@@ -79,12 +81,12 @@ def check_rules(d):
             if ch == "MIXED":
                 bad += 1
                 print("%s: %s is MIXED" % (fn, label))
-            if ch in ("BONDING", "ANTIBONDING"):
+            if ch in ("BONDING", "ANTIBONDING") and p >= 0:
                 by.setdefault(p, []).append(ch)
         for p, chs in by.items():
             if fn.endswith("-lfview.dump"):
                 break        # the Ligand-field view hides the antibonding partners on purpose
-            if p < 0 or "BONDING" not in chs or "ANTIBONDING" not in chs:
+            if "BONDING" not in chs or "ANTIBONDING" not in chs:
                 bad += 1
                 print("%s: pairing %d has %s" % (fn, p, chs))
     path = os.path.join(d, "orca-bf3.dump")
@@ -270,13 +272,51 @@ def check_neutral_ligands(d):
     return bad
 
 
+def check_ethane(d):
+    """Staggered ethane, CH3 + CH3 (#458): the a2u level of FO7 - FO7 (overlap
+    population -0.9) is antibonding although it has no partner, and the
+    FO7 + FO7 a1g level (population 0.00) is non-bonding."""
+    path = os.path.join(d, "ecceqm-c2h6.dump")
+    if not os.path.exists(path):
+        return 0
+    inside, rows = False, []
+    for line in open(path):
+        if line.startswith("column "):
+            inside = line.strip() == "column centre"
+        elif inside and line.lstrip().startswith("level "):
+            f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
+            op = re.search("overlap population ([\u2212-]?[0-9.]+)", line)
+            rows.append((f["label"], f["character"], int(f["pairing"]),
+                         float(op.group(1).replace("\u2212", "-")) if op else None))
+    bad = 0
+    top = [r for r in rows if r[0].lower().startswith("3a2u")]
+    nb = [r for r in rows if r[0].lower().startswith("6a1g")]
+    if not (top and top[0][1] == "ANTIBONDING" and top[0][2] < 0
+            and top[0][3] is not None and top[0][3] < -0.5):
+        bad += 1
+        print("ecceqm-c2h6: the unpaired a2u level is %s, want ANTIBONDING" % top)
+    if not (nb and nb[0][1] == "NONBONDING" and abs(nb[0][3]) < 0.02):
+        bad += 1
+        print("ecceqm-c2h6: the a1g FO7+FO7 level is %s, want NONBONDING" % nb)
+    for r in rows:
+        if r[2] < 0 and r[3] is not None:
+            want = ("BONDING" if r[3] > 0.02 else
+                    "ANTIBONDING" if r[3] < -0.02 else "NONBONDING")
+            if r[1] != want:
+                bad += 1
+                print("ecceqm-c2h6: %s is %s with population %g" % (r[0], r[1], r[3]))
+    print("ethane (staggered, CH3 + CH3): %s" % ("FAIL" if bad else "ok"))
+    return bad
+
+
 def main():
     d = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "expected")
     bad = 0
     for name, pairs in EXPECT.items():
         lv = molecular_levels(os.path.join(d, name + ".dump"))
-        nb = sum(1 for l in lv if l[1] == "BONDING")
-        na = sum(1 for l in lv if l[1] == "ANTIBONDING")
+        #  A level with no partner keeps its own character (#458): count the paired ones.
+        nb = sum(1 for l in lv if l[1] == "BONDING" and l[2] >= 0)
+        na = sum(1 for l in lv if l[1] == "ANTIBONDING" and l[2] >= 0)
         got = {}
         for label, _, p in lv:
             if p >= 0:
@@ -289,6 +329,7 @@ def main():
               % (name, nb, na, got, "ok" if ok else "FAIL (want %s)" % want))
     bad += check_sp_mixing(d)
     bad += check_rules(d)
+    bad += check_ethane(d)
     bad += check_d_electrons(d)
     bad += check_lfview(d)
     bad += check_electrons(d)

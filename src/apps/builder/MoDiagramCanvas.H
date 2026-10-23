@@ -595,8 +595,11 @@ class MoDiagramCanvas : public wxPanel
         splitLabel(l.calcLabel, it.pieces);
         const double e = fabs(it.e) < 0.005 ? 0.0 : it.e;
         it.energy = wxString::Format(wxT("%s%.2f"), e < 0 ? wxT("−") : wxT("+"), fabs(e));
-        if (it.loose) it.energy += wxT(" ≈");
         if (!p_showEnergies) it.energy.clear();
+        if (it.only < 0) {
+          if (!it.energy.empty()) it.energy += wxT("  ");
+          it.energy += wxString::Format(wxT("overlap %.2f"), l.calcOverlap);
+        }
         it.y = calcYFor(it.e, plot);
         const int lw = measurePieces(dc, it.pieces, label, sub).x;
         dc.SetFont(*wxSMALL_FONT);
