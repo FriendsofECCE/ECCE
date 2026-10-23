@@ -112,6 +112,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Keep `len(TEVEC) <= len(GEOMTRACE)`](keep-lentevec-lengeomtrace.md)
 - [A `.desc` parse-type's `Begin` value is also its hash key, AND its match priority](a-desc-parse-types-begin-value-is.md)
 - [`End`-line starvation: an `End` that lands on another entry's `Begin` line makes that entry unable to EVER fire](end-line-starvation-an-end-that-lands.md)
+- [An `End` the code prints only sometimes leaves the block open: every later property is lost, progress still works (#491)](an-end-the-code-prints-only-sometimes.md)
 - [A `.desc` entry's `Skip=N` counts the `Begin`-matching line itself](a-desc-entrys-skip-n-counts-the.md)
 
 ### The input checker (`scripts/parsers/verifyinput`, #148)
