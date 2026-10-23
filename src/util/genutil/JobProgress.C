@@ -114,6 +114,11 @@ string JobProgress::title(const string& stage)
   // GROMACS names the stage by its integrator.
   if (stage == "steep" || stage == "cg" || stage == "l-bfgs" || stage == "nm")
     return "Minimisation";
+  if (stage == "gmx-epot") return "Potential energy";
+  if (stage == "gmx-fmax") return "Maximum force";
+  if (stage == "gmx-temp") return "Temperature";
+  if (stage == "gmx-pres") return "Pressure";
+  if (stage == "gmx-dens") return "Density";
   if (stage == "md" || stage == "md-vv" || stage == "md-vv-avek" ||
       stage == "sd" || stage == "bd")
     return "Molecular dynamics";
@@ -137,6 +142,14 @@ static string energyText(const string& v)
 }
 
 
+// Series shown as they are, not as log |value|: GROMACS' energy, temperature,
+// pressure and density, which change sign or are not small.
+static bool isLinearKey(const string& key)
+{
+  return key == "epot" || key == "temp" || key == "pres" || key == "dens";
+}
+
+
 // The criteria labels a user reads; unknown keys keep their own name.
 static string criterionLabel(const string& stage, const string& key)
 {
@@ -146,6 +159,11 @@ static string criterionLabel(const string& stage, const string& key)
   if (key == "rmsstep") return "RMS step";
   if (key == "dE") return "\xce\x94" "E";   // Delta E
   if (key == "scferr") return "estimated SCF error";
+  if (key == "epot") return "potential energy (kJ/mol)";
+  if (key == "temp") return "temperature (K)";
+  if (key == "pres") return "pressure (bar)";
+  if (key == "dens") return "density (kg/m\xc2\xb3)";
+  if (key == "time") return "time (ps)";
   if (key == "grad") return stage == "scf" ? "orbital gradient" : "gradient";
   return key;
 }
@@ -321,7 +339,8 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       // A value whose target the code never prints: shown as a plain line.
       const string label = criterionLabel(st.name, f.first);
       if (label != f.first)
-        b.lines.push_back(label + " " + fmt("%.1e", v));
+        b.lines.push_back(label + " " + (isLinearKey(f.first) || f.first == "time"
+                                         ? fmt("%.5g", v) : fmt("%.1e", v)));
       continue;
     }
     Criterion c;
@@ -336,6 +355,9 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     if (st.historyKey == "energy") {
       b.plot = st.history;
       b.plotLabel = "energy per step";
+    } else if (isLinearKey(st.historyKey)) {
+      b.plot = st.history;
+      b.plotLabel = criterionLabel(st.name, st.historyKey) + " per log step";
     } else {
       for (double v : st.history)
         b.plot.push_back(std::log10(std::max(std::fabs(v), 1e-16)));

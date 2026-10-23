@@ -4032,7 +4032,9 @@ sub PDFileRead
         'progress',
         'history',
         'remember',
-        'times'
+        'times',
+        'table',
+        'tablestop'
     );
     my @pdValsFreq = (
         $PD_VAL_FREQ_ALL,
@@ -4342,6 +4344,15 @@ sub PDFileRead
 #				convergence targets, printed once up front)
 #	Times=<integer>		with Remember: keep $1 times this (MOPAC
 #				prints the atoms, its FORCE takes 3 per atom)
+#	Table=<width>		instead of Progress: Begin starts a table of
+#				fixed-width columns, header and value lines
+#				alternating up to a blank line (GROMACS'
+#				energies).  Each value is kept as {t_<header>}
+#				(non-word characters squeezed to _), and the
+#				line "ECCE-TABLE-END <integrator>" is then fed to
+#				the entries, which build the snapshot from them
+#	TableStop=<regex>	with Table: no table is read after this line
+#				(GROMACS' run averages repeat the marker)
 #
 # Return an error message upon failure, undef upon success.
 # --------------------------------------------------------------------------- #
@@ -4355,14 +4366,31 @@ sub ProgressEntryAdd
     {
         next if ($_ eq $PD_KEY_TYPE || $_ eq $PD_KEY_BEGIN
                  || $_ eq 'progress' || $_ eq 'history'
-                 || $_ eq 'remember' || $_ eq 'times');
+                 || $_ eq 'remember' || $_ eq 'times'
+                 || $_ eq 'table' || $_ eq 'tablestop');
         return "$where: rule key '$_' is not used here";
     }
     return "$where: Begin and Progress (or Remember) must be given"
         unless (exists $$buf{$PD_KEY_BEGIN}
-                && (exists $$buf{'progress'} || exists $$buf{'remember'}));
+                && (exists $$buf{'progress'} || exists $$buf{'remember'}
+                    || exists $$buf{'table'}));
     my $re = eval { qr/$$buf{$PD_KEY_BEGIN}/ };
     return "$where: bad Begin pattern: $@" unless (defined $re);
+    if (exists $$buf{'table'})
+    {
+        return "$where: Table takes a column width"
+            unless ($$buf{'table'} =~ /^\d+$/ && $$buf{'table'} > 0);
+        my $stop = undef;
+        if (exists $$buf{'tablestop'})
+        {
+            $stop = eval { qr/$$buf{'tablestop'}/ };
+            return "$where: bad TableStop pattern: $@" unless (defined $stop);
+        }
+        push @gProgList, [$re, undef, undef, undef, undef, $$buf{'table'},
+                          $stop];
+        return undef;
+    }
+    return "$where: TableStop belongs with Table" if (exists $$buf{'tablestop'});
     if (exists $$buf{'remember'})
     {
         return "$where: Remember takes a name"
@@ -4407,15 +4435,18 @@ sub ProgressTail
         $gTailOff = 0;
     }
     seek($gTailFh, $gTailOff, 0);
+    #  A carriage return ends a record too: mdrun -v rewrites one line.
+    my $buf = '';
+    read($gTailFh, $buf, 1048576);
+    my $end = (sort { $b <=> $a } (rindex($buf, "\n"), rindex($buf, "\r")))[0];
+    return if ($end < 0);
+    $gTailOff += $end + 1;
     my $n = 0;
-    while (defined(my $l = <$gTailFh>))
+    foreach my $l (split /[\r\n]+/, substr($buf, 0, $end + 1))
     {
-        last unless ($l =~ /\n$/);	# half-written: again next time
-        $gTailOff = tell($gTailFh);
-        &ProgressLine($l);
+        &ProgressLine("$l\n");
         last if (++$n >= 20000);
     }
-    seek($gTailFh, $gTailOff, 0);
 }
 
 sub ProgressNow
@@ -4430,13 +4461,63 @@ sub ProgressNow
 # also clears its history.  point=k/n gets an eta in seconds.
 # --------------------------------------------------------------------------- #
 
+my($gTabW, $gTabState, $gTabStopped) = (0, '', 0);
+my @gTabNames;
+
+sub ProgressTableLine
+{
+    my($line) = @_;
+    my @cells;
+
+    chomp $line;
+    $line =~ s/\r$//;
+    if ($line =~ /^\s*$/)
+    {
+        $gTabW = 0;
+        &ProgressLine("ECCE-TABLE-END " . ($gProgMem{'integrator'} // '') . "\n");
+        return;
+    }
+    for (my $i = 0; $i * $gTabW < length($line); $i++)
+    {
+        my $c = substr($line, $i * $gTabW, $gTabW);
+        $c =~ s/^\s+|\s+$//g;
+        push @cells, $c;
+    }
+    if ($gTabState eq 'hdr')
+    {
+        @gTabNames = map { (my $n = $_) =~ s/\W+/_/g; $n =~ s/_$//; $n } @cells;
+        $gTabState = 'val';
+    }
+    else
+    {
+        for (my $i = 0; $i < @cells && $i < @gTabNames; $i++)
+        {
+            $gProgMem{"t_$gTabNames[$i]"} = $cells[$i]
+                if ($gTabNames[$i] ne '' && $cells[$i] =~ /^-?[\d.]+(?:e[-+]?\d+)?$/i);
+        }
+        $gTabState = 'hdr';
+    }
+}
+
 sub ProgressLine
 {
     my($line) = @_;
     my $entry;
 
+    &ProgressTableLine($line) if ($gTabW);
+
     foreach $entry (@gProgList)
     {
+        if (defined $$entry[5])
+        {
+            $gTabStopped = 1 if (defined $$entry[6] && $line =~ $$entry[6]);
+            if (!$gTabStopped && !$gTabW && $line =~ $$entry[0])
+            {
+                ($gTabW, $gTabState, @gTabNames) = ($$entry[5], 'hdr');
+            }
+            next;
+        }
+
         my @cap = ($line =~ $$entry[0]);
         next unless (@cap);
 
