@@ -11,6 +11,9 @@
 
 class wxButton;
 class wxChoice;
+class wxRadioBox;
+class wxTextCtrl;
+class wxBoxSizer;
 class wxSlider;
 class wxSpinCtrl;
 class wxStaticText;
@@ -75,6 +78,10 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       /** "Use this view": the screen axes in the stored frame. */
       bool useView(const double right[3], const double up[3]);
       bool useCurrentView();
+      /** A click on plane entry N (0-3): resets the offset, picks defaults. */
+      bool choosePlane(int n);
+      /** Where each control sits at a given panel width, and which are clipped. */
+      std::string layoutReport(int width);
       /** The MOs panel's selection (1-based, alpha or beta). */
       void followMo(int mo, bool beta);
 
@@ -103,16 +110,30 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       void removePlaneFromViewer();
       void updateOffsetLabel();
       double offsetAngstrom() const;
+      void newPlane();                 // offset back to 0
+      void fillAtomLists();
+      void chooseBondedB();
+      void onControl(wxCommandEvent& event);
+      void commitOffsetField();
+      void ensurePlane();
+      void setCaption();
+      void relayout();
 
+      std::string p_statusText;
       std::unique_ptr<DensityPlane::Evaluator> p_eval;
       DensityPlane::Map p_map;
       DensityPlane::Plane p_viewPlane;
       bool p_haveMap, p_haveView, p_busy, p_inViewer, p_dragging;
 
-      wxChoice *p_show, *p_spin, *p_plane, *p_atomA, *p_atomB, *p_atomC;
+      wxChoice *p_show, *p_spin, *p_atomA, *p_atomB, *p_atomC;
+      wxRadioBox *p_plane;
+      wxTextCtrl *p_offsetField;
+      wxButton *p_resetOffset;
+      wxStaticText *p_labelA, *p_labelB, *p_labelC, *p_caption;
+      wxBoxSizer *p_atomRow, *p_viewRow;
       wxSpinCtrl *p_mo;
       wxSlider *p_offset;
-      wxStaticText *p_offsetText, *p_status;
+      wxStaticText *p_status;
       wxButton *p_useView;
       DensityMapCanvas *p_canvas;
 };

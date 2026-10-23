@@ -137,7 +137,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
 //    dmoffset X [drag]    the offset slider, A
 //    dmview rx ry rz ux uy uz | dmviewcurrent     "Use this view"
 //    dmfollow N           select MO N in the MOs panel
-//    dmcsv <name> | dmpng <name> <w> <h> | dmstate | dmhide | dmclose
+//    dmcsv <name> | dmpng <name> <w> <h> | dmstate | dmhide | dmclose | dmopen | dmlayout W | dmplane N
 bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
                                 const string& outdir)
 {
@@ -209,6 +209,16 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
   } else if (cmd == "dmpng" && w.size() == 4) {
     ok = dm->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
                      atoi(w[3].c_str()));
+  } else if (cmd == "dmlayout" && w.size() == 2) {
+    //  Each control's rectangle at that panel width; clipped ones fail.
+    const std::string report = dm->layoutReport(atoi(w[1].c_str()));
+    fprintf(stderr, "DENSITYMAP layout\n%s", report.c_str());
+    ok = report.find("layout ok") != std::string::npos;
+  } else if (cmd == "dmopen") {
+    dm->Show(true);
+  } else if (cmd == "dmplane" && w.size() == 2) {
+    //  The plane radio box, as a click on entry N does.
+    ok = dm->choosePlane(atoi(w[1].c_str()));
   } else if (cmd == "dmclose") {
     //  What setDetail does to a panel another one replaces.
     dm->Show(false);

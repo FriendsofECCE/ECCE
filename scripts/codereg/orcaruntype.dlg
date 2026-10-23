@@ -28,7 +28,7 @@ int name=ES.Runtype.IRC.MaximumStepsValue label="Max Steps per direction:" defau
 combo name=ES.Runtype.IRC.Direction label="Direction:" choices="Both|Forward|Backward" default=Both export=1
 combo name=ES.Runtype.IRC.InitHess label="Initial Hessian:" choices="Analytic|Numerical" default=Analytic export=1
 
-box label="Partial Charges" cols=1
+box label="Partial Charges" cols=2
 check name=ES.Runtype.ORCA.UseCHELPG label=" CHELPG charges (ESP fit)" default=0 export=1
 check name=ES.Runtype.ORCA.UseHirshfeld label=" Hirshfeld charges" default=0 export=1
 check name=ES.Runtype.ORCA.UseMBIS label=" MBIS charges" default=0 export=1

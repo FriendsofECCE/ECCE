@@ -83,6 +83,19 @@ static void planes()
   CHECK(offsetPlane(o, 0.0).description == p.description, "zero offset: the plain caption");
   CHECK(offsetPlane(p, -0.8).description.find("below") != string::npos, "negative: below");
 
+  //  What can be offered: ethene is planar, NH3 is not, N2 is linear.
+  const vector<string> sym = { "C", "C", "H", "H", "H", "H" };
+  CHECK(hasMolecularPlane(coords) && !isLinear(coords), "ethene has a molecular plane");
+  CHECK(bonded(sym, coords, 0, 1) && bonded(sym, coords, 0, 2), "C=C and C-H bonded");
+  CHECK(!bonded(sym, coords, 2, 5), "H and the far H are not bonded");
+  const double nh3[] = { 0, 0, 0.12,  0, 0.94, -0.28,  0.81, -0.47, -0.28,  -0.81, -0.47, -0.28 };
+  const vector<double> pyramid(nh3, nh3 + 12);
+  CHECK(!isPlanar(pyramid) && !hasMolecularPlane(pyramid), "NH3 has no molecular plane");
+  const double n2[] = { 0, 0, 0, 0, 0, 1.1 };
+  const vector<double> diatomic(n2, n2 + 6);
+  CHECK(isLinear(diatomic) && isPlanar(diatomic) && !hasMolecularPlane(diatomic),
+        "N2: a plane through the axis, but nothing to stand on");
+
   //  Degeneracy: the MO diagram's tolerance.
   const vector<double> e = { -1.0, -0.5, -0.5 + 1e-6, -0.2, -0.2 + 1e-4 };
   CHECK(degenerateSet(e, 2).size() == 2 && degenerateSet(e, 3)[0] == 2, "pair within 1.5e-5");

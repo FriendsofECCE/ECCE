@@ -200,11 +200,42 @@ static bool makePlaneBase(PlaneKind kind, const vector<double>& c,
     p.origin[k] = 0.5*(c[3*a+k] + c[3*b+k]); p.u[k] = u[k]; p.v[k] = v[k];
   }
   cross(p.u, p.v, p.n);
-  p.description = "plane through " + name(a) + "-" + name(b) +
+  p.description = "plane containing the line " + name(a) + "-" + name(b) +
                   ", perpendicular to the molecular plane";
   return true;
 }
 
+
+bool isLinear(const vector<double>& c)
+{
+  if (c.size() < 6) return false;
+  V3 centroid, ev[3];
+  double l[3];
+  principalAxes(c, centroid, l, ev);
+  return sqrt(l[1]) < 0.05;
+}
+
+bool hasMolecularPlane(const vector<double>& c)
+{
+  return isPlanar(c) && !isLinear(c);
+}
+
+bool bonded(const vector<string>& sym, const vector<double>& c, int a, int b)
+{
+  static const struct { const char *s; double r; } R[] = {
+    {"H",.31},{"B",.84},{"C",.76},{"N",.71},{"O",.66},{"F",.57},{"Si",1.11},
+    {"P",1.07},{"S",1.05},{"Cl",1.02},{"Br",1.2},{"I",1.39},{"Se",1.2} };
+  auto radius = [&](const string& s) {
+    for (size_t i = 0; i < sizeof R / sizeof R[0]; i++) if (s == R[i].s) return R[i].r;
+    return 1.4;
+  };
+  if (a < 0 || b < 0 || a == b || a >= (int)sym.size() || b >= (int)sym.size())
+    return false;
+  double d2 = 0;
+  for (int k = 0; k < 3; k++) { const double d = c[3*a+k] - c[3*b+k]; d2 += d*d; }
+  const double lim = 1.25 * (radius(sym[a]) + radius(sym[b]));
+  return d2 < lim*lim;
+}
 
 bool makePlane(PlaneKind kind, const vector<double>& c,
                const vector<string>& labels, int a, int b, int cc,
