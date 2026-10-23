@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
   using std::cerr;
   using std::endl;
 
@@ -13,8 +14,8 @@ ParseErrorReporter::ParseErrorReporter()
 void ParseErrorReporter::error (const SAXParseException& ex)
 {
   p_msgs.append("XML Parse recoverable error - ");
-  p_msgs.append("Line: " + ex.getLineNumber());
-  p_msgs.append(" Column: " + ex.getColumnNumber());
+  p_msgs.append("Line: " + std::to_string(ex.getLineNumber()));
+  p_msgs.append(" Column: " + std::to_string(ex.getColumnNumber()) + ". ");
   p_msgs.append("Look for unmatched tags - matches are case sensitive.");
 
   cerr << "\n";
@@ -27,8 +28,8 @@ void ParseErrorReporter::error (const SAXParseException& ex)
 void ParseErrorReporter::fatalError (const SAXParseException& ex)
 {
   p_msgs.append("XML Parse FATAL error - ");
-  p_msgs.append("Line: " + ex.getLineNumber());
-  p_msgs.append(" Column: " + ex.getColumnNumber());
+  p_msgs.append("Line: " + std::to_string(ex.getLineNumber()));
+  p_msgs.append(" Column: " + std::to_string(ex.getColumnNumber()) + ". ");
   p_msgs.append("Look for unmatched tags - matches are case sensitive.");
   p_fatal = true;
 
