@@ -132,6 +132,7 @@ my %gMsgBlockBuf;
 my $gMsgBlockBuffering;
 my $gMsgBlockBufParseType;
 my $gMsgBlockCurrent;
+my @gMsgBlockSaved;	# (type, existed, buffered block) before the open block
 my $gMsgDest = undef;
 my $gParentPid = getppid();	# parent at start; it changes when the client's shell dies
 my $gPidFile = undef;
@@ -2998,12 +2999,17 @@ sub JobOutputGet
 
         LogMsg "JobOutputGet: read $line lines from $fullCurrFile";
 
-        # check for runaway parse type
+        # A block still open at the end is where a failed or killed job
+        # stopped.  Drop it and go on: the output, the status and what was
+        # parsed before it must still reach the client.
         if ($parseHandle)
         {
-            $errMsg = "end of file encountered while reading parse type $parseType";
-
-            Die "JobOutputGet: $errMsg";
+            &MsgSendBlockDrop();
+            $gPdCount{$parseType}--;
+            $parseHandle = undef;
+            &MsgSendErr($MSG_TYPE_E_WARN, "JobOutputGet: end of file "
+                        . "encountered while reading parse type $parseType; "
+                        . "that incomplete block is not stored");
         }
 
         # GDB setup to process the next parse file, if applicable
@@ -3527,6 +3533,8 @@ sub MsgSendBlockBegin
     my($parseType, $count) = @_;
     my $freq = $gPdTableFreq{$parseType};
 
+    @gMsgBlockSaved = ($parseType, exists $gMsgBlockBuf{$parseType},
+                       $gMsgBlockBuf{$parseType});
     $gMsgBlockBuffering = 0;
 
     if (defined $freq)
@@ -3595,6 +3603,28 @@ sub MsgSendBlockEnd
             $bookmark .= ":$seq";
         }
         &MsgSend(join $MSG_SEP, $MSG_TYPE_PROP, $bookmark, $gMsgBlockCurrent);
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Forget the block begun last, which never ended, and put back the complete
+# block of its type that it replaced: a parser script must not see half a
+# block (an ORCA job that died inside its MO section).
+# --------------------------------------------------------------------------- #
+
+sub MsgSendBlockDrop
+{
+    my($parseType, $existed, $buf) = @gMsgBlockSaved;
+
+    $gMsgBlockCurrent = '';
+    return unless defined $parseType;
+    if ($existed)
+    {
+        $gMsgBlockBuf{$parseType} = $buf;
+    }
+    else
+    {
+        delete $gMsgBlockBuf{$parseType};
     }
 }
 
