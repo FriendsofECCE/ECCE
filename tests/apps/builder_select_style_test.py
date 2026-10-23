@@ -49,10 +49,18 @@ def run(display):
     with open(path, "w") as handle:
         handle.write("\n".join(SCRIPT) + "\n")
     try:
-        result = apps.run(display, "builder", args=(STRUCTURE,),
+        #  A private state directory has no saved login: without -pipe the
+        #  builder stops at the "ECCE Authentication" dialog.
+        auth = fixture.authFile(os.path.join(work, "auth.pipe"),
+                                user=fixture.realUser())
+        result = apps.run(display, "builder", args=("-pipe", auth, STRUCTURE),
                           windowTimeout=60, settle=90,
                           env={"ECCE_BUILDER_SCRIPT": path,
                                "ECCE_FEEDBACK_STDERR": "1"})
+        if "BUILDER:" not in (result.log or ""):
+            print("builder: windows=%s rc=%s crashed=%s note=%s"
+                  % (result.windows, result.returncode, result.crashed,
+                     result.note))
         return result.log or ""
     finally:
         shutil.rmtree(work, ignore_errors=True)
