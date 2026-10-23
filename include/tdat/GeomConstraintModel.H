@@ -43,6 +43,31 @@ class GeomConstraintModel : public Serializable
       static bool usedByRunType(const std::string& runtype)
       { return runtype == "Geometry" || runtype == "GeoVib"; }
 
+      /// Whether the code's input takes stored constraints and scans for a
+      /// run type.  ECCE-QM also leaves them out of GeoVib, whose
+      /// frequencies would be at a constrained geometry.
+      enum Use { USED, IGNORED };
+      static Use useBy(const std::string& code, const std::string& runtype)
+      {
+        if (code == "ECCE-QM" && runtype == "GeoVib") return IGNORED;
+        return usedByRunType(runtype) ? USED : IGNORED;
+      }
+
+      /// "not used by an Energy run", with the reason where ECCE-QM has one.
+      static std::string notUsedText(const std::string& code,
+                                     const std::string& runtype)
+      {
+        if (code == "ECCE-QM" && runtype == "GeoVib")
+          return "not used by a GeoVib run (frequencies need an "
+                 "unconstrained minimum)";
+        if (code == "ECCE-QM" && runtype == "Transition State (Opt-TS)")
+          return "not used by a transition-state search";
+        const bool vowel = !runtype.empty() &&
+            std::string("AEIOUaeiou").find(runtype[0]) != std::string::npos;
+        return std::string("not used by ") + (vowel ? "an " : "a ") +
+               runtype + " run";
+      }
+
       GeomConstraintModel(const Fragment& frag, 
                           const GeomConstraintRules& rules);
       GeomConstraintModel(const GeomConstraintModel& rhs); 

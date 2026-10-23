@@ -31,6 +31,8 @@
 #include "tdat/Fragment.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
+#include "tdat/GeomConstraintPick.H"
+#include "tdat/GeomConstraint.H"
 #include "tdat/GUIValues.H"
 
 #include "dsm/GBSRules.H"
@@ -1433,36 +1435,72 @@ void CalcEd::updateESPModel()
 void CalcEd::refreshConstraintCount()
 {
   p_constraintCount = 0;
+  p_fixedCount = 0;
+  p_scanTexts.clear();
   ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_iCalc);
   if (task && p_frag) {
     GeomConstraintModel model(*p_frag, GeomConstraintRules());
     task->getGeomConstraintModel(model);
     p_constraintCount = model.size();
+
+    // A scan constraint is a coordinate stepped from its value; the rest are
+    // held.
+    for (int kind = 2; kind <= 4; kind++) {
+      vector<GeomConstraint*> *list = kind == 2 ? model.getBondConstraints()
+          : kind == 3 ? model.getAngleConstraints()
+          : model.getTorsionConstraints();
+      for (size_t i = 0; i < list->size(); i++) {
+        const GeomConstraint *c = (*list)[i];
+        if (c->getScanSteps() <= 0) continue;
+        vector<TAtm*> *atoms = c->getAtoms();
+        string name;
+        for (size_t a = 0; a < atoms->size(); a++)
+          name += (a ? "-" : "") + constraintAtomName(*p_frag, (*atoms)[a]->index());
+        delete atoms;
+        const double from = c->getConstraintValue();
+        const double to = from + c->getScanSteps() * c->getScanStep();
+        char buf[160];
+        snprintf(buf, sizeof buf, "Relaxed scan: %s from %.4g to %.4g %s in %d steps",
+                 name.c_str(), from, to, kind == 2 ? "Ã" : "deg",
+                 c->getScanSteps());
+        p_scanTexts.push_back(buf);
+      }
+      delete list;
+    }
+    p_fixedCount = p_constraintCount - (int)p_scanTexts.size();
   }
 }
 
 
-/// "2 constraints, not used by an Energy run", or empty when the run type
-/// and code use them (they are edited in the Builder, not here).
+GeomConstraintModel::Use CalcEd::constraintUse() const
+{
+  return GeomConstraintModel::useBy(p_codeName, getRuntypeName().ToStdString());
+}
+
+
+/// The Settings box line(s): what the Builder's constraints and scan are, and
+/// whether this code and run type use them, leave them out or refuse them
+/// (they are edited in the Builder, not here).  Empty when there are none.
 string CalcEd::constraintNote() const
 {
   if (p_constraintCount <= 0) return "";
   bool supported = true;
   if (p_code) p_code->get_bool("SupportsConstraints", supported);
-  string why;
-  if (!supported) {
-    why = "not used by " + p_codeName;
-  } else if (!GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString())) {
-    const string rt = getRuntypeName().ToStdString();
-    const bool vowel = !rt.empty() && strchr("AEIOUaeiou", rt[0]);
-    why = string("not used by ") + (vowel ? "an " : "a ") + rt + " run";
-  } else {
-    return "";
+  const string rt = getRuntypeName().ToStdString();
+  const string fate = !supported ? "not used by " + p_codeName
+      : constraintUse() == GeomConstraintModel::USED
+          ? "used by this " + rt + " run"
+          : GeomConstraintModel::notUsedText(p_codeName, rt);
+  string note;
+  if (p_fixedCount > 0) {
+    char buf[96];
+    snprintf(buf, sizeof buf, "%d constraint%s, ", p_fixedCount,
+             p_fixedCount == 1 ? "" : "s");
+    note = buf + fate;
   }
-  char buf[96];
-  snprintf(buf, sizeof buf, "%d constraint%s, ", p_constraintCount,
-           p_constraintCount == 1 ? "" : "s");
-  return buf + why;
+  for (size_t i = 0; i < p_scanTexts.size(); i++)
+    note += string(note.empty() ? "" : "\n") + p_scanTexts[i] + ", " + fate;
+  return note;
 }
 
 
@@ -1607,7 +1645,7 @@ bool CalcEd::verifyInput(vector<VerifyFinding>* out)
   //  Constraints the input leaves out because the run type cannot use them
   //  (#306): said here, since the deck itself cannot show what is missing.
   if (p_constraintCount > 0 &&
-      !GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString())) {
+      constraintUse() == GeomConstraintModel::IGNORED) {
     VerifyFinding note;
     note.level = VerifyFinding::UNSURE;
     note.line = 0;
@@ -3784,8 +3822,8 @@ void CalcEd::showGeomEditor()
     p_code->get_bool("SupportsConstraints", supportsConstraints);
   }
 
-  // The constraints belong to the structure; only a warning shows here, when
-  // the run type or code leaves them out.
+  // The constraints belong to the structure; the line says whether this run
+  // type and code use, ignore or refuse them.
   const string note = constraintNote();
   p_constraintNote->SetLabel(wxString::FromUTF8(note));
   p_constraintNote->SetToolTip(wxString::FromUTF8(note));

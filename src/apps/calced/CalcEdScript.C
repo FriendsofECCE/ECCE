@@ -59,6 +59,14 @@ struct CalcScript {
   CalcScript() : next(0), notBefore(0), waitUntil(0) {}
 };
 
+// A multi-line note on one log line, so a test can read it with one regex.
+std::string oneLine(std::string n)
+{
+  for (size_t k; (k = n.find('\n')) != std::string::npos; )
+    n.replace(k, 1, " | ");
+  return n;
+}
+
 bool exists(const std::string& path)
 {
   struct stat st;
@@ -286,7 +294,7 @@ void CalcEd::runCalcEdScript(const string& file)
         //  The constraint count and the warning in the Settings box (#306)
         fprintf(stderr, "CALCED: constraints count=%d note=%s\n",
                 p_constraintCount,
-                constraintNote().c_str());
+                oneLine(constraintNote()).c_str());
         {
           //  and what Verify says about them
           std::vector<VerifyFinding> findings;

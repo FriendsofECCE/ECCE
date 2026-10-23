@@ -12,9 +12,11 @@ synthetic mouse input).  Exit 77 (skip) without an install or Xvfb.
 """
 import os
 import re
+import shutil
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 
 import apps       # noqa: E402
@@ -84,7 +86,7 @@ def energyCase(display, url):
           "NWChem refuses fixed atoms beside angle constraints: %s" % (fix[0] if fix else "?"), tail)
     m = re.search(r"constraints rows=(\d+) note: (.*)", log)
     check(m is not None and m.group(1) == "2" and
-          "used only by geometry optimisations" in m.group(2) and "Energy" in m.group(2),
+          "not used by an Energy run" in m.group(2),
           "the note says the constraints are not used by an Energy run: %s"
           % (m.group(2) if m else "?"), tail)
     st = states(log)
@@ -120,8 +122,9 @@ def deckCase(display, url, calcdir, expectZcoord, label):
         return
     m = re.search(r"CALCED: constraints count=(\d+) note=(.*)", log)
     if expectZcoord:
-        check(m is not None and m.group(1) == "1" and m.group(2).strip() == "",
-              "%s: the editor holds the constraint and shows no warning: %s" %
+        check(m is not None and m.group(1) == "1" and
+              m.group(2).strip() == "1 constraint, used by this Geometry run",
+              "%s: the editor holds the constraint and says it is used: %s" %
               (label, m.group(2) if m else "?"), run_tests._tail(log, 20))
         check(not re.search(r"CALCED: verify (UNSURE|other)", log),
               "%s: Verify has nothing to add: %s" % (label, re.findall(r"CALCED: verify.*", log)))
@@ -148,6 +151,27 @@ def geomCase(display, url):
     check(m is not None and m.group(1) == "1" and "used by this calculation" in m.group(2),
           "Geometry run type: the note says the constraints are used: %s"
           % (m.group(2) if m else "?"), tail)
+
+
+def qmGeoVibCase(display, project):
+    """ECCE-QM GeoVib: the dialog says the same as the editor's line."""
+    calc = os.path.join(project, "qm-geovib")
+    shutil.copytree(os.path.join(REPO, "tests", "ecceqm", "fixtures", "h2o-geovib"),
+                    calc, symlinks=True)
+    meta = os.path.join(calc, ".ecce-meta")
+    text = open(meta, errors="surrogateescape").read()
+    open(meta, "w", errors="surrogateescape").write(
+        re.sub(r"(ecce:state\t\t)[^\n]*", r"\g<1>Ready", text))
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT",
+                       ["wait 4000", "constraints show", "constraints select 0 1",
+                        "constraints press constrain no", "constraints list",
+                        "wait 500", "quit"], "file://" + calc + "/")
+    m = re.search(r"constraints rows=(\d+) note: (.*)", log)
+    check(m is not None and m.group(1) == "1" and
+          "not used by a GeoVib run (frequencies need an unconstrained minimum)"
+          in m.group(2),
+          "ECCE-QM GeoVib: the dialog says the constraint is not used: %s"
+          % (m.group(2) if m else "?"), run_tests._tail(log, 25))
 
 
 def clickCase(display, url):
@@ -340,6 +364,7 @@ def main():
             unsupportedCase(display, "file://" + os.path.join(base, "nh3-qe") + "/")
             geomCase(display, "file://" + geom + "/")
             deckCase(display, "file://" + geom + "/", geom, True, "Geometry run")
+            qmGeoVibCase(display, base)
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)

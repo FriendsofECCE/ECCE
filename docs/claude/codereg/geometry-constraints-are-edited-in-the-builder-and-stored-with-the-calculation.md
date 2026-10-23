@@ -3,8 +3,8 @@ type: pitfall
 title: "Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib"
 area: codereg
 section: "Input writers"
-paths: ["src/apps/builder/GeomConstraintsDialog.C", "src/apps/builder/Builder.C", "src/apps/calced/CalcEd.C", "src/apps/calced/ESInputController.C", "src/tdat/chemistry/GeomConstraintModel.C", "src/tdat/chemistry/GeomConstraintPick.C", "tests/apps/builder_constraints_test.py"]
-issues: [306]
+paths: ["src/apps/builder/GeomConstraintsDialog.C", "src/apps/builder/Builder.C", "src/apps/calced/CalcEd.C", "src/apps/calced/ESInputController.C", "src/tdat/chemistry/GeomConstraintModel.C", "src/tdat/chemistry/GeomConstraintPick.C", "tests/apps/builder_constraints_test.py", "tests/apps/calced_constraints_line_test.py", "scripts/parsers/ai.ecceqm"]
+issues: [306, 456, 461]
 ---
 The constraint model (`GeomConstraintModel`) holds `TAtm*`, so it follows the atoms
 of one fragment and must be rebuilt when that fragment object is replaced. The Builder
@@ -24,6 +24,12 @@ Two traps found on the way:
 Which run types use the constraints is `GeomConstraintModel::usedByRunType` (Geometry,
 GeoVib); `write_constraints` leaves the file out for any other, so the writers never
 see them. The editor's note and Verify (`constraints` finding) say so.
+
+The Settings line in the editor and the note in the Builder dialog both come
+from `GeomConstraintModel::useBy(code, runtype)` and `notUsedText`: USED
+(Geometry, GeoVib) or IGNORED (every other run type: no file is written).
+ECCE-QM also ignores them for GeoVib, whose frequencies would be at a
+constrained geometry. Nothing refuses: a warning never blocks.
 
 The dummy atom X is shaped "Lone" in the Build panel, and `FragUtil::addToNub` returns
 without doing anything for a Lone shape, so X could not be put on an open site;
