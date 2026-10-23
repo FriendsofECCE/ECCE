@@ -262,6 +262,8 @@ def captureOne(name, source, outfile, timeout, png=None):
 
         env = display.env()
         env["ECCE_OPEN_PANEL"] = "MO Diagram"
+        if os.environ.get("ECCE_OPEN_PANEL_SIZE"):
+            env["ECCE_OPEN_PANEL_SIZE"] = os.environ["ECCE_OPEN_PANEL_SIZE"]
         env["ECCE_MODIAGRAM_DUMP"] = outfile
         env.update(FIXTURE_ENV.get(name, {}))
         sceneOut = None
@@ -386,7 +388,12 @@ def main():
                         help="also screenshot the ECCE Builder window "
                              "(MO Diagram panel open) for each captured "
                              "fixture, as DIR/<name>.png")
+    parser.add_argument("--size", metavar="WxH",
+                        help="size of the MO Diagram window, e.g. 1000x650 "
+                             "for a small one (ECCE_OPEN_PANEL_SIZE)")
     args = parser.parse_args()
+    if args.size:
+        os.environ["ECCE_OPEN_PANEL_SIZE"] = args.size
     if args.png:
         os.makedirs(args.png, exist_ok=True)
 

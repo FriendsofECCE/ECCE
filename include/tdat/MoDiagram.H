@@ -28,6 +28,9 @@ struct MoLevel
    string         irrep;           // canonical irrep name, for matching
    string         annotation;      // extra text, e.g. a fragment's VOIE
    string         tag;             // model levels: dominant fragment-orbital character, "Cr d + CO pi*"
+   string         construct;       // model levels (#458): construction label with parents, "sigma*(B 2p)"
+   string         constructShort;  // the same without the parents, "sigma*"
+   string         symLabel;        // model levels: the Mulliken irrep label only, "4a1'"
 
    /**
     * How much of this level sits on each fragment, 0 to 1.

@@ -894,6 +894,18 @@ bool ModelDiagram::build(const Input& in,
       }
    }
 
+   vector<BondSlope> slopes;
+   {
+      string ignored;
+      if (!bondSlopes(in, slopes, ignored)) slopes.clear();
+   }
+   //  Construction labels come from the model alone; a failure leaves them empty.
+   vector<ConstructLabel> construct;
+   {
+      string ignored;
+      if (!constructLabels(in, construct, ignored)) construct.clear();
+   }
+
    //  --- fragments and the model ------------------------------------
    const Naming leftName = nameAtoms(in.symbols, in.coordsAng, in.leftAtoms);
    const Naming rightName = nameAtoms(in.symbols, in.coordsAng, in.rightAtoms);
@@ -1310,6 +1322,21 @@ bool ModelDiagram::build(const Input& in,
       for (size_t o = 0; o < cl.size(); o++)
          if (cl[o].pairing == cl[c].pairing) cl[o].drawn = true;
    }
+   //  A fragment orbital in >= LINK_MIN of a drawn level is drawn, and then so is
+   //  every other level it is in: no half of an interaction is folded away.
+   vector<bool> forceSet(sets.size(), false);
+   if (!in.piOnly)
+      for (bool again = true; again;) {
+         again = false;
+         for (size_t s = 0; s < sets.size(); s++) {
+            if (!forceSet[s])
+               for (size_t c = 0; c < cl.size(); c++)
+                  if (cl[c].drawn && cl[c].share[s] >= LINK_MIN) { forceSet[s] = true; again = true; break; }
+            if (!forceSet[s]) continue;
+            for (size_t c = 0; c < cl.size(); c++)
+               if (!cl[c].drawn && cl[c].share[s] >= LINK_MIN) { cl[c].drawn = true; again = true; }
+         }
+      }
    //  Character of every model level, from the fragment orbitals it is made of.
    vector<map<string,double> > charAcc(cl.size());
    for (size_t c = 0; c < cl.size(); c++)
@@ -1438,6 +1465,20 @@ bool ModelDiagram::build(const Input& in,
          lv.calcOccupancyBeta = R.occupancyBeta;
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
       }
+      lv.symLabel = lower(L.base);
+      string constructSplit, slopeText;
+      for (size_t k = 0; k < slopes.size(); k++)
+         if (slopes[k].ok && find(slopes[k].orbitals.begin(), slopes[k].orbitals.end(), L.mos[0]) != slopes[k].orbitals.end()) {
+            const double d = slopes[k].slope;
+            slopeText = string("Effect on the bond: ") + (fabs(d) < SLOPE_LITTLE ? "little effect" : (d > 0 ? "strengthens" : "weakens")) +
+                        " (d\xCE\xB5/dR = " + signedNumber(d, 2) + " eV/\xC3\x85).";
+         }
+      for (size_t k = 0; k < construct.size(); k++)
+         if (find(construct[k].orbitals.begin(), construct[k].orbitals.end(), L.mos[0]) != construct[k].orbitals.end()) {
+            lv.construct = construct[k].full;
+            lv.constructShort = construct[k].plain;
+            constructSplit = construct[k].split;
+         }
       lv.annotation.clear();   // a marker beside the label read as a stray glyph
       lv.tag = characterTag(charAcc[order[oi]], CHARACTER_MIN);
       //  The hover text.
@@ -1457,6 +1498,10 @@ bool ModelDiagram::build(const Input& in,
                       : L.character == MoLevel::ANTIBONDING ? "Antibonding" : "Non-bonding") +
                     " (overlap population " + signedNumber(L.op, 2) + ").\nMade of: ";
       for (size_t k = 0; k < parts.size() && k < 5; k++) text += (k ? ", " : "") + parts[k].second;
+      if (!constructSplit.empty()) text += "\nConstruction: " + constructSplit;
+      if (!slopeText.empty()) text += "\n" + slopeText;
+      text += "\nLabels: " + (lv.construct.empty() ? string("no construction label") : "construction " + lv.construct) +
+              (lv.symLabel.empty() ? string() : ", symmetry " + lv.symLabel) + ".";
       if (L.realLevel >= 0) {
          const MoLevel& R = real[L.realLevel];
          text += "\nMatches MO ";
@@ -1488,7 +1533,7 @@ bool ModelDiagram::build(const Input& in,
       bool lined = false;
       for (size_t c = 0; c < cl.size(); c++)
          if (cl[c].drawn && cl[c].share[s] >= LINK_MIN) lined = true;
-      if (!lined || (bandRule && sets[s].nsShare >= 0.5)) continue;
+      if (!lined || (bandRule && sets[s].nsShare >= 0.5 && !forceSet[s])) continue;
       MoColumn& col = sets[s].fragment == 0 ? out.left : out.right;
       MoLevel lv;
       lv.energy = sets[s].energy;
@@ -1866,6 +1911,16 @@ bool ModelDiagram::build(const Input& in,
           ", " + rightName.formula + " " +
           std::to_string((int)lround([&] { double s = 0; for (size_t i = 0; i < sets.size(); i++) if (sets[i].fragment == 1) s += sets[i].occupancy; return s; }())) + ").";
       (void)total;
+      out.about += "\n\n**Construction labels.** sigma, pi and delta are taken relative to each bond from the centre to a ligand atom: "
+                   "sigma = no nodal plane containing the bond axis, pi = one, delta = two (s and a p orbital along the bond have none, "
+                   "a p orbital across it one, a d orbital as many as its m about the bond). For a level made of several ligand orbitals the share on each type is averaged over the bonds, "
+                   "and the label is the dominant one; the hover text gives the split. * marks the out-of-phase combination of the leading "
+                   "fragment orbitals, nb a level with under 5 % on the other fragment. For a diatomic the levels of each sigma/pi, g/u class are named "
+                   "in the textbook order (2s before 2p, bonding before antibonding) whatever their s/p mixing."
+                   "\n\n**Effect on the bond.** ECCE lengthens the bond slightly and checks whether the orbital's energy goes up "
+                   "or down. If it goes up, the orbital strengthens the bond; if it goes down, it weakens it. The hover text gives "
+                   "the change as d\xCE\xB5/dR; under 0.5 eV/\xC3\x85 is called little effect. This is a model estimate: for orbitals "
+                   "with only a small effect it can point the wrong way (N\xE2\x82\x82 \xCF\x83" "2p, for example).";
       out.about += "\n\nEach model level carries a short grey tag naming the fragment orbitals it is mostly made of "
                    "(shares of at least 20 %), such as Cr d or CO \xCF\x80*. Ligand-field view hides empty "
                    "ligand-centred levels such as CO \xCF\x80*; transitions into them are charge transfer, not d\xE2\x80\x93" "d.";
