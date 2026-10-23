@@ -118,48 +118,53 @@ GromacsInputsPanel::GromacsInputsPanel(MDEdBase *owner, wxWindow *parent)
   setWrapped(intro, intro->GetLabel());
   top->Add(intro, 0, wxALL | wxEXPAND, 10);
 
-  wxFlexGridSizer *grid = new wxFlexGridSizer(3, 3, 8, 8);
-  grid->AddGrowableCol(1);
+  //  Each file on a line of its own under its label and buttons: beside them
+  //  a long name was cut off unless the window was made wider.
+  wxBoxSizer *files = new wxBoxSizer(wxVERTICAL);
 
-  grid->Add(new ewxStaticText(this, wxID_ANY, _("Topology:")), 0,
-            wxALIGN_CENTER_VERTICAL);
-  p_topology = new ewxStaticText(this, wxID_ANY, wxEmptyString,
-                          wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-  p_topology->SetMinSize(wxSize(50, -1));
-  grid->Add(p_topology, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND);
-  wxBoxSizer *b1 = new wxBoxSizer(wxHORIZONTAL);
+  wxBoxSizer *r1 = new wxBoxSizer(wxHORIZONTAL);
+  r1->Add(new ewxStaticText(this, wxID_ANY, _("Topology:")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  r1->AddStretchSpacer();
   p_attachTop = new ewxButton(this, ID_ATTACH_TOP, _("Attach..."));
   p_removeTop = new ewxButton(this, ID_REMOVE_TOP, _("Remove"));
-  b1->Add(p_attachTop, 0, wxRIGHT, 4);
-  b1->Add(p_removeTop, 0);
-  grid->Add(b1);
+  r1->Add(p_attachTop, 0, wxRIGHT, 4);
+  r1->Add(p_removeTop, 0);
+  files->Add(r1, 0, wxEXPAND);
+  p_topology = new ewxStaticText(this, wxID_ANY, wxEmptyString,
+                          wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_MIDDLE);
+  p_topology->SetMinSize(wxSize(50, -1));
+  files->Add(p_topology, 0, wxEXPAND | wxLEFT | wxTOP, 4);
 
-  grid->Add(new ewxStaticText(this, wxID_ANY, _("Starting structure:")), 0,
-            wxALIGN_CENTER_VERTICAL);
-  p_structure = new ewxStaticText(this, wxID_ANY, wxEmptyString,
-                          wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-  p_structure->SetMinSize(wxSize(50, -1));
-  grid->Add(p_structure, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND);
-  wxBoxSizer *b2 = new wxBoxSizer(wxHORIZONTAL);
+  wxBoxSizer *r2 = new wxBoxSizer(wxHORIZONTAL);
+  r2->Add(new ewxStaticText(this, wxID_ANY, _("Starting structure:")), 0,
+          wxALIGN_CENTER_VERTICAL);
+  r2->AddStretchSpacer();
   p_attachGro = new ewxButton(this, ID_ATTACH_GRO, _("Attach..."));
   p_removeGro = new ewxButton(this, ID_REMOVE_GRO, _("Remove"));
-  b2->Add(p_attachGro, 0, wxRIGHT, 4);
-  b2->Add(p_removeGro, 0);
-  grid->Add(b2);
+  r2->Add(p_attachGro, 0, wxRIGHT, 4);
+  r2->Add(p_removeGro, 0);
+  files->Add(r2, 0, wxEXPAND | wxTOP, 12);
+  p_structure = new ewxStaticText(this, wxID_ANY, wxEmptyString,
+                          wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_MIDDLE);
+  p_structure->SetMinSize(wxSize(50, -1));
+  files->Add(p_structure, 0, wxEXPAND | wxLEFT | wxTOP, 4);
 
-  grid->Add(new ewxStaticText(this, wxID_ANY, _("Include files:")), 0,
-            wxALIGN_TOP);
+  files->Add(new ewxStaticText(this, wxID_ANY, _("Include files:")), 0,
+             wxTOP, 12);
+  wxBoxSizer *r3 = new wxBoxSizer(wxHORIZONTAL);
   p_includes = new ewxListBox(this, ID_LIST_INC, wxDefaultPosition,
                               wxSize(50, 90));
-  grid->Add(p_includes, 1, wxEXPAND);
+  r3->Add(p_includes, 1, wxEXPAND | wxRIGHT, 8);
   wxBoxSizer *b3 = new wxBoxSizer(wxVERTICAL);
   p_attachInc = new ewxButton(this, ID_ATTACH_INC, _("Attach..."));
   p_removeInc = new ewxButton(this, ID_REMOVE_INC, _("Remove"));
   b3->Add(p_attachInc, 0, wxBOTTOM, 4);
   b3->Add(p_removeInc, 0);
-  grid->Add(b3);
+  r3->Add(b3);
+  files->Add(r3, 0, wxEXPAND | wxTOP, 4);
 
-  top->Add(grid, 0, wxALL | wxEXPAND, 10);
+  top->Add(files, 0, wxALL | wxEXPAND, 10);
 
   p_status = new ewxStaticText(this, wxID_ANY, wxEmptyString);
   makeWrapping(p_status);
