@@ -4995,11 +4995,16 @@ void CalcEd::tsPicked(int role, int sel)
   refreshTsBox();
 }
 
-void CalcEd::showTsMapping()
+string CalcEd::tsMappingText()
 {
-  string text = p_qstTable.empty()
+  return p_qstTable.empty()
       ? "No atom mapping yet: pick the reactant and product and save."
       : p_qstDetail + "\n\n" + p_qstTable;
+}
+
+void CalcEd::showTsMapping()
+{
+  string text = tsMappingText();
   wxMessageBox(wxString::FromUTF8(text.c_str()), "Atom mapping",
                wxOK, this);
 }

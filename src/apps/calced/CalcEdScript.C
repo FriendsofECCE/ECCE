@@ -229,6 +229,10 @@ void CalcEd::runCalcEdScript(const string& file)
         ln.Replace("\n", " ");
         fprintf(stderr, " line=%s reason=%s\n", ln.ToStdString().c_str(),
                 notReadyReason().c_str());
+      } else if (w[0] == "ts-mapping") {
+        // the text 'Show mapping' shows, on one line
+        outcome = tsMappingText();
+        for (char& c : outcome) if (c == '\n') c = '|';
       } else if (w[0] == "enabled") {
         // which of the main controls are enabled, as a user sees them
         const struct { const char *name; wxWindowID id; } ctl[] = {

@@ -282,6 +282,7 @@ class CalcEd: public CalcEdGUI,
     void loadTsKeys();
     void syncTsKeys();
     void refreshTsBox();
+    string tsMappingText();
     void tsSourceChanged(bool other);
     void tsPicked(int role, int sel);
     void showTsMapping();
