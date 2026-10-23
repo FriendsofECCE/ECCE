@@ -58,6 +58,28 @@ static void partners(const Labels& l, const char* name)
       CHECK(anti[t] <= bond[t], "%s: %d antibonding vs %d bonding of type %d", name, anti[t], bond[t], t);
 }
 
+//  The model levels with their labels and dE/dR (eV/A), one line each.
+static std::vector<double> slopeTable(const char* name, const std::vector<std::string>& sym, const std::vector<double>& xyz,
+                                      const std::vector<int>& left, const std::vector<int>& right)
+{
+   ModelDiagram::Input in;
+   in.symbols = sym; in.coordsAng = xyz; in.leftAtoms = left; in.rightAtoms = right;
+   Labels lab;
+   std::vector<ModelDiagram::BondSlope> sl;
+   std::string why;
+   std::vector<double> out;
+   if (!ModelDiagram::constructLabels(in, lab, why) || !ModelDiagram::bondSlopes(in, sl, why)) {
+      printf("%s: %s\n", name, why.c_str()); failures++; return out;
+   }
+   CHECK(lab.size() == sl.size(), "%s: %zu labels, %zu slopes", name, lab.size(), sl.size());
+   for (size_t i = 0; i < sl.size() && i < lab.size(); i++) {
+      printf("SLOPE %-8s %-22s E %7.2f eV  deg %zu  dE/dR %+7.2f eV/A%s\n", name, lab[i].full.c_str(), lab[i].energy*27.2114,
+             sl[i].orbitals.size(), sl[i].slope, sl[i].ok ? "" : "  (unmatched)");
+      out.push_back(sl[i].ok ? sl[i].slope : 0.0);
+   }
+   return out;
+}
+
 static std::vector<double> vec(const double* p, size_t n) { return std::vector<double>(p, p + n); }
 
 int main(int argc, char** argv)
@@ -91,6 +113,34 @@ int main(int argc, char** argv)
              rot, join(c2, 0, 6, true).c_str(), rot, join(c, 0, 6, true).c_str());
    }
 
+   {
+      const double nn[6] = {0, 0, 0, 0, 0, 1.098};
+      std::vector<double> s = slopeTable("N2", {"N", "N"}, vec(nn, 6), a, b);
+      //  Model order 2sg 2su 1pu 3sg 1pg 4su (the N2+ spectroscopic signs: removing 3sg lengthens
+      //  by 0.017 A, 2su (B state) shortens, 1pu (A state) lengthens by 0.077 A).
+      CHECK(s.size() >= 6, "N2 slopes");
+      if (s.size() >= 6) {
+         //  The model gives 3sg a NEGATIVE slope although removing it lengthens N2+ (X state):
+         //  open, reported not tuned, so not asserted.
+         CHECK(s[2] > 1.0, "N2 1pu strongly bonding: %+.2f", s[2]);
+         CHECK(s[1] < 0.0, "N2 2su weakens: %+.2f", s[1]);
+      }
+      const double co[6] = {0, 0, 0, 0, 0, 1.128};
+      slopeTable("CO", {"C", "O"}, vec(co, 6), a, b);
+      std::vector<double> x(12, 0.0);
+      for (int k = 0; k < 3; k++) { x[3*(k+1)] = 1.31*cos(2.0944*k); x[3*(k+1)+1] = 1.31*sin(2.0944*k); }
+      slopeTable("BF3", {"B", "F", "F", "F"}, x, a, std::vector<int>{1, 2, 3});
+      std::vector<double> y(39, 0.0);
+      std::vector<std::string> sym(1, "Cr");
+      const double dir[6][3] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+      for (int k = 0; k < 6; k++) {
+         sym.push_back("C"); sym.push_back("O");
+         for (int q = 0; q < 3; q++) { y[3*(1+2*k)+q] = 1.92*dir[k][q]; y[3*(2+2*k)+q] = 3.07*dir[k][q]; }
+      }
+      std::vector<int> lig;
+      for (int k = 1; k < 13; k++) lig.push_back(k);
+      slopeTable("CrCO6", sym, y, a, lig);
+   }
    //  Water in the xz plane: the b1 (O 2py) lone pair has no hydrogen partner.
    {
       const double w[9] = {0, 0, 0,  0.757, 0, 0.587,  -0.757, 0, 0.587};

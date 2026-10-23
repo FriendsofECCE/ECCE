@@ -407,3 +407,104 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
    }
    return true;
 }
+
+
+bool ModelDiagram::bondSlopes(const Input& in, vector<BondSlope>& out, string& why)
+{
+   out.clear();
+   const size_t nAtoms = in.symbols.size();
+   if (nAtoms < 2 || in.coordsAng.size() != 3*nAtoms || in.leftAtoms.empty() || in.rightAtoms.empty()) {
+      why = "No structure.";
+      return false;
+   }
+   if (!applicable(in.symbols, why)) return false;
+   const bool central = in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
+   const double step = 0.02;
+
+   auto shifted = [&](double delta) {
+      vector<double> x = in.coordsAng;
+      if (central) {
+         const double* c = &in.coordsAng[3*in.leftAtoms[0]];
+         for (size_t a = 0; a < in.rightAtoms.size(); a++) {
+            double u[3], n = 0.0;
+            for (int q = 0; q < 3; q++) { u[q] = in.coordsAng[3*in.rightAtoms[a]+q] - c[q]; n += u[q]*u[q]; }
+            n = sqrt(n);
+            for (int q = 0; q < 3; q++) x[3*in.rightAtoms[a]+q] += delta*u[q]/(n > 0 ? n : 1.0);
+         }
+      } else {
+         double cl[3] = {0, 0, 0}, cr[3] = {0, 0, 0}, u[3], n = 0.0;
+         for (size_t a = 0; a < in.leftAtoms.size(); a++)
+            for (int q = 0; q < 3; q++) cl[q] += in.coordsAng[3*in.leftAtoms[a]+q]/in.leftAtoms.size();
+         for (size_t a = 0; a < in.rightAtoms.size(); a++)
+            for (int q = 0; q < 3; q++) cr[q] += in.coordsAng[3*in.rightAtoms[a]+q]/in.rightAtoms.size();
+         for (int q = 0; q < 3; q++) { u[q] = cr[q] - cl[q]; n += u[q]*u[q]; }
+         n = sqrt(n);
+         for (size_t a = 0; a < in.rightAtoms.size(); a++)
+            for (int q = 0; q < 3; q++) x[3*in.rightAtoms[a]+q] += delta*u[q]/(n > 0 ? n : 1.0);
+      }
+      return x;
+   };
+
+   struct Run { FragmentOrbitals::FoSet set; vector<double> E; Mat rows; };
+   auto solve = [&](const vector<double>& xyz, Run& r) {
+      vector<FragmentOrbitals::Fragment> frags(2);
+      frags[0].atoms = in.leftAtoms;  frags[0].charge = in.leftCharge;
+      frags[1].atoms = in.rightAtoms; frags[1].charge = in.rightCharge;
+      for (int f = 0; f < 2; f++) {
+         const bool single = frags[f].atoms.size() == 1;
+         frags[f].kind = single ? FragmentOrbitals::METAL : FragmentOrbitals::LIGAND;
+         frags[f].name = single ? in.symbols[frags[f].atoms[0]] : string(f ? "R" : "L");
+      }
+      if (!FragmentOrbitals::build(in.symbols, xyz, frags, FragmentOrbitals::PER_LIGAND, r.set, why)) return false;
+      if (!FragmentOrbitals::solveWhole(r.set, r.E, r.rows, why)) return false;
+      normalise(r.set.overlap, r.set.funcs.size(), r.rows);
+      return true;
+   };
+
+   Run base, plus, minus;
+   if (!solve(in.coordsAng, base) || !solve(shifted(step), plus) || !solve(shifted(-step), minus)) return false;
+   const size_t nf = base.set.funcs.size();
+   vector<Level> cl = clusters(base.E);
+   out.resize(cl.size());
+   for (size_t c = 0; c < cl.size(); c++) out[c].orbitals = cl[c].mos;
+
+   //  S times each base orbital, once.
+   Mat SB(nf, vector<double>(nf, 0.0));
+   for (size_t m = 0; m < nf; m++)
+      for (size_t i = 0; i < nf; i++) {
+         double sc = 0.0;
+         for (size_t j = 0; j < nf; j++) sc += base.set.overlap[i*nf+j]*base.rows[m][j];
+         SB[m][i] = sc;
+      }
+   //  Phases of the displaced orbitals are free, so only squared overlaps are used.
+   for (int run = 0; run < 2; run++) {
+      const Run& R = run ? minus : plus;
+      vector<Level> rc = clusters(R.E);
+      struct Cand { double w; size_t b, r; };
+      vector<Cand> cands;
+      for (size_t b = 0; b < cl.size(); b++)
+         for (size_t r = 0; r < rc.size(); r++) {
+            if (rc[r].mos.size() != cl[b].mos.size()) continue;
+            double w = 0.0;
+            for (size_t k = 0; k < cl[b].mos.size(); k++)
+               for (size_t l = 0; l < rc[r].mos.size(); l++) {
+                  double o = 0.0;
+                  for (size_t i = 0; i < nf; i++) o += SB[cl[b].mos[k]][i]*R.rows[rc[r].mos[l]][i];
+                  w += o*o;
+               }
+            Cand cd; cd.w = w/cl[b].mos.size(); cd.b = b; cd.r = r;
+            cands.push_back(cd);
+         }
+      stable_sort(cands.begin(), cands.end(), [](const Cand& x, const Cand& y) { return x.w > y.w; });
+      vector<bool> usedB(cl.size(), false), usedR(rc.size(), false);
+      for (size_t i = 0; i < cands.size(); i++) {
+         if (usedB[cands[i].b] || usedR[cands[i].r]) continue;
+         usedB[cands[i].b] = usedR[cands[i].r] = true;
+         //  slope accumulates as E(+) at run 0 and -E(-) at run 1
+         out[cands[i].b].slope += (run ? -1.0 : 1.0)*rc[cands[i].r].energy*27.2114/(2.0*step);
+         out[cands[i].b].ok = run ? out[cands[i].b].ok : true;
+      }
+      for (size_t b = 0; b < cl.size(); b++) if (!usedB[b]) out[b].ok = false;
+   }
+   return true;
+}

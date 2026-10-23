@@ -133,6 +133,28 @@ class ModelDiagram
      */
     static bool constructLabels(const Input& in, vector<ConstructLabel>& out, string& why);
 
+    /** A level's energy slope with the bond length (#458). */
+    struct BondSlope
+    {
+      vector<int> orbitals;     // model orbitals of the level, energy order of the unstretched model
+      double slope;             // d(energy)/dR in eV per Angstrom
+      bool   ok;                // matched in both stretched models
+      BondSlope() : slope(0), ok(false) {}
+    };
+
+    /** The energy change of a model level with |dE/dR| below this (eV/Angstrom) is "little effect". */
+    static constexpr double SLOPE_LITTLE = 0.5;
+
+    /**
+     * Central difference of each model level's energy over the bond(s) +-0.02 A:
+     * the internuclear distance of a diatomic, every centre-ligand bond together
+     * for a central atom with ligands (breathing), otherwise the distance between
+     * the fragments with both rigid.  Levels are matched across the three runs by
+     * maximum overlap among levels of the same degeneracy.  Rising on stretching
+     * means bonding.
+     */
+    static bool bondSlopes(const Input& in, vector<BondSlope>& out, string& why);
+
     /** Can extended Hueckel treat every element?  `why` says what not. */
     static bool applicable(const vector<string>& symbols, string& why);
 

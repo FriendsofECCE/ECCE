@@ -894,6 +894,11 @@ bool ModelDiagram::build(const Input& in,
       }
    }
 
+   vector<BondSlope> slopes;
+   {
+      string ignored;
+      if (!bondSlopes(in, slopes, ignored)) slopes.clear();
+   }
    //  Construction labels come from the model alone; a failure leaves them empty.
    vector<ConstructLabel> construct;
    {
@@ -1461,7 +1466,13 @@ bool ModelDiagram::build(const Input& in,
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
       }
       lv.symLabel = lower(L.base);
-      string constructSplit;
+      string constructSplit, slopeText;
+      for (size_t k = 0; k < slopes.size(); k++)
+         if (slopes[k].ok && find(slopes[k].orbitals.begin(), slopes[k].orbitals.end(), L.mos[0]) != slopes[k].orbitals.end()) {
+            const double d = slopes[k].slope;
+            slopeText = string("Effect on the bond: ") + (fabs(d) < SLOPE_LITTLE ? "little effect" : (d > 0 ? "strengthens" : "weakens")) +
+                        " (d\xCE\xB5/dR = " + signedNumber(d, 2) + " eV/\xC3\x85).";
+         }
       for (size_t k = 0; k < construct.size(); k++)
          if (find(construct[k].orbitals.begin(), construct[k].orbitals.end(), L.mos[0]) != construct[k].orbitals.end()) {
             lv.construct = construct[k].full;
@@ -1488,6 +1499,7 @@ bool ModelDiagram::build(const Input& in,
                     " (overlap population " + signedNumber(L.op, 2) + ").\nMade of: ";
       for (size_t k = 0; k < parts.size() && k < 5; k++) text += (k ? ", " : "") + parts[k].second;
       if (!constructSplit.empty()) text += "\nConstruction: " + constructSplit;
+      if (!slopeText.empty()) text += "\n" + slopeText;
       text += "\nLabels: " + (lv.construct.empty() ? string("no construction label") : "construction " + lv.construct) +
               (lv.symLabel.empty() ? string() : ", symmetry " + lv.symLabel) + ".";
       if (L.realLevel >= 0) {
@@ -1904,7 +1916,11 @@ bool ModelDiagram::build(const Input& in,
                    "a p orbital across it one, a d orbital as many as its m about the bond). For a level made of several ligand orbitals the share on each type is averaged over the bonds, "
                    "and the label is the dominant one; the hover text gives the split. * marks the out-of-phase combination of the leading "
                    "fragment orbitals, nb a level with under 5 % on the other fragment. For a diatomic the levels of each sigma/pi, g/u class are named "
-                   "in the textbook order (2s before 2p, bonding before antibonding) whatever their s/p mixing.";
+                   "in the textbook order (2s before 2p, bonding before antibonding) whatever their s/p mixing."
+                   "\n\n**Effect on the bond.** The hover text gives d\xCE\xB5/dR, the change of the model level's energy when the bond is "
+                   "stretched, from the model run at the bond length plus and minus 0.02 \xC3\x85 (a central atom: all its bonds together; two "
+                   "fragments: their distance, both rigid). A level that rises on stretching is bonding and strengthens the bond; "
+                   "one that falls weakens it; under 0.5 eV/\xC3\x85 is called little effect.";
       out.about += "\n\nEach model level carries a short grey tag naming the fragment orbitals it is mostly made of "
                    "(shares of at least 20 %), such as Cr d or CO \xCF\x80*. Ligand-field view hides empty "
                    "ligand-centred levels such as CO \xCF\x80*; transitions into them are charge transfer, not d\xE2\x80\x93" "d.";
