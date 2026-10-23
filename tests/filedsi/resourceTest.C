@@ -173,6 +173,15 @@ int main(int argc, char **argv)
     return failures ? 1 : 0;
   }
 
+  if (mode == "copy") {
+    // copy <url>: what the Organizer's Duplicate does; prints the copy's URL
+    EcceURL url(root.c_str());
+    Resource *r = EDSIFactory::getResource(url);
+    if (!r || !r->copy(url)) return 1;
+    cout << url.toString() << endl;
+    return 0;
+  }
+
   if (mode == "qst") {
     // qst <dir> <name>=<file.xyz> ...: Gaussian-16 calculations in proj-qst,
     // each holding the structure of its xyz file (bonds by distance), for

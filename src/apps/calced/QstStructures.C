@@ -145,18 +145,20 @@ static bool mapOnto(const std::vector<std::string>& refEl,
    return true;
 }
 
-bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
-                            std::string& status, std::string& warning,
-                            std::string* detail, std::string* table)
+// picks, when given, replace the stored keys; write false matches only.
+static bool qstMatch(ICalculation* self, const std::string& base,
+                     std::string& status, std::string& warning,
+                     std::string* detail, std::string* table,
+                     const std::string* picks, bool write)
 {
    status.clear();
    if (table) table->clear();
    warning.clear();
-   GUIValues* g = self->guiparams();
+   GUIValues* g = picks ? 0 : self->guiparams();
    const std::string urls[3] = {
-      value(g, "ES.Runtype.GeomOpt.QSTReactant"),
-      value(g, "ES.Runtype.GeomOpt.QSTProduct"),
-      value(g, "ES.Runtype.GeomOpt.QSTGuess") };
+      picks ? picks[0] : value(g, "ES.Runtype.GeomOpt.QSTReactant"),
+      picks ? picks[1] : value(g, "ES.Runtype.GeomOpt.QSTProduct"),
+      picks ? picks[2] : value(g, "ES.Runtype.GeomOpt.QSTGuess") };
    const bool guess = !urls[2].empty();
    if (urls[0].empty() || urls[1].empty()) {
       warning = "Transition State (QST): pick the reactant and product "
@@ -206,8 +208,8 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
          dt << role[k] << ": " << r.far.size()
             << " atom(s) move more than 1 A after alignment (expected for "
                "an isomerisation). ";
-      if (!writeFrag(base + ".qst" + char('1'+k) + ".frag", title, els[k],
-                     xyz[k]))
+      if (write && !writeFrag(base + ".qst" + char('1'+k) + ".frag", title,
+                              els[k], xyz[k]))
          return false;
    }
    char cnt[16];
@@ -238,17 +240,21 @@ static bool writeXyz(const std::string& file, const std::string& title,
    return (bool)os;
 }
 
-bool nebWriteStructureFiles(ICalculation* self, std::string& status,
-                            std::string& warning, std::string* detail, std::string* table)
+static bool nebMatch(ICalculation* self, std::string& status,
+                     std::string& warning, std::string* detail,
+                     std::string* table, const std::string* picks, bool write)
 {
    status.clear();
    if (table) table->clear();
    warning.clear();
-   remove("neb_product.xyz");
-   remove("neb_guess.xyz");
-   GUIValues* g = self->guiparams();
-   const std::string urls[2] = { value(g, "ES.Runtype.NEB.Product"),
-                                 value(g, "ES.Runtype.NEB.Guess") };
+   if (write) {
+      remove("neb_product.xyz");
+      remove("neb_guess.xyz");
+   }
+   GUIValues* g = picks ? 0 : self->guiparams();
+   const std::string urls[2] = {
+      picks ? picks[1] : value(g, "ES.Runtype.NEB.Product"),
+      picks ? picks[2] : value(g, "ES.Runtype.NEB.Guess") };
    if (urls[0].empty()) {
       warning = "Transition State (NEB-TS): pick the product calculation "
                 "in the Calculation Editor.";
@@ -296,7 +302,7 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
          dt << role[k] << ": " << r.far.size()
             << " atom(s) move more than 1 A after alignment (expected for "
                "an isomerisation). ";
-      if (!writeXyz(file[k], t->getName(), el, xyz)) return false;
+      if (write && !writeXyz(file[k], t->getName(), el, xyz)) return false;
    }
    char cnt[16];
    sprintf(cnt, "%d", (int)refEl.size());
@@ -309,4 +315,26 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
                 "Aligned onto this calculation, RMSD " + rm.str() +
                 " \xC3\x85.";
    return true;
+}
+
+bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
+                            std::string& status, std::string& warning,
+                            std::string* detail, std::string* table)
+{
+   return qstMatch(self, base, status, warning, detail, table, 0, true);
+}
+
+bool nebWriteStructureFiles(ICalculation* self, std::string& status,
+                            std::string& warning, std::string* detail,
+                            std::string* table)
+{
+   return nebMatch(self, status, warning, detail, table, 0, true);
+}
+
+bool tsMatchStructures(ICalculation* self, bool neb, const std::string picks[3],
+                       std::string& status, std::string& warning,
+                       std::string* detail, std::string* table)
+{
+   return neb ? nebMatch(self, status, warning, detail, table, picks, false)
+              : qstMatch(self, "", status, warning, detail, table, picks, false);
 }
