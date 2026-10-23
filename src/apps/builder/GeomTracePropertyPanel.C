@@ -27,6 +27,7 @@
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxNonBoldLabel.H"
 #include "XYPlotCanvas.H"
+#include "StepPlotAxes.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/GenericValidator.H"
@@ -156,6 +157,8 @@ void GeomTracePropertyPanel::initialize()
     if (dynamic_cast<PropTSVecTable*>(prop)) {
       continue;
     }
+    //  The time series is an axis, not a quantity to plot.
+    if (key == "TIMEVEC" && prop && prop->units() == "ps") continue;
     p_importantProps.push_back(key);
     wxWindowID id = wxNewId();
     p_keyToId[key] = id;
@@ -216,8 +219,9 @@ wxWindow * GeomTracePropertyPanel::GetTearableContent()
     if (prop) {
        const Property_Ref *propref = PropFactory::getPropRef(*key);
        wxString long_name = propref ? propref->long_name : *key;
-       tb->AddCheckTool(p_keyToId[*key], long_name, wxNullBitmap);
-       tb->ToggleTool(p_keyToId[*key], long_name == p_plotCtrl->title());
+       const wxString shown = StepPlotAxes::plotName(long_name.ToStdString());
+       tb->AddCheckTool(p_keyToId[*key], shown, wxNullBitmap);
+       tb->ToggleTool(p_keyToId[*key], shown == p_plotCtrl->title());
     }
   }
   tb->AddSeparator();
@@ -315,13 +319,30 @@ void GeomTracePropertyPanel::fillPlot()
   copy(vectorData.begin(), vectorData.begin() + std::min(size, vectorData.size()),
        arrayData.begin());
   for (size_t i = 0; i < size; i++) stepData[i] = i+1;
-  p_plotCtrl->addCurve(stepData, arrayData);
 
-  p_plotCtrl->setXAxisLabel(prop->rowLabel());
-  p_plotCtrl->setYAxisLabel(unitLabel(prop->units()));
-
+  //  An MD run is read against its simulation time; any other against the
+  //  step.
+  wxString timeUnit;
+  const bool timed = StepPlotAxes::mdTime(getCalculation(), size, stepData,
+                                          timeUnit);
   const Property_Ref *propref = PropFactory::getPropRef(p_currentProp);
-  if (propref) p_plotCtrl->setTitle(propref->long_name);
+  const wxString name = propref ? StepPlotAxes::plotName(propref->long_name)
+                                : wxString();
+  p_plotCtrl->setShowKey(false);
+  p_plotCtrl->addCurve(stepData, arrayData, timed ? name : wxString());
+  if (timed) StepPlotAxes::addRunningAverage(p_plotCtrl, stepData, arrayData);
+
+  const wxString yUnit = StepPlotAxes::unitText(prop->units());
+  if (timed) {
+    p_plotCtrl->setXAxisLabel("Time (" + timeUnit + ")");
+    p_plotCtrl->setReadout("Frame", "Time", timeUnit, "", yUnit);
+  } else {
+    p_plotCtrl->setXAxisLabel(prop->rowLabel());
+    p_plotCtrl->setReadout("", "", "", "", "");
+  }
+  p_plotCtrl->setYAxisLabel(yUnit);
+
+  if (propref) p_plotCtrl->setTitle(name);
 }
 
 

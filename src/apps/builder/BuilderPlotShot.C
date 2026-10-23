@@ -21,6 +21,7 @@
 #include "PropertyPanel.H"
 #include "MoPanel.H"
 #include "DensityMapPanel.H"
+#include "XYPlotCanvas.H"
 
 
 namespace {
@@ -42,6 +43,29 @@ void dump(wxWindow *w, int depth)
           w->GetPosition().y, w->IsShown() ? "" : " hidden");
   if (depth < 4)
     for (wxWindow *c : w->GetChildren()) dump(c, depth + 1);
+}
+
+//  One line per plot canvas in the window, for tests: the axes and, per
+//  curve, its name, size, last point and mean of y.
+void reportPlots(wxWindow *w, const string& name)
+{
+  if (XYPlotCanvas *p = dynamic_cast<XYPlotCanvas*>(w)) {
+    fprintf(stderr, "PLOTSHOT-PLOT %s title='%s' x='%s' y='%s' curves=%d\n",
+            name.c_str(), (const char*)p->title().utf8_str(),
+            (const char*)p->xAxisLabel().utf8_str(),
+            (const char*)p->yAxisLabel().utf8_str(), p->curveCount());
+    for (int c = 0; c < p->curveCount(); c++) {
+      const int n = p->pointCount(c);
+      double mean = 0;
+      for (int i = 0; i < n; i++) mean += p->yAt(c, i);
+      if (n) mean /= n;
+      fprintf(stderr, "PLOTSHOT-CURVE %s %d name='%s' n=%d lastx=%.9g "
+              "lasty=%.9g meany=%.9g\n", name.c_str(), c,
+              (const char*)p->curveName(c).utf8_str(), n,
+              n ? p->xAt(c, n - 1) : 0.0, n ? p->yAt(c, n - 1) : 0.0, mean);
+    }
+  }
+  for (wxWindow *c : w->GetChildren()) reportPlots(c, name);
 }
 
 }  // namespace
@@ -110,6 +134,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   settle(1500);
 
   if (getenv("ECCE_PLOTSHOT_DUMP")) dump(pane.window, 0);
+  reportPlots(pane.window, w[1]);
   const wxRect r = pane.window->GetScreenRect();
   fprintf(stderr, "PLOTSHOT: asked %dx%d, window %dx%d, frame %dx%d\n", width,
           height, pane.window->GetSize().x, pane.window->GetSize().y,

@@ -114,6 +114,35 @@ args:    '.' 'Energy' 'MD' 'OPLS' '0'
       values: -8.19803e+03
       units: kJoule/Mole
 
+[TIMEVEC]  Script=gromacs.time  Freq=all  Skip=0  Lines=1
+  Begin=^\s+\d+\s+-?\d+\.\d{5}\s*$
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=426 fed=1 rc=0 first-fed='              0        0.00000'
+    key: TIMEVEC
+      size: 1
+      values: 0.00000
+      units: ps
+  block 2: begin-line=433 fed=1 rc=0 first-fed='              1        1.00000'
+    key: TIMEVEC
+      size: 1
+      values: 1.00000
+      units: ps
+  block 3: begin-line=440 fed=1 rc=0 first-fed='              2        2.00000'
+    key: TIMEVEC
+      size: 1
+      values: 2.00000
+      units: ps
+  block 4: begin-line=447 fed=1 rc=0 first-fed='              3        3.00000'
+    key: TIMEVEC
+      size: 1
+      values: 3.00000
+      units: ps
+  block 5: begin-line=454 fed=1 rc=0 first-fed='              4        4.00000'
+    key: TIMEVEC
+      size: 1
+      values: 4.00000
+      units: ps
+
 [FMAX]  Script=gromacs.fmax  Freq=last  Skip=0  Lines=1
   Begin=^Maximum force\s*=
   begins=1 delivered=1 buffered_away=0

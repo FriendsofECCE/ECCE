@@ -183,6 +183,40 @@ args:    '.' 'Dynamics' 'MD' 'OPLS' '0'
       values: -8.77669e+03
       units: kJoule/Mole
 
+[TIMEVEC]  Script=gromacs.time  Freq=all  Skip=0  Lines=1
+  Begin=^\s+\d+\s+-?\d+\.\d{5}\s*$
+  begins=6 delivered=6 buffered_away=0
+  block 1: begin-line=457 fed=1 rc=0 first-fed='              0        0.00000'
+    key: TIMEVEC
+      size: 1
+      values: 0.00000
+      units: ps
+  block 2: begin-line=466 fed=1 rc=0 first-fed='            100        0.20000'
+    key: TIMEVEC
+      size: 1
+      values: 0.20000
+      units: ps
+  block 3: begin-line=475 fed=1 rc=0 first-fed='            200        0.40000'
+    key: TIMEVEC
+      size: 1
+      values: 0.40000
+      units: ps
+  block 4: begin-line=484 fed=1 rc=0 first-fed='            300        0.60000'
+    key: TIMEVEC
+      size: 1
+      values: 0.60000
+      units: ps
+  block 5: begin-line=493 fed=1 rc=0 first-fed='            400        0.80000'
+    key: TIMEVEC
+      size: 1
+      values: 0.80000
+      units: ps
+  block 6: begin-line=502 fed=1 rc=0 first-fed='            500        1.00000'
+    key: TIMEVEC
+      size: 1
+      values: 1.00000
+      units: ps
+
 [MDPEAVG][MDKEAVG][MDTEAVG][MDTEMPAVG][MDPRESAVG][MDVOLAVG][MDDENSAVG]  Script=gromacs.mdavg  Freq=last  Skip=0  Lines=-
   Begin=A V E R A G E S
   End=Total Virial
