@@ -1461,10 +1461,12 @@ bool ModelDiagram::build(const Input& in,
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
       }
       lv.symLabel = lower(L.base);
+      string constructSplit;
       for (size_t k = 0; k < construct.size(); k++)
          if (find(construct[k].orbitals.begin(), construct[k].orbitals.end(), L.mos[0]) != construct[k].orbitals.end()) {
             lv.construct = construct[k].full;
             lv.constructShort = construct[k].plain;
+            constructSplit = construct[k].split;
          }
       lv.annotation.clear();   // a marker beside the label read as a stray glyph
       lv.tag = characterTag(charAcc[order[oi]], CHARACTER_MIN);
@@ -1485,6 +1487,7 @@ bool ModelDiagram::build(const Input& in,
                       : L.character == MoLevel::ANTIBONDING ? "Antibonding" : "Non-bonding") +
                     " (overlap population " + signedNumber(L.op, 2) + ").\nMade of: ";
       for (size_t k = 0; k < parts.size() && k < 5; k++) text += (k ? ", " : "") + parts[k].second;
+      if (!constructSplit.empty()) text += "\nConstruction: " + constructSplit;
       text += "\nLabels: " + (lv.construct.empty() ? string("no construction label") : "construction " + lv.construct) +
               (lv.symLabel.empty() ? string() : ", symmetry " + lv.symLabel) + ".";
       if (L.realLevel >= 0) {
@@ -1896,6 +1899,12 @@ bool ModelDiagram::build(const Input& in,
           ", " + rightName.formula + " " +
           std::to_string((int)lround([&] { double s = 0; for (size_t i = 0; i < sets.size(); i++) if (sets[i].fragment == 1) s += sets[i].occupancy; return s; }())) + ").";
       (void)total;
+      out.about += "\n\n**Construction labels.** sigma, pi and delta are taken relative to each bond from the centre to a ligand atom: "
+                   "sigma = no nodal plane containing the bond axis, pi = one, delta = two (s and a p orbital along the bond have none, "
+                   "a p orbital across it one). For a level made of several ligand orbitals the share on each type is averaged over the bonds, "
+                   "and the label is the dominant one; the hover text gives the split. * marks the out-of-phase combination of the leading "
+                   "fragment orbitals, nb a level with under 5 % on the other fragment. For a diatomic the levels of each sigma/pi, g/u class are named "
+                   "in the textbook order (2s before 2p, bonding before antibonding) whatever their s/p mixing.";
       out.about += "\n\nEach model level carries a short grey tag naming the fragment orbitals it is mostly made of "
                    "(shares of at least 20 %), such as Cr d or CO \xCF\x80*. Ligand-field view hides empty "
                    "ligand-centred levels such as CO \xCF\x80*; transitions into them are charge transfer, not d\xE2\x80\x93" "d.";

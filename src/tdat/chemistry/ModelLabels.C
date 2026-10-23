@@ -219,6 +219,19 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
             continue;
          }
          const char* kind = sigW >= piW ? SIGMA : PI;
+         L.sigmaShare = sigW + piW > 1e-12 ? sigW/(sigW + piW) : 0.5;
+         {
+            string bond = in.symbols[in.leftAtoms[0]] + "\xE2\x80\x93";
+            vector<string> els;
+            for (size_t a2 = 0; a2 < in.rightAtoms.size(); a2++)
+               if (find(els.begin(), els.end(), in.symbols[in.rightAtoms[a2]]) == els.end()) els.push_back(in.symbols[in.rightAtoms[a2]]);
+            for (size_t e = 0; e < els.size(); e++) bond += (e ? "/" : "") + els[e];
+            const double dom = sigW >= piW ? L.sigmaShare : 1.0 - L.sigmaShare;
+            const int pct = (int)lround(100.0*dom), rest = 100 - pct;
+            L.split = string(kind) + ": " + to_string(pct) + " % " +
+                      (sigW >= piW ? "with no nodal plane containing the " : "with a nodal plane containing the ") + bond +
+                      " bond" + (rest > 0 ? ", " + to_string(rest) + " % " + (sigW >= piW ? PI : SIGMA) : string()) + ".";
+         }
          const string centreParent = leadingShell(set, lead, in.leftAtoms);
          //  Phase of the leading centre orbital against the leading ligand
          //  orbital that overlaps it, summed over a degenerate set.
@@ -322,41 +335,18 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
       if (it->first.first == 2) continue;
       const vector<size_t>& u = unBy[it->first];
       if (u.size() != it->second.size()) continue;       // not a clean correlation: say nothing
-      //  One-to-one assignment of the real levels to the unmixed ones that
-      //  maximises the summed squared overlap; energy order breaks ties.
-      const size_t nn = u.size();
-      vector<size_t> pm(nn);
-      for (size_t k = 0; k < nn; k++) pm[k] = k;
-      if (nn > 1 && nn <= 7) {
-         vector< vector<double> > w(nn, vector<double>(nn, 0.0));
-         for (size_t i = 0; i < nn; i++)
-            for (size_t j = 0; j < nn; j++) {
-               const Level& R = cl[it->second[i]];
-               const Level& U = ucl[u[j]];
-               for (size_t a = 0; a < R.mos.size(); a++)
-                  for (size_t b = 0; b < U.mos.size(); b++) {
-                     //  Both vectors normalised in the full overlap metric.
-                     double o = 0.0, nu = 0.0;
-                     for (size_t p = 0; p < nf; p++) {
-                        double sc = 0.0;
-                        for (size_t q = 0; q < nf; q++) sc += set.overlap[p*nf+q]*uRows[U.mos[b]][q];
-                        o += rows[R.mos[a]][p]*sc;
-                        nu += uRows[U.mos[b]][p]*sc;
-                     }
-                     w[i][j] += nu > 1e-12 ? o*o/nu/R.mos.size() : 0.0;
-                  }
-            }
-         vector<size_t> trial(pm);
-         double best = -1e30;
-         do {
-            double sc = 0.0;
-            for (size_t i = 0; i < nn; i++)
-               sc += w[i][trial[i]] - 1e-6*fabs((double)i - (double)trial[i]);
-            if (sc > best) { best = sc; pm = trial; }
-         } while (next_permutation(trial.begin(), trial.end()));
-      }
+      //  The textbook convention: a class's levels in energy order get the names
+      //  in the fixed order 2s bonding, 2s anti, 2p bonding, 2p anti, as if the
+      //  s shell lay well below the p shell.  No overlap matching.
+      vector<size_t> u2(u);
+      std::stable_sort(u2.begin(), u2.end(), [&](size_t x, size_t y) {
+         auto key = [&](size_t q) {
+            return (named[q].shell[0] - '0')*100 + (named[q].shell.back() == 'p' ? 10 : 0) + (named[q].anti ? 1 : 0);
+         };
+         return key(x) < key(y);
+      });
       for (size_t k = 0; k < u.size(); k++) {
-         const Named& n = named[u[pm[k]]];
+         const Named& n = named[u2[k]];
          ConstructLabel& L = out[it->second[k]];
          const char* kind = n.kind.type == 0 ? SIGMA : PI;
          const size_t c = it->second[k];

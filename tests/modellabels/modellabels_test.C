@@ -79,14 +79,14 @@ int main(int argc, char** argv)
             "N2 plain: %s", join(n2, 0, 6, false).c_str());
       const double cc[6] = {0, 0, 0, 0, 0, 1.243};
       Labels c2 = run({"C", "C"}, vec(cc, 6), a, b, rot);
-      //  C2 is printed, not asserted: its 2sigma_u is a 50/50 s-p mixture (overlap .895 with sigma*2p,
-      //  .877 with sigma*2s), so neither energy order nor overlap names it sigma*2s (open, #458).
+      CHECK(join(c2, 0, 6, true) == N2, "C2: %s", join(c2, 0, 6, true).c_str());
       const double oo[6] = {0, 0, 0, 0, 0, 1.208};
       Labels o2 = run({"O", "O"}, vec(oo, 6), a, b, rot);
       CHECK(join(o2, 0, 6, true) == N2, "O2: %s", join(o2, 0, 6, true).c_str());
       const double co[6] = {0, 0, 0, 0, 0, 1.128};
       Labels c = run({"C", "O"}, vec(co, 6), a, b, rot);
-      CHECK(c.size() >= 6 && c[0].full.find("(C 2s/O 2s)") != std::string::npos, "CO parents: %s", join(c, 0, 6, true).c_str());
+      CHECK(join(c, 0, 6, true) == "\xCF\x83(C 2s/O 2s) \xCF\x83*(C 2s/O 2s) \xCF\x80(C 2p/O 2p) \xCF\x83(C 2p/O 2p) "
+                                   "\xCF\x80*(C 2p/O 2p) \xCF\x83*(C 2p/O 2p)", "CO: %s", join(c, 0, 6, true).c_str());
       printf("N2 rot %d: %s\nC2 rot %d: %s\nCO rot %d: %s\n", rot, join(n2, 0, 6, true).c_str(),
              rot, join(c2, 0, 6, true).c_str(), rot, join(c, 0, 6, true).c_str());
    }
@@ -119,6 +119,15 @@ int main(int argc, char** argv)
       CHECK(valence == "\xCF\x83(B 2s) \xCF\x80(B 2p) \xCF\x80(B 2p) \xCF\x80*(B 2p) \xCF\x83*(B 2s) \xCF\x83*(B 2p)",
             "BF3 valence: %s", valence.c_str());
       partners(l, "BF3");
+      //  3e': a degenerate set that is mostly tangential (a nodal plane through each B-F bond): pi, about 18 % sigma.
+      bool found = false;
+      for (size_t i = 0; i < l.size(); i++)
+         if (l[i].orbitals.size() == 2 && l[i].plain == "\xCF\x80" && l[i].energy*27.2114 > -19.0 && l[i].energy*27.2114 < -18.0) {
+            found = true;
+            CHECK(l[i].sigmaShare > 0.10 && l[i].sigmaShare < 0.25, "BF3 3e' sigma share %.2f", l[i].sigmaShare);
+            CHECK(l[i].split.find("with a nodal plane containing the B\xE2\x80\x93" "F bond") != std::string::npos, "split: %s", l[i].split.c_str());
+         }
+      CHECK(found, "BF3 3e' not found");
    }
    {
       const double h = 1.012, c = 0.38, r = sqrt(h*h - c*c);
@@ -141,6 +150,13 @@ int main(int argc, char** argv)
       Labels l = run(sym, x, a, lig, true);
       printf("Cr(CO)6: %s\n", join(l, 0, l.size(), true).c_str());
       partners(l, "Cr(CO)6");
+      //  t2g (3 orbitals) is pi, eg (2) sigma
+      int t2g = 0, eg = 0;
+      for (size_t i = 0; i < l.size(); i++) {
+         if (l[i].full == "\xCF\x80(Cr 3d)" && l[i].orbitals.size() == 3) t2g++;
+         if (l[i].full == "\xCF\x83(Cr 3d)" && l[i].orbitals.size() == 2) eg++;
+      }
+      CHECK(t2g == 1 && eg >= 1, "Cr(CO)6: %d pi t2g, %d sigma eg", t2g, eg);
    }
    printf(failures ? "FAILED\n" : "ok\n");
    return failures ? 1 : 0;

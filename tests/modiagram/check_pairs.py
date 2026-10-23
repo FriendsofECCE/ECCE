@@ -104,12 +104,12 @@ def check_rules(d):
                 print("orca-bf3: %s is %s, want %s" % (k, have.get(k), v))
     if os.path.exists(path):
         text = open(path).read()
-        if "label=F3 internal: 6 levels, 12 e" not in text:
+        if "label=F3 internal: 3 levels, 6 e" not in text:
             bad += 1
             print("orca-bf3: no 'F3 internal' block")
-        if "levels=6 " not in text:
+        if "levels=3 " not in text:
             bad += 1
-            print("orca-bf3: the block should stand for 6 MOs")
+            print("orca-bf3: the block should stand for 3 MOs (F 2s a1' and e' are drawn, not folded)")
     print("pair rule over every golden: %s" % ("FAIL" if bad else "ok"))
     return bad
 
@@ -255,7 +255,7 @@ def check_neutral_ligands(d):
     want = {
         #  (sets in energy order: label, electrons); core-like F 2s is folded away.
         #  BF3: a1' sigma 1, in-plane pi e' 4, a2'' pi 2, sigma e' 1+1.
-        "orca-bf3": [("a1'", 1), ("e'", 4), ("a2''", 2), ("e'", 2)],
+        "orca-bf3": [("a1'", 2), ("e'", 4), ("a1'", 1), ("e'", 4), ("a2''", 2), ("e'", 2)],
         "ecceqm-water": [("a1", 1), ("b2", 1)],
         "orca-nh3-usesym": [("a1", 1), ("e", 2)],
     }
