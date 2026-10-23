@@ -110,6 +110,7 @@ string JobProgress::title(const string& stage)
   if (stage == "scf") return "SCF";
   if (stage == "freq") return "Frequencies";
   if (stage == "scan") return "Scan";
+  if (stage == "neb") return "NEB";
   if (stage == "prepare") return "Prepare";
   // GROMACS names the stage by its integrator.
   if (stage == "steep" || stage == "cg" || stage == "l-bfgs" || stage == "nm")
@@ -146,7 +147,7 @@ static string energyText(const string& v)
 // pressure and density, which change sign or are not small.
 static bool isLinearKey(const string& key)
 {
-  return key == "epot" || key == "temp" || key == "pres" || key == "dens";
+  return key == "erel" || key == "epot" || key == "temp" || key == "pres" || key == "dens";
 }
 
 
@@ -158,6 +159,11 @@ static string criterionLabel(const string& stage, const string& key)
   if (key == "maxstep") return "max step";
   if (key == "rmsstep") return "RMS step";
   if (key == "dE") return "\xce\x94" "E";   // Delta E
+  if (key == "maxforce") return "max force, regular images";
+  if (key == "rmsforce") return "RMS force, regular images";
+  if (key == "maxcforce") return "max force, climbing image";
+  if (key == "rmscforce") return "RMS force, climbing image";
+  if (key == "erel") return "E(highest image) - E(reactant) (Eh)";
   if (key == "scferr") return "estimated SCF error";
   if (key == "epot") return "potential energy (kJ/mol)";
   if (key == "temp") return "temperature (K)";
@@ -267,12 +273,14 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
   Block b;
   b.title = title(st.name);
   const string rec = !st.field("cycle").empty() ? "cycle"
+                   : !st.field("iter").empty() ? "iter"
                    : !st.field("step").empty() ? "step"
                    : !st.field("point").empty() ? "point"
                    // a step number printed after its criteria (QE): the
                    // monitor cannot take it as a record, the box shows it
                    : !st.field("istep").empty() ? "istep" : "";
-  const string recName = rec == "istep" ? "step" : rec;
+  const string recName = rec == "istep" ? "step"
+                       : rec == "iter" ? "iteration" : rec;
   string first;
   if (st.name == "scan") {
     // The total may be unknown, or wrong for a multi-parameter scan.
@@ -357,7 +365,8 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       b.plotLabel = "energy per step";
     } else if (isLinearKey(st.historyKey)) {
       b.plot = st.history;
-      b.plotLabel = criterionLabel(st.name, st.historyKey) + " per log step";
+      b.plotLabel = criterionLabel(st.name, st.historyKey) +
+                    (st.name == "neb" ? " per iteration" : " per log step");
     } else {
       for (double v : st.history)
         b.plot.push_back(std::log10(std::max(std::fabs(v), 1e-16)));
@@ -375,11 +384,11 @@ vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
   // The innermost loop at the top: SCF, optimisation, scan (the outermost),
   // then frequencies; other stages in the order they appeared.
   vector<Block> out;
-  static const char *order[] = {"scf", "opt", "scan", "freq"};
+  static const char *order[] = {"scf", "opt", "neb", "scan", "freq"};
   for (const char *name : order)
     if (const Stage *st = stage(name)) out.push_back(stageBlock(*st, age, finished));
   for (const auto& st : p_stages)
-    if (st.name != "scan" && st.name != "opt" && st.name != "freq" &&
+    if (st.name != "scan" && st.name != "opt" && st.name != "neb" && st.name != "freq" &&
         st.name != "scf")
       out.push_back(stageBlock(st, age, finished));
   return out;

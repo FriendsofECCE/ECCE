@@ -72,6 +72,18 @@ scf~ dE=0.00e+00,-8.70e-08,-1.79e-08,-2.14e-09
 
 """
 
+# The last snapshot over a real ORCA NEB-TS run (HCN -> HNC, HF/3-21G;
+# tests/progress/fixtures/orca/nebts.out).
+NEB = """# seq=4 sent={sent:.3f} at={at}
+neb iter=15 erel=0.097436 maxforce=0.004704/2.00e-02 rmsforce=0.001211/1.00e-02 maxcforce=0.000999/2.00e-03 rmscforce=0.000530/1.00e-03
+neb~ erel=0.107317,0.103988,0.101228,0.097268,0.097091,0.097177,0.097133,0.097187,0.097460,0.097507,0.097237,0.097321,0.097344,0.097343,0.097375,0.097436
+opt step=3 energy=-92.246042678 dE=0.0000001218/0.0000050000 rmsgrad=0.0000237583/0.0001000000 maxgrad=0.0000415214/0.0003000000 rmsstep=0.0001137107/0.0020000000 maxstep=0.0001768984/0.0040000000 converged=yes
+opt~ energy=-92.246046065,-92.246042800,-92.246042678
+scf cycle=3 energy=-92.2460426775835600 dE=-1.94e-09/1.000e-08
+scf~ dE=0.00e+00,-7.27e-09,-1.94e-09
+
+"""
+
 failures = []
 
 
@@ -111,13 +123,13 @@ def check(ok, what, detail=""):
 def checkLayout(tag, b):
     """Sections run SCF, Optimisation, Scan, Frequencies; each plot is beside
     its section's text or directly under it, and nothing overlaps."""
-    titles = [t for t in re.findall(r"\| (?:\(grey\) )?(SCF|Optimisation|Scan|Frequencies): ", b)]
+    titles = [t for t in re.findall(r"\| (?:\(grey\) )?(SCF|Optimisation|NEB|Scan|Frequencies): ", b)]
     seen = []
     for t in titles:
         if t not in seen:
             seen.append(t)
-    want = [t for t in ("SCF", "Optimisation", "Scan", "Frequencies") if t in seen]
-    check(seen == want, "%s: sections in the order SCF, Optimisation, Scan, "
+    want = [t for t in ("SCF", "Optimisation", "NEB", "Scan", "Frequencies") if t in seen]
+    check(seen == want, "%s: sections in the order SCF, Optimisation, NEB, Scan, "
           "Frequencies (%s)" % (tag, ", ".join(seen)), b)
     prevBottom = 0
     for g in re.finditer(r"\| geom (\w+) text (\d+) (\d+) plot (\d+) (\d+) (\d+) (\d+)", b):
@@ -160,6 +172,7 @@ def run(display, pngs):
                          '-76.40000   -76.41000   -76.40500</vector>\n')
         scanrun = makeCalc(project, "ethane-scan", "Running",
                            SCAN.format(**stamp))
+        nebrun = makeCalc(project, "hcn-neb", "Running", NEB.format(**stamp))
         live = os.path.join(work, "live.txt")
         with open(live, "w") as handle:
             handle.write(LIVE.format(sent=now, at=int(now)))
@@ -200,6 +213,11 @@ def run(display, pngs):
                 "progressbox",
                 "showbox",
                 "snap " + png("progress-scan-1920x1080.png"),
+                "summary file://" + nebrun,
+                "size 1024 700",
+                "progressbox",
+                "showbox",
+                "snap " + png("progress-neb-1024x700.png"),
             ]) + "\n")
         result = apps.run(display, "organizer", windowTimeout=60, settle=45,
                           env={"ECCE_TEST_ORGANIZER": cmds,
@@ -211,13 +229,13 @@ def run(display, pngs):
             return
         boxes = answers(log, "progressbox")
         counts = answers(log, "counts")
-        if not check(len(boxes) == 9 and len(counts) == 2,
+        if not check(len(boxes) == 10 and len(counts) == 2,
                      "every command answered (%d boxes, %d counts)" % (len(boxes), len(counts)),
                      run_tests._tail(log, 30)):
             return
         for b in boxes:
             print("      " + b)
-        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3 = boxes
+        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3, neb = boxes
 
         def field(b, k):
             m = re.search(r"\b%s=(\S+)" % k, b)
@@ -270,11 +288,17 @@ def run(display, pngs):
                        ("scan 1024x600", scan1), ("scan 640x600", narrow),
                        ("scan 1366x768", scan2), ("scan 1920x1080", scan3)):
             checkLayout(tag, b)
+        check("NEB: iteration 15" in neb and
+              "E(highest image) - E(reactant) (Eh) 0.097436" in neb and
+              "max force, climbing image 1.0e-03 (limit 2e-03) \u2713" in neb and
+              "plot NEB: E(highest image) - E(reactant) (Eh) per iteration (16 points)" in neb,
+              "NEB-TS: iteration, energy, forces against limits, 16-point plot", neb)
+        checkLayout("neb 1024x700", neb)
         check(field(none, "shown") == "0", "never launched: no box", none)
         for n in ("progress-running-stored.png", "progress-running-live.png",
                   "progress-completed.png", "progress-scan-1024x600.png",
                   "progress-scan-640x600.png", "progress-scan-1366x768.png",
-                  "progress-scan-1920x1080.png"):
+                  "progress-scan-1920x1080.png", "progress-neb-1024x700.png"):
             check(os.path.getsize(png(n)) > 1000 if os.path.exists(png(n)) else False,
                   "saved " + n)
     finally:

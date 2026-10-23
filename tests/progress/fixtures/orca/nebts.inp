@@ -1,0 +1,18 @@
+! HF 3-21G NEB-TS Freq
+%output
+  Print[P_MOs] 1
+  Print[P_OrbEn] 2
+end
+%elprop
+  Quadrupole true
+end
+%neb
+  NEB_End_XYZFile "neb_product.xyz"
+  Nimages 4
+end
+
+* xyz 0 1
+ C     0.491758     0.354453     0.000000
+ N     1.193994     -0.538353     -0.000000
+ H     0.272604     1.376062     0.000000
+*

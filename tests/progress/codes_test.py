@@ -121,6 +121,14 @@ case("orca relaxed scan (ethane dihedral, HF/STO-3G, 5 points)", "orca.desc",
      fx("orca", "scan.out"),
      {"scan": {"point": "5/5"}, "opt": {"converged": "yes", "step": "6"}},
      {"opt": (39, 39)})
+# NEB-TS (HCN -> HNC, HF/3-21G, 4 images): 16 L-BFGS iterations 0..15, then the
+# TS optimisation on the climbing image.  The thresholds are the NEB settings'.
+case("orca NEB-TS (HCN -> HNC, HF/3-21G)", "orca.desc", fx("orca", "nebts.out"),
+     {"neb": {"iter": "15", "erel": "0.097436", "maxforce": "0.004704/2.00e-02",
+              "rmsforce": "0.001211/1.00e-02", "maxcforce": "0.000999/2.00e-03",
+              "rmscforce": "0.000530/1.00e-03"},
+      "opt": {"converged": "yes", "step": "3"}},
+     {"neb": (16, 16)})
 case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
      fx("gaussian-16", "h2o2_dihedral_scan.log"),
      {"scan": {"point": "7/7"}, "opt": {"converged": "yes"}},
