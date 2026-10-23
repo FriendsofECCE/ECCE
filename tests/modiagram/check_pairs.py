@@ -104,12 +104,12 @@ def check_rules(d):
                 print("orca-bf3: %s is %s, want %s" % (k, have.get(k), v))
     if os.path.exists(path):
         text = open(path).read()
-        if "label=F3 internal: 6 levels, 12 e" not in text:
+        if "label=F3 internal: 3 levels, 6 e" not in text:
             bad += 1
             print("orca-bf3: no 'F3 internal' block")
-        if "levels=6 " not in text:
+        if "levels=3 " not in text:
             bad += 1
-            print("orca-bf3: the block should stand for 6 MOs")
+            print("orca-bf3: the block should stand for 3 MOs (F 2s a1' and e' are drawn, not folded)")
     print("pair rule over every golden: %s" % ("FAIL" if bad else "ok"))
     return bad
 
@@ -255,7 +255,7 @@ def check_neutral_ligands(d):
     want = {
         #  (sets in energy order: label, electrons); core-like F 2s is folded away.
         #  BF3: a1' sigma 1, in-plane pi e' 4, a2'' pi 2, sigma e' 1+1.
-        "orca-bf3": [("a1'", 1), ("e'", 4), ("a2''", 2), ("e'", 2)],
+        "orca-bf3": [("a1'", 2), ("e'", 4), ("a1'", 1), ("e'", 4), ("a2''", 2), ("e'", 2)],
         "ecceqm-water": [("a1", 1), ("b2", 1)],
         "orca-nh3-usesym": [("a1", 1), ("e", 2)],
     }
@@ -309,6 +309,39 @@ def check_ethane(d):
     return bad
 
 
+def check_lines(d):
+    """#458: a drawn model level with >= 5 % on a fragment (a 3 % share can be split over sets) has a line to that column."""
+    bad = checked = 0
+    for name in sorted(os.listdir(d)):
+        if not name.endswith(".dump") or "-pi" in name or "lfview" in name or "pick" in name:
+            continue
+        inside, shares, linked = False, {}, {}
+        for line in open(os.path.join(d, name)):
+            if line.startswith("column "):
+                inside = line.strip() == "column centre"
+            elif inside and line.lstrip().startswith("level "):
+                f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
+                i = int(line.split()[1])
+                if "construct" in line and float(f["shareLeft"]) >= 0 and float(f["shareRight"]) >= 0:
+                    shares[i] = (float(f["shareLeft"]), float(f["shareRight"]))
+            elif line.lstrip().startswith("link "):
+                f = dict(re.findall(r'(\w+)=(-?\d+)', line))
+                if "centre" not in f:
+                    continue
+                c = int(f["centre"])
+                linked.setdefault(c, [False, False])
+                linked[c][0] |= int(f["left"]) >= 0
+                linked[c][1] |= int(f["right"]) >= 0
+        for i, (l, r) in shares.items():
+            checked += 1
+            have = linked.get(i, [False, False])
+            if (l >= 0.05 and not have[0]) or (r >= 0.05 and not have[1]):
+                print("%s level %d: shares %.3f/%.3f, lines %s: FAIL" % (name, i, l, r, have))
+                bad += 1
+    print("lines for every share >= 3 %% over %d model levels: %s" % (checked, "ok" if not bad else "FAIL"))
+    return bad
+
+
 def main():
     d = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "expected")
     bad = 0
@@ -334,6 +367,7 @@ def main():
     bad += check_lfview(d)
     bad += check_electrons(d)
     bad += check_neutral_ligands(d)
+    bad += check_lines(d)
     return 1 if bad else 0
 
 

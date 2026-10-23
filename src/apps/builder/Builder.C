@@ -5729,6 +5729,12 @@ void Builder::updatePropertyMenus()
             break;
           }
         }
+        //  Test hook: a floating panel of this size (headless screenshots of a small window).
+        if (const char *size = getenv("ECCE_OPEN_PANEL_SIZE")) {
+          int w = 0, h = 0;
+          if (sscanf(size, "%dx%d", &w, &h) == 2 && w > 0 && h > 0)
+            pane.FloatingSize(w, h).BestSize(w, h);
+        }
         p_stayCollapsed = getenv("ECCE_PANEL_COLLAPSED") != 0;
         updatePanes(true);
         p_stayCollapsed = false;

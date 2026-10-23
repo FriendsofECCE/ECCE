@@ -42,7 +42,7 @@ class ModelDiagram
   public:
 
     /** The smallest share of a fragment level that gets a line. */
-    static constexpr double LINK_MIN = 0.10;
+    static constexpr double LINK_MIN = 0.03;
     /** A level this much on the right fragment is ligand-internal (band). */
     static constexpr double INTERNAL_SHARE = 0.80;
     /** A pair needs at least this much of each fragment in both levels. */
@@ -100,6 +100,60 @@ class ModelDiagram
                  overlapMin(0), overlapMax(0), haveDeltaO(false), lfApplicable(false), foldedAny(false),
                  deltaCalcEv(0) {}
     };
+
+    /**
+     * The construction label of one model level (#458): sigma/pi/delta, the
+     * parent orbitals and "*" for the out-of-phase combination; "nb" when the
+     * other fragment has under NONBONDING_SHARE of it.  Empty where no bond
+     * axis exists (two polyatomic fragments).
+     */
+    struct ConstructLabel
+    {
+      vector<int> orbitals;     // model orbitals of the level, energy order
+      double energy;            // Hartree
+      string full;              // "sigma*2p", "sigma(C 2s/O 2s)", "sigma*(B 2p)", "nb (F 2p)"
+      string plain;             // the same without the parents: "sigma*", "nb"
+      bool   nonbonding, antibonding;
+      double otherShare;        // the smaller fragment's share of the level
+      double sigmaShare;        // central-atom levels: share of the ligand density with no nodal plane containing the bond; -1 if not given
+      string split;             // hover text of that split
+      int    nodal;             // nodal planes containing the bond axis: 0 sigma, 1 pi, 2 delta; -1 if not given
+      ConstructLabel() : energy(0), nonbonding(false), antibonding(false), otherShare(0), sigmaShare(-1), nodal(-1) {}
+    };
+
+    /** A level with less than this on one fragment is non-bonding by construction. */
+    static constexpr double NONBONDING_SHARE = 0.05;
+
+    /**
+     * The construction labels of the model's levels in energy order, from the
+     * extended-Hueckel model alone (no calculation).  Diatomics are named by
+     * correlation with the same model run without s-p coupling, so the order
+     * of N2's 2sigma_u and 3sigma_g levels does not depend on a composition
+     * threshold.
+     */
+    static bool constructLabels(const Input& in, vector<ConstructLabel>& out, string& why);
+
+    /** A level's energy slope with the bond length (#458). */
+    struct BondSlope
+    {
+      vector<int> orbitals;     // model orbitals of the level, energy order of the unstretched model
+      double slope;             // d(energy)/dR in eV per Angstrom
+      bool   ok;                // matched in both stretched models
+      BondSlope() : slope(0), ok(false) {}
+    };
+
+    /** The energy change of a model level with |dE/dR| below this (eV/Angstrom) is "little effect". */
+    static constexpr double SLOPE_LITTLE = 0.5;
+
+    /**
+     * Central difference of each model level's energy over the bond(s) +-0.02 A:
+     * the internuclear distance of a diatomic, every centre-ligand bond together
+     * for a central atom with ligands (breathing), otherwise the distance between
+     * the fragments with both rigid.  Levels are matched across the three runs by
+     * maximum overlap among levels of the same degeneracy.  Rising on stretching
+     * means bonding.
+     */
+    static bool bondSlopes(const Input& in, vector<BondSlope>& out, string& why);
 
     /** Can extended Hueckel treat every element?  `why` says what not. */
     static bool applicable(const vector<string>& symbols, string& why);

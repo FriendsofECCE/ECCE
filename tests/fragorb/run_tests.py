@@ -442,7 +442,10 @@ def model(build):
         check(len(mo) > 0 and all("calc=" in l for l in mo),
               "%s: every model level is matched" % name, "%d levels" % len(mo))
         ovs = [float(l.split("ov=")[1].split()[0]) for l in mo]
-        check(all(0.5 < o <= 1.0 for o in ovs), "%s: overlaps in (0.5, 1]" % name)
+        #  Since #458 a fragment orbital in >= 3 % of a drawn level is never folded, so a few
+        #  ligand-internal virtual levels (Co(NH3)6 3+: N-H sigma* at 0.46 and 0.47) are drawn with
+        #  a weak match; the diagram already flags overlaps below 0.80.
+        check(all(0.4 < o <= 1.0 for o in ovs), "%s: overlaps in (0.4, 1]" % name)
         # bonding levels have antibonding partners (drawn pairs complete)
         #  A level with no partner (pair=-1) keeps the character of its own
         #  overlap population (#458): only the paired ones must balance.
