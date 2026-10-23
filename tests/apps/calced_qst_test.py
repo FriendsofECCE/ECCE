@@ -71,7 +71,7 @@ def writeXyz(path, atoms):
             f.write("%s %.8f %.8f %.8f\n" % ((e,) + tuple(c)))
 
 
-def makeProject(folder):
+def makeProject(folder, linear=False):
     """proj-qst with react, prod, guess and an empty ts:
     ({name: url}, None) or (None, error)."""
     build = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
@@ -83,6 +83,12 @@ def makeProject(folder):
     hnc = min(pts, key=lambda a: dist(a[1][1], a[2][1]))
     writeXyz(os.path.join(xyz, "react.xyz"), hcn)
     writeXyz(os.path.join(xyz, "prod.xyz"), [hnc[2], hnc[1], hnc[0]])
+    if linear:
+        # both end points on the z axis, as HCN and HNC are
+        writeXyz(os.path.join(xyz, "react.xyz"),
+                 [("C", [0, 0, 0]), ("N", [0, 0, 1.153]), ("H", [0, 0, -1.065])])
+        writeXyz(os.path.join(xyz, "prod.xyz"),
+                 [("H", [0, 0, 2.180]), ("N", [0, 0, 1.170]), ("C", [0, 0, 0])])
     writeXyz(os.path.join(xyz, "guess.xyz"), points(True)[-1])
     driver = os.path.join(fixture.stateDir(), "resourceTest")
     libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",

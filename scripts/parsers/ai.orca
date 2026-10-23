@@ -775,6 +775,16 @@ sub HasFrequencies {
           $runtype eq "Transition State (NEB-TS) + Frequencies") ? 1 : 0;
 }
 
+# Re-optimise reactant and product at the NEB level: always when asked,
+# and under "Automatic" when CalcEd found the end points made at another
+# level (ES.Runtype.NEB.LevelsDiffer).
+sub PreoptEnds {
+  my $choice = $AbiDict{"ES.Runtype.NEB.PreoptEnds"};
+  return 1 if ($choice eq "Yes");
+  return 0 if ($choice eq "No");
+  return ($AbiDict{"ES.Runtype.NEB.LevelsDiffer"} eq "true") ? 1 : 0;
+}
+
 sub NebBlock {
   if (! -r "neb_product.xyz") {
     die "ai.orca error: Transition State (NEB-TS) needs a product structure: " .
@@ -784,6 +794,7 @@ sub NebBlock {
   $images = 8 if ($images eq "");
   my $neb = "%neb\n  NEB_End_XYZFile \"neb_product.xyz\"\n";
   $neb .= "  NEB_TS_XYZFile \"neb_guess.xyz\"\n" if (-r "neb_guess.xyz");
+  $neb .= "  Preopt_Ends TRUE\n" if (&PreoptEnds());
   return $neb . "  Nimages $images\nend\n";
 }
 

@@ -83,6 +83,15 @@ class OrcaRunTypePanel(EccePanel):
                                           label="Images:",
                                           export=1)
             nebSizer.AddWidget(self.nebImages)
+            # Automatic = yes when the end points come from calculations at
+            # another level than this one (the Calculation Editor decides).
+            self.nebPreopt = EcceComboBox(self,
+                                          choices=["Automatic", "Yes", "No"],
+                                          name="ES.Runtype.NEB.PreoptEnds",
+                                          default=0,
+                                          label="Re-optimise the end points at this level:",
+                                          export=1)
+            nebSizer.AddWidget(self.nebPreopt)
             self.panelSizer.Add(nebSizer)
 
         if EcceGlobals.RunType in FREQ_RUNTYPES:

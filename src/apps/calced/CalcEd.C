@@ -4802,6 +4802,8 @@ static const char *const kTsKeys[] = {
   "ES.Runtype.GeomOpt.QSTGuess", "ES.Runtype.NEB.Reactant",
   "ES.Runtype.NEB.Product", "ES.Runtype.NEB.Guess" };
 
+static const char *const kTsLevelKey = "ES.Runtype.NEB.LevelsDiffer";
+
 void CalcEd::createTsControls()
 {
   wxSizerItem *item = p_chemSysInner->GetSizer()->GetItem((size_t)1);
@@ -4849,6 +4851,9 @@ void CalcEd::createTsControls()
   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
   p_tsLine = new wxStaticText(p_tsPanel, wxID_ANY, "");
   v->Add(p_tsLine, 0, wxEXPAND | wxTOP, 4);
+  p_tsWarn = new wxStaticText(p_tsPanel, wxID_ANY, "");
+  p_tsWarn->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
+  v->Add(p_tsWarn, 0, wxEXPAND | wxTOP, 4);
   wxButton *map = new wxButton(p_tsPanel, wxID_ANY, "Show mapping");
   map->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { showTsMapping(); });
   row->Add(map, 0);
@@ -4890,12 +4895,51 @@ void CalcEd::matchTsStructures(bool neb)
   p_qstStatus.clear();
   p_qstDetail.clear();
   p_qstTable.clear();
+  p_tsPathWarning.clear();
+  p_tsPickLevel[0] = p_tsPickLevel[1] = TsLevel();
   if (!p_iCalc || !p_tsSource || p_tsPick[0].empty() || p_tsPick[1].empty())
     return;
   string warning;
   tsMatchStructures(p_iCalc, neb, p_tsPick, p_qstStatus, warning,
-                    &p_qstDetail, &p_qstTable);
+                    &p_qstDetail, &p_qstTable, &p_tsPathWarning);
   if (p_qstStatus.empty()) p_qstStatus = warning;
+  for (int k = 0; k < 2; k++) p_tsPickLevel[k] = tsLevelOfCalculation(p_tsPick[k]);
+}
+
+// The level this calculation is set up with right now, from the editor.
+TsLevel CalcEd::tsOwnLevel() const
+{
+  TsLevel lv;
+  lv.theory = getTheoryName().ToStdString();
+  if (lv.theory.find("DFT") != string::npos && p_GUIValues) {
+    GUIValue *f = p_GUIValues->get("ES.Theory.DFT.XCFunctionals");
+    if (f) lv.functional = f->getValueAsString();
+  }
+  if (p_basis) lv.basis = p_basis->name();
+  return lv;
+}
+
+bool CalcEd::tsLevelsDiffer() const
+{
+  const TsLevel mine = tsOwnLevel();
+  for (int k = 0; k < 2; k++)
+    if (!tsLevelWarning("", p_tsPickLevel[k], mine).empty()) return true;
+  return false;
+}
+
+// Warnings only: Launch stays available.
+vector<string> CalcEd::tsWarnings() const
+{
+  vector<string> out;
+  if (!p_tsSource || p_tsPick[0].empty() || p_tsPick[1].empty()) return out;
+  const TsLevel mine = tsOwnLevel();
+  const char *role[2] = {"Reactant", "Product"};
+  for (int k = 0; k < 2; k++) {
+    string w = tsLevelWarning(role[k], p_tsPickLevel[k], mine);
+    if (!w.empty()) out.push_back(w);
+  }
+  if (!p_tsPathWarning.empty()) out.push_back(p_tsPathWarning);
+  return out;
 }
 
 // The stored keys are what the input generators read; the picks themselves
@@ -4910,8 +4954,25 @@ void CalcEd::syncTsKeys()
       p_GUIValues->erase(it);
     }
   }
+  {
+    GUIValues::iterator it = p_GUIValues->find(kTsLevelKey);
+    if (it != p_GUIValues->end()) {
+      delete it->second;
+      p_GUIValues->erase(it);
+    }
+  }
   if (!p_tsSource || !tsRuntypeSelected()) return;
   const bool neb = getRuntypeName().StartsWith("Transition State (NEB-TS)");
+  if (neb) {
+    // ai.orca's "Automatic" end-point re-optimisation reads this.
+    GUIValue *e = new GUIValue();
+    e->m_key = kTsLevelKey;
+    e->m_type = "menu_input";
+    e->m_sensitive = true;
+    e->m_write = true;
+    p_GUIValues->set(e->m_key, e);
+    e->setValue(tsLevelsDiffer() ? "true" : "false");
+  }
   for (int k = 0; k < 3; k++) {
     if (p_tsPick[k].empty()) continue;
     GUIValue *e = new GUIValue();
@@ -4973,6 +5034,11 @@ void CalcEd::refreshTsBox()
   p_tsLine->SetLabel(txt);
   p_tsLine->Wrap(300);
   p_tsLine->SetToolTip(wxString::FromUTF8(p_qstDetail.c_str()));
+  string warn;
+  for (const string& w : tsWarnings()) warn += (warn.empty() ? "" : "\n") + w;
+  p_tsWarn->SetLabel(wxString::FromUTF8(warn.c_str()));
+  p_tsWarn->Wrap(300);
+  p_tsWarn->Show(!warn.empty());
   p_tsPanel->GetContainingSizer()->Layout();
 }
 

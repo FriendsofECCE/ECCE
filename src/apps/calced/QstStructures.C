@@ -8,7 +8,10 @@
 #include "dsm/ResourceDescriptor.H"
 #include "tdat/AtomMap.H"
 #include "tdat/Fragment.H"
+#include "dsm/TGBSConfig.H"
 #include "tdat/GUIValues.H"
+#include "tdat/TsPath.H"
+#include "tdat/TTheory.H"
 #include "tdat/TAtm.H"
 #include "util/EcceURL.H"
 #include "util/TempStorage.H"
@@ -149,11 +152,13 @@ static bool mapOnto(const std::vector<std::string>& refEl,
 static bool qstMatch(ICalculation* self, const std::string& base,
                      std::string& status, std::string& warning,
                      std::string* detail, std::string* table,
-                     const std::string* picks, bool write)
+                     const std::string* picks, bool write,
+                     std::string* pathWarning)
 {
    status.clear();
    if (table) table->clear();
    warning.clear();
+   if (pathWarning) pathWarning->clear();
    GUIValues* g = picks ? 0 : self->guiparams();
    const std::string urls[3] = {
       picks ? picks[0] : value(g, "ES.Runtype.GeomOpt.QSTReactant"),
@@ -222,6 +227,9 @@ static bool qstMatch(ICalculation* self, const std::string& base,
       *detail = std::string("Atoms matched (") + cnt + "). " + dt.str() +
                 "Aligned onto this calculation, RMSD " + rm.str() +
                 " \xC3\x85.";
+   if (pathWarning)
+      *pathWarning = TsPath::warning(
+         TsPath::check(xyz[0], xyz[1], guess ? &xyz[2] : 0), refEl);
    return true;
 }
 
@@ -242,11 +250,13 @@ static bool writeXyz(const std::string& file, const std::string& title,
 
 static bool nebMatch(ICalculation* self, std::string& status,
                      std::string& warning, std::string* detail,
-                     std::string* table, const std::string* picks, bool write)
+                     std::string* table, const std::string* picks, bool write,
+                     std::string* pathWarning)
 {
    status.clear();
    if (table) table->clear();
    warning.clear();
+   if (pathWarning) pathWarning->clear();
    if (write) {
       remove("neb_product.xyz");
       remove("neb_guess.xyz");
@@ -271,6 +281,7 @@ static bool nebMatch(ICalculation* self, std::string& status,
    const char* file[2] = {"neb_product.xyz", "neb_guess.xyz"};
    std::ostringstream st, rm, wr, dt;
    int done = 0;
+   std::vector<double> mapped[2];
    for (int k = 0; k < 2; k++) {
       if (urls[k].empty()) continue;
       std::vector<std::string> el;
@@ -303,6 +314,7 @@ static bool nebMatch(ICalculation* self, std::string& status,
             << " atom(s) move more than 1 A after alignment (expected for "
                "an isomerisation). ";
       if (write && !writeXyz(file[k], t->getName(), el, xyz)) return false;
+      mapped[k] = xyz;
    }
    char cnt[16];
    sprintf(cnt, "%d", (int)refEl.size());
@@ -314,6 +326,10 @@ static bool nebMatch(ICalculation* self, std::string& status,
       *detail = std::string("Atoms matched (") + cnt + "). " + dt.str() +
                 "Aligned onto this calculation, RMSD " + rm.str() +
                 " \xC3\x85.";
+   if (pathWarning)
+      *pathWarning = TsPath::warning(
+         TsPath::check(ref, mapped[0], mapped[1].empty() ? 0 : &mapped[1]),
+         refEl);
    return true;
 }
 
@@ -321,20 +337,70 @@ bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
                             std::string& status, std::string& warning,
                             std::string* detail, std::string* table)
 {
-   return qstMatch(self, base, status, warning, detail, table, 0, true);
+   return qstMatch(self, base, status, warning, detail, table, 0, true, 0);
 }
 
 bool nebWriteStructureFiles(ICalculation* self, std::string& status,
                             std::string& warning, std::string* detail,
                             std::string* table)
 {
-   return nebMatch(self, status, warning, detail, table, 0, true);
+   return nebMatch(self, status, warning, detail, table, 0, true, 0);
 }
 
 bool tsMatchStructures(ICalculation* self, bool neb, const std::string picks[3],
                        std::string& status, std::string& warning,
-                       std::string* detail, std::string* table)
+                       std::string* detail, std::string* table,
+                       std::string* pathWarning)
 {
-   return neb ? nebMatch(self, status, warning, detail, table, picks, false)
-              : qstMatch(self, "", status, warning, detail, table, picks, false);
+   return neb ? nebMatch(self, status, warning, detail, table, picks, false,
+                         pathWarning)
+              : qstMatch(self, "", status, warning, detail, table, picks, false,
+                         pathWarning);
+}
+
+std::string TsLevel::text() const
+{
+   if (theory.empty() && basis.empty()) return "";
+   std::string m = !functional.empty() ? functional : theory;
+   if (m == "None") m.clear();
+   if (basis.empty()) return m;
+   return m.empty() ? basis : m + "/" + basis;
+}
+
+TsLevel tsLevelOfCalculation(const std::string& url)
+{
+   TsLevel lv;
+   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(url.c_str()));
+   ICalculation* c = dynamic_cast<ICalculation*>(t);
+   if (!c) return lv;
+   std::vector<std::string> el;
+   std::vector<double> xyz;
+   qstFinalStructure(t, el, xyz, lv.optimised);
+   if (TTheory* th = c->theory()) {
+      lv.theory = th->name();
+      delete th;
+   }
+   if (lv.theory.find("DFT") != std::string::npos) {
+      GUIValues* g = c->guiparams();
+      lv.functional = value(g, "ES.Theory.DFT.XCFunctionals");
+      delete g;
+   }
+   if (TGBSConfig* b = c->gbsConfig()) {
+      lv.basis = b->name();
+      delete b;
+   }
+   return lv;
+}
+
+std::string tsLevelWarning(const char* role, const TsLevel& o, const TsLevel& m)
+{
+   auto differs = [](const std::string& a, const std::string& b) {
+      return !a.empty() && !b.empty() && a != b;
+   };
+   if (!(differs(o.theory, m.theory) || differs(o.functional, m.functional) ||
+         differs(o.basis, m.basis)))
+      return "";
+   return std::string(role) + (o.optimised ? " optimised at " : " calculated at ")
+        + o.text() + ", this calculation is " + m.text() +
+        ": the end points are not minima at this level.";
 }
