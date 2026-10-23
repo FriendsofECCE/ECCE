@@ -4,6 +4,8 @@
 // What the per-step plots (Geometry Trace, Geometry Step Plots) share: the
 // name drawn as a title, the unit text, and the time axis of an MD run.
 
+#include <cmath>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -21,6 +23,9 @@ namespace StepPlotAxes {
 inline wxString plotName(const std::string& longName)
 {
   std::string s = longName;
+  // Registry names that are codes or shorthand, not what the plot shows.
+  if (s == "Delta E") return "Energy change";
+  if (s == "RMSDP") return "RMS density change";
   const std::string suffix = " Vector";
   if (s.size() > suffix.size() &&
       s.compare(s.size() - suffix.size(), suffix.size(), suffix) == 0)
@@ -52,6 +57,68 @@ inline bool mdTime(IPropCalculation *calc, size_t n,
     unit = "ns";
   }
   return true;
+}
+
+// The x axis name a user reads for a stored row label.
+inline wxString xAxisName(const std::string& rowLabel)
+{
+  if (rowLabel == "Wave Step") return "SCF cycle";
+  if (rowLabel == "Geometry Step") return "Optimisation step";
+  return wxString::FromUTF8(rowLabel.c_str());
+}
+
+// What an untimed per-step series is drawn as.
+struct Shaped {
+  std::vector<double> y;
+  wxString yLabel;                // axis title with its unit
+  wxString yName, yUnit;          // hover readout
+  wxString titleNote;             // appended to the plot name, may be empty
+  std::vector<wxString> hover;    // per point, may be empty
+  bool log = false;
+};
+
+static const double kJPerMolPerHartree = 2625.4996394799;
+
+// Convergence quantities (the energy change, the density change, the
+// orbital gradient) span decades, so they are drawn as log10 of their size,
+// as the Progress box does; a total energy is drawn relative to its first
+// step in kJ/mol, since the absolute value is the same to six digits all
+// along an optimisation.  Anything else keeps its values and unit.
+inline Shaped shape(const std::string& key, const std::string& units,
+                    const std::vector<double>& v)
+{
+  Shaped r;
+  r.y = v;
+  r.yUnit = unitText(units);
+  r.yLabel = r.yUnit;
+  if (key == "DELTAE" || key == "RMSDP" || key == "DEWVEC") {
+    r.log = true;
+    for (size_t i = 0; i < v.size(); i++)
+      r.y[i] = v[i] != 0.0 ? std::log10(std::fabs(v[i]))
+                           : std::numeric_limits<double>::quiet_NaN();
+    const wxString what = key == "DELTAE"
+        ? wxString::FromUTF8("log10 |\xce\x94""E|")
+        : key == "RMSDP" ? wxString("log10 RMS density change")
+                         : wxString("log10 orbital gradient");
+    r.yName = what;
+    r.yUnit = "";
+    r.yLabel = what + (units == "Hartree" && key == "DELTAE" ? " (Hartree)" : "");
+    r.hover.resize(v.size());
+    for (size_t i = 0; i < v.size(); i++)
+      r.hover[i] = wxString::Format("%.3e", v[i]);
+  } else if ((key == "TEVEC" || key == "ESCFVEC" || key == "TECPVEC") &&
+             units == "Hartree" && v.size() > 1) {
+    for (size_t i = 0; i < v.size(); i++)
+      r.y[i] = (v[i] - v[0]) * kJPerMolPerHartree;
+    r.yName = "Energy relative to step 1";
+    r.yUnit = "kJ/mol";
+    r.yLabel = "Energy relative to step 1 (kJ/mol)";
+    r.titleNote = wxString::Format("final %.8f Hartree", v.back());
+    r.hover.resize(v.size());
+    for (size_t i = 0; i < v.size(); i++)
+      r.hover[i] = wxString::Format("%.8f Hartree", v[i]);
+  }
+  return r;
 }
 
 // The mean of y[0..i] at each i: it levels off once the run is long enough

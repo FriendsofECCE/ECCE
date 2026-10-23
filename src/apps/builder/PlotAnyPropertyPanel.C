@@ -188,8 +188,9 @@ void PlotAnyPropertyPanel::refreshChoices(const wxString& lastX,
     p_yaxis->Append(axisName->first, new wxStringClientData(axisName->second));
   }
   // Our dimension is always last in the list
-  p_xaxis->Append(dimension);
-  p_yaxis->Append(dimension);
+  const wxString shown = StepPlotAxes::xAxisName(dimension.ToStdString());
+  p_xaxis->Append(shown);
+  p_yaxis->Append(shown);
 
   // initialize the plot to some x and y axis
   // attemp to restore the last selections first
@@ -228,16 +229,20 @@ void PlotAnyPropertyPanel::doAxisChoice()
   double *x, *y;
   if (sizeX > 0 && sizeY > 0) {
     // user selected prop vecs for both axes
-    // make sure they're the same length
-    size = sizeX > sizeY ? sizeX : sizeY;
+    // the shorter series decides: padding with zeros draws points that are
+    // not in the data
+    size = sizeX < sizeY ? sizeX : sizeY;
     // create and initialize the data arrays
     x = new double[size];
     y = new double[size];
     fill(x, x+size, 0);
     fill(y, y+size, 0);
     // fill the data arrays with their appropriate values
-    getSelectionData(p_xaxis, x);
-    getSelectionData(p_yaxis, y);
+    std::vector<double> bx(sizeX), by(sizeY);
+    getSelectionData(p_xaxis, &bx[0]);
+    getSelectionData(p_yaxis, &by[0]);
+    std::copy(bx.begin(), bx.begin() + size, x);
+    std::copy(by.begin(), by.begin() + size, y);
   } else if (sizeX > 0 || sizeY > 0) {
     // user selected prop vec for one axis only
     size = sizeX > 0 ? sizeX : sizeY;
@@ -270,11 +275,28 @@ void PlotAnyPropertyPanel::doAxisChoice()
     p_timeUnit.clear();
   }
 
+  // A series against the step: convergence quantities as log10, an energy
+  // relative to step 1 (see StepPlotAxes::shape).
+  StepPlotAxes::Shaped shaped;
+  const bool stepAxis = (sizeX <= 0) != (sizeY <= 0);
+  if (stepAxis && p_timeUnit.empty()) {
+    const bool yIsSeries = sizeY > 0;
+    shaped = StepPlotAxes::shape(
+        getSelectionKey(yIsSeries ? p_yaxis : p_xaxis),
+        getSelectionUnits(yIsSeries ? p_yaxis : p_xaxis),
+        std::vector<double>(yIsSeries ? y : x, (yIsSeries ? y : x) + size));
+    if (!shaped.y.empty()) std::copy(shaped.y.begin(), shaped.y.end(),
+                                     yIsSeries ? y : x);
+  }
+  p_plotCtrl->setIntegerX(stepAxis && p_timeUnit.empty());
+
   // create our curve and add to plot control
   p_plotCtrl->setShowKey(false);
   const bool timedY = !p_timeUnit.empty() && sizeY > 0 && sizeX <= 0;
-  p_plotCtrl->addCurve(x, y, size,
-                       timedY ? p_yaxis->GetStringSelection() : wxString());
+  const int curve = p_plotCtrl->addCurve(
+      x, y, size, timedY ? p_yaxis->GetStringSelection() : wxString());
+  for (size_t i = 0; i < shaped.hover.size() && (int)i < size; i++)
+    p_plotCtrl->setPointLabel(curve, (int)i, shaped.hover[i]);
   if (timedY) {
     StepPlotAxes::addRunningAverage(p_plotCtrl,
                                     std::vector<double>(x, x + size),
@@ -292,7 +314,11 @@ void PlotAnyPropertyPanel::doAxisChoice()
   if (getSelectionSize(p_xaxis) > 0) {
     title += " vs " + p_xaxis->GetStringSelection();
   }
+  if (!shaped.titleNote.empty()) title += " (" + shaped.titleNote + ")";
   p_plotCtrl->setTitle(title);
+  if (!shaped.yLabel.empty())
+    (sizeY > 0 ? p_plotCtrl->setYAxisLabel(shaped.yLabel)
+               : p_plotCtrl->setXAxisLabel(shaped.yLabel));
 
   const bool timeX = !p_timeUnit.empty() && sizeX <= 0;
   const bool timeY = !p_timeUnit.empty() && sizeY <= 0;
@@ -300,7 +326,10 @@ void PlotAnyPropertyPanel::doAxisChoice()
     p_plotCtrl->setReadout("Frame", timeX ? "Time" : "", timeX ? p_timeUnit : "",
                            timeY ? "Time" : "", timeY ? p_timeUnit : "");
   } else {
-    p_plotCtrl->setReadout("", "", "", "", "");
+    p_plotCtrl->setReadout("Step", sizeX > 0 ? shaped.yName : wxString(),
+                           sizeX > 0 ? shaped.yUnit : wxString(),
+                           sizeY > 0 ? shaped.yName : wxString(),
+                           sizeY > 0 ? shaped.yUnit : wxString());
   }
 }
 
@@ -319,6 +348,21 @@ int PlotAnyPropertyPanel::getSelectionSize(ewxChoice* axis)
   }
 
   return ret;
+}
+
+
+std::string PlotAnyPropertyPanel::getSelectionKey(ewxChoice* axis)
+{
+  wxStringClientData *d = dynamic_cast<wxStringClientData*>(
+      axis->GetClientObject(axis->GetSelection()));
+  return d ? d->GetData().ToStdString() : std::string();
+}
+
+
+std::string PlotAnyPropertyPanel::getSelectionUnits(ewxChoice* axis)
+{
+  TProperty *prop = getCalculation()->getProperty(getSelectionKey(axis));
+  return prop ? prop->units() : std::string();
 }
 
 
@@ -349,7 +393,7 @@ void PlotAnyPropertyPanel::refreshAxisLabel(ewxChoice *axis)
   } else if (!p_timeUnit.empty()) {
     label << "Time (" << p_timeUnit << ")";
   } else {
-    label << axis->GetStringSelection();
+    label << StepPlotAxes::xAxisName(axis->GetStringSelection().ToStdString());
   }
 
   if (axis == p_xaxis) {

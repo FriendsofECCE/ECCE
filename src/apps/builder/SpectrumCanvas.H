@@ -21,6 +21,7 @@
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
 #include <wx/dcmemory.h>
+#include <wx/control.h>
 #include <wx/image.h>
 #include <wx/panel.h>
 #include <wx/settings.h>
@@ -279,6 +280,8 @@ class SpectrumCanvas : public wxPanel
 
       p_plotLeft = left;
       p_plotWidth = plotW;
+      p_keyAvoid = toggle ? toggleWidth(dc) + 6 : 0;
+      p_keyRect = wxRect();
 
       const SpectrumTicks xt = niceTicks(p_s->axis.lo(), p_s->axis.hi(),
                                          std::max(3, plotW / (compact ? 110 : 70)));
@@ -657,9 +660,18 @@ class SpectrumCanvas : public wxPanel
         wxString::FromUTF8(p_s->spec.compareLabel().c_str()) };
       const wxColour cols[2] = { first, second };
       const int rowH = dc.GetCharHeight() + 2;
+      //  Never reach under the IR | Raman switch; a long name is cut short
+      //  and the tooltip carries the whole of it.
+      const int maxText = std::max(30, pane.width - 12 - 34 - p_keyAvoid);
+      wxString shown[2];
       int w = 0;
-      for (int i = 0; i < 2; i++) w = std::max(w, dc.GetTextExtent(names[i]).x);
+      for (int i = 0; i < 2; i++) {
+        shown[i] = wxControl::Ellipsize(names[i], dc, wxELLIPSIZE_END, maxText);
+        w = std::max(w, dc.GetTextExtent(shown[i]).x);
+      }
       w += 34;
+      p_keyRect = wxRect(pane.x + 6, pane.y + 4, w, 2 * rowH + 6);
+      p_keyText = names[0] + "\n" + names[1];
       dc.SetPen(wxPen(p_palette.grid, 1));
       dc.SetBrush(wxBrush(SpectrumPalette::mix(p_palette.background,
                                                p_palette.text, 0.03)));
@@ -669,12 +681,18 @@ class SpectrumCanvas : public wxPanel
         dc.SetPen(wxPen(cols[i], 3));
         dc.DrawLine(pane.x + 11, y + rowH / 2, pane.x + 27, y + rowH / 2);
         dc.SetTextForeground(p_palette.text);
-        dc.DrawText(names[i], pane.x + 32, y);
+        dc.DrawText(shown[i], pane.x + 32, y);
       }
     }
 
     //  IR | Raman, at the top right of the plot: which pane the compact
     //  layout shows.
+    int toggleWidth(wxDC& dc)
+    {
+      dc.SetFont(*wxSMALL_FONT);
+      return dc.GetTextExtent("IR").x + dc.GetTextExtent("Raman").x + 4 * 6 + 3;
+    }
+
     void paintToggle(wxDC& dc, const wxRect& pane, bool haveIr, bool haveRaman)
     {
       (void)haveIr; (void)haveRaman;
@@ -836,6 +854,10 @@ class SpectrumCanvas : public wxPanel
         }
         return;
       }
+      if (p_keyRect.Contains(p) && p_keyText != GetToolTipText())
+        SetToolTip(p_keyText);
+      else if (!p_keyRect.Contains(p) && !GetToolTipText().empty())
+        UnsetToolTip();
       const Hit *h = hitAt(p);
       const int mode = h ? h->mode : -1;
       if (mode != p_hoverMode || h) {
@@ -944,6 +966,9 @@ class SpectrumCanvas : public wxPanel
     VibKind         p_kindShown;           // the one pane in compact layout
     int             p_compactBelow;
     wxRect          p_toggle[2];
+    int             p_keyAvoid = 0;        // width the key leaves to the switch
+    wxRect          p_keyRect;
+    wxString        p_keyText;
     VibKind         p_hoverKind;
     int             p_hoverMode;
     wxPoint         p_hoverAt;

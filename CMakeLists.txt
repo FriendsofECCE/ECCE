@@ -2104,6 +2104,19 @@ if(XVFB_RUN_FOR_GRIDVIEW)
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}")
 endif()
 
+# tests/plots -- XYPlotCanvas never zooms outside its data range (#495);
+# needs a display, so ctest runs it under xvfb-run.
+add_executable(xyplot_clamp_test tests/plots/xyplot_clamp_test.C)
+target_compile_definitions(xyplot_clamp_test PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(xyplot_clamp_test PRIVATE
+  ${wxWidgets_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/src/apps/builder)
+target_link_libraries(xyplot_clamp_test PRIVATE eccewxgui ${wxWidgets_LIBRARIES}
+  eccetdat ecceutil)
+if(XVFB_RUN_FOR_GRIDVIEW)
+  add_test(NAME xyplot-clamp
+           COMMAND ${XVFB_RUN_FOR_GRIDVIEW} -a $<TARGET_FILE:xyplot_clamp_test>)
+endif()
+
 # tests/progress -- the job progress snapshot and the Progress box's lines
 # (#284), without wx; the monitor's [PROGRESS] handling over a real output.
 add_executable(progress_test tests/progress/progress_test.C)
