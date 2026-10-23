@@ -166,7 +166,19 @@ public:
     MDPanelHelper *p_helper;
 
 
+public:
+    /// 0 NVE, 1 NVT, 2 NPT: what the two constant-temperature and
+    /// constant-pressure switches of the model amount to.
+    int ensemble();
+    /// Sets both switches (NPT also keeps the thermostat), the two sub-tabs'
+    /// check boxes and the Ensemble radio buttons; the model is the one source.
+    void setEnsemble(int e);
+
 private:
+    void buildEnsembleRow();
+    void showEnsemble();
+    wxRadioButton *p_ens[3] = { 0, 0, 0 };
+    wxWindow *p_ensRow = 0;
     bool p_gromacs = false;          ///< GROMACS controls in force
     bool p_hidRethermTab = false;    ///< this panel took the tab out
 

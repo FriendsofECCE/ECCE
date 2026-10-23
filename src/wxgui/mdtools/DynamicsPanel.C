@@ -31,6 +31,8 @@
 #include "wxgui/WxFeedback.H"
 
 #include "wxgui/GromacsProfile.H"
+#include "wxgui/ewxStaticText.H"
+#include <wx/radiobut.h>
 #include "wxgui/DynamicsPanel.H"
 
 /**
@@ -158,6 +160,7 @@ void DynamicsPanel::refreshGUI()
 
   check = ((ewxCheckBox*)FindWindow(ID_CHECKBOX_DYNMC_USENPT));
   check->SetValue(model->getUseNPT());
+  showEnsemble();
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_DYNMC_NPTPRS));
   text->setValueAsDouble(model->getNPTPressure());
   text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_DYNMC_PRSTIM));
@@ -773,10 +776,78 @@ void DynamicsPanel::OnChoiceDynmcRthoptSelected( wxCommandEvent& event )
 }
 
 
+int DynamicsPanel::ensemble()
+{
+  DynamicsModel *m = getDynamicsModel();
+  return m->getUseNPT() ? 2 : (m->getUseNVT() ? 1 : 0);
+}
+
+void DynamicsPanel::showEnsemble()
+{
+  if (p_ens[0] == 0) return;
+  p_ens[ensemble()]->SetValue(true);
+  ewxPanel *nvt = (ewxPanel*)FindWindow(ID_PANEL_DYNMC_NVT);
+  ewxPanel *npt = (ewxPanel*)FindWindow(ID_PANEL_DYNMC_NPT);
+  if (nvt) nvt->Enable(getDynamicsModel()->getUseNVT());
+  if (npt) npt->Enable(getDynamicsModel()->getUseNPT());
+}
+
+void DynamicsPanel::setEnsemble(int e)
+{
+  DynamicsModel *m = getDynamicsModel();
+  // Pressure coupling without a thermostat is not a useful ensemble.
+  m->setUseNVT(e >= 1);
+  m->setUseNPT(e == 2);
+  ((ewxCheckBox*)FindWindow(ID_CHECKBOX_DYNMC_USENVT))->SetValue(e >= 1);
+  ((ewxCheckBox*)FindWindow(ID_CHECKBOX_DYNMC_USENPT))->SetValue(e == 2);
+  showEnsemble();
+  p_helper->setSaveState(true);
+}
+
+void DynamicsPanel::buildEnsembleRow()
+{
+  if (p_ensRow != 0) return;
+  wxPanel *row = new wxPanel(this);
+  wxBoxSizer *h = new wxBoxSizer(wxHORIZONTAL);
+  h->Add(new ewxStaticText(row, wxID_ANY, _("Ensemble:")), 0,
+         wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+  const wxChar *names[3] = { _("NVE"), _("NVT"), _("NPT") };
+  const wxChar *tips[3] = {
+    _("NVE: number of atoms, volume and energy stay constant. No thermostat "
+      "and no barostat."),
+    _("NVT: number of atoms, volume and temperature stay constant. The "
+      "thermostat holds the temperature; use it to bring a system to the "
+      "target temperature."),
+    _("NPT: number of atoms, pressure and temperature stay constant. The "
+      "thermostat and the barostat hold them and the box changes size; use it "
+      "to bring the density to equilibrium.") };
+  for (int i = 0; i < 3; i++) {
+    p_ens[i] = new wxRadioButton(row, wxID_ANY, names[i], wxDefaultPosition,
+                                 wxDefaultSize, i == 0 ? wxRB_GROUP : 0);
+    p_ens[i]->SetToolTip(tips[i]);
+    p_ens[i]->Bind(wxEVT_RADIOBUTTON, [this, i](wxCommandEvent&) { setEnsemble(i); });
+    h->Add(p_ens[i], 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 10);
+  }
+  ewxStaticText *seq = new ewxStaticText(row, wxID_ANY,
+      _("Usual order: minimise, NVT with restraints, NPT with restraints, production."));
+  seq->SetToolTip(seq->GetLabel());
+  h->Add(seq, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 12);
+  row->SetSizer(h);
+  p_ensRow = row;
+  p_dynamicsVSizer->Insert(0, row, 0, wxALL, 5);
+}
+
 void DynamicsPanel::applyGromacsProfile(bool g)
 {
   bool s = !g;
   p_gromacs = g;
+
+  // The Ensemble row sets the two switches; their check boxes stay for NWChem.
+  if (g) buildEnsembleRow();
+  if (p_ensRow) GromacsProfile::show(p_ensRow, g);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_DYNMC_USENVT), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_DYNMC_USENPT), s);
+  if (g) showEnsemble();
 
   // integrator is md; leap-frog is what NWChem's menu has no name for
   GromacsProfile::showRow(FindWindow(ID_CHOICE_DYNMC_INTALG), s);

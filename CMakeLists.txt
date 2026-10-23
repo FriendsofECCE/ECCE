@@ -2150,6 +2150,10 @@ add_test(NAME progress-gromacs
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/progress/gromacs_test.py)
 set_tests_properties(progress-gromacs PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+# #478: NVE/NVT/NPT through md.gmxtask, checked on tcoupl/pcoupl.
+add_test(NAME gromacs_ensemble
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/ensemble_test.py)
 add_executable(gromacs_includes tests/gromacs_md/includes.C
                src/dsm/chemistry/GromacsIncludes.C)
 add_test(NAME gromacs_md
