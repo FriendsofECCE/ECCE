@@ -46,6 +46,7 @@ class PlotAnyPropertyPanel : public PropertyPanel
     XYPlotCanvas *p_plotCtrl;
     ewxChoice *p_xaxis;
     ewxChoice *p_yaxis;
+    wxString p_timeUnit;   // set while the step axis is simulation time
 };
 
 #endif // PLOTANYPROPERTYPANEL_H_

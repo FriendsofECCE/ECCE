@@ -61,6 +61,16 @@ Skip=0
 End=^\s*$
 [END]
 
+# The time of each step, for the plots' x axis.  The "Step Time" value row sits
+# before the energies marker, so the energies entry never sees it.
+[TIMEVEC]
+Script=gromacs.time
+Begin=^\s+\d+\s+-?\d+\.\d{5}\s*$
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
 # The averages summary is swallowed by this entry so that [TE] never sees its
 # byte-identical "Energies (kJ/mol)" marker as a step: eccejobmonitor will
 # not open a block while one is being fed.  The entry parses it instead
