@@ -240,16 +240,9 @@ TDateTime::DateFormat GridElement::getDateFormatPref()
 TDateTime::TimeFormat GridElement::getTimeFormatPref()
 {
   Preferences *eccePref = Preferences::getGlobalPref();
-  int timeFormat;
+  int timeFormat = TDateTime::HMS24;
   eccePref->getInt(PrefLabels::TIMEFORMAT, timeFormat);
-
-  // Set to a default time format if necessary
-  if (!((TDateTime::TimeFormat)timeFormat >= TDateTime::HM24 &&
-        (TDateTime::TimeFormat)timeFormat <= TDateTime::TOTALTIME)) {
-    timeFormat = TDateTime::HM24;
-  }
-
-  return (TDateTime::TimeFormat)timeFormat;
+  return TDateTime::withSeconds((TDateTime::TimeFormat)timeFormat);
 }
 
 

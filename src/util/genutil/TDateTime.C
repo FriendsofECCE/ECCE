@@ -182,6 +182,11 @@ TDateTime& TDateTime::operator=(const string& rhs)
 
     // EXAMPLE:  31 Jan 2002 15:30:10
     char *loc = strptime(start,"%d %b %Y %H:%M:%S",&p_tm);
+    // A value stored without seconds still reads.
+    if (loc == NULL) {
+      p_tm.tm_sec = 0;
+      loc = strptime(start,"%d %b %Y %H:%M",&p_tm);
+    }
     if (loc == NULL) {
       string msg = "bad format ";
       msg += rhs;
@@ -596,6 +601,15 @@ bool TDateTime::isLeapYear(unsigned year)
 string TDateTime::getDateFormatName(TDateTime::DateFormat id)
 {
   return p_dateFormatName[id];
+}
+
+
+TDateTime::TimeFormat TDateTime::withSeconds(TDateTime::TimeFormat id)
+{
+  if (id == HM24) return HMS24;
+  if (id == HM) return HMS;
+  if (id < HM24 || id >= TOTALTIME) return HMS24;
+  return id;
 }
 
 

@@ -618,7 +618,11 @@ void calcUpdateState(ResourceDescriptor::RUNSTATE state)
   if (!calculation) return;
 
   if (state < ResourceDescriptor::STATE_COMPLETED) {
-    if (state == ResourceDescriptor::STATE_RUNNING) {
+    // Only the first "running" is the start: a restarted monitor reports
+    // running again, which must not move the start to the restart (#463).
+    // A new run starts with no date, as setState(<= READY) clears it.
+    if (state == ResourceDescriptor::STATE_RUNNING &&
+        calculation->startDate().empty()) {
       TDateTime sdate;
       calculation->startDate(sdate.toString());
     }
