@@ -11,6 +11,9 @@
 
 #include "inv/nodes/SoMaterial.H"
 
+#ifdef OIV_COIN
+#include <Inventor/nodes/SoTransparencyType.h>
+#endif
 #include "viz/StyledPlane.H"
 #include "viz/SGPlane.H"
 
@@ -60,6 +63,13 @@ void StyledPlane::constructor()
 
      sep->addChild(shapeHints);
      
+#ifdef OIV_COIN
+     //  The viewer's default is screen-door (a stipple that hides what is
+     //  behind); blend, drawn after the opaque atoms, keeps them visible.
+     SoTransparencyType *blend = new SoTransparencyType;
+     blend->value = SoTransparencyType::SORTED_OBJECT_BLEND;
+     sep->addChild(blend);
+#endif
      p_mat  = new SoMaterial;
      sep->addChild( p_mat) ;
      setColor(0.8,0.8,0.);
@@ -117,7 +127,7 @@ void StyledPlane::getColor(float& r, float& g, float& b)
 void StyledPlane::setTransparent(bool transparent)
 {
    float t = 0.0;
-   if (transparent) t = 0.5;
+   if (transparent) t = 0.6;
    p_mat->transparency.setValue(t);
 }
 

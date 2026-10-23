@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <functional>
 
 #include <wx/bitmap.h>
 #include <wx/button.h>
@@ -12,8 +13,11 @@
 #include <wx/link.h>
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
+#include <wx/radiobox.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
+#include <wx/textctrl.h>
+#include <wx/wrapsizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
 #include <wx/stopwatch.h>
@@ -38,12 +42,13 @@ namespace {
 const wxWindowID ID_SHOW = wxNewId(), ID_SPIN = wxNewId(), ID_MO = wxNewId(),
                  ID_PLANE = wxNewId(), ID_ATOM = wxNewId(),
                  ID_PNG = wxNewId(), ID_CSV = wxNewId(),
-                 ID_OFFSET = wxNewId(), ID_VIEW = wxNewId();
+                 ID_OFFSET = wxNewId(), ID_VIEW = wxNewId(),
+                 ID_FIELD = wxNewId(), ID_RESET = wxNewId();
 
 const char *PLANE_NAME = "DensityMapPlane";
 const double MARGIN = 1.5;            // A beyond the atoms' extent
 const double COARSE_STEP = 0.15;      // while the slider is dragged
-const int OFFSET_TENTHS = 50;         // slider range, +-5.0 A
+const int OFFSET_MAX = 500;           // slider range, +-5.00 A in 0.01 A
 
 }  // namespace
 
@@ -58,11 +63,12 @@ class DensityMapCanvas : public wxPanel
         p_have(false)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);
-      SetMinSize(wxSize(300, 260));
+      SetMinSize(wxSize(200, 200));
       Bind(wxEVT_PAINT, &DensityMapCanvas::onPaint, this);
     }
 
     void show(const Map& m) { p_map = m; p_have = true; p_message.clear(); Refresh(); }
+    std::function<void()> onPaintHook;
     void say(const wxString& msg) { p_have = false; p_message = msg; Refresh(); }
 
     void draw(wxDC& dc, const wxSize& size) const
@@ -75,6 +81,7 @@ class DensityMapCanvas : public wxPanel
     {
       wxAutoBufferedPaintDC dc(this);
       draw(dc, GetClientSize());
+      if (onPaintHook) onPaintHook();
     }
 
     Map p_map;
@@ -88,19 +95,17 @@ wxFORCE_LINK_THIS_MODULE(DensityMapPanel)
 
 DensityMapPanel::DensityMapPanel()
   : VizPropertyPanel(), p_haveMap(false), p_haveView(false), p_busy(false),
-    p_inViewer(false), p_dragging(false), p_show(0), p_spin(0), p_plane(0),
-    p_atomA(0), p_atomB(0), p_atomC(0), p_mo(0), p_offset(0),
-    p_offsetText(0), p_status(0), p_useView(0), p_canvas(0)
+    p_inViewer(false), p_dragging(false), p_show(0), p_spin(0), p_atomA(0),
+    p_atomB(0), p_atomC(0), p_plane(0), p_offsetField(0), p_resetOffset(0),
+    p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
+    p_viewRow(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
 {
 }
 
 DensityMapPanel::DensityMapPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : VizPropertyPanel(), p_haveMap(false), p_haveView(false), p_busy(false),
-    p_inViewer(false), p_dragging(false), p_show(0), p_spin(0), p_plane(0),
-    p_atomA(0), p_atomB(0), p_atomC(0), p_mo(0), p_offset(0),
-    p_offsetText(0), p_status(0), p_useView(0), p_canvas(0)
+  : DensityMapPanel()
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -152,41 +157,54 @@ void DensityMapPanel::build()
   wxSizer *top = GetSizer();
   p_eval.reset(new Evaluator);
   const bool ok = p_eval->build(getCalculation());
+  const int RIGHT = wxALIGN_CENTER_VERTICAL | wxRIGHT;
 
-  wxBoxSizer *row1 = new wxBoxSizer(wxHORIZONTAL);
+  //  Rows wrap instead of widening the panel: none is wider than the dock.
+  wxWrapSizer *row1 = new wxWrapSizer(wxHORIZONTAL);
   p_show = new wxChoice(this, ID_SHOW);
   p_show->Append("Total density");
   p_show->Append("One orbital");
   p_show->Append("Sum of the degenerate set");
   p_show->SetSelection(0);
   p_show->SetToolTip("The orbital is the one selected in the MOs panel");
-  row1->Add(new wxStaticText(this, wxID_ANY, "Show"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  row1->Add(p_show, 0, wxRIGHT, 12);
-  p_mo = new wxSpinCtrl(this, ID_MO, "1", wxDefaultPosition, wxSize(80, -1),
+  row1->Add(new wxStaticText(this, wxID_ANY, "Show"), 0, RIGHT, 6);
+  row1->Add(p_show, 0, RIGHT, 12);
+  p_mo = new wxSpinCtrl(this, ID_MO, "1", wxDefaultPosition, wxSize(110, -1),
                         wxSP_ARROW_KEYS, 1, std::max(1, ok ? p_eval->orbitals(false) : 1),
                         std::max(1, ok ? p_eval->homo() : 1));
-  row1->Add(new wxStaticText(this, wxID_ANY, "MO"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  row1->Add(p_mo, 0, wxRIGHT, 12);
+  p_mo->SetMinSize(wxSize(110, -1));   // narrower hides the + button
+  row1->Add(new wxStaticText(this, wxID_ANY, "MO"), 0, RIGHT, 6);
+  row1->Add(p_mo, 0, RIGHT, 8);
   p_spin = new wxChoice(this, ID_SPIN);
   p_spin->Append("alpha");
   p_spin->Append("beta");
   p_spin->SetSelection(0);
   row1->Add(p_spin, 0);
 
-  wxBoxSizer *row2 = new wxBoxSizer(wxHORIZONTAL);
-  p_plane = new wxChoice(this, ID_PLANE);
-  p_plane->Append("Molecular plane");
-  p_plane->Append("Through three atoms");
-  p_plane->Append(wxString::FromUTF8("Through two atoms, \xE2\x8A\xA5 molecular plane"));
-  p_plane->Append("This view (screen plane)");
-  p_plane->SetToolTip("Pick three atoms in the 3-D view for a plane through "
-                      "them, or two for a plane through that bond standing "
-                      "on the molecular plane");
-  row2->Add(new wxStaticText(this, wxID_ANY, "Plane"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  row2->Add(p_plane, 0, wxRIGHT, 12);
+  wxArrayString planes;
+  planes.Add("Molecular plane");
+  planes.Add("Through three atoms A, B, C");
+  planes.Add(wxString::FromUTF8("Containing the line A\xE2\x80\x93" "B, \xE2\x8A\xA5 molecular plane"));
+  planes.Add("This view (parallel to the screen)");
+  p_plane = new wxRadioBox(this, ID_PLANE, "Plane", wxDefaultPosition,
+                           wxDefaultSize, planes, 1, wxRA_SPECIFY_COLS);
+
+  p_atomRow = new wxBoxSizer(wxHORIZONTAL);
+  wxWrapSizer *atoms = new wxWrapSizer(wxHORIZONTAL);
   p_atomA = new wxChoice(this, ID_ATOM);
   p_atomB = new wxChoice(this, ID_ATOM);
   p_atomC = new wxChoice(this, ID_ATOM);
+  for (wxChoice *c : { p_atomA, p_atomB, p_atomC }) c->SetMinSize(wxSize(70, -1));
+  p_labelA = new wxStaticText(this, wxID_ANY, "A");
+  p_labelB = new wxStaticText(this, wxID_ANY, "B");
+  p_labelC = new wxStaticText(this, wxID_ANY, "C");
+  atoms->Add(p_labelA, 0, RIGHT, 4);
+  atoms->Add(p_atomA, 0, RIGHT, 12);
+  atoms->Add(p_labelB, 0, RIGHT, 4);
+  atoms->Add(p_atomB, 0, RIGHT, 12);
+  atoms->Add(p_labelC, 0, RIGHT, 4);
+  atoms->Add(p_atomC, 0, RIGHT, 0);
+  p_atomRow->Add(atoms, 1, wxEXPAND);
   if (ok) {
     const vector<string> labels = p_eval->atomLabels();
     for (size_t i = 0; i < labels.size(); i++) {
@@ -198,44 +216,65 @@ void DensityMapPanel::build()
     p_atomA->SetSelection(0);
     p_atomB->SetSelection(std::min(1, n - 1));
     p_atomC->SetSelection(std::min(2, n - 1));
-    //  The molecular plane is the first guess; picks replace it.
-    p_plane->SetSelection(isPlanar(p_eval->coordsAng) ? 0 : 1);
-  } else {
-    p_plane->SetSelection(0);
+    chooseBondedB();
+    //  A plane that cannot be defined is greyed out, not left to fail.
+    const bool flat = isPlanar(p_eval->coordsAng);
+    const bool standing = hasMolecularPlane(p_eval->coordsAng);
+    p_plane->Enable(0, flat);
+    p_plane->Enable(2, standing);
+    const wxString why = "This molecule is not planar: use \"Through three atoms\".";
+    if (!flat) p_plane->SetItemToolTip(0, why);
+    if (!standing) p_plane->SetItemToolTip(2, flat
+        ? wxString("A linear molecule has no molecular plane to stand on: use \"Through three atoms\" or the molecular plane.")
+        : why);
+    p_plane->SetSelection(flat ? 0 : 1);
   }
-  row2->Add(p_atomA, 0, wxRIGHT, 4);
-  row2->Add(p_atomB, 0, wxRIGHT, 4);
-  row2->Add(p_atomC, 0, wxRIGHT, 8);
-  p_useView = new wxButton(this, ID_VIEW, "Use this view");
-  p_useView->SetToolTip("Take the plane parallel to the screen through the "
-                        "molecule's centre; rotate the molecule to change "
-                        "the cut");
-  row2->Add(p_useView, 0);
+
+  p_viewRow = new wxBoxSizer(wxHORIZONTAL);
+  p_useView = new wxButton(this, ID_VIEW, "Update from view");
+  p_useView->SetToolTip("Take the plane parallel to the screen, through the "
+                        "molecule's centre, from the view as it is now");
+  p_viewRow->Add(p_useView, 0);
 
   wxBoxSizer *rowOff = new wxBoxSizer(wxHORIZONTAL);
-  p_offset = new wxSlider(this, ID_OFFSET, 0, -OFFSET_TENTHS, OFFSET_TENTHS);
-  p_offsetText = new wxStaticText(this, wxID_ANY, wxEmptyString,
-                                  wxDefaultPosition, wxSize(120, -1));
-  rowOff->Add(new wxStaticText(this, wxID_ANY, "Offset along the normal"), 0,
-              wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  rowOff->Add(p_offset, 1, wxRIGHT, 8);
-  rowOff->Add(p_offsetText, 0, wxALIGN_CENTER_VERTICAL);
-
-  wxBoxSizer *row3 = new wxBoxSizer(wxHORIZONTAL);
-  p_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
-  row3->Add(p_status, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-  row3->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxRIGHT, 4);
-  row3->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0);
+  p_offset = new wxSlider(this, ID_OFFSET, 0, -OFFSET_MAX, OFFSET_MAX);
+  p_offset->SetMinSize(wxSize(80, -1));
+  p_offsetField = new wxTextCtrl(this, ID_FIELD, "0.00", wxDefaultPosition,
+                                 wxSize(64, -1), wxTE_PROCESS_ENTER | wxTE_RIGHT);
+  p_offsetField->SetToolTip("Distance along the plane's normal, in Angstrom (0.01)");
+  p_resetOffset = new wxButton(this, ID_RESET, "Reset");
+  rowOff->Add(new wxStaticText(this, wxID_ANY, "Offset"), 0, RIGHT, 6);
+  rowOff->Add(p_offset, 1, RIGHT, 6);
+  rowOff->Add(p_offsetField, 0, RIGHT, 2);
+  rowOff->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("\xC3\x85")), 0, RIGHT, 6);
+  rowOff->Add(p_resetOffset, 0, wxALIGN_CENTER_VERTICAL);
 
   p_canvas = new DensityMapCanvas(this);
+  p_canvas->onPaintHook = [this]() { ensurePlane(); };
+  p_caption = new wxStaticText(this, wxID_ANY, wxEmptyString);
+  p_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
+  wxWrapSizer *buttons = new wxWrapSizer(wxHORIZONTAL);
+  buttons->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxRIGHT, 4);
+  buttons->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0);
+
   top->Add(row1, 0, wxEXPAND | wxALL, 6);
-  top->Add(row2, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  top->Add(p_atomRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  top->Add(p_viewRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(rowOff, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_canvas, 1, wxEXPAND);
-  top->Add(row3, 0, wxEXPAND | wxALL, 6);
+  top->Add(p_caption, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
+  top->Add(p_status, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
+  top->Add(buttons, 0, wxEXPAND | wxALL, 6);
 
-  Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { onChanged(); });
-  Bind(wxEVT_SPINCTRL, [this](wxSpinEvent&) { onChanged(); });
+  Bind(wxEVT_CHOICE, &DensityMapPanel::onControl, this);
+  Bind(wxEVT_RADIOBOX, &DensityMapPanel::onControl, this);
+  Bind(wxEVT_SPINCTRL, &DensityMapPanel::onControl, this);
+  Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { relayout(); e.Skip(); });
+  Bind(wxEVT_SHOW, [this](wxShowEvent& e) {
+    if (e.IsShown()) drawPlaneInViewer();
+    e.Skip();
+  });
   //  Dragging computes the coarse grid; releasing, or any other change of
   //  the slider, the full one.
   p_offset->Bind(wxEVT_SCROLL_THUMBTRACK, [this](wxScrollEvent&) {
@@ -251,6 +290,12 @@ void DensityMapPanel::build()
     updateOffsetLabel();
     if (!p_dragging) compute(false);
   });
+  p_offsetField->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { commitOffsetField(); });
+  p_offsetField->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
+    commitOffsetField();
+    e.Skip();
+  });
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { setOffset(0.0); }, ID_RESET);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { useCurrentView(); }, ID_VIEW);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     wxFileDialog dlg(this, "Export map", wxEmptyString, "density-map.png",
@@ -268,28 +313,109 @@ void DensityMapPanel::build()
   updateOffsetLabel();
   if (!ok) {
     p_canvas->say(wxString::FromUTF8(p_eval->complaint.c_str()));
-    p_show->Enable(false);  p_mo->Enable(false);  p_spin->Enable(false);
-    p_plane->Enable(false); p_atomA->Enable(false);
-    p_atomB->Enable(false); p_atomC->Enable(false);
-    p_offset->Enable(false); p_useView->Enable(false);
+    for (wxWindow *w : std::initializer_list<wxWindow*>{ p_show, p_mo, p_spin,
+         p_plane, p_atomA, p_atomB, p_atomC, p_offset, p_offsetField,
+         p_resetOffset, p_useView })
+      w->Enable(false);
     return;
   }
   p_spin->Show(p_eval->unrestricted);
+  fillAtomLists();
   syncControls();
   compute();
-  Layout();
+  relayout();
   if (IsShown()) drawPlaneInViewer();
 }
 
 double DensityMapPanel::offsetAngstrom() const
 {
-  return p_offset ? 0.1 * p_offset->GetValue() : 0.0;
+  return p_offset ? 0.01 * p_offset->GetValue() : 0.0;
 }
 
 void DensityMapPanel::updateOffsetLabel()
 {
-  p_offsetText->SetLabel(wxString::FromUTF8(
-      wxString::Format("%+.1f \xC3\x85", offsetAngstrom()).utf8_str()));
+  if (p_offsetField) p_offsetField->ChangeValue(wxString::Format("%.2f", offsetAngstrom()));
+}
+
+void DensityMapPanel::commitOffsetField()
+{
+  if (!p_offsetField || !p_eval) return;
+  double v;
+  if (!p_offsetField->GetValue().ToDouble(&v)) { updateOffsetLabel(); return; }
+  if (fabs(v - offsetAngstrom()) > 0.0049) setOffset(v);
+  else updateOffsetLabel();
+}
+
+void DensityMapPanel::newPlane()
+{
+  p_offset->SetValue(0);
+  updateOffsetLabel();
+}
+
+void DensityMapPanel::fillAtomLists()
+{
+  if (!p_eval || p_atomB->GetCount() == 0) return;
+  const vector<string> labels = p_eval->atomLabels();
+  const int a = p_atomA->GetSelection();
+  const int b = p_atomB->GetSelection();
+  const bool line = p_plane->GetSelection() == 2;
+  for (size_t i = 0; i < labels.size(); i++) {
+    wxString text = wxString::FromUTF8(labels[i].c_str());
+    if (line && (int)i != a && !bonded(p_eval->symbols, p_eval->coordsAng, a, (int)i))
+      text += " (not bonded)";
+    p_atomB->SetString((unsigned)i, text);
+  }
+  p_atomB->SetSelection(b);
+}
+
+void DensityMapPanel::chooseBondedB()
+{
+  const int n = (int)p_eval->symbols.size();
+  const int a = p_atomA->GetSelection();
+  int pick = -1;
+  for (int j = 0; j < n && pick < 0; j++)
+    if (j != a && bonded(p_eval->symbols, p_eval->coordsAng, a, j)) pick = j;
+  if (pick < 0) pick = (a + 1) % std::max(1, n);
+  p_atomB->SetSelection(pick);
+  fillAtomLists();
+}
+
+void DensityMapPanel::relayout()
+{
+  if (!p_caption) return;
+  setCaption();
+  p_status->SetLabel(wxString::FromUTF8(p_statusText.c_str()));
+  p_status->Wrap(std::max(100, GetClientSize().x - 16));
+  Layout();
+}
+
+void DensityMapPanel::setCaption()
+{
+  if (!p_caption) return;
+  wxString text;
+  if (p_haveMap)
+    text = wxString::FromUTF8((p_map.title + "; " + p_map.plane.description).c_str());
+  p_caption->SetLabel(text);
+  p_caption->Wrap(std::max(100, GetClientSize().x - 16));
+}
+
+void DensityMapPanel::onControl(wxCommandEvent& event)
+{
+  if (!p_eval || !p_show || !p_show->IsEnabled()) return;
+  const int id = event.GetId();
+  if (id == ID_PLANE) {
+    newPlane();
+    if (p_plane->GetSelection() == 2) chooseBondedB();
+    else fillAtomLists();
+    if (p_plane->GetSelection() == 3) { useCurrentView(); return; }
+  } else if (id == ID_ATOM) {
+    newPlane();
+    if (p_plane->GetSelection() == 2 && event.GetEventObject() == p_atomA)
+      chooseBondedB();
+    else fillAtomLists();
+  }
+  syncControls();
+  compute();
 }
 
 void DensityMapPanel::syncControls()
@@ -298,9 +424,13 @@ void DensityMapPanel::syncControls()
   p_mo->Enable(orbital);
   p_spin->Enable(orbital && p_eval->unrestricted);
   const int plane = p_plane->GetSelection();
-  p_atomA->Enable(plane == 1 || plane == 2);
-  p_atomB->Enable(plane == 1 || plane == 2);
-  p_atomC->Enable(plane == 1);
+  const bool two = plane == 2, three = plane == 1;
+  p_labelA->Show(two || three);  p_atomA->Show(two || three);
+  p_labelB->Show(two || three);  p_atomB->Show(two || three);
+  p_labelC->Show(three);         p_atomC->Show(three);
+  GetSizer()->Show(p_atomRow, two || three, true);
+  GetSizer()->Show(p_viewRow, plane == 3, true);
+  Layout();
 }
 
 void DensityMapPanel::onChanged()
@@ -314,7 +444,7 @@ bool DensityMapPanel::currentPlane(Plane& plane, string& why)
   const int sel = p_plane->GetSelection();
   if (sel == 3) {
     if (!p_haveView) {
-      why = "Press \"Use this view\" to take the plane parallel to the screen.";
+      why = "No view taken yet.";
       return false;
     }
     plane = p_viewPlane;
@@ -336,9 +466,10 @@ void DensityMapPanel::compute(bool coarse)
   Plane plane;
   if (!currentPlane(plane, why)) {
     p_canvas->say(wxString::FromUTF8(why.c_str()));
-    p_status->SetLabel(wxEmptyString);
+    p_statusText.clear();
     p_haveMap = false;
     removePlaneFromViewer();
+    relayout();
     return;
   }
   const int what = p_show->GetSelection();
@@ -371,10 +502,11 @@ void DensityMapPanel::compute(bool coarse)
   p_map = out;
   p_haveMap = true;
   p_canvas->show(p_map);
-  p_status->SetLabel(coarse ? "Coarse grid while dragging"
+  p_statusText = coarse ? "Coarse grid while dragging"
       : p_map.quantity == ORBITAL
           ? "Contours from +-0.02, each level double the last; dashed is negative"
-          : "Contours from 0.001, each level double the last");
+          : "Contours from 0.001, each level double the last";
+  relayout();
   drawPlaneInViewer();
 }
 
@@ -386,13 +518,31 @@ bool DensityMapPanel::setView(int orbital, bool beta, int plane, int a, int b,
   if (orbital > 0) { p_show->SetSelection(sum ? 2 : 1); p_mo->SetValue(orbital); }
   else p_show->SetSelection(0);
   p_spin->SetSelection(beta ? 1 : 0);
+  const int before[4] = { p_plane->GetSelection(), p_atomA->GetSelection(),
+                          p_atomB->GetSelection(), p_atomC->GetSelection() };
   p_plane->SetSelection(plane);
   if (a > 0) p_atomA->SetSelection(a - 1);
   if (b > 0) p_atomB->SetSelection(b - 1);
   if (c > 0) p_atomC->SetSelection(c - 1);
+  if (before[0] != plane || before[1] != p_atomA->GetSelection() ||
+      before[2] != p_atomB->GetSelection() || before[3] != p_atomC->GetSelection())
+    newPlane();
+  if (plane == 3 && !p_haveView) return useCurrentView();
+  fillAtomLists();
   syncControls();
   compute();
   return p_haveMap;
+}
+
+bool DensityMapPanel::choosePlane(int n)
+{
+  ensureInitialized();
+  if (!p_eval || n < 0 || n > 3 || !p_plane->IsItemEnabled(n)) return false;
+  p_plane->SetSelection(n);
+  wxCommandEvent e(wxEVT_RADIOBOX, ID_PLANE);
+  e.SetEventObject(p_plane);
+  onControl(e);
+  return n == 3 ? p_haveView : p_haveMap;
 }
 
 bool DensityMapPanel::pickAtoms(const vector<int>& atoms)
@@ -406,6 +556,8 @@ bool DensityMapPanel::pickAtoms(const vector<int>& atoms)
   p_atomB->SetSelection(atoms[1] - 1);
   if (atoms.size() == 3) p_atomC->SetSelection(atoms[2] - 1);
   p_plane->SetSelection(atoms.size() == 3 ? 1 : 2);
+  newPlane();
+  fillAtomLists();
   syncControls();
   compute();
   return p_haveMap;
@@ -415,8 +567,8 @@ bool DensityMapPanel::setOffset(double angstrom, bool drag)
 {
   ensureInitialized();
   if (!p_eval || !p_offset) return false;
-  p_offset->SetValue(std::max(-OFFSET_TENTHS,
-                              std::min(OFFSET_TENTHS, (int)lround(10*angstrom))));
+  p_offset->SetValue(std::max(-OFFSET_MAX,
+                              std::min(OFFSET_MAX, (int)lround(100*angstrom))));
   updateOffsetLabel();
   compute(drag);
   return p_haveMap;
@@ -430,6 +582,7 @@ bool DensityMapPanel::useView(const double right[3], const double up[3])
   if (!makeViewPlane(p_eval->coordsAng, right, up, p_viewPlane, why)) return false;
   p_haveView = true;
   p_plane->SetSelection(3);
+  fillAtomLists();
   syncControls();
   compute();
   return p_haveMap;
@@ -458,6 +611,7 @@ void DensityMapPanel::followMo(int mo, bool beta)
   p_spin->SetSelection(beta ? 1 : 0);
   syncControls();
   if (IsShown()) compute();
+  ensurePlane();
 }
 
 void DensityMapPanel::eventMCB(const ecce::Event& event)
@@ -502,6 +656,38 @@ void DensityMapPanel::drawPlaneInViewer()
   plane->touch();
   p_inViewer = true;
   getFW().getViewer().refreshRenderArea();
+}
+
+//  The scene graph can lose the plane behind the panel's back (another
+//  panel taking the viewer), so every repaint of the map checks it.
+void DensityMapPanel::ensurePlane()
+{
+  if (!p_vizfw || !p_haveMap || !IsShownOnScreen()) return;
+  if (!getFW().getSceneGraph().getPlane(PLANE_NAME)) drawPlaneInViewer();
+}
+
+string DensityMapPanel::layoutReport(int width)
+{
+  ensureInitialized();
+  GetSizer()->SetDimension(0, 0, width, 760);
+  string out = "layout width " + std::to_string(width) + "\n";
+  bool clipped = false;
+  for (wxWindowList::compatibility_iterator n = GetChildren().GetFirst(); n;
+       n = n->GetNext()) {
+    wxWindow *w = n->GetData();
+    if (!w->IsShown()) continue;
+    const wxRect r = w->GetRect();
+    const bool bad = r.x < 0 || r.GetRight() >= width;
+    clipped = clipped || bad;
+    char buf[200];
+    snprintf(buf, sizeof buf, "ctl %s x=%d y=%d w=%d h=%d %s\n",
+             (const char*)wxString(w->GetClassInfo()->GetClassName()).utf8_str(),
+             r.x, r.y, r.width, r.height, bad ? "clipped" : "ok");
+    out += buf;
+  }
+  out += clipped ? "layout clipped\n" : "layout ok\n";
+  Layout();
+  return out;
 }
 
 void DensityMapPanel::removePlaneFromViewer()

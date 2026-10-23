@@ -72,6 +72,16 @@ namespace DensityPlane
   /** Planar within `tolerance` A (rms), or linear. */
   bool isPlanar(const vector<double>& coordsAng, double tolerance = 0.1);
 
+  /** Collinear atoms. */
+  bool isLinear(const vector<double>& coordsAng);
+
+  /** A molecular plane exists: planar and not linear (the two-atom plane needs it). */
+  bool hasMolecularPlane(const vector<double>& coordsAng);
+
+  /** Covalent-radius bonding of atoms a and b (0-based), as a hint for defaults. */
+  bool bonded(const vector<string>& symbols, const vector<double>& coordsAng,
+              int a, int b);
+
   /** ORBITAL_SET: the sum of psi^2 over the orbitals degenerate with `mo`. */
   enum Quantity { DENSITY, ORBITAL, ORBITAL_SET };
 
