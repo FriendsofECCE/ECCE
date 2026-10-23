@@ -365,3 +365,21 @@ void MDDynamics::authMCB(JMSMessage& msg)
 {
    _authMCB(msg, p_msgDispatcher->getMyID());
 }
+
+
+/** Test hook: "ensemble" tells nve, nvt or npt; "ensemble-set <name>" sets it. */
+string MDDynamics::runTestCommand(const string& line)
+{
+   if (line == "ensemble" || line.compare(0, 13, "ensemble-set ") == 0) {
+      static const char *names[3] = { "nve", "nvt", "npt" };
+      if (line != "ensemble") {
+         string v = line.substr(13);
+         int e = v == "nve" ? 0 : v == "nvt" ? 1 : v == "npt" ? 2 : -1;
+         if (e < 0) return "usage: ensemble-set nve|nvt|npt";
+         p_dynamics->setEnsemble(e);
+         for (int i = 0; i < 4; i++) { wxYield(); }
+      }
+      return names[p_dynamics->ensemble()];
+   }
+   return MDEdBase::runTestCommand(line);
+}

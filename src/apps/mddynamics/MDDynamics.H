@@ -75,6 +75,9 @@ class MDDynamics: public MDEdBase, public WxJMSListener
 
       InteractionPanel *p_interaction;
       DynamicsPanel *p_dynamics;
+   public:
+      virtual string runTestCommand(const string& line);
+   private:
       ThermodynamicsPanel *p_thermo;
       ConstraintPanel *p_constraint;
       ControlPanel *p_control;

@@ -14,6 +14,7 @@
 
 #include "comm/JobParser.H"
 #include "dsm/EDSIFactory.H"
+#include "dsm/GromacsStructure.H"
 #include "dsm/MdTask.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
@@ -228,7 +229,9 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
     message = taskDir + " has no .log or .gmxlog file";
     return false;
   }
+  // A run without view.gro keeps its triclinic box as the brick mdrun wrote.
   if (!view.empty()) fragment = view;
+  else if (!fragment.empty()) fragment = GromacsStructure::wrapCompact(fragment);
   if (!fragment.empty()) {
     string pdb = groToPdb(fragment);
     if (!pdb.empty()) writeFile(stage + "/" + md->getOutputFragmentName(), pdb);

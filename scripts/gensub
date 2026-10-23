@@ -1938,13 +1938,36 @@ sub gromacs()
     $log .= ".log";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  ln -s $log $::outFile\n";
-    $run = "mdrun -s topol.tpr -g $log -c $restart -e ener.edr -x traj.xtc";
+    #  A minimiser prints Epot and Fmax per step only with -v; the monitor
+    #  plots them (gromacs.desc).  Dynamics gets no -v: it would only add
+    #  a line per step to the job's output.
+    $retval .= "  verbose=\n";
+    $retval .= "  grep -qiE '^[[:space:]]*integrator[[:space:]]*=[[:space:]]*(steep|cg|l-bfgs)' $::inFile && verbose=-v\n";
+    $retval .= "  [ -n \"\$verbose\" ] && echo \"ECCE-EMTOL `sed -n 's/^[[:space:]]*emtol[[:space:]]*=[[:space:]]*\\([^[:space:];]*\\).*/\\1/p' $::inFile | tail -1`\" >> $::logfile\n";
+    #  The log has no density (the box is in the run averages only), so with
+    #  pressure coupling a helper reads it from a copy of the energy file
+    #  every 20 s and echoes the new points to the job output, where the
+    #  monitor reads them; it ends with the script, however that ends.
+    $retval .= "  densN=0\n";
+    $retval .= "  ecceDensity() {\n";
+    $retval .= "    [ -s ener.edr ] && cp ener.edr dens_tmp.edr && echo Density | \"\$gmx\" energy -f dens_tmp.edr -o dens_tmp.xvg > /dev/null 2>&1 || return 0\n";
+    $retval .= "    grep -v '^[#@]' dens_tmp.xvg | awk -v n=\$densN 'NR>n{print \"ECCE-DENSITY\", \$1, \$2}' >> $::logfile\n";
+    $retval .= "    densN=`grep -vc '^[#@]' dens_tmp.xvg`\n";
+    $retval .= "  }\n";
+    $retval .= "  densPid=\n";
+    $retval .= "  if grep -qiE '^[[:space:]]*pcoupl[[:space:]]*=[[:space:]]*(berendsen|c-rescale|parrinello-rahman|mttk)' $::inFile; then\n";
+    $retval .= "    me=\$\$\n";
+    $retval .= "    ( while kill -0 \$me 2>/dev/null; do sleep 20; ecceDensity; done ) &\n";
+    $retval .= "    densPid=\$!\n";
+    $retval .= "  fi\n";
+    $run = "mdrun \$verbose -s topol.tpr -g $log -c $restart -e ener.edr -x traj.xtc";
     if ($mpi) {
       $retval .= "  mpirun -np $::totalprocs \"\$gmx\" $run -ntomp 1 >> $::logfile 2>&1\n";
     } else {
       $retval .= "  \"\$gmx\" $run -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
     }
     $retval .= "  mdrunStatus=\$?\n";
+    $retval .= "  [ -n \"\$densPid\" ] && { kill \$densPid 2>/dev/null; wait \$densPid 2>/dev/null; ecceDensity; }\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $log $::outFile\n";
     #  The frames go to ecce-parse-traj.txt, which gromacs.desc parses as a File=
@@ -1963,7 +1986,13 @@ sub gromacs()
     $retval .= "    rm -f ecce_pullx.tmp ecce_pullf.tmp\n";
     $retval .= "  fi\n";
     $retval .= "  $::CC - The final structure as PDB: what the Builder shows.\n";
-    $retval .= "  \"\$gmx\" editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";
+    #  In a triclinic box mdrun leaves the brick; the Builder draws the compact
+    #  cell, so show the molecules wrapped into it.  The restart file is kept.
+    $retval .= "  view=$restart\n";
+    $retval .= "  if [ \"`sed -n '\$p' $restart | wc -w`\" -ge 9 ] && [ -s topol.tpr ] && echo System | \"\$gmx\" trjconv -s topol.tpr -f $restart -o view.gro -pbc mol -ur compact >> $::logfile 2>&1; then\n";
+    $retval .= "    view=view.gro\n";
+    $retval .= "  fi\n";
+    $retval .= "  \"\$gmx\" editconf -f \"\$view\" -o chemsys.pdb >> $::logfile 2>&1\n";
     $retval .= "  ( exit \$mdrunStatus )\n";
     $retval .= "fi\n";
   }

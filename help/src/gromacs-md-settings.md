@@ -48,6 +48,27 @@ the ones you write in the choices, and ECCE writes no index file. A residue
 name that is not in the structure stops the launch, and the message lists
 the names that are.
 
+## Ensemble
+
+At the top of the Dynamics page, **Ensemble** chooses what the run keeps
+constant:
+
+- **NVE:** number of atoms, volume and energy. No thermostat and no barostat.
+- **NVT:** number of atoms, volume and temperature. The thermostat holds the
+  temperature; the Temperature tab gives the value and the relaxation time.
+- **NPT:** number of atoms, pressure and temperature. The thermostat and the
+  barostat hold them and the box changes size; the Pressure tab gives the
+  pressure and the compressibility.
+
+NPT keeps the thermostat on, since pressure coupling without temperature
+coupling is not a useful ensemble. A calculation made earlier opens with the
+ensemble its settings amount to.
+
+The usual sequence for a solvated system is: minimise; NVT with position
+restraints on the solute, to bring it to the temperature; NPT with position
+restraints, to bring the density to equilibrium; then production, usually
+NPT without restraints.
+
 ## Pressure coupling
 
 On an Equilibrate or Dynamics task with constant pressure on (Pressure tab),
