@@ -206,6 +206,28 @@ int main()
   check(heard.size() == 18 && heard[2] == ':' &&
         heard.substr(5) == " (10 min ago)", "last heard hh:mm (n min ago): " + heard);
 
+  // GROMACS (#477): one stage per plot, each titled; the force against the
+  // em tolerance, the others as plain series.
+  {
+    JobProgress g;
+    g.parse("# seq=2 sent=1.0\nsteep point=40/60\n"
+            "gmx-epot step=40 epot=-7.2e+03\ngmx-epot~ epot=-2.7e+03,-3.6e+03,-7.2e+03\n"
+            "gmx-fmax step=40 maxgrad=7.0e+02/100\ngmx-fmax~ maxgrad=4.4e+04,1.7e+04,7.0e+02\n"
+            "gmx-temp step=400 time=0.8 temp=2.9e+02\ngmx-temp~ temp=287,300,291\n");
+    std::vector<JobProgress::Block> bl = g.running(0);
+    const JobProgress::Block *ep = 0, *fm = 0, *tp = 0;
+    for (const auto& b : bl) {
+      if (b.title == "Potential energy") ep = &b;
+      if (b.title == "Maximum force") fm = &b;
+      if (b.title == "Temperature") tp = &b;
+    }
+    check(ep && ep->plot.size() == 3 && !ep->plotLog && ep->plotLabel.find("potential energy") == 0,
+          "gmx: potential energy plotted as it is");
+    check(fm && fm->plotLog && fm->criteria.size() == 1 && fm->criteria[0].met == 0,
+          "gmx: force on a log plot, tolerance not met");
+    check(tp && tp->plot.size() == 3 && tp->lines.size() >= 2, "gmx: temperature plot with its time");
+  }
+
   cout << (failures ? "FAILED" : "PASSED") << endl;
   return failures ? 1 : 0;
 }

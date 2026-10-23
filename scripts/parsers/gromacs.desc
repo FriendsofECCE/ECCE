@@ -120,6 +120,70 @@ Begin=^\s+(\d+)\s+-?\d+\.\d{5}\s*$
 Progress={integrator} point=$1/{nsteps}
 [END]
 
+# The plots (stage names the box titles).  A minimisation prints Epot and Fmax
+# per step to stderr only with mdrun -v, which gensub passes for minimisers
+# (the monitor reads the \r-separated records of that stream); gensub also
+# echoes the tolerance there, so it is known before the first step.  Dynamics has no
+# such line, so the log's energies table gives temperature, pressure
+# and the potential at each log step; the averages that end a run are not read.
+[PROGRESS]
+Begin=^ECCE-EMTOL (\S+)
+Remember=emtol
+[END]
+
+[PROGRESS]
+Begin=^\s+(\d+)\s+-?\d+\.\d{5}\s*$
+Remember=laststep
+[END]
+
+[PROGRESS]
+Begin=^\s+\d+\s+(-?\d+\.\d{5})\s*$
+Remember=simtime
+[END]
+
+[PROGRESS]
+Begin=^Step=\s*(\d+),\s*Dmax=\s*\S+ nm,\s*Epot=\s*(-?\d\S*)\s+Fmax=\s*(\S+),
+Progress=gmx-epot step=$1 epot=$2
+History=epot
+[END]
+
+[PROGRESS]
+Begin=^Step=\s*(\d+),\s*Dmax=\s*\S+ nm,\s*Epot=\s*(-?\d\S*)\s+Fmax=\s*(\S+),
+Progress=gmx-fmax step=$1 maxgrad=$3/{emtol}
+History=maxgrad
+[END]
+
+[PROGRESS]
+Begin=^\s+Energies \(kJ/mol\)
+Table=15
+TableStop=A V E R A G E S
+[END]
+
+[PROGRESS]
+Begin=^ECCE-TABLE-END (?:md|sd|bd)
+Progress=gmx-epot step={laststep} time={simtime} epot={t_Potential}
+History=epot
+[END]
+
+[PROGRESS]
+Begin=^ECCE-TABLE-END (?:md|sd|bd)
+Progress=gmx-temp step={laststep} time={simtime} temp={t_Temperature}
+History=temp
+[END]
+
+[PROGRESS]
+Begin=^ECCE-TABLE-END (?:md|sd|bd)
+Progress=gmx-pres step={laststep} time={simtime} pres={t_Pressure_bar}
+History=pres
+[END]
+
+# gensub echoes the density from the energy file (the log has none).
+[PROGRESS]
+Begin=^ECCE-DENSITY (\S+) (\S+)$
+Progress=gmx-dens time=$1 dens=$2
+History=dens
+[END]
+
 [PROGRESS]
 Begin=^(?:Steepest Descents|Polak-Ribiere Conjugate Gradients|Low-Memory BFGS Minimizer) converged to
 Progress={integrator} converged=yes
