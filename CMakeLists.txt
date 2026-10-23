@@ -3059,6 +3059,16 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_cp2k_calced PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  # #492: Organizer Launch Selected submits several ready calculations with
+  # their stored settings (private Xvfb, Organizer test hook); skipped (77)
+  # without Xvfb.
+  add_test(NAME launch_selected
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/launch_selected_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_selected PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # #75: an ORCA job's final orbitals as the guess of the next (local data,
   # then a data server); skipped (77) without ORCA 6 under /opt/orca.
   add_test(NAME launch_orca_guess

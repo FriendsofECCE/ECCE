@@ -138,6 +138,12 @@ public:
 
   /// "Duplicate with Final Orbitals": the last geometry and the orbitals
   void OnDuplicate3Click( wxCommandEvent& event );
+  void OnLaunchSelectedClick( wxCommandEvent& event );
+  // Launch steps run on a worker thread; a login it needs is asked here.
+  bool getAuthorization(AuthEvent& event);
+  // Launch Selected (#492); `outcome` and `shot` only for the test hook.
+  void launchSelected(const vector<EcceURL>& urls, bool interactive,
+                      string *outcome = 0, const string& shot = "");
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
   void OnCutClick( wxCommandEvent& event );

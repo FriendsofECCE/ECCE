@@ -42,6 +42,7 @@ const wxWindowID CalcMgrGUI::wxID_UPLOAD = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SHOW_INTERNAL = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_DUPLICATE2 = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_DUPLICATE3 = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_LAUNCH_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_HOMEASROOT = wxNewId();
 const wxWindowID CalcMgrGUI::ID_FRAME = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SORT_TYPE = wxNewId();
@@ -108,6 +109,8 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_DUPLICATE2, CalcMgrGUI::OnDuplicate2Click )
 
     EVT_MENU( wxID_DUPLICATE3, CalcMgrGUI::OnDuplicate3Click )
+
+    EVT_MENU( wxID_LAUNCH_SELECTED, CalcMgrGUI::OnLaunchSelectedClick )
 
     EVT_MENU( wxID_CUT, CalcMgrGUI::OnCutClick )
 
@@ -483,6 +486,11 @@ void CalcMgrGUI::OnDuplicate2Click( wxCommandEvent& event )
 }
 
 void CalcMgrGUI::OnDuplicate3Click( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CalcMgrGUI::OnLaunchSelectedClick( wxCommandEvent& event )
 {
     event.Skip();
 }
