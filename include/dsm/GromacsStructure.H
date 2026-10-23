@@ -27,6 +27,17 @@ class GromacsStructure
        */
       static int groToPdb(const string& gro, string& pdb, string& err);
 
+      /**
+       * For a triclinic box: the .gro text with every molecule made whole
+       * and moved by lattice vectors to the image nearest the box centre
+       * (a+b+c)/2, the compact cell, as gmx trjconv -pbc mol -ur compact
+       * does with a topology.  Molecules are taken from the file alone:
+       * the atoms of a residue, joined to the next residue when a heavy
+       * atom of each lies within a bond length.  A rectangular box, or text
+       * that is not a .gro file, comes back unchanged.
+       */
+      static string wrapCompact(const string& gro);
+
       /** The atom count a .gro file declares on its second line, or -1. */
       static int atomCount(const string& gro);
 
