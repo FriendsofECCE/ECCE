@@ -28,8 +28,10 @@ with these differences:
    `Initial guess from the checkpoint file: "g16.chk"` either way, so the
    test removes A's file from the run directory first: the 1-cycle restart
    then proves the staged `guess.chkin` was read.
-4. Gaussian cannot project onto another basis set (ORCA does), and the
-   checkpoint is binary of the same Gaussian major version only. A chk of a
+4. Guess=Read projects the old orbitals onto a different basis set (checked:
+   water STO-3G chk read into HF/6-31G(d), same energy as from scratch), so
+   "(projected from <basis>)" in the Calculation Editor is right for G16 too.
+   The checkpoint is binary of the same Gaussian major version only. A chk of a
    large job is large; it is stored with every run.
 5. `tests/verify` has no fixture for it: the codes-agreement check runs real
    Gaussian on every fixture and Gaussian refuses a deck whose `%OldChk`
