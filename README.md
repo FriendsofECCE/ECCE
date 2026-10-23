@@ -245,6 +245,10 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.14** — A job that fails keeps its output: when a code stopped in the
+  middle of a section ECCE reads (for example ORCA dying after printing its
+  orbitals), the job monitor gave up before storing the output file, the
+  job's status and the properties read so far.
 - **v8.18.13** — In the Builder, clicks on atoms select them again after
   File > Save; before, a saved calculation ignored atom picks until ECCE
   was restarted.
