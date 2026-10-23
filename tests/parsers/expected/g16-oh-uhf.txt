@@ -26,17 +26,12 @@ args:    '.' 'Energy' 'SCF' 'UHF' '1'
       rowlabels: 1 2 3 4 5 6
       values: SG SG SG PI PI SG
 
-[GEOMTRACE]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+[GEOMTRACE]  Script=gaussian-16.geomtrace-input  Freq=all  Skip=5  Lines=-
   Begin=Input orientation\:
   End=--------------------------------------
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=120 fed=3 rc=0 first-fed='      1          8           0        0.000000    0.000000    0.000000'
-    key: GEOMTRACE
-      size: 1 2 3
-      rowlabels: 1-O 2-H
-      columnlabels: X Y Z
-      values: 0.000000 0.000000 0.000000 0.000000 0.000000 0.970000
-      units: Hartree
+    (script emitted no property)
 
 [GEOMTRACE1]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
   Begin=Standard orientation\:

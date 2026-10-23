@@ -149,199 +149,64 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
       values: -0.645857 0.087625 -0.000000 0.522559 -0.147114 -0.000000 0.429600 1.000677 0.000000
       units: Hartree
 
-[GEOMTRACE]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+[GEOMTRACE]  Script=gaussian-16.geomtrace-input  Freq=all  Skip=5  Lines=-
   Begin=Input orientation\:
   End=--------------------------------------
   begins=27 delivered=27 buffered_away=0
   block 1: begin-line=157 fed=4 rc=0 first-fed='      1          6           0        0.000000    0.000000    0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.000000 0.000000 0.000000 1.170000 0.000000 0.000000 0.900000 1.150000 0.000000
-      units: Hartree
+    (script emitted no property)
   block 2: begin-line=641 fed=4 rc=0 first-fed='      1          6           0        0.052048    0.108735   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.052048 0.108735 -0.000000 1.218893 -0.071540 0.000000 0.799058 1.112805 0.000000
-      units: Hartree
+    (script emitted no property)
   block 3: begin-line=983 fed=4 rc=0 first-fed='      1          6           0        0.108339    0.176322   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.108339 0.176322 -0.000000 1.244300 -0.153041 0.000000 0.717361 1.126719 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 4: begin-line=1323 fed=4 rc=0 first-fed='      1          6           0        0.053276    0.073817   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.053276 0.073817 -0.000000 1.224375 -0.124539 0.000000 0.792349 1.200722 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 5: begin-line=1663 fed=4 rc=0 first-fed='      1          6           0        0.100385    0.141430   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.100385 0.141430 -0.000000 1.239433 -0.177182 0.000000 0.730182 1.185753 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 6: begin-line=2002 fed=4 rc=0 first-fed='      1          6           0        0.080744    0.122166   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.080744 0.122166 -0.000000 1.234250 -0.146902 0.000000 0.755006 1.174736 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 7: begin-line=2330 fed=4 rc=0 first-fed='      1          6           0        0.092138    0.144038   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.092138 0.144038 -0.000000 1.237743 -0.150783 0.000000 0.740118 1.156746 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 8: begin-line=2658 fed=4 rc=0 first-fed='      1          6           0        0.091402    0.139258   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.091402 0.139258 -0.000000 1.237178 -0.154023 0.000000 0.741420 1.164765 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 9: begin-line=2959 fed=4 rc=0 first-fed='      1          6           0        0.091309    0.139462   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.091309 0.139462 -0.000000 1.237143 -0.153470 0.000000 0.741548 1.164007 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 10: begin-line=3244 fed=4 rc=0 first-fed='      1          6           0        0.091309    0.139462   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: 0.091309 0.139462 -0.000000 1.237143 -0.153470 0.000000 0.741548 1.164007 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 11: begin-line=4254 fed=4 rc=0 first-fed='      1          6           0       -0.614556    0.116797   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.614556 0.116797 -0.000000 0.527900 -0.183298 0.000000 -0.017427 1.156127 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 12: begin-line=4629 fed=4 rc=0 first-fed='      1          6           0       -0.610687    0.120002    0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.610687 0.120002 0.000000 0.528158 -0.187254 -0.000000 -0.067087 1.172942 0.000000
-      units: Hartree
+    (script emitted no property)
   block 13: begin-line=4959 fed=4 rc=0 first-fed='      1          6           0       -0.606663    0.123285   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.606663 0.123285 -0.000000 0.528308 -0.191150 0.000000 -0.117187 1.188023 0.000000
-      units: Hartree
+    (script emitted no property)
   block 14: begin-line=5292 fed=4 rc=0 first-fed='      1          6           0       -0.602529    0.126631    0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.602529 0.126631 0.000000 0.528386 -0.195001 -0.000000 -0.167582 1.201716 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 15: begin-line=5625 fed=4 rc=0 first-fed='      1          6           0       -0.598288    0.130058   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.598288 0.130058 -0.000000 0.528393 -0.198807 -0.000000 -0.218260 1.213822 0.000000
-      units: Hartree
+    (script emitted no property)
   block 16: begin-line=5958 fed=4 rc=0 first-fed='      1          6           0       -0.593945    0.133573   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.593945 0.133573 -0.000000 0.528330 -0.202568 -0.000000 -0.269181 1.224242 0.000000
-      units: Hartree
+    (script emitted no property)
   block 17: begin-line=6278 fed=4 rc=0 first-fed='      1          6           0       -0.589507    0.137188   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.589507 0.137188 -0.000000 0.528199 -0.206285 -0.000000 -0.320298 1.232873 0.000000
-      units: Hartree
+    (script emitted no property)
   block 18: begin-line=6598 fed=4 rc=0 first-fed='      1          6           0       -0.584984    0.140912   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.584984 0.140912 -0.000000 0.528006 -0.209961 -0.000000 -0.371553 1.239638 0.000000
-      units: Hartree
+    (script emitted no property)
   block 19: begin-line=6921 fed=4 rc=0 first-fed='      1          6           0       -0.622022    0.110473   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.622022 0.110473 -0.000000 0.527191 -0.175296 0.000000 0.081328 1.120233 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 20: begin-line=7270 fed=4 rc=0 first-fed='      1          6           0       -0.625627    0.107325    0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.625627 0.107325 0.000000 0.526746 -0.171250 -0.000000 0.130455 1.101499 0.000000
-      units: Hartree
+    (script emitted no property)
   block 21: begin-line=7587 fed=4 rc=0 first-fed='      1          6           0       -0.629115    0.104173    0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.629115 0.104173 0.000000 0.526209 -0.167169 0.000000 0.179467 1.082331 -0.000000
-      units: Hartree
+    (script emitted no property)
   block 22: begin-line=7904 fed=4 rc=0 first-fed='      1          6           0       -0.632550    0.100989   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.632550 0.100989 -0.000000 0.525614 -0.163090 -0.000000 0.228644 1.063564 0.000000
-      units: Hartree
+    (script emitted no property)
   block 23: begin-line=8221 fed=4 rc=0 first-fed='      1          6           0       -0.635944    0.097751   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.635944 0.097751 -0.000000 0.524958 -0.159029 -0.000000 0.278156 1.045682 0.000000
-      units: Hartree
+    (script emitted no property)
   block 24: begin-line=8541 fed=4 rc=0 first-fed='      1          6           0       -0.639301    0.094447   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.639301 0.094447 -0.000000 0.524239 -0.155004 -0.000000 0.328127 1.029089 0.000000
-      units: Hartree
+    (script emitted no property)
   block 25: begin-line=8861 fed=4 rc=0 first-fed='      1          6           0       -0.642617    0.091074   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.642617 0.091074 -0.000000 0.523450 -0.151028 -0.000000 0.378599 1.014012 0.000000
-      units: Hartree
+    (script emitted no property)
   block 26: begin-line=9181 fed=4 rc=0 first-fed='      1          6           0       -0.645876    0.087638   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.645876 0.087638 -0.000000 0.522582 -0.147102 -0.000000 0.429503 1.000360 0.000000
-      units: Hartree
+    (script emitted no property)
   block 27: begin-line=9527 fed=4 rc=0 first-fed='      1          6           0       -0.645876    0.087638   -0.000000'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-C 2-N 3-H
-      columnlabels: X Y Z
-      values: -0.645876 0.087638 -0.000000 0.522582 -0.147102 -0.000000 0.429503 1.000360 0.000000
-      units: Hartree
+    (script emitted no property)
 
 [GEOMTRACE1]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
   Begin=Standard orientation\:
@@ -411,12 +276,125 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
       values: 0.082405 0.618215 0.000000 0.082405 -0.564470 -0.000000 -1.071269 0.242000 0.000000
       units: Hartree
   block 10: begin-line=3265 fed=4 rc=0 first-fed='      1          6           0        0.082405    0.618215    0.000000'
+    (script emitted no property)
+
+[GEOMTRACE2]  Script=gaussian-16.geomtrace-flush  Freq=all  Skip=1  Lines=1
+  Begin=Symmetry turned off
+  begins=17 delivered=17 buffered_away=0
+  block 1: begin-line=4268 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
     key: GEOMTRACE
       size: 1 3 3
       rowlabels: 1-C 2-N 3-H
       columnlabels: X Y Z
-      values: 0.082405 0.618215 0.000000 0.082405 -0.564470 -0.000000 -1.071269 0.242000 0.000000
+      values: -0.614556 0.116797 -0.000000 0.527900 -0.183298 0.000000 -0.017427 1.156127 -0.000000
       units: Hartree
+  block 2: begin-line=4643 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.610687 0.120002 0.000000 0.528158 -0.187254 -0.000000 -0.067087 1.172942 0.000000
+      units: Hartree
+  block 3: begin-line=4973 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.606663 0.123285 -0.000000 0.528308 -0.191150 0.000000 -0.117187 1.188023 0.000000
+      units: Hartree
+  block 4: begin-line=5306 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.602529 0.126631 0.000000 0.528386 -0.195001 -0.000000 -0.167582 1.201716 -0.000000
+      units: Hartree
+  block 5: begin-line=5639 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.598288 0.130058 -0.000000 0.528393 -0.198807 -0.000000 -0.218260 1.213822 0.000000
+      units: Hartree
+  block 6: begin-line=5972 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.593945 0.133573 -0.000000 0.528330 -0.202568 -0.000000 -0.269181 1.224242 0.000000
+      units: Hartree
+  block 7: begin-line=6292 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.589507 0.137188 -0.000000 0.528199 -0.206285 -0.000000 -0.320298 1.232873 0.000000
+      units: Hartree
+  block 8: begin-line=6612 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.584984 0.140912 -0.000000 0.528006 -0.209961 -0.000000 -0.371553 1.239638 0.000000
+      units: Hartree
+  block 9: begin-line=6935 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.622022 0.110473 -0.000000 0.527191 -0.175296 0.000000 0.081328 1.120233 -0.000000
+      units: Hartree
+  block 10: begin-line=7284 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.625627 0.107325 0.000000 0.526746 -0.171250 -0.000000 0.130455 1.101499 0.000000
+      units: Hartree
+  block 11: begin-line=7601 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.629115 0.104173 0.000000 0.526209 -0.167169 0.000000 0.179467 1.082331 -0.000000
+      units: Hartree
+  block 12: begin-line=7918 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.632550 0.100989 -0.000000 0.525614 -0.163090 -0.000000 0.228644 1.063564 0.000000
+      units: Hartree
+  block 13: begin-line=8235 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.635944 0.097751 -0.000000 0.524958 -0.159029 -0.000000 0.278156 1.045682 0.000000
+      units: Hartree
+  block 14: begin-line=8555 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.639301 0.094447 -0.000000 0.524239 -0.155004 -0.000000 0.328127 1.029089 0.000000
+      units: Hartree
+  block 15: begin-line=8875 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.642617 0.091074 -0.000000 0.523450 -0.151028 -0.000000 0.378599 1.014012 0.000000
+      units: Hartree
+  block 16: begin-line=9195 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-C 2-N 3-H
+      columnlabels: X Y Z
+      values: -0.645876 0.087638 -0.000000 0.522582 -0.147102 -0.000000 0.429503 1.000360 0.000000
+      units: Hartree
+  block 17: begin-line=9541 fed=1 rc=0 first-fed=' Stoichiometry    CHN'
+    (script emitted no property)
 
 [EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
   Begin=Cartesian Forces\:
