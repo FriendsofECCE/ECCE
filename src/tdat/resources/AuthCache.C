@@ -546,6 +546,18 @@ void AuthCache::pipeIn(const string& pipeName)
 }
 
 
+/**
+ * True when this session's message broker is the account's own mosquitto on
+ * a Unix socket (local mode): only this user's processes can connect to it.
+ */
+bool AuthCache::privateBroker()
+{
+  if (getenv("ECCE_NO_MESSAGING") != NULL) return false;
+  MqttLink& link = MqttLink::instance();
+  return link.ensureConnected() && !link.config().socket.empty();
+}
+
+
 void AuthCache::msgIn(const JMSMessage& msg, const string& callerID)
 {
 
@@ -554,10 +566,13 @@ void AuthCache::msgIn(const JMSMessage& msg, const string& callerID)
     EcceURL url(msg.getProperty("url"));
     string pass;
 
-    // The broadcast crosses the broker and so carries no password; the
-    // sender saved it to the session store before publishing.
+    // A data server password comes from the session store (the sender
+    // saved it before publishing); a compute machine's, which is never
+    // stored, only with the message and only on the private broker.
     if (sessionLookup(url.getRef(), msg.getProperty("user"),
-                      msg.getProperty("realm"), pass)) {
+                      msg.getProperty("realm"), pass) ||
+        (!sessionWorthy(url.getRef()) && privateBroker() &&
+         (pass = msg.getProperty("auth")) != "")) {
       addAuthentication(url.getRef(), msg.getProperty("user"), pass,
                         msg.getProperty("realm"), false);
     }
@@ -982,6 +997,13 @@ bool AuthCache::addAuthentication
       msg->addProperty("url", url);
       msg->addProperty("user", user);
       msg->addProperty("realm", realm);
+      // A compute machine's password stays out of the session store, so
+      // without it in the message no other process learns it and every
+      // Launcher asks again (#487).  Only over this account's private
+      // Unix-socket broker; a TCP broker reaches other users and machines.
+      if (!sessionWorthy(key) && privateBroker()) {
+         msg->addProperty("auth", pass);
+      }
 
       publisher.publish("ecce_auth_changed",*msg);
       delete msg;
