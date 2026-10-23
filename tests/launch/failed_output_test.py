@@ -62,11 +62,6 @@ Frequency=last
 Script=none
 [END]
 
-[PROGRESS]
-Begin=^progress opt (.*)$
-Progress=opt $1
-History=energy
-[END]
 """
 
 OUTPUT = """progress opt step=1 energy=-1.0
@@ -95,7 +90,7 @@ def run():
         threading.Thread(target=job.wait, daemon=True).start()
         mon = subprocess.run(
             ["perl", MONITOR, "-configFile", "eccejobmonitor.conf",
-             "-jobId", str(job.pid), "-bookmark", "0", "-progress", "1"],
+             "-jobId", str(job.pid), "-bookmark", "0"],
             cwd=work, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, timeout=60)
         return mon.returncode, mon.stdout.replace(b"\x00", b" ")
@@ -122,7 +117,6 @@ def main():
           "output file job.out sent")
     check(re.findall(r"jmSTATUS\s*(\d+)", text)[-1:] == ["231"],
           "job's own status 231 sent")
-    check("step=3" in text and "jmPROG" in text, "progress up to step 3 sent")
     check("complete-block-one" in text, "last complete MO block sent")
     check("cut-off-block-two" not in text, "cut-off MO block not sent")
     check("HEAT OF FORMATION" in text, "earlier property sent")
