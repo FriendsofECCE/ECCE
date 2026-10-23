@@ -170,6 +170,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [A parser script can be handed half a line: post mode delivers a final line with no newline](parser-scripts-must-survive-a-final-line-cut-short.md)
 - [ORCA 6.1.1: no orca_scf next to orca (Find), and the Intel Mac build needs macOS 12.3](orca-6-companion-file-and-macos-minimum.md)
 - [Example calculations ship as program outputs; File > Open Example Calculations imports a fresh copy (and MOPAC has an importer)](example-calculations-are-outputs-not-stored-calcs.md)
+- [Example import copies a pre-parsed calculation; the parse is the fallback (#448)](example-import-copies-the-preparsed-calculation.md)
 - [A property stored with no values is an empty element; reading one used to end the app (#429)](an-empty-stored-property-element-crashed-its-reader.md)
 - [The dummy atom X has no basis, no electrons, no formula entry - and each code numbers it differently](dummy-atom-x-is-not-an-element-and-each-code-numbers-it-differently.md)
 - [Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib](geometry-constraints-are-edited-in-the-builder-and-stored-with-the-calculation.md)

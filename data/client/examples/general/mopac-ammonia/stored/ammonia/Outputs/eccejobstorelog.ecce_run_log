@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<eccejobstore>
+     <event  type="Message"  name="Job log started for calculation"  date="Fri, 23 Oct 2026 17:21:31 CEST" >file:///home/andy/.cache/ecce-apps-18oqf9d9/examples-arm-05opp1zc/data/users/local/Examples/ammonia     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Fri, 23 Oct 2026 17:21:31 CEST" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Fri, 23 Oct 2026 17:21:31 CEST" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Fri, 23 Oct 2026 17:21:31 CEST" >/tmp/ecce_andy/jobs/ammonia__rjnnXk     </event>
+     <event  type="Message"  name="Job Monitor"  date="Fri, 23 Oct 2026 17:21:31 CEST" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Fri, 23 Oct 2026 17:21:31 CEST" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Fri, 23 Oct 2026 17:21:31 CEST" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="eccejobstore"  date="Fri, 23 Oct 2026 17:21:31 CEST" >out of contact after 60 s of silence, reconnect after 180 s     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Fri, 23 Oct 2026 17:21:31 CEST" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Fri, 23 Oct 2026 17:21:32 CEST" >File marked to copy from compute host: ammonia.mgf     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Fri, 23 Oct 2026 17:21:32 CEST" >File marked to copy from compute host: ammonia.out     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Fri, 23 Oct 2026 17:21:32 CEST" >File marked to copy from compute host: ammonia.out     </event>
+     <event  type="Message"  name="Benchmark"  date="Fri, 23 Oct 2026 17:21:32 CEST" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Fri, 23 Oct 2026 17:21:32 CEST" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Fri, 23 Oct 2026 17:21:32 CEST" >Successfully copied files from server--
+RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/ammonia__SyemHu/ammonia.out,/tmp/ecce_andy/jobs/ammonia__SyemHu/ammonia.mgf,/tmp/ecce_andy/jobs/ammonia__SyemHu/*.cub,/tmp/ecce_andy/jobs/ammonia__SyemHu/*.cube,/tmp/ecce_andy/jobs/ammonia__SyemHu/*.file30}, /tmp/ecce_andy/jobs/ammonia__rjnnXk) succeeded     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Fri, 23 Oct 2026 17:21:33 CEST" >Loaded     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Fri, 23 Oct 2026 17:21:33 CEST" >eccejobstore terminating normally, exit status 0     </event>
+</eccejobstore>

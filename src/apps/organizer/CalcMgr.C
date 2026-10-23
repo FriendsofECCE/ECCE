@@ -79,6 +79,7 @@ static std::string s_registerMessage;
 #include "tdat/RefMachine.H"
 
 #include "dsm/NWChemMDModel.H"
+#include "dsm/StoredCalcCopy.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
@@ -3162,7 +3163,28 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         gmxSeconds += std::chrono::duration<double>(
             std::chrono::steady_clock::now() - g0).count();
       } else {
-        dlg.importFile(dir + rel);
+        // A copy of what the parsers made of this very output when the
+        // package was built is much faster than parsing it again; the
+        // parse stays as the fallback.
+        const string stored = dir + string(rel).substr(0, string(rel).find('/')) +
+                              "/stored";
+        const string calcName = StoredCalcCopy::calcName(stored);
+        string why;
+        const auto c0 = std::chrono::steady_clock::now();
+        if (!getenv("ECCE_NO_PREPARSED") && !calcName.empty() &&
+            StoredCalcCopy::isCurrent(stored, dir + rel) &&
+            StoredCalcCopy::copy(proj, stored + "/" + calcName, calcName,
+                                 why)) {
+          cerr << "Organizer: example copied: " << calcName << " in "
+               << std::chrono::duration<double>(
+                      std::chrono::steady_clock::now() - c0).count()
+               << " s" << endl;
+        } else {
+          if (!why.empty())
+            cerr << "Organizer: example copy failed (" << why
+                 << "), parsing" << endl;
+          dlg.importFile(dir + rel);
+        }
       }
     }
     // Not the maximum: wxProgressDialog then waits for a click on Close.
