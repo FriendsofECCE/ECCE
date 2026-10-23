@@ -112,6 +112,7 @@
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
     <runtype>Transition State (Opt-TS)</runtype>
+    <runtype>IRC</runtype>
   </Theory>
   <Theory category="SCF" name="HF">
     <runtype>Energy</runtype>
@@ -120,6 +121,7 @@
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
     <runtype>Transition State (Opt-TS)</runtype>
+    <runtype>IRC</runtype>
   </Theory>
 
   <TheorySummary>

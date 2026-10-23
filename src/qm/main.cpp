@@ -193,6 +193,46 @@ int main(int argc, char** argv) {
       return fo;
     };
 
+    if (in.runtype == qm::RunType::IRC) {
+      // The editor's structure is the transition state; the path leaves it
+      // along the imaginary mode in both directions.
+      const qm::OptEval e0 = evaluate(in.mol);
+      double step;
+      const qm::Mat H0 = derivatives(in.mol, step).hessian;
+      auto hess = [&](const qm::Molecule& m) { evaluate(m); double st; return derivatives(m, st).hessian; };
+      const int dirs = in.irc_direction == 0 ? 2 : 1, total = dirs * in.irc.max_points;
+      std::vector<qm::IrcPoint> back, fwd;
+      qm::IrcPoint ts;
+      ts.mol = in.mol;
+      ts.energy = e0.energy;
+      auto table = [&]() {
+        std::vector<qm::IrcPoint> all(back.rbegin(), back.rend());
+        all.push_back(ts);
+        all.insert(all.end(), fwd.begin(), fwd.end());
+        return all;
+      };
+      qm::write_progress_irc(os, 0, total);
+      int done = 0;
+      auto run = [&](int sign, std::vector<qm::IrcPoint>& into) {
+        qm::irc_path(in.mol, H0, sign, in.irc, evaluate, hess, [&](const qm::IrcPoint& p) {
+          into.push_back(p);
+          qm::write_irc_table(os, table());
+          qm::write_progress_irc(os, ++done, total);
+          if (verbose) std::cerr << "irc point s = " << p.s << "  E = " << p.energy << "\n";
+        });
+        done = (sign > 0 && dirs == 2) ? in.irc.max_points : total;   // an early end fills the bar
+        qm::write_progress_irc(os, done, total);
+      };
+      if (in.irc_direction >= 0) run(+1, fwd);
+      if (in.irc_direction <= 0) run(-1, back);
+      const std::vector<qm::IrcPoint> all = table();
+      qm::write_irc_table(os, all);
+      qm::write_irc_geometries(os, all);
+      os << "irc_points " << all.size() << "\n";
+      auto cs = extra_charges();
+      qm::write_text_output(os, in, *basis, r, seconds(), nullptr, nullptr, cs.get(), &at_full, nullptr);
+      return 0;
+    }
     if (in.scan.on) {
       std::vector<qm::ScanPointOut> pts;
       const bool bond = in.scan.constraint.kind == qm::GeoConstraint::Bond;

@@ -105,7 +105,8 @@ Input parse_input(std::istream& in) {
       else if (v == "frequency" || v == "freq") r.runtype = RunType::Frequency;
       else if (v == "optfreq") r.runtype = RunType::OptFreq;
       else if (v == "ts") r.runtype = RunType::TS;
-      else throw bad("runtype must be energy, gradient, optimize, frequency, optfreq or ts");
+      else if (v == "irc") r.runtype = RunType::IRC;
+      else throw bad("runtype must be energy, gradient, optimize, frequency, optfreq, ts or irc");
     }
     else if (k == "hessian_step") r.hessian_step = std::stod(rest);
     else if (k == "temperature") r.temperature = std::stod(rest);
@@ -126,6 +127,16 @@ Input parse_input(std::istream& in) {
     }
     else if (k == "field_step") r.field_step = std::stod(rest);
     else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
+    else if (k == "irc_step") r.irc.step = std::stod(rest);
+    else if (k == "irc_max_points") r.irc.max_points = std::stoi(rest);
+    else if (k == "irc_hessian_every") r.irc.hessian_every = std::stoi(rest);
+    else if (k == "irc_direction") {
+      const std::string v = lower(rest);
+      if (v == "both") r.irc_direction = 0;
+      else if (v == "forward") r.irc_direction = 1;
+      else if (v == "backward") r.irc_direction = -1;
+      else throw bad("irc_direction must be both, forward or backward");
+    }
     else if (k == "ts_hessian_every") r.opt.ts_hessian_every = std::stoi(rest);
     else if (k == "opt_conv") r.opt.set_convergence(lower(rest));
     else if (k == "charges") {
@@ -224,6 +235,12 @@ Input parse_input(std::istream& in) {
   if (r.field_step <= 0) throw Error("field_step must be positive");
   if (r.runtype == RunType::TS && (!r.opt.constraints.empty() || r.mol.without_dummies().atoms.size() != r.mol.atoms.size()))
     throw Error("runtype ts takes no constraints and no dummy atoms");
+  if (r.runtype == RunType::IRC) {
+    if (!r.opt.constraints.empty() || r.mol.without_dummies().atoms.size() != r.mol.atoms.size())
+      throw Error("runtype irc takes no constraints and no dummy atoms");
+    if (r.irc.step <= 0 || r.irc.max_points < 1 || r.irc.hessian_every < 0)
+      throw Error("irc_step must be positive, irc_max_points at least 1 and irc_hessian_every not negative");
+  }
   if (r.opt.ts_hessian_every < 0) throw Error("ts_hessian_every must not be negative");
   if (does_frequencies(r.runtype) && does_optimize(r.runtype) && !r.opt.constraints.empty())
     throw Error("optfreq with constraints: frequencies at a constrained geometry are not at a minimum; "

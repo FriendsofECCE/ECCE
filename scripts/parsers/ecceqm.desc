@@ -59,6 +59,24 @@ Skip=0
 End=^end scan_geometry
 [END]
 
+# IRC: the table is rewritten after every point; the structures come once at
+# the end, in path order with the TS in the middle (as in orca.desc).
+[IRCCOORD][IRCENERGY]
+Script=ecceqm.parse
+Begin=^begin irc_table\b
+Frequency=last
+Skip=0
+End=^end irc_table
+[END]
+
+[IRCGEOM]
+Script=ecceqm.parse
+Begin=^begin irc_geometry\b
+Frequency=all
+Skip=0
+End=^end irc_geometry
+[END]
+
 [NNREPUL]
 Script=ecceqm.parse
 Begin=^energy_nuclear\s
@@ -304,6 +322,11 @@ History=energy
 [PROGRESS]
 Begin=^progress freq (.*)$
 Progress=freq $1
+[END]
+
+[PROGRESS]
+Begin=^progress irc (.*)$
+Progress=irc $1
 [END]
 
 [PROGRESS]
