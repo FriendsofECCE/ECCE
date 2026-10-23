@@ -73,3 +73,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [The app suite tests the INSTALLED ECCE (/opt/ecce), not build-cmake (#385)](app-tests-run-the-installed-tree.md)
 - [The Launcher runs each Launch step on a worker thread; nothing a step calls may touch wx; submit timeout 120 s idle (#424)](launch-steps-run-off-the-gui-thread.md)
 - [Windows MSI: Repair waits ~85 s before its progress page (REINSTALLMODE ecmus); progress-page placeholders; uninstall time (#431)](windows-msi-repair-and-uninstall-time.md)
+- [A failed job's output ends inside a .desc block; the monitor drops it instead of dying, so output, status and progress are stored (#470, #467)](failed-job-ends-inside-a-parse-block.md)
