@@ -131,6 +131,11 @@
   <Input   type="primary" mimetype="chemical/x-ecceqm-input" comment="true" commentstring="#">ecceqm.qmin</Input>
   <Output type="primary" mimetype="chemical/x-ecceqm-output">ecceqm.qmout</Output>
   <Output type="parse" verifypattern="program ecce-qm" mimetype="chemical/x-ecceqm-output">ecceqm.qmout</Output>
+  <!-- Final orbitals, kept for "Duplicate with Final Orbitals"; the input
+       copy has its own name and type so a job's own file is never taken for
+       the guess it reads. -->
+  <Output type="auxiliary" mimetype="chemical/x-ecceqm-orbitals">ecceqm.qmorb</Output>
+  <Input   type="auxiliary" mimetype="chemical/x-ecceqm-guess">guess.qmorbin</Input>
 </DataFiles>
 
 <IntegrationFiles>
@@ -140,6 +145,7 @@
   <ParseSpecification>ecceqm.desc</ParseSpecification>
   <BasisTranslationScript>std2ECCEQM</BasisTranslationScript>
   <LaunchPreprocessor>ecceqm.launchpp</LaunchPreprocessor>
+  <RetainOutputFile>ecceqm.qmorb</RetainOutputFile>
 </IntegrationFiles>
 
 </appdescriptor>

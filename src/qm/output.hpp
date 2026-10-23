@@ -37,6 +37,12 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
 // One geometry with its energy and gradient, written as soon as it is known
 // and before the final output, so a running job shows its trace.
 void write_opt_step(std::ostream& os, const OptStep& st);
+// Final orbitals as a plain-text file, and back: the starting guess of a later
+// run in the same basis.  read_orbitals returns false (reason in why) when the
+// file does not belong to this basis and these atoms.
+void write_orbitals(std::ostream& os, const Input& in, const Molecule& mol, const ScfResult& r);
+bool read_orbitals(std::istream& is, const Input& in, const Molecule& mol, int nbf, ScfResult& r, std::string& why);
+
 void write_molden(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r,
                   const FrequencyOutput* freq = nullptr);
 

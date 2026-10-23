@@ -58,6 +58,16 @@ int main(int argc, char** argv) {
     qm::Molecule at_full;   // ... and with them, as the optimiser has it
     // The previous geometry's orbitals start the next SCF (optimisation steps).
     bool have_prev = false;
+    if (!in.read_orbitals.empty()) {
+      // Starts the first SCF from stored orbitals; run_scf orthonormalises
+      // them against this geometry's overlap and ignores a set of the wrong
+      // electron count.
+      std::ifstream f(in.read_orbitals);
+      std::string why = "the file cannot be read";
+      qm::Basis b0(in.mol.without_dummies(), lib, in.basis, in.spherical);
+      if (f && qm::read_orbitals(f, in, in.mol.without_dummies(), b0.nbf(), r, why)) have_prev = true;
+      else std::cerr << "ecce-qm: starting orbitals " << in.read_orbitals << " not used: " << why << "\n";
+    }
     auto evaluate = [&](const qm::Molecule& mfull) {
       const qm::Molecule m = mfull.without_dummies();
       basis.reset(new qm::Basis(m, lib, in.basis, in.spherical));
@@ -78,6 +88,11 @@ int main(int argc, char** argv) {
           for (int k = 0; k < 3; ++k) e.grad[3 * idx[i] + k] = g[3 * i + k];
       }
       return e;
+    };
+    auto keep_orbitals = [&]() {
+      if (in.write_orbitals.empty() || !r.converged) return;
+      std::ofstream f(in.write_orbitals);
+      qm::write_orbitals(f, in, at, r);
     };
     auto extra_charges = [&]() {
       std::unique_ptr<qm::ChargeSets> cs;
@@ -214,6 +229,7 @@ int main(int argc, char** argv) {
       auto cs = extra_charges();
       auto po = polar_output();
       qm::write_text_output(os, in, *basis, r, seconds(), &res, nullptr, cs.get(), &at_full, po.get());
+      keep_orbitals();
       if (!molden.empty()) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, nullptr);
@@ -245,6 +261,7 @@ int main(int argc, char** argv) {
       auto cs = extra_charges();
       auto po = polar_output();
       qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get(), cs.get(), &at_full, po.get());
+      keep_orbitals();
       if (!molden.empty()) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, fo.get());
@@ -273,6 +290,7 @@ int main(int argc, char** argv) {
     auto cs = extra_charges();
     auto po = polar_output();
     qm::write_text_output(os, in, *basis, r, seconds(), nullptr, fo.get(), cs.get(), &at_full, po.get());
+    keep_orbitals();
     if (!molden.empty()) {
       std::ofstream f(molden);
       qm::write_molden(f, in, *basis, r, fo.get());

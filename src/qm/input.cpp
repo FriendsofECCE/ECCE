@@ -91,6 +91,8 @@ Input parse_input(std::istream& in) {
     else if (k == "grid") { std::stringstream g(rest); if (!(g >> r.scf.grid_radial >> r.scf.grid_angular)) throw bad("grid needs two integers"); }
     else if (k == "grid_prune") { std::string v = lower(rest); r.scf.grid_prune = (v == "true" || v == "yes" || v == "on" || v == "1"); }
     else if (k == "guess_mix") { std::string v = lower(rest); r.scf.guess_mix = (v == "true" || v == "yes" || v == "on" || v == "1"); }
+    else if (k == "read_orbitals") r.read_orbitals = rest;
+    else if (k == "write_orbitals") r.write_orbitals = rest;
     else if (k == "units") { std::string v = lower(rest); unit = (v == "bohr" || v == "au") ? 1.0 : kAngstromToBohr; }
     else if (k == "maxiter") r.scf.max_iter = std::stoi(rest);
     else if (k == "conv_energy") r.scf.conv_energy = std::stod(rest);
