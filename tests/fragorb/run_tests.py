@@ -444,7 +444,10 @@ def model(build):
         ovs = [float(l.split("ov=")[1].split()[0]) for l in mo]
         check(all(0.5 < o <= 1.0 for o in ovs), "%s: overlaps in (0.5, 1]" % name)
         # bonding levels have antibonding partners (drawn pairs complete)
-        ch = [int(l.split("char=")[1].split()[0]) for l in mo]
+        #  A level with no partner (pair=-1) keeps the character of its own
+        #  overlap population (#458): only the paired ones must balance.
+        ch = [int(l.split("char=")[1].split()[0]) for l in mo
+              if int(l.split("pair=")[1].split()[0]) >= 0]
         check(ch.count(1) == ch.count(3), "%s: bonding = antibonding" % name,
               "%d/%d" % (ch.count(1), ch.count(3)))
         if levels:

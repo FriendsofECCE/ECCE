@@ -178,6 +178,8 @@ goldens (`ecceqm-water`, `orca-crco6`, `ecceqm-c2h4`) only in the `note:`
 and `about:` lines, which name the pick. `ecceqm-c3h6-pick-ring` picks a
 ring bond and is refused (a spectrum and a tier-B line). `ecceqm-c2h4` and
 `ecceqm-c3h6` are `makecalc.py ecceqm c2h4|c3h6 0 DIR --no-rotate`.
+`ecceqm-c2h6` (staggered ethane, RHF/6-31G*, CH3 + CH3, #458: `makecalc.py ecceqm c2h6 0 DIR --no-rotate --method hf`;
+`check_pairs.py` asserts the unpaired a2u FO7-FO7 level is `*` and the a1g FO7+FO7 level non-bonding).
 `ecceqm-methanol` (`makecalc.py ecceqm ch3oh 0 DIR --no-rotate`) picked at C1
 and at O2 is drawn by the fragment-orbital route with that atom as centre
 (CENTRAL would leave atoms out): `ecceqm-methanol-pick-c1`, `-pick-o2`.

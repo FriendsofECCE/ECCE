@@ -3,7 +3,7 @@ formula: B2H6
 construction: a central atom and its neighbours
 headline: 
 source: MO levels: RHF, def2-SVP · 
-note: Molecular levels only · energies in Hartree · labels in D<sub>2h</sub> · 2 core orbitals hidden\nThis kind of diagram describes a central atom with one set of equivalent neighbours (CH4, H2O, NH3, BF3), or two atoms of a diatomic. In D2h this molecule has 3 symmetry-distinct sets of atoms, so there is no such split. Choose the fragments yourself, or read the molecular orbitals on their own.
+note: Molecular levels only · energies in Hartree · labels in D<sub>2h</sub> · 2 core orbitals hidden\nThis kind of diagram describes a central atom with one set of equivalent neighbours (CH4, H2O, NH3, BF3), or two atoms of a diatomic. In D2h this molecule has 3 symmetry-distinct sets of atoms, so there is no such split. Choose the fragments manually, or read the molecular orbitals on their own.
 about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Symmetry.** Symmetry labels computed from the orbitals in D2h; the code reported none.  b1 and b2 (b2 and b3 in D2h) depend on the choice of axes; ECCE follows Mulliken's convention, as most textbooks do.\n\n**Not shown.** 2 core orbitals below −6.55 Hartree.
 column left
   title: 

@@ -1245,6 +1245,10 @@ bool ModelDiagram::build(const Input& in,
             //  Without symmetry labels nothing else keeps an e level from
             //  pairing with a t2: weigh in how much of the same fragment
             //  levels the two are made of.
+            //  Equal fragments: partners are the in-phase and out-of-phase
+            //  combinations of the same fragment orbitals, so the two must
+            //  share most of their make-up.
+            if (equalFragments && similar < PAIR_SIMILAR) continue;
             if (cl[a].irrep.empty() || cl[b].irrep.empty()) score *= 0.25 + similar;
             score += 1e-3*similar;
             Cand cd; cd.score = score; cd.b = b; cd.a = a;
@@ -1261,7 +1265,7 @@ bool ModelDiagram::build(const Input& in,
          cl[cands[i].b].pairing = cl[cands[i].a].pairing = next++;
       }
       for (size_t c = 0; c < cl.size(); c++)
-         if (!used[c] || cl[c].core) cl[c].character = MoLevel::NONBONDING;
+         if (cl[c].core) cl[c].character = MoLevel::NONBONDING;
    }
 
    vector<string> caveats;               // tier B: one combined line
@@ -1464,7 +1468,7 @@ bool ModelDiagram::build(const Input& in,
             k = e + 1;
          }
          text += " (E = " + signedNumber(R.energy*HARTREE, 2) + " eV, overlap " + fmt("%.2f", L.overlap) + ").";
-         if (L.overlap < POOR_OVERLAP) text += "  A poor match: no calculated orbital resembles this model level.";
+         if (L.overlap < POOR_OVERLAP) text += "  Overlap below " + fmt("%.2f", POOR_OVERLAP) + ".";
       }
       lv.detail = text;
       centreIndex[order[oi]] = (int)out.centre.levels.size();
@@ -1761,8 +1765,8 @@ bool ModelDiagram::build(const Input& in,
       int poor = 0;
       for (size_t i = 0; i < v.size(); i++) if (v[i]->calcOverlap < POOR_OVERLAP) poor++;
       if (poor > 0)
-         caveats.push_back(std::to_string(poor) + (poor == 1 ? " level matches" : " levels match") +
-             " the calculation only loosely (overlap < " + fmt("%.2f", POOR_OVERLAP) + ")");
+         caveats.push_back(std::to_string(poor) + (poor == 1 ? " level has" : " levels have") +
+             " an overlap below " + fmt("%.2f", POOR_OVERLAP) + " with the matched calculated orbital");
    }
    if (!caveats.empty()) out.warnings.push_back(joinCaveats(caveats));
 
@@ -1849,12 +1853,14 @@ bool ModelDiagram::build(const Input& in,
           "are an exact projection of each model MO on the fragment orbitals: a line joins a model MO to a "
           "fragment level that makes up at least 10 % of it.\n\n"
           "**Bonding and antibonding** are read from the sign of each model MO's overlap population between the "
-          "two fragments, then paired per symmetry label and degeneracy, so each antibonding level has its bonding "
-          "partner; a level without a partner is non-bonding. Colours mark the pairs.\n\n"
+          "two fragments: above +0.02 bonding, below -0.02 antibonding (*), otherwise non-bonding. A bonding and "
+          "an antibonding level of the same degeneracy that are the in-phase and out-of-phase combinations of the "
+          "same fragment orbitals are joined as partners and share a colour; a level without such a partner keeps "
+          "its own classification.\n\n"
           "**Scale.** The model columns show the order of the levels and their approximate spacing from extended H\xC3\xBC" "ckel, not a scale: close levels are drawn further apart so they can be read, and no model energy is printed (it is in the hover text). Extended H\xC3\xBC" "ckel antibonding energies are qualitative and typically far too high for short bonds to diffuse atoms such as B, Be and Al.\n\n"
           "**The calculation** is the column on the right, on its own energy axis in eV (not on the model's scale). For each model level it shows the calculated "
           "orbital (or set of near-degenerate orbitals) with the largest overlap with it, at its calculated energy, "
-          "in the colour of the model level it matches. A level marked \xE2\x89\x88 matches only loosely (overlap below 0.80; the value is in the hover text). Labels are those of the matched calculated orbital. Clicking a "
+          "in the colour of the model level it matches. Beside each matched level, \"overlap\" is |<model MO|calculated MO>| (a number from 0 to 1); values below 0.80 are counted in the note under the diagram. Labels are those of the matched calculated orbital. Clicking a "
           "level shows that orbital in 3-D.\n\n" + aboutVerdict + "\n\n**Total electrons: " + string(b) + "** (" + leftName.formula + " " +
           std::to_string((int)lround([&] { double s = 0; for (size_t i = 0; i < sets.size(); i++) if (sets[i].fragment == 0) s += sets[i].occupancy; return s; }())) +
           ", " + rightName.formula + " " +

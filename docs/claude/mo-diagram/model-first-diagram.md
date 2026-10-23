@@ -16,18 +16,23 @@ refusal text plus "use the MOs panel"), keep the old drawing.
 - Middle column = the molecule's own EHT run (`FragmentOrbitals::solveWhole`);
   side columns = the fragments' EHT orbitals; same basis, so the lines are the
   exact (Loewdin) projection, share >= 10 %.
-- Bonding/antibonding: sign of the inter-fragment overlap population (|OP| > 0.02),
-  paired strongest-with-strongest per degeneracy; same irrep unless the two
-  fragments are equal (halves combine g/u). Unpaired = nb. This is the model's
-  reading, not the book's: N2 2su comes out nb (sp mixing), pair 2sg/4su*.
+- Bonding/antibonding: each level is classified by its own inter-fragment overlap
+  population (OP > +0.02 bonding, < -0.02 antibonding `*`, else non-bonding); an
+  unpaired level keeps that class (#458: ethane's FO7-FO7 a2u level, OP -0.9, is
+  `*` without a partner). Partner lines go to strongest-with-strongest per
+  degeneracy; same irrep unless the two fragments are equal (halves combine g/u,
+  and then the two must share >= 50 % of their fragment-orbital make-up,
+  `PAIR_SIMILAR`). This is the model's reading, not the book's: N2 2su has a
+  small positive OP and is drawn bonding without a partner; the pair is 2sg/4su*.
 - Calculation column (layout C): its own energy axis in eV, to scale, ticks
   on the right (header = the method, "BP86/def2-SVP", "Your calculation" if unknown; axis titled "eV"; no common scale with the model), broken like the model's for the high empty levels; no lines to
   the model. Each model level is matched to the calculated level (the panel's
   `wholeSpectrum`) with the largest subspace overlap, via the mixed STO/Gaussian S;
   distinct calculated levels are drawn once, at their own energy, in the colour of
   the model partner, labelled like the model (lower-case Mulliken, `*` from the
-  partner) with the energy on the same row; overlap < 0.80 adds a grey "≈" (value in the hover
-  text only). Levels whose rows would overlap are opened out vertically, never sideways
+  partner) with the energy on the same row; each model level shows "overlap 0.71" = |<model MO|calculated MO>| beside
+  its energy (never a qualitative word; the About text states the definition and
+  the 0.80 threshold, below which the note under the diagram counts the level). Levels whose rows would overlap are opened out vertically, never sideways
   (`MoDiagramCanvas::layoutCalc`, `openRows`); the stretched part of the calculation axis is dotted and closed by slanted strokes. `MoLevel::orbitals` are the calculated MOs, so a click
   shows them. Verdict: only the occupied levels, plus the LUMO when the model's
   LUMO matches the calculation's; a different LUMO is named; order above the LUMO
