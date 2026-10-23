@@ -46,6 +46,9 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   set -e
   install -d -m 700 ~/.ssh
   install -m 600 /state/id_ed25519 ~/.ssh/ecce_test_key
+  # The home persists between runs: ssh offers a key by its .pub when one
+  # exists, so a stale .pub left beside it would be refused.
+  install -m 644 /state/id_ed25519.pub ~/.ssh/ecce_test_key.pub
   ssh-keyscan -p $PORT 127.0.0.1 2>/dev/null > ~/.ssh/known_hosts
   printf "Host sshtest 127.0.0.1\n  HostName 127.0.0.1\n  Port $PORT\n  IdentityFile $HOME/.ssh/ecce_test_key\n  IdentitiesOnly yes\n  PasswordAuthentication no\n  KbdInteractiveAuthentication no\n" > ~/.ssh/config
   [ -z "$CM" ] || printf "  ControlMaster auto\n  ControlPath $HOME/.ssh/cm-%%C\n  ControlPersist 10m\n" >> ~/.ssh/config
