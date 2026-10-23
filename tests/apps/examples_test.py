@@ -54,6 +54,8 @@ COMPUTATIONAL = {
     "trpcage": ["prepare:", "optimize:", "equilibrate:", "dynamics:",
                 "optimize:TE", "dynamics:TE"],
 }
+# the Teaching set: MO-theory diatomics, each with its orbitals and energy
+TEACHING = {m: ["TE", "MO"] for m in ("h2", "he2", "n2", "o2", "f2", "co", "hf")}
 # The study has no thumbnail and no theory/run type of its own.
 CALCS = list(EXPECT)
 
@@ -201,13 +203,14 @@ def run(display, data, work):
 
     with open(script, "w") as handle:
         handle.write("examples computational\nexamples computational\n"
-                     "examples general\n")
+                     "examples teaching\nexamples general\n")
 
     box = {}
     projects = ["Examples_Computational"]
 
     def inspect(_display):
         box["props"] = waitImported(root, projects, COMPUTATIONAL)
+        box["teach"] = waitImported(root, ["Examples_Teaching"], TEACHING)
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
             # Help > Report a Problem... without its dialog
@@ -237,8 +240,18 @@ def run(display, data, work):
     problems = []
     if answers != ["ok Examples_Computational created",
                    "ok Examples_Computational existing",
+                   "ok Examples_Teaching created",
                    "ok Examples existing"]:
         problems.append("answers %s" % answers)
+    teach = (box.get("teach") or {}).get("Examples_Teaching", {})
+    for calc, names in TEACHING.items():
+        held = [c for c in teach if c.startswith(calc)]
+        if not held:
+            problems.append("Examples_Teaching: no calculation %s (have %s)"
+                            % (calc, sorted(teach)))
+        elif [n for n in names if n not in teach[held[0]]]:
+            problems.append("Examples_Teaching/%s lacks MO or TE (has %s)"
+                            % (held[0], sorted(teach[held[0]])))
     for extra in ("Examples_2", "Examples_3"):
         if os.path.exists(os.path.join(root, extra)):
             problems.append("%s: an example set was imported twice" % extra)
