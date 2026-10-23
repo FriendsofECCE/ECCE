@@ -33,6 +33,7 @@
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
+//    toolbar bond                press the Bond button of the mode toolbar
 //    clean                       the viewer's Clean command
 //    key escape                  what the Esc key does with the view focused
 //    dclick A                    a double-click on the last atom of element A
@@ -545,7 +546,7 @@ void Builder::runBuilderScript(const std::string& file)
         //  viewer picks (a click selects) must name the same thing.
         auto modeName = [](int id) {
           return id == ID_MODE_ATOM ? "atom" : id == ID_MODE_SELECT ? "select"
-               : id == ID_MODE_STRUCTLIB ? "structlib" : "other";
+               : id == ID_MODE_BOND ? "bond" : id == ID_MODE_STRUCTLIB ? "structlib" : "other";
         };
         int shown = 0, nShown = 0;
         for (int id = ID_MODE_SELECT; id <= ID_MODE_STRUCTLIB; id++)
@@ -581,6 +582,12 @@ void Builder::runBuilderScript(const std::string& file)
             outcome = "ok";
             break;
           }
+      } else if (w[0] == "toolbar" && w.size() == 2 && w[1] == "bond") {
+        //  What a click on the Bond button does: toggle, then the tool event.
+        p_modeToolbar->ToggleTool(ID_MODE_BOND, true);
+        wxCommandEvent toolEv(wxEVT_TOOL, ID_MODE_BOND);
+        toolEv.SetInt(1);
+        GetEventHandler()->ProcessEvent(toolEv);
       } else if (w[0] == "bondkind" && w.size() == 2) {
         //  The kind of bond Bond mode makes, sent as the Bond tool sends it:
         //  covalent or metal (a bond order is not settable).

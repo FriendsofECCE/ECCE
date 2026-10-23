@@ -31,7 +31,7 @@ way.
 
 ## π ligands: the Metal-π bond
 
-Choose the **Metal-π** bond kind in the Bond tool's drop-down. Click the metal (the atom or
+Choose the **Metal-π** bond kind in the Build panel and press the **Bond** button in the Mode Toolbar. Click the metal (the atom or
 one of its nubs) and then any atom of the ligand. The order of the two
 clicks does not matter.
 

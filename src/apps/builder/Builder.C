@@ -746,6 +746,10 @@ void Builder::createToolbar()
     p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeIcon(ShapeData::tetrahedral),
                            _("Coordination geometry of atoms added in Build mode"),
                            wxITEM_NORMAL);
+    wxBitmapBundle bondBitmap = ewxBitmap::colorIcon("svg/candidates/e/bond.svg", wxSize(22, 22));
+    p_modeToolbar->AddTool(ID_MODE_BOND, _T(""), bondBitmap,
+                           _("Draw bonds (bond kind: set in the Build panel)"),
+                           wxITEM_CHECK);
     wxBitmapBundle structBitmap = ewxBitmap::colorIcon("svg/candidates/e/library.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_STRUCTLIB, _T(""), structBitmap,
                            _("Import from Structure Library"), wxITEM_CHECK);
@@ -2261,6 +2265,7 @@ void Builder::toggleModeButton(int modeId)
   p_modeToolbar->ToggleTool(ID_MODE_TRANSLATE, modeId == ID_MODE_TRANSLATE);
   p_modeToolbar->ToggleTool(ID_MODE_ZOOM, modeId == ID_MODE_ZOOM);
   p_modeToolbar->ToggleTool(ID_MODE_ATOM, modeId == ID_MODE_ATOM);
+  p_modeToolbar->ToggleTool(ID_MODE_BOND, modeId == ID_MODE_BOND);
   p_modeToolbar->ToggleTool(ID_MODE_STRUCTLIB, modeId == ID_MODE_STRUCTLIB);
 
   p_modeMenu->Check(modeId, true);
