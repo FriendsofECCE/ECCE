@@ -536,6 +536,34 @@ sub gaussian
             "so nothing on it takes effect.");
   }
 
+  #  Excited states.  Only things that are wrong by construction are
+  #  flagged; whether TD suits the functional is the user's call.
+  if ($route =~ /(?:^|\s)(TDA?)\s*(?:=\s*\(?([^\s)]*)|\(([^)]*)\))?/i) {
+    my $opts = defined($3) ? $3 : (defined($2) ? $2 : "");
+    my $at = $routeAt + 1;
+    if ($opts =~ /NStates\s*=\s*(-?\d+)/i && $1 < 1) {
+      finding("UNSURE", $at, "excited",
+              "NStates is $1; TD needs at least one state.");
+    } else {
+      finding("GOOD", $at, "excited", "TD excited-state request is present.");
+    }
+    if ($route =~ /(?:^|[\s\/])RO\w*/i && $route !~ /\bUHF\b/i) {
+      finding("UNSURE", $at, "excited",
+              "TD is not available for a restricted open-shell (RO) " .
+              "reference in Gaussian.");
+    }
+    if ($route =~ /\b(MP[2-5]|CCSD|CCD|QCISD|CASSCF|CIS)\b/i) {
+      finding("UNSURE", $at, "excited",
+              "TD is requested together with a correlated or CI method; " .
+              "TD applies to HF and DFT references.");
+    }
+    if ($route =~ /\bopt\b/i && $opts !~ /root/i) {
+      finding("UNSURE", $at, "excited",
+              "TD with an optimisation optimises the geometry of the first " .
+              "excited state, not the ground state.");
+    }
+  }
+
   #  ---------------------------------------------------------- Link 0
   my @late;
   for my $i ($routeAt + 1 .. $#L) {
@@ -946,6 +974,48 @@ sub orca
   }
 
   orcaBasis(\@L);
+
+  #  Excited states: a %tddft block.  Only what is wrong by construction
+  #  is flagged.
+  {
+    my $tdAt = 0;
+    my $inTd = 0;
+    my ($nroots, $triplets);
+    for my $i (0 .. $#L) {
+      if ($L[$i] =~ /^\s*%tddft\s*$/i) { $inTd = 1; $tdAt = $i + 1; next; }
+      if ($inTd && $L[$i] =~ /^\s*end\s*$/i) { $inTd = 0; next; }
+      if ($inTd) {
+        $nroots   = $1 if ($L[$i] =~ /^\s*nroots\s+(-?\d+)/i);
+        $triplets = $1 if ($L[$i] =~ /^\s*triplets\s+(\w+)/i);
+      }
+    }
+    if ($tdAt) {
+      if (!defined($nroots)) {
+        finding("UNSURE", $tdAt, "excited",
+                "The %tddft block gives no nroots; ORCA will compute " .
+                "only its default number of states.");
+      } elsif ($nroots < 1) {
+        finding("BAD", $tdAt, "excited",
+                "nroots is $nroots; %tddft needs at least one state.");
+      } else {
+        finding("GOOD", $tdAt, "excited", "TD-DFT asks for $nroots states.");
+      }
+      my $kw = $bang ? $L[$bang - 1] : "";
+      if ($kw =~ /\b(\w*MP2\w*|CCSD\w*|CASSCF|NEVPT2|CASPT2|DLPNO\S*)/i) {
+        finding("UNSURE", $tdAt, "excited",
+                "%tddft acts on the SCF/DFT reference; the correlated " .
+                "method on the '!' line does not give excited states.");
+      }
+      if (defined($triplets) && $triplets =~ /^(true|1|yes)$/i &&
+          $whole =~ /^\s*\*\s*\w+\s+-?\d+\s+([2-9]\d*)\b/m) {
+        finding("UNSURE", $tdAt, "excited",
+                "Triplets are requested for an open-shell (multiplicity " .
+                "$1) system; ORCA's unrestricted TD-DFT has no " .
+                "singlet/triplet split.");
+      }
+    }
+  }
+
 
   #  The geometry block.
   my $openAt = -1;

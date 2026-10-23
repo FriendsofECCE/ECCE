@@ -52,11 +52,39 @@ class ExcitedStates
         "8 -> 9   0.705". */
     std::vector<std::string> transitionLines(int i) const;
 
+    /** Number of occupied alpha (and beta, 0 = same as alpha) orbitals, from
+        the calculation's occupations.  Without it the HOMO is taken as the
+        highest occupied orbital that any state mentions, which is a lower
+        bound. */
+    void setHomo(int alpha, int beta = 0) { p_homoA = alpha; p_homoB = beta; }
+
+    /** 1-based index of the HOMO for a spin letter ('a', 'b' or 0). */
+    int homo(char spin) const;
+
+    /** "HOMO", "HOMO-1", "LUMO", "LUMO+2" for a 1-based orbital number. */
+    static std::string orbitalLabel(int mo, int homo);
+
+    /** Orbital number out of "8a" or "8" (0 when there is none) and its spin
+        letter (0 when there is none). */
+    static int orbitalNumber(const std::string& s, char* spin = 0);
+
+    /** Percent weight of a transition in its state.  ORCA's coefficients are
+        normalised (weight c^2, and its transitions carry a spin letter);
+        Gaussian's restricted singlets and triplets are normalised to
+        2 sum c^2 = 1. */
+    static double weightPercent(const ExcitedTransition& t,
+                                const std::string& stateLabel);
+
+    /** Like transitionLines, for display: "HOMO-1 -> LUMO+2   62.3 %   [MO 7
+        -> 11]", largest weight first; the raw MO numbers stay in brackets. */
+    std::vector<std::string> transitionLabels(int i) const;
+
     /** The spectrum model drawn against `unit` (X_EV or X_NM). */
     VibSpectrum spectrum(SpectrumXUnit unit) const;
 
   private:
     std::vector<ExcitedState> p_states;
+    int p_homoA = 0, p_homoB = 0;
 };
 
 /**

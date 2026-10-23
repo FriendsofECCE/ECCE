@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -62,6 +63,74 @@ vector<string> ExcitedStates::transitionLines(int i) const
     char b[96];
     snprintf(b, sizeof b, "%s -> %s   %.3f", t[k].from.c_str(),
              t[k].to.c_str(), t[k].coefficient);
+    out.push_back(b);
+  }
+  return out;
+}
+
+int ExcitedStates::orbitalNumber(const string& s, char* spin)
+{
+  if (spin) *spin = 0;
+  const int n = atoi(s.c_str());
+  if (spin && !s.empty() && isalpha((unsigned char)s[s.size() - 1]))
+    *spin = (char)tolower((unsigned char)s[s.size() - 1]);
+  return n;
+}
+
+string ExcitedStates::orbitalLabel(int mo, int homo)
+{
+  char b[32];
+  if (mo <= 0 || homo <= 0) {
+    snprintf(b, sizeof b, "MO %d", mo);
+  } else if (mo <= homo) {
+    if (mo == homo) return "HOMO";
+    snprintf(b, sizeof b, "HOMO-%d", homo - mo);
+  } else {
+    if (mo == homo + 1) return "LUMO";
+    snprintf(b, sizeof b, "LUMO+%d", mo - homo - 1);
+  }
+  return b;
+}
+
+int ExcitedStates::homo(char spin) const
+{
+  if (spin == 'b' && p_homoB > 0) return p_homoB;
+  if (p_homoA > 0) return p_homoA;
+  int h = 0;
+  for (size_t i = 0; i < p_states.size(); i++)
+    for (size_t k = 0; k < p_states[i].transitions.size(); k++)
+      h = std::max(h, orbitalNumber(p_states[i].transitions[k].from));
+  return h;
+}
+
+double ExcitedStates::weightPercent(const ExcitedTransition& t,
+                                    const string& stateLabel)
+{
+  char spin = 0;
+  orbitalNumber(t.from, &spin);
+  const bool restricted = spin == 0 &&
+      (stateLabel.compare(0, 7, "Singlet") == 0 ||
+       stateLabel.compare(0, 7, "Triplet") == 0);
+  return 100.0 * (restricted ? 2.0 : 1.0) * t.coefficient * t.coefficient;
+}
+
+vector<string> ExcitedStates::transitionLabels(int i) const
+{
+  vector<ExcitedTransition> t = p_states[i].transitions;
+  std::stable_sort(t.begin(), t.end(),
+                   [](const ExcitedTransition& a, const ExcitedTransition& b) {
+                     return std::fabs(a.coefficient) > std::fabs(b.coefficient);
+                   });
+  vector<string> out;
+  for (size_t k = 0; k < t.size(); k++) {
+    char sa = 0, sb = 0;
+    const int from = orbitalNumber(t[k].from, &sa);
+    const int to = orbitalNumber(t[k].to, &sb);
+    char b[160];
+    snprintf(b, sizeof b, "%s -> %s   %.1f %%   [MO %d -> %d]",
+             orbitalLabel(from, homo(sa)).c_str(),
+             orbitalLabel(to, homo(sb)).c_str(),
+             weightPercent(t[k], p_states[i].label), from, to);
     out.push_back(b);
   }
   return out;

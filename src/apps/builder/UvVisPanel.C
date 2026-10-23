@@ -190,6 +190,15 @@ void UvVisPanel::load()
     }
   }
   p_states.set(e, osc, labels, tr);
+  //  The HOMO comes from the occupations, not from the transitions.
+  int homoA = 0, homoB = 0;
+  PropVector *occA = dynamic_cast<PropVector*>(calc->getProperty("ORBOCC"));
+  PropVector *occB = dynamic_cast<PropVector*>(calc->getProperty("ORBOCCBETA"));
+  for (int i = 0; occA != 0 && i < occA->rows(); i++)
+    if (occA->value(i) > 0.0) homoA = i + 1;
+  for (int i = 0; occB != 0 && i < occB->rows(); i++)
+    if (occB->value(i) > 0.0) homoB = i + 1;
+  p_states.setHomo(homoA, homoB);
   p_selected = -1;
   setAxis(p_unit);
   fillTable();
@@ -286,7 +295,7 @@ void UvVisPanel::showTransitions(int row)
   if (!s.label.empty()) text += "  " + wxString::FromUTF8(s.label.c_str());
   text += wxString::Format(":  %.4f eV,  %.1f nm,  f = %.4f\n", s.ev,
                            ExcitedStates::nm(s.ev), s.f);
-  const std::vector<std::string> lines = p_states.transitionLines(row);
+  const std::vector<std::string> lines = p_states.transitionLabels(row);
   if (lines.empty()) text += "No transitions were printed for this state.";
   for (size_t i = 0; i < lines.size(); i++)
     text += wxString::FromUTF8(lines[i].c_str()) + "\n";

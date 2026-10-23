@@ -4,6 +4,7 @@
 ##$tag##:
 #p
 $_[0]
+$abidict{
 $abifile
 $abifile\n
 $argv[0]
@@ -35,9 +36,11 @@ $group
 $i
 $iter
 $itmp
+$key
 $key\n
 $message
 $message\n
+$n
 $name_coordinants\n
 $namebasis
 $nametobasis{$lib}\n
@@ -50,6 +53,7 @@ $opt_n\.basis
 $opt_n\.con
 $opt_n\.frag
 $opt_n\.param
+$opts
 $primcnt\n
 $prim{rexponent}
 $qstblocks[0]->{xyz}[$index]\n
@@ -116,6 +120,7 @@ $z
 3df
 3pd
 4-31g
+50-50
 5d
 6-21g
 6-31++g
@@ -394,6 +399,7 @@ energy
 enonly
 epr-ii
 epr-iii
+eq
 erbium
 error
 error:
@@ -425,6 +431,9 @@ es.theory.scf.direct
 es.theory.scf.scrf
 es.theory.scf.solvent
 es.theory.scf.usescrf
+es.theory.tddft.nstates
+es.theory.tddft.spin
+es.theory.tddft.tda
 es.theory.usecartesian
 es.theory.usefrozencores
 espcharges
@@ -786,6 +795,7 @@ silver
 single
 singleorigin
 singlepoint
+singlets
 slater
 sodium
 sogga11
@@ -823,6 +833,7 @@ t
 tag
 tantalum
 td
+tda
 technetium
 tellurium
 temperature
@@ -854,6 +865,7 @@ tpssh
 transformations
 transition
 translation
+triplets
 true
 ts
 ts_guess
@@ -872,6 +884,7 @@ ump2
 ump3
 ump4
 undefined
+unless
 unrecognized
 uqcisd
 uranium
