@@ -1922,6 +1922,11 @@ add_executable(chooser_shot tests/builder/chooser_shot.C src/apps/builder/Elemen
 target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS})
 target_compile_definitions(chooser_shot PRIVATE ${wxWidgets_DEFINITIONS})
 target_link_libraries(chooser_shot PRIVATE eccewxgui eccewxthings eccetdat ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
+# The Calculation Summary's long-value wrap alone (#490).
+add_executable(summary_wrap_shot tests/builder/summary_wrap_shot.C)
+target_include_directories(summary_wrap_shot PRIVATE ${wxWidgets_INCLUDE_DIRS} ${GTK3_INCLUDE_DIRS})
+target_compile_definitions(summary_wrap_shot PRIVATE ${wxWidgets_DEFINITIONS})
+target_link_libraries(summary_wrap_shot PRIVATE eccewxgui eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
 add_test(NAME elementlayout COMMAND elementlayout_test)
 # The Density Map's picture of a calculation folder without the Builder (#215).
 add_executable(densitymap_shot tests/builder/densitymap_shot.C src/apps/builder/DensityMapDraw.C)
