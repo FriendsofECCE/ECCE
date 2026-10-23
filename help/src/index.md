@@ -83,6 +83,12 @@ describe what you did and what happened.
    and extra `.mdp` lines.
 16. [Bonds in the Builder](bonds-and-clean.md): bonds have no order; the atom's
    geometry decides, and what Clean assumes.
+17. [The Density Map](density-map.md): the electron density or one orbital as
+   contours on a plane through the molecule; the plane, the offset, picking
+   atoms, reading the map and exporting it.
+18. [The MO diagram](mo-diagram.md): the orbitals of a calculation as levels
+   joined to the orbitals of its parts; what the labels, the star, nb and the
+   line weights mean.
 
 Reference:
 

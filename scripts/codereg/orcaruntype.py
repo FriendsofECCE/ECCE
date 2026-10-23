@@ -146,7 +146,7 @@ class OrcaRunTypePanel(EccePanel):
         # for. ORCA computes them from the converged density of whatever job
         # ran, so they are offered for every run type. NBO needs NBOEXE in
         # the machine's ORCA environment.
-        chargeSizer = EcceBoxSizer(self, label="Partial Charges", cols=1)
+        chargeSizer = EcceBoxSizer(self, label="Partial Charges", cols=2)
         self.useChelpg = EcceCheckBox(self,
                                       label=" CHELPG charges (ESP fit)",
                                       name="ES.Runtype.ORCA.UseCHELPG",

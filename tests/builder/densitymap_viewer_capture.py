@@ -45,6 +45,22 @@ dmstate
 dmplane 3
 dmstate
 """),
+    #  Release pictures: the 3-D view (white) and the map of the same state.
+    "water-release": ("ecceqm-water", """
+background 1 1 1
+dmoffset 0
+rotate 70
+rotatex -30
+viewall
+hold 1
+snap viewer-water-density
+dmpng map-water-density 900 700
+dmfollow 4
+hold 1
+snap viewer-water-mo4
+dmpng map-water-mo4 900 700
+dmstate
+"""),
     #  NH3 is not planar: the molecular and the perpendicular plane are
     #  greyed out, so choosing entry 2 is refused (the last line fails).
     "nh3-greyed": ("orca-nh3-c1", """
