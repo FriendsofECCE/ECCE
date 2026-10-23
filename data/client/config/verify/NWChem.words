@@ -44,6 +44,7 @@ $dimrows
 $env{ecce_home}/scripts/parsers
 $espfile
 $exponent
+$f
 $forceconstant
 $fragfile
 $gbs{$atom}\n
@@ -116,6 +117,8 @@ $wrote
 33.0\n
 36.64\n
 :n:t:pfbqchvse
+<basis>
+<file>
 >tmpfile
 [ecce-ai]
 \'$result\'
@@ -385,6 +388,7 @@ es.theory.nwchem.espcharges
 es.theory.scf.convergencealgorithm
 es.theory.scf.dielectric
 es.theory.scf.direct
+es.theory.scf.orbitalguessfile
 es.theory.scf.solvent
 es.theory.scf.solventradius
 es.theory.scf.usecosmo
@@ -592,6 +596,7 @@ np_dimensions
 nr
 numerical
 nwchem
+nwchem.movecs
 nwpw
 nwpw.a1x
 nwpw.a1y
@@ -629,6 +634,7 @@ or
 osmium
 other
 out
+output
 oxygen
 palladium
 parameter
@@ -654,6 +660,7 @@ potassium
 praseodymium
 print\n
 probe
+project
 promethium
 property
 property\n
@@ -810,7 +817,6 @@ value
 vanadium
 vdw
 vectors
-output
 version\n
 vibration
 vs98

@@ -79,10 +79,10 @@ $z
 %17.8f
 %18.8f
 %chk
-%oldchk
 %d
 %e
 %mem
+%oldchk
 %s
 &$sub
 &$subname
@@ -96,7 +96,6 @@ $z
 -h
 -v
 .0
-.chk
 .param
 0.0\n
 0:
@@ -429,6 +428,7 @@ es.theory.dft.usegd3bj
 es.theory.mp.direct
 es.theory.scf.dielectric
 es.theory.scf.direct
+es.theory.scf.orbitalguessfile
 es.theory.scf.scrf
 es.theory.scf.solvent
 es.theory.scf.usescrf
@@ -473,6 +473,7 @@ full
 full-direct
 fulldirect
 g
+g16.chk
 g96
 gadolinium
 gallium
@@ -855,7 +856,6 @@ thulium
 tight
 tin
 titanium
-title
 tmpfile
 to
 token
