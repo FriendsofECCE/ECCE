@@ -24,3 +24,10 @@ Esc: key events go to the focused canvas, so the frame binds `wxEVT_CHAR_HOOK`
 Structure Library, Build and Bond modes.
 Script hooks: `key escape`, `selectelem A`, and `info` (`mode= toolbar= checked=
 viewer=`, `nubs=`); test `tests/apps/builder_mode_test.py`, run by `run_tests.py`.
+
+Bond button (#462): `ID_MODE_BOND` is a check tool on the mode toolbar beside
+Library; its click is `OnModeBondClick`, which publishes `BondChanged` with the
+Build panel's kind, so the button never chooses one. `toggleModeButton` must
+toggle it too, or Mode > Bond leaves it unpressed. Script hook `toolbar bond`;
+test `tests/apps/builder_bond_button_test.py`. Icon: `bond.svg`, from
+`tools/screenshots/build_icons_e.py`.

@@ -435,6 +435,15 @@ def element(i):
     i.sphere(16, 16, 12, "#f4f4f6", "#9096a2", "#40454f", rim="#30343c")
 
 
+@icon
+def bond(i):
+    #  Classic ECCE's bond tool: two grey balls joined by a stick (B_single).
+    i.shadow(16, 25, 12, 1.4, .2)
+    stick(i, 7.5, 16, 24.5, 16, w=3.4)
+    for x in (7.5, 24.5):
+        i.sphere(x, 16, 6.2, "#f4f4f6", "#9096a2", "#40454f", rim="#30343c")
+
+
 #  Manipulator and Measure toolbars (Classic ECCE sphere22/rotation22 and
 #  measure_*): candidates, not wired in until reviewed.
 def red_x(i):

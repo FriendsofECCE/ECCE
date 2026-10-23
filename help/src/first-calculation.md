@@ -81,6 +81,13 @@ If you prefer to draw the molecule yourself:
 The default shape of oxygen is Bent, with two open bonds, and **Add
 Hydrogen** fills each open bond with a hydrogen atom.
 
+To join two atoms yourself, click the **Bond** button in the Mode Toolbar
+(two grey balls joined by a stick; tooltip **Draw bonds**), or choose
+**Mode > Bond** (Ctrl+6). Click the first atom, then the second. The kind of
+bond (Covalent or Metal-π) is chosen in the Build panel, not on the button.
+The button stays pressed while Bond mode is active; press **Esc** or click
+another mode button to leave it.
+
 Then save the structure:
 
 1. Choose **File > Save** (Ctrl+S).
