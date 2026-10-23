@@ -1,5 +1,6 @@
 #include "output.hpp"
 #include "polar.hpp"
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
@@ -382,6 +383,53 @@ void write_molden(std::ostream& os, const Input& in, const Basis& b, const ScfRe
       for (int k = 0; k < b.nbf(); ++k) os << " " << k + 1 << " " << r.C_a(perm[k], i) << "\n";
     }
   }
+}
+
+// Format: "ecce-qm-orbitals 1", basis name, natoms and their Z, nbf, nalpha,
+// nbeta, restricted flag, then C_a (and C_b unless restricted) row by row.
+void write_orbitals(std::ostream& os, const Input& in, const Molecule& mol, const ScfResult& r) {
+  const bool same_spin = r.reference != Reference::Unrestricted;
+  os << "ecce-qm-orbitals 1\nbasis " << in.basis << "\natoms " << mol.atoms.size();
+  for (const Atom& a : mol.atoms) os << " " << a.Z;
+  os << "\nnbf " << r.C_a.rows() << "\nelectrons " << r.nalpha << " " << r.nbeta
+     << "\nrestricted " << (same_spin ? 1 : 0) << "\n" << std::setprecision(17);
+  auto put = [&](const Mat& C) {
+    for (int i = 0; i < C.rows(); ++i) {
+      for (int j = 0; j < C.cols(); ++j) os << (j ? " " : "") << C(i, j);
+      os << "\n";
+    }
+  };
+  put(r.C_a);
+  if (!same_spin) put(r.C_b);
+}
+
+bool read_orbitals(std::istream& is, const Input& in, const Molecule& mol, int nbf, ScfResult& r, std::string& why) {
+  std::string tok, ver, basis;
+  size_t nat = 0;
+  int n = 0, na = 0, nb = 0, restricted = 1;
+  if (!(is >> tok >> ver) || tok != "ecce-qm-orbitals") { why = "not an ecce-qm orbital file"; return false; }
+  is >> tok >> basis >> tok >> nat;
+  std::vector<int> z(nat);
+  for (int& v : z) is >> v;
+  is >> tok >> n >> tok >> na >> nb >> tok >> restricted;
+  if (!is) { why = "the orbital file is damaged"; return false; }
+  auto lower = [](std::string s) { for (char& c : s) c = static_cast<char>(std::tolower(c)); return s; };
+  if (lower(basis) != lower(in.basis) || n != nbf) { why = "it was made with the basis set " + basis; return false; }
+  bool atoms = nat == mol.atoms.size();
+  for (size_t i = 0; atoms && i < nat; ++i) atoms = z[i] == mol.atoms[i].Z;
+  if (!atoms) { why = "its atoms differ"; return false; }
+  auto get = [&](Mat& C) {
+    C.resize(n, n);
+    for (int i = 0; i < n; ++i)
+      for (int j = 0; j < n; ++j) is >> C(i, j);
+  };
+  get(r.C_a);
+  if (restricted) r.C_b = r.C_a; else get(r.C_b);
+  if (!is) { why = "the orbital file is damaged"; return false; }
+  r.nalpha = na;
+  r.nbeta = nb;
+  r.converged = true;
+  return true;
 }
 
 }  // namespace qm

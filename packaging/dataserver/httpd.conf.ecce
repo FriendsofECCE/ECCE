@@ -241,6 +241,8 @@ AddType  chemical/x-nwchem-guess       .movecsin
 
 # ECCE-QM, the bundled engine: distinctive extensions, as for ORCA above.
 AddType  chemical/x-ecceqm-input  .qmin
+AddType  chemical/x-ecceqm-orbitals  .qmorb
+AddType  chemical/x-ecceqm-guess  .qmorbin
 AddType  chemical/x-ecceqm-output .qmout
 
 # MOPAC. Same reasoning as ORCA above, with one MOPAC-specific twist:

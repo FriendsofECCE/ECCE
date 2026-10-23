@@ -3094,6 +3094,20 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_nwchem_guess_central PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  # #407: an ECCE-QM job's final orbitals as the guess of the next.
+  add_test(NAME launch_ecceqm_guess
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecceqm_guess_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_ecceqm_guess PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_ecceqm_guess_central
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecceqm_guess_test.py
+                   --build ${CMAKE_BINARY_DIR} --central
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_ecceqm_guess_central PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # A GROMACS MD study through the real editors (private Xvfb), launches and
   # results; skipped (77) without gmx or Xvfb.  Needs the GUI apps built.
   add_test(NAME launch_gromacs

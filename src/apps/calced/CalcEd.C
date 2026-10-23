@@ -3432,7 +3432,10 @@ void CalcEd::refreshOrbitalGuess()
               wxString::FromUTF8(p_basis->name())) != 0) {
         //  The deck has no "vectors input project": NWChem stops on a
         //  vectors file of another basis.
-        if (p_codeName == "NWChem")
+        if (p_codeName == "ECCE-QM")
+          text += "; ECCE-QM needs the same basis set (" + was +
+                  "): choose it again or use the default guess";
+        else if (p_codeName == "NWChem")
           text += "; NWChem needs the same basis set (" + was +
                   "): choose it again or use the default guess";
         else

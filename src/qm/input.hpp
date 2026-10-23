@@ -16,6 +16,10 @@
 //   guess_mix <true|false>       unrestricted singlet: start from a 45 degree
 //                                HOMO/LUMO mix of the alpha orbitals (broken
 //                                symmetry; default false)
+//   read_orbitals <file>         start the SCF from the orbitals a write_orbitals
+//                                file holds (same basis name and atoms, else
+//                                ignored with a note on stderr)
+//   write_orbitals <file>        keep the final orbitals for read_orbitals
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
 //   runtype <energy|gradient|optimize|frequency|optfreq|ts>   default energy;
@@ -98,6 +102,7 @@ struct Input {
   int spherical = 1;     // 1 spherical, 0 Cartesian
   ScfOptions scf;
   bool molden = false;
+  std::string read_orbitals, write_orbitals;  // file names, empty: none
   ChargeOptions charges;  // extra charge sets (keyword "charges")
   RunType runtype = RunType::Energy;
   OptOptions opt;

@@ -266,6 +266,11 @@ sub QMControl {
   $result .= "multiplicity " . &Multiplicity . "\n";
   $result .= "method " . &Method($AbiDict{"Category"}, $AbiDict{"Theory"}) . "\n";
   $result .= "spherical true\n";
+  # A fixed name lets the edml keep the final orbitals whatever the
+  # calculation is called; the guess, if any, is staged as guess.qmorbin.
+  my $guess = $AbiDict{"ES.Theory.SCF.OrbitalGuessFile"};
+  $result .= "read_orbitals $guess\n" if (defined($guess) && $guess ne "");
+  $result .= "write_orbitals ecceqm.qmorb\n";
   my @schemes;
   push(@schemes, "loewdin") if ($AbiDict{"ES.Theory.ECCEQM.Loewdin"} eq "1");
   push(@schemes, "chelpg") if ($AbiDict{"ES.Theory.ECCEQM.CHELPG"} eq "1");

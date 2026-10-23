@@ -61,6 +61,8 @@ chemical/x-gaussian-16-guess             .chkin
 chemical/x-nwchem-movecs                 .movecs
 chemical/x-nwchem-guess                  .movecsin
 chemical/x-ecceqm-input                  .qmin
+chemical/x-ecceqm-orbitals               .qmorb
+chemical/x-ecceqm-guess                  .qmorbin
 chemical/x-ecceqm-output                 .qmout
 chemical/x-mopac-input                   .mop
 chemical/x-mopac-output                  .mopout
