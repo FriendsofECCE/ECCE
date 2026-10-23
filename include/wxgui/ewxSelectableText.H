@@ -33,4 +33,12 @@ void ewxMakeSelectable(wxWindow *label);
 /** Whether `w` lets its text be selected (for tests). */
 bool ewxIsSelectable(wxWindow *w);
 
+/**
+ * Makes the right-hand column of a two-column grid body wrap within the
+ * window's width (#490), breaking inside a word (at '/' and '_' in paths)
+ * only when it does not fit. GTK only; elsewhere the labels stay on one
+ * line. Call after the rows are added; the wrap follows size events.
+ */
+void ewxWrapValueColumn(wxWindow *body);
+
 #endif

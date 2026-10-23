@@ -294,6 +294,7 @@ void CalcInfoPanel::refresh()
        n = n->GetNext(), col = 1 - col)
     if (col == 1 && n->GetData()->GetWindow())
       ewxMakeSelectable(n->GetData()->GetWindow());
+  ewxWrapValueColumn(p_body);  // long values wrap within the panel (#490)
   p_body->FitInside();
   SetMinSize(wxSize(p_body->GetSizer()->GetMinSize().x, -1));
   Layout();
