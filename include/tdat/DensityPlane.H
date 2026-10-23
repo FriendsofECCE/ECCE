@@ -30,7 +30,9 @@ namespace DensityPlane
   {
     double origin[3], u[3], v[3], n[3];
     double rms;          // out-of-plane scatter of all atoms (best fit), A
-    string description;
+    double offset;       // distance moved along n from the base plane, A
+    string description;  // includes the offset ("0.8 A above ...")
+    string base;         // without it
     Plane();
   };
 
@@ -45,17 +47,40 @@ namespace DensityPlane
                  const vector<string>& labels, int a, int b, int c,
                  Plane& plane, string& complaint);
 
+  /**
+   * The plane moved `distance` A along its normal (from the plane as it
+   * was before any offset), for the offset slider.  The description then
+   * reads "0.8 A above plane through C1, C2, C3".
+   */
+  Plane offsetPlane(const Plane& plane, double distance);
+
+  /**
+   * The plane parallel to the screen through the atoms' centre.  `right`
+   * and `up` are the camera's screen axes in the stored frame; the plane
+   * keeps them as its u and v, so it is a plane, not a view.
+   */
+  bool makeViewPlane(const vector<double>& coordsAng, const double right[3],
+                     const double up[3], Plane& plane, string& complaint);
+
+  /** Same energy within this many Eh: the MO diagram's grouping tolerance. */
+  const double DEGENERACY_TOLERANCE = 1.5e-5;
+
+  /** 1-based orbitals degenerate with `mo` (including it), in order. */
+  vector<int> degenerateSet(const vector<double>& energy, int mo,
+                            double tolerance = DEGENERACY_TOLERANCE);
+
   /** Planar within `tolerance` A (rms), or linear. */
   bool isPlanar(const vector<double>& coordsAng, double tolerance = 0.1);
 
-  enum Quantity { DENSITY, ORBITAL };
+  /** ORBITAL_SET: the sum of psi^2 over the orbitals degenerate with `mo`. */
+  enum Quantity { DENSITY, ORBITAL, ORBITAL_SET };
 
   struct Mark { string label; double u, v, off; };   // off: distance to the plane
 
   struct Map
   {
     Quantity quantity;
-    int  mo;            // 1-based, ORBITAL only
+    int  mo;            // 1-based, ORBITAL and ORBITAL_SET
     bool beta;
     int  nu, nv;
     double u0, v0, step;
@@ -69,11 +94,18 @@ namespace DensityPlane
     double v(int j) const { return v0 + j*step; }
   };
 
+  /** The window the atoms need on the plane: extent + margin, A. */
+  void window(const Plane& plane, const vector<double>& coordsAng,
+              double margin, double& u0, double& u1, double& v0, double& v1);
+
   /** One line segment of a contour, in plane coordinates (A). */
   struct Segment { double u0, v0, u1, v1; };
 
   /** Marching squares at `level`, linear interpolation. */
   vector<Segment> contour(const Map& m, double level);
+
+  /** Value at (u, v) of the plane, in the stored frame (x, y, z), A. */
+  void pointOn(const Plane& plane, double u, double v, double xyz[3]);
 
   /** 0.001 * 2^k e/bohr^3 up to the map's maximum (at most maxLevels). */
   vector<double> densityLevels(double zmax, int maxLevels = 14);

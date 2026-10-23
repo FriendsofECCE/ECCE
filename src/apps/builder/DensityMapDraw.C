@@ -90,7 +90,7 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   dc.SetClippingRegion(wxRound(ox), wxRound(oy), wxRound(pw) + 1, wxRound(ph) + 1);
   struct Line { double value; wxColour colour; wxPenStyle style; };
   vector<Line> legend;
-  if (m.quantity == DENSITY) {
+  if (m.quantity != ORBITAL) {
     const vector<double> lv = densityLevels(m.zmax);
     for (size_t k = 0; k < lv.size(); k++) {
       Line l = { lv[k], viridis(lv.size() > 1 ? double(k)/(lv.size()-1) : 0.0), wxPENSTYLE_SOLID };
@@ -119,13 +119,13 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   for (size_t a = 0; a < m.atoms.size(); a++) {
     const Mark& k = m.atoms[a];
     const bool inPlane = fabs(k.off) < 0.3;
-    dc.SetPen(wxPen(*wxBLACK, 1));
-    dc.SetBrush(inPlane ? wxBrush(*wxBLACK) : wxBrush(*wxWHITE));
-    dc.DrawCircle(wxRound(X(k.u)), wxRound(Y(k.v)), 4);
-    wxString label = wxString::FromUTF8(k.label.c_str());
-    if (!inPlane)
-      label += wxString::Format(" (%+.1f)", k.off);
-    dc.DrawText(label, wxRound(X(k.u)) + 6, wxRound(Y(k.v)) - 16);
+    //  Off-plane atoms are faint and unlabelled: they only locate the cut.
+    dc.SetPen(wxPen(inPlane ? *wxBLACK : wxColour(190, 190, 190), 1));
+    dc.SetBrush(inPlane ? wxBrush(*wxBLACK) : wxBrush(wxColour(235, 235, 235)));
+    dc.DrawCircle(wxRound(X(k.u)), wxRound(Y(k.v)), inPlane ? 4 : 3);
+    if (inPlane)
+      dc.DrawText(wxString::FromUTF8(k.label.c_str()), wxRound(X(k.u)) + 6,
+                  wxRound(Y(k.v)) - 16);
   }
   dc.DestroyClippingRegion();
 
@@ -135,6 +135,7 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   dc.SetBrush(*wxTRANSPARENT_BRUSH);
   dc.SetPen(*wxBLACK_PEN);
   dc.DrawText(m.quantity == DENSITY ? wxString::FromUTF8("e / bohr\xC2\xB3")
+                  : m.quantity == ORBITAL_SET ? wxString::FromUTF8("\xCF\x88\xC2\xB2 / bohr\xC2\xB3")
                                      : wxString::FromUTF8("\xCF\x88 / bohr\xE2\x81\xBB\xC2\xB3\xE2\x81\x84\xC2\xB2"),
               lx, ly - 18);
   for (size_t k = 0; k < legend.size(); k++, ly += 17) {

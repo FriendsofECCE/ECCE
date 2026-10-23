@@ -35,6 +35,7 @@ static void usage()
   cerr << "usage: densityplane CALC [--mo N|homo|lumo] [--beta]\n"
           "          [--plane molecular | --plane atoms A B C | --plane axial A B]\n"
           "          [--step A] [--margin A] [--csv FILE] [--levels]\n"
+          "          [--offset A] [--sum] [--view RX RY RZ UX UY UZ]\n"
           "       densityplane CALC --point X Y Z [--mo N]\n"
           "       densityplane CALC --line X0 Y0 Z0 X1 Y1 Z1 N [--mo N]\n";
 }
@@ -53,7 +54,9 @@ int main(int argc, char **argv)
   bool beta = false, levels = false;
   PlaneKind kind = MOLECULAR;
   int atoms[3] = { -1, -1, -1 };
-  double step = 0.05, margin = 2.5;
+  double step = 0.05, margin = 1.5, offset = 0.0;
+  bool sum = false, viewPlane = false;
+  double viewAxes[6] = { 1, 0, 0, 0, 1, 0 };
   vector<double> pts;     // x y z ... (point or line ends)
   int lineN = 0;
 
@@ -63,6 +66,12 @@ int main(int argc, char **argv)
     if (a == "--mo" && i+1 < argc) mo = argv[++i];
     else if (a == "--beta") beta = true;
     else if (a == "--levels") levels = true;
+    else if (a == "--sum") sum = true;
+    else if (a == "--offset") { if (!num(offset)) { usage(); return 2; } }
+    else if (a == "--view") {
+      viewPlane = true;
+      for (int n = 0; n < 6; n++) if (!num(viewAxes[n])) { usage(); return 2; }
+    }
     else if (a == "--csv" && i+1 < argc) csvFile = argv[++i];
     else if (a == "--step") { if (!num(step)) { usage(); return 2; } }
     else if (a == "--margin") { if (!num(margin)) { usage(); return 2; } }
@@ -138,13 +147,16 @@ int main(int argc, char **argv)
 
   Plane plane;
   string why;
-  if (!makePlane(kind, ev.coordsAng, ev.atomLabels(), atoms[0], atoms[1],
-                 atoms[2], plane, why)) {
+  if (viewPlane ? !makeViewPlane(ev.coordsAng, viewAxes, viewAxes + 3, plane, why)
+                : !makePlane(kind, ev.coordsAng, ev.atomLabels(), atoms[0],
+                             atoms[1], atoms[2], plane, why)) {
     cerr << "densityplane: " << why << endl;
     return 1;
   }
+  plane = offsetPlane(plane, offset);
   Map map;
-  if (!ev.map(plane, orbital ? ORBITAL : DENSITY, orbital, beta, step, margin, map)) {
+  if (sum && !orbital) { cerr << "densityplane: --sum needs --mo\n"; return 1; }
+  if (!ev.map(plane, sum ? ORBITAL_SET : orbital ? ORBITAL : DENSITY, orbital, beta, step, margin, map)) {
     cerr << "densityplane: the map is too large; raise --step\n";
     return 1;
   }
@@ -156,7 +168,7 @@ int main(int argc, char **argv)
            map.atoms[a].label.c_str(), map.atoms[a].u, map.atoms[a].v,
            map.atoms[a].off);
   if (levels) {
-    const vector<double> l = orbital
+    const vector<double> l = map.quantity == ORBITAL
         ? orbitalLevels(std::max(fabs(map.zmin), fabs(map.zmax)))
         : densityLevels(map.zmax);
     for (size_t k = 0; k < l.size(); k++)

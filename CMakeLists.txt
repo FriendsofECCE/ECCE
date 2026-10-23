@@ -1932,6 +1932,17 @@ target_link_libraries(densitymap_shot PRIVATE eccedsi eccedav eccecipc eccefaces
 set_tests_properties(elementlayout PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=elementlayout;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/elementlayout-home")
 
+# tests/tdat/densityplane_test (#215): plane model, offset, degenerate sum.
+add_executable(densityplane_test tests/tdat/densityplane_test.C)
+target_include_directories(densityplane_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(densityplane_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME densityplane
+  COMMAND densityplane_test ${CMAKE_SOURCE_DIR}/tests/builder/densitymap-fixtures)
+set_tests_properties(densityplane PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityplane;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityplane-home")
+
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)

@@ -6154,7 +6154,8 @@ void Builder::updatePropertyMenus()
         if (w[0] == "plotshot") return plotShotCommand(s, w, outdir);
         //  "densitymap <name> <w> <h> <orbital|0> <alpha|beta> <plane> [a b c]":
         //  the Density Map panel set up as given, saved to <name>.png (#215).
-        if (w[0] == "densitymap") return densityMapCommand(s, w, outdir);
+        if (w[0] == "densitymap" || w[0].compare(0, 2, "dm") == 0)
+          return densityMapCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
         //  "vib...": the Normal Modes panel on an edited structure.

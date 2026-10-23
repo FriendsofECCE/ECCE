@@ -3,7 +3,8 @@
 // panel uses, into a PNG.  Needs a display (Xvfb) for fonts.
 //
 //   densitymap_shot CALC OUT.png [--mo N|homo|lumo] [--beta]
-//       [--plane molecular | atoms A B C | axial A B] [--size W H]
+//       [--plane molecular | atoms A B C | axial A B] [--sum]
+//       [--offset A] [--view RX RY RZ UX UY UZ] [--size W H]
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -30,17 +31,23 @@ int main(int argc, char **argv)
 {
   if (argc < 3) {
     cerr << "usage: densitymap_shot CALC OUT.png [--mo N|homo|lumo] [--beta] "
-            "[--plane molecular | atoms A B C | axial A B] [--size W H]\n";
+            "[--plane molecular | atoms A B C | axial A B] [--sum] [--offset A] "
+            "[--view RX RY RZ UX UY UZ] [--size W H]\n";
     return 2;
   }
   string target = argv[1], out = argv[2], mo;
   bool beta = false;
   PlaneKind kind = MOLECULAR;
   int atoms[3] = { -1, -1, -1 }, width = 900, height = 700;
+  bool sum = false, view = false;
+  double offset = 0.0, axes[6] = { 1, 0, 0, 0, 1, 0 };
   for (int i = 3; i < argc; i++) {
     string a = argv[i];
     if (a == "--mo" && i+1 < argc) mo = argv[++i];
     else if (a == "--beta") beta = true;
+    else if (a == "--sum") sum = true;
+    else if (a == "--offset" && i+1 < argc) offset = atof(argv[++i]);
+    else if (a == "--view" && i+6 < argc) { view = true; for (int n = 0; n < 6; n++) axes[n] = atof(argv[++i]); }
     else if (a == "--size" && i+2 < argc) { width = atoi(argv[++i]); height = atoi(argv[++i]); }
     else if (a == "--plane" && i+1 < argc) {
       string k = argv[++i];
@@ -72,10 +79,14 @@ int main(int argc, char **argv)
   Plane plane;
   string why;
   Map map;
-  bool have = makePlane(kind, ev.coordsAng, ev.atomLabels(), atoms[0], atoms[1],
-                        atoms[2], plane, why) &&
-              ev.map(plane, orbital ? ORBITAL : DENSITY, orbital, beta,
-                     ev.symbols.size() > 20 ? 0.1 : 0.05, 2.5, map);
+  bool have = (view ? makeViewPlane(ev.coordsAng, axes, axes + 3, plane, why)
+                    : makePlane(kind, ev.coordsAng, ev.atomLabels(), atoms[0],
+                                atoms[1], atoms[2], plane, why));
+  if (have) {
+    plane = offsetPlane(plane, offset);
+    have = ev.map(plane, sum && orbital ? ORBITAL_SET : orbital ? ORBITAL : DENSITY,
+                  orbital, beta, ev.symbols.size() > 20 ? 0.1 : 0.05, 1.5, map);
+  }
   wxBitmap bmp(width, height);
   wxMemoryDC dc(bmp);
   paintDensityMap(dc, wxSize(width, height), have, map, wxString::FromUTF8(why.c_str()));

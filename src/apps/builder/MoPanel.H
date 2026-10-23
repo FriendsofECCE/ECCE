@@ -67,6 +67,8 @@ class MoPanel : public MoGUI,
     virtual void receiveFocus();
     virtual void loseFocus();
 
+    void tellDensityMap();
+    bool selectRowForMo(int number);
     void OnButtonMoComputeClick( wxCommandEvent& event );
     void OnButtonMoViewcoefClick( wxCommandEvent& event );
 

@@ -36,7 +36,7 @@ static bool normalise(double *a)
   return true;
 }
 
-Plane::Plane() : rms(0.0)
+Plane::Plane() : rms(0.0), offset(0.0)
 {
   for (int k = 0; k < 3; k++) origin[k] = u[k] = v[k] = n[k] = 0.0;
 }
@@ -102,7 +102,7 @@ bool isPlanar(const vector<double>& c, double tolerance)
   return sqrt(l[0]) < tolerance;
 }
 
-bool makePlane(PlaneKind kind, const vector<double>& c,
+static bool makePlaneBase(PlaneKind kind, const vector<double>& c,
                const vector<string>& labels, int a, int b, int cc,
                Plane& p, string& why)
 {
@@ -206,6 +206,86 @@ bool makePlane(PlaneKind kind, const vector<double>& c,
 }
 
 
+bool makePlane(PlaneKind kind, const vector<double>& c,
+               const vector<string>& labels, int a, int b, int cc,
+               Plane& p, string& why)
+{
+  if (!makePlaneBase(kind, c, labels, a, b, cc, p, why)) return false;
+  p.base = p.description;
+  p.offset = 0.0;
+  return true;
+}
+
+Plane offsetPlane(const Plane& in, double d)
+{
+  Plane p = in;
+  const double already = in.offset;
+  for (int k = 0; k < 3; k++) p.origin[k] += (d - already) * in.n[k];
+  p.offset = d;
+  const string base = in.base.empty() ? in.description : in.base;
+  p.base = base;
+  if (fabs(d) < 0.005) { p.description = base; return p; }
+  char buf[64];
+  snprintf(buf, sizeof buf, "%.1f \xC3\x85 %s ", fabs(d), d > 0 ? "above" : "below");
+  p.description = buf + base;
+  return p;
+}
+
+bool makeViewPlane(const vector<double>& c, const double right[3],
+                   const double up[3], Plane& p, string& why)
+{
+  if (c.size() < 3) { why = "No atoms."; return false; }
+  V3 u = { right[0], right[1], right[2] }, w = { up[0], up[1], up[2] };
+  if (!normalise(u)) { why = "The view has no direction."; return false; }
+  const double d = dot(w, u);
+  for (int k = 0; k < 3; k++) w[k] -= d*u[k];
+  if (!normalise(w)) { why = "The view axes are parallel."; return false; }
+  const size_t n = c.size() / 3;
+  for (int k = 0; k < 3; k++) {
+    p.origin[k] = 0;
+    for (size_t a = 0; a < n; a++) p.origin[k] += c[3*a+k] / n;
+    p.u[k] = u[k]; p.v[k] = w[k];
+  }
+  cross(p.u, p.v, p.n);
+  p.rms = 0.0;
+  p.offset = 0.0;
+  p.description = p.base = "plane parallel to the screen through the centre";
+  return true;
+}
+
+vector<int> degenerateSet(const vector<double>& e, int mo, double tol)
+{
+  vector<int> set;
+  if (mo < 1 || mo > (int)e.size()) return set;
+  for (int i = 0; i < (int)e.size(); i++)
+    if (fabs(e[i] - e[mo-1]) <= tol) set.push_back(i + 1);
+  return set;
+}
+
+void pointOn(const Plane& p, double u, double v, double xyz[3])
+{
+  for (int k = 0; k < 3; k++) xyz[k] = p.origin[k] + u*p.u[k] + v*p.v[k];
+}
+
+void window(const Plane& plane, const vector<double>& c, double margin,
+            double& u0, double& u1, double& v0, double& v1)
+{
+  double umin = 1e30, umax = -1e30, vmin = 1e30, vmax = -1e30;
+  for (size_t a = 0; a < c.size() / 3; a++) {
+    const double d[3] = { c[3*a] - plane.origin[0], c[3*a+1] - plane.origin[1],
+                          c[3*a+2] - plane.origin[2] };
+    const double u = dot(d, plane.u), v = dot(d, plane.v);
+    umin = std::min(umin, u); umax = std::max(umax, u);
+    vmin = std::min(vmin, v); vmax = std::max(vmax, v);
+  }
+  //  Never thinner than 2*(margin+1), so a diatomic's map is not a strip.
+  const double cu = 0.5*(umin + umax), cv = 0.5*(vmin + vmax);
+  const double hu = std::max(0.5*(umax - umin) + margin, margin + 1.0);
+  const double hv = std::max(0.5*(vmax - vmin) + margin, margin + 1.0);
+  u0 = cu - hu; u1 = cu + hu; v0 = cv - hv; v1 = cv + hv;
+}
+
+
 //----------------------------------------------------------------------
 //  Contours
 
@@ -282,8 +362,12 @@ string csv(const Map& m, const string& calcName)
   string s;
   char buf[200];
   s += "# " + calcName + ": " + m.title + ", " + m.plane.description + "\n";
+  char head[96];
+  snprintf(head, sizeof head, "# offset along the plane normal: %.3f A\n", m.plane.offset);
+  s += head;
   s += m.quantity == DENSITY ? "# value: electron density, e/bohr^3\n"
-                             : "# value: orbital amplitude, bohr^-3/2\n";
+     : m.quantity == ORBITAL_SET ? "# value: sum of psi^2 over the set, bohr^-3\n"
+     : "# value: orbital amplitude, bohr^-3/2\n";
   s += "u_A,v_A,x_A,y_A,z_A,value\n";
   for (int j = 0; j < m.nv; j++)
     for (int i = 0; i < m.nu; i++) {
@@ -420,7 +504,6 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
   out.step = step;
 
   const int natoms = (int)symbols.size();
-  double umin = 1e30, umax = -1e30, vmin = 1e30, vmax = -1e30;
   const vector<string> labels = atomLabels();
   for (int a = 0; a < natoms; a++) {
     double d[3] = { coordsAng[3*a] - plane.origin[0],
@@ -430,20 +513,21 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
     mk.label = labels[a];
     mk.u = dot(d, plane.u);  mk.v = dot(d, plane.v);  mk.off = dot(d, plane.n);
     out.atoms.push_back(mk);
-    umin = std::min(umin, mk.u); umax = std::max(umax, mk.u);
-    vmin = std::min(vmin, mk.v); vmax = std::max(vmax, mk.v);
   }
-  //  Square-ish window, never thinner than 2*margin, so a diatomic's map
-  //  is not a strip.
-  const double cu = 0.5*(umin + umax), cv = 0.5*(vmin + vmax);
-  const double hu = std::max(0.5*(umax - umin) + margin, margin + 1.0);
-  const double hv = std::max(0.5*(vmax - vmin) + margin, margin + 1.0);
-  out.nu = (int)ceil(2*hu/step) + 1;
-  out.nv = (int)ceil(2*hv/step) + 1;
+  double wu0, wu1, wv0, wv1;
+  window(plane, coordsAng, margin, wu0, wu1, wv0, wv1);
+  out.nu = (int)ceil((wu1 - wu0)/step) + 1;
+  out.nv = (int)ceil((wv1 - wv0)/step) + 1;
   if ((long)out.nu*out.nv > 1000000) return false;
-  out.u0 = cu - 0.5*(out.nu - 1)*step;
-  out.v0 = cv - 0.5*(out.nv - 1)*step;
+  out.u0 = 0.5*(wu0 + wu1) - 0.5*(out.nu - 1)*step;
+  out.v0 = 0.5*(wv0 + wv1) - 0.5*(out.nv - 1)*step;
   out.z.assign((size_t)out.nu*out.nv, 0.0);
+
+  vector<int> set;
+  if (q == ORBITAL_SET) {
+    set = degenerateSet(beta ? energyBeta : energy, mo);
+    if (set.empty()) return false;
+  }
 
   if (q == ORBITAL) {
     const vector<double>& e = beta ? energyBeta : energy;
@@ -455,6 +539,13 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
     else if (!beta && mo == h + 1) tag = " (LUMO)";
     snprintf(buf, sizeof buf, "MO %d%s%s", mo, beta ? " beta" : "", tag.c_str());
     out.title = buf;
+    const vector<int> same = degenerateSet(e, mo);
+    if (same.size() > 1) {
+      snprintf(buf, sizeof buf, ", component %d of %d degenerate (MOs %d-%d)",
+               (int)(std::find(same.begin(), same.end(), mo) - same.begin()) + 1,
+               (int)same.size(), same.front(), same.back());
+      out.title += buf;
+    }
     if (mo >= 1 && mo <= (int)e.size()) {
       snprintf(buf, sizeof buf, "  %.4f Eh", e[mo-1]);
       out.title += buf;
@@ -463,6 +554,13 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
       snprintf(buf, sizeof buf, "  occ %.2g", o[mo-1]);
       out.title += buf;
     }
+  } else if (q == ORBITAL_SET) {
+    char buf[160];
+    snprintf(buf, sizeof buf, "Sum of the %d degenerate orbitals, MOs %d-%d "
+             "(sum of squares)", (int)set.size(), set.front(), set.back());
+    out.title = buf;
+    if (!beta && set.front() <= homo() && set.back() > homo())
+      out.title += " - partly occupied";
   } else {
     out.title = "Total electron density";
   }
@@ -470,12 +568,19 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
   vector<double> phi;
   for (int j = 0; j < out.nv; j++) {
     for (int i = 0; i < out.nu; i++) {
-      const double u = out.u(i), v = out.v(j);
-      const double x = plane.origin[0] + u*plane.u[0] + v*plane.v[0];
-      const double y = plane.origin[1] + u*plane.u[1] + v*plane.v[1];
-      const double z = plane.origin[2] + u*plane.u[2] + v*plane.v[2];
-      out.z[(size_t)j*out.nu + i] =
-          q == DENSITY ? density(x, y, z) : orbital(mo, beta, x, y, z);
+      double p[3];
+      pointOn(plane, out.u(i), out.v(j), p);
+      double val;
+      if (q == DENSITY) val = density(p[0], p[1], p[2]);
+      else if (q == ORBITAL) val = orbital(mo, beta, p[0], p[1], p[2]);
+      else {
+        val = 0.0;
+        for (size_t s = 0; s < set.size(); s++) {
+          const double psi = orbital(set[s], beta, p[0], p[1], p[2]);
+          val += psi*psi;
+        }
+      }
+      out.z[(size_t)j*out.nu + i] = val;
     }
     if (onRow && !onRow((j + 1.0)/out.nv)) return false;
   }
