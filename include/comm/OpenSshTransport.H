@@ -36,6 +36,10 @@ public:
   // ask.  setAskTimeout is how long one attempt may wait for the answers.
   void setAskpass(const std::string& program) { p_askpass = program; }
   void setAskTimeout(int sec) { p_askTimeout = sec; }
+  // A password already known (Launcher field, AuthCache): offered once to
+  // askpass for the password prompt of an ECCE-owned master, never to a
+  // second-factor prompt.  Used only with ECCE_SSH_CONTROL_DIR.
+  void setPassword(const std::string& pw) { p_password = pw; }
   // Forgets which hosts had a refused or cancelled attempt (tests).
   static void forgetMasterAttempts();
   // The front end (ssh -J); the target is reached through it by OpenSSH.
@@ -98,9 +102,23 @@ public:
   // prompt of the proxy's ssh).  A proxied host that does not share gets
   // ControlMaster=auto, a short ControlPath under ~/.ECCE/cm and
   // ControlPersist=10m from ECCE; the user's own settings are never changed.
+  // With ECCE_SSH_CONTROL_DIR set (and valid, see ownedControlDir), auto
+  // mode serves every host with OpenSSH and ECCE owns the master, except a
+  // host behind a front end that needs nested ssh (jumpHost with
+  // ECCE_SSH_FRONTEND=nested), which stays on libssh.  Unset: as before.
   static Backend backendFor(const std::string& host,
                             const std::string& user = "",
-                            const std::string& configFile = "");
+                            const std::string& configFile = "",
+                            const std::string& jumpHost = "");
+
+  // ECCE_SSH_CONTROL_DIR when it is usable: a directory of ours, mode 0700,
+  // not a symlink, and short enough for a socket name inside it (ssh binds
+  // <path>.<16 chars> first, so the limit is 104 bytes on macOS).  "" when
+  // unset, on Windows, or refused (one log line says why).
+  static std::string ownedControlDir();
+  // The socket ECCE would use for this transport, "" when it does not own
+  // the master through ECCE_SSH_CONTROL_DIR.  A name of 16 hex digits.
+  std::string controlSocketPath() const;
 
   // What the user is told when ssh printed `err` and exited 255: a message
   // for a failure that needs a login by hand, or for a connection that could
@@ -132,6 +150,7 @@ private:
   std::vector<std::string> targetArgs() const;
   // True when ECCE supplies the Control* options for this host.
   bool ownsControl() const;
+  bool legacyOwnsControl() const;   // a proxied host, socket under ~/.ECCE/cm
   // The host's connection is shared, by the user's config or by ECCE.
   bool sharedConnection() const;
   // `ssh -O check`: is there a live master for this host?
@@ -142,11 +161,19 @@ private:
   // Opens the shared connection through askpass; true when it is live.  One
   // attempt at a time per host, and none for a while after a failed one.
   bool openMaster();
+  // True when ECCE_SSH_CONTROL_DIR makes this transport the owner.
+  bool ownsFromDir() const;
+  // True when r says the master's sshd refuses another session
+  // (MaxSessions); moves to the next overflow master and returns true when
+  // there is one to try.
+  bool nextOverflowMaster(const TransportResult& r);
+  std::string socketFor(int index) const;
+  int overflowIndex() const;
   bool putInto(const std::string& local, const std::string& remote,
                std::string& error);
 
   std::string p_host, p_user, p_jumpHost, p_jumpUser, p_configFile, p_program;
-  std::string p_askpass;
+  std::string p_askpass, p_password;
   int p_port, p_jumpPort, p_connectTimeout, p_askTimeout;
   bool p_connected;
 };

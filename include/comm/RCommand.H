@@ -235,7 +235,7 @@ private:
     bool sshConnectLibssh(const string& machine, const string& userName,
                           const string& password, const string& jumpHost);
     bool sshConnectOpenssh(const string& machine, const string& userName,
-                           const string& jumpHost);
+                           const string& jumpHost, const string& password);
     static bool useOpenssh(const string& machine, const string& userName,
                            const string& jumpHost);
     void adoptTransport(Transport* t);

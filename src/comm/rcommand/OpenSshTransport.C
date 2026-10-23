@@ -8,10 +8,14 @@
 #include <cstring>
 #include <ctime>
 #include <map>
+#include <atomic>
 #include <mutex>
+#include <thread>
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -215,12 +219,84 @@ bool OpenSshTransport::configProxiesConnection(const std::string& host,
   return sshG(host, user, configFile).proxied;
 }
 
+namespace {
+bool nestedRequested(const std::string& jumpHost)
+{
+  const char* e = getenv("ECCE_SSH_FRONTEND");
+  return !jumpHost.empty() && e && !strcmp(e, "nested");
+}
+
+bool sshOnPath()
+{
+  const char* p = getenv("PATH");
+  std::string path = p ? p : "";
+  size_t pos = 0;
+  while (pos <= path.size()) {
+    size_t c = path.find(':', pos);
+    if (c == std::string::npos) c = path.size();
+    std::string d = path.substr(pos, c - pos);
+    if (access(((d.empty() ? "." : d) + "/ssh").c_str(), X_OK) == 0) return true;
+    pos = c + 1;
+  }
+  return false;
+}
+
+// ssh binds <path>.<16 random chars> before renaming, and a unix socket
+// path holds 104 bytes on macOS; room is kept for an overflow suffix "-NN".
+const size_t kSocketLimit = 104, kSocketExtra = 17, kNameLen = 16 + 3;
+
+void logOnce(const std::string& why)
+{
+  static std::mutex mu;
+  static std::string last;
+  std::lock_guard<std::mutex> lock(mu);
+  if (why == last) return;
+  last = why;
+  fprintf(stderr, "ecce: ssh control directory not used: %s\n", why.c_str());
+}
+
+std::string hex16(unsigned long long h)
+{
+  char b[17];
+  snprintf(b, sizeof b, "%016llx", h);
+  return b;
+}
+}  // namespace
+
+std::string OpenSshTransport::ownedControlDir()
+{
+#ifdef _WIN32
+  return "";
+#else
+  const char* e = getenv("ECCE_SSH_CONTROL_DIR");
+  if (!e || !*e) return "";
+  std::string dir = e;
+  while (dir.size() > 1 && dir[dir.size()-1] == '/') dir.erase(dir.size()-1);
+  struct stat sb;
+  if (lstat(dir.c_str(), &sb) != 0 || !S_ISDIR(sb.st_mode) ||
+      sb.st_uid != geteuid() || (sb.st_mode & 0777) != 0700) {
+    logOnce(dir + " is not a directory of ours with mode 0700");
+    return "";
+  }
+  if (dir.size() + 1 + kNameLen + kSocketExtra >= kSocketLimit) {
+    logOnce(dir + " is too long for a control socket");
+    return "";
+  }
+  return dir;
+#endif
+}
+
 OpenSshTransport::Backend OpenSshTransport::backendFor(const std::string& host,
                                                        const std::string& user,
-                                                       const std::string& configFile)
+                                                       const std::string& configFile,
+                                                       const std::string& jumpHost)
 {
   Backend b = requestedBackend();
   if (b != BACKEND_AUTO) return b;
+  // ECCE owns the master for every host; -J cannot serve a front end that
+  // only allows nested ssh.
+  if (!nestedRequested(jumpHost) && !ownedControlDir().empty() && sshOnPath())
+    return BACKEND_OPENSSH;
   // libssh cannot prompt on a proxy's own login, and a shared connection
   // is something only the ssh command can use.
   return configSharesConnection(host, user, configFile) ||
@@ -332,7 +408,15 @@ std::vector<std::string> OpenSshTransport::targetArgs() const
 std::vector<std::string> OpenSshTransport::controlArgs() const
 {
   std::vector<std::string> a;
-  if (ownsControl()) {
+  if (ownsFromDir()) {
+    const char* pe = getenv("ECCE_SSH_CONTROL_PERSIST");
+    std::string persist = pe && *pe ? pe : "8h";
+    for (size_t i = 0; i < persist.size(); i++)
+      if (!isalnum((unsigned char)persist[i])) persist = "8h";
+    a.push_back("-o"); a.push_back("ControlMaster=auto");
+    a.push_back("-o"); a.push_back("ControlPath=" + socketFor(overflowIndex()));
+    a.push_back("-o"); a.push_back("ControlPersist=" + persist);
+  } else if (legacyOwnsControl()) {
     // Short, so that %C (a hash) keeps the socket under the 108-byte limit.
     const char* h = getenv("ECCE_REALUSERHOME");
     if (!h || !*h) h = getenv("HOME");
@@ -350,9 +434,80 @@ std::vector<std::string> OpenSshTransport::controlArgs() const
 // is logged in to once and not for every command.
 bool OpenSshTransport::ownsControl() const
 {
+  return ownsFromDir() || legacyOwnsControl();
+}
+
+bool OpenSshTransport::legacyOwnsControl() const
+{
   return p_jumpHost.empty() &&
          configProxiesConnection(p_host, p_user, p_configFile) &&
          !configSharesConnection(p_host, p_user, p_configFile);
+}
+
+// The user's own sharing wins over ours.
+bool OpenSshTransport::ownsFromDir() const
+{
+  return !nestedRequested(p_jumpHost) && !ownedControlDir().empty() &&
+         !configSharesConnection(p_host, p_user, p_configFile);
+}
+
+namespace {
+std::mutex gIdxMu;
+std::map<std::string, int> gOverflow;   // socket hash -> master in use
+const int kMaxOverflow = 8;
+}  // namespace
+
+std::string OpenSshTransport::socketFor(int index) const
+{
+  char lh[256] = "";
+  gethostname(lh, sizeof lh - 1);
+  // Everything that makes two connections different, so that one socket
+  // never serves another host, user or route.
+  std::string id = std::string(lh) + "\n" + p_user + "\n" + p_host + "\n" +
+                   std::to_string(p_port) + "\n" + p_jumpHost + "\n" +
+                   std::to_string(p_jumpPort) + "\n" + p_jumpUser + "\n" +
+                   p_configFile;
+  unsigned long long h = 1469598103934665603ULL;   // FNV-1a
+  for (size_t i = 0; i < id.size(); i++) {
+    h ^= (unsigned char)id[i];
+    h *= 1099511628211ULL;
+  }
+  std::string name = hex16(h);
+  if (index > 0) name += "-" + std::to_string(index);
+  return ownedControlDir() + "/" + name;
+}
+
+int OpenSshTransport::overflowIndex() const
+{
+  std::lock_guard<std::mutex> lock(gIdxMu);
+  std::map<std::string, int>::const_iterator i = gOverflow.find(socketFor(0));
+  return i == gOverflow.end() ? 0 : i->second;
+}
+
+std::string OpenSshTransport::controlSocketPath() const
+{
+  return ownsFromDir() ? socketFor(overflowIndex()) : "";
+}
+
+// MaxSessions: one master carries about ten sessions, and every monitor
+// holds one for the whole job.
+bool OpenSshTransport::nextOverflowMaster(const TransportResult& r)
+{
+  if (!ownsFromDir() || r.timedOut || r.status != 255) return false;
+  const std::string low = lower(r.err);
+  if (low.find("administratively prohibited") == std::string::npos &&
+      low.find("session open refused") == std::string::npos &&
+      low.find("session request failed") == std::string::npos)
+    return false;
+  const std::string base = socketFor(0);
+  {
+    std::lock_guard<std::mutex> lock(gIdxMu);
+    int& cur = gOverflow[base];
+    if (cur >= kMaxOverflow) return false;
+    cur++;
+  }
+  // A master another process opened is joined; otherwise open one.
+  return masterAlive() || (!p_askpass.empty() && openMaster());
 }
 
 bool OpenSshTransport::sharedConnection() const
@@ -403,10 +558,26 @@ bool OpenSshTransport::wantsMaster(const TransportResult& r) const
 bool OpenSshTransport::openMaster()
 {
   std::lock_guard<std::mutex> lock(gMasterMu);
+  // Another process has the same wish after a dropped link: one holds this
+  // lock and asks, the rest find the master and do not.  CLOEXEC, so that
+  // the master it leaves behind does not keep the lock.
+  struct Lock {
+    int fd;
+    Lock() : fd(-1) {}
+    ~Lock() { if (fd >= 0) close(fd); }
+  } flk;
+  const bool owned = ownsFromDir();
+  if (owned) {
+    flk.fd = open((socketFor(overflowIndex()) + ".lock").c_str(),
+                  O_RDWR | O_CREAT | O_CLOEXEC, 0600);
+    if (flk.fd >= 0) {
+      while (flock(flk.fd, LOCK_EX) != 0 && errno == EINTR) {}
+    }
+  }
   // Another session may have opened it while this one waited its turn.
   if (masterAlive()) return true;
   const std::string key = p_configFile + "\n" + p_user + "\n" + p_host + "\n" +
-                          p_jumpHost;
+                          p_jumpHost + "\n" + std::to_string(overflowIndex());
   std::map<std::string, time_t>::iterator f = gMasterFailed.find(key);
   if (f != gMasterFailed.end() && time(0) - f->second < kRetryAfterSec)
     return false;
@@ -421,12 +592,39 @@ bool OpenSshTransport::openMaster()
   const bool haveState = mkdtemp(&tmpl[0]) != 0;
   if (haveState) stateDir = &tmpl[0];
 
+  // A known password reaches askpass through a FIFO in the state directory
+  // (0700): not argv, environment or a file, and ssh closes inherited fds.
+  std::string fifo;
+  std::thread writer;
+  std::atomic<bool> giveUp(false);
+  if (owned && haveState && !p_password.empty()) {
+    fifo = stateDir + "/password";
+    if (mkfifo(fifo.c_str(), 0600) == 0) {
+      const std::string pw = p_password + "\n";
+      writer = std::thread([fifo, pw, &giveUp]() {
+        int fd = open(fifo.c_str(), O_WRONLY | O_CLOEXEC);  // waits for askpass
+        if (fd < 0) return;
+        if (!giveUp) {
+          size_t done = 0;
+          while (done < pw.size()) {
+            ssize_t w = write(fd, pw.data() + done, pw.size() - done);
+            if (w > 0) done += w;
+            else if (!(w < 0 && errno == EINTR)) break;
+          }
+        }
+        close(fd);
+      });
+    } else fifo.clear();
+  }
+
   // The user's own ssh configuration decides ControlMaster and
-  // ControlPersist; -f leaves the master behind once the login is done.
+  // ControlPersist unless ECCE owns the master; -f leaves the master behind
+  // once the login is done.
   std::vector<std::string> a;
   a.push_back("env");
   a.push_back("SSH_ASKPASS=" + p_askpass);
   if (haveState) a.push_back("ECCE_ASKPASS_STATE=" + stateDir + "/cancelled");
+  if (!fifo.empty()) a.push_back("ECCE_ASKPASS_PWFIFO=" + fifo);
   a.push_back("SSH_ASKPASS_REQUIRE=force");
   a.push_back("ECCE_ASKPASS_HOST=" + p_host);
   a.push_back("ECCE_ASKPASS_USER=" + p_user);
@@ -438,12 +636,25 @@ bool OpenSshTransport::openMaster()
   a.push_back("BatchMode=no");
   a.push_back("-o");
   a.push_back("ConnectTimeout=" + std::to_string(p_connectTimeout));
+  if (owned) {
+    // A silent link ends the master instead of leaving every command on it hanging.
+    a.push_back("-o"); a.push_back("ServerAliveInterval=" + std::to_string(keepaliveSec() ? keepaliveSec() : 30));
+    a.push_back("-o"); a.push_back("ServerAliveCountMax=3");
+  }
   std::vector<std::string> t = targetArgs();
   a.insert(a.end(), t.begin(), t.end());
   a.push_back(p_host);
   TransportResult r = DirectTransport::runProcess(a, "", -1, -1, p_askTimeout);
+  if (writer.joinable()) {
+    // ssh never asked for a password: release the writer, which waits for a reader.
+    giveUp = true;
+    int rd = open(fifo.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+    writer.join();
+    if (rd >= 0) close(rd);
+  }
   bool ok = !r.timedOut && r.status == 0 && masterAlive();
   if (haveState) {
+    unlink((stateDir + "/password").c_str());
     unlink((stateDir + "/cancelled").c_str());
     rmdir(stateDir.c_str());
   }
@@ -496,6 +707,9 @@ TransportResult OpenSshTransport::runImpl(const std::string& script, int timeout
   if (wantsMaster(res) && openMaster())
     res = DirectTransport::runProcess(sshArgs(kScriptExec), full, -1, -1,
                                       timeoutSec);
+  for (int n = 0; n < kMaxOverflow && nextOverflowMaster(res); n++)
+    res = DirectTransport::runProcess(sshArgs(kScriptExec), full, -1, -1,
+                                      timeoutSec);
   explain(res);
   return res;
 }
@@ -516,6 +730,12 @@ TransportResult OpenSshTransport::runWithData(const std::string& script, int inF
       (inFd < 0 || lseek(inFd, 0, SEEK_SET) == 0) &&
       (outFd < 0 || (lseek(outFd, 0, SEEK_SET) == 0 && ftruncate(outFd, 0) == 0)) &&
       openMaster())
+    res = DirectTransport::runProcess(sshArgs(kDataExec), oneLine(script), inFd,
+                                      outFd, timeoutSec);
+  for (int n = 0; n < kMaxOverflow && nextOverflowMaster(res) &&
+       (inFd < 0 || lseek(inFd, 0, SEEK_SET) == 0) &&
+       (outFd < 0 || (lseek(outFd, 0, SEEK_SET) == 0 && ftruncate(outFd, 0) == 0));
+       n++)
     res = DirectTransport::runProcess(sshArgs(kDataExec), oneLine(script), inFd,
                                       outFd, timeoutSec);
   explain(res);
@@ -729,12 +949,28 @@ RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
   // reader sees the script's output or EOF and nothing else.
   std::string header = oneLine("exec 2>&1\n" + envp + withDir(script));
 
+  // With an owned master, ssh's stderr is kept (unlinked file) for as long
+  // as it takes to see whether the master refused the session.
+  const bool owned = ownsFromDir();
+  for (int attempt = 0;; attempt++) {
   int sp[2];
   if (socketpairCloexec(AF_UNIX, SOCK_STREAM, 0, sp) != 0) {
     error = strerror(errno);
     return 0;
   }
-  int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
+  int devnull = -1;
+  if (owned) {
+    const char* td = getenv("TMPDIR");
+    std::string t = std::string(td && *td ? td : "/tmp") + "/ecce-ssherr.XXXXXX";
+    std::vector<char> tm(t.begin(), t.end());
+    tm.push_back('\0');
+    devnull = mkstemp(&tm[0]);
+    if (devnull >= 0) {
+      unlink(&tm[0]);
+      fcntl(devnull, F_SETFD, FD_CLOEXEC);
+    }
+  }
+  if (devnull < 0) devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
   if (devnull < 0) {
     error = strerror(errno);
     close(sp[0]); close(sp[1]);
@@ -743,8 +979,7 @@ RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
   long pid = DirectTransport::spawnProcess(sshArgs(kDataExec), sp[1], sp[1],
                                            devnull, error);
   close(sp[1]);
-  close(devnull);
-  if (pid < 0) { close(sp[0]); return 0; }
+  if (pid < 0) { close(devnull); close(sp[0]); return 0; }
 
   // The script goes first.  ssh reads stdin as soon as it is connected, so
   // this returns then; if it cannot connect it exits and the send fails.
@@ -755,12 +990,28 @@ RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
     else if (w < 0 && errno == EINTR) continue;
     else break;
   }
-  if (done < header.size()) {
+  bool refused = false;
+  if (owned && attempt < kMaxOverflow) {
+    // A refusal ends ssh at once; a live stream stays silent or has data.
+    struct pollfd pf = { sp[0], POLLIN, 0 };
+    char c;
+    if (poll(&pf, 1, 250) > 0 && recv(sp[0], &c, 1, MSG_PEEK | MSG_DONTWAIT) == 0) {
+      char eb[2048];
+      ssize_t n = pread(devnull, eb, sizeof eb - 1, 0);
+      TransportResult fake;
+      fake.status = 255;
+      if (n > 0) fake.err.assign(eb, n);
+      refused = nextOverflowMaster(fake);
+    }
+  }
+  close(devnull);
+  if (refused || done < header.size()) {
     DirectTransport::Stream st;
     st.pid = pid;
     st.rfd = sp[0];
     DirectTransport d;
     d.closeStream(st, 0);
+    if (refused) continue;
     error = "cannot start command on " + p_host;
     return 0;
   }
@@ -769,6 +1020,7 @@ RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
   s->appFd = sp[0];
   fd = sp[0];
   return s;
+  }
 }
 
 // ssh has no way to signal a remote command without a tty; ending the client
