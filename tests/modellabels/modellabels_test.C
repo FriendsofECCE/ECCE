@@ -43,6 +43,21 @@ static std::string join(const Labels& l, size_t from, size_t n, bool full)
    return s;
 }
 
+//  A bonding level and its antibonding partner are of one sigma/pi type: each
+//  type has at least as many bonding as antibonding levels, and none is
+//  antibonding alone.
+static void partners(const Labels& l, const char* name)
+{
+   int bond[2] = {0, 0}, anti[2] = {0, 0};
+   for (size_t i = 0; i < l.size(); i++) {
+      if (l[i].nonbonding || l[i].plain.empty()) continue;
+      const int t = l[i].plain.compare(0, 2, "\xCF\x83") == 0 ? 0 : 1;
+      (l[i].antibonding ? anti : bond)[t]++;
+   }
+   for (int t = 0; t < 2; t++)
+      CHECK(anti[t] <= bond[t], "%s: %d antibonding vs %d bonding of type %d", name, anti[t], bond[t], t);
+}
+
 static std::vector<double> vec(const double* p, size_t n) { return std::vector<double>(p, p + n); }
 
 int main(int argc, char** argv)
@@ -64,7 +79,8 @@ int main(int argc, char** argv)
             "N2 plain: %s", join(n2, 0, 6, false).c_str());
       const double cc[6] = {0, 0, 0, 0, 0, 1.243};
       Labels c2 = run({"C", "C"}, vec(cc, 6), a, b, rot);
-      //  C2 is printed, not checked: the unmixed sigma*2p lies below sigma*2s there (open question, #458).
+      //  C2 is printed, not asserted: its 2sigma_u is a 50/50 s-p mixture (overlap .895 with sigma*2p,
+      //  .877 with sigma*2s), so neither energy order nor overlap names it sigma*2s (open, #458).
       const double oo[6] = {0, 0, 0, 0, 0, 1.208};
       Labels o2 = run({"O", "O"}, vec(oo, 6), a, b, rot);
       CHECK(join(o2, 0, 6, true) == N2, "O2: %s", join(o2, 0, 6, true).c_str());
@@ -95,6 +111,36 @@ int main(int argc, char** argv)
       for (size_t i = 0; i < l.size(); i++)
          if (l[i].nonbonding && l[i].otherShare < 1e-6) { nb++; if (l[i].orbitals.size() == 2) degenerate++; }
       CHECK(nb >= 2 && degenerate >= 1, "BF3: %d non-bonding levels, %d of them degenerate", nb, degenerate);
+      std::string valence;
+      for (size_t i = 0; i < l.size(); i++)
+         if (l[i].energy*27.2114 > -30.0 && !l[i].nonbonding) valence += (valence.empty() ? "" : " ") + l[i].full;
+      //  4a1', 1a2'', 3e', 2a2''*, 5a1'*, 6e'*.  3e' is pi: its ligand orbitals (e', 82 %
+      //  tangential) bond to B 2p only weakly; the sigma e' bond is the F 2s level at -40 eV.
+      CHECK(valence == "\xCF\x83(B 2s) \xCF\x80(B 2p) \xCF\x80(B 2p) \xCF\x80*(B 2p) \xCF\x83*(B 2s) \xCF\x83*(B 2p)",
+            "BF3 valence: %s", valence.c_str());
+      partners(l, "BF3");
+   }
+   {
+      const double h = 1.012, c = 0.38, r = sqrt(h*h - c*c);
+      std::vector<double> x(12, 0.0);
+      for (int k = 0; k < 3; k++) { x[3*(k+1)] = r*cos(2.0944*k); x[3*(k+1)+1] = r*sin(2.0944*k); x[3*(k+1)+2] = -c; }
+      Labels l = run({"N", "H", "H", "H"}, x, a, std::vector<int>{1, 2, 3}, true);
+      printf("NH3: %s\n", join(l, 0, l.size(), true).c_str());
+      partners(l, "NH3");
+   }
+   {
+      std::vector<double> x(39, 0.0);
+      std::vector<std::string> sym(1, "Cr");
+      const double dir[6][3] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+      for (int k = 0; k < 6; k++) {
+         sym.push_back("C"); sym.push_back("O");
+         for (int q = 0; q < 3; q++) { x[3*(1+2*k)+q] = 1.92*dir[k][q]; x[3*(2+2*k)+q] = 3.07*dir[k][q]; }
+      }
+      std::vector<int> lig;
+      for (int k = 1; k < 13; k++) lig.push_back(k);
+      Labels l = run(sym, x, a, lig, true);
+      printf("Cr(CO)6: %s\n", join(l, 0, l.size(), true).c_str());
+      partners(l, "Cr(CO)6");
    }
    printf(failures ? "FAILED\n" : "ok\n");
    return failures ? 1 : 0;

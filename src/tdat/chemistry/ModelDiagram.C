@@ -1317,6 +1317,21 @@ bool ModelDiagram::build(const Input& in,
       for (size_t o = 0; o < cl.size(); o++)
          if (cl[o].pairing == cl[c].pairing) cl[o].drawn = true;
    }
+   //  A fragment orbital in >= LINK_MIN of a drawn level is drawn, and then so is
+   //  every other level it is in: no half of an interaction is folded away.
+   vector<bool> forceSet(sets.size(), false);
+   if (!in.piOnly)
+      for (bool again = true; again;) {
+         again = false;
+         for (size_t s = 0; s < sets.size(); s++) {
+            if (!forceSet[s])
+               for (size_t c = 0; c < cl.size(); c++)
+                  if (cl[c].drawn && cl[c].share[s] >= LINK_MIN) { forceSet[s] = true; again = true; break; }
+            if (!forceSet[s]) continue;
+            for (size_t c = 0; c < cl.size(); c++)
+               if (!cl[c].drawn && cl[c].share[s] >= LINK_MIN) { cl[c].drawn = true; again = true; }
+         }
+      }
    //  Character of every model level, from the fragment orbitals it is made of.
    vector<map<string,double> > charAcc(cl.size());
    for (size_t c = 0; c < cl.size(); c++)
@@ -1503,7 +1518,7 @@ bool ModelDiagram::build(const Input& in,
       bool lined = false;
       for (size_t c = 0; c < cl.size(); c++)
          if (cl[c].drawn && cl[c].share[s] >= LINK_MIN) lined = true;
-      if (!lined || (bandRule && sets[s].nsShare >= 0.5)) continue;
+      if (!lined || (bandRule && sets[s].nsShare >= 0.5 && !forceSet[s])) continue;
       MoColumn& col = sets[s].fragment == 0 ? out.left : out.right;
       MoLevel lv;
       lv.energy = sets[s].energy;

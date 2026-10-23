@@ -42,7 +42,7 @@ class ModelDiagram
   public:
 
     /** The smallest share of a fragment level that gets a line. */
-    static constexpr double LINK_MIN = 0.10;
+    static constexpr double LINK_MIN = 0.03;
     /** A level this much on the right fragment is ligand-internal (band). */
     static constexpr double INTERNAL_SHARE = 0.80;
     /** A pair needs at least this much of each fragment in both levels. */

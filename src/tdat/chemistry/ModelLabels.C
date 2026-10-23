@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <map>
 
 #include "tdat/ModelDiagram.H"
@@ -167,21 +165,48 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
 
    if (central) {
       const double* pc = &in.coordsAng[3*in.leftAtoms[0]];
+      //  sigma/pi content of a coefficient vector on the ligand atoms, about each centre-ligand bond.
+      auto ligandSigmaPi = [&](const vector<double>& row, double& sg, double& pp) {
+         sg = pp = 0.0;
+         for (size_t a = 0; a < in.rightAtoms.size(); a++) {
+            double u[3], n = 0.0;
+            for (int q = 0; q < 3; q++) { u[q] = in.coordsAng[3*in.rightAtoms[a]+q] - pc[q]; n += u[q]*u[q]; }
+            n = sqrt(n);
+            for (int q = 0; q < 3; q++) u[q] /= (n > 0 ? n : 1.0);
+            vector<int> one(1, in.rightAtoms[a]);
+            double par, perp, d;
+            axisWeights(set, row, one, u, par, perp, d);
+            sg += par;  pp += perp;
+         }
+      };
+      //  A level is sigma or pi by the ligand fragment orbitals it is made of
+      //  (a degenerate set of them taken whole, as its members mix freely).
+      vector< vector<int> > groups;
+      FragmentOrbitals::groupFos(set, groups);
+      vector<double> groupSigma(groups.size(), 0.5);
+      for (size_t g = 0; g < groups.size(); g++) {
+         if (set.fos[groups[g][0]].fragment != 1) continue;
+         double sg = 0.0, pp = 0.0;
+         for (size_t q = 0; q < groups[g].size(); q++) {
+            double a, b;
+            ligandSigmaPi(set.fos[groups[g][q]].coef, a, b);
+            sg += a;  pp += b;
+         }
+         if (sg + pp > 1e-12) groupSigma[g] = sg/(sg + pp);
+      }
       for (size_t c = 0; c < cl.size(); c++) {
          ConstructLabel& L = out[c];
          double sigW = 0.0, piW = 0.0;
-         for (size_t k = 0; k < cl[c].mos.size(); k++) {
-            const vector<double>& row = rows[cl[c].mos[k]];
-            for (size_t a = 0; a < in.rightAtoms.size(); a++) {
-               double u[3], n = 0.0;
-               for (int q = 0; q < 3; q++) { u[q] = in.coordsAng[3*in.rightAtoms[a]+q] - pc[q]; n += u[q]*u[q]; }
-               n = sqrt(n);
-               for (int q = 0; q < 3; q++) u[q] /= (n > 0 ? n : 1.0);
-               vector<int> one(1, in.rightAtoms[a]);
-               double par, perp, d;
-               axisWeights(set, row, one, u, par, perp, d);
-               sigW += par;  piW += perp;
-            }
+         for (size_t g = 0; g < groups.size(); g++) {
+            if (set.fos[groups[g][0]].fragment != 1) continue;
+            double share = 0.0;
+            for (size_t k = 0; k < cl[c].mos.size(); k++)
+               for (size_t q = 0; q < groups[g].size(); q++) {
+                  const double a = amp[cl[c].mos[k]][groups[g][q]];
+                  share += a*a;
+               }
+            sigW += share*groupSigma[g];
+            piW += share*(1.0 - groupSigma[g]);
          }
          const vector<double>& lead = rows[cl[c].mos[0]];
          const bool onCentre = shL[c] >= shR[c];
@@ -285,12 +310,6 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
       n.shell = n.parL.substr(n.parL.find(' ') + 1);
    }
 
-   if (getenv("ECCE_LABELS_DEBUG")) {
-      for (size_t c = 0; c < named.size(); c++)
-         fprintf(stderr, "unmixed %zu E=%.2f eV type=%d parity=%d anti=%d %s\n", c, named[c].energy*27.2114,
-                 named[c].kind.type, named[c].kind.parity, (int)named[c].anti, named[c].shell.c_str());
-      for (size_t c = 0; c < cl.size(); c++) fprintf(stderr, "real %zu E=%.2f eV\n", c, cl[c].energy*27.2114);
-   }
    //  Real levels, grouped by (type, parity); energy order against energy order.
    map<pair<int,int>, vector<size_t> > realBy, unBy;
    vector<Kind> realKind(cl.size());
@@ -303,8 +322,41 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
       if (it->first.first == 2) continue;
       const vector<size_t>& u = unBy[it->first];
       if (u.size() != it->second.size()) continue;       // not a clean correlation: say nothing
+      //  One-to-one assignment of the real levels to the unmixed ones that
+      //  maximises the summed squared overlap; energy order breaks ties.
+      const size_t nn = u.size();
+      vector<size_t> pm(nn);
+      for (size_t k = 0; k < nn; k++) pm[k] = k;
+      if (nn > 1 && nn <= 7) {
+         vector< vector<double> > w(nn, vector<double>(nn, 0.0));
+         for (size_t i = 0; i < nn; i++)
+            for (size_t j = 0; j < nn; j++) {
+               const Level& R = cl[it->second[i]];
+               const Level& U = ucl[u[j]];
+               for (size_t a = 0; a < R.mos.size(); a++)
+                  for (size_t b = 0; b < U.mos.size(); b++) {
+                     //  Both vectors normalised in the full overlap metric.
+                     double o = 0.0, nu = 0.0;
+                     for (size_t p = 0; p < nf; p++) {
+                        double sc = 0.0;
+                        for (size_t q = 0; q < nf; q++) sc += set.overlap[p*nf+q]*uRows[U.mos[b]][q];
+                        o += rows[R.mos[a]][p]*sc;
+                        nu += uRows[U.mos[b]][p]*sc;
+                     }
+                     w[i][j] += nu > 1e-12 ? o*o/nu/R.mos.size() : 0.0;
+                  }
+            }
+         vector<size_t> trial(pm);
+         double best = -1e30;
+         do {
+            double sc = 0.0;
+            for (size_t i = 0; i < nn; i++)
+               sc += w[i][trial[i]] - 1e-6*fabs((double)i - (double)trial[i]);
+            if (sc > best) { best = sc; pm = trial; }
+         } while (next_permutation(trial.begin(), trial.end()));
+      }
       for (size_t k = 0; k < u.size(); k++) {
-         const Named& n = named[u[k]];
+         const Named& n = named[u[pm[k]]];
          ConstructLabel& L = out[it->second[k]];
          const char* kind = n.kind.type == 0 ? SIGMA : PI;
          const size_t c = it->second[k];

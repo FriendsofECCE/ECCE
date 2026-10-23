@@ -309,6 +309,39 @@ def check_ethane(d):
     return bad
 
 
+def check_lines(d):
+    """#458: a drawn model level with >= 5 % on a fragment (a 3 % share can be split over sets) has a line to that column."""
+    bad = checked = 0
+    for name in sorted(os.listdir(d)):
+        if not name.endswith(".dump") or "-pi" in name or "lfview" in name or "pick" in name:
+            continue
+        inside, shares, linked = False, {}, {}
+        for line in open(os.path.join(d, name)):
+            if line.startswith("column "):
+                inside = line.strip() == "column centre"
+            elif inside and line.lstrip().startswith("level "):
+                f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
+                i = int(line.split()[1])
+                if "construct" in line and float(f["shareLeft"]) >= 0 and float(f["shareRight"]) >= 0:
+                    shares[i] = (float(f["shareLeft"]), float(f["shareRight"]))
+            elif line.lstrip().startswith("link "):
+                f = dict(re.findall(r'(\w+)=(-?\d+)', line))
+                if "centre" not in f:
+                    continue
+                c = int(f["centre"])
+                linked.setdefault(c, [False, False])
+                linked[c][0] |= int(f["left"]) >= 0
+                linked[c][1] |= int(f["right"]) >= 0
+        for i, (l, r) in shares.items():
+            checked += 1
+            have = linked.get(i, [False, False])
+            if (l >= 0.05 and not have[0]) or (r >= 0.05 and not have[1]):
+                print("%s level %d: shares %.3f/%.3f, lines %s: FAIL" % (name, i, l, r, have))
+                bad += 1
+    print("lines for every share >= 3 %% over %d model levels: %s" % (checked, "ok" if not bad else "FAIL"))
+    return bad
+
+
 def main():
     d = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "expected")
     bad = 0
@@ -334,6 +367,7 @@ def main():
     bad += check_lfview(d)
     bad += check_electrons(d)
     bad += check_neutral_ligands(d)
+    bad += check_lines(d)
     return 1 if bad else 0
 
 

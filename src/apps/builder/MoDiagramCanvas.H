@@ -1056,6 +1056,7 @@ class MoDiagramCanvas : public wxPanel
       int labelW;      // width of the label's row
       int labelH;      // height of the label's row
       int top, bottom; // the arrows
+      int linkL, linkR;  // where the links from the left and right fragment columns meet the level
     };
     vector<CentreLane> p_cLanes;
     int p_cLaneTotal = 0;
@@ -1098,7 +1099,7 @@ class MoDiagramCanvas : public wxPanel
       const int row = dc.GetTextExtent(wxT("Xg")).y;
       const int R = row + 2;
 
-      int labelCol = 0, slotsMax = 0;
+      int conCol = 0, symCol = 0, slotsMax = 0;
       vector<int> natural(n), half(n);
       for (int i = 0; i < n; i++) {
         const int count = p_centre.levels[i].degeneracy > 0 ? p_centre.levels[i].degeneracy : 1;
@@ -1109,15 +1110,16 @@ class MoDiagramCanvas : public wxPanel
       const int budget = maxWidth - slotsMax - 16;
       p_cMode = 2;
       for (int mode = 0; mode < 3; mode++) {
-        int widest = 0;
+        int wcMax = 0, wlMax = 0;
         for (int i = 0; i < n; i++) {
           vector<Piece> pieces;
           int wl, wc;
           string text;
           centreRow(dc, p_centre.levels[i], pieces, wl, wc, text, mode);
-          widest = max(widest, wl + (wl && wc ? 10 : 0) + wc);
+          wcMax = max(wcMax, wc);
+          wlMax = max(wlMax, wl);
         }
-        if (widest <= budget || mode == 2) { p_cMode = mode; labelCol = widest; break; }
+        if (wcMax + wlMax + 16 <= budget || mode == 2) { p_cMode = mode; conCol = wcMax; symCol = wlMax; break; }
       }
       slotsMax = 0;
       for (int i = 0; i < n; i++) {
@@ -1153,9 +1155,15 @@ class MoDiagramCanvas : public wxPanel
         else p_zeroY = min(lim1, posBottom + R);
       }
 
-      for (int i = 0; i < n; i++) p_cLanes[i].labelW = labelCol;
-      p_cLabelRight = labelCol;
-      const int lineX = labelCol + 16;
+      //  construction label | lines | symmetry label; the right-hand links start after the latter.
+      const int lineX = conCol + (conCol ? 12 : 6);
+      for (int i = 0; i < n; i++) {
+        const int count = p_centre.levels[i].degeneracy > 0 ? p_centre.levels[i].degeneracy : 1;
+        p_cLanes[i].labelW = conCol + symCol;
+        p_cLanes[i].linkL = lineX - 2 - (conCol ? conCol + 8 : 0);
+        p_cLanes[i].linkR = lineX + count*centreSlot() - 2 + (symCol ? symCol + 8 : 0);
+      }
+      p_cLabelRight = lineX;
       for (int i = 0; i < n; i++) {
         CentreLane& c = p_cLanes[i];
         c.lane = 0;
@@ -1165,7 +1173,7 @@ class MoDiagramCanvas : public wxPanel
         c.top = y[i] - half[i];
         c.bottom = y[i] + half[i];
       }
-      p_cLaneTotal = lineX + slotsMax;
+      p_cLaneTotal = lineX + slotsMax + (symCol ? symCol + 8 : 0);
       return p_cLaneTotal;
     }
 
@@ -1199,14 +1207,13 @@ class MoDiagramCanvas : public wxPanel
         centreRow(dc, level, pieces, wl, wc, conText, p_cMode);
         dc.SetFont(base);
         const int row = dc.GetTextExtent(wxT("Xg")).y;
-        const int right = x0 + p_cLabelRight;
         const int top = c.labelY - row/2;
-        const int xSym = right - wl;
-        const int xCon = xSym - (wl && wc ? 10 : 0) - wc;
-        const int xLeftmost = min(wl ? xSym : right, wc ? xCon : right);
+        const int xCon = x0 + c.lineX - 6 - wc;
+        const int xSym = x0 + c.lineX + count*slot + 4;
         dc.SetPen(*wxTRANSPARENT_PEN);
         dc.SetBrush(*wxWHITE_BRUSH);
-        if (wl || wc) dc.DrawRectangle(xLeftmost - 2, top, right - xLeftmost + 4, row);
+        if (wc) dc.DrawRectangle(xCon - 2, top, wc + 4, row);
+        if (wl) dc.DrawRectangle(xSym - 2, top, wl + 4, row);
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.SetTextForeground(colour);
         if (wc) dc.DrawText(wxString(conText.c_str(), wxConvUTF8), xCon, top);
@@ -2330,7 +2337,18 @@ class MoDiagramCanvas : public wxPanel
                                (tint.Blue()  + 2*255)/3);
           //  One width for every construction: a thicker line reads as a
           //  rendering artifact, and the share is in the level's text.
-          dc.SetPen(wxPen(tint, 1, wxPENSTYLE_SHORT_DASH));
+          //  Weighted lines: width and strength grow with the share, 3 % thin and
+          //  faint up to 50 % full.
+          int penWidth = 1;
+          if (link.weight >= 0.0) {
+            const double t = max(0.0, min(1.0, (link.weight - 0.03)/0.47));
+            penWidth = 1 + (int)floor(2.0*t + 0.5);
+            const double keep = 0.35 + 0.65*t;
+            tint = wxColour((int)(255 - keep*(255 - tint.Red())),
+                            (int)(255 - keep*(255 - tint.Green())),
+                            (int)(255 - keep*(255 - tint.Blue())));
+          }
+          dc.SetPen(wxPen(tint, penWidth, wxPENSTYLE_SHORT_DASH));
 
           //  WHERE THE LEVEL IS DRAWN, not where its energy puts it.
           //
@@ -2349,8 +2367,9 @@ class MoDiagramCanvas : public wxPanel
           if (model && (size_t)link.centreLevel < p_cLanes.size()) {
             const CentreLane& c = p_cLanes[link.centreLevel];
             const int count = max(1, p_centre.levels[link.centreLevel].degeneracy);
-            cxL = xCentre + c.lineX - 2;
-            cxR = xCentre + c.lineX + count*centreSlot() - 2;
+            (void)count;
+            cxL = xCentre + c.linkL;
+            cxR = xCentre + c.linkR;
           }
           if (link.leftLevel >= 0 && link.leftLevel < (int)p_left.levels.size()) {
             dc.DrawLine(xLeft + leftWidth,
