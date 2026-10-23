@@ -237,6 +237,12 @@ void CalcEd::runCalcEdScript(const string& file)
         ln.Replace("\n", " ");
         fprintf(stderr, " line=%s reason=%s\n", ln.ToStdString().c_str(),
                 notReadyReason().c_str());
+      } else if (w[0] == "ts-warnings") {
+        // the warnings under the TS Search pickers, joined with '|'
+        outcome = "warnings:";
+        for (const std::string& t : tsWarnings()) outcome += "|" + t;
+        outcome += "|levels-differ=" + std::string(tsLevelsDiffer() ? "yes" : "no");
+        for (char& c : outcome) if (c == '\n') c = '|';
       } else if (w[0] == "ts-mapping") {
         // the text 'Show mapping' shows, on one line
         outcome = tsMappingText();

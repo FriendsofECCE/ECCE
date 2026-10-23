@@ -2051,6 +2051,11 @@ add_executable(atommap_test tests/atommap/atommap_test.C)
 target_link_libraries(atommap_test PRIVATE eccetdat ecceutil)
 add_test(NAME atommap COMMAND atommap_test ${CMAKE_SOURCE_DIR})
 
+# tests/tspath -- straight-path check for TS searches (#468)
+add_executable(tspath_test tests/tspath/tspath_test.C)
+target_link_libraries(tspath_test PRIVATE eccetdat ecceutil)
+add_test(NAME tspath COMMAND tspath_test)
+
 # tests/bondorder -- Clean's bond-order bookkeeping rule (#439)
 add_executable(bondorder_test tests/bondorder/bondorder_test.C)
 target_link_libraries(bondorder_test PRIVATE eccetdat ecceutil)

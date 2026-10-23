@@ -17,6 +17,7 @@ using std::vector;
 #include "tdat/SpinMult.H"
 #include "tdat/TRunType.H"
 #include "tdat/TTheory.H"
+#include "QstStructures.H"
 #include "tdat/ESPConstraintModel.H"
 #include "tdat/GeomConstraintModel.H"
 
@@ -287,6 +288,9 @@ class CalcEd: public CalcEdGUI,
     void refreshTsBox();
     string tsMappingText();
     void matchTsStructures(bool neb);
+    TsLevel tsOwnLevel() const;
+    bool tsLevelsDiffer() const;
+    vector<string> tsWarnings() const;
     void tsSourceChanged(bool other);
     void tsPicked(int role, int sel);
     void showTsMapping();
@@ -425,6 +429,11 @@ class CalcEd: public CalcEdGUI,
      *  as URLs; p_tsUrls/p_tsNames list the choices after "(none)". */
     bool   p_tsSource = false;
     string p_tsPick[3];
+    /** Levels of the picked reactant/product calculations and the straight
+     *  path check (#468); recomputed when a pick changes. */
+    TsLevel p_tsPickLevel[2];
+    string p_tsPathWarning;
+    wxStaticText   *p_tsWarn = 0;
     vector<string> p_tsUrls;
     vector<string> p_tsNames;
     wxButton       *p_tsSearchBtn = 0;

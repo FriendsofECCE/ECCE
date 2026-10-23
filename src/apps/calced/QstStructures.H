@@ -60,5 +60,28 @@ bool nebWriteStructureFiles(ICalculation* self, std::string& status,
  *  the structures, not a saved deck or a basis set (#464). */
 bool tsMatchStructures(ICalculation* self, bool neb, const std::string picks[3],
                        std::string& status, std::string& warning,
-                       std::string* detail = 0, std::string* table = 0);
+                       std::string* detail = 0, std::string* table = 0,
+                       std::string* pathWarning = 0);
+
+/** The level of theory a calculation was set up with (#468). */
+struct TsLevel
+{
+   std::string theory;       // "DFT", "RHF", ...
+   std::string functional;   // only for DFT
+   std::string basis;
+   bool optimised;           // its structure is an optimised one
+   TsLevel() : optimised(false) {}
+   bool known() const { return !theory.empty() || !basis.empty(); }
+   /** "B3LYP/def2-SVP", "HF/6-31G*"; "" when nothing is known. */
+   std::string text() const;
+};
+
+/** The stored level of the calculation at url; empty when it has none. */
+TsLevel tsLevelOfCalculation(const std::string& url);
+
+/** Warning that the end point `role` was made at a different level than
+ *  `mine`, "" when the levels agree or one is unknown.  Components missing on
+ *  either side are not compared. */
+std::string tsLevelWarning(const char* role, const TsLevel& other,
+                           const TsLevel& mine);
 #endif

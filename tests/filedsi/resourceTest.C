@@ -29,6 +29,8 @@ using namespace std;
 #include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
 #include "tdat/Fragment.H"
+#include "tdat/GUIValues.H"
+#include "tdat/TTheory.H"
 #include "tdat/LatticeDef.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
@@ -234,6 +236,28 @@ int main(int argc, char **argv)
       if (!icalc) return 1;
       Fragment frag(name, tags, &xyz[0], (int)bonds.size() / 2, &bonds[0]);
       check(icalc->fragment(&frag), "structure stored in " + name);
+      // ECCE_QST_LEVEL="<name>=<category>/<theory>/<functional>": the level
+      // that calculation was set up at (#468).
+      const char *lv = getenv("ECCE_QST_LEVEL");
+      string level = lv ? lv : "";
+      if (level.compare(0, name.size() + 1, name + "=") == 0) {
+        size_t s1 = level.find('/'), s2 = level.find('/', s1 + 1);
+        check(s1 != string::npos && s2 != string::npos, "level spec is well formed");
+        TTheory *th = new TTheory(level.substr(name.size() + 1, s1 - name.size() - 1),
+                                  level.substr(s1 + 1, s2 - s1 - 1));
+        check(icalc->theory(th), "theory stored in " + name);
+        delete th;
+        GUIValues *gv = new GUIValues();
+        GUIValue *f = new GUIValue();
+        f->m_key = "ES.Theory.DFT.XCFunctionals";
+        f->m_type = "menu_input";
+        f->m_sensitive = true;
+        f->m_write = true;
+        gv->set(f->m_key, f);
+        f->setValue(level.substr(s2 + 1));
+        check(icalc->guiparams(gv), "functional stored in " + name);
+        delete gv;
+      }
       cout << calc->getURL().toString() << endl;
     }
     return failures ? 1 : 0;
