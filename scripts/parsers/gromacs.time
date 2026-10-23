@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+#   The simulation time (ps) of one log step, from the "Step  Time" value row,
+#   into TIMEVEC.  It accumulates beside TEVEC/PRESSVEC, one point per step, so
+#   the Viewer's step plots can put time on the x axis.  gromacs.energy cannot
+#   read it: its block starts at "Energies", after the time line.
+#
+################################################################################
+
+$| = 1;
+
+while (<STDIN>) {
+  if (/^\s*\d+\s+(-?\d+\.\d+)\s*$/) {
+    print "key: TIMEVEC\n";
+    print "size:\n1\n";
+    print "values:\n $1\n";
+    print "units:\nps\n";
+    print "END\n";
+    last;
+  }
+}

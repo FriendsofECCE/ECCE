@@ -16,6 +16,10 @@ string unitLabel(const string& units)
   replaceAll(s, "kJoule/Mole", "kJ/mol");
   replaceAll(s, "kcal/Mole", "kcal/mol");
   if (s == "Kelvin") s = "K";
+  else if (s == "Bar") s = "bar";
+  else if (s == "kg/m^3") s = "kg/m\u00b3";
+  else if (s == "nm^3") s = "nm\u00b3";
+  else if (s == "NA") s = "";
   return s;
 }
 

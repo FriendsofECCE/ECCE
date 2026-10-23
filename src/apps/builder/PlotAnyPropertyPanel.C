@@ -15,6 +15,7 @@
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxIntClientData.H"
 #include "XYPlotCanvas.H"
+#include "StepPlotAxes.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "PlotAnyPropertyPanel.H"
@@ -153,6 +154,8 @@ void PlotAnyPropertyPanel::refreshChoices(const wxString& lastX,
   set<string> names;
   set<string>::iterator name;
   PropVector *prop = NULL;
+  bool timeSeries = false;
+  size_t steps = 0;
 
   names = getPropertyNames();
   for (name = names.begin(); name != names.end(); ++name) {
@@ -160,12 +163,23 @@ void PlotAnyPropertyPanel::refreshChoices(const wxString& lastX,
     if (prop) {
       const Property_Ref *propRef = PropFactory::getPropRef(*name);
       if (propRef) {
-        wxString longName = propRef->long_name;
-        axisNames[longName] = *name;
-        if (dimension.IsEmpty()) dimension = prop->rowLabel();
+        //  The time series is the step axis of an MD run, not a quantity.
+        if (*name == "TIMEVEC" && prop->units() == "ps") {
+          timeSeries = true;
+          continue;
+        }
+        axisNames[StepPlotAxes::plotName(propRef->long_name)] = *name;
+        if (dimension.IsEmpty()) {
+          dimension = prop->rowLabel();
+          steps = prop->rows();
+        }
       }
     }
   }
+  std::vector<double> t;
+  wxString unit;
+  if (timeSeries && StepPlotAxes::mdTime(getCalculation(), steps, t, unit))
+    dimension = "Time";
 
   p_xaxis->Clear();
   p_yaxis->Clear();
@@ -246,8 +260,26 @@ void PlotAnyPropertyPanel::doAxisChoice()
     y = new double[size];
   }
 
+  // The step axis of an MD run is its simulation time.
+  p_timeUnit.clear();
+  std::vector<double> t;
+  if (size > 0 && (sizeX <= 0 || sizeY <= 0) &&
+      StepPlotAxes::mdTime(getCalculation(), size, t, p_timeUnit)) {
+    std::copy(t.begin(), t.end(), sizeX > 0 ? y : x);
+  } else {
+    p_timeUnit.clear();
+  }
+
   // create our curve and add to plot control
-  p_plotCtrl->addCurve(x, y, size);
+  p_plotCtrl->setShowKey(false);
+  const bool timedY = !p_timeUnit.empty() && sizeY > 0 && sizeX <= 0;
+  p_plotCtrl->addCurve(x, y, size,
+                       timedY ? p_yaxis->GetStringSelection() : wxString());
+  if (timedY) {
+    StepPlotAxes::addRunningAverage(p_plotCtrl,
+                                    std::vector<double>(x, x + size),
+                                    std::vector<double>(y, y + size));
+  }
   delete[] x;
   delete[] y;
 
@@ -261,6 +293,15 @@ void PlotAnyPropertyPanel::doAxisChoice()
     title += " vs " + p_xaxis->GetStringSelection();
   }
   p_plotCtrl->setTitle(title);
+
+  const bool timeX = !p_timeUnit.empty() && sizeX <= 0;
+  const bool timeY = !p_timeUnit.empty() && sizeY <= 0;
+  if (timeX || timeY) {
+    p_plotCtrl->setReadout("Frame", timeX ? "Time" : "", timeX ? p_timeUnit : "",
+                           timeY ? "Time" : "", timeY ? p_timeUnit : "");
+  } else {
+    p_plotCtrl->setReadout("", "", "", "", "");
+  }
 }
 
 
@@ -304,7 +345,9 @@ void PlotAnyPropertyPanel::refreshAxisLabel(ewxChoice *axis)
   if ((stringData = dynamic_cast<wxStringClientData*>(clientData))) {
     TProperty *prop =
             getCalculation()->getProperty(stringData->GetData().ToStdString());
-    label << unitLabel(prop->units());
+    label << StepPlotAxes::unitText(prop->units());
+  } else if (!p_timeUnit.empty()) {
+    label << "Time (" << p_timeUnit << ")";
   } else {
     label << axis->GetStringSelection();
   }

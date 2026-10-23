@@ -82,6 +82,7 @@ class XYPlotCanvas : public wxPanel
       c.series = series >= 0 ? series : (int)p_curves.size();
       c.style = style;
       c.marker = 0;
+      c.thin = false;
       c.labels.assign(n, wxString());
       p_curves.push_back(c);
       p_zoomed = false;
@@ -113,6 +114,13 @@ class XYPlotCanvas : public wxPanel
       Refresh();
     }
 
+    /** A 1 px line, for a curve that accompanies the main one. */
+    void setCurveThin(int curve, bool thin)
+    {
+      if (curveOk(curve)) p_curves[curve].thin = thin;
+      Refresh();
+    }
+
     /** Draw a curve in this colour rather than its palette series. */
     void setCurveColour(int curve, const wxColour& colour)
     {
@@ -126,10 +134,26 @@ class XYPlotCanvas : public wxPanel
       if (pointOk(curve, index)) p_curves[curve].labels[index] = label;
     }
 
+    /** Names for the hover readout in place of "Point", "x" and "y"; an
+     *  empty name keeps the default, a unit is appended to its value. */
+    void setReadout(const wxString& point, const wxString& xName,
+                    const wxString& xUnit, const wxString& yName = wxString(),
+                    const wxString& yUnit = wxString())
+    {
+      p_roPoint = point; p_roX = xName; p_roXUnit = xUnit;
+      p_roY = yName; p_roYUnit = yUnit;
+    }
+
     void setXAxisLabel(const wxString& s) { p_xLabel = s; Refresh(); }
     void setYAxisLabel(const wxString& s) { p_yLabel = s; Refresh(); }
     void setTitle(const wxString& s) { p_title = s; Refresh(); }
     wxString title() const { return p_title; }
+    wxString xAxisLabel() const { return p_xLabel; }
+    wxString yAxisLabel() const { return p_yLabel; }
+    wxString curveName(int curve) const
+    {
+      return curveOk(curve) ? p_curves[curve].name : wxString();
+    }
     void setShowKey(bool show) { p_showKey = show; Refresh(); }
     void setShowXAxis(bool show) { p_showXAxis = show; Refresh(); }
     /** Room, in x units, kept clear on either side of the data. */
@@ -345,6 +369,7 @@ class XYPlotCanvas : public wxPanel
       std::vector<wxString> labels;
       wxString name;
       int series, marker;
+      bool thin;             // a 1 px line, drawn under the others' weight
       Style style;
       wxColour colour;       // invalid: the palette's series colour
     };
@@ -444,7 +469,7 @@ class XYPlotCanvas : public wxPanel
           pts.push_back(wxPoint(xOf(cv.x[i]), yOf(cv.y[i])));
       if (pts.empty()) return;
       if ((cv.style == LINE || cv.style == LINE_MARKERS) && pts.size() > 1) {
-        dc.SetPen(wxPen(col, 2));
+        dc.SetPen(wxPen(col, cv.thin ? 1 : 2));
         dc.DrawLines((int)pts.size(), &pts[0]);
       }
       if (cv.style == LEVELS) {
@@ -473,13 +498,21 @@ class XYPlotCanvas : public wxPanel
         const Curve& cv = p_curves[i];
         if (cv.name.empty()) continue;
         const wxColour col = colourOf(cv);
-        dc.SetPen(wxPen(col, 2));
+        dc.SetPen(wxPen(col, cv.thin ? 1 : 2));
         dc.DrawLine(x, y + dc.GetCharHeight() / 2, x + 14,
                     y + dc.GetCharHeight() / 2);
         dc.SetTextForeground(p_palette.text);
         dc.DrawText(cv.name, x + 19, y);
         x += 19 + dc.GetTextExtent(cv.name).x + 16;
       }
+    }
+
+    static wxString readoutLine(const wxString& name, double v,
+                                const wxString& unit)
+    {
+      wxString t = wxString::Format("%s  %.6g", name, v);
+      if (!unit.empty()) t += " " + unit;
+      return t;
     }
 
     void paintReadout(wxDC& dc, const wxSize& size)
@@ -490,9 +523,12 @@ class XYPlotCanvas : public wxPanel
       if (!cv.name.empty()) lines.push_back(cv.name);
       if (!cv.labels[p_hoverIndex].empty())
         lines.push_back(cv.labels[p_hoverIndex]);
-      lines.push_back(wxString::Format("Point %d", p_hoverIndex + 1));
-      lines.push_back(wxString::Format("x  %.6g", cv.x[p_hoverIndex]));
-      lines.push_back(wxString::Format("y  %.6g", cv.y[p_hoverIndex]));
+      lines.push_back(wxString::Format("%s %d",
+          p_roPoint.empty() ? wxString("Point") : p_roPoint, p_hoverIndex + 1));
+      lines.push_back(readoutLine(p_roX.empty() ? wxString("x") : p_roX,
+                                  cv.x[p_hoverIndex], p_roXUnit));
+      lines.push_back(readoutLine(p_roY.empty() ? wxString("y") : p_roY,
+                                  cv.y[p_hoverIndex], p_roYUnit));
       dc.SetFont(*wxSMALL_FONT);
       const int ch = dc.GetCharHeight();
       int w = 0;
@@ -664,6 +700,7 @@ class XYPlotCanvas : public wxPanel
     PlotPalette p_palette;
     std::vector<Curve> p_curves;
     wxString p_title, p_xLabel, p_yLabel;
+    wxString p_roPoint, p_roX, p_roXUnit, p_roY, p_roYUnit;
     bool p_showKey, p_showXAxis;
     PointHandler p_handler;
     int p_selCurve, p_selIndex, p_hoverCurve, p_hoverIndex;
