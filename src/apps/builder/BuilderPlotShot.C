@@ -3,6 +3,7 @@
 //  without synthetic input.  Used through ECCE_VIEWER_SCENE by
 //  tests/plots/capture.py.
 
+#include <cmath>
 #include <wx/aui/aui.h>
 #include <wx/app.h>
 #include <wx/bitmap.h>
@@ -66,6 +67,22 @@ void reportPlots(wxWindow *w, const string& name)
     }
   }
   for (wxWindow *c : w->GetChildren()) reportPlots(c, name);
+}
+
+//  ECCE_PLOTSHOT_ZOOM=<notches>: wheel notches of zoom-out (negative: in)
+//  on every plot before the picture, then the view range it settled on.
+void zoomPlots(wxWindow *w, double notches, const string& name)
+{
+  if (XYPlotCanvas *p = dynamic_cast<XYPlotCanvas*>(w)) {
+    p->zoomBy(std::pow(0.8, -notches));
+    p->Refresh();
+    p->Update();
+    double x0, x1, y0, y1;
+    p->viewRange(&x0, &x1, &y0, &y1);
+    fprintf(stderr, "PLOTSHOT-VIEW %s x=[%.6g, %.6g] y=[%.6g, %.6g]\n",
+            name.c_str(), x0, x1, y0, y1);
+  }
+  for (wxWindow *c : w->GetChildren()) zoomPlots(c, notches, name);
 }
 
 }  // namespace
@@ -133,6 +150,10 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   pane.window->Update();
   settle(1500);
 
+  if (const char *z = getenv("ECCE_PLOTSHOT_ZOOM")) {
+    zoomPlots(pane.window, atof(z), w[1]);
+    settle(800);
+  }
   if (getenv("ECCE_PLOTSHOT_DUMP")) dump(pane.window, 0);
   reportPlots(pane.window, w[1]);
   const wxRect r = pane.window->GetScreenRect();

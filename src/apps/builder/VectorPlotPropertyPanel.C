@@ -11,6 +11,7 @@
 #include "dsm/IPropCalculation.H"
 
 #include "XYPlotCanvas.H"
+#include "StepPlotAxes.H"
 #include "wxgui/ewxStaticText.H"
 
 #include "VectorPlotPropertyPanel.H"
@@ -79,10 +80,18 @@ bool VectorPlotPropertyPanel::Create(IPropCalculation *calculation,
   vector<double> &vectorData = propVector->values();
   vector<double> stepData(vectorData.size());
   for (size_t i = 0; i < vectorData.size(); i++) stepData[i] = i+1;
-  p_plotCtrl->addCurve(stepData, vectorData);
+  const StepPlotAxes::Shaped shaped = StepPlotAxes::shape(
+      *(names.begin()), propVector->units(), vectorData);
+  const int curve = p_plotCtrl->addCurve(
+      stepData, shaped.y.empty() ? vectorData : shaped.y);
+  for (size_t i = 0; i < shaped.hover.size(); i++)
+    p_plotCtrl->setPointLabel(curve, (int)i, shaped.hover[i]);
 
-  p_plotCtrl->setXAxisLabel(propVector->rowLabel());
-  p_plotCtrl->setYAxisLabel(unitLabel(propVector->units()));
+  p_plotCtrl->setIntegerX(true);
+  p_plotCtrl->setXAxisLabel(StepPlotAxes::xAxisName(propVector->rowLabel()));
+  p_plotCtrl->setYAxisLabel(shaped.yLabel.empty()
+                            ? StepPlotAxes::unitText(propVector->units())
+                            : shaped.yLabel);
 
   GetSizer()->Fit(this);
   GetSizer()->SetSizeHints(this);

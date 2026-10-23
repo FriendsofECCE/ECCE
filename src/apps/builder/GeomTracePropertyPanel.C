@@ -221,7 +221,7 @@ wxWindow * GeomTracePropertyPanel::GetTearableContent()
        wxString long_name = propref ? propref->long_name : *key;
        const wxString shown = StepPlotAxes::plotName(long_name.ToStdString());
        tb->AddCheckTool(p_keyToId[*key], shown, wxNullBitmap);
-       tb->ToggleTool(p_keyToId[*key], shown == p_plotCtrl->title());
+       tb->ToggleTool(p_keyToId[*key], *key == p_currentProp);
     }
   }
   tb->AddSeparator();
@@ -329,20 +329,33 @@ void GeomTracePropertyPanel::fillPlot()
   const wxString name = propref ? StepPlotAxes::plotName(propref->long_name)
                                 : wxString();
   p_plotCtrl->setShowKey(false);
-  p_plotCtrl->addCurve(stepData, arrayData, timed ? name : wxString());
+  p_plotCtrl->setIntegerX(false);
+  const StepPlotAxes::Shaped shaped =
+      timed ? StepPlotAxes::Shaped()
+            : StepPlotAxes::shape(p_currentProp, prop->units(), arrayData);
+  if (!timed && !shaped.y.empty()) arrayData = shaped.y;
+  const int curve = p_plotCtrl->addCurve(stepData, arrayData,
+                                         timed ? name : wxString());
+  for (size_t i = 0; i < shaped.hover.size(); i++)
+    p_plotCtrl->setPointLabel(curve, (int)i, shaped.hover[i]);
   if (timed) StepPlotAxes::addRunningAverage(p_plotCtrl, stepData, arrayData);
 
   const wxString yUnit = StepPlotAxes::unitText(prop->units());
   if (timed) {
     p_plotCtrl->setXAxisLabel("Time (" + timeUnit + ")");
     p_plotCtrl->setReadout("Frame", "Time", timeUnit, "", yUnit);
-  } else {
-    p_plotCtrl->setXAxisLabel(prop->rowLabel());
-    p_plotCtrl->setReadout("", "", "", "", "");
+    p_plotCtrl->setYAxisLabel(yUnit);
+    if (propref) p_plotCtrl->setTitle(name);
+    return;
   }
-  p_plotCtrl->setYAxisLabel(yUnit);
 
-  if (propref) p_plotCtrl->setTitle(name);
+  p_plotCtrl->setIntegerX(true);
+  p_plotCtrl->setXAxisLabel(StepPlotAxes::xAxisName(prop->rowLabel()));
+  p_plotCtrl->setReadout("Step", "", "", shaped.yName, shaped.yUnit);
+  p_plotCtrl->setYAxisLabel(shaped.yLabel.empty() ? yUnit : shaped.yLabel);
+  if (propref)
+    p_plotCtrl->setTitle(shaped.titleNote.empty()
+                         ? name : name + " (" + shaped.titleNote + ")");
 }
 
 
@@ -375,6 +388,8 @@ void GeomTracePropertyPanel::OnPlaybackLoop(wxCommandEvent& event)
 
 void GeomTracePropertyPanel::OnPointClick(int, int index)
 {
+  // Play continues from the clicked step, not from the first.
+  if (p_playback) p_playback->SetCurrentStep((long)index);
   processStep(index);
 }
 

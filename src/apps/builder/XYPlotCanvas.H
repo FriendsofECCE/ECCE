@@ -158,6 +158,8 @@ class XYPlotCanvas : public wxPanel
     void setShowXAxis(bool show) { p_showXAxis = show; Refresh(); }
     /** Room, in x units, kept clear on either side of the data. */
     void setXPadding(double pad) { p_xPad = pad; Refresh(); }
+    /** Whole-number ticks on x, for a step or cycle count. */
+    void setIntegerX(bool on) { p_intX = on; Refresh(); }
 
     const PlotPalette& palette() const { return p_palette; }
     wxColour seriesColour(int i) const { return p_palette.series(i); }
@@ -229,6 +231,20 @@ class XYPlotCanvas : public wxPanel
 
     void fitAll() { p_zoomed = false; Refresh(); }
 
+    /** Zoom about the centre of the view (factor < 1 zooms in), as the
+     *  +/- keys do; for scripted checks.  The view is what the last paint
+     *  drew. */
+    void zoomBy(double factor)
+    {
+      zoomAbout(0.5 * (p_x0 + p_x1), 0.5 * (p_y0 + p_y1), factor);
+    }
+
+    /** The x and y range the last paint drew. */
+    void viewRange(double *x0, double *x1, double *y0, double *y1) const
+    {
+      *x0 = p_x0; *x1 = p_x1; *y0 = p_y0; *y1 = p_y1;
+    }
+
     // ---- painting ------------------------------------------------------
 
     void paintOnto(wxDC& dc, const wxSize& size)
@@ -282,6 +298,7 @@ class XYPlotCanvas : public wxPanel
 
       yt = niceTicks(ylo, yhi, std::max(3, plotH / 45));
       SpectrumTicks xt = niceTicks(xlo, xhi, std::max(3, plotW / 80));
+      if (p_intX) xt = integerTicks(xlo, xhi, xt.step);
 
       //  Grid.
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -391,6 +408,19 @@ class XYPlotCanvas : public wxPanel
       return false;
     }
 
+    //  Ticks on whole numbers only, at least one apart.
+    static SpectrumTicks integerTicks(double lo, double hi, double step)
+    {
+      SpectrumTicks t;
+      t.step = std::max(1.0, std::floor(step + 0.5));
+      t.decimals = 0;
+      //  Steps and cycles count from 1.
+      double v = std::ceil(lo / t.step - 1e-9) * t.step;
+      while (v < 1.0 - 1e-9) v += t.step;
+      for (; v <= hi + 1e-9; v += t.step) t.values.push_back(v);
+      return t;
+    }
+
     static wxString tickText(const SpectrumTicks& t, double v)
     {
       if (t.decimals > 6 || std::fabs(v) >= 1e7)
@@ -421,6 +451,27 @@ class XYPlotCanvas : public wxPanel
       *ylo = y0 - 0.06 * dy; *yhi = y1 + 0.06 * dy;
       if (x1 == x0) { *xlo = x0 - dx / 2; *xhi = x0 + dx / 2; }
       return true;
+    }
+
+    //  The zoomed-out view is the data range; no view leaves it, so the
+    //  plot can never be zoomed or dragged away from what is drawn.
+    void clampView()
+    {
+      double lo, hi, ylo, yhi;
+      if (!dataRange(&lo, &hi, &ylo, &yhi)) return;
+      clampAxis(&p_vx0, &p_vx1, lo, hi);
+      clampAxis(&p_vy0, &p_vy1, ylo, yhi);
+    }
+
+    static void clampAxis(double *a, double *b, double lo, double hi)
+    {
+      double w = *b - *a;
+      if (!(w < hi - lo)) { *a = lo; *b = hi; return; }
+      //  A sliver of the full range is as far in as the maths stays sound.
+      w = std::max(w, 1e-9 * (hi - lo));
+      if (*a < lo) *a = lo;
+      if (*a + w > hi) *a = hi - w;
+      *b = *a + w;
     }
 
     int xOf(double x) const
@@ -568,6 +619,7 @@ class XYPlotCanvas : public wxPanel
       startView();
       p_vx0 = cx + (p_vx0 - cx) * factor;  p_vx1 = cx + (p_vx1 - cx) * factor;
       p_vy0 = cy + (p_vy0 - cy) * factor;  p_vy1 = cy + (p_vy1 - cy) * factor;
+      clampView();
       Refresh();
     }
 
@@ -590,6 +642,7 @@ class XYPlotCanvas : public wxPanel
         const double dx = xFrom(p_lastPan.x) - xFrom(p.x);
         const double dy = yFrom(p_lastPan.y) - yFrom(p.y);
         p_vx0 += dx; p_vx1 += dx; p_vy0 += dy; p_vy1 += dy;
+        clampView();
         p_lastPan = p;
         Refresh();
         return;
@@ -633,6 +686,7 @@ class XYPlotCanvas : public wxPanel
           p_vx0 = std::min(xa, xb); p_vx1 = std::max(xa, xb);
           p_vy0 = std::min(ya, yb); p_vy1 = std::max(ya, yb);
           p_zoomed = true;
+          clampView();
         }
         Refresh();
         return;
@@ -710,6 +764,7 @@ class XYPlotCanvas : public wxPanel
     //  paint used, which the mouse maths reads.
     bool   p_zoomed;
     double p_xPad;
+    bool   p_intX = false;
     double p_vx0 = 0, p_vx1 = 1, p_vy0 = 0, p_vy1 = 1;
     double p_x0 = 0, p_x1 = 1, p_y0 = 0, p_y1 = 1;
     wxRect p_plot;

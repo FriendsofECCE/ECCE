@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pictures of every plot panel in the real Builder, headless.
 
-    tests/plots/capture.py --png DIR --tag before|after [case ...]
+    tests/plots/capture.py --png DIR --tag before|after [case | calc-dir ...]
 
 Needs the private install (ECCE_TEST_HOME / ECCE_TEST_WRAPPERS, as
 tests/apps/run_tests.py).  For each case a calculation is built from the
@@ -89,12 +89,19 @@ def main():
             restore = fixture.settleUpgradeNotices()
             try:
                 for case in cases:
+                    src = case
+                    if os.path.isdir(case):
+                        case = os.path.basename(os.path.normpath(case))[:12]
                     work = os.path.join(state, "plots-" + case)
                     if os.path.exists(work):
                         shutil.rmtree(work)
                     os.makedirs(work)
                     name = "pl-" + case
-                    if case == "synthetic":
+                    if os.path.isdir(src):
+                        #  A real calculation directory: its molecule and
+                        #  step series.
+                        makecalc.make_real(src, os.path.join(work, name))
+                    elif case == "synthetic":
                         makecalc.make_synthetic(os.path.join(work, name))
                     else:
                         makecalc.make(case, os.path.join(work, name))

@@ -40,6 +40,8 @@ class PlotAnyPropertyPanel : public PropertyPanel
 
      int getSelectionSize(ewxChoice *axis);
     void getSelectionData(ewxChoice *axis, double *values);
+    std::string getSelectionKey(ewxChoice *axis);
+    std::string getSelectionUnits(ewxChoice *axis);
     void refreshAxisLabel(ewxChoice *axis);
 
   private:

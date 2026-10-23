@@ -209,10 +209,16 @@ calculation run elsewhere: see [Importing a calculation](importing-a-calculation
   **Two-Electron Energy**, each in Hartree.
 - **Geometry Trace** plots one quantity against the geometry step, one point
   for each step. It opens on the **Energy Gradient Magnitude**. To plot the
-  energy, right-click the panel and choose **Total Energy Vector**; the
-  picture below shows that plot. Click a point on the plot to see the
-  molecule at that step, or use the playback control to step through them.
-  **Delay:** sets the time between steps during playback.
+  energy, right-click the panel and choose **Total Energy**; the picture
+  below shows that plot. The energy is drawn relative to step 1 in kJ/mol,
+  and the title gives the final absolute energy in Hartree. Click a point on
+  the plot to see the molecule at that step, or use the playback control to
+  step through them; **Play** continues from the selected step.
+  **Delay:** sets the time between steps during playback. All plots zoom
+  with the mouse wheel or by dragging a rectangle, but never beyond the data;
+  Home or a double click on empty plot shows all of it. In the **Wave Step
+  Plots** (the SCF cycles), the energy change and the density and orbital
+  gradient changes are drawn as log10 of their size.
 
 For a converged optimisation the energy decreases from step to step and
 levels off in the last steps, and the gradient falls towards zero.

@@ -120,6 +120,38 @@ def make(caseName, out):
     return wrote
 
 
+def make_real(src, out):
+    """A real calculation's step series and molecule on the fixture shell.
+
+    The fixture's own metadata format differs from a calculation imported in
+    local mode, so only the files the plots read are carried over (the
+    molecule, GEOMTRACE and the per-step vectors); the rest of Props goes.
+    """
+    if os.path.exists(out):
+        shutil.rmtree(out)
+    shutil.copytree(BASE, out)
+    shutil.copy(os.path.join(src, "Parameters", "chemsys.mvm"),
+                os.path.join(out, "Parameters", "chemsys.mvm"))
+    props = os.path.join(out, "Props")
+    template = os.path.join(out, "template.dav")
+    shutil.copy(os.path.join(props, ".DAV", "VIBFREQ"), template)
+    keep = ("GEOMTRACE", "TEVEC", "ESCFVEC", "EGRADVEC", "DELTAE", "RMSDP",
+            "DEWVEC")
+    for name in os.listdir(props):
+        if name != ".DAV" and name not in keep:
+            os.remove(os.path.join(props, name))
+            dav = os.path.join(props, ".DAV", name)
+            if os.path.exists(dav):
+                os.remove(dav)
+    for name in keep:
+        have = os.path.join(src, "Props", name)
+        if os.path.exists(have) and os.path.getsize(have) > 0:
+            shutil.copy(have, os.path.join(props, name))
+            if name != "GEOMTRACE":
+                shutil.copy(template, os.path.join(props, ".DAV", name))
+    os.remove(template)
+
+
 def table(name, columnLabels, rows, units="NA"):
     """A PropTable file: rows is a list of equal-length value lists."""
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'

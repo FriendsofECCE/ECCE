@@ -24,6 +24,7 @@
 //            --hover-kind ir|raman  which pane the hover sits in
 //            --compact-pane raman   in a short bitmap (< 320 px), show this pane
 //            --size W H             bitmap size (default 1000 x 700)
+//            --compare in2.spec NAME1 NAME2   overlay a second calculation
 //            --dump                 print the sticks the canvas holds:
 //                                   stick <ir|raman> <mode> <cm-1> <intensity> <irrep> <x> <y>
 #include <cstdio>
@@ -91,6 +92,7 @@ int main(int argc, char** argv)
   double fwhm = 15, scale = 1, zlo = 0, zhi = 0;
   int select = 0, hover = 0;
   VibKind hoverKind = VIB_IR, compactPane = VIB_IR;
+  std::string cmpPath, name1, name2;
   for (int i = 3; i < argc; i++) {
     const std::string o = argv[i];
     if (o == "--dark") dark = true;
@@ -109,6 +111,8 @@ int main(int argc, char** argv)
       hoverKind = std::string(argv[++i]) == "raman" ? VIB_RAMAN : VIB_IR;
     else if (o == "--zoom" && i + 2 < argc) {
       zoom = true; zlo = atof(argv[i + 1]); zhi = atof(argv[i + 2]); i += 2;
+    } else if (o == "--compare" && i + 3 < argc) {
+      cmpPath = argv[i + 1]; name1 = argv[i + 2]; name2 = argv[i + 3]; i += 3;
     } else if (o == "--size" && i + 2 < argc) {
       width = atoi(argv[i + 1]); height = atoi(argv[i + 2]); i += 2;
     } else {
@@ -121,6 +125,15 @@ int main(int argc, char** argv)
   if (!readSpec(argv[1], spec)) {
     fprintf(stderr, "render: cannot read %s\n", argv[1]);
     return 1;
+  }
+  if (!cmpPath.empty()) {
+    VibSpectrum other;
+    if (!readSpec(cmpPath.c_str(), other)) {
+      fprintf(stderr, "render: cannot read %s\n", cmpPath.c_str());
+      return 1;
+    }
+    spec.setLabel(name1);
+    spec.setCompare(other, name2);
   }
 
   wxEntryStart(argc, argv);
