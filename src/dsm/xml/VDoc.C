@@ -5,6 +5,7 @@
 */
 
 #include <sstream>
+#include <iostream>
   using std::istringstream;
 
 #include <string>
@@ -2383,9 +2384,13 @@ void VDoc::loadRunLogName()
       }
     }
 
+    // Calculations written by scripts may lack the entry; the default
+    // name from init is used and the document is created on first write.
     if (p_runLog.empty()) {
-      throw InvalidException("Could not determine Run Log resource name.",
-                             WHERE);
+      p_runLog = "eccejobstorelog.ecce_run_log";
+      std::cerr << "WARNING: calculation " << p_base.toString()
+           << " has no ecce:runLogDocument in .ecce-meta; using "
+           << p_runLog << std::endl;
     }
   }
   else {
@@ -2888,10 +2893,11 @@ void VDoc::loadPropertyCollection()
       }
     }
     else {
-      throw InvalidException("DAV property missing. Could not "
-                             "determine collection name for "
-                             "property resources.",
-                             WHERE);
+      // Same as the run log: fall back to the default collection name.
+      p_propertyCollection = "Props";
+      std::cerr << "WARNING: calculation " << p_base.toString()
+           << " has no ecce:propertyCollection in .ecce-meta; using "
+           << p_propertyCollection << std::endl;
     }
   }
 }
