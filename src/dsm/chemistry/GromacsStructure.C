@@ -215,3 +215,160 @@ vector<string> GromacsStructure::moleculeNames(const string& top)
   }
   return names;
 }
+
+namespace {
+
+typedef double V3[3];
+
+// Minimum image of a difference d in the lattice of rows a, b, c: reduce
+// along c, b, a, then try the neighbours (the cell is reduced, not orthogonal).
+void minImage(V3 d, const V3 a[3])
+{
+  for (int k = 2; k >= 0; k--) {
+    double n = std::floor(d[k] / a[k][k] + 0.5);
+    for (int i = 0; i <= k; i++) d[i] -= n * a[k][i];
+  }
+  double best = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
+  V3 bd = { d[0], d[1], d[2] };
+  for (int i = -1; i <= 1; i++)
+    for (int j = -1; j <= 1; j++)
+      for (int k = -1; k <= 1; k++) {
+        V3 t;
+        for (int m = 0; m < 3; m++)
+          t[m] = d[m] + i * a[0][m] + j * a[1][m] + k * a[2][m];
+        double l = t[0]*t[0] + t[1]*t[1] + t[2]*t[2];
+        if (l < best - 1e-12) {
+          best = l;
+          for (int m = 0; m < 3; m++) bd[m] = t[m];
+        }
+      }
+  for (int m = 0; m < 3; m++) d[m] = bd[m];
+}
+
+bool isHydrogen(const string& atomName)
+{
+  for (size_t i = 0; i < atomName.size(); i++)
+    if (isalpha((unsigned char)atomName[i]))
+      return toupper((unsigned char)atomName[i]) == 'H';
+  return false;
+}
+
+}  // namespace
+
+string GromacsStructure::wrapCompact(const string& gro)
+{
+  std::istringstream in(gro);
+  string title, countLine;
+  if (!std::getline(in, title) || !std::getline(in, countLine)) return gro;
+  int n = atoi(countLine.c_str());
+  if (n <= 0) return gro;
+  vector<string> lines(n);
+  for (int i = 0; i < n; i++)
+    if (!std::getline(in, lines[i])) return gro;
+  string boxline;
+  if (!std::getline(in, boxline)) return gro;
+
+  double b[9] = {0,0,0,0,0,0,0,0,0};
+  int nb = sscanf(boxline.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                  &b[0],&b[1],&b[2],&b[3],&b[4],&b[5],&b[6],&b[7],&b[8]);
+  if (nb != 9) return gro;
+  // GROMACS keeps the box lower triangular: a along x, b in the xy plane.
+  if (b[3] != 0 || b[4] != 0 || b[6] != 0) return gro;
+  if (b[5] == 0 && b[7] == 0 && b[8] == 0) return gro;
+  if (b[0] <= 0 || b[1] <= 0 || b[2] <= 0) return gro;
+  const V3 cell[3] = { { b[0], 0, 0 }, { b[5], b[1], 0 }, { b[7], b[8], b[2] } };
+  const V3 centre = { 0.5 * (cell[0][0] + cell[1][0] + cell[2][0]),
+                      0.5 * (cell[1][1] + cell[2][1]), 0.5 * cell[2][2] };
+
+  const string& first = lines[0];
+  size_t d1 = first.find('.', 20);
+  size_t d2 = (d1 == string::npos) ? string::npos : first.find('.', d1 + 1);
+  if (d1 == string::npos || d2 == string::npos || d2 <= d1) return gro;
+  const size_t w = d2 - d1;
+  char decfmt[24];
+  snprintf(decfmt, sizeof decfmt, "%%%d.%df", (int)w, (int)(w - 5 > 0 ? w - 5 : 3));
+
+  vector<V3> x(n);
+  vector<string> res(n), name(n);
+  for (int i = 0; i < n; i++) {
+    const string& l = lines[i];
+    if (l.size() < 20 + 3 * w) return gro;
+    for (int k = 0; k < 3; k++) x[i][k] = atof(l.substr(20 + k * w, w).c_str());
+    res[i] = l.substr(0, 10);
+    name[i] = l.substr(10, 5);
+  }
+
+  vector<int> rstart;
+  for (int i = 0; i < n; i++)
+    if (i == 0 || res[i] != res[i - 1]) rstart.push_back(i);
+  rstart.push_back(n);
+  const int nres = (int)rstart.size() - 1;
+  const double bond2 = 0.175 * 0.175;
+
+  // Whole residues: each atom at the image nearest the one before it.
+  for (int i = 1; i < n; i++) {
+    if (res[i] != res[i - 1]) continue;
+    V3 d = { x[i][0] - x[i-1][0], x[i][1] - x[i-1][1], x[i][2] - x[i-1][2] };
+    V3 o = { d[0], d[1], d[2] };
+    minImage(d, cell);
+    for (int k = 0; k < 3; k++) x[i][k] += d[k] - o[k];
+  }
+
+  // Molecules: runs of residues joined by a heavy-atom bond.
+  vector<int> mol(nres, 0);
+  for (int r = 1; r < nres; r++) {
+    bool bonded = false;
+    V3 shift = { 0, 0, 0 };
+    for (int i = rstart[r - 1]; i < rstart[r] && !bonded; i++) {
+      if (isHydrogen(name[i])) continue;
+      for (int j = rstart[r]; j < rstart[r + 1]; j++) {
+        if (isHydrogen(name[j])) continue;
+        V3 d = { x[j][0] - x[i][0], x[j][1] - x[i][1], x[j][2] - x[i][2] };
+        V3 o = { d[0], d[1], d[2] };
+        minImage(d, cell);
+        if (d[0]*d[0] + d[1]*d[1] + d[2]*d[2] < bond2) {
+          bonded = true;
+          for (int k = 0; k < 3; k++) shift[k] = d[k] - o[k];
+          break;
+        }
+      }
+    }
+    mol[r] = bonded ? mol[r - 1] : mol[r - 1] + 1;
+    if (bonded)
+      for (int j = rstart[r]; j < rstart[r + 1]; j++)
+        for (int k = 0; k < 3; k++) x[j][k] += shift[k];
+  }
+
+  // Each molecule's centre to the image nearest the box centre.
+  int r = 0;
+  while (r < nres) {
+    int r2 = r;
+    while (r2 < nres && mol[r2] == mol[r]) r2++;
+    const int a0 = rstart[r], a1 = rstart[r2];
+    V3 c = { 0, 0, 0 };
+    for (int i = a0; i < a1; i++)
+      for (int k = 0; k < 3; k++) c[k] += x[i][k] / (a1 - a0);
+    V3 d = { c[0] - centre[0], c[1] - centre[1], c[2] - centre[2] };
+    V3 o = { d[0], d[1], d[2] };
+    minImage(d, cell);
+    for (int i = a0; i < a1; i++)
+      for (int k = 0; k < 3; k++) x[i][k] += d[k] - o[k];
+    r = r2;
+  }
+
+  std::ostringstream out;
+  out << title << "\n" << countLine << "\n";
+  char buf[64];
+  for (int i = 0; i < n; i++) {
+    string l = lines[i];
+    string xyz;
+    for (int k = 0; k < 3; k++) {
+      snprintf(buf, sizeof buf, decfmt, x[i][k]);
+      xyz += buf;
+    }
+    l.replace(20, 3 * w, xyz);
+    out << l << "\n";
+  }
+  out << boxline << "\n";
+  return out.str();
+}
