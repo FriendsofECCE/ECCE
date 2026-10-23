@@ -518,15 +518,17 @@ string DensityMapPanel::state() const
   char buf[256];
   string s;
   s += "have " + string(p_haveMap ? "1" : "0") + "\n";
+  s += "shown " + string(IsShown() ? "1" : "0") + "\n";
+  s += "planeinviewer " + string(p_inViewer ? "1" : "0") + "\n";
   if (!p_haveMap) return s;
   s += "title " + p_map.title + "\n";
   s += "plane " + p_map.plane.description + "\n";
   snprintf(buf, sizeof buf, "offset %.3f\nnormal %.4f %.4f %.4f\norigin %.4f %.4f %.4f\n"
-           "grid %d %d %.3f\nrange %.6g %.6g\nplaneinviewer %d\n",
+           "grid %d %d %.3f\nrange %.6g %.6g\n",
            p_map.plane.offset, p_map.plane.n[0], p_map.plane.n[1],
            p_map.plane.n[2], p_map.plane.origin[0], p_map.plane.origin[1],
            p_map.plane.origin[2], p_map.nu, p_map.nv, p_map.step, p_map.zmin,
-           p_map.zmax, p_inViewer ? 1 : 0);
+           p_map.zmax);
   return s + buf;
 }
 

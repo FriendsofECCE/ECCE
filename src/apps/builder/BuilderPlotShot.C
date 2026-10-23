@@ -137,18 +137,23 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
 //    dmoffset X [drag]    the offset slider, A
 //    dmview rx ry rz ux uy uz | dmviewcurrent     "Use this view"
 //    dmfollow N           select MO N in the MOs panel
-//    dmcsv <name> | dmpng <name> <w> <h> | dmstate | dmhide
+//    dmcsv <name> | dmpng <name> <w> <h> | dmstate | dmhide | dmclose
 bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
                                 const string& outdir)
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane("Density Map");
   if (!pane.IsOk()) return s.fail(w[0] + ": no Density Map panel");
   if (w[0] == "dmhide") {
+    //  As the menu's untick does; a ticked entry would bring the pane back.
+    for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
+      wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+      if (item != 0 && item->GetItemLabelText() == "Density Map") item->Check(false);
+    }
     pane.Hide();
     updatePanes(true);
     return true;
   }
-  if (!pane.IsShown()) {
+  if (!pane.IsShown() && w[0] != "dmstate") {
     pane.Show(true);
     for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
       wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
@@ -204,6 +209,9 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
   } else if (cmd == "dmpng" && w.size() == 4) {
     ok = dm->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
                      atoi(w[3].c_str()));
+  } else if (cmd == "dmclose") {
+    //  What setDetail does to a panel another one replaces.
+    dm->Show(false);
   } else if (cmd != "dmstate") {
     return s.fail("unknown density map command: " + cmd);
   }
