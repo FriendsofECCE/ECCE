@@ -234,19 +234,31 @@ def run_case(case, res, verbose=False):
     atexit.register(shutil.rmtree, workdir, True)
     report = []
     emitted = {}          # parse type -> list of (block, records)
+    # The Gaussian 16 trace scripts hand state to each other through side
+    # files, so they see the blocks in file order, as in the monitor.  The
+    # others (nwchem.molab) were written for entry order.
+    by_file = desc_name == 'gaussian-16.desc'
+    ran = {}
+    ordered = sorted(((b.begin_line, i, e, b)
+                      for i, e in enumerate(desc.live_entries())
+                      for b in result.delivered_for(e)),
+                     key=(lambda t: t[:2]) if by_file else (lambda t: t[1:3]))
+    for _l, _i, entry, block in ordered:
+        try:
+            ran[(entry.type, block.begin_line)] = run_parser(
+                SCRIPTS, entry, block, case.get('parse_args'),
+                workdir=workdir)
+        except FileNotFoundError as exc:
+            res.check(False, where, 'missing parser script %s' % exc)
     for entry in desc.live_entries():
         blocks = result.delivered_for(entry)
         if not blocks:
             continue
         recs_per_block = []
         for block in blocks:
-            try:
-                out, err, rc = run_parser(SCRIPTS, entry, block,
-                                          case.get('parse_args'),
-                                          workdir=workdir)
-            except FileNotFoundError as exc:
-                res.check(False, where, 'missing parser script %s' % exc)
+            if (entry.type, block.begin_line) not in ran:
                 continue
+            out, err, rc = ran[(entry.type, block.begin_line)]
             recs = parse_parser_output(out)
             recs_per_block.append((block, recs, rc, err))
         emitted[entry.type] = (entry, recs_per_block)

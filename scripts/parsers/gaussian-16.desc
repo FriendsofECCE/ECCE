@@ -50,8 +50,10 @@ Frequency=all
 End=CHANGE IN THE REACTION COORDINATE
 [END]
 
+# One frame per step: Input/Z-Matrix blocks are held by geomtrace-input and
+# replaced by the Standard block, or published on "Symmetry turned off" (#498).
 [GEOMTRACE]
-Script=gaussian-16.geomtrace
+Script=gaussian-16.geomtrace-input
 Begin=Input orientation\:
 Skip=5
 Frequency=all
@@ -59,7 +61,7 @@ End=--------------------------------------
 [END]
 
 [GEOMTRACE]
-Script=gaussian-16.geomtrace
+Script=gaussian-16.geomtrace-input
 Begin=Z-Matrix orientation\:
 Skip=5
 Frequency=all
@@ -72,6 +74,15 @@ Begin=Standard orientation\:
 Skip=5
 Frequency=all
 End=--------------------------------------
+[END]
+
+# Not a property: only releases the held Input block.
+[GEOMTRACE2]
+Script=gaussian-16.geomtrace-flush
+Begin=Symmetry turned off
+Skip=1
+Frequency=all
+Lines=1
 [END]
 
 [EGRAD]

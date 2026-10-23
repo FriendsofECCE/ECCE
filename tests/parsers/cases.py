@@ -90,7 +90,9 @@ CASES = [
             # Skip=5 must land exactly on the first atom row, so the very
             # first value the geometry parser sees is atom 1.  (This is the
             # off-by-one that silently produced zero output for ORCA.)
-            'GEOMTRACE1': dict(min_blocks=2, keys={'GEOMTRACE': {}}),
+            # The last Standard block repeats the converged geometry and is dropped
+            # (#498), so the last frame comes from the block before it.
+            'GEOMTRACE1': dict(min_blocks=2, instance=-2, keys={'GEOMTRACE': {}}),
             # gaussian-16.energy emits ESCF/ESCFVEC and, when the theory
             # matches, TE/TEVEC -- all from the one 'SCF Done:' line.
             'ESCF1][ESCFVEC': dict(keys={'ESCF': {}, 'TE': {}}),
@@ -2690,6 +2692,9 @@ KNOWN_SILENT_SCRIPTS = {
     'gaussian-03.null': 'Deliberate no-op (see gaussian-16.null).',
     'nwchem.null': 'Deliberate no-op (see gaussian-16.null).',
     'orca.null': 'Deliberate no-op (see gaussian-16.null).',
+    'gaussian-16.geomtrace-input': 'Holds the Input/Z-Matrix block in a side '
+                     'file; the Standard block (gaussian-16.geomtrace) or '
+                     '"Symmetry turned off" (-flush) publishes it (#498).',
     'nwchem.symlab': 'Emits no property by design: it writes the symmetry '
                      'labels to a side file ("$key/parseSym", $key being '
                      'argv[1] = the job directory) for other scripts to read.',

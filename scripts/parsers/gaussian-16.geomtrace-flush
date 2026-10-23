@@ -1,0 +1,12 @@
+#!/usr/bin/env perl
+# GEOMTRACE when Gaussian says symmetry is off: no Standard block follows, so
+# the held Input block is the frame for this step (see gaussian-16-trace.pl).
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+require "gaussian-16-trace.pl";
+&loadPT;
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+my ($rows, $labels) = takeStash($key);
+emitFrame($key, $rows, $labels);
+exit(0);

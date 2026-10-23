@@ -18,17 +18,12 @@ args:    '.' 'Energy' 'DFT' 'B3LYP' '0'
       rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
       values: A1 A1 B2 A1 B1 A1 B2 B2 A1 B1 A1 B2 A1 A1 A2 B1 A1 B2 A1
 
-[GEOMTRACE]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+[GEOMTRACE]  Script=gaussian-16.geomtrace-input  Freq=all  Skip=5  Lines=-
   Begin=Input orientation\:
   End=--------------------------------------
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=100 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.000000    0.117300'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-O 2-H 3-H
-      columnlabels: X Y Z
-      values: 0.000000 0.000000 0.117300 0.000000 0.757200 -0.469200 0.000000 -0.757200 -0.469200
-      units: Hartree
+    (script emitted no property)
 
 [GEOMTRACE1]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
   Begin=Standard orientation\:
