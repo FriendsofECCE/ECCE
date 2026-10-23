@@ -20,6 +20,7 @@
 #include "Builder.H"
 #include "PropertyPanel.H"
 #include "MoPanel.H"
+#include "DensityMapPanel.H"
 
 
 namespace {
@@ -126,5 +127,44 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   p_mgr.Update();
   settle(300);
   fprintf(stderr, "PLOTSHOT: %s %dx%d\n", w[1].c_str(), r.width, r.height);
+  return true;
+}
+
+
+bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
+                                const string& outdir)
+{
+  if (w.size() < 7)
+    return s.fail("densitymap <name> <w> <h> <orbital|0> <alpha|beta> "
+                  "<plane 0|1|2> [a b c]");
+  wxAuiPaneInfo &pane = p_mgr.GetPane("Density Map");
+  if (!pane.IsOk()) return s.fail("densitymap: no Density Map panel");
+  pane.Show(true);
+  for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
+    wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+    if (item != 0 && item->GetItemLabelText() == "Density Map") item->Check(true);
+  }
+  updatePanes(true);
+  DensityMapPanel *dm = 0;
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(p_calculation->getURL().toString());
+  for (set<PropertyPanel*>::iterator it = panels.begin();
+       it != panels.end() && !dm; ++it)
+    dm = dynamic_cast<DensityMapPanel*>(*it);
+  if (!dm) return s.fail("densitymap: no Density Map panel for this calculation");
+  dm->ensureInitialized();
+  const int a = w.size() > 7 ? atoi(w[7].c_str()) : 0;
+  const int b = w.size() > 8 ? atoi(w[8].c_str()) : 0;
+  const int c = w.size() > 9 ? atoi(w[9].c_str()) : 0;
+  if (!dm->setView(atoi(w[4].c_str()), w[5] == "beta", atoi(w[6].c_str()), a, b, c))
+    return s.fail("densitymap: the plane or orbital was refused");
+  if (!dm->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
+                   atoi(w[3].c_str())))
+    return s.fail("densitymap: cannot write " + w[1] + ".png");
+  const DensityPlane::Map& m = dm->map();
+  fprintf(stderr, "DENSITYMAP: %s %s, %s, %dx%d, %.6g .. %.6g\n", w[1].c_str(),
+          m.title.c_str(), m.plane.description.c_str(), m.nu, m.nv, m.zmin, m.zmax);
+  pane.Hide();
+  p_mgr.Update();
   return true;
 }
