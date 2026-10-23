@@ -601,6 +601,23 @@ bool TGBSConfig::isEqual(TGBSConfig* otherConfig) const
   }
   return true;
 }
+//  Same shells, exponents and coefficients for this atom.  A script-made
+//  calculation lists its basis twice (named set plus "Imported"); summing
+//  both doubled the function count and the MOs could not be drawn.
+static bool sameShells(const TGaussianBasisSet* a, const TGaussianBasisSet* b,
+                       const char* atom)
+{
+  const size_t n = a->num_contracted_sets(atom);
+  if (n == 0 || n != b->num_contracted_sets(atom)) return false;
+  for (size_t i = 0; i < n; i++) {
+    if (a->exponents(atom, i) != b->exponents(atom, i) ||
+        a->coefficients(atom, i) != b->coefficients(atom, i) ||
+        a->func_types(atom, i) != b->func_types(atom, i))
+      return false;
+  }
+  return true;
+}
+
 /*******************************************************************
  Method : getGBSList()
  Summary: Returns a vector of all the GBSs (base and augmenting GBSs)
@@ -632,9 +649,13 @@ vector<const TGaussianBasisSet*> TGBSConfig::getGBSList(string element_)
       gbs = group->p_gbsOrderedVector[i];
 
       // Only include if not a DFT fitting:
-      if (gbs->p_type != TGaussianBasisSet::charge && 
-          gbs->p_type != TGaussianBasisSet::exchange)
-        result.push_back(gbs);
+      if (gbs->p_type == TGaussianBasisSet::charge ||
+          gbs->p_type == TGaussianBasisSet::exchange)
+        continue;
+      bool duplicate = false;
+      for (size_t r = 0; r < result.size() && !duplicate; r++)
+        duplicate = sameShells(result[r], gbs, element_.c_str());
+      if (!duplicate) result.push_back(gbs);
     }
   }
   return result;

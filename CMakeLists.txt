@@ -2978,6 +2978,19 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(gbscoordsys PRIVATE
       "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
   endif()
+  # tests/basis/testDuplicateOrbitalBasis (#497): identical orbital sets
+  # listed twice for one element count once.
+  add_executable(gbsdupbasis tests/basis/testDuplicateOrbitalBasis.C)
+  target_include_directories(gbsdupbasis PRIVATE ${XercesC_INCLUDE_DIRS})
+  if(APPLE)
+    target_link_libraries(gbsdupbasis PRIVATE ${_gbs_libs} ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(gbsdupbasis PRIVATE
+      "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
+  endif()
+  add_test(NAME gbsdupbasis COMMAND gbsdupbasis)
+  set_tests_properties(gbsdupbasis PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   add_test(NAME gbscoordsys
            COMMAND gbscoordsys ${CMAKE_CURRENT_SOURCE_DIR}/data/admin/basissets)
   set_tests_properties(gbscoordsys PROPERTIES ENVIRONMENT
