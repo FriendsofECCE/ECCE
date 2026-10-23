@@ -1901,7 +1901,7 @@ bool ModelDiagram::build(const Input& in,
       (void)total;
       out.about += "\n\n**Construction labels.** sigma, pi and delta are taken relative to each bond from the centre to a ligand atom: "
                    "sigma = no nodal plane containing the bond axis, pi = one, delta = two (s and a p orbital along the bond have none, "
-                   "a p orbital across it one). For a level made of several ligand orbitals the share on each type is averaged over the bonds, "
+                   "a p orbital across it one, a d orbital as many as its m about the bond). For a level made of several ligand orbitals the share on each type is averaged over the bonds, "
                    "and the label is the dominant one; the hover text gives the split. * marks the out-of-phase combination of the leading "
                    "fragment orbitals, nb a level with under 5 % on the other fragment. For a diatomic the levels of each sigma/pi, g/u class are named "
                    "in the textbook order (2s before 2p, bonding before antibonding) whatever their s/p mixing.";

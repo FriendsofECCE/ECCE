@@ -13,6 +13,7 @@ namespace {
 
 const char* SIGMA = "\xCF\x83";
 const char* PI    = "\xCF\x80";
+const char* DELTA = "\xCE\xB4";
 
 typedef vector< vector<double> > Mat;
 
@@ -77,25 +78,51 @@ string leadingShell(const FragmentOrbitals::FoSet& set, const vector<double>& c,
 
 double dot(const double a[3], const double b[3]) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
 
-//  The weight of an orbital that is symmetric / perpendicular about an axis
-//  through `centre` along `axis`, summed over the atoms in `atoms`.
+//  The weight of an orbital with 0 / 1 / 2 nodal planes containing the axis
+//  (sigma / pi / delta), summed over the atoms in `atoms`.  s and d_z2 have none,
+//  p along the axis none, p across it one, d by its m about the axis.
 void axisWeights(const FragmentOrbitals::FoSet& set, const vector<double>& c,
                  const vector<int>& atoms, const double axis[3], double& par, double& perp,
-                 double& dWeight)
+                 double& delta)
 {
-   par = perp = dWeight = 0.0;
+   par = perp = delta = 0.0;
    for (size_t a = 0; a < atoms.size(); a++) {
-      double v[3] = {0, 0, 0};
+      double v[3] = {0, 0, 0}, T[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
+      const double r3 = sqrt(3.0);
       for (size_t i = 0; i < set.funcs.size(); i++) {
          const FragmentOrbitals::Function& f = set.funcs[i];
          if (f.atom != atoms[a]) continue;
          if (f.l == 0) par += c[i]*c[i];
          else if (f.l == 1) v[f.component == "x" ? 0 : (f.component == "y" ? 1 : 2)] += c[i];
-         else dWeight += c[i]*c[i];
+         else if (f.l == 2) {      // a d function is a traceless symmetric tensor T: sum T_ab r_a r_b
+            const string& n = f.component;
+            if (n == "z2") { T[0][0] -= 0.5*c[i]; T[1][1] -= 0.5*c[i]; T[2][2] += c[i]; }
+            else if (n == "x2-y2") { T[0][0] += 0.5*r3*c[i]; T[1][1] -= 0.5*r3*c[i]; }
+            else if (n == "xy") { T[0][1] += 0.5*r3*c[i]; T[1][0] += 0.5*r3*c[i]; }
+            else if (n == "xz") { T[0][2] += 0.5*r3*c[i]; T[2][0] += 0.5*r3*c[i]; }
+            else if (n == "yz") { T[1][2] += 0.5*r3*c[i]; T[2][1] += 0.5*r3*c[i]; }
+         }
       }
       const double p = dot(v, axis);
       par += p*p;
       perp += max(0.0, dot(v, v) - p*p);
+      //  m content of T about the axis; each real d function has |T|^2 = 1.5.
+      double e1[3], e2[3];
+      const double t[3] = {fabs(axis[0]) < 0.6 ? 1.0 : 0.0, fabs(axis[0]) < 0.6 ? 0.0 : 1.0, 0.0};
+      const double dd = dot(t, axis);
+      for (int k = 0; k < 3; k++) e1[k] = t[k] - dd*axis[k];
+      double n1 = sqrt(dot(e1, e1));
+      for (int k = 0; k < 3; k++) e1[k] /= n1;
+      e2[0] = axis[1]*e1[2] - axis[2]*e1[1]; e2[1] = axis[2]*e1[0] - axis[0]*e1[2]; e2[2] = axis[0]*e1[1] - axis[1]*e1[0];
+      auto q = [&](const double* x, const double* y) {
+         double r = 0.0;
+         for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) r += x[i]*T[i][j]*y[j];
+         return r;
+      };
+      const double tuu = q(axis, axis), tu1 = q(axis, e1), tu2 = q(axis, e2), t11 = q(e1, e1), t22 = q(e2, e2), t12 = q(e1, e2);
+      par += 1.5*tuu*tuu/1.5;
+      perp += 2.0*(tu1*tu1 + tu2*tu2)/1.5;
+      delta += (0.5*(t11 - t22)*(t11 - t22) + 2.0*t12*t12)/1.5;
    }
 }
 
@@ -166,8 +193,8 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
    if (central) {
       const double* pc = &in.coordsAng[3*in.leftAtoms[0]];
       //  sigma/pi content of a coefficient vector on the ligand atoms, about each centre-ligand bond.
-      auto ligandSigmaPi = [&](const vector<double>& row, double& sg, double& pp) {
-         sg = pp = 0.0;
+      auto ligandSigmaPi = [&](const vector<double>& row, double& sg, double& pp, double& dl) {
+         sg = pp = dl = 0.0;
          for (size_t a = 0; a < in.rightAtoms.size(); a++) {
             double u[3], n = 0.0;
             for (int q = 0; q < 3; q++) { u[q] = in.coordsAng[3*in.rightAtoms[a]+q] - pc[q]; n += u[q]*u[q]; }
@@ -176,27 +203,29 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
             vector<int> one(1, in.rightAtoms[a]);
             double par, perp, d;
             axisWeights(set, row, one, u, par, perp, d);
-            sg += par;  pp += perp;
+            sg += par;  pp += perp;  dl += d;
          }
       };
       //  A level is sigma or pi by the ligand fragment orbitals it is made of
       //  (a degenerate set of them taken whole, as its members mix freely).
       vector< vector<int> > groups;
       FragmentOrbitals::groupFos(set, groups);
-      vector<double> groupSigma(groups.size(), 0.5);
+      vector< vector<double> > groupFrac(groups.size(), vector<double>(3, 0.0));
       for (size_t g = 0; g < groups.size(); g++) {
          if (set.fos[groups[g][0]].fragment != 1) continue;
-         double sg = 0.0, pp = 0.0;
+         double sg = 0.0, pp = 0.0, dl = 0.0;
          for (size_t q = 0; q < groups[g].size(); q++) {
-            double a, b;
-            ligandSigmaPi(set.fos[groups[g][q]].coef, a, b);
-            sg += a;  pp += b;
+            double a, b, d;
+            ligandSigmaPi(set.fos[groups[g][q]].coef, a, b, d);
+            sg += a;  pp += b;  dl += d;
          }
-         if (sg + pp > 1e-12) groupSigma[g] = sg/(sg + pp);
+         const double tot = sg + pp + dl;
+         if (tot > 1e-12) { groupFrac[g][0] = sg/tot; groupFrac[g][1] = pp/tot; groupFrac[g][2] = dl/tot; }
+         else groupFrac[g][0] = 1.0;
       }
       for (size_t c = 0; c < cl.size(); c++) {
          ConstructLabel& L = out[c];
-         double sigW = 0.0, piW = 0.0;
+         double W3[3] = {0, 0, 0};
          for (size_t g = 0; g < groups.size(); g++) {
             if (set.fos[groups[g][0]].fragment != 1) continue;
             double share = 0.0;
@@ -205,8 +234,7 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
                   const double a = amp[cl[c].mos[k]][groups[g][q]];
                   share += a*a;
                }
-            sigW += share*groupSigma[g];
-            piW += share*(1.0 - groupSigma[g]);
+            for (int t = 0; t < 3; t++) W3[t] += share*groupFrac[g][t];
          }
          const vector<double>& lead = rows[cl[c].mos[0]];
          const bool onCentre = shL[c] >= shR[c];
@@ -218,19 +246,27 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
             L.full = "nb (" + parent + ")";
             continue;
          }
-         const char* kind = sigW >= piW ? SIGMA : PI;
-         L.sigmaShare = sigW + piW > 1e-12 ? sigW/(sigW + piW) : 0.5;
+         const double tot3 = W3[0] + W3[1] + W3[2];
+         int dom = 0;
+         for (int t = 1; t < 3; t++) if (W3[t] > W3[dom]) dom = t;
+         const char* names[3] = {SIGMA, PI, DELTA};
+         const char* kind = names[dom];
+         L.nodal = dom;
+         L.sigmaShare = tot3 > 1e-12 ? W3[0]/tot3 : 0.5;
          {
             string bond = in.symbols[in.leftAtoms[0]] + "\xE2\x80\x93";
             vector<string> els;
             for (size_t a2 = 0; a2 < in.rightAtoms.size(); a2++)
                if (find(els.begin(), els.end(), in.symbols[in.rightAtoms[a2]]) == els.end()) els.push_back(in.symbols[in.rightAtoms[a2]]);
             for (size_t e = 0; e < els.size(); e++) bond += (e ? "/" : "") + els[e];
-            const double dom = sigW >= piW ? L.sigmaShare : 1.0 - L.sigmaShare;
-            const int pct = (int)lround(100.0*dom), rest = 100 - pct;
-            L.split = string(kind) + ": " + to_string(pct) + " % " +
-                      (sigW >= piW ? "with no nodal plane containing the " : "with a nodal plane containing the ") + bond +
-                      " bond" + (rest > 0 ? ", " + to_string(rest) + " % " + (sigW >= piW ? PI : SIGMA) : string()) + ".";
+            static const char* planes[3] = {"no nodal plane", "a nodal plane", "two nodal planes"};
+            const int pct = (int)lround(100.0*W3[dom]/(tot3 > 1e-12 ? tot3 : 1.0));
+            L.split = string(kind) + ": " + to_string(pct) + " % with " + planes[dom] + " containing the " + bond + " bond";
+            for (int t = 0; t < 3; t++) {
+               const int pt = (int)lround(100.0*W3[t]/(tot3 > 1e-12 ? tot3 : 1.0));
+               if (t != dom && pt > 0) L.split += ", " + to_string(pt) + " % " + names[t];
+            }
+            L.split += ".";
          }
          const string centreParent = leadingShell(set, lead, in.leftAtoms);
          //  Phase of the leading centre orbital against the leading ligand
@@ -292,7 +328,8 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
       both.insert(both.end(), in.rightAtoms.begin(), in.rightAtoms.end());
       axisWeights(set, c, both, axis, par, perp, d);
       tot = par + perp + d;
-      k.type = d > 0.01*tot ? 2 : (par >= perp ? 0 : 1);
+      k.type = (par >= perp && par >= d) ? 0 : (perp >= d ? 1 : 2);
+      (void)tot;
       if (homo) {
          double p = 0.0;
          for (size_t i = 0; i < nf; i++)
@@ -303,7 +340,7 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
    };
 
    //  Names of the unmixed levels.
-   struct Named { Kind kind; double energy; bool anti, none; string parL, parR, shell; };
+   struct Named { Kind kind; double energy; bool anti, none; string parL, parR, shell; double rank; };
    vector<Named> named(ucl.size());
    for (size_t c = 0; c < ucl.size(); c++) {
       const vector<double>& row = uRows[ucl[c].mos[0]];
@@ -321,6 +358,13 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
       n.parL = leadingShell(set, row, in.leftAtoms);
       n.parR = leadingShell(set, row, in.rightAtoms);
       n.shell = n.parL.substr(n.parL.find(' ') + 1);
+      {  //  shell order = the model's AO energies: mean H_ii of the functions of the level's l
+         int lead = 0; double top = -1.0;
+         for (size_t i = 0; i < nf; i++) if (row[i]*row[i] > top) { top = row[i]*row[i]; lead = set.funcs[i].l; }
+         double sum = 0.0; int cnt = 0;
+         for (size_t i = 0; i < nf; i++) if (set.funcs[i].l == lead) { sum += set.funcs[i].hii; cnt++; }
+         n.rank = cnt ? sum/cnt : 0.0;
+      }
    }
 
    //  Real levels, grouped by (type, parity); energy order against energy order.
@@ -332,7 +376,6 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
    }
    for (size_t c = 0; c < named.size(); c++) unBy[make_pair(named[c].kind.type, named[c].kind.parity)].push_back(c);
    for (map<pair<int,int>, vector<size_t> >::iterator it = realBy.begin(); it != realBy.end(); ++it) {
-      if (it->first.first == 2) continue;
       const vector<size_t>& u = unBy[it->first];
       if (u.size() != it->second.size()) continue;       // not a clean correlation: say nothing
       //  The textbook convention: a class's levels in energy order get the names
@@ -340,15 +383,14 @@ bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out,
       //  s shell lay well below the p shell.  No overlap matching.
       vector<size_t> u2(u);
       std::stable_sort(u2.begin(), u2.end(), [&](size_t x, size_t y) {
-         auto key = [&](size_t q) {
-            return (named[q].shell[0] - '0')*100 + (named[q].shell.back() == 'p' ? 10 : 0) + (named[q].anti ? 1 : 0);
-         };
-         return key(x) < key(y);
+         if (fabs(named[x].rank - named[y].rank) > 1e-6) return named[x].rank < named[y].rank;
+         return !named[x].anti && named[y].anti;
       });
       for (size_t k = 0; k < u.size(); k++) {
          const Named& n = named[u2[k]];
          ConstructLabel& L = out[it->second[k]];
-         const char* kind = n.kind.type == 0 ? SIGMA : PI;
+         const char* kind = n.kind.type == 0 ? SIGMA : (n.kind.type == 1 ? PI : DELTA);
+         L.nodal = n.kind.type;
          const size_t c = it->second[k];
          if (!homo && L.otherShare < NONBONDING_SHARE) {
             L.nonbonding = true;

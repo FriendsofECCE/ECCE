@@ -158,6 +158,21 @@ int main(int argc, char** argv)
       }
       CHECK(t2g == 1 && eg >= 1, "Cr(CO)6: %d pi t2g, %d sigma eg", t2g, eg);
    }
+   //  Two d-metal atoms at a multiple-bond distance: a doubly degenerate delta pair with two
+   //  nodal planes containing the axis, named by the d shell.
+   for (int mo = 0; mo < 2; mo++) {
+      const double dist = mo ? 1.94 : 1.68;
+      const double xx[6] = {0, 0, 0, 0.3*dist, 0.4*dist, 0.866*dist};
+      Labels l = run({mo ? "Mo" : "Cr", mo ? "Mo" : "Cr"}, vec(xx, 6), a, b, false);
+      printf("%s2: %s\n", mo ? "Mo" : "Cr", join(l, 0, l.size(), true).c_str());
+      int delta = 0, deltaStar = 0;
+      const std::string d3 = std::string("\xCE\xB4") + (mo ? "4d" : "3d"), d3s = std::string("\xCE\xB4*") + (mo ? "4d" : "3d");
+      for (size_t i = 0; i < l.size(); i++) {
+         if (l[i].full == d3) { delta++; CHECK(l[i].orbitals.size() == 2 && l[i].nodal == 2, "delta set: %zu orbitals, %d nodal planes", l[i].orbitals.size(), l[i].nodal); }
+         if (l[i].full == d3s) { deltaStar++; CHECK(l[i].orbitals.size() == 2 && l[i].nodal == 2, "delta* set"); }
+      }
+      CHECK(delta == 1 && deltaStar == 1, "%s2: %d delta, %d delta* levels", mo ? "Mo" : "Cr", delta, deltaStar);
+   }
    printf(failures ? "FAILED\n" : "ok\n");
    return failures ? 1 : 0;
 }

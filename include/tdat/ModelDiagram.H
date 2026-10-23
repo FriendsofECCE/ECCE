@@ -117,7 +117,8 @@ class ModelDiagram
       double otherShare;        // the smaller fragment's share of the level
       double sigmaShare;        // central-atom levels: share of the ligand density with no nodal plane containing the bond; -1 if not given
       string split;             // hover text of that split
-      ConstructLabel() : energy(0), nonbonding(false), antibonding(false), otherShare(0), sigmaShare(-1) {}
+      int    nodal;             // nodal planes containing the bond axis: 0 sigma, 1 pi, 2 delta; -1 if not given
+      ConstructLabel() : energy(0), nonbonding(false), antibonding(false), otherShare(0), sigmaShare(-1), nodal(-1) {}
     };
 
     /** A level with less than this on one fragment is non-bonding by construction. */
