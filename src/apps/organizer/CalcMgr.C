@@ -105,6 +105,8 @@ static std::string s_registerMessage;
 #include "comm/RunMgmt.H"
 
 #include "wxgui/ewxProgressDialog.H"
+#include "LaunchSelected.H"
+#include <future>
 #include <wx/wupdlock.h>
 #include "wxgui/EcceTool.H"
 #include "wxgui/ewxWindowUtils.H"
@@ -1217,6 +1219,16 @@ void CalcMgr::runTestCommand(const string& line)
         };
         walk(p_treeCtrl->GetRootItem(), 0);
       }
+    } else if (command == "launchselected" || command == "launchselectedshot") {
+      // "launchselected URL...": Launch Selected without its dialogs, one
+      // "name: result" a line (joined by |); "launchselectedshot PNG URL...":
+      // only the summary dialog, saved to PNG.
+      std::istringstream args(calcName);
+      string png, u;
+      if (command == "launchselectedshot") args >> png;
+      vector<EcceURL> urls;
+      while (args >> u) urls.push_back(EcceURL(u));
+      launchSelected(urls, false, &outcome, png);
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
       // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered
@@ -2513,6 +2525,63 @@ void CalcMgr::OnDuplicate2Click( wxCommandEvent& event )
   }
 
   stopDisabler();
+}
+
+
+/*!
+ * Run Mgmt > Launch Selected: the calculations selected in the tree or the
+ * project table, each with the launch settings it already stores.
+ */
+void CalcMgr::OnLaunchSelectedClick( wxCommandEvent& event )
+{
+  getSelection();
+  launchSelected(p_currentSelection, true);
+}
+
+
+void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
+                             string *outcome, const string& shot)
+{
+  vector<TaskJob*> tasks;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (task) tasks.push_back(task);
+  }
+  if (tasks.empty()) {
+    if (outcome) *outcome = "no calculations";
+    return;
+  }
+  vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks);
+  bool go = true;
+  if (interactive || !shot.empty()) {
+    go = LaunchSelected::confirm(this, rows,
+        [this](const string& url) { startApp("Launcher", 0, url); }, shot);
+  }
+  if (!go) {
+    if (outcome) *outcome = "not launched";
+    return;
+  }
+  LaunchSelected::run(this, rows, interactive);
+  if (interactive) LaunchSelected::showResults(this, rows);
+  if (outcome) {
+    string r = LaunchSelected::report(rows);
+    for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
+    *outcome = "ok " + r;
+  }
+}
+
+
+// Asked from a launch step's worker thread: the window opens on this one.
+bool CalcMgr::getAuthorization(AuthEvent& event)
+{
+  if (wxThread::IsMain())
+    return WxDavAuth::getAuthorization(event);
+  std::promise<bool> answer;
+  wxTheApp->CallAfter([this, &event, &answer]() {
+    answer.set_value(WxDavAuth::getAuthorization(event));
+  });
+  return answer.get_future().get();
 }
 
 
@@ -4036,6 +4105,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   if (isCalculationNode) {
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
     menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
+    menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
     string why;
     bool can = OrbitalGuess::available(
         dynamic_cast<TaskJob*>(itemData->getResource()), why);
@@ -4308,6 +4378,13 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
     } else {
       menu.Append((*rmTaskItor)->getId(), menuItem, "", wxITEM_NORMAL);
     }
+  }
+  if ((state == ResourceDescriptor::STATE_READY ||
+       state == ResourceDescriptor::STATE_CREATED) &&
+      itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
+    if (menu.GetMenuItemCount() > 0) menu.AppendSeparator();
+    menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."), "",
+                wxITEM_NORMAL);
   }
 }
 
@@ -7509,7 +7586,16 @@ void CalcMgr::updateSelectionMenus()
 
   
   if (!getSelection()) {
-    enableTopMenu(menuBar, _("Run Mgmt"), false, p_menuTitlesChanged);
+    // Several calculations: Run Mgmt offers only the batch launch.
+    bool allCalcs = p_currentSelection.size() > 1;
+    for (size_t i = 0; allCalcs && i < p_currentSelection.size(); i++) {
+      WxResourceTreeItemData *n = findNode(p_currentSelection[i], false, true);
+      allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
+    }
+    wxMenu *rm = menuBar->GetMenu(menuBar->FindMenu(_("Run Mgmt")));
+    clearMenu(*rm);
+    if (allCalcs) rm->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+    enableTopMenu(menuBar, _("Run Mgmt"), allCalcs, p_menuTitlesChanged);
     enableTopMenu(menuBar, _("Tools"), false, p_menuTitlesChanged);
     enableMenuItem(menuBar, wxID_CHANGE_ACCESS, false);
     enableMenuItem(menuBar, wxID_RENAME, false);
