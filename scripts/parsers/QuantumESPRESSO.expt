@@ -1,0 +1,164 @@
+#!/usr/bin/env perl
+###############################################################################
+# FILENAME:  QuantumESPRESSO.expt
+#
+# SYNTAX: QuantumESPRESSO.expt <pwout>
+#
+# PURPOSE:
+#       Reads a pw.x output and writes the ECCE .frag/.param pair so it can
+#       be imported as a completed calculation.  The .frag carries the
+#       crystal: the unit cell (Angstrom, as Fragment::dumpMVM writes it)
+#       and the atoms.  The cell and positions are the last ones the file
+#       prints (the final CELL_PARAMETERS/ATOMIC_POSITIONS of a relax,
+#       vc-relax or md run), else the initial ones from the setup summary.
+###############################################################################
+
+use Getopt::Std;
+
+$| = 1;
+&getopts(':hv');
+&usage if ($opt_h || $opt_help);
+exit if ($opt_v);
+&usage if ($#ARGV != 0);
+
+my $BOHR = 0.529177210903;
+
+open(INPUT, $ARGV[0]) || die "Can't locate output file $ARGV[0]";
+my ($alat, $calc, $ecut, $smear, $nel, $version, $mdrun, $vcrelax);
+my (@axes, @sites, @zval, @final_cell, @final_pos);
+my %zv;
+while (<INPUT>) {
+  $version = $1 if (/Program PWSCF v\.(\S+)/ && !defined($version));
+  # celldm(1) carries six decimals, the "lattice parameter" line only four.
+  $alat = $1 * $BOHR if (/celldm\(1\)=\s*(\S+)/ && !defined($alat));
+  $alat = $1 * $BOHR if (/lattice parameter \(alat\)\s*=\s*(\S+)\s+a\.u\./ && !defined($alat));
+  $ecut = $1 if (/kinetic-energy cutoff\s*=\s*(\S+)\s+Ry/);
+  $nel = $1 if (/number of electrons\s*=\s*(\S+)/);
+  $smear = $1 if (/\d+\s+(\S+) smearing, width/);
+  $mdrun = 1 if (/End of molecular dynamics calculation/);
+  $vcrelax = 1 if (/new unit-cell volume|CELL_PARAMETERS/);
+  if (/^\s+atomic species\s+valence\s+mass/) {
+    while (<INPUT>) {
+      last unless (/^\s+([A-Za-z]+\d*)\s+(\d+\.\d+)\s+\d+\.\d+\s/);
+      $zv{$1} = $2;
+    }
+  }
+  if (/crystal axes: \(cart\. coord\. in units of alat\)/ && !@axes) {
+    for my $i (0 .. 2) {
+      $_ = <INPUT>;
+      if (/a\(\d\) = \(\s*(\S+)\s+(\S+)\s+(\S+)\s*\)/) {
+        push(@axes, [$1 * $alat, $2 * $alat, $3 * $alat]);
+      }
+    }
+  }
+  if (/^\s+site n\.\s+atom\s+positions \(alat units\)/ && !@sites) {
+    while (<INPUT>) {
+      last unless (/^\s+\d+\s+([A-Za-z]+\d*)\s+tau\(\s*\d+\)\s*=\s*\(\s*(\S+)\s+(\S+)\s+(\S+)\s*\)/);
+      push(@sites, [$1, $2 * $alat, $3 * $alat, $4 * $alat]);
+    }
+  }
+  if (/^CELL_PARAMETERS\s*\((\w+)\s*=?\s*([\d.]*)\)?/) {
+    my ($unit, $a) = (lc($1), $2);
+    my $scale = $unit eq 'angstrom' ? 1 : $unit eq 'bohr' ? $BOHR
+              : $unit eq 'alat' ? ($a ne '' ? $a * $BOHR : $alat) : 0;
+    my @c;
+    for my $i (0 .. 2) {
+      $_ = <INPUT>;
+      my @f = split(' ', $_);
+      push(@c, [map { $_ * $scale } @f[0 .. 2]]);
+    }
+    @final_cell = @c if ($scale);
+  }
+  if (/^ATOMIC_POSITIONS\s*\((\w+)\)/) {
+    my $unit = lc($1);
+    my @p;
+    while (<INPUT>) {
+      last unless (/^\s*([A-Za-z]+\d*)\s+(-?\d\S*)\s+(-?\d\S*)\s+(-?\d\S*)/);
+      push(@p, [$1, $2, $3, $4]);
+    }
+    # Positions are kept raw until the cell they refer to is known.
+    @final_pos = ($unit, @p) if (@p);
+  }
+}
+close(INPUT);
+
+if (!@sites || !@axes) {
+  print "No crystal structure found in $ARGV[0]\n";
+  exit(1);
+}
+
+my @cell = @final_cell ? @final_cell : @axes;
+my @atoms = @sites;
+if (@final_pos) {
+  my ($unit, @p) = @final_pos;
+  @atoms = ();
+  foreach my $a (@p) {
+    my @x = @$a[1 .. 3];
+    if ($unit eq 'crystal') {
+      @x = map { my $j = $_; $x[0] * $cell[0][$j] + $x[1] * $cell[1][$j]
+                           + $x[2] * $cell[2][$j] } (0 .. 2);
+    } elsif ($unit eq 'bohr') {
+      @x = map { $_ * $BOHR } @x;
+    } elsif ($unit eq 'alat') {
+      @x = map { $_ * $alat } @x;
+    } elsif ($unit ne 'angstrom') {
+      @atoms = @sites;
+      last;
+    }
+    push(@atoms, [$a->[0], @x]);
+  }
+}
+
+my $zsum = 0;
+foreach my $a (@sites) {
+  (my $sp = $a->[0]) =~ s/\d+$//;
+  $zsum += defined($zv{$a->[0]}) ? $zv{$a->[0]} : $zv{$sp} || 0;
+}
+my $charge = (defined($nel) && $zsum) ? sprintf("%d", $zsum - $nel + ($zsum > $nel ? 0.5 : -0.5)) : 0;
+
+my $runType = $mdrun ? "Dynamics" : $vcrelax ? "Geometry"
+            : (@final_pos ? "Geometry" : "Energy");
+my %smearName = (gaussian => "Gaussian", "marzari-vanderbilt" => "Marzari-Vanderbilt (cold)",
+                 "methfessel-paxton" => "Methfessel-Paxton", "fermi-dirac" => "Fermi-Dirac");
+
+($title = $ARGV[0]) =~ s/\.[^.]*$//;
+(my $root = $ARGV[0]) =~ s/\.[^.]*$//;
+
+open(PARAMS, ">$root.param");
+print(PARAMS "title:\t$title\n");
+print(PARAMS "version:\t$version\n") if (defined($version));
+print(PARAMS "Category:\tPW\nTheory:\tPW\n");
+print(PARAMS "RunType:\t$runType\n");
+print(PARAMS "Charge:\t$charge\n");
+print(PARAMS "ES.ChemSys.Multiplicity:\t1\n");
+print(PARAMS "ES.Runtype.PW.OptimizeCell:\t1\n") if (@final_cell);
+print(PARAMS "ES.Theory.PW.EcutWfc:\t$ecut\n") if (defined($ecut));
+if (defined($smear)) {
+  my $key = lc($smear);
+  print(PARAMS "ES.Theory.PW.Occupations:\tSmearing (metal)\n");
+  print(PARAMS "ES.Theory.PW.Smearing:\t" . ($smearName{$key} || "Gaussian") . "\n");
+}
+close(PARAMS);
+
+open(MOL, ">$root.frag");
+print(MOL "title:\t$title\ntype:\tmolecule\n");
+print(MOL "charge:\t$charge\n");
+print(MOL "lattice_vectors:\n");
+foreach my $v (@cell) {
+  printf(MOL "%10.6f %10.6f %10.6f\n", @$v);
+}
+print(MOL "num_atoms:\t" . scalar(@atoms) . "\n");
+print(MOL "atom_info:\tsymbol cart\natom_list:\n");
+foreach my $a (@atoms) {
+  (my $sym = $a->[0]) =~ s/\d+$//;
+  printf(MOL " %s %.8f %.8f %.8f\n", $sym, @$a[1 .. 3]);
+}
+close(MOL);
+exit(0);
+
+sub usage {
+  print "Usage: QuantumESPRESSO.expt <pwout>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}

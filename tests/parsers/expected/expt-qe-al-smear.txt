@@ -1,0 +1,32 @@
+# expt-qe-al-smear
+# QuantumESPRESSO.expt qe/al_smear.pwout
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	al_smear
+type:	molecule
+charge:	0
+lattice_vectors:
+ -2.025014   0.000000   2.025014
+  0.000000   2.025014   2.025014
+ -2.025014   2.025014   0.000000
+num_atoms:	1
+atom_info:	symbol cart
+atom_list:
+ Al 0.00000000 0.00000000 0.00000000
+
+=== .param
+title:	al_smear
+version:	6.7MaX
+Category:	PW
+Theory:	PW
+RunType:	Energy
+Charge:	0
+ES.ChemSys.Multiplicity:	1
+ES.Theory.PW.EcutWfc:	25.0000
+ES.Theory.PW.Occupations:	Smearing (metal)
+ES.Theory.PW.Smearing:	Marzari-Vanderbilt (cold)
+
+=== .gbs
+(not produced)

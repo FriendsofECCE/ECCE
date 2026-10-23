@@ -2929,7 +2929,8 @@ if(PYTHON3_EXECUTABLE)
                    ${_pf}/orca/h2o_sym.out=ORCA
                    ${_pf}/mopac/ch4_opt.out=MOPAC
                    ${_pf}/gromacs/water_md.log=-
-                   ${_pf}/qe/h2o_gamma.pwout=-)
+                   ${_pf}/qe/h2o_gamma.pwout=QuantumESPRESSO
+                   ${_pf}/qe/si_vcrelax.pwout=QuantumESPRESSO)
   set_tests_properties(importcode PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   # tests/importcode/importmeta: the metadata an imported calculation gets

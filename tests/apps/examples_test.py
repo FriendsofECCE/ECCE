@@ -56,6 +56,8 @@ COMPUTATIONAL = {
 }
 # the Teaching set: MO-theory diatomics, each with its orbitals and energy
 TEACHING = {m: ["TE", "MO"] for m in ("h2", "he2", "n2", "o2", "f2", "co", "hf")}
+# the Teaching set's crystals (Quantum ESPRESSO): total energy only
+TEACHING.update({m: ["TE"] for m in ("al", "na", "po")})
 # The study has no thumbnail and no theory/run type of its own.
 CALCS = list(EXPECT)
 
@@ -250,7 +252,7 @@ def run(display, data, work):
             problems.append("Examples_Teaching: no calculation %s (have %s)"
                             % (calc, sorted(teach)))
         elif [n for n in names if n not in teach[held[0]]]:
-            problems.append("Examples_Teaching/%s lacks MO or TE (has %s)"
+            problems.append("Examples_Teaching/%s lacks MO/TE (has %s)"
                             % (held[0], sorted(teach[held[0]])))
     for extra in ("Examples_2", "Examples_3"):
         if os.path.exists(os.path.join(root, extra)):

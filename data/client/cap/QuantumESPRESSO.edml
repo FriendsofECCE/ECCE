@@ -36,12 +36,10 @@
        set of cell fields in its own theory dialog is deliberately not
        repeated here.
 
-     * There is no <Importer> (a QuantumESPRESSO.expt post-hoc output
-       importer for externally-run jobs is not written yet), so QE
-       simply does not appear in CodeFactory::getImportCodes(), which
-       is correct behavior rather than an error.  ORCA.edml declares an
-       <Importer>ORCA.expt</Importer> that does not exist on disk;
-       that is not copied here.
+     * <Importer>QuantumESPRESSO.expt</Importer> reads an externally
+       run pw.x output (cell, atoms, run type, cutoff, smearing), so QE
+       is in CodeFactory::getImportCodes().  The verifypattern below
+       is what recognises the file.
 
    THE INPUT FILE NAME IS FREE, unlike MOPAC's.  pw.x takes its deck
    with "-in <file>" and writes its report to stdout, so it has no
@@ -197,6 +195,7 @@
 <IntegrationFiles>
   <Template>qe.tpl</Template>
   <InputGenerator>ai.qe</InputGenerator>
+  <Importer>QuantumESPRESSO.expt</Importer>
   <ParseSpecification>qe.desc</ParseSpecification>
   <LaunchPreprocessor>qe.launchpp</LaunchPreprocessor>
 </IntegrationFiles>

@@ -2966,7 +2966,8 @@ const vector<ExampleSet>& exampleSets()
       "gromacs-trpcage"}},
     {"teaching", "Examples_Teaching", {
       "h2/h2.qmout", "he2/he2.qmout", "n2/n2.qmout", "o2/o2.qmout",
-      "f2/f2.qmout", "co/co.qmout", "hf/hf.qmout"}},
+      "f2/f2.qmout", "co/co.qmout", "hf/hf.qmout",
+      "al-fcc/al.pwout", "na-bcc/na.pwout", "po-sc/po.pwout"}},
   };
   return sets;
 }

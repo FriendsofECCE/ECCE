@@ -5,7 +5,7 @@ Organizer > File > Import Calculation from Output File, without the dialog.
 The Organizer's ECCE_TEST_CALCIMPORT hook imports a given file into a
 project "calcimport-test" in the user's home and prints the outcome.
 Outputs of codes with an importer must be imported as that code; outputs
-of codes without one (GROMACS, Quantum ESPRESSO) must be refused
+of codes without one (GROMACS) must be refused
 with "Unrecognized output file format".  An imported calculation must be
 selected in the tree afterwards, and Reset for Rerun on it must be refused
 (ECCE_TEST_RESETIMPORTED) with a message, leaving it imported.
@@ -34,7 +34,8 @@ CASES = [
     ("orca/h2o_sym.out", "ORCA"),
     ("mopac/ch4_opt.out", "MOPAC"),
     ("gromacs/water_md.log", None),
-    ("qe/h2o_gamma.pwout", None),
+    ("qe/h2o_gamma.pwout", "QuantumESPRESSO"),
+    ("qe/si_vcrelax.pwout", "QuantumESPRESSO"),
 ]
 
 # Stored values read back after the job store ran (ECCE_TEST_IMPORTREPORT);
