@@ -3168,6 +3168,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_bond_model PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # The Bond button of the mode toolbar (#462).
+  add_test(NAME apps_builder_bond_button
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_bond_button_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_bond_button PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # ECCE-QM Geometry and Vibration runs of water in the Builder: the IR
   # spectrum's sticks against the engine's output, the geometry trace.
   add_test(NAME apps_ecceqm_vib_builder
