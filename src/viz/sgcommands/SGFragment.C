@@ -1012,25 +1012,158 @@ void SGFragment::getSelectionFromResidueName(string name, vector<bool>& atombits
   }
 }
 
-// Select all atoms belonging to solvent molecules
+namespace {
+
+string residueKey(const Residue *res)
+{
+  string name = res->name();
+  STLUtil::stripLeadingAndTrailingWhiteSpace(name);
+  for (char& c : name) c = toupper((unsigned char)c);
+  return name;
+}
+
+bool isWaterName(const string& name)
+{
+  static const set<string> names = {"SOL", "HOH", "WAT", "TIP3", "TIP4",
+      "TIP5", "SPC", "SPCE", "H2O", "T3P", "T4P", "DOD"};
+  return names.count(name) > 0;
+}
+
+bool isIonName(const string& name)
+{
+  static const set<string> names = {"NA", "CL", "K", "MG", "CA", "ZN",
+      "LI", "RB", "CS", "F", "BR", "I", "BA", "SR", "CD", "MN", "FE", "CO",
+      "NI", "CU", "NA+", "CL-", "K+", "LI+", "RB+", "CS+", "F-", "BR-", "I-",
+      "MG2+", "CA2+", "ZN2+", "SOD", "CLA", "POT", "CAL", "CES", "IOD"};
+  return names.count(name) > 0;
+}
+
+bool isIonElement(const string& sym)
+{
+  static const set<string> names = {"Li", "Na", "K", "Rb", "Cs", "Mg", "Ca",
+      "Sr", "Ba", "Zn", "Cd", "Mn", "Fe", "Co", "Ni", "Cu", "F", "Cl", "Br",
+      "I"};
+  return names.count(sym) > 0;
+}
+
+void selectAtomAndBonds(TAtm *atm, vector<bool>& atombits,
+                        vector<bool>& bondbits)
+{
+  atombits[atm->index()] = true;
+  const vector<TBond*>& blist = atm->bondList();
+  for (size_t j = 0; j < blist.size(); j++)
+    bondbits[blist[j]->index()] = true;
+}
+
+}
+
+// Solvent and ions are told apart by residue name (GROMACS and PDB files
+// name every water, but set no solvent flag), by NWChem's 4-character
+// solvent names, by the first solvent atom a Solvate run records and,
+// without residues, by isolated H2O molecules.
+vector<SGFragment::AtomRole> SGFragment::atomRoles()
+{
+  int natoms = numAtoms();
+  vector<AtomRole> roles(natoms, SOLUTE);
+  map<const Residue*, int> resSize;
+  bool haveResidues = numResidues() > 0;
+  if (haveResidues) {
+    for (int i = 0; i < natoms; i++) {
+      const Residue *res = atomRef(i)->getResidue();
+      if (res) resSize[res]++;
+    }
+  }
+  TResTab restab;
+  for (int i = 0; i < natoms; i++) {
+    TAtm *atm = atomRef(i);
+    const Residue *res = haveResidues ? atm->getResidue() : 0;
+    if (res) {
+      string key = residueKey(res);
+      if (isWaterName(key)) {
+        roles[i] = SOLVENT;
+      } else if (isIonName(key) ||
+                 (resSize[res] == 1 && atm->bondList().empty())) {
+        roles[i] = ION;
+      } else if (res->isSolvent() && key.size() == 4 &&
+                 restab.verify(key.substr(1).c_str()) == TResItem::Other) {
+        // Not the 4-character terminal amino acids (NALA, CGLY) of AMBER.
+        roles[i] = SOLVENT;
+      }
+    } else if (atm->bondList().empty() && isIonElement(atm->atomicSymbol())) {
+      roles[i] = ION;
+    }
+  }
+  if (!haveResidues) {
+    int ifirst = getFirstSolventAtomIndex();
+    for (int i = ifirst >= 0 ? ifirst : natoms; i < natoms; i++)
+      if (roles[i] != ION) roles[i] = SOLVENT;
+    for (int i = 0; i < natoms; i++) {
+      TAtm *atm = atomRef(i);
+      const vector<TBond*>& bl = atm->bondList();
+      if (atm->atomicSymbol() != "O" || bl.size() != 2) continue;
+      bool water = true;
+      for (size_t b = 0; b < bl.size(); b++) {
+        TAtm *h = bl[b]->atom1() == atm ? bl[b]->atom2() : bl[b]->atom1();
+        if (h->atomicSymbol() != "H" || h->bondList().size() != 1)
+          water = false;
+      }
+      if (!water) continue;
+      roles[i] = SOLVENT;
+      for (size_t b = 0; b < bl.size(); b++)
+        roles[(bl[b]->atom1() == atm ? bl[b]->atom2()
+                                     : bl[b]->atom1())->index()] = SOLVENT;
+    }
+  }
+  return roles;
+}
+
 void SGFragment::getSolvent(vector<bool>& atombits, vector<bool>& bondbits)
 {
-   findFirstSolventAtomIndex();
-   int ifirst = getFirstSolventAtomIndex();
-   if (ifirst >= 0) {  // make sure there is solvent
-      int ilast = numAtoms();
-      int i, j, nbond;
-      TAtm *atm;
-      for (i=ifirst; i<ilast; i++) {
-         atm = atomRef(i);
-         atombits[i] = true;
-         const vector<TBond*> blist = atm->bondList();
-         nbond = blist.size();
-         for (j=0; j<nbond; j++) {
-            bondbits[blist[j]->index()] = true;
-         }
+  vector<AtomRole> roles = atomRoles();
+  for (size_t i = 0; i < roles.size(); i++)
+    if (roles[i] == SOLVENT) selectAtomAndBonds(atomRef(i), atombits, bondbits);
+}
+
+void SGFragment::getIons(vector<bool>& atombits, vector<bool>& bondbits)
+{
+  vector<AtomRole> roles = atomRoles();
+  for (size_t i = 0; i < roles.size(); i++)
+    if (roles[i] == ION) selectAtomAndBonds(atomRef(i), atombits, bondbits);
+}
+
+void SGFragment::getSolute(vector<bool>& atombits, vector<bool>& bondbits)
+{
+  vector<AtomRole> roles = atomRoles();
+  for (size_t i = 0; i < roles.size(); i++)
+    if (roles[i] == SOLUTE) selectAtomAndBonds(atomRef(i), atombits, bondbits);
+}
+
+// Every atom bonded, directly or through others, to one of the seeds.
+// Iterative: a protein chain is too deep for a recursive walk.
+void SGFragment::getMolecules(const vector<int>& seeds, vector<bool>& atombits,
+                              vector<bool>& bondbits)
+{
+  int natoms = numAtoms();
+  vector<bool> seen(natoms, false);
+  vector<int> stack;
+  for (size_t s = 0; s < seeds.size(); s++)
+    if (seeds[s] >= 0 && seeds[s] < natoms && !seen[seeds[s]]) {
+      seen[seeds[s]] = true;
+      stack.push_back(seeds[s]);
+    }
+  while (!stack.empty()) {
+    TAtm *atm = atomRef(stack.back());
+    stack.pop_back();
+    selectAtomAndBonds(atm, atombits, bondbits);
+    const vector<TBond*>& bl = atm->bondList();
+    for (size_t b = 0; b < bl.size(); b++) {
+      TAtm *next = bl[b]->atom1() == atm ? bl[b]->atom2() : bl[b]->atom1();
+      if (!seen[next->index()]) {
+        seen[next->index()] = true;
+        stack.push_back(next->index());
       }
-   }
+    }
+  }
 }
 
 // Select all atoms belonging to residue containing atm

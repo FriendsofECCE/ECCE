@@ -176,6 +176,12 @@ SoINTERNAL public:
     void getSelectionFromResidueName(string name, vector<bool>& atombits,
 	vector<bool>& bondbits);
     void getSolvent(vector<bool>& atombits, vector<bool>& bondbits);
+    void getIons(vector<bool>& atombits, vector<bool>& bondbits);
+    void getSolute(vector<bool>& atombits, vector<bool>& bondbits);
+    void getMolecules(const vector<int>& seeds, vector<bool>& atombits,
+                      vector<bool>& bondbits);
+    enum AtomRole { SOLUTE, SOLVENT, ION };
+    vector<AtomRole> atomRoles();
     void getFullResidue(TAtm *atm, vector<bool>& atombits, vector<bool>& bondbits);
 
     // Methods to get parameters using NWChem string selections

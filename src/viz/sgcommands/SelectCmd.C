@@ -56,6 +56,7 @@ void SelectCmd::init()
    addParameter(new CommandParameter("backbone", false));
    addParameter(new CommandParameter("sidechains", false));
    addParameter(new CommandParameter("solvent", false));
+   addParameter(new CommandParameter("ions", false));
    addParameter(new CommandParameter("full_residue", -1));
    addParameter(new CommandParameter("reverse", false));
    addParameter(new CommandParameter("NWChemSelection", ""));
@@ -79,15 +80,8 @@ bool SelectCmd::execute()
       p_selBonds = frag->m_bondHighLight;
    }
 
-   // Find first selected atom for molecule selection.
    int nAtoms = frag->numAtoms();
    int nBonds = frag->numBonds();
-   int iMol;
-   if (frag->m_atomHighLight.size()>0) {
-     iMol = frag->m_atomHighLight[0];
-   } else {
-     iMol = nAtoms;
-   }
 
    // Clear last selection first if requested
    if (getParameter("clear")->getBoolean() && !getParameter("molecule")->getBoolean()) {
@@ -142,11 +136,13 @@ bool SelectCmd::execute()
       frag->getSelectionFromNWChemString(nwchemSelection, atombits, bondbits);
    }
 
+   // Every molecule an atom of the selection belongs to; the solute
+   // when nothing is selected.
    if (getParameter("molecule")->getBoolean()) {
-      TAtm *atm;
-      if (iMol <nAtoms) {
-        atm = frag->atomRef(iMol);
-        frag->getConnected(atombits,bondbits,atm,0,0);
+      if (p_selAtoms.empty()) {
+         frag->getSolute(atombits,bondbits);
+      } else {
+         frag->getMolecules(p_selAtoms,atombits,bondbits);
       }
    }
 
@@ -198,6 +194,10 @@ bool SelectCmd::execute()
 
    if (getParameter("solvent")->getBoolean()) {
      frag->getSolvent(atombits,bondbits);
+   }
+
+   if (getParameter("ions")->getBoolean()) {
+     frag->getIons(atombits,bondbits);
    }
 
    if (getParameter("reverse")->getBoolean()) {

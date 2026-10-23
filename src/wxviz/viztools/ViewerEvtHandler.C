@@ -396,9 +396,16 @@ void ViewerEvtHandler::doStyleChange(const wxString& style)
        dd->setColorScheme(dd->getDefaultColorScheme(dd->getStyle()));
     }
 
+    // A style goes to the selection, to every atom only when nothing is
+    // selected.  Atoms draw with the descriptor of their style's name, so
+    // the selection's style needs a name of its own or the rest of the
+    // system (all "default") would change with it.
+    SGFragment *frag = sg.getFragment();
+    bool all = frag->m_atomHighLight.empty() && frag->m_bondHighLight.empty();
+    if (!all) dd->setName(style.ToStdString());
     Command *cmd = new CSStyleCmd("Style", (Receiver*)&sg);
     cmd->getParameter("descriptor")->setString(dd->toString());
-    cmd->getParameter("all")->setBoolean(true);
+    cmd->getParameter("all")->setBoolean(all);
     fw.execute(cmd);
     
     sg.fixAllNubs();

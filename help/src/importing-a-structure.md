@@ -97,6 +97,30 @@ the sites that should be bonded."
 You can draw atoms with **Mode > Atom** (Ctrl+5), and finish with **Build >
 Add Hydrogen** and **Build > Clean**, as in the first calculation.
 
+## Select parts of a system
+
+The **Edit** menu selects parts of a large system, such as a protein in
+water from GROMACS:
+
+- **Select All** (Ctrl+A) selects every atom.
+- **Select Molecule** selects each molecule that has a selected atom. With
+  nothing selected, it selects the solute: every atom that is neither
+  solvent nor an ion.
+- **Select Solvent** selects the water molecules. Water is recognised by
+  its residue name (SOL, HOH, WAT, TIP3, TIP4, SPC, H2O and others), and
+  by the solvent that **Solvate** adds. Ions are not selected.
+- **Select Ions** selects ions: residues of one atom, and the usual ion
+  names (NA, CL, K, MG, CA, ZN, NA+, CL- and others). In a file without
+  residues, an unbonded atom of an ion element counts as an ion.
+- **Select Backbone** and **Select Side Chains** select those parts of a
+  protein or nucleic acid.
+- **Reverse Selection** (Ctrl+R) and **Clear Selection** (Ctrl+U).
+
+A style from **Render > Style** applies to the selected atoms only. With
+nothing selected, it applies to every atom. To draw the water as wireframe
+and keep the protein as it is, choose **Select Solvent**, then **Render >
+Style > Wireframe**.
+
 ## Where the data is kept
 
 A structure opened from a file with **File > Open...** can be changed, and
