@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <array>
 #include <vector>
 
 #include "dsm/GromacsStructure.H"
@@ -288,7 +289,8 @@ string GromacsStructure::wrapCompact(const string& gro)
   char decfmt[24];
   snprintf(decfmt, sizeof decfmt, "%%%d.%df", (int)w, (int)(w - 5 > 0 ? w - 5 : 3));
 
-  vector<V3> x(n);
+  // A vector of C arrays is ill-formed; Xcode 26 libc++ rejects it.
+  vector<std::array<double, 3> > x(n);
   vector<string> res(n), name(n);
   for (int i = 0; i < n; i++) {
     const string& l = lines[i];
