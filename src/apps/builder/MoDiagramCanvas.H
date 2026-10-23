@@ -107,6 +107,10 @@ class MoDiagramCanvas : public wxPanel
      * are much easier to read; on, the exact value is there.
      */
     void setShowEnergies(bool show) { p_showEnergies = show; }
+    /** Which of the two model-level labels are drawn: construction (left), symmetry (right). */
+    void setLabelSides(bool construction, bool symmetry) { p_showConstruct = construction; p_showSymmetry = symmetry; }
+    /** 0 both parts of the construction label, 1 without the parents, 2 none (narrow panels). */
+    int constructMode() const { return p_cMode; }
     bool showEnergies() const { return p_showEnergies; }
 
     void setDiagram(const MoColumn& left, const MoColumn& centre,
@@ -1064,31 +1068,30 @@ class MoDiagramCanvas : public wxPanel
 
     int centreSlot() const { return 24; }
 
-    /** The label row of a centre level: label, energy, tag. */
+    /**
+     * The label row of a centre level: the construction label (left) and the
+     * symmetry label (right).  `conText` is the construction label as the mode
+     * gives it, `wCon` its measured width.
+     */
     void centreRow(wxDC& dc, const MoLevel& l, vector<Piece>& pieces, int& wLabel,
-                   int& wEnergy, int& wTag) const
+                   int& wCon, string& conText, int mode) const
     {
       wxFont base = *wxSMALL_FONT, small = base;
       small.SetPointSize(base.GetPointSize() - 2 > 4 ? base.GetPointSize() - 2 : 5);
-      wxFont tagFont = base;
-      tagFont.SetPointSize(base.GetPointSize() - 1 > 5 ? base.GetPointSize() - 1 : 5);
-      splitLabel(l.label, pieces);
-      wLabel = measurePieces(dc, pieces, base, small).x;
-      dc.SetFont(base);
-      wEnergy = (p_showEnergies && !l.annotation.empty())
-          ? dc.GetTextExtent(wxString(l.annotation.c_str(), wxConvUTF8)).x : 0;
-      wTag = 0;
-      if (!l.tag.empty()) {
-        dc.SetFont(tagFont);
-        wTag = dc.GetTextExtent(wxString(l.tag.c_str(), wxConvUTF8)).x;
-        dc.SetFont(base);
+      pieces.clear();
+      wLabel = 0;
+      if (p_showSymmetry) {
+        splitLabel(l.symLabel.empty() ? l.label : l.symLabel, pieces);
+        wLabel = measurePieces(dc, pieces, base, small).x;
       }
+      conText = !p_showConstruct || mode >= 2 ? string() : (mode == 0 ? l.construct : l.constructShort);
+      dc.SetFont(base);
+      wCon = conText.empty() ? 0 : dc.GetTextExtent(wxString(conText.c_str(), wxConvUTF8)).x;
     }
 
     /** Every centre level's row, and the width the column needs. */
     int layoutCentreLanes(wxDC& dc, const wxRect& plot, int maxWidth)
     {
-      (void)maxWidth;
       const int n = (int)p_centre.levels.size();
       p_cLanes.assign(n, CentreLane());
       dc.SetFont(*wxSMALL_FONT);
@@ -1098,14 +1101,29 @@ class MoDiagramCanvas : public wxPanel
       int labelCol = 0, slotsMax = 0;
       vector<int> natural(n), half(n);
       for (int i = 0; i < n; i++) {
+        const int count = p_centre.levels[i].degeneracy > 0 ? p_centre.levels[i].degeneracy : 1;
+        slotsMax = max(slotsMax, count*centreSlot());
+      }
+      //  The construction label gives way first (parents, then the whole label)
+      //  when the measured rows do not fit between the fragment columns.
+      const int budget = maxWidth - slotsMax - 16;
+      p_cMode = 2;
+      for (int mode = 0; mode < 3; mode++) {
+        int widest = 0;
+        for (int i = 0; i < n; i++) {
+          vector<Piece> pieces;
+          int wl, wc;
+          string text;
+          centreRow(dc, p_centre.levels[i], pieces, wl, wc, text, mode);
+          widest = max(widest, wl + (wl && wc ? 10 : 0) + wc);
+        }
+        if (widest <= budget || mode == 2) { p_cMode = mode; labelCol = widest; break; }
+      }
+      slotsMax = 0;
+      for (int i = 0; i < n; i++) {
         const MoLevel& l = p_centre.levels[i];
-        vector<Piece> pieces;
-        int wl, we, wt;
-        centreRow(dc, l, pieces, wl, we, wt);
         CentreLane& c = p_cLanes[i];
-        c.labelW = wl + (we ? 8 + we : 0) + (wt ? 8 + wt : 0);
         c.labelH = row;
-        labelCol = max(labelCol, c.labelW);
         const int count = l.degeneracy > 0 ? l.degeneracy : 1;
         c.slotsW = count*centreSlot();
         slotsMax = max(slotsMax, c.slotsW);
@@ -1135,6 +1153,7 @@ class MoDiagramCanvas : public wxPanel
         else p_zeroY = min(lim1, posBottom + R);
       }
 
+      for (int i = 0; i < n; i++) p_cLanes[i].labelW = labelCol;
       p_cLabelRight = labelCol;
       const int lineX = labelCol + 16;
       for (int i = 0; i < n; i++) {
@@ -1175,31 +1194,23 @@ class MoDiagramCanvas : public wxPanel
         //  The label row, right-aligned at the label column's edge; lines
         //  run behind the text, not through it.
         vector<Piece> pieces;
-        int wl, we, wt;
-        centreRow(dc, level, pieces, wl, we, wt);
+        int wl, wc;
+        string conText;
+        centreRow(dc, level, pieces, wl, wc, conText, p_cMode);
         dc.SetFont(base);
         const int row = dc.GetTextExtent(wxT("Xg")).y;
         const int right = x0 + p_cLabelRight;
         const int top = c.labelY - row/2;
-        const int xTag = right - wt;
-        const int xEnergy = (wt ? xTag - 8 : right) - we;
-        const int xLabel = ((we ? xEnergy : (wt ? xTag : right + 8)) - 8) - wl;
+        const int xSym = right - wl;
+        const int xCon = xSym - (wl && wc ? 10 : 0) - wc;
+        const int xLeftmost = min(wl ? xSym : right, wc ? xCon : right);
         dc.SetPen(*wxTRANSPARENT_PEN);
         dc.SetBrush(*wxWHITE_BRUSH);
-        dc.DrawRectangle(xLabel - 2, top, right - xLabel + 4, row);
+        if (wl || wc) dc.DrawRectangle(xLeftmost - 2, top, right - xLeftmost + 4, row);
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        if (wt) {
-          dc.SetFont(tagFont);
-          dc.SetTextForeground(wxColour(130, 130, 130));
-          dc.DrawText(wxString(level.tag.c_str(), wxConvUTF8), xTag, top);
-          dc.SetFont(base);
-        }
-        if (we) {
-          dc.SetTextForeground(wxColour(130, 130, 130));
-          dc.DrawText(wxString(level.annotation.c_str(), wxConvUTF8), xEnergy, top);
-        }
         dc.SetTextForeground(colour);
-        drawPieces(dc, pieces, xLabel, top, base, small, row);
+        if (wc) dc.DrawText(wxString(conText.c_str(), wxConvUTF8), xCon, top);
+        if (wl) drawPieces(dc, pieces, xSym, top, base, small, row);
         if (abs(c.labelY - c.y) > 3 || c.lane > 0) {
           dc.SetPen(wxPen(wxColour(200, 200, 200), 1));
           dc.DrawLine(x0 + p_cLabelRight + 3, c.labelY, x0 + c.lineX - 3, c.y);
@@ -2166,7 +2177,7 @@ class MoDiagramCanvas : public wxPanel
       if (model) {
         const int between = xRight - (xLeft + leftWidth) - 80;
         centreWidth = layoutCentreLanes(dc, plot,
-                                        max(300, min((int)(0.55*size.x), between)));
+                                        max(100, min((int)(0.55*size.x), between)));
       }
       const int xCentre = usable/2 - centreWidth/2;
       const int xCalc   = size.x - calcWidth + 8;
@@ -2703,6 +2714,8 @@ class MoDiagramCanvas : public wxPanel
     string p_headline;
     bool p_haveFragments;
     bool p_showEnergies;
+    bool p_showConstruct = true, p_showSymmetry = true;
+    int  p_cMode = 0;
     string p_group;
     string p_formula;
     string p_calcHeader = "This calculation";

@@ -101,6 +101,35 @@ class ModelDiagram
                  deltaCalcEv(0) {}
     };
 
+    /**
+     * The construction label of one model level (#458): sigma/pi/delta, the
+     * parent orbitals and "*" for the out-of-phase combination; "nb" when the
+     * other fragment has under NONBONDING_SHARE of it.  Empty where no bond
+     * axis exists (two polyatomic fragments).
+     */
+    struct ConstructLabel
+    {
+      vector<int> orbitals;     // model orbitals of the level, energy order
+      double energy;            // Hartree
+      string full;              // "sigma*2p", "sigma(C 2s/O 2s)", "sigma*(B 2p)", "nb (F 2p)"
+      string plain;             // the same without the parents: "sigma*", "nb"
+      bool   nonbonding, antibonding;
+      double otherShare;        // the smaller fragment's share of the level
+      ConstructLabel() : energy(0), nonbonding(false), antibonding(false), otherShare(0) {}
+    };
+
+    /** A level with less than this on one fragment is non-bonding by construction. */
+    static constexpr double NONBONDING_SHARE = 0.05;
+
+    /**
+     * The construction labels of the model's levels in energy order, from the
+     * extended-Hueckel model alone (no calculation).  Diatomics are named by
+     * correlation with the same model run without s-p coupling, so the order
+     * of N2's 2sigma_u and 3sigma_g levels does not depend on a composition
+     * threshold.
+     */
+    static bool constructLabels(const Input& in, vector<ConstructLabel>& out, string& why);
+
     /** Can extended Hueckel treat every element?  `why` says what not. */
     static bool applicable(const vector<string>& symbols, string& why);
 

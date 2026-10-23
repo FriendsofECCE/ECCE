@@ -1,0 +1,325 @@
+//  Construction labels of the model-first MO diagram (#458); see ModelDiagram.H.
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <map>
+
+#include "tdat/ModelDiagram.H"
+#include "tdat/FragmentOrbitals.H"
+
+using namespace std;
+
+namespace {
+
+const char* SIGMA = "\xCF\x83";
+const char* PI    = "\xCF\x80";
+
+typedef vector< vector<double> > Mat;
+
+struct Level
+{
+   vector<int> mos;
+   double energy;
+   Level() : energy(0) {}
+};
+
+vector<Level> clusters(const vector<double>& E)
+{
+   vector<Level> cl;
+   for (size_t m = 0; m < E.size(); m++) {
+      if (!cl.empty() && fabs(E[m] - E[cl.back().mos.back()]) < ModelDiagram::DEGENERATE)
+         cl.back().mos.push_back((int)m);
+      else { cl.push_back(Level()); cl.back().mos.push_back((int)m); }
+   }
+   for (size_t c = 0; c < cl.size(); c++) {
+      for (size_t k = 0; k < cl[c].mos.size(); k++) cl[c].energy += E[cl[c].mos[k]];
+      cl[c].energy /= cl[c].mos.size();
+   }
+   return cl;
+}
+
+//  Orbitals normalised against their own overlap matrix.
+void normalise(const vector<double>& S, size_t nf, Mat& rows)
+{
+   for (size_t m = 0; m < rows.size(); m++) {
+      double n = 0.0;
+      for (size_t i = 0; i < nf; i++) {
+         double sc = 0.0;
+         for (size_t j = 0; j < nf; j++) sc += S[i*nf+j]*rows[m][j];
+         n += rows[m][i]*sc;
+      }
+      if (n > 1e-12) for (size_t i = 0; i < nf; i++) rows[m][i] /= sqrt(n);
+   }
+}
+
+string shellName(const FragmentOrbitals::FoSet& set, size_t f)
+{
+   static const char letters[] = "spdf";
+   const FragmentOrbitals::Function& fn = set.funcs[f];
+   return fn.element + " " + to_string(fn.n) + string(1, fn.l < 4 ? letters[fn.l] : '?');
+}
+
+//  Leading shell of a group of atoms in one orbital (largest summed square).
+string leadingShell(const FragmentOrbitals::FoSet& set, const vector<double>& c,
+                    const vector<int>& atoms, bool nameElementOnly = false)
+{
+   (void)nameElementOnly;
+   map<string,double> w;
+   for (size_t i = 0; i < set.funcs.size(); i++)
+      if (find(atoms.begin(), atoms.end(), set.funcs[i].atom) != atoms.end())
+         w[shellName(set, i)] += c[i]*c[i];
+   string best;
+   double top = -1.0;
+   for (map<string,double>::iterator it = w.begin(); it != w.end(); ++it)
+      if (it->second > top) { top = it->second; best = it->first; }
+   return best;
+}
+
+double dot(const double a[3], const double b[3]) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+
+//  The weight of an orbital that is symmetric / perpendicular about an axis
+//  through `centre` along `axis`, summed over the atoms in `atoms`.
+void axisWeights(const FragmentOrbitals::FoSet& set, const vector<double>& c,
+                 const vector<int>& atoms, const double axis[3], double& par, double& perp,
+                 double& dWeight)
+{
+   par = perp = dWeight = 0.0;
+   for (size_t a = 0; a < atoms.size(); a++) {
+      double v[3] = {0, 0, 0};
+      for (size_t i = 0; i < set.funcs.size(); i++) {
+         const FragmentOrbitals::Function& f = set.funcs[i];
+         if (f.atom != atoms[a]) continue;
+         if (f.l == 0) par += c[i]*c[i];
+         else if (f.l == 1) v[f.component == "x" ? 0 : (f.component == "y" ? 1 : 2)] += c[i];
+         else dWeight += c[i]*c[i];
+      }
+      const double p = dot(v, axis);
+      par += p*p;
+      perp += max(0.0, dot(v, v) - p*p);
+   }
+}
+
+}  // namespace
+
+
+bool ModelDiagram::constructLabels(const Input& in, vector<ConstructLabel>& out, string& why)
+{
+   out.clear();
+   const size_t nAtoms = in.symbols.size();
+   if (nAtoms < 2 || in.coordsAng.size() != 3*nAtoms || in.leftAtoms.empty() || in.rightAtoms.empty()) {
+      why = "No structure.";
+      return false;
+   }
+   if (!applicable(in.symbols, why)) return false;
+
+   vector<FragmentOrbitals::Fragment> frags(2);
+   frags[0].atoms = in.leftAtoms;  frags[0].charge = in.leftCharge;
+   frags[1].atoms = in.rightAtoms; frags[1].charge = in.rightCharge;
+   for (int f = 0; f < 2; f++) {
+      const bool single = frags[f].atoms.size() == 1;
+      frags[f].kind = single ? FragmentOrbitals::METAL : FragmentOrbitals::LIGAND;
+      frags[f].name = single ? in.symbols[frags[f].atoms[0]] : string(f ? "R" : "L");
+   }
+   FragmentOrbitals::FoSet set;
+   if (!FragmentOrbitals::build(in.symbols, in.coordsAng, frags, FragmentOrbitals::PER_LIGAND, set, why))
+      return false;
+   const size_t nf = set.funcs.size();
+   vector<double> E;
+   Mat rows;
+   if (!FragmentOrbitals::solveWhole(set, E, rows, why)) return false;
+   normalise(set.overlap, nf, rows);
+   Mat amp;
+   {
+      vector<EspBasisFunction> own;
+      for (size_t i = 0; i < nf; i++) own.push_back(set.funcs[i].fn);
+      vector<FragmentOrbitals::MoShares> sh;
+      if (!FragmentOrbitals::compose(set, own, set.overlap, rows, sh, why, &amp)) return false;
+   }
+
+   vector<Level> cl = clusters(E);
+   out.resize(cl.size());
+   vector<double> shL(cl.size(), 0.0), shR(cl.size(), 0.0);
+   for (size_t c = 0; c < cl.size(); c++) {
+      out[c].orbitals = cl[c].mos;
+      out[c].energy = cl[c].energy;
+      for (size_t k = 0; k < cl[c].mos.size(); k++)
+         for (size_t q = 0; q < set.fos.size(); q++) {
+            const double a = amp[cl[c].mos[k]][q];
+            (set.fos[q].fragment == 0 ? shL[c] : shR[c]) += a*a/cl[c].mos.size();
+         }
+      out[c].otherShare = min(shL[c], shR[c]);
+   }
+
+   const bool diatomic = nAtoms == 2;
+   const bool central = in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
+   if (!diatomic && !central) return true;      // no clear bond axis: no construction label
+
+   const int a0 = in.leftAtoms[0], a1 = in.rightAtoms[0];
+   double axis[3];
+   {
+      double n = 0.0;
+      for (int k = 0; k < 3; k++) { axis[k] = in.coordsAng[3*a1+k] - in.coordsAng[3*a0+k]; n += axis[k]*axis[k]; }
+      n = sqrt(n);
+      for (int k = 0; k < 3; k++) axis[k] /= (n > 0 ? n : 1.0);
+   }
+
+   if (central) {
+      const double* pc = &in.coordsAng[3*in.leftAtoms[0]];
+      for (size_t c = 0; c < cl.size(); c++) {
+         ConstructLabel& L = out[c];
+         double sigW = 0.0, piW = 0.0;
+         for (size_t k = 0; k < cl[c].mos.size(); k++) {
+            const vector<double>& row = rows[cl[c].mos[k]];
+            for (size_t a = 0; a < in.rightAtoms.size(); a++) {
+               double u[3], n = 0.0;
+               for (int q = 0; q < 3; q++) { u[q] = in.coordsAng[3*in.rightAtoms[a]+q] - pc[q]; n += u[q]*u[q]; }
+               n = sqrt(n);
+               for (int q = 0; q < 3; q++) u[q] /= (n > 0 ? n : 1.0);
+               vector<int> one(1, in.rightAtoms[a]);
+               double par, perp, d;
+               axisWeights(set, row, one, u, par, perp, d);
+               sigW += par;  piW += perp;
+            }
+         }
+         const vector<double>& lead = rows[cl[c].mos[0]];
+         const bool onCentre = shL[c] >= shR[c];
+         const string parent = onCentre ? leadingShell(set, lead, in.leftAtoms)
+                                        : leadingShell(set, lead, in.rightAtoms);
+         if (L.otherShare < NONBONDING_SHARE) {
+            L.nonbonding = true;
+            L.plain = "nb";
+            L.full = "nb (" + parent + ")";
+            continue;
+         }
+         const char* kind = sigW >= piW ? SIGMA : PI;
+         const string centreParent = leadingShell(set, lead, in.leftAtoms);
+         //  Phase of the leading centre orbital against the leading ligand
+         //  orbital that overlaps it, summed over a degenerate set.
+         double phase = 0.0;
+         for (size_t k = 0; k < cl[c].mos.size(); k++) {
+            const vector<double>& a = amp[cl[c].mos[k]];
+            int fl = -1;
+            for (size_t q = 0; q < set.fos.size(); q++)
+               if (set.fos[q].fragment == 0 && (fl < 0 || fabs(a[q]) > fabs(a[fl]))) fl = (int)q;
+            vector<int> rs;
+            for (size_t q = 0; q < set.fos.size(); q++)
+               if (set.fos[q].fragment == 1 && fabs(a[q]) > 0.2) rs.push_back((int)q);
+            sort(rs.begin(), rs.end(), [&](int x, int y) { return fabs(a[x]) > fabs(a[y]); });
+            for (size_t r = 0; r < rs.size() && fl >= 0; r++) {
+               double ov = 0.0;
+               for (size_t i = 0; i < nf; i++)
+                  for (size_t j = 0; j < nf; j++)
+                     ov += set.fos[fl].coef[i]*set.overlap[i*nf+j]*set.fos[rs[r]].coef[j];
+               if (fabs(ov) < 0.02) continue;
+               phase += a[fl]*a[rs[r]]*ov;
+               break;
+            }
+         }
+         L.antibonding = phase < 0.0;
+         const string star = L.antibonding ? "*" : "";
+         L.plain = string(kind) + star;
+         L.full = string(kind) + star + "(" + centreParent + ")";
+      }
+      return true;
+   }
+
+   //  --- diatomic: correlate with the s-p-unmixed model --------------
+   const bool homo = in.symbols[a0] == in.symbols[a1];
+   FragmentOrbitals::FoSet un = set;
+   for (size_t i = 0; i < nf; i++)
+      for (size_t j = 0; j < nf; j++)
+         if (set.funcs[i].l != set.funcs[j].l) un.overlap[i*nf+j] = 0.0;
+   vector<double> uE;
+   Mat uRows;
+   if (!FragmentOrbitals::solveWhole(un, uE, uRows, why)) return false;
+   normalise(un.overlap, nf, uRows);
+   vector<Level> ucl = clusters(uE);
+
+   //  Partner of each function under inversion (homonuclear only).
+   vector<int> partner(nf, -1);
+   if (homo)
+      for (size_t i = 0; i < nf; i++)
+         for (size_t j = 0; j < nf; j++)
+            if (set.funcs[i].atom != set.funcs[j].atom && set.funcs[i].n == set.funcs[j].n &&
+                set.funcs[i].l == set.funcs[j].l && set.funcs[i].component == set.funcs[j].component)
+               partner[i] = (int)j;
+
+   struct Kind { int type; int parity; };      // type 0 sigma, 1 pi, 2 unsupported; parity +1 g, -1 u, 0 none
+   auto kindOf = [&](const vector<double>& c) {
+      Kind k; k.parity = 0;
+      double par = 0.0, perp = 0.0, d = 0.0, tot = 0.0;
+      vector<int> both(in.leftAtoms);
+      both.insert(both.end(), in.rightAtoms.begin(), in.rightAtoms.end());
+      axisWeights(set, c, both, axis, par, perp, d);
+      tot = par + perp + d;
+      k.type = d > 0.01*tot ? 2 : (par >= perp ? 0 : 1);
+      if (homo) {
+         double p = 0.0;
+         for (size_t i = 0; i < nf; i++)
+            if (partner[i] >= 0) p += c[i]*c[partner[i]]*(set.funcs[i].l % 2 ? -1.0 : 1.0);
+         k.parity = p >= 0.0 ? 1 : -1;
+      }
+      return k;
+   };
+
+   //  Names of the unmixed levels.
+   struct Named { Kind kind; double energy; bool anti, none; string parL, parR, shell; };
+   vector<Named> named(ucl.size());
+   for (size_t c = 0; c < ucl.size(); c++) {
+      const vector<double>& row = uRows[ucl[c].mos[0]];
+      Named& n = named[c];
+      n.kind = kindOf(row);
+      n.energy = ucl[c].energy;
+      double op = 0.0, lWeight = 0.0;
+      for (size_t i = 0; i < nf; i++) {
+         if (set.funcs[i].l == 0) lWeight += row[i]*row[i];
+         for (size_t j = 0; j < nf; j++)
+            if (set.funcs[i].atom == a0 && set.funcs[j].atom == a1) op += 2.0*row[i]*row[j]*un.overlap[i*nf+j];
+      }
+      n.none = fabs(op) < 1e-6;
+      n.anti = op < 0.0;
+      n.parL = leadingShell(set, row, in.leftAtoms);
+      n.parR = leadingShell(set, row, in.rightAtoms);
+      n.shell = n.parL.substr(n.parL.find(' ') + 1);
+   }
+
+   if (getenv("ECCE_LABELS_DEBUG")) {
+      for (size_t c = 0; c < named.size(); c++)
+         fprintf(stderr, "unmixed %zu E=%.2f eV type=%d parity=%d anti=%d %s\n", c, named[c].energy*27.2114,
+                 named[c].kind.type, named[c].kind.parity, (int)named[c].anti, named[c].shell.c_str());
+      for (size_t c = 0; c < cl.size(); c++) fprintf(stderr, "real %zu E=%.2f eV\n", c, cl[c].energy*27.2114);
+   }
+   //  Real levels, grouped by (type, parity); energy order against energy order.
+   map<pair<int,int>, vector<size_t> > realBy, unBy;
+   vector<Kind> realKind(cl.size());
+   for (size_t c = 0; c < cl.size(); c++) {
+      realKind[c] = kindOf(rows[cl[c].mos[0]]);
+      realBy[make_pair(realKind[c].type, realKind[c].parity)].push_back(c);
+   }
+   for (size_t c = 0; c < named.size(); c++) unBy[make_pair(named[c].kind.type, named[c].kind.parity)].push_back(c);
+   for (map<pair<int,int>, vector<size_t> >::iterator it = realBy.begin(); it != realBy.end(); ++it) {
+      if (it->first.first == 2) continue;
+      const vector<size_t>& u = unBy[it->first];
+      if (u.size() != it->second.size()) continue;       // not a clean correlation: say nothing
+      for (size_t k = 0; k < u.size(); k++) {
+         const Named& n = named[u[k]];
+         ConstructLabel& L = out[it->second[k]];
+         const char* kind = n.kind.type == 0 ? SIGMA : PI;
+         const size_t c = it->second[k];
+         if (!homo && L.otherShare < NONBONDING_SHARE) {
+            L.nonbonding = true;
+            L.plain = "nb";
+            L.full = "nb (" + (shL[c] >= shR[c] ? n.parL : n.parR) + ")";
+            continue;
+         }
+         const string star = n.none ? "" : (n.anti ? "*" : "");
+         L.antibonding = n.anti && !n.none;
+         L.plain = string(kind) + star;
+         L.full = homo ? string(kind) + star + n.shell
+                       : string(kind) + star + "(" + n.parL + "/" + n.parR + ")";
+      }
+   }
+   return true;
+}

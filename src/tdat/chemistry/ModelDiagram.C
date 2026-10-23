@@ -894,6 +894,13 @@ bool ModelDiagram::build(const Input& in,
       }
    }
 
+   //  Construction labels come from the model alone; a failure leaves them empty.
+   vector<ConstructLabel> construct;
+   {
+      string ignored;
+      if (!constructLabels(in, construct, ignored)) construct.clear();
+   }
+
    //  --- fragments and the model ------------------------------------
    const Naming leftName = nameAtoms(in.symbols, in.coordsAng, in.leftAtoms);
    const Naming rightName = nameAtoms(in.symbols, in.coordsAng, in.rightAtoms);
@@ -1438,6 +1445,12 @@ bool ModelDiagram::build(const Input& in,
          lv.calcOccupancyBeta = R.occupancyBeta;
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
       }
+      lv.symLabel = lower(L.base);
+      for (size_t k = 0; k < construct.size(); k++)
+         if (find(construct[k].orbitals.begin(), construct[k].orbitals.end(), L.mos[0]) != construct[k].orbitals.end()) {
+            lv.construct = construct[k].full;
+            lv.constructShort = construct[k].plain;
+         }
       lv.annotation.clear();   // a marker beside the label read as a stray glyph
       lv.tag = characterTag(charAcc[order[oi]], CHARACTER_MIN);
       //  The hover text.
@@ -1457,6 +1470,8 @@ bool ModelDiagram::build(const Input& in,
                       : L.character == MoLevel::ANTIBONDING ? "Antibonding" : "Non-bonding") +
                     " (overlap population " + signedNumber(L.op, 2) + ").\nMade of: ";
       for (size_t k = 0; k < parts.size() && k < 5; k++) text += (k ? ", " : "") + parts[k].second;
+      text += "\nLabels: " + (lv.construct.empty() ? string("no construction label") : "construction " + lv.construct) +
+              (lv.symLabel.empty() ? string() : ", symmetry " + lv.symLabel) + ".";
       if (L.realLevel >= 0) {
          const MoLevel& R = real[L.realLevel];
          text += "\nMatches MO ";

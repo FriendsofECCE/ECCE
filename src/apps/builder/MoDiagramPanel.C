@@ -529,6 +529,15 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showEnergies->SetToolTip("Write each level's energy beside its label");
   views->Add(p_showEnergies, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  p_constructLabels = new ewxCheckBox(this, wxID_ANY, _("Construction labels"));
+  p_constructLabels->SetValue(true);
+  p_constructLabels->SetToolTip("Name each model level by how it is built: sigma, pi, * for out of phase, nb for non-bonding");
+  views->Add(p_constructLabels, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  p_symmetryLabels = new ewxCheckBox(this, wxID_ANY, _("Symmetry labels"));
+  p_symmetryLabels->SetValue(true);
+  p_symmetryLabels->SetToolTip("Name each model level by its irreducible representation");
+  views->Add(p_symmetryLabels, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   p_ligandField = new ewxCheckBox(this, wxID_ANY, _("Ligand-field view"));
   p_ligandField->SetValue(getenv("ECCE_MODIAGRAM_LFVIEW") != 0);
   p_ligandField->SetToolTip("Complexes: hide the empty ligand-centred levels "
@@ -590,6 +599,8 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_fragments->Bind(wxEVT_CHECKLISTBOX, &MoDiagramPanel::onFragmentChanged,
                     this);
   p_showEnergies->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
+  p_constructLabels->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
+  p_symmetryLabels->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
   p_showAll->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
   p_ligandField->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
   p_about->Bind(wxEVT_BUTTON, &MoDiagramPanel::onAbout, this);
@@ -645,6 +656,7 @@ void MoDiagramPanel::onShowEnergies(wxCommandEvent& WXUNUSED(event))
 {
   if (p_canvas == 0) return;
   p_canvas->setShowEnergies(p_showEnergies->IsChecked());
+  p_canvas->setLabelSides(p_constructLabels->IsChecked(), p_symmetryLabels->IsChecked());
   //  The energies change how much room each row needs, so the whole
   //  layout is recomputed, not just repainted.
   p_canvas->Refresh();
@@ -1855,6 +1867,8 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
         << " irrep=" << (lv.irrep.empty() ? "-" : lv.irrep)
         << " label=" << escapeDumpText(lv.label.empty() ? "-" : lv.label)
         << (lv.tag.empty() ? string() : " tag=" + escapeDumpText(lv.tag))
+        << (lv.symLabel.empty() ? string() : " sym=" + escapeDumpText(lv.symLabel))
+        << (lv.model ? " construct=" + escapeDumpText(lv.construct.empty() ? "-" : lv.construct) : string())
         << " character=" << levelCharacterName(lv.character)
         << " pairing=" << lv.pairing
         << " occupancy=" << std::setprecision(4) << lv.occupancy
