@@ -6,4 +6,4 @@ RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install 
       libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
       libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
       libmosquitto-dev mosquitto-dev libaprutil1-dev git dpkg-dev file pkg-config \
-      libssh-dev openssh-client tcsh >/dev/null && rm -rf /var/lib/apt/lists/*
+      libssh-dev openssh-client tcsh libcoin-dev libsimage-dev >/dev/null && rm -rf /var/lib/apt/lists/*

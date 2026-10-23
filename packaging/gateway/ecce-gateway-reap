@@ -156,6 +156,29 @@ for f in "$broker_prefix"*; do
   [ -n "$(find "$f" -mmin +1 2>/dev/null)" ] && rm -f "$f"
 done
 
+# The ssh masters of sessions with no app left (#487). A job store keeps
+# its session alive, so a running monitor never loses its master. A
+# directory made two minutes ago belongs to a session about to start.
+live_ids=" $(ecce_session_procs | awk '{ print $3 }' | tr '\n' ' ') "
+while read -r root; do
+  [ -d "$root" ] && [ ! -L "$root" ] || continue
+  for d in "$root"/*; do
+    [ -d "$d" ] && [ ! -L "$d" ] && [ -O "$d" ] || continue
+    key="$(basename "$d")"
+    case "$key" in *[!0-9a-f]*) continue ;; esac
+    [ "${#key}" -eq 8 ] || continue
+    case "$live_ids" in *" $key"[0-9a-f]*" "*) continue ;; esac
+    [ -z "$(find "$d/.born" -mmin -2 2>/dev/null)" ] || continue
+    for sock in "$d"/*; do
+      [ -S "$sock" ] || continue
+      ssh -O exit -S "$sock" x >/dev/null 2>&1
+    done
+    rm -rf "$d"
+    say "no ECCE app left for session $key -- closed its ssh connections"
+  done
+  rmdir "$root" 2>/dev/null
+done < <(ecce_ssh_control_roots)
+
 # --- 2. The broker, shared by every session ----------------------------
 if [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
   [ "$EXPLICIT_STOP" = 1 ] &&

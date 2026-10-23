@@ -466,8 +466,15 @@ bool RCommand::useOpenssh(const string& machine, const string& userName,
 bool RCommand::sshConnect(const string& machine, const string& userName,
                           const string& password, const string& jumpHost)
 {
-  if (useOpenssh(machine, userName, jumpHost))
-    return sshConnectOpenssh(machine, userName, jumpHost, password);
+  if (useOpenssh(machine, userName, jumpHost)) {
+    if (sshConnectOpenssh(machine, userName, jumpHost, password)) return true;
+#ifdef ECCE_HAVE_LIBSSH
+    // The front end refuses forwarding: the same host goes on with libssh.
+    if (!OpenSshTransport::forwardingRefused(machine, jumpHost)) return false;
+#else
+    return false;
+#endif
+  }
 #ifdef ECCE_HAVE_LIBSSH
   return sshConnectLibssh(machine, userName, password, jumpHost);
 #else

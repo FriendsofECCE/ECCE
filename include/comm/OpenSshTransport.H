@@ -111,6 +111,11 @@ public:
                             const std::string& configFile = "",
                             const std::string& jumpHost = "");
 
+  // True once ssh -J to host through jumpHost was refused for lack of
+  // forwarding on the front end; backendFor then answers libssh.
+  static bool forwardingRefused(const std::string& host,
+                                const std::string& jumpHost);
+
   // ECCE_SSH_CONTROL_DIR when it is usable: a directory of ours, mode 0700,
   // not a symlink, and short enough for a socket name inside it (ssh binds
   // <path>.<16 chars> first, so the limit is 104 bytes on macOS).  "" when
@@ -167,6 +172,7 @@ private:
   // (MaxSessions); moves to the next overflow master and returns true when
   // there is one to try.
   bool nextOverflowMaster(const TransportResult& r);
+  void noteForwardingRefused(const TransportResult& r);
   std::string socketFor(int index) const;
   int overflowIndex() const;
   bool putInto(const std::string& local, const std::string& remote,

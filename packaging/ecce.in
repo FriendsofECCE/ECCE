@@ -212,6 +212,7 @@ ECCE_SESSION_ID="$(ecce_new_session_id)"
 export ECCE_SESSION_ID
 # The user's own server choice makes this a -remote session.
 ecce_user_server_mode
+ecce_ssh_control_setup
 
 # Only -remote reaches ecce-gateway; it has no use for the rest.
 passthrough=()
@@ -226,6 +227,7 @@ switch_to_local() {
   if [ -z "${ECCE_LOCAL_DATA:-}" ]; then unset ECCE_LOCAL_DATA; fi
   export ECCE_LOCAL=1
   ECCE_SESSION_ID="$(ecce_new_session_id)"
+  ecce_ssh_control_setup
   passthrough=()
 }
 

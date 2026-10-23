@@ -68,6 +68,42 @@ ecce_session_pointer() {
   printf '%s/session_%s' "$STATEDIR" "$(ecce_session_host | ecce_session_sanitize)"
 }
 
+# The directories that hold a session's ssh control sockets (#487), one
+# per line, best first: local tmpfs (works when home is NFS/AFS), else under
+# the state directory. A session's own directory is <root>/<first 8 hex of
+# its id>: a unix socket path holds 104 bytes on macOS.
+ecce_ssh_control_roots() {
+  local t
+  if [ -n "${XDG_RUNTIME_DIR:-}" ]; then echo "${XDG_RUNTIME_DIR%/}/ecce-ssh"; fi
+  t="${TMPDIR:-}"
+  if [ "$(uname -s)" = Darwin ] && [ -n "$t" ]; then echo "${t%/}/ecce-ssh"; fi
+  echo "${ECCE_REALUSERHOME:-$HOME}/.ECCE/cm"
+}
+
+# Make this session's control directory (0700, ours) and export
+# ECCE_SSH_CONTROL_DIR; none when no root is short enough, in which case
+# ssh is used as before.
+ecce_ssh_control_setup() {
+  local id="${1-${ECCE_SESSION_ID:-}}" root dir
+  unset ECCE_SSH_CONTROL_DIR
+  case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) return 0 ;; esac
+  ecce_session_id_valid "$id" || return 0
+  while read -r root; do
+    dir="$root/$(printf '%s' "$id" | cut -c1-8)"
+    [ "${#dir}" -le 66 ] || continue
+    ( umask 077; mkdir -p "$root" && mkdir -p "$dir" ) 2>/dev/null || continue
+    [ -d "$dir" ] && [ ! -L "$dir" ] && [ -O "$dir" ] || continue
+    chmod 700 "$root" "$dir" 2>/dev/null || continue
+    # Written once, never touched: the reaper's age of this directory (its
+    # own mtime moves with every socket).
+    [ -e "$dir/.born" ] || : > "$dir/.born"
+    ECCE_SSH_CONTROL_DIR="$dir"
+    export ECCE_SSH_CONTROL_DIR
+    return 0
+  done < <(ecce_ssh_control_roots)
+  return 0
+}
+
 # Keep an inherited id (an app the gateway or `ecce` started); else join
 # the newest live session of this account on this host; else make one: an
 # app started on its own with no session alive is a session of its own.

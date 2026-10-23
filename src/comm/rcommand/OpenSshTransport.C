@@ -8,6 +8,7 @@
 #include <cstring>
 #include <ctime>
 #include <map>
+#include <set>
 #include <atomic>
 #include <mutex>
 #include <thread>
@@ -263,6 +264,37 @@ std::string hex16(unsigned long long h)
 }
 }  // namespace
 
+namespace {
+std::mutex gNoFwdMu;
+std::set<std::string> gNoFwd;
+}  // namespace
+
+bool OpenSshTransport::forwardingRefused(const std::string& host,
+                                         const std::string& jumpHost)
+{
+  if (jumpHost.empty()) return false;
+  std::lock_guard<std::mutex> lock(gNoFwdMu);
+  return gNoFwd.count(host + "\n" + jumpHost) > 0;
+}
+
+// A front end that refuses TCP forwarding cannot serve ssh -J; the host then
+// goes to libssh (nested) for the rest of the process.
+void OpenSshTransport::noteForwardingRefused(const TransportResult& r)
+{
+  if (!ownsFromDir() || p_jumpHost.empty() || r.timedOut || r.status != 255)
+    return;
+  const std::string low = lower(r.err);
+  const bool stdio = low.find("stdio forwarding failed") != std::string::npos;
+  if (!stdio && (low.find("administratively prohibited") == std::string::npos ||
+                 masterAlive()))
+    return;
+  std::lock_guard<std::mutex> lock(gNoFwdMu);
+  if (gNoFwd.insert(p_host + "\n" + p_jumpHost).second)
+    fprintf(stderr, "ecce: %s refuses forwarding for ssh -J to %s; "
+            "using the built-in ssh client for it\n",
+            p_jumpHost.c_str(), p_host.c_str());
+}
+
 std::string OpenSshTransport::ownedControlDir()
 {
 #ifdef _WIN32
@@ -295,7 +327,8 @@ OpenSshTransport::Backend OpenSshTransport::backendFor(const std::string& host,
   if (b != BACKEND_AUTO) return b;
   // ECCE owns the master for every host; -J cannot serve a front end that
   // only allows nested ssh.
-  if (!nestedRequested(jumpHost) && !ownedControlDir().empty() && sshOnPath())
+  if (!nestedRequested(jumpHost) && !ownedControlDir().empty() && sshOnPath() &&
+      !forwardingRefused(host, jumpHost))
     return BACKEND_OPENSSH;
   // libssh cannot prompt on a proxy's own login, and a shared connection
   // is something only the ssh command can use.
@@ -707,6 +740,7 @@ TransportResult OpenSshTransport::runImpl(const std::string& script, int timeout
   if (wantsMaster(res) && openMaster())
     res = DirectTransport::runProcess(sshArgs(kScriptExec), full, -1, -1,
                                       timeoutSec);
+  noteForwardingRefused(res);
   for (int n = 0; n < kMaxOverflow && nextOverflowMaster(res); n++)
     res = DirectTransport::runProcess(sshArgs(kScriptExec), full, -1, -1,
                                       timeoutSec);
@@ -732,6 +766,7 @@ TransportResult OpenSshTransport::runWithData(const std::string& script, int inF
       openMaster())
     res = DirectTransport::runProcess(sshArgs(kDataExec), oneLine(script), inFd,
                                       outFd, timeoutSec);
+  noteForwardingRefused(res);
   for (int n = 0; n < kMaxOverflow && nextOverflowMaster(res) &&
        (inFd < 0 || lseek(inFd, 0, SEEK_SET) == 0) &&
        (outFd < 0 || (lseek(outFd, 0, SEEK_SET) == 0 && ftruncate(outFd, 0) == 0));
@@ -992,15 +1027,16 @@ RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
   }
   bool refused = false;
   if (owned && attempt < kMaxOverflow) {
-    // A refusal ends ssh at once; a live stream stays silent or has data.
+    // The master says so at once, but ssh then tries a connection of its own
+    // (which may succeed or only fail later): the message is what counts.
     struct pollfd pf = { sp[0], POLLIN, 0 };
-    char c;
-    if (poll(&pf, 1, 250) > 0 && recv(sp[0], &c, 1, MSG_PEEK | MSG_DONTWAIT) == 0) {
-      char eb[2048];
-      ssize_t n = pread(devnull, eb, sizeof eb - 1, 0);
+    poll(&pf, 1, 250);
+    char eb[2048];
+    ssize_t n = pread(devnull, eb, sizeof eb - 1, 0);
+    if (n > 0) {
       TransportResult fake;
       fake.status = 255;
-      if (n > 0) fake.err.assign(eb, n);
+      fake.err.assign(eb, n);
       refused = nextOverflowMaster(fake);
     }
   }

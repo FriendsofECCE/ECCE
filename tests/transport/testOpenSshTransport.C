@@ -103,6 +103,10 @@ int main()
     "  full)\n"
     "    [ -n \"$op\" ] && exit 0\n"
     "    case \"$cp\" in *-1) ;; *) echo \"channel 2: open failed: administratively prohibited: open failed\" >&2; exit 255;; esac;;\n"
+    "  fwd)\n"
+    "    [ -n \"$op\" ] && { echo \"Control socket connect($STUB_MASTER): No such file or directory\" >&2; exit 255; }\n"
+    "    echo \"channel 0: open failed: administratively prohibited: open failed\" >&2\n"
+    "    echo \"stdio forwarding failed\" >&2; exit 255;;\n"
     "  badkey) echo \"Host key verification failed.\" >&2; exit 255;;\n"
     "  down) echo \"ssh: connect to host down port 22: Connection refused\" >&2; exit 255;;\n"
     "  mux) echo \"mux_client_request_session: read from master failed: Broken pipe\" >&2; exit 255;;\n"
@@ -681,6 +685,23 @@ int main()
             lg.find("administratively") == string::npos &&
             lg.find("-1 ") != string::npos, lg);
       delete f;
+    }
+    // A front end that refuses forwarding: that host moves to libssh.
+    {
+      unsetenv("ECCE_SSH_BACKEND");
+      O::Backend before = O::backendFor("fwd", "x", "", "front");
+      OpenSshTransport* f = make("fwd", "x");
+      f->setConfigFile(plain);
+      f->setJumpHost("front");
+      TransportResult fr = f->run("echo hi");
+      delete f;
+      check("forwarding refused: openssh first", before == O::BACKEND_OPENSSH);
+      check("forwarding refused: command failed", fr.status != 0);
+      check("forwarding refused: host now on libssh",
+            O::forwardingRefused("fwd", "front") &&
+            O::backendFor("fwd", "x", "", "front") == O::BACKEND_LIBSSH);
+      check("forwarding refused: other routes unchanged",
+            O::backendFor("fwd", "x", "", "other") == O::BACKEND_OPENSSH);
     }
     unsetenv("ECCE_SSH_BACKEND");
     unsetenv("ECCE_SSH_CONTROL_DIR");

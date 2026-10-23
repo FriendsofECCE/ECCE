@@ -2907,6 +2907,12 @@ if(PYTHON3_EXECUTABLE)
       eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
 
+    # ECCE's own ssh master; tests/transport/sshd/owned_master_test.sh.
+    add_executable(testOwnedMaster tests/transport/testOwnedMaster.C)
+    target_link_libraries(testOwnedMaster PRIVATE
+      eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+      ecceutil ${XercesC_LIBRARIES})
+
     # bgcommand -> ecmd -> command; tests/transport/sshd/bgcommand_test.sh.
     add_executable(testBgcommand tests/transport/testBgcommand.C)
     target_link_libraries(testBgcommand PRIVATE
