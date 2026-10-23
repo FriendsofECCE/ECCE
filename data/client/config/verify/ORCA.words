@@ -161,6 +161,7 @@ aug-pcsseg-0
 aug-pcsseg-1
 aug-pcsseg-2
 aug-pcsseg-3
+automatic
 b
 b2gp-plyp
 b2plyp
@@ -286,6 +287,8 @@ es.runtype.irc.direction
 es.runtype.irc.inithess
 es.runtype.irc.maximumstepsvalue
 es.runtype.neb.images
+es.runtype.neb.levelsdiffer
+es.runtype.neb.preoptends
 es.runtype.orca.usechelpg
 es.runtype.orca.usehirshfeld
 es.runtype.orca.usembis
@@ -438,6 +441,7 @@ pick
 polar
 polarization
 potential
+preopt_ends
 print[p_mos]
 print[p_orben]
 product
@@ -546,5 +550,6 @@ wrote
 x
 xyz
 y
+yes
 z
 }\n
