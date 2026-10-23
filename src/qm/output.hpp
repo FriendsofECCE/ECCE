@@ -5,6 +5,7 @@
 #include <string>
 #include "basis.hpp"
 #include "charges.hpp"
+#include <vector>
 #include "input.hpp"
 #include "optimizer.hpp"
 #include "scf.hpp"
@@ -56,6 +57,13 @@ struct ScanPointOut {
 void write_scan_table(std::ostream& os, const std::vector<ScanPointOut>& pts, bool bond);
 void write_scan_geometry(std::ostream& os, int point, double value, const Molecule& mol);
 void write_progress_scan(std::ostream& os, int point, int points);
+
+// IRC: the whole path in path order (backward points, the TS, forward points),
+// s in bohr*sqrt(amu); rewritten after every point.  The structures follow
+// once, at the end, in the same order.
+void write_irc_table(std::ostream& os, const std::vector<IrcPoint>& path);
+void write_irc_geometries(std::ostream& os, const std::vector<IrcPoint>& path);
+void write_progress_irc(std::ostream& os, int point, int points);
 
 // "progress ..." lines for ECCE's job monitor (ecceqm.desc [PROGRESS]):
 // one line per SCF cycle, optimisation step and frequency point, flushed at

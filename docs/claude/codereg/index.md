@@ -198,3 +198,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [TD-DFT options (#383): ORCA has no triplets-only switch, c vs 2c^2 weights, vocabulary rebuild](tddft-options-orca-triplets-and-weights-383.md)
 - [NWChem final orbitals as the next job's guess (#407)](nwchem-final-orbitals-movecs-as-guess-407.md) — nwchem.movecs kept; guess.movecsin; same basis only
 - [ECCE-QM final orbitals as guess (#407)](ecceqm-final-orbitals-as-guess-407.md)
+- [ECCE-QM IRC (#452 stage 2): Gonzalez-Schlegel, panel keys, oracle](ecceqm-irc-452.md)

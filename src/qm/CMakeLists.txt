@@ -87,7 +87,7 @@ FetchContent_MakeAvailable(libcint)
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
   molecule.cpp basislib.cpp basis.cpp integrals.cpp ao.cpp grid.cpp xc.cpp
-  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp vibration.cpp polar.cpp localise.cpp input.cpp output.cpp)
+  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp irc.cpp vibration.cpp polar.cpp localise.cpp input.cpp output.cpp)
 target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include)
 target_link_libraries(eccems PUBLIC Eigen3::Eigen cint qm_xc)
 if(OpenMP_CXX_FOUND)
@@ -161,6 +161,9 @@ if(QM_PYTHON3)
   # Transition-state search (#452): HCN <-> HNC against ORCA OptTS (tests/qm/ts_oracle.json).
   add_test(NAME qm_ts_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/ts_test.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_ts COMMAND ${QM_PYTHON3} ${_qm_tests}/ts_test.py $<TARGET_FILE:ecce-qm>)
+  # IRC (#452 stage 2): HCN <-> HNC against ORCA's IRC (tests/qm/irc_oracle.json).
+  add_test(NAME qm_irc COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_test.py $<TARGET_FILE:ecce-qm> --quick)
+  set_tests_properties(qm_irc PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts_quick PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts PROPERTIES TIMEOUT 3600)
   set_tests_properties(qm_scan_quick PROPERTIES TIMEOUT 1800)
