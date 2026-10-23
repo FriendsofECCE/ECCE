@@ -4819,15 +4819,25 @@ void CalcEd::createTsControls()
   wxSizer *col = item ? item->GetSizer() : 0;
   if (!col) return;
 
-  // Beside the Builder button; shown only while there is no structure yet.
+  // Under the Builder button, as wide as it; shown only while there is no
+  // structure yet.
+  wxSizer *box = p_chemSysInner->GetSizer();
   p_tsSearchBtn = new wxButton(p_chemSysInner, wxID_ANY, "TS Search",
-                               wxDefaultPosition, wxSize(64, 64));
+                               wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
   p_tsSearchBtn->SetToolTip("Take the structures from other calculations "
                             "(reactant, product, TS guess)");
   p_tsSearchBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     tsSourceChanged(true);
   });
-  p_chemSysInner->GetSizer()->Insert(1, p_tsSearchBtn, 0, wxALIGN_TOP | wxALL, 5);
+  wxBoxSizer *stack = new wxBoxSizer(wxVERTICAL);
+  if (box->Detach(p_builderTool)) {
+    stack->Add(p_builderTool, 0, wxEXPAND);
+    stack->Add(p_tsSearchBtn, 0, wxEXPAND | wxTOP, 2);
+    box->Insert(0, stack, 0, wxALIGN_TOP | wxALL, 5);
+  } else {
+    delete stack;
+    box->Insert(1, p_tsSearchBtn, 0, wxALIGN_TOP | wxALL, 5);
+  }
   p_tsSearchBtn->Show(false);
 
   p_tsPanel = new wxPanel(p_chemSysInner);
