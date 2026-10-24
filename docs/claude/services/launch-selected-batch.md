@@ -3,7 +3,7 @@ type: map
 title: Organizer Launch Selected submits through LaunchBatch, not the Launcher window
 area: services
 paths: [include/comm/LaunchBatch.H, src/comm/commxt/LaunchBatch.C, src/apps/organizer/LaunchSelected.C, tests/launch/launch_selected_test.py]
-issues: [492]
+issues: [492, 516]
 ---
 `LaunchBatch` is the wx-free copy of what `WxLauncher::saveJob/buildArgs`
 do from a calculation's stored `launch_*` values; keep it in step with them.
@@ -21,3 +21,9 @@ with the single tree item. A wall time is required only where a queue manager
 takes one (`LaunchBatch::wallTimeRequired`); a direct "Shell" machine such as
 localhost is registered with Q:TL but passes no limit. Hook:
 `launchselectionrows URL...`.
+
+A failed submit (Launcher or batch) stays Ready, but `LaunchBatch::recordFailure`
+stores the message in `runStatusReason` and appends it to the run log
+(`TaskJob::appendJobLogCreating`, which starts the log when the calculation
+has never run); `clearFailure` removes the reason after a successful submit.
+The Organizer status line shows the reason for Ready calculations too.
