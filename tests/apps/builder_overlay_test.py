@@ -33,6 +33,7 @@ binaries.
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -784,6 +785,8 @@ def newCase(s, display, env, wrappers, png):
             if not made:
                 continue
             taskUrl = studyUrl + made[0] + "/"
+            if study.startswith("gromacs"):
+                duplicateStudyTask(cmd, log, studyDir, studyUrl, made[0])
             if not task.endswith("_energy"):
                 continue
             #  What the Organizer's editor button starts, driven through
@@ -806,6 +809,37 @@ def newCase(s, display, env, wrappers, png):
         orgCommand(cmd, log, "snap " + os.path.join(png, "new-organizer.png"))
     finally:
         stop(org)
+
+
+def duplicateStudyTask(cmd, log, studyDir, studyUrl, first):
+    """#514: Duplicate of a GROMACS study task joins the study after the same
+    predecessor, with its own copy of the settings."""
+    say("Duplicate a GROMACS study task")
+    before = set(os.listdir(studyDir))
+    out = orgCommand(cmd, log, "new %s gromacs_md_optimize" % studyUrl)
+    new = sorted(set(os.listdir(studyDir)) - before)
+    if not check(out == "ok" and new, "Optimize after Energy: %s, made %s"
+                 % (out, new)):
+        return
+    made = {"gromacs_md_energy": first, "gromacs_md_optimize": new[0]}
+    before = set(os.listdir(studyDir))
+    out = orgCommand(cmd, log, "duplicate " + studyUrl + made["gromacs_md_optimize"])
+    new = sorted(set(os.listdir(studyDir)) - before)
+    if not check(out.startswith("ok") and len(new) == 1,
+                 "Duplicate of the Optimize task: %s, made %s" % (out[:80], new)):
+        return
+    linkbase = open(os.path.join(studyDir, "linkbase.xml")).read()
+    check(new[0] in linkbase, "the copy %s is in linkbase.xml" % new[0])
+    # linked after the same predecessor as the original
+    label = dict(re.findall(r'xlink:label="(\w+)"\s*xlink:href="([^"]+)"',
+                            linkbase))
+    label = {href: lab for lab, href in label.items()}
+    arcs = set(re.findall(r'xlink:title="input_provider"\s*'
+                          r'xlink:from="(\w+)"\s*xlink:to="(\w+)"', linkbase))
+    for name in (made["gromacs_md_optimize"], new[0]):
+        check((label.get(made["gromacs_md_energy"]), label.get(name)) in arcs,
+              "%s takes %s as input (arcs %s)"
+              % (name, made["gromacs_md_energy"], sorted(arcs)))
 
 
 def main():

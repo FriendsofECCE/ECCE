@@ -4134,6 +4134,10 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Append(wxID_COPY, wxT("&Copy"));
   menu.Append(wxID_PASTE, wxT("&Paste"));
   menu.Enable(wxID_PASTE, !p_clipboard.empty());
+  //  A study task is rerun by a copy that keeps its place in the study.
+  if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
+          itemData->getResource()))
+    menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
   if (isCalculationNode) {
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
     menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
@@ -7714,7 +7718,8 @@ void CalcMgr::updateSelectionMenus()
       enableMenuItem(menuBar, wxID_DELETE, !isSystemFolder);
       enableMenuItem(menuBar, wxID_VIEW_PROPERTY, true);
       enableMenuItem(menuBar, wxID_ANNOTATION, !isSystemFolder);
-      enableMenuItem(menuBar, wxID_DUPLICATE, isCalculation);
+      enableMenuItem(menuBar, wxID_DUPLICATE, isCalculation ||
+                     dynamic_cast<MdTask*>(itemData->getResource()) != 0);
       enableMenuItem(menuBar, wxID_DUPLICATE2, isCalculation);
       {
         //  Offered where it works; elsewhere the help line says why not.
