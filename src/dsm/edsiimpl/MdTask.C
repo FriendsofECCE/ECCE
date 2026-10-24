@@ -15,6 +15,7 @@
 #include "util/ResourceUtils.H"
 #include "util/StringConverter.H"
 
+#include "dsm/EDSIFactory.H"
 #include "dsm/Job.H"
 #include "dsm/NWChemMDModel.H"
 #include "dsm/JCode.H"
@@ -1109,14 +1110,40 @@ bool MdTask::move(EcceURL& target)
 
 
 /**
- * Disable copy because it means nothing to copy over just a MdTask
+ * A copy beside the original (Duplicate) joins the study as another task
+ * after the same input provider, so it starts from the same output.  A copy
+ * into another folder would be a task with no study, so that stays refused.
  */
 bool MdTask::copy(EcceURL & target)
 {
   p_msgStack->clear();
-  p_msgStack->add("UNABLE_TO_COPY",
-                  "\nCopy of a MD Task is not supported!");
-  return false;
+  Session *session = getSession();
+  if (session == 0 || target.getParent().toString() !=
+                      getURL().getParent().toString()) {
+    p_msgStack->add("UNABLE_TO_COPY",
+                    "\nCopy of a MD Task is not supported!");
+    return false;
+  }
+
+  Resource *source = getInputProvider(session);
+  if (!Resource::copy(target))
+    return false;
+
+  Resource *dup = EDSIFactory::getResource(target);
+  if (dup == 0 || !session->addMember(dup)) {
+    p_msgStack->add("UNABLE_TO_COPY", "The copy could not join the study.");
+    return false;
+  }
+  try {
+    if (source != 0)
+      session->branch(source, dup, Session::INPUT_PROVIDER);
+  }
+  catch (InvalidException& ex) {
+    p_msgStack->add("UNABLE_TO_COPY", ex.what());
+    return false;
+  }
+  session->saveLinkbase();
+  return true;
 }
 
 
