@@ -1,0 +1,7 @@
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		0
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		H3N
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		ammonia
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		4
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		10
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C3v
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

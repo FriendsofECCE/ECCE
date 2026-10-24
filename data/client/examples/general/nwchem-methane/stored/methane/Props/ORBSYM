@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="ORBSYM" rowLabel="Basis Function" rows="23" units="NA">a1   a1   t2   t2
+t2   a1   t2   t2
+t2   t2   t2   t2
+t2   t2   t2   a1
+a1   e   e   t2
+t2   t2   a1</vecstring>
