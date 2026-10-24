@@ -38,7 +38,8 @@ class EcceqmRunTypePanel(EccePanel):
                                          label="Max points per direction:",
                                          export=1)
             ircSizer.AddWidget(self.ircSteps)
-            self.ircSize = EcceSpinCtrl(self,
+            #  The step is a real number; a spin control takes whole numbers only.
+            self.ircSize = EcceFloatInput(self,
                                         hardRange="(0..)",
                                         softRange="[0.02..0.5]",
                                         name="ES.Runtype.IRC.StepSize",
