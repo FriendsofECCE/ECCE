@@ -1961,9 +1961,13 @@ sub gromacs()
     $retval .= "    densPid=\$!\n";
     $retval .= "  fi\n";
     $run = "mdrun \$verbose -s topol.tpr -g $log -c $restart -e ener.edr -x traj.xtc";
+    #  mdrun refuses to start when OMP_NUM_THREADS differs from -ntomp, and
+    #  cluster environments often preset it (Kebnekaise sets 1).
     if ($mpi) {
+      $retval .= "  OMP_NUM_THREADS=1; export OMP_NUM_THREADS\n";
       $retval .= "  mpirun -np $::totalprocs \"\$gmx\" $run -ntomp 1 >> $::logfile 2>&1\n";
     } else {
+      $retval .= "  OMP_NUM_THREADS=$::totalprocs; export OMP_NUM_THREADS\n";
       $retval .= "  \"\$gmx\" $run -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
     }
     $retval .= "  mdrunStatus=\$?\n";
@@ -1992,7 +1996,9 @@ sub gromacs()
     $retval .= "  if [ \"`sed -n '\$p' $restart | wc -w`\" -ge 9 ] && [ -s topol.tpr ] && echo System | \"\$gmx\" trjconv -s topol.tpr -f $restart -o view.gro -pbc mol -ur compact >> $::logfile 2>&1; then\n";
     $retval .= "    view=view.gro\n";
     $retval .= "  fi\n";
-    $retval .= "  \"\$gmx\" editconf -f \"\$view\" -o chemsys.pdb >> $::logfile 2>&1\n";
+    #  Without a final structure mdrun failed; an editconf error would only
+    #  bury mdrun's own message in the output.
+    $retval .= "  [ -s \"\$view\" ] && \"\$gmx\" editconf -f \"\$view\" -o chemsys.pdb >> $::logfile 2>&1\n";
     $retval .= "  ( exit \$mdrunStatus )\n";
     $retval .= "fi\n";
   }
