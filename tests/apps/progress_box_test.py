@@ -72,6 +72,15 @@ scf~ dE=0.00e+00,-8.70e-08,-1.79e-08,-2.14e-09
 
 """
 
+# A GROMACS dynamics run part way (#530): time axis out to the total.
+GMX = """# seq=9 sent={sent:.3f} at={at}
+md point=300/1000
+gmx-epot step=300 time=0.6 epot=-6.5e+04 avg=-65100 sd=40 n=9
+gmx-epot~ epot=-65300,-65200,-65050,-65100,-65150,-65000,-65120,-65090,-65110
+gmx-temp step=300 time=0.6 temp=2.9e+02 avg=300.2 sd=3.1 n=9
+gmx-temp~ temp=287,300,291,305,296,310,289,301,299
+"""
+
 # The last snapshot over a real ORCA NEB-TS run (HCN -> HNC, HF/3-21G;
 # tests/progress/fixtures/orca/nebts.out).
 NEB = """# seq=4 sent={sent:.3f} at={at}
@@ -173,6 +182,7 @@ def run(display, pngs):
         scanrun = makeCalc(project, "ethane-scan", "Running",
                            SCAN.format(**stamp))
         nebrun = makeCalc(project, "hcn-neb", "Running", NEB.format(**stamp))
+        gmxrun = makeCalc(project, "gmx-md", "Running", GMX.format(**stamp))
         live = os.path.join(work, "live.txt")
         with open(live, "w") as handle:
             handle.write(LIVE.format(sent=now, at=int(now)))
@@ -218,6 +228,9 @@ def run(display, pngs):
                 "progressbox",
                 "showbox",
                 "snap " + png("progress-neb-1024x700.png"),
+                "summary file://" + gmxrun,
+                "showbox",
+                "snap " + png("progress-gmx-md.png"),
             ]) + "\n")
         result = apps.run(display, "organizer", windowTimeout=60, settle=45,
                           env={"ECCE_TEST_ORGANIZER": cmds,

@@ -53,6 +53,12 @@ public:
     std::vector<double> plot;   // empty: no plot
     bool plotLog = false;       // plot is log10 of |value|
     std::string plotLabel;
+    // x axis of the plot: the last point sits at plotXLast, the axis runs
+    // 0..plotXEnd (the run's total when known, so the curve's end shows how
+    // far it has got). plotXUnit is "ps", "step", "cycle", ... .
+    double plotXLast = 0;
+    double plotXEnd = 0;
+    std::string plotXUnit;
     bool bar = false;
     double fraction = 0;        // of the bar, 0..1
   };
@@ -107,6 +113,8 @@ public:
 
 private:
   Block stageBlock(const Stage& st, double age, bool finished) const;
+  void plotAxis(const Stage& st, const std::string& rec,
+                const std::string& recName, Block& b) const;
 
   int p_seq = 0;
   double p_at = 0;
