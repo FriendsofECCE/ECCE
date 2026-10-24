@@ -131,6 +131,7 @@ class MoPanel : public MoGUI,
      void updateIsoValue(double val);
      void updateSurface();
      void updateUIOptions();
+     bool rebuildTable();   // table and graphs for the canonical or localised set
      void fillUI();
      void selectMo(int index);
      void showComposition();
@@ -247,6 +248,7 @@ class MoPanel : public MoGUI,
 
       /* currently selected row; GetSelected* methods don't work */
       int p_selectedRow;
+      bool p_localised = false;   // the table lists the localised orbitals
 
       /* The first plot; all symmetries are on same x value. */
       XYPlotCanvas *p_plotReg;

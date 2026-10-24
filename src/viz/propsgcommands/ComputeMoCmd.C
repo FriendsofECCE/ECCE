@@ -378,7 +378,9 @@ bool ComputeMoCmd::execute()
 
   // Generate a name/unique id for caching purposes
   char key[64];
-  if (fieldType == "MO") {
+  //  Localised orbitals are drawn like canonical ones, from LOCMO.
+  const bool localised = (fieldType == "Localised MO");
+  if (fieldType == "MO" || localised) {
     sprintf(key, "%s %s %d", fieldType.c_str(), moType.c_str(), selectedMO);
   } else {
     sprintf(key, "%s", fieldType.c_str() );
@@ -453,7 +455,7 @@ bool ComputeMoCmd::execute()
       double*  atomCoords  = sgfrag->coordinates();
 
       // Get MOs and orbital occupation values
-      PropTable *moCoefs = (PropTable*) calc->getProperty("MO");
+      PropTable *moCoefs = (PropTable*) calc->getProperty(localised ? "LOCMO" : "MO");
 
       // ORBOCC may not be available but its only needed for
       // density calc anyway.
@@ -470,7 +472,7 @@ bool ComputeMoCmd::execute()
       if (uhfCalc && (doingDensity||doingSpinDensity)) {
         orbOccBeta = (PropVector*) calc->getProperty("ORBOCCBETA");
         if (orbOccBeta) occBeta = orbOccBeta->values();
-      } else if (moType == "beta") {
+      } else if (moType == "beta" && !localised) {
         // If we are doing UHF and a BETA orbital has been chosen,
         // change the default values to the beta ones. - TLW
         moCoefs = (PropTable*) calc->getProperty("MOBETA");
