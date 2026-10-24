@@ -1,0 +1,13 @@
+DELTAE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+DIPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ETIME	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+GEOMTRACE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+KE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOEWDIN	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+MULLIKEN	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+NNREPUL	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ONEELEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+PE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TEVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TWOELEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml

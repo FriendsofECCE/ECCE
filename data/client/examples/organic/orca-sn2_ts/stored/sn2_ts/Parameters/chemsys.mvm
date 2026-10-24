@@ -1,0 +1,34 @@
+title: sn2_ts
+type: molecule
+fragment_attributes:
+  point_group: Cs
+  charge: -1
+end_fragment_attributes:
+num_atoms: 6
+atom_info: symbol cart
+atom_list: 
+C 4.00000e-06 0.00000 -0.0280680
+Cl -3.00000e-05 1.00000e-06 2.39211
+Br -4.10000e-05 -1.00000e-06 -2.50066
+H 1.08181 -0.00000 -0.00110500
+H -0.540870 0.936874 -0.00114200
+H -0.540870 -0.936873 -0.00113900
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        3   1
+        0   1
+        0   1
+        1   1
+        1   1
+        1   1
+num_bonds: 3
+bond_list: 
+1 4 1.00000 1
+1 5 1.00000 1
+1 6 1.00000 1

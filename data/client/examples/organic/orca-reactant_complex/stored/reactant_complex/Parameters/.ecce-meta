@@ -1,0 +1,7 @@
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		-1
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		CH3BrCl-
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		reactant_complex
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		6
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		62
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		Cs
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

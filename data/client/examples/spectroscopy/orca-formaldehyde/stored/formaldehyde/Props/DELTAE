@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="DELTAE" rowLabel="Wave Step" rows="1" units="Hartree">
+
+  <step number="1">0.00e+00</step>
+  <step number="2">-3.31e-02</step>
+  <step number="3">-9.47e-03</step>
+  <step number="4">-6.57e-03</step>
+  <step number="5">-1.60e-02</step>
+  <step number="6">-1.24e-04</step>
+  <step number="7">-7.76e-06</step>
+  <step number="8">-5.14e-07</step>
+  <step number="9">-2.17e-07</step>
+  <step number="10">-9.54e-08</step>
+  <step number="11">-3.39e-08</step>
+  <step number="12">-2.06e-09</step>
+  <step number="13">0.00e+00</step>
+  <step number="14">-6.40e-06</step>
+  <step number="15">-3.67e-07</step>
+  <step number="16">-2.05e-07</step>
+  <step number="17">1.40e-08</step>
+  <step number="18">-4.97e-08</step>
+  <step number="19">-3.71e-10</step>
+  <step number="20">0.00e+00</step>
+  <step number="21">-1.49e-07</step>
+  <step number="22">9.72e-09</step>
+  <step number="23">0.00e+00</step>
+  <step number="24">-9.79e-10</step>
+  <step number="25">5.20e-10</step>
+
+</tsvector>

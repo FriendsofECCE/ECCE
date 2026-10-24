@@ -1,0 +1,51 @@
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies of Cl-...CH3Br. This calculation shows the ion-dipole complex on the reactant side of the SN2 profile; it is the zero of energy (-3073.691084 Eh) for the energies in this set.
+.	http://www.emsl.pnl.gov/ecce:application		ORCA
+.	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sat, 24 Oct 2026 16:55:53 GMT
+.	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
+.	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sat, 24 Oct 2026 16:55:51 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
+.	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
+.	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
+.	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
+.	http://www.emsl.pnl.gov/ecce:job_clientid		
+.	http://www.emsl.pnl.gov/ecce:job_jobid		
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/reactant_complex__8Qg7Eg
+.	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
+.	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
+.	http://www.emsl.pnl.gov/ecce:launch_maxwall		
+.	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
+.	http://www.emsl.pnl.gov/ecce:launch_nodes		0
+.	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_queue		
+.	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
+.	http://www.emsl.pnl.gov/ecce:launch_rundir		
+.	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
+.	http://www.emsl.pnl.gov/ecce:launch_user		
+.	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
+.	http://www.emsl.pnl.gov/ecce:moleculeDocument		chemsys.mvm
+.	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
+.	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
+.	http://www.emsl.pnl.gov/ecce:owner		andy
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792860953.368 at=1792860953\nopt step=7 energy=-3073.691407764 dE=-0.0000016308/0.0000010000 rmsgrad=0.0000119504/0.0000300000 maxgrad=0.0000339244/0.0001000000 rmsstep=0.0004041706/0.0006000000 maxstep=0.0008421831/0.0010000000 converged=yes\nopt~ energy=-3073.691084138,-3073.691360817,-3073.691373184,-3073.691410540,-3073.691409078,-3073.691406133,-3073.691407764\nscf cycle=3 energy=-3073.6848095171690147 dE=-9.32e-11/1.000e-08\nscf~ dE=0.00e+00,-6.14e-09,-9.32e-11\nfreq done=yes zpe=0.03695349\n
+.	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
+.	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
+.	http://www.emsl.pnl.gov/ecce:rerun		false
+.	http://www.emsl.pnl.gov/ecce:resourcetype		virtual_document
+.	http://www.emsl.pnl.gov/ecce:reviewed		false
+.	http://www.emsl.pnl.gov/ecce:reviewedDate		
+.	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
+.	http://www.emsl.pnl.gov/ecce:runStatusReason		
+.	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
+.	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
+.	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
+.	http://www.emsl.pnl.gov/ecce:startdate		Sat, 24 Oct 2026 16:55:52 GMT
+.	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

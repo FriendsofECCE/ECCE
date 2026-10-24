@@ -1,0 +1,14 @@
+! B3LYP D3BJ ma-def2-SVP TightSCF OptTS Freq 
+%pal nprocs 6 end
+%maxcore 1500
+%geom Calc_Hess true
+ Convergence tight
+end
+* xyz -1 1
+C      0.000054    -0.000052    -0.054360
+Cl    -0.000209     0.000019     2.391529
+Br    -0.000211    -0.000005    -2.477752
+H      1.068581     0.000076     0.000215
+H     -0.534052     0.925394     0.000211
+H     -0.534162    -0.925431     0.000156
+*

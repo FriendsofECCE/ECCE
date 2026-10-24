@@ -1,0 +1,5 @@
+! PBE0 D3BJ def2-SVP TightSCF DefGrid3 VeryTightOpt Freq CPCM(water)
+%pal nprocs 6 end
+%maxcore 1500
+%elprop Polar 1 end
+* xyzfile -1 1 start.xyz

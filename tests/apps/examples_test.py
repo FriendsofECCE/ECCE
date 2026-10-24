@@ -8,8 +8,11 @@ A user's first Organizer imports the outputs under data/client/examples
 project Examples by itself (#302): the `general` set, five calculations.
 The ECCE_TEST_ORGANIZER command `examples SET` is the dialog's OK: at the
 second start (which imports nothing) `examples computational` makes the
-project Examples_Computational with the Trp-cage study, asking again
-(or for `general`) selects the existing project and duplicates nothing.
+project Examples_Computational with the Trp-cage study, `examples organic` and
+`examples spectroscopy` (#447, #485) make Examples_Organic and
+Examples_Spectroscopy; asking again (or for `general`) selects the existing
+project and duplicates nothing.  Every calculation of the two new sets must
+import with its properties and carry a note that says what it shows.
 Each calculation must
 carry the properties its output holds: the files under Props/ are what the
 Viewer's Properties menu is built from.  The project records the version of
@@ -54,6 +57,25 @@ COMPUTATIONAL = {
     "trpcage": ["prepare:", "optimize:", "equilibrate:", "dynamics:",
                 "optimize:TE", "dynamics:TE"],
 }
+VIBS = ["TE", "VIB", "VIBFREQ", "VIBIR"]
+ORCA_RAMAN = ["TE", "VIB", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]
+QM_LOC = VIBS + ["MO", "LOCMO", "LOCMOENG", "LOCMOLABEL", "LOCMOOCC"]
+ORGANIC = {
+    "ethane": QM_LOC, "ethene": QM_LOC, "ethyne": QM_LOC,
+    "benzene": ["MO", "VIBFREQ", "ESPFIT", "HIRSHFELD", "MBIS", "NPA"],
+    "butadiene": VIBS, "ethylene": VIBS, "cyclohexene": VIBS,
+    "diels_alder_ts": VIBS, "diels_alder_irc": ["TE", "IRCCOORD", "IRCENERGY"],
+    "chloride": ["TE"], "methyl_bromide": VIBS, "reactant_complex": VIBS,
+    "sn2_ts": VIBS, "sn2_irc": ["TE", "IRCCOORD", "IRCENERGY"],
+    "product_complex": VIBS, "bromide": ["TE"], "methyl_chloride": VIBS,
+}
+SPECTROSCOPY = {c: ORCA_RAMAN for c in (
+    "formaldehyde", "acetaldehyde", "acetone", "acetic_acid", "acetate_anion",
+    "methyl_acetate", "ethyl_acetate", "methyl_propionate")}
+SPECTROSCOPY.update({
+    "water": ["TE", "VIBFREQ", "VIBIR", "MO"],
+    "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]})
+NEW_SETS = {"Examples_Organic": ORGANIC, "Examples_Spectroscopy": SPECTROSCOPY}
 # The study has no thumbnail and no theory/run type of its own.
 CALCS = list(EXPECT)
 
@@ -201,13 +223,16 @@ def run(display, data, work):
 
     with open(script, "w") as handle:
         handle.write("examples computational\nexamples computational\n"
-                     "examples general\n")
+                     "examples general\nexamples organic\n"
+                     "examples spectroscopy\nexamples organic\n")
 
     box = {}
     projects = ["Examples_Computational"]
 
     def inspect(_display):
         box["props"] = waitImported(root, projects, COMPUTATIONAL)
+        for project, expect in NEW_SETS.items():
+            box[project] = waitImported(root, [project], expect)[project]
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
             # Help > Report a Problem... without its dialog
@@ -237,7 +262,9 @@ def run(display, data, work):
     problems = []
     if answers != ["ok Examples_Computational created",
                    "ok Examples_Computational existing",
-                   "ok Examples existing"]:
+                   "ok Examples existing", "ok Examples_Organic created",
+                   "ok Examples_Spectroscopy created",
+                   "ok Examples_Organic existing"]:
         problems.append("answers %s" % answers)
     for extra in ("Examples_2", "Examples_3"):
         if os.path.exists(os.path.join(root, extra)):
@@ -260,8 +287,26 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*3", text):
+        if not re.search(r"exampleSet[^0-9]*4", text):
             problems.append("%s records no example-set version" % project)
+    for project, expect in NEW_SETS.items():
+        got = box.get(project) or {}
+        if sorted(got) != sorted(expect):
+            problems.append("%s holds %s, expected %s"
+                            % (project, sorted(got), sorted(expect)))
+        for calc, names in expect.items():
+            missing = [n for n in names if n not in got.get(calc, ())]
+            if missing:
+                problems.append("%s/%s lacks %s" % (project, calc, missing))
+            meta = os.path.join(root, project, calc, ".ecce-meta")
+            text = open(meta, errors="replace").read() if os.path.exists(meta) else ""
+            if "This calculation shows" not in text:
+                problems.append("%s/%s: its note does not say what it shows"
+                                % (project, calc))
+            for bad in ("Gaussian", "literature"):
+                if bad in text:
+                    problems.append("%s/%s: note mentions %s"
+                                    % (project, calc, bad))
     trees = re.findall(r"ECCE_TEST_ORGANIZER: tree: ok (.*)$", log, re.M)
     if not trees:
         problems.append("no tree answer")
@@ -299,7 +344,9 @@ def run(display, data, work):
     if problems:
         fail(what, "; ".join(problems), log)
     else:
-        print("ok    %s: %s" % (what, ", ".join(sorted(COMPUTATIONAL))))
+        print("ok    %s: %s, %d organic and %d spectroscopy calculations"
+              % (what, ", ".join(sorted(COMPUTATIONAL)), len(ORGANIC),
+                 len(SPECTROSCOPY)))
 
 
 def main():
