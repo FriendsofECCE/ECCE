@@ -1,4 +1,5 @@
 #include "output.hpp"
+#include "localise.hpp"
 #include "polar.hpp"
 #include <cctype>
 #include <cmath>
@@ -299,6 +300,22 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   else {
     spin_block("alpha", r.eps_a, r.occ_a, r.occ_a, r.C_a, false);
     spin_block("beta", r.eps_b, r.occ_b, r.occ_b, r.C_b, false);
+  }
+  if (in.localise && r.reference == Reference::Restricted && r.converged && r.nalpha > 0) {
+    // Same density as the canonical set, so the pictures are of one wavefunction.
+    const Localised loc = localise_occupied(mol, b, r, &real);
+    os << "begin localised_orbitals restricted  # index energy(hartree) occupation label\n";
+    for (size_t i = 0; i < loc.orb.size(); ++i) os << i + 1 << " " << loc.orb[i].energy << " 2 " << loc.orb[i].label << "\n";
+    os << "end localised_orbitals\n";
+    os << "begin localised_mo_coefficients restricted  # one line per localised MO: index then nbf coefficients\n";
+    os << std::setprecision(10);
+    for (size_t i = 0; i < loc.orb.size(); ++i) {
+      os << i + 1;
+      for (int k = 0; k < b.nbf(); ++k) os << " " << loc.C(k, i);
+      os << "\n";
+    }
+    os << std::setprecision(12);
+    os << "end localised_mo_coefficients\n";
   }
   if (polar && polar->alpha.rows() == 3) {
     const PolarInvariants pi = polarizability_invariants(polar->alpha);

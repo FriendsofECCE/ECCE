@@ -21,6 +21,9 @@
 //                                ignored with a note on stderr)
 //   write_orbitals <file>        keep the final orbitals for read_orbitals
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
+//   localise <true|false>        Pipek-Mezey localised occupied orbitals with
+//                                valence-bond labels in the output (default
+//                                true; closed-shell runs only)
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
 //   runtype <energy|gradient|optimize|frequency|optfreq|ts>   default energy;
 //                                gradient adds the analytic nuclear gradient,
@@ -102,6 +105,7 @@ struct Input {
   int spherical = 1;     // 1 spherical, 0 Cartesian
   ScfOptions scf;
   bool molden = false;
+  bool localise = true;   // keyword "localise": localised occupied orbitals (closed shell only)
   std::string read_orbitals, write_orbitals;  // file names, empty: none
   ChargeOptions charges;  // extra charge sets (keyword "charges")
   RunType runtype = RunType::Energy;

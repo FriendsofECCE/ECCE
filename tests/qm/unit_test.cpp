@@ -14,6 +14,7 @@
 #include "hessian.hpp"
 #include "scf.hpp"
 #include "integrals.hpp"
+#include "localise.hpp"
 #include "vibration.hpp"
 #include <array>
 
@@ -236,6 +237,47 @@ int main(int argc, char** argv) {
       }
       check((ana.dmu - num.dmu).cwiseAbs().maxCoeff() < 1e-5, "analytic dipole derivatives match finite difference " + tag,
             (ana.dmu - num.dmu).cwiseAbs().maxCoeff());
+    }
+  }
+
+  // Localised orbitals: the same occupied space (density, orbital-energy trace)
+  // and the valence-bond picture of ethene and formamide.
+  {
+    struct Case { const char* name; std::vector<Atom> atoms; int core, sigma, pi, lp; };
+    const double A = kAngstromToBohr;
+    auto at = [&](int Z, double x, double y, double z) { Atom a; a.Z = Z; a.x[0] = x * A; a.x[1] = y * A; a.x[2] = z * A; return a; };
+    const std::vector<Case> cases = {
+        {"ethene", {at(6, 0, 0, .665), at(6, 0, 0, -.665), at(1, 0, .9235, 1.237), at(1, 0, -.9235, 1.237),
+                    at(1, 0, .9235, -1.237), at(1, 0, -.9235, -1.237)}, 2, 5, 1, 0},
+        {"formamide", {at(6, 0, .133, 0), at(8, 1.17, .2, 0), at(7, -.7, -1.02, 0), at(1, -.16, 1.08, 0),
+                       at(1, -1.68, -1.02, 0), at(1, -.21, -1.89, 0)}, 3, 5, 1, 3}};
+    for (const Case& cs : cases) {
+      Molecule m;
+      m.atoms = cs.atoms;
+      Basis b(m, lib, "6-31G*", 1);
+      ScfOptions so;
+      const ScfResult r = run_scf(b, m, so);
+      const Localised L = localise_occupied(m, b, r);
+      const int no = r.nalpha;
+      const Mat Dc = 2 * r.C_a.leftCols(no) * r.C_a.leftCols(no).transpose();
+      const Mat Dl = 2 * L.C * L.C.transpose();
+      check((Dc - Dl).cwiseAbs().maxCoeff() < 1e-9, std::string("localised density equals canonical ") + cs.name,
+            (Dc - Dl).cwiseAbs().maxCoeff());
+      check((L.C.transpose() * r.S * L.C - Mat::Identity(no, no)).cwiseAbs().maxCoeff() < 1e-9,
+            std::string("localised orbitals orthonormal ") + cs.name);
+      double tl = 0, tc = 0;
+      for (int i = 0; i < no; ++i) { tl += L.C.col(i).dot(r.F_a * L.C.col(i)); tc += r.eps_a(i); }
+      check(std::fabs(tl - tc) < 1e-8, std::string("localised orbital energies sum to the canonical sum ") + cs.name, tl - tc);
+      int core = 0, sigma = 0, pi = 0, lp = 0, other = 0;
+      for (const auto& o : L.orb) {
+        if (o.kind == LocOrbital::Core) ++core;
+        else if (o.kind == LocOrbital::Bond) (o.pi ? pi : sigma)++;
+        else if (o.kind == LocOrbital::LonePair) ++lp;
+        else ++other;
+        std::cout << "      " << o.label << "\n";
+      }
+      check(core == cs.core && sigma == cs.sigma && pi == cs.pi && lp == cs.lp && other == 0,
+            std::string("valence-bond labels of ") + cs.name, other);
     }
   }
 

@@ -139,6 +139,10 @@ Input parse_input(std::istream& in) {
         else throw bad("charges: unknown scheme '" + w + "' (loewdin, chelpg, mk)");
       }
     }
+    else if (k == "localise" || k == "localize") {
+      const std::string v = lower(rest);
+      r.localise = (v == "true" || v == "yes" || v == "on" || v == "1");
+    }
     else if (k == "molden") r.molden = true;
     else throw bad("unknown keyword '" + key + "'");
   }
