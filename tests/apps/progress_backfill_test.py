@@ -67,7 +67,7 @@ def run(display, data, work):
         handle.write("examples\n")
 
     def waitImport(_display):
-        examples_test.waitImported(root, ["Examples"])
+        examples_test.waitImported(root, ["Examples"], examples_test.EXPECT)
 
     apps.run(display, "organizer", windowTimeout=60, settle=20,
              env={"ECCE_TEST_ORGANIZER": commands}, inspect=waitImport)

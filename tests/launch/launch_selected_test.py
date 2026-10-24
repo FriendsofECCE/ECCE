@@ -166,7 +166,7 @@ def main():
             say("  stored reason: %s" % reason)
             check(reason != "", "the failure reason is stored in runStatusReason")
             log = s.run_log(failing)
-            check(reason[:40] in log or "Job submission failed" in log,
+            check("Job submission failed" in log,
                   "the run log holds the failure")
             #  The cause is fixed; the next submit goes through and clears it.
             os.remove(badrun)

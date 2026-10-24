@@ -9,6 +9,7 @@
 #include "util/TDateTime.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/MdTask.H"
+#include "tdat/Queue.H"
 #include "tdat/QueueMgr.H"
 #include "tdat/RefMachine.H"
 #include "dsm/ResourceDescriptor.H"
@@ -115,16 +116,16 @@ static void setReason(TaskJob *task, const string& reason)
 void LaunchBatch::recordFailure(TaskJob *task, const string& reason)
 {
   if (!task || reason.empty()) return;
+  //  Recording must never turn a failed submit into a crash, and the reason
+  //  must not depend on the run log being writable.
+  try { setReason(task, reason); } catch (...) {}
   try {
     //  The job store opens the run log only once a job runs.
     TDateTime date;
     string entry = ActivityLog::entry(ActivityLog::ERROR, "Job submission failed",
                                       date, reason.c_str());
     task->appendJobLogCreating("eccejobstore", entry.c_str());
-    setReason(task, reason);
-  } catch (...) {
-    //  Recording must never turn a failed submit into a crash.
-  }
+  } catch (...) {}
 }
 
 void LaunchBatch::clearFailure(TaskJob *task)
