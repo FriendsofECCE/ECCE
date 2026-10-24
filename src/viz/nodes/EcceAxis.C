@@ -98,7 +98,7 @@ EcceAxis::EcceAxis()
     fontOffset = glGenLists (128);
     for (i = 32; i < 127; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
-      glBitmap(8, 13, 0.0, 0.0, 7.0, 0.0, Fixed8x13_Character_Map[i]+1);
+      glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList();
     }
    }
