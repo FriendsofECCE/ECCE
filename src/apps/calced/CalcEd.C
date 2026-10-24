@@ -1461,7 +1461,7 @@ void CalcEd::refreshConstraintCount()
         const double to = from + c->getScanSteps() * c->getScanStep();
         char buf[160];
         snprintf(buf, sizeof buf, "Relaxed scan: %s from %.4g to %.4g %s in %d steps",
-                 name.c_str(), from, to, kind == 2 ? "Ã" : "deg",
+                 name.c_str(), from, to, kind == 2 ? "Å" : "deg",
                  c->getScanSteps());
         p_scanTexts.push_back(buf);
       }
