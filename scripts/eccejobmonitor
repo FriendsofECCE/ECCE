@@ -149,6 +149,8 @@ my %gPdTableFreq;
 # property entry nor be starved by one.  Each is
 # [Begin regex, Progress template, History field].
 my @gProgList;
+my $gProgStream;	# Stream= file read for the snapshot as well
+my $gProgSkipMain = 0;
 my %gProg;		# stage -> snapshot (see ProgressLine)
 my %gProgMem;		# Remember= values
 my $gProgStages = 0;	# stages seen, for their order in the message
@@ -3015,7 +3017,11 @@ sub JobOutputGet
 
             if (@gProgList)
             {
-                &ProgressLine($_);
+                # the streamed file's lines are in the declared file's tail too
+                $gProgSkipMain = 1
+                    if (defined $gProgStream
+                        && /^-----ECCE Log Information-----/);
+                &ProgressLine($_) unless ($gProgSkipMain);
                 &ProgressTail(0);
                 &ProgressFlush(0);
             }
@@ -4034,7 +4040,8 @@ sub PDFileRead
         'remember',
         'times',
         'table',
-        'tablestop'
+        'tablestop',
+        'stream'
     );
     my @pdValsFreq = (
         $PD_VAL_FREQ_ALL,
@@ -4367,8 +4374,20 @@ sub ProgressEntryAdd
         next if ($_ eq $PD_KEY_TYPE || $_ eq $PD_KEY_BEGIN
                  || $_ eq 'progress' || $_ eq 'history'
                  || $_ eq 'remember' || $_ eq 'times'
-                 || $_ eq 'table' || $_ eq 'tablestop');
+                 || $_ eq 'table' || $_ eq 'tablestop' || $_ eq 'stream');
         return "$where: rule key '$_' is not used here";
+    }
+    #  Stream=<file>: the job's own output, which the job script only appends
+    #  to the declared output file when the job is over.  Read live for the
+    #  snapshot (and skipped in the declared file) when jobOutputFile2 is no
+    #  other file.
+    if (exists $$buf{'stream'})
+    {
+        return "$where: Stream stands alone"
+            if (keys(%$buf) > 2);
+        $gProgStream = $$buf{'stream'};
+        $gProgStream =~ s/^\s+|\s+$//g;
+        return undef;
     }
     return "$where: Begin and Progress (or Remember) must be given"
         unless (exists $$buf{$PD_KEY_BEGIN}
@@ -4423,8 +4442,14 @@ sub ProgressTail
     my($force) = @_;
     my $name = $gConfig{'jobOutputFile2'};
 
-    return unless (defined $name && $name ne '' &&
-                   $name ne $gConfig{'jobOutputFile'});
+    unless (defined $name && $name ne '' &&
+            $name ne $gConfig{'jobOutputFile'})
+    {
+        return unless (defined $gProgStream);
+        $name = $gProgStream;
+        $name = "$1$name" if ($name !~ m{^/}
+                              && $gConfig{'jobOutputFile'} =~ m{^(.*/)});
+    }
     my $now = &ProgressNow();
     return unless ($force || $now - $gTailLast >= 0.5);
     $gTailLast = $now;
