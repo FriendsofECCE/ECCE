@@ -15,7 +15,7 @@ CON = """<Constraint type="%s">
 """
 
 
-def deck(constraint):
+def deck(constraint, params=""):
     work = tempfile.mkdtemp(prefix="ecce-gscan-")
     try:
         shutil.copy(os.path.join(PARSERS, "g16.tpl"), os.path.join(work, "t.tpl"))
@@ -27,7 +27,7 @@ def deck(constraint):
             "<GeomConstraintModel>\n" + constraint + "</GeomConstraintModel>\n")
         open(os.path.join(work, "w.param"), "w").write(
             "Category: SCF\nTheory: RHF\nRunType: Geometry\nCharge: 0\n"
-            "ChemSys.Multiplicity: 1\n")
+            "ChemSys.Multiplicity: 1\n" + params)
         env = dict(os.environ, ECCE_HOME=ROOT)
         p = subprocess.run(["perl", os.path.join(PARSERS, "ai.gauss16"), "-p", "-f",
                             "-b", "-c", "-n", "w", "-t", "t.tpl"], cwd=work, env=env,
@@ -56,6 +56,14 @@ def main():
         print("%-4s %s" % ("ok" if ok else "FAIL", want))
         if not ok:
             print(d)
+        fails += not ok
+    # The Calculation Editor unticks 'Use symmetry' for a scan (#507); the
+    # key it stores must reach the route card.
+    scan = CON % ("torsion", "2 0 1 3", "141.11993", '  <Scan steps="6" step="30.0"/>\n')
+    for flag, want in (("0", True), ("1", False)):
+        d = deck(scan, "ES.Theory.UseSymmetry: %s\nSymmetry: C2\n" % flag)
+        ok = ("NoSymm" in d) == want
+        print("%-4s UseSymmetry %s -> NoSymm %s" % ("ok" if ok else "FAIL", flag, want))
         fails += not ok
     return 1 if fails else 0
 
