@@ -56,11 +56,54 @@ struct VibResult
    vector<VibModeInfo> modes;
 };
 
+/** One internal coordinate chosen by atoms (0-based): 2 atoms a stretch,
+    3 a bend about the middle one, 4 a torsion (a-b-c-d). */
+struct VibCoordSpec
+{
+   int n;
+   int at[4];
+};
+
+/**
+ * Mode composition (#486): how much of each mode lies along each chosen
+ * internal coordinate.  Not a potential energy distribution (that needs a
+ * complete non-redundant set and the force constants).
+ */
+struct VibComposition
+{
+   vector<VibCoordSpec> coords;
+   vector<string> names;                // "C2-O3 stretch", "H9-N4-C2 bend"
+   vector< vector<double> > percent;    // per mode, per coordinate, sums to 100
+};
+
 class VibAnalysis
 {
   public:
+   /**
+    * Composition of every mode over `chosen`; when that is empty, the
+    * automatic set: every bond as a stretch, plus every bend whose centre
+    * is in `centres` (all non-hydrogen atoms if `centres` is empty).
+    * Rigid-motion rows get all zeros.  False without a usable input.
+    */
+   static bool composition(const VibInput& in, const vector<VibCoordSpec>& chosen,
+                           const vector<int>& centres, VibComposition& out);
+
    /** Symmetry and description both; false if neither could be produced. */
    static bool analyse(const VibInput& in, VibResult& out);
+
+   /**
+    * How much of each mode lies in the part of the molecule `atoms`
+    * (0-based): two atoms are one stretch; more, every stretch, bend and
+    * torsion that lies entirely within them.  Shares are percent of each
+    * mode over the automatic set plus those coordinates, so they are
+    * comparable between selections.  `label` names what was measured.
+    */
+   static bool selectionShare(const VibInput& in, const vector<int>& atoms,
+                              vector<double>& share, string& label);
+
+   /** The input for a calculation's fragment and its modes. */
+   static bool input(Fragment& frag, const vector<double>& freqs,
+                     const vector< vector<double> >& modes, VibInput& in);
 
    /** Same for a calculation's fragment, to be given the modes. */
    static bool analyse(Fragment& frag, const vector<double>& freqs,

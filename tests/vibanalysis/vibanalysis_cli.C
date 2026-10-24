@@ -49,6 +49,48 @@ int main(int argc, char **argv)
    }
    if (!f.eof() && f.fail() && in.modes.empty()) { std::cerr << "bad modes file\n"; return 2; }
 
+   //  "comp [a-b[-c[-d]] ...]" (1-based atoms): mode composition (#486) over
+   //  those coordinates, or the automatic set.
+   if (argc > 2 && std::string(argv[2]) == "comp") {
+      std::vector<VibCoordSpec> chosen;
+      for (int i = 3; i < argc; i++) {
+         VibCoordSpec c = { 0, { -1, -1, -1, -1 } };
+         std::istringstream is(argv[i]);
+         int a; char dash;
+         while (c.n < 4 && is >> a) { c.at[c.n++] = a - 1; is >> dash; }
+         chosen.push_back(c);
+      }
+      VibComposition comp;
+      if (!VibAnalysis::composition(in, chosen, std::vector<int>(), comp)) {
+         std::cerr << "no composition\n"; return 1;
+      }
+      std::printf("coords");
+      for (size_t i = 0; i < comp.names.size(); i++) std::printf("\t%s", comp.names[i].c_str());
+      std::printf("\n");
+      for (size_t m = 0; m < comp.percent.size(); m++) {
+         std::printf("%zu\t%.2f", m + 1, in.freqs[m]);
+         for (size_t i = 0; i < comp.percent[m].size(); i++)
+            std::printf("\t%.2f", comp.percent[m][i]);
+         std::printf("\n");
+      }
+      return 0;
+   }
+
+   //  "sel a b c ...": share of each mode in that part of the molecule (#486).
+   if (argc > 2 && std::string(argv[2]) == "sel") {
+      std::vector<int> atoms;
+      for (int i = 3; i < argc; i++) atoms.push_back(atoi(argv[i]) - 1);
+      std::vector<double> share;
+      std::string label;
+      if (!VibAnalysis::selectionShare(in, atoms, share, label)) {
+         std::cerr << "no selection share\n"; return 1;
+      }
+      std::printf("label\t%s\n", label.c_str());
+      for (size_t m = 0; m < share.size(); m++)
+         std::printf("%zu\t%.2f\t%.2f\n", m + 1, in.freqs[m], share[m]);
+      return 0;
+   }
+
    VibResult r;
    if (!VibAnalysis::analyse(in, r)) { std::cerr << "analysis failed\n"; return 1; }
    std::printf("group %s\n", r.group.empty() ? "-" : r.group.c_str());

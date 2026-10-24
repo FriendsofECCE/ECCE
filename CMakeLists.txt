@@ -2079,6 +2079,12 @@ add_test(NAME vibanalysis
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/vibanalysis/run_tests.py
           --cli $<TARGET_FILE:vibanalysis_cli> --build ${CMAKE_BINARY_DIR})
 set_tests_properties(vibanalysis PROPERTIES SKIP_RETURN_CODE 77)
+# tests/modecomp -- mode composition of N-methylacetamide vs the amide
+# assignments (#486).
+add_test(NAME modecomp
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/modecomp/run_tests.py
+          --cli $<TARGET_FILE:vibanalysis_cli>)
+set_tests_properties(modecomp PROPERTIES SKIP_RETURN_CODE 77)
 # The canvas painted onto a bitmap (tools/spectrum/render) from the numbers
 # the codes printed; needs wx, g++ and xvfb-run, SKIPs without them.
 find_program(PYTHON3_FOR_SPECTRUM NAMES python3)
@@ -3332,6 +3338,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/vibanalysis)
   set_tests_properties(apps_vibration_modes PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # Mode composition window and the spectrum highlight (#486).
+  add_test(NAME apps_mode_composition
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/modecomp/panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/modecomp)
+  set_tests_properties(apps_mode_composition PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # The Energies panel's groups and their fold state (#283).
   add_test(NAME apps_energies_groups

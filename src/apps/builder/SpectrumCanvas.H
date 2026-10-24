@@ -51,6 +51,8 @@ struct SpectrumShared
   SpectrumAxis axis;
   bool         showSticks;
   int          selected;
+  std::vector<double> highlight;        // per mode, percent in the picked part (#486)
+  std::string  highlightLabel;
   int          version;                  // bumped when the data is replaced
   std::vector<SpectrumCanvas*> views;
   SpectrumShared() : showSticks(true), selected(-1), version(0) {}
@@ -186,6 +188,20 @@ class SpectrumCanvas : public wxPanel
     /** The mode (table row) drawn highlighted, or -1. */
     void setSelected(int mode) { p_s->selected = mode; Refresh(); }
     int  selected() const { return p_s->selected; }
+
+    const std::vector<double>& highlight() const { return p_s->highlight; }
+
+    /** Colour the sticks of the modes that lie in a part of the molecule
+        (percent per mode, 0-based; below 10 stays plain); `label` names
+        the part in the key.  Empty `percent` clears. */
+    void setHighlight(const std::vector<double>& percent, const std::string& label)
+    {
+      p_s->highlight = percent;
+      p_s->highlightLabel = percent.empty() ? std::string() : label;
+      p_cacheValid = false;
+      for (size_t i = 0; i < p_s->views.size(); i++) p_s->views[i]->Refresh();
+      Refresh();
+    }
 
     //  For the offscreen render: state that otherwise comes from the mouse.
     void setHover(VibKind kind, int mode, const wxPoint& at)
@@ -524,7 +540,16 @@ class SpectrumCanvas : public wxPanel
           Hit h = { kind, s.mode, x, y, base };
           p_hits.push_back(h);
           if (s.mode == p_s->selected) { selX = x; selY = y; continue; }
-          dc.SetPen(wxPen(s.imaginary ? p_palette.imaginary : series, 2));
+          const double hl = s.mode >= 0 && s.mode < (int)p_s->highlight.size()
+                              ? p_s->highlight[s.mode] : 0.0;
+          if (hl >= 10.0 && !s.imaginary) {
+            //  Amber, series(4): none of IR, Raman, the second curve, the
+            //  imaginary orange or the selected mode's text colour.
+            dc.SetPen(wxPen(SpectrumPalette::mix(
+                series, p_palette.series(4), std::min(1.0, 0.35 + 0.65*hl/100.0)), 4));
+          } else {
+            dc.SetPen(wxPen(s.imaginary ? p_palette.imaginary : series, 2));
+          }
           dc.DrawLine(x, base, x, y);
         }
         if (selX >= 0) paintSelection(dc, pane, selX, selY, p_s->selected);
@@ -574,6 +599,17 @@ class SpectrumCanvas : public wxPanel
       }
       dc.DestroyClippingRegion();
       if (second) paintKey(dc, pane, series, p_palette.series(3));
+      if (!p_s->highlightLabel.empty()) {
+        dc.SetFont(*wxSMALL_FONT);
+        const wxString t = wxString::Format("highlight: %s (modes with 10 %% or more)",
+                                            wxString::FromUTF8(p_s->highlightLabel.c_str()));
+        const wxSize e = dc.GetTextExtent(t);
+        const int x0 = std::max(pane.x + 4, pane.GetRight() - e.x - 20);
+        dc.SetPen(wxPen(p_palette.series(4), 4));
+        dc.DrawLine(x0, pane.y + 6 + e.y / 2, x0 + 12, pane.y + 6 + e.y / 2);
+        dc.SetTextForeground(p_palette.text);
+        dc.DrawText(t, x0 + 16, pane.y + 6);
+      }
 
       //  Frame, ticks and labels.
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
