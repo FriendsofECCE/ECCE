@@ -198,6 +198,8 @@ bool NModePanel::Create(IPropCalculation *calculation,
    // Customizations of DB code
    p_grid = (wxGrid*)FindWindow(ID_GRID_NMODE);
    p_grid->SetRowLabelSize(0);
+   //  Results, not input: a key press (space) must not open and clear a cell.
+   p_grid->EnableEditing(false);
    //  Columns can be dragged wider; a dragged Mode column keeps its width.
    p_grid->EnableDragColSize(true);
    p_grid->Bind(wxEVT_GRID_COL_SIZE, [this](wxGridSizeEvent& e) {
