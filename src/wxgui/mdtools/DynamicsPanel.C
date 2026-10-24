@@ -807,7 +807,11 @@ void DynamicsPanel::setEnsemble(int e)
 void DynamicsPanel::buildEnsembleRow()
 {
   if (p_ensRow != 0) return;
-  wxPanel *row = new wxPanel(this);
+  // The row goes into ID_PANEL_DYNMC_ALL's sizer, so that panel must be its
+  // parent; a child of `this` is laid out in the wrong window and overlaps.
+  wxWindow *host = FindWindow(ID_PANEL_DYNMC_ALL);
+  wxPanel *row = new wxPanel(host ? host : this);
+  wxBoxSizer *v = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer *h = new wxBoxSizer(wxHORIZONTAL);
   h->Add(new ewxStaticText(row, wxID_ANY, _("Ensemble:")), 0,
          wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
@@ -831,8 +835,11 @@ void DynamicsPanel::buildEnsembleRow()
   ewxStaticText *seq = new ewxStaticText(row, wxID_ANY,
       _("Usual order: minimise, NVT with restraints, NPT with restraints, production."));
   seq->SetToolTip(seq->GetLabel());
-  h->Add(seq, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 12);
-  row->SetSizer(h);
+  // Wrapped to a fixed width so a long hint cannot widen the page.
+  seq->Wrap(seq->GetTextExtent("0123456789").x * 6);
+  v->Add(h, 0, wxALIGN_LEFT);
+  v->Add(seq, 0, wxALIGN_LEFT | wxTOP, 4);
+  row->SetSizer(v);
   p_ensRow = row;
   p_dynamicsVSizer->Insert(0, row, 0, wxALL, 5);
 }
