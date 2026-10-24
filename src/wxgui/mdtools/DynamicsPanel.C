@@ -199,6 +199,7 @@ void DynamicsPanel::refreshGUI()
 
   // Now make sure all of the validators contain the forced values above
   TransferDataFromWindow();
+  updateDurations();
 }
 
 void DynamicsPanel::checkResume()
@@ -367,6 +368,54 @@ void DynamicsPanel::initializeGUI()
   validator.setValue(model->RETHERMFRAC);
 //  text->SetValidator(ewxNumericValidator(1.0e-10,1.0,model->RETHERMFRAC));
   text->SetValidator(validator);
+  buildDurations();
+}
+
+
+// A step count says little on its own; the simulated time it covers is
+// what one plans with (steps x time step, the model's time step is in ps).
+void DynamicsPanel::buildDurations()
+{
+  const int ids[2] = { ID_TEXTCTRL_DYNMC_DATSTP, ID_TEXTCTRL_DYNMC_EQSTP };
+  wxStaticText **labels[2] = { &p_dataTime, &p_eqTime };
+  for (int i = 0; i < 2; i++) {
+    wxWindow *ctrl = FindWindow(ids[i]);
+    wxSizer *sizer = ctrl ? ctrl->GetContainingSizer() : 0;
+    if (!sizer) continue;
+    *labels[i] = new wxStaticText(ctrl->GetParent(), wxID_ANY, "");
+    wxSizerItemList& items = sizer->GetChildren();
+    size_t at = 0;
+    for (wxSizerItemList::iterator it = items.begin(); it != items.end(); ++it, ++at)
+      if ((*it)->GetWindow() == ctrl) break;
+    sizer->Insert(at + 1, *labels[i], 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 6);
+    ctrl->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) { updateDurations(); e.Skip(); });
+  }
+  if (wxWindow *dt = FindWindow(ID_TEXTCTRL_DYNMC_TSTEP))
+    dt->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) { updateDurations(); e.Skip(); });
+  updateDurations();
+}
+
+
+void DynamicsPanel::updateDurations()
+{
+  wxTextCtrl *dtCtrl = dynamic_cast<wxTextCtrl*>(FindWindow(ID_TEXTCTRL_DYNMC_TSTEP));
+  double dt = 0;
+  if (!dtCtrl || !dtCtrl->GetValue().ToDouble(&dt) || dt <= 0) dt = 0;
+  const int ids[2] = { ID_TEXTCTRL_DYNMC_DATSTP, ID_TEXTCTRL_DYNMC_EQSTP };
+  wxStaticText *labels[2] = { p_dataTime, p_eqTime };
+  for (int i = 0; i < 2; i++) {
+    wxTextCtrl *ctrl = dynamic_cast<wxTextCtrl*>(FindWindow(ids[i]));
+    if (!labels[i] || !ctrl) continue;
+    double steps = 0;
+    wxString text;
+    if (dt > 0 && ctrl->GetValue().ToDouble(&steps) && steps > 0) {
+      const double ps = steps * dt;
+      text = ps >= 1000 ? wxString::Format("(%g ns)", ps / 1000)
+                        : wxString::Format("(%g ps)", ps);
+    }
+    if (labels[i]->GetLabel() != text) labels[i]->SetLabel(text);
+  }
+  Layout();
 }
 
 /**

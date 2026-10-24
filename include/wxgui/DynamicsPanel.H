@@ -176,6 +176,9 @@ public:
 
 private:
     void buildEnsembleRow();
+    void buildDurations();
+    void updateDurations();
+    wxStaticText *p_dataTime = 0, *p_eqTime = 0;
     void showEnsemble();
     wxRadioButton *p_ens[3] = { 0, 0, 0 };
     wxWindow *p_ensRow = 0;

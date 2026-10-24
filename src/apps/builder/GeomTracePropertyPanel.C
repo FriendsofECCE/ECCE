@@ -189,7 +189,7 @@ void GeomTracePropertyPanel::initialize()
   p_propChoice = new wxChoice(this, wxID_ANY);
   for (size_t i = 0; i < p_importantProps.size(); i++) {
     const Property_Ref *pr = PropFactory::getPropRef(p_importantProps[i]);
-    string label = StepPlotAxes::plotName(pr ? pr->long_name : p_importantProps[i]);
+    wxString label = StepPlotAxes::plotName(pr ? pr->long_name : p_importantProps[i]);
     //  Several series share a long name (Kinetic Energy from different codes).
     for (size_t j = 0; j < p_importantProps.size(); j++) {
       const Property_Ref *pj = PropFactory::getPropRef(p_importantProps[j]);
