@@ -220,7 +220,6 @@ void CalculationContextPanel::updateProgress()
   if (!p_progressBox) return;
   const ResourceDescriptor::RUNSTATE state = ResourceUtils::stringToState(
       p_itemData->getResource()->getProp(VDoc::getEcceNamespace() + ":state"));
-  const bool started = state >= ResourceDescriptor::STATE_SUBMITTED;
   const bool finished = state >= ResourceDescriptor::STATE_COMPLETED;
 
   string text = p_storedProgress;
@@ -231,9 +230,9 @@ void CalculationContextPanel::updateProgress()
     text = live;
     received = liveAt;
   }
-  // A rerun resets the state: the old run's snapshot must be gone before
-  // the new one is submitted, or it is drawn until the first new message.
-  if (!started) {
+  // A rerun resets the state, and a queued job has produced nothing yet:
+  // until it runs, any snapshot is the previous run's.
+  if (state < ResourceDescriptor::STATE_RUNNING) {
     text.clear();
     p_storedProgress.clear();
     if (p_calcMgr) p_calcMgr->forgetProgress(getUrl());
