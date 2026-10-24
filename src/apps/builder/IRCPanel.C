@@ -19,6 +19,7 @@
 #include "viz/GTStepCmd.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "util/EcceURL.H"
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
 #include "XYPlotCanvas.H"
@@ -251,7 +252,15 @@ std::string IRCPanel::newCalcFromPoint(int index)
 
 void IRCPanel::OnNewCalc(wxCommandEvent&)
 {
-  newCalcFromPoint();
+  const std::string url = newCalcFromPoint();
+  if (url.empty()) return;
+  // Silent success left users unsure anything happened; name the result.
+  const EcceURL u(url);
+  wxMessageBox("Created the calculation " +
+               wxString::FromUTF8(u.getFilePathTail().c_str()) + " in " +
+               wxString::FromUTF8(u.getParent().getFilePathTail().c_str()) +
+               ".\nIt is in the Organizer, ready to edit and launch.",
+               "New calculation", wxOK | wxICON_INFORMATION, this);
 }
 
 void IRCPanel::OnUnit(wxCommandEvent&)
