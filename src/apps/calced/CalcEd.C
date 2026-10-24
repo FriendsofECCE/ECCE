@@ -3888,6 +3888,8 @@ void CalcEd::showGeomEditor()
         "Symmetry off: a transition-state search / scan must be able to "
         "break the starting symmetry";
   p_constraintNote->SetLabel(wxString::FromUTF8(note));
+  // A scan line runs long; unwrapped it set the editor's minimum width.
+  p_constraintNote->Wrap(p_constraintNote->FromDIP(420));
   p_constraintNote->SetToolTip(wxString::FromUTF8(note));
   p_constraintNote->Show(!note.empty());
   GetSizer()->Layout();
