@@ -5,6 +5,7 @@
 #include "dsm/JCode.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/MdTask.H"
+#include "tdat/QueueMgr.H"
 #include "tdat/RefMachine.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/TaskJob.H"
@@ -14,6 +15,15 @@
 #include "util/TypedFile.H"
 
 using std::string;
+
+bool LaunchBatch::wallTimeRequired(MachinePreferences *prefs)
+{
+  if (!prefs->isOptionSupported("TL") || !prefs->isOptionSupported("Q"))
+    return false;
+  const QueueManager *qm = QueueManager::lookup(prefs->getItemKey());
+  return qm && qm->queueMgrName() != "Shell";
+}
+
 
 LaunchBatch::Plan LaunchBatch::plan(TaskJob *task)
 {
@@ -45,7 +55,7 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task)
     p.problem = "no queue stored";
     return p;
   }
-  if (prefs->isOptionSupported("TL") && prefs->isOptionSupported("Q") &&
+  if (wallTimeRequired(prefs) &&
       (l.maxwall.empty() || l.maxwall == "0 0:0" || l.maxwall == "0 0:0:00")) {
     p.problem = "no wall time stored";
     return p;

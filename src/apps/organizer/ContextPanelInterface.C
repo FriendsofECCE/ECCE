@@ -57,3 +57,7 @@ void ContextPanelInterface::loseFocus()
 
 void ContextPanelInterface::selectResource(const EcceURL & url)
 {}
+
+
+void ContextPanelInterface::selectResources(const vector<EcceURL>& urls)
+{}
