@@ -82,6 +82,17 @@ available for Gaussian 16 calculations.
    **Energy unit:** (kJ/mol or kcal/mol) and click **Export .csv...** to
    save the table.
 
+## Use symmetry
+
+The Calculation Editor's **Use symmetry** box lets the code keep and exploit
+the point group of the starting structure. A transition-state search (TS,
+QST2, QST3, NEB-TS), an IRC, and a calculation whose structure carries
+constraints or a scan must be able to leave that point group, so the editor
+unticks the box when you choose one of these run types or when the structure
+gains constraints, and says so under Settings. Gaussian then gets `NoSymm`;
+the other codes get their own no-symmetry setting. You can tick the box again;
+that choice is kept until the run type or the constraints change.
+
 ## Dummy atoms
 
 The element `X` is the dummy atom. In the Build panel, open **More...** for the

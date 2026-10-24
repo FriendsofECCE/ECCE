@@ -286,6 +286,8 @@ class CalcEd: public CalcEdGUI,
     void loadTsKeys();
     void syncTsKeys();
     void refreshTsBox();
+    bool symmetryMustBreak() const;
+    void applyNoSymmetryRule();
     string tsMappingText();
     void matchTsStructures(bool neb);
     TsLevel tsOwnLevel() const;
@@ -428,6 +430,8 @@ class CalcEd: public CalcEdGUI,
     /** Structure from other calculations (TS Search button) and the picks,
      *  as URLs; p_tsUrls/p_tsNames list the choices after "(none)". */
     bool   p_tsSource = false;
+    bool   p_noSymKnown = false;
+    bool   p_noSymWas = false;
     string p_tsPick[3];
     /** Levels of the picked reactant/product calculations and the straight
      *  path check (#468); recomputed when a pick changes. */

@@ -33,6 +33,7 @@
 #include <strings.h>
 #include <sys/stat.h>
 
+#include "wxgui/ewxCheckBox.H"
 #include <wx/app.h>
 #include <wx/dialog.h>
 #include <wx/menu.h>
@@ -300,6 +301,18 @@ void CalcEd::runCalcEdScript(const string& file)
                            : ID_BUTTON_CALCED_FINAL_EDIT);
         }
         if (!ok) outcome = "FAIL: " + w[1] + " not available";
+      } else if (w[0] == "symmetry") {
+        //  "symmetry" reports the box; "symmetry 0|1" clicks it
+        if (w.size() > 1) {
+          ((ewxCheckBox*)FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY))
+              ->SetValue(w[1] == "1");
+          wxCommandEvent ev(wxEVT_COMMAND_CHECKBOX_CLICKED,
+                            ID_CHECKBOX_CALCED_USE_SYMMETRY);
+          OnCheckboxCalcedUseSymmetryClick(ev);
+        }
+        fprintf(stderr, "CALCED: symmetry box=%d stored=%d note=%s\n",
+                useSymmetryBox() ? 1 : 0, getUseSymmetry() ? 1 : 0,
+                oneLine(std::string(p_constraintNote->GetLabel().ToUTF8().data())).c_str());
       } else if (w[0] == "constraints") {
         //  The constraint count and the warning in the Settings box (#306)
         fprintf(stderr, "CALCED: constraints count=%d note=%s\n",

@@ -2570,6 +2570,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_details_enabled PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  add_test(NAME apps_calced_nosym
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_nosym_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calced_nosym PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # A finished calculation without ecce:progress gets one from its stored
   # output (#284): CalcMgr::backfillProgress.
   add_test(NAME apps_progress_backfill

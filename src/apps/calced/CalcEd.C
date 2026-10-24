@@ -860,6 +860,9 @@ void CalcEd::doSetContext(const string& codeName)
   // GDB 2/19/13  Fix for dialog states getting cleared between app invocations
   // Always restore the underlying model regardless of whether dialog is invoked
   refreshConstraintCount();
+  p_noSymKnown = false;   // the constraints are only known from here
+  applyNoSymmetryRule();
+  showGeomEditor();
 
   updateESPModel();
   p_partialCharge = new PartialCharge(this);
@@ -1430,6 +1433,46 @@ void CalcEd::updateESPModel()
       p_ESPCnstrnt->setFragment(*p_frag);
       p_iCalc->getESPModel(*p_ESPCnstrnt);
    }
+}
+
+/// A transition-state search, an IRC, or a structure with used constraints or
+/// a scan must be free to leave the starting point group.
+bool CalcEd::symmetryMustBreak() const
+{
+  if (!p_iCalc) return false;
+  const string rt = getRuntypeName().ToStdString();
+  if (rt.find("Transition State") != string::npos || rt.find("QST") != string::npos
+      || rt.find("TS") != string::npos || rt.find("NEB") != string::npos
+      || rt.compare(0, 3, "IRC") == 0)
+    return true;
+  return p_constraintCount > 0 && constraintUse() == GeomConstraintModel::USED;
+}
+
+
+/// Untick "Use symmetry" when the run type or constraint state changes into a
+/// case that needs it off.  A tick by the user stands until the state changes
+/// again, also across reopening: CalcEd.NoSymAuto records that the rule fired.
+void CalcEd::applyNoSymmetryRule()
+{
+  if (!p_GUIValues || !p_frag || !p_iCalc ||
+      p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED) return;
+  const bool must = symmetryMustBreak();
+  GUIValue *mark = p_GUIValues->get("CalcEd.NoSymAuto");
+  const bool applied = mark && mark->getValueAsInt() != 0;
+  const bool changed = p_noSymKnown ? must != p_noSymWas : must && !applied;
+  p_noSymKnown = true;
+  p_noSymWas = must;
+  if (!changed && !(mark && applied && !must)) return;
+  if (!mark) {
+    mark = new GUIValue();
+    mark->m_key = "CalcEd.NoSymAuto";
+    mark->m_type = "toggle_input";
+    mark->m_sensitive = true;
+    mark->m_write = true;
+    p_GUIValues->set("CalcEd.NoSymAuto", mark);
+  }
+  mark->setValue(must ? 1 : 0);
+  if (must) setUseSymmetry(false);
 }
 
 void CalcEd::refreshConstraintCount()
@@ -2489,6 +2532,7 @@ void CalcEd::OnCheckboxCalcedUseSymmetryClick( wxCommandEvent& event )
 {
   wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
   if (box != 0) storeUseSymmetry(((ewxCheckBox*)box)->IsChecked());
+  showGeomEditor();   // the note says why the box is off
 
   //  IT IS A CHANGE TO THE CALCULATION, so say so.
   //
@@ -3240,6 +3284,7 @@ void CalcEd::refreshAllFields()
   refreshChemSysFields();
   refreshBasisSetFields();
   refreshDetailsFields();
+  applyNoSymmetryRule();
 }
 
 
@@ -3837,7 +3882,11 @@ void CalcEd::showGeomEditor()
 
   // The constraints belong to the structure; the line says whether this run
   // type and code use, ignore or refuse them.
-  const string note = constraintNote();
+  string note = constraintNote();
+  if (symmetryMustBreak() && !useSymmetryBox())
+    note += string(note.empty() ? "" : "\n") +
+        "Symmetry off: a transition-state search / scan must be able to "
+        "break the starting symmetry";
   p_constraintNote->SetLabel(wxString::FromUTF8(note));
   p_constraintNote->SetToolTip(wxString::FromUTF8(note));
   p_constraintNote->Show(!note.empty());
@@ -4199,6 +4248,7 @@ void CalcEd::doRuntypeChange()
   UpdateHold hold(this);
   enableSave();
   makeRuntypeNoSphericalConsistent();
+  applyNoSymmetryRule();
   resetRuntypeDetails();
   updateBasisSetFields();
   updateDetailsFields();
