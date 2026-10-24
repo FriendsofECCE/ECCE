@@ -6,6 +6,7 @@
 #include "wx/link.h"
 #include "wx/log.h"
 #include "wx/sizer.h"
+#include "wx/choice.h"
 
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
@@ -69,6 +70,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel()
   : VizPropertyPanel(),
     p_plotCtrl(NULL),
     p_playback(NULL),
+    p_propChoice(NULL),
     p_delay(500),
     p_recompute(false),
     p_fold(true),
@@ -87,6 +89,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel(IPropCalculation *calculation,
   : VizPropertyPanel(),
     p_plotCtrl(NULL),
     p_playback(NULL),
+    p_propChoice(NULL),
     p_delay(500),
     p_recompute(false),
     p_fold(false),
@@ -174,6 +177,21 @@ void GeomTracePropertyPanel::initialize()
             wxCommandEventHandler(GeomTracePropertyPanel::OnToolClick));
   }
 
+  // Every logged series is one choice away; the tear-off menu holds them
+  // too but is easy to miss.
+  sizer = new wxBoxSizer(wxHORIZONTAL);
+  sizer->Add(new ewxStaticText(this, wxID_ANY, "Plot:"), 0,
+             wxALIGN_CENTER_VERTICAL|wxRIGHT, 6);
+  p_propChoice = new wxChoice(this, wxID_ANY);
+  for (size_t i = 0; i < p_importantProps.size(); i++) {
+    const Property_Ref *pr = PropFactory::getPropRef(p_importantProps[i]);
+    p_propChoice->Append(StepPlotAxes::plotName(
+        pr ? pr->long_name : p_importantProps[i]));
+  }
+  p_propChoice->Bind(wxEVT_CHOICE, &GeomTracePropertyPanel::OnPropChoice, this);
+  sizer->Add(p_propChoice, 1, wxALIGN_CENTER_VERTICAL);
+  GetSizer()->Add(sizer, 0, wxEXPAND|wxALL, 2);
+
   // create our wxPlotCtrl, add to sizer
   p_plotCtrl = new XYPlotCanvas(this);
   p_plotCtrl->setPointHandler([this](int, int index) { OnPointClick(0, index); });
@@ -195,6 +213,7 @@ void GeomTracePropertyPanel::initialize()
   GetSizer()->Add(sizer, 0);
 
   restoreSettings();
+  selectProp(p_currentProp);
 
   TransferDataToWindow();
 
@@ -338,7 +357,7 @@ void GeomTracePropertyPanel::fillPlot()
                                          timed ? name : wxString());
   for (size_t i = 0; i < shaped.hover.size(); i++)
     p_plotCtrl->setPointLabel(curve, (int)i, shaped.hover[i]);
-  if (timed) StepPlotAxes::addRunningAverage(p_plotCtrl, stepData, arrayData);
+  if (timed) StepPlotAxes::addMovingAverage(p_plotCtrl, stepData, arrayData, timeUnit);
 
   const wxString yUnit = StepPlotAxes::unitText(prop->units());
   if (timed) {
@@ -366,11 +385,33 @@ void GeomTracePropertyPanel::OnToolClick(wxCommandEvent& event)
   } else if (event.GetId() == ID_CHECKBOX_FOLD) {
     p_fold = event.IsChecked();
   } else {
-    p_currentProp = p_idToKey[event.GetId()];
+    selectProp(p_idToKey[event.GetId()]);
     p_propChosen = true;
     fillPlot();
   }
   saveSettings();
+}
+
+
+void GeomTracePropertyPanel::OnPropChoice(wxCommandEvent& event)
+{
+  const int i = event.GetSelection();
+  if (i < 0 || i >= (int)p_importantProps.size()) return;
+  selectProp(p_importantProps[i]);
+  p_propChosen = true;
+  fillPlot();
+  saveSettings();
+}
+
+
+void GeomTracePropertyPanel::selectProp(const string& key)
+{
+  p_currentProp = key;
+  if (!p_propChoice) return;
+  const vector<string>::iterator it =
+      std::find(p_importantProps.begin(), p_importantProps.end(), key);
+  if (it != p_importantProps.end())
+    p_propChoice->SetSelection((int)(it - p_importantProps.begin()));
 }
 
 

@@ -298,9 +298,10 @@ void PlotAnyPropertyPanel::doAxisChoice()
   for (size_t i = 0; i < shaped.hover.size() && (int)i < size; i++)
     p_plotCtrl->setPointLabel(curve, (int)i, shaped.hover[i]);
   if (timedY) {
-    StepPlotAxes::addRunningAverage(p_plotCtrl,
-                                    std::vector<double>(x, x + size),
-                                    std::vector<double>(y, y + size));
+    StepPlotAxes::addMovingAverage(p_plotCtrl,
+                                   std::vector<double>(x, x + size),
+                                   std::vector<double>(y, y + size),
+                                   p_timeUnit);
   }
   delete[] x;
   delete[] y;

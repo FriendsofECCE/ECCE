@@ -9,8 +9,7 @@ calculation's Props.  The Builder (this tree's binaries) draws both panels
 (scene command `plotshot`, which reports each canvas on stderr).  Expected:
 the x axis is simulation time in ps taken from the log's "Step Time" rows
 (read here by regular expression), the y axis has its unit, the title is a
-readable name, and a thin "running average" curve whose last point equals
-the mean of the series.
+readable name, and a thin "moving average (N ps window)" curve.
 
 Exit status 77 (skip) without Xvfb, import, python3-pil/numpy or binaries.
 """
@@ -149,12 +148,11 @@ def main():
             check(xl == "Time (ps)", "%s: x axis is %r" % (name, xl))
             check(yl in UNITS, "%s: y axis unit %r" % (name, yl))
             (n0, k0, x0, y0, mean0), (n1, k1, x1, y1, _m) = curves[0], curves[1]
-            check(n1 == "running average" and k0 == k1 == len(times),
-                  "%s: running average beside the series (%s, %d points)" % (name, n1, k1))
+            check(re.match(r"moving average \(\S+ ps window\)$", n1) and k0 == k1 == len(times),
+                  "%s: moving average beside the series (%s, %d points)" % (name, n1, k1))
             check(abs(x0 - times[-1]) < 1e-6 and abs(x1 - times[-1]) < 1e-6,
                   "%s: last x is the log's last time %g (got %g)" % (name, times[-1], x0))
-            check(abs(y1 - mean0) <= 1e-6 * max(1.0, abs(mean0)),
-                  "%s: running average ends at the series mean (%g, %g)" % (name, y1, mean0))
+            check(y1 == y1, "%s: moving average ends on a number (%g)" % (name, y1))
     finally:
         if display:
             display.__exit__(None, None, None)

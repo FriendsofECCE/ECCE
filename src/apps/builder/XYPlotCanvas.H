@@ -289,8 +289,11 @@ class XYPlotCanvas : public wxPanel
       int top = 8;
       if (haveTitle) top += th + 4;
       if (haveKey) top += ch + 6;
+      //  The axis title sits on the bottom edge of the canvas and the plot
+      //  leaves room above it, so a font taller than GetCharHeight() says
+      //  (GTK scaling, descenders) cannot push it out of view.
       const int bottom = p_showXAxis
-          ? ch + 12 + (xTitle ? th + 6 : 0) : 8;
+          ? ch + 12 + (xTitle ? th + 12 : 0) : 8;
       const int plotW = std::max(40, size.x - left - right);
       const int plotH = std::max(30, size.y - top - bottom);
       p_plot = wxRect(left, top, plotW, plotH);
@@ -363,7 +366,7 @@ class XYPlotCanvas : public wxPanel
       if (xTitle) {
         const wxSize e = dc.GetTextExtent(p_xLabel);
         dc.DrawText(p_xLabel, p_plot.x + (p_plot.width - e.x) / 2,
-                    p_plot.GetBottom() + ch + 10);
+                    std::min(p_plot.GetBottom() + ch + 10, size.y - e.y - 4));
       }
       if (yTitle) drawVerticalText(dc, p_yLabel, 6, p_plot.y + p_plot.height / 2,
                                    p_plot.height);

@@ -2122,6 +2122,12 @@ if(XVFB_RUN_FOR_GRIDVIEW)
            COMMAND ${XVFB_RUN_FOR_GRIDVIEW} -a $<TARGET_FILE:xyplot_clamp_test>)
 endif()
 
+# tests/plots -- the MD plots' moving average (#518), without wx.
+add_executable(moving_average_test tests/plots/moving_average_test.C)
+target_include_directories(moving_average_test PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/apps/builder)
+add_test(NAME moving-average COMMAND moving_average_test)
+
 # tests/progress -- the job progress snapshot and the Progress box's lines
 # (#284), without wx; the monitor's [PROGRESS] handling over a real output.
 add_executable(progress_test tests/progress/progress_test.C)
