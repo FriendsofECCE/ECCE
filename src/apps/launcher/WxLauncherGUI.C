@@ -712,7 +712,7 @@ void WxLauncherGUI::CreateControls()
     itemBoxSizer4->Add(itemStaticLine129, 0, wxGROW|wxTOP|wxBOTTOM, 3);
 
     WxFeedback* itemWxFeedback130 = new WxFeedback( itemPanel3, ID_FEEDBACK_WXLAUNCHER_MESSAGES, wxDefaultPosition, wxDefaultSize, wxNO_BORDER );
-    itemBoxSizer4->Add(itemWxFeedback130, 0, wxGROW, 3);
+    itemBoxSizer4->Add(itemWxFeedback130, 1, wxGROW, 3);
 
 ////@end WxLauncherGUI content construction
 }
