@@ -89,6 +89,9 @@ describe what you did and what happened.
 18. [The MO diagram](mo-diagram.md): the orbitals of a calculation as levels
    joined to the orbitals of its parts; what the labels, the star, nb and the
    line weights mean.
+19. [Mode composition](mode-composition.md): what each normal mode is made of
+   (stretches and bends), the amber highlight in the spectrum, and why it is
+   not a full PED.
 
 Reference:
 

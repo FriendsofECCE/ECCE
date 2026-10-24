@@ -1101,6 +1101,276 @@ void VibAnalysis::describe(const VibInput& in, VibResult& out)
 
 //  ----------------------------------------------------------------------
 
+//  Mode composition: the kinetic energy distribution of each mode over the
+//  chosen internal coordinates (no force constants needed), normalised to
+//  100 %.
+namespace { vector<int> specKey(const VibCoordSpec& c); }
+
+bool VibAnalysis::composition(const VibInput& in, const vector<VibCoordSpec>& chosen,
+                              const vector<int>& centres, VibComposition& out)
+{
+   out = VibComposition();
+   const size_t N = in.elements.size();
+   if (N < 2 || in.coords.size() != 3*N) return false;
+   TPerTab pt(true);
+   vector<int> Z(N);
+   vector<double> mass(N);
+   for (size_t a = 0; a < N; a++) {
+      Z[a] = pt.atomicNumber(in.elements[a]);
+      mass[a] = pt.atomicWeight(Z[a]);
+      if (Z[a] <= 0 || mass[a] <= 0) return false;
+   }
+   const Vec& x = in.coords;
+
+   vector<VibCoordSpec> specs = chosen;
+   if (specs.empty()) {
+      vector<VibBond> bonds = in.bonds;
+      if (bonds.empty()) {
+         for (size_t a = 0; a < N; a++)
+            for (size_t b = a + 1; b < N; b++) {
+               double d[3];
+               for (int k = 0; k < 3; k++) d[k] = x[3*a+k]-x[3*b+k];
+               if (norm3(d) < 1.2*(pt.covalentRadius(Z[a]) + pt.covalentRadius(Z[b]))) {
+                  VibBond vb = { (int)a, (int)b, 1.0 };
+                  bonds.push_back(vb);
+               }
+            }
+      }
+      vector< vector<int> > nbr(N);
+      for (size_t k = 0; k < bonds.size(); k++) {
+         const int a = bonds[k].a, b = bonds[k].b;
+         if (a < 0 || b < 0 || a >= (int)N || b >= (int)N || a == b) continue;
+         if (bonds[k].order > 0 && bonds[k].order < 0.9) continue;
+         nbr[a].push_back(b); nbr[b].push_back(a);
+         VibCoordSpec s = { 2, { std::min(a,b), std::max(a,b), -1, -1 } };
+         specs.push_back(s);
+      }
+      for (size_t c = 0; c < N; c++) {
+         bool wanted;
+         if (centres.empty()) wanted = Z[c] != 1;
+         else wanted = std::find(centres.begin(), centres.end(), (int)c) != centres.end();
+         if (!wanted) continue;
+         std::sort(nbr[c].begin(), nbr[c].end());
+         for (size_t i = 0; i < nbr[c].size(); i++)
+            for (size_t k = i + 1; k < nbr[c].size(); k++) {
+               //  Bends at carbon that move an H overlap the heavy-atom
+               //  bends and stretches and swamp them; give them by hand.
+               if (centres.empty() && Z[c] == 6 &&
+                   (Z[nbr[c][i]] == 1 || Z[nbr[c][k]] == 1)) continue;
+               VibCoordSpec s = { 3, { nbr[c][i], (int)c, nbr[c][k], -1 } };
+               specs.push_back(s);
+            }
+      }
+   }
+
+   vector<Coord> coords;
+   std::set< vector<int> > seen;   // a coordinate typed twice counts once
+   for (size_t i = 0; i < specs.size(); i++) {
+      const VibCoordSpec& s = specs[i];
+      if (s.n >= 2 && s.n <= 4 && !seen.insert(specKey(s)).second) continue;
+      if (s.n < 2 || s.n > 4) continue;
+      bool ok = true;
+      for (int t = 0; t < s.n; t++) {
+         if (s.at[t] < 0 || s.at[t] >= (int)N) ok = false;
+         for (int u = 0; u < t; u++) if (s.at[t] == s.at[u]) ok = false;
+      }
+      if (!ok) continue;
+      Coord q;
+      q.type = s.n == 2 ? STRETCH : s.n == 3 ? BEND : TORSION;
+      for (int t = 0; t < 4; t++) q.at[t] = t < s.n ? s.at[t] : -1;
+      q.n = s.n; q.linear = false; q.order = 0; q.group = -1; q.value = 0;
+      //  A straight angle has no direction to bend in, and no dihedral.
+      if (q.type == BEND && evalCoord(q, x)*180.0/M_PI > 175.0) continue;
+      if (q.type == TORSION) {
+         Coord t1 = q, t2 = q;
+         t1.type = t2.type = BEND;
+         t1.n = t2.n = 3;
+         t2.at[0] = q.at[1]; t2.at[1] = q.at[2]; t2.at[2] = q.at[3];
+         if (evalCoord(t1, x)*180/M_PI > 175 || evalCoord(t2, x)*180/M_PI > 175) continue;
+      }
+      numericB(q, x);
+      double g = 0.0;
+      for (size_t a = 0; a < N; a++)
+         for (int t = 0; t < 3; t++) g += q.b[3*a+t]*q.b[3*a+t]/mass[a];
+      if (g < 1e-12) continue;
+      q.G = g;
+      coords.push_back(q);
+      out.coords.push_back(s);
+      string nm;
+      for (int t = 0; t < s.n; t++) {
+         if (t) nm += ENDASH;
+         std::ostringstream o;
+         o << in.elements[s.at[t]] << s.at[t] + 1;
+         nm += o.str();
+      }
+      nm += q.type == STRETCH ? " stretch" : q.type == BEND ? " bend" : " torsion";
+      out.names.push_back(nm);
+   }
+   if (coords.empty()) return false;
+
+   //  G = B M^-1 B^T; the kinetic energy distribution of a mode with internal
+   //  displacements s is KED_i = s_i (G^-1 s)_i / (s . G^-1 s).  Unlike the
+   //  plain squared cosine it does not double count coordinates that move
+   //  together (the C=O stretch and the C-C-N bend of amide I).  G of a
+   //  redundant set is singular, so it is damped; s lies in its range.
+   const size_t nc = coords.size();
+   vector< vector<double> > G(nc, vector<double>(nc, 0.0));
+   double diag = 0.0;
+   for (size_t i = 0; i < nc; i++)
+      for (size_t j = 0; j <= i; j++) {
+         double g = 0.0;
+         for (size_t a = 0; a < N; a++)
+            for (int t = 0; t < 3; t++)
+               g += coords[i].b[3*a+t]*coords[j].b[3*a+t]/mass[a];
+         G[i][j] = G[j][i] = g;
+         if (i == j) diag += g;
+      }
+   for (size_t i = 0; i < nc; i++) G[i][i] += 1e-3*diag/nc;
+   //  Cholesky factor of the damped (positive definite) G.
+   vector< vector<double> > Lc(nc, vector<double>(nc, 0.0));
+   bool chol = true;
+   for (size_t i = 0; i < nc && chol; i++)
+      for (size_t j = 0; j <= i; j++) {
+         double v = G[i][j];
+         for (size_t k = 0; k < j; k++) v -= Lc[i][k]*Lc[j][k];
+         if (i == j) { if (v <= 0) { chol = false; break; } Lc[i][i] = sqrt(v); }
+         else Lc[i][j] = v/Lc[j][j];
+      }
+   if (!chol) return false;
+
+   for (size_t m = 0; m < in.modes.size(); m++) {
+      vector<double> row(nc, 0.0);
+      const Vec& d = in.modes[m];
+      if (d.size() == 3*N && m < in.freqs.size() && fabs(in.freqs[m]) >= ZERO_FREQ) {
+         vector<double> sv(nc), y(nc);
+         for (size_t i = 0; i < nc; i++) sv[i] = dot(coords[i].b, d);
+         for (size_t i = 0; i < nc; i++) {          // L z = s
+            double v = sv[i];
+            for (size_t k = 0; k < i; k++) v -= Lc[i][k]*y[k];
+            y[i] = v/Lc[i][i];
+         }
+         for (size_t i = nc; i-- > 0;) {            // L^T x = z
+            double v = y[i];
+            for (size_t k = i + 1; k < nc; k++) v -= Lc[k][i]*y[k];
+            y[i] = v/Lc[i][i];
+         }
+         double total = 0.0;
+         for (size_t i = 0; i < nc; i++) { row[i] = sv[i]*y[i]; total += row[i]; }
+         if (total > 1e-18) {
+            //  Negative terms are cancellation between overlapping coordinates.
+            double pos = 0.0;
+            for (size_t i = 0; i < nc; i++) { if (row[i] < 0) row[i] = 0; pos += row[i]; }
+            for (size_t i = 0; i < nc; i++) row[i] *= 100.0/pos;
+         } else std::fill(row.begin(), row.end(), 0.0);
+      }
+      out.percent.push_back(row);
+   }
+   return true;
+}
+
+
+namespace {
+vector<int> specKey(const VibCoordSpec& c)
+{
+   vector<int> k(c.at, c.at + c.n);
+   vector<int> r(k.rbegin(), k.rend());
+   if (c.n == 3) { if (k[0] > k[2]) k = r; }
+   else if (c.n == 2) std::sort(k.begin(), k.end());
+   else if (r < k) k = r;
+   k.push_back(c.n);
+   return k;
+}
+}
+
+bool VibAnalysis::selectionShare(const VibInput& in, const vector<int>& atoms,
+                                 vector<double>& share, string& label)
+{
+   share.clear();
+   label.clear();
+   const size_t N = in.elements.size();
+   if (atoms.size() < 2 || N < 2) return false;
+   TPerTab pt(true);
+   std::set<int> sel(atoms.begin(), atoms.end());
+   for (std::set<int>::iterator it = sel.begin(); it != sel.end(); ++it)
+      if (*it < 0 || *it >= (int)N) return false;
+
+   vector<VibCoordSpec> group;
+   if (sel.size() == 2) {
+      VibCoordSpec c = { 2, { *sel.begin(), *sel.rbegin(), -1, -1 } };
+      group.push_back(c);
+      std::ostringstream o;
+      o << in.elements[c.at[0]] << c.at[0] + 1 << ENDASH
+        << in.elements[c.at[1]] << c.at[1] + 1 << " stretch";
+      label = o.str();
+   } else {
+      //  Bonds as the automatic set sees them.
+      vector<VibBond> bonds = in.bonds;
+      if (bonds.empty())
+         for (size_t a = 0; a < N; a++)
+            for (size_t b = a + 1; b < N; b++) {
+               double d[3];
+               for (int k = 0; k < 3; k++) d[k] = in.coords[3*a+k]-in.coords[3*b+k];
+               if (norm3(d) < 1.2*(pt.covalentRadius(pt.atomicNumber(in.elements[a])) +
+                                   pt.covalentRadius(pt.atomicNumber(in.elements[b])))) {
+                  VibBond vb = { (int)a, (int)b, 1.0 };
+                  bonds.push_back(vb);
+               }
+            }
+      vector< vector<int> > nbr(N);
+      for (size_t k = 0; k < bonds.size(); k++) {
+         const int a = bonds[k].a, b = bonds[k].b;
+         if (a < 0 || b < 0 || a >= (int)N || b >= (int)N || a == b) continue;
+         if (bonds[k].order > 0 && bonds[k].order < 0.9) continue;
+         if (!sel.count(a) || !sel.count(b)) continue;
+         nbr[a].push_back(b); nbr[b].push_back(a);
+         VibCoordSpec s = { 2, { std::min(a,b), std::max(a,b), -1, -1 } };
+         group.push_back(s);
+      }
+      for (size_t c = 0; c < N; c++) {
+         std::sort(nbr[c].begin(), nbr[c].end());
+         for (size_t i = 0; i < nbr[c].size(); i++)
+            for (size_t k = i + 1; k < nbr[c].size(); k++) {
+               VibCoordSpec s = { 3, { nbr[c][i], (int)c, nbr[c][k], -1 } };
+               group.push_back(s);
+            }
+      }
+      for (size_t j = 0; j < N; j++)
+         for (size_t t = 0; t < nbr[j].size(); t++) {
+            const int k = nbr[j][t];
+            if (k < (int)j) continue;
+            int a = -1, l = -1;
+            for (size_t u = 0; u < nbr[j].size(); u++) if (nbr[j][u] != k) { a = nbr[j][u]; break; }
+            for (size_t u = 0; u < nbr[k].size(); u++)
+               if (nbr[k][u] != (int)j && nbr[k][u] != a) { l = nbr[k][u]; break; }
+            if (a < 0 || l < 0) continue;
+            VibCoordSpec s = { 4, { a, (int)j, k, l } };
+            group.push_back(s);
+         }
+      std::ostringstream o;
+      o << "selected group (" << sel.size() << " atoms)";
+      label = o.str();
+   }
+   if (group.empty()) return false;
+
+   VibComposition base, all;
+   if (!composition(in, vector<VibCoordSpec>(), vector<int>(), base)) return false;
+   vector<VibCoordSpec> full = base.coords;
+   std::set< vector<int> > have;
+   for (size_t i = 0; i < full.size(); i++) have.insert(specKey(full[i]));
+   std::set< vector<int> > mine;
+   for (size_t i = 0; i < group.size(); i++) {
+      mine.insert(specKey(group[i]));
+      if (have.insert(specKey(group[i])).second) full.push_back(group[i]);
+   }
+   if (!composition(in, full, vector<int>(), all)) return false;
+   share.assign(all.percent.size(), 0.0);
+   for (size_t m = 0; m < all.percent.size(); m++)
+      for (size_t i = 0; i < all.coords.size(); i++)
+         if (mine.count(specKey(all.coords[i]))) share[m] += all.percent[m][i];
+   return true;
+}
+
+
 bool VibAnalysis::analyse(const VibInput& in, VibResult& out)
 {
    out = VibResult();
@@ -1172,10 +1442,9 @@ bool VibAnalysis::analyse(const VibInput& in, VibResult& out)
 }
 
 
-bool VibAnalysis::analyse(Fragment& frag, const vector<double>& freqs,
-                          const vector< vector<double> >& modes, VibResult& out)
+bool VibAnalysis::input(Fragment& frag, const vector<double>& freqs,
+                        const vector< vector<double> >& modes, VibInput& in)
 {
-   VibInput in;
    const size_t N = frag.numAtoms();
    const double *xyz = frag.coordinates();
    if (N == 0 || xyz == 0) return false;
@@ -1193,5 +1462,13 @@ bool VibAnalysis::analyse(Fragment& frag, const vector<double>& freqs,
    }
    in.freqs = freqs;
    in.modes = modes;
-   return analyse(in, out);
+   return true;
+}
+
+
+bool VibAnalysis::analyse(Fragment& frag, const vector<double>& freqs,
+                          const vector< vector<double> >& modes, VibResult& out)
+{
+   VibInput in;
+   return input(frag, freqs, modes, in) && analyse(in, out);
 }

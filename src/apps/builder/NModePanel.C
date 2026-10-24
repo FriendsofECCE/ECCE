@@ -8,7 +8,15 @@
   using std::fill;
 #include <limits>
 
+#include <sstream>
 #include <wx/checkbox.h>
+#include <wx/dcclient.h>
+#include <wx/dcscreen.h>
+#include <wx/app.h>
+#include <wx/frame.h>
+#include <wx/grid.h>
+#include <wx/msgdlg.h>
+#include <wx/button.h>
 #include <wx/control.h>
 #include <wx/settings.h>
 #include <wx/dcmemory.h>
@@ -149,6 +157,7 @@ NModePanel::NModePanel(IPropCalculation *calculation,
 NModePanel::~NModePanel()
 {
    //  The animation timer must not fire into a destroyed panel.
+   unsubscribe();
    delete p_timer;
    //  The window's canvas calls back into this panel.
    if (p_spectrumPop) p_spectrumPop->setClickHandler(0);
@@ -165,6 +174,7 @@ bool NModePanel::Create(IPropCalculation *calculation,
       wxFAIL_MSG( wxT("NModePanel creation failed") );
       return false;
    }
+   subscribe();
 
    p_loopSpeed = 50;    // seems reasonable; overridden by prefs
    p_numAnimations = 15; // a reasonable guess
@@ -361,6 +371,7 @@ void NModePanel::initialize()
 
    dumpSpectrumIfRequested();
    dumpTableIfRequested();
+   dumpCompositionIfRequested();
 }
 
 /**
@@ -623,13 +634,24 @@ void NModePanel::createSpectrumPane()
       viewSizer->Insert(at + 3, compare, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
       compare->Bind(wxEVT_BUTTON,
                     [this](wxCommandEvent&) { compareDialog(); });
+      wxButton *composition = new wxButton(viewBox->GetParent(), wxID_ANY,
+                                           "Composition...");
+      composition->SetToolTip("What each mode is made of: its share along "
+                              "bond stretches, angle bends and torsions.");
+      viewSizer->Insert(at + 4, composition, 0,
+                        wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      composition->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+         wxString err;
+         if (!showComposition(wxString(), &err))
+            wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
+      });
       //  Enabled, not hidden, so the row does not reflow at narrow widths.
       p_compareRemove = new wxButton(viewBox->GetParent(), wxID_ANY,
                                      "Remove comparison");
       p_compareRemove->SetToolTip("Remove the second curve and show this "
                                   "calculation only.");
       p_compareRemove->Enable(false);
-      viewSizer->Insert(at + 4, p_compareRemove, 0,
+      viewSizer->Insert(at + 5, p_compareRemove, 0,
                         wxALIGN_CENTER_VERTICAL | wxALL, 3);
       p_compareRemove->Bind(wxEVT_BUTTON,
                     [this](wxCommandEvent&) { compareWith(string()); });
@@ -2044,4 +2066,306 @@ void NModePanel::updateVectors(int mode,
    cmd->getParameter("Color")->setString(color.c_str());
    cmd->getParameter("Sign")->setBoolean(sign);
    fw.execute(cmd);
+}
+
+
+//  ------------------------------------------------------------------
+//  Mode composition (#486)
+//  ------------------------------------------------------------------
+
+bool NModePanel::compositionRows(const wxString& extra, VibComposition& comp,
+                                 vector<double>& freqs, wxString *error)
+{
+   auto fail = [&](const wxString& why) { if (error) *error = why; return false; };
+   IPropCalculation *expt = getCalculation();
+   PropVector *vec = expt ? (PropVector*) expt->getProperty("VIBFREQ") : 0;
+   PropVecTable *vib = expt ? dynamic_cast<PropVecTable*>(expt->getProperty("VIB")) : 0;
+   if (vec == 0 || vib == 0) return fail("This calculation has no normal modes.");
+   Fragment frag;
+   if (!expt->getFragment(frag)) return fail("The calculation's structure is not available.");
+   const int nat = (int)frag.numAtoms(), nm = vec->rows();
+   if (nat == 0 || vib->rows() != nat || vib->tables() != nm)
+      return fail("The modes do not belong to the calculation's structure.");
+   vector< vector<double> > modes(nm, vector<double>(3*nat));
+   for (int m = 0; m < nm; m++) {
+      freqs.push_back(vec->value(m));
+      for (int a = 0; a < nat; a++)
+         for (int k = 0; k < 3; k++) modes[m][3*a+k] = vib->value(m, a, k);
+   }
+   VibInput in;
+   if (!VibAnalysis::input(frag, freqs, modes, in)) return fail("No structure.");
+
+   //  The extra coordinates are added to the automatic set.
+   vector<VibCoordSpec> chosen;
+   const string text = string(extra.utf8_str());
+   for (size_t i = 0; i < text.size();) {
+      if (text[i] == ',' || text[i] == ' ' || text[i] == ';') { i++; continue; }
+      size_t e = i;
+      while (e < text.size() && text[e] != ',' && text[e] != ' ' && text[e] != ';') e++;
+      VibCoordSpec c = { 0, { -1, -1, -1, -1 } };
+      const string tok = text.substr(i, e - i);
+      i = e;
+      size_t k = 0;
+      bool ok = true;
+      while (k < tok.size() && ok) {
+         size_t d = k;
+         while (d < tok.size() && isdigit((unsigned char)tok[d])) d++;
+         if (d == k || c.n >= 4) { ok = false; break; }
+         c.at[c.n++] = atoi(tok.substr(k, d - k).c_str()) - 1;
+         if (d < tok.size() && tok[d] != '-') ok = false;
+         k = d + 1;
+      }
+      if (!ok || c.n < 2)
+         return fail(wxString::FromUTF8(("Cannot read \"" + tok + "\": give 2, 3 or 4 "
+                     "atom numbers joined by dashes, e.g. 3-4 or 9-4-2.").c_str()));
+      for (int t = 0; t < c.n; t++)
+         if (c.at[t] < 0 || c.at[t] >= nat)
+            return fail(wxString::FromUTF8(("\"" + tok + "\" names an atom the structure "
+                        "does not have.").c_str()));
+      chosen.push_back(c);
+   }
+   if (!VibAnalysis::composition(in, vector<VibCoordSpec>(), vector<int>(), comp))
+      return fail("No internal coordinates could be built for this structure.");
+   if (!chosen.empty()) {
+      vector<VibCoordSpec> all = comp.coords;
+      all.insert(all.end(), chosen.begin(), chosen.end());
+      if (!VibAnalysis::composition(in, all, vector<int>(), comp))
+         return fail("No internal coordinates could be built for this structure.");
+   }
+   return true;
+}
+
+
+bool NModePanel::showComposition(const wxString& extra, wxString *error)
+{
+   VibComposition comp;
+   vector<double> freqs;
+   if (!compositionRows(extra, comp, freqs, error)) return false;
+   if (!p_compFrame) {
+      wxFrame *frame = new wxFrame(wxGetTopLevelParent(this), wxID_ANY,
+                                   "Vibrational Frequencies: mode composition",
+                                   wxDefaultPosition, wxSize(820, 560));
+      wxPanel *pane = new wxPanel(frame);
+      wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+      wxStaticText *intro = new wxStaticText(pane, wxID_ANY,
+         "Share of each mode along bond stretches and angle bends (all bonds, "
+         "and the bends at non-hydrogen atoms), normalised to 100 % over "
+         "this set. This is not a potential energy distribution: stretches "
+         "and bends overlap, so shares are indicative.");
+      intro->Wrap(780);
+      top->Add(intro, 0, wxEXPAND | wxALL, 6);
+      wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+      row->Add(new wxStaticText(pane, wxID_ANY, "Add coordinates (atom numbers):"),
+               0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+      p_compExtra = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
+                                   wxDefaultSize, wxTE_PROCESS_ENTER);
+      p_compExtra->SetToolTip("2 atoms = stretch, 3 = bend about the middle "
+                              "atom, 4 = torsion; e.g. \"3-4, 9-4-2, 1-2-4-5\". "
+                              "Atom numbers are those in the coordinate names.");
+      row->Add(p_compExtra, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+      wxButton *apply = new wxButton(pane, wxID_ANY, "Apply");
+      row->Add(apply, 0, wxALIGN_CENTER_VERTICAL);
+      top->Add(row, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
+      p_compNote = new wxStaticText(pane, wxID_ANY, "");
+      top->Add(p_compNote, 0, wxEXPAND | wxALL, 6);
+      p_compGrid = new wxGrid(pane, wxID_ANY);
+      p_compGrid->CreateGrid(0, 3);
+      p_compGrid->EnableEditing(false);
+      p_compGrid->SetRowLabelSize(0);
+      p_compGrid->SetColLabelValue(0, "Mode");
+      p_compGrid->SetColLabelValue(1, "cm-1");
+      p_compGrid->SetColLabelValue(2, "Largest contributions");
+      top->Add(p_compGrid, 1, wxEXPAND | wxALL, 6);
+      pane->SetSizer(top);
+      wxBoxSizer *fs = new wxBoxSizer(wxVERTICAL);
+      fs->Add(pane, 1, wxEXPAND);
+      frame->SetSizer(fs);
+      p_compFrame = frame;
+      auto doApply = [this](wxCommandEvent&) {
+         wxString err;
+         if (!showComposition(p_compExtra->GetValue(), &err))
+            p_compNote->SetLabel(err);
+      };
+      apply->Bind(wxEVT_BUTTON, doApply);
+      p_compExtra->Bind(wxEVT_TEXT_ENTER, doApply);
+   }
+   p_comp = comp;
+   p_compFreqs = freqs;
+   if (p_compExtra && p_compExtra->GetValue() != extra) p_compExtra->ChangeValue(extra);
+   fillComposition();
+   p_compFrame->Show(true);
+   p_compFrame->Raise();
+   return true;
+}
+
+
+void NModePanel::fillComposition()
+{
+   if (!p_compGrid) return;
+   if (p_compGrid->GetNumberRows() > 0)
+      p_compGrid->DeleteRows(0, p_compGrid->GetNumberRows());
+   if (p_compNote) p_compNote->SetLabel("");
+   for (size_t m = 0; m < p_comp.percent.size(); m++) {
+      if (fabs(p_compFreqs[m]) < 10.0) continue;   // translations, rotations
+      vector<size_t> order(p_comp.names.size());
+      for (size_t i = 0; i < order.size(); i++) order[i] = i;
+      const vector<double>& pc = p_comp.percent[m];
+      std::sort(order.begin(), order.end(),
+                [&](size_t a, size_t b) { return pc[a] > pc[b]; });
+      wxString text;
+      for (size_t i = 0; i < order.size() && i < 4; i++) {
+         if (pc[order[i]] < 5.0) break;
+         if (!text.empty()) text += "; ";
+         text += wxString::FromUTF8(p_comp.names[order[i]].c_str());
+         text += wxString::Format(" %.0f %%", pc[order[i]]);
+      }
+      const int r = p_compGrid->GetNumberRows();
+      p_compGrid->AppendRows(1);
+      p_compGrid->SetCellValue(r, 0, wxString::Format("%d", (int)m + 1));
+      p_compGrid->SetCellValue(r, 1, wxString::Format("%.1f", p_compFreqs[m]));
+      p_compGrid->SetCellValue(r, 2, text);
+   }
+   p_compGrid->SetColSize(0, 50);
+   p_compGrid->SetColSize(1, 70);
+   const int w = p_compGrid->GetClientSize().x - 130 - 20;
+   p_compGrid->SetColSize(2, std::max(300, w));
+}
+
+
+bool NModePanel::scriptComposition(const wxString& extra, const wxString& textPath,
+                                   const wxString& pngPath)
+{
+   wxString err;
+   if (!showComposition(extra, &err)) return false;
+   FILE *out = fopen(textPath.utf8_str(), "w");
+   if (out == 0) return false;
+   fprintf(out, "coords");
+   for (size_t i = 0; i < p_comp.names.size(); i++)
+      fprintf(out, "\t%s", p_comp.names[i].c_str());
+   fprintf(out, "\n");
+   for (size_t m = 0; m < p_comp.percent.size(); m++) {
+      fprintf(out, "%zu\t%.2f", m + 1, p_compFreqs[m]);
+      for (size_t i = 0; i < p_comp.percent[m].size(); i++)
+         fprintf(out, "\t%.2f", p_comp.percent[m][i]);
+      fprintf(out, "\n");
+   }
+   fclose(out);
+   if (!pngPath.empty()) {
+      p_compFrame->Layout();
+      p_compFrame->Update();
+      const wxSize sz = p_compFrame->GetClientSize();
+      wxBitmap bmp(sz.x, sz.y, 24);
+      wxMemoryDC mdc(bmp);
+      wxYield();
+      wxScreenDC cdc;
+      const wxPoint at = p_compFrame->ClientToScreen(wxPoint(0, 0));
+      mdc.Blit(0, 0, sz.x, sz.y, &cdc, at.x, at.y);
+      mdc.SelectObject(wxNullBitmap);
+      bmp.SaveFile(pngPath, wxBITMAP_TYPE_PNG);
+   }
+   return true;
+}
+
+
+/**
+ * ECCE_NMODE_COMPOSITION_DUMP=<path> (#486): once the panel is up, open the
+ * Mode composition window, write its numbers to <path> and its picture to
+ * <path>.png.  ECCE_NMODE_COMPOSITION_COORDS adds coordinates ("3-4 9-4-2").
+ */
+void NModePanel::dumpCompositionIfRequested()
+{
+   //  ECCE_NMODE_HIGHLIGHT=<path>, ECCE_NMODE_HIGHLIGHT_ATOMS="2 3" (1-based):
+   //  colour the spectrum by those atoms as a viewer selection would, and
+   //  write the key text and the spectrum to <path> and <path>.png.
+   if (const char *hp = getenv("ECCE_NMODE_HIGHLIGHT")) {
+      const string target(hp);
+      const string atomText = getenv("ECCE_NMODE_HIGHLIGHT_ATOMS") ? getenv("ECCE_NMODE_HIGHLIGHT_ATOMS") : "";
+      wxTimer *timer = new wxTimer();
+      timer->Bind(wxEVT_TIMER, [this, target, atomText](wxTimerEvent&) {
+         std::vector<int> atoms;
+         std::istringstream is(atomText);
+         int a;
+         while (is >> a) atoms.push_back(a - 1);
+         const std::string key = highlightAtoms(atoms);
+         if (FILE *out = fopen(target.c_str(), "w")) {
+            fprintf(out, "key %s\n", key.c_str());
+            for (size_t m = 0; m < p_spectrum->highlight().size(); m++)
+               fprintf(out, "%zu\t%.2f\n", m + 1, p_spectrum->highlight()[m]);
+            fclose(out);
+         }
+         wxBitmap shot(1000, 700, 24);
+         wxMemoryDC mdc(shot);
+         p_spectrum->paintOnto(mdc, wxSize(1000, 700));
+         mdc.SelectObject(wxNullBitmap);
+         shot.SaveFile(wxString::FromUTF8((target + ".png").c_str()), wxBITMAP_TYPE_PNG);
+         if (getenv("ECCE_EXIT_AFTER_DUMP") != 0)
+            wxTheApp->CallAfter([]() {
+               wxWindow *top = wxTheApp->GetTopWindow();
+               if (top != 0) top->Close(true);
+            });
+      });
+      timer->StartOnce(2500);
+   }
+   const char *path = getenv("ECCE_NMODE_COMPOSITION_DUMP");
+   if (path == 0) return;
+   const string target(path);
+   const char *extra = getenv("ECCE_NMODE_COMPOSITION_COORDS");
+   const wxString coords = extra ? wxString::FromUTF8(extra) : wxString();
+   wxTimer *timer = new wxTimer();
+   timer->Bind(wxEVT_TIMER, [this, target, coords](wxTimerEvent&) {
+      scriptComposition(coords, wxString::FromUTF8(target.c_str()),
+                        wxString::FromUTF8((target + ".png").c_str()));
+      if (getenv("ECCE_EXIT_AFTER_DUMP") != 0)
+         wxTheApp->CallAfter([]() {
+            wxWindow *top = wxTheApp->GetTopWindow();
+            if (top != 0) top->Close(true);
+         });
+   });
+   timer->StartOnce(2500);
+}
+
+
+std::string NModePanel::highlightAtoms(const std::vector<int>& atoms)
+{
+   std::vector<double> share;
+   std::string label;
+   if (atoms.size() >= 2) {
+      VibComposition comp;
+      vector<double> freqs;
+      IPropCalculation *expt = getCalculation();
+      PropVector *vec = expt ? (PropVector*) expt->getProperty("VIBFREQ") : 0;
+      PropVecTable *vib = expt ? dynamic_cast<PropVecTable*>(expt->getProperty("VIB")) : 0;
+      Fragment frag;
+      if (vec && vib && expt->getFragment(frag) &&
+          vib->rows() == (int)frag.numAtoms() && vib->tables() == vec->rows()) {
+         const int nat = (int)frag.numAtoms(), nm = vec->rows();
+         vector< vector<double> > modes(nm, vector<double>(3*nat));
+         for (int m = 0; m < nm; m++) {
+            freqs.push_back(vec->value(m));
+            for (int a = 0; a < nat; a++)
+               for (int k = 0; k < 3; k++) modes[m][3*a+k] = vib->value(m, a, k);
+         }
+         VibInput in;
+         if (VibAnalysis::input(frag, freqs, modes, in))
+            VibAnalysis::selectionShare(in, atoms, share, label);
+      }
+   }
+   if (p_spectrum) p_spectrum->setHighlight(share, label);
+   if (p_spectrumPop) p_spectrumPop->setHighlight(share, label);
+   return share.empty() ? std::string() : label;
+}
+
+
+void NModePanel::eventMCB(const ecce::Event& event)
+{
+   if (event.getName() != "SelectionChanged" || !p_active || !p_structureOk) return;
+   SGFragment *frag = getFW().getSceneGraph().getFragment();
+   if (!frag) return;
+   std::vector<int> picked;
+   for (size_t i = 0; i < frag->m_atomHighLight.size(); i++) {
+      const int a = frag->m_atomHighLight[i];
+      if (a >= 0 && a < (int)frag->numAtoms() && frag->atomRef(a)->atomicSymbol() != "Nub")
+         picked.push_back(a);
+   }
+   highlightAtoms(picked);
 }
