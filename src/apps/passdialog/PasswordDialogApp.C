@@ -1,4 +1,5 @@
 
+#include <cstdlib>
 #include <iostream>
   using std::cout;
   using std::endl;
@@ -37,10 +38,16 @@ bool PasswordDialogApp::OnInit()
   label += ":";
   authDlg.setPasswordLabel(label);
 
-  if (authDlg.ShowModal() == wxID_OK) {
-    cout << authDlg.getPassword() << endl;
+  // Returning false from OnInit makes wx exit with 255, which a caller
+  // (ecce-askpass) cannot tell from a failure: say OK or cancel instead.
+  // ECCE_TEST_AUTH_ANSWER: the answer without the dialog ("cancel" cancels).
+  const char* test = getenv("ECCE_TEST_AUTH_ANSWER");
+  const bool ok = test ? std::string(test) != "cancel"
+                       : authDlg.ShowModal() == wxID_OK;
+  if (ok) {
+    cout << (test ? std::string(test) : authDlg.getPassword()) << endl;
+    exit(0);
   }
-
-  return false; // exits program immediately
+  exit(1);
 }
 

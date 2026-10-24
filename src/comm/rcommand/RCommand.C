@@ -5,6 +5,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <cstdio>
 #include <iostream>
   using std::cout;
   using std::endl;
@@ -420,8 +421,10 @@ static string askpassProgram()
 // ssh configuration shares (ControlMaster), which libssh cannot, and it
 // never prompts.
 bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
-                                 const string& jumpHost, const string& password)
+                                 const string& jumpHost, const string& password,
+                                 bool* tryLibssh)
 {
+  if (tryLibssh) *tryLibssh = false;
   OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
   t->setConnectTimeout(RC_CONNECT_TIMEOUT);
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
@@ -435,6 +438,12 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
   string error;
   if (!t->connect(error)) {
     p_errMessage = error;
+    // ECCE's own master could not be opened (not a user's cancel): the
+    // built-in client still logs in with its own password dialog.
+    if (tryLibssh && t->ownsMaster() && !t->loginCancelled() &&
+        !OpenSshTransport::configSharesConnection(machine, userName) &&
+        !OpenSshTransport::configProxiesConnection(machine, userName))
+      *tryLibssh = true;
     delete t;
     return false;
   }
@@ -467,10 +476,16 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
                           const string& password, const string& jumpHost)
 {
   if (useOpenssh(machine, userName, jumpHost)) {
-    if (sshConnectOpenssh(machine, userName, jumpHost, password)) return true;
+    bool tryLibssh = false;
+    if (sshConnectOpenssh(machine, userName, jumpHost, password, &tryLibssh))
+      return true;
 #ifdef ECCE_HAVE_LIBSSH
-    // The front end refuses forwarding: the same host goes on with libssh.
-    if (!OpenSshTransport::forwardingRefused(machine, jumpHost)) return false;
+    // ECCE's master failed, or the front end refuses forwarding: the same
+    // host goes on with libssh.
+    if (tryLibssh)
+      fprintf(stderr, "ecce: using the built-in ssh client for %s\n",
+              machine.c_str());
+    else if (!OpenSshTransport::forwardingRefused(machine, jumpHost)) return false;
 #else
     return false;
 #endif

@@ -62,8 +62,9 @@ case $kind in
       fi
     fi
     [ -x "$bin/passdialog" ] || exit 1
-    answer=$("$bin/passdialog" "$what" "$host" "$user") || cancel
-    # passdialog prints nothing when it is cancelled.
+    # The answer, not the exit status, decides: an older passdialog exits
+    # 255 after OK.  It prints nothing when it is cancelled.
+    answer=$("$bin/passdialog" "$what" "$host" "$user")
     [ -n "$answer" ] || cancel
     printf '%s\n' "$answer"
     ;;

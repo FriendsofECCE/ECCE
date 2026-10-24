@@ -124,7 +124,8 @@ struct OpenSshStream : RemoteStream {
 OpenSshTransport::OpenSshTransport(const std::string& host, int port,
                                    const std::string& user)
   : p_host(host), p_user(user), p_program("ssh"), p_port(port), p_jumpPort(0),
-    p_connectTimeout(15), p_askTimeout(120), p_connected(false)
+    p_connectTimeout(15), p_askTimeout(120), p_connected(false),
+    p_cancelled(false)
 {
 }
 
@@ -555,6 +556,7 @@ std::mutex gMasterMu;
 // Hosts whose attempt was refused or cancelled, and when: a monitor that
 // reconnects every few seconds must not put up a dialog every time.
 std::map<std::string, time_t> gMasterFailed;
+std::set<std::string> gMasterCancelled;   // of those, the ones the user cancelled
 const int kRetryAfterSec = 120;
 }  // namespace
 
@@ -562,6 +564,7 @@ void OpenSshTransport::forgetMasterAttempts()
 {
   std::lock_guard<std::mutex> lock(gMasterMu);
   gMasterFailed.clear();
+  gMasterCancelled.clear();
 }
 
 bool OpenSshTransport::masterAlive() const
@@ -612,8 +615,10 @@ bool OpenSshTransport::openMaster()
   const std::string key = p_configFile + "\n" + p_user + "\n" + p_host + "\n" +
                           p_jumpHost + "\n" + std::to_string(overflowIndex());
   std::map<std::string, time_t>::iterator f = gMasterFailed.find(key);
-  if (f != gMasterFailed.end() && time(0) - f->second < kRetryAfterSec)
+  if (f != gMasterFailed.end() && time(0) - f->second < kRetryAfterSec) {
+    p_cancelled = gMasterCancelled.count(key) > 0;
     return false;
+  }
 
   // ssh asks again after a refusal; askpass records a cancel in this file
   // (its directory is ours alone) so that one cancel is one dialog.
@@ -686,6 +691,15 @@ bool OpenSshTransport::openMaster()
     if (rd >= 0) close(rd);
   }
   bool ok = !r.timedOut && r.status == 0 && masterAlive();
+  p_cancelled = !ok && haveState &&
+                access((stateDir + "/cancelled").c_str(), F_OK) == 0;
+  if (!ok && !p_cancelled) {
+    std::string why = r.timedOut ? "no answer in time" : r.err;
+    while (!why.empty() && (why[why.size()-1] == '\n' || why[why.size()-1] == '\r'))
+      why.erase(why.size() - 1);
+    fprintf(stderr, "ecce: could not open the ssh connection to %s: %s\n",
+            p_host.c_str(), why.c_str());
+  }
   if (haveState) {
     unlink((stateDir + "/password").c_str());
     unlink((stateDir + "/cancelled").c_str());
@@ -693,6 +707,8 @@ bool OpenSshTransport::openMaster()
   }
   if (ok) gMasterFailed.erase(key);
   else gMasterFailed[key] = time(0);
+  if (p_cancelled) gMasterCancelled.insert(key);
+  else gMasterCancelled.erase(key);
   return ok;
 }
 
@@ -718,8 +734,13 @@ void OpenSshTransport::explain(TransportResult& r) const
 {
   if (r.timedOut) return;
   if (r.status == 255) {
+    // "Run ssh in a terminal" helps only when the user's own config shares.
     std::string why = explainFailure(p_host, r.err,
-      sharedConnection());
+      configSharesConnection(p_host, p_user, p_configFile));
+    if (ownsFromDir() && mentions(lower(r.err), kLoginText))
+      why = p_cancelled ? "The login to " + p_host + " was cancelled."
+                        : "The login to " + p_host + " was refused; check the "
+                          "user name and password, then try again.";
     if (!why.empty()) { r.error = why; r.status = -1; }
   } else if (r.status < 0 && !r.error.empty() &&
              r.error.find("command not found") != std::string::npos) {

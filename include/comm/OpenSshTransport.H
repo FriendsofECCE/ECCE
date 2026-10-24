@@ -140,6 +140,11 @@ public:
   // user's own configuration does the sharing or nothing is shared.
   std::vector<std::string> controlArgs() const;
 
+  // ECCE opens and owns this host's master (ECCE_SSH_CONTROL_DIR).
+  bool ownsMaster() const { return ownsFromDir(); }
+  // The last login dialog for the master was cancelled by the user.
+  bool loginCancelled() const { return p_cancelled; }
+
 private:
   OpenSshTransport(const OpenSshTransport&);
   OpenSshTransport& operator=(const OpenSshTransport&);
@@ -182,6 +187,7 @@ private:
   std::string p_askpass, p_password;
   int p_port, p_jumpPort, p_connectTimeout, p_askTimeout;
   bool p_connected;
+  bool p_cancelled;
 };
 
 #endif
