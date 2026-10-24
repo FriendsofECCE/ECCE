@@ -135,7 +135,8 @@ Progress={integrator} point=$1/{nsteps}
 # (the monitor reads the \r-separated records of that stream); gensub also
 # echoes the tolerance there, so it is known before the first step.  Dynamics has no
 # such line, so the log's energies table gives temperature, pressure
-# and the potential at each log step; the averages that end a run are not read.
+# and the potential at each log step.  The run's averages are taken from those
+# points (Average=): the log's own averages block carries no deviations.
 # The job's own output (mdrun -v steps, the tolerance, the density) reaches the
 # declared output file only when the job ends, so the monitor reads it itself.
 [PROGRESS]
@@ -179,18 +180,29 @@ TableStop=A V E R A G E S
 Begin=^ECCE-TABLE-END (?:md|sd|bd)
 Progress=gmx-epot step={laststep} time={simtime} epot={t_Potential}
 History=epot
+Average=epot
 [END]
 
 [PROGRESS]
 Begin=^ECCE-TABLE-END (?:md|sd|bd)
 Progress=gmx-temp step={laststep} time={simtime} temp={t_Temperature}
 History=temp
+Average=temp
 [END]
 
 [PROGRESS]
 Begin=^ECCE-TABLE-END (?:md|sd|bd)
 Progress=gmx-pres step={laststep} time={simtime} pres={t_Pressure_bar}
 History=pres
+Average=pres
+[END]
+
+# The total energy, for the summary's "Final energy" (a dynamics run's is its
+# average); the box does not draw this stage.
+[PROGRESS]
+Begin=^ECCE-TABLE-END (?:md|sd|bd)
+Progress=gmx-etot step={laststep} etot={t_Total_Energy}
+Average=etot
 [END]
 
 # gensub echoes the density from the energy file (the log has none).

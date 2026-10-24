@@ -4041,7 +4041,8 @@ sub PDFileRead
         'times',
         'table',
         'tablestop',
-        'stream'
+        'stream',
+        'average'
     );
     my @pdValsFreq = (
         $PD_VAL_FREQ_ALL,
@@ -4358,6 +4359,10 @@ sub PDFileRead
 #				(non-word characters squeezed to _), and the
 #				line "ECCE-TABLE-END <integrator>" is then fed to
 #				the entries, which build the snapshot from them
+#	Average=<key>		with Progress: keep the running mean and standard
+#				deviation of this key over the stage's records,
+#				sent as avg= sd= n= (a dynamics run's temperature
+#				is its average, not the last log step)
 #	TableStop=<regex>	with Table: no table is read after this line
 #				(GROMACS' run averages repeat the marker)
 #
@@ -4374,7 +4379,8 @@ sub ProgressEntryAdd
         next if ($_ eq $PD_KEY_TYPE || $_ eq $PD_KEY_BEGIN
                  || $_ eq 'progress' || $_ eq 'history'
                  || $_ eq 'remember' || $_ eq 'times'
-                 || $_ eq 'table' || $_ eq 'tablestop' || $_ eq 'stream');
+                 || $_ eq 'table' || $_ eq 'tablestop' || $_ eq 'stream'
+                 || $_ eq 'average');
         return "$where: rule key '$_' is not used here";
     }
     #  Stream=<file>: the job's own output, which the job script only appends
@@ -4423,7 +4429,10 @@ sub ProgressEntryAdd
     return "$where: Times belongs with Remember" if (exists $$buf{'times'});
     return "$where: Progress must start with a stage name"
         unless ($$buf{'progress'} =~ /^\s*(?:[A-Za-z][\w-]*|\{\w+\})(\s|$)/);
-    push @gProgList, [$re, $$buf{'progress'}, $$buf{'history'}];
+    return "$where: Average takes a key"
+        if (exists $$buf{'average'} && $$buf{'average'} !~ /^\w+$/);
+    push @gProgList, [$re, $$buf{'progress'}, $$buf{'history'}, undef, undef,
+                      undef, undef, $$buf{'average'}];
     undef;
 }
 
@@ -4626,6 +4635,26 @@ sub ProgressLine
                 my $max = $stage eq 'opt' ? $gProgOptHistMax : $gProgHistMax;
                 shift @$h while (@$h > $max);
                 $$st{'fresh'} = 0;
+            }
+        }
+
+        my $ak = $$entry[7];
+        if (defined $ak && exists $set{$ak} && $set{$ak} =~ /^-?[\d.]+(?:e[-+]?\d+)?$/i
+            && (!defined $rec || !defined $$st{'avgrec'} || $rec != $$st{'avgrec'}))
+        {
+            #  Welford's running mean and sum of squares, once per record.
+            $$st{'avgrec'} = $rec;
+            my $a = $$st{'avg'} ||= { 'n' => 0, 'mean' => 0, 'm2' => 0 };
+            my $d = $set{$ak} - $$a{'mean'};
+            $$a{'n'}++;
+            $$a{'mean'} += $d / $$a{'n'};
+            $$a{'m2'} += $d * ($set{$ak} - $$a{'mean'});
+            my $sd = $$a{'n'} > 1 ? sqrt($$a{'m2'} / ($$a{'n'} - 1)) : 0;
+            foreach my $kv (['avg', sprintf('%.6g', $$a{'mean'})],
+                            ['sd', sprintf('%.4g', $sd)], ['n', $$a{'n'}])
+            {
+                push @{$$st{'keys'}}, $$kv[0] unless (exists $$st{'f'}{$$kv[0]});
+                $$st{'f'}{$$kv[0]} = $$kv[1];
             }
         }
 

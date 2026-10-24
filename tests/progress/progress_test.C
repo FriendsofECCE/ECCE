@@ -248,6 +248,24 @@ int main()
     check(tp && tp->plot.size() == 3 && tp->lines.size() >= 2, "gmx: temperature plot with its time");
   }
 
+  // Dynamics shows the run's average and deviation (#517); the total energy
+  // stage is for the summary only.
+  {
+    JobProgress g;
+    g.parse("md point=400/400\ngmx-temp step=400 time=0.8 temp=2.9e+02 avg=300.21 sd=3.1 n=9\n"
+            "gmx-temp~ temp=287,300,291\ngmx-etot step=400 etot=-65612 avg=-65600 sd=41 n=9\n");
+    bool found = false, etot = false;
+    for (const auto& b : g.running(0)) {
+      if (b.title == "gmx-etot") etot = true;
+      for (const auto& l : b.lines)
+        if (l == "temperature (K) 300.21 \xc2\xb1 3.1 (average)") found = true;
+    }
+    check(found, "gmx: temperature line is the average with its deviation");
+    check(!etot, "gmx: total energy stage is not drawn");
+    double a, sd;
+    check(g.average("gmx-etot", a, sd) && a == -65600 && sd == 41, "gmx: average() reads the total energy");
+  }
+
   cout << (failures ? "FAILED" : "PASSED") << endl;
   return failures ? 1 : 0;
 }
