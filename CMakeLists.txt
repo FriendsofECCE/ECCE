@@ -2167,7 +2167,8 @@ set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
 # parsers) on real gmx, task after task.  Both SKIP without gmx.
 # See docs/GROMACS.md.
 add_executable(gromacs_groconv tests/gromacs_md/groconv.C
-               src/dsm/chemistry/GromacsStructure.C)
+               src/dsm/chemistry/GromacsStructure.C
+               src/tdat/chemistry/CompactCell.C)
 add_test(NAME gromacs_structure
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/groconv_test.py
@@ -2175,9 +2176,18 @@ add_test(NAME gromacs_structure
 set_tests_properties(gromacs_structure PROPERTIES SKIP_RETURN_CODE 77)
 # #476: wrapCompact puts a solvated dodecahedron's waters into the compact cell.
 add_executable(gromacs_wrap_test tests/gromacs_md/wraptest.C
-               src/dsm/chemistry/GromacsStructure.C)
+               src/dsm/chemistry/GromacsStructure.C
+               src/tdat/chemistry/CompactCell.C)
 add_test(NAME gromacs_wrap_compact
          COMMAND gromacs_wrap_test
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/fixtures/dodeca_water.gro)
+# #512: the same wrap on a Fragment, as an existing calculation's stored
+# structure is restored.
+add_executable(gromacs_fragwrap_test tests/gromacs_md/fragwrap.C
+               src/dsm/chemistry/GromacsStructure.C)
+target_link_libraries(gromacs_fragwrap_test PRIVATE eccetdat ecceutil)
+add_test(NAME gromacs_fragment_wrap
+         COMMAND ${CMAKE_COMMAND} -E env ECCE_HOME=${CMAKE_SOURCE_DIR} ECCE_REALUSERHOME=${CMAKE_BINARY_DIR} $<TARGET_FILE:gromacs_fragwrap_test>
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/fixtures/dodeca_water.gro)
 # #477: the plots of a real minimisation and NPT run, through the real monitor.
 add_test(NAME progress-gromacs

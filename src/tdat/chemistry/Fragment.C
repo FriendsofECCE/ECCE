@@ -43,6 +43,7 @@
 #include "util/EcceException.H"
 
 #include "tdat/LatticeDef.H"
+#include "tdat/CompactCell.H"
 #include "tdat/Fragment.H"
 #include "tdat/LinearPointGroup.H"
 #include "tdat/FragUtil.H"
@@ -5196,6 +5197,49 @@ static string groElement(const string& atomName, const string& resName)
     if ((mixed || ion) && tpt.isValid(two.c_str())) return two;
   }
   return first;
+}
+
+bool Fragment::wrapIntoCompactCell(bool rebond)
+{
+  if (!p_lattice) return false;
+  const int n = (int)numAtoms();
+  if (n == 0) return false;
+  vector<MPoint>* v = p_lattice->toVectors();
+  double cell[3][3];
+  const bool ok = v && v->size() == 3;
+  if (ok) {
+    for (int i = 0; i < 3; i++) {
+      cell[i][0] = (*v)[i].x(); cell[i][1] = (*v)[i].y(); cell[i][2] = (*v)[i].z();
+    }
+  }
+  delete v;
+  if (!ok) return false;
+
+  std::vector<std::array<double, 3> > x(n);
+  std::vector<int> resOf(n);
+  std::vector<char> heavy(n);
+  int id = 0;
+  Residue* prev = 0;
+  for (int i = 0; i < n; i++) {
+    TAtm* a = atomRef(i);
+    const double* c = a->coordinates();
+    for (int k = 0; k < 3; k++) x[i][k] = c[k];
+    // An atom without a residue is its own, so it never joins a molecule.
+    Residue* r = a->getResidue();
+    if (i > 0 && (r == 0 || r != prev)) id++;
+    resOf[i] = id;
+    prev = r;
+    heavy[i] = a->atomicSymbol() != "H";
+  }
+  // The .gro wrap's 0.175 nm heavy-atom bond cut-off, in Angstrom.
+  if (!CompactCell::wrap(x, resOf, heavy, cell, 1.75)) return false;
+  for (int i = 0; i < n; i++) atomRef(i)->coordinates(x[i].data());
+  if (rebond) {
+    deleteAllBonds();
+    addCovalentBonds(true);
+    setEnvIndices();
+  }
+  return true;
 }
 
 bool Fragment::restoreGRO(istream& infile, bool genBonds)

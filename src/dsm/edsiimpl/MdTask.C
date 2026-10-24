@@ -603,6 +603,9 @@ bool MdTask::getFragment(Fragment& frag, const EcceURL& url)
             // and we want this upgrade to be handled transparently
             frag.useSymmetry(false);
             if (fragName != "") frag.name(fragName);
+            // Runs made before the compact wrap was done at creation still
+            // hold the brick mdrun wrote; show them the same way.
+            frag.wrapIntoCompactCell();
          }
          else { 
             p_msgStack->add(getEDSI()->m_msgStack);
@@ -993,6 +996,7 @@ bool MdTask::hasPmf() const
 bool MdTask::getOutputFragment(istream *is, Fragment& frag) const
 {
   bool ret = frag.restorePDB(*is);
+  if (ret) frag.wrapIntoCompactCell();
 
   // initialize symmetry flag because it isn't part of the v2.0 schema
   // and we want this upgrade to be handled transparently
