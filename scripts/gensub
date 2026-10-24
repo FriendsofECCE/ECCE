@@ -1936,7 +1936,10 @@ sub gromacs()
     $log = $::outFile;
     $log =~ s/\.[^.]*$//;
     $log .= ".log";
-    $retval .= "  rm -f $::outFile\n";
+    #  A rerun reuses the directory: the last run's log and frames must go
+    #  before the symlink is made, or the monitor opens the old log and keeps
+    #  reading it after mdrun moves it aside.
+    $retval .= "  rm -f $::outFile $log ecce-parse-traj.txt ecce_traj.pdb ecce-parse-pull.txt\n";
     $retval .= "  ln -s $log $::outFile\n";
     #  A minimiser prints Epot and Fmax per step only with -v; the monitor
     #  plots them (gromacs.desc).  Dynamics gets no -v: it would only add

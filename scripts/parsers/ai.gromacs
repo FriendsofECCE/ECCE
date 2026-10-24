@@ -107,10 +107,15 @@ sub GMXRunControl {
   #  gromacs.desc parses, so a value of 0 would leave ECCE with no
   #  progress and no TEVEC trace at all -- not a silent failure exactly,
   #  but an empty result that looks like one.
-  push(@l, "nstlog                   = " .
-           &numOr("ES.Runtype.MD.LogInterval", "100"));
-  push(@l, "nstenergy                = " .
-           &numOr("ES.Runtype.MD.EnergyInterval", "100"));
+  my $nstlog = &numOr("ES.Runtype.MD.LogInterval", "100");
+  my $nstenergy = &numOr("ES.Runtype.MD.EnergyInterval", "100");
+  push(@l, "nstlog                   = $nstlog");
+  push(@l, "nstenergy                = $nstenergy");
+  #  grompp requires nstenergy (and nstlog) to be multiples of nstcalcenergy,
+  #  100 by default; the intervals here follow the run length, so set it.
+  my ($a, $b) = (int($nstlog), int($nstenergy));
+  ($a, $b) = ($b, $a % $b) while ($b > 0);
+  push(@l, "nstcalcenergy            = $a") if ($a > 0);
   my $r = join("\n", @l);
   $_ = $r;
   return $r;
