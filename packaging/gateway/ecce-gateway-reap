@@ -169,6 +169,7 @@ while read -r root; do
     [ "${#key}" -eq 8 ] || continue
     case "$live_ids" in *" $key"[0-9a-f]*" "*) continue ;; esac
     [ -z "$(find "$d/.born" -mmin -2 2>/dev/null)" ] || continue
+    [ "$(cat "$d/.home" 2>/dev/null)" = "${ECCE_HOME:-}" ] || continue
     for sock in "$d"/*; do
       [ -S "$sock" ] || continue
       ssh -O exit -S "$sock" x >/dev/null 2>&1

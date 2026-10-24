@@ -97,6 +97,10 @@ ecce_ssh_control_setup() {
     # Written once, never touched: the reaper's age of this directory (its
     # own mtime moves with every socket).
     [ -e "$dir/.born" ] || : > "$dir/.born"
+    # The root is shared by every install (a build tree, a test's isolated
+    # home); a reaper sees only its own install's programs, so it may only
+    # judge the directories that install made.
+    [ -e "$dir/.home" ] || printf '%s\n' "${ECCE_HOME:-}" > "$dir/.home"
     ECCE_SSH_CONTROL_DIR="$dir"
     export ECCE_SSH_CONTROL_DIR
     return 0
