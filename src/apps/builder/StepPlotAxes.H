@@ -14,6 +14,7 @@
 #include "dsm/IPropCalculation.H"
 #include "tdat/PropVector.H"
 #include "util/UnitDisplay.H"
+#include "MovingAverage.H"
 #include "XYPlotCanvas.H"
 
 namespace StepPlotAxes {
@@ -121,24 +122,21 @@ inline Shaped shape(const std::string& key, const std::string& units,
   return r;
 }
 
-// The mean of y[0..i] at each i: it levels off once the run is long enough
-// for the average to have converged.
-inline std::vector<double> runningAverage(const std::vector<double>& y)
+// The thin second line of an MD plot: a moving average over 10 % of the
+// points, with the window named in the legend (in time when x is time).
+inline void addMovingAverage(XYPlotCanvas *plot, const std::vector<double>& x,
+                             const std::vector<double>& y,
+                             const wxString& timeUnit)
 {
-  std::vector<double> r(y.size());
-  double sum = 0;
-  for (size_t i = 0; i < y.size(); i++) {
-    sum += y[i];
-    r[i] = sum / (double)(i + 1);
-  }
-  return r;
-}
-
-// The thin second line of an MD plot.  The caller names curve 0.
-inline void addRunningAverage(XYPlotCanvas *plot, const std::vector<double>& x,
-                              const std::vector<double>& y)
-{
-  const int c = plot->addCurve(x, runningAverage(y), "running average", -1,
+  const size_t w = MovingAverage::windowPoints(y.size());
+  wxString name;
+  if (!timeUnit.empty() && x.size() > 1)
+    name = wxString::Format("moving average (%.3g %s window)",
+                            w * (x.back() - x.front()) / (x.size() - 1),
+                            timeUnit);
+  else
+    name = wxString::Format("moving average (%d points)", (int)w);
+  const int c = plot->addCurve(x, MovingAverage::centred(y, w), name, -1,
                                XYPlotCanvas::LINE);
   plot->setCurveThin(c, true);
   plot->setShowKey(true);

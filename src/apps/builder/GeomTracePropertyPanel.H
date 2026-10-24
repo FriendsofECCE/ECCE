@@ -14,6 +14,7 @@
 
 class PlaybackControl;
 class XYPlotCanvas;
+class wxChoice;
 
 
 class GeomTracePropertyPanel : public VizPropertyPanel,
@@ -56,6 +57,8 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     virtual void fillPlot();
 
     void OnToolClick(wxCommandEvent& event);
+    void OnPropChoice(wxCommandEvent& event);
+    void selectProp(const string& key);
     void OnPlaybackTick(wxCommandEvent& event);
     void OnPlaybackLoop(wxCommandEvent& event);
     void OnPointClick(int curve, int index);
@@ -71,6 +74,7 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
 
     XYPlotCanvas     *p_plotCtrl;
     PlaybackControl *p_playback;
+    wxChoice        *p_propChoice;   // every logged series, above the plot
 
     int p_delay;
     bool p_recompute;

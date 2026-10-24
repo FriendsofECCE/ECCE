@@ -11,7 +11,7 @@ so `gromacs.energy` never sees it) into `TIMEVEC` in ps, one point per log
 step beside TEVEC/PRESSVEC. `StepPlotAxes::mdTime` returns it (ns from 1000 ps)
 only when it matches the plotted series in length and advances; a
 minimisation (time 0 throughout) and QM keep the step index. Time-axis
-plots get a thin "running average" curve (cumulative mean); the s.d. stays in
+plots get a thin moving-average curve (10 % window, #518); the s.d. stays in
 MD Summary. Plot names drop the " Vector" suffix; `unitLabel` gives bar,
 kg/m³, nm³. A point click still maps plot point i to trace frame i (clamped,
 `GTStepCmd`): the trace holds at most 100 thinned frames with no time.
