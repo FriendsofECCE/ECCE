@@ -34,7 +34,8 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 SKIP = 77
 CPP_KEYS = ["shell", "sourcefile", "frontendmachine", "frontendbypass",
             "perlpath", "qmgrpath", "libpath", "xappspath", "noremoteaccess",
-            "usersubmit", "singleconnect", "checkscratch"]
+            "usersubmit", "singleconnect", "checkscratch",
+            "allocationcommand"]
 
 failures = []
 

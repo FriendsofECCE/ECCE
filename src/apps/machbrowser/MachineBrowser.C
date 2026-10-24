@@ -119,7 +119,8 @@ MachineBrowser::MachineBrowser(      wxWindow* parent,
 
     p_slctElmt = NULL;
 
-    p_statusQueries.reserve(3);
+    p_statusQueries.reserve(4);
+    p_statusQueries.push_back("");
     p_statusQueries.push_back("");
     p_statusQueries.push_back("");
     p_statusQueries.push_back("");
@@ -128,6 +129,7 @@ MachineBrowser::MachineBrowser(      wxWindow* parent,
     p_modeDscpns.push_back("Machine Status");
     p_modeDscpns.push_back("Disk Usage");
     p_modeDscpns.push_back("Processes");
+    p_modeDscpns.push_back("Allocation");
 
     this->createControls();
 
@@ -180,6 +182,8 @@ void MachineBrowser::createControls()
         = (ewxButton *)(FindWindowById(ID_BUTTON_MACHINEBROWSER_QUERYDISK));
     p_processQueryButton
         = (ewxButton *)(FindWindowById(ID_BUTTON_MACHINEBROWSER_QUERYPROCESS));
+    p_allocQueryButton
+        = (ewxButton *)(FindWindowById(ID_BUTTON_MACHINEBROWSER_QUERYALLOC));
 
     p_machineConfigButton
         = (ewxButton *)(FindWindowById(ID_BUTTON_MACHINEBROWSER_CONFIGURE));
@@ -330,8 +334,15 @@ void MachineBrowser::runTestHook(const string& png)
     if (p_machModel->size() > 0)
     {
         p_slctElmt = (MachineTableElement *)(p_machModel->elementAt(0));
+        //  ECCE_MACHBROWSER_MACHINE picks another machine by name.
+        if (const char* want = getenv("ECCE_MACHBROWSER_MACHINE"))
+            if (MachineTableElement* e = findTableElement(want))
+                p_slctElmt = e;
         this->refreshControls();
     }
+    fprintf(stderr, "[MACHBROWSER] allocation: enabled=%d command=%s\n",
+            p_allocQueryButton->IsEnabled() ? 1 : 0,
+            p_statusQueries[3].c_str());
     wxCommandEvent ev(wxEVT_BUTTON, ID_BUTTON_MACHINEBROWSER_MACHSETTINGS);
     ev.SetEventObject(p_machSettingsButton);
     if (p_machSettingsButton->IsEnabled())
@@ -416,6 +427,16 @@ void MachineBrowser::updateQueryButtons()
     p_processQueryButton->SetLabel(p_modeDscpns[2]);
     p_processQueryButton->Enable(queryAllwd);
 
+    //  Greyed out, with the way to enable it, when nothing is set.
+    bool haveAlloc = !p_statusQueries[3].empty();
+    p_allocQueryButton->SetLabel(p_modeDscpns[3]);
+    p_allocQueryButton->Enable(queryAllwd && haveAlloc);
+    p_allocQueryButton->SetToolTip(haveAlloc || p_slctElmt == NULL ?
+        "Show the project allocation and its use on this machine" :
+        "No allocation command for this machine. Set one in Machine "
+        "settings, on the Connection tab, under Allocation command "
+        "(for example projinfo).");
+
     p_inCtrlUpdate = prevState;
 }
 
@@ -493,6 +514,16 @@ void MachineBrowser::processQueryButtonClickCB(wxCommandEvent& event)
 }
 
 
+void MachineBrowser::allocQueryButtonClickCB(wxCommandEvent& event)
+{
+    wxBusyCursor cursor;
+
+    p_modeDscpnLabel->SetLabel(p_modeDscpns[3]);
+    p_statusTextCtrl->SetValue(queryStatus(3));
+    p_viewDetachButton->Enable(true);
+}
+
+
 void MachineBrowser::machinesTableViewSelectionChangedCB(wxCommandEvent& event)
 {
     if (!p_inCtrlUpdate)
@@ -546,10 +577,17 @@ void MachineBrowser::refreshControls()
             p_statusQueries[0] = withQueue(refQMngr->queryMachineCommand());
             p_statusQueries[1] = withQueue(refQMngr->queryDiskUsageCommand());
             p_statusQueries[2] = withQueue(refQMngr->queryQueueCommand());
+            p_statusQueries[3] = withQueue(RefQueueManager::allocationCommand(
+                isWkstn ? NULL : refQMngr, rgstn->allocationCommand()));
 
             p_modeDscpns[0] = "Machine Status";
             p_modeDscpns[1] = "Disk Usage";
             p_modeDscpns[2] = (isWkstn ? "Processes" : "Queue");
+            p_modeDscpns[3] = "Allocation";
+        }
+        else
+        {
+            p_statusQueries[3] = "";
         }
 
         p_viewDetachButton->Enable(false);

@@ -78,6 +78,7 @@ class MachineBrowser: public MachineBrowserGUI,
         void machineQueryButtonClickCB(wxCommandEvent& event);
         void diskQueryButtonClickCB(wxCommandEvent& event);
         void processQueryButtonClickCB(wxCommandEvent& event);
+        void allocQueryButtonClickCB(wxCommandEvent& event);
         void machineRegisterMenuItemClickCB( wxCommandEvent& event );
         void configureButtonClickCB( wxCommandEvent& event );
         void machSettingsButtonClickCB( wxCommandEvent& event );
@@ -122,6 +123,7 @@ class MachineBrowser: public MachineBrowserGUI,
         ewxButton                   *p_machineQueryButton;
         ewxButton                   *p_diskQueryButton;
         ewxButton                   *p_processQueryButton;
+        ewxButton                   *p_allocQueryButton;
 
         vector<string>               p_statusQueries;
 

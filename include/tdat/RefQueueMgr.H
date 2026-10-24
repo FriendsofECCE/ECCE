@@ -69,6 +69,11 @@ public:
     string queryMachineCommand(void) const;
     string queryQueueCommand(void) const;
     string queryDiskUsageCommand(void) const;
+    // "" when the queue manager has no allocation query
+    string queryAllocationCommand(void) const;
+    // The machine's own command if it has one, else the queue manager's.
+    static string allocationCommand(const RefQueueManager* qmgr,
+                                    const string& machineOverride);
     string jobIdParseExpression(void) const;
     string jobIdParseLeadingText(void) const;
     string jobIdParseTrailingText(void) const;
@@ -87,6 +92,7 @@ protected:
     void queryMachineCommand(const string& command);
     void queryQueueCommand(const string& command);
     void queryDiskUsageCommand(const string& command);
+    void queryAllocationCommand(const string& command);
     void jobIdParseExpression(const string& command);
     void jobIdParseLeadingText(const string& command);
     void jobIdParseTrailingText(const string& command);
@@ -104,6 +110,7 @@ private:
     string   p_queryMachineCommand;// "llq ##machine##"
     string   p_queryQueueCommand;  // "llq ##queue##"
     string   p_queryDiskUsageCommand; // "df -k "
+    string   p_queryAllocationCommand;
     string   p_jobIdParseExpression;  // ".*"
     string   p_jobIdParseLeadingText; // "The job \""
     string   p_jobIdParseTrailingText;// "\""

@@ -81,6 +81,8 @@ public:
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_MACHINEBROWSER_QUERYDISK
     virtual    void diskQueryButtonClickCB( wxCommandEvent& event );
 
+    virtual    void allocQueryButtonClickCB( wxCommandEvent& event );
+
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_MACHINEBROWSER_QUERYPROCESS
     virtual    void processQueryButtonClickCB( wxCommandEvent& event );
 
@@ -127,6 +129,7 @@ public:
     static const wxWindowID ID_BUTTON_MACHINEBROWSER_QUERYPROCESS;
     static const wxWindowID ID_TEXTCTRL_MACHINEBROWSER_STATUS;
     static const wxWindowID ID_BUTTON_MACHINEBROWSER_QUERYDISK;
+    static const wxWindowID ID_BUTTON_MACHINEBROWSER_QUERYALLOC;
     static const wxWindowID ID_PANEL_MACHINEBROWSER_MAIN;
     static const wxWindowID ID_BUTTON_MACHINEBROWSER_QUERYMACHINE;
     static const wxWindowID ID_BUTTON_MACHINEBROWSER_CONFIGURE;

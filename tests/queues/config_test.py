@@ -186,6 +186,42 @@ def precedence(build, perl):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def allocation(build):
+    """The Machine Browser's Allocation command (#494): a machine's own
+    allocationCommand wins, else the queue manager's, else none."""
+    tmp = tempfile.mkdtemp(prefix="ecce-config-")
+    try:
+        home = os.path.join(tmp, "home")
+        user = os.path.join(tmp, "user")
+        os.makedirs(os.path.join(user, ".ECCE"))
+        os.makedirs(os.path.join(home, "siteconfig"))
+        os.symlink(os.path.join(REPO, "siteconfig", "QueueManagers"),
+                   os.path.join(home, "siteconfig", "QueueManagers"))
+        write(os.path.join(home, "siteconfig", "Machines"), MACHINES)
+        write(os.path.join(user, ".ECCE", "CONFIG.testhost"),
+              "allocationCommand: projinfo -a\n")
+        env = dict(os.environ, ECCE_HOME=home, ECCE_REALUSERHOME=user)
+        exe = os.path.join(build, "configdump")
+
+        def run(*a):
+            return subprocess.run([exe] + list(a), env=env, text=True,
+                                  stdout=subprocess.PIPE).stdout.strip()
+        check(run("-allocation", "Slurm") == "sshare -l -U -u $USER",
+              "Slurm: sshare by default")
+        for q in ("PBS", "LSF", "Moab", "SGE", "HTCondor", "Shell"):
+            check(run("-allocation", q) == "", "%s: no allocation command" % q)
+        check(run("-allocation", "Slurm", "projinfo") == "projinfo",
+              "Slurm: the machine's command replaces the default")
+        check(run("-allocation", "PBS", "projinfo") == "projinfo",
+              "PBS: the machine's command is used")
+        acc = parseDump(run("-accessors", "testhost"))
+        check(acc.get("allocationCommand") == "projinfo -a",
+              "RefMachine reads allocationCommand from the machine's CONFIG: %r"
+              % acc.get("allocationCommand"))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def threeLayers(build, perl):
     """-remote with the server's files cached (#192): [the user's copy of
     their server registrations, the server's site files, the install's].  The
@@ -752,6 +788,7 @@ def main():
     if not args.processmachine:
         precedence(args.build, perl)
         threeLayers(args.build, perl)
+        allocation(args.build)
         sentinelScript(perl)
         moduleScript(perl)
         explain(args.build, perl)

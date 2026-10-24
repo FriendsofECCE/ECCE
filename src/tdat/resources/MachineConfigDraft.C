@@ -379,7 +379,7 @@ const vector<string>& MCD::cppKeys()
   if (k.empty()) {
     const char* names[] = { "shell", "sourcefile", "frontendmachine",
         "frontendbypass", "perlpath", "qmgrpath", "libpath", "xappspath",
-        "noremoteaccess", "usersubmit", "singleconnect", "checkscratch" };
+        "noremoteaccess", "usersubmit", "singleconnect", "checkscratch", "allocationcommand" };
     for (size_t i = 0; i < sizeof names / sizeof names[0]; i++)
       k.push_back(names[i]);
   }

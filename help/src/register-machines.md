@@ -16,7 +16,7 @@ are:
 | Tab | What it holds |
 |---|---|
 | **Machine** | **Machine** (the host name), **Name**, **Vendor**, **Model**, **Processor**, **Nodes** and **Processors**, and four values that are yours only: **Run directory**, **Scratch directory**, **Account** and **Username**. The Launcher starts from them. |
-| **Connection** | The remote environment (**Shell**, which is bash unless you choose another, and the script run at login), the login host, paths on the remote machine, and **How jobs reach this machine**. |
+| **Connection** | The remote environment (**Shell**, which is bash unless you choose another, and the script run at login), the **Allocation command**, the login host, paths on the remote machine, and **How jobs reach this machine**. |
 | **Codes** | One entry per code: **Modules** (environment modules loaded before the code runs), **Program** (the full path to the executable), **Environment variables**, **Command line**, and under **Advanced** commands run before and after the program and files to remove. |
 | **Job script** | The request lines for the queue manager, and the commands run before and after the calculation. |
 | **Queues** | **Queue manager**, **Allocation accounts used**, and each queue with its limits and defaults. |

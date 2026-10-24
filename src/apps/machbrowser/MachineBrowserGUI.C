@@ -51,6 +51,7 @@ const wxWindowID MachineBrowserGUI::ID_PANEL_MACHINEBROWSER_MACHINES = wxNewId()
 const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_QUERYPROCESS = wxNewId();
 const wxWindowID MachineBrowserGUI::ID_TEXTCTRL_MACHINEBROWSER_STATUS = wxNewId();
 const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_QUERYDISK = wxNewId();
+const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_QUERYALLOC = wxNewId();
 const wxWindowID MachineBrowserGUI::ID_PANEL_MACHINEBROWSER_MAIN = wxNewId();
 const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_QUERYMACHINE = wxNewId();
 const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_CONFIGURE = wxNewId();
@@ -76,6 +77,7 @@ BEGIN_EVENT_TABLE( MachineBrowserGUI, ewxFrame )
     EVT_BUTTON( ID_BUTTON_MACHINEBROWSER_QUERYDISK, MachineBrowserGUI::diskQueryButtonClickCB )
 
     EVT_BUTTON( ID_BUTTON_MACHINEBROWSER_QUERYPROCESS, MachineBrowserGUI::processQueryButtonClickCB )
+    EVT_BUTTON( ID_BUTTON_MACHINEBROWSER_QUERYALLOC, MachineBrowserGUI::allocQueryButtonClickCB )
 
     EVT_BUTTON( ID_BUTTON_MACHINEBROWSER_CONFIGURE, MachineBrowserGUI::configureButtonClickCB )
 
@@ -189,6 +191,9 @@ void MachineBrowserGUI::CreateControls()
     ewxButton* itemButton15 = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_QUERYPROCESS, _("Process Status"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer7->Add(itemButton15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
+    ewxButton* itemButtonAlloc = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_QUERYALLOC, _("Allocation"), wxDefaultPosition, wxDefaultSize, 0 );
+    itemBoxSizer7->Add(itemButtonAlloc, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+
     ewxStaticLine* itemStaticLine16 = new ewxStaticLine( itemPanel3, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer4->Add(itemStaticLine16, 0, wxGROW|wxALL, 3);
 
@@ -265,6 +270,11 @@ void MachineBrowserGUI::diskQueryButtonClickCB( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_MACHINEBROWSER_QUERYDISK in MachineBrowserGUI. 
+}
+
+void MachineBrowserGUI::allocQueryButtonClickCB( wxCommandEvent& event )
+{
+    event.Skip();
 }
 
 /*!
