@@ -341,12 +341,18 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
   for (const auto& f : st.fields) {
     double v, t;
     bool hasT;
-    if (f.first == rec || f.first == "energy" || f.first == "eta") continue;
+    if (f.first == rec || f.first == "energy" || f.first == "eta" ||
+        f.first == "avg" || f.first == "sd" || f.first == "n") continue;
     if (!split(f.second, v, t, hasT)) continue;
     if (!hasT) {
       // A value whose target the code never prints: shown as a plain line.
       const string label = criterionLabel(st.name, f.first);
-      if (label != f.first)
+      double avg, sd;
+      // A dynamics run's value is its average over the run, not the last step.
+      if (label != f.first && isLinearKey(f.first) && average(st.name, avg, sd))
+        b.lines.push_back(label + " " + fmt("%.5g", avg) + " \xc2\xb1 " +
+                          fmt("%.2g", sd) + " (average)");
+      else if (label != f.first)
         b.lines.push_back(label + " " + (isLinearKey(f.first) || f.first == "time"
                                          ? fmt("%.5g", v) : fmt("%.1e", v)));
       continue;
@@ -379,6 +385,19 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
 }
 
 
+bool JobProgress::average(const string& stageName, double& avg, double& sd,
+                          int *n) const
+{
+  const Stage *st = stage(stageName);
+  double count;
+  if (!st || !number(st->field("avg"), avg) || !number(st->field("sd"), sd) ||
+      !number(st->field("n"), count))
+    return false;
+  if (n) *n = (int)count;
+  return true;
+}
+
+
 vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
 {
   // The innermost loop at the top: SCF, optimisation, scan (the outermost),
@@ -389,7 +408,7 @@ vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
     if (const Stage *st = stage(name)) out.push_back(stageBlock(*st, age, finished));
   for (const auto& st : p_stages)
     if (st.name != "scan" && st.name != "opt" && st.name != "neb" && st.name != "freq" &&
-        st.name != "scf")
+        st.name != "scf" && st.name != "gmx-etot")
       out.push_back(stageBlock(st, age, finished));
   return out;
 }

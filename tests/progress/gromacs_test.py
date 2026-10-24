@@ -171,6 +171,19 @@ def main():
         check(t and 150 < t[-1] < 450, "md: temperature near 300 K (%s)" % (t[-1:] or None))
         d = history(snap, "gmx-dens")
         check(d and 700 < d[-1] < 1300, "md: density of water-like order (%s)" % (d[-1:] or None))
+        # Average and deviation over the run's 9 log points, from the temperatures
+        t = history(snap, "gmx-temp")
+        m = re.search(r"^gmx-temp .*\bavg=(\S+) sd=(\S+) n=(\d+)$", snap, re.M)
+        if m and len(t) == 9:
+            mean = sum(t) / 9
+            sd = (sum((x - mean) ** 2 for x in t) / 8) ** 0.5
+            check(abs(float(m.group(1)) - mean) < 1e-3 * abs(mean) and abs(float(m.group(2)) - sd) < 1e-2 * sd + 1e-3
+                  and m.group(3) == "9", "md: temperature average %s +- %s over %s points" % m.groups())
+        else:
+            check(False, "md: temperature carries avg= sd= n=")
+        check(re.search(r"^gmx-etot .*\bavg=\S+ sd=\S+ n=9$", snap, re.M) is not None, "md: total energy average kept")
+        check(" avg=" not in "\n".join(l for l in end.splitlines() if l.startswith("gmx-epot")),
+              "em: a minimisation keeps its last value, no average")
         check("gmx-epot step=400 " in snap, "md: last point is step 400 (the averages are not a point)")
     finally:
         if not os.environ.get("KEEP"):

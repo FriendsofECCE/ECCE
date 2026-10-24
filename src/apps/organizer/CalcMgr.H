@@ -304,6 +304,8 @@ public:
   // forgets it (a new run).  Only the shown summary's Progress box is
   // repainted; nothing else is reloaded.
   void progressUpdate(const EcceURL & url, const string & text);
+  // Drops the snapshot held for a calculation that is not running (a rerun).
+  void forgetProgress(const EcceURL & url);
   bool liveProgress(const EcceURL & url, string & text,
                     double & received) const;
   // A finished calculation with an output but no stored snapshot (it ran

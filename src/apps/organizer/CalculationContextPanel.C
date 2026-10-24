@@ -50,6 +50,7 @@
 #include "CalcMgrGUI.H"
 #include "CalculationContextPanel.H"
 #include "ProgressBox.H"
+#include "util/JobProgress.H"
 
 //  The Basis Set button and its rows are dropped for a code that has no basis
 //  set; the registration (needsBasis of its theories) decides.
@@ -230,7 +231,13 @@ void CalculationContextPanel::updateProgress()
     text = live;
     received = liveAt;
   }
-  if (!started) text.clear();
+  // A rerun resets the state: the old run's snapshot must be gone before
+  // the new one is submitted, or it is drawn until the first new message.
+  if (!started) {
+    text.clear();
+    p_storedProgress.clear();
+    if (p_calcMgr) p_calcMgr->forgetProgress(getUrl());
+  }
 
   // Read once: the property comes from the data server.
   if (finished && !p_energyRead) {
@@ -255,6 +262,16 @@ void CalculationContextPanel::updateProgress()
                        : hof ? "Heat of formation" : "Final energy",
                value.c_str(), unit.empty() ? "" : (" " + unit).c_str());
       p_progressBox->setFinalEnergy(line, value, unit);
+      // A dynamics run's result is the average over the run, not the last step.
+      JobProgress jp;
+      double avg, sd;
+      if (!scanned && !hof && jp.parse(text) && jp.average("gmx-etot", avg, sd)) {
+        const string v = valueLabel(avg, 6);
+        char avgLine[160];
+        snprintf(avgLine, sizeof avgLine, "Total energy %s \xc2\xb1 %.2g%s (average)",
+                 v.c_str(), sd, unit.empty() ? "" : (" " + unit).c_str());
+        p_progressBox->setFinalEnergy(avgLine, v, unit);
+      }
     }
   }
 

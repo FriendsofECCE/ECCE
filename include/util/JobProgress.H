@@ -97,6 +97,11 @@ public:
   // "14:02 (17 min ago)": when the job was last heard from, local time.
   static std::string lastHeardText(double when, double now);
 
+  // The running mean and standard deviation the monitor keeps for a
+  // dynamics stage (avg= sd= n=); false without them.
+  bool average(const std::string& stage, double& avg, double& sd,
+               int *n = 0) const;
+
   // The stage's title: "Optimisation", "SCF", "Frequencies", or its name.
   static std::string title(const std::string& stage);
 

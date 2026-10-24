@@ -6927,6 +6927,12 @@ void CalcMgr::progressUpdate(const EcceURL & url, const string & text)
 }
 
 
+void CalcMgr::forgetProgress(const EcceURL & url)
+{
+  p_liveProgress.erase(progressKey(url));
+}
+
+
 bool CalcMgr::liveProgress(const EcceURL & url, string & text,
                            double & received) const
 {
