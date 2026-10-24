@@ -1,13 +1,13 @@
 .	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
-.	http://www.emsl.pnl.gov/ecce:annotation		NWChem, B3LYP/6-31G*: optimisation, frequencies and properties, imported from NWChem's own output.
+.	http://www.emsl.pnl.gov/ecce:annotation		NWChem, B3LYP/6-31G*. This calculation shows the effect of tetrahedral symmetry: degenerate orbitals (a1, t2) and degenerate vibrational modes.
 .	http://www.emsl.pnl.gov/ecce:application		NWChem
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Fri, 23 Oct 2026 15:21:32 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sat, 24 Oct 2026 14:43:40 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.2
-.	http://www.emsl.pnl.gov/ecce:creationdate		Fri, 23 Oct 2026 15:21:31 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.2
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sat, 24 Oct 2026 14:43:35 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methane__DU0gbO
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methane__DsTZ3n
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
@@ -44,7 +44,7 @@
 .	http://www.emsl.pnl.gov/ecce:runStatusReason		
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
-.	http://www.emsl.pnl.gov/ecce:startdate		Fri, 23 Oct 2026 15:21:32 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Sat, 24 Oct 2026 14:43:37 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
 .	http://www.emsl.pnl.gov/ecce:version		Mon_May_12_21:20:53_2025 Version 7.2.3

@@ -28,7 +28,8 @@ VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",
             "job_clienthost", "job_clientid", "launch_user", "launch_machine",
             "launch_remoteShell", "launch_rundir", "version"}
 # The progress record carries the clock of the run it came from.
-CLOCK = re.compile(r"(sent|at)=[0-9.]+")
+# seq counts the monitor's messages, which depends on timing, not content.
+CLOCK = re.compile(r"(seq|sent|at)=[0-9.]+")
 IGNORED_FILES = re.compile(r"(^|/)(Thumbnail[^/]*|[^/]*\.lock)$")
 DATE = re.compile(r"\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d\d \w{3} \d{4} "
                   r"\d\d:\d\d:\d\d GMT")
