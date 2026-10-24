@@ -50,6 +50,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A calculation can live in any local folder, not only in a data store](calculations-in-any-local-folder.md)
 - [In local data mode the Organizer's root is the user's home, labelled Local data](organizer-local-tree-has-no-users-level.md)
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
+- [ECCE's own ssh master (ECCE_SSH_CONTROL_DIR): one login per host per session](owned-ssh-master.md)
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
 - [Full builds and long suites go to radium/tellurium via tools/offload](long-suites-go-to-offload-hosts.md)
 - [Windows local jobs: paths in sh scripts, the job id, Strawberry perl, the broker](windows-local-jobs-pitfalls.md)

@@ -420,12 +420,18 @@ static string askpassProgram()
 // ssh configuration shares (ControlMaster), which libssh cannot, and it
 // never prompts.
 bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
-                                 const string& jumpHost)
+                                 const string& jumpHost, const string& password)
 {
   OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
   t->setConnectTimeout(RC_CONNECT_TIMEOUT);
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
   t->setAskpass(askpassProgram());
+  // Offered to an ECCE-owned master's password prompt only (see setPassword).
+  string pw = password;
+  if (pw == "" && !OpenSshTransport::ownedControlDir().empty())
+    RCommand::getPassCache(p_shell,  machine,
+                           userName == "" ? string(Ecce::realUser()) : userName, pw);
+  t->setPassword(pw);
   string error;
   if (!t->connect(error)) {
     p_errMessage = error;
@@ -443,7 +449,7 @@ bool RCommand::useOpenssh(const string& machine, const string& userName,
                           const string& jumpHost)
 {
 #ifdef ECCE_HAVE_LIBSSH
-  OpenSshTransport::Backend b = OpenSshTransport::backendFor(machine, userName);
+  OpenSshTransport::Backend b = OpenSshTransport::backendFor(machine, userName, "", jumpHost);
   // A front end whose own login is shared needs OpenSSH as well.
   if (b == OpenSshTransport::BACKEND_LIBSSH && jumpHost != "" &&
       OpenSshTransport::requestedBackend() == OpenSshTransport::BACKEND_AUTO &&
@@ -460,8 +466,15 @@ bool RCommand::useOpenssh(const string& machine, const string& userName,
 bool RCommand::sshConnect(const string& machine, const string& userName,
                           const string& password, const string& jumpHost)
 {
-  if (useOpenssh(machine, userName, jumpHost))
-    return sshConnectOpenssh(machine, userName, jumpHost);
+  if (useOpenssh(machine, userName, jumpHost)) {
+    if (sshConnectOpenssh(machine, userName, jumpHost, password)) return true;
+#ifdef ECCE_HAVE_LIBSSH
+    // The front end refuses forwarding: the same host goes on with libssh.
+    if (!OpenSshTransport::forwardingRefused(machine, jumpHost)) return false;
+#else
+    return false;
+#endif
+  }
 #ifdef ECCE_HAVE_LIBSSH
   return sshConnectLibssh(machine, userName, password, jumpHost);
 #else

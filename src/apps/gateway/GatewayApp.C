@@ -41,6 +41,7 @@ using std::ofstream;
 #include <limits.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include "util/Ecce.H"
@@ -877,6 +878,38 @@ void GatewayApp::reconnectJobStoreMessaging()
 }
 
 
+// Session over (#487): the ssh masters take no new sessions, but running
+// monitor streams go on; ecce-gateway-reap closes them once the last job
+// store of the session is gone. Not waited for, no shell, output dropped.
+static void stopSshMasters()
+{
+#ifndef _WIN32
+  const char *dir = getenv("ECCE_SSH_CONTROL_DIR");
+  if (dir == NULL || *dir == '\0') return;
+  DIR *d = opendir(dir);
+  if (d == NULL) return;
+  std::vector<string> socks;
+  struct dirent *e;
+  while ((e = readdir(d)) != NULL) {
+    string path = string(dir) + "/" + e->d_name;
+    struct stat st;
+    if (e->d_name[0] != '.' && lstat(path.c_str(), &st) == 0 && S_ISSOCK(st.st_mode))
+      socks.push_back(path);
+  }
+  closedir(d);
+  for (size_t i = 0; i < socks.size(); i++) {
+    pid_t pid = fork();
+    if (pid == 0) {
+      int nul = open("/dev/null", O_RDWR);
+      if (nul >= 0) { dup2(nul, 0); dup2(nul, 1); dup2(nul, 2); }
+      execlp("ssh", "ssh", "-O", "stop", "-S", socks[i].c_str(), "x", (char *)NULL);
+      _exit(127);
+    }
+  }
+#endif
+}
+
+
 /**
  * Called once a second while the Gateway frame is hidden (#185). Quits
  * once an app of this session has been seen and none is left.
@@ -903,6 +936,7 @@ void GatewayApp::checkSessionEnd()
   if (!p_sessionSeen || ++p_idleTicks < 2) return;
 
   p_sessionWatch->Stop();
+  stopSshMasters();
   p_gateway->quit(true);
 }
 

@@ -49,6 +49,18 @@ case $kind in
       *passcode*|*verification*|*token*|*otp*|*duo*|*code*) what=passcode ;;
       *) what=password ;;
     esac
+    # A password ECCE already has comes once, through a FIFO, for the
+    # password prompt only; a retry (or a passcode) goes to the dialog.
+    if [ "$what" = password ] && [ -n "${ECCE_ASKPASS_PWFIFO:-}" ] && [ -p "$ECCE_ASKPASS_PWFIFO" ]; then
+      fifo=$ECCE_ASKPASS_PWFIFO
+      pw=
+      IFS= read -r pw < "$fifo"
+      rm -f "$fifo"
+      if [ -n "$pw" ]; then
+        printf '%s\n' "$pw"
+        exit 0
+      fi
+    fi
     [ -x "$bin/passdialog" ] || exit 1
     answer=$("$bin/passdialog" "$what" "$host" "$user") || cancel
     # passdialog prints nothing when it is cancelled.

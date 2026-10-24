@@ -78,10 +78,11 @@ int main()
   spit(stub,
     "#!/bin/sh\n"
     "echo \"$@\" >> \"$STUB_LOG\"\n"
-    "op=; master=\n"
+    "op=; master=; cp=\n"
     "while [ $# -gt 0 ]; do case \"$1\" in\n"
     "  -T|-x) shift;; -f|-N) master=1; shift;; -O) op=$2; shift 2;;\n"
-    "  -o|-F|-p|-l|-J) shift 2;; *) break;; esac; done\n"
+    "  -o) case \"$2\" in ControlPath=*) cp=${2#ControlPath=};; esac; shift 2;;\n"
+    "  -F|-p|-l|-J) shift 2;; *) break;; esac; done\n"
     "host=$1; shift\n"
     "case \"$host\" in\n"
     // A host with a shared connection that has to be opened by a login: -O
@@ -98,6 +99,14 @@ int main()
     "      : > \"$STUB_MASTER\"; exit 0; fi\n"
     "    [ -e \"$STUB_MASTER\" ] || deny;;\n"
     "  noauth) echo \"u@noauth: Permission denied (publickey,password).\" >&2; exit 255;;\n"
+    // MaxSessions: the first master is full, the overflow one (-1) is not.
+    "  full)\n"
+    "    [ -n \"$op\" ] && exit 0\n"
+    "    case \"$cp\" in *-1) ;; *) echo \"channel 2: open failed: administratively prohibited: open failed\" >&2; exit 255;; esac;;\n"
+    "  fwd)\n"
+    "    [ -n \"$op\" ] && { echo \"Control socket connect($STUB_MASTER): No such file or directory\" >&2; exit 255; }\n"
+    "    echo \"channel 0: open failed: administratively prohibited: open failed\" >&2\n"
+    "    echo \"stdio forwarding failed\" >&2; exit 255;;\n"
     "  badkey) echo \"Host key verification failed.\" >&2; exit 255;;\n"
     "  down) echo \"ssh: connect to host down port 22: Connection refused\" >&2; exit 255;;\n"
     "  mux) echo \"mux_client_request_session: read from master failed: Broken pipe\" >&2; exit 255;;\n"
@@ -554,6 +563,149 @@ int main()
     setenv("ECCE_SSH_BACKEND", "bogus", 1);
     check("an unknown value means auto", O::requestedBackend() == O::BACKEND_AUTO);
     unsetenv("ECCE_SSH_BACKEND");
+  }
+
+  // ECCE_SSH_CONTROL_DIR: an owned master for every host.
+  {
+    typedef OpenSshTransport O;
+    unsetenv("ECCE_SSH_BACKEND");
+    unsetenv("ECCE_SSH_FRONTEND");
+    string plain = tmp + "/cfg_own";
+    spit(plain, "Host plain\n  User x\nHost usershared\n  ControlMaster auto\n"
+                "  ControlPath ~/.ssh/cm-%C\n");
+    string cd = tmp + "/cdir";
+    mkdir(cd.c_str(), 0700);
+    chmod(cd.c_str(), 0700);
+
+    unsetenv("ECCE_SSH_CONTROL_DIR");
+    check("control dir unset: plain -> libssh", O::backendFor("plain", "", plain) == O::BACKEND_LIBSSH);
+    {
+      O t("plain", 0, "x");
+      t.setConfigFile(plain);
+      check("control dir unset: no socket", t.controlSocketPath().empty());
+      check("control dir unset: no Control args", t.controlArgs().empty());
+    }
+
+    setenv("ECCE_SSH_CONTROL_DIR", cd.c_str(), 1);
+#ifdef _WIN32
+    check("windows: control dir ignored", O::backendFor("plain", "", plain) == O::BACKEND_LIBSSH);
+#else
+    check("control dir set: plain -> openssh", O::backendFor("plain", "", plain) == O::BACKEND_OPENSSH);
+    check("control dir set: ECCE_SSH_BACKEND=libssh still wins",
+      (setenv("ECCE_SSH_BACKEND", "libssh", 1), O::backendFor("plain", "", plain) == O::BACKEND_LIBSSH));
+    unsetenv("ECCE_SSH_BACKEND");
+    check("control dir set: nested front end -> libssh",
+      (setenv("ECCE_SSH_FRONTEND", "nested", 1),
+       O::backendFor("plain", "", plain, "front") == O::BACKEND_LIBSSH));
+    check("control dir set: forward front end -> openssh",
+      (setenv("ECCE_SSH_FRONTEND", "forward", 1),
+       O::backendFor("plain", "", plain, "front") == O::BACKEND_OPENSSH));
+    unsetenv("ECCE_SSH_FRONTEND");
+
+    O a("plain", 0, "x");
+    a.setConfigFile(plain);
+    string sock = a.controlSocketPath();
+    string base = sock.substr(sock.rfind('/') + 1);
+    check("socket is in the control dir", sock.compare(0, cd.size() + 1, cd + "/") == 0, sock);
+    check("socket name is 16 hex digits", base.size() == 16 &&
+          base.find_first_not_of("0123456789abcdef") == string::npos, base);
+    O a2("plain", 0, "x");
+    a2.setConfigFile(plain);
+    check("socket name is stable", a2.controlSocketPath() == sock);
+    O b1("plain", 22, "x"), b2("plain", 0, "y"), b3("plain", 0, "x"), b4("other", 0, "x");
+    b3.setJumpHost("jump");
+    b1.setConfigFile(plain); b2.setConfigFile(plain);
+    b3.setConfigFile(plain); b4.setConfigFile(plain);
+    check("socket differs by port, user, jump host and host",
+          b1.controlSocketPath() != sock && b2.controlSocketPath() != sock &&
+          b3.controlSocketPath() != sock && b4.controlSocketPath() != sock);
+    bool hasPath = false, hasPersist = false;
+    std::vector<string> ca = a.controlArgs();
+    for (size_t i = 0; i < ca.size(); i++) {
+      if (ca[i] == "ControlPath=" + sock) hasPath = true;
+      if (ca[i] == "ControlPersist=8h") hasPersist = true;
+    }
+    check("controlArgs: ControlPath and ControlPersist=8h", hasPath && hasPersist);
+    setenv("ECCE_SSH_CONTROL_PERSIST", "2h", 1);
+    bool p2 = false;
+    ca = a.controlArgs();
+    for (size_t i = 0; i < ca.size(); i++) if (ca[i] == "ControlPersist=2h") p2 = true;
+    check("ECCE_SSH_CONTROL_PERSIST overrides", p2);
+    unsetenv("ECCE_SSH_CONTROL_PERSIST");
+
+    O us("usershared", 0, "x");
+    us.setConfigFile(plain);
+    check("user ControlMaster wins: no socket of ours", us.controlSocketPath().empty());
+    check("user ControlMaster wins: no Control args", us.controlArgs().empty());
+
+    // refused directories fall back to today's behaviour
+    string wide = tmp + "/wide";
+    mkdir(wide.c_str(), 0755);
+    chmod(wide.c_str(), 0755);
+    setenv("ECCE_SSH_CONTROL_DIR", wide.c_str(), 1);
+    check("group-readable dir refused", O::ownedControlDir().empty() &&
+          O::backendFor("plain", "", plain) == O::BACKEND_LIBSSH);
+    string link = tmp + "/link";
+    symlink(cd.c_str(), link.c_str());
+    setenv("ECCE_SSH_CONTROL_DIR", link.c_str(), 1);
+    check("symlinked dir refused", O::ownedControlDir().empty());
+    setenv("ECCE_SSH_CONTROL_DIR", (tmp + "/nonexistent").c_str(), 1);
+    check("missing dir refused", O::ownedControlDir().empty());
+    string longd = tmp + "/" + string(90, 'd');
+    mkdir(longd.c_str(), 0700);
+    setenv("ECCE_SSH_CONTROL_DIR", longd.c_str(), 1);
+    check("too long for a socket name: refused", O::ownedControlDir().empty() &&
+          O::backendFor("plain", "", plain) == O::BACKEND_LIBSSH);
+    // the longest directory that still fits: 104 - 1 - 19 - 17
+    string fit = tmp.size() < 66 ? tmp + "/" + string(66 - tmp.size() - 1, 'f') : "";
+    if (!fit.empty()) {
+      mkdir(fit.c_str(), 0700);
+      setenv("ECCE_SSH_CONTROL_DIR", fit.c_str(), 1);
+      check("longest fitting dir accepted", O::ownedControlDir() == fit);
+    }
+    // MaxSessions overflow: the refused command moves to master -1 and stays there.
+    setenv("ECCE_SSH_CONTROL_DIR", cd.c_str(), 1);
+    setenv("ECCE_SSH_BACKEND", "openssh", 1);
+    {
+      OpenSshTransport* f = make("full", "x");
+      f->setConfigFile(plain);
+      TransportResult fr = f->run("echo hi");
+      check("overflow: command runs on the next master", fr.status == 0 &&
+            fr.out == "hi\n", fr.out + fr.err + fr.error);
+      string lg = slurp(log);
+      check("overflow: second master socket named <hash>-1",
+            lg.find(f->controlSocketPath()) != string::npos &&
+            f->controlSocketPath().size() > 2 &&
+            f->controlSocketPath().compare(f->controlSocketPath().size() - 2, 2, "-1") == 0,
+            f->controlSocketPath());
+      sh(": > '" + log + "'");
+      f->run("echo again");
+      lg = slurp(log);
+      check("overflow: later commands go straight to it",
+            lg.find("administratively") == string::npos &&
+            lg.find("-1 ") != string::npos, lg);
+      delete f;
+    }
+    // A front end that refuses forwarding: that host moves to libssh.
+    {
+      unsetenv("ECCE_SSH_BACKEND");
+      O::Backend before = O::backendFor("fwd", "x", "", "front");
+      OpenSshTransport* f = make("fwd", "x");
+      f->setConfigFile(plain);
+      f->setJumpHost("front");
+      TransportResult fr = f->run("echo hi");
+      delete f;
+      check("forwarding refused: openssh first", before == O::BACKEND_OPENSSH);
+      check("forwarding refused: command failed", fr.status != 0);
+      check("forwarding refused: host now on libssh",
+            O::forwardingRefused("fwd", "front") &&
+            O::backendFor("fwd", "x", "", "front") == O::BACKEND_LIBSSH);
+      check("forwarding refused: other routes unchanged",
+            O::backendFor("fwd", "x", "", "other") == O::BACKEND_OPENSSH);
+    }
+    unsetenv("ECCE_SSH_BACKEND");
+    unsetenv("ECCE_SSH_CONTROL_DIR");
+#endif
   }
 
   sh("rm -rf '" + tmp + "'");
