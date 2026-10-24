@@ -198,6 +198,15 @@ bool NModePanel::Create(IPropCalculation *calculation,
    // Customizations of DB code
    p_grid = (wxGrid*)FindWindow(ID_GRID_NMODE);
    p_grid->SetRowLabelSize(0);
+   //  Columns can be dragged wider; a dragged Mode column keeps its width.
+   p_grid->EnableDragColSize(true);
+   p_grid->Bind(wxEVT_GRID_COL_SIZE, [this](wxGridSizeEvent& e) {
+      if (e.GetRowOrCol() == p_modeColumn) {
+         p_modeUserWidth = p_grid->GetColSize(p_modeColumn);
+         fitModeColumn();
+      }
+      e.Skip();
+   });
 
    //  Two lines under the table for the selected mode: wrapped to the
    //  width the dock gives, a tiny minimum width so it never widens the
@@ -1323,6 +1332,7 @@ void NModePanel::fitModeColumn()
    int width = std::min(longest + pad, cap);
    if (avail > 0) width = std::min(width, std::max(avail, minWidth));
    width = std::max(width, minWidth);
+   if (p_modeUserWidth > 0) width = std::max(p_modeUserWidth, minWidth);
    p_grid->SetColSize(p_modeColumn, width);
    for (size_t i = 0; i < p_modeFull.size() && (int)i < p_grid->GetNumberRows(); i++)
       p_grid->SetCellValue((int)i, p_modeColumn,

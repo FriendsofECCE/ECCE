@@ -221,6 +221,7 @@ class NModePanel : public NModesGUI,
       int p_ramanColumn;
       int p_symColumn = -1;
       int p_modeColumn = -1;
+      int p_modeUserWidth = 0;   ///< set once the user drags the Mode column
       /** ECCE's own analysis of each mode, and what the code printed. */
       VibResult p_vib;
       vector<string> p_codeSym;
