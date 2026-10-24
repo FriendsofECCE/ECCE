@@ -602,6 +602,14 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
               "A file on the remote machine that sets up the environment "
               "(module commands, paths) before a job runs.");
 
+    addHeading(page, sizer, "Allocation");
+    GRID(alloc)
+    addCfgRow(page, alloc, "allocationCommand", "Allocation command", CfgText,
+              "A command run on the machine by the Machine Browser's "
+              "Allocation button to show the project allocation and its use, "
+              "for example projinfo at HPC2N and other NAISS centres. Leave "
+              "empty to use the queue manager's own (Slurm: sshare).");
+
     addHeading(page, sizer, "Connect through a login host");
     GRID(front)
     addCfgRow(page, front, "frontendMachine", "Log in via (gateway host)", CfgText,
@@ -2642,6 +2650,7 @@ string WxMachineRegister::cfgHint(const CfgRow& r) const
     if (k == "sourcefile") return "e.g. /etc/profile.d/modules.sh";
     if (k == "frontendmachine") return "e.g. login.example.org";
     if (k == "frontendbypass") return "e.g. .example.org";
+    if (k == "allocationcommand") return "e.g. projinfo";
     if (k == "perlpath") return "e.g. /usr/bin/perl";
     if (k == "libpath") return "e.g. /opt/lib";
     if (k == "xappspath") return "e.g. /usr/X11R6/bin";

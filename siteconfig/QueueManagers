@@ -212,5 +212,6 @@ Slurm|queryJobCommand:         squeue
 Slurm|queryMachineCommand:     sinfo -p ##queue##
 Slurm|queryQueueCommand:       squeue -a
 Slurm|queryDiskUsageCommand:   df -k
+Slurm|queryAllocationCommand:  sshare -l -U -u $USER
 Slurm|jobIdParseExpression:    .*
 Slurm|jobIdParseLeadingText:   job 

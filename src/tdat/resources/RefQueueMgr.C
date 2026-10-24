@@ -86,6 +86,15 @@ string RefQueueManager::queryQueueCommand(void) const
 { return p_queryQueueCommand; }
 string RefQueueManager::queryDiskUsageCommand(void) const
 { return p_queryDiskUsageCommand; }
+string RefQueueManager::queryAllocationCommand(void) const
+{ return p_queryAllocationCommand; }
+string RefQueueManager::allocationCommand(const RefQueueManager* qmgr,
+                                          const string& machineOverride)
+{
+  if (!machineOverride.empty())
+    return machineOverride;
+  return qmgr ? qmgr->queryAllocationCommand() : string();
+}
 string RefQueueManager::jobIdParseExpression(void) const
 { return p_jobIdParseExpression; }
 string RefQueueManager::jobIdParseLeadingText(void) const
@@ -178,6 +187,8 @@ void RefQueueManager::queryQueueCommand(const string& command)
 { p_queryQueueCommand = command; }
 void RefQueueManager::queryDiskUsageCommand(const string& command)
 { p_queryDiskUsageCommand = command; }
+void RefQueueManager::queryAllocationCommand(const string& command)
+{ p_queryAllocationCommand = command; }
 void RefQueueManager::jobIdParseExpression(const string& expression)
 { p_jobIdParseExpression = expression; }
 void RefQueueManager::jobIdParseLeadingText(const string& text)
@@ -200,6 +211,7 @@ ostream& operator<<(ostream& os, const RefQueueManager& refQueueMgr)
   os << refQueueMgr.queryMachineCommand() << ",";
   os << refQueueMgr.queryQueueCommand() << ",";
   os << refQueueMgr.queryDiskUsageCommand() << ",";
+  os << refQueueMgr.queryAllocationCommand() << ",";
   os << refQueueMgr.jobIdParseExpression() << ",";
   os << refQueueMgr.jobIdParseLeadingText() << ",";
   os << refQueueMgr.jobIdParseTrailingText() << ">]" << endl;;
@@ -259,6 +271,11 @@ void RefQueueManager::fillAttributesFrom(Preferences& prefs)
   EE_RT_ASSERT(prefs.getString(keyRoot + "queryDiskUsageCommand", value),
 	       EE_FATAL, "Couldn't Find Mandatory Key queryDiskUsageCommand");
   queryDiskUsageCommand(value);
+  // Optional: most queue managers have no allocation query.
+  if (prefs.getString(keyRoot + "queryAllocationCommand", value))
+    queryAllocationCommand(value);
+  else
+    queryAllocationCommand("");
 #if (!defined(INSTALL) && defined(DEBUG))
   cout << "Looking Up " << (keyRoot + "jobIdParseExpression") << endl;
 #endif

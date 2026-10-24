@@ -76,6 +76,8 @@ public:
     string        shell(void) const;
     string        frontendMachine(void) const;
     string        frontendBypass(void) const;
+    // The machine's own allocation query ("" = use the queue manager's)
+    string        allocationCommand(void) const;
     bool          singleConnect(void) const;
     bool          checkScratch(void) const;
     bool          isSameDomain(void) const;

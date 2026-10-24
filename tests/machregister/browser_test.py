@@ -60,6 +60,26 @@ def main():
         g.check("FAIL" not in p.stdout, "the button is enabled")
         g.check(os.path.isfile(png) and os.path.getsize(png) > 2000,
                 "the window was photographed")
+        #  The Allocation query (#494): the queue manager's command, none for
+        #  a machine without one, and the machine's own CONFIG key over both.
+        def alloc(machine):
+            env["ECCE_MACHBROWSER_MACHINE"] = machine
+            q = subprocess.run([os.path.join(build, "machbrowser")], env=env,
+                               cwd=e.root, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, text=True, timeout=120)
+            m = re.search(r"\[MACHBROWSER\] allocation: enabled=(\d) "
+                          r"command=(.*)", q.stdout)
+            return (m.group(1), m.group(2)) if m else (None, q.stdout[-800:])
+        g.check(alloc("cluster")[1] == "sshare -l -U -u $USER",
+                "a Slurm machine defaults to sshare: %r" % (alloc("cluster"),))
+        g.check(alloc("mine")[1] == "" and alloc("mine")[0] == "0",
+                "a machine without a command has the mode greyed out: %r"
+                % (alloc("mine"),))
+        with open(os.path.join(e.ue, "CONFIG.cluster"), "w") as f:
+            f.write("allocationCommand: projinfo\n")
+        g.check(alloc("cluster")[1] == "projinfo",
+                "the machine's allocationCommand replaces the default: %r"
+                % (alloc("cluster"),))
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

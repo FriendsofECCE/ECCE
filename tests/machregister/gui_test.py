@@ -541,7 +541,8 @@ quit
 
 CPP_KEYS = ["shell", "sourcefile", "frontendmachine", "frontendbypass",
             "perlpath", "qmgrpath", "libpath", "xappspath", "noremoteaccess",
-            "usersubmit", "singleconnect", "checkscratch"]
+            "usersubmit", "singleconnect", "checkscratch",
+            "allocationcommand"]
 DEFAULTS = {"shell": "bash", "noremoteaccess": "false", "usersubmit": "false",
             "singleconnect": "no", "checkscratch": "true"}
 BOOLS = {"noremoteaccess": "t", "usersubmit": "t", "checkscratch": "f"}

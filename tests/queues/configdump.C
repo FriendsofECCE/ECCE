@@ -8,6 +8,7 @@
 
 #include "tdat/RefMachine.H"
 #include "tdat/QueueMgr.H"
+#include "tdat/RefQueueMgr.H"
 #include "util/Ecce.H"
 
 static std::string oneLine(const std::string& v)
@@ -34,6 +35,14 @@ int main(int argc, char** argv)
   }
   if (argc == 4 && strcmp(argv[1], "-qfile") == 0) {
     std::cout << QueueManager::queueConfigFile(argv[2], argv[3]) << std::endl;
+    return 0;
+  }
+  // -allocation <queue manager> [machine override]: the command the Machine
+  // Browser's Allocation button would run.
+  if ((argc == 3 || argc == 4) && strcmp(argv[1], "-allocation") == 0) {
+    std::cout << RefQueueManager::allocationCommand(
+                     RefQueueManager::lookup(argv[2]),
+                     argc == 4 ? argv[3] : "") << std::endl;
     return 0;
   }
   if (argc == 2 && strcmp(argv[1], "-machines") == 0) {
@@ -73,6 +82,7 @@ int main(int argc, char** argv)
     std::cout << "frontendBypass: " << m->frontendBypass() << std::endl;
     std::cout << "singleConnect: " << m->singleConnect() << std::endl;
     std::cout << "checkScratch: " << m->checkScratch() << std::endl;
+    std::cout << "allocationCommand: " << m->allocationCommand() << std::endl;
     std::cout << "noRemoteAccess: " << m->noRemoteAccess() << std::endl;
     std::cout << "userSubmit: " << m->userSubmit() << std::endl;
     std::cout << "exePath NWChem: "

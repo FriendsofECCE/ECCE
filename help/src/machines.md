@@ -5,6 +5,26 @@ sitting at, or a workstation or cluster that ECCE reaches over ssh. ECCE
 needs to know three things about a machine: that it exists, where the
 codes are installed on it, and (for a cluster) which queues it has.
 
+## The Machine Browser
+
+The Machine Browser lists the registered
+machines. Select one and press a button under **Query** to run a command on
+it over ECCE's login and show the output as text in the window.
+
+| Button | What it runs |
+|---|---|
+| **Machine** | The queue manager's machine status (Slurm: `sinfo`). |
+| **Disk Usage** | `df`. |
+| **Process Status** | The processes on a workstation, or the queue on a cluster. |
+| **Allocation** | The machine's project allocation and how much of it is used. |
+
+**Allocation** runs the machine's **Allocation command** if one is set. If
+not, Slurm machines use `sshare -l -U -u $USER` (your fair-share and usage).
+The other queue managers have no default, so the button is greyed out. To
+enable it, open **Machine settings...**, go to the **Connection** tab and fill
+in **Allocation command** under **Allocation**. Sites with their own tool use
+that: `projinfo` at HPC2N and other NAISS centres.
+
 ## Your own computer: `localhost`
 
 The machine `localhost` is registered for you. It means the computer ECCE

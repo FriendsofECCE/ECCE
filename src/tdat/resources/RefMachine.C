@@ -376,6 +376,17 @@ string RefMachine::frontendBypass(void) const
 }
 
 
+string RefMachine::allocationCommand(void) const
+{
+  map<string,string> config = RefMachine::config(refname());
+
+  string cmnd;
+  if (findConfig(config, "allocationCommand", cmnd))
+    return cmnd;
+  return "";
+}
+
+
 bool RefMachine::isSameDomain(void) const
 {
   bool sameDomain = false;
