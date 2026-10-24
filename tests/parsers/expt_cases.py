@@ -111,6 +111,30 @@ CASES = [
     dict(name="expt-orca-c6h6-sym", script="ORCA.expt",
          output="orca/c6h6_sym.out",
          expect=dict(natoms=12, **{"ES.ChemSys.Multiplicity": "1"})),
+    dict(name="expt-qe-h2o-gamma", script="QuantumESPRESSO.expt", no_gbs=True,
+         output="qe/h2o_gamma.pwout",
+         expect=dict(natoms=3, symbols=["O", "H", "H"], Charge="0",
+                     RunType="Energy", Theory="PW", Category="PW")),
+    dict(name="expt-qe-al-smear", script="QuantumESPRESSO.expt", no_gbs=True,
+         output="qe/al_smear.pwout",
+         expect=dict(natoms=1, symbols=["Al"], RunType="Energy",
+                     **{"ES.Theory.PW.Occupations": "Smearing (metal)"})),
+    # The final ATOMIC_POSITIONS of a relax, not the setup table's.
+    dict(name="expt-qe-h2o-relax", script="QuantumESPRESSO.expt", no_gbs=True,
+         output="qe/h2o_relax.pwout",
+         expect=dict(natoms=3, symbols=["O", "H", "H"], RunType="Geometry"),
+         geometry=[("O", 5.0, 5.0, 4.9869235052),
+                   ("H", 5.7687280417, 5.0, 5.5924202474),
+                   ("H", 4.2312719583, 5.0, 5.5924202474)]),
+    # The last CELL_PARAMETERS of a vc-relax: 2.744925 differs from the 2.715
+    # the run started with.
+    dict(name="expt-qe-si-vcrelax", script="QuantumESPRESSO.expt", no_gbs=True,
+         output="qe/si_vcrelax.pwout",
+         expect=dict(natoms=2, symbols=["Si", "Si"], RunType="Geometry",
+                     **{"ES.Runtype.PW.OptimizeCell": "1"})),
+    dict(name="expt-qe-si-md", script="QuantumESPRESSO.expt", no_gbs=True,
+         output="qe/si_md.pwout",
+         expect=dict(natoms=2, RunType="Dynamics")),
 ]
 
 # ---------------------------------------------------------------------------

@@ -34,6 +34,9 @@ CASES = [
     ("gaussian-16/oh_uhf.log", "Gaussian-16"),
     ("gaussian-16/h2o_optfreq.log", "Gaussian-16"),
     ("nwchem/h2o_opt_stdout.out", "NWChem"),
+    ("qe/h2o_gamma.pwout", "QuantumESPRESSO"),
+    ("qe/si_scf.pwout", "QuantumESPRESSO"),
+    ("qe/si_vcrelax.pwout", "QuantumESPRESSO"),
 ]
 
 # The finite group ECCE keeps for a linear molecule (LinearPointGroup.H).
@@ -79,6 +82,20 @@ def oracle(code, text):
         nopen = last(r"^\s*open shells\s*=\s*(\d+)", text)
         if nopen is not None:
             want["multiplicity"] = str(int(nopen) + 1)
+    elif code == "QuantumESPRESSO":
+        # The cell is the one the file ends on: the last CELL_PARAMETERS of
+        # a vc-relax, else the crystal axes in alat units times alat.
+        want["atoms"] = first(r"number of atoms/cell\s+=\s+(\d+)", text)
+        celldm = float(first(r"celldm\(1\)=\s*(\S+)", text)) * 0.529177
+        axes = re.findall(r"a\(\d\) = \(\s*(\S+)\s+(\S+)\s+(\S+)\s*\)",
+                          text)[:3]
+        rows = [[float(x) * celldm for x in row] for row in axes]
+        blocks = re.findall(r"^CELL_PARAMETERS \(angstrom\)\n(.*\n.*\n.*)\n",
+                            text, re.M)
+        if blocks:
+            rows = [[float(x) for x in line.split()]
+                    for line in blocks[-1].splitlines()]
+        want["cell"] = rows
     group = want.get("pointgroup")
     if group is not None:
         want["pointgroup"] = LINEAR.get(group.upper(), group)
@@ -101,6 +118,13 @@ def compare(want, got):
         elif field == "ecp":
             ok = bool(have) == value
             value = "an ECP" if value else "no ECP"
+        elif field == "atoms":
+            ok = have == value
+        elif field == "cell":
+            nums = [float(x) for x in have.split()] if have and have != "-" else []
+            flat = [x for row in value for x in row]
+            ok = len(nums) == 9 and all(abs(a - b) < 1e-4
+                                        for a, b in zip(nums, flat))
         elif field == "basis":
             # TGBSConfig::name() marks more than one element group "...".
             ok = (have or "").rstrip(".").lower() == (value or "").lower()

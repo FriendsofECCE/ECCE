@@ -2538,6 +2538,10 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_examples PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # The Teaching example set is complete on disk (#447); needs no install.
+  add_test(NAME apps_examples_teaching
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_teaching_test.py)
   # Structure Library > Ligands attach to a metal's nub in the Builder
   # (ECCE_BUILDER_SCRIPT select/selectnub/libatom/bonds).
   add_test(NAME apps_ligands
@@ -2992,7 +2996,8 @@ if(PYTHON3_EXECUTABLE)
                    ${_pf}/orca/h2o_sym.out=ORCA
                    ${_pf}/mopac/ch4_opt.out=MOPAC
                    ${_pf}/gromacs/water_md.log=-
-                   ${_pf}/qe/h2o_gamma.pwout=-)
+                   ${_pf}/qe/h2o_gamma.pwout=QuantumESPRESSO
+                   ${_pf}/qe/si_vcrelax.pwout=QuantumESPRESSO)
   set_tests_properties(importcode PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   # tests/importcode/importmeta: the metadata an imported calculation gets

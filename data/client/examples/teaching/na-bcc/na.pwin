@@ -1,0 +1,30 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'na'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tstress = .true.
+/
+&SYSTEM
+  ibrav = 0
+  nat = 1
+  ntyp = 1
+  ecutwfc = 50
+  occupations = 'smearing'
+  smearing = 'marzari-vanderbilt'
+  degauss = 0.02
+/
+&ELECTRONS
+  conv_thr = 1e-09
+  mixing_beta = 0.7
+/
+ATOMIC_SPECIES
+  Na  22.98977  na_pbe_v1.5.uspp.F.UPF
+CELL_PARAMETERS angstrom
+  2.1455000000 2.1455000000 2.1455000000
+  -2.1455000000 2.1455000000 2.1455000000
+  -2.1455000000 -2.1455000000 2.1455000000
+ATOMIC_POSITIONS angstrom
+  Na  0.0 0.0 0.0
+K_POINTS automatic
+  12 12 12 0 0 0

@@ -12,6 +12,7 @@
 #include "util/EcceURL.H"
 #include "util/SDirectory.H"
 #include "tdat/Fragment.H"
+#include "tdat/LatticeDef.H"
 #include "tdat/SpinMult.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/CodeFactory.H"
@@ -92,6 +93,18 @@ int main(int argc, char **argv)
   Fragment *frag = chem ? chem->fragment() : 0;
   TGBSConfig *config = icalc ? icalc->gbsConfig() : 0;
   cout << "message: " << message << endl;
+  cout << "atoms: " << (frag ? (int)frag->numAtoms() : -1) << endl;
+  LatticeDef *lat = frag ? frag->getLattice() : 0;
+  if (lat) {
+    vector<MPoint> *v = lat->toVectors();
+    cout << "cell:";
+    for (int i = 0; i < 3; i++)
+      cout << " " << (*v)[i].x() << " " << (*v)[i].y() << " " << (*v)[i].z();
+    cout << endl;
+    delete v;
+  } else {
+    cout << "cell: -" << endl;
+  }
   cout << "pointgroup: " << (frag ? frag->pointGroup() : "-") << endl;
   cout << "multiplicity: "
        << (icalc ? (int)icalc->spinMultiplicity() : -1) << " "
