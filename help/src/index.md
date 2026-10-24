@@ -92,6 +92,8 @@ describe what you did and what happened.
 19. [Mode composition](mode-composition.md): what each normal mode is made of
    (stretches and bends), the amber highlight in the spectrum, and why it is
    not a full PED.
+20. [Localised orbitals](localised-orbitals.md): the occupied orbitals as bonds,
+   lone pairs and core orbitals, and how to read their names.
 
 Reference:
 

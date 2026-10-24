@@ -359,6 +359,9 @@ void MoPanel::updateUIOptions()
    if (espOk) typewin->Insert(ESP_FIELD_TYPE,0);
    if (spinOk) typewin->Insert("Spin Density",0);
    if (densityOk) typewin->Insert("Density",0);
+   p_localised = false;
+   if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG"))
+      typewin->Insert("Localised MO",0);
    typewin->Insert("MO",0);
    typewin->SetStringSelection(_("MO"));
    //  A choice is as wide as its longest entry, and "Density (ESP from
@@ -473,15 +476,9 @@ void MoPanel::updateUIOptions()
  * Fill the table and initialize the UI.
  * This code copied from motool_cdlg.
  */
-void MoPanel::fillUI()
+bool MoPanel::rebuildTable()
 {
-   //static char *shells[] = {"s","p","d","f","g","h","i"};
-
    IPropCalculation *expt = getCalculation();
-
-   //  New data, so the basis and coefficients behind the composition
-   //  are rebuilt on the next selection.
-   delete p_aoBasis;
    p_aoBasis = nullptr;
    p_aoTried = false;
    p_aoRows[0].clear();
@@ -497,15 +494,15 @@ void MoPanel::fillUI()
    p_pointToRowReg.clear();
    p_pointToRowSym.clear();
 
-   // Get the required properties 
-   PropTable     *moCoefs = (PropTable*) expt->getProperty("MO");
-   PropVector    *orbEnergy = (PropVector*) expt->getProperty("ORBENG");
-   PropVector    *orbOcc = (PropVector*) expt->getProperty("ORBOCC");
-   PropVecString *orbSym = (PropVecString*) expt->getProperty("ORBSYM");
+   // Get the required properties; the localised set is closed shell only
+   const bool loc = p_localised;
+   PropVector    *orbEnergy = (PropVector*) expt->getProperty(loc ? "LOCMOENG" : "ORBENG");
+   PropVector    *orbOcc = (PropVector*) expt->getProperty(loc ? "LOCMOOCC" : "ORBOCC");
+   PropVecString *orbSym = (PropVecString*) expt->getProperty(loc ? "LOCMOLABEL" : "ORBSYM");
    // betas if any
-   PropVector    *orbEnergyBeta = (PropVector*) expt->getProperty("ORBENGBETA");
-   PropVector    *orbOccBeta = (PropVector*) expt->getProperty("ORBOCCBETA");
-   PropVecString *orbSymBeta = (PropVecString*) expt->getProperty("ORBSYMBETA");
+   PropVector    *orbEnergyBeta = loc ? nullptr : (PropVector*) expt->getProperty("ORBENGBETA");
+   PropVector    *orbOccBeta = loc ? nullptr : (PropVector*) expt->getProperty("ORBOCCBETA");
+   PropVecString *orbSymBeta = loc ? nullptr : (PropVecString*) expt->getProperty("ORBSYMBETA");
 
    if (!orbEnergy) {
       //  Missing or unreadable (a stored vector whose length is not its
@@ -515,7 +512,7 @@ void MoPanel::fillUI()
       getFW().showMessage("This calculation has no orbital energies, so "
             "orbitals cannot be computed.", false/*warning*/);
       p_isValid = false;
-      return;
+      return false;
    }
 
    int col = 0;
@@ -537,13 +534,13 @@ void MoPanel::fillUI()
    }
    if (orbSym) {
       p_mogrid->InsertCols(col, 1);
-      p_mogrid->SetColLabelValue(col++, "Sym");
+      p_mogrid->SetColLabelValue(col++, loc ? "Bond" : "Sym");
    }
 
    int alphaRows = orbEnergy->rows();
    int idxHOMO = fillTable("alpha", orbEnergy, orbOcc, orbSym, 0, showType);
    (void)fillTable("beta", orbEnergyBeta, orbOccBeta, orbSymBeta, alphaRows, showType);
-   fillGraph(showType);
+   if (!loc) fillGraph(showType);
 
    p_mogrid->AutoSize();
    // symbol not found - new in 2.8.8
@@ -562,6 +559,20 @@ void MoPanel::fillUI()
 
    // Select the alpha HOMO by default.
    selectMo(idxHOMO);
+   return true;
+}
+
+void MoPanel::fillUI()
+{
+   //static char *shells[] = {"s","p","d","f","g","h","i"};
+
+   IPropCalculation *expt = getCalculation();
+
+   //  New data, so the basis and coefficients behind the composition
+   //  are rebuilt on the next selection.
+   delete p_aoBasis;
+   PropTable *moCoefs = (PropTable*) expt->getProperty("MO");
+   if (!rebuildTable()) return;
 
    // ------------------------------------------------------------
 
@@ -593,9 +604,11 @@ int  MoPanel::fillTable(const string& type,
    // We (may) have 3 parallel arrays and want to display them in the table in
    // reverse order i.e. values are stored as min(-) to max(+) energies,
    // however we want to display them with min at bottom of table.
+   //  The localised set stays in its own order (core, then bonds by atom).
+   const bool keep = p_localised;
    if (propOrbEnergy) {
       energy = propOrbEnergy->values();
-      reverse(energy.begin(), energy.end());
+      if (!keep) reverse(energy.begin(), energy.end());
    }
    if (propOrbOcc) {
       occ = propOrbOcc->values();
@@ -605,7 +618,7 @@ int  MoPanel::fillTable(const string& type,
       //  it unless the lengths agree.
       if (occ.size() != energy.size()) {
          occ.clear();
-      } else {
+      } else if (!keep) {
          reverse(occ.begin(), occ.end());
       }
    }
@@ -621,7 +634,8 @@ int  MoPanel::fillTable(const string& type,
       if (sym.size() != energy.size()) {
          sym.clear();
       } else {
-         reverse(sym.begin(), sym.end());
+         if (!keep) reverse(sym.begin(), sym.end());
+         if (keep) for (string& t : sym) std::replace(t.begin(), t.end(), '_', ' ');
       }
    }
 
@@ -636,7 +650,7 @@ int  MoPanel::fillTable(const string& type,
       }
 
       // Column 1 - MO # (start counting from 1 (=min energy))
-      p_mogrid->SetCellValue(row, col++, wxString::Format(_T("%u"), rows-row));
+      p_mogrid->SetCellValue(row, col++, wxString::Format(_T("%u"), keep ? idx + 1 : rows-row));
 
       // Column 2 - Energy
       if (!energy.empty()) {
@@ -801,7 +815,7 @@ bool MoPanel::selectRowForMo(int number)
 void MoPanel::tellDensityMap()
 {
    IPropCalculation *calc = getCalculation();
-   if (calc == 0 || p_mogrid == 0 || p_selectedRow < 0 ||
+   if (calc == 0 || p_mogrid == 0 || p_selectedRow < 0 || p_localised ||
        p_selectedRow >= p_mogrid->GetNumberRows())
       return;
    std::set<PropertyPanel*> panels = PropertyPanel::getPanels(calc->getURL().toString());
@@ -1167,7 +1181,12 @@ void MoPanel::showComposition()
    const string type = getSelectedType();
    wxString text;
 
-   if (!p_isValid && p_mogrid->GetNumberRows() == 0) {
+   if (p_localised) {
+      //  The label is the composition of a localised orbital.
+      const int col = p_mogrid->GetNumberCols() - 1;
+      text = wxString::Format(_("Localised MO %d: %s"), mo,
+                              p_mogrid->GetCellValue(p_selectedRow, col));
+   } else if (!p_isValid && p_mogrid->GetNumberRows() == 0) {
       // Nothing selected yet.
    } else if (!ensureAoBasis()) {
       text = wxString::Format(_("Composition not available: %s."), p_aoWhy);
@@ -1318,7 +1337,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
                          fieldtype == ESP_CHARGES_FIELD_TYPE);
       if (fieldtype == "Density" || espSurface) {
          absIsovalMax = 0.2; // default for density
-      } else if (fieldtype == "MO") {
+      } else if (fieldtype == "MO" || fieldtype == "Localised MO") {
          absIsovalMax = fabs(fieldMin) > fabs(fieldMax) ?
             fabs(fieldMin) : fabs(fieldMax);
 
@@ -1371,7 +1390,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       p_drawnType = fieldtype;
       //  The composition describes the selected MO, not a density or ESP
       //  surface.
-      const bool moDrawn = fieldtype == "MO";
+      const bool moDrawn = fieldtype == "MO" || fieldtype == "Localised MO";
       if (p_compText != 0 && GetSizer()->IsShown(p_compText) != moDrawn) {
          GetSizer()->Show(p_compText, moDrawn);
          reflow();
@@ -2199,6 +2218,17 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
 
    const bool esp = espFieldSelected();
    showEspRangeControls(esp);
+
+   {
+      ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+      const string chosen = tw->GetSelection() == wxNOT_FOUND ? string() :
+         string(tw->GetString(tw->GetSelection()).mb_str());
+      if ((chosen == "MO" || chosen == "Localised MO") &&
+          p_localised != (chosen == "Localised MO")) {
+         p_localised = (chosen == "Localised MO");
+         rebuildTable();
+      }
+   }
 
 
    //  The mode has to follow the choice, not only the panel's focus --

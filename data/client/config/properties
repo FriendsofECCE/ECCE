@@ -293,6 +293,13 @@ EStruct		MO Occupations				ORBOCC		Charge		PropVector<Basis Function>
 EStruct		MO Occupations (beta)			ORBOCCBETA	Charge		PropVector<Basis Function>
 EStruct		MO Symmetries 				ORBSYM		NA		PropVecString<Basis Function>
 EStruct		MO Symmetries (beta)			ORBSYMBETA	NA		PropVecString<Basis Function>
+#  Localised occupied orbitals (closed shell, ECCE-QM): coefficients in MO's
+#  column order, and per orbital its energy, occupation and valence-bond label
+#  ("sigma C1-C2 (sp1.6/sp1.6)", spaces stored as "_").
+EStruct		Localised MOs				LOCMO		Electrons	PropTable<Basis Function,Basis Function>
+EStruct		Localised MO Energies			LOCMOENG	Energy		PropVector<Basis Function>
+EStruct		Localised MO Occupations		LOCMOOCC	Charge		PropVector<Basis Function>
+EStruct		Localised MO Labels			LOCMOLABEL	NA		PropVecString<Basis Function>
 #
 # Marks MO/MOBETA's basis-function (column) order as the parser's
 # canonical (atom, angular momentum, shell) order rather than whatever
