@@ -3,19 +3,23 @@
 # whole log (File= entry in gaussian-16.desc).  The last "Input orientation"
 # before an "Optimization completed" is that point's converged geometry.
 # Dummy centres are left out, as in gaussian-16.geomtrace (#27).
+# A plain optimisation also has one "Optimization completed", so frames are
+# only printed when the parameter table marks a coordinate "Scan"; otherwise
+# every opt job showed an empty Relaxed Scan panel.
 $| = 1;
 ($key, $runtype) = @ARGV;
 exit(0) unless ($runtype =~ /Geo/i);
 
-my (@cur, $in);
+my (@cur, $in, $scan, @out);
 while (<STDIN>) {
+  $scan = 1 if (/^\s*!.*\sScan\s+!\s*$/);
   if (/Input orientation:/) { @cur = (); $in = 1; next; }
   if (/Standard orientation:|Z-Matrix orientation:|Rotational constants/) { $in = 0; next; }
   if (/Optimization completed/) {
     next unless (@cur);
     my $labels;
     $labels .= " $_-X" for (1 .. scalar(@cur));
-    print "key: SCANGEOM\nsize:\n1 ", scalar(@cur), " 3\nrowlabels:\n$labels\n",
+    push @out, "key: SCANGEOM\nsize:\n1 ", scalar(@cur), " 3\nrowlabels:\n$labels\n",
           "columnlabels:\nX Y Z\nvalues:\n", join("\n", @cur), "\nunits:\nAngstrom\nEND\n";
     next;
   }
@@ -24,4 +28,5 @@ while (<STDIN>) {
     push(@cur, " $2 $3 $4") unless ($1 < 0);
   }
 }
+print @out if ($scan);
 exit(0);

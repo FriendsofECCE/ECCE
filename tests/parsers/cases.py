@@ -2558,6 +2558,16 @@ MOFILE_CASES = [
         parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
         expect={'SCANGEOM': {'size': '1 4 3', 'columnlabels': 'X Y Z'}},
     ),
+    # A plain optimisation has one "Optimization completed" too, but no
+    # coordinate marked Scan: no frames, so no Relaxed Scan panel.
+    dict(
+        name='g16-h2co-opt-no-scangeom',
+        script='gaussian-16.scangeom',
+        fixture='gaussian-16/h2co_nosymm_opt.log',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={},
+        expect_no_keys={'SCANGEOM'},
+    ),
     # ORCA relaxed scan structures (#410): real ORCA 6.1.1 .allxyz of the
     # h2o2 dihedral scan (7 points); the last frame is point 7.
     dict(
