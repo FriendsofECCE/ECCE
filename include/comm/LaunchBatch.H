@@ -28,6 +28,10 @@ public:
   /** A wall time is only needed where a queue manager takes it; a direct
       (Shell) or workstation launch has no limit to pass. */
   static bool wallTimeRequired(MachinePreferences *prefs);
+  static bool noWallTime(const std::string& maxwall);
+  /** The wall time the Launcher would fill in when none is stored. */
+  static std::string defaultWallTime(MachinePreferences *prefs,
+                                     const std::string& queue);
 
   /** What launching `task` would use; problem is set when it cannot. */
   static Plan plan(TaskJob *task);

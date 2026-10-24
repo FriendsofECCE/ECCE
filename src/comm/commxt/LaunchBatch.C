@@ -25,6 +25,36 @@ bool LaunchBatch::wallTimeRequired(MachinePreferences *prefs)
 }
 
 
+bool LaunchBatch::noWallTime(const string& maxwall)
+{
+  int days = 0, hours = 0, mins = 0;
+  sscanf(maxwall.c_str(), "%d %d:%d", &days, &hours, &mins);
+  return days == 0 && hours == 0 && mins == 0;
+}
+
+
+// The value the Launcher would show (WxLauncher::refreshWallTime): the
+// machine's last one, else the queue's default, else two hours, within the
+// queue's limit; a calculation prepared without opening the Launcher has none.
+string LaunchBatch::defaultWallTime(MachinePreferences *prefs,
+                                    const string& queue)
+{
+  long value = prefs->getMaxWallTime(), dflt = 120, max = 0;
+  RefMachine *rm = prefs->getRegisteredMachine();
+  const QueueManager *qm = rm ? QueueManager::lookup(rm->refname()) : 0;
+  const Queue *q = qm ? qm->queue(queue) : 0;
+  if (q) {
+    if (q->runLimit() > 0) max = q->runLimit();
+    if (q->defRun() > 0) dflt = q->defRun();
+  }
+  if (value <= 0) value = dflt;
+  if (max > 0 && value > max) value = max;
+  char buf[32];
+  snprintf(buf, sizeof buf, "%ld %ld:%ld:00", value/1440, value%1440/60, value%60);
+  return buf;
+}
+
+
 LaunchBatch::Plan LaunchBatch::plan(TaskJob *task)
 {
   Plan p;
@@ -55,11 +85,8 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task)
     p.problem = "no queue stored";
     return p;
   }
-  if (wallTimeRequired(prefs) &&
-      (l.maxwall.empty() || l.maxwall == "0 0:0" || l.maxwall == "0 0:0:00")) {
-    p.problem = "no wall time stored";
-    return p;
-  }
+  if (wallTimeRequired(prefs) && noWallTime(l.maxwall))
+    p.wall = defaultWallTime(prefs, l.queue);
   p.ready = true;
   return p;
 }
@@ -141,6 +168,13 @@ bool LaunchBatch::Job::begin(string& error)
   MachinePreferences *prefs = MachinePreferences::lookup(l.machine);
   RefMachine *rm = prefs ? prefs->getRegisteredMachine() : 0;
   if (!rm) { error = "machine " + l.machine + " is not registered"; return false; }
+  if (wallTimeRequired(prefs) && noWallTime(l.maxwall)) {
+    l.maxwall = defaultWallTime(prefs, l.queue);
+    if (!p_task->launchdata(l)) {
+      error = "Unable to save launch settings for " + p_task->getName();
+      return false;
+    }
+  }
   //  As the Launcher: a userSubmit or noRemoteAccess machine is only staged,
   //  and staging needs a shell the user drives, so it is not a batch job.
   if (rm->userSubmit() || rm->noRemoteAccess()) {
