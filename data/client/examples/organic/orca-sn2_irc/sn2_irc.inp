@@ -1,0 +1,8 @@
+! B3LYP D3BJ ma-def2-SVP TightSCF IRC 
+%pal nprocs 6 end
+%maxcore 1500
+%irc MaxIter 40
+ InitHess read
+ Hess_Filename "ts.hess"
+end
+* xyzfile -1 1 ../B11_SN2_TS_guess_Cl-CH3-Br/B11_SN2_TS_guess_Cl-CH3-Br.xyz

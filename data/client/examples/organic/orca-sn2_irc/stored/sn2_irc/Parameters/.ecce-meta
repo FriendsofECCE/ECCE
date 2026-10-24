@@ -1,0 +1,7 @@
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		-1
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		CH3BrCl-
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		sn2_irc
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		6
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		62
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C1
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

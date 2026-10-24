@@ -1,0 +1,10 @@
+! PBE0 D3BJ def2-SVP TightSCF TightOpt Freq 
+%pal nprocs 6 end
+%maxcore 1500
+%elprop Polar 1 end
+* xyz 0 1
+C      0.997222     0.050228     0.060927
+O      0.397377    -0.849941     0.579693
+H      0.480934     0.912454    -0.435958
+H      2.117193     0.093940     0.035714
+*

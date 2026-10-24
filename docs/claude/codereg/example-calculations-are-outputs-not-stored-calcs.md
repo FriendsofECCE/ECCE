@@ -10,7 +10,9 @@ and ethanol (Raman), ORCA benzene, MOPAC ammonia, NWChem methane), not a stored 
 go through the ordinary importer, so they stay valid when the stored format
 changes. Folders are grouped in sets (`general`: at most five calcs, imported at first
 start into `Examples`; `computational`: the GROMACS Trp-cage, into
-`Examples_Computational`), each with a `set.txt` (display name, one line).
+`Examples_Computational`; `organic` -> `Examples_Organic`, 17 calcs, and
+`spectroscopy` -> `Examples_Spectroscopy`, 10 calcs, #447/#485), each with a
+`set.txt` (display name, one line).
 `CalcMgr::openExampleSet` (File > Open Example Calculations asks which set;
 `examples SET` of `ECCE_TEST_ORGANIZER` skips the dialog) imports a set into
 its project, or only selects that project if it exists, and sets
@@ -21,7 +23,12 @@ existing `Examples` is only recorded. The import shows "N of M - <calc>" in
 the progress dialog (and as `example progress` log lines); never Update() it
 to its maximum, which waits for a click on Close. `isolate.py` sets
 `ECCE_NO_EXAMPLE_IMPORT=1` so the other app tests start with an empty tree;
-`examples_test.py` clears it. To change the set,
+`examples_test.py` clears it. Every example's note (`kNotes`, keyed by the calculation name = output file
+stem, so the same name has the same note in every set) must say "This
+calculation shows ..." and state its method; numbers in a note come from the
+shipped output, and nothing is said about agreement with literature. The ORCA
+IRC outputs import like any ORCA output. `tools/examples/preparse.py [SET...]`
+stores the pre-parsed copy of every file-output set. To change the set,
 add the output to the set in `exampleSets()` and the expected `Props` to
 `tests/apps/examples_test.py`, and raise `kExampleSetVersion`.
 

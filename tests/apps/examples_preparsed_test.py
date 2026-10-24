@@ -3,7 +3,8 @@
 
     tests/apps/examples_preparsed_test.py
 
-Two first starts of the Organizer, each in a fresh state: one with
+Per file-output example set (general, organic, spectroscopy), two imports in a
+fresh state each: one with
 ECCE_NO_PREPARSED=1 (the output parsers run), one as shipped (the stored
 copies under data/client/examples/<set>/<example>/stored are copied).  Every
 file of every example calculation must be the same both ways, and every stored
@@ -21,6 +22,9 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKIP = 77
+# set folder -> (project it is imported into, number of calculations)
+SETS = {"general": ("Examples", 5), "organic": ("Examples_Organic", 17),
+        "spectroscopy": ("Examples_Spectroscopy", 10)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",
@@ -35,13 +39,14 @@ DATE = re.compile(r"\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d\d \w{3} \d{4} "
                   r"\d\d:\d\d:\d\d GMT")
 
 
-def runArm(out, noPreparsed):
+def runArm(out, noPreparsed, setId):
     env = dict(os.environ)
     env.pop("ECCE_NO_PREPARSED", None)
     if noPreparsed:
         env["ECCE_NO_PREPARSED"] = "1"
+    project, count = SETS[setId]
     proc = subprocess.run([sys.executable, os.path.join(HERE, "examples_arm.py"),
-                           out], env=env, capture_output=True, text=True)
+                           out, setId, project, str(count)], env=env, capture_output=True, text=True)
     sys.stdout.write(proc.stdout[-1500:] if proc.returncode else "")
     m = re.search(r"^ARM (\S+) (\S+) (\d+) (\d+)$", proc.stdout, re.M)
     return proc.returncode, m, proc.stdout
@@ -100,49 +105,60 @@ def compare(parsed, copied):
     return problems
 
 
+def checkSet(work, setId, failures):
+    project, count = SETS[setId]
+    arms = {}
+    for label, no in (("parse", True), ("copy", False)):
+        rc, m, out = runArm(os.path.join(work, setId, label), no, setId)
+        if rc == SKIP:
+            print(out.strip())
+            return SKIP
+        if rc != 0 or not m:
+            print("FAIL  %s %s arm: exit %d\n%s" % (setId, label, rc, out[-1500:]))
+            failures.append("%s %s arm" % (setId, label))
+            return 1
+        arms[label] = m
+        print("%-12s %-5s logged %s s, last property file after %s s; "
+              "%s copied, %s parsed" % (setId, label, m.group(1), m.group(2),
+                                        m.group(3), m.group(4)))
+    if arms["copy"].group(3) != str(count) or arms["parse"].group(3) != "0":
+        failures.append("%s copied/parsed counts: copy arm %s/%s, parse arm "
+                        "%s/%s" % (setId, arms["copy"].group(3),
+                                   arms["copy"].group(4),
+                                   arms["parse"].group(3),
+                                   arms["parse"].group(4)))
+    pdir = os.path.join(work, setId, "parse", project)
+    cdir = os.path.join(work, setId, "copy", project)
+    if sorted(os.listdir(pdir)) != sorted(os.listdir(cdir)):
+        failures.append("%s calculations differ: %s and %s"
+                        % (setId, sorted(os.listdir(pdir)),
+                           sorted(os.listdir(cdir))))
+        return 0
+    for calc in sorted(os.listdir(pdir)):
+        if calc.startswith("."):
+            continue
+        problems = compare(os.path.join(pdir, calc), os.path.join(cdir, calc))
+        if problems:
+            failures.append("%s/%s: %d differences" % (setId, calc, len(problems)))
+            print("FAIL  %s/%s\n      %s" % (setId, calc, "\n      ".join(
+                problems[:25])))
+        else:
+            print("ok    %s/%s: copy and parse agree (%d files)"
+                  % (setId, calc, len(files(os.path.join(pdir, calc)))))
+    return 0
+
+
 def main():
     work = tempfile.mkdtemp(prefix="examples-preparsed-",
                             dir=os.path.expanduser("~/.cache"))
     failures = []
     try:
-        arms = {}
-        for label, no in (("parse", True), ("copy", False)):
-            rc, m, out = runArm(os.path.join(work, label), no)
+        for setId in (sys.argv[1:] or SETS):
+            rc = checkSet(work, setId, failures)
             if rc == SKIP:
-                print(out.strip())
                 return SKIP
-            if rc != 0 or not m:
-                print("FAIL  %s arm: exit %d\n%s" % (label, rc, out[-1500:]))
-                return 1
-            arms[label] = m
-            print("%-5s logged %s s, last property file after %s s; "
-                  "%s copied, %s parsed" % (label, m.group(1), m.group(2),
-                                            m.group(3), m.group(4)))
-        if arms["copy"].group(3) != "5" or arms["parse"].group(3) != "0":
-            failures.append("copied/parsed counts: copy arm %s/%s, parse arm "
-                            "%s/%s" % (arms["copy"].group(3),
-                                       arms["copy"].group(4),
-                                       arms["parse"].group(3),
-                                       arms["parse"].group(4)))
-        pdir = os.path.join(work, "parse", "Examples")
-        cdir = os.path.join(work, "copy", "Examples")
-        if sorted(os.listdir(pdir)) != sorted(os.listdir(cdir)):
-            failures.append("calculations differ: %s and %s"
-                            % (sorted(os.listdir(pdir)),
-                               sorted(os.listdir(cdir))))
-        else:
-            for calc in sorted(os.listdir(pdir)):
-                if calc.startswith("."):
-                    continue
-                problems = compare(os.path.join(pdir, calc),
-                                   os.path.join(cdir, calc))
-                if problems:
-                    failures.append("%s: %d differences" % (calc, len(problems)))
-                    print("FAIL  %s\n      %s" % (calc, "\n      ".join(
-                        problems[:25])))
-                else:
-                    print("ok    %s: copy and parse agree (%d files)"
-                          % (calc, len(files(os.path.join(pdir, calc)))))
+            if rc:
+                break
     finally:
         if os.environ.get("ECCE_TEST_KEEP"):
             print("kept " + work)

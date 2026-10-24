@@ -5,10 +5,10 @@
                                          checkout, as tests/apps/run_tests.py:
                                          ECCE_TEST_HOME=<DESTDIR>/usr/local)
 
-Runs the Organizer's first-start import of the `general` example set with
+Runs the Organizer's import of each file-output example set with
 ECCE_NO_PREPARSED=1, i.e. through the real parsers, in a fresh isolated state,
 and stores each resulting calculation as
-data/client/examples/general/<example>/stored/<calc>/ with a `stamp` naming
+data/client/examples/<set>/<example>/stored/<calc>/ with a `stamp` naming
 the output it came from (StoredCalcCopy::stampOf).  Run it when an example
 or a parser changes; tests/apps/examples_preparsed_test.py fails when a stored
 copy no longer agrees with a parse.
@@ -21,11 +21,32 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-GENERAL = os.path.join(ROOT, "data", "client", "examples", "general")
-OUTPUTS = {  # example folder -> output file, as CalcMgr's exampleSets()
-    "ecceqm-water": "water.qmout", "orca-benzene": "benzene.out",
-    "ecceqm-ethanol": "ethanol.qmout", "mopac-ammonia": "ammonia.out",
-    "nwchem-methane": "methane.eprint"}
+EXAMPLES = os.path.join(ROOT, "data", "client", "examples")
+# set folder -> project the Organizer imports it into (CalcMgr's exampleSets())
+SETS = {"general": "Examples", "organic": "Examples_Organic",
+        "spectroscopy": "Examples_Spectroscopy"}
+EXTENSIONS = (".qmout", ".eprint", ".out")   # the output of an example folder
+
+
+def outputOf(folder):
+    for ext in EXTENSIONS:
+        for name in sorted(os.listdir(folder)):
+            if name.endswith(ext):
+                return name
+    return None
+
+
+def examplesOf(setId):
+    """{example folder: output file}; a GROMACS directory is never stored."""
+    base = os.path.join(EXAMPLES, setId)
+    found = {}
+    for example in sorted(os.listdir(base)):
+        folder = os.path.join(base, example)
+        if os.path.isdir(folder) and not example.startswith("gromacs-"):
+            found[example] = outputOf(folder)
+    return found
+
+
 FNV = 1469598103934665603
 
 
@@ -39,25 +60,30 @@ def stamp(path):
 
 
 def main():
-    out = tempfile.mkdtemp(prefix="preparse-",
-                           dir=os.path.expanduser("~/.cache"))
-    env = dict(os.environ, ECCE_NO_PREPARSED="1")
+    sets = sys.argv[1:] or sorted(SETS)
     arm = os.path.join(ROOT, "tests", "apps", "examples_arm.py")
-    rc = subprocess.run([sys.executable, arm, out], env=env).returncode
-    if rc != 0:
-        return rc
-    project = os.path.join(out, "Examples")
-    for example, output in OUTPUTS.items():
-        calc = example.split("-", 1)[1]
-        dest = os.path.join(GENERAL, example, "stored")
-        shutil.rmtree(dest, ignore_errors=True)
-        shutil.copytree(os.path.join(project, calc),
-                        os.path.join(dest, calc), symlinks=True,
-                        ignore=shutil.ignore_patterns("Thumbnail*", "*.lock"))
-        with open(os.path.join(dest, "stamp"), "w") as f:
-            f.write(stamp(os.path.join(GENERAL, example, output)) + "\n")
-        print("stored", example)
-    shutil.rmtree(out, ignore_errors=True)
+    env = dict(os.environ, ECCE_NO_PREPARSED="1")
+    for setId in sets:
+        outputs = examplesOf(setId)
+        out = tempfile.mkdtemp(prefix="preparse-",
+                               dir=os.path.expanduser("~/.cache"))
+        rc = subprocess.run([sys.executable, arm, out, setId, SETS[setId],
+                             str(len(outputs))], env=env).returncode
+        if rc != 0:
+            return rc
+        project = os.path.join(out, SETS[setId])
+        for example, output in outputs.items():
+            calc = os.path.splitext(output)[0]
+            dest = os.path.join(EXAMPLES, setId, example, "stored")
+            shutil.rmtree(dest, ignore_errors=True)
+            shutil.copytree(os.path.join(project, calc),
+                            os.path.join(dest, calc), symlinks=True,
+                            ignore=shutil.ignore_patterns("Thumbnail*", "*.lock"))
+            with open(os.path.join(dest, "stamp"), "w") as f:
+                f.write(stamp(os.path.join(EXAMPLES, setId, example, output))
+                        + "\n")
+            print("stored", setId, example)
+        shutil.rmtree(out, ignore_errors=True)
     return 0
 
 

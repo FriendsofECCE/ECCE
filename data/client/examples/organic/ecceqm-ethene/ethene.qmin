@@ -1,0 +1,15 @@
+title Ethene, B3LYP/6-31G*, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+localise true
+geometry
+ C      0.0000000000     0.0000000000     0.6650000000
+ C      0.0000000000     0.0000000000    -0.6650000000
+ H      0.9396375631     0.0000000000     1.2075000000
+ H     -0.9396375631     0.0000000000     1.2075000000
+ H      0.9396375631     0.0000000000    -1.2075000000
+ H     -0.9396375631     0.0000000000    -1.2075000000
+end

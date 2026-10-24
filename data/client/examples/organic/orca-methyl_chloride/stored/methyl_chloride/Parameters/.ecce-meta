@@ -1,0 +1,7 @@
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		0
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		CH3Cl
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		methyl_chloride
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		5
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		26
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C3v
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

@@ -3070,10 +3070,39 @@ const vector<ExampleSet>& exampleSets()
       "nwchem-methane/methane.eprint"}},
     {"computational", "Examples_Computational", {
       "gromacs-trpcage"}},
+    {"organic", "Examples_Organic", {
+      "ecceqm-ethane/ethane.qmout",
+      "ecceqm-ethene/ethene.qmout",
+      "ecceqm-ethyne/ethyne.qmout",
+      "orca-benzene/benzene.out",
+      "orca-butadiene/butadiene.out",
+      "orca-ethylene/ethylene.out",
+      "orca-cyclohexene/cyclohexene.out",
+      "orca-diels_alder_ts/diels_alder_ts.out",
+      "orca-diels_alder_irc/diels_alder_irc.out",
+      "orca-chloride/chloride.out",
+      "orca-methyl_bromide/methyl_bromide.out",
+      "orca-reactant_complex/reactant_complex.out",
+      "orca-sn2_ts/sn2_ts.out",
+      "orca-sn2_irc/sn2_irc.out",
+      "orca-product_complex/product_complex.out",
+      "orca-bromide/bromide.out",
+      "orca-methyl_chloride/methyl_chloride.out"}},
+    {"spectroscopy", "Examples_Spectroscopy", {
+      "orca-formaldehyde/formaldehyde.out",
+      "orca-acetaldehyde/acetaldehyde.out",
+      "orca-acetone/acetone.out",
+      "orca-acetic_acid/acetic_acid.out",
+      "orca-acetate_anion/acetate_anion.out",
+      "orca-methyl_acetate/methyl_acetate.out",
+      "orca-ethyl_acetate/ethyl_acetate.out",
+      "orca-methyl_propionate/methyl_propionate.out",
+      "ecceqm-water/water.qmout",
+      "ecceqm-ethanol/ethanol.qmout"}},
   };
   return sets;
 }
-const char *const kExampleSetVersion = "3";
+const char *const kExampleSetVersion = "4";
 
 string examplesDir()
 {
@@ -3322,6 +3351,151 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"methane", "NWChem, B3LYP/6-31G*. This calculation shows the effect of "
                 "tetrahedral symmetry: degenerate orbitals (a1, t2) and "
                 "degenerate vibrational modes."},
+    // organic chemistry and spectroscopy sets
+    {"ethane",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localise"
+     "d. This calculation shows a carbon-carbon single bond: in the MOs pane"
+     "l, field type Localised MO, one sigma C1-C2 orbital. The optimised C-C"
+     " distance is 1.531 Angstrom and the totally symmetric C-C stretch is a"
+     "t 1009.19 cm-1 (IR inactive); ethene and ethyne use the same method fo"
+     "r comparison."},
+    {"ethene",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localise"
+     "d. This calculation shows a carbon-carbon double bond: in the MOs pane"
+     "l, field type Localised MO, one sigma C1-C2 and one pi C1-C2 orbital. "
+     "The optimised C-C distance is 1.332 Angstrom, shorter than in ethane, "
+     "and the totally symmetric C-C stretch is at 1719.02 cm-1 (IR inactive)"
+     ", higher than in ethane."},
+    {"ethyne",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localise"
+     "d. This calculation shows a carbon-carbon triple bond: in the MOs pane"
+     "l, field type Localised MO, one sigma C1-C2 and two pi C1-C2 orbitals."
+     " The optimised C-C distance is 1.205 Angstrom, shorter than in ethene,"
+     " and the totally symmetric C-C stretch is at 2085.58 cm-1 (IR inactive"
+     "), higher than in ethene."},
+    {"butadiene",
+     "ORCA, B3LYP-D3BJ/def2-SVP. Optimisation and frequencies. This calculat"
+     "ion shows the diene of the Diels-Alder reaction in its s-gauche confor"
+     "mation, the reactant geometry used here, with an electronic energy of "
+     "-155.776738 Eh. With ethylene it is the reactant side of the reaction "
+     "energy profile."},
+    {"ethylene",
+     "ORCA, B3LYP-D3BJ/def2-SVP. Optimisation and frequencies. This calculat"
+     "ion shows the dienophile of the Diels-Alder reaction, with an electron"
+     "ic energy of -78.477034 Eh. Together with s-gauche butadiene (-155.776"
+     "738 Eh) it gives the reactant energy -234.253772 Eh."},
+    {"cyclohexene",
+     "ORCA, B3LYP-D3BJ/def2-SVP. Optimisation and frequencies. This calculat"
+     "ion shows the product of the Diels-Alder reaction, with an electronic "
+     "energy of -234.335601 Eh. Relative to butadiene plus ethylene this is "
+     "-214.8 kJ/mol (electronic energies, no zero-point correction), a compu"
+     "ted value only."},
+    {"diels_alder_ts",
+     "ORCA, B3LYP-D3BJ/def2-SVP. Transition-state optimisation (OptTS) and f"
+     "requencies. This calculation shows that the Diels-Alder reaction goes "
+     "through one transition state with one imaginary mode, -516.33 cm-1, an"
+     "d two equal forming C...C distances of 2.271 Angstrom, so the two bond"
+     "s form together. Its electronic energy, -234.233996 Eh, is 51.9 kJ/mol"
+     " above butadiene plus ethylene (computed, no zero-point correction)."},
+    {"diels_alder_irc",
+     "ORCA, B3LYP-D3BJ/def2-SVP. Intrinsic reaction coordinate (IRC) from th"
+     "e transition state. This calculation shows the energy along the reacti"
+     "on path on both sides of the transition state (45 points). The reactan"
+     "t-side branch stopped at the iteration limit at -234.249081 Eh, above "
+     "the optimised reactants (-234.253772 Eh); the product-side branch ende"
+     "d at -234.326271 Eh, above cyclohexene (-234.335601 Eh)."},
+    {"chloride",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP. Single-point energy of Cl-. This calcula"
+     "tion shows the reactant ion of the SN2 reaction, with an electronic en"
+     "ergy of -460.082857 Eh, used for the energies relative to the reactant"
+     " complex."},
+    {"methyl_bromide",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies. This calcu"
+     "lation shows the substrate of the SN2 reaction, with an electronic ene"
+     "rgy of -2613.589298 Eh. Cl- plus CH3Br lies 49.7 kJ/mol above the reac"
+     "tant complex (computed)."},
+    {"reactant_complex",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies of Cl-...CH"
+     "3Br. This calculation shows the ion-dipole complex on the reactant sid"
+     "e of the SN2 profile; it is the zero of energy (-3073.691084 Eh) for t"
+     "he energies in this set."},
+    {"sn2_ts",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP. Transition-state optimisation (OptTS) an"
+     "d frequencies. This calculation shows the SN2 transition state, with o"
+     "ne imaginary mode, -341.25 cm-1, a linear Cl-C-Br arrangement (180.0 d"
+     "egrees), a planar CH3 group and C-Cl and C-Br distances of 2.420 and 2"
+     ".473 Angstrom. Its energy is 20.8 kJ/mol above the reactant complex an"
+     "d 28.9 kJ/mol below Cl- plus CH3Br (computed electronic energies, no z"
+     "ero-point correction)."},
+    {"sn2_irc",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP. Intrinsic reaction coordinate (IRC) from"
+     " the transition state. This calculation shows the path from the transi"
+     "tion state down to the ion-dipole complexes on both sides (both branch"
+     "es converged); the end points, -3073.691304 Eh and -3073.699544 Eh, ar"
+     "e close to the optimised complexes, -3073.691084 Eh and -3073.699428 E"
+     "h."},
+    {"product_complex",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies of ClCH3..."
+     "Br-. This calculation shows the ion-dipole complex on the product side"
+     " of the SN2 profile, -21.9 kJ/mol relative to the reactant complex (co"
+     "mputed, no zero-point correction), so the profile has one well on each"
+     " side of the transition state."},
+    {"bromide",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP. Single-point energy of Br-. This calcula"
+     "tion shows the leaving ion of the SN2 reaction, with an electronic ene"
+     "rgy of -2573.820390 Eh; Br- plus CH3Cl lies 20.1 kJ/mol above the reac"
+     "tant complex (computed)."},
+    {"methyl_chloride",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies. This calcu"
+     "lation shows the product of the SN2 reaction, with an electronic energ"
+     "y of -499.863026 Eh."},
+    {"formaldehyde",
+     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
+     "R and Raman. This calculation shows the C=O stretch of the simplest ca"
+     "rbonyl compound, the start of the carbonyl series, at 1897.12 cm-1 (un"
+     "scaled; IR 114.82 km/mol, Raman activity 4.687)."},
+    {"acetaldehyde",
+     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
+     "R and Raman. This calculation shows the C=O stretch of an aldehyde wit"
+     "h one methyl group at 1894.46 cm-1 (unscaled), 2.66 cm-1 below formald"
+     "ehyde, with IR 184.71 km/mol and Raman activity 9.096."},
+    {"acetone",
+     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
+     "R and Raman. This calculation shows the C=O stretch of a ketone with t"
+     "wo methyl groups at 1873.69 cm-1 (unscaled), the lowest of the neutral"
+     " carbonyl compounds in this set, with IR 183.46 km/mol and Raman activ"
+     "ity 7.890."},
+    {"acetic_acid",
+     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
+     "R and Raman. This calculation shows the C=O stretch of a carboxylic ac"
+     "id at 1907.15 cm-1 (unscaled), the highest of the neutral carbonyl com"
+     "pounds in this set, with IR 326.15 km/mol and Raman activity 5.181."},
+    {"acetate_anion",
+     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), optimisation and analytic f"
+     "requencies with IR and Raman. This calculation shows that the carboxyl"
+     "ate anion has two coupled CO2 stretches instead of one C=O stretch: th"
+     "e out-of-phase (antisymmetric) stretch at 1744.15 cm-1 (unscaled; IR 7"
+     "60.75 km/mol, Raman activity 4.436) and the in-phase stretch, mixed wi"
+     "th CH3 deformation, at 1452.48 cm-1 (IR 307.36 km/mol, Raman activity "
+     "5.169). No band lies near the 1870-1910 cm-1 of the neutral carbonyl c"
+     "ompounds."},
+    {"methyl_acetate",
+     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
+     "R and Raman. This calculation shows the C=O stretch of an ester at 188"
+     "9.67 cm-1 (unscaled), with IR 256.88 km/mol and Raman activity 3.413: "
+     "the ester bands are stronger in IR and weaker in Raman than those of f"
+     "ormaldehyde, acetaldehyde and acetone in this set."},
+    {"ethyl_acetate",
+     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
+     "R and Raman. This calculation shows the C=O stretch of an ester with a"
+     " longer alkyl group at 1882.88 cm-1 (unscaled; IR 244.34 km/mol, Raman"
+     " activity 3.143), 6.79 cm-1 below methyl acetate."},
+    {"methyl_propionate",
+     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
+     "R and Raman. This calculation shows the C=O stretch of the ester with "
+     "the acyl group lengthened instead of the alkoxy group at 1883.56 cm-1 "
+     "(unscaled; IR 256.97 km/mol, Raman activity 3.283), 6.11 cm-1 below me"
+     "thyl acetate."},
     {"trpcage", "GROMACS, AMBER99SB-ILDN, TIP3P. This study shows the stages "
                 "of a molecular dynamics simulation: preparation, energy "
                 "minimisation, equilibration and production. The temperature "

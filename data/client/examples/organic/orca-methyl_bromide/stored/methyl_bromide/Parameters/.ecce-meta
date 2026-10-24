@@ -1,0 +1,7 @@
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		0
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		CH3Br
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		methyl_bromide
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		5
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		44
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C3v
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

@@ -1,0 +1,8 @@
+! B3LYP D3BJ def2-SVP TightSCF DefGrid3 IRC
+%pal nprocs 6 end
+%maxcore 1500
+%irc MaxIter 40
+ InitHess read
+ Hess_Filename "ts.hess"
+end
+* xyzfile 0 1 ../B04b_DielsAlder_TS/B04b_DielsAlder_TS.xyz

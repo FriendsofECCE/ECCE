@@ -1,0 +1,6 @@
+! B3LYP D3BJ ma-def2-SVP TightSCF 
+%pal nprocs 1 end
+%maxcore 1500
+* xyz -1 1
+Cl     0.000000     0.000000     0.000000
+*

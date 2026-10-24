@@ -1,0 +1,12 @@
+title Water, B3LYP/6-31G*, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+charges loewdin chelpg mk
+geometry
+ O     0.0000000000     0.0000000000     0.1200000000
+ H     0.0000000000     0.7600000000    -0.4800000000
+ H     0.0000000000    -0.7600000000    -0.4800000000
+end
