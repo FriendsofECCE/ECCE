@@ -324,7 +324,16 @@ def main():
         check(ed.cmd("set-steps 300") == "ok", "300 steps")
         check(ed.cmd("launch") == "enabled",
               "Launch is enabled before Save: it saves, then launches")
+        # defined groups chosen, none defined: System, and the .mdp says so
+        check(ed.cmd("run-set comgroups 1") == "ok", "Centre of mass groups: Defined")
         check(ed.cmd("save") == "ok", "Save")
+        mdp = open(os.path.join(dyn.replace("file://", "").rstrip("/"), "Inputs",
+                                "gromacs.mdp")).read()
+        check(re.search(r"^tc-grps\s*=\s*System$", mdp, re.M)
+              and not re.search(r"^comm-grps", mdp, re.M)
+              and "; Note: ComGroups use the defined groups, but none is defined; System is used"
+              in mdp,
+              "the saved .mdp of the Dynamics task carries the System note")
         ed.shots(png, "04-dynamics", ["Inputs", "Dynamics", "Files"], "dynamics")
         ed.close()
         editors.pop("dyn")
