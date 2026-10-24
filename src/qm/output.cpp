@@ -92,6 +92,38 @@ void write_scan_geometry(std::ostream& os, int point, double value, const Molecu
   os.flush();
 }
 
+void write_irc_table(std::ostream& os, const std::vector<IrcPoint>& path) {
+  char b[160];
+  os << "begin irc_table  # point s(bohr*sqrt(amu)) energy(hartree); the TS is s = 0\n";
+  for (size_t i = 0; i < path.size(); ++i) {
+    std::snprintf(b, sizeof b, "%zu %.6f %.12f\n", i + 1, path[i].s, path[i].energy);
+    os << b;
+  }
+  os << "end irc_table\n";
+  os.flush();
+}
+
+void write_irc_geometries(std::ostream& os, const std::vector<IrcPoint>& path) {
+  char b[160];
+  for (size_t i = 0; i < path.size(); ++i) {
+    std::snprintf(b, sizeof b, "begin irc_geometry  # point %zu s %.6f; index symbol x y z (angstrom)\n", i + 1, path[i].s);
+    os << b;
+    const Molecule& mol = path[i].mol;
+    for (size_t a = 0; a < mol.atoms.size(); ++a) {
+      std::snprintf(b, sizeof b, "%zu %s %.10f %.10f %.10f\n", a + 1, element_symbol(mol.atoms[a].Z),
+                    mol.atoms[a].x[0] * kBohrToAngstrom, mol.atoms[a].x[1] * kBohrToAngstrom, mol.atoms[a].x[2] * kBohrToAngstrom);
+      os << b;
+    }
+    os << "end irc_geometry\n";
+  }
+  os.flush();
+}
+
+void write_progress_irc(std::ostream& os, int point, int points) {
+  os << "progress irc point=" << point << "/" << points << "\n";
+  os.flush();
+}
+
 void write_progress_scan(std::ostream& os, int point, int points) {
   os << "progress scan point=" << point << "/" << points << "\n";
   os.flush();
@@ -222,7 +254,7 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "format_version 1\n";
   os << "program ecce-qm 0.1\n";
   os << "title " << in.title << "\n";
-  static const char* kRunNames[] = {"energy", "gradient", "optimize", "frequency", "optfreq", "ts"};
+  static const char* kRunNames[] = {"energy", "gradient", "optimize", "frequency", "optfreq", "ts", "irc"};
   os << "runtype " << kRunNames[static_cast<int>(in.runtype)] << "\n";
   os << "method " << in.scf.method << "\n";
   os << "reference " << ref_name(r.reference, dft) << "\n";

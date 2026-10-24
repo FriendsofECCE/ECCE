@@ -271,6 +271,14 @@ sub QMControl {
   my $guess = $AbiDict{"ES.Theory.SCF.OrbitalGuessFile"};
   $result .= "read_orbitals $guess\n" if (defined($guess) && $guess ne "");
   $result .= "write_orbitals ecceqm.qmorb\n";
+  if ($AbiDict{"RunType"} eq "IRC") {
+    my $steps = $AbiDict{"ES.Runtype.IRC.MaximumStepsValue"};
+    my $size = $AbiDict{"ES.Runtype.IRC.StepSize"};
+    my $dir = lc($AbiDict{"ES.Runtype.IRC.Direction"});
+    $result .= "irc_max_points " . (($steps eq "") ? 20 : $steps) . "\n";
+    $result .= "irc_step " . (($size eq "") ? 0.1 : $size) . "\n";
+    $result .= "irc_direction " . (($dir eq "") ? "both" : $dir) . "\n";
+  }
   my @schemes;
   push(@schemes, "loewdin") if ($AbiDict{"ES.Theory.ECCEQM.Loewdin"} eq "1");
   push(@schemes, "chelpg") if ($AbiDict{"ES.Theory.ECCEQM.CHELPG"} eq "1");
@@ -327,8 +335,10 @@ sub RunType {
     return "optfreq";
   } elsif ($runtype eq "Transition State (Opt-TS)") {
     return "ts";
+  } elsif ($runtype eq "IRC") {
+    return "irc";
   }
-  die "ai.ecceqm error: unsupported runtype '$runtype' (ECCE-QM does Energy, Gradient, Geometry, Vibration, GeoVib and Transition State (Opt-TS))\n";
+  die "ai.ecceqm error: unsupported runtype '$runtype' (ECCE-QM does Energy, Gradient, Geometry, Vibration, GeoVib, Transition State (Opt-TS) and IRC)\n";
 }
 
 # The basis_data block std2ECCEQM wrote, with its "basis <name>" line.

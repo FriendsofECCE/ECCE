@@ -1799,7 +1799,7 @@ sub ecceqm
        charges units maxiter conv_energy conv_grad molden runtype maxsteps opt_conv
        hessian_step temperature pressure symmetry_number
        polarizability polarisability raman field_step parallel_points guess_mix
-       numeric_hessian ts_hessian_every read_orbitals write_orbitals);
+       numeric_hessian ts_hessian_every irc_step irc_max_points irc_direction irc_hessian_every read_orbitals write_orbitals);
   my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
   my $INT = qr/[-+]?\d+/;
 
@@ -1945,11 +1945,11 @@ sub ecceqm
       next;
     }
     if ($k eq "runtype" || $k eq "opt_conv") {
-      my $ok = $k eq "runtype" ? qr/(energy|gradient|optimize|opt|frequency|freq|optfreq|ts)/i : qr/(normal|tight)/i;
+      my $ok = $k eq "runtype" ? qr/(energy|gradient|optimize|opt|frequency|freq|optfreq|ts|irc)/i : qr/(normal|tight)/i;
       if ($rest !~ /^$ok$/) {
         finding("BAD", $n, "keywords",
                 "'$k' takes " . ($k eq "runtype" ? "energy, gradient, optimize, frequency, " .
-                "optfreq or ts" : "normal or tight") . ", and this reads " .
+                "optfreq, ts or irc" : "normal or tight") . ", and this reads " .
                 "\"$rest\"; ecce-qm stops on it.");
         $bad++;
       } elsif ($k eq "runtype") {
@@ -1957,7 +1957,7 @@ sub ecceqm
       }
       next;
     }
-    if ($k eq "charge" || $k eq "multiplicity" || $k eq "maxiter" || $k eq "maxsteps" || $k eq "ts_hessian_every") {
+    if ($k eq "charge" || $k eq "multiplicity" || $k eq "maxiter" || $k eq "maxsteps" || $k eq "ts_hessian_every" || $k eq "irc_max_points" || $k eq "irc_hessian_every") {
       if ($rest !~ /^$INT\b/) {
         finding("BAD", $n, ($k eq "charge" || $k eq "multiplicity") ? "charge" : "keywords",
                 "'$k' needs a whole number, and this reads \"$rest\".");
@@ -1994,7 +1994,13 @@ sub ecceqm
       } elsif ($k eq "raman" && $rest =~ /^(true|yes|on|1)$/i) {
         $wantsRaman = $n;
       }
-    } elsif ($k eq "field_step" || $k eq "conv_energy" || $k eq "conv_grad") {
+    } elsif ($k eq "irc_direction") {
+      if ($rest !~ /^(both|forward|backward)$/i) {
+        finding("BAD", $n, "keywords", "'irc_direction' takes both, forward or backward, " .
+                "and this reads \"$rest\"; ecce-qm stops on it.");
+        $bad++;
+      }
+    } elsif ($k eq "field_step" || $k eq "conv_energy" || $k eq "conv_grad" || $k eq "irc_step") {
       if ($rest !~ /^$NUM(\s|$)/) {
         finding("BAD", $n, "keywords", "'$k' needs a number, and this " .
                 "reads \"$rest\".");
@@ -2008,9 +2014,9 @@ sub ecceqm
             "'raman' needs runtype frequency, optfreq or ts; ecce-qm stops on it.");
     $bad++;
   }
-  if ($runtypeGiven eq "ts" && $consOpen) {
+  if ($runtypeGiven =~ /^(ts|irc)$/ && $consOpen) {
     finding("BAD", $consOpen, "constraints",
-            "A transition-state search (runtype ts) takes no constraints; " .
+            "A transition-state search or IRC (runtype ts, irc) takes no constraints; " .
             "ecce-qm stops on it.");
     $bad++;
   }

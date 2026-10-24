@@ -22,7 +22,7 @@
 //   write_orbitals <file>        keep the final orbitals for read_orbitals
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
-//   runtype <energy|gradient|optimize|frequency|optfreq|ts>   default energy;
+//   runtype <energy|gradient|optimize|frequency|optfreq|ts|irc>   default energy;
 //                                gradient adds the analytic nuclear gradient,
 //                                optimize moves the nuclei to a minimum
 //                                (Cartesian BFGS), frequency adds harmonic
@@ -31,6 +31,12 @@
 //                                optimises to a first-order saddle point
 //                                (partitioned RFO from a computed Hessian,
 //                                Bofill updates) and then runs frequencies
+//   irc_step <x>, irc_max_points <n>, irc_direction <both|forward|backward>,
+//   irc_hessian_every <n>        runtype irc: reaction path from the transition
+//                                state in the editor, Gonzalez-Schlegel steps of
+//                                x bohr*sqrt(amu) (0.1), at most n points per
+//                                direction (20), Hessian updated (0) or
+//                                recomputed every n points
 //   ts_hessian_every <n>         ts: recompute the Hessian every n steps
 //                                (default 0: only at the start)
 //   hessian_step <bohr>          frequency: finite-difference step (0.005)
@@ -74,13 +80,14 @@
 #include <vector>
 #include "basislib.hpp"
 #include "charges.hpp"
+#include "irc.hpp"
 #include "molecule.hpp"
 #include "optimizer.hpp"
 #include "scf.hpp"
 
 namespace qm {
 
-enum class RunType { Energy, Gradient, Optimize, Frequency, OptFreq, TS };
+enum class RunType { Energy, Gradient, Optimize, Frequency, OptFreq, TS, IRC };
 
 inline bool does_frequencies(RunType t) { return t == RunType::Frequency || t == RunType::OptFreq || t == RunType::TS; }
 inline bool does_optimize(RunType t) { return t == RunType::Optimize || t == RunType::OptFreq || t == RunType::TS; }
@@ -106,6 +113,8 @@ struct Input {
   ChargeOptions charges;  // extra charge sets (keyword "charges")
   RunType runtype = RunType::Energy;
   OptOptions opt;
+  IrcOptions irc;
+  int irc_direction = 0;   // 0 both, +1 forward, -1 backward
   ScanSpec scan;
   // Frequency runs: Cartesian step of the finite-difference Hessian (bohr),
   // temperature (K) and pressure (atm) of the thermochemistry, rotational

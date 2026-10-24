@@ -2671,6 +2671,7 @@ void CalcEd::populateRuntypes()
             && it->name() != "Vibration"
             && it->name() != "GeoVib"
             && it->name() != "Transition State (Opt-TS)"
+            && it->name() != "IRC"
             && it->name().compare(0, 22, "Transition State (QST)") != 0
             && it->name().compare(0, 25, "Transition State (NEB-TS)") != 0)
         choice->Append(it->name(), new ewxBoolClientData(it->noSpherical()));
