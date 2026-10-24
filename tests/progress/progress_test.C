@@ -246,6 +246,11 @@ int main()
     check(fm && fm->plotLog && fm->criteria.size() == 1 && fm->criteria[0].met == 0,
           "gmx: force on a log plot, tolerance not met");
     check(tp && tp->plot.size() == 3 && tp->lines.size() >= 2, "gmx: temperature plot with its time");
+    // x axis in ps; the total comes from the md stage when the stage has none
+    check(tp && tp->plotXUnit == "ps" && fabs(tp->plotXLast - 0.8) < 1e-9 &&
+          fabs(tp->plotXEnd - 0.8) < 1e-9, "gmx: temperature x axis in ps");
+    check(ep && ep->plotXUnit == "step" && ep->plotXLast == 40 && ep->plotXEnd == 60,
+          "gmx: potential energy x axis in steps out to the run's total");
   }
 
   // Dynamics shows the run's average and deviation (#517); the total energy

@@ -16,6 +16,7 @@
 #include <wx/settings.h>
 #include <wx/stattext.h>
 
+#include "tdat/VibSpectrum.H"
 #include "wxgui/PlotStyle.H"
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxSelectableText.H"
@@ -256,24 +257,36 @@ vector<string> ProgressBox::describe() const
 }
 
 
-// A small line plot of one series, framed, with its label under it.
-static void drawPlot(wxDC& dc, const wxRect& r, const vector<double>& v,
+// A small line plot of one series, framed, with its label under it. The
+// x axis runs 0..xEnd with a few ticks and the y axis shows the extremes,
+// in the small font, so the curve can be read as well as seen.
+static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
                      const string& label, const PlotPalette& pal,
                      const wxFont& small, const wxColour& series)
 {
+  const vector<double>& v = blk.plot;
   dc.SetFont(small);
   const int lh = dc.GetCharHeight();
-  wxRect area(r.x, r.y, r.width, std::max(8, r.height - lh - 2));
-  dc.SetPen(wxPen(pal.axis));
-  dc.SetBrush(wxBrush(pal.background));
-  dc.DrawRectangle(area);
   double lo = *std::min_element(v.begin(), v.end());
   double hi = *std::max_element(v.begin(), v.end());
   if (hi - lo < 1e-12) { lo -= 0.5; hi += 0.5; }
+  const wxString yHi = wxString::Format("%.4g", hi);
+  const wxString yLo = wxString::Format("%.4g", lo);
+  const int left = std::max(dc.GetTextExtent(yHi).x, dc.GetTextExtent(yLo).x) + 4;
+  const int axisH = lh + 2;
+  wxRect area(r.x + left, r.y, r.width - left,
+              std::max(8, r.height - lh - 2 - axisH));
+  dc.SetPen(wxPen(pal.axis));
+  dc.SetBrush(wxBrush(pal.background));
+  dc.DrawRectangle(area);
+
+  const double xEnd = blk.plotXEnd > 0 ? blk.plotXEnd : (double)v.size();
+  const double xLast = blk.plotXLast > 0 ? blk.plotXLast : (double)v.size();
   const int m = 3;
   vector<wxPoint> pts;
   for (size_t i = 0; i < v.size(); i++) {
-    const double fx = v.size() > 1 ? double(i) / (v.size() - 1) : 0.5;
+    const double x = xLast * double(i + 1) / v.size();
+    const double fx = x / xEnd;
     const double fy = (v[i] - lo) / (hi - lo);
     pts.push_back(wxPoint(area.x + m + (int)std::lround(fx * (area.width - 2 * m)),
                           area.y + m + (int)std::lround((1 - fy) * (area.height - 2 * m))));
@@ -283,8 +296,29 @@ static void drawPlot(wxDC& dc, const wxRect& r, const vector<double>& v,
   dc.SetBrush(wxBrush(series));
   dc.SetPen(*wxTRANSPARENT_PEN);
   for (const wxPoint& p : pts) dc.DrawCircle(p, 2);
+
   dc.SetTextForeground(pal.axis);
-  dc.DrawText(U(label), r.x, area.GetBottom() + 2);
+  dc.DrawText(yHi, r.x, area.y);
+  dc.DrawText(yLo, r.x, area.GetBottom() - lh);
+  const bool whole = blk.plotXUnit != "ps";
+  SpectrumTicks xt = niceTicks(0, xEnd, 3);
+  if (whole) {
+    xt.decimals = 0;
+    xt.values.clear();
+    for (double t = std::max(1.0, std::ceil(xEnd / 3)); t <= xEnd + 1e-9; t += std::max(1.0, std::ceil(xEnd / 3)))
+      xt.values.push_back(t);
+  }
+  for (double t : xt.values) {
+    const int px = area.x + m + (int)std::lround(t / xEnd * (area.width - 2 * m));
+    const wxString s = wxString::Format("%.*f", xt.decimals, t);
+    const int w = dc.GetTextExtent(s).x;
+    if (px + w / 2 > r.GetRight()) continue;
+    dc.SetPen(wxPen(pal.axis));
+    dc.DrawLine(px, area.GetBottom(), px, area.GetBottom() + 3);
+    dc.DrawText(s, std::max(area.x, px - w / 2), area.GetBottom() + 2);
+  }
+  dc.DrawText(U(label + (blk.plotXUnit.empty() ? "" : " (x: " + blk.plotXUnit + ")")),
+              r.x, area.GetBottom() + axisH);
 }
 
 
@@ -427,7 +461,7 @@ wxSize ProgressBox::layout(wxDC *dc)
             m.SetFont(small);
             pw = std::min(availW, std::max(FromDIP(260),
                           m.GetTextExtent(U(plotCaption(b))).x + 2));
-            ph = minPlotH + m.GetCharHeight() + 2;
+            ph = minPlotH + FromDIP(20) + m.GetCharHeight() + 2;
             m.SetFont(normal);
           }
           const bool beside = pw > 0 && plotX - gap - x0 >= FromDIP(150);
@@ -481,7 +515,7 @@ wxSize ProgressBox::layout(wxDC *dc)
             const wxRect r = beside ? wxRect(plotX, y0, pw, ph)
                                     : wxRect(0, y, pw, ph);
             if (dc) {
-              drawPlot(*dc, r, b.plot, plotCaption(b), pal, small, series);
+              drawPlot(*dc, r, b, plotCaption(b), pal, small, series);
               dc->SetFont(normal);
             }
             p_geom.push_back(b.title + " text " + std::to_string(y0) + " " +

@@ -267,6 +267,42 @@ static vector<string> prepareSummary(const JobProgress::Stage& st, bool complete
 }
 
 
+//  The x extent of a plot: the record number (or the simulated time when the
+//  snapshot has one), out to the run's total where that is known.
+void JobProgress::plotAxis(const Stage& st, const string& rec,
+                           const string& recName, Block& b) const
+{
+  const double n = (double)st.history.size();
+  double k = 0, total = 0;
+  bool hasN = false;
+  const bool haveK = !rec.empty() && split(st.field(rec), k, total, hasN);
+  if (!haveK) k = 0;
+  if (!hasN) total = 0;
+  //  GROMACS prints its total on the run's own stage (md, steep, ...), not on
+  //  the per-quantity gmx-* stages.
+  if (total <= 0 && st.name.compare(0, 4, "gmx-") == 0)
+    for (const Stage& o : p_stages) {
+      double mk, mn;
+      bool mHas;
+      if (o.name.compare(0, 4, "gmx-") != 0 &&
+          split(o.field("point"), mk, mn, mHas) && mHas && mn > 0) {
+        total = mn;
+        break;
+      }
+    }
+  const double last = std::max(k, n);
+  double scale = 1;
+  b.plotXUnit = recName.empty() ? "record" : recName;
+  double t;
+  if (haveK && k > 0 && number(st.field("time"), t) && t > 0) {
+    scale = t / k;
+    b.plotXUnit = "ps";
+  }
+  b.plotXLast = last * scale;
+  b.plotXEnd = std::max(last, total) * scale;
+}
+
+
 JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
                                            bool finished) const
 {
@@ -380,6 +416,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       b.plotLabel = "log |" + criterionLabel(st.name, st.historyKey) +
                     "| per " + (rec.empty() ? "record" : recName);
     }
+    plotAxis(st, rec, recName, b);
   }
   return b;
 }
