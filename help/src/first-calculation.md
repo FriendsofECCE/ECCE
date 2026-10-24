@@ -59,11 +59,11 @@ library:
 1. In the **Mode Toolbar**, click the button with the tooltip **Import from
    Structure Library**. You can also choose **Mode > Add Structure**
    (Ctrl+7).
-2. In the **Structure Library** panel, choose `SimpleStructures` in the
-   **Libraries** drop-down, then open the folder `Miscellaneous2` by
+2. In the **Structure Library** panel, choose `Inorganic` in the
+   **Libraries** drop-down, then open the folder `Small_inorganic_molecules` by
    double-clicking it. The button next to the drop-down goes up one
    level.
-3. Click `h2o` in the list. A preview appears in the panel.
+3. Click `Water` in the list. A preview appears in the panel.
 4. Click in the empty 3D view. The molecule is added there.
 
 If you prefer to draw the molecule yourself:
