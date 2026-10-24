@@ -2450,17 +2450,21 @@ void CalcMgr::OnForwardClick( wxCommandEvent& event )
 
 
 //  Holds the frame's redraws until a change is complete, then paints all
-//  its children at once (the MSW thaw only invalidates).
+//  its children at once (the MSW thaw only invalidates).  MSW only: GTK
+//  paints once per idle anyway, and GTK3 paints a frozen widget black when
+//  the frame is drawn before the thaw (#523).
 struct FrameHold {
   wxWindow *win;
+#ifdef __WXMSW__
   explicit FrameHold(wxWindow *w) : win(w) { win->Freeze(); }
   ~FrameHold() {
     win->Thaw();
-#ifdef __WXMSW__
     ::RedrawWindow((HWND)win->GetHWND(), NULL, NULL,
                    RDW_UPDATENOW | RDW_ALLCHILDREN);
-#endif
   }
+#else
+  explicit FrameHold(wxWindow *w) : win(w) {}
+#endif
 };
 
 
@@ -7177,7 +7181,9 @@ void CalcMgr::applyQueuedUpdates()
   todo.swap(p_queuedUpdates);
   if (todo.empty()) return;
   p_testBatches++;
-  wxWindowUpdateLocker freeze(this);
+#ifdef __WXMSW__
+  wxWindowUpdateLocker freeze(this);   // not on GTK3, see FrameHold
+#endif
   for (size_t i = 0; i < todo.size(); i++) {
     p_testApplied++;
     EcceURL url(todo[i].second);
@@ -7526,8 +7532,13 @@ static void enableTool(wxToolBar *bar, int id, bool enable)
 struct CalcMgr::MenuBarHold {
   wxMenuBar *bar;
   bool& titlesChanged;
+  //  MSW only, as FrameHold: a frozen GTK3 menu bar is painted black.
+#ifdef __WXMSW__
   MenuBarHold(wxMenuBar *b, bool& changed) : bar(b), titlesChanged(changed)
     { if (bar) bar->Freeze(); }
+#else
+  MenuBarHold(wxMenuBar *, bool& changed) : bar(0), titlesChanged(changed) {}
+#endif
   ~MenuBarHold() {
     if (!bar) return;
     bar->Thaw();
