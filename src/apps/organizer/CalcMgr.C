@@ -3281,23 +3281,30 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
 
   // What each example is for, in its Annotation field.
   static const struct { const char *name, *text; } kNotes[] = {
-    {"water", "ECCE-QM, B3LYP/6-31G*: geometry optimisation and frequencies. "
-              "Look at the vibrations and IR spectrum, and compare the "
-              "Mulliken, Loewdin, CHELPG and Merz-Kollman charges."},
-    {"ethanol", "ECCE-QM, B3LYP/6-31G*: optimisation, frequencies and Raman "
-                "activities. Open the vibrations and use Spectrum... to see "
-                "the IR and Raman spectra side by side."},
-    {"benzene", "ORCA, B3LYP/6-31G*: optimisation and frequencies with "
-                "CHELPG, Hirshfeld, MBIS and NBO charges. Look at the pi "
-                "orbitals in the MO panel."},
-    {"ammonia", "MOPAC, PM7: optimisation, then frequencies. A semiempirical "
-                "calculation: compare its orbitals and frequencies with the "
-                "DFT examples."},
-    {"trpcage", "GROMACS, AMBER99SB-ILDN, TIP3P: the Trp-cage (PDB 1L2Y) "
-                "through Prepare, Optimize, Equilibrate and Dynamics. Open "
-                "a task to see its inputs, energies and the trajectory."},
-    {"methane", "NWChem, B3LYP/6-31G*: optimisation, frequencies and "
-                "properties, imported from NWChem's own output."},
+    {"water", "ECCE-QM, B3LYP/6-31G*. This calculation shows how a frequency "
+              "calculation gives the IR spectrum of a molecule, and how the "
+              "computed atomic charges depend on the partitioning scheme "
+              "(Mulliken, Loewdin, CHELPG, Merz-Kollman)."},
+    {"ethanol", "ECCE-QM, B3LYP/6-31G*. This calculation shows the IR and "
+                "Raman spectra of the same molecule, whose intensities follow "
+                "different selection rules: a change in dipole moment for IR, "
+                "a change in polarisability for Raman."},
+    {"benzene", "ORCA, B3LYP/6-31G*. This calculation shows the delocalised "
+                "pi orbitals of an aromatic ring: six pi orbitals in a "
+                "1-2-2-1 pattern of levels with an increasing number of nodal "
+                "planes."},
+    {"ammonia", "MOPAC, PM7. This calculation shows a semiempirical "
+                "optimisation and frequency calculation, including the "
+                "umbrella inversion mode, for comparison with the DFT "
+                "examples in cost and accuracy."},
+    {"methane", "NWChem, B3LYP/6-31G*. This calculation shows the effect of "
+                "tetrahedral symmetry: degenerate orbitals (a1, t2) and "
+                "degenerate vibrational modes."},
+    {"trpcage", "GROMACS, AMBER99SB-ILDN, TIP3P. This study shows the stages "
+                "of a molecular dynamics simulation: preparation, energy "
+                "minimisation, equilibration and production. The temperature "
+                "and energy plots show the system settling during "
+                "equilibration; the run is too short to show folding."},
   };
   vector<string> thumbUrls;
   if (Resource *projRes = EDSIFactory::getResource(project)) {
@@ -3311,6 +3318,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
             ann[0].name = VDoc::getEcceNamespace() + ":annotation";
             ann[0].value = note.text;
             calc->addProps(ann);
+            //  A study's tasks are what the user opens; each carries the note.
+            if (vector<Resource*> *tasks = calc->getChildren(true))
+              for (Resource *task : *tasks)
+                if (task) task->addProps(ann);
           }
         }
       }
