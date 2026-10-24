@@ -2006,6 +2006,21 @@ CASES = [
         },
     ),
     dict(
+        #  Localised orbitals of ethene (HF/6-31G*): labels carry "_" for
+        #  spaces, the coefficients are one row per orbital.
+        name='ecceqm-ethene-localised',
+        desc='ecceqm.desc',
+        fixture='ecceqm/ethene_loc.qmout',
+        parse_args=('.', 'Energy', 'SCF', 'HF', '0'),
+        expect={
+            'LOCMOENG][LOCMOOCC][LOCMOLABEL': dict(keys={
+                'LOCMOENG': {'size': '8', 'units': 'Hartree'},
+                'LOCMOOCC': {'units': 'electrons'},
+                'LOCMOLABEL': {'size': '8'}}),
+            'LOCMO': dict(keys={'LOCMO': {'size': '8 36'}}),
+        },
+    ),
+    dict(
         #  "charges loewdin chelpg mk": three extra blocks, one key each.
         name='ecceqm-h2o-charges',
         desc='ecceqm.desc',
