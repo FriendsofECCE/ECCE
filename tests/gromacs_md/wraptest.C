@@ -3,6 +3,7 @@
 // centre inside the compact cell, each atom moved only by lattice vectors.
 // The cell test is brute force over lattice neighbours: a point is inside
 // the Wigner-Seitz cell when no lattice translate of the centre is nearer.
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -12,6 +13,7 @@
 #include <vector>
 
 #include "dsm/GromacsStructure.H"
+#include "tdat/CompactCell.H"
 
 using std::string;
 using std::vector;
@@ -151,6 +153,41 @@ int main(int argc, char** argv)
   string rect = chain.substr(0, chain.rfind("   1.00000")) +
                 "   1.00000   1.00000   1.00000\n";
   check(GromacsStructure::wrapCompact(rect) == rect, "rectangular box unchanged");
+
+  // The coordinate routine the Builder uses for an existing calculation
+  // (a Fragment in Angstrom, a trajectory frame): same result as the text
+  // wrap, and a second pass changes nothing.
+  {
+    std::vector<std::array<double, 3> > x(n);
+    std::vector<int> resOf(n);
+    std::vector<char> heavy(n);
+    for (int i = 0; i < n; i++) {
+      for (int k = 0; k < 3; k++) x[i][k] = 10.0 * g0.x[3*i+k];
+      resOf[i] = i / 3;
+      heavy[i] = (i % 3 == 0);
+    }
+    double cellA[3][3];
+    for (int i = 0; i < 3; i++) for (int k = 0; k < 3; k++) cellA[i][k] = 10.0 * a[i][k];
+    check(CompactCell::wrap(x, resOf, heavy, cellA, 1.75), "CompactCell wraps the brick");
+    int bad = 0, differ = 0;
+    for (int m = 0; m + 2 < n; m += 3) {
+      double c[3] = {0,0,0};
+      for (int i = m; i < m + 3; i++)
+        for (int k = 0; k < 3; k++) {
+          c[k] += x[i][k] / 3;
+          if (std::fabs(x[i][k] - 10.0 * g1.x[3*i+k]) > 0.02) differ++;
+        }
+      if (!inCell(cellA, c)) bad++;
+    }
+    check(bad == 0, "CompactCell: every molecule centre inside the cell");
+    check(differ == 0, "CompactCell agrees with the .gro wrap");
+    std::vector<std::array<double, 3> > y = x;
+    CompactCell::wrap(y, resOf, heavy, cellA, 1.75);
+    double dmax = 0;
+    for (int i = 0; i < n; i++)
+      for (int k = 0; k < 3; k++) dmax = std::fmax(dmax, std::fabs(y[i][k] - x[i][k]));
+    check(dmax < 1e-9, "a second wrap changes nothing");
+  }
 
   return failures ? 1 : 0;
 }

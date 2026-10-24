@@ -9,6 +9,7 @@
   using namespace ecce;
 
 #include "dsm/IPropCalculation.H"
+#include "dsm/MdTask.H"
 
 #include "tdat/PropTSVecTable.H"
 #include "tdat/LatticeDef.H"
@@ -107,6 +108,11 @@ bool GTStepCmd::execute()
          lattice->assign(a1,a2,a3);
          sg->touchLattice() ;
     }
+
+    // Frames of an MD run written without -pbc mol -ur compact (before
+    // 9.3.3) hold the brick; the cell is drawn compact.
+    if (lattice && dynamic_cast<MdTask*>(calc))
+      sgfrag->wrapIntoCompactCell(false);
 
     // ChemDisplay nodes hold a raw pointer to their ChemData, not an
     // SoSFNode field, so sgfrag->touch() alone doesn't reach their render
