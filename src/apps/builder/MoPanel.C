@@ -1772,8 +1772,12 @@ void MoPanel::chooseMoFieldType()
 {
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    if (typewin == 0) return;
-   const int mo = typewin->FindString(_("MO"));
-   if (mo == wxNOT_FOUND || typewin->GetSelection() == mo) return;
+   //  Both orbital sets count as orbitals; the localised one must survive.
+   const int sel = typewin->GetSelection();
+   const wxString cur = sel == wxNOT_FOUND ? wxString() : typewin->GetString(sel);
+   if (cur == _("MO") || cur == "Localised MO") return;
+   const int mo = typewin->FindString(p_localised ? wxString("Localised MO") : _("MO"));
+   if (mo == wxNOT_FOUND) return;
    typewin->SetSelection(mo);
    wxCommandEvent changed(wxEVT_CHOICE);
    onFieldTypeChanged(changed);
