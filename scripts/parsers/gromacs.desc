@@ -136,6 +136,12 @@ Progress={integrator} point=$1/{nsteps}
 # echoes the tolerance there, so it is known before the first step.  Dynamics has no
 # such line, so the log's energies table gives temperature, pressure
 # and the potential at each log step; the averages that end a run are not read.
+# The job's own output (mdrun -v steps, the tolerance, the density) reaches the
+# declared output file only when the job ends, so the monitor reads it itself.
+[PROGRESS]
+Stream=ecce.submit.log
+[END]
+
 [PROGRESS]
 Begin=^ECCE-EMTOL (\S+)
 Remember=emtol

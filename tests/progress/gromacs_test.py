@@ -137,6 +137,30 @@ def main():
         check(re.search(r"^gmx-fmax step=\d+ maxgrad=\S+/100(\.0)?$", snap, re.M) is not None,
               "em: the force comes with the em tolerance")
 
+        # As a real job: the declared output file is the log alone while the
+        # job runs (mdrun's stderr and the ECCE-* lines are in ecce.submit.log,
+        # appended to the declared file only at the end), and it is the
+        # monitor's only file.  Points must show mid-run, and not double up
+        # once the submit log has been appended.
+        live = os.path.join(work, "live")
+        os.mkdir(live)
+        sub = open(os.path.join(work, "em.out"), "rb").read()
+        half = sub[:sub.rfind(b"\r", 0, len(sub) // 2) + 1]
+        shutil.copy(os.path.join(work, "em.log"), os.path.join(live, "gromacs.gmxlog"))
+        open(os.path.join(live, "ecce.submit.log"), "wb").write(half)
+        mid = monitor(live, os.path.join(live, "gromacs.gmxlog"),
+                      os.path.join(live, "gromacs.gmxlog"), "mid")[0]
+        mid_ep = history(mid, "gmx-epot")
+        check(len(mid_ep) >= 5 and len(mid_ep) < len(ep),
+              "em, mid-run: %d of %d points from the submit log alone" % (len(mid_ep), len(ep)))
+        open(os.path.join(live, "ecce.submit.log"), "wb").write(sub)
+        with open(os.path.join(live, "gromacs.gmxlog"), "ab") as o:
+            o.write(b"\n-----ECCE Log Information-----\n" + sub)
+        end = monitor(live, os.path.join(live, "gromacs.gmxlog"),
+                      os.path.join(live, "gromacs.gmxlog"), "end")[0]
+        check(history(end, "gmx-epot") == ep,
+              "em, job over: the appended submit log adds no second set of points")
+
         # Dynamics
         snap = monitor(work, os.path.join(work, "md.log"), os.path.join(work, "md.out"), "md")[0]
         print(snap)
