@@ -24,11 +24,11 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.3.2](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.3.2)),
+  [9.3.3](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.3.3)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
-  [8.18.13](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.13)),
+  [8.18.14](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.14)),
   Linux only: the older line, which still gets bug fixes.
 
 | System | File | Install |
@@ -47,14 +47,13 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   NEB-TS), redesigned: the transition-state job refers to the reactant and
   product calculations and reports the barrier and reaction energy.
 - The Calculation Editor's Details windows in C++ instead of Python, starting
-  with ORCA and Gaussian 16 (the ORCA ones are a preview in 9.3.2).
+  with ORCA and Gaussian 16 (the ORCA ones are a preview in 9.3.3).
 - ECCE-QM: relaxed scans of a bond, angle or torsion; transition-state search
   from one structure (Opt-TS) with frequencies after; analytic RHF Hessian, so
   closed-shell frequencies run several times faster.
 - TD-DFT options (number of states, singlets/triplets, Tamm–Dancoff) in the
   ORCA and Gaussian 16 editors; UV-vis transitions listed as HOMO/LUMO with
   % weight.
-- A failed job keeps its output file, its status and its progress.
 
 ## First steps
 
