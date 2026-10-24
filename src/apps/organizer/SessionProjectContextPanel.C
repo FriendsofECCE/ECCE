@@ -111,6 +111,12 @@ void SessionProjectContextPanel::selectResource(const EcceURL & url)
 }
 
 
+void SessionProjectContextPanel::selectResources(const vector<EcceURL>& urls)
+{
+  p_project->selectResources(urls);
+}
+
+
 vector<EcceURL> SessionProjectContextPanel::getSelections()
 {
   return p_project->getSelections();

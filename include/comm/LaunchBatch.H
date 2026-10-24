@@ -5,6 +5,7 @@
 #include <vector>
 
 class TaskJob;
+class MachinePreferences;
 class EcceMap;
 class Launch;
 
@@ -23,6 +24,10 @@ public:
     std::string problem;   // why not, or a check that only warns
     Plan() : procs(0), ready(false) {}
   };
+
+  /** A wall time is only needed where a queue manager takes it; a direct
+      (Shell) or workstation launch has no limit to pass. */
+  static bool wallTimeRequired(MachinePreferences *prefs);
 
   /** What launching `task` would use; problem is set when it cannot. */
   static Plan plan(TaskJob *task);

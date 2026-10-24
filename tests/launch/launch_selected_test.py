@@ -88,6 +88,11 @@ def main():
                 say(out)
                 return 1
             urls.append(url)
+        #  A direct (Shell) machine takes no wall time: not skipped for lack of one.
+        nowall, out = s.create("nowall", "cp2k_es", deck, "cp2k.cp2kin",
+                               rundir, extra=("procs=1", "queue=normal",
+                                              "nodes=1"))
+        check(nowall is not None, "calculation without a wall time created")
         #  No machine stored: listed, skipped.
         bad, out = s.create("nomachine", "cp2k_es", deck, "cp2k.cp2kin",
                             rundir, machine="", extra=("procs=1",))
@@ -123,7 +128,15 @@ def main():
             return "no answer"
 
         shot = args.shot or os.path.join(s.state, "summary.png")
-        every = urls + ([bad] if bad else [])
+        every = urls + ([nowall] if nowall else []) + ([bad] if bad else [])
+        #  Several table rows selected, focus still on the tree: all are used.
+        #  Each calculation sits in its own project, so the rows of the user
+        #  folder's table (the projects) stand in for the rows of one table.
+        rows = [u.rsplit("/", 1)[0] for u in urls]
+        ans = send("launchselectionrows %s" % " ".join(rows))
+        check(ans.startswith("ok %d " % len(rows)) and
+              all(u in ans for u in rows),
+              "all table rows are the Launch Selected set (%s)" % ans[:80])
         ans = send("launchselectedshot %s %s" % (shot, " ".join(every)))
         check(ans == "not launched" and os.path.getsize(shot) > 1000,
               "summary dialog saved (%s)" % ans)
@@ -135,6 +148,8 @@ def main():
         check(ans.startswith("ok "), "batch answered ok")
         for n in range(3):
             check(("sel%d: submitted" % n) in ans, "sel%d reported submitted" % n)
+        if nowall:
+            check("nowall: submitted" in ans, "no wall time on a Shell machine is not skipped")
         if bad:
             check("nomachine: skipped" in ans, "the calculation without settings is skipped")
         for n, u in enumerate(urls):

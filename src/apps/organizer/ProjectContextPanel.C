@@ -3,6 +3,7 @@
  *
  *
  */
+#include <algorithm>
 #include <iostream>
   using std::cerr;
   using std::endl;
@@ -451,6 +452,24 @@ void ProjectContextPanel::selectResource(const EcceURL &url)
       p_projectView->getGrid()->MakeCellVisible(row, 0);
     }
   }
+}
+
+
+void ProjectContextPanel::selectResources(const vector<EcceURL>& urls)
+{
+  GridModel *model = p_projectView->getModel();
+  int rows = p_projectView->getRowCount();
+  p_projectView->getGrid()->ClearSelection();
+  for (int i = 0; i < rows; i++) {
+    GridPropElement *element =
+      dynamic_cast<GridPropElement*>(model->GetValueAsGridElement(i, 0));
+    if (!element || !element->getResource()) continue;
+    if (std::find(urls.begin(), urls.end(), element->getResource()->getURL())
+        != urls.end())
+      p_projectView->getGrid()->SelectRow(i, true);
+  }
+  for (int i = 0; i < 5; i++) wxYield();
+  saveSelections();
 }
 
 

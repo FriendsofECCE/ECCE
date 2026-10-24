@@ -13,3 +13,11 @@ time) and a check's text goes into the result list after the submit; the
 batch never stops for it. Steps run on a worker thread as in
 `WxLauncher::runLaunchStep`, so `CalcMgr::getAuthorization` forwards a login
 to the GUI thread. Test hook: `launchselected URL...`.
+
+Which calculations: `CalcMgr::launchSelection()` takes the project table's
+rows when more than one is selected, because the Run Mgmt menu can fire while
+`p_focusOnTree` still points at the tree and `getSelection()` then answers
+with the single tree item. A wall time is required only where a queue manager
+takes one (`LaunchBatch::wallTimeRequired`); a direct "Shell" machine such as
+localhost is registered with Q:TL but passes no limit. Hook:
+`launchselectionrows URL...`.

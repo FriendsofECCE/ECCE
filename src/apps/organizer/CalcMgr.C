@@ -1229,6 +1229,25 @@ void CalcMgr::runTestCommand(const string& line)
       vector<EcceURL> urls;
       while (args >> u) urls.push_back(EcceURL(u));
       launchSelected(urls, false, &outcome, png);
+    } else if (command == "launchselectionrows") {
+      // "launchselectionrows URL...": selects those rows in the project table
+      // with the focus on the tree, then reports what Launch Selected would
+      // use, without launching.
+      std::istringstream args(calcName);
+      string u;
+      vector<EcceURL> urls;
+      while (args >> u) urls.push_back(EcceURL(u));
+      WxResourceTreeItemData *parent = urls.empty() ? 0 :
+          findNode(urls[0].getParent(), true, true);
+      if (parent) {
+        p_treeCtrl->SelectItem(parent->GetId());
+        for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
+      }
+      if (p_contextPanel) p_contextPanel->selectResources(urls);
+      p_focusOnTree = true;
+      vector<EcceURL> used = launchSelection();
+      outcome = "ok " + std::to_string(used.size());
+      for (size_t i = 0; i < used.size(); i++) outcome += " " + used[i].toString();
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
       // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered
@@ -2534,8 +2553,21 @@ void CalcMgr::OnDuplicate2Click( wxCommandEvent& event )
  */
 void CalcMgr::OnLaunchSelectedClick( wxCommandEvent& event )
 {
+  launchSelected(launchSelection(), true);
+}
+
+
+// The menu can fire while the focus flag still points at the tree, which
+// getSelection() then answers with the one tree item; several selected table
+// rows are what the user means by "selected".
+vector<EcceURL> CalcMgr::launchSelection()
+{
+  if (p_contextPanel) {
+    vector<EcceURL> rows = p_contextPanel->getSelections();
+    if (rows.size() > 1) return rows;
+  }
   getSelection();
-  launchSelected(p_currentSelection, true);
+  return p_currentSelection;
 }
 
 

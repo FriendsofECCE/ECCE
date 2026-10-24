@@ -142,6 +142,7 @@ public:
   // Launch steps run on a worker thread; a login it needs is asked here.
   bool getAuthorization(AuthEvent& event);
   // Launch Selected (#492); `outcome` and `shot` only for the test hook.
+  vector<EcceURL> launchSelection();
   void launchSelected(const vector<EcceURL>& urls, bool interactive,
                       string *outcome = 0, const string& shot = "");
 

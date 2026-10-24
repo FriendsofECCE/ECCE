@@ -44,6 +44,7 @@ public:
   virtual void loseFocus();
 
   virtual void selectResource(const EcceURL & url);
+  virtual void selectResources(const vector<EcceURL>& urls);
 
   void OnSashPosChanged( wxSplitterEvent & event );
 

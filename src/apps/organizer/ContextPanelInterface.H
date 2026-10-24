@@ -47,6 +47,9 @@ public:
   virtual void loseFocus();
 
   virtual void selectResource(const EcceURL & url);
+
+  /** Select several rows at once (test hook; default does nothing). */
+  virtual void selectResources(const vector<EcceURL>& urls);
   
 protected:
 
