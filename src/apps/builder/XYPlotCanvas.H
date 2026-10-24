@@ -288,7 +288,11 @@ class XYPlotCanvas : public wxPanel
       const int right = 14;
       int top = 8;
       if (haveTitle) top += th + 4;
-      if (haveKey) top += ch + 6;
+      int keyRows = 0;
+      if (haveKey) {
+        keyRows = paintKey(dc, left, 0, size.x - right, false);
+        top += keyRows * (ch + 6);
+      }
       //  The axis title sits on the bottom edge of the canvas and the plot
       //  leaves room above it, so a font taller than GetCharHeight() says
       //  (GTK scaling, descenders) cannot push it out of view.
@@ -377,7 +381,8 @@ class XYPlotCanvas : public wxPanel
           dc.DrawText(t, (size.x - e.x) / 2, 6);
       }
       dc.SetFont(*wxSMALL_FONT);
-      if (haveKey) paintKey(dc, p_plot.x, top - ch - 4);
+      if (haveKey) paintKey(dc, p_plot.x, top - keyRows * (ch + 6) + 2,
+                            size.x - right);
       if (p_hoverCurve >= 0) paintReadout(dc, size);
     }
 
@@ -546,19 +551,28 @@ class XYPlotCanvas : public wxPanel
       } else dc.DrawCircle(p, 3);
     }
 
-    void paintKey(wxDC& dc, int x, int y)
+    //  Entries that do not fit before maxX go on the next row, so a narrow
+    //  panel shows the whole key; returns the number of rows.
+    int paintKey(wxDC& dc, int x0, int y, int maxX, bool draw = true)
     {
+      const int rowH = dc.GetCharHeight() + 6;
+      int x = x0, rows = 1;
       for (size_t i = 0; i < p_curves.size(); i++) {
         const Curve& cv = p_curves[i];
         if (cv.name.empty()) continue;
-        const wxColour col = colourOf(cv);
-        dc.SetPen(wxPen(col, cv.thin ? 1 : 2));
-        dc.DrawLine(x, y + dc.GetCharHeight() / 2, x + 14,
-                    y + dc.GetCharHeight() / 2);
-        dc.SetTextForeground(p_palette.text);
-        dc.DrawText(cv.name, x + 19, y);
-        x += 19 + dc.GetTextExtent(cv.name).x + 16;
+        const int w = 19 + dc.GetTextExtent(cv.name).x;
+        if (x > x0 && x + w > maxX) { x = x0; y += rowH; rows++; }
+        if (draw) {
+          const wxColour col = colourOf(cv);
+          dc.SetPen(wxPen(col, cv.thin ? 1 : 2));
+          dc.DrawLine(x, y + dc.GetCharHeight() / 2, x + 14,
+                      y + dc.GetCharHeight() / 2);
+          dc.SetTextForeground(p_palette.text);
+          dc.DrawText(cv.name, x + 19, y);
+        }
+        x += w + 16;
       }
+      return rows;
     }
 
     static wxString readoutLine(const wxString& name, double v,
