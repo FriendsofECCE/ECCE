@@ -674,7 +674,11 @@ class SpectrumCanvas : public wxPanel
     void paintSelection(wxDC& dc, const wxRect& pane, int x, int top,
                         int mode)
     {
-      dc.SetPen(wxPen(p_palette.text, 4));
+      //  A selected mode that is also highlighted keeps the highlight
+      //  colour; the number above it marks the selection.
+      const bool hl = mode >= 0 && mode < (int)p_s->highlight.size() &&
+                      p_s->highlight[mode] >= 10.0;
+      dc.SetPen(wxPen(hl ? p_palette.series(4) : p_palette.text, 4));
       dc.DrawLine(x, pane.GetBottom(), x, top);
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(p_palette.text);
