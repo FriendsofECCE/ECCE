@@ -132,6 +132,7 @@ class TaskJob : public Job,
 
       virtual bool startJobLog(const char* rootName);
       virtual bool appendJobLog(const char* log);
+      bool appendJobLogCreating(const char* rootName, const char* log);
       virtual bool endJobLog(const char* rootName);
       virtual bool removeJobLog(void);
 

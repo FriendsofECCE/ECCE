@@ -97,6 +97,13 @@ def main():
         bad, out = s.create("nomachine", "cp2k_es", deck, "cp2k.cp2kin",
                             rundir, machine="", extra=("procs=1",))
         say("  nomachine: %s" % (bad or out.strip()[-120:]))
+        #  A run directory that cannot be made: the submit fails (#516).
+        badrun = os.path.join(s.state, "notadir")
+        open(badrun, "w").write("a file, not a directory\n")
+        failing, out = s.create("failsub", "cp2k_es", deck, "cp2k.cp2kin",
+                                os.path.join(badrun, "sub"),
+                                extra=("procs=1", "queue=normal", "nodes=1"))
+        check(failing is not None, "calculation with an unusable run directory created")
         states = [s.state_of(u) for u in urls]
         check(all(x == "ready" for x in states), "all start ready: %s" % states)
 
@@ -128,7 +135,7 @@ def main():
             return "no answer"
 
         shot = args.shot or os.path.join(s.state, "summary.png")
-        every = urls + ([nowall] if nowall else []) + ([bad] if bad else [])
+        every = urls + ([failing] if failing else []) + ([nowall] if nowall else []) + ([bad] if bad else [])
         #  Several table rows selected, focus still on the tree: all are used.
         #  Each calculation sits in its own project, so the rows of the user
         #  folder's table (the projects) stand in for the rows of one table.
@@ -152,6 +159,21 @@ def main():
             check("nowall: submitted" in ans, "no wall time on a Shell machine is not skipped")
         if bad:
             check("nomachine: skipped" in ans, "the calculation without settings is skipped")
+        if failing:
+            check("failsub: submitted" not in ans, "the unusable run directory is not submitted")
+            check(s.state_of(failing) == "ready", "the failed submit leaves it ready")
+            reason = s.reason_of(failing)
+            say("  stored reason: %s" % reason)
+            check(reason != "", "the failure reason is stored in runStatusReason")
+            log = s.run_log(failing)
+            check(reason[:40] in log or "Job submission failed" in log,
+                  "the run log holds the failure")
+            #  The cause is fixed; the next submit goes through and clears it.
+            os.remove(badrun)
+            os.makedirs(badrun)
+            ans = send("launchselected %s" % failing)
+            check("failsub: submitted" in ans, "relaunch submitted (%s)" % ans[:100])
+            check(s.reason_of(failing) == "", "a successful launch clears the reason")
         for n, u in enumerate(urls):
             st = s.waitState(u, seconds=120,
                              want=harness.FINAL_STATES + ("submitted", "running"))

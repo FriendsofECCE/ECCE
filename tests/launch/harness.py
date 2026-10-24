@@ -382,6 +382,24 @@ class Session(object):
             time.sleep(1)
         return state
 
+    def reason_of(self, url):
+        rc, out = self.driver("reason", url)
+        return out.split("\n")[0].strip()
+
+    def run_log(self, url):
+        """The calculation's run log document as the data server holds it."""
+        parts = url.rstrip("/").split("/")
+        if url.startswith("file://"):
+            base = url[len("file://"):]
+        else:
+            base = os.path.join(self.fixture.stateDir(), "htdocs", "Ecce",
+                                "users", self.user(), parts[-2], parts[-1])
+        path = os.path.join(base, "Outputs", "eccejobstorelog.ecce_run_log")
+        try:
+            return open(path, errors="replace").read()
+        except OSError:
+            return ""
+
     def props(self, url):
         rc, out = self.driver("props", url)
         return sorted(out.split())

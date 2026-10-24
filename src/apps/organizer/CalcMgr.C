@@ -7673,7 +7673,9 @@ void CalcMgr::updateSelectionMenus()
         ResourceDescriptor::RUNSTATE state = ResourceUtils::stringToState(
                     itemData->getResource()->getProp(
                         VDoc::getEcceNamespace() + ":state"));
-        if (state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
+        //  A Ready calculation carries a reason only after a failed submit.
+        if (state == ResourceDescriptor::STATE_READY ||
+            state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
             state == ResourceDescriptor::STATE_FAILED ||
             state == ResourceDescriptor::STATE_SYSTEM_FAILURE ||
             state == ResourceDescriptor::STATE_WAITING) {

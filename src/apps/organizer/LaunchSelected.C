@@ -147,7 +147,11 @@ void LaunchSelected::run(wxWindow *parent, vector<Row>& rows, bool progress)
     }
     LaunchBatch::Job job(r.task);
     string error;
-    if (!job.begin(error)) { r.outcome = error; continue; }
+    if (!job.begin(error)) {
+      r.outcome = error;
+      LaunchBatch::recordFailure(r.task, error);
+      continue;
+    }
     bool ok = true;
     while (ok && !job.done()) {
       std::atomic<bool> finished(false);
@@ -159,7 +163,11 @@ void LaunchSelected::run(wxWindow *parent, vector<Row>& rows, bool progress)
       }
       worker.join();
       ok = stepOk;
-      if (!ok) { r.outcome = job.message(); break; }
+      if (!ok) {
+        r.outcome = job.message();
+        LaunchBatch::recordFailure(r.task, r.outcome);
+        break;
+      }
       //  A launch check only warns: the batch goes on, the text is kept.
       string w = job.takeWarning();
       if (!w.empty()) {
@@ -170,8 +178,11 @@ void LaunchSelected::run(wxWindow *parent, vector<Row>& rows, bool progress)
     if (ok) {
       r.submitted = r.task->getState() <= ResourceDescriptor::STATE_COMPLETED;
       if (!r.submitted && r.outcome.empty()) r.outcome = "the queue did not accept the job";
+      if (r.submitted) LaunchBatch::clearFailure(r.task);
+      else LaunchBatch::recordFailure(r.task, r.outcome);
     } else if (r.outcome.empty()) {
       r.outcome = "launch failed";
+      LaunchBatch::recordFailure(r.task, r.outcome);
     }
   }
   if (pd) { pd->Update((int)total); delete pd; }

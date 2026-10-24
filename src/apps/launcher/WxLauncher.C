@@ -55,6 +55,7 @@
 #include "dsm/VDoc.H"
 
 #include "comm/EcceShell.H"
+#include "comm/LaunchBatch.H"
 #include "comm/RCommand.H"
 
 #include "wxgui/ewxBitmap.H"
@@ -2774,6 +2775,7 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
         if (!(valid = runLaunchStep()))
         {
             p_launchError = p_launchData->message();
+            LaunchBatch::recordFailure(p_taskJob, p_launchError);
             p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::ERROR, false, true);
         }
 
@@ -2817,11 +2819,13 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
             if (currentState <= ResourceDescriptor::STATE_COMPLETED)
             {
                 mesg = "Successfully submitted job.";
+                LaunchBatch::clearFailure(p_taskJob);
                 p_messagesFeedback->setMessage(mesg, WxFeedback::INFO);
             }
             else
             {
                 mesg = "Job submission failed.";
+                LaunchBatch::recordFailure(p_taskJob, mesg);
                 p_messagesFeedback->setMessage(mesg, WxFeedback::ERROR);
             }
 
@@ -3166,6 +3170,7 @@ void WxLauncher::finishStagedLaunch()
     }
     else
     {
+        LaunchBatch::recordFailure(p_taskJob, p_launchData->message());
         p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::ERROR);
         p_messagesFeedback->setMessage("Job submission failed.",
                                        WxFeedback::ERROR);

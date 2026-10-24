@@ -2,7 +2,11 @@
 
 #include "comm/Launch.H"
 #include "comm/LaunchBatch.H"
+#include "dsm/ActivityLog.H"
+#include "dsm/EDSI.H"
 #include "dsm/JCode.H"
+#include "dsm/VDoc.H"
+#include "util/TDateTime.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/MdTask.H"
 #include "tdat/QueueMgr.H"
@@ -97,6 +101,37 @@ bool LaunchBatch::storeRunDirectory(TaskJob *task)
   Jobdata j;
   j.jobpath = l.rundir + TempStorage::getJobRunDirectoryPath(task->getURL());
   return task->jobdata(j);
+}
+
+static void setReason(TaskJob *task, const string& reason)
+{
+  vector<MetaDataResult> r(1);
+  r[0].name = VDoc::getEcceNamespace() + ":runStatusReason";
+  r[0].value = reason;
+  task->addProps(r);
+  task->notifyProperty("runStatusReason", reason);
+}
+
+void LaunchBatch::recordFailure(TaskJob *task, const string& reason)
+{
+  if (!task || reason.empty()) return;
+  try {
+    //  The job store opens the run log only once a job runs.
+    TDateTime date;
+    string entry = ActivityLog::entry(ActivityLog::ERROR, "Job submission failed",
+                                      date, reason.c_str());
+    task->appendJobLogCreating("eccejobstore", entry.c_str());
+    setReason(task, reason);
+  } catch (...) {
+    //  Recording must never turn a failed submit into a crash.
+  }
+}
+
+void LaunchBatch::clearFailure(TaskJob *task)
+{
+  if (!task || task->getProp(VDoc::getEcceNamespace() + ":runStatusReason").empty())
+    return;
+  try { setReason(task, ""); } catch (...) {}
 }
 
 void LaunchBatch::buildArgs(TaskJob *task, EcceMap& kv)

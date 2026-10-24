@@ -42,6 +42,13 @@ public:
   /** Store the run directory the Launcher would store (rundir + job path). */
   static bool storeRunDirectory(TaskJob *task);
 
+  /** Keep why a submit failed with the calculation: in its run log and in
+      runStatusReason, which the Organizer shows. The state is not changed. */
+  static void recordFailure(TaskJob *task, const std::string& reason);
+
+  /** A submit that went through removes a reason left by an earlier failure. */
+  static void clearFailure(TaskJob *task);
+
   /** Steps of one launch: begin(), then step() until done() or failed. */
   class Job {
   public:

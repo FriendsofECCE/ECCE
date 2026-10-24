@@ -576,6 +576,26 @@ bool TaskJob::appendJobLog(const char* log)
 
 
 /**
+ * Appends to the job log, starting one first when there is none: a
+ * calculation that has not run has no job log yet, and one that has keeps
+ * its entries.
+ */
+bool TaskJob::appendJobLogCreating(const char* rootName, const char* log)
+{
+  const string runLogName = getVDoc()->getRunLogName();
+  bool have = false;
+  try {
+    vector<EcceURL> urls = getVDoc()->getOutputs();
+    for (size_t i = 0; i < urls.size() && !have; i++)
+      have = urls[i].getFilePathTail() == runLogName;
+  }
+  catch (DavException&) {}
+  if (!have && !startJobLog(rootName)) return false;
+  return appendJobLog(log);
+}
+
+
+/**
  * Appends the closing xml element tag for the job log.
  *
  * @param rootName Name of the closing xml element tag.
