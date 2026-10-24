@@ -213,7 +213,7 @@ int main()
   // Structure Library ligands arrive with a nub on each donor atom.
   {
     const char* home = getenv("ECCE_HOME");
-    std::string dir = std::string(home ? home : ".") + "/data/client/StructureLibrary/Ligands/";
+    std::string dir = std::string(home ? home : ".") + "/data/client/StructureLibrary/Inorganic/Ligands/";
     Fragment cp;
     std::ifstream in((dir + "Cyclopentadienyl.mvm").c_str());
     check(in.good() && cp.restoreMVM(in, 1.0, false), "Cyclopentadienyl.mvm loads");

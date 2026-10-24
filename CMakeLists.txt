@@ -2990,7 +2990,7 @@ if(PYTHON3_EXECUTABLE)
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   add_test(NAME structlib_pom
            COMMAND structlib_pom
-                   ${CMAKE_CURRENT_SOURCE_DIR}/data/client/StructureLibrary/Polyoxometalates)
+                   ${CMAKE_CURRENT_SOURCE_DIR}/data/client/StructureLibrary/Inorganic/Polyoxometalates)
   set_tests_properties(structlib_pom PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   # Same under a decimal-comma locale; skipped (77) where it is not installed.

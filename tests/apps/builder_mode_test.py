@@ -31,7 +31,7 @@ SCRIPT = [
     "key escape", "info",
     # free-space inserts stay in the mode and never land on atoms
     "cmd clear",
-    "select -1", "library SimpleStructures/Simple_arenes Benzene",
+    "select -1", "library Small_organic_molecules/Arenes Benzene",
     "libatom -1", "click", "info",
     "select -1", "click", "info", "coords",
     "key escape", "info",

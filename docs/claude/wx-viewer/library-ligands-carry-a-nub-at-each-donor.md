@@ -2,11 +2,11 @@
 type: map
 title: "Structure Library ligands: a Nub atom bonded to each donor atom, pointing at the metal site"
 area: wx-viewer
-paths: ["data/client/StructureLibrary/Ligands", "src/viz/sgcommands/SGFragment.C", "src/apps/builder/StructLib.C"]
+paths: ["data/client/StructureLibrary/Inorganic/Ligands", "src/viz/sgcommands/SGFragment.C", "src/apps/builder/StructLib.C"]
 issues: []
 ---
 A library fragment attaches through its `Nub` pseudo-atoms (symbol `Nub`, one
-bond to the parent atom, as in `Amino_Acids/Interior`). In Add Structure mode
+bond to the parent atom, as in `Biomolecules/Amino_acids/Interior`). In Add Structure mode
 the Builder fuses the fragment's selected nub (the only nub, if there is just
 one: `StructLib::getSelectedAtom`) to the nub selected in the molecule, and
 `SGFragment::bondingAtoms` bonds the two parents; a metal added with a shape

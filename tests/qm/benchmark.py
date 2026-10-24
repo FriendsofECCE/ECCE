@@ -34,7 +34,7 @@ def from_mvm(path):
 
 def molecules():
     m = {k: MOLECULES[k][2] for k in ("h2o", "nh3", "ch4", "benzene")}
-    m["caffeine"] = from_mvm(os.path.join(LIB, "SimpleStructures", "Miscellaneous", "Caffeine.mvm"))
+    m["caffeine"] = from_mvm(os.path.join(LIB, "Natural_products_and_drugs", "Alkaloids", "Caffeine.mvm"))
     return m
 
 

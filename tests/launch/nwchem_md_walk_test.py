@@ -34,8 +34,8 @@ import harness  # noqa: E402
 from harness import say  # noqa: E402
 from gromacs_test import Editor, check, failures  # noqa: E402
 
-CYTIDINE = os.path.join(REPO, "data", "client", "StructureLibrary", "RNA_Bases",
-                        "Monomer", "Cytidine.mvm")
+CYTIDINE = os.path.join(REPO, "data", "client", "StructureLibrary", "Biomolecules", "RNA",
+                        "Monomers", "Cytidine.mvm")
 NWDATA = "/usr/share/nwchem"
 STEPS = {"optimize": "200", "dynamics": "500"}
 
