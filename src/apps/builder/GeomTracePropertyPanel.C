@@ -162,6 +162,10 @@ void GeomTracePropertyPanel::initialize()
     }
     //  The time series is an axis, not a quantity to plot.
     if (key == "TIMEVEC" && prop && prop->units() == "ps") continue;
+    //  The panel is registered for every Geometry-Step series ECCE knows;
+    //  offer only those this calculation holds.
+    PropVector *vec = dynamic_cast<PropVector*>(prop);
+    if (!vec || vec->rows() == 0) continue;
     p_importantProps.push_back(key);
     wxWindowID id = wxNewId();
     p_keyToId[key] = id;
@@ -185,8 +189,16 @@ void GeomTracePropertyPanel::initialize()
   p_propChoice = new wxChoice(this, wxID_ANY);
   for (size_t i = 0; i < p_importantProps.size(); i++) {
     const Property_Ref *pr = PropFactory::getPropRef(p_importantProps[i]);
-    p_propChoice->Append(StepPlotAxes::plotName(
-        pr ? pr->long_name : p_importantProps[i]));
+    string label = StepPlotAxes::plotName(pr ? pr->long_name : p_importantProps[i]);
+    //  Several series share a long name (Kinetic Energy from different codes).
+    for (size_t j = 0; j < p_importantProps.size(); j++) {
+      const Property_Ref *pj = PropFactory::getPropRef(p_importantProps[j]);
+      if (j != i && pr && pj && pj->long_name == pr->long_name) {
+        label += " (" + p_importantProps[i] + ")";
+        break;
+      }
+    }
+    p_propChoice->Append(label);
   }
   p_propChoice->Bind(wxEVT_CHOICE, &GeomTracePropertyPanel::OnPropChoice, this);
   sizer->Add(p_propChoice, 1, wxALIGN_CENTER_VERTICAL);
