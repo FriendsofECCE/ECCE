@@ -196,7 +196,7 @@ case("cp2k geometry optimisation (NiO+U, UKS, OT, 3 steps)", "cp2k.desc",
               "rmsstep": target},
       "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes", "scferr": target,
               "energy": has("-184.")}},
-     {"opt": (4, 4)})
+     {"opt": (3, 3)})
 case("cp2k energy (silicon, OT)", "cp2k.desc", fx("cp2k", "si_scf.cp2kout"),
      {"scf": {"cycle": "35", "converged": "yes", "scferr": target,
               "energy": has("-7.2446")}},

@@ -184,8 +184,11 @@ def main():
         hist = last.get("scf~", "")
         check(hist.startswith("dE=") and len(hist[3:].split(",")) == 5,
               "scf history restarted with the last SCF (5 values): %s" % hist)
-        ohist = last.get("opt~", "")
-        n = len(ohist[7:].split(",")) if ohist.startswith("energy=") else 0
+        ohist = next((l for l in texts[-1].splitlines() if l.startswith("opt~ maxgrad=")), "")
+        n = len(ohist.split("=", 1)[1].split(",")) if ohist else 0
+        check(not any(l.startswith("opt~ energy=") for l in texts[-1].splitlines())
+              and any(l.startswith("opt~ rmsgrad=") for l in texts[-1].splitlines()),
+              "opt: the force histories are sent, the energy one is left out")
         check(n == 80, "opt history spans the whole job, past the 60 other stages keep (%d values)" % n)
         geo = [p for _, p in msgs if "\0GEOMTRACE\0" in p and "progress freq point=0/18" in p]
         check(len(geo) == 1, "the progress line inside a geometry block stays in that block")

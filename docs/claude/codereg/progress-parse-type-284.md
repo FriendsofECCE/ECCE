@@ -37,11 +37,17 @@ A code gets progress in the Organizer by `.desc` entries alone:
   end-of-file wait (`timePauseReadLine`, 2 s local, 10 s otherwise) and the
   last one when the output ends.
 - **Stage names the box knows:** `opt`, `freq`, `scf` (titles, order,
-  plots: energy per step, log |dE| per cycle). Field labels it knows:
+  plots: the optimisation's max and RMS force per step with their limits
+  on a log axis, |dE| per cycle likewise). Field labels it knows:
   `energy`, `dE`, `grad`, `maxgrad`, `rmsgrad`, `maxstep`, `rmsstep`,
   `converged=yes|no`, `done=yes real= imaginary= zpe=` (freq summary).
   Other names are shown as they are; new labels go in
   `src/util/genutil/JobProgress.C`.
+- **`History=a,b,c`** keeps several keys of one stage, each as its own
+  `stage~ key=...` line; the first is the stage's main history. An `opt`
+  stage with `maxgrad`/`rmsgrad` histories is plotted as those forces (log
+  |value|, the limit from the current `value/limit` field, Hartree/bohr when
+  the code prints a limit); without them it plots its energy as before.
 - **Targets printed once: `Remember=`.** A `[PROGRESS]` entry with
   `Begin=` and `Remember=<name>` (no `Progress`) keeps its `$1`; other
   entries write it as `{name}`, e.g. `maxgrad=$3/{gmax}`. A name not yet
