@@ -6320,6 +6320,18 @@ void Builder::updatePropertyMenus()
           out << md->noteText() << "\n";
           return true;
         }
+        //  "modioptions 0|1": fold or unfold the controls under the diagram.
+        if (w[0] == "modioptions" && w.size() == 2) {
+          MoDiagramPanel *md = 0;
+          set<PropertyPanel*> dp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = dp.begin();
+               it != dp.end() && !md; ++it)
+            md = dynamic_cast<MoDiagramPanel*>(*it);
+          if (!md) return s.fail("modioptions: no MO diagram panel");
+          md->setOptionsOpen(w[1] != "0");
+          return true;
+        }
         //  "mofield <type>": the MO panel's field-type choice, as clicked.
         if (w[0] == "mofield" && w.size() >= 2) {
           string type = w[1];

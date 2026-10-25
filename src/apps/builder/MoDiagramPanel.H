@@ -176,10 +176,16 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       //  Opens or closes the "Fragments..." expander.
       void setFragmentsOpen(bool open);
+      /** Fold the controls under the diagram to one "Options" line; remembered. */
+      void setOptionsOpen(bool open);
+      bool optionsOpen() const { return p_optOpen; }
 
       MoDiagramCanvas *p_canvas;
       wxPanel         *p_fragPanel;
       wxButton        *p_fragToggle;
+      wxButton        *p_optToggle;
+      wxSizer         *p_optSizer, *p_optRow, *p_optViews;
+      bool             p_optOpen, p_fragWasOpen;
       wxCheckListBox  *p_fragments;
       wxStaticText    *p_fragmentHint;
       wxCheckBox      *p_autoFragments;

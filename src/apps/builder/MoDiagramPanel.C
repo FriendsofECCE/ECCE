@@ -65,6 +65,7 @@
 #include "wxviz/WxVizToolFW.H"
 
 #include "MoPanel.H"
+#include "wxgui/ewxConfig.H"
 #include "MoDiagramPanel.H"
 
 using std::max;
@@ -86,7 +87,7 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 MoDiagramPanel::MoDiagramPanel()
   : p_fragmentation(MoFragments::NOT_BUILT),
-    p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
+    p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_optToggle(0), p_optSizer(0), p_optRow(0), p_optViews(0), p_optOpen(true), p_fragWasOpen(false), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
     p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
     p_building(false), p_rebuildPending(false)
@@ -98,7 +99,7 @@ MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
   : p_fragmentation(MoFragments::NOT_BUILT),
-    p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
+    p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_optToggle(0), p_optSizer(0), p_optRow(0), p_optViews(0), p_optOpen(true), p_fragWasOpen(false), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
     p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
     p_building(false), p_rebuildPending(false)
@@ -582,6 +583,13 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   fragRow->Add(p_fragments, 1, wxEXPAND|wxALL, 4);
 
   views->Add(p_ligandField, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  p_optToggle = new wxButton(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                             wxDefaultSize, wxBU_EXACTFIT);
+  p_optToggle->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    setOptionsOpen(!p_optOpen);
+  });
+  p_optSizer = sizer;  p_optRow = row;  p_optViews = views;
+  sizer->Add(p_optToggle, 0, wxALL, 2);
   sizer->Add(row, 0, wxEXPAND);
   sizer->Add(views, 0, wxEXPAND);
   sizer->Add(p_fragToggle, 0, wxALL, 2);
@@ -612,13 +620,41 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_about->Bind(wxEVT_BUTTON, &MoDiagramPanel::onAbout, this);
 
   p_fragments->Enable(false);
+
+  bool open = true;
+  ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+  if (cfg) cfg->Read("/MoDiagram/OptionsOpen", &open, true);
+  setOptionsOpen(open);
+}
+
+
+//  The diagram gets the height of the controls when they are folded.
+void MoDiagramPanel::setOptionsOpen(bool open)
+{
+  if (p_optSizer == 0) return;
+  if (!open && p_optOpen) p_fragWasOpen = p_fragPanel->IsShown();
+  p_optOpen = open;
+  p_optSizer->Show(p_optRow, open, true);
+  p_optSizer->Show(p_optViews, open, true);
+  p_optSizer->Show(p_fragToggle, open);
+  p_fragPanel->Show(open && p_fragWasOpen);
+  p_optToggle->SetLabel(wxString::FromUTF8(
+      open ? "\xe2\x96\xbe Options" : "\xe2\x96\xb8 Options"));
+  ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+  if (cfg) {
+    cfg->Write("/MoDiagram/OptionsOpen", open);
+    cfg->Flush();
+  }
+  Layout();
+  if (GetParent() != 0) GetParent()->Layout();
 }
 
 
 void MoDiagramPanel::setFragmentsOpen(bool open)
 {
   if (p_fragPanel == 0) return;
-  p_fragPanel->Show(open);
+  p_fragPanel->Show(open && p_optOpen);
+  p_fragWasOpen = open;
   p_fragToggle->SetLabel(wxString::FromUTF8(
       open ? "\xe2\x96\xbe Fragments..." : "\xe2\x96\xb8 Fragments..."));
   Layout();
