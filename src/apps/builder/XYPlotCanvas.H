@@ -10,7 +10,7 @@
  *
  * Interaction: a click on a point selects it and calls the point handler
  * (the Geometry Trace shows that frame); dragging a rectangle zooms, the
- * wheel zooms about the pointer, right/middle drag pans, double click on
+ * wheel zooms about the pointer (Shift+wheel: y axis only), right/middle drag pans, double click on
  * empty plot or Home fits everything.
  */
 
@@ -270,7 +270,7 @@ class XYPlotCanvas : public wxPanel
 
     void fitAll() { p_zoomed = false; p_whole = false; Refresh(); }
 
-    /** Everything, also what a y limit cut off (the "Whole plot" reset). */
+    /** Everything, also what a y limit cut off (the "Show all" reset). */
     void showWholePlot() { p_zoomed = false; p_whole = true; Refresh(); }
 
     /** Zoom about the centre of the view (factor < 1 zooms in), as the
@@ -885,10 +885,12 @@ class XYPlotCanvas : public wxPanel
       p_zoomed = true;
     }
 
-    void zoomAbout(double cx, double cy, double factor)
+    void zoomAbout(double cx, double cy, double factor, bool alsoX = true)
     {
       startView();
-      p_vx0 = cx + (p_vx0 - cx) * factor;  p_vx1 = cx + (p_vx1 - cx) * factor;
+      if (alsoX) {
+        p_vx0 = cx + (p_vx0 - cx) * factor;  p_vx1 = cx + (p_vx1 - cx) * factor;
+      }
       p_vy0 = cy + (p_vy0 - cy) * factor;  p_vy1 = cy + (p_vy1 - cy) * factor;
       clampView();
       Refresh();
@@ -999,8 +1001,9 @@ class XYPlotCanvas : public wxPanel
       if (!p_laidOut) return;
       const int delta = e.GetWheelDelta() > 0 ? e.GetWheelDelta() : 120;
       const double notches = e.GetWheelRotation() / (double)delta;
+      //  Shift+wheel: y axis only, to lift a flat curve out of a tall one.
       zoomAbout(xFrom(e.GetPosition().x), yFrom(e.GetPosition().y),
-                std::pow(0.8, notches));
+                std::pow(0.8, notches), !e.ShiftDown());
     }
 
     void onKey(wxKeyEvent& e)

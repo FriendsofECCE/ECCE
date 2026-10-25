@@ -1546,6 +1546,8 @@ void CalcEd::updateNotes()
     if (!warn.empty())
       note += string(note.empty() ? "" : "\n") + warn;
   }
+  for (const string& w : tsWarnings())
+    note += string(note.empty() ? "" : "\n") + w;
   if (!p_notReadyWhy.empty())
     note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
   const wxString text = wxString::FromUTF8(note);
@@ -4983,9 +4985,6 @@ void CalcEd::createTsControls()
   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
   p_tsLine = new wxStaticText(p_tsPanel, wxID_ANY, "");
   v->Add(p_tsLine, 0, wxEXPAND | wxTOP, 4);
-  p_tsWarn = new wxStaticText(p_tsPanel, wxID_ANY, "");
-  p_tsWarn->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
-  v->Add(p_tsWarn, 0, wxEXPAND | wxTOP, 4);
   wxButton *map = new wxButton(p_tsPanel, wxID_ANY, "Show mapping");
   map->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { showTsMapping(); });
   row->Add(map, 0);
@@ -5166,12 +5165,9 @@ void CalcEd::refreshTsBox()
   p_tsLine->SetLabel(txt);
   p_tsLine->Wrap(300);
   p_tsLine->SetToolTip(wxString::FromUTF8(p_qstDetail.c_str()));
-  string warn;
-  for (const string& w : tsWarnings()) warn += (warn.empty() ? "" : "\n") + w;
-  p_tsWarn->SetLabel(wxString::FromUTF8(warn.c_str()));
-  p_tsWarn->Wrap(300);
-  p_tsWarn->Show(!warn.empty());
+  //  The TS warnings are notes, not controls: they go to the notes panel.
   p_tsPanel->GetContainingSizer()->Layout();
+  updateNotes();
 }
 
 void CalcEd::tsSourceChanged(bool other)

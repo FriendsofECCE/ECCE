@@ -702,26 +702,32 @@ class SpectrumCanvas : public wxPanel
       const int rowH = dc.GetCharHeight() + 2;
       //  Never reach under the IR | Raman switch; a long name is cut short
       //  and the tooltip carries the whole of it.
-      const int maxText = std::max(30, pane.width - 12 - 34 - p_keyAvoid);
+      const int maxText = std::max(30, pane.width - 12 - 34);
       wxString shown[2];
       int w = 0;
       for (int i = 0; i < 2; i++) {
         shown[i] = wxControl::Ellipsize(names[i], dc, wxELLIPSIZE_END, maxText);
         w = std::max(w, dc.GetTextExtent(shown[i]).x);
       }
-      w += 34;
-      p_keyRect = wxRect(pane.x + 6, pane.y + 4, w, 2 * rowH + 6);
+      w += 32;
+      //  At the top right, where the low-wavenumber end is usually bare (the
+      //  left held the strongest bands), below the IR | Raman switch and the
+      //  highlight line when they occupy that corner.
+      const int kx = pane.GetRight() - 6 - w;
+      const int ky = pane.y + 4 + (p_keyAvoid > 0 ? dc.GetCharHeight() + 8 : 0) +
+                     (p_s->highlightLabel.empty() ? 0 : rowH + 2);
+      p_keyRect = wxRect(kx, ky, w, 2 * rowH + 6);
       p_keyText = names[0] + "\n" + names[1];
       dc.SetPen(wxPen(p_palette.grid, 1));
       dc.SetBrush(wxBrush(SpectrumPalette::mix(p_palette.background,
                                                p_palette.text, 0.03)));
-      dc.DrawRectangle(pane.x + 6, pane.y + 4, w, 2 * rowH + 6);
+      dc.DrawRectangle(kx, ky, w, 2 * rowH + 6);
       for (int i = 0; i < 2; i++) {
-        const int y = pane.y + 7 + i * rowH;
+        const int y = ky + 3 + i * rowH;
         dc.SetPen(wxPen(cols[i], 3));
-        dc.DrawLine(pane.x + 11, y + rowH / 2, pane.x + 27, y + rowH / 2);
+        dc.DrawLine(kx + 5, y + rowH / 2, kx + 21, y + rowH / 2);
         dc.SetTextForeground(p_palette.text);
-        dc.DrawText(shown[i], pane.x + 32, y);
+        dc.DrawText(shown[i], kx + 26, y);
       }
     }
 

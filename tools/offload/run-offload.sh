@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run a long ECCE build or test suite on an offload machine.
-#   run-offload.sh [--host radium|auto] <git ref> <build|ctest [-R re]|teaching|apps|clip|run ...> [args]
+#   run-offload.sh [--host radium|auto] <git ref> <build|ctest [-R re]|teaching|apps|apptest <test.py ...>|clip|run ...> [args]
 # The ref must already be pushed to GitHub.  See tools/offload/README.md.
 set -eu
 host=auto

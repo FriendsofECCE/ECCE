@@ -109,6 +109,10 @@ namespace DensityPlane
   void window(const Plane& plane, const vector<double>& coordsAng,
               double margin, double& u0, double& u1, double& v0, double& v1);
 
+  /** One or two atoms define no useful atom plane (a lone atom has none, two
+   *  give only a line), so the panel opens on the screen plane. */
+  inline bool startsOnViewPlane(size_t natoms) { return natoms <= 2; }
+
   /** One line segment of a contour, in plane coordinates (A). */
   struct Segment { double u0, v0, u1, v1; };
 

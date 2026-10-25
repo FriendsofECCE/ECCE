@@ -17,6 +17,15 @@ namespace {
 //  black-and-white printout.
 const wxColour POSITIVE(0, 114, 178), NEGATIVE(213, 94, 0);
 
+//  A sign colour shaded by |level|: pale for the outermost contour, full
+//  colour for the largest, so a map shows magnitude as well as sign.
+wxColour shade(const wxColour& c, size_t k, size_t n)
+{
+  const double w = n > 1 ? 0.35 + 0.65 * double(k) / (n - 1) : 1.0;
+  auto mix = [w](unsigned char v) { return (unsigned char)(255 - w * (255 - v)); };
+  return wxColour(mix(c.Red()), mix(c.Green()), mix(c.Blue()));
+}
+
 //  viridis, 0 (dark purple) to 0.85 (green-yellow); its bright yellow end
 //  is not drawn, it vanishes on white.
 wxColour viridis(double t)
@@ -128,22 +137,25 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     }
   } else {
     for (size_t k = lv.size(); k-- > 0;) {
-      Line l = { lv[k], POSITIVE, wxPENSTYLE_SOLID };
+      Line l = { lv[k], shade(POSITIVE, k, lv.size()), wxPENSTYLE_SOLID };
       legend.push_back(l);
     }
     for (size_t k = 0; k < lv.size(); k++) {
-      Line l = { -lv[k], NEGATIVE, wxPENSTYLE_SHORT_DASH };
+      Line l = { -lv[k], shade(NEGATIVE, k, lv.size()), wxPENSTYLE_SHORT_DASH };
       legend.push_back(l);
     }
   }
-  //  The nodes of a wavefunction: where psi changes sign.
+  //  The nodes of a wavefunction: where psi changes sign.  Grey but thicker
+  //  than the contours: a small inner node (2s) lies among the dense
+  //  contours near the nucleus and was lost as a thin grey line.
   const bool nodes = m.quantity == ORBITAL && m.zmax > 0 && m.zmin < 0;
   if (nodes) {
-    Line l = { 0.0, wxColour(150, 150, 150), wxPENSTYLE_SOLID };
+    Line l = { 0.0, wxColour(140, 140, 140), wxPENSTYLE_SOLID };
     legend.push_back(l);
   }
   for (size_t k = 0; k < legend.size(); k++) {
-    dc.SetPen(wxPen(legend[k].colour, 1, legend[k].style));
+    dc.SetPen(wxPen(legend[k].colour, nodes && k + 1 == legend.size() ? 2 : 1,
+                    legend[k].style));
     const vector<Segment> seg = contour(m, legend[k].value);
     for (size_t s = 0; s < seg.size(); s++)
       dc.DrawLine(wxRound(X(seg[s].u0)), wxRound(Y(seg[s].v0)),

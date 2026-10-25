@@ -254,8 +254,8 @@ void DensityProfilePanel::build()
   yPair->Add(p_labelYAxis, 0, RIGHT, 4);
   yPair->Add(p_yaxis, 0, wxALIGN_CENTER_VERTICAL);
   row2->Add(yPair, 0, RIGHT, 12);
-  wxButton *whole = new wxButton(this, ID_WHOLE, "Whole plot");
-  whole->SetToolTip("Zoom out to everything, including peaks cut off at the nuclei (mouse wheel zooms, drag pans)");
+  wxButton *whole = new wxButton(this, ID_WHOLE, "Show all");
+  whole->SetToolTip("Reset the zoom to show the whole curves, including peaks that clip peaks cut off at the nuclei (mouse wheel zooms, Shift+wheel zooms the y axis only, drag pans)");
   row2->Add(whole, 0, RIGHT, 12);
   p_moreButton = new wxButton(this, ID_MORE, U("More \xE2\x96\xB8"));
   row2->Add(p_moreButton, 0, RIGHT, 12);
@@ -676,7 +676,7 @@ void DensityProfilePanel::recompute()
   if (xs != 0 && quantity == 0)
     text += U("On this r axis the area under a curve is no longer the electron count.\n");
   if (limit > 0)
-    text += U("Peaks at the nuclei are cut off; \"Whole plot\" shows them.\n");
+    text += U("Peaks at the nuclei are cut off; \"Show all\" shows them.\n");
   int series = 0, colourIndex = 0;
   for (const RadialDist::Curve& c : curves) {
     std::vector<double> plotR(axis), plotP(c.p);
