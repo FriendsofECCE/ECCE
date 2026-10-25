@@ -19,3 +19,4 @@ check name=ES.Theory.ECCEQM.MK label=" Merz-Kollman (fitted to the electrostatic
 
 box label="Orbitals"
 check name=ES.Theory.ECCEQM.Localise label=" Localised orbitals (bonds and lone pairs, same set for each spin)" default=1 export=1
+combo name=ES.Theory.ECCEQM.Virtuals label="Virtual orbitals:" choices="Canonical|Improved (IVO)" default=Canonical export=1

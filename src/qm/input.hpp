@@ -24,6 +24,9 @@
 //   localise <true|false>        Pipek-Mezey localised occupied orbitals with
 //                                valence-bond labels in the output (default
 //                                true; closed-shell runs only)
+//   virtuals <canonical|ivo>     virtual orbitals: canonical (default) or Hunt-Goddard
+//                                improved virtuals (RHF/RKS closed shell; the
+//                                RKS case applies the same HF-type correction)
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
 //   runtype <energy|gradient|optimize|frequency|optfreq|ts|irc>   default energy;
 //                                gradient adds the analytic nuclear gradient,
