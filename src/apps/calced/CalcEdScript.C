@@ -312,7 +312,7 @@ void CalcEd::runCalcEdScript(const string& file)
         }
         fprintf(stderr, "CALCED: symmetry box=%d stored=%d note=%s\n",
                 useSymmetryBox() ? 1 : 0, getUseSymmetry() ? 1 : 0,
-                oneLine(std::string(p_constraintNote->GetLabel().ToUTF8().data())).c_str());
+                oneLine(std::string(p_notes->GetLabel().ToUTF8().data())).c_str());
       } else if (w[0] == "constraints") {
         //  The constraint count and the warning in the Settings box (#306)
         fprintf(stderr, "CALCED: constraints count=%d note=%s\n",
@@ -364,7 +364,7 @@ void CalcEd::runCalcEdScript(const string& file)
         //  The standing not-ready line and the box outlined in red.
         const wxColour red = ewxThemeColours::statusText(ewxThemeColours::BAD);
         fprintf(stderr, "CALCED: notready=%s outline=%s,%s\n",
-                p_notReadyText->GetLabel().utf8_str().data(),
+                p_notReadyWhy.c_str(),
                 p_chemSysMark->GetBackgroundColour() == red ? "chemsys" : "none",
                 p_basisMark->GetBackgroundColour() == red ? "basis" : "none");
         fprintf(stderr, "CALCED: basisbox=%s\n",

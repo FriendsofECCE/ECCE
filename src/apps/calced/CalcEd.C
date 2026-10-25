@@ -1521,6 +1521,35 @@ GeomConstraintModel::Use CalcEd::constraintUse() const
 }
 
 
+/// The Notes row: the current state, replaced on every change.  The
+/// constraints belong to the structure, so the line says whether this run
+/// type and code use, ignore or refuse them; then "Symmetry off" and why the
+/// calculation is not ready.
+void CalcEd::updateNotes()
+{
+  string note = constraintNote();
+  if (symmetryMustBreak() && !useSymmetryBox())
+    note += string(note.empty() ? "" : "\n") +
+        "Symmetry off: a transition-state search / scan must be able to "
+        "break the starting symmetry";
+  if (!p_notReadyWhy.empty())
+    note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
+  const wxString text = wxString::FromUTF8(note);
+  wxSizer *grid = p_notes->GetContainingSizer();
+  if (text == p_notesText && grid && grid->IsShown(p_notes) == !note.empty())
+    return;
+  p_notesText = text;
+  p_notes->SetLabel(text);
+  //  Wrapped at the width the other rows already need, never wider.
+  const int width = std::max(grid ? grid->CalcMin().x : 0, p_notes->FromDIP(300));
+  p_notes->Wrap(width);
+  p_notes->SetToolTip(text);
+  if (grid) grid->Show(p_notes, !note.empty());
+  GetSizer()->Layout();
+  refit();
+}
+
+
 /// The Settings box line(s): what the Builder's constraints and scan are, and
 /// whether this code and run type use them, leave them out or refuse them
 /// (they are edited in the Builder, not here).  Empty when there are none.
@@ -3697,15 +3726,9 @@ void CalcEd::markBlockingBox(int box, const string& why)
     marks[i]->SetBackgroundColour(on ? red : GetBackgroundColour());
     marks[i]->Refresh();
   }
-  const wxString text(why.c_str(), wxConvUTF8);
-  if (text != p_notReadyText->GetLabel()) {
-    p_notReadyText->SetLabel(text);
-    p_notReadyText->SetToolTip(text);
-  }
-  wxSizer *column = p_notReadyText->GetContainingSizer();
-  if (column && column->IsShown(p_notReadyText) == why.empty()) {
-    column->Show(p_notReadyText, !why.empty());
-    column->Layout();
+  if (why != p_notReadyWhy) {
+    p_notReadyWhy = why;
+    updateNotes();
   }
 }
 
@@ -3881,20 +3904,7 @@ void CalcEd::showGeomEditor()
     p_code->get_bool("SupportsConstraints", supportsConstraints);
   }
 
-  // The constraints belong to the structure; the line says whether this run
-  // type and code use, ignore or refuse them.
-  string note = constraintNote();
-  if (symmetryMustBreak() && !useSymmetryBox())
-    note += string(note.empty() ? "" : "\n") +
-        "Symmetry off: a transition-state search / scan must be able to "
-        "break the starting symmetry";
-  p_constraintNote->SetLabel(wxString::FromUTF8(note));
-  // A scan line runs long; unwrapped it set the editor's minimum width.
-  p_constraintNote->Wrap(p_constraintNote->FromDIP(420));
-  p_constraintNote->SetToolTip(wxString::FromUTF8(note));
-  p_constraintNote->Show(!note.empty());
-  GetSizer()->Layout();
-  refit();
+  updateNotes();
 }
 
 
