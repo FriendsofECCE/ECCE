@@ -3,7 +3,7 @@
 
     tests/apps/md_summary_test.py [--build build-cmake] [--png DIR]
 
-The Trp-cage Dynamics log of data/client/examples/computational/gromacs-trpcage goes
+The Trp-cage Dynamics log of data/client/examples/computational/gromacs/gromacs-trpcage goes
 through the real parse scripts (the eccejobmonitor replay of tests/parsers),
 the properties are stored as a calculation's Props, and the Builder (this
 tree's binaries) opens "MD Summary".  The expected numbers are read from the
@@ -32,7 +32,7 @@ import harness  # noqa: E402
 from harness import say  # noqa: E402
 
 check = bo.check
-LOG = os.path.join(REPO, "data", "client", "examples", "gromacs-trpcage",
+LOG = os.path.join(REPO, "data", "client", "examples", "computational", "gromacs", "gromacs-trpcage",
                    "4-dynamics", "gromacs.log")
 PARSERS = os.path.join(REPO, "scripts", "parsers")
 TSVEC = {"TEVEC", "TEMPVEC", "PRESSVEC", "MDPEVEC", "MDKEVEC"}

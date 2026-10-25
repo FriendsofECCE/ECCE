@@ -1,2 +1,0 @@
-General
-Five finished calculations with ECCE-QM, ORCA, MOPAC and NWChem: orbitals, charges and vibrations.

@@ -5,13 +5,15 @@
 
 A user's first Organizer imports the outputs under data/client/examples
 (ECCE-QM water, ORCA benzene, MOPAC ammonia, NWChem methane) into a new
-project Examples by itself (#302): the `general` set, five calculations.
+project Examples/Getting_Started by itself (#302): the `getting-started` set,
+five calculations.  Sets are projects below Examples, topics projects below
+those: Examples/<Set>/<Topic>/<calculation>.
 The ECCE_TEST_ORGANIZER command `examples SET` is the dialog's OK: at the
 second start (which imports nothing) `examples computational` makes the
-project Examples_Computational with the Trp-cage study, `examples organic` and
-`examples spectroscopy` (#447, #485) make Examples_Organic and
-Examples_Spectroscopy; asking again (or for `general`) selects the existing
-project and duplicates nothing.  Every calculation of the two new sets must
+project Examples/Computational with the Trp-cage study under GROMACS,
+`examples organic` and `examples spectroscopy` (#447, #485) make
+Examples/Organic_Chemistry and Examples/Spectroscopy; asking again (or for
+`getting-started`) selects the existing project and duplicates nothing.  Every calculation of the two new sets must
 import with its properties and carry a note that says what it shows.
 Each calculation must
 carry the properties its output holds: the files under Props/ are what the
@@ -81,7 +83,10 @@ SPECTROSCOPY = {c: ORCA_RAMAN for c in (
 SPECTROSCOPY.update({
     "water": ["TE", "VIBFREQ", "VIBIR", "MO"],
     "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]})
-NEW_SETS = {"Examples_Organic": ORGANIC, "Examples_Spectroscopy": SPECTROSCOPY}
+NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
+            "Examples/Spectroscopy": SPECTROSCOPY}
+FIRST = "Examples/Getting_Started"
+COMP = "Examples/Computational"
 # The study has no thumbnail and no theory/run type of its own.
 CALCS = list(EXPECT)
 
@@ -109,15 +114,25 @@ def studyProps(study):
 
 
 def propsOf(project):
-    """{calculation: set of Props files} under a project directory."""
+    """{calculation: set of Props files} below a project directory."""
     found = {}
-    for calc in sorted(os.listdir(project)) if os.path.isdir(project) else []:
-        props = os.path.join(project, calc, "Props")
-        if os.path.isdir(props):
-            found[calc] = set(os.listdir(props))
-        elif os.path.isdir(os.path.join(project, calc)):
-            found[calc] = studyProps(os.path.join(project, calc))
+    for base, dirs, _files in os.walk(project):
+        name = os.path.basename(base)
+        if "Props" in dirs:
+            found[name] = set(os.listdir(os.path.join(base, "Props")))
+            dirs[:] = []
+        elif name in COMPUTATIONAL:
+            found[name] = studyProps(base)
+            dirs[:] = []
     return found
+
+
+def calcPath(project, calc):
+    """The folder of a calculation below a set's project (topics nest)."""
+    for base, dirs, _files in os.walk(project):
+        if os.path.basename(base) == calc:
+            return base
+    return os.path.join(project, calc)
 
 
 def waitImported(root, projects, expect, seconds=240):
@@ -181,7 +196,7 @@ def run(display, data, work):
     first = {}
 
     def firstStart(_display):
-        first["props"] = waitImported(root, ["Examples"], EXPECT)
+        first["props"] = waitImported(root, [FIRST], EXPECT)
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                       env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
@@ -207,18 +222,18 @@ def run(display, data, work):
     else:
         print("ok    progress names each calculation: %s"
               % ", ".join(n for _, _, n in progress))
-    got = (first.get("props") or {}).get("Examples", {})
+    got = (first.get("props") or {}).get(FIRST, {})
     if result.crashed or sorted(c.split("_")[0] for c in got) != sorted(EXPECT):
         fail("first start imports exactly the general set",
-             "Examples holds %s" % sorted(got), result.log)
+             "%s holds %s" % (FIRST, sorted(got)), result.log)
     else:
-        print("ok    first start imports the general set into Examples")
-    if os.path.exists(os.path.join(root, "Examples_Computational")):
+        print("ok    first start imports the getting-started set into " + FIRST)
+    if os.path.exists(os.path.join(root, COMP)):
         fail("first start", "also imported the computational set", "")
     # each example says what it is for in its Annotation field
     noted = []
     for calc in sorted(got):
-        meta = os.path.join(root, "Examples", calc, ".ecce-meta")
+        meta = os.path.join(calcPath(os.path.join(root, FIRST), calc), ".ecce-meta")
         if os.path.exists(meta) and "annotation" in open(meta, errors="replace").read():
             noted.append(calc)
     if sorted(noted) != sorted(got):
@@ -229,11 +244,11 @@ def run(display, data, work):
 
     with open(script, "w") as handle:
         handle.write("examples computational\nexamples computational\n"
-                     "examples general\nexamples organic\n"
+                     "examples getting-started\nexamples organic\n"
                      "examples spectroscopy\nexamples organic\n")
 
     box = {}
-    projects = ["Examples_Computational"]
+    projects = [COMP]
 
     def inspect(_display):
         box["props"] = waitImported(root, projects, COMPUTATIONAL)
@@ -247,8 +262,8 @@ def run(display, data, work):
             handle.write("treeflags\ntree\n")
             # what the project table's Theory and Run Type columns show
             for calc in sorted(CALCS):
-                handle.write("summary file://%s\n" % os.path.join(
-                    root, "Examples", calc))
+                handle.write("summary file://%s\n" % calcPath(
+                    os.path.join(root, FIRST), calc))
             # Help > Report a Problem... without its dialog
             handle.write("reportproblem\n")
         time.sleep(12)
@@ -272,18 +287,20 @@ def run(display, data, work):
         return fail(what, "CRASHED (%s)" % result.signalName, log)
     answers = re.findall(r"ECCE_TEST_ORGANIZER: examples [^:]*: (.*)$", log, re.M)
     problems = []
-    if answers != ["ok Examples_Computational created",
-                   "ok Examples_Computational existing",
-                   "ok Examples existing", "ok Examples_Organic created",
-                   "ok Examples_Spectroscopy created",
-                   "ok Examples_Organic existing"]:
+    if answers != ["ok Examples/Computational created",
+                   "ok Examples/Computational existing",
+                   "ok Examples/Getting_Started existing",
+                   "ok Examples/Organic_Chemistry created",
+                   "ok Examples/Spectroscopy created",
+                   "ok Examples/Organic_Chemistry existing"]:
         problems.append("answers %s" % answers)
-    for extra in ("Examples_2", "Examples_3"):
+    for extra in ("Examples_2", "Examples_3", "Examples_Organic",
+                  "Examples_Spectroscopy", "Examples_Computational"):
         if os.path.exists(os.path.join(root, extra)):
             problems.append("%s: an example set was imported twice" % extra)
-    if len(propsOf(os.path.join(root, "Examples"))) != len(EXPECT):
-        problems.append("Examples changed: %s"
-                        % sorted(propsOf(os.path.join(root, "Examples"))))
+    if len(propsOf(os.path.join(root, FIRST))) != len(EXPECT):
+        problems.append("%s changed: %s"
+                        % (FIRST, sorted(propsOf(os.path.join(root, FIRST)))))
     for project in projects:
         got = (box.get("props") or {}).get(project, {})
         for calc, names in COMPUTATIONAL.items():
@@ -299,7 +316,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*8", text):
+        if not re.search(r"exampleSet[^0-9]*9", text):
             problems.append("%s records no example-set version" % project)
     for project, expect in NEW_SETS.items():
         got = box.get(project) or {}
@@ -310,7 +327,8 @@ def run(display, data, work):
             missing = [n for n in names if n not in got.get(calc, ())]
             if missing:
                 problems.append("%s/%s lacks %s" % (project, calc, missing))
-            meta = os.path.join(root, project, calc, ".ecce-meta")
+            meta = os.path.join(calcPath(os.path.join(root, project), calc),
+                                ".ecce-meta")
             text = open(meta, errors="replace").read() if os.path.exists(meta) else ""
             if "This calculation shows" not in text:
                 problems.append("%s/%s: its note does not say what it shows"
@@ -324,20 +342,12 @@ def run(display, data, work):
         problems.append("no tree answer")
     else:
         nodes = [t.lstrip("[") for t in trees[-1].split(" selected=")[0].split()]
-        for project in projects:
-            below = []
-            seen = False
-            for n in nodes:
-                depth, _, label = n.partition(":")
-                if seen and depth == "2":
-                    below.append(label)
-                elif seen:
-                    break
-                seen = label == project if depth == "1" else seen
-            if sorted(below) != sorted(COMPUTATIONAL):
-                problems.append("tree: %s holds %s, expected %s (tree: %s)"
-                                % (project, below, sorted(COMPUTATIONAL),
-                                   trees[-1]))
+        # Examples > Computational > GROMACS > trpcage, one level deeper each
+        want = ["1:Examples", "2:Computational", "3:GROMACS", "4:trpcage"]
+        got = [n for n in nodes if n in want]
+        if got != want:
+            problems.append("tree: %s lacks the nested projects (tree: %s)"
+                            % (want, trees[-1]))
     # Theory and Run Type as the calculation ran (the importer's .param).
     want = {"water": "GeoVib", "benzene": "GeoVib", "ammonia": "GeoVib",
             "methane": "GeoVib"}

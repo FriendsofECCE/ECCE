@@ -1,2 +1,7 @@
 Spectroscopy
 IR and Raman spectra from frequency calculations: the S-O stretches of free, monodentate, chelating and bridging sulfate, carbonyl stretches with substituent and charge, the amide bands of N-methylacetamide and a small peptide, two sugars, and the IR spectrum of water and ethanol.
+sulfate-coordination|Sulfate coordination
+carbonyl-compounds|Carbonyl compounds
+amides-and-peptides|Amides and peptides
+sugars|Sugars
+small-molecules|Small molecules

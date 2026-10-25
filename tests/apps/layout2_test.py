@@ -26,7 +26,7 @@ import run_tests  # noqa: E402
 import xdisplay   # noqa: E402
 from ecceqm_builder_test import installLocal   # noqa: E402
 
-EXAMPLES = os.path.join(REPO, "data", "client", "examples", "organic")
+EXAMPLES = os.path.join(REPO, "data", "client", "examples", "organic", "bonding-in-hydrocarbons")
 CALCS = {
     "ethene": os.path.join(EXAMPLES, "ecceqm-ethene", "stored", "ethene"),
     "hcn": os.path.join(REPO, "tests", "builder", "radialdist-fixtures", "hcn"),
