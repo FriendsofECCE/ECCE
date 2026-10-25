@@ -146,7 +146,7 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     dc.SetTextForeground(wxColour(80, 80, 80));
     dc.DrawLabel(wxString::FromUTF8("zero in this plane \xE2\x80\x94 a \xCF\x80 orbital is zero on the\n"
                                     "axis or nodal plane: move the plane off it"),
-                 wxRect(wxRound(ox), wxRound(oy), wxRound(pw), wxRound(ph)), wxALIGN_CENTER);
+                 wxRect(wxRound(ox), wxRound(oy) + 8, wxRound(pw), 40), wxALIGN_CENTER_HORIZONTAL | wxALIGN_TOP);
     dc.SetTextForeground(*wxBLACK);
   }
 
