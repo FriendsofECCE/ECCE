@@ -1,2 +1,2 @@
 Spectroscopy
-Carbonyl stretches with substituent and charge, IR and Raman intensities, and the IR spectrum of water and ethanol.
+Carbonyl stretches with substituent and charge, IR and Raman intensities, the IR spectrum of water and ethanol, and the sulfate stretches of a bridging sulfate complex.

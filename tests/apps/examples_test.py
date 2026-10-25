@@ -71,7 +71,8 @@ ORGANIC = {
 }
 SPECTROSCOPY = {c: ORCA_RAMAN for c in (
     "formaldehyde", "acetaldehyde", "acetone", "acetic_acid", "acetate_anion",
-    "methyl_acetate", "ethyl_acetate", "methyl_propionate")}
+    "methyl_acetate", "ethyl_acetate", "methyl_propionate",
+    "co2_en4_oh_so4_bridged")}
 SPECTROSCOPY.update({
     "water": ["TE", "VIBFREQ", "VIBIR", "MO"],
     "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]})
@@ -287,7 +288,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*4", text):
+        if not re.search(r"exampleSet[^0-9]*5", text):
             problems.append("%s records no example-set version" % project)
     for project, expect in NEW_SETS.items():
         got = box.get(project) or {}

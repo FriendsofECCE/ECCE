@@ -22,6 +22,7 @@ calculations show the run state "Imported" and take a few seconds to be read.
 |---|---|---|
 | General | `Examples` | The five calculations below. |
 | Computational | `Examples_Computational` | A GROMACS molecular dynamics study of the Trp-cage. |
+| Spectroscopy | `Examples_Spectroscopy` | Carbonyl stretches with substituent and charge, IR and Raman intensities, the IR spectrum of water and ethanol, and the sulfate stretches of a bridging sulfate complex ([(en)2Co(mu-OH)(mu-SO4)Co(en)2]3+, ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and Raman). |
 
 If the project of a set exists already, ECCE only selects it and never
 changes it, so you can edit and delete the examples freely. The project

@@ -24,7 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SKIP = 77
 # set folder -> (project it is imported into, number of calculations)
 SETS = {"general": ("Examples", 5), "organic": ("Examples_Organic", 17),
-        "spectroscopy": ("Examples_Spectroscopy", 10)}
+        "spectroscopy": ("Examples_Spectroscopy", 11)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",

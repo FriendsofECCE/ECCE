@@ -3097,12 +3097,13 @@ const vector<ExampleSet>& exampleSets()
       "orca-methyl_acetate/methyl_acetate.out",
       "orca-ethyl_acetate/ethyl_acetate.out",
       "orca-methyl_propionate/methyl_propionate.out",
+      "orca-co2_en4_oh_so4_bridged/co2_en4_oh_so4_bridged.out",
       "ecceqm-water/water.qmout",
       "ecceqm-ethanol/ethanol.qmout"}},
   };
   return sets;
 }
-const char *const kExampleSetVersion = "4";
+const char *const kExampleSetVersion = "5";
 
 string examplesDir()
 {
@@ -3496,6 +3497,19 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "the acyl group lengthened instead of the alkoxy group at 1883.56 cm-1 "
      "(unscaled; IR 256.97 km/mol, Raman activity 3.283), 6.11 cm-1 below me"
      "thyl acetate."},
+    {"co2_en4_oh_so4_bridged",
+     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), VeryTightOpt optimisation a"
+     "nd analytic frequencies with IR and Raman. This calculation shows the "
+     "S-O stretches of a sulfate bridging two cobalt centres in [(en)2Co(mu-"
+     "OH)(mu-SO4)Co(en)2]3+: the antisymmetric stretch of the two S-O bonds "
+     "to cobalt at 980.89 cm-1 (unscaled; IR 873.68 km/mol, Raman activity 1"
+     "2.168), their in-phase stretch at 962.38 cm-1 (IR 270.83 km/mol, Raman"
+     " activity 15.564), and, mainly, the stretch of the S-O bond of 1.489 A"
+     "ngstrom to the oxygen that is not bound to cobalt at 1077.89 cm-1 (IR "
+     "417.97 km/mol, Raman activity 28.735). The S-O bonds to cobalt are 1.5"
+     "40 Angstrom long and the two Co-O(sulfate) distances are 1.908 and 1.9"
+     "09 Angstrom. The lowest frequency is 48.53 cm-1; there are no imaginar"
+     "y frequencies."},
     {"trpcage", "GROMACS, AMBER99SB-ILDN, TIP3P. This study shows the stages "
                 "of a molecular dynamics simulation: preparation, energy "
                 "minimisation, equilibration and production. The temperature "
