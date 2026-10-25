@@ -238,21 +238,27 @@ def run(display, data, work):
             box[project] = waitImported(root, [project], expect)[project]
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
-            # Help > Report a Problem... without its dialog
-            handle.write("reportproblem\ntreeflags\ntree\n")
+            # The commands run in order and Report a Problem takes half a
+            # minute: it goes last, so its archive means all the answers
+            # are in the log.
+            handle.write("treeflags\ntree\n")
             # what the project table's Theory and Run Type columns show
             for calc in sorted(CALCS):
                 handle.write("summary file://%s\n" % os.path.join(
                     root, "Examples", calc))
+            # Help > Report a Problem... without its dialog
+            handle.write("reportproblem\n")
         time.sleep(12)
         # ecce-diagnose takes about half a minute
         end = time.time() + 120
         while time.time() < end and not glob.glob(
                 os.path.join(home, "ecce-bug-*.zip")):
             time.sleep(2)
+        # the archive is written just before the answer is logged
+        time.sleep(3)
 
     # Through the gateway: it starts VizThumbnail for the thumbnail requests.
-    result = apps.run(display, "gateway", windowTimeout=60, settle=60,
+    result = apps.run(display, "gateway", windowTimeout=60, settle=20,
                       env={"ECCE_TEST_ORGANIZER": script,
                            "ECCE_NO_EXAMPLE_IMPORT": "",
                            "ECCE_ORGANIZER_OPEN": "file://" + calc},

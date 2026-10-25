@@ -33,7 +33,7 @@ MASS = {"H": 1.00794, "C": 12.0107, "N": 14.0067, "O": 15.9994}
 MAX_RIGID = 0.02
 FIXTURES = ("nh3_geovib", "h2o_geovib", "ch4_force", "ch4_geovib",
             os.path.join(os.pardir, os.pardir, os.pardir, os.pardir, "data",
-                         "client", "examples", "mopac-ammonia", "ammonia"))
+                         "client", "examples", "general", "mopac-ammonia", "ammonia"))
 
 BUILDER_CASES = ("nh3_geovib", "ammonia")
 
