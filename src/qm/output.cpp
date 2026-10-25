@@ -333,21 +333,32 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
     spin_block("alpha", r.eps_a, r.occ_a, r.occ_a, r.C_a, false);
     spin_block("beta", r.eps_b, r.occ_b, r.occ_b, r.C_b, false);
   }
-  if (in.localise && r.reference == Reference::Restricted && r.converged && r.nalpha > 0) {
+  if (in.localise) {
     // Same density as the canonical set, so the pictures are of one wavefunction.
-    const Localised loc = localise_occupied(mol, b, r, &real);
-    os << "begin localised_orbitals restricted  # index energy(hartree) occupation label\n";
-    for (size_t i = 0; i < loc.orb.size(); ++i) os << i + 1 << " " << loc.orb[i].energy << " 2 " << loc.orb[i].label << "\n";
-    os << "end localised_orbitals\n";
-    os << "begin localised_mo_coefficients restricted  # one line per localised MO: index then nbf coefficients\n";
-    os << std::setprecision(10);
-    for (size_t i = 0; i < loc.orb.size(); ++i) {
-      os << i + 1;
-      for (int k = 0; k < b.nbf(); ++k) os << " " << loc.C(k, i);
-      os << "\n";
+    // Open shells get one set per spin, occupation 1 each.
+    auto loc_block = [&](const char* spin, int which, int occ) {
+      const Localised loc = localise_occupied(mol, b, r, &real, which);
+      os << "begin localised_orbitals " << spin << "  # index energy(hartree) occupation label\n";
+      for (size_t i = 0; i < loc.orb.size(); ++i)
+        os << i + 1 << " " << loc.orb[i].energy << " " << occ << " " << loc.orb[i].label << "\n";
+      os << "end localised_orbitals\n";
+      os << "begin localised_mo_coefficients " << spin << "  # one line per localised MO: index then nbf coefficients\n";
+      os << std::setprecision(10);
+      for (size_t i = 0; i < loc.orb.size(); ++i) {
+        os << i + 1;
+        for (int k = 0; k < b.nbf(); ++k) os << " " << loc.C(k, i);
+        os << "\n";
+      }
+      os << std::setprecision(12);
+      os << "end localised_mo_coefficients\n";
+    };
+    if (!r.converged) os << "localisation_skipped the SCF did not converge\n";
+    else if (r.nalpha + r.nbeta == 0) os << "localisation_skipped there are no occupied orbitals\n";
+    else if (r.reference == Reference::Restricted) loc_block("restricted", 0, 2);
+    else {
+      if (r.nalpha > 0) loc_block("alpha", 0, 1);
+      if (r.nbeta > 0) loc_block("beta", 1, 1);
     }
-    os << std::setprecision(12);
-    os << "end localised_mo_coefficients\n";
   }
   if (polar && polar->alpha.rows() == 3) {
     const PolarInvariants pi = polarizability_invariants(polar->alpha);

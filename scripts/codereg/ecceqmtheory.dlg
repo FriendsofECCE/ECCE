@@ -16,3 +16,6 @@ box label="Extra atomic charges"
 check name=ES.Theory.ECCEQM.Loewdin label=" Löwdin" default=0 export=1
 check name=ES.Theory.ECCEQM.CHELPG label=" CHELPG (fitted to the electrostatic potential)" default=0 export=1
 check name=ES.Theory.ECCEQM.MK label=" Merz-Kollman (fitted to the electrostatic potential)" default=0 export=1
+
+box label="Orbitals"
+check name=ES.Theory.ECCEQM.Localise label=" Localised orbitals (bonds and lone pairs, same set for each spin)" default=0 export=1
