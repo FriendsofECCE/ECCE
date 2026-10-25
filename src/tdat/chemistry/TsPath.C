@@ -71,19 +71,21 @@ TsPathReport TsPath::check(const std::vector<double>& rea,
 std::string TsPath::warning(const TsPathReport& r,
                             const std::vector<std::string>& el)
 {
+   // One line per distinct problem: a linear pair that also runs an atom
+   // through another is one message, not two.
    std::string out;
-   const char* tail = "pick a bent guess structure (TS Search \xE2\x86\x92 Guess).";
-   if (r.collinear)
-      out = std::string("Reactant and product are both linear, so the straight "
-            "path between them keeps the molecule linear and cannot bend: ")
-            + tail;
-   if (r.passes && r.atomA >= 0 && r.atomB >= 0 && r.atomB < (int)el.size()) {
+   const char* tail = "pick a bent guess (TS Search \xE2\x86\x92 Guess).";
+   const bool through = r.passes && r.atomA >= 0 && r.atomB >= 0
+                        && r.atomB < (int)el.size();
+   if (through) {
       char buf[160];
-      snprintf(buf, sizeof buf, "The straight path from reactant to product "
-               "passes %s%d through %s%d (closest approach %.2f \xC3\x85): ",
+      snprintf(buf, sizeof buf, "Straight path passes %s%d through %s%d%s: ",
                el[r.atomA].c_str(), r.atomA + 1, el[r.atomB].c_str(),
-               r.atomB + 1, r.closest);
-      out += std::string(out.empty() ? "" : "\n") + buf + tail;
+               r.atomB + 1, r.collinear ? " (linear reactant and product)" : "");
+      out = std::string(buf) + tail;
+   } else if (r.collinear) {
+      out = std::string("Linear reactant and product: the straight path cannot "
+                        "bend; ") + tail;
    }
    return out;
 }
