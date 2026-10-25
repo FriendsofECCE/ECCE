@@ -145,12 +145,12 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
       legend.push_back(l);
     }
   }
-  //  The nodes of a wavefunction: where psi changes sign.  Black and thicker
+  //  The nodes of a wavefunction: where psi changes sign.  Grey but thicker
   //  than the contours: a small inner node (2s) lies among the dense
   //  contours near the nucleus and was lost as a thin grey line.
   const bool nodes = m.quantity == ORBITAL && m.zmax > 0 && m.zmin < 0;
   if (nodes) {
-    Line l = { 0.0, wxColour(0, 0, 0), wxPENSTYLE_SOLID };
+    Line l = { 0.0, wxColour(140, 140, 140), wxPENSTYLE_SOLID };
     legend.push_back(l);
   }
   for (size_t k = 0; k < legend.size(); k++) {
