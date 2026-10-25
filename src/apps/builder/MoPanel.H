@@ -135,6 +135,7 @@ class MoPanel : public MoGUI,
      void fillUI();
      void selectMo(int index);
      void showComposition();
+     void fillCharacterColumn(bool haveTypes);
      bool ensureAoBasis();
      GridDlg *getGridDlg();
      void updateGridDlg();

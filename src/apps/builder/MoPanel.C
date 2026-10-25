@@ -532,33 +532,44 @@ bool MoPanel::rebuildTable()
       p_mogrid->InsertCols(col, 1);
       p_mogrid->SetColLabelValue(col++, "Occ #");
    }
+   //  A localised label ("sigma C1-C2 (sp1.6/sp1.6)") is shown as three
+   //  columns; the canonical symmetry label stays one.
    if (orbSym) {
-      p_mogrid->InsertCols(col, 1);
-      p_mogrid->SetColLabelValue(col++, loc ? "Bond" : "Sym");
+      const char *heads[] = { "Sym" };
+      const char *locHeads[] = { "Bond type", "Atoms", "Hybrids" };
+      for (int h = 0; h < (loc ? 3 : 1); h++) {
+         p_mogrid->InsertCols(col, 1);
+         p_mogrid->SetColLabelValue(col++, loc ? locHeads[h] : heads[0]);
+      }
    }
 
    int alphaRows = orbEnergy->rows();
    int idxHOMO = fillTable("alpha", orbEnergy, orbOcc, orbSym, 0, showType);
    (void)fillTable("beta", orbEnergyBeta, orbOccBeta, orbSymBeta, alphaRows, showType);
-   if (!loc) fillGraph(showType);
+   if (!loc) {
+      fillGraph(showType);
+      fillCharacterColumn(showType);
+   }
 
    p_mogrid->AutoSize();
-   // symbol not found - new in 2.8.8
-   //p_mogrid->SetColLabelSize(wxGRID_AUTOSIZE);
-   int cursize = p_mogrid->GetColLabelSize();
-   p_mogrid->SetColLabelSize((int)(cursize + cursize * .20));
+   //  One line of text plus a margin; the default label height wraps.
+   p_mogrid->SetColLabelSize(p_mogrid->GetTextExtent("Ey").y + 10);
 
    //  Wide enough for every column and the vertical scroll bar, so the
-   //  table is never cut off at the right.
+   //  table is never cut off at the right.  The "Main atoms" text is the one
+   //  column allowed to scroll: counting it widened the whole panel column.
    int tableWidth = p_mogrid->GetRowLabelSize() +
       wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, p_mogrid) + 4;
    for (int c = 0; c < p_mogrid->GetNumberCols(); c++)
-      tableWidth += p_mogrid->GetColSize(c);
+      if (p_mogrid->GetColLabelValue(c) != "Main atoms")
+         tableWidth += p_mogrid->GetColSize(c);
    p_mogrid->SetMinSize(wxSize(std::max(200, tableWidth),
                                p_mogrid->GetMinSize().y));
 
    // Select the alpha HOMO by default.
    selectMo(idxHOMO);
+   //  Ask the pane for the height the table needs; see reflow().
+   reflow();
    return true;
 }
 
@@ -601,14 +612,12 @@ int  MoPanel::fillTable(const string& type,
    vector<double> occ;
    vector<string> sym;
 
-   // We (may) have 3 parallel arrays and want to display them in the table in
-   // reverse order i.e. values are stored as min(-) to max(+) energies,
-   // however we want to display them with min at bottom of table.
-   //  The localised set stays in its own order (core, then bonds by atom).
+   // Parallel arrays, shown as stored: orbital 1 (lowest energy) first,
+   // for the canonical and the localised set alike (core, then bonds by
+   // atom) so the order never changes between the two views.
    const bool keep = p_localised;
    if (propOrbEnergy) {
       energy = propOrbEnergy->values();
-      if (!keep) reverse(energy.begin(), energy.end());
    }
    if (propOrbOcc) {
       occ = propOrbOcc->values();
@@ -618,8 +627,6 @@ int  MoPanel::fillTable(const string& type,
       //  it unless the lengths agree.
       if (occ.size() != energy.size()) {
          occ.clear();
-      } else if (!keep) {
-         reverse(occ.begin(), occ.end());
       }
    }
    if (propOrbSym) {
@@ -633,9 +640,8 @@ int  MoPanel::fillTable(const string& type,
       //  column, so drop it unless it lines up exactly.
       if (sym.size() != energy.size()) {
          sym.clear();
-      } else {
-         if (!keep) reverse(sym.begin(), sym.end());
-         if (keep) for (string& t : sym) std::replace(t.begin(), t.end(), '_', ' ');
+      } else if (keep) {
+         for (string& t : sym) std::replace(t.begin(), t.end(), '_', ' ');
       }
    }
 
@@ -650,7 +656,7 @@ int  MoPanel::fillTable(const string& type,
       }
 
       // Column 1 - MO # (start counting from 1 (=min energy))
-      p_mogrid->SetCellValue(row, col++, wxString::Format(_T("%u"), keep ? idx + 1 : rows-row));
+      p_mogrid->SetCellValue(row, col++, wxString::Format(_T("%lu"), idx + 1));
 
       // Column 2 - Energy
       if (!energy.empty()) {
@@ -662,18 +668,72 @@ int  MoPanel::fillTable(const string& type,
       if (!occ.empty()) {
          p_mogrid->SetCellValue(row, col++,
                wxString::Format(_T("%.1f"), occ[idx]));
-         if (idxHOMO < 0 && occ[idx] > 0.0) { // find Highest Occupied MO
-            idxHOMO = idx;
+         if (occ[idx] > 0.0) { // Highest Occupied MO: the last one
+            idxHOMO = row;
          }
       }
 
-      // Col 4 - Symmetry label
+      // Col 4 - Symmetry label, or the localised label in three parts
       if (!sym.empty()) {
-         p_mogrid->SetCellValue(row, col++, sym[idx]);
+         if (keep) {
+            string kind = sym[idx], atoms, hybrids;
+            const size_t paren = kind.find(" (");
+            if (paren != string::npos) {
+               hybrids = kind.substr(paren + 2);
+               if (!hybrids.empty() && hybrids.back() == ')') hybrids.pop_back();
+               kind.erase(paren);
+            }
+            const size_t sp = kind.rfind(' ');
+            if (sp != string::npos) {
+               atoms = kind.substr(sp + 1);
+               kind.erase(sp);
+            }
+            p_mogrid->SetCellValue(row, col++, kind);
+            p_mogrid->SetCellValue(row, col++, atoms);
+            p_mogrid->SetCellValue(row, col++, hybrids);
+         } else {
+            p_mogrid->SetCellValue(row, col++, sym[idx]);
+         }
       }
    }
 
    return idxHOMO;
+}
+
+
+/**
+ * Adds a "Main atoms" column to the canonical table: the (atom, shell type)
+ * parts of each orbital carrying at least 10% of it, largest first.  Left
+ * out when the composition cannot be computed.
+ */
+void MoPanel::fillCharacterColumn(bool haveTypes)
+{
+   if (!ensureAoBasis()) return;
+   const int col = p_mogrid->GetNumberCols();
+   p_mogrid->InsertCols(col, 1);
+   p_mogrid->SetColLabelValue(col, "Main atoms");
+   const int moCol = haveTypes ? 1 : 0;
+   for (int row = 0; row < p_mogrid->GetNumberRows(); row++) {
+      long mo = 0;
+      p_mogrid->GetCellValue(row, moCol).ToLong(&mo);
+      const bool beta = haveTypes && p_mogrid->GetCellValue(row, 0) == "beta";
+      const vector< vector<double> >& rows = p_aoRows[beta ? 1 : 0];
+      MoAoBasis::Composition comp;
+      if (mo < 1 || mo > (long)rows.size() ||
+          !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp))
+         continue;
+      vector<MoAoBasis::Share> parts = comp.types;
+      std::stable_sort(parts.begin(), parts.end(),
+          [](const MoAoBasis::Share& a, const MoAoBasis::Share& b) {
+            return a.share > b.share; });
+      wxString text;
+      for (size_t k = 0; k < parts.size() && k < 3; k++) {
+         if (parts[k].share < 0.10) break;
+         text += wxString::Format("%s%s %.0f%%", k ? ", " : "",
+               parts[k].label, 100.0*parts[k].share);
+      }
+      p_mogrid->SetCellValue(row, col, text);
+   }
 }
 
 
@@ -907,6 +967,34 @@ string MoPanel::tableState() const
    wxSize cs = p_mogrid->GetGridWindow()->GetClientSize();
    const int offset = p_mogrid->GetColLabelValue(0) == "Type" ? 1 : 0;
    s << "rows " << p_mogrid->GetNumberRows() << "\n";
+   s << "headerHeight " << p_mogrid->GetColLabelSize() << "\n";
+   s << "gridRect " << p_mogrid->GetRect().y << " " << p_mogrid->GetRect().height << "\n";
+   s << "panelHeight " << GetSize().y << "\n";
+   s << "header";
+   for (int c = 0; c < p_mogrid->GetNumberCols(); c++)
+      s << (c ? " | " : " ") << p_mogrid->GetColLabelValue(c);
+   s << "\n";
+   for (int r = 0; r < p_mogrid->GetNumberRows(); r++) {
+      s << "row";
+      for (int c = 0; c < p_mogrid->GetNumberCols(); c++)
+         s << (c ? " | " : " ") << p_mogrid->GetCellValue(r, c);
+      s << "\n";
+   }
+   //  Controls laid over one another (the sizer was given less height than
+   //  its contents need) are the "overlap" this reports.
+   int overlaps = 0;
+   const wxWindowList& kids = p_mogrid->GetParent()->GetChildren();
+   for (wxWindowList::const_iterator a = kids.begin(); a != kids.end(); ++a) {
+      if (!(*a)->IsShown()) continue;
+      s << "child " << (*a)->GetClassInfo()->GetClassName() << " y="
+        << (*a)->GetRect().y << " h=" << (*a)->GetRect().height << "\n";
+      for (wxWindowList::const_iterator b = a; b != kids.end(); ++b) {
+         if (b == a || !(*b)->IsShown()) continue;
+         const wxRect x = (*a)->GetRect().Intersect((*b)->GetRect());
+         if (x.width > 0 && x.height > 0) overlaps++;
+      }
+   }
+   s << "overlaps " << overlaps << "\n";
    s << "selectedRow " << p_selectedRow << "\n";
    s << "selectedRows";
    for (size_t i = 0; i < sel.size(); i++) s << " " << sel[i];
@@ -1183,9 +1271,12 @@ void MoPanel::showComposition()
 
    if (p_localised) {
       //  The label is the composition of a localised orbital.
-      const int col = p_mogrid->GetNumberCols() - 1;
-      text = wxString::Format(_("Localised MO %d: %s"), mo,
-                              p_mogrid->GetCellValue(p_selectedRow, col));
+      const int col = p_mogrid->GetNumberCols() - 3;
+      wxString label = p_mogrid->GetCellValue(p_selectedRow, col) + " " +
+                       p_mogrid->GetCellValue(p_selectedRow, col + 1);
+      const wxString hybrids = p_mogrid->GetCellValue(p_selectedRow, col + 2);
+      if (!hybrids.empty()) label += " (" + hybrids + ")";
+      text = wxString::Format(_("Localised MO %d: %s"), mo, label);
    } else if (!p_isValid && p_mogrid->GetNumberRows() == 0) {
       // Nothing selected yet.
    } else if (!ensureAoBasis()) {
@@ -2107,10 +2198,11 @@ void MoPanel::reflow()
    const int need = GetSizer()->CalcMin().y - p_mogrid->GetMinSize().y +
                     tableFloor;
    Builder *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this));
-   if (builder && IsShownOnScreen()) {
-      const bool crowded = p_espBarShown;
-      builder->CallAfter([builder, this, need, crowded]() {
-         builder->propertyPaneRoom(this, crowded ? need : 0);
+   //  Shown-ness is read when the call runs: the first fill happens while
+   //  the pane is still being put on screen.
+   if (builder) {
+      builder->CallAfter([builder, this, need]() {
+         if (IsShownOnScreen()) builder->propertyPaneRoom(this, need);
       });
    }
 }
