@@ -82,6 +82,68 @@ our @EXPLAIN = (
     } },
 );
 
+# .mdp keys as the editor names them (tab: field, as in docs/GROMACS.md), so
+# a grompp message the user must act on does not name a key the editor does
+# not show.  A key marked own is one ECCE writes without a field; a message
+# about it is ECCE's fault, to be reported.  Keys that are ordinary words in
+# grompp's prose (dt, pbc) are left out.
+our %MDPKEY = (
+  'nstenergy' => ['Files tab, write energies interval', 0],
+  'nstlog' => ['Files tab, write energies interval', 0],
+  'nstcalcenergy' => [undef, 1],
+  'nstxout-compressed' => ['Files tab, write trajectory interval', 0],
+  'nsteps' => ['Dynamics tab, equilibration and data steps (Optimize tab, maximum steps)', 0],
+  'tinit' => ['Dynamics tab, initial time', 0],
+  'nstlist' => ['Interactions tab, pair-list update interval', 0],
+  'rcoulomb' => ['Interactions tab, cutoff radius', 0],
+  'rvdw' => ['Interactions tab, cutoff radius', 0],
+  'coulombtype' => ['Interactions tab, PME / Cutoff only', 0],
+  'pme-order' => ['Interactions tab, B-spline order', 0],
+  'constraints' => ['Constraints tab', 0],
+  'comm-mode' => ['Dynamics tab, remove centre of mass motion', 0],
+  'nstcomm' => ['Dynamics tab, remove centre of mass motion interval', 0],
+  'tcoupl' => ['Dynamics tab, constant temperature', 0],
+  'ref-t' => ['Dynamics tab, temperature', 0],
+  'tau-t' => ['Dynamics tab, temperature relaxation time', 0],
+  'pcoupl' => ['Dynamics tab, constant pressure', 0],
+  'ref-p' => ['Dynamics tab, pressure', 0],
+  'tau-p' => ['Dynamics tab, pressure relaxation time', 0],
+  'compressibility' => ['Dynamics tab, compressibility', 0],
+  'pcoupltype' => ['Run settings, barostat coupling type', 0],
+  'nstpcouple' => ['Run settings, barostat interval', 0],
+  'emtol' => ['Optimize tab, maximum force', 0],
+  'emstep' => ['Optimize tab, initial step', 0],
+  'define' => ['Run settings, defines', 0],
+  'tc-grps' => ['Run settings, groups', 0],
+  'comm-grps' => ['Run settings, groups', 0],
+  'gen-vel' => ['Dynamics tab, continue', 0],
+  'gen-temp' => ['Dynamics tab, continue', 0],
+  'continuation' => ['Dynamics tab, continue', 0],
+  'cutoff-scheme' => [undef, 1],
+  'integrator' => [undef, 1],
+);
+
+# $text with each known .mdp key followed by the editor's name for it, the
+# key kept in parentheses; a note is added when ECCE wrote the key itself.
+sub translate
+{
+  my ($text) = @_;
+  my (%own, $changed);
+  foreach my $k (sort { length($b) <=> length($a) } keys %MDPKEY) {
+    (my $re = quotemeta($k)) =~ s/\\-/[-_]/g;
+    my ($name, $own) = @{$MDPKEY{$k}};
+    $changed += ($text =~ s/(?<![\w-])($re)(?![\w-])(?! \()/
+                   defined($name) ? "$name ($1)" : $1/ge) if (defined($name));
+    $own{$k} = 1 if ($own && $text =~ /(?<![\w-])$re(?![\w-])/);
+  }
+  my @own = sort keys %own;
+  if (@own) {
+    $text .= "\n\nECCE writes " . join(", ", @own) . " itself, without a field in the editor, "
+           . "so this is a fault in ECCE, not in the settings: please report it.";
+  }
+  return $text;
+}
+
 # ECCE's own text for a warning from parse(), or undef when there is none.
 sub explain
 {

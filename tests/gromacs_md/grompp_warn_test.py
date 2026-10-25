@@ -93,6 +93,20 @@ WARNING 5 [file topol.top, line 10]:
           "explain: tau, constraints, plain cut-off and net charge are worded, an unknown one is not (%s)" % ex.strip()[:300])
     check("Net charge \u22121 e." in ex,
           "explain: a negative net charge uses a real minus sign")
+    # .mdp keys in grompp's text are named as the editor names them
+    msg = ("nstenergy should be a multiple of nstcalcenergy, "
+           "changing nstenergy to 200")
+    code3 = ("use lib '%s'; use GromppWarn; print GromppWarn::translate($ARGV[0]);"
+             % PARSERS)
+    rc, tr = run(["perl", "-e", code3, msg])
+    check("Files tab, write energies interval (nstenergy) should be" in tr
+          and "to 200" in tr and "ECCE writes nstcalcenergy itself" in tr
+          and "report it" in tr,
+          "translate: nstenergy gets the editor's name with the key kept; nstcalcenergy is flagged as ECCE's (%s)" % tr[:200])
+    rc, tr = run(["perl", "-e", code3, "tau-p is too small; nsttcouple*dt"])
+    check("Dynamics tab, pressure relaxation time (tau-p)" in tr and "ECCE writes" not in tr
+          and "nsttcouple*dt" in tr,
+          "translate: a field key is translated once, plain words are left alone (%s)" % tr[:200])
     prog = subprocess.run(["perl", "-I" + PARSERS, "-MGromppWarn", "-e",
                            "print GromppWarn::awkProgram()"],
                           stdout=subprocess.PIPE).stdout
