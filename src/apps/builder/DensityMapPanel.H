@@ -83,6 +83,14 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       /** Show or hide the plane controls (radio box, atoms, view); remembered. */
       void setPlaneControlsOpen(bool open);
       bool planeControlsOpen() const { return p_planeOpen; }
+      /** Zoom the map about plane point (u, v), A; factor > 1 zooms in.  The
+       *  window is recomputed at the same contour levels. */
+      bool zoomAt(double u, double v, double factor);
+      /** Back to the whole plane. */
+      void resetZoom();
+      bool zoomed() const { return p_zoomed; }
+      /** Plane coordinates of atom N (1-based) in the current map. */
+      bool atomPoint(int n, double& u, double& v) const;
       /** Where each control sits at a given panel width, and which are clipped. */
       std::string layoutReport(int width);
       /** The MOs panel's selection (1-based, alpha or beta). */
@@ -121,7 +129,13 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       void ensurePlane();
       void setCaption();
       void relayout();
+      std::string zoomKey(const DensityPlane::Plane& plane, int what,
+                          int orbital, bool beta) const;
 
+      bool p_zoomed;
+      double p_zoomWin[4], p_fullWin[4], p_levelTop;
+      std::string p_zoomKey;
+      wxButton *p_zoomReset;
       std::string p_statusText;
       std::unique_ptr<DensityPlane::Evaluator> p_eval;
       DensityPlane::Map p_map;
@@ -135,7 +149,7 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       wxStaticText *p_labelA, *p_labelB, *p_labelC, *p_caption;
       wxBoxSizer *p_atomRow, *p_viewRow;
       wxButton *p_planeToggle;
-      bool p_planeOpen;
+      bool p_planeOpen, p_planeAuto;
       wxSpinCtrl *p_mo;
       wxSlider *p_offset;
       wxStaticText *p_status;

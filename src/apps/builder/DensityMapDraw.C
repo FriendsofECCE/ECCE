@@ -41,6 +41,34 @@ wxString levelText(double v)
 }  // namespace
 
 
+//  The plot rectangle: the legend gives way before the plot does in a narrow pane.
+static void mapGeometry(const wxSize& size, const Map& m, double& scale, double& ox,
+                 double& oy, double& pw, double& ph, int *leftOut, int *topOut)
+{
+  const int left = 62, right = std::max(92, std::min(150, size.x * 3 / 10)),
+            top = size.y < 300 ? 26 : 34, bottom = size.y < 300 ? 26 : 62;
+  const double w = m.nu - 1, h = m.nv - 1;       // in steps
+  const double avail = std::max(50, size.x - left - right);
+  const double availH = std::max(50, size.y - top - bottom);
+  scale = std::min(avail / (w*m.step), availH / (h*m.step));  // px per A
+  pw = w*m.step*scale;  ph = h*m.step*scale;
+  ox = left + 0.5*(avail - pw);  oy = top + 0.5*(availH - ph);
+  if (leftOut) *leftOut = left;
+  if (topOut) *topOut = top;
+}
+
+bool densityMapPointAt(const wxSize& size, const Map& m, int px, int py,
+                       double& u, double& v)
+{
+  if (m.nu < 2 || m.nv < 2) return false;
+  double scale, ox, oy, pw, ph;
+  mapGeometry(size, m, scale, ox, oy, pw, ph, 0, 0);
+  if (px < ox || px > ox + pw || py < oy || py > oy + ph) return false;
+  u = m.u0 + (px - ox)/scale;
+  v = m.v0 + (oy + ph - py)/scale;
+  return true;
+}
+
 void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
                      const Map& map, const wxString& message)
 {
@@ -52,16 +80,10 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     return;
   }
   const Map& m = map;
-  //  The legend gives way before the plot does in a narrow pane.
-  const int left = 62, right = std::max(92, std::min(150, size.x * 3 / 10)),
-            top = size.y < 300 ? 26 : 34, bottom = size.y < 300 ? 26 : 62;
+  double scale, ox, oy, pw, ph;
   const bool roomy = size.y >= 300;   // axis title and plane text need it
-  const double w = m.nu - 1, h = m.nv - 1;       // in steps
-  const double avail = std::max(50, size.x - left - right);
-  const double availH = std::max(50, size.y - top - bottom);
-  const double scale = std::min(avail / (w*m.step), availH / (h*m.step));  // px per A
-  const double pw = w*m.step*scale, ph = h*m.step*scale;
-  const double ox = left + 0.5*(avail - pw), oy = top + 0.5*(availH - ph);
+  int left, top;
+  mapGeometry(size, m, scale, ox, oy, pw, ph, &left, &top);
   auto X = [&](double u) { return ox + (u - m.u0)*scale; };
   auto Y = [&](double v) { return oy + ph - (v - m.v0)*scale; };
 
