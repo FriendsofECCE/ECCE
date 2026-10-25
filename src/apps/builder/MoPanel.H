@@ -119,6 +119,7 @@ class MoPanel : public MoGUI,
 
      /** Choose a field type as a click in the type drop-down does. */
      bool selectFieldType(const string& name);
+     bool sortByHeading(const string& heading, bool ascending);
 
      /** The text shown under the table: the selected MO's composition. */
      string compositionText() const { return p_compSummary; }
@@ -155,6 +156,10 @@ class MoPanel : public MoGUI,
      void OnComputeButtonClick( wxCommandEvent& event );
      void OnViewCoeffsClick( wxCommandEvent& event );
      void OnMoSelection( wxGridEvent& event );
+     void OnMoLabelClick( wxGridEvent& event );
+     void sortTable(int col, bool ascending);
+     void showMainView();
+     wxString spinDensityText();
      void OnGraphSelection(bool regular, int curve, int index);
      void OnEndSliderMotion(wxScrollEvent& event);
      void OnSliderTextEnter(wxCommandEvent& event);
@@ -249,6 +254,10 @@ class MoPanel : public MoGUI,
 
       /* currently selected row; GetSelected* methods don't work */
       int p_selectedRow;
+      int p_sortCol = -1;          // column the localised table is sorted by
+      bool p_sortAscending = true;
+      wxTextCtrl *p_spinText = NULL;   // the spin density view
+      bool p_spinShown = false;
       //  One atom: each orbital's shell ("1s", "2p", "3s (virtual)"), alpha
       //  then beta, replacing the symmetry label; empty for a molecule.
       vector<string> p_atomLabels[2];

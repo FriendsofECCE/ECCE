@@ -134,8 +134,13 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
       mo = dynamic_cast<MoPanel*>(*it);
     if (!mo) return s.fail("plotshot: no MO panel for '" + mode + "'");
     mo->ensureInitialized();
-    if (mode == "loctable" && !mo->selectFieldType("Localised MO"))
+    if ((mode == "loctable" || mode == "locsort") &&
+        !mo->selectFieldType("Localised MO"))
       return s.fail("plotshot: no Localised MO for this calculation");
+    if (mode == "locsort" && !mo->sortByHeading("Bond type", true))
+      return s.fail("plotshot: no Bond type column to sort");
+    if (mode == "spin" && !mo->selectFieldType("Spin Density"))
+      return s.fail("plotshot: no Spin Density for this calculation");
     wxCommandEvent ev(wxEVT_MENU, mode == "plotsym" ? MoPanel::PLOTSYM
                                  : mode == "plot" ? MoPanel::PLOT
                                                   : MoPanel::TABLE);

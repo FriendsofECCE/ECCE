@@ -81,6 +81,7 @@ BEGIN_EVENT_TABLE( MoPanel, MoGUI )
 
     EVT_MENU_RANGE(SOLID, PLOTSYM, MoPanel::OnMenuClick)
     EVT_GRID_SELECT_CELL(MoPanel::OnMoSelection)
+    EVT_GRID_LABEL_LEFT_CLICK(MoPanel::OnMoLabelClick)
     EVT_SCROLL(MoPanel::OnEndSliderMotion)
     EVT_TEXT_ENTER(ID_SLIDER, MoPanel::OnSliderTextEnter)
 
@@ -216,6 +217,15 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_compText->SetToolTip(_("Which atoms and shells the selected orbital "
          "is made of, as a percentage of the orbital (Mulliken population)."));
    sizer->Insert(3, p_compText, 0, wxGROW|wxLEFT|wxRIGHT, 5);
+
+   //  What the spin density is made of; replaces the table while the Spin
+   //  Density type is chosen.
+   p_spinText = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
+         wxDefaultPosition, minSize,
+         wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP|wxBORDER_SUNKEN);
+   p_spinText->SetFont(wxFont(wxFontInfo(GetFont().GetPointSize()).Family(wxFONTFAMILY_TELETYPE)));
+   p_spinText->Hide();
+   sizer->Insert(1, p_spinText, 1, wxGROW);
 
    wxTextCtrl *txt = (wxTextCtrl*)FindWindow(ID_TEXTCTRL_MO_CUTOFF);
    //  The cutoff row needs no frame of its own; the frame and its margins
@@ -515,6 +525,12 @@ bool MoPanel::rebuildTable()
    p_aoRows[1].clear();
 
    // Clear table
+   p_mogrid->UnsetSortingColumn();
+   p_sortCol = -1;
+   if (p_spinShown) {
+      p_spinShown = false;
+      showMainView();
+   }
    p_mogrid->ClearGrid();
    p_mogrid->DeleteCols(0,p_mogrid->GetNumberCols());
    p_mogrid->DeleteRows(0,p_mogrid->GetNumberRows());
@@ -693,9 +709,18 @@ int  MoPanel::fillTable(const string& type,
          if (!shells[i].empty()) sym[i] = shells[i];
    }
 
+   //  Row r shows orbital order[r].  The canonical set is already in energy
+   //  order; the localised one is numbered core first, bonds atom by atom, so
+   //  it is put in energy order here.
+   vector<size_t> order(energy.size());
+   for (size_t i = 0; i < order.size(); i++) order[i] = order.size() - 1 - i;
+   if (keep)
+      std::stable_sort(order.begin(), order.end(),
+          [&energy](size_t a, size_t b) { return energy[a] > energy[b]; });
+
    for (int row=startRow, rows=energy.size()+startRow; row<rows; ++row) {
       int col = 0;
-      unsigned long idx = energy.size() - 1 - (row - startRow);
+      unsigned long idx = order[row - startRow];
       p_mogrid->InsertRows(row,1);
 
       // Optional Column 0 - type 
@@ -1075,6 +1100,11 @@ string MoPanel::tableState() const
       }
    }
    s << "visibleRows " << first << " " << last << "\n";
+   if (p_spinShown) {
+      wxString text = p_spinText->GetValue();
+      text.Replace("\n", "\\n");
+      s << "spinView " << text << "\n";
+   }
    return s.ToStdString();
 }
 
@@ -1091,10 +1121,7 @@ void MoPanel::OnMenuClick( wxCommandEvent& event )
               event.GetId() == PLOTSYM) {
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
       config->Write("MO/Which", event.GetId());
-      p_mogrid->Show(event.GetId() == TABLE);
-      p_plotReg->Show(event.GetId() == PLOT);
-      p_plotSym->Show(event.GetId() == PLOTSYM);
-      p_mogrid->GetContainingSizer()->Layout();
+      showMainView();
    } else if (event.GetId() == SOLID  ||
               event.GetId() == MESH ||
               event.GetId() == CONTOUR) {
@@ -1761,6 +1788,84 @@ void MoPanel::OnMoSelection(wxGridEvent& event)
    event.Skip();
 }
 
+//  A click on a column heading of the localised table sorts its rows by that
+//  column (again: the other way).  Alpha and beta stay separate blocks.
+void MoPanel::OnMoLabelClick(wxGridEvent& event)
+{
+   const int col = event.GetCol();
+   if (!p_localised || col < 0 || p_mogrid->GetNumberRows() == 0) {
+      event.Skip();
+      return;
+   }
+   sortTable(col, col == p_sortCol ? !p_sortAscending : true);
+}
+
+
+//  The same as a click on the heading; for scripts and tests.
+bool MoPanel::sortByHeading(const string& heading, bool ascending)
+{
+   for (int c = 0; p_mogrid && c < p_mogrid->GetNumberCols(); c++)
+      if (p_mogrid->GetColLabelValue(c) == wxString::FromUTF8(heading.c_str()) &&
+          p_mogrid->GetNumberRows() > 0) {
+         sortTable(c, ascending);
+         return true;
+      }
+   return false;
+}
+
+
+void MoPanel::sortTable(int col, bool ascending)
+{
+   const int nrows = p_mogrid->GetNumberRows();
+   const int ncols = p_mogrid->GetNumberCols();
+   const bool haveTypes = p_mogrid->GetColLabelValue(0) == "Type";
+   const int offset = haveTypes ? 1 : 0;
+   const wxString heading = p_mogrid->GetColLabelValue(col);
+   const bool numeric = heading == "MO" || heading == "E (Hartree)" ||
+                        heading == "Occ #";
+
+   // The orbital being shown, to select it again where it lands.
+   const int mo = nrows > 0 && p_selectedRow >= 0 && p_selectedRow < nrows
+      ? (int) getSelectedMo() : -1;
+   const string type = mo >= 0 ? getSelectedType() : string();
+
+   vector< vector<wxString> > cells(nrows, vector<wxString>(ncols));
+   for (int r = 0; r < nrows; r++)
+      for (int c = 0; c < ncols; c++)
+         cells[r][c] = p_mogrid->GetCellValue(r, c);
+
+   auto less = [&](const vector<wxString>& a, const vector<wxString>& b) {
+      if (haveTypes && col != 0 && a[0] != b[0]) return a[0] < b[0];
+      if (numeric) {
+         double x = 0, y = 0;
+         a[col].ToDouble(&x);
+         b[col].ToDouble(&y);
+         return ascending ? x < y : x > y;
+      }
+      const int cmp = a[col].Cmp(b[col]);
+      return ascending ? cmp < 0 : cmp > 0;
+   };
+   std::stable_sort(cells.begin(), cells.end(), less);
+
+   int again = -1;
+   for (int r = 0; r < nrows; r++) {
+      for (int c = 0; c < ncols; c++)
+         p_mogrid->SetCellValue(r, c, cells[r][c]);
+      long n = 0;
+      if (mo >= 0 && cells[r][offset].ToLong(&n) && n == mo &&
+          (!haveTypes || cells[r][0] == type))
+         again = r;
+   }
+   p_sortCol = col;
+   p_sortAscending = ascending;
+   p_mogrid->SetSortingColumn(col, ascending);
+   if (again >= 0) {
+      p_selectedRow = again;
+      p_mogrid->SelectRow(again);
+   }
+}
+
+
 void MoPanel::OnGraphSelection(bool regular, int curve, int index)
 {
    std::map<std::pair<int,int>,int>& rows =
@@ -2366,6 +2471,117 @@ void MoPanel::showEspRangeControls(bool show)
 }
 
 
+/** The table or a plot as chosen in the toolbar, or the spin density view. */
+void MoPanel::showMainView()
+{
+   ewxConfig *config = ewxConfig::getConfig(INIFILE);
+   int which;
+   config->Read("MO/Which", &which, TABLE);
+   p_mogrid->Show(!p_spinShown && which == TABLE);
+   p_plotReg->Show(!p_spinShown && which == PLOT);
+   p_plotSym->Show(!p_spinShown && which == PLOTSYM);
+   p_spinText->Show(p_spinShown);
+   p_mogrid->GetContainingSizer()->Layout();
+}
+
+
+/**
+ * What the spin density is made of: the singly occupied orbitals and the
+ * Mulliken spin population on each atom, the latter worked out from the
+ * orbital coefficients because no code writes it for every run.
+ */
+wxString MoPanel::spinDensityText()
+{
+   IPropCalculation *expt = getCalculation();
+   PropVector *energy[2] = { (PropVector*) expt->getProperty("ORBENG"),
+                             (PropVector*) expt->getProperty("ORBENGBETA") };
+   PropVector *occ[2] = { (PropVector*) expt->getProperty("ORBOCC"),
+                          (PropVector*) expt->getProperty("ORBOCCBETA") };
+   if (!energy[0] || !occ[0])
+      return _("The orbital energies or occupations are missing, so the "
+               "spin density cannot be described.");
+   const bool unrestricted = occ[1] != 0;
+
+   //  net[s][i]: spin-up minus spin-down electrons in orbital i of set s.
+   vector<double> net[2];
+   for (int set = 0; set < (unrestricted ? 2 : 1); set++) {
+      const vector<double>& o = occ[set]->values();
+      net[set].resize(o.size());
+      for (size_t i = 0; i < o.size(); i++) {
+         if (unrestricted)
+            net[set][i] = (set ? -1.0 : 1.0) * o[i];
+         else
+            net[set][i] = std::min(o[i], 1.0) - std::max(o[i] - 1.0, 0.0);
+      }
+   }
+
+   const bool haveBasis = ensureAoBasis();
+   const size_t natoms = haveBasis ? p_aoBasis->elements.size() : 0;
+   vector<double> spinPop(natoms, 0.0);
+   vector<string> atomName(natoms);
+   wxString somos;
+   int nSomo = 0;
+   for (int set = 0; set < (unrestricted ? 2 : 1); set++) {
+      const vector<double>& en = (energy[set] ? energy[set] : energy[0])->values();
+      for (size_t i = 0; i < net[set].size(); i++) {
+         if (fabs(net[set][i]) < 1e-6) continue;
+         MoAoBasis::Composition comp;
+         wxString main;
+         if (haveBasis && i < p_aoRows[set].size() &&
+             p_aoBasis->analyse(p_aoRows[set][i], MoAoBasis::MULLIKEN, comp)) {
+            for (size_t a = 0; a < comp.atoms.size() && a < natoms; a++) {
+               spinPop[a] += net[set][i] * comp.atoms[a].share;
+               atomName[a] = comp.atoms[a].label;
+            }
+            vector<MoAoBasis::Share> parts = comp.atoms;
+            std::stable_sort(parts.begin(), parts.end(),
+               [](const MoAoBasis::Share& x, const MoAoBasis::Share& y) {
+                  return x.share > y.share; });
+            int shown = 0;
+            for (size_t k = 0; k < parts.size() && shown < 3; k++) {
+               if (parts[k].share < 0.10) break;
+               main += wxString::Format("%s%s %.0f%%", shown++ ? ", " : "",
+                                        parts[k].label, 100.0*parts[k].share);
+            }
+         }
+         // A beta orbital is singly occupied only where the alpha one is not.
+         if (unrestricted && set == 1 && i < net[0].size() && net[0][i] != 0.0)
+            continue;
+         if (unrestricted && set == 0 && i < net[1].size() && net[1][i] != 0.0)
+            continue;
+         somos += wxString::Format("%5lu  %-5s  %12.6f  %s\n",
+               (unsigned long)(i + 1), set ? "beta" : "alpha",
+               i < en.size() ? en[i] : 0.0, main);
+         nSomo++;
+      }
+   }
+
+   wxString text = _("The spin density is made of the singly occupied orbitals "
+                     "(SOMOs).\n\n");
+   if (nSomo == 0) {
+      text += _("This wavefunction has no singly occupied orbitals.\n");
+   } else {
+      text += wxString::Format("%5s  %-5s  %12s  %s\n", "MO", "Spin",
+                               "E (Hartree)", "Main atoms");
+      text += somos;
+   }
+   text += "\n";
+   if (haveBasis) {
+      text += _("Mulliken atomic spin populations (electrons, from the "
+                "orbital coefficients):\n");
+      for (size_t a = 0; a < natoms; a++)
+         if (fabs(spinPop[a]) >= 0.0005)
+            text += wxString::Format("%-8s %8.3f\n", atomName[a], spinPop[a]);
+   } else {
+      text += _("Atomic spin populations are not available for this "
+                "calculation");
+      if (!p_aoWhy.empty()) text += ": " + wxString::FromUTF8(p_aoWhy.c_str());
+      text += ".\n";
+   }
+   return text;
+}
+
+
 /** The field-type combo decides whether a range is meaningful. */
 void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
 {
@@ -2378,6 +2594,12 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
       ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
       const string chosen = tw->GetSelection() == wxNOT_FOUND ? string() :
          string(tw->GetString(tw->GetSelection()).mb_str());
+      const bool spin = chosen == "Spin Density";
+      if (spin != p_spinShown) {
+         p_spinShown = spin;
+         if (spin) p_spinText->SetValue(spinDensityText());
+         showMainView();
+      }
       if ((chosen == "MO" || chosen == "Localised MO") &&
           p_localised != (chosen == "Localised MO")) {
          p_localised = (chosen == "Localised MO");
