@@ -533,10 +533,27 @@ void DensityMapPanel::compute(bool coarse)
   p_map = out;
   p_haveMap = true;
   p_canvas->show(p_map);
+  std::string lev;
+  {
+    bool scaled = false;
+    const vector<double> lv = mapLevels(p_map, scaled);
+    const bool orb = p_map.quantity == ORBITAL;
+    for (size_t k = 0; k < lv.size() && k < 4; k++) {
+      if (k) lev += ", ";
+      char b[32];
+      snprintf(b, sizeof b, orb ? "\xC2\xB1%g" : "%g", lv[k]);
+      lev += b;
+    }
+    if (lv.size() > 4) lev += " ...";
+    if (!lv.empty())
+      lev += p_map.quantity == DENSITY ? " e/bohr\xC2\xB3"
+           : p_map.quantity == ORBITAL_SET ? " bohr\xE2\x81\xBB\xC2\xB3"
+           : " bohr\xE2\x81\xBB\xC2\xB3\xE2\x81\x84\xC2\xB2";
+  }
   p_statusText = coarse ? "Coarse grid while dragging"
-      : p_map.quantity == ORBITAL
-          ? "Each contour level is double the last; dashed is negative"
-          : "Each contour level is double the last";
+      : lev.empty() ? std::string("No contour level is reached in this plane")
+      : "Contours at " + lev + " (each twice the previous)" +
+        (p_map.quantity == ORBITAL ? "; dashed: negative" : "");
   relayout();
   drawPlaneInViewer();
 }
