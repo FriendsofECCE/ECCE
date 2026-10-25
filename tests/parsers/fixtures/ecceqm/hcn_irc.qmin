@@ -1,0 +1,10 @@
+runtype irc
+method hf
+basis sto-3g
+irc_step 0.2
+irc_max_points 3
+geometry
+C 0.06531447 0.13685274 0.00000000
+N 1.25917235 -0.12080769 0.00000000
+H 0.65551318 1.18395495 0.00000000
+end

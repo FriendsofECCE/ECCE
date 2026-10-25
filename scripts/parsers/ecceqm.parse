@@ -90,6 +90,33 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
     print "key: SCANGEOM\nsize:\n1 ", scalar(@rows), " 3\nrowlabels:\n$labels\n";
     print "columnlabels:\nX Y Z\nvalues:\n", join("\n", @rows), "\nunits:\nAngstrom\nEND\n";
   }
+} elsif ($first =~ /^begin irc_table\b/) {
+  # point s energy; the TS is the row with s = 0
+  my (@c, @e);
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    next if (@f < 3);
+    push(@c, $f[1]);
+    push(@e, $f[2]);
+  }
+  if (@c > 1) {
+    &vectorProp("IRCCOORD", \@c, "sqrt(amu)*bohr");
+    &vectorProp("IRCENERGY", \@e, "Hartree");
+  }
+} elsif ($first =~ /^begin irc_geometry\b/) {
+  my (@rows, $labels);
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    next if (@f < 5);
+    push(@rows, " $f[2] $f[3] $f[4]");
+    $labels .= " $f[0]-$f[1]";
+  }
+  if (@rows) {
+    print "key: IRCGEOM\nsize:\n1 ", scalar(@rows), " 3\nrowlabels:\n$labels\n";
+    print "columnlabels:\nX Y Z\nvalues:\n", join("\n", @rows), "\nunits:\nAngstrom\nEND\n";
+  }
 } elsif ($first =~ /^begin gradient\b/) {
   # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
   my (@rows, @v);

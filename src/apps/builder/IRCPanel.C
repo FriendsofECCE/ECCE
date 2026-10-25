@@ -9,6 +9,7 @@
 #include <wx/filedlg.h>
 #include <wx/grid.h>
 #include <wx/msgdlg.h>
+#include <wx/radiobox.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -33,6 +34,7 @@ const double HARTREE_KCAL = 627.5095;
 const wxWindowID ID_UNIT = wxNewId();
 const wxWindowID ID_EXPORT = wxNewId();
 const wxWindowID ID_NEWCALC = wxNewId();
+const wxWindowID ID_VIEW = wxNewId();
 
 double factor(bool kcal) { return kcal ? HARTREE_KCAL : HARTREE_KJ; }
 
@@ -96,14 +98,14 @@ std::vector<int> ircFrameMap(const std::vector<double>& coord, int frames)
 IMPLEMENT_DYNAMIC_CLASS(IRCPanel, VizPropertyPanel)
 
 IRCPanel::IRCPanel()
-  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL)
+  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL)
 {
 }
 
 IRCPanel::IRCPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL)
+  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -130,6 +132,10 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_unit->Append("kcal/mol");
   p_unit->SetSelection(0);
   bar->Add(p_unit, 0, wxRIGHT, 12);
+  wxString views[] = {"Graph", "Table"};
+  p_view = new wxRadioBox(this, ID_VIEW, "Show", wxDefaultPosition,
+                          wxDefaultSize, 2, views, 1, wxRA_SPECIFY_ROWS);
+  bar->Add(p_view, 0, wxRIGHT, 12);
   bar->AddStretchSpacer();
   bar->Add(new wxButton(this, ID_NEWCALC, "New calculation from this point"), 0,
            wxRIGHT, 6);
@@ -138,8 +144,11 @@ bool IRCPanel::Create(IPropCalculation *calculation,
 
   p_plot = new XYPlotCanvas(this);
   p_plot->SetMinSize(wxSize(300, 180));
-  p_plot->setPointHandler([this](int, int index) { showPoint(index); });
+  p_plot->setPointHandler([this](int, int index) { selectPoint(index); });
   GetSizer()->Add(p_plot, 3, wxEXPAND);
+
+  p_status = new wxStaticText(this, wxID_ANY, "");
+  GetSizer()->Add(p_status, 0, wxEXPAND | wxALL, 4);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
@@ -148,12 +157,15 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_grid->SetColLabelValue(0, "Coordinate");
   p_grid->SetColLabelValue(1, "Energy (Eh)");
   p_grid->SetColLabelValue(2, "Relative");
+  p_grid->Bind(wxEVT_GRID_SELECT_CELL, &IRCPanel::OnRow, this);
   GetSizer()->Add(p_grid, 2, wxEXPAND | wxALL, 3);
 
   Bind(wxEVT_CHOICE, &IRCPanel::OnUnit, this, ID_UNIT);
   Bind(wxEVT_BUTTON, &IRCPanel::OnExport, this, ID_EXPORT);
   Bind(wxEVT_BUTTON, &IRCPanel::OnNewCalc, this, ID_NEWCALC);
+  Bind(wxEVT_RADIOBOX, &IRCPanel::OnView, this, ID_VIEW);
 
+  showView(false);
   fill();
   return true;
 }
@@ -211,12 +223,57 @@ void IRCPanel::refresh()
   if (p_selected >= 0 && hasFocus()) showPoint(p_selected);
 }
 
+std::string IRCPanel::statusText() const
+{
+  return p_status ? std::string(p_status->GetLabel().utf8_str()) : std::string();
+}
+
+// One of plot and table at a time, as in the Vibrations panel.
+void IRCPanel::showView(bool table)
+{
+  p_view->SetSelection(table ? 1 : 0);
+  p_plot->Show(!table);
+  p_grid->Show(table);
+  Layout();
+}
+
+void IRCPanel::OnView(wxCommandEvent&)
+{
+  showView(p_view->GetSelection() == 1);
+}
+
+int IRCPanel::selectPoint(int index)
+{
+  if (index < 0 || index >= (int)p_coord.size()) return -1;
+  p_selected = index;
+  p_syncing = true;
+  p_plot->setSelectedPoint(0, index);
+  p_grid->SelectRow(index);
+  p_grid->GoToCell(index, 0);
+  p_syncing = false;
+  return showPoint(index);
+}
+
+void IRCPanel::OnRow(wxGridEvent& event)
+{
+  event.Skip();
+  if (!p_syncing) selectPoint(event.GetRow());
+}
+
 int IRCPanel::showPoint(int index)
 {
-  if (index < 0 || index >= (int)p_frame.size() || p_frame[index] < 0) return -1;
+  if (index < 0 || index >= (int)p_frame.size()) return -1;
+  if (p_frame[index] < 0) {
+    p_status->SetLabel(wxString::Format(
+        "Point %d (coordinate %.4f) has no stored structure.",
+        index + 1, p_coord[index]));
+    return -1;
+  }
   IPropCalculation *calc = getCalculation();
   if (!calc) return -1;
   p_selected = index;
+  p_status->SetLabel(wxString::Format("Showing point %d (coordinate %.4f).",
+                                      index + 1, p_coord[index]));
   SGContainer& sg = getFW().getSceneGraph();
   Command *cmd = new GTStepCmd("IRC Step", &sg, calc);
   cmd->getParameter("Index")->setInteger(p_frame[index]);
