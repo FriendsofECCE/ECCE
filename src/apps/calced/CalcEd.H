@@ -440,7 +440,6 @@ class CalcEd: public CalcEdGUI,
      *  path check (#468); recomputed when a pick changes. */
     TsLevel p_tsPickLevel[2];
     string p_tsPathWarning;
-    wxStaticText   *p_tsWarn = 0;
     vector<string> p_tsUrls;
     vector<string> p_tsNames;
     wxButton       *p_tsSearchBtn = 0;

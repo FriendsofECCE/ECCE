@@ -141,6 +141,48 @@ int main(int argc, char **argv)
   const string root = argv[1];
   EDSIServerCentral central;
 
+  CHECK(startsOnViewPlane(1) && startsOnViewPlane(2) && !startsOnViewPlane(3),
+        "one or two atoms open on the screen plane, three or more do not");
+
+  //  Ne 2s: psi is negative at the nucleus and positive outside, so there is
+  //  one inner node, a ring about 0.12 A out.  The zero contour must find it
+  //  on the default grid, and it must lie where psi changes sign.
+  {
+    IPropCalculation *calc;
+    open(root + "/../radialdist-fixtures/ne", calc);
+    Evaluator ev;
+    CHECK(calc && ev.build(calc), ("ne builds: " + ev.complaint).c_str());
+    if (calc && ev.symbols.size() == 1) {
+      const double right[3] = { 1, 0, 0 }, up[3] = { 0, 1, 0 };
+      Plane pl;
+      string why;
+      CHECK(makeViewPlane(ev.coordsAng, right, up, pl, why), "ne view plane");
+      Map m;
+      CHECK(ev.map(pl, ORBITAL, 2, false, 0.05, 1.5, m), "ne 2s map");
+      CHECK(m.zmin < 0 && m.zmax > 0, "2s changes sign on the plane");
+      const vector<Segment> ring = contour(m, 0.0);
+      CHECK(ring.size() >= 12, "the zero contour of 2s has a ring of segments");
+      double rmin = 1e9, rmax = 0;
+      for (const Segment& s : ring) {
+        const double r = hypot(s.u0 - m.atoms[0].u, s.v0 - m.atoms[0].v);
+        rmin = std::min(rmin, r);  rmax = std::max(rmax, r);
+      }
+      //  The radial node found along a ray, 0.001 A steps.
+      double node = 0;
+      double prev = ev.orbital(2, false, ev.coordsAng[0], ev.coordsAng[1], ev.coordsAng[2]);
+      for (double r = 0.001; r < 1.0 && node == 0; r += 0.001) {
+        const double z = ev.orbital(2, false, ev.coordsAng[0] + r, ev.coordsAng[1], ev.coordsAng[2]);
+        if (z*prev < 0) node = r;
+        prev = z;
+      }
+      fprintf(stderr, "ne 2s: node at %.3f A, zero contour radii %.3f..%.3f A, %d segments\n",
+              node, rmin, rmax, (int)ring.size());
+      CHECK(node > 0.03 && node < 0.5, "2s has an inner radial node");
+      CHECK(rmin > node - 0.04 && rmax < node + 0.04,
+            "the zero contour lies on the radial node");
+    }
+  }
+
   //  N2: every degenerate pair's sum of squares is cylindrical.
   {
     IPropCalculation *calc;
