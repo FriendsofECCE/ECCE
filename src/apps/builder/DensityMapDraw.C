@@ -17,6 +17,15 @@ namespace {
 //  black-and-white printout.
 const wxColour POSITIVE(0, 114, 178), NEGATIVE(213, 94, 0);
 
+//  A sign colour shaded by |level|: pale for the outermost contour, full
+//  colour for the largest, so a map shows magnitude as well as sign.
+wxColour shade(const wxColour& c, size_t k, size_t n)
+{
+  const double w = n > 1 ? 0.35 + 0.65 * double(k) / (n - 1) : 1.0;
+  auto mix = [w](unsigned char v) { return (unsigned char)(255 - w * (255 - v)); };
+  return wxColour(mix(c.Red()), mix(c.Green()), mix(c.Blue()));
+}
+
 //  viridis, 0 (dark purple) to 0.85 (green-yellow); its bright yellow end
 //  is not drawn, it vanishes on white.
 wxColour viridis(double t)
@@ -128,11 +137,11 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     }
   } else {
     for (size_t k = lv.size(); k-- > 0;) {
-      Line l = { lv[k], POSITIVE, wxPENSTYLE_SOLID };
+      Line l = { lv[k], shade(POSITIVE, k, lv.size()), wxPENSTYLE_SOLID };
       legend.push_back(l);
     }
     for (size_t k = 0; k < lv.size(); k++) {
-      Line l = { -lv[k], NEGATIVE, wxPENSTYLE_SHORT_DASH };
+      Line l = { -lv[k], shade(NEGATIVE, k, lv.size()), wxPENSTYLE_SHORT_DASH };
       legend.push_back(l);
     }
   }
