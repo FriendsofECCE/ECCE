@@ -32,6 +32,7 @@ $opt_n.basis
 $opt_n.con
 $opt_n.frag
 $opt_n.param
+$recalc\n
 $result\
 $revision:
 $revision\n
@@ -196,7 +197,9 @@ c7
 c8
 calc's
 calc_anfreq
+calc_hess
 calc_numfreq
+calculate
 calculation
 cam-b3lyp
 cannot
@@ -282,7 +285,9 @@ eq
 error
 error:
 es.runtype.geomopt.convergencegradient
+es.runtype.geomopt.initialhessian
 es.runtype.geomopt.maximumstepsvalue
+es.runtype.geomopt.recalcfc
 es.runtype.irc.direction
 es.runtype.irc.inithess
 es.runtype.irc.maximumstepsvalue
@@ -454,6 +459,7 @@ raman
 ran
 re-save
 read
+recalc_hess
 replaced
 retrying
 revpbe

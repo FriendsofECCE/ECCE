@@ -57,6 +57,7 @@ $opts
 $primcnt\n
 $prim{rexponent}
 $qstblocks[0]->{xyz}[$index]\n
+$recalc
 $result\
 $revision:
 $revision\n
@@ -406,6 +407,7 @@ error
 error:
 es.runtype.geomopt.convergencegradient
 es.runtype.geomopt.maximumstepsvalue
+es.runtype.geomopt.recalcfc
 es.runtype.gradient.finitestepsize
 es.runtype.gradient.method
 es.runtype.polar.method
