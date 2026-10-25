@@ -75,7 +75,7 @@ each one, counted up in energy order, so the three 2p orbitals become one curve
 for example, "MO 6-7". For an unrestricted calculation choose alpha, beta, or
 alpha + beta; the contributions add up to the total only for alpha + beta.
 
-**clip peaks** (along a line) cuts the vertical axis a little above the
+**clip peaks** (along a line) cuts the vertical axis, when the peaks are more than three times higher, a little above the
 highest value found 0.35 Å or more from every atom. The density at a nucleus is
 hundreds of times the density in a bond, and without the cut those peaks flatten
 everything else. The curves still reach their peaks; they run off the top of the

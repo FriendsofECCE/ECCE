@@ -204,10 +204,11 @@ vector<string> shellLabels(IPropCalculation *calc,
 
 vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
                           const vector<int>& mos, Spin spin, bool weighted,
-                          bool combine, const vector<string>& labels)
+                          bool combine, const vector<string>& labels, bool tagsUnique)
 {
   vector<Spec> out;
   vector<double> groupEnergy;
+  vector<string> groupTag;
   const bool both = spin == BOTH && ev.unrestricted;
   for (int m : mos) {
     if (m < 1 || m > ev.orbitals(false)) continue;
@@ -226,13 +227,17 @@ vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
     if (mem.empty()) continue;
     if (combine && !out.empty()) {
       Spec& g = out.back();
-      const bool sameTag = !tag.empty() && g.label == tag;
+      const bool sameTag = !tag.empty() && groupTag.back() == tag &&
+                           (tagsUnique || fabs(e - groupEnergy.back()) < 1e-4);
       const bool sameE = tag.empty() && g.label.compare(0, 3, "MO ") == 0 &&
                          fabs(e - groupEnergy.back()) < 1e-4 &&
                          g.label.find('(') == string::npos;
       if (sameTag || sameE) {
         for (const Member& x : mem) g.more.push_back(x);
-        if (sameE) {
+        if (sameTag && !tagsUnique) {
+          g.label = tag + " (MO " + g.label.substr(g.label.find("MO ") + 3, g.label.find(')') -
+                    g.label.find("MO ") - 3) + "-" + to_string(m) + ")";
+        } else if (sameE) {
           const size_t dash = g.label.find('-');
           g.label = g.label.substr(0, dash) + "-" + to_string(m);
         }
@@ -245,11 +250,13 @@ vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
     s.beta = mem[0].beta;
     s.weight = mem[0].weight;
     for (size_t k = 1; k < mem.size(); k++) s.more.push_back(mem[k]);
-    if (combine && !tag.empty()) s.label = tag;
-    else s.label = "MO " + to_string(m) + (!tag.empty() ? " (" + tag + ")" : "") +
-                   (spin == BETA ? " beta" : "");
+    if (!tag.empty() && tagsUnique) s.label = tag;
+    else if (!tag.empty()) s.label = tag + " (MO " + to_string(m) + ")";
+    else s.label = "MO " + to_string(m);
+    if (spin == BETA) s.label += " beta";
     out.push_back(s);
     groupEnergy.push_back(e);
+    groupTag.push_back(tag);
   }
   return out;
 }

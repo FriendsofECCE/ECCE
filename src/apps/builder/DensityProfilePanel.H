@@ -92,6 +92,9 @@ class DensityProfilePanel : public PropertyPanel
 
       std::unique_ptr<DensityPlane::Evaluator> p_eval;
       std::vector<std::string> p_shell;          // "2s" of an atom's occupied MOs
+      std::vector<std::string> p_sym;            // the code's symmetry labels
+      bool tagsUnique() const { return !p_shell.empty(); }
+      const std::vector<std::string>& tags() const { return p_shell.empty() ? p_sym : p_shell; }
       std::vector<int> p_occupied;               // 1-based
       std::vector<double> p_axis;
       std::vector<RadialDist::Curve> p_shown;

@@ -41,6 +41,70 @@ const int ANGULAR_POINTS = 302;
 
 wxString U(const char *utf8) { return wxString::FromUTF8(utf8); }
 
+//  What a radial curve shows, in words.
+wxString radialText(const RadialDist::Curve& c, bool radial, const wxString& length)
+{
+  if (!radial) {
+    size_t at = 0;
+    for (size_t i = 0; i < c.p.size(); i++) if (c.p[i] > c.p[at]) at = i;
+    return at < 3 ? wxString("largest at the nucleus") : wxString("no maximum at the nucleus");
+  }
+  if (c.maxR.empty()) return "no maximum";
+  if (c.maxR.size() == 1)
+    return wxString::Format("most probable distance %.3g %s", c.maxR[0], length);
+  wxString t = "maxima at ";
+  for (size_t k = 0; k < c.maxR.size(); k++)
+    t += wxString::Format("%s%.3g", k == 0 ? "" : (k + 1 == c.maxR.size() ? " and " : ", "), c.maxR[k]);
+  return t + " " + length;
+}
+
+//  Where along the line s lies, by the nearest atom.
+wxString whereText(double s, const std::vector<LineProfile::Mark>& marks, double tol,
+                   const wxString& length)
+{
+  if (marks.empty()) return wxString::Format("at %.3g %s along the line", s, length);
+  size_t near = 0;
+  for (size_t k = 0; k < marks.size(); k++)
+    if (std::fabs(s - marks[k].s) < std::fabs(s - marks[near].s)) near = k;
+  const double d = std::fabs(s - marks[near].s);
+  const wxString name = U(marks[near].label.c_str());
+  if (d < tol) return "at " + name;
+  if (marks.size() >= 2 && s > marks.front().s && s < marks.back().s) {
+    //  Between the two atoms on either side of s.
+    size_t lo = 0;
+    for (size_t k = 0; k < marks.size(); k++) if (marks[k].s <= s) lo = k;
+    const size_t hi = std::min(lo + 1, marks.size() - 1);
+    return "between " + U(marks[lo].label.c_str()) + " and " + U(marks[hi].label.c_str()) +
+           wxString::Format(", %.3g %s from %s", s - marks[lo].s, length, U(marks[lo].label.c_str()));
+  }
+  return wxString::Format("%.3g %s from ", d, length) + name;
+}
+
+//  What a line curve shows: where it is largest, and for psi where it changes sign.
+wxString lineText(const RadialDist::Curve& c, const std::vector<double>& s,
+                  const std::vector<LineProfile::Mark>& marks, int quantity,
+                  const wxString& length)
+{
+  const double tol = length == "bohr" ? 0.1 / BOHR_ANG : 0.1;
+  size_t at = 0;
+  for (size_t i = 0; i < c.p.size(); i++)
+    if (std::fabs(c.p[i]) > std::fabs(c.p[at])) at = i;
+  const double top = std::fabs(c.p[at]);
+  if (top <= 0) return "zero everywhere on the line";
+  wxString t = (quantity == 2 ? "largest magnitude " : "largest ") + whereText(s[at], marks, tol, length);
+  if (quantity == 2) {
+    int found = 0;
+    for (size_t i = 1; i < c.p.size() && found < 3; i++) {
+      const double a = c.p[i-1], b = c.p[i];
+      if (std::fabs(a) < 1e-6 * top || std::fabs(b) < 1e-6 * top || a * b >= 0) continue;
+      const double x = s[i-1] + (s[i] - s[i-1]) * a / (a - b);
+      t += "; changes sign " + whereText(x, marks, tol, length) + " (node)";
+      found++;
+    }
+  }
+  return t;
+}
+
 }  // namespace
 
 
@@ -199,6 +263,13 @@ void DensityProfilePanel::build()
   }, ID_CSV);
 
   p_shell = RadialDist::shellLabels(getCalculation(), *p_eval, false);
+  //  The symmetry label of each orbital, only if it lines up with them
+  //  (the MOs panel's rule).
+  {
+    PropVecString *pv = (PropVecString*) getCalculation()->getProperty("ORBSYM");
+    if (pv != 0 && pv->values().size() == (size_t)p_eval->orbitals(false) && p_shell.empty())
+      p_sym = pv->values();
+  }
   p_occupied.clear();
   for (int m = 1; m <= p_eval->orbitals(false); m++) {
     const bool a = (size_t)m <= p_eval->occ.size() && p_eval->occ[m-1] > 0.0;
@@ -242,8 +313,8 @@ void DensityProfilePanel::fillOrbitals()
   p_list->Clear();
   for (int m = 1; m <= p_eval->orbitals(false); m++) {
     wxString item = wxString::Format("%3d", m);
-    if ((size_t)m <= p_shell.size() && !p_shell[m-1].empty())
-      item += "  " + U(p_shell[m-1].c_str());
+    if ((size_t)m <= tags().size() && !tags()[m-1].empty())
+      item += "  " + U(tags()[m-1].c_str());
     if ((size_t)m <= energy.size()) item += wxString::Format("   E %.4f Ha", energy[m-1]);
     if ((size_t)m <= occ.size()) {
       if (p_eval->unrestricted && (size_t)m <= p_eval->occBeta.size())
@@ -345,7 +416,7 @@ void DensityProfilePanel::recompute()
   }
   std::vector<RadialDist::Spec> specs = RadialDist::orbitalSpecs(
       *p_eval, mos, spin, weighted, p_combine->GetValue() && !(!atom && quantity == 2),
-      p_shell);
+      tags(), tagsUnique());
   if (wantTotal) {
     RadialDist::Spec t;
     t.label = "Total density";
@@ -425,7 +496,7 @@ void DensityProfilePanel::recompute()
           if (std::fabs(axis[i] - m.s) < away) near = true;
         if (!near) top = std::max(top, c.p[i]);
       }
-    if (top > 0 && 1.3 * top < 0.9 * all) limit = 1.3 * top;
+    if (top > 0 && all > 3.0 * top) limit = 1.5 * top;   // only a tall nuclear peak
   }
   p_plot->setYLimit(limit);
   for (const LineProfile::Mark& m : p_marks) p_plot->addVLine(m.s, U(m.label.c_str()));
@@ -449,17 +520,8 @@ void DensityProfilePanel::recompute()
       p_plot->setCurveColour(m, p_plot->seriesColour(series));
     }
     text += U(c.spec.label.c_str()) + ": ";
-    if (atom) {
-      for (size_t k = 0; k < c.maxR.size(); k++)
-        text += wxString::Format("%s%.3f", k ? ", " : "max at ", c.maxR[k]);
-      if (c.maxR.empty()) text += "no maximum";
-      text += wxString::Format(" %s;  integral %.3f\n", length, c.integral);
-    } else {
-      size_t at = 0;
-      for (size_t i = 0; i < c.p.size(); i++)
-        if (std::fabs(c.p[i]) > std::fabs(c.p[at])) at = i;
-      text += wxString::Format("extreme %.4g at %.3f %s\n", c.p[at], axis[at], length);
-    }
+    text += atom ? radialText(c, quantity == 0, length) : lineText(c, axis, p_marks, quantity, length);
+    text += "\n";
     series++;
   }
   if (p_sumError >= 0)

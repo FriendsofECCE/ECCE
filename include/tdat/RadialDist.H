@@ -116,11 +116,13 @@ namespace RadialDist
    * Curves for the given orbitals (1-based).  `weighted` weights each by its
    * occupation (a contribution to the density), else by 1.  `combine` joins
    * orbitals of one shell label (or, without labels, of equal energy) into
-   * one curve.  BOTH adds the beta orbital of the same number to each curve.
+   * one curve (a tag that is not unique, a symmetry label, joins only orbitals
+   * of equal energy and is shown with the orbital number).  BOTH adds the beta orbital of the same number to each curve.
    */
   vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
                             const vector<int>& mos, Spin spin, bool weighted,
-                            bool combine, const vector<string>& labels);
+                            bool combine, const vector<string>& labels,
+                            bool tagsUnique = true);
 
   /** max |sum of the non-total curves - the total curve|; negative if none. */
   double maxSumError(const vector<Curve>& curves);
