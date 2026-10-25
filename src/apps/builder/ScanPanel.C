@@ -26,6 +26,8 @@
 #include "wxgui/PlaybackControl.H"
 #include "util/EcceURL.H"
 
+#include "PlaybackExtras.H"
+#include "PlaybackLoop.H"
 #include "ScanPanel.H"
 
 namespace {
@@ -70,7 +72,7 @@ END_EVENT_TABLE()
 
 ScanPanel::ScanPanel()
   : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL),
-    p_status(NULL), p_playback(NULL), p_delay(500), p_syncing(false)
+    p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500), p_syncing(false)
 {
 }
 
@@ -78,13 +80,14 @@ ScanPanel::ScanPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
   : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL),
-    p_status(NULL), p_playback(NULL), p_delay(500), p_syncing(false)
+    p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500), p_syncing(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
 
 ScanPanel::~ScanPanel()
 {
+  delete p_extras;
 }
 
 bool ScanPanel::Create(IPropCalculation *calculation,
@@ -124,6 +127,7 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   play->Add(p_playback, 0, wxALIGN_CENTER_VERTICAL);
   p_status = new wxStaticText(this, wxID_ANY, "");
   GetSizer()->Add(play, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
+  p_extras = new PlaybackExtras(this, GetSizer(), &p_delay);
   GetSizer()->Add(p_status, 0, wxEXPAND | wxALL, 4);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
@@ -179,6 +183,10 @@ void ScanPanel::fill()
   p_plot->setXAxisLabel(p_coordUnit == "degree" ? "Scanned coordinate (degrees)"
                                                  : wxString::FromUTF8("Scanned coordinate (Å)"));
   p_plot->setYAxisLabel("Relative energy (" + unit + ")");
+  p_plot->setReadout("Point", "Coordinate",
+                     p_coordUnit == "degree" ? wxString::FromUTF8("°")
+                                             : wxString::FromUTF8("Å"),
+                     "Relative energy", unit);
 
   if (p_grid->GetNumberRows()) p_grid->DeleteRows(0, p_grid->GetNumberRows());
   p_grid->AppendRows((int)n);
@@ -250,9 +258,61 @@ void ScanPanel::OnRow(wxGridEvent& event)
   if (!p_syncing) selectPoint(event.GetRow());
 }
 
+// With Loop on, the control's wrap from one end to the other is turned into
+// a reversal, so play runs forward and back until stopped.
 void ScanPanel::OnPlayback(wxCommandEvent& event)
 {
-  selectPoint((int)event.GetExtraLong());
+  long at = event.GetExtraLong();
+  if (event.GetEventType() == wxEVT_PLAYBACK_LOOP_EVENT && p_extras &&
+      p_extras->loop() && points() > 0) {
+    const bool wasForward = event.GetInt() != 0;
+    const long n = points();
+    const playbackloop::Pos p = playbackloop::next(
+        wasForward ? playbackloop::Pos{n - 1, 1} : playbackloop::Pos{0, -1}, n);
+    p_playback->SetStepSize(p.dir);
+    p_playback->SetCurrentStep(p.cur);
+    at = p.cur;
+  }
+  selectPoint((int)at);
+}
+
+void ScanPanel::setPlaybackSpeed(const std::string& name)
+{
+  if (p_extras) p_extras->setSpeed(name);
+}
+
+std::string ScanPanel::playbackSpeed() const
+{
+  return p_extras ? p_extras->speed() : std::string();
+}
+
+void ScanPanel::setPlaybackLoop(bool on)
+{
+  if (p_extras) p_extras->setLoop(on);
+}
+
+bool ScanPanel::playbackLoop() const
+{
+  return p_extras && p_extras->loop();
+}
+
+std::vector<int> ScanPanel::playOrder(int ticks)
+{
+  std::vector<int> out;
+  const int n = points();
+  playbackloop::Pos p{0, 1};
+  if (!n) return out;
+  const bool loop = playbackLoop();
+  selectPoint(0);
+  out.push_back(0);
+  for (int t = 0; t < ticks; t++) {
+    if (loop) p = playbackloop::next(p, n);
+    else if (p.cur < n - 1) p.cur++;
+    else break;
+    selectPoint((int)p.cur);
+    out.push_back((int)p.cur);
+  }
+  return out;
 }
 
 int ScanPanel::step(const std::string& which)

@@ -252,7 +252,9 @@ def qmCase(s, display, env, wrappers, project, png):
     with open(os.path.join(props, "IRCGEOM"), "w") as f:
         f.write(tsvector(frames))
     lines = ["wait 6000", "ircclick 0", "ircclick 3", "ircview table", "ircclick 6", "ircview graph", "ircclick 9",
-             "ircrow 4", "ircstep first", "ircstep next", "ircstep prev", "ircstep last", "ircstep play", "shot play", "quit"]
+             "ircrow 4", "ircstep first", "ircstep next", "ircstep prev", "ircstep last", "ircstep play",
+             "ircaxes 3", "ircplayopt speed fast", "ircplayopt loop off", "ircplayopt order 9",
+             "ircplayopt loop on", "ircplayopt order 9", "shot play", "quit"]
     text, _ = bo.runScript(
         s, display, env, wrappers, ["-context", "file://" + calc + "/"],
         lines, png, "ircqm",
@@ -281,6 +283,21 @@ def qmCase(s, display, env, wrappers, project, png):
     got = state("ircstep", "play")
     check(got and got[3].split() == [str(i) for i in range(1, 8)],
           "ECCE-QM: play runs the points in path order (%s)" % (got,))
+    # Energy axis, table header and hover text name kJ/mol; the coordinate
+    # unit is amu^1/2*bohr (#940).
+    ax = re.findall(r"BUILDER: ircaxes (.*)", text)
+    check(ax and "(amu\u00bd\u00b7bohr)" in ax[0] and "sqrt" not in ax[0],
+          "IRC axes use amu\u00bd\u00b7bohr (%s)" % (ax,))
+    check(ax and ax[0].count("kJ/mol") >= 3 and "Relative energy" in ax[0].split(" | ")[4]
+          and ax[0].split(" | ")[4].rstrip().endswith("kJ/mol"),
+          "IRC y axis, table header and hover text end in kJ/mol (%s)" % (ax,))
+    fast = re.findall(r"BUILDER: ircplayopt speed speed=(\w+) loop=0", text)
+    check(fast == ["fast"], "playback speed choice takes 'fast' (%s)" % (fast,))
+    for loop, want in ((0, [str(i) for i in range(1, 8)]),
+                       (1, "1 2 3 4 5 6 7 6 5 4".split())):
+        got = re.findall(r"BUILDER: ircplayopt order speed=fast loop=%d order:([\d ]*)" % loop, text)
+        check(got and got[0].split() == want,
+              "play order with Loop %s: %s (%s)" % ("on" if loop else "off", " ".join(want), got))
     check(clicks.get("9", ("", "", ""))[1] == "none",
           "a point past the path has no structure")
     check("BUILDER: ircstatus Showing point 7 " in text,

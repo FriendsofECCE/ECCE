@@ -158,6 +158,13 @@ class XYPlotCanvas : public wxPanel
     void setTitle(const wxString& s) { p_title = s; Refresh(); }
     wxString title() const { return p_title; }
     wxString xAxisLabel() const { return p_xLabel; }
+    /** The hover readout's lines for a point, as drawn; for tests. */
+    wxString readoutText(int curve, int index) const
+    {
+      wxString t;
+      for (const wxString& l : readoutLines(curve, index)) t += (t.empty() ? "" : "; ") + l;
+      return t;
+    }
     wxString yAxisLabel() const { return p_yLabel; }
     wxString curveName(int curve) const
     {
@@ -829,6 +836,22 @@ class XYPlotCanvas : public wxPanel
       return rows;
     }
 
+    std::vector<wxString> readoutLines(int curve, int index) const
+    {
+      std::vector<wxString> lines;
+      if (!pointOk(curve, index)) return lines;
+      const Curve& cv = p_curves[curve];
+      if (!cv.name.empty()) lines.push_back(cv.name);
+      if (!cv.labels[index].empty()) lines.push_back(cv.labels[index]);
+      lines.push_back(wxString::Format("%s %d",
+          p_roPoint.empty() ? wxString("Point") : p_roPoint, index + 1));
+      lines.push_back(readoutLine(p_roX.empty() ? wxString("x") : p_roX,
+                                  cv.x[index], p_roXUnit));
+      lines.push_back(readoutLine(p_roY.empty() ? wxString("y") : p_roY,
+                                  cv.y[index], p_roYUnit));
+      return lines;
+    }
+
     static wxString readoutLine(const wxString& name, double v,
                                 const wxString& unit)
     {
@@ -840,17 +863,7 @@ class XYPlotCanvas : public wxPanel
     void paintReadout(wxDC& dc, const wxSize& size)
     {
       if (!pointOk(p_hoverCurve, p_hoverIndex)) return;
-      const Curve& cv = p_curves[p_hoverCurve];
-      std::vector<wxString> lines;
-      if (!cv.name.empty()) lines.push_back(cv.name);
-      if (!cv.labels[p_hoverIndex].empty())
-        lines.push_back(cv.labels[p_hoverIndex]);
-      lines.push_back(wxString::Format("%s %d",
-          p_roPoint.empty() ? wxString("Point") : p_roPoint, p_hoverIndex + 1));
-      lines.push_back(readoutLine(p_roX.empty() ? wxString("x") : p_roX,
-                                  cv.x[p_hoverIndex], p_roXUnit));
-      lines.push_back(readoutLine(p_roY.empty() ? wxString("y") : p_roY,
-                                  cv.y[p_hoverIndex], p_roYUnit));
+      const std::vector<wxString> lines = readoutLines(p_hoverCurve, p_hoverIndex);
       dc.SetFont(*wxSMALL_FONT);
       const int ch = dc.GetCharHeight();
       int w = 0;

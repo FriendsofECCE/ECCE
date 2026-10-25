@@ -82,6 +82,16 @@ available for Gaussian 16 calculations.
    **Energy unit:** (kJ/mol or kcal/mol) and click **Export .csv...** to
    save the table.
 
+### Play the points of a scan or an IRC
+
+The **Relaxed Scan** panel and the **IRC Path** panel have a playback control
+under the plot. Its buttons step through the points and show each structure
+in the 3D view. **Playback speed:** sets the time between points: **Slow**
+(1 s), **Normal** (0.5 s) or **Fast** (0.15 s). Tick **Loop** to play forward
+to the last point, then backward to the first, and repeat until you press
+stop. The IRC Path panel gives the energy in the unit chosen under **Energy
+unit:** and the reaction coordinate in amu½·bohr.
+
 ## Use symmetry
 
 The Calculation Editor's **Use symmetry** box lets the code keep and exploit
