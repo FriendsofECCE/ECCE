@@ -71,6 +71,7 @@
 #include <wx/timer.h>
 #include "wxgui/WxFeedback.H"
 
+#include "tdat/QmSolventWarning.H"
 #include "CalcEd.H"
 #include "QstStructures.H"
 #include "VerifyReportDialog.H"
@@ -1537,6 +1538,14 @@ void CalcEd::updateNotes()
     note += string(note.empty() ? "" : "\n") +
         "Symmetry off: a transition-state search / scan must be able to "
         "break the starting symmetry";
+  if (p_codeName == "ECCE-QM" && p_GUIValues) {
+    GUIValue *solv = p_GUIValues->get("ES.Theory.ECCEQM.Solvent");
+    const string warn = qmSolventWarning(
+        solv ? solv->getValueAsString() : string(),
+        getRuntypeName().ToStdString());
+    if (!warn.empty())
+      note += string(note.empty() ? "" : "\n") + warn;
+  }
   if (!p_notReadyWhy.empty())
     note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
   const wxString text = wxString::FromUTF8(note);
@@ -2887,6 +2896,7 @@ void CalcEd::resetRuntypeDetails()
   if (p_GUIValues) {
     p_GUIValues->deletePrefix("ES.Runtype");
     syncTsKeys();
+    updateNotes();
   }
 
   if (!p_startUp) {
@@ -4750,6 +4760,7 @@ void CalcEd::processTheoryInput(const char* databuf)
     p_theoryInFlag = true;
     if (!p_theoryHoldFlag) {
       populateSummaryField("TheorySummary");
+      updateNotes();
       if (p_theoryInitFlag && p_feedback->getEditStatus() !=
                                           WxFeedback::READONLY) {
         enableSave();
@@ -4816,6 +4827,7 @@ void CalcEd::processRuntypeInput(const char* databuf)
     p_runtypeInFlag = true;
     if (!p_runtypeHoldFlag) {
       populateSummaryField("RuntypeSummary");
+      updateNotes();
       if (p_runtypeInitFlag && p_feedback->getEditStatus() !=
                                           WxFeedback::READONLY) {
         enableSave();

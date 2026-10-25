@@ -38,6 +38,7 @@
 
 #include "tdat/Fragment.H"
 #include "tdat/GUIValues.H"
+#include "tdat/QmSolventWarning.H"
 #include "tdat/QueueMgr.H"
 #include "tdat/TTheory.H"
 
@@ -1492,9 +1493,13 @@ bool WxLauncher::confirmQmSize()
     TGBSConfig *config = calc->gbsConfig();
     TTheory *theory = calc->theory();
     bool raman = false;
+    string solventMsg;
     GUIValues *details = calc->guiparams();
     if (details != NULL)
     {
+        GUIValue *solv = details->get("ES.Theory.ECCEQM.Solvent");
+        solventMsg = qmSolventWarning(solv != NULL ? solv->getValueAsString() : string(),
+                                      calc->runtype().name());
         GUIValue *tick = details->get("ES.Runtype.Vibration.UseRaman");
         raman = tick != NULL && tick->getValueAsString() == "1";
         delete details;
@@ -1512,10 +1517,13 @@ bool WxLauncher::confirmQmSize()
     delete frag;
     delete config;
     delete theory;
+    const bool sizeWarn = !msg.empty();
+    if (!solventMsg.empty())
+        msg = solventMsg + (msg.empty() ? "" : "\n\n" + msg);
     if (msg.empty())
         return true;
 
-    ewxMessageDialog dlg(this, msg, "Large ECCE-QM calculation", wxICON_EXCLAMATION);
+    ewxMessageDialog dlg(this, msg, sizeWarn ? "Large ECCE-QM calculation" : "ECCE-QM solvent", wxICON_EXCLAMATION);
     dlg.AddButton(wxID_CANCEL, "Cancel");
     dlg.AddButton(wxID_YES, "Launch anyway")->SetDefault();
     return dlg.ShowModal() == wxID_YES;

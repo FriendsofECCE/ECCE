@@ -13,7 +13,9 @@ solvent, runtype gradient/optimize/frequency/ts/irc, scans, `polarizability`
 and `raman` are refused at parse time with a one-line error naming the
 solvent (no analytic solvent gradient exists yet). The Theory Details dialog
 warns (never blocks) in the message area when a solvent is chosen for another
-run type; combo `ES.Theory.ECCEQM.Solvent` (None | names | Custom) and float
+run type; the Calculation Editor's notes line and the Launcher's pre-launch
+question (Launch anyway is the default) say the same, from
+`include/tdat/QmSolventWarning.H`; combo `ES.Theory.ECCEQM.Solvent` (None | names | Custom) and float
 `ES.Theory.ECCEQM.Epsilon`; .py and .dlg kept in step.
 
 Model: conductor-like PCM, K q = -f V with f = (eps-1)/eps (Barone and

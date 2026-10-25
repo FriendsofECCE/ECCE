@@ -2122,6 +2122,11 @@ add_executable(tspath_test tests/tspath/tspath_test.C)
 target_link_libraries(tspath_test PRIVATE eccetdat ecceutil)
 add_test(NAME tspath COMMAND tspath_test)
 
+# ECCE-QM solvent / run type warning text (CalcEd notes and pre-launch)
+add_executable(qmsolvent_test tests/tspath/qmsolvent_test.C)
+target_include_directories(qmsolvent_test PRIVATE include)
+add_test(NAME qmsolvent COMMAND qmsolvent_test)
+
 # tests/bondorder -- Clean's bond-order bookkeeping rule (#439)
 add_executable(bondorder_test tests/bondorder/bondorder_test.C)
 target_link_libraries(bondorder_test PRIVATE eccetdat ecceutil)
