@@ -12,4 +12,8 @@
 void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
                      const DensityPlane::Map& map, const wxString& message);
 
+/** Plane coordinates (A) under pixel (px, py); false outside the plot. */
+bool densityMapPointAt(const wxSize& size, const DensityPlane::Map& map,
+                       int px, int py, double& u, double& v);
+
 #endif

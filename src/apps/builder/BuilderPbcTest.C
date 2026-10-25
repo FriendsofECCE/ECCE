@@ -393,6 +393,45 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "columnwidth <px>": drag the sash between the viewer and the right-hand
+  //  column until the column is px wide (events through the frame, as the
+  //  mouse does it).  Appends "columnwidth <px> got <w> viewer <w>" to
+  //  <outdir>/sash.txt.
+  if (c == "columnwidth" && w.size() == 2) {
+    const int px = atoi(w[1].c_str());
+    wxAuiPaneInfo *col = 0, *centre = 0;
+    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+    for (size_t i = 0; i < all.GetCount(); i++) {
+      wxAuiPaneInfo &pi = all.Item(i);
+      if (pi.dock_direction == wxAUI_DOCK_CENTER && pi.IsShown()) centre = &pi;
+      if (!col && pi.IsShown() && !pi.IsFloating() && !pi.IsToolbar() &&
+          pi.dock_direction == wxAUI_DOCK_RIGHT && pi.dock_layer >= 1 &&
+          pi.rect.width > 0)
+        col = &pi;
+    }
+    if (!col || !centre) return s.fail("columnwidth: no column or viewer pane");
+    const int sash = p_mgr.GetArtProvider()->GetMetric(wxAUI_DOCKART_SASH_SIZE);
+    const int x0 = col->rect.x - sash / 2 - 1;
+    const int y = col->rect.y + col->rect.height / 2;
+    const int dx = col->rect.width - px;
+    auto send = [this, y](wxEventType type, int x, bool down) {
+      wxMouseEvent e(type);
+      e.SetPosition(wxPoint(x, y));
+      e.m_leftDown = down;
+      e.SetEventObject(this);
+      GetEventHandler()->ProcessEvent(e);
+      wxTheApp->Yield(true);
+    };
+    send(wxEVT_LEFT_DOWN, x0, true);
+    for (int i = 1; i <= 10; i++) send(wxEVT_MOTION, x0 + dx * i / 10, true);
+    send(wxEVT_LEFT_UP, x0 + dx, false);
+    settle(400);
+    std::ofstream out(outdir + "/sash.txt", std::ios::app);
+    out << "columnwidth " << px << " got " << col->rect.width << " viewer "
+        << centre->rect.width << "\n";
+    return true;
+  }
+
   //  "panestate <name> <tool>..." -> <outdir>/<name>.txt: one line per tool:
   //  shown, floating, close button, window child of the frame, menu ticked,
   //  rectangle; then the client size and every shown pane's name.

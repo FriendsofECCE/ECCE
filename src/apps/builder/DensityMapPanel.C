@@ -45,7 +45,7 @@ const wxWindowID ID_SHOW = wxNewId(), ID_SPIN = wxNewId(), ID_MO = wxNewId(),
                  ID_PLANE = wxNewId(), ID_ATOM = wxNewId(),
                  ID_PNG = wxNewId(), ID_CSV = wxNewId(),
                  ID_OFFSET = wxNewId(), ID_VIEW = wxNewId(),
-                 ID_FIELD = wxNewId(), ID_RESET = wxNewId(), ID_PLANETOGGLE = wxNewId();
+                 ID_FIELD = wxNewId(), ID_RESET = wxNewId(), ID_PLANETOGGLE = wxNewId(), ID_ZOOMRESET = wxNewId();
 
 const char *PLANE_NAME = "DensityMapPlane";
 const double MARGIN = 1.5;            // A beyond the atoms' extent
@@ -67,8 +67,22 @@ class DensityMapCanvas : public wxPanel
       SetBackgroundStyle(wxBG_STYLE_PAINT);
       SetMinSize(wxSize(200, 200));
       Bind(wxEVT_PAINT, &DensityMapCanvas::onPaint, this);
+      Bind(wxEVT_MOUSEWHEEL, [this](wxMouseEvent& e) {
+        double u, v;
+        if (!p_have || !onZoom || e.GetWheelRotation() == 0 ||
+            !densityMapPointAt(GetClientSize(), p_map, e.GetX(), e.GetY(), u, v)) {
+          e.Skip();
+          return;
+        }
+        onZoom(u, v, e.GetWheelRotation() > 0 ? 1.25 : 0.8);
+      });
+      Bind(wxEVT_LEFT_DCLICK, [this](wxMouseEvent&) {
+        if (onZoomReset) onZoomReset();
+      });
     }
 
+    std::function<void(double, double, double)> onZoom;   // u, v, factor
+    std::function<void()> onZoomReset;
     void show(const Map& m) { p_map = m; p_have = true; p_message.clear(); Refresh(); }
     std::function<void()> onPaintHook;
     void say(const wxString& msg) { p_have = false; p_message = msg; Refresh(); }
@@ -100,7 +114,7 @@ DensityMapPanel::DensityMapPanel()
     p_inViewer(false), p_dragging(false), p_show(0), p_spin(0), p_atomA(0),
     p_atomB(0), p_atomC(0), p_plane(0), p_offsetField(0), p_resetOffset(0),
     p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
-    p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
+    p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
 {
 }
 
@@ -258,11 +272,15 @@ void DensityMapPanel::build()
 
   p_canvas = new DensityMapCanvas(this);
   p_canvas->onPaintHook = [this]() { ensurePlane(); };
-  p_caption = new wxStaticText(this, wxID_ANY, wxEmptyString);
-  p_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
+  //  One ellipsized line each, full text in the tooltip: wrapped text took
+  //  the canvas's height.
+  p_caption = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                               wxDefaultSize, wxST_ELLIPSIZE_END);
+  p_status = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                              wxDefaultSize, wxST_ELLIPSIZE_END);
   //  The export buttons share the first row: height is what the map lacks.
   row1->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxLEFT | wxRIGHT, 4);
-  row1->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0);
+  row1->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0, wxRIGHT, 4);
 
   top->Add(row1, 0, wxEXPAND | wxALL, 6);
   //  The plane controls take most of the height; the choice is remembered.
@@ -274,8 +292,18 @@ void DensityMapPanel::build()
     ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
     if (cfg) cfg->Read("/DensityMap/PlaneControlsOpen", &open, true);
     p_planeOpen = open;
+    //  Nothing remembered: a short panel starts folded (see relayout).
+    p_planeAuto = !(cfg && cfg->Exists("/DensityMap/PlaneControlsOpen"));
   }
-  top->Add(p_planeToggle, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  row1->Add(p_planeToggle, 0, wxRIGHT, 4);
+  //  Shown only while zoomed, so the row stays one line otherwise.
+  p_zoomReset = new wxButton(this, ID_ZOOMRESET, "Whole plane");
+  p_zoomReset->SetToolTip("Mouse wheel zooms around the pointer; double-click also resets");
+  p_zoomReset->Hide();
+  row1->Add(p_zoomReset, 0);
+  p_canvas->onZoom = [this](double u, double v, double f) { zoomAt(u, v, f); };
+  p_canvas->onZoomReset = [this]() { resetZoom(); };
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { resetZoom(); }, ID_ZOOMRESET);
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_atomRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_viewRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -399,12 +427,83 @@ void DensityMapPanel::chooseBondedB()
   fillAtomLists();
 }
 
+string DensityMapPanel::zoomKey(const Plane& plane, int what, int orbital,
+                                bool beta) const
+{
+  char b[400];
+  snprintf(b, sizeof b, "%d %d %d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f",
+           what, orbital, beta, plane.origin[0], plane.origin[1], plane.origin[2],
+           plane.u[0], plane.u[1], plane.u[2], plane.v[0], plane.v[1], plane.v[2]);
+  return b;
+}
+
+bool DensityMapPanel::atomPoint(int n, double& u, double& v) const
+{
+  if (!p_haveMap || n < 1 || n > (int)p_map.atoms.size()) return false;
+  u = p_map.atoms[n - 1].u;
+  v = p_map.atoms[n - 1].v;
+  return true;
+}
+
+bool DensityMapPanel::zoomAt(double u, double v, double factor)
+{
+  if (!p_haveMap || !p_eval || factor <= 0) return false;
+  if (!p_zoomed) {
+    //  The whole plane's window and level ladder, kept while zoomed.
+    p_fullWin[0] = p_map.u0;  p_fullWin[1] = p_map.u(p_map.nu - 1);
+    p_fullWin[2] = p_map.v0;  p_fullWin[3] = p_map.v(p_map.nv - 1);
+    std::copy(p_fullWin, p_fullWin + 4, p_zoomWin);
+    p_levelTop = p_map.levelTop > 0 ? p_map.levelTop
+        : p_map.quantity == ORBITAL ? std::max(fabs(p_map.zmin), fabs(p_map.zmax))
+        : p_map.zmax;
+    string why;
+    Plane plane;
+    if (!currentPlane(plane, why)) return false;
+    const int what = p_show->GetSelection();
+    p_zoomKey = zoomKey(plane, what, what == 0 ? 0 : p_mo->GetValue(),
+                        p_spin->GetSelection() == 1);
+  }
+  const double fullW = p_fullWin[1] - p_fullWin[0], fullH = p_fullWin[3] - p_fullWin[2];
+  double w = (p_zoomWin[1] - p_zoomWin[0]) / factor;
+  double h = (p_zoomWin[3] - p_zoomWin[2]) / factor;
+  if (w >= fullW * 0.999) {
+    resetZoom();
+    return true;
+  }
+  if (std::min(w, h) < 0.3) {
+    const double k = 0.3 / std::min(w, h);
+    w *= k;  h *= k;
+  }
+  //  The pointer keeps its place in the window; the window stays on the plane.
+  const double fu = (u - p_zoomWin[0]) / (p_zoomWin[1] - p_zoomWin[0]);
+  const double fv = (v - p_zoomWin[2]) / (p_zoomWin[3] - p_zoomWin[2]);
+  double u0 = u - fu * w, v0 = v - fv * h;
+  u0 = std::min(std::max(u0, p_fullWin[0]), p_fullWin[1] - w);
+  v0 = std::min(std::max(v0, p_fullWin[2]), p_fullWin[3] - h);
+  p_zoomWin[0] = u0;  p_zoomWin[1] = u0 + w;
+  p_zoomWin[2] = v0;  p_zoomWin[3] = v0 + h;
+  p_zoomed = true;
+  compute();
+  return p_haveMap;
+}
+
+void DensityMapPanel::resetZoom()
+{
+  if (!p_zoomed) return;
+  p_zoomed = false;
+  compute();
+}
+
 void DensityMapPanel::relayout()
 {
   if (!p_caption) return;
+  if (p_planeAuto && p_show) {
+    const bool open = GetClientSize().y >= 560;
+    if (open != p_planeOpen) { p_planeOpen = open; syncControls(); }
+  }
   setCaption();
   p_status->SetLabel(wxString::FromUTF8(p_statusText.c_str()));
-  p_status->Wrap(std::max(100, GetClientSize().x - 16));
+  p_status->SetToolTip(wxString::FromUTF8(p_statusText.c_str()));
   Layout();
 }
 
@@ -414,8 +513,11 @@ void DensityMapPanel::setCaption()
   wxString text;
   if (p_haveMap)
     text = wxString::FromUTF8((p_map.title + "; " + p_map.plane.description).c_str());
+  if (p_haveMap && p_zoomed)
+    text += wxString::Format(" (zoom x%.1f)", (p_fullWin[1] - p_fullWin[0]) /
+                                              (p_zoomWin[1] - p_zoomWin[0]));
   p_caption->SetLabel(text);
-  p_caption->Wrap(std::max(100, GetClientSize().x - 16));
+  p_caption->SetToolTip(text);
 }
 
 void DensityMapPanel::onControl(wxCommandEvent& event)
@@ -457,6 +559,7 @@ void DensityMapPanel::syncControls()
 void DensityMapPanel::setPlaneControlsOpen(bool open)
 {
   p_planeOpen = open;
+  p_planeAuto = false;
   ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
   if (cfg) {
     cfg->Write("/DensityMap/PlaneControlsOpen", open);
@@ -516,6 +619,14 @@ void DensityMapPanel::compute(bool coarse)
   const double full = p_eval->symbols.size() > 20 ? 0.1 : 0.05;
   const double step = coarse ? std::max(COARSE_STEP, 2*full) : full;
 
+  const string key = zoomKey(plane, what, orbital, beta);
+  if (p_zoomed && key != p_zoomKey) p_zoomed = false;
+  double zstep = step;
+  if (p_zoomed)
+    zstep = std::max(0.01, step * (p_zoomWin[1] - p_zoomWin[0]) /
+                     (p_fullWin[1] - p_fullWin[0]));
+  p_zoomReset->Show(p_zoomed);
+
   //  Shown only if the map takes long enough to be noticed.
   wxStopWatch clock;
   std::unique_ptr<wxProgressDialog> progress;
@@ -523,14 +634,15 @@ void DensityMapPanel::compute(bool coarse)
   Map out;
   const bool done = p_eval->map(plane,
       what == 0 ? DENSITY : what == 1 ? ORBITAL : ORBITAL_SET, orbital, beta,
-      step, MARGIN, out, [&](double fraction) {
+      zstep, MARGIN, out, [&](double fraction) {
         if (!progress && !coarse && clock.Time() > 500 && fraction < 0.7)
           progress.reset(new wxProgressDialog("Density map", "Evaluating...",
               100, this, wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_APP_MODAL));
         return progress ? progress->Update((int)(100*fraction)) : true;
-      });
+      }, p_zoomed ? p_zoomWin : nullptr);
   p_busy = false;
   if (!done) return;
+  if (p_zoomed) out.levelTop = p_levelTop;
   p_map = out;
   p_haveMap = true;
   p_canvas->show(p_map);
@@ -769,6 +881,9 @@ string DensityMapPanel::state() const
            p_canvas ? p_canvas->GetSize().x : 0, p_canvas ? p_canvas->GetSize().y : 0);
   s += buf;
   if (!p_haveMap) return s;
+  snprintf(buf, sizeof buf, "zoom %d window %.3f %.3f %.3f %.3f\n", p_zoomed ? 1 : 0,
+           p_map.u0, p_map.u(p_map.nu - 1), p_map.v0, p_map.v(p_map.nv - 1));
+  s += buf;
   s += "title " + p_map.title + "\n";
   s += "plane " + p_map.plane.description + "\n";
   snprintf(buf, sizeof buf, "offset %.3f\nnormal %.4f %.4f %.4f\norigin %.4f %.4f %.4f\n"

@@ -251,7 +251,8 @@ def qmCase(s, display, env, wrappers, project, png):
         f.write(vector("IRCENERGY", energy, "Hartree"))
     with open(os.path.join(props, "IRCGEOM"), "w") as f:
         f.write(tsvector(frames))
-    lines = ["wait 6000", "ircclick 0", "ircclick 3", "ircview table", "ircclick 6", "ircview graph", "ircclick 9", "quit"]
+    lines = ["wait 6000", "ircclick 0", "ircclick 3", "ircview table", "ircclick 6", "ircview graph", "ircclick 9",
+             "ircrow 4", "ircstep first", "ircstep next", "ircstep prev", "ircstep last", "ircstep play", "shot play", "quit"]
     text, _ = bo.runScript(
         s, display, env, wrappers, ["-context", "file://" + calc + "/"],
         lines, png, "ircqm",
@@ -267,6 +268,19 @@ def qmCase(s, display, env, wrappers, project, png):
             want = frames[idx][0] + frames[idx][1]
             check(all(abs(float(a) - b) < 2e-5 for a, b in zip(got[2:], want)),
                   "ECCE-QM point %d: the viewer holds the output's structure" % idx)
+    # Table row and playback both select a point, mark it in plot and table,
+    # and play runs the whole path in order.
+    def state(cmd, arg):
+        m = re.findall(r"BUILDER: %s %s point=(-?\d+) row=(-?\d+) marker=(-?\d+) order:([\d ]*)" % (cmd, arg), text)
+        return m[0] if m else None
+    got = state("ircrow", "4")
+    check(got and got[:3] == ("4", "4", "4"), "ECCE-QM: table row 5 selects point 5 in plot and table (%s)" % (got,))
+    for arg, want in (("first", "0"), ("next", "1"), ("prev", "0"), ("last", "6")):
+        got = state("ircstep", arg)
+        check(got and got[:3] == (want, want, want), "ECCE-QM: step %s selects point %s (%s)" % (arg, want, got))
+    got = state("ircstep", "play")
+    check(got and got[3].split() == [str(i) for i in range(1, 8)],
+          "ECCE-QM: play runs the points in path order (%s)" % (got,))
     check(clicks.get("9", ("", "", ""))[1] == "none",
           "a point past the path has no structure")
     check("BUILDER: ircstatus Showing point 7 " in text,
@@ -308,7 +322,7 @@ def main():
         if not s.services(True):
             check(False, "services came up")
             return 1
-        xdisplay.SCREEN = "1500x950x24"
+        xdisplay.SCREEN = os.environ.get("IRC_TEST_SCREEN", "1500x950x24")
         display = xdisplay.Display().__enter__()
         env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})

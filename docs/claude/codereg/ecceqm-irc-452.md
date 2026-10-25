@@ -12,8 +12,11 @@ the imaginary mode, Gonzalez-Schlegel steps in mass-weighted Cartesians
 downhill, Bofill-updated Hessian, translation and rotation projected out).
 Keywords: `irc_step` (0.1 bohr*sqrt(amu)), `irc_max_points` (20 per
 direction), `irc_direction both|forward|backward`, `irc_hessian_every`.
-A direction ends at rms/max gradient 5e-4/2e-3 (ORCA's), when the energy
-rises, or at the point limit. Forward is the way the largest component of
+A direction ends at rms/max gradient 5e-4/2e-3 (ORCA's) once the gradient
+has also fallen to half the largest one met on the path, when the energy
+rises, or at the point limit; neither stop applies before 5 points. Without
+that a near-flat TS (gradient under the thresholds from the first step) gave
+a 3-point "path" (`tests/qm/unit_test.cpp`, flat model). Forward is the way the largest component of
 the mode is positive; the sign of an eigenvector means nothing.
 
 * Output is the keys the IRC panel already reads for ORCA: `IRCCOORD`
@@ -22,8 +25,8 @@ the mode is positive; the sign of an eigenvector means nothing.
   in the middle). `begin irc_table` is rewritten after every point
   (`Frequency=last`), the `irc_geometry` blocks come once at the end, in path
   order; an aborted run has the table but no structures.
-* Progress box: `progress irc point=k/N` (N = directions * max points; an
-  early end fills the bar). The stage is named `irc`.
+* Progress box: `progress irc point=k/N` (N = directions * max points; k is the
+  real count. A final line adds `ended: forward 33 points, <reason>; ...`). The stage is named `irc`.
 * A Run type named `IRC`, like ORCA's; not offered for a single atom. No
   constraints or dummy atoms. Step, max points and direction are in the
   runtype panel (`ES.Runtype.IRC.*`).
