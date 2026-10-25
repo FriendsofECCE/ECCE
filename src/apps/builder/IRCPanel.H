@@ -6,6 +6,9 @@
 #include "VizPropertyPanel.H"
 
 class wxChoice;
+class wxGridEvent;
+class wxRadioBox;
+class wxStaticText;
 class wxGrid;
 class XYPlotCanvas;
 
@@ -44,7 +47,13 @@ class IRCPanel : public VizPropertyPanel
        * shown, or -1 if the point has none (the TS, or no usable frames).
        * For scripts and tests.
        */
-      int clickPoint(int index) { return showPoint(index); }
+      int clickPoint(int index) { return selectPoint(index); }
+
+      /** The status line under the plot. For scripts and tests. */
+      std::string statusText() const;
+
+      /** Graph or table, as the Show choice does. For scripts and tests. */
+      void setTableView(bool table) { showView(table); }
 
       /** New calculation from point <index> (default: the clicked one); URL or "". */
       std::string newCalcFromPoint(int index = -1);
@@ -60,7 +69,11 @@ class IRCPanel : public VizPropertyPanel
       void OnUnit(wxCommandEvent& event);
       void OnExport(wxCommandEvent& event);
       void OnNewCalc(wxCommandEvent& event);
+      void OnRow(wxGridEvent& event);
+      void OnView(wxCommandEvent& event);
+      int selectPoint(int index);
       int showPoint(int index);
+      void showView(bool table);
 
    private:
       std::vector<double> p_coord;
@@ -71,6 +84,9 @@ class IRCPanel : public VizPropertyPanel
       wxChoice *p_unit;
       XYPlotCanvas *p_plot;
       wxGrid *p_grid;
+      wxRadioBox *p_view;
+      wxStaticText *p_status;
+      bool p_syncing = false;   // plot/table selection echo
 };
 
 /**

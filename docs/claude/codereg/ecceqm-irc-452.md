@@ -33,3 +33,11 @@ the mode is positive; the sign of an eigenvector means nothing.
   `irc_oracle.json`, HF/STO-3G; 6-31G* not generated). Both ends agree to
   1e-5 Eh and 0.0003 A; ORCA's frame spacing varies, so the profile is
   compared at its path lengths (mass-weighted chord sums) to 3e-3 Eh.
+
+* IRC panel (#452): plot click and table row both go through
+  `IRCPanel::selectPoint` (as `ScanPanel`); a point without a structure puts
+  that in the status line. Graph/Table is a "Show" radio box; script hooks
+  `ircclick <i>` (logs `ircstatus`) and `ircview graph|table`. The panel
+  showed the right structures on the real Props of a finished ECCE-QM IRC and
+  on `tests/parsers/fixtures/ecceqm/hcn_irc.qmout` (`ecceqm-hcn-irc` case,
+  `irc_panel_test.py`): the parser delivers one IRCGEOM table per point.

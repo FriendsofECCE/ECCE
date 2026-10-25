@@ -1,0 +1,320 @@
+progress scf cycle=1 energy=-91.4339614778 grad=7.55e-01/1e-07
+progress scf cycle=2 energy=-91.5445757697 dE=-1.11e-01/1e-10 grad=6.01e-02/1e-07
+progress scf cycle=3 energy=-91.5570893556 dE=-1.25e-02/1e-10 grad=4.87e-02/1e-07
+progress scf cycle=4 energy=-91.5640228467 dE=-6.93e-03/1e-10 grad=9.31e-03/1e-07
+progress scf cycle=5 energy=-91.5646052389 dE=-5.82e-04/1e-10 grad=3.95e-03/1e-07
+progress scf cycle=6 energy=-91.5648285322 dE=-2.23e-04/1e-10 grad=1.08e-03/1e-07
+progress scf cycle=7 energy=-91.5648495713 dE=-2.10e-05/1e-10 grad=2.51e-04/1e-07
+progress scf cycle=8 energy=-91.5648509304 dE=-1.36e-06/1e-10 grad=6.45e-05/1e-07
+progress scf cycle=9 energy=-91.5648510110 dE=-8.06e-08/1e-10 grad=2.16e-05/1e-07
+progress scf cycle=10 energy=-91.5648510206 dE=-9.58e-09/1e-10 grad=1.90e-06/1e-07
+progress scf cycle=11 energy=-91.5648510207 dE=-9.96e-11/1e-10 grad=6.55e-07/1e-07
+progress scf cycle=12 energy=-91.5648510207 dE=-7.01e-12/1e-10 grad=6.13e-08/1e-07 converged=yes
+progress freq point=0/9
+progress irc point=0/6
+progress scf cycle=1 energy=-91.5648510207 grad=2.82e-08/1e-07
+progress scf cycle=2 energy=-91.5648510207 dE=-1.14e-13/1e-10 grad=1.64e-08/1e-07 converged=yes
+progress scf cycle=1 energy=-91.5635246345 grad=1.33e-02/1e-07
+progress scf cycle=2 energy=-91.5654318497 dE=-1.91e-03/1e-10 grad=5.46e-03/1e-07
+progress scf cycle=3 energy=-91.5658418889 dE=-4.10e-04/1e-10 grad=4.51e-03/1e-07
+progress scf cycle=4 energy=-91.5659600232 dE=-1.18e-04/1e-10 grad=8.78e-04/1e-07
+progress scf cycle=5 energy=-91.5659746534 dE=-1.46e-05/1e-10 grad=2.59e-04/1e-07
+progress scf cycle=6 energy=-91.5659766071 dE=-1.95e-06/1e-10 grad=5.87e-05/1e-07
+progress scf cycle=7 energy=-91.5659766677 dE=-6.06e-08/1e-10 grad=1.09e-05/1e-07
+progress scf cycle=8 energy=-91.5659766685 dE=-7.67e-10/1e-10 grad=2.32e-06/1e-07
+progress scf cycle=9 energy=-91.5659766685 dE=-4.26e-11/1e-10 grad=3.98e-07/1e-07
+progress scf cycle=10 energy=-91.5659766686 dE=-2.90e-12/1e-10 grad=1.76e-07/1e-07
+progress scf cycle=11 energy=-91.5659766686 dE=-9.66e-13/1e-10 grad=4.34e-08/1e-07 converged=yes
+progress scf cycle=1 energy=-91.5659780674 grad=7.32e-05/1e-07
+progress scf cycle=2 energy=-91.5659781287 dE=-6.14e-08/1e-10 grad=3.68e-05/1e-07
+progress scf cycle=3 energy=-91.5659781419 dE=-1.31e-08/1e-10 grad=1.39e-05/1e-07
+progress scf cycle=4 energy=-91.5659781450 dE=-3.06e-09/1e-10 grad=1.56e-05/1e-07
+progress scf cycle=5 energy=-91.5659781462 dE=-1.25e-09/1e-10 grad=3.11e-06/1e-07
+progress scf cycle=6 energy=-91.5659781464 dE=-2.04e-10/1e-10 grad=3.64e-07/1e-07
+progress scf cycle=7 energy=-91.5659781464 dE=-4.39e-12/1e-10 grad=8.40e-08/1e-07 converged=yes
+begin irc_table  # point s(bohr*sqrt(amu)) energy(hartree); the TS is s = 0
+1 0.000000 -91.564851020736
+2 0.199979 -91.565978146408
+end irc_table
+progress irc point=1/6
+progress scf cycle=1 energy=-91.5666308781 grad=1.37e-02/1e-07
+progress scf cycle=2 energy=-91.5685349166 dE=-1.90e-03/1e-10 grad=5.66e-03/1e-07
+progress scf cycle=3 energy=-91.5689204419 dE=-3.86e-04/1e-10 grad=4.94e-03/1e-07
+progress scf cycle=4 energy=-91.5690479782 dE=-1.28e-04/1e-10 grad=1.18e-03/1e-07
+progress scf cycle=5 energy=-91.5690635002 dE=-1.55e-05/1e-10 grad=3.40e-04/1e-07
+progress scf cycle=6 energy=-91.5690655361 dE=-2.04e-06/1e-10 grad=7.50e-05/1e-07
+progress scf cycle=7 energy=-91.5690656163 dE=-8.01e-08/1e-10 grad=1.29e-05/1e-07
+progress scf cycle=8 energy=-91.5690656185 dE=-2.17e-09/1e-10 grad=3.32e-06/1e-07
+progress scf cycle=9 energy=-91.5690656187 dE=-2.25e-10/1e-10 grad=1.26e-06/1e-07
+progress scf cycle=10 energy=-91.5690656187 dE=-2.82e-11/1e-10 grad=1.82e-07/1e-07
+progress scf cycle=11 energy=-91.5690656187 dE=-7.11e-13/1e-10 grad=2.61e-08/1e-07 converged=yes
+progress scf cycle=1 energy=-91.5690663619 grad=7.98e-05/1e-07
+progress scf cycle=2 energy=-91.5690664219 dE=-6.00e-08/1e-10 grad=3.58e-05/1e-07
+progress scf cycle=3 energy=-91.5690664306 dE=-8.75e-09/1e-10 grad=1.84e-05/1e-07
+progress scf cycle=4 energy=-91.5690664330 dE=-2.45e-09/1e-10 grad=8.97e-06/1e-07
+progress scf cycle=5 energy=-91.5690664338 dE=-7.56e-10/1e-10 grad=2.08e-06/1e-07
+progress scf cycle=6 energy=-91.5690664339 dE=-9.59e-11/1e-10 grad=4.30e-07/1e-07
+progress scf cycle=7 energy=-91.5690664339 dE=-5.68e-12/1e-10 grad=6.06e-08/1e-07 converged=yes
+begin irc_table  # point s(bohr*sqrt(amu)) energy(hartree); the TS is s = 0
+1 0.000000 -91.564851020736
+2 0.199979 -91.565978146408
+3 0.399968 -91.569066433904
+end irc_table
+progress irc point=2/6
+progress scf cycle=1 energy=-91.5711367931 grad=1.40e-02/1e-07
+progress scf cycle=2 energy=-91.5730093249 dE=-1.87e-03/1e-10 grad=6.53e-03/1e-07
+progress scf cycle=3 energy=-91.5733798271 dE=-3.71e-04/1e-10 grad=5.10e-03/1e-07
+progress scf cycle=4 energy=-91.5735132176 dE=-1.33e-04/1e-10 grad=1.29e-03/1e-07
+progress scf cycle=5 energy=-91.5735312342 dE=-1.80e-05/1e-10 grad=3.74e-04/1e-07
+progress scf cycle=6 energy=-91.5735335420 dE=-2.31e-06/1e-10 grad=1.03e-04/1e-07
+progress scf cycle=7 energy=-91.5735336241 dE=-8.21e-08/1e-10 grad=1.10e-05/1e-07
+progress scf cycle=8 energy=-91.5735336259 dE=-1.79e-09/1e-10 grad=2.98e-06/1e-07
+progress scf cycle=9 energy=-91.5735336260 dE=-1.52e-10/1e-10 grad=1.20e-06/1e-07
+progress scf cycle=10 energy=-91.5735336261 dE=-2.00e-11/1e-10 grad=9.08e-08/1e-07 converged=yes
+progress scf cycle=1 energy=-91.5735357241 grad=9.32e-05/1e-07
+progress scf cycle=2 energy=-91.5735358257 dE=-1.02e-07/1e-10 grad=3.12e-05/1e-07
+progress scf cycle=3 energy=-91.5735358390 dE=-1.33e-08/1e-10 grad=9.90e-06/1e-07
+progress scf cycle=4 energy=-91.5735358408 dE=-1.80e-09/1e-10 grad=7.82e-06/1e-07
+progress scf cycle=5 energy=-91.5735358411 dE=-3.19e-10/1e-10 grad=8.68e-07/1e-07
+progress scf cycle=6 energy=-91.5735358411 dE=-7.93e-12/1e-10 grad=1.48e-07/1e-07
+progress scf cycle=7 energy=-91.5735358411 dE=-3.41e-13/1e-10 grad=4.97e-08/1e-07 converged=yes
+begin irc_table  # point s(bohr*sqrt(amu)) energy(hartree); the TS is s = 0
+1 0.000000 -91.564851020736
+2 0.199979 -91.565978146408
+3 0.399968 -91.569066433904
+4 0.599948 -91.573535841084
+end irc_table
+progress irc point=3/6
+progress irc point=3/6
+progress scf cycle=1 energy=-91.5438771077 grad=4.08e-02/1e-07
+progress scf cycle=2 energy=-91.5601829612 dE=-1.63e-02/1e-10 grad=1.76e-02/1e-07
+progress scf cycle=3 energy=-91.5634854414 dE=-3.30e-03/1e-10 grad=1.53e-02/1e-07
+progress scf cycle=4 energy=-91.5646903002 dE=-1.20e-03/1e-10 grad=2.92e-03/1e-07
+progress scf cycle=5 energy=-91.5648307353 dE=-1.40e-04/1e-10 grad=9.95e-04/1e-07
+progress scf cycle=6 energy=-91.5648501730 dE=-1.94e-05/1e-10 grad=1.85e-04/1e-07
+progress scf cycle=7 energy=-91.5648510081 dE=-8.35e-07/1e-10 grad=2.41e-05/1e-07
+progress scf cycle=8 energy=-91.5648510181 dE=-1.01e-08/1e-10 grad=9.76e-06/1e-07
+progress scf cycle=9 energy=-91.5648510204 dE=-2.23e-09/1e-10 grad=4.12e-06/1e-07
+progress scf cycle=10 energy=-91.5648510207 dE=-3.34e-10/1e-10 grad=9.10e-07/1e-07
+progress scf cycle=11 energy=-91.5648510207 dE=-1.99e-11/1e-10 grad=2.38e-07/1e-07
+progress scf cycle=12 energy=-91.5648510207 dE=-5.40e-13/1e-10 grad=2.78e-08/1e-07 converged=yes
+progress scf cycle=1 energy=-91.5637019670 grad=1.29e-02/1e-07
+progress scf cycle=2 energy=-91.5655017494 dE=-1.80e-03/1e-10 grad=5.41e-03/1e-07
+progress scf cycle=3 energy=-91.5659274335 dE=-4.26e-04/1e-10 grad=3.75e-03/1e-07
+progress scf cycle=4 energy=-91.5660302248 dE=-1.03e-04/1e-10 grad=1.17e-03/1e-07
+progress scf cycle=5 energy=-91.5660526234 dE=-2.24e-05/1e-10 grad=4.52e-04/1e-07
+progress scf cycle=6 energy=-91.5660569614 dE=-4.34e-06/1e-10 grad=8.87e-05/1e-07
+progress scf cycle=7 energy=-91.5660571369 dE=-1.76e-07/1e-10 grad=3.81e-05/1e-07
+progress scf cycle=8 energy=-91.5660571565 dE=-1.96e-08/1e-10 grad=1.17e-05/1e-07
+progress scf cycle=9 energy=-91.5660571588 dE=-2.26e-09/1e-10 grad=2.02e-06/1e-07
+progress scf cycle=10 energy=-91.5660571588 dE=-2.40e-11/1e-10 grad=5.15e-07/1e-07
+progress scf cycle=11 energy=-91.5660571588 dE=-7.96e-13/1e-10 grad=6.40e-08/1e-07 converged=yes
+progress scf cycle=1 energy=-91.5660599620 grad=1.35e-04/1e-07
+progress scf cycle=2 energy=-91.5660600975 dE=-1.36e-07/1e-10 grad=4.84e-05/1e-07
+progress scf cycle=3 energy=-91.5660601286 dE=-3.11e-08/1e-10 grad=4.04e-05/1e-07
+progress scf cycle=4 energy=-91.5660601362 dE=-7.58e-09/1e-10 grad=1.56e-05/1e-07
+progress scf cycle=5 energy=-91.5660601400 dE=-3.86e-09/1e-10 grad=7.39e-06/1e-07
+progress scf cycle=6 energy=-91.5660601409 dE=-8.36e-10/1e-10 grad=9.93e-07/1e-07
+progress scf cycle=7 energy=-91.5660601409 dE=-2.13e-11/1e-10 grad=2.89e-07/1e-07
+progress scf cycle=8 energy=-91.5660601409 dE=-1.65e-12/1e-10 grad=8.61e-08/1e-07 converged=yes
+begin irc_table  # point s(bohr*sqrt(amu)) energy(hartree); the TS is s = 0
+1 -0.199962 -91.566060140899
+2 0.000000 -91.564851020736
+3 0.199979 -91.565978146408
+4 0.399968 -91.569066433904
+5 0.599948 -91.573535841084
+end irc_table
+progress irc point=4/6
+progress scf cycle=1 energy=-91.5674257989 grad=1.20e-02/1e-07
+progress scf cycle=2 energy=-91.5691283054 dE=-1.70e-03/1e-10 grad=5.10e-03/1e-07
+progress scf cycle=3 energy=-91.5695762060 dE=-4.48e-04/1e-10 grad=3.22e-03/1e-07
+progress scf cycle=4 energy=-91.5696576333 dE=-8.14e-05/1e-10 grad=1.57e-03/1e-07
+progress scf cycle=5 energy=-91.5696912329 dE=-3.36e-05/1e-10 grad=5.43e-04/1e-07
+progress scf cycle=6 energy=-91.5696988619 dE=-7.63e-06/1e-10 grad=1.24e-04/1e-07
+progress scf cycle=7 energy=-91.5696991540 dE=-2.92e-07/1e-10 grad=5.51e-05/1e-07
+progress scf cycle=8 energy=-91.5696991939 dE=-3.99e-08/1e-10 grad=1.05e-05/1e-07
+progress scf cycle=9 energy=-91.5696991961 dE=-2.14e-09/1e-10 grad=1.73e-06/1e-07
+progress scf cycle=10 energy=-91.5696991961 dE=-1.30e-11/1e-10 grad=4.05e-07/1e-07
+progress scf cycle=11 energy=-91.5696991961 dE=-3.69e-13/1e-10 grad=5.20e-08/1e-07 converged=yes
+progress scf cycle=1 energy=-91.5697070621 grad=2.20e-04/1e-07
+progress scf cycle=2 energy=-91.5697073460 dE=-2.84e-07/1e-10 grad=7.66e-05/1e-07
+progress scf cycle=3 energy=-91.5697073986 dE=-5.25e-08/1e-10 grad=7.43e-05/1e-07
+progress scf cycle=4 energy=-91.5697074166 dE=-1.80e-08/1e-10 grad=1.65e-05/1e-07
+progress scf cycle=5 energy=-91.5697074239 dE=-7.32e-09/1e-10 grad=1.05e-05/1e-07
+progress scf cycle=6 energy=-91.5697074256 dE=-1.70e-09/1e-10 grad=1.41e-06/1e-07
+progress scf cycle=7 energy=-91.5697074256 dE=-5.30e-11/1e-10 grad=4.78e-07/1e-07
+progress scf cycle=8 energy=-91.5697074256 dE=-4.52e-12/1e-10 grad=1.44e-07/1e-07
+progress scf cycle=9 energy=-91.5697074256 dE=-6.39e-13/1e-10 grad=9.47e-09/1e-07 converged=yes
+begin irc_table  # point s(bohr*sqrt(amu)) energy(hartree); the TS is s = 0
+1 -0.399888 -91.569707425641
+2 -0.199962 -91.566060140899
+3 0.000000 -91.564851020736
+4 0.199979 -91.565978146408
+5 0.399968 -91.569066433904
+6 0.599948 -91.573535841084
+end irc_table
+progress irc point=5/6
+progress scf cycle=1 energy=-91.5734708619 grad=1.05e-02/1e-07
+progress scf cycle=2 energy=-91.5750431828 dE=-1.57e-03/1e-10 grad=4.52e-03/1e-07
+progress scf cycle=3 energy=-91.5754932894 dE=-4.50e-04/1e-10 grad=2.92e-03/1e-07
+progress scf cycle=4 energy=-91.5755561112 dE=-6.28e-05/1e-10 grad=1.88e-03/1e-07
+progress scf cycle=5 energy=-91.5755998627 dE=-4.38e-05/1e-10 grad=5.99e-04/1e-07
+progress scf cycle=6 energy=-91.5756099254 dE=-1.01e-05/1e-10 grad=1.43e-04/1e-07
+progress scf cycle=7 energy=-91.5756102820 dE=-3.57e-07/1e-10 grad=5.90e-05/1e-07
+progress scf cycle=8 energy=-91.5756103307 dE=-4.88e-08/1e-10 grad=7.71e-06/1e-07
+progress scf cycle=9 energy=-91.5756103323 dE=-1.53e-09/1e-10 grad=9.88e-07/1e-07
+progress scf cycle=10 energy=-91.5756103323 dE=-6.59e-12/1e-10 grad=2.23e-07/1e-07
+progress scf cycle=11 energy=-91.5756103323 dE=-8.53e-14/1e-10 grad=3.39e-08/1e-07 converged=yes
+progress scf cycle=1 energy=-91.5756208312 grad=2.39e-04/1e-07
+progress scf cycle=2 energy=-91.5756211518 dE=-3.21e-07/1e-10 grad=8.12e-05/1e-07
+progress scf cycle=3 energy=-91.5756212066 dE=-5.48e-08/1e-10 grad=8.78e-05/1e-07
+progress scf cycle=4 energy=-91.5756212305 dE=-2.39e-08/1e-10 grad=1.79e-05/1e-07
+progress scf cycle=5 energy=-91.5756212380 dE=-7.53e-09/1e-10 grad=1.16e-05/1e-07
+progress scf cycle=6 energy=-91.5756212400 dE=-2.05e-09/1e-10 grad=1.53e-06/1e-07
+progress scf cycle=7 energy=-91.5756212401 dE=-7.02e-11/1e-10 grad=5.85e-07/1e-07
+progress scf cycle=8 energy=-91.5756212401 dE=-7.82e-12/1e-10 grad=1.46e-07/1e-07
+progress scf cycle=9 energy=-91.5756212401 dE=-6.25e-13/1e-10 grad=9.95e-09/1e-07 converged=yes
+begin irc_table  # point s(bohr*sqrt(amu)) energy(hartree); the TS is s = 0
+1 -0.599809 -91.575621240119
+2 -0.399888 -91.569707425641
+3 -0.199962 -91.566060140899
+4 0.000000 -91.564851020736
+5 0.199979 -91.565978146408
+6 0.399968 -91.569066433904
+7 0.599948 -91.573535841084
+end irc_table
+progress irc point=6/6
+progress irc point=6/6
+begin irc_table  # point s(bohr*sqrt(amu)) energy(hartree); the TS is s = 0
+1 -0.599809 -91.575621240119
+2 -0.399888 -91.569707425641
+3 -0.199962 -91.566060140899
+4 0.000000 -91.564851020736
+5 0.199979 -91.565978146408
+6 0.399968 -91.569066433904
+7 0.599948 -91.573535841084
+end irc_table
+begin irc_geometry  # point 1 s -0.599809; index symbol x y z (angstrom)
+1 C 0.0887860993 0.1546613415 -0.0000000000
+2 N 1.2592913113 -0.1410337376 0.0000000000
+3 H 0.3743876207 1.2529387728 0.0000000000
+end irc_geometry
+begin irc_geometry  # point 2 s -0.399888; index symbol x y z (angstrom)
+1 C 0.0803477325 0.1486293141 -0.0000000000
+2 N 1.2597405701 -0.1345153373 0.0000000000
+3 H 0.4686196499 1.2341921523 0.0000000000
+end irc_geometry
+begin irc_geometry  # point 3 s -0.199962; index symbol x y z (angstrom)
+1 C 0.0725145312 0.1427127216 -0.0000000000
+2 N 1.2597099823 -0.1277626273 0.0000000000
+3 H 0.5623132329 1.2108154877 0.0000000000
+end irc_geometry
+begin irc_geometry  # point 4 s 0.000000; index symbol x y z (angstrom)
+1 C 0.0653144700 0.1368527400 0.0000000000
+2 N 1.2591723500 -0.1208076900 0.0000000000
+3 H 0.6555131800 1.1839549500 0.0000000000
+end irc_geometry
+begin irc_geometry  # point 5 s 0.199979; index symbol x y z (angstrom)
+1 C 0.0586866634 0.1310040448 0.0000000000
+2 N 1.2581726570 -0.1136952254 -0.0000000000
+3 H 0.7483194223 1.1547712876 -0.0000000000
+end irc_geometry
+begin irc_geometry  # point 6 s 0.399968; index symbol x y z (angstrom)
+1 C 0.0525073802 0.1250947374 0.0000000000
+2 N 1.2567936713 -0.1064804475 -0.0000000000
+3 H 0.8410551992 1.1248877466 -0.0000000000
+end irc_geometry
+begin irc_geometry  # point 7 s 0.599948; index symbol x y z (angstrom)
+1 C 0.0466555894 0.1189898238 0.0000000000
+2 N 1.2550954804 -0.0992264267 -0.0000000000
+3 H 0.9343267288 1.0967880019 -0.0000000000
+end irc_geometry
+irc_points 7
+# ecce-qm output, format version 1
+format_version 1
+program ecce-qm 0.1
+title 
+runtype irc
+method hf
+reference rhf
+basis sto-3g
+spherical true
+charge 0
+multiplicity 1
+nbf 11
+nalpha 7
+nbeta 7
+converged yes
+iterations 9
+energy_total -91.575621240119
+energy_nuclear 23.450920689620
+energy_one_electron -170.622006318122
+energy_coulomb 67.668473634517
+energy_exchange_hf -12.073009246134
+energy_xc 0.000000000000
+dipole_au -0.028154874273 0.526604550206 0.000000000000
+dipole_debye -0.071562552382 1.338495258153 0.000000000000 1.340406936345
+wall_seconds 0.30
+begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge
+0 C 6 0.088786099301 0.154661341538 -0.000000000000 -0.049390893390
+1 N 7 1.259291311323 -0.141033737639 0.000000000000 -0.111036437896
+2 H 1 0.374387620689 1.252938772828 0.000000000000 0.160427331286
+end atoms
+begin ao_labels  # index label, order of the MO coefficients
+1 0C 1s
+2 0C 2s
+3 0C 1px
+4 0C 1py
+5 0C 1pz
+6 1N 1s
+7 1N 2s
+8 1N 1px
+9 1N 1py
+10 1N 1pz
+11 2H 1s
+end ao_labels
+begin orbitals restricted  # index energy(hartree) occupation
+1 -15.414970604256 2.000000000000
+2 -11.046863624245 2.000000000000
+3 -1.212392995920 2.000000000000
+4 -0.676558129569 2.000000000000
+5 -0.520374893163 2.000000000000
+6 -0.448383788242 2.000000000000
+7 -0.395994735282 2.000000000000
+8 0.201189159057 0.000000000000
+9 0.319668605482 0.000000000000
+10 0.613460962181 0.000000000000
+11 1.063454851824 0.000000000000
+end orbitals
+begin mo_coefficients restricted  # one line per MO: index then nbf coefficients
+1 -0.0004537609 0.0091128931 0.0064425572 -0.0018329846 -0.0000000000 -0.9940575021 -0.0282893993 0.0073097300 -0.0019030123 -0.0000000000 0.0005326223
+2 -0.9927587460 -0.0326046302 -0.0084395910 -0.0025713018 -0.0000000000 0.0001312017 0.0087504530 -0.0036536722 0.0007479962 0.0000000000 0.0075539300
+3 0.1561783011 -0.3515330391 -0.1939883955 0.0045580611 -0.0000000000 0.1956954461 -0.6268506000 0.2124329807 -0.0760734263 -0.0000000000 -0.0813453215
+4 -0.1286206110 0.4415154324 -0.0820582195 0.3087719223 -0.0000000000 0.1390874904 -0.6084636261 -0.1501390492 0.1747821986 0.0000000000 0.4107876124
+5 -0.0871153663 0.2968604694 0.0854817363 -0.3788649285 -0.0000000000 0.0887862950 -0.4522537662 -0.6114167844 -0.1131961906 -0.0000000000 -0.3054987397
+6 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.5024607128 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.7441645017 -0.0000000000
+7 -0.1209483817 0.5662548357 -0.5742114603 -0.1682058869 0.0000000000 -0.0124739585 0.1091984980 0.3168488716 -0.4577060775 0.0000000000 0.0229925725
+8 -0.0774785235 0.3960018462 -0.2959360928 -0.1778104352 0.0000000000 -0.0054537525 0.0546418820 0.2057799548 0.8573057168 -0.0000000000 -0.5229509692
+9 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.9052566551 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.7198441316 0.0000000000
+10 -0.0711216305 0.4162880227 -0.0343530305 1.0563099478 0.0000000000 -0.0286698589 0.1886575527 -0.2105655283 -0.2321232851 -0.0000000000 -1.0426771868
+11 0.1544937778 -1.2252970313 -1.1895573040 0.1125868746 -0.0000000000 -0.1238637619 1.0999099687 -1.0351873829 0.2532311839 0.0000000000 0.3429141754
+end mo_coefficients
+begin localised_orbitals restricted  # index energy(hartree) occupation label
+1 -11.021251874535 2 core C1
+2 -15.380949394982 2 core N2
+3 -0.450444416917 2 lone pair C1 (sp0.8)
+4 -1.076307173280 2 sigma C1-N2 (sp2.6/sp1.6)
+5 -0.448383788242 2 pi C1-N2
+6 -0.685283279196 2 sigma C1-H3 (sp3.1/s)
+7 -0.652918843528 2 lone pair N2 (sp0.6)
+end localised_orbitals
+begin localised_mo_coefficients restricted  # one line per localised MO: index then nbf coefficients
+1 -1.0017667850 -0.0056906087 0.0022626291 -0.0037395788 -0.0000000000 -0.0029364007 0.0134696480 -0.0292158788 0.0069729382 -0.0000000000 0.0126167218
+2 -0.0028460868 0.0108955630 0.0231190184 -0.0048487127 -0.0000000000 -1.0037089632 0.0083126153 -0.0032077276 0.0041137394 -0.0000000000 -0.0025943161
+3 -0.1784716407 0.7668444169 -0.4671567242 -0.2195846204 0.0000000000 0.0128708894 -0.0984865547 -0.0061494150 -0.3979752663 0.0000000000 0.0136218329
+4 -0.0788978308 0.2158680445 0.3782642403 -0.1288517373 -0.0000000000 -0.0997122368 0.3858106729 -0.5041533234 0.1419259518 -0.0000000000 -0.0916997364
+5 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.5024607128 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.7441645017 -0.0000000000
+6 -0.0815575967 0.2800205899 -0.0287674237 0.4493628640 0.0000000000 0.0069269808 -0.0624045217 0.1243218616 0.2392915526 0.0000000000 0.5102861047
+7 -0.0211949871 0.1233537155 0.1371761531 -0.0204462230 -0.0000000000 0.1903536175 -0.9043284627 -0.5209911778 0.1509805112 -0.0000000000 -0.0112601494
+end localised_mo_coefficients
+end_of_output

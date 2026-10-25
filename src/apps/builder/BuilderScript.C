@@ -1168,6 +1168,15 @@ void Builder::runBuilderScript(const std::string& file)
             if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
         fprintf(stderr, "BUILDER: scanstatus [%s]\n",
                 sp ? sp->status().utf8_str().data() : "no panel");
+      } else if (w[0] == "ircview" && w.size() >= 2) {
+        //  ircview graph|table: the IRC Path panel's Show choice (#452)
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+        if (!ip) outcome = "no IRC Path panel";
+        else ip->setTableView(w[1] == "table");
       } else if (w[0] == "ircclick" && w.size() >= 2) {
         //  ircclick <index>: what a click on IRC Path plot point <index>
         //  does (#417); reports the frame shown and the first two atoms.
@@ -1188,6 +1197,7 @@ void Builder::runBuilderScript(const std::string& file)
             snprintf(buf, sizeof buf, " %.5f %.5f %.5f", c[0], c[1], c[2]);
             where += buf;
           }
+          fprintf(stderr, "BUILDER: ircstatus %s\n", ip->statusText().c_str());
           if (frame < 0)
             fprintf(stderr, "BUILDER: ircclick %s frame=none atoms:%s\n",
                     w[1].c_str(), where.c_str());

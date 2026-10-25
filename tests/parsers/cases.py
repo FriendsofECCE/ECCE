@@ -2006,6 +2006,18 @@ CASES = [
         },
     ),
     dict(
+        #  HF/STO-3G IRC from the HCN/HNC TS, 3 points per direction (#452):
+        #  7 structures, the TS in the middle, one per IRCCOORD point.
+        name='ecceqm-hcn-irc',
+        desc='ecceqm.desc',
+        fixture='ecceqm/hcn_irc.qmout',
+        parse_args=('.', 'IRC', 'SCF', 'HF', '0'),
+        expect={
+            'IRCCOORD][IRCENERGY': dict(keys={'IRCCOORD': {}, 'IRCENERGY': {}}),
+            'IRCGEOM': dict(min_blocks=7, keys={'IRCGEOM': {'size': '1 3 3'}}),
+        },
+    ),
+    dict(
         #  Localised orbitals of ethene (HF/6-31G*): labels carry "_" for
         #  spaces, the coefficients are one row per orbital.
         name='ecceqm-ethene-localised',

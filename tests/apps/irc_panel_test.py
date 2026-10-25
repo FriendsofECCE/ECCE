@@ -181,6 +181,63 @@ def orcaCase(s, display, env, wrappers, project, png):
               "new calculation's coordinates equal IRC frame 3")
 
 
+QM_OUT = os.path.join(REPO, "tests", "parsers", "fixtures", "ecceqm", "hcn_irc.qmout")
+
+
+def qmPath():
+    """The last irc_table and the irc_geometry blocks of the real ecce-qm
+    output (path order, TS in the middle), read by regex, not the parser."""
+    text = open(QM_OUT).read()
+    table = re.findall(r"^begin irc_table.*?\n(.*?)^end irc_table", text, re.S | re.M)[-1]
+    rows = [l.split() for l in table.strip().splitlines()]
+    frames = []
+    for block in re.findall(r"^begin irc_geometry.*?\n(.*?)^end irc_geometry", text, re.S | re.M):
+        frames.append([[float(v) for v in l.split()[2:5]] for l in block.strip().splitlines()])
+    return [float(r[1]) for r in rows], [float(r[2]) for r in rows], frames
+
+
+def qmCase(s, display, env, wrappers, project, png):
+    """The panel on an ECCE-QM path: one structure per point, TS included;
+    a point without a structure says so (#452)."""
+    coord, energy, frames = qmPath()
+    assert len(coord) == len(frames) == 7
+    calc = os.path.join(project, "calc-qm-irc")
+    shutil.rmtree(calc, ignore_errors=True)
+    shutil.copytree(BASE, calc, symlinks=True)
+    props = os.path.join(calc, "Props")
+    for name in os.listdir(props):
+        if name != "ESCF":
+            os.unlink(os.path.join(props, name))
+    with open(os.path.join(calc, "Parameters", "chemsys.mvm"), "w") as f:
+        f.write(HCN)
+    with open(os.path.join(props, "IRCCOORD"), "w") as f:
+        f.write(vector("IRCCOORD", coord, "sqrt(amu)*bohr"))
+    with open(os.path.join(props, "IRCENERGY"), "w") as f:
+        f.write(vector("IRCENERGY", energy, "Hartree"))
+    with open(os.path.join(props, "IRCGEOM"), "w") as f:
+        f.write(tsvector(frames))
+    lines = ["wait 6000", "ircclick 0", "ircclick 3", "ircview table", "ircclick 6", "ircview graph", "ircclick 9", "quit"]
+    text, _ = bo.runScript(
+        s, display, env, wrappers, ["-context", "file://" + calc + "/"],
+        lines, png, "ircqm",
+        {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "IRC Path"})
+    clicks = dict((m[0], m) for m in re.findall(
+        r"BUILDER: ircclick (\d+) frame=(\S+) atoms: (\S+) (\S+) (\S+) "
+        r"(\S+) (\S+) (\S+)", text))
+    for idx in (0, 3, 6):
+        got = clicks.get(str(idx))
+        check(got is not None and got[1] == str(idx),
+              "ECCE-QM: click on point %d shows frame %d" % (idx, idx))
+        if got:
+            want = frames[idx][0] + frames[idx][1]
+            check(all(abs(float(a) - b) < 2e-5 for a, b in zip(got[2:], want)),
+                  "ECCE-QM point %d: the viewer holds the output's structure" % idx)
+    check(clicks.get("9", ("", "", ""))[1] == "none",
+          "a point past the path has no structure")
+    check("BUILDER: ircstatus Showing point 7 " in text,
+          "the status line names the point shown")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
@@ -291,9 +348,12 @@ def main():
                       "point %s: the viewer holds the log's structure" % idx)
         check(clicks.get("8", ("", "", ""))[1] == "none",
               "the TS point has no structure")
+        check("ircstatus Point 9 " in text and "has no stored structure" in text,
+              "the status line says the TS has no stored structure")
         check(any(l.startswith("# calculation: ")
                   for l in open(kj).read().splitlines()), "calculation named")
         orcaCase(s, display, env, wrappers, project, png)
+        qmCase(s, display, env, wrappers, project, png)
     finally:
         if display:
             display.__exit__(None, None, None)
