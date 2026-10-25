@@ -21,6 +21,7 @@
 #include <wx/utils.h>
 #include <wx/wrapsizer.h>
 
+#include "PointNote.H"
 #include "wxgui/ewxConfig.H"
 #include "dsm/IPropCalculation.H"
 #include "tdat/PropVecString.H"
@@ -179,6 +180,7 @@ void DensityProfilePanel::build()
   p_eval.reset(new DensityPlane::Evaluator);
   p_ok = p_eval->build(getCalculation());
   const int RIGHT = wxALIGN_CENTER_VERTICAL | wxRIGHT;
+  addOrbitalPointNote(this, top, getCalculation());
 
   //  Orbital list, plot and notes in splitters, so each can be given more room.
   if (!p_ok) {

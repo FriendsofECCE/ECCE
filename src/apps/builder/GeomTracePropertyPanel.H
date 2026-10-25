@@ -12,6 +12,7 @@
 
 #include "VizPropertyPanel.H"
 
+class wxCheckBox;
 class PlaybackControl;
 class XYPlotCanvas;
 class wxChoice;
@@ -77,6 +78,7 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     wxChoice        *p_propChoice;   // every logged series, above the plot
 
     int p_delay;
+    wxCheckBox *p_loop;
     bool p_recompute;
     bool p_fold;
 

@@ -1,3 +1,4 @@
+#include "PointNote.H"
 #include "wx/wrapsizer.h"
 #include <algorithm>
 #include <cmath>
@@ -358,6 +359,7 @@ bool MoDiagramPanel::Create(IPropCalculation *calculation,
   VizPropertyPanel::Create(calculation, parent, id, pos, size, style, name);
 
   wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+  addOrbitalPointNote(this, sizer, getCalculation());
   p_canvas = new MoDiagramCanvas(this);
   p_canvas->setClickHandler(this);
   sizer->Add(p_canvas, 1, wxEXPAND|wxALL, 2);

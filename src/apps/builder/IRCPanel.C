@@ -28,6 +28,8 @@
 #include "XYPlotCanvas.H"
 #include "PointCalc.H"
 
+#include "PlaybackExtras.H"
+#include "PlaybackLoop.H"
 #include "IRCPanel.H"
 
 namespace {
@@ -106,20 +108,21 @@ BEGIN_EVENT_TABLE(IRCPanel, VizPropertyPanel)
 END_EVENT_TABLE()
 
 IRCPanel::IRCPanel()
-  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_delay(500)
+  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500)
 {
 }
 
 IRCPanel::IRCPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_delay(500)
+  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
 
 IRCPanel::~IRCPanel()
 {
+  delete p_extras;
 }
 
 bool IRCPanel::Create(IPropCalculation *calculation,
@@ -161,6 +164,7 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_playback->SetStopIndex(0L);
   if (wxWindow *rec = FindWindow(PlaybackControl::ID_RECORD)) rec->Hide();
   GetSizer()->Add(p_playback, 0, wxLEFT | wxRIGHT, 4);
+  p_extras = new PlaybackExtras(this, GetSizer(), &p_delay);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
@@ -199,7 +203,10 @@ void IRCPanel::fill()
   const size_t n = std::min(c->values().size(), e->values().size());
   p_coord.assign(c->values().begin(), c->values().begin() + n);
   p_hartree.assign(e->values().begin(), e->values().begin() + n);
+  // The unit stays ASCII in the CSV; the Unicode form is for display only.
   p_coordUnit = c->units() == "Point" ? "point" : "sqrt(amu)*bohr";
+  const bool mw = p_coordUnit != "point";
+  const wxString xUnit = wxString::FromUTF8("amu\xC2\xBD\xC2\xB7" "bohr");
 
   PropTSVecTable *geom =
       calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("IRCGEOM")) : 0;
@@ -216,12 +223,16 @@ void IRCPanel::fill()
     for (size_t i = 0; i < n; i++) y[i] = (p_hartree[i] - ref) * factor(kcal);
     p_plot->addCurve(p_coord, y);
   }
-  p_plot->setXAxisLabel(p_coordUnit == "point"
-                        ? "Point from the TS" : "Reaction coordinate (sqrt(amu) bohr)");
-  p_plot->setYAxisLabel("Energy relative to the first point (" + unit + ")");
+  p_plot->setXAxisLabel(mw ? "Reaction coordinate (" + xUnit + ")"
+                           : wxString("Point from the TS"));
+  p_plot->setYAxisLabel("Relative energy (" + unit + ")");
+  p_plot->setReadout("Point", mw ? "Coordinate" : "Offset from the TS",
+                     mw ? xUnit : wxString(), "Relative energy", unit);
 
   if (p_grid->GetNumberRows()) p_grid->DeleteRows(0, p_grid->GetNumberRows());
   p_grid->AppendRows((int)n);
+  p_grid->SetColLabelValue(0, mw ? "Coordinate (" + xUnit + ")"
+                                 : wxString("Coordinate"));
   p_grid->SetColLabelValue(2, unit);
   for (size_t i = 0; i < n; i++) {
     p_grid->SetRowLabelValue((int)i, wxString::Format("%d", (int)i + 1));
@@ -239,6 +250,40 @@ void IRCPanel::refresh()
   fill();
   if (p_selected >= (int)p_coord.size()) p_selected = -1;
   if (p_selected >= 0 && hasFocus()) showPoint(p_selected);
+}
+
+// The orbital panels hold the last computed point's orbitals, so leaving this
+// panel puts that point's structure back (as the Relaxed Scan panel does).
+void IRCPanel::receiveFocus()
+{
+  if (p_selected >= 0) showPoint(p_selected);
+}
+
+void IRCPanel::loseFocus()
+{
+  IPropCalculation *calc = getCalculation();
+  PropTSVecTable *trace =
+      calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE")) : 0;
+  if (!trace || trace->tables() == 0) return;
+  SGContainer& sg = getFW().getSceneGraph();
+  Command *cmd = new GTStepCmd("Trace Step", &sg, calc);
+  cmd->getParameter("Index")->setInteger((int)trace->tables() - 1);
+  cmd->execute();
+  delete cmd;
+  SGFragment *frag = sg.getFragment();
+  frag->deleteAllBonds();
+  frag->addCovalentBonds();
+  frag->touchNumbers();
+  sg.touchChemDisplay();
+  ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
+}
+
+std::string IRCPanel::axisText(int index) const
+{
+  wxString t = p_plot->xAxisLabel() + " | " + p_plot->yAxisLabel() + " | " +
+               p_grid->GetColLabelValue(0) + " | " + p_grid->GetColLabelValue(2) +
+               " | " + p_plot->readoutText(0, index);
+  return std::string(t.utf8_str());
 }
 
 std::string IRCPanel::statusText() const
@@ -279,9 +324,61 @@ void IRCPanel::OnRow(wxGridEvent& event)
   if (!p_syncing) selectPoint(event.GetRow());
 }
 
+// With Loop on, the control's wrap from one end to the other is turned into
+// a reversal, so play runs forward and back until stopped.
 void IRCPanel::OnPlayback(wxCommandEvent& event)
 {
-  selectPoint((int)event.GetExtraLong());
+  long at = event.GetExtraLong();
+  if (event.GetEventType() == wxEVT_PLAYBACK_LOOP_EVENT && p_extras &&
+      p_extras->loop() && points() > 0) {
+    const bool wasForward = event.GetInt() != 0;
+    const long n = points();
+    const playbackloop::Pos p = playbackloop::next(
+        wasForward ? playbackloop::Pos{n - 1, 1} : playbackloop::Pos{0, -1}, n);
+    p_playback->SetStepSize(p.dir);
+    p_playback->SetCurrentStep(p.cur);
+    at = p.cur;
+  }
+  selectPoint((int)at);
+}
+
+void IRCPanel::setPlaybackSpeed(const std::string& name)
+{
+  if (p_extras) p_extras->setSpeed(name);
+}
+
+std::string IRCPanel::playbackSpeed() const
+{
+  return p_extras ? p_extras->speed() : std::string();
+}
+
+void IRCPanel::setPlaybackLoop(bool on)
+{
+  if (p_extras) p_extras->setLoop(on);
+}
+
+bool IRCPanel::playbackLoop() const
+{
+  return p_extras && p_extras->loop();
+}
+
+std::vector<int> IRCPanel::playOrder(int ticks)
+{
+  std::vector<int> out;
+  const int n = points();
+  playbackloop::Pos p{0, 1};
+  if (!n) return out;
+  const bool loop = playbackLoop();
+  selectPoint(0);
+  out.push_back(0);
+  for (int t = 0; t < ticks; t++) {
+    if (loop) p = playbackloop::next(p, n);
+    else if (p.cur < n - 1) p.cur++;
+    else break;
+    selectPoint((int)p.cur);
+    out.push_back((int)p.cur);
+  }
+  return out;
 }
 
 int IRCPanel::step(const std::string& which)

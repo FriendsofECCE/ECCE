@@ -2190,6 +2190,13 @@ target_include_directories(moving_average_test PRIVATE
   ${CMAKE_SOURCE_DIR}/src/apps/builder)
 add_test(NAME moving-average COMMAND moving_average_test)
 
+# tests/plots -- playback speed and loop order of the scan and IRC panels,
+# without wx.
+add_executable(playback_loop_test tests/plots/playback_loop_test.C)
+target_include_directories(playback_loop_test PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/apps/builder)
+add_test(NAME playback-loop COMMAND playback_loop_test)
+
 # tests/progress -- the job progress snapshot and the Progress box's lines
 # (#284), without wx; the monitor's [PROGRESS] handling over a real output.
 add_executable(progress_test tests/progress/progress_test.C)

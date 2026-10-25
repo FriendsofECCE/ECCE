@@ -1,3 +1,4 @@
+#include <wx/checkbox.h>
 #include "util/UnitDisplay.H"
 #include <algorithm>
   using std::copy;
@@ -36,6 +37,7 @@
 #include "wxgui/NumericValidator.H"
 #include "wxgui/PlaybackControl.H"
 
+#include "PlaybackLoop.H"
 #include "GeomTracePropertyPanel.H"
 
 
@@ -72,6 +74,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel()
     p_playback(NULL),
     p_propChoice(NULL),
     p_delay(500),
+    p_loop(NULL),
     p_recompute(false),
     p_fold(true),
     p_currentProp(""),
@@ -91,6 +94,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel(IPropCalculation *calculation,
     p_playback(NULL),
     p_propChoice(NULL),
     p_delay(500),
+    p_loop(NULL),
     p_recompute(false),
     p_fold(false),
     p_currentProp(""),
@@ -222,6 +226,10 @@ void GeomTracePropertyPanel::initialize()
   p_playback->SetStopIndex(numSteps()-1);
   FindWindow(PlaybackControl::ID_RECORD)->Hide();
   sizer->Add(p_playback, 0, wxALIGN_CENTER_VERTICAL);
+  p_loop = new wxCheckBox(this, wxID_ANY, "Loop");
+  p_loop->SetToolTip("Play forward to the last step, then backward to the "
+                     "first, and repeat until stopped");
+  sizer->Add(p_loop, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 8);
   GetSizer()->Add(sizer, 0);
 
   restoreSettings();
@@ -433,8 +441,20 @@ void GeomTracePropertyPanel::OnPlaybackTick(wxCommandEvent& event)
 }
 
 
+// With Loop on, the control's wrap from one end to the other becomes a
+// reversal, as in the IRC Path and Relaxed Scan panels.
 void GeomTracePropertyPanel::OnPlaybackLoop(wxCommandEvent& event)
 {
+  const long n = numSteps();
+  if (p_loop && p_loop->GetValue() && n > 0) {
+    const bool wasForward = event.GetInt() != 0;
+    const playbackloop::Pos p = playbackloop::next(
+        wasForward ? playbackloop::Pos{n - 1, 1} : playbackloop::Pos{0, -1}, n);
+    p_playback->SetStepSize(p.dir);
+    p_playback->SetCurrentStep(p.cur);
+    processStep(p.cur);
+    return;
+  }
   OnPlaybackTick(event);
 }
 

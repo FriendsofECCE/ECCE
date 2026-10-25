@@ -14,6 +14,7 @@
 #include <wx/settings.h>
 #include <wx/textctrl.h>
 
+#include "PointNote.H"
 #include "util/EventDispatcher.H"
 #include "util/InternalException.H"
 #include "util/PreferenceLabels.H"
@@ -1634,6 +1635,7 @@ void MoPanel::buildBasisWarning()
    p_basisWarning->SetForegroundColour(wxColour(160, 40, 0));
    GetSizer()->Add(p_basisWarning, 0, wxEXPAND|wxALL, 5);
    GetSizer()->Show(p_basisWarning, false, true);
+   addOrbitalPointNote(this, GetSizer(), getCalculation());
 }
 
 

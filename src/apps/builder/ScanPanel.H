@@ -10,6 +10,7 @@ class wxGrid;
 class wxGridEvent;
 class wxStaticText;
 class PlaybackControl;
+class PlaybackExtras;
 class XYPlotCanvas;
 
 /**
@@ -51,6 +52,15 @@ class ScanPanel : public VizPropertyPanel
 
       /** Step the playback control: "first", "prev", "next", "last"; the point now selected. */
       int step(const std::string& which);
+
+      /** Playback delay (ms per step) and Loop, as the controls do. For scripts and tests. */
+      void setPlaybackSpeed(const std::string& name);
+      std::string playbackSpeed() const;
+      void setPlaybackLoop(bool on);
+      bool playbackLoop() const;
+
+      /** The points shown by <ticks> playback ticks from the first, without timers. */
+      std::vector<int> playOrder(int ticks);
 
       /** The selected point (plot marker, table row, playback), -1 if none. */
       int selectedPoint() const { return p_selected; }
@@ -103,6 +113,7 @@ class ScanPanel : public VizPropertyPanel
       wxGrid *p_grid;
       wxStaticText *p_status;
       PlaybackControl *p_playback;
+      PlaybackExtras *p_extras;
       int p_delay;
       bool p_syncing;           // selectPoint is moving the row; ignore its event
 };

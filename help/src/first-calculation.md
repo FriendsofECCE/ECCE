@@ -214,7 +214,8 @@ calculation run elsewhere: see [Importing a calculation](importing-a-calculation
   and the title gives the final absolute energy in Hartree. Click a point on
   the plot to see the molecule at that step, or use the playback control to
   step through them; **Play** continues from the selected step.
-  **Delay:** sets the time between steps during playback. All plots zoom
+  **Delay:** sets the time between steps during playback (milliseconds); tick
+  **Loop** to play forward to the last step and back, until stopped. All plots zoom
   with the mouse wheel (Shift+wheel zooms the vertical axis only) or by dragging a
   rectangle, but never beyond the data;
   Home or a double click on empty plot shows all of it. In the **Wave Step

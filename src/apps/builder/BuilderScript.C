@@ -1201,6 +1201,41 @@ void Builder::runBuilderScript(const std::string& file)
             if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
         fprintf(stderr, "BUILDER: scanstatus [%s]\n",
                 sp ? sp->status().utf8_str().data() : "no panel");
+      } else if ((w[0] == "ircplayopt" || w[0] == "scanplayopt") && w.size() >= 2) {
+        //  ircplayopt|scanplayopt speed <ms per step> | loop <on|off> |
+        //  order <ticks>: the playback Delay field and Loop toggle; order
+        //  logs the points <ticks> ticks of play would show (no timers).
+        IRCPanel *ip = 0;
+        ScanPanel *sp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+            if (w[0] == "ircplayopt" && (ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+            if (w[0] == "scanplayopt" && (sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
+          }
+        if (!ip && !sp) {
+          outcome = "no such panel";
+        } else {
+          const std::string arg = w.size() >= 3 ? w[2] : "";
+          if (w[1] == "speed") { if (ip) ip->setPlaybackSpeed(arg); else sp->setPlaybackSpeed(arg); }
+          if (w[1] == "loop") { if (ip) ip->setPlaybackLoop(arg == "on"); else sp->setPlaybackLoop(arg == "on"); }
+          std::string order;
+          if (w[1] == "order")
+            for (int i : ip ? ip->playOrder(atoi(arg.c_str())) : sp->playOrder(atoi(arg.c_str())))
+              order += " " + std::to_string(i + 1);
+          fprintf(stderr, "BUILDER: %s %s speed=%s loop=%d order:%s\n", w[0].c_str(),
+                  w[1].c_str(), (ip ? ip->playbackSpeed() : sp->playbackSpeed()).c_str(),
+                  (ip ? ip->playbackLoop() : sp->playbackLoop()) ? 1 : 0, order.c_str());
+        }
+      } else if (w[0] == "ircaxes" && w.size() >= 2) {
+        //  ircaxes <i>: the IRC Path axis labels, table headers and hover text
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+        if (!ip) outcome = "no IRC Path panel";
+        else fprintf(stderr, "BUILDER: ircaxes %s\n", ip->axisText(atoi(w[1].c_str())).c_str());
       } else if (w[0] == "ircview" && w.size() >= 2) {
         //  ircview graph|table: the IRC Path panel's Show choice (#452)
         IRCPanel *ip = 0;
