@@ -301,6 +301,7 @@ EStruct		Localised MO Energies			LOCMOENG	Energy		PropVector<Basis Function>
 EStruct		Localised MO Occupations		LOCMOOCC	Charge		PropVector<Basis Function>
 EStruct		Localised MO Labels			LOCMOLABEL	NA		PropVecString<Basis Function>
 EStruct		Localised MO Note			LOCMONOTE	NA		PropVecString<Basis Function>
+EStruct		Virtual Orbitals Note		MOVIRTNOTE	NA		PropVecString<Basis Function>
 EStruct		Localised MOs (Beta)			LOCMOBETA	Electrons	PropTable<Basis Function,Basis Function>
 EStruct		Localised MO Energies (beta)		LOCMOENGBETA	Energy		PropVector<Basis Function>
 EStruct		Localised MO Occupations (beta)		LOCMOOCCBETA	Charge		PropVector<Basis Function>

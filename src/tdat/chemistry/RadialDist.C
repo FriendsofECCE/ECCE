@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <functional>
 
 #include "dsm/IPropCalculation.H"
@@ -183,6 +185,62 @@ bool compute(const DensityPlane::Evaluator& ev, const double centre[3],
   return true;
 }
 
+vector<int> radialNodes(const DensityPlane::Evaluator& ev, bool beta,
+                        vector<double> *meanR)
+{
+  vector<int> out;
+  if (meanR) meanR->clear();
+  if (ev.symbols.size() != 1) return out;
+  const int nMo = ev.orbitals(beta);
+  out.assign(nMo, -1);
+  if (meanR) meanR->assign(nMo, 0.0);
+  const LebEntry& leb = lebedevEntry(26);
+  const double c[3] = { ev.coordsAng[0], ev.coordsAng[1], ev.coordsAng[2] };
+  const int nR = 360;
+  const double dr = 0.04;              // bohr; to 14.4 bohr
+  for (int m = 1; m <= nMo; m++) {
+    //  psi = R(r) Y(angles): the sign changes along one direction are the
+    //  radial nodes, in the direction where psi is largest (Y is not zero).
+    int best = 0;
+    double bestSum = -1;
+    vector< vector<double> > amp(leb.npts, vector<double>(nR));
+    for (int q = 0; q < leb.npts; q++) {
+      double sum = 0;
+      for (int i = 0; i < nR; i++) {
+        const double r = (i + 1) * dr * BOHR_ANG;
+        const double *u = leb.data[q];
+        const double a = ev.orbital(m, beta, c[0] + r*u[0], c[1] + r*u[1], c[2] + r*u[2]);
+        amp[q][i] = a;
+        sum += a*a;
+      }
+      if (sum > bestSum) { bestSum = sum; best = q; }
+    }
+    const vector<double>& a = amp[best];
+    double top = 0;
+    for (double v : a) top = max(top, fabs(v));
+    //  Tail noise of a Gaussian sum is not a node: only sign changes
+    //  between clearly non-zero values count.
+    int nodes = 0, last = 0;
+    for (double v : a) {
+      if (fabs(v) < 1e-3 * top) continue;
+      const int sg = v > 0 ? 1 : -1;
+      if (last != 0 && sg != last) nodes++;
+      last = sg;
+    }
+    out[m-1] = nodes;
+    if (meanR) {
+      double num = 0, den = 0;
+      for (int i = 0; i < nR; i++) {
+        const double r = (i + 1) * dr;
+        num += r * r * r * a[i] * a[i];
+        den += r * r * a[i] * a[i];
+      }
+      (*meanR)[m-1] = den > 0 ? num / den : 0.0;
+    }
+  }
+  return out;
+}
+
 vector<string> shellLabels(IPropCalculation *calc,
                            const DensityPlane::Evaluator& ev, bool beta)
 {
@@ -200,6 +258,8 @@ vector<string> shellLabels(IPropCalculation *calc,
   int seen[6] = { 0, 0, 0, 0, 0, 0 };
   double last[6] = { 1e9, 1e9, 1e9, 1e9, 1e9, 1e9 };
   out.assign(rows.size(), string());
+  vector<size_t> virt;
+  vector<int> virtL;
   for (size_t m = 0; m < rows.size(); m++) {
     MoAoBasis::Composition comp;
     if (!basis.analyse(rows[m], MoAoBasis::MULLIKEN, comp)) continue;
@@ -207,10 +267,14 @@ vector<string> shellLabels(IPropCalculation *calc,
     for (const MoAoBasis::Share& t : comp.types)
       if (t.l >= 0 && t.l < 6 && (!best || t.share > best->share)) best = &t;
     const bool occupied = m < occ.size() && occ[m] > 0.0;
-    //  A virtual has no principal quantum number worth naming: its shell
-    //  is a mix of the basis functions, only the angular type is clear.
+    //  A virtual is named by shell only when its radial nodes agree with
+    //  the occupied ones (see below); otherwise only the angular type.
     if (!occupied) {
-      if (best && best->share >= 0.9) out[m] = string(1, letters[best->l]) + " (virtual)";
+      if (best && best->share >= 0.9) {
+        out[m] = string(1, letters[best->l]) + " (virtual)";
+        virt.push_back(m);
+        virtL.push_back(best->l);
+      }
       continue;
     }
     if (best && best->share >= 0.9) {
@@ -221,7 +285,48 @@ vector<string> shellLabels(IPropCalculation *calc,
       out[m] = to_string(l + seen[l]) + letters[l];
     }
   }
+  //  A virtual is named by shell only if it is a real Rydberg-like orbital:
+  //  its radial nodes count up from the occupied shells of its type
+  //  (n = l + nodes + 1, steps of 0 or 1 because an IVO set is only
+  //  roughly degenerate) and it reaches well beyond the valence shell.  A
+  //  canonical virtual of a compact basis is a valence-region function
+  //  whose node count is accidental.
+  if (!virt.empty()) {
+    vector<double> meanR;
+    const vector<int> nodes = radialNodes(ev, beta, &meanR);
+    int last[6];
+    bool started[6] = { false, false, false, false, false, false };
+    for (int l = 0; l < 6; l++) last[l] = l;      // none occupied: n starts at l + 1
+    double valenceR = 0;
+    for (size_t m = 0; m < out.size(); m++)
+      if (!out[m].empty() && out[m].find("virtual") == string::npos) {
+        const int l = (int)(strchr(letters, out[m][out[m].size() - 1]) - letters);
+        last[l] = max(last[l], atoi(out[m].c_str()));
+        if (m < meanR.size()) valenceR = meanR[m];     // the highest occupied
+      }
+    const int first[6] = { last[0] + 1, last[1] + 1, last[2] + 1,
+                           last[3] + 1, last[4] + 1, last[5] + 1 };
+    for (size_t k = 0; k < virt.size(); k++) {
+      const size_t m = virt[k];
+      const int l = virtL[k];
+      if (m >= nodes.size() || nodes[m] < 0) continue;
+      const int n = l + nodes[m] + 1;
+      const bool step = started[l] ? (n == last[l] || n == last[l] + 1) : n == first[l];
+      if (!step) continue;
+      started[l] = true;
+      last[l] = n;
+      if (meanR[m] >= 2.5 * valenceR)
+        out[m] = to_string(n) + letters[l] + " (virtual)";
+    }
+  }
   return out;
+}
+
+vector<string> atomOrbitalLabels(IPropCalculation *calc, bool beta)
+{
+  DensityPlane::Evaluator ev;
+  if (!calc || !ev.build(calc) || ev.symbols.size() != 1) return vector<string>();
+  return shellLabels(calc, ev, beta);
 }
 
 vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,

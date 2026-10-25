@@ -54,6 +54,9 @@ MOLECULES = {
             for t in (0.0, 2 * math.pi / 3, 4 * math.pi / 3)],
     "ch4": [("C", 0.0, 0.0, 0.0), ("H", _A, _A, _A), ("H", -_A, -_A, _A),
             ("H", -_A, _A, -_A), ("H", _A, -_A, -_A)],
+    #  Triplet methylene, C2v, r(CH) 1.078, HCH 133.9 degrees.
+    "ch2": [("C", 0.0, 0.0, 0.0), ("H", 0.9917, 0.0, 0.4223),
+            ("H", -0.9917, 0.0, 0.4223)],
     "co2": [("C", 0.0, 0.0, 0.0), ("O", 0.0, 0.0, 1.16),
             ("O", 0.0, 0.0, -1.16)],
     #  Ethene, D2h, C=C along x, molecule in the xy plane.
@@ -102,6 +105,7 @@ for _k in range(3):
 METHOD = "b3lyp"
 BASIS = "6-31G*"
 MULTIPLICITY = 1
+VIRTUALS = ""   # ecceqm: "ivo" for improved virtual orbitals
 
 #  Single atoms (radial distributions,).
 for _el in ("H", "C", "Ne", "Ar"):
@@ -185,9 +189,10 @@ def deck(code, atoms, opt):
     if code == "ecceqm":
         return ("ecceqm.qmin", "ecceqm.qmout",
                 "title MO diagram fixture\ncharge 0\nmultiplicity %d\n"
-                "method %s\nspherical true\nbasis %s\n"
-                "geometry\n%send\n" % (MULTIPLICITY, METHOD, BASIS,
-                                         xyzLines(atoms)))
+                "method %s\nspherical true\n%sbasis %s\n"
+                "geometry\n%send\n" % (MULTIPLICITY, METHOD,
+                                         "virtuals %s\n" % VIRTUALS if VIRTUALS else "",
+                                         BASIS, xyzLines(atoms)))
     raise SystemExit("unknown code " + code)
 
 
@@ -250,7 +255,7 @@ def propXml(key, recs, natoms):
     dims = flat(rec, "size").split()
     rows = dims[0] if dims else str(len(vals))
     labels = " ".join(str(i + 1) for i in range(int(rows)))
-    if key.startswith("ORBSYM"):
+    if key.startswith("ORBSYM") or key == "MOVIRTNOTE":
         return (HEAD + '<vecstring name="%s" rowLabel="Basis Function" '
                 'rowLabels="%s" rows="%s" units="NA">%s</vecstring>\n'
                 % (key, labels, rows, wrap(vals)))
@@ -265,7 +270,7 @@ def propXml(key, recs, natoms):
 
 
 KEEP = ("MO", "MOBETA", "ORBENG", "ORBENGBETA", "ORBOCC", "ORBOCCBETA",
-        "ORBSYM", "ORBSYMBETA", "MOAOORDER", "GEOMTRACE")
+        "ORBSYM", "ORBSYMBETA", "MOAOORDER", "GEOMTRACE", "MOVIRTNOTE")
 
 
 def chemsys(atoms):
@@ -300,6 +305,8 @@ def basisFilePople(elements):
         return out
     if BASIS == "6-31G*":
         base, pol = blocks("6-31G"), blocks("6-31GS")
+    elif BASIS.lower().startswith("aug-"):   # the aug- file is the diffuse part only
+        base, pol = blocks(BASIS[4:]), blocks(BASIS)
     else:   # the library file holds the whole set
         base, pol = blocks(BASIS), {}
     flags = "false " * 8
@@ -385,16 +392,18 @@ def main():
     ap.add_argument("--basis", default="6-31G*", help="ecceqm only")
     ap.add_argument("--multiplicity", type=int, default=1,
                     help="ecceqm only; above 1 with hf gives ROHF")
+    ap.add_argument("--virtuals", default="", help="ecceqm only: ivo")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--save-output", help="copy the code's output here")
     a = ap.parse_args()
     #  The parser scripts find pertab.pl and friends through ECCE_HOME.
     os.environ["ECCE_HOME"] = ROOT
 
-    global METHOD, BASIS, MULTIPLICITY
+    global METHOD, BASIS, MULTIPLICITY, VIRTUALS
     METHOD = a.method
     BASIS = a.basis
     MULTIPLICITY = a.multiplicity
+    VIRTUALS = a.virtuals
     atoms = geometry(a.molecule, a.noise, a.seed, not a.no_rotate)
     deckName, outName, text = deck(a.code, atoms, a.opt)
     work = tempfile.mkdtemp(prefix="modiagram-%s-" % a.code,

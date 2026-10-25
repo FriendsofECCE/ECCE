@@ -2,6 +2,7 @@
    using std::fill;
    using std::reverse;
 #include <cmath>
+#include <wx/tooltip.h>
 #include <cstdio>
 #include <limits>
 #include <utility>
@@ -23,6 +24,7 @@
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
+#include "tdat/RadialDist.H"
 #include "tdat/SingleGrid.H"
 
 #include "dsm/TGBSConfig.H"
@@ -337,10 +339,17 @@ void MoPanel::updateUIOptions()
    }
 
    // If we don't have the occupations, we can't do spin density
+   //  Two MO sets (UHF/UKS), or one set with singly occupied orbitals
+   //  (restricted open shell); a closed shell has no spin density.
    bool spinOk=false;
    if (expt->getProperty("MO") && expt->getProperty("MOBETA") &&
          expt->getProperty("ORBOCC") && expt->getProperty("ORBOCCBETA")) {
       spinOk=true;
+   } else if (expt->getProperty("MO") && !expt->getProperty("MOBETA")) {
+      if (PropVector *occ = dynamic_cast<PropVector*>(expt->getProperty("ORBOCC"))) {
+         for (double o : occ->values())
+            if (o > 1e-6 && fabs(o - 2.0) > 1e-6) spinOk = true;
+      }
    }
 
    //  Both potentials are mapped onto a density surface, so both need
@@ -372,6 +381,19 @@ void MoPanel::updateUIOptions()
    }
    typewin->Insert("MO",0);
    typewin->SetStringSelection(_("MO"));
+   p_virtNote.clear();
+   typewin->SetToolTip(spinOk || !densityOk ? wxString() :
+      _("Spin density is offered for open-shell calculations (UHF, ROHF, UKS)."));
+   //  An improved-virtuals run says so; the table alone looks canonical.
+   if (PropVecString *vn = dynamic_cast<PropVecString*>(expt->getProperty("MOVIRTNOTE"))) {
+      if (vn->rows() > 0) {
+         string text = vn->values()[0];
+         std::replace(text.begin(), text.end(), '_', ' ');
+         p_virtNote = text == "ivo" ? "Virtual orbitals: improved (IVO)"
+                                    : "Virtual orbitals: canonical (" + text + ")";
+         getFW().showMessage(p_virtNote, false);
+      }
+   }
    //  A choice is as wide as its longest entry, and "Density (ESP from
    //  atomic charges)" made the MOs panel, and with it the whole column,
    //  wider than every other property.  The open list still shows it all.
@@ -542,8 +564,18 @@ bool MoPanel::rebuildTable()
    }
    //  A localised label ("sigma C1-C2 (sp1.6/sp1.6)") is shown as three
    //  columns; the canonical symmetry label stays one.
-   if (orbSym) {
-      const char *heads[] = { "Sym" };
+   p_atomLabels[0].clear();
+   p_atomLabels[1].clear();
+   if (!loc && orbEnergy) {
+      p_atomLabels[0] = RadialDist::atomOrbitalLabels(expt, false);
+      if (!p_atomLabels[0].empty() && orbEnergyBeta)
+         p_atomLabels[1] = RadialDist::atomOrbitalLabels(expt, true);
+   }
+   if (!p_atomLabels[0].empty() && !orbSym) {
+      p_mogrid->InsertCols(col, 1);
+      p_mogrid->SetColLabelValue(col++, "Orbital");
+   } else if (orbSym) {
+      const char *heads[] = { p_atomLabels[0].empty() ? "Sym" : "Orbital" };
       const char *locHeads[] = { "Bond type", "Atoms", "Hybrids" };
       for (int h = 0; h < (loc ? 3 : 1); h++) {
          p_mogrid->InsertCols(col, 1);
@@ -651,6 +683,14 @@ int  MoPanel::fillTable(const string& type,
       } else if (keep) {
          for (string& t : sym) std::replace(t.begin(), t.end(), '_', ' ');
       }
+   }
+
+   //  An atom's orbital is named by its shell, where that is clear.
+   const vector<string>& shells = p_atomLabels[type == "beta" ? 1 : 0];
+   if (!keep && shells.size() == energy.size() && !shells.empty()) {
+      if (sym.size() != energy.size()) sym.assign(energy.size(), string());
+      for (size_t i = 0; i < shells.size(); i++)
+         if (!shells[i].empty()) sym[i] = shells[i];
    }
 
    for (int row=startRow, rows=energy.size()+startRow; row<rows; ++row) {
@@ -978,6 +1018,12 @@ string MoPanel::tableState() const
    wxSize cs = p_mogrid->GetGridWindow()->GetClientSize();
    const int offset = p_mogrid->GetColLabelValue(0) == "Type" ? 1 : 0;
    s << "rows " << p_mogrid->GetNumberRows() << "\n";
+   if (ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE)) {
+      s << "fieldTypes";
+      for (unsigned i = 0; i < tw->GetCount(); i++) s << (i ? " | " : " ") << tw->GetString(i);
+      s << "\n" << "fieldTypeTip " << (tw->GetToolTip() ? tw->GetToolTip()->GetTip() : wxString()) << "\n";
+   }
+   s << "virtNote " << p_virtNote << "\n";
    s << "headerHeight " << p_mogrid->GetColLabelSize() << "\n";
    s << "gridRect " << p_mogrid->GetRect().y << " " << p_mogrid->GetRect().height << "\n";
    s << "panelHeight " << GetSize().y << "\n";
