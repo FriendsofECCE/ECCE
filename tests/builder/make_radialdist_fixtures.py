@@ -8,6 +8,9 @@ ECCE_BASIS_DIR=data/admin/basissets:
   Ne  RHF, cc-pVTZ
   Ar  RHF, 6-31G*
   H2, N2  RHF, 6-31G* (bond along z, N2 along x)
+  HCN     RHF, 6-31G*, atoms C H N on the z axis (a line whose atoms are not in order)
+
+Names on the command line limit the run to those cases and keep the rest.
 """
 import os
 import shutil
@@ -25,10 +28,15 @@ CASES = {"h": ["h", "--basis", "cc-pVQZ", "--multiplicity", "2"],
          "ne": ["ne", "--basis", "cc-pVTZ"],
          "ar": ["ar"],                 # 6-31G*
          "h2": ["h2"],
-         "n2": ["n2"]}
+         "n2": ["n2"],
+         "hcn": ["hcn"]}
 
-shutil.rmtree(DST, ignore_errors=True)
+only = sys.argv[1:]
+if not only:
+    shutil.rmtree(DST, ignore_errors=True)
 for name, args in CASES.items():
+    if only and name not in only:
+        continue
     work = tempfile.mkdtemp(prefix="radialdist-fixture-")
     try:
         subprocess.check_call(
