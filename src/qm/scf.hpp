@@ -40,6 +40,10 @@ struct ScfOptions {
   // Uniform electric field (a.u.): H += F.r.  Used by the finite-field
   // polarisability; the dipole printed is unchanged in definition.
   double field[3] = {0, 0, 0};
+  // Implicit solvent (CPCM): static dielectric constant, 0 = vacuum.  The
+  // cavity spheres are cavity_scale times the Bondi radii.
+  double solvent_eps = 0;
+  double cavity_scale = 1.2;
   std::function<void(const ScfCycle&)> on_cycle;  // called after every cycle
 };
 
@@ -60,6 +64,7 @@ struct ScfResult {
   double s2 = 0;                  // <S^2> (UHF/UKS; S(S+1) otherwise)
   double xc_electrons = 0;        // grid integral of the density (DFT)
   int nalpha = 0, nbeta = 0;
+  double e_solvent = 0;           // CPCM: polarisation energy q.V/2, part of energy
   bool ivo_applied = false;       // virtuals are IVOs, not canonical
   std::string ivo_note;           // why IVOs were asked for but not made
 };

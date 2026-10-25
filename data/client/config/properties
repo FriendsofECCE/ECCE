@@ -173,6 +173,7 @@ Energy		Thermochemistry Pressure		THERMOPRES	NA		PropValue	Thermochemistry
 # cavity-dispersion term, kept apart as ESOLVCDS since it is not the full
 # solvation free energy.
 Energy		Solvation Energy (E_sol - E_gas)	ESOLV		Energy		PropValue	Solvation
+Energy		CPCM Reaction-Field Energy (q.V/2)	EPCM		Energy		PropValue	Solvation
 Energy		SMD Cavity-Dispersion Term (CDS)	ESOLVCDS	Energy		PropValue	Solvation
 Energy		Solvation Model and Solvent		SOLVMODEL	NA		PropString	Solvation
 #

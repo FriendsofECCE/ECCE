@@ -1,6 +1,7 @@
 // Molecular integration grid for DFT: Treutler-Ahlrichs (M4) radial points x
 // Lebedev angular points per atom, with Becke atomic partition weights.
 #pragma once
+#include <array>
 #include <vector>
 #include "molecule.hpp"
 
@@ -17,5 +18,8 @@ struct Grid {
 // full nang points are kept from about one Bragg radius outwards.
 Grid make_grid(const Molecule& mol, int nrad, int nang, bool prune = true);
 std::vector<int> lebedev_sizes();
+// Rows {x, y, z, weight} of the npts-point Lebedev rule on the unit sphere
+// (weights sum to 1).
+std::vector<std::array<double, 4>> lebedev_rule(int npts);
 
 }  // namespace qm

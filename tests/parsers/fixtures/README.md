@@ -680,6 +680,7 @@ Same niobium, same versions, scratch paths and user/host names replaced.
 (`ecce-qm <deck> > <out>`, ECCE basis library from `data/admin/basissets`).
 
 * `h2o_hf` — water, HF/STO-3G, restricted.
+* `h2o_cpcm` — water, HF/6-31G*, `solvent water` (CPCM; 2026-10-25, with the tree build): the `solvation_energy` and `solvent_model` lines.
 * `o2_roks` — O2 triplet, B3LYP/STO-3G, restricted open-shell (one orbital set,
   occupations 2, 1, 0).
 * `o2_uks` — the same unrestricted (alpha and beta sets).
