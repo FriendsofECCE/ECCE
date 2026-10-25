@@ -1,0 +1,10 @@
+#include "salt.itp"
+
+[ system ]
+NaCl crystal in SPC/E water
+
+[ molecules ]
+NA 108
+CL 108
+; the SOL count is appended by gmx solvate -p
+SOL              2805

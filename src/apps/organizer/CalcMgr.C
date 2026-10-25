@@ -3072,7 +3072,8 @@ const vector<ExampleSet>& exampleSets()
       "gromacs-trpcage"}},
     {"genchem", "Examples_GeneralChemistry", {
       "gromacs-ar-gas", "gromacs-he-gas", "gromacs-ar-liquid",
-      "gromacs-water-spce", "gromacs-decane-opls"}},
+      "gromacs-water-spce", "gromacs-decane-opls",
+      "gromacs-nacl-dissolving", "gromacs-ice-to-steam"}},
     {"organic", "Examples_Organic", {
       "ecceqm-ethane/ethane.qmout",
       "ecceqm-ethene/ethene.qmout",
@@ -3603,6 +3604,21 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "mean-square displacement of the molecular centres of mass (D = 0.82 x "
      "10^-5 cm^2/s, about three times smaller than for water); use Compare "
      "to draw the water over it."},
+    {"nacl-dissolving",
+     "GROMACS, a NaCl crystal of 216 ions in 2805 SPC/E water molecules "
+     "(Joung-Cheatham ions), 300 K, 1 bar, 100 ns. This calculation shows "
+     "the crystal dissolving: ions leave from the corners and edges first, "
+     "and after 100 ns 206 of the 216 ions have no counter-ion within "
+     "0.35 nm; the salt concentration, about 2 mol/kg, is below what this "
+     "model dissolves."},
+    {"ice-to-steam",
+     "GROMACS, a slab of 1600 TIP4P/Ice molecules (ice Ih) with vacuum "
+     "above and below, heated from 200 K to 500 K over 30 ns and held at "
+     "500 K for 10 ns. This calculation shows melting as a jump in the "
+     "potential energy of about 4 kJ/mol per molecule near 280 K (the "
+     "model melts at about 270 K; a heating ramp overshoots), followed by "
+     "molecules evaporating from the liquid into the vacuum as the "
+     "temperature rises."},
     {"trpcage", "GROMACS, AMBER99SB-ILDN, TIP3P. This study shows the stages "
                 "of a molecular dynamics simulation: preparation, energy "
                 "minimisation, equilibration and production. The temperature "

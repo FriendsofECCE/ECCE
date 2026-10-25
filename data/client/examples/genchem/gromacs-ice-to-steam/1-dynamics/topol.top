@@ -1,0 +1,8 @@
+#include "tip4pice.itp"
+
+[ system ]
+Ice Ih slab in vacuum
+
+[ molecules ]
+; the ICE count is appended by run.sh from ice.gro
+ICE 1600

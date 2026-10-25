@@ -149,12 +149,21 @@ bool readTopology(const std::string& path, MdTopology& top, std::string& error)
     error = path + " has no [ molecules ] with atoms";
     return false;
   }
-  for (const MdTopology::MolType& t : top.types)
-    for (const MdTopology::Atom& a : t.atoms)
-      if (a.mass <= 0) {
-        error = "no mass for atom " + a.name + " of " + t.name + " in " + path;
+  // A massless atom is a virtual site (TIP4P's M); a molecule needs some mass.
+  for (const MdTopology::MolType& t : top.types) {
+    double total = 0;
+    for (const MdTopology::Atom& a : t.atoms) {
+      if (a.mass < 0) {
+        error = "negative mass for atom " + a.name + " of " + t.name + " in " + path;
         return false;
       }
+      total += a.mass;
+    }
+    if (total <= 0) {
+      error = "no mass for molecule " + t.name + " in " + path;
+      return false;
+    }
+  }
   return true;
 }
 

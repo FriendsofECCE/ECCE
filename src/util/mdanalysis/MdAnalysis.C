@@ -75,6 +75,8 @@ bool speedDistribution(const std::string& trr, const MdTopology& top,
   std::vector<std::string> typeName;
   std::vector<double> curveMass;
   for (size_t i = 0; i < mass.size(); i++) {
+    // Virtual sites (the TIP4P charge site) carry no mass and no speed.
+    if (mass[i] <= 0) { curve[i] = -1; continue; }
     const long key = (long)std::floor(mass[i] * 1000 + 0.5);
     if (!curveOf.count(key)) {
       curveOf[key] = (int)curveMass.size();
@@ -106,6 +108,7 @@ bool speedDistribution(const std::string& trr, const MdTopology& top,
       const double vx = fr.v[3 * i], vy = fr.v[3 * i + 1], vz = fr.v[3 * i + 2];
       const double s = 1000.0 * std::sqrt(vx * vx + vy * vy + vz * vz);  // nm/ps -> m/s
       const int c = curve[i];
+      if (c < 0) continue;
       sum[c] += s; sum2[c] += s * s; count[c]++;
       const int b = (int)(s / vmax * nbins);
       if (b < nbins) hist[c][b]++;

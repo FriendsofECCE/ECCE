@@ -88,6 +88,8 @@ GENCHEM = {
     "ar-liquid": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "water-spce": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "decane-opls": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
+    "nacl-dissolving": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
+    "ice-to-steam": ["dynamics:", "dynamics:TE"],
 }
 NEW_SETS = {"Examples_Organic": ORGANIC, "Examples_Spectroscopy": SPECTROSCOPY,
             "Examples_GeneralChemistry": GENCHEM}
@@ -247,7 +249,9 @@ def run(display, data, work):
     def inspect(_display):
         box["props"] = waitImported(root, projects, COMPUTATIONAL)
         for project, expect in NEW_SETS.items():
-            box[project] = waitImported(root, [project], expect)[project]
+            # the MD runs parse logs and trajectories of 4-5 MB each
+            box[project] = waitImported(root, [project], expect,
+                                        seconds=600 if project == "Examples_GeneralChemistry" else 240)[project]
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
             # The commands run in order and Report a Problem takes half a
