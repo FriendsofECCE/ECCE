@@ -17,6 +17,7 @@ struct IrcOptions {
   int max_micro = 25;      // constrained-optimisation iterations per point
   double rms_grad = 5e-4, max_grad = 2e-3;  // the path ends when the gradient is below both
   double tol_rms = 1e-4, tol_max = 3e-4;    // constrained optimisation: gradient across the sphere
+  int min_points = 5;      // no gradient or energy stop before this many points
   int hessian_every = 0;   // recompute the Hessian every n points (0: Bofill updates only)
 };
 
@@ -30,10 +31,11 @@ struct IrcPoint {
 // One direction (sign +1 or -1 along the imaginary mode of H, the Cartesian
 // Hessian at ts).  The TS itself is not part of the result.  on_point is
 // called with every accepted point; hessian(mol) is only used when
-// hessian_every > 0.  Throws Error when H has no imaginary mode.
+// hessian_every > 0.  why (if given) receives the reason the path ended.
+// Throws Error when H has no imaginary mode.
 std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& H, int sign, const IrcOptions& opt,
                                const std::function<OptEval(const Molecule&)>& eval,
                                const std::function<Mat(const Molecule&)>& hessian,
-                               const std::function<void(const IrcPoint&)>& on_point);
+                               const std::function<void(const IrcPoint&)>& on_point, std::string* why = nullptr);
 
 }  // namespace qm
