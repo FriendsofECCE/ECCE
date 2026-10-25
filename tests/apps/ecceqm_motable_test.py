@@ -7,7 +7,8 @@ The Builder scene command `plotshot <name> <w> <h> MOs:dockedtable` (or
 `dockedloctable`) leaves the pane where the layout put it, prints the table
 (PLOTSHOT-MOTABLE: header, rows, header height, the controls' rectangles and
 how many overlap) and saves a picture.  Checked: orbitals run 1..N in one
-direction, the columns say what each orbital is, the header is one line high,
+direction (highest at the top, the lowest at the bottom), the HOMO and the
+LUMO above it are in view, the columns say what each orbital is, the header is one line high,
 and nothing overlaps the table.
 
     ECCE_MOTABLE_PNG=<dir>   also copy the pictures there
@@ -34,7 +35,8 @@ from ecceqm_builder_test import installLocal   # noqa: E402
 
 EXAMPLES = os.path.join(REPO, "data", "client", "examples", "organic")
 CALCS = {"ethane": os.path.join(EXAMPLES, "ecceqm-ethane", "stored", "ethane"),
-         "ethene": os.path.join(EXAMPLES, "ecceqm-ethene", "stored", "ethene")}
+         "ethene": os.path.join(EXAMPLES, "ecceqm-ethene", "stored", "ethene"),
+         "o2": os.path.join(REPO, "tests", "ecceqm", "fixtures", "o2-roks-loc")}
 VIEWS = (("canonical", "dockedtable"), ("localised", "dockedloctable"))
 SCREEN = os.environ.get("ECCE_MOTABLE_SCREEN", "1366x768x24")
 
@@ -65,12 +67,24 @@ def check(state, localised):
     if not header:
         return ["no table state in the log"]
     rows = state["row"]
-    mos = [int(r[0]) for r in rows]
-    if mos != list(range(1, len(mos) + 1)):
-        problems.append("MO numbers are not 1..N ascending: %s" % mos[:12])
-    energies = [float(r[1]) for r in rows]
-    if not localised and energies != sorted(energies):
-        problems.append("energies do not rise with the MO number")
+    # An open-shell table starts with a Type column and lists alpha, then beta.
+    off = 1 if header[0] == "Type" else 0
+    sets = {}
+    for r in rows:
+        sets.setdefault(r[0] if off else "", []).append(r)
+    if off and set(sets) != {"alpha", "beta"}:
+        problems.append("open-shell table lacks an alpha or a beta set: %s" % sorted(sets))
+    for spin, part in sets.items():
+        mos = [int(r[off]) for r in part]
+        if mos != list(range(len(mos), 0, -1)):
+            problems.append("%s MO numbers are not N..1 descending: %s" % (spin, mos[:12]))
+        energies = [float(r[off + 1]) for r in part]
+        if not localised and energies != sorted(energies, reverse=True):
+            problems.append("energies do not fall down the table")
+    if state.get("selectedVisible") != "1":
+        problems.append("the HOMO row is not in view")
+    if not localised and state.get("aboveSelectedVisible") != "1":
+        problems.append("the LUMO row is not in view")
     wanted = ["Bond type", "Atoms"] if localised else ["Main atoms"]
     for w in wanted:
         if w not in header:
