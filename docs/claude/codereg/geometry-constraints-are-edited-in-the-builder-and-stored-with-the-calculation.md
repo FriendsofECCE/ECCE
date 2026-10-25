@@ -34,3 +34,8 @@ constrained geometry. Nothing refuses: a warning never blocks.
 The dummy atom X is shaped "Lone" in the Build panel, and `FragUtil::addToNub` returns
 without doing anything for a Lone shape, so X could not be put on an open site;
 `SGFragment::addAtom` now adds it to a nub as Terminal.
+
+**Where it is shown (#461).** The Calculation Editor's Notes row (`CalcEd::updateNotes`, full width under the
+Theory/Runtype row) holds the constraint/scan line, "Symmetry off" and the "Not ready: ..." reason together and is
+replaced on every change. It has a minimum width of 1 and is wrapped at the grid's width, so a long scan line never
+widens the editor. The message pane stays the log.

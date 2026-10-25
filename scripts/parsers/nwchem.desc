@@ -705,7 +705,7 @@ History=grad
 [PROGRESS]
 Begin=^@\s+(\d+)\s+(-?\d+\.\d+)\s+\S+\s+(\d\.\d+)\s+(\d\.\d+)\s+(\d\.\d+)\s+(\d\.\d+)\s+\d+\.\d+
 Progress=opt step=$1 energy=$2 maxgrad=$3/{gmax} rmsgrad=$4/{grms} rmsstep=$5/{xrms} maxstep=$6/{xmax}
-History=energy
+History=energy,maxgrad,rmsgrad
 [END]
 
 [PROGRESS]

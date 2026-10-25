@@ -207,19 +207,44 @@ Skip=0
 End=^end mo_coefficients
 [END]
 
-# Localised occupied orbitals (closed-shell runs): energies, occupations and
-# valence-bond labels, and the coefficients in the same AO order as MO.
+# Localised occupied orbitals: energies, occupations and valence-bond labels,
+# and the coefficients in the same AO order as MO.  Open-shell runs write a
+# second (beta) block of each, stored under the *BETA keys like MOBETA.
 [LOCMOENG][LOCMOOCC][LOCMOLABEL]
 Script=ecceqm.parse
-Begin=^begin localised_orbitals
+Begin=^begin localised_orbitals (restricted|alpha)
 Frequency=last
 Skip=0
 End=^end localised_orbitals
 [END]
 
+[LOCMOENGBETA][LOCMOOCCBETA][LOCMOLABELBETA]
+Script=ecceqm.parse
+Begin=^begin localised_orbitals beta
+Frequency=last
+Skip=0
+End=^end localised_orbitals
+[END]
+
+[LOCMONOTE]
+Script=ecceqm.parse
+Begin=^localisation_skipped\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [LOCMO]
 Script=ecceqm.parse
-Begin=^begin localised_mo_coefficients
+Begin=^begin localised_mo_coefficients (restricted|alpha)
+Frequency=last
+Skip=0
+End=^end localised_mo_coefficients
+[END]
+
+[LOCMOBETA]
+Script=ecceqm.parse
+Begin=^begin localised_mo_coefficients beta
 Frequency=last
 Skip=0
 End=^end localised_mo_coefficients
@@ -333,7 +358,7 @@ History=dE
 [PROGRESS]
 Begin=^progress opt (.*)$
 Progress=opt $1
-History=energy
+History=energy,maxgrad,rmsgrad
 [END]
 
 [PROGRESS]

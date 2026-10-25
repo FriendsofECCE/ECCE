@@ -19,6 +19,14 @@ string JobProgress::Stage::field(const string& key) const
 }
 
 
+const vector<double>* JobProgress::Stage::historyOf(const string& key) const
+{
+  for (const auto& h : histories)
+    if (h.first == key) return &h.second;
+  return 0;
+}
+
+
 static bool number(const string& s, double& v)
 {
   if (s.empty()) return false;
@@ -74,13 +82,18 @@ bool JobProgress::parse(const string& text)
       if (eq == string::npos || eq == 0) continue;
       const string key = w.substr(0, eq), val = w.substr(eq + 1);
       if (hist) {
-        st->historyKey = key;
-        st->history.clear();
+        vector<double> vs;
         std::istringstream vals(val);
         string one;
         double d;
         while (std::getline(vals, one, ','))
-          if (number(one, d)) st->history.push_back(d);
+          if (number(one, d)) vs.push_back(d);
+        bool found = false;
+        for (auto& h : st->histories)
+          if (h.first == key) { h.second = vs; found = true; }
+        if (!found) st->histories.push_back(std::make_pair(key, vs));
+        st->historyKey = st->histories[0].first;
+        st->history = st->histories[0].second;
       } else {
         st->fields.push_back(std::make_pair(key, val));
       }
@@ -401,7 +414,33 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     b.criteria.push_back(c);
   }
 
-  if (st.history.size() >= 2) {
+  //  An optimisation is read from its forces, which have limits; the energy
+  //  lives in Geometry Trace.
+  const vector<double> *maxg = st.name == "opt" ? st.historyOf("maxgrad") : 0;
+  if (maxg && maxg->size() >= 2) {
+    const struct { const char *key, *label; } want[] =
+        { { "maxgrad", "max" }, { "rmsgrad", "RMS" } };
+    for (const auto& w : want) {
+      const vector<double> *h = st.historyOf(w.key);
+      if (!h || h->size() < 2) continue;
+      Curve c;
+      c.label = w.label;
+      for (double v : *h)
+        c.values.push_back(std::log10(std::max(std::fabs(v), 1e-16)));
+      double v, t;
+      bool hasT;
+      if (split(st.field(w.key), v, t, hasT) && hasT && t > 0) {
+        c.hasThreshold = true;
+        c.threshold = std::log10(t);
+      }
+      b.curves.push_back(c);
+    }
+    b.plot = b.curves[0].values;
+    b.plotLog = true;
+    if (b.curves[0].hasThreshold) b.plotUnit = "Hartree/bohr";
+    b.plotLabel = "max and RMS force per " + (rec.empty() ? string("record") : recName);
+    plotAxis(st, rec, recName, b);
+  } else if (st.history.size() >= 2) {
     if (st.historyKey == "energy") {
       b.plot = st.history;
       b.plotLabel = "energy per step";
@@ -410,10 +449,21 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       b.plotLabel = criterionLabel(st.name, st.historyKey) +
                     (st.name == "neb" ? " per iteration" : " per log step");
     } else {
+      Curve c;
       for (double v : st.history)
-        b.plot.push_back(std::log10(std::max(std::fabs(v), 1e-16)));
+        c.values.push_back(std::log10(std::max(std::fabs(v), 1e-16)));
+      double v, t;
+      bool hasT;
+      if (split(st.field(st.historyKey), v, t, hasT) && hasT && t > 0) {
+        c.hasThreshold = true;
+        c.threshold = std::log10(t);
+      }
+      b.plot = c.values;
+      b.curves.push_back(c);
       b.plotLog = true;
-      b.plotLabel = "log |" + criterionLabel(st.name, st.historyKey) +
+      if (st.name == "scf" && st.historyKey == "dE") b.plotUnit = "Hartree";
+      if (st.name == "gmx-fmax") b.plotUnit = "kJ/mol/nm";
+      b.plotLabel = "|" + criterionLabel(st.name, st.historyKey) +
                     "| per " + (rec.empty() ? "record" : recName);
     }
     plotAxis(st, rec, recName, b);

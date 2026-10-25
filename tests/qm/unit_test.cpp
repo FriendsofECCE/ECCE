@@ -281,5 +281,40 @@ int main(int argc, char** argv) {
     }
   }
 
+  // Open shells: each spin's localised set spans the same occupied space as the
+  // canonical one (per-spin density), for ROHF and UHF.
+  {
+    const double A = kAngstromToBohr;
+    auto at = [&](int Z, double x, double y, double z) { Atom a; a.Z = Z; a.x[0] = x * A; a.x[1] = y * A; a.x[2] = z * A; return a; };
+    struct OCase { const char* name; std::vector<Atom> atoms; Reference ref; };
+    const std::vector<Atom> o2 = {at(8, 0, 0, 0.604), at(8, 0, 0, -0.604)};
+    const std::vector<Atom> ch2 = {at(6, 0, 0, 0), at(1, 0.98, 0, 0.45), at(1, -0.98, 0, 0.45)};
+    const std::vector<OCase> ocases = {{"O2 ROHF", o2, Reference::RestrictedOpen},
+                                       {"O2 UHF", o2, Reference::Unrestricted},
+                                       {"CH2 triplet UHF", ch2, Reference::Unrestricted}};
+    for (const OCase& oc : ocases) {
+      Molecule m;
+      m.atoms = oc.atoms;
+      m.multiplicity = 3;
+      Basis b(m, lib, "STO-3G", 1);
+      ScfOptions so;
+      so.reference = oc.ref;
+      const ScfResult r = run_scf(b, m, so);
+      check(r.converged, std::string("converged ") + oc.name);
+      for (int spin = 0; spin < 2; ++spin) {
+        const Mat& C = spin ? r.C_b : r.C_a;
+        const int no = spin ? r.nbeta : r.nalpha;
+        const Localised L = localise_occupied(m, b, r, nullptr, spin);
+        const Mat Dc = C.leftCols(no) * C.leftCols(no).transpose();
+        const Mat Dl = L.C * L.C.transpose();
+        check((Dc - Dl).cwiseAbs().maxCoeff() < 1e-9,
+              std::string("localised ") + (spin ? "beta" : "alpha") + " density equals canonical " + oc.name,
+              (Dc - Dl).cwiseAbs().maxCoeff());
+        check((int)L.orb.size() == no, std::string("one localised orbital per occupied ") + oc.name);
+        for (const auto& o : L.orb) std::cout << "      " << (spin ? "beta  " : "alpha ") << o.label << "\n";
+      }
+    }
+  }
+
   return fails ? 1 : 0;
 }

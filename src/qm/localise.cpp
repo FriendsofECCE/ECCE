@@ -72,18 +72,21 @@ std::string hyb(double n) {
 }  // namespace
 
 Localised localise_occupied(const Molecule& mol, const Basis& basis, const ScfResult& r,
-                            const std::vector<int>* atom_number) {
-  if (r.reference != Reference::Restricted) throw Error("localisation needs a closed-shell (restricted) wavefunction");
-  const int nbf = basis.nbf(), nocc = r.nalpha, natm = static_cast<int>(mol.atoms.size());
+                            const std::vector<int>* atom_number, int spin) {
+  if (spin != 0 && spin != 1) throw Error("localisation: spin must be 0 (alpha) or 1 (beta)");
+  if (spin == 1 && r.reference == Reference::Restricted) throw Error("localisation: a closed-shell wavefunction has no beta set");
+  const Mat& C_s = spin ? r.C_b : r.C_a;
+  const Mat& F_s = spin ? r.F_b : r.F_a;
+  const int nbf = basis.nbf(), nocc = spin ? r.nbeta : r.nalpha, natm = static_cast<int>(mol.atoms.size());
   Eigen::SelfAdjointEigenSolver<Mat> es(r.S);
   Vec sq = es.eigenvalues().cwiseMax(0.0).cwiseSqrt();
   const Mat Sh = es.eigenvectors() * sq.asDiagonal() * es.eigenvectors().transpose();
-  const Mat Cocc = r.C_a.leftCols(nocc);
+  const Mat Cocc = C_s.leftCols(nocc);
   Mat X = Sh * Cocc, U;
   Localised out;
   out.sweeps = pipek_mezey(basis, natm, X, U);
   out.C = Cocc * U;
-  const bool have_f = r.F_a.rows() == nbf;
+  const bool have_f = F_s.rows() == nbf;
 
   auto name = [&](int a) {
     return std::string(element_symbol(mol.atoms[a].Z)) + std::to_string(atom_number ? (*atom_number)[a] + 1 : a + 1);
@@ -93,7 +96,7 @@ Localised localise_occupied(const Molecule& mol, const Basis& basis, const ScfRe
   for (int i = 0; i < nocc; ++i) {
     for (const Shell& s : basis.shells())
       for (int k = 0; k < s.nao; ++k) pop[i][s.atom] += X(s.ao0 + k, i) * X(s.ao0 + k, i);
-    orbs[i].energy = have_f ? out.C.col(i).dot(r.F_a * out.C.col(i)) : 0.0;
+    orbs[i].energy = have_f ? out.C.col(i).dot(F_s * out.C.col(i)) : 0.0;
   }
   std::vector<int> core_left(natm);
   for (int a = 0; a < natm; ++a) core_left[a] = core_orbitals(mol.atoms[a].Z);

@@ -29,8 +29,15 @@ namespace LineProfile
     double unit[3];              // from the first atom towards the second
   };
 
-  /** The line through atoms i and j (0-based), `margin` Angstrom beyond each. */
-  Line throughAtoms(const DensityPlane::Evaluator& ev, int i, int j, double margin);
+  /**
+   * The line through atoms i and j (0-based), `margin` Angstrom beyond each,
+   * moved sideways by `offset` Angstrom: out of the molecular plane (the
+   * plane of the atoms and the line; any perpendicular for a linear
+   * molecule) or within it, perpendicular to the line.  Atom marks still
+   * refer to the unshifted line.
+   */
+  Line throughAtoms(const DensityPlane::Evaluator& ev, int i, int j, double margin,
+                    double offset = 0.0, bool outOfPlane = true);
 
   /** An atom the line passes within `tolerance` Angstrom of. */
   struct Mark { double s; string label; };
@@ -43,7 +50,8 @@ namespace LineProfile
   };
 
   /**
-   * Sample `specs` at `points` positions.  PSI uses each spec's first
+   * Sample `specs` at `points` positions, plus a fine run (0.004 Angstrom)
+   * through each atom the line passes, where the density is sharpest.  PSI uses each spec's first
    * member, signed; PSI2 and DENSITY the weighted sum of |psi|^2 (the
    * total density for a total spec).
    */

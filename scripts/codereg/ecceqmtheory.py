@@ -104,6 +104,11 @@ class EcceqmTheoryPanel(EccePanel):
             chgSizer.AddWidget(EcceCheckBox(self, label=label, name=name,
                                             default=False, export=1))
         self.panelSizer.Add(chgSizer)
+        locSizer = EcceBoxSizer(self, label="Orbitals", cols=1)
+        locSizer.AddWidget(EcceCheckBox(
+            self, label=" Localised orbitals (bonds and lone pairs, same set for each spin)",
+            name="ES.Theory.ECCEQM.Localise", default=True, export=1))
+        self.panelSizer.Add(locSizer)
         self.panelSizer.SetMinSize(wx.Size(380, -1))
 
         self.AddButtons()

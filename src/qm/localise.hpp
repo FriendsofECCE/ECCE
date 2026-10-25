@@ -25,10 +25,11 @@ struct Localised {
   int sweeps = 0;
 };
 
-// Closed-shell (Restricted) results only; the occupied orbitals are the first
-// nalpha columns of C_a.  atom_number: number shown for each atom of mol
+// The occupied orbitals of one spin (0 alpha, 1 beta): the first nalpha
+// columns of C_a, or the first nbeta of C_b.  A closed-shell result has only
+// spin 0; its alpha set is the whole density/2.  atom_number: number shown for each atom of mol
 // (default index + 1), so a molecule with dummy atoms keeps ECCE's numbering.
 Localised localise_occupied(const Molecule& mol, const Basis& basis, const ScfResult& r,
-                            const std::vector<int>* atom_number = nullptr);
+                            const std::vector<int>* atom_number = nullptr, int spin = 0);
 
 }  // namespace qm

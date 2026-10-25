@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -12,7 +13,8 @@ const double MARK_TOLERANCE = 0.3;     // Angstrom
 
 namespace LineProfile {
 
-Line throughAtoms(const DensityPlane::Evaluator& ev, int i, int j, double margin)
+Line throughAtoms(const DensityPlane::Evaluator& ev, int i, int j, double margin,
+                  double offset, bool outOfPlane)
 {
   Line l;
   double len = 0;
@@ -26,6 +28,44 @@ Line throughAtoms(const DensityPlane::Evaluator& ev, int i, int j, double margin
     l.unit[d] = len > 0 ? l.unit[d] / len : (d == 2 ? 1.0 : 0.0);
     l.start[d] = l.origin[d] - margin * l.unit[d];
     l.end[d] = l.origin[d] + (len + margin) * l.unit[d];
+  }
+  if (offset != 0.0) {
+    //  In-plane direction: the part of the atom farthest from the line that
+    //  is perpendicular to it.
+    double a[3] = { 0, 0, 0 }, best = 0;
+    const int natoms = (int)ev.symbols.size();
+    for (int k = 0; k < natoms; k++) {
+      double r[3], along = 0;
+      for (int d = 0; d < 3; d++) {
+        r[d] = ev.coordsAng[3*k + d] - l.origin[d];
+        along += r[d] * l.unit[d];
+      }
+      double c[3], n2 = 0;
+      for (int d = 0; d < 3; d++) { c[d] = r[d] - along * l.unit[d]; n2 += c[d] * c[d]; }
+      if (sqrt(n2) > best) {
+        best = sqrt(n2);
+        for (int d = 0; d < 3; d++) a[d] = c[d] / best;
+      }
+    }
+    if (best < 0.05) {            // linear: any perpendicular
+      int e = 0;
+      for (int d = 1; d < 3; d++) if (fabs(l.unit[d]) < fabs(l.unit[e])) e = d;
+      double ex[3] = { 0, 0, 0 };
+      ex[e] = 1.0;
+      a[0] = ex[1]*l.unit[2] - ex[2]*l.unit[1];
+      a[1] = ex[2]*l.unit[0] - ex[0]*l.unit[2];
+      a[2] = ex[0]*l.unit[1] - ex[1]*l.unit[0];
+      const double n = sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
+      for (int d = 0; d < 3; d++) a[d] /= n;
+    }
+    const double nrm[3] = { l.unit[1]*a[2] - l.unit[2]*a[1],
+                            l.unit[2]*a[0] - l.unit[0]*a[2],
+                            l.unit[0]*a[1] - l.unit[1]*a[0] };
+    const double *dir = outOfPlane ? nrm : a;
+    for (int d = 0; d < 3; d++) {
+      l.start[d] += offset * dir[d];
+      l.end[d] += offset * dir[d];
+    }
   }
   return l;
 }
@@ -43,6 +83,36 @@ bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
   const double startS = -((line.origin[0] - line.start[0]) * line.unit[0] +
                           (line.origin[1] - line.start[1]) * line.unit[1] +
                           (line.origin[2] - line.start[2]) * line.unit[2]);
+  //  Positions as fractions of the line: even steps, and a fine run
+  //  through each atom the line passes.
+  vector<double> ts;
+  for (int n = 0; n < points; n++) ts.push_back(double(n) / (points - 1));
+  if (length > 0) {
+    const double run = 0.25, step = 0.004;
+    for (int a = 0; a < (int)ev.symbols.size(); a++) {
+      double along = 0, perp2 = 0, r[3];
+      for (int d = 0; d < 3; d++) {
+        r[d] = ev.coordsAng[3*a + d] - line.origin[d];
+        along += r[d] * line.unit[d];
+      }
+      for (int d = 0; d < 3; d++) {
+        const double c = r[d] - along * line.unit[d];
+        perp2 += c * c;
+      }
+      if (sqrt(perp2) > MARK_TOLERANCE) continue;
+      const double centre = along - startS;         // from the line's start
+      for (double u = -run; u <= run + 1e-9; u += step) {
+        const double t = (centre + u) / length;
+        if (t > 0.0 && t < 1.0) ts.push_back(t);
+      }
+    }
+    sort(ts.begin(), ts.end());
+    vector<double> kept;
+    for (double t : ts)
+      if (kept.empty() || (t - kept.back()) * length > 1e-9) kept.push_back(t);
+    ts.swap(kept);
+  }
+  points = (int)ts.size();
   out.s.assign(points, 0.0);
   out.curves.assign(specs.size(), RadialDist::Curve());
   for (size_t k = 0; k < specs.size(); k++) {
@@ -50,7 +120,7 @@ bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
     out.curves[k].p.assign(points, 0.0);
   }
   for (int n = 0; n < points; n++) {
-    const double t = double(n) / (points - 1);
+    const double t = ts[n];
     double x[3];
     for (int d = 0; d < 3; d++) x[d] = line.start[d] + t * (line.end[d] - line.start[d]);
     out.s[n] = (startS + t * length) / unitA;

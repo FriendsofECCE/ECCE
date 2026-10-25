@@ -235,6 +235,7 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
   }
   &vectorProp($key{$1}, \@q, "e") if (@q && $key{$1});
 } elsif ($first =~ /^begin localised_orbitals\s+(\w+)/) {
+  my $lspin = ($1 eq 'beta') ? 'BETA' : '';
   # index energy occupation label...; the label's spaces become "_" because a
   # string vector is stored whitespace separated (the MO panel turns them back)
   my (@en, @occ, @lab);
@@ -247,12 +248,17 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
     push(@lab, join("_", @f[3 .. $#f]));
   }
   if (@en) {
-    &vectorProp("LOCMOENG", \@en, "Hartree");
-    &vectorProp("LOCMOOCC", \@occ, "electrons");
-    print "key: LOCMOLABEL\nsize:\n", scalar(@lab), "\nrowlabels:\n";
+    &vectorProp("LOCMOENG$lspin", \@en, "Hartree");
+    &vectorProp("LOCMOOCC$lspin", \@occ, "electrons");
+    print "key: LOCMOLABEL$lspin\nsize:\n", scalar(@lab), "\nrowlabels:\n";
     print join(" ", 1 .. scalar(@lab)), "\nvalues:\n", join(" ", @lab), "\nEND\n";
   }
+} elsif ($first =~ /^localisation_skipped\s+(.*\S)/) {
+  # why no localised set was written; spaces become "_" as in the labels
+  my $why = join("_", split(' ', $1));
+  print "key: LOCMONOTE\nsize:\n1\nrowlabels:\n1\nvalues:\n$why\nEND\n";
 } elsif ($first =~ /^begin localised_mo_coefficients\s+(\w+)/) {
+  my $lkey = ($1 eq 'beta') ? 'LOCMOBETA' : 'LOCMO';
   my @rows;
   foreach my $l (@lines) {
     last if ($l =~ /^end\b/);
@@ -263,7 +269,7 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
   exit(0) if (!@rows);
   my $nmo = scalar(@rows);
   my $nbas = scalar(@{$rows[0]});
-  print "key: LOCMO\nsize:\n$nmo $nbas\nrowlabels:\n";
+  print "key: $lkey\nsize:\n$nmo $nbas\nrowlabels:\n";
   for my $m (1 .. $nmo) {
     print "LMO-$m ";
     print "\n" if (($m % 8) == 0);
