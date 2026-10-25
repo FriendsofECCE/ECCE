@@ -9,7 +9,9 @@
 // Ar, the symmetry of N2 and the node of sigma-u* in H2.
 #include <cmath>
 #include <cstdio>
+#include <cctype>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -414,6 +416,55 @@ static void shiftAndVirtuals(const string& root)
   }
 }
 
+//  Orbital names of an atom from the radial nodes (n = l + nodes + 1).
+static void atomLabels(const string& root)
+{
+  static const char *letters = "spdfgh";
+  //  ne-aug (canonical virtuals, diffuse basis) is reported, not asserted.
+  const char *cases[] = { "ne", "ne-aug", "ne-ivo", "ar" };
+  for (const char *name : cases) {
+    IPropCalculation *calc;
+    DensityPlane::Evaluator ev;
+    if (!load(root, name, calc, ev)) continue;
+    const vector<string> labels = RadialDist::shellLabels(calc, ev, false);
+    vector<double> meanR;
+    const vector<int> nodes = RadialDist::radialNodes(ev, false, &meanR);
+    string line;
+    (void)meanR;
+    for (size_t m = 0; m < labels.size(); m++) line += (m ? ", " : "") + labels[m];
+    fprintf(stderr, "%s labels: %s\n", name, line.c_str());
+    //  The occupied names come from the energy order; the nodes must agree.
+    bool agree = true;
+    int occupied = 0;
+    for (size_t m = 0; m < labels.size(); m++) {
+      const string& l = labels[m];
+      if (l.empty() || l.find("virtual") != string::npos) continue;
+      occupied++;
+      const int n = atoi(l.c_str());
+      const int ang = (int)(strchr(letters, l[l.size() - 1]) - letters);
+      if (m >= nodes.size() || n != ang + nodes[m] + 1) {
+        agree = false;
+        fprintf(stderr, "  MO %zu: %s but %d radial nodes\n", m + 1, l.c_str(),
+                m < nodes.size() ? nodes[m] : -1);
+      }
+    }
+    CHECK(occupied > 0 && agree, (string(name) + ": occupied labels agree with the radial nodes").c_str());
+    int named = 0;
+    for (const string& l : labels)
+      if (l.find("virtual") != string::npos && isdigit((unsigned char)l[0])) named++;
+    if (string(name) == "ne-ivo") {
+      bool s3 = false, p3 = false;
+      for (const string& l : labels) {
+        if (l == "3s (virtual)") s3 = true;
+        if (l == "3p (virtual)") p3 = true;
+      }
+      CHECK(s3 && p3, "Ne IVO in aug-cc-pVDZ: 3s and 3p virtuals");
+    } else if (string(name) != "ne-aug") {
+      CHECK(named == 0, (string(name) + ": canonical virtuals carry no principal quantum number").c_str());
+    }
+  }
+}
+
 int main(int argc, char **argv)
 {
   numerics();
@@ -429,5 +480,6 @@ int main(int argc, char **argv)
   argon(argv[1]);
   diatomics(argv[1]);
   shiftAndVirtuals(argv[1]);
+  atomLabels(argv[1]);
   return failures ? 1 : 0;
 }
