@@ -2011,6 +2011,17 @@ CASES = [
         },
     ),
     dict(
+        #  CPCM water: the polarisation energy (already in TE) and the model.
+        name='ecceqm-h2o-cpcm',
+        desc='ecceqm.desc',
+        fixture='ecceqm/h2o_cpcm.qmout',
+        parse_args=('.', 'Energy', 'SCF', 'HF', '0'),
+        expect={
+            'EPCM': dict(keys={'EPCM': {'units': 'Hartree'}}),
+            'SOLVMODEL': dict(keys={'SOLVMODEL': {'values': 'CPCM, Water'}}),
+        },
+    ),
+    dict(
         #  HF/STO-3G IRC from the HCN/HNC TS, 3 points per direction (#452):
         #  7 structures, the TS in the middle, one per IRCCOORD point.
         name='ecceqm-hcn-irc',

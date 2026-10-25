@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include "integrals.hpp"
+#include "solvent.hpp"
 
 namespace qm {
 
@@ -163,6 +164,9 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   // Initial guess: the orbitals of a neighbouring geometry, made orthonormal
   // against this S (Cholesky keeps the beta set inside the alpha set for
   // ROHF), or else a superposition of spin-averaged atomic densities.
+  std::unique_ptr<CpcmField> pcm;
+  if (opt.solvent_eps > 0) pcm.reset(new CpcmField(basis, mol, opt.solvent_eps, opt.cavity_scale));
+
   Mat Da, Db;
   auto mix_frontier = [&](Mat C) {
     if (!(opt.guess_mix && ref == Reference::Unrestricted && na == nb && na > 0 && na < C.cols())) return C;
@@ -247,9 +251,19 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
       Fb += Vb;
     }
     const Mat Dt = Da + Db;
+    double Esolv = 0;
+    if (pcm) {  // reaction field of the current density
+      const Vec V = pcm->potential(Dt);
+      const Vec q = pcm->cavity().charges(V);
+      Esolv = 0.5 * q.dot(V);
+      const Mat Fs = pcm->fock(q);
+      Fa += Fs;
+      Fb += Fs;
+    }
     const double E1 = (Dt.array() * H.array()).sum();
     const double EJ = 0.5 * (Dt.array() * Jt.array()).sum();
-    const double E = E1 + EJ + EK + Exc + R.e_nuc;
+    const double E = E1 + EJ + EK + Exc + R.e_nuc + Esolv;
+    R.e_solvent = Esolv;
     R.e_one = E1; R.e_coulomb = EJ; R.e_exchange_hf = EK; R.e_xc = Exc;
 
     // ---- error vector, effective Fock ----

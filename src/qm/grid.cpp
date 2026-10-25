@@ -12,6 +12,16 @@ std::vector<int> lebedev_sizes() {
   return v;
 }
 
+std::vector<std::array<double, 4>> lebedev_rule(int npts) {
+  for (const auto& e : leb_registry)
+    if (e.npts == npts) {
+      std::vector<std::array<double, 4>> v(npts);
+      for (int i = 0; i < npts; ++i) for (int c = 0; c < 4; ++c) v[i][c] = e.data[i][c];
+      return v;
+    }
+  throw Error("no Lebedev grid with " + std::to_string(npts) + " points");
+}
+
 namespace {
 
 // Treutler-Ahlrichs radial scaling xi (Z = 1..36); 1.0-1.3 beyond.

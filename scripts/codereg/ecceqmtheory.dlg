@@ -2,7 +2,7 @@
 # dialog as ecceqmtheory.py.  Keep the two in step: tests/dialogs/native_test.py
 # compares what they send.  Functionals here are XC_FUNCTIONALS in the .py.
 
-dialog title="ECCE-QM Editor: Theory Details" minwidth=380 message=hide
+dialog title="ECCE-QM Editor: Theory Details" minwidth=380
 
 box label="DFT Functional" when="category==DFT"
 combo name=ES.Theory.DFT.XCFunctionals label="Functional:" choices="SVWN|PBE|B3LYP|PBE0" default=B3LYP export=1
@@ -20,3 +20,10 @@ check name=ES.Theory.ECCEQM.MK label=" Merz-Kollman (fitted to the electrostatic
 box label="Orbitals"
 check name=ES.Theory.ECCEQM.Localise label=" Localised orbitals (bonds and lone pairs, same set for each spin)" default=1 export=1
 combo name=ES.Theory.ECCEQM.Virtuals label="Virtual orbitals:" choices="Canonical|Improved (IVO)" default=Canonical export=1
+
+# Implicit solvent (CPCM).  Energies and orbitals only: the engine has no
+# solvent gradient, so other run types are warned about in the message area.
+box label="Solvent"
+combo name=ES.Theory.ECCEQM.Solvent label="Solvent:" choices="None|Water|Methanol|Ethanol|Acetonitrile|DMSO|Chloroform|Toluene|Hexane|Custom" default=None export=1
+float name=ES.Theory.ECCEQM.Epsilon label="Dielectric constant (Custom):" default=78.4 hard="[1..)" soft="[1.5..110]" export=1 enable_if="ES.Theory.ECCEQM.Solvent==Custom"
+status text="Solvent: only energies and orbitals are available; this run type will be refused by the engine" when="ES.Theory.ECCEQM.Solvent!=None && runtype!=Energy"

@@ -46,6 +46,11 @@ my %energyKey = (
 
 if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
   &scalarProp($energyKey{$1}, $2, "Hartree");
+} elsif ($first =~ /^solvation_energy\s+(\S+)/) {
+  # q.V/2 of the CPCM surface charges, already in energy_total; not E(sol) - E(gas)
+  &scalarProp("EPCM", $1, "Hartree");
+} elsif ($first =~ /^solvent_model\s+(.*\S)/) {
+  print "key: SOLVMODEL\nsize:\n1\nvalues:\n$1\nunits:\nNA\nEND\n";
 } elsif ($first =~ /^energy_step\s+(\S+)/) {
   &scalarProp("TEVEC", $1, "Hartree");
 } elsif ($first =~ /^begin geometry\b/) {

@@ -279,6 +279,17 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "energy_exchange_hf " << r.e_exchange_hf << "\n";
   os << "energy_xc " << r.e_xc << "\n";
   if (dft) os << "grid_electrons " << r.xc_electrons << "\n";
+  if (in.scf.solvent_eps > 0) {
+    // Polarisation energy of the medium (q.V/2), already in energy_total.
+    os << "solvent " << in.solvent << "\nsolvent_epsilon " << in.scf.solvent_eps << "\n";
+    os << "solvation_energy " << r.e_solvent << "\nsolvation_energy_kjmol " << r.e_solvent * 2625.4996394799 << "\n";
+    char eb[32];
+    std::snprintf(eb, sizeof eb, "%.1f", in.scf.solvent_eps);
+    std::string nm = in.solvent;
+    if (nm == "epsilon") nm = std::string("\xCE\xB5 = ") + eb;
+    else nm[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(nm[0])));
+    os << "solvent_model CPCM, " << nm << "\n";
+  }
   // A closed-shell restricted run has <S^2> = 0 by construction, so it is
   // not listed (#390); open-shell runs (ROHF/ROKS and UHF/UKS) keep it.
   if (r.reference != Reference::Restricted)

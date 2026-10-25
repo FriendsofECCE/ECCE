@@ -7,6 +7,8 @@ from templates import *
 
 XC_FUNCTIONALS = ["SVWN", "PBE", "B3LYP", "PBE0"]
 XC_DEFAULT = "B3LYP"
+SOLVENTS = ["None", "Water", "Methanol", "Ethanol", "Acetonitrile", "DMSO",
+            "Chloroform", "Toluene", "Hexane", "Custom"]
 
 
 class EcceUnrestrictedRadio(wx.RadioButton):
@@ -115,17 +117,40 @@ class EcceqmTheoryPanel(EccePanel):
                                         label="Virtual orbitals:",
                                         export=1))
         self.panelSizer.Add(locSizer)
+        # CPCM implicit solvent; the engine has no solvent gradient, so only
+        # energy runs work and other run types get a warning here.
+        solvSizer = EcceBoxSizer(self, label="Solvent", cols=1)
+        self.solvent = EcceComboBox(self,
+                                    choices=SOLVENTS,
+                                    name="ES.Theory.ECCEQM.Solvent",
+                                    default=0,
+                                    label="Solvent:",
+                                    export=1)
+        solvSizer.AddWidget(self.solvent)
+        self.epsilon = EcceFloatInput(self,
+                                      name="ES.Theory.ECCEQM.Epsilon",
+                                      default=78.4,
+                                      hardRange="[1..)",
+                                      softRange="[1.5..110]",
+                                      label="Dielectric constant (Custom):",
+                                      export=1)
+        solvSizer.AddWidget(self.epsilon)
+        self.panelSizer.Add(solvSizer)
         self.panelSizer.SetMinSize(wx.Size(380, -1))
 
         self.AddButtons()
-        # No input here can be invalid, so the empty message box is dropped.
-        self.msg.Hide()
 
     def CheckDependency(self):
         openShell = EcceGlobals.SpinMultiplicity > 1
         self.restricted.Enable(openShell)
         self.unrestricted.Enable(openShell)
         self.closedNote.Show(not openShell)
+        solvent = self.solvent.GetValue()
+        self.epsilon.Enable(solvent == "Custom")
+        if solvent != "None" and EcceGlobals.RunType != "Energy":
+            self.SetStatusText("Solvent: only energies and orbitals are available; "
+                               "this run type will be refused by the engine",
+                               EcceGlobals.WARNING)
         self.Layout()
 
 
