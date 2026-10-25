@@ -99,8 +99,10 @@ def main():
                 with open(script, "w") as handle:
                     handle.write("examples %s\n" % setId)
                 env = {"ECCE_TEST_ORGANIZER": script}
+            # The Organizer stays up until the property files are written:
+            # a parse of a large set under load outlasts any fixed settle.
             result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                              env=env)
+                              env=env, inspect=lambda _display: watcher.join())
             watcher.join()
         finally:
             subprocess.run([os.path.join(apps.INSTALL, "bin",

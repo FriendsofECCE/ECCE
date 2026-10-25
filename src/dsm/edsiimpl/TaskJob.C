@@ -1375,6 +1375,20 @@ void TaskJob::getDataFile(JCode::CodeFileType type, TypedFile& dataFile) const
       if (find(declared.begin(), declared.end(), tail) != declared.end()) continue;
       candidates.push_back(outputs[i]);
     }
+    //  A run imported with its companion (MOPAC's ammonia.mgf beside
+    //  ammonia.out) has two undeclared outputs; the companion is a
+    //  machine-readable extract, never the program's output text.
+    if (candidates.size() > 1) {
+      vector<EcceURL> text;
+      for (size_t i = 0; i < candidates.size(); i++) {
+        const string tail = candidates[i].getFilePathTail();
+        const size_t dot = tail.rfind('.');
+        const string ext = dot == string::npos ? "" : tail.substr(dot);
+        if (ext != ".mgf" && ext != ".arc" && ext != ".aux")
+          text.push_back(candidates[i]);
+      }
+      if (!text.empty()) candidates = text;
+    }
     if (candidates.size() == 1) {
       dataFile.setName(candidates[0].getFilePathTail());
       //  The callers refuse a file with no type, and a file the data
