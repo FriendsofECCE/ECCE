@@ -392,15 +392,23 @@ vector<double> mapLevels(const Map& m, bool& scaled)
 {
   const bool orbital = m.quantity == ORBITAL;
   const double top = orbital ? std::max(fabs(m.zmin), fabs(m.zmax)) : m.zmax;
-  vector<double> l = orbital ? orbitalLevels(top) : densityLevels(top);
   scaled = false;
-  if (l.size() >= 3 || !(top > 0)) return l;
-  scaled = true;
-  l.clear();
-  //  Two significant digits: the legend prints these.
-  for (int k = orbital ? 6 : 8; k >= 1; k--) {
+  if (!(top > 0)) return vector<double>();
+  const double base = orbital ? 0.02 : 0.001;
+  const size_t want = orbital ? 6 : 8, most = orbital ? 6 : 14;
+  //  One fixed ladder (base * 2^k) for every plane, so maps compare; a weak
+  //  plane gets the ladder continued downwards.  No threshold on the maximum,
+  //  so a small change of offset never changes the level set by more than
+  //  the top or bottom level.
+  int k = -40;
+  while (k < 40 && base * pow(2.0, k) < top) k++;
+  const int hi = std::min(k - 1, (int)most - 1);
+  int lo = 0;
+  if (hi - lo + 1 < (int)want) lo = hi - (int)want + 1;
+  vector<double> l;
+  for (int j = lo; j <= hi; j++) {
     char buf[32];
-    snprintf(buf, sizeof buf, "%.2g", top / pow(2.0, k));
+    snprintf(buf, sizeof buf, "%.2g", base * pow(2.0, j));
     l.push_back(atof(buf));
   }
   return l;

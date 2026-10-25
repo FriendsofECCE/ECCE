@@ -26,6 +26,7 @@
 #include "inv/nodes/SoCamera.H"
 #include "tdat/Fragment.H"
 #include "util/Event.H"
+#include "wxgui/ewxConfig.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 #include "viz/SGPlane.H"
@@ -43,7 +44,7 @@ const wxWindowID ID_SHOW = wxNewId(), ID_SPIN = wxNewId(), ID_MO = wxNewId(),
                  ID_PLANE = wxNewId(), ID_ATOM = wxNewId(),
                  ID_PNG = wxNewId(), ID_CSV = wxNewId(),
                  ID_OFFSET = wxNewId(), ID_VIEW = wxNewId(),
-                 ID_FIELD = wxNewId(), ID_RESET = wxNewId();
+                 ID_FIELD = wxNewId(), ID_RESET = wxNewId(), ID_PLANETOGGLE = wxNewId();
 
 const char *PLANE_NAME = "DensityMapPlane";
 const double MARGIN = 1.5;            // A beyond the atoms' extent
@@ -98,7 +99,7 @@ DensityMapPanel::DensityMapPanel()
     p_inViewer(false), p_dragging(false), p_show(0), p_spin(0), p_atomA(0),
     p_atomB(0), p_atomC(0), p_plane(0), p_offsetField(0), p_resetOffset(0),
     p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
-    p_viewRow(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
+    p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
 {
 }
 
@@ -263,6 +264,17 @@ void DensityMapPanel::build()
   row1->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0);
 
   top->Add(row1, 0, wxEXPAND | wxALL, 6);
+  //  The plane controls take most of the height; the choice is remembered.
+  p_planeToggle = new wxButton(this, ID_PLANETOGGLE, wxEmptyString,
+                               wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+  p_planeToggle->SetToolTip("Show or hide the plane choice and its atoms");
+  {
+    bool open = true;
+    ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+    if (cfg) cfg->Read("/DensityMap/PlaneControlsOpen", &open, true);
+    p_planeOpen = open;
+  }
+  top->Add(p_planeToggle, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_atomRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_viewRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -299,6 +311,8 @@ void DensityMapPanel::build()
     commitOffsetField();
     e.Skip();
   });
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { setPlaneControlsOpen(!p_planeOpen); },
+       ID_PLANETOGGLE);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { setOffset(0.0); }, ID_RESET);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { useCurrentView(); }, ID_VIEW);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -432,9 +446,22 @@ void DensityMapPanel::syncControls()
   p_labelA->Show(two || three);  p_atomA->Show(two || three);
   p_labelB->Show(two || three);  p_atomB->Show(two || three);
   p_labelC->Show(three);         p_atomC->Show(three);
-  GetSizer()->Show(p_atomRow, two || three, true);
-  GetSizer()->Show(p_viewRow, plane == 3, true);
+  p_planeToggle->SetLabel(p_planeOpen ? "Hide plane controls" : "Show plane controls");
+  GetSizer()->Show(p_plane, p_planeOpen, true);
+  GetSizer()->Show(p_atomRow, p_planeOpen && (two || three), true);
+  GetSizer()->Show(p_viewRow, p_planeOpen && plane == 3, true);
   Layout();
+}
+
+void DensityMapPanel::setPlaneControlsOpen(bool open)
+{
+  p_planeOpen = open;
+  ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+  if (cfg) {
+    cfg->Write("/DensityMap/PlaneControlsOpen", open);
+    cfg->Flush();
+  }
+  if (p_eval) syncControls();
 }
 
 void DensityMapPanel::onChanged()
@@ -506,13 +533,10 @@ void DensityMapPanel::compute(bool coarse)
   p_map = out;
   p_haveMap = true;
   p_canvas->show(p_map);
-  bool scaled = false;
-  mapLevels(p_map, scaled);
   p_statusText = coarse ? "Coarse grid while dragging"
-      : scaled ? "Contours scaled to the plane's maximum, each level double the last"
       : p_map.quantity == ORBITAL
-          ? "Contours from +-0.02, each level double the last; dashed is negative"
-          : "Contours from 0.001, each level double the last";
+          ? "Each contour level is double the last; dashed is negative"
+          : "Each contour level is double the last";
   relayout();
   drawPlaneInViewer();
 }

@@ -154,11 +154,6 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     ly += 17;
   }
   dc.SetTextForeground(wxColour(80, 80, 80));
-  if (scaled) {
-    dc.DrawText("levels scaled", lx, ly);
-    dc.DrawText("to the plane's max", lx, ly + 15);
-    ly += 33;
-  }
   dc.DrawText(wxString::Format("max %.3g", m.zmax), lx, ly + 8);
   if (m.quantity == ORBITAL)
     dc.DrawText(wxString::Format("min %.3g", m.zmin), lx, ly + 25);

@@ -298,6 +298,9 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
   } else if (cmd == "dmplane" && w.size() == 2) {
     //  The plane radio box, as a click on entry N does.
     ok = dm->choosePlane(atoi(w[1].c_str()));
+  } else if (cmd == "dmcollapse" && w.size() == 2) {
+    //  The "Hide/Show plane controls" button: 1 = collapsed.
+    dm->setPlaneControlsOpen(w[1] == "0");
   } else if (cmd == "dmclose") {
     //  What setDetail does to a panel another one replaces.
     dm->Show(false);
