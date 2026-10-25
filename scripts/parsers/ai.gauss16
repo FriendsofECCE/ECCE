@@ -1409,16 +1409,24 @@ sub GeomOptions {
   
   $result = "=(";
   $result .= &ZcoordConstraints();
-  $result .= &StationaryPointType(&isQstRunType($AbiDict{"RunType"})
-                                  ? "Transition State (QST)"
-                                  : $AbiDict{"SearchFor"});
+  my $stationary = &StationaryPointType(&isQstRunType($AbiDict{"RunType"})
+                                        ? "Transition State (QST)"
+                                        : $AbiDict{"SearchFor"});
+  my $hessian = &isQstRunType($AbiDict{"RunType"}) ? ""
+              : &ComputeHessian($AbiDict{"InitialHessian"});
+  # CalcAll and ReadFC replace the CalcFC that a TS search always carries;
+  # both together would ask Gaussian for two sources of force constants.
+  $stationary =~ s/calcfc // if ($hessian =~ /^(CalcAll|ReadFC) /);
+  $result .= $stationary;
   $result .= &ConvergenceToleranceGeom
              ($AbiDict{"ES.Runtype.GeomOpt.ConvergenceGradient"});
   $result .= 
     &FlaggedConvergenceIterations(
     $AbiDict{"ES.Runtype.GeomOpt.MaximumStepsValue"});
+  $result .= $hessian;
   if (!&isQstRunType($AbiDict{"RunType"})) {
-    $result .= &ComputeHessian($AbiDict{"InitialHessian"});
+    my $recalc = $AbiDict{"ES.Runtype.GeomOpt.RecalcFC"};
+    $result .= "RecalcFC=$recalc " if (defined($recalc) && $recalc =~ /^\d+$/ && $recalc > 0);
   }
 
   if ($AbiDict{"ES.Theory.UseCartesian"}) {
@@ -1625,6 +1633,10 @@ sub ComputeHessian {
 
   if ($inithess eq "Calculate") {
     $result = "CalcFC ";
+  } elsif ($inithess =~ /^Calculate at every step/) {
+    $result = "CalcAll ";
+  } elsif ($inithess =~ /^Read from checkpoint/) {
+    $result = "ReadFC ";
   }
 
   return $result;

@@ -605,6 +605,19 @@ sub gaussian
             "says which one.");
   }
 
+  #  Opt=ReadFC takes the force constants from the checkpoint of an
+  #  earlier calculation, which reaches the job as %OldChk (the orbital
+  #  guess in the Calculation Editor).  Without one Gaussian has nothing
+  #  to read; a warning only, since Final Edit may supply it some other way.
+  if ($whole =~ /\breadfc\b/i && $whole !~ /^\s*%oldchk\s*=/mi) {
+    finding("UNSURE", $routeAt + 1, "link0",
+            "The route card says Opt=ReadFC, but no %OldChk names the " .
+            "checkpoint file of an earlier calculation to read the force " .
+            "constants from. Pick that calculation's checkpoint as the " .
+            "orbital guess in the Calculation Editor, or Gaussian will " .
+            "stop for lack of force constants.");
+  }
+
   #  SYMMETRY OFF IS A CHOICE WITH A CONSEQUENCE, so say it before
   #  the job runs rather than after.
   #

@@ -642,6 +642,11 @@ sub ORCABlocks {
     my $maxsteps = $AbiDict{"ES.Runtype.GeomOpt.MaximumStepsValue"};
     my $geom = "";
     $geom .= "  MaxIter $maxsteps\n" if ($maxsteps ne "");
+    $geom .= "  Calc_Hess true\n"
+      if ($AbiDict{"ES.Runtype.GeomOpt.InitialHessian"} eq "Calculate");
+    my $recalc = $AbiDict{"ES.Runtype.GeomOpt.RecalcFC"};
+    $geom .= "  Recalc_Hess $recalc\n"
+      if (defined($recalc) && $recalc =~ /^\d+$/ && $recalc > 0);
     $geom .= " Constraints\n" . join("", @orcaConstraints) . " end\n"
       if (@orcaConstraints);
     $geom .= join("", @orcaScans);

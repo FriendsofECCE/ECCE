@@ -259,6 +259,7 @@ c6v
 c7
 c8
 cadmium
+calcall
 calcfc
 calcium
 calculate
@@ -732,8 +733,10 @@ range
 rccd
 rdft
 read
+readfc
 readwindow
 real
+recalcfc
 recognition
 removing
 replaced
