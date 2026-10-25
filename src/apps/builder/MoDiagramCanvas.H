@@ -1584,22 +1584,25 @@ class MoDiagramCanvas : public wxPanel
         //  vertically puts a label where no level is.  Capped at two
         //  steps, because three marched "3t2 nb" into the chlorine
         //  column; past that, a row above or below.
+        //  Past that, a free row at the first position, nearest first,
+        //  joined to its level by a leader; labels may not overlap.
         int step = 0, ly = home;
-        for (int attempt = 0; attempt < 8; attempt++) {
-          const int sideways = (attempt < 3) ? attempt : 2;
-          const int rows = (attempt < 3) ? 0 : (attempt - 1)/2;
-          const int sign = (attempt % 2 == 1) ? -1 : +1;
-          const int candidate = home + sign*rows*tall;
-
-          bool clash = false;
-          for (size_t k = 0; k < p_placed.size(); k++) {
+        bool found = false;
+        auto free = [&](int cand, int sideways) {
+          for (size_t k = 0; k < p_placed.size(); k++)
             if (p_placed[k].second == sideways &&
-                abs(candidate - p_placed[k].first) < tall) {
-              clash = true;
-            }
+                abs(cand - p_placed[k].first) < tall) return false;
+          return true;
+        };
+        for (int attempt = 0; attempt < 3 && !found; attempt++)
+          if (free(home, attempt)) { step = attempt; ly = home; found = true; }
+        for (int k = 1; k <= 14 && !found; k++)
+          for (int sign = 1; sign >= -1 && !found; sign -= 2) {
+            const int cand = home + sign*k*tall;
+            if (free(cand, 0)) { step = 0; ly = cand; found = true; }
           }
-          if (!clash || attempt == 7) { step = sideways; ly = candidate; break; }
-        }
+        if (!found) return;   // no room: the level itself is still drawn
+
         p_placed.push_back(std::make_pair(ly, step));
 
         //  Clear of the line by more than a couple of pixels: at
@@ -1611,6 +1614,11 @@ class MoDiagramCanvas : public wxPanel
         //  Right-aligned block on the left of a column, left-aligned on the right.
         const int ox = (p_outward < 0) ? lx + blockW - extent.x : lx;
 
+        if (abs(ly + extent.y/2 - y) > 3) {
+          dc.SetPen(wxPen(wxColour(170, 170, 170), 1));
+          dc.DrawLine((p_outward < 0) ? x - 2 : x + width + 2, y,
+                      (p_outward < 0) ? lx + blockW + 2 : lx - 2, ly + extent.y/2);
+        }
         drawPieces(dc, pieces, ox, ly, base, small, extent.y);
 
         //  Clear of the annotation, which is written under the label

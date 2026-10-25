@@ -42,7 +42,7 @@ Plane::Plane() : rms(0.0), offset(0.0)
 }
 
 Map::Map() : quantity(DENSITY), mo(0), beta(false), nu(0), nv(0), u0(0),
-             v0(0), step(0.05), zmin(0), zmax(0) {}
+             v0(0), step(0.05), zmin(0), zmax(0), levelTop(0) {}
 
 //  Eigen-decomposition of the 3x3 covariance (Jacobi): the smallest
 //  spread is the plane's normal, the largest its long axis.
@@ -391,7 +391,8 @@ vector<double> orbitalLevels(double zabsmax, int maxLevels)
 vector<double> mapLevels(const Map& m, bool& scaled)
 {
   const bool orbital = m.quantity == ORBITAL;
-  const double top = orbital ? std::max(fabs(m.zmin), fabs(m.zmax)) : m.zmax;
+  const double top = m.levelTop > 0 ? m.levelTop
+      : orbital ? std::max(fabs(m.zmin), fabs(m.zmax)) : m.zmax;
   scaled = false;
   if (!(top > 0)) return vector<double>();
   const double base = orbital ? 0.02 : 0.001;
@@ -554,7 +555,8 @@ double Evaluator::orbital(int mo, bool beta, double x, double y, double z) const
 
 bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
                     double step, double margin, Map& out,
-                    std::function<bool(double)> onRow) const
+                    std::function<bool(double)> onRow,
+                    const double *win) const
 {
   out = Map();
   out.quantity = q; out.mo = mo; out.beta = beta; out.plane = plane;
@@ -572,7 +574,8 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
     out.atoms.push_back(mk);
   }
   double wu0, wu1, wv0, wv1;
-  window(plane, coordsAng, margin, wu0, wu1, wv0, wv1);
+  if (win) { wu0 = win[0]; wu1 = win[1]; wv0 = win[2]; wv1 = win[3]; }
+  else window(plane, coordsAng, margin, wu0, wu1, wv0, wv1);
   out.nu = (int)ceil((wu1 - wu0)/step) + 1;
   out.nv = (int)ceil((wv1 - wv0)/step) + 1;
   if ((long)out.nu*out.nv > 1000000) return false;
