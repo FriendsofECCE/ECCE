@@ -3,10 +3,10 @@
 
     tests/apps/examples_preparsed_test.py
 
-Per file-output example set (general, organic, spectroscopy), two imports in a
+Per file-output example set (getting-started, organic, spectroscopy), two imports in a
 fresh state each: one with
 ECCE_NO_PREPARSED=1 (the output parsers run), one as shipped (the stored
-copies under data/client/examples/<set>/<example>/stored are copied).  Every
+copies under data/client/examples/<set>/[<topic>/]<example>/stored are copied).  Every
 file of every example calculation must be the same both ways, and every stored
 property too, except dates, the user, the machine and job directories.  The
 copying arm must really have copied all five, so a stale copy that quietly
@@ -23,8 +23,9 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKIP = 77
 # set folder -> (project it is imported into, number of calculations)
-SETS = {"general": ("Examples", 5), "organic": ("Examples_Organic", 21),
-        "spectroscopy": ("Examples_Spectroscopy", 19)}
+SETS = {"getting-started": ("Examples/Getting_Started", 5),
+        "organic": ("Examples/Organic_Chemistry", 21),
+        "spectroscopy": ("Examples/Spectroscopy", 19)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",
@@ -105,6 +106,12 @@ def compare(parsed, copied):
     return problems
 
 
+def calcDirs(project):
+    """{name: path} of the calculations below a set's project (topics nest)."""
+    return {os.path.basename(b): b for b, d, _f in os.walk(project)
+            if "Props" in d}
+
+
 def checkSet(work, setId, failures):
     project, count = SETS[setId]
     arms = {}
@@ -129,22 +136,20 @@ def checkSet(work, setId, failures):
                                    arms["parse"].group(4)))
     pdir = os.path.join(work, setId, "parse", project)
     cdir = os.path.join(work, setId, "copy", project)
-    if sorted(os.listdir(pdir)) != sorted(os.listdir(cdir)):
+    pcalcs, ccalcs = calcDirs(pdir), calcDirs(cdir)
+    if sorted(pcalcs) != sorted(ccalcs):
         failures.append("%s calculations differ: %s and %s"
-                        % (setId, sorted(os.listdir(pdir)),
-                           sorted(os.listdir(cdir))))
+                        % (setId, sorted(pcalcs), sorted(ccalcs)))
         return 0
-    for calc in sorted(os.listdir(pdir)):
-        if calc.startswith("."):
-            continue
-        problems = compare(os.path.join(pdir, calc), os.path.join(cdir, calc))
+    for calc in sorted(pcalcs):
+        problems = compare(pcalcs[calc], ccalcs[calc])
         if problems:
             failures.append("%s/%s: %d differences" % (setId, calc, len(problems)))
             print("FAIL  %s/%s\n      %s" % (setId, calc, "\n      ".join(
                 problems[:25])))
         else:
             print("ok    %s/%s: copy and parse agree (%d files)"
-                  % (setId, calc, len(files(os.path.join(pdir, calc)))))
+                  % (setId, calc, len(files(pcalcs[calc]))))
     return 0
 
 

@@ -13,7 +13,7 @@ import sys
 import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-EX = os.path.join(ROOT, "data", "client", "examples", "mopac-ammonia") + "/"
+EX = os.path.join(ROOT, "data", "client", "examples", "getting-started", "mopac-ammonia") + "/"
 
 with tempfile.TemporaryDirectory() as work:
     os.symlink(EX + "ammonia.out", os.path.join(work, "ammonia.out"))

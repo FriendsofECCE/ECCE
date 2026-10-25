@@ -59,7 +59,7 @@ itself. Nothing is attached by hand.
 2. Under **Structure**, choose **Source:** `Protein (pdb2gmx)`, and
    **Structure:** `PDB file...`. A file dialog opens. Choose `1l2y.pdb`:
    ECCE ships it in its examples folder, on Linux
-   `/opt/ecce/data/client/examples/computational/gromacs-trpcage/1-prepare/1l2y.pdb`
+   `/opt/ecce/data/client/examples/computational/gromacs/gromacs-trpcage/1-prepare/1l2y.pdb`
    (in the file dialog, type Ctrl+L and paste the path). A file downloaded
    from the Protein Data Bank works as well. The name of the file's copy,
    `1l2y.gmxpdb`, is shown under **Browse...**.
@@ -148,7 +148,7 @@ The energies a task stores are the ones `gmx energy` reads from the run.
 
 ## Example
 
-The files of this calculation are in `data/client/examples/computational/gromacs-trpcage`
+The files of this calculation are in `data/client/examples/computational/gromacs/gromacs-trpcage`
 in the ECCE installation: the PDB file, the Prepare recipe, the three
 `.mdp` files and the energies of each run. They are a reference to check
 your own settings against. To open it in the Organizer, choose

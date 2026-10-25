@@ -181,7 +181,7 @@ def orcaCase(s, display, env, wrappers, project, png):
               "new calculation's coordinates equal IRC frame 3")
 
 
-EXAMPLE = os.path.join(REPO, "data", "client", "examples", "organic", "orca-sn2_irc")
+EXAMPLE = os.path.join(REPO, "data", "client", "examples", "organic", "reactions", "orca-sn2_irc")
 
 
 def exampleCase(s, display, env, wrappers, project, png):

@@ -25,6 +25,7 @@
 #include "wx/msw/wrapwin.h"
 #endif
 
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include "ReleaseNotice.H"
@@ -150,6 +151,9 @@ static string progressKey(const EcceURL & url);
 #include <sys/stat.h>
 #include <chrono>
 #include <set>
+
+// The example set (folder name) the first start imports.
+static const char *const kFirstStartSet = "getting-started";
 #include <wx/dirdlg.h>
 #include "CalcMgr.H"
 
@@ -549,9 +553,9 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = "done";
     } else if (command == "examples") {
       // File > Open Example Calculations
-      // "examples SET" imports a set without the dialog (default general)
+      // "examples SET" imports a set without the dialog (default getting-started)
       string message;
-      const string set = line.size() > command.size() + 1 ? calcName : "general";
+      const string set = line.size() > command.size() + 1 ? calcName : kFirstStartSet;
       bool created = false;
       string made = openExampleSet(set, message,
                                    created);
@@ -3044,94 +3048,152 @@ void CalcMgr::OnImportGromacsClick( wxCommandEvent& event )
 
 /**
  * The shipped example calculations are program outputs (data/client/examples/
- * <set>/<calc>), imported as any output is.  Each set goes into its own
- * project, once: asking again selects it, so a user's own copy is never
- * overwritten.  Its "ecce:exampleSet" metadata says which version of the
- * example sets it was made from, for a later "newer examples" notice.
- * A set is listed only if its folder holds a set.txt (display name, then
- * one line of description).
+ * <set>/[<topic>/]<example>), imported as any output is.  Each set goes into
+ * its own project below the project "Examples", its topics into projects
+ * below that: Examples/<Set>/<Topic>/<calculation>.  Asking again selects
+ * the set, so a user's own copy is never overwritten.  The set project's
+ * "ecce:exampleSet" metadata says which version of the example sets it was
+ * made from.
+ *
+ * What is shipped is data: a set is a folder with a set.txt (line 1 the
+ * name, line 2 one line of description, then one "folder|Topic name" line
+ * per topic); an example is a folder in a topic folder (or directly in the
+ * set, then without a topic) holding one output and its stored/ copy.
+ * Project names allow no spaces, so spaces become underscores in the tree.
  */
 namespace {
-struct ExampleSet {
-  const char *id;            // folder name under data/client/examples
-  const char *project;       // project names allow no spaces
-  vector<const char *> outputs;
+struct ExampleOut {
+  string rel;      // output (or GROMACS run folder), relative to the set folder
+  string dirRel;   // the example's folder, relative to the set folder
+  string name;     // the example's folder name, e.g. "orca-benzene"
+  string calc;     // the calculation's name once imported, e.g. "benzene"
+  bool run;        // a GROMACS run folder
 };
-// "general" keeps the project name earlier versions used.  At most five
-// calculations there: it is imported at every user's first start.
-const vector<ExampleSet>& exampleSets()
+struct ExampleTopic {
+  string name;                 // "" = directly in the set's project
+  vector<ExampleOut> outputs;
+};
+struct ExampleSet {
+  string id, title, line, project;
+  vector<ExampleTopic> topics;
+  size_t size() const {
+    size_t n = 0;
+    for (const ExampleTopic &t : topics) n += t.outputs.size();
+    return n;
+  }
+};
+const char *const kExamplesTop = "Examples";
+const char *const kExampleSetVersion = "10";
+
+string treeName(string s)
 {
-  static const vector<ExampleSet> sets = {
-    {"general", "Examples", {
-      "ecceqm-water/water.qmout",
-      "orca-benzene/benzene.out",
-      "ecceqm-ethanol/ethanol.qmout",
-      "mopac-ammonia/ammonia.out",
-      "nwchem-methane/methane.eprint"}},
-    {"computational", "Examples_Computational", {
-      "gromacs-trpcage"}},
-    {"genchem", "Examples_GeneralChemistry", {
-      "gromacs-ar-gas", "gromacs-he-gas", "gromacs-ar-liquid",
-      "gromacs-water-spce", "gromacs-decane-opls",
-      "gromacs-nacl-dissolving", "gromacs-ice-to-steam"}},
-    {"organic", "Examples_Organic", {
-      "ecceqm-ethane/ethane.qmout",
-      "ecceqm-ethene/ethene.qmout",
-      "ecceqm-ethyne/ethyne.qmout",
-      "ecceqm-ethane-scan/ethane_scan.qmout",
-      "ecceqm-butane-scan/butane_scan.qmout",
-      "ecceqm-nma-scan-forward/nma_scan.qmout",
-      "ecceqm-nma-scan-reverse/nma_scan_rev.qmout",
-      "orca-benzene/benzene.out",
-      "orca-butadiene/butadiene.out",
-      "orca-ethylene/ethylene.out",
-      "orca-cyclohexene/cyclohexene.out",
-      "orca-diels_alder_ts/diels_alder_ts.out",
-      "orca-diels_alder_irc/diels_alder_irc.out",
-      "orca-chloride/chloride.out",
-      "orca-methyl_bromide/methyl_bromide.out",
-      "orca-reactant_complex/reactant_complex.out",
-      "orca-sn2_ts/sn2_ts.out",
-      "orca-sn2_irc/sn2_irc.out",
-      "orca-product_complex/product_complex.out",
-      "orca-bromide/bromide.out",
-      "orca-methyl_chloride/methyl_chloride.out"}},
-    {"spectroscopy", "Examples_Spectroscopy", {
-      "orca-sulfate/sulfate.out",
-      "orca-co_nh3_5_oso3/co_nh3_5_oso3.out",
-      "orca-co_en2_cl_oso3/co_en2_cl_oso3.out",
-      "orca-co_en2_o2so2/co_en2_o2so2.out",
-      "orca-co2_en4_oh_so4_bridged/co2_en4_oh_so4_bridged.out",
-      "orca-formaldehyde/formaldehyde.out",
-      "orca-acetaldehyde/acetaldehyde.out",
-      "orca-acetone/acetone.out",
-      "orca-acetic_acid/acetic_acid.out",
-      "orca-acetate_anion/acetate_anion.out",
-      "orca-methyl_acetate/methyl_acetate.out",
-      "orca-ethyl_acetate/ethyl_acetate.out",
-      "orca-methyl_propionate/methyl_propionate.out",
-      "orca-n_methylacetamide/n_methylacetamide.out",
-      "orca-ac_ala_nhme/ac_ala_nhme.out",
-      "orca-alpha_d_glucopyranose/alpha_d_glucopyranose.out",
-      "orca-alpha_d_galactopyranose/alpha_d_galactopyranose.out",
-      "ecceqm-water/water.qmout",
-      "ecceqm-ethanol/ethanol.qmout"}},
-  };
-  return sets;
+  std::replace(s.begin(), s.end(), ' ', '_');
+  return s;
 }
-const char *const kExampleSetVersion = "9";
 
 string examplesDir()
 {
   return string(Ecce::ecceHome()) + "/data/client/examples/";
 }
 
-// The first two lines of <set>/set.txt; false if the set is not installed.
+void collectExamples(const string &setDir, const string &topicDir,
+                     ExampleTopic &topic)
+{
+  namespace fs = std::filesystem;
+  vector<string> names;
+  std::error_code ec;
+  for (const auto &e : fs::directory_iterator(
+           setDir + (topicDir.empty() ? "" : topicDir + "/"), ec))
+    if (e.is_directory()) names.push_back(e.path().filename().string());
+  std::sort(names.begin(), names.end());
+  for (const string &n : names) {
+    const string dirRel = topicDir.empty() ? n : topicDir + "/" + n;
+    ExampleOut o;
+    o.dirRel = dirRel;
+    o.name = n;
+    o.run = n.compare(0, 8, "gromacs-") == 0;
+    if (o.run) {
+      o.rel = dirRel;
+      o.calc = n.substr(8);
+    } else {
+      // the output is the first file with one of these extensions
+      // (tools/examples/preparse.py does the same)
+      string found;
+      for (const char *ext : {".qmout", ".eprint", ".out"}) {
+        vector<string> files;
+        for (const auto &f : fs::directory_iterator(setDir + dirRel, ec))
+          if (f.is_regular_file() && f.path().extension() == ext)
+            files.push_back(f.path().filename().string());
+        std::sort(files.begin(), files.end());
+        if (!files.empty()) { found = files[0]; break; }
+      }
+      if (found.empty()) continue;
+      o.rel = dirRel + "/" + found;
+      o.calc = found.substr(0, found.rfind('.'));
+    }
+    topic.outputs.push_back(o);
+  }
+}
+
+const vector<ExampleSet>& exampleSets()
+{
+  static vector<ExampleSet> sets;
+  static bool loaded = false;
+  if (loaded) return sets;
+  namespace fs = std::filesystem;
+  vector<string> ids;
+  std::error_code ec;
+  for (const auto &e : fs::directory_iterator(examplesDir(), ec))
+    if (e.is_directory() && fs::exists(e.path() / "set.txt"))
+      ids.push_back(e.path().filename().string());
+  std::sort(ids.begin(), ids.end());
+  for (const string &id : ids) {
+    ExampleSet set;
+    set.id = id;
+    const string dir = examplesDir() + id + "/";
+    std::ifstream in(dir + "set.txt");
+    if (!std::getline(in, set.title) || set.title.empty()) continue;
+    std::getline(in, set.line);
+    set.project = treeName(set.title);
+    vector<std::pair<string, string>> topics;   // folder, name
+    string l;
+    while (std::getline(in, l)) {
+      size_t bar = l.find('|');
+      if (bar != string::npos && l[0] != '#')
+        topics.push_back({l.substr(0, bar), l.substr(bar + 1)});
+    }
+    ExampleTopic top;
+    collectExamples(dir, "", top);
+    // folders of the set that are topics are not examples
+    top.outputs.erase(std::remove_if(top.outputs.begin(), top.outputs.end(),
+        [&](const ExampleOut &o) {
+          for (const auto &t : topics) if (t.first == o.name) return true;
+          return false;
+        }), top.outputs.end());
+    if (!top.outputs.empty()) set.topics.push_back(top);
+    for (const auto &t : topics) {
+      ExampleTopic topic;
+      topic.name = t.second;
+      collectExamples(dir, t.first, topic);
+      if (!topic.outputs.empty()) set.topics.push_back(topic);
+    }
+    sets.push_back(set);
+  }
+  loaded = true;
+  return sets;
+}
+
+// The flat projects earlier versions made, and the set each one became.
+const struct { const char *project, *setId; } kOldExampleProjects[] = {
+  {"Examples", "getting-started"},
+  {"Examples_Computational", "computational"},
+  {"Examples_Organic", "organic"},
+  {"Examples_Spectroscopy", "spectroscopy"}};
+
 bool exampleSetText(const ExampleSet& set, string& title, string& line)
 {
-  std::ifstream in(examplesDir() + set.id + "/set.txt");
-  if (!in || !std::getline(in, title) || title.empty()) return false;
-  std::getline(in, line);
+  title = set.title;
+  line = set.line;
   return true;
 }
 }
@@ -3203,6 +3265,61 @@ void CalcMgr::OnOpenExamplesClick( wxCommandEvent& event )
   stopDisabler();
 }
 
+/**
+ * Earlier versions imported each set as a flat project (Examples,
+ * Examples_Organic, ...).  A project that carries the example-set marker
+ * of an older version loses the calculations whose names are shipped
+ * examples; anything else in it is the user's and stays.  A project left
+ * empty is removed.  Returns the sets whose project was found, which the
+ * first start after an upgrade imports again in the new layout.
+ */
+vector<string> CalcMgr::removeOldExamples()
+{
+  vector<string> found;
+  EDSIServerCentral central;
+  EcceURL home = central.getDefaultUserHome();
+  const string key = VDoc::getEcceNamespace() + ":exampleSet";
+  std::set<string> shipped;
+  for (const ExampleSet &set : exampleSets())
+    for (const ExampleTopic &t : set.topics)
+      for (const ExampleOut &o : t.outputs) shipped.insert(o.calc);
+  bool changed = false;
+  for (const auto &old : kOldExampleProjects) {
+    Resource *res = EDSIFactory::getResource(home.getChild(old.project));
+    if (!res) continue;
+    const string version = res->getProp(key);
+    if (version.empty() || version == kExampleSetVersion) continue;
+    found.push_back(old.setId);
+    size_t left = 0;
+    vector<Resource *> children;
+    if (vector<Resource *> *c = res->getChildren(true)) children = *c;
+    for (Resource *child : children) {
+      if (child && shipped.count(child->getName()) && child->getDescriptor() &&
+          child->getDescriptor()->getName() != "project") {
+        child->remove();
+        changed = true;
+      } else {
+        left++;
+      }
+    }
+    if (left == 0) {
+      res->remove();
+    } else {
+      // The user's own calculations stay; the project is theirs now.
+      vector<MetaDataResult> mark(1);
+      mark[0].name = key;
+      mark[0].value = kExampleSetVersion;
+      res->addProps(mark);
+    }
+    changed = true;
+  }
+  if (changed)
+    if (WxResourceTreeItemData *homeNode = findNode(home, false, false))
+      p_treeCtrl->refresh(homeNode);
+  return found;
+}
+
+
 string CalcMgr::openExampleSet(const string& setId, string& message,
                                bool& created)
 {
@@ -3222,26 +3339,43 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     message = "Cannot reach your home folder for the examples.";
     return "";
   }
-  for (const char *rel : set->outputs) {
-    if (!SFile(dir + rel).exists()) {
-      message = "The example calculations are not installed (" + dir + rel +
-                " is missing).";
-      return "";
+  for (const ExampleTopic &t : set->topics) {
+    for (const ExampleOut &o : t.outputs) {
+      if (!SFile(dir + o.rel).exists()) {
+        message = "The example calculations are not installed (" + dir +
+                  o.rel + " is missing).";
+        return "";
+      }
     }
   }
 
-  const string name = set->project;
-  if (EDSIFactory::getResource(home.getChild(name))) {
-    findNode(home.getChild(name), true, true);
+  // Flat projects of an earlier version must not sit beside or inside the
+  // new ones.
+  removeOldExamples();
+  ResourceType *projectType =
+      ResourceDescriptor::getResourceDescriptor().getResourceType(
+          "collection", "ecceProject", "");
+  Resource *topRes = EDSIFactory::getResource(home.getChild(kExamplesTop));
+  if (!topRes) {
+    topRes = homeRes->createChild(kExamplesTop, projectType);
+    if (WxResourceTreeItemData *homeNode = findNode(home, false, false))
+      p_treeCtrl->refresh(homeNode);
+  }
+  if (!topRes) {
+    message = string("Cannot create the project ") + kExamplesTop + ".";
+    return "";
+  }
+  const EcceURL topUrl = topRes->getURL();
+  const string name = string(kExamplesTop) + "/" + set->project;
+  if (EDSIFactory::getResource(topUrl.getChild(set->project))) {
+    findNode(topUrl.getChild(set->project), true, true);
     setContextPanel();
     message = "The example calculations are in the project " + name + ".";
     return name;
   }
   created = true;
 
-  Resource *proj = homeRes->createChild(name,
-      ResourceDescriptor::getResourceDescriptor().getResourceType(
-          "collection", "ecceProject", ""));
+  Resource *proj = topRes->createChild(set->project, projectType);
   if (!proj) {
     message = "Cannot create the project " + name + ".";
     return "";
@@ -3252,38 +3386,49 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
   proj->addProps(mark);
 
   EcceURL project = proj->getURL();
-  if (WxResourceTreeItemData *homeNode = findNode(home, false, false))
-    p_treeCtrl->refresh(homeNode);
+  if (WxResourceTreeItemData *topNode = findNode(topUrl, false, false))
+    p_treeCtrl->refresh(topNode);
 
-  // The project is selected for the whole import (getContainer files each
-  // calculation under the selection's project); the tree is rebuilt once
-  // afterwards, not per calculation.
-  findNode(project, true, true);
+  // The topic's project is selected while its calculations are imported
+  // (getContainer files each calculation under the selection's project);
+  // the tree is rebuilt once afterwards, not per calculation.
   p_batchImport = true;
   const auto t0 = std::chrono::steady_clock::now();
   double gmxSeconds = 0;
   {
     WxCalcImport dlg(this);
     dlg.registerListener(this);
-    const int nExamples = set->outputs.size();
+    const int nExamples = set->size();
     // Shown at once: the import is always slow, and the window was
     // otherwise silent for its whole length.
     ewxProgressDialog progress(_("Example calculations"),
         _("Importing example calculations"), nExamples, this,
         wxPD_APP_MODAL | wxPD_SMOOTH);
     int step = 0;
-    for (const char *rel : set->outputs) {
-      // "mopac-ammonia/ammonia.out" is shown as "MOPAC ammonia"
-      string label = rel;
+    for (const ExampleTopic &topic : set->topics) {
+    Resource *parent = proj;
+    if (!topic.name.empty()) {
+      parent = proj->createChild(treeName(topic.name), projectType);
+      if (!parent) {
+        p_batchError = "Cannot create the topic " + topic.name + ".";
+        continue;
+      }
+      if (WxResourceTreeItemData *n = findNode(project, false, false))
+        p_treeCtrl->refresh(n);
+    }
+    findNode(parent->getURL(), true, true);
+    for (const ExampleOut &ex : topic.outputs) {
+      const char *rel = ex.rel.c_str();
+      // "mopac-ammonia" is shown as "MOPAC ammonia"
+      string label;
       {
         static const struct { const char *key, *shown; } kCodes[] = {
           {"ecceqm", "ECCE-QM"}, {"mopac", "MOPAC"}, {"nwchem", "NWChem"},
           {"orca", "ORCA"}, {"gromacs", "GROMACS"}};
-        size_t dash = label.find('-'), slash = label.find('/');
+        size_t dash = ex.name.find('-');
         size_t from = dash == string::npos ? 0 : dash + 1;
-        string code = label.substr(0, dash);
-        string what = label.substr(from, slash == string::npos
-                                         ? string::npos : slash - from);
+        string code = ex.name.substr(0, dash);
+        string what = ex.name.substr(from);
         for (const auto &c : kCodes)
           if (code == c.key) code = c.shown;
         label = code + " " + what;
@@ -3301,12 +3446,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       show("");
       // A directory is a GROMACS run (GromacsImport.H), a study named
       // after the example.
-      struct stat st;
-      if (stat((dir + rel).c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
-        string why, name = rel;
-        if (name.compare(0, 8, "gromacs-") == 0) name = name.substr(8);
+      if (ex.run) {
+        string why;
         const auto g0 = std::chrono::steady_clock::now();
-        if (importGromacsRun(proj, name, dir + rel, why,
+        if (importGromacsRun(parent, ex.calc, dir + rel, why,
                              [&](const string &task) {
                                show(" (" + task + ")");
                              }).empty() || !why.empty())
@@ -3317,14 +3460,13 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         // A copy of what the parsers made of this very output when the
         // package was built is much faster than parsing it again; the
         // parse stays as the fallback.
-        const string stored = dir + string(rel).substr(0, string(rel).find('/')) +
-                              "/stored";
+        const string stored = dir + ex.dirRel + "/stored";
         const string calcName = StoredCalcCopy::calcName(stored);
         string why;
         const auto c0 = std::chrono::steady_clock::now();
         if (!getenv("ECCE_NO_PREPARSED") && !calcName.empty() &&
             StoredCalcCopy::isCurrent(stored, dir + rel) &&
-            StoredCalcCopy::copy(proj, stored + "/" + calcName, calcName,
+            StoredCalcCopy::copy(parent, stored + "/" + calcName, calcName,
                                  why)) {
           cerr << "Organizer: example copied: " << calcName << " in "
                << std::chrono::duration<double>(
@@ -3337,6 +3479,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
           dlg.importFile(dir + rel);
         }
       }
+    }
     }
     // Not the maximum: wxProgressDialog then waits for a click on Close.
     progress.Update(nExamples - 1, _("Reading results..."));
@@ -3626,26 +3769,33 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
                 "equilibration; the run is too short to show folding."},
   };
   vector<string> thumbUrls;
-  if (Resource *projRes = EDSIFactory::getResource(project)) {
-    if (vector<Resource*> *calcs = projRes->getChildren(true)) {
-      for (Resource *calc : *calcs) {
-        if (calc && dynamic_cast<ICalculation*>(calc))
-          thumbUrls.push_back(calc->getURL().toString());
-        for (const auto &note : kNotes) {
-          if (calc && calc->getName() == note.name) {
-            vector<MetaDataResult> ann(1);
-            ann[0].name = VDoc::getEcceNamespace() + ":annotation";
-            ann[0].value = note.text;
-            calc->addProps(ann);
-            //  A study's tasks are what the user opens; each carries the note.
-            if (vector<Resource*> *tasks = calc->getChildren(true))
-              for (Resource *task : *tasks)
-                if (task) task->addProps(ann);
-          }
+  std::function<void(Resource *)> annotate = [&](Resource *projRes) {
+    vector<Resource *> *calcs = projRes->getChildren(true);
+    if (!calcs) return;
+    for (Resource *calc : vector<Resource *>(*calcs)) {
+      if (!calc) continue;
+      if (calc->getDescriptor() &&
+          calc->getDescriptor()->getName() == "project") {
+        annotate(calc);   // a topic
+        continue;
+      }
+      if (dynamic_cast<ICalculation*>(calc))
+        thumbUrls.push_back(calc->getURL().toString());
+      for (const auto &note : kNotes) {
+        if (calc->getName() == note.name) {
+          vector<MetaDataResult> ann(1);
+          ann[0].name = VDoc::getEcceNamespace() + ":annotation";
+          ann[0].value = note.text;
+          calc->addProps(ann);
+          //  A study's tasks are what the user opens; each carries the note.
+          if (vector<Resource*> *tasks = calc->getChildren(true))
+            for (Resource *task : *tasks)
+              if (task) task->addProps(ann);
         }
       }
     }
-  }
+  };
+  if (Resource *projRes = EDSIFactory::getResource(project)) annotate(projRes);
   // The imported calculations have no thumbnail until the Builder saves
   // one; ask VizThumbnail, as the Dirdy editor does. It renders in its own
   // process, so the import does not wait for it.
@@ -3682,22 +3832,27 @@ void CalcMgr::importExamplesOnce()
   if (off && *off && string(off) != "0") return;
   Preferences prefs("Organizer");
   string done;
-  if (prefs.getString("Organizer.ExampleSet", done) && !done.empty()) return;
+  prefs.getString("Organizer.ExampleSet", done);
+  if (done == kExampleSetVersion) return;
 
   EDSIServerCentral central;
   EcceURL home = central.getDefaultUserHome();
   if (!EDSIFactory::getResource(home)) return;   // not logged in: next start
   cerr << "Organizer: examples import started" << endl;
-  string made;
-  if (EDSIFactory::getResource(home.getChild("Examples"))) {
-    made = "Examples";
-  } else {
-    startDisabler();
-    string message;
-    bool created = false;
-    made = openExampleSet("general", message, created);
-    stopDisabler();
+  startDisabler();
+  string message;
+  bool created = false;
+  if (!done.empty()) {
+    // After an upgrade: the sets the user had come back in the new layout.
+    for (const string &id : removeOldExamples())
+      if (openExampleSet(id, message, created).empty())
+        setMessage(message, WxFeedback::WARNING);
+    setMessage("The example calculations are now in Examples, sorted by "
+               "topic.", WxFeedback::INFO);
+  } else if (!EDSIFactory::getResource(home.getChild("Examples"))) {
+    string made = openExampleSet(kFirstStartSet, message, created);
     if (made.empty()) {
+      stopDisabler();
       setMessage(message, WxFeedback::WARNING);
       return;
     }
@@ -3705,6 +3860,7 @@ void CalcMgr::importExamplesOnce()
                "; File > Open Example Calculations has more.",
                WxFeedback::INFO);
   }
+  stopDisabler();
   prefs.setString("Organizer.ExampleSet", kExampleSetVersion);
   prefs.saveFile();
 }

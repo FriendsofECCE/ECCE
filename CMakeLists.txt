@@ -2592,6 +2592,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_examples PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # The first start after an upgrade replaces the flat example projects.
+  add_test(NAME apps_examples_upgrade
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_upgrade_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_examples_upgrade PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # The pre-parsed copies of the examples agree with a parse (#448).
   add_test(NAME apps_examples_preparsed
            COMMAND ${PYTHON3_EXECUTABLE}
