@@ -127,7 +127,10 @@ if ($status != 0) {
   for (my $i = 0; $i < scalar(@lines); $i++) {
     if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
   }
-  warnAndExit("grompp", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
+  my $msg = join("\n", @lines[$first .. $#lines]);
+  my $named = GromppWarn::translate($msg);
+  warnAndExit("grompp", "command: @cmd\n\n" . $named,
+              $named ne $msg ? $msg : "");
 }
 my $intended = 0;
 if (open(my $tp, "<", "$work/topol.top")) {
@@ -141,8 +144,8 @@ if (@stop) {
   # ECCE's text where there is one, grompp's own otherwise; grompp's message
   # in full goes after the marker for the dialog's closed pane.
   my @own = map { GromppWarn::explain($_) } @stop;
-  my $body = join("\n\n", map { GromppWarn::explain($_) // $_->{text} } @stop);
-  my $original = scalar(grep { defined } @own)
+  my $body = join("\n\n", map { GromppWarn::explain($_) // GromppWarn::translate($_->{text}) } @stop);
+  my $original = ($body ne join("\n\n", map { $_->{text} } @stop))
                ? join("\n\n", map { "$_->{head}\n  $_->{text}" } @stop) : "";
   warnAndExit("grompp", $body, $original);
 }

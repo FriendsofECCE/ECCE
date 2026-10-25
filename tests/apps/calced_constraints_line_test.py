@@ -39,6 +39,7 @@ GCST = ("<GeomConstraintModel>\n"
         "</GeomConstraintModel>\n")
 SCAN = "Relaxed scan: %s from 104.5 to 124.5 deg in 4 steps"
 LINE = re.compile(r"CALCED: constraints count=(\d+) note=(.*)")
+SHOWN = re.compile(r"CALCED: constraintsline shown=(\d) text=(.*)")
 
 # label, fixture, [(run type, line the editor shows)]
 USED = "1 constraint, used by this %s run | " + SCAN + ", used by this %s run"
@@ -72,6 +73,7 @@ def makeCalc(project, name, source):
     meta = os.path.join(path, ".ecce-meta")
     text = open(meta, errors="surrogateescape").read()
     text = re.sub(r"(ecce:state\t\t)[^\n]*", r"\g<1>Ready", text)
+    text = re.sub(r"(ecce:runtype\t\t)[^\n]*", r"\g<1>Geometry", text)
     open(meta, "w", errors="surrogateescape").write(text)
     return path
 
@@ -139,6 +141,7 @@ def main():
                 log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT", steps,
                                    "file://" + calc + "/")
                 lines = LINE.findall(log)
+                shown = SHOWN.findall(log)
                 sym.check(len(lines) == len(runtypes) + 1,
                           "%s: the editor reported the line %d times (got %d)"
                           % (label, len(runtypes) + 1, len(lines)),
@@ -157,6 +160,20 @@ def main():
                     sym.check(note.strip() == want,
                               "%s, %s: the line says %r (got %r)"
                               % (label, runtype, want, note.strip()))
+                # Opened on a Geometry run the line is there from the start.
+                if shown:
+                    sym.check(shown[0][0] == "1" and "Relaxed scan" in shown[0][1],
+                              "%s: the Settings line is shown on open (%r)" % (label, shown[0][1][:60]))
+                # The box shows the line only where the run type applies it (#502).
+                for (runtype, template), (vis, text) in zip(
+                        [(None, None)] + runtypes, shown):
+                    if runtype is None:
+                        continue
+                    sym.check(("Relaxed scan" in text) == (template == USED) and
+                              (vis == "1") == bool(text),
+                              "%s, %s: the Settings line is %s (shown=%s)"
+                              % (label, runtype,
+                                 "shown" if template == USED else "hidden", vis))
         finally:
             stop.set()
             restorePrefs()

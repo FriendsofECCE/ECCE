@@ -3881,9 +3881,10 @@ void CalcEd::showGeomEditor()
     p_code->get_bool("SupportsConstraints", supportsConstraints);
   }
 
-  // The constraints belong to the structure; the line says whether this run
-  // type and code use, ignore or refuse them.
-  string note = constraintNote();
+  // The line is for run types that apply the constraints and scan; for the
+  // others Verify says they are left out (#306).
+  string note = supportsConstraints && constraintUse() == GeomConstraintModel::USED
+      ? constraintNote() : string();
   if (symmetryMustBreak() && !useSymmetryBox())
     note += string(note.empty() ? "" : "\n") +
         "Symmetry off: a transition-state search / scan must be able to "
