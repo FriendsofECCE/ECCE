@@ -83,6 +83,11 @@ dmstate
 dmcollapse 0
 dmstate
 """),
+    #  Long orbital title and an orbital that is zero in the plane.
+    "n2-pi-zero": ("ecceqm-n2", """
+densitymap map-n2-pi-zero 900 700 6 alpha 1 1 2
+dmpng map-n2-pi-zero 900 700
+"""),
     "ethene-pi": ("ecceqm-c2h4", """
 background 1 1 1
 dmpick 1 2
