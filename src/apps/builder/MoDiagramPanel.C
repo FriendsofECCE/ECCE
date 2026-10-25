@@ -528,6 +528,11 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showEnergies->SetValue(true);
   p_showEnergies->SetToolTip("Write each level's energy beside its label");
   views->Add(p_showEnergies, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  p_showDescription = new ewxCheckBox(this, wxID_ANY, _("Describe clicked level"));
+  p_showDescription->SetValue(true);
+  p_showDescription->SetToolTip("Write the clicked level's description under the diagram; "
+                                "hovering a level still shows it");
+  views->Add(p_showDescription, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
   p_constructLabels = new ewxCheckBox(this, wxID_ANY, _("Construction labels"));
   p_constructLabels->SetValue(true);
@@ -599,6 +604,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_fragments->Bind(wxEVT_CHECKLISTBOX, &MoDiagramPanel::onFragmentChanged,
                     this);
   p_showEnergies->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
+  p_showDescription->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
   p_constructLabels->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
   p_symmetryLabels->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
   p_showAll->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
@@ -656,6 +662,7 @@ void MoDiagramPanel::onShowEnergies(wxCommandEvent& WXUNUSED(event))
 {
   if (p_canvas == 0) return;
   p_canvas->setShowEnergies(p_showEnergies->IsChecked());
+  p_canvas->setShowDescription(p_showDescription->IsChecked());
   p_canvas->setLabelSides(p_constructLabels->IsChecked(), p_symmetryLabels->IsChecked());
   //  The energies change how much room each row needs, so the whole
   //  layout is recomputed, not just repainted.

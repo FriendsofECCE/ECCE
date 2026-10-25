@@ -90,6 +90,11 @@ the density of the π electrons above the ring.
   vermilion lines for negative values, so the sign survives a black-and-white
   printout. Levels start at ±0.02 and double. A node, where the orbital
   changes sign, is where the two colours meet.
+- When the fixed levels (0.001 for a density, ±0.02 for an orbital, each
+  double the last) would give fewer than three contours, as for a core orbital
+  or a plane that cuts the orbital where it is weak, the levels are taken from
+  the plane's own maximum instead: the maximum divided by 2, 4, 8 and so on.
+  The legend then says "levels scaled to the plane's max".
 - The caption above the buttons names the quantity, the orbital with its
   energy and occupation, which member of a degenerate set it is, the plane
   and the offset.

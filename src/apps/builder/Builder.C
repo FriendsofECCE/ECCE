@@ -2942,7 +2942,7 @@ void Builder::OnSize( wxSizeEvent& event )
    if (!p_fitTimerBound) {
       p_fitTimerBound = true;
       p_fitTimer.SetOwner(this);
-      Bind(wxEVT_TIMER, [this](wxTimerEvent&) { fitToolColumn(); },
+      Bind(wxEVT_TIMER, [this](wxTimerEvent&) { sizeIndexPane(); fitToolColumn(); },
            p_fitTimer.GetId());
    }
    p_fitTimer.StartOnce(400);

@@ -51,7 +51,10 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     return;
   }
   const Map& m = map;
-  const int left = 62, right = 150, top = 34, bottom = 62;
+  //  The legend gives way before the plot does in a narrow pane.
+  const int left = 62, right = std::max(92, std::min(150, size.x * 3 / 10)),
+            top = size.y < 300 ? 26 : 34, bottom = size.y < 300 ? 26 : 62;
+  const bool roomy = size.y >= 300;   // axis title and plane text need it
   const double w = m.nu - 1, h = m.nv - 1;       // in steps
   const double avail = std::max(50, size.x - left - right);
   const double availH = std::max(50, size.y - top - bottom);
@@ -82,7 +85,7 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     dc.DrawLine(wxRound(ox) - 4, y, wxRound(ox), y);
     dc.DrawLabel(wxString::Format("%d", t), wxRect(wxRound(ox) - 30, y - 7, 24, 14), wxALIGN_RIGHT);
   }
-  dc.DrawLabel(wxString::FromUTF8("distance in the plane (\xC3\x85)"),
+  if (roomy) dc.DrawLabel(wxString::FromUTF8("distance in the plane (\xC3\x85)"),
                wxRect(wxRound(ox), wxRound(oy + ph) + 22, wxRound(pw), 16),
                wxALIGN_CENTER);
 
@@ -90,14 +93,14 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   dc.SetClippingRegion(wxRound(ox), wxRound(oy), wxRound(pw) + 1, wxRound(ph) + 1);
   struct Line { double value; wxColour colour; wxPenStyle style; };
   vector<Line> legend;
+  bool scaled = false;
+  const vector<double> lv = mapLevels(m, scaled);
   if (m.quantity != ORBITAL) {
-    const vector<double> lv = densityLevels(m.zmax);
     for (size_t k = 0; k < lv.size(); k++) {
       Line l = { lv[k], viridis(lv.size() > 1 ? double(k)/(lv.size()-1) : 0.0), wxPENSTYLE_SOLID };
       legend.push_back(l);
     }
   } else {
-    const vector<double> lv = orbitalLevels(std::max(fabs(m.zmin), fabs(m.zmax)));
     for (size_t k = lv.size(); k-- > 0;) {
       Line l = { lv[k], POSITIVE, wxPENSTYLE_SOLID };
       legend.push_back(l);
@@ -146,11 +149,19 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     if (m.quantity == ORBITAL && legend[k].value > 0) t = "+" + t;
     dc.DrawText(t, lx + 32, ly);
   }
-  if (legend.empty())
-    dc.DrawText("no level reached", lx, ly);
+  if (legend.empty()) {
+    dc.DrawText(fabs(m.zmax) + fabs(m.zmin) > 0 ? "no level reached" : "zero in this plane", lx, ly);
+    ly += 17;
+  }
   dc.SetTextForeground(wxColour(80, 80, 80));
+  if (scaled) {
+    dc.DrawText("levels scaled", lx, ly);
+    dc.DrawText("to the plane's max", lx, ly + 15);
+    ly += 33;
+  }
   dc.DrawText(wxString::Format("max %.3g", m.zmax), lx, ly + 8);
   if (m.quantity == ORBITAL)
     dc.DrawText(wxString::Format("min %.3g", m.zmin), lx, ly + 25);
-  dc.DrawText(wxString::FromUTF8(m.plane.description.c_str()), left, size.y - 18);
+  if (roomy)
+    dc.DrawText(wxString::FromUTF8(m.plane.description.c_str()), left, size.y - 18);
 }

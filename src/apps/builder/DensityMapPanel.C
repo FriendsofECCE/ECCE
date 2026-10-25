@@ -167,19 +167,24 @@ void DensityMapPanel::build()
   p_show->Append("Sum of the degenerate set");
   p_show->SetSelection(0);
   p_show->SetToolTip("The orbital is the one selected in the MOs panel");
-  row1->Add(new wxStaticText(this, wxID_ANY, "Show"), 0, RIGHT, 6);
-  row1->Add(p_show, 0, RIGHT, 12);
+  //  A label and its control wrap together, never apart.
+  wxBoxSizer *showPair = new wxBoxSizer(wxHORIZONTAL);
+  showPair->Add(new wxStaticText(this, wxID_ANY, "Show"), 0, RIGHT, 6);
+  showPair->Add(p_show, 0, wxALIGN_CENTER_VERTICAL);
+  row1->Add(showPair, 0, RIGHT, 12);
   p_mo = new wxSpinCtrl(this, ID_MO, "1", wxDefaultPosition, wxSize(110, -1),
                         wxSP_ARROW_KEYS, 1, std::max(1, ok ? p_eval->orbitals(false) : 1),
                         std::max(1, ok ? p_eval->homo() : 1));
   p_mo->SetMinSize(wxSize(110, -1));   // narrower hides the + button
-  row1->Add(new wxStaticText(this, wxID_ANY, "MO"), 0, RIGHT, 6);
-  row1->Add(p_mo, 0, RIGHT, 8);
   p_spin = new wxChoice(this, ID_SPIN);
   p_spin->Append("alpha");
   p_spin->Append("beta");
   p_spin->SetSelection(0);
-  row1->Add(p_spin, 0);
+  wxBoxSizer *moPair = new wxBoxSizer(wxHORIZONTAL);
+  moPair->Add(new wxStaticText(this, wxID_ANY, "MO"), 0, RIGHT, 6);
+  moPair->Add(p_mo, 0, RIGHT, 8);
+  moPair->Add(p_spin, 0, wxALIGN_CENTER_VERTICAL);
+  row1->Add(moPair, 0);
 
   wxArrayString planes;
   planes.Add("Molecular plane");
@@ -253,9 +258,9 @@ void DensityMapPanel::build()
   p_canvas->onPaintHook = [this]() { ensurePlane(); };
   p_caption = new wxStaticText(this, wxID_ANY, wxEmptyString);
   p_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
-  wxWrapSizer *buttons = new wxWrapSizer(wxHORIZONTAL);
-  buttons->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxRIGHT, 4);
-  buttons->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0);
+  //  The export buttons share the first row: height is what the map lacks.
+  row1->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxLEFT | wxRIGHT, 4);
+  row1->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0);
 
   top->Add(row1, 0, wxEXPAND | wxALL, 6);
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -265,7 +270,6 @@ void DensityMapPanel::build()
   top->Add(p_canvas, 1, wxEXPAND);
   top->Add(p_caption, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
   top->Add(p_status, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
-  top->Add(buttons, 0, wxEXPAND | wxALL, 6);
 
   Bind(wxEVT_CHOICE, &DensityMapPanel::onControl, this);
   Bind(wxEVT_RADIOBOX, &DensityMapPanel::onControl, this);
@@ -502,7 +506,10 @@ void DensityMapPanel::compute(bool coarse)
   p_map = out;
   p_haveMap = true;
   p_canvas->show(p_map);
+  bool scaled = false;
+  mapLevels(p_map, scaled);
   p_statusText = coarse ? "Coarse grid while dragging"
+      : scaled ? "Contours scaled to the plane's maximum, each level double the last"
       : p_map.quantity == ORBITAL
           ? "Contours from +-0.02, each level double the last; dashed is negative"
           : "Contours from 0.001, each level double the last";
@@ -706,6 +713,9 @@ string DensityMapPanel::state() const
   s += "have " + string(p_haveMap ? "1" : "0") + "\n";
   s += "shown " + string(IsShown() ? "1" : "0") + "\n";
   s += "planeinviewer " + string(p_inViewer ? "1" : "0") + "\n";
+  snprintf(buf, sizeof buf, "panel %d %d\ncanvas %d %d\n", GetSize().x, GetSize().y,
+           p_canvas ? p_canvas->GetSize().x : 0, p_canvas ? p_canvas->GetSize().y : 0);
+  s += buf;
   if (!p_haveMap) return s;
   s += "title " + p_map.title + "\n";
   s += "plane " + p_map.plane.description + "\n";
