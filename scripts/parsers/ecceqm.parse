@@ -253,6 +253,10 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
     print "key: LOCMOLABEL$lspin\nsize:\n", scalar(@lab), "\nrowlabels:\n";
     print join(" ", 1 .. scalar(@lab)), "\nvalues:\n", join(" ", @lab), "\nEND\n";
   }
+} elsif ($first =~ /^virtual_orbitals(?:_note)?\s+(.*\S)/) {
+  # "ivo", or why improved virtuals were asked for but not made
+  my $v = join("_", split(' ', $1));
+  print "key: MOVIRTNOTE\nsize:\n1\nrowlabels:\n1\nvalues:\n$v\nEND\n";
 } elsif ($first =~ /^localisation_skipped\s+(.*\S)/) {
   # why no localised set was written; spaces become "_" as in the labels
   my $why = join("_", split(' ', $1));

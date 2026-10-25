@@ -287,6 +287,8 @@ sub QMControl {
   # The engine localises by default, so only switching it off is written:
   # calculations saved before the box existed keep their input.
   $result .= "localise false\n" if ($AbiDict{"ES.Theory.ECCEQM.Localise"} eq "0");
+  # Canonical virtuals are the engine default and are not written.
+  $result .= "virtuals ivo\n" if ($AbiDict{"ES.Theory.ECCEQM.Virtuals"} eq "Improved (IVO)");
   # Raman activities are only offered (and only meaningful) for frequency runs.
   if (($AbiDict{"RunType"} eq "Vibration" || $AbiDict{"RunType"} eq "GeoVib" ||
        $AbiDict{"RunType"} eq "Transition State (Opt-TS)") &&

@@ -328,6 +328,8 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
     os << std::setprecision(12);
     os << "end mo_coefficients\n";
   };
+  if (r.ivo_applied) os << "virtual_orbitals ivo\n";
+  else if (!r.ivo_note.empty()) os << "virtual_orbitals_note " << r.ivo_note << "\n";
   if (restricted) spin_block("restricted", r.eps_a, r.occ_a, r.occ_b, r.C_a, true);
   else {
     spin_block("alpha", r.eps_a, r.occ_a, r.occ_a, r.C_a, false);

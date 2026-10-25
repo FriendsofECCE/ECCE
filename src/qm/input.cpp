@@ -175,6 +175,12 @@ Input parse_input(std::istream& in) {
       const std::string v = lower(rest);
       r.localise = (v == "true" || v == "yes" || v == "on" || v == "1");
     }
+    else if (k == "virtuals") {
+      const std::string v = lower(rest);
+      if (v == "ivo") r.scf.ivo = true;
+      else if (v == "canonical") r.scf.ivo = false;
+      else throw bad("virtuals must be canonical or ivo");
+    }
     else if (k == "molden") r.molden = true;
     else throw bad("unknown keyword '" + key + "'");
   }

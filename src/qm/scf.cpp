@@ -110,6 +110,24 @@ Mat atomic_density(int Z, BasisLibrary& lib, const std::string& name, bool sph) 
 
 }  // namespace
 
+void ivo_virtuals(const Mat& F, const Mat& S, const EriStore& eri, int nocc, Mat& C, Vec& eps, Mat* Fprime) {
+  const int n = static_cast<int>(C.rows());
+  if (nocc < 1 || nocc >= n) return;
+  // Hunt & Goddard, Chem. Phys. Lett. 3, 414 (1969): a virtual sees the
+  // N-1 electron cation field; the excited electron coupled to the HOMO hole
+  // as a singlet gives F - J_h + 2 K_h (triplet: F - J_h).
+  const Vec h = C.col(nocc - 1);
+  std::vector<Mat> J, K;
+  eri.jk({Mat(h * h.transpose())}, J, K, true);
+  const Mat Fp = F - J[0] + 2.0 * K[0];
+  if (Fprime) *Fprime = Fp;
+  const Mat Cv = C.rightCols(n - nocc);
+  Eigen::SelfAdjointEigenSolver<Mat> es(Cv.transpose() * Fp * Cv);
+  C.rightCols(n - nocc) = Cv * es.eigenvectors();
+  eps.tail(n - nocc) = es.eigenvalues();
+  (void)S;
+}
+
 ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, const ScfResult* guess) {
   mol.check();
   FunctionalSpec fs = functional_by_name(opt.method);
@@ -318,6 +336,16 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   }
 
   R.F_a = Fa; R.F_b = Fb;
+  if (opt.ivo) {
+    if (!closed) R.ivo_note = "improved virtual orbitals are only available for closed-shell (restricted) runs; canonical virtuals kept";
+    else if (!R.converged) R.ivo_note = "the SCF did not converge; canonical virtuals kept";
+    else if (na < 1 || na >= n) R.ivo_note = "no virtual or occupied orbitals; canonical virtuals kept";
+    else {
+      ivo_virtuals(Fa, S, eri, na, Ca, eps_a);
+      eps_b = eps_a; Cb = Ca;
+      R.ivo_applied = true;
+    }
+  }
   R.eps_a = eps_a; R.eps_b = eps_b; R.C_a = Ca; R.C_b = Cb;
   R.D_a = density(Ca, na);
   R.D_b = density(Cb, nb);
