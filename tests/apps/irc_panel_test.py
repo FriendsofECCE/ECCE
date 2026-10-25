@@ -181,6 +181,41 @@ def orcaCase(s, display, env, wrappers, project, png):
               "new calculation's coordinates equal IRC frame 3")
 
 
+EXAMPLE = os.path.join(REPO, "data", "client", "examples", "organic", "orca-sn2_irc")
+
+
+def exampleCase(s, display, env, wrappers, project, png):
+    """The shipped ORCA SN2 IRC example as stored: a click shows the structure
+    of its _IRC_Full_trj.xyz (the importer must have found the file, #535)."""
+    frames = []
+    text = open(os.path.join(EXAMPLE, "sn2_irc_IRC_Full_trj.xyz")).read()
+    for block in re.split(r"^\s*6\s*$", text, flags=re.M):
+        rows = re.findall(r"^\s*[A-Z][a-z]?\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$",
+                          block, re.M)
+        if rows:
+            frames.append([[float(v) for v in r] for r in rows])
+    check(len(frames) == 29, "example trajectory has 29 frames (%d)" % len(frames))
+    calc = os.path.join(project, "calc-sn2-example")
+    shutil.rmtree(calc, ignore_errors=True)
+    shutil.copytree(os.path.join(EXAMPLE, "stored", "sn2_irc"), calc, symlinks=True)
+    lines = ["wait 6000", "ircclick 0", "ircclick 13", "ircclick 28", "quit"]
+    out, _ = bo.runScript(
+        s, display, env, wrappers, ["-context", "file://" + calc + "/"],
+        lines, png, "ircexample",
+        {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "IRC Path"})
+    clicks = dict((m[0], m) for m in re.findall(
+        r"BUILDER: ircclick (\d+) frame=(\S+) atoms: (\S+) (\S+) (\S+) "
+        r"(\S+) (\S+) (\S+)", out))
+    for idx in (0, 13, 28):
+        got = clicks.get(str(idx))
+        check(got is not None and got[1] == str(idx),
+              "SN2 example: click on point %d shows frame %d" % (idx, idx))
+        if got and len(frames) == 29:
+            want = frames[idx][0] + frames[idx][1]
+            check(all(abs(float(a) - b) < 2e-5 for a, b in zip(got[2:], want)),
+                  "SN2 example point %d: the viewer holds the trajectory's structure" % idx)
+
+
 QM_OUT = os.path.join(REPO, "tests", "parsers", "fixtures", "ecceqm", "hcn_irc.qmout")
 
 
@@ -353,6 +388,7 @@ def main():
         check(any(l.startswith("# calculation: ")
                   for l in open(kj).read().splitlines()), "calculation named")
         orcaCase(s, display, env, wrappers, project, png)
+        exampleCase(s, display, env, wrappers, project, png)
         qmCase(s, display, env, wrappers, project, png)
     finally:
         if display:

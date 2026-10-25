@@ -177,6 +177,12 @@ args:    '.' 'Energy' 'SCF' 'UHF' '1'
       rowlabels: junk1-O(17) junk1-H(1)
       values: 0.0841 -0.0253
 
+[ROUTEFLAG]  Script=gaussian-16.routeflag  Freq=first  Skip=0  Lines=4
+  Begin=^ #
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=83 fed=4 rc=0 first-fed=' #p UHF/STO-3G SP Pop=Full'
+    (script emitted no property)
+
 [ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
   Begin=SCF Done\:
   begins=1 delivered=1 buffered_away=0

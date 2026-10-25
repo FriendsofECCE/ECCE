@@ -1,0 +1,13 @@
+#!/usr/bin/env perl
+# Marks an excited-state optimisation (#521): "Opt" and "TD" on the route.
+# Its optimised energy is the TD total energy, not the ground-state "SCF Done"
+# of each step, so gaussian-16.energy and gaussian-16.tdenergy read the flag
+# file (an order dependent side file, like g16InputGeom in gaussian-16-trace.pl).
+$| = 1;
+($key) = @ARGV;
+my $route = join(" ", map { chomp; $_ } <STDIN>);
+$route =~ s/\s+/ /g;
+if ($route =~ /\bOpt/i && $route =~ /\bTD\b|\bTD[(=]/i) {
+  if (open(my $fh, ">", "$key/g16TdOpt")) { print $fh "1\n"; close($fh); }
+}
+exit(0);

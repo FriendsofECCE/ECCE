@@ -313,7 +313,8 @@ if ($runtype =~ /Geo/i) {
       &printScalar("EPM3VEC",$energy);
     }
   }
-  if (isTE($lcTheory,$inline)) {
+  # An Opt TD run plots the excited-state energy (gaussian-16.tdenergy) as TE.
+  if (isTE($lcTheory,$inline) && !(-e "$key/g16TdOpt")) {
 
     &printScalar("TE",$energy);
     &printScalar("TEVEC",$energy);

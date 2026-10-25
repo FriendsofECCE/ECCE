@@ -237,6 +237,12 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       values: 0.152597 -0.152597
       units: e
 
+[ROUTEFLAG]  Script=gaussian-16.routeflag  Freq=first  Skip=0  Lines=4
+  Begin=^ #
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=83 fed=4 rc=0 first-fed=' #p HF/STO-3G Freq'
+    (script emitted no property)
+
 [ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
   Begin=SCF Done\:
   begins=1 delivered=1 buffered_away=0

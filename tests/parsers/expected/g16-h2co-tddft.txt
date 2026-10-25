@@ -4,11 +4,38 @@ desc:    gaussian-16.desc
 fixture: gaussian-16/h2co_tddft.log (255 lines)
 args:    '.' 'GeoVib' 'DFT' 'B3LYP' '0'
 
-[EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS]  Script=gaussian-16.excited  Freq=last  Skip=0  Lines=-
+[EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS]  Script=gaussian-16.excited  Freq=all  Skip=0  Lines=-
   Begin=Excitation energies and oscillator strengths
   End=SavETr:
-  begins=2 delivered=1 buffered_away=1
-  block 1: begin-line=188 fed=36 rc=0 first-fed=' Excitation energies and oscillator strengths:'
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=140 fed=37 rc=0 first-fed=' Excitation energies and oscillator strengths:'
+    key: EXCIENERGY
+      size: 10
+      rowlabels: 1 2 3 4 5 6 7 8 9 10
+      values: 4.0036 6.9037 7.6536 7.8877 8.3803 9.0808 9.5622 10.1956 10.4146 11.1694
+      units: eV
+    key: EXCIOSC
+      size: 10
+      rowlabels: 1 2 3 4 5 6 7 8 9 10
+      values: 0.0000 0.0301 0.0271 0.0495 0.0000 0.0009 0.1525 0.0000 0.0419 0.1030
+      units: f
+    key: EXCISYM
+      size: 10
+      rowlabels: 1 2 3 4 5 6 7 8 9 10
+      values: Singlet-A2 Singlet-B2 Singlet-B2 Singlet-A1 Singlet-A2 Singlet-B1 Singlet-A1 Singlet-A2 Singlet-B1 Singlet-B2
+    key: EXCITRANS
+      size: 10
+      rowlabels: 1 2 3 4 5 6 7 8 9 10
+      values: 8>9:0.70503 8>10:0.70285 8>11:0.70233 8>12:0.70549 8>13:0.70488 6>9:0.70413 7>9:0.66596,8>16:-0.18944 5>9:0.70334 7>10:0.70347 8>14:0.67385,8>15:0.20364
+    key: TE
+      size: 1
+      values: -114.361650132
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -114.361650132
+      units: Hartree
+  block 2: begin-line=188 fed=36 rc=0 first-fed=' Excitation energies and oscillator strengths:'
     key: EXCIENERGY
       size: 10
       rowlabels: 1 2 3 4 5 6 7 8 9 10
@@ -27,4 +54,18 @@ args:    '.' 'GeoVib' 'DFT' 'B3LYP' '0'
       size: 10
       rowlabels: 1 2 3 4 5 6 7 8 9 10
       values: 8>9:0.70626 8>10:0.70021 8>11:0.69958 6>9:0.70514 8>12:0.70436 7>9:0.68006,8>16:-0.14830 8>13:0.70560 7>10:0.70333 5>9:0.70459 7>11:0.70300
+    key: TE
+      size: 1
+      values: -114.372435238
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -114.372435238
+      units: Hartree
+
+[ROUTEFLAG]  Script=gaussian-16.routeflag  Freq=first  Skip=0  Lines=4
+  Begin=^ #
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=85 fed=4 rc=0 first-fed=' #p B3LYP/6-31+G(d) Opt TD(NStates=10) Pop=Full'
+    (script emitted no property)
 

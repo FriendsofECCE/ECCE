@@ -46,7 +46,7 @@ CASES = [
                                          'this fixture'},
         parse_args=('.', 'GeoVib', 'DFT', 'B3LYP', '0'),
         expect={
-            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(keys={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(blocks=2, keys={
                 'EXCIENERGY': {'values': '3.3832 6.9578 7.6606 7.8721 '
                                '7.9066 8.2971 8.4586 9.5805 9.5907 10.3687',
                                'units': 'eV'},
@@ -54,6 +54,11 @@ CASES = [
                             '0.1738 0.0000 0.0468 0.0000 0.0495'},
                 'EXCISYM': {'values_contain': 'Singlet-A2 Singlet-B2'},
                 'EXCITRANS': {'values_contain': '8>9:'},
+                # Opt TD (#521): the trace energy is the "Total Energy,
+                # E(TD-HF/TD-DFT)" of each step (this fixture has no "SCF
+                # Done" lines to rival it); TEVEC gets one point per block,
+                # step 1 (-114.361650132) is in the golden.
+                'TEVEC': {'values': '-114.372435238', 'units': 'Hartree'},
             }),
         },
     ),
@@ -2722,6 +2727,8 @@ KNOWN_COLLISIONS = {
 
 # Parse types that fire but whose script legitimately emits no property.
 KNOWN_SILENT_SCRIPTS = {
+    'gaussian-16.routeflag': 'Only leaves a flag file for gaussian-16.excited '
+                             'and gaussian-16.energy (Opt TD, #521).',
     'gaussian-16.null': 'A deliberate no-op; the entry exists only to consume '
                         'a block of output so other Begins do not match '
                         'inside it.',
