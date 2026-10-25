@@ -2451,7 +2451,7 @@ void MoDiagramPanel::buildOnce()
       text.precision(3);
       text << "The structure was symmetrised to " << group
            << " for this diagram (atoms moved by up to " << shift
-           << " Angstrom); the orbitals are the calculation's own.";
+           << " Å); the orbitals are the calculation's own.";
       symmetrisedNote = text.str();
     }
   }
@@ -2733,7 +2733,7 @@ void MoDiagramPanel::buildOnce()
         fragmentSymbols(sgfrag, storedSymbols, storedCoords);
         //  S^{1/2}, once per diagram -- every MO below reuses it, only
         //  c changes per orbital (#170, then reused again for #175).
-        progressDlg.progress(48, _("Orthogonalising the basis (Lowdin)"));
+        progressDlg.progress(48, wxString::FromUTF8("Orthogonalising the basis (Löwdin)"));
         wxStopWatch sqrtThrottle;
         moHaveSqrtS =
             MoComposition::buildSqrtOverlap(moSflat, nbasis, moSqrtS,
@@ -2741,13 +2741,13 @@ void MoDiagramPanel::buildOnce()
                   if (sqrtThrottle.Time() < 100) return;
                   sqrtThrottle.Start();
                   progressDlg.progress(48 + (int)(frac*2),
-                      _("Orthogonalising the basis (Lowdin)"));
+                      wxString::FromUTF8("Orthogonalising the basis (Löwdin)"));
                 });
         if (!moHaveSqrtS && !moSemiempirical && why.empty()) {
           why = "The basis overlap matrix is too close to linearly "
                 "dependent to take a square root of, so the fragment "
                 "composition uses plain AO coefficients instead of a "
-                "Lowdin share.";
+                "Löwdin share.";
         }
       }
     }

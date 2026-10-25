@@ -13,6 +13,6 @@ radiopair name=ES.Theory.ECCEQM.Unrestricted first="Restricted open-shell (ROHF/
 note label="Closed shell: RHF/RKS, no choice." show_if="mult<=1"
 
 box label="Extra atomic charges"
-check name=ES.Theory.ECCEQM.Loewdin label=" Loewdin" default=0 export=1
+check name=ES.Theory.ECCEQM.Loewdin label=" Löwdin" default=0 export=1
 check name=ES.Theory.ECCEQM.CHELPG label=" CHELPG (fitted to the electrostatic potential)" default=0 export=1
 check name=ES.Theory.ECCEQM.MK label=" Merz-Kollman (fitted to the electrostatic potential)" default=0 export=1

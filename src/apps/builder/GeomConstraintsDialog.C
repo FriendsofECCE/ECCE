@@ -430,14 +430,14 @@ void GeomConstraintsDialog::editRow(long row, bool scanOn)
   GeomRestraint *r = dynamic_cast<GeomRestraint*>(c);
 
   const bool length = c->getNumAtoms() == 2;
-  const wxString unit = length ? "Angstrom" : "degrees";
+  const wxString unit = length ? wxString::FromUTF8("Å") : wxString("degrees");
   wxDialog d(this, wxID_ANY, "Edit Value");
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   wxFlexGridSizer *grid = new wxFlexGridSizer(2, 5, 8);
   wxTextCtrl *val = new wxTextCtrl(&d, wxID_ANY,
                                    wxString::Format("%g", c->getConstraintValue()));
-  grid->Add(new wxStaticText(&d, wxID_ANY, length ? "Bond length (Angstrom):"
-                                          : "Angle or torsion (degrees):"),
+  grid->Add(new wxStaticText(&d, wxID_ANY, length ? wxString::FromUTF8("Bond length (Å):")
+                                          : wxString("Angle or torsion (degrees):")),
             0, wxALIGN_CENTER_VERTICAL);
   grid->Add(val, 0, wxEXPAND);
   wxCheckBox *scan = nullptr;

@@ -35,14 +35,14 @@ In the Layer Builder panel:
   the atom's charge.
 - **Water**, **min Å**: how many water molecules go in each gap, and the
   smallest distance from a water oxygen to any atom already there. Each
-  water is a whole molecule with an O-H distance of 0.9572 A and an H-O-H
+  water is a whole molecule with an O-H distance of 0.9572 Å and an H-O-H
   angle of 104.52 degrees, in a random orientation.
 - **Seed**: ions and water are placed at random. The same seed on the same
   layer gives the same placement; change the seed for another one.
 
 The ion and water counts start at zero, so **Build Layers** with only the
-spacing gives a bare stack. The minimum distances start at 3.5 A for ions
-and 2.0 A for water. These are starting values to change, not
+spacing gives a bare stack. The minimum distances start at 3.5 Å for ions
+and 2.0 Å for water. These are starting values to change, not
 recommendations.
 
 A stack of N layers has N gaps: the gap between the top layer and the
@@ -64,9 +64,9 @@ result.
 ## Examples
 
 - Graphite, Bernal (AB) stacking: draw one graphene layer in a hexagonal
-  cell with a = b = 2.464 A and gamma = 120 degrees, with a c of any
+  cell with a = b = 2.464 Å and gamma = 120 degrees, with a c of any
   length. Set **Layers** to 2, **Spacing** to 3.355, **Shift a** to 0.6667
-  and **Shift b** to 0.3333. The new c is 6.71 A.
+  and **Shift b** to 0.3333. The new c is 6.71 Å.
 - A clay with sodium ions and water: use a layer of the mineral, set
   **Layers**, the basal spacing for **Spacing**, the shift for your
   structure, the element and number of ions for each gap, and the number of

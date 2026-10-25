@@ -338,7 +338,7 @@ Delta		Delta					DELTA		Percent		PropValue
 #
 Charge		Mulliken Charges			MULLIKEN	Charge		PropVector<Atom>
 Charge		Mulliken Shell Charges			MLKNSHELL	Charge		PropVector<Unknown>
-Charge		Loewdin Charges			LOEWDIN	Charge		PropVector<Atom>
+Charge		Löwdin Charges			LOEWDIN	Charge		PropVector<Atom>
 Charge		Hirshfeld Charges			HIRSHFELD	Charge		PropVector<Atom>
 Charge		Mulliken Spin Moments			SPINMOM	Charge		PropVector<Atom>
 Charge		CM5 Charges			CM5	Charge		PropVector<Atom>

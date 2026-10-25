@@ -44,7 +44,7 @@ and so on. Metals take no part.
 Clean says what it did in the log: for example *Clean treated as multiple
 bonds: C1=C2 double (both trigonal). Not resolved, treated as single and
 selected: C5.* After the optimisation it also compares each bond with a typical
-length for its elements and order, and names those more than 0.15 Angstrom
+length for its elements and order, and names those more than 0.15 Å
 off. This is a warning only; nothing is blocked.
 
 The orders Clean used can be drawn: **Options > Advanced > Show Bond Orders

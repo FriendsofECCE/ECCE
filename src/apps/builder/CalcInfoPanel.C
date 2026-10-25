@@ -20,6 +20,7 @@
 #include "wxgui/ewxSelectableText.H"
 #include "wxgui/ewxStaticText.H"
 
+#include "util/UnitDisplay.H"
 #include "CalcInfoPanel.H"
 
 
@@ -279,7 +280,7 @@ void CalcInfoPanel::refresh()
                                           : wxString::Format("%g", scalar);
         const string units = tprop->units();
         if (units == "Degree") valueStr += wxString::FromUTF8(" \xc2\xb0");
-        else if (!units.empty() && units != "NA") valueStr += " " + units;
+        else if (!units.empty() && units != "NA") valueStr += wxString::FromUTF8((" " + unitLabel(units)).c_str());
       }
       p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, key), 0, wxALIGN_RIGHT);
       p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, valueStr.c_str()));

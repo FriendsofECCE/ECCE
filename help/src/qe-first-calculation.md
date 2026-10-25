@@ -63,7 +63,7 @@ directory in **Theory Details**. You do not type file names.
 ## Part 1: bulk silicon
 
 Silicon has the diamond structure, space group Fd-3m (number 227), with one
-atom at the origin and a cubic cell of 5.43 angstrom. The Periodic Builder
+atom at the origin and a cubic cell of 5.43 Å. The Periodic Builder
 makes the atoms of the whole cell from that one atom and the space group. The
 cell it makes is the cubic cell with 8 atoms. (A smaller cell with 2 atoms
 describes the same crystal, but the Periodic Builder gives the cubic one.)
@@ -199,9 +199,9 @@ physics are more telling:
 - *k-points.* With an 8 by 8 by 8 grid the energy is `-91.35837` Ry: 1.5 mRy
   lower, 0.2 mRy per atom. The 4 by 4 by 4 grid is good enough for a first
   look, not for a result you publish.
-- *Lattice constant.* The cell of 5.43 angstrom is the measured one. With the
-  PBE functional the energy is lowest at about 5.48 angstrom, in line with the
-  published PBE value of 5.47 to 5.48. At 5.43 angstrom the crystal is
+- *Lattice constant.* The cell of 5.43 Å is the measured one. With the
+  PBE functional the energy is lowest at about 5.48 Å, in line with the
+  published PBE value of 5.47 to 5.48. At 5.43 Å the crystal is
   slightly compressed, and the pressure that `pw.x` prints
   (tick **Stress tensor (tstress)** in **Runtype Details...** to have it
   in the output) is `20` kbar.
@@ -220,7 +220,7 @@ physics are more telling:
 5. Choose **Tools > Periodic Builder** and click **Create Lattice**.
 6. Set **a:**, **b:** and **c:** to `10`, pressing Enter after each, with
    **Keep atom positions** ticked. The molecule keeps its shape and sits in a
-   box of 10 angstrom.
+   box of 10 Å.
 
    Do not click **Generate** here: the space group is `P1` and there is
    nothing to generate. Do not click **Fold**: it would move atoms across the
@@ -230,7 +230,7 @@ physics are more telling:
 
 ![The water molecule in its box](img/qe-h2o-3-cell.png)
 
-<!-- capture: Builder with water in the 10 angstrom box -->
+<!-- capture: Builder with water in the 10 Å box -->
 
 ### 2. Set up the calculation
 
@@ -266,16 +266,16 @@ ESPRESSO the plot above the control stays empty: ECCE stores the geometries of t
 steps, not an energy for each of them.
 
 Quantum ESPRESSO stops when the forces are below `1e-3` in its units. For water
-in the 10 angstrom box with the 60 Ry cutoff it ends with:
+in the 10 Å box with the 60 Ry cutoff it ends with:
 
 | Quantity | Value |
 | --- | --- |
 | Total energy | `-22.020199` Hartree (`-44.04040` Ry) |
-| O-H distance | 0.970 angstrom |
+| O-H distance | 0.970 Å |
 | H-O-H angle | 104.2 degrees |
 
 The literature values for water with the PBE functional are about 0.97
-angstrom and 104 degrees. Running `pw.x` by hand on the input of this
+Å and 104 degrees. Running `pw.x` by hand on the input of this
 calculation, as for silicon, gives the same energy and the same geometry.
 
 ![The geometry trace](img/qe-h2o-9-geometry-trace.png)

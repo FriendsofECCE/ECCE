@@ -212,7 +212,7 @@
   </PropertyPanel>
 
   <PropertyPanel>
-    <name>Loewdin Charges</name>
+    <name>Löwdin Charges</name>
     <group>Charges</group>
     <class>MullikenPanel</class>
     <consumer>true</consumer>

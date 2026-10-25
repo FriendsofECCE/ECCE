@@ -60,8 +60,8 @@ covers more of the crystal.
 - **Molecule in a box:** choose `Gamma point only`. The molecule does not
   repeat in any meaningful way, and the Gamma point is the fastest choice.
 - **Crystal:** choose `Monkhorst-Pack grid`. As a first guess, make each grid
-  number times its cell length about 25 angstrom for an insulator or
-  semiconductor, and about 50 angstrom for a metal:
+  number times its cell length about 25 Å for an insulator or
+  semiconductor, and about 50 Å for a metal:
 
   | Cell length | Insulator (about 25 Å) | Metal (about 50 Å) |
   | --- | --- | --- |
@@ -93,10 +93,10 @@ self-consistent field oscillate. Smear the occupations:
 
 ## Molecules: the box
 
-- Leave about 10 angstrom of vacuum between the molecule and its copy in the
-  next cell. A box of 10 angstrom around a water molecule leaves about 8.
+- Leave about 10 Å of vacuum between the molecule and its copy in the
+  next cell. A box of 10 Å around a water molecule leaves about 8.
 - A larger box costs time in proportion to its volume, so check by making the
-  box 2 to 3 angstrom larger and comparing.
+  box 2 to 3 Å larger and comparing.
 - A charged molecule interacts with its copies even across a large box, and
   pw.x adds a uniform background charge to make the cell neutral. Its energy
   depends on the box size. Compare charged molecules only in the same box, or
@@ -124,6 +124,6 @@ output is what you expect.
 2. k-points checked by one larger grid, or `Gamma point only` for a molecule
    in a box.
 3. Smearing for metals.
-4. About 10 angstrom of vacuum around molecules and across slabs.
+4. About 10 Å of vacuum around molecules and across slabs.
 5. A starting magnetisation for anything that may be magnetic.
 6. The same settings for every calculation you compare.

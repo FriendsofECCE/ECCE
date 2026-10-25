@@ -163,7 +163,10 @@ void CalculationContextPanel::refresh()
   NULLPOINTEREXCEPTION(annotationCtrl, "failed to reacquire annotation window");
   string annotation = "";
   p_properties->findValue(VDoc::getEcceNamespace() + ":annotation", annotation);
-  annotationCtrl->SetValue(annotation);
+  // Stored notes are UTF-8 (the examples carry Å and Löwdin), whatever the locale.
+  wxString shown = wxString::FromUTF8(annotation.c_str());
+  if (shown.empty() && !annotation.empty()) shown = annotation;
+  annotationCtrl->SetValue(shown);
 
   p_storedProgress.clear();
   p_properties->findValue(VDoc::getEcceNamespace() + ":progress",

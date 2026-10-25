@@ -586,8 +586,8 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
     
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
-    fontOffset = glGenLists (128);
-    for (GLuint i = 32; i < 127; i++) {
+    fontOffset = glGenLists (256);
+    for (GLuint i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       // rasters defined in viz/MoGLFonts.h  - a hardwired font array
       //glBitmap(8, 13, 0.0, 2.0, 10.0, 0.0, rasters[i-32]);

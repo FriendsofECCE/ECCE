@@ -104,6 +104,13 @@ def InRange(range, value):
 
 
 
+
+def shownUnit(unit):
+    # unitString is compared with the unit stored in the calculation, so only
+    # the label shows the Angstrom sign.
+    return unit.replace("Angstroms", "\u00c5").replace("Angstrom", "\u00c5")
+
+
 class EcceFrame(wx.Frame):
     """Ecce styled wxFrame."""
 
@@ -850,7 +857,7 @@ class EcceFloatInput(wx.BoxSizer):
 
         self.unitRange = 0
         if self.unitString or self.rangeString:
-            self.unitRange = wx.StaticText(parent, -1, "  "+self.unitString
+            self.unitRange = wx.StaticText(parent, -1, "  "+shownUnit(self.unitString)
                                            + "\n   " + self.rangeString)
             self.unitRange.SetFont(EcceGlobals.ScriptFontDefault)
             wx.BoxSizer.Add(self, self.unitRange, 0, EcceGlobals.FlagDefault, 0)
@@ -1079,7 +1086,7 @@ class EcceFloatInput(wx.BoxSizer):
     def SetUnit(self, unit):
         self.unitString = unit
         if self.unitString or self.rangeString:
-            self.unitRange.SetLabel("  " + self.unitString + "\n   " +
+            self.unitRange.SetLabel("  " + shownUnit(self.unitString) + "\n   " +
                                     self.rangeString)
 
 
@@ -1307,7 +1314,7 @@ class EcceSpinCtrl(wx.BoxSizer):
             self.rangeString = self.hardRange
         self.unitRange = 0
         if self.unitString or self.rangeString:
-            self.unitRange = wx.StaticText(parent, -1, "  "+self.unitString
+            self.unitRange = wx.StaticText(parent, -1, "  "+shownUnit(self.unitString)
                                            + "\n   " + self.rangeString)
             self.unitRange.SetFont(EcceGlobals.ScriptFontDefault)
             wx.BoxSizer.Add(self, self.unitRange, 0, EcceGlobals.FlagDefault, 0)
@@ -1479,7 +1486,7 @@ class EcceSpinCtrl(wx.BoxSizer):
     def SetUnit(self, unit):
         self.unitString = unit
         if self.unitString or self.rangeString:
-            self.unitRange.SetLabel("  " + self.unitString + "\n   " + 
+            self.unitRange.SetLabel("  " + shownUnit(self.unitString) + "\n   " + 
                                     self.rangeString)
 
 

@@ -241,7 +241,7 @@ void DensityMapPanel::build()
   p_offset->SetMinSize(wxSize(80, -1));
   p_offsetField = new wxTextCtrl(this, ID_FIELD, "0.00", wxDefaultPosition,
                                  wxSize(64, -1), wxTE_PROCESS_ENTER | wxTE_RIGHT);
-  p_offsetField->SetToolTip("Distance along the plane's normal, in Angstrom (0.01)");
+  p_offsetField->SetToolTip(wxString::FromUTF8("Distance along the plane's normal, in Å (0.01)"));
   p_resetOffset = new wxButton(this, ID_RESET, "Reset");
   rowOff->Add(new wxStaticText(this, wxID_ANY, "Offset"), 0, RIGHT, 6);
   rowOff->Add(p_offset, 1, RIGHT, 6);

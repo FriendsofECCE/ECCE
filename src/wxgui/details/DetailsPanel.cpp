@@ -104,11 +104,11 @@ void DetailsPanel::build()
     wxString nm(it.name);
     const string& k = it.kind;
     if (k == "note") {
-      wxStaticText *t = new wxStaticText(this, wxID_ANY, it.label);
+      wxStaticText *t = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(it.label));
       w.w = t;
       grid->Add(t, 0, fl, 3);
     } else if (k == "check") {
-      wxCheckBox *b = new wxCheckBox(this, wxID_ANY, it.label,
+      wxCheckBox *b = new wxCheckBox(this, wxID_ANY, wxString::FromUTF8(it.label),
           wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, nm);
       w.w = b;
       grid->Add(b, 0, fl, 3);
@@ -118,9 +118,9 @@ void DetailsPanel::build()
       });
     } else if (k == "radiopair") {
       // first = the default (false) choice, second = the stored setting.
-      wxRadioButton *a = new wxRadioButton(this, wxID_ANY, it.first,
+      wxRadioButton *a = new wxRadioButton(this, wxID_ANY, wxString::FromUTF8(it.first),
           wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
-      wxRadioButton *b = new wxRadioButton(this, wxID_ANY, it.second,
+      wxRadioButton *b = new wxRadioButton(this, wxID_ANY, wxString::FromUTF8(it.second),
           wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, nm);
       a->SetValue(true);
       w.w = a;
@@ -191,8 +191,12 @@ void DetailsPanel::build()
       row->Add(w.w, 0, fl, 0);
       string rng = !it.soft.empty() ? it.soft : it.hard;
       if (k != "text" && (!it.unit.empty() || !rng.empty())) {
-        w.unitLab = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(
-            "  " + it.unit + "\n   " + rng));
+        // The stored unit stays "Angstrom"; only the label shows the sign.
+        wxString shown = wxString::FromUTF8(it.unit);
+        shown.Replace("Angstroms", wxString::FromUTF8("\xC3\x85"));
+        shown.Replace("Angstrom", wxString::FromUTF8("\xC3\x85"));
+        w.unitLab = new wxStaticText(this, wxID_ANY,
+            "  " + shown + wxString::FromUTF8("\n   " + rng));
         row->Add(w.unitLab, 0, fl, 0);
       }
       grid->Add(row, 0, fl, 3);
