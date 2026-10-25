@@ -143,6 +143,9 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       /** The text under the diagram as last built (summary, then warnings). */
       string noteText() const { return p_lastNote; }
+      /** Fold the controls under the diagram to one "Options" line; remembered. */
+      void setOptionsOpen(bool open);
+      bool optionsOpen() const { return p_optOpen; }
 
       /** Levels of the model column whose blocks overlap as last drawn (-1: none drawn). */
       int centreOverlaps() const;
@@ -180,6 +183,9 @@ class MoDiagramPanel : public VizPropertyPanel,
       MoDiagramCanvas *p_canvas;
       wxPanel         *p_fragPanel;
       wxButton        *p_fragToggle;
+      wxButton        *p_optToggle;
+      wxSizer         *p_optSizer, *p_optRow, *p_optViews;
+      bool             p_optOpen, p_fragWasOpen;
       wxCheckListBox  *p_fragments;
       wxStaticText    *p_fragmentHint;
       wxCheckBox      *p_autoFragments;

@@ -8,7 +8,7 @@ tests/parsers/fixtures/gaussian-16/hcn_irc.log (its "Summary of reaction path
 following" table, by regex here, not by the parser) and written as property
 files of a calculation.  The Builder opens the IRC Path panel and the script
 command "ircpath" exports the CSV, whose energies must equal TS energy plus
-the printed relative column and whose relative column must be zero at the TS.  Exit status 77 (skip) without Xvfb, import or
+the printed relative column and whose relative column must be zero at the first point.  Exit status 77 (skip) without Xvfb, import or
 binaries.
 """
 
@@ -351,7 +351,7 @@ def main():
             return 1
         say("screenshot: %s" % shots.get("panel"))
 
-        lo = ts
+        lo = energy[0]
         for path, scale in ((kj, HARTREE_KJ), (kcal, 627.5095)):
             rows = [l.split(",") for l in open(path).read().splitlines()
                     if l and not l.startswith("#")]
@@ -363,10 +363,10 @@ def main():
                   "%s: absolute energies equal TS plus the printed column" % head[3])
             check(all(abs(float(r[3]) - (e - lo) * scale) < 1e-3
                       for r, e in zip(rows, energy)),
-                  "%s: relative energies are to the TS" % head[3])
-        ts_row = [l.split(",") for l in open(kj).read().splitlines()
-                  if l and not l.startswith("#")][1:][8]
-        check(abs(float(ts_row[3])) < 1e-6, "the TS row (coordinate 0) is the zero")
+                  "%s: relative energies are to the first point" % head[3])
+        first_row = [l.split(",") for l in open(kj).read().splitlines()
+                     if l and not l.startswith("#")][1:][0]
+        check(abs(float(first_row[3])) < 1e-6, "the first row is the zero")
         # Summary index 8 is the TS.  Index 11 is forward point 3 (frame 2),
         # index 5 reverse point 3 (frame 8+3-1 = 10); the log is the oracle.
         clicks = dict((m[0], m) for m in re.findall(

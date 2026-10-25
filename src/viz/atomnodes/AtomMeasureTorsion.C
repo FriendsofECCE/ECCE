@@ -220,6 +220,12 @@ AtomMeasureTorsion::~AtomMeasureTorsion()
 //=============================================================================
 void AtomMeasureTorsion::GLRender(SoGLRenderAction *action)
 {
+  // Drawn after the atoms and bonds, so the label is never painted over.
+  if (!action->isRenderingDelayedPaths()) {
+    action->addDelayedPath(action->getCurPath()->copy());
+    return;
+  }
+
   SoFaceSet::GLRender(action);
 
   // Access the state from the action
@@ -350,6 +356,9 @@ void AtomMeasureTorsion::GLRender(SoGLRenderAction *action)
   EcceDispParam options;
   options.getForeground(r,g,b);
 
+  // Labels must stay readable behind atoms, bonds and the torsion plane.
+  GLboolean depthWasOn = glIsEnabled(GL_DEPTH_TEST);
+  glDisable(GL_DEPTH_TEST);
   glDisable(GL_LIGHTING);
 
   glColor3f(r,g,b);
@@ -362,6 +371,7 @@ void AtomMeasureTorsion::GLRender(SoGLRenderAction *action)
   glPopAttrib ();
 
   glEnable(GL_LIGHTING);
+  if (depthWasOn) glEnable(GL_DEPTH_TEST);
 
 
   // Restore the GL matrix

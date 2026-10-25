@@ -20,6 +20,7 @@
 
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "wxviz/ViewerEvtHandler.H"
 
 #include "wxviz/SceneScript.H"
 
@@ -51,6 +52,22 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
   fprintf(stderr, "PBCTEST:%s\n", line.c_str());
   PBC *pbc = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
   wxWindow *layer = p_mgr.GetPane(NAME_TOOL_LAYER).window;
+
+  //  "measure dist|angle|torsion I J [K [L]]": the Measure toolbar's button
+  //  on those atoms (0-based).
+  if (c == "measure" && w.size() >= 4) {
+    SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+    if (!frag) return s.fail("measure: no structure");
+    frag->m_atomHighLight.clear();
+    for (size_t k = 2; k < w.size(); k++)
+      frag->m_atomHighLight.push_back(atoi(w[k].c_str()));
+    wxCommandEvent ev(wxEVT_MENU,
+        w[1] == "dist" ? ViewerEvtHandler::ID_MEASURE_DIST
+      : w[1] == "angle" ? ViewerEvtHandler::ID_MEASURE_ANGLE
+                        : ViewerEvtHandler::ID_MEASURE_TORSION);
+    GetEventHandler()->ProcessEvent(ev);
+    return true;
+  }
 
   //  "pbcopen": Tools > Periodic Builder.
   if (c == "pbcopen") {

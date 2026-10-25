@@ -110,9 +110,30 @@ static Resource *open(const string& path, IPropCalculation *&calc)
   return res;
 }
 
+//  The level set must not jump with the plane's maximum (#532): it is the
+//  same ladder either side of 0.004, differing by one level at the top.
+static void levels()
+{
+  Map m;
+  m.quantity = DENSITY;
+  m.zmin = 0;
+  bool scaled = true;
+  m.zmax = 0.00409;
+  const vector<double> a = mapLevels(m, scaled);
+  m.zmax = 0.00395;
+  const vector<double> b = mapLevels(m, scaled);
+  CHECK(!scaled, "levels are never scaled to the maximum");
+  CHECK(a.size() == 8 && b.size() == 8, "eight levels either side of 0.004");
+  bool shared = a.size() == 8 && b.size() == 8;
+  for (size_t i = 0; shared && i < 7; i++) shared = a[i] == b[i + 1];
+  CHECK(shared, "the two sets differ only by the end levels");
+  CHECK(a.size() == 8 && a.back() == 0.004 && a[5] == 0.001, "levels are base 0.001 * 2^k");
+}
+
 int main(int argc, char **argv)
 {
   planes();
+  levels();
   if (argc < 2) {
     cerr << "densityplane_test: no fixture root, plane checks only\n";
     return failures ? 1 : 0;

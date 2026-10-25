@@ -70,6 +70,43 @@ dmplane 1
 dmstate
 dmplane 2
 """),
+    #  #532: the level set either side of the old 1.66/1.67 A switch, and the
+    #  collapsed plane controls.
+    "ethene-levels": ("ecceqm-c2h4", """
+densitymap map-ethene-1.66A 900 700 0 alpha 0
+dmoffset 1.66
+dmpng map-ethene-1.66A 900 700
+dmoffset 1.67
+dmpng map-ethene-1.67A 900 700
+dmcollapse 1
+dmstate
+dmcollapse 0
+dmstate
+"""),
+    #  Long orbital title and an orbital that is zero in the plane.
+    "n2-pi-zero": ("ecceqm-n2", """
+densitymap map-n2-pi 900 700 6 alpha 3
+dmview 1 0 0 0 1 0
+dmpng map-n2-pi-view 900 700
+dmview 1 0 0 0 0 1
+dmpng map-n2-pi-view2 900 700
+"""),
+    "ethene-pi-zero": ("ecceqm-c2h4", """
+densitymap map-ethene-pi-zero 900 700 8 alpha 0
+dmpng map-ethene-pi-zero 900 700
+dmcollapse 1
+dmpng map-ethene-pi-zero-collapsed 900 700
+"""),
+    #  #539: measurement labels stay readable.
+    "measure-labels": ("ecceqm-c2h6", """
+background 1 1 1
+measure dist 0 1
+measure torsion 2 0 1 5
+rotatex -70
+viewall
+hold 1
+snap measure-ethane
+"""),
     "ethene-pi": ("ecceqm-c2h4", """
 background 1 1 1
 dmpick 1 2

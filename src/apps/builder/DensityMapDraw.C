@@ -2,6 +2,7 @@
 #include <cmath>
 
 #include <wx/brush.h>
+#include <wx/control.h>
 #include <wx/font.h>
 #include <wx/pen.h>
 
@@ -67,7 +68,10 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   wxFont base = dc.GetFont();
   wxFont bold = base; bold.SetWeight(wxFONTWEIGHT_BOLD);
   dc.SetFont(bold);
-  dc.DrawText(wxString::FromUTF8(m.title.c_str()), left, 8);
+  //  Never into the legend column: the status line carries the full title.
+  dc.DrawText(wxControl::Ellipsize(wxString::FromUTF8(m.title.c_str()), dc,
+                  wxELLIPSIZE_END, std::max(40, wxRound(ox + pw) + 8 - left)),
+              left, 8);
   dc.SetFont(base);
 
   //  Frame and Angstrom axes.
@@ -110,6 +114,12 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
       legend.push_back(l);
     }
   }
+  //  The nodes of a wavefunction: where psi changes sign.
+  const bool nodes = m.quantity == ORBITAL && m.zmax > 0 && m.zmin < 0;
+  if (nodes) {
+    Line l = { 0.0, wxColour(150, 150, 150), wxPENSTYLE_SOLID };
+    legend.push_back(l);
+  }
   for (size_t k = 0; k < legend.size(); k++) {
     dc.SetPen(wxPen(legend[k].colour, 1, legend[k].style));
     const vector<Segment> seg = contour(m, legend[k].value);
@@ -131,6 +141,14 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
                   wxRound(Y(k.v)) - 16);
   }
   dc.DestroyClippingRegion();
+  const bool zero = !(fabs(m.zmax) + fabs(m.zmin) > 0);
+  if (zero) {
+    dc.SetTextForeground(wxColour(80, 80, 80));
+    dc.DrawLabel(wxString::FromUTF8("zero in this plane \xE2\x80\x94 a \xCF\x80 orbital is zero on the\n"
+                                    "axis or nodal plane: move the plane off it"),
+                 wxRect(wxRound(ox), wxRound(oy) + 8, wxRound(pw), 40), wxALIGN_CENTER_HORIZONTAL | wxALIGN_TOP);
+    dc.SetTextForeground(*wxBLACK);
+  }
 
   //  Legend: every drawn level.
   int ly = wxRound(oy);
@@ -145,7 +163,8 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     dc.SetPen(wxPen(legend[k].colour, 2, legend[k].style));
     dc.DrawLine(lx, ly + 8, lx + 26, ly + 8);
     dc.SetTextForeground(*wxBLACK);
-    wxString t = levelText(legend[k].value);
+    wxString t = nodes && k + 1 == legend.size()
+        ? wxString::FromUTF8("node (\xCF\x88 = 0)") : levelText(legend[k].value);
     if (m.quantity == ORBITAL && legend[k].value > 0) t = "+" + t;
     dc.DrawText(t, lx + 32, ly);
   }
@@ -154,14 +173,11 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     ly += 17;
   }
   dc.SetTextForeground(wxColour(80, 80, 80));
-  if (scaled) {
-    dc.DrawText("levels scaled", lx, ly);
-    dc.DrawText("to the plane's max", lx, ly + 15);
-    ly += 33;
+  if (!zero) {
+    dc.DrawText(wxString::Format("max %.3g", m.zmax), lx, ly + 8);
+    if (m.quantity == ORBITAL)
+      dc.DrawText(wxString::Format("min %.3g", m.zmin), lx, ly + 25);
   }
-  dc.DrawText(wxString::Format("max %.3g", m.zmax), lx, ly + 8);
-  if (m.quantity == ORBITAL)
-    dc.DrawText(wxString::Format("min %.3g", m.zmin), lx, ly + 25);
   if (roomy)
     dc.DrawText(wxString::FromUTF8(m.plane.description.c_str()), left, size.y - 18);
 }
