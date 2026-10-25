@@ -1527,7 +1527,12 @@ GeomConstraintModel::Use CalcEd::constraintUse() const
 /// calculation is not ready.
 void CalcEd::updateNotes()
 {
-  string note = constraintNote();
+  bool supportsConstraints = false;
+  if (p_code) p_code->get_bool("SupportsConstraints", supportsConstraints);
+  // The constraints line is for run types that apply the constraints and
+  // scan; for the others Verify says they are left out (#306).
+  string note = supportsConstraints && constraintUse() == GeomConstraintModel::USED
+      ? constraintNote() : string();
   if (symmetryMustBreak() && !useSymmetryBox())
     note += string(note.empty() ? "" : "\n") +
         "Symmetry off: a transition-state search / scan must be able to "

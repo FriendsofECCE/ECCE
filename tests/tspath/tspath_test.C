@@ -24,7 +24,7 @@ int main()
    CHECK(r.collinear, "HCN/HNC ends are linear");
    CHECK(r.passes && r.closest < 0.01, "H passes through C");
    std::string w = TsPath::warning(r, el);
-   CHECK(w.find("linear") != std::string::npos, "linear text");
+   CHECK(w.find("linear") != std::string::npos && w.find("\n") == std::string::npos, "one line, names linear");
    CHECK(w.find("passes H1 through C2") != std::string::npos, "passes text");
    CHECK(w.find("TS Search") != std::string::npos, "points to Guess");
 

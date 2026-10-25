@@ -55,6 +55,26 @@ class OrcaRunTypePanel(EccePanel):
 
             self.panelSizer.Add(geometrySizer)
 
+            # %geom Calc_Hess / Recalc_Hess; the default writes neither, so
+            # ORCA keeps its own model Hessian.
+            hessSizer = EcceBoxSizer(self, label="Hessian", cols=1)
+            self.hessian = EcceComboBox(self,
+                                        choices=["Default", "Calculate"],
+                                        name="ES.Runtype.GeomOpt.InitialHessian",
+                                        default=0,
+                                        label="Initial Hessian:",
+                                        export=1)
+            hessSizer.AddWidget(self.hessian)
+            self.recalc = EcceSpinCtrl(self,
+                                       hardRange="[0..)",
+                                       softRange="[0..50]",
+                                       name="ES.Runtype.GeomOpt.RecalcFC",
+                                       default=0,
+                                       label="Recalculate every N steps (0 = never):",
+                                       export=1)
+            hessSizer.AddWidget(self.recalc)
+            self.panelSizer.Add(hessSizer)
+
             convergenceSizer = EcceBoxSizer(self,
                                             label="Convergence",
                                             cols=1)

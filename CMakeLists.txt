@@ -1993,6 +1993,8 @@ set_tests_properties(scan_xml PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
 add_test(NAME gaussian_scan_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_scan/run_tests.py)
+add_test(NAME opt_hessian_decks
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/opt_hessian/run_tests.py)
 # Reference test for the symmetry helpers (#422): runs the Fortran binaries of
 # this build over tests/symmetry/reference/corpus and compares with the goldens.
 add_test(NAME symmetry_reference
