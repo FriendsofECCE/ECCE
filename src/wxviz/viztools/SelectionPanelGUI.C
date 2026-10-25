@@ -389,7 +389,7 @@ void SelectionPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer52 = new wxBoxSizer(wxVERTICAL);
     itemPanel51->SetSizer(itemBoxSizer52);
 
-    ewxRadioButton* itemRadioButton53 = new ewxRadioButton( itemPanel51, ID_RADIOBUTTON_DISTANCE, _("Distance (in angstroms) from current selection:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxRadioButton* itemRadioButton53 = new ewxRadioButton( itemPanel51, ID_RADIOBUTTON_DISTANCE, wxString::FromUTF8("Distance (in Å) from current selection:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemRadioButton53->SetValue(true);
     if (ShowToolTips())
         itemRadioButton53->SetToolTip(_("Select all atoms within distance of current selection"));

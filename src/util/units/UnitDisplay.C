@@ -15,6 +15,9 @@ string unitLabel(const string& units)
   string s = units;
   replaceAll(s, "kJoule/Mole", "kJ/mol");
   replaceAll(s, "kcal/Mole", "kcal/mol");
+  // Stored property units stay "Angstrom"; only the label gets the Angstrom sign.
+  replaceAll(s, "Angstroms", "\u00c5");
+  replaceAll(s, "Angstrom", "\u00c5");
   if (s == "Kelvin") s = "K";
   else if (s == "Bar") s = "bar";
   else if (s == "kg/m^3") s = "kg/m\u00b3";

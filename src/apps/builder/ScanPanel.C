@@ -177,7 +177,7 @@ void ScanPanel::fill()
     p_plot->addCurve(p_coord, y);
   }
   p_plot->setXAxisLabel(p_coordUnit == "degree" ? "Scanned coordinate (degrees)"
-                                                 : "Scanned coordinate (Angstrom)");
+                                                 : wxString::FromUTF8("Scanned coordinate (Å)"));
   p_plot->setYAxisLabel("Relative energy (" + unit + ")");
 
   if (p_grid->GetNumberRows()) p_grid->DeleteRows(0, p_grid->GetNumberRows());

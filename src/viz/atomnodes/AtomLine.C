@@ -113,8 +113,8 @@ AtomLine::AtomLine()
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    fontOffset = glGenLists (128);
-    for (i = 32; i < 127; i++) {
+    fontOffset = glGenLists (256);
+    for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }

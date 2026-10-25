@@ -122,7 +122,7 @@ void LayerBuilder::OnButtonLayerBuild(wxCommandEvent& event)
    };
    double spacing = 0, sa = 0, sb = 0, wmin = 0, q[2] = {0, 0}, imin[2] = {0, 0};
    if (!num(ID_TEXT_LAYER_SPACING, spacing) || spacing <= 0.0) {
-      wxLogWarning("Enter the interlayer spacing in Angstrom: the distance from one layer to the next.");
+      wxLogWarning(wxString::FromUTF8("Enter the interlayer spacing in Å: the distance from one layer to the next."));
       return;
    }
    if (!num(ID_TEXT_LAYER_SHIFTA, sa) || !num(ID_TEXT_LAYER_SHIFTB, sb) ||

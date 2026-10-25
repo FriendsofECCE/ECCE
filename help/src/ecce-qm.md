@@ -79,7 +79,7 @@ by side.
   diagram shown (the orbital diagram is shown by default; untick **Show the MO
   diagram for ECCE-QM calculations** in the **Molecular orbitals** box of
   **Edit > Preferences...** to hide it);
-- atomic charges: Mulliken always, and on request Loewdin, CHELPG and
+- atomic charges: Mulliken always, and on request Löwdin, CHELPG and
   Merz-Kollman charges, which are ticked under **Theory Details** and listed
   under Charges in the Viewer next to the Mulliken charges. CHELPG and
   Merz-Kollman charges are fitted to the electrostatic potential and are
@@ -145,7 +145,7 @@ were also checked with 6-31G, 6-31+G*, 6-311G*, aug-cc-pVDZ and cc-pVTZ.
 - Orbital energies agree to about 1e-5 hartree for occupied orbitals.
 - Forces agree with finite differences of the energy to 1e-8 hartree/bohr
   (Hartree-Fock) and 1e-6 (density functionals).
-- Optimised geometries agree with ORCA's to 1.4e-4 angstrom in bond lengths
+- Optimised geometries agree with ORCA's to 1.4e-4 Å in bond lengths
   and 0.007 degrees in angles.
 - Frequencies agree with ORCA's analytic frequencies to 0.8 cm-1, IR
   intensities to 0.07 km/mol, and the zero-point energy and Gibbs energy to a
@@ -157,7 +157,7 @@ were also checked with 6-31G, 6-31+G*, 6-311G*, aug-cc-pVDZ and cc-pVTZ.
   hydrogen fluoride. Raman activities agree with ORCA's to 0.1 % and
   depolarization ratios to 3e-4 for water, ammonia and methane; the
   frequencies of those calculations agree to 1.5 cm-1.
-- Loewdin charges agree with ORCA's to 1e-5 e. CHELPG charges agree with
+- Löwdin charges agree with ORCA's to 1e-5 e. CHELPG charges agree with
   ORCA's within 0.005 e; the small differences come from the points where the
   potential is sampled, which each program chooses in its own way.
 - The orbitals were checked in the Molden format against the program Multiwfn.

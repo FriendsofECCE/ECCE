@@ -7,7 +7,7 @@ chemistry laboratory. In it the folder `Diatomics` holds six small molecules:
 Each is drawn at its measured bond length (the distance between the two
 nuclei in the molecule at rest):
 
-| Molecule | Bond length (Angstrom) |
+| Molecule | Bond length (Å) |
 |---|---|
 | C2 | 1.243 |
 | N2 | 1.098 |
@@ -18,14 +18,14 @@ nuclei in the molecule at rest):
 
 The lengths are the equilibrium values of the NIST Chemistry WebBook
 ("Constants of Diatomic Molecules", from Huber and Herzberg), rounded to
-0.001 Angstrom. Two helium atoms do not form a bond; 3.0 Angstrom is only a
+0.001 Å. Two helium atoms do not form a bond; 3.0 Å is only a
 distance at which to look at them.
 
 ## Why use these instead of drawing the molecule
 
 When you draw a bond in the Builder, ECCE places the second atom at the sum of
 the two atoms' single-bond radii, which is a long bond for a molecule such as
-N2 or CO (1.50 Angstrom instead of about 1.1). **Build > Clean** shortens it,
+N2 or CO (1.50 Å instead of about 1.1). **Build > Clean** shortens it,
 but only as far as the bond ECCE takes it to be (single, double or triple,
 see [Bonds in the Builder](bonds-and-clean.md)) allows. The order of the
 orbitals, and so which one is the highest occupied, can depend on the bond

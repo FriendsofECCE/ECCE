@@ -61,8 +61,8 @@ AtomMeasureAngle::AtomMeasureAngle(SGFragment *frag, TAtm * at1, TAtm* at2,
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    fontOffset = glGenLists (128);
-    for (GLuint i = 32; i < 127; i++) {
+    fontOffset = glGenLists (256);
+    for (GLuint i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); 
@@ -231,8 +231,8 @@ AtomMeasureAngle::AtomMeasureAngle()
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    fontOffset = glGenLists (128);
-    for (i = 32; i < 127; i++) {
+    fontOffset = glGenLists (256);
+    for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }
@@ -278,8 +278,8 @@ void AtomMeasureAngle::GLRender(SoGLRenderAction *action)
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    fontOffset = glGenLists (128);
-    for (i = 32; i < 127; i++) {
+    fontOffset = glGenLists (256);
+    for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }
@@ -370,7 +370,8 @@ void AtomMeasureAngle::GLRender(SoGLRenderAction *action)
   //p_value = Measures::computeAngle(atom1(),atom2(),atom3());
 
   char buf[32];
-  sprintf(buf, "%.3lf", p_value);
+  // Latin-1 degree sign (260): the bitmap font lists are indexed by byte
+  sprintf(buf, "%.2f\260", p_value);
 
 
 

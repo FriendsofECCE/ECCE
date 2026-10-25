@@ -78,7 +78,7 @@ bool CleanParameters::Create(wxWindow *parent)
   validator.setValue(5.0);
   p_forceCutoff->SetValidator(validator);
   sizer->Add(p_forceCutoff, 1, wxALL|wxEXPAND|wxALIGN_CENTER_VERTICAL, 5);
-  sizer->Add(createUnitLabel("Angstroms", "[0..200]"));
+  sizer->Add(createUnitLabel(wxString::FromUTF8("Å"), "[0..200]"));
 
   GetSizer()->Add(new ewxStaticLine(this, wxID_ANY), 0, wxALL|wxEXPAND, 5);
 

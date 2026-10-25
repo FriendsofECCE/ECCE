@@ -257,7 +257,7 @@ end atoms
 ```
 
 One line per atom, counted from 0: element, atomic number, position in
-Angstrom, and the Mulliken net charge. The charges add up to the charge of
+Å, and the Mulliken net charge. The charges add up to the charge of
 the molecule.
 
 ### Other atomic charges
@@ -273,7 +273,7 @@ begin charges loewdin  # index symbol net_charge
 end charges
 ```
 
-The blocks are `loewdin`, `chelpg` and `mk`. Loewdin charges come from the
+The blocks are `loewdin`, `chelpg` and `mk`. Löwdin charges come from the
 orbital populations after symmetric orthogonalisation of the basis. CHELPG and
 Merz-Kollman charges are fitted to the electrostatic potential on points around
 the molecule, with the sum fixed to the charge of the molecule; the header of
@@ -305,7 +305,7 @@ field-free orbitals). It works with every method and reference. ECCE shows it
 as the polarizability ellipsoid. In `raman true` runs the same calculation is
 made at every displaced geometry of the frequency calculation, and the
 derivatives along the normal modes give the activity S = 45 a'^2 + 7 g'^2 in
-angstrom^4/amu and the depolarization ratio 3 g'^2 / (45 a'^2 + 4 g'^2), the
+Å^4/amu and the depolarization ratio 3 g'^2 / (45 a'^2 + 4 g'^2), the
 definitions ORCA prints. They are written in a block with a line for each of
 the 3N modes, in the order of the `vibrations` block (zero for translations
 and rotations):
@@ -369,7 +369,7 @@ restricted orbitals and two (`alpha`, `beta`) for unrestricted ones.
 
 `ecce-qm --molden FILE input` writes the orbitals in the Molden format as
 well, for programs that draw or analyse them. A job started from ECCE does not
-write it. The file has the sections `[Atoms]` (in Angstrom), `[GTO]` (the
+write it. The file has the sections `[Atoms]` (in Å), `[GTO]` (the
 basis set of each atom) and `[MO]` (for each orbital its energy `Ene=`, its
 spin `Spin=`, its occupation `Occup=` and its coefficients). It uses spherical
 d, f and g functions, so it needs `spherical true`. The keyword `molden` is

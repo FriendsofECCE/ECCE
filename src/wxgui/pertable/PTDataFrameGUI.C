@@ -295,7 +295,7 @@ void PTDataFrameGUI::CreateControls()
     p_covRadInput = new ewxTextCtrl( p_preferencePanel, ID_COVRAD_INPUT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer43->Add(p_covRadInput, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 5);
 
-    ewxStaticText* itemStaticText50 = new ewxStaticText( p_preferencePanel, wxID_STATIC, _("Angstrom"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText50 = new ewxStaticText( p_preferencePanel, wxID_STATIC, wxString::FromUTF8("Å"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer43->Add(itemStaticText50, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 5);
 
     p_defCovRadLabel = new ewxStaticText( p_preferencePanel, wxID_STATIC, _("(Default=-1)"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -307,7 +307,7 @@ void PTDataFrameGUI::CreateControls()
     p_vdwRadInput = new ewxTextCtrl( p_preferencePanel, ID_VDWRAD_INPUT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer43->Add(p_vdwRadInput, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 5);
 
-    ewxStaticText* itemStaticText54 = new ewxStaticText( p_preferencePanel, wxID_STATIC, _("Angstrom"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText54 = new ewxStaticText( p_preferencePanel, wxID_STATIC, wxString::FromUTF8("Å"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer43->Add(itemStaticText54, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 5);
 
     p_defVdwRadLabel = new ewxStaticText( p_preferencePanel, wxID_STATIC, _("(Default=-1)"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -319,7 +319,7 @@ void PTDataFrameGUI::CreateControls()
     p_bftInput = new ewxTextCtrl( p_preferencePanel, ID_BFT_INPUT, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer43->Add(p_bftInput, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 5);
 
-    ewxStaticText* itemStaticText58 = new ewxStaticText( p_preferencePanel, wxID_STATIC, _("Angstrom"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText58 = new ewxStaticText( p_preferencePanel, wxID_STATIC, wxString::FromUTF8("Å"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer43->Add(itemStaticText58, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 5);
 
     p_defBftLabel = new ewxStaticText( p_preferencePanel, wxID_STATIC, _("(Default=-1)"), wxDefaultPosition, wxDefaultSize, 0 );

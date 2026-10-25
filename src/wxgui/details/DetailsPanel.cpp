@@ -191,8 +191,12 @@ void DetailsPanel::build()
       row->Add(w.w, 0, fl, 0);
       string rng = !it.soft.empty() ? it.soft : it.hard;
       if (k != "text" && (!it.unit.empty() || !rng.empty())) {
-        w.unitLab = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(
-            "  " + it.unit + "\n   " + rng));
+        // The stored unit stays "Angstrom"; only the label shows the sign.
+        wxString shown = wxString::FromUTF8(it.unit);
+        shown.Replace("Angstroms", wxString::FromUTF8("\xC3\x85"));
+        shown.Replace("Angstrom", wxString::FromUTF8("\xC3\x85"));
+        w.unitLab = new wxStaticText(this, wxID_ANY,
+            "  " + shown + wxString::FromUTF8("\n   " + rng));
         row->Add(w.unitLab, 0, fl, 0);
       }
       grid->Add(row, 0, fl, 3);

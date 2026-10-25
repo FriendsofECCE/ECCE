@@ -63,8 +63,8 @@ AtomMeasureTorsion::AtomMeasureTorsion(SGFragment *frag, TAtm * at1,
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    fontOffset = glGenLists (128);
-    for (GLuint i = 32; i < 127; i++) {
+    fontOffset = glGenLists (256);
+    for (GLuint i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); 
@@ -198,8 +198,8 @@ AtomMeasureTorsion::AtomMeasureTorsion()
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    fontOffset = glGenLists (128);
-    for (i = 32; i < 127; i++) {
+    fontOffset = glGenLists (256);
+    for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }
@@ -246,8 +246,8 @@ void AtomMeasureTorsion::GLRender(SoGLRenderAction *action)
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    fontOffset = glGenLists (128);
-    for (i = 32; i < 127; i++) {
+    fontOffset = glGenLists (256);
+    for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }
@@ -341,7 +341,8 @@ void AtomMeasureTorsion::GLRender(SoGLRenderAction *action)
 
 
   char buf[32];
-  sprintf(buf, "%.3f", p_value);
+  // Latin-1 degree sign (260): the bitmap font lists are indexed by byte
+  sprintf(buf, "%.2f\260", p_value);
 
 
   // Need to use the color the user specified.

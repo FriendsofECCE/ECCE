@@ -3335,7 +3335,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"water", "ECCE-QM, B3LYP/6-31G*. This calculation shows how a frequency "
               "calculation gives the IR spectrum of a molecule, and how the "
               "computed atomic charges depend on the partitioning scheme "
-              "(Mulliken, Loewdin, CHELPG, Merz-Kollman)."},
+              "(Mulliken, Löwdin, CHELPG, Merz-Kollman)."},
     {"ethanol", "ECCE-QM, B3LYP/6-31G*. This calculation shows the IR and "
                 "Raman spectra of the same molecule, whose intensities follow "
                 "different selection rules: a change in dipole moment for IR, "
@@ -3356,21 +3356,21 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localise"
      "d. This calculation shows a carbon-carbon single bond: in the MOs pane"
      "l, field type Localised MO, one sigma C1-C2 orbital. The optimised C-C"
-     " distance is 1.531 Angstrom and the totally symmetric C-C stretch is a"
+     " distance is 1.531 Å and the totally symmetric C-C stretch is a"
      "t 1009.19 cm-1 (IR inactive); ethene and ethyne use the same method fo"
      "r comparison."},
     {"ethene",
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localise"
      "d. This calculation shows a carbon-carbon double bond: in the MOs pane"
      "l, field type Localised MO, one sigma C1-C2 and one pi C1-C2 orbital. "
-     "The optimised C-C distance is 1.332 Angstrom, shorter than in ethane, "
+     "The optimised C-C distance is 1.332 Å, shorter than in ethane, "
      "and the totally symmetric C-C stretch is at 1719.02 cm-1 (IR inactive)"
      ", higher than in ethane."},
     {"ethyne",
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localise"
      "d. This calculation shows a carbon-carbon triple bond: in the MOs pane"
      "l, field type Localised MO, one sigma C1-C2 and two pi C1-C2 orbitals."
-     " The optimised C-C distance is 1.205 Angstrom, shorter than in ethene,"
+     " The optimised C-C distance is 1.205 Å, shorter than in ethene,"
      " and the totally symmetric C-C stretch is at 2085.58 cm-1 (IR inactive"
      "), higher than in ethene."},
     {"butadiene",
@@ -3394,7 +3394,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, B3LYP-D3BJ/def2-SVP. Transition-state optimisation (OptTS) and f"
      "requencies. This calculation shows that the Diels-Alder reaction goes "
      "through one transition state with one imaginary mode, -516.33 cm-1, an"
-     "d two equal forming C...C distances of 2.271 Angstrom, so the two bond"
+     "d two equal forming C...C distances of 2.271 Å, so the two bond"
      "s form together. Its electronic energy, -234.233996 Eh, is 51.9 kJ/mol"
      " above butadiene plus ethylene (computed, no zero-point correction)."},
     {"diels_alder_irc",
@@ -3424,7 +3424,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "d frequencies. This calculation shows the SN2 transition state, with o"
      "ne imaginary mode, -341.25 cm-1, a linear Cl-C-Br arrangement (180.0 d"
      "egrees), a planar CH3 group and C-Cl and C-Br distances of 2.420 and 2"
-     ".473 Angstrom. Its energy is 20.8 kJ/mol above the reactant complex an"
+     ".473 Å. Its energy is 20.8 kJ/mol above the reactant complex an"
      "d 28.9 kJ/mol below Cl- plus CH3Br (computed electronic energies, no z"
      "ero-point correction)."},
     {"sn2_irc",
