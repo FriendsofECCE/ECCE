@@ -3091,6 +3091,7 @@ const vector<ExampleSet>& exampleSets()
     {"spectroscopy", "Examples_Spectroscopy", {
       "orca-sulfate/sulfate.out",
       "orca-co_nh3_5_oso3/co_nh3_5_oso3.out",
+      "orca-co_en2_cl_oso3/co_en2_cl_oso3.out",
       "orca-co_en2_o2so2/co_en2_o2so2.out",
       "orca-co2_en4_oh_so4_bridged/co2_en4_oh_so4_bridged.out",
       "orca-formaldehyde/formaldehyde.out",
@@ -3110,7 +3111,7 @@ const vector<ExampleSet>& exampleSets()
   };
   return sets;
 }
-const char *const kExampleSetVersion = "6";
+const char *const kExampleSetVersion = "7";
 
 string examplesDir()
 {
@@ -3465,6 +3466,14 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
      "Raman. This calculation shows the S–O stretches of a sulfate bound "
      "to cobalt through one oxygen in [Co(NH3)5(OSO3)]+."},
+    {"co_en2_cl_oso3",
+     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), optimisation, frequencies "
+     "with IR and Raman. This calculation shows the S–O stretches of a "
+     "sulfate bound through one oxygen in cis-[Co(en)2Cl(OSO3)], with the "
+     "same Co(en)2 framework as the chelating and bridging complexes, so "
+     "the sulfate bands can be compared directly. Chloride is the sixth "
+     "ligand because it has no internal vibrations and its Co–Cl stretch "
+     "lies near 300 cm⁻¹, below the sulfate and Co–O–S region."},
     {"co_en2_o2so2",
      "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
      "Raman. This calculation shows the S–O stretches of a sulfate "
