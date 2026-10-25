@@ -688,7 +688,10 @@ int  MoPanel::fillTable(const string& type,
                atoms = kind.substr(sp + 1);
                kind.erase(sp);
             }
-            p_mogrid->SetCellValue(row, col++, kind);
+            //  The engine writes ASCII names; the table shows the Greek letters.
+            if (kind == "sigma") kind = "\u03c3";
+            else if (kind == "pi") kind = "\u03c0";
+            p_mogrid->SetCellValue(row, col++, wxString::FromUTF8(kind.c_str()));
             p_mogrid->SetCellValue(row, col++, atoms);
             p_mogrid->SetCellValue(row, col++, hybrids);
          } else {
