@@ -278,6 +278,8 @@ sub QMControl {
     $result .= "irc_max_points " . (($steps eq "") ? 20 : $steps) . "\n";
     $result .= "irc_step " . (($size eq "") ? 0.1 : $size) . "\n";
     $result .= "irc_direction " . (($dir eq "") ? "both" : $dir) . "\n";
+    my $every = $AbiDict{"ES.Runtype.IRC.HessianEvery"};
+    $result .= "irc_hessian_every $every\n" if (defined($every) && $every ne "" && $every > 0);
   }
   my @schemes;
   push(@schemes, "loewdin") if ($AbiDict{"ES.Theory.ECCEQM.Loewdin"} eq "1");

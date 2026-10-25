@@ -29,8 +29,8 @@ CASES = {
     "qe": ("qetheory.py", "qeruntype.py", "PW", "PW", "Energy"),
     "cp2k": ("cp2ktheory.py", "cp2kruntype.py", "QS", "GPW", "Geometry"),
     "gromacs": ("gromacstheory.py", "gromacsruntype.py", "MD", "MD", "Energy"),
-    # ECCE-QM has no runtype dialog
-    "ecceqm": ("ecceqmtheory.py", None, "DFT", "DFT", "Energy"),
+    "ecceqm": ("ecceqmtheory.py", "ecceqmruntype.py", "DFT", "DFT", "Energy"),
+    "ecceqm-irc": ("ecceqmtheory.py", "ecceqmruntype.py", "DFT", "DFT", "IRC"),
 }
 
 INNER = r'''
