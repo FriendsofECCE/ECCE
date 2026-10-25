@@ -253,6 +253,12 @@ AtomMeasureAngle::~AtomMeasureAngle()
 //=============================================================================
 void AtomMeasureAngle::GLRender(SoGLRenderAction *action)
 {
+  // Drawn after the atoms and bonds, so the label is never painted over.
+  if (!action->isRenderingDelayedPaths()) {
+    action->addDelayedPath(action->getCurPath()->copy());
+    return;
+  }
+
   SoLineSet::GLRender(action);
 
   // Access the state from the action
@@ -378,6 +384,9 @@ void AtomMeasureAngle::GLRender(SoGLRenderAction *action)
   // Disabling fixed problem where measure 2...n where only lit on one surface.
   // I'm not sure exactly why....My theory is that the default lighting uses
   // generated normals and they work perfectly well.
+  // Labels must stay readable behind atoms, bonds and the torsion plane.
+  GLboolean depthWasOn = glIsEnabled(GL_DEPTH_TEST);
+  glDisable(GL_DEPTH_TEST);
   glDisable(GL_LIGHTING);
   glColor3f(r,g,b);
 
@@ -388,6 +397,7 @@ void AtomMeasureAngle::GLRender(SoGLRenderAction *action)
   glPopAttrib ();
 
   glEnable(GL_LIGHTING);
+  if (depthWasOn) glEnable(GL_DEPTH_TEST);
 
   // Restore white color of lines.  Not sure why but necessary so that
   // 2nd, 3rd, 4th, etc angle use white lines.

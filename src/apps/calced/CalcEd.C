@@ -1521,6 +1521,39 @@ GeomConstraintModel::Use CalcEd::constraintUse() const
 }
 
 
+/// The Notes row: the current state, replaced on every change.  The
+/// constraints belong to the structure, so the line says whether this run
+/// type and code use, ignore or refuse them; then "Symmetry off" and why the
+/// calculation is not ready.
+void CalcEd::updateNotes()
+{
+  bool supportsConstraints = false;
+  if (p_code) p_code->get_bool("SupportsConstraints", supportsConstraints);
+  // The constraints line is for run types that apply the constraints and
+  // scan; for the others Verify says they are left out (#306).
+  string note = supportsConstraints && constraintUse() == GeomConstraintModel::USED
+      ? constraintNote() : string();
+  if (symmetryMustBreak() && !useSymmetryBox())
+    note += string(note.empty() ? "" : "\n") +
+        "Symmetry off: a transition-state search / scan must be able to "
+        "break the starting symmetry";
+  if (!p_notReadyWhy.empty())
+    note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
+  const wxString text = wxString::FromUTF8(note);
+  if (text == p_notesText && GetSizer()->IsShown(p_notesPanel) == !note.empty())
+    return;
+  p_notesText = text;
+  p_notes->SetLabel(text);
+  //  Wrapped at the width the controls already need, never wider.
+  const int width = std::max(GetSizer()->CalcMin().x - FromDIP(24), p_notes->FromDIP(300));
+  p_notes->Wrap(width);
+  p_notes->SetToolTip(text);
+  GetSizer()->Show(p_notesPanel, !note.empty());
+  GetSizer()->Layout();
+  refit();
+}
+
+
 /// The Settings box line(s): what the Builder's constraints and scan are, and
 /// whether this code and run type use them, leave them out or refuse them
 /// (they are edited in the Builder, not here).  Empty when there are none.
@@ -2022,6 +2055,8 @@ void CalcEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
   p_feedback->setSaveHandler(this);
+  GetSizer()->Add(p_notesPanel, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, FromDIP(5));
+  GetSizer()->Show(p_notesPanel, false);
   GetSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
 
   //  Save sits in the button row, a standard button just before Launch.
@@ -3697,15 +3732,9 @@ void CalcEd::markBlockingBox(int box, const string& why)
     marks[i]->SetBackgroundColour(on ? red : GetBackgroundColour());
     marks[i]->Refresh();
   }
-  const wxString text(why.c_str(), wxConvUTF8);
-  if (text != p_notReadyText->GetLabel()) {
-    p_notReadyText->SetLabel(text);
-    p_notReadyText->SetToolTip(text);
-  }
-  wxSizer *column = p_notReadyText->GetContainingSizer();
-  if (column && column->IsShown(p_notReadyText) == why.empty()) {
-    column->Show(p_notReadyText, !why.empty());
-    column->Layout();
+  if (why != p_notReadyWhy) {
+    p_notReadyWhy = why;
+    updateNotes();
   }
 }
 
@@ -3881,21 +3910,7 @@ void CalcEd::showGeomEditor()
     p_code->get_bool("SupportsConstraints", supportsConstraints);
   }
 
-  // The line is for run types that apply the constraints and scan; for the
-  // others Verify says they are left out (#306).
-  string note = supportsConstraints && constraintUse() == GeomConstraintModel::USED
-      ? constraintNote() : string();
-  if (symmetryMustBreak() && !useSymmetryBox())
-    note += string(note.empty() ? "" : "\n") +
-        "Symmetry off: a transition-state search / scan must be able to "
-        "break the starting symmetry";
-  p_constraintNote->SetLabel(wxString::FromUTF8(note));
-  // A scan line runs long; unwrapped it set the editor's minimum width.
-  p_constraintNote->Wrap(p_constraintNote->FromDIP(420));
-  p_constraintNote->SetToolTip(wxString::FromUTF8(note));
-  p_constraintNote->Show(!note.empty());
-  GetSizer()->Layout();
-  refit();
+  updateNotes();
 }
 
 

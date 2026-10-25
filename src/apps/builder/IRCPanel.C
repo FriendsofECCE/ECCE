@@ -11,6 +11,7 @@
 #include <wx/msgdlg.h>
 #include <wx/radiobox.h>
 #include <wx/sizer.h>
+#include <wx/wrapsizer.h>
 #include <wx/stattext.h>
 
 #include "tdat/PropVector.H"
@@ -59,14 +60,14 @@ std::string ircCsv(const std::vector<double>& coord,
   out << "# ECCE IRC path\n";
   out << "# calculation: " << calculation << "\n";
   out << "# coordinate unit: " << coordUnit << "\n";
-  out << "# relative energy is to the TS (coordinate 0)\n";
+  out << "# relative energy is to the first point of the path (the reactant end)\n";
   out << "point,coordinate_" << coordUnit << ",energy_hartree,relative_energy_"
       << (kcal ? "kcal/mol" : "kJ/mol") << "\n";
   const size_t n = std::min(coord.size(), hartree.size());
-  const double ts = n ? hartree[tsIndex(coord)] : 0;
+  const double ref = n ? hartree[0] : 0;
   for (size_t i = 0; i < n; i++)
     out << i + 1 << "," << coord[i] << "," << hartree[i] << ","
-        << (hartree[i] - ts) * factor(kcal) << "\n";
+        << (hartree[i] - ref) * factor(kcal) << "\n";
   return out.str();
 }
 
@@ -124,7 +125,7 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   }
   SetSizer(new wxBoxSizer(wxVERTICAL));
 
-  wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
+  wxWrapSizer *bar = new wxWrapSizer(wxHORIZONTAL);   // wraps in a narrow dock
   bar->Add(new wxStaticText(this, wxID_ANY, "Energy unit:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   p_unit = new wxChoice(this, ID_UNIT);
@@ -136,9 +137,9 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_view = new wxRadioBox(this, ID_VIEW, "Show", wxDefaultPosition,
                           wxDefaultSize, 2, views, 1, wxRA_SPECIFY_ROWS);
   bar->Add(p_view, 0, wxRIGHT, 12);
-  bar->AddStretchSpacer();
-  bar->Add(new wxButton(this, ID_NEWCALC, "New calculation from this point"), 0,
-           wxRIGHT, 6);
+  wxButton *newCalc = new wxButton(this, ID_NEWCALC, "New calculation...");
+  newCalc->SetToolTip("New calculation from the selected point of the path");
+  bar->Add(newCalc, 0, wxRIGHT, 6);
   bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0);
   GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
@@ -190,17 +191,17 @@ void IRCPanel::fill()
 
   const bool kcal = p_unit->GetSelection() == 1;
   const wxString unit = kcal ? "kcal/mol" : "kJ/mol";
-  const double ts = n ? p_hartree[tsIndex(p_coord)] : 0;
+  const double ref = n ? p_hartree[0] : 0;
 
   p_plot->clearCurves();
   if (n) {
     std::vector<double> y(n);
-    for (size_t i = 0; i < n; i++) y[i] = (p_hartree[i] - ts) * factor(kcal);
+    for (size_t i = 0; i < n; i++) y[i] = (p_hartree[i] - ref) * factor(kcal);
     p_plot->addCurve(p_coord, y);
   }
   p_plot->setXAxisLabel(p_coordUnit == "point"
                         ? "Point from the TS" : "Reaction coordinate (sqrt(amu) bohr)");
-  p_plot->setYAxisLabel("Energy relative to the TS (" + unit + ")");
+  p_plot->setYAxisLabel("Energy relative to the first point (" + unit + ")");
 
   if (p_grid->GetNumberRows()) p_grid->DeleteRows(0, p_grid->GetNumberRows());
   p_grid->AppendRows((int)n);
@@ -210,7 +211,7 @@ void IRCPanel::fill()
     p_grid->SetCellValue((int)i, 0, wxString::Format("%.4f", p_coord[i]));
     p_grid->SetCellValue((int)i, 1, wxString::Format("%.6f", p_hartree[i]));
     p_grid->SetCellValue((int)i, 2,
-        wxString::Format("%.3f", (p_hartree[i] - ts) * factor(kcal)));
+        wxString::Format("%.3f", (p_hartree[i] - ref) * factor(kcal)));
   }
   p_grid->AutoSizeColumns();
 }

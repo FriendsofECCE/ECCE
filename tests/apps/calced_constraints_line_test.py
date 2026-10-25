@@ -29,6 +29,7 @@ sys.path.insert(0, HERE)
 import fixture    # noqa: E402
 import run_tests  # noqa: E402
 import symmetry_find_test as sym  # noqa: E402
+import calced_no_basis_test as nobasis  # noqa: E402
 
 PROJECT_META = os.path.join(REPO, "tools", "screenshots", "data", "project.ecce-meta")
 FIX = os.path.join(HERE, "fixtures")
@@ -174,6 +175,33 @@ def main():
                               "%s, %s: the Settings line is %s (shown=%s)"
                               % (label, runtype,
                                  "shown" if template == USED else "hidden", vis))
+            #  The Notes row holds the constraint line and why the calculation
+            #  is not ready, in one place (#461).
+            other = os.path.join(fixture.stateDir(), "constraintsline-nobasis")
+            problem = sym.makeCalculations(other)
+            sym.check(not problem, "calculations for the not-ready case made", problem)
+            calc = os.path.join(other, "users", "local", nobasis.CALC)
+            nobasis.dropBasisProperty(calc)
+            with open(os.path.join(calc, "Parameters", "GeomConstraintModel.gcst"), "w") as h:
+                h.write(GCST)
+            os.environ["ECCE_LOCAL_DATA"] = other
+            steps = ["wait 9000", "symmetry"]
+            if pngDir:
+                shots.append("notes-not-ready-g16-energy")
+                if not any(t.name == "photo" for t in threading.enumerate()):
+                    threading.Thread(target=photographer, name="photo", daemon=True,
+                                     args=(display, pngDir, shots, stop)).start()
+                steps += ["wait 1500", "shot notes-not-ready-g16-energy"]
+            log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT", steps + ["quit"],
+                               "file://" + calc + "/")
+            m = re.search(r"CALCED: symmetry box=\d+ stored=\d+ note=(.*)", log)
+            notes = re.sub(r"\s*\|\s*", " ", m.group(1)) if m else ""   # wrapped rows
+            # An Energy run does not apply the constraints, so only the reason (#502).
+            sym.check("Not ready: choose a basis set" in notes
+                      and "Relaxed scan" not in notes,
+                      "the Notes row says why it is not ready, no constraints line "
+                      "for an Energy run (got %r)" % notes,
+                      run_tests._tail(log, 30))
         finally:
             stop.set()
             restorePrefs()

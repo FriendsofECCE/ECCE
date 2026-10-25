@@ -80,6 +80,9 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       bool useCurrentView();
       /** A click on plane entry N (0-3): resets the offset, picks defaults. */
       bool choosePlane(int n);
+      /** Show or hide the plane controls (radio box, atoms, view); remembered. */
+      void setPlaneControlsOpen(bool open);
+      bool planeControlsOpen() const { return p_planeOpen; }
       /** Where each control sits at a given panel width, and which are clipped. */
       std::string layoutReport(int width);
       /** The MOs panel's selection (1-based, alpha or beta). */
@@ -131,6 +134,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       wxButton *p_resetOffset;
       wxStaticText *p_labelA, *p_labelB, *p_labelC, *p_caption;
       wxBoxSizer *p_atomRow, *p_viewRow;
+      wxButton *p_planeToggle;
+      bool p_planeOpen;
       wxSpinCtrl *p_mo;
       wxSlider *p_offset;
       wxStaticText *p_status;

@@ -149,11 +149,13 @@ History=energy
 [PROGRESS]
 Begin=^\s+OPT\| Maximum gradient\s+(\d\S*)\s*$
 Progress=opt maxgrad=$1/{gmax}
+History=maxgrad
 [END]
 
 [PROGRESS]
 Begin=^\s+OPT\| RMS gradient\s+(\d\S*)\s*$
 Progress=opt rmsgrad=$1/{grms}
+History=rmsgrad
 [END]
 
 [PROGRESS]

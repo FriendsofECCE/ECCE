@@ -13,7 +13,7 @@ class wxGrid;
 class XYPlotCanvas;
 
 /**
- * IRC path (#417): energy relative to the TS against the reaction
+ * IRC path (#417): energy relative to the first point against the reaction
  * coordinate; a click on a point shows its structure in the viewer.
  */
 class IRCPanel : public VizPropertyPanel
@@ -91,7 +91,7 @@ class IRCPanel : public VizPropertyPanel
 
 /**
  * CSV text: '#' header lines, then coordinate, absolute energy in hartree
- * and energy relative to the TS (the point at coordinate 0) in kJ/mol or kcal/mol.  Numbers use the C locale.
+ * and energy relative to the first point of the path in kJ/mol or kcal/mol.  Numbers use the C locale.
  */
 std::string ircCsv(const std::vector<double>& coord,
                    const std::vector<double>& hartree,

@@ -120,6 +120,9 @@ int main(int argc, char** argv) {
     // reference geometry, every displaced SCF started from the reference
     // orbitals and converged tighter than an energy needs.
     // step is the finite-difference step used, 0 for the analytic Hessian.
+    // An IRC takes Hessians too, but is not a frequency run: it must not
+    // leave a "freq" stage in the progress that never reaches done=yes.
+    bool freq_progress = true;
     auto derivatives = [&](const qm::Molecule& ref, double& step) {
       step = in.hessian_step;
       qm::ScfResult r_ref = r;
@@ -139,7 +142,7 @@ int main(int argc, char** argv) {
           qm::ScfResult rt = qm::run_scf(*basis, ref, so2, &r_ref);
           if (!rt.converged) throw qm::Error("SCF did not converge");
           const int np = 3 * static_cast<int>(ref.atoms.size());
-          qm::write_progress_freq(os, 0, np);
+          if (freq_progress) qm::write_progress_freq(os, 0, np);
           qm::Derivatives d = qm::rhf_hessian(*basis, ref, so2, rt);
           step = 0;  // no displacements
           return d;
@@ -176,9 +179,9 @@ int main(int argc, char** argv) {
         return pe;
       };
       const int points = 6 * static_cast<int>(ref.atoms.size());
-      qm::write_progress_freq(os, 0, points);
+      if (freq_progress) qm::write_progress_freq(os, 0, points);
       qm::Derivatives d = qm::finite_difference_derivatives(ref, in.hessian_step, point, [&](int k, int n) {
-        qm::write_progress_freq(os, k, n);
+        if (freq_progress) qm::write_progress_freq(os, k, n);
         if (verbose) std::cerr << "hessian point " << k << "/" << n << "\n";
       }, conc.workers, conc.threads);
       return d;
@@ -196,6 +199,7 @@ int main(int argc, char** argv) {
     if (in.runtype == qm::RunType::IRC) {
       // The editor's structure is the transition state; the path leaves it
       // along the imaginary mode in both directions.
+      freq_progress = false;
       const qm::OptEval e0 = evaluate(in.mol);
       double step;
       const qm::Mat H0 = derivatives(in.mol, step).hessian;

@@ -5505,12 +5505,12 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
 
   names.clear();
   if (layoutName == NAME_LAYOUT_READONLY) {
-    // All toolbars are shown except Manipulator and Measure
+    // All toolbars are shown except Manipulator and Style
     names.insert(NAME_TOOLBAR_MANIPULATOR);
-    names.insert(NAME_TOOLBAR_MEASURE);
+    names.insert(NAME_TOOLBAR_STYLE);
   } else if (layoutName == NAME_LAYOUT_DEFAULT) {
-    // All toolbars are shown except Measure
-    names.insert(NAME_TOOLBAR_MEASURE);
+    // All toolbars are shown except Style
+    names.insert(NAME_TOOLBAR_STYLE);
   } else if (layoutName == NAME_LAYOUT_STRUCTLIB) {
     // noop
   }
@@ -6234,7 +6234,8 @@ void Builder::updatePropertyMenus()
             w[0] == "setcontext" || w[0] == "columntab" ||
             w[0] == "undo" || w[0] == "redo" ||
             w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip" ||
-            w[0] == "importfile" || w[0] == "tooldock" || w[0] == "collapse")
+            w[0] == "importfile" || w[0] == "tooldock" || w[0] == "collapse" ||
+            w[0] == "measure")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside
         //  the property panes that are shown, -> <name>.txt.
@@ -6318,6 +6319,18 @@ void Builder::updatePropertyMenus()
             return s.fail("modipick: no such atom or bond: " + w[2]);
           std::ofstream out(outdir + "/" + w[1] + ".txt");
           out << md->noteText() << "\n";
+          return true;
+        }
+        //  "modioptions 0|1": fold or unfold the controls under the diagram.
+        if (w[0] == "modioptions" && w.size() == 2) {
+          MoDiagramPanel *md = 0;
+          set<PropertyPanel*> dp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = dp.begin();
+               it != dp.end() && !md; ++it)
+            md = dynamic_cast<MoDiagramPanel*>(*it);
+          if (!md) return s.fail("modioptions: no MO diagram panel");
+          md->setOptionsOpen(w[1] != "0");
           return true;
         }
         //  "mofield <type>": the MO panel's field-type choice, as clicked.
