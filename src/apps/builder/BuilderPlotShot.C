@@ -322,6 +322,9 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
 //    dpshow all|totalselected|selected|total
 //    dpmo N,N,...|none    exactly these orbitals ticked
 //    dpspin alpha|beta|both | dpunit A|bohr | dpcombine 0|1 | dpclip 0|1
+//    dpxaxis linear|sqrt|log (atom) | dpyaxis linear|log
+//    dpshift ANGSTROM [in|out] (line) | dpzoom whole|fit|in|out | dpmore 0|1
+//    dpfollow N [beta]    what a click on an MO Diagram level does
 //    dpcsv <name> | dppng <name> <w> <h> | dpstate
 bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
                                     const string& outdir)
@@ -383,6 +386,18 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     ok = dp->setCombine(w[1] != "0");
   } else if (cmd == "dpclip" && w.size() == 2) {
     ok = dp->setClip(w[1] != "0");
+  } else if (cmd == "dpxaxis" && w.size() == 2) {
+    ok = dp->setXAxis(w[1]);
+  } else if (cmd == "dpyaxis" && w.size() == 2) {
+    ok = dp->setYAxis(w[1]);
+  } else if (cmd == "dpshift" && w.size() >= 2) {
+    ok = dp->setShift(atof(w[1].c_str()), w.size() < 3 || w[2] != "in");
+  } else if (cmd == "dpzoom" && w.size() == 2) {
+    ok = dp->zoom(w[1]);
+  } else if (cmd == "dpmore" && w.size() == 2) {
+    ok = dp->setMoreOpen(w[1] != "0");
+  } else if (cmd == "dpfollow" && w.size() >= 2) {
+    dp->followMo(atoi(w[1].c_str()), w.size() > 2 && w[2] == "beta");
   } else if (cmd == "dpcsv" && w.size() == 2) {
     ok = dp->exportCsv(wxString(outdir + "/" + w[1] + ".csv"));
   } else if (cmd == "dppng" && w.size() == 4) {

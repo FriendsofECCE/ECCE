@@ -344,6 +344,76 @@ static void diatomics(const string& root)
   }
 }
 
+//  A pi orbital is zero on the axis of a linear molecule and not off it;
+//  an atom's virtual orbitals are named by angular type only.
+static void shiftAndVirtuals(const string& root)
+{
+  IPropCalculation *calc;
+  DensityPlane::Evaluator n2, ne;
+  if (load(root, "n2", calc, n2)) {
+    vector<RadialDist::Spec> specs;
+    for (int m = 1; m <= 7; m++) specs.push_back(mo(m));
+    LineProfile::Result on, up, side;
+    LineProfile::compute(n2, LineProfile::throughAtoms(n2, 0, 1, 1.0), 301, false,
+                         LineProfile::PSI, specs, on);
+    LineProfile::compute(n2, LineProfile::throughAtoms(n2, 0, 1, 1.0, 0.5, true), 301, false,
+                         LineProfile::PSI, specs, up);
+    LineProfile::compute(n2, LineProfile::throughAtoms(n2, 0, 1, 1.0, 0.5, false), 301, false,
+                         LineProfile::PSI, specs, side);
+    int zeroOnAxis = 0;
+    double offAxis = 0;
+    for (size_t k = 0; k < specs.size(); k++) {
+      double a = 0, b = 0, c = 0;
+      for (size_t i = 0; i < on.s.size(); i++) a = max(a, fabs(on.curves[k].p[i]));
+      for (size_t i = 0; i < up.s.size(); i++) b = max(b, fabs(up.curves[k].p[i]));
+      for (size_t i = 0; i < side.s.size(); i++) c = max(c, fabs(side.curves[k].p[i]));
+      if (a < 1e-9) { zeroOnAxis++; offAxis = max(offAxis, max(b, c)); }
+    }
+    fprintf(stderr, "N2 pi orbitals: %d zero on the axis, largest shifted value %.4f\n", zeroOnAxis, offAxis);
+    CHECK(zeroOnAxis == 2, "N2 has two pi orbitals that are zero on the axis");
+    CHECK(offAxis > 1e-3, "a pi orbital is not zero on a line shifted 0.5 A");
+    CHECK(up.marks.size() == 2 && fabs(up.marks[1].s - on.marks[1].s) < 1e-9,
+          "atom marks of a shifted line are those of the axis");
+    //  The shifted line is parallel to the axis, 0.5 A away, and the two
+    //  directions are perpendicular to each other.
+    const LineProfile::Line l0 = LineProfile::throughAtoms(n2, 0, 1, 1.0);
+    const LineProfile::Line l1 = LineProfile::throughAtoms(n2, 0, 1, 1.0, 0.5, true);
+    const LineProfile::Line l2 = LineProfile::throughAtoms(n2, 0, 1, 1.0, 0.5, false);
+    double d1[3], d2[3], dot1 = 0, dot12 = 0, n1 = 0, n2len = 0;
+    for (int d = 0; d < 3; d++) {
+      d1[d] = l1.start[d] - l0.start[d];
+      d2[d] = l2.start[d] - l0.start[d];
+      dot1 += d1[d] * l0.unit[d];
+      dot12 += d1[d] * d2[d];
+      n1 += d1[d] * d1[d];
+      n2len += d2[d] * d2[d];
+    }
+    CHECK(fabs(sqrt(n1) - 0.5) < 1e-9 && fabs(sqrt(n2len) - 0.5) < 1e-9 && fabs(dot1) < 1e-9 &&
+          fabs(dot12) < 1e-9, "the shift is 0.5 A, perpendicular to the line and between the two directions");
+  }
+  if (load(root, "ne", calc, ne)) {
+    const vector<string> labels = RadialDist::shellLabels(calc, ne, false);
+    int virt = 0;
+    bool plain = true;
+    for (const string& l : labels)
+      if (l.find("virtual") != string::npos) {
+        virt++;
+        if (!(l == "s (virtual)" || l == "p (virtual)" || l == "d (virtual)" || l == "f (virtual)"))
+          plain = false;
+      }
+    fprintf(stderr, "Ne: %d virtual orbitals named by type\n", virt);
+    CHECK(virt > 0 && plain, "Ne virtuals are named by angular type, no principal quantum number");
+    vector<int> all;
+    for (int m = 1; m <= ne.orbitals(false); m++) all.push_back(m);
+    const vector<RadialDist::Spec> specs =
+        RadialDist::orbitalSpecs(ne, all, RadialDist::ALPHA, false, true, labels);
+    bool unique = true;
+    for (size_t a = 0; a < specs.size(); a++)
+      for (size_t b = a + 1; b < specs.size(); b++) if (specs[a].label == specs[b].label) unique = false;
+    CHECK(unique, "no two curves of Ne carry the same name");
+  }
+}
+
 int main(int argc, char **argv)
 {
   numerics();
@@ -358,5 +428,6 @@ int main(int argc, char **argv)
   neonLine(argv[1]);
   argon(argv[1]);
   diatomics(argv[1]);
+  shiftAndVirtuals(argv[1]);
   return failures ? 1 : 0;
 }

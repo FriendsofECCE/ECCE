@@ -27,6 +27,7 @@
 #include "tdat/Fragment.H"
 #include "util/Event.H"
 #include "wxgui/ewxConfig.H"
+#include "DensityProfilePanel.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 #include "viz/SGPlane.H"
@@ -653,6 +654,15 @@ bool DensityMapPanel::useCurrentView()
 
 void DensityMapPanel::followMo(int mo, bool beta)
 {
+  //  The MO list and the MO Diagram tell this panel; the Density Profile
+  //  follows the same selection through it.
+  if (getCalculation()) {
+    std::set<PropertyPanel*> panels = PropertyPanel::getPanels(getCalculation()->getURL().toString());
+    for (std::set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end(); ++it) {
+      DensityProfilePanel *dp = dynamic_cast<DensityProfilePanel*>(*it);
+      if (dp) dp->followMo(mo, beta);
+    }
+  }
   if (!p_eval || !p_show || !p_show->IsEnabled() || mo < 1) return;
   if (mo > p_eval->orbitals(beta)) return;
   if (p_show->GetSelection() == 0) p_show->SetSelection(1);
