@@ -226,6 +226,14 @@ Skip=0
 End=^end localised_orbitals
 [END]
 
+[MOVIRTNOTE]
+Script=ecceqm.parse
+Begin=^virtual_orbitals(_note)?\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [LOCMONOTE]
 Script=ecceqm.parse
 Begin=^localisation_skipped\s

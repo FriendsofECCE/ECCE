@@ -2038,6 +2038,16 @@ CASES = [
         },
     ),
     dict(
+        #  Improved virtuals: a one-value note property, "ivo".
+        name='ecceqm-he-ivo',
+        desc='ecceqm.desc',
+        fixture='ecceqm/he_ivo.qmout',
+        parse_args=('.', 'Energy', 'SCF', 'HF', '0'),
+        expect={
+            'MOVIRTNOTE': dict(keys={'MOVIRTNOTE': {'size': '1'}}),
+        },
+    ),
+    dict(
         #  "charges loewdin chelpg mk": three extra blocks, one key each.
         name='ecceqm-h2o-charges',
         desc='ecceqm.desc',

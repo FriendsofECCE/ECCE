@@ -5,6 +5,7 @@
 #include <vector>
 #include "basis.hpp"
 #include "common.hpp"
+#include "integrals.hpp"
 #include "molecule.hpp"
 #include "xc.hpp"
 
@@ -34,6 +35,8 @@ struct ScfOptions {
   // (broken-symmetry) solution can be found where one exists; where it does
   // not (a stable closed-shell solution) the SCF returns to it.
   bool guess_mix = false;
+  // Improved virtual orbitals (Hunt-Goddard) for a converged closed-shell run.
+  bool ivo = false;
   // Uniform electric field (a.u.): H += F.r.  Used by the finite-field
   // polarisability; the dipole printed is unchanged in definition.
   double field[3] = {0, 0, 0};
@@ -57,7 +60,16 @@ struct ScfResult {
   double s2 = 0;                  // <S^2> (UHF/UKS; S(S+1) otherwise)
   double xc_electrons = 0;        // grid integral of the density (DFT)
   int nalpha = 0, nbeta = 0;
+  bool ivo_applied = false;       // virtuals are IVOs, not canonical
+  std::string ivo_note;           // why IVOs were asked for but not made
 };
+
+// Virtuals of F' = F - J_h + 2 K_h (h = HOMO, singlet-coupled hole), solved in
+// the space orthogonal to the nocc occupied columns of C.  C and eps are
+// updated in place for columns nocc..n-1; the occupied ones are untouched.
+// Fprime, if given, receives F' (AO basis).
+void ivo_virtuals(const Mat& F, const Mat& S, const EriStore& eri, int nocc, Mat& C, Vec& eps,
+                  Mat* Fprime = nullptr);
 
 // guess: the converged result of a nearby geometry of the same molecule and
 // basis, used instead of the atomic-density guess (ignored if it does not fit).

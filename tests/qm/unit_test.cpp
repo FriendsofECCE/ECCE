@@ -316,5 +316,64 @@ int main(int argc, char** argv) {
     }
   }
 
+  // Improved virtual orbitals (Hunt-Goddard, F - J_h + 2 K_h): occupied set
+  // untouched, virtuals orthonormal, F' symmetric, and eps'_a - eps_h equal to
+  // the singlet h->a excitation energy built from MO integrals (a second
+  // route); for He in aug-cc-pVDZ the lowest one is bound and near the
+  // experimental 2 1S energy, 0.7578 Eh.
+  for (const char* bn : {"aug-cc-pVDZ", "6-31+G*"}) {
+    Molecule m;
+    Atom a; a.Z = 2;
+    m.atoms.push_back(a);
+    Basis b(m, lib, bn, 1);
+    ScfOptions so;
+    const ScfResult r = run_scf(b, m, so);
+    so.ivo = true;
+    const ScfResult q = run_scf(b, m, so);
+    const int n = b.nbf(), no = r.nalpha;
+    const std::string tag = std::string(" He ") + bn;
+    check(q.ivo_applied, "ivo applied" + tag);
+    check((q.C_a.leftCols(no) - r.C_a.leftCols(no)).cwiseAbs().maxCoeff() < 1e-12 &&
+          std::fabs(q.energy - r.energy) < 1e-12, "ivo leaves occupied and energy unchanged" + tag);
+    check((q.C_a.transpose() * q.S * q.C_a - Mat::Identity(n, n)).cwiseAbs().maxCoeff() < 1e-9,
+          "ivo orbitals orthonormal (virtuals orthogonal to occupied)" + tag);
+    EriStore eri(b);
+    Mat Cm = r.C_a, Fp;
+    Vec e = r.eps_a;
+    ivo_virtuals(r.F_a, r.S, eri, no, Cm, e, &Fp);
+    check((Fp - Fp.transpose()).cwiseAbs().maxCoeff() < 1e-12, "F' Hermitian" + tag);
+    double worst = 0;
+    for (int k = no; k < n; ++k) {
+      const Vec h = r.C_a.col(no - 1), v = q.C_a.col(k);
+      double J = 0, K = 0;
+      for (int i = 0; i < n; ++i) for (int j = 0; j < n; ++j) for (int kk = 0; kk < n; ++kk) for (int l = 0; l < n; ++l) {
+        const double g = h(i) * h(j) * v(kk) * v(l);
+        J += g * eri.get(i, j, kk, l);
+        K += h(i) * v(j) * h(kk) * v(l) * eri.get(i, j, kk, l);
+      }
+      const double exc = v.dot(r.F_a * v) - r.eps_a(no - 1) - J + 2 * K;
+      worst = std::max(worst, std::fabs(exc - (q.eps_a(k) - r.eps_a(no - 1))));
+    }
+    check(worst < 1e-9, "eps'_a - eps_h equals <a|F|a> - eps_h - J + 2K" + tag, worst);
+    const double x = q.eps_a(no) - r.eps_a(no - 1);
+    std::cout << "      lowest IVO " << q.eps_a(no) << "  canonical LUMO " << r.eps_a(no) << "  excitation " << x << "\n";
+    if (std::string(bn) == "aug-cc-pVDZ")  // 6-31+G* has no diffuse function on He
+      check(q.eps_a(no) < 0 && x > 0.6 && x < 0.9, "He lowest IVO bound, excitation near 0.7578 Eh" + tag, x);
+  }
+
+  // Open shells keep canonical virtuals and say so.
+  {
+    Molecule m;
+    Atom a; a.Z = 3;
+    m.atoms.push_back(a);
+    m.multiplicity = 2;
+    Basis b(m, lib, "STO-3G", 1);
+    ScfOptions so;
+    so.ivo = true;
+    so.reference = Reference::Unrestricted;
+    const ScfResult r = run_scf(b, m, so);
+    check(!r.ivo_applied && !r.ivo_note.empty(), "ivo on an open shell is declined with a note");
+  }
+
   return fails ? 1 : 0;
 }
