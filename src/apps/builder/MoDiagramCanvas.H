@@ -703,6 +703,26 @@ class MoDiagramCanvas : public wxPanel
       openRows(textY, [&](size_t, size_t) { return textH; },
                plot.y + textH/2, plot.y + plot.height - textH/2);
 
+      //  When the column is too short for a line each, the labels that
+      //  would print over another are left off (occupied levels keep
+      //  theirs first); the level itself is still drawn, hovered and clicked.
+      vector<bool> labelled(items.size(), true);
+      {
+        vector<int> keep;
+        for (int pass = 0; pass < 2; pass++)
+          for (size_t k = 0; k < items.size(); k++) {
+            const MoLevel& l = itemLevel(items[k]);
+            const bool occupied = l.calcOccupancy > 0.0 || l.calcOccupancyBeta > 0.0;
+            if (occupied == (pass == 0)) {
+              bool clear = true;
+              for (size_t m = 0; m < keep.size() && clear; m++)
+                clear = abs(textY[keep[m]] - textY[k]) >= textH;
+              labelled[k] = clear;
+              if (clear) keep.push_back((int)k);
+            }
+          }
+      }
+
       for (size_t k = 0; k < items.size(); k++) {
         const CalcItem& it = items[k];
         const MoLevel& l = itemLevel(it);
@@ -731,6 +751,7 @@ class MoDiagramCanvas : public wxPanel
         dc.SetFont(label);
         const int labelH = dc.GetTextExtent(wxT("Xg")).y;
         const int ty = textY[k];
+        if (!labelled[k]) continue;
         if (abs(ty - it.y) > 2) {
           dc.SetPen(wxPen(wxColour(170, 170, 170), 1));
           dc.DrawLine(it.x + it.deg*calcSlot - 3, it.y, tx - 1, ty);
