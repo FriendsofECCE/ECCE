@@ -426,8 +426,9 @@ void DensityProfilePanel::recompute()
   std::vector<RadialDist::Curve> curves;
   std::vector<double> axis;
   p_marks.clear();
-  const wxString length = bohr ? wxString("bohr") : U("\xC3\x85");
-  const wxString perVol = bohr ? wxString("bohr^-3") : U("\xC3\x85^-3");
+  //  Short labels that name the quantity, so they fit a small plot.
+  const wxString length = bohr ? wxString("bohr") : U("Å");
+  const wxString perVol = length + U("⁻³");
   wxString yLabel, xLabel;
   if (atom) {
     RadialDist::Options opt;
@@ -442,8 +443,8 @@ void DensityProfilePanel::recompute()
     if (!specs.empty()) RadialDist::compute(*p_eval, c, opt, specs, curves);
     axis = RadialDist::grid(opt);
     xLabel = "r (" + length + ")";
-    yLabel = quantity == 0 ? "radial distribution (1/" + length + ")"
-                           : U("spherical average of \xCF\x88\xC2\xB2 (") + perVol + ")";
+    yLabel = quantity == 0 ? U("r²ψ², radial distribution (") + length + U("⁻¹)")
+                           : U("ψ², averaged over directions (") + perVol + ")";
   } else {
     const int a = std::max(0, p_atomA->GetSelection()), b = std::max(0, p_atomB->GetSelection());
     if (a == b) {
@@ -462,9 +463,9 @@ void DensityProfilePanel::recompute()
     axis = r.s;
     p_marks = r.marks;
     xLabel = "position along the line (" + length + ")";
-    yLabel = quantity == 2 ? U("\xCF\x88 (") + length + "^-3/2)"
-           : quantity == 1 ? U("\xCF\x88\xC2\xB2 (") + perVol + ")"
-                           : U("density (") + perVol + ")";
+    yLabel = quantity == 2 ? U("ψ (") + length + U("⁻³/²)")
+           : quantity == 1 ? U("ψ² (") + perVol + ")"
+                           : U("density ρ (") + perVol + ")";
   }
 
   p_axis = axis;

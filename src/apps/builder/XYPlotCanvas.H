@@ -556,16 +556,26 @@ class XYPlotCanvas : public wxPanel
     static void drawVerticalText(wxDC& dc, const wxString& text, int cx,
                                  int cy, int maxLength)
     {
-      wxString t = text;
-      wxSize e = dc.GetTextExtent(t);
-      //  Too long for the plot: the unit is the part worth keeping.
-      const int open = t.Find('(');
-      if (e.x > maxLength && open != wxNOT_FOUND) {
-        t = t.Mid(open + 1, t.Length() - open - 2);
-        e = dc.GetTextExtent(t);
+      //  Too long for the plot: shorten in steps, keeping the quantity's
+      //  symbol with its unit before falling back to the unit alone.
+      //  "r²ψ², radial distribution (Å⁻¹)" -> "r²ψ² (Å⁻¹)";
+      //  "density ρ (Å⁻³)" -> "ρ (Å⁻³)".
+      std::vector<wxString> tries(1, text);
+      const int open = text.Find('(');
+      if (open != wxNOT_FOUND) {
+        const wxString name = text.Left(open).Trim(), unit = text.Mid(open);
+        const int comma = name.Find(',');
+        if (comma != wxNOT_FOUND) tries.push_back(name.Left(comma) + " " + unit);
+        const int space = name.Find(' ', true);
+        if (space != wxNOT_FOUND) tries.push_back(name.Mid(space + 1) + " " + unit);
+        tries.push_back(text.Mid(open + 1, text.Length() - open - 2));
       }
-      if (e.x > maxLength) return;
-      dc.DrawRotatedText(t, cx, cy + e.x / 2, 90);
+      for (const wxString& t : tries) {
+        const wxSize e = dc.GetTextExtent(t);
+        if (e.x > maxLength) continue;
+        dc.DrawRotatedText(t, cx, cy + e.x / 2, 90);
+        return;
+      }
     }
 
     void paintCurve(wxDC& dc, int c)
