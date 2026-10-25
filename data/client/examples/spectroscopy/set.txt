@@ -1,2 +1,2 @@
 Spectroscopy
-Carbonyl stretches with substituent and charge, IR and Raman intensities, the IR spectrum of water and ethanol, and the sulfate stretches of a bridging sulfate complex.
+IR and Raman spectra from frequency calculations: the S-O stretches of free, monodentate, chelating and bridging sulfate, carbonyl stretches with substituent and charge, the amide bands of N-methylacetamide and a small peptide, two sugars, and the IR spectrum of water and ethanol.

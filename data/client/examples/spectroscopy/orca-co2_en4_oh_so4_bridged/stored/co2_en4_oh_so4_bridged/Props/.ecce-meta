@@ -1,8 +1,6 @@
 DELTAE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 DIPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 EGIBBS	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
-EGRAD	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
-EGRADVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 ENTHALPY	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 ENTROPY	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 ETHERM	http://www.emsl.pnl.gov/ecce:mime-type		text/xml

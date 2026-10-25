@@ -1,0 +1,17 @@
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:chargeFittingName		
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:coordsys		Y
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:ecpName		
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:exchangeFittingName		
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:gbs-type		element
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:name		def2-svp
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:numFunctions		297
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:numPrimitives		509
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:optimize		true
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:useExpCoef		N
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		1
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		C4H16CoN4O4S+
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		co_en2_o2so2
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		30
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		142
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C1
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false
