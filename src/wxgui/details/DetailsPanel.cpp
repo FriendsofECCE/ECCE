@@ -104,11 +104,11 @@ void DetailsPanel::build()
     wxString nm(it.name);
     const string& k = it.kind;
     if (k == "note") {
-      wxStaticText *t = new wxStaticText(this, wxID_ANY, it.label);
+      wxStaticText *t = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(it.label));
       w.w = t;
       grid->Add(t, 0, fl, 3);
     } else if (k == "check") {
-      wxCheckBox *b = new wxCheckBox(this, wxID_ANY, it.label,
+      wxCheckBox *b = new wxCheckBox(this, wxID_ANY, wxString::FromUTF8(it.label),
           wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, nm);
       w.w = b;
       grid->Add(b, 0, fl, 3);
@@ -118,9 +118,9 @@ void DetailsPanel::build()
       });
     } else if (k == "radiopair") {
       // first = the default (false) choice, second = the stored setting.
-      wxRadioButton *a = new wxRadioButton(this, wxID_ANY, it.first,
+      wxRadioButton *a = new wxRadioButton(this, wxID_ANY, wxString::FromUTF8(it.first),
           wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
-      wxRadioButton *b = new wxRadioButton(this, wxID_ANY, it.second,
+      wxRadioButton *b = new wxRadioButton(this, wxID_ANY, wxString::FromUTF8(it.second),
           wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, nm);
       a->SetValue(true);
       w.w = a;
