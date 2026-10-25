@@ -31,3 +31,12 @@ finite differences otherwise), now behind the `derivatives` lambda in
 * Oracle: ORCA 6.1.1 `OptTS TightOpt Freq` (`gen_ts_oracle.py`,
   `ts_oracle.json`), HCN <-> HNC HF/STO-3G and HF/6-31G*; the start
   geometry is a bridged guess in `ts_cases.py`.
+* #509: from a relaxed-scan point (Cl- + CH3F, C-Cl 2.0 A) the updated Hessian
+  lost its negative eigenvalue after two steps and the walk drifted along a
+  flat ridge. Fixes: exact Hessian at every step by default for closed-shell
+  RHF (`ts_hessian_every` -1 = auto, decided in `main.cpp`), recompute when no
+  negative curvature is left, overlap-follow falls back to the lowest mode
+  below 0.5 overlap, wrong-sign steps are retried shorter. `ts_follow` picks
+  the first mode by overlap with a scanned coordinate but is NOT the default:
+  a scanned bond overlaps most with the symmetric stretch, not the reaction
+  mode. Test: `tests/qm/ts_scanpoint_test.py` (ORCA oracle).

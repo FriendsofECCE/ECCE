@@ -137,7 +137,28 @@ Input parse_input(std::istream& in) {
       else if (v == "backward") r.irc_direction = -1;
       else throw bad("irc_direction must be both, forward or backward");
     }
-    else if (k == "ts_hessian_every") r.opt.ts_hessian_every = std::stoi(rest);
+    else if (k == "ts_hessian_every") {
+      r.opt.ts_hessian_every = std::stoi(rest);
+      if (r.opt.ts_hessian_every < 0) throw bad("ts_hessian_every must not be negative");
+    }
+    else if (k == "ts_mode") r.opt.ts_mode = std::stoi(rest);
+    else if (k == "ts_follow") {
+      std::stringstream cs(lower(rest));
+      std::string w;
+      cs >> w;
+      GeoConstraint& g = r.opt.ts_follow;
+      int nidx;
+      if (w == "bond") { g.kind = GeoConstraint::Bond; nidx = 2; }
+      else if (w == "angle") { g.kind = GeoConstraint::Angle; nidx = 3; }
+      else if (w == "torsion" || w == "dihedral") { g.kind = GeoConstraint::Torsion; nidx = 4; }
+      else throw bad("ts_follow: '" + w + "' is not bond, angle or torsion");
+      for (int i = 0; i < nidx; ++i) {
+        int a;
+        if (!(cs >> a)) throw bad("ts_follow: " + w + " needs " + std::to_string(nidx) + " atom numbers");
+        g.atoms[i] = a - 1;   // checked against the geometry below
+      }
+      r.opt.has_ts_follow = true;
+    }
     else if (k == "opt_conv") r.opt.set_convergence(lower(rest));
     else if (k == "charges") {
       std::stringstream cs(lower(rest));
@@ -245,7 +266,16 @@ Input parse_input(std::istream& in) {
     if (r.irc.step <= 0 || r.irc.max_points < 1 || r.irc.hessian_every < 0)
       throw Error("irc_step must be positive, irc_max_points at least 1 and irc_hessian_every not negative");
   }
-  if (r.opt.ts_hessian_every < 0) throw Error("ts_hessian_every must not be negative");
+  if (r.opt.ts_mode < 0) throw Error("ts_mode must be 1 or more");
+  if (r.opt.has_ts_follow) {
+    const int nidx = r.opt.ts_follow.kind == GeoConstraint::Bond ? 2 : r.opt.ts_follow.kind == GeoConstraint::Angle ? 3 : 4;
+    for (int i = 0; i < nidx; ++i) {
+      const int a = r.opt.ts_follow.atoms[i];
+      if (a < 0 || a >= static_cast<int>(r.mol.atoms.size())) throw Error("ts_follow: atom " + std::to_string(a + 1) + " is not in the geometry");
+      for (int j = 0; j < i; ++j)
+        if (r.opt.ts_follow.atoms[j] == a) throw Error("ts_follow: an atom is named twice");
+    }
+  }
   if (does_frequencies(r.runtype) && does_optimize(r.runtype) && !r.opt.constraints.empty())
     throw Error("optfreq with constraints: frequencies at a constrained geometry are not at a minimum; "
                 "run runtype optimize with the constraints and a separate frequency run without them");
