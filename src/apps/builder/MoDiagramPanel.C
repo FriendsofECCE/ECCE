@@ -1180,6 +1180,18 @@ namespace {
     return true;
   }
 
+  //  The title's group: a linear molecule is C-inf-v or D-inf-h whatever
+  //  finite stand-in the symmetry code worked in.
+  string shownGroup(const string& group, const vector<double>& xyz)
+  {
+    string g = group;
+    for (size_t i = 0; i < g.size(); i++) g[i] = toupper((unsigned char)g[i]);
+    if (!isCollinear(xyz)) return group;
+    if (g == "C4V" || g == "C2V") return "CINFV";
+    if (g == "D4H" || g == "D2H") return "DINFH";
+    return group;
+  }
+
   //  A finite stand-in irrep (canonical spelling) in the linear group's
   //  spelling; anything already linear, or unknown, is returned as is.
   string linearName(const string& irrep)
@@ -3903,7 +3915,7 @@ void MoDiagramPanel::buildOnce()
           : "This job was run WITHOUT SYMMETRY - no diagram can be drawn";
 
       progressDlg.progress(97, _("Drawing"));
-      p_canvas->setGroup(group);
+      p_canvas->setGroup(shownGroup(group, coords));
       p_canvas->setFormula(MoDiagram::formula(elements, charge));
       p_canvas->setDiagram(left, centre, right, links, false, "", headline);
       p_canvas->setCalcHeader(levelSource(getCalculation(), true));
@@ -4055,7 +4067,7 @@ void MoDiagramPanel::buildOnce()
   }
 
   progressDlg.progress(97, _("Drawing"));
-  p_canvas->setGroup(group);
+  p_canvas->setGroup(shownGroup(group, coords));
   //  The fragment-orbital diagram heads a complex with its ligands grouped.
   string headingFormula = MoDiagram::formula(elements, charge);
   if (foDrawn) {

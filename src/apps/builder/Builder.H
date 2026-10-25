@@ -499,6 +499,7 @@ class Builder: public BuilderGUI,
       int columnMinWidth();
       void setColumnTab(int tab, bool save=true);
       void selectDetail(const string& name);
+      int indexProportion() const;
       void setDetail(wxWindow *win);
       void keepColumnWidth();
       void guardSashDrag();
