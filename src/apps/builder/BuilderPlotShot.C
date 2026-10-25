@@ -121,6 +121,8 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
     wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
     if (item != 0 && item->GetItemLabelText() == panel) item->Check(true);
   }
+  //  As a click on the list does: the panel becomes the detail pane.
+  if (docked && p_panelMode == PANELS_DETAIL) selectDetail(panel);
   updatePanes(true);
   if (!mode.empty()) {
     MoPanel *mo = 0;
@@ -168,6 +170,19 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   }
   if (getenv("ECCE_PLOTSHOT_DUMP")) dump(pane.window, 0);
   reportPlots(pane.window, w[1]);
+  if (docked) {
+    //  Where the layout put every shown pane, for the column-height checks.
+    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+    fprintf(stderr, "PLOTSHOT-PANES %s client %dx%d\n", w[1].c_str(),
+            GetClientSize().x, GetClientSize().y);
+    for (size_t i = 0; i < all.GetCount(); ++i) {
+      const wxAuiPaneInfo &p = all.Item(i);
+      if (!p.IsShown() || p.IsToolbar() || p.IsFloating() || !p.window) continue;
+      fprintf(stderr, "PLOTSHOT-PANE %s x=%d y=%d w=%d h=%d min=%d prop=%d\n",
+              (const char*)p.name.utf8_str(), p.rect.x, p.rect.y, p.rect.width,
+              p.rect.height, p.min_size.y, p.dock_proportion);
+    }
+  }
   if (MoPanel *mo = dynamic_cast<MoPanel*>(pane.window)) {
     const string st = mo->tableState();
     fprintf(stderr, "PLOTSHOT-MOTABLE %s\n%s", w[1].c_str(), st.c_str());
@@ -186,7 +201,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   if (!bmp.SaveFile(wxString(outdir + "/" + w[1] + ".png"), wxBITMAP_TYPE_PNG))
     return s.fail("plotshot: cannot write " + w[1] + ".png");
   if (!docked) pane.Dock();
-  pane.Hide();
+  if (!(docked && p_panelMode == PANELS_DETAIL)) pane.Hide();   // the next detail replaces it
   p_mgr.Update();
   settle(300);
   fprintf(stderr, "PLOTSHOT: %s %dx%d\n", w[1].c_str(), r.width, r.height);

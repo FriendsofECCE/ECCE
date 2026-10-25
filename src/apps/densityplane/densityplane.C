@@ -168,9 +168,9 @@ int main(int argc, char **argv)
            map.atoms[a].label.c_str(), map.atoms[a].u, map.atoms[a].v,
            map.atoms[a].off);
   if (levels) {
-    const vector<double> l = map.quantity == ORBITAL
-        ? orbitalLevels(std::max(fabs(map.zmin), fabs(map.zmax)))
-        : densityLevels(map.zmax);
+    bool scaled = false;
+    const vector<double> l = mapLevels(map, scaled);
+    if (scaled) printf("levels scaled to the plane's maximum\n");
     for (size_t k = 0; k < l.size(); k++)
       printf("level %g: %zu segments\n", l[k], contour(map, l[k]).size());
   }

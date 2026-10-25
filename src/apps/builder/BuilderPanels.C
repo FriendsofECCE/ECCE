@@ -1106,8 +1106,13 @@ void Builder::sizeIndexPane()
   wxAuiPaneInfo &detail = open ? p_mgr.GetPane(p_detail) : wxAuiNullPaneInfo;
   if (open && detail.IsOk() && detail.IsShown() && !detail.IsFloating() &&
       !p_folded.count(p_detail)) {
-    const int room = pane.rect.height > 0 && detail.rect.height > 0
-        ? pane.rect.height + detail.rect.height : GetClientSize().y * 3 / 4;
+    //  The column's own height (the toggle pane spans it), less the tab
+    //  strip; the two panes' rectangles are stale until a layout has run.
+    wxAuiPaneInfo &column = p_mgr.GetPane("Column Toggle");
+    wxAuiPaneInfo &tabs = p_mgr.GetPane("Panel Tabs");
+    const int columnH = column.IsOk() && column.rect.height > 0
+        ? column.rect.height : GetClientSize().y - 70;
+    const int room = columnH - (tabs.IsOk() ? tabs.min_size.y + 12 : 46);
     cap = std::min(cap, std::max(p_index->preferredHeight(3),
                                  room - open->openingHeight()));
   }

@@ -63,3 +63,8 @@ The text under the diagram says what was built, how many levels are hidden,
 and, only if something is wrong, why: an incomplete pairing, a wrong electron
 count, or a fragment level that is poorly covered. **About this diagram...**
 explains how the labels and lines were chosen.
+
+Clicking a level also writes its description under the diagram. Untick
+**Describe clicked level** to hide that text; hovering a level still shows it
+as a tip. On the right-hand column, labels of levels that lie close together
+are moved apart vertically and joined to their level by a thin line.

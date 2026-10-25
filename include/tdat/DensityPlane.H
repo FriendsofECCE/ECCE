@@ -121,6 +121,10 @@ namespace DensityPlane
   vector<double> densityLevels(double zmax, int maxLevels = 14);
   /** 0.02 * 2^k bohr^-3/2 up to the map's absolute maximum; draw as +-. */
   vector<double> orbitalLevels(double zabsmax, int maxLevels = 6);
+  /** The levels to draw for `m`: the fixed series above when it gives at
+   *  least three, else max/2^k from the plane's own maximum (`scaled`),
+   *  so a core orbital or a weak plane still shows its shape. */
+  vector<double> mapLevels(const Map& m, bool& scaled);
 
   /** The map as CSV: u, v, x, y, z (stored frame, A) and the value. */
   string csv(const Map& m, const string& calcName);

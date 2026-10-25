@@ -388,6 +388,24 @@ vector<double> orbitalLevels(double zabsmax, int maxLevels)
   return l;
 }
 
+vector<double> mapLevels(const Map& m, bool& scaled)
+{
+  const bool orbital = m.quantity == ORBITAL;
+  const double top = orbital ? std::max(fabs(m.zmin), fabs(m.zmax)) : m.zmax;
+  vector<double> l = orbital ? orbitalLevels(top) : densityLevels(top);
+  scaled = false;
+  if (l.size() >= 3 || !(top > 0)) return l;
+  scaled = true;
+  l.clear();
+  //  Two significant digits: the legend prints these.
+  for (int k = orbital ? 6 : 8; k >= 1; k--) {
+    char buf[32];
+    snprintf(buf, sizeof buf, "%.2g", top / pow(2.0, k));
+    l.push_back(atof(buf));
+  }
+  return l;
+}
+
 string csv(const Map& m, const string& calcName)
 {
   string s;

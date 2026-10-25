@@ -80,6 +80,7 @@ class MoDiagramCanvas : public wxPanel
       : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                 wxFULL_REPAINT_ON_RESIZE), p_owner(0), p_haveFragments(false),
         p_showEnergies(true),
+        p_showDescription(true),
         p_placed(), p_notes(), p_sketchColumn(0), p_outward(-1)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);   // needed for buffered paint
@@ -107,6 +108,8 @@ class MoDiagramCanvas : public wxPanel
      * are much easier to read; on, the exact value is there.
      */
     void setShowEnergies(bool show) { p_showEnergies = show; }
+    /** The clicked level's description under the diagram (the tooltip stays). */
+    void setShowDescription(bool show) { p_showDescription = show; }
     /** Which of the two model-level labels are drawn: construction (left), symmetry (right). */
     void setLabelSides(bool construction, bool symmetry) { p_showConstruct = construction; p_showSymmetry = symmetry; }
     /** 0 both parts of the construction label, 1 without the parents, 2 none (narrow panels). */
@@ -691,6 +694,15 @@ class MoDiagramCanvas : public wxPanel
       drawStretchMarks(dc, axisX, p_calcSpans);
       dc.DrawText(wxT("eV"), axisX + 7, plot.y - dc.GetTextExtent(wxT("eV")).y - 2);
 
+      //  The text of a crowded column is spread on its own, a line apart,
+      //  with a leader to its level; the levels stay where they are.
+      dc.SetFont(label);
+      const int textH = dc.GetTextExtent(wxT("Xg")).y;
+      vector<int> textY;
+      for (size_t k = 0; k < items.size(); k++) textY.push_back(items[k].y);
+      openRows(textY, [&](size_t, size_t) { return textH; },
+               plot.y + textH/2, plot.y + plot.height - textH/2);
+
       for (size_t k = 0; k < items.size(); k++) {
         const CalcItem& it = items[k];
         const MoLevel& l = itemLevel(it);
@@ -718,11 +730,16 @@ class MoDiagramCanvas : public wxPanel
         dc.SetTextForeground(colour);
         dc.SetFont(label);
         const int labelH = dc.GetTextExtent(wxT("Xg")).y;
-        drawPieces(dc, it.pieces, tx, it.y - labelH/2, label, sub, labelH);
+        const int ty = textY[k];
+        if (abs(ty - it.y) > 2) {
+          dc.SetPen(wxPen(wxColour(170, 170, 170), 1));
+          dc.DrawLine(it.x + it.deg*calcSlot - 3, it.y, tx - 1, ty);
+        }
+        drawPieces(dc, it.pieces, tx, ty - labelH/2, label, sub, labelH);
         const int lw = measurePieces(dc, it.pieces, label, sub).x;
         dc.SetFont(*wxSMALL_FONT);
         dc.SetTextForeground(wxColour(110, 110, 110));
-        dc.DrawText(it.energy, tx + lw + 6, it.y - dc.GetTextExtent(it.energy).y/2);
+        dc.DrawText(it.energy, tx + lw + 6, ty - dc.GetTextExtent(it.energy).y/2);
       }
     }
 
@@ -2015,7 +2032,8 @@ class MoDiagramCanvas : public wxPanel
       dc.SetFont(*wxSMALL_FONT);
       const int lineHeight = dc.GetTextExtent(wxT("Xg")).y + 1;
       const vector<wxString> noteLines = wrapNote(dc, size.x - 16);
-      const vector<wxString> infoLines = wrapText(dc, p_info, size.x - 16);
+      const vector<wxString> infoLines = p_showDescription
+          ? wrapText(dc, p_info, size.x - 16) : vector<wxString>();
       vector<wxString> warnLines;
       for (size_t i = 0; i < p_warnings.size(); i++) {
         const vector<wxString> w = wrapText(dc, p_warnings[i], size.x - 16);
@@ -2733,6 +2751,7 @@ class MoDiagramCanvas : public wxPanel
     string p_headline;
     bool p_haveFragments;
     bool p_showEnergies;
+    bool p_showDescription;
     bool p_showConstruct = true, p_showSymmetry = true;
     int  p_cMode = 0;
     string p_group;
