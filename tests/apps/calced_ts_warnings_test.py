@@ -81,10 +81,10 @@ def main():
                 sym.check(re.search(r"this calculation is \S*RHF\S*/6-31G", ws[0])
                           is not None, "... and this calculation's level", tail)
                 sym.check("not minima at this level" in ws[0], "... and why", tail)
-                sym.check("both linear" in ws[0] and "cannot bend" in ws[0],
+                sym.check("linear reactant and product" in ws[0].lower(),
                           "the linear path is warned about", tail)
-                sym.check(re.search(r"passes \w+ through \w+ \(closest approach", ws[0]),
-                          "the pass-through is warned about", tail)
+                sym.check(re.search(r"passes \w+ through \w+", ws[0]) and ws[0].count("TS Search") == 1,
+                          "the pass-through is warned about, in one line with the linear case", tail)
                 sym.check("TS Search" in ws[0] and "Guess" in ws[0],
                           "... pointing to the Guess pick", tail)
                 sym.check("levels-differ=yes" in ws[0], "the levels differ", tail)

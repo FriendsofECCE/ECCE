@@ -215,7 +215,8 @@ calculation run elsewhere: see [Importing a calculation](importing-a-calculation
   the plot to see the molecule at that step, or use the playback control to
   step through them; **Play** continues from the selected step.
   **Delay:** sets the time between steps during playback. All plots zoom
-  with the mouse wheel or by dragging a rectangle, but never beyond the data;
+  with the mouse wheel (Shift+wheel zooms the vertical axis only) or by dragging a
+  rectangle, but never beyond the data;
   Home or a double click on empty plot shows all of it. In the **Wave Step
   Plots** (the SCF cycles), the energy change and the density and orbital
   gradient changes are drawn as log10 of their size.

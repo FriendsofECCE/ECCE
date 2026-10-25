@@ -9,7 +9,7 @@ the Orbitals group beside **MOs** and **Density Map**. It needs a calculation
 that has orbitals.
 
 The controls are two short rows. The first row has the mode, the atoms, the
-quantity and what to show; the second the axes, **Whole plot** and **More**,
+quantity and what to show; the second the axes, **Show all** and **More**,
 which unfolds the controls used less often (margin, sideways shift, unit,
 combine degenerate, clip peaks and the export buttons). Whether **More** is open
 is remembered. The orbital list, the plot and the notes beneath it are separated
@@ -75,9 +75,10 @@ negative (the density, ψ² and the radial distribution) and is not offered for
 the signed ψ; its ticks are powers of ten. Values that are zero cannot be drawn
 on a log axis and are left out.
 
-The mouse wheel zooms about the pointer, dragging a rectangle zooms to it, the
+The mouse wheel zooms about the pointer (Shift+wheel zooms the vertical axis
+only), dragging a rectangle zooms to it, the
 right or middle button pans, and a double click returns to the opening view.
-**Whole plot** zooms out to everything, including the peaks that **clip peaks**
+**Show all** resets the zoom to show the whole curves, including the peaks that **clip peaks**
 cut off at the nuclei.
 
 When an orbital is zero everywhere on the line the plot says so instead of
@@ -123,7 +124,7 @@ alpha + beta; the contributions add up to the total only for alpha + beta.
 highest value found 0.35 Å or more from every atom. The density at a nucleus is
 hundreds of times the density in a bond, and without the cut those peaks flatten
 everything else. The curves still reach their peaks; they run off the top of the
-plot. Untick it, or press **Whole plot**, to see the whole height.
+plot. Untick it, or press **Show all**, to see the whole height.
 
 ## What to look for
 

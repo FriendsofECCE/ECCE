@@ -486,7 +486,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
              0, wxALIGN_CENTER_VERTICAL|wxLEFT, 4);
     row->Add(p_pickSecond, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
     p_compute = new wxButton(this, wxID_ANY, _("Compute"), wxDefaultPosition,
-                             wxDefaultSize, wxBU_EXACTFIT);
+                             wxDefaultSize);
     p_compute->SetToolTip("Draw the diagram for the atom, or the bond, chosen "
                           "here. Nothing is drawn until this is pressed, so a "
                           "pick can be made in two steps.");
@@ -499,7 +499,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
 
   //  Next to the construction, where a narrow window does not push it off.
   p_about = new wxButton(this, wxID_ANY, _("About this diagram..."),
-                         wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+                         wxDefaultPosition, wxDefaultSize);
   p_about->SetToolTip("About this diagram: how it is made, how far to trust it, and "
                       "what is left out");
   row->Add(p_about, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
