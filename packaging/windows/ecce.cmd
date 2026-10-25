@@ -13,6 +13,9 @@ set "ECCE_REALUSER=%USERNAME%"
 set "HOST=%COMPUTERNAME%"
 set "UH=%USERPROFILE:\=/%"
 set "ECCE_REALUSERHOME=%UH%"
+rem The antivirus checks of programs it has not seen (each new release) are
+rem made in the background, once per installation, before they are needed.
+if exist "%ECCE_ROOT%\python\python3w.exe" start "" /b "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-prewarm"
 rem Temporary files in the user's temp folder (there is no /tmp outside sh).
 if not defined ECCE_TMPDIR set "ECCE_TMPDIR=%TEMP:\=/%"
 set ECCE_SESSION_LIVENESS=lease
@@ -62,8 +65,11 @@ rem broker file the apps read (ecce-gateway-start).
 set ECCE_REMOTE_SERVER=1
 :broker
 for /f %%i in ('python3.exe -c "import os;print(os.urandom(8).hex())"') do set "ECCE_SESSION_ID=%%i"
+rem The start-up card until the Organizer has a window (ecce-splash).
+if not defined ECCE_NO_FIRST_START if not defined ECCE_NO_SPLASH if exist "%ECCE_ROOT%\python\python3w.exe" start "" "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-splash"
 bash.exe "%ECCE_HOME%/bin/ecce-gateway-start"
 if errorlevel 1 (
+  type nul > "%TEMP%\ecce-splash-%ECCE_SESSION_ID%.stop"
   if defined ECCE_LOCAL_BROKER (
     echo ECCE could not start its message broker. 1>&2
     if not defined ECCE_NO_FIRST_START mshta "javascript:alert('ECCE could not start its message broker. See the files in your .ECCE folder.');close()"

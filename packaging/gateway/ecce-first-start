@@ -75,9 +75,52 @@ def run(cmd, timeout=30):
         return 127, ""
 
 
+# Read here, not through ecce-localdata: this runs before the window shows,
+# and on a machine whose antivirus checks each new program on its first run
+# (WithSecure on a managed laptop: ~12 s) that kept the screen empty (#522).
+# Mirrors Preferences (KEY:<tab>value, keys in upper case) and LocalData::dir.
+def global_pref(key):
+    try:
+        with open(os.path.join(STATE, "EcceGlobal"), encoding="utf-8",
+                  errors="replace") as f:
+            for line in f:
+                k, sep, v = line.partition(":")
+                if sep and not k.startswith("#") and k.strip().upper() == key:
+                    return v.strip()
+    except OSError:
+        pass
+    return None
+
+
 def pref_state():
-    rc, out = run([tool("ecce-localdata"), "pref-state"])
-    return out if rc == 0 else "unset"
+    v = (global_pref("LOCALDATA") or "").lower()
+    if v.startswith("1") or v == "true":
+        return "on"
+    if v.startswith("0") or v == "false":
+        return "off"
+    return "unset"
+
+
+def local_data_dir():
+    """What `ecce-localdata` prints: the session's local data folder or ''."""
+    def expand(p):
+        p = p.strip()
+        return HOME + p[1:] if p == "~" or p.startswith("~/") else p
+
+    def pref_folder():
+        f = global_pref("LOCALDATA.FOLDER") or ""
+        return expand(f) if f.strip() else HOME + "/.ECCE-local"
+
+    env = os.environ
+    if "ECCE_LOCAL_DATA" in env:
+        return expand(env["ECCE_LOCAL_DATA"]) if env["ECCE_LOCAL_DATA"] else ""
+    if env.get("ECCE_LOCAL"):
+        return pref_folder()
+    if env.get("ECCE_REMOTE_SERVER"):
+        return ""
+    state = pref_state()
+    on = state == "on" or (state == "unset" and sys.platform == "darwin")
+    return pref_folder() if on else ""
 
 
 def skip_reason():
@@ -133,7 +176,7 @@ def current_state():
         except (OSError, IndexError):
             pass
         return "server", ("Your calculations are kept on the server %s." % host), host
-    rc, folder = run([tool("ecce-localdata")])
+    folder = local_data_dir()
     if pref_state() == "on" or os.environ.get("ECCE_LOCAL_DATA") or folder:
         folder = folder or LOCAL_DEFAULT
         return "local", ("Your calculations are kept on this computer,\n"

@@ -889,6 +889,14 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin
         COMPONENT client)
+# ecce.cmd's background antivirus check and start-up card (#522).
+if(WIN32)
+  install(PROGRAMS
+            ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-prewarm
+            ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-splash
+          DESTINATION bin
+          COMPONENT client)
+endif()
 # Sourced by the scripts above, the wrappers and `ecce` (#233).
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh
         DESTINATION bin
