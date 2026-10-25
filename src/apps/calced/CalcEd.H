@@ -194,6 +194,7 @@ class CalcEd: public CalcEdGUI,
     enum { BOX_NONE, BOX_CHEMSYS, BOX_BASIS };
     std::string notReadyReason(int *box = 0) const;
     void markBlockingBox(int box, const std::string& why);
+    void updateNotes();
     bool isGbsValid();
 
     // refresh & enable/disable & show/hide indicated field sets
@@ -227,6 +228,8 @@ class CalcEd: public CalcEdGUI,
     void showBasisSetFields();
     void showDetailsFields();
     void showGeomEditor();
+    std::string p_notReadyWhy;
+    wxString p_notesText;
     void refreshOrbitalGuess();
     bool deckNamesOrbitalGuess();
     void showPartialEditor();

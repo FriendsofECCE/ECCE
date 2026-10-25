@@ -560,11 +560,13 @@ Progress=opt dE=$1/$2
 [PROGRESS]
 Begin=^\s+MAX gradient\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
 Progress=opt maxgrad=$1/$2
+History=maxgrad
 [END]
 
 [PROGRESS]
 Begin=^\s+RMS gradient\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
 Progress=opt rmsgrad=$1/$2
+History=rmsgrad
 [END]
 
 [PROGRESS]

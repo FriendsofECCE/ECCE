@@ -4349,8 +4349,9 @@ sub PDFileRead
 #	Begin=<regex>		matched against every output line
 #	Progress=<template>	"<stage> key=value ...", $1..$9 taken from
 #				Begin's groups
-#	History=<key>		optional: keep this key's values, one per
-#				record, for a plot
+#	History=<key>[,<key>...] optional: keep these keys' values, one per
+#				record, for a plot (the first is the stage's
+#				main history, the others plot beside it)
 #	Remember=<name>		instead of Progress: keep $1 as {name} for the
 #				Progress templates of other entries (a code's
 #				convergence targets, printed once up front)
@@ -4592,7 +4593,7 @@ sub ProgressLine
         {
             $st = $gProg{$stage} =
                 { 'order' => $gProgStages++, 'keys' => [], 'f' => {},
-                  'hist' => [] };
+                  'hists' => [] };
         }
 
         my ($recKey) = grep { exists $set{$_} } qw(cycle step point);
@@ -4607,10 +4608,10 @@ sub ProgressLine
                 #  SCF's to its own run.
                 if ($rec < $$st{'rec'})
                 {
-                    $$st{'hist'} = [] unless ($stage eq 'opt');
+                    $$st{'hists'} = [] unless ($stage eq 'opt');
                     delete $$st{'t0'};
                 }
-                $$st{'fresh'} = 1;
+                $$st{'gen'}++;
                 $$st{'keys'} = [];
                 $$st{'f'} = {};
             }
@@ -4623,13 +4624,19 @@ sub ProgressLine
             $$st{'f'}{$_} = $set{$_};
         }
 
-        my $hk = $$entry[2];
-        if (defined $hk && exists $set{$hk})
+        foreach my $hk (split /,/, (defined $$entry[2] ? $$entry[2] : ''))
         {
+            next unless (exists $set{$hk});
             my ($v) = split '/', $set{$hk};
-            my $h = $$st{'hist'};
-            $$st{'histKey'} = $hk;
-            if (@$h && defined $rec && !$$st{'fresh'} && $$h[-1][0] == $rec)
+            my ($hs) = grep { $$_{'key'} eq $hk } @{$$st{'hists'}};
+            unless ($hs)
+            {
+                $hs = { 'key' => $hk, 'v' => [] };
+                push @{$$st{'hists'}}, $hs;
+            }
+            my $h = $$hs{'v'};
+            my $gen = $$st{'gen'} || 0;
+            if (@$h && defined $rec && $$hs{'gen'} == $gen && $$h[-1][0] == $rec)
             {
                 $$h[-1][1] = $v;
             }
@@ -4638,7 +4645,7 @@ sub ProgressLine
                 push @$h, [(defined $rec ? $rec : scalar @$h), $v];
                 my $max = $stage eq 'opt' ? $gProgOptHistMax : $gProgHistMax;
                 shift @$h while (@$h > $max);
-                $$st{'fresh'} = 0;
+                $$hs{'gen'} = $gen;
             }
         }
 
@@ -4725,13 +4732,18 @@ sub ProgressFlush
             my $st = $gProg{$stage};
             $text .= join(' ', $stage,
                           map { "$_=$$st{'f'}{$_}" } @{$$st{'keys'}}) . "\n";
-            my $h = $$st{'hist'};
-            if ($keep > 0 && @$h)
+            #  The box plots an optimisation's forces, not its energy (kept in
+            #  Geometry Trace); the energy history would take most of the room.
+            my $forces = grep { $$_{'key'} eq 'maxgrad' } @{$$st{'hists'}};
+            foreach my $hs (@{$$st{'hists'}})
             {
+                my $h = $$hs{'v'};
+                next if ($forces && $stage eq 'opt' && $$hs{'key'} eq 'energy');
+                next unless ($keep > 0 && @$h);
                 my $k = ($stage ne 'opt' && $keep > $gProgHistMax)
                         ? $gProgHistMax : $keep;
                 my $from = @$h > $k ? @$h - $k : 0;
-                $text .= "$stage~ $$st{'histKey'}="
+                $text .= "$stage~ $$hs{'key'}="
                     . join(',', map { $$_[1] } @$h[$from .. $#$h]) . "\n";
             }
         }

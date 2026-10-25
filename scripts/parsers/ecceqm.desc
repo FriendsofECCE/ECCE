@@ -333,7 +333,7 @@ History=dE
 [PROGRESS]
 Begin=^progress opt (.*)$
 Progress=opt $1
-History=energy
+History=energy,maxgrad,rmsgrad
 [END]
 
 [PROGRESS]

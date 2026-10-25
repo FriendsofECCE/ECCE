@@ -176,8 +176,8 @@ public:
     wxPanel* p_chemSysInner;
     wxPanel* p_basisMark;
     wxPanel* p_basisInner;
-    ewxStaticText* p_notReadyText;
-    ewxStaticText* p_constraintNote;
+    ewxStaticText* p_notes;
+    wxPanel* p_notesPanel;
     wxBoxSizer* p_guessRow;
     wxBoxSizer* p_guessColumn;
     ewxStaticText* p_guessText;

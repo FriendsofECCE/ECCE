@@ -41,14 +41,16 @@ NS = "http://www.emsl.pnl.gov/ecce:"
 
 STORED = """# seq=12 sent={sent:.3f} at={at}
 opt step=4 energy=-76.4089123400 maxgrad=4.10e-04/3e-04 rmsgrad=8.00e-05/1e-04 maxstep=2.50e-03/4e-03 rmsstep=1.10e-03/2e-03 dE=-1.20e-05/5e-06
-opt~ energy=-76.3871000000,-76.4052000000,-76.4086000000,-76.4089123400
+opt~ maxgrad=1.20e-02,3.10e-03,9.00e-04,4.10e-04
+opt~ rmsgrad=5.00e-03,1.40e-03,2.10e-04,8.00e-05
 scf cycle=7 energy=-76.4089123400 dE=-4.10e-08/1e-10 grad=3.20e-06/1e-07
 scf~ dE=-2.10e-01,-3.30e-02,-1.20e-03,-6.40e-05,-2.20e-06,-4.10e-08
 """
 
 LIVE = """# seq=30 sent={sent:.3f} at={at}
 opt step=6 energy=-76.4089500000 maxgrad=9.00e-05/3e-04 rmsgrad=3.00e-05/1e-04 maxstep=4.00e-04/4e-03 rmsstep=2.00e-04/2e-03 dE=-1.00e-07/5e-06 converged=yes
-opt~ energy=-76.3871000000,-76.4052000000,-76.4086000000,-76.4089123400,-76.4089480000,-76.4089500000
+opt~ maxgrad=1.20e-02,3.10e-03,9.00e-04,4.10e-04,2.00e-04,9.00e-05
+opt~ rmsgrad=5.00e-03,1.40e-03,2.10e-04,8.00e-05,5.00e-05,3.00e-05
 freq point=14/54 eta=75
 scf cycle=9 energy=-76.4089412300 dE=-3.00e-09/1e-11 grad=4.00e-07/1e-08
 scf~ dE=-1.10e-03,-4.00e-05,-2.00e-06,-1.30e-07,-8.00e-09,-3.00e-09
@@ -152,11 +154,13 @@ def checkLayout(tag, b):
         check(y0 >= prevBottom, "%s: the %s section starts below the previous "
               "plot" % (tag, title), g.group(0))
         prevBottom = max(textEnd, py + ph)
-    caps = {"SCF": "SCF: log |\u0394E| per cycle",
-            "Optimisation": "Optimisation: energy per step, all points"}
-    for title, cap in caps.items():
+    caps = {"SCF": ["SCF: |\u0394E| per cycle (Hartree)"],
+            "Optimisation": ["Optimisation: energy per step, all points",
+                             "Optimisation: max and RMS force per step (Hartree/bohr), all points"]}
+    for title, options in caps.items():
         if re.search(r"\| geom %s " % title, b):
-            check(("plot " + cap) in b, "%s: caption '%s'" % (tag, cap), b)
+            check(any(("plot " + cap) in b for cap in options),
+                  "%s: caption of the %s plot" % (tag, title), b)
 
 
 def run(display, pngs):
@@ -258,9 +262,9 @@ def run(display, pngs):
         check("Optimisation: step 4" in stored and "max force 4.1e-04 (limit 3e-04) \u2717" in stored
               and "RMS force 8.0e-05 (limit 1e-04) \u2713" in stored,
               "running (stored): step, criteria against targets", stored)
-        check("plot Optimisation: energy per step, all points (4 points)" in stored and
-              "plot SCF: log |\u0394E| per cycle (6 points)" in stored,
-              "running (stored): the energy and SCF plots", stored)
+        check("plot Optimisation: max and RMS force per step (Hartree/bohr), all points (4 points)" in stored and
+              "plot SCF: |\u0394E| per cycle (Hartree) (6 points)" in stored,
+              "running (stored): the force and SCF plots", stored)
         check(re.search(r"updated (19|2\d) s ago", stored) is not None,
               "running (stored): updated about 20 s ago, from the job store's stamp", stored)
         check("Frequencies: point 14 of 54" in after and "bar 0.26" in after and
@@ -294,7 +298,7 @@ def run(display, pngs):
         for tag, b in (("1024x600", scan1), ("1366x768", scan2), ("1920x1080", scan3)):
             check("Scan: point 5 of 5" in b and "bar 1.00" in b and
                   "plot Optimisation: energy per step, all points (39 points)" in b and
-                  "plot SCF: log |\u0394E| per cycle (4 points)" in b,
+                  "plot SCF: |\u0394E| per cycle (Hartree) (4 points)" in b,
                   "relaxed scan (%s): point 5 of 5, every optimisation step "
                   "of all 5 points in the energy plot" % tag, b)
         for tag, b in (("stored", stored), ("live", after), ("completed", completed),
