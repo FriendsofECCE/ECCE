@@ -161,6 +161,7 @@ if(QM_PYTHON3)
   # Transition-state search (#452): HCN <-> HNC against ORCA OptTS (tests/qm/ts_oracle.json).
   add_test(NAME qm_ts_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/ts_test.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_ts COMMAND ${QM_PYTHON3} ${_qm_tests}/ts_test.py $<TARGET_FILE:ecce-qm>)
+  add_test(NAME qm_ts_scanpoint COMMAND ${QM_PYTHON3} ${_qm_tests}/ts_scanpoint_test.py $<TARGET_FILE:ecce-qm>)
   # IRC (#452 stage 2): HCN <-> HNC against ORCA's IRC (tests/qm/irc_oracle.json).
   add_test(NAME qm_irc COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_test.py $<TARGET_FILE:ecce-qm> --quick)
   set_tests_properties(qm_irc PROPERTIES TIMEOUT 600)

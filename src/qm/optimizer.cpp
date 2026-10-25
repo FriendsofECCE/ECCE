@@ -390,13 +390,23 @@ OptResult optimize_ts(const Molecule& start, const OptOptions& opt,
   double trust = opt.trust, last_energy = 0;
   bool have_prev = false;
   Vec mode_prev;   // Cartesian vector of the mode followed at the previous step
-  int since_hessian = 0;
+  int since_hessian = 0, rejected = 0;
+  bool retry = false;   // the last trial was turned down; the state is unchanged
+  bool fresh = true;    // H was computed at the current geometry
 
   for (;;) {
     const Mat Q = vibrational_space(x);
     const int m = static_cast<int>(Q.cols());
     Vec s = Vec::Zero(n);
     Vec mode_now;
+    // Updates cannot be trusted once the model has no negative curvature left:
+    // it no longer describes a saddle point, so compute the Hessian again.
+    if (m > 0 && !fresh && Eigen::SelfAdjointEigenSolver<Mat>(Q.transpose() * H * Q).eigenvalues()(0) > -1e-3) {
+      H = hessian(mol);
+      H = 0.5 * (H + H.transpose());
+      fresh = true;
+      since_hessian = 0;
+    }
     if (m > 0) {
       Eigen::SelfAdjointEigenSolver<Mat> es(Q.transpose() * H * Q);
       const Vec e = es.eigenvalues();
@@ -405,12 +415,28 @@ OptResult optimize_ts(const Molecule& start, const OptOptions& opt,
       // The walk must not hop between modes: follow the one that looks most
       // like the previous step's.
       int k = 0;
-      if (mode_prev.size() > 0) {
+      if (mode_prev.size() == 0 && opt.ts_mode > 0) {
+        if (opt.ts_mode > m) throw Error("ts_mode " + std::to_string(opt.ts_mode) + " is beyond the " + std::to_string(m) + " vibrational modes");
+        k = opt.ts_mode - 1;
+      } else if (mode_prev.size() == 0 && opt.has_ts_follow) {
+        const GeoConstraint& c = opt.ts_follow;
+        double (*f)(const Vec&, const int*) = c.kind == GeoConstraint::Bond ? distance : c.kind == GeoConstraint::Angle ? angle : dihedral;
+        const Vec b = b_row(x, f, c.atoms, c.kind == GeoConstraint::Bond ? 2 : c.kind == GeoConstraint::Angle ? 3 : 4);
         double best = -1;
         for (int i = 0; i < m; ++i) {
-          const double ov = std::fabs(mode_prev.dot(Q * V.col(i)));
+          const double ov = std::fabs(b.dot(Q * V.col(i)));
           if (ov > best) { best = ov; k = i; }
         }
+      } else if (mode_prev.size() > 0) {
+        double best = -1;
+        int kb = 0;
+        for (int i = 0; i < m; ++i) {
+          const double ov = std::fabs(mode_prev.dot(Q * V.col(i)));
+          if (ov > best) { best = ov; kb = i; }
+        }
+        // A mode that no longer resembles the previous one means the surface
+        // has changed under the walk; the lowest mode is the safe choice then.
+        k = best > 0.5 ? kb : 0;
       }
       mode_now = Q * V.col(k);
       Vec sq = Vec::Zero(m);
@@ -434,23 +460,25 @@ OptResult optimize_ts(const Molecule& start, const OptOptions& opt,
       s = Q * sc;
     }
 
-    OptStep st;
-    st.index = res.evaluations;
-    st.mol = mol;
-    st.energy = cur.energy;
-    st.grad = cur.grad;
-    st.max_grad = g.cwiseAbs().maxCoeff();
-    st.rms_grad = std::sqrt(g.squaredNorm() / n);
-    st.max_step = s.cwiseAbs().maxCoeff();
-    st.rms_step = std::sqrt(s.squaredNorm() / n);
-    st.d_energy = have_prev ? cur.energy - last_energy : 0.0;
-    const bool conv = st.max_grad <= opt.max_grad && st.rms_grad <= opt.rms_grad && st.max_step <= opt.max_step &&
-                      st.rms_step <= opt.rms_step && (!have_prev || std::fabs(st.d_energy) <= opt.d_energy);
-    if (on_step) on_step(st);
-    res.mol = mol;
-    res.grad = cur.grad;
-    res.energy = cur.energy;
-    if (conv) { res.converged = true; break; }
+    if (!retry) {
+      OptStep st;
+      st.index = res.evaluations;
+      st.mol = mol;
+      st.energy = cur.energy;
+      st.grad = cur.grad;
+      st.max_grad = g.cwiseAbs().maxCoeff();
+      st.rms_grad = std::sqrt(g.squaredNorm() / n);
+      st.max_step = s.cwiseAbs().maxCoeff();
+      st.rms_step = std::sqrt(s.squaredNorm() / n);
+      st.d_energy = have_prev ? cur.energy - last_energy : 0.0;
+      const bool conv = st.max_grad <= opt.max_grad && st.rms_grad <= opt.rms_grad && st.max_step <= opt.max_step &&
+                        st.rms_step <= opt.rms_step && (!have_prev || std::fabs(st.d_energy) <= opt.d_energy);
+      if (on_step) on_step(st);
+      res.mol = mol;
+      res.grad = cur.grad;
+      res.energy = cur.energy;
+      if (conv) { res.converged = true; break; }
+    }
     if (res.evaluations >= opt.max_steps) break;
 
     Molecule trial = mol;
@@ -461,11 +489,25 @@ OptResult optimize_ts(const Molecule& start, const OptOptions& opt,
     const Vec gt = Eigen::Map<const Vec>(ev.grad.data(), n);
     const double dE = ev.energy - cur.energy, pred = g.dot(s) + 0.5 * s.dot(H * s);
 
+    // The model has the wrong sign: the step went somewhere it does not
+    // describe.  Try again from here with a shorter step; after a few
+    // refusals in a row take the step anyway so the search cannot stall.
+    if (pred * dE < 0 && std::fabs(dE) > 1e-4 && rejected < 3) {
+      ++rejected;
+      retry = true;
+      trust = std::max(0.25 * s.norm(), 1e-2);
+      continue;
+    }
+    rejected = 0;
+    retry = false;
+
     if (opt.ts_hessian_every > 0 && ++since_hessian >= opt.ts_hessian_every) {
       H = hessian(trial);
       H = 0.5 * (H + H.transpose());
       since_hessian = 0;
+      fresh = true;
     } else {
+      fresh = false;
       // Bofill: Murtagh-Sargent where it is accurate, Powell-symmetric-Broyden
       // otherwise; neither forces positive curvature, which a saddle point needs.
       const Mat P = Q * Q.transpose();

@@ -25,8 +25,8 @@ Per code (all verified with real runs on NH3 + X with fixed X-N-H angles):
 - **ECCE-QM**: `X` in the geometry block (Z = 0, `Molecule::without_dummies()` for the
   SCF); `constraints` block with 1-based numbers counting X. The dummy keeps its row in
   the geometry, gradient and charge tables; vibration tables list real atoms only.
-  A dummy no constraint names is fixed in space. GeoVib with constraints is refused
-  in `ai.ecceqm` and in the engine. NWChem needs autoz for zcoord constraints (no
+  A dummy no constraint names is fixed in space. GeoVib with constraints ignores them
+  (`ai.ecceqm` writes no block; the editor warns, #456). NWChem needs autoz for zcoord constraints (no
   `noautoz` in the geometry line), or they are silently ignored.
 
 Gaussian and MOPAC leave the dummy out of their geometry tables, so the trace has fewer

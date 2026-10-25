@@ -29,7 +29,16 @@ struct OptOptions {
   double max_step = 4e-3, rms_step = 2e-3;
   double d_energy = 5e-6;
   double trust = 0.3, trust_max = 1.0;  // bohr, length of the whole step
-  int ts_hessian_every = 0;      // optimize_ts: recompute the Hessian every n steps (0: update only)
+  // optimize_ts: the mode followed at the first step.  ts_mode is the 1-based
+  // index among the vibrational modes by increasing eigenvalue; failing that
+  // the mode that overlaps most with ts_follow (a bond, angle or torsion, for
+  // instance the coordinate of a relaxed scan); failing both, the lowest.
+  int ts_mode = 0;
+  bool has_ts_follow = false;
+  GeoConstraint ts_follow;
+  // optimize_ts: recompute the Hessian every n steps (0: update only, -1: the
+  // caller decides; the search itself treats it as 0)
+  int ts_hessian_every = -1;
   // Held exactly at every step.  Dummy atoms that no constraint names stay
   // where they are; one that a bond, angle or torsion names moves with it.
   std::vector<GeoConstraint> constraints;
@@ -68,8 +77,10 @@ OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
 // Transition-state search: partitioned rational function steps (uphill along
 // one Hessian mode, downhill along the rest) from the Hessian that hessian()
 // computes at the start geometry, kept up to date by Bofill updates.  The
-// followed mode starts as the lowest and afterwards is the one that overlaps
-// most with the previous step's.  Convergence as in optimize_geometry; no
+// followed mode at the first step is chosen by OptOptions (ts_mode,
+// ts_follow, else the lowest) and afterwards is the one that overlaps most
+// with the previous step's.  A step whose energy change has the opposite sign
+// to the model's is turned down and retried with a smaller trust radius.  Convergence as in optimize_geometry; no
 // constraints.  hessian(mol) is called after eval(mol) at the same geometry,
 // returns 3N x 3N in hartree/bohr^2.
 OptResult optimize_ts(const Molecule& start, const OptOptions& opt,

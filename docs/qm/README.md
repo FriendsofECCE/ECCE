@@ -209,10 +209,18 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   forces the latter). No constraints, no dummy atoms.
 * The step is partitioned RFO: uphill along one Hessian mode, downhill along
   all others, capped by the trust radius. The Hessian is computed at the
-  start, then kept by Bofill updates; `ts_hessian_every n` recomputes it every
-  n steps (default 0: only at the start). The followed mode is the lowest at
-  the first step and afterwards the one with the largest overlap with the
-  previous step's, so the walk does not hop between modes. Convergence is the
+  start; `ts_hessian_every n` recomputes it every n steps (default 1 for
+  closed-shell RHF, where the analytic Hessian is cheap, otherwise 0: Bofill
+  updates only). The model is also recomputed whenever the updated Hessian has
+  lost its last negative eigenvalue. The followed mode at the first step is
+  the lowest, or the `ts_mode n` (n-th lowest, from 1), or the one that
+  overlaps most with `ts_follow bond 1 2` (also `angle`, `torsion`; for
+  instance the coordinate of the scan the start came from; the lowest mode is
+  usually the better choice, since a scanned bond overlaps most with the
+  symmetric stretch). Afterwards it is the mode with the largest overlap with
+  the previous step's (the lowest if none overlaps by more than 0.5). A step
+  whose energy change has the opposite sign to the model's is turned down and
+  retried shorter (at most three times in a row). Convergence is the
   minimiser's (`opt_conv normal|tight`, `maxsteps`).
 * Output as for an optimisation (`progress opt ...` is the Progress box's opt
   stage, GEOMTRACE, TE), then the frequency blocks. The run fails (exit 1,

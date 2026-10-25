@@ -1,0 +1,6 @@
+{
+  "comment": "ORCA 6.1.1: HF/3-21G OptTS (Calc_Hess) of Cl- + CH3F from the start in ts_scanpoint_test.py; energy and distances from a Freq run at the result, TightSCF",
+  "energy": -595.536777814896,
+  "imaginary": -480.11,
+  "distances": [1.0705, 1.0705, 1.0994, 1.5091, 1.7938, 1.82, 1.8206, 2.1063, 2.2468, 2.4993, 2.5003, 2.5934, 2.5975, 2.7708, 4.2273]
+}
