@@ -586,6 +586,10 @@ void DensityProfilePanel::recompute()
     opt.rMax = bohr ? 6.0 / BOHR_ANG : 6.0;
     opt.points = GRID_POINTS;
     opt.lebedev = ANGULAR_POINTS;
+    //  Points even along the axis as drawn.
+    const int xsel = p_xaxis->GetSelection();
+    opt.spacing = xsel == 1 ? RadialDist::Options::SQRT
+                : xsel == 2 ? RadialDist::Options::LOG : RadialDist::Options::EVEN;
     const int a = std::max(0, p_centre->GetSelection());
     const double c[3] = { p_eval->coordsAng[3*a], p_eval->coordsAng[3*a+1],
                           p_eval->coordsAng[3*a+2] };
@@ -681,7 +685,8 @@ void DensityProfilePanel::recompute()
       double topV = 0;
       for (double v : c.p) topV = std::max(topV, v);
       size_t last = 1;
-      for (size_t i = 0; i < c.p.size(); i++) if (c.p[i] > 0.002 * topV) last = i;
+      const double visible = yLog ? 1e-9 : 0.002;    // a log axis shows the tail
+      for (size_t i = 0; i < c.p.size(); i++) if (c.p[i] > visible * topV) last = i;
       last = std::min(c.p.size() - 1, last + last / 8 + 2);
       plotR.resize(last + 1);
       plotP.resize(last + 1);

@@ -53,7 +53,14 @@ vector<double> grid(const Options& opt)
 {
   const int n = max(3, opt.points);
   vector<double> r(n);
-  for (int i = 0; i < n; i++) r[i] = opt.rMax * i / (n - 1);
+  for (int i = 0; i < n; i++) {
+    const double u = double(i) / (n - 1);
+    if (opt.spacing == Options::SQRT) r[i] = opt.rMax * u * u;
+    else if (opt.spacing == Options::LOG && i > 0) {
+      const double rMin = 1e-3 / (opt.bohr ? BOHR_ANG : 1.0);
+      r[i] = rMin * pow(opt.rMax / rMin, double(i - 1) / (n - 2));
+    } else r[i] = opt.rMax * u;
+  }
   return r;
 }
 
@@ -62,6 +69,14 @@ double integrate(const vector<double>& r, const vector<double>& p)
   const size_t n = min(r.size(), p.size());
   if (n < 2) return 0.0;
   const double h = (r[n-1] - r[0]) / (n - 1);
+  bool even = true;
+  for (size_t i = 1; i < n && even; i++)
+    if (fabs((r[i] - r[i-1]) - h) > 1e-9 * fabs(h)) even = false;
+  if (!even) {
+    double s = 0;
+    for (size_t i = 1; i < n; i++) s += 0.5 * (p[i] + p[i-1]) * (r[i] - r[i-1]);
+    return s;
+  }
   if (n % 2 == 1 && n >= 3) {
     double s = p[0] + p[n-1];
     for (size_t i = 1; i + 1 < n; i++) s += (i % 2 ? 4.0 : 2.0) * p[i];
@@ -88,7 +103,7 @@ void findMaxima(const vector<double>& r, const vector<double>& p,
     const double a = p[i-1], b = p[i], c = p[i+1];
     const double den = a - 2*b + c;
     const double d = den != 0.0 ? 0.5 * (a - c) / den : 0.0;
-    const double h = r[i] - r[i-1];
+    const double h = 0.5 * (r[i+1] - r[i-1]);
     maxR.push_back(r[i] + d*h);
     maxP.push_back(b - 0.25 * (a - c) * d);
   }

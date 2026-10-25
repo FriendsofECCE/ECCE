@@ -76,8 +76,14 @@ namespace RadialDist
     int    lebedev;    // angular points (a Lebedev size, else the next larger)
     bool   bohr;
     bool   radial;     // r^2 times the integral over directions; else the plain average
+    //  Spacing of the radii: even, even in sqrt(r), or even in log(r) from
+    //  1e-3 Angstrom (0 is still the first point), so a curve plotted on that
+    //  axis has as many points near the nucleus as far out.
+    enum Spacing { EVEN, SQRT, LOG };
+    Spacing spacing;
 
-    Options() : rMax(6.0), points(1201), lebedev(434), bohr(false), radial(true) {}
+    Options() : rMax(6.0), points(1201), lebedev(434), bohr(false), radial(true),
+                spacing(EVEN) {}
   };
 
   /** The radius grid for these options, starting at 0. */
@@ -95,7 +101,8 @@ namespace RadialDist
   void findMaxima(const vector<double>& r, const vector<double>& p,
                   vector<double>& maxR, vector<double>& maxP);
 
-  /** Simpson integral over a uniform grid (trapezoid if the count is even). */
+  /** Simpson integral over a uniform grid (trapezoid if the count is even or
+   *  the grid is not uniform). */
   double integrate(const vector<double>& r, const vector<double>& p);
 
   /** The atom nearest the centre of mass (0-based); the only atom if there is one. */
