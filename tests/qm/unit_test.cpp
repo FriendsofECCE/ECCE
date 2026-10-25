@@ -16,6 +16,7 @@
 #include "integrals.hpp"
 #include "irc.hpp"
 #include "localise.hpp"
+#include "solvent.hpp"
 #include "vibration.hpp"
 #include <array>
 
@@ -403,6 +404,61 @@ int main(int argc, char** argv) {
       check(path.size() >= 5 && std::fabs(std::fabs(x) - 1.0) < 0.05 && why.find("minimum reached") != std::string::npos,
             "irc runs from a flat TS to the minimum (" + std::to_string(path.size()) + " points: " + why + ")", x);
     }
+  }
+  // Implicit solvent (CPCM).  Born ion: a charge in the middle of one sphere
+  // has the energy -(1 - 1/eps) Z^2 / (2R) exactly; eps -> 1 gives nothing; the
+  // energy of a fixed external charge is smooth when an atom moves through
+  // the other's cavity (no point switches abruptly).
+  {
+    const double eps = 78.3553;
+    Molecule ion;
+    Atom a; a.Z = 8;  // radius from the table; the nuclear charge is the potential, scaled below
+    ion.atoms.push_back(a);
+    Cpcm c(ion, eps);
+    const double R = 1.2 * cavity_radius(8) * kAngstromToBohr;
+    Vec V = Vec::Constant(c.size(), 1.0 / R);  // a unit charge at the centre
+    const double born = -0.5 * (1 - 1 / eps) / R;
+    const Vec q = c.charges(V);
+    check(std::fabs(0.5 * q.dot(V) / born - 1) < 0.005, "Born ion energy against the analytic formula (ratio - 1)", 0.5 * q.dot(V) / born - 1);
+    check(std::fabs(q.sum() / (-(1 - 1 / eps)) - 1) < 0.005, "Born ion total surface charge is -(1 - 1/eps)", q.sum());
+    Cpcm c1(ion, 1.0);
+    check(c1.charges(V).norm() == 0.0, "eps = 1: no surface charge");
+
+    // two atoms, one moving by 0.002 bohr steps through 1 bohr; the probe is a unit charge
+    Molecule two;
+    Atom o; o.Z = 8;
+    Atom h; h.Z = 1;
+    two.atoms = {o, h};
+    const double probe[3] = {2.0, 3.0, 1.0};
+    std::vector<double> en;
+    for (int i = 0; i <= 500; ++i) {
+      two.atoms[1].x[0] = 3.0 + 0.002 * i;
+      Cpcm cc(two, eps);
+      Vec v(cc.size());
+      for (int k = 0; k < cc.size(); ++k) {
+        const auto& p = cc.points()[k];
+        v(k) = 1.0 / std::sqrt((p[0] - probe[0]) * (p[0] - probe[0]) + (p[1] - probe[1]) * (p[1] - probe[1]) + (p[2] - probe[2]) * (p[2] - probe[2]));
+      }
+      en.push_back(0.5 * cc.charges(v).dot(v));
+    }
+    double maxd2 = 0;
+    for (size_t i = 1; i + 1 < en.size(); ++i) maxd2 = std::max(maxd2, std::fabs(en[i + 1] - 2 * en[i] + en[i - 1]));
+    check(maxd2 < 2e-5, "solvation energy continuous while one cavity sphere slides through another (max second difference)", maxd2);
+  }
+  {
+    // eps = 1 changes nothing in a whole SCF; a real solvent lowers the energy of water
+    Molecule w;
+    const double A = kAngstromToBohr;
+    w.atoms = {{8, {0, 0, 0.1173 * A}}, {1, {0, 0.7572 * A, -0.4692 * A}}, {1, {0, -0.7572 * A, -0.4692 * A}}};
+    Basis b(w, lib, "STO-3G", 1);
+    ScfOptions o;
+    const ScfResult r0 = run_scf(b, w, o);
+    o.solvent_eps = 1.0;
+    const ScfResult r1 = run_scf(b, w, o);
+    check(r0.converged && std::fabs(r1.energy - r0.energy) < 1e-9 && r1.e_solvent == 0.0, "scf with eps = 1 is the vacuum energy", r1.energy - r0.energy);
+    o.solvent_eps = 78.3553;
+    const ScfResult r2 = run_scf(b, w, o);
+    check(r2.converged && r2.e_solvent < -0.005 && r2.energy < r0.energy - 0.005, "water in water: energy lowered by the reaction field", r2.energy - r0.energy);
   }
 
   return fails ? 1 : 0;

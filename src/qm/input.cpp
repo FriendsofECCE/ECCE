@@ -181,6 +181,27 @@ Input parse_input(std::istream& in) {
       else if (v == "canonical") r.scf.ivo = false;
       else throw bad("virtuals must be canonical or ivo");
     }
+    else if (k == "solvent") {
+      const std::string v = lower(rest);
+      if (v == "none" || v == "vacuum" || v.empty()) { r.solvent.clear(); r.scf.solvent_eps = 0; }
+      else {
+        double eps;
+        if (!solvent_epsilon(v, eps)) throw bad("solvent '" + rest + "' is not known (" + solvent_names() + "); use epsilon <value>");
+        r.solvent = v;
+        r.scf.solvent_eps = eps;
+      }
+    }
+    else if (k == "epsilon") {
+      double eps;
+      try { eps = std::stod(rest); } catch (...) { throw bad("epsilon needs a number"); }
+      if (!(eps >= 1.0)) throw bad("epsilon must be at least 1");
+      r.solvent = "epsilon";
+      r.scf.solvent_eps = eps;
+    }
+    else if (k == "cavity_scale") {
+      try { r.scf.cavity_scale = std::stod(rest); } catch (...) { throw bad("cavity_scale needs a number"); }
+      if (!(r.scf.cavity_scale > 0)) throw bad("cavity_scale must be positive");
+    }
     else if (k == "molden") r.molden = true;
     else throw bad("unknown keyword '" + key + "'");
   }
@@ -262,6 +283,9 @@ Input parse_input(std::istream& in) {
     r.scan.on = true;
     if (r.runtype != RunType::Optimize) throw bad("scan needs runtype optimize");
   }
+  if (r.scf.solvent_eps > 0 && (r.runtype != RunType::Energy || r.polarizability || r.raman))
+    throw Error("a solvent (CPCM) is only available for runtype energy: analytic gradients with solvent are not implemented, "
+                "so gradient, optimize, frequency, ts, irc, scans and polarizability are refused; remove the solvent or use runtype energy");
   if (r.raman && !does_frequencies(r.runtype)) throw Error("raman needs runtype frequency or optfreq");
   if (r.field_step <= 0) throw Error("field_step must be positive");
   if (r.runtype == RunType::TS && (!r.opt.constraints.empty() || r.mol.without_dummies().atoms.size() != r.mol.atoms.size()))

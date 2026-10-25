@@ -27,6 +27,13 @@
 //   virtuals <canonical|ivo>     virtual orbitals: canonical (default) or Hunt-Goddard
 //                                improved virtuals (RHF/RKS closed shell; the
 //                                RKS case applies the same HF-type correction)
+//   solvent <name|none>          implicit solvent (CPCM, conductor-like PCM):
+//                                water, methanol, ethanol, acetonitrile, dmso,
+//                                chloroform, toluene, hexane; the energy and
+//                                orbitals are those in the reaction field.
+//                                Energy runs only: there is no gradient yet
+//   epsilon <x>                  the same with a dielectric constant of your own
+//   cavity_scale <x>             solvent cavity: atomic spheres of x * Bondi radii (1.2)
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
 //   runtype <energy|gradient|optimize|frequency|optfreq|ts|irc>   default energy;
 //                                gradient adds the analytic nuclear gradient,
@@ -90,6 +97,7 @@
 #include "molecule.hpp"
 #include "optimizer.hpp"
 #include "scf.hpp"
+#include "solvent.hpp"
 
 namespace qm {
 
@@ -117,6 +125,7 @@ struct Input {
   bool molden = false;
   bool localise = true;   // keyword "localise": localised occupied orbitals (closed shell only)
   std::string read_orbitals, write_orbitals;  // file names, empty: none
+  std::string solvent;    // name as given (or "epsilon"), empty: vacuum
   ChargeOptions charges;  // extra charge sets (keyword "charges")
   RunType runtype = RunType::Energy;
   OptOptions opt;

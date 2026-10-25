@@ -117,6 +117,24 @@ Skip=0
 Lines=1
 [END]
 
+# Implicit solvent (CPCM): the polarisation energy of the surface charges and
+# the model name; neither line is written for a vacuum run.
+[EPCM]
+Script=ecceqm.parse
+Begin=^solvation_energy\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[SOLVMODEL]
+Script=ecceqm.parse
+Begin=^solvent_model\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [S2]
 Script=ecceqm.parse
 Begin=^s_squared\s
