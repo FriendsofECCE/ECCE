@@ -53,9 +53,9 @@ def g16():
     check(opt(R % "0") == "()", "RecalcFC 0 writes nothing")
     x = opt("ES.Runtype.GeomOpt.MaximumStepsValue: 30\n" + H % "Calculate" + R % "4")
     check(x == "(MaxCycle=30 CalcFC RecalcFC=4 )", "MaxCycle + CalcFC + RecalcFC", x)
-    # TS: today's deck is kept for the default; CalcAll/ReadFC replace calcfc.
+    # TS: the chosen source replaces calcfc, so the default asks for CalcFC once.
     print("   TS default         ", route(deck("gauss16", TS + H % "Calculate")))
-    check(opt(TS + H % "Calculate") == "(TS noeigen calcfc CalcFC )", "TS default byte-identical",
+    check(opt(TS + H % "Calculate") == "(TS noeigen CalcFC )", "TS default, CalcFC once",
           opt(TS + H % "Calculate"))
     x = opt(TS + H % "Calculate at every step")
     check(x == "(TS noeigen CalcAll )" and "calcfc" not in x.lower(), "TS + CalcAll, no calcfc", x)

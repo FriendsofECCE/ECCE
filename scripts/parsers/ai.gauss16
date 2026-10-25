@@ -1414,9 +1414,9 @@ sub GeomOptions {
                                         : $AbiDict{"SearchFor"});
   my $hessian = &isQstRunType($AbiDict{"RunType"}) ? ""
               : &ComputeHessian($AbiDict{"InitialHessian"});
-  # CalcAll and ReadFC replace the CalcFC that a TS search always carries;
+  # The chosen source replaces the calcfc that a TS search always carries;
   # both together would ask Gaussian for two sources of force constants.
-  $stationary =~ s/calcfc // if ($hessian =~ /^(CalcAll|ReadFC) /);
+  $stationary =~ s/calcfc // if ($hessian =~ /^(CalcFC|CalcAll|ReadFC) /);
   $result .= $stationary;
   $result .= &ConvergenceToleranceGeom
              ($AbiDict{"ES.Runtype.GeomOpt.ConvergenceGradient"});
