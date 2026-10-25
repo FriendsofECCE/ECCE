@@ -68,7 +68,7 @@ def organizer(display, url, png, env, args=()):
     work = tempfile.mkdtemp(prefix="ecce-summary-")
     cmds = os.path.join(work, "commands")
     with open(cmds, "w") as handle:
-        handle.write("summary %s\nsnap %s\n" % (url, png))
+        handle.write("summary %s\nscrollsummary\nsnap %s\n" % (url, png))
     try:
         result = apps.run(display, "organizer", args=args, windowTimeout=60,
                           settle=40,
@@ -82,11 +82,17 @@ def organizer(display, url, png, env, args=()):
 def check(label, result, expect):
     log = result.log or ""
     done = re.search(r"ECCE_TEST_ORGANIZER: summary \S+: (.*)", log)
+    scrolled = re.search(r"ECCE_TEST_ORGANIZER: scrollsummary: scrolled to ([1-9]\d*) and back",
+                         log)
     problem = None
     if result.crashed:
         problem = "CRASHED (%s)" % result.signalName
     elif not done:
         problem = "the summary command never answered"
+    elif not scrolled:
+        problem = "the summary panel did not finish scrolling"
+    elif "gtk_widget_set_allocation" in log:
+        problem = "GTK tried to allocate a hidden summary widget while scrolling"
     else:
         got = parse(done.group(1))
         wrong = ["%s=%r (want %r)" % (k, got.get(k), v)

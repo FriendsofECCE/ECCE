@@ -510,6 +510,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 collapse events during it, then the tree
  * size <w> <h>   resize the Organizer window
  * firstvisible    the label of the tree's top visible row (its scroll)
+ * scrollsummary   scroll the calculation summary to its bottom and back
  * showbox         scroll the summary panel so that the Progress box is at
  *                 its top
  * progressbox     the shown summary's Progress box: shown or not, its
@@ -1064,6 +1065,30 @@ void CalcMgr::runTestCommand(const string& line)
         for (int i = 0; i < 5; i++) wxYield();
       }
       outcome = box ? "scrolled" : "no box";
+    } else if (command == "scrollsummary") {
+      CalculationContextPanel *panel =
+          dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      for (int i = 0; i < 5; i++) wxYield();
+      if (panel) {
+        const wxSize virtualSize = panel->GetVirtualSize();
+        const wxSize clientSize = panel->GetClientSize();
+        int unitY = 1;
+        panel->GetScrollPixelsPerUnit(0, &unitY);
+        const int maxY = std::max(0, (virtualSize.y - clientSize.y +
+                                      std::max(1, unitY) - 1) /
+                                     std::max(1, unitY));
+        if (maxY > 0) {
+          panel->Scroll(-1, maxY);
+          for (int i = 0; i < 5; i++) wxYield();
+          panel->Scroll(-1, 0);
+          for (int i = 0; i < 5; i++) wxYield();
+          outcome = "scrolled to " + std::to_string(maxY) + " and back";
+        } else {
+          outcome = "no scroll range";
+        }
+      } else {
+        outcome = "no calculation panel";
+      }
     } else if (command == "progressbox") {
       CalculationContextPanel *panel =
           dynamic_cast<CalculationContextPanel*>(p_contextPanel);
