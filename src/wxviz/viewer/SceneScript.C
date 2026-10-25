@@ -258,9 +258,11 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
       }
     }
     ComputeMoCmd mo("Compute Mo", p_sg, p_calc, 0);
-    mo.getParameter("FieldType")->setString("MO");
+    //  "mo spin [iso] [res]" draws the spin density (alpha - beta).
+    const bool spin = w[1] == "spin";
+    mo.getParameter("FieldType")->setString(spin ? "Spin Density" : "MO");
     mo.getParameter("CoefCutoff")->setDouble(0.0);
-    mo.getParameter("SelectedMO")->setInteger(atoi(w[1].c_str()));
+    mo.getParameter("SelectedMO")->setInteger(spin ? 1 : atoi(w[1].c_str()));
     mo.getParameter("Type")->setString("alpha");
     mo.getParameter("Code")->setString(ic->application()->name());
     const char *ax[3] = {"X", "Y", "Z"};

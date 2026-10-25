@@ -114,10 +114,24 @@ namespace RadialDist
    * An atom's occupied MOs named by shell ("1s", "2s", "2p"): the dominant
    * angular momentum of each, counted up in energy order within it, a
    * degenerate set being one shell.  Empty for a molecule; empty strings
-   * where no shell is clear (virtuals).
+   * where no shell is clear.  A virtual is "3s (virtual)" when the radial
+   * nodes of its type count up cleanly from the occupied shells (an IVO in
+   * a diffuse basis), else "s (virtual)".
    */
   vector<string> shellLabels(IPropCalculation *calc,
                              const DensityPlane::Evaluator& ev, bool beta);
+
+  /**
+   * Radial nodes of each MO of a single atom (empty for a molecule): the
+   * sign changes of psi along the direction where it is largest, so
+   * n = l + nodes + 1.  -1 where it cannot be said.  meanR, when given,
+   * gets <r> (bohr) along that direction.
+   */
+  vector<int> radialNodes(const DensityPlane::Evaluator& ev, bool beta,
+                          vector<double> *meanR = 0);
+
+  /** shellLabels for a calculation's atom; empty when it is not one atom. */
+  vector<string> atomOrbitalLabels(IPropCalculation *calc, bool beta);
 
   /**
    * Curves for the given orbitals (1-based).  `weighted` weights each by its

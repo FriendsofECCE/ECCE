@@ -52,6 +52,7 @@
 #include "tdat/CharacterTable.H"
 #include "tdat/SymmetryOps.H"
 #include "tdat/SymmetryAnalysis.H"
+#include "tdat/RadialDist.H"
 #include "tdat/ShellRotation.H"
 #include "tdat/BasisFlatten.H"
 #include "tdat/MoAoOrder.H"
@@ -2685,6 +2686,15 @@ void MoDiagramPanel::buildOnce()
   //  energy on its own) being averaged into one.
   MoDiagram::groupByIrrep(e, o, s, dimensions, 1.5e-5, centre.levels);
   centre.title = "Molecular orbitals";
+
+  //  One atom: each level is named by its shell, not an irrep.
+  {
+    const vector<string> shells = RadialDist::atomOrbitalLabels(calc, false);
+    if (shells.size() == e.size())
+      for (MoLevel& lv : centre.levels)
+        if (!lv.orbitals.empty() && !shells[lv.orbitals[0]].empty())
+          lv.label = shells[lv.orbitals[0]];
+  }
 
   //  MERGE: one spatial level per alpha level, at the alpha energy
   //  (unchanged above), with the matched beta electrons folded in as

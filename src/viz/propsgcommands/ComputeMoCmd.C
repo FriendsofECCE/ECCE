@@ -1043,7 +1043,10 @@ bool ComputeMoCmd::execute()
                   fieldBeta[idxField];
             }
           } else if (doingSpinDensity) {
+            //  Restricted open shell has one set of MOs: the singly
+            //  occupied ones carry the spin, a doubly occupied one none.
             double occnum = occ[idxMO];
+            if (!uhfCalc) occnum = occnum <= 1.0 ? occnum : 2.0 - occnum;
             for (idxField=0; idxField<gridRes; idxField++)
               density[idxField] +=
                 occnum * field[idxField] * field[idxField];
@@ -1142,7 +1145,7 @@ bool ComputeMoCmd::execute()
         delete atoms;
         atoms = 0;
 
-        if (doingDensity) {
+        if (doingDensity || doingSpinDensity) {
           delete [] density;
         }
         if ((doingDensity||doingSpinDensity) && uhfCalc) {

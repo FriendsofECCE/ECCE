@@ -249,6 +249,10 @@ class MoPanel : public MoGUI,
 
       /* currently selected row; GetSelected* methods don't work */
       int p_selectedRow;
+      //  One atom: each orbital's shell ("1s", "2p", "3s (virtual)"), alpha
+      //  then beta, replacing the symmetry label; empty for a molecule.
+      vector<string> p_atomLabels[2];
+      string p_virtNote;          // "Virtual orbitals: ..." line, for tests
       bool p_localised = false;   // the table lists the localised orbitals
 
       /* The first plot; all symmetries are on same x value. */

@@ -6,8 +6,10 @@ ECCE_BASIS_DIR=data/admin/basissets:
 
   H   UHF doublet, cc-pVQZ (the engine refuses the library's aug- files: diffuse part only)
   Ne  RHF, cc-pVTZ
+  Ne-aug, Ne-ivo  RHF, aug-cc-pVDZ, canonical / improved virtual orbitals
   Ar  RHF, 6-31G*
   H2, N2  RHF, 6-31G* (bond along z, N2 along x)
+  CH2     UHF triplet, 6-31G*
   HCN     RHF, 6-31G*, atoms C H N on the z axis (a line whose atoms are not in order)
 
 Names on the command line limit the run to those cases and keep the rest.
@@ -26,10 +28,13 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 DST = os.path.join(HERE, "radialdist-fixtures")
 CASES = {"h": ["h", "--basis", "cc-pVQZ", "--multiplicity", "2"],
          "ne": ["ne", "--basis", "cc-pVTZ"],
+         "ne-aug": ["ne", "--basis", "aug-cc-pVDZ"],   # diffuse, canonical virtuals
+         "ne-ivo": ["ne", "--basis", "aug-cc-pVDZ", "--virtuals", "ivo"],
          "ar": ["ar"],                 # 6-31G*
          "h2": ["h2"],
          "n2": ["n2"],
-         "hcn": ["hcn"]}
+         "hcn": ["hcn"],
+         "ch2": ["ch2", "--multiplicity", "3", "--method", "uhf"]}   # alpha and beta MO sets
 
 only = sys.argv[1:]
 if not only:

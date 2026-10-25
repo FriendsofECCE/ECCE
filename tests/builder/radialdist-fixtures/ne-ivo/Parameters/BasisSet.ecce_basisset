@@ -1,0 +1,60 @@
+<MolecularConfig>
+<Map>
+<Group Tag="Ne" Name="aug-cc-pVDZ">
+<OrderedList>
+<BasisSet Type="pople">aug-cc-pVDZ</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="aug-cc-pVDZ">
+<BasisSet Type="pople">aug-cc-pVDZ</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="Ne">
+<BasisSet uniqueKey="aug-cc-pVDZ:pople">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="Ne">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="Ne">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+</Map>
+<Data>
+BasisSet=aug-cc-pVDZ
+Type=pople Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
+element=Ne
+contraction shell=SSS num_primitives=9 num_coefficients=3
+17880. 0.000738 -0.000172 0.000000
+2683. 0.005677 -0.001357 0.000000
+611.5 0.028883 -0.006737 0.000000
+173.5 0.108540 -0.027663 0.000000
+56.64 0.290907 -0.076208 0.000000
+20.42 0.448324 -0.175227 0.000000
+7.810 0.258026 -0.107038 0.000000
+1.653 0.015063 0.567050 0.000000
+0.4869 -0.002100 0.565216 1.000000
+contraction shell=PP num_primitives=4 num_coefficients=2
+28.39 0.046087 0.000000
+6.270 0.240181 0.000000
+1.695 0.508744 0.000000
+0.4317 0.455660 1.000000
+contraction shell=D num_primitives=1 num_coefficients=1
+2.202 1.000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.123000 1.000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.106400 1.000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.631000 1.000000
+EndBasisSet
+</Data>
+</MolecularConfig>
