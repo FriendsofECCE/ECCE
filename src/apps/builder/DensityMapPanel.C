@@ -22,6 +22,7 @@
 #include <wx/stattext.h>
 #include <wx/stopwatch.h>
 
+#include "PointNote.H"
 #include "dsm/IPropCalculation.H"
 #include "inv/nodes/SoCamera.H"
 #include "tdat/Fragment.H"
@@ -304,6 +305,7 @@ void DensityMapPanel::build()
   p_canvas->onZoom = [this](double u, double v, double f) { zoomAt(u, v, f); };
   p_canvas->onZoomReset = [this]() { resetZoom(); };
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { resetZoom(); }, ID_ZOOMRESET);
+  addOrbitalPointNote(this, top, getCalculation());
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_atomRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_viewRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
