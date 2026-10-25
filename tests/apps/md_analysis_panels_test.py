@@ -31,7 +31,8 @@ import irc_panel_test as irc  # noqa: E402
 from harness import say  # noqa: E402
 
 check = bo.check
-EXAMPLES = os.path.join(REPO, "data", "client", "examples", "genchem")
+EXAMPLES = os.path.join(REPO, "data", "client", "examples", "genchem",
+                        "gases-liquids-solids")
 PARSER = os.path.join(REPO, "scripts", "parsers", "gromacs.md")
 
 

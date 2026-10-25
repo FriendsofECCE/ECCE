@@ -27,6 +27,13 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 
 import apps       # noqa: E402
+
+
+def exampleSetVersion():
+    """kExampleSetVersion of the Organizer, so a bump needs no test edit."""
+    src = open(os.path.join(ROOT, "src", "apps", "organizer", "CalcMgr.C")).read()
+    return re.search(r'kExampleSetVersion = "(\d+)"', src).group(1)
+
 import isolate    # noqa: E402
 import xdisplay   # noqa: E402
 import examples_test as ex   # noqa: E402
@@ -98,7 +105,7 @@ def run(display, data, work, problems):
     if os.path.exists(os.path.join(root, "Examples_Spectroscopy")):
         problems.append("the emptied Examples_Spectroscopy was kept")
     text = open(os.path.join(prefs, "Organizer")).read()
-    if not re.search(r"EXAMPLESET:\s*9", text, re.I):
+    if not re.search(r"EXAMPLESET:\s*%s\b" % exampleSetVersion(), text, re.I):
         problems.append("the preference still says %r" % text.strip())
     return result
 

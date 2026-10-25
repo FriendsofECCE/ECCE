@@ -131,7 +131,7 @@ def propsOf(project):
         if "Props" in dirs:
             found[name] = set(os.listdir(os.path.join(base, "Props")))
             dirs[:] = []
-        elif name in COMPUTATIONAL:
+        elif name in COMPUTATIONAL or name in GENCHEM:
             found[name] = studyProps(base)
             dirs[:] = []
     return found
@@ -302,6 +302,7 @@ def run(display, data, work):
                    "ok Examples/Getting_Started existing",
                    "ok Examples/Organic_Chemistry created",
                    "ok Examples/Spectroscopy created",
+                   "ok Examples/General_Chemistry created",
                    "ok Examples/Organic_Chemistry existing"]:
         problems.append("answers %s" % answers)
     for extra in ("Examples_2", "Examples_3", "Examples_Organic",
