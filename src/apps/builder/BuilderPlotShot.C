@@ -22,7 +22,7 @@
 #include "PropertyPanel.H"
 #include "MoPanel.H"
 #include "DensityMapPanel.H"
-#include "RadialDistPanel.H"
+#include "DensityProfilePanel.H"
 #include "XYPlotCanvas.H"
 
 
@@ -311,19 +311,21 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
 }
 
 
-//  Scene commands for the Radial Distribution panel; each GUI action has one:
-//    rdopen | rdclose
-//    rdcentre N           the centre atom (1-based as labelled)
-//    rdmo N,N,...|none    exactly these orbitals ticked
-//    rdtotal 0|1|per      the total density off, on, or divided by the electron count
-//    rdspin alpha|beta | rdunit A|bohr
-//    rdcsv <name> | rdpng <name> <w> <h> | rdstate
-bool Builder::radialDistCommand(SceneScript& s, const vector<string>& w,
-                                const string& outdir)
+//  Scene commands for the Density Profile panel; each GUI action has one:
+//    dpopen | dpclose
+//    dpmode line|atom
+//    dpatoms A B | dpmargin ANGSTROM | dpcentre N     (atoms 1-based as labelled)
+//    dpquantity density|psi2|psi (line) or radial|avg (atom)
+//    dpshow all|totalselected|selected|total
+//    dpmo N,N,...|none    exactly these orbitals ticked
+//    dpspin alpha|beta|both | dpunit A|bohr | dpcombine 0|1 | dpclip 0|1
+//    dpcsv <name> | dppng <name> <w> <h> | dpstate
+bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
+                                    const string& outdir)
 {
-  wxAuiPaneInfo &pane = p_mgr.GetPane("Radial Distribution");
-  if (!pane.IsOk()) return s.fail(w[0] + ": no Radial Distribution panel");
-  if (w[0] == "rdclose") {
+  wxAuiPaneInfo &pane = p_mgr.GetPane("Density Profile");
+  if (!pane.IsOk()) return s.fail(w[0] + ": no Density Profile panel");
+  if (w[0] == "dpclose") {
     pane.Hide();
     updatePanes(true);
     return true;
@@ -332,23 +334,33 @@ bool Builder::radialDistCommand(SceneScript& s, const vector<string>& w,
     pane.Show(true);
     for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
       wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
-      if (item != 0 && item->GetItemLabelText() == "Radial Distribution") item->Check(true);
+      if (item != 0 && item->GetItemLabelText() == "Density Profile") item->Check(true);
     }
     updatePanes(true);
   }
-  RadialDistPanel *rd = 0;
+  DensityProfilePanel *dp = 0;
   set<PropertyPanel*> panels =
       PropertyPanel::getPanels(p_calculation->getURL().toString());
   for (set<PropertyPanel*>::iterator it = panels.begin();
-       it != panels.end() && !rd; ++it)
-    rd = dynamic_cast<RadialDistPanel*>(*it);
-  if (!rd) return s.fail(w[0] + ": no Radial Distribution panel for this calculation");
-  rd->ensureInitialized();
+       it != panels.end() && !dp; ++it)
+    dp = dynamic_cast<DensityProfilePanel*>(*it);
+  if (!dp) return s.fail(w[0] + ": no Density Profile panel for this calculation");
+  dp->ensureInitialized();
   const std::string& cmd = w[0];
   bool ok = true;
-  if (cmd == "rdcentre" && w.size() == 2) {
-    ok = rd->setCentre(atoi(w[1].c_str()));
-  } else if (cmd == "rdmo" && w.size() == 2) {
+  if (cmd == "dpmode" && w.size() == 2) {
+    ok = dp->setMode(w[1] == "atom");
+  } else if (cmd == "dpatoms" && w.size() == 3) {
+    ok = dp->setAtoms(atoi(w[1].c_str()), atoi(w[2].c_str()));
+  } else if (cmd == "dpmargin" && w.size() == 2) {
+    ok = dp->setMargin(atof(w[1].c_str()));
+  } else if (cmd == "dpcentre" && w.size() == 2) {
+    ok = dp->setCentre(atoi(w[1].c_str()));
+  } else if (cmd == "dpquantity" && w.size() == 2) {
+    ok = dp->setQuantity(w[1]);
+  } else if (cmd == "dpshow" && w.size() == 2) {
+    ok = dp->setShow(w[1]);
+  } else if (cmd == "dpmo" && w.size() == 2) {
     vector<int> mos;
     if (w[1] != "none") {
       size_t at = 0;
@@ -359,22 +371,24 @@ bool Builder::radialDistCommand(SceneScript& s, const vector<string>& w,
         at = comma + 1;
       }
     }
-    ok = rd->setOrbitals(mos);
-  } else if (cmd == "rdtotal" && w.size() == 2) {
-    ok = rd->setTotal(w[1] != "0", w[1] == "per");
-  } else if (cmd == "rdspin" && w.size() == 2) {
-    ok = rd->setBeta(w[1] == "beta");
-  } else if (cmd == "rdunit" && w.size() == 2) {
-    ok = rd->setBohr(w[1] == "bohr");
-  } else if (cmd == "rdcsv" && w.size() == 2) {
-    ok = rd->exportCsv(wxString(outdir + "/" + w[1] + ".csv"));
-  } else if (cmd == "rdpng" && w.size() == 4) {
-    ok = rd->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
+    ok = dp->setOrbitals(mos);
+  } else if (cmd == "dpspin" && w.size() == 2) {
+    ok = dp->setSpin(w[1]);
+  } else if (cmd == "dpunit" && w.size() == 2) {
+    ok = dp->setBohr(w[1] == "bohr");
+  } else if (cmd == "dpcombine" && w.size() == 2) {
+    ok = dp->setCombine(w[1] != "0");
+  } else if (cmd == "dpclip" && w.size() == 2) {
+    ok = dp->setClip(w[1] != "0");
+  } else if (cmd == "dpcsv" && w.size() == 2) {
+    ok = dp->exportCsv(wxString(outdir + "/" + w[1] + ".csv"));
+  } else if (cmd == "dppng" && w.size() == 4) {
+    ok = dp->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
                      atoi(w[3].c_str()));
-  } else if (cmd != "rdopen" && cmd != "rdstate") {
-    return s.fail("unknown radial distribution command: " + cmd);
+  } else if (cmd != "dpopen" && cmd != "dpstate") {
+    return s.fail("unknown density profile command: " + cmd);
   }
   if (!ok) return s.fail(cmd + ": refused");
-  fprintf(stderr, "RADIALDIST: %s\n%s", cmd.c_str(), rd->state().c_str());
+  fprintf(stderr, "DENSITYPROFILE: %s\n%s", cmd.c_str(), dp->state().c_str());
   return true;
 }

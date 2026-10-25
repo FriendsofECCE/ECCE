@@ -43,9 +43,10 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.0
 
-- Radial Distribution panel: the radial probability of each orbital, and of
-  the total density, about an atom, overlaid, to show shells, penetration and
-  shielding.
+- Density Profile panel: the electron density and each orbital's share of it
+  along a line through two atoms, or averaged about an atom (shells,
+  penetration, nodes), with the orbitals as psi, psi squared or radial
+  distributions.
 - Transition states from two calculations (Gaussian 16 QST2/QST3, ORCA
   NEB-TS), redesigned: the transition-state job refers to the reactant and
   product calculations and reports the barrier and reaction energy.

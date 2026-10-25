@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <functional>
 
+#include "dsm/IPropCalculation.H"
+#include "tdat/MoAoBasis.H"
 #include "tdat/RadialDist.H"
 
 //  The Lebedev-Laikov tables of the ECCE-QM engine; self-contained data.
@@ -24,6 +26,28 @@ const LebEntry& lebedevEntry(int want)
 }  // namespace
 
 namespace RadialDist {
+
+double value(const DensityPlane::Evaluator& ev, const Spec& s,
+             double x, double y, double z)
+{
+  if (s.total) return ev.density(x, y, z);
+  double f = 0;
+  if (s.mo > 0) {
+    const double psi = ev.orbital(s.mo, s.beta, x, y, z);
+    f += s.weight * psi * psi;
+  }
+  for (const Member& m : s.more) {
+    const double psi = ev.orbital(m.mo, m.beta, x, y, z);
+    f += m.weight * psi * psi;
+  }
+  return f;
+}
+
+double amplitude(const DensityPlane::Evaluator& ev, const Spec& s,
+                 double x, double y, double z)
+{
+  return s.weight * ev.orbital(s.mo, s.beta, x, y, z);
+}
 
 vector<double> grid(const Options& opt)
 {
@@ -127,18 +151,14 @@ bool compute(const DensityPlane::Evaluator& ev, const double centre[3],
       const double x = centre[0] + rA*u[0], y = centre[1] + rA*u[1],
                    z = centre[2] + rA*u[2];
       for (size_t k = 0; k < specs.size(); k++) {
-        double f;
-        if (specs[k].total) {
-          f = ev.density(x, y, z);
-        } else {
-          const double psi = ev.orbital(specs[k].mo, specs[k].beta, x, y, z);
-          f = psi*psi;
-        }
+        const double f = value(ev, specs[k], x, y, z);
         out[k].p[i] += u[3] * f;
       }
     }
-    for (size_t k = 0; k < specs.size(); k++)
-      out[k].p[i] *= fourPi * rb * rb * perUnit;
+    for (size_t k = 0; k < specs.size(); k++) {
+      if (opt.radial) out[k].p[i] *= fourPi * rb * rb * perUnit;
+      else out[k].p[i] *= perUnit * perUnit * perUnit;   // per length^3
+    }
     if (onStep && !onStep(double(i) / (r.size() - 1))) return false;
   }
   for (Curve& c : out) {
@@ -146,6 +166,107 @@ bool compute(const DensityPlane::Evaluator& ev, const double centre[3],
     findMaxima(r, c.p, c.maxR, c.maxP);
   }
   return true;
+}
+
+vector<string> shellLabels(IPropCalculation *calc,
+                           const DensityPlane::Evaluator& ev, bool beta)
+{
+  vector<string> out;
+  if (ev.symbols.size() != 1) return out;
+  vector< vector<double> > rows;
+  if (!MoAoBasis::coefficients(calc, ev.symbols, beta, rows) || rows.empty())
+    return out;
+  MoAoBasis basis;
+  if (!basis.build(calc, ev.symbols, ev.coordsAng, (int)rows[0].size()))
+    return out;
+  const vector<double>& occ = beta ? ev.occBeta : ev.occ;
+  const vector<double>& energy = beta ? ev.energyBeta : ev.energy;
+  static const char *letters = "spdfgh";
+  int seen[6] = { 0, 0, 0, 0, 0, 0 };
+  double last[6] = { 1e9, 1e9, 1e9, 1e9, 1e9, 1e9 };
+  out.assign(rows.size(), string());
+  for (size_t m = 0; m < rows.size() && m < occ.size(); m++) {
+    MoAoBasis::Composition comp;
+    if (occ[m] <= 0.0 || !basis.analyse(rows[m], MoAoBasis::MULLIKEN, comp)) continue;
+    const MoAoBasis::Share *best = 0;
+    for (const MoAoBasis::Share& t : comp.types)
+      if (t.l >= 0 && t.l < 6 && (!best || t.share > best->share)) best = &t;
+    if (best && best->share >= 0.9) {
+      const int l = best->l;
+      const double e = m < energy.size() ? energy[m] : 0.0;
+      if (seen[l] == 0 || fabs(e - last[l]) > 1e-4) seen[l]++;
+      last[l] = e;
+      out[m] = to_string(l + seen[l]) + letters[l];
+    }
+  }
+  return out;
+}
+
+vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
+                          const vector<int>& mos, Spin spin, bool weighted,
+                          bool combine, const vector<string>& labels)
+{
+  vector<Spec> out;
+  vector<double> groupEnergy;
+  const bool both = spin == BOTH && ev.unrestricted;
+  for (int m : mos) {
+    if (m < 1 || m > ev.orbitals(false)) continue;
+    const string tag = (size_t)m <= labels.size() ? labels[m-1] : string();
+    const double e = (size_t)m <= ev.energy.size() ? ev.energy[m-1] : 0.0;
+    vector<Member> mem;
+    auto add = [&](bool beta) {
+      const vector<double>& occ = beta ? ev.occBeta : ev.occ;
+      if (m > ev.orbitals(beta)) return;
+      const double w = weighted ? ((size_t)m <= occ.size() ? occ[m-1] : 0.0) : 1.0;
+      if (weighted && w <= 0.0) return;
+      Member x = { m, beta, w };
+      mem.push_back(x);
+    };
+    if (both) { add(false); add(true); } else add(spin == BETA);
+    if (mem.empty()) continue;
+    if (combine && !out.empty()) {
+      Spec& g = out.back();
+      const bool sameTag = !tag.empty() && g.label == tag;
+      const bool sameE = tag.empty() && g.label.compare(0, 3, "MO ") == 0 &&
+                         fabs(e - groupEnergy.back()) < 1e-4 &&
+                         g.label.find('(') == string::npos;
+      if (sameTag || sameE) {
+        for (const Member& x : mem) g.more.push_back(x);
+        if (sameE) {
+          const size_t dash = g.label.find('-');
+          g.label = g.label.substr(0, dash) + "-" + to_string(m);
+        }
+        continue;
+      }
+    }
+    Spec s;
+    s.total = false;
+    s.mo = mem[0].mo;
+    s.beta = mem[0].beta;
+    s.weight = mem[0].weight;
+    for (size_t k = 1; k < mem.size(); k++) s.more.push_back(mem[k]);
+    if (combine && !tag.empty()) s.label = tag;
+    else s.label = "MO " + to_string(m) + (!tag.empty() ? " (" + tag + ")" : "") +
+                   (spin == BETA ? " beta" : "");
+    out.push_back(s);
+    groupEnergy.push_back(e);
+  }
+  return out;
+}
+
+double maxSumError(const vector<Curve>& curves)
+{
+  const Curve *total = 0;
+  for (const Curve& c : curves) if (c.spec.total) total = &c;
+  if (!total) return -1.0;
+  double worst = -1.0;
+  for (size_t i = 0; i < total->p.size(); i++) {
+    double sum = 0;
+    bool any = false;
+    for (const Curve& c : curves) if (!c.spec.total) { sum += c.p[i]; any = true; }
+    if (any) worst = max(worst, fabs(sum - total->p[i]));
+  }
+  return worst;
 }
 
 string csv(const vector<double>& r, const vector<Curve>& curves, bool bohr)

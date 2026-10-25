@@ -6178,8 +6178,8 @@ void Builder::updatePropertyMenus()
         //  the Density Map panel set up as given, saved to <name>.png (#215).
         if (w[0] == "densitymap" || w[0].compare(0, 2, "dm") == 0)
           return densityMapCommand(s, w, outdir);
-        //  "rd...": the Radial Distribution panel's controls.
-        if (w[0].compare(0, 2, "rd") == 0) return radialDistCommand(s, w, outdir);
+        //  "dp...": the Density Profile panel's controls.
+        if (w[0].compare(0, 2, "dp") == 0) return densityProfileCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
         //  "vib...": the Normal Modes panel on an edited structure.

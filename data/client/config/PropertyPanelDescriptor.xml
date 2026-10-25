@@ -328,9 +328,9 @@
   </PropertyPanel>
 
   <PropertyPanel>
-    <name>Radial Distribution</name>
+    <name>Density Profile</name>
     <group>Orbitals</group>
-    <class>RadialDistPanel</class>
+    <class>DensityProfilePanel</class>
     <consumer>false</consumer>
     <allowPin>false</allowPin>
     <property name="ORBOCC"/>

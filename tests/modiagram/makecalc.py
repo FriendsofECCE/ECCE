@@ -104,8 +104,9 @@ BASIS = "6-31G*"
 MULTIPLICITY = 1
 
 #  Single atoms (radial distributions,).
-for _el in ("H", "C", "Ne"):
+for _el in ("H", "C", "Ne", "Ar"):
     MOLECULES[_el.lower()] = [(_el, 0.0, 0.0, 0.0)]
+MOLECULES["h2"] = [("H", 0.0, 0.0, -0.37), ("H", 0.0, 0.0, 0.37)]
 
 
 def libraryDiatomics():

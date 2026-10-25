@@ -7,6 +7,8 @@
 
 #include "tdat/DensityPlane.H"
 
+class IPropCalculation;
+
 /**
  * Radial distributions about a centre (wx-free), from the stored MO
  * coefficients and basis through DensityPlane::Evaluator.
@@ -24,16 +26,37 @@ namespace RadialDist
   using std::string;
   using std::vector;
 
-  /** One curve to compute: one MO (1-based, alpha or beta) or the total density. */
+  /** One orbital in a curve, with its weight (an occupation, or 1). */
+  struct Member
+  {
+    int    mo;       // 1-based
+    bool   beta;
+    double weight;
+  };
+
+  /**
+   * One curve to compute: the total density, or a weighted sum of |psi|^2
+   * over members (`mo`/`beta`/`weight` is the first member when mo > 0,
+   * `more` the rest).  Signed psi, in a line profile, uses the first only.
+   */
   struct Spec
   {
     bool   total;
     int    mo;
     bool   beta;
+    double weight;
+    vector<Member> more;
     string label;
 
-    Spec() : total(true), mo(0), beta(false) {}
+    Spec() : total(true), mo(0), beta(false), weight(1.0) {}
   };
+
+  /** The spec's |psi|^2 sum (or the density) at a point, Angstrom; bohr^-3. */
+  double value(const DensityPlane::Evaluator& ev, const Spec& s,
+               double x, double y, double z);
+  /** The spec's signed psi (its first member only); bohr^-3/2. */
+  double amplitude(const DensityPlane::Evaluator& ev, const Spec& s,
+                   double x, double y, double z);
 
   struct Curve
   {
@@ -52,8 +75,9 @@ namespace RadialDist
     int    points;     // grid points, odd, r = 0 included
     int    lebedev;    // angular points (a Lebedev size, else the next larger)
     bool   bohr;
+    bool   radial;     // r^2 times the integral over directions; else the plain average
 
-    Options() : rMax(6.0), points(1201), lebedev(434), bohr(false) {}
+    Options() : rMax(6.0), points(1201), lebedev(434), bohr(false), radial(true) {}
   };
 
   /** The radius grid for these options, starting at 0. */
@@ -76,6 +100,30 @@ namespace RadialDist
 
   /** The atom nearest the centre of mass (0-based); the only atom if there is one. */
   int defaultCentre(const DensityPlane::Evaluator& ev);
+
+  enum Spin { ALPHA, BETA, BOTH };
+
+  /**
+   * An atom's occupied MOs named by shell ("1s", "2s", "2p"): the dominant
+   * angular momentum of each, counted up in energy order within it, a
+   * degenerate set being one shell.  Empty for a molecule; empty strings
+   * where no shell is clear (virtuals).
+   */
+  vector<string> shellLabels(IPropCalculation *calc,
+                             const DensityPlane::Evaluator& ev, bool beta);
+
+  /**
+   * Curves for the given orbitals (1-based).  `weighted` weights each by its
+   * occupation (a contribution to the density), else by 1.  `combine` joins
+   * orbitals of one shell label (or, without labels, of equal energy) into
+   * one curve.  BOTH adds the beta orbital of the same number to each curve.
+   */
+  vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
+                            const vector<int>& mos, Spin spin, bool weighted,
+                            bool combine, const vector<string>& labels);
+
+  /** max |sum of the non-total curves - the total curve|; negative if none. */
+  double maxSumError(const vector<Curve>& curves);
 
   /** "r,label,label..." with one row per radius. */
   string csv(const vector<double>& r, const vector<Curve>& curves, bool bohr);

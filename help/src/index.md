@@ -95,9 +95,9 @@ describe what you did and what happened.
 20. [Localised orbitals](localised-orbitals.md): the occupied orbitals as bonds,
    lone pairs and core orbitals, and how to read their names.
 
-21. [Radial distribution](radial-distribution.md): how far from an atom the
-   electrons of each orbital are found, shells, penetration and the shell
-   structure of the total density.
+21. [Density profile](density-profile.md): the electron density and each
+   orbital's share of it along a line through two atoms, or averaged around one
+   atom: shells, penetration, nodes and the build-up in a bond.
 
 Reference:
 

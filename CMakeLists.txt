@@ -523,11 +523,11 @@ target_include_directories(densityplane PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(densityplane PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
-# Radial distributions of orbitals and density about an atom; a
-# development tool like densityplane, not installed.
-add_executable(radialdist src/apps/radialdist/radialdist.C)
-target_include_directories(radialdist PRIVATE ${XercesC_INCLUDE_DIRS})
-target_link_libraries(radialdist PRIVATE
+# Orbitals and density along a line through two atoms, or averaged about an
+# atom; a development tool like densityplane, not installed.
+add_executable(lineprofile src/apps/lineprofile/lineprofile.C)
+target_include_directories(lineprofile PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(lineprofile PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
 # flock(1) for the session scripts where util-linux is absent (macOS).
@@ -1958,8 +1958,8 @@ add_test(NAME densityplane
 set_tests_properties(densityplane PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityplane;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityplane-home")
 
-# tests/tdat/radialdist_test: quadrature on analytic functions, and
-# the stored hydrogen / neon calculations against the exact 1s curve.
+# tests/tdat/radialdist_test: quadrature on analytic functions, and the
+# stored H, Ne, Ar, H2, N2 calculations: spherical averages and line profiles.
 add_executable(radialdist_test tests/tdat/radialdist_test.C)
 target_include_directories(radialdist_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(radialdist_test PRIVATE
