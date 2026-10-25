@@ -17,7 +17,9 @@ and crashed.
 Runs a synthetic ECCE-QM orbital block (energies, occupations and a square
 coefficient table of --nbf functions, default 160) through the real
 ecceqm.parse and the real PropertyInterpreter (propinterp.C, linked against
-the build tree's static libraries) and checks every count.
+the build tree's static libraries) and checks every count.  It also stores the three MDMSD records of the
+NaCl-dissolving example (fixtures/gromacs, ~1250 characters each, #544) and
+checks the document holds each one whole.
 
 ECCE_TEST_BUILD names the build tree (default build-cmake).  Exit 77 (skip)
 without built libraries.
@@ -77,6 +79,30 @@ def buildDriver(out):
     return True
 
 
+def mdmsdCheck(driver, env, work):
+    """Several long string records (#544, NaCl in water: NA, CL, SOL) stay
+    one MDMSD vector with every record whole."""
+    fixture = os.path.join(HERE, "fixtures", "gromacs",
+                           "nacl_dissolving_ecce-parse-md.txt")
+    with open(fixture) as fh:
+        text = fh.read()
+    records = re.findall(r"^ECCE-MDMSD\s+(\S+)", text, re.M)
+    script = os.path.join(REPO, "scripts", "parsers", "gromacs.md")
+    stream = subprocess.run(["perl", script], input=text, capture_output=True,
+                            text=True, check=True).stdout
+    out = os.path.join(work, "msd-props")
+    os.makedirs(out)
+    proc = subprocess.run([driver, out], input=stream, env=env,
+                          capture_output=True, text=True)
+    want = "MDMSD rows %d columns  values %d" % (len(records), len(records))
+    if want not in proc.stdout.splitlines():
+        return ["MDMSD: got %r, want %r" % (proc.stdout.strip(), want)]
+    with open(os.path.join(out, "MDMSD")) as fh:
+        doc = fh.read()
+    cut = [r.split(";")[0] for r in records if r not in doc]
+    return ["MDMSD record %s not stored whole" % c for c in cut]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -102,6 +128,7 @@ def main():
             os.makedirs(options.props, exist_ok=True)
         proc = subprocess.run(argv, input=stream, env=env,
                               capture_output=True, text=True)
+        msdFailures = mdmsdCheck(driver, env, work)
 
     got = {}
     for line in proc.stdout.splitlines():
@@ -118,6 +145,7 @@ def main():
         elif got[key][2] != n or (rows and got[key][0] != rows):
             failures.append("%s: %s rows, %d values; want %s rows, %d values"
                             % (key, got[key][0], got[key][2], rows, n))
+    failures += msdFailures
     print("%d functions, longest parser line %d characters" % (nbf, longest))
     for f in failures:
         print("FAIL  " + f)
@@ -126,6 +154,7 @@ def main():
         print("FAILED")
         return 1
     print("ok    ORBENG, ORBOCC, MO (%dx%d), MOAOORDER all whole" % (nbf, nbf))
+    print("ok    MDMSD: three records of ~1250 characters, all whole")
     print("PASSED")
     return 0
 

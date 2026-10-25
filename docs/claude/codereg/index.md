@@ -201,3 +201,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [ECCE-QM implicit solvent (CPCM): model, keywords, energy runs only, EPCM vs ESOLV, validation against ORCA](ecceqm-cpcm-solvent.md)
 - [ECCE-QM IRC (#452 stage 2): Gonzalez-Schlegel, panel keys, oracle](ecceqm-irc-452.md)
 - [Example sets and topics are folders plus set.txt; tree Examples/<Set>/<Topic>/<calc>](example-sets-and-topics-are-data.md) — adding an example is data-only; version 9 upgrade
+- [File= properties (GEOMTRACE, MDMSD) are stored last; a long GROMACS log delays them by minutes (#544)](file-parse-properties-are-stored-last.md)

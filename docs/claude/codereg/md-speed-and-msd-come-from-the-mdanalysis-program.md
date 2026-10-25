@@ -25,5 +25,6 @@ issues: []
   (`elementForMass`), else by atom type. The topology reader skips
   `#include` files it cannot find; only an atom with no mass on its
   [ atoms ] line then fails.
+- MDMSD/GEOMTRACE of a long run arrive minutes after the energies: file-parse-properties-are-stored-last.md.
 - The General Chemistry example set ships 26 trajectory frames per run plus
   the precomputed `ecce-parse-md.txt`, not the .xtc/.trr (up to 122 MB).
