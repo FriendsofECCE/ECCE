@@ -543,6 +543,67 @@ double Evaluator::density(double x, double y, double z) const
   return rho;
 }
 
+bool Evaluator::openShell() const
+{
+  if (unrestricted) {
+    double d = 0;
+    for (double o : occ) d += o;
+    for (double o : occBeta) d -= o;
+    return fabs(d) > 1e-6;
+  }
+  for (double o : occ)
+    if (o > 1e-6 && fabs(o - 2.0) > 1e-6) return true;
+  return false;
+}
+
+double Evaluator::spinDensity(double x, double y, double z) const
+{
+  vector<double> phi;
+  functions(x, y, z, phi);
+  double s = 0;
+  for (size_t m = 0; m < p_c.size(); m++) {
+    if (occ[m] == 0.0) continue;
+    const double w = unrestricted ? occ[m] : (occ[m] <= 1.0 ? occ[m] : 2.0 - occ[m]);
+    if (w == 0.0) continue;
+    const double psi = combine(p_c[m], phi);
+    s += w*psi*psi;
+  }
+  for (size_t m = 0; m < p_cBeta.size(); m++) {
+    if (occBeta[m] == 0.0) continue;
+    const double psi = combine(p_cBeta[m], phi);
+    s -= occBeta[m]*psi*psi;
+  }
+  return s;
+}
+
+void Evaluator::integrate(double step, double margin, double& total, double& spin) const
+{
+  total = spin = 0;
+  if (symbols.empty() || step <= 0) return;
+  const double ang = 0.52917721092;
+  double lo[3] = {1e9, 1e9, 1e9}, hi[3] = {-1e9, -1e9, -1e9};
+  for (size_t a = 0; a < symbols.size(); a++)
+    for (int k = 0; k < 3; k++) {
+      lo[k] = std::min(lo[k], coordsAng[3*a + k]);
+      hi[k] = std::max(hi[k], coordsAng[3*a + k]);
+    }
+  int n[3];
+  for (int k = 0; k < 3; k++) {
+    lo[k] -= margin;
+    n[k] = (int)ceil((hi[k] + margin - lo[k]) / (step*ang)) + 1;
+  }
+  const double h = step*ang;
+  for (int i = 0; i < n[0]; i++)
+    for (int j = 0; j < n[1]; j++)
+      for (int k = 0; k < n[2]; k++) {
+        const double x = lo[0] + i*h, y = lo[1] + j*h, z = lo[2] + k*h;
+        total += density(x, y, z);
+        spin += spinDensity(x, y, z);
+      }
+  total *= step*step*step;
+  spin *= step*step*step;
+}
+
 double Evaluator::orbital(int mo, bool beta, double x, double y, double z) const
 {
   const vector< vector<double> >& c = beta ? p_cBeta : p_c;

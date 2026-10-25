@@ -1970,6 +1970,18 @@ add_test(NAME radialdist
 set_tests_properties(radialdist PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=radialdist;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/radialdist-home")
 
+# tests/tdat/spindensity_test: the spin density integrates to Nalpha - Nbeta.
+add_executable(spindensity_test tests/tdat/spindensity_test.C)
+target_include_directories(spindensity_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(spindensity_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME spindensity
+  COMMAND spindensity_test ${CMAKE_SOURCE_DIR}/tests/builder/radialdist-fixtures
+          ${CMAKE_SOURCE_DIR}/tests/ecceqm/fixtures)
+set_tests_properties(spindensity PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=spindensity;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/spindensity-home")
+
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)

@@ -152,6 +152,17 @@ namespace DensityPlane
 
       /** Total density (alpha + beta) at a point, A, stored frame. */
       double density(double x, double y, double z) const;
+      /** True when alpha and beta electrons differ in number: a second
+       *  MO set, or a restricted open shell (occupations other than 0, 2). */
+      bool openShell() const;
+      /** Spin density, alpha - beta, at a point.  A restricted open shell
+       *  has one MO set; an occupation n of 0..2 then gives min(n, 2-n). */
+      double spinDensity(double x, double y, double z) const;
+      /** Integrate the spin density (and the total) over a cube grid, bohr
+       *  `step`, the atoms' extent plus `margin` Angstrom.  A smooth
+       *  Gaussian-basis density converges fast; a tight core needs a small
+       *  step, the spin density seldom has one. */
+      void integrate(double step, double margin, double& total, double& spin) const;
       /** psi_mo at a point; mo is 1-based. */
       double orbital(int mo, bool beta, double x, double y, double z) const;
 
