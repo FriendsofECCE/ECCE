@@ -14,6 +14,7 @@
 #include "hessian.hpp"
 #include "scf.hpp"
 #include "integrals.hpp"
+#include "irc.hpp"
 #include "localise.hpp"
 #include "vibration.hpp"
 #include <array>
@@ -373,6 +374,35 @@ int main(int argc, char** argv) {
     so.reference = Reference::Unrestricted;
     const ScfResult r = run_scf(b, m, so);
     check(!r.ivo_applied && !r.ivo_note.empty(), "ivo on an open shell is declined with a note");
+  }
+
+  // IRC stop rule (#452): a near-flat TS has a gradient below the end
+  // thresholds from the first step, yet the path must go on to the minima
+  // of the model E(x) = -a x^2 + c x^4 (x = r - r0, H2 masses) at |x| = 1.
+  {
+    const double a = 1e-3, c = 5e-4, r0 = 2.0;
+    Molecule ts;
+    ts.atoms = {{1, {0, 0, 0}}, {1, {0, 0, r0}}};
+    auto eval = [&](const Molecule& m) {
+      const double x = m.atoms[1].x[2] - m.atoms[0].x[2] - r0, d = -2 * a * x + 4 * c * x * x * x;
+      OptEval e;
+      e.energy = -a * x * x + c * x * x * x * x;
+      e.grad = {0, 0, -d, 0, 0, d};
+      return e;
+    };
+    Mat H = Mat::Zero(6, 6);
+    Vec b(6);
+    b << 0, 0, -1, 0, 0, 1;
+    H = -2 * a * b * b.transpose();
+    IrcOptions opt;
+    opt.max_points = 40;
+    for (int sign : {1, -1}) {
+      std::string why;
+      auto path = irc_path(ts, H, sign, opt, eval, [&](const Molecule&) { return H; }, nullptr, &why);
+      const double x = path.back().mol.atoms[1].x[2] - path.back().mol.atoms[0].x[2] - r0;
+      check(path.size() >= 5 && std::fabs(std::fabs(x) - 1.0) < 0.05 && why.find("minimum reached") != std::string::npos,
+            "irc runs from a flat TS to the minimum (" + std::to_string(path.size()) + " points: " + why + ")", x);
+    }
   }
 
   return fails ? 1 : 0;

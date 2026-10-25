@@ -24,6 +24,7 @@
 #include "util/EcceURL.H"
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
+#include "wxgui/PlaybackControl.H"
 #include "XYPlotCanvas.H"
 #include "PointCalc.H"
 
@@ -36,6 +37,7 @@ const wxWindowID ID_UNIT = wxNewId();
 const wxWindowID ID_EXPORT = wxNewId();
 const wxWindowID ID_NEWCALC = wxNewId();
 const wxWindowID ID_VIEW = wxNewId();
+const wxWindowID ID_PLAYBACK = wxNewId();
 
 double factor(bool kcal) { return kcal ? HARTREE_KCAL : HARTREE_KJ; }
 
@@ -98,15 +100,20 @@ std::vector<int> ircFrameMap(const std::vector<double>& coord, int frames)
 
 IMPLEMENT_DYNAMIC_CLASS(IRCPanel, VizPropertyPanel)
 
+BEGIN_EVENT_TABLE(IRCPanel, VizPropertyPanel)
+  EVT_COMMAND(ID_PLAYBACK, wxEVT_PLAYBACK_TICK_EVENT, IRCPanel::OnPlayback)
+  EVT_COMMAND(ID_PLAYBACK, wxEVT_PLAYBACK_LOOP_EVENT, IRCPanel::OnPlayback)
+END_EVENT_TABLE()
+
 IRCPanel::IRCPanel()
-  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL)
+  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_delay(500)
 {
 }
 
 IRCPanel::IRCPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL)
+  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_delay(500)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -148,8 +155,12 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_plot->setPointHandler([this](int, int index) { selectPoint(index); });
   GetSizer()->Add(p_plot, 3, wxEXPAND);
 
-  p_status = new wxStaticText(this, wxID_ANY, "");
-  GetSizer()->Add(p_status, 0, wxEXPAND | wxALL, 4);
+  // Reverse end, TS, forward end: the table is already in that order.
+  p_playback = new PlaybackControl(this, ID_PLAYBACK);
+  p_playback->SetDelay(&p_delay);
+  p_playback->SetStopIndex(0L);
+  if (wxWindow *rec = FindWindow(PlaybackControl::ID_RECORD)) rec->Hide();
+  GetSizer()->Add(p_playback, 0, wxLEFT | wxRIGHT, 4);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
@@ -160,6 +171,10 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_grid->SetColLabelValue(2, "Relative");
   p_grid->Bind(wxEVT_GRID_SELECT_CELL, &IRCPanel::OnRow, this);
   GetSizer()->Add(p_grid, 2, wxEXPAND | wxALL, 3);
+
+  // Messages go below all the controls.
+  p_status = new wxStaticText(this, wxID_ANY, "");
+  GetSizer()->Add(p_status, 0, wxEXPAND | wxALL, 4);
 
   Bind(wxEVT_CHOICE, &IRCPanel::OnUnit, this, ID_UNIT);
   Bind(wxEVT_BUTTON, &IRCPanel::OnExport, this, ID_EXPORT);
@@ -176,6 +191,7 @@ void IRCPanel::fill()
   p_coord.clear();
   p_hartree.clear();
   p_frame.clear();
+  if (p_playback) p_playback->SetStopIndex(0L);
   IPropCalculation *calc = getCalculation();
   PropVector *c = calc ? dynamic_cast<PropVector*>(calc->getProperty("IRCCOORD")) : 0;
   PropVector *e = calc ? dynamic_cast<PropVector*>(calc->getProperty("IRCENERGY")) : 0;
@@ -188,6 +204,7 @@ void IRCPanel::fill()
   PropTSVecTable *geom =
       calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("IRCGEOM")) : 0;
   p_frame = ircFrameMap(p_coord, geom ? (int)geom->tables() : 0);
+  if (p_playback) p_playback->SetStopIndex(n ? (long)n - 1 : 0);
 
   const bool kcal = p_unit->GetSelection() == 1;
   const wxString unit = kcal ? "kcal/mol" : "kJ/mol";
@@ -252,6 +269,7 @@ int IRCPanel::selectPoint(int index)
   p_grid->SelectRow(index);
   p_grid->GoToCell(index, 0);
   p_syncing = false;
+  if (p_playback) p_playback->SetCurrentStep((long)index);
   return showPoint(index);
 }
 
@@ -259,6 +277,40 @@ void IRCPanel::OnRow(wxGridEvent& event)
 {
   event.Skip();
   if (!p_syncing) selectPoint(event.GetRow());
+}
+
+void IRCPanel::OnPlayback(wxCommandEvent& event)
+{
+  selectPoint((int)event.GetExtraLong());
+}
+
+int IRCPanel::step(const std::string& which)
+{
+  const int n = points();
+  if (!n) return -1;
+  int i = p_selected < 0 ? 0 : p_selected;
+  if (which == "first") i = 0;
+  else if (which == "last") i = n - 1;
+  else if (which == "prev") i = std::max(0, i - 1);
+  else if (which == "next") i = std::min(n - 1, i + 1);
+  selectPoint(i);
+  return p_selected;
+}
+
+void IRCPanel::selectRow(int index)
+{
+  if (index >= 0 && index < points()) p_grid->GoToCell(index, 0);
+}
+
+int IRCPanel::selectedRow() const
+{
+  wxArrayInt rows = p_grid->GetSelectedRows();
+  return rows.GetCount() ? rows[0] : -1;
+}
+
+int IRCPanel::markerPoint() const
+{
+  return p_plot->selectedIndex();
 }
 
 int IRCPanel::showPoint(int index)

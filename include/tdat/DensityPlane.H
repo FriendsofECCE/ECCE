@@ -98,6 +98,7 @@ namespace DensityPlane
     double zmin, zmax;
     Plane plane;
     vector<Mark> atoms;
+    double levelTop;    // > 0: level ladder from this maximum, not zmax/zmin
     string title;       // "Total density", "MO 5 (HOMO)  -0.4 Eh  2 e"
     Map();
     double u(int i) const { return u0 + i*step; }
@@ -169,11 +170,13 @@ namespace DensityPlane
       /**
        * Evaluate on a plane.  The window is the atoms' extent plus
        * `margin`.  onRow gets 0..1 and returns false to stop (false is
-       * then returned and the map is incomplete).
+       * then returned and the map is incomplete).  `win` (u0, u1, v0, v1 in
+       * A) replaces the atoms' window, for a zoomed map.
        */
       bool map(const Plane& plane, Quantity q, int mo, bool beta,
                double step, double margin, Map& out,
-               std::function<bool(double)> onRow = nullptr) const;
+               std::function<bool(double)> onRow = nullptr,
+               const double *win = nullptr) const;
 
     private:
       vector<EspBasisFunction> *p_basis;

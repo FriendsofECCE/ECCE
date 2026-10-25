@@ -97,7 +97,7 @@ void bofill(Mat& H, const Vec& s, const Vec& dg) {
 std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, const IrcOptions& opt,
                                const std::function<OptEval(const Molecule&)>& eval,
                                const std::function<Mat(const Molecule&)>& hessian,
-                               const std::function<void(const IrcPoint&)>& on_point) {
+                               const std::function<void(const IrcPoint&)>& on_point, std::string* why) {
   const int N = static_cast<int>(ts.atoms.size()), n = 3 * N;
   Vec sm(n);
   for (int a = 0; a < N; ++a)
@@ -142,6 +142,8 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
   Vec g = mw_grad(cur);
   double s_total = 0;
   const double half = 0.5 * opt.step;
+  double peak_rms = 0;   // largest gradient met on the path: a minimum is where it has fallen
+  if (why) *why = "max points";
 
   for (int k = 0; k < opt.max_points; ++k) {
     if (k > 0 && opt.hessian_every > 0 && k % opt.hessian_every == 0)
@@ -172,7 +174,12 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
       H = P * H * P;
       q = qn; eq = en; gq = gn;
     }
-    if (!path.empty() && eq.energy > path.back().energy + 1e-9) break;  // overshot the valley
+    // Near a flat TS the first points already have a small gradient and
+    // noisy energies; neither means a minimum before min_points.
+    if (!path.empty() && eq.energy > path.back().energy + 1e-9 && static_cast<int>(path.size()) >= opt.min_points) {
+      if (why) *why = "energy rose: minimum reached";
+      break;
+    }
     if (path.empty() && eq.energy > cur.energy + 1e-9) throw Error("irc: the first step goes uphill; is the start a transition state?");
     s_total += sign * (q - y).norm();
     IrcPoint pt;
@@ -183,7 +190,12 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
     path.push_back(pt);
     if (on_point) on_point(pt);
     y = q; cur = eq; g = gq;
-    if (pt.rms_grad <= opt.rms_grad && pt.max_grad <= opt.max_grad) break;
+    peak_rms = std::max(peak_rms, pt.rms_grad);
+    if (pt.rms_grad <= opt.rms_grad && pt.max_grad <= opt.max_grad && static_cast<int>(path.size()) >= opt.min_points &&
+        pt.rms_grad <= 0.5 * peak_rms) {
+      if (why) *why = "gradient below threshold: minimum reached";
+      break;
+    }
   }
   return path;
 }

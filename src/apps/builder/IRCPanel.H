@@ -10,6 +10,7 @@ class wxGridEvent;
 class wxRadioBox;
 class wxStaticText;
 class wxGrid;
+class PlaybackControl;
 class XYPlotCanvas;
 
 /**
@@ -49,7 +50,22 @@ class IRCPanel : public VizPropertyPanel
        */
       int clickPoint(int index) { return selectPoint(index); }
 
-      /** The status line under the plot. For scripts and tests. */
+      /** Step the playback control: "first", "prev", "next", "last"; the point now selected. */
+      int step(const std::string& which);
+
+      /** The selected point (last click, row or playback step), -1 if none. */
+      int selectedPoint() const { return p_selected; }
+
+      /** A click on table row <index>. For scripts and tests. */
+      void selectRow(int index);
+
+      /** The selected table row, -1 if none. */
+      int selectedRow() const;
+
+      /** The point marked in the plot, -1 if none. For scripts and tests. */
+      int markerPoint() const;
+
+      /** The status line below the panel.  For scripts and tests. */
       std::string statusText() const;
 
       /** Graph or table, as the Show choice does. For scripts and tests. */
@@ -71,11 +87,13 @@ class IRCPanel : public VizPropertyPanel
       void OnNewCalc(wxCommandEvent& event);
       void OnRow(wxGridEvent& event);
       void OnView(wxCommandEvent& event);
+      void OnPlayback(wxCommandEvent& event);
       int selectPoint(int index);
       int showPoint(int index);
       void showView(bool table);
 
    private:
+      DECLARE_EVENT_TABLE()
       std::vector<double> p_coord;
       std::vector<double> p_hartree;
       std::string p_coordUnit;
@@ -86,6 +104,8 @@ class IRCPanel : public VizPropertyPanel
       wxGrid *p_grid;
       wxRadioBox *p_view;
       wxStaticText *p_status;
+      PlaybackControl *p_playback;
+      int p_delay;
       bool p_syncing = false;   // plot/table selection echo
 };
 
