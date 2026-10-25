@@ -2991,6 +2991,9 @@ if(PYTHON3_EXECUTABLE)
   # tests/qm/diatomic_order_test.py).
   add_executable(structlib_diatomics tests/structlib/diatomics.C)
   target_link_libraries(structlib_diatomics PRIVATE eccetdat ecceutil)
+  # Polyoxometalates folder: every entry parses and matches its formula/charge.
+  add_executable(structlib_pom tests/structlib/pom.C)
+  target_link_libraries(structlib_pom PRIVATE eccetdat ecceutil)
   # tests/importcode: the code Import Calculation picks for an output file.
   add_executable(importcode tests/importcode/importcode.C)
   target_include_directories(importcode PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -3077,6 +3080,11 @@ if(PYTHON3_EXECUTABLE)
            COMMAND structlib_diatomics
                    ${CMAKE_CURRENT_SOURCE_DIR}/data/client/StructureLibrary/Teaching/Diatomics)
   set_tests_properties(structlib_diatomics PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+  add_test(NAME structlib_pom
+           COMMAND structlib_pom
+                   ${CMAKE_CURRENT_SOURCE_DIR}/data/client/StructureLibrary/Polyoxometalates)
+  set_tests_properties(structlib_pom PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   # Same under a decimal-comma locale; skipped (77) where it is not installed.
   add_test(NAME fragreaders_de
