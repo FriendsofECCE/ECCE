@@ -1,2 +1,3 @@
 Computational
-A GROMACS molecular dynamics study of the Trp-cage: prepare, optimize, equilibrate and dynamics.
+One showcase job per code, a topic for each code: a GROMACS molecular dynamics study of the Trp-cage: prepare, optimize, equilibrate and dynamics.
+gromacs|GROMACS

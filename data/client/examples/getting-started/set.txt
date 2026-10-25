@@ -1,0 +1,2 @@
+Getting Started
+The first calculation in each code: ECCE-QM, ORCA, MOPAC and NWChem, with orbitals, charges and vibrations.

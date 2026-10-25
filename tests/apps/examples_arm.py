@@ -4,9 +4,9 @@
     examples_arm.py OUTDIR [SET PROJECT COUNT]
 
 Starts the Organizer in its own isolated state and Xvfb, lets its first-start
-import of the `general` example set (#302) finish (any other SET: the Organizer
+import of the `getting-started` example set (#302) finish (any other SET: the Organizer
 is told `examples SET` instead), then copies the resulting project folder
-(PROJECT, default Examples) to OUTDIR/PROJECT and prints "ARM <seconds> <copied> <parsed>":
+(PROJECT, default Examples/Getting_Started) to OUTDIR/PROJECT and prints "ARM <seconds> <copied> <parsed>":
 the import time the Organizer logged, and how many examples were copied from
 a pre-parsed copy and how many were parsed.  ECCE_NO_PREPARSED=1 in the
 environment forces the parse.  Used by examples_preparsed_test.py and by
@@ -32,11 +32,12 @@ SKIP = 77
 
 
 def propsOf(project):
+    # calculations may sit in topic projects below the set's project
     found = {}
-    for calc in sorted(os.listdir(project)) if os.path.isdir(project) else []:
-        props = os.path.join(project, calc, "Props")
-        if os.path.isdir(props):
-            found[calc] = sorted(os.listdir(props))
+    for base, dirs, _files in os.walk(project):
+        if "Props" in dirs:
+            found[os.path.basename(base)] = sorted(
+                os.listdir(os.path.join(base, "Props")))
     return found
 
 
@@ -46,7 +47,9 @@ def waitStable(project, count, seconds=300):
     last, stable, changed = None, 0, time.time()
     while time.time() < end:
         now = propsOf(project)
-        sizes = {c: [os.path.getsize(os.path.join(project, c, "Props", p))
+        paths = {os.path.basename(b): b for b, d, _f in os.walk(project)
+                 if "Props" in d}
+        sizes = {c: [os.path.getsize(os.path.join(paths[c], "Props", p))
                      for p in now[c]] for c in now}
         state = (now, sizes)
         if len(now) == count and state == last:
@@ -64,7 +67,7 @@ def waitStable(project, count, seconds=300):
 def main():
     out = sys.argv[1]
     setId, projectName, count = (sys.argv[2:5] if len(sys.argv) >= 5
-                                 else ("general", "Examples", "5"))
+                                 else ("getting-started", "Examples/Getting_Started", "5"))
     count = int(count)
     if not os.path.exists(os.path.join(apps.WRAPPERS, "ecce-organizer")):
         print("SKIP: no ecce-organizer under %s" % apps.WRAPPERS)
@@ -94,7 +97,7 @@ def main():
         watcher.start()
         try:
             env = {"ECCE_NO_EXAMPLE_IMPORT": ""}
-            if setId != "general":
+            if setId != "getting-started":
                 script = os.path.join(work, "commands")
                 with open(script, "w") as handle:
                     handle.write("examples %s\n" % setId)

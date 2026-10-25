@@ -6,33 +6,41 @@ computational chemistry code installed.
 
 ## Open them
 
-The first time you start ECCE, the Organizer imports the `general` set of
-examples by itself into a project called `Examples`. It does this once: if
-you delete the project, it does not come back at the next start, and an
-`Examples` project you already have is left as it is.
+The first time you start ECCE, the Organizer imports the Getting Started set
+of examples by itself into the project `Examples/Getting_Started`. It does
+this once: if you delete the project, it does not come back at the next
+start, and an `Examples` project you already have is left as it is.
 
 The examples come in sets. To import another set, or to find the first one
 again, choose **File > Open Example Calculations** in the Organizer. A small
 window lists the sets with a line on what each holds; choose one and click
-**OK**. ECCE imports the set into its own project in your home folder, as
+**OK**. ECCE imports the set into its own project in the project `Examples`, as
 described in [Importing a calculation](importing-a-calculation.md). The
 calculations show the run state "Imported" and take a few seconds to be read.
 
+Each set is divided into topics, which are projects of their own:
+`Examples/<Set>/<Topic>/<calculation>`. Project names have no spaces, so a
+space in a set or topic name shows as an underscore.
+
 | Set | Project | Holds |
 |---|---|---|
-| General | `Examples` | The five calculations below. |
-| Computational | `Examples_Computational` | A GROMACS molecular dynamics study of the Trp-cage. |
-| Organic Chemistry | `Examples_Organic` | Twenty-one calculations: ECCE-QM ethane, ethene and ethyne with localised orbitals; ORCA benzene; the Diels-Alder reaction (butadiene, ethylene, cyclohexene, transition state, IRC) and an SN2 reaction (reactants, complexes, transition state, IRC, products); and four ECCE-QM relaxed torsion scans (B3LYP/6-31G*) shown in the Relaxed Scan panel: ethane, butane, and N-methylacetamide scanned in both directions, whose two curves differ (hysteresis). |
-| Spectroscopy | `Examples_Spectroscopy` | Nineteen calculations: the S–O stretches of sulfate free, bound to cobalt through one oxygen (with ammine or with ethylenediamine and chloride ligands), chelating and bridging; carbonyl stretches with substituent and charge (formaldehyde, acetaldehyde, acetone, acetic acid, acetate, three esters); the amide bands of N-methylacetamide and of Ac-Ala-NHMe; α-D-glucopyranose and α-D-galactopyranose; and the IR spectrum of water and ethanol. The ORCA calculations use PBE0-D3BJ/def2-SVP, with frequencies, IR and Raman intensities and molecular orbitals. |
+| Getting Started | `Examples/Getting_Started` | The first calculation in each code: the five calculations below. |
+| Computational | `Examples/Computational` | One showcase job per code, in a topic for each code: a GROMACS molecular dynamics study of the Trp-cage (topic GROMACS). |
+| Organic Chemistry | `Examples/Organic_Chemistry` | Twenty-one calculations in the topics Bonding in hydrocarbons, Conformations and Reactions: ECCE-QM ethane, ethene and ethyne with localised orbitals; ORCA benzene; the Diels-Alder reaction (butadiene, ethylene, cyclohexene, transition state, IRC) and an SN2 reaction (reactants, complexes, transition state, IRC, products); and four ECCE-QM relaxed torsion scans (B3LYP/6-31G*) shown in the Relaxed Scan panel: ethane, butane, and N-methylacetamide scanned in both directions, whose two curves differ (hysteresis). |
+| Spectroscopy | `Examples/Spectroscopy` | Nineteen calculations in the topics Sulfate coordination, Carbonyl compounds, Amides and peptides, Sugars and Small molecules: the S–O stretches of sulfate free, bound to cobalt through one oxygen (with ammine or with ethylenediamine and chloride ligands), chelating and bridging; carbonyl stretches with substituent and charge (formaldehyde, acetaldehyde, acetone, acetic acid, acetate, three esters); the amide bands of N-methylacetamide and of Ac-Ala-NHMe; α-D-glucopyranose and α-D-galactopyranose; and the IR spectrum of water and ethanol. The ORCA calculations use PBE0-D3BJ/def2-SVP, with frequencies, IR and Raman intensities and molecular orbitals. |
 
 If the project of a set exists already, ECCE only selects it and never
 changes it, so you can edit and delete the examples freely. The project
-remembers which version of the example sets it was made from.
+remembers which version of the example sets it was made from. If your
+`Examples` projects are from an earlier version of ECCE, in which each set was
+a project of its own (`Examples_Organic` and so on), ECCE replaces the example
+calculations in them with the sorted ones at the first start; calculations of
+your own that you had put there stay where they are.
 
 Select a calculation and click **Viewer**, then open
 entries from the **Properties** menu.
 
-## The general set
+## The Getting Started set
 
 | Calculation | Code | What was run | What it shows |
 |---|---|---|---|

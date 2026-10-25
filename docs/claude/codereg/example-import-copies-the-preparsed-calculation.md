@@ -5,7 +5,7 @@ area: codereg
 paths: ["data/client/examples", "src/dsm/edsiimpl/StoredCalcCopy.C", "src/apps/organizer/CalcMgr.C", "tools/examples/preparse.py", "tests/apps/examples_preparsed_test.py"]
 issues: [448, 444]
 ---
-Each file-output example holds `<example>/stored/<calc>/` (the calculation
+Each file-output example holds `<[topic/]example>/stored/<calc>/` (the calculation
 folder as the data layer writes it: files plus `.ecce-meta` sidecars) and
 `<example>/stored/stamp` (`<format> <FNV-1a-64 of the output> <size>`).
 `CalcMgr::openExampleSet` copies it through the EDSI (`StoredCalcCopy::copy`:

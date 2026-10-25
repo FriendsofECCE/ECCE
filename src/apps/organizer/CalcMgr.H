@@ -116,6 +116,7 @@ public:
   /// project, or selects that project if it exists; returns the project's
   /// name, "" on failure.  created says whether it was imported now.
   string openExampleSet(const string& setId, string& message, bool& created);
+  vector<string> removeOldExamples();
   /// At a user's first start, imports the general set into "Examples" once.
   void importExamplesOnce();
 

@@ -29,7 +29,7 @@ import run_tests  # noqa: E402
 import xdisplay   # noqa: E402
 from ecceqm_builder_test import installLocal   # noqa: E402
 
-EXAMPLES = os.path.join(REPO, "data", "client", "examples", "organic")
+EXAMPLES = os.path.join(REPO, "data", "client", "examples", "organic", "bonding-in-hydrocarbons")
 CALCS = {"ethene": os.path.join(EXAMPLES, "ecceqm-ethene", "stored", "ethene")}
 SCREENS = os.environ.get("ECCE_DOCKED_SCREENS",
                          "1366x768x24,1700x1000x24").split(",")
