@@ -57,11 +57,13 @@ ProgressBox::ProgressBox(wxWindow *parent)
   ewxConfig::getConfig(INIFILE)->Read(FOLDKEY, &p_collapsed);
   p_energyLabel = new wxStaticText(this, wxID_ANY, "");
   ewxMakeSelectable(p_energyLabel);
-  p_energyLabel->Hide();
+  p_energyLabel->SetSize(0, 0, 0, 0);
+  p_energyLabel->Show(true);
   p_energyLabel->Bind(wxEVT_CONTEXT_MENU, &ProgressBox::OnContextMenu, this);
   for (int i = 0; i < 3; i++) {
     p_buttons[i] = new wxButton(this, wxID_ANY, ACTIONS[i]);
-    p_buttons[i]->Hide();
+    p_buttons[i]->SetSize(0, 0, 0, 0);
+    p_buttons[i]->Show(true);
     p_buttons[i]->Bind(wxEVT_BUTTON, [this, i](wxCommandEvent&) {
       if (p_action) p_action(i);
     });
@@ -594,8 +596,14 @@ wxSize ProgressBox::layout(wxDC *dc)
     }
   }
   if (!dc && !buttonsShown)
-    for (int i = 0; i < 3; i++) p_buttons[i]->Hide();
-  if (!dc && !energyShown) p_energyLabel->Hide();
+    for (int i = 0; i < 3; i++) {
+      p_buttons[i]->SetSize(0, 0, 0, 0);
+      p_buttons[i]->Show(true);
+    }
+  if (!dc && !energyShown) {
+    p_energyLabel->SetSize(0, 0, 0, 0);
+    p_energyLabel->Show(true);
+  }
   return size;
 }
 
