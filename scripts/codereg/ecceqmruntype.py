@@ -54,6 +54,15 @@ class EcceqmRunTypePanel(EccePanel):
                                              label="Direction:",
                                              export=1)
             ircSizer.AddWidget(self.ircDirection)
+            #  0 keeps the Hessian from the transition state, updated each step.
+            self.ircHessEvery = EcceSpinCtrl(self,
+                                             hardRange="[0..)",
+                                             softRange="[0..50]",
+                                             name="ES.Runtype.IRC.HessianEvery",
+                                             default=0,
+                                             label="New Hessian every n points (0: never):",
+                                             export=1)
+            ircSizer.AddWidget(self.ircHessEvery)
             self.panelSizer.Add(ircSizer)
         else:
             note = wx.StaticText(self, label="No options for this run type.")

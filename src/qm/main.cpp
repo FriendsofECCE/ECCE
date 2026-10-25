@@ -217,15 +217,18 @@ int main(int argc, char** argv) {
       };
       qm::write_progress_irc(os, 0, total);
       int done = 0;
+      std::string ended;
       auto run = [&](int sign, std::vector<qm::IrcPoint>& into) {
+        std::string why;
         qm::irc_path(in.mol, H0, sign, in.irc, evaluate, hess, [&](const qm::IrcPoint& p) {
           into.push_back(p);
           qm::write_irc_table(os, table());
           qm::write_progress_irc(os, ++done, total);
           if (verbose) std::cerr << "irc point s = " << p.s << "  E = " << p.energy << "\n";
-        });
-        done = (sign > 0 && dirs == 2) ? in.irc.max_points : total;   // an early end fills the bar
-        qm::write_progress_irc(os, done, total);
+        }, &why);
+        // done stays the real number of points; a shorter path is reported, not hidden.
+        ended += std::string(ended.empty() ? "" : "; ") + (sign > 0 ? "forward" : "backward") + " " +
+                 std::to_string(into.size()) + " points, " + why;
       };
       if (in.irc_direction >= 0) run(+1, fwd);
       if (in.irc_direction <= 0) run(-1, back);
@@ -233,6 +236,7 @@ int main(int argc, char** argv) {
       qm::write_irc_table(os, all);
       qm::write_irc_geometries(os, all);
       os << "irc_points " << all.size() << "\n";
+      os << "progress irc point=" << done << "/" << total << " ended: " << ended << "\n";
       auto cs = extra_charges();
       qm::write_text_output(os, in, *basis, r, seconds(), nullptr, nullptr, cs.get(), &at_full, nullptr);
       return 0;

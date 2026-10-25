@@ -1177,6 +1177,35 @@ void Builder::runBuilderScript(const std::string& file)
             if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
         if (!ip) outcome = "no IRC Path panel";
         else ip->setTableView(w[1] == "table");
+      } else if ((w[0] == "ircstep" || w[0] == "ircrow") && w.size() >= 2) {
+        //  ircrow <i>: a click on table row i.
+        //  ircstep first|prev|next|last|play: the IRC Path playback buttons;
+        //  play steps through the whole path (reverse end, TS, forward end)
+        //  and logs the points in the order shown.
+        IRCPanel *ip = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
+        if (!ip) {
+          outcome = "no IRC Path panel";
+        } else {
+          std::string order;
+          if (w[1] == "play") {
+            for (int i = ip->step("first"); i >= 0; ) {
+              order += " " + std::to_string(i + 1);
+              if (i >= ip->points() - 1) break;
+              i = ip->step("next");
+            }
+          } else if (w[0] == "ircrow") {
+            ip->selectRow(atoi(w[1].c_str()));
+          } else {
+            ip->step(w[1]);
+          }
+          fprintf(stderr, "BUILDER: %s %s point=%d row=%d marker=%d order:%s\n",
+                  w[0].c_str(), w[1].c_str(), ip->selectedPoint(), ip->selectedRow(),
+                  ip->markerPoint(), order.c_str());
+        }
       } else if (w[0] == "ircclick" && w.size() >= 2) {
         //  ircclick <index>: what a click on IRC Path plot point <index>
         //  does (#417); reports the frame shown and the first two atoms.
