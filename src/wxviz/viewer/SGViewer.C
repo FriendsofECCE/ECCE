@@ -574,32 +574,14 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
 {
    SGViewer *viewer = (SGViewer*)userData;
 
+  // freeglut_font_data.H also declares fontOffset for other drawables, but
+  // this viewer now draws its fixed font as geometry instead of display lists.
+  (void)fontOffset;
+
   // only render the floor during GLRender actions:
   if(!action->isOfType(SoGLRenderAction::getClassTypeId()))
     return;
   
-  static int firstTime = 1;
-  if (firstTime) {
-    
-    GLint curAlignment;
-    glGetIntegerv(GL_UNPACK_ALIGNMENT,&curAlignment);
-    
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    
-    fontOffset = glGenLists (256);
-    for (GLuint i = 32; i < 256; i++) {
-      glNewList(i+fontOffset, GL_COMPILE);
-      // rasters defined in viz/MoGLFonts.h  - a hardwired font array
-      //glBitmap(8, 13, 0.0, 2.0, 10.0, 0.0, rasters[i-32]);
-      //glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
-      glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
-      glEndList();
-    }
-    firstTime = 0;
-    glPixelStorei(GL_UNPACK_ALIGNMENT, curAlignment);
-  }
-
-
   // If this is not done, the color/lighting of objects farther down the
   // scenegraph will not have correct lighting.  calling 
   // SoGLLazyElement::sendAllMaterial(state) works also but might be overkill
@@ -652,9 +634,7 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
         vv.getPlanePoint(vv.getNearDist()+ 0.1 * vv.getDepth(), pos).getValue(x,y,z);
 
         glRasterPos3f(x,y,z);
-        glPushAttrib (GL_LIST_BIT);
-        drawFixedPixelBitmapText(fontOffset, text, 10.0);
-        glPopAttrib ();
+        drawFixedPixelText(Fixed9x15_Character_Map, text, 10.0);
      }
 
      glPopAttrib();

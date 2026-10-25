@@ -189,15 +189,9 @@ void WxLauncherApp::invokeMCB(JMSMessage& msg)
         this->setPollContext(url);
 
         p_launchFrame->Iconize(false);
-#ifdef __WXMSW__
         p_launchFrame->Show(true);
         ewxRaiseWindow(p_launchFrame);
-#else
-        p_launchFrame->Raise();
-        p_launchFrame->Show(true);
-        p_launchFrame->SetFocus();
         p_launchFrame->RequestUserAttention();
-#endif
     }
 }
 

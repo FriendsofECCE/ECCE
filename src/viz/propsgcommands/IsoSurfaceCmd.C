@@ -180,7 +180,7 @@ bool IsoSurfaceCmd::execute()
          }
          lattice->coord.setValues(0, resX+resY+resZ, coords);
 
-         delete coords;
+         delete[] coords;
       }
 
 

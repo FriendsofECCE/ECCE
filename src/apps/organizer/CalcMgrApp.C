@@ -31,6 +31,7 @@
 #include "dsm/EDSIFactory.H"
 
 #include "wxgui/ewxSplash.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/WxJMSSubscriber.H"
 #include "wxgui/WxState.H"
@@ -286,9 +287,8 @@ void CalcMgrApp::invokeMCB(JMSMessage& msg)
   const string app = msg.getProperty("appname");
   if (!app.empty() && app != "Organizer") return;
   p_calcMgr->Iconize(false);
-  p_calcMgr->Raise();
   p_calcMgr->Show(true);
-  p_calcMgr->SetFocus();
+  ewxRaiseWindow(p_calcMgr);
   p_calcMgr->RequestUserAttention();
 }
 

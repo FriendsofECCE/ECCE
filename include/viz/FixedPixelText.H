@@ -1,15 +1,17 @@
 #ifndef FIXEDPIXELTEXT_H
 #define FIXEDPIXELTEXT_H
 
+#include <cstddef>
 #include <GL/gl.h>
 
-// Draw a bitmap string with a fixed screen-space advance between glyphs.
-// Drawing glyphs under a window-coordinate projection prevents camera zoom
-// from changing the raster advance used by glBitmap.
-inline void drawFixedPixelBitmapText(GLuint fontOffset, const char *text,
-                                     GLdouble glyphAdvance)
+// Draw the fixed 9x15 font with screen-space pixels.  Drawing each set bit
+// as geometry avoids OpenGL's glBitmap path, which can allocate temporary
+// textures in software renderers while drawing display lists.
+inline void drawFixedPixelText(const GLubyte *const *glyphs,
+                               const char *text,
+                               GLdouble glyphAdvance)
 {
-   if (!text || !*text)
+   if (!glyphs || !text || !*text)
       return;
 
    GLboolean valid = GL_FALSE;
@@ -27,9 +29,6 @@ inline void drawFixedPixelBitmapText(GLuint fontOffset, const char *text,
 
    GLint matrixMode;
    glGetIntegerv(GL_MATRIX_MODE, &matrixMode);
-   glPushAttrib(GL_PIXEL_MODE_BIT);
-   glPixelZoom(1.0f, 1.0f);
-
    glMatrixMode(GL_PROJECTION);
    glPushMatrix();
    glLoadIdentity();
@@ -41,23 +40,38 @@ inline void drawFixedPixelBitmapText(GLuint fontOffset, const char *text,
    glLoadIdentity();
 
    const GLdouble windowZ = 1.0 - 2.0 * raster[2];
-   for (const unsigned char *character =
-           reinterpret_cast<const unsigned char *>(text);
-        *character != '\0'; ++character) {
-      const GLdouble windowX = raster[0] + glyphAdvance *
-         (character - reinterpret_cast<const unsigned char *>(text));
-      glRasterPos3d(windowX, raster[1], windowZ);
-      glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
-      if (!valid)
-         break;
-      glCallList(fontOffset + *character);
+   glBegin(GL_QUADS);
+   for (std::size_t index = 0; text[index] != '\0'; ++index) {
+      const unsigned char code = static_cast<unsigned char>(text[index]);
+      const GLubyte *glyph = glyphs[code];
+      if (!glyph) continue;
+
+      // The first byte is the glyph width; the bitmap is stored as two
+      // most-significant-bit-first bytes for each of its 16 rows.  The
+      // visible font is 9x15, as in the former glBitmap display lists.
+      const GLubyte *bitmap = glyph + 1;
+      const GLdouble originX = raster[0] + glyphAdvance * index;
+      for (int row = 0; row < 15; ++row) {
+         const unsigned int bits =
+            (static_cast<unsigned int>(bitmap[row * 2]) << 8) |
+             static_cast<unsigned int>(bitmap[row * 2 + 1]);
+         for (int column = 0; column < 9; ++column) {
+            if ((bits & (0x8000u >> column)) == 0) continue;
+            const GLdouble x = originX + column;
+            const GLdouble y = raster[1] + row;
+            glVertex3d(x,     y,     windowZ);
+            glVertex3d(x + 1, y,     windowZ);
+            glVertex3d(x + 1, y + 1, windowZ);
+            glVertex3d(x,     y + 1, windowZ);
+         }
+      }
    }
+   glEnd();
 
    glPopMatrix();
    glMatrixMode(GL_PROJECTION);
    glPopMatrix();
    glMatrixMode(matrixMode);
-   glPopAttrib();
 }
 
 #endif
