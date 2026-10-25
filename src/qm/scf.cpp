@@ -337,7 +337,11 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
 
   R.F_a = Fa; R.F_b = Fb;
   if (opt.ivo) {
-    if (!closed) R.ivo_note = "improved virtual orbitals are only available for closed-shell (restricted) runs; canonical virtuals kept";
+    // Hunt-Goddard IVO is defined for Hartree-Fock; added to a Kohn-Sham
+    // matrix it pushes pi* below the HOMO (N2, CO at B3LYP), and KS virtuals
+    // already see a near N-1 potential.
+    if (dft) R.ivo_note = "improved virtual orbitals are only available for Hartree-Fock; Kohn-Sham virtuals kept";
+    else if (!closed) R.ivo_note = "improved virtual orbitals are only available for closed-shell (restricted) runs; canonical virtuals kept";
     else if (!R.converged) R.ivo_note = "the SCF did not converge; canonical virtuals kept";
     else if (na < 1 || na >= n) R.ivo_note = "no virtual or occupied orbitals; canonical virtuals kept";
     else {
