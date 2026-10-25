@@ -124,9 +124,12 @@ class Ged16RunTypePanel(EccePanel):
                      (EcceGlobals.Theory == "RQCISD" or
                       EcceGlobals.Theory == "UQCISD"))):
                     self.hessianChoice = ["Valence Force Field",
-                                          "Calculate"]
+                                          "Calculate",
+                                          "Calculate at every step",
+                                          "Read from checkpoint"]
                 else:
-                    self.hessianChoice = ["Valence Force Field"]
+                    self.hessianChoice = ["Valence Force Field",
+                                          "Read from checkpoint"]
                 #  By name, and guarded: hessianChoice is "Calculate" only for
                 #  the theories above, so a bare index 1 is past the end of the
                 #  one-entry list for every other theory -- and wx.Choice ignores
@@ -141,6 +144,17 @@ class Ged16RunTypePanel(EccePanel):
                                                        else 0),
                                             label = "Initial Source:")
                 hessianSizer.AddWidget(self.hessian)
+
+                # Gaussian's RecalcFC=N; 0 writes nothing.  ReadFC takes the
+                # checkpoint chosen as the orbital guess in the Calculation Editor.
+                self.recalc = EcceSpinCtrl(self,
+                                           hardRange = "[0..)",
+                                           softRange = "[0..50]",
+                                           name = "ES.Runtype.GeomOpt.RecalcFC",
+                                           default = 0,
+                                           label = "Recalculate every N steps (0 = never):",
+                                           export = 1)
+                hessianSizer.AddWidget(self.recalc)
             
             # The QST structures are picked in the Calculation Editor.
             if not isQst:
@@ -379,9 +393,10 @@ class Ged16RunTypePanel(EccePanel):
         if EcceGlobals.RunType in OPT_RUNTYPES:
             self.stepSpin.Enable(self.stepCheckBox.GetValue())
             qst = EcceGlobals.RunType in QST_RUNTYPES
-            if not qst and (len(self.hessianChoice) == 2 and
-                            self.find.GetSelection() == 1):
-                self.hessian.SetSelection(1)
+            if not qst and ("Calculate" in self.hessianChoice and
+                            self.find.GetSelection() == 1 and
+                            self.hessian.GetValue() in ("Valence Force Field", "")):
+                self.hessian.SetSelection(self.hessianChoice.index("Calculate"))
         if EcceGlobals.RunType == "Polarizability":
             self.efstepInput.Enable(self.polarMethod.GetValue() !=
                                     "Analytic Polariz. + Hyperpol.")

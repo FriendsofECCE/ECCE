@@ -12,6 +12,10 @@ box label="Geometry Optimization" cols=2 when="runtype in @GEO"
 check name=ES.Runtype.GeomOpt.MaximumSteps label=" Max Steps:" default=0
 int name=ES.Runtype.GeomOpt.MaximumStepsValue default=20 hard="[1..)" soft="[1..100]" export=1 enable_if="ES.Runtype.GeomOpt.MaximumSteps==1"
 
+box label="Hessian" cols=1 when="runtype in @GEO"
+combo name=ES.Runtype.GeomOpt.InitialHessian label="Initial Hessian:" choices="Default|Calculate" default=Default export=1
+int name=ES.Runtype.GeomOpt.RecalcFC label="Recalculate every N steps (0 = never):" default=0 hard="[0..)" soft="[0..50]" export=1
+
 box label="Convergence" cols=1 when="runtype in @GEO"
 combo name=ES.Runtype.GeomOpt.ConvergenceGradient label="Gradient:" choices="Loose|Normal|Tight|Very Tight" default=Normal export=1
 
