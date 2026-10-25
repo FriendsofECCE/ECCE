@@ -89,7 +89,7 @@ GENCHEM = {
     "ar-liquid": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "water-spce": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "decane-opls": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
-    "nacl-dissolving": ["dynamics:", "dynamics:TE"],
+    "nacl-dissolving": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "ice-to-steam": ["dynamics:", "dynamics:TE"],
 }
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
@@ -145,14 +145,21 @@ def calcPath(project, calc):
     return os.path.join(project, calc)
 
 
+def complete(found, expect):
+    return all(set(names) <= found.get(calc, set())
+               for calc, names in expect.items())
+
+
 def waitImported(root, projects, expect, seconds=240):
-    """Wait until each project holds all the example calculations whose Props stopped
-    changing for 20 s."""
+    """Wait until each project holds all the example calculations with every
+    expected property, and their Props stopped changing for 20 s.  A quiet
+    spell alone is not enough: a long run (NaCl, 10000 energy frames) keeps
+    its job store busy for minutes after its first properties land."""
     end = time.time() + seconds
     last, stable = None, 0
     while time.time() < end:
         now = {p: propsOf(os.path.join(root, p)) for p in projects}
-        if all(len(v) == len(expect) for v in now.values()) and now == last:
+        if all(complete(v, expect) for v in now.values()) and now == last:
             stable += 1
             if stable >= 10:
                 return now
@@ -263,7 +270,9 @@ def run(display, data, work):
     def inspect(_display):
         box["props"] = waitImported(root, projects, COMPUTATIONAL)
         for project, expect in NEW_SETS.items():
-            box[project] = waitImported(root, [project], expect)[project]
+            box[project] = waitImported(
+                root, [project], expect,
+                seconds=900 if expect is GENCHEM else 240)[project]
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
             # The commands run in order and Report a Problem takes half a

@@ -2644,6 +2644,17 @@ MOFILE_CASES = [
             'MO': {'size': '5 5'},
         },
     ),
+    # The MSD of the NaCl-dissolving example (#544): three ECCE-MDMSD
+    # records (NA, CL, SOL, ~1250 characters each) from the mdanalysis
+    # program become one MDMSD vector of three strings.
+    dict(
+        name='gromacs-nacl-mdmsd',
+        script='gromacs.md',
+        fixture='gromacs/nacl_dissolving_ecce-parse-md.txt',
+        parse_args=('.', 'Dynamics', 'MD', 'none', '0'),
+        expect={'MDMSD': {'size': '3', 'rowlabels': '1 2 3'}},
+        expect_no_keys={'MDSPEED'},
+    ),
     # `task esp` after an SCF task (Theory Details tick box, #272): the
     # fit goes to <job>.q, read as a File= entry.  Real NWChem 7.2.3,
     # H2O HF/6-31G*; the charges sum to zero.
