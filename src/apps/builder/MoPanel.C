@@ -360,8 +360,16 @@ void MoPanel::updateUIOptions()
    if (spinOk) typewin->Insert("Spin Density",0);
    if (densityOk) typewin->Insert("Density",0);
    p_localised = false;
-   if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG"))
+   if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG")) {
       typewin->Insert("Localised MO",0);
+   } else if (PropVecString *why = (PropVecString*) expt->getProperty("LOCMONOTE")) {
+      //  The engine tried and could not; say so rather than omit the type silently.
+      if (why->rows() > 0) {
+         string text = why->values()[0];
+         std::replace(text.begin(), text.end(), '_', ' ');
+         getFW().showMessage("No localised orbitals: " + text + ".", false/*warning*/);
+      }
+   }
    typewin->Insert("MO",0);
    typewin->SetStringSelection(_("MO"));
    //  A choice is as wide as its longest entry, and "Density (ESP from
@@ -494,15 +502,15 @@ bool MoPanel::rebuildTable()
    p_pointToRowReg.clear();
    p_pointToRowSym.clear();
 
-   // Get the required properties; the localised set is closed shell only
+   // Get the required properties; an open-shell localised set has a beta part
    const bool loc = p_localised;
    PropVector    *orbEnergy = (PropVector*) expt->getProperty(loc ? "LOCMOENG" : "ORBENG");
    PropVector    *orbOcc = (PropVector*) expt->getProperty(loc ? "LOCMOOCC" : "ORBOCC");
    PropVecString *orbSym = (PropVecString*) expt->getProperty(loc ? "LOCMOLABEL" : "ORBSYM");
    // betas if any
-   PropVector    *orbEnergyBeta = loc ? nullptr : (PropVector*) expt->getProperty("ORBENGBETA");
-   PropVector    *orbOccBeta = loc ? nullptr : (PropVector*) expt->getProperty("ORBOCCBETA");
-   PropVecString *orbSymBeta = loc ? nullptr : (PropVecString*) expt->getProperty("ORBSYMBETA");
+   PropVector    *orbEnergyBeta = (PropVector*) expt->getProperty(loc ? "LOCMOENGBETA" : "ORBENGBETA");
+   PropVector    *orbOccBeta = (PropVector*) expt->getProperty(loc ? "LOCMOOCCBETA" : "ORBOCCBETA");
+   PropVecString *orbSymBeta = (PropVecString*) expt->getProperty(loc ? "LOCMOLABELBETA" : "ORBSYMBETA");
 
    if (!orbEnergy) {
       //  Missing or unreadable (a stored vector whose length is not its
@@ -612,9 +620,9 @@ int  MoPanel::fillTable(const string& type,
    vector<double> occ;
    vector<string> sym;
 
-   // Parallel arrays, shown as stored: orbital 1 (lowest energy) first,
-   // for the canonical and the localised set alike (core, then bonds by
-   // atom) so the order never changes between the two views.
+   // Parallel arrays.  Rows run highest orbital first, so orbital 1 (lowest
+   // energy; core for the localised set) is at the bottom as in an MO
+   // diagram, for the canonical and the localised set alike.
    const bool keep = p_localised;
    if (propOrbEnergy) {
       energy = propOrbEnergy->values();
@@ -647,7 +655,7 @@ int  MoPanel::fillTable(const string& type,
 
    for (int row=startRow, rows=energy.size()+startRow; row<rows; ++row) {
       int col = 0;
-      unsigned long idx = row - startRow;
+      unsigned long idx = energy.size() - 1 - (row - startRow);
       p_mogrid->InsertRows(row,1);
 
       // Optional Column 0 - type 
@@ -668,7 +676,7 @@ int  MoPanel::fillTable(const string& type,
       if (!occ.empty()) {
          p_mogrid->SetCellValue(row, col++,
                wxString::Format(_T("%.1f"), occ[idx]));
-         if (occ[idx] > 0.0) { // Highest Occupied MO: the last one
+         if (occ[idx] > 0.0 && idxHOMO < 0) { // Highest Occupied MO: first one met
             idxHOMO = row;
          }
       }
@@ -1007,6 +1015,8 @@ string MoPanel::tableState() const
       s << "selectedType " << (offset ? p_mogrid->GetCellValue(p_selectedRow, 0)
                                        : wxString("alpha")) << "\n";
       s << "selectedVisible " << p_mogrid->IsVisible(p_selectedRow, 0, true) << "\n";
+      s << "aboveSelectedVisible " << (p_selectedRow > 0 &&
+                                          p_mogrid->IsVisible(p_selectedRow - 1, 0, true)) << "\n";
    }
    s << "composition " << p_compSummary << "\n";
    s << "gridWindow " << cs.x << "x" << cs.y << "\n";

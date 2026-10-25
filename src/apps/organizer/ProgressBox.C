@@ -210,6 +210,7 @@ int ProgressBox::headingHeight() const
 static string plotCaption(const JobProgress::Block& b)
 {
   return b.title + ": " + b.plotLabel +
+         (b.plotUnit.empty() ? "" : " (" + b.plotUnit + ")") +
          (b.title == "Optimisation" ? ", all points" : "");
 }
 
@@ -257,22 +258,80 @@ vector<string> ProgressBox::describe() const
 }
 
 
-// A small line plot of one series, framed, with its label under it. The
-// x axis runs 0..xEnd with a few ticks and the y axis shows the extremes,
-// in the small font, so the curve can be read as well as seen.
+// 10 to the power n, in superscript digits: the y tick of a log plot.
+static wxString powerOfTen(int n)
+{
+  static const char *digit[] = { "\xe2\x81\xb0", "\xc2\xb9", "\xc2\xb2", "\xc2\xb3",
+      "\xe2\x81\xb4", "\xe2\x81\xb5", "\xe2\x81\xb6", "\xe2\x81\xb7",
+      "\xe2\x81\xb8", "\xe2\x81\xb9" };
+  string s = "10";
+  if (n < 0) s += "\xe2\x81\xbb";   // superscript minus
+  for (char c : std::to_string(std::abs(n))) s += digit[c - '0'];
+  return U(s);
+}
+
+
+// A small line plot, framed, with its label under it. The x axis runs
+// 0..xEnd with a few ticks.  A linear plot's y axis shows the extremes; a
+// log plot's (blk.curves, log10 of |value|) shows powers of ten and draws
+// each curve's convergence limit as a dashed line, so the curve can be read
+// as well as seen.
 static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
                      const string& label, const PlotPalette& pal,
                      const wxFont& small, const wxColour& series)
 {
-  const vector<double>& v = blk.plot;
+  const bool logAxis = blk.plotLog && !blk.curves.empty();
+  vector<const vector<double>*> lines;
+  vector<wxColour> colours;
+  const wxColour curveColour[] = { series, pal.imaginary };
+  if (logAxis)
+    for (size_t i = 0; i < blk.curves.size(); i++) {
+      lines.push_back(&blk.curves[i].values);
+      colours.push_back(curveColour[std::min<size_t>(i, 1)]);
+    }
+  else {
+    lines.push_back(&blk.plot);
+    colours.push_back(series);
+  }
   dc.SetFont(small);
   const int lh = dc.GetCharHeight();
-  double lo = *std::min_element(v.begin(), v.end());
-  double hi = *std::max_element(v.begin(), v.end());
-  if (hi - lo < 1e-12) { lo -= 0.5; hi += 0.5; }
-  const wxString yHi = wxString::Format("%.4g", hi);
-  const wxString yLo = wxString::Format("%.4g", lo);
-  const int left = std::max(dc.GetTextExtent(yHi).x, dc.GetTextExtent(yLo).x) + 4;
+  double lo = 1e300, hi = -1e300;
+  //  A log curve's exact zero (a first SCF cycle has no energy change) is
+  //  stored as 1e-16 and has no place on the axis.
+  auto drawn = [&](double v) { return !logAxis || v > -15.5; };
+  for (const vector<double>* v : lines)
+    for (double d : *v)
+      if (drawn(d)) {
+        lo = std::min(lo, d);
+        hi = std::max(hi, d);
+      }
+  if (lo > hi) lo = hi = 0;
+  if (logAxis) {
+    for (const auto& c : blk.curves)
+      if (c.hasThreshold) {
+        lo = std::min(lo, c.threshold);
+        hi = std::max(hi, c.threshold);
+      }
+    lo = std::floor(lo - 1e-9);
+    hi = std::ceil(hi + 1e-9);
+    if (hi - lo < 1) hi = lo + 1;
+  } else if (hi - lo < 1e-12) {
+    lo -= 0.5;
+    hi += 0.5;
+  }
+  vector<std::pair<double, wxString> > yTicks;
+  if (logAxis) {
+    const int most = std::max(2, (r.height - 2 * lh) / (lh + 3));
+    const int step = std::max(1, (int)std::ceil((hi - lo) / most));
+    for (int e = (int)hi; e >= (int)lo; e -= step)
+      yTicks.push_back(std::make_pair((double)e, powerOfTen(e)));
+  } else {
+    yTicks.push_back(std::make_pair(hi, wxString::Format("%.4g", hi)));
+    yTicks.push_back(std::make_pair(lo, wxString::Format("%.4g", lo)));
+  }
+  int left = 0;
+  for (const auto& t : yTicks) left = std::max(left, dc.GetTextExtent(t.second).x);
+  left += 4;
   const int axisH = lh + 2;
   wxRect area(r.x + left, r.y, r.width - left,
               std::max(8, r.height - lh - 2 - axisH));
@@ -280,26 +339,56 @@ static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
   dc.SetBrush(wxBrush(pal.background));
   dc.DrawRectangle(area);
 
-  const double xEnd = blk.plotXEnd > 0 ? blk.plotXEnd : (double)v.size();
-  const double xLast = blk.plotXLast > 0 ? blk.plotXLast : (double)v.size();
+  const double xEnd = blk.plotXEnd > 0 ? blk.plotXEnd : (double)blk.plot.size();
+  const double xLast = blk.plotXLast > 0 ? blk.plotXLast : (double)blk.plot.size();
   const int m = 3;
-  vector<wxPoint> pts;
-  for (size_t i = 0; i < v.size(); i++) {
-    const double x = xLast * double(i + 1) / v.size();
-    const double fx = x / xEnd;
-    const double fy = (v[i] - lo) / (hi - lo);
-    pts.push_back(wxPoint(area.x + m + (int)std::lround(fx * (area.width - 2 * m)),
-                          area.y + m + (int)std::lround((1 - fy) * (area.height - 2 * m))));
+  auto yOf = [&](double v) {
+    return area.y + m + (int)std::lround((1 - (v - lo) / (hi - lo)) * (area.height - 2 * m));
+  };
+  if (logAxis)
+    for (const auto& t : yTicks) {
+      dc.SetPen(wxPen(pal.grid));
+      dc.DrawLine(area.x + 1, yOf(t.first), area.GetRight(), yOf(t.first));
+    }
+  for (size_t c = 0; c < lines.size(); c++) {
+    const vector<double>& v = *lines[c];
+    if (logAxis && blk.curves[c].hasThreshold) {
+      dc.SetPen(wxPen(colours[c], 1, wxPENSTYLE_SHORT_DASH));
+      dc.DrawLine(area.x + 1, yOf(blk.curves[c].threshold),
+                  area.GetRight(), yOf(blk.curves[c].threshold));
+    }
+    vector<wxPoint> pts;
+    for (size_t i = 0; i < v.size(); i++) {
+      const double x = xLast * double(i + 1) / v.size();
+      const double fx = x / xEnd;
+      if (!drawn(v[i])) continue;
+      pts.push_back(wxPoint(area.x + m + (int)std::lround(fx * (area.width - 2 * m)),
+                            yOf(v[i])));
+    }
+    dc.SetPen(wxPen(colours[c], 2));
+    if (pts.size() > 1) dc.DrawLines((int)pts.size(), &pts[0]);
+    dc.SetBrush(wxBrush(colours[c]));
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    for (const wxPoint& p : pts) dc.DrawCircle(p, 2);
   }
-  dc.SetPen(wxPen(series, 2));
-  if (pts.size() > 1) dc.DrawLines((int)pts.size(), &pts[0]);
-  dc.SetBrush(wxBrush(series));
-  dc.SetPen(*wxTRANSPARENT_PEN);
-  for (const wxPoint& p : pts) dc.DrawCircle(p, 2);
 
   dc.SetTextForeground(pal.axis);
-  dc.DrawText(yHi, r.x, area.y);
-  dc.DrawText(yLo, r.x, area.GetBottom() - lh);
+  for (const auto& t : yTicks) {
+    const int ty = std::min(std::max(yOf(t.first) - lh / 2, area.y),
+                            area.GetBottom() - lh);
+    dc.DrawText(t.second, r.x + left - 4 - dc.GetTextExtent(t.second).x, ty);
+  }
+  if (logAxis && blk.curves.size() > 1) {
+    int lx = area.GetRight() - 4;
+    for (size_t c = blk.curves.size(); c-- > 0;) {
+      const wxString name = U(blk.curves[c].label);
+      lx -= dc.GetTextExtent(name).x;
+      dc.SetTextForeground(colours[c]);
+      dc.DrawText(name, lx, area.y + 1);
+      lx -= 8;
+    }
+    dc.SetTextForeground(pal.axis);
+  }
   const bool whole = blk.plotXUnit != "ps";
   SpectrumTicks xt = niceTicks(0, xEnd, 3);
   if (whole) {

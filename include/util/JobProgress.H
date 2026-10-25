@@ -32,7 +32,11 @@ public:
     std::vector<std::pair<std::string, std::string> > fields;
     std::string historyKey;
     std::vector<double> history;
+    // Every history the monitor sent, in its order; history/historyKey are
+    // the first of them.
+    std::vector<std::pair<std::string, std::vector<double> > > histories;
 
+    const std::vector<double>* historyOf(const std::string& key) const;
     // "" when absent.
     std::string field(const std::string& key) const;
   };
@@ -44,6 +48,15 @@ public:
     int met;              // 1 met, 0 not met
   };
 
+  // One curve of a log plot: |value| per record, drawn on a log axis, with
+  // the code's convergence limit as a horizontal line when it printed one.
+  struct Curve {
+    std::string label;          // "max", "RMS"
+    std::vector<double> values; // log10 of |value|
+    bool hasThreshold = false;
+    double threshold = 0;       // log10 of the limit
+  };
+
   // What the box draws for one stage: a title and lines on the left, a
   // plot or a bar beside them.
   struct Block {
@@ -53,6 +66,10 @@ public:
     std::vector<double> plot;   // empty: no plot
     bool plotLog = false;       // plot is log10 of |value|
     std::string plotLabel;
+    // plotLog plots: the curves (plot is the first one's values) and the
+    // unit the y axis is in ("Hartree/bohr"), "" when not known.
+    std::vector<Curve> curves;
+    std::string plotUnit;
     // x axis of the plot: the last point sits at plotXLast, the axis runs
     // 0..plotXEnd (the run's total when known, so the curve's end shows how
     // far it has got). plotXUnit is "ps", "step", "cycle", ... .

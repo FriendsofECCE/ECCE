@@ -173,7 +173,8 @@ bool CalcEdGUI::Create( wxWindow* parent, wxWindowID id, const wxString& caption
     p_codeSizer = NULL;
     p_detailsBox = NULL;
     p_chemSysMark = p_chemSysInner = p_basisMark = p_basisInner = NULL;
-    p_notReadyText = NULL;
+    p_notes = NULL;
+    p_notesPanel = NULL;
     p_theoryDetailsSizer = NULL;
     p_runtypeDetailsSizer = NULL;
     p_buttonRow = NULL;
@@ -483,16 +484,30 @@ void CalcEdGUI::CreateControls()
     settingsGrid->Add(new ewxButton( itemFrame1, ID_BUTTON_CALCED_RUNTYPE, _("Runtype Details..."), wxDefaultPosition, wxDefaultSize, 0 ),
                       wxGBPosition(1, 3), wxDefaultSpan, wxEXPAND);
 
+    //  The Notes panel: the current state of the structure's constraints and
+    //  scan for this run type, "Symmetry off" and why the calculation is not
+    //  ready.  It sits apart from the controls, just above the log (added
+    //  there by CalcEd::CreateControls), on the window background so it reads
+    //  as a message, not as a setting.  Minimum width 1: the text wraps
+    //  instead of widening the editor.
+    p_notesPanel = new wxPanel( itemFrame1, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE );
+    p_notesPanel->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+    p_notes = new ewxStaticText( p_notesPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+    p_notes->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+    p_notes->SetFont(p_notes->GetFont().Smaller());   // short status text; small screens
+    p_notes->SetMinSize(wxSize(1, -1));
+    wxBoxSizer* notesSizer = new wxBoxSizer(wxVERTICAL);
+    notesSizer->Add(p_notes, 0, wxEXPAND|wxALL, FromDIP(4));
+    p_notesPanel->SetSizer(notesSizer);
+    p_notesPanel->SetMinSize(wxSize(1, -1));
+    p_notesPanel->Hide();
+
     p_theoryDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
     settingsGrid->Add(p_theoryDetailsSizer, wxGBPosition(2, 0), wxGBSpan(1, 2), wxALIGN_LEFT);
 
-    //  "2 constraints (optimisations only)", under the runtype summary
     wxBoxSizer* runtypeColumn = new wxBoxSizer(wxVERTICAL);
     p_runtypeDetailsSizer = new wxFlexGridSizer(0, 2, 0, 0);
     runtypeColumn->Add(p_runtypeDetailsSizer, 0, wxALIGN_LEFT, 0);
-    p_constraintNote = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-    runtypeColumn->Add(p_constraintNote, 0, wxALIGN_LEFT|wxTOP, 2);
-    p_constraintNote->Show(false);
     settingsGrid->Add(runtypeColumn, wxGBPosition(2, 2), wxGBSpan(1, 2), wxALIGN_LEFT|wxLEFT, FromDIP(11));
 
     //  "Initial guess: MOs from <calculation>", shown only when the
@@ -506,12 +521,6 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer11->Add(p_guessRow, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 8);
     p_guessColumn = itemBoxSizer11;
     itemBoxSizer11->Show(p_guessRow, false);
-
-    //  Why Save/Verify/Launch are unavailable; hidden while empty.
-    p_notReadyText = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END );
-    p_notReadyText->SetMinSize(wxSize(1, -1));
-    itemBoxSizer11->Add(p_notReadyText, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 8);
-    itemBoxSizer11->Show(p_notReadyText, false);
 
     wxBoxSizer* itemBoxSizer83 = new wxBoxSizer(wxHORIZONTAL);
     p_buttonRow = itemBoxSizer83;

@@ -472,12 +472,14 @@ bool ComputeMoCmd::execute()
       if (uhfCalc && (doingDensity||doingSpinDensity)) {
         orbOccBeta = (PropVector*) calc->getProperty("ORBOCCBETA");
         if (orbOccBeta) occBeta = orbOccBeta->values();
-      } else if (moType == "beta" && !localised) {
+      } else if (moType == "beta") {
         // If we are doing UHF and a BETA orbital has been chosen,
         // change the default values to the beta ones. - TLW
-        moCoefs = (PropTable*) calc->getProperty("MOBETA");
-        orbOcc = (PropVector*) calc->getProperty("ORBOCCBETA");
-        if (orbOcc) occ = orbOcc->values();
+        moCoefs = (PropTable*) calc->getProperty(localised ? "LOCMOBETA" : "MOBETA");
+        if (!localised) {
+          orbOcc = (PropVector*) calc->getProperty("ORBOCCBETA");
+          if (orbOcc) occ = orbOcc->values();
+        }
       }
 
       ///////////////////////////////////////////////////////////////////////

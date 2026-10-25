@@ -588,11 +588,13 @@ History=dE
 [PROGRESS]
 Begin=^ Maximum Force\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
 Progress=opt maxgrad=$1/$2
+History=maxgrad
 [END]
 
 [PROGRESS]
 Begin=^ RMS     Force\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
 Progress=opt rmsgrad=$1/$2
+History=rmsgrad
 [END]
 
 [PROGRESS]
