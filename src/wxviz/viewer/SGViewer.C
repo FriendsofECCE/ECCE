@@ -24,6 +24,7 @@
 
 #include "viz/freeglut_font_data.H"
 #include "viz/EcceDispParam.H"
+#include "viz/FixedPixelText.H"
 #include "viz/VR3dXVSmouse.H"
 
 #include "util/Preferences.H"
@@ -590,8 +591,8 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
       glNewList(i+fontOffset, GL_COMPILE);
       // rasters defined in viz/MoGLFonts.h  - a hardwired font array
       //glBitmap(8, 13, 0.0, 2.0, 10.0, 0.0, rasters[i-32]);
-      //glBitmap(9, 15, 0.0, 0.0, 8.0, 0.0, Fixed9x15_Character_Map[i]+1);
-      glBitmap(8, 13, 0.0, 0.0, 7.0, 0.0, Fixed8x13_Character_Map[i]+1);
+      //glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
+      glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList();
     }
     firstTime = 0;
@@ -652,8 +653,7 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
 
         glRasterPos3f(x,y,z);
         glPushAttrib (GL_LIST_BIT);
-        glListBase(fontOffset);  // fontOffset is static global
-        glCallLists(strlen(text), GL_UNSIGNED_BYTE, (GLubyte *)text);
+        drawFixedPixelBitmapText(fontOffset, text, 10.0);
         glPopAttrib ();
      }
 
