@@ -3089,6 +3089,10 @@ const vector<ExampleSet>& exampleSets()
       "orca-bromide/bromide.out",
       "orca-methyl_chloride/methyl_chloride.out"}},
     {"spectroscopy", "Examples_Spectroscopy", {
+      "orca-sulfate/sulfate.out",
+      "orca-co_nh3_5_oso3/co_nh3_5_oso3.out",
+      "orca-co_en2_o2so2/co_en2_o2so2.out",
+      "orca-co2_en4_oh_so4_bridged/co2_en4_oh_so4_bridged.out",
       "orca-formaldehyde/formaldehyde.out",
       "orca-acetaldehyde/acetaldehyde.out",
       "orca-acetone/acetone.out",
@@ -3097,12 +3101,16 @@ const vector<ExampleSet>& exampleSets()
       "orca-methyl_acetate/methyl_acetate.out",
       "orca-ethyl_acetate/ethyl_acetate.out",
       "orca-methyl_propionate/methyl_propionate.out",
+      "orca-n_methylacetamide/n_methylacetamide.out",
+      "orca-ac_ala_nhme/ac_ala_nhme.out",
+      "orca-alpha_d_glucopyranose/alpha_d_glucopyranose.out",
+      "orca-alpha_d_galactopyranose/alpha_d_galactopyranose.out",
       "ecceqm-water/water.qmout",
       "ecceqm-ethanol/ethanol.qmout"}},
   };
   return sets;
 }
-const char *const kExampleSetVersion = "4";
+const char *const kExampleSetVersion = "6";
 
 string examplesDir()
 {
@@ -3449,53 +3457,69 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies. This calcu"
      "lation shows the product of the SN2 reaction, with an electronic energ"
      "y of -499.863026 Eh."},
+    {"sulfate",
+     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
+     "Raman. This calculation shows the S–O stretches of the free "
+     "sulfate ion, the reference for the sulfate complexes in this set."},
+    {"co_nh3_5_oso3",
+     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
+     "Raman. This calculation shows the S–O stretches of a sulfate bound "
+     "to cobalt through one oxygen in [Co(NH3)5(OSO3)]+."},
+    {"co_en2_o2so2",
+     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
+     "Raman. This calculation shows the S–O stretches of a sulfate "
+     "chelating cobalt through two oxygens in cis-[Co(en)2(O2SO2)]+."},
+    {"co2_en4_oh_so4_bridged",
+     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
+     "Raman. This calculation shows the S–O stretches of a sulfate "
+     "bridging two cobalt centres in [(en)2Co(μ-OH)(μ-SO4)Co(en)2]3+."},
     {"formaldehyde",
-     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
-     "R and Raman. This calculation shows the C=O stretch of the simplest ca"
-     "rbonyl compound, the start of the carbonyl series, at 1897.12 cm-1 (un"
-     "scaled; IR 114.82 km/mol, Raman activity 4.687)."},
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the C=O stretch of the simplest carbonyl "
+     "compound, the start of the carbonyl series."},
     {"acetaldehyde",
-     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
-     "R and Raman. This calculation shows the C=O stretch of an aldehyde wit"
-     "h one methyl group at 1894.46 cm-1 (unscaled), 2.66 cm-1 below formald"
-     "ehyde, with IR 184.71 km/mol and Raman activity 9.096."},
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows how one methyl group changes the C=O stretch of "
+     "an aldehyde."},
     {"acetone",
-     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
-     "R and Raman. This calculation shows the C=O stretch of a ketone with t"
-     "wo methyl groups at 1873.69 cm-1 (unscaled), the lowest of the neutral"
-     " carbonyl compounds in this set, with IR 183.46 km/mol and Raman activ"
-     "ity 7.890."},
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the C=O stretch of a ketone with two methyl "
+     "groups."},
     {"acetic_acid",
-     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
-     "R and Raman. This calculation shows the C=O stretch of a carboxylic ac"
-     "id at 1907.15 cm-1 (unscaled), the highest of the neutral carbonyl com"
-     "pounds in this set, with IR 326.15 km/mol and Raman activity 5.181."},
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the C=O stretch of a carboxylic acid."},
     {"acetate_anion",
-     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), optimisation and analytic f"
-     "requencies with IR and Raman. This calculation shows that the carboxyl"
-     "ate anion has two coupled CO2 stretches instead of one C=O stretch: th"
-     "e out-of-phase (antisymmetric) stretch at 1744.15 cm-1 (unscaled; IR 7"
-     "60.75 km/mol, Raman activity 4.436) and the in-phase stretch, mixed wi"
-     "th CH3 deformation, at 1452.48 cm-1 (IR 307.36 km/mol, Raman activity "
-     "5.169). No band lies near the 1870-1910 cm-1 of the neutral carbonyl c"
-     "ompounds."},
+     "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
+     "Raman. This calculation shows that the carboxylate anion has two "
+     "coupled CO2 stretches instead of one C=O stretch."},
     {"methyl_acetate",
-     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
-     "R and Raman. This calculation shows the C=O stretch of an ester at 188"
-     "9.67 cm-1 (unscaled), with IR 256.88 km/mol and Raman activity 3.413: "
-     "the ester bands are stronger in IR and weaker in Raman than those of f"
-     "ormaldehyde, acetaldehyde and acetone in this set."},
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the C=O stretch of an ester."},
     {"ethyl_acetate",
-     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
-     "R and Raman. This calculation shows the C=O stretch of an ester with a"
-     " longer alkyl group at 1882.88 cm-1 (unscaled; IR 244.34 km/mol, Raman"
-     " activity 3.143), 6.79 cm-1 below methyl acetate."},
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the C=O stretch of an ester with a longer alkoxy "
+     "group."},
     {"methyl_propionate",
-     "ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with I"
-     "R and Raman. This calculation shows the C=O stretch of the ester with "
-     "the acyl group lengthened instead of the alkoxy group at 1883.56 cm-1 "
-     "(unscaled; IR 256.97 km/mol, Raman activity 3.283), 6.11 cm-1 below me"
-     "thyl acetate."},
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the C=O stretch of an ester with a longer acyl "
+     "group."},
+    {"n_methylacetamide",
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the amide I and amide II bands of the peptide "
+     "linkage in trans-N-methylacetamide."},
+    {"ac_ala_nhme",
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the amide bands of a small peptide, Ac-Ala-NHMe "
+     "in the C7eq conformation, with a hydrogen bond between its two "
+     "amide groups."},
+    {"alpha_d_glucopyranose",
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows the O–H, C–H and C–O vibrations of a sugar in "
+     "the 4C1 chair."},
+    {"alpha_d_galactopyranose",
+     "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
+     "calculation shows how the axial C4 hydroxyl group of galactose "
+     "changes the vibrational spectrum compared with glucose."},
     {"trpcage", "GROMACS, AMBER99SB-ILDN, TIP3P. This study shows the stages "
                 "of a molecular dynamics simulation: preparation, energy "
                 "minimisation, equilibration and production. The temperature "

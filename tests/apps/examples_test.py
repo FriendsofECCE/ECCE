@@ -58,7 +58,7 @@ COMPUTATIONAL = {
                 "optimize:TE", "dynamics:TE"],
 }
 VIBS = ["TE", "VIB", "VIBFREQ", "VIBIR"]
-ORCA_RAMAN = ["TE", "VIB", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]
+ORCA_RAMAN = ["TE", "MO", "VIB", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]
 QM_LOC = VIBS + ["MO", "LOCMO", "LOCMOENG", "LOCMOLABEL", "LOCMOOCC"]
 ORGANIC = {
     "ethane": QM_LOC, "ethene": QM_LOC, "ethyne": QM_LOC,
@@ -71,7 +71,10 @@ ORGANIC = {
 }
 SPECTROSCOPY = {c: ORCA_RAMAN for c in (
     "formaldehyde", "acetaldehyde", "acetone", "acetic_acid", "acetate_anion",
-    "methyl_acetate", "ethyl_acetate", "methyl_propionate")}
+    "methyl_acetate", "ethyl_acetate", "methyl_propionate",
+    "co2_en4_oh_so4_bridged", "sulfate", "co_nh3_5_oso3", "co_en2_o2so2",
+    "n_methylacetamide", "ac_ala_nhme", "alpha_d_glucopyranose",
+    "alpha_d_galactopyranose")}
 SPECTROSCOPY.update({
     "water": ["TE", "VIBFREQ", "VIBIR", "MO"],
     "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]})
@@ -177,7 +180,7 @@ def run(display, data, work):
     def firstStart(_display):
         first["props"] = waitImported(root, ["Examples"], EXPECT)
 
-    result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                       env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
     for line in re.findall(r"Organizer: examples \w+ imported in .*", result.log or ""):
         print(line)
@@ -249,7 +252,7 @@ def run(display, data, work):
             time.sleep(2)
 
     # Through the gateway: it starts VizThumbnail for the thumbnail requests.
-    result = apps.run(display, "gateway", windowTimeout=60, settle=20,
+    result = apps.run(display, "gateway", windowTimeout=60, settle=60,
                       env={"ECCE_TEST_ORGANIZER": script,
                            "ECCE_NO_EXAMPLE_IMPORT": "",
                            "ECCE_ORGANIZER_OPEN": "file://" + calc},
@@ -287,7 +290,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*4", text):
+        if not re.search(r"exampleSet[^0-9]*6", text):
             problems.append("%s records no example-set version" % project)
     for project, expect in NEW_SETS.items():
         got = box.get(project) or {}

@@ -22,6 +22,7 @@ calculations show the run state "Imported" and take a few seconds to be read.
 |---|---|---|
 | General | `Examples` | The five calculations below. |
 | Computational | `Examples_Computational` | A GROMACS molecular dynamics study of the Trp-cage. |
+| Spectroscopy | `Examples_Spectroscopy` | Eighteen calculations: the S–O stretches of sulfate free, bound to cobalt through one oxygen, chelating and bridging; carbonyl stretches with substituent and charge (formaldehyde, acetaldehyde, acetone, acetic acid, acetate, three esters); the amide bands of N-methylacetamide and of Ac-Ala-NHMe; α-D-glucopyranose and α-D-galactopyranose; and the IR spectrum of water and ethanol. The ORCA calculations use PBE0-D3BJ/def2-SVP, with frequencies, IR and Raman intensities and molecular orbitals. |
 
 If the project of a set exists already, ECCE only selects it and never
 changes it, so you can edit and delete the examples freely. The project

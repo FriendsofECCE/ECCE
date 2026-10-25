@@ -1,12 +1,12 @@
 .	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
-.	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP, optimisation and analytic frequencies with IR and Raman. This calculation shows the C=O stretch of an ester at 1889.67 cm-1 (unscaled), with IR 256.88 km/mol and Raman activity 3.413: the ester bands are stronger in IR and weaker in Raman than those of formaldehyde, acetaldehyde and acetone in this set.
+.	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This calculation shows the C=O stretch of an ester.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sat, 24 Oct 2026 16:56:21 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 25 Oct 2026 10:08:05 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sat, 24 Oct 2026 16:56:18 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 25 Oct 2026 10:08:03 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methyl_acetate__IUhAyA
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methyl_acetate__tMqo1W
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
@@ -34,7 +34,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1792860981.135 at=1792860981\nopt step=6 energy=-267.894094117 dE=0.0000024858/0.0000010000 rmsgrad=0.0000112973/0.0000300000 maxgrad=0.0000275322/0.0001000000 rmsstep=0.0001500513/0.0006000000 maxstep=0.0004919073/0.0010000000 converged=yes\nopt~ energy=-267.893856414,-267.894083235,-267.894105014,-267.894079700,-267.894096603,-267.894094117\nscf cycle=3 energy=-267.8885486687584034 dE=-2.86e-09/1.000e-08\nscf~ dE=0.00e+00,-3.38e-08,-2.86e-09\nfreq done=yes zpe=0.09010341\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792922885.128 at=1792922885\nscf cycle=10 energy=-267.8885485829449635 dE=9.46e-09/1.000e-08\nscf~ dE=0.00e+00,-7.08e-02,-2.66e-02,-1.65e-02,-3.64e-02,-1.78e-04,-4.63e-05,-3.40e-07,-5.87e-07,9.46e-09\nfreq done=yes zpe=0.09010418\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -43,9 +43,9 @@
 .	http://www.emsl.pnl.gov/ecce:reviewedDate		
 .	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
 .	http://www.emsl.pnl.gov/ecce:runStatusReason		
-.	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
+.	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sat, 24 Oct 2026 16:56:19 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 25 Oct 2026 10:08:03 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

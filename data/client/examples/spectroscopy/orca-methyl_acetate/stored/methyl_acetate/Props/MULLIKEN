@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<vector name="MULLIKEN" rowLabel="Atom" rows="11" units="e">-0.048358   0.148215   -0.257295   -0.336940
-0.114188   0.068236   0.073506   0.073588
-0.054843   0.055049   0.054968</vector>
+<vector name="MULLIKEN" rowLabel="Atom" rows="11" units="e">-0.048345   0.148114   -0.257213   -0.336893
+0.114206   0.068231   0.073497   0.073577
+0.054832   0.055037   0.054957</vector>
