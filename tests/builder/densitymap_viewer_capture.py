@@ -70,6 +70,19 @@ dmplane 1
 dmstate
 dmplane 2
 """),
+    #  #532: the level set either side of the old 1.66/1.67 A switch, and the
+    #  collapsed plane controls.
+    "ethene-levels": ("ecceqm-c2h4", """
+densitymap map-ethene-1.66A 900 700 0 alpha 0
+dmoffset 1.66
+dmpng map-ethene-1.66A 900 700
+dmoffset 1.67
+dmpng map-ethene-1.67A 900 700
+dmcollapse 1
+dmstate
+dmcollapse 0
+dmstate
+"""),
     "ethene-pi": ("ecceqm-c2h4", """
 background 1 1 1
 dmpick 1 2
