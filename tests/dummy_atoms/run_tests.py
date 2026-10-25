@@ -116,13 +116,16 @@ def special():
     d = deck("orca", xfirst, con)
     f += check("orca: constraint indices count a leading dummy",
                "{ A 2 1 3 107.0 C }" in d)
-    # ECCE-QM counts the dummy too, 1-based; GeoVib would report frequencies
-    # at the constrained geometry and is refused.
+    # ECCE-QM counts the dummy too, 1-based.  GeoVib would report frequencies
+    # at the constrained geometry, so the deck is written without the block
+    # (a warning in the editor says so) rather than refused.
+    f += check("ecceqm: Geometry run writes the constraints",
+               "constraints" in deck("ecceqm", runtype="Geometry"))
     try:
-        deck("ecceqm", runtype="GeoVib")
-        f += check("ecceqm: GeoVib with constraints refused", False)
-    except RuntimeError as e:
-        f += check("ecceqm: GeoVib with constraints refused", "not a minimum" in str(e))
+        d = deck("ecceqm", runtype="GeoVib")
+        f += check("ecceqm: GeoVib with constraints ignores them", "constraints" not in d)
+    except RuntimeError:
+        f += check("ecceqm: GeoVib with constraints ignores them", False)
     f += check("ecceqm: constraints only for Geometry runs",
                "constraints" not in deck("ecceqm", runtype="Energy"))
     f += nwchem_mixing()
