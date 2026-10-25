@@ -114,6 +114,12 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
       legend.push_back(l);
     }
   }
+  //  The nodes of a wavefunction: where psi changes sign.
+  const bool nodes = m.quantity == ORBITAL && m.zmax > 0 && m.zmin < 0;
+  if (nodes) {
+    Line l = { 0.0, wxColour(150, 150, 150), wxPENSTYLE_SOLID };
+    legend.push_back(l);
+  }
   for (size_t k = 0; k < legend.size(); k++) {
     dc.SetPen(wxPen(legend[k].colour, 1, legend[k].style));
     const vector<Segment> seg = contour(m, legend[k].value);
@@ -157,7 +163,8 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     dc.SetPen(wxPen(legend[k].colour, 2, legend[k].style));
     dc.DrawLine(lx, ly + 8, lx + 26, ly + 8);
     dc.SetTextForeground(*wxBLACK);
-    wxString t = levelText(legend[k].value);
+    wxString t = nodes && k + 1 == legend.size()
+        ? wxString::FromUTF8("node (\xCF\x88 = 0)") : levelText(legend[k].value);
     if (m.quantity == ORBITAL && legend[k].value > 0) t = "+" + t;
     dc.DrawText(t, lx + 32, ly);
   }
