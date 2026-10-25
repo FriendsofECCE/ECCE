@@ -97,6 +97,16 @@ dmpng map-ethene-pi-zero 900 700
 dmcollapse 1
 dmpng map-ethene-pi-zero-collapsed 900 700
 """),
+    #  #539: measurement labels stay readable.
+    "measure-labels": ("ecceqm-c2h6", """
+background 1 1 1
+measure dist 0 1
+measure torsion 2 0 1 5
+rotatex -70
+viewall
+hold 1
+snap measure-ethane
+"""),
     "ethene-pi": ("ecceqm-c2h4", """
 background 1 1 1
 dmpick 1 2

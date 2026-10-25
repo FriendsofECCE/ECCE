@@ -11,6 +11,7 @@
 #include <wx/msgdlg.h>
 #include <wx/radiobox.h>
 #include <wx/sizer.h>
+#include <wx/wrapsizer.h>
 #include <wx/stattext.h>
 
 #include "tdat/PropVector.H"
@@ -124,7 +125,7 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   }
   SetSizer(new wxBoxSizer(wxVERTICAL));
 
-  wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
+  wxWrapSizer *bar = new wxWrapSizer(wxHORIZONTAL);   // wraps in a narrow dock
   bar->Add(new wxStaticText(this, wxID_ANY, "Energy unit:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   p_unit = new wxChoice(this, ID_UNIT);
@@ -136,7 +137,6 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_view = new wxRadioBox(this, ID_VIEW, "Show", wxDefaultPosition,
                           wxDefaultSize, 2, views, 1, wxRA_SPECIFY_ROWS);
   bar->Add(p_view, 0, wxRIGHT, 12);
-  bar->AddStretchSpacer();
   wxButton *newCalc = new wxButton(this, ID_NEWCALC, "New calculation...");
   newCalc->SetToolTip("New calculation from the selected point of the path");
   bar->Add(newCalc, 0, wxRIGHT, 6);

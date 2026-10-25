@@ -220,6 +220,12 @@ AtomMeasureTorsion::~AtomMeasureTorsion()
 //=============================================================================
 void AtomMeasureTorsion::GLRender(SoGLRenderAction *action)
 {
+  // Drawn after the atoms and bonds, so the label is never painted over.
+  if (!action->isRenderingDelayedPaths()) {
+    action->addDelayedPath(action->getCurPath()->copy());
+    return;
+  }
+
   SoFaceSet::GLRender(action);
 
   // Access the state from the action
