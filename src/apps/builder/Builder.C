@@ -5505,12 +5505,12 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
 
   names.clear();
   if (layoutName == NAME_LAYOUT_READONLY) {
-    // All toolbars are shown except Manipulator and Measure
+    // All toolbars are shown except Manipulator and Style
     names.insert(NAME_TOOLBAR_MANIPULATOR);
-    names.insert(NAME_TOOLBAR_MEASURE);
+    names.insert(NAME_TOOLBAR_STYLE);
   } else if (layoutName == NAME_LAYOUT_DEFAULT) {
-    // All toolbars are shown except Measure
-    names.insert(NAME_TOOLBAR_MEASURE);
+    // All toolbars are shown except Style
+    names.insert(NAME_TOOLBAR_STYLE);
   } else if (layoutName == NAME_LAYOUT_STRUCTLIB) {
     // noop
   }
