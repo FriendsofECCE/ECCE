@@ -536,7 +536,8 @@ void DensityMapPanel::compute(bool coarse)
   std::string lev;
   {
     bool scaled = false;
-    const vector<double> lv = mapLevels(p_map, scaled);
+    vector<double> lv = mapLevels(p_map, scaled);
+    std::sort(lv.begin(), lv.end());   // the ladder is extended downwards last
     const bool orb = p_map.quantity == ORBITAL;
     for (size_t k = 0; k < lv.size() && k < 4; k++) {
       if (k) lev += ", ";
