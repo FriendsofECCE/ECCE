@@ -127,7 +127,7 @@ def main():
             one, two = open(sp1).read(), open(sp2).read()
             check("speed_m/s,Ar_measured,Ar_MB" in one and "He_measured" not in one,
                   "the CSV of the run alone holds argon only")
-            check("He_measured" in two and "Ar_measured" in two,
+            check("He_he-gas_measured" in two and "Ar_measured" in two,
                   "the CSV after Compare holds both, helium labelled")
             mean = float(re.search(r"# Ar .*mean_m/s=([0-9.]+)", one).group(1))
             check(abs(mean - 398.7) < 3, "measured mean argon speed %.1f m/s, theory 398.7" % mean)

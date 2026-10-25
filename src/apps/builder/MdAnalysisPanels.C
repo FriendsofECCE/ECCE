@@ -227,22 +227,20 @@ void SpeedPanel::redraw()
         mb[b] = 1000 * mbDensity(v[b], c.mass, c.refT);
       }
       const wxString who = utf8(c.label) + " (" + utf8(run) + ")";
-      const int a = p_plot->addCurve(v, meas, who + " simulation", series, XYPlotCanvas::LINE);
+      const int a = p_plot->addCurve(v, meas, who + " simulation", series, XYPlotCanvas::MARKERS);
       p_plot->setCurveColour(a, p_plot->seriesColour(series));
       const int b = p_plot->addCurve(v, mb, utf8(c.label) +
           wxString::Format(" Maxwell-Boltzmann, %.0f K", c.refT), series, XYPlotCanvas::LINE);
       p_plot->setCurveColour(b, p_plot->seriesColour(series));
-      p_plot->setCurveStyle(b, true, 1);
+      p_plot->setCurveStyle(b, false, 2);
       p_plot->addVLine(mbMostProbable(c.mass, c.refT), "v_p " + utf8(c.label));
       p_plot->addVLine(mbMean(c.mass, c.refT), "mean " + utf8(c.label));
       p_plot->addVLine(mbRms(c.mass, c.refT), "rms " + utf8(c.label));
       series++;
       p_curveTotal += 2;
-      text += wxString::Format("%s, %s: mass %.4g u, %.0f K. Mean speed %.0f m/s (Maxwell-Boltzmann %.0f), "
-                               "rms %.0f m/s (%.0f), most probable %.0f m/s.\n",
-                               utf8(c.label), utf8(run), c.mass, c.refT, c.mean,
-                               mbMean(c.mass, c.refT), c.rms, mbRms(c.mass, c.refT),
-                               mbMostProbable(c.mass, c.refT));
+      text += wxString::Format("%s (%s): mean %.0f m/s (MB %.0f), rms %.0f (%.0f), v_p %.0f\n",
+                               utf8(c.label), utf8(run), c.mean, mbMean(c.mass, c.refT),
+                               c.rms, mbRms(c.mass, c.refT), mbMostProbable(c.mass, c.refT));
     }
   }
   if (text.IsEmpty()) text = "No velocities were saved in this run (nstvout), so there is no speed distribution.";
@@ -352,7 +350,7 @@ void MsdPanel::redraw()
       if (f.ok) {
         const std::vector<double> t = {f.from, f.to};
         const std::vector<double> y = {f.intercept + f.slope * f.from, f.intercept + f.slope * f.to};
-        const int l = p_plot->addCurve(t, y, "fit " + utf8(c.label), series, XYPlotCanvas::LINE);
+        const int l = p_plot->addCurve(t, y, "fit " + who, series, XYPlotCanvas::LINE);
         p_plot->setCurveColour(l, p_plot->seriesColour(series));
         p_plot->setCurveStyle(l, true, 2);
         p_curveTotal++;
@@ -363,10 +361,9 @@ void MsdPanel::redraw()
           if (p_toBox && !p_toBox->HasFocus()) p_toBox->ChangeValue(wxString::Format("%.4g", f.to));
           first = false;
         }
-        text += wxString::Format("%s, %s (%d molecules): D = %.4g × 10⁻⁵ cm²/s "
-                                 "(%.4g × 10⁻⁹ m²/s), fit %.4g–%.4g ps, %d points.\n",
-                                 utf8(c.label), utf8(run), c.molecules, toE5cm2s(f.D),
-                                 toE5cm2s(f.D), f.from, f.to, f.points);
+        text += wxString::Format("%s (%s): D = %.4g \u00D7 10\u207B\u2075 cm\u00B2/s = %.4g \u00D7 10\u207B\u2079 m\u00B2/s, fit %.4g\u2013%.4g ps\n",
+                                 utf8(c.label), utf8(run), toE5cm2s(f.D), toE5cm2s(f.D),
+                                 f.from, f.to);
       }
       series++;
     }
