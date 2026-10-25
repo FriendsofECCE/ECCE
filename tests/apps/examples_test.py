@@ -60,8 +60,11 @@ COMPUTATIONAL = {
 VIBS = ["TE", "VIB", "VIBFREQ", "VIBIR"]
 ORCA_RAMAN = ["TE", "MO", "VIB", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]
 QM_LOC = VIBS + ["MO", "LOCMO", "LOCMOENG", "LOCMOLABEL", "LOCMOOCC"]
+SCAN = ["TE", "SCANCOORD", "SCANENERGY", "SCANGEOM"]
 ORGANIC = {
     "ethane": QM_LOC, "ethene": QM_LOC, "ethyne": QM_LOC,
+    "ethane_scan": SCAN, "butane_scan": SCAN, "nma_scan": SCAN,
+    "nma_scan_rev": SCAN,
     "benzene": ["MO", "VIBFREQ", "ESPFIT", "HIRSHFELD", "MBIS", "NPA"],
     "butadiene": VIBS, "ethylene": VIBS, "cyclohexene": VIBS,
     "diels_alder_ts": VIBS, "diels_alder_irc": ["TE", "IRCCOORD", "IRCENERGY"],
@@ -296,7 +299,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*7", text):
+        if not re.search(r"exampleSet[^0-9]*8", text):
             problems.append("%s records no example-set version" % project)
     for project, expect in NEW_SETS.items():
         got = box.get(project) or {}

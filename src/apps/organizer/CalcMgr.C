@@ -3074,6 +3074,10 @@ const vector<ExampleSet>& exampleSets()
       "ecceqm-ethane/ethane.qmout",
       "ecceqm-ethene/ethene.qmout",
       "ecceqm-ethyne/ethyne.qmout",
+      "ecceqm-ethane-scan/ethane_scan.qmout",
+      "ecceqm-butane-scan/butane_scan.qmout",
+      "ecceqm-nma-scan-forward/nma_scan.qmout",
+      "ecceqm-nma-scan-reverse/nma_scan_rev.qmout",
       "orca-benzene/benzene.out",
       "orca-butadiene/butadiene.out",
       "orca-ethylene/ethylene.out",
@@ -3111,7 +3115,7 @@ const vector<ExampleSet>& exampleSets()
   };
   return sets;
 }
-const char *const kExampleSetVersion = "7";
+const char *const kExampleSetVersion = "8";
 
 string examplesDir()
 {
@@ -3382,6 +3386,43 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      " The optimised C-C distance is 1.205 Å, shorter than in ethene,"
      " and the totally symmetric C-C stretch is at 2085.58 cm-1 (IR inactive"
      "), higher than in ethene."},
+    {"ethane_scan",
+     "ECCE-QM, B3LYP/6-31G*, relaxed scan of the H-C-C-H torsion, -180 to 180"
+     " degrees in 25 points. This calculation shows the internal rotation of "
+     "ethane: in the Relaxed Scan panel the energy is lowest, 0.0 kJ/mol, for"
+     " the staggered geometries at -180, -60, 60 and 180 degrees and highest,"
+     " 11.8 kJ/mol, for the eclipsed ones at -120, 0 and 120 degrees, so the "
+     "rotation barrier is 11.8 kJ/mol (electronic energies, no zero-point cor"
+     "rection)."},
+    {"butane_scan",
+     "ECCE-QM, B3LYP/6-31G*, relaxed scan of the C-C-C-C torsion, -180 to 180"
+     " degrees in 25 points. This calculation shows the conformers of butane:"
+     " in the Relaxed Scan panel the anti conformer at +-180 degrees is the m"
+     "inimum, 0.0 kJ/mol; the gauche conformers at +-60 degrees lie 3.7 and 3"
+     ".8 kJ/mol above it, and the syn (eclipsed) geometry at 0 degrees is 23."
+     "8 kJ/mol above it, the top of the barrier between the two gauche confor"
+     "mers (electronic energies, no zero-point correction)."},
+    {"nma_scan",
+     "ECCE-QM, B3LYP/6-31G*, relaxed scan of the O=C-N-C torsion of N-methyla"
+     "cetamide, 0 to 360 degrees in 25 points. This calculation shows the ro"
+     "tation barrier of the amide bond, which has partial double-bond charact"
+     "er: the planar trans amide at 0 and 360 degrees is the minimum, the cis"
+     " amide at 180 degrees is 10.6 kJ/mol above it, and the energy rises ste"
+     "eply on twisting. The curve jumps from 92.0 kJ/mol at 120 degrees to 20"
+     ".3 kJ/mol at 135 degrees, and again from 76.2 kJ/mol at 300 degrees to "
+     "20.4 kJ/mol at 315 degrees: a relaxed scan follows one continuous path,"
+     " and the nitrogen stays pyramidal on the higher-energy branch until it "
+     "flips. Compare nma_scan_rev, which runs the other way (hysteresis); the"
+     " rotation barrier is below both curves."},
+    {"nma_scan_rev",
+     "ECCE-QM, B3LYP/6-31G*, relaxed scan of the O=C-N-C torsion of N-methyla"
+     "cetamide, 360 to 0 degrees in 25 points. This calculation shows that th"
+     "e relaxed scan of nma_scan depends on its direction (hysteresis): run b"
+     "ackwards, the energy rises to 92.0 kJ/mol at 240 degrees and drops to 2"
+     "0.3 kJ/mol at 225 degrees, the mirror image of the forward scan, becaus"
+     "e the nitrogen stays pyramidal on the higher-energy branch until it fli"
+     "ps. The lower envelope of the two scans peaks near 58 kJ/mol at 90 and "
+     "270 degrees, and the true rotation barrier is below both curves."},
     {"butadiene",
      "ORCA, B3LYP-D3BJ/def2-SVP. Optimisation and frequencies. This calculat"
      "ion shows the diene of the Diels-Alder reaction in its s-gauche confor"

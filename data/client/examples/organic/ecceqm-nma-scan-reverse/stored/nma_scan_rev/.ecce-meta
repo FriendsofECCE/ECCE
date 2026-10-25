@@ -1,0 +1,51 @@
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, relaxed scan of the O=C-N-C torsion of N-methylacetamide, 360 to 0 degrees in 25 points. This calculation shows that the relaxed scan of nma_scan depends on its direction (hysteresis): run backwards, the energy rises to 92.0 kJ/mol at 240 degrees and drops to 20.3 kJ/mol at 225 degrees, the mirror image of the forward scan, because the nitrogen stays pyramidal on the higher-energy branch until it flips. The lower envelope of the two scans peaks near 58 kJ/mol at 90 and 270 degrees, and the true rotation barrier is below both curves.
+.	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
+.	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 25 Oct 2026 17:38:03 GMT
+.	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
+.	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 25 Oct 2026 17:37:32 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
+.	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
+.	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
+.	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
+.	http://www.emsl.pnl.gov/ecce:job_clientid		
+.	http://www.emsl.pnl.gov/ecce:job_jobid		
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/nma_scan_rev__hGPosG
+.	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
+.	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
+.	http://www.emsl.pnl.gov/ecce:launch_maxwall		
+.	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
+.	http://www.emsl.pnl.gov/ecce:launch_nodes		0
+.	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_queue		
+.	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
+.	http://www.emsl.pnl.gov/ecce:launch_rundir		
+.	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
+.	http://www.emsl.pnl.gov/ecce:launch_user		
+.	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
+.	http://www.emsl.pnl.gov/ecce:moleculeDocument		chemsys.mvm
+.	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
+.	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
+.	http://www.emsl.pnl.gov/ecce:owner		andy
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=28 sent=1792949882.041 at=1792949882\nscan point=25/25\nscf cycle=9 energy=-248.3714348183 dE=-3.47e-12/1e-10 grad=8.77e-08/1e-07 converged=yes\nscf~ dE=-1.02e-04,-1.27e-06,-1.35e-07,-1.34e-08,-1.81e-09,-7.99e-10,-2.74e-11,-3.47e-12\nopt step=28 energy=-248.3714348183 maxgrad=1.36e-04/3e-04 rmsgrad=5.06e-05/1e-04 maxstep=3.18e-03/4e-03 rmsstep=1.36e-03/2e-03 dE=-5.72e-07/5e-06 converged=yes\nopt~ maxgrad=2.07e-03,1.26e-03,1.32e-03,5.80e-04,7.78e-04,4.70e-04,4.91e-04,5.17e-04,4.59e-04,2.97e-04,9.80e-05,2.24e-02,1.08e-02,2.31e-03,1.94e-03,1.08e-03,2.95e-04,1.63e-04,2.97e-04,5.00e-04,6.31e-04,4.71e-04,4.14e-04,3.25e-04,1.52e-04,1.77e-04,2.07e-04,1.79e-04,2.15e-04,1.50e-04,1.77e-04,1.19e-04,7.15e-05,1.99e-02,1.04e-02,2.10e-03,1.57e-03,9.65e-04,2.58e-04,2.25e-04,3.65e-04,3.36e-04,4.77e-04,9.54e-04,1.13e-03,5.72e-04,1.07e-03,3.83e-04,3.57e-04,5.50e-04,1.88e-04,1.46e-04,3.20e-04,1.16e-04,9.97e-05,1.24e-04,9.01e-05,1.20e-04,1.13e-04,1.90e-04,9.59e-05,9.11e-05,8.53e-05,1.94e-02,1.07e-02,2.03e-03,1.15e-03,4.81e-04,3.49e-04,5.27e-04,7.34e-04,6.91e-04,8.40e-04,7.69e-04,1.02e-03,1.10e-03,3.55e-04,2.76e-04,5.22e-04,4.26e-04,3.18e-04,3.35e-04,3.29e-04,1.09e-04,1.47e-04,1.79e-04,1.78e-04,2.03e-04,2.81e-04,1.36e-04\nopt~ rmsgrad=8.68e-04,5.42e-04,4.37e-04,2.77e-04,2.98e-04,1.70e-04,2.28e-04,1.85e-04,1.53e-04,1.11e-04,4.37e-05,8.74e-03,3.16e-03,9.99e-04,9.16e-04,4.79e-04,1.19e-04,6.94e-05,1.36e-04,2.20e-04,2.58e-04,2.10e-04,1.50e-04,1.22e-04,6.17e-05,6.31e-05,9.14e-05,8.57e-05,8.43e-05,7.60e-05,7.01e-05,4.05e-05,2.91e-05,7.84e-03,2.77e-03,8.68e-04,6.64e-04,3.36e-04,1.17e-04,1.07e-04,1.33e-04,1.38e-04,2.12e-04,3.48e-04,3.98e-04,2.48e-04,3.88e-04,1.63e-04,1.52e-04,2.31e-04,8.96e-05,6.08e-05,1.35e-04,4.07e-05,3.35e-05,3.95e-05,3.87e-05,5.03e-05,4.51e-05,8.27e-05,4.44e-05,3.79e-05,3.85e-05,6.57e-03,2.71e-03,8.98e-04,4.62e-04,2.19e-04,1.26e-04,1.75e-04,2.53e-04,2.96e-04,3.27e-04,3.70e-04,3.73e-04,4.76e-04,1.31e-04,1.73e-04,2.13e-04,1.60e-04,1.72e-04,1.13e-04,1.35e-04,4.35e-05,5.03e-05,6.56e-05,7.81e-05,9.59e-05,1.23e-04,5.06e-05\n
+.	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
+.	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
+.	http://www.emsl.pnl.gov/ecce:rerun		false
+.	http://www.emsl.pnl.gov/ecce:resourcetype		virtual_document
+.	http://www.emsl.pnl.gov/ecce:reviewed		false
+.	http://www.emsl.pnl.gov/ecce:reviewedDate		
+.	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
+.	http://www.emsl.pnl.gov/ecce:runStatusReason		
+.	http://www.emsl.pnl.gov/ecce:runtype		Geometry
+.	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
+.	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
+.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 25 Oct 2026 17:37:32 GMT
+.	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT
