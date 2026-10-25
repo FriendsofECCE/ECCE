@@ -558,6 +558,8 @@ class Builder: public BuilderGUI,
                            const string& outdir);
       bool densityMapCommand(SceneScript& s, const vector<string>& w,
                              const string& outdir);
+      bool radialDistCommand(SceneScript& s, const vector<string>& w,
+                             const string& outdir);
       bool pbcTestCommand(SceneScript& s, const vector<string>& w,
                           const string& outdir);
 

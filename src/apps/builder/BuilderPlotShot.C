@@ -22,6 +22,7 @@
 #include "PropertyPanel.H"
 #include "MoPanel.H"
 #include "DensityMapPanel.H"
+#include "RadialDistPanel.H"
 #include "XYPlotCanvas.H"
 
 
@@ -306,5 +307,74 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
   if (!ok) return s.fail(cmd + ": refused");
   const std::string st = dm->state();
   fprintf(stderr, "DENSITYMAP: %s\n%s", cmd.c_str(), st.c_str());
+  return true;
+}
+
+
+//  Scene commands for the Radial Distribution panel; each GUI action has one:
+//    rdopen | rdclose
+//    rdcentre N           the centre atom (1-based as labelled)
+//    rdmo N,N,...|none    exactly these orbitals ticked
+//    rdtotal 0|1|per      the total density off, on, or divided by the electron count
+//    rdspin alpha|beta | rdunit A|bohr
+//    rdcsv <name> | rdpng <name> <w> <h> | rdstate
+bool Builder::radialDistCommand(SceneScript& s, const vector<string>& w,
+                                const string& outdir)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane("Radial Distribution");
+  if (!pane.IsOk()) return s.fail(w[0] + ": no Radial Distribution panel");
+  if (w[0] == "rdclose") {
+    pane.Hide();
+    updatePanes(true);
+    return true;
+  }
+  if (!pane.IsShown()) {
+    pane.Show(true);
+    for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
+      wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+      if (item != 0 && item->GetItemLabelText() == "Radial Distribution") item->Check(true);
+    }
+    updatePanes(true);
+  }
+  RadialDistPanel *rd = 0;
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(p_calculation->getURL().toString());
+  for (set<PropertyPanel*>::iterator it = panels.begin();
+       it != panels.end() && !rd; ++it)
+    rd = dynamic_cast<RadialDistPanel*>(*it);
+  if (!rd) return s.fail(w[0] + ": no Radial Distribution panel for this calculation");
+  rd->ensureInitialized();
+  const std::string& cmd = w[0];
+  bool ok = true;
+  if (cmd == "rdcentre" && w.size() == 2) {
+    ok = rd->setCentre(atoi(w[1].c_str()));
+  } else if (cmd == "rdmo" && w.size() == 2) {
+    vector<int> mos;
+    if (w[1] != "none") {
+      size_t at = 0;
+      while (at < w[1].size()) {
+        mos.push_back(atoi(w[1].c_str() + at));
+        const size_t comma = w[1].find(',', at);
+        if (comma == string::npos) break;
+        at = comma + 1;
+      }
+    }
+    ok = rd->setOrbitals(mos);
+  } else if (cmd == "rdtotal" && w.size() == 2) {
+    ok = rd->setTotal(w[1] != "0", w[1] == "per");
+  } else if (cmd == "rdspin" && w.size() == 2) {
+    ok = rd->setBeta(w[1] == "beta");
+  } else if (cmd == "rdunit" && w.size() == 2) {
+    ok = rd->setBohr(w[1] == "bohr");
+  } else if (cmd == "rdcsv" && w.size() == 2) {
+    ok = rd->exportCsv(wxString(outdir + "/" + w[1] + ".csv"));
+  } else if (cmd == "rdpng" && w.size() == 4) {
+    ok = rd->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
+                     atoi(w[3].c_str()));
+  } else if (cmd != "rdopen" && cmd != "rdstate") {
+    return s.fail("unknown radial distribution command: " + cmd);
+  }
+  if (!ok) return s.fail(cmd + ": refused");
+  fprintf(stderr, "RADIALDIST: %s\n%s", cmd.c_str(), rd->state().c_str());
   return true;
 }

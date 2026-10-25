@@ -95,6 +95,10 @@ describe what you did and what happened.
 20. [Localised orbitals](localised-orbitals.md): the occupied orbitals as bonds,
    lone pairs and core orbitals, and how to read their names.
 
+21. [Radial distribution](radial-distribution.md): how far from an atom the
+   electrons of each orbital are found, shells, penetration and the shell
+   structure of the total density.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the

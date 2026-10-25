@@ -15,6 +15,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Organizer tool buttons paint their SVG icon; setBitMap (the calculation thumbnail) must replace it there](organizer-tool-button-draws-its-svg-not-setbitmap.md)
 - [The MD editor tools are registered once, as NWChem's; the Organizer's button must name the task's code and fit its label](md-editor-tools-are-registered-as-nwchems.md)
 - [The Density Map plane is one model (point + normal) in wx-free DensityPlane; picks, the view and the offset all set it, and the panel draws it in the viewer as a StyledPlane](density-map-plane-is-a-point-and-a-normal.md)
+- [The Radial Distribution panel is a Lebedev spherical average of DensityPlane::Evaluator in wx-free RadialDist; the evaluator works in bohr, atom shell labels are inferred, aug- sets are refused by ECCE-QM](radial-distribution-is-a-lebedev-average-of-the-evaluator.md)
 - [Every plot is an `ewxPlotCtrl` styled by `PlotStyle.H`, the palette the vibrational spectrum canvas uses; `tests/plots/capture.py` pictures them before and after a change](plots-share-the-spectrum-style.md)
 - [`ComputeMoCmd` caches a grid before computing it; a failed Compute must remove it (#239)](mo-grid-cache-keeps-a-failed-compute.md)
 - [A property panel is built when it is on screen, not when wxAUI Show()s it in a hidden floating frame](mo-diagram-builds-when-a-calculation-opens.md)

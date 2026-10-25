@@ -12,8 +12,8 @@ DST = "tests/builder/densitymap-fixtures"
 WATER = "tests/mocomp/fixtures/water"
 FIXTURES = {"n2": "ecceqm-n2", "ethene": "ecceqm-c2h4"}
 
-for name, src in FIXTURES.items():
-    out = os.path.join(DST, name)
+def convert(name, src, out):
+    """One modiagram fixture as a local-data-mode calculation folder."""
     shutil.rmtree(out, ignore_errors=True)
     for part in ("Parameters", "Props"):
         shutil.copytree(os.path.join(SRC, src, part), os.path.join(out, part),
@@ -30,4 +30,9 @@ for name, src in FIXTURES.items():
         if key in basis:
             par = re.sub(r"(ecce:%s\t\t).*" % key, lambda m: m.group(1) + basis[key], par)
     open(os.path.join(out, "Parameters/.ecce-meta"), "w").write(par)
-print("ok")
+
+
+if __name__ == "__main__":
+    for name, src in FIXTURES.items():
+        convert(name, src, os.path.join(DST, name))
+    print("ok")
