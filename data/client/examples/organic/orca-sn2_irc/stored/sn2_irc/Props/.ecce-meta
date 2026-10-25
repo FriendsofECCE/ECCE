@@ -6,6 +6,7 @@ ETIME	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 GEOMTRACE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 IRCCOORD	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 IRCENERGY	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+IRCGEOM	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 KE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 LOEWDIN	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 MULLIKEN	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
