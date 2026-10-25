@@ -1,5 +1,6 @@
+#include <cstdlib>
 #include <wx/checkbox.h>
-#include <wx/choice.h>
+#include <wx/textctrl.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/wrapsizer.h>
@@ -11,41 +12,42 @@ PlaybackExtras::PlaybackExtras(wxWindow *parent, wxSizer *sizer, int *delay)
   : p_delay(delay)
 {
   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
-  row->Add(new wxStaticText(parent, wxID_ANY, "Playback speed:"), 0,
+  //  Milliseconds per step, as the Geometry Trace's Delay field.
+  row->Add(new wxStaticText(parent, wxID_ANY, "Delay:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  p_speed = new wxChoice(parent, wxID_ANY);
-  p_speed->Append("Slow");
-  p_speed->Append("Normal");
-  p_speed->Append("Fast");
-  p_speed->SetSelection(playbackloop::NORMAL);
-  p_speed->SetToolTip("Time between points: 1 s, 0.5 s or 0.15 s");
-  row->Add(p_speed, 0, wxRIGHT, 12);
+  p_speed = new wxTextCtrl(parent, wxID_ANY, std::to_string(delay ? *delay : 500));
+  p_speed->SetToolTip("Time between points during playback, 1 to 10000 ms");
+  row->Add(p_speed, 0, wxALIGN_CENTER_VERTICAL);
+  row->Add(new wxStaticText(parent, wxID_ANY, "ms"), 0,
+           wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
+  row->AddSpacer(8);
   p_loop = new wxCheckBox(parent, wxID_ANY, "Loop");
   p_loop->SetToolTip("Play forward to the last point, then backward to the "
                      "first, and repeat until stopped");
   row->Add(p_loop, 0, wxALIGN_CENTER_VERTICAL);
   sizer->Add(row, 0, wxLEFT | wxRIGHT, 4);
-  p_speed->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { onSpeed(); });
+  p_speed->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { onSpeed(); });
 }
 
 void PlaybackExtras::onSpeed()
 {
-  if (p_delay) *p_delay = playbackloop::delayMs(p_speed->GetSelection());
+  long ms = 0;
+  if (p_delay && p_speed->GetValue().ToLong(&ms) && ms >= 1 && ms <= 10000)
+    *p_delay = (int)ms;
 }
 
 bool PlaybackExtras::setSpeed(const std::string& name)
 {
-  int i = name == "slow" ? 0 : name == "normal" ? 1 : name == "fast" ? 2 : -1;
-  if (i < 0) return false;
-  p_speed->SetSelection(i);
+  const int ms = atoi(name.c_str());
+  if (ms < 1 || ms > 10000) return false;
+  p_speed->ChangeValue(std::to_string(ms));
   onSpeed();
   return true;
 }
 
 std::string PlaybackExtras::speed() const
 {
-  static const char *names[] = {"slow", "normal", "fast"};
-  return names[p_speed->GetSelection()];
+  return p_delay ? std::to_string(*p_delay) : std::string();
 }
 
 void PlaybackExtras::setLoop(bool on) { p_loop->SetValue(on); }

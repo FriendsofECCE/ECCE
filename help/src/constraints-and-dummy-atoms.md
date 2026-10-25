@@ -86,8 +86,8 @@ available for Gaussian 16 calculations.
 
 The **Relaxed Scan** panel and the **IRC Path** panel have a playback control
 under the plot. Its buttons step through the points and show each structure
-in the 3D view. **Playback speed:** sets the time between points: **Slow**
-(1 s), **Normal** (0.5 s) or **Fast** (0.15 s). Tick **Loop** to play forward
+in the 3D view. **Delay:** sets the time between points in milliseconds
+(500 by default), as in the Geometry Trace. Tick **Loop** to play forward
 to the last point, then backward to the first, and repeat until you press
 stop. The IRC Path panel gives the energy in the unit chosen under **Energy
 unit:** and the reaction coordinate in amu½·bohr.

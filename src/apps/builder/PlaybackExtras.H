@@ -5,11 +5,11 @@
 #include <wx/panel.h>
 
 class wxCheckBox;
-class wxChoice;
+class wxTextCtrl;
 class wxSizer;
 
 /**
- * The playback speed choice and Loop toggle under the playback buttons of
+ * The playback delay (ms per step) and Loop toggle under the playback buttons of
  * the Relaxed Scan and IRC Path panels.
  */
 class PlaybackExtras
@@ -18,7 +18,7 @@ class PlaybackExtras
       /** Adds the row to <sizer>; <delay> is the playback control's delay. */
       PlaybackExtras(wxWindow *parent, wxSizer *sizer, int *delay);
 
-      /** "slow", "normal" or "fast"; false for anything else. */
+      /** Milliseconds per step, 1 to 10000; false for anything else. */
       bool setSpeed(const std::string& name);
       std::string speed() const;
       void setLoop(bool on);
@@ -26,7 +26,7 @@ class PlaybackExtras
 
    private:
       void onSpeed();
-      wxChoice *p_speed;
+      wxTextCtrl *p_speed;
       wxCheckBox *p_loop;
       int *p_delay;
 };

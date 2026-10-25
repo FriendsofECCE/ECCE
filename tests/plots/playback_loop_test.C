@@ -19,9 +19,6 @@ int main()
         "2 points alternate");
   check(sequence(1, 3) == (std::vector<long>{0, 0, 0, 0}), "1 point stays");
   check(sequence(0, 3).empty(), "no points, nothing shown");
-  check(delayMs(SLOW) > delayMs(NORMAL) && delayMs(NORMAL) > delayMs(FAST),
-        "slow > normal > fast delay");
-  check(delayMs(NORMAL) == 500, "normal is the old 500 ms");
   std::printf("%s\n", fails ? "FAILED" : "all passed");
   return fails ? 1 : 0;
 }

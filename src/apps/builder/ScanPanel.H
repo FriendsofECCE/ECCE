@@ -53,7 +53,7 @@ class ScanPanel : public VizPropertyPanel
       /** Step the playback control: "first", "prev", "next", "last"; the point now selected. */
       int step(const std::string& which);
 
-      /** Playback speed ("slow", "normal", "fast") and Loop, as the controls do. For scripts and tests. */
+      /** Playback delay (ms per step) and Loop, as the controls do. For scripts and tests. */
       void setPlaybackSpeed(const std::string& name);
       std::string playbackSpeed() const;
       void setPlaybackLoop(bool on);

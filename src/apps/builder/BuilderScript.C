@@ -1202,8 +1202,8 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: scanstatus [%s]\n",
                 sp ? sp->status().utf8_str().data() : "no panel");
       } else if ((w[0] == "ircplayopt" || w[0] == "scanplayopt") && w.size() >= 2) {
-        //  ircplayopt|scanplayopt speed <slow|normal|fast> | loop <on|off> |
-        //  order <ticks>: the playback speed choice and Loop toggle; order
+        //  ircplayopt|scanplayopt speed <ms per step> | loop <on|off> |
+        //  order <ticks>: the playback Delay field and Loop toggle; order
         //  logs the points <ticks> ticks of play would show (no timers).
         IRCPanel *ip = 0;
         ScanPanel *sp = 0;

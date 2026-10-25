@@ -3,17 +3,9 @@
 
 #include <vector>
 
-// Playback speed and back-and-forth looping for the Relaxed Scan and IRC Path
+// Back-and-forth looping for the Relaxed Scan and IRC Path
 // panels.  No wx here, so the order of the points is testable.
 namespace playbackloop {
-
-enum Speed { SLOW = 0, NORMAL = 1, FAST = 2 };
-
-// Milliseconds between points; NORMAL is what the panels always used.
-inline int delayMs(int speed)
-{
-  return speed == SLOW ? 1000 : speed == FAST ? 150 : 500;
-}
 
 struct Pos {
   long cur;
