@@ -320,7 +320,7 @@ void CalcEd::runCalcEdScript(const string& file)
                 oneLine(constraintNote()).c_str());
         //  what the Settings box line itself shows (#502)
         fprintf(stderr, "CALCED: constraintsline shown=%d text=%s\n",
-                p_notes->IsShown() ? 1 : 0,
+                p_notesPanel->IsShown() ? 1 : 0,
                 oneLine(std::string(p_notes->GetLabel().ToUTF8().data())).c_str());
         {
           //  and what Verify says about them

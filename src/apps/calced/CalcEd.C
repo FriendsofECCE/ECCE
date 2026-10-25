@@ -1540,16 +1540,15 @@ void CalcEd::updateNotes()
   if (!p_notReadyWhy.empty())
     note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
   const wxString text = wxString::FromUTF8(note);
-  wxSizer *grid = p_notes->GetContainingSizer();
-  if (text == p_notesText && grid && grid->IsShown(p_notes) == !note.empty())
+  if (text == p_notesText && GetSizer()->IsShown(p_notesPanel) == !note.empty())
     return;
   p_notesText = text;
   p_notes->SetLabel(text);
-  //  Wrapped at the width the other rows already need, never wider.
-  const int width = std::max(grid ? grid->CalcMin().x : 0, p_notes->FromDIP(300));
+  //  Wrapped at the width the controls already need, never wider.
+  const int width = std::max(GetSizer()->CalcMin().x - FromDIP(24), p_notes->FromDIP(300));
   p_notes->Wrap(width);
   p_notes->SetToolTip(text);
-  if (grid) grid->Show(p_notes, !note.empty());
+  GetSizer()->Show(p_notesPanel, !note.empty());
   GetSizer()->Layout();
   refit();
 }
@@ -2056,6 +2055,8 @@ void CalcEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
   p_feedback->setSaveHandler(this);
+  GetSizer()->Add(p_notesPanel, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, FromDIP(5));
+  GetSizer()->Show(p_notesPanel, false);
   GetSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
 
   //  Save sits in the button row, a standard button just before Launch.
