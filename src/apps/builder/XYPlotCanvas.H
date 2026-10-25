@@ -154,6 +154,21 @@ class XYPlotCanvas : public wxPanel
     {
       return curveOk(curve) ? p_curves[curve].name : wxString();
     }
+    /** A dashed vertical line at x, labelled in its own row under the
+     *  tick labels (an atom's position along a line profile). */
+    void addVLine(double x, const wxString& label)
+    {
+      p_vlines.push_back(std::make_pair(x, label));
+      Refresh();
+    }
+    void clearVLines() { p_vlines.clear(); Refresh(); }
+    int vLineCount() const { return (int)p_vlines.size(); }
+    /** Cut the y axis at `top` (0: show everything), for tall peaks that
+     *  would flatten the rest of the curve. */
+    void setYLimit(double top) { p_yLimit = top; p_zoomed = false; Refresh(); }
+    /** A darker horizontal line at y = 0 (the sign change of a wave function). */
+    void setZeroLine(bool on) { p_zeroLine = on; Refresh(); }
+
     void setShowKey(bool show) { p_showKey = show; Refresh(); }
     void setShowXAxis(bool show) { p_showXAxis = show; Refresh(); }
     /** Room, in x units, kept clear on either side of the data. */
@@ -296,8 +311,10 @@ class XYPlotCanvas : public wxPanel
       //  The axis title sits on the bottom edge of the canvas and the plot
       //  leaves room above it, so a font taller than GetCharHeight() says
       //  (GTK scaling, descenders) cannot push it out of view.
+      const bool haveV = p_showXAxis && !p_vlines.empty();
+      const int vRow = haveV ? ch + 4 : 0;
       const int bottom = p_showXAxis
-          ? ch + 12 + (xTitle ? th + 12 : 0) : 8;
+          ? ch + 12 + vRow + (xTitle ? th + 12 : 0) : 8;
       const int plotW = std::max(40, size.x - left - right);
       const int plotH = std::max(30, size.y - top - bottom);
       p_plot = wxRect(left, top, plotW, plotH);
@@ -332,6 +349,16 @@ class XYPlotCanvas : public wxPanel
 
       dc.SetClippingRegion(p_plot.x - 4, p_plot.y - 4, p_plot.width + 8,
                            p_plot.height + 8);
+      if (p_zeroLine && 0.0 > p_y0 && 0.0 < p_y1) {
+        dc.SetPen(wxPen(p_palette.axis, 1));
+        dc.DrawLine(p_plot.x, yOf(0.0), p_plot.GetRight(), yOf(0.0));
+      }
+      dc.SetPen(wxPen(p_palette.axis, 1, wxPENSTYLE_SHORT_DASH));
+      for (size_t i = 0; i < p_vlines.size(); i++) {
+        const int x = xOf(p_vlines[i].first);
+        if (x >= p_plot.x && x <= p_plot.GetRight())
+          dc.DrawLine(x, p_plot.y, x, p_plot.GetBottom());
+      }
       for (size_t c = 0; c < p_curves.size(); c++) paintCurve(dc, (int)c);
       if (pointOk(p_selCurve, p_selIndex)) {
         const Curve& cv = p_curves[p_selCurve];
@@ -366,11 +393,26 @@ class XYPlotCanvas : public wxPanel
         }
       }
 
+      //  Line labels: their own row, a label that would touch its
+      //  neighbour is left out.
+      if (haveV) {
+        int edge = -1000000;
+        for (size_t i = 0; i < p_vlines.size(); i++) {
+          const int x = xOf(p_vlines[i].first);
+          if (x < p_plot.x || x > p_plot.GetRight()) continue;
+          const wxSize e = dc.GetTextExtent(p_vlines[i].second);
+          if (x - e.x / 2 < edge + 4) continue;
+          dc.DrawText(p_vlines[i].second, x - e.x / 2,
+                      p_plot.GetBottom() + ch + 8);
+          edge = x + e.x / 2;
+        }
+      }
+
       dc.SetFont(*wxNORMAL_FONT);
       if (xTitle) {
         const wxSize e = dc.GetTextExtent(p_xLabel);
         dc.DrawText(p_xLabel, p_plot.x + (p_plot.width - e.x) / 2,
-                    std::min(p_plot.GetBottom() + ch + 10, size.y - e.y - 4));
+                    std::min(p_plot.GetBottom() + ch + 10 + vRow, size.y - e.y - 4));
       }
       if (yTitle) drawVerticalText(dc, p_yLabel, 6, p_plot.y + p_plot.height / 2,
                                    p_plot.height);
@@ -387,6 +429,10 @@ class XYPlotCanvas : public wxPanel
     }
 
   private:
+
+    std::vector< std::pair<double, wxString> > p_vlines;
+    bool p_zeroLine = false;
+    double p_yLimit = 0.0;
 
     struct Curve
     {
@@ -457,6 +503,10 @@ class XYPlotCanvas : public wxPanel
       const double px = std::max(0.04 * dx, p_xPad);
       *xlo = x0 - px;  *xhi = x1 + px;
       *ylo = y0 - 0.06 * dy; *yhi = y1 + 0.06 * dy;
+      if (p_yLimit > 0 && p_yLimit < *yhi && p_yLimit > y0) {
+        *yhi = p_yLimit;
+        *ylo = y0 - 0.06 * (p_yLimit - y0);
+      }
       if (x1 == x0) { *xlo = x0 - dx / 2; *xhi = x0 + dx / 2; }
       return true;
     }

@@ -328,6 +328,15 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Density Profile</name>
+    <group>Orbitals</group>
+    <class>DensityProfilePanel</class>
+    <consumer>false</consumer>
+    <allowPin>false</allowPin>
+    <property name="ORBOCC"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Relaxed Scan</name>
     <group>Geometry</group>
     <class>ScanPanel</class>

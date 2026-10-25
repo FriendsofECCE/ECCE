@@ -100,6 +100,13 @@ for _k in range(3):
 
 #  ecceqm method keyword ("hf" gives RHF for a closed shell).
 METHOD = "b3lyp"
+BASIS = "6-31G*"
+MULTIPLICITY = 1
+
+#  Single atoms (radial distributions,).
+for _el in ("H", "C", "Ne", "Ar"):
+    MOLECULES[_el.lower()] = [(_el, 0.0, 0.0, 0.0)]
+MOLECULES["h2"] = [("H", 0.0, 0.0, -0.37), ("H", 0.0, 0.0, 0.37)]
 
 
 def libraryDiatomics():
@@ -176,9 +183,10 @@ def deck(code, atoms, opt):
                    "optimize" if opt else "energy"))
     if code == "ecceqm":
         return ("ecceqm.qmin", "ecceqm.qmout",
-                "title MO diagram fixture\ncharge 0\nmultiplicity 1\n"
-                "method %s\nspherical true\nbasis 6-31G*\n"
-                "geometry\n%send\n" % (METHOD, xyzLines(atoms)))
+                "title MO diagram fixture\ncharge 0\nmultiplicity %d\n"
+                "method %s\nspherical true\nbasis %s\n"
+                "geometry\n%send\n" % (MULTIPLICITY, METHOD, BASIS,
+                                         xyzLines(atoms)))
     raise SystemExit("unknown code " + code)
 
 
@@ -281,13 +289,18 @@ def basisFilePople(elements):
     the polarisation shell from 6-31GS."""
     def blocks(name):
         out = {}
-        text = open(os.path.join(ROOT, "data", "admin", "basissets",
-                                 name + ".BAS")).read()
+        folder = os.path.join(ROOT, "data", "admin", "basissets")
+        found = sorted(f for f in os.listdir(folder)
+                       if f.lower() == name.lower() + ".bas")
+        text = open(os.path.join(folder, found[0])).read()
         for chunk in text.split("atom=")[1:]:
             el, body = chunk.split("\n", 1)
             out[el.strip()] = body
         return out
-    base, pol = blocks("6-31G"), blocks("6-31GS")
+    if BASIS == "6-31G*":
+        base, pol = blocks("6-31G"), blocks("6-31GS")
+    else:   # the library file holds the whole set
+        base, pol = blocks(BASIS), {}
     flags = "false " * 8
     out = ["<MolecularConfig>\n<Map>\n"]
     #  One Group per element, as the Calculation Editor writes a Pople set.
@@ -311,7 +324,7 @@ def basisFilePople(elements):
     for el in elements:
         out.append("element=%s\n%s%s" % (el, base[el], pol.get(el, "")))
     out.append("EndBasisSet\n</Data>\n</MolecularConfig>")
-    return "".join(out)
+    return "".join(out).replace("6-31G*", BASIS)
 
 
 def basisFile(elements):
@@ -368,14 +381,19 @@ def main():
                     help="record the basis as spherical (coordsys Y)")
     ap.add_argument("--method", default="b3lyp",
                     help="ecceqm only: b3lyp (default) or hf")
+    ap.add_argument("--basis", default="6-31G*", help="ecceqm only")
+    ap.add_argument("--multiplicity", type=int, default=1,
+                    help="ecceqm only; above 1 with hf gives ROHF")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--save-output", help="copy the code's output here")
     a = ap.parse_args()
     #  The parser scripts find pertab.pl and friends through ECCE_HOME.
     os.environ["ECCE_HOME"] = ROOT
 
-    global METHOD
+    global METHOD, BASIS, MULTIPLICITY
     METHOD = a.method
+    BASIS = a.basis
+    MULTIPLICITY = a.multiplicity
     atoms = geometry(a.molecule, a.noise, a.seed, not a.no_rotate)
     deckName, outName, text = deck(a.code, atoms, a.opt)
     work = tempfile.mkdtemp(prefix="modiagram-%s-" % a.code,
@@ -443,7 +461,7 @@ def main():
                     r"num_primitives=(\d+)", body.split("EndBasisSet")[0]))
             json.dump({"": {"application": "ECCE-QM"},
                        "Parameters/BasisSet.ecce_basisset": {
-                           "name": "6-31G*", "coordsys": coordsys,
+                           "name": BASIS, "coordsys": coordsys,
                            "numFunctions": str(nfun),
                            "numPrimitives": str(nprim),
                            "ecpName": "", "gbs-type": "element"}},
