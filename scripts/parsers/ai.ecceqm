@@ -291,6 +291,13 @@ sub QMControl {
   $result .= "localise false\n" if ($AbiDict{"ES.Theory.ECCEQM.Localise"} eq "0");
   # Canonical virtuals are the engine default and are not written.
   $result .= "virtuals ivo\n" if ($AbiDict{"ES.Theory.ECCEQM.Virtuals"} eq "Improved (IVO)");
+  # Implicit solvent (CPCM); none is the engine default and is not written.
+  my $solv = $AbiDict{"ES.Theory.ECCEQM.Solvent"};
+  if (defined($solv) && $solv eq "Custom") {
+    $result .= "epsilon " . $AbiDict{"ES.Theory.ECCEQM.Epsilon"} . "\n";
+  } elsif (defined($solv) && $solv ne "" && $solv ne "None") {
+    $result .= "solvent " . lc($solv) . "\n";
+  }
   # Raman activities are only offered (and only meaningful) for frequency runs.
   if (($AbiDict{"RunType"} eq "Vibration" || $AbiDict{"RunType"} eq "GeoVib" ||
        $AbiDict{"RunType"} eq "Transition State (Opt-TS)") &&
