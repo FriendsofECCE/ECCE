@@ -9,8 +9,8 @@ project Examples by itself (#302): the `general` set, five calculations.
 The ECCE_TEST_ORGANIZER command `examples SET` is the dialog's OK: at the
 second start (which imports nothing) `examples computational` makes the
 project Examples_Computational with the Trp-cage study, `examples organic` and
-`examples spectroscopy` (#447, #485) make Examples_Organic and
-Examples_Spectroscopy; asking again (or for `general`) selects the existing
+`examples spectroscopy` (#447, #485) and `examples genchem` make Examples_Organic,
+Examples_Spectroscopy and Examples_GeneralChemistry; asking again (or for `general`) selects the existing
 project and duplicates nothing.  Every calculation of the two new sets must
 import with its properties and carry a note that says what it shows.
 Each calculation must
@@ -81,7 +81,16 @@ SPECTROSCOPY = {c: ORCA_RAMAN for c in (
 SPECTROSCOPY.update({
     "water": ["TE", "VIBFREQ", "VIBIR", "MO"],
     "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]})
-NEW_SETS = {"Examples_Organic": ORGANIC, "Examples_Spectroscopy": SPECTROSCOPY}
+# GROMACS runs: one dynamics task each; the gas runs saved velocities too.
+GENCHEM = {
+    "ar-gas": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "he-gas": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-liquid": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
+    "water-spce": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
+    "decane-opls": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
+}
+NEW_SETS = {"Examples_Organic": ORGANIC, "Examples_Spectroscopy": SPECTROSCOPY,
+            "Examples_GeneralChemistry": GENCHEM}
 # The study has no thumbnail and no theory/run type of its own.
 CALCS = list(EXPECT)
 
@@ -230,7 +239,7 @@ def run(display, data, work):
     with open(script, "w") as handle:
         handle.write("examples computational\nexamples computational\n"
                      "examples general\nexamples organic\n"
-                     "examples spectroscopy\nexamples organic\n")
+                     "examples spectroscopy\nexamples genchem\nexamples organic\n")
 
     box = {}
     projects = ["Examples_Computational"]
@@ -276,6 +285,7 @@ def run(display, data, work):
                    "ok Examples_Computational existing",
                    "ok Examples existing", "ok Examples_Organic created",
                    "ok Examples_Spectroscopy created",
+                   "ok Examples_GeneralChemistry created",
                    "ok Examples_Organic existing"]:
         problems.append("answers %s" % answers)
     for extra in ("Examples_2", "Examples_3"):
@@ -299,7 +309,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*8", text):
+        if not re.search(r"exampleSet[^0-9]*9", text):
             problems.append("%s records no example-set version" % project)
     for project, expect in NEW_SETS.items():
         got = box.get(project) or {}

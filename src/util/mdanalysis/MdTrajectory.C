@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include "MdTrajectory.H"
+#include "util/MdTrajectory.H"
 
 namespace {
 

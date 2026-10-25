@@ -1,0 +1,8 @@
+#include "spce.itp"
+
+[ system ]
+SPC/E water
+
+[ molecules ]
+; the SOL count is appended by gmx solvate -p
+SOL               977

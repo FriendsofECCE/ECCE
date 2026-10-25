@@ -6,7 +6,7 @@
 #include <cstring>
 #include <string>
 
-#include "util/mdanalysis/MdAnalysis.H"
+#include "util/MdAnalysis.H"
 
 namespace {
 void usage()

@@ -3070,6 +3070,9 @@ const vector<ExampleSet>& exampleSets()
       "nwchem-methane/methane.eprint"}},
     {"computational", "Examples_Computational", {
       "gromacs-trpcage"}},
+    {"genchem", "Examples_GeneralChemistry", {
+      "gromacs-ar-gas", "gromacs-he-gas", "gromacs-ar-liquid",
+      "gromacs-water-spce", "gromacs-decane-opls"}},
     {"organic", "Examples_Organic", {
       "ecceqm-ethane/ethane.qmout",
       "ecceqm-ethene/ethene.qmout",
@@ -3115,7 +3118,7 @@ const vector<ExampleSet>& exampleSets()
   };
   return sets;
 }
-const char *const kExampleSetVersion = "8";
+const char *const kExampleSetVersion = "9";
 
 string examplesDir()
 {
@@ -3570,6 +3573,36 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
      "calculation shows how the axial C4 hydroxyl group of galactose "
      "changes the vibrational spectrum compared with glucose."},
+    {"ar-gas",
+     "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
+     "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "
+     "(mean 399 m/s) and the mean-square displacement of an almost ideal "
+     "gas, which grows as t^2 while the atoms fly freely and as t once "
+     "collisions have randomised their direction (D = 948 x 10^-5 cm^2/s)."},
+    {"he-gas",
+     "GROMACS, Lennard-Jones helium, 1000 atoms, 300 K, 20 bar, 2 ns. This "
+     "calculation shows the Maxwell-Boltzmann distribution of the lighter "
+     "helium atoms (mean 1259 m/s, faster than argon by the square root of "
+     "the mass ratio) and their diffusion (D = 8656 x 10^-5 cm^2/s); use "
+     "Compare to draw the argon gas over it."},
+    {"ar-liquid",
+     "GROMACS, Lennard-Jones argon, 1000 atoms, 85 K, 1.40 g/cm^3, 2 ns. "
+     "This calculation shows the mean-square displacement of a liquid: "
+     "after a free flight of about 0.1 ps each atom is held by its "
+     "neighbours and the displacement grows linearly (D = 1.75 x 10^-5 "
+     "cm^2/s, about 540 times smaller than in the argon gas); use Compare "
+     "to draw the gas over it."},
+    {"water-spce",
+     "GROMACS, SPC/E water, 977 molecules, 298 K, 1 bar, PME, 5 ns. This "
+     "calculation shows the diffusion of liquid water from the mean-square "
+     "displacement of the molecular centres of mass (D = 2.47 x 10^-5 "
+     "cm^2/s, Einstein fit over 628-2500 ps)."},
+    {"decane-opls",
+     "GROMACS, OPLS-AA n-decane, 200 molecules, 298 K, 1 bar, 5 ns. This "
+     "calculation shows the diffusion of a liquid hydrocarbon from the "
+     "mean-square displacement of the molecular centres of mass (D = 0.82 x "
+     "10^-5 cm^2/s, about three times smaller than for water); use Compare "
+     "to draw the water over it."},
     {"trpcage", "GROMACS, AMBER99SB-ILDN, TIP3P. This study shows the stages "
                 "of a molecular dynamics simulation: preparation, energy "
                 "minimisation, equilibration and production. The temperature "

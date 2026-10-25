@@ -24,6 +24,7 @@ class Resource;
  *     confout.gro            the final structure (the task's output)
  *     *.gmxlog, *.log        the mdrun log
  *     ecce-parse-traj.txt    the trajectory frames, if any
+ *     ecce-parse-md.txt      speed distributions and MSD (mdanalysis), if any
  *   Prepare
  *     *.gmxprep, *.recipe    the recipe (input)
  *     *.pdb                  the source structure (input, kept as .gmxpdb)

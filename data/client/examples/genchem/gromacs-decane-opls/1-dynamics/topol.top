@@ -1,0 +1,9 @@
+; n-decane, OPLS-AA (all-atom) from GROMACS's own oplsaa.ff
+#include "oplsaa.ff/forcefield.itp"
+#include "decane.itp"
+
+[ system ]
+n-decane
+
+[ molecules ]
+DEC 200

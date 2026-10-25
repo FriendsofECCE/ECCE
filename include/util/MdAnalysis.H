@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "MdTopology.H"
+#include "util/MdTopology.H"
 
 /**
  * Analyses of a GROMACS trajectory for teaching: the distribution of atomic
@@ -78,5 +78,12 @@ bool decodeSpeed(const std::vector<std::string>& records,
                  std::vector<SpeedCurve>& out);
 bool decodeMsd(const std::vector<std::string>& records,
                std::vector<MsdCurve>& out);
+
+/** CSV (C locale): speed in m/s, then per curve the measured and the
+    Maxwell-Boltzmann density.  Curves share a grid only within a run, so
+    each curve gets its own speed column. */
+std::string speedCsv(const std::vector<SpeedCurve>& curves);
+/** CSV: per curve the lag time (ps) and MSD (nm^2), then a '#' line with its D. */
+std::string msdCsv(const std::vector<MsdCurve>& curves, double fitFrom, double fitTo);
 
 #endif

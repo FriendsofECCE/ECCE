@@ -13,8 +13,8 @@
 #include <string>
 #include <vector>
 
-#include "util/mdanalysis/MdAnalysis.H"
-#include "util/mdanalysis/MdTrajectory.H"
+#include "util/MdAnalysis.H"
+#include "util/MdTrajectory.H"
 
 static int failures = 0;
 static void check(bool ok, const char *what)

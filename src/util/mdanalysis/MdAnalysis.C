@@ -5,8 +5,8 @@
 #include <map>
 #include <sstream>
 
-#include "MdAnalysis.H"
-#include "MdTrajectory.H"
+#include "util/MdAnalysis.H"
+#include "util/MdTrajectory.H"
 
 namespace {
 const double kPi = 3.14159265358979323846;
@@ -338,4 +338,35 @@ bool decodeMsd(const std::vector<std::string>& records, std::vector<MsdCurve>& o
     out.push_back(c);
   }
   return true;
+}
+
+std::string speedCsv(const std::vector<SpeedCurve>& curves)
+{
+  std::string out = "# speed distributions; density per m/s, Maxwell-Boltzmann at the run's reference temperature\n";
+  for (const SpeedCurve& c : curves) {
+    out += "# " + c.label + " mass_u=" + number(c.mass) + " T_ref_K=" + number(c.refT) +
+           " mean_m/s=" + number(c.mean) + " rms_m/s=" + number(c.rms) + "\n";
+    out += "speed_m/s," + c.label + "_measured," + c.label + "_MB\n";
+    const size_t n = c.density.size();
+    for (size_t b = 0; b < n; b++) {
+      const double v = (b + 0.5) * c.vmax / n;
+      out += number(v) + "," + number(c.density[b]) + "," + number(mbDensity(v, c.mass, c.refT)) + "\n";
+    }
+  }
+  return out;
+}
+
+std::string msdCsv(const std::vector<MsdCurve>& curves, double fitFrom, double fitTo)
+{
+  std::string out = "# mean-square displacement of molecule centres of mass\n";
+  for (const MsdCurve& c : curves) {
+    const DiffusionFit f = fitDiffusion(c.time, c.msd, fitFrom, fitTo);
+    out += "# " + c.label + " molecules=" + std::to_string(c.molecules);
+    if (f.ok)
+      out += " D_1e-5cm2/s=" + number(toE5cm2s(f.D)) + " fit_ps=" + number(f.from) + "-" + number(f.to);
+    out += "\ntime_ps," + c.label + "_msd_nm2\n";
+    for (size_t i = 0; i < c.time.size(); i++)
+      out += number(c.time[i]) + "," + number(c.msd[i]) + "\n";
+  }
+  return out;
 }

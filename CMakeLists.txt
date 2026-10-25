@@ -505,7 +505,7 @@ target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
 # Speed distributions and MSD of a GROMACS run (the Builder's MD panels).
 add_executable(mdanalysis src/apps/mdanalysis/mdanalysis.C)
-target_include_directories(mdanalysis PRIVATE src)
+
 target_link_libraries(mdanalysis PRIVATE ecceutil ${XercesC_LIBRARIES})
 # An MO's atomic-orbital composition from a calculation folder (#161).
 # Installed as bin/mocomp; its wrapper is ecce-mocomp like every CLI app's.
@@ -2088,7 +2088,7 @@ add_test(NAME uvvis COMMAND uvvis_test)
 add_executable(atommap_cli tests/atommap/atommap_cli.C)
 target_link_libraries(atommap_cli PRIVATE eccetdat ecceutil)
 add_executable(mdanalysis_test tests/mdanalysis/mdanalysis_test.C)
-target_include_directories(mdanalysis_test PRIVATE src)
+
 target_link_libraries(mdanalysis_test PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mdanalysis COMMAND mdanalysis_test ${CMAKE_BINARY_DIR})
 add_test(NAME mdanalysis_gmx_oracle
