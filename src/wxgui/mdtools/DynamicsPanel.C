@@ -864,8 +864,8 @@ void DynamicsPanel::buildEnsembleRow()
   wxBoxSizer *h = new wxBoxSizer(wxHORIZONTAL);
   h->Add(new ewxStaticText(row, wxID_ANY, _("Ensemble:")), 0,
          wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-  const wxChar *names[3] = { _("NVE"), _("NVT"), _("NPT") };
-  const wxChar *tips[3] = {
+  const wxString names[3] = { _("NVE"), _("NVT"), _("NPT") };
+  const wxString tips[3] = {
     _("NVE: number of atoms, volume and energy stay constant. No thermostat "
       "and no barostat."),
     _("NVT: number of atoms, volume and temperature stay constant. The "

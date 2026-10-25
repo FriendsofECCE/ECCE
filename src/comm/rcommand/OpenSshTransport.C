@@ -1047,6 +1047,8 @@ RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
     else break;
   }
   bool refused = false;
+#ifndef _WIN32
+  // Never owned on Windows (ownedControlDir), which also has no pread().
   if (owned && attempt < kMaxOverflow) {
     // The master says so at once, but ssh then tries a connection of its own
     // (which may succeed or only fail later): the message is what counts.
@@ -1061,6 +1063,7 @@ RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
       refused = nextOverflowMaster(fake);
     }
   }
+#endif
   close(devnull);
   if (refused || done < header.size()) {
     DirectTransport::Stream st;
