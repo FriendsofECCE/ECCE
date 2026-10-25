@@ -107,9 +107,6 @@ class EcceqmTheoryPanel(EccePanel):
                                             default=False, export=1))
         self.panelSizer.Add(chgSizer)
         locSizer = EcceBoxSizer(self, label="Orbitals", cols=1)
-        locSizer.AddWidget(EcceCheckBox(
-            self, label=" Localised orbitals (bonds and lone pairs, same set for each spin)",
-            name="ES.Theory.ECCEQM.Localise", default=True, export=1))
         locSizer.AddWidget(EcceComboBox(self,
                                         choices=["Canonical", "Improved (IVO)"],
                                         name="ES.Theory.ECCEQM.Virtuals",
