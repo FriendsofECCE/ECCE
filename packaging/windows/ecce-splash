@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""ecce-splash: the start-up card while ecce.cmd starts the broker and the
+Organizer (Windows, #522).
+
+    ecce-splash          show the card until the Organizer has a window
+
+The Organizer shows the same card itself, but only once its own code runs.
+On a machine whose antivirus checks every new program before it may start
+(WithSecure on a managed laptop: 10-16 s for organizer.exe after an install)
+nothing was on the screen until then.  Python is signed and already checked,
+so this card is up within about a second.
+
+It goes when a visible window of <ECCE_HOME>/bin/organizer.exe appears, when
+ecce.cmd leaves %TEMP%/ecce-splash-<ECCE_SESSION_ID>.stop (the start failed),
+when clicked, or after three minutes.
+"""
+import ctypes
+import os
+import sys
+import time
+from ctypes import wintypes
+
+ECCE_HOME = os.environ.get("ECCE_HOME") or os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
+ORGANIZER = os.path.join(ECCE_HOME, "bin", "organizer.exe")
+STOP = os.path.join(os.environ.get("TEMP", ""),
+                    "ecce-splash-%s.stop" % os.environ.get("ECCE_SESSION_ID", ""))
+LIMIT_S = 180
+# After this long, say why it can take a while.
+SLOW_S = 8
+
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
+
+user32 = ctypes.WinDLL("user32", use_last_error=True)
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+EnumProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+user32.EnumWindows.argtypes = [EnumProc, wintypes.LPARAM]
+user32.IsWindowVisible.argtypes = [wintypes.HWND]
+user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+kernel32.OpenProcess.restype = wintypes.HANDLE
+kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+kernel32.QueryFullProcessImageNameW.argtypes = [
+    wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
+kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+
+
+def ours(pid, cache={}):
+    if pid in cache:
+        return cache[pid]
+    name = ""
+    h = kernel32.OpenProcess(0x1000, False, pid)   # QUERY_LIMITED_INFORMATION
+    if h:
+        buf = ctypes.create_unicode_buffer(1024)
+        n = wintypes.DWORD(len(buf))
+        if kernel32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n)):
+            name = buf.value
+        kernel32.CloseHandle(h)
+    # By identity: either path may be in 8.3 form (%TEMP% often is).
+    try:
+        mine = (os.path.basename(name).lower() == "organizer.exe" and
+                os.path.samefile(name, ORGANIZER))
+    except OSError:
+        mine = False
+    cache[pid] = mine
+    return mine
+
+
+def organizer_window():
+    found = []
+
+    def each(hwnd, _):
+        if user32.IsWindowVisible(hwnd):
+            pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            if pid.value != os.getpid() and ours(pid.value):
+                found.append(hwnd)
+                return False
+        return True
+
+    user32.EnumWindows(EnumProc(each), 0)
+    return bool(found)
+
+
+def stop_requested():
+    try:
+        os.remove(STOP)
+        return True
+    except OSError:
+        return False
+
+
+def main():
+    import wx
+    import wx.adv
+    app = wx.App(False)
+    card = wx.Bitmap(os.path.join(ECCE_HOME, "data", "client", "pixmaps",
+                                  "ecce-splash.png"), wx.BITMAP_TYPE_PNG)
+    if not card.IsOk():
+        return 0
+
+    def drawn(lines):
+        bmp = card.GetSubBitmap(wx.Rect(0, 0, card.GetWidth(), card.GetHeight()))
+        dc = wx.MemoryDC(bmp)
+        dc.SetTextForeground(wx.Colour(205, 205, 212))
+        # Where and how ewxShowSplash writes its line.
+        dc.SetFont(wx.Font(wx.FontInfo(15).Family(wx.FONTFAMILY_SWISS)))
+        dc.DrawText(lines[0], 277, 190)
+        if len(lines) > 1:
+            dc.SetFont(wx.Font(wx.FontInfo(10).Family(wx.FONTFAMILY_SWISS)))
+            y = 222
+            for line in lines[1:]:
+                dc.DrawText(line, 277, y)
+                y += dc.GetCharHeight() + 2
+        dc.SelectObject(wx.NullBitmap)
+        return bmp
+
+    splash = wx.adv.SplashScreen(
+        drawn(["Starting…"]), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_NO_TIMEOUT,
+        0, None, style=wx.BORDER_NONE | wx.FRAME_NO_TASKBAR | wx.STAY_ON_TOP)
+    # ecce.vbs starts ECCE hidden; a program's first ShowWindow then hides,
+    # the second is obeyed (as in ewxShowSplash).
+    user32.ShowWindow(splash.GetHandle(), 8)   # SW_SHOWNA
+    start = time.monotonic()
+    state = {"slow": False}
+
+    def tick(_evt):
+        if not splash:
+            return
+        waited = time.monotonic() - start
+        if organizer_window() or stop_requested() or waited > LIMIT_S:
+            timer.Stop()
+            splash.Destroy()
+            return
+        if not state["slow"] and waited > SLOW_S:
+            state["slow"] = True
+            win = splash.GetSplashWindow()
+            win.SetBitmap(drawn([
+                "Starting…",
+                "The first start after an install can take a minute",
+                "while security software checks the programs."]))
+            win.Refresh()
+
+    timer = wx.Timer(splash)
+    splash.Bind(wx.EVT_TIMER, tick, timer)
+    timer.Start(250)
+    app.MainLoop()
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except Exception as e:   # the card never keeps ECCE from starting
+        sys.stderr.write("ecce-splash: %s\n" % e)
+        sys.exit(0)
