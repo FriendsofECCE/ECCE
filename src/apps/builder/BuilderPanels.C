@@ -238,8 +238,13 @@ Builder::PaneGroup Builder::paneGroup(const wxAuiPaneInfo& pane) const
   if (name == NAME_COLUMN_TABS || name == NAME_TOOL_LOG) {
     return GROUP_NONE;
   }
-  if (name == NAME_PROPERTY_INDEX ||
-      dynamic_cast<PropertyPanel*>(pane.window)) {
+  if (name == NAME_PROPERTY_INDEX) return GROUP_PROPERTIES;
+  if (dynamic_cast<PropertyPanel*>(pane.window)) {
+    //  A panel the user docked outside the right-hand column is a pane of
+    //  its own: the list + detail slot, tabs and accordion leave it alone.
+    if (isColumnMode() && pane.dock_direction != wxAUI_DOCK_RIGHT) {
+      return GROUP_NONE;
+    }
     return GROUP_PROPERTIES;
   }
   return p_structureNames.count(name) ? GROUP_STRUCTURE : GROUP_NONE;
@@ -618,7 +623,20 @@ void Builder::updatePanes(bool allowSwitch)
   PanelGuard guard(p_panelBuildDepth);
   BuilderRedrawHold hold(this);
   holdColumnWidth(false);
+  //  A panel dragged out of the column no longer holds the detail slot.
+  if (p_detail && p_panelMode == PANELS_DETAIL) {
+    const wxAuiPaneInfo &d = p_mgr.GetPane(p_detail);
+    if (d.IsOk() && paneGroup(d) != GROUP_PROPERTIES) p_detail = 0;
+  }
   syncColumn(allowSwitch);
+  {
+    wxAuiPaneInfo &idx = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
+    //  Only the closed/open switch: a sash drag's own proportions stay.
+    const int share = indexProportion();
+    if (idx.IsOk() && p_indexSized &&
+        (share == 100000 || idx.dock_proportion == 100000))
+      idx.dock_proportion = share;
+  }
   //  Update() shows a pane's window before it lays the frame out, so the
   //  window would first appear wherever it was (the frame's corner, over
   //  the viewer).  Off the frame it is not seen until it is placed.
@@ -900,8 +918,10 @@ void Builder::setDetail(wxWindow *win)
   keepColumnWidth();
   if (p_detail && p_detail != win) {
     wxAuiPaneInfo &old = p_mgr.GetPane(p_detail);
-    if (old.IsOk()) old.Show(false);
-    unfocusPanel(p_detail);
+    if (old.IsOk() && paneGroup(old) == GROUP_PROPERTIES) {
+      old.Show(false);
+      unfocusPanel(p_detail);
+    }
   }
   p_detail = win;
   wxAuiPaneInfo &pane = p_mgr.GetPane(win);
@@ -1090,6 +1110,23 @@ void Builder::updatePropertyIndex()
  * at the floor; once the user drags the sash the pixel proportions the drag
  * sets stay, so this only moves the floor.
  */
+//  The list's share of the column: its floor while a panel is open below
+//  it, the whole column otherwise.  AUI hands spare height out by
+//  proportion even to a Fixed pane, so with the list at 1 the tab buttons
+//  grew to hundreds of pixels.
+int Builder::indexProportion() const
+{
+  PropertyPanel *open = p_panelMode == PANELS_DETAIL
+      ? dynamic_cast<PropertyPanel*>(p_detail) : 0;
+  if (open) {
+    const wxAuiPaneInfo &d = const_cast<wxAuiManager&>(p_mgr).GetPane(p_detail);
+    if (d.IsOk() && d.IsShown() && !d.IsFloating() && !p_folded.count(p_detail))
+      return 1;
+  }
+  return 100000;
+}
+
+
 void Builder::sizeIndexPane()
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
@@ -1118,8 +1155,9 @@ void Builder::sizeIndexPane()
   }
   const int height = std::min(p_index->preferredHeight(1000), cap);
   p_indexSized = true;
-  if (pane.min_size.y == height && pane.dock_proportion == 1) return;
-  pane.dock_proportion = 1;
+  const int share = indexProportion();
+  if (pane.min_size.y == height && pane.dock_proportion == share) return;
+  pane.dock_proportion = share;
   pane.MinSize(wxSize(pane.min_size.x, height)).BestSize(wxSize(400, height));
   if (pane.IsShown() && !pane.IsFloating()) updatePanes();
 }

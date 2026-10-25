@@ -546,6 +546,10 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   setSaveHandler(this);
 
   p_mgr.SetManagedWindow(this);
+  //  wxAUI caps a dock at a share of the window (a fraction well under
+  //  half by default); a dragged side column may take most of it, the
+  //  viewer keeping its own minimum width.
+  p_mgr.SetDockSizeConstraint(0.8, 0.8);
   BuilderDockArt *art = new BuilderDockArt;
   art->setFoldedQuery([this](wxWindow *w) { return p_folded.count(w) > 0; });
   p_mgr.SetArtProvider(art);
@@ -6184,6 +6188,49 @@ void Builder::updatePropertyMenus()
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
         //  "vib...": the Normal Modes panel on an edited structure.
         if (w[0].compare(0, 3, "vib") == 0) return nmodeTestCommand(s, w);
+        //  "dockpane <panel name> top|bottom|left|right|float": where a drag
+        //  of the panel's caption would leave it.  "layout <name>": every
+        //  shown pane's state and rectangle, and the list + detail panel
+        //  -> <name>.txt, for comparing layouts.
+        if (w[0] == "dockpane" && w.size() >= 3) {
+          string name = w[1];
+          for (size_t k = 2; k + 1 < w.size(); k++) name += " " + w[k];
+          const string where = w.back();
+          wxAuiPaneInfo &pi = p_mgr.GetPane(wxString(name));
+          if (!pi.IsOk()) return s.fail("dockpane: no pane " + name);
+          if (where == "float") pi.Float();
+          else if (pi.Dock().IsFloating()) return s.fail("dockpane: floating");
+          if (where == "float") {}
+          else if (where == "top") pi.Top().Layer(0).Row(0).Position(0);
+          else if (where == "bottom") pi.Bottom().Layer(0).Row(1).Position(0);
+          else if (where == "left") pi.Left().Layer(0).Row(0).Position(0);
+          else if (where == "right") pi.Right().Layer(1).Row(0).Position(2);
+          else return s.fail("dockpane: where? " + where);
+          pi.Show(true);
+          updatePanes(true);
+          return true;
+        }
+        if (w[0] == "layout" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+          vector<string> lines;
+          for (size_t k = 0; k < all.GetCount(); k++) {
+            wxAuiPaneInfo &pi = all.Item(k);
+            if (!pi.window || pi.IsToolbar() || !pi.IsShown()) continue;
+            char buf[256];
+            snprintf(buf, sizeof buf, "pane %s dir=%d float=%d x=%d y=%d w=%d h=%d",
+                     pi.name.utf8_str().data(), pi.dock_direction,
+                     pi.IsFloating() ? 1 : 0, pi.rect.x, pi.rect.y,
+                     pi.rect.width, pi.rect.height);
+            lines.push_back(buf);
+          }
+          std::sort(lines.begin(), lines.end());
+          for (size_t k = 0; k < lines.size(); k++) out << lines[k] << "\n";
+          wxAuiPaneInfo &dp = p_mgr.GetPane(p_detail);
+          out << "detail " << (p_detail && dp.IsOk() ? dp.name.ToStdString()
+                                                     : string("-")) << "\n";
+          return true;
+        }
         //  "mogrid <name>": the range of the grid last computed (an MO
         //  Compute), "none" without one -> <name>.txt.
         if (w[0] == "mogrid" && w.size() == 2) {
