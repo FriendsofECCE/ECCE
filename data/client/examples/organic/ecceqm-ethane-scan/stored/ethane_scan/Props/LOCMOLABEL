@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="LOCMOLABEL" rowLabel="Basis Function" rowLabels="1 2 3 4 5 6 7 8 9" rows="9" units="NA">core_C1   core_C2   sigma_C1-C2_(sp2.7/sp2.7)   sigma_C1-H3_(sp3.6/s)
+sigma_C1-H4_(sp3.6/s)   sigma_C1-H5_(sp3.6/s)   sigma_C2-H6_(sp3.6/s)   sigma_C2-H7_(sp3.6/s)
+sigma_C2-H8_(sp3.6/s)</vecstring>

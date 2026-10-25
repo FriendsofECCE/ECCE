@@ -22,6 +22,7 @@ calculations show the run state "Imported" and take a few seconds to be read.
 |---|---|---|
 | General | `Examples` | The five calculations below. |
 | Computational | `Examples_Computational` | A GROMACS molecular dynamics study of the Trp-cage. |
+| Organic Chemistry | `Examples_Organic` | Twenty-one calculations: ECCE-QM ethane, ethene and ethyne with localised orbitals; ORCA benzene; the Diels-Alder reaction (butadiene, ethylene, cyclohexene, transition state, IRC) and an SN2 reaction (reactants, complexes, transition state, IRC, products); and four ECCE-QM relaxed torsion scans (B3LYP/6-31G*) shown in the Relaxed Scan panel: ethane, butane, and N-methylacetamide scanned in both directions, whose two curves differ (hysteresis). |
 | Spectroscopy | `Examples_Spectroscopy` | Nineteen calculations: the S–O stretches of sulfate free, bound to cobalt through one oxygen (with ammine or with ethylenediamine and chloride ligands), chelating and bridging; carbonyl stretches with substituent and charge (formaldehyde, acetaldehyde, acetone, acetic acid, acetate, three esters); the amide bands of N-methylacetamide and of Ac-Ala-NHMe; α-D-glucopyranose and α-D-galactopyranose; and the IR spectrum of water and ethanol. The ORCA calculations use PBE0-D3BJ/def2-SVP, with frequencies, IR and Raman intensities and molecular orbitals. |
 
 If the project of a set exists already, ECCE only selects it and never

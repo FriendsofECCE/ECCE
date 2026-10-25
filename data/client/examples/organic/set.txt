@@ -1,2 +1,2 @@
 Organic Chemistry
-Single, double and triple C-C bonds, benzene pi orbitals, and the transition states and reaction paths of a Diels-Alder and an SN2 reaction.
+Single, double and triple C-C bonds, benzene pi orbitals, and the transition states and reaction paths of a Diels-Alder and an SN2 reaction, and relaxed torsion scans of ethane, butane and N-methylacetamide.
