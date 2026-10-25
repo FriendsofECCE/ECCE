@@ -83,8 +83,18 @@ SPECTROSCOPY = {c: ORCA_RAMAN for c in (
 SPECTROSCOPY.update({
     "water": ["TE", "VIBFREQ", "VIBIR", "MO"],
     "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]})
+GENCHEM = {
+    "ar-gas": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "he-gas": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-liquid": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
+    "water-spce": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
+    "decane-opls": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
+    "nacl-dissolving": ["dynamics:", "dynamics:TE"],
+    "ice-to-steam": ["dynamics:", "dynamics:TE"],
+}
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
-            "Examples/Spectroscopy": SPECTROSCOPY}
+            "Examples/Spectroscopy": SPECTROSCOPY,
+            "Examples/General_Chemistry": GENCHEM}
 FIRST = "Examples/Getting_Started"
 COMP = "Examples/Computational"
 # The study has no thumbnail and no theory/run type of its own.
@@ -121,7 +131,7 @@ def propsOf(project):
         if "Props" in dirs:
             found[name] = set(os.listdir(os.path.join(base, "Props")))
             dirs[:] = []
-        elif name in COMPUTATIONAL:
+        elif name in COMPUTATIONAL or name in GENCHEM:
             found[name] = studyProps(base)
             dirs[:] = []
     return found
@@ -245,7 +255,7 @@ def run(display, data, work):
     with open(script, "w") as handle:
         handle.write("examples computational\nexamples computational\n"
                      "examples getting-started\nexamples organic\n"
-                     "examples spectroscopy\nexamples organic\n")
+                     "examples spectroscopy\nexamples genchem\nexamples organic\n")
 
     box = {}
     projects = [COMP]
@@ -292,6 +302,7 @@ def run(display, data, work):
                    "ok Examples/Getting_Started existing",
                    "ok Examples/Organic_Chemistry created",
                    "ok Examples/Spectroscopy created",
+                   "ok Examples/General_Chemistry created",
                    "ok Examples/Organic_Chemistry existing"]:
         problems.append("answers %s" % answers)
     for extra in ("Examples_2", "Examples_3", "Examples_Organic",
@@ -316,7 +327,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*9", text):
+        if not re.search(r"exampleSet[^0-9]*10", text):
             problems.append("%s records no example-set version" % project)
     for project, expect in NEW_SETS.items():
         got = box.get(project) or {}

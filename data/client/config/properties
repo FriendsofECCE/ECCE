@@ -378,6 +378,8 @@ Energy		Electrostatic Energy			ELEMDVEC	Energy		PropTSVector<Geometry Step>
 Energy		Kinetic Energy				KEMDVEC		Energy		PropTSVector<Geometry Step>
 Energy		Simulation Volume			VMDVEC		Volume		PropTSVector<Geometry Step>
 #
+Pull	Speed Distributions			MDSPEED		NA		PropVecString<Atom Kind>
+Pull	Mean-Square Displacements		MDMSD		NA		PropVecString<Molecule Kind>
 # GROMACS Prepare: the solvated system it built (shown under Run Statistics)
 Process		Number of Atoms				NATOMS		NA		PropValue
 Process		Protein Residues			NRESIDUES	NA		PropValue

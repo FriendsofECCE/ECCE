@@ -110,6 +110,14 @@ File=ecce-parse-pull.txt
 Begin=ecce-parse-pull.txt
 [END]
 
+# Speed distributions and mean-square displacements, from the trajectory by
+# the mdanalysis program (an imported run ships its ecce-parse-md.txt).
+[MDSPEED][MDMSD]
+Script=gromacs.md
+File=ecce-parse-md.txt
+Begin=ecce-parse-md.txt
+[END]
+
 # Job progress for the Organizer's Progress box (#284).  No Script: these
 # only feed the monitor's live snapshot.  mdrun echoes the integrator and
 # nsteps in its log; the stage is named by the integrator (md, steep, ...)

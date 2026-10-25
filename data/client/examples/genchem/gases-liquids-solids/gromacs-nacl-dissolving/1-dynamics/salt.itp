@@ -1,0 +1,48 @@
+; SPC/E water, standalone. Berendsen, Grigera, Straatsma, J. Phys. Chem. 91, 6269 (1987):
+;   r(OH) 0.1 nm, HOH 109.47 deg, q(O) -0.8476, q(H) +0.4238; O-O LJ from the paper's
+;   A = 0.37122 and B = 0.3428 via C6 = A^6, C12 = B^12 -> sigma = 0.31656 nm, epsilon = 0.65017 kJ/mol.
+; Lennard-Jones on O only. Ions: Joung & Cheatham, J. Phys. Chem. B 112, 9020 (2008), Table 5 (SPC/E column), p. 9028:
+;   Na+ Rmin/2 = 1.212 A, eps = 0.3526418 kcal/mol; Cl- Rmin/2 = 2.711 A, eps = 0.0127850 kcal/mol
+;   sigma = 2 (Rmin/2) / 2^(1/6), eps in kJ/mol = 4.184 x kcal/mol; Lorentz-Berthelot (comb-rule 2).
+[ defaults ]
+; nbfunc comb-rule gen-pairs fudgeLJ fudgeQQ
+1 2 no 1.0 1.0
+
+[ atomtypes ]
+; name at.num mass charge ptype sigma(nm) epsilon(kJ/mol)
+OW 8 15.9994 0.0 A 0.31656 0.65017
+HW 1  1.008  0.0 A 0.0     0.0
+NA 11 22.98977 0.0 A 0.215954 1.475453
+CL 17 35.453   0.0 A 0.483045 0.053492
+
+[ moleculetype ]
+NA 1
+[ atoms ]
+1 NA 1 NA NA 1 1.0 22.98977
+#ifdef POSRES
+[ position_restraints ]
+1 1 1000 1000 1000
+#endif
+
+[ moleculetype ]
+CL 1
+[ atoms ]
+1 CL 1 CL CL 1 -1.0 35.453
+#ifdef POSRES
+[ position_restraints ]
+1 1 1000 1000 1000
+#endif
+
+[ moleculetype ]
+SOL 2
+[ atoms ]
+1 OW 1 SOL OW 1 -0.8476 15.9994
+2 HW 1 SOL HW1 1 0.4238 1.008
+3 HW 1 SOL HW2 1 0.4238 1.008
+[ settles ]
+; OW funct doh dhh   (dhh = 2*0.1*sin(109.47/2))
+1 1 0.1 0.16330
+[ exclusions ]
+1 2 3
+2 1 3
+3 1 2

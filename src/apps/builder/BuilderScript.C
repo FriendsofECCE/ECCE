@@ -146,6 +146,7 @@
 #include "IRCPanel.H"
 #include "ReactionPanel.H"
 #include "PullPanel.H"
+#include "MdAnalysisPanels.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -1057,6 +1058,38 @@ void Builder::runBuilderScript(const std::string& file)
         } else {
           fprintf(stderr, "BUILDER: pullcsv points=%d %s\n", pp->points(),
                   pp->exportCsv(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
+        }
+      } else if ((w[0] == "mdcsv" || w[0] == "mdcompare" || w[0] == "mdfit" ||
+                  w[0] == "mdloglog") && w.size() >= 2) {
+        //  mdcsv speed|msd <path>; mdcompare speed|msd <calculation|none>;
+        //  mdfit <from ps> <to ps>; mdloglog on|off: the Speed Distribution
+        //  and Displacement panels' Export, Compare, Fit and Log-log without
+        //  dialogs or clicks.
+        const bool speed = w[1] == "speed";
+        MdAnalysisPanel *mp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+            if (w[0] == "mdfit" || w[0] == "mdloglog") mp = dynamic_cast<MsdPanel*>(p);
+            else if (speed) mp = dynamic_cast<SpeedPanel*>(p);
+            else mp = dynamic_cast<MsdPanel*>(p);
+            if (mp) break;
+          }
+        MsdPanel *msd = dynamic_cast<MsdPanel*>(mp);
+        if (!mp) {
+          outcome = "no Speed Distribution or Displacement panel";
+        } else if (w[0] == "mdcsv" && w.size() >= 3) {
+          fprintf(stderr, "BUILDER: mdcsv curves=%d %s\n", mp->curves(),
+                  mp->exportCsv(wxString::FromUTF8(w[2].c_str())) ? "ok" : "failed");
+        } else if (w[0] == "mdcompare" && w.size() >= 3) {
+          fprintf(stderr, "BUILDER: mdcompare %s curves=%d %s\n", w[2].c_str(), mp->curves(),
+                  mp->compareWith(w[2] == "none" ? std::string() : w[2]) ? "ok" : "failed");
+        } else if (w[0] == "mdfit" && w.size() >= 3 && msd) {
+          msd->setFit(atof(w[1].c_str()), atof(w[2].c_str()));
+          fprintf(stderr, "BUILDER: mdfit D=%.4g\n", msd->diffusion(0));
+        } else if (w[0] == "mdloglog" && msd) {
+          msd->setLogLog(w[1] == "on");
+          fprintf(stderr, "BUILDER: mdloglog %s\n", w[1].c_str());
         }
       } else if (w[0] == "rxnenergies" && w.size() >= 2) {
         //  rxnenergies <path> [kcal]: the Reaction Energies panel's Export

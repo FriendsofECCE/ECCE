@@ -1,0 +1,26 @@
+; SPC/E water, standalone. Berendsen, Grigera, Straatsma, J. Phys. Chem. 91, 6269 (1987):
+;   r(OH) 0.1 nm, HOH 109.47 deg, q(O) -0.8476, q(H) +0.4238; O-O LJ from the paper's
+;   A = 0.37122 and B = 0.3428 via C6 = A^6, C12 = B^12 -> sigma = 0.31656 nm, epsilon = 0.65017 kJ/mol.
+; Lennard-Jones on O only.
+[ defaults ]
+; nbfunc comb-rule gen-pairs fudgeLJ fudgeQQ
+1 2 no 1.0 1.0
+
+[ atomtypes ]
+; name at.num mass charge ptype sigma(nm) epsilon(kJ/mol)
+OW 8 15.9994 0.0 A 0.31656 0.65017
+HW 1  1.008  0.0 A 0.0     0.0
+
+[ moleculetype ]
+SOL 2
+[ atoms ]
+1 OW 1 SOL OW 1 -0.8476 15.9994
+2 HW 1 SOL HW1 1 0.4238 1.008
+3 HW 1 SOL HW2 1 0.4238 1.008
+[ settles ]
+; OW funct doh dhh   (dhh = 2*0.1*sin(109.47/2))
+1 1 0.1 0.16330
+[ exclusions ]
+1 2 3
+2 1 3
+3 1 2

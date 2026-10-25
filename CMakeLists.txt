@@ -204,6 +204,7 @@ ecce_library(ecceutil
   src/util/exceptions
   src/util/genutil
   src/util/jms
+  src/util/mdanalysis
   src/util/units
 )
 target_compile_definitions(ecceutil PRIVATE ECCE_VERSION=\"${ECCE_VERSION_RAW}\")
@@ -502,6 +503,10 @@ target_link_libraries(eccejobmaster PRIVATE
 add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
 target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
+# Speed distributions and MSD of a GROMACS run (the Builder's MD panels).
+add_executable(mdanalysis src/apps/mdanalysis/mdanalysis.C)
+
+target_link_libraries(mdanalysis PRIVATE ecceutil ${XercesC_LIBRARIES})
 # An MO's atomic-orbital composition from a calculation folder (#161).
 # Installed as bin/mocomp; its wrapper is ecce-mocomp like every CLI app's.
 add_executable(mocomp src/apps/mocomp/mocomp.C)
@@ -1048,7 +1053,7 @@ set(ECCE_GUI_APPS
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
-  autosym getfrag genmol genmollat cleansym symops)
+  autosym getfrag genmol genmollat cleansym symops mdanalysis)
 if(NOT WIN32)
   list(APPEND ECCE_CLI_APPS ecce-flock)
 endif()
@@ -2082,6 +2087,13 @@ add_test(NAME uvvis COMMAND uvvis_test)
 # tests/atommap -- atom mapping and alignment of reactant/product/guess (#419)
 add_executable(atommap_cli tests/atommap/atommap_cli.C)
 target_link_libraries(atommap_cli PRIVATE eccetdat ecceutil)
+add_executable(mdanalysis_test tests/mdanalysis/mdanalysis_test.C)
+
+target_link_libraries(mdanalysis_test PRIVATE ecceutil ${XercesC_LIBRARIES})
+add_test(NAME mdanalysis COMMAND mdanalysis_test ${CMAKE_BINARY_DIR})
+add_test(NAME mdanalysis_gmx_oracle
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/mdanalysis/gmx_oracle.py $<TARGET_FILE:mdanalysis>)
+set_tests_properties(mdanalysis_gmx_oracle PROPERTIES SKIP_RETURN_CODE 77)
 add_executable(pull_analysis_test tests/pull/pull_analysis_test.C src/apps/builder/PullAnalysis.C)
 target_include_directories(pull_analysis_test PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 add_test(NAME pull_analysis COMMAND pull_analysis_test)

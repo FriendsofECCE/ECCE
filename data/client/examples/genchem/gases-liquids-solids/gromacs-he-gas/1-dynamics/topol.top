@@ -1,0 +1,19 @@
+; HE: Lennard-Jones only. sigma/epsilon: standard textbook values (see README).
+[ defaults ]
+; nbfunc comb-rule gen-pairs fudgeLJ fudgeQQ
+1 2 no 1.0 1.0
+
+[ atomtypes ]
+; name at.num mass charge ptype sigma(nm) epsilon(kJ/mol)
+HE 2 4.0026 0.0 A 0.2556 0.0845
+
+[ moleculetype ]
+HE 1
+[ atoms ]
+1 HE 1 HE HE 1 0.0 4.0026
+
+[ system ]
+Helium gas
+
+[ molecules ]
+HE 1000

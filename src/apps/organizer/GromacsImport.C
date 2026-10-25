@@ -187,7 +187,7 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
     if (hasSuffix(f, ".gmxlog") || hasSuffix(f, ".log")) {
       if (!haveLog) ok = writeFile(stage + "/gromacs.gmxlog", text);
       haveLog = true;
-    } else if (f == "ecce-parse-traj.txt") {
+    } else if (f == "ecce-parse-traj.txt" || f == "ecce-parse-md.txt") {
       ok = writeFile(stage + "/" + f, text);
     } else if (f == "view.gro") {
       // The structure wrapped into a dodecahedron or octahedron box, for

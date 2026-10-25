@@ -1,0 +1,32 @@
+; TIP4P/Ice water, standalone. Abascal, Sanz, Garcia Fernandez, Vega, J. Chem. Phys. 122, 234511 (2005).
+; Numbers below are from the TIP4P/Ice paper but NOT checked against a copy on disk (none available):
+;   r(OH) 0.9572 A, HOH 104.52 deg, r(OM) 0.1577 A (M on the HOH bisector), sigma(O) 3.1668 A,
+;   epsilon(O)/k_B 106.1 K = 0.88216 kJ/mol, q(H) +0.5897 e, q(M) -1.1794 e, no LJ on H or M.
+; Derived here: virtual-site weight a = r(OM) / (2 r(OH) cos(HOH/2)) = 0.134583;
+;   SETTLE d(HH) = 2 r(OH) sin(HOH/2) = 0.15139 nm.
+[ defaults ]
+; nbfunc comb-rule gen-pairs fudgeLJ fudgeQQ
+1 2 no 1.0 1.0
+
+[ atomtypes ]
+; name at.num mass charge ptype sigma(nm) epsilon(kJ/mol)
+OW 8 15.9994 0.0 A 0.31668 0.88216
+HW 1  1.008  0.0 A 0.0     0.0
+MW 0  0.0    0.0 D 0.0     0.0
+
+[ moleculetype ]
+ICE 2
+[ atoms ]
+1 OW 1 ICE OW  1  0.0     15.9994
+2 HW 1 ICE HW1 1  0.5897  1.008
+3 HW 1 ICE HW2 1  0.5897  1.008
+4 MW 1 ICE MW  1 -1.1794  0.0
+[ settles ]
+1 1 0.09572 0.15139
+[ virtual_sites3 ]
+4 1 2 3 1 0.134583 0.134583
+[ exclusions ]
+1 2 3 4
+2 1 3 4
+3 1 2 4
+4 1 2 3

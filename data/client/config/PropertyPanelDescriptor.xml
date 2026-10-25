@@ -355,6 +355,24 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Speed Distribution</name>
+    <group>Energies</group>
+    <class>SpeedPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="MDSPEED"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Displacement (MSD)</name>
+    <group>Energies</group>
+    <class>MsdPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="MDMSD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>IRC Path</name>
     <group>Geometry</group>
     <class>IRCPanel</class>

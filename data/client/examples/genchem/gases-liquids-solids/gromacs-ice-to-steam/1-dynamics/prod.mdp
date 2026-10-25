@@ -1,0 +1,34 @@
+; NVT heating ramp 200 K -> 500 K over 30 ns, then 10 ns at 500 K (40 ns total).
+; Positions every 10 ps (5000 steps) to .xtc.
+cutoff-scheme = Verlet
+coulombtype = PME
+rcoulomb = 1.0
+fourierspacing = 0.12
+vdwtype = Cut-off
+vdw-modifier = Potential-shift
+rvdw = 1.0
+DispCorr = no
+pbc = xyz
+integrator = md
+dt = 0.002
+constraint-algorithm = lincs
+tcoupl = v-rescale
+tc-grps = System
+tau-t = 1.0
+pcoupl = no
+comm-mode = Linear
+nstcomm = 100
+nstcalcenergy = 100
+nstenergy = 5000
+nstlog = 25000
+tinit = 0
+ref-t = 200
+annealing = single
+annealing-npoints = 3
+annealing-time = 0 30000 40000
+annealing-temp = 200 500 500
+nsteps = 20000000
+gen-vel = no
+continuation = yes
+nstxout-compressed = 5000
+compressed-x-precision = 1000

@@ -1,0 +1,27 @@
+; 2 ns NVT at 85 K; positions every 0.1 ps (50 steps) to .xtc, precision 1e-4 nm
+cutoff-scheme = Verlet
+nstlist = 20
+coulombtype = Cut-off
+rcoulomb = 1.2
+vdwtype = Cut-off
+vdw-modifier = Potential-shift
+rvdw = 1.2
+DispCorr = EnerPres
+pbc = xyz
+integrator = md
+dt = 0.002
+tcoupl = v-rescale
+tc-grps = System
+tau-t = 1.0
+pcoupl = no
+comm-mode = Linear
+nstcomm = 100
+nstcalcenergy = 100
+nstenergy = 500
+nstlog = 5000
+ref-t = 85
+nsteps = 1000000
+gen-vel = no
+continuation = yes
+nstxout-compressed = 50
+compressed-x-precision = 10000
