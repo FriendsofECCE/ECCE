@@ -8,13 +8,25 @@ every code whose orbitals ECCE reads. Open it from the **Properties** list, in
 the Orbitals group beside **MOs** and **Density Map**. It needs a calculation
 that has orbitals.
 
+The controls are two short rows. The first row has the mode, the atoms, the
+quantity and what to show; the second the axes, **Whole plot** and **More**,
+which unfolds the controls used less often (margin, sideways shift, unit,
+combine degenerate, clip peaks and the export buttons). Whether **More** is open
+is remembered. The orbital list, the plot and the notes beneath it are separated
+by handles that can be dragged to give any of them more room.
+
 The first choice is the mode.
 
 - **Along a line**: the line goes through two atoms, **From** and **to**, and
   continues **Margin** ångström beyond each. The horizontal axis is the position
   along the line, zero at the first atom. A dashed vertical line marks every atom
   the line passes within 0.3 Å of, with its label under the axis. A molecule
-  opens in this mode, on the line through its first bond.
+  opens in this mode, on the line through its first bond. **Shift line
+  sideways** (under **More**) moves the whole line by a distance in ångström,
+  out of the molecular plane (the plane of the atoms and the line) or within
+  it. A π orbital is exactly zero on the line through both nuclei; shifted
+  0.5 Å it shows its two lobes. For a linear molecule any perpendicular is the
+  same. The atoms are still marked where they lie along the line.
 - **Around an atom**: the values are averaged over a sphere about the **Centre**
   atom, for each radius. A single atom opens in this mode. This is the way to
   see shells.
@@ -49,6 +61,28 @@ The first choice is the mode.
 - A signed ψ is not offered here: the average of a signed p or d orbital over a
   sphere is zero.
 
+## Axes and zoom
+
+**r axis** (around an atom) is **Linear**, **√r** or **log r**. The square root
+spreads the region near the nucleus, where the inner shells are, and the
+logarithm shows the weak outer tail. The tick marks are always in r itself
+(0.01, 0.05, 0.1, 0.2, 0.5, 1, 2 Å), and on √r and log r the area under a
+radial curve is no longer the number of electrons; the panel says so beneath the
+plot. Along a line the axis is always linear.
+
+**y axis** is **Linear** or **Log**. Log is for quantities that are never
+negative (the density, ψ² and the radial distribution) and is not offered for
+the signed ψ; its ticks are powers of ten. Values that are zero cannot be drawn
+on a log axis and are left out.
+
+The mouse wheel zooms about the pointer, dragging a rectangle zooms to it, the
+right or middle button pans, and a double click returns to the opening view.
+**Whole plot** zooms out to everything, including the peaks that **clip peaks**
+cut off at the nuclei.
+
+When an orbital is zero everywhere on the line the plot says so instead of
+drawing an empty axis.
+
 The axes are labelled with their units: ψ in length^-3/2, ψ² and the density in
 length^-3, the radial distribution in 1/length, where the length is ångström or
 bohr, as chosen under **Unit**.
@@ -68,18 +102,28 @@ bohr, as chosen under **Unit**.
 For ψ and ψ² the choices are **Selected orbitals** and **All occupied
 orbitals**.
 
+Changing the quantity keeps the orbitals you see ticked in the list and keeps
+the kind of view (a selection stays a selection); with **Selected orbitals** and
+nothing ticked the highest occupied orbital is ticked, and the list scrolls to
+the first ticked orbital. When the **MO Diagram** is open, clicking a level in it
+shows that orbital alone here, as it does in the **Density Map**.
+
 **combine degenerate** draws one curve for each shell. For an atom the orbitals
 are named by shell, 1s, 2s, 2p, 3s, 3p, from the angular momentum that dominates
 each one, counted up in energy order, so the three 2p orbitals become one curve
 "2p". Without a shell name, orbitals with the same energy are joined and called,
-for example, "MO 6-7". For an unrestricted calculation choose alpha, beta, or
+for example, "MO 6-7". The orbitals of an atom that are empty are named by their
+angular type only, as "s (virtual)" or "p (virtual)": their principal quantum
+number is not meaningful in the basis set. Every curve has its own colour, the
+total is black and heavier, and when the colours run out the next curves are
+dashed. For an unrestricted calculation choose alpha, beta, or
 alpha + beta; the contributions add up to the total only for alpha + beta.
 
 **clip peaks** (along a line) cuts the vertical axis, when the peaks are more than three times higher, a little above the
 highest value found 0.35 Å or more from every atom. The density at a nucleus is
 hundreds of times the density in a bond, and without the cut those peaks flatten
 everything else. The curves still reach their peaks; they run off the top of the
-plot. Untick it to see the whole height.
+plot. Untick it, or press **Whole plot**, to see the whole height.
 
 ## What to look for
 

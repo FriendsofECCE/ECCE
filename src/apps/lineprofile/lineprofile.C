@@ -4,6 +4,7 @@
 // panel uses.
 //
 //   lineprofile CALC --atoms A B [--margin M]     along the line A-B
+//        [--shift D [--in-plane]]    the line moved sideways by D Angstrom
 //   lineprofile CALC --around ATOM [--rmax R]     spherical average about ATOM
 //        [--quantity density|psi2|psi|radial|avg]
 //        [--show all|totalselected|selected|total]
@@ -36,7 +37,7 @@ using namespace std;
 
 static void usage()
 {
-  cerr << "usage: lineprofile CALC --atoms A B [--margin M]\n"
+  cerr << "usage: lineprofile CALC --atoms A B [--margin M] [--shift D [--in-plane]]\n"
           "       lineprofile CALC --around ATOM [--rmax R]\n"
           "          [--quantity density|psi2|psi|radial|avg]\n"
           "          [--show all|totalselected|selected|total]\n"
@@ -56,7 +57,8 @@ int main(int argc, char **argv)
 {
   string target, mos, csvFile, quantity, show = "all", spinName = "both";
   int atomA = -1, atomB = -1, around = -1;
-  double margin = 2.0, rmax = 0.0;
+  double margin = 2.0, rmax = 0.0, shift = 0.0;
+  bool inPlane = false;
   int points = 0;
   bool bohr = false, combine = false;
 
@@ -65,6 +67,8 @@ int main(int argc, char **argv)
     if (a == "--atoms" && i+2 < argc) { atomA = atoi(argv[i+1]) - 1; atomB = atoi(argv[i+2]) - 1; i += 2; }
     else if (a == "--around" && i+1 < argc) around = atoi(argv[++i]) - 1;
     else if (a == "--margin" && i+1 < argc) margin = atof(argv[++i]);
+    else if (a == "--shift" && i+1 < argc) shift = atof(argv[++i]);
+    else if (a == "--in-plane") inPlane = true;
     else if (a == "--rmax" && i+1 < argc) rmax = atof(argv[++i]);
     else if (a == "--points" && i+1 < argc) points = atoi(argv[++i]);
     else if (a == "--quantity" && i+1 < argc) quantity = argv[++i];
@@ -155,7 +159,7 @@ int main(int argc, char **argv)
       fclose(f);
     }
   } else {
-    const LineProfile::Line line = LineProfile::throughAtoms(ev, atomA, atomB, margin);
+    const LineProfile::Line line = LineProfile::throughAtoms(ev, atomA, atomB, margin, shift, !inPlane);
     LineProfile::Result r;
     const LineProfile::Quantity q = quantity == "psi" ? LineProfile::PSI
         : quantity == "psi2" ? LineProfile::PSI2 : LineProfile::DENSITY;

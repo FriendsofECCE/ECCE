@@ -104,6 +104,7 @@ class XYPlotCanvas : public wxPanel
       p_curves.clear();
       p_selCurve = p_selIndex = p_hoverCurve = p_hoverIndex = -1;
       p_zoomed = false;
+      p_whole = false;
       Refresh();
     }
 
@@ -114,6 +115,14 @@ class XYPlotCanvas : public wxPanel
       Refresh();
     }
 
+    /** Line style of a curve: dashed, and its width in pixels. */
+    void setCurveStyle(int curve, bool dash, int width)
+    {
+      if (!curveOk(curve)) return;
+      p_curves[curve].dash = dash;
+      p_curves[curve].width = std::max(1, width);
+      Refresh();
+    }
     /** A 1 px line, for a curve that accompanies the main one. */
     void setCurveThin(int curve, bool thin)
     {
@@ -165,7 +174,20 @@ class XYPlotCanvas : public wxPanel
     int vLineCount() const { return (int)p_vlines.size(); }
     /** Cut the y axis at `top` (0: show everything), for tall peaks that
      *  would flatten the rest of the curve. */
-    void setYLimit(double top) { p_yLimit = top; p_zoomed = false; Refresh(); }
+    void setYLimit(double top) { p_yLimit = top; p_zoomed = false; p_whole = false; Refresh(); }
+
+    /** Axis transforms.  The data stay in real units; only where they are
+     *  drawn changes, and the ticks stay in real units.  Points a scale
+     *  cannot show (x <= 0 on log, y <= 0 on log) are left out. */
+    enum XScale { X_LINEAR, X_SQRT, X_LOG };
+    void setXScale(XScale s) { p_xScale = s; p_zoomed = false; Refresh(); }
+    XScale xScale() const { return p_xScale; }
+    void setYLog(bool on) { p_yLog = on; p_zoomed = false; Refresh(); }
+    bool yLog() const { return p_yLog; }
+
+    /** Shown instead of the plot, for a quantity that is zero everywhere. */
+    void setMessage(const wxString& m) { p_message = m; Refresh(); }
+    wxString message() const { return p_message; }
     /** A darker horizontal line at y = 0 (the sign change of a wave function). */
     void setZeroLine(bool on) { p_zeroLine = on; Refresh(); }
 
@@ -178,6 +200,8 @@ class XYPlotCanvas : public wxPanel
 
     const PlotPalette& palette() const { return p_palette; }
     wxColour seriesColour(int i) const { return p_palette.series(i); }
+    /** The colour a curve is drawn in. */
+    wxColour curveColourOf(int c) const { return curveOk(c) ? colourOf(p_curves[c]) : wxColour(); }
 
     int curveCount() const { return (int)p_curves.size(); }
     int pointCount(int curve) const
@@ -244,7 +268,10 @@ class XYPlotCanvas : public wxPanel
       return true;
     }
 
-    void fitAll() { p_zoomed = false; Refresh(); }
+    void fitAll() { p_zoomed = false; p_whole = false; Refresh(); }
+
+    /** Everything, also what a y limit cut off (the "Whole plot" reset). */
+    void showWholePlot() { p_zoomed = false; p_whole = true; Refresh(); }
 
     /** Zoom about the centre of the view (factor < 1 zooms in), as the
      *  +/- keys do; for scripted checks.  The view is what the last paint
@@ -271,9 +298,34 @@ class XYPlotCanvas : public wxPanel
       dc.SetTextForeground(p_palette.text);
 
       double xlo, xhi, ylo, yhi;
-      if (!dataRange(&xlo, &xhi, &ylo, &yhi)) {
+      if (!p_message.empty() || !dataRange(&xlo, &xhi, &ylo, &yhi, !p_whole)) {
         dc.SetFont(*wxNORMAL_FONT);
-        const wxString msg = "Nothing to plot.";
+        const wxString msg = p_message.empty() ? wxString("Nothing to plot.") : p_message;
+        if (!p_message.empty()) {
+          //  Wrapped at the width, centred.
+          std::vector<wxString> lines;
+          wxString cur;
+          wxString word;
+          const wxString text = msg + " ";
+          for (size_t i = 0; i < text.length(); i++) {
+            if (text[i] != ' ') { word += text[i]; continue; }
+            if (!cur.empty() && dc.GetTextExtent(cur + " " + word).x > size.x - 24) {
+              lines.push_back(cur);
+              cur = word;
+            } else {
+              cur = cur.empty() ? word : cur + " " + word;
+            }
+            word.clear();
+          }
+          if (!cur.empty()) lines.push_back(cur);
+          const int lh = dc.GetCharHeight() + 2;
+          int y = (size.y - (int)lines.size() * lh) / 2;
+          for (const wxString& l : lines) {
+            dc.DrawText(l, (size.x - dc.GetTextExtent(l).x) / 2, y);
+            y += lh;
+          }
+          return;
+        }
         const wxSize e = dc.GetTextExtent(msg);
         dc.DrawText(msg, (size.x - e.x) / 2, (size.y - e.y) / 2);
         return;
@@ -294,11 +346,12 @@ class XYPlotCanvas : public wxPanel
 
       //  Y ticks first: the left margin depends on how wide they print.
       const int plotHGuess = std::max(40, size.y - 60);
-      SpectrumTicks yt = niceTicks(ylo, yhi, std::max(3, plotHGuess / 45));
+      std::vector<double> yv, xv;
+      std::vector<wxString> ys, xs;
+      makeTicks(true, ylo, yhi, plotHGuess, std::max(3, plotHGuess / 45), yv, ys);
       int labelW = 0;
-      for (size_t i = 0; i < yt.values.size(); i++)
-        labelW = std::max(labelW,
-                          dc.GetTextExtent(tickText(yt, yt.values[i])).x);
+      for (size_t i = 0; i < ys.size(); i++)
+        labelW = std::max(labelW, dc.GetTextExtent(ys[i]).x);
       const int left = (yTitle ? th + 8 : 4) + 10 + labelW;
       const int right = 14;
       int top = 8;
@@ -312,7 +365,22 @@ class XYPlotCanvas : public wxPanel
       //  leaves room above it, so a font taller than GetCharHeight() says
       //  (GTK scaling, descenders) cannot push it out of view.
       const bool haveV = p_showXAxis && !p_vlines.empty();
-      const int vRow = haveV ? ch + 4 : 0;
+      //  A second row of line labels when neighbours would touch.
+      int vRows = 1;
+      if (haveV) {
+        std::vector<double> at;
+        int widest = 0;
+        for (size_t i = 0; i < p_vlines.size(); i++) {
+          const double t = tx(p_vlines[i].first);
+          if (std::isfinite(t)) at.push_back(t);
+          widest = std::max(widest, dc.GetTextExtent(p_vlines[i].second).x);
+        }
+        std::sort(at.begin(), at.end());
+        const double estW = std::max(40, size.x - left - right);
+        for (size_t i = 1; i < at.size(); i++)
+          if ((at[i] - at[i-1]) / (xhi - xlo) * estW < widest + 8) vRows = 2;
+      }
+      const int vRow = haveV ? (ch + 4) * vRows : 0;
       const int bottom = p_showXAxis
           ? ch + 12 + vRow + (xTitle ? th + 12 : 0) : 8;
       const int plotW = std::max(40, size.x - left - right);
@@ -320,26 +388,25 @@ class XYPlotCanvas : public wxPanel
       p_plot = wxRect(left, top, plotW, plotH);
       p_laidOut = true;
 
-      yt = niceTicks(ylo, yhi, std::max(3, plotH / 45));
-      SpectrumTicks xt = niceTicks(xlo, xhi, std::max(3, plotW / 80));
-      if (p_intX) xt = integerTicks(xlo, xhi, xt.step);
+      makeTicks(true, ylo, yhi, plotH, std::max(3, plotH / 45), yv, ys);
+      makeTicks(false, xlo, xhi, plotW, std::max(3, plotW / 80), xv, xs);
 
       //  Grid.
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
       dc.SetPen(wxPen(p_palette.grid, 1));
-      for (size_t i = 0; i < xt.values.size() && p_showXAxis; i++) {
-        const int x = xOf(xt.values[i]);
+      for (size_t i = 0; i < xv.size() && p_showXAxis; i++) {
+        const int x = xOf(xv[i]);
         dc.DrawLine(x, p_plot.y, x, p_plot.GetBottom());
       }
-      for (size_t i = 0; i < yt.values.size(); i++) {
-        const int y = yOf(yt.values[i]);
+      for (size_t i = 0; i < yv.size(); i++) {
+        const int y = yOf(yv[i]);
         dc.DrawLine(p_plot.x, y, p_plot.GetRight(), y);
       }
 
       //  Band being dragged out.
       if (p_band) {
-        const int a = xOf(p_bandA.x), b = xOf(p_bandB.x);
-        const int c = yOf(p_bandA.y), d = yOf(p_bandB.y);
+        const int a = xOfT(p_bandA.x), b = xOfT(p_bandB.x);
+        const int c = yOfT(p_bandA.y), d = yOfT(p_bandB.y);
         dc.SetPen(*wxTRANSPARENT_PEN);
         dc.SetBrush(wxBrush(PlotPalette::mix(p_palette.text,
                                              p_palette.background, 0.85)));
@@ -349,7 +416,7 @@ class XYPlotCanvas : public wxPanel
 
       dc.SetClippingRegion(p_plot.x - 4, p_plot.y - 4, p_plot.width + 8,
                            p_plot.height + 8);
-      if (p_zeroLine && 0.0 > p_y0 && 0.0 < p_y1) {
+      if (p_zeroLine && !p_yLog && 0.0 > p_y0 && 0.0 < p_y1) {
         dc.SetPen(wxPen(p_palette.axis, 1));
         dc.DrawLine(p_plot.x, yOf(0.0), p_plot.GetRight(), yOf(0.0));
       }
@@ -376,18 +443,18 @@ class XYPlotCanvas : public wxPanel
       dc.SetPen(wxPen(p_palette.axis, 1));
       dc.DrawRectangle(p_plot);
       dc.SetTextForeground(p_palette.text);
-      for (size_t i = 0; i < yt.values.size(); i++) {
-        const int y = yOf(yt.values[i]);
+      for (size_t i = 0; i < yv.size(); i++) {
+        const int y = yOf(yv[i]);
         dc.DrawLine(p_plot.x - 4, y, p_plot.x, y);
-        const wxString t = tickText(yt, yt.values[i]);
+        const wxString t = ys[i];
         const wxSize e = dc.GetTextExtent(t);
         dc.DrawText(t, p_plot.x - 7 - e.x, y - e.y / 2);
       }
       if (p_showXAxis) {
-        for (size_t i = 0; i < xt.values.size(); i++) {
-          const int x = xOf(xt.values[i]);
+        for (size_t i = 0; i < xv.size(); i++) {
+          const int x = xOf(xv[i]);
           dc.DrawLine(x, p_plot.GetBottom(), x, p_plot.GetBottom() + 4);
-          const wxString t = tickText(xt, xt.values[i]);
+          const wxString t = xs[i];
           const wxSize e = dc.GetTextExtent(t);
           dc.DrawText(t, x - e.x / 2, p_plot.GetBottom() + 6);
         }
@@ -396,15 +463,23 @@ class XYPlotCanvas : public wxPanel
       //  Line labels: their own row, a label that would touch its
       //  neighbour is left out.
       if (haveV) {
-        int edge = -1000000;
-        for (size_t i = 0; i < p_vlines.size(); i++) {
-          const int x = xOf(p_vlines[i].first);
+        //  Left to right whatever the order they were added in.
+        std::vector<size_t> order;
+        for (size_t i = 0; i < p_vlines.size(); i++) order.push_back(i);
+        std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+          return p_vlines[a].first < p_vlines[b].first; });
+        int edge[2] = { -1000000, -1000000 };
+        for (size_t k = 0; k < order.size(); k++) {
+          const wxString& name = p_vlines[order[k]].second;
+          const int x = xOf(p_vlines[order[k]].first);
           if (x < p_plot.x || x > p_plot.GetRight()) continue;
-          const wxSize e = dc.GetTextExtent(p_vlines[i].second);
-          if (x - e.x / 2 < edge + 4) continue;
-          dc.DrawText(p_vlines[i].second, x - e.x / 2,
-                      p_plot.GetBottom() + ch + 8);
-          edge = x + e.x / 2;
+          const wxSize e = dc.GetTextExtent(name);
+          int row = -1;
+          for (int r = 0; r < vRows && row < 0; r++)
+            if (x - e.x / 2 >= edge[r] + 4) row = r;
+          if (row < 0) continue;
+          dc.DrawText(name, x - e.x / 2, p_plot.GetBottom() + ch + 8 + row * (ch + 4));
+          edge[row] = x + e.x / 2;
         }
       }
 
@@ -433,6 +508,10 @@ class XYPlotCanvas : public wxPanel
     std::vector< std::pair<double, wxString> > p_vlines;
     bool p_zeroLine = false;
     double p_yLimit = 0.0;
+    bool p_whole = false;
+    XScale p_xScale = X_LINEAR;
+    bool p_yLog = false;
+    wxString p_message;
 
     struct Curve
     {
@@ -441,6 +520,8 @@ class XYPlotCanvas : public wxPanel
       wxString name;
       int series, marker;
       bool thin;             // a 1 px line, drawn under the others' weight
+      bool dash = false;
+      int  width = 2;        // line width when not thin
       Style style;
       wxColour colour;       // invalid: the palette's series colour
     };
@@ -460,6 +541,98 @@ class XYPlotCanvas : public wxPanel
       for (size_t i = 0; i < p_curves.size(); i++)
         if (!p_curves[i].name.empty()) return true;
       return false;
+    }
+
+    //  Data -> drawn coordinate; NaN where the scale cannot show the value.
+    double tx(double x) const
+    {
+      if (p_xScale == X_SQRT) return x >= 0 ? std::sqrt(x) : NAN;
+      if (p_xScale == X_LOG) return x > 0 ? std::log10(x) : NAN;
+      return x;
+    }
+    double ty(double y) const { return p_yLog ? (y > 0 ? std::log10(y) : NAN) : y; }
+    double txInv(double t) const
+    {
+      if (p_xScale == X_SQRT) return t * t;
+      if (p_xScale == X_LOG) return std::pow(10.0, t);
+      return t;
+    }
+
+    static wxString powerOfTen(int e, int mantissa)
+    {
+      static const wchar_t *sup = L"\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079";
+      wxString t = mantissa == 1 ? wxString("10")
+                                 : wxString::Format("%d", mantissa) + wxString(L"\u00D710");
+      if (e < 0) t += L"\u207B";
+      const wxString d = wxString::Format("%d", std::abs(e));
+      for (size_t i = 0; i < d.length(); i++) t += wxString(sup[d[i] - '0']);
+      return t;
+    }
+
+    //  Ticks in real units for the axis as drawn: the usual ones when linear;
+    //  1-2-5 values on a square-root or log x (the roundest kept when they
+    //  would crowd); powers of ten on a log y.
+    void makeTicks(bool isY, double tlo, double thi, int pixels, int target,
+                   std::vector<double>& vals, std::vector<wxString>& text) const
+    {
+      vals.clear();
+      text.clear();
+      const bool linear = isY ? !p_yLog : p_xScale == X_LINEAR;
+      if (linear) {
+        double lo = tlo, hi = thi;
+        SpectrumTicks t = niceTicks(lo, hi, target);
+        if (!isY && p_intX) t = integerTicks(lo, hi, t.step);
+        for (size_t i = 0; i < t.values.size(); i++) {
+          vals.push_back(t.values[i]);
+          text.push_back(tickText(t, t.values[i]));
+        }
+        return;
+      }
+      const double span = thi - tlo;
+      if (!(span > 0)) return;
+      if (isY) {
+        const int e0 = (int)std::ceil(tlo - 1e-9), e1 = (int)std::floor(thi + 1e-9);
+        const int stepE = std::max(1, (int)std::ceil((e1 - e0 + 1) / (double)std::max(2, target)));
+        for (int e = e0; e <= e1; e += stepE) {
+          vals.push_back(std::pow(10.0, e));
+          text.push_back(powerOfTen(e, 1));
+        }
+        if (vals.size() < 3 && stepE == 1)
+          for (int e = e0 - 1; e <= e1; e++)
+            for (int m = 2; m <= 5; m += 3) {
+              const double v = m * std::pow(10.0, e);
+              const double t = std::log10(v);
+              if (t > tlo && t < thi) { vals.push_back(v); text.push_back(powerOfTen(e, m)); }
+            }
+        return;
+      }
+      struct Cand { double v; int rank; };
+      std::vector<Cand> cands;
+      const double lo = txInv(std::max(tlo, p_xScale == X_SQRT ? 0.0 : tlo)),
+                   hi = txInv(thi);
+      if (p_xScale == X_SQRT && tlo <= 0.0) { Cand c = { 0.0, 0 }; cands.push_back(c); }
+      for (int e = -6; e <= 6; e++) {
+        const int mant[3] = { 1, 5, 2 };
+        for (int k = 0; k < 3; k++) {
+          const double v = mant[k] * std::pow(10.0, e);
+          if (v < lo * (1 - 1e-9) || v > hi * (1 + 1e-9)) continue;
+          Cand c = { v, k };
+          cands.push_back(c);
+        }
+      }
+      std::stable_sort(cands.begin(), cands.end(),
+                       [](const Cand& a, const Cand& b) { return a.rank < b.rank; });
+      const double gap = 46.0;
+      for (const Cand& c : cands) {
+        const double t = tx(c.v);
+        if (!std::isfinite(t)) continue;
+        bool free = true;
+        for (size_t i = 0; i < vals.size() && free; i++)
+          if (std::fabs(tx(vals[i]) - t) / span * pixels < gap) free = false;
+        if (free) vals.push_back(c.v);
+      }
+      std::sort(vals.begin(), vals.end());
+      for (double v : vals) text.push_back(wxString::Format("%g", v));
     }
 
     //  Ticks on whole numbers only, at least one apart.
@@ -484,13 +657,15 @@ class XYPlotCanvas : public wxPanel
 
     //  The range the data fills, with a margin so end points are not on
     //  the frame.
-    bool dataRange(double *xlo, double *xhi, double *ylo, double *yhi) const
+    //  In drawn coordinates (see tx/ty).  `clipped` applies the y limit.
+    bool dataRange(double *xlo, double *xhi, double *ylo, double *yhi,
+                   bool clipped = true) const
     {
       bool any = false;
       double x0 = 0, x1 = 0, y0 = 0, y1 = 0;
       for (size_t c = 0; c < p_curves.size(); c++)
         for (size_t i = 0; i < p_curves[c].x.size(); i++) {
-          const double x = p_curves[c].x[i], y = p_curves[c].y[i];
+          const double x = tx(p_curves[c].x[i]), y = ty(p_curves[c].y[i]);
           if (!std::isfinite(x) || !std::isfinite(y)) continue;
           if (!any) { x0 = x1 = x; y0 = y1 = y; any = true; continue; }
           x0 = std::min(x0, x); x1 = std::max(x1, x);
@@ -503,7 +678,9 @@ class XYPlotCanvas : public wxPanel
       const double px = std::max(0.04 * dx, p_xPad);
       *xlo = x0 - px;  *xhi = x1 + px;
       *ylo = y0 - 0.06 * dy; *yhi = y1 + 0.06 * dy;
-      if (p_yLimit > 0 && p_yLimit < *yhi && p_yLimit > y0) {
+      //  Far-below values of a log axis would squeeze the interesting part.
+      if (p_yLog && *ylo < *yhi - 10.0) *ylo = *yhi - 10.0;
+      if (clipped && !p_yLog && p_yLimit > 0 && p_yLimit < *yhi && p_yLimit > y0) {
         *yhi = p_yLimit;
         *ylo = y0 - 0.06 * (p_yLimit - y0);
       }
@@ -516,7 +693,7 @@ class XYPlotCanvas : public wxPanel
     void clampView()
     {
       double lo, hi, ylo, yhi;
-      if (!dataRange(&lo, &hi, &ylo, &yhi)) return;
+      if (!dataRange(&lo, &hi, &ylo, &yhi, false)) return;
       clampAxis(&p_vx0, &p_vx1, lo, hi);
       clampAxis(&p_vy0, &p_vy1, ylo, yhi);
     }
@@ -532,17 +709,22 @@ class XYPlotCanvas : public wxPanel
       *b = *a + w;
     }
 
-    int xOf(double x) const
+    //  Pixel of a drawn coordinate; far off screen where there is none.
+    int xOfT(double t) const
     {
-      const double f = (x - p_x0) / (p_x1 - p_x0);
+      const double f = (t - p_x0) / (p_x1 - p_x0);
+      if (!std::isfinite(f) || std::fabs(f) > 1e4) return -100000;
       return p_plot.x + (int)std::floor(f * (p_plot.width - 1) + 0.5);
     }
-    int yOf(double y) const
+    int yOfT(double t) const
     {
-      const double f = (y - p_y0) / (p_y1 - p_y0);
+      const double f = (t - p_y0) / (p_y1 - p_y0);
+      if (!std::isfinite(f) || std::fabs(f) > 1e4) return -100000;
       return p_plot.GetBottom() - (int)std::floor(f * (p_plot.height - 1) + 0.5);
     }
-    double xFrom(int px) const
+    int xOf(double x) const { return xOfT(tx(x)); }
+    int yOf(double y) const { return yOfT(ty(y)); }
+    double xFrom(int px) const     // drawn coordinates, as the view is
     {
       return p_x0 + (px - p_plot.x) / (double)std::max(1, p_plot.width - 1) *
              (p_x1 - p_x0);
@@ -583,13 +765,25 @@ class XYPlotCanvas : public wxPanel
       const Curve& cv = p_curves[c];
       const wxColour col = colourOf(cv);
       std::vector<wxPoint> pts;
-      for (size_t i = 0; i < cv.x.size(); i++)
-        if (std::isfinite(cv.x[i]) && std::isfinite(cv.y[i]))
+      std::vector<size_t> breaks;      // pts index where a new run starts
+      bool gap = true;
+      for (size_t i = 0; i < cv.x.size(); i++) {
+        if (std::isfinite(cv.x[i]) && std::isfinite(cv.y[i]) &&
+            std::isfinite(tx(cv.x[i])) && std::isfinite(ty(cv.y[i]))) {
+          if (gap) breaks.push_back(pts.size());
+          gap = false;
           pts.push_back(wxPoint(xOf(cv.x[i]), yOf(cv.y[i])));
+        } else {
+          gap = true;
+        }
+      }
       if (pts.empty()) return;
       if ((cv.style == LINE || cv.style == LINE_MARKERS) && pts.size() > 1) {
-        dc.SetPen(wxPen(col, cv.thin ? 1 : 2));
-        dc.DrawLines((int)pts.size(), &pts[0]);
+        dc.SetPen(wxPen(col, cv.thin ? 1 : cv.width, cv.dash ? wxPENSTYLE_SHORT_DASH : wxPENSTYLE_SOLID));
+        for (size_t b = 0; b < breaks.size(); b++) {
+          const size_t end = b + 1 < breaks.size() ? breaks[b+1] : pts.size();
+          if (end - breaks[b] > 1) dc.DrawLines((int)(end - breaks[b]), &pts[breaks[b]]);
+        }
       }
       if (cv.style == LEVELS) {
         dc.SetPen(wxPen(col, 2));
@@ -624,7 +818,7 @@ class XYPlotCanvas : public wxPanel
         if (x > x0 && x + w > maxX) { x = x0; y += rowH; rows++; }
         if (draw) {
           const wxColour col = colourOf(cv);
-          dc.SetPen(wxPen(col, cv.thin ? 1 : 2));
+          dc.SetPen(wxPen(col, cv.thin ? 1 : cv.width, cv.dash ? wxPENSTYLE_SHORT_DASH : wxPENSTYLE_SOLID));
           dc.DrawLine(x, y + dc.GetCharHeight() / 2, x + 14,
                       y + dc.GetCharHeight() / 2);
           dc.SetTextForeground(p_palette.text);

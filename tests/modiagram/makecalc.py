@@ -107,6 +107,7 @@ MULTIPLICITY = 1
 for _el in ("H", "C", "Ne", "Ar"):
     MOLECULES[_el.lower()] = [(_el, 0.0, 0.0, 0.0)]
 MOLECULES["h2"] = [("H", 0.0, 0.0, -0.37), ("H", 0.0, 0.0, 0.37)]
+MOLECULES["hcn"] = [("C", 0.0, 0.0, 0.0), ("H", 0.0, 0.0, -1.065), ("N", 0.0, 0.0, 1.153)]
 
 
 def libraryDiatomics():

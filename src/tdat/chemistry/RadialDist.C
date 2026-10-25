@@ -53,7 +53,14 @@ vector<double> grid(const Options& opt)
 {
   const int n = max(3, opt.points);
   vector<double> r(n);
-  for (int i = 0; i < n; i++) r[i] = opt.rMax * i / (n - 1);
+  for (int i = 0; i < n; i++) {
+    const double u = double(i) / (n - 1);
+    if (opt.spacing == Options::SQRT) r[i] = opt.rMax * u * u;
+    else if (opt.spacing == Options::LOG && i > 0) {
+      const double rMin = 1e-3 / (opt.bohr ? BOHR_ANG : 1.0);
+      r[i] = rMin * pow(opt.rMax / rMin, double(i - 1) / (n - 2));
+    } else r[i] = opt.rMax * u;
+  }
   return r;
 }
 
@@ -62,6 +69,14 @@ double integrate(const vector<double>& r, const vector<double>& p)
   const size_t n = min(r.size(), p.size());
   if (n < 2) return 0.0;
   const double h = (r[n-1] - r[0]) / (n - 1);
+  bool even = true;
+  for (size_t i = 1; i < n && even; i++)
+    if (fabs((r[i] - r[i-1]) - h) > 1e-9 * fabs(h)) even = false;
+  if (!even) {
+    double s = 0;
+    for (size_t i = 1; i < n; i++) s += 0.5 * (p[i] + p[i-1]) * (r[i] - r[i-1]);
+    return s;
+  }
   if (n % 2 == 1 && n >= 3) {
     double s = p[0] + p[n-1];
     for (size_t i = 1; i + 1 < n; i++) s += (i % 2 ? 4.0 : 2.0) * p[i];
@@ -88,7 +103,7 @@ void findMaxima(const vector<double>& r, const vector<double>& p,
     const double a = p[i-1], b = p[i], c = p[i+1];
     const double den = a - 2*b + c;
     const double d = den != 0.0 ? 0.5 * (a - c) / den : 0.0;
-    const double h = r[i] - r[i-1];
+    const double h = 0.5 * (r[i+1] - r[i-1]);
     maxR.push_back(r[i] + d*h);
     maxP.push_back(b - 0.25 * (a - c) * d);
   }
@@ -185,12 +200,19 @@ vector<string> shellLabels(IPropCalculation *calc,
   int seen[6] = { 0, 0, 0, 0, 0, 0 };
   double last[6] = { 1e9, 1e9, 1e9, 1e9, 1e9, 1e9 };
   out.assign(rows.size(), string());
-  for (size_t m = 0; m < rows.size() && m < occ.size(); m++) {
+  for (size_t m = 0; m < rows.size(); m++) {
     MoAoBasis::Composition comp;
-    if (occ[m] <= 0.0 || !basis.analyse(rows[m], MoAoBasis::MULLIKEN, comp)) continue;
+    if (!basis.analyse(rows[m], MoAoBasis::MULLIKEN, comp)) continue;
     const MoAoBasis::Share *best = 0;
     for (const MoAoBasis::Share& t : comp.types)
       if (t.l >= 0 && t.l < 6 && (!best || t.share > best->share)) best = &t;
+    const bool occupied = m < occ.size() && occ[m] > 0.0;
+    //  A virtual has no principal quantum number worth naming: its shell
+    //  is a mix of the basis functions, only the angular type is clear.
+    if (!occupied) {
+      if (best && best->share >= 0.9) out[m] = string(1, letters[best->l]) + " (virtual)";
+      continue;
+    }
     if (best && best->share >= 0.9) {
       const int l = best->l;
       const double e = m < energy.size() ? energy[m] : 0.0;
@@ -227,8 +249,10 @@ vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
     if (mem.empty()) continue;
     if (combine && !out.empty()) {
       Spec& g = out.back();
+      //  Virtuals share a name by type only, so they join by energy.
+      const bool virt = tag.find("(virtual)") != string::npos;
       const bool sameTag = !tag.empty() && groupTag.back() == tag &&
-                           (tagsUnique || fabs(e - groupEnergy.back()) < 1e-4);
+                           ((tagsUnique && !virt) || fabs(e - groupEnergy.back()) < 1e-4);
       const bool sameE = tag.empty() && g.label.compare(0, 3, "MO ") == 0 &&
                          fabs(e - groupEnergy.back()) < 1e-4 &&
                          g.label.find('(') == string::npos;
@@ -257,6 +281,15 @@ vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
     out.push_back(s);
     groupEnergy.push_back(e);
     groupTag.push_back(tag);
+  }
+  //  Two virtual curves of one type: tell them apart by orbital number.
+  for (size_t a = 0; a < out.size(); a++) {
+    const size_t at = out[a].label.find("(virtual)");
+    if (at == string::npos) continue;
+    bool dup = false;
+    for (size_t b = 0; b < out.size(); b++)
+      if (b != a && out[b].label == out[a].label) dup = true;
+    if (dup) out[a].label.insert(at + 8, ", MO " + to_string(out[a].mo));
   }
   return out;
 }

@@ -10,10 +10,13 @@
 #include "tdat/RadialDist.H"
 #include "PropertyPanel.H"
 
+class wxButton;
 class wxCheckBox;
 class wxCheckListBox;
 class wxChoice;
+class wxPanel;
 class wxSpinCtrlDouble;
+class wxSplitterWindow;
 class wxStaticText;
 class wxTextCtrl;
 class XYPlotCanvas;
@@ -70,6 +73,14 @@ class DensityProfilePanel : public PropertyPanel
       bool setBohr(bool bohr);
       bool setCombine(bool on);
       bool setClip(bool on);                          // clip the nuclear peaks
+      bool setXAxis(const std::string& name);         // linear sqrt log (atom mode)
+      bool setYAxis(const std::string& name);         // linear log
+      bool setShift(double angstrom, bool outOfPlane);  // sideways, line mode
+      bool zoom(const std::string& what);             // whole fit in out
+      bool setMoreOpen(bool open);                    // the folded controls
+
+      /** The orbital chosen in the MO list or MO Diagram: shown alone. */
+      void followMo(int mo, bool beta);
 
       bool savePng(const wxString& path, int width, int height);
       bool exportCsv(const wxString& path);
@@ -84,11 +95,15 @@ class DensityProfilePanel : public PropertyPanel
       void build();
       void fillOrbitals();
       void chooseDefaults();
-      void fillQuantities();
+      void fillQuantities(bool resetShow = false);
       void recompute();
       void onControl(wxCommandEvent& event);
       void syncControls();
       bool densityLike() const;
+      std::string showName() const;
+      void selectShow(const std::string& name);
+      void ensureSelection();
+      void remember() const;
 
       std::unique_ptr<DensityPlane::Evaluator> p_eval;
       std::vector<std::string> p_shell;          // "2s" of an atom's occupied MOs
@@ -102,10 +117,16 @@ class DensityProfilePanel : public PropertyPanel
       double p_sumError;                         // negative: not applicable
       double p_sumPeak;
       bool p_ok, p_busy, p_atomsOnly;
+      bool p_showDensityList;                    // which Show list is in the choice
+      bool p_moreOpen;
 
       wxChoice *p_mode, *p_atomA, *p_atomB, *p_centre, *p_quantity, *p_show,
-               *p_spin, *p_unit;
-      wxSpinCtrlDouble *p_margin;
+               *p_spin, *p_unit, *p_xaxis, *p_yaxis, *p_shiftDir;
+      wxSpinCtrlDouble *p_margin, *p_shift;
+      wxPanel *p_more;
+      wxButton *p_moreButton;
+      wxSplitterWindow *p_outer, *p_inner;
+      wxStaticText *p_labelXAxis, *p_labelYAxis;
       wxStaticText *p_labelA, *p_labelB, *p_labelCentre, *p_labelMargin;
       wxCheckListBox *p_list;
       wxCheckBox *p_combine, *p_clip;

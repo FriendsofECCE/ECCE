@@ -13,12 +13,15 @@
 #include <wx/link.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
+#include <wx/panel.h>
 #include <wx/spinctrl.h>
+#include <wx/splitter.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/utils.h>
 #include <wx/wrapsizer.h>
 
+#include "wxgui/ewxConfig.H"
 #include "dsm/IPropCalculation.H"
 #include "tdat/PropVecString.H"
 
@@ -30,7 +33,9 @@ namespace {
 const wxWindowID ID_MODE = wxNewId(), ID_ATOM = wxNewId(), ID_QUANTITY = wxNewId(),
                  ID_SHOW = wxNewId(), ID_SPIN = wxNewId(), ID_UNIT = wxNewId(),
                  ID_LIST = wxNewId(), ID_COMBINE = wxNewId(), ID_CLIP = wxNewId(), ID_MARGIN = wxNewId(),
-                 ID_PNG = wxNewId(), ID_CSV = wxNewId();
+                 ID_PNG = wxNewId(), ID_CSV = wxNewId(), ID_XAXIS = wxNewId(),
+                 ID_YAXIS = wxNewId(), ID_WHOLE = wxNewId(), ID_MORE = wxNewId(),
+                 ID_SHIFT = wxNewId(), ID_SHIFTDIR = wxNewId();
 
 const double BOHR_ANG = 0.52917721092;
 
@@ -40,6 +45,17 @@ const int GRID_POINTS = 801;
 const int ANGULAR_POINTS = 302;
 
 wxString U(const char *utf8) { return wxString::FromUTF8(utf8); }
+
+//  Colour-blind safe (Okabe-Ito without black, which is the total's, then
+//  five more).  Past the end the colours return as dashed lines, so no two
+//  curves ever look alike.
+wxColour curveColour(int i)
+{
+  static const char *hex[] = { "#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00",
+                               "#CC79A7", "#7F7F7F", "#8C510A", "#35978F", "#762A83",
+                               "#B2182B", "#F0E442" };
+  return wxColour(hex[i % 12]);
+}
 
 //  What a radial curve shows, in words.
 wxString radialText(const RadialDist::Curve& c, bool radial, const wxString& length)
@@ -113,8 +129,11 @@ wxFORCE_LINK_THIS_MODULE(DensityProfilePanel)
 
 DensityProfilePanel::DensityProfilePanel()
   : PropertyPanel(), p_sumError(-1.0), p_sumPeak(0.0), p_ok(false), p_busy(false),
-    p_atomsOnly(false), p_mode(0), p_atomA(0), p_atomB(0), p_centre(0), p_quantity(0),
-    p_show(0), p_spin(0), p_unit(0), p_margin(0), p_labelA(0), p_labelB(0),
+    p_atomsOnly(false), p_showDensityList(true), p_moreOpen(false), p_mode(0), p_atomA(0),
+    p_atomB(0), p_centre(0), p_quantity(0),
+    p_show(0), p_spin(0), p_unit(0), p_xaxis(0), p_yaxis(0), p_shiftDir(0), p_margin(0),
+    p_shift(0), p_more(0), p_moreButton(0), p_outer(0), p_inner(0), p_labelXAxis(0),
+    p_labelYAxis(0), p_labelA(0), p_labelB(0),
     p_labelCentre(0), p_labelMargin(0), p_list(0), p_combine(0), p_clip(0), p_text(0), p_plot(0)
 {
 }
@@ -161,19 +180,27 @@ void DensityProfilePanel::build()
   p_ok = p_eval->build(getCalculation());
   const int RIGHT = wxALIGN_CENTER_VERTICAL | wxRIGHT;
 
-  p_plot = new XYPlotCanvas(this);
-  p_plot->SetMinSize(wxSize(240, 160));
-  p_text = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
-                          wxSize(-1, 44), wxTE_MULTILINE | wxTE_READONLY);
+  //  Orbital list, plot and notes in splitters, so each can be given more room.
   if (!p_ok) {
     top->Add(new wxStaticText(this, wxID_ANY,
              wxString::FromUTF8(p_eval->complaint.c_str())), 0, wxALL, 8);
     return;
   }
+  p_outer = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                 wxSP_LIVE_UPDATE | wxSP_3DSASH);
+  p_inner = new wxSplitterWindow(p_outer, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                 wxSP_LIVE_UPDATE | wxSP_3DSASH);
+  p_list = new wxCheckListBox(p_outer, ID_LIST, wxDefaultPosition, wxSize(-1, 46));
+  p_plot = new XYPlotCanvas(p_inner);
+  p_plot->SetMinSize(wxSize(240, 160));
+  p_text = new wxTextCtrl(p_inner, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                          wxSize(-1, 44), wxTE_MULTILINE | wxTE_READONLY);
   const int natoms = (int)p_eval->symbols.size();
 
-  //  Rows wrap instead of widening the panel: none is wider than the dock.
+  //  Two short rows that wrap instead of widening the panel, then the
+  //  rarely needed controls folded under "More".
   wxWrapSizer *row1 = new wxWrapSizer(wxHORIZONTAL);
+  wxWrapSizer *row2 = new wxWrapSizer(wxHORIZONTAL);
   p_mode = new wxChoice(this, ID_MODE);
   p_mode->Append("Along a line");
   p_mode->Append("Around an atom");
@@ -193,21 +220,11 @@ void DensityProfilePanel::build()
   atomChoice(p_atomA, p_labelA, "From");
   atomChoice(p_atomB, p_labelB, "to");
   atomChoice(p_centre, p_labelCentre, "Centre");
-  p_margin = new wxSpinCtrlDouble(this, ID_MARGIN, "2.0", wxDefaultPosition,
-                                  wxSize(90, -1), wxSP_ARROW_KEYS, 0.0, 8.0, 2.0, 0.5);
-  p_margin->SetMinSize(wxSize(90, -1));
-  p_margin->SetToolTip(U("How far the line goes beyond the two atoms, in \xC3\x85"));
-  p_labelMargin = new wxStaticText(this, wxID_ANY, "Margin");
-  wxBoxSizer *marginPair = new wxBoxSizer(wxHORIZONTAL);
-  marginPair->Add(p_labelMargin, 0, RIGHT, 4);
-  marginPair->Add(p_margin, 0, wxALIGN_CENTER_VERTICAL);
-  row1->Add(marginPair, 0, RIGHT, 10);
 
   p_quantity = new wxChoice(this, ID_QUANTITY);
   row1->Add(p_quantity, 0, RIGHT, 12);
   p_show = new wxChoice(this, ID_SHOW);
   row1->Add(p_show, 0, RIGHT, 12);
-
   p_spin = new wxChoice(this, ID_SPIN);
   p_spin->Append("alpha");
   p_spin->Append("beta");
@@ -216,39 +233,109 @@ void DensityProfilePanel::build()
   p_spin->Show(p_eval->unrestricted);
   row1->Add(p_spin, 0, RIGHT, 12);
 
-  p_unit = new wxChoice(this, ID_UNIT);
+  p_xaxis = new wxChoice(this, ID_XAXIS);
+  p_xaxis->Append("Linear");
+  p_xaxis->Append(U("\xE2\x88\x9A" "r"));
+  p_xaxis->Append("log r");
+  p_xaxis->SetSelection(0);
+  p_xaxis->SetToolTip(U("The r axis: linear, square root (spreads the region near the nucleus) or logarithmic"));
+  p_labelXAxis = new wxStaticText(this, wxID_ANY, "r axis");
+  wxBoxSizer *xPair = new wxBoxSizer(wxHORIZONTAL);
+  xPair->Add(p_labelXAxis, 0, RIGHT, 4);
+  xPair->Add(p_xaxis, 0, wxALIGN_CENTER_VERTICAL);
+  row2->Add(xPair, 0, RIGHT, 12);
+  p_yaxis = new wxChoice(this, ID_YAXIS);
+  p_yaxis->Append("Linear");
+  p_yaxis->Append("Log");
+  p_yaxis->SetSelection(0);
+  p_yaxis->SetToolTip(U("Log shows the weak tails; only for quantities that are never negative"));
+  p_labelYAxis = new wxStaticText(this, wxID_ANY, "y axis");
+  wxBoxSizer *yPair = new wxBoxSizer(wxHORIZONTAL);
+  yPair->Add(p_labelYAxis, 0, RIGHT, 4);
+  yPair->Add(p_yaxis, 0, wxALIGN_CENTER_VERTICAL);
+  row2->Add(yPair, 0, RIGHT, 12);
+  wxButton *whole = new wxButton(this, ID_WHOLE, "Whole plot");
+  whole->SetToolTip("Zoom out to everything, including peaks cut off at the nuclei (mouse wheel zooms, drag pans)");
+  row2->Add(whole, 0, RIGHT, 12);
+  p_moreButton = new wxButton(this, ID_MORE, U("More \xE2\x96\xB8"));
+  row2->Add(p_moreButton, 0, RIGHT, 12);
+
+  //  The folded controls.
+  p_more = new wxPanel(this);
+  wxWrapSizer *rowMore = new wxWrapSizer(wxHORIZONTAL);
+  p_more->SetSizer(rowMore);
+  //  Wide enough for both arrows (GTK hides the "+" of a narrow one).
+  p_margin = new wxSpinCtrlDouble(p_more, ID_MARGIN, "2.0", wxDefaultPosition,
+                                  wxSize(130, -1), wxSP_ARROW_KEYS, 0.0, 8.0, 2.0, 0.5);
+  p_margin->SetMinSize(wxSize(130, -1));
+  p_margin->SetToolTip(U("How far the line goes beyond the two atoms, in \xC3\x85"));
+  p_labelMargin = new wxStaticText(p_more, wxID_ANY, "Margin");
+  wxBoxSizer *marginPair = new wxBoxSizer(wxHORIZONTAL);
+  marginPair->Add(p_labelMargin, 0, RIGHT, 4);
+  marginPair->Add(p_margin, 0, wxALIGN_CENTER_VERTICAL);
+  rowMore->Add(marginPair, 0, RIGHT, 12);
+  p_shift = new wxSpinCtrlDouble(p_more, ID_SHIFT, "0.0", wxDefaultPosition,
+                                 wxSize(130, -1), wxSP_ARROW_KEYS, -4.0, 4.0, 0.0, 0.25);
+  p_shift->SetMinSize(wxSize(130, -1));
+  p_shift->SetToolTip(U("Move the line sideways, in \xC3\x85, to profile a \xCF\x80 orbital above the bond (zero on the axis itself)"));
+  wxStaticText *shiftLabel = new wxStaticText(p_more, wxID_ANY, "Shift line sideways");
+  p_shiftDir = new wxChoice(p_more, ID_SHIFTDIR);
+  p_shiftDir->Append("out of the plane");
+  p_shiftDir->Append("in the plane");
+  p_shiftDir->SetSelection(0);
+  p_shiftDir->SetToolTip("The molecular plane holds the atoms and the line; any perpendicular for a linear molecule");
+  wxBoxSizer *shiftPair = new wxBoxSizer(wxHORIZONTAL);
+  shiftPair->Add(shiftLabel, 0, RIGHT, 4);
+  shiftPair->Add(p_shift, 0, RIGHT, 4);
+  shiftPair->Add(p_shiftDir, 0, wxALIGN_CENTER_VERTICAL);
+  rowMore->Add(shiftPair, 0, RIGHT, 12);
+
+  p_unit = new wxChoice(p_more, ID_UNIT);
   p_unit->Append(U("\xC3\x85"));
   p_unit->Append("bohr");
   p_unit->SetSelection(0);
   wxBoxSizer *unitPair = new wxBoxSizer(wxHORIZONTAL);
-  unitPair->Add(new wxStaticText(this, wxID_ANY, "Unit"), 0, RIGHT, 6);
+  unitPair->Add(new wxStaticText(p_more, wxID_ANY, "Unit"), 0, RIGHT, 6);
   unitPair->Add(p_unit, 0, wxALIGN_CENTER_VERTICAL);
-  row1->Add(unitPair, 0, RIGHT, 12);
+  rowMore->Add(unitPair, 0, RIGHT, 12);
 
-  p_combine = new wxCheckBox(this, ID_COMBINE, "combine degenerate");
+  p_combine = new wxCheckBox(p_more, ID_COMBINE, "combine degenerate");
   p_combine->SetToolTip("One curve for each shell (2p) or set of orbitals of equal energy");
   p_combine->SetValue(true);
-  row1->Add(p_combine, 0, RIGHT, 12);
-  p_clip = new wxCheckBox(this, ID_CLIP, "clip peaks");
+  rowMore->Add(p_combine, 0, RIGHT, 12);
+  p_clip = new wxCheckBox(p_more, ID_CLIP, "clip peaks");
   p_clip->SetToolTip("Clip nuclear peaks: cut the vertical axis above the highest value away from the nuclei, "
                      "so the bond region is not flattened by the peaks at the nuclei");
   p_clip->SetValue(true);
-  row1->Add(p_clip, 0, RIGHT, 12);
-  row1->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxLEFT | wxRIGHT, 4);
-  row1->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0);
+  rowMore->Add(p_clip, 0, RIGHT, 12);
+  rowMore->Add(new wxButton(p_more, ID_PNG, "Export .png..."), 0, wxLEFT | wxRIGHT, 4);
+  rowMore->Add(new wxButton(p_more, ID_CSV, "Export .csv..."), 0);
 
-  p_list = new wxCheckListBox(this, ID_LIST, wxDefaultPosition, wxSize(-1, 46));
   p_list->SetToolTip("Tick the orbitals for the selected views");
+  p_inner->SplitHorizontally(p_plot, p_text, -70);
+  p_inner->SetMinimumPaneSize(40);
+  p_inner->SetSashGravity(1.0);
+  p_outer->SplitHorizontally(p_list, p_inner, 70);
+  p_outer->SetMinimumPaneSize(34);
+  p_outer->SetSashGravity(0.0);
 
-  top->Add(row1, 0, wxEXPAND | wxALL, 6);
-  top->Add(p_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
-  top->Add(p_plot, 1, wxEXPAND);
-  top->Add(p_text, 0, wxEXPAND | wxALL, 6);
+  top->Add(row1, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
+  top->Add(row2, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
+  top->Add(p_more, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
+  top->Add(p_outer, 1, wxEXPAND | wxALL, 4);
+  {
+    bool open = false;
+    ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+    if (cfg) cfg->Read("/DensityProfile/MoreOpen", &open, false);
+    p_moreOpen = open;
+  }
 
   Bind(wxEVT_CHOICE, &DensityProfilePanel::onControl, this);
   Bind(wxEVT_CHECKBOX, &DensityProfilePanel::onControl, this);
   Bind(wxEVT_CHECKLISTBOX, &DensityProfilePanel::onControl, this);
   Bind(wxEVT_SPINCTRLDOUBLE, &DensityProfilePanel::onControl, this);
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { zoom("whole"); }, ID_WHOLE);
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { setMoreOpen(!p_moreOpen); }, ID_MORE);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     wxFileDialog dlg(this, "Export plot", wxEmptyString, "density-profile.png",
                      "PNG files (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
@@ -338,11 +425,35 @@ void DensityProfilePanel::chooseDefaults()
   }
 }
 
-//  The quantity and show choices that apply to the mode and quantity.
-void DensityProfilePanel::fillQuantities()
+//  The Show choice of the current list, by name.
+std::string DensityProfilePanel::showName() const
+{
+  const int i = p_show->GetSelection();
+  if (p_showDensityList) {
+    static const char *n[] = { "all", "totalselected", "selected", "total" };
+    return i >= 0 && i < 4 ? n[i] : "all";
+  }
+  return i == 1 ? "all" : "selected";
+}
+
+void DensityProfilePanel::selectShow(const std::string& name)
+{
+  int i = 0;
+  if (p_showDensityList)
+    i = name == "all" ? 0 : name == "totalselected" ? 1 : name == "total" ? 3 : 2;
+  else
+    i = name == "all" ? 1 : 0;
+  p_show->SetSelection(i);
+}
+
+//  The quantity and show choices that apply to the mode and quantity.  A
+//  change of quantity keeps what the user is looking at: the same kind of
+//  show, so the ticked orbitals stay the ones plotted.
+void DensityProfilePanel::fillQuantities(bool resetShow)
 {
   const bool atom = p_mode->GetSelection() == 1;
   const int q = p_quantity->GetSelection();
+  const std::string was = resetShow ? std::string("all") : showName();
   p_quantity->Clear();
   if (atom) {
     p_quantity->Append("Radial distribution");
@@ -355,9 +466,9 @@ void DensityProfilePanel::fillQuantities()
     p_quantity->SetToolTip(U("\xCF\x88 shows the sign (phase) and the nodes of an orbital"));
   }
   p_quantity->SetSelection(q >= 0 && q < (int)p_quantity->GetCount() ? q : 0);
-  const int s = p_show->GetSelection();
   p_show->Clear();
-  if (densityLike()) {
+  p_showDensityList = densityLike();
+  if (p_showDensityList) {
     p_show->Append("Total + all occupied");
     p_show->Append("Total + selected orbitals");
     p_show->Append("Selected orbitals");
@@ -366,8 +477,22 @@ void DensityProfilePanel::fillQuantities()
     p_show->Append("Selected orbitals");
     p_show->Append("All occupied orbitals");
   }
-  p_show->SetSelection(s >= 0 && s < (int)p_show->GetCount() ? s : 0);
-  if (!densityLike() && s < 0) p_show->SetSelection(0);
+  selectShow(was);
+}
+
+//  "Selected orbitals" with nothing ticked would plot nothing: the HOMO.
+//  The list then scrolls to the first ticked orbital, so what is plotted
+//  is what is in view.
+void DensityProfilePanel::ensureSelection()
+{
+  if (showName() == "selected") {
+    bool any = false;
+    for (unsigned i = 0; i < p_list->GetCount() && !any; i++) any = p_list->IsChecked(i);
+    const int homo = p_eval->homo();
+    if (!any && homo >= 1 && homo <= (int)p_list->GetCount()) p_list->Check(homo - 1, true);
+  }
+  for (unsigned i = 0; i < p_list->GetCount(); i++)
+    if (p_list->IsChecked(i)) { p_list->EnsureVisible((int)i); break; }
 }
 
 bool DensityProfilePanel::densityLike() const
@@ -379,19 +504,43 @@ void DensityProfilePanel::syncControls()
 {
   const bool atom = p_mode->GetSelection() == 1;
   for (wxWindow *w : std::initializer_list<wxWindow*>{ p_atomA, p_atomB, p_labelA,
-       p_labelB, p_margin, p_labelMargin })
+       p_labelB, p_margin, p_labelMargin, p_shift, p_shiftDir })
     w->Show(!atom);
   p_centre->Show(atom);
   p_labelCentre->Show(atom);
   p_combine->Enable(!(!atom && p_quantity->GetSelection() == 2));
   p_clip->Show(!atom);
+  //  The r axis is only a choice about an atom; a line has one length.
+  if (!atom) p_xaxis->SetSelection(0);
+  p_xaxis->Show(atom);
+  p_labelXAxis->Show(atom);
+  //  Log needs values that are never negative.
+  const bool signedPsi = !atom && p_quantity->GetSelection() == 2;
+  if (signedPsi) p_yaxis->SetSelection(0);
+  p_yaxis->Enable(!signedPsi);
+  p_moreButton->SetLabel(p_moreOpen ? U("More \xE2\x96\xBE") : U("More \xE2\x96\xB8"));
+  p_more->Show(p_moreOpen);
   Layout();
+}
+
+void DensityProfilePanel::remember() const
+{
+  ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+  if (!cfg) return;
+  cfg->Write("/DensityProfile/MoreOpen", p_moreOpen);
+  cfg->Flush();
 }
 
 void DensityProfilePanel::recompute()
 {
   if (!p_ok || p_busy) return;
-  p_busy = true;
+  //  Cleared on every way out, an exception included: a stuck flag would
+  //  make every later control do nothing.
+  struct Busy {
+    bool& f;
+    explicit Busy(bool& b) : f(b) { f = true; }
+    ~Busy() { f = false; }
+  } busyFlag(p_busy);
   wxBusyCursor busy;
   const bool atom = p_mode->GetSelection() == 1;
   const bool bohr = p_unit->GetSelection() == 1;
@@ -437,6 +586,10 @@ void DensityProfilePanel::recompute()
     opt.rMax = bohr ? 6.0 / BOHR_ANG : 6.0;
     opt.points = GRID_POINTS;
     opt.lebedev = ANGULAR_POINTS;
+    //  Points even along the axis as drawn.
+    const int xsel = p_xaxis->GetSelection();
+    opt.spacing = xsel == 1 ? RadialDist::Options::SQRT
+                : xsel == 2 ? RadialDist::Options::LOG : RadialDist::Options::EVEN;
     const int a = std::max(0, p_centre->GetSelection());
     const double c[3] = { p_eval->coordsAng[3*a], p_eval->coordsAng[3*a+1],
                           p_eval->coordsAng[3*a+2] };
@@ -451,10 +604,11 @@ void DensityProfilePanel::recompute()
       p_plot->clearCurves();
       p_plot->clearVLines();
       p_text->SetValue("Choose two different atoms.");
-      p_busy = false;
       return;
     }
-    const LineProfile::Line line = LineProfile::throughAtoms(*p_eval, a, b, p_margin->GetValue());
+    const LineProfile::Line line = LineProfile::throughAtoms(*p_eval, a, b, p_margin->GetValue(),
+        p_shift->GetValue(),
+        p_shiftDir->GetSelection() == 0);
     LineProfile::Result r;
     const LineProfile::Quantity q = quantity == 2 ? LineProfile::PSI
         : quantity == 1 ? LineProfile::PSI2 : LineProfile::DENSITY;
@@ -478,15 +632,32 @@ void DensityProfilePanel::recompute()
       if (c.spec.total) for (double v : c.p) p_sumPeak = std::max(p_sumPeak, v);
   }
 
+  const int xs = atom ? p_xaxis->GetSelection() : 0;
+  const bool yLog = p_yaxis->IsEnabled() && p_yaxis->GetSelection() == 1;
   p_plot->clearCurves();
   p_plot->clearVLines();
-  p_plot->setXAxisLabel(xLabel);
+  p_plot->setXScale(xs == 1 ? XYPlotCanvas::X_SQRT : xs == 2 ? XYPlotCanvas::X_LOG
+                                                             : XYPlotCanvas::X_LINEAR);
+  p_plot->setYLog(yLog);
+  p_plot->setXAxisLabel(xs == 1 ? U("√r, labelled in r (") + length + ")"
+                      : xs == 2 ? "log r, labelled in r (" + length + ")" : xLabel);
   p_plot->setYAxisLabel(yLabel);
   p_plot->setShowKey(true);
   p_plot->setZeroLine(!atom && quantity == 2);
+  //  Zero everywhere: a node, not a curve to draw ticks for.
+  double biggest = 0;
+  for (const RadialDist::Curve& c : curves)
+    for (double v : c.p) biggest = std::max(biggest, std::fabs(v));
+  const bool allZero = !atom && !curves.empty() && biggest < 1e-9;
+  if (allZero)
+    p_plot->setMessage(p_shift->GetValue() == 0.0
+        ? U("zero on this line — π orbital: shift the line off the axis")
+        : U("zero on this line — try another shift or direction"));
+  else
+    p_plot->setMessage(wxString());
   //  Line: the cut is the highest value 0.35 A or more from every atom.
   double limit = 0.0;
-  if (!atom && p_clip->GetValue() && quantity != 2 && !p_marks.empty()) {
+  if (!atom && !yLog && p_clip->GetValue() && quantity != 2 && !p_marks.empty()) {
     const double away = 0.35 / (bohr ? BOHR_ANG : 1.0);
     double top = 0, all = 0;
     for (const RadialDist::Curve& c : curves)
@@ -502,7 +673,11 @@ void DensityProfilePanel::recompute()
   p_plot->setYLimit(limit);
   for (const LineProfile::Mark& m : p_marks) p_plot->addVLine(m.s, U(m.label.c_str()));
   wxString text;
-  int series = 0;
+  if (xs != 0 && quantity == 0)
+    text += U("On this r axis the area under a curve is no longer the electron count.\n");
+  if (limit > 0)
+    text += U("Peaks at the nuclei are cut off; \"Whole plot\" shows them.\n");
+  int series = 0, colourIndex = 0;
   for (const RadialDist::Curve& c : curves) {
     std::vector<double> plotR(axis), plotP(c.p);
     if (atom) {
@@ -510,15 +685,29 @@ void DensityProfilePanel::recompute()
       double topV = 0;
       for (double v : c.p) topV = std::max(topV, v);
       size_t last = 1;
-      for (size_t i = 0; i < c.p.size(); i++) if (c.p[i] > 0.002 * topV) last = i;
+      const double visible = yLog ? 1e-9 : 0.002;    // a log axis shows the tail
+      for (size_t i = 0; i < c.p.size(); i++) if (c.p[i] > visible * topV) last = i;
       last = std::min(c.p.size() - 1, last + last / 8 + 2);
       plotR.resize(last + 1);
       plotP.resize(last + 1);
     }
+    //  The total is black and heavier; no two others share a colour.
+    const bool total = c.spec.total;
     p_plot->addCurve(plotR, plotP, U(c.spec.label.c_str()), series, XYPlotCanvas::LINE);
+    const int idx = p_plot->curveCount() - 1;
+    wxColour colour;
+    if (total) {
+      colour = p_plot->palette().text;
+      p_plot->setCurveStyle(idx, false, 3);
+    } else {
+      colour = curveColour(colourIndex);
+      p_plot->setCurveStyle(idx, colourIndex >= 12, 2);
+      colourIndex++;
+    }
+    p_plot->setCurveColour(idx, colour);
     if (atom && !c.maxR.empty()) {
       const int m = p_plot->addCurve(c.maxR, c.maxP, wxString(), series, XYPlotCanvas::MARKERS);
-      p_plot->setCurveColour(m, p_plot->seriesColour(series));
+      p_plot->setCurveColour(m, colour);
     }
     text += U(c.spec.label.c_str()) + ": ";
     text += atom ? radialText(c, quantity == 0, length) : lineText(c, axis, p_marks, quantity, length);
@@ -530,7 +719,6 @@ void DensityProfilePanel::recompute()
                              p_sumError, p_sumPeak);
   p_text->SetValue(text);
   p_plot->Refresh();
-  p_busy = false;
 }
 
 void DensityProfilePanel::onControl(wxCommandEvent& event)
@@ -540,11 +728,15 @@ void DensityProfilePanel::onControl(wxCommandEvent& event)
   const wxWindowID id = w ? w->GetId() : 0;
   if (id == ID_MODE) {
     p_quantity->SetSelection(0);
-    p_show->SetSelection(0);
-    fillQuantities();
+    fillQuantities(true);
     syncControls();
   } else if (id == ID_QUANTITY) {
     fillQuantities();
+    ensureSelection();
+    syncControls();
+  } else if (id == ID_SHOW) {
+    ensureSelection();
+  } else if (id == ID_XAXIS || id == ID_YAXIS) {
     syncControls();
   }
   recompute();
@@ -555,8 +747,7 @@ bool DensityProfilePanel::setMode(bool atomMode)
   if (!p_ok) return false;
   p_mode->SetSelection(atomMode ? 1 : 0);
   p_quantity->SetSelection(0);
-  p_show->SetSelection(0);
-  fillQuantities();
+  fillQuantities(true);
   syncControls();
   recompute();
   return true;
@@ -599,6 +790,7 @@ bool DensityProfilePanel::setQuantity(const std::string& name)
     if (name == (atom ? atomNames[i] : lineNames[i])) {
       p_quantity->SetSelection(i);
       fillQuantities();
+      ensureSelection();
       syncControls();
       recompute();
       return true;
@@ -619,6 +811,7 @@ bool DensityProfilePanel::setShow(const std::string& name)
   }
   if (i < 0) return false;
   p_show->SetSelection(i);
+  ensureSelection();
   recompute();
   return true;
 }
@@ -667,6 +860,70 @@ bool DensityProfilePanel::setClip(bool on)
   return true;
 }
 
+bool DensityProfilePanel::setXAxis(const std::string& name)
+{
+  if (!p_ok || p_mode->GetSelection() != 1) return false;
+  const int i = name == "linear" ? 0 : name == "sqrt" ? 1 : name == "log" ? 2 : -1;
+  if (i < 0) return false;
+  p_xaxis->SetSelection(i);
+  syncControls();
+  recompute();
+  return true;
+}
+
+bool DensityProfilePanel::setYAxis(const std::string& name)
+{
+  if (!p_ok) return false;
+  const int i = name == "linear" ? 0 : name == "log" ? 1 : -1;
+  if (i < 0 || (i == 1 && !p_yaxis->IsEnabled())) return false;
+  p_yaxis->SetSelection(i);
+  recompute();
+  return true;
+}
+
+bool DensityProfilePanel::setShift(double angstrom, bool outOfPlane)
+{
+  if (!p_ok || p_mode->GetSelection() == 1 || angstrom < -4 || angstrom > 4) return false;
+  p_shift->SetValue(angstrom);
+  p_shiftDir->SetSelection(outOfPlane ? 0 : 1);
+  recompute();
+  return true;
+}
+
+//  The canvas lays itself out when painted; a scripted zoom needs a view.
+bool DensityProfilePanel::zoom(const std::string& what)
+{
+  if (!p_ok) return false;
+  wxBitmap bmp(800, 500);
+  { wxMemoryDC dc(bmp); p_plot->paintOnto(dc, wxSize(800, 500)); }
+  if (what == "whole") p_plot->showWholePlot();
+  else if (what == "fit") p_plot->fitAll();
+  else if (what == "in") p_plot->zoomBy(0.5);
+  else if (what == "out") p_plot->zoomBy(2.0);
+  else return false;
+  p_plot->Refresh();
+  return true;
+}
+
+bool DensityProfilePanel::setMoreOpen(bool open)
+{
+  if (!p_ok) return false;
+  p_moreOpen = open;
+  syncControls();
+  remember();
+  return true;
+}
+
+void DensityProfilePanel::followMo(int mo, bool beta)
+{
+  if (!p_ok || !IsShown() || mo < 1 || mo > (int)p_list->GetCount()) return;
+  if (p_eval->unrestricted) p_spin->SetSelection(beta ? 1 : 0);
+  for (unsigned i = 0; i < p_list->GetCount(); i++) p_list->Check(i, (int)i + 1 == mo);
+  selectShow("selected");
+  ensureSelection();
+  if (IsShown()) recompute();
+}
+
 bool DensityProfilePanel::exportCsv(const wxString& path)
 {
   if (!p_ok || p_shown.empty()) return false;
@@ -710,6 +967,32 @@ std::string DensityProfilePanel::state() const
            p_show->GetSelection(), p_unit->GetSelection() ? "bohr" : "A",
            (int)p_shown.size(), (int)p_marks.size(), p_sumError);
   s += buf;
+  //  What the controls show: axes, shift, folded controls, view, ticked orbitals.
+  {
+    std::string ticked;
+    for (unsigned i = 0; i < p_list->GetCount(); i++)
+      if (p_list->IsChecked(i)) ticked += (ticked.empty() ? "" : ",") + std::to_string(i + 1);
+    wxBitmap bmp(800, 500);
+    { wxMemoryDC dc(bmp); p_plot->paintOnto(dc, wxSize(800, 500)); }
+    double x0, x1, y0, y1;
+    p_plot->viewRange(&x0, &x1, &y0, &y1);
+    snprintf(buf, sizeof buf,
+             "xaxis %s\nyaxis %s%s\nshift %.3f %s\nmore %d\nticked %s\nview %.6g %.6g %.6g %.6g\n"
+             "message %d\n",
+             p_xaxis->GetSelection() == 1 ? "sqrt" : p_xaxis->GetSelection() == 2 ? "log" : "linear",
+             p_yaxis->GetSelection() == 1 ? "log" : "linear", p_yaxis->IsEnabled() ? "" : " (disabled)",
+             p_shift->GetValue(), p_shiftDir->GetSelection() == 0 ? "out" : "in",
+             p_moreOpen ? 1 : 0, ticked.empty() ? "none" : ticked.c_str(), x0, x1, y0, y1,
+             p_plot->message().empty() ? 0 : 1);
+    s += buf;
+    for (int c = 0; c < p_plot->curveCount(); c++)
+      if (!p_plot->curveName(c).empty()) {
+        const wxColour col = p_plot->curveColourOf(c);
+        snprintf(buf, sizeof buf, "colour '%s' %02x%02x%02x\n", (const char*)p_plot->curveName(c).utf8_str(),
+                 col.Red(), col.Green(), col.Blue());
+        s += buf;
+      }
+  }
   for (const LineProfile::Mark& m : p_marks) {
     snprintf(buf, sizeof buf, "mark %s %.4f\n", m.label.c_str(), m.s);
     s += buf;
