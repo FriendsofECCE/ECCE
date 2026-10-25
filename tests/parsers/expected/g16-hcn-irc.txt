@@ -1779,6 +1779,12 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
       values: 0.090390 -0.457149 0.366759
       units: e
 
+[ROUTEFLAG]  Script=gaussian-16.routeflag  Freq=first  Skip=0  Lines=4
+  Begin=^ #
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=83 fed=4 rc=0 first-fed=' #p HF/3-21G Opt=(TS,CalcFC,NoEigentest) Freq'
+    (script emitted no property)
+
 [ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
   Begin=SCF Done\:
   begins=25 delivered=25 buffered_away=0

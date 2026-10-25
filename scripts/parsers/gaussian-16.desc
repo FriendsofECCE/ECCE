@@ -320,7 +320,7 @@ End=^ Total\s+\d+\.\d+\s+\d+\.\d+
 Script=gaussian-16.excited
 Begin=Excitation energies and oscillator strengths
 Skip=0
-Frequency=last
+Frequency=all
 End=SavETr:
 [END]
 
@@ -338,6 +338,16 @@ Begin=Fermi
 Skip=2
 Frequency=first
 End=-------------------
+[END]
+
+# Excited-state optimisation (#521): flag it from the route, which precedes
+# every energy; gaussian-16.excited then gives TE/TEVEC the TD total energy.
+[ROUTEFLAG]
+Script=gaussian-16.routeflag
+Begin=^ #
+Frequency=first
+Skip=0
+Lines=4
 [END]
 
 [ESCF1][ESCFVEC]

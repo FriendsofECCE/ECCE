@@ -3893,6 +3893,10 @@ sub ImportSibling
     my $ext = $1;
     (my $base = $out) =~ s/\.[^.\/]*$//;
     $base =~ s/^.*\///;
+    # ORCA's IRC trajectory is <job>_IRC_Full_trj.xyz, not <job>.xyz
+    if ($file =~ /^orca\.orcain(_\w+\.xyz)$/) {
+        return "$base$1" if (-f "$idir$base$1");
+    }
     return (-f "$idir$base$ext") ? "$base$ext" : '';
 }
 

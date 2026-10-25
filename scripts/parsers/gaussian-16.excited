@@ -3,11 +3,16 @@
 # strengths" block:
 #  Excited State   2:      Singlet-B2     6.9037 eV  179.59 nm  f=0.0301  <S**2>=0.000
 #        8 -> 10         0.70285
+# Frequency=all: every step of an Opt TD run has its own block, and the
+# scalar keys end up holding the last one.  The TD total energy of the state
+# being optimised is the trace energy of such a run (#521).
 $| = 1;
+($key, $runtype) = @ARGV;
 use FindBin;
 require "$FindBin::Bin/excited.pl";
-my @st;
+my (@st, $td);
 while (<STDIN>) {
+  if (/Total Energy, E\(TD-HF\/TD-DFT\)\s*=\s*(-?\d+\.\d+)/) { $td = $1; next; }
   if (/^\s*Excited State\s+\d+:\s+(.*?)\s+(-?\d+\.\d+) eV\s+\d+\.\d+ nm\s+f=(\d+\.\d+)/) {
     push(@st, { label => $1, ev => $2, f => $3, trans => [] });
   } elsif (@st && /^\s+(\d+)\s*(->|<-)\s*(\d+)\s+(-?\d+\.\d+)\s*$/) {
@@ -17,4 +22,7 @@ while (<STDIN>) {
   }
 }
 &emitExcited(@st);
+if (defined $td && $runtype =~ /Geo/i && -e "$key/g16TdOpt") {
+  print "key: $_\nsize:\n1\nvalues:\n$td\nunits:\nHartree\nEND\n" for ("TE", "TEVEC");
+}
 exit(0);
