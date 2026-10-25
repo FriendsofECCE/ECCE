@@ -6277,7 +6277,7 @@ void Builder::updatePropertyMenus()
             w[0] == "toolmenu" || w[0] == "paneclose" ||
             w[0] == "panestate" || w[0] == "panefold" ||
             w[0] == "foldclick" ||
-            w[0] == "sashdrag" || w[0] == "xshot" ||
+            w[0] == "sashdrag" || w[0] == "columnwidth" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab" ||
             w[0] == "undo" || w[0] == "redo" ||
             w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip" ||
