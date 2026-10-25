@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""
+The MOs table on ECCE-QM ethane and ethene (#533), canonical and localised,
+at the pane's default docked size, headless.
+
+The Builder scene command `plotshot <name> <w> <h> MOs:dockedtable` (or
+`dockedloctable`) leaves the pane where the layout put it, prints the table
+(PLOTSHOT-MOTABLE: header, rows, header height, the controls' rectangles and
+how many overlap) and saves a picture.  Checked: orbitals run 1..N in one
+direction, the columns say what each orbital is, the header is one line high,
+and nothing overlaps the table.
+
+    ECCE_MOTABLE_PNG=<dir>   also copy the pictures there
+    ECCE_MOTABLE_TAG=<tag>   picture name prefix (default "after")
+    ECCE_MOTABLE_REPORT=1    print the table state but do not fail
+
+Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
+ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
+"""
+
+import os
+import shutil
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, HERE)
+
+import apps       # noqa: E402
+import fixture    # noqa: E402
+import run_tests  # noqa: E402
+import xdisplay   # noqa: E402
+from ecceqm_builder_test import installLocal   # noqa: E402
+
+EXAMPLES = os.path.join(REPO, "data", "client", "examples", "organic")
+CALCS = {"ethane": os.path.join(EXAMPLES, "ecceqm-ethane", "stored", "ethane"),
+         "ethene": os.path.join(EXAMPLES, "ecceqm-ethene", "stored", "ethene")}
+VIEWS = (("canonical", "dockedtable"), ("localised", "dockedloctable"))
+SCREEN = os.environ.get("ECCE_MOTABLE_SCREEN", "1366x768x24")
+
+
+def parseState(log, name):
+    """The lines PLOTSHOT-MOTABLE <name> prints, as a dict plus the rows."""
+    state = {"row": []}
+    lines = log.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("PLOTSHOT-MOTABLE %s" % name):
+            for item in lines[i + 1:]:
+                if item.startswith("PLOTSHOT"):
+                    break
+                key, _, value = item.partition(" ")
+                if key == "row":
+                    state["row"].append([c.strip() for c in value.split("|")])
+                elif key == "header":
+                    state[key] = [c.strip() for c in value.split("|")]
+                else:
+                    state[key] = value
+            break
+    return state
+
+
+def check(state, localised):
+    problems = []
+    header = state.get("header")
+    if not header:
+        return ["no table state in the log"]
+    rows = state["row"]
+    mos = [int(r[0]) for r in rows]
+    if mos != list(range(1, len(mos) + 1)):
+        problems.append("MO numbers are not 1..N ascending: %s" % mos[:12])
+    energies = [float(r[1]) for r in rows]
+    if not localised and energies != sorted(energies):
+        problems.append("energies do not rise with the MO number")
+    wanted = ["Bond type", "Atoms"] if localised else ["Main atoms"]
+    for w in wanted:
+        if w not in header:
+            problems.append("no %r column (%s)" % (w, header))
+        else:
+            col = header.index(w)
+            if not all(r[col] for r in rows if len(r) > col):
+                problems.append("empty %r cells" % w)
+    if int(state.get("headerHeight", 999)) > 40:
+        problems.append("header %s px high" % state.get("headerHeight"))
+    if int(state.get("overlaps", 1)) != 0:
+        problems.append("%s controls overlap" % state.get("overlaps"))
+    return problems
+
+
+def main():
+    xdisplay.SCREEN = SCREEN
+    tag = os.environ.get("ECCE_MOTABLE_TAG", "after")
+    report = bool(os.environ.get("ECCE_MOTABLE_REPORT"))
+    pngdir = os.environ.get("ECCE_MOTABLE_PNG")
+
+    def checkApp(display, name, results, verbose=False):
+        folder = os.path.join(fixture.stateDir(), "motable-localdata")
+        urls = installLocal(folder, CALCS)
+        os.environ["ECCE_LOCAL_DATA"] = folder
+        restore = fixture.settleUpgradeNotices()
+        bad = []
+        try:
+            for calc, url in urls.items():
+                for view, mode in VIEWS:
+                    shot = "%s-%s-%s" % (tag, calc, view)
+                    out = os.path.join(folder, "shots")
+                    os.makedirs(out, exist_ok=True)
+                    scene = os.path.join(folder, "scene")
+                    with open(scene, "w") as h:
+                        h.write("plotshot %s 0 0 MOs:%s\nhold 1\n" % (shot, mode))
+                    result = apps.run(display, "builder",
+                                      args=("-context", url), windowTimeout=120,
+                                      settle=300,
+                                      env={"ECCE_PANEL_FULLSCREEN": "1", "ECCE_VIEWER_SCENE": scene,
+                                           "ECCE_VIEWER_SCENE_OUT": out})
+                    log = result.log or ""
+                    state = parseState(log, shot)
+                    if report:
+                        print("---- %s" % shot)
+                        print("\n".join("%s %s" % (k, v) for k, v in state.items()
+                                        if k != "row"))
+                        for r in state["row"]:
+                            print("   ", " | ".join(r))
+                    problems = check(state, view == "localised")
+                    png = os.path.join(out, shot + ".png")
+                    if not os.path.exists(png):
+                        problems.append("no picture")
+                    elif pngdir:
+                        os.makedirs(pngdir, exist_ok=True)
+                        shutil.copy(png, pngdir)
+                    print("%s  %s%s" % ("ok  " if not problems else "FAIL", shot,
+                                        "" if not problems else ": " + "; ".join(problems)))
+                    if problems:
+                        bad.append(shot)
+        finally:
+            restore()
+            os.environ.pop("ECCE_LOCAL_DATA", None)
+        if bad and not report:
+            results.fail("motable", "wrong: %s" % ", ".join(bad))
+    run_tests.checkApp = checkApp
+    sys.argv = [sys.argv[0], "--app", "builder"] + sys.argv[1:]
+    return run_tests.main()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -103,6 +103,12 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
     mode = panel.substr(colon + 1);
     panel = panel.substr(0, colon);
   }
+  //  "docked": leave the pane where the layout put it, at its default size.
+  bool docked = false;
+  if (mode.compare(0, 6, "docked") == 0) {
+    docked = true;
+    mode = mode.substr(6);
+  }
   const int width = atoi(w[2].c_str()), height = atoi(w[3].c_str());
 
   static bool handlers = false;
@@ -125,6 +131,8 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
       mo = dynamic_cast<MoPanel*>(*it);
     if (!mo) return s.fail("plotshot: no MO panel for '" + mode + "'");
     mo->ensureInitialized();
+    if (mode == "loctable" && !mo->selectFieldType("Localised MO"))
+      return s.fail("plotshot: no Localised MO for this calculation");
     wxCommandEvent ev(wxEVT_MENU, mode == "plotsym" ? MoPanel::PLOTSYM
                                  : mode == "plot" ? MoPanel::PLOT
                                                   : MoPanel::TABLE);
@@ -134,6 +142,9 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   //  Builder's own windows, which a screen blit would otherwise include.
   int px = 20, py = 20;
   if (const char *pos = getenv("ECCE_PLOTSHOT_POS")) sscanf(pos, "%d,%d", &px, &py);
+  if (docked) {
+    settle(1500);
+  } else {
   pane.Float().FloatingPosition(wxPoint(px, py))
       .BestSize(wxSize(width, height)).MinSize(wxSize(100, 100))
       .FloatingSize(wxSize(width, height + 40));
@@ -146,6 +157,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   pane.window->SetSize(wxSize(width, height));
   pane.window->Layout();
   settle(800);
+  }
   pane.window->Refresh();
   pane.window->Update();
   settle(1500);
@@ -156,6 +168,10 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   }
   if (getenv("ECCE_PLOTSHOT_DUMP")) dump(pane.window, 0);
   reportPlots(pane.window, w[1]);
+  if (MoPanel *mo = dynamic_cast<MoPanel*>(pane.window)) {
+    const string st = mo->tableState();
+    fprintf(stderr, "PLOTSHOT-MOTABLE %s\n%s", w[1].c_str(), st.c_str());
+  }
   const wxRect r = pane.window->GetScreenRect();
   fprintf(stderr, "PLOTSHOT: asked %dx%d, window %dx%d, frame %dx%d\n", width,
           height, pane.window->GetSize().x, pane.window->GetSize().y,
@@ -169,7 +185,8 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   }
   if (!bmp.SaveFile(wxString(outdir + "/" + w[1] + ".png"), wxBITMAP_TYPE_PNG))
     return s.fail("plotshot: cannot write " + w[1] + ".png");
-  pane.Dock().Hide();
+  if (!docked) pane.Dock();
+  pane.Hide();
   p_mgr.Update();
   settle(300);
   fprintf(stderr, "PLOTSHOT: %s %dx%d\n", w[1].c_str(), r.width, r.height);
