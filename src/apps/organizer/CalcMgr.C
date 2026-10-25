@@ -3494,8 +3494,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "coupled CO2 stretches instead of one C=O stretch."},
     {"methyl_acetate",
      "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
-     "calculation shows the C=O stretch of an ester, with IR and Raman "
-     "intensities different from those of the aldehydes and ketones."},
+     "calculation shows the C=O stretch of an ester."},
     {"ethyl_acetate",
      "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
      "calculation shows the C=O stretch of an ester with a longer alkoxy "
@@ -3516,7 +3515,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"alpha_d_glucopyranose",
      "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
      "calculation shows the O–H, C–H and C–O vibrations of a sugar in "
-     "the 4C1 chair with its hydrogen-bonded hydroxyl groups."},
+     "the 4C1 chair."},
     {"alpha_d_galactopyranose",
      "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
      "calculation shows how the axial C4 hydroxyl group of galactose "
