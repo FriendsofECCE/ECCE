@@ -284,6 +284,9 @@ void AtomMeasureDist::GLRender(SoGLRenderAction *action)
   // Disabling fixed problem where measure 2...n where only lit on one surface.
   // I'm not sure exactly why....My theory is that the default lighting uses
   // generated normals and they work perfectly well.
+  // Labels must stay readable behind atoms, bonds and the torsion plane.
+  GLboolean depthWasOn = glIsEnabled(GL_DEPTH_TEST);
+  glDisable(GL_DEPTH_TEST);
   glDisable(GL_LIGHTING);
   glColor3f(r,g,b);
 
@@ -298,6 +301,7 @@ void AtomMeasureDist::GLRender(SoGLRenderAction *action)
   // Note that this code was NOT in place for torsion
   //glColor3f(1.0,1.0,1.0);
   glEnable(GL_LIGHTING);
+  if (depthWasOn) glEnable(GL_DEPTH_TEST);
 
 
   // Restore the GL matrix
