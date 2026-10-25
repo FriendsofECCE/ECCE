@@ -255,7 +255,7 @@ def propXml(key, recs, natoms):
     dims = flat(rec, "size").split()
     rows = dims[0] if dims else str(len(vals))
     labels = " ".join(str(i + 1) for i in range(int(rows)))
-    if key.startswith("ORBSYM"):
+    if key.startswith("ORBSYM") or key == "MOVIRTNOTE":
         return (HEAD + '<vecstring name="%s" rowLabel="Basis Function" '
                 'rowLabels="%s" rows="%s" units="NA">%s</vecstring>\n'
                 % (key, labels, rows, wrap(vals)))
@@ -270,7 +270,7 @@ def propXml(key, recs, natoms):
 
 
 KEEP = ("MO", "MOBETA", "ORBENG", "ORBENGBETA", "ORBOCC", "ORBOCCBETA",
-        "ORBSYM", "ORBSYMBETA", "MOAOORDER", "GEOMTRACE")
+        "ORBSYM", "ORBSYMBETA", "MOAOORDER", "GEOMTRACE", "MOVIRTNOTE")
 
 
 def chemsys(atoms):
