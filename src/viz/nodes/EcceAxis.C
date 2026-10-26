@@ -13,6 +13,7 @@ using namespace std;
 #include "inv/misc/SoState.H"
 #include "viz/EcceAxis.H"
 #include "viz/freeglut_font_data.H"
+#include "viz/ViewerText.H"
 #include "viz/EcceDispParam.H"
 
 static float axisLength = 1.2;
@@ -95,11 +96,13 @@ EcceAxis::EcceAxis()
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+    if (!GLPath::software()) {
     fontOffset = glGenLists (256);
     for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList();
+    }
     }
    }
 }
@@ -155,26 +158,17 @@ void EcceAxis::GLRenderCenter(SoGLRenderAction *action)
    strcpy(p_text,"x");
    glColor3f(1.0,0.0, 0.0);
    glRasterPos3f(axisLength,0.05,0. ); 
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(p_text), GL_UNSIGNED_BYTE, (GLubyte *)p_text);
-   glPopAttrib ();
+   drawViewerText(fontOffset, p_text);
 
    glColor3f(0.0, 1.0, 0.0);
    glRasterPos3f(0.05,axisLength,0. );
    strcpy(p_text,"y");
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(p_text), GL_UNSIGNED_BYTE, (GLubyte *)p_text);
-   glPopAttrib ();
+   drawViewerText(fontOffset, p_text);
 
    glColor3f(0.0, 0.0, 1.0);
    glRasterPos3f(0.,0.05,axisLength );
    strcpy(p_text,"z");
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(p_text), GL_UNSIGNED_BYTE, (GLubyte *)p_text);
-   glPopAttrib ();
+   drawViewerText(fontOffset, p_text);
 
 //   glEnable(GL_LIGHTING);
 
@@ -263,24 +257,15 @@ void EcceAxis::GLRenderCorner(SoGLRenderAction *action)
    char p_text[80];
    strcpy(p_text,"x");
    glRasterPos3f(x+axisLength,y+labelOffset,z+0. ); 
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(p_text), GL_UNSIGNED_BYTE, (GLubyte *)p_text);
-   glPopAttrib ();
+   drawViewerText(fontOffset, p_text);
 
    glRasterPos3f(x+labelOffset,y+axisLength,z+0. );
    strcpy(p_text,"y");
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(p_text), GL_UNSIGNED_BYTE, (GLubyte *)p_text);
-   glPopAttrib ();
+   drawViewerText(fontOffset, p_text);
 
    glRasterPos3f(x+0.,y+labelOffset,z+axisLength );
    strcpy(p_text,"z");
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(p_text), GL_UNSIGNED_BYTE, (GLubyte *)p_text);
-   glPopAttrib ();
+   drawViewerText(fontOffset, p_text);
 
 
    glEnable(GL_LIGHTING);

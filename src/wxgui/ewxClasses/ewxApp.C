@@ -20,6 +20,7 @@
 #include <sstream>
 
 #include "util/Ecce.H"
+#include "util/GLPath.H"
 #include "util/Preferences.H"
 #include "util/Color.H"
 
@@ -329,6 +330,8 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       "endorses, the modifications made by the FriendsofECCE project.\n\n"
       "Report problems: Help > Report a Problem... collects the diagnostics "
       "for an issue at github.com/FriendsofECCE/ECCE.");
+   const std::string gl = GLPath::describeForDisplay();
+   if (!gl.empty()) desc += "\n\n" + wxString::FromUTF8(gl.c_str());
    info.SetDescription(desc);
    info.SetCopyright(wxString::FromUTF8(
       "Copyright \xC2\xA9 1994-2012 Pacific Northwest National Laboratory, "

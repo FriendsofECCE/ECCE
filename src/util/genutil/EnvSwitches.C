@@ -75,6 +75,12 @@ bool EnvSwitches::setExplicitly(const string& var)
   return v && *v && ours().count(var) == 0;
 }
 
+bool EnvSwitches::viaPreference(const string& var)
+{
+  const char* v = getenv(var.c_str());
+  return v && *v && ours().count(var) != 0;
+}
+
 string EnvSwitches::fileFor(const Entry& e, const string& saved)
 {
   if (!saved.empty()) return saved;
@@ -111,6 +117,21 @@ void EnvSwitches::apply()
         unsetenv(name.c_str());
         mine.erase(name);
       }
+    }
+  }
+
+  // "Advanced.GLPath" is a choice, not a switch: software, hardware or
+  // (anything else) automatic, which sets nothing.
+  string glPath;
+  pref.getString("Advanced.GLPath", glPath);
+  const char* glVar = "ECCE_GL_PATH";
+  if (!setExplicitly(glVar)) {
+    if (glPath == "software" || glPath == "hardware") {
+      setenv(glVar, glPath.c_str(), 1);
+      mine.insert(glVar);
+    } else if (mine.count(glVar)) {
+      unsetenv(glVar);
+      mine.erase(glVar);
     }
   }
   saveOurs(mine);

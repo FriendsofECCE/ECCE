@@ -15,6 +15,7 @@
 #include "inv/nodes/SoTranslation.H"
 #include "inv/nodes/SoTransform.H"
 #include "viz/freeglut_font_data.H"
+#include "viz/ViewerText.H"
 
 #include "viz/SGLattice.H"
 #include "tdat/BoxShape.H"
@@ -75,12 +76,14 @@ void SGLattice::constructor()
       GLuint i;
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+      if (!GLPath::software()) {
       fontOffset = glGenLists (256);
       for (i = 32; i < 256; i++) {
          glNewList(i+fontOffset, GL_COMPILE);
          glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
          glEndList();
       }
+    }
    }
 #endif
 }
@@ -116,33 +119,25 @@ void SGLattice::GLRender(SoGLRenderAction *action)
    //  rendering in issue #83; it leaks blue rather than green, so it is
    //  probably not that bug, but it is wrong either way.
    glPushAttrib(GL_CURRENT_BIT);
+   //  The font lists are never built on hardware (#if 000 above), so these
+   //  labels draw nothing there; software skips them to look the same.
    char text[80];
    strcpy(text,"b");
    glColor3f(1.0,0.0, 0.0);
    glRasterPos3f(p_a1str.x()-offset,p_a1str.y()-offset, p_a1str.z()-offset ); 
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(text), GL_UNSIGNED_BYTE, (GLubyte *)text);
-   glPopAttrib ();
+   if (!GLPath::software()) drawViewerText(fontOffset, text);
 
    glColor3f(0.0, 1.0, 0.0);
    strcpy(text,"c");
    glRasterPos3f(p_a2str.x()-offset,p_a2str.y()-offset, p_a2str.z()-offset ); 
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(text), GL_UNSIGNED_BYTE, (GLubyte *)text);
-   glPopAttrib ();
+   if (!GLPath::software()) drawViewerText(fontOffset, text);
 
 
 
    glColor3f(0.0, 0.0, 1.0);
    strcpy(text,"d");
    glRasterPos3f(p_a3str.x()-offset,p_a3str.y()-offset, p_a3str.z()-offset ); 
-   glPushAttrib (GL_LIST_BIT);
-   glListBase(fontOffset);  // fontOffset is static global 
-   glCallLists(strlen(text), GL_UNSIGNED_BYTE, (GLubyte *)text);
-
-   glPopAttrib();                       // the GL_CURRENT_BIT push above
+   if (!GLPath::software()) drawViewerText(fontOffset, text);                       // the GL_CURRENT_BIT push above
 
    // Restore the GL matrix
    glPopMatrix();

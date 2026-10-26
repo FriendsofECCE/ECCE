@@ -141,6 +141,7 @@ private:
     ewxButton* choose;
   };
   vector<AdvancedRow> p_advanced;
+  ewxChoice* p_glPath;     // Automatic / Software-safe / Hardware (#566)
 
   ProgramRow p_editor;
   ProgramRow p_terminal;

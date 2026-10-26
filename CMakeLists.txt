@@ -1932,6 +1932,11 @@ add_executable(envswitches_test tests/envswitches/envswitches_test.C)
 target_link_libraries(envswitches_test PRIVATE ecceutil)
 add_test(NAME envswitches COMMAND envswitches_test)
 
+# The viewer's software/hardware OpenGL path choice (#566).
+add_executable(glpath_test tests/glpath/glpath_test.C)
+target_link_libraries(glpath_test PRIVATE ecceutil)
+add_test(NAME glpath COMMAND glpath_test)
+
 # tests/formula -- the Hill-order formula shown in the Organizer.
 # tests/builder (#222): the element chooser's layout and search, no display.
 add_executable(elementlayout_test tests/builder/elementlayout_test.C)
@@ -2700,6 +2705,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/advanced_prefs_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_advanced_prefs PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # The viewer's software/hardware GL path and its measure labels (#566).
+  add_test(NAME apps_gl_path
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/gl_path_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_gl_path PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # Organizer summary panel: molecule and basis fields of a data-server
   # and of a local-data calculation, ECCE_TEST_ORGANIZER "summary".

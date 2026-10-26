@@ -302,6 +302,20 @@ records for older calculations, diagnostic output, and log files for the
 MO-diagram symmetry analysis and for data-server logins. Leave them off
 otherwise.
 
+**OpenGL drawing** at the top of the tab chooses how the 3-D view draws text
+and transparent surfaces. **Automatic**, the default, reads the name of the
+OpenGL renderer the view runs on: on a software renderer (for example in a
+virtual machine, over some remote connections, or on a computer without a
+graphics driver) all text in the view is drawn as geometry and transparent
+surfaces start in the quick mode; on a graphics card nothing changes.
+**Software-safe** and **Hardware** force one of the two. Try Software-safe if
+the 3-D view crashes or its text is missing, and Hardware if ECCE takes a
+graphics card for a software renderer. The environment variable
+`ECCE_GL_PATH=software` or `ECCE_GL_PATH=hardware` does the same and wins
+over the setting. The renderer and the path in use are written to the
+program's error output when the 3-D view starts, and appear in **Help >
+About** and in the diagnostics of **Help > Report a Problem...**.
+
 A change applies to programs started afterwards; a program that is already
 open keeps its settings until you restart it. Where a switch is also an
 environment variable, a variable you have set yourself wins over the check

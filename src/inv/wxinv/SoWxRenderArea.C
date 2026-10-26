@@ -12,6 +12,7 @@
 #include "inv/SoWx/SoWxDevice.H"
 #include "inv/SoWx/SoWxMouse.H"
 #include "inv/SoWx/SoWxKeyboard.H"
+#include "util/GLPath.H"
 
 
 #include "wx/display.h"
@@ -656,7 +657,7 @@ void SoWxRenderArea::applyTransparency()
             (int)p_fellBack);
 #ifdef OIV_COIN
   if (p_requestedTransp == SoGLRenderAction::SCREEN_DOOR &&
-      !p_quickTransp && !p_noAlpha && !p_fellBack) {
+      !p_quickTransp && !p_noAlpha && !p_fellBack && !p_softwareGL) {
     a->setTransparencyType(SoGLRenderAction::SORTED_LAYERS_BLEND);
     a->setSortedLayersNumPasses(6);   // measured: 4 passes miss ~5% of overlaps
     p_recentCount = 0;
@@ -1152,8 +1153,13 @@ void SoWxRenderArea::redraw()
     p_windowResized = false;
   }
   
+  if (!GLPath::known())
+    GLPath::record((const char*)glGetString(GL_RENDERER),
+                   (const char*)glGetString(GL_VENDOR),
+                   (const char*)glGetString(GL_VERSION));
 #ifdef OIV_COIN
   if (!p_alphaChecked) {
+    p_softwareGL = GLPath::software();
     GLint alphaBits = 0;
     glGetIntegerv(GL_ALPHA_BITS, &alphaBits);
     p_alphaChecked = true;
@@ -1599,6 +1605,7 @@ void SoWxRenderArea::constructorCommon(SbBool getMouseInput,
   p_quickTransp = false;
   p_noAlpha = false;
   p_alphaChecked = false;
+  p_softwareGL = false;
   p_fellBack = false;
   p_recentCount = 0;
   p_fallbackCB = NULL;

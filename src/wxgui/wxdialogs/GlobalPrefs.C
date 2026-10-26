@@ -537,6 +537,24 @@ void GlobalPrefs::createAdvancedPage(wxWindow* page)
         "settings until it is restarted."));
   outer->Add(intro, 0, wxALL, PAD);
 
+  wxBoxSizer* glLine = new wxBoxSizer(wxHORIZONTAL);
+  glLine->Add(new ewxStaticText(page, wxID_ANY, _("OpenGL drawing:")), 0,
+              wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
+  p_glPath = new ewxChoice(page, wxID_ANY);
+  p_glPath->Append(_("Automatic"));
+  p_glPath->Append(_("Software-safe"));
+  p_glPath->Append(_("Hardware"));
+  p_glPath->SetSelection(0);
+  p_glPath->Bind(wxEVT_CHOICE, &GlobalPrefs::OnGlobalChange, this);
+  glLine->Add(p_glPath, 0, wxALIGN_CENTER_VERTICAL);
+  outer->Add(glLine, 0, wxLEFT|wxRIGHT, PAD);
+  string glNote = "Automatic picks by the OpenGL renderer the 3-D view runs on.";
+  if (EnvSwitches::setExplicitly("ECCE_GL_PATH"))
+    glNote += string("\nECCE_GL_PATH=") + getenv("ECCE_GL_PATH") +
+              " is set in the environment and wins.";
+  outer->Add(new ewxStaticText(page, wxID_ANY, wxString::FromUTF8(glNote)),
+             0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*3);
+
   const vector<EnvSwitches::Entry>& list = EnvSwitches::all();
   for (size_t i = 0; i < list.size(); i++) {
     const EnvSwitches::Entry& e = list[i];
@@ -872,6 +890,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     p_updatePreviews->SetValue(p_updatePreviewsDefault);
     for (size_t i = 0; i < p_advanced.size(); i++)
       p_advanced[i].box->SetValue(false);
+    p_glPath->SetSelection(0);
     updateUpdateControls();
     OnGlobalChange(event);
   }
@@ -985,6 +1004,11 @@ void GlobalPrefs::saveSettings()
   eccePref.setString(PrefLabels::EDITOR, programValue(p_editor));
   eccePref.setString(PrefLabels::TERMINAL, programValue(p_terminal));
   eccePref.setString(PrefLabels::BROWSER, programValue(p_browser));
+  {
+    const int g = p_glPath->GetSelection();
+    eccePref.setString("Advanced.GLPath",
+                       g == 1 ? "software" : g == 2 ? "hardware" : "auto");
+  }
   const vector<EnvSwitches::Entry>& sw = EnvSwitches::all();
   for (size_t i = 0; i < sw.size() && i < p_advanced.size(); i++) {
     eccePref.setBool(sw[i].key, p_advanced[i].box->GetValue());
@@ -1093,6 +1117,10 @@ void GlobalPrefs::restoreSettings()
   eccePref.getString(PrefLabels::BROWSER, strBuf);
   setProgramRow(p_browser, strBuf);
 
+  strBuf = "";
+  eccePref.getString("Advanced.GLPath", strBuf);
+  p_glPath->SetSelection(strBuf == "software" ? 1 : strBuf == "hardware" ? 2 : 0);
+
   const vector<EnvSwitches::Entry>& sw = EnvSwitches::all();
   for (size_t i = 0; i < sw.size() && i < p_advanced.size(); i++) {
     boolBuf = false;
@@ -1180,6 +1208,7 @@ bool GlobalPrefs::isDefaultGlobalPref()
 
 bool GlobalPrefs::isDefaultAdvanced()
 {
+  if (p_glPath->GetSelection() != 0) return false;
   for (size_t i = 0; i < p_advanced.size(); i++)
     if (p_advanced[i].box->GetValue()) return false;
   return true;
