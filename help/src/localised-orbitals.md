@@ -3,16 +3,19 @@
 The orbitals a calculation gives are spread over the whole molecule. The
 localised orbitals describe the same electrons as sigma bonds, pi bonds, lone
 pairs and core orbitals, the way organic chemistry draws them. They are
-available for ECCE-QM calculations with a closed-shell wavefunction (RHF or
-RKS); other codes and open-shell calculations do not have them.
+available for ECCE-QM calculations; for an open shell, the alpha and the beta
+orbitals are localised separately and listed in two blocks.
 
 ## Show them
 
 1. Open a finished ECCE-QM calculation and choose **Properties > MOs**.
 2. In the box next to **Compute**, choose **Localised MO** instead of **MO**.
-3. The table now lists the localised orbitals: the core orbitals first, then
-   the bonds and lone pairs atom by atom. The **Bond** column names each one.
-4. Select a row and click **Compute** to draw it.
+3. The table lists the localised orbitals in order of energy, the lowest at
+   the bottom as in an orbital diagram. The **Bond type**, **Atoms** and
+   **Hybrids** columns name each one.
+4. Click a column heading to sort the table by it (core, sigma, pi, lone
+   pair under **Bond type**, or by **E (Hartree)**); click again to reverse.
+5. Select a row and click **Compute** to draw it.
 
 ## Reading the names
 
@@ -34,5 +37,14 @@ density and the energy are not changed; only the way the electrons are
 divided into orbitals. Empty orbitals are not localised, and their energies
 are not defined for the localised set, so the list shows only occupied ones.
 
-Calculations of ECCE-QM can switch this off with the input keyword
-`localise false`.
+Untick **Localised orbitals** under **Runtype Details** in the Calculation
+Editor to switch this off.
+
+## Spin density
+
+Choose **Spin Density** next to **Compute** (open-shell calculations) and the
+table gives way to a short list of the singly occupied orbitals, which make the
+spin density, and the Mulliken spin population on each atom, worked out from
+the orbital coefficients. If the populations cannot be worked out, only the
+orbitals are listed and the panel says so. Choose another type to get the table
+back.

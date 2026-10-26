@@ -4,7 +4,7 @@
 NaCl crystal in SPC/E water
 
 [ molecules ]
-NA 108
-CL 108
+NA 32
+CL 32
 ; the SOL count is appended by gmx solvate -p
-SOL              2805
+SOL              4005

@@ -72,6 +72,22 @@ static bool basisToolOff(Resource *res, ResourceTool *tool)
   return code && code->getBasisSetToolHidden();
 }
 
+// wxGTK's fixed-position child container may still allocate widgets hidden
+// through a sizer. Collapse inactive controls in the sizer while keeping the
+// native child GTK-visible at zero size.
+static void setSizerChildVisible(wxWindow *window, bool visible)
+{
+  wxSizer *sizer = window->GetContainingSizer();
+  if (visible) {
+    if (sizer) sizer->Show(window, true);
+    window->Show(true);
+  } else {
+    if (sizer) sizer->Show(window, false);
+    window->Show(true);
+    window->SetSize(0, 0, 0, 0);
+  }
+}
+
 
 
 /**
@@ -290,6 +306,8 @@ void CalculationContextPanel::updateProgress()
   const bool show = p_progressBox->wanted();
   if (show != GetSizer()->IsShown(p_progressSizer)) {
     GetSizer()->Show(p_progressSizer, show);
+    p_progressBox->Show(true);
+    if (!show) p_progressBox->SetSize(0, 0, 0, 0);
     Layout();
     FitInside();
   } else if (show && resized) {
@@ -438,6 +456,8 @@ void CalculationContextPanel::createControls()
       p_progressSizer->Add(p_progressBox, wxSizerFlags(1).Expand().Border());
       GetSizer()->Add(p_progressSizer, wxSizerFlags().Expand().Border());
       GetSizer()->Hide(p_progressSizer);
+      p_progressBox->Show(true);
+      p_progressBox->SetSize(0, 0, 0, 0);
     }
   } // end of ToolPropertyView for loop
 
@@ -668,18 +688,11 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
     p_inpProvProps->findValue(resProp->getQName(), valuestr);
   }
 
-  // some properties will have no value, but we want them to be displayed on the
-  // panel anyway, so show the user a place-holder
-  if (valuestr == "") {
-    if (! resProp->getDisplay()) // do we force the label/prop's display?
-    {
-      label->Hide();
-      prop->Hide();
-    }
-  } else {
-    label->Show();
-    prop->Show();
-  }
+  // Empty metadata fields take no sizer space, while their GTK widgets remain
+  // visible at zero size so scrolling cannot allocate a hidden child.
+  const bool show = !valuestr.empty() || resProp->getDisplay();
+  setSizerChildVisible(label, show);
+  setSizerChildVisible(prop, show);
 
   // the property might need special formatting or other considerations based
   // on its type

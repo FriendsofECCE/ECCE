@@ -336,7 +336,9 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*10", text):
+        src = open(os.path.join(HERE, "..", "..", "src", "apps", "organizer", "CalcMgr.C")).read()
+        version = re.search(r'kExampleSetVersion = "(\d+)"', src).group(1)
+        if not re.search(r"exampleSet[^0-9]*%s\b" % version, text):
             problems.append("%s records no example-set version" % project)
     for project, expect in NEW_SETS.items():
         got = box.get(project) or {}

@@ -1517,7 +1517,7 @@ void Builder::setContext(const string& url, const bool& force)
   bool newContext = false;
 
   // Make sure it is raised/uniconified for popup dialogs
-  Raise();
+  ewxRaiseWindow(this);
 
   if (p_calculation) {
     if (p_calculation->getURL()==url && !force) {

@@ -14,8 +14,11 @@ block. The parser stores beta under `LOCMOBETA`, `LOCMOENGBETA`,
 `LOCMOOCCBETA`, `LOCMOLABELBETA`, like `MOBETA`/`ORBENGBETA`. When nothing can
 be localised (SCF not converged, no occupied orbitals) the engine writes
 `localisation_skipped <reason>`, stored as `LOCMONOTE`, and the MOs panel shows it.
-The Theory Details box `ES.Theory.ECCEQM.Localise` writes `localise true`; the
-engine's own default is already true, so unticked input is unchanged and the
-box only makes the request explicit.
-The MOs table lists the highest orbital first (lowest at the bottom, as in an
-MO diagram); the MO number column still says which orbital a row is.
+The box `ES.Theory.ECCEQM.Localise` is in Runtype Details (all run types,
+`ecceqmruntype.py`); the key keeps its ES.Theory name so stored calculations
+and ai.ecceqm are unchanged, and a runtype change only clears ES.Runtype keys.
+ai.ecceqm writes `localise false` only when it is unticked.
+The MOs table lists the highest-energy orbital first (lowest at the bottom, as
+in an MO diagram), the localised set sorted by its energies; the MO number
+column says which orbital a row is. Clicking a heading of the localised table
+sorts it (alpha and beta stay separate blocks).

@@ -148,6 +148,7 @@ if(QM_PYTHON3)
   # CPCM solvation energies against ORCA (oracle numbers in the script).
   add_test(NAME qm_solvent COMMAND ${QM_PYTHON3} ${_qm_tests}/solvent_test.py $<TARGET_FILE:ecce-qm>)
   add_test(NAME qm_raman_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_deck_test.py)
+  add_test(NAME qm_localise_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/localise_deck_test.py)
   set_tests_properties(qm_raman_quick PROPERTIES TIMEOUT 1800)
   set_tests_properties(qm_raman PROPERTIES TIMEOUT 7200)
   # Constrained optimisation with a dummy atom (NH3 + X, fixed X-N-H angles)

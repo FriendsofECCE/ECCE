@@ -1,9 +1,12 @@
 from templates import *
 
-# ECCE-QM "Runtype Details" dialog.  Only the frequency run types have an
-# option: Raman activities, which cost about seven times the frequency run
-# (the polarisability at every displaced geometry).  ai.ecceqm turns the
-# setting into the engine's `raman` keyword.
+# ECCE-QM "Runtype Details" dialog.  Every run type has the Localised
+# orbitals tick (it is about what the run produces, so it is not a theory
+# choice; the key keeps its ES.Theory name so stored calculations reopen with
+# their setting).  The frequency run types add Raman activities, which cost
+# about seven times the frequency run (the polarisability at every displaced
+# geometry).  ai.ecceqm turns the settings into the engine's `raman` and
+# `localise` keywords.
 
 
 class EcceqmRunTypeFrame(EcceFrame):
@@ -64,9 +67,12 @@ class EcceqmRunTypePanel(EccePanel):
                                              export=1)
             ircSizer.AddWidget(self.ircHessEvery)
             self.panelSizer.Add(ircSizer)
-        else:
-            note = wx.StaticText(self, label="No options for this run type.")
-            self.panelSizer.Add(note)
+
+        locSizer = EcceBoxSizer(self, label="Orbitals", cols=1)
+        locSizer.AddWidget(EcceCheckBox(
+            self, label=" Localised orbitals (bonds and lone pairs, same set for each spin)",
+            name="ES.Theory.ECCEQM.Localise", default=True, export=1))
+        self.panelSizer.Add(locSizer)
 
         self.AddButtons()
         self.msg.Hide()

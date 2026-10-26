@@ -510,6 +510,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 collapse events during it, then the tree
  * size <w> <h>   resize the Organizer window
  * firstvisible    the label of the tree's top visible row (its scroll)
+ * scrollsummary   scroll the calculation summary to its bottom and back
  * showbox         scroll the summary panel so that the Progress box is at
  *                 its top
  * progressbox     the shown summary's Progress box: shown or not, its
@@ -1064,6 +1065,30 @@ void CalcMgr::runTestCommand(const string& line)
         for (int i = 0; i < 5; i++) wxYield();
       }
       outcome = box ? "scrolled" : "no box";
+    } else if (command == "scrollsummary") {
+      CalculationContextPanel *panel =
+          dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      for (int i = 0; i < 5; i++) wxYield();
+      if (panel) {
+        const wxSize virtualSize = panel->GetVirtualSize();
+        const wxSize clientSize = panel->GetClientSize();
+        int unitY = 1;
+        panel->GetScrollPixelsPerUnit(0, &unitY);
+        const int maxY = std::max(0, (virtualSize.y - clientSize.y +
+                                      std::max(1, unitY) - 1) /
+                                     std::max(1, unitY));
+        if (maxY > 0) {
+          panel->Scroll(-1, maxY);
+          for (int i = 0; i < 5; i++) wxYield();
+          panel->Scroll(-1, 0);
+          for (int i = 0; i < 5; i++) wxYield();
+          outcome = "scrolled to " + std::to_string(maxY) + " and back";
+        } else {
+          outcome = "no scroll range";
+        }
+      } else {
+        outcome = "no calculation panel";
+      }
     } else if (command == "progressbox") {
       CalculationContextPanel *panel =
           dynamic_cast<CalculationContextPanel*>(p_contextPanel);
@@ -3083,7 +3108,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "10";
+const char *const kExampleSetVersion = "11";
 
 string treeName(string s)
 {
@@ -3748,12 +3773,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "10^-5 cm^2/s, about three times smaller than for water); use Compare "
      "to draw the water over it."},
     {"nacl-dissolving",
-     "GROMACS, a NaCl crystal of 216 ions in 2805 SPC/E water molecules "
-     "(Joung-Cheatham ions), 300 K, 1 bar, 100 ns. This calculation shows "
-     "the crystal dissolving: ions leave from the corners and edges first, "
-     "and after 100 ns 206 of the 216 ions have no counter-ion within "
-     "0.35 nm; the salt concentration, about 2 mol/kg, is below what this "
-     "model dissolves."},
+     "GROMACS, a NaCl crystal of 64 ions in 4005 SPC/E water molecules "
+     "(Joung-Cheatham ions), 300 K, 1 bar, 20 ns; the trajectory holds the "
+     "first 3 ns in 101 frames, centred on the crystal. This calculation shows the "
+     "crystal dissolving: ions leave from the corners and edges first, each "
+     "taking a shell of water molecules with it."},
     {"ice-to-steam",
      "GROMACS, a slab of 1600 TIP4P/Ice molecules (ice Ih) with vacuum "
      "above and below, heated from 200 K to 500 K over 30 ns and held at "

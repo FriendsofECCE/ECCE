@@ -38,6 +38,7 @@
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceTool.H"
 
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 
 // KLS 9/6/06
@@ -329,19 +330,8 @@ void WxJMSMessageDispatch::notifyReady()
 void WxJMSMessageDispatch::raiseAllWindows()
 {
   for (int win=p_topShells.size()-1; win>=0; win--) {
-    //    wxTopLevelWindow * topLevelWin =
-    //      dynamic_cast<wxTopLevelWindow *>(p_topShells[win]);
-    //    if (topLevelWin) {
-    //      topLevelWin->Iconize(false);
-    //      topLevelWin->Raise();
-    //      topLevelWin->Show(true);
-    //      topLevelWin->SetFocus();
-    //      topLevelWin->RequestUserAttention();
-    //    }
-    //    else {
-    (p_topShells[win])->Raise();
-    (p_topShells[win])->Show(true);
-    //    }
+    p_topShells[win]->Show(true);
+    ewxRaiseWindow(p_topShells[win]);
   }
 }
 
