@@ -261,6 +261,10 @@
        for the guess it reads. -->
   <Output type="auxiliary" mimetype="chemical/x-orca-gbw">orca.orcain.gbw</Output>
   <Input   type="auxiliary" mimetype="chemical/x-orca-guess">guess.gbwin</Input>
+  <!-- The Hessian of an earlier run (written by ORCA for a run that computed
+       one), read as the initial Hessian of an optimisation (#557). -->
+  <Output type="auxiliary" mimetype="chemical/x-orca-hess">orca.orcain.hess</Output>
+  <Input   type="auxiliary" mimetype="chemical/x-orca-hess">inhess.hess</Input>
   <!-- NEB-TS (#419): product and optional TS guess structure, written by
        CalcEd as inputs of the calculation and copied to the run directory
        with the deck.  Matched by name. -->

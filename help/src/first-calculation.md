@@ -272,6 +272,23 @@ guess, which saves SCF iterations and helps difficult cases converge.
 The orbitals are a binary file of a few megabytes, copied to the machine
 that runs the job.
 
+## Geometry optimisation settings (ORCA)
+
+In **Runtype Details...** of an ORCA **Geometry** or **GeoVib** calculation:
+
+- **Find:** **Minimum** is ORCA's ordinary optimisation. **Transition State**
+  writes `! OptTS` and searches for a saddle point. A transition-state search
+  needs a good initial Hessian, so set **Initial Hessian** to **Calculate**
+  (or to **Read from previous calculation**). With neither, the input
+  checker warns; the calculation is not blocked.
+- **Initial Hessian:** **Default** keeps ORCA's model Hessian. **Calculate**
+  writes `Calc_Hess true`. **Read from previous calculation** writes
+  `inhess read` and the name of the Hessian file (`.hess`) of the
+  calculation this one was made from with **Edit > Duplicate with Final
+  Orbitals**. That file exists only if the earlier job computed a Hessian
+  (a frequency job, or an optimisation with **Calculate**). If none is
+  attached the checker warns and ORCA uses its default.
+
 ## Plane-wave calculations (NWPW)
 
 NWChem's plane-wave module, NWPW, has no code of its own in the list of

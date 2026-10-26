@@ -153,6 +153,11 @@ class TaskJob : public Job,
       string orbitalGuessFile() const;
       static string orbitalGuessSourceProp();
       static string orbitalGuessBasisProp();
+      /** Name of the initial-Hessian input the code declares
+          (inhess.*), "" for a code without one; has... says whether
+          this calculation carries one. */
+      string hessianInputFile() const;
+      bool hasHessianInput() const;
       virtual bool hasOrbitalGuess() const;
       virtual bool clearOrbitalGuess();
       virtual bool removeOutputFiles();

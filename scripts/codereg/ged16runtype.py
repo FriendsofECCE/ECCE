@@ -109,7 +109,7 @@ class Ged16RunTypePanel(EccePanel):
                 # HESSIAN
                 hessianSizer = EcceBoxSizer(self,
                                             label = "Hessian",
-                                            cols = 2)
+                                            cols = 1)
             
                 if (EcceGlobals.Category == "SCF" or
                     EcceGlobals.Category == "DFT" or
