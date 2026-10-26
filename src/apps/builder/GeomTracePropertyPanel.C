@@ -424,6 +424,17 @@ void GeomTracePropertyPanel::OnPropChoice(wxCommandEvent& event)
 }
 
 
+bool GeomTracePropertyPanel::showSeries(const string& key)
+{
+  if (std::find(p_importantProps.begin(), p_importantProps.end(), key) ==
+      p_importantProps.end())
+    return false;
+  selectProp(key);
+  fillPlot();
+  return true;
+}
+
+
 void GeomTracePropertyPanel::selectProp(const string& key)
 {
   p_currentProp = key;
@@ -459,11 +470,57 @@ void GeomTracePropertyPanel::OnPlaybackLoop(wxCommandEvent& event)
 }
 
 
+// An MD run stores at most 100 frames spread evenly over the whole run, but
+// one plot point per logged energy step, so the click is mapped by position
+// along the run, not by index.  Other trace plots have one point per frame.
+int GeomTracePropertyPanel::frameOfPlotPoint(int index, int points) const
+{
+  const int frames = numSteps();
+  if (frames <= 0) return 0;
+  if (points == frames || points < 2 || frames < 2 ||
+      !getCalculation()->getProperty("TIMEVEC"))
+    return std::max(0, std::min(index, frames - 1));
+  const double f = (double)index * (frames - 1) / (points - 1);
+  return std::max(0, std::min((int)(f + 0.5), frames - 1));
+}
+
+
+int GeomTracePropertyPanel::plotPointOfFrame(int frame, int points) const
+{
+  const int frames = numSteps();
+  if (points == frames || points < 2 || frames < 2 ||
+      !getCalculation()->getProperty("TIMEVEC"))
+    return frame;
+  return (int)((double)frame * (points - 1) / (frames - 1) + 0.5);
+}
+
+
 void GeomTracePropertyPanel::OnPointClick(int, int index)
 {
+  showPlotPoint(index, p_plotCtrl->pointCount(0));
+}
+
+
+void GeomTracePropertyPanel::showPlotPoint(int index, int points)
+{
+  const int frame = frameOfPlotPoint(index, points);
   // Play continues from the clicked step, not from the first.
-  if (p_playback) p_playback->SetCurrentStep((long)index);
-  processStep(index);
+  if (p_playback) p_playback->SetCurrentStep((long)frame);
+  processStep(frame);
+  const int shownPoint = plotPointOfFrame(frame, points);
+  if (shownPoint == index) return;
+
+  // No stored structure at this point: say which one is shown.
+  std::vector<double> t;
+  wxString unit;
+  wxString where;
+  if (StepPlotAxes::mdTime(getCalculation(), points, t, unit) &&
+      index < (int)t.size() && shownPoint < (int)t.size())
+    where = wxString::Format(" (%.4g %s) for the one at %.4g %s", t[shownPoint],
+                             unit, t[index], unit);
+  getFW().showMessage(std::string(wxString::Format(
+      "No structure is stored at that point; showing the nearest in time, "
+      "structure %d of %d%s.", frame + 1, numSteps(), where).ToUTF8()), false);
 }
 
 
@@ -551,7 +608,9 @@ void GeomTracePropertyPanel::processStep(int step)
   }
 
   // The plotted series (TEVEC, ...) may have fewer points than the trace.
-  if (step < p_plotCtrl->pointCount(0)) p_plotCtrl->setSelectedPoint(0, step);
+  const int plotPoint = plotPointOfFrame(step, p_plotCtrl->pointCount(0));
+  if (plotPoint < p_plotCtrl->pointCount(0))
+    p_plotCtrl->setSelectedPoint(0, plotPoint);
 
   // Issue #99: drive the repaint directly instead of relying on Open
   // Inventor's change notification, which stops firing after the first

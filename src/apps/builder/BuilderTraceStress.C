@@ -33,6 +33,8 @@
 
 #include "Builder.H"
 #include "GeomTracePropertyPanel.H"
+#include "wxgui/ewxChoice.H"
+#include "PlotAnyPropertyPanel.H"
 #include "wxgui/SliderCombo.H"
 #include "NModePanel.H"
 #include "PropertyPanel.H"
@@ -271,6 +273,59 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
       }
     }
     fprintf(stderr, "GTSTRESS: picked step %d\n", step);
+    return true;
+  }
+
+  //  "gtclick <index>": a click on plot point <index> of the Geometry Trace
+  //  plot; "gtstepclick <index>": the same in Geometry Step Plots.  Both
+  //  report the structure now shown and the selected point.
+  if ((c == "gtclick" || c == "gtstepclick") && w.size() == 2) {
+    XYPlotCanvas *plot = plotOf(gt);
+    if (!gt || !plot) return s.fail(c + ": no Geometry Trace panel");
+    int index = atoi(w[1].c_str());
+    if (w[1] == "last") index = plot->pointCount(0) - 1;
+    if (c == "gtclick") {
+      gt->showPlotPoint(index, plot->pointCount(0));
+    } else {
+      PlotAnyPropertyPanel *any = 0;
+      for (PropertyPanel *p :
+           PropertyPanel::getPanels(p_calculation->getURL().toString()))
+        if (p->getName() == "Geometry Step Plots" &&
+            (any = dynamic_cast<PlotAnyPropertyPanel*>(p)) != 0) break;
+      if (!any) return s.fail("gtstepclick: no Geometry Step Plots panel");
+      any->OnPointClick(index);
+    }
+    spin(50);
+    fprintf(stderr, "GTSTRESS: click %d -> structure %ld of %d, plot point %d\n",
+            index, pb ? pb->GetCurrentStep() + 1 : -1,
+            gt->frameCount(), plot->selectedIndex());
+    return true;
+  }
+
+  //  "gtseries <key>": plot that series; reports the axis labels.
+  if (c == "gtseries" && w.size() == 2) {
+    XYPlotCanvas *plot = plotOf(gt);
+    if (!gt || !plot || !gt->showSeries(w[1]))
+      return s.fail("gtseries: no such series " + w[1]);
+    fprintf(stderr, "GTSTRESS: series %s x='%s' y='%s'\n", w[1].c_str(),
+            (const char*)plot->xAxisLabel().utf8_str(),
+            (const char*)plot->yAxisLabel().utf8_str());
+    return true;
+  }
+
+  //  "gtselect <n>" selects atoms 1..n; "gtselected": reports how many are.
+  if (c == "gtselect" && w.size() == 2) {
+    SGFragment *frag = getSG()->getFragment();
+    frag->m_atomHighLight.clear();
+    const int n = atoi(w[1].c_str());
+    for (int i = 0; i < n && i < (int)frag->numAtoms(); i++)
+      frag->m_atomHighLight.push_back(i);
+    getSG()->touchChemDisplay();
+    return true;
+  }
+  if (c == "gtselected") {
+    fprintf(stderr, "GTSTRESS: selected=%lu\n",
+            (unsigned long)getSG()->getFragment()->m_atomHighLight.size());
     return true;
   }
 

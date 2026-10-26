@@ -31,6 +31,9 @@ class PlotAnyPropertyPanel : public PropertyPanel
 
     virtual void refresh();
 
+    //  A click on point `index`: the structure is shown by the trace panel.
+    void OnPointClick(int index);
+
   protected:
     virtual void initialize();
     void refreshChoices(const wxString& lastX, const wxString& lastY);
