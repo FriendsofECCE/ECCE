@@ -2378,19 +2378,19 @@ class MoDiagramCanvas : public wxPanel
           //  followed back to the same pair of fragment orbitals.
           const MoLevel& reached = p_centre.levels[link.centreLevel];
           wxColour tint = levelColour(reached);
-          if (reached.pairing < 0) tint = wxColour(165, 165, 165);
-          else tint = wxColour((tint.Red()   + 2*255)/3,
-                               (tint.Green() + 2*255)/3,
-                               (tint.Blue()  + 2*255)/3);
-          //  One width for every construction: a thicker line reads as a
-          //  rendering artifact, and the share is in the level's text.
-          //  Weighted lines: width and strength grow with the share, 3 % thin and
-          //  faint up to 50 % full.
-          int penWidth = 1;
+          if (reached.pairing < 0) tint = wxColour(150, 150, 150);
+          else tint = wxColour((tint.Red()   + 255)/2,
+                               (tint.Green() + 255)/2,
+                               (tint.Blue()  + 255)/2);
+          //  Weighted lines grow from a 3 % share to 50 %, in width and
+          //  strength, but the weakest must still show on an ordinary LCD
+          //  seen at an angle (#574): never thinner than 2 px nor paler
+          //  than 60 % of the full tint.
+          int penWidth = 2;
           if (link.weight >= 0.0) {
             const double t = max(0.0, min(1.0, (link.weight - 0.03)/0.47));
-            penWidth = 1 + (int)floor(2.0*t + 0.5);
-            const double keep = 0.35 + 0.65*t;
+            penWidth = 2 + (int)floor(t + 0.5);
+            const double keep = 0.6 + 0.4*t;
             tint = wxColour((int)(255 - keep*(255 - tint.Red())),
                             (int)(255 - keep*(255 - tint.Green())),
                             (int)(255 - keep*(255 - tint.Blue())));
