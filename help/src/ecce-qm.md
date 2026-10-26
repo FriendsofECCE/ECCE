@@ -51,6 +51,8 @@ need an effective core potential, is named before the job is launched.
 | Geometry | optimises the geometry to a minimum; the steps appear in the geometry trace and the energy plot as for any other code |
 | Vibration | harmonic frequencies, IR intensities, normal modes and thermochemistry at the given geometry |
 | GeoVib | a geometry optimisation followed by a vibration calculation at the result |
+| Transition State (Opt-TS) | searches for a first-order saddle point from one starting structure (eigenvector following on an exact starting Hessian), then computes the frequencies there: a transition state has exactly one imaginary frequency |
+| IRC | follows the reaction path down from a transition state in both directions; **Properties > IRC Path** plots the energy against the reaction coordinate, and a click on a point shows its structure |
 
 The optimiser stops under the same thresholds as ORCA's default optimisation.
 The vibration calculation takes the second derivatives from finite differences
@@ -58,6 +60,20 @@ of the analytic forces, so it is only meaningful at a stationary point of the
 same method and basis set: run **GeoVib**, or optimise first. Thermochemistry
 is for an ideal gas at 298.15 K and 1 atm in the rigid-rotor, harmonic
 oscillator approximation; the symmetry number is found from the geometry.
+
+A **relaxed scan** of a bond, angle or torsion is a Geometry run with a scan
+set in Geometry Constraints: each point is optimised with the scanned
+coordinate held fixed, and **Properties > Relaxed Scan** plots the energy
+against the coordinate. See [Constraints and dummy atoms](constraints-and-dummy-atoms.md).
+A transition-state guess can also come from two calculations, a reactant and a
+product (**TS Search** in the Calculation Editor).
+
+**Theory Details** has **Virtual orbitals:** Canonical or Improved (IVO).
+Improved virtual orbitals (Hartree-Fock only) are computed in the field of the
+other electrons with one electron removed from the HOMO, so they look like the
+orbitals an excited electron occupies (3s and 3p of neon, for example) rather
+than the diffuse canonical virtuals. The MOs panel says when the virtual
+orbitals are IVO.
 
 **Runtype Details** has a **Localised orbitals** tick box for every run type.
 It is ticked by default; unticked, the calculation does not localise the

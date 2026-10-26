@@ -22,8 +22,9 @@ constexpr double kMinExposure = 1e-8;
 
 bool solvent_epsilon(const std::string& name, double& eps) {
   struct E { const char* n; double e; };
-  // Static dielectric constants at 298 K as tabulated for Gaussian/SMD
-  // (from memory, not checked against the tables).
+  // Static dielectric constants at 298 K, from the Minnesota Solvent
+  // Descriptor Database (Winget, Dolney, Giesen, Cramer, Truhlar; 2010 and
+  // 2021 updates), which lists water as 78.355.
   static const E t[] = {{"water", 78.3553},   {"methanol", 32.613},  {"ethanol", 24.852},
                         {"acetonitrile", 35.688}, {"dmso", 46.826}, {"chloroform", 4.7113},
                         {"toluene", 2.3741},  {"hexane", 1.8819}};

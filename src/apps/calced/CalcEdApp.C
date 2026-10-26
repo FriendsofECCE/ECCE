@@ -9,6 +9,7 @@
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/ResourceDescriptor.H"
 
+#include "wxgui/ewxWindowUtils.H"
 #include "CalcEdApp.H"
 #include "CalcEd.H"
 
@@ -148,8 +149,7 @@ void CalcEdApp::invokeMCB(JMSMessage& msg)
 
     p_calced->Iconize(false);
     showEditor();
-    p_calced->Raise();
-    p_calced->SetFocus();
+    ewxRaiseWindow(p_calced);
     p_calced->RequestUserAttention();
   } else {
     showEditor();

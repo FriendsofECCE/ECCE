@@ -319,7 +319,6 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
     if (action == "" && urlstr.empty()) {
 
       // "New Structure": no calculation, keep the default context
-      p_builder->Raise();
 
     } else if (action == "") {
 
@@ -552,7 +551,10 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
 
     registerTopShell(p_builder);
     p_builder->Iconize(false);
-#ifdef __WXMSW__
+#ifdef __WXGTK__
+    p_builder->Show(true);
+    ewxRaiseWindow(p_builder);
+#elif defined(__WXMSW__)
     p_builder->Show(true);
     ewxRaiseWindow(p_builder);
 #else
