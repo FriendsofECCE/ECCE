@@ -22,6 +22,7 @@
 - **ORCA: Dispersion** (None, D3BJ, D3(0), D4) is its own choice in Theory Details. A calculation that has the dispersion in its functional name (for example PBE0 D3BJ) keeps it when it is opened and saved again (#593).
 - **Progress box: frequencies** are shown as soon as that stage starts, with the analytic Hessian's progress or the numerical point (ORCA, ECCE-QM, Gaussian 16, NWChem) (#600).
 - **Relaxed Scan panel:** Graph or Table, as in the IRC Path panel (#584).
+- **Spin density** is shown as two tables, the singly occupied orbitals and the atomic spin populations, under a note that wraps to the panel's width (#608).
 - **Vibrations:** the selected mode is shown in a strip under the spectrum, with its composition.
 - **Density Profile** follows atoms picked in the viewer.
 - **MO Diagram:** weak correlation lines stay visible (#574).
