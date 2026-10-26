@@ -99,7 +99,10 @@ describe what you did and what happened.
    orbital's share of it along a line through two atoms, or averaged around one
    atom: shells, penetration, nodes and the build-up in a bond.
 
-22. [Speeds and diffusion](md-speeds-and-diffusion.md): the distribution of
+22. [Dipole moment](dipole-moment.md): the arrow from the negative to the
+   positive pole, its label, and which atomic charges place the poles.
+
+23. [Speeds and diffusion](md-speeds-and-diffusion.md): the distribution of
    atomic speeds of a dynamics run against Maxwell-Boltzmann, and the
    mean-square displacement with the diffusion coefficient.
 

@@ -4,10 +4,11 @@
 #include "viz/AddVectorCmd.H"
 
 /**
- *   The dipole moment as one arrow from the centre of nuclear charge, along
- *   mu as the codes report it (from the negative to the positive end).  The
- *   "Amplitude" is the length in Angstrom per Debye, so arrows of different
- *   molecules compare directly.
+ *   The dipole moment as a plain arrow from the centre of negative partial
+ *   charge to the centre of positive partial charge (IUPAC direction), drawn
+ *   along mu where the two differ, with "mu = x.xx D" beside it.  Length
+ *   follows the geometry, not |mu|.  No arrow, and the label "mu = 0", when
+ *   mu vanishes.  Charges: CHELPG, else Merz-Kollman, else Mulliken.
  */
 class AddDipoleMomentCmd : public AddVectorCmd
 {
@@ -15,15 +16,17 @@ class AddDipoleMomentCmd : public AddVectorCmd
       AddDipoleMomentCmd(const string& name, Receiver *, IPropCalculation *);
       ~AddDipoleMomentCmd();
 
-      // AddVectorCmd virtuals
+      virtual bool execute();
       virtual bool getDisplacements(vector<double*>& displacements,
                                   vector<SIGN>& signs);
-      virtual double getScaleFactor();
-      virtual void shapeVector(VRVector *);
 
-      // Default length of the arrow, Angstrom per Debye.
-      static const double ANGSTROM_PER_DEBYE;
-
+      // Property key of the charges used ("ESPFIT", "MKFIT", "MULLIKEN"),
+      // or "" when the calculation has none.
+      static string chargeKey(IPropCalculation *calc);
+      // Name of those charges for the user.
+      static string chargeName(const string& key);
+      // The label for |mu| in Debye.
+      static string label(double mu);
 };
 
 #endif
