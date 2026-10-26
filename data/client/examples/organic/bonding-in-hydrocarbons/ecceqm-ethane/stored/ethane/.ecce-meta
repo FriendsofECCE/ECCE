@@ -1,12 +1,12 @@
 .	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
-.	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. This calculation shows a carbon-carbon single bond: in the MOs panel, field type Localised MO, one sigma C1-C2 orbital. The optimised C-C distance is 1.531 Angstrom and the totally symmetric C-C stretch is at 1009.19 cm-1 (IR inactive); ethene and ethyne use the same method for comparison.
+.	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. This calculation shows a carbon-carbon single bond: in the MOs panel, field type Localised MO, one sigma C1-C2 orbital. The optimised C-C distance is 1.531 Å and the totally symmetric C-C stretch is at 1009.19 cm-1 (IR inactive); ethene and ethyne use the same method for comparison.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sat, 24 Oct 2026 16:55:50 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 04:52:03 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sat, 24 Oct 2026 16:55:49 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 04:52:01 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/ethane__RCiWvR
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/ethane__2sAosu
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
@@ -34,7 +34,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792860950.386 at=1792860950\nscf cycle=5 energy=-79.7638125480 dE=-8.09e-12/1e-10 grad=5.23e-08/1e-07 converged=yes\nscf~ dE=-4.09e-08,-4.46e-09,-2.81e-09,-8.09e-12\nopt step=5 energy=-79.7638125480 maxgrad=3.27e-05/3e-04 rmsgrad=1.75e-05/1e-04 maxstep=9.03e-05/4e-03 rmsstep=6.42e-05/2e-03 dE=-2.26e-07/5e-06 converged=yes\nopt~ energy=-79.7627283498,-79.7637705551,-79.7638072249,-79.7638123225,-79.7638125480\nfreq point=48/48 done=yes real=18 imaginary=0 zpe=0.0751955710\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792990323.138 at=1792990323\nscf cycle=5 energy=-79.7638125480 dE=-8.09e-12/1e-10 grad=5.23e-08/1e-07 converged=yes\nscf~ dE=-4.09e-08,-4.46e-09,-2.81e-09,-8.09e-12\nopt step=5 energy=-79.7638125480 maxgrad=3.27e-05/3e-04 rmsgrad=1.75e-05/1e-04 maxstep=9.03e-05/4e-03 rmsstep=6.42e-05/2e-03 dE=-2.26e-07/5e-06 converged=yes\nopt~ maxgrad=9.27e-03,4.99e-03,1.84e-03,2.16e-04,3.27e-05\nopt~ rmsgrad=4.02e-03,1.59e-03,5.44e-04,7.27e-05,1.75e-05\nfreq point=48/48 done=yes real=18 imaginary=0 zpe=0.0751955710\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -46,6 +46,6 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sat, 24 Oct 2026 16:55:49 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 04:52:02 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

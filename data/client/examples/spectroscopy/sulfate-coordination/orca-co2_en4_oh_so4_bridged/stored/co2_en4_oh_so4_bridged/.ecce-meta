@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and Raman. This calculation shows the S–O stretches of a sulfate bridging two cobalt centres in [(en)2Co(μ-OH)(μ-SO4)Co(en)2]3+.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 25 Oct 2026 10:08:06 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 04:52:45 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 25 Oct 2026 10:08:01 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 04:52:42 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/co2_en4_oh_so4_bridged__EpOqyY
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/co2_en4_oh_so4_bridged__mXunzU
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
@@ -34,7 +34,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1792922884.002 at=1792922884\nscf cycle=18 energy=-4299.2652412938141424 dE=7.40e-10/1.000e-09\nscf~ dE=0.00e+00,-3.92e-01,-1.32e-01,-9.75e-02,-2.12e-01,-1.96e-03,-1.48e-04,-4.23e-05,9.68e-08,-6.74e-06,-5.53e-07,-3.82e-06,-1.80e-07,-2.65e-08,-1.06e-08,-5.04e-08,-1.56e-08,7.40e-10\nfreq done=yes zpe=0.51264001\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792990364.006 at=1792990363\nscf cycle=18 energy=-4299.2652412938141424 dE=7.40e-10/1.000e-09\nscf~ dE=0.00e+00,-3.92e-01,-1.32e-01,-9.75e-02,-2.12e-01,-1.96e-03,-1.48e-04,-4.23e-05,9.68e-08,-6.74e-06,-5.53e-07,-3.82e-06,-1.80e-07,-2.65e-08,-1.06e-08,-5.04e-08,-1.56e-08,7.40e-10\nfreq done=yes zpe=0.51264001\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -46,6 +46,6 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 25 Oct 2026 10:08:01 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 04:52:42 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

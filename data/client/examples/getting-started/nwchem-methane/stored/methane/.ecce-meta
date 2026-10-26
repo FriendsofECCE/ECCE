@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		NWChem, B3LYP/6-31G*. This calculation shows the effect of tetrahedral symmetry: degenerate orbitals (a1, t2) and degenerate vibrational modes.
 .	http://www.emsl.pnl.gov/ecce:application		NWChem
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 03:10:32 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 04:51:41 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 03:10:30 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 04:51:40 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methane__VUfobU
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methane__ElV46f
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
@@ -34,7 +34,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=1 sent=1792984232.213 at=1792984232\nscf cycle=2 energy=-40.5183833783 dE=9.77e-11/1.00e-07\nscf~ dE=-5.39e+01,9.77e-11\nopt step=2 energy=-40.51838513 maxgrad=0.00001/0.000450 rmsgrad=0.00001/0.000300 rmsstep=0.00033/0.001200 maxstep=0.00036/0.001800 converged=yes\nopt~ maxgrad=0.00983,0.00022,0.00001\nopt~ rmsgrad=0.00622,0.00014,0.00001\nfreq done=yes zpe=0.045196\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=1 sent=1792990300.355 at=1792990300\nscf cycle=2 energy=-40.5183833783 dE=9.77e-11/1.00e-07\nscf~ dE=-5.39e+01,9.77e-11\nopt step=2 energy=-40.51838513 maxgrad=0.00001/0.000450 rmsgrad=0.00001/0.000300 rmsstep=0.00033/0.001200 maxstep=0.00036/0.001800 converged=yes\nopt~ maxgrad=0.00983,0.00022,0.00001\nopt~ rmsgrad=0.00622,0.00014,0.00001\nfreq done=yes zpe=0.045196\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -45,7 +45,7 @@
 .	http://www.emsl.pnl.gov/ecce:runStatusReason		
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 03:10:32 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 04:51:40 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
 .	http://www.emsl.pnl.gov/ecce:version		Mon_May_12_21:20:53_2025 Version 7.2.3

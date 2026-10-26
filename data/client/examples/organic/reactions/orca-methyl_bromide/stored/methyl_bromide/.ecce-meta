@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies. This calculation shows the substrate of the SN2 reaction, with an electronic energy of -2613.589298 Eh. Cl- plus CH3Br lies 49.7 kJ/mol above the reactant complex (computed).
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sat, 24 Oct 2026 16:55:53 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 04:52:12 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sat, 24 Oct 2026 16:55:51 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 04:52:09 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methyl_bromide__stVXyZ
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methyl_bromide__z3f2cn
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
@@ -34,7 +34,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792860953.081 at=1792860953\nopt step=5 energy=-2613.589550905 dE=0.0000024247/0.0000010000 rmsgrad=0.0000161538/0.0000300000 maxgrad=0.0000476484/0.0001000000 rmsstep=0.0000862550/0.0006000000 maxstep=0.0002711389/0.0010000000 converged=yes\nopt~ energy=-2613.589297766,-2613.589546356,-2613.589548968,-2613.589553329,-2613.589550905\nscf cycle=3 energy=-2613.5852209732720439 dE=1.80e-10/1.000e-08\nscf~ dE=0.00e+00,-1.95e-09,1.80e-10\nfreq done=yes zpe=0.03688323\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792990331.274 at=1792990332\nopt step=5 energy=-2613.589550905 dE=0.0000024247/0.0000010000 rmsgrad=0.0000161538/0.0000300000 maxgrad=0.0000476484/0.0001000000 rmsstep=0.0000862550/0.0006000000 maxstep=0.0002711389/0.0010000000 converged=yes\nopt~ rmsgrad=0.0042579267,0.0003030000,0.0001829307,0.0000465123,0.0000161538\nopt~ maxgrad=0.0077627893,0.0004011555,0.0002310124,0.0001417871,0.0000476484\nscf cycle=3 energy=-2613.5852209732720439 dE=1.80e-10/1.000e-08\nscf~ dE=0.00e+00,-1.95e-09,1.80e-10\nfreq done=yes zpe=0.03688323\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -46,6 +46,6 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sat, 24 Oct 2026 16:55:51 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 04:52:10 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

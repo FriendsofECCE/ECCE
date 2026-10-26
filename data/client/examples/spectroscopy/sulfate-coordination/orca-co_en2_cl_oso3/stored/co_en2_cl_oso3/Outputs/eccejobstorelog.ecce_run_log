@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <eccejobstore>
-     <event  type="Message"  name="Job log started for calculation"  date="Sun, 25 Oct 2026 16:56:33 CET" >file:///home/andy/tmp/ecce/ECCE-a02b/scratch-a02b/home/.cache/ecce-apps-gcaby3vj/examples-arm-ros35pm9/data/users/local/Examples_Spectroscopy/co_en2_cl_oso3     </event>
-     <event  type="Message"  name="eccejobstore running on client"  date="Sun, 25 Oct 2026 16:56:33 CET" >niobium     </event>
-     <event  type="Message"  name="Cache"  date="Sun, 25 Oct 2026 16:56:33 CET" >Successfully started property parsing cache     </event>
-     <event  type="Message"  name="Local cache directory"  date="Sun, 25 Oct 2026 16:56:33 CET" >/tmp/ecce_andy/jobs/co_en2_cl_oso3__ojX0IC     </event>
-     <event  type="Message"  name="Job Monitor"  date="Sun, 25 Oct 2026 16:56:33 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
-     <event  type="Message"  name="System"  date="Sun, 25 Oct 2026 16:56:33 CET" >Started local RCommand connection     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 25 Oct 2026 16:56:33 CET" >Receiving calculation output from eccejobmonitor     </event>
-     <event  type="Message"  name="eccejobstore"  date="Sun, 25 Oct 2026 16:56:33 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Sun, 25 Oct 2026 16:56:33 CET" >Running     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 25 Oct 2026 16:56:51 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/tmp/ecce/ECCE-a02b/scratch-a02b/home/.cache/ecce-apps-gcaby3vj/ecce-home/data/client/examples/spectroscopy/orca-co_en2_cl_oso3/orca.orcain.allxyz' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 25 Oct 2026 16:56:51 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/tmp/ecce/ECCE-a02b/scratch-a02b/home/.cache/ecce-apps-gcaby3vj/ecce-home/data/client/examples/spectroscopy/orca-co_en2_cl_oso3/orca.orcain_IRC_Full_trj.xyz' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 25 Oct 2026 16:56:51 CET" >File marked to copy from compute host: co_en2_cl_oso3.out     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 25 Oct 2026 16:56:51 CET" >File marked to copy from compute host: co_en2_cl_oso3.out     </event>
-     <event  type="Message"  name="Benchmark"  date="Sun, 25 Oct 2026 16:56:51 CET" >Before file copy of output files     </event>
-     <event  type="Message"  name="Benchmark"  date="Sun, 25 Oct 2026 16:56:51 CET" >After file copy of output files     </event>
-     <event  type="Message"  name="File Copy"  date="Sun, 25 Oct 2026 16:56:51 CET" >Successfully copied files from server--
-RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/co_en2_cl_oso3__ib3g4T/co_en2_cl_oso3.out,/tmp/ecce_andy/jobs/co_en2_cl_oso3__ib3g4T/*.cub,/tmp/ecce_andy/jobs/co_en2_cl_oso3__ib3g4T/*.cube,/tmp/ecce_andy/jobs/co_en2_cl_oso3__ib3g4T/*.file30}, /tmp/ecce_andy/jobs/co_en2_cl_oso3__ojX0IC) succeeded     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Sun, 25 Oct 2026 16:56:51 CET" >Loaded     </event>
-     <event  type="Message"  name="eccejobstore exit"  date="Sun, 25 Oct 2026 16:56:51 CET" >eccejobstore terminating normally, exit status 0     </event>
+     <event  type="Message"  name="Job log started for calculation"  date="Mon, 26 Oct 2026 05:52:43 CET" >file:///home/andy/.cache/ecce-apps-wwqeib7h/examples-arm-wqt5lcr0/data/users/local/Examples/Spectroscopy/Sulfate_coordination/co_en2_cl_oso3     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Mon, 26 Oct 2026 05:52:43 CET" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Mon, 26 Oct 2026 05:52:43 CET" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Mon, 26 Oct 2026 05:52:43 CET" >/tmp/ecce_andy/jobs/co_en2_cl_oso3__8TwKEF     </event>
+     <event  type="Message"  name="Job Monitor"  date="Mon, 26 Oct 2026 05:52:43 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Mon, 26 Oct 2026 05:52:43 CET" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 05:52:43 CET" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="eccejobstore"  date="Mon, 26 Oct 2026 05:52:43 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Mon, 26 Oct 2026 05:52:43 CET" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 05:52:53 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-wwqeib7h/ecce-home/data/client/examples/spectroscopy/sulfate-coordination/orca-co_en2_cl_oso3/orca.orcain_IRC_Full_trj.xyz' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 05:52:53 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-wwqeib7h/ecce-home/data/client/examples/spectroscopy/sulfate-coordination/orca-co_en2_cl_oso3/orca.orcain.allxyz' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 05:52:53 CET" >File marked to copy from compute host: co_en2_cl_oso3.out     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 05:52:53 CET" >File marked to copy from compute host: co_en2_cl_oso3.out     </event>
+     <event  type="Message"  name="Benchmark"  date="Mon, 26 Oct 2026 05:52:53 CET" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Mon, 26 Oct 2026 05:52:53 CET" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Mon, 26 Oct 2026 05:52:53 CET" >Successfully copied files from server--
+RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/co_en2_cl_oso3__372ntZ/co_en2_cl_oso3.out,/tmp/ecce_andy/jobs/co_en2_cl_oso3__372ntZ/*.cub,/tmp/ecce_andy/jobs/co_en2_cl_oso3__372ntZ/*.cube,/tmp/ecce_andy/jobs/co_en2_cl_oso3__372ntZ/*.file30}, /tmp/ecce_andy/jobs/co_en2_cl_oso3__8TwKEF) succeeded     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Mon, 26 Oct 2026 05:52:54 CET" >Loaded     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Mon, 26 Oct 2026 05:52:54 CET" >eccejobstore terminating normally, exit status 0     </event>
 </eccejobstore>
