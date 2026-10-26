@@ -4055,8 +4055,9 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "localised. This calculation shows the single sigma bond of Li2, built "
      "from the 2s orbitals of the two lithium atoms."},
     {"LiF",
-     "ECCE-QM, B3LYP/6-31G*, geometry optimisation, orbitals localised. This calculation shows the very polar bond of LiF, whose "
-     "bonding orbital lies almost entirely on fluorine."},
+     "ECCE-QM, B3LYP/6-31G*, geometry optimisation, orbitals localised. "
+     "This calculation shows the very polar bond of LiF, whose bonding "
+     "orbital lies almost entirely on fluorine."},
     {"LiH",
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows the bonding orbital of LiH, built "
