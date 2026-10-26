@@ -7,6 +7,7 @@
   - After an upgrade, a notice about resetting the window layout opened out of sight and the Viewer waited for it. The layout is still reset; the notice is gone.
   - On some Macs the login information handed from the Organizer to a new Viewer never arrived, and the Viewer waited for it without limit. It now waits at most 10 seconds.
 - **Vibrations spectrum: bands at the wrong wavenumber** (#604). The Freq. factor was remembered for every later calculation, so one entry of 0.5 put every band at half its frequency. The factor now starts at 1 each time, the line under the spectrum gives the scaled value next to the frequency when the factor is not 1, and a decimal comma is accepted (0,96).
+- **Spin density surface** starts at a level (about 0.003) where the spin of a single unpaired electron shows around the atom; before, it started at 0.05 and nothing was visible for many open-shell molecules.
 - **Atom orbital names:** an open shell's split 2p set is no longer named 2p and 3p (#572).
 - **Atom numbers count from 1** everywhere they are shown, including the Builder's status line (#582).
 - **Progress box plots:** cycle and step axes start at 1 (#596).
@@ -17,6 +18,8 @@
 - **ECCE-QM scans and IRC:** the MOs, MO Diagram, Density Map and Density Profile panels show the orbitals of the point selected in the Relaxed Scan or IRC Path panel (new calculations; #549).
 - **ECCE-QM implicit solvent (CPCM)** now works for geometry optimisations, frequencies, transition-state searches, IRC and scans, not only energies (#317).
 - **Dipole Moment:** the arrow runs from the negative to the positive charge pole, and the value (μ = … D) is shown in the viewer's upper-right corner (#578, #597).
+- **ORCA: Dispersion** (None, D3BJ, D3(0), D4) is its own choice in Theory Details. A calculation that has the dispersion in its functional name (for example PBE0 D3BJ) keeps it when it is opened and saved again (#593).
+- **Progress box: frequencies** are shown as soon as that stage starts, with the analytic Hessian's progress or the numerical point (ORCA, ECCE-QM, Gaussian 16, NWChem) (#600).
 - **Relaxed Scan panel:** Graph or Table, as in the IRC Path panel (#584).
 - **Vibrations:** the selected mode is shown in a strip under the spectrum, with its composition.
 - **Density Profile** follows atoms picked in the viewer.
