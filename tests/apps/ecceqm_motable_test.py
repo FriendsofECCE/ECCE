@@ -73,6 +73,22 @@ def check(state, localised, view=""):
         # O2 triplet: two SOMOs, about one unpaired electron on each O.
         if text.count("\\n") < 5:
             problems.append("spin view too short: %r" % text)
+        # Tables: "MO | Spin | ..." rows, then "Atom | Spin population" rows.
+        lines = text.split("\\n")
+        somo = [l for l in lines if l.split(" | ")[0].strip().isdigit()
+                and len(l.split(" | ")) == 4]
+        pops = []
+        for l in lines:
+            c = l.split(" | ")
+            if len(c) == 2 and c[0] != "Atom":
+                try:
+                    pops.append(float(c[1]))
+                except ValueError:
+                    pass
+        if len(somo) != 2:
+            problems.append("O2 should list 2 SOMOs, got %r" % somo)
+        if len(pops) != 2 or abs(sum(pops) - 2.0) > 0.05:
+            problems.append("O2 spin populations should be 2 atoms summing to 2: %r" % pops)
         return problems
     header = state.get("header")
     if not header:
