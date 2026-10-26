@@ -103,6 +103,45 @@ def vibrationCase(s, display, env, wrappers, png, urls, name, click):
     check("vib-" + name in shots, "the window was photographed")
 
 
+def factorCase(s, display, env, wrappers, png, urls, name):
+    """#604: the Freq. factor is not remembered, accepts a decimal comma and
+    the line under the plot quotes both wavenumbers."""
+    say("Freq. factor, %s" % name)
+    want = outputVibrations(name)
+    ini = os.path.join(s.state, ".ECCE", "wxbuilder.ini")
+    os.makedirs(os.path.dirname(ini), exist_ok=True)
+    with open(ini, "w") as h:
+        h.write("[NMode]\nScale=0.5\n")
+    dump = os.path.join(s.state, "spectrum-factor.dump")
+    if os.path.exists(dump):
+        os.unlink(dump)
+    lines = ["wait 4000", "specclick 8", "specfactor 0,96", "specfactor 1",
+             "quit"]
+    text, _ = bo.runScript(
+        s, display, env, wrappers, ["-context", urls[name]], lines, png, "factor",
+        {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies",
+         "ECCE_SPECTRUM_DUMP": dump})
+    sticks, _ = readSticks(dump)
+    check(len(sticks) == len(want) and all(abs(nu - w[0]) < 0.01 for (_, nu, _), w in zip(sticks, want)),
+          "a stored NMode/Scale=0.5 is ignored: sticks at the output file's frequencies")
+    check(re.search(r"scale 1$", open(dump).readline().strip()) is not None,
+          "the panel opens at factor 1")
+    rows = re.findall(r"BUILDER: specfactor field '([^']*)' scale (\S+) sticks ((?:\d+:\S+ ?)+) detail '([^']*)'", text)
+    if not check(len(rows) == 2, "two specfactor reports"):
+        say(text[-1500:])
+        return
+    field, scale, st, detail = rows[0]
+    got = [float(x.split(":")[1]) for x in st.split()]
+    check(field == "0.96" and abs(float(scale) - 0.96) < 1e-12,
+          "'0,96' is read as 0.96 and the field shows %s" % field)
+    check(len(got) == len(want) and all(abs(g - 0.96 * w[0]) < 0.01 for g, w in zip(got, want)),
+          "sticks at 0.96 x frequency: %s" % got)
+    m = re.search(r"([\d.]+) cm\S+ \(scaled ([\d.]+)\)", detail)
+    check(m is not None and abs(float(m.group(2)) - 0.96 * float(m.group(1))) < 0.06,
+          "the detail line shows both values: %s" % detail)
+    check("scaled" not in rows[1][3], "at factor 1 the detail line has no scaled value: %s" % rows[1][3])
+
+
 def traceCase(s, display, env, wrappers, png, urls, name):
     say("Geometry Trace panel, %s" % name)
     lines = ["wait 4000", "shot trace-" + name, "quit"]
@@ -166,6 +205,7 @@ def main():
         urls = install(s, ("h2o-geometry", "h2o-vibration", "h2o-geovib"))
         vibrationCase(s, display, env, wrappers, png, urls, "h2o-vibration", 8)
         vibrationCase(s, display, env, wrappers, png, urls, "h2o-geovib", 8)
+        factorCase(s, display, env, wrappers, png, urls, "h2o-vibration")
         traceCase(s, display, env, wrappers, png, urls, "h2o-geometry")
         traceCase(s, display, env, wrappers, png, urls, "h2o-geovib")
     finally:

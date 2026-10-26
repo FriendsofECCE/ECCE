@@ -512,11 +512,11 @@ void NModePanel::createSpectrumPane()
    double fwhm = 15.0, scale = 1.0;
    bool reversed = true, sticks = true;
    config->Read("NMode/FWHM", &fwhm, 15.0);
-   config->Read("NMode/Scale", &scale, 1.0);
+   //  The factor is deliberately not remembered: a forgotten 0.5 would
+   //  silently shift every later spectrum.
    config->Read("NMode/WavenumberHighOnLeft", &reversed, true);
    config->Read("NMode/ShowSticks", &sticks, true);
    if (fwhm < 0 || fwhm > 200) fwhm = 15.0;
-   if (scale <= 0) scale = 1.0;
 
    wxPanel *pane = new wxPanel(this);
    wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
@@ -790,22 +790,32 @@ void NModePanel::applySpectrumSettings()
    if (p_spectrum == 0 || p_fwhmText == 0 || p_scaleText == 0) return;
    double fwhm = p_spectrum->spectrum().fwhm();
    double scale = p_spectrum->spectrum().scale();
+   //  A decimal comma is read as a point, whatever the locale.
+   auto parse = [](const wxString& t, double *out) {
+      wxString c = t;
+      c.Replace(",", ".");
+      return c.Trim(true).Trim(false).ToCDouble(out);
+   };
    double v;
-   if (p_fwhmText->GetValue().ToDouble(&v) && v >= 0) {
+   if (parse(p_fwhmText->GetValue(), &v) && v >= 0) {
       fwhm = v > 200 ? 200 : v;
       if (fwhm > 0 && fwhm < 0.1) fwhm = 0.1;
    }
-   if (p_scaleText->GetValue().ToDouble(&v) && v > 0) scale = v;
+   if (parse(p_scaleText->GetValue(), &v) && v > 0) scale = v;
    p_fwhmText->ChangeValue(wxString::Format("%g", fwhm));
    p_scaleText->ChangeValue(wxString::Format("%g", scale));
 
    const bool scaleChanged = scale != p_spectrum->spectrum().scale();
    if (fwhm != p_spectrum->spectrum().fwhm()) p_spectrum->setFwhm(fwhm);
-   if (scaleChanged) p_spectrum->setScale(scale);
+   if (scaleChanged) {
+      p_spectrum->setScale(scale);
+      //  The detail line quotes the scaled value too.
+      if (p_grid != 0 && p_spectrum->selected() >= 0)
+         showModeDetail(p_spectrum->selected());
+   }
 
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
    config->Write("NMode/FWHM", fwhm);
-   config->Write("NMode/Scale", scale);
 }
 
 
@@ -1000,6 +1010,32 @@ void NModePanel::compareDialog()
       "same scaling factor and line width:", "Compare spectra", names, this);
   if (at < 0) return;
   compareWith(at == 0 ? string() : found[at - 1]->getURL().getFilePathTail());
+}
+
+
+/**
+ * Script hook: type text into the Freq. factor field and apply it.  Reports
+ * the field, the scale in force, the sticks' wavenumbers and the line under
+ * the plot.
+ */
+wxString NModePanel::scriptSpectrumFactor(const wxString& text)
+{
+   if (!p_isValid || p_spectrum == 0 || p_scaleText == 0) return "no graph";
+   p_scaleText->ChangeValue(text);
+   applySpectrumSettings();
+   const VibSpectrum& s = p_spectrum->spectrum();
+   wxString out = wxString::Format("field '%s' scale %g sticks",
+                                   p_scaleText->GetValue(), s.scale());
+   for (int k = 0; k < 2; k++)
+      if (s.has((VibKind)k)) {
+         const vector<VibStick> st = s.sticks((VibKind)k);
+         for (size_t i = 0; i < st.size(); i++)
+            out += wxString::Format(" %d:%.4f", st[i].mode + 1, st[i].wavenumber);
+      }
+   wxString line;
+   for (size_t i = 0; i < p_graphParts.size(); i++)
+      line += (i ? " | " : "") + p_graphParts[i];
+   return out + " detail '" + line + "'";
 }
 
 
@@ -1641,6 +1677,9 @@ void NModePanel::showModeDetail(int row)
       wxString cell = p_grid->GetCellValue(row, 0);
       freq = (cell.ToCDouble(&f) ? wxString::Format("%.1f", f) : cell) +
              wxString::FromUTF8(" cm\xE2\x81\xBB\xC2\xB9");
+      const double sc = p_spectrum != 0 ? p_spectrum->spectrum().scale() : 1.0;
+      if (sc != 1.0 && cell.ToCDouble(&f))
+         freq += wxString::Format(" (scaled %.1f)", f * sc);
       const wxString parts[3] = { sym, wxString::FromUTF8(v.detail),
                                   activityShort(v) };
       for (int i = 0; i < 3; i++)

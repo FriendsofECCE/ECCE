@@ -6,6 +6,7 @@
 //    add ELEM SHAPE X Y Z        a click in the 3D view in Atom mode
 //    panel NAME                  Tools > NAME (shows the panel)
 //    panesize NAME               the docked pane's rectangle and height floor
+//    specfactor TEXT             type TEXT into the spectrum's Freq. factor (#604)
 //    specclick MODE              left click on a mode in the spectrum graph (#445)
 //    cmd TEXT                 a Builder command line (addh, center, ...)
 //    pbc ...                     Periodic Builder, see PBC::scriptCommand
@@ -1034,6 +1035,17 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: specclick mode %d: screen mismatch "
                   "%.4f, selected mode %d\n", mode, mismatch, selected + 1);
         }
+      } else if (w[0] == "specfactor" && w.size() == 2) {
+        //  specfactor <text>: type text into the Freq. factor field (#604).
+        NModePanel *nm = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
+        if (!nm) outcome = "no Vibrational Frequencies panel";
+        else fprintf(stderr, "BUILDER: specfactor %s\n",
+                     (const char*)nm->scriptSpectrumFactor(
+                         wxString::FromUTF8(w[1].c_str())).utf8_str());
       } else if (w[0] == "scancsv" && w.size() >= 2) {
         //  scancsv <path> [kcal]: the Relaxed Scan panel's Export .csv
         //  (#393) without the file dialog.

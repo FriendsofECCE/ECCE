@@ -99,6 +99,7 @@ class NModePanel : public NModesGUI,
           mode selected afterwards.  False if the graph is hidden or the
           mode has no stick. */
       bool scriptSpectrumClick(int mode, double *mismatch, int *selected);
+      wxString scriptSpectrumFactor(const wxString& text);
 
       /** Another calculation of the same folder as a second curve in the
           spectrum (#173); "" removes it.  False if there is no such

@@ -63,6 +63,11 @@ full PED may follow later.
   activity.
 - **Panel**: the selected mode's line sits in its own bordered box under the
   plot, above Width and Freq. factor. It wraps; nothing is cut off.
+  When the Freq. factor is not 1 it also gives the scaled wavenumber, for
+  example 1842.8 cm⁻¹ (scaled 921.4).
+- **Width and Freq. factor**: the factor multiplies every wavenumber in the
+  plot. It starts at 1 each time the panel opens and is not remembered; the
+  width is. A decimal comma is accepted in both fields, so 0,96 means 0.96.
 - **Frequency table**: wavenumbers are shown with one decimal and intensities
   with two. The Mode column can be dragged wider; hover a Mode cell for the
   label and the shares.
