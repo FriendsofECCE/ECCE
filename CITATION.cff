@@ -15,8 +15,8 @@ authors:
   - given-names: Matthew
     family-names: Asplund
     affiliation: Brigham Young University
-version: 9.3.3
-date-released: 2026-10-23
+version: 9.4.0
+date-released: 2026-10-26
 doi: 10.5281/zenodo.23281771
 license: ECL-2.0
 repository-code: "https://github.com/FriendsofECCE/ECCE"
