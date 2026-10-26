@@ -259,6 +259,7 @@ sub ORCARoute {
   $route .= &GeomConvergenceToken . " ";
   $route .= &FreqMethodToken . " ";
   $route .= &SolvationToken . " ";
+  $route .= &DispersionToken . " ";
   $route .= &ChelpgToken . " ";
   $route .= &SymmetryToken . " ";
   $route .= &AuxCBasisToken . " ";
@@ -407,6 +408,7 @@ sub AuxCBasisToken {
 # only one of them needs an AuxC basis.
 sub IsDoubleHybrid {
   my ($label) = @_;
+  ($label) = &SplitDispersion($label);
   my %doubleHybrids = (
     "B2PLYP"     => 1,
     "B2GP-PLYP"  => 1,
@@ -515,6 +517,42 @@ sub ChelpgToken {
   my $result = join(" ", @t);
   $_ = $result;
   return $result;
+}
+
+#  Dispersion is its own setting (ES.Theory.SCF.Dispersion: None, D3BJ,
+#  D3(0), D4), offered for SCF and DFT.  Older calculations carry it in the
+#  functional name ("PBE0 D3BJ", "B3LYP-D3"); SplitDispersion reads those as
+#  functional + dispersion so the keyword is neither lost nor doubled.
+sub SplitDispersion {
+  my ($name) = @_;
+  return ($name, "") unless defined($name);
+  #  These two names contain a D3 that is part of the functional itself.
+  return ($name, "") if ($name eq "B97-D3" || $name eq "wB97X-D3");
+  if ($name =~ /^(\S+?)[ -](D3BJ|D3ZERO|D3\(0\)|D3|D4)$/i) {
+    return ($1, uc($2));
+  }
+  return ($name, "");
+}
+
+sub DispersionToken {
+  my $cat = $AbiDict{"Category"};
+  return "" unless ($cat eq "DFT" || $cat eq "SCF");
+  my $dispersion = $AbiDict{"ES.Theory.SCF.Dispersion"};
+  $dispersion = "" unless defined($dispersion);
+  if ($dispersion eq "D3BJ") {
+    return "D3BJ";
+  } elsif ($dispersion eq "D3(0)") {
+    return "D3ZERO";
+  } elsif ($dispersion eq "D4") {
+    return "D4";
+  }
+  #  "None", or no setting stored: a legacy functional name may carry it.
+  return "" unless ($cat eq "DFT");
+  my (undef, $legacy) = &SplitDispersion($AbiDict{"ES.Theory.DFT.XCFunctionals"});
+  return "D4" if ($legacy eq "D4");
+  return "D3BJ" if ($legacy eq "D3BJ");
+  return "D3ZERO" if ($legacy ne "");
+  return "";
 }
 
 sub SolvationToken {
@@ -765,6 +803,7 @@ sub Theory {
 # dialog ends up using, the way DFTXCFun in ai.gauss16 does for Gaussian.
 sub DFTXCFun {
   my ($xcFun) = @_;
+  ($xcFun) = &SplitDispersion($xcFun);
   my %map = (
     "B3LYP"     => "B3LYP",
     "PBE0"      => "PBE0",

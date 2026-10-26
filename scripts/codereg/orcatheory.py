@@ -184,6 +184,20 @@ class OrcaTheoryPanel(EccePanel):
             dftSizer.AddWidget(self.xcFunc)
             self.panelSizer.Add(dftSizer)
 
+        # DISPERSION -- its own setting, for HF as well as DFT (ORCA 6.1.1
+        # accepts "HF D3BJ"/"HF D4" and prints a dispersion correction).
+        # ai.orca maps "D3(0)" to ORCA's D3ZERO keyword.
+        if EcceGlobals.Category in ("SCF", "DFT"):
+            dispSizer = EcceBoxSizer(self, label="Dispersion", cols=1)
+            self.dispersion = EcceComboBox(self,
+                                           choices=["None", "D3BJ", "D3(0)", "D4"],
+                                           name="ES.Theory.SCF.Dispersion",
+                                           default=0,
+                                           label="Correction:",
+                                           export=1)
+            dispSizer.AddWidget(self.dispersion)
+            self.panelSizer.Add(dispSizer)
+
         # SOLVATION -- ORCA had none at all: zero references to CPCM, SMD
         # or solvation in either this dialog or ai.orca, so every ORCA job
         # ECCE generated was gas phase with no way to say otherwise.

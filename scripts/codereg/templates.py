@@ -7,6 +7,7 @@ Also defines some helper functions dealing with ranges.
 
 import wx
 import wx.lib.scrolledpanel
+import re
 import string
 import webbrowser
 import os
@@ -568,6 +569,25 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.messageTimer.Start(EcceGlobals.MessageTimerLength, True)
 
 
+    def SplitLegacyDispersion(self, name, value):
+        # An ORCA functional stored as "PBE0 D3BJ" / "B3LYP-D3" becomes the
+        # functional plus the Dispersion choice, so re-saving keeps both.
+        if name != "ES.Theory.DFT.XCFunctionals":
+            return value
+        disp = [x for x in self.Settings
+                if x.GetName() == "ES.Theory.SCF.Dispersion"]
+        func = [x for x in self.Settings if x.GetName() == name]
+        if not disp or not func or value in func[0].combo.GetStrings():
+            return value
+        m = re.match(r"^(\S+?)[ -](D3BJ|D3ZERO|D3\(0\)|D3|D4)$", value,
+                     re.IGNORECASE)
+        if not m or m.group(1) not in func[0].combo.GetStrings():
+            return value
+        d = m.group(2).upper()
+        self.legacyDispersion = True
+        disp[0].SetValue("D3(0)" if d in ("D3", "D3ZERO") else d)
+        return m.group(1)
+
     def FinalizeSetting(self):
         # Settings left at their default because the stored unit differs.
         notRestored = []
@@ -602,7 +622,12 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
                     i = i + 1
 
                 # line has been parsed, assign values (if line is intelligable)
-                if j == 5:
+                if j == 5 and name == "ES.Theory.SCF.Dispersion" and \
+                   getattr(self, "legacyDispersion", False):
+                    # Already taken from the old functional name; the stored
+                    # default must not override it.
+                    pass
+                elif j == 5:
                     if not [x for x in self.Settings
                             if x.GetName() == name]:
                         # Normal and expected: the stored GUIValues carry
@@ -694,6 +719,8 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
                             elif valType == "text_input":
                                 setting.SetValue(value)
                             elif valType == "menu_input":
+                                value = self.SplitLegacyDispersion(
+                                    name, value)
                                 try:
                                     setting.SetValue(value)
                                 except wx.core.PyAssertionError:
