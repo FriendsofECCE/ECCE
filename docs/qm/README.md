@@ -185,6 +185,13 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   `progress scan point=k/n`. The final output is that of the last point.
   `ecceqm.desc` makes SCANGEOM of every `scan_geometry`, SCANCOORD and
   SCANENERGY of the last table, and the `scan` stage of the progress box.
+* Each point's converged orbitals follow its `scan_geometry`, numbered as it:
+  `begin point_orbitals <spin>  # point k` (index, energy, occupation; spin
+  restricted, or alpha then beta) and `begin point_mo_coefficients <spin>`
+  (the `mo_coefficients` layout). An IRC writes them after its `irc_geometry`
+  blocks, in path order. `ecceqm.desc` makes PTORB/PTORBBETA and
+  PTMO/PTMOBETA of them, one table per point; the orbital panels read the
+  point selected in the Relaxed Scan / IRC Path panel from these.
   `ai.ecceqm` writes the block from the Builder's scan constraint (n steps
   of a given size are n+1 points, as for ORCA); one scanned coordinate only.
 * A diatomic whose bond is held has no free coordinate: the optimiser then

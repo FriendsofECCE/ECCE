@@ -41,6 +41,15 @@ class IPropCalculation
 
       virtual bool isReadOnly() const = 0;
 
+      // The scan/IRC point (an index into the per-point orbital tables, as
+      // SCANGEOM/IRCGEOM) whose orbitals MO, ORBENG and their companions
+      // return; -1 for the calculation's own.  Calculations that store no
+      // per-point orbitals ignore it.
+      virtual void orbitalPoint(int point) { }
+      virtual int orbitalPoint() const { return -1; }
+      // Whether this calculation stores orbitals for every scan/IRC point.
+      virtual bool hasPointOrbitals() { return false; }
+
       virtual bool promptBeforeSave(Fragment *frag, string& msg, string& title) = 0;
 
    protected:

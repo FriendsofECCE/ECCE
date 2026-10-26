@@ -293,6 +293,36 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
     print join(" ", @$r), "\n";
   }
   print "END\n";
+} elsif ($first =~ /^begin point_orbitals\s+(\w+)/) {
+  # one scan/IRC point: index energy occupation, one table per point
+  my $key = ($1 eq 'beta') ? 'PTORBBETA' : 'PTORB';
+  my @rows;
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    push(@rows, "$f[1] $f[2]") if (@f >= 3);
+  }
+  if (@rows) {
+    print "key: $key\nsize:\n1 ", scalar(@rows), " 2\nrowlabels:\n";
+    print join(" ", map { "MO-$_" } 1 .. scalar(@rows)), "\n";
+    print "columnlabels:\nEnergy Occupation\nvalues:\n", join("\n", @rows), "\nunits:\nNA\nEND\n";
+  }
+} elsif ($first =~ /^begin point_mo_coefficients\s+(\w+)/) {
+  my $key = ($1 eq 'beta') ? 'PTMOBETA' : 'PTMO';
+  my @rows;
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    shift(@f);
+    push(@rows, join(" ", @f)) if (@f);
+  }
+  if (@rows) {
+    my $nbas = scalar(split(' ', $rows[0]));
+    print "key: $key\nsize:\n1 ", scalar(@rows), " $nbas\nrowlabels:\n";
+    print join(" ", map { "MO-$_" } 1 .. scalar(@rows)), "\n";
+    print "columnlabels:\n", join(" ", map { "BasFun-$_" } 1 .. $nbas), "\n";
+    print "values:\n", join("\n", @rows), "\nunits:\nElectrons\nEND\n";
+  }
 } elsif ($first =~ /^begin orbitals\s+(\w+)/) {
   my $spin = $1;
   my (@en, @occ);

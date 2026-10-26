@@ -209,6 +209,9 @@ int main(int argc, char** argv) {
       qm::IrcPoint ts;
       ts.mol = in.mol;
       ts.energy = e0.energy;
+      // Taken before the Hessian's displaced SCFs replace r.
+      std::vector<qm::PointOrbitals> back_orb, fwd_orb;
+      const qm::PointOrbitals ts_orb = qm::point_orbitals(r);
       auto table = [&]() {
         std::vector<qm::IrcPoint> all(back.rbegin(), back.rend());
         all.push_back(ts);
@@ -220,8 +223,11 @@ int main(int argc, char** argv) {
       std::string ended;
       auto run = [&](int sign, std::vector<qm::IrcPoint>& into) {
         std::string why;
+        std::vector<qm::PointOrbitals>& orb = sign > 0 ? fwd_orb : back_orb;
         qm::irc_path(in.mol, H0, sign, in.irc, evaluate, hess, [&](const qm::IrcPoint& p) {
           into.push_back(p);
+          if (!same(at_full, p.mol)) evaluate(p.mol);
+          orb.push_back(qm::point_orbitals(r));
           qm::write_irc_table(os, table());
           qm::write_progress_irc(os, ++done, total);
           if (verbose) std::cerr << "irc point s = " << p.s << "  E = " << p.energy << "\n";
@@ -235,6 +241,13 @@ int main(int argc, char** argv) {
       const std::vector<qm::IrcPoint> all = table();
       qm::write_irc_table(os, all);
       qm::write_irc_geometries(os, all);
+      {
+        std::vector<const qm::PointOrbitals*> orbs;
+        for (auto it = back_orb.rbegin(); it != back_orb.rend(); ++it) orbs.push_back(&*it);
+        orbs.push_back(&ts_orb);
+        for (const auto& o : fwd_orb) orbs.push_back(&o);
+        for (size_t i = 0; i < orbs.size(); ++i) qm::write_point_orbitals(os, static_cast<int>(i + 1), *orbs[i]);
+      }
       os << "irc_points " << all.size() << "\n";
       os << "progress irc point=" << done << "/" << total << " ended: " << ended << "\n";
       auto cs = extra_charges();
@@ -269,6 +282,7 @@ int main(int argc, char** argv) {
         p.converged = res.converged;
         pts.push_back(p);
         qm::write_scan_geometry(os, k + 1, p.value, res.mol);
+        qm::write_point_orbitals(os, k + 1, qm::point_orbitals(r));
         qm::write_scan_table(os, pts, bond);
         qm::write_progress_scan(os, k + 1, in.scan.points);
         if (verbose) std::cerr << "scan point " << k + 1 << "/" << in.scan.points << "  E = " << p.energy << "\n";

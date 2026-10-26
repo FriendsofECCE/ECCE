@@ -231,6 +231,13 @@ Pull	Pull Force				PULLFORCE	NA		PropVector<Pull Frame>
 Geometry	IRC Coordinate				IRCCOORD	NA		PropVector<IRC Point>
 Geometry	IRC Energy				IRCENERGY	Energy		PropVector<IRC Point>
 Geometry	IRC Structures				IRCGEOM		Length		PropTSVecTable<IRC Step,Atom,Coordinate>
+# ECCE-QM scan and IRC: the orbitals of every point, one table per point in
+# SCANGEOM/IRCGEOM order (PTORB: energy and occupation per MO).  Read by the
+# orbital panels through the calculation's selected point, not shown as such.
+EStruct		Point MO Energies			PTORB		NA		PropTSVecTable<Point,MO,Value>
+EStruct		Point MO Energies (beta)		PTORBBETA	NA		PropTSVecTable<Point,MO,Value>
+EStruct		Point MOs				PTMO		Electrons	PropTSVecTable<Point,MO,Basis Function>
+EStruct		Point MOs (beta)			PTMOBETA	Electrons	PropTSVecTable<Point,MO,Basis Function>
 Geometry	Lattice Vectors				LATTICEVEC	Length		PropTSVecTable<Geometry Step,Coordinate,Coordinate>
 #
 #							   		     

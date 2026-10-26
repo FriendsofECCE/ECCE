@@ -120,6 +120,44 @@ void write_irc_geometries(std::ostream& os, const std::vector<IrcPoint>& path) {
   os.flush();
 }
 
+PointOrbitals point_orbitals(const ScfResult& r) {
+  PointOrbitals o;
+  o.restricted = r.reference != Reference::Unrestricted;
+  o.eps_a = r.eps_a; o.eps_b = r.eps_b;
+  o.occ_a = r.occ_a; o.occ_b = r.occ_b;
+  o.C_a = r.C_a; o.C_b = r.C_b;
+  return o;
+}
+
+void write_point_orbitals(std::ostream& os, int point, const PointOrbitals& o) {
+  char b[64];
+  auto block = [&](const char* spin, const Vec& eps, const Vec& occ, const Vec* occ2, const Mat& C) {
+    const int n = static_cast<int>(eps.size());
+    os << "begin point_orbitals " << spin << "  # point " << point << "; index energy(hartree) occupation\n";
+    for (int i = 0; i < n; ++i) {
+      std::snprintf(b, sizeof b, "%d %.12g %.6g\n", i + 1, eps(i), occ2 ? occ(i) + (*occ2)(i) : occ(i));
+      os << b;
+    }
+    os << "end point_orbitals\n";
+    os << "begin point_mo_coefficients " << spin << "  # point " << point << "; one line per MO: index then nbf coefficients\n";
+    for (int i = 0; i < C.cols(); ++i) {
+      os << i + 1;
+      for (int k = 0; k < C.rows(); ++k) {
+        std::snprintf(b, sizeof b, " %.10g", C(k, i));
+        os << b;
+      }
+      os << "\n";
+    }
+    os << "end point_mo_coefficients\n";
+  };
+  if (o.restricted) block("restricted", o.eps_a, o.occ_a, &o.occ_b, o.C_a);
+  else {
+    block("alpha", o.eps_a, o.occ_a, nullptr, o.C_a);
+    block("beta", o.eps_b, o.occ_b, nullptr, o.C_b);
+  }
+  os.flush();
+}
+
 void write_progress_irc(std::ostream& os, int point, int points) {
   os << "progress irc point=" << point << "/" << points << "\n";
   os.flush();

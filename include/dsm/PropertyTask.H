@@ -44,6 +44,9 @@ class PropertyTask : public ChemistryTask,
       virtual bool putProperty(TProperty* prop);
       virtual bool deleteProperties();
       virtual void flushPropertyCache();
+      virtual void orbitalPoint(int point);
+      virtual int orbitalPoint() const;
+      virtual bool hasPointOrbitals();
 
       virtual bool fragment(Fragment* frag);
       virtual Fragment* fragment() const;
@@ -112,6 +115,13 @@ class PropertyTask : public ChemistryTask,
       bool isOutputFileProp(const string& propName);
 
       map<string, TProperty*, less<string> > p_properties;
+
+      TProperty* getStoredProperty(const string& name);
+      TProperty* pointOrbitalProperty(const string& name, bool& hide);
+      int p_orbitalPoint = -1;
+      // Built from the per-point tables, "<key>@<point>"; kept until the
+      // cache is flushed, since panels hold the pointers they were given.
+      map<string, TProperty*> p_pointProps;
 };
 
 #endif /* PROPERTY_TASK */

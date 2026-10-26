@@ -2161,6 +2161,21 @@ CASES = [
         },
     ),
     dict(
+        # Relaxed scan with each point's orbitals (#549): H2O HF/STO-3G, O-H
+        # 0.90 to 1.10 A in 5 points; one PTORB and one PTMO table per point.
+        name='ecceqm-h2o-scan-orbitals',
+        desc='ecceqm.desc',
+        fixture='ecceqm/h2o_scan_orb.qmout',
+        parse_args=('.', 'Geometry', 'SCF', 'HF', '0'),
+        expect={
+            'SCANGEOM': dict(blocks=5, keys={'SCANGEOM': {'size': '1 3 3'}}),
+            'PTORB][PTORBBETA': dict(blocks=5, keys={'PTORB': {
+                'size': '1 7 2', 'columnlabels': 'Energy Occupation'}}),
+            'PTMO][PTMOBETA': dict(blocks=5, keys={'PTMO': {
+                'size': '1 7 7', 'units': 'Electrons'}}),
+        },
+    ),
+    dict(
         # Geometry optimisation: one geometry/energy/gradient block per
         # step.  TE stays the final energy while TEVEC, GEOMTRACE and EGRAD
         # accumulate the trace (ORCA's RHF/STO-3G value for this molecule is
