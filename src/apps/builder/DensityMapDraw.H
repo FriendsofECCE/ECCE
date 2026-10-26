@@ -3,6 +3,8 @@
 #ifndef DENSITYMAPDRAW__H
 #define DENSITYMAPDRAW__H
 
+#include <string>
+#include <vector>
 #include <wx/dc.h>
 #include <wx/string.h>
 
@@ -11,6 +13,9 @@
 /** Paints `map` (or `message` when there is no map) into dc. */
 void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
                      const DensityPlane::Map& map, const wxString& message);
+
+/** The atoms named in the picture: every one within 1.5 A of the plane. */
+std::vector<std::string> densityMapLabelled(const DensityPlane::Map& map);
 
 /** Plane coordinates (A) under pixel (px, py); false outside the plot. */
 bool densityMapPointAt(const wxSize& size, const DensityPlane::Map& map,

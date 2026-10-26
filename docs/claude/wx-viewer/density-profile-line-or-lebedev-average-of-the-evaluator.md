@@ -3,7 +3,7 @@ type: map
 title: "The Density Profile panel plots DensityPlane::Evaluator along a line through two atoms (LineProfile) or as a Lebedev spherical average about an atom (RadialDist); the evaluator works in bohr, atom shell labels are inferred, aug- sets are refused by ECCE-QM"
 area: wx-viewer
 section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
-paths: ["include/tdat/RadialDist.H", "include/tdat/LineProfile.H", "src/tdat/chemistry/RadialDist.C", "src/tdat/chemistry/LineProfile.C", "src/apps/lineprofile/lineprofile.C", "src/apps/builder/DensityProfilePanel.C", "src/apps/builder/XYPlotCanvas.H", "src/apps/builder/BuilderPlotShot.C", "tests/tdat/radialdist_test.C", "tests/apps/densityprofile_panel_test.py", "tests/builder/make_radialdist_fixtures.py", "help/src/density-profile.md"]
+paths: ["include/tdat/RadialDist.H", "include/tdat/LineProfile.H", "src/tdat/chemistry/RadialDist.C", "src/tdat/chemistry/LineProfile.C", "src/apps/lineprofile/lineprofile.C", "src/apps/builder/DensityProfilePanel.C", "src/apps/builder/XYPlotCanvas.H", "src/apps/builder/BuilderPlotShot.C", "tests/tdat/radialdist_test.C", "tests/apps/densityprofile_panel_test.py", "tests/apps/densityprofile_pick_test.py", "tests/builder/make_radialdist_fixtures.py", "help/src/density-profile.md"]
 issues: []
 ---
 - **Core.** `RadialDist::compute` averages a `Spec` (the total density, or a
@@ -31,7 +31,16 @@ issues: []
 - **Plot.** `XYPlotCanvas::addVLine` draws a dashed line with its label in its
   own row under the tick labels (a label that would touch the previous one is
   dropped); `setZeroLine` marks psi = 0. The key sits above the plot.
-- **Hooks** `dpopen dpmode dpatoms dpmargin dpcentre dpquantity dpshow dpmo dpspin
+- **Hooks** `dpopen dpmode dppick dpselect dpatoms dpmargin dpcentre dpquantity dpshow dpmo dpspin
   dpunit dpcombine dpcsv dppng dpstate dpclose` (`Builder::densityProfileCommand`),
   pictures with `plotshot <name> 0 0 Density Profile:docked`;
   `densityprofile_panel_test.py` runs Ne, Ar, H2 and N2 at 1366x768 and 1700x1000.
+- **Viewer picks (#580).** The panel is a `VizPropertyPanel` + `ecce::Listener`
+  (`drawsInViewer() == false`, like the Density Map): two picked atoms set the
+  line, one the centre. `dpselect` sets `m_atomHighLight` and publishes
+  `SelectionChanged` (the real event path); `dppick` calls `pickAtoms` directly.
+- **Key and defaults (#581).** `XYPlotCanvas::setKeyMaxRows(2)` caps the key and
+  ends it with "+N more (hover)"; the plot keeps >= 110 px whatever the key wants.
+  A molecule with more than 8 occupied orbitals opens on Total + the 4 largest
+  integrals along the line (`rankLargest`, re-ranked until the user touches
+  Show, the list or the mode).

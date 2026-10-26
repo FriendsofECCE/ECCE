@@ -16,6 +16,10 @@
 #include "tdat/PropVecString.H"
 #include "dsm/IPropCalculation.H"
 
+#include "util/Event.H"
+#include "util/EventDispatcher.H"
+#include "viz/SGContainer.H"
+#include "viz/SGFragment.H"
 #include "wxviz/SceneScript.H"
 
 #include "Builder.H"
@@ -331,7 +335,7 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
 //  Scene commands for the Density Profile panel; each GUI action has one:
 //    dpopen | dpclose
 //    dpmode line|atom
-//    dpatoms A B | dpmargin ANGSTROM | dpcentre N     (atoms 1-based as labelled)
+//    dpselect A [B] (viewer selection + event) | dppick A [B] | dpatoms A B | dpmargin ANGSTROM | dpcentre N     (atoms 1-based as labelled)
 //    dpquantity density|psi2|psi (line) or radial|avg (atom)
 //    dpshow all|totalselected|selected|total
 //    dpmo N,N,...|none    exactly these orbitals ticked
@@ -372,6 +376,17 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     ok = dp->setMode(w[1] == "atom");
   } else if (cmd == "dpatoms" && w.size() == 3) {
     ok = dp->setAtoms(atoi(w[1].c_str()), atoi(w[2].c_str()));
+  } else if (cmd == "dpselect" && w.size() >= 2) {
+    //  The viewer's selection set to these atoms and announced as a click does.
+    SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+    if (!frag) return s.fail("dpselect: no structure");
+    frag->m_atomHighLight.clear();
+    for (size_t i = 1; i < w.size(); i++) frag->m_atomHighLight.push_back(atoi(w[i].c_str()) - 1);
+    ecce::EventDispatcher::getDispatcher().publish(ecce::Event("SelectionChanged"));
+  } else if (cmd == "dppick" && w.size() >= 2) {
+    vector<int> atoms;
+    for (size_t i = 1; i < w.size(); i++) atoms.push_back(atoi(w[i].c_str()));
+    ok = dp->pickAtoms(atoms);
   } else if (cmd == "dpmargin" && w.size() == 2) {
     ok = dp->setMargin(atof(w[1].c_str()));
   } else if (cmd == "dpcentre" && w.size() == 2) {

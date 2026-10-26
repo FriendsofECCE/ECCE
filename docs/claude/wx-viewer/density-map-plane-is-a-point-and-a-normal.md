@@ -38,3 +38,6 @@ issues: [215]
   and water are the mocomp fixtures. The water electron count needs a grid with no
   point on the nucleus and h <= 0.05 A: the tightest 1s primitive is sharper than
   a 0.2 A grid, which gave 8.8 electrons.
+- **Labels (#583).** Every atom within 1.5 A of the plane is named (grey when more
+  than 0.3 A off it), in every plane mode; atoms projecting to one point get
+  stacked labels. `dmstate` prints `labelled ...`.

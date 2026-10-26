@@ -199,6 +199,12 @@ class XYPlotCanvas : public wxPanel
     void setZeroLine(bool on) { p_zeroLine = on; Refresh(); }
 
     void setShowKey(bool show) { p_showKey = show; Refresh(); }
+    /** At most this many key rows (0 = as many as needed); the entries that
+     *  do not fit are counted in "+N more" and named by the hover readout. */
+    void setKeyMaxRows(int rows) { p_keyMaxRows = rows; Refresh(); }
+    /** From the last paint, for tests: key rows drawn, plot height in pixels. */
+    int keyRowsDrawn() const { return p_keyDrawn; }
+    int plotHeight() const { return p_plot.height; }
     void setShowXAxis(bool show) { p_showXAxis = show; Refresh(); }
     /** Room, in x units, kept clear on either side of the data. */
     void setXPadding(double pad) { p_xPad = pad; Refresh(); }
@@ -366,6 +372,9 @@ class XYPlotCanvas : public wxPanel
       int keyRows = 0;
       if (haveKey) {
         keyRows = paintKey(dc, left, 0, size.x - right, false);
+        //  The plot keeps a usable height whatever the key wants.
+        const int spare = size.y - top - (ch + 12 + (xTitle ? th + 12 : 0)) - 110;
+        keyRows = std::max(0, std::min(keyRows, spare / (ch + 6)));
         top += keyRows * (ch + 6);
       }
       //  The axis title sits on the bottom edge of the canvas and the plot
@@ -394,6 +403,7 @@ class XYPlotCanvas : public wxPanel
       const int plotH = std::max(30, size.y - top - bottom);
       p_plot = wxRect(left, top, plotW, plotH);
       p_laidOut = true;
+      p_keyDrawn = keyRows;
 
       makeTicks(true, ylo, yhi, plotH, std::max(3, plotH / 45), yv, ys);
       makeTicks(false, xlo, xhi, plotW, std::max(3, plotW / 80), xv, xs);
@@ -505,8 +515,8 @@ class XYPlotCanvas : public wxPanel
           dc.DrawText(t, (size.x - e.x) / 2, 6);
       }
       dc.SetFont(*wxSMALL_FONT);
-      if (haveKey) paintKey(dc, p_plot.x, top - keyRows * (ch + 6) + 2,
-                            size.x - right);
+      if (haveKey && keyRows > 0) paintKey(dc, p_plot.x, top - keyRows * (ch + 6) + 2,
+                            size.x - right, true, keyRows);
       if (p_hoverCurve >= 0) paintReadout(dc, size);
     }
 
@@ -813,25 +823,59 @@ class XYPlotCanvas : public wxPanel
     }
 
     //  Entries that do not fit before maxX go on the next row, so a narrow
-    //  panel shows the whole key; returns the number of rows.
-    int paintKey(wxDC& dc, int x0, int y, int maxX, bool draw = true)
+    //  panel shows the whole key; with a row limit the rest is "+N more".
+    //  Returns the number of rows.
+    int paintKey(wxDC& dc, int x0, int y, int maxX, bool draw = true, int cap = 0)
     {
       const int rowH = dc.GetCharHeight() + 6;
-      int x = x0, rows = 1;
+      struct Place { size_t curve; int x, row; };
+      std::vector<Place> placed;
+      const int maxRows = p_keyMaxRows > 0 ? (cap > 0 ? std::min(cap, p_keyMaxRows) : p_keyMaxRows) : cap;
+      int x = x0, rows = 1, hidden = 0;
       for (size_t i = 0; i < p_curves.size(); i++) {
         const Curve& cv = p_curves[i];
         if (cv.name.empty()) continue;
         const int w = 19 + dc.GetTextExtent(cv.name).x;
-        if (x > x0 && x + w > maxX) { x = x0; y += rowH; rows++; }
-        if (draw) {
+        int row = rows - 1, at = x;
+        if (x > x0 && x + w > maxX) { at = x0; row++; }
+        if (maxRows > 0 && row >= maxRows) { hidden++; continue; }
+        if (row >= rows) { rows = row + 1; }
+        placed.push_back({ i, at, row });
+        x = at + w + 16;
+      }
+      wxString more;
+      if (hidden > 0) {
+        more = wxString::Format("+%d more (hover)", hidden);
+        const int mw = dc.GetTextExtent(more).x;
+        //  Make room on the last row for the note.
+        while (!placed.empty()) {
+          const Place& l = placed.back();
+          const int end = l.x + 19 + dc.GetTextExtent(p_curves[l.curve].name).x + 16;
+          if (placed.size() == 1 || end + mw <= maxX) {
+            x = end;
+            rows = l.row + 1;
+            break;
+          }
+          placed.pop_back();
+          hidden++;
+          more = wxString::Format("+%d more (hover)", hidden);
+        }
+      }
+      if (draw) {
+        for (size_t k = 0; k < placed.size(); k++) {
+          const Curve& cv = p_curves[placed[k].curve];
+          const int yy = y + placed[k].row * rowH, xx = placed[k].x;
           const wxColour col = colourOf(cv);
           dc.SetPen(wxPen(col, cv.thin ? 1 : cv.width, cv.dash ? wxPENSTYLE_SHORT_DASH : wxPENSTYLE_SOLID));
-          dc.DrawLine(x, y + dc.GetCharHeight() / 2, x + 14,
-                      y + dc.GetCharHeight() / 2);
+          dc.DrawLine(xx, yy + dc.GetCharHeight() / 2, xx + 14,
+                      yy + dc.GetCharHeight() / 2);
           dc.SetTextForeground(p_palette.text);
-          dc.DrawText(cv.name, x + 19, y);
+          dc.DrawText(cv.name, xx + 19, yy);
         }
-        x += w + 16;
+        if (!more.empty()) {
+          dc.SetTextForeground(p_palette.text);
+          dc.DrawText(more, x, y + (rows - 1) * rowH);
+        }
       }
       return rows;
     }
@@ -1043,6 +1087,7 @@ class XYPlotCanvas : public wxPanel
     wxString p_title, p_xLabel, p_yLabel;
     wxString p_roPoint, p_roX, p_roXUnit, p_roY, p_roYUnit;
     bool p_showKey, p_showXAxis;
+    int p_keyMaxRows = 0, p_keyDrawn = 0;
     PointHandler p_handler;
     int p_selCurve, p_selIndex, p_hoverCurve, p_hoverIndex;
     wxPoint p_hoverAt;

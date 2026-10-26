@@ -906,6 +906,9 @@ string DensityMapPanel::state() const
   s += buf;
   s += "title " + p_map.title + "\n";
   s += "plane " + p_map.plane.description + "\n";
+  s += "labelled";
+  for (const string& l : densityMapLabelled(p_map)) s += " " + l;
+  s += "\n";
   snprintf(buf, sizeof buf, "offset %.3f\nnormal %.4f %.4f %.4f\norigin %.4f %.4f %.4f\n"
            "grid %d %d %.3f\nrange %.6g %.6g\n",
            p_map.plane.offset, p_map.plane.n[0], p_map.plane.n[1],
