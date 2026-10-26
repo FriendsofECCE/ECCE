@@ -20,6 +20,7 @@
 #include "dsm/ResourceDescriptor.H"
 
 #include "wxgui/WxFeedback.H"
+#include "wxgui/ewxWindowUtils.H"
 
 #include "WxBasisToolApp.H"
 #include "WxBasisTool.H"
@@ -191,9 +192,8 @@ void WxBasisToolApp::invokeMCB(JMSMessage& msg)
         this->setPollContext(urlstr);
 
         p_basisToolFrame->Iconize(false);
-        p_basisToolFrame->Raise();
         p_basisToolFrame->Show(true);
-        p_basisToolFrame->SetFocus();
+        ewxRaiseWindow(p_basisToolFrame);
         p_basisToolFrame->RequestUserAttention();
    }
 }
