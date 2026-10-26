@@ -48,3 +48,12 @@ Builder, `ECCE_NMODE_TABLE_DUMP=<path>`).
   cell text is ellipsized beyond; the detail lines have a tiny minimum width. Neither may widen the
   docked panel; `panel_test.py` compares each molecule's panel size with
   water's.
+
+- **Where a mode is shown (#579):** `VibModeInfo::parts` carries the
+  contributions (>= 5 %, at most 8) for the Spectrum window's strip and
+  `SpectrumCanvas::setModeNotes` hands them, with the label, to every canvas.
+  The Composition window's automatic set adds the description's torsions
+  (`composition(..., torsions=true)`), else a torsion mode is listed as bends.
+  `tests/vibanalysis/mode_view_test.py` checks strip, hover, decimals, the
+  Mode-column drag (a real X drag in Xvfb) and the Composition columns on the
+  galactopyranose example.

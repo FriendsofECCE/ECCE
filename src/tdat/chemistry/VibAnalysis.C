@@ -1095,6 +1095,14 @@ void VibAnalysis::describe(const VibInput& in, VibResult& out)
          shown++;
       }
       out.modes[m].detail = detail;
+      out.modes[m].parts.clear();
+      for (size_t t = 0; t < idx.size() && t < 8; t++) {
+         const double s = gshare[idx[t]];
+         if (s < 0.05 && t > 0) break;
+         string l = longOf(idx[t]);
+         const size_t sp = l.rfind(' ');
+         out.modes[m].parts.push_back(std::make_pair(l.substr(0, sp), floor(s*100.0 + 0.5)));
+      }
    }
 }
 
@@ -1107,7 +1115,8 @@ void VibAnalysis::describe(const VibInput& in, VibResult& out)
 namespace { vector<int> specKey(const VibCoordSpec& c); }
 
 bool VibAnalysis::composition(const VibInput& in, const vector<VibCoordSpec>& chosen,
-                              const vector<int>& centres, VibComposition& out)
+                              const vector<int>& centres, VibComposition& out,
+                              bool torsions)
 {
    out = VibComposition();
    const size_t N = in.elements.size();
@@ -1161,6 +1170,26 @@ bool VibAnalysis::composition(const VibInput& in, const vector<VibCoordSpec>& ch
                specs.push_back(s);
             }
       }
+      if (torsions) for (size_t a = 0; a < N; a++) std::sort(nbr[a].begin(), nbr[a].end());
+      //  The same torsions describe() uses; the straight-angle check is
+      //  made below for every torsion.
+      for (size_t j = 0; torsions && j < N; j++)
+         for (size_t kk = 0; kk < nbr[j].size(); kk++) {
+            const int k = nbr[j][kk];
+            if (k < (int)j) continue;
+            int bi = -1, bl = -1;
+            for (size_t t = 0; t < nbr[j].size(); t++) {
+               const int a = nbr[j][t];
+               if (a != k && (bi < 0 || Z[a] > Z[bi])) bi = a;
+            }
+            for (size_t t = 0; t < nbr[k].size(); t++) {
+               const int a = nbr[k][t];
+               if (a != (int)j && a != bi && (bl < 0 || Z[a] > Z[bl])) bl = a;
+            }
+            if (bi < 0 || bl < 0) continue;
+            VibCoordSpec s = { 4, { bi, (int)j, k, bl } };
+            specs.push_back(s);
+         }
    }
 
    vector<Coord> coords;
