@@ -2,7 +2,7 @@
 type: map
 title: "`[PROGRESS]` entries in a `.desc`: job progress, not properties; matched on every line, folded into a snapshot, sent at most once a second (#284)"
 area: codereg
-section: "Getting a calculation set up (the \"code registration\" system)"
+section: "Getting a calculation set up (the "code registration" system)"
 paths: ["scripts/eccejobmonitor", "scripts/parsers/ecceqm.desc", "src/qm/output.cpp", "src/qm/main.cpp", "tests/progress/monitor_test.py", "tests/parsers/eccejobmonitor_sim.py", "src/comm/commxt/JobStore.C"]
 issues: [284, 303]
 ---
@@ -54,6 +54,12 @@ A code gets progress in the Organizer by `.desc` entries alone:
   seen becomes empty, so the box shows the value without a tick or cross.
   Fortran `1.0D-04` in a message becomes `1.0e-04`. Used for NWChem's
   thresholds and ORCA's SCF tolerance, which follow the user's settings.
+  `Value=<word>` beside `Remember=` keeps that word instead of `$1`; with
+  `Progress={name} ...` (a template may start with `{name}` as the stage) it
+  switches an entry on (`Value=freq`) or off (`Value=-`, no stage) from
+  another line: ORCA's CP-SCF lines count only after "Nuclear geometric
+  perturbations ... YES", Gaussian's CPHF passes only when the route has
+  Freq, NWChem's linear-equation table only inside the analytic Hessian.
   `Times=<n>` beside `Remember=` keeps `$1` times n: MOPAC prints the atom
   count, and its FORCE runs 3 steps per atom (`freq point=$1/{nforce}`).
 - **A second file.** When `jobOutputFile2` (stdout) is not the parse file,

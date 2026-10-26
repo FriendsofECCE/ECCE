@@ -107,6 +107,22 @@ int main()
   check(gb.size() == 2 && gb[0].criteria.empty() &&
         has(gb[0].lines, "gradient 1.4e-01"), "a value without a target is a line");
 
+  {
+    // A frequency run says whether it is analytic or numerical.
+    JobProgress an, nu, ac;
+    an.parse("# seq=1\nfreq kind=analytic point=3/9\n");
+    nu.parse("# seq=1\nfreq kind=numerical point=4/12 eta=60\n");
+    ac.parse("# seq=1\nfreq kind=analytic pass=4\n");
+    vector<JobProgress::Block> ab = an.running(0), nb = nu.running(0),
+                               cb = ac.running(0);
+    check(ab.size() == 1 && has(ab[0].lines, "analytic Hessian, 3 of 9 perturbations"),
+          "analytic Hessian with its perturbations");
+    check(nb.size() == 1 && has(nb[0].lines, "numerical, point 4 of 12"),
+          "numerical frequencies with their point");
+    check(cb.size() == 1 && has(cb[0].lines, "analytic Hessian, CPHF iteration 4"),
+          "analytic Hessian without a count");
+  }
+
   JobProgress r;
   r.parse("# seq=5\nmd point=100/500 eta=30\n");
   vector<JobProgress::Block> rb = r.running(0);

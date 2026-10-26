@@ -718,7 +718,32 @@ Begin=^ Failed to converge in maximum number of steps
 Progress=opt converged=no
 [END]
 
-# Analytic Hessians count nothing; the zero-point correction closes it.
+# An analytic Hessian shows the CPHF iterations (no count of them is known);
+# the zero-point correction closes it.  The linear-equation table is shared
+# with other modules, so it counts only between the Hessian's own start and
+# end lines.  A finite-difference Hessian has no fixture here and shows nothing.
+[PROGRESS]
+Begin=^\s+NWChem Analytic Hessian
+Remember=nwhess
+Value=freq
+[END]
+
+[PROGRESS]
+Begin=^\s+NWChem Analytic Hessian
+Progress=freq kind=analytic
+[END]
+
+[PROGRESS]
+Begin=^\s+(\d+)\s+\d+\s+\d\.\d+D[-+]\d+\s+\d+\.\d+\s*$
+Progress={nwhess} kind=analytic pass=$1
+[END]
+
+[PROGRESS]
+Begin=^ HESSIAN: the Hessian is done
+Remember=nwhess
+Value=-
+[END]
+
 [PROGRESS]
 Begin=^ Zero-Point correction to Energy\s+=.*\(\s*(\d+\.\d+) au\)
 Progress=freq done=yes zpe=$1

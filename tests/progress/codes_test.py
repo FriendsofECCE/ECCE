@@ -134,6 +134,15 @@ case("orca NEB-TS (HCN -> HNC, HF/3-21G)", "orca.desc", fx("orca", "nebts.out"),
               "rmscforce": "0.000530/1.00e-03"},
       "opt": {"converged": "yes", "step": "3"}},
      {"neb": (16, 16)})
+# ECCE-QM (made by the engine of this tree): an analytic RHF Hessian has no
+# count, finite differences count displaced geometries.
+case("ecceqm opt+freq (analytic RHF Hessian)", "ecceqm.desc",
+     fx("ecceqm", "h2o_optfreq.qmout"),
+     {"freq": {"kind": "analytic", "done": "yes", "real": "3", "zpe": has("0.0243")}})
+case("ecceqm numerical frequencies (Raman input)", "ecceqm.desc",
+     fx("ecceqm", "h2o_numfreq.qmout"),
+     {"freq": {"kind": "numerical", "point": "18/18", "done": "yes"}})
+
 case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
      fx("gaussian-16", "h2o2_dihedral_scan.log"),
      {"scan": {"point": "7/7"}, "opt": {"converged": "yes"}},
@@ -142,7 +151,7 @@ case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
 case("gaussian-16 opt+freq (B3LYP/6-31G*, #P)", "gaussian-16.desc", fx("gaussian-16", "nh3_optfreq.log"),
      {"opt": {"step": "4", "converged": "yes", "maxgrad": target, "rmsgrad": target,
               "maxstep": target, "rmsstep": target, "dE": lambda v: "e-" in v},
-      "freq": {"done": "yes", "zpe": has("0.0345")},
+      "freq": {"done": "yes", "zpe": has("0.0345"), "kind": "analytic", "pass": "5"},
       "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes"}},
      {"opt": (3, 4)})
 case("gaussian-16 opt, not converged", "gaussian-16.desc", fx("gaussian-16", "nh3_optmax.log"),
@@ -154,12 +163,12 @@ case("nwchem SCF geovib (stdout + trace)", "nwchem.desc", fx("nwchem", "h2o_scf_
      {"opt": {"step": "3", "converged": "yes", "maxgrad": target, "rmsgrad": target,
               "maxstep": target, "rmsstep": target},
       "scf": {"cycle": lambda v: int(v) >= 1, "grad": target},
-      "freq": {"done": "yes", "zpe": has("0.0")}},
+      "freq": {"done": "yes", "kind": "analytic", "zpe": has("0.0")}},
      {"opt": (4, 4)}, out2=fx("nwchem", "h2o_scf_geovib.nwout"))
 case("nwchem DFT geovib (stdout + trace)", "nwchem.desc", fx("nwchem", "h2o_dft_geovib.eprint"),
      {"opt": {"converged": "yes", "maxgrad": target},
       "scf": {"dE": target, "energy": has("-75.")},
-      "freq": {"done": "yes", "zpe": has("0.022")}},
+      "freq": {"done": "yes", "kind": "analytic", "zpe": has("0.022")}},
      out2=fx("nwchem", "h2o_dft_geovib.nwout"))
 case("nwchem opt, not converged", "nwchem.desc", fx("nwchem", "h2o_scf_opt_capped.eprint"),
      {"opt": {"converged": "no", "step": "2"}},
