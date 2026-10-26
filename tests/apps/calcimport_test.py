@@ -33,6 +33,9 @@ CASES = [
     ("gaussian-16/co_freq.log", "Gaussian-16"),
     ("orca/h2o_sym.out", "ORCA"),
     ("mopac/ch4_opt.out", "MOPAC"),
+    # eprint trace with the program's stdout beside it
+    ("../../../data/client/examples/getting-started/nwchem-methane/"
+     "methane.eprint", "NWChem"),
     ("gromacs/water_md.log", None),
     ("qe/h2o_gamma.pwout", None),
 ]
@@ -42,6 +45,11 @@ CASES = [
 # Multiplicity, def2-SVP, no ECP), not from the importer.
 STORED = {"orca/h2o_sym.out": (r"pointgroup C2v multiplicity 1 basis "
                                r"'def2-svp' ecp '' spherical yes")}
+
+# The NWChem trace imported with methane.out beside it stores the stdout as
+# its primary output and has a progress record from it.
+METHANE = "nwchem-methane/methane.eprint"
+COMPANION = (r"ECCE_TEST_IMPORTREPORT: output 'methane\.out' progress 1")
 
 failures = []
 
@@ -84,6 +92,9 @@ def check(display, name, expected):
     elif name in STORED and not re.search(
             r"ECCE_TEST_IMPORTREPORT: state \d+ " + STORED[name], log):
         problem = "stored metadata wrong: " + " | ".join(
+            l for l in log.splitlines() if "IMPORTREPORT" in l)
+    elif name.endswith(METHANE) and not re.search(COMPANION, log):
+        problem = "companion stdout not stored / no progress: " + " | ".join(
             l for l in log.splitlines() if "IMPORTREPORT" in l)
     elif expected is not None and resetCheck(log):
         problem = resetCheck(log)

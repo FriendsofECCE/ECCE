@@ -1411,7 +1411,8 @@ void TaskJob::getDataFile(JCode::CodeFileType type, TypedFile& dataFile) const
         const string tail = candidates[i].getFilePathTail();
         const size_t dot = tail.rfind('.');
         const string ext = dot == string::npos ? "" : tail.substr(dot);
-        if (ext != ".mgf" && ext != ".arc" && ext != ".aux")
+        if (ext != ".mgf" && ext != ".arc" && ext != ".aux" &&
+            ext != ".eprint")
           text.push_back(candidates[i]);
       }
       if (!text.empty()) candidates = text;

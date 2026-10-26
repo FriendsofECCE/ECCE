@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <eccejobstore>
-     <event  type="Message"  name="Job log started for calculation"  date="Sat, 24 Oct 2026 16:43:36 CEST" >file:///home/andy/.cache/ecce-apps-8jh10oa0/examples-arm-9f6p5dfq/data/users/local/Examples/methane     </event>
-     <event  type="Message"  name="eccejobstore running on client"  date="Sat, 24 Oct 2026 16:43:36 CEST" >niobium     </event>
-     <event  type="Message"  name="Cache"  date="Sat, 24 Oct 2026 16:43:36 CEST" >Successfully started property parsing cache     </event>
-     <event  type="Message"  name="Local cache directory"  date="Sat, 24 Oct 2026 16:43:36 CEST" >/tmp/ecce_andy/jobs/methane__bUUoYQ     </event>
-     <event  type="Message"  name="Job Monitor"  date="Sat, 24 Oct 2026 16:43:36 CEST" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
-     <event  type="Message"  name="System"  date="Sat, 24 Oct 2026 16:43:36 CEST" >Started local RCommand connection     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 24 Oct 2026 16:43:36 CEST" >Receiving calculation output from eccejobmonitor     </event>
-     <event  type="Message"  name="eccejobstore"  date="Sat, 24 Oct 2026 16:43:36 CEST" >out of contact after 60 s of silence, reconnect after 180 s     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Sat, 24 Oct 2026 16:43:37 CEST" >Running     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 24 Oct 2026 16:43:40 CEST" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-8jh10oa0/ecce-home/data/client/examples/general/nwchem-methane/methane.q' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 24 Oct 2026 16:43:40 CEST" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-8jh10oa0/ecce-home/data/client/examples/general/nwchem-methane/nwch.nwout' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 24 Oct 2026 16:43:40 CEST" >File marked to copy from compute host: methane.eprint     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 24 Oct 2026 16:43:40 CEST" >File marked to copy from compute host: methane.eprint     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 24 Oct 2026 16:43:40 CEST" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-8jh10oa0/ecce-home/data/client/examples/general/nwchem-methane/nwchem.movecs' does not exist     </event>
-     <event  type="Message"  name="Benchmark"  date="Sat, 24 Oct 2026 16:43:40 CEST" >Before file copy of output files     </event>
-     <event  type="Message"  name="Benchmark"  date="Sat, 24 Oct 2026 16:43:40 CEST" >After file copy of output files     </event>
-     <event  type="Message"  name="File Copy"  date="Sat, 24 Oct 2026 16:43:40 CEST" >Successfully copied files from server--
-RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/methane__DsTZ3n/methane.eprint,/tmp/ecce_andy/jobs/methane__DsTZ3n/*.cub,/tmp/ecce_andy/jobs/methane__DsTZ3n/*.cube,/tmp/ecce_andy/jobs/methane__DsTZ3n/*.file30}, /tmp/ecce_andy/jobs/methane__bUUoYQ) succeeded     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Sat, 24 Oct 2026 16:43:40 CEST" >Loaded     </event>
-     <event  type="Message"  name="eccejobstore exit"  date="Sat, 24 Oct 2026 16:43:40 CEST" >eccejobstore terminating normally, exit status 0     </event>
+     <event  type="Message"  name="Job log started for calculation"  date="Mon, 26 Oct 2026 04:10:32 CET" >file:///home/andy/.cache/ecce-apps-8zmuayco/examples-arm-9ocymvzc/data/users/local/Examples/Getting_Started/methane     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Mon, 26 Oct 2026 04:10:32 CET" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Mon, 26 Oct 2026 04:10:32 CET" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Mon, 26 Oct 2026 04:10:32 CET" >/tmp/ecce_andy/jobs/methane__R3EA1w     </event>
+     <event  type="Message"  name="Job Monitor"  date="Mon, 26 Oct 2026 04:10:32 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Mon, 26 Oct 2026 04:10:32 CET" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 04:10:32 CET" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="eccejobstore"  date="Mon, 26 Oct 2026 04:10:32 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Mon, 26 Oct 2026 04:10:32 CET" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 04:10:32 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-8zmuayco/ecce-home/data/client/examples/getting-started/nwchem-methane/methane.q' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 04:10:32 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-8zmuayco/ecce-home/data/client/examples/getting-started/nwchem-methane/nwch.nwout' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 04:10:32 CET" >File marked to copy from compute host: methane.eprint     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 04:10:32 CET" >File marked to copy from compute host: methane.out     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 04:10:32 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-8zmuayco/ecce-home/data/client/examples/getting-started/nwchem-methane/nwchem.movecs' does not exist     </event>
+     <event  type="Message"  name="Benchmark"  date="Mon, 26 Oct 2026 04:10:32 CET" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Mon, 26 Oct 2026 04:10:32 CET" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Mon, 26 Oct 2026 04:10:32 CET" >Successfully copied files from server--
+RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/methane__VUfobU/methane.out,/tmp/ecce_andy/jobs/methane__VUfobU/methane.eprint,/tmp/ecce_andy/jobs/methane__VUfobU/*.cub,/tmp/ecce_andy/jobs/methane__VUfobU/*.cube,/tmp/ecce_andy/jobs/methane__VUfobU/*.file30}, /tmp/ecce_andy/jobs/methane__R3EA1w) succeeded     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Mon, 26 Oct 2026 04:10:32 CET" >Loaded     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Mon, 26 Oct 2026 04:10:32 CET" >eccejobstore terminating normally, exit status 0     </event>
 </eccejobstore>

@@ -159,6 +159,7 @@ bool JobParser::importCalculation(const char* parseFile,
 
   string code;
   string cmd;
+  string companionName;
 
   // create a /tmp directory for importing to avoid problems with the
   // parseFile directory not being writable and simultaneous imports
@@ -175,6 +176,29 @@ bool JobParser::importCalculation(const char* parseFile,
 
     code = importCode(fullFilePath, message);
     if (code.empty()) return ret;
+
+    // NWChem's ecce_print trace (methane.eprint) carries the results but
+    // not the progress lines; those are in the stdout beside it, which a
+    // live run gives the monitor as its second output.
+    if (code == "NWChem") {
+      string base = parseFileName;
+      string::size_type dot = base.rfind('.');
+      if (dot != string::npos) base = base.substr(0, dot);
+      const char* exts[] = { ".out", ".nwout", ".log" };
+      for (size_t i = 0; i < sizeof(exts)/sizeof(exts[0]); i++) {
+        string cand = base + exts[i];
+        if (cand == parseFileName) continue;
+        string candPath = importDir + cand;
+        if (!localconn.exec("grep -q 'Northwest Computational Chemistry "
+                            "Package' " + RCommand::quotePath(candPath)))
+          continue;
+        if (localconn.exec("ln -s " + RCommand::quotePath(candPath) + " " +
+                           RCommand::quotePath(cand))) {
+          companionName = cand;
+          break;
+        }
+      }
+    }
   }
 
   if (!localconn.writable(dir->path())) {
@@ -233,7 +257,7 @@ bool JobParser::importCalculation(const char* parseFile,
 
   EcceMap kvargs;
   kvargs["##parse##"] = parseFileName;
-  kvargs["##output##"] = parseFileName;
+  kvargs["##output##"] = companionName.empty() ? parseFileName : companionName;
 
   delete refMachine;
 
