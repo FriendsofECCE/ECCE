@@ -3876,73 +3876,73 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "third shell of argon, with all its orbitals doubly occupied."},
     {"Li_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "lithium atom in Hartree-Fock theory; with the cation, Tools > "
+     "lithium atom; with the cation, Tools > "
      "Compare Energies gives the ionisation energy as the difference of "
      "their energies."},
     {"Li_HF_cation",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the "
-     "lithium cation, the atom after loss of its outermost electron, in "
-     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "lithium cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom is "
      "the ionisation energy."},
     {"Be_HF_neutral",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the "
-     "beryllium atom in Hartree-Fock theory; with the cation, Tools > "
+     "beryllium atom; with the cation, Tools > "
      "Compare Energies gives the ionisation energy as the difference of "
      "their energies."},
     {"Be_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "beryllium cation, the atom after loss of its outermost electron, "
-     "in Hartree-Fock theory; its energy minus that of the neutral atom "
+     "beryllium cation, the atom after loss of its outermost electron; "
+     "its energy minus that of the neutral atom "
      "is the ionisation energy."},
     {"C_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "carbon atom in Hartree-Fock theory; with the cation, Tools > "
+     "carbon atom; with the cation, Tools > "
      "Compare Energies gives the ionisation energy as the difference of "
      "their energies."},
     {"C_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "carbon cation, the atom after loss of its outermost electron, in "
-     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "carbon cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom is "
      "the ionisation energy."},
     {"N_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "nitrogen atom in Hartree-Fock theory; with the cation, Tools > "
+     "nitrogen atom; with the cation, Tools > "
      "Compare Energies gives the ionisation energy as the difference of "
      "their energies."},
     {"N_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "nitrogen cation, the atom after loss of its outermost electron, in "
-     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "nitrogen cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom is "
      "the ionisation energy."},
     {"O_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "oxygen atom in Hartree-Fock theory; with the cation, Tools > "
+     "oxygen atom; with the cation, Tools > "
      "Compare Energies gives the ionisation energy as the difference of "
      "their energies."},
     {"O_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "oxygen cation, the atom after loss of its outermost electron, in "
-     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "oxygen cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom is "
      "the ionisation energy."},
     {"F_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "fluorine atom in Hartree-Fock theory; with the cation, Tools > "
+     "fluorine atom; with the cation, Tools > "
      "Compare Energies gives the ionisation energy as the difference of "
      "their energies."},
     {"F_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
-     "fluorine cation, the atom after loss of its outermost electron, in "
-     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "fluorine cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom is "
      "the ionisation energy."},
     {"Ne_HF_neutral",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the neon "
-     "atom in Hartree-Fock theory; with the cation, Tools > Compare "
+     "atom; with the cation, Tools > Compare "
      "Energies gives the ionisation energy as the difference of their "
      "energies."},
     {"Ne_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the neon "
-     "cation, the atom after loss of its outermost electron, in "
-     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom is "
      "the ionisation energy."},
     {"Li_B3LYP_neutral",
      "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
