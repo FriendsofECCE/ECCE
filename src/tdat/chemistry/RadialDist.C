@@ -253,10 +253,8 @@ vector<string> shellLabels(IPropCalculation *calc,
   if (!basis.build(calc, ev.symbols, ev.coordsAng, (int)rows[0].size()))
     return out;
   const vector<double>& occ = beta ? ev.occBeta : ev.occ;
-  const vector<double>& energy = beta ? ev.energyBeta : ev.energy;
   static const char *letters = "spdfgh";
   int seen[6] = { 0, 0, 0, 0, 0, 0 };
-  double last[6] = { 1e9, 1e9, 1e9, 1e9, 1e9, 1e9 };
   out.assign(rows.size(), string());
   vector<size_t> virt;
   vector<int> virtL;
@@ -278,11 +276,10 @@ vector<string> shellLabels(IPropCalculation *calc,
       continue;
     }
     if (best && best->share >= 0.9) {
+      //  Named by count, 2l+1 orbitals per shell: an open shell splits
+      //  the energies of one set (F: 2p as two levels), not its n.
       const int l = best->l;
-      const double e = m < energy.size() ? energy[m] : 0.0;
-      if (seen[l] == 0 || fabs(e - last[l]) > 1e-4) seen[l]++;
-      last[l] = e;
-      out[m] = to_string(l + seen[l]) + letters[l];
+      out[m] = to_string(l + 1 + seen[l]++ / (2 * l + 1)) + letters[l];
     }
   }
   //  A virtual is named by shell only if it is a real Rydberg-like orbital:
