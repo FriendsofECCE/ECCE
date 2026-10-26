@@ -8400,6 +8400,17 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
                   cfg ? cfg->ecpName().c_str() : "-",
                   cfg ? (cfg->coordsys() == TGaussianBasisSet::Spherical
                          ? "yes" : "no") : "-");
+          // The stored stdout and progress record of an import with a
+          // companion output (NWChem's .out beside the .eprint trace).
+          {
+            TaskJob *tj = dynamic_cast<TaskJob*>(ipc);
+            TypedFile po;
+            if (tj) tj->getDataFile(JCode::PRIMARY_OUTPUT, po);
+            fprintf(stderr, "ECCE_TEST_IMPORTREPORT: output '%s' progress %d\n",
+                    tj ? po.name().c_str() : "-",
+                    (tj && !tj->getProp(VDoc::getEcceNamespace() +
+                                        ":progress").empty()) ? 1 : 0);
+          }
           // The numbers the viewer's Basis Set summary section shows.
           if (frag && cfg && !cfg->empty()) {
             TagCountMap *tc = frag->tagCountsSTL();
