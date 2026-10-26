@@ -51,7 +51,7 @@ CASES = (
                             "fragdump folded", "cmd addh"],
      {"C": 1, "H": 4}, "C"),
     #  Generate rebuilds the atoms and drops the selection: no stale indices.
-    ("selection-generate", CARBON + ["select 2", "pbcpress generate",
+    ("selection-generate", CARBON + ["select 3", "pbcpress generate",
                                      "cmd addh"], {"C": 1, "H": 4}, "C"),
     #  Methane in a 5 A cell, Generate, then a bigger cell with "keep atom
     #  positions" ticked: the molecule must still be whole afterwards.

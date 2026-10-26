@@ -6182,6 +6182,8 @@ void Builder::updatePropertyMenus()
         //  the Density Map panel set up as given, saved to <name>.png (#215).
         if (w[0] == "densitymap" || w[0].compare(0, 2, "dm") == 0)
           return densityMapCommand(s, w, outdir);
+        //  "atomnumbers N [panel]": atom N's number in the status line, label and a table.
+        if (w[0] == "atomnumbers") return atomNumbersCommand(s, w);
         //  "dp...": the Density Profile panel's controls.
         if (w[0].compare(0, 2, "dp") == 0) return densityProfileCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).

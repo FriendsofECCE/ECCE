@@ -1077,6 +1077,10 @@ std::string DensityProfilePanel::state() const
              p_atomA->GetSelection() + 1, p_atomB->GetSelection() + 1,
              p_centre->GetSelection() + 1, p_autoActive ? 1 : 0);
     s += buf;
+    //  What the lists say for the atom; the test compares it with the
+    //  viewer's own numbering.
+    s += "centrelabel " + std::string(p_centre->GetStringSelection().utf8_str()) + "\n";
+    s += "atomalabel " + std::string(p_atomA->GetStringSelection().utf8_str()) + "\n";
     for (int c = 0; c < p_plot->curveCount(); c++)
       if (!p_plot->curveName(c).empty()) {
         const wxColour col = p_plot->curveColourOf(c);

@@ -52,15 +52,15 @@ def deck(calcdir):
 def energyCase(display, url):
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
         "wait 4000", "constraints show",
-        "constraints select 0 4 1",           # N X H: centre picked first
+        "constraints select 1 5 2",           # N X H: centre picked first
         "constraints press constrain no",
-        "constraints select 1 2 3",           # H H H: no centre
+        "constraints select 2 3 4",           # H H H: no centre
         "constraints press constrain no",
-        "constraints select 1 2",             # H H: not bonded
+        "constraints select 2 3",             # H H: not bonded
         "constraints press constrain no",
-        "constraints select 1 2 3",
+        "constraints select 2 3 4",
         "constraints press constrain yes",    # confirmed: added as picked
-        "constraints select 0",
+        "constraints select 1",
         "constraints press fix yes",          # NWChem: no fixed atoms with these
         "constraints list", "savestate", "save", "wait 2500", "savestate",
         "constraints stored", "wait 500", "quit"], url)
@@ -144,7 +144,7 @@ def deckCase(display, url, calcdir, expectZcoord, label):
 def geomCase(display, url):
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
         "wait 4000", "constraints show",
-        "constraints select 4 0 1", "constraints press constrain no",
+        "constraints select 5 1 2", "constraints press constrain no",
         "constraints list", "save", "wait 2500", "constraints stored", "wait 500", "quit"], url)
     tail = run_tests._tail(log, 25)
     m = re.search(r"constraints rows=(\d+) note: (.*)", log)
@@ -163,7 +163,7 @@ def qmGeoVibCase(display, project):
     open(meta, "w", errors="surrogateescape").write(
         re.sub(r"(ecce:state\t\t)[^\n]*", r"\g<1>Ready", text))
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT",
-                       ["wait 4000", "constraints show", "constraints select 0 1",
+                       ["wait 4000", "constraints show", "constraints select 1 2",
                         "constraints press constrain no", "constraints list",
                         "wait 500", "quit"], "file://" + calc + "/")
     m = re.search(r"constraints rows=(\d+) note: (.*)", log)
@@ -266,8 +266,8 @@ def placeCase(display, empty, nh3, qe):
     import math
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
         "wait 4000", "add C Tetrahedral 0 0 0", "cmd addh", "wait 500", "coords",
-        "constraints select 0 1 2 3", "dummy beyond 1.0", "coords",
-        "constraints select 0 1 2 3", "dummy between 0.5", "quit"],
+        "constraints select 1 2 3 4", "dummy beyond 1.0", "coords",
+        "constraints select 1 2 3 4", "dummy between 0.5", "quit"],
         "file://" + empty + "/")
     tail = run_tests._tail(log, 30)
     blocks = log.split("BUILDER: formula=")
@@ -288,7 +288,7 @@ def placeCase(display, empty, nh3, qe):
     check(re.findall(r"BUILDER: dummy (\w+): (.*)", log) == [("beyond", "added"), ("between", "added")],
           "both modes report added: %s" % re.findall(r"BUILDER: dummy .*", log), tail)
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
-        "wait 4000", "constraints select 1 2 3", "dummy centre", "coords", "quit"],
+        "wait 4000", "constraints select 2 3 4", "dummy centre", "coords", "quit"],
         "file://" + nh3 + "/")
     tail = run_tests._tail(log, 30)
     at = atomsOf(log)
@@ -299,7 +299,7 @@ def placeCase(display, empty, nh3, qe):
         check(max(abs(xyz[5][i] - cen[i]) for i in range(3)) < 0.0005,
               "NH3: X at the centroid of the three H: %s vs %s" % (xyz[5], cen), tail)
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
-        "wait 4000", "constraints select 0 1", "dummy centre", "quit"],
+        "wait 4000", "constraints select 1 2", "dummy centre", "quit"],
         "file://" + qe + "/")
     check(re.search(r"BUILDER: dummy centre: refused: Quantum\S* does not support dummy atoms", log) is not None,
           "a code without dummy atoms refuses", run_tests._tail(log, 20))

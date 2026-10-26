@@ -29,7 +29,8 @@
 //    context URL                 switch to (or back to) calculation URL
 //    info                       atoms and lattice, on stderr
 //    libatom I                   select atom (a Nub) I of the library structure
-//    select I                    select atom (or Nub) I, as a click does; -1 none
+//    select N                    select atom (or Nub) number N (from 1), as a click
+//                                does; 0 or less none
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -564,10 +565,11 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "libatom" && w.size() == 2) {
         p_structLib->setTestAtom(atoi(w[1].c_str()));
       } else if (w[0] == "select" && w.size() == 2 && frag) {
-        //  The atom (or Nub) a click on it would select, by index.
+        //  The atom (or Nub) a click on it would select, numbered from 1 as
+        //  everywhere the user sees an atom number; 0 or less clears.
         frag->m_atomHighLight.clear();
-        if (atoi(w[1].c_str()) >= 0)
-          frag->m_atomHighLight.assign(1, atoi(w[1].c_str()));
+        if (atoi(w[1].c_str()) >= 1)
+          frag->m_atomHighLight.assign(1, atoi(w[1].c_str()) - 1);
       } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
         //  The first atom of element A, as a click on it selects it.
         outcome = "FAIL: no such atom";
@@ -832,7 +834,7 @@ void Builder::runBuilderScript(const std::string& file)
         } else if (w[1] == "select" && frag) {
           frag->m_atomHighLight.clear();
           for (size_t i = 2; i < w.size(); i++)
-            frag->m_atomHighLight.push_back(atoi(w[i].c_str()));
+            frag->m_atomHighLight.push_back(atoi(w[i].c_str()) - 1);
           EventDispatcher::getDispatcher().publish(Event("SelectionChanged"));
           fprintf(stderr, "BUILDER: constraints pick: %s\n", dlg->selectionText().c_str());
         } else if (w[1] == "press" && w.size() == 4) {

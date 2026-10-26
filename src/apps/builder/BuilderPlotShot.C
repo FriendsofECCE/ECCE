@@ -11,6 +11,9 @@
 #include <wx/dcscreen.h>
 #include <wx/image.h>
 #include <wx/utils.h>
+#include <functional>
+#include "wxgui/ewxGrid.H"
+#include "wxgui/TreeListCtrl.H"
 
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
@@ -18,6 +21,7 @@
 
 #include "util/Event.H"
 #include "util/EventDispatcher.H"
+#include "viz/AtomLabelsCmd.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 #include "wxviz/SceneScript.H"
@@ -328,6 +332,62 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
   if (!ok) return s.fail(cmd + ": refused");
   const std::string st = dm->state();
   fprintf(stderr, "DENSITYMAP: %s\n%s", cmd.c_str(), st.c_str());
+  return true;
+}
+
+
+//  atomnumbers N [panel name]: atom N (from 1) selected, every atom labelled
+//  with element and number; reports the status line, N's label and, with a
+//  panel, the rows of its first table that start with N.
+bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  const int n = w.size() > 1 ? atoi(w[1].c_str()) : 0;
+  if (!frag || n < 1 || n > (int)frag->numAtoms()) return s.fail("atomnumbers: no such atom");
+  frag->m_bondHighLight.clear();
+  frag->m_atomHighLight.assign(1, n - 1);
+  updateSelectionText();
+  const string status = p_viewer->getLRightText();
+  frag->m_atomHighLight.clear();
+  AtomLabelsCmd labels("AtomLabel", getSG());
+  labels.getParameter("type")->setInteger(AtomLabelsCmd::ELEMENT);
+  labels.execute();
+  fprintf(stderr, "ATOMNUMBERS: %d status=[%s] label=[%s]\n", n, status.c_str(),
+          frag->atomRef(n - 1)->displayLabel().c_str());
+  if (w.size() > 2) {
+    string panel;
+    for (size_t i = 2; i < w.size(); i++) panel += (i > 2 ? " " : "") + w[i];
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(panel));
+    if (!pane.IsOk()) return s.fail("atomnumbers: no panel named '" + panel + "'");
+    pane.Show(true);
+    updatePanes(true);
+    settle(1500);
+    //  The charge panels list atoms in a tree list (atom number in column
+    //  1, element in 2) and the others in a grid (number in column 0).
+    std::function<wxWindow*(wxWindow*)> find = [&find](wxWindow *win) -> wxWindow* {
+      if (dynamic_cast<wxTreeListCtrl*>(win) || dynamic_cast<ewxGrid*>(win)) return win;
+      for (wxWindow *c : win->GetChildren())
+        if (wxWindow *f = find(c)) return f;
+      return 0;
+    };
+    wxWindow *table = pane.window ? find(pane.window) : 0;
+    if (!table) return s.fail("atomnumbers: no table in " + panel);
+    const wxString first = wxString::Format("%d", n);
+    if (wxTreeListCtrl *tl = dynamic_cast<wxTreeListCtrl*>(table)) {
+      wxTreeItemIdValue cookie;
+      for (wxTreeItemId it = tl->GetFirstChild(tl->GetRootItem(), cookie); it.IsOk();
+           it = tl->GetNextChild(tl->GetRootItem(), cookie))
+        if (tl->GetItemText(it, 1) == first)
+          fprintf(stderr, "ATOMNUMBERS: table %s row [%s] [%s]\n", panel.c_str(),
+                  tl->GetItemText(it, 1).utf8_str().data(), tl->GetItemText(it, 2).utf8_str().data());
+    } else {
+      ewxGrid *grid = static_cast<ewxGrid*>(table);
+      for (int r = 0; r < grid->GetNumberRows(); r++)
+        if (grid->GetCellValue(r, 0) == first)
+          fprintf(stderr, "ATOMNUMBERS: table %s row [%s] [%s]\n", panel.c_str(),
+                  grid->GetCellValue(r, 0).utf8_str().data(), grid->GetCellValue(r, 1).utf8_str().data());
+    }
+  }
   return true;
 }
 
