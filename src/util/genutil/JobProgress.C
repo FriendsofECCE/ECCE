@@ -384,6 +384,20 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     }
   } else if (!rec.empty()) {
     first = recName + " " + st.field(rec);
+  } else if (st.name == "freq" && st.field("kind") == "analytic") {
+    first = "analytic Hessian";
+    if (!st.field("pass").empty() && st.field("pass") != "0" &&
+        st.field("done") != "yes")
+      first += ", CPHF iteration " + st.field("pass");
+    if (st.field("phase") == "assemble" && st.field("done") != "yes")
+      first += " \xc2\xb7 assembling the Hessian";
+    double real, imag;
+    if (st.field("done") == "yes" && number(st.field("real"), real) &&
+        number(st.field("imaginary"), imag))
+      first += fmt(" \xc2\xb7 %.0f real", real) +
+               fmt(", %.0f imaginary", imag);
+    else if (st.field("done") == "yes")
+      first += " \xc2\xb7 done";
   }
   if (!st.field("energy").empty())
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "E = " +

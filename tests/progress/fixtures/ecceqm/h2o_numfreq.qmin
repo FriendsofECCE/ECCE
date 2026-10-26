@@ -1,0 +1,13 @@
+charge 0
+multiplicity 1
+method hf
+basis 6-31G*
+runtype frequency
+raman true
+conv_energy 1e-12
+conv_grad 1e-9
+geometry
+O 0.01290500 0.01123200 0.09882000
+H 0.04488800 0.75066700 -0.49288300
+H -0.02404400 -0.75666200 -0.45512600
+end

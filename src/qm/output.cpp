@@ -210,15 +210,23 @@ void write_progress_opt_end(std::ostream& os, int step, bool converged) {
   os.flush();
 }
 
-void write_progress_freq(std::ostream& os, int point, int points) {
-  os << "progress freq point=" << point << "/" << points << "\n";
+// An analytic Hessian is one step with no count to show, so it names its kind
+// and has no point; the finite-difference run counts displaced geometries.
+void write_progress_freq(std::ostream& os, int point, int points, bool analytic) {
+  if (analytic)
+    os << "progress freq kind=analytic\n";
+  else
+    os << "progress freq kind=numerical point=" << point << "/" << points << "\n";
   os.flush();
 }
 
 void write_progress_freq_end(std::ostream& os, int points, const FrequencyOutput& f) {
   const int imag = f.vib.n_imaginary;
-  os << "progress freq point=" << points << "/" << points << " done=yes real="
-     << static_cast<int>(f.vib.freq.size()) - imag << " imaginary=" << imag << " zpe=" << fix(f.thermo.zpe) << "\n";
+  if (f.step == 0)
+    os << "progress freq kind=analytic done=yes real=";
+  else
+    os << "progress freq kind=numerical point=" << points << "/" << points << " done=yes real=";
+  os << static_cast<int>(f.vib.freq.size()) - imag << " imaginary=" << imag << " zpe=" << fix(f.thermo.zpe) << "\n";
   os.flush();
 }
 

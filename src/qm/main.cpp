@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
           qm::ScfResult rt = qm::run_scf(*basis, ref, so2, &r_ref);
           if (!rt.converged) throw qm::Error("SCF did not converge");
           const int np = 3 * static_cast<int>(ref.atoms.size());
-          if (freq_progress) qm::write_progress_freq(os, 0, np);
+          if (freq_progress) qm::write_progress_freq(os, 0, np, true);
           qm::Derivatives d = qm::rhf_hessian(*basis, ref, so2, rt);
           step = 0;  // no displacements
           return d;
