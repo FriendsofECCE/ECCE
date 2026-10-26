@@ -98,13 +98,13 @@ ewxMessageDialog::ewxMessageDialog( wxWindow* parent,
     if (style & wxYES_DEFAULT)
       but->SetDefault();
   }
-  if (extraStyle & wxYES_NO_TO_ALL) {
+  if (extraStyle & ECCE_YES_NO_TO_ALL) {
     wxButton * but;
     but = AddButton(wxID_NO_TO_ALL, "No to All");
-    if (extraStyle & wxNO_TO_ALL_DEFAULT)
+    if (extraStyle & ECCE_NO_TO_ALL_DEFAULT)
       but->SetDefault();
     but = AddButton(wxID_YES_TO_ALL, "Yes to All");
-    if (style & wxYES_TO_ALL_DEFAULT)
+    if (extraStyle & ECCE_YES_TO_ALL_DEFAULT)
       but->SetDefault();
   }
   p_topSizer->Add(p_buttonSizer, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT | wxBOTTOM, 12);

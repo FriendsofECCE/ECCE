@@ -595,7 +595,7 @@ void Gateway::toolActivate(wxCommandEvent &event)
           foundDataServer = false;
         }
       }
-      catch (EcceException ex) {
+      catch (const EcceException& ex) {
         foundDataServer = false;
       }
       if (!foundDataServer) {

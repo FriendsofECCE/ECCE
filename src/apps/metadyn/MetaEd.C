@@ -1633,12 +1633,13 @@ string MetaEd::buildTheoryRuntypeArgs(const bool& isTheory) const
   args += buf;
 
   ChemistryTask *inputTask = dynamic_cast<ChemistryTask*>(p_iCalc->getInputProvider(p_iCalc->getSession()));
-  if (inputTask)
+  if (inputTask) {
     if (inputTask->getApplicationType() == ResourceDescriptor::AT_METADYNAMICS){
       args += " 1";
     } else {
       args += " 0";
     }
+  }
 
   return args;
 }

@@ -12,11 +12,9 @@
 #include "wxgui/ewxStaticText.H"
 
 
-#define wxYES_NO_TO_ALL      1
-#define wxCANCEL_DEFAULT     2
-#define wxOK_DEFAULT         4
-#define wxYES_TO_ALL_DEFAULT 8
-#define wxNO_TO_ALL_DEFAULT  16
+#define ECCE_YES_NO_TO_ALL      1
+#define ECCE_YES_TO_ALL_DEFAULT 8
+#define ECCE_NO_TO_ALL_DEFAULT  16
 
 #define wxID_YES_TO_ALL 106701
 #define wxID_NO_TO_ALL  106702

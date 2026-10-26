@@ -261,7 +261,7 @@ void AtomTable::fillTable()
               GridAtomElement *cellValue = new GridAtomElement(atom, property);
               gridModel->SetValueAsGridElement(row, column, cellValue);
             }
-            catch (InvalidException ex) {
+            catch (const InvalidException& ex) {
               cerr << ex.what() << endl;
             }
             
@@ -377,7 +377,7 @@ void AtomTable::fastFillTable()
                   GridAtomElement *cellValue = new GridAtomElement(atom, property);
                   gridModel->SetValueAsGridElement(row, column, cellValue);
                }
-               catch (InvalidException ex) {
+               catch (const InvalidException& ex) {
                   cerr << ex.what() << endl;
                }
 

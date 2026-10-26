@@ -116,10 +116,11 @@ void SessionContextPanel::createControls()
         rxnRoots.push_back(*root);
     }
     for (root = roots.begin(); root != roots.end(); root++) {
-      if ((*root)->getName().find("Transition-State") == 0)
+      if ((*root)->getName().find("Transition-State") == 0) {
         rxnRoots.push_back(*root);
         // definitely only one of these so save a nanosecond and break
         break;
+      }
     }
 
     for (root = roots.begin(); root != roots.end(); root++) {
