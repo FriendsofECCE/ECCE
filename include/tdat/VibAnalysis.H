@@ -16,7 +16,9 @@
 
 #include <string>
 #include <vector>
+#include <utility>
 using std::string;
+using std::pair;
 using std::vector;
 
 struct SymOp;
@@ -47,6 +49,9 @@ struct VibModeInfo
    string detail;        // long form with percentages, UTF-8
    bool   rigid;         // a translation or rotation of the whole molecule
    string remark;        // how a rigid label was found, when it is not certain
+   /** The contributions the detail lists and more (every share of 5 % or
+       more, largest first, at most eight): the name, then percent. */
+   vector< pair<string, double> > parts;
 };
 
 struct VibResult
@@ -83,10 +88,14 @@ class VibAnalysis
     * Composition of every mode over `chosen`; when that is empty, the
     * automatic set: every bond as a stretch, plus every bend whose centre
     * is in `centres` (all non-hydrogen atoms if `centres` is empty).
+    * With `torsions`, the automatic set also has the description's
+    * torsions (one per bond, through the heaviest neighbours), so a motion
+    * the description calls a torsion is not spread over bends here.
     * Rigid-motion rows get all zeros.  False without a usable input.
     */
    static bool composition(const VibInput& in, const vector<VibCoordSpec>& chosen,
-                           const vector<int>& centres, VibComposition& out);
+                           const vector<int>& centres, VibComposition& out,
+                           bool torsions = false);
 
    /** Symmetry and description both; false if neither could be produced. */
    static bool analyse(const VibInput& in, VibResult& out);

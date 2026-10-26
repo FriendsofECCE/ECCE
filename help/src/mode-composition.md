@@ -8,12 +8,17 @@ amide II mostly the N-H bend together with the C-N stretch.
 ## The table
 
 Click **Composition...** beside the Graph/Table choice. The window lists every
-vibration with its frequency and its largest contributions, in percent, for
-example `C2-O3 stretch 80 %`. Atoms are numbered as in the structure, starting
+vibration with its frequency, its short label (the one in the frequency
+table's Mode column) and its largest contributions, in percent, for
+example `C2-O3 stretch 80 %`. The last column fills the window and grows with
+it; hold the pointer over a cell to read all of it. Atoms are numbered as in the structure, starting
 at 1, so `C2-O3` is the bond between atoms 2 and 3.
 
-The automatic set of coordinates is every bond, and the bends at every atom
-other than hydrogen. Bends that move a hydrogen on carbon are left out, since
+The automatic set of coordinates is every bond, the bends at every atom
+other than hydrogen, and one torsion about each bond (through the heaviest
+neighbour at each end), the same torsions the Mode column uses, so a torsion
+is called a torsion in both. The Mode column also uses every bend and the
+out-of-plane motions, grouped by equivalence, so its percentages differ. Bends that move a hydrogen on carbon are left out, since
 they overlap everything else around that carbon; add them by hand if you need
 them. To add coordinates, type atom numbers in the box and press **Apply**:
 
@@ -47,3 +52,17 @@ calculation, and ECCE uses neither. The percentages show which motions
 dominate a mode and are good for naming a band; do not expect them to match a
 published PED to the percent, and treat shares of a few percent as noise. A
 full PED may follow later.
+
+
+## Where else a mode is described
+
+- **Spectrum window** (**Spectrum...**): under the plot a strip shows the
+  selected mode: its number, frequency, irrep, IR intensity and short label,
+  and below them its contributions in two columns. Hovering a peak shows the
+  mode number and frequency, the short label and the IR intensity and Raman
+  activity.
+- **Panel**: the selected mode's line sits in its own bordered box under the
+  plot, above Width and Freq. factor. It wraps; nothing is cut off.
+- **Frequency table**: wavenumbers are shown with one decimal and intensities
+  with two. The Mode column can be dragged wider; hover a Mode cell for the
+  label and the shares.

@@ -141,6 +141,7 @@ class NModePanel : public NModesGUI,
       void fitModeColumn();
       void showModeDetail(int row);
       /** Sets a description label to `text`, wrapped to two lines at its width. */
+      void wrapAll(wxStaticText *label, const std::vector<wxString>& parts);
       static void setWrapped(wxStaticText *label, const std::vector<wxString>& parts);
       void dumpTableIfRequested();
       void dumpCompositionIfRequested();
@@ -191,6 +192,8 @@ class NModePanel : public NModesGUI,
       wxGrid *p_compGrid = 0;
       wxTextCtrl *p_compExtra = 0;
       wxStaticText *p_compNote = 0;
+      void fitCompColumn();
+      vector<string> p_compLabels;               // short label per mode, as in the table
       VibComposition p_comp;
       vector<double> p_compFreqs;
       std::shared_ptr<VibSpectrum> p_compare;   // the second curve, if any
@@ -230,6 +233,7 @@ class NModePanel : public NModesGUI,
       //  under the plot in the Graph view, frequency first (p_graphParts).
       wxStaticText *p_modeDetail = NULL;
       wxStaticText *p_graphDetail = NULL;
+      wxPanel *p_graphBox = NULL;     // its own box under the plot
       std::vector<wxString> p_detailParts;
       std::vector<wxString> p_graphParts;
       wxString p_detailText;          // unwrapped, for re-wrapping on a resize
