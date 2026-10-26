@@ -22,6 +22,7 @@
 - **Density Profile** follows atoms picked in the viewer.
 - **MO Diagram:** weak correlation lines stay visible (#574).
 - **Software OpenGL** (virtual machines, remote desktops) is detected; the viewer then draws its text in a way that works there and starts in the quick transparency mode. Edit > Preferences > Advanced > OpenGL drawing overrides the choice; Help > About and Help > Report a Problem name the renderer (#566).
+- **MD examples (General Chemistry):** argon and helium keep their element; a click in a plot shows the nearest stored structure, with a message when it is not at that time; Compare finds runs in topic folders; molecules in rectangular boxes are kept whole (#560).
 - **Example sets:** opening a set that is already imported adds the topics and calculations it is missing, without touching existing ones (#571).
 
 ## Known issues
