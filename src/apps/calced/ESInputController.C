@@ -334,6 +334,10 @@ bool CalcEd::write_setup(const string& output_file)
       os << "ES.Theory.SCF.OrbitalGuessFile: " << guessJob->orbitalGuessFile()
          << endl;
 
+    if (guessJob != 0 && guessJob->hasHessianInput())
+      os << "ES.Runtype.GeomOpt.HessianFile: " << guessJob->hessianInputFile()
+         << endl;
+
     os.close();
 
     status = true;

@@ -20,6 +20,10 @@ def route(d):
     return [l for l in d.splitlines() if l.startswith("#")][0]
 
 
+def oroute(d):
+    return [l for l in d.splitlines() if l.startswith("!")][0]
+
+
 def geom_block(d):
     out, on = [], False
     for l in d.splitlines():
@@ -76,6 +80,21 @@ def orca():
     g = geom_block(deck("orca", "ES.Runtype.GeomOpt.MaximumStepsValue: 40\n" + H % "Calculate" + R % "5"))
     check(g == "%geom\n  MaxIter 40\n  Calc_Hess true\n  Recalc_Hess 5\nend", "MaxIter + both", g)
     check("Recalc_Hess" not in deck("orca", R % "0"), "Recalc 0 writes nothing")
+    # #557: Find Minimum / Transition State and reading a Hessian file.
+    base = deck("orca")
+    check(deck("orca", "SearchFor: Minimum\n") == base, "Minimum: deck unchanged")
+    check(deck("orca", H % "Read from previous calculation") == base,
+          "Read without an attached file: deck unchanged")
+    x = oroute(deck("orca", TS + H % "Calculate"))
+    check("OptTS" in x.split() and "Opt" not in x.split(), "TS -> ! OptTS", x)
+    x = oroute(deck("orca", TS, "GeoVib"))
+    check("OptTS" in x.split() and "Freq" in x.split(), "TS GeoVib -> OptTS Freq", x)
+    F = "ES.Runtype.GeomOpt.HessianFile: inhess.hess\n"
+    g = geom_block(deck("orca", H % "Read from previous calculation" + F))
+    check(g == '%geom\n  inhess read\n  InHessName "inhess.hess"\nend',
+          "Read -> inhess read + InHessName", g)
+    check("inhess" not in deck("orca", H % "Calculate" + F).lower(),
+          "a file without the Read choice is ignored")
 
 
 def checker():

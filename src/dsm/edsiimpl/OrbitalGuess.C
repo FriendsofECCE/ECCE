@@ -32,6 +32,11 @@ EcceURL keptOrbitals(const TaskJob *calc)
       if (stored[i].getFilePathTail() == only) return stored[i];
       continue;
     }
+    //  ORCA's .hess is kept beside its .gbw but is not the orbital file.
+    if (stored[i].getFilePathTail().size() > 5 &&
+        stored[i].getFilePathTail().compare(
+            stored[i].getFilePathTail().size() - 5, 5, ".hess") == 0)
+      continue;
     for (size_t d = 0; d < declared.size(); d++)
       if (stored[i].getFilePathTail() == declared[d].name()) return stored[i];
   }
@@ -88,6 +93,27 @@ bool OrbitalGuess::attach(TaskJob *target, TaskJob *source, string &why)
   if (!ok) {
     why = "The orbital file could not be stored in the duplicate.";
     return false;
+  }
+
+  //  The Hessian is optional: a run that computed none leaves no .hess.
+  if (!target->hessianInputFile().empty()) {
+    vector<EcceURL> files = source->getDataFiles(JCode::AUXILIARY_OUTPUT);
+    for (size_t i = 0; i < files.size(); i++) {
+      const string tail = files[i].getFilePathTail();
+      if (tail.size() <= 5 || tail.compare(tail.size() - 5, 5, ".hess") != 0)
+        continue;
+      SFile *htemp = TempStorage::getTempFile();
+      SFile *hgot = source->getAnyFile(files[i], htemp);
+      if (hgot != 0 && htemp->exists()) {
+        std::ifstream hin(htemp->path().c_str(),
+                          std::ios::in | std::ios::binary);
+        target->putInputFile(target->hessianInputFile(), &hin);
+        hin.close();
+      }
+      htemp->remove();
+      delete htemp;
+      break;
+    }
   }
 
   string basis;

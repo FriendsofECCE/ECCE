@@ -55,11 +55,25 @@ class OrcaRunTypePanel(EccePanel):
 
             self.panelSizer.Add(geometrySizer)
 
+            # "Transition State" writes OptTS; Minimum writes nothing.
+            findSizer = EcceBoxSizer(self, label="Stationary Point", cols=1)
+            self.find = EcceComboBox(self,
+                                     choices=["Minimum", "Transition State"],
+                                     name="ES.Runtype.GeomOpt.SearchFor",
+                                     default=0,
+                                     label="Find:",
+                                     export=1)
+            findSizer.AddWidget(self.find)
+            self.panelSizer.Add(findSizer)
+
             # %geom Calc_Hess / Recalc_Hess; the default writes neither, so
-            # ORCA keeps its own model Hessian.
+            # ORCA keeps its own model Hessian.  "Read from previous
+            # calculation" reads the .hess attached by Duplicate with Final
+            # Orbitals.
             hessSizer = EcceBoxSizer(self, label="Hessian", cols=1)
             self.hessian = EcceComboBox(self,
-                                        choices=["Default", "Calculate"],
+                                        choices=["Default", "Calculate",
+                                                 "Read from previous calculation"],
                                         name="ES.Runtype.GeomOpt.InitialHessian",
                                         default=0,
                                         label="Initial Hessian:",

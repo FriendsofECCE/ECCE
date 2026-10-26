@@ -12,8 +12,11 @@ box label="Geometry Optimization" cols=2 when="runtype in @GEO"
 check name=ES.Runtype.GeomOpt.MaximumSteps label=" Max Steps:" default=0
 int name=ES.Runtype.GeomOpt.MaximumStepsValue default=20 hard="[1..)" soft="[1..100]" export=1 enable_if="ES.Runtype.GeomOpt.MaximumSteps==1"
 
+box label="Stationary Point" cols=1 when="runtype in @GEO"
+combo name=ES.Runtype.GeomOpt.SearchFor label="Find:" choices="Minimum|Transition State" default=Minimum export=1
+
 box label="Hessian" cols=1 when="runtype in @GEO"
-combo name=ES.Runtype.GeomOpt.InitialHessian label="Initial Hessian:" choices="Default|Calculate" default=Default export=1
+combo name=ES.Runtype.GeomOpt.InitialHessian label="Initial Hessian:" choices="Default|Calculate|Read from previous calculation" default=Default export=1
 int name=ES.Runtype.GeomOpt.RecalcFC label="Recalculate every N steps (0 = never):" default=0 hard="[0..)" soft="[0..50]" export=1
 
 box label="Convergence" cols=1 when="runtype in @GEO"
@@ -22,6 +25,7 @@ combo name=ES.Runtype.GeomOpt.ConvergenceGradient label="Gradient:" choices="Loo
 # Reactant, product and TS guess are picked in the Calculation Editor.
 box label="Transition State (NEB-TS)" cols=1 when="runtype in @NEB"
 int name=ES.Runtype.NEB.Images label="Images:" default=8 hard="[2..)" soft="[2..32]" export=1
+combo name=ES.Runtype.NEB.PreoptEnds label="Re-optimise the end points at this level:" choices="Automatic|Yes|No" default=Automatic export=1
 
 box label="Frequencies" cols=1 when="runtype in @FREQ"
 combo name=ES.Runtype.Vibration.Method label="Method:" choices="Analytic|Numerical" default=Analytic export=1

@@ -59,6 +59,7 @@ if ($TplFILE eq "") {
 &readChemSys;
 &readCnstrntFile;
 &verifyRamanRequest;
+&verifyGeometryRequest;
 &modifyInputFile;
 &cleanup;
 exit(0);
@@ -472,6 +473,39 @@ sub verifyRamanRequest {
   }
 }
 
+# A transition-state search needs a good initial Hessian; the deck is still
+# written, the warning only says what is missing.
+sub IsOptTS {
+  my ($runtype) = @_;
+  return ($runtype =~ /^(Geometry|GeoVib)$/ &&
+          $AbiDict{"SearchFor"} eq "Transition State");
+}
+
+sub verifyGeometryRequest {
+  my $runtype = $AbiDict{"RunType"};
+  my $source = $AbiDict{"ES.Runtype.GeomOpt.InitialHessian"};
+  if (&IsOptTS($runtype) && $source ne "Calculate" &&
+      !&ReadsHessian()) {
+    print STDERR "ai.orca warning [OptTS]: a transition-state search " .
+        "started from ORCA's model Hessian usually fails. Set Initial " .
+        "Hessian to Calculate (or read one from an earlier calculation).\n";
+  }
+  if ($source eq "Read from previous calculation" && !&ReadsHessian()) {
+    print STDERR "ai.orca warning [InHess]: no Hessian file is attached " .
+        "to this calculation, so the initial Hessian is not read. Use " .
+        "Duplicate with Final Orbitals on a calculation that computed a " .
+        "Hessian.\n";
+  }
+}
+
+# The .hess of an earlier calculation, attached by Duplicate with Final
+# Orbitals; the dialog only chooses whether to read it.
+sub ReadsHessian {
+  my $f = $AbiDict{"ES.Runtype.GeomOpt.HessianFile"};
+  return ($AbiDict{"ES.Runtype.GeomOpt.InitialHessian"} eq
+          "Read from previous calculation" && defined($f) && $f ne "");
+}
+
 sub ChelpgToken {
   my @t;
   push @t, "CHELPG"    if ($AbiDict{"ES.Runtype.ORCA.UseCHELPG"} eq "1");
@@ -645,6 +679,9 @@ sub ORCABlocks {
     $geom .= "  Calc_Hess true\n"
       if ($AbiDict{"ES.Runtype.GeomOpt.InitialHessian"} eq "Calculate");
     my $recalc = $AbiDict{"ES.Runtype.GeomOpt.RecalcFC"};
+    $geom .= "  inhess read\n  InHessName \"" .
+             $AbiDict{"ES.Runtype.GeomOpt.HessianFile"} . "\"\n"
+      if (&ReadsHessian());
     $geom .= "  Recalc_Hess $recalc\n"
       if (defined($recalc) && $recalc =~ /^\d+$/ && $recalc > 0);
     $geom .= " Constraints\n" . join("", @orcaConstraints) . " end\n"
@@ -812,11 +849,11 @@ sub RunType {
   } elsif ($runtype eq "Gradient") {
     $result = "EnGrad";
   } elsif ($runtype eq "Geometry") {
-    $result = "Opt";
+    $result = &IsOptTS($runtype) ? "OptTS" : "Opt";
   } elsif ($runtype eq "Vibration") {
     $result = "Freq";
   } elsif ($runtype eq "GeoVib") {
-    $result = "Opt Freq";
+    $result = &IsOptTS($runtype) ? "OptTS Freq" : "Opt Freq";
   } elsif ($runtype eq "Magnetic") {
     $result = "NMR";
   } elsif ($runtype eq "IRC") {

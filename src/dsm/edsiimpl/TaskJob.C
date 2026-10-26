@@ -734,6 +734,31 @@ string TaskJob::orbitalGuessFile() const
 }
 
 
+string TaskJob::hessianInputFile() const
+{
+  const JCode *code = application();
+  if (code == 0) return string();
+  vector<TypedFile> in = code->getCodeFiles(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < in.size(); i++)
+    if (in[i].name().compare(0, 7, "inhess.") == 0) return in[i].name();
+  return string();
+}
+
+
+bool TaskJob::hasHessianInput() const
+{
+  try {
+    const string name = hessianInputFile();
+    if (name.empty()) return false;
+    vector<EcceURL> urls = getVDoc()->getInputs();
+    for (size_t i = 0; i < urls.size(); i++)
+      if (urls[i].getFilePathTail() == name) return true;
+  }
+  catch (...) {}
+  return false;
+}
+
+
 string TaskJob::orbitalGuessSourceProp()
 {
   return VDoc::getEcceNamespace() + ":orbitalguesssource";
@@ -776,11 +801,13 @@ bool TaskJob::removeInputFiles()
   try {
     //  The guess is not part of the generated deck, and every Save
     //  regenerates the deck.
-    if (hasOrbitalGuess()) {
+    if (hasOrbitalGuess() || hasHessianInput()) {
       vector<EcceURL> urls = getVDoc()->getInputs();
       for (size_t i = 0; i < urls.size(); i++) {
         const string name = urls[i].getFilePathTail();
-        if (name != orbitalGuessFile()) getVDoc()->removeInput(name);
+        if (name == hessianInputFile() && !name.empty()) continue;
+        if (!hasOrbitalGuess() || name != orbitalGuessFile())
+          getVDoc()->removeInput(name);
       }
     } else {
       getVDoc()->removeInputs();
