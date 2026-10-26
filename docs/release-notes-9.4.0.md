@@ -104,6 +104,15 @@ Each example has a note saying what it shows.
 
 ## Packages
 
-PACKAGES
+| System | Files |
+|---|---|
+| Debian 13 | `ecce-client_9.4.0_amd64.deb`, `ecce-server_9.4.0_amd64.deb` |
+| Ubuntu 24.04 | `ecce-client_9.4.0_ubuntu24.04_amd64.deb`, `ecce-server_9.4.0_ubuntu24.04_amd64.deb` |
+| RHEL/Rocky 9 | `ecce-client-9.4.0-1.el9.x86_64.rpm`, `ecce-server-9.4.0-1.el9.x86_64.rpm` |
+| Fedora | `ecce-client-9.4.0-1.fedora.x86_64.rpm`, `ecce-server-9.4.0-1.fedora.x86_64.rpm` |
+| macOS 11 or newer (experimental) | `ECCE-9.4.0-arm64.dmg` (Apple silicon), `ECCE-9.4.0-x86_64.dmg` (Intel) |
+| Windows 10/11 | `ECCE-windows-9.4.0.msi` (installer) or `ECCE-windows-9.4.0.zip` |
+
+The client packages are larger than in 9.3.3 (the deb by about 40 MB) because of the new example sets.
 
 Installation: [Installing ECCE](https://github.com/FriendsofECCE/ECCE/blob/main/docs/INSTALLING.md). Videos: [chem4eva on YouTube](https://www.youtube.com/@chem4eva).
