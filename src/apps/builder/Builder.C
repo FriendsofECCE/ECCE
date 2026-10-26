@@ -3326,7 +3326,7 @@ void Builder::updateSelectionText()
     TAtm *atm = frag->atomRef(frag->m_atomHighLight[0]);
     if (frag->numResidues() == 0) {
       sprintf(buf,"%s%d %.2f,%.2f,%.2f",
-              atm->atomicSymbol().c_str(), atm->index(),
+              atm->atomicSymbol().c_str(), atm->index() + 1,
               atm->coordinates()[0], atm->coordinates()[1],
               atm->coordinates()[2]);
     } else {
