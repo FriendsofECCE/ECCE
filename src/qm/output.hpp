@@ -65,6 +65,17 @@ void write_irc_table(std::ostream& os, const std::vector<IrcPoint>& path);
 void write_irc_geometries(std::ostream& os, const std::vector<IrcPoint>& path);
 void write_progress_irc(std::ostream& os, int point, int points);
 
+// The converged orbitals of one scan or IRC point, so the orbital views can
+// show any point and not only the last.  point is 1-based, numbered as the
+// scan_geometry / irc_geometry blocks.
+struct PointOrbitals {
+  bool restricted = true;
+  Vec eps_a, eps_b, occ_a, occ_b;
+  Mat C_a, C_b;
+};
+PointOrbitals point_orbitals(const ScfResult& r);
+void write_point_orbitals(std::ostream& os, int point, const PointOrbitals& o);
+
 // "progress ..." lines for ECCE's job monitor (ecceqm.desc [PROGRESS]):
 // one line per SCF cycle, optimisation step and frequency point, flushed at
 // once.  Values with a target are written value/target.

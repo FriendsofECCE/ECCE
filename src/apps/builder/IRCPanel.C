@@ -30,6 +30,7 @@
 
 #include "PlaybackExtras.H"
 #include "PlaybackLoop.H"
+#include "PointNote.H"
 #include "IRCPanel.H"
 
 namespace {
@@ -262,6 +263,8 @@ void IRCPanel::receiveFocus()
 void IRCPanel::loseFocus()
 {
   IPropCalculation *calc = getCalculation();
+  // With per-point orbitals the selected point's structure stays with them.
+  if (calc && calc->hasPointOrbitals()) return;
   PropTSVecTable *trace =
       calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE")) : 0;
   if (!trace || trace->tables() == 0) return;
@@ -437,6 +440,7 @@ int IRCPanel::showPoint(int index)
   frag->touchNumbers();
   sg.touchChemDisplay();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
+  selectOrbitalPoint(calc, p_frame[index], index);
   return p_frame[index];
 }
 

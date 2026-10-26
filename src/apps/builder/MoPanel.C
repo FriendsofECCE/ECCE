@@ -2661,3 +2661,11 @@ void MoPanel::rebuildEspSurface()
    updateIsoValue();
    refreshEspBar();
 }
+
+void MoPanel::orbitalPointChanged()
+{
+   //  A panel nobody has opened yet reads the point when first shown; the
+   //  grids drawn belong to the old point's orbitals.
+   if (p_mogrid == 0 || p_mogrid->GetNumberRows() == 0) return;
+   initialize(true);
+}

@@ -1102,3 +1102,24 @@ std::string DensityProfilePanel::state() const
   }
   return s;
 }
+
+void DensityProfilePanel::orbitalPointChanged()
+{
+  if (!p_ok || !p_eval || !p_list) return;
+  p_eval.reset(new DensityPlane::Evaluator);
+  p_ok = p_eval->build(getCalculation());
+  if (!p_ok) return;
+  p_shell = RadialDist::shellLabels(getCalculation(), *p_eval, false);
+  p_sym.clear();
+  PropVecString *pv = (PropVecString*) getCalculation()->getProperty("ORBSYM");
+  if (pv != 0 && pv->values().size() == (size_t)p_eval->orbitals(false) && p_shell.empty())
+    p_sym = pv->values();
+  p_occupied.clear();
+  p_spin->Show(p_eval->unrestricted);
+  fillOrbitals();
+  chooseDefaults();
+  fillQuantities();
+  syncControls();
+  recompute();
+  Layout();
+}

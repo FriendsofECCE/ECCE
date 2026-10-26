@@ -4,6 +4,7 @@
  *
  */
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
   using std::find;
 #include <strstream>
@@ -401,6 +402,109 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
  */
 TProperty* PropertyTask::getProperty(const string& name)
 {
+  if (p_orbitalPoint >= 0) {
+    bool hide = false;
+    TProperty *pt = pointOrbitalProperty(name, hide);
+    if (pt || hide) return pt;
+  }
+  return getStoredProperty(name);
+}
+
+
+void PropertyTask::orbitalPoint(int point)
+{
+  p_orbitalPoint = point < 0 ? -1 : point;
+}
+
+
+int PropertyTask::orbitalPoint() const
+{
+  return p_orbitalPoint;
+}
+
+
+bool PropertyTask::hasPointOrbitals()
+{
+  PropTSVecTable *t = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
+  return t && t->tables() > 0;
+}
+
+
+/**
+ * MO, ORBENG, ORBOCC (and the beta forms) of the selected scan/IRC point,
+ * built from the PTMO/PTORB tables with the stored property's units and
+ * labels.  0 when the key is not one of them or the point has no table.
+ * The localised orbitals belong to the final set only, so hide is set for
+ * them at a point whose orbital energies differ from the final ones.
+ */
+TProperty* PropertyTask::pointOrbitalProperty(const string& name, bool& hide)
+{
+  static const struct { const char *key, *src; int col; } keys[] = {
+    {"MO", "PTMO", -1}, {"MOBETA", "PTMOBETA", -1},
+    {"ORBENG", "PTORB", 0}, {"ORBOCC", "PTORB", 1},
+    {"ORBENGBETA", "PTORBBETA", 0}, {"ORBOCCBETA", "PTORBBETA", 1}};
+  hide = false;
+  if (name.compare(0, 5, "LOCMO") == 0) {
+    PropTSVecTable *orb = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTORB"));
+    PropVector *fin = dynamic_cast<PropVector*>(getStoredProperty("ORBENG"));
+    if (!orb || p_orbitalPoint >= orb->tables() || !fin) return 0;
+    const vector<double>& v = orb->values(p_orbitalPoint);
+    const vector<double>& f = fin->values();
+    if ((int)f.size() * 2 != (int)v.size()) { hide = true; return 0; }
+    for (size_t i = 0; i < f.size(); i++)
+      if (fabs(f[i] - v[2 * i]) > 1.0e-7) { hide = true; return 0; }
+    return 0;
+  }
+  int k = -1;
+  for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+    if (name == keys[i].key) k = (int)i;
+  if (k < 0) return 0;
+  PropTSVecTable *src = dynamic_cast<PropTSVecTable*>(getStoredProperty(keys[k].src));
+  if (!src || p_orbitalPoint >= src->tables()) return 0;
+  const string cacheKey = name + "@" + std::to_string(p_orbitalPoint);
+  map<string, TProperty*>::iterator it = p_pointProps.find(cacheKey);
+  if (it != p_pointProps.end()) return it->second;
+  TProperty *base = getStoredProperty(name);
+  TProperty *out = base ? PropFactory::getProperty(name) : 0;
+  if (!out) return 0;
+  out->units(base->units());
+  const vector<double>& v = src->values(p_orbitalPoint);
+  const int rows = src->rows(), cols = src->columns();
+  bool ok = (int)v.size() == rows * cols;
+  if (ok && keys[k].col < 0) {
+    PropTable *t = dynamic_cast<PropTable*>(out);
+    PropTable *b = dynamic_cast<PropTable*>(base);
+    ok = t && b && b->rows() == rows && b->columns() == cols;
+    if (ok) {
+      t->values(rows, cols, v);
+      t->labels(b->rowLabels(), b->colLabels());
+      t->rowLabel(b->rowLabel());
+      t->columnLabel(b->columnLabel());
+    }
+  } else if (ok) {
+    PropVector *t = dynamic_cast<PropVector*>(out);
+    PropVector *b = dynamic_cast<PropVector*>(base);
+    ok = t && b && b->rows() == rows && keys[k].col < cols;
+    if (ok) {
+      vector<double> col(rows);
+      for (int r = 0; r < rows; r++) col[r] = v[r * cols + keys[k].col];
+      t->values(col);
+      t->rowLabels(b->rowLabels());
+      t->rowLabel(b->rowLabel());
+      t->valueLabel(b->valueLabel());
+    }
+  }
+  if (!ok) {
+    delete out;
+    return 0;
+  }
+  p_pointProps[cacheKey] = out;
+  return out;
+}
+
+
+TProperty* PropertyTask::getStoredProperty(const string& name)
+{
   TProperty* property = 0;
   bool isOutputFile = false;
 
@@ -681,6 +785,16 @@ bool PropertyTask::loadStep(Fragment *frag, int step)
 {
   bool ret = false;
   PropTSVecTable *geotrace = (PropTSVecTable*)getProperty("GEOMTRACE");
+  // "The last step" is the selected point's structure while its orbitals
+  // are selected, so geometry and orbitals stay together.
+  if (step < 0 && p_orbitalPoint >= 0) {
+    PropTSVecTable *pt = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
+    if (!pt) pt = dynamic_cast<PropTSVecTable*>(getStoredProperty("SCANGEOM"));
+    if (pt && p_orbitalPoint < pt->tables()) {
+      geotrace = pt;
+      step = p_orbitalPoint;
+    }
+  }
   if (geotrace) {
     // Reset the Fragment coords with the last step
     ret = true;
@@ -1757,6 +1871,10 @@ void PropertyTask::flushPropertyCache()
      cur++;
    }
    p_properties.clear();
+   for (map<string, TProperty*>::iterator p = p_pointProps.begin();
+        p != p_pointProps.end(); ++p)
+     delete p->second;
+   p_pointProps.clear();
 }
 
 

@@ -8,6 +8,10 @@ every code whose orbitals ECCE reads. Open it from the **Properties** list, in
 the Orbitals group beside **MOs** and **Density Map**. It needs a calculation
 that has orbitals.
 
+For a relaxed scan or an IRC the profile belongs to the last computed point.
+For ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC
+Path** panel instead, and a note at the top of the panel names the point.
+
 The controls are two short rows. The first row has the mode, the atoms, the
 quantity and what to show; the second the axes, **Show all** and **More**,
 which unfolds the controls used less often (margin, sideways shift, unit,

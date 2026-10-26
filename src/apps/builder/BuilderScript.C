@@ -147,7 +147,10 @@
 #include "dsm/ChemistryTask.H"
 #include "wxgui/SliderCombo.H"
 #include "NModePanel.H"
+#include "tdat/PropVecString.H"
+#include "MoPanel.H"
 #include "ScanPanel.H"
+#include <wx/stattext.h>
 #include "IRCPanel.H"
 #include "ReactionPanel.H"
 #include "PullPanel.H"
@@ -997,6 +1000,23 @@ void Builder::runBuilderScript(const std::string& file)
           for (const wxString& line : wxSplit(all, '\n'))
             if (!line.empty())
               fprintf(stderr, "BUILDER: tablecopy %s\n", line.ToUTF8().data());
+        }
+      } else if (w[0] == "mostate") {
+        //  mostate: the MOs panel's note and the table it lists now (header
+        //  and one "row" line per orbital), as the panel shows them.
+        MoPanel *mp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((mp = dynamic_cast<MoPanel*>(p)) != 0) break;
+        if (!mp) {
+          outcome = "no MOs panel";
+        } else {
+          wxStaticText *note = dynamic_cast<wxStaticText*>(
+              wxWindow::FindWindowByName("orbitalPointNote", mp));
+          fprintf(stderr, "BUILDER: monote %s\nBUILDER: mostate\n%s",
+                  note ? note->GetLabel().utf8_str().data() : "",
+                  mp->tableState().c_str());
         }
       } else if (w[0] == "spectrumcsv" && w.size() >= 2) {
         //  spectrumcsv <path> [ir|raman]: the Vibrational Frequencies

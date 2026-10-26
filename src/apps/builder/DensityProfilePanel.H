@@ -36,6 +36,8 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
    DECLARE_DYNAMIC_CLASS(DensityProfilePanel)
 
    public:
+      //  The scan/IRC point whose orbitals the calculation returns changed.
+      void orbitalPointChanged();
       DensityProfilePanel();
       DensityProfilePanel(IPropCalculation *calculation,
             wxWindow *parent, wxWindowID id=wxID_ANY,

@@ -76,6 +76,20 @@ Frequency=all
 Skip=0
 End=^end irc_geometry
 [END]
+[PTORB][PTORBBETA]
+Script=ecceqm.parse
+Begin=^begin point_orbitals\b
+Frequency=all
+Skip=0
+End=^end point_orbitals
+[END]
+[PTMO][PTMOBETA]
+Script=ecceqm.parse
+Begin=^begin point_mo_coefficients\b
+Frequency=all
+Skip=0
+End=^end point_mo_coefficients
+[END]
 
 [NNREPUL]
 Script=ecceqm.parse
