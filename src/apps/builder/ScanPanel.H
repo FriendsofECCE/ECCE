@@ -7,6 +7,7 @@
 
 class wxChoice;
 class wxGrid;
+class wxRadioBox;
 class wxGridEvent;
 class wxStaticText;
 class PlaybackControl;
@@ -40,6 +41,12 @@ class ScanPanel : public VizPropertyPanel
 
       virtual int minimumHeight() const { return 320; }
       virtual int openingHeight() const { return 400; }
+
+      /** Graph or table, as the Show choice does (and remembered). For scripts and tests. */
+      void setTableView(bool table);
+
+      /** "table=<0|1> plotShown=<0|1> gridShown=<0|1> plotH=<px> gridH=<px>". For tests. */
+      std::string viewState() const;
 
       /** Number of scan points shown. */
       int points() const { return (int)p_coord.size(); }
@@ -92,6 +99,8 @@ class ScanPanel : public VizPropertyPanel
       void OnExport(wxCommandEvent& event);
       void OnNewCalc(wxCommandEvent& event);
       void OnRow(wxGridEvent& event);
+      void OnView(wxCommandEvent& event);
+      void showView(bool table);
       void OnPlayback(wxCommandEvent& event);
       virtual void receiveFocus();
       virtual void loseFocus();
@@ -111,6 +120,7 @@ class ScanPanel : public VizPropertyPanel
       wxChoice *p_unit;
       XYPlotCanvas *p_plot;
       wxGrid *p_grid;
+      wxRadioBox *p_view;
       wxStaticText *p_status;
       PlaybackControl *p_playback;
       PlaybackExtras *p_extras;

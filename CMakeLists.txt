@@ -2802,6 +2802,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_ecceqm_builder PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The Relaxed Scan panel's Show Graph/Table choice (#584).
+  add_test(NAME apps_scan_view
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/scan_view_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_scan_view PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # The Relaxed Scan panel on an ECCE-QM scan (#450): engine output through
   # ecceqm.parse into the panel.
   if(ECCE_BUILD_QM)

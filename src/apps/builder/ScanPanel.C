@@ -7,8 +7,10 @@
 #include <wx/choice.h>
 #include <wx/filedlg.h>
 #include <wx/grid.h>
+#include <wx/radiobox.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
+#include <wx/wrapsizer.h>
 #include <wx/stattext.h>
 #include <wx/event.h>
 
@@ -27,6 +29,7 @@
 #include "util/EcceURL.H"
 
 #include "PlaybackExtras.H"
+#include "wxgui/ewxConfig.H"
 #include "PlaybackLoop.H"
 #include "ScanPanel.H"
 
@@ -36,7 +39,9 @@ const double HARTREE_KCAL = 627.5095;
 const wxWindowID ID_UNIT = wxNewId();
 const wxWindowID ID_EXPORT = wxNewId();
 const wxWindowID ID_NEWCALC = wxNewId();
+const wxWindowID ID_VIEW = wxNewId();
 const wxWindowID ID_PLAYBACK = wxNewId();
+static const char *INIFILE = "wxbuilder.ini";
 
 double factor(bool kcal) { return kcal ? HARTREE_KCAL : HARTREE_KJ; }
 }
@@ -71,7 +76,7 @@ BEGIN_EVENT_TABLE(ScanPanel, VizPropertyPanel)
 END_EVENT_TABLE()
 
 ScanPanel::ScanPanel()
-  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL),
+  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL),
     p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500), p_syncing(false)
 {
 }
@@ -79,7 +84,7 @@ ScanPanel::ScanPanel()
 ScanPanel::ScanPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL),
+  : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL),
     p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500), p_syncing(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
@@ -100,7 +105,7 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   }
   SetSizer(new wxBoxSizer(wxVERTICAL));
 
-  wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
+  wxWrapSizer *bar = new wxWrapSizer(wxHORIZONTAL);   // wraps in a narrow dock
   bar->Add(new wxStaticText(this, wxID_ANY, "Energy unit:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   p_unit = new wxChoice(this, ID_UNIT);
@@ -108,7 +113,10 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   p_unit->Append("kcal/mol");
   p_unit->SetSelection(0);
   bar->Add(p_unit, 0, wxRIGHT, 12);
-  bar->AddStretchSpacer();
+  wxString views[] = {"Graph", "Table"};
+  p_view = new wxRadioBox(this, ID_VIEW, "Show", wxDefaultPosition,
+                          wxDefaultSize, 2, views, 1, wxRA_SPECIFY_ROWS);
+  bar->Add(p_view, 0, wxRIGHT, 12);
   bar->Add(new wxButton(this, ID_NEWCALC, "New calculation from this point"), 0,
            wxRIGHT, 6);
   bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0);
@@ -143,6 +151,11 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   Bind(wxEVT_CHOICE, &ScanPanel::OnUnit, this, ID_UNIT);
   Bind(wxEVT_BUTTON, &ScanPanel::OnExport, this, ID_EXPORT);
   Bind(wxEVT_BUTTON, &ScanPanel::OnNewCalc, this, ID_NEWCALC);
+  Bind(wxEVT_RADIOBOX, &ScanPanel::OnView, this, ID_VIEW);
+
+  bool table = false;
+  ewxConfig::getConfig(INIFILE)->Read("ScanPanel/Table", &table, false);
+  showView(table);
 
   fill();
   return true;
@@ -215,6 +228,38 @@ void ScanPanel::refresh()
   p_syncing = false;
   if (p_playback) p_playback->SetCurrentStep((long)p_selected);
   if (hasFocus()) showPoint(p_selected);
+}
+
+// One of plot and table at a time, as in the IRC Path panel, so the shown one
+// gets the full height; the choice is remembered for the next panel.
+void ScanPanel::showView(bool table)
+{
+  p_view->SetSelection(table ? 1 : 0);
+  p_plot->Show(!table);
+  p_grid->Show(table);
+  Layout();
+}
+
+std::string ScanPanel::viewState() const
+{
+  char buf[160];
+  snprintf(buf, sizeof buf, "table=%d plotShown=%d gridShown=%d plotH=%d gridH=%d",
+           p_view->GetSelection(), p_plot->IsShown(), p_grid->IsShown(),
+           p_plot->GetSize().y, p_grid->GetSize().y);
+  return buf;
+}
+
+void ScanPanel::OnView(wxCommandEvent&)
+{
+  setTableView(p_view->GetSelection() == 1);
+}
+
+void ScanPanel::setTableView(bool table)
+{
+  showView(table);
+  ewxConfig *cfg = ewxConfig::getConfig(INIFILE);
+  cfg->Write("ScanPanel/Table", table);
+  cfg->Flush();   // the Builder may be closed without writing the file
 }
 
 int ScanPanel::showPoint(int index)

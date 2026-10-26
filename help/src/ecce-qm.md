@@ -64,7 +64,9 @@ oscillator approximation; the symmetry number is found from the geometry.
 A **relaxed scan** of a bond, angle or torsion is a Geometry run with a scan
 set in Geometry Constraints: each point is optimised with the scanned
 coordinate held fixed, and **Properties > Relaxed Scan** plots the energy
-against the coordinate. See [Constraints and dummy atoms](constraints-and-dummy-atoms.md).
+against the coordinate. **Show** switches between the graph (the default)
+and the table of points; the playback buttons and **New calculation from this
+point** work in both. See [Constraints and dummy atoms](constraints-and-dummy-atoms.md).
 A transition-state guess can also come from two calculations, a reactant and a
 product (**TS Search** in the Calculation Editor).
 

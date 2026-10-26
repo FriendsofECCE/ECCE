@@ -1161,6 +1161,19 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: %s %d url=%s\n", w[0].c_str(), idx,
                   url.empty() ? "none" : url.c_str());
         }
+      } else if (w[0] == "scanview") {
+        //  scanview [graph|table]: the Relaxed Scan panel's Show choice (#584);
+        //  logs which of plot and table is shown, and their heights
+        ScanPanel *sp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
+        if (!sp) outcome = "no Relaxed Scan panel";
+        else {
+          if (w.size() >= 2) sp->setTableView(w[1] == "table");
+          fprintf(stderr, "BUILDER: scanview %s\n", sp->viewState().c_str());
+        }
       } else if ((w[0] == "scanrow" || w[0] == "scanstep") && w.size() >= 2) {
         //  scanrow <i>: a click on table row i; scanstep first|prev|next|last:
         //  the playback buttons.  Reports the selection and the viewer's
