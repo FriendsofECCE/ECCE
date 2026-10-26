@@ -8,7 +8,8 @@ molecule, set up a calculation, run it on your own computer or a cluster,
 and look at the results (orbitals, densities, vibrations, geometry
 optimisations), with every calculation kept in one place.
 
-It works with **NWChem, Gaussian, ORCA and MOPAC**; ECCE 9 also includes
+It works with **ORCA, Gaussian, NWChem and MOPAC**, and experimentally with
+**GROMACS, CP2K and Quantum ESPRESSO**; ECCE 9 also includes
 ECCE-QM, a small built-in Hartree–Fock/DFT program that needs
 nothing else installed. ECCE was developed at Pacific Northwest National
 Laboratory, which stopped supporting it around 2017; it is maintained
@@ -24,7 +25,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.4.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.0)),
+  [9.4.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.1)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -43,15 +44,13 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.5.0
 
-- ECCE-QM: geometry optimisations and frequencies in an implicit solvent
-  (CPCM gradients); range-separated hybrid functionals.
+- ECCE-QM: range-separated hybrid functionals.
 - Hybrids: pick an atom and see its localised orbitals.
 - Several allocations on one compute machine, each with its own account and
   directories.
 - GROMACS: radial distribution functions and coordination numbers; topologies
   for small molecules.
-- Safer drawing on computers without a graphics card (virtual machines,
-  remote desktops), and smoother labels where there is one.
+- Smoother labels in the 3D viewer, with a choice of font.
 
 ## First steps
 

@@ -9,6 +9,7 @@
 - **Vibrations spectrum: bands at the wrong wavenumber** (#604). The Freq. factor was remembered for every later calculation, so one entry of 0.5 put every band at half its frequency. The factor now starts at 1 each time, the line under the spectrum gives the scaled value next to the frequency when the factor is not 1, and a decimal comma is accepted (0,96).
 - **Spin density surface** starts at a level (about 0.003) where the spin of a single unpaired electron shows around the atom; before, it started at 0.05 and nothing was visible for many open-shell molecules.
 - **Dates from the data server are read in any language setting** (macOS with a non-English region could fail to read them) (#609).
+- **XYZ trajectories with forces:** the force columns are read as forces (they were stored as velocities) (#607).
 - **Atom orbital names:** an open shell's split 2p set is no longer named 2p and 3p (#572).
 - **Atom numbers count from 1** everywhere they are shown, including the Builder's status line (#582).
 - **Progress box plots:** cycle and step axes start at 1 (#596).
