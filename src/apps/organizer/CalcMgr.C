@@ -151,6 +151,7 @@ static string progressKey(const EcceURL & url);
 #include <sys/stat.h>
 #include <chrono>
 #include <set>
+#include <map>
 
 // The example set (folder name) the first start imports.
 static const char *const kFirstStartSet = "getting-started";
@@ -3392,15 +3393,14 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
   }
   const EcceURL topUrl = topRes->getURL();
   const string name = string(kExamplesTop) + "/" + set->project;
-  if (EDSIFactory::getResource(topUrl.getChild(set->project))) {
-    findNode(topUrl.getChild(set->project), true, true);
-    setContextPanel();
-    message = "The example calculations are in the project " + name + ".";
-    return name;
+  // An existing project is topped up: only topics and calculations that
+  // are missing are imported, nothing the user has is touched.
+  Resource *proj = EDSIFactory::getResource(topUrl.getChild(set->project));
+  const bool topUp = proj != nullptr;
+  if (!proj) {
+    created = true;
+    proj = topRes->createChild(set->project, projectType);
   }
-  created = true;
-
-  Resource *proj = topRes->createChild(set->project, projectType);
   if (!proj) {
     message = "Cannot create the project " + name + ".";
     return "";
@@ -3409,6 +3409,27 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
   mark[0].name = VDoc::getEcceNamespace() + ":exampleSet";
   mark[0].value = kExampleSetVersion;
   proj->addProps(mark);
+  auto childOf = [](Resource *parent, const string &child) -> Resource * {
+    return parent ? EDSIFactory::getResource(parent->getURL().getChild(child))
+                  : nullptr;
+  };
+  std::map<const ExampleTopic *, vector<const ExampleOut *>> missing;
+  int nExamples = 0;
+  for (const ExampleTopic &topic : set->topics) {
+    Resource *folder = topic.name.empty() ? proj
+                                          : childOf(proj, treeName(topic.name));
+    for (const ExampleOut &ex : topic.outputs)
+      if (!childOf(folder, ex.calc)) {
+        missing[&topic].push_back(&ex);
+        nExamples++;
+      }
+  }
+  if (topUp && nExamples == 0) {
+    findNode(topUrl.getChild(set->project), true, true);
+    setContextPanel();
+    message = "The example calculations are in the project " + name + ".";
+    return name;
+  }
 
   EcceURL project = proj->getURL();
   if (WxResourceTreeItemData *topNode = findNode(topUrl, false, false))
@@ -3418,12 +3439,13 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
   // (getContainer files each calculation under the selection's project);
   // the tree is rebuilt once afterwards, not per calculation.
   p_batchImport = true;
+  std::set<string> added;           // calculations imported now
+  vector<string> addedTopics;
   const auto t0 = std::chrono::steady_clock::now();
   double gmxSeconds = 0;
   {
     WxCalcImport dlg(this);
     dlg.registerListener(this);
-    const int nExamples = set->size();
     // Shown at once: the import is always slow, and the window was
     // otherwise silent for its whole length.
     ewxProgressDialog progress(_("Example calculations"),
@@ -3431,9 +3453,15 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         wxPD_APP_MODAL | wxPD_SMOOTH);
     int step = 0;
     for (const ExampleTopic &topic : set->topics) {
+    auto todo = missing.find(&topic);
+    if (todo == missing.end()) continue;
     Resource *parent = proj;
     if (!topic.name.empty()) {
-      parent = proj->createChild(treeName(topic.name), projectType);
+      parent = childOf(proj, treeName(topic.name));
+      if (!parent) {
+        parent = proj->createChild(treeName(topic.name), projectType);
+        if (parent) addedTopics.push_back(topic.name);
+      }
       if (!parent) {
         p_batchError = "Cannot create the topic " + topic.name + ".";
         continue;
@@ -3442,7 +3470,9 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         p_treeCtrl->refresh(n);
     }
     findNode(parent->getURL(), true, true);
-    for (const ExampleOut &ex : topic.outputs) {
+    for (const ExampleOut *exp : todo->second) {
+      const ExampleOut &ex = *exp;
+      added.insert(ex.calc);
       const char *rel = ex.rel.c_str();
       // "mopac-ammonia" is shown as "MOPAC ammonia"
       string label;
@@ -4227,10 +4257,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         annotate(calc);   // a topic
         continue;
       }
-      if (dynamic_cast<ICalculation*>(calc))
+      if (dynamic_cast<ICalculation*>(calc) && added.count(calc->getName()))
         thumbUrls.push_back(calc->getURL().toString());
       for (const auto &note : kNotes) {
-        if (calc->getName() == note.name) {
+        // a calculation that was already there keeps the user's annotation
+        if (calc->getName() == note.name && added.count(calc->getName())) {
           vector<MetaDataResult> ann(1);
           ann[0].name = VDoc::getEcceNamespace() + ":annotation";
           ann[0].value = note.text;
@@ -4260,6 +4291,17 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     message = "An example could not be imported: " + p_batchError;
     p_batchError.clear();
     return "";
+  }
+  if (topUp) {
+    message = "Added " + std::to_string(nExamples) + " example calculations";
+    if (!addedTopics.empty()) {
+      message += " (topics: ";
+      for (size_t i = 0; i < addedTopics.size(); i++)
+        message += (i ? ", " : "") + addedTopics[i];
+      message += ")";
+    }
+    message += " to " + name + ".";
+    return name;
   }
   message = "Reading the results of the example calculations in " +
             name + "...";
@@ -4292,7 +4334,14 @@ void CalcMgr::importExamplesOnce()
   bool created = false;
   if (!done.empty()) {
     // After an upgrade: the sets the user had come back in the new layout.
-    for (const string &id : removeOldExamples())
+    std::set<string> sets;
+    for (const string &id : removeOldExamples()) sets.insert(id);
+    // Sets already opened in the new layout get what this version added.
+    for (const ExampleSet &set : exampleSets())
+      if (EDSIFactory::getResource(
+              home.getChild(kExamplesTop).getChild(set.project)))
+        sets.insert(set.id);
+    for (const string &id : sets)
       if (openExampleSet(id, message, created).empty())
         setMessage(message, WxFeedback::WARNING);
     setMessage("The example calculations are now in Examples, sorted by "
