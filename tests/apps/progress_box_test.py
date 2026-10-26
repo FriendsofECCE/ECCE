@@ -47,6 +47,18 @@ scf cycle=7 energy=-76.4089123400 dE=-4.10e-08/1e-10 grad=3.20e-06/1e-07
 scf~ dE=-2.10e-01,-3.30e-02,-1.20e-03,-6.40e-05,-2.20e-06,-4.10e-08
 """
 
+# What the monitor makes of a real ORCA Opt+Freq (analytic Hessian, H2O) cut in
+# the CP-SCF solver (tests/parsers/fixtures/orca/h2o_optfreq.out, line 2494):
+# the optimisation is over and the Frequencies stage is already there.
+HESS = """# seq=2 sent={sent:.3f} at={at}
+opt step=4 energy=-74.965901192 dE=-0.0000025998/0.0000050000 rmsgrad=0.0000114783/0.0001000000 maxgrad=0.0000140004/0.0003000000 rmsstep=0.0000184919/0.0020000000 maxstep=0.0000226334/0.0040000000 converged=yes
+opt~ rmsgrad=0.0164334166,0.0042057273,0.0009652234,0.0000114783
+opt~ maxgrad=0.0273727398,0.0050080968,0.0011504486,0.0000140004
+scf cycle=2 energy=-74.9659011921898468 dE=-2.40e-11/1.000e-08
+scf~ dE=0.00e+00,-2.40e-11
+freq kind=analytic point=3/9
+"""
+
 LIVE = """# seq=30 sent={sent:.3f} at={at}
 opt step=6 energy=-76.4089500000 maxgrad=9.00e-05/3e-04 rmsgrad=3.00e-05/1e-04 maxstep=4.00e-04/4e-03 rmsstep=2.00e-04/2e-03 dE=-1.00e-07/5e-06 converged=yes
 opt~ maxgrad=1.20e-02,3.10e-03,9.00e-04,4.10e-04,2.00e-04,9.00e-05
@@ -187,6 +199,7 @@ def run(display, pngs):
                            SCAN.format(**stamp))
         nebrun = makeCalc(project, "hcn-neb", "Running", NEB.format(**stamp))
         gmxrun = makeCalc(project, "gmx-md", "Running", GMX.format(**stamp))
+        hessrun = makeCalc(project, "orca-hessian", "Running", HESS.format(**stamp))
         live = os.path.join(work, "live.txt")
         with open(live, "w") as handle:
             handle.write(LIVE.format(sent=now, at=int(now)))
@@ -235,6 +248,9 @@ def run(display, pngs):
                 "summary file://" + gmxrun,
                 "showbox",
                 "snap " + png("progress-gmx-md.png"),
+                "summary file://" + hessrun,
+                "progressbox",
+                "snap " + png("progress-orca-hessian.png"),
             ]) + "\n")
         result = apps.run(display, "organizer", windowTimeout=60, settle=45,
                           env={"ECCE_TEST_ORGANIZER": cmds,
@@ -246,18 +262,22 @@ def run(display, pngs):
             return
         boxes = answers(log, "progressbox")
         counts = answers(log, "counts")
-        if not check(len(boxes) == 10 and len(counts) == 2,
+        if not check(len(boxes) == 11 and len(counts) == 2,
                      "every command answered (%d boxes, %d counts)" % (len(boxes), len(counts)),
                      run_tests._tail(log, 30)):
             return
         for b in boxes:
             print("      " + b)
-        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3, neb = boxes
+        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3, neb, hess = boxes
 
         def field(b, k):
             m = re.search(r"\b%s=(\S+)" % k, b)
             return m.group(1) if m else None
 
+        check("Frequencies: analytic Hessian, 3 of 9 perturbations" in hess and
+              "Optimisation: step 4" in hess and "converged" in hess and
+              "s left" not in hess,
+              "ORCA analytic Opt+Freq: the Frequencies stage is shown before the end", hess)
         check(field(stored, "shown") == "1", "running: the box is shown")
         check("Optimisation: step 4" in stored and "max force 4.1e-04 (limit 3e-04) \u2717" in stored
               and "RMS force 8.0e-05 (limit 1e-04) \u2713" in stored,

@@ -351,6 +351,15 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       b.fraction = std::min(1.0, std::max(0.0, k / n));
       first = string(st.name == "freq" ? "point" : "step") + fmt(" %.0f", k) +
               fmt(" of %.0f", n);
+      //  A frequency run says which kind it is: the two count different things.
+      if (st.name == "freq" && st.field("kind") == "numerical")
+        first = "numerical, " + first;
+      else if (st.name == "freq" && st.field("kind") == "analytic") {
+        first = "analytic Hessian, " + fmt("%.0f", k) + fmt(" of %.0f", n) +
+                " perturbations";
+        if (st.field("phase") == "assemble" && st.field("done") != "yes")
+          first += " \xc2\xb7 assembling the Hessian";
+      }
       if (st.name == "prepare") {
         // step k is under way, so the bar counts the finished ones
         b.fraction = st.field("done") == "yes" ? 1.0 : (k - 1) / n;
@@ -365,7 +374,8 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
             number(st.field("imaginary"), imag))
           first += fmt(" \xc2\xb7 %.0f real", real) +
                    fmt(", %.0f imaginary", imag);
-      } else if (st.name != "prepare" && !finished &&
+      } else if (st.name != "prepare" && st.field("kind") != "analytic" &&
+                 !finished &&
                  number(st.field("eta"), eta) && eta > 0) {
         const double left = std::max(0.0, eta - age);
         first += left < 90 ? fmt(" \xc2\xb7 about %.0f s left", left)
@@ -374,6 +384,20 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     }
   } else if (!rec.empty()) {
     first = recName + " " + st.field(rec);
+  } else if (st.name == "freq" && st.field("kind") == "analytic") {
+    first = "analytic Hessian";
+    if (!st.field("pass").empty() && st.field("pass") != "0" &&
+        st.field("done") != "yes")
+      first += ", CPHF iteration " + st.field("pass");
+    if (st.field("phase") == "assemble" && st.field("done") != "yes")
+      first += " \xc2\xb7 assembling the Hessian";
+    double real, imag;
+    if (st.field("done") == "yes" && number(st.field("real"), real) &&
+        number(st.field("imaginary"), imag))
+      first += fmt(" \xc2\xb7 %.0f real", real) +
+               fmt(", %.0f imaginary", imag);
+    else if (st.field("done") == "yes")
+      first += " \xc2\xb7 done";
   }
   if (!st.field("energy").empty())
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "E = " +
@@ -540,8 +564,10 @@ vector<string> JobProgress::summary(bool completed) const
         line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " hartree";
       out.push_back(line);
     } else if (hasN) {
-      out.push_back(fmt("Frequencies stopped at point %.0f", k) +
-                    fmt(" of %.0f", n));
+      out.push_back(string(freq->field("kind") == "analytic"
+                               ? "Frequencies stopped at perturbation"
+                               : "Frequencies stopped at point") +
+                    fmt(" %.0f", k) + fmt(" of %.0f", n));
     }
   }
   if (const Stage *prep = stage("prepare")) {

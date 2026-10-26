@@ -617,8 +617,27 @@ Begin=^    -- Number of steps exceeded
 Progress=opt converged=no
 [END]
 
-# Gaussian counts nothing during a frequency run; the thermochemistry
-# block's zero-point correction closes it.
+# An analytic frequency run solves the CPHF equations once for all nuclear
+# displacements (link 1002) and prints no count of them, only the passes, so
+# the box names the kind and the pass.  The route line gates it: the same
+# CPHF code also serves other jobs.  The thermochemistry block's zero-point
+# correction closes the run.
+[PROGRESS]
+Begin=(?i)^ #.*\bfreq
+Remember=gfreq
+Value=freq
+[END]
+
+[PROGRESS]
+Begin=^\s+Differentiating once with respect to nuclear coordinates
+Progress={gfreq} kind=analytic pass=0
+[END]
+
+[PROGRESS]
+Begin=^\s+\d+ vectors produced by pass\s+(\d+) Test12
+Progress={gfreq} kind=analytic pass=$1
+[END]
+
 [PROGRESS]
 Begin=^ Zero-point correction=\s+(-?\d+\.\d+)
 Progress=freq done=yes zpe=$1

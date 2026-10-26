@@ -624,11 +624,40 @@ Begin=^\s+LBFGS\s+\d+\s+\d+\s+-?\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+(\d+
 Progress=neb maxcforce=$1/{nebmaxc} rmscforce=$2/{nebrmsc}
 [END]
 
-# Numerical frequencies count displaced geometries; an analytic Hessian
-# has no steps, so only the closing line (with the zero-point energy) shows.
+# Numerical frequencies count displaced geometries.  An analytic Hessian
+# counts the CP-SCF perturbations solved.  The CP-SCF solver also runs for
+# NMR and polarizabilities, so only a Hessian ("Nuclear geometric
+# perturbations ... YES") switches the iteration lines on.
 [PROGRESS]
 Begin=<< Calculating gradient on displaced geometry\s+(\d+) \(of\s+(\d+)\) >>
-Progress=freq point=$1/$2
+Progress=freq kind=numerical point=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^Nuclear geometric perturbations\s+\.\.\.\s+YES
+Remember=hessian
+Value=freq
+[END]
+
+[PROGRESS]
+Begin=^Nuclear geometric perturbations\s+\.\.\.\s+YES\s+\(\s*(\d+) perturbations
+Progress=freq kind=analytic point=0/$1
+[END]
+
+[PROGRESS]
+Begin=\|\|err\|\|_max\s+=\s+\S+\s+\(\s*\S+ sec\s+(\d+)/\s*(\d+) done\)
+Progress={hessian} kind=analytic point=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^SCF HESSIAN\s*$
+Remember=hessian
+Value=-
+[END]
+
+[PROGRESS]
+Begin=^SCF HESSIAN\s*$
+Progress=freq phase=assemble
 [END]
 
 [PROGRESS]
