@@ -157,6 +157,8 @@ static string progressKey(const EcceURL & url);
 static const char *const kFirstStartSet = "getting-started";
 #include <wx/dirdlg.h>
 #include "CalcMgr.H"
+#include "CompareEnergies.H"
+#include "CompareEnergiesDialog.H"
 
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
 
@@ -514,6 +516,12 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * scrollsummary   scroll the calculation summary to its bottom and back
  * showbox         scroll the summary panel so that the Progress box is at
  *                 its top
+ * compareenergies <urlA> <urlB>
+ *                 what Tools > Compare Energies shows for the two, " | "
+ *                 between lines
+ * comparedialog <urlA> <urlB> [png]
+ *                 open that dialog preset to the two, report its text areas
+ *                 and save a capture of it
  * progressbox     the shown summary's Progress box: shown or not, its
  *                 paints and the lines it draws, separated by " | "
  * contact <url> lost <epoch>|ok
@@ -530,6 +538,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 or Quit and Stop Server
  */
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
+static const int ID_COMPARE_ENERGIES = wxNewId();
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -1113,6 +1122,32 @@ void CalcMgr::runTestCommand(const string& line)
                   " copyvalue=" + box->copyText(0) +
                   " energyselectable=" + (box->energySelectable() ? "1" : "0");
         for (const string& l : box->describe()) outcome += " | " + l;
+      }
+    } else if (command == "compareenergies" || command == "comparedialog") {
+      // "compareenergies <urlA> <urlB>": the values and notes the dialog
+      // shows.  "comparedialog <urlA> <urlB> [png]": the dialog itself, its
+      // text areas, and a capture of it.
+      std::istringstream args(calcName);
+      string ua, ub, png;
+      args >> ua >> ub >> png;
+      if (command == "compareenergies") {
+        const EnergyEntry a = gatherEnergyEntry(ua), b = gatherEnergyEntry(ub);
+        const EnergyComparison c = compareEnergies(a, b);
+        outcome = "ok";
+        std::istringstream lines(comparisonText(a, b, c));
+        for (string l; std::getline(lines, l); ) outcome += " | " + l;
+      } else {
+        vector<EcceURL> sel;
+        sel.push_back(EcceURL(ua));
+        sel.push_back(EcceURL(ub));
+        CompareEnergiesDialog *d = newCompareEnergiesDialog(sel);
+        d->Show();
+        for (int i = 0; i < 5; i++) wxYield();
+        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        outcome = "ok";
+        std::istringstream r(d->resultText() + "Notes:\n" + d->notesText());
+        for (string l; std::getline(r, l); ) outcome += " | " + l;
+        d->Destroy();
       }
     } else if (command == "table") {
       // "table [PROJECT-URL]": select the project (when given) and report
@@ -5474,6 +5509,14 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
     added = true;
   }
 
+  menu.Append(ID_COMPARE_ENERGIES, _("Compare Energies..."));
+  if (!p_compareEnergiesWired) {
+    Connect(ID_COMPARE_ENERGIES, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnCompareEnergies));
+    p_compareEnergiesWired = true;
+  }
+  added = true;
+
   if (added) menu.AppendSeparator();
 }
 
@@ -5481,6 +5524,33 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
 /**
  * A selection-independent tool was chosen; ask the gateway for it.
  */
+// Two selected calculations become A and B; otherwise the dialog lets the
+// user choose among the calculations of the selection's project.
+CompareEnergiesDialog *CalcMgr::newCompareEnergiesDialog(
+    const vector<EcceURL>& sel)
+{
+  string a, b, project;
+  if (sel.size() == 2) {
+    a = sel[0].toString();
+    b = sel[1].toString();
+  }
+  if (!sel.empty()) {
+    const bool isCalc =
+        dynamic_cast<PropertyTask*>(EDSIFactory::getResource(sel[0])) != 0;
+    project = (isCalc ? sel[0].getParent() : sel[0]).toString();
+    if (isCalc && sel.size() == 1) a = sel[0].toString();
+  }
+  return new CompareEnergiesDialog(this, calculationsIn(project), a, b);
+}
+
+void CalcMgr::OnCompareEnergies(wxCommandEvent&)
+{
+  getSelection();
+  CompareEnergiesDialog *dialog = newCompareEnergiesDialog(p_currentSelection);
+  dialog->ShowModal();
+  dialog->Destroy();
+}
+
 void CalcMgr::OnGlobalTool(wxCommandEvent& event)
 {
   ResourceTool *tool =

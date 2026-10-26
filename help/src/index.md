@@ -106,6 +106,10 @@ describe what you did and what happened.
    atomic speeds of a dynamics run against Maxwell-Boltzmann, and the
    mean-square displacement with the diffusion coefficient.
 
+24. [Compare Energies](compare-energies.md): the difference between the final
+   energies of two calculations in Hartree, kJ/mol, kcal/mol and eV, and the
+   notes on differing code, method or basis set.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the

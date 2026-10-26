@@ -2116,6 +2116,12 @@ add_executable(modellabels_test tests/modellabels/modellabels_test.C)
 target_include_directories(modellabels_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(modellabels_test PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
 add_test(NAME modellabels COMMAND modellabels_test ${CMAKE_SOURCE_DIR})
+# Tools > Compare Energies (#573): the wx-free analysis
+add_executable(compare_energies_test tests/compareenergies/compare_energies_test.C
+  src/apps/organizer/CompareEnergies.C)
+target_include_directories(compare_energies_test PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer ${XercesC_INCLUDE_DIRS})
+target_link_libraries(compare_energies_test PRIVATE eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+add_test(NAME compare_energies COMMAND compare_energies_test)
 
 # tests/tspath -- straight-path check for TS searches (#468)
 add_executable(tspath_test tests/tspath/tspath_test.C)
@@ -2710,6 +2716,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/progress_box_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_box PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # Tools > Compare Energies (#573): the hook and the dialog.
+  add_test(NAME apps_compare_energies
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/compare_energies_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_compare_energies PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # Two close requests before the Quit dialog is answered (#291).
   add_test(NAME apps_organizer_close

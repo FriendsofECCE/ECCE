@@ -50,6 +50,7 @@
 #include "CalcMgrGUI.H"
 #include "CalculationContextPanel.H"
 #include "ProgressBox.H"
+#include "CompareEnergies.H"
 #include "util/JobProgress.H"
 
 //  The Basis Set button and its rows are dropped for a code that has no basis
@@ -261,19 +262,12 @@ void CalculationContextPanel::updateProgress()
   if (finished && !p_energyRead) {
     p_energyRead = true;
     PropertyTask *task = dynamic_cast<PropertyTask*>(p_itemData->getResource());
-    // MOPAC's TE is its heat of formation, so it is named as such.
-    TProperty *hof = task ? task->getProperty("HFENERGY") : 0;
-    TProperty *te = task && !hof ? task->getProperty("TE") : 0;
-    // In a relaxed scan TE is whichever SCF the code printed last; the
-    // result is the last point's optimised energy.
-    PropVector *scan = task ? dynamic_cast<PropVector*>(task->getProperty("SCANENERGY")) : 0;
-    const bool scanned = scan && !scan->values().empty();
-    TProperty *e = hof ? hof : te;
-    if (e || scanned) {
+    const FinalEnergy fe = finalEnergyOf(task);
+    const bool scanned = fe.scanned, hof = fe.heat;
+    if (fe.found) {
       const string unit = scanned ? "Hartree"
-                        : e->units() == "NA" ? "" : unitLabel(e->units());
-      const string value = scanned ? valueLabel(scan->values().back(), 6)
-                                   : valueLabel(e->scalarize(), 6);
+                        : fe.units == "NA" ? "" : unitLabel(fe.units);
+      const string value = valueLabel(fe.value, 6);
       char line[128];
       snprintf(line, sizeof line, "%s %s%s",
                scanned ? "Final energy (last scan point)"
