@@ -109,6 +109,21 @@ def main():
                   re.search(r"^row .*\| 1s \|", t, re.M) is not None,
                   "the Ne table names the occupied orbitals by shell")
 
+            # an open shell splits the energies of the 2p set, not its name
+            f = base.makeCalc(data, "f", source=os.path.join(
+                REPO, "data", "client", "examples", "genchem", "atoms", "ecceqm-F", "stored", "F"))
+            out = run(display, f, "f", "hold 2\nmotable t\nhold 1\n")
+            t = text(out, "t")
+            check(re.search(r"^row .*\| 2p \|", t, re.M) is not None and
+                  re.search(r"^row .*\| 3p \|", t, re.M) is None,
+                  "open-shell F: its occupied p orbitals are all 2p")
+            dump = os.path.join(work, "df.dump")
+            run(display, f, "df", "hold 2\n", panel="MO Diagram",
+                env={"ECCE_MODIAGRAM_DUMP": dump})
+            d = open(dump).read() if os.path.exists(dump) else ""
+            check("label=2p" in d and "label=3p" not in d,
+                  "open-shell F: the diagram has no 3p level")
+
             out = run(display, ivo, "neivo", "hold 2\nmotable t\nhold 1\n", shot=True)
             t = text(out, "t")
             check("virtNote Virtual orbitals: improved (IVO)" in t,
