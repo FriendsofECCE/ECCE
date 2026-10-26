@@ -41,23 +41,17 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.4.0
+## Coming in 9.5.0
 
-- Density Profile panel: the electron density and each orbital's share of it
-  along a line through two atoms, or averaged about an atom (shells,
-  penetration, nodes), with the orbitals as psi, psi squared or radial
-  distributions.
-- Transition states from two calculations (Gaussian 16 QST2/QST3, ORCA
-  NEB-TS), redesigned: the transition-state job refers to the reactant and
-  product calculations and reports the barrier and reaction energy.
-- The Calculation Editor's Details windows in C++ instead of Python, starting
-  with ORCA and Gaussian 16 (the ORCA ones are a preview in 9.3.3).
-- ECCE-QM: relaxed scans of a bond, angle or torsion; transition-state search
-  from one structure (Opt-TS) with frequencies after; analytic RHF Hessian, so
-  closed-shell frequencies run several times faster.
-- TD-DFT options (number of states, singlets/triplets, Tamm–Dancoff) in the
-  ORCA and Gaussian 16 editors; UV-vis transitions listed as HOMO/LUMO with
-  % weight.
+- ECCE-QM: geometry optimisations and frequencies in an implicit solvent
+  (CPCM gradients); range-separated hybrid functionals.
+- Hybrids: pick an atom and see its localised orbitals.
+- Several allocations on one compute machine, each with its own account and
+  directories.
+- GROMACS: radial distribution functions and coordination numbers; topologies
+  for small molecules.
+- Safer drawing on computers without a graphics card (virtual machines,
+  remote desktops), and smoother labels where there is one.
 
 ## First steps
 
