@@ -3750,7 +3750,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"nacl-dissolving",
      "GROMACS, a NaCl crystal of 64 ions in 4005 SPC/E water molecules "
      "(Joung-Cheatham ions), 300 K, 1 bar, 20 ns; the trajectory holds the "
-     "first 2.4 ns, centred on the crystal. This calculation shows the "
+     "first 3 ns in 101 frames, centred on the crystal. This calculation shows the "
      "crystal dissolving: ions leave from the corners and edges first, each "
      "taking a shell of water molecules with it."},
     {"ice-to-steam",
