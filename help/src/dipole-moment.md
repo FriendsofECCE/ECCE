@@ -16,9 +16,9 @@ positive pole along that line.
 The length of the arrow is the distance between the poles. It follows the
 geometry of the molecule and does not scale with the size of the moment; a
 water molecule gives a short arrow. The magnitude is in the upper right corner
-of the 3-D view, for example **Dipole moment 1.79 D (ESP charges)**, and
+of the 3-D view, for example **Dipole moment μ = 1.79 D (ESP charges)**, and
 disappears when the panel is left. When the moment is zero, as for carbon
-dioxide, there is no arrow and the text reads **Dipole moment 0 D**.
+dioxide, there is no arrow and the text reads **Dipole moment μ = 0 D**.
 
 The atomic charges are the CHELPG (ESP-fitted) charges when the calculation has
 them, then Merz-Kollman charges, otherwise Mulliken charges. The panel names the

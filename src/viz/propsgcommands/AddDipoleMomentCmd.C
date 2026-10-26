@@ -72,9 +72,9 @@ string AddDipoleMomentCmd::chargeName(const string& key)
 
 string AddDipoleMomentCmd::label(double mu, const string& key)
 {
-   if (mu < ZERO_MU) return "Dipole moment 0 D";
+   if (mu < ZERO_MU) return "Dipole moment \u03bc = 0 D";
    char buf[64];
-   snprintf(buf, sizeof buf, "Dipole moment %.2f D", mu);
+   snprintf(buf, sizeof buf, "Dipole moment \u03bc = %.2f D", mu);
    string r = buf;
    if (key == "ESPFIT") r += " (ESP charges)";
    else if (key == "MKFIT") r += " (MK charges)";

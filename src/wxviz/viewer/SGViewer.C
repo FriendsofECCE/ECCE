@@ -638,7 +638,7 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
                             .getViewportSizePixels()[0];
            if (width > 0.f)
               pos[0] = std::max(0.010f, std::min(0.70f,
-                          1.0f - (float)(strlen(text)*10 + 14)/width));
+                          1.0f - (float)(fixedPixelLength(text)*10 + 14)/width));
         }
 
         float x =0;float y =0;float z =0;
