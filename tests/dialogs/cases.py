@@ -270,6 +270,18 @@ SKIP_DIALOGS = {}
 # ---------------------------------------------------------------------------
 RESTORE_CASES = [
     dict(
+        name="orca-legacy-dispersion-in-functional",
+        script="orcatheory.py", category="DFT", theory="RDFT",
+        changes={"ES.Theory.DFT.XCFunctionals": ("PBE0 D3BJ", None)},
+        expect={"ES.Theory.DFT.XCFunctionals": {"value": "PBE0"},
+                "ES.Theory.SCF.Dispersion": {"value": "D3BJ"}},
+        why="""
+            #593.  A calculation whose functional name carried the dispersion
+            ("PBE0 D3BJ") restored as the default functional with no
+            dispersion; re-saving then lost both.
+        """),
+
+    dict(
         name="orca-memory-stale-unit",
         script="orcatheory.py", category="DFT", theory="RDFT",
         changes={"ES.Theory.SCF.MemorySize": ("1000", "Megabytes / core")},

@@ -1,6 +1,7 @@
 #include "DetailsModel.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -335,7 +336,7 @@ void Model::initialize()
     while (std::getline(f, line)) {
       Strings part = split(line, '|');
       if (part.size() != 6) continue;
-      const string &name = part[0], &value = part[1], &unit = part[2],
+      const string &name = part[0], &value0 = part[1], &unit = part[2],
                    &active = part[3];
       int i = find(name);
       if (i < 0) {
@@ -343,6 +344,28 @@ void Model::initialize()
         continue;
       }
       Item& it = items_[i];
+      // ORCA: a functional stored as "PBE0 D3BJ" or "B3LYP-D3" is the
+      // functional plus the Dispersion choice (templates.py does the same).
+      string value = value0;
+      if (name == "ES.Theory.DFT.XCFunctionals" &&
+          std::find(it.choices.begin(), it.choices.end(), value) ==
+              it.choices.end()) {
+        int d = find("ES.Theory.SCF.Dispersion");
+        size_t cut = value.find_last_of(" -");
+        if (d >= 0 && cut != string::npos && cut > 0) {
+          string base = value.substr(0, cut), tail = value.substr(cut + 1);
+          for (char& c : tail) c = (char)toupper((unsigned char)c);
+          string disp = (tail == "D3" || tail == "D3ZERO" || tail == "D3(0)")
+                            ? "D3(0)" : tail;
+          if ((disp == "D3(0)" || disp == "D3BJ" || disp == "D4") &&
+              std::find(it.choices.begin(), it.choices.end(), base) !=
+                  it.choices.end()) {
+            items_[d].value = normalize(items_[d], disp);
+            touch(d);
+            value = base;
+          }
+        }
+      }
       string stored = trim(unit), widget = trim(unitOf(it));
       if (head(stored) == head(widget)) stored = widget;
       // A number saved in another unit would be silently wrong here.

@@ -7,6 +7,7 @@ $abidict{
 $abifile\n
 $auxbasis
 $basisfile\n
+$cat
 $coords{$index
 $en
 $en\n
@@ -24,6 +25,7 @@ $maxiter\nend\n
 $maxsteps\n
 $message\n
 $model
+$name
 $namebasis
 $nametobasis{$oldbasis}\n
 $nroots\n
@@ -170,6 +172,7 @@ b
 b2gp-plyp
 b2plyp
 b3lyp
+b3lyp-d3
 b97-d3
 b97m-v
 basis>/c
@@ -243,8 +246,10 @@ d2
 d2d
 d2h
 d3
+d3bj
 d3d
 d3h
+d3zero
 d4
 d4d
 d4h
@@ -307,6 +312,7 @@ es.runtype.vibration.useraman
 es.theory.dft.xcfunctionals
 es.theory.scf.convergenceiterations
 es.theory.scf.convergencetolerance
+es.theory.scf.dispersion
 es.theory.scf.memorysize
 es.theory.scf.orbitalguessfile
 es.theory.scf.rijcosxauxbasis
@@ -544,6 +550,7 @@ uhf
 uks
 ump2
 undefined
+unless
 unsupported
 usage:
 use

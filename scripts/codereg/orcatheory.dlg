@@ -21,6 +21,11 @@ int name=ES.Theory.SCF.MemorySize label="Memory Per Core:" default=1 hard="[0..5
 box label="DFT Functional" cols=1 when="category==DFT"
 combo name=ES.Theory.DFT.XCFunctionals label="Functional:" choices="B2GP-PLYP|B2PLYP|B3LYP|B97-D3|B97M-V|BLYP|BP86|CAM-B3LYP|DSD-BLYP|DSD-PBEP86|M06|M062X|M06L|mPW2PLYP|PBE|PBE0|PWPB95|r2SCAN|revPBE|revTPSS|RPBE|TPSS|TPSSh|wB2PLYP|wB97M-V|wB97X-D3|wB97X-V" default=B3LYP export=1
 
+# ai.orca maps D3(0) to ORCA's D3ZERO.  ORCA 6.1.1 accepts HF D3BJ/D4 too.
+list DISPCAT = SCF|DFT
+box label="Dispersion" cols=1 when="category in @DISPCAT"
+combo name=ES.Theory.SCF.Dispersion label="Correction:" choices="None|D3BJ|D3(0)|D4" default=None export=1
+
 box label="Solvation" cols=2
 check name=ES.Theory.SCF.UseSolvation label=" Use implicit solvation" default=0 export=1
 combo name=ES.Theory.SCF.SolvationModel label="Model:" choices="CPCM|SMD" default=CPCM export=1 enable_if="ES.Theory.SCF.UseSolvation==1"
