@@ -12,6 +12,7 @@
 #include <wx/zipstrm.h>
 
 #include "util/Ecce.H"
+#include "util/GLPath.H"
 #include "wxgui/ewxReportProblem.H"
 
 namespace {
@@ -184,7 +185,8 @@ wxString ewxReportProblem::collect(wxString& error, wxWindow *parent)
 
   writeText(dir + wxFILE_SEP_PATH + "version.txt",
             wxString("ECCE ") + Ecce::ecceVersion() + "\n" +
-            wxGetOsDescription() + "\n");
+            wxGetOsDescription() + "\n" +
+            wxString::FromUTF8(GLPath::describeForDisplay().c_str()) + "\n");
 #ifdef __WXMSW__
   collectWindows(dir);
 #else

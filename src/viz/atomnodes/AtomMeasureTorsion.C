@@ -12,6 +12,7 @@
 #include "inv/misc/SoState.H"
 
 #include "viz/freeglut_font_data.H"
+#include "viz/ViewerText.H"
 #include "viz/AtomMeasureTorsion.H"
 #include "viz/EcceDispParam.H"
 #include "viz/SGFragment.H"
@@ -63,11 +64,13 @@ AtomMeasureTorsion::AtomMeasureTorsion(SGFragment *frag, TAtm * at1,
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+    if (!GLPath::software()) {
     fontOffset = glGenLists (256);
     for (GLuint i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); 
+    }
     }
     glPixelStorei(GL_UNPACK_ALIGNMENT, curAlignment);
   }
@@ -198,11 +201,13 @@ AtomMeasureTorsion::AtomMeasureTorsion()
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+    if (!GLPath::software()) {
     fontOffset = glGenLists (256);
     for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }
+    }
   }
 
 }
@@ -252,11 +257,13 @@ void AtomMeasureTorsion::GLRender(SoGLRenderAction *action)
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+    if (!GLPath::software()) {
     fontOffset = glGenLists (256);
     for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }
+    }
   }
 
   // Declare a pointer to a GLLazyElement.  This will be used if we
@@ -365,10 +372,7 @@ void AtomMeasureTorsion::GLRender(SoGLRenderAction *action)
 
 
   glRasterPos3fv(LabelPosition.getValue());
-  glPushAttrib (GL_LIST_BIT);
-  glListBase(fontOffset);
-  glCallLists(strlen(buf), GL_UNSIGNED_BYTE, (GLubyte *) buf);
-  glPopAttrib ();
+  drawViewerText(fontOffset, buf);
 
   glEnable(GL_LIGHTING);
   if (depthWasOn) glEnable(GL_DEPTH_TEST);

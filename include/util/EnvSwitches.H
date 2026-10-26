@@ -40,6 +40,9 @@ namespace EnvSwitches
   /// True when `var` holds a value the user set outside Preferences.
   bool setExplicitly(const string& var);
 
+  /// True when `var` holds a value this module set from Preferences.
+  bool viaPreference(const string& var);
+
   /// The file a file switch writes to: the saved path, else the default.
   string fileFor(const Entry& e, const string& saved);
 }

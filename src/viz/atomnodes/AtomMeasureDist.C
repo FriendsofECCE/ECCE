@@ -15,6 +15,7 @@
 #include "viz/AtomMeasureDist.H"
 
 #include "viz/freeglut_font_data.H"
+#include "viz/ViewerText.H"
 #include "viz/EcceDispParam.H"
 #include "viz/SGFragment.H"
 
@@ -62,12 +63,14 @@ AtomMeasureDist::AtomMeasureDist(SGFragment *frag,TAtm *at1,TAtm* at2,
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-  fontOffset = glGenLists (256);
+  if (!GLPath::software()) {
+    fontOffset = glGenLists (256);
   for (GLuint i = 32; i < 256; i++) {
     glNewList(i+fontOffset, GL_COMPILE);
     glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
     glEndList(); 
   }
+    }
   glPixelStorei(GL_UNPACK_ALIGNMENT, curAlignment);
 
   jump();
@@ -176,11 +179,13 @@ AtomMeasureDist::AtomMeasureDist()
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+    if (!GLPath::software()) {
     fontOffset = glGenLists (256);
     for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }
+    }
   }
 
 }
@@ -229,11 +234,13 @@ void AtomMeasureDist::GLRender(SoGLRenderAction *action)
     GLuint i;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+    if (!GLPath::software()) {
     fontOffset = glGenLists (256);
     for (i = 32; i < 256; i++) {
       glNewList(i+fontOffset, GL_COMPILE);
       glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
       glEndList(); }
+    }
   }
 
   glPushMatrix();
@@ -297,10 +304,7 @@ void AtomMeasureDist::GLRender(SoGLRenderAction *action)
   glColor3f(r,g,b);
 
   glRasterPos3fv(tmp.getValue());
-  glPushAttrib (GL_LIST_BIT);
-  glListBase(fontOffset);
-  glCallLists(strlen(buf), GL_UNSIGNED_BYTE, (GLubyte *) buf);
-  glPopAttrib ();
+  drawViewerText(fontOffset, buf);
 
 
   // KLS 8/6/07 Breaks color drawing in new builder

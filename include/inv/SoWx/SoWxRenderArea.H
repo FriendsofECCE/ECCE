@@ -315,6 +315,7 @@ private:
   bool p_quickTransp;
   bool p_noAlpha;          // canvas has no 8-bit alpha: peeling impossible
   bool p_alphaChecked;
+  bool p_softwareGL;     // software renderer: quick transparency from the start
   bool p_fellBack;         // too slow for this scene; cleared on a mode change
   double p_recentMs[5];
   int p_recentCount;

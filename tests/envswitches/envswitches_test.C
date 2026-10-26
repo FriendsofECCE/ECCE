@@ -90,6 +90,31 @@ int main()
   CHECK(EnvSwitches::setExplicitly("ECCE_GL_PERPIXEL"));
   CHECK(childSees("ECCE_NATIVE_DIALOGS") == "yes");
 
+  // OpenGL drawing choice (#566): a preference value becomes ECCE_GL_PATH,
+  // automatic removes it again, a variable set by hand wins.
+  unsetenv("ECCE_GL_PATH");
+  {
+    Preferences pref(PrefLabels::GLOBALPREFFILE);
+    pref.setString("Advanced.GLPath", "software");
+    pref.saveFile();
+    EnvSwitches::apply();
+    CHECK(childSees("ECCE_GL_PATH") == "software");
+    CHECK(EnvSwitches::viaPreference("ECCE_GL_PATH"));
+    pref.setString("Advanced.GLPath", "auto");
+    pref.saveFile();
+    EnvSwitches::apply();
+    CHECK(childSees("ECCE_GL_PATH") == "UNSET");
+    setenv("ECCE_GL_PATH", "hardware", 1);
+    pref.setString("Advanced.GLPath", "software");
+    pref.saveFile();
+    EnvSwitches::apply();
+    CHECK(childSees("ECCE_GL_PATH") == "hardware");
+    CHECK(!EnvSwitches::viaPreference("ECCE_GL_PATH"));
+    unsetenv("ECCE_GL_PATH");
+    pref.setString("Advanced.GLPath", "auto");
+    pref.saveFile();
+  }
+
   // Not an ECCE session: leaves the environment alone.
   for (const char* v : vars) unsetenv(v);
   unsetenv("ECCE_REALUSERHOME");
