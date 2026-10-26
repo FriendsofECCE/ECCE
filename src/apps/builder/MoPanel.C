@@ -1545,6 +1545,11 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       if (espSurface) {
          isovalue = log10(0.002);
       }
+      //  At 0.05 a d electron's spin lies inside the atom spheres;
+      //  10^-2.5 shows it around the atom.
+      if (fieldtype == "Spin Density") {
+         isovalue = -2.5;
+      }
 
       cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
       applyEspRange(cmd);
