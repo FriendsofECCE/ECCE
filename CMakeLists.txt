@@ -2361,6 +2361,14 @@ target_link_libraries(authcache_relay_test PRIVATE
   ${XercesC_LIBRARIES})
 add_test(NAME authcache-relay COMMAND authcache_relay_test ${CMAKE_SOURCE_DIR})
 set_tests_properties(authcache-relay PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+# The -pipe handoff returns whichever side starts first, or no writer (#605).
+add_executable(authcache_pipe_test tests/mqtt/authcache_pipe_test.C)
+target_include_directories(authcache_pipe_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(authcache_pipe_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME authcache-pipe COMMAND authcache_pipe_test)
+set_tests_properties(authcache-pipe PROPERTIES TIMEOUT 120)
 endif()
 
 # tests/tls -- https data-server client (#236): pinned certificate, CA mode

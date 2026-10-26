@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -495,12 +496,46 @@ void AuthCache::pipeIn(const string& pipeName)
     it = 10;   // nothing to wait for or remove
   }
 #endif
+#ifdef _WIN32
   // Wait up to 10 seconds for the pipe to exist just in case the
   // child process is invoked first (e.g. launcher - > eccejobmaster)
   while (fp == NULL && it < 10 && (fp = fopen(pipeName.c_str(), "r"))==NULL) {
     it++;
     sleep(1);
   }
+#else
+  // A blocking fopen() of the FIFO waits for a writer with no limit, and
+  // pipeOut() gives up after 10 s: an app that got here late (or whose
+  // writer's non-blocking open never succeeded, as seen on macOS) hung
+  // for good (#605).  Open without blocking and wait a bounded time.
+  string data;
+  const int steps = 500;                      // 10 s at 20 ms
+  int fd = -1;
+  for (int s = 0; s < steps && fd < 0; s++) {
+    fd = open(pipeName.c_str(), O_RDONLY | O_NONBLOCK);
+    if (fd < 0) usleep(20000);                // not created yet
+  }
+  if (fd >= 0) {
+    bool got = false;
+    for (int s = 0; s < steps; s++) {
+      char chunk[4096];
+      ssize_t n = read(fd, chunk, sizeof(chunk));
+      if (n > 0) {
+        data.append(chunk, n);
+        got = true;
+        continue;
+      }
+      // 0 with data read: the writer closed.  0 before any data: no
+      // writer yet.  EAGAIN: a writer, but nothing written yet.
+      if (n == 0 && got) break;
+      if (n < 0 && errno != EAGAIN && errno != EINTR) break;
+      usleep(20000);
+    }
+    close(fd);
+  }
+  if (!data.empty()) fp = fmemopen(&data[0], data.size(), "r");
+  (void)it;
+#endif
   if (fp != NULL) {
     char buf[256];
     if (fgets(buf, sizeof(buf), fp) != NULL) {
