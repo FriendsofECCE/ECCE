@@ -11,6 +11,7 @@
 
 ![Density Map](densitymap.png)
 ![Density Profile of an atom](densityprofile-atom.png)
+![Density Profile along the H–F bond](densityprofile-line.png)
 ![MO Diagram docked with the Density Map](mo-explore.png)
 ![Localised orbitals](localised.png)
 
@@ -24,6 +25,7 @@
 
 ![Spin density](spindensity.png)
 ![Improved virtual orbitals](ivo.png)
+![Atom orbitals named 1s, 2s, 2p](atom-ao-labels.png)
 
 ## Transition states and reaction paths
 - **Transition states from two calculations** (Gaussian 16 QST2/QST3, ORCA NEB-TS) are always offered (TS Search in the Calculation Editor). The atom mapping is computed as the end points are picked, and warnings name end points optimised at another level or a straight path that cannot bend; they go to the notes panel above the log (#419, #464, #468, #503).
@@ -42,6 +44,7 @@
 - Compare spectra: the key no longer covers the strongest bands.
 
 ![Mode composition](mode-composition.png)
+![Bands of a selected bond highlighted](mode-highlight.png)
 
 ## Example calculations (#447, #448, #485)
 File > Open Example Calculations imports sets of ready-made calculations, sorted by topic, already read in:
@@ -54,7 +57,7 @@ Each example has a note saying what it shows.
 
 ![Example tree](example-tree.png)
 ![Speed distribution](speed-distribution.png)
-![NaCl dissolving](nacl.png)
+![Displacement (MSD)](msd.png)
 
 ## Calculation Editor, Launcher and Organizer
 - A **notes panel above the log** collects what the editor wants to tell you: constraints and scans for every run type and whether this code uses them, symmetry, the transition-state warnings, why a calculation is not ready (#456, #461).

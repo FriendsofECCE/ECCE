@@ -118,6 +118,8 @@ $wrote
 @group
 @orcaconstraints
 [ecce-ai]
+[inhess]:
+[optts]:
 [polar]:
 \'$result\'
 \d+
@@ -139,6 +141,7 @@ are
 argument
 as
 atoms!\n
+attached
 aug-cc-pcvdz
 aug-cc-pcvqz
 aug-cc-pcvtz
@@ -285,6 +288,7 @@ eq
 error
 error:
 es.runtype.geomopt.convergencegradient
+es.runtype.geomopt.hessianfile
 es.runtype.geomopt.initialhessian
 es.runtype.geomopt.maximumstepsvalue
 es.runtype.geomopt.recalcfc
@@ -343,6 +347,8 @@ gradient
 h
 has
 help\n
+hessian
+hessian.\n
 hf
 hirshfeld
 huzinaga
@@ -355,6 +361,8 @@ iglo-iii
 ih
 implausible
 in
+inhess
+inhessname
 input
 input.
 irc
@@ -421,6 +429,7 @@ oh
 open
 opt
 options:
+optts
 or
 orbital
 orbitals
@@ -447,6 +456,7 @@ polar
 polarization
 potential
 preopt_ends
+previous
 print[p_mos]
 print[p_orben]
 product
@@ -459,6 +469,7 @@ raman
 ran
 re-save
 read
+read\n
 recalc_hess
 replaced
 retrying
@@ -476,6 +487,8 @@ s4
 s6
 s8
 scan
+search
+searchfor
 set
 setting
 settings
@@ -518,6 +531,7 @@ torsion
 tpss
 tpssh
 transition
+transition-state
 treating
 triplets
 true
