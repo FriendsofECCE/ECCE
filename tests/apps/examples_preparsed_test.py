@@ -26,7 +26,7 @@ SKIP = 77
 SETS = {"getting-started": ("Examples/Getting_Started", 5),
         "organic": ("Examples/Organic_Chemistry", 21),
         "spectroscopy": ("Examples/Spectroscopy", 19),
-        "genchem": ("Examples/General_Chemistry", 94)}
+        "genchem": ("Examples/General_Chemistry", 97)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",

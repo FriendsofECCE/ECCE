@@ -1,9 +1,0 @@
-title H- anion, B3LYP/aug-cc-pVTZ (unrestricted), for the electron affinity
-charge -1
-multiplicity 1
-method b3lyp
-basis aug-cc-pVTZ
-runtype energy
-geometry
- H      0.00000000     0.00000000     0.00000000
-end

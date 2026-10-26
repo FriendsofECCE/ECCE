@@ -3148,7 +3148,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "12";
+const char *const kExampleSetVersion = "13";
 
 string treeName(string s)
 {
@@ -3874,121 +3874,130 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"Ar",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the full "
      "third shell of argon, with all its orbitals doubly occupied."},
-    {"He_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the helium"
-     " cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"Li_cation",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the lithium"
-     " cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"Be_cation",
+    {"Li_HF_neutral",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "lithium atom in Hartree-Fock theory; with the cation, Tools > "
+     "Compare Energies gives the ionisation energy as the difference of "
+     "their energies."},
+    {"Li_HF_cation",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the "
+     "lithium cation, the atom after loss of its outermost electron, in "
+     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "the ionisation energy."},
+    {"Be_HF_neutral",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the "
+     "beryllium atom in Hartree-Fock theory; with the cation, Tools > "
+     "Compare Energies gives the ionisation energy as the difference of "
+     "their energies."},
+    {"Be_HF_cation",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "beryllium cation, the atom after loss of its outermost electron, "
+     "in Hartree-Fock theory; its energy minus that of the neutral atom "
+     "is the ionisation energy."},
+    {"C_HF_neutral",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "carbon atom in Hartree-Fock theory; with the cation, Tools > "
+     "Compare Energies gives the ionisation energy as the difference of "
+     "their energies."},
+    {"C_HF_cation",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "carbon cation, the atom after loss of its outermost electron, in "
+     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "the ionisation energy."},
+    {"N_HF_neutral",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "nitrogen atom in Hartree-Fock theory; with the cation, Tools > "
+     "Compare Energies gives the ionisation energy as the difference of "
+     "their energies."},
+    {"N_HF_cation",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "nitrogen cation, the atom after loss of its outermost electron, in "
+     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "the ionisation energy."},
+    {"O_HF_neutral",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "oxygen atom in Hartree-Fock theory; with the cation, Tools > "
+     "Compare Energies gives the ionisation energy as the difference of "
+     "their energies."},
+    {"O_HF_cation",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "oxygen cation, the atom after loss of its outermost electron, in "
+     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "the ionisation energy."},
+    {"F_HF_neutral",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "fluorine atom in Hartree-Fock theory; with the cation, Tools > "
+     "Compare Energies gives the ionisation energy as the difference of "
+     "their energies."},
+    {"F_HF_cation",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
+     "fluorine cation, the atom after loss of its outermost electron, in "
+     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "the ionisation energy."},
+    {"Ne_HF_neutral",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the neon "
+     "atom in Hartree-Fock theory; with the cation, Tools > Compare "
+     "Energies gives the ionisation energy as the difference of their "
+     "energies."},
+    {"Ne_HF_cation",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the neon "
+     "cation, the atom after loss of its outermost electron, in "
+     "Hartree-Fock theory; its energy minus that of the neutral atom is "
+     "the ionisation energy."},
+    {"Li_B3LYP_neutral",
      "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "beryllium cation, the atom after loss of its outermost electron; its "
-     "energy minus that of the neutral atom, which is under Atoms, is the "
-     "first ionisation energy."},
-    {"B_cation",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the boron "
-     "cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"C_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the carbon"
-     " cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"N_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "nitrogen cation, the atom after loss of its outermost electron; its "
-     "energy minus that of the neutral atom, which is under Atoms, is the "
-     "first ionisation energy."},
-    {"O_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the oxygen"
-     " cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"F_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "fluorine cation, the atom after loss of its outermost electron; its "
-     "energy minus that of the neutral atom, which is under Atoms, is the "
-     "first ionisation energy."},
-    {"Ne_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the neon "
-     "cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"Na_cation",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the sodium "
-     "cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"Mg_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "magnesium cation, the atom after loss of its outermost electron; its "
-     "energy minus that of the neutral atom, which is under Atoms, is the "
-     "first ionisation energy."},
-    {"Al_cation",
+     "lithium atom; with the anion, Tools > Compare Energies gives the "
+     "electron affinity as the difference of their energies."},
+    {"Li_anion",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "aluminium cation, the atom after loss of its outermost electron; its "
-     "energy minus that of the neutral atom, which is under Atoms, is the "
-     "first ionisation energy."},
-    {"Si_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "silicon cation, the atom after loss of its outermost electron; its "
-     "energy minus that of the neutral atom, which is under Atoms, is the "
-     "first ionisation energy."},
-    {"P_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "phosphorus cation, the atom after loss of its outermost electron; its "
-     "energy minus that of the neutral atom, which is under Atoms, is the "
-     "first ionisation energy."},
-    {"S_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the sulfur"
-     " cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"Cl_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "chlorine cation, the atom after loss of its outermost electron; its "
-     "energy minus that of the neutral atom, which is under Atoms, is the "
-     "first ionisation energy."},
-    {"Ar_cation",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the argon "
-     "cation, the atom after loss of its outermost electron; its energy "
-     "minus that of the neutral atom, which is under Atoms, is the first "
-     "ionisation energy."},
-    {"H_anion",
+     "lithium anion, the atom with one extra electron; the energy of the "
+     "neutral atom minus the energy of this anion is the electron "
+     "affinity."},
+    {"Be_B3LYP_neutral",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "hydrogen anion, the atom with one extra electron; the energy of the "
-     "neutral atom, which is under Atoms, minus the energy of this anion is "
-     "the electron affinity."},
+     "beryllium atom; with the anion, Tools > Compare Energies gives the "
+     "electron affinity as the difference of their energies."},
+    {"Be_anion",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "beryllium anion, the atom with one extra electron; the energy of "
+     "the neutral atom minus the energy of this anion is the electron "
+     "affinity."},
+    {"C_B3LYP_neutral",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "carbon atom; with the anion, Tools > Compare Energies gives the "
+     "electron affinity as the difference of their energies."},
+    {"N_B3LYP_neutral",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "nitrogen atom; with the anion, Tools > Compare Energies gives the "
+     "electron affinity as the difference of their energies."},
+    {"O_B3LYP_neutral",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "oxygen atom; with the anion, Tools > Compare Energies gives the "
+     "electron affinity as the difference of their energies."},
+    {"F_B3LYP_neutral",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "fluorine atom; with the anion, Tools > Compare Energies gives the "
+     "electron affinity as the difference of their energies."},
     {"C_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the carbon"
-     " anion, the atom with one extra electron; the energy of the neutral "
-     "atom, which is under Atoms, minus the energy of this anion is the "
-     "electron affinity."},
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "carbon anion, the atom with one extra electron; the energy of the "
+     "neutral atom minus the energy of this anion is the electron "
+     "affinity."},
     {"N_anion",
      "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "nitrogen anion, the atom with one extra electron; the energy of the "
-     "neutral atom, which is under Atoms, minus the energy of this anion is "
-     "the electron affinity."},
+     "nitrogen anion, the atom with one extra electron; the energy of "
+     "the neutral atom minus the energy of this anion is the electron "
+     "affinity."},
     {"O_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the oxygen"
-     " anion, the atom with one extra electron; the energy of the neutral "
-     "atom, which is under Atoms, minus the energy of this anion is the "
-     "electron affinity."},
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "oxygen anion, the atom with one extra electron; the energy of the "
+     "neutral atom minus the energy of this anion is the electron "
+     "affinity."},
     {"F_anion",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "fluorine anion, the atom with one extra electron; the energy of the "
-     "neutral atom, which is under Atoms, minus the energy of this anion is "
-     "the electron affinity."},
-    {"Cl_anion",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "chlorine anion, the atom with one extra electron; the energy of the "
-     "neutral atom, which is under Atoms, minus the energy of this anion is "
-     "the electron affinity."},
+     "fluorine anion, the atom with one extra electron; the energy of "
+     "the neutral atom minus the energy of this anion is the electron "
+     "affinity."},
     {"H_HF",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
      "energies of the hydrogen atom in Hartree-Fock theory, where minus the "

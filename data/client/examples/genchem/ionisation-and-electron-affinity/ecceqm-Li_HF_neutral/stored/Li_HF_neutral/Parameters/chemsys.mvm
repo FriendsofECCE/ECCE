@@ -1,0 +1,11 @@
+title: Li_HF_neutral
+type: molecule
+num_atoms: 1
+atom_info: symbol cart
+atom_list: 
+Li 0.00000 0.00000 0.00000
+attr_list:
+ 0.000000   1   0   0   0
+atom_type_list:
+        0   1
+num_bonds: 0

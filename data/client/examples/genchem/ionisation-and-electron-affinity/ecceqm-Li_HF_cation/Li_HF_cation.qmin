@@ -1,0 +1,11 @@
+title Li+ cation, HF/aug-cc-pVTZ, for the ionisation energy
+charge 1
+multiplicity 1
+method hf
+basis aug-cc-pVTZ
+runtype energy
+conv_energy 1e-8
+conv_grad 1e-4
+geometry
+ Li      0.00000000     0.00000000     0.00000000
+end

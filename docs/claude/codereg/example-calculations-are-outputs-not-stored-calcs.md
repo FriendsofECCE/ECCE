@@ -11,7 +11,7 @@ go through the ordinary importer, so they stay valid when the stored format
 changes. Folders are grouped in sets (`general`: at most five calcs, imported at first
 start into `Examples`; `computational`: the GROMACS Trp-cage, into
 `Examples_Computational`; `genchem` -> `Examples_GeneralChemistry`, seven GROMACS
-runs and 94 ECCE-QM calcs in seven topics (#559; a calc name must be unique
+runs and 97 ECCE-QM calcs in seven topics (#559; a calc name must be unique
 in the set, the test harness counts by name, and `+`/`-` are written
 `_cation`/`_anion`/`_HF`) (one `1-dynamics` task each, see md-speed-and-msd-come-from-the-mdanalysis-program.md);
 `organic` -> `Examples_Organic`, 17 calcs, and

@@ -1,0 +1,11 @@
+title N+ cation, HF/aug-cc-pVTZ (unrestricted), for the ionisation energy
+charge 1
+multiplicity 3
+method uhf
+basis aug-cc-pVTZ
+runtype energy
+conv_energy 1e-8
+conv_grad 1e-4
+geometry
+ N      0.00000000     0.00000000     0.00000000
+end
