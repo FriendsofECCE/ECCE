@@ -30,8 +30,10 @@
 //   solvent <name|none>          implicit solvent (CPCM, conductor-like PCM):
 //                                water, methanol, ethanol, acetonitrile, dmso,
 //                                chloroform, toluene, hexane; the energy and
-//                                orbitals are those in the reaction field.
-//                                Energy runs only: there is no gradient yet
+//                                orbitals are those in the reaction field;
+//                                gradients are analytic, frequencies use the
+//                                finite-difference Hessian; polarizability and
+//                                raman are refused
 //   epsilon <x>                  the same with a dielectric constant of your own
 //   cavity_scale <x>             solvent cavity: atomic spheres of x * Bondi radii (1.2)
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken

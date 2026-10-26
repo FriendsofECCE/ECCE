@@ -283,9 +283,9 @@ Input parse_input(std::istream& in) {
     r.scan.on = true;
     if (r.runtype != RunType::Optimize) throw bad("scan needs runtype optimize");
   }
-  if (r.scf.solvent_eps > 0 && (r.runtype != RunType::Energy || r.polarizability || r.raman))
-    throw Error("a solvent (CPCM) is only available for runtype energy: analytic gradients with solvent are not implemented, "
-                "so gradient, optimize, frequency, ts, irc, scans and polarizability are refused; remove the solvent or use runtype energy");
+  if (r.scf.solvent_eps > 0 && (r.polarizability || r.raman))
+    throw Error("a solvent (CPCM) is not available with polarizability or raman: the solvent response to a field is not implemented; "
+                "remove the solvent for those properties");
   if (r.raman && !does_frequencies(r.runtype)) throw Error("raman needs runtype frequency or optfreq");
   if (r.field_step <= 0) throw Error("field_step must be positive");
   if (r.runtype == RunType::TS && (!r.opt.constraints.empty() || r.mol.without_dummies().atoms.size() != r.mol.atoms.size()))

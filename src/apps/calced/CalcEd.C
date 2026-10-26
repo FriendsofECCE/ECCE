@@ -1540,9 +1540,11 @@ void CalcEd::updateNotes()
         "break the starting symmetry";
   if (p_codeName == "ECCE-QM" && p_GUIValues) {
     GUIValue *solv = p_GUIValues->get("ES.Theory.ECCEQM.Solvent");
+    GUIValue *tick = p_GUIValues->get("ES.Runtype.Vibration.UseRaman");
     const string warn = qmSolventWarning(
         solv ? solv->getValueAsString() : string(),
-        getRuntypeName().ToStdString());
+        getRuntypeName().ToStdString(),
+        tick != NULL && tick->getValueAsString() == "1");
     if (!warn.empty())
       note += string(note.empty() ? "" : "\n") + warn;
   }

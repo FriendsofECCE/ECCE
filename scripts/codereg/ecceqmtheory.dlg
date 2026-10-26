@@ -20,9 +20,8 @@ check name=ES.Theory.ECCEQM.MK label=" Merz-Kollman (fitted to the electrostatic
 box label="Orbitals"
 combo name=ES.Theory.ECCEQM.Virtuals label="Virtual orbitals:" choices="Canonical|Improved (IVO)" default=Canonical export=1
 
-# Implicit solvent (CPCM).  Energies and orbitals only: the engine has no
-# solvent gradient, so other run types are warned about in the message area.
+# Implicit solvent (CPCM).  Every run type but Raman works; the Calculation
+# Editor and the Launcher warn about Raman.
 box label="Solvent"
 combo name=ES.Theory.ECCEQM.Solvent label="Solvent:" choices="None|Water|Methanol|Ethanol|Acetonitrile|DMSO|Chloroform|Toluene|Hexane|Custom" default=None export=1
 float name=ES.Theory.ECCEQM.Epsilon label="Dielectric constant (Custom):" default=78.4 hard="[1..)" soft="[1.5..110]" export=1 enable_if="ES.Theory.ECCEQM.Solvent==Custom"
-status text="Solvent: only energies and orbitals are available; this run type will be refused by the engine" when="ES.Theory.ECCEQM.Solvent!=None && runtype!=Energy"

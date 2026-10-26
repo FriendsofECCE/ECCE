@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
       // A saddle-point walk needs the curvature at every step; that is cheap
       // when the Hessian is analytic and too dear to be the default otherwise.
       qm::OptOptions ts_opt = in.opt;
-      if (ts_opt.ts_hessian_every < 0) ts_opt.ts_hessian_every = in.scf.method == "hf" && in.scf.reference == qm::Reference::Restricted && !in.numeric_hessian ? 1 : 0;
+      if (ts_opt.ts_hessian_every < 0) ts_opt.ts_hessian_every = in.scf.solvent_eps <= 0 && in.scf.method == "hf" && in.scf.reference == qm::Reference::Restricted && !in.numeric_hessian ? 1 : 0;
       qm::OptResult res = in.runtype == qm::RunType::TS
                               ? qm::optimize_ts(in.mol, ts_opt, evaluate, ts_hessian, on_step)
                               : qm::optimize_geometry(in.mol, in.opt, evaluate, on_step);
