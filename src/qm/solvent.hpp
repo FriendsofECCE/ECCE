@@ -43,9 +43,16 @@ class Cpcm {
   Vec nuclear_potential(const Molecule& mol) const;
   // Charges q = F p with M p = -f V; the energy of the polarised medium is q.V/2.
   Vec charges(const Vec& V) const;
+  // Adds to g (3 per atom) the part of dE_pol/dx that does not involve the
+  // electrons: q.dV_nuc/dx and q.(dA/dx).q/(2f), A q = -f V.  Points move with
+  // their atom; the Gaussian exponents are fixed.
+  void add_gradient(const Molecule& mol, const Vec& q, std::vector<double>& g) const;
+  int atom_of(int k) const { return atom_[k]; }
 
  private:
   double f_;
+  std::vector<int> atom_;
+  std::vector<double> R_;
   std::vector<std::array<double, 3>> pos_;
   std::vector<double> zeta_, F_;
   Eigen::PartialPivLU<Mat> lu_;
@@ -55,12 +62,16 @@ class Cpcm {
 // and the Fock contribution of a set of charges.
 class CpcmField {
  public:
-  CpcmField(Basis& basis, const Molecule& mol, double eps, double radius_scale = 1.2);
+  // cache = false skips the per-point integral table (gradients only need V once).
+  CpcmField(Basis& basis, const Molecule& mol, double eps, double radius_scale = 1.2, bool cache = true);
   const Cpcm& cavity() const { return cav_; }
   // Total potential (nuclei minus electrons of density Dt) at the points.
   Vec potential(const Mat& Dt);
   // Fock matrix term -sum_k q_k <mu|1/|r-r_k||nu> (both spins alike).
   Mat fock(const Vec& q);
+  // Adds q.dV_el/dx (basis-centre and point derivatives of the electronic
+  // potential) to g.
+  void add_electronic_gradient(const Mat& Dt, const Vec& q, std::vector<double>& g);
 
  private:
   Basis& basis_;

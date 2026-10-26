@@ -56,6 +56,7 @@ Cpcm::Cpcm(const Molecule& mol, double eps, double radius_scale, int nang) {
   const int na = static_cast<int>(mol.atoms.size());
   std::vector<double> R(na);
   for (int i = 0; i < na; ++i) R[i] = radius_scale * cavity_radius(mol.atoms[i].Z) * kAngstromToBohr;
+  R_ = R;
   for (int i = 0; i < na; ++i)
     for (const auto& q : rule) {
       std::array<double, 3> p;
@@ -72,6 +73,7 @@ Cpcm::Cpcm(const Molecule& mol, double eps, double radius_scale, int nang) {
       }
       if (F < kMinExposure) continue;
       pos_.push_back(p);
+      atom_.push_back(i);
       zeta_.push_back(zeta);
       F_.push_back(F);
     }
@@ -109,9 +111,99 @@ Vec Cpcm::charges(const Vec& V) const {
   return p;
 }
 
-CpcmField::CpcmField(Basis& basis, const Molecule& mol, double eps, double radius_scale)
+void Cpcm::add_gradient(const Molecule& mol, const Vec& q, std::vector<double>& g) const {
+  const int n = size(), na = static_cast<int>(mol.atoms.size());
+  for (int k = 0; k < n; ++k) {
+    const int ik = atom_[k];
+    double tot[3] = {0, 0, 0};
+    for (int a = 0; a < na; ++a) {
+      double d[3], r2 = 0;
+      for (int c = 0; c < 3; ++c) { d[c] = pos_[k][c] - mol.atoms[a].x[c]; r2 += d[c] * d[c]; }
+      const double s = mol.atoms[a].Z / (r2 * std::sqrt(r2));
+      for (int c = 0; c < 3; ++c) { g[3 * a + c] += q(k) * s * d[c]; tot[c] += s * d[c]; }
+    }
+    for (int c = 0; c < 3; ++c) g[3 * ik + c] -= q(k) * tot[c];
+    // d A_kk = -zeta sqrt(2/pi) dF / F^2; F = product of the steps of the other spheres.
+    const double pref = q(k) * q(k) / (2.0 * f_) * (-zeta_[k] * std::sqrt(2.0 / kPi) / (F_[k] * F_[k]));
+    std::vector<double> s(na, 1.0), ds(na, 0.0), dd(na, 0.0);
+    std::vector<std::array<double, 3>> e(na);
+    for (int j = 0; j < na; ++j) {
+      if (j == ik) continue;
+      double d[3], r2 = 0;
+      for (int c = 0; c < 3; ++c) { d[c] = pos_[k][c] - mol.atoms[j].x[c]; r2 += d[c] * d[c]; }
+      const double r = std::sqrt(r2), x = zeta_[k] * (r - R_[j]);
+      s[j] = 0.5 * (1.0 + std::erf(x));
+      ds[j] = zeta_[k] / std::sqrt(kPi) * std::exp(-x * x);
+      for (int c = 0; c < 3; ++c) e[j][c] = d[c] / r;
+    }
+    for (int j = 0; j < na; ++j) {
+      if (j == ik) continue;
+      double rest = 1.0;
+      for (int m = 0; m < na; ++m)
+        if (m != ik && m != j) rest *= s[m];
+      const double dF = rest * ds[j];  // dF/dd_j
+      for (int c = 0; c < 3; ++c) {
+        g[3 * j + c] -= pref * dF * e[j][c];
+        g[3 * ik + c] += pref * dF * e[j][c];
+      }
+    }
+    for (int l = 0; l < k; ++l) {
+      double d[3], r2 = 0;
+      for (int c = 0; c < 3; ++c) { d[c] = pos_[k][c] - pos_[l][c]; r2 += d[c] * d[c]; }
+      const double r = std::sqrt(r2);
+      const double z = zeta_[k] * zeta_[l] / std::sqrt(zeta_[k] * zeta_[k] + zeta_[l] * zeta_[l]);
+      const double dA = 2.0 * z / std::sqrt(kPi) * std::exp(-z * z * r2) / r - std::erf(z * r) / r2;
+      const double w = q(k) * q(l) / f_ * dA / r;
+      for (int c = 0; c < 3; ++c) {
+        g[3 * ik + c] += w * d[c];
+        g[3 * atom_[l] + c] -= w * d[c];
+      }
+    }
+  }
+}
+
+void CpcmField::add_electronic_gradient(const Mat& Dt, const Vec& q, std::vector<double>& g) {
+  Basis& b = basis_;
+  const auto& sh = b.shells();
+  const int ns = b.nshl(), np = cav_.size(), natm = static_cast<int>(g.size() / 3);
+  const bool sp = b.spherical();
+  auto f = sp ? int1e_iprinv_sph : int1e_iprinv_cart;
+#pragma omp parallel
+  {
+    std::vector<double> env = b.env(), buf, cache, gt(g.size(), 0.0);
+#pragma omp for schedule(dynamic, 4)
+    for (int k = 0; k < np; ++k) {
+      for (int c = 0; c < 3; ++c) env[PTR_RINV_ORIG + c] = cav_.points()[k][c];
+      double tot[3] = {0, 0, 0};
+      for (int I = 0; I < ns; ++I)
+        for (int J = 0; J < ns; ++J) {
+          int shls[2] = {I, J};
+          const int ni = sh[I].nao, nj = sh[J].nao;
+          buf.assign(static_cast<size_t>(ni) * nj * 3, 0.0);
+          const size_t cs = f(nullptr, nullptr, shls, b.atm().data(), b.natm(), b.bas().data(), ns, env.data(), nullptr, nullptr);
+          cache.resize(cs + 16);
+          f(buf.data(), nullptr, shls, b.atm().data(), b.natm(), b.bas().data(), ns, env.data(), nullptr, cache.data());
+          for (int c = 0; c < 3; ++c) {
+            double acc = 0;
+            for (int j = 0; j < nj; ++j)
+              for (int i = 0; i < ni; ++i) acc += Dt(sh[I].ao0 + i, sh[J].ao0 + j) * buf[c * ni * nj + j * ni + i];
+            acc *= 2.0;
+            gt[3 * sh[I].atom + c] += q(k) * acc;
+            tot[c] += acc;
+          }
+        }
+      for (int c = 0; c < 3; ++c) gt[3 * cav_.atom_of(k) + c] -= q(k) * tot[c];
+    }
+#pragma omp critical
+    for (size_t i = 0; i < g.size(); ++i) g[i] += gt[i];
+  }
+  (void)natm;
+}
+
+CpcmField::CpcmField(Basis& basis, const Molecule& mol, double eps, double radius_scale, bool cache)
     : basis_(basis), cav_(mol, eps, radius_scale), vnuc_(cav_.nuclear_potential(mol)) {
   const int n = basis.nbf(), np = cav_.size();
+  if (!cache) return;
   if (static_cast<double>(np) * n * n * 8.0 <= 1.0e9) {
     P_.resize(np, static_cast<Eigen::Index>(n) * n);
     cached_ = true;

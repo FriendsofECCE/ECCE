@@ -87,7 +87,9 @@ void add_second(Mat& H, const Mat& w, const MatV& ii, const MatV& ij, const std:
 }  // namespace
 
 bool analytic_hessian_available(const ScfOptions& opt, const ScfResult& r) {
-  return opt.method == "hf" && opt.reference == Reference::Restricted && r.reference == Reference::Restricted &&
+  // The analytic Hessian has no reaction-field term; with a solvent the
+  // finite-difference one (of solvated gradients) is used.
+  return opt.solvent_eps <= 0 && opt.method == "hf" && opt.reference == Reference::Restricted && r.reference == Reference::Restricted &&
          r.nalpha == r.nbeta && r.nalpha > 0 && opt.field[0] == 0 && opt.field[1] == 0 && opt.field[2] == 0;
 }
 

@@ -114,8 +114,8 @@ class EcceqmTheoryPanel(EccePanel):
                                         label="Virtual orbitals:",
                                         export=1))
         self.panelSizer.Add(locSizer)
-        # CPCM implicit solvent; the engine has no solvent gradient, so only
-        # energy runs work and other run types get a warning here.
+        # CPCM implicit solvent, all run types except Raman (warned about by
+        # the Calculation Editor and the Launcher, which see the Raman tick).
         solvSizer = EcceBoxSizer(self, label="Solvent", cols=1)
         self.solvent = EcceComboBox(self,
                                     choices=SOLVENTS,
@@ -144,10 +144,6 @@ class EcceqmTheoryPanel(EccePanel):
         self.closedNote.Show(not openShell)
         solvent = self.solvent.GetValue()
         self.epsilon.Enable(solvent == "Custom")
-        if solvent != "None" and EcceGlobals.RunType != "Energy":
-            self.SetStatusText("Solvent: only energies and orbitals are available; "
-                               "this run type will be refused by the engine",
-                               EcceGlobals.WARNING)
         self.Layout()
 
 

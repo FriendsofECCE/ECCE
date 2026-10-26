@@ -198,7 +198,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [TD-DFT options (#383): ORCA has no triplets-only switch, c vs 2c^2 weights, vocabulary rebuild](tddft-options-orca-triplets-and-weights-383.md)
 - [NWChem final orbitals as the next job's guess (#407)](nwchem-final-orbitals-movecs-as-guess-407.md) — nwchem.movecs kept; guess.movecsin; same basis only
 - [ECCE-QM final orbitals as guess (#407)](ecceqm-final-orbitals-as-guess-407.md)
-- [ECCE-QM implicit solvent (CPCM): model, keywords, energy runs only, EPCM vs ESOLV, validation against ORCA](ecceqm-cpcm-solvent.md)
+- [ECCE-QM implicit solvent (CPCM): model, keywords, run types, analytic gradient, EPCM vs ESOLV, validation against ORCA](ecceqm-cpcm-solvent.md)
 - [ECCE-QM IRC (#452 stage 2): Gonzalez-Schlegel, panel keys, oracle](ecceqm-irc-452.md)
 - [Example sets and topics are folders plus set.txt; tree Examples/<Set>/<Topic>/<calc>](example-sets-and-topics-are-data.md) — adding an example is data-only; version 9 upgrade
 - [File= properties (GEOMTRACE, MDMSD) are stored last; a long GROMACS log delays them by minutes (#544)](file-parse-properties-are-stored-last.md)

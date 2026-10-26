@@ -1498,10 +1498,10 @@ bool WxLauncher::confirmQmSize()
     if (details != NULL)
     {
         GUIValue *solv = details->get("ES.Theory.ECCEQM.Solvent");
-        solventMsg = qmSolventWarning(solv != NULL ? solv->getValueAsString() : string(),
-                                      calc->runtype().name());
         GUIValue *tick = details->get("ES.Runtype.Vibration.UseRaman");
         raman = tick != NULL && tick->getValueAsString() == "1";
+        solventMsg = qmSolventWarning(solv != NULL ? solv->getValueAsString() : string(),
+                                      calc->runtype().name(), raman);
         delete details;
     }
     if (frag != NULL && config != NULL && theory != NULL)

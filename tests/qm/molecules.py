@@ -33,6 +33,14 @@ def _benzene():
         atoms.append(("H", 2.481 * math.cos(a), 2.481 * math.sin(a), 0))
     return atoms
 
+def _nh4():
+    r = 1.03 / math.sqrt(3)
+    return [("N", 0, 0, 0), ("H", r, r, r), ("H", r, -r, -r), ("H", -r, r, -r), ("H", -r, -r, r)]
+
+def _ch3oh():
+    return [("C", -0.0467, 0.6636, 0.0), ("O", -0.0467, -0.7559, 0.0), ("H", -1.0850, 0.9775, 0.0),
+            ("H", 0.4402, 1.0680, 0.8903), ("H", 0.4402, 1.0680, -0.8903), ("H", 0.8589, -1.0620, 0.0)]
+
 # name -> (charge, multiplicity, atoms)
 MOLECULES = {
     "h2o": (0, 1, _h2o()),
@@ -44,6 +52,9 @@ MOLECULES = {
     "c2": (0, 1, _diatomic("C", "C", 1.2425)),
     "o2": (0, 3, _diatomic("O", "O", 1.2075)),
     "he2": (0, 1, _diatomic("He", "He", 3.0)),
+    "nh4": (1, 1, _nh4()),
+    "ch3oh": (0, 1, _ch3oh()),
+    "nh3+": (1, 2, _nh3()),
     "hf": (0, 1, _diatomic("H", "F", 0.917)),
     "hcl": (0, 1, _diatomic("H", "Cl", 1.275)),
 }

@@ -4,6 +4,7 @@
 #include <memory>
 #include "cint_wrap.hpp"
 #include "integrals.hpp"
+#include "solvent.hpp"
 #include "xc.hpp"
 
 namespace qm {
@@ -168,6 +169,16 @@ std::vector<double> scf_gradient(Basis& basis, const Molecule& mol, const ScfOpt
       for (int k = 0; k < 3 * natm; ++k) g[k] += gt[k];
     }
     CINTdel_optimizer(&opt2);
+  }
+
+  // The converged Fock matrix already carries the reaction-field term, so W
+  // above covers the Pulay part; what remains is the explicit dependence of
+  // the polarisation energy on the nuclei.
+  if (opt.solvent_eps > 0) {
+    CpcmField field(basis, mol, opt.solvent_eps, opt.cavity_scale, false);
+    const Vec q = field.cavity().charges(field.potential(Dt));
+    field.cavity().add_gradient(mol, q, g);
+    field.add_electronic_gradient(Dt, q, g);
   }
 
   if (!fs.is_hf()) {
