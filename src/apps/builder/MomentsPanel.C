@@ -153,14 +153,16 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
        }
 
        optionsSizer->AddSpacer(3);
+       // The dipole arrow runs between the charge poles: no scale.
+       if (!isDipole()) {
        label = new ewxStaticText( panel, wxID_STATIC,
-             isDipole() ? wxString::FromUTF8("Length, \u00c5 per D:") :
              isPolarizability() ?
                 wxString::FromUTF8("Size, \u00c5 per 10 a.u.:") :
              isMultipole() ? wxString::FromUTF8("Largest lobe, \u00c5:") :
              _("Scale:"),
              wxDefaultPosition, wxDefaultSize, 0 );
        optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+       }
 
       // Initilialize button color
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
@@ -169,14 +171,11 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
       if (colorbtn) colorbtn->SetBackgroundColour(wxColour(color));
 
       // Add the slider
+      if (!isDipole()) {
       ewxPanel *p = new ewxPanel(this);
       optionsSizer->Add(p, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
       p_slider = new SliderCombo(p, ID_MOMENTS_SLIDER);
-      if (isDipole()) {
-         p_slider->SetRange(0.05, 5.0);
-         p_slider->SetToolTip(wxString::FromUTF8(
-               "Arrow length in \u00c5 per Debye of |\u03bc|"));
-      } else if (isPolarizability()) {
+      if (isPolarizability()) {
          p_slider->SetRange(0.01, 20.0);
          p_slider->SetToolTip(wxString::FromUTF8(
                "Semi-axis length in \u00c5 per 10 a.u. of polarizability"));
@@ -189,6 +188,7 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
          p_slider->SetRange(0.1,10000.0);
          p_slider->SetToolTip("Scale");
       }
+      }
    }
 
    fillTable();
@@ -199,10 +199,17 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
       double mu = 0.0;
       for (int i = 0; vec && i < 3 && i < (int)vec->rows(); i++)
          mu += vec->value(i)*vec->value(i);
+      string key = AddDipoleMomentCmd::chargeKey(calculation);
+      wxString from = key.empty() ?
+         wxString::FromUTF8("The calculation has no atomic charges: the "
+            "arrow is 1 \u00c5 long, through the centre of nuclear charge.") :
+         wxString::Format(wxString::FromUTF8("The poles are the centres of "
+            "negative and positive %s charge."),
+            AddDipoleMomentCmd::chargeName(key));
       wxString note = wxString::Format(wxString::FromUTF8(
-         "|\u03bc| = %.3f D. The arrow starts at the centre of nuclear "
-         "charge and points along \u03bc as the code reports it: from the "
-         "negative to the positive end."), sqrt(mu));
+         "|\u03bc| = %.3f D. The arrow runs from the negative to the "
+         "positive pole, along \u03bc; its length follows the geometry, "
+         "not |\u03bc|. %s"), sqrt(mu), from);
       ewxStaticText *text = new ewxStaticText(panel, wxID_STATIC, note);
       text->Wrap(260);
       GetSizer()->Add(text, 0, wxALIGN_LEFT|wxALL, 3);
@@ -329,6 +336,7 @@ void MomentsPanel::loseFocus()
    SGContainer& sg = getFW().getSceneGraph();
    SoSwitch *pswitch = sg.getPropertySwitch(*(getPropertyNames().begin()));
    pswitch->whichChild.setValue(SO_SWITCH_NONE);
+   if (isDipole()) getFW().getViewer().setURightText("");
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
 }
 
@@ -378,14 +386,23 @@ void MomentsPanel::showVectors(bool guessScale)
    string pname = *(props.begin());
    cmd->getParameter("property")->setString(pname);
    cmd->getParameter("neutral")->setString(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
-   cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue());
-   if (guessScale) {
+   if (p_slider) cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue());
+   if (guessScale && p_slider) {
       cmd->getParameter("newData")->setBoolean(guessScale);
    }
 
    fw.execute(cmd);
 
-   if (guessScale) {
+   if (isDipole()) {
+      PropVector *mu = (PropVector*) expt->getProperty(pname);
+      double m2 = 0.0;
+      for (int i = 0; mu && i < 3 && i < (int)mu->rows(); i++)
+         m2 += mu->value(i)*mu->value(i);
+      fw.getViewer().setURightText(AddDipoleMomentCmd::label(sqrt(m2),
+            AddDipoleMomentCmd::chargeKey(expt)));
+   }
+
+   if (guessScale && p_slider) {
       p_slider->SetValue(cmd->getParameter("Amplitude")->getDouble());
    }
 }

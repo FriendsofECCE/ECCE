@@ -122,6 +122,9 @@
 #include "MiniPerTab.H"
 #include "ElementChooser.H"
 #include "viz/VRVector.H"
+#include "inv/nodes/SoText2.H"
+#include "viz/ForegroundCmd.H"
+#include "wxgui/SliderCombo.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 
@@ -1316,7 +1319,39 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: overlay tab=%d%s\n", p_columnTab,
                 list.c_str());
+      } else if (w[0] == "background" && w.size() == 4) {
+        getViewer().setBackgroundColor(SbColor(atof(w[1].c_str()),
+            atof(w[2].c_str()), atof(w[3].c_str())));
+        SbColor fg = getViewer().calculateContrastingColor();
+        ForegroundCmd fgCmd("Foreground", getSG());
+        fgCmd.getParameter("red")->setDouble(fg[0]);
+        fgCmd.getParameter("green")->setDouble(fg[1]);
+        fgCmd.getParameter("blue")->setDouble(fg[2]);
+        fgCmd.execute();
+      } else if (w[0] == "viewall") {
+        getViewer().viewAll();
+      } else if ((w[0] == "rotate" || w[0] == "rotatex") && w.size() == 2) {
+        // Orbit the camera about the world y (rotatex: x) axis, in degrees.
+        SoCamera *cam = getViewer().getCamera();
+        SbRotation r(w[0] == "rotate" ? SbVec3f(0, 1, 0) : SbVec3f(1, 0, 0),
+                     (float)(atof(w[1].c_str()) * M_PI / 180.0));
+        SbVec3f np;
+        r.multVec(cam->position.getValue(), np);
+        cam->position.setValue(np);
+        cam->orientation.setValue(r * cam->orientation.getValue());
       } else if (w[0] == "vector" && w.size() == 2) {
+        {
+          int sliders = 0;
+          std::function<void(wxWindow*)> count = [&](wxWindow *win) {
+            if (dynamic_cast<SliderCombo*>(win)) sliders++;
+            for (wxWindow *c : win->GetChildren()) count(c);
+          };
+          for (VizPropertyPanel *panel : VizPropertyPanel::getPanels(
+                   p_calculation->getURL().toString()))
+            if (panel->getName() == w[1] || panel->hasFocus()) count(panel);
+          fprintf(stderr, "BUILDER: vector %s slider=%d\n", w[1].c_str(),
+                  sliders);
+        }
         SoSearchAction sa;
         sa.setType(VRVector::getClassTypeId(), FALSE);
         sa.setInterest(SoSearchAction::ALL);
@@ -1344,6 +1379,8 @@ void Builder::runBuilderScript(const std::string& file)
                   pv->value(2), sqrt(pv->value(0)*pv->value(0) +
                   pv->value(1)*pv->value(1) + pv->value(2)*pv->value(2)),
                   pv->units().c_str());
+        fprintf(stderr, "BUILDER: vector %s label=%s\n", w[1].c_str(),
+                getViewer().getURightText().c_str());
         double longest = 0.0;
         vector<TBond*> *bonds = frag ? frag->bonds() : 0;
         for (size_t b = 0; bonds && b < bonds->size(); b++)

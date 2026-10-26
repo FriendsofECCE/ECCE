@@ -375,8 +375,10 @@ def hfCase(s, display, env, wrappers, png):
     #  The arrow's own yellow (r and g alike, no blue); the light green of
     #  fluorine is not it.
     n = int(((r > 120) & (abs(r - g) < 35) & (b < 0.5 * r)).sum())
-    #  85 without the second pass (a sliver at the hydrogen), 429 with it.
-    check(n > 250, "hf: %d yellow pixels in the viewer" % n)
+    #  About 85 without the second pass (a sliver at the hydrogen), 222 with
+    #  it now that the arrow is thinner (429 at the old 0.06 A shaft).
+    check(n > 150, "hf: %d yellow pixels in the viewer" % n)
+
 
 
 def coloursCase(s, display, env, wrappers, png):
@@ -605,8 +607,9 @@ def multipoleCase(s, display, env, wrappers, png):
 
 
 def dipoleArrow(text):
-    """#266: the arrow as drawn is 0.5 A per Debye from the centre of nuclear
-    charge, along mu (negative to positive end), with a constant shaft."""
+    """#578: the arrow runs between the charge poles along mu, with a
+    constant shaft and the corner text; the poles are checked in
+    dipole_poles_test.py."""
     arrow = value = None
     for line in text.splitlines():
         if line.startswith("BUILDER: vector DIPOLE 0 "):
@@ -620,17 +623,13 @@ def dipoleArrow(text):
     norm = sum(v * v for v in mu) ** 0.5
     u = [float(v) for v in arrow["dir"].split(",")]
     length = float(arrow["length"])
-    check(abs(length - 0.5 * norm) < 0.01,
-          "arrow %.3f A for |mu| %.3f D (0.5 A/D)" % (length, norm))
+    check(length > 0.1, "arrow %.3f A between the charge poles" % length)
     check(sum(a * b for a, b in zip(u, mu)) / norm > 0.999,
           "arrow along mu: %s vs %s" % (arrow["dir"], value))
-    check(abs(float(arrow["radius"]) - 0.15) < 0.01,
+    check(abs(float(arrow["radius"]) - 0.10) < 0.01,
           "head radius %s A" % arrow["radius"])
-    # Centre of nuclear charge of the fixture's last geometry.
-    zc = (8 * -0.0822784 + 2 * 0.4910908) / 10
-    start = [float(v) for v in arrow["start"].split(",")]
-    check(abs(start[2] - zc) < 0.002 and abs(start[0]) < 0.002,
-          "starts at the centre of nuclear charge: %s" % arrow["start"])
+    check("label=Dipole moment %.2f D (Mulliken charges)" % norm in text,
+          "the corner text gives |mu| %.2f D" % norm)
 
 
 def thumbnailCase(s, display, env, wrappers, png):
