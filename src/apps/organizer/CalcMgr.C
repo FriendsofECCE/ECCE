@@ -3083,7 +3083,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "10";
+const char *const kExampleSetVersion = "11";
 
 string treeName(string s)
 {
@@ -3748,12 +3748,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "10^-5 cm^2/s, about three times smaller than for water); use Compare "
      "to draw the water over it."},
     {"nacl-dissolving",
-     "GROMACS, a NaCl crystal of 216 ions in 2805 SPC/E water molecules "
-     "(Joung-Cheatham ions), 300 K, 1 bar, 100 ns. This calculation shows "
-     "the crystal dissolving: ions leave from the corners and edges first, "
-     "and after 100 ns 206 of the 216 ions have no counter-ion within "
-     "0.35 nm; the salt concentration, about 2 mol/kg, is below what this "
-     "model dissolves."},
+     "GROMACS, a NaCl crystal of 64 ions in 4005 SPC/E water molecules "
+     "(Joung-Cheatham ions), 300 K, 1 bar, 20 ns; the trajectory holds the "
+     "first 2.4 ns, centred on the crystal. This calculation shows the "
+     "crystal dissolving: ions leave from the corners and edges first, each "
+     "taking a shell of water molecules with it."},
     {"ice-to-steam",
      "GROMACS, a slab of 1600 TIP4P/Ice molecules (ice Ih) with vacuum "
      "above and below, heated from 200 K to 500 K over 30 ns and held at "
