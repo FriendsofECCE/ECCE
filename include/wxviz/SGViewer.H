@@ -81,6 +81,7 @@ public:
   void setLRightText(const string& text);
   void setULeftText(const string& text);
   void setURightText(const string& text);
+  string getURightText() const { return p_cornerText[3]; }
 
   virtual SbBool processCommonEvents(wxEvent * event);
 

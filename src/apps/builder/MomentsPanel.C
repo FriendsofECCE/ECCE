@@ -336,6 +336,7 @@ void MomentsPanel::loseFocus()
    SGContainer& sg = getFW().getSceneGraph();
    SoSwitch *pswitch = sg.getPropertySwitch(*(getPropertyNames().begin()));
    pswitch->whichChild.setValue(SO_SWITCH_NONE);
+   if (isDipole()) getFW().getViewer().setURightText("");
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
 }
 
@@ -391,6 +392,15 @@ void MomentsPanel::showVectors(bool guessScale)
    }
 
    fw.execute(cmd);
+
+   if (isDipole()) {
+      PropVector *mu = (PropVector*) expt->getProperty(pname);
+      double m2 = 0.0;
+      for (int i = 0; mu && i < 3 && i < (int)mu->rows(); i++)
+         m2 += mu->value(i)*mu->value(i);
+      fw.getViewer().setURightText(AddDipoleMomentCmd::label(sqrt(m2),
+            AddDipoleMomentCmd::chargeKey(expt)));
+   }
 
    if (guessScale && p_slider) {
       p_slider->SetValue(cmd->getParameter("Amplitude")->getDouble());

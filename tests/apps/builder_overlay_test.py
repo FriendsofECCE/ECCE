@@ -608,7 +608,7 @@ def multipoleCase(s, display, env, wrappers, png):
 
 def dipoleArrow(text):
     """#578: the arrow runs between the charge poles along mu, with a
-    constant shaft and the label; the poles are checked in
+    constant shaft and the corner text; the poles are checked in
     dipole_poles_test.py."""
     arrow = value = None
     for line in text.splitlines():
@@ -628,8 +628,8 @@ def dipoleArrow(text):
           "arrow along mu: %s vs %s" % (arrow["dir"], value))
     check(abs(float(arrow["radius"]) - 0.10) < 0.01,
           "head radius %s A" % arrow["radius"])
-    check("label=mu = %.2f D" % norm in text,
-          "the arrow is labelled with |mu| %.2f D" % norm)
+    check("label=Dipole moment %.2f D (Mulliken charges)" % norm in text,
+          "the corner text gives |mu| %.2f D" % norm)
 
 
 def thumbnailCase(s, display, env, wrappers, png):

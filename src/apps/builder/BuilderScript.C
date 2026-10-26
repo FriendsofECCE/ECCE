@@ -1379,17 +1379,8 @@ void Builder::runBuilderScript(const std::string& file)
                   pv->value(2), sqrt(pv->value(0)*pv->value(0) +
                   pv->value(1)*pv->value(1) + pv->value(2)*pv->value(2)),
                   pv->units().c_str());
-        {
-          SoSearchAction ta;
-          ta.setType(SoText2::getClassTypeId(), FALSE);
-          ta.setInterest(SoSearchAction::ALL);
-          ta.apply(getSG()->getPropertySwitch(w[1]));
-          for (int k = 0; k < ta.getPaths().getLength(); k++) {
-            SoText2 *t = (SoText2 *)ta.getPaths()[k]->getTail();
-            fprintf(stderr, "BUILDER: vector %s label=%s\n", w[1].c_str(),
-                    t->string[0].getString());
-          }
-        }
+        fprintf(stderr, "BUILDER: vector %s label=%s\n", w[1].c_str(),
+                getViewer().getURightText().c_str());
         double longest = 0.0;
         vector<TBond*> *bonds = frag ? frag->bonds() : 0;
         for (size_t b = 0; bonds && b < bonds->size(); b++)

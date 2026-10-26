@@ -15,15 +15,15 @@ positive pole along that line.
 
 The length of the arrow is the distance between the poles. It follows the
 geometry of the molecule and does not scale with the size of the moment; a
-water molecule gives a short arrow. The label beside the head reads
-**mu = x.xx D** and carries the magnitude. When the moment is zero, as for
-carbon dioxide, there is no arrow and the label reads **mu = 0**.
+water molecule gives a short arrow. The magnitude is in the upper right corner
+of the 3-D view, for example **Dipole moment 1.79 D (ESP charges)**, and
+disappears when the panel is left. When the moment is zero, as for carbon
+dioxide, there is no arrow and the text reads **Dipole moment 0 D**.
 
 The atomic charges are the CHELPG (ESP-fitted) charges when the calculation has
 them, then Merz-Kollman charges, otherwise Mulliken charges. The panel names the
 set it used. A calculation with no atomic charges gets a 1 Å arrow through the
-centre of nuclear charge. The arrow colour is set with the colour button; the
-label takes the viewer's text colour.
+centre of nuclear charge. The arrow colour is set with the colour button.
 
 The arrow is drawn through atoms and bonds, so a diatomic's arrow can be seen
 inside its bond.

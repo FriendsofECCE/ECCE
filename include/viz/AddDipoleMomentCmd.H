@@ -6,8 +6,8 @@
 /**
  *   The dipole moment as a plain arrow from the centre of negative partial
  *   charge to the centre of positive partial charge (IUPAC direction), drawn
- *   along mu where the two differ, with "mu = x.xx D" beside it.  Length
- *   follows the geometry, not |mu|.  No arrow, and the label "mu = 0", when
+ *   along mu where the two differ,.  Length
+ *   follows the geometry, not |mu|.  No arrow, and , when
  *   mu vanishes.  Charges: CHELPG, else Merz-Kollman, else Mulliken.
  */
 class AddDipoleMomentCmd : public AddVectorCmd
@@ -25,8 +25,8 @@ class AddDipoleMomentCmd : public AddVectorCmd
       static string chargeKey(IPropCalculation *calc);
       // Name of those charges for the user.
       static string chargeName(const string& key);
-      // The label for |mu| in Debye.
-      static string label(double mu);
+      // The viewer corner text for |mu| in Debye.
+      static string label(double mu, const string& chargeKey);
 };
 
 #endif

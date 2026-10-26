@@ -1,6 +1,6 @@
 ---
 type: rule
-title: "The dipole arrow runs from the negative to the positive charge pole, labelled mu = x.xx D (#578, was #266)"
+title: "The dipole arrow runs from the negative to the positive charge pole, value in the viewer corner (#578, was #266)"
 area: wx-viewer
 paths: [src/viz/propsgcommands/AddDipoleMomentCmd.C, src/viz/propsgcommands/AddVectorCmd.C, src/viz/nodes/VRVector.C, src/apps/builder/MomentsPanel.C, src/apps/builder/BuilderScript.C, tests/apps/builder_overlay_test.py, tests/apps/dipole_poles_test.py, help/src/dipole-moment.md]
 issues: [266, 578]
@@ -8,7 +8,7 @@ issues: [266, 578]
 Properties > Dipole Moment (and MP2 Dipole Moment) is `MomentsPanel`
 (`data/client/config/PropertyPanelDescriptor.xml`); its `showVectors`
 runs `AddDipoleMomentCmd`, which overrides `AddVectorCmd::execute` and adds
-one `VRVector` plus an `SoText2` label under the property's switch.
+one `VRVector` under the property's switch.
 
 - **Poles.** r+/r- = sum q r / sum q over the atoms of one sign. Charges:
   `ESPFIT` (CHELPG), else `MKFIT`, else `MULLIKEN`
@@ -22,18 +22,17 @@ one `VRVector` plus an `SoText2` label under the property's switch.
   #578). `VRVector` puts its tip at 1.075 |direction|; the command divides that
   out. Constant shape 0.04/0.10/0.20 A, drawn again through the molecule
   (`showThroughMolecule`, 60 % transparency, depth test off).
-- **Label.** `mu = x.xx D` at the head; `mu = 0` and no arrow below 0.005 D
-  (CO2). ASCII: the viewer's `SoText2` bitmap font draws no Greek mu (the
-  UTF-8 bytes print as "1/4", the Latin-1 micro sign hides the whole string).
-  The colour is the viewer's atom-label colour read when the arrow is drawn,
-  so a background change made afterwards leaves it stale until the panel
-  redraws; connecting the field instead made the text vanish.
+- **Value.** Not drawn in the scene: `MomentsPanel::showVectors` puts
+  `Dipole moment x.xx D (ESP|MK|Mulliken charges)` (`Dipole moment 0 D` below
+  0.005 D, CO2) in `SGViewer::setURightText`; `loseFocus` clears it. A text
+  node beside the arrow needed ASCII (no Greek mu in `SoText2`) and went stale
+  on background changes.
 - **Only the dipole panel draws it.** `QuadPolePanel` (quadrupole,
   hyperpolarizability, stress) draw no arrow (`drawsOverlay()` is false). The
   polarizability has its own drawing, see polarizability-ellipsoid-convention.md.
 
 Measure, do not eyeball: the Builder script command `vector DIPOLE` prints
-the drawn arrow's start, direction and length, the label, the number of
+the drawn arrow's start, direction and length, the corner text (`label=`), the number of
 `SliderCombo`s on the panel and the arrow count; `dipole_poles_test.py` (needs
 a private install: `ECCE_TEST_HOME`, `ECCE_TEST_WRAPPERS`) recomputes the poles
 from the stored charges and checks them, the label, CO2 and the missing slider.

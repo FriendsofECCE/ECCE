@@ -1,14 +1,7 @@
 #include <cmath>
 #include <cstdio>
-#include <GL/gl.h>
 
-#include "inv/ChemKit/ChemColor.H"
-#include "inv/nodes/SoCallback.H"
-#include "inv/nodes/SoFont.H"
 #include "inv/nodes/SoMaterial.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoText2.H"
-#include "inv/nodes/SoTranslation.H"
 
 #include "util/Color.H"
 #include "util/InternalException.H"
@@ -23,10 +16,6 @@
 #include "viz/AddDipoleMomentCmd.H"
 
 namespace {
-
-// The label is drawn over atoms and bonds, which would hide it.
-void depthTestOff(void*, SoAction*) { glDisable(GL_DEPTH_TEST); }
-void depthTestOn(void*, SoAction*) { glEnable(GL_DEPTH_TEST); }
 
 // Below this |mu| (Debye) the label would read 0.00 anyway.
 const double ZERO_MU = 0.005;
@@ -81,19 +70,23 @@ string AddDipoleMomentCmd::chargeName(const string& key)
 }
 
 
-string AddDipoleMomentCmd::label(double mu)
+string AddDipoleMomentCmd::label(double mu, const string& key)
 {
-   if (mu < ZERO_MU) return "mu = 0";
+   if (mu < ZERO_MU) return "Dipole moment 0 D";
    char buf[64];
-   snprintf(buf, sizeof buf, "mu = %.2f D", mu);
-   return buf;
+   snprintf(buf, sizeof buf, "Dipole moment %.2f D", mu);
+   string r = buf;
+   if (key == "ESPFIT") r += " (ESP charges)";
+   else if (key == "MKFIT") r += " (MK charges)";
+   else if (key == "MULLIKEN") r += " (Mulliken charges)";
+   return r;
 }
 
 
 /**
  * The arrow starts at the negative pole and runs along mu as far as the
  * positive pole lies along mu, so it points the way mu does even where the
- * charges do not reproduce mu exactly.  The shape is constant: the label, not the
+ * charges do not reproduce mu exactly.  The shape is constant: the corner text, not the
  * arrow, carries |mu|.
  */
 bool AddDipoleMomentCmd::execute()
@@ -149,7 +142,6 @@ bool AddDipoleMomentCmd::execute()
    }
 
    Color color(getParameter("neutral")->getString());
-   double tip[3] = {0, 0, 0};
    if (arrow) {
       VRVector *vec = new VRVector;
       vec->setColor(color.red(), color.green(), color.blue());
@@ -160,39 +152,8 @@ bool AddDipoleMomentCmd::execute()
       vec->fixedThickness(0.04f, 0.10f, 0.20f);
       vec->showThroughMolecule();
       root->addChild(vec);
-      for (int k = 0; k < 3; k++) tip[k] = start[k] + m[k]/mag*len;
-   } else if (frag) {
-      vector<double*> c;
-      getSingleCenter(c);
-      for (int k = 0; k < 3; k++) tip[k] = c[0][k];
-      delete[] c[0];
    }
 
-   SoSeparator *text = new SoSeparator;
-   SoMaterial *mat = new SoMaterial;
-   // The viewer's text colour, which contrasts with its background.
-   ChemColor *cc = sg->getColorNode();
-   if (cc && cc->atomLabelColor.getNum() > 0)
-      mat->diffuseColor = cc->atomLabelColor[0];
-   else
-      mat->diffuseColor.setValue(color.red(), color.green(), color.blue());
-   SoCallback *off = new SoCallback;
-   off->setCallback(depthTestOff);
-   text->addChild(off);
-   text->addChild(mat);
-   SoFont *font = new SoFont;
-   font->size = 20;
-   text->addChild(font);
-   SoTranslation *at = new SoTranslation;
-   at->translation.setValue((float)tip[0], (float)tip[1], (float)tip[2]);
-   text->addChild(at);
-   SoText2 *t = new SoText2;
-   t->string.setValue(label(mag).c_str());
-   text->addChild(t);
-   SoCallback *on = new SoCallback;
-   on->setCallback(depthTestOn);
-   text->addChild(on);
-   root->addChild(text);
    return true;
 }
 
