@@ -4905,7 +4905,7 @@ void CalcMgr::deleteSelection()
         ewxMessageDialog dlg(this, msg, "Delete?",
                              wxNO_DEFAULT|wxYES_NO|wxICON_QUESTION,
                              wxDefaultPosition,
-                             (selection.size()>1?wxYES_NO_TO_ALL:0));
+                             (selection.size()>1?ECCE_YES_NO_TO_ALL:0));
         okToDelete = dlg.ShowModal();
         if (okToDelete == wxID_YES_TO_ALL)
           yesToAll = true;

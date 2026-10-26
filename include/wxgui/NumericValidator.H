@@ -395,7 +395,7 @@ void NumericValidator<T>::OnChar(wxKeyEvent& event)
   int keyCode = event.GetKeyCode();
   if (keyCode > WXK_SPACE && keyCode < WXK_DELETE) {
     wxString val,val2;
-    long point; 
+    long point = 0;
 #if wxUSE_COMBOBOX
     if (m_validatorWindow->IsKindOf(CLASSINFO(wxComboBox)) ) {
       wxComboBox* pControl = (wxComboBox*) m_validatorWindow;

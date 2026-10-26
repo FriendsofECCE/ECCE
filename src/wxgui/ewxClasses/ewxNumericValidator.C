@@ -520,7 +520,7 @@ bool ewxNumericValidator::Validate(wxWindow *parent)
                 p_softMinOpen, p_softMaxOpen, p_softMin, p_softMax);
         }
       }
-    } catch (InvalidException ex) {
+    } catch (const InvalidException& ex) {
       if (isHard) {
         wxBell();
         postMessage(errormsg.ToStdString());
@@ -743,7 +743,7 @@ void ewxNumericValidator::parseRange(string range, bool isHard)
       cout << "Soft has no max "<<p_useSoftMax<<endl;
 #endif
     }
-  } catch (InvalidException ex) {
+  } catch (const InvalidException& ex) {
     if (isHard) {
       p_useHardRange = false;
     } else {

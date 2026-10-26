@@ -195,17 +195,17 @@ bool TrajectoryReaderXyz::readStep(const long& step,
         if (check) {
           coordinate = strtok(0," \t");
           if (coordinate == NULL) check = false;
-          else vel[0] = p_fScale*atof(coordinate);
+          else frc[0] = p_fScale*atof(coordinate);
         }
         if (check) {
           coordinate = strtok(0," \t");
           if (coordinate == NULL) check = false;
-          else vel[1] = p_fScale*atof(coordinate);
+          else frc[1] = p_fScale*atof(coordinate);
         }
         if (check) {
           coordinate = strtok(0," \t");
           if (coordinate == NULL) check = false;
-          else vel[2] = p_fScale*atof(coordinate);
+          else frc[2] = p_fScale*atof(coordinate);
         }
         if (check && p_showVector[i]) {
           VRVector *vec = new VRVector;

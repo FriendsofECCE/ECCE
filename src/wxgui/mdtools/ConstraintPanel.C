@@ -300,7 +300,7 @@ void ConstraintPanel::OnButtonConstFixaddClick( wxCommandEvent& event )
     ewxCheckBox *check;
     choice = ((ewxChoice*)FindWindow(ID_CHOICE_CONST_FIXOPT));
     int opt = choice->GetSelection();
-    bool constrainSolute;
+    bool constrainSolute = false;
     bool validCmd = true;
     if (opt == 0) {
       cmd = "fix solvent";
@@ -314,6 +314,9 @@ void ConstraintPanel::OnButtonConstFixaddClick( wxCommandEvent& event )
     } else if (opt == 3) {
       cmd = "free solute";
       constrainSolute = true;
+    } else {
+      event.Skip();
+      return;
     }
 
     choice = ((ewxChoice*)FindWindow(ID_CHOICE_CONST_SELOPT));

@@ -22,6 +22,8 @@ class Serializer
 {
    public:
 
+      virtual ~Serializer() = default;
+
       /**
        * Defines the mimetype of streamed data handled by this serializer.
        * This mimetype applies to the data stream.  Type is undefined for

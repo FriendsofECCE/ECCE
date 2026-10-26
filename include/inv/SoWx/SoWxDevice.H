@@ -24,6 +24,8 @@ inline int soWxToPixels(const wxEvent *e, int v)
 
 class SoWxDevice {
 public:
+  virtual ~SoWxDevice() = default;
+
   virtual void enable(wxWindow * win) = 0;
   virtual void disable(wxWindow * win) = 0;
     

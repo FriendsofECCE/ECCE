@@ -53,7 +53,12 @@ endif()
 # ON from 9.0 (ecce-client and ecce-server); 8.x release branches are monolithic.
 option(ECCE_SPLIT_PACKAGES "Package ecce-client and ecce-server as separate .deb/.rpm files instead of one monolithic package" ON)
 
-add_compile_options(-Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dtor)
+add_compile_options(
+  "$<$<COMPILE_LANGUAGE:CXX>:-Wall>"
+  "$<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated>"
+  "$<$<COMPILE_LANGUAGE:CXX>:-Wno-sign-compare>"
+  "$<$<COMPILE_LANGUAGE:CXX>:-Wno-non-virtual-dtor>"
+)
 
 find_package(XercesC REQUIRED)
 find_package(OpenGL REQUIRED)

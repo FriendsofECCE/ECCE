@@ -589,7 +589,7 @@ void SoWxExaminerViewer::actualRedraw()
       p_camera->focalDistance.getValue() * forward;
     
     // adjust the size to be constant on the screen
-    float height;
+    float height = 0.0f;
     if (p_camera->isOfType(SoPerspectiveCamera::getClassTypeId())) {
       float angle = ((SoPerspectiveCamera *)p_camera)->heightAngle.getValue();
       height = p_camera->focalDistance.getValue() * tanf(angle/2);

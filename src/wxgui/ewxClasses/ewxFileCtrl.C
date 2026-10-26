@@ -236,7 +236,7 @@ void ewxFileCtrl::MakeDir()
     } else {
       delete fd;
     }
-  } catch (InvalidException ex) {
+  } catch (const InvalidException& ex) {
     ewxMessageDialog dlg(this, ex.what(),
                          "Unable to create " + name + " object!",
                          wxOK|wxICON_EXCLAMATION,

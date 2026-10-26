@@ -354,7 +354,7 @@ void ProjectContextPanel::initialize()
           }
           gridModel->SetValueAsGridElement(i, column, cellValue);
         }
-        catch (InvalidException ex) {
+        catch (const InvalidException& ex) {
           cerr << ex.what() << endl;
         }
         

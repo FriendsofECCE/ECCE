@@ -211,7 +211,7 @@ void ResidueTable::fillTable()
                   cellValue = new GridAtomElement(res, property);
                   gridModel->SetValueAsGridElement(row, column, cellValue);
                }
-               catch (InvalidException ex) {
+               catch (const InvalidException& ex) {
                   cerr << ex.what() << endl;
                }
 

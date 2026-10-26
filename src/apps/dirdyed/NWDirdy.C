@@ -2592,7 +2592,7 @@ Resource *NWDirdy::addComponent(DirDyVTSTTask::Component comp)
       publisher.publish("ecce_url_created", *msg);
       delete msg;
     }
-    catch (InvalidException ex) {
+    catch (const InvalidException& ex) {
 
       p_feedback->setMessage("Failed to create reaction study task - " +
                              string(ex.what()));

@@ -401,7 +401,7 @@ FFType::TYPE_SRC_STATUS FFCategory::getTypeSrcStatus( FFType* fftype, int newSrc
       try  {
          lastItemID = fftype->getLastItemID();
       }
-      catch (InvalidException e)  {  // ignore exception in this case
+      catch (const InvalidException& e)  {  // ignore exception in this case
       }
       if ( isValidItemID( lastItemID))  {     // fftype had not items, pass
          if ( p_ffItems[lastItemID]->getSourceID() == newSrcID)
@@ -444,7 +444,7 @@ int FFCategory::getAtomicNo( int typeID)
    try  {
       itemID = getType( typeID)->getLastItemID();
    }
-   catch (InvalidException ie)  {
+   catch (const InvalidException& ie)  {
       throw InvalidException("Failed request for atomic number from itemless fftype: "
                                 + getType( typeID)->getName(), WHERE);
    }
@@ -949,7 +949,7 @@ bool FFCategory::removeFFItem( const string& typeName, int idx)
       p_ffItems[ffitemID]->remove();
       bVal = true;      // succeeded, set return value to true
    }
-   catch( IndexOutOfRangeException e)  {
+   catch( const IndexOutOfRangeException& e)  {
      throw InvalidException("Failed attempt to remove FFItem from FFType: "
                                                + typeName, WHERE);
    }
@@ -1172,7 +1172,7 @@ bool FFCategory::newSourceForType( int validtypeID, int srcID)
    try  {
        itemID = p_ffTypes[validtypeID]->getLastItemID();
    }
-   catch (InvalidException ie)  {   // ignore in this case
+   catch (const InvalidException& ie)  {   // ignore in this case
    }
 
    // reset rVal to false only if an item with this source alreay exists
