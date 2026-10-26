@@ -60,7 +60,8 @@ class MdAnalysisPanel : public PropertyPanel
       int p_curveTotal;
 
    private:
-      std::vector<IPropCalculation*> comparable() const;
+      std::vector<IPropCalculation*> comparable(
+          std::vector<std::string> *labels = 0) const;
       void onCompare(wxCommandEvent&);
       void onExport(wxCommandEvent&);
       std::vector<std::string> p_otherRecords;

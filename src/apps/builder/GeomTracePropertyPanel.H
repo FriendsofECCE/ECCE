@@ -48,6 +48,13 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     virtual wxWindow * GetTearableContent();
 
     virtual void refresh();
+
+    //  A click on point `index` of a plot of `points` points: the nearest
+    //  stored structure is shown.
+    void showPlotPoint(int index, int points);
+    int frameCount() const { return numSteps(); }
+    //  Plot the series `key` (as the Plot choice does); false if unknown.
+    bool showSeries(const string& key);
     virtual void saveSettings();
     virtual void restoreSettings();
     virtual bool isRelevant(IPropCalculation *propCalc) const;
@@ -63,6 +70,8 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     void OnPlaybackTick(wxCommandEvent& event);
     void OnPlaybackLoop(wxCommandEvent& event);
     void OnPointClick(int curve, int index);
+    int frameOfPlotPoint(int index, int points) const;
+    int plotPointOfFrame(int frame, int points) const;
     void OnValidation(wxCommandEvent& event);
 
     virtual void processStep(int step);

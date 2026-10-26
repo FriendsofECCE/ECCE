@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 
 #include "tdat/CompactCell.H"
@@ -44,8 +45,10 @@ bool CompactCell::wrap(std::vector<std::array<double, 3> >& x,
   if (n == 0 || (int)residueOf.size() != n || (int)heavy.size() != n)
     return false;
   if (cell0[0][1] != 0 || cell0[0][2] != 0 || cell0[1][2] != 0) return false;
-  if (cell0[1][0] == 0 && cell0[2][0] == 0 && cell0[2][1] == 0) return false;
   if (cell0[0][0] <= 0 || cell0[1][1] <= 0 || cell0[2][2] <= 0) return false;
+  // A rectangular box is wrapped too: molecules broken over its faces would
+  // otherwise be bonded across the cell.
+  const vector<std::array<double, 3> > original(x);
   V3 cell[3];
   for (int i = 0; i < 3; i++)
     for (int k = 0; k < 3; k++) cell[i][k] = cell0[i][k];
@@ -107,6 +110,19 @@ bool CompactCell::wrap(std::vector<std::array<double, 3> >& x,
     minImage(d, cell);
     for (int i = a0; i < a1; i++)
       for (int k = 0; k < 3; k++) x[i][k] += d[k] - o[k];
+    // A molecule as long as the cell is periodic (a sheet, a chain); making
+    // it whole would only smear it, so it stays as it was.
+    bool endless = false;
+    for (int k = 0; k < 3 && !endless; k++) {
+      double lo = x[a0][k], hi = x[a0][k];
+      for (int i = a0; i < a1; i++) {
+        lo = std::min(lo, x[i][k]);
+        hi = std::max(hi, x[i][k]);
+      }
+      endless = hi - lo >= 0.9 * cell[k][k];
+    }
+    if (endless)
+      for (int i = a0; i < a1; i++) x[i] = original[i];
     r = r2;
   }
   return true;

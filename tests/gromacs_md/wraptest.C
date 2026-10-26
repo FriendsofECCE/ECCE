@@ -139,7 +139,7 @@ int main(int argc, char** argv)
   check(notLattice == 0, "atoms moved by lattice vectors only");
 
   // A two-residue molecule (peptide-like C-N bond) across the cell edge
-  // must stay together; a rectangular box is left alone.
+  // must stay together, in a rectangular box too.
   const string chain =
       "t\n    4\n"
       "    1ALA      N    1   0.950   0.100   0.100\n"
@@ -150,9 +150,22 @@ int main(int argc, char** argv)
       "   0.00000   0.50000   0.50000\n";
   Gro c = parse(GromacsStructure::wrapCompact(chain));
   check(dist(c, 1, 2) < 0.2 && dist(c, 0, 3) < 0.5, "bonded residues stay whole");
-  string rect = chain.substr(0, chain.rfind("   1.00000")) +
+  string rect = chain.substr(0, chain.find("   1.00000")) +
                 "   1.00000   1.00000   1.00000\n";
-  check(GromacsStructure::wrapCompact(rect) == rect, "rectangular box unchanged");
+  Gro r = parse(GromacsStructure::wrapCompact(rect));
+  check(dist(r, 1, 2) < 0.2 && dist(r, 0, 3) < 0.5,
+        "rectangular box: bonded residues whole");
+
+  // A noble gas is its own residue and atom name: Ar must not become A, He H.
+  {
+    string pdb, err;
+    const string gas =
+        "t\n    2\n    1AR      AR    1   1.000   1.000   1.000\n"
+        "    2HE      HE    2   2.000   2.000   2.000\n   5.0 5.0 5.0\n";
+    GromacsStructure::groToPdb(gas, pdb, err);
+    check(pdb.find("          Ar") != string::npos &&
+          pdb.find("          He") != string::npos, "argon and helium keep their elements");
+  }
 
   // The coordinate routine the Builder uses for an existing calculation
   // (a Fragment in Angstrom, a trajectory frame): same result as the text

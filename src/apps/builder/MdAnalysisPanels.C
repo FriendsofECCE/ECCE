@@ -98,20 +98,55 @@ void MdAnalysisPanel::refill()
   redraw();
 }
 
-std::vector<IPropCalculation*> MdAnalysisPanel::comparable() const
+// The calculations of the folder, and of its sibling folders when it sits
+// in a project inside a project (Examples/<set>/<topic>/<calc>).
+static void collectCalcs(Resource *folder, const std::string& own,
+                         const std::string& prefix, int depth,
+                         const std::string& key,
+                         std::vector<IPropCalculation*>& out,
+                         std::vector<std::string>& labels)
+{
+  std::vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+  if (!kids) return;
+  for (size_t i = 0; i < kids->size(); i++) {
+    Resource *r = (*kids)[i];
+    IPropCalculation *other = dynamic_cast<IPropCalculation*>(r);
+    if (other) {
+      if (other->getURL().toString() == own) continue;
+      if (other->getProperty(key) == 0) continue;
+      out.push_back(other);
+      labels.push_back(prefix + other->getURL().getFilePathTail());
+    } else if (depth > 0 &&
+               r->getContentType() == ResourceDescriptor::CT_PROJECT) {
+      collectCalcs(r, own, prefix + r->getName() + "/", depth - 1, key, out,
+                   labels);
+    }
+  }
+}
+
+std::vector<IPropCalculation*> MdAnalysisPanel::comparable(
+    std::vector<std::string> *labels) const
 {
   std::vector<IPropCalculation*> out;
+  std::vector<std::string> names;
   IPropCalculation *calc = const_cast<MdAnalysisPanel*>(this)->getCalculation();
   if (!calc) return out;
   Resource *folder = EDSIFactory::getResource(calc->getURL().getParent());
-  std::vector<Resource*> *kids = folder ? folder->getChildren() : 0;
-  if (!kids) return out;
-  const std::string own = calc->getURL().getFilePathTail();
-  for (size_t i = 0; i < kids->size(); i++) {
-    IPropCalculation *other = dynamic_cast<IPropCalculation*>((*kids)[i]);
-    if (!other || (*kids)[i]->getName() == own) continue;
-    if (other->getProperty(propertyKey()) != 0) out.push_back(other);
+  const std::string home = calc->getURL().getParent().toString();
+  // Up to the outermost enclosing project, then down into its subfolders.
+  for (int up = 0; up < 3 && folder; up++) {
+    Resource *above = EDSIFactory::getResource(folder->getURL().getParent());
+    if (!above || above->getContentType() != ResourceDescriptor::CT_PROJECT)
+      break;
+    folder = above;
   }
+  collectCalcs(folder, calc->getURL().toString(), "", 3, propertyKey(), out,
+               names);
+  // A calculation in the calculation's own folder carries its bare name.
+  for (size_t i = 0; i < out.size(); i++)
+    if (out[i]->getURL().getParent().toString() == home)
+      names[i] = out[i]->getURL().getFilePathTail();
+  if (labels) *labels = names;
   return out;
 }
 
@@ -124,10 +159,12 @@ bool MdAnalysisPanel::compareWith(const std::string& name)
     refill();
     return true;
   }
-  const std::vector<IPropCalculation*> found = comparable();
+  std::vector<std::string> labels;
+  const std::vector<IPropCalculation*> found = comparable(&labels);
   for (size_t i = 0; i < found.size(); i++) {
-    if (found[i]->getURL().getFilePathTail() != name) continue;
-    p_compareName = name;
+    if (labels[i] != name && found[i]->getURL().getFilePathTail() != name)
+      continue;
+    p_compareName = found[i]->getURL().getFilePathTail();
     p_otherRecords = recordsOf(found[i]);
     if (p_remove) p_remove->Enable(true);
     refill();
@@ -138,18 +175,19 @@ bool MdAnalysisPanel::compareWith(const std::string& name)
 
 void MdAnalysisPanel::onCompare(wxCommandEvent&)
 {
-  const std::vector<IPropCalculation*> found = comparable();
+  std::vector<std::string> labels;
+  const std::vector<IPropCalculation*> found = comparable(&labels);
   if (found.empty()) {
-    wxMessageBox("No other calculation in this folder has this analysis.",
+    wxMessageBox("No other calculation in this project has this analysis.",
                  "Compare", wxOK | wxICON_INFORMATION, this);
     return;
   }
   wxArrayString names;
   for (size_t i = 0; i < found.size(); i++)
-    names.Add(utf8(found[i]->getURL().getFilePathTail()));
+    names.Add(utf8(labels[i]));
   const int at = wxGetSingleChoiceIndex(
       "Draw this calculation as well, in the same plot:", "Compare", names, this);
-  if (at >= 0) compareWith(found[at]->getURL().getFilePathTail());
+  if (at >= 0) compareWith(labels[at]);
 }
 
 bool MdAnalysisPanel::exportCsv(const wxString& path)

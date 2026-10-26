@@ -32,7 +32,8 @@ static string upper(string s)
 }
 
 // The element of a GROMACS atom.  An ion is a residue named for the ion
-// whose one atom has the same name (NA, CL, MG ...); everything else is
+// whose one atom has the same name (NA, CL, MG, and the noble gases AR, HE
+// ... which the first letter would turn into A and H); everything else is
 // taken from the first letter of the atom name, which is what the force
 // fields' naming amounts to for H, C, N, O, S and P.
 static string elementOf(const string& atomName, const string& resName)
@@ -41,7 +42,7 @@ static string elementOf(const string& atomName, const string& resName)
   string r = upper(resName);
   static const char* ions[] = { "NA", "CL", "MG", "ZN", "CA", "FE", "CU",
                                 "MN", "LI", "BR", "RB", "CS", "CD", "NI",
-                                "CO", 0 };
+                                "CO", "HE", "NE", "AR", "KR", "XE", 0 };
   for (int i = 0; ions[i]; i++) {
     if (a == ions[i] && (r == ions[i] || r == string(ions[i]) + "+" ||
                          r == string(ions[i]) + "-")) {
@@ -246,10 +247,9 @@ string GromacsStructure::wrapCompact(const string& gro)
   double b[9] = {0,0,0,0,0,0,0,0,0};
   int nb = sscanf(boxline.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
                   &b[0],&b[1],&b[2],&b[3],&b[4],&b[5],&b[6],&b[7],&b[8]);
-  if (nb != 9) return gro;
+  if (nb != 9 && nb != 3) return gro;   // 3 values: a rectangular box
   // GROMACS keeps the box lower triangular: a along x, b in the xy plane.
   if (b[3] != 0 || b[4] != 0 || b[6] != 0) return gro;
-  if (b[5] == 0 && b[7] == 0 && b[8] == 0) return gro;
   if (b[0] <= 0 || b[1] <= 0 || b[2] <= 0) return gro;
 
   const string& first = lines[0];

@@ -19,6 +19,7 @@
 #include "wxgui/ewxStaticText.H"
 
 #include "PlotAnyPropertyPanel.H"
+#include "GeomTracePropertyPanel.H"
 
 
 wxFORCE_LINK_THIS_MODULE(PlotAnyPropertyPanel)
@@ -101,6 +102,7 @@ void PlotAnyPropertyPanel::initialize()
   // Small minimum: in a short pane the plot must give way before the
   // axis rows below it are clipped.
   p_plotCtrl->SetMinSize(wxSize(200,90));
+  p_plotCtrl->setPointHandler([this](int, int index) { OnPointClick(index); });
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   // create the axis choice boxes
@@ -203,6 +205,25 @@ void PlotAnyPropertyPanel::refreshChoices(const wxString& lastX,
       !p_yaxis->SetStringSelection("Total Energy") &&
       !p_yaxis->SetStringSelection("Potential Energy")) {
     p_yaxis->SetSelection(0); // select first prop vec
+  }
+}
+
+
+// A point of a geometry-step plot is a step: show that structure through the
+// Geometry Trace panel, which owns the playback and the viewer.
+void PlotAnyPropertyPanel::OnPointClick(int index)
+{
+  // Wave Step Plots (SCF cycles) have no structure of their own to show.
+  if (getName() != "Geometry Step Plots" || !getCalculation() || !p_plotCtrl)
+    return;
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(getCalculation()->getURL().toString());
+  for (PropertyPanel *p : panels) {
+    GeomTracePropertyPanel *gt = dynamic_cast<GeomTracePropertyPanel*>(p);
+    if (!gt) continue;
+    if (!gt->hasFocus()) gt->setFocus(true);
+    gt->showPlotPoint(index, p_plotCtrl->pointCount(0));
+    return;
   }
 }
 
