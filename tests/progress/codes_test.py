@@ -107,13 +107,18 @@ def target(v):
 case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
      {"opt": {"step": "4", "converged": "yes", "energy": has("-74.9659"),
               "maxgrad": target, "rmsstep": target, "dE": target},
-      "freq": {"done": "yes", "zpe": has("0.0243")},
+      "freq": {"done": "yes", "zpe": has("0.0243"), "kind": "analytic",
+              "point": "9/9", "phase": "assemble"},
       "scf": {"cycle": lambda v: int(v) >= 1, "dE": target}},
      {"opt": (4, 4)})
 case("orca opt, not converged", "orca.desc", fx("orca", "optmax.out"),
      {"opt": {"step": "2", "converged": "no", "maxgrad": target}})
 case("orca numerical frequencies", "orca.desc", fx("orca", "numfreq.out"),
-     {"freq": {"point": "12/12", "done": "yes", "zpe": has("0.0229")}})
+     {"freq": {"point": "12/12", "kind": "numerical", "done": "yes",
+               "zpe": has("0.0229")}})
+# The CP-SCF solver also runs for NMR; that must not make a Frequencies stage.
+case("orca NMR has no frequency stage", "orca.desc",
+     fx("orca", "h2o_nmr_chelpg.out"), {"!freq": {}})
 
 # A relaxed scan: one record per scan point; the optimisation's history is
 # the whole job's, one descent per point (5 points, 39 steps).
@@ -223,6 +228,9 @@ def run_case(name, desc, out, want, hist, out2):
     if not n:
         return
     for stage, keys in want.items():
+        if stage.startswith("!"):          # "!freq": the stage must not exist
+            check(stage[1:] not in stages, "%s: no %s stage" % (name, stage[1:]))
+            continue
         got = fields(stages.get(stage, ""))
         check(stage in stages, "%s: stage %s present" % (name, stage))
         for key, expect in keys.items():
