@@ -15,7 +15,10 @@ combine degenerate, clip peaks and the export buttons). Whether **More** is open
 is remembered. The orbital list, the plot and the notes beneath it are separated
 by handles that can be dragged to give any of them more room.
 
-The first choice is the mode.
+The first choice is the mode. Atoms selected in the 3-D view set it: select two
+atoms (Shift-click adds to the selection) and the plot is **Along a line**
+through them, **From** and **to**; select one atom and it is **Around an atom**
+with that atom as **Centre**. The lists stay available.
 
 - **Along a line**: the line goes through two atoms, **From** and **to**, and
   continues **Margin** ångström beyond each. The horizontal axis is the position
@@ -93,7 +96,13 @@ bohr, as chosen under **Unit**.
 **Show** chooses what is drawn.
 
 - **Total + all occupied**: the total, and every occupied orbital's contribution.
-  This is the main view.
+  This is the main view. A molecule with more than eight occupied orbitals opens
+  instead on **Total + selected orbitals**, with the four orbitals that contribute
+  most along the line ticked; the note under the plot says how many. Choosing
+  **Total + all occupied** shows every orbital.
+- The key above the plot is at most two rows. When there are more curves, the key
+  ends with "+N more (hover)"; pointing at a curve names it. The plot keeps its
+  height whatever the key holds.
 - **Total + selected orbitals**: the total and the contributions of the orbitals
   ticked in the list.
 - **Selected orbitals**: the ticked orbitals alone, without the occupation, so

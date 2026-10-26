@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <functional>
 
 #include <wx/bitmap.h>
 #include <wx/button.h>
@@ -26,6 +27,11 @@
 #include "dsm/IPropCalculation.H"
 #include "tdat/PropVecString.H"
 
+#include "tdat/Fragment.H"
+#include "util/Event.H"
+#include "viz/SGContainer.H"
+#include "viz/SGFragment.H"
+#include "wxviz/SGViewer.H"
 #include "DensityProfilePanel.H"
 #include "XYPlotCanvas.H"
 
@@ -43,6 +49,8 @@ const double BOHR_ANG = 0.52917721092;
 //  Interactive accuracy: 0.0075 A steps and 302 directions resolve every
 //  maximum of a first-row atom to well under 0.01 A.
 const int GRID_POINTS = 801;
+const int AUTO_ABOVE = 8;       // more occupied orbitals than this: Total + the largest few
+const int AUTO_ORBITALS = 4;
 const int ANGULAR_POINTS = 302;
 
 wxString U(const char *utf8) { return wxString::FromUTF8(utf8); }
@@ -125,12 +133,12 @@ wxString lineText(const RadialDist::Curve& c, const std::vector<double>& s,
 }  // namespace
 
 
-IMPLEMENT_DYNAMIC_CLASS(DensityProfilePanel, PropertyPanel)
+IMPLEMENT_DYNAMIC_CLASS(DensityProfilePanel, VizPropertyPanel)
 wxFORCE_LINK_THIS_MODULE(DensityProfilePanel)
 
 DensityProfilePanel::DensityProfilePanel()
-  : PropertyPanel(), p_sumError(-1.0), p_sumPeak(0.0), p_ok(false), p_busy(false),
-    p_atomsOnly(false), p_showDensityList(true), p_moreOpen(false), p_mode(0), p_atomA(0),
+  : VizPropertyPanel(), p_sumError(-1.0), p_sumPeak(0.0), p_ok(false), p_busy(false),
+    p_atomsOnly(false), p_autoActive(false), p_showDensityList(true), p_moreOpen(false), p_mode(0), p_atomA(0),
     p_atomB(0), p_centre(0), p_quantity(0),
     p_show(0), p_spin(0), p_unit(0), p_xaxis(0), p_yaxis(0), p_shiftDir(0), p_margin(0),
     p_shift(0), p_more(0), p_moreButton(0), p_outer(0), p_inner(0), p_labelXAxis(0),
@@ -149,17 +157,19 @@ DensityProfilePanel::DensityProfilePanel(IPropCalculation *calculation,
 
 DensityProfilePanel::~DensityProfilePanel()
 {
+  unsubscribe();
 }
 
 bool DensityProfilePanel::Create(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
 {
-  if (!PropertyPanel::Create(calculation, parent, id, pos, size, style, name)) {
+  if (!VizPropertyPanel::Create(calculation, parent, id, pos, size, style, name)) {
     wxFAIL_MSG( wxT("DensityProfilePanel creation failed") );
     return false;
   }
   SetSizer(new wxBoxSizer(wxVERTICAL));
+  subscribe();
   return true;
 }
 
@@ -424,6 +434,7 @@ void DensityProfilePanel::chooseDefaults()
     const int homo = p_eval->homo();
     if (homo >= 1 && homo <= (int)p_list->GetCount()) p_list->Check(homo - 1, true);
     if (homo >= 1 && homo < (int)p_list->GetCount()) p_list->Check(homo, true);
+    p_autoActive = (int)p_occupied.size() > AUTO_ABOVE;
   }
 }
 
@@ -548,6 +559,8 @@ void DensityProfilePanel::recompute()
   const bool bohr = p_unit->GetSelection() == 1;
   const bool like = densityLike();
   const int quantity = p_quantity->GetSelection();
+  const bool bohrAuto = bohr;
+  if (p_autoActive && !atom && like && p_show->GetSelection() <= 1) rankLargest(bohrAuto);
   const int showIdx = p_show->GetSelection();
   //  Density-like: 0 total + all, 1 total + selected, 2 selected, 3 total only.
   //  Otherwise: 0 selected, 1 all occupied.
@@ -645,6 +658,7 @@ void DensityProfilePanel::recompute()
                       : xs == 2 ? "log r, labelled in r (" + length + ")" : xLabel);
   p_plot->setYAxisLabel(yLabel);
   p_plot->setShowKey(true);
+  p_plot->setKeyMaxRows(2);
   p_plot->setZeroLine(!atom && quantity == 2);
   //  Zero everywhere: a node, not a curve to draw ticks for.
   double biggest = 0;
@@ -675,6 +689,7 @@ void DensityProfilePanel::recompute()
   p_plot->setYLimit(limit);
   for (const LineProfile::Mark& m : p_marks) p_plot->addVLine(m.s, U(m.label.c_str()));
   wxString text;
+  if (p_autoActive && !atom && like && showIdx == 1) text += p_autoNote;
   if (xs != 0 && quantity == 0)
     text += U("On this r axis the area under a curve is no longer the electron count.\n");
   if (limit > 0)
@@ -723,11 +738,44 @@ void DensityProfilePanel::recompute()
   p_plot->Refresh();
 }
 
+//  A molecule with many occupied orbitals: all of them in one plot is
+//  unreadable, so show the total and the few that contribute most along the line.
+void DensityProfilePanel::rankLargest(bool bohr)
+{
+  const int a = std::max(0, p_atomA->GetSelection()), b = std::max(0, p_atomB->GetSelection());
+  if (a == b) return;
+  const RadialDist::Spin spin = !p_eval->unrestricted ? RadialDist::ALPHA
+      : p_spin->GetSelection() == 0 ? RadialDist::ALPHA
+      : p_spin->GetSelection() == 1 ? RadialDist::BETA : RadialDist::BOTH;
+  std::vector<RadialDist::Spec> specs = RadialDist::orbitalSpecs(
+      *p_eval, p_occupied, spin, true, false, tags(), tagsUnique());
+  const LineProfile::Line line = LineProfile::throughAtoms(*p_eval, a, b, p_margin->GetValue(),
+      p_shift->GetValue(), p_shiftDir->GetSelection() == 0);
+  LineProfile::Result r;
+  LineProfile::compute(*p_eval, line, 201, bohr, LineProfile::DENSITY, specs, r);
+  std::vector<std::pair<double, int> > rank;   // integral along the line, MO
+  for (size_t k = 0; k < r.curves.size() && k < p_occupied.size(); k++) {
+    double sum = 0;
+    for (size_t i = 1; i < r.s.size() && i < r.curves[k].p.size(); i++)
+      sum += 0.5 * (r.curves[k].p[i] + r.curves[k].p[i-1]) * (r.s[i] - r.s[i-1]);
+    rank.push_back(std::make_pair(sum, p_occupied[k]));
+  }
+  std::sort(rank.begin(), rank.end(), std::greater<std::pair<double, int> >());
+  for (unsigned i = 0; i < p_list->GetCount(); i++) p_list->Check(i, false);
+  const size_t keep = std::min<size_t>(AUTO_ORBITALS, rank.size());
+  for (size_t i = 0; i < keep; i++) p_list->Check((unsigned)rank[i].second - 1, true);
+  selectShow("totalselected");
+  p_autoNote = wxString::Format(
+      "Total and the %d largest contributions along the line (of %d occupied); "
+      "\"All occupied orbitals\" shows every one.\n", (int)keep, (int)p_occupied.size());
+}
+
 void DensityProfilePanel::onControl(wxCommandEvent& event)
 {
   if (!p_ok) return;
   const wxWindow *w = dynamic_cast<wxWindow*>(event.GetEventObject());
   const wxWindowID id = w ? w->GetId() : 0;
+  if (id == ID_MODE || id == ID_SHOW || id == ID_LIST) p_autoActive = false;
   if (id == ID_MODE) {
     p_quantity->SetSelection(0);
     fillQuantities(true);
@@ -747,6 +795,7 @@ void DensityProfilePanel::onControl(wxCommandEvent& event)
 bool DensityProfilePanel::setMode(bool atomMode)
 {
   if (!p_ok) return false;
+  if (atomMode) p_autoActive = false;
   p_mode->SetSelection(atomMode ? 1 : 0);
   p_quantity->SetSelection(0);
   fillQuantities(true);
@@ -763,6 +812,42 @@ bool DensityProfilePanel::setAtoms(int a, int b)
   p_atomB->SetSelection(b - 1);
   recompute();
   return true;
+}
+
+bool DensityProfilePanel::pickAtoms(const std::vector<int>& atoms)
+{
+  ensureInitialized();
+  if (!p_ok || (atoms.size() != 1 && atoms.size() != 2)) return false;
+  const int n = (int)p_eval->symbols.size();
+  for (size_t i = 0; i < atoms.size(); i++)
+    if (atoms[i] < 1 || atoms[i] > n) return false;
+  if (atoms.size() == 2 && atoms[0] == atoms[1]) return false;
+  if (atoms.size() == 2) {
+    p_atomA->SetSelection(atoms[0] - 1);
+    p_atomB->SetSelection(atoms[1] - 1);
+  } else {
+    p_centre->SetSelection(atoms[0] - 1);
+  }
+  const bool atomMode = atoms.size() == 1;
+  if ((p_mode->GetSelection() == 1) != atomMode) return setMode(atomMode);
+  recompute();
+  return true;
+}
+
+void DensityProfilePanel::eventMCB(const ecce::Event& event)
+{
+  if (event.getName() != "SelectionChanged" || !p_ok || !IsShown() || !p_vizfw)
+    return;
+  SGFragment *frag = getFW().getSceneGraph().getFragment();
+  if (!frag) return;
+  std::vector<int> picked;
+  for (size_t i = 0; i < frag->m_atomHighLight.size(); i++) {
+    const int a = frag->m_atomHighLight[i];
+    if (a >= 0 && a < (int)p_eval->symbols.size() &&
+        frag->atomRef(a)->atomicSymbol() != "Nub")
+      picked.push_back(a + 1);
+  }
+  if (picked.size() == 1 || picked.size() == 2) pickAtoms(picked);
 }
 
 bool DensityProfilePanel::setMargin(double angstrom)
@@ -812,6 +897,7 @@ bool DensityProfilePanel::setShow(const std::string& name)
     i = name == "selected" ? 0 : name == "all" ? 1 : -1;
   }
   if (i < 0) return false;
+  p_autoActive = false;
   p_show->SetSelection(i);
   ensureSelection();
   recompute();
@@ -822,6 +908,7 @@ bool DensityProfilePanel::setOrbitals(const std::vector<int>& mos)
 {
   if (!p_ok) return false;
   for (int m : mos) if (m < 1 || m > (int)p_list->GetCount()) return false;
+  p_autoActive = false;
   for (unsigned i = 0; i < p_list->GetCount(); i++) p_list->Check(i, false);
   for (int m : mos) p_list->Check((unsigned)m - 1, true);
   recompute();
@@ -919,6 +1006,7 @@ bool DensityProfilePanel::setMoreOpen(bool open)
 void DensityProfilePanel::followMo(int mo, bool beta)
 {
   if (!p_ok || !IsShown() || mo < 1 || mo > (int)p_list->GetCount()) return;
+  p_autoActive = false;
   if (p_eval->unrestricted) p_spin->SetSelection(beta ? 1 : 0);
   for (unsigned i = 0; i < p_list->GetCount(); i++) p_list->Check(i, (int)i + 1 == mo);
   selectShow("selected");
@@ -963,7 +1051,7 @@ std::string DensityProfilePanel::state() const
 {
   if (!p_ok) return "ok 0\n";
   std::string s = "ok 1\n";
-  char buf[320];
+  char buf[400];
   snprintf(buf, sizeof buf, "mode %s\nquantity %d\nshow %d\nunit %s\ncurves %d\nmarks %d\nsumerror %.3e\n",
            p_mode->GetSelection() ? "atom" : "line", p_quantity->GetSelection(),
            p_show->GetSelection(), p_unit->GetSelection() ? "bohr" : "A",
@@ -980,12 +1068,14 @@ std::string DensityProfilePanel::state() const
     p_plot->viewRange(&x0, &x1, &y0, &y1);
     snprintf(buf, sizeof buf,
              "xaxis %s\nyaxis %s%s\nshift %.3f %s\nmore %d\nticked %s\nview %.6g %.6g %.6g %.6g\n"
-             "message %d\n",
+             "message %d\nkeyrows %d\nplotheight %d\nline %d %d\ncentre %d\nauto %d\n",
              p_xaxis->GetSelection() == 1 ? "sqrt" : p_xaxis->GetSelection() == 2 ? "log" : "linear",
              p_yaxis->GetSelection() == 1 ? "log" : "linear", p_yaxis->IsEnabled() ? "" : " (disabled)",
              p_shift->GetValue(), p_shiftDir->GetSelection() == 0 ? "out" : "in",
              p_moreOpen ? 1 : 0, ticked.empty() ? "none" : ticked.c_str(), x0, x1, y0, y1,
-             p_plot->message().empty() ? 0 : 1);
+             p_plot->message().empty() ? 0 : 1, p_plot->keyRowsDrawn(), p_plot->plotHeight(),
+             p_atomA->GetSelection() + 1, p_atomB->GetSelection() + 1,
+             p_centre->GetSelection() + 1, p_autoActive ? 1 : 0);
     s += buf;
     for (int c = 0; c < p_plot->curveCount(); c++)
       if (!p_plot->curveName(c).empty()) {

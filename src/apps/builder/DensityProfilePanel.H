@@ -8,7 +8,8 @@
 #include "tdat/DensityPlane.H"
 #include "tdat/LineProfile.H"
 #include "tdat/RadialDist.H"
-#include "PropertyPanel.H"
+#include "util/Listener.H"
+#include "VizPropertyPanel.H"
 
 class wxButton;
 class wxCheckBox;
@@ -30,7 +31,7 @@ class XYPlotCanvas;
  * for every code whose MOs ECCE reads.  This class only gathers the options
  * and draws.
  */
-class DensityProfilePanel : public PropertyPanel
+class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
 {
    DECLARE_DYNAMIC_CLASS(DensityProfilePanel)
 
@@ -51,7 +52,9 @@ class DensityProfilePanel : public PropertyPanel
       virtual ~DensityProfilePanel();
 
       virtual bool isRelevant(IPropCalculation *propCalc) const;
-      virtual int minimumHeight() const { return 300; }
+      //  Only listens to the viewer's selection; the MOs panel keeps the surface.
+      virtual bool drawsInViewer() const { return false; }
+      virtual int minimumHeight() const { return 400; }
       virtual int openingHeight() const { return 540; }
 
       enum Mode { LINE, ATOM };
@@ -63,6 +66,8 @@ class DensityProfilePanel : public PropertyPanel
        * Show names: all totalselected selected total.
        */
       bool setMode(bool atomMode);
+      /** Atoms picked in the viewer: two = a line, one = about that atom. */
+      bool pickAtoms(const std::vector<int>& atoms);
       bool setAtoms(int a, int b);                    // the line, 1-based
       bool setMargin(double angstrom);
       bool setCentre(int atom);                       // 1-based
@@ -90,6 +95,7 @@ class DensityProfilePanel : public PropertyPanel
 
    protected:
       virtual void initialize();
+      virtual void eventMCB(const ecce::Event& event);
 
    private:
       void build();
@@ -97,6 +103,7 @@ class DensityProfilePanel : public PropertyPanel
       void chooseDefaults();
       void fillQuantities(bool resetShow = false);
       void recompute();
+      void rankLargest(bool bohr);
       void onControl(wxCommandEvent& event);
       void syncControls();
       bool densityLike() const;
@@ -117,6 +124,8 @@ class DensityProfilePanel : public PropertyPanel
       double p_sumError;                         // negative: not applicable
       double p_sumPeak;
       bool p_ok, p_busy, p_atomsOnly;
+      bool p_autoActive;                         // Total + the largest contributors
+      wxString p_autoNote;
       bool p_showDensityList;                    // which Show list is in the choice
       bool p_moreOpen;
 

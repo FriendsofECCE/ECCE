@@ -81,7 +81,9 @@ the density of the π electrons above the ring.
 - The axes show distance in the plane in ångström. The window is the extent of
   the atoms plus 1.5 Å.
 - Atoms lying in the plane are black and labelled. Atoms off the plane are
-  faint and unlabelled; they only show where the slice sits.
+  faint; every atom within 1.5 Å of the plane is labelled, in every plane
+  including the one parallel to the screen and after an offset. Atoms that fall
+  on the same point of the map, one behind the other, have their labels stacked.
 - **Total density** and the degenerate sum use one colour scale, from dark
   purple to green. The first contour is 0.001 and each next contour is double
   the last. The legend lists every level drawn, with the highest value in the

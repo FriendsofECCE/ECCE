@@ -47,6 +47,9 @@ wxString levelText(double v)
   return wxString::Format("%g", v);
 }
 
+//  Named in the picture when within this distance of the plane (A).
+const double LABEL_DIST = 1.5;
+bool isLabelled(const Mark& k) { return fabs(k.off) <= LABEL_DIST; }
 }  // namespace
 
 
@@ -76,6 +79,14 @@ bool densityMapPointAt(const wxSize& size, const Map& m, int px, int py,
   u = m.u0 + (px - ox)/scale;
   v = m.v0 + (oy + ph - py)/scale;
   return true;
+}
+
+std::vector<std::string> densityMapLabelled(const DensityPlane::Map& m)
+{
+  std::vector<std::string> out;
+  for (size_t a = 0; a < m.atoms.size(); a++)
+    if (isLabelled(m.atoms[a])) out.push_back(m.atoms[a].label);
+  return out;
 }
 
 void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
@@ -162,17 +173,26 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
                   wxRound(X(seg[s].u1)), wxRound(Y(seg[s].v1)));
   }
 
-  //  Atoms: filled when in the plane, open when out of it.
+  //  Atoms: filled when in the plane, open and grey when off it.  Every atom
+  //  within LABEL_DIST of the plane is named, so the nuclei can be told
+  //  apart in any plane, a screen-parallel one and after an offset included.
+  vector<wxPoint> placed;
   for (size_t a = 0; a < m.atoms.size(); a++) {
     const Mark& k = m.atoms[a];
     const bool inPlane = fabs(k.off) < 0.3;
-    //  Off-plane atoms are faint and unlabelled: they only locate the cut.
     dc.SetPen(wxPen(inPlane ? *wxBLACK : wxColour(190, 190, 190), 1));
     dc.SetBrush(inPlane ? wxBrush(*wxBLACK) : wxBrush(wxColour(235, 235, 235)));
     dc.DrawCircle(wxRound(X(k.u)), wxRound(Y(k.v)), inPlane ? 4 : 3);
-    if (inPlane)
-      dc.DrawText(wxString::FromUTF8(k.label.c_str()), wxRound(X(k.u)) + 6,
-                  wxRound(Y(k.v)) - 16);
+    if (isLabelled(k)) {
+      dc.SetTextForeground(inPlane ? *wxBLACK : wxColour(110, 110, 110));
+      //  Atoms behind one another project to one point: stack their names.
+      const int lx = wxRound(X(k.u)) + 6;
+      int ly = wxRound(Y(k.v)) - 16;
+      for (size_t q = 0; q < placed.size(); q++)
+        if (abs(placed[q].x - lx) < 30 && abs(placed[q].y - ly) < 14) ly = placed[q].y + 14;
+      placed.push_back(wxPoint(lx, ly));
+      dc.DrawText(wxString::FromUTF8(k.label.c_str()), lx, ly);
+    }
   }
   dc.DestroyClippingRegion();
   const bool zero = !(fabs(m.zmax) + fabs(m.zmin) > 0);
