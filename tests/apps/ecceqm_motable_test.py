@@ -37,7 +37,8 @@ EXAMPLES = os.path.join(REPO, "data", "client", "examples", "organic", "bonding-
 CALCS = {"ethane": os.path.join(EXAMPLES, "ecceqm-ethane", "stored", "ethane"),
          "ethene": os.path.join(EXAMPLES, "ecceqm-ethene", "stored", "ethene"),
          "o2": os.path.join(REPO, "tests", "ecceqm", "fixtures", "o2-roks-loc")}
-VIEWS = (("canonical", "dockedtable"), ("localised", "dockedloctable"))
+VIEWS = (("canonical", "dockedtable"), ("localised", "dockedloctable"),
+         ("locsorted", "dockedlocsort"), ("spin", "dockedspin"))
 SCREEN = os.environ.get("ECCE_MOTABLE_SCREEN", "1366x768x24")
 
 
@@ -61,8 +62,18 @@ def parseState(log, name):
     return state
 
 
-def check(state, localised):
+def check(state, localised, view=""):
     problems = []
+    if view == "spin":
+        text = state.get("spinView", "")
+        if "singly occupied" not in text:
+            problems.append("no SOMO list in the spin density view")
+        if "Mulliken atomic spin populations" not in text:
+            problems.append("no atomic spin populations (or no note why)")
+        # O2 triplet: two SOMOs, about one unpaired electron on each O.
+        if text.count("\\n") < 5:
+            problems.append("spin view too short: %r" % text)
+        return problems
     header = state.get("header")
     if not header:
         return ["no table state in the log"]
@@ -76,12 +87,23 @@ def check(state, localised):
         problems.append("open-shell table lacks an alpha or a beta set: %s" % sorted(sets))
     for spin, part in sets.items():
         mos = [int(r[off]) for r in part]
-        if mos != list(range(len(mos), 0, -1)):
-            problems.append("%s MO numbers are not N..1 descending: %s" % (spin, mos[:12]))
         energies = [float(r[off + 1]) for r in part]
-        if not localised and energies != sorted(energies, reverse=True):
-            problems.append("energies do not fall down the table")
-    if state.get("selectedVisible") != "1":
+        if view == "locsorted":
+            # sorted by Bond type: equal types are together, the sets stay whole
+            col = header.index("Bond type")
+            kinds = [r[col] for r in part]
+            runs = [k for i, k in enumerate(kinds) if i == 0 or kinds[i - 1] != k]
+            if sorted(kinds) != kinds or len(runs) != len(set(kinds)):
+                problems.append("%s not sorted by Bond type: %s" % (spin, kinds[:12]))
+            if sorted(mos) != list(range(1, len(mos) + 1)):
+                problems.append("%s sort lost or doubled an orbital" % spin)
+            continue
+        if not localised and mos != list(range(len(mos), 0, -1)):
+            problems.append("%s MO numbers are not N..1 descending: %s" % (spin, mos[:12]))
+        # Lowest energy at the bottom, in the localised table too (H1).
+        if energies != sorted(energies, reverse=True):
+            problems.append("%s energies do not fall down the table: %s" % (spin, energies[:8]))
+    if view != "locsorted" and state.get("selectedVisible") != "1":
         problems.append("the HOMO row is not in view")
     if not localised and state.get("aboveSelectedVisible") != "1":
         problems.append("the LUMO row is not in view")
@@ -115,6 +137,8 @@ def main():
         try:
             for calc, url in urls.items():
                 for view, mode in VIEWS:
+                    if view == "spin" and calc != "o2":
+                        continue
                     shot = "%s-%s-%s" % (tag, calc, view)
                     out = os.path.join(folder, "shots")
                     os.makedirs(out, exist_ok=True)
@@ -134,7 +158,7 @@ def main():
                                         if k != "row"))
                         for r in state["row"]:
                             print("   ", " | ".join(r))
-                    problems = check(state, view == "localised")
+                    problems = check(state, view != "canonical", view)
                     png = os.path.join(out, shot + ".png")
                     if not os.path.exists(png):
                         problems.append("no picture")

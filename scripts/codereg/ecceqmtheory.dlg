@@ -18,7 +18,6 @@ check name=ES.Theory.ECCEQM.CHELPG label=" CHELPG (fitted to the electrostatic p
 check name=ES.Theory.ECCEQM.MK label=" Merz-Kollman (fitted to the electrostatic potential)" default=0 export=1
 
 box label="Orbitals"
-check name=ES.Theory.ECCEQM.Localise label=" Localised orbitals (bonds and lone pairs, same set for each spin)" default=1 export=1
 combo name=ES.Theory.ECCEQM.Virtuals label="Virtual orbitals:" choices="Canonical|Improved (IVO)" default=Canonical export=1
 
 # Implicit solvent (CPCM).  Energies and orbitals only: the engine has no

@@ -59,6 +59,16 @@ same method and basis set: run **GeoVib**, or optimise first. Thermochemistry
 is for an ideal gas at 298.15 K and 1 atm in the rigid-rotor, harmonic
 oscillator approximation; the symmetry number is found from the geometry.
 
+**Runtype Details** has a **Localised orbitals** tick box for every run type.
+It is ticked by default; unticked, the calculation does not localise the
+orbitals and the MOs panel has no **Localised MO** entry.
+
+The implicit solvent (**Solvent** in **Theory Details**) works for Energy runs
+only. With a solvent set and any other run type, the notes line above the log
+in the Calculation Editor says so, and Launch asks before it starts a job that
+would stop at once; **Launch anyway** is the default answer. Set the solvent to
+None or the run type to Energy.
+
 For Vibration and GeoVib, **Runtype Details** has a **Raman activities** tick
 box. It adds the Raman activity and the depolarization ratio of every mode,
 shown in the vibration panel and the Raman pane of the spectrum viewer, and the
