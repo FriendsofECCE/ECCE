@@ -1098,7 +1098,11 @@ void CalcMgr::runTestCommand(const string& line)
       if (!box) {
         outcome = "no box";
       } else {
-        outcome = string("shown=") + (box->IsShownOnScreen() ? "1" : "0") +
+        // An unwanted box stays GTK-visible at zero size (hidden children
+        // get allocated while scrolling), so visible means a non-empty area.
+        const bool shown = box->IsShownOnScreen() &&
+                           box->GetSize().x > 0 && box->GetSize().y > 0;
+        outcome = string("shown=") + (shown ? "1" : "0") +
                   " paints=" + std::to_string(box->paints()) +
                   " panel=" + std::to_string((unsigned long)(uintptr_t)panel) +
                   " size=" + std::to_string(box->GetSize().x) + "x" +
