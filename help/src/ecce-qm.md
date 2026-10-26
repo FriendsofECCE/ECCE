@@ -67,6 +67,12 @@ coordinate held fixed, and **Properties > Relaxed Scan** plots the energy
 against the coordinate. **Show** switches between the graph (the default)
 and the table of points; the playback buttons and **New calculation from this
 point** work in both. See [Constraints and dummy atoms](constraints-and-dummy-atoms.md).
+ECCE-QM stores the orbitals of every scan point and every IRC point, so the
+**MOs**, **MO Diagram**, **Density Map** and **Density Profile** panels show
+the orbitals and density of the point selected in the **Relaxed Scan** or
+**IRC Path** panel, together with that point's structure. Until a point is
+selected they show the last computed point. For the other codes these panels
+always show the last computed point.
 A transition-state guess can also come from two calculations, a reactant and a
 product (**TS Search** in the Calculation Editor).
 

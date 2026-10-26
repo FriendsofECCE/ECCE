@@ -22,6 +22,16 @@ issues: [549]
 - The built properties are cached per key and point until
   `flushPropertyCache()`; panels keep the pointers they got, so the cache must
   not be cleared on a point change.
+- "The last step" follows too: while a point is selected,
+  `loadStep(frag, -1)` (`getFragmentStep(-1)`, ShowFragCmd index -1, which
+  MoPanel::receiveFocus and the density evaluators use) loads that point's
+  SCANGEOM/IRCGEOM structure, so a panel never pairs the point's orbitals
+  with the last structure. With per-point orbitals the Relaxed Scan / IRC
+  Path panels therefore do not put the last structure back on loseFocus.
+- The note (PointNote.C) is found by window name. `wxWindow::FindWindowByName`
+  is static: `panel->FindWindowByName(n)` searches every window, so pass the
+  panel as the parent argument. MoPanel rebuilds its controls on a point
+  change; `addOrbitalPointNote` reuses an existing note instead of adding one.
 - ORCA, Gaussian and ECCE-QM runs older than 9.4.1 have no PTMO:
   `hasPointOrbitals()` is false and nothing changes for them.
 - Size: about nbf^2 x 15.5 bytes per point in the output (and again in the

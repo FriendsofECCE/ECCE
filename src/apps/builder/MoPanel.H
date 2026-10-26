@@ -45,6 +45,8 @@ class MoPanel : public MoGUI,
   static const wxWindowID ID_SLIDER;
 
   public:
+    //  The scan/IRC point whose orbitals the calculation returns changed.
+    void orbitalPointChanged();
     //  The orbital table with a dozen rows, the composition and controls.
     virtual int openingHeight() const { return 460; }
     MoPanel();

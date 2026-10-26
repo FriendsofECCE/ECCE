@@ -939,3 +939,24 @@ bool DensityMapPanel::exportCsv(const wxString& path)
   const bool ok = fwrite(text.data(), 1, text.size(), out) == text.size();
   return fclose(out) == 0 && ok;
 }
+
+void DensityMapPanel::orbitalPointChanged()
+{
+  if (!p_eval || !p_canvas || !p_show || !p_show->IsEnabled()) return;
+  p_eval.reset(new Evaluator);
+  if (!p_eval->build(getCalculation())) {
+    p_canvas->say(wxString::FromUTF8(p_eval->complaint.c_str()));
+    p_haveMap = false;
+    removePlaneFromViewer();
+    return;
+  }
+  const int n = std::max(1, p_eval->orbitals(false));
+  p_mo->SetRange(1, n);
+  p_mo->SetValue(std::min(p_mo->GetValue(), n));
+  p_spin->Show(p_eval->unrestricted);
+  fillAtomLists();
+  syncControls();
+  compute();
+  Layout();
+  if (IsShown()) drawPlaneInViewer();
+}

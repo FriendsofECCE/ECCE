@@ -31,6 +31,7 @@
 #include "PlaybackExtras.H"
 #include "wxgui/ewxConfig.H"
 #include "PlaybackLoop.H"
+#include "PointNote.H"
 #include "ScanPanel.H"
 
 namespace {
@@ -281,6 +282,7 @@ int ScanPanel::showPoint(int index)
   frag->touchNumbers();
   sg.touchChemDisplay();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
+  selectOrbitalPoint(calc, p_frame[index], index);
   return p_frame[index];
 }
 
@@ -409,6 +411,8 @@ void ScanPanel::receiveFocus()
 void ScanPanel::loseFocus()
 {
   IPropCalculation *calc = getCalculation();
+  // With per-point orbitals the selected point's structure stays with them.
+  if (calc && calc->hasPointOrbitals()) return;
   PropTSVecTable *trace =
       calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE")) : 0;
   if (!trace || trace->tables() == 0) return;

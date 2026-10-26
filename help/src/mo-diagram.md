@@ -7,6 +7,10 @@ it from the **Properties** list, beside the **MOs** panel. It is
 experimental: read it as a model of the bonding, and check a surprising level
 against the orbital itself.
 
+For a relaxed scan or an IRC the diagram belongs to the last computed point.
+For ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC
+Path** panel instead, as do the **MOs** panel and its orbital list.
+
 Click a level and its orbital is drawn in the 3-D view by the **MOs** panel.
 Click an atom or a bond in the 3-D view first to choose the part the diagram
 is built around.

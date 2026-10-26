@@ -7,6 +7,10 @@ works for every code whose orbitals ECCE reads. Open it from the
 **Properties** list, beside the **MOs** panel. It needs a calculation that has
 orbitals.
 
+For a relaxed scan or an IRC the map belongs to the last computed point. For
+ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC Path**
+panel instead, and a note at the top of the panel names the point.
+
 While the panel is open, the slice is drawn in the 3-D view as a translucent
 square, so you can see where it cuts the molecule. The square follows every
 change you make. It disappears when you close the panel.
