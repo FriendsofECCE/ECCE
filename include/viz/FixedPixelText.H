@@ -7,6 +7,37 @@
 // Draw the fixed 9x15 font with screen-space pixels.  Drawing each set bit
 // as geometry avoids OpenGL's glBitmap path, which can allocate temporary
 // textures in software renderers while drawing display lists.
+// The font holds Latin-1; text is UTF-8.  Returns the glyph index of the
+// character at text[i] and moves i past it: Latin-1 as is, Greek mu as the
+// micro sign (same shape), anything else as '?'.
+inline unsigned char fixedPixelGlyph(const char *text, std::size_t &i)
+{
+   const unsigned char c = static_cast<unsigned char>(text[i++]);
+   if (c < 0x80) return c;
+   unsigned int cp = 0;
+   int more = 0;
+   if ((c & 0xE0) == 0xC0) { cp = c & 0x1F; more = 1; }
+   else if ((c & 0xF0) == 0xE0) { cp = c & 0x0F; more = 2; }
+   else if ((c & 0xF8) == 0xF0) { cp = c & 0x07; more = 3; }
+   else return '?';
+   for (; more > 0; --more) {
+      const unsigned char d = static_cast<unsigned char>(text[i]);
+      if ((d & 0xC0) != 0x80) return '?';
+      cp = (cp << 6) | (d & 0x3F);
+      ++i;
+   }
+   if (cp == 0x3BC) return 0xB5;
+   return cp <= 0xFF ? static_cast<unsigned char>(cp) : '?';
+}
+
+// Characters, not bytes, in a UTF-8 string: its width in glyphs.
+inline std::size_t fixedPixelLength(const char *text)
+{
+   std::size_t n = 0;
+   for (std::size_t i = 0; text && text[i] != '\0'; ++n) fixedPixelGlyph(text, i);
+   return n;
+}
+
 inline void drawFixedPixelText(const GLubyte *const *glyphs,
                                const char *text,
                                GLdouble glyphAdvance)
@@ -41,8 +72,9 @@ inline void drawFixedPixelText(const GLubyte *const *glyphs,
 
    const GLdouble windowZ = 1.0 - 2.0 * raster[2];
    glBegin(GL_QUADS);
-   for (std::size_t index = 0; text[index] != '\0'; ++index) {
-      const unsigned char code = static_cast<unsigned char>(text[index]);
+   std::size_t index = 0;
+   for (std::size_t i = 0; text[i] != '\0'; ++index) {
+      const unsigned char code = fixedPixelGlyph(text, i);
       const GLubyte *glyph = glyphs[code];
       if (!glyph) continue;
 

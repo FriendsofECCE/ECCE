@@ -23,8 +23,9 @@ one `VRVector` under the property's switch.
   out. Constant shape 0.04/0.10/0.20 A, drawn again through the molecule
   (`showThroughMolecule`, 60 % transparency, depth test off).
 - **Value.** Not drawn in the scene: `MomentsPanel::showVectors` puts
-  `Dipole moment x.xx D (ESP|MK|Mulliken charges)` (`Dipole moment 0 D` below
-  0.005 D, CO2) in `SGViewer::setURightText`; `loseFocus` clears it. A text
+  `Dipole moment μ = x.xx D (ESP|MK|Mulliken charges)` (`Dipole moment μ = 0 D` below
+  0.005 D, CO2; the corner font is Latin-1 bitmaps, and `drawFixedPixelText`
+  decodes UTF-8, drawing Greek μ as the micro sign) in `SGViewer::setURightText`; `loseFocus` clears it. A text
   node beside the arrow needed ASCII (no Greek mu in `SoText2`) and went stale
   on background changes.
 - **Only the dipole panel draws it.** `QuadPolePanel` (quadrupole,

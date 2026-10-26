@@ -2,7 +2,7 @@
 """
 Dipole Moment panel (#578): a plain arrow from the centre of negative to the
 centre of positive partial charge, "Dipole moment x.xx D (ESP charges)" in the viewer corner, no Scale slider;
-mu = 0 gives no arrow and the label "Dipole moment 0 D".  Headless Builder scene
+mu = 0 gives no arrow and the label "Dipole moment \u03bc = 0 D".  Headless Builder scene
 commands on the stored example calculations; the poles are recomputed here
 from the stored charges (CHELPG, else Merz-Kollman, else Mulliken) and the
 atom coordinates the Builder reports.
@@ -182,13 +182,13 @@ def main():
                       "%s: no Scale slider on the panel" % name)
                 if mag < 0.005:
                     check(n == 0, "%s: mu = 0, no arrow" % name)
-                    check(label == "Dipole moment 0 D", "%s: label is 'Dipole moment 0 D' (%r)" % (name, label))
+                    check(label == "Dipole moment \u03bc = 0 D", "%s: label is 'Dipole moment \u03bc = 0 D' (%r)" % (name, label))
                     continue
                 key = poles(calc, xyz)[0]
                 short = {"ESPFIT": "ESP", "MKFIT": "MK", "MULLIKEN": "Mulliken"}[key]
                 check(n == 1, "%s: one arrow" % name)
-                check(label == "Dipole moment %.2f D (%s charges)" % (mag, short),
-                      "%s: corner text 'Dipole moment %.2f D' (%r)" % (name, mag, label))
+                check(label == "Dipole moment \u03bc = %.2f D (%s charges)" % (mag, short),
+                      "%s: corner text 'Dipole moment \u03bc = %.2f D' (%r)" % (name, mag, label))
                 m = re.search(r"vector DIPOLE 0 start=(\S+) dir=(\S+) "
                               r"length=(\S+)", log)
                 if not m:

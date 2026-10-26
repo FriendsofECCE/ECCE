@@ -628,7 +628,7 @@ def dipoleArrow(text):
           "arrow along mu: %s vs %s" % (arrow["dir"], value))
     check(abs(float(arrow["radius"]) - 0.10) < 0.01,
           "head radius %s A" % arrow["radius"])
-    check("label=Dipole moment %.2f D (Mulliken charges)" % norm in text,
+    check("label=Dipole moment \u03bc = %.2f D (Mulliken charges)" % norm in text,
           "the corner text gives |mu| %.2f D" % norm)
 
 
