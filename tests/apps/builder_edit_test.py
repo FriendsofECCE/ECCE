@@ -45,7 +45,7 @@ def builderCase(display, url):
                         "add X Terminal 5 0 0", "savestate",
                         "cmd clean", "savestate",
                         "popup selector",
-                        "select 1", "info", "key viewer copy", "select -1",
+                        "select 2", "info", "key viewer copy", "select -1",
                         "key viewer paste", "info", "key viewer undo", "info",
                         "key text cut", "info",
                         "info", "wait 500", "quit"], url)
@@ -111,10 +111,10 @@ def deleteCase(display, url):
     the routing, not the keyboard-to-accelerator step."""
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT",
                        ["wait 4000", "panel Log", "wait 500", "info",
-                        "select 1", "delete menu log",
-                        "select 1", "delete key log",
-                        "select 1", "delete key text",
-                        "select 1", "delete key viewer",
+                        "select 2", "delete menu log",
+                        "select 2", "delete key log",
+                        "select 2", "delete key text",
+                        "select 2", "delete key viewer",
                         "wait 500", "quit"], url)
     tail = run_tests._tail(log, 25)
     start = re.search(r"BUILDER: atoms=(\d+)", log)
