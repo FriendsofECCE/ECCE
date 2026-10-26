@@ -221,12 +221,39 @@ bool MoPanel::Create(IPropCalculation *calculation,
 
    //  What the spin density is made of; replaces the table while the Spin
    //  Density type is chosen.
-   p_spinText = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
-         wxDefaultPosition, minSize,
-         wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP|wxBORDER_SUNKEN);
-   p_spinText->SetFont(wxFont(wxFontInfo(GetFont().GetPointSize()).Family(wxFONTFAMILY_TELETYPE)));
-   p_spinText->Hide();
-   sizer->Insert(1, p_spinText, 1, wxGROW);
+   p_spinView = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition,
+                                     minSize, wxVSCROLL);
+   p_spinView->SetScrollRate(0, 10);
+   wxBoxSizer *spinSizer = new wxBoxSizer(wxVERTICAL);
+   p_spinNote = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
+   p_spinPopHead = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
+   auto makeGrid = [this]() {
+      wxGrid *g = new wxGrid(p_spinView, wxID_ANY, wxDefaultPosition,
+                             wxDefaultSize, wxBORDER_SUNKEN);
+      g->CreateGrid(0, 0, wxGrid::wxGridSelectRows);
+      g->EnableEditing(false);
+      g->SetRowLabelSize(0);
+      g->DisableDragColSize();
+      g->DisableDragRowSize();
+      //  The panel's own handlers are for the orbital table; grid events
+      //  of these tables must not reach them.
+      g->Bind(wxEVT_GRID_SELECT_CELL, [](wxGridEvent&) {});
+      g->Bind(wxEVT_GRID_LABEL_LEFT_CLICK, [](wxGridEvent&) {});
+      return g;
+   };
+   p_spinSomo = makeGrid();
+   p_spinPop = makeGrid();
+   spinSizer->Add(p_spinNote, 0, wxGROW|wxALL, 5);
+   spinSizer->Add(p_spinSomo, 0, wxGROW|wxLEFT|wxRIGHT, 5);
+   spinSizer->Add(p_spinPopHead, 0, wxGROW|wxALL, 5);
+   spinSizer->Add(p_spinPop, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+   p_spinView->SetSizer(spinSizer);
+   p_spinView->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+      e.Skip();
+      layoutSpinView();
+   });
+   p_spinView->Hide();
+   sizer->Insert(1, p_spinView, 1, wxGROW);
 
    wxTextCtrl *txt = (wxTextCtrl*)FindWindow(ID_TEXTCTRL_MO_CUTOFF);
    //  The cutoff row needs no frame of its own; the frame and its margins
@@ -1102,9 +1129,30 @@ string MoPanel::tableState() const
    }
    s << "visibleRows " << first << " " << last << "\n";
    if (p_spinShown) {
-      wxString text = p_spinText->GetValue();
+      wxString text = p_spinNote->GetLabel() + "\n";
+      for (wxGrid *g : { p_spinSomo, p_spinPop }) {
+         if (g == p_spinPop) text += p_spinPopHead->GetLabel() + "\n";
+         if (g->GetNumberRows() == 0) continue;
+         for (int col = 0; col < g->GetNumberCols(); col++)
+            text += (col ? " | " : "") + g->GetColLabelValue(col);
+         text += "\n";
+         for (int r = 0; r < g->GetNumberRows(); r++) {
+            for (int col = 0; col < g->GetNumberCols(); col++)
+               text += (col ? " | " : "") + g->GetCellValue(r, col);
+            text += "\n";
+         }
+      }
       text.Replace("\n", "\\n");
       s << "spinView " << text << "\n";
+      s << "spinViewWidth " << p_spinView->GetClientSize().x;
+      for (wxGrid *g : { p_spinSomo, p_spinPop })
+         s << " grid " << g->GetSize().x << " cols";
+      for (wxGrid *g : { p_spinSomo, p_spinPop }) {
+         int cols = 0;
+         for (int c = 0; c < g->GetNumberCols(); c++) cols += g->GetColSize(c);
+         s << " " << cols;
+      }
+      s << "\n";
    }
    return s.ToStdString();
 }
@@ -2482,7 +2530,7 @@ void MoPanel::showMainView()
    p_mogrid->Show(!p_spinShown && which == TABLE);
    p_plotReg->Show(!p_spinShown && which == PLOT);
    p_plotSym->Show(!p_spinShown && which == PLOTSYM);
-   p_spinText->Show(p_spinShown);
+   p_spinView->Show(p_spinShown);
    p_mogrid->GetContainingSizer()->Layout();
 }
 
@@ -2492,16 +2540,19 @@ void MoPanel::showMainView()
  * Mulliken spin population on each atom, the latter worked out from the
  * orbital coefficients because no code writes it for every run.
  */
-wxString MoPanel::spinDensityText()
+MoPanel::SpinData MoPanel::spinDensityData()
 {
    IPropCalculation *expt = getCalculation();
    PropVector *energy[2] = { (PropVector*) expt->getProperty("ORBENG"),
                              (PropVector*) expt->getProperty("ORBENGBETA") };
    PropVector *occ[2] = { (PropVector*) expt->getProperty("ORBOCC"),
                           (PropVector*) expt->getProperty("ORBOCCBETA") };
-   if (!energy[0] || !occ[0])
-      return _("The orbital energies or occupations are missing, so the "
-               "spin density cannot be described.");
+   SpinData data;
+   if (!energy[0] || !occ[0]) {
+      data.message = _("The orbital energies or occupations are missing, so "
+                       "the spin density cannot be described.").ToStdString();
+      return data;
+   }
    const bool unrestricted = occ[1] != 0;
 
    //  net[s][i]: spin-up minus spin-down electrons in orbital i of set s.
@@ -2521,14 +2572,12 @@ wxString MoPanel::spinDensityText()
    const size_t natoms = haveBasis ? p_aoBasis->elements.size() : 0;
    vector<double> spinPop(natoms, 0.0);
    vector<string> atomName(natoms);
-   wxString somos;
-   int nSomo = 0;
    for (int set = 0; set < (unrestricted ? 2 : 1); set++) {
       const vector<double>& en = (energy[set] ? energy[set] : energy[0])->values();
       for (size_t i = 0; i < net[set].size(); i++) {
          if (fabs(net[set][i]) < 1e-6) continue;
          MoAoBasis::Composition comp;
-         wxString main;
+         string main;
          if (haveBasis && i < p_aoRows[set].size() &&
              p_aoBasis->analyse(p_aoRows[set][i], MoAoBasis::MULLIKEN, comp)) {
             for (size_t a = 0; a < comp.atoms.size() && a < natoms; a++) {
@@ -2542,8 +2591,10 @@ wxString MoPanel::spinDensityText()
             int shown = 0;
             for (size_t k = 0; k < parts.size() && shown < 3; k++) {
                if (parts[k].share < 0.10) break;
-               main += wxString::Format("%s%s %.0f%%", shown++ ? ", " : "",
-                                        parts[k].label, 100.0*parts[k].share);
+               char buf[96];
+               snprintf(buf, sizeof buf, "%s%s %.0f%%", shown++ ? ", " : "",
+                        parts[k].label.c_str(), 100.0*parts[k].share);
+               main += buf;
             }
          }
          // A beta orbital is singly occupied only where the alpha one is not.
@@ -2551,36 +2602,115 @@ wxString MoPanel::spinDensityText()
             continue;
          if (unrestricted && set == 0 && i < net[1].size() && net[1][i] != 0.0)
             continue;
-         somos += wxString::Format("%5lu  %-5s  %12.6f  %s\n",
-               (unsigned long)(i + 1), set ? "beta" : "alpha",
-               i < en.size() ? en[i] : 0.0, main);
-         nSomo++;
+         data.somos.push_back({ (int)(i + 1), set == 1,
+                                i < en.size() ? en[i] : 0.0, main });
       }
    }
 
-   wxString text = _("The spin density is made of the singly occupied orbitals "
-                     "(SOMOs).\n\n");
-   if (nSomo == 0) {
-      text += _("This wavefunction has no singly occupied orbitals.\n");
-   } else {
-      text += wxString::Format("%5s  %-5s  %12s  %s\n", "MO", "Spin",
-                               "E (Hartree)", "Main atoms");
-      text += somos;
-   }
-   text += "\n";
+   data.haveBasis = haveBasis;
    if (haveBasis) {
-      text += _("Mulliken atomic spin populations (electrons, from the "
-                "orbital coefficients):\n");
       for (size_t a = 0; a < natoms; a++)
          if (fabs(spinPop[a]) >= 0.0005)
-            text += wxString::Format("%-8s %8.3f\n", atomName[a], spinPop[a]);
+            data.populations.push_back({ atomName[a], spinPop[a] });
    } else {
-      text += _("Atomic spin populations are not available for this "
-                "calculation");
-      if (!p_aoWhy.empty()) text += ": " + wxString::FromUTF8(p_aoWhy.c_str());
-      text += ".\n";
+      data.why = p_aoWhy;
    }
-   return text;
+   return data;
+}
+
+
+/** Fills the spin density view's note and tables from spinDensityData(). */
+void MoPanel::fillSpinView()
+{
+   const SpinData data = spinDensityData();
+   wxString note = wxString::FromUTF8(data.message.c_str());
+   if (data.message.empty())
+      note = data.somos.empty()
+         ? _("The spin density is made of the singly occupied orbitals "
+             "(SOMOs). This wavefunction has no singly occupied orbitals.")
+         : _("The spin density is made of the singly occupied orbitals "
+             "(SOMOs).");
+   p_spinNote->SetLabel(note);
+
+   auto reset = [](wxGrid *g, const char *const *heads, int n, int rows) {
+      if (g->GetNumberRows()) g->DeleteRows(0, g->GetNumberRows());
+      if (g->GetNumberCols()) g->DeleteCols(0, g->GetNumberCols());
+      g->AppendCols(n);
+      g->AppendRows(rows);
+      for (int i = 0; i < n; i++) g->SetColLabelValue(i, heads[i]);
+   };
+   static const char *const somoHeads[] = { "MO", "Spin", "E (Hartree)",
+                                            "Main atoms" };
+   static const char *const popHeads[] = { "Atom", "Spin population" };
+   const bool somoTable = data.message.empty() && !data.somos.empty();
+   reset(p_spinSomo, somoHeads, 4, somoTable ? (int)data.somos.size() : 0);
+   for (size_t r = 0; somoTable && r < data.somos.size(); r++) {
+      const SpinData::Somo& s = data.somos[r];
+      p_spinSomo->SetCellValue(r, 0, wxString::Format("%d", s.mo));
+      p_spinSomo->SetCellValue(r, 1, s.beta ? "beta" : "alpha");
+      p_spinSomo->SetCellValue(r, 2, wxString::Format("%.6f", s.energy));
+      p_spinSomo->SetCellValue(r, 3, wxString::FromUTF8(s.main.c_str()));
+      for (int c = 0; c < 3; c++)
+         p_spinSomo->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
+   }
+
+   const bool popTable = data.message.empty() && data.haveBasis;
+   if (!data.message.empty())
+      p_spinPopHead->SetLabel(wxEmptyString);
+   else if (popTable)
+      p_spinPopHead->SetLabel(_("Mulliken atomic spin populations (electrons, "
+                                "from the orbital coefficients)"));
+   else
+      p_spinPopHead->SetLabel(_("Atomic spin populations are not available "
+            "for this calculation") +
+            (data.why.empty() ? wxString("")
+               : ": " + wxString::FromUTF8(data.why.c_str())) + ".");
+   reset(p_spinPop, popHeads, 2, popTable ? (int)data.populations.size() : 0);
+   for (size_t r = 0; popTable && r < data.populations.size(); r++) {
+      p_spinPop->SetCellValue(r, 0,
+            wxString::FromUTF8(data.populations[r].first.c_str()));
+      p_spinPop->SetCellValue(r, 1,
+            wxString::Format("%.3f", data.populations[r].second));
+      p_spinPop->SetCellAlignment(r, 1, wxALIGN_RIGHT, wxALIGN_CENTRE);
+   }
+   p_spinSomo->Show(somoTable);
+   p_spinPop->Show(popTable);
+   layoutSpinView();
+}
+
+
+/**
+ * Wraps the texts to the view's width, sizes each table to its rows (the
+ * view scrolls, the tables do not) and gives the last column the rest of
+ * the width.
+ */
+void MoPanel::layoutSpinView()
+{
+   if (!p_spinView || !p_spinSomo) return;
+   const int width = std::max(100, p_spinView->GetClientSize().x - 10);
+   for (wxStaticText *t : { p_spinNote, p_spinPopHead }) {
+      wxString label = t->GetLabel();
+      label.Replace("\n", " ");
+      t->SetLabel(label);
+      t->Wrap(width - 10);
+   }
+   for (wxGrid *g : { p_spinSomo, p_spinPop }) {
+      if (!g->IsShown() || g->GetNumberCols() == 0) continue;
+      g->AutoSize();
+      g->SetColLabelSize(g->GetTextExtent("Ey").y + 10);
+      int used = 0;
+      const int last = g->GetNumberCols() - 1;
+      for (int c = 0; c < last; c++) {
+         g->SetColSize(c, g->GetColSize(c) + 12);   // AutoSize clips right-aligned text
+         used += g->GetColSize(c);
+      }
+      g->SetColSize(last, std::max(g->GetColSize(last), width - 2 - used));
+      int h = g->GetColLabelSize() + 4;
+      for (int r = 0; r < g->GetNumberRows(); r++) h += g->GetRowSize(r);
+      g->SetMinSize(wxSize(width, h));
+   }
+   p_spinView->GetSizer()->Layout();
+   p_spinView->FitInside();
 }
 
 
@@ -2599,7 +2729,7 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
       const bool spin = chosen == "Spin Density";
       if (spin != p_spinShown) {
          p_spinShown = spin;
-         if (spin) p_spinText->SetValue(spinDensityText());
+         if (spin) fillSpinView();
          showMainView();
       }
       if ((chosen == "MO" || chosen == "Localised MO") &&

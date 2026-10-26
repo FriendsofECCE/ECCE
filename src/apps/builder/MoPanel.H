@@ -161,7 +161,17 @@ class MoPanel : public MoGUI,
      void OnMoLabelClick( wxGridEvent& event );
      void sortTable(int col, bool ascending);
      void showMainView();
-     wxString spinDensityText();
+     struct SpinData {
+        struct Somo { int mo; bool beta; double energy; std::string main; };
+        std::string message;            // set when there is nothing to tabulate
+        std::vector<Somo> somos;
+        bool haveBasis = false;
+        std::string why;                // why the populations are missing
+        std::vector<std::pair<std::string,double> > populations;
+     };
+     SpinData spinDensityData();
+     void fillSpinView();
+     void layoutSpinView();
      void OnGraphSelection(bool regular, int curve, int index);
      void OnEndSliderMotion(wxScrollEvent& event);
      void OnSliderTextEnter(wxCommandEvent& event);
@@ -258,7 +268,9 @@ class MoPanel : public MoGUI,
       int p_selectedRow;
       int p_sortCol = -1;          // column the localised table is sorted by
       bool p_sortAscending = true;
-      wxTextCtrl *p_spinText = NULL;   // the spin density view
+      wxScrolledWindow *p_spinView = NULL;   // the spin density view
+      wxStaticText *p_spinNote = NULL, *p_spinPopHead = NULL;
+      wxGrid *p_spinSomo = NULL, *p_spinPop = NULL;
       bool p_spinShown = false;
       //  One atom: each orbital's shell ("1s", "2p", "3s (virtual)"), alpha
       //  then beta, replacing the symmetry label; empty for a molecule.
