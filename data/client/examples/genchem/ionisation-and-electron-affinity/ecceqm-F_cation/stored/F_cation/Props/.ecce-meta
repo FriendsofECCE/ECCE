@@ -3,7 +3,14 @@ DIPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 ETIME	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 EXCHANGE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 EXCORR	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
-LOCMONOTE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOCMO	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOCMOBETA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOCMOENG	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOCMOENGBETA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOCMOLABEL	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOCMOLABELBETA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOCMOOCC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+LOCMOOCCBETA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 MO	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 MOAOORDER	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 MOBETA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
