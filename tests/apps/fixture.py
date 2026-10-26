@@ -292,18 +292,12 @@ def installedVersion():
 
 
 def settleUpgradeNotices():
-    """Stop the one-time "layout preferences are being reset" modal.
+    """Record the running version in wxbuilder.ini before a Builder starts.
 
-    Builder::restoreSettings() (Builder.C:1938) shows a modal notice whenever
-    the version recorded in wxbuilder.ini differs from the running one, and
-    writes the new version on exit.  The suite always terminates its apps, so
-    that write never happens and the modal comes back every run -- where it
-    blocks the event loop BEFORE the calculation context is opened, which is
-    the very thing the fixture exists to exercise.
-
-    Recording the current version up front puts the app in the steady state a
-    user is in from their second launch onward.  The one-time notice itself
-    is correct behaviour and is not what these checks are about.
+    Builder::restoreSettings() resets the window layout whenever the stored
+    version differs from the running one (it showed a modal notice until
+    #605). Recording it up front puts the app in the steady state a user is
+    in from their second launch onward.
 
     Returns a callable that puts the user's own file back: unless the run is
     isolated via ECCE_TEST_STATE, this is editing real preferences, which a

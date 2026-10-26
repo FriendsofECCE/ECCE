@@ -2367,15 +2367,8 @@ void Builder::restoreSettings()
    wxString curversion = Ecce::ecceVersion();
    wxString version = config->Read("/Version", "None");
    if (version != curversion) {
-      config->Read("/ResetPerspective", &resetPerspective, false);
-      if (version!="None" &&  !resetPerspective) {
-         // Don't warn user if they did the reset or preferences don't exist
-         ewxMessageDialog mdlg(this, 
-               "Window layout preferences are being reset due to\n"
-               "the version upgrade.  New settings will be saved automatically.",
-               "Reset Default Tools/Toolbars",wxOK|wxICON_EXCLAMATION,this->GetPosition());
-         mdlg.ShowModal();
-      }
+      // No notice: a modal shown here, before the frame exists, can open
+      // out of sight (macOS) and blocks the Viewer from ever appearing.
       // Use existing infrastructure to delete all perspectives
       // by setting ResetPerspective to true
       config->Write("/ResetPerspective", true);

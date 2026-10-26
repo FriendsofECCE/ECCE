@@ -299,17 +299,6 @@ entries were removed on 2026-08-30. Unnoticed for three weeks because nobody
 launches it. Fixed; see `cases.XFAIL` for the sibling audit it implies —
 about a dozen apps share the unchecked `getTool(...)->getIcon()` pattern.
 
-### A note on the first run after a version bump
-
-`Builder::restoreSettings()` (`Builder.C:1938`) shows a modal "Window layout
-preferences are being reset due to the version upgrade" notice once whenever
-the stored perspective version differs from the running one. So immediately
-after an upgrade, the first window this suite sees for `builder` is that
-modal rather than the main frame. That is correct behaviour and the check
-still holds -- a window appeared and the process survived -- but it is worth
-recognising in the `-v` output rather than mistaking for a mislabelled
-window.
-
 ## Running against an uninstalled service fix
 
 `ECCE_GATEWAY_START` / `ECCE_DATASERVER_START` point at an alternative copy

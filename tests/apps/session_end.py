@@ -449,10 +449,8 @@ def pressReturn(display, wid):
 
 
 # Modal dialogs a user would answer on the way out: while one is up, wx
-# ignores the frame's close. The Builder's layout notice appears whenever
-# wxbuilder.ini was last written by another ECCE version, and is never
-# written back if the Builder is killed, so it recurs until answered.
-ACCEPT = ("Quit ECCE", "Reset Default Tools/Toolbars")
+# ignores the frame's close.
+ACCEPT = ("Quit ECCE",)
 
 
 def quitVia(display, frame):

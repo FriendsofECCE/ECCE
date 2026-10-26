@@ -2802,6 +2802,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_ecceqm_builder PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The Builder opens a calculation when wxbuilder.ini is from an older
+  # version: no modal before the frame exists (#605).
+  add_test(NAME apps_builder_upgrade
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_upgrade_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_upgrade PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+
   # The Relaxed Scan panel's Show Graph/Table choice (#584).
   add_test(NAME apps_scan_view
            COMMAND ${PYTHON3_EXECUTABLE}
