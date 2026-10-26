@@ -274,7 +274,8 @@ static wxString powerOfTen(int n)
 
 
 // A small line plot, framed, with its label under it. The x axis runs
-// 0..xEnd with a few ticks.  A linear plot's y axis shows the extremes; a
+// 1..xEnd (cycles, steps) or 0..xEnd (ps) with a few ticks.  A linear
+// plot's y axis shows the extremes; a
 // log plot's (blk.curves, log10 of |value|) shows powers of ten and draws
 // each curve's convergence limit as a dashed line, so the curve can be read
 // as well as seen.
@@ -343,6 +344,10 @@ static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
 
   const double xEnd = blk.plotXEnd > 0 ? blk.plotXEnd : (double)blk.plot.size();
   const double xLast = blk.plotXLast > 0 ? blk.plotXLast : (double)blk.plot.size();
+  //  Cycles and steps count from 1, so the frame starts there; time from 0.
+  const bool whole = blk.plotXUnit != "ps";
+  const double xStart = whole && xEnd > 1 ? 1.0 : 0.0;
+  auto xFrac = [&](double x) { return (x - xStart) / (xEnd - xStart); };
   const int m = 3;
   auto yOf = [&](double v) {
     return area.y + m + (int)std::lround((1 - (v - lo) / (hi - lo)) * (area.height - 2 * m));
@@ -362,7 +367,7 @@ static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
     vector<wxPoint> pts;
     for (size_t i = 0; i < v.size(); i++) {
       const double x = xLast * double(i + 1) / v.size();
-      const double fx = x / xEnd;
+      const double fx = xFrac(x);
       if (!drawn(v[i])) continue;
       pts.push_back(wxPoint(area.x + m + (int)std::lround(fx * (area.width - 2 * m)),
                             yOf(v[i])));
@@ -391,16 +396,17 @@ static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
     }
     dc.SetTextForeground(pal.axis);
   }
-  const bool whole = blk.plotXUnit != "ps";
   SpectrumTicks xt = niceTicks(0, xEnd, 3);
   if (whole) {
     xt.decimals = 0;
     xt.values.clear();
-    for (double t = std::max(1.0, std::ceil(xEnd / 3)); t <= xEnd + 1e-9; t += std::max(1.0, std::ceil(xEnd / 3)))
-      xt.values.push_back(t);
+    const double step = std::max(1.0, std::ceil(xEnd / 3));
+    if (xStart > 0) xt.values.push_back(1);
+    for (double t = step; t <= xEnd + 1e-9; t += step)
+      if (t > 1) xt.values.push_back(t);
   }
   for (double t : xt.values) {
-    const int px = area.x + m + (int)std::lround(t / xEnd * (area.width - 2 * m));
+    const int px = area.x + m + (int)std::lround(xFrac(t) * (area.width - 2 * m));
     const wxString s = wxString::Format("%.*f", xt.decimals, t);
     const int w = dc.GetTextExtent(s).x;
     if (px + w / 2 > r.GetRight()) continue;
