@@ -1,3 +1,4 @@
+#include "util/FrameTiming.H"
 #include <iostream>
   using std::cout;
   using std::endl;
@@ -42,6 +43,7 @@ void GTStepCmd::init()
 
 bool GTStepCmd::execute()
 {
+  frametiming::Scope tStep("gtstep");
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
   SGFragment *sgfrag = (SGFragment*)sg->getFragment();
   LatticeDef *lattice = sgfrag->getLattice();
@@ -52,10 +54,12 @@ bool GTStepCmd::execute()
 
   // Get the property 
   string propKey = getParameter("PropKey")->getString();
+  double tProp = frametiming::enabled() ? frametiming::now() : 0;
   PropTSVecTable *trace = (PropTSVecTable*)calc->getProperty(propKey);
   INTERNALEXCEPTION(trace,"trace table pointer is null");
 
   PropTSVecTable *latticeprop = (PropTSVecTable*)calc->getProperty("LATTICEVEC");
+  if (frametiming::enabled()) frametiming::add("property", frametiming::now() - tProp);
  
   // Could be null if data exists but is corrupted.  So we try not to crash...
   if (trace) {
@@ -67,6 +71,7 @@ bool GTStepCmd::execute()
          << " has no frame, using " << step << endl;
     // loop through all the atoms and replace with coordinates for this step 
     int natoms = sgfrag->numAtoms() ;
+    double tCoords = frametiming::enabled() ? frametiming::now() : 0;
     // MOPAC and Gaussian leave dummy atoms out of their geometry tables; the
     // rows then belong to the non-dummy atoms in order, and a dummy keeps
     // its position.
@@ -85,6 +90,7 @@ bool GTStepCmd::execute()
       row++;
       sgfrag->atomRef(j)->coordinates(coords);
     }
+    if (frametiming::enabled()) frametiming::add("coords", frametiming::now() - tCoords);
     //TODO decide what to do if there is no lattice - create one?
     if (lattice && latticeprop && latticeprop->nearestTable(step) >= 0) {
          step = latticeprop->nearestTable(step);
@@ -112,7 +118,10 @@ bool GTStepCmd::execute()
     // Frames of an MD run written without -pbc mol -ur compact (before
     // 9.3.3) hold the brick; the cell is drawn compact.
     if (lattice && dynamic_cast<MdTask*>(calc))
+    {
+      frametiming::Scope t("wrap");
       sgfrag->wrapIntoCompactCell(false);
+    }
 
     // ChemDisplay nodes hold a raw pointer to their ChemData, not an
     // SoSFNode field, so sgfrag->touch() alone doesn't reach their render
@@ -133,9 +142,15 @@ bool GTStepCmd::execute()
     // sibling in NModeStepCmd.C, whose own comment even cites geometry-
     // trace stepping as the precedent -- the geometry-trace stepper
     // itself was simply never updated to match.
-    sg->touchChemDisplay(sgfrag);
-    sgfrag->touch() ;
-    sg->adjustMeasures();
+    {
+      frametiming::Scope t("touch");
+      sg->touchChemDisplay(sgfrag);
+      sgfrag->touch() ;
+    }
+    {
+      frametiming::Scope t("measures");
+      sg->adjustMeasures();
+    }
 
     // Diagnostic for issue #74 ("table updates, 3-D view stays static").
     // Adding touchChemDisplay() above did not fix it in live testing, and
@@ -164,6 +179,7 @@ bool GTStepCmd::execute()
     }
     //TODO send the appropriate message - do we need a latticechange??
     //if not, may need to have a look at StepChange handling
+    frametiming::Scope t("stepchange");
     EventDispatcher::getDispatcher().publish(Event("StepChange"));
   }
 
