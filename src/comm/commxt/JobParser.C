@@ -189,7 +189,6 @@ bool JobParser::importCalculation(const char* parseFile,
         string cand = base + exts[i];
         if (cand == parseFileName) continue;
         string candPath = importDir + cand;
-        string ignore;
         if (!localconn.exec("grep -q 'Northwest Computational Chemistry "
                             "Package' " + RCommand::quotePath(candPath)))
           continue;
