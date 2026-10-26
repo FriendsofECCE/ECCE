@@ -1,0 +1,93 @@
+<MolecularConfig>
+<Map>
+<Group Tag="Cl" Name="6-31G*">
+<OrderedList>
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="6-31G*">
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="Cl">
+<BasisSet uniqueKey="6-31G*:pople">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="Cl">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="Cl">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+<Group Tag="H" Name="6-31G*">
+<OrderedList>
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="6-31G*">
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="H">
+<BasisSet uniqueKey="6-31G*:pople">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="H">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="H">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+</Map>
+<Data>
+BasisSet=6-31G*
+Type=pople Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
+element=Cl
+contraction shell=S num_primitives=6 num_coefficients=1
+25180.099999999999 0.001833000000
+3780.350000000000 0.014034000000
+860.474000000000 0.069097000000
+242.145000000000 0.237452000000
+77.334900000000 0.483034000000
+26.247000000000 0.339856000000
+contraction shell=SP num_primitives=6 num_coefficients=2
+491.765000000000 -0.002297400000 0.003989400000
+116.984000000000 -0.030714000000 0.030318000000
+37.415300000000 -0.112528000000 0.129880000000
+13.783400000000 0.045016000000 0.327951000000
+5.452150000000 0.589353000000 0.453527000000
+2.225880000000 0.465206000000 0.252154000000
+contraction shell=SP num_primitives=3 num_coefficients=2
+3.186490000000 -0.251830000000 -0.014299000000
+1.144270000000 0.061589000000 0.323572000000
+0.420377000000 1.060180000000 0.743507000000
+contraction shell=SP num_primitives=1 num_coefficients=2
+0.142657000000 1.000000000000 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.750000000000 1.000000000000
+element=H
+contraction shell=S num_primitives=3 num_coefficients=1
+18.731137000000 0.033494600000
+2.825393700000 0.234726950000
+0.640121700000 0.813757330000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.161277800000 1.000000000000
+EndBasisSet
+</Data>
+</MolecularConfig>

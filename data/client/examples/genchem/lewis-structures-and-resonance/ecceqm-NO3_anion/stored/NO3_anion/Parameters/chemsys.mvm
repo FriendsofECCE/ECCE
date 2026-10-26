@@ -1,0 +1,27 @@
+title: NO3_anion
+type: molecule
+fragment_attributes:
+  charge: -1
+end_fragment_attributes:
+num_atoms: 4
+atom_info: symbol cart
+atom_list: 
+N 1.03602e-06 -2.22182e-06 -1.90000e-11
+O 1.26424 3.74361e-06 6.00000e-12
+O -0.632123 1.09486 6.00000e-12
+O -0.632112 -1.09487 6.00000e-12
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        3   1
+        1   1
+        1   1
+        1   1
+num_bonds: 3
+bond_list: 
+1 2 2.00000 1
+1 3 2.00000 1
+1 4 2.00000 1

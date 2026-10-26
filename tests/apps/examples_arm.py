@@ -35,7 +35,8 @@ def propsOf(project):
     # calculations may sit in topic projects below the set's project
     found = {}
     for base, dirs, _files in os.walk(project):
-        if "Props" in dirs:
+        # a GROMACS run's `dynamics` task is parsed, never stored or counted
+        if "Props" in dirs and os.path.basename(base) != "dynamics":
             found[os.path.basename(base)] = sorted(
                 os.listdir(os.path.join(base, "Props")))
     return found
@@ -48,11 +49,23 @@ def waitStable(project, count, seconds=300):
     while time.time() < end:
         now = propsOf(project)
         paths = {os.path.basename(b): b for b, d, _f in os.walk(project)
-                 if "Props" in d}
-        sizes = {c: [os.path.getsize(os.path.join(paths[c], "Props", p))
+                 if "Props" in d and os.path.basename(b) != "dynamics"}
+        def size(path):
+            try:
+                return os.path.getsize(path)
+            except OSError:   # a temporary file written and renamed meanwhile
+                return -1
+        sizes = {c: [size(os.path.join(paths[c], "Props", p))
                      for p in now[c]] for c in now}
-        state = (now, sizes)
-        if len(now) == count and state == last:
+        # the notes are written after the import, one resource at a time
+        def noted(path):
+            try:
+                return b"annotation" in open(os.path.join(path, ".ecce-meta"), "rb").read()
+            except OSError:
+                return False
+        annotated = sum(1 for c in now if noted(paths[c]))
+        state = (now, sizes, annotated)
+        if len(now) == count and annotated == count and state == last:
             stable += 1
             if stable >= 20:
                 return changed

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="LOCMOLABEL" rowLabel="Basis Function" rowLabels="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18" rows="18" units="NA">core_Br2   core_Br2   core_Br2   core_Br2
+core_Br2   core_Br2   core_Br2   core_Br2
+core_Br2   sigma_H1-Br2_(s/sp5.1)   lone_pair_Br2_(sp0.4)   lone_pair_Br2_(p)
+lone_pair_Br2_(p)   lone_pair_Br2_(s)   lone_pair_Br2_(s)   lone_pair_Br2_(sp0.2)
+lone_pair_Br2_(p)   lone_pair_Br2_(p)</vecstring>

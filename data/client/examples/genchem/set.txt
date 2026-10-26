@@ -1,3 +1,10 @@
 General Chemistry
-Atoms and periodicity, chemical bonds, molecular shapes and orbitals, and molecular dynamics of gases, liquids and solids.
+Atoms and periodicity, ionisation energies, Koopmans' theorem, orbitals of diatomic molecules, polar bonds, molecular shapes, Lewis structures and resonance (ECCE-QM), and molecular dynamics of gases, liquids and solids.
+atoms|Atoms
+ionisation-and-electron-affinity|Ionisation energies and electron affinities
+koopmans|Koopmans' theorem
+molecular-orbitals-of-diatomics|Molecular orbitals of diatomics
+polar-bonds-and-dipole-moments|Polar bonds and dipole moments
+vsepr|VSEPR
+lewis-structures-and-resonance|Lewis structures and resonance
 gases-liquids-solids|Gases, liquids and solids

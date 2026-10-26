@@ -92,6 +92,22 @@ GENCHEM = {
     "nacl-dissolving": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "ice-to-steam": ["dynamics:", "dynamics:TE"],
 }
+# The ECCE-QM topics: the calculation names are the folder names without
+# "ecceqm-"; atoms, ions and the He2 single point have no vibrations, and
+# the LiF optimisation ran out of steps before its frequencies.
+_GC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..",
+                   "data", "client", "examples", "genchem")
+for _topic in sorted(os.listdir(_GC)):
+    _dir = os.path.join(_GC, _topic)
+    if not os.path.isdir(_dir) or _topic == "gases-liquids-solids":
+        continue
+    for _ex in sorted(os.listdir(_dir)):
+        _name = _ex.split("-", 1)[1]
+        _molecular = _topic in ("molecular-orbitals-of-diatomics",
+                                "polar-bonds-and-dipole-moments", "vsepr",
+                                "lewis-structures-and-resonance")
+        GENCHEM[_name] = (QM_LOC if _molecular and _name not in ("He2", "LiF")
+                          else ["TE", "MO"])
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
             "Examples/Spectroscopy": SPECTROSCOPY,
             "Examples/General_Chemistry": GENCHEM}

@@ -3108,7 +3108,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "11";
+const char *const kExampleSetVersion = "12";
 
 string treeName(string s)
 {
@@ -3742,6 +3742,430 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
      "calculation shows how the axial C4 hydroxyl group of galactose "
      "changes the vibrational spectrum compared with glucose."},
+    {"H",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     " electron of the hydrogen atom in the 1s orbital."},
+    {"He",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the two "
+     "electrons of helium paired in the 1s orbital."},
+    {"Li",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     " 2s electron of lithium outside its filled 1s orbital."},
+    {"Be",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the beryllium atom, filled in order of increasing"
+     " energy."},
+    {"B",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the boron atom, filled in order of increasing "
+     "energy."},
+    {"C",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the two 2p"
+     " electrons of carbon in different p orbitals with parallel spins."},
+    {"N",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the three "
+     "2p electrons of nitrogen in different p orbitals with parallel spins."},
+    {"O",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the four "
+     "2p electrons of oxygen, two of them paired and two unpaired."},
+    {"F",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the fluorine atom, filled in order of increasing "
+     "energy."},
+    {"Ne",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the full "
+     "second shell of neon, with all its orbitals doubly occupied."},
+    {"Na",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     " 3s electron of sodium outside its filled neon-like core."},
+    {"Mg",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the magnesium atom, filled in order of increasing"
+     " energy."},
+    {"Al",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the aluminium atom, filled in order of increasing"
+     " energy."},
+    {"Si",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the silicon atom, filled in order of increasing "
+     "energy."},
+    {"P",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the phosphorus atom, filled in order of "
+     "increasing energy."},
+    {"S",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the sulfur atom, filled in order of increasing "
+     "energy."},
+    {"Cl",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "occupied orbitals of the chlorine atom, filled in order of increasing "
+     "energy."},
+    {"Ar",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the full "
+     "third shell of argon, with all its orbitals doubly occupied."},
+    {"He_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the helium"
+     " cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"Li_cation",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the lithium"
+     " cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"Be_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "beryllium cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom, which is under Atoms, is the "
+     "first ionisation energy."},
+    {"B_cation",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the boron "
+     "cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"C_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the carbon"
+     " cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"N_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "nitrogen cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom, which is under Atoms, is the "
+     "first ionisation energy."},
+    {"O_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the oxygen"
+     " cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"F_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "fluorine cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom, which is under Atoms, is the "
+     "first ionisation energy."},
+    {"Ne_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the neon "
+     "cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"Na_cation",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the sodium "
+     "cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"Mg_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "magnesium cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom, which is under Atoms, is the "
+     "first ionisation energy."},
+    {"Al_cation",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "aluminium cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom, which is under Atoms, is the "
+     "first ionisation energy."},
+    {"Si_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "silicon cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom, which is under Atoms, is the "
+     "first ionisation energy."},
+    {"P_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "phosphorus cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom, which is under Atoms, is the "
+     "first ionisation energy."},
+    {"S_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the sulfur"
+     " cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"Cl_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "chlorine cation, the atom after loss of its outermost electron; its "
+     "energy minus that of the neutral atom, which is under Atoms, is the "
+     "first ionisation energy."},
+    {"Ar_cation",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the argon "
+     "cation, the atom after loss of its outermost electron; its energy "
+     "minus that of the neutral atom, which is under Atoms, is the first "
+     "ionisation energy."},
+    {"H_anion",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "hydrogen anion, the atom with one extra electron; the energy of the "
+     "neutral atom, which is under Atoms, minus the energy of this anion is "
+     "the electron affinity."},
+    {"C_anion",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the carbon"
+     " anion, the atom with one extra electron; the energy of the neutral "
+     "atom, which is under Atoms, minus the energy of this anion is the "
+     "electron affinity."},
+    {"N_anion",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "nitrogen anion, the atom with one extra electron; the energy of the "
+     "neutral atom, which is under Atoms, minus the energy of this anion is "
+     "the electron affinity."},
+    {"O_anion",
+     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the oxygen"
+     " anion, the atom with one extra electron; the energy of the neutral "
+     "atom, which is under Atoms, minus the energy of this anion is the "
+     "electron affinity."},
+    {"F_anion",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "fluorine anion, the atom with one extra electron; the energy of the "
+     "neutral atom, which is under Atoms, minus the energy of this anion is "
+     "the electron affinity."},
+    {"Cl_anion",
+     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "chlorine anion, the atom with one extra electron; the energy of the "
+     "neutral atom, which is under Atoms, minus the energy of this anion is "
+     "the electron affinity."},
+    {"H_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the hydrogen atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"He_HF",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the helium atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Li_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the lithium atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Be_HF",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the beryllium atom in Hartree-Fock theory, where minus the"
+     " energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"B_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the boron atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"C_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the carbon atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"N_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the nitrogen atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"O_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the oxygen atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"F_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the fluorine atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Ne_HF",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the neon atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Na_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the sodium atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Mg_HF",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the magnesium atom in Hartree-Fock theory, where minus the"
+     " energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Al_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the aluminium atom in Hartree-Fock theory, where minus the"
+     " energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Si_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the silicon atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"P_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the phosphorus atom in Hartree-Fock theory, where minus "
+     "the energy of the highest occupied orbital approximates the ionisation"
+     " energy (Koopmans' theorem)."},
+    {"S_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the sulfur atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Cl_HF",
+     "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the chlorine atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Ar_HF",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the orbital "
+     "energies of the argon atom in Hartree-Fock theory, where minus the "
+     "energy of the highest occupied orbital approximates the ionisation "
+     "energy (Koopmans' theorem)."},
+    {"Ne_HF_IVO",
+     "ECCE-QM, HF/aug-cc-pVTZ, energy, improved virtual orbitals. This "
+     "calculation shows the empty orbitals of neon computed as improved "
+     "virtual orbitals, whose lowest members are the 3s and 3p orbitals."},
+    {"CO",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the orbitals of CO, which has the "
+     "same number of valence electrons as N2 and a triple bond between "
+     "carbon and oxygen."},
+    {"F2",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the single bond of F2, since the pi "
+     "and pi* orbitals are both full."},
+    {"H2",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the two electrons of H2 in one "
+     "bonding sigma orbital, with the empty antibonding sigma* orbital above"
+     " it."},
+    {"H2_cation",
+     "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows H2+, held together by a single "
+     "electron in the bonding sigma orbital."},
+    {"HF",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. "
+     "This calculation shows the bonding sigma orbital of HF, built from the "
+     "hydrogen 1s and a fluorine 2p orbital, and the unused fluorine 2p "
+     "orbitals as lone pairs."},
+    {"HF_dipole",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. "
+     "This calculation shows how the bonding electrons of HF are pulled "
+     "towards the more electronegative fluorine atom, so the bond is polar."},
+    {"He2",
+     "ECCE-QM, B3LYP/6-31G*, energy, orbitals localised. This calculation "
+     "shows He2 at a large distance, where the bonding and the antibonding "
+     "orbital are both full, so there is no bond."},
+    {"He2_cation",
+     "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows He2+, with two electrons in the "
+     "bonding and one in the antibonding orbital, which makes a bond of half"
+     " the strength of the one in H2."},
+    {"Li2",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the single sigma bond of Li2, built "
+     "from the 2s orbitals of the two lithium atoms."},
+    {"LiF",
+     "ECCE-QM, B3LYP/6-31G*, geometry optimisation, orbitals localised. "
+     "This calculation shows the very polar bond of LiF, whose bonding "
+     "orbital lies almost entirely on fluorine."},
+    {"LiH",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the bonding orbital of LiH, built "
+     "from the lithium 2s and hydrogen 1s orbitals, with the bonding "
+     "electrons shifted towards hydrogen."},
+    {"N2",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the triple bond of N2, with one "
+     "sigma and two pi bonding orbitals filled."},
+    {"O2",
+     "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the two unpaired electrons of O2 in "
+     "the two pi* orbitals."},
+    {"CH3F",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the polar C-F bond of fluoromethane,"
+     " with the dipole moment pointing along it from the CH3 group towards "
+     "fluorine."},
+    {"CO2",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows that CO2 has polar C=O bonds but no "
+     "dipole moment, because the two bond dipoles point in opposite "
+     "directions and cancel."},
+    {"HBr",
+     "ECCE-QM, B3LYP/def2-SVP, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the polar H-Br bond, with electron "
+     "density shifted towards the more electronegative bromine atom, which "
+     "gives the molecule a dipole moment."},
+    {"HCl",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the polar H-Cl bond, with electron "
+     "density shifted towards the more electronegative chlorine atom, which "
+     "gives the molecule a dipole moment."},
+    {"SO2",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows that SO2 is bent, so its two polar "
+     "bonds do not cancel and the molecule has a dipole moment."},
+    {"BF3",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the trigonal planar shape of BF3, "
+     "with three bonding pairs and no lone pairs around boron."},
+    {"BeCl2",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the linear shape of BeCl2, with two "
+     "bonding pairs and no lone pairs around beryllium."},
+    {"BrF5",
+     "ECCE-QM, B3LYP/def2-SVP, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the square pyramidal shape of BrF5, "
+     "with five bonding pairs and one lone pair around bromine."},
+    {"CH4",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the tetrahedral shape of methane, "
+     "with four bonding pairs around carbon."},
+    {"ClF3",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the T shape of ClF3, with three "
+     "bonding pairs and two lone pairs in equatorial positions around "
+     "chlorine."},
+    {"H2O",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the bent shape of water, with two "
+     "bonding pairs and two lone pairs around oxygen."},
+    {"NH3",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the trigonal pyramidal shape of "
+     "ammonia, with three bonding pairs and one lone pair around nitrogen."},
+    {"PF5",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the trigonal bipyramidal shape of "
+     "PF5, in which the axial and the equatorial P-F bonds are not "
+     "equivalent."},
+    {"SF4",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the seesaw shape of SF4, with four "
+     "bonding pairs and one lone pair in an equatorial position around "
+     "sulfur."},
+    {"SF6",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the octahedral shape of SF6, with "
+     "six equivalent S-F bonds."},
+    {"BH3",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows an electron-deficient molecule, in "
+     "which boron has only six electrons in three bonds and an empty p "
+     "orbital."},
+    {"CH2_triplet",
+     "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows that CH2 in the triplet state has "
+     "two unpaired electrons, which a Lewis structure with only electron "
+     "pairs cannot show."},
+    {"CN_anion",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the cyanide ion, with a carbon-"
+     "nitrogen triple bond and a lone pair on each atom, as its Lewis "
+     "structure suggests."},
+    {"N2O",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the linear molecule N2O, which is "
+     "described by resonance between two Lewis structures."},
+    {"NO3_anion",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows that the three N-O bonds of the "
+     "nitrate ion are equivalent, as the average of three resonance "
+     "structures."},
+    {"O3",
+     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows that the two O-O bonds of ozone are "
+     "equivalent, as the average of two resonance structures."},
     {"ar-gas",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="LOCMOLABEL" rowLabel="Basis Function" rowLabels="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19" rows="19" units="NA">core_Be1   core_Cl2   core_Cl2   core_Cl2
+core_Cl2   core_Cl2   core_Cl3   core_Cl3
+core_Cl3   core_Cl3   core_Cl3   sigma_Be1-Cl2_(sp1.2/sp1.7)
+sigma_Be1-Cl3_(sp1.2/sp1.7)   lone_pair_Cl2_(sp0.6)   lone_pair_Cl2_(p)   lone_pair_Cl2_(p)
+lone_pair_Cl3_(sp0.6)   lone_pair_Cl3_(p)   lone_pair_Cl3_(p)</vecstring>

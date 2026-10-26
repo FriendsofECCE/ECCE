@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" name="GEOMTRACE" rowLabel="Geometry Step" rowLabels="1-C 2-O" rows="2" units="Angstrom" vectorLabel="Coordinate" vectors="1">
+
+  <step number="1">0.0000000000   0.0000000000   0.0000000000   0.0000000000
+0.0000000000   1.1300000000</step>
+  <step number="2">0.0000000000   0.0000000000   -0.0068736394   0.0000000000
+0.0000000000   1.1368736394</step>
+  <step number="3">0.0000000000   0.0000000000   -0.0040391793   0.0000000000
+0.0000000000   1.1340391793</step>
+  <step number="4">0.0000000000   0.0000000000   -0.0039570106   0.0000000000
+0.0000000000   1.1339570106</step>
+
+</tsvectable>

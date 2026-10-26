@@ -1,0 +1,14 @@
+title BH3, B3LYP/6-31G*, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ B      0.00000000     0.00000000     0.00000000
+ H      1.19000000     0.00000000     0.00000000
+ H     -0.59500505     1.03056732     0.00000000
+ H     -0.59498991    -1.03057606     0.00000000
+end

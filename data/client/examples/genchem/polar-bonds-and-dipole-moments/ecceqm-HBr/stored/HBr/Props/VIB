@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vectable columnLabel="Atom" columnLabels="X Y Z" columns="3" name="VIB" rowLabel="Normal Mode" rowLabels="1 2" rows="2" units="NA" vectorLabel="Coordinate" vectorLabels="NA NA NA NA NA NA" vectors="6">
+
+  <step number="0"/>
+
+  <matrix number="1">0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000</matrix>
+
+  <matrix number="2">0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000</matrix>
+
+  <matrix number="3">0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000</matrix>
+
+  <matrix number="4">0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000</matrix>
+
+  <matrix number="5">0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000
+0.00000000</matrix>
+
+  <matrix number="6">0.00000000
+0.00000000
+0.99991847
+0.00000000
+0.00000000
+-0.01276944</matrix>
+
+</vectable>

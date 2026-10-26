@@ -1,0 +1,10 @@
+title Ne atom, HF/aug-cc-pVTZ, improved virtual orbitals (3s, 3p)
+charge 0
+multiplicity 1
+method hf
+basis aug-cc-pVTZ
+runtype energy
+virtuals ivo
+geometry
+ Ne     0.00000000     0.00000000     0.00000000
+end

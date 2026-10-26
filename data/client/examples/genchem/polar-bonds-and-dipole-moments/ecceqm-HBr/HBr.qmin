@@ -1,0 +1,12 @@
+title HBr, B3LYP/def2-SVP, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+basis def2-SVP
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ H      0.00000000     0.00000000     0.00000000
+ Br     0.00000000     0.00000000     1.41000000
+end

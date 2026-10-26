@@ -1,0 +1,12 @@
+title He2+, B3LYP/6-31G*, optimisation and frequencies
+charge 1
+multiplicity 2
+method ub3lyp
+basis 6-31G*
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ He     0.00000000     0.00000000     0.00000000
+ He     0.00000000     0.00000000     1.08000000
+end

@@ -1,0 +1,10 @@
+title Na atom, B3LYP/aug-cc-pVTZ (unrestricted), ground state
+charge 0
+multiplicity 2
+method ub3lyp
+basis aug-cc-pVTZ
+runtype energy
+charges loewdin
+geometry
+ Na     0.00000000     0.00000000     0.00000000
+end

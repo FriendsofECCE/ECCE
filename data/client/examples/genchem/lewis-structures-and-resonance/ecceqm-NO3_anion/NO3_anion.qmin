@@ -1,0 +1,14 @@
+title NO3-, B3LYP/6-31G*, optimisation and frequencies
+charge -1
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ N      0.00000000     0.00000000     0.00000000
+ O      1.25000000     0.00000000     0.00000000
+ O     -0.62500530     1.08252869     0.00000000
+ O     -0.62498940    -1.08253788     0.00000000
+end
