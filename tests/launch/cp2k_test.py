@@ -207,8 +207,8 @@ def main():
                           "the last snapshot has the optimisation at step 3, not converged")
                     check(re.search(r"^scf cycle=\d+ scferr=\S+/\S+ .*converged=yes", last, re.M) is not None,
                           "and the SCF with its tolerance and a converged mark")
-                    check(re.search(r"^opt~ energy=", last, re.M) is not None,
-                          "and the energy history of the optimisation")
+                    check(re.search(r"^opt~ maxgrad=", last, re.M) is not None,
+                          "and the force history of the optimisation (the box plots forces, #530)")
                     steps = [int(m.group(1)) for t in msgs for m in
                              [re.search(r"^opt step=(\d+)", t, re.M)] if m]
                     check(steps == sorted(steps), "optimisation steps never go back: %s" % steps)
