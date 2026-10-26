@@ -1,0 +1,14 @@
+title: He2
+type: molecule
+num_atoms: 2
+atom_info: symbol cart
+atom_list: 
+He 0.00000 0.00000 0.00000
+He 0.00000 0.00000 3.00000
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        0   1
+        0   1
+num_bonds: 0

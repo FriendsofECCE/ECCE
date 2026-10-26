@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<table columnLabel="Basis Function" columnLabels="BasFun-1 BasFun-2 BasFun-3 BasFun-4" columns="4" name="MOBETA" rowLabel="Basis Function" rowLabels="MO-1 MO-2 MO-3 MO-4" rows="4" units="NA">0.2670880780   0.3588221735   0.2670880780   0.3588221735
+0.2400675406   1.0167851128   -0.2400675406   -1.0167851128
+0.8999319872   -0.6975890313   0.8999319873   -0.6975890314
+0.9390889559   -1.2272026372   -0.9390889558   1.2272026371</table>

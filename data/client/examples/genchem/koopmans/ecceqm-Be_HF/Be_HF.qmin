@@ -1,0 +1,9 @@
+title Be atom, HF/aug-cc-pVTZ (unrestricted), orbital energies for Koopmans' theorem
+charge 0
+multiplicity 1
+method hf
+basis aug-cc-pVTZ
+runtype energy
+geometry
+ Be     0.00000000     0.00000000     0.00000000
+end

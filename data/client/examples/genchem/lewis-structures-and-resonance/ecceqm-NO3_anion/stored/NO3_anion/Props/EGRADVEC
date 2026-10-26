@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<table columnLabel="Coordinate" columnLabels="X Y Z" columns="3" name="EGRADVEC" rowLabel="Atom" rowLabels="1 2 3 4" rows="4" units="Hartree/Bohr">0.0000005166   0.0000001269   -0.0000000000   -0.0000046140
+-0.0000000986   0.0000000000   0.0000029007   -0.0000044372
+0.0000000000   0.0000029965   0.0000044086   0.0000000000</table>

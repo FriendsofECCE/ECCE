@@ -1,0 +1,15 @@
+title SF4, B3LYP/6-31G*, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ S      0.00000000     0.00000000     0.00000000
+ F      0.00000000     1.65000000     0.00000000
+ F      0.00000000    -1.65000000     0.00000000
+ F      1.30000000     0.00000000    -0.80000000
+ F     -1.30000000     0.00000000    -0.80000000
+end

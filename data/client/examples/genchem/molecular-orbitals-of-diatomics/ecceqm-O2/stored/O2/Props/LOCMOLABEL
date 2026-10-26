@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="LOCMOLABEL" rowLabel="Basis Function" rowLabels="1 2 3 4 5 6 7 8 9" rows="9" units="NA">core_O1   core_O2   lone_pair_O1_(sp0.3)   lone_pair_O1_(p)
+lone_pair_O1_(p)   sigma_O1-O2_(sp2.8/sp2.8)   lone_pair_O2_(sp0.3)   lone_pair_O2_(p)
+lone_pair_O2_(p)</vecstring>

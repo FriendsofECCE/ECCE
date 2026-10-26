@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="LOCMOLABEL" rowLabel="Basis Function" rowLabels="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26" rows="26" units="NA">core_S1   core_S1   core_S1   core_S1
+core_S1   core_F2   core_F3   core_F4
+core_F5   lone_pair_S1_(sp0.4)   sigma_S1-F2_(sp14.4/sp4.1)   sigma_S1-F3_(sp14.4/sp4.1)
+sigma_S1-F4_(sp5.9/sp3.9)   sigma_S1-F5_(sp5.9/sp3.9)   lone_pair_F2_(sp0.8)   lone_pair_F2_(sp2.9)
+lone_pair_F2_(p)   lone_pair_F3_(sp0.8)   lone_pair_F3_(sp2.9)   lone_pair_F3_(p)
+lone_pair_F4_(sp0.3)   lone_pair_F4_(p)   lone_pair_F4_(p)   lone_pair_F5_(sp0.3)
+lone_pair_F5_(p)   lone_pair_F5_(p)</vecstring>

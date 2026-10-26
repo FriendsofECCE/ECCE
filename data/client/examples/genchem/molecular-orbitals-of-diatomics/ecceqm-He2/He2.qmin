@@ -1,0 +1,12 @@
+title He2 at 3.0 A (no bond: bond order 0), B3LYP/6-31G* single point
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype energy
+localise true
+charges loewdin chelpg mk
+geometry
+ He     0.00000000     0.00000000     0.00000000
+ He     0.00000000     0.00000000     3.00000000
+end

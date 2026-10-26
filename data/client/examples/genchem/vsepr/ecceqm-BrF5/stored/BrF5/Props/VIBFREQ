@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vector name="VIBFREQ" rowLabel="Normal Mode" rowLabels="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18" rows="18" units="cm-1">0.0000   0.0000   0.0000   0.0000
+0.0000   0.0000   216.7505   231.7384
+231.7385   298.9963   353.3990   383.5333
+383.5333   545.9761   576.6242   663.0078
+674.7222   674.7223</vector>

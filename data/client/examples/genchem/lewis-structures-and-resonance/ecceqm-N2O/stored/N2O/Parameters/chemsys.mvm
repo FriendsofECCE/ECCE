@@ -1,0 +1,20 @@
+title: N2O
+type: molecule
+num_atoms: 3
+atom_info: symbol cart
+atom_list: 
+N -1.00000e-11 1.00000e-12 -1.13407
+N 2.00000e-11 -3.00000e-12 0.000485143
+O -1.00000e-11 1.00000e-12 1.19358
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        1   1
+        2   1
+        1   1
+num_bonds: 2
+bond_list: 
+1 2 3.00000 1
+2 3 2.00000 1

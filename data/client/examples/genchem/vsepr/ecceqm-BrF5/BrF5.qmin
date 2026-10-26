@@ -1,0 +1,16 @@
+title BrF5, B3LYP/def2-SVP, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+basis def2-SVP
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ Br     0.00000000     0.00000000     0.00000000
+ F      0.00000000     0.00000000     1.69000000
+ F      1.78000000     0.00000000    -0.20000000
+ F     -1.78000000     0.00000000    -0.20000000
+ F      0.00000000     1.78000000    -0.20000000
+ F      0.00000000    -1.78000000    -0.20000000
+end

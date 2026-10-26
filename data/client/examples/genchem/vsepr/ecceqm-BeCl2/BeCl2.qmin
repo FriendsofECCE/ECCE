@@ -1,0 +1,13 @@
+title BeCl2, B3LYP/6-31G*, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ Be     0.00000000     0.00000000     0.00000000
+ Cl     0.00000000     0.00000000     1.80000000
+ Cl     0.00000000     0.00000000    -1.80000000
+end

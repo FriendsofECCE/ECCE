@@ -1,0 +1,12 @@
+title CN-, B3LYP/6-31G*, optimisation and frequencies
+charge -1
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ C      0.00000000     0.00000000     0.00000000
+ N      0.00000000     0.00000000     1.18000000
+end

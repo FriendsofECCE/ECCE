@@ -1,0 +1,9 @@
+title Al atom, HF/aug-cc-pVTZ (unrestricted), orbital energies for Koopmans' theorem
+charge 0
+multiplicity 2
+method uhf
+basis aug-cc-pVTZ
+runtype energy
+geometry
+ Al     0.00000000     0.00000000     0.00000000
+end

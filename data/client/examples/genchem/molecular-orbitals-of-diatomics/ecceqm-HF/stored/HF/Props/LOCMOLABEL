@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="LOCMOLABEL" rowLabel="Basis Function" rowLabels="1 2 3 4 5" rows="5" units="NA">core_F2   sigma_H1-F2_(s/sp3.2)   lone_pair_F2_(sp0.3)   lone_pair_F2_(p)
+lone_pair_F2_(p)</vecstring>

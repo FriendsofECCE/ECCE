@@ -1,0 +1,9 @@
+title O+ cation, B3LYP/aug-cc-pVTZ (unrestricted), for the first ionisation energy
+charge 1
+multiplicity 4
+method ub3lyp
+basis aug-cc-pVTZ
+runtype energy
+geometry
+ O      0.00000000     0.00000000     0.00000000
+end

@@ -1,0 +1,16 @@
+title PF5, B3LYP/6-31G*, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+localise true
+charges loewdin chelpg mk
+geometry
+ P      0.00000000     0.00000000     0.00000000
+ F      0.00000000     0.00000000     1.58000000
+ F      0.00000000     0.00000000    -1.58000000
+ F      1.53000000     0.00000000     0.00000000
+ F     -0.76500649     1.32501512     0.00000000
+ F     -0.76498702    -1.32502636     0.00000000
+end

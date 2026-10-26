@@ -1,0 +1,55 @@
+<MolecularConfig>
+<Map>
+<Group Tag="He" Name="aug-cc-pVTZ">
+<OrderedList>
+<BasisSet Type="correlation_consistent">aug-cc-pVTZ</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="aug-cc-pVTZ">
+<BasisSet Type="correlation_consistent">aug-cc-pVTZ</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="He">
+<BasisSet uniqueKey="aug-cc-pVTZ:correlation_consistent">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="He">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="He">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+</Map>
+<Data>
+BasisSet=aug-cc-pVTZ
+Type=correlation_consistent Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
+element=He
+contraction shell=SSS num_primitives=6 num_coefficients=3
+234.000000000000 0.002587000000 0.000000000000 0.000000000000
+35.160000000000 0.019533000000 0.000000000000 0.000000000000
+7.989000000000 0.090998000000 0.000000000000 0.000000000000
+2.212000000000 0.272050000000 0.000000000000 0.000000000000
+0.666900000000 0.478065000000 1.000000000000 0.000000000000
+0.208900000000 0.307737000000 0.000000000000 1.000000000000
+contraction shell=PP num_primitives=2 num_coefficients=2
+3.044000000000 1.000000000000 0.000000000000
+0.758000000000 0.000000000000 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+1.965000000000 1.000000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.051380000000 1.000000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.199300000000 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.459200000000 1.000000000000
+EndBasisSet
+</Data>
+</MolecularConfig>

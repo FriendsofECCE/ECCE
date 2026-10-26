@@ -1,0 +1,172 @@
+progress scf cycle=1 energy=-0.9471445542 grad=1.18e-01/1e-07
+progress scf cycle=2 energy=-1.1660732317 dE=-2.19e-01/1e-10 grad=1.96e-02/1e-07
+progress scf cycle=3 energy=-1.1687087080 dE=-2.64e-03/1e-10 grad=4.17e-04/1e-07
+progress scf cycle=4 energy=-1.1687098890 dE=-1.18e-06/1e-10 grad=2.89e-07/1e-07
+progress scf cycle=5 energy=-1.1687098890 dE=-5.67e-13/1e-10 grad=2.00e-10/1e-07 converged=yes
+opt_step 1
+energy_step -1.168709889000
+opt_criteria max_gradient 2.2411e-03 rms_gradient 1.2939e-03 max_step 2.8444e-03 rms_step 1.6422e-03 energy_change 0.0000e+00
+begin geometry  # index symbol x y z (angstrom)
+1 H 0.0000000000 0.0000000000 0.0000000000
+2 H 0.0000000000 0.0000000000 0.7400000000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 H -0.0000000000 0.0000000000 0.0022411447
+2 H -0.0000000000 -0.0000000000 -0.0022411447
+end gradient
+progress opt step=1 energy=-1.1687098890 maxgrad=2.24e-03/3e-04 rmsgrad=1.29e-03/1e-04 maxstep=2.84e-03/4e-03 rmsstep=1.64e-03/2e-03
+progress scf cycle=1 energy=-1.1687150653 grad=4.51e-04/1e-07
+progress scf cycle=2 energy=-1.1687164106 dE=-1.35e-06/1e-10 grad=7.24e-05/1e-07
+progress scf cycle=3 energy=-1.1687164462 dE=-3.56e-08/1e-10 grad=1.17e-09/1e-07
+progress scf cycle=4 energy=-1.1687164462 dE=0.00e+00/1e-10 grad=1.17e-09/1e-07 converged=yes
+opt_step 2
+energy_step -1.168716446157
+opt_criteria max_gradient 7.1217e-05 rms_gradient 4.1117e-05 max_step 9.3352e-05 rms_step 5.3897e-05 energy_change -6.5572e-06
+begin geometry  # index symbol x y z (angstrom)
+1 H 0.0000000000 0.0000000000 -0.0015051827
+2 H 0.0000000000 0.0000000000 0.7415051827
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 H -0.0000000000 0.0000000000 0.0000712168
+2 H -0.0000000000 -0.0000000000 -0.0000712168
+end gradient
+progress opt step=2 energy=-1.1687164462 maxgrad=7.12e-05/3e-04 rmsgrad=4.11e-05/1e-04 maxstep=9.34e-05/4e-03 rmsstep=5.39e-05/2e-03 dE=-6.56e-06/5e-06
+progress scf cycle=1 energy=-1.1687164514 grad=1.48e-05/1e-07
+progress scf cycle=2 energy=-1.1687164528 dE=-1.44e-09/1e-10 grad=2.37e-06/1e-07
+progress scf cycle=3 energy=-1.1687164529 dE=-3.82e-11/1e-10 grad=1.26e-12/1e-07 converged=yes
+opt_step 3
+energy_step -1.168716452871
+opt_criteria max_gradient 7.1540e-07 rms_gradient 4.1303e-07 max_step 9.4727e-07 rms_step 5.4691e-07 energy_change -6.7144e-09
+begin geometry  # index symbol x y z (angstrom)
+1 H 0.0000000000 0.0000000000 -0.0015545826
+2 H 0.0000000000 0.0000000000 0.7415545826
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 H 0.0000000000 0.0000000000 0.0000007154
+2 H -0.0000000000 -0.0000000000 -0.0000007154
+end gradient
+progress opt step=3 energy=-1.1687164529 maxgrad=7.15e-07/3e-04 rmsgrad=4.13e-07/1e-04 maxstep=9.47e-07/4e-03 rmsstep=5.47e-07/2e-03 dE=-6.71e-09/5e-06
+progress opt step=3 converged=yes
+progress freq point=0/12
+progress freq point=1/12
+progress freq point=2/12
+progress freq point=3/12
+progress freq point=4/12
+progress freq point=5/12
+progress freq point=6/12
+progress freq point=7/12
+progress freq point=8/12
+progress freq point=9/12
+progress freq point=10/12
+progress freq point=11/12
+progress freq point=12/12
+progress freq point=12/12 done=yes real=1 imaginary=0 zpe=0.0101361622
+# ecce-qm output, format version 1
+format_version 1
+program ecce-qm 0.1
+title H2, B3LYP/6-31G*, optimisation and frequencies
+runtype optfreq
+method b3lyp
+reference rks
+basis 6-31G*
+spherical true
+grid 99 590
+charge 0
+multiplicity 1
+nbf 4
+nalpha 1
+nbeta 1
+converged yes
+iterations 3
+opt_converged yes
+opt_evaluations 3
+energy_total -1.168716452871
+energy_nuclear 0.712112345972
+energy_one_electron -2.492975268794
+energy_coulomb 1.308603017279
+energy_exchange_hf -0.130860301728
+energy_xc -0.565596245601
+grid_electrons 2.000000000036
+dipole_au 0.000000000000 0.000000000000 0.000000000000
+dipole_debye 0.000000000000 0.000000000000 0.000000000000 0.000000000000
+wall_seconds 0.49
+begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge
+0 H 1 0.000000000000 0.000000000000 -0.001554582571 -0.000000000000
+1 H 1 0.000000000000 0.000000000000 0.741554582571 0.000000000000
+end atoms
+begin charges loewdin  # index symbol net_charge
+0 H -0.000000000000
+1 H 0.000000000000
+end charges
+begin charges chelpg  # index symbol net_charge  (3403 fit points)
+0 H -0.000143140544
+1 H 0.000143140544
+end charges
+begin charges mk  # index symbol net_charge  (250 fit points)
+0 H -0.000000000000
+1 H 0.000000000000
+end charges
+begin ao_labels  # index label, order of the MO coefficients
+1 0H 1s
+2 0H 2s
+3 1H 1s
+4 1H 2s
+end ao_labels
+begin orbitals restricted  # index energy(hartree) occupation
+1 -0.430460905645 2.000000000000
+2 0.103126806468 0.000000000000
+3 0.584710045362 0.000000000000
+4 1.110167866891 0.000000000000
+end orbitals
+begin mo_coefficients restricted  # one line per MO: index then nbf coefficients
+1 0.3324281360 0.2672030307 0.3324281360 0.2672030307
+2 -0.1799787736 -1.6364491674 0.1799787736 1.6364491674
+3 0.7651161271 -0.6885588706 0.7651161271 -0.6885588706
+4 1.1123795491 -1.4319817908 -1.1123795491 1.4319817908
+end mo_coefficients
+begin localised_orbitals restricted  # index energy(hartree) occupation label
+1 -0.430460905645 2 sigma H1-H2 (s/s)
+end localised_orbitals
+begin localised_mo_coefficients restricted  # one line per localised MO: index then nbf coefficients
+1 0.3324281360 0.2672030307 0.3324281360 0.2672030307
+end localised_mo_coefficients
+hessian_step 0.005000000000
+max_gradient 7.1540e-07
+vib_transrot 5
+vib_imaginary 0
+begin transrot_residual  # smallest frequencies (cm-1) before projection
+0.0000
+-0.0002
+0.0016
+9.9497
+9.9497
+end transrot_residual
+begin vibrations  # index frequency(cm-1) ir_intensity(km/mol); imaginary frequencies are negative
+1 0.0000 0.0000
+2 0.0000 0.0000
+3 0.0000 0.0000
+4 0.0000 0.0000
+5 0.0000 0.0000
+6 4449.2609 0.0000
+end vibrations
+begin normal_modes  # index then x y z of every atom, Cartesian displacements of unit length
+1 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+2 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+3 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+4 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+5 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+6 0.00000000 0.00000000 0.70710678 0.00000000 0.00000000 -0.70710678
+end normal_modes
+thermo_temperature 298.150000000000
+thermo_pressure_atm 1.000000000000
+symmetry_number 2
+zero_point_energy 0.010136162151
+thermal_energy -1.156219828542
+enthalpy -1.155275643674
+entropy_ts 0.014792742139
+gibbs_energy -1.170068385813
+entropy_translation 0.0000447487
+entropy_rotation 0.0000048664
+entropy_vibration 0.0000000000
+entropy_electronic 0.0000000000
+end_of_output

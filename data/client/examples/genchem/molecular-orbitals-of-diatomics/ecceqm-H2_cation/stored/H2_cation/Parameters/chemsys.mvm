@@ -1,0 +1,17 @@
+title: H2_cation
+type: molecule
+fragment_attributes:
+  charge: 1
+end_fragment_attributes:
+num_atoms: 2
+atom_info: symbol cart
+atom_list: 
+H 0.00000 0.00000 -0.0274697
+H 0.00000 0.00000 1.08747
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        0   1
+        0   1
+num_bonds: 0
