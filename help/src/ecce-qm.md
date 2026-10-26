@@ -27,10 +27,9 @@ the orbitals are restricted open shell (the default) or unrestricted. A closed
 shell molecule always uses restricted orbitals. A new calculation starts as
 B3LYP.
 
-B3LYP here uses the VWN5 form of the local correlation, as ORCA does. Gaussian
-uses a different form (VWN3) and gets slightly different energies from the same
-functional name; the two should not be compared to better than about a
-millihartree. The density functionals are evaluated on a numerical integration
+B3LYP here uses the VWN5 form of the local correlation, as ORCA does. A B3LYP
+built on the VWN3 form gives energies about a millihartree different from the
+same functional name. The density functionals are evaluated on a numerical integration
 grid of 99 radial and 590 angular points per atom. The functionals themselves come from the Libxc library.
 
 ## Basis sets
@@ -87,11 +86,10 @@ orbitals are IVO.
 It is ticked by default; unticked, the calculation does not localise the
 orbitals and the MOs panel has no **Localised MO** entry.
 
-The implicit solvent (**Solvent** in **Theory Details**) works for Energy runs
-only. With a solvent set and any other run type, the notes line above the log
-in the Calculation Editor says so, and Launch asks before it starts a job that
-would stop at once; **Launch anyway** is the default answer. Set the solvent to
-None or the run type to Energy.
+The implicit solvent (**Solvent** in **Theory Details**) works for every run
+type except Raman intensities. With a solvent set and Raman ticked, the notes
+line above the log in the Calculation Editor says so, and Launch asks before it
+starts the job; **Launch anyway** is the default answer.
 
 For Vibration and GeoVib, **Runtype Details** has a **Raman activities** tick
 box. It adds the Raman activity and the depolarization ratio of every mode,

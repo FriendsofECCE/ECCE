@@ -68,11 +68,11 @@ The dialog reports what the code of the calculation cannot do. NWChem, for
 example, cannot combine **Fix Atoms** with a bond, angle or torsion
 constraint: choose one of the two.
 
-## Scan a coordinate (Gaussian 16)
+## Scan a coordinate (ECCE-QM, ORCA, Gaussian 16)
 
 **Scan...** in the dialog steps a bond length, an angle or a torsion in
 equal steps and relaxes the rest of the molecule at each step. It is
-available for Gaussian 16 calculations.
+available for ECCE-QM, ORCA and Gaussian 16 calculations.
 
 1. Select the atoms in the 3D view, as for any constraint.
 2. Press **Scan...** and enter **Steps:** and the step size.
