@@ -330,6 +330,7 @@ void Model::close()
 void Model::initialize()
 {
   std::vector<int> notRestored;
+  bool legacyDispersion = false;
   if (par_.restoreFlag == "GUIValues") {
     std::ifstream f(par_.restoreFile);
     string line;
@@ -343,6 +344,7 @@ void Model::initialize()
         dbg("restore " + name + ": no widget of that name, ignored");
         continue;
       }
+      if (name == "ES.Theory.SCF.Dispersion" && legacyDispersion) continue;
       Item& it = items_[i];
       // ORCA: a functional stored as "PBE0 D3BJ" or "B3LYP-D3" is the
       // functional plus the Dispersion choice (templates.py does the same).
@@ -362,6 +364,7 @@ void Model::initialize()
                   it.choices.end()) {
             items_[d].value = normalize(items_[d], disp);
             touch(d);
+            legacyDispersion = true;
             value = base;
           }
         }

@@ -584,6 +584,7 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         if not m or m.group(1) not in func[0].combo.GetStrings():
             return value
         d = m.group(2).upper()
+        self.legacyDispersion = True
         disp[0].SetValue("D3(0)" if d in ("D3", "D3ZERO") else d)
         return m.group(1)
 
@@ -621,7 +622,12 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
                     i = i + 1
 
                 # line has been parsed, assign values (if line is intelligable)
-                if j == 5:
+                if j == 5 and name == "ES.Theory.SCF.Dispersion" and \
+                   getattr(self, "legacyDispersion", False):
+                    # Already taken from the old functional name; the stored
+                    # default must not override it.
+                    pass
+                elif j == 5:
                     if not [x for x in self.Settings
                             if x.GetName() == name]:
                         # Normal and expected: the stored GUIValues carry
