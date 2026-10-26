@@ -26,3 +26,8 @@ name) and the label code names still live in `CalcMgr.C`.
   stay.
 - Set ids are the folder names (`getting-started` is the first-start set);
   the `examples SET` test command and `examples_arm.py` use them.
+- Opening a set whose project exists, and the first start after an upgrade
+  for every set already imported, only adds missing topics and calculations
+  (matched by name); existing ones are never replaced or re-annotated, so a
+  changed shipped example reaches a user only by deleting its copy (#571).
+  Test: `tests/apps/examples_topup_test.py`.

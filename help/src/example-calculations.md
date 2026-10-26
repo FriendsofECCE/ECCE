@@ -18,6 +18,10 @@ window lists the sets with a line on what each holds; choose one and click
 described in [Importing a calculation](importing-a-calculation.md). The
 calculations show the run state "Imported" and take a few seconds to be read.
 
+Choosing a set that is already in `Examples` again adds the topics and
+calculations that a newer version has added to it, and keeps everything that
+is there.
+
 Each set is divided into topics, which are projects of their own:
 `Examples/<Set>/<Topic>/<calculation>`. Project names have no spaces, so a
 space in a set or topic name shows as an underscore.
