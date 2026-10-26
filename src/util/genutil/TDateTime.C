@@ -115,6 +115,67 @@ static const char *timestyles[] = {
   ""
 };
 
+// HTTP dates use English month names regardless of the process locale.
+// strptime("%b") consults LC_TIME, which can be changed by wxWidgets or the
+// host application and makes otherwise valid WebDAV dates fail to parse.
+static int englishMonth(const char *name)
+{
+  static const char *months[] = {
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  };
+  for (int idx = 0; idx < 12; idx++) {
+    if (strcmp(name, months[idx]) == 0)
+      return idx;
+  }
+  return -1;
+}
+
+static bool parseEnglishDateTime(const char *value, struct tm *parsed,
+                                 const char **end)
+{
+  int day, year, hour, minute, second = 0, consumed = 0;
+  char monthName[4] = {0, 0, 0, 0};
+  if (sscanf(value, " %d %3s %d %d:%d:%d%n", &day, monthName, &year,
+             &hour, &minute, &second, &consumed) != 6) {
+    consumed = 0;
+    if (sscanf(value, " %d %3s %d %d:%d%n", &day, monthName, &year,
+               &hour, &minute, &consumed) != 5) {
+      return false;
+    }
+  }
+
+  int month = englishMonth(monthName);
+  if (month < 0 || year < 1000 || year > 9999 || hour < 0 || hour > 23 ||
+      minute < 0 || minute > 59 || second < 0 || second > 60) {
+    return false;
+  }
+  int monthDays = daysInMonth[month];
+  if (month == 1 && TDateTime::isLeapYear((unsigned)year))
+    monthDays++;
+  if (day < 1 || day > monthDays)
+    return false;
+
+  memset(parsed, 0, sizeof(*parsed));
+  parsed->tm_year = year - 1900;
+  parsed->tm_mon = month;
+  parsed->tm_mday = day;
+  parsed->tm_hour = hour;
+  parsed->tm_min = minute;
+  parsed->tm_sec = second;
+  parsed->tm_isdst = 0;
+
+  // mktime fills tm_wday/tm_yday, used later by strftime. The weekday is
+  // independent of the local timezone; retain the parsed clock fields.
+  struct tm calendar = *parsed;
+  mktime(&calendar);
+  parsed->tm_wday = calendar.tm_wday;
+  parsed->tm_yday = calendar.tm_yday;
+
+  *end = value + consumed;
+  return true;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Description
@@ -178,16 +239,12 @@ TDateTime& TDateTime::operator=(const string& rhs)
   const char *rhsdata = rhs.c_str();
   const char *start = strstr(rhsdata,", ");
   if (start != NULL) {
-    start++;
+    start += 2;
 
     // EXAMPLE:  31 Jan 2002 15:30:10
-    char *loc = strptime(start,"%d %b %Y %H:%M:%S",&p_tm);
-    // A value stored without seconds still reads.
-    if (loc == NULL) {
-      p_tm.tm_sec = 0;
-      loc = strptime(start,"%d %b %Y %H:%M",&p_tm);
-    }
-    if (loc == NULL) {
+    const char *loc = NULL;
+    struct tm parsed;
+    if (!parseEnglishDateTime(start, &parsed, &loc)) {
       string msg = "bad format ";
       msg += rhs;
       EE_RT_ASSERT(false, EE_WARNING, msg);
@@ -195,6 +252,7 @@ TDateTime& TDateTime::operator=(const string& rhs)
       time_t timet = 0;
       setFromTimeT(timet);
     } else {
+      p_tm = parsed;
       while (loc && (*loc == ' ' || *loc == '\t')) loc++;
       adjustZone(loc);
     }
@@ -270,8 +328,11 @@ long TDateTime::toSeconds(const char *value,
   const char* start = NULL;
 
   // find first numeric for RFC1123.  Skip that day of week nonsense.
-  if (dformat==TDateTime::NODATE && (start=strstr(value, ", "))!=NULL)
-    start++;
+  bool rfcDate = dformat == TDateTime::NODATE;
+  if (rfcDate && (start=strstr(value, ", "))!=NULL)
+    start += 2;
+  else if (rfcDate)
+    start = value;
   else
     start = value;
 
@@ -289,7 +350,13 @@ long TDateTime::toSeconds(const char *value,
   tmp.tm_sec = 0;
   tmp.tm_isdst = 0;
 
-  char* loc = strptime(start,format.c_str(),&tmp);
+  const char *loc = NULL;
+  if (rfcDate) {
+    if (!parseEnglishDateTime(start, &tmp, &loc))
+      loc = NULL;
+  } else {
+    loc = strptime(start,format.c_str(),&tmp);
+  }
   // strptime tends to be inconsistent about the following
   // two fields so just to make sure mktime doesn't get confused set them
   // explicitly to values indicating that they need to be determined.

@@ -1894,6 +1894,11 @@ include(CPack)
 enable_testing()
 find_program(PYTHON3_EXECUTABLE NAMES python3)
 
+# HTTP/WebDAV dates must parse English month names independently of LC_TIME.
+add_executable(datetime_test tests/datetime/datetime_test.C)
+target_link_libraries(datetime_test PRIVATE ecceutil)
+add_test(NAME datetime COMMAND datetime_test)
+
 # tests/exceptions -- which exceptions print a "Throw Log" when thrown.
 add_executable(throwlog_test tests/exceptions/throwlog_test.C)
 target_link_libraries(throwlog_test PRIVATE ecceutil)
