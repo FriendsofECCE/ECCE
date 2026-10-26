@@ -1,0 +1,125 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    ecceqm-he-ivo
+desc:    ecceqm.desc
+fixture: ecceqm/he_ivo.qmout (65 lines)
+args:    '.' 'Energy' 'SCF' 'HF' '0'
+
+[TE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_total\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=19 fed=1 rc=0 first-fed='energy_total -2.855704667710'
+    key: TE
+      size: 1
+      values: -2.855704667710
+      units: Hartree
+
+[NNREPUL]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_nuclear\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=20 fed=1 rc=0 first-fed='energy_nuclear 0.000000000000'
+    key: NNREPUL
+      size: 1
+      values: 0.000000000000
+      units: Hartree
+
+[ONEELEC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_one_electron\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=21 fed=1 rc=0 first-fed='energy_one_electron -3.877161365271'
+    key: ONEELEC
+      size: 1
+      values: -3.877161365271
+      units: Hartree
+
+[COULOMB]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_coulomb\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=22 fed=1 rc=0 first-fed='energy_coulomb 2.042913395121'
+    key: COULOMB
+      size: 1
+      values: 2.042913395121
+      units: Hartree
+
+[EXCHANGE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_exchange_hf\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=23 fed=1 rc=0 first-fed='energy_exchange_hf -1.021456697561'
+    key: EXCHANGE
+      size: 1
+      values: -1.021456697561
+      units: Hartree
+
+[EXCORR]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_xc\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=24 fed=1 rc=0 first-fed='energy_xc 0.000000000000'
+    key: EXCORR
+      size: 1
+      values: 0.000000000000
+      units: Hartree
+
+[ETIME]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^wall_seconds\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=27 fed=1 rc=0 first-fed='wall_seconds 0.65'
+    key: ETIME
+      size: 1
+      values: 0.65
+
+[DIPOLE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^dipole_debye\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=26 fed=1 rc=0 first-fed='dipole_debye 0.000000000000 0.000000000000 0.000000000000 0.000000000000'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0.000000000000 0.000000000000 0.000000000000
+      units: Debye
+
+[MULLIKEN]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin atoms\b
+  End=^end atoms
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=28 fed=3 rc=0 first-fed='begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge'
+    key: MULLIKEN
+      size: 1
+      values: -0.000000000000
+      units: e
+
+[ORBENG][ORBOCC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin orbitals (restricted|alpha)
+  End=^end orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=43 fed=11 rc=0 first-fed='begin orbitals restricted  # index energy(hartree) occupation'
+    key: ORBENG
+      size: 9
+      values: -0.917123985075 -0.092673171854 0.117355286063 0.117355286063 0.117355286063 1.288865230355 2.410723694088 2.410723694088 2.410723694088
+      units: Hartree
+    key: ORBOCC
+      size: 9
+      values: 2.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000
+      units: electrons
+
+[MO][MOAOORDER]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin mo_coefficients (restricted|alpha)
+  End=^end mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=54 fed=11 rc=0 first-fed='begin mo_coefficients restricted  # one line per MO: index then nbf coefficients'
+    key: MO
+      size: 9 9
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9
+      values: -1.0031233972 0.0185390124 -0.0251517115 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.2548003548 0.5154121041 -1.3256015254 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0096480105 0.0000000000 0.0000000000 1.0044736636 0.0000000000 0.0000000000 0.0000000000 0.0096 ...[1062 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+
+[MOVIRTNOTE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^virtual_orbitals(_note)?\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=42 fed=1 rc=0 first-fed='virtual_orbitals ivo'
+    key: MOVIRTNOTE
+      size: 1
+      rowlabels: 1
+      values: ivo
+

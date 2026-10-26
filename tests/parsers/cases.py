@@ -2095,6 +2095,28 @@ CASES = [
         },
     ),
     dict(
+        # Open-shell localisation: alpha and beta localised sets (O2 triplet).
+        name='ecceqm-o2-localised',
+        desc='ecceqm.desc',
+        fixture='ecceqm/o2_uks_loc.qmout',
+        parse_args=('.', 'GeoVib', 'DFT', 'DFT', '2'),
+        expect={
+            'LOCMOENGBETA][LOCMOOCCBETA][LOCMOLABELBETA': dict(keys={
+                'LOCMOENGBETA': {'units': 'Hartree'},
+                'LOCMOLABELBETA': {}}),
+        },
+    ),
+    dict(
+        # An unconverged SCF skips the localisation and says why.
+        name='ecceqm-locmo-skipped',
+        desc='ecceqm.desc',
+        fixture='ecceqm/f_locskip.qmout',
+        parse_args=('.', 'Energy', 'DFT', 'DFT', '2'),
+        expect={
+            'LOCMONOTE': dict(keys={'LOCMONOTE': {'size': '1'}}),
+        },
+    ),
+    dict(
         # Unrestricted: alpha and beta sets, MOBETA/ORBENGBETA/ORBOCCBETA.
         name='ecceqm-o2-uks',
         desc='ecceqm.desc',

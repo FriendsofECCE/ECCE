@@ -183,7 +183,7 @@ args:    '.' 'IRC' 'SCF' 'HF' '0'
       values: angular-momentum
 
 [LOCMOENG][LOCMOOCC][LOCMOLABEL]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
-  Begin=^begin localised_orbitals
+  Begin=^begin localised_orbitals (restricted|alpha)
   End=^end localised_orbitals
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=302 fed=9 rc=0 first-fed='begin localised_orbitals restricted  # index energy(hartree) occupation label'
@@ -201,7 +201,7 @@ args:    '.' 'IRC' 'SCF' 'HF' '0'
       values: core_C1 core_N2 lone_pair_C1_(sp0.8) sigma_C1-N2_(sp2.6/sp1.6) pi_C1-N2 sigma_C1-H3_(sp3.1/s) lone_pair_N2_(sp0.6)
 
 [LOCMO]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
-  Begin=^begin localised_mo_coefficients
+  Begin=^begin localised_mo_coefficients (restricted|alpha)
   End=^end localised_mo_coefficients
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=311 fed=9 rc=0 first-fed='begin localised_mo_coefficients restricted  # one line per localised MO: index then nbf coefficients'

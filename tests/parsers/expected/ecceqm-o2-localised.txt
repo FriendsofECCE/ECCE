@@ -1,0 +1,412 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    ecceqm-o2-localised
+desc:    ecceqm.desc
+fixture: ecceqm/o2_uks_loc.qmout (349 lines)
+args:    '.' 'GeoVib' 'DFT' 'DFT' '2'
+
+[TE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_total\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=93 fed=1 rc=0 first-fed='energy_total -150.256654418905'
+    key: TE
+      size: 1
+      values: -150.256654418905
+      units: Hartree
+
+[TEVEC]  Script=ecceqm.parse  Freq=all  Skip=0  Lines=1
+  Begin=^energy_step\s
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=11 fed=1 rc=0 first-fed='energy_step -150.256625300735'
+    key: TEVEC
+      size: 1
+      values: -150.256625300735
+      units: Hartree
+  block 2: begin-line=30 fed=1 rc=0 first-fed='energy_step -150.256653973800'
+    key: TEVEC
+      size: 1
+      values: -150.256653973800
+      units: Hartree
+  block 3: begin-line=48 fed=1 rc=0 first-fed='energy_step -150.256654418905'
+    key: TEVEC
+      size: 1
+      values: -150.256654418905
+      units: Hartree
+
+[GEOMTRACE]  Script=ecceqm.parse  Freq=all  Skip=0  Lines=-
+  Begin=^begin geometry\b
+  End=^end geometry
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=13 fed=4 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-O 2-O
+      columnlabels: X Y Z
+      values: 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 1.2100000000
+      units: Angstrom
+  block 2: begin-line=32 fed=4 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-O 2-O
+      columnlabels: X Y Z
+      values: 0.0000000000 0.0000000000 -0.0024788076 0.0000000000 0.0000000000 1.2124788076
+      units: Angstrom
+  block 3: begin-line=50 fed=4 rc=0 first-fed='begin geometry  # index symbol x y z (angstrom)'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-O 2-O
+      columnlabels: X Y Z
+      values: 0.0000000000 0.0000000000 -0.0022090246 0.0000000000 0.0000000000 1.2122090246
+      units: Angstrom
+
+[EGRAD][EGRADVEC]  Script=ecceqm.parse  Freq=all  Skip=0  Lines=-
+  Begin=^begin gradient\b
+  End=^end gradient
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=17 fed=4 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0099372680
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 2 3
+      rowlabels: 1 2
+      columnlabels: X Y Z
+      values: -0.0000000000 0.0000000000 0.0070267096 0.0000000000 -0.0000000000 -0.0070267096
+      units: Hartree/Bohr
+  block 2: begin-line=36 fed=4 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0012136160
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 2 3
+      rowlabels: 1 2
+      columnlabels: X Y Z
+      values: -0.0000000000 -0.0000000000 -0.0008581561 -0.0000000000 -0.0000000000 0.0008581561
+      units: Hartree/Bohr
+  block 3: begin-line=54 fed=4 rc=0 first-fed='begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)'
+    key: EGRAD
+      size: 1
+      values: 0.0000191178
+      units: Hartree/Bohr
+    key: EGRADVEC
+      size: 2 3
+      rowlabels: 1 2
+      columnlabels: X Y Z
+      values: 0.0000000000 -0.0000000000 -0.0000135183 -0.0000000000 0.0000000000 0.0000135183
+      units: Hartree/Bohr
+
+[NNREPUL]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_nuclear\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=94 fed=1 rc=0 first-fed='energy_nuclear 27.887712571301'
+    key: NNREPUL
+      size: 1
+      values: 27.887712571301
+      units: Hartree
+
+[ONEELEC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_one_electron\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=95 fed=1 rc=0 first-fed='energy_one_electron -261.528127760051'
+    key: ONEELEC
+      size: 1
+      values: -261.528127760051
+      units: Hartree
+
+[COULOMB]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_coulomb\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=96 fed=1 rc=0 first-fed='energy_coulomb 100.357179836992'
+    key: COULOMB
+      size: 1
+      values: 100.357179836992
+      units: Hartree
+
+[EXCHANGE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_exchange_hf\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=97 fed=1 rc=0 first-fed='energy_exchange_hf -3.263086811336'
+    key: EXCHANGE
+      size: 1
+      values: -3.263086811336
+      units: Hartree
+
+[EXCORR]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_xc\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=98 fed=1 rc=0 first-fed='energy_xc -13.710332255811'
+    key: EXCORR
+      size: 1
+      values: -13.710332255811
+      units: Hartree
+
+[S2]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^s_squared\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=100 fed=1 rc=0 first-fed='s_squared 2.006624966846'
+    key: S2
+      size: 1
+      values: 2.006624966846
+
+[ETIME]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^wall_seconds\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=103 fed=1 rc=0 first-fed='wall_seconds 3.02'
+    key: ETIME
+      size: 1
+      values: 3.02
+
+[DIPOLE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^dipole_debye\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=102 fed=1 rc=0 first-fed='dipole_debye 0.000000000000 0.000000000000 -0.000001679699 0.000001679699'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0.000000000000 0.000000000000 -0.000001679699
+      units: Debye
+
+[MULLIKEN]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin atoms\b
+  End=^end atoms
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=104 fed=4 rc=0 first-fed='begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge'
+    key: MULLIKEN
+      size: 2
+      values: 0.000000301764 -0.000000301764
+      units: e
+
+[LOEWDIN]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin charges loewdin\b
+  End=^end charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=108 fed=4 rc=0 first-fed='begin charges loewdin  # index symbol net_charge'
+    key: LOEWDIN
+      size: 2
+      values: 0.000000274264 -0.000000274264
+      units: e
+
+[ESPFIT]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin charges chelpg\b
+  End=^end charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=112 fed=4 rc=0 first-fed='begin charges chelpg  # index symbol net_charge  (3316 fit points)'
+    key: ESPFIT
+      size: 2
+      values: 0.000040596285 -0.000040596285
+      units: e
+
+[MKFIT]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin charges mk\b
+  End=^end charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=116 fed=4 rc=0 first-fed='begin charges mk  # index symbol net_charge  (362 fit points)'
+    key: MKFIT
+      size: 2
+      values: 0.000000288060 -0.000000288060
+      units: e
+
+[ORBENG][ORBOCC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin orbitals (restricted|alpha)
+  End=^end orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=150 fed=30 rc=0 first-fed='begin orbitals alpha  # index energy(hartree) occupation'
+    key: ORBENG
+      size: 28
+      values: -19.301091609036 -19.301078133193 -1.297890885880 -0.833442534055 -0.555442605010 -0.555442605010 -0.542693860276 -0.303891877448 -0.303891877448 0.200713940417 0.748877391830 0.780694801827 0.780694801827 0.855303142208 0.895385809916 0.899747900686 0.899747900686 1.427796782527 1.490391499620 1.490391499620 1.517281800979 1.517281803688 1.896973662048 1.896973666363 2.440317136054 2.539450898935 ...[430 chars]
+      units: Hartree
+    key: ORBOCC
+      size: 28
+      values: 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.00000000 ...[419 chars]
+      units: electrons
+
+[ORBENGBETA][ORBOCCBETA]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin orbitals beta
+  End=^end orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=210 fed=30 rc=0 first-fed='begin orbitals beta  # index energy(hartree) occupation'
+    key: ORBENGBETA
+      size: 28
+      values: -19.271457918111 -19.271326725972 -1.239597453630 -0.744397713608 -0.502654787551 -0.452558049164 -0.452558049164 -0.107972367857 -0.107972367857 0.245200307038 0.766745272980 0.836788536777 0.836788536777 0.872158253955 0.921758461378 0.958174234668 0.958174234668 1.466829174560 1.523892074043 1.523892074043 1.573409667297 1.573409674658 1.969046040823 1.969046049363 2.478764604990 2.581971339484 ...[430 chars]
+      units: Hartree
+    key: ORBOCCBETA
+      size: 28
+      values: 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.000000000000 0.00000000 ...[419 chars]
+      units: electrons
+
+[MO][MOAOORDER]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin mo_coefficients (restricted|alpha)
+  End=^end mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=180 fed=30 rc=0 first-fed='begin mo_coefficients alpha  # one line per MO: index then nbf coefficients'
+    key: MO
+      size: 28 28
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10 MO-11 MO-12 MO-13 MO-14 MO-15 MO-16 MO-17 MO-18 MO-19 MO-20 MO-21 MO-22 MO-23 MO-24 MO-25 MO-26 MO-27 MO-28
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17 BasFun-18 BasFun-19 BasFun-20 BasFun-21 BasFun-22 BasFun-23 BasFun-24 BasFun-25 BasFun-26 BasFun-27 BasFun-28
+      values: 0.6983315356 0.0201286261 -0.0119791819 -0.0000000000 -0.0000000000 0.0017681374 0.0000000000 -0.0000000000 -0.0042441686 -0.0000000000 -0.0000000000 0.0006784732 0.0000000000 -0.0000000000 -0.7085185739 -0.0204101062 0.0120516211 0.0000000000 -0.0000000000 0.0017868512 -0.0000000000 -0.0000000000 -0.0042617274 -0.0000000000 0.0000000000 -0.0006603181 0.0000000000 0.0000000000 -0.7086364090 -0.019 ...[10602 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+
+[MOBETA]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin mo_coefficients beta
+  End=^end mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=240 fed=30 rc=0 first-fed='begin mo_coefficients beta  # one line per MO: index then nbf coefficients'
+    key: MOBETA
+      size: 28 28
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10 MO-11 MO-12 MO-13 MO-14 MO-15 MO-16 MO-17 MO-18 MO-19 MO-20 MO-21 MO-22 MO-23 MO-24 MO-25 MO-26 MO-27 MO-28
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17 BasFun-18 BasFun-19 BasFun-20 BasFun-21 BasFun-22 BasFun-23 BasFun-24 BasFun-25 BasFun-26 BasFun-27 BasFun-28
+      values: 0.7032405402 0.0182678866 -0.0046755889 -0.0000000000 0.0000000000 0.0012122681 0.0000000000 0.0000000000 -0.0010852150 0.0000000000 0.0000000000 -0.0009635892 0.0000000000 0.0000000000 0.7042746301 0.0182959632 -0.0046914468 -0.0000000000 0.0000000000 -0.0012149031 0.0000000000 0.0000000000 0.0010905784 0.0000000000 -0.0000000000 -0.0009622265 -0.0000000000 -0.0000000000 -0.7041658800 -0.01911854 ...[10591 chars]
+
+[LOCMOENG][LOCMOOCC][LOCMOLABEL]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin localised_orbitals (restricted|alpha)
+  End=^end localised_orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=270 fed=11 rc=0 first-fed='begin localised_orbitals alpha  # index energy(hartree) occupation label'
+    key: LOCMOENG
+      size: 9
+      values: -18.833533104610 -18.833533250756 -1.252248644503 -0.429667193949 -0.429667193949 -1.104633255602 -1.252248766968 -0.429667288509 -0.429667288509
+      units: Hartree
+    key: LOCMOOCC
+      size: 9
+      values: 1 1 1 1 1 1 1 1 1
+      units: electrons
+    key: LOCMOLABEL
+      size: 9
+      rowlabels: 1 2 3 4 5 6 7 8 9
+      values: core_O1 core_O2 lone_pair_O1_(sp0.3) lone_pair_O1_(p) lone_pair_O1_(p) sigma_O1-O2_(sp2.8/sp2.8) lone_pair_O2_(sp0.3) lone_pair_O2_(p) lone_pair_O2_(p)
+
+[LOCMOENGBETA][LOCMOOCCBETA][LOCMOLABELBETA]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin localised_orbitals beta
+  End=^end localised_orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=292 fed=9 rc=0 first-fed='begin localised_orbitals beta  # index energy(hartree) occupation label'
+    key: LOCMOENGBETA
+      size: 7
+      values: -18.801215458793 -18.801215602302 -1.168046772458 -1.090909875645 -0.452558049164 -0.452558049164 -1.168046889675
+      units: Hartree
+    key: LOCMOOCCBETA
+      size: 7
+      values: 1 1 1 1 1 1 1
+      units: electrons
+    key: LOCMOLABELBETA
+      size: 7
+      rowlabels: 1 2 3 4 5 6 7
+      values: core_O1 core_O2 lone_pair_O1_(sp0.4) sigma_O1-O2_(sp2.5/sp2.5) pi_O1-O2 pi_O1-O2 lone_pair_O2_(sp0.4)
+
+[LOCMO]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin localised_mo_coefficients (restricted|alpha)
+  End=^end localised_mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=281 fed=11 rc=0 first-fed='begin localised_mo_coefficients alpha  # one line per localised MO: index then nbf coefficients'
+    key: LOCMO
+      size: 9 28
+      rowlabels: LMO-1 LMO-2 LMO-3 LMO-4 LMO-5 LMO-6 LMO-7 LMO-8 LMO-9
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17 BasFun-18 BasFun-19 BasFun-20 BasFun-21 BasFun-22 BasFun-23 BasFun-24 BasFun-25 BasFun-26 BasFun-27 BasFun-28
+      values: -1.0182760357 0.0571494004 0.1021231004 0.0000000000 0.0000000000 -0.0366289462 0.0000000000 0.0000000000 -0.0126321384 -0.0000000000 0.0000000000 -0.0018649615 0.0000000000 0.0000000000 0.0015372898 -0.0077690020 -0.0191496619 0.0000000000 0.0000000000 0.0045782183 0.0000000000 0.0000000000 0.0106409823 -0.0000000000 -0.0000000000 0.0031972287 -0.0000000000 0.0000000000 0.0015372898 -0.0077690011 ...[3392 chars]
+
+[LOCMOBETA]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin localised_mo_coefficients beta
+  End=^end localised_mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=301 fed=9 rc=0 first-fed='begin localised_mo_coefficients beta  # one line per localised MO: index then nbf coefficients'
+    key: LOCMOBETA
+      size: 7 28
+      rowlabels: LMO-1 LMO-2 LMO-3 LMO-4 LMO-5 LMO-6 LMO-7
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17 BasFun-18 BasFun-19 BasFun-20 BasFun-21 BasFun-22 BasFun-23 BasFun-24 BasFun-25 BasFun-26 BasFun-27 BasFun-28
+      values: -1.0177776034 0.0539497317 0.1039363275 0.0000000000 0.0000000000 -0.0388859299 0.0000000000 0.0000000000 -0.0157238447 -0.0000000000 0.0000000000 -0.0000118018 0.0000000000 -0.0000000000 0.0015090273 -0.0081920031 -0.0176436727 0.0000000000 0.0000000000 0.0045888867 0.0000000000 -0.0000000000 0.0094728206 -0.0000000000 0.0000000000 0.0027865673 -0.0000000000 -0.0000000000 -0.0015090273 0.00819200 ...[2644 chars]
+
+[VIBFREQ][VIBIR]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin vibrations\b
+  End=^end vibrations
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=321 fed=8 rc=0 first-fed='begin vibrations  # index frequency(cm-1) ir_intensity(km/mol); imaginary frequencies are negative'
+    key: VIBFREQ
+      size: 6
+      rowlabels: 1 2 3 4 5 6
+      values: 0.0000 0.0000 0.0000 0.0000 0.0000 1656.0670
+      units: cm-1
+    key: VIBIR
+      size: 6
+      rowlabels: 1 2 3 4 5 6
+      values: 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
+      units: KM/Mole
+
+[VIB]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin normal_modes\b
+  End=^end normal_modes
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=329 fed=8 rc=0 first-fed='begin normal_modes  # index then x y z of every atom, Cartesian displacements of unit length'
+    key: VIB
+      size: 6 2 3
+      vectorlabels: NA NA NA NA NA NA
+      rowlabels: 1 2
+      columnlabels: X Y Z
+      values: 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.70710678 0.00000000 0.00000000 -0.70710678
+      units: Angstrom
+
+[EZEROPT]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^zero_point_energy\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=340 fed=1 rc=0 first-fed='zero_point_energy 0.003772798300'
+    key: EZEROPT
+      size: 1
+      values: 0.003772798300
+      units: Hartree
+
+[THERMOTEMP]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^thermo_temperature\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=337 fed=1 rc=0 first-fed='thermo_temperature 298.150000000000'
+    key: THERMOTEMP
+      size: 1
+      values: 298.15
+      units: Kelvin
+
+[THERMOPRES]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^thermo_pressure_atm\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=338 fed=1 rc=0 first-fed='thermo_pressure_atm 1.000000000000'
+    key: THERMOPRES
+      size: 1
+      values: 1
+      units: atm
+
+[ETHERM]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^thermal_energy\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=341 fed=1 rc=0 first-fed='thermal_energy -150.250518605086'
+    key: ETHERM
+      size: 1
+      values: -150.250518605086
+      units: Hartree
+
+[ENTHALPY]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^enthalpy\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=342 fed=1 rc=0 first-fed='enthalpy -150.249574420219'
+    key: ENTHALPY
+      size: 1
+      values: -150.249574420219
+      units: Hartree
+
+[ENTROPY]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^entropy_ts\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=343 fed=1 rc=0 first-fed='entropy_ts 0.023285874022'
+    key: ENTROPY
+      size: 1
+      values: 0.023285874022
+      units: Hartree
+
+[EGIBBS]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^gibbs_energy\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=344 fed=1 rc=0 first-fed='gibbs_energy -150.272860294241'
+    key: EGIBBS
+      size: 1
+      values: -150.272860294241
+      units: Hartree
+
