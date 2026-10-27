@@ -481,6 +481,29 @@ inline std::string extractReason(const std::vector<std::string>& filePaths)
   return "";
 }
 
+// ------------------------------------------------------------------------
+// Pointer to the queue system's stderr file, which is kept in Outputs:
+// " (see slurm.err in Outputs: <its last non-empty line>)".  Empty when the
+// file is missing or has no text, so the reason is left as it was.
+// ------------------------------------------------------------------------
+inline std::string schedulerErrNote(const std::string& name,
+                                    const std::string& path)
+{
+  std::vector<std::string> lines = readLines(path);
+  std::string last;
+  for (size_t i = lines.size(); i > 0 && last.empty(); i--) {
+    const std::string& l = lines[i-1];
+    size_t b = l.find_first_not_of(" \t\r");
+    if (b != std::string::npos)
+      last = l.substr(b, l.find_last_not_of(" \t\r") - b + 1);
+  }
+  if (last.empty())
+    return "";
+  if (last.size() > 160)
+    last = last.substr(0, 157) + "...";
+  return " (see " + name + " in Outputs: " + last + ")";
+}
+
 } // namespace JobFailureReason
 
 #endif // JOBFAILUREREASON_H

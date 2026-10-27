@@ -1352,6 +1352,10 @@ bool Launch::generateJobMonitoringFiles(void)
 
     monitorConfigFile << "jobQ " << p_cache->mgr->name() << endl;
 
+    //  The monitor reads the script for the scheduler's stderr file name.
+    if (p_cache->mgr->name() != "Shell")
+      monitorConfigFile << "submitScript " << p_cache->scriptName << endl;
+
     //  A local job with no scheduler is checked with ps and stat, so a short
     //  pause costs nothing and states arrive sooner.  Elsewhere every check
     //  is a scheduler query (squeue, qstat, ...) or runs on a shared login

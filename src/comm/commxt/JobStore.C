@@ -189,6 +189,7 @@ static const char* MSG_TYPE_E_WARN  = "warn";
 static const char* MSG_TYPE_E_FATAL = "fatal";
 static const char* MSG_TYPE_F_PROP  = "prop";
 static const char* MSG_TYPE_F_JOF   = "output";
+static const char* MSG_TYPE_F_SCHED = "sched";
 static const char  MSG_BLOCK_1_OF_N = '1';
 static const char  MSG_BLOCK_M_OF_N = '2';
 static const char  MSG_BLOCK_N_OF_N = '3';
@@ -242,6 +243,9 @@ static ResourceDescriptor::RUNSTATE endState=ResourceDescriptor::STATE_ILLEGAL;
 // happens later in run() -- so cleanup() can look for something more
 // specific once that file is actually on disk (see gensubLogReason()).
 static int gUnsuccessfulStatus = 0;
+
+// Name of the queue system's stderr file when the monitor sent one.
+static string gSchedulerErrFile;
 
 // Same idea as gUnsuccessfulStatus, for the STATE_FAILED/STATE_SYSTEM_FAILURE
 // paths (fail()/restart()/restartSystem()): they already have a specific,
@@ -755,6 +759,8 @@ void cleanup(int exitStatus)
         // "no ORCA TERMINATED NORMALLY" message "doesn't tell us WHY".
         vector<string> scanFiles;
         scanFiles.push_back(outPath);
+        if (!gSchedulerErrFile.empty())
+          scanFiles.push_back(tmpStorage + "/" + gSchedulerErrFile);
         scanFiles.push_back(tmpStorage + "/slurm.err");
         scanFiles.push_back(tmpStorage + "/slurm.out");
         string specificReason = JobFailureReason::extractReason(scanFiles);
@@ -767,6 +773,10 @@ void cleanup(int exitStatus)
           logMessage("Calculation Incomplete", reason);
         }
       }
+
+      if (!gSchedulerErrFile.empty())
+        reason += JobFailureReason::schedulerErrNote(
+                      gSchedulerErrFile, tmpStorage + "/" + gSchedulerErrFile);
 
       recordStatusReason(reason);
     } else if ((endState == ResourceDescriptor::STATE_FAILED ||
@@ -2572,9 +2582,11 @@ void interactFile(char* fileData)
       (void)localconn->exec(cmd);
     }
   }
-  else if (fileType == MSG_TYPE_F_JOF) {
+  else if (fileType == MSG_TYPE_F_JOF || fileType == MSG_TYPE_F_SCHED) {
     dbStoreContents = false;
     dbStoreName = true;
+    if (fileType == MSG_TYPE_F_SCHED)
+      gSchedulerErrFile = fileName;
   }
   else {
     dbStoreContents = false;
