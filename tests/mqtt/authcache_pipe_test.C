@@ -7,6 +7,7 @@
 
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -99,6 +100,44 @@ int main()
   check(got == 0, "no writer: pipeIn returns with an empty cache "
                   "(not a hang)");
   check(access(pipe.c_str(), F_OK) != 0, "no writer: the FIFO is removed");
+
+  // The Gateway's socketpair (#637): "socket:<fd>" inherited by the child.
+  for (int order = 0; order < 3; order++) {
+    int fds[2];
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, fds) != 0) {
+      check(false, "socketpair");
+      break;
+    }
+    const string arg = "socket:" + to_string(fds[0]);
+    pid_t rs = fork();
+    if (rs == 0) {
+      close(fds[1]);
+      if (order == 1) usleep(500000);        // the writer finishes first
+      AuthCache::getCache().pipeIn(arg);
+      _exit(AuthCache::getCache().size());
+    }
+    close(fds[0]);
+    //  The writer is a child too, so this process's cache stays empty and
+    //  the next reader inherits nothing by fork.
+    pid_t ws = fork();
+    if (ws == 0) {
+      if (order == 0) usleep(500000);        // the reader waits first
+      if (order != 2) {                      // 2: a writer that sends nothing
+        AuthCache::getCache().addAuthentication("http://localhost:1/Ecce/",
+                                                "alice", "dummy", "", false);
+        AuthCache::getCache().pipeOutSocket(fds[1]);
+      }
+      _exit(0);
+    }
+    close(fds[1]);
+    got = waitFor(rs, 15, &took);
+    waitFor(ws, 15, &took);
+    static const char *what[] = {
+      "socket, reader first: one entry handed over",
+      "socket, writer first: one entry handed over",
+      "socket, writer closes without data: empty cache, no hang"};
+    check(got == (order == 2 ? 0 : 1), what[order]);
+  }
 
   rmdir(dir);
   cout << (g_fail ? "FAILED" : "PASSED") << endl;

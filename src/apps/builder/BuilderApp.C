@@ -244,7 +244,10 @@ bool BuilderApp::OnInit()
       if (!p_builder->IsShown()) p_builder->Show(true);
       p_builder->CallAfter([timer]() { delete timer; });
     });
-    timer->StartOnce(5000);
+    //  A busy machine can hold the Viewer's invoke back for seconds (#628);
+    //  a Viewer waits much longer before it gives up than a Builder does
+    //  before it shows itself empty.
+    timer->StartOnce(viewerOnInvoke ? 60000 : 5000);
   } else {
     p_builder->Show(true);
   }
