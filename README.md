@@ -42,14 +42,15 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.5.0
+## Coming in 9.4.2
 
-- ECCE-QM: range-separated hybrid functionals.
-- Hybrids: pick an atom and see its localised orbitals.
+- The Progress box for queued jobs: since when, the job id, lost contact.
+- One login when the connection to a compute machine drops, and
+  Reconnect for several jobs at once.
+- Opt+Freq: the optimised structure's results while the frequencies run.
 - Several allocations on one compute machine, each with its own account and
   directories.
-- GROMACS: radial distribution functions and coordination numbers; topologies
-  for small molecules.
+- ECCE-QM: range-separated hybrid functionals.
 - Smoother labels in the 3D viewer, with a choice of font.
 
 ## First steps
