@@ -36,6 +36,8 @@
 #include "dsm/ResourceTool.H"
 #include "dsm/Session.H"
 #include "dsm/TaskJob.H"
+#include "dsm/ICalculation.H"
+#include "dsm/TCalculation.H"
 #include "comm/AllocationQuery.H"
 #include "dsm/ToolPropertyView.H"
 #include "dsm/VDoc.H"
@@ -766,6 +768,17 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
   {
     if (resProp->getName() == "empiricalFormula")
       valuestr = TFormula::hillOrder(valuestr);
+    //  "DFT/RDFT" alone does not say which functional ran (#611).
+    if (resProp->getName() == "theory" && valuestr.compare(0, 4, "DFT/") == 0) {
+      ICalculation *calc = dynamic_cast<ICalculation*>(p_itemData->getResource());
+      GUIValues *params = calc ? calc->guiparams() : 0;
+      GUIValue *value = params ? params->get("ES.Theory.DFT.XCFunctionals") : 0;
+      string functional = value ? value->getValueAsString() : string();
+      const size_t paren = functional.find(" (");
+      if (paren != string::npos) functional.erase(paren);
+      if (!functional.empty()) valuestr += " \xc2\xb7 " + functional;
+      delete params;
+    }
     prop->SetLabel(valuestr);
   }
   else if (type == GridProperty::PT_DATE_TIME)

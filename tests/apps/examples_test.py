@@ -400,6 +400,10 @@ def run(display, data, work):
             problems.append("%s: no theory in its summary (%s)" % (calc, s))
         if not rt or runtype not in rt.group(1):
             problems.append("%s: run type not %s (%s)" % (calc, runtype, s))
+        # A DFT theory names its functional (#611).
+        if theory and theory.group(1).startswith("DFT/") and \
+                not re.search(r" Theory=DFT/\S+ \u00b7 \S", s):
+            problems.append("%s: DFT without its functional (%s)" % (calc, s))
     problems += reportProblemProblems(log)
     if problems:
         fail(what, "; ".join(problems), log)
