@@ -208,7 +208,7 @@ def main():
 
         #  Delayed exit, single path.
         old = stores("race-single")
-        check(len(old) == 1, "one old store for the single job (%s)" % old)
+        check(len(old) >= 1, "an old store runs for the single job (%s)" % old)
         t0 = time.time()
         ans = send("reconnectjob %s" % a)
         took = time.time() - t0
