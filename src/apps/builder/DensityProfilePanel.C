@@ -822,15 +822,32 @@ bool DensityProfilePanel::pickAtoms(const std::vector<int>& atoms)
   for (size_t i = 0; i < atoms.size(); i++)
     if (atoms[i] < 1 || atoms[i] > n) return false;
   if (atoms.size() == 2 && atoms[0] == atoms[1]) return false;
+  //  Two atoms make the line.  One atom opens the average around it, but
+  //  only where that is quick: on a cluster it takes minutes on the GUI
+  //  thread (#629), so there the atom is the line's first one instead and
+  //  the average stays a choice in the mode list.
+  const bool atomMode = p_mode->GetSelection() == 1;
+  const bool cheapAverage =
+      p_eval->symbols.size() * std::max<size_t>(1, p_occupied.size()) <= 1500;
+  bool changed = false;
   if (atoms.size() == 2) {
+    changed = p_atomA->GetSelection() != atoms[0] - 1 ||
+              p_atomB->GetSelection() != atoms[1] - 1;
     p_atomA->SetSelection(atoms[0] - 1);
     p_atomB->SetSelection(atoms[1] - 1);
-  } else {
+    if (atomMode) return setMode(false);
+  } else if (atomMode || cheapAverage) {
+    changed = p_centre->GetSelection() != atoms[0] - 1;
     p_centre->SetSelection(atoms[0] - 1);
+    if (!atomMode) return setMode(true);
+  } else {
+    changed = p_atomA->GetSelection() != atoms[0] - 1;
+    //  The line's other end is the picked atom: swap, not a zero line.
+    if (p_atomB->GetSelection() == atoms[0] - 1)
+      p_atomB->SetSelection(p_atomA->GetSelection());
+    p_atomA->SetSelection(atoms[0] - 1);
   }
-  const bool atomMode = atoms.size() == 1;
-  if ((p_mode->GetSelection() == 1) != atomMode) return setMode(atomMode);
-  recompute();
+  if (changed) recompute();
   return true;
 }
 
