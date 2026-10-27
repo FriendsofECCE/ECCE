@@ -194,6 +194,8 @@ Per code:
 * Queue managers: Slurm, PBS, SGE, LSF, Moab, HTCondor.
 * One ssh login per compute machine per session (Linux and macOS).
 * Launch Selected: several calculations with their stored launch settings.
+* Reconnect Selected: several jobs reconnected to their calculations after
+  a restart or a lost connection.
 * Machine Browser: machine and queue status, allocation (Slurm `sshare` or
   a per-machine command).
 * Progress box: SCF and optimisation plots with force convergence, the

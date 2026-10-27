@@ -18,6 +18,9 @@
 
 #include "comm/JobCatchUp.H"
 #include "comm/Launch.H"
+#include "comm/ReconnectRules.H"
+#include "dsm/MachinePreferences.H"
+#include "tdat/RefMachine.H"
 
 using std::string;
 using std::vector;
@@ -104,6 +107,33 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message)
     leaveWaiting(calc, message);
   }
   return ok;
+}
+
+
+JobCatchUp::Plan JobCatchUp::plan(TaskJob* calc)
+{
+  Plan p;
+  if (!calc) {
+    p.problem = "not a calculation";
+    return p;
+  }
+  p.url = calc->getURL().toString();
+  p.name = calc->getName();
+  Launchdata l = calc->launchdata();
+  p.machine = l.machine;
+  ReconnectRules::Input in;
+  in.state = calc->getState();
+  in.machine = l.machine;
+  if (!l.machine.empty()) {
+    MachinePreferences* prefs = MachinePreferences::lookup(l.machine);
+    in.machineRegistered = prefs && prefs->getRegisteredMachine();
+  }
+  Jobdata j = calc->jobdata();
+  in.jobid = j.jobid;
+  in.jobpath = j.jobpath;
+  p.state = ReconnectRules::stateText(in.state);
+  p.problem = ReconnectRules::problem(in);
+  return p;
 }
 
 

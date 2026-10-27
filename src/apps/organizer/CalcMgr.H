@@ -140,6 +140,11 @@ public:
   /// "Duplicate with Final Orbitals": the last geometry and the orbitals
   void OnDuplicate3Click( wxCommandEvent& event );
   void OnLaunchSelectedClick( wxCommandEvent& event );
+  void OnReconnectSelectedClick( wxCommandEvent& event );
+  // Reconnect Selected (#601), same selection; `listOnly`/`shot` for tests.
+  void reconnectSelected(const vector<EcceURL>& urls, bool interactive,
+                         string *outcome = 0, const string& shot = "",
+                         bool listOnly = false);
   // Launch steps run on a worker thread; a login it needs is asked here.
   bool getAuthorization(AuthEvent& event);
   // Launch Selected (#492); `outcome` and `shot` only for the test hook.
