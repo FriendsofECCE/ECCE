@@ -8,6 +8,7 @@
 #include <mutex>
 #include <numeric>
 #include <iostream>
+#include <string>
 #include <vector>
 #include "ao.hpp"
 #include "basis.hpp"
@@ -20,6 +21,10 @@
 #include "polar.hpp"
 #include "scf.hpp"
 #include "vibration.hpp"
+
+// gensub's X_NOT_CONVERGED: the job ends Unsuccessful with "stopped without
+// converging" as its reason, as for the codes that exit 0 in that case (#614).
+static const int kNotConverged = 241;
 
 int main(int argc, char** argv) {
   std::string inp, outp, molden, bdir;
@@ -341,7 +346,7 @@ int main(int argc, char** argv) {
                   << " imaginary frequencies, not one: it is not a transition state\n";
         return 1;
       }
-      return res.converged ? 0 : 1;
+      return res.converged ? 0 : kNotConverged;
     }
     qm::OptEval e = evaluate(in.mol);
     if (in.runtype == qm::RunType::Gradient || in.runtype == qm::RunType::Frequency) {
@@ -374,9 +379,10 @@ int main(int argc, char** argv) {
       std::cout << "probe_density " << rho << "\n";
       for (int i = 0; i < std::min<int>(psi.size(), 12); ++i) std::cout << "probe_mo_alpha " << i + 1 << " " << psi(i) << "\n";
     }
-    return r.converged ? 0 : 1;
+    return r.converged ? 0 : kNotConverged;
   } catch (const std::exception& e) {
     std::cerr << "ecce-qm: " << e.what() << "\n";
+    if (std::string(e.what()).rfind("SCF did not converge", 0) == 0) return kNotConverged;
     return 2;
   }
 }
