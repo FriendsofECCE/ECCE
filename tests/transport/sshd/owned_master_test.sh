@@ -1,6 +1,7 @@
 #!/bin/bash
 # ECCE's own ssh master (#487) against a real sshd that takes a password
-# only (no key) and allows 3 sessions per connection (MaxSessions 3). The
+# only (no key) and allows 3 sessions per connection (MaxSessions 3); no
+# per-source penalties, since scenarios 5-6 fail logins on purpose. The
 # session directory is made by ecce-session-lib.sh and swept by
 # ecce-gateway-reap, as in a real session. Every password dialog is one
 # line in ASKLOG; the sshd's own log is the second count.
@@ -35,7 +36,7 @@ trap cleanup EXIT
 podman rm -f $name >/dev/null 2>&1 || true
 podman run -d --name $name -p 127.0.0.1:$port:22 -v "$logs:/log:Z" \
   localhost/ecce-test-sshd /usr/sbin/sshd -D -E /log/sshd.log \
-  -o KbdInteractiveAuthentication=no -o MaxSessions=3 >/dev/null
+  -o KbdInteractiveAuthentication=no -o MaxSessions=3 -o PerSourcePenalties=no >/dev/null
 for i in $(seq 40); do (exec 3<>/dev/tcp/127.0.0.1/$port) 2>/dev/null && break; sleep 0.5; done
 
 podman run --rm --network host -v "$root:/src:Z" -v "$logs:/log:Z,ro" \
