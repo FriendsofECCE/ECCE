@@ -42,7 +42,8 @@ bool MCD::QueueRow::operator==(const QueueRow& o) const
   return name == o.name && minProcs == o.minProcs && maxProcs == o.maxProcs &&
          defProcs == o.defProcs && maxWall == o.maxWall &&
          defWall == o.defWall && maxMem == o.maxMem && defMem == o.defMem &&
-         minScratch == o.minScratch && defScratch == o.defScratch;
+         minScratch == o.minScratch && defScratch == o.defScratch &&
+         requestLines == o.requestLines;
 }
 
 // Untouched keys (no edit, same layers) count as equal whether or not they

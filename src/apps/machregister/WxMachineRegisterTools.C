@@ -991,6 +991,15 @@ void WxMachineRegister::previewJobScript(const string& wantedCode)
         JobPreview::Request req = requestFrom(*panel, p_adminFlag, host,
             stripped((string)p_fullName->GetValue()), qmgr);
         req.configText = cfg;
+        {
+            //  The queue form's text counts even before Add/Update Queue.
+            MCD::QueueRow form = this->queueFormRow();
+            for (size_t i = 0; i < p_queues.size(); i++)
+                if (p_queues[i].name == req.queue)
+                    req.requestLines = p_queues[i].requestLines;
+            if (form.name == req.queue)
+                req.requestLines = form.requestLines;
+        }
         string gerr;
         text->Clear();
         lines->clear();

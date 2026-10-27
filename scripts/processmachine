@@ -331,7 +331,13 @@ sub doAccept {
             # A key the GUI sent, even empty, replaces the file's line;
             # older callers that send no def* keep the hand-written ones.
             $sent{$name}{lc($key)} = 1;
-            if ($value ne "") {
+            if (lc($key) eq "requestlines") {
+              # %-escaped on the wire; a .Q value is one line, so the lines
+              # are joined by a literal \n.
+              $value =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/ge;
+              $value =~ s/\n/\\n/g;
+              $qdetail{$name} .= $name . "|requestLines:       " . $value . "\n" if ($value ne "");
+            } elsif ($value ne "") {
               $key = "minProcessors" if ($key =~ /minNodes/);
               $key = "maxProcessors" if ($key =~ /maxNodes/);
               $key = "runLimit" if ($key =~ /maxCPU/);
@@ -437,7 +443,7 @@ sub writeQFile {
   my (@header, %own, @loose, $line, $queue, $key, @prior, $skip);
   my @guikeys = ("minprocessors","maxprocessors","runlimit","memlimit",
                  "scratchlimit","defprocessors","defrun","defmemory",
-                 "defscratch");
+                 "defscratch","requestlines");
 
   my @names = split(' ',$qnames);
   my %wanted = map { $_ => 1 } @names;
@@ -462,7 +468,7 @@ sub writeQFile {
       ($queue,$key) = ($1,$2);
       next if (grep { $_ eq lc($key) } @guikeys[0..4]);
       next if ($sent{$queue}{lc($key)}
-               && grep { $_ eq lc($key) } @guikeys[5..8]);
+               && grep { $_ eq lc($key) } @guikeys[5..9]);
       next if (!$wanted{$queue});
       $own{$queue} .= $line;
     } elsif ($line =~ /^\s*#/ || $line =~ /^\s*$/) {

@@ -104,6 +104,9 @@ public:
     unsigned int defScratch(void) const;
     unsigned int dataLimit(void) const;
     unsigned int stackLimit(void) const;
+    // Extra job-script request lines for this queue, one per line; empty
+    // when the .Q file has none.
+    string       requestLines(void) const;
 
 protected:
 
@@ -129,6 +132,7 @@ protected:
     void defScratch(unsigned int defScratch);
     void dataLimit(unsigned int dataLimit);
     void stackLimit(unsigned int stackLimit);
+    void requestLines(const string& lines);
 
   // Derived Class Accessors
     Queue(const string& name);
@@ -158,6 +162,7 @@ private:
     unsigned int   p_defScratch;           // default scratch space
     unsigned int   p_dataLimit;            // in Megabytes
     unsigned int   p_stackLimit;           // in Megabytes
+    string         p_requestLines;         // newline separated
 
   // Encapsulated Behavior
     void    fillAttributesFrom(Preferences& prefs);
