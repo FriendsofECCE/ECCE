@@ -7,6 +7,9 @@
 #include <sys/fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -102,9 +105,10 @@ void AuthCache::flushCache()
 // each one used to discover that server's password independently.  There
 // were two sharing mechanisms and both are one-shot:
 //
-//   * a FIFO handed to a child on its command line as "-pipe <name>"
-//     (pipeOut()/pipeIn() below), which carries whatever the parent had
-//     cached at the instant of the fork and nothing learned later; and
+//   * a one-shot handoff to a child on its command line as "-pipe <name>".
+//     POSIX Gateway launches use an inherited socketpair; remote launch
+//     paths retain the FIFO/file handoff. Both carry the parent's cache at
+//     the instant of launch and nothing learned later; and
 //   * the "ecce_auth_changed" JMS broadcast published by
 //     addAuthentication(), which only reaches processes already
 //     subscribed at the moment it is sent.
@@ -133,9 +137,9 @@ void AuthCache::flushCache()
 //     everything else ECCE stores for that user and could equally attach
 //     to any of these processes.  Same trust boundary as ~/.netrc,
 //     ~/.pgpass or git's credential store.
-//   * It is not a new exposure of the plaintext: the "-pipe" FIFO
-//     already carries the same password in the clear through
-//     $ECCE_TMPDIR, as does the JMS broadcast.
+//   * It is not a new exposure of the plaintext: the "-pipe" handoff
+//     already carries the same password in the clear through a FIFO,
+//     socketpair, or Windows pipe, as does the JMS broadcast.
 //   * It is keyed by the session id (#233), so a second session -- on
 //     another seat, or a second `ecce` on the same display -- does not
 //     silently inherit another session's credentials.
@@ -462,6 +466,37 @@ void AuthCache::pipeOut(const string& pipeName)
 }
 
 
+#ifndef _WIN32
+void AuthCache::pipeOutSocket(int writeFd)
+{
+  string data = StringConverter::toString(p_memcache.size()) + "\n";
+  for (size_t idx = 0; idx < p_memcache.size(); idx++) {
+    AuthTuple *cur = p_memcache[idx];
+    data += cur->url + "|" + cur->user + "|" + cur->pass + "\n";
+  }
+
+#ifdef SO_NOSIGPIPE
+  int noSigPipe = 1;
+  setsockopt(writeFd, SOL_SOCKET, SO_NOSIGPIPE,
+             &noSigPipe, sizeof(noSigPipe));
+#endif
+  size_t sent = 0;
+  while (sent < data.size()) {
+#ifdef MSG_NOSIGNAL
+    ssize_t n = send(writeFd, data.data() + sent, data.size() - sent,
+                     MSG_NOSIGNAL);
+#else
+    ssize_t n = send(writeFd, data.data() + sent, data.size() - sent, 0);
+#endif
+    if (n < 0 && errno == EINTR) continue;
+    if (n <= 0) break;
+    sent += n;
+  }
+  close(writeFd);
+}
+#endif
+
+
 #ifdef _WIN32
 void AuthCache::pipeOutHandle(void *writeHandle)
 {
@@ -495,6 +530,16 @@ void AuthCache::pipeIn(const string& pipeName)
     fp = fd >= 0 ? _fdopen(fd, "r") : NULL;
     it = 10;   // nothing to wait for or remove
   }
+#else
+  bool socketArg = pipeName.compare(0, 7, "socket:") == 0;
+  if (socketArg) {
+    char *end = NULL;
+    long fd = strtol(pipeName.c_str() + 7, &end, 10);
+    if (end && *end == '\0' && fd >= 0 && fd <= 2147483647L) {
+      fp = fdopen((int)fd, "r");
+      if (fp == NULL) close((int)fd);
+    }
+  }
 #endif
 #ifdef _WIN32
   // Wait up to 10 seconds for the pipe to exist just in case the
@@ -511,29 +556,31 @@ void AuthCache::pipeIn(const string& pipeName)
   string data;
   const int steps = 500;                      // 10 s at 20 ms
   int fd = -1;
-  for (int s = 0; s < steps && fd < 0; s++) {
-    fd = open(pipeName.c_str(), O_RDONLY | O_NONBLOCK);
-    if (fd < 0) usleep(20000);                // not created yet
-  }
-  if (fd >= 0) {
-    bool got = false;
-    for (int s = 0; s < steps; s++) {
-      char chunk[4096];
-      ssize_t n = read(fd, chunk, sizeof(chunk));
-      if (n > 0) {
-        data.append(chunk, n);
-        got = true;
-        continue;
-      }
-      // 0 with data read: the writer closed.  0 before any data: no
-      // writer yet.  EAGAIN: a writer, but nothing written yet.
-      if (n == 0 && got) break;
-      if (n < 0 && errno != EAGAIN && errno != EINTR) break;
-      usleep(20000);
+  if (fp == NULL && !socketArg) {
+    for (int s = 0; s < steps && fd < 0; s++) {
+      fd = open(pipeName.c_str(), O_RDONLY | O_NONBLOCK);
+      if (fd < 0) usleep(20000);                // not created yet
     }
-    close(fd);
+    if (fd >= 0) {
+      bool got = false;
+      for (int s = 0; s < steps; s++) {
+        char chunk[4096];
+        ssize_t n = read(fd, chunk, sizeof(chunk));
+        if (n > 0) {
+          data.append(chunk, n);
+          got = true;
+          continue;
+        }
+        // 0 with data read: the writer closed.  0 before any data: no
+        // writer yet.  EAGAIN: a writer, but nothing written yet.
+        if (n == 0 && got) break;
+        if (n < 0 && errno != EAGAIN && errno != EINTR) break;
+        usleep(20000);
+      }
+      close(fd);
+    }
+    if (!data.empty()) fp = fmemopen(&data[0], data.size(), "r");
   }
-  if (!data.empty()) fp = fmemopen(&data[0], data.size(), "r");
   (void)it;
 #endif
   if (fp != NULL) {
@@ -576,7 +623,8 @@ void AuthCache::pipeIn(const string& pipeName)
 
     fclose(fp);
   }
-  if (pipeName.compare(0, 7, "handle:") != 0)
+  if (pipeName.compare(0, 7, "handle:") != 0 &&
+      pipeName.compare(0, 7, "socket:") != 0)
     unlink(pipeName.c_str());
 }
 

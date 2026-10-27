@@ -14,6 +14,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <vector>
+#else
+#include <sys/socket.h>
 #endif
 
 //#define debug
@@ -724,17 +726,26 @@ void WxJMSMessageDispatch::appExec()
       appInvoke();
     }
     break;
-#endif
-    string authPipeName = AuthCache::pipeName();
-
+#else
     // If no app replied, exec a new one
     if (p_startups[i].appID == "" ) { // response from poll would set this
+
+      // The socketpair exists before fork, so the child receives its read
+      // end even if its wrapper takes time to start Builder.  Unlike a FIFO,
+      // neither process has to wait for the other to open a path.
+      int authFds[2];
+      if (socketpair(AF_UNIX, SOCK_STREAM, 0, authFds) != 0) {
+        cerr << "WxJMSMessageDispatch: unable to create auth socketpair\n";
+        sendFailedStatusMessage(0);
+        break;
+      }
 
       // Fork and exec
       pid_t pid;
       
       // Child process, exec new app 
       if ( (pid = fork()) == 0 ) {
+        close(authFds[1]);
         // Determine command-line arguments in proper format for execv function
         string app = p_startups[i].appName;
         char* argv[4] = {0,0,0,0};
@@ -782,12 +793,13 @@ void WxJMSMessageDispatch::appExec()
 #endif
         // A CalculationViewer started by the Gateway is already in a live
         // ECCE session.  Do not repeat service startup here: the data-server
-        // script scans the basis-set tree before Builder can read its FIFO.
+        // script scans the basis-set tree before the Viewer can appear.
         string gatewayLaunch = app == "CalculationViewer"
                                 ? "ECCE_STARTED_BY_GATEWAY=1 " : "";
         string apppath = "cd \"" + string(Ecce::ecceHome()) + "/bin\" && " +
                          gatewayLaunch + invoke +
-                         " -pipe " + authPipeName;
+                         " -pipe socket:" +
+                         StringConverter::toString(authFds[0]);
         argv[2] = (char*)apppath.c_str();
         char path[] = "/bin/sh";
 
@@ -797,13 +809,16 @@ void WxJMSMessageDispatch::appExec()
         
         // Parent process, wait for child to finish startup
       } else if (pid > 0 ){
+        close(authFds[0]);
         // pid of child that will be monitored for failure
         p_startups[i].pidToWatch = pid; 
 
         p_toAppInvoke->Start(100, true);
 
-        AuthCache::getCache().pipeOut(authPipeName);
+        AuthCache::getCache().pipeOutSocket(authFds[1]);
       } else {
+        close(authFds[0]);
+        close(authFds[1]);
         EE_ASSERT(false, EE_FATAL, "Fork failed!");
       }
       
@@ -813,6 +828,8 @@ void WxJMSMessageDispatch::appExec()
       sscanf(p_startups[i].appID.c_str(), "%d", &(p_startups[i].pidToWatch));
       appInvoke(); // App already exists, so just directly invoke it
     }
+
+#endif // !_WIN32
 
     // only one app exec'd per call
     break;
