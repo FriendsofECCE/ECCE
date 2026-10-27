@@ -72,6 +72,12 @@
 
 #include "NModePanel.H"
 
+//  Red that stays readable on light and dark table backgrounds.
+static wxColour imaginaryColour()
+{
+   return wxColour(214, 39, 40);
+}
+
   using std::find;
 
 
@@ -1386,6 +1392,13 @@ void NModePanel::fillTable()
             p_grid->SetCellValue(idx,p_ramanColumn,
                   wxString::Format("%.2f", rvec->value(idx)));
          }
+
+         //  An imaginary mode (stored as a negative wavenumber) decides
+         //  whether the structure is a minimum or a transition state, so
+         //  its whole row stands out.
+         if (vec->value(idx) < 0.0)
+            for (int c = 0; c < p_grid->GetNumberCols(); c++)
+               p_grid->SetCellTextColour(idx, c, imaginaryColour());
       }
    }
 
@@ -2424,6 +2437,9 @@ void NModePanel::fillComposition()
       p_compGrid->SetCellValue(r, 2, m < p_compLabels.size()
                                ? wxString::FromUTF8(p_compLabels[m].c_str()) : wxString());
       p_compGrid->SetCellValue(r, 3, text);
+      if (p_compFreqs[m] < 0.0)
+         for (int c = 0; c < p_compGrid->GetNumberCols(); c++)
+            p_compGrid->SetCellTextColour(r, c, imaginaryColour());
    }
    p_compGrid->SetColSize(0, 50);
    p_compGrid->SetColSize(1, 70);
