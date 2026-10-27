@@ -51,8 +51,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Several allocations on one compute machine, set up in Register Machines,
   and the allocation left shown with the calculation.
 - Launch Selected can send calculations to another machine.
-- A calculation that stops without converging (ORCA optimisation at its
-  cycle limit, CP2K SCF or optimisation) ends Unsuccessful, not Complete.
+- A calculation that stops without converging (ORCA or MOPAC optimisation
+  at its cycle limit, CP2K or Quantum ESPRESSO SCF or optimisation) ends Unsuccessful, not Complete.
 - A Slurm job cancelled on the machine shows as Killed.
 - The number of real and imaginary frequencies for ORCA, Gaussian 16,
   NWChem, MOPAC and ECCE-QM; ECCE-QM's Hessian shows its progress.
