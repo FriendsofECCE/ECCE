@@ -1360,6 +1360,23 @@ void CalcMgr::runTestCommand(const string& line)
         if (!it->IsSeparator())
           outcome += "|" + string(it->GetItemLabelText().ToUTF8());
       }
+    } else if (command == "treecontextmenu") {
+      // "treecontextmenu URL": selects URL in the tree and lists the items
+      // its right-click menu offers (joined by |), "~" before a disabled one.
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+      if (node) {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
+      }
+      wxMenu menu;
+      getContextMenu(menu);
+      outcome = "ok";
+      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
+        wxMenuItem *it = menu.FindItemByPosition(i);
+        if (!it->IsSeparator())
+          outcome += string("|") + (it->IsEnabled() ? "" : "~") +
+                     string(it->GetItemLabelText().ToUTF8());
+      }
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
       // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered
@@ -5305,7 +5322,13 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
     menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-    menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+    //  Offered under the same rule as the Run Mgmt item: only for a job
+    //  that has been submitted.
+    wxMenuItem *reconnect = menu.Append(wxID_RECONNECT_SELECTED,
+                                        _("Reconnect Selected..."));
+    reconnect->Enable(state == ResourceDescriptor::STATE_SUBMITTED ||
+                      state == ResourceDescriptor::STATE_RUNNING ||
+                      state == ResourceDescriptor::STATE_WAITING);
     string why;
     bool can = OrbitalGuess::available(
         dynamic_cast<TaskJob*>(itemData->getResource()), why);

@@ -211,6 +211,13 @@ def main():
         check(ans.index("recon-never") > ans.index(names[-1]),
               "calculations that cannot be reconnected come last")
 
+        #  The tree's right-click menu: on a waiting job, enabled; on the
+        #  calculation that was never launched, offered but disabled.
+        ans = send("treecontextmenu %s" % urls[0])
+        check("|Reconnect Selected..." in ans, "tree menu: Reconnect Selected on a waiting job (%s)" % ans)
+        ans = send("treecontextmenu %s" % never)
+        check("|~Reconnect Selected..." in ans, "tree menu: Reconnect Selected disabled when not launched (%s)" % ans)
+
         shot = args.shot or os.path.join(s.state, "reconnect.png")
         ans = send("reconnectselectedshot %s %s" % (shot, " ".join(every)))
         check(ans == "not reconnected" and os.path.getsize(shot) > 1000,
