@@ -54,12 +54,20 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Browse for a code's program in Register Machines shows the files of the
   machine being registered, also when it is another computer.
 - A calculation that stops without converging (ORCA or MOPAC optimisation
-  at its cycle limit, CP2K or Quantum ESPRESSO SCF or optimisation) ends Unsuccessful, not Complete.
+  at its cycle limit, CP2K or Quantum ESPRESSO SCF or optimisation) ends
+  Unsuccessful, not Complete.
+- Compare Energies: a sum of calculations with coefficients on each side,
+  with E, E+ZPE, H and G rows and a solvation label.
 - A Slurm job cancelled on the machine shows as Killed.
 - The number of real and imaginary frequencies for ORCA, Gaussian 16,
   NWChem, MOPAC and ECCE-QM; ECCE-QM's Hessian shows its progress.
 - A Mac reached over ssh can be a compute machine.
 - macOS: the GROMACS examples import with their structures and trajectories.
+- Argon is drawn, water molecules stay whole in MD examples, and the noble
+  gases have their usual colours.
+- No crash at the first start after an upgrade when the old examples are
+  removed.
+- macOS and Windows: names such as Löwdin and Å show correctly.
 
 ## First steps
 
