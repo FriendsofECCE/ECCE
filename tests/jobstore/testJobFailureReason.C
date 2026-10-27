@@ -206,6 +206,26 @@ int main(int argc, char** argv)
     expectEmpty("no files present", reason);
   }
 
+  // The scheduler's stderr file: named with its last non-empty line, and
+  // no note for an empty or missing file.
+  {
+    string path = "/tmp/ecce-schederr-unit.err";
+    FILE* f = fopen(path.c_str(), "w");
+    fputs("slurmstepd: error: oom-kill event\n  \n", f);
+    fclose(f);
+    expectContains("scheduler note names file",
+                   JobFailureReason::schedulerErrNote("slurm.err", path),
+                   "see slurm.err in Outputs: slurmstepd: error: oom-kill");
+    f = fopen(path.c_str(), "w");
+    fputs("\n \n", f);
+    fclose(f);
+    expectEmpty("scheduler note, blank file",
+                JobFailureReason::schedulerErrNote("slurm.err", path));
+    remove(path.c_str());
+    expectEmpty("scheduler note, missing file",
+                JobFailureReason::schedulerErrNote("slurm.err", path));
+  }
+
   if (failures) {
     cerr << failures << " failure(s)" << endl;
     return 1;

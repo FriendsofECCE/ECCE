@@ -93,6 +93,7 @@ my $MSG_TYPE_E_FATAL = "fatal";		# error: fatal
 my $MSG_TYPE_F_PROP  = "prop";		# file: contains property
 my $MSG_TYPE_F_JOF   = "output";	# file: job output file
 my $MSG_TYPE_F_OTHER = "other";		# file: other kind of file
+my $MSG_TYPE_F_SCHED = "sched";		# file: queue system's stderr file
 
 my $MSG_VAL_STAT_RUNNING = 301;		# value: status: job is running
 my $MSG_VAL_STAT_UNAVAIL = 302;		# value: status: unavailable
@@ -209,6 +210,7 @@ my %gConfig = (
     'jobOutputFile6'		=> undef,
     'jobQ'			=> 'shell',
     'jobStatusFile'		=> '.ecce.status',
+    'submitScript'		=> undef,
     'logFile'			=> "$gProgramName.log.",
     'logLevel'			=> 2,		# {0, 1, 2}
     'logMode'			=> 'yes',	# {no, rmifok, yes}
@@ -391,6 +393,9 @@ EOT
 					default: %jobOutputFile5
     jobOutputFile6		md output file - for MD tasks 
 					default: %jobOutputFile7
+    submitScript		queue submit script in the run directory, read
+					for the name of the scheduler's stderr file
+					default: %submitScript
     jobQ			name of the job queuing system
 					default: %jobQ
     jobStatusFile		file to read job status from
@@ -2441,6 +2446,44 @@ sub JobCheck
 }
 
 # --------------------------------------------------------------------------- #
+# A queue system writes the job's stderr to the file its submit script names
+# (--error, -e), where the code's real error may be the only trace.  Send it
+# with the other outputs unless it is empty, or the job exited 0 and the file
+# is large.
+# --------------------------------------------------------------------------- #
+
+sub SchedulerErrSend
+{
+    my $script = $gConfig{'submitScript'};
+    return unless $script && $gConfig{'monitoringMode'} eq 'live';
+    return unless open(SUBMIT, "< $script");
+
+    my $name;
+    while (<SUBMIT>)
+    {
+        if (/^#(?:SBATCH|PBS|BSUB|MSUB|\$)\s+.*?(?:--error[=\s]|-e\s+)(\S+)/)
+        {
+            $name = $1;
+            last;
+        }
+    }
+    close SUBMIT;
+
+    # Names with %j, $JOB_ID and the like are not known here.
+    return if (! defined $name) || $name =~ m{[%\$/]|^\.\.};
+    return unless -f $name && -s $name;
+
+    if (-s $name > 65536 && open(STATUS, "< $gConfig{'jobStatusFile'}"))
+    {
+        my $st = <STATUS>;
+        close STATUS;
+        return if defined $st && $st =~ /^\s*0\s*$/;
+    }
+
+    &MsgSendFile($name, $MSG_TYPE_F_SCHED);
+}
+
+# --------------------------------------------------------------------------- #
 # Send files of interest to the client, then send the completion status
 # info if it's available.
 # --------------------------------------------------------------------------- #
@@ -2478,6 +2521,8 @@ sub JobFilesGet
     {
         &MsgSendFile($gConfig{'jobOutputFile'}, $MSG_TYPE_F_JOF);
     }
+
+    &SchedulerErrSend();
 
     &MsgSendFile($gConfig{'jobOutputFile2'}, $MSG_TYPE_F_JOF);
     &MsgSendFile($gConfig{'jobOutputFile3'}, $MSG_TYPE_F_JOF);

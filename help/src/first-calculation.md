@@ -197,7 +197,10 @@ To read the files while the job runs, select the calculation and use the
 If the state is **Failed**, open **View Output File...** and read the end
 of the file. The most common causes are a wrong path to the code (see
 [Machines](machines.md)) and an input error that **Verify** would have
-reported.
+reported. On a machine with a queue system (Slurm, PBS, SGE) the code's
+own error can be in the queue's error file instead, such as `slurm.err`.
+ECCE brings that file back into the calculation's Outputs when it has
+text in it, and the reason shown for a failed calculation names it.
 
 ## 7. Look at the results
 
