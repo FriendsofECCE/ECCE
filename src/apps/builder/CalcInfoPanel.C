@@ -86,7 +86,10 @@ CalcInfoPanel::~CalcInfoPanel()
 
 void CalcInfoPanel::refresh()
 {
-  p_body->DestroyChildren();
+  //  Clear(true), not DestroyChildren(): the spacers stay in the sizer
+  //  otherwise, and a refresh (the allocation answer) shifts every row by
+  //  one cell, labels into the value column.
+  p_body->GetSizer()->Clear(true);
 
   TaskJob *taskJob = dynamic_cast<TaskJob*>(getCalculation());
   ICalculation *escalc = dynamic_cast<ICalculation*>(getCalculation());
