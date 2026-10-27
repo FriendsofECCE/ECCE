@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run a long ECCE build or test suite on an offload machine.
-#   run-offload.sh [--host radium|auto] <git ref> <build|ctest [-R re]|teaching|apps|apptest <test.py ...>|clip|run ...> [args]
+#   run-offload.sh [--host radium|nerdegg|auto] <git ref> <build|ctest [-R re]|teaching|apps|apptest <test.py ...>|clip|run ...> [args]
 # The ref must already be pushed to GitHub.  See tools/offload/README.md.
 set -eu
 host=auto
@@ -15,6 +15,9 @@ here=$(cd "$(dirname "$0")" && pwd)
 conf() {
     case $1 in
       radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=2 JOBS=6 CTEST_JOBS=4 KEEP=8' ;;
+      # Other agents share nerdegg's CPUs through Slurm, so the build asks it
+      # for them; test jobs go through Slurm by their own --queue slurm.
+      nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=6 CTEST_JOBS=2 KEEP=3 BUILDWRAP="srun -c 6 --"' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
     esac
 }
