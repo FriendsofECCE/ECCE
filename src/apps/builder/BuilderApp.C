@@ -54,6 +54,7 @@ BuilderApp::BuilderApp()
     : ewxApp(), WxJMSMessageDispatch(appName(), true)
 {
   p_builder = NULL;
+  p_invokeReceived = false;
 }
 
 
@@ -114,12 +115,11 @@ bool BuilderApp::OnInit()
   p_builder->Show(false);
   SetTopWindow(p_builder);
   //  Started for a tool request (-pipe), the calculation comes in the
-  //  ecce_invoke that follows, and invokeMCB() shows the window then:
-  //  shown first, the empty default is drawn and then rebuilt in view.
-  //  Registered as a top shell only then, since the dispatcher shows every
-  //  top shell before it hands an ecce_invoke to invokeMCB().
+  //  ecce_invoke that follows. Keep the shell hidden until then, since the
+  //  dispatcher raises registered shells before delivering that message.
   const bool showOnInvoke = started && !standalone && context.empty() &&
                             file.empty();
+  const bool viewerOnInvoke = showOnInvoke && getenv("ECCE_INVOKE_VIEWER");
   if (!showOnInvoke) registerTopShell(p_builder);
 
   if (context != "") {
@@ -227,10 +227,19 @@ bool BuilderApp::OnInit()
     notifyReady();
   }
 
-  //  The timer shows the window should that message never come.
+  //  The timer shows a normal Builder if its invoke never comes. A Viewer
+  //  has no useful empty state, so its fallback exits and lets the Gateway
+  //  report the failed launch instead of showing a blank Builder window.
   if (showOnInvoke) {
     wxTimer *timer = new wxTimer();
-    timer->Bind(wxEVT_TIMER, [this, timer](wxTimerEvent&) {
+    timer->Bind(wxEVT_TIMER, [this, timer, viewerOnInvoke](wxTimerEvent&) {
+      // A Viewer launch must have an ecce_invoke with its calculation.  Do
+      // not expose this process as an empty Builder if that request never
+      // arrives; exiting lets the Gateway report the failed launch.
+      if (viewerOnInvoke && !p_invokeReceived) {
+        p_builder->quit(false);
+        return;
+      }
       registerTopShell(p_builder);
       if (!p_builder->IsShown()) p_builder->Show(true);
       p_builder->CallAfter([timer]() { delete timer; });
@@ -304,6 +313,7 @@ string BuilderApp::identify()
  */
 void BuilderApp::invokeMCB(JMSMessage& msg)
 {
+  p_invokeReceived = true;
   if (msg.containsProperty("calcurl"))
   {
     string urlstr = msg.getProperty("calcurl");

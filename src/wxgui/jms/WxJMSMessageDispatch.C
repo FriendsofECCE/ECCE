@@ -780,8 +780,13 @@ void WxJMSMessageDispatch::appExec()
                      (sp == string::npos ? string() : invoke.substr(sp));
         }
 #endif
+        // A CalculationViewer started by the Gateway is already in a live
+        // ECCE session.  Do not repeat service startup here: the data-server
+        // script scans the basis-set tree before Builder can read its FIFO.
+        string gatewayLaunch = app == "CalculationViewer"
+                                ? "ECCE_STARTED_BY_GATEWAY=1 " : "";
         string apppath = "cd \"" + string(Ecce::ecceHome()) + "/bin\" && " +
-                         invoke +
+                         gatewayLaunch + invoke +
                          " -pipe " + authPipeName;
         argv[2] = (char*)apppath.c_str();
         char path[] = "/bin/sh";

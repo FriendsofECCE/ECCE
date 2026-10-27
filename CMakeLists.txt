@@ -1559,14 +1559,16 @@ if [ -z \"\${ECCE_LOCAL_DATA+x}\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -x \"
 fi
 . \"$ECCE_HOME/bin/ecce-session-lib.sh\" || exit 1
 ecce_session_ensure
-if [ -z \"$ECCE_NO_MESSAGING\" ]; then
-  \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"ecce-viewer: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
-fi
-if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -z \"$ECCE_LOCAL_DATA\" ]; then
-  if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
-    \"$ECCE_HOME/bin/ecce-dataserver-start\" || true
-  else
-    echo \"ecce-viewer: no local data server installed (ecce-server not installed) and ECCE_REMOTE_SERVER is not set.\" >&2
+if [ -z \"$ECCE_STARTED_BY_GATEWAY\" ]; then
+  if [ -z \"$ECCE_NO_MESSAGING\" ]; then
+    \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"ecce-viewer: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
+  fi
+  if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -z \"$ECCE_LOCAL_DATA\" ]; then
+    if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
+      \"$ECCE_HOME/bin/ecce-dataserver-start\" || true
+    else
+      echo \"ecce-viewer: no local data server installed (ecce-server not installed) and ECCE_REMOTE_SERVER is not set.\" >&2
+    fi
   fi
 fi
 trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/null 2>&1 || true' EXIT

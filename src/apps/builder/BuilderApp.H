@@ -57,6 +57,7 @@ public:
 
 private:
   Builder *p_builder;
+  bool p_invokeReceived;
 };
 
 DECLARE_APP(BuilderApp)
