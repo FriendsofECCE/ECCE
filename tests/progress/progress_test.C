@@ -99,6 +99,32 @@ int main()
   check(has(sum, "Frequencies: 3 real, 0 imaginary") && has(sum, "ZPE 0.021346"),
         "summary: frequencies and ZPE");
 
+  //  Imaginary modes after a converged optimisation: wrong for a minimum
+  //  unless 0, for a transition state unless 1.
+  {
+    JobProgress m = f, ts;
+    m.setSearch(JobProgress::SEARCH_MINIMUM);
+    JobProgress::Block mb;
+    for (const auto& blk : m.running(0, true))
+      if (blk.title == "Optimisation") mb = blk;
+    check(mb.alert == "0 imaginary" && !mb.alertBad, "minimum with 0 imaginary is fine");
+    JobProgress bad;
+    bad.parse("opt step=6 converged=yes\nfreq done=yes real=20 imaginary=1\n");
+    bad.setSearch(JobProgress::SEARCH_MINIMUM);
+    check(bad.running(0, true)[0].alertBad, "minimum with 1 imaginary is marked");
+    bad.setSearch(JobProgress::SEARCH_TS);
+    check(!bad.running(0, true)[0].alertBad, "transition state with 1 imaginary is fine");
+    m.setSearch(JobProgress::SEARCH_TS);
+    check(m.running(0, true)[1].alertBad, "transition state with 0 imaginary is marked");
+    bad.setSearch(JobProgress::SEARCH_UNKNOWN);
+    check(!bad.running(0, true)[0].alertBad && !bad.running(0, true)[0].alert.empty(),
+          "unknown search: count shown, not marked");
+    check(JobProgress::searchOf("Transition State (Opt-TS)") == JobProgress::SEARCH_TS &&
+          JobProgress::searchOf("GeoVib") == JobProgress::SEARCH_MINIMUM &&
+          JobProgress::searchOf("Energy") == JobProgress::SEARCH_UNKNOWN,
+          "run type to search");
+  }
+
   // A code that gives no mode counts, and a value without a target.
   JobProgress g;
   g.parse("# seq=4\nfreq step=15 done=yes\nopt step=3 grad=0.141\n");

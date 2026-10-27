@@ -49,6 +49,10 @@ public:
   { p_queued = queued; p_submitted = submitted; p_jobId = jobId;
     p_checked = checked; }
 
+  // The run type's search, so imaginary frequencies after an optimisation
+  // are marked right or wrong; set before set().
+  void setSearch(JobProgress::Search s) { p_progress.setSearch(s); }
+
   bool hasProgress() const { return !p_progress.empty(); }
   bool outOfContact() const { return p_lastHeard > 0 && !p_finished; }
   // Shown at all: progress to show, or a job out of contact.

@@ -642,3 +642,22 @@ Progress={gfreq} kind=analytic pass=$1
 Begin=^ Zero-point correction=\s+(-?\d+\.\d+)
 Progress=freq done=yes zpe=$1
 [END]
+
+# Three frequencies per row; Gaussian lists only the vibrations.
+[PROGRESS]
+Begin=^ Harmonic frequencies \(cm\*\*-1\)
+Remember=fq_real
+Value=0
+[END]
+
+[PROGRESS]
+Begin=^ Harmonic frequencies \(cm\*\*-1\)
+Remember=fq_imag
+Value=0
+[END]
+
+[PROGRESS]
+Begin=(?:^ Frequencies --+|(?!^)\G)\s+(-?\d+\.\d+)
+Count=fq
+Progress=freq real={fq_real} imaginary={fq_imag}
+[END]

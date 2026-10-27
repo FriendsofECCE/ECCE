@@ -4112,7 +4112,9 @@ sub PDFileRead
         'table',
         'tablestop',
         'stream',
-        'average'
+        'average',
+        'count',
+        'when'
     );
     my @pdValsFreq = (
         $PD_VAL_FREQ_ALL,
@@ -4437,6 +4439,12 @@ sub PDFileRead
 #				deviation of this key over the stage's records,
 #				sent as avg= sd= n= (a dynamics run's temperature
 #				is its average, not the last log step)
+#	Count=<name>		with Progress: every number the regex captures on a
+#				line (all its matches, so \G can walk along a row of
+#				frequencies) adds to {name_real} or {name_imag}, by
+#				sign; |value| < 1 is a translation or rotation and
+#				is not counted.  Progress then sets the stage
+#	When=<name>		with Count: only while {name} is 'on'
 #	TableStop=<regex>	with Table: no table is read after this line
 #				(GROMACS' run averages repeat the marker)
 #
@@ -4454,7 +4462,7 @@ sub ProgressEntryAdd
                  || $_ eq 'progress' || $_ eq 'history'
                  || $_ eq 'remember' || $_ eq 'times' || $_ eq 'value'
                  || $_ eq 'table' || $_ eq 'tablestop' || $_ eq 'stream'
-                 || $_ eq 'average');
+                 || $_ eq 'average' || $_ eq 'count' || $_ eq 'when');
         return "$where: rule key '$_' is not used here";
     }
     #  Stream=<file>: the job's own output, which the job script only appends
@@ -4503,6 +4511,10 @@ sub ProgressEntryAdd
                           $$buf{'value'}];
         return undef;
     }
+    return "$where: When belongs with Count" if (exists $$buf{'when'}
+                                                 && !exists $$buf{'count'});
+    return "$where: Count takes a name"
+        if (exists $$buf{'count'} && $$buf{'count'} !~ /^\w+$/);
     return "$where: Value belongs with Remember" if (exists $$buf{'value'});
     return "$where: Times belongs with Remember" if (exists $$buf{'times'});
     return "$where: Progress must start with a stage name"
@@ -4510,7 +4522,8 @@ sub ProgressEntryAdd
     return "$where: Average takes a key"
         if (exists $$buf{'average'} && $$buf{'average'} !~ /^\w+$/);
     push @gProgList, [$re, $$buf{'progress'}, $$buf{'history'}, undef, undef,
-                      undef, undef, $$buf{'average'}];
+                      undef, undef, $$buf{'average'}, undef, $$buf{'count'},
+                      $$buf{'when'}];
     undef;
 }
 
@@ -4632,6 +4645,26 @@ sub ProgressLine
 
         my @cap = ($line =~ $$entry[0]);
         next unless (@cap);
+
+        if (defined $$entry[9])
+        {
+            next if (defined $$entry[10]
+                     && ($gProgMem{$$entry[10]} // '') ne 'on');
+            #  A counting entry is matched again from where it stopped,
+            #  to take every value on the line.
+            my $name = $$entry[9];
+            pos($line) = 0;
+            while ($line =~ /$$entry[0]/g)
+            {
+                foreach my $v (grep { defined } ($1, $2, $3, $4, $5, $6))
+                {
+                    next if (abs($v) < 1);
+                    $gProgMem{$name . ($v < 0 ? '_imag' : '_real')}++;
+                }
+            }
+            $gProgMem{$name . '_real'} //= 0;
+            $gProgMem{$name . '_imag'} //= 0;
+        }
 
         if (defined $$entry[3])
         {

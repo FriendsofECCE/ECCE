@@ -78,7 +78,17 @@ public:
     std::string plotXUnit;
     bool bar = false;
     double fraction = 0;        // of the bar, 0..1
+    // Said after the last line, in the warning colour when alertBad: the
+    // imaginary modes found after a converged optimisation.
+    std::string alert;
+    bool alertBad = false;
   };
+
+  // What the optimisation looks for, which decides how many imaginary
+  // frequencies are right (0 for a minimum, 1 for a transition state).
+  enum Search { SEARCH_UNKNOWN, SEARCH_MINIMUM, SEARCH_TS };
+  void setSearch(Search s) { p_search = s; }
+  static Search searchOf(const std::string& runtypeName);
 
   // False for empty or unreadable text (nothing to show).
   bool parse(const std::string& text);
@@ -135,6 +145,7 @@ public:
   static std::string title(const std::string& stage);
 
 private:
+  Search p_search = SEARCH_UNKNOWN;
   Block stageBlock(const Stage& st, double age, bool finished) const;
   void plotAxis(const Stage& st, const std::string& rec,
                 const std::string& recName, Block& b) const;

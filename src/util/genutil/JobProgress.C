@@ -423,6 +423,16 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "not converged";
   if (!first.empty()) b.lines.push_back(first);
 
+  if (st.name == "opt" && st.field("converged") == "yes") {
+    const Stage *fq = stage("freq");
+    double imag;
+    if (fq && fq->field("done") == "yes" && number(fq->field("imaginary"), imag)) {
+      b.alert = fmt("%.0f imaginary", imag);
+      if (p_search != SEARCH_UNKNOWN)
+        b.alertBad = imag != (p_search == SEARCH_TS ? 1 : 0);
+    }
+  }
+
   for (const auto& f : st.fields) {
     double v, t;
     bool hasT;
@@ -534,6 +544,18 @@ vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
         st.name != "scf" && st.name != "gmx-etot")
       out.push_back(stageBlock(st, age, finished));
   return out;
+}
+
+
+JobProgress::Search JobProgress::searchOf(const string& name)
+{
+  if (name.empty()) return SEARCH_UNKNOWN;
+  if (name.find("Transition State") != string::npos ||
+      name.find("Saddle") != string::npos)
+    return SEARCH_TS;
+  return name.find("Geometry") != string::npos ||
+         name.find("GeoVib") != string::npos ||
+         name.find("Optimi") != string::npos ? SEARCH_MINIMUM : SEARCH_UNKNOWN;
 }
 
 

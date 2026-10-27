@@ -99,3 +99,12 @@ messages of a real GeoVib run as the Organizer receives them.
   "point 4 of 11" line; for several scanned parameters ORCA's total is the
   last parameter's, so the box drops a total smaller than the point. A
   code whose `opt` history is not an energy (Gaussian 16: dE) plots that.
+- **Counting modes: `Count=<name>` (#611).** A `[PROGRESS]` entry with
+  `Progress=` and `Count=fq` adds every number its regex captures on a line
+  (all matches, so `(?!^)\G` walks along a row of frequencies) to
+  `{fq_real}` or `{fq_imag}` by sign; |value| < 1 (translations, rotations)
+  is skipped. `When=<name>` counts only while `{name}` is `on`. Reset the
+  counts with `Remember=fq_real Value=0` (and `fq_imag`) at the block's
+  header. Gaussian, ORCA, NWChem and MOPAC use it for `real=`/`imaginary=`;
+  NWChem prints its zero-point line before the table, so the counts are set
+  after `done=yes` there. CP2K and QE have no fixture with vibrations.
