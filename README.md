@@ -51,6 +51,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Several allocations on one compute machine, set up in Register Machines,
   and the allocation left shown with the calculation.
 - Launch Selected can send calculations to another machine.
+- Browse for a code's program in Register Machines shows the files of the
+  machine being registered, also when it is another computer.
 - A calculation that stops without converging (ORCA or MOPAC optimisation
   at its cycle limit, CP2K or Quantum ESPRESSO SCF or optimisation) ends Unsuccessful, not Complete.
 - A Slurm job cancelled on the machine shows as Killed.
