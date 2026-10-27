@@ -2,6 +2,11 @@
 //   testOwnedMaster streams N   N monitor streams held open at once
 //   testOwnedMaster kill N      master killed under a stream, N openers
 //   testOwnedMaster prefill     a known password: no dialog at all
+//   testOwnedMaster failing N   N openers lose the master and the login is
+//                               not answered (ECCE_SSH_ASK_TIMEOUT) or
+//                               cancelled: one dialog, all see a cancel
+//   testOwnedMaster bothdead N  streams on the overflow master, both masters
+//                               killed, N processes: one new login
 // Needs ECCE_SSH_CONTROL_DIR, ECCE_TEST_SSH_CONFIG (host `own`), ECCE_ASKPASS
 // and ASKLOG, one line of which is written per password dialog.
 #include <cstdlib>
@@ -12,6 +17,7 @@
 #include <vector>
 
 #include <signal.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "comm/OpenSshTransport.H"
@@ -54,6 +60,20 @@ static RemoteStream* openUp(OpenSshTransport* t, string& err)
   char buf[8];
   ssize_t n = read(fd, buf, sizeof buf);
   return n > 0 ? s : 0;
+}
+
+// The pid of the master behind a control socket, 0 if none.
+static long masterPid(const string& socket)
+{
+  string cmd = "ssh -F '" + string(getenv("ECCE_TEST_SSH_CONFIG")) +
+               "' -o ControlPath='" + socket + "' -O check own 2>&1";
+  string out;
+  FILE* p = popen(cmd.c_str(), "r");
+  char b[256];
+  while (p && fgets(b, sizeof b, p)) out += b;
+  if (p) pclose(p);
+  size_t at = out.find("pid=");
+  return at == string::npos ? 0 : atol(out.c_str() + at + 4);
 }
 
 int main(int argc, char** argv)
@@ -119,6 +139,67 @@ int main(int argc, char** argv)
     check("the dead master cost exactly one new login with " + std::to_string(n) + " openers",
           dialogs() == 2, std::to_string(dialogs()) + " dialogs in all");
     if (s) t->closeStream(s, 200);
+  } else if (mode == "failing") {
+    // RCommand falls back to libssh (a second dialog) unless the login was
+    // cancelled or refused: every failed opener must say so.
+    std::vector<std::thread> th;
+    std::vector<int> st(n, -1), said(n, 0), asked(n, 0);
+    for (int i = 0; i < n; i++)
+      th.push_back(std::thread([&, i]() {
+        OpenSshTransport* u = make();
+        string e;
+        st[i] = u->connect(e) ? 0 : 1;
+        said[i] = u->loginCancelled() || u->loginRefused();
+        asked[i] = u->loginPrompted();
+        delete u;
+      }));
+    for (size_t i = 0; i < th.size(); i++) th[i].join();
+    int failed = 0, cancelled = 0, prompted = 0;
+    for (int i = 0; i < n; i++) { failed += st[i] == 1; cancelled += said[i]; prompted += asked[i]; }
+    check("every opener failed", failed == n, std::to_string(failed) + " of " + std::to_string(n));
+    check("every opener reports a login that must not fall back to libssh",
+          cancelled == n, std::to_string(cancelled) + " of " + std::to_string(n));
+    check("one dialog in all, put up by one process",
+          dialogs() == 1 && prompted == 1,
+          std::to_string(dialogs()) + " dialogs, " + std::to_string(prompted) + " prompted");
+  } else if (mode == "bothdead") {
+    { OpenSshTransport* c = make(); string e; check("login", c->connect(e), e); delete c; }
+    std::vector<OpenSshTransport*> ts(5);
+    std::vector<RemoteStream*> ss(5, (RemoteStream*)0);
+    std::vector<std::thread> th;
+    for (int i = 0; i < 5; i++) {
+      ts[i] = make();
+      th.push_back(std::thread([&, i]() { string e; ss[i] = openUp(ts[i], e); }));
+    }
+    for (size_t i = 0; i < th.size(); i++) th[i].join();
+    check("two logins so far (master + overflow)", dialogs() == 2, std::to_string(dialogs()));
+    OpenSshTransport* t = make();
+    const string second = t->controlSocketPath();
+    check("the index moved to the overflow master", second.size() > 2 &&
+          second.compare(second.size() - 2, 2, "-1") == 0, second);
+    long p1 = masterPid(second), p0 = masterPid(second.substr(0, second.size() - 2));
+    check("both master pids found", p0 > 1 && p1 > 1, std::to_string(p0) + " " + std::to_string(p1));
+    if (p0 > 1) kill((pid_t)p0, SIGKILL);
+    if (p1 > 1) kill((pid_t)p1, SIGKILL);
+    usleep(500000);
+    std::vector<pid_t> kids;
+    for (int i = 0; i < n; i++) {
+      pid_t k = fork();
+      if (k == 0) {
+        OpenSshTransport* u = make();
+        _exit(u->run("true").status == 0 ? 0 : 1);
+      }
+      kids.push_back(k);
+    }
+    int ok = 0;
+    for (size_t i = 0; i < kids.size(); i++) {
+      int w = 0;
+      waitpid(kids[i], &w, 0);
+      if (WIFEXITED(w) && WEXITSTATUS(w) == 0) ok++;
+    }
+    check("every process got through", ok == n, std::to_string(ok) + " of " + std::to_string(n));
+    check("both masters dead cost exactly one new login",
+          dialogs() == 3, std::to_string(dialogs()) + " dialogs in all");
   } else if (mode == "prefill") {
     OpenSshTransport* t = make("ecce-test");
     TransportResult r = t->run("echo hi");

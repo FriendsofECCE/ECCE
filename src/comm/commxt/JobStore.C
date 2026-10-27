@@ -986,10 +986,18 @@ void restartSystem(const char* name, const string& msg)
 // Stop monitoring with the calculation "waiting for login": recorded in
 // WaitingJobs, so that the next session start or Reconnect catches it up
 // from the job's own files.  Exit 4 lets eccejobmaster try again, 5 not.
+// Set when another process of the session asked for the login that this one
+// waited for: it told the user, this one only parks.
+static bool parkQuiet = false;
+
 void park(const char* name, const string& msg, int exitStatus)
 {
-  logPrint(ActivityLog::WARNING, name, msg);
-  logNumErrors++;
+  if (parkQuiet)
+    logMessage(name, msg);
+  else {
+    logPrint(ActivityLog::WARNING, name, msg);
+    logNumErrors++;
+  }
 
   initMessaging();
 
@@ -1908,8 +1916,15 @@ void initMon(void)
       // set file descriptor for stdio monitoring
       fdesc = remoteconn->streamFd();
     }
-  } else
-    restartSystem("System", remoteconn->commError());
+  } else {
+    string why = remoteconn->commError();
+    if (remoteconn->loginCancelled()) {
+      why = "login to " + cpServerName + " cancelled or not answered; jobs on " +
+            cpServerName + " wait for a new login";
+      parkQuiet = !remoteconn->loginPrompted();
+    }
+    restartSystem("System", why);
+  }
 }
 
 

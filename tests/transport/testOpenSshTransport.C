@@ -12,9 +12,12 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <fcntl.h>
+#include <dirent.h>
 #include <sys/select.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -98,6 +101,19 @@ int main()
     "      [ \"$ans\" = secret ] || deny\n"
     "      : > \"$STUB_MASTER\"; exit 0; fi\n"
     "    [ -e \"$STUB_MASTER\" ] || deny;;\n"
+    // ECCE's own master (ECCE_SSH_CONTROL_DIR): the master is the file at
+    // ControlPath; ownfull also refuses sessions on every master but -1.
+    "  ownm|ownfull)\n"
+    "    if [ -n \"$op\" ]; then [ -e \"$cp\" ] && exit 0\n"
+    "      echo \"Control socket connect($cp): No such file or directory\" >&2; exit 255; fi\n"
+    "    if [ -n \"$master\" ]; then\n"
+    "      ans=$(\"$SSH_ASKPASS\" \"u@$host's password: \") ||\n"
+    "        { echo \"u@$host: Permission denied (publickey,password).\" >&2; exit 255; }\n"
+    "      [ \"$ans\" = secret ] || { echo \"u@$host: Permission denied (publickey,password).\" >&2; exit 255; }\n"
+    "      : > \"$cp\"; exit 0; fi\n"
+    "    [ -e \"$cp\" ] || { echo \"u@$host: Permission denied (publickey,password).\" >&2; exit 255; }\n"
+    "    if [ \"$host\" = ownfull ]; then case \"$cp\" in *-1) ;; *)\n"
+    "      echo \"channel 2: open failed: administratively prohibited: open failed\" >&2; exit 255;; esac; fi;;\n"
     "  noauth) echo \"u@noauth: Permission denied (publickey,password).\" >&2; exit 255;;\n"
     // MaxSessions: the first master is full, the overflow one (-1) is not.
     "  full)\n"
@@ -376,6 +392,133 @@ int main()
     check("a host that does not share connections is never asked about",
           !c && e.find("interactive login") != string::npos && asked() == 0, e);
     delete u;
+  }
+
+  // ---- ECCE's own master: processes that lose it together share one login ----
+  {
+    const string cd = tmp + "/cd";
+    mkdir(cd.c_str(), 0700);
+    setenv("ECCE_SSH_CONTROL_DIR", cd.c_str(), 1);
+    spit(tmp + "/empty.cfg", "");
+    const string asklog = tmp + "/own-ask.log";
+    setenv("STUB_ASKLOG", asklog.c_str(), 1);
+    const string ans = tmp + "/own-answer", cancel = tmp + "/own-cancel",
+                 hang = tmp + "/own-hang";
+    spit(ans, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nsleep 1\necho secret\n", 0755);
+    spit(cancel, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nsleep 1\n"
+         ": > \"$ECCE_ASKPASS_STATE\"\nexit 1\n", 0755);
+    spit(hang, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nsleep 30\necho secret\n", 0755);
+
+    auto lines = [&](const string& f) {
+      string x = slurp(f);
+      int n = 0;
+      for (size_t i = 0; i < x.size(); i++) n += x[i] == '\n';
+      return n;
+    };
+    auto mk = [&](const string& host, const string& askpass) {
+      OpenSshTransport* x = make(host, "u");
+      x->setConfigFile(tmp + "/empty.cfg");
+      x->setAskpass(askpass);
+      x->setAskTimeout(2);
+      return x;
+    };
+    // N processes, each with a transport of its own; one status byte each:
+    // 1 connected, 2 cancelled or not answered, 4 refused, 8 asked.
+    auto openers = [&](int n, const string& host, const string& askpass, bool run) {
+      std::vector<int> codes;
+      std::vector<pid_t> pids;
+      std::vector<int> fds;
+      for (int i = 0; i < n; i++) {
+        int pp[2];
+        if (pipe(pp) != 0) return codes;
+        pid_t pid = fork();
+        if (pid == 0) {
+          close(pp[0]);
+          OpenSshTransport* x = mk(host, askpass);
+          string e;
+          bool ok = run ? x->run("true").status == 0 : x->connect(e);
+          char c = (ok ? 1 : 0) | (x->loginCancelled() ? 2 : 0) |
+                   (x->loginRefused() ? 4 : 0) | (x->loginPrompted() ? 8 : 0);
+          if (write(pp[1], &c, 1) != 1) _exit(1);
+          _exit(0);
+        }
+        close(pp[1]);
+        pids.push_back(pid);
+        fds.push_back(pp[0]);
+      }
+      for (int i = 0; i < n; i++) {
+        char c = 0;
+        if (read(fds[i], &c, 1) != 1) c = -1;
+        close(fds[i]);
+        waitpid(pids[i], 0, 0);
+        codes.push_back(c);
+      }
+      return codes;
+    };
+    auto count = [&](const std::vector<int>& v, int bit) {
+      int k = 0;
+      for (size_t i = 0; i < v.size(); i++) k += (v[i] & bit) != 0;
+      return k;
+    };
+    auto fresh = [&]() { sh("rm -rf " + cd + "/* " + asklog); };
+    const int N = 5;
+
+    fresh();
+    std::vector<int> v = openers(N, "ownm", ans, false);
+    check("lost master, 5 processes, answered: all connect, one dialog",
+          count(v, 1) == N && lines(asklog) == 1 && count(v, 8) == 1,
+          std::to_string(count(v, 1)) + " ok, " + std::to_string(lines(asklog)) + " dialogs");
+
+    fresh();
+    v = openers(N, "ownm", cancel, false);
+    check("cancelled: one dialog, nobody connects, all see a cancel",
+          count(v, 1) == 0 && count(v, 2) == N && lines(asklog) == 1 && count(v, 8) == 1,
+          std::to_string(lines(asklog)) + " dialogs, " + std::to_string(count(v, 2)) + " cancelled");
+    check("cancelled: nobody is told the password was refused", count(v, 4) == 0);
+    {
+      OpenSshTransport* x = mk("ownm", ans);
+      string o = slurp(x->controlSocketPath() + ".outcome");
+      delete x;
+      check("cancelled: the outcome is recorded", o.find(" cancelled\n") != string::npos, o);
+    }
+    // The next, later caller is held off by the recorded outcome too.
+    v = openers(2, "ownm", ans, false);
+    check("a later caller inside the window is not asked either",
+          count(v, 1) == 0 && count(v, 2) == 2 && lines(asklog) == 1, std::to_string(lines(asklog)));
+
+    fresh();
+    double t0 = now();
+    v = openers(N, "ownm", hang, false);
+    check("no answer in time: one dialog, one wait, all see it as not answered",
+          count(v, 1) == 0 && count(v, 2) == N && lines(asklog) == 1 && now() - t0 < 12,
+          std::to_string(lines(asklog)) + " dialogs after " + std::to_string(now() - t0) + " s");
+
+    // MaxSessions: five processes meet the refusal; the index moves once.
+    fresh();
+    {
+      OpenSshTransport* x = mk("ownfull", ans);
+      spit(x->controlSocketPath(), "");   // the first master is up, and full
+      delete x;
+    }
+    v = openers(N, "ownfull", ans, true);
+    string idxFile;
+    {
+      OpenSshTransport* x = mk("ownfull", ans);
+      string f = x->controlSocketPath();
+      delete x;
+      // The index is kept next to the sockets, once per host.
+      DIR* d = opendir(cd.c_str());
+      while (struct dirent* en = readdir(d)) {
+        string nm = en->d_name;
+        if (nm.size() > 4 && nm.compare(nm.size() - 4, 4, ".idx") == 0) idxFile = cd + "/" + nm;
+      }
+      closedir(d);
+    }
+    check("overflow: every process gets through, one dialog for the new master",
+          count(v, 1) == N && lines(asklog) == 1,
+          std::to_string(count(v, 1)) + " ok, " + std::to_string(lines(asklog)) + " dialogs");
+    check("overflow: the shared index moved exactly once", slurp(idxFile) == "1\n", slurp(idxFile));
+    unsetenv("ECCE_SSH_CONTROL_DIR");
   }
 
   // ---- files ----
