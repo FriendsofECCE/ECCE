@@ -1,5 +1,7 @@
 #include "CompareEnergiesDialog.H"
 
+#include <algorithm>
+
 #include <wx/button.h>
 #include <wx/choice.h>
 #include <wx/sizer.h>
@@ -17,6 +19,9 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
              wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
     p_calcs(calcs)
 {
+  std::stable_sort(p_calcs.begin(), p_calcs.end(),
+      [](const std::pair<string, string>& x, const std::pair<string, string>& y) {
+        return calcNameLess(x.first, y.first); });
   p_a = new wxChoice(this, wxID_ANY);
   p_b = new wxChoice(this, wxID_ANY);
   int sa = wxNOT_FOUND, sb = wxNOT_FOUND;

@@ -21,6 +21,12 @@ struct FinalEnergy
    bool heat = false;     ///< MOPAC heat of formation, not a total energy
 };
 
+/**
+ * Calculation names in the order the dialog lists them: alphabetical, case
+ * ignored, a run of digits compared as a number (C2 before C10).
+ */
+bool calcNameLess(const std::string& a, const std::string& b);
+
 /** The energy the summary names the final energy; found=false if none. */
 FinalEnergy finalEnergyOf(PropertyTask *task);
 
