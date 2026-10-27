@@ -72,6 +72,11 @@ class AuthCache
 
     void pipeOut(const string& pipeName);
     void pipeIn(const string& pipeName);
+#ifndef _WIN32
+    // POSIX Gateway launches pass an inherited socketpair endpoint as
+    // "socket:<fd>", so the auth handoff needs no FIFO rendezvous.
+    void pipeOutSocket(int writeFd);
+#endif
 #ifdef _WIN32
     // The cache for a child process through an inherited anonymous pipe:
     // the child is given "-pipe handle:<n>" (a handle number, no secret)
