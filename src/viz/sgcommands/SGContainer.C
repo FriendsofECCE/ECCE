@@ -1994,6 +1994,26 @@ void SGContainer::applyNMStickScale()
    }
 }
 
+// What reaches the ChemDisplay nodes, for tests that cannot look at pixels.
+std::map<std::string,int> SGContainer::drawnAtomsByElement() const
+{
+   std::map<std::string,int> drawn;
+   SGFragment *frag = const_cast<SGContainer*>(this)->getFragment();
+   if (!frag) return drawn;
+   const int n = frag->getNumberOfAtoms();
+   for (size_t d = 0; d < p_displays.size(); d++) {
+      const MFVec2i& idx = p_displays[d]->atomIndex;
+      for (int i = 0; i < idx.getNum(); i++) {
+         const SbVec2i v = idx[i];
+         const int count = v[1] == CHEM_DISPLAY_USE_REST_OF_ATOMS ? n - v[0] : v[1];
+         for (int a = v[0]; a < v[0] + count && a < n; a++)
+            drawn[frag->atomRef(a)->atomicSymbol()]++;
+      }
+   }
+   return drawn;
+}
+
+
 /**
  * Update mapping of atoms to ChemDisplay nodes.
  */

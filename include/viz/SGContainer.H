@@ -19,6 +19,7 @@ class StyledPlane;
 class PropVecGrid;
 class PropTSVecTable;
 
+#include <map>
 #include <string>
   using std::string;
 #include <vector>
@@ -80,6 +81,8 @@ public:
     virtual void touchLattice();
     virtual void touchChemDisplay();
     virtual void touchChemDisplay(SGFragment* frag);
+    // Atoms the ChemDisplay nodes were told to draw, by element symbol.
+    std::map<std::string,int> drawnAtomsByElement() const;
     virtual void updateColorNodes();
 
     // Radius (A) of the sphere drawn for atom idx in its display style; 0

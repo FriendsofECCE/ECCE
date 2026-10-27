@@ -79,10 +79,12 @@
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <functional>
+#include <map>
 #include <sstream>
 #include <sys/stat.h>
 
@@ -1374,6 +1376,44 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: overlay tab=%d%s\n", p_columnTab,
                 list.c_str());
+      } else if (w[0] == "stamp") {
+        //  Wall-clock seconds, to time what a script line saw.
+        fprintf(stderr, "BUILDER: stamp %.3f\n",
+                std::chrono::duration<double>(
+                    std::chrono::system_clock::now().time_since_epoch()).count());
+      } else if (w[0] == "drawn") {
+        //  Atoms handed to the display nodes, by element, against the
+        //  fragment's own count.
+        std::string line;
+        int total = 0;
+        std::map<std::string,int> drawn = getSG()->drawnAtomsByElement();
+        for (std::map<std::string,int>::const_iterator it = drawn.begin();
+             it != drawn.end(); ++it) {
+          line += " " + it->first + "=" + std::to_string(it->second);
+          total += it->second;
+        }
+        fprintf(stderr, "BUILDER: drawn%s total=%d of %d\n", line.c_str(), total,
+                frag ? (int)frag->numAtoms() : -1);
+      } else if (w[0] == "bondlen" && frag) {
+        //  The longest bond and the bonds longer than 2.5 A: a molecule
+        //  broken over a cell face is bonded across the cell.
+        int bonds = 0, longer = 0;
+        double longest = 0;
+        for (size_t i = 0; i < frag->numAtoms(); i++) {
+          const std::vector<TBond*>& bl = frag->atomRef(i)->bondList();
+          for (size_t b = 0; b < bl.size(); b++) {
+            if (bl[b]->atom1() != frag->atomRef(i)) continue;
+            const double *p = bl[b]->atom1()->coordinates();
+            const double *q = bl[b]->atom2()->coordinates();
+            const double d = sqrt((p[0]-q[0])*(p[0]-q[0]) + (p[1]-q[1])*(p[1]-q[1]) +
+                                  (p[2]-q[2])*(p[2]-q[2]));
+            bonds++;
+            if (d > 2.5) longer++;
+            if (d > longest) longest = d;
+          }
+        }
+        fprintf(stderr, "BUILDER: bondlen bonds=%d longest=%.2f longer_than_2.5=%d\n",
+                bonds, longest, longer);
       } else if (w[0] == "background" && w.size() == 4) {
         getViewer().setBackgroundColor(SbColor(atof(w[1].c_str()),
             atof(w[2].c_str()), atof(w[3].c_str())));

@@ -58,6 +58,7 @@ def builder(display, url, lines, png=None, windowTimeout=90, settle=30):
                       inspect=(lambda d: subprocess.run(
                           ["import", "-window", "root", png],
                           env=d.env(), timeout=60)) if png else None)
+    builder.window = result.secondsToWindow
     return result.log or ""
 
 
@@ -71,7 +72,12 @@ def run(display, data, work):
     def imported(_display):
         end = time.time() + 900
         while time.time() < end:
-            if task(root, "ar-gas") and task(root, "he-gas"):
+            # The organizer is stopped when this returns, so wait for the
+            # big trajectories too: an import cut short leaves no structure.
+            done = [task(root, st) for st in ("ar-gas", "he-gas", "water-spce",
+                                              "nacl-dissolving")]
+            if all(done) and all(os.path.exists(os.path.join(d, "Props", "GEOMTRACE"))
+                                 for d in done):
                 time.sleep(20)
                 break
             time.sleep(5)
@@ -98,16 +104,50 @@ def run(display, data, work):
     shots = os.environ.get("ECCE_MDCOMPARE_PNG")
     if shots:
         os.makedirs(shots, exist_ok=True)
-        for study in ("ar-gas", "water-spce", "nacl-dissolving"):
-            own = task(root, study)
-            if own:
-                png = os.path.join(shots, study + ".png")
-                t0 = time.time()
-                # The picture is taken while the script still waits.
-                builder(display, "file://" + own + "/", ["wait 40000"], png,
-                        windowTimeout=900, settle=25)
-                print("picture of %s: %s (%.0f s to open and settle)"
-                      % (study, png, time.time() - t0))
+    only = os.environ.get("ECCE_MDCOMPARE_ONLY")
+    for study in ("ar-gas", "water-spce", "nacl-dissolving"):
+        if only and study != only:
+            continue
+        own = task(root, study)
+        if not own:
+            continue
+        png = os.path.join(shots, study + ".png") if shots else None
+        # Loading a trajectory can be slow, so the queries wait for it.
+        wait = 150000 if study == "nacl-dissolving" else 60000
+        t0 = time.time()
+        log = builder(display, "file://" + own + "/",
+                      ["background 1 1 1"] + ["stamp", "info", "wait 1000"] * (wait // 4000)
+                      + ["drawn", "bondlen", "viewall", "wait 20000"], png,
+                      windowTimeout=900, settle=wait // 1000 + 40)
+        print("%s: window after %s s, %.0f s in all%s"
+              % (study, builder.window, time.time() - t0,
+                 ("; picture " + png) if png else ""))
+        events = re.findall(r"BUILDER: (?:stamp ([\d.]+)|atoms=(-?\d+))", log)
+        seen, stamp = [], None
+        for st, at in events:
+            if st:
+                stamp = float(st)
+            else:
+                seen.append((stamp, int(at)))
+        atoms = seen[-1][1] if seen else -1
+        ready = next((st for st, a in seen if a > 0), None)
+        print("%s: structure on screen %s s after launch"
+              % (study, "never" if ready is None else "%.1f" % (ready - t0)))
+        check(ready is not None and ready - t0 < 60,
+              "%s: its structure is on screen within a minute" % study)
+        m = re.search(r"BUILDER: drawn(.*) total=(\d+) of (\d+)", log)
+        drawn = dict(kv.split("=") for kv in m.group(1).split()) if m else {}
+        check(atoms > 0 and m and int(m.group(2)) == atoms,
+              "%s: every one of its %d atoms is drawn" % (study, atoms),
+              (m.group(0) if m else "") + log[-2500:])
+        if study == "ar-gas":
+            check(drawn.get("Ar") == "1000", "ar-gas: 1000 Ar drawn", str(drawn))
+        if study == "water-spce":
+            m = re.search(r"BUILDER: bondlen bonds=(\d+) longest=([\d.]+) "
+                          r"longer_than_2.5=(\d+)", log)
+            check(m and int(m.group(1)) > 1900 and int(m.group(3)) == 0,
+                  "water-spce: its molecules are whole, no bond across the cell",
+                  m.group(0) if m else log[-1500:])
 
 
 def main():

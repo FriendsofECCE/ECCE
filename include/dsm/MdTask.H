@@ -44,6 +44,8 @@ class MdTask : virtual public PropertyTask
     virtual void removeInputFragment();
     virtual void removeOriginalFragment();
 
+    virtual bool wrapsStepsIntoCell() const { return true; }
+
     // IPropCalculation virtuals
     virtual vector<string> propertyNames();
        

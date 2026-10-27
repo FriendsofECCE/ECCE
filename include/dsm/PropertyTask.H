@@ -76,6 +76,10 @@ class PropertyTask : public ChemistryTask,
 
       vector<string> p_names;
 
+      // True for a task whose trajectory frames are drawn in the compact
+      // cell (MD): loadStep then makes the molecules whole.
+      virtual bool wrapsStepsIntoCell() const { return false; }
+
   private:
       bool loadStep(Fragment *frag, int step);
       bool loadStep(Fragment *frag, int step, PropertyDoc& doc);

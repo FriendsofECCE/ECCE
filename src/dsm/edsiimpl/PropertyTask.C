@@ -816,6 +816,10 @@ bool PropertyTask::loadStep(Fragment *frag, int step)
       atom->coordinates(xvalues[ptr],xvalues[ptr+1], xvalues[ptr+2]);
       ptr += 3;
     }
+    // The frame holds the molecules as the trajectory left them; the bonds
+    // are the structure's, so a molecule broken over a face would be
+    // bonded across the cell.
+    if (wrapsStepsIntoCell()) frag->wrapIntoCompactCell(false);
 
   }
   return ret;
@@ -860,6 +864,7 @@ bool PropertyTask::loadStep(Fragment *frag, int step, PropertyDoc& doc)
         atom->coordinates(xvalues[ptr],xvalues[ptr+1], xvalues[ptr+2]);
         ptr += 3;
       }
+      if (wrapsStepsIntoCell()) frag->wrapIntoCompactCell(false);
     }
   }
   return ret;
