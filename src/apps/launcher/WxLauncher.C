@@ -258,6 +258,7 @@ void WxLauncher::createControls()
 
     p_machSettingsButton    =       (ewxButton *)(FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS));
     this->buildAdvanced();
+    this->buildProfileRow();
 
     p_messagesFeedback = (WxFeedback *)(FindWindow(ID_FEEDBACK_WXLAUNCHER_MESSAGES));
     p_messagesFeedback->SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY | wxWS_EX_PROCESS_UI_UPDATES);
@@ -375,6 +376,19 @@ void WxLauncher::refreshControls()
     p_machineNameStaticText->Hide();
 
     bool isBatch = p_slctPrefs->isOptionSupported("Q");
+
+    //  A calculation launched on this machine opens on the profile it was
+    //  launched with, otherwise the profile last used here. Chosen once per
+    //  machine: reloading after Register Machines saves keeps the user's pick.
+    if (p_profileMachine != p_slctPrefs->getItemKey())
+    {
+        bool launchedHere = p_ctxLaunched &&
+                            p_ctxLaunch.machine == p_slctPrefs->getItemKey();
+        p_profile = p_slctPrefs->chooseProfile(
+                        launchedHere ? p_ctxLaunch.profile : "", launchedHere);
+        p_profileMachine = p_slctPrefs->getItemKey();
+    }
+    this->refreshProfileControls();
 
     if (isBatch)   // If the selected machine supports job queues...
     {
@@ -1001,6 +1015,201 @@ void WxLauncher::refreshRemoteSection()
 
 
 /**
+ *  The profile row goes in under the machine choice. Built here, not in the
+ *  generated layout, so the form's sizers stay as they are.
+ */
+void WxLauncher::buildProfileRow()
+{
+    wxWindow *machRow = p_machinesChoice->GetParent()->GetParent();
+    wxWindow *top = machRow->GetParent();
+    wxSizer *sz = top->GetSizer();
+    size_t at = 0;
+    for (; at < sz->GetItemCount(); at++)
+        if (sz->GetItem(at)->GetWindow() == machRow)
+            break;
+
+    p_profilePanel = new wxPanel(top);
+    wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+    p_profilePanel->SetSizer(row);
+    p_profileLabel = new wxStaticText(p_profilePanel, wxID_ANY, "Profile:",
+                                      wxDefaultPosition, wxSize(120, -1));
+    p_profileChoice = new wxChoice(p_profilePanel, wxID_ANY);
+    p_profileChoice->SetToolTip("A set of allocation account, run directory and scratch directory kept for this machine");
+    p_profileSaveButton = new wxButton(p_profilePanel, wxID_ANY, "Save as profile...");
+    p_profileSaveButton->SetToolTip("Keep the allocation account, run directory and scratch directory shown, under a name");
+    p_profileDeleteButton = new wxButton(p_profilePanel, wxID_ANY, "Delete profile");
+    row->Add(p_profileLabel, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
+    row->Add(p_profileChoice, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    row->Add(p_profileSaveButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    row->Add(p_profileDeleteButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    sz->Insert(at + 1, p_profilePanel, 0, wxGROW|wxALL, 3);
+    p_profilePanel->Hide();
+
+    p_profileChoice->Bind(wxEVT_CHOICE, &WxLauncher::profileChoiceCB, this);
+    p_profileSaveButton->Bind(wxEVT_BUTTON, &WxLauncher::profileSaveCB, this);
+    p_profileDeleteButton->Bind(wxEVT_BUTTON, &WxLauncher::profileDeleteCB, this);
+}
+
+
+/**
+ *  What the profile row shows for the selected machine and p_profile.
+ */
+void WxLauncher::refreshProfileControls()
+{
+    bool queued = p_slctPrefs->isOptionSupported("Q");
+    vector<string> names = p_slctPrefs->profileNames();
+
+    p_profileChoice->Clear();
+    for (size_t i = 0; i < names.size(); i++)
+        p_profileChoice->Append(names[i]);
+    p_profileChoice->SetStringSelection(p_profile);
+
+    bool several = names.size() > 1;
+    p_profileLabel->Show(several);
+    p_profileChoice->Show(several);
+    p_profileDeleteButton->Show(several && !AllocationProfiles::isDefault(p_profile));
+    p_profileSaveButton->Show(queued);
+    p_profilePanel->Show(queued);
+    p_profilePanel->Layout();
+}
+
+
+/**
+ *  The per-allocation values as the controls show them, under name; a value
+ *  the machine has no field for keeps what the profile held.
+ */
+AllocationProfiles::Profile WxLauncher::profileFromControls(const string& name)
+{
+    AllocationProfiles::Profile p = p_slctPrefs->getProfile(p_profile);
+    p.name = name;
+
+    if (p_slctPrefs->isOptionSupported("Q") && p_queueChoice->GetCount() > 0)
+        p.queue = (string)(p_queueChoice->GetStringSelection());
+
+    if (p_slctPrefs->isOptionSupported("AA"))
+        p.account = STLUtil::trim((string)(p_allocAcctTextCtrl->GetValue()));
+
+    if (p_slctPrefs->isOptionSupported("RD"))
+        p.rundir = STLUtil::trim((string)(p_calcDrctyTextCtrl->GetValue()));
+
+    p.scratchdir = STLUtil::trim((string)(p_scratchDrctyTextCtrl->GetValue()));
+    return p;
+}
+
+
+void WxLauncher::selectProfile(const string& name)
+{
+    p_messagesFeedback->clearMessage();
+    this->updatePreferences();     // the edits stay with the profile being left
+    this->ensureEditsApplied();
+    p_profile = p_slctPrefs->chooseProfile(name, true);
+    p_slctPrefs->setLastProfile(p_profile);
+    MachinePreferences::saveChanges();
+    this->refreshControls();
+}
+
+
+void WxLauncher::saveProfileAs(const string& name)
+{
+    string n = AllocationProfiles::clean(name);
+    if (!AllocationProfiles::validName(n))
+    {
+        p_messagesFeedback->setMessage("Give the profile a name other than " +
+            string(AllocationProfiles::defaultName()) + ".", WxFeedback::WARNING);
+        return;
+    }
+
+    //  The profile being left keeps its stored values: what is typed here
+    //  belongs to the new one only.
+    p_slctPrefs->setProfile(this->profileFromControls(n));
+    p_profile = p_slctPrefs->chooseProfile(n, true);
+    p_slctPrefs->setLastProfile(p_profile);
+    MachinePreferences::saveChanges();
+    this->refreshProfileControls();
+    this->Layout();
+    this->refit();
+    p_messagesFeedback->setMessage("Profile " + p_profile + " saved for " +
+        p_slctPrefs->getItemKey() + ".", WxFeedback::INFO);
+}
+
+
+void WxLauncher::deleteProfile(const string& name)
+{
+    if (!p_slctPrefs->removeProfile(name))
+        return;
+
+    p_profile = AllocationProfiles::defaultName();
+    p_slctPrefs->setLastProfile(p_profile);
+    MachinePreferences::saveChanges();
+    this->refreshControls();
+}
+
+
+void WxLauncher::profileChoiceCB(wxCommandEvent& event)
+{
+    int k = p_profileChoice->GetSelection();
+    if (k >= 0 && !p_inCtrlUpdate)
+        this->selectProfile((string)p_profileChoice->GetString(k));
+}
+
+
+void WxLauncher::profileSaveCB(wxCommandEvent& event)
+{
+    wxTextEntryDialog dlg(this, "Name for the profile:", "Save as profile");
+    if (dlg.ShowModal() == wxID_OK)
+        this->saveProfileAs((string)dlg.GetValue());
+}
+
+
+void WxLauncher::profileDeleteCB(wxCommandEvent& event)
+{
+    ewxMessageDialog dlg(this, "Delete the profile " + p_profile + " of " +
+                         p_slctPrefs->getItemKey() +
+                         "? Calculations launched with it keep their own directories.",
+                         "Delete profile", wxICON_QUESTION);
+    dlg.AddButton(wxID_NO, "Keep");
+    dlg.AddButton(wxID_YES, "Delete")->SetDefault();
+    if (dlg.ShowModal() == wxID_YES)
+        this->deleteProfile(p_profile);
+}
+
+
+bool WxLauncher::hookProfile(const string& name)
+{
+    vector<string> names = p_slctPrefs->profileNames();
+    for (size_t i = 0; i < names.size(); i++)
+        if (AllocationProfiles::lower(names[i]) == AllocationProfiles::lower(name))
+        {
+            this->selectProfile(names[i]);
+            return true;
+        }
+    return false;
+}
+
+
+bool WxLauncher::hookSaveProfile(const string& name)
+{
+    if (!AllocationProfiles::validName(name))
+        return false;
+    this->saveProfileAs(name);
+    return true;
+}
+
+
+bool WxLauncher::hookDeleteProfile(const string& name)
+{
+    if (AllocationProfiles::isDefault(name) ||
+        !p_slctPrefs->removeProfile(name))
+        return false;
+    p_profile = AllocationProfiles::defaultName();
+    p_slctPrefs->setLastProfile(p_profile);
+    MachinePreferences::saveChanges();
+    this->refreshControls();
+    return true;
+}
+
+
+/**
  *  The fold's button and panel go in after the directories.  A button, not
  *  a wxCollapsiblePane, as in Register Machines.
  */
@@ -1244,20 +1453,11 @@ void WxLauncher::updatePreferences()
 
     if (p_slctPrefs->isOptionSupported("Q"))
     {
-        if (p_queueChoice->GetCount() > 0)
-        {
-            string queueName = (string)(p_queueChoice->GetStringSelection());
-            p_slctPrefs->setQueueName(queueName);
-        }
-
         p_slctPrefs->setProcessors(p_batchProcsParamEdit->getValue());
         p_slctPrefs->setNodes(p_batchNodesParamEdit->getValue());
 
         if (p_slctPrefs->isOptionSupported("TL"))
             p_slctPrefs->setMaxWallTime(p_wallTimeEdit->getValue());
-
-        if (p_slctPrefs->isOptionSupported("AA"))
-            p_slctPrefs->setAllocationAccount(STLUtil::trim((string)(p_allocAcctTextCtrl->GetValue())));
 
         if (p_slctPrefs->isOptionSupported("MM"))
             //  Field is GB; setMemoryLimit()/MachinePreferences store MB.
@@ -1284,10 +1484,10 @@ void WxLauncher::updatePreferences()
             p_slctPrefs->setUsername(ptext);
     }
 
-    if (p_slctPrefs->isOptionSupported("RD"))
-        p_slctPrefs->setRemoteDirectory(STLUtil::trim((string)(p_calcDrctyTextCtrl->GetValue())));
-
-    p_slctPrefs->setScratchDirectory(STLUtil::trim((string)(p_scratchDrctyTextCtrl->GetValue())));
+    //  Account, run and scratch directory and queue belong to the profile in
+    //  use, so a second allocation never overwrites the first's.
+    p_slctPrefs->setProfile(this->profileFromControls(p_profile));
+    p_slctPrefs->setLastProfile(p_profile);
     p_prefsEdited = false;
 }
 
@@ -1764,7 +1964,7 @@ void WxLauncher::refreshAllocationAccount()
     bool supported = p_slctPrefs->isOptionSupported("AA");
 
     if (supported)
-        p_allocAcctTextCtrl->SetValue(p_slctPrefs->getAllocationAccount());
+        p_allocAcctTextCtrl->SetValue(p_slctPrefs->getProfile(p_profile).account);
 
     p_allocAcctPanel->Show(supported);
 
@@ -1815,7 +2015,9 @@ const Queue * WxLauncher::refreshQueues(RefMachine *machRgstn)
             p_queueChoice->SetClientData(i, (void *)(queueMngr->queue(queueName)));
         }
 
-        string slctnName = p_slctPrefs->getQueueName();
+        string slctnName = p_slctPrefs->getProfile(p_profile).queue;
+        if (slctnName.empty())
+            slctnName = p_slctPrefs->getQueueName();
 
         if (slctnName == "")
         {
@@ -2168,7 +2370,7 @@ void WxLauncher::refreshCalcDirectory()
     bool supported = p_slctPrefs->isOptionSupported("RD");
 
     if (supported)
-        p_calcDrctyTextCtrl->SetValue(p_slctPrefs->getRemoteDirectory());
+        p_calcDrctyTextCtrl->SetValue(p_slctPrefs->getProfile(p_profile).rundir);
     // This computer, no run directory saved yet: one in the user's home.
     if (supported && runsHere() &&
         STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue()).empty())
@@ -2177,7 +2379,9 @@ void WxLauncher::refreshCalcDirectory()
         p_calcDrctyTextCtrl->SetValue(dflt);
         // Launch reads the preferences, not the box: without this the job
         // got an empty run directory ("Unable to 'cd' to run directory").
-        p_slctPrefs->setRemoteDirectory(dflt);
+        AllocationProfiles::Profile pr = p_slctPrefs->getProfile(p_profile);
+        pr.rundir = dflt;
+        p_slctPrefs->setProfile(pr);
     }
 
     p_calcDrctyPanel->Show(supported);
@@ -2189,7 +2393,7 @@ void WxLauncher::refreshScratchDirectory()
     bool supported = p_slctPrefs->isOptionSupported("SD");
 
     if (supported)
-        p_scratchDrctyTextCtrl->SetValue(p_slctPrefs->getScratchDirectory());
+        p_scratchDrctyTextCtrl->SetValue(p_slctPrefs->getProfile(p_profile).scratchdir);
 
     p_scratchDrctyPanel->Show(supported);
 }
@@ -2367,6 +2571,8 @@ void WxLauncher::setContext(string cntxt)
     p_taskJob = NULL;
 
     Launchdata ldat;
+    p_ctxLaunched = false;
+    p_profileMachine = "";
 
     if (cntxt.size() > 0)
     {
@@ -2383,11 +2589,13 @@ void WxLauncher::setContext(string cntxt)
             {
                 ldat = p_taskJob->launchdata();
                 slctnKey = ldat.machine;
+                p_ctxLaunched = !ldat.rundir.empty();   // launched before
             }
         }
     }
 
 
+    p_ctxLaunch = ldat;
     p_inCtrlUpdate = true;
     p_machinesChoice->Clear();
     this->populateMachinesList();       //  Loads all machines if p_taskJob is NULL
@@ -2585,6 +2793,12 @@ void WxLauncher::updateControls(Launchdata ldat)
             p_password1TextCtrl->SetValue("");
         }
 
+        p_prefsEdited = true;
+    }
+
+    if (p_slctPrefs->isOptionSupported("AA") && !ldat.account.empty())
+    {
+        p_allocAcctTextCtrl->SetValue(ldat.account);
         p_prefsEdited = true;
     }
 
@@ -2986,7 +3200,7 @@ void WxLauncher::buildArgs(EcceMap& kvargs)
         kvargs["##queue##"] = ldat.queue;
 
         if (p_slctPrefs->isOptionSupported("AA"))
-            kvargs["##account_no##"] = p_slctPrefs->getAllocationAccount();
+            kvargs["##account_no##"] = p_slctPrefs->getProfile(p_profile).account;
 
         if (p_slctPrefs->isOptionSupported("MM"))
             kvargs["##maxmemory##"] =
@@ -3053,7 +3267,11 @@ void WxLauncher::startShell()
     string user = p_slctPrefs->getUsername();
     string password = STLUtil::trim((string)(p_password1TextCtrl->GetValue()));
 
-    string pathBase = p_slctPrefs->getRemoteDirectory();
+    //  The calculation's own run directory, not the machine's current one: a
+    //  later profile or edit must not point the shell elsewhere.
+    string pathBase = p_taskJob->launchdata().rundir;
+    if (pathBase.empty())
+        pathBase = p_slctPrefs->getProfile(p_profile).rundir;
     Jobdata job = p_taskJob->jobdata();
     string pathTail = job.jobpath;
 
@@ -3263,7 +3481,9 @@ void WxLauncher::saveJob()
 
     if (p_slctPrefs->isOptionSupported("Q"))
     {
-        ldat.queue = p_slctPrefs->getQueueName();
+        ldat.queue = p_slctPrefs->getProfile(p_profile).queue;
+        if (ldat.queue.empty())
+            ldat.queue = p_slctPrefs->getQueueName();
         ldat.nodes = p_slctPrefs->getNodes();
         ldat.priority = "";
 
@@ -3294,8 +3514,11 @@ void WxLauncher::saveJob()
 
     ldat.totalprocs = p_slctPrefs->getProcessors();
     ldat.remoteShell = p_slctPrefs->getRemoteShell();
-    ldat.rundir = p_slctPrefs->getRemoteDirectory();
-    ldat.scratchdir = p_slctPrefs->getScratchDirectory();
+    AllocationProfiles::Profile prof = p_slctPrefs->getProfile(p_profile);
+    ldat.rundir = prof.rundir;
+    ldat.scratchdir = prof.scratchdir;
+    ldat.profile = AllocationProfiles::isDefault(p_profile) ? "" : prof.name;
+    ldat.account = p_slctPrefs->isOptionSupported("AA") ? prof.account : "";
 
     if (p_slctPrefs->isOptionSupported("UN"))
     {
@@ -3448,6 +3671,12 @@ void WxLauncher::setRunDirectory(const string& path)
 }
 
 
+void WxLauncher::setAccount(const string& a)
+{
+    p_allocAcctTextCtrl->SetValue(a);
+}
+
+
 void WxLauncher::setProcessors(int n)
 {
     if (p_slctPrefs != NULL && p_slctPrefs->isOptionSupported("Q"))
@@ -3514,6 +3743,26 @@ string WxLauncher::hookGet(const string& what)
         return !p_advButton->IsShown() ? "none" : (p_advOpen ? "open" : "closed");
     if (what == "rundir")
         return STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue());
+    if (what == "account")
+        return STLUtil::trim((string)p_allocAcctTextCtrl->GetValue());
+    if (what == "scratch")
+        return STLUtil::trim((string)p_scratchDrctyTextCtrl->GetValue());
+    if (what == "profile")
+        return p_profile;
+    if (what == "profiles")
+    {
+        vector<string> n = p_slctPrefs->profileNames();
+        string all;
+        for (size_t i = 0; i < n.size(); i++)
+            all += (i ? "," : "") + n[i];
+        return all;
+    }
+    if (what == "profilechoice")
+        return p_profileChoice->IsShown() ? "1" : "0";
+    if (what == "profilesave")
+        return p_profileSaveButton->IsShown() ? "1" : "0";
+    if (what == "profiledelete")
+        return p_profileDeleteButton->IsShown() ? "1" : "0";
     if (what == "connect")
         return this->checkConnectAllowed() ? "1" : "0";
     if (what == "pumps")

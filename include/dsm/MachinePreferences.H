@@ -21,6 +21,7 @@
 #include "tdat/MachineOptions.H"
 
 #include "dsm/TaskJob.H"        //  for the Launchdata structure
+#include "dsm/AllocationProfiles.H"
 
 
 class MachinePreferences
@@ -61,6 +62,17 @@ class MachinePreferences
         void setPriority(int p);
 
         bool isOptionSupported(string mnmc);
+
+        //  Allocation profiles (#541). The machine's own settings are the
+        //  profile "Default"; the others are kept in the MachProfiles file.
+        vector<string> profileNames() const;
+        AllocationProfiles::Profile getProfile(const string& name) const;
+        //  Stores the values under name (Default: into this machine's own
+        //  settings). False for an unusable name.
+        bool setProfile(const AllocationProfiles::Profile& p);
+        bool removeProfile(const string& name);
+        string chooseProfile(const string& stored, bool haveCalc) const;
+        void setLastProfile(const string& name);
 
         string listValues(string delimiter);
         Launchdata getLaunchData() const;

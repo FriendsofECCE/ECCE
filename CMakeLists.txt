@@ -3687,6 +3687,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/launcher_test.py
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  # Allocation profile rules (#541): file format, which profile opens.
+  add_test(NAME machregister_profiles
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/profiles_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  set_tests_properties(machregister_profiles PROPERTIES TIMEOUT 120
+                       SKIP_RETURN_CODE 77)
   set_tests_properties(machregister_launcher PROPERTIES TIMEOUT 300
                        SKIP_RETURN_CODE 77)
   # The Machine Browser's "Machine settings..." button (#234).

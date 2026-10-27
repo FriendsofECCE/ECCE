@@ -160,7 +160,10 @@ void LaunchBatch::buildArgs(TaskJob *task, EcceMap& kv)
   if (prefs && prefs->isOptionSupported("Q")) {
     kv["##queue##"] = l.queue;
     if (prefs->isOptionSupported("AA"))
-      kv["##account_no##"] = prefs->getAllocationAccount();
+      //  The account the calculation was launched with; the machine's
+      //  current one only for calculations stored before it was recorded.
+      kv["##account_no##"] = l.account.empty() ? prefs->getAllocationAccount()
+                                               : l.account;
     if (prefs->isOptionSupported("MM"))
       kv["##maxmemory##"] = StringConverter::toString((size_t)l.maxmemory);
     if (prefs->isOptionSupported("SS"))

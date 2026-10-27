@@ -103,6 +103,16 @@ class WxLauncher : public WxLauncherGUI,
 
         void machRegisterMenuitemClickCB(wxCommandEvent& event);
 
+        void buildProfileRow();
+        void refreshProfileControls();
+        AllocationProfiles::Profile profileFromControls(const string& name);
+        void selectProfile(const string& name);
+        void saveProfileAs(const string& name);
+        void deleteProfile(const string& name);
+        void profileChoiceCB(wxCommandEvent& event);
+        void profileSaveCB(wxCommandEvent& event);
+        void profileDeleteCB(wxCommandEvent& event);
+
         //  Test hook (WxLauncherScript.H); inert unless ECCE_LAUNCHER_SCRIPT is set.
         bool selectMachine(const string& refname);
         bool selectQueue(const string& name);
@@ -113,6 +123,10 @@ class WxLauncher : public WxLauncherGUI,
         void toggleAdvanced() { setAdvanced(!p_advOpen, true); }
         void setUsername(const string& u);
         void setRunDirectory(const string& path);
+        void setAccount(const string& a);
+        bool hookProfile(const string& name);
+        bool hookSaveProfile(const string& name);
+        bool hookDeleteProfile(const string& name);
         string hookGet(const string& what);
         bool confirmMpiLauncher(const string& code);
         bool confirmQmSize();
@@ -290,6 +304,18 @@ class WxLauncher : public WxLauncherGUI,
 
         ewxButton           *p_launchButton;
         ewxButton           *p_machSettingsButton;
+
+        //  Allocation profiles (#541): shown only for a queued machine, the
+        //  choice only once the machine has more than one.
+        wxPanel             *p_profilePanel = nullptr;
+        wxStaticText        *p_profileLabel = nullptr;
+        wxChoice            *p_profileChoice = nullptr;
+        wxButton            *p_profileSaveButton = nullptr;
+        wxButton            *p_profileDeleteButton = nullptr;
+        string               p_profile;          // "Default" = the machine's own
+        string               p_profileMachine;   // the machine p_profile was chosen for
+        Launchdata           p_ctxLaunch;        // the context calculation's, when opened
+        bool                 p_ctxLaunched = false;
 
         //  The "Advanced" fold of a machine that runs jobs here: Username,
         //  Scratch Directory and Machine settings move into it.

@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 
 #include <fstream>
+#include <sstream>
     using std::ifstream;
     using std::ofstream;
 #include <ios>
@@ -43,6 +44,12 @@
 bool MachinePreferences::p_prefsLoaded = false;
 bool MachinePreferences::p_prefsChgd = false;
 vector<MachinePreferences *> *MachinePreferences::p_prefsElmts = NULL;
+
+#define PROFILES_FNAME "MachProfiles"
+
+//  Not in MachPrefs: an older ECCE would read a profile line there as a
+//  machine of its own. It never opens this file.
+static AllocationProfiles::Store s_profiles;
 
 
 MachinePreferences::MachinePreferences(string key)
@@ -265,6 +272,72 @@ void MachinePreferences::setPriority(int p)
 bool MachinePreferences::isOptionSupported(string mnmc)
 {
     return p_machOptns->isSupported(mnmc);
+}
+
+
+vector<string> MachinePreferences::profileNames() const
+{
+    return s_profiles.names(p_itemKey);
+}
+
+
+AllocationProfiles::Profile MachinePreferences::getProfile(const string& name) const
+{
+    AllocationProfiles::Profile p;
+    if (s_profiles.find(p_itemKey, name, p))
+        return p;
+
+    p.name = AllocationProfiles::defaultName();
+    p.account = p_allocAcct;
+    p.rundir = p_remoteDir;
+    p.scratchdir = p_scratchDir;
+    p.queue = p_queueName;
+    return p;
+}
+
+
+bool MachinePreferences::setProfile(const AllocationProfiles::Profile& p)
+{
+    if (AllocationProfiles::isDefault(p.name))
+    {
+        p_allocAcct = p.account;
+        p_remoteDir = p.rundir;
+        p_scratchDir = p.scratchdir;
+        p_queueName = p.queue;
+        p_prefsChgd = true;
+        return true;
+    }
+
+    bool ok = s_profiles.put(p_itemKey, p);
+    if (ok)
+        p_prefsChgd = true;
+    return ok;
+}
+
+
+bool MachinePreferences::removeProfile(const string& name)
+{
+    bool ok = s_profiles.remove(p_itemKey, name);
+    if (ok)
+        p_prefsChgd = true;
+    return ok;
+}
+
+
+string MachinePreferences::chooseProfile(const string& stored, bool haveCalc) const
+{
+    return s_profiles.choose(p_itemKey, stored, haveCalc);
+}
+
+
+void MachinePreferences::setLastProfile(const string& name)
+{
+    if (AllocationProfiles::lower(s_profiles.last(p_itemKey)) !=
+        AllocationProfiles::lower(AllocationProfiles::isDefault(name) ? "" : name))
+    {
+        s_profiles.setLast(p_itemKey, name);
+        p_prefsChgd = true;
+    }
 }
 
 
@@ -674,6 +747,15 @@ void MachinePreferences::loadSettings()
         delete isPrefs;
     }
 
+    s_profiles = AllocationProfiles::Store();
+    ifstream isProfiles((prefsDrcty + PROFILES_FNAME).c_str());
+    if (isProfiles.is_open())
+    {
+        std::stringstream all;
+        all << isProfiles.rdbuf();
+        s_profiles.parse(all.str());
+    }
+
     //  Lastly, ensure that a MachinePreferences element exists for each
     //  registered machine.  This must be done last in order to preserve
     //  the ordering of preferences as found on the disk file.
@@ -726,6 +808,18 @@ void MachinePreferences::saveChanges()
 
         chmod(fpathPrefs.c_str(), 0600);
         p_prefsChgd = false;
+    }
+
+    string fpathProfiles(Ecce::userRegistrationDir());
+    fpathProfiles += PROFILES_FNAME;
+    string profiles = s_profiles.serialise();
+    struct stat st;
+    if (!profiles.empty() || stat(fpathProfiles.c_str(), &st) == 0)
+    {
+        ofstream osProfiles(fpathProfiles.c_str(), ios::out);
+        osProfiles << profiles;
+        osProfiles.close();
+        chmod(fpathProfiles.c_str(), 0600);
     }
 }
 
