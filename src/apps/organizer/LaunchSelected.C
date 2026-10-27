@@ -1,7 +1,7 @@
 #include "wx/wxprec.h"
 #include "wx/wx.h"
 #include "wx/listctrl.h"
-#include "wx/progdlg.h"
+#include "wx/gauge.h"
 
 #include <atomic>
 #include <thread>
@@ -205,80 +205,170 @@ bool LaunchSelected::confirm(wxWindow *parent, vector<Row>& rows,
   return dlg.ShowModal() == wxID_OK;
 }
 
-void LaunchSelected::run(wxWindow *parent, vector<Row>& rows, bool progress)
+LaunchSelected::Batch::Batch(wxWindow *parent, const vector<Row>& rows,
+    const std::function<void(const vector<Row>&)>& onDone)
+  : p_rows(rows), p_onDone(onDone), p_parent(parent), p_frame(0), p_label(0),
+    p_gauge(0), p_timer(this), p_next(0), p_n(0), p_total(0), p_cur(0),
+    p_stepDone(false), p_stepOk(false), p_stopped(false), p_finished(false),
+    p_deferred(false)
 {
-  size_t total = 0, n = 0;
-  for (const Row& r : rows) if (r.plan.ready) total++;
+  for (const Row& r : p_rows) if (r.plan.ready) p_total++;
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { tick(); });
+}
 
-  //  As the Launcher: broker messages wait until the steps are done, and no
-  //  input reaches the windows that show the calculations being launched.
-  struct Defer {
-    WxJMSSubscriber *s;
-    Defer() : s(dynamic_cast<WxJMSSubscriber*>(wxTheApp)) { if (s) s->deferMessages(true); }
-    ~Defer() { if (s) s->deferMessages(false); }
-  } defer;
-  wxWindowDisabler disabler;
-  wxProgressDialog *pd = 0;
-  if (progress)
-    pd = new wxProgressDialog("Launch Selected", "Starting...", (int)total,
-                              parent, wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_SMOOTH);
-  bool aborted = false;
+LaunchSelected::Batch::~Batch()
+{
+  p_timer.Stop();
+  if (p_worker.joinable()) p_worker.join();
+  if (p_deferred) {
+    WxJMSSubscriber *s = dynamic_cast<WxJMSSubscriber*>(wxTheApp);
+    if (s) s->deferMessages(false);
+  }
+  if (p_frame) p_frame->Destroy();
+}
 
-  for (Row& r : rows) {
-    if (!r.plan.ready || aborted) continue;
-    n++;
+void LaunchSelected::Batch::start()
+{
+  //  Broker messages wait until the steps are done, as in the Launcher.
+  WxJMSSubscriber *s = dynamic_cast<WxJMSSubscriber*>(wxTheApp);
+  if (s) { s->deferMessages(true); p_deferred = true; }
+  if (p_parent) {
+    //  Not modal: the Organizer stays usable. No close box; Stop is the way out.
+    p_frame = new wxFrame(p_parent, wxID_ANY, "Launch Selected", wxDefaultPosition,
+                          wxDefaultSize, wxCAPTION | wxFRAME_FLOAT_ON_PARENT |
+                          wxFRAME_NO_TASKBAR);
+    wxPanel *panel = new wxPanel(p_frame);
+    wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+    p_label = new wxStaticText(panel, wxID_ANY, "Starting...", wxDefaultPosition,
+                               wxSize(380, -1), wxST_ELLIPSIZE_END);
+    top->Add(p_label, 0, wxALL | wxEXPAND, 12);
+    p_gauge = new wxGauge(panel, wxID_ANY, (int)p_total, wxDefaultPosition,
+                          wxSize(380, -1));
+    top->Add(p_gauge, 0, wxLEFT | wxRIGHT | wxEXPAND, 12);
+    wxButton *stopBtn = new wxButton(panel, wxID_ANY, "Stop");
+    stopBtn->SetToolTip("Finish the calculation being submitted, then submit no more");
+    top->Add(stopBtn, 0, wxALL | wxALIGN_RIGHT, 12);
+    stopBtn->Bind(wxEVT_BUTTON, [this, stopBtn](wxCommandEvent&) {
+      stopBtn->Enable(false);
+      stop();
+    });
+    panel->SetSizerAndFit(top);
+    wxBoxSizer *fs = new wxBoxSizer(wxVERTICAL);
+    fs->Add(panel, 1, wxEXPAND);
+    p_frame->SetSizerAndFit(fs);
+    p_frame->CentreOnParent();
+    p_frame->Show();
+    p_timer.Start(30);
+  }
+}
+
+void LaunchSelected::Batch::stop() { p_stopped = true; }
+
+void LaunchSelected::Batch::showProgress()
+{
+  if (!p_frame || !p_cur) return;
+  string msg = "Submitting " + std::to_string(p_n) + " of " +
+               std::to_string(p_total) + " \xE2\x80\x93 " + p_cur->plan.name;
+  p_label->SetLabel(U(msg));
+  p_gauge->SetValue((int)p_n - 1);
+}
+
+//  Take the next ready row up to the point where its first step can run.
+bool LaunchSelected::Batch::nextRow()
+{
+  while (!p_stopped && p_next < p_rows.size()) {
+    Row& r = p_rows[p_next++];
+    if (!r.plan.ready) continue;
+    p_n++;
     r.attempted = true;
-    if (pd) {
-      string msg = "Submitting " + std::to_string(n) + " of " +
-                   std::to_string(total) + " \xE2\x80\x93 " + r.plan.name;
-      if (!pd->Update((int)n - 1, U(msg))) { aborted = true; r.attempted = false; break; }
-    }
+    p_cur = &r;
+    showProgress();
     if (!LaunchBatch::storeTarget(r.task, r.plan)) {
       r.outcome = "Unable to save launch settings for " + r.plan.name;
       LaunchBatch::recordFailure(r.task, r.outcome);
+      p_cur = 0;
       continue;
     }
-    LaunchBatch::Job job(r.task);
+    p_job.reset(new LaunchBatch::Job(r.task));
     string error;
-    if (!job.begin(error)) {
+    if (!p_job->begin(error)) {
       r.outcome = error;
       LaunchBatch::recordFailure(r.task, error);
+      p_job.reset();
+      p_cur = 0;
       continue;
     }
-    bool ok = true;
-    while (ok && !job.done()) {
-      std::atomic<bool> finished(false);
-      bool stepOk = false;
-      std::thread worker([&]() { stepOk = job.step(); finished = true; });
-      while (!finished) {
-        wxTheApp->Yield(true);
-        wxMilliSleep(20);
-      }
-      worker.join();
-      ok = stepOk;
-      if (!ok) {
-        r.outcome = job.message();
-        LaunchBatch::recordFailure(r.task, r.outcome);
-        break;
-      }
-      //  A launch check only warns: the batch goes on, the text is kept.
-      string w = job.takeWarning();
-      if (!w.empty()) {
-        size_t cut = w.find("\nECCE-ORIGINAL-MESSAGE\n");
-        r.outcome = w.substr(0, cut);
-      }
-    }
-    if (ok) {
-      r.submitted = r.task->getState() <= ResourceDescriptor::STATE_COMPLETED;
-      if (!r.submitted && r.outcome.empty()) r.outcome = "the queue did not accept the job";
-      if (r.submitted) LaunchBatch::clearFailure(r.task);
-      else LaunchBatch::recordFailure(r.task, r.outcome);
-    } else if (r.outcome.empty()) {
-      r.outcome = "launch failed";
-      LaunchBatch::recordFailure(r.task, r.outcome);
-    }
+    return true;
   }
-  if (pd) { pd->Update((int)total); delete pd; }
+  return false;
+}
+
+void LaunchSelected::Batch::endRow(bool ok)
+{
+  Row& r = *p_cur;
+  if (ok) {
+    r.submitted = r.task->getState() <= ResourceDescriptor::STATE_COMPLETED;
+    if (!r.submitted && r.outcome.empty()) r.outcome = "the queue did not accept the job";
+    if (r.submitted) LaunchBatch::clearFailure(r.task);
+    else LaunchBatch::recordFailure(r.task, r.outcome);
+  } else if (r.outcome.empty()) {
+    r.outcome = "launch failed";
+    LaunchBatch::recordFailure(r.task, r.outcome);
+  }
+  p_job.reset();
+  p_cur = 0;
+}
+
+void LaunchSelected::Batch::finish()
+{
+  p_finished = true;
+  p_timer.Stop();
+  if (p_frame) { p_frame->Destroy(); p_frame = 0; }
+  if (p_deferred) {
+    WxJMSSubscriber *s = dynamic_cast<WxJMSSubscriber*>(wxTheApp);
+    if (s) s->deferMessages(false);
+    p_deferred = false;
+  }
+  if (p_onDone) p_onDone(p_rows);
+}
+
+bool LaunchSelected::Batch::tick()
+{
+  if (p_finished) return true;
+  if (p_worker.joinable()) {
+    if (!p_stepDone) return false;
+    p_worker.join();
+    Row& r = *p_cur;
+    if (!p_stepOk) {
+      r.outcome = p_job->message();
+      LaunchBatch::recordFailure(r.task, r.outcome);
+      endRow(false);
+      return false;
+    }
+    //  A launch check only warns: the batch goes on, the text is kept.
+    string w = p_job->takeWarning();
+    if (!w.empty()) r.outcome = w.substr(0, w.find("\nECCE-ORIGINAL-MESSAGE\n"));
+    if (p_job->done()) endRow(true);
+    return false;
+  }
+  if (!p_cur && !nextRow()) { finish(); return true; }
+  if (p_cur && p_job && p_job->done()) { endRow(true); return false; }
+  if (p_cur && p_job) {
+    p_stepDone = false;
+    p_worker = std::thread([this]() { p_stepOk = p_job->step(); p_stepDone = true; });
+  }
+  return false;
+}
+
+void LaunchSelected::run(vector<Row>& rows)
+{
+  Batch batch(0, rows, std::function<void(const vector<Row>&)>());
+  batch.start();
+  while (!batch.tick()) {
+    wxTheApp->Yield(true);
+    wxMilliSleep(20);
+  }
+  rows = batch.rows();
 }
 
 string LaunchSelected::report(const vector<Row>& rows)

@@ -1307,6 +1307,16 @@ void CalcMgr::runTestCommand(const string& line)
         else urls.push_back(EcceURL(u));
       }
       launchSelected(urls, false, &outcome, png, target);
+    } else if (command == "launchselectedasync") {
+      // "launchselectedasync URL...": starts the batch and answers at once;
+      // "launchselectedstatus" tells how far it is.
+      std::istringstream args(calcName);
+      string u;
+      vector<EcceURL> urls;
+      while (args >> u) urls.push_back(EcceURL(u));
+      launchSelectedAsync(urls, &outcome);
+    } else if (command == "launchselectedstatus") {
+      outcome = launchBatchStatus();
     } else if (command == "reconnectselectedlist" || command == "reconnectselected"
                || command == "reconnectselectedshot") {
       // "reconnectselectedlist URL...": what the dialog would list, one
@@ -2021,6 +2031,14 @@ bool CalcMgr::confirmAndQuit()
   // after the answer has nothing left to ask.
   if (p_quitAsking) return false;
   if (p_quitConfirmed) return true;
+  if (p_batch) {
+    //  Quitting would leave calculations half submitted.
+    ewxMessageDialog busy(this, "Launch Selected is still submitting "
+        "calculations. Quit when it has finished, or press Stop in its window.",
+        "Quit ECCE", wxOK | wxICON_INFORMATION, wxDefaultPosition);
+    busy.ShowModal();
+    return false;
+  }
 
   // #190: under a central server (ECCE_REMOTE_SERVER) this client's own
   // ecce-dataserver-stop/ecce-gateway-stop can't reach the server's
@@ -2392,6 +2410,7 @@ void CalcMgr::OnNewResourceClick( wxCommandEvent& event )
  */
 void CalcMgr::OnRmTaskClick( wxCommandEvent& event )
 {
+  if (refuseDuringBatch("Run Mgmt actions")) return;
   startDisabler();
 
   ResourceRmTask * rmTask = ResourceDescriptor::getResourceDescriptor().
@@ -2693,6 +2712,7 @@ void CalcMgr::OnDuplicate2Click( wxCommandEvent& event )
  */
 void CalcMgr::OnLaunchSelectedClick( wxCommandEvent& event )
 {
+  if (refuseDuringBatch("Launch Selected")) return;
   launchSelected(launchSelection(), true);
 }
 
@@ -2736,13 +2756,70 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
     if (outcome) *outcome = "not launched";
     return;
   }
-  LaunchSelected::run(this, rows, interactive);
-  if (interactive) LaunchSelected::showResults(this, rows);
+  if (interactive) {
+    startBatch(rows, true);
+    return;
+  }
+  LaunchSelected::run(rows);
   if (outcome) {
     string r = LaunchSelected::report(rows);
     for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
     *outcome = "ok " + r;
   }
+}
+
+
+bool CalcMgr::refuseDuringBatch(const string& what)
+{
+  if (!p_batch) return false;
+  setMessage(what + " is not available while Launch Selected is submitting.");
+  return true;
+}
+
+
+// Timer-driven, so the Organizer keeps handling events during the batch (#640).
+void CalcMgr::startBatch(const vector<LaunchSelected::Row>& rows, bool showReport)
+{
+  p_batchReport.clear();
+  p_batch = new LaunchSelected::Batch(this, rows,
+    [this, showReport](const vector<LaunchSelected::Row>& done) {
+      p_batchReport = LaunchSelected::report(done);
+      //  The batch object is deleted from the event loop, not from its own tick.
+      CallAfter([this, done, showReport]() {
+        delete p_batch;
+        p_batch = 0;
+        if (showReport) LaunchSelected::showResults(this, done);
+      });
+    });
+  p_batch->start();
+}
+
+
+bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome)
+{
+  if (p_batch) { if (outcome) *outcome = "busy"; return false; }
+  vector<TaskJob*> tasks;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (task) tasks.push_back(task);
+  }
+  if (tasks.empty()) { if (outcome) *outcome = "no calculations"; return false; }
+  vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks);
+  startBatch(rows, false);
+  if (outcome) *outcome = "started";
+  return true;
+}
+
+
+string CalcMgr::launchBatchStatus() const
+{
+  if (p_batch)
+    return "running " + std::to_string(p_batch->number()) + "/" +
+           std::to_string(p_batch->total());
+  string r = p_batchReport;
+  for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
+  return "idle " + r;
 }
 
 
@@ -2752,6 +2829,7 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
  */
 void CalcMgr::OnReconnectSelectedClick( wxCommandEvent& event )
 {
+  if (refuseDuringBatch("Reconnect Selected")) return;
   reconnectSelected(launchSelection(), true);
 }
 
@@ -2893,6 +2971,7 @@ void CalcMgr::OnDuplicate3Click( wxCommandEvent& event )
  */
 void CalcMgr::OnCutClick( wxCommandEvent& event )
 {
+  if (refuseDuringBatch("Cut")) return;
   if (selectionHasSystemFolder()) return;
   startDisabler();
 
@@ -2924,6 +3003,7 @@ void CalcMgr::OnCopyClick( wxCommandEvent& event )
  */
 void CalcMgr::OnPasteClick( wxCommandEvent& event )
 {
+  if (refuseDuringBatch("Paste")) return;
   startDisabler();
 
   paste();
@@ -2943,6 +3023,7 @@ void CalcMgr::OnPasteClick( wxCommandEvent& event )
  */
 void CalcMgr::OnDeleteClick( wxCommandEvent& event )
 {
+  if (refuseDuringBatch("Delete")) return;
   if (selectionHasSystemFolder()) return;
   startDisabler();
 
@@ -4620,6 +4701,7 @@ void CalcMgr::OnTreectrlSelChanging( wxTreeEvent& event )
  */
 void CalcMgr::OnTreectrlBeginDrag( wxTreeEvent& event )
 {
+  if (p_batch) { event.Veto(); return; }
   //  cerr << "\nEnter BeginDrag event\n";
 
   // Detect whether current selection can be moved and call veto if necessary

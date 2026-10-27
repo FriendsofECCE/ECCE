@@ -124,6 +124,13 @@ def main():
                             extra=("procs=48", "queue=batch", "nodes=2",
                                    "wall=0 4:0", "mem=8192"))
         check(cut is not None, "calculation to retarget created")
+        asyncs = []
+        for n in range(3):
+            u, out = s.create("async%d" % n, "cp2k_es", deck, "cp2k.cp2kin",
+                              rundir, extra=("procs=1", "queue=normal",
+                                             "nodes=1", "wall=0 1:0"))
+            check(u is not None, "calculation async%d created" % n)
+            asyncs.append(u)
         states = [s.state_of(u) for u in urls]
         check(all(x == "ready" for x in states), "all start ready: %s" % states)
 
@@ -229,6 +236,24 @@ def main():
             st = s.waitState(u, seconds=120,
                              want=harness.FINAL_STATES + ("submitted", "running"))
             check(st not in ("ready", "created", ""), "sel%d left ready: %s" % (n, st))
+        #  #640: the Organizer answers other commands while a batch submits.
+        if all(asyncs):
+            ans = send("launchselectedasync %s" % " ".join(asyncs))
+            check(ans == "started", "async batch started (%s)" % ans)
+            t0 = time.time()
+            ans = send("launchselectionrows %s" % " ".join(rows), timeout=20)
+            check(ans.startswith("ok "), "another command is answered during the batch "
+                  "(%.1f s): %s" % (time.time() - t0, ans[:40]))
+            end = time.time() + 120
+            while time.time() < end:
+                ans = send("launchselectedstatus", timeout=20)
+                if ans.startswith("idle"):
+                    break
+                time.sleep(0.5)
+            say("  status: %s" % ans)
+            check(ans.startswith("idle ") and all(
+                  ("async%d: submitted" % n) in ans for n in range(3)),
+                  "the async batch ends with all submitted")
     finally:
         if org and org.poll() is None:
             org.terminate()
