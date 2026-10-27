@@ -44,14 +44,20 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.2
 
-- The Progress box for queued jobs: since when, the job id, lost contact.
-- One login when the connection to a compute machine drops, and
-  Reconnect for several jobs at once.
-- Opt+Freq: the optimised structure's results while the frequencies run.
-- Several allocations on one compute machine, each with its own account and
-  directories.
-- ECCE-QM: range-separated hybrid functionals.
-- Smoother labels in the 3D viewer, with a choice of font.
+- The Progress box for queued jobs: since when, the job id, when the queue
+  was last checked, lost contact.
+- One login for all jobs on a compute machine when its connection drops,
+  and Reconnect for several jobs at once.
+- Several allocations on one compute machine, set up in Register Machines,
+  and the allocation left shown with the calculation.
+- Launch Selected can send calculations to another machine.
+- A calculation that stops without converging (ORCA optimisation at its
+  cycle limit, CP2K SCF or optimisation) ends Unsuccessful, not Complete.
+- A Slurm job cancelled on the machine shows as Killed.
+- The number of real and imaginary frequencies for ORCA, Gaussian 16,
+  NWChem, MOPAC and ECCE-QM; ECCE-QM's Hessian shows its progress.
+- A Mac reached over ssh can be a compute machine.
+- macOS: the GROMACS examples import with their structures and trajectories.
 
 ## First steps
 
