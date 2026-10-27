@@ -54,7 +54,7 @@ from collections import OrderedDict
 # ---------------------------------------------------------------------------
 
 PD_KEYS = ('begin', 'end', 'file', 'frequency', 'lines', 'prefix', 'script',
-           'progress', 'history', 'remember', 'times', 'value', 'table', 'tablestop', 'average',
+           'progress', 'history', 'remember', 'times', 'value', 'table', 'tablestop', 'average', 'count', 'when',
            'skip', 'stream')
 FREQ_ALL = 'all'
 FREQ_FIRST = 'first'
