@@ -139,6 +139,9 @@ SchedulerQuery::Connection WxMachineRegister::connection()
         if (prefs->isOptionSupported("UN"))
             c.userName = prefs->getUsername();
     }
+    const string typed = stripped((string)p_userName->GetValue());
+    if (!typed.empty())
+        c.userName = typed;
 
     //  The unsaved form decides the paths, as RefMachine reads them once saved.
     std::map<string, string> cfg;

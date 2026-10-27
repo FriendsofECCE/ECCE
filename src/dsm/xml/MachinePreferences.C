@@ -271,7 +271,8 @@ void MachinePreferences::setPriority(int p)
 
 bool MachinePreferences::isOptionSupported(string mnmc)
 {
-    return p_machOptns->isSupported(mnmc);
+    //  A MachPrefs line can outlive its machine, or come before it is saved.
+    return p_machOptns != NULL && p_machOptns->isSupported(mnmc);
 }
 
 

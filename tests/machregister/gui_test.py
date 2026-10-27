@@ -2656,6 +2656,25 @@ quit
           "the Gaussian-16 program is unchanged: %r" % cfg)
 
 
+def find_before_save_with_stale_prefs(tmp, display, build):
+    print("Find on a new machine whose name has an old MachPrefs line")
+    e = Env(tmp, "staleprefs")
+    write(os.path.join(e.ue, "MachPrefs"),
+          "stalebox:\tandy|||/home/andy/jobs|/home/andy/scratch||0|1|0|0|0|0\n")
+    p = run(display, build, e, """
+new
+set name stalebox
+set fullname stalebox.invalid
+set username tester
+tab codes
+code CP2K
+click code:find
+quit
+""", extra=LOCALUSER)
+    check(p.returncode == 0, "no crash (exit %d)" % p.returncode)
+    clean(p, "Find before the machine is saved")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
@@ -2726,6 +2745,7 @@ def main():
             codes_retired(tmp, disp, build)
             codes_skeleton(tmp, disp, build)
             codes_find(tmp, disp, build)
+            find_before_save_with_stale_prefs(tmp, disp, build)
             discovery(tmp, disp, build)
             preview(tmp, disp, build)
             preview_admin(tmp, disp, build)
