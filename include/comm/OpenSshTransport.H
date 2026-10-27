@@ -149,6 +149,9 @@ public:
   bool loginRefused() const { return p_refused; }
   // This process put up the login dialog (the others only waited for it).
   bool loginPrompted() const { return p_prompted; }
+  // A shared connection to the host is open now (`ssh -O check`, a local
+  // socket test); never logs in, never asks.
+  bool loginIsLive() const { return sharedConnection() && masterAlive(); }
 
 private:
   OpenSshTransport(const OpenSshTransport&);

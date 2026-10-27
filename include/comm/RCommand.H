@@ -210,6 +210,17 @@ public:
     static string quoteGlob(const string& pattern);
     static string whereami(void);
 
+    // Runs command on an ssh machine only over a connection that is already
+    // logged in (the OpenSSH master ECCE or the user's config shares). It
+    // never logs in, never asks for a password and never uses libssh: false
+    // when there is no such connection, the machine is local, or the command
+    // fails. For background reads (#613) that must not cause a dialog.
+    static bool execOnLiveLogin(const string& machine, const string& userName,
+                                const string& frontendMachine,
+                                const string& frontendBypass,
+                                const string& shellPath, const string& command,
+                                string& output, int timeoutSec = 20);
+
 private:
     // get/put for every overload: local cp, or SFTP for an ssh machine.
     static bool copyFiles(bool putFlag, string& errMessage,

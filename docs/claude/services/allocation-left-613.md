@@ -1,13 +1,13 @@
 ---
 type: map
-title: "Design (#613, not built): the calculation summary shows the allocation and how much is left"
+title: "The calculation summary shows the allocation and how much is left (#613)"
 area: services
 section: "Design"
-paths: ["src/apps/builder/CalcInfoPanel.C", "src/tdat/resources/RefMachine.C", "src/tdat/resources/RefQueueMgr.C", "siteconfig/QueueManagers", "src/apps/machbrowser/MachineBrowser.C", "src/comm/rcommand/OpenSshTransport.C", "src/comm/rcommand/RCommand.C", "include/dsm/MachinePreferences.H", "include/dsm/AllocationProfiles.H"]
+paths: ["include/dsm/AllocationLeft.H", "tests/machregister/testAllocationLeft.C", "src/apps/builder/CalcInfoPanel.C", "src/tdat/resources/RefMachine.C", "src/tdat/resources/RefQueueMgr.C", "siteconfig/QueueManagers", "src/apps/machbrowser/MachineBrowser.C", "src/comm/rcommand/OpenSshTransport.C", "src/comm/rcommand/RCommand.C", "include/dsm/MachinePreferences.H", "include/dsm/AllocationProfiles.H"]
 issues: [613, 541, 487, 599]
 ---
-**Status: design for review. It runs a command on a remote machine, so the
-points under "Remote shell" need a yes before anyone writes code.**
+**Status: built after review.** The maintainer approved the one remote-shell
+change (`RCommand::execOnLiveLogin`, over `OpenSshTransport::loginIsLive()`).
 
 The "Launch Info" block of the calculation summary (`CalcInfoPanel`, Machine,
 Queue, # Processors, Run Directory, Start Date ...) gets two lines for a
@@ -77,20 +77,19 @@ was submitted with) and **Left:** (core-hours used of allocated, "checked
 Parsing rules go in wx-free code (`include/dsm/AllocationLeft.H`, header-only
 like `AllocationProfiles.H`) with a unit test from recorded samples; the panel
 only shows the result.
-- **projinfo (HPC2N/NAISS).** Known only from memory and not checked on a
-  machine from here: a header line naming used and allocated (with units such
-  as `[core*h]` or `[h]`) and one row per project starting with the project
-  id, followed by numbers. Rule: find the row whose first token equals the
-  account (case-insensitive); take the first two numeric tokens after it as
-  used and allocated; take the unit from the header if a bracketed unit is
-  there, else "core-hours" is not assumed and no unit is shown. **A real
-  `projinfo` sample from Kebnekaise must be added to the test before
-  release.**
-- **Slurm `sshare`/`sreport`.** With `-n -P` the output is `|`-separated: the
-  account's row, `RawUsage` in cpu-seconds (decayed), and a limit only when
-  the site set `GrpTRESMins` (`cpu=<minutes>`). Used = RawUsage / 3600;
-  allocated = cpu minutes / 60. No limit set: show used only ("48 000 core-h
-  used"), never a made-up total.
+- **projinfo (HPC2N/NAISS).** Real output (anonymised copy in
+  `tests/machregister/fixtures/projinfo-kebnekaise.txt`): one block per
+  project, `Information for project <account>:`, then `Allocations:` with
+  lines like `kebnekaise:  30000 CPUhours/month, used 7.4% the past 30 days`
+  (a monthly rate and a percentage of the past 30 days, not used/allocated
+  totals), one line per resource (CPU, GPU), then `Usage on ...` per calendar
+  month. Shown as `7.4 % of 30 000 CPU-h/month used (past 30 days)`, GPU
+  allocations appended compactly. The block is found by the account (any
+  case); with one CPU line that line is taken, with several the machine's
+  resource name would be needed (not configurable yet: shown as the heading
+  line instead).
+- **Slurm `sshare`/`sreport`.** No verified sample, so no numbers are
+  computed from them: the raw-line rule below applies.
 - **Anything else** (a site's own tool, a column layout not recognised, no
   matching row, a number that does not parse): show the one output line that
   contains the account, trimmed to 120 characters, with the time; if no line
@@ -107,11 +106,16 @@ only shows the result.
   nothing; the output matched no rule and has no line with the account. The
   reason goes to the log only.
 
-## Open (needs a decision before code)
-1. The `loginIsLive()` check on `RCommand`, above: it is the only remote-shell
-   change, and it is what keeps the feature from ever prompting.
-2. Whether Slurm gets an account-keyed default command, or only machines that
-   set one (such as HPC2N with `projinfo`) show the lines.
-3. A projinfo sample (Kebnekaise: `projinfo`, `projinfo -p <account>`).
-4. Tests: a stub `ssh`/command (as `testOpenSshTransport`) for the live and
-   not-live paths and the 15-minute cache; sample files for the parser.
+## Built
+- `include/dsm/AllocationLeft.H` (parsing, 15-minute cache, tested by
+  `profiles_test.py` with `testAllocationLeft.C`).
+- `RCommand::execOnLiveLogin` runs the command through an `OpenSshTransport`
+  with no askpass and no password, and only if `loginIsLive()` (`ssh -O check`)
+  says a shared connection is open; false for libssh, local machines and
+  failures. A master that dies between the check and the run just fails.
+- `CalcInfoPanel` shows Allocation (the stored account) and Left, reads in a
+  background thread, caches in `~/.ECCE/AllocationCache` (also failures, for
+  15 minutes), and refreshes itself when the answer lands.
+- Not tested: the live path against a real or stubbed ssh master, and the panel.
+- Open: a resource-name setting for projects with several CPU allocations; an
+  account-keyed Slurm default command.
