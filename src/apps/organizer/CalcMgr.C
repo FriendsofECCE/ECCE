@@ -3398,7 +3398,7 @@ static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen)
   if (!names.empty()) choice->SetSelection(0);
   wxStaticText *text = new wxStaticText(dlg, wxID_ANY,
       names.empty() ? wxString() : lines[0]);
-  text->Wrap(380);
+  text->Wrap(dlg->FromDIP(380));
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   top->Add(new wxStaticText(dlg, wxID_ANY, _("Example set:")), 0,
            wxLEFT | wxRIGHT | wxTOP, 12);
@@ -3406,13 +3406,18 @@ static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen)
   top->Add(text, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
   top->Add(dlg->CreateButtonSizer(wxOK | wxCANCEL), 0, wxEXPAND | wxALL, 12);
   dlg->SetSizerAndFit(top);
-  dlg->SetMinSize(wxSize(420, -1));
+  //  Capped: on macOS the best size kept the unwrapped line after a new
+  //  description, and the dialog grew as wide as the screen.
+  dlg->SetMinSize(wxSize(dlg->FromDIP(420), -1));
+  dlg->SetMaxSize(wxSize(dlg->FromDIP(460), -1));
   dlg->Fit();
   choice->Bind(wxEVT_CHOICE, [=](wxCommandEvent&) {
     int sel = choice->GetSelection();
     if (sel >= 0 && sel < (int)lines.size()) {
       text->SetLabel(lines[sel]);
-      text->Wrap(380);
+      text->Wrap(dlg->FromDIP(380));
+      text->InvalidateBestSize();
+      dlg->Layout();
       dlg->Fit();
     }
   });
@@ -3469,6 +3474,11 @@ vector<string> CalcMgr::removeOldExamples()
     const string version = res->getProp(key);
     if (version.empty() || version == kExampleSetVersion) continue;
     found.push_back(old.setId);
+    //  The tree's items point at these resources: drop them first, or the
+    //  refresh below follows them into freed memory (a crash at the first
+    //  start after an upgrade from 9.2/9.3).
+    WxResourceTreeItemData *node = findNode(res->getURL(), false, false);
+    if (node) p_treeCtrl->DeleteChildren(node->GetId());
     size_t left = 0;
     vector<Resource *> children;
     if (vector<Resource *> *c = res->getChildren(true)) children = *c;
@@ -3482,6 +3492,7 @@ vector<string> CalcMgr::removeOldExamples()
       }
     }
     if (left == 0) {
+      if (node) p_treeCtrl->Delete(node->GetId());
       res->remove();
     } else {
       // The user's own calculations stay; the project is theirs now.
@@ -4503,6 +4514,9 @@ void CalcMgr::importExamplesOnce()
       if (EDSIFactory::getResource(
               home.getChild(kExamplesTop).getChild(set.project)))
         sets.insert(set.id);
+    //  An upgrade that finds no example set (an earlier start removed the
+    //  old ones and stopped) still gets the first-start set.
+    if (sets.empty()) sets.insert(kFirstStartSet);
     for (const string &id : sets)
       if (openExampleSet(id, message, created).empty())
         setMessage(message, WxFeedback::WARNING);
