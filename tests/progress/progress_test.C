@@ -121,6 +121,14 @@ int main()
           "numerical frequencies with their point");
     check(cb.size() == 1 && has(cb[0].lines, "analytic Hessian, CPHF iteration 4"),
           "analytic Hessian without a count");
+    // ORCA's assembly names the last part it finished.
+    JobProgress as;
+    as.parse("# seq=1\nfreq kind=analytic point=117/117 phase=assemble "
+             "last=HCore secs=40\n");
+    vector<JobProgress::Block> sb = as.running(0);
+    check(sb.size() == 1 && has(sb[0].lines, "assembling the Hessian, HCore "
+                                "and overlap done (40 s)"),
+          "Hessian assembly names its last finished part");
   }
 
   JobProgress r;
