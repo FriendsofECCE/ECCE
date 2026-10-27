@@ -67,17 +67,19 @@ void GLPath::record(const char* renderer, const char* vendor,
            ", vendor " + (vendor ? vendor : "unknown") + ", version " +
            (version ? version : "unknown") + "; drawing path " +
            (c.software ? "software" : "hardware") + " (" + whyText(c.why) + ")";
-  fprintf(stderr, "[GL] %s\n", s_line.c_str());
-
+  //  Every viewer process (one per thumbnail) gets here: say it only when
+  //  the renderer or the choice differs from the last one recorded.
   const string path = stateFile();
+  string old;
   if (!path.empty()) {
     std::ifstream in(path.c_str());
-    string old;
     std::getline(in, old);
-    if (old != s_line) {
-      std::ofstream out(path.c_str());
-      out << s_line << "\n";
-    }
+  }
+  if (path.empty() || old != s_line)
+    fprintf(stderr, "[GL] %s\n", s_line.c_str());
+  if (!path.empty() && old != s_line) {
+    std::ofstream out(path.c_str());
+    out << s_line << "\n";
   }
 }
 
