@@ -96,6 +96,12 @@ public:
   // `finished`: the job has ended, so no time left is shown.
   std::vector<Block> running(double age, bool finished = false) const;
 
+  // A job still waiting in its queue has no snapshot; the box shows what is
+  // known of it: when it was submitted (seconds since 1970, 0 if not
+  // known) and the scheduler's job id ("" if not known).  The scheduler's
+  // own state is not known to ECCE and is not shown.
+  static Block queued(double submitted, const std::string& jobId, double now);
+
   // After it: one or two lines.  `completed` is false for a job that
   // stopped (failed, killed): then the lines say where it got to.
   std::vector<std::string> summary(bool completed) const;

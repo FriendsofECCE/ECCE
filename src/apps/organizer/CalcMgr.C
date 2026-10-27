@@ -8192,12 +8192,15 @@ void CalcMgr::contactUpdate(const EcceURL & url, const string & contact,
 }
 
 
-bool CalcMgr::outOfContact(Resource * resource, double & lastHeard) const
+bool CalcMgr::outOfContact(Resource * resource, double & lastHeard,
+                           bool queued) const
 {
   if (!resource) return false;
   const string ecce = VDoc::getEcceNamespace();
-  if (ResourceUtils::stringToState(resource->getProp(ecce + ":state")) !=
-      ResourceDescriptor::STATE_RUNNING)
+  const ResourceDescriptor::RUNSTATE state =
+      ResourceUtils::stringToState(resource->getProp(ecce + ":state"));
+  if (state != ResourceDescriptor::STATE_RUNNING &&
+      !(queued && state == ResourceDescriptor::STATE_SUBMITTED))
     return false;
   auto it = p_contact.find(progressKey(resource->getURL()));
   if (it != p_contact.end()) {

@@ -223,6 +223,18 @@ string JobProgress::lastHeardText(double when, double now)
 }
 
 
+JobProgress::Block JobProgress::queued(double submitted,
+                                       const std::string& jobId, double now)
+{
+  Block b;
+  b.title = "Status";
+  b.lines.push_back(submitted > 0
+      ? "Queued since " + lastHeardText(submitted, now) : string("Queued"));
+  if (!jobId.empty()) b.lines.push_back("Job id " + jobId);
+  return b;
+}
+
+
 // The Prepare script announces gmx tool names; the box says what each makes.
 static string prepareStepName(const string& tool)
 {

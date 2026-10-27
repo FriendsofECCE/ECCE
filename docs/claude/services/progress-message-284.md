@@ -54,3 +54,17 @@ properties `url` and `progress` (the snapshot text, `\n`-separated; empty
   `[PROGRESS]` entries or no stored stdout (an imported NWChem `.eprint`).
   `ECCE_NO_PROGRESS_BACKFILL=1` turns it off. The monitor reads stdin in
   `stdio` mode and hangs on an open one.
+- **Queued (#606).** A Submitted job gets the box too: `JobProgress::queued`
+  makes a "Status" block, "Queued since hh:mm (n min ago)" and "Job id N",
+  each only when known. Sources: `ecce:submitdate` (epoch, written by
+  `Launch::updateState` just before the state becomes Submitted; absent
+  for calculations submitted by an older ECCE, then the line is just
+  "Queued") and `ecce:job_jobid` (TaskJob::jobdata at launch; a pid for a
+  Shell job). **The scheduler's own state is not known**: nothing in ECCE
+  polls squeue/qstat except the manual Check Job on Machine, so it is not
+  shown. **Contact**: the job store watches the monitor from the start, so
+  `ecce:contact`/the "lost" notice exist while queued; the box shows them
+  (`CalcMgr::outOfContact(r, t, queued=true)`, greys the block, "may still
+  be queued"). jmUP is not relayed, so an in-contact queued job has no
+  "last contact n s ago" line, only the lost case. The tree icon, summary
+  icon and table cell stay Running-only. Test: `apps_progress_contact`.

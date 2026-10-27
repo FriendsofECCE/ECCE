@@ -140,6 +140,15 @@ double ProgressBox::age() const
 }
 
 
+vector<JobProgress::Block> ProgressBox::blocks() const
+{
+  if (p_queued && !p_finished && p_progress.empty())
+    return vector<JobProgress::Block>(
+        1, JobProgress::queued(p_submitted, p_jobId, (double)time(0)));
+  return p_progress.running(std::max(0.0, age()), p_finished);
+}
+
+
 // What a finished job came to, ending with its final energy.
 vector<string> ProgressBox::outcome() const
 {
@@ -191,6 +200,10 @@ string ProgressBox::foldedText() const
     vector<string> s = outcome();
     return s.empty() ? string() : s[0];
   }
+  if (p_queued && p_progress.empty()) {
+    const vector<JobProgress::Block> q = blocks();
+    return q.empty() || q[0].lines.empty() ? string() : q[0].lines[0];
+  }
   string line = p_progress.shortLine();
   const double a = age();
   if (a >= 0) line += (line.empty() ? "" : MIDDOT) + JobProgress::updatedText(a);
@@ -226,7 +239,9 @@ vector<string> ProgressBox::describe() const
     out.push_back("contact lost, last heard " +
                   JobProgress::lastHeardText(p_lastHeard, (double)time(0)));
     int shown = 0;
-    for (int i = 0; i < 3; i++) shown += p_buttons[i]->IsShown() ? 1 : 0;
+    // Unused buttons stay shown at zero size (GTK), so size counts.
+    for (int i = 0; i < 3; i++)
+      shown += p_buttons[i]->IsShown() && p_buttons[i]->GetSize().x > 0;
     out.push_back("buttons " + std::to_string(shown));
   }
   if (p_collapsed) {
@@ -234,8 +249,7 @@ vector<string> ProgressBox::describe() const
     return out;
   }
   const string grey = outOfContact() ? "(grey) " : "";
-  for (const JobProgress::Block& b :
-           p_progress.running(std::max(0.0, age()), p_finished)) {
+  for (const JobProgress::Block& b : blocks()) {
     for (const string& l : b.lines) out.push_back(grey + b.title + ": " + l);
     for (const JobProgress::Criterion& c : b.criteria)
       out.push_back("  " + c.label + " " + c.value + " " +
@@ -485,8 +499,7 @@ wxSize ProgressBox::layout(wxDC *dc)
     } else {
       y += headingHeight() + FromDIP(2);
 
-      vector<JobProgress::Block> blocks =
-          p_progress.running(std::max(0.0, age()), p_finished);
+      vector<JobProgress::Block> blocks = this->blocks();
       int titleW = 0;
       m.SetFont(bold);
       for (const auto& b : blocks)
@@ -503,8 +516,9 @@ wxSize ProgressBox::layout(wxDC *dc)
         if (lost) {
           const string a = string(WARN) + " No contact: last heard from " +
               JobProgress::lastHeardText(p_lastHeard, (double)time(0));
-          const string b = "The job may still be running; ECCE keeps trying "
-                           "to reach its monitor.";
+          const string b = string("The job may still be ") +
+                           (p_queued && p_progress.empty() ? "queued" : "running") +
+                           "; ECCE keeps trying to reach its monitor.";
           if (dc) dc->SetTextForeground(amber);
           for (const wxString& r : wrapLine(m, a, availW)) {
             if (dc) dc->DrawText(r, 0, y);

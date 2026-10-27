@@ -48,6 +48,7 @@
 #include "tdat/RefQueueMgr.H"
 #include "tdat/AuthCache.H"
 
+#include "dsm/VDoc.H"
 #include "dsm/MachineConfig.H"
 #include "dsm/NWChemMDModel.H"
 #include "dsm/TaskJob.H"
@@ -2395,6 +2396,9 @@ void Launch::updateState(void)
   // cause problem or not.
   if (currentState <= ResourceDescriptor::STATE_READY) {
     p_taskjob->killRequested(false);
+    // The Progress box of a queued job says since when (#606).
+    p_taskjob->addProp(VDoc::getEcceNamespace() + ":submitdate",
+                       std::to_string((long long)time(0)));
     p_taskjob->setState(ResourceDescriptor::STATE_SUBMITTED);
   }
 

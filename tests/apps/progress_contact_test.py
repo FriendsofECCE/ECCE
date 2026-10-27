@@ -85,6 +85,11 @@ def run(display, pngs):
                               box.STORED.format(**stamp))
         with open(os.path.join(stored, ".ecce-meta"), "a") as handle:
             handle.write(".\t%scontact\t\tlost %d\n" % (NS, int(now - 17 * 60 - 5)))
+        # Queued (#606): submitted, id known, no snapshot.
+        queued = box.makeCalc(project, "water-queued", "Submitted", "")
+        with open(os.path.join(queued, ".ecce-meta"), "a") as handle:
+            handle.write(".\t%ssubmitdate\t\t%d\n" % (NS, int(now - 300)))
+            handle.write(".\t%sjob_jobid\t\t4711\n" % NS)
         # First in the table, which selects its first row: the amber cell
         # is drawn in an unselected row.
         box.makeCalc(project, "water-done", "Complete", box.DONE.format(**stamp))
@@ -118,13 +123,20 @@ def run(display, pngs):
                 "snap " + png("contact-table.png"),
                 "summary file://" + stored,
                 "progressbox",
+                "fold open",
+                "summary file://" + queued,
+                "progressbox",
+                "contact file://%s lost %d" % (queued, int(now - 240)),
+                "progressbox",
+                "snap " + png("contact-queued-lost.png"),
+                "fold shut",
             ]) + "\n")
         log = organizer(display, cmds, data, running)
         boxes = box.answers(log, "progressbox")
         trees = re.findall(r"ECCE_TEST_ORGANIZER: treestate.*?: (image=.*)", log)
         tables = re.findall(r"ECCE_TEST_ORGANIZER: table.*?: (panel=.*)", log)
         states = box.answers(log, "tablestates")
-        if not check(len(boxes) == 6 and len(trees) == 3 and len(tables) == 1
+        if not check(len(boxes) == 8 and len(trees) == 3 and len(tables) == 1
                      and len(states) == 1,
                      "every command answered (%d boxes, %d trees, %d tables, %d states)"
                      % (len(boxes), len(trees), len(tables), len(states)),
@@ -132,7 +144,7 @@ def run(display, pngs):
             return
         for b in boxes + trees + tables + states:
             print("      " + b)
-        before, lost, checked, folded, back, fromStored = boxes
+        before, lost, checked, folded, back, fromStored, qBox, qLost = boxes
 
         check(field(before, "stateicon") == "plain" and
               "heading open" in lines(before) and
@@ -181,6 +193,18 @@ def run(display, pngs):
               any("(17 min ago)" in l for l in lines(fromStored)),
               "stored ecce:contact: lost after a restart of the Organizer", fromStored)
 
+        check(re.search(r"Status: Queued since \d\d:\d\d \(5 min ago\)", qBox) and
+              "Status: Job id 4711" in lines(qBox) and
+              not any("Optimisation" in l or l.startswith("updated")
+                      for l in lines(qBox)) and
+              field(qBox, "shown") == "1" and field(qBox, "stateicon") == "plain",
+              "queued: since, job id, no scheduler state, no progress", qBox)
+        check(any(re.match(r"contact lost, last heard \d\d:\d\d \(4 min ago\)", l)
+                  for l in lines(qLost)) and "buttons 3" in lines(qLost) and
+              any(l.startswith("(grey) Status: Queued since") for l in lines(qLost)) and
+              field(qLost, "stateicon") == "plain",
+              "queued: no contact greys it, last heard shown", qLost)
+
         ini = os.path.join(os.environ.get("ECCE_REALUSERHOME", ""), ".ECCE")
         found = [os.path.join(r, f) for r, _, fs in os.walk(ini) for f in fs
                  if f == "wxorganizer.ini"]
@@ -205,7 +229,7 @@ def run(display, pngs):
 
         for n in ("contact-lost.png", "contact-lost-checked.png",
                   "contact-lost-folded.png", "contact-back-folded.png",
-                  "contact-table.png"):
+                  "contact-table.png", "contact-queued-lost.png"):
             check(os.path.exists(png(n)) and os.path.getsize(png(n)) > 1000,
                   "saved " + n)
     finally:
