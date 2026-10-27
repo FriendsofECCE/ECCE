@@ -1900,6 +1900,58 @@ quit
           "cancel deletes nothing")
 
 
+def allocation_profiles(tmp, display, build):
+    """#541: the Machine tab lists the machine's profiles (Default first);
+    Add/Edit/Delete work at once, Default is editable but not deletable, and
+    the files keep the format the Launcher reads."""
+    print("allocation profiles")
+    e = Env(tmp, "profiles")
+    p = run(display, build, e, """
+select mine
+expect field profiles Default
+set default-account edu-1
+save
+profile-select Default
+expect enabled profile-delete 0
+expect enabled profile-edit 1
+profile-set Default naiss-0 /proj/a /scr/a short
+expect field default-account naiss-0
+expect field run-dir /proj/a
+expect dirty 0
+profile-set Project naiss-2 /proj/b /scr/b long
+expect field profiles Default,Project
+profile-select Project
+expect enabled profile-delete 1
+answer yes
+click profile-delete
+expect field profiles Default
+profile-set Project naiss-2 /proj/b /scr/b long
+profile-set Course edu-1 /proj/c
+expect field profiles Default,Project,Course
+quit
+""", extra=LOCALUSER)
+    clean(p, "profiles are added, edited and deleted from the Machine tab")
+    prefs = read(os.path.join(e.ue, "MachPrefs"))
+    check("/proj/a|/scr/a|naiss-0|" in prefs and "short" in prefs,
+          "Default is the MachPrefs line: %r" % prefs)
+    saved = read(os.path.join(e.ue, "MachProfiles"))
+    check("profile\tmine\tProject|naiss-2|/proj/b|/scr/b|long" in saved
+          and "profile\tmine\tCourse|edu-1|/proj/c||" in saved,
+          "the others are in MachProfiles: %r" % saved)
+    p = run(display, build, e, """
+select mine
+expect field profiles Default,Project,Course
+quit
+""", extra=LOCALUSER)
+    clean(p, "a new session lists the stored profiles")
+    p = run(display, build, e, """
+select cluster
+expect enabled profile-add 0
+quit
+""", args=["-admin"])
+    clean(p, "an admin registering a machine has no profiles to change")
+
+
 def admin_mode(tmp, display, build):
     print("admin mode")
     e = Env(tmp, "admin")
@@ -2729,6 +2781,7 @@ def main():
             site_machine(tmp, disp, build)
             site_machine(tmp, disp, build, remote=True)
             delete_prompt_lists_files(tmp, disp, build)
+            allocation_profiles(tmp, disp, build)
             fixes(tmp, disp, build)
             help_button(tmp, disp, build)
             queue_defaults(tmp, disp, build)

@@ -185,24 +185,27 @@ whole installation. You normally do not edit these files by hand.
 
 If you have more than one allocation on the same cluster, for example a
 course allocation and a project allocation, each with its own account and
-its own directories, give each one a profile. A profile holds the
-**Alloc. Account:**, the **Run Directory:**, the **Scratch Directory:** and
-the queue. Profiles belong to a machine and to you; other users of the same
+its own directories, give each one a profile. A profile holds an
+**Account**, a **Run directory**, a **Scratch directory** and a default
+queue. Profiles belong to a machine and to you; other users of the same
 installation do not see them.
 
-1. In the Launcher, choose the machine and fill in the account, the
-   directories and the queue as for the first allocation. ECCE keeps these
-   as the profile **Default**, so nothing changes if you have one allocation.
-2. For a second allocation, type its account and directories in the same
-   fields and click **Save as profile...**. Enter a name, for example
-   `Project`. The fields stay as they are and the profile is saved under
-   that name.
+Profiles are made in Register Machines, not in the Launcher.
+
+1. Open **Register Machines** on the **Machine** tab and select the
+   machine. The **Run directory**, **Scratch directory** and **Account**
+   boxes are the profile **Default**, so nothing changes if you have one
+   allocation.
+2. Under **Allocation profiles**, click **Add...**, enter a name (for
+   example `Project`), the account, the directories and the queue, and
+   click **OK**. **Edit...** changes the selected profile, **Delete**
+   removes it. **Default** can be edited but not deleted. Adding, editing
+   and deleting a profile take effect at once; they do not wait for
+   **Save**.
 3. Once a machine has more than one profile, a **Profile:** choice appears
-   beside the button. Choosing a profile fills in its account, directories
-   and queue. You can still change them before you launch; the change is
-   kept in the profile that is chosen.
-4. **Delete profile** removes the chosen profile. **Default** cannot be
-   deleted.
+   in the Launcher under the machine. Choosing a profile fills in its
+   account, directories and queue. You can still change them before you
+   launch; the change is kept in the profile that is chosen.
 
 The Launcher opens on the profile you used last on that machine. A
 calculation remembers the profile it was launched with and the account and
@@ -214,6 +217,14 @@ was launched with, whichever profile you have chosen since.
 Profiles are stored in `~/.ECCE/MachProfiles`. The machine settings in
 `~/.ECCE/MachPrefs` are unchanged, and older ECCE versions ignore the new
 file.
+
+When the machine has an **Allocation command**, the Launcher block of the
+Organizer's calculation summary, and the Viewer's **Calculation Summary**,
+show the **Allocation:** the job was submitted under and how much is
+**Left:**. ECCE reads this only over a connection that is already logged
+in; it never asks for a password for it. A calculation launched before the
+account was recorded shows the account of the machine's profile
+**Default**.
 
 ## The `dummy` machine: submitting by hand
 

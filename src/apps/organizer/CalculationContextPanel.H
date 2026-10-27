@@ -71,6 +71,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
 
     // Internal helper functions
     void            createControls();
+    void            refreshAllocation();
     EcceTool*       createToolButton(ResourceTool* resTool);
     wxBoxSizer*     createPropLabel(ResourceProperty* resProp);
     wxBoxSizer*     createPropHolder(ResourceProperty* resProp);

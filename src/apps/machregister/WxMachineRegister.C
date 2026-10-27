@@ -164,6 +164,8 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeCheck = NULL;
     p_defAccount = NULL;
     p_runDir = p_scratchDir = p_userName = NULL;
+    p_profileList = NULL;
+    p_profileAdd = p_profileEdit = p_profileDelete = NULL;
     p_setupNote = NULL;
     p_wrapupNote = NULL;
     p_codePage = NULL;
@@ -443,6 +445,35 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
         reg(mineRows[i].hook, *mineRows[i].ctrl);
     }
     reg("account", p_defAccount);
+
+    //  The four boxes above are the profile Default; more are kept here.
+    p_profileList = new wxListBox(page, wxID_ANY, wxDefaultPosition,
+                                  wxSize(220, 70));
+    p_profileList->SetToolTip("A set of account, run directory, scratch "
+        "directory and queue. The Launcher offers the choice when there is "
+        "more than one. Default is the boxes above.");
+    p_profileAdd = new wxButton(page, wxID_ANY, "Add...");
+    p_profileEdit = new wxButton(page, wxID_ANY, "Edit...");
+    p_profileDelete = new wxButton(page, wxID_ANY, "Delete");
+    wxBoxSizer* profBtns = new wxBoxSizer(wxVERTICAL);
+    profBtns->Add(p_profileAdd, wxSizerFlags().Border(wxBOTTOM, 2));
+    profBtns->Add(p_profileEdit, wxSizerFlags().Border(wxBOTTOM, 2));
+    profBtns->Add(p_profileDelete);
+    wxBoxSizer* profRow = new wxBoxSizer(wxHORIZONTAL);
+    profRow->Add(p_profileList, wxSizerFlags(1).Expand().Border());
+    profRow->Add(profBtns, wxSizerFlags().Border().Top());
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Allocation profiles"),
+              wxSizerFlags().Right().Border().Top());
+    grid->Add(profRow, wxSizerFlags(1).Expand());
+    reg("profiles", p_profileList);
+    reg("profile-add", p_profileAdd);
+    reg("profile-edit", p_profileEdit);
+    reg("profile-delete", p_profileDelete);
+    p_profileAdd->Bind(wxEVT_BUTTON, &WxMachineRegister::onProfileAdd, this);
+    p_profileEdit->Bind(wxEVT_BUTTON, &WxMachineRegister::onProfileEdit, this);
+    p_profileDelete->Bind(wxEVT_BUTTON, &WxMachineRegister::onProfileDelete, this);
+    p_profileList->Bind(wxEVT_LISTBOX, [this](wxCommandEvent&) { refreshProfiles(); });
+    p_profileList->Bind(wxEVT_LISTBOX_DCLICK, &WxMachineRegister::onProfileEdit, this);
 
     grid->Add(new ewxStaticText(page, wxID_ANY, "Connection"),
               wxSizerFlags().Right().Border().CentreVertical());
@@ -2190,6 +2221,7 @@ void WxMachineRegister::draftToControls()
     p_runDir->Enable(!p_adminFlag);
     p_scratchDir->Enable(!p_adminFlag);
     p_userName->Enable(!p_adminFlag);
+    this->refreshProfiles();
     p_autoRefName = "";
 
     for (size_t i = 0; i < p_codePaths.size(); i++)
@@ -3157,6 +3189,192 @@ void WxMachineRegister::saveDefaultAccount(const string& name)
     p_runDirLoaded = boxText(p_runDir);
     p_scratchLoaded = boxText(p_scratchDir);
     p_userLoaded = boxText(p_userName);
+}
+
+
+//  ---- allocation profiles (#541) -------------------------------------------
+
+//  The list of the selected machine's profiles, Default first, and which
+//  buttons apply to the selection. Profiles belong to the user, so there are
+//  none to change when an admin registers a machine or the machine is new.
+void WxMachineRegister::refreshProfiles()
+{
+    if (p_profileList == NULL)
+        return;
+    string keep = p_profileList->GetSelection() == wxNOT_FOUND ? string() :
+                  (string)p_profileList->GetStringSelection().utf8_str();
+    p_profileList->Clear();
+    bool usable = p_slctRgstn != NULL && !p_adminFlag;
+    if (usable)
+    {
+        MachinePreferences* mp = MachinePreferences::lookup(p_slctRgstn->refname());
+        vector<string> names = mp != NULL ? mp->profileNames() :
+            vector<string>(1, AllocationProfiles::defaultName());
+        for (size_t i = 0; i < names.size(); i++)
+            p_profileList->Append(wxString::FromUTF8(names[i].c_str()));
+        if (!keep.empty())
+            p_profileList->SetStringSelection(wxString::FromUTF8(keep.c_str()));
+    }
+    bool sel = p_profileList->GetSelection() != wxNOT_FOUND;
+    bool dflt = sel && AllocationProfiles::isDefault(
+                    (string)p_profileList->GetStringSelection().utf8_str());
+    p_profileList->Enable(usable);
+    p_profileAdd->Enable(usable);
+    p_profileEdit->Enable(usable && sel);
+    p_profileDelete->Enable(usable && sel && !dflt);
+}
+
+
+//  Default is edited through the boxes of the form as well as here, so its
+//  dialog starts from what the boxes hold now.
+bool WxMachineRegister::editProfileDialog(AllocationProfiles::Profile& p,
+                                          bool isNew)
+{
+    if (p_scripted)
+        return false;       // the hook calls storeProfile directly
+
+    wxDialog dlg(this, wxID_ANY, isNew ? wxString("Add allocation profile") :
+                 "Edit profile " + wxString::FromUTF8(p.name.c_str()));
+    wxFlexGridSizer* g = new wxFlexGridSizer(2, 5, 5);
+    g->AddGrowableCol(1);
+    struct { const char* label; string* value; wxTextCtrl* ctrl; } rows[] = {
+        { "Name", &p.name, NULL },
+        { "Account", &p.account, NULL },
+        { "Run directory", &p.rundir, NULL },
+        { "Scratch directory", &p.scratchdir, NULL },
+        { "Default queue", &p.queue, NULL } };
+    for (size_t i = 0; i < 5; i++)
+    {
+        rows[i].ctrl = new wxTextCtrl(&dlg, wxID_ANY,
+            wxString::FromUTF8(rows[i].value->c_str()), wxDefaultPosition,
+            wxSize(280, -1));
+        if (i == 0 && !isNew)
+            rows[i].ctrl->Enable(false);
+        g->Add(new wxStaticText(&dlg, wxID_ANY, rows[i].label), 0,
+               wxALIGN_CENTER_VERTICAL);
+        g->Add(rows[i].ctrl, 1, wxEXPAND);
+    }
+    wxBoxSizer* top = new wxBoxSizer(wxVERTICAL);
+    top->Add(g, 1, wxEXPAND|wxALL, 10);
+    top->Add(dlg.CreateStdDialogButtonSizer(wxOK|wxCANCEL), 0,
+             wxEXPAND|wxALL, 10);
+    dlg.SetSizerAndFit(top);
+    if (dlg.ShowModal() != wxID_OK)
+        return false;
+    for (size_t i = 0; i < 5; i++)
+        *rows[i].value = (string)rows[i].ctrl->GetValue().utf8_str();
+    return true;
+}
+
+
+//  Stores the profile at once (the Launcher reads it from MachPrefs and
+//  MachProfiles). Default also goes into the form's boxes, which hold the
+//  same values, so the form is not left dirty.
+bool WxMachineRegister::storeProfile(const AllocationProfiles::Profile& p)
+{
+    if (p_slctRgstn == NULL || p_adminFlag)
+        return false;
+    const string name = p_slctRgstn->refname();
+    MachinePreferences::lookup(name);       // loads the file
+    MachinePreferences::refresh(true);      // and again, for others' changes
+    MachinePreferences* mp = MachinePreferences::create(name);
+    if (!mp->setProfile(p))
+        return false;
+    MachinePreferences::saveChanges();
+
+    if (AllocationProfiles::isDefault(p.name))
+    {
+        p_accountLoaded = p.account;
+        p_runDirLoaded = p.rundir;
+        p_scratchLoaded = p.scratchdir;
+        p_inCtrlUpdate = true;
+        p_defAccount->ChangeValue(wxString::FromUTF8(p.account.c_str()));
+        p_runDir->ChangeValue(wxString::FromUTF8(p.rundir.c_str()));
+        p_scratchDir->ChangeValue(wxString::FromUTF8(p.scratchdir.c_str()));
+        p_inCtrlUpdate = false;
+    }
+    this->refreshProfiles();
+    this->updateDirty();
+    return true;
+}
+
+
+bool WxMachineRegister::dropProfile(const string& name)
+{
+    if (p_slctRgstn == NULL || p_adminFlag || AllocationProfiles::isDefault(name))
+        return false;
+    MachinePreferences::lookup(p_slctRgstn->refname());
+    MachinePreferences::refresh(true);
+    MachinePreferences* mp = MachinePreferences::create(p_slctRgstn->refname());
+    if (!mp->removeProfile(name))
+        return false;
+    MachinePreferences::saveChanges();
+    p_profileList->SetSelection(wxNOT_FOUND);
+    this->refreshProfiles();
+    return true;
+}
+
+
+void WxMachineRegister::onProfileAdd(wxCommandEvent&)
+{
+    if (p_slctRgstn == NULL)
+        return;
+    AllocationProfiles::Profile p;
+    if (!this->editProfileDialog(p, true))
+        return;
+    p.name = AllocationProfiles::clean(p.name);
+    MachinePreferences* mp = MachinePreferences::lookup(p_slctRgstn->refname());
+    vector<string> have = mp != NULL ? mp->profileNames() : vector<string>();
+    bool exists = false;
+    for (size_t i = 0; i < have.size(); i++)
+        exists = exists || AllocationProfiles::lower(have[i]) ==
+                           AllocationProfiles::lower(p.name);
+    if (!AllocationProfiles::validName(p.name) || exists)
+    {
+        this->displayMessage("Give the profile a name that this machine does "
+                             "not have yet (not " +
+                             string(AllocationProfiles::defaultName()) + ").");
+        return;
+    }
+    this->storeProfile(p);
+}
+
+
+void WxMachineRegister::onProfileEdit(wxCommandEvent&)
+{
+    if (p_slctRgstn == NULL || p_profileList->GetSelection() == wxNOT_FOUND)
+        return;
+    string name = (string)p_profileList->GetStringSelection().utf8_str();
+    MachinePreferences* mp = MachinePreferences::lookup(p_slctRgstn->refname());
+    if (mp == NULL)
+        return;
+    AllocationProfiles::Profile p = mp->getProfile(name);
+    if (AllocationProfiles::isDefault(name))
+    {
+        p.account = boxText(p_defAccount);
+        p.rundir = boxText(p_runDir);
+        p.scratchdir = boxText(p_scratchDir);
+    }
+    if (this->editProfileDialog(p, false))
+    {
+        p.name = name;
+        this->storeProfile(p);
+    }
+}
+
+
+void WxMachineRegister::onProfileDelete(wxCommandEvent&)
+{
+    if (p_slctRgstn == NULL || p_profileList->GetSelection() == wxNOT_FOUND)
+        return;
+    string name = (string)p_profileList->GetStringSelection().utf8_str();
+    if (AllocationProfiles::isDefault(name))
+        return;
+    if (this->ask("Delete profile", "Delete the profile " + name + " of " +
+                  p_slctRgstn->refname() + "? Calculations launched with it "
+                  "keep their own directories.", "",
+                  wxYES_NO|wxICON_QUESTION, "Delete", "Keep", "") == wxID_YES)
+        this->dropProfile(name);
 }
 
 

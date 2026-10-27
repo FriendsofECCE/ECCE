@@ -171,16 +171,6 @@ int LauncherScript::runCommand(const vector<string>& w)
         if (!p_frame->hookProfile(w[1]))
             fail("profile " + w[1] + ": not in the list");
     }
-    else if (cmd == "profile-save" && n == 2)
-    {
-        if (!p_frame->hookSaveProfile(w[1]))
-            fail("profile-save " + w[1] + ": refused");
-    }
-    else if (cmd == "profile-delete" && n == 2)
-    {
-        if (!p_frame->hookDeleteProfile(w[1]))
-            fail("profile-delete " + w[1] + ": no such profile");
-    }
     else if (cmd == "reload")
         p_frame->machRegChanged();
     else if (cmd == "exec" && n >= 2)

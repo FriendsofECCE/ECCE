@@ -15,8 +15,6 @@
  *    rundir PATH           fill the Run Directory field
  *    account NAME          fill the Alloc. Account field
  *    profile NAME          choose an allocation profile, as the choice does
- *    profile-save NAME     "Save as profile..." with this name (no dialog)
- *    profile-delete NAME   delete that profile (no confirmation)
  *    procs N               set the processors, as typed into the field
     click advanced        the Advanced fold button
     username NAME         type into the Username field
@@ -39,8 +37,7 @@
  *                          queue | procs | wsprocs | wsprocsmax | wsprocslabel |
  *                          coreswarn | procsmax | memory | memunits |
  *                          scratchunits | button | account | scratch | profile |
- *                          profiles | profilechoice | profilesave |
- *                          profiledelete
+ *                          profiles | profilechoice
  *    wait MS | shot FILE | quit
  */
 #ifndef WXLAUNCHERSCRIPT_HH

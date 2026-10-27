@@ -17,6 +17,9 @@
  *    expect label FIELD TEXT | enabled FIELD 0|1 | shown FIELD 0|1
 
  *    mark-size | expect size-kept 1   the frame is not smaller than at mark-size
+ *    profile-set NAME [ACCOUNT RUNDIR SCRATCH QUEUE]   Add/Edit dialog's OK for an allocation profile
+ *    profile-select NAME | click profile-delete (answer yes) | click profile-add|profile-edit (no dialog here)
+ *    expect field profiles A,B | enabled profile-delete 0|1   the Machine tab's profile list
  *    click FIELD    a button or checkbox by name, e.g. blk:setup:copy, edit-file, raw:save
  *    shot-dialog FILE | expect raw-dialog 0|1 | contains FIELD TEXT   the Advanced: edit file dialog
  *    (set accepts \\n for a line break in the multi-line boxes)
