@@ -142,8 +142,13 @@ public:
 
   // ECCE opens and owns this host's master (ECCE_SSH_CONTROL_DIR).
   bool ownsMaster() const { return ownsFromDir(); }
-  // The last login dialog for the master was cancelled by the user.
+  // The login for the master was cancelled or not answered in time, by this
+  // process or by another one that had the host's lock first.
   bool loginCancelled() const { return p_cancelled; }
+  // A password for the master was refused, here or in the shared outcome.
+  bool loginRefused() const { return p_refused; }
+  // This process put up the login dialog (the others only waited for it).
+  bool loginPrompted() const { return p_prompted; }
 
 private:
   OpenSshTransport(const OpenSshTransport&);
@@ -179,6 +184,8 @@ private:
   bool nextOverflowMaster(const TransportResult& r);
   void noteForwardingRefused(const TransportResult& r);
   std::string socketFor(int index) const;
+  // The host's current master, kept in <hash>.idx so that every process of
+  // the session agrees on it.
   int overflowIndex() const;
   bool putInto(const std::string& local, const std::string& remote,
                std::string& error);
@@ -188,6 +195,9 @@ private:
   int p_port, p_jumpPort, p_connectTimeout, p_askTimeout;
   bool p_connected;
   bool p_cancelled;
+  bool p_refused;
+  bool p_prompted;
+  mutable int p_usedIdx;   // overflow master the last ssh command line named
 };
 
 #endif

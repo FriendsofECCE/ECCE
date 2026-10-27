@@ -8,6 +8,11 @@
 #   2. the master killed, 4 openers at once: exactly 1 new login (the flock)
 #   3. a known password: 0 dialogs, 1 login
 #   4. after ecce-gateway-reap: no socket, no directory, no master process
+#   5. the first dialog answers after ECCE_SSH_ASK_TIMEOUT, 4 openers: no
+#      libssh fallback, at most 2 dialogs
+#   6. the dialog is cancelled, 4 openers: exactly 1 dialog, all 4 cancelled
+#   7. streams on the overflow master, both masters killed, 4 processes:
+#      exactly 1 new login
 # Own sshd container and port (ECCE_OWNED_PORT); builds in build-ssh in the
 # worktree, untracked. Usage: owned_master_test.sh
 set -eu
@@ -54,9 +59,14 @@ CFG
   ninja -C build-ssh testOwnedMaster >/dev/null
 
   fh=/tmp/fakehome; rm -rf $fh; mkdir -p $fh/bin
+  # $fh/mode: "slow" sleeps on the first dialog only, "cancel" always cancels
   cat > $fh/bin/passdialog <<STUB
 #!/bin/sh
 echo "passdialog \$*" >> \$ASKLOG
+case \$(cat /tmp/fakehome/mode 2>/dev/null) in
+  cancel) exit 1;;
+  slow) if [ ! -e /tmp/fakehome/slowed ]; then : > /tmp/fakehome/slowed; sleep 6; fi;;
+esac
 echo ecce-test
 STUB
   chmod +x $fh/bin/passdialog
@@ -69,6 +79,8 @@ STUB
   scenario() {  # name expected-logins driver-args...
     local n=$1 want=$2; shift 2
     : > $ASKLOG
+    rm -f $fh/slowed $fh/mode
+    [ -z "${MODE:-}" ] || echo $MODE > $fh/mode
     export XDG_RUNTIME_DIR=/tmp/xdg-$n
     rm -rf $XDG_RUNTIME_DIR; install -d -m 700 $XDG_RUNTIME_DIR
     ECCE_SESSION_ID=$(ecce_new_session_id); export ECCE_SESSION_ID
@@ -77,13 +89,15 @@ STUB
     [ -d "$ECCE_SSH_CONTROL_DIR" ] || { echo "FAIL no control directory made"; rc=1; return; }
     [ "$(stat -c %a "$ECCE_SSH_CONTROL_DIR")" = 700 ] || { echo "FAIL mode of the control directory"; rc=1; }
     before=$(logins)
+    # a login nobody answered may leave no master behind; a run of the test
+    # that returns 1 is a failure either way
     build-ssh/testOwnedMaster "$@" || rc=1
     got=$(( $(logins) - before ))
     if [ "$got" = "$want" ]; then echo "ok   sshd saw $got password logins"
     else echo "FAIL sshd saw $got password logins, expected $want"; rc=1; fi
     socks=$(find "$ECCE_SSH_CONTROL_DIR" -type s | wc -l)
     echo "     sockets left by the run: $socks"
-    [ "$socks" -ge 1 ] || { echo "FAIL no master socket"; rc=1; }
+    [ "$socks" -ge "${MINSOCKS:-1}" ] || { echo "FAIL no master socket"; rc=1; }
     # the session is over: no program of it lives, so the reaper sweeps it
     touch -d "10 minutes ago" "$ECCE_SSH_CONTROL_DIR/.born"
     d=$ECCE_SSH_CONTROL_DIR
@@ -101,4 +115,8 @@ STUB
   scenario streams 2 streams 5
   scenario kill 2 kill 4
   scenario prefill 1 prefill
+  # 5: the first answer comes after the (shortened) timeout; 6: cancel
+  MODE=slow ECCE_SSH_ASK_TIMEOUT=2 MINSOCKS=0 scenario slow 0 failing 4
+  MODE=cancel MINSOCKS=0 scenario cancel 0 failing 4
+  scenario bothdead 3 bothdead 4
   exit $rc'

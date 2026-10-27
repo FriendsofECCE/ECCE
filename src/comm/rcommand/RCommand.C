@@ -425,6 +425,7 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
                                  bool* tryLibssh)
 {
   if (tryLibssh) *tryLibssh = false;
+  p_loginCancelled = p_loginPrompted = false;
   OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
   t->setConnectTimeout(RC_CONNECT_TIMEOUT);
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
@@ -438,9 +439,13 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
   string error;
   if (!t->connect(error)) {
     p_errMessage = error;
-    // ECCE's own master could not be opened (not a user's cancel): the
-    // built-in client still logs in with its own password dialog.
+    p_loginCancelled = t->loginCancelled();
+    p_loginPrompted = t->loginPrompted();
+    // ECCE's own master could not be opened for a reason other than the
+    // login (a cancel, no answer or a refused password would only be asked
+    // again): the built-in client still logs in with its own dialog.
     if (tryLibssh && t->ownsMaster() && !t->loginCancelled() &&
+        !t->loginRefused() &&
         !OpenSshTransport::configSharesConnection(machine, userName) &&
         !OpenSshTransport::configProxiesConnection(machine, userName))
       *tryLibssh = true;
@@ -491,7 +496,9 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
 #endif
   }
 #ifdef ECCE_HAVE_LIBSSH
-  return sshConnectLibssh(machine, userName, password, jumpHost);
+  const bool ok = sshConnectLibssh(machine, userName, password, jumpHost);
+  if (ok) p_errMessage.clear();   // the OpenSSH attempt's message is stale
+  return ok;
 #else
   (void)password;
   return false;

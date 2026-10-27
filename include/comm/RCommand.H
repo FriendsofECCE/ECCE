@@ -116,6 +116,11 @@ public:
     int streamFd(void);
 
     string commError(void); // Return error message string
+    // The last connect ended because the login was cancelled or not answered
+    // (here, or in another process that held the host's login), and whether
+    // this process was the one that asked.
+    bool loginCancelled(void) const { return p_loginCancelled; }
+    bool loginPrompted(void) const { return p_loginPrompted; }
     // The last execout() was stopped by its timeout.
     bool timedOut(void) const { return p_timedOut; }
 
@@ -223,6 +228,8 @@ private:
     string p_shell;
     string p_machine;
     string p_errMessage;
+    bool p_loginCancelled = false;
+    bool p_loginPrompted = false;
     bool p_timedOut = false;
     Transport* p_transport;  // null until a connection is made
     bool p_ssh;              // the Transport is a RemoteTransport

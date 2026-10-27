@@ -8,6 +8,7 @@
 #include <cstring>
 #include <ctime>
 #include <map>
+#include <memory>
 #include <set>
 #include <atomic>
 #include <mutex>
@@ -125,8 +126,10 @@ OpenSshTransport::OpenSshTransport(const std::string& host, int port,
                                    const std::string& user)
   : p_host(host), p_user(user), p_program("ssh"), p_port(port), p_jumpPort(0),
     p_connectTimeout(15), p_askTimeout(120), p_connected(false),
-    p_cancelled(false)
+    p_cancelled(false), p_refused(false), p_prompted(false), p_usedIdx(0)
 {
+  const char* t = getenv("ECCE_SSH_ASK_TIMEOUT");
+  if (t && atoi(t) > 0) p_askTimeout = atoi(t);
 }
 
 OpenSshTransport::~OpenSshTransport() {}
@@ -448,7 +451,8 @@ std::vector<std::string> OpenSshTransport::controlArgs() const
     for (size_t i = 0; i < persist.size(); i++)
       if (!isalnum((unsigned char)persist[i])) persist = "8h";
     a.push_back("-o"); a.push_back("ControlMaster=auto");
-    a.push_back("-o"); a.push_back("ControlPath=" + socketFor(overflowIndex()));
+    p_usedIdx = overflowIndex();
+    a.push_back("-o"); a.push_back("ControlPath=" + socketFor(p_usedIdx));
     a.push_back("-o"); a.push_back("ControlPersist=" + persist);
   } else if (legacyOwnsControl()) {
     // Short, so that %C (a hash) keeps the socket under the 108-byte limit.
@@ -486,9 +490,50 @@ bool OpenSshTransport::ownsFromDir() const
 }
 
 namespace {
-std::mutex gIdxMu;
-std::map<std::string, int> gOverflow;   // socket hash -> master in use
 const int kMaxOverflow = 8;
+
+#ifndef O_NOFOLLOW
+#define O_NOFOLLOW 0
+#endif
+
+// Small state files next to the sockets; the directory is ours alone
+// (ownedControlDir), and O_NOFOLLOW keeps a planted link from redirecting them.
+std::string readSmall(const std::string& path)
+{
+  int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+  if (fd < 0) return "";
+  char b[64];
+  ssize_t n = read(fd, b, sizeof b - 1);
+  close(fd);
+  return n > 0 ? std::string(b, n) : "";
+}
+
+void writeSmall(const std::string& path, const std::string& text)
+{
+  int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC,
+                0600);
+  if (fd < 0) return;
+  size_t done = 0;
+  while (done < text.size()) {
+    ssize_t w = write(fd, text.data() + done, text.size() - done);
+    if (w > 0) done += w;
+    else if (!(w < 0 && errno == EINTR)) break;
+  }
+  close(fd);
+}
+
+// One lock per host: the login prompt and the overflow index are the
+// session's, not a process's.  CLOEXEC, so that the master a login leaves
+// behind does not keep the lock.
+struct HostLock {
+  int fd;
+  explicit HostLock(const std::string& path) : fd(open(path.c_str(),
+      O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0600)) {
+    if (fd >= 0)
+      while (flock(fd, LOCK_EX) != 0 && errno == EINTR) {}
+  }
+  ~HostLock() { if (fd >= 0) close(fd); }
+};
 }  // namespace
 
 std::string OpenSshTransport::socketFor(int index) const
@@ -513,9 +558,9 @@ std::string OpenSshTransport::socketFor(int index) const
 
 int OpenSshTransport::overflowIndex() const
 {
-  std::lock_guard<std::mutex> lock(gIdxMu);
-  std::map<std::string, int>::const_iterator i = gOverflow.find(socketFor(0));
-  return i == gOverflow.end() ? 0 : i->second;
+  if (ownedControlDir().empty()) return 0;
+  int i = atoi(readSmall(socketFor(0) + ".idx").c_str());
+  return i < 0 ? 0 : i > kMaxOverflow ? kMaxOverflow : i;
 }
 
 std::string OpenSshTransport::controlSocketPath() const
@@ -535,10 +580,13 @@ bool OpenSshTransport::nextOverflowMaster(const TransportResult& r)
     return false;
   const std::string base = socketFor(0);
   {
-    std::lock_guard<std::mutex> lock(gIdxMu);
-    int& cur = gOverflow[base];
-    if (cur >= kMaxOverflow) return false;
-    cur++;
+    // A process that met the same refusal may have moved on already: join it.
+    HostLock lk(base + ".lock");
+    int cur = overflowIndex();
+    if (cur == p_usedIdx) {
+      if (cur >= kMaxOverflow) return false;
+      writeSmall(base + ".idx", std::to_string(cur + 1) + "\n");
+    }
   }
   // A master another process opened is joined; otherwise open one.
   return masterAlive() || (!p_askpass.empty() && openMaster());
@@ -553,8 +601,9 @@ bool OpenSshTransport::sharedConnection() const
 
 namespace {
 std::mutex gMasterMu;
-// Hosts whose attempt was refused or cancelled, and when: a monitor that
-// reconnects every few seconds must not put up a dialog every time.
+// Hosts that do not use ECCE's master directory: a refused or cancelled
+// attempt, and when, so that a monitor that reconnects every few seconds does
+// not put up a dialog every time.  ECCE's own masters use <hash>.outcome.
 std::map<std::string, time_t> gMasterFailed;
 std::set<std::string> gMasterCancelled;   // of those, the ones the user cancelled
 const int kRetryAfterSec = 120;
@@ -593,32 +642,43 @@ bool OpenSshTransport::wantsMaster(const TransportResult& r) const
 
 bool OpenSshTransport::openMaster()
 {
+  // Recorded before blocking: an outcome written after this was reached while
+  // this caller waited, and answers for it too.
+  const time_t waitedAt = time(0);
   std::lock_guard<std::mutex> lock(gMasterMu);
-  // Another process has the same wish after a dropped link: one holds this
-  // lock and asks, the rest find the master and do not.  CLOEXEC, so that
-  // the master it leaves behind does not keep the lock.
-  struct Lock {
-    int fd;
-    Lock() : fd(-1) {}
-    ~Lock() { if (fd >= 0) close(fd); }
-  } flk;
   const bool owned = ownsFromDir();
+  std::string base, outcomeFile;
+  std::unique_ptr<HostLock> flk;
   if (owned) {
-    flk.fd = open((socketFor(overflowIndex()) + ".lock").c_str(),
-                  O_RDWR | O_CREAT | O_CLOEXEC, 0600);
-    if (flk.fd >= 0) {
-      while (flock(flk.fd, LOCK_EX) != 0 && errno == EINTR) {}
-    }
+    base = socketFor(0);
+    outcomeFile = base + ".outcome";
+    flk.reset(new HostLock(base + ".lock"));
   }
   // Another session may have opened it while this one waited its turn.
   if (masterAlive()) return true;
-  const std::string key = p_configFile + "\n" + p_user + "\n" + p_host + "\n" +
-                          p_jumpHost + "\n" + std::to_string(overflowIndex());
-  std::map<std::string, time_t>::iterator f = gMasterFailed.find(key);
-  if (f != gMasterFailed.end() && time(0) - f->second < kRetryAfterSec) {
-    p_cancelled = gMasterCancelled.count(key) > 0;
-    return false;
+  p_cancelled = p_refused = p_prompted = false;
+  std::string key;
+  if (owned) {
+    // The holder before us asked and was not answered or refused: asking
+    // again straight away would be a second dialog for the same login.
+    long t = 0;
+    char w[16] = "";
+    if (sscanf(readSmall(outcomeFile).c_str(), "%ld %15s", &t, w) == 2 &&
+        strcmp(w, "ok") != 0 &&
+        (t >= waitedAt || time(0) - t < kRetryAfterSec)) {
+      p_cancelled = !strcmp(w, "cancelled") || !strcmp(w, "timeout");
+      p_refused = !p_cancelled;
+      return false;
+    }
+  } else {
+    key = p_configFile + "\n" + p_user + "\n" + p_host + "\n" + p_jumpHost;
+    std::map<std::string, time_t>::iterator f = gMasterFailed.find(key);
+    if (f != gMasterFailed.end() && time(0) - f->second < kRetryAfterSec) {
+      p_cancelled = gMasterCancelled.count(key) > 0;
+      return false;
+    }
   }
+  p_prompted = true;
 
   // ssh asks again after a refusal; askpass records a cancel in this file
   // (its directory is ours alone) so that one cancel is one dialog.
@@ -691,9 +751,12 @@ bool OpenSshTransport::openMaster()
     if (rd >= 0) close(rd);
   }
   bool ok = !r.timedOut && r.status == 0 && masterAlive();
-  p_cancelled = !ok && haveState &&
-                access((stateDir + "/cancelled").c_str(), F_OK) == 0;
-  if (!ok && !p_cancelled) {
+  const bool userCancel = !ok && haveState &&
+                          access((stateDir + "/cancelled").c_str(), F_OK) == 0;
+  // An unanswered prompt is the same to everyone else as a cancelled one.
+  p_cancelled = userCancel || (!ok && r.timedOut);
+  p_refused = !ok && !p_cancelled && mentions(lower(r.err), kLoginText);
+  if (!ok && !userCancel) {
     std::string why = r.timedOut ? "no answer in time" : r.err;
     while (!why.empty() && (why[why.size()-1] == '\n' || why[why.size()-1] == '\r'))
       why.erase(why.size() - 1);
@@ -705,10 +768,16 @@ bool OpenSshTransport::openMaster()
     unlink((stateDir + "/cancelled").c_str());
     rmdir(stateDir.c_str());
   }
-  if (ok) gMasterFailed.erase(key);
-  else gMasterFailed[key] = time(0);
-  if (p_cancelled) gMasterCancelled.insert(key);
-  else gMasterCancelled.erase(key);
+  if (owned) {
+    const char* word = ok ? "ok" : userCancel ? "cancelled"
+                     : r.timedOut ? "timeout" : "failed";
+    writeSmall(outcomeFile, std::to_string((long)time(0)) + " " + word + "\n");
+  } else {
+    if (ok) gMasterFailed.erase(key);
+    else gMasterFailed[key] = time(0);
+    if (p_cancelled) gMasterCancelled.insert(key);
+    else gMasterCancelled.erase(key);
+  }
   return ok;
 }
 
@@ -738,7 +807,7 @@ void OpenSshTransport::explain(TransportResult& r) const
     std::string why = explainFailure(p_host, r.err,
       configSharesConnection(p_host, p_user, p_configFile));
     if (ownsFromDir() && mentions(lower(r.err), kLoginText))
-      why = p_cancelled ? "The login to " + p_host + " was cancelled."
+      why = p_cancelled ? "The login to " + p_host + " was cancelled or not answered."
                         : "The login to " + p_host + " was refused; check the "
                           "user name and password, then try again.";
     if (!why.empty()) { r.error = why; r.status = -1; }
