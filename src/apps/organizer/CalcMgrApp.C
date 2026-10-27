@@ -26,6 +26,7 @@
 //using std::cerr;
 
 #include "tdat/RefMachine.H"
+#include "tdat/QueueMgr.H"
 
 #include "dsm/MachineConfig.H"
 #include "dsm/EDSIFactory.H"
@@ -367,6 +368,9 @@ void CalcMgrApp::msgMachConfChangedMCB(JMSMessage& msg)
 void CalcMgrApp::msgMachRegChangedMCB(JMSMessage& msg)
 {
   RefMachine::markUpdateUserPrefs();
+  //  The queue managers too: a Reconnect after a machine's scheduler was
+  //  changed wrote the old one into the monitor's configuration (#635).
+  QueueManager::finalize();
 
   // Issue #150: Register Machines just reported a save or delete -- the
   // notice must not wait for the window to be reactivated to notice.

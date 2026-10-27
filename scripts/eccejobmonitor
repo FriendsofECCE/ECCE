@@ -1766,7 +1766,15 @@ sub JobCheck
         # what MSYS ps lists too (its rows may start with a status letter).
         my $pidField = 0;
         $cmd = "ps -p $id 2>&1";
-        if (open(QUERY, "$cmd |"))
+        # A pid owned by someone else is not this job: a scheduler's job id
+        # taken for a pid (#635) names a kernel thread that never ends.
+        my @st = (-d "/proc/$id") ? stat("/proc/$id") : ();
+        if (@st && $st[4] != $<)
+        {
+            LogMsg "JobCheck: pid $id belongs to uid $st[4], not to this user";
+            $status = $JOB_STATE_DONE if ($gJobCheckState != $JOB_STATE_NONE);
+        }
+        elsif (open(QUERY, "$cmd |"))
         {
             my $found = 0;
             while (<QUERY>)
