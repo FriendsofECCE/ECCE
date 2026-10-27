@@ -43,6 +43,7 @@
 //   launchjob rerun  <calcURL>                            "Reset for Rerun" (state ready)
 //   launchjob jobid  <calcURL>                            prints the job id Launch parsed
 //   launchjob state  <calcURL>                            prints the run state
+//   launchjob launchdata <calcURL>                        the stored launch settings, one key=value a line
 //   launchjob props  <calcURL>                            one property per line
 //   launchjob restart <calcURL> <deckFile> <deckName>     "Reset for Restart", then
 //                                                         store the edited deck
@@ -749,6 +750,13 @@ int main(int argc, char** argv)
   TaskJob* task = getTask(a[0]);
   if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
   if (mode == "state") { cout << stateName(task->getState()) << endl; return 0; }
+  if (mode == "launchdata") {
+    Launchdata l = task->launchdata();
+    cout << "machine=" << l.machine << "\nqueue=" << l.queue << "\nprocs=" << l.totalprocs
+         << "\nnodes=" << l.nodes << "\nwall=" << l.maxwall << "\nmemory=" << l.maxmemory
+         << "\nrundir=" << l.rundir << "\nprofile=" << l.profile << endl;
+    return 0;
+  }
   if (mode == "props") {
     PropertyTask* pt = dynamic_cast<PropertyTask*>(task);
     if (!pt) { cerr << "not a property task" << endl; return 1; }

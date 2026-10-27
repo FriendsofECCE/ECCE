@@ -27,3 +27,12 @@ stores the message in `runStatusReason` and appends it to the run log
 (`TaskJob::appendJobLogCreating`, which starts the log when the calculation
 has never run); `clearFailure` removes the reason after a successful submit.
 The Organizer status line shows the reason for Ready calculations too.
+
+Launch on: the summary's "Launch on:" choice (and `on=MACHINE`,
+`profile=NAME` before the URLs in the hooks) makes `LaunchBatch::plan` carry
+each calculation's settings over (`carryOver`): cores, nodes, memory and wall
+time cut to the machine's and queue's limits, a queue the machine lacks
+becomes its default. A Shell-manager machine lists no queues, so nothing is
+cut or replaced there. `storeTarget` writes the changed settings just before
+the submit, so a submit that then fails (or a staged machine) still leaves
+them stored. `launchjob launchdata URL` prints them.

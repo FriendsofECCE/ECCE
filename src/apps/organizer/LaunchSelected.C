@@ -7,7 +7,9 @@
 #include <thread>
 
 #include "LaunchSelected.H"
+#include "dsm/MachinePreferences.H"
 #include "dsm/TaskJob.H"
+#include "dsm/AllocationProfiles.H"
 #include "dsm/ResourceDescriptor.H"
 #include "wxgui/WindowShot.H"
 #include "wxgui/WxJMSSubscriber.H"
@@ -33,54 +35,137 @@ string wallText(const string& w)
 
 }
 
-vector<LaunchSelected::Row> LaunchSelected::plan(const vector<TaskJob*>& tasks)
+vector<LaunchSelected::Row> LaunchSelected::plan(const vector<TaskJob*>& tasks,
+    const LaunchBatch::Target& target)
 {
   vector<Row> rows;
   for (TaskJob *t : tasks) {
     Row r;
     r.task = t;
-    r.plan = LaunchBatch::plan(t);
+    r.plan = LaunchBatch::plan(t, target);
     rows.push_back(r);
   }
   return rows;
 }
 
 bool LaunchSelected::confirm(wxWindow *parent, vector<Row>& rows,
+    LaunchBatch::Target& target,
     const std::function<void(const string&)>& openInLauncher, const string& shot)
 {
-  size_t ready = 0;
-  for (const Row& r : rows) if (r.plan.ready) ready++;
-
   ewxDialog dlg(parent, wxID_ANY, "Launch Selected", wxDefaultPosition,
                 wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
-  wxString head;
-  head.Printf(ready == 1 ? "Submit %zu calculation with the launch settings it "
-                           "already stores?"
-                         : "Submit %zu calculations with the launch settings "
-                           "they already store?", ready);
-  top->Add(new wxStaticText(&dlg, wxID_ANY, head), 0, wxALL, 12);
+
+  //  "As set up" keeps each calculation's stored machine; a machine carries
+  //  the settings over to it.
+  wxBoxSizer *onRow = new wxBoxSizer(wxHORIZONTAL);
+  onRow->Add(new wxStaticText(&dlg, wxID_ANY, "Launch on:"), 0,
+             wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  wxChoice *machineChoice = new wxChoice(&dlg, wxID_ANY);
+  machineChoice->SetToolTip("As set up submits each calculation with the machine "
+                            "and settings it stores. A machine submits them all "
+                            "there, with settings cut to its limits.");
+  machineChoice->Append("As set up");
+  vector<string> machines;
+  for (int i = 0; i < MachinePreferences::countItems(); i++) {
+    MachinePreferences *mp = MachinePreferences::getItemAt(i);
+    if (mp && mp->getRegisteredMachine()) {
+      machines.push_back(mp->getItemKey());
+      machineChoice->Append(U(mp->getItemKey()));
+    }
+  }
+  onRow->Add(machineChoice, 0, wxALIGN_CENTER_VERTICAL);
+  wxStaticText *profileLabel = new wxStaticText(&dlg, wxID_ANY, "Profile:");
+  wxChoice *profileChoice = new wxChoice(&dlg, wxID_ANY);
+  onRow->Add(profileLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 8);
+  onRow->Add(profileChoice, 0, wxALIGN_CENTER_VERTICAL);
+  top->Add(onRow, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+
+  wxStaticText *headText = new wxStaticText(&dlg, wxID_ANY, "");
+  top->Add(headText, 0, wxALL, 12);
 
   wxListCtrl *list = new wxListCtrl(&dlg, wxID_ANY, wxDefaultPosition,
-                                    wxSize(760, 300), wxLC_REPORT | wxLC_SINGLE_SEL);
-  const char *cols[] = {"Calculation", "Machine", "Queue", "Cores", "Wall time", "Check"};
-  const int widths[] = {200, 100, 80, 60, 80, 220};
-  for (int i = 0; i < 6; i++) list->AppendColumn(cols[i], wxLIST_FORMAT_LEFT, widths[i]);
-  //  Ready rows first, skipped ones after, so the batch reads as the list.
+                                    wxSize(960, 300), wxLC_REPORT | wxLC_SINGLE_SEL);
+  const char *cols[] = {"Calculation", "Machine", "Queue", "Cores", "Wall time",
+                        "Changed", "Check"};
+  const int widths[] = {150, 80, 70, 55, 75, 420, 80};
+  for (int i = 0; i < 7; i++) list->AppendColumn(cols[i], wxLIST_FORMAT_LEFT, widths[i]);
   vector<size_t> order;
-  for (size_t i = 0; i < rows.size(); i++) if (rows[i].plan.ready) order.push_back(i);
-  for (size_t i = 0; i < rows.size(); i++) if (!rows[i].plan.ready) order.push_back(i);
-  for (size_t k = 0; k < order.size(); k++) {
-    const LaunchBatch::Plan& p = rows[order[k]].plan;
-    long item = list->InsertItem(k, U(p.name));
-    list->SetItem(item, 1, U(p.machine.empty() ? "-" : p.machine));
-    list->SetItem(item, 2, U(p.queue.empty() ? "-" : p.queue));
-    list->SetItem(item, 3, p.procs ? wxString::Format("%lu", p.procs) : wxString("-"));
-    list->SetItem(item, 4, U(wallText(p.wall)));
-    list->SetItem(item, 5, p.ready ? U("OK") : U("Skipped: " + p.problem));
-    if (!p.ready)
-      list->SetItemTextColour(item, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  wxButton *go = new wxButton(&dlg, wxID_OK, "Launch");
+
+  auto refill = [&]() {
+    size_t ready = 0;
+    for (const Row& r : rows) if (r.plan.ready) ready++;
+    wxString head;
+    if (target.any())
+      head.Printf("Submit %zu on %s with the settings below?", ready, U(target.machine));
+    else
+      head.Printf(ready == 1 ? "Submit %zu calculation with the launch settings it "
+                               "already stores?"
+                             : "Submit %zu calculations with the launch settings "
+                               "they already store?", ready);
+    headText->SetLabel(head);
+    list->DeleteAllItems();
+    //  Ready rows first, skipped ones after, so the batch reads as the list.
+    order.clear();
+    for (size_t i = 0; i < rows.size(); i++) if (rows[i].plan.ready) order.push_back(i);
+    for (size_t i = 0; i < rows.size(); i++) if (!rows[i].plan.ready) order.push_back(i);
+    for (size_t k = 0; k < order.size(); k++) {
+      const LaunchBatch::Plan& p = rows[order[k]].plan;
+      long item = list->InsertItem(k, U(p.name));
+      list->SetItem(item, 1, U(p.machine.empty() ? "-" : p.machine));
+      list->SetItem(item, 2, U(p.queue.empty() ? "-" : p.queue));
+      list->SetItem(item, 3, p.procs ? wxString::Format("%lu", p.procs) : wxString("-"));
+      list->SetItem(item, 4, U(wallText(p.wall)));
+      list->SetItem(item, 5, U(p.changes.empty() ? (p.ready && p.retarget ? "none" : "") : p.changes));
+      list->SetItem(item, 6, p.ready ? U("OK") : U("Skipped: " + p.problem));
+      if (!p.ready)
+        list->SetItemTextColour(item, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    }
+    go->Enable(ready > 0);
+  };
+
+  auto replan = [&]() {
+    for (Row& r : rows) r.plan = LaunchBatch::plan(r.task, target);
+    refill();
+  };
+
+  //  The profile row only shows for a machine with more than one profile.
+  auto showProfiles = [&]() {
+    vector<string> names = target.any() ? LaunchBatch::profileNames(target.machine)
+                                        : vector<string>();
+    bool several = names.size() > 1;
+    profileChoice->Clear();
+    for (const string& n : names) profileChoice->Append(U(n));
+    if (several && !profileChoice->SetStringSelection(U(target.profile)))
+      profileChoice->SetStringSelection(U(AllocationProfiles::defaultName()));
+    profileLabel->Show(several);
+    profileChoice->Show(several);
+    dlg.Layout();
+  };
+
+  {
+    int sel = 0;
+    for (size_t i = 0; i < machines.size(); i++)
+      if (machines[i] == target.machine) sel = (int)i + 1;
+    if (target.any() && sel == 0) target = LaunchBatch::Target();
+    machineChoice->SetSelection(sel);
   }
+  if (target.any()) replan(); else refill();
+  showProfiles();
+
+  machineChoice->Bind(wxEVT_CHOICE, [&](wxCommandEvent&) {
+    int k = machineChoice->GetSelection();
+    target = LaunchBatch::Target();
+    if (k > 0) target.machine = machines[k - 1];
+    showProfiles();
+    replan();
+  });
+  profileChoice->Bind(wxEVT_CHOICE, [&](wxCommandEvent&) {
+    int k = profileChoice->GetSelection();
+    target.profile = k >= 0 ? string(profileChoice->GetString(k).ToUTF8()) : string();
+    replan();
+  });
   top->Add(list, 1, wxLEFT | wxRIGHT | wxEXPAND, 12);
 
   wxButton *openBtn = new wxButton(&dlg, wxID_ANY, "Open in Launcher");
@@ -97,8 +182,6 @@ bool LaunchSelected::confirm(wxWindow *parent, vector<Row>& rows,
   });
 
   wxStdDialogButtonSizer *buttons = new wxStdDialogButtonSizer();
-  wxButton *go = new wxButton(&dlg, wxID_OK, "Launch");
-  go->Enable(ready > 0);
   go->SetDefault();
   buttons->AddButton(new wxButton(&dlg, wxID_CANCEL, "Cancel"));
   buttons->AddButton(go);
@@ -144,6 +227,11 @@ void LaunchSelected::run(wxWindow *parent, vector<Row>& rows, bool progress)
       string msg = "Submitting " + std::to_string(n) + " of " +
                    std::to_string(total) + " \xE2\x80\x93 " + r.plan.name;
       if (!pd->Update((int)n - 1, U(msg))) { aborted = true; r.attempted = false; break; }
+    }
+    if (!LaunchBatch::storeTarget(r.task, r.plan)) {
+      r.outcome = "Unable to save launch settings for " + r.plan.name;
+      LaunchBatch::recordFailure(r.task, r.outcome);
+      continue;
     }
     LaunchBatch::Job job(r.task);
     string error;
@@ -197,6 +285,7 @@ string LaunchSelected::report(const vector<Row>& rows)
     else if (!r.attempted) s += "not attempted";
     else if (r.submitted) s += "submitted" + (r.outcome.empty() ? string() : ": " + r.outcome);
     else s += "failed: " + r.outcome;
+    if (r.plan.ready && !r.plan.changes.empty()) s += " [" + r.plan.changes + "]";
     s += "\n";
   }
   return s;

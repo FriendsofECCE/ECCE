@@ -26,11 +26,15 @@ public:
     Row() : task(0), attempted(false), submitted(false) {}
   };
 
-  static std::vector<Row> plan(const std::vector<TaskJob*>& tasks);
+  static std::vector<Row> plan(const std::vector<TaskJob*>& tasks,
+                               const LaunchBatch::Target& target = LaunchBatch::Target());
 
-  /** The summary; true when the user chose Launch. `openInLauncher` gets the
+  /** The summary; true when the user chose Launch. `target` is the machine
+   *  to launch on ("As set up" when empty) and is updated to the user's
+   *  choice; the rows are re-planned when it changes. `openInLauncher` gets the
    *  URL of a skipped calculation. `shot` (test hook): save and return. */
   static bool confirm(wxWindow *parent, std::vector<Row>& rows,
+                      LaunchBatch::Target& target,
                       const std::function<void(const std::string&)>& openInLauncher,
                       const std::string& shot = "");
 

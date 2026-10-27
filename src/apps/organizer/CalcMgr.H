@@ -25,6 +25,7 @@
 #include "util/JMSPublisher.H"
 #include "util/EditListener.H"
 
+#include "comm/LaunchBatch.H"
 #include "dsm/TaskJob.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/ResourceType.H"
@@ -150,7 +151,8 @@ public:
   // Launch Selected (#492); `outcome` and `shot` only for the test hook.
   vector<EcceURL> launchSelection();
   void launchSelected(const vector<EcceURL>& urls, bool interactive,
-                      string *outcome = 0, const string& shot = "");
+                      string *outcome = 0, const string& shot = "",
+                      const LaunchBatch::Target& target = LaunchBatch::Target());
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
   void OnCutClick( wxCommandEvent& event );

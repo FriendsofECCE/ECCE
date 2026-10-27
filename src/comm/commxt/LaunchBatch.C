@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <climits>
 #include <cstdio>
 
 #include "comm/Launch.H"
@@ -14,12 +16,14 @@
 #include "tdat/RefMachine.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/TaskJob.H"
+#include "dsm/AllocationProfiles.H"
 #include "util/EcceMap.H"
 #include "util/StringConverter.H"
 #include "util/TempStorage.H"
 #include "util/TypedFile.H"
 
 using std::string;
+using std::vector;
 
 bool LaunchBatch::wallTimeRequired(MachinePreferences *prefs)
 {
@@ -60,7 +64,146 @@ string LaunchBatch::defaultWallTime(MachinePreferences *prefs,
 }
 
 
-LaunchBatch::Plan LaunchBatch::plan(TaskJob *task)
+static string wallMinutes(const string& w)
+{
+  int d = 0, h = 0, m = 0;
+  sscanf(w.c_str(), "%d %d:%d", &d, &h, &m);
+  return std::to_string(d*24 + h) + ":" + (m < 10 ? "0" : "") + std::to_string(m) + " h";
+}
+
+static string memGB(unsigned long mb)
+{
+  char b[32];
+  snprintf(b, sizeof b, "%g", mb/1024.0);
+  return b;
+}
+
+static string dash(const string& s) { return s.empty() ? "-" : s; }
+
+vector<string> LaunchBatch::profileNames(const string& machine)
+{
+  MachinePreferences *prefs = MachinePreferences::lookup(machine);
+  return prefs ? prefs->profileNames() : vector<string>();
+}
+
+// Another machine: queue, cores, memory and wall time are kept where the
+// machine's queue allows them; account and directories are the profile's.
+static void carryOver(TaskJob *task, Launchdata& l,
+                      const LaunchBatch::Target& target, string& changes,
+                      string& problem)
+{
+  MachinePreferences *prefs = MachinePreferences::lookup(target.machine);
+  RefMachine *rm = prefs ? prefs->getRegisteredMachine() : 0;
+  if (!rm) {
+    problem = "machine \"" + target.machine + "\" is not registered here";
+    return;
+  }
+  const JCode *app = task->application();
+  string code = app ? app->getCodeName() : "";
+  if (!code.empty() && !rm->offersCode(code)) {
+    problem = "code " + code + " is not registered on " + target.machine;
+    return;
+  }
+  const Launchdata old = l;
+  //  The limits that were applied come first: the Organizer column is narrow.
+  vector<string> ch, where;
+  if (old.machine != target.machine)
+    where.push_back("machine " + dash(old.machine) + " \xE2\x86\x92 " + target.machine);
+
+  vector<string> names = prefs->profileNames();
+  string pname = target.profile;
+  if (std::find(names.begin(), names.end(), pname) == names.end())
+    pname = AllocationProfiles::defaultName();
+  AllocationProfiles::Profile prof = prefs->getProfile(pname);
+  l.machine = target.machine;
+  l.profile = AllocationProfiles::isDefault(pname) ? "" : pname;
+  if (l.profile != old.profile)
+    where.push_back("profile " + dash(old.profile.empty() ? "Default" : old.profile) +
+                 " \xE2\x86\x92 " + pname);
+  l.account = prefs->isOptionSupported("AA") ? prof.account : "";
+  if (l.account != old.account)
+    where.push_back("account " + dash(old.account) + " \xE2\x86\x92 " + dash(l.account));
+  l.rundir = prof.rundir;
+  l.scratchdir = prof.scratchdir;
+  if (l.rundir != old.rundir)
+    where.push_back("run directory " + dash(old.rundir) + " \xE2\x86\x92 " + dash(l.rundir));
+  l.remoteShell = prefs->getRemoteShell();
+  l.user = prefs->isOptionSupported("UN") ? prefs->getUsername() : "";
+
+  const QueueManager *qm = QueueManager::lookup(rm->refname());
+  const Queue *q = 0;
+  if (prefs->isOptionSupported("Q")) {
+    const ESQHDict *queues = qm ? qm->queues() : 0;
+    string dflt = prof.queue.empty() ? prefs->getQueueName() : prof.queue;
+    if (queues && !queues->empty()) {
+      if (dflt.empty() || !queues->count(dflt)) dflt = queues->begin()->first;
+      l.queue = queues->count(old.queue) ? old.queue : dflt;
+      q = qm->queue(l.queue);
+    } else {
+      l.queue = old.queue.empty() ? dflt : old.queue;
+    }
+    if (l.queue != old.queue)
+      ch.push_back("queue " + dash(old.queue) + " \xE2\x86\x92 " + dash(l.queue));
+  } else {
+    l.queue = "";
+    l.priority = StringConverter::toString(prefs->getPriority());
+  }
+
+  unsigned long maxP = ULONG_MAX, minP = 1;
+  if (rm->proccount() > 0) maxP = rm->proccount();
+  if (q) {
+    if (q->maxProcessors() > 0) maxP = std::min<unsigned long>(maxP, q->maxProcessors());
+    minP = std::max<unsigned long>(minP, q->minProcessors());
+  }
+  if (old.totalprocs > 0) {
+    l.totalprocs = std::max(std::min(old.totalprocs, maxP), std::min(minP, maxP));
+    if (l.totalprocs != old.totalprocs)
+      ch.push_back(std::to_string(old.totalprocs) + " \xE2\x86\x92 " +
+                   std::to_string(l.totalprocs) + " cores");
+  }
+  if (prefs->isOptionSupported("Q")) {
+    l.nodes = old.nodes;
+    if (rm->nodes() > 0 && l.nodes > rm->nodes()) l.nodes = rm->nodes();
+    if (l.totalprocs > 0 && l.nodes > l.totalprocs) l.nodes = l.totalprocs;
+    if (l.nodes != old.nodes)
+      ch.push_back("nodes " + std::to_string(old.nodes) + " \xE2\x86\x92 " +
+                   std::to_string(l.nodes));
+  } else {
+    l.nodes = 1;
+  }
+
+  l.maxmemory = prefs->isOptionSupported("MM") ? old.maxmemory : 0;
+  if (q && l.maxmemory > 0 && q->memLimit() > 0 && q->memLimit() < (unsigned)INT_MAX &&
+      l.maxmemory > q->memLimit())
+    l.maxmemory = q->memLimit();
+  if (l.maxmemory != old.maxmemory)
+    ch.push_back("memory " + memGB(old.maxmemory) + " \xE2\x86\x92 " +
+                 memGB(l.maxmemory) + " GB");
+  l.minscratch = prefs->isOptionSupported("SS") ? old.minscratch : 0;
+
+  if (!prefs->isOptionSupported("TL")) {
+    l.maxwall = "0 0:0";
+  } else if (!LaunchBatch::noWallTime(old.maxwall)) {
+    int d = 0, h = 0, m = 0;
+    sscanf(old.maxwall.c_str(), "%d %d:%d", &d, &h, &m);
+    long mins = d*1440L + h*60L + m;
+    if (q && q->runLimit() > 0 && mins > (long)q->runLimit()) {
+      mins = q->runLimit();
+      char b[32];
+      snprintf(b, sizeof b, "%ld %ld:%ld", mins/1440, mins%1440/60, mins%60);
+      l.maxwall = b;
+    }
+  }
+  if (l.maxwall != old.maxwall && !(LaunchBatch::noWallTime(l.maxwall) &&
+                                    LaunchBatch::noWallTime(old.maxwall)))
+    ch.push_back("wall time " + wallMinutes(old.maxwall) + " \xE2\x86\x92 " +
+                 wallMinutes(l.maxwall));
+
+  ch.insert(ch.end(), where.begin(), where.end());
+  for (size_t i = 0; i < ch.size(); i++) changes += (i ? "; " : "") + ch[i];
+}
+
+LaunchBatch::Plan LaunchBatch::plan(TaskJob *task, const Target& target)
 {
   Plan p;
   if (!task) { p.problem = "not a calculation"; return p; }
@@ -71,12 +214,23 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task)
   p.queue = l.queue;
   p.wall = l.maxwall;
   p.procs = l.totalprocs;
+  p.data = l;
 
   ResourceDescriptor::RUNSTATE state = task->getState();
   if (state != ResourceDescriptor::STATE_READY &&
       state != ResourceDescriptor::STATE_CREATED) {
     p.problem = "not ready (already submitted or finished)";
     return p;
+  }
+  if (target.any()) {
+    carryOver(task, l, target, p.changes, p.problem);
+    if (!p.problem.empty()) return p;
+    p.retarget = true;
+    p.data = l;
+    p.machine = l.machine;
+    p.queue = l.queue;
+    p.wall = l.maxwall;
+    p.procs = l.totalprocs;
   }
   if (l.machine.empty()) { p.problem = "no machine stored"; return p; }
   MachinePreferences *prefs = MachinePreferences::lookup(l.machine);
@@ -94,6 +248,11 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task)
     p.wall = defaultWallTime(prefs, l.queue);
   p.ready = true;
   return p;
+}
+
+bool LaunchBatch::storeTarget(TaskJob *task, const Plan& plan)
+{
+  return !plan.retarget || task->launchdata(plan.data);
 }
 
 bool LaunchBatch::storeRunDirectory(TaskJob *task)
