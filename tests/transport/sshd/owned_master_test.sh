@@ -14,6 +14,8 @@
 #   6. the dialog is cancelled, 4 openers: exactly 1 dialog, all 4 cancelled
 #   7. streams on the overflow master, both masters killed, 4 processes:
 #      exactly 1 new login
+#   8. three sessions' masters lost at once, two stores each: 1 new login
+#      wanted; fails while each session keeps its own master (#631)
 # Own sshd container and port (ECCE_OWNED_PORT); builds in build-ssh in the
 # worktree, untracked. Usage: owned_master_test.sh
 set -eu
@@ -120,4 +122,15 @@ STUB
   MODE=slow ECCE_SSH_ASK_TIMEOUT=2 MINSOCKS=0 scenario slow 0 failing 4
   MODE=cancel MINSOCKS=0 scenario cancel 0 failing 4
   scenario bothdead 3 bothdead 4
+  # 8 (#631): stores of 3 sessions, every master lost at once. Not swept by
+  # the reaper (the extra directories are not session keys): the container goes.
+  : > $ASKLOG
+  export XDG_RUNTIME_DIR=/tmp/xdg-sessions
+  rm -rf $XDG_RUNTIME_DIR; install -d -m 700 $XDG_RUNTIME_DIR
+  ECCE_SESSION_ID=$(ecce_new_session_id); export ECCE_SESSION_ID
+  ecce_ssh_control_setup
+  echo "=== sessions (control dirs $ECCE_SSH_CONTROL_DIR-s*)"
+  before=$(logins)
+  build-ssh/testOwnedMaster sessions 3 || rc=1
+  echo "     sshd saw $(( $(logins) - before )) password logins (3 sessions + 1 wanted)"
   exit $rc'

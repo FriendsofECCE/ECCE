@@ -1,6 +1,8 @@
 // ECCE's own ssh master (#487) against a real sshd; owned_master_test.sh.
 //   testOwnedMaster streams N   N monitor streams held open at once
 //   testOwnedMaster kill N      master killed under a stream, N openers
+//   testOwnedMaster sessions N  N sessions' masters lost at once, two stores
+//                               each reconnect: one new login wanted (#631)
 //   testOwnedMaster prefill     a known password: no dialog at all
 //   testOwnedMaster failing N   N openers lose the master and the login is
 //                               not answered (ECCE_SSH_ASK_TIMEOUT) or
@@ -17,6 +19,7 @@
 #include <vector>
 
 #include <signal.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -200,6 +203,48 @@ int main(int argc, char** argv)
     check("every process got through", ok == n, std::to_string(ok) + " of " + std::to_string(n));
     check("both masters dead cost exactly one new login",
           dialogs() == 3, std::to_string(dialogs()) + " dialogs in all");
+  } else if (mode == "sessions") {
+    // #631: job stores keep the control directory of the session that
+    // started them.  N sessions each log in, every master dies at once, and
+    // two stores per session reconnect: the user should be asked once.
+    const string base = OpenSshTransport::ownedControlDir();
+    std::vector<string> dirs;
+    std::vector<long> pids;
+    for (int i = 0; i < n; i++) {
+      const string d = base + "-s" + std::to_string(i);
+      mkdir(d.c_str(), 0700);
+      dirs.push_back(d);
+      setenv("ECCE_SSH_CONTROL_DIR", d.c_str(), 1);
+      OpenSshTransport* c = make();
+      string e;
+      check("session " + std::to_string(i) + " logs in", c->connect(e), e);
+      pids.push_back(masterPid(c->controlSocketPath()));
+      delete c;
+    }
+    check("one login per session so far", dialogs() == n, std::to_string(dialogs()));
+    for (size_t i = 0; i < pids.size(); i++) if (pids[i] > 1) kill((pid_t)pids[i], SIGKILL);
+    usleep(500000);
+    const int before = dialogs();
+    std::vector<pid_t> kids;
+    for (int i = 0; i < 2 * n; i++) {
+      pid_t k = fork();
+      if (k == 0) {
+        setenv("ECCE_SSH_CONTROL_DIR", dirs[i % n].c_str(), 1);
+        OpenSshTransport* u = make();
+        _exit(u->run("true").status == 0 ? 0 : 1);
+      }
+      kids.push_back(k);
+    }
+    int ok = 0;
+    for (size_t i = 0; i < kids.size(); i++) {
+      int w = 0;
+      waitpid(kids[i], &w, 0);
+      if (WIFEXITED(w) && WEXITSTATUS(w) == 0) ok++;
+    }
+    check("every store got through", ok == 2 * n, std::to_string(ok) + " of " + std::to_string(2 * n));
+    check("the lost masters of " + std::to_string(n) + " sessions cost one new login",
+          dialogs() - before == 1, std::to_string(dialogs() - before) + " new dialogs");
+    setenv("ECCE_SSH_CONTROL_DIR", base.c_str(), 1);
   } else if (mode == "prefill") {
     OpenSshTransport* t = make("ecce-test");
     TransportResult r = t->run("echo hi");
