@@ -235,19 +235,6 @@ JobProgress::Block JobProgress::queued(double submitted,
 }
 
 
-// ORCA names the parts of the Hessian it has finished; the first word is
-// all a progress field holds.
-static string hessianPart(const string& w)
-{
-  static const char* names[][2] = {
-    {"Occupied/Occupied", "occupied/occupied"}, {"Perturbed", "perturbed density"},
-    {"Nuclear", "nuclear repulsion"}, {"HCore", "HCore and overlap"},
-    {"Exact", "two-electron"}, {"Chain", "COSX"}, {0, 0}};
-  for (int i = 0; names[i][0]; i++)
-    if (w == names[i][0]) return names[i][1];
-  return w;
-}
-
 // The Prepare script announces gmx tool names; the box says what each makes.
 static string prepareStepName(const string& tool)
 {
@@ -382,12 +369,8 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       else if (st.name == "freq" && st.field("kind") == "analytic") {
         first = "analytic Hessian, " + fmt("%.0f", k) + fmt(" of %.0f", n) +
                 " perturbations";
-        if (st.field("phase") == "assemble" && st.field("done") != "yes") {
+        if (st.field("phase") == "assemble" && st.field("done") != "yes")
           first += " \xc2\xb7 assembling the Hessian";
-          if (!st.field("last").empty())
-            first += ", " + hessianPart(st.field("last")) + " done (" +
-                     st.field("secs") + " s)";
-        }
       }
       if (st.name == "prepare") {
         // step k is under way, so the bar counts the finished ones

@@ -108,7 +108,7 @@ case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
      {"opt": {"step": "4", "converged": "yes", "energy": has("-74.9659"),
               "maxgrad": target, "rmsstep": target, "dE": target},
       "freq": {"done": "yes", "zpe": has("0.0243"), "kind": "analytic",
-              "point": "9/9", "phase": "assemble", "last": lambda v: v != ""},
+              "point": "9/9", "phase": "assemble"},
       "scf": {"cycle": lambda v: int(v) >= 1, "dE": target}},
      {"opt": (4, 4)})
 case("orca opt, not converged", "orca.desc", fx("orca", "optmax.out"),
