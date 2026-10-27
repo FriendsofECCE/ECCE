@@ -748,3 +748,22 @@ Value=-
 Begin=^ Zero-Point correction to Energy\s+=.*\(\s*(\d+\.\d+) au\)
 Progress=freq done=yes zpe=$1
 [END]
+
+# The projected frequencies; the rotations and translations print as ~0.
+[PROGRESS]
+Begin=^\s+NORMAL MODE EIGENVECTORS IN CARTESIAN
+Remember=fq_real
+Value=0
+[END]
+
+[PROGRESS]
+Begin=^\s+NORMAL MODE EIGENVECTORS IN CARTESIAN
+Remember=fq_imag
+Value=0
+[END]
+
+[PROGRESS]
+Begin=(?:^ P\.Frequency|(?!^)\G)\s+(-?\d+\.\d+)
+Count=fq
+Progress=freq real={fq_real} imaginary={fq_imag}
+[END]

@@ -454,3 +454,35 @@ Progress=freq point=$1/{nforce}
 Begin=^\s+ZERO POINT ENERGY\s+\S+ KCAL/MOL
 Progress=freq done=yes
 [END]
+
+# The frequency row of each Root No. stanza in the first (non-mass-weighted) block.
+[PROGRESS]
+Begin=^\s+NORMAL COORDINATE ANALYSIS
+Remember=fq_real
+Value=0
+[END]
+
+[PROGRESS]
+Begin=^\s+NORMAL COORDINATE ANALYSIS
+Remember=fq_imag
+Value=0
+[END]
+
+[PROGRESS]
+Begin=^\s+NORMAL COORDINATE ANALYSIS
+Remember=fq_on
+Value=on
+[END]
+
+[PROGRESS]
+Begin=^\s+MASS-WEIGHTED COORDINATE ANALYSIS
+Remember=fq_on
+Value=-
+[END]
+
+[PROGRESS]
+Begin=(?:^|(?!^)\G)\s+(-?\d+\.\d+)(?=(?:\s+-?\d+\.\d+)*\s*$)
+Count=fq
+When=fq_on
+Progress=freq real={fq_real} imaginary={fq_imag}
+[END]

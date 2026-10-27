@@ -259,6 +259,8 @@ vector<string> ProgressBox::describe() const
     for (const JobProgress::Criterion& c : b.criteria)
       out.push_back("  " + c.label + " " + c.value + " " +
                     (c.met ? CHECK : CROSS));
+    if (!b.alert.empty())
+      out.push_back("  " + b.alert + (b.alertBad ? " (unexpected)" : ""));
     if (b.bar) {
       char f[32];
       snprintf(f, sizeof f, "  bar %.2f", b.fraction);
@@ -590,11 +592,21 @@ wxSize ProgressBox::layout(wxDC *dc)
             dc->DrawText(U(b.title), 0, y);
             dc->SetFont(normal);
           }
-          for (const string& l : b.lines)
-            for (const wxString& r : wrapLine(m, l, textAvail)) {
-              if (dc) dc->DrawText(r, x0, y);
+          for (size_t li = 0; li < b.lines.size(); li++) {
+            const vector<wxString> rows = wrapLine(m, b.lines[li], textAvail);
+            for (size_t ri = 0; ri < rows.size(); ri++) {
+              if (dc) dc->DrawText(rows[ri], x0, y);
+              //  The imaginary count follows the last row of the last line.
+              if (dc && !b.alert.empty() && li + 1 == b.lines.size() &&
+                  ri + 1 == rows.size()) {
+                const int ax = x0 + m.GetTextExtent(rows[ri]).x;
+                dc->SetTextForeground(b.alertBad && !lost ? pal.imaginary : fg);
+                dc->DrawText(U(string(MIDDOT) + b.alert), ax, y);
+                dc->SetTextForeground(fg);
+              }
               y += lh;
             }
+          }
           for (size_t i = 0; i < b.criteria.size(); i++) {
             const auto& c = b.criteria[i];
             const int x = x0 + (int)(i % cols) * (cellW + gap);

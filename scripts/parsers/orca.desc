@@ -664,3 +664,22 @@ Progress=freq phase=assemble
 Begin=^Zero point energy\s+\.\.\.\s+(-?\d+\.\d+) Eh
 Progress=freq done=yes zpe=$1
 [END]
+
+# Vibrations counted from the table; the six translations and rotations print as 0.00.
+[PROGRESS]
+Begin=^VIBRATIONAL FREQUENCIES\s*$
+Remember=fq_real
+Value=0
+[END]
+
+[PROGRESS]
+Begin=^VIBRATIONAL FREQUENCIES\s*$
+Remember=fq_imag
+Value=0
+[END]
+
+[PROGRESS]
+Begin=^\s+\d+:\s+(-?\d+\.\d+) cm\*\*-1
+Count=fq
+Progress=freq real={fq_real} imaginary={fq_imag}
+[END]

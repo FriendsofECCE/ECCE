@@ -111,6 +111,26 @@ case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
               "point": "9/9", "phase": "assemble"},
       "scf": {"cycle": lambda v: int(v) >= 1, "dE": target}},
      {"opt": (4, 4)})
+# Mode counts from the printed frequencies (#611): the translations and
+# rotations are skipped, a negative frequency is imaginary.
+case("orca frequency count", "orca.desc", fx("orca", "h2o_freq_raman.out"),
+     {"freq": {"done": "yes", "real": "3", "imaginary": "0"}})
+case("orca frequency count with an imaginary mode", "orca.desc",
+     fx("orca", "ethanol_sym_optfreq.out"),
+     {"freq": {"done": "yes", "real": "20", "imaginary": "1"}})
+case("gaussian-16 frequency count", "gaussian-16.desc",
+     fx("gaussian-16", "h2o_optfreq.log"),
+     {"freq": {"done": "yes", "real": "3", "imaginary": "0"}})
+case("gaussian-16 frequency count with an imaginary mode", "gaussian-16.desc",
+     fx("gaussian-16", "hcn_irc.log"),
+     {"freq": {"done": "yes", "real": "2", "imaginary": "1"}})
+case("nwchem frequency count", "nwchem.desc",
+     fx("nwchem", "h2o_freq_thermo.nwout"),
+     {"freq": {"done": "yes", "real": "3", "imaginary": "0"}})
+case("mopac frequency count (CH4, degenerate modes)", "mopac.desc",
+     fx("mopac", "ch4_force.out"),
+     {"freq": {"done": "yes", "real": "9", "imaginary": "0"}})
+
 case("orca opt, not converged", "orca.desc", fx("orca", "optmax.out"),
      {"opt": {"step": "2", "converged": "no", "maxgrad": target}})
 case("orca numerical frequencies", "orca.desc", fx("orca", "numfreq.out"),

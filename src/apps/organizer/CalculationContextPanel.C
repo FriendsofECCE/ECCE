@@ -345,6 +345,8 @@ void CalculationContextPanel::updateProgress()
   const bool lost = p_calcMgr &&
       p_calcMgr->outOfContact(p_itemData->getResource(), lastHeard, queued);
   if (p_state) p_state->setOutOfContact(lost && !queued);
+  if (ICalculation *calc = dynamic_cast<ICalculation*>(p_itemData->getResource()))
+    p_progressBox->setSearch(JobProgress::searchOf(calc->runtype().name()));
   const bool resized = p_progressBox->set(text, received, finished,
                                           state == ResourceDescriptor::STATE_COMPLETED,
                                           lost ? lastHeard : 0,
