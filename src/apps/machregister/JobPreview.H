@@ -24,6 +24,7 @@ namespace JobPreview
         std::string code, queue, account;
         unsigned nodes, procs, memMB;   // memMB 0: not requested
         double wallHours;               // 0: not requested
+        std::string requestLines; // the queue's extra lines, newline separated
         std::string runDir;       // "" is an example path
         std::string configText;   // the edited file as the form would write it
         bool admin;               // the edited file is the site file

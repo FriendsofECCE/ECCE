@@ -329,6 +329,7 @@ set q-defprocs 4
 set q-defwall 0.5
 set q-defmem 8
 set q-defscratch 2
+set q-request '#SBATCH --constraint=zen4, a|b'
 expect label queue-apply 'Update Queue'
 queue-apply
 set queue long
@@ -349,6 +350,10 @@ quit
     check(all(qk.get(k) == v for k, v in want.items()),
           "cluster.Q holds the defaults in the Launcher's units "
           "(minutes, MB): %r" % {k: qk.get(k) for k in want})
+    check(qk.get("short|requestlines") == "#SBATCH --constraint=zen4, a|b"
+          and "long|requestlines" not in qk,
+          "per-queue request lines are stored in the .Q file, commas and bars intact: %r"
+          % qk.get("short|requestlines"))
     check("long|defrun" not in qk and "long|defscratch" not in qk,
           "an unset default (0) writes no line")
     check(qk.get("short|runlimit") == "60" and qk.get("short|memlimit") == "128000",
@@ -364,7 +369,9 @@ expect field q-defprocs 4
 expect field q-defwall 0.5
 expect field q-defmem 8
 expect field q-defscratch 2
+expect field q-request '#SBATCH --constraint=zen4, a|b'
 set queue long
+expect field q-request ''
 expect field q-defprocs 16
 expect field q-defwall 0
 expect field q-defmem 32

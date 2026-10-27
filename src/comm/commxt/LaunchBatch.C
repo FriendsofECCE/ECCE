@@ -318,6 +318,15 @@ void LaunchBatch::buildArgs(TaskJob *task, EcceMap& kv)
 
   if (prefs && prefs->isOptionSupported("Q")) {
     kv["##queue##"] = l.queue;
+    //  The queue's own request lines, newlines as a literal \n: the param
+    //  file is one value per line.
+    if (const QueueManager *qm = QueueManager::lookup(l.machine))
+      if (const Queue *q = qm->queue(l.queue)) {
+        string r = q->requestLines(), enc;
+        for (size_t i = 0; i < r.size(); i++)
+          if (r[i] == '\n') enc += "\\n"; else enc += r[i];
+        kv["##requestlines##"] = enc;
+      }
     if (prefs->isOptionSupported("AA"))
       //  The account the calculation was launched with; the machine's
       //  current one only for calculations stored before it was recorded.

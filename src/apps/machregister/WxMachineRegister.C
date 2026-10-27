@@ -1615,6 +1615,17 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
                       wxSizerFlags().CentreVertical());
         grid->Add(cell, wxSizerFlags().CentreVertical());
     }
+    //  Lines the job script gets after the generated ones for this queue only,
+    //  e.g. #SBATCH --constraint=zen4, so one host needs one machine entry.
+    p_qRequest = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
+                                 wxSize(-1, 60), wxTE_MULTILINE);
+    p_qRequest->SetToolTip("Extra request lines for this queue, one per line, "
+                           "added to the job script header after the generated "
+                           "ones, e.g. #SBATCH --constraint=zen4");
+    reg("q-request", p_qRequest);
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Request lines"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(p_qRequest, wxSizerFlags(1).Expand().Border());
     sizer->Add(grid, wxSizerFlags().Expand());
 
     p_queueApply = new ewxButton(page, wxID_ANY, "Add Queue");
@@ -2295,6 +2306,7 @@ void WxMachineRegister::clearQueues()
     p_qDefWall->SetValue(0);
     p_qDefMem->SetValue(0);
     p_qDefScratch->SetValue(0);
+    p_qRequest->Clear();
     p_queueName->Clear();
     p_queueFormBase = queueFormRow();
 }
@@ -2329,6 +2341,7 @@ void WxMachineRegister::loadQueues(const string& refName)
         r.defWall = queue->defRun();
         r.defMem = queue->defMemory();
         r.defScratch = queue->defScratch();
+        r.requestLines = queue->requestLines();
         p_queues.push_back(r);
     }
 }
@@ -2379,6 +2392,7 @@ void WxMachineRegister::showQueue(const string& name)
                             ? MemoryUnits::mbToGB(r.defMem) : 0);
         p_qDefScratch->SetValue(r.defScratch != (unsigned)INT_MAX
                                 ? MemoryUnits::mbToGB(r.defScratch) : 0);
+        p_qRequest->ChangeValue(r.requestLines);
         p_queueChoice->SetSelection((int)pos);
     }
     else
@@ -2393,6 +2407,7 @@ void WxMachineRegister::showQueue(const string& name)
         p_qDefWall->SetValue(0);
         p_qDefMem->SetValue(0);
         p_qDefScratch->SetValue(0);
+        p_qRequest->ChangeValue("");
     }
     p_queueFormBase = queueFormRow();
     p_inCtrlUpdate = was;
@@ -2412,6 +2427,15 @@ MCD::QueueRow WxMachineRegister::queueFormRow() const
     r.defWall = (unsigned)(p_qDefWall->GetValue() * 60.0 + 0.5);
     r.defMem = MemoryUnits::gbToMB(p_qDefMem->GetValue());
     r.defScratch = MemoryUnits::gbToMB(p_qDefScratch->GetValue());
+    //  One line per request, no blanks or CRs.
+    std::istringstream in((string)p_qRequest->GetValue());
+    string ln;
+    while (std::getline(in, ln))
+    {
+        ln = strip(ln);
+        if (!ln.empty())
+            r.requestLines += (r.requestLines.empty() ? "" : "\n") + ln;
+    }
     return r;
 }
 
@@ -3732,6 +3756,21 @@ string WxMachineRegister::collectSettings() const
         tmp += "defRun|" + (q.defWall ? StringConverter::toString((int)q.defWall) : string()) + ",";
         tmp += "defMemory|" + (q.defMem ? StringConverter::toString((int)q.defMem) : string()) + ",";
         tmp += "defScratch|" + (q.defScratch ? StringConverter::toString((int)q.defScratch) : string()) + ",";
+        //  The field is split at ',' and '|', so these are %-escaped.
+        string enc;
+        for (size_t k = 0; k < q.requestLines.size(); k++)
+        {
+            char ch = q.requestLines[k];
+            if (ch == '%' || ch == ',' || ch == '|' || ch == '\n')
+            {
+                char b[4];
+                snprintf(b, sizeof b, "%%%02X", (unsigned char)ch);
+                enc += b;
+            }
+            else
+                enc += ch;
+        }
+        tmp += "requestLines|" + enc + ",";
         ret += PM::field("q" + StringConverter::toString((int)i), tmp);
     }
 

@@ -108,6 +108,14 @@ bool generate(const Request& r, vector<Line>& lines, string& err)
           << " -c " << r.code << "\n";
         if (!r.queue.empty())
             f << " -q " << r.queue << "\n";
+        if (!r.requestLines.empty())
+        {
+            string enc;
+            for (size_t i = 0; i < r.requestLines.size(); i++)
+                if (r.requestLines[i] == '\n') enc += "\\n";
+                else enc += r.requestLines[i];
+            f << " -R " << enc << "\n";
+        }
         if (!r.account.empty())
             f << " -a " << r.account << "\n";
         f << " -N " << r.nodes << "\n -n " << r.procs << "\n";

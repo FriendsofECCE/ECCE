@@ -2563,6 +2563,9 @@ bool Launch::instanceScript(EcceMap& kv)
     if (!tmpVal.empty()) { 
       os << " -m " + tmpVal << "\n";
     }
+    if (kv.count("##requestlines##") == 1 && !kv["##requestlines##"].empty()) {
+      os << " -R " + kv["##requestlines##"] << "\n";
+    }
     if (kv.count("##minscratch##") == 1) {
       tmpVal = kv["##minscratch##"];
     } else {

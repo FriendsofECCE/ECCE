@@ -366,6 +366,7 @@ class WxMachineRegister: public ewxFrame
         ewxSpinCtrl         *p_procs, *p_nodes, *p_qMinProcs, *p_qMaxProcs,
                             *p_qMaxMem, *p_qMinScratch, *p_qDefProcs,
                             *p_qDefMem, *p_qDefScratch;
+    ewxTextCtrl* p_qRequest;
         wxSpinCtrlDouble    *p_qMaxWall, *p_qDefWall;   // hours; stored as minutes
         ewxChoice           *p_qmgrChoice, *p_queueChoice;
         ewxCheckBox         *p_allocAccts;

@@ -217,6 +217,13 @@ sent.
 
    A **max** of 0 means no limit. A **default** of 0 means none; the
    Launcher then uses its own.
+
+   **Request lines** holds extra lines for the job script of this queue
+   only, one per line, for example `#SBATCH --constraint=zen4`. They are
+   added to the script header after the generated lines, so one machine
+   entry can serve queues that need different node types. A machine
+   registered without the memory option still gets the **Memory** field in
+   the Launcher when its queue manager is Slurm.
 5. Click **Add Queue**. Repeat from step 3 for each further queue.
    **Remove Queue** deletes the chosen queue and **Remove All** deletes
    all of them.

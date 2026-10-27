@@ -51,6 +51,7 @@ public:
     std::string name;
     unsigned minProcs, maxProcs, defProcs, maxWall, defWall, maxMem, defMem,
              minScratch, defScratch;
+    std::string requestLines;  // extra job-script lines, newline separated
     QueueRow() : minProcs(0), maxProcs(0), defProcs(0), maxWall(0),
                  defWall(0), maxMem(0), defMem(0), minScratch(0),
                  defScratch(0) {}

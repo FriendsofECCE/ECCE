@@ -176,6 +176,8 @@ unsigned int Queue::memLimit(void) const
 { return p_memLimit; }
 unsigned int Queue::defMemory(void) const
 { return p_defMemory; }
+string Queue::requestLines(void) const
+{ return p_requestLines; }
 string Queue::memUnits(void) const
 { return p_memUnits; }
 unsigned int Queue::scratchLimit(void) const
@@ -262,6 +264,8 @@ void Queue::memLimit(unsigned int memLimit)
 { p_memLimit = memLimit; }
 void Queue::defMemory(unsigned int defMemory)
 { p_defMemory = defMemory; }
+void Queue::requestLines(const string& lines)
+{ p_requestLines = lines; }
 void Queue::memUnits(const string& memUnits)
 { p_memUnits = memUnits; }
 void Queue::scratchLimit(unsigned int scratchLimit)
@@ -484,6 +488,20 @@ void Queue::fillAttributesFrom(Preferences& prefs)
 #if (!defined(INSTALL) && defined(DEBUG))
   cout << "Looking Up " << (keyRoot + "scratchLimit") << endl;
 #endif
+  // A .Q value is one line, so the lines are stored joined by a literal \n.
+  if (prefs.getString(keyRoot + "requestLines", stringVal)) {
+    string lines;
+    for (size_t i = 0; i < stringVal.size(); i++) {
+      if (stringVal[i] == '\\' && i + 1 < stringVal.size() &&
+          stringVal[i + 1] == 'n') {
+        lines += '\n';
+        i++;
+      } else {
+        lines += stringVal[i];
+      }
+    }
+    requestLines(lines);
+  }
   if (prefs.getInt(keyRoot + "scratchLimit", intVal)) {
     scratchLimit(intVal);
   }

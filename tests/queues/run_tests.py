@@ -269,7 +269,8 @@ class Gensub(object):
             h.write("NWChem: /opt/codes/nwchem\nMOPAC: /opt/codes/mopac\n"
                     "perlPath: /usr/bin\n" + extra)
 
-    def script(self, mgr, code, p, host="goldhost", name="gold", rundir="/qtest/run"):
+    def script(self, mgr, code, p, host="goldhost", name="gold", rundir="/qtest/run",
+               request=""):
         name_c, infile, outfile = CODES[code]
         lines = ["-Q %s" % MANAGERS[mgr][0], "-H %s" % host, "-d localhost",
                  "-c %s" % name_c, "-n %d" % p["procs"], "-N %d" % p["nodes"],
@@ -281,6 +282,8 @@ class Gensub(object):
             lines.append("-m %d" % p["mem"])
         if p["account"]:
             lines.append("-a " + p["account"])
+        if request:
+            lines.append("-R " + request)
         if p["wall"]:
             lines += ["-T " + p["wall"], "-w " + p["hrmin"]]
         params = os.path.join(self.tmp, "subParams")
@@ -347,6 +350,7 @@ def goldenSuite(args, rep):
             rep.done()
         snippetCases(g, rep, args)
         spacedRunDir(g, rep)
+        requestLines(g, rep)
         realParsers(g, rep, args)
     finally:
         g.close()
@@ -370,6 +374,28 @@ def spacedRunDir(g, rep):
     rep.check(not bare, "no line names it unquoted%s" % (": %r" % bare[:3] if bare else ""))
     for prob in notShell(text):
         rep.check(False, prob)
+    rep.done()
+
+
+def requestLines(g, rep):
+    """A queue's own request lines (-R, \\n between lines) follow the generated
+    header, inside it, and an old caller without -R gets the unchanged script."""
+    rep.row("golden", "slurm", "-", "per-queue request lines")
+    plain = g.script("slurm", "mopac", PROFILES["basic"], name="rl0")
+    text = g.script("slurm", "mopac", PROFILES["basic"], name="rl1",
+                    request="#SBATCH --constraint=zen4\\n#SBATCH --gres=gpu:1")
+    lines = text.splitlines()
+    try:
+        c = lines.index("#SBATCH --constraint=zen4")
+        gpu = lines.index("#SBATCH --gres=gpu:1")
+        err = lines.index("#SBATCH --error=slurm.err")
+    except ValueError:
+        rep.check(False, "request lines are in the script")
+        rep.done()
+        return
+    rep.check(err < c < gpu, "they come after the generated #SBATCH lines")
+    rep.check(not any("--constraint" in l for l in plain.splitlines()),
+              "without -R the script has none")
     rep.done()
 
 
