@@ -168,6 +168,62 @@ Begin=^\s+OPT\| RMS step size\s+(\d\S*)\s*$
 Progress=opt rmsstep=$1/{srms}
 [END]
 
+# CP2K before 2024 prints each step as "Informations at step = N" with the
+# value line before its limit, so the value is remembered and the step's
+# field written from the limit line.
+[PROGRESS]
+Begin=Informations at step =\s+(\d+)
+Progress=opt step=$1
+[END]
+
+[PROGRESS]
+Begin=^\s+Total Energy\s+=\s+(-?\d\S*)\s*$
+Progress=opt energy=$1
+History=energy
+[END]
+
+[PROGRESS]
+Begin=^\s+Max\. step size\s+=\s+(\d\S*)\s*$
+Remember=vmaxstep
+[END]
+
+[PROGRESS]
+Begin=^\s+Conv\. limit for step size\s+=\s+(\d\S*)\s*$
+Progress=opt maxstep={vmaxstep}/$1
+[END]
+
+[PROGRESS]
+Begin=^\s+RMS step size\s+=\s+(\d\S*)\s*$
+Remember=vrmsstep
+[END]
+
+[PROGRESS]
+Begin=^\s+Conv\. limit for RMS step\s+=\s+(\d\S*)\s*$
+Progress=opt rmsstep={vrmsstep}/$1
+[END]
+
+[PROGRESS]
+Begin=^\s+Max\. gradient\s+=\s+(\d\S*)\s*$
+Remember=vmaxgrad
+[END]
+
+[PROGRESS]
+Begin=^\s+Conv\. limit for gradients\s+=\s+(\d\S*)\s*$
+Progress=opt maxgrad={vmaxgrad}/$1
+History=maxgrad
+[END]
+
+[PROGRESS]
+Begin=^\s+RMS gradient\s+=\s+(\d\S*)\s*$
+Remember=vrmsgrad
+[END]
+
+[PROGRESS]
+Begin=^\s+Conv\. limit for RMS grad\.\s+=\s+(\d\S*)\s*$
+Progress=opt rmsgrad={vrmsgrad}/$1
+History=rmsgrad
+[END]
+
 [PROGRESS]
 Begin=^\s+\*\*\* GEOMETRY OPTIMIZATION COMPLETED \*\*\*
 Progress=opt converged=yes
