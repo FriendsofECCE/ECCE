@@ -660,6 +660,20 @@ Begin=^SCF HESSIAN\s*$
 Progress=freq phase=assemble
 [END]
 
+# The parts of the Hessian as ORCA finishes them (the one under way has no
+# end of line yet): which came last, without its time.  Only between SCF
+# HESSIAN and the zero point energy; the CP-SCF prints '=>' lines too.
+[PROGRESS]
+Begin=^SCF HESSIAN\s*$
+Remember=hasm
+Value=freq
+[END]
+
+[PROGRESS]
+Begin=^\s+=> (\S+).*?\.\.\.\s+done
+Progress={hasm} phase=assemble last=$1
+[END]
+
 [PROGRESS]
 Begin=^Zero point energy\s+\.\.\.\s+(-?\d+\.\d+) Eh
 Progress=freq done=yes zpe=$1
@@ -682,4 +696,10 @@ Value=0
 Begin=^\s+\d+:\s+(-?\d+\.\d+) cm\*\*-1
 Count=fq
 Progress=freq real={fq_real} imaginary={fq_imag}
+[END]
+
+[PROGRESS]
+Begin=^Zero point energy\s+\.\.\.
+Remember=hasm
+Value=-
 [END]
