@@ -201,10 +201,11 @@ bool MullikenPanel::Create(IPropCalculation *calculation,
   p_treelist->AddColumn (_T("#"), 25, wxALIGN_LEFT);
   p_treelist->SetColumnEditable (1, false);
   p_treelist->SetColumnAlignment (1, wxALIGN_LEFT);
-  p_treelist->AddColumn (_T("Atom"), 40, wxALIGN_LEFT);
+  p_treelist->AddColumn (_T("Atom"), FromDIP(52), wxALIGN_LEFT);
   p_treelist->SetColumnEditable (2, false);
   p_treelist->SetColumnAlignment (1, wxALIGN_LEFT);
-  p_treelist->AddColumn (_T(""), 100, wxALIGN_LEFT);
+  //  Says what each value is: the atom's total or one of its shells.
+  p_treelist->AddColumn (_T("Contribution"), 100, wxALIGN_LEFT);
   p_treelist->SetColumnEditable (2, false);
   p_treelist->SetColumnAlignment (2, wxALIGN_LEFT);
   p_treelist->AddColumn (_T("Value"), 100, wxALIGN_CENTER);
