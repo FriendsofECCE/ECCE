@@ -180,6 +180,11 @@ void ewxMessageDialog::OnButtonClick( wxCommandEvent& event )
 // It also says whether the parent window is frozen.
 int ewxMessageDialog::ShowModal()
 {
+  // GTK focuses the first button, which is Cancel there; Return must press
+  // the default button the dialog shows (#634).  After the map, or GTK
+  // moves the focus again.
+  if (wxWindow * def = GetDefaultItem())
+    CallAfter([def]() { def->SetFocus(); });
   const char * secs = getenv("ECCE_TEST_DIALOG_CLOSE");
   if (!secs)
     return ewxDialog::ShowModal();

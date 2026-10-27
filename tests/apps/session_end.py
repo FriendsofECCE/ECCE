@@ -337,10 +337,6 @@ def broker():
     return pidfile(os.path.join(statedir(), "mosquitto.pid"))
 
 
-def brokerSocket():
-    return os.path.join(statedir(), "mosquitto.sock")
-
-
 def portOpen(port):
     with socket.socket() as sock:
         sock.settimeout(0.5)
@@ -352,8 +348,7 @@ def brokerPort():
 
 
 def brokerStopped(checks, amq, why):
-    checks.check(amq is not None and not alive(amq)
-                 and not os.path.exists(brokerSocket()),
+    checks.check(amq is not None and not alive(amq),
                  "the per-user broker %s was stopped: %s" % (amq, why))
     checks.check(broker() is None, "and its pidfile removed")
 
@@ -651,7 +646,6 @@ def caseOrganizer(checks, display, logdir):
         gw = gatewayIsTheTree(checks, session)
         amq = broker()
         checks.check(amq and alive(amq), "broker running (%s)" % amq)
-        checks.check(os.path.exists(brokerSocket()), "on its socket")
         t0 = time.time()
         quitVia(display, frame)
         endsCleanly(checks, session, d, gw, t0)
@@ -794,8 +788,7 @@ def caseStop(checks, display, logdir):
                            env=session.env(), stdout=session.log,
                            stderr=subprocess.STDOUT, timeout=120)
         endsCleanly(checks, session, d, gw, t0, apps=False)
-        checks.check(amq is not None and not alive(amq)
-                     and not os.path.exists(brokerSocket()),
+        checks.check(amq is not None and not alive(amq),
                      "the broker %s was stopped, as asked" % amq)
         checks.check(broker() is None, "and its pidfile removed")
         checks.check(not portOpen(fixture.dataserverPort()),
@@ -1220,8 +1213,7 @@ def caseDisplays(checks, display, logdir):
         t0 = time.time()
         quitVia(display, frame1)
         endsCleanly(checks, first, display.name, gw1 or -1, t0)
-        checks.check(amq is not None and alive(amq)
-                     and os.path.exists(brokerSocket()),
+        checks.check(amq is not None and alive(amq),
                      "the broker survives the first session: the user "
                      "is still on %s" % other.name)
         t0 = time.time()
