@@ -6,6 +6,7 @@
 #include <map>
 #include <utility>
 #include "wxgui/SliderCombo.H"
+#include "tdat/SpinTables.H"
 
 #include "MoGUI.H"
 #include <set>
@@ -162,12 +163,13 @@ class MoPanel : public MoGUI,
      void sortTable(int col, bool ascending);
      void showMainView();
      struct SpinData {
-        struct Somo { int mo; bool beta; double energy; std::string main; };
+        struct Somo { int mo; bool beta; double energy; std::string main;
+                     std::string full; };
         std::string message;            // set when there is nothing to tabulate
         std::vector<Somo> somos;
         bool haveBasis = false;
         std::string why;                // why the populations are missing
-        std::vector<std::pair<std::string,double> > populations;
+        std::vector<SpinTables::Population> populations;
      };
      SpinData spinDensityData();
      void fillSpinView();
@@ -271,6 +273,7 @@ class MoPanel : public MoGUI,
       wxScrolledWindow *p_spinView = NULL;   // the spin density view
       wxStaticText *p_spinNote = NULL, *p_spinPopHead = NULL;
       wxGrid *p_spinSomo = NULL, *p_spinPop = NULL;
+      std::vector<std::string> p_spinSomoFull;   // tooltip per SOMO row
       bool p_spinShown = false;
       //  One atom: each orbital's shell ("1s", "2p", "3s (virtual)"), alpha
       //  then beta, replacing the symmetry label; empty for a molecule.

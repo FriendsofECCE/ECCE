@@ -22,6 +22,7 @@
 
 #include "dsm/ICalcUtils.H"
 #include "tdat/MoAoBasis.H"
+#include "tdat/SpinTables.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
@@ -40,6 +41,7 @@
 #include "wxgui/ewxMessageDialog.H"
 #include "XYPlotCanvas.H"
 #include "wxgui/ewxProgressDialog.H"
+#include "util/ProgressMonitor.H"
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
@@ -243,6 +245,16 @@ bool MoPanel::Create(IPropCalculation *calculation,
    };
    p_spinSomo = makeGrid();
    p_spinPop = makeGrid();
+   //  A composition cell shows the leading atoms; the tooltip has them all.
+   p_spinSomo->GetGridWindow()->Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
+      e.Skip();
+      wxGrid *g = p_spinSomo;
+      int row = g->YToRow(g->CalcUnscrolledPosition(e.GetPosition()).y);
+      wxString tip;
+      if (row >= 0 && row < (int)p_spinSomoFull.size())
+         tip = wxString::FromUTF8(p_spinSomoFull[row].c_str());
+      g->GetGridWindow()->SetToolTip(tip);
+   });
    spinSizer->Add(p_spinNote, 0, wxGROW|wxALL, 5);
    spinSizer->Add(p_spinSomo, 0, wxGROW|wxLEFT|wxRIGHT, 5);
    spinSizer->Add(p_spinPopHead, 0, wxGROW|wxALL, 5);
@@ -1436,6 +1448,32 @@ void MoPanel::showComposition()
    p_compText->ChangeValue(text);
 }
 
+namespace {
+//  The grid computation reports through this; the dialog, with Cancel, only
+//  appears once the computation has run long enough to need it.
+class ComputeProgress : public ProgressMonitor
+{
+  public:
+    explicit ComputeProgress(wxWindow *parent) : p_parent(parent), p_dlg(0) {}
+    ~ComputeProgress() { if (p_dlg) p_dlg->Destroy(); }
+    bool isInterrupted(const string& msg, int pct)
+    {
+      if (p_dlg == 0) {
+        if (p_watch.Time() < 500) return false;
+        p_dlg = new ewxProgressDialog("ECCE Compute MOs", msg, 100, p_parent,
+            wxPD_AUTO_HIDE|wxPD_CAN_ABORT|wxPD_ELAPSED_TIME|wxPD_SMOOTH);
+        p_dlg->Show();
+      }
+      return p_dlg->isInterrupted(msg, pct);
+    }
+  private:
+    wxWindow *p_parent;
+    ewxProgressDialog *p_dlg;
+    wxStopWatch p_watch;
+};
+}
+
+
 void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
 {
    WxVizToolFW& fw = getFW();
@@ -1461,18 +1499,9 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    // Take the focus
    setFocus(true);
 
-   ewxProgressDialog *dlg = 0;
-   dlg = new ewxProgressDialog ("ECCE Compute MOs","Initializing...",100,0,
-   wxPD_AUTO_HIDE|wxPD_CAN_ABORT|wxPD_ELAPSED_TIME|wxPD_SMOOTH);
-   wxPoint pos = wxGetMousePosition();
-   dlg->SetSize(pos.x, pos.y, -1, -1);
-   // NOte might also want to just call CenterOnParent()
-   // Wasn't sure it was 'nice' to obscure the viewer.
-   dlg->Show();
+   ComputeProgress progress(this);
 
-
-
-   Command *cmd = new ComputeMoCmd("Compute Mo", &sg, expt,dlg);
+   Command *cmd = new ComputeMoCmd("Compute Mo", &sg, expt, &progress);
 
    string fieldtype = "MO";
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
@@ -1503,7 +1532,6 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    cmd->getParameter("fromZ")->setDouble(fromz);
    cmd->getParameter("toZ")->setDouble(toz);
    fw.execute(cmd);
-   dlg->Show(false);  // make sure it goes away
 
    //  Coefficients that do not fit the basis are not a zero grid, and the
    //  grid still holds the previous orbital: say what is wrong and stop.
@@ -2582,25 +2610,18 @@ MoPanel::SpinData MoPanel::spinDensityData()
       for (size_t i = 0; i < net[set].size(); i++) {
          if (fabs(net[set][i]) < 1e-6) continue;
          MoAoBasis::Composition comp;
-         string main;
+         string main, full;
          if (haveBasis && i < p_aoRows[set].size() &&
              p_aoBasis->analyse(p_aoRows[set][i], MoAoBasis::MULLIKEN, comp)) {
             for (size_t a = 0; a < comp.atoms.size() && a < natoms; a++) {
                spinPop[a] += net[set][i] * comp.atoms[a].share;
                atomName[a] = comp.atoms[a].label;
             }
-            vector<MoAoBasis::Share> parts = comp.atoms;
-            std::stable_sort(parts.begin(), parts.end(),
-               [](const MoAoBasis::Share& x, const MoAoBasis::Share& y) {
-                  return x.share > y.share; });
-            int shown = 0;
-            for (size_t k = 0; k < parts.size() && shown < 3; k++) {
-               if (parts[k].share < 0.10) break;
-               char buf[96];
-               snprintf(buf, sizeof buf, "%s%s %.0f%%", shown++ ? ", " : "",
-                        parts[k].label.c_str(), 100.0*parts[k].share);
-               main += buf;
-            }
+            vector<SpinTables::Part> parts;
+            for (size_t a = 0; a < comp.atoms.size(); a++)
+               parts.push_back({ comp.atoms[a].label, comp.atoms[a].share });
+            main = SpinTables::compositionText(parts);
+            full = SpinTables::fullCompositionText(parts);
          }
          // A beta orbital is singly occupied only where the alpha one is not.
          if (unrestricted && set == 1 && i < net[0].size() && net[0][i] != 0.0)
@@ -2608,15 +2629,13 @@ MoPanel::SpinData MoPanel::spinDensityData()
          if (unrestricted && set == 0 && i < net[1].size() && net[1][i] != 0.0)
             continue;
          data.somos.push_back({ (int)(i + 1), set == 1,
-                                i < en.size() ? en[i] : 0.0, main });
+                                i < en.size() ? en[i] : 0.0, main, full });
       }
    }
 
    data.haveBasis = haveBasis;
    if (haveBasis) {
-      for (size_t a = 0; a < natoms; a++)
-         if (fabs(spinPop[a]) >= 0.0005)
-            data.populations.push_back({ atomName[a], spinPop[a] });
+      data.populations = SpinTables::populations(atomName, spinPop);
    } else {
       data.why = p_aoWhy;
    }
@@ -2646,8 +2665,10 @@ void MoPanel::fillSpinView()
    };
    static const char *const somoHeads[] = { "MO", "Spin", "E (Hartree)",
                                             "Main atoms" };
-   static const char *const popHeads[] = { "Atom", "Spin population" };
+   static const char *const popHeads[] = { "Atom", "Spin population (e)",
+                                           "Share (%)" };
    const bool somoTable = data.message.empty() && !data.somos.empty();
+   p_spinSomoFull.clear();
    reset(p_spinSomo, somoHeads, 4, somoTable ? (int)data.somos.size() : 0);
    for (size_t r = 0; somoTable && r < data.somos.size(); r++) {
       const SpinData::Somo& s = data.somos[r];
@@ -2655,6 +2676,8 @@ void MoPanel::fillSpinView()
       p_spinSomo->SetCellValue(r, 1, s.beta ? "beta" : "alpha");
       p_spinSomo->SetCellValue(r, 2, wxString::Format("%.6f", s.energy));
       p_spinSomo->SetCellValue(r, 3, wxString::FromUTF8(s.main.c_str()));
+      p_spinSomo->SetCellRenderer(r, 3, new wxGridCellAutoWrapStringRenderer);
+      p_spinSomoFull.push_back(s.full);
       for (int c = 0; c < 3; c++)
          p_spinSomo->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
    }
@@ -2670,13 +2693,14 @@ void MoPanel::fillSpinView()
             "for this calculation") +
             (data.why.empty() ? wxString("")
                : ": " + wxString::FromUTF8(data.why.c_str())) + ".");
-   reset(p_spinPop, popHeads, 2, popTable ? (int)data.populations.size() : 0);
+   reset(p_spinPop, popHeads, 3, popTable ? (int)data.populations.size() : 0);
    for (size_t r = 0; popTable && r < data.populations.size(); r++) {
-      p_spinPop->SetCellValue(r, 0,
-            wxString::FromUTF8(data.populations[r].first.c_str()));
-      p_spinPop->SetCellValue(r, 1,
-            wxString::Format("%.3f", data.populations[r].second));
-      p_spinPop->SetCellAlignment(r, 1, wxALIGN_RIGHT, wxALIGN_CENTRE);
+      const SpinTables::Population& p = data.populations[r];
+      p_spinPop->SetCellValue(r, 0, wxString::FromUTF8(p.atom.c_str()));
+      p_spinPop->SetCellValue(r, 1, wxString::Format("%.3f", p.spin));
+      p_spinPop->SetCellValue(r, 2, wxString::Format("%.1f", p.share));
+      for (int c = 1; c < 3; c++)
+         p_spinPop->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
    }
    p_spinSomo->Show(somoTable);
    p_spinPop->Show(popTable);
@@ -2709,7 +2733,9 @@ void MoPanel::layoutSpinView()
          g->SetColSize(c, g->GetColSize(c) + 12);   // AutoSize clips right-aligned text
          used += g->GetColSize(c);
       }
-      g->SetColSize(last, std::max(g->GetColSize(last), width - 2 - used));
+      //  Exactly the rest: a wider last column pushes its text past the grid.
+      g->SetColSize(last, std::max(60, width - 2 - used));
+      if (g == p_spinSomo) g->AutoSizeRows();   // wrapped text grows its row
       int h = g->GetColLabelSize() + 4;
       for (int r = 0; r < g->GetNumberRows(); r++) h += g->GetRowSize(r);
       g->SetMinSize(wxSize(width, h));

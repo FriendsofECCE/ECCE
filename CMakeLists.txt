@@ -1998,6 +1998,12 @@ add_test(NAME radialdist
 set_tests_properties(radialdist PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=radialdist;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/radialdist-home")
 
+# tests/tdat/spintables_test: composition text, ordering and share in the
+# MOs panel's spin density tables.
+add_executable(spintables_test tests/tdat/spintables_test.C)
+target_link_libraries(spintables_test PRIVATE eccetdat ecceutil)
+add_test(NAME spintables COMMAND spintables_test)
+
 # tests/tdat/spindensity_test: the spin density integrates to Nalpha - Nbeta.
 add_executable(spindensity_test tests/tdat/spindensity_test.C)
 target_include_directories(spindensity_test PRIVATE ${XercesC_INCLUDE_DIRS})

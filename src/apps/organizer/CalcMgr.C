@@ -1331,6 +1331,29 @@ void CalcMgr::runTestCommand(const string& line)
       vector<EcceURL> used = launchSelection();
       outcome = "ok " + std::to_string(used.size());
       for (size_t i = 0; i < used.size(); i++) outcome += " " + used[i].toString();
+    } else if (command == "projectcontextmenu") {
+      // "projectcontextmenu URL...": selects those rows in the project table
+      // as launchselectionrows does, then lists the item labels the table's
+      // right-click menu offers (joined by |).
+      std::istringstream args(calcName);
+      string u;
+      vector<EcceURL> urls;
+      while (args >> u) urls.push_back(EcceURL(u));
+      WxResourceTreeItemData *parent = urls.empty() ? 0 :
+          findNode(urls[0].getParent(), true, true);
+      if (parent) {
+        p_treeCtrl->SelectItem(parent->GetId());
+        for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
+      }
+      if (p_contextPanel) p_contextPanel->selectResources(urls);
+      wxMenu menu;
+      getContextMenu(menu);
+      outcome = "ok";
+      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
+        wxMenuItem *it = menu.FindItemByPosition(i);
+        if (!it->IsSeparator())
+          outcome += "|" + string(it->GetItemLabelText().ToUTF8());
+      }
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
       // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered
@@ -5267,6 +5290,21 @@ void CalcMgr::getContextMenu(wxMenu & menu)
         can ? _("Duplicate with the last geometry and start from this "
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
+  }
+  //  Several calculation rows selected in the project table: the tree's own
+  //  selection is then the project, so the batch items come from the same
+  //  rows Launch Selected itself would use.
+  if (!isCalculationNode) {
+    vector<EcceURL> rows = launchSelection();
+    bool allCalcs = rows.size() > 1;
+    for (size_t i = 0; allCalcs && i < rows.size(); i++) {
+      WxResourceTreeItemData *n = findNode(rows[i], false, true);
+      allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
+    }
+    if (allCalcs) {
+      menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+      menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+    }
   }
   menu.Append(wxID_RENAME, wxT("&Rename"));
   menu.Enable(wxID_RENAME, true);

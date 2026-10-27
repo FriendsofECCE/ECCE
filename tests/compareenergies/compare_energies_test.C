@@ -1,7 +1,9 @@
 // compareEnergies on constructed entries, differences worked out by hand.
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <string>
+#include <vector>
 
 #include "CompareEnergies.H"
 
@@ -62,6 +64,21 @@ int main()
   b.exists = false;
   c = compareEnergies(a, b);
   check(!c.ok && has(c.notes[0], "cannot be read"), "unreadable calculation");
+
+  check(calcNameLess("C2", "C10") && !calcNameLess("C10", "C2"),
+        "numbers in names compare as numbers");
+  check(calcNameLess("alpha", "Beta") && calcNameLess("Beta", "gamma"),
+        "case is ignored");
+  check(!calcNameLess("Li", "li") && !calcNameLess("li", "Li"),
+        "names equal but for case are equal");
+  check(calcNameLess("H2O", "H2O 2") && calcNameLess("x02", "x10") &&
+        calcNameLess("x2", "x10a"), "prefix, leading zeros, number then text");
+  {
+    std::vector<std::string> n = { "O2", "c10", "C2", "b", "C1" };
+    std::sort(n.begin(), n.end(), calcNameLess);
+    check(n[0] == "b" && n[1] == "C1" && n[2] == "C2" && n[3] == "c10" &&
+          n[4] == "O2", "sorted list");
+  }
 
   printf("%d failure(s)\n", failures);
   return failures ? 1 : 0;

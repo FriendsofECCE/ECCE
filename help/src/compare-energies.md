@@ -12,8 +12,10 @@ another is read off from finished calculations.
    with the first as **Calculation A** and the second as **Calculation B**.
 2. With anything else selected, you choose **Calculation A** and
    **Calculation B** from the two lists. They list the calculations of the
-   project that holds the selection, and the window starts with the selected
-   calculation as A (or the first of the project) and the next one as B.
+   project that holds the selection, in alphabetical order (capital letters
+   and small letters count the same, and numbers count by value, so C2 comes
+   before C10). The window starts with the selected calculation as A (or the
+   first in the list) and the next one as B.
 
 Changing either list updates the result at once.
 

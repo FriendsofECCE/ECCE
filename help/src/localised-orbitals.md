@@ -48,3 +48,12 @@ spin density, and the Mulliken spin population on each atom, worked out from
 the orbital coefficients. If the populations cannot be worked out, only the
 orbitals are listed and the panel says so. Choose another type to get the table
 back.
+
+In the orbital table, **Main atoms** names the largest contributions to the
+orbital and adds **other** for the rest; hold the pointer over the cell to see
+every atom with at least 1 %. The spin population table gives each atom's spin
+population in electrons and its **Share (%)** of the total absolute spin, with
+the atoms that carry most spin first.
+
+Computing the surface can take minutes on a large cluster. A window with a
+**Cancel** button appears when it runs longer than a moment.
