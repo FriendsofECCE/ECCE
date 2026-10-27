@@ -439,8 +439,12 @@ def snippetCases(g, rep, args):
 # --- the schedulers ---------------------------------------------------------
 
 def sh(argv, timeout=60):
-    res = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                         timeout=timeout)
+    # A scheduler daemon that hangs makes that scheduler unusable, not the run.
+    try:
+        res = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return 124, ""
     return res.returncode, res.stdout.decode("utf-8", "replace")
 
 

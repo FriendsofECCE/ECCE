@@ -43,6 +43,7 @@ X_INTERRUPTED=302       # caught interrupt - kill
 X_FILE_EXIST=211        # in/out file does not exist
 X_UNEXPECTED_CORE=221   # code exit 0 but core exists
 X_NOT_NORMAL=231        # code exit 0 but no normal-termination line
+X_NOT_CONVERGED=241     # code exit 0 but it says it did not converge
 
 #  Setting environment variables...
 

@@ -51,6 +51,7 @@ X_INTERRUPTED=302       # caught interrupt - kill
 X_FILE_EXIST=211        # in/out file does not exist
 X_UNEXPECTED_CORE=221   # code exit 0 but core exists
 X_NOT_NORMAL=231        # code exit 0 but no normal-termination line
+X_NOT_CONVERGED=241     # code exit 0 but it says it did not converge
 
 #  Setting environment variables...
 
@@ -102,6 +103,13 @@ fi
 if [ ! -e /qtest/run/mopac.mopout ]; then
   echo "Output file mopac.mopout does not exist - setting status to failed" >> /qtest/run/ecce.submit.log
   exitStatus=$X_FILE_EXIST
+fi
+
+if [ "$exitStatus" = 0 ]; then
+  if [ "$exitStatus" = 0 ] && grep -q "EXCESS NUMBER OF OPTIMIZATION CYCLES" /qtest/run/mopac.mopout; then
+    echo "'EXCESS NUMBER OF OPTIMIZATION CYCLES' in mopac.mopout - setting status to not converged" >> /qtest/run/ecce.submit.log
+    exitStatus=$X_NOT_CONVERGED
+  fi
 fi
 echo "Final exit status = $exitStatus" >> /qtest/run/ecce.submit.log
 
