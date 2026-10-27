@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdio>
 #include <functional>
+#include <memory>
 
 #include <wx/bitmap.h>
 #include <wx/button.h>
@@ -15,6 +16,8 @@
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/panel.h>
+#include <wx/progdlg.h>
+#include <wx/stopwatch.h>
 #include <wx/spinctrl.h>
 #include <wx/splitter.h>
 #include <wx/stattext.h>
@@ -608,7 +611,27 @@ void DensityProfilePanel::recompute()
     const int a = std::max(0, p_centre->GetSelection());
     const double c[3] = { p_eval->coordsAng[3*a], p_eval->coordsAng[3*a+1],
                           p_eval->coordsAng[3*a+2] };
-    if (!specs.empty()) RadialDist::compute(*p_eval, c, opt, specs, curves);
+    //  On a cluster the average takes minutes (#629): fewer directions
+    //  there, and a progress bar with Cancel once it is slow enough to notice.
+    if (p_eval->symbols.size() * std::max<size_t>(1, specs.size()) > 1500)
+      opt.lebedev = 110;
+    wxStopWatch clock;
+    std::unique_ptr<wxProgressDialog> progress;
+    const bool done = specs.empty() || RadialDist::compute(*p_eval, c, opt, specs, curves,
+        [&](double fraction) {
+          if (!progress && clock.Time() > 500 && fraction < 0.7)
+            progress.reset(new wxProgressDialog("Density Profile",
+                "Averaging around the atom...", 100, this,
+                wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_REMAINING_TIME));
+          return progress ? progress->Update((int)(100*fraction)) : true;
+        });
+    if (!done) {
+      p_plot->clearCurves();
+      p_plot->clearVLines();
+      p_text->SetValue("Stopped. Fewer curves (Show: Total density only, or "
+                       "selected orbitals) make the average quicker.");
+      return;
+    }
     axis = RadialDist::grid(opt);
     xLabel = "r (" + length + ")";
     yLabel = quantity == 0 ? U("r²ψ², radial distribution (") + length + U("⁻¹)")
