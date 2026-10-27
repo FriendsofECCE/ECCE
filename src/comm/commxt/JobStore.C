@@ -128,6 +128,8 @@ void initDAV(void);
 void convertToNewlines(char* data);
 void interactProperty(char* propData, char seqCode);
 void interactStatus(char* statusData);
+static bool gKilledLocally = false;   // ecce_ejs_kill: leave the remote alone
+static bool gStateReported = false;   // the monitor has sent a job status
 void interactUp(char* upData);
 void interactError(char* errorData);
 void interactFile(char* fileData);
@@ -789,11 +791,16 @@ void cleanup(int exitStatus)
   }
 
   // Monitoring ended for good (done, or failed beyond retrying).
-  if (exitStatus == 0 || exitStatus == 3)
+  if ((exitStatus == 0 || exitStatus == 3) && !gKilledLocally)
     WaitingJobs::remove(cpCalcURL);
 
   if (exitStatus == 0) {
-    if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
+    if (gKilledLocally) {
+      // A newer store owns the run directory and the login; this one only
+      // lets go of its own stream.
+      if (remoteconn != (RCommand*)0)
+        remoteconn->stopStream();
+    } else if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
       // The monitor stream may still hold the login (a kill message).
       remoteconn->stopStream();
       (void)remoteconn->exec("/bin/rm -f eccejobmonitor eccejobmonitor.conf "
@@ -1137,13 +1144,15 @@ void ejsKillMCB(JMSMessage& msg)
       logMessage("Messaging",
                  "Job monitoring kill (reconnect or terminate import) message");
 
-      // get the attention of the jobmonitor script by issuing a Ctrl-C
-      // interrupt.  Otherwise, it tends to just keep on trying to talk
-      // to eccejobstore
-      if (remoteconn != (RCommand*)0)
-        (void)remoteconn->exec("\003"); 
-
-      calcUpdateState(ResourceDescriptor::STATE_SUBMITTED);
+      // The new store has been (or is being) started in the same run
+      // directory and owns the state: this one, possibly from an earlier
+      // session with its own login, must not touch the remote host.  The
+      // old monitor ends on SIGPIPE at its next write.
+      gKilledLocally = true;
+      endState = ResourceDescriptor::STATE_ILLEGAL;
+      const char* delay = getenv("ECCE_TEST_EJS_KILL_DELAY_MS");
+      if (delay && atoi(delay) > 0)
+        usleep(atoi(delay) * 1000);
       cleanup(0);
       exit(0);
     }
@@ -2445,6 +2454,7 @@ void interactStatus(char* statusData)
   // cleanup temp properties before updating state
 
   static int lastStatus = -1;
+  gStateReported = true;
 
   int status = 0;
   bool emptyStatus = (statusData==NULL || *statusData=='\0');
@@ -2536,6 +2546,12 @@ void interactError(char* errorData)
   message += nextToken();
   logMessage("eccejobmonitor", message);
 
+  // Before any job state the monitor has not got as far as looking at the
+  // job (a missing or half-copied script or configuration): park, never
+  // fail the job.
+  if (dieViaMsg && !gStateReported)
+    restartSystem("eccejobmonitor", "FATAL error message from eccejobmonitor "
+                  "before the job was examined");
   if (dieViaMsg)
     restart("eccejobmonitor", "FATAL error message from eccejobmonitor");
 }
