@@ -257,6 +257,14 @@ bool ewxApp::OnInit()
 
    // The toolkit's own init may have re-read the locale from the environment.
    setlocale(LC_NUMERIC, "C");
+   // ECCE's own strings are UTF-8 and become wxStrings through the C
+   // library's conversion; an app started from the Finder or the Start menu
+   // has no UTF-8 locale, so 'Löwdin' showed as 'LÃ¶wdin'.
+#if defined(__WXMAC__)
+   setlocale(LC_CTYPE, "UTF-8");
+#elif defined(__WXMSW__)
+   setlocale(LC_CTYPE, ".UTF8");
+#endif
 
    DavDebug::setDebugContext(("/tmp/dav" + getName()).c_str());
 
