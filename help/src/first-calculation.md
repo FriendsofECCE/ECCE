@@ -174,8 +174,11 @@ their icons.
 
 The states you see, in order, are **Submitted**, **Running** and
 **Complete**. A calculation that ended with an error is **Failed** or
-**Unsuccessful**. You can also select the calculation and read its summary
-in the panel next to the tree.
+**Unsuccessful**. An ORCA optimisation that stopped at its cycle limit, and a
+CP2K run whose SCF or optimisation did not converge, are **Unsuccessful**
+too: the code ended normally, but its energy or structure is not a result.
+The summary gives the reason; the outputs are kept. You can also select the
+calculation and read its summary in the panel next to the tree.
 
 While a job is **Submitted**, waiting in a batch queue, the summary has a
 **Progress** box that says since when it has been queued and, if the

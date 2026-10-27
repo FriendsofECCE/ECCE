@@ -2454,6 +2454,8 @@ string unsuccessfulReason(int status)
     case 231:
       return "the code exited 0 but printed no normal-termination line "
              "(exit code 231)";
+    case 241:
+      return "the code stopped without converging (exit code 241)";
     default: {
       char buf[64];
       snprintf(buf, sizeof(buf), "job exited with status %d", status);

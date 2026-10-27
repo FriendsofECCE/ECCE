@@ -379,6 +379,7 @@ sub defineStatusSymbols()
   $retval .= "X_FILE_EXIST=211        # in/out file does not exist\n";
   $retval .= "X_UNEXPECTED_CORE=221   # code exit 0 but core exists\n";
   $retval .= "X_NOT_NORMAL=231        # code exit 0 but no normal-termination line\n";
+  $retval .= "X_NOT_CONVERGED=241     # code exit 0 but it says it did not converge\n";
 
   return $retval;
   nouse strict vars;
@@ -596,6 +597,24 @@ sub determineStatus()
     $retval .= "    echo \"No '$marker' in $outFile - setting status to failed\" >> $logfile\n";
     $retval .= "    exitStatus=\$X_NOT_NORMAL\n";
     $retval .= "  fi\n";
+    $retval .= "fi\n";
+  }
+
+  # A run that stops at its iteration limit still ends normally, and its
+  # unconverged energy or structure would pass as a result (#614).
+  my %notConverged = (
+    'orca' => ['The optimization did not converge'],
+    'cp2k' => ['SCF run NOT converged',
+               'MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED'],
+  );
+  if (defined $notConverged{$lccode}) {
+    $retval .= "\nif [ \"\$exitStatus\" = 0 ]; then\n";
+    foreach my $marker (@{$notConverged{$lccode}}) {
+      $retval .= "  if [ \"\$exitStatus\" = 0 ] && grep -q \"$marker\" $qRunDir/$outFile; then\n";
+      $retval .= "    echo \"'$marker' in $outFile - setting status to not converged\" >> $logfile\n";
+      $retval .= "    exitStatus=\$X_NOT_CONVERGED\n";
+      $retval .= "  fi\n";
+    }
     $retval .= "fi\n";
   }
   $retval .= "echo \"Final exit status = \$exitStatus\" >> $logfile\n";

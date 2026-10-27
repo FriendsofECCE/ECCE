@@ -3326,6 +3326,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_orca_guess_central PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
 
+  # #614: an ORCA optimisation at its cycle limit ends Unsuccessful, not
+  # Complete; skipped (77) without ORCA 6 under /opt/orca.
+  add_test(NAME launch_orca_notconverged
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/orca_notconverged_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_orca_notconverged PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
   # #407: a Gaussian 16 job's checkpoint as the guess of the next; skipped (77)
   # without Gaussian 16 under /opt/gaussian/g16.
   add_test(NAME launch_g16_guess
