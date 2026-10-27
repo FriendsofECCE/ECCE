@@ -1397,6 +1397,11 @@ static bool localCopy(string& errMessage, const string& machine, char** argv)
       continue;
     if (line.compare(0, 4, "cp: ") != 0) continue;
     if (line.find("specified more than once") != string::npos) return true;
+    //  The destination already is the file (a symlink to it, as an
+    //  import's staged files are): there is nothing to copy (#630).
+    if (line.find("are identical (not copied)") != string::npos ||
+        line.find("are the same file") != string::npos)
+      continue;
     // Everything cp said from here on.
     errMessage = "Copy command cp failed for " + where + ": " +
                  text.substr(start + 4,

@@ -275,6 +275,18 @@ static void copyChecks(const string& tmp)
                     dst.c_str());
   check("copy: get one file", r && slurp(dst + "/b.dat") == "bee\n");
 
+  //  The destination already holds a symlink to the source (an import's
+  //  staged files): cp says "are the same file" / "are identical (not
+  //  copied)", and the file is there, so the copy succeeds (#630).
+  const string same = tmp + "/csame";
+  mkdir(same.c_str(), 0755);
+  if (symlink((src + "/b.dat").c_str(), (same + "/b.dat").c_str()) != 0) {}
+  err = "";
+  r = RCommand::get(err, "system", "", "", "", 2, (src + "/b.dat").c_str(),
+                    same.c_str());
+  check("copy: onto a symlink to itself counts as copied",
+        r && slurp(same + "/b.dat") == "bee\n");
+
   err = "";
   r = RCommand::put(err, "system", "", "", "", 2, (src + "/tree").c_str(),
                     dst.c_str());
