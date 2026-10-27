@@ -31,6 +31,7 @@
 
 #include "tdat/MachineConfigDraft.H"
 #include "tdat/RefMachine.H"
+#include "dsm/AllocationProfiles.H"
 
 #include "util/Preferences.H"
 
@@ -154,6 +155,16 @@ class WxMachineRegister: public ewxFrame
         void onQueueApply(wxCommandEvent& event);
         void onQueueRemove(wxCommandEvent& event);
         void onQueueClear(wxCommandEvent& event);
+
+        //  Allocation profiles of the selected machine (#541); the hook
+        //  commands profile-set / profile-remove call the same two workers.
+        void refreshProfiles();
+        void onProfileAdd(wxCommandEvent& event);
+        void onProfileEdit(wxCommandEvent& event);
+        void onProfileDelete(wxCommandEvent& event);
+        bool editProfileDialog(AllocationProfiles::Profile& p, bool isNew);
+        bool storeProfile(const AllocationProfiles::Profile& p);
+        bool dropProfile(const string& name);
         void onSave(wxCommandEvent& event);
         void onDelete(wxCommandEvent& event);
         void onNew(wxCommandEvent& event);
@@ -380,6 +391,8 @@ class WxMachineRegister: public ewxFrame
         //  The other per-user MachinePreferences fields of the Machine tab.
         ewxTextCtrl         *p_runDir, *p_scratchDir, *p_userName;
         string               p_runDirLoaded, p_scratchLoaded, p_userLoaded;
+        wxListBox           *p_profileList;
+        wxButton            *p_profileAdd, *p_profileEdit, *p_profileDelete;
         std::deque<int>      p_choices;   // test hook: answers to a list of paths
         wxWindow            *p_codePage;
         wxPanel             *p_codeAdvanced;

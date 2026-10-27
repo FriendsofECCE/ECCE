@@ -1034,20 +1034,13 @@ void WxLauncher::buildProfileRow()
     p_profileLabel = new wxStaticText(p_profilePanel, wxID_ANY, "Profile:",
                                       wxDefaultPosition, wxSize(120, -1));
     p_profileChoice = new wxChoice(p_profilePanel, wxID_ANY);
-    p_profileChoice->SetToolTip("A set of allocation account, run directory and scratch directory kept for this machine");
-    p_profileSaveButton = new wxButton(p_profilePanel, wxID_ANY, "Save as profile...");
-    p_profileSaveButton->SetToolTip("Keep the allocation account, run directory and scratch directory shown, under a name");
-    p_profileDeleteButton = new wxButton(p_profilePanel, wxID_ANY, "Delete profile");
+    p_profileChoice->SetToolTip("An allocation profile of this machine: account, run directory, scratch directory and queue. Profiles are made in Register Machines.");
     row->Add(p_profileLabel, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
     row->Add(p_profileChoice, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-    row->Add(p_profileSaveButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
-    row->Add(p_profileDeleteButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
     sz->Insert(at + 1, p_profilePanel, 0, wxGROW|wxALL, 3);
     p_profilePanel->Hide();
 
     p_profileChoice->Bind(wxEVT_CHOICE, &WxLauncher::profileChoiceCB, this);
-    p_profileSaveButton->Bind(wxEVT_BUTTON, &WxLauncher::profileSaveCB, this);
-    p_profileDeleteButton->Bind(wxEVT_BUTTON, &WxLauncher::profileDeleteCB, this);
 }
 
 
@@ -1056,7 +1049,6 @@ void WxLauncher::buildProfileRow()
  */
 void WxLauncher::refreshProfileControls()
 {
-    bool queued = p_slctPrefs->isOptionSupported("Q");
     vector<string> names = p_slctPrefs->profileNames();
 
     p_profileChoice->Clear();
@@ -1067,9 +1059,7 @@ void WxLauncher::refreshProfileControls()
     bool several = names.size() > 1;
     p_profileLabel->Show(several);
     p_profileChoice->Show(several);
-    p_profileDeleteButton->Show(several && !AllocationProfiles::isDefault(p_profile));
-    p_profileSaveButton->Show(queued);
-    p_profilePanel->Show(queued);
+    p_profilePanel->Show(several);
     p_profilePanel->Layout();
 }
 
@@ -1109,68 +1099,11 @@ void WxLauncher::selectProfile(const string& name)
 }
 
 
-void WxLauncher::saveProfileAs(const string& name)
-{
-    string n = AllocationProfiles::clean(name);
-    if (!AllocationProfiles::validName(n))
-    {
-        p_messagesFeedback->setMessage("Give the profile a name other than " +
-            string(AllocationProfiles::defaultName()) + ".", WxFeedback::WARNING);
-        return;
-    }
-
-    //  The profile being left keeps its stored values: what is typed here
-    //  belongs to the new one only.
-    p_slctPrefs->setProfile(this->profileFromControls(n));
-    p_profile = p_slctPrefs->chooseProfile(n, true);
-    p_slctPrefs->setLastProfile(p_profile);
-    MachinePreferences::saveChanges();
-    this->refreshProfileControls();
-    this->Layout();
-    this->refit();
-    p_messagesFeedback->setMessage("Profile " + p_profile + " saved for " +
-        p_slctPrefs->getItemKey() + ".", WxFeedback::INFO);
-}
-
-
-void WxLauncher::deleteProfile(const string& name)
-{
-    if (!p_slctPrefs->removeProfile(name))
-        return;
-
-    p_profile = AllocationProfiles::defaultName();
-    p_slctPrefs->setLastProfile(p_profile);
-    MachinePreferences::saveChanges();
-    this->refreshControls();
-}
-
-
 void WxLauncher::profileChoiceCB(wxCommandEvent& event)
 {
     int k = p_profileChoice->GetSelection();
     if (k >= 0 && !p_inCtrlUpdate)
         this->selectProfile((string)p_profileChoice->GetString(k));
-}
-
-
-void WxLauncher::profileSaveCB(wxCommandEvent& event)
-{
-    wxTextEntryDialog dlg(this, "Name for the profile:", "Save as profile");
-    if (dlg.ShowModal() == wxID_OK)
-        this->saveProfileAs((string)dlg.GetValue());
-}
-
-
-void WxLauncher::profileDeleteCB(wxCommandEvent& event)
-{
-    ewxMessageDialog dlg(this, "Delete the profile " + p_profile + " of " +
-                         p_slctPrefs->getItemKey() +
-                         "? Calculations launched with it keep their own directories.",
-                         "Delete profile", wxICON_QUESTION);
-    dlg.AddButton(wxID_NO, "Keep");
-    dlg.AddButton(wxID_YES, "Delete")->SetDefault();
-    if (dlg.ShowModal() == wxID_YES)
-        this->deleteProfile(p_profile);
 }
 
 
@@ -1184,28 +1117,6 @@ bool WxLauncher::hookProfile(const string& name)
             return true;
         }
     return false;
-}
-
-
-bool WxLauncher::hookSaveProfile(const string& name)
-{
-    if (!AllocationProfiles::validName(name))
-        return false;
-    this->saveProfileAs(name);
-    return true;
-}
-
-
-bool WxLauncher::hookDeleteProfile(const string& name)
-{
-    if (AllocationProfiles::isDefault(name) ||
-        !p_slctPrefs->removeProfile(name))
-        return false;
-    p_profile = AllocationProfiles::defaultName();
-    p_slctPrefs->setLastProfile(p_profile);
-    MachinePreferences::saveChanges();
-    this->refreshControls();
-    return true;
 }
 
 
@@ -3759,10 +3670,6 @@ string WxLauncher::hookGet(const string& what)
     }
     if (what == "profilechoice")
         return p_profileChoice->IsShown() ? "1" : "0";
-    if (what == "profilesave")
-        return p_profileSaveButton->IsShown() ? "1" : "0";
-    if (what == "profiledelete")
-        return p_profileDeleteButton->IsShown() ? "1" : "0";
     if (what == "connect")
         return this->checkConnectAllowed() ? "1" : "0";
     if (what == "pumps")

@@ -301,6 +301,23 @@ int MachRegScript::runCommand(const vector<string>& w)
         else if (w2->IsShown()) f->cfgUndo(w[1]);
         else fail("undo " + w[1] + " is not shown");
     }
+    else if (cmd == "profile-set" && n >= 2)
+    {
+        //  What the Add/Edit dialog returns: NAME [ACCOUNT RUNDIR SCRATCH QUEUE]
+        AllocationProfiles::Profile pr;
+        pr.name = w[1];
+        pr.account = n > 2 ? unescape(w[2]) : "";
+        pr.rundir = n > 3 ? unescape(w[3]) : "";
+        pr.scratchdir = n > 4 ? unescape(w[4]) : "";
+        pr.queue = n > 5 ? unescape(w[5]) : "";
+        if (!f->storeProfile(pr)) fail("profile-set " + w[1] + ": refused");
+    }
+    else if (cmd == "profile-select" && n == 2)
+    {
+        if (!f->p_profileList->SetStringSelection(w[1]))
+            fail("profile-select " + w[1] + ": not in the list");
+        f->refreshProfiles();
+    }
     else if (cmd == "click" && n == 2) click(w[1]);
     else if (cmd == "words") f->showWords();
     else if (cmd == "code" && n == 2)

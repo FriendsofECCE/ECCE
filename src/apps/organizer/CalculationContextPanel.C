@@ -13,6 +13,8 @@
 #include <stdio.h>
 
 #include "wx/image.h"
+#include "wx/app.h"
+#include "wx/weakref.h"
 
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
@@ -34,6 +36,7 @@
 #include "dsm/ResourceTool.H"
 #include "dsm/Session.H"
 #include "dsm/TaskJob.H"
+#include "comm/AllocationQuery.H"
 #include "dsm/ToolPropertyView.H"
 #include "dsm/VDoc.H"
 
@@ -185,6 +188,8 @@ void CalculationContextPanel::refresh()
   if (shown.empty() && !annotation.empty()) shown = annotation;
   annotationCtrl->SetValue(shown);
 
+  refreshAllocation();
+
   p_storedProgress.clear();
   p_properties->findValue(VDoc::getEcceNamespace() + ":progress",
                           p_storedProgress);
@@ -225,6 +230,44 @@ void CalculationContextPanel::refresh()
   // manage memory
   if (p_properties != 0) delete p_properties;
   if (p_inpProvProps != 0) delete p_inpProvProps;
+}
+
+
+
+/**
+ * Fills the Allocation and Left rows of the Launcher block, hiding what is
+ * not known. The answer comes from a background read, so this is called again
+ * when it lands.
+ */
+void CalculationContextPanel::refreshAllocation()
+{
+  wxWindow *accWin = FindWindow("allocAccount");
+  wxWindow *leftWin = FindWindow("allocLeft");
+  if (!accWin || !leftWin) return;
+  ewxStaticText *acc = dynamic_cast<ewxStaticText*>(accWin);
+  ewxStaticText *left = dynamic_cast<ewxStaticText*>(leftWin);
+  wxWindow *accLabel = FindWindow("allocAccountLabel");
+  wxWindow *leftLabel = FindWindow("allocLeftLabel");
+  TaskJob *job = dynamic_cast<TaskJob*>(p_itemData->getResource());
+  if (!acc || !left || !accLabel || !leftLabel || !job) return;
+
+  Launchdata launch = job->launchdata();
+  string account, text;
+  if (!launch.machine.empty()) {
+    account = AllocationQuery::account(launch);
+    wxWeakRef<CalculationContextPanel> self(this);
+    text = AllocationQuery::left(launch, [self]() {
+      wxTheApp->CallAfter([self]() { if (self) self->refreshAllocation(); });
+    });
+  }
+  acc->SetLabel(wxString::FromUTF8(account.c_str()));
+  left->SetLabel(wxString::FromUTF8(text.c_str()));
+  setSizerChildVisible(accLabel, !account.empty());
+  setSizerChildVisible(acc, !account.empty());
+  setSizerChildVisible(leftLabel, !text.empty());
+  setSizerChildVisible(left, !text.empty());
+  Layout();
+  FitInside();
 }
 
 
@@ -368,6 +411,9 @@ void CalculationContextPanel::createControls()
 
     // these variables help format the grid used to display the data
     int rows = 4;       // max number of rows to use in the grid
+    const bool isLauncher = pairRT_TPV.first->getName() == "Launcher";
+    if (isLauncher)
+      rows = 6;         // room for Allocation and Left under Comp. Date
     int cols = 2;       // max number of columns to use in the grid
     int vgap = 0;       // size of vertical gap between children in the grid
     int hgap = 5;       // size of horizontal gap between children in the grid
@@ -425,6 +471,23 @@ void CalculationContextPanel::createControls()
             hgap);  // size of horizontal gap between children (see above)
       }
     } // end of ResourceProperties for loop
+
+    // Allocation and Left (#613): shown by refreshAllocation() when known.
+    if (isLauncher) {
+      const char *names[2][2] = {{"Allocation:", "allocAccount"},
+                                 {"Left:", "allocLeft"}};
+      for (int i = 0; i < 2; i++) {
+        currentRow++;
+        grid->Add(new ewxNonBoldLabel(this, wxID_ANY, names[i][0],
+                      wxDefaultPosition, wxDefaultSize, 0,
+                      string(names[i][1]) + "Label"),
+                  0, wxALIGN_LEFT|wxALIGN_TOP|wxALL, 1);
+        ewxStaticText *v = new ewxStaticText(this, wxID_ANY, "",
+                      wxDefaultPosition, wxDefaultSize, 0, names[i][1]);
+        ewxMakeSelectable(v);
+        grid->Add(v, 0, wxALIGN_LEFT|wxALIGN_TOP|wxALL, 1);
+      }
+    }
 
     // add the grid sizer we were last filling when we ran out of properties to
     // display in it

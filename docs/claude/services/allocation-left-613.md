@@ -3,7 +3,7 @@ type: map
 title: "The calculation summary shows the allocation and how much is left (#613)"
 area: services
 section: "Design"
-paths: ["include/dsm/AllocationLeft.H", "tests/machregister/testAllocationLeft.C", "src/apps/builder/CalcInfoPanel.C", "src/tdat/resources/RefMachine.C", "src/tdat/resources/RefQueueMgr.C", "siteconfig/QueueManagers", "src/apps/machbrowser/MachineBrowser.C", "src/comm/rcommand/OpenSshTransport.C", "src/comm/rcommand/RCommand.C", "include/dsm/MachinePreferences.H", "include/dsm/AllocationProfiles.H"]
+paths: ["include/dsm/AllocationLeft.H", "tests/machregister/testAllocationLeft.C", "src/apps/builder/CalcInfoPanel.C", "src/apps/organizer/CalculationContextPanel.C", "include/comm/AllocationQuery.H", "src/comm/rcommand/AllocationQuery.C", "src/tdat/resources/RefMachine.C", "src/tdat/resources/RefQueueMgr.C", "siteconfig/QueueManagers", "src/apps/machbrowser/MachineBrowser.C", "src/comm/rcommand/OpenSshTransport.C", "src/comm/rcommand/RCommand.C", "include/dsm/MachinePreferences.H", "include/dsm/AllocationProfiles.H"]
 issues: [613, 541, 487, 599]
 ---
 **Status: built after review.** The maintainer approved the one remote-shell
@@ -27,7 +27,7 @@ was submitted with) and **Left:** (core-hours used of allocated, "checked
   shown. A workstation uses no queue-manager default, as in the Browser.
 - The account is stored per calculation at launch since #541
   (`launch_account`, `launch_profile`; `Launchdata::account`, `profile`).
-  A calculation launched before that has no account: show neither line.
+  A calculation launched before that falls back to its profile's account (Default if none).
 - Per profile? The command is per machine; only the account differs per
   profile. The command gets the account through a `##account_no##`
   substitution (same token as the submit script), so `projinfo -p
@@ -119,3 +119,14 @@ only shows the result.
 - Not tested: the live path against a real or stubbed ssh master, and the panel.
 - Open: a resource-name setting for projects with several CPU allocations; an
   account-keyed Slurm default command.
+
+## Where the code lives (moved 2026-10-27)
+- The read (account fallback, 15-minute cache, background thread, live
+  connection only) is `AllocationQuery` in `src/comm/rcommand` (wx-free, in
+  `eccercmd`, which both apps link). Callers pass an `onDone` that they turn
+  into a `CallAfter`.
+- Shown in the Organizer's calculation summary (`CalculationContextPanel`,
+  Launcher block, two rows under Comp. Date, `refreshAllocation`) and in the
+  Viewer's `CalcInfoPanel`.
+- A calculation with no stored `launch_account` (launched before #541) uses
+  the account of its profile, or of Default when none is stored.
