@@ -14,7 +14,9 @@
 //  failure mode via the existing MoComposition::compute() to prove
 //  the two measures really do disagree the way #170 says.
 #include <cmath>
+#include <algorithm>
 #include <cstdio>
+#include <ctime>
 #include <string>
 #include <vector>
 using namespace std;
@@ -177,6 +179,34 @@ int main(void)
     vector<double> sqrtS;
     const bool built = MoComposition::buildSqrtOverlap(S, 2, sqrtS);
     check("buildSqrtOverlap declines a linearly dependent basis", !built);
+  }
+
+  //  --- a cluster-sized basis: right, and quick enough for the GUI ----
+  //  An overlap-like matrix (unit diagonal, decaying off-diagonal) of
+  //  1500 functions, the size of a metal-oxide cluster's basis.
+  {
+    const int n = 1500;
+    vector<double> S((size_t)n*n);
+    for (int i = 0; i < n; i++)
+      for (int j = 0; j < n; j++)
+        S[(size_t)i*n + j] = i == j ? 1.0 : 0.3*exp(-0.5*fabs((double)(i - j)));
+    vector<double> R;
+    const time_t t0 = time(0);
+    const bool built = MoComposition::buildSqrtOverlap(S, n, R);
+    const long secs = (long)(time(0) - t0);
+    check("buildSqrtOverlap succeeds for 1500 functions", built);
+    double worst = 0;
+    if (built)
+      for (int i = 0; i < n; i += 97)
+        for (int j = 0; j < n; j += 89) {
+          double v = 0;
+          for (int k = 0; k < n; k++) v += R[(size_t)i*n + k]*R[(size_t)k*n + j];
+          worst = std::max(worst, fabs(v - S[(size_t)i*n + j]));
+        }
+    char d[64];
+    snprintf(d, sizeof d, "(max |RR-S| %.1e, %ld s)", worst, secs);
+    check("S^1/2 squared gives S back", built && worst < 1.0e-9, d);
+    check("1500 functions in under 60 s", secs < 60, d);
   }
 
   printf("  %d failed\n", bad);

@@ -2,6 +2,10 @@
 #include <map>
 #include <utility>
 
+#ifdef ECCE_HAVE_EIGEN
+#include <Eigen/Dense>
+#endif
+
 #include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
 
@@ -213,6 +217,23 @@ MoComposition::buildSqrtOverlap(const vector<double>& overlap, int nbasis,
    }
 
    const size_t n = (size_t)nbasis;
+#ifdef ECCE_HAVE_EIGEN
+   {
+      //  S is symmetric, so its row-major storage reads as itself.
+      Eigen::Map<const Eigen::MatrixXd> S(overlap.data(), nbasis, nbasis);
+      if (onSweep) onSweep(0.0);
+      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(S);
+      if (es.info() != Eigen::Success ||
+          es.eigenvalues().minCoeff() <= 1.0e-8) return false;
+      if (onSweep) onSweep(0.8);
+      const Eigen::MatrixXd r = es.eigenvectors() *
+          es.eigenvalues().cwiseSqrt().asDiagonal() *
+          es.eigenvectors().transpose();
+      sqrtOverlap.assign(r.data(), r.data() + n*n);
+      if (onSweep) onSweep(1.0);
+      return true;
+   }
+#endif
    vector< vector<double> > a(n, vector<double>(n, 0.0));
    for (size_t i = 0; i < n; i++) {
       for (size_t j = 0; j < n; j++) a[i][j] = overlap[i*n + j];

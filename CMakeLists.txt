@@ -3737,6 +3737,21 @@ if(ECCE_BUILD_QM)
   add_subdirectory(src/qm)
   install(TARGETS ecce-qm RUNTIME DESTINATION bin COMPONENT client)
 endif()
+# The MO composition's Loewdin S^1/2 is a dense eigenproblem of the whole
+# basis (thousands of functions for a metal cluster): Eigen's solver takes
+# seconds where the Jacobi fallback takes minutes.
+if(NOT TARGET Eigen3::Eigen)
+  find_package(Eigen3 3.3 CONFIG QUIET)
+endif()
+if(TARGET Eigen3::Eigen)
+  target_link_libraries(eccetdat PRIVATE Eigen3::Eigen)
+  target_compile_definitions(eccetdat PRIVATE ECCE_HAVE_EIGEN)
+endif()
+
+# Loewdin composition (#170) and the cluster-sized S^1/2.
+add_executable(lowdin_composition_test tests/symmetry/testLowdinComposition.C)
+target_link_libraries(lowdin_composition_test PRIVATE eccetdat ecceutil)
+add_test(NAME lowdin_composition COMMAND lowdin_composition_test)
 
 # tests/boxshape (#930): GROMACS dodecahedron / truncated octahedron cell.
 add_executable(box_shape_test tests/boxshape/box_shape_test.C)

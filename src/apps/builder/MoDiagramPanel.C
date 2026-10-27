@@ -1,5 +1,7 @@
 #include "PointNote.H"
 #include "wx/wrapsizer.h"
+#include <atomic>
+#include <thread>
 #include <algorithm>
 #include <cmath>
 #include <cstdarg>
@@ -2801,15 +2803,22 @@ void MoDiagramPanel::buildOnce()
         //  S^{1/2}, once per diagram -- every MO below reuses it, only
         //  c changes per orbital (#170, then reused again for #175).
         progressDlg.progress(48, wxString::FromUTF8("Orthogonalising the basis (Löwdin)"));
-        wxStopWatch sqrtThrottle;
-        moHaveSqrtS =
-            MoComposition::buildSqrtOverlap(moSflat, nbasis, moSqrtS,
-                [&](double frac) {
-                  if (sqrtThrottle.Time() < 100) return;
-                  sqrtThrottle.Start();
-                  progressDlg.progress(48 + (int)(frac*2),
-                      wxString::FromUTF8("Orthogonalising the basis (Löwdin)"));
-                });
+        //  On a worker thread: for a large basis this takes long enough
+        //  that a blocked event loop makes the desktop offer Force Quit.
+        std::atomic<double> sqrtFrac(0.0);
+        std::atomic<bool> sqrtDone(false);
+        std::thread sqrtWorker([&]() {
+          moHaveSqrtS = MoComposition::buildSqrtOverlap(
+              moSflat, nbasis, moSqrtS,
+              [&](double frac) { sqrtFrac = frac; });
+          sqrtDone = true;
+        });
+        while (!sqrtDone) {
+          progressDlg.progress(48 + (int)(sqrtFrac*2),
+              wxString::FromUTF8("Orthogonalising the basis (Löwdin)"));
+          wxMilliSleep(50);
+        }
+        sqrtWorker.join();
         if (!moHaveSqrtS && !moSemiempirical && why.empty()) {
           why = "The basis overlap matrix is too close to linearly "
                 "dependent to take a square root of, so the fragment "
