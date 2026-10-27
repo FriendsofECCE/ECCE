@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <string>
 
-#include "ReactionEnergies.H"
+#include "tdat/ReactionEnergies.H"
 
 static int failures = 0;
 static void check(bool ok, const char *what)
@@ -42,8 +42,8 @@ int main()
   check(r.ok() && r.levels.size() == 1, "energies only: one level");
   check(near(r.levels[0].barrier(), 0.07) && near(r.levels[0].reaction(), 0.01),
         "barrier 0.07 Eh, reaction 0.01 Eh");
-  check(near(rxnToUnit(0.07, false), 0.07 * 2625.4996) &&
-        near(rxnToUnit(0.07, true), 0.07 * 627.5095), "unit factors");
+  check(near(rxnToUnit(0.07, false), 0.07 * 2625.4996394799) &&
+        near(rxnToUnit(0.07, true), 0.07 * 2625.4996394799 / 4.184), "unit factors");
   check(r.warnings.empty() && r.notes.size() == 1 &&
         has(r.notes[0], "No thermochemistry"), "missing thermo is a note, not a warning");
 

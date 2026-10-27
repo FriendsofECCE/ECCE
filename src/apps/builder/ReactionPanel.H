@@ -4,7 +4,7 @@
 #include <string>
 #include <wx/string.h>
 #include "PropertyPanel.H"
-#include "ReactionEnergies.H"
+#include "tdat/ReactionEnergies.H"
 
 class wxChoice;
 class wxGrid;
