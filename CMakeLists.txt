@@ -3706,6 +3706,9 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
   set_tests_properties(machregister_gui PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Remote Browse's listing parser and paths (wx-free, header-only).
+  add_executable(remotelisting_test tests/machregister/remotelisting_test.C)
+  add_test(NAME machregister_remotelisting COMMAND remotelisting_test)
   # First-start registration finds the codes on the PATH (#377).
   add_executable(localcodes tests/machregister/localcodes.C)
   target_include_directories(localcodes PRIVATE ${XercesC_INCLUDE_DIRS})
