@@ -42,6 +42,7 @@
 #include "JobPreview.H"
 #include "MemoryUnits.H"
 #include "SchedulerQuery.H"
+#include "RemoteFileChooser.H"
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include "WxMachineRegister.H"
@@ -657,13 +658,24 @@ string WxMachineRegister::checkProgram()
 }
 
 
-//  Browse...: the program picked in a file dialog on this computer.
+//  Browse...: the program picked in a file dialog on this computer, or in
+//  a chooser over the machine's login when the machine is another one.
 void WxMachineRegister::browseProgram()
 {
     if (p_codeNames.empty())
         return;
     ewxTextCtrl* field = p_codePaths[p_codeSel];
     string now = stripped((string)field->GetValue());
+    //  The same "this computer" test as Find and the launch (#144).
+    if (RCommand::localityNote(stripped((string)p_fullName->GetValue()),
+                               "ssh", "").empty())
+    {
+        RemoteFileChooser chooser(this, "Program for " + p_codeNames[p_codeSel],
+                                  this->connection(), now);
+        if (chooser.ShowModal() == wxID_OK)
+            field->SetValue(wxString::FromUTF8(chooser.path().c_str()));
+        return;
+    }
     wxString dir;
 #ifdef _WIN32
     if (now.size() > 2 && now[0] == '/' && now[2] == '/')

@@ -144,7 +144,8 @@ that holds it. The line under the box shows an example for the selected
 code: `/usr/bin/nwchem` for NWChem, `/opt/orca/<version>/orca` for ORCA,
 `/opt/g16/g16` for Gaussian 16, `/usr/bin/pw.x` for Quantum ESPRESSO and
 `MOPAC2016.exe` or `mopac` for MOPAC. ORCA needs the full path to run in
-parallel.
+parallel. **Browse** opens a file dialog on this computer; for any other
+machine it shows that machine's files over its connection instead.
 
 **Find** asks the machine where the program is, in the way a shell does
 (`command -v`): on this computer for `localhost`, over the machine's
