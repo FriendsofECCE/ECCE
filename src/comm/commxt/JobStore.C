@@ -2517,6 +2517,13 @@ void interactStatus(char* statusData)
     } else if (status == 303) {
       gUnsuccessfulStatus = 0;
       calcUpdateState(ResourceDescriptor::STATE_LOADED);
+    } else if (status == 304) {
+      // The scheduler says the job was cancelled (scancel on the machine):
+      // a user's cancel, made outside ECCE (#636).
+      gUnsuccessfulStatus = 0;
+      recordStatusReason("cancelled on " + cpServerName +
+                         " (the queue system reports it cancelled)");
+      calcUpdateState(ResourceDescriptor::STATE_KILLED);
     } else {
       gUnsuccessfulStatus = status;
       calcUpdateState(ResourceDescriptor::STATE_UNSUCCESSFUL);

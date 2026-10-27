@@ -98,6 +98,7 @@ my $MSG_TYPE_F_SCHED = "sched";		# file: queue system's stderr file
 my $MSG_VAL_STAT_RUNNING = 301;		# value: status: job is running
 my $MSG_VAL_STAT_UNAVAIL = 302;		# value: status: unavailable
 my $MSG_VAL_STAT_IMPORTED = 303;	# value: status: imported
+my $MSG_VAL_STAT_CANCELLED = 304;	# value: status: cancelled on the machine
 
 # return values from JobCheck
 my $JOB_STATE_PENDING	= 0x1;
@@ -125,6 +126,7 @@ my $gFilePosition = 0;
 my $gJobCheckComplaintIssued = 0;
 my $gJobCheckEnqueuedIssued = 0;
 my $gJobCheckState = $JOB_STATE_NONE;
+my $gSchedCancelled = 0;	# the scheduler says the job was cancelled
 my $gLogFileOpen = 0;
 my $gLogNumErrors = 0;
 my $gLogNumWarnings = 0;
@@ -2337,7 +2339,7 @@ sub JobCheck
 # Add new queue system here
     elsif ($q eq 'slurm')
     {
-        $cmd = "sacct -j $id -P -o State 2>&1";
+        $cmd = "sacct -n -X -j $id -P -o State 2>&1";
         if (open(QUERY, "$cmd |"))
         {
             while (<QUERY>)
@@ -2355,6 +2357,15 @@ sub JobCheck
                 {
                     $status = $JOB_STATE_RUNNING;
 					last;
+                }
+                # A job that ended without running its script (scancel while
+                # pending, a node failure) is gone for good; squeue no longer
+                # lists it, and waiting on would never end (#636).
+                elsif ($state =~ /^(CANCELLED|FAILED|TIMEOUT|NODE_FAIL|OUT_OF_MEMORY|PREEMPTED|BOOT_FAIL|DEADLINE)\b/)
+                {
+                    $gSchedCancelled = 1 if ($1 eq 'CANCELLED');
+                    $status = $JOB_STATE_DONE;
+                    last;
                 }
                 elsif (grep {$state eq $_} qw{PENDING})
                 {
@@ -2612,7 +2623,8 @@ sub JobFilesGet
     # notify client if job status file is unavailable
     if ($errMsg || ! $gWaitFileStatus)
     {
-        &MsgSendStatus($MSG_VAL_STAT_UNAVAIL);
+        &MsgSendStatus($gSchedCancelled ? $MSG_VAL_STAT_CANCELLED
+                                        : $MSG_VAL_STAT_UNAVAIL);
     }
 }
 
