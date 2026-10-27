@@ -34,7 +34,7 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   const char *const title[2] = {"Side A", "Side B"};
   for (int s = 0; s < 2; s++) {
-    wxStaticBoxSizer *box = new wxStaticBoxSizer(wxVERTICAL, this, _(title[s]));
+    wxStaticBoxSizer *box = new wxStaticBoxSizer(wxVERTICAL, this, wxGetTranslation(title[s]));
     p_side[s].host = box->GetStaticBox();
     p_side[s].rows = new wxBoxSizer(wxVERTICAL);
     box->Add(p_side[s].rows, 0, wxEXPAND);
