@@ -50,7 +50,9 @@ const char* GLPath::whyText(Why why)
 
 static string stateFile()
 {
+  //  The thumbnail renderer runs without ECCE_REALUSERHOME.
   const char* home = getenv("ECCE_REALUSERHOME");
+  if (!home || !*home) home = getenv("HOME");
   return (home && *home) ? string(home) + "/.ECCE/gl-renderer" : string();
 }
 
