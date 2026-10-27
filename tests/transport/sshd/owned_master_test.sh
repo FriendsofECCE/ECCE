@@ -15,7 +15,7 @@
 #   7. streams on the overflow master, both masters killed, 4 processes:
 #      exactly 1 new login
 #   8. three sessions' masters lost at once, two stores each: 1 new login
-#      wanted; fails while each session keeps its own master (#631)
+#      wanted (#631); another ECCE_REALUSERHOME gets its own directory
 # Own sshd container and port (ECCE_OWNED_PORT); builds in build-ssh in the
 # worktree, untracked. Usage: owned_master_test.sh
 set -eu
@@ -122,15 +122,27 @@ STUB
   MODE=slow ECCE_SSH_ASK_TIMEOUT=2 MINSOCKS=0 scenario slow 0 failing 4
   MODE=cancel MINSOCKS=0 scenario cancel 0 failing 4
   scenario bothdead 3 bothdead 4
-  # 8 (#631): stores of 3 sessions, every master lost at once. Not swept by
-  # the reaper (the extra directories are not session keys): the container goes.
+  # 8 (#631): three sessions (three ids) of one state directory share one
+  # control directory; stores of each, every master lost at once: 1 new login.
+  # A second ECCE_REALUSERHOME on the same account gets a directory of its own.
   : > $ASKLOG
   export XDG_RUNTIME_DIR=/tmp/xdg-sessions
   rm -rf $XDG_RUNTIME_DIR; install -d -m 700 $XDG_RUNTIME_DIR
-  ECCE_SESSION_ID=$(ecce_new_session_id); export ECCE_SESSION_ID
-  ecce_ssh_control_setup
-  echo "=== sessions (control dirs $ECCE_SSH_CONTROL_DIR-s*)"
+  dirs=
+  for i in 1 2 3; do
+    ECCE_SESSION_ID=$(ecce_new_session_id); export ECCE_SESSION_ID
+    ecce_ssh_control_setup
+    dirs="$dirs:$ECCE_SSH_CONTROL_DIR"
+  done
+  dirs=${dirs#:}
+  echo "=== sessions (control dirs $dirs)"
+  [ "$(echo $dirs | tr : "\n" | sort -u | wc -l)" = 1 ] ||
+    { echo "FAIL sessions of one state directory got different control dirs"; rc=1; }
+  other=$(ECCE_REALUSERHOME=/tmp/otherhome; ecce_ssh_control_setup; echo $ECCE_SSH_CONTROL_DIR)
+  [ -n "$other" ] && [ "$other" != "${dirs%%:*}" ] &&
+    echo "ok   another ECCE_REALUSERHOME on this account: its own directory" ||
+    { echo "FAIL another ECCE_REALUSERHOME shares the directory ($other)"; rc=1; }
   before=$(logins)
-  build-ssh/testOwnedMaster sessions 3 || rc=1
-  echo "     sshd saw $(( $(logins) - before )) password logins (3 sessions + 1 wanted)"
+  ECCE_SESSION_DIRS=$dirs build-ssh/testOwnedMaster sessions 3 || rc=1
+  echo "     sshd saw $(( $(logins) - before )) password logins"
   exit $rc'

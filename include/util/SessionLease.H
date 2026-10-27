@@ -48,6 +48,9 @@ bool useProc();
 // rule as ecce_others_using_services in ecce-session-lib.sh.
 std::vector<Holder> othersUsingServices();
 
+// Every other live program of this state directory, in any session.
+std::vector<Holder> otherPrograms();
+
 }  // namespace SessionLease
 
 #endif

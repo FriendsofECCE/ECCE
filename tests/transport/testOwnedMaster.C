@@ -207,11 +207,23 @@ int main(int argc, char** argv)
     // #631: job stores keep the control directory of the session that
     // started them.  N sessions each log in, every master dies at once, and
     // two stores per session reconnect: the user should be asked once.
+    // ECCE_SESSION_DIRS: the directories ecce_ssh_control_setup gave each
+    // session, colon-separated; else one directory per session of our own.
     const string base = OpenSshTransport::ownedControlDir();
     std::vector<string> dirs;
+    std::vector<string> given;
+    if (const char* sd = getenv("ECCE_SESSION_DIRS")) {
+      string rest = sd;
+      while (!rest.empty()) {
+        size_t c = rest.find(':');
+        given.push_back(rest.substr(0, c));
+        rest = c == string::npos ? "" : rest.substr(c + 1);
+      }
+    }
     std::vector<long> pids;
     for (int i = 0; i < n; i++) {
-      const string d = base + "-s" + std::to_string(i);
+      const string d = given.empty() ? base + "-s" + std::to_string(i)
+                                     : given[i % given.size()];
       mkdir(d.c_str(), 0700);
       dirs.push_back(d);
       setenv("ECCE_SSH_CONTROL_DIR", d.c_str(), 1);
@@ -221,7 +233,8 @@ int main(int argc, char** argv)
       pids.push_back(masterPid(c->controlSocketPath()));
       delete c;
     }
-    check("one login per session so far", dialogs() == n, std::to_string(dialogs()));
+    const int want = given.empty() ? n : 1;
+    check("logins so far", dialogs() == want, std::to_string(dialogs()));
     for (size_t i = 0; i < pids.size(); i++) if (pids[i] > 1) kill((pid_t)pids[i], SIGKILL);
     usleep(500000);
     const int before = dialogs();

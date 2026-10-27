@@ -156,10 +156,14 @@ for f in "$broker_prefix"*; do
   [ -n "$(find "$f" -mmin +1 2>/dev/null)" ] && rm -f "$f"
 done
 
-# The ssh masters of sessions with no app left (#487). A job store keeps
-# its session alive, so a running monitor never loses its master. A
-# directory made two minutes ago belongs to a session about to start.
+# The ssh masters (#487). A directory made since #631 belongs to a state
+# directory (.state names it): closed once no ECCE program of that state
+# directory lives, in any session; a job store keeps its masters. One in the
+# old per-session naming (no .state) goes when its session has no app left.
+# A directory made two minutes ago belongs to a program about to start.
 live_ids=" $(ecce_session_procs | awk '{ print $3 }' | tr '\n' ' ') "
+state_alive=""
+[ -z "$(apps_for_state)" ] || state_alive=1
 while read -r root; do
   [ -d "$root" ] && [ ! -L "$root" ] || continue
   for d in "$root"/*; do
@@ -167,15 +171,20 @@ while read -r root; do
     key="$(basename "$d")"
     case "$key" in *[!0-9a-f]*) continue ;; esac
     [ "${#key}" -eq 8 ] || continue
-    case "$live_ids" in *" $key"[0-9a-f]*" "*) continue ;; esac
     [ -z "$(find "$d/.born" -mmin -2 2>/dev/null)" ] || continue
     [ "$(cat "$d/.home" 2>/dev/null)" = "${ECCE_HOME:-}" ] || continue
+    if [ -e "$d/.state" ]; then
+      [ "$(cat "$d/.state" 2>/dev/null)" = "$ECCE_REALUSERHOME" ] || continue
+      [ -z "$state_alive" ] || continue
+    else
+      case "$live_ids" in *" $key"[0-9a-f]*" "*) continue ;; esac
+    fi
     for sock in "$d"/*; do
       [ -S "$sock" ] || continue
       ssh -O exit -S "$sock" x >/dev/null 2>&1
     done
     rm -rf "$d"
-    say "no ECCE app left for session $key -- closed its ssh connections"
+    say "no ECCE app left for $key -- closed its ssh connections"
   done
   rmdir "$root" 2>/dev/null
 done < <(ecce_ssh_control_roots)

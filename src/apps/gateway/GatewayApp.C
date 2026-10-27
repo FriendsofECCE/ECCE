@@ -879,13 +879,16 @@ void GatewayApp::reconnectJobStoreMessaging()
 
 
 // Session over (#487): the ssh masters take no new sessions, but running
-// monitor streams go on; ecce-gateway-reap closes them once the last job
-// store of the session is gone. Not waited for, no shell, output dropped.
+// monitor streams go on; ecce-gateway-reap closes them once the last ECCE
+// program of the state directory is gone. Skipped while one is left. Not waited for, no shell, output dropped.
 static void stopSshMasters()
 {
 #ifndef _WIN32
   const char *dir = getenv("ECCE_SSH_CONTROL_DIR");
   if (dir == NULL || *dir == '\0') return;
+  // The masters belong to the state directory: another session, or a job
+  // store, may be using them. The reaper closes them with the last program.
+  if (!SessionLease::otherPrograms().empty()) return;
   DIR *d = opendir(dir);
   if (d == NULL) return;
   std::vector<string> socks;
