@@ -15,7 +15,7 @@ namespace RemoteListing
         std::vector<std::string> files;
     };
 
-    //  `ls -1Ap` marks directories with '/'; no other marker is added, so a
+    //  command() marks directories with '/'; no other marker is added, so a
     //  name is a file unless it ends in '/'.  -A never lists "." or "..".
     inline Entries parse(const std::string& output)
     {
@@ -98,7 +98,12 @@ namespace RemoteListing
     //  The command text handed to `sh -c` on the machine.
     inline std::string command(const std::string& dir)
     {
-        return "ls -1Ap -- " + shellQuote(dir);
+        //  test -d follows symlinks, so a link to a folder (common for
+        //  program installs) is entered rather than chosen; `ls -p` would not
+        //  mark it, and `ls -L` fails on one broken link.
+        return "cd -- " + shellQuote(dir) + " && ls -1A | while IFS= read -r f; "
+               "do if [ -d \"$f\" ]; then printf '%s/\\n' \"$f\"; "
+               "else printf '%s\\n' \"$f\"; fi; done";
     }
 }
 

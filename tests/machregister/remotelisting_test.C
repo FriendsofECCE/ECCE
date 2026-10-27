@@ -35,7 +35,7 @@ int main()
     eq("start dir", startDir("/opt/orca/", "/home/u"), "/opt/orca");
     eq("start relative", startDir("orca", "/home/u"), "/home/u");
     eq("start empty", startDir("", ""), "/");
-    eq("quote", command("/a b/it's"), "ls -1Ap -- '/a b/it'\\''s'");
+    eq("quote", shellQuote("/a b/it's"), "'/a b/it'\\''s'");
     printf(failures ? "FAILED\n" : "PASS\n");
     return failures ? 1 : 0;
 }
