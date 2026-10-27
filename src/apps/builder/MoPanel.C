@@ -63,6 +63,17 @@
 #include "GridDlg.H"
 #include "MoCoeffs.H"
 
+namespace {
+//  Height of a label's text as drawn, all its lines.
+int multiLineHeight(wxStaticText *t)
+{
+   wxClientDC dc(t);
+   dc.SetFont(t->GetFont());
+   return dc.GetMultiLineTextExtent(t->GetLabel()).y;
+}
+}
+
+
 
 static const char *INIFILE = "wxbuilder.ini";
 
@@ -209,17 +220,25 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_plotSym->Show(which == PLOTSYM);
    sizer->Layout();
 
-   //  The composition of the selected MO, under the table or plot.  Two
-   //  lines high, so a laptop screen keeps several table rows (#379): it is
-   //  a summary that scrolls, and the full per-function list is in View
+   //  The composition of the selected MO, under the table or plot, in a
+   //  thin-bordered box that takes as many lines as the wrapped text needs
+   //  (a fixed height clipped it).  The full per-function list is in View
    //  Coeff.
-   p_compText = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
-         wxDefaultPosition, wxSize(-1, 2*GetTextExtent("M").y + 6),
-         wxTE_MULTILINE|wxTE_READONLY|wxTE_WORDWRAP|wxBORDER_NONE);
-   p_compText->SetBackgroundColour(GetBackgroundColour());
-   p_compText->SetToolTip(_("Which atoms and shells the selected orbital "
+   p_compBox = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                           wxBORDER_SIMPLE);
+   p_compBox->SetBackgroundColour(GetBackgroundColour().ChangeLightness(106));
+   p_compText = new wxStaticText(p_compBox, wxID_ANY, wxEmptyString);
+   p_compText->SetMinSize(wxSize(50, p_compText->GetCharHeight() + 2));
+   wxBoxSizer *compSizer = new wxBoxSizer(wxVERTICAL);
+   compSizer->Add(p_compText, 1, wxEXPAND|wxALL, 4);
+   p_compBox->SetSizer(compSizer);
+   p_compBox->SetToolTip(_("Which atoms and shells the selected orbital "
          "is made of, as a percentage of the orbital (Mulliken population)."));
-   sizer->Insert(3, p_compText, 0, wxGROW|wxLEFT|wxRIGHT, 5);
+   p_compBox->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+      e.Skip();
+      fitComposition();
+   });
+   sizer->Insert(3, p_compBox, 0, wxGROW|wxLEFT|wxRIGHT, 5);
 
    //  What the spin density is made of; replaces the table while the Spin
    //  Density type is chosen.
@@ -232,7 +251,10 @@ bool MoPanel::Create(IPropCalculation *calculation,
    auto makeGrid = [this]() {
       wxGrid *g = new wxGrid(p_spinView, wxID_ANY, wxDefaultPosition,
                              wxDefaultSize, wxBORDER_SUNKEN);
-      g->CreateGrid(0, 0, wxGrid::wxGridSelectRows);
+      //  A selection in these tables means nothing, so none is kept.
+      g->CreateGrid(0, 0, wxGrid::wxGridSelectNone);
+      g->SetCellHighlightPenWidth(0);
+      g->SetCellHighlightROPenWidth(0);
       g->EnableEditing(false);
       g->SetRowLabelSize(0);
       g->DisableDragColSize();
@@ -255,9 +277,9 @@ bool MoPanel::Create(IPropCalculation *calculation,
          tip = wxString::FromUTF8(p_spinSomoFull[row].c_str());
       g->GetGridWindow()->SetToolTip(tip);
    });
-   spinSizer->Add(p_spinNote, 0, wxGROW|wxALL, 5);
+   spinSizer->Add(p_spinNote, 0, wxGROW|wxALL, 8);
    spinSizer->Add(p_spinSomo, 0, wxGROW|wxLEFT|wxRIGHT, 5);
-   spinSizer->Add(p_spinPopHead, 0, wxGROW|wxALL, 5);
+   spinSizer->Add(p_spinPopHead, 0, wxGROW|wxLEFT|wxRIGHT|wxTOP|wxBOTTOM, 8);
    spinSizer->Add(p_spinPop, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
    p_spinView->SetSizer(spinSizer);
    p_spinView->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
@@ -1130,6 +1152,13 @@ string MoPanel::tableState() const
                                           p_mogrid->IsVisible(p_selectedRow - 1, 0, true)) << "\n";
    }
    s << "composition " << p_compSummary << "\n";
+   if (p_compBox && p_compText)
+      s << "compbox border " << ((p_compBox->GetWindowStyleFlag() & wxBORDER_SIMPLE) ? 1 : 0)
+        << " shown " << (p_compBox->IsShownOnScreen() ? 1 : 0)
+        << " textheight " << multiLineHeight(p_compText)
+        << " boxheight " << p_compBox->GetSize().y
+        << " y " << p_compBox->GetPosition().y
+        << " aboveBottom " << ((p_spinShown ? p_spinView->GetRect() : p_mogrid->GetRect()).GetBottom()) << "\n";
    s << "gridWindow " << cs.x << "x" << cs.y << "\n";
    s << "scrollY " << vy * uy << "\n";
    int first = -1, last = -1;
@@ -1156,6 +1185,15 @@ string MoPanel::tableState() const
       }
       text.Replace("\n", "\\n");
       s << "spinView " << text << "\n";
+      //  A click on a row must leave nothing selected: try it.
+      int selected = 0;
+      for (wxGrid *g : { p_spinSomo, p_spinPop }) {
+         if (g->GetNumberRows() == 0) continue;
+         g->SelectRow(0);
+         g->SetGridCursor(0, 0);
+         selected += (int)g->GetSelectedRows().size() + (g->IsInSelection(0, 0) ? 1 : 0);
+      }
+      s << "spinSelected " << selected << "\n";
       s << "spinViewWidth " << p_spinView->GetClientSize().x;
       for (wxGrid *g : { p_spinSomo, p_spinPop })
          s << " grid " << g->GetSize().x << " cols";
@@ -1445,7 +1483,26 @@ void MoPanel::showComposition()
                   "coefficients may not match the basis."), comp.norm);
       }
    }
-   p_compText->ChangeValue(text);
+   p_compFull = text;
+   fitComposition();
+}
+
+/** Wraps the composition text to its box and gives the box the height it needs. */
+void MoPanel::fitComposition()
+{
+   if (p_compText == 0 || p_compBox == 0) return;
+   const int width = p_compBox->GetClientSize().x - 10;
+   if (width < 60) return;   // not laid out yet
+   wxString text = p_compFull;
+   p_compText->SetLabel(text);
+   if (!text.empty()) p_compText->Wrap(width);
+   int h = multiLineHeight(p_compText) + 2;
+   if (text.empty()) h = 0;
+   if (p_compText->GetMinSize().y != h) {
+      p_compText->SetMinSize(wxSize(50, h));
+      //  Not inside this size event: the sizer would be mid-layout.
+      CallAfter(&MoPanel::reflow);
+   }
 }
 
 namespace {
@@ -1650,8 +1707,8 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       //  The composition describes the selected MO, not a density or ESP
       //  surface.
       const bool moDrawn = fieldtype == "MO" || fieldtype == "Localised MO";
-      if (p_compText != 0 && GetSizer()->IsShown(p_compText) != moDrawn) {
-         GetSizer()->Show(p_compText, moDrawn);
+      if (p_compBox != 0 && GetSizer()->IsShown(p_compBox) != moDrawn) {
+         GetSizer()->Show(p_compBox, moDrawn);
          reflow();
       }
       refreshEspBar();
@@ -2475,7 +2532,7 @@ string MoPanel::espBarState() const
    const bool shown = p_espBar->IsShownOnScreen();
    string out = string("espbar_shown ") + (shown ? "1" : "0") + "\n";
    out += string("composition_shown ") +
-          (p_compText != 0 && p_compText->IsShownOnScreen() ? "1" : "0") + "\n";
+          (p_compBox != 0 && p_compBox->IsShownOnScreen() ? "1" : "0") + "\n";
    out += "table_height " +
           std::to_string(p_mogrid->GetGridWindow()->GetClientSize().y) + "\n";
    out += string("selected_visible ") +

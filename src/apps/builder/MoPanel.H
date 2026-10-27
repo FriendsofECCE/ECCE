@@ -139,6 +139,7 @@ class MoPanel : public MoGUI,
      void fillUI();
      void selectMo(int index);
      void showComposition();
+     void fitComposition();
      void fillCharacterColumn(bool haveTypes);
      bool ensureAoBasis();
      GridDlg *getGridDlg();
@@ -243,7 +244,9 @@ class MoPanel : public MoGUI,
       //  The selected MO's atomic-orbital composition (#161), from the
       //  same MoAoBasis as ecce-mocomp.  The basis and its overlap matrix
       //  cost something, so they are built on the first selection.
-      wxTextCtrl      *p_compText = nullptr;
+      wxPanel         *p_compBox = nullptr;     // thin-bordered box round the text
+      wxStaticText    *p_compText = nullptr;
+      wxString         p_compFull;              // the text before wrapping
       MoAoBasis       *p_aoBasis = nullptr;
       bool             p_aoTried = false;
       string           p_aoWhy;

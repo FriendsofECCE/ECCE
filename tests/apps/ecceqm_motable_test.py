@@ -62,8 +62,28 @@ def parseState(log, name):
     return state
 
 
-def check(state, localised, view=""):
+def compositionProblems(state):
+    """The composition box: thin border, tall enough for its wrapped text, and
+    directly under the table (no gap of a row)."""
+    fields = state.get("compbox", "").split()
+    if not fields:
+        return ["no composition box in the log"]
+    box = dict(zip(fields[0::2], map(int, fields[1::2])))
     problems = []
+    if box["border"] != 1:
+        problems.append("the composition has no thin border")
+    if box["shown"]:
+        if box["boxheight"] < box["textheight"]:
+            problems.append("composition box %d px high for %d px of text"
+                            % (box["boxheight"], box["textheight"]))
+        if not 0 <= box["y"] - box["aboveBottom"] <= 12:
+            problems.append("composition box at y=%d, the tables end at %d"
+                            % (box["y"], box["aboveBottom"]))
+    return problems
+
+
+def check(state, localised, view=""):
+    problems = compositionProblems(state)
     if view == "spin":
         text = state.get("spinView", "")
         if "singly occupied" not in text:
@@ -93,6 +113,9 @@ def check(state, localised, view=""):
             problems.append("population headings lack the unit and the share")
         if abs(sum(p[1] for p in pops) - 100.0) > 0.2:
             problems.append("shares should add up to 100 %%: %r" % pops)
+        if state.get("spinSelected") != "0":
+            problems.append("a clicked spin table row stays selected (%s)"
+                            % state.get("spinSelected"))
         if [abs(p[0]) for p in pops] != sorted((abs(p[0]) for p in pops), reverse=True):
             problems.append("atoms not sorted by |spin|: %r" % pops)
         return problems
