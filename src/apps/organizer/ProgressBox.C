@@ -239,7 +239,9 @@ vector<string> ProgressBox::describe() const
     out.push_back("contact lost, last heard " +
                   JobProgress::lastHeardText(p_lastHeard, (double)time(0)));
     int shown = 0;
-    for (int i = 0; i < 3; i++) shown += p_buttons[i]->IsShown() ? 1 : 0;
+    // Unused buttons stay shown at zero size (GTK), so size counts.
+    for (int i = 0; i < 3; i++)
+      shown += p_buttons[i]->IsShown() && p_buttons[i]->GetSize().x > 0;
     out.push_back("buttons " + std::to_string(shown));
   }
   if (p_collapsed) {
