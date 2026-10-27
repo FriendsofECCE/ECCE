@@ -57,7 +57,8 @@ describe what you did and what happened.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.
-
+   [Arranging the Viewer's panels](viewer-panels.md): take a panel out into a
+   window of its own when its plot or table needs more room.
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a
    bond, an angle or a torsion fixed during an optimisation, and use a dummy
    atom as a reference point; the potential of ammonia as the example.

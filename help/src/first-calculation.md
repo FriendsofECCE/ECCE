@@ -209,7 +209,10 @@ text in it, and the reason shown for a failed calculation names it.
 
 The Viewer shows the final geometry. (The same Viewer shows the output of a
 calculation run elsewhere: see [Importing a calculation](importing-a-calculation.md).) Open the results from its
-**Properties** menu. Each entry shows or hides a panel.
+**Properties** menu. Each entry shows or hides a panel. A panel whose plot
+or table needs more room can be dragged out by its title bar into a window
+of its own; **Tools > Dock Floating Panels** puts them back. See
+[Arranging the Viewer's panels](viewer-panels.md).
 
 - **Calculation Summary** lists the theory, run type and basis set, and
   when and where the job ran.
