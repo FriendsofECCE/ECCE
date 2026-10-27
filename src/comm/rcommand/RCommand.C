@@ -417,6 +417,30 @@ static string askpassProgram()
   return access(path.c_str(), X_OK) == 0 ? path : "";
 }
 
+bool RCommand::execOnLiveLogin(const string& machine, const string& userName,
+                               const string& frontendMachine,
+                               const string& frontendBypass,
+                               const string& shellPath, const string& command,
+                               string& output, int timeoutSec)
+{
+  output.clear();
+  if (!usesSsh(machine, "ssh", userName)) return false;
+  const string jump = frontendMachine != "" &&
+    (frontendBypass == "" || !RCommand::isSameDomain(frontendBypass)) ?
+    frontendMachine : string("");
+  if (!useOpenssh(machine, userName, jump)) return false;
+  OpenSshTransport t(machine, 0, userName);
+  if (jump != "") t.setJumpHost(jump, 0, userName);
+  // No askpass program and no password: nothing here can ask.
+  if (!t.loginIsLive()) return false;
+  const string prefix = shellPath == "" ? "" :
+    "PATH=" + shQuote(shellPath) + ":$PATH; export PATH\n";
+  TransportResult r = t.run(prefix + command + "\n", timeoutSec);
+  if (r.status != 0 || r.timedOut) return false;
+  output = r.out;
+  return true;
+}
+
 // The OpenSSH client as a subprocess: it reuses a connection the user's
 // ssh configuration shares (ControlMaster), which libssh cannot, and it
 // never prompts.

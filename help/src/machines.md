@@ -181,6 +181,40 @@ Your queue definitions are stored in `~/.ECCE/Queues` and in a file per
 machine, `~/.ECCE/<name>.Q`. They are added to the queues defined for the
 whole installation. You normally do not edit these files by hand.
 
+### Allocation profiles
+
+If you have more than one allocation on the same cluster, for example a
+course allocation and a project allocation, each with its own account and
+its own directories, give each one a profile. A profile holds the
+**Alloc. Account:**, the **Run Directory:**, the **Scratch Directory:** and
+the queue. Profiles belong to a machine and to you; other users of the same
+installation do not see them.
+
+1. In the Launcher, choose the machine and fill in the account, the
+   directories and the queue as for the first allocation. ECCE keeps these
+   as the profile **Default**, so nothing changes if you have one allocation.
+2. For a second allocation, type its account and directories in the same
+   fields and click **Save as profile...**. Enter a name, for example
+   `Project`. The fields stay as they are and the profile is saved under
+   that name.
+3. Once a machine has more than one profile, a **Profile:** choice appears
+   beside the button. Choosing a profile fills in its account, directories
+   and queue. You can still change them before you launch; the change is
+   kept in the profile that is chosen.
+4. **Delete profile** removes the chosen profile. **Default** cannot be
+   deleted.
+
+The Launcher opens on the profile you used last on that machine. A
+calculation remembers the profile it was launched with and the account and
+directories it used. When you open it in the Launcher again, for a rerun, it
+opens on that profile. Reconnecting to a job, cleaning up its run
+directory and opening a shell in it use the directories that calculation
+was launched with, whichever profile you have chosen since.
+
+Profiles are stored in `~/.ECCE/MachProfiles`. The machine settings in
+`~/.ECCE/MachPrefs` are unchanged, and older ECCE versions ignore the new
+file.
+
 ## The `dummy` machine: submitting by hand
 
 Some clusters cannot be reached by ECCE, for example because they require

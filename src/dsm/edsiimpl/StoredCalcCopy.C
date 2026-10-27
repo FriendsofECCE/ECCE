@@ -31,7 +31,8 @@ const char *const kFormatId = "1";
 const char *const kSkip[] = {"owner", "creationdate", "createdWith",
   "currentVersion", "startdate", "completiondate", "job_path", "job_jobid",
   "job_clienthost", "job_clientid", "launch_user", "launch_machine",
-  "launch_remoteShell", "launch_rundir", "version"};
+  "launch_remoteShell", "launch_rundir", "launch_account", "launch_profile",
+  "version"};
 
 bool skipped(const string& name)
 {

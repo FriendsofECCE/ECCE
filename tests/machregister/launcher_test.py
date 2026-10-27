@@ -280,6 +280,91 @@ quit
     shutil.rmtree(tmp + "-pick", ignore_errors=True)
 
 
+def profile_check(disp, build, tmp, pngs):
+    """Allocation profiles (#541): the machine's MachPrefs line is the
+    Default profile; a saved profile fills account, run and scratch
+    directory and queue, keeps its own edits, is remembered per machine, and
+    leaves MachPrefs (the old file format) alone."""
+    e = g.Env(tmp + "-profile", "launcher")
+    g.write(os.path.join(e.ue, "MyMachines"), g.read(os.path.join(e.ue, "MyMachines"))
+            + "keb\tkeb.example.org\tLinux\tx86_64\tZen4\t32:4\tssh\t:NWChem\t"
+              "MN:RD:SD:UN:PW:AA:Q:TL:MM\n"
+            + "wsm\tlocalhost\tLinux\tx86_64\tZen4\t8:1\tssh\t:NWChem\t"
+              "MN:RD:SD:UN:PW\n")
+    g.write(os.path.join(e.ue, "Queues"), "Queues: keb\n"
+            "keb|queueMgrName: Slurm\nkeb|prefFile: keb.Q\n")
+    g.write(os.path.join(e.ue, "keb.Q"), "Queues: batch short\n\n"
+            "batch|minProcessors: 1\nbatch|maxProcessors: 28\n"
+            "short|minProcessors: 1\nshort|maxProcessors: 4\n")
+    prefs = ("keb:\tandy|ssh|batch|/proj/course/ecce|/scr/course|edu-1|1|1|120|0|0|1\n")
+    g.write(os.path.join(e.ue, "MachPrefs"), prefs)
+    shot = ("shot %s/launcher-profiles.png" % pngs) if pngs else ""
+    p = run_launcher(disp, build, e, """
+machine keb
+expect profile Default
+expect profiles Default
+expect profilechoice 0
+expect profilesave 1
+expect profiledelete 0
+expect account edu-1
+expect rundir /proj/course/ecce
+expect scratch /scr/course
+account naiss-2
+rundir /proj/project/ecce
+queue short
+profile-save Project
+expect profile Project
+expect profiles Default,Project
+expect profilechoice 1
+expect profiledelete 1
+expect account naiss-2
+%s
+profile Default
+expect account edu-1
+expect rundir /proj/course/ecce
+expect scratch /scr/course
+expect queue batch
+profile Project
+expect account naiss-2
+expect rundir /proj/project/ecce
+expect queue short
+rundir /proj/project/ecce2
+profile Default
+expect rundir /proj/course/ecce
+profile Project
+expect rundir /proj/project/ecce2
+machine wsm
+expect profilesave 0
+expect profilechoice 0
+machine keb
+quit
+""" % shot)
+    clean(p, "a saved profile fills the fields, keeps its own edits and leaves Default alone")
+    g.check(g.read(os.path.join(e.ue, "MachPrefs")).count("keb:\tandy|ssh|") == 1
+            and "|/proj/course/ecce|/scr/course|edu-1|" in g.read(os.path.join(e.ue, "MachPrefs")),
+            "MachPrefs keeps the old format and the Default profile's values")
+    saved = g.read(os.path.join(e.ue, "MachProfiles"))
+    g.check("profile\tkeb\tProject|naiss-2|/proj/project/ecce2|" in saved
+            and "last\tkeb\tProject" in saved,
+            "the profile is kept in MachProfiles")
+    # a new session opens on the profile used last, and a name can be deleted
+    p = run_launcher(disp, build, e, """
+machine keb
+expect profile Project
+expect account naiss-2
+profile-delete Project
+expect profile Default
+expect profiles Default
+expect profilechoice 0
+expect account edu-1
+quit
+""")
+    clean(p, "the last-used profile is remembered; deleting it returns to Default")
+    g.check("Project" not in g.read(os.path.join(e.ue, "MachProfiles")),
+            "a deleted profile is gone from the file")
+    shutil.rmtree(tmp + "-profile", ignore_errors=True)
+
+
 def cores_check(disp, build, tmp):
     """The local machine offers 1..logical cores, starts at the physical
     count, says so beside the field, and warns (never blocks) above it (#436)."""
@@ -399,6 +484,7 @@ quit
                 "the save really went through Register Machines")
         local_section_check(disp, build, tmp, pngs)
         pick_check(disp, build, tmp, pngs)
+        profile_check(disp, build, tmp, pngs)
         mpi_check(disp, build, tmp)
         cores_check(disp, build, tmp)
         launchwarn_check(disp, build, tmp)

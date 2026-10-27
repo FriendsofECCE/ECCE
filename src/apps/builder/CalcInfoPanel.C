@@ -1,9 +1,16 @@
 #include <algorithm>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <mutex>
+#include <set>
+#include <thread>
   using std::cout;
   using std::endl;
 
 #include "wx/link.h"
+#include "wx/app.h"
+#include "wx/weakref.h"
 #include "wx/log.h"
 #include "wx/sizer.h"
 #include "wx/scrolwin.h"
@@ -15,6 +22,12 @@
 #include "dsm/JCode.H"
 #include "dsm/PropFactory.H"
 #include "dsm/TaskJob.H"
+#include "dsm/AllocationLeft.H"
+#include "dsm/MachinePreferences.H"
+#include "tdat/QueueMgr.H"
+#include "tdat/RefQueueMgr.H"
+#include "comm/RCommand.H"
+#include "util/Ecce.H"
 
 #include "wxgui/ewxNonBoldLabel.H"
 #include "wxgui/ewxSelectableText.H"
@@ -78,6 +91,90 @@ bool CalcInfoPanel::Create(IPropCalculation *calculation,
 
 CalcInfoPanel::~CalcInfoPanel()
 {
+}
+
+
+//  How much of the allocation is left (#613, docs/claude/services/
+//  allocation-left-613.md). Answers are kept 15 minutes per machine and
+//  account, in memory and in AllocationCache; the command runs on a
+//  background thread and only over a connection that is already logged in,
+//  so showing the summary never asks for a password.
+namespace {
+std::mutex gAllocMu;
+AllocationLeft::Cache gAllocCache;
+bool gAllocLoaded = false;
+std::set<std::string> gAllocBusy;
+
+string allocCachePath()
+{
+  return string(Ecce::userRegistrationDir()) + "AllocationCache";
+}
+
+//  "" when nothing is to be shown. A stale answer is shown until the
+//  refresh lands; a refresh that fails leaves "" cached for 15 minutes.
+string allocationLeft(const Launchdata& l, CalcInfoPanel *panel)
+{
+  if (l.machine.empty() || !AllocationLeft::validAccount(l.account))
+    return "";
+  MachinePreferences *prefs = MachinePreferences::lookup(l.machine);
+  RefMachine *rgstn = prefs ? prefs->getRegisteredMachine() : NULL;
+  if (!rgstn || rgstn->noRemoteAccess())
+    return "";
+  const QueueManager *queueMngr = QueueManager::lookup(l.machine);
+  const RefQueueManager *refQMngr = queueMngr ?
+    RefQueueManager::lookup(queueMngr->queueMgrName()) : NULL;
+  string command = RefQueueManager::allocationCommand(refQMngr, rgstn->allocationCommand());
+  if (command.empty())
+    return "";
+  command = AllocationLeft::substitute(command, l.account);
+
+  const string key = AllocationLeft::Cache::key(l.machine, l.account);
+  const long now = (long)time(NULL);
+  AllocationLeft::Cache::Entry e;
+  bool have, fresh;
+  {
+    std::lock_guard<std::mutex> lock(gAllocMu);
+    if (!gAllocLoaded) {
+      gAllocLoaded = true;
+      std::ifstream in(allocCachePath().c_str());
+      std::stringstream all;
+      all << in.rdbuf();
+      gAllocCache.parse(all.str());
+    }
+    have = gAllocCache.find(key, e);
+    fresh = gAllocCache.fresh(key, now);
+    if (!fresh && gAllocBusy.count(key))
+      fresh = true;                       // being read
+    else if (!fresh)
+      gAllocBusy.insert(key);
+  }
+
+  if (!fresh) {
+    const string machine = l.machine, user = prefs->getUsername(),
+                 front = rgstn->frontendMachine(), bypass = rgstn->frontendBypass(),
+                 shellPath = rgstn->shellPath(), account = l.account;
+    wxWeakRef<CalcInfoPanel> self(panel);
+    std::thread([=]() {
+      string out, text;
+      if (RCommand::execOnLiveLogin(machine, user, front, bypass, shellPath,
+                                    command, out))
+        text = AllocationLeft::summarize(out, account);
+      {
+        std::lock_guard<std::mutex> lock(gAllocMu);
+        gAllocBusy.erase(key);
+        //  A failure is kept too: the refresh below would otherwise start
+        //  the next attempt at once.
+        gAllocCache.put(key, (long)time(NULL), text);
+        std::ofstream o(allocCachePath().c_str());
+        o << gAllocCache.serialise();
+      }
+      wxTheApp->CallAfter([self]() { if (self) self->refresh(); });
+    }).detach();
+  }
+  if (!have || e.text.empty())
+    return "";
+  return e.text + " (checked " + AllocationLeft::checkedAt(e.when) + ")";
+}
 }
 
 
@@ -230,6 +327,18 @@ void CalcInfoPanel::refresh()
       p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Queue:"),
                  0, wxALIGN_RIGHT);
       p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, launch.queue));
+    }
+
+    if (!launch.account.empty() && !launch.machine.empty()) {
+      string left = allocationLeft(launch, this);
+      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Allocation:"),
+                 0, wxALIGN_RIGHT);
+      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, launch.account));
+      if (!left.empty()) {
+        p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Left:"),
+                   0, wxALIGN_RIGHT);
+        p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, left));
+      }
     }
 
     p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "# Processors:"),
