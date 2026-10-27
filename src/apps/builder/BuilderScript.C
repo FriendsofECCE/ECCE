@@ -1121,11 +1121,12 @@ void Builder::runBuilderScript(const std::string& file)
         } else if (w[0] == "mdcompare" && w.size() >= 3 && w[2] == "?") {
           //  mdcompare speed|msd ?: what Compare would offer.
           std::vector<std::string> labels;
+          wxStopWatch took;
           mp->comparable(&labels);
           std::string all;
           for (const std::string& l : labels) all += (all.empty() ? "" : "|") + l;
-          fprintf(stderr, "BUILDER: mdcompare candidates=%d %s\n",
-                  (int)labels.size(), all.c_str());
+          fprintf(stderr, "BUILDER: mdcompare candidates=%d ms=%ld %s\n",
+                  (int)labels.size(), took.Time(), all.c_str());
         } else if (w[0] == "mdcompare" && w.size() >= 3) {
           fprintf(stderr, "BUILDER: mdcompare %s curves=%d %s\n", w[2].c_str(), mp->curves(),
                   mp->compareWith(w[2] == "none" ? std::string() : w[2]) ? "ok" : "failed");

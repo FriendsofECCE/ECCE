@@ -135,14 +135,19 @@ std::vector<IPropCalculation*> MdAnalysisPanel::comparable(
   if (!calc) return out;
   Resource *folder = EDSIFactory::getResource(calc->getURL().getParent());
   const std::string home = calc->getURL().getParent().toString();
-  // Up to the outermost enclosing project, then down into its subfolders.
-  for (int up = 0; up < 4 && folder; up++) {
+  // Up to the folder that holds the study (a topic, or the user's project),
+  // then down into its studies and subfolders.  Not higher: every
+  // calculation looked at loads its properties, and a whole example tree
+  // is a hundred of them.
+  const bool inStudy = folder &&
+      folder->getContentType() == ResourceDescriptor::CT_SESSION;
+  for (int up = 0; up < (inStudy ? 1 : 2) && folder; up++) {
     Resource *above = EDSIFactory::getResource(folder->getURL().getParent());
     if (!above || above->getContentType() != ResourceDescriptor::CT_PROJECT)
       break;
     folder = above;
   }
-  collectCalcs(folder, calc->getURL().toString(), "", 4, propertyKey(), out,
+  collectCalcs(folder, calc->getURL().toString(), "", 2, propertyKey(), out,
                names);
   // A calculation in the calculation's own folder carries its bare name.
   for (size_t i = 0; i < out.size(); i++)

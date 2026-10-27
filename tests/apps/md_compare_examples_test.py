@@ -89,8 +89,11 @@ def run(display, data, work):
     for own, other in ((he, "ar-gas"), (ar, "he-gas")):
         log = builder(display, "file://" + own + "/", ["wait 6000",
                                                         "mdcompare speed ?"])
-        m = re.search(r"BUILDER: mdcompare candidates=(\d+) (.*)$", log, re.M)
-        offered = m.group(2).split("|") if m else []
+        m = re.search(r"BUILDER: mdcompare candidates=(\d+) ms=(\d+) (.*)$", log, re.M)
+        offered = m.group(3).split("|") if m else []
+        check(m and int(m.group(2)) < 2000,
+              "Compare's search takes under 2 s (only the run's topic)",
+              m.group(0) if m else "")
         check(any(("/%s/" % other) in o or o.startswith(other + "/")
                   for o in offered),
               "Compare from %s offers %s" % (os.path.basename(os.path.dirname(own)), other),
