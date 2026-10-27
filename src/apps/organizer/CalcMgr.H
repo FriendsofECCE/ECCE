@@ -341,6 +341,8 @@ public:
                   bool clear = false);
   // Session start (#208): catch up calculations waiting for login.
   void catchUpWaitingJobs();
+  bool stopOldMonitor(const EcceURL& url);
+  string p_reconnectNote;   // the single Reconnect's last message (test hook)
 
   WxResourceTreeItemData * findNode(const EcceURL &targetUrl,
                                     bool openWhenFound = true,

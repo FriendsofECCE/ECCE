@@ -3586,6 +3586,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_reconnect_selected PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # Reconnect with the old job store still alive (#601).
+  add_test(NAME launch_reconnect_race
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/reconnect_race_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_reconnect_race PROPERTIES TIMEOUT 1800
+                       SKIP_RETURN_CODE 77)
   add_test(NAME launch_jobtimes
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/jobtimes_test.py

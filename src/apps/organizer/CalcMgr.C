@@ -1312,6 +1312,12 @@ void CalcMgr::runTestCommand(const string& line)
       vector<EcceURL> urls;
       while (args >> u) urls.push_back(EcceURL(u));
       reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist");
+    } else if (command == "reconnectjob") {
+      // "reconnectjob URL": the single Run Mgmt > Reconnect, without dialogs.
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+      p_reconnectNote = "no such calculation";
+      if (node) reconnectJob(node);
+      outcome = p_reconnectNote;
     } else if (command == "launchselectionrows") {
       // "launchselectionrows URL...": selects those rows in the project table
       // with the focus on the tree, then reports what Launch Selected would
@@ -2764,6 +2770,10 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
           msg->addProperty("url", url.toString());
           publish("ecce_ejs_kill", *msg);
           delete msg;
+          if (!stopOldMonitor(url)) {
+            r.outcome = "previous monitor still running";
+            return false;
+          }
         }
         bool ok = JobCatchUp::reconnect(r.task, r.outcome);
         if (ok) {
@@ -6761,6 +6771,26 @@ void CalcMgr::checkJobOnMachine(WxResourceTreeItemData *itemData)
  * Session start (#208): catch up the calculations whose monitoring stopped
  * while ECCE was away, once per session.
  */
+// The old job store holds the job's WaitingJobs lock for as long as it runs.
+// A new store started before it is gone would meet its cleanup in the run
+// directory, so wait for the lock to go (at most 15 s).
+bool CalcMgr::stopOldMonitor(const EcceURL& url)
+{
+  const string key = url.toString();
+  bool noted = false;
+  for (int i = 0; i < 150 && WaitingJobs::watched(key); i++) {
+    if (i == 10 && !noted) {
+      setMessage("Waiting for the previous monitor to stop...",
+                 WxFeedback::INFO);
+      noted = true;
+    }
+    wxYield();
+    wxMilliSleep(100);
+  }
+  return !WaitingJobs::watched(key);
+}
+
+
 void CalcMgr::catchUpWaitingJobs()
 {
   if (WaitingJobs::list().empty() ||
@@ -6823,10 +6853,16 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
     msg->addProperty("url",url.toString());
     publish("ecce_ejs_kill",*msg);
     delete msg;
+    if (!stopOldMonitor(url)) {
+      p_reconnectNote = "previous monitor still running";
+      setMessage(p_reconnectNote, WxFeedback::ERROR);
+      return;
+    }
   }
 
   string message;
   if (JobCatchUp::reconnect(calc, message)) {
+    p_reconnectNote = "reconnected: " + message;
     setMessage(message, WxFeedback::INFO);
     // The new monitor's own silence counts from now (#284).
     p_contact.erase(progressKey(url));
@@ -6839,6 +6875,7 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
                  "calculation and restart them later as they will be "
                  "extremely slow to respond to input.", WxFeedback::WARNING);
   } else {
+    p_reconnectNote = "failed: " + message;
     setMessage(message, WxFeedback::ERROR);
   }
 }
