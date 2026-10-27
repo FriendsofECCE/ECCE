@@ -2230,6 +2230,10 @@ add_test(NAME playback-loop COMMAND playback_loop_test)
 add_executable(progress_test tests/progress/progress_test.C)
 target_link_libraries(progress_test PRIVATE ecceutil)
 add_test(NAME progress COMMAND progress_test)
+# Reconnect Selected (#601): the eligibility rules, without wx.
+add_executable(reconnect_rules_test tests/progress/reconnect_rules_test.C)
+target_link_libraries(reconnect_rules_test PRIVATE ecceutil)
+add_test(NAME progress_reconnect_rules COMMAND reconnect_rules_test)
 if(PYTHON3_FOR_SPECTRUM)
   add_test(NAME progress-monitor
            COMMAND ${PYTHON3_FOR_SPECTRUM}
@@ -3560,6 +3564,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_waiting PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # Reconnect Selected (#601): parked local jobs reconnected through the
+  # Organizer's hooks; skipped (77) without Xvfb, mopac or the binaries.
+  add_test(NAME launch_reconnect_selected
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/reconnect_selected_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_reconnect_selected PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
   add_test(NAME launch_jobtimes
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/jobtimes_test.py

@@ -108,6 +108,7 @@ static std::string s_registerMessage;
 
 #include "wxgui/ewxProgressDialog.H"
 #include "LaunchSelected.H"
+#include "ReconnectSelected.H"
 #include <future>
 #include <wx/wupdlock.h>
 #include "wxgui/EcceTool.H"
@@ -1299,6 +1300,18 @@ void CalcMgr::runTestCommand(const string& line)
       vector<EcceURL> urls;
       while (args >> u) urls.push_back(EcceURL(u));
       launchSelected(urls, false, &outcome, png);
+    } else if (command == "reconnectselectedlist" || command == "reconnectselected"
+               || command == "reconnectselectedshot") {
+      // "reconnectselectedlist URL...": what the dialog would list, one
+      // "name|machine|state|ok or reason" a line (joined by ;);
+      // "reconnectselected URL...": the batch without its dialogs;
+      // "reconnectselectedshot PNG URL...": only the dialog, saved to PNG.
+      std::istringstream args(calcName);
+      string png, u;
+      if (command == "reconnectselectedshot") args >> png;
+      vector<EcceURL> urls;
+      while (args >> u) urls.push_back(EcceURL(u));
+      reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist");
     } else if (command == "launchselectionrows") {
       // "launchselectionrows URL...": selects those rows in the project table
       // with the focus on the tree, then reports what Launch Selected would
@@ -2672,6 +2685,74 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
   if (interactive) LaunchSelected::showResults(this, rows);
   if (outcome) {
     string r = LaunchSelected::report(rows);
+    for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
+    *outcome = "ok " + r;
+  }
+}
+
+
+/*!
+ * Run Mgmt > Reconnect Selected: Reconnect for each selected calculation that
+ * can have it. Same selection as Launch Selected.
+ */
+void CalcMgr::OnReconnectSelectedClick( wxCommandEvent& event )
+{
+  reconnectSelected(launchSelection(), true);
+}
+
+
+void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
+                                string *outcome, const string& shot, bool listOnly)
+{
+  vector<TaskJob*> tasks;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (task) tasks.push_back(task);
+  }
+  if (tasks.empty()) {
+    if (outcome) *outcome = "no calculations";
+    return;
+  }
+  vector<ReconnectSelected::Row> rows = ReconnectSelected::plan(tasks);
+  if (listOnly) {
+    if (outcome) {
+      string r = ReconnectSelected::listing(rows);
+      for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = ';';
+      *outcome = "ok " + r;
+    }
+    return;
+  }
+  bool go = true;
+  if (interactive || !shot.empty())
+    go = ReconnectSelected::confirm(this, rows, shot);
+  if (!go) {
+    if (outcome) *outcome = "not reconnected";
+    return;
+  }
+  // One at a time, rows of a machine together: the first login makes the
+  // connection (and the per-host lock) that the later jobs and their job
+  // stores reuse, so one machine asks once.
+  ReconnectSelected::run(this, rows, interactive,
+      [this](ReconnectSelected::Row& r) {
+        EcceURL url(r.plan.url);
+        if (r.task->getState() != ResourceDescriptor::STATE_WAITING) {
+          JMSMessage *msg = newMessage();
+          msg->addProperty("url", url.toString());
+          publish("ecce_ejs_kill", *msg);
+          delete msg;
+        }
+        bool ok = JobCatchUp::reconnect(r.task, r.outcome);
+        if (ok) {
+          p_contact.erase(progressKey(url));
+          p_machineCheck.erase(progressKey(url));
+        }
+        updateUrl(url);
+        return ok;
+      });
+  if (interactive) ReconnectSelected::showResults(this, rows);
+  if (outcome) {
+    string r = ReconnectSelected::report(rows);
     for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
     *outcome = "ok " + r;
   }
@@ -5177,6 +5258,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
     menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+    menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
     string why;
     bool can = OrbitalGuess::available(
         dynamic_cast<TaskJob*>(itemData->getResource()), why);
@@ -5455,6 +5537,14 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
       itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
     if (menu.GetMenuItemCount() > 0) menu.AppendSeparator();
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."), "",
+                wxITEM_NORMAL);
+  }
+  if ((state == ResourceDescriptor::STATE_SUBMITTED ||
+       state == ResourceDescriptor::STATE_RUNNING ||
+       state == ResourceDescriptor::STATE_WAITING) &&
+      itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
+    if (menu.GetMenuItemCount() > 0) menu.AppendSeparator();
+    menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."), "",
                 wxITEM_NORMAL);
   }
 }
@@ -8727,7 +8817,10 @@ void CalcMgr::updateSelectionMenus()
     }
     wxMenu *rm = menuBar->GetMenu(menuBar->FindMenu(_("Run Mgmt")));
     clearMenu(*rm);
-    if (allCalcs) rm->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+    if (allCalcs) {
+      rm->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+      rm->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+    }
     enableTopMenu(menuBar, _("Run Mgmt"), allCalcs, p_menuTitlesChanged);
     enableTopMenu(menuBar, _("Tools"), false, p_menuTitlesChanged);
     enableMenuItem(menuBar, wxID_CHANGE_ACCESS, false);

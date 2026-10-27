@@ -109,6 +109,7 @@ public:
     virtual    void OnDuplicate3Click( wxCommandEvent& event );
 
     virtual    void OnLaunchSelectedClick( wxCommandEvent& event );
+    virtual    void OnReconnectSelectedClick( wxCommandEvent& event );
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
     virtual    void OnCutClick( wxCommandEvent& event );
@@ -267,6 +268,7 @@ public:
     static const wxWindowID wxID_DUPLICATE2;
     static const wxWindowID wxID_DUPLICATE3;
     static const wxWindowID wxID_LAUNCH_SELECTED;
+    static const wxWindowID wxID_RECONNECT_SELECTED;
     static const wxWindowID wxID_HOMEASROOT;
     static const wxWindowID ID_FRAME;
     static const wxWindowID wxID_SORT_TYPE;

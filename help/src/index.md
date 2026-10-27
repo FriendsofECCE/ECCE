@@ -110,6 +110,9 @@ describe what you did and what happened.
    energies of two calculations in Hartree, kJ/mol, kcal/mol and eV, and the
    notes on differing code, method or basis set.
 
+25. [Reconnect Selected](reconnect-selected.md): reconnecting several jobs
+   to their calculations after a restart or a lost connection, in one step.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the

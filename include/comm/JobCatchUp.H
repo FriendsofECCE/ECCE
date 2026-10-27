@@ -26,6 +26,14 @@ namespace JobCatchUp {
 // On failure the calculation is left waiting for login, with the reason.
 bool reconnect(TaskJob* calc, std::string& message);
 
+// One calculation of Reconnect Selected (#601): what the dialog lists.
+struct Plan {
+  std::string url, name, machine, state;
+  std::string problem;       // empty: can be reconnected
+};
+
+Plan plan(TaskJob* calc);
+
 struct Result {
   std::string url;
   std::string message;
