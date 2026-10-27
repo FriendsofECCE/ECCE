@@ -8359,6 +8359,8 @@ void CalcMgr::contactUpdate(const EcceURL & url, const string & contact,
   } else {
     p_contact[key] = -1;
     p_machineCheck.erase(key);
+    if (contact.compare(0, 3, "ok ") == 0)
+      p_checked[key] = atof(contact.c_str() + 3);
   }
   //  The snapshot it carries is the last one heard, not a new one: its
   //  age comes from the job store's stamp in it.
@@ -8390,6 +8392,16 @@ bool CalcMgr::outOfContact(Resource * resource, double & lastHeard,
   if (stored.compare(0, 5, "lost ") != 0) return false;
   lastHeard = atof(stored.c_str() + 5);
   return lastHeard > 0;
+}
+
+
+double CalcMgr::lastChecked(Resource * resource) const
+{
+  if (!resource) return 0;
+  auto it = p_checked.find(progressKey(resource->getURL()));
+  if (it != p_checked.end()) return it->second;
+  const string stored = resource->getProp(VDoc::getEcceNamespace() + ":contact");
+  return stored.compare(0, 3, "ok ") == 0 ? atof(stored.c_str() + 3) : 0;
 }
 
 

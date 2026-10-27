@@ -2419,6 +2419,19 @@ void interactUp(char* upData)
   msg += nextToken();
 
   logMessage("eccejobmonitor", msg);
+
+  // A queued job sends no progress, so the heartbeat is what tells the
+  // Organizer the queue state is fresh ("updated n s ago", #606).  Older
+  // Organizers read any value but "lost <epoch>" as in contact.
+  static time_t sent = 0;
+  const time_t now = time(0);
+  if (calculation && !gContactLost && now - sent >= 50 &&
+      calculation->getState() == ResourceDescriptor::STATE_SUBMITTED) {
+    sent = now;
+    const string value = "ok " + std::to_string((long)now);
+    sendNotify("ecce_url_progress", "contact", value);
+    contactStore(value);
+  }
 }
 
 

@@ -126,6 +126,8 @@ def run(display, pngs):
                 "fold open",
                 "summary file://" + queued,
                 "progressbox",
+                "contact file://%s ok %d" % (queued, int(now - 20)),
+                "progressbox",
                 "contact file://%s lost %d" % (queued, int(now - 240)),
                 "progressbox",
                 "snap " + png("contact-queued-lost.png"),
@@ -136,7 +138,7 @@ def run(display, pngs):
         trees = re.findall(r"ECCE_TEST_ORGANIZER: treestate.*?: (image=.*)", log)
         tables = re.findall(r"ECCE_TEST_ORGANIZER: table.*?: (panel=.*)", log)
         states = box.answers(log, "tablestates")
-        if not check(len(boxes) == 8 and len(trees) == 3 and len(tables) == 1
+        if not check(len(boxes) == 9 and len(trees) == 3 and len(tables) == 1
                      and len(states) == 1,
                      "every command answered (%d boxes, %d trees, %d tables, %d states)"
                      % (len(boxes), len(trees), len(tables), len(states)),
@@ -144,7 +146,7 @@ def run(display, pngs):
             return
         for b in boxes + trees + tables + states:
             print("      " + b)
-        before, lost, checked, folded, back, fromStored, qBox, qLost = boxes
+        before, lost, checked, folded, back, fromStored, qBox, qChecked, qLost = boxes
 
         check(field(before, "stateicon") == "plain" and
               "heading open" in lines(before) and
@@ -199,6 +201,9 @@ def run(display, pngs):
                       for l in lines(qBox)) and
               field(qBox, "shown") == "1" and field(qBox, "stateicon") == "plain",
               "queued: since, job id, no scheduler state, no progress", qBox)
+        check(any(re.match(r"updated (2\d|3\d) s ago", l) for l in lines(qChecked)) and
+              any(l.startswith("Status: Queued since") for l in lines(qChecked)),
+              "queued: the monitor's last queue check is 'updated n s ago'", qChecked)
         check(any(re.match(r"contact lost, last heard \d\d:\d\d \(4 min ago\)", l)
                   for l in lines(qLost)) and "buttons 3" in lines(qLost) and
               any(l.startswith("(grey) Status: Queued since") for l in lines(qLost)) and

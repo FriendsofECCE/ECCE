@@ -293,7 +293,9 @@ void CalculationContextPanel::updateProgress()
       atof(p_itemData->getResource()->getProp(
                VDoc::getEcceNamespace() + ":submitdate").c_str()),
       p_itemData->getResource()->getProp(
-          VDoc::getEcceNamespace() + ":job_jobid"));
+          VDoc::getEcceNamespace() + ":job_jobid"),
+      queued && p_calcMgr ? p_calcMgr->lastChecked(p_itemData->getResource())
+                          : 0);
   double lastHeard = 0;
   const bool lost = p_calcMgr &&
       p_calcMgr->outOfContact(p_itemData->getResource(), lastHeard, queued);

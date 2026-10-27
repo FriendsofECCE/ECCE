@@ -331,6 +331,9 @@ public:
   // queued: a submitted job counts too (the Progress box only).
   bool outOfContact(Resource * resource, double & lastHeard,
                     bool queued = false) const;
+  // When the monitor last confirmed a queued job, seconds since 1970 (0
+  // unknown): the live notice, else the stored ecce:contact "ok <epoch>".
+  double lastChecked(Resource * resource) const;
   // What the last "Check Job on Machine" said, one sentence a line.
   vector<string> machineCheckLines(const EcceURL & url) const;
   // The Progress box's buttons: 0 Reconnect, 1 Check Job on Machine,
@@ -611,6 +614,8 @@ protected:
   void finishProgressBackfill(long pid);
   // url -> epoch last heard while out of contact, -1 in contact again
   std::map<string, double> p_contact;
+  // url -> epoch of the last "ok <epoch>" for a queued job
+  std::map<string, double> p_checked;
   std::map<string, vector<string> > p_machineCheck;
   // The tree icon, the shown summary and the table's cells of one
   // calculation, after its contact changed.

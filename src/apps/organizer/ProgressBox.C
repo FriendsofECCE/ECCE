@@ -135,6 +135,8 @@ void ProgressBox::OnClick(wxMouseEvent& event)
 double ProgressBox::age() const
 {
   const double now = (double)time(0);
+  if (p_queued && p_progress.empty())
+    return p_checked > 0 ? std::max(0.0, now - p_checked) : -1;
   const double from = p_received > 0 ? p_received : p_progress.at();
   return from > 0 ? std::max(0.0, now - from) : -1;
 }
@@ -202,7 +204,10 @@ string ProgressBox::foldedText() const
   }
   if (p_queued && p_progress.empty()) {
     const vector<JobProgress::Block> q = blocks();
-    return q.empty() || q[0].lines.empty() ? string() : q[0].lines[0];
+    string line = q.empty() || q[0].lines.empty() ? string() : q[0].lines[0];
+    const double a = age();
+    if (a >= 0) line += (line.empty() ? "" : MIDDOT) + JobProgress::updatedText(a);
+    return line;
   }
   string line = p_progress.shortLine();
   const double a = age();

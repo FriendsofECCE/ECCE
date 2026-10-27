@@ -4,11 +4,14 @@ title: "Out of contact: silence from the job monitor is a display state (\"runni
 area: services
 section: "Pitfalls"
 paths: ["src/comm/commxt/JobStore.C", "src/apps/jobstore/eccejobmaster.C", "src/comm/commtools/RunMgmt.C", "include/comm/RunMgmt.H", "src/apps/organizer/CalcMgr.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/organizer/ProgressBox.C", "src/apps/organizer/CalculationContextPanel.C", "src/apps/organizer/ProjectContextPanel.C", "src/wxgui/wxtools/WxState.C", "src/wxgui/wxtools/WxStateImageList.C", "src/wxgui/wxtools/WxResourceStateImageList.C", "src/wxgui/wxtools/WxResourceTreeCtrl.C", "src/wxgui/wxtools/GridCellPropImageRenderer.C", "src/wxgui/wxtools/GridPropElement.C", "data/client/config/ResourceDescriptor.xml", "data/client/config/ResourceDescriptorRxn.xml", "tests/launch/contact_test.py", "tests/apps/progress_contact_test.py", "tests/launch/launchjob.C"]
-issues: [284, 208]
+issues: [284, 208, 606]
 ---
 **Detection is the job store's.** Only eccejobstore hears the monitor (jmUP
 every sixth job check, one check per `timePauseReadLine`: about 12 s for a
-local job, 60 s otherwise; jmUP is not relayed). The Organizer cannot tell a
+local job, 60 s otherwise). jmUP is relayed only while the job is
+Submitted: `contact` = `ok <epoch>` at most every 50 s, also stored, which
+the queued box shows as "updated n s ago" (`CalcMgr::lastChecked`, #606);
+older Organizers read anything but `lost ` as in contact). The Organizer cannot tell a
 quiet job (a long SCF step, a code without `[PROGRESS]`) from a lost one.
 
 - **Times** (`contactInit()`, from the local `eccejobmonitor.conf`): out of
