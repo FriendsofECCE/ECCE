@@ -167,6 +167,8 @@ def readDump(path):
             d["detail"] = line[7:]
         elif f[0] == "detailshown":
             d["shown"] = line[12:]
+        elif f[0] == "detailbox":
+            d["box"] = dict(zip(f[1::2], map(int, f[2::2])))
     return d
 
 
@@ -175,7 +177,7 @@ def run(s, display, env, wrappers, png, url, name):
     if os.path.exists(dump):
         os.unlink(dump)
     #  No exit after the dump: Copy all (#408) is read from the same run.
-    lines = ["wait 15000", "tablecopy Vibrational Frequencies", "quit"]
+    lines = ["wait 15000", "shot table", "tablecopy Vibrational Frequencies", "quit"]
     text, _shots = bo.runScript(
         s, display, env, wrappers, ["-context", url], lines, png, name,
         {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies",
@@ -299,6 +301,11 @@ def main():
             check(d["detail"].count(" \u00b7 ") >= 1 and d["detail"].split(" \u00b7 ")[0] == d["cells"][(8, 1)][2],
                   "%s: the detail line reads 'irrep \u00b7 description \u00b7 activity': %s" % (name, d["detail"]))
         check(d.get("shown", "").count("|") <= 1, "%s: the detail line is at most two lines: %s" % (name, d.get("shown")))
+        box = d.get("box")
+        check(box is not None and box["border"] == 1 and box["inside"] == 1,
+              "%s: the mode description sits in a thin-bordered box: %s" % (name, box))
+        check(box is not None and box["boxheight"] >= box["textheight"],
+              "%s: the box holds all the description's lines: %s" % (name, box))
         #  The six zero rows: Tx..Rz and their irreps in the Sym column.
         zero = [r for r in sorted(d["modes"]) if d["modes"][r]["label"] in RIGID]
         check([d["cells"][(r, 2)][2] for r in zero] == [x for x in RIGID if x in

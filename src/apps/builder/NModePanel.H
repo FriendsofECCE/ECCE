@@ -232,6 +232,7 @@ class NModePanel : public NModesGUI,
       vector<wxString> p_modeFull;   // untruncated Mode cells
       //  The selected mode's frequency and description: under the table, and
       //  under the plot in the Graph view, frequency first (p_graphParts).
+      wxPanel *p_modeBox = NULL;      // the box around p_modeDetail
       wxStaticText *p_modeDetail = NULL;
       wxStaticText *p_graphDetail = NULL;
       wxPanel *p_graphBox = NULL;     // its own box under the plot

@@ -178,8 +178,17 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   GetSizer()->Add(p_grid, 2, wxEXPAND | wxALL, 3);
 
   // Messages go below all the controls.
-  p_status = new wxStaticText(this, wxID_ANY, "");
-  GetSizer()->Add(p_status, 0, wxEXPAND | wxALL, 4);
+  //  It describes the selected point, so it gets a thin-bordered box of its
+  //  own rather than loose text among the controls.
+  wxPanel *statusBox = new wxPanel(this, wxID_ANY, wxDefaultPosition,
+                                   wxDefaultSize, wxBORDER_SIMPLE);
+  statusBox->SetBackgroundColour(GetBackgroundColour().ChangeLightness(106));
+  p_status = new wxStaticText(statusBox, wxID_ANY, "");
+  p_status->SetMinSize(wxSize(50, p_status->GetCharHeight() + 2));
+  wxBoxSizer *statusSizer = new wxBoxSizer(wxVERTICAL);
+  statusSizer->Add(p_status, 1, wxEXPAND | wxALL, 4);
+  statusBox->SetSizer(statusSizer);
+  GetSizer()->Add(statusBox, 0, wxEXPAND | wxALL, 4);
 
   Bind(wxEVT_CHOICE, &IRCPanel::OnUnit, this, ID_UNIT);
   Bind(wxEVT_BUTTON, &IRCPanel::OnExport, this, ID_EXPORT);

@@ -72,6 +72,17 @@
 
 #include "NModePanel.H"
 
+namespace {
+//  Height of a label's text as drawn, all its lines.
+int multiLineHeight(wxStaticText *t)
+{
+   wxClientDC dc(t);
+   dc.SetFont(t->GetFont());
+   return dc.GetMultiLineTextExtent(t->GetLabel()).y;
+}
+}
+
+
 //  Red that stays readable on light and dark table backgrounds.
 static wxColour imaginaryColour()
 {
@@ -223,15 +234,23 @@ bool NModePanel::Create(IPropCalculation *calculation,
    //  panel; the whole text is its tooltip.
    {
       wxSizer *gs = p_grid->GetContainingSizer();
-      p_modeDetail = new wxStaticText(this, wxID_ANY, "");
+      //  A thin-bordered box, like the plot's: text about the selection is
+      //  never loose among the controls.
+      p_modeBox = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                              wxBORDER_SIMPLE);
+      p_modeBox->SetBackgroundColour(GetBackgroundColour().ChangeLightness(106));
+      p_modeDetail = new wxStaticText(p_modeBox, wxID_ANY, "");
       p_modeDetail->SetMinSize(wxSize(50, 2*p_modeDetail->GetCharHeight() + 2));
+      wxBoxSizer *boxSizer = new wxBoxSizer(wxVERTICAL);
+      boxSizer->Add(p_modeDetail, 1, wxEXPAND | wxALL, 4);
+      p_modeBox->SetSizer(boxSizer);
       wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
       gs->Detach(p_grid);
       col->Add(p_grid, 1, wxEXPAND);
-      col->Add(p_modeDetail, 0, wxEXPAND | wxTOP, 3);
+      col->Add(p_modeBox, 0, wxEXPAND | wxTOP, 3);
       gs->Insert(0, col, 1, wxGROW | wxALL, 3);
       //  A window made now is shown whatever its sizer item's state is.
-      p_modeDetail->Show(!isGraphShown());
+      p_modeBox->Show(!isGraphShown());
    }
    p_modeDetail->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
       setWrapped(p_modeDetail, p_detailParts);
@@ -1261,6 +1280,13 @@ void NModePanel::dumpTableIfRequested()
       wxString shown = p_modeDetail ? p_modeDetail->GetLabel() : wxString();
       shown.Replace("\n", "|");
       fprintf(out, "detailshown %s\n", (const char*)shown.utf8_str());
+      //  Whether the line sits in a bordered box that holds all of its text.
+      if (p_modeBox && p_modeDetail)
+        fprintf(out, "detailbox border %d inside %d textheight %d boxheight %d\n",
+                (p_modeBox->GetWindowStyleFlag() & wxBORDER_SIMPLE) ? 1 : 0,
+                p_modeDetail->GetParent() == p_modeBox ? 1 : 0,
+                multiLineHeight(p_modeDetail),
+                p_modeBox->GetSize().y);
       fclose(out);
       //  ECCE_NMODE_TABLE_DRAG=<dx>: drag the Mode column's right edge dx px
       //  with a real (X) mouse drag on the label row, then write the column
