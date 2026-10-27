@@ -7,7 +7,7 @@
 #symbol: name,row,col,state,metals,color,affinity,weight,boiling,melting,cr,crt
 X: Ghost,9,1,gas,nonMetallic,#ff8072,NA,0.,0.,0.,0.,0.26,1.2
 H: Hydrogen,1,1,gas,nonMetallic,#ffffff,0.7545,1.0079,0,13.81,20.28,0.40,1.1
-He: Helium,1,18,gas,nonMetallic,#ffffff,-0.2176 (calc.),4.0026,0,0.00,4.25,0.60,1.2
+He: Helium,1,18,gas,nonMetallic,#d9ffff,-0.2176 (calc.),4.0026,0,0.00,4.25,0.60,1.2
 Li: Lithium,2,1,solid,metallic,#d67b73,0.6198,6.941,0,453.75,1615.15,0.60,1.2
 Be: Beryllium,2,2,solid,metallic,#29d629,-0.1866,9.01218,0,1562.15,2745.15,0.90,1.2
 B: Boron,2,13,solid,semiMetallic,#c6d6e7,0.2384,10.81,0,2365.15,4275.15,0.82,1.2
@@ -16,7 +16,7 @@ N: Nitrogen,2,15,gas,nonMetallic,#1e90ff,-0.07255,14.0067,0,63.15,77.35,0.75,1.2
 O: Oxygen,2,16,gas,nonMetallic,#ff0000,1.461,15.9994,0,54.36,90.18,0.73,1.2
 
 F: Fluorine,2,17,gas,nonMetallic,#9b30ff,3.337,18.9984,0,53.53,85.02,0.72,1.2
-Ne: Neon,2,18,gas,nonMetallic,#ffffff,-0.3006 (calc.),20.179,0,24.56,27.07,0.71,1.2
+Ne: Neon,2,18,gas,nonMetallic,#b3e3f5,-0.3006 (calc.),20.179,0,24.56,27.07,0.71,1.2
 Na: Sodium,3,1,solid,metallic,#d67b73,0.5483,22.9898,0,370.95,1156.15,0.95,1.2
 Mg: Magnesium,3,2,solid,metallic,#29d629,-0.2176,24.305,0,923.15,1363.15,1.36,1.05
 Al: Aluminum,3,13,solid,metallic,#c6d6e7,0.456,26.9815,0,933.60,2793.15,1.18,1.05
@@ -24,7 +24,7 @@ Si: Silicon,3,14,solid,semiMetallic,#1e90ff,1.385,28.0855,0,1687.15,3540.15,1.11
 P: Phosphorous,3,15,solid,nonMetallic,#ffa500,0.7431,30.9738,0,317.29,553.15,1.06,1.2
 S: Sulfur,3,16,solid,nonMetallic,#feff04,2.077,32.06,0,388.37,717.82,1.02,1.2
 Cl: Chlorine,3,17,gas,nonMetallic,#59ff66,3.614,35.453,0,172.12,239.25,0.99,1.2
-Ar: Argon,3,18,gas,nonMetallic,#ffffff,-0.3627 (calc.),39.948,0,83.80,87.28,0.98,1.2
+Ar: Argon,3,18,gas,nonMetallic,#80d1e3,-0.3627 (calc.),39.948,0,83.80,87.28,0.98,1.2
 
 K: Potassium,4,1,solid,metallic,#d67b73,0.454,39.0983,0,336.86,1032.15,1.33,1.2
 Ca: Calcium,4,2,solid,metallic,#29d629,-1.928,40.08,0,1115.15,1767.15,1.74,1.05
@@ -44,7 +44,7 @@ Ge: Germanium,4,14,solid,semiMetallic,#1e90ff,1.202,72.59,0,1211.50,3107.15,1.22
 As: Arsenic,4,15,solid,semiMetallic,#1e90ff,0.798,74.9216,0,0.00,888.15,1.20,1.05
 Se: Selenium,4,16,solid,semiMetallic,#29ad29,2.021,78.96,0,494.15,958.15,1.16,1.05
 Br: Bromine,4,17,liquid,nonMetallic,#9b30ff,3.363,79.904,0,265.95,331.85,1.14,1.1
-Kr: Krypton,4,18,gas,nonMetallic,#ffffff,-0.4042 (calc.),83.8,0,115.78,119.92,1.12,1.1
+Kr: Krypton,4,18,gas,nonMetallic,#5cb8d1,-0.4042 (calc.),83.8,0,115.78,119.92,1.12,1.1
 Rb: Rubidium,5,1,solid,metallic,#d67b73,0.4861,85.4768,0,312.63,961.15,1.48,1.2
 Sr: Strontium,5,2,solid,metallic,#29d629,-1.513,87.62,0,1042.15,1655.15,1.91,1.05
 Y: Yttrium,5,3,solid,metallic,#5abd8c,-0.4042,88.9059,0,1795.15,3611.15,1.62,1.05
@@ -64,7 +64,7 @@ Sn: Tin,5,14,solid,metallic,#b3b3b3,1.254,118.69,0,505.12,2876.15,1.41,1.05
 Sb: Antimony,5,15,solid,metallic,#ffa500,1.047,121.75,0,903.91,1860.15,1.40,1.05
 Te: Tellurium,5,16,solid,semiMetallic,#29ad29,1.971,127.6,0,722.72,1261.15,1.36,1.05
 I: Iodine,5,17,solid,nonMetallic,#9b30ff,3.061,126.905,0,386.65,457.45,1.33,1.2
-Xe: Xenon,5,18,gas,nonMetallic,#ffffff,-0.4249 (calc.),131.3,0,161.39,165.15,1.31,1.1
+Xe: Xenon,5,18,gas,nonMetallic,#429eb0,-0.4249 (calc.),131.3,0,161.39,165.15,1.31,1.1
 Cs: Cesium,6,1,liquid,metallic,#d67b73,0.4716,132.905,0,301.54,944.15,1.69,1.1
 Ba: Barium,6,2,solid,metallic,#29d629,-0.4767,137.33,0,1002.15,2078.15,1.98,1.05
 La: Lanthanum,6,3,solid,metallic,#ffffc6,0.5493,138.906,0,1191.15,3737.15,1.69,1.05
@@ -99,7 +99,7 @@ Pb: Lead,6,14,solid,metallic,#b3b3b3,0.3648,207.2,0,600.65,2023.15,1.47,1.05
 Bi: Bismuth,6,15,solid,metallic,#ffa500,1.047,208.98,0,544.59,1837.15,1.46,1.05
 Po: Polonium,6,16,solid,metallic,#29ad29,1.928,209,0,527.15,0.00,1.46,1.05
 At: Astatine,6,17,solid,semiMetallic,#9b30ff,2.798,210,0,575.15,0.00,1.45,1.05
-Rn: Radon,6,18,gas,nonMetallic,#ffffff,-0.4249,222,0,202.15,211.45,1.70,1.05
+Rn: Radon,6,18,gas,nonMetallic,#428296,-0.4249,222,0,202.15,211.45,1.70,1.05
 Fr: Francium,7,1,liquid,metallic,#d67b73,0.456,223,0,300.15,0.00,1.76,1.05
 Ra: Radium,7,2,solid,metallic,#29d629,n.a.,226.025,0,973.15,0.00,2.05,1.05
 Ac: Actinium,7,3,solid,metallic,#efe7ad,n.a.,227.028,0,1324.15,3473.15,1.75,1.05
