@@ -32,6 +32,7 @@
 #include "util/PreferenceLabels.H"
 
 #include "dsm/MachinePreferences.H"
+#include "tdat/QueueMgr.H"
 
 #define RETAIN_VRSN3X_CONFIGFILES
 
@@ -272,7 +273,26 @@ void MachinePreferences::setPriority(int p)
 bool MachinePreferences::isOptionSupported(string mnmc)
 {
     //  A MachPrefs line can outlive its machine, or come before it is saved.
-    return p_machOptns != NULL && p_machOptns->isSupported(mnmc);
+    if (p_machOptns == NULL)
+        return false;
+    if (p_machOptns->isSupported(mnmc))
+        return true;
+
+    //  Slurm without --mem takes the partition's default per CPU, which on
+    //  a many-core node can exceed the node and leave the job pending, so a
+    //  Slurm machine always offers Memory whatever its registration says.
+    if (mnmc == "MM" && p_machOptns->isSupported("Q"))
+    {
+        const QueueManager *qm = QueueManager::lookup(p_itemKey);
+        if (qm != NULL)
+        {
+            string n = qm->queueMgrName();
+            for (size_t i = 0; i < n.size(); i++)
+                n[i] = tolower((unsigned char)n[i]);
+            return n == "slurm";
+        }
+    }
+    return false;
 }
 
 
