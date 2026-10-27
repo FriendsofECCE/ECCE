@@ -517,12 +517,12 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * scrollsummary   scroll the calculation summary to its bottom and back
  * showbox         scroll the summary panel so that the Progress box is at
  *                 its top
- * compareenergies <urlA> <urlB>
- *                 what Tools > Compare Energies shows for the two, " | "
- *                 between lines
- * comparedialog <urlA> <urlB> [png]
- *                 open that dialog preset to the two, report its text areas
- *                 and save a capture of it
+ * compareenergies <sideA> <sideB>
+ *                 what Tools > Compare Energies shows for the two sides
+ *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
+ * comparedialog <sideA> <sideB> [png]
+ *                 open that dialog preset to the two sides, report its text
+ *                 areas and the Copy text, and save a capture of it
  * progressbox     the shown summary's Progress box: shown or not, its
  *                 paints and the lines it draws, separated by " | "
  * contact <url> lost <epoch>|ok
@@ -1125,28 +1125,29 @@ void CalcMgr::runTestCommand(const string& line)
         for (const string& l : box->describe()) outcome += " | " + l;
       }
     } else if (command == "compareenergies" || command == "comparedialog") {
-      // "compareenergies <urlA> <urlB>": the values and notes the dialog
-      // shows.  "comparedialog <urlA> <urlB> [png]": the dialog itself, its
-      // text areas, and a capture of it.
+      // "compareenergies <sideA> <sideB>": the table and notes the dialog
+      // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
+      // <sideB> [png]": the dialog itself, its text areas, and a capture.
       std::istringstream args(calcName);
       string ua, ub, png;
       args >> ua >> ub >> png;
       if (command == "compareenergies") {
-        const EnergyEntry a = gatherEnergyEntry(ua), b = gatherEnergyEntry(ub);
-        const EnergyComparison c = compareEnergies(a, b);
+        const SumResult c = sumEnergies(gatherSide(ua), gatherSide(ub));
         outcome = "ok";
-        std::istringstream lines(comparisonText(a, b, c));
+        std::istringstream lines(sumText(c, false));
         for (string l; std::getline(lines, l); ) outcome += " | " + l;
       } else {
-        vector<EcceURL> sel;
-        sel.push_back(EcceURL(ua));
-        sel.push_back(EcceURL(ub));
-        CompareEnergiesDialog *d = newCompareEnergiesDialog(sel);
+        // Sides as in compareenergies; the lists are those of the project
+        // of the first calculation.
+        CompareEnergiesDialog *d = new CompareEnergiesDialog(this,
+            calculationsIn(EcceURL(parseSide(ua)[0].first).getParent().toString()),
+            parseSide(ua), parseSide(ub));
         d->Show();
         for (int i = 0; i < 5; i++) wxYield();
         if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
         outcome = "ok";
-        std::istringstream r(d->resultText() + "Notes:\n" + d->notesText());
+        std::istringstream r(d->resultText() + "Notes:\n" + d->notesText() +
+                             "Copy:\n" + d->copyText());
         for (string l; std::getline(r, l); ) outcome += " | " + l;
         d->Destroy();
       }
@@ -5721,16 +5722,17 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
 CompareEnergiesDialog *CalcMgr::newCompareEnergiesDialog(
     const vector<EcceURL>& sel)
 {
-  string a, b, project;
+  string project;
+  CompareEnergiesDialog::Side a, b;
   if (sel.size() == 2) {
-    a = sel[0].toString();
-    b = sel[1].toString();
+    a.push_back(std::make_pair(sel[0].toString(), 1));
+    b.push_back(std::make_pair(sel[1].toString(), 1));
   }
   if (!sel.empty()) {
     const bool isCalc =
         dynamic_cast<PropertyTask*>(EDSIFactory::getResource(sel[0])) != 0;
     project = (isCalc ? sel[0].getParent() : sel[0]).toString();
-    if (isCalc && sel.size() == 1) a = sel[0].toString();
+    if (isCalc && sel.size() == 1) a.push_back(std::make_pair(sel[0].toString(), 1));
   }
   return new CompareEnergiesDialog(this, calculationsIn(project), a, b);
 }

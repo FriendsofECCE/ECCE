@@ -1,111 +1,48 @@
 #include "CompareEnergies.H"
 
 #include <cctype>
-#include <cstdio>
+#include <cstdlib>
 
 #include "tdat/EnergyFormat.H"
 
-
 using std::string;
+using std::vector;
 
-namespace {
-const double KJ_PER_HARTREE = 2625.4996394799;
-const double KCAL_PER_HARTREE = KJ_PER_HARTREE / 4.184;
-const double EV_PER_HARTREE = 27.211386245988;
-
-// Hartree for a stored energy; false if the unit is not an energy we know.
-bool toHartree(const FinalEnergy& e, double *h)
+bool finalEnergyHartree(const FinalEnergy& e, double *h)
 {
   if (e.units.empty() || e.units == "NA" || e.units == "Hartree") *h = e.value;
-  else if (e.units == "kcal/Mole") *h = e.value / KCAL_PER_HARTREE;
-  else if (e.units == "kJoule/Mole") *h = e.value / KJ_PER_HARTREE;
-  else if (e.units == "eV") *h = e.value / EV_PER_HARTREE;
+  else if (e.units == "kcal/Mole") *h = e.value / hartreeTo(1.0, EU_KCAL);
+  else if (e.units == "kJoule/Mole") *h = e.value / hartreeTo(1.0, EU_KJ);
+  else if (e.units == "eV") *h = e.value / hartreeTo(1.0, EU_EV);
   else return false;
   return true;
 }
 
-string num(double v, int decimals)
+vector<std::pair<string, int> > parseSide(const string& spec)
 {
-  char buf[64];
-  snprintf(buf, sizeof buf, "%.*f", decimals, v);
-  return buf;
-}
-}
-
-EnergyComparison compareEnergies(const EnergyEntry& a, const EnergyEntry& b)
-{
-  EnergyComparison r;
-  const EnergyEntry *e[2] = {&a, &b};
-  const char *who[2] = {"A", "B"};
-  double h[2] = {0, 0};
-  bool have[2] = {false, false};
-  for (int i = 0; i < 2; i++) {
-    if (!e[i]->exists)
-      r.notes.push_back(string("Calculation ") + who[i] + " cannot be read.");
-    else if (!e[i]->energy.found)
-      r.notes.push_back(string(e[i]->name) + " (" + who[i] +
-                        ") has no final energy.");
-    else if (!toHartree(e[i]->energy, &h[i]))
-      r.notes.push_back(string(e[i]->name) + " (" + who[i] +
-                        ") gives its energy in " + e[i]->energy.units +
-                        ", which cannot be converted.");
-    else {
-      have[i] = true;
-      if (e[i]->energy.heat)
-        r.notes.push_back(string(e[i]->name) + " (" + who[i] +
-                          ") gives a heat of formation, not a total energy.");
+  vector<std::pair<string, int> > out;
+  size_t pos = 0;
+  while (pos <= spec.size()) {
+    size_t end = spec.find(',', pos);
+    if (end == string::npos) end = spec.size();
+    string item = spec.substr(pos, end - pos);
+    pos = end + 1;
+    if (item.empty()) continue;
+    int sign = 1, n = 1;
+    if (item[0] == '-') {
+      sign = -1;
+      item.erase(0, 1);
     }
+    const size_t star = item.find('*');
+    if (star != string::npos && star > 0 &&
+        item.find_first_not_of("0123456789") == star) {
+      n = atoi(item.substr(0, star).c_str());
+      item.erase(0, star + 1);
+    }
+    out.push_back(std::make_pair(item, sign * n));
   }
-  r.ok = have[0] && have[1];
-  if (r.ok) {
-    r.a = h[0];
-    r.b = h[1];
-    r.delta = h[1] - h[0];
-  }
-  if (a.exists && b.exists) {
-    struct { const char *what; const string& x; const string& y; } d[3] = {
-      {"code", a.code, b.code}, {"method", a.method, b.method},
-      {"basis set", a.basis, b.basis}};
-    for (int i = 0; i < 3; i++)
-      if (d[i].x != d[i].y)
-        r.notes.push_back(string("The ") + d[i].what + " differs: A " +
-                          (d[i].x.empty() ? "(none)" : d[i].x) + ", B " +
-                          (d[i].y.empty() ? "(none)" : d[i].y) + ".");
-    if (r.ok && (a.energy.scanned != b.energy.scanned))
-      r.notes.push_back("One energy is the last point of a relaxed scan, "
-                        "the other is not.");
-  }
-  return r;
+  return out;
 }
-
-string comparisonResults(const EnergyEntry& a, const EnergyEntry& b,
-                         const EnergyComparison& c)
-{
-  string t;
-  if (!c.ok) return t;
-  t += "E(A) " + fmtAbsolute(c.a) + " Hartree  " + a.name + "\n";
-  t += "E(B) " + fmtAbsolute(c.b) + " Hartree  " + b.name + "\n";
-  t += "E(B) - E(A):\n";
-  for (int u = 0; u < 4; u++)
-    t += "  " + fmtDifference(c.delta, u) + " " + energyUnitName(u) + "\n";
-  return t;
-}
-
-string comparisonNotes(const EnergyComparison& c)
-{
-  string t;
-  for (size_t i = 0; i < c.notes.size(); i++) t += c.notes[i] + "\n";
-  return t;
-}
-
-string comparisonText(const EnergyEntry& a, const EnergyEntry& b,
-                      const EnergyComparison& c)
-{
-  string t = comparisonResults(a, b, c);
-  for (size_t i = 0; i < c.notes.size(); i++) t += "Note: " + c.notes[i] + "\n";
-  return t;
-}
-
 
 bool calcNameLess(const string& a, const string& b)
 {
@@ -132,16 +69,4 @@ bool calcNameLess(const string& a, const string& b)
     }
   }
   return a.size() - i < b.size() - j;
-}
-
-string comparisonCopyText(const EnergyEntry& a, const EnergyEntry& b,
-                          const EnergyComparison& c)
-{
-  if (!c.ok) return comparisonNotes(c);
-  string t = "E(A) " + num(c.a, 10) + " Hartree  " + a.name + "\n";
-  t += "E(B) " + num(c.b, 10) + " Hartree  " + b.name + "\n";
-  t += "E(B) - E(A):\n";
-  for (int u = 0; u < 4; u++)
-    t += "  " + num(hartreeTo(c.delta, u), 10) + " " + energyUnitName(u) + "\n";
-  return t + comparisonNotes(c);
 }

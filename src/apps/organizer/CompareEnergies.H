@@ -5,14 +5,14 @@
 #include <utility>
 #include <vector>
 
-#include "tdat/EnergyFormat.H"
+#include "tdat/EnergySums.H"
 
 class PropertyTask;
 
 /**
  * The final energy of a calculation as the Organizer's summary shows it
- * (#352), and the difference of two of them (#573).  No wx: the dialog only
- * gathers the two calculations and shows the result.
+ * (#352).  No wx: the dialog only gathers the terms of the two sides and
+ * shows what sumEnergies() (tdat/EnergySums) makes of them (#573, #612).
  */
 struct FinalEnergy
 {
@@ -32,41 +32,21 @@ bool calcNameLess(const std::string& a, const std::string& b);
 /** The energy the summary names the final energy; found=false if none. */
 FinalEnergy finalEnergyOf(PropertyTask *task);
 
-struct EnergyEntry
-{
-   std::string name, url, code, method, basis;
-   bool exists = false;
-   FinalEnergy energy;
-};
+/** Hartree for a stored energy; false if the unit is not one we know. */
+bool finalEnergyHartree(const FinalEnergy& e, double *hartree);
 
-/** Reads a calculation by URL; exists=false if it cannot be opened. */
-EnergyEntry gatherEnergyEntry(const std::string& url);
+/**
+ * One calculation as a term of a side: energy, thermochemistry, settings and
+ * atoms.  state.problem says why there is no energy (cannot be read, none).
+ */
+EnergyTerm gatherEnergyTerm(const std::string& url, int coeff);
 
 /** The calculations (name, url) directly in a project. */
 std::vector<std::pair<std::string, std::string> >
 calculationsIn(const std::string& projectUrl);
 
-struct EnergyComparison
-{
-   bool ok = false;            ///< both have a usable energy
-   double a = 0, b = 0;        ///< hartree
-   double delta = 0;           ///< E(B) - E(A), hartree
-   std::vector<std::string> notes;
-};
-
-EnergyComparison compareEnergies(const EnergyEntry& a, const EnergyEntry& b);
-
-/** The energies block and the notes, as the two text areas show them. */
-std::string comparisonResults(const EnergyEntry& a, const EnergyEntry& b,
-                              const EnergyComparison& c);
-std::string comparisonNotes(const EnergyComparison& c);
-
-/** The same with full precision, for Copy. */
-std::string comparisonCopyText(const EnergyEntry& a, const EnergyEntry& b,
-                               const EnergyComparison& c);
-
-/** Both in one text, as the hook prints it and the dialog shows it. */
-std::string comparisonText(const EnergyEntry& a, const EnergyEntry& b,
-                           const EnergyComparison& c);
+/** A side as typed in the script hook: "[-][N*]url,[-][N*]url". */
+std::vector<std::pair<std::string, int> > parseSide(const std::string& spec);
+std::vector<EnergyTerm> gatherSide(const std::string& spec);
 
 #endif
