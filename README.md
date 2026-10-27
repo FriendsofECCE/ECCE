@@ -51,6 +51,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Several allocations on one compute machine, set up in Register Machines,
   and the allocation left shown with the calculation.
 - Launch Selected can send calculations to another machine.
+- Request lines per queue in Register Machines (e.g. a Slurm --constraint),
+  and Memory always offered for Slurm machines.
 - Browse for a code's program in Register Machines shows the files of the
   machine being registered, also when it is another computer.
 - A calculation that stops without converging (ORCA or MOPAC optimisation
@@ -59,6 +61,9 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Compare Energies: a sum of calculations with coefficients on each side,
   with E, E+ZPE, H and G rows and a solvation label.
 - A Slurm job cancelled on the machine shows as Killed.
+- CP2K 2023 geometry optimisations show their steps in the Progress box.
+- Return in a message box presses the highlighted button on Linux, not
+  Cancel.
 - The number of real and imaginary frequencies for ORCA, Gaussian 16,
   NWChem, MOPAC and ECCE-QM; ECCE-QM's Hessian shows its progress.
 - A Mac reached over ssh can be a compute machine.
