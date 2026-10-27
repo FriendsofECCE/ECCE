@@ -17,6 +17,7 @@
 #include "dsm/VDoc.H"
 
 #include "comm/JobCatchUp.H"
+#include "comm/OpenSshTransport.H"
 #include "comm/Launch.H"
 #include "comm/ReconnectRules.H"
 #include "dsm/MachinePreferences.H"
@@ -94,6 +95,8 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message)
   }
 
   Launch launch(calc, kvargs);
+  //  A Reconnect asks for the login again, even right after a cancel.
+  OpenSshTransport::forgetMasterAttempts();
   bool ok = launch.validateLocalDir() &&
             launch.validateRemoteLogin() &&
             launch.generateJobMonitoringFiles() &&

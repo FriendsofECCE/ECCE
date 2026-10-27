@@ -614,6 +614,19 @@ void OpenSshTransport::forgetMasterAttempts()
   std::lock_guard<std::mutex> lock(gMasterMu);
   gMasterFailed.clear();
   gMasterCancelled.clear();
+  //  The session's shared memory of a cancelled or unanswered login too: a
+  //  Reconnect the user asks for must be able to ask for the password, not
+  //  fail for the rest of the retry window.
+  const std::string dir = ownedControlDir();
+  if (dir.empty()) return;
+  if (DIR* d = opendir(dir.c_str())) {
+    while (struct dirent* e = readdir(d)) {
+      const std::string n = e->d_name;
+      if (n.size() > 8 && n.compare(n.size() - 8, 8, ".outcome") == 0)
+        unlink((dir + "/" + n).c_str());
+    }
+    closedir(d);
+  }
 }
 
 bool OpenSshTransport::masterAlive() const
