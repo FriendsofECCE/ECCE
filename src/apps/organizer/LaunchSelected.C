@@ -9,6 +9,7 @@
 #include "LaunchSelected.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/TaskJob.H"
+#include "tdat/RefMachine.H"
 #include "dsm/AllocationProfiles.H"
 #include "dsm/ResourceDescriptor.H"
 #include "wxgui/WindowShot.H"
@@ -38,6 +39,10 @@ string wallText(const string& w)
 vector<LaunchSelected::Row> LaunchSelected::plan(const vector<TaskJob*>& tasks,
     const LaunchBatch::Target& target)
 {
+  //  Machines registered since the Organizer started, also by editing the
+  //  files, must be found (#588).
+  RefMachine::markUpdateUserPrefs();
+  MachinePreferences::refresh(true);
   vector<Row> rows;
   for (TaskJob *t : tasks) {
     Row r;
