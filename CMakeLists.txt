@@ -3328,6 +3328,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_orca_guess_central PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
 
+  # #614: MOPAC / Quantum ESPRESSO output that did not converge gives status
+  # 241 through the generated job script; no code needed.
+  add_test(NAME notconverged_gensub
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/notconverged_gensub_test.py)
+
   # #614: an ORCA optimisation at its cycle limit ends Unsuccessful, not
   # Complete; skipped (77) without ORCA 6 under /opt/orca.
   add_test(NAME launch_orca_notconverged
