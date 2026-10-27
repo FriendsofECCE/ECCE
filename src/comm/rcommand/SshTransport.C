@@ -1000,8 +1000,11 @@ long SshTransport::spawnDetached(const std::string& script, std::string& error,
                                  const std::string& logFile)
 {
   std::string target = logFile.empty() ? "/dev/null" : shQuote(logFile);
-  TransportResult r = run("setsid nohup sh -c " + shQuote(script) + " >>" +
-                          target + " 2>&1 </dev/null &\necho $!\n", 30);
+  //  macOS has no setsid command; nohup alone keeps the job past the
+  //  connection there.  sh -c because the login shell may be csh.
+  TransportResult r = run("sh -c " + shQuote(
+      "s=$(command -v setsid); $s nohup sh -c " + shQuote(script) + " >>" +
+      target + " 2>&1 </dev/null & echo $!") + "\n", 30);
   if (r.status != 0 || !r.error.empty()) {
     error = r.error.empty() ? "spawn failed: " + r.err : r.error;
     return -1;

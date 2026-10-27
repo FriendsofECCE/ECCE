@@ -195,7 +195,8 @@ def monitorStdin():
 MONITOR_PIDS = "pgrep -f '^perl eccejobmonitor'; true"
 
 REMOTE_MONITOR = ("for p in $(pgrep -f '^perl eccejobmonitor'); do "
-                  "echo \"$p $(readlink /proc/$p/fd/0)\"; done")
+                  "echo \"$p $(readlink /proc/$p/fd/0 2>/dev/null || "
+                  "lsof -a -p $p -d 0 -Fn 2>/dev/null | sed -n 's/^n//p')\"; done")
 
 #  Kills the sshd session that carries the monitor: the closest ancestor
 #  of the monitor whose command name is sshd*, which is the user's own
@@ -209,7 +210,8 @@ DROP_SESSION = (
 
 #  Stands in for MOPAC on the remote machine; the delay is read at run time.
 MOPAC_WRAPPER = ("#!/bin/sh\nsleep $(cat \"$HOME/.mopac-delay\" 2>/dev/null "
-                 "|| echo 0)\nexec /usr/bin/mopac \"$@\"\n")
+                 "|| echo 0)\nexec %s \"$@\"\n"
+                 % os.environ.get("ECCE_TEST_REMOTE_MOPAC_EXE", "/usr/bin/mopac"))
 
 
 # --- the run --------------------------------------------------------------
@@ -393,7 +395,8 @@ class Suite(object):
                 os.unlink(self.stubLog())
         name = "mopac-ch4-%s-%d" % (label, int(time.time()))
         if self.remote():
-            rundir = "/home/%s/ecce-jobs/%s" % (self.args.remote_user, name)
+            rundir = "%s/ecce-jobs/%s" % (os.environ.get(
+                "ECCE_TEST_REMOTE_HOME", "/home/" + self.args.remote_user), name)
             runUser = self.args.remote_user
         else:
             rundir = os.path.join(self.state, "jobs")
@@ -892,7 +895,8 @@ def registerRemote(state, machine, user):
     with open(os.path.join(prefs, "Queues"), "w") as handle:
         handle.write("Queues: %s\n%s|queueMgrName:   Shell\n" % (machine, machine))
     with open(os.path.join(prefs, "CONFIG." + machine), "w") as handle:
-        handle.write("MOPAC: /home/%s/mopac-slow\nperlPath: /usr/bin\n" % user)
+        mopac = os.environ.get("ECCE_TEST_REMOTE_MOPAC", "/home/%s/mopac-slow" % user)
+        handle.write("MOPAC: %s\nperlPath: /usr/bin\n" % mopac)
 
 
 def prerequisites(build, local):
