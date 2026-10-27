@@ -93,7 +93,8 @@ bool analytic_hessian_available(const ScfOptions& opt, const ScfResult& r) {
          r.nalpha == r.nbeta && r.nalpha > 0 && opt.field[0] == 0 && opt.field[1] == 0 && opt.field[2] == 0;
 }
 
-Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt, const ScfResult& r) {
+Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt, const ScfResult& r,
+                        const HessianProgress& on_progress) {
   if (!analytic_hessian_available(opt, r)) throw Error("analytic Hessian needs a closed-shell RHF reference");
   const int n = basis.nbf(), natm = static_cast<int>(mol.atoms.size()), P = 3 * natm, ns = basis.nshl();
   const int no = r.nalpha, nv = n - no;
@@ -295,6 +296,7 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
         if (active[p] && R[p].cwiseAbs().maxCoeff() < 1e-10) active[p] = 0;
         if (active[p]) act.push_back(p);
       }
+      if (on_progress) on_progress(P - static_cast<int>(act.size()), P, it, false);
       if (act.empty()) break;
       if (it >= 100) throw Error("coupled-perturbed HF did not converge");
       MatV Ds;
@@ -315,6 +317,7 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
     for (int p = 0; p < P; ++p) Dy[p] = Doo[p] + vo_density(X[p]);
   }
 
+  if (on_progress) on_progress(P, P, 0, true);
   // ---- response terms: sum D^y F^x - sum W^y S^x, with W = D F D / 2 ----
   const MatV Gy = gmat(Dy);
   MatV Wy(P);
