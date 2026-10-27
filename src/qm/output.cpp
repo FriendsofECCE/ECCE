@@ -214,9 +214,17 @@ void write_progress_opt_end(std::ostream& os, int step, bool converged) {
 // and has no point; the finite-difference run counts displaced geometries.
 void write_progress_freq(std::ostream& os, int point, int points, bool analytic) {
   if (analytic)
-    os << "progress freq kind=analytic\n";
+    os << "progress freq kind=analytic point=" << point << "/" << points << "\n";
   else
     os << "progress freq kind=numerical point=" << point << "/" << points << "\n";
+  os.flush();
+}
+
+// Every line repeats kind: a changed point clears the stage's other fields.
+void write_progress_hessian(std::ostream& os, int done, int total, int pass, bool assembling) {
+  os << "progress freq kind=analytic point=" << done << "/" << total << " pass=" << pass;
+  if (assembling) os << " phase=assemble";
+  os << "\n";
   os.flush();
 }
 

@@ -84,6 +84,7 @@ void write_progress_scf_failed(std::ostream& os, int cycles);
 void write_progress_opt(std::ostream& os, const OptStep& st, const OptOptions& opt);
 void write_progress_opt_end(std::ostream& os, int step, bool converged);
 void write_progress_freq(std::ostream& os, int point, int points, bool analytic = false);
+void write_progress_hessian(std::ostream& os, int done, int total, int pass, bool assembling);
 void write_progress_freq_end(std::ostream& os, int points, const FrequencyOutput& f);
 
 // ORCA-style AO label for each basis function: "0O 1s", "1H 2pz", "0C 1dxy".

@@ -143,7 +143,10 @@ int main(int argc, char** argv) {
           if (!rt.converged) throw qm::Error("SCF did not converge");
           const int np = 3 * static_cast<int>(ref.atoms.size());
           if (freq_progress) qm::write_progress_freq(os, 0, np, true);
-          qm::Derivatives d = qm::rhf_hessian(*basis, ref, so2, rt);
+          qm::HessianProgress hp;
+          if (freq_progress)
+            hp = [&](int done, int total, int pass, bool asm_) { qm::write_progress_hessian(os, done, total, pass, asm_); };
+          qm::Derivatives d = qm::rhf_hessian(*basis, ref, so2, rt, hp);
           step = 0;  // no displacements
           return d;
         } catch (const qm::Error& e) {

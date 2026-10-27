@@ -159,6 +159,11 @@ case("orca NEB-TS (HCN -> HNC, HF/3-21G)", "orca.desc", fx("orca", "nebts.out"),
 case("ecceqm opt+freq (analytic RHF Hessian)", "ecceqm.desc",
      fx("ecceqm", "h2o_optfreq.qmout"),
      {"freq": {"kind": "analytic", "done": "yes", "real": "3", "zpe": has("0.0243")}})
+# The CPHF solves all perturbations together; the engine reports how many
+# have converged, so the box can show "k of n perturbations".
+case("ecceqm analytic Hessian counts perturbations", "ecceqm.desc",
+     fx("ecceqm", "h2o_freq.qmout"),
+     {"freq": {"kind": "analytic", "point": "9/9", "phase": "assemble", "done": "yes", "real": "3"}})
 case("ecceqm numerical frequencies (Raman input)", "ecceqm.desc",
      fx("ecceqm", "h2o_numfreq.qmout"),
      {"freq": {"kind": "numerical", "point": "18/18", "done": "yes"}})
