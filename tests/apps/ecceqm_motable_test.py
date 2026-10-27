@@ -80,15 +80,21 @@ def check(state, localised, view=""):
         pops = []
         for l in lines:
             c = l.split(" | ")
-            if len(c) == 2 and c[0] != "Atom":
+            if len(c) == 3 and c[0] != "Atom":
                 try:
-                    pops.append(float(c[1]))
+                    pops.append((float(c[1]), float(c[2])))
                 except ValueError:
                     pass
         if len(somo) != 2:
             problems.append("O2 should list 2 SOMOs, got %r" % somo)
-        if len(pops) != 2 or abs(sum(pops) - 2.0) > 0.05:
+        if len(pops) != 2 or abs(sum(p[0] for p in pops) - 2.0) > 0.05:
             problems.append("O2 spin populations should be 2 atoms summing to 2: %r" % pops)
+        if "Spin population (e) | Share (%)" not in text:
+            problems.append("population headings lack the unit and the share")
+        if abs(sum(p[1] for p in pops) - 100.0) > 0.2:
+            problems.append("shares should add up to 100 %%: %r" % pops)
+        if [abs(p[0]) for p in pops] != sorted((abs(p[0]) for p in pops), reverse=True):
+            problems.append("atoms not sorted by |spin|: %r" % pops)
         return problems
     header = state.get("header")
     if not header:
