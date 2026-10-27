@@ -59,9 +59,12 @@ class MdAnalysisPanel : public PropertyPanel
       std::string p_compareName;
       int p_curveTotal;
 
-   private:
+   public:
+      //  The calculations Compare offers, with their labels.
       std::vector<IPropCalculation*> comparable(
           std::vector<std::string> *labels = 0) const;
+
+   private:
       void onCompare(wxCommandEvent&);
       void onExport(wxCommandEvent&);
       std::vector<std::string> p_otherRecords;

@@ -117,7 +117,9 @@ static void collectCalcs(Resource *folder, const std::string& own,
       out.push_back(other);
       labels.push_back(prefix + other->getURL().getFilePathTail());
     } else if (depth > 0 &&
-               r->getContentType() == ResourceDescriptor::CT_PROJECT) {
+               (r->getContentType() == ResourceDescriptor::CT_PROJECT ||
+                r->getContentType() == ResourceDescriptor::CT_SESSION)) {
+      //  A GROMACS run is a study (session) holding its tasks.
       collectCalcs(r, own, prefix + r->getName() + "/", depth - 1, key, out,
                    labels);
     }
@@ -134,13 +136,13 @@ std::vector<IPropCalculation*> MdAnalysisPanel::comparable(
   Resource *folder = EDSIFactory::getResource(calc->getURL().getParent());
   const std::string home = calc->getURL().getParent().toString();
   // Up to the outermost enclosing project, then down into its subfolders.
-  for (int up = 0; up < 3 && folder; up++) {
+  for (int up = 0; up < 4 && folder; up++) {
     Resource *above = EDSIFactory::getResource(folder->getURL().getParent());
     if (!above || above->getContentType() != ResourceDescriptor::CT_PROJECT)
       break;
     folder = above;
   }
-  collectCalcs(folder, calc->getURL().toString(), "", 3, propertyKey(), out,
+  collectCalcs(folder, calc->getURL().toString(), "", 4, propertyKey(), out,
                names);
   // A calculation in the calculation's own folder carries its bare name.
   for (size_t i = 0; i < out.size(); i++)
