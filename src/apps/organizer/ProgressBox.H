@@ -41,11 +41,18 @@ public:
            const std::vector<std::string>& checkLines =
                std::vector<std::string>());
 
+  // A submitted job waiting in its queue: shows when it was submitted
+  // (seconds since 1970, 0 unknown) and its job id ("" unknown); set
+  // before set().
+  void setQueued(bool queued, double submitted = 0,
+                 const std::string& jobId = "")
+  { p_queued = queued; p_submitted = submitted; p_jobId = jobId; }
+
   bool hasProgress() const { return !p_progress.empty(); }
   bool outOfContact() const { return p_lastHeard > 0 && !p_finished; }
   // Shown at all: progress to show, or a job out of contact.
   bool wanted() const
-  { return hasProgress() || outOfContact() ||
+  { return hasProgress() || outOfContact() || p_queued ||
            (p_finished && !p_finalEnergy.empty()); }
 
   // The plain final energy line of a finished calculation, shown after the
@@ -89,6 +96,12 @@ private:
   std::vector<std::string> outcome() const;
   int headingHeight() const;
 
+  // The blocks the box draws: the queued status, or the progress.
+  std::vector<JobProgress::Block> blocks() const;
+
+  bool p_queued = false;
+  double p_submitted = 0;
+  std::string p_jobId;
   JobProgress p_progress;
   std::string p_text;
   double p_received;

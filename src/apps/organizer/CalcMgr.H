@@ -323,7 +323,9 @@ public:
                      const string & progress);
   // A running calculation whose monitor is out of contact: the live
   // notice, else the stored ecce:contact.  lastHeard: seconds since 1970.
-  bool outOfContact(Resource * resource, double & lastHeard) const;
+  // queued: a submitted job counts too (the Progress box only).
+  bool outOfContact(Resource * resource, double & lastHeard,
+                    bool queued = false) const;
   // What the last "Check Job on Machine" said, one sentence a line.
   vector<string> machineCheckLines(const EcceURL & url) const;
   // The Progress box's buttons: 0 Reconnect, 1 Check Job on Machine,

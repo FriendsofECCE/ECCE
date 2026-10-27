@@ -177,6 +177,13 @@ The states you see, in order, are **Submitted**, **Running** and
 **Unsuccessful**. You can also select the calculation and read its summary
 in the panel next to the tree.
 
+While a job is **Submitted**, waiting in a batch queue, the summary has a
+**Progress** box that says since when it has been queued and, if the
+machine gave one, the job id. It does not show the queue's own state for the
+job; to see that, choose **Check Job on Machine** from the **Run Mgmt**
+menu. If ECCE loses contact with the job's monitor, the box turns grey and
+says when the job was last heard from.
+
 To read the files while the job runs, select the calculation and use the
 **Run Mgmt** menu:
 

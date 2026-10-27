@@ -287,10 +287,17 @@ void CalculationContextPanel::updateProgress()
     }
   }
 
+  const bool queued = state == ResourceDescriptor::STATE_SUBMITTED;
+  p_progressBox->setQueued(
+      queued,
+      atof(p_itemData->getResource()->getProp(
+               VDoc::getEcceNamespace() + ":submitdate").c_str()),
+      p_itemData->getResource()->getProp(
+          VDoc::getEcceNamespace() + ":job_jobid"));
   double lastHeard = 0;
   const bool lost = p_calcMgr &&
-      p_calcMgr->outOfContact(p_itemData->getResource(), lastHeard);
-  if (p_state) p_state->setOutOfContact(lost);
+      p_calcMgr->outOfContact(p_itemData->getResource(), lastHeard, queued);
+  if (p_state) p_state->setOutOfContact(lost && !queued);
   const bool resized = p_progressBox->set(text, received, finished,
                                           state == ResourceDescriptor::STATE_COMPLETED,
                                           lost ? lastHeard : 0,

@@ -257,6 +257,18 @@ int main()
   check(heard.size() == 18 && heard[2] == ':' &&
         heard.substr(5) == " (10 min ago)", "last heard hh:mm (n min ago): " + heard);
 
+  // A queued job (#606): submit time and id where known, nothing else.
+  {
+    const JobProgress::Block q =
+        JobProgress::queued(1760000000, "4711", 1760000000 + 120);
+    check(q.lines.size() == 2 && q.lines[0].compare(0, 13, "Queued since ") == 0 &&
+          q.lines[0].find("(2 min ago)") != string::npos &&
+          q.lines[1] == "Job id 4711", "queued: since + job id");
+    const JobProgress::Block u = JobProgress::queued(0, "", 5);
+    check(u.lines.size() == 1 && u.lines[0] == "Queued",
+          "queued: nothing invented without time or id");
+  }
+
   // GROMACS (#477): one stage per plot, each titled; the force against the
   // em tolerance, the others as plain series.
   {
