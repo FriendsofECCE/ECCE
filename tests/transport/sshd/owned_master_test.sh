@@ -14,6 +14,8 @@
 #   6. the dialog is cancelled, 4 openers: exactly 1 dialog, all 4 cancelled
 #   7. streams on the overflow master, both masters killed, 4 processes:
 #      exactly 1 new login
+#   8. three sessions' masters lost at once, two stores each: 1 new login
+#      wanted (#631); another ECCE_REALUSERHOME gets its own directory
 # Own sshd container and port (ECCE_OWNED_PORT); builds in build-ssh in the
 # worktree, untracked. Usage: owned_master_test.sh
 set -eu
@@ -120,4 +122,27 @@ STUB
   MODE=slow ECCE_SSH_ASK_TIMEOUT=2 MINSOCKS=0 scenario slow 0 failing 4
   MODE=cancel MINSOCKS=0 scenario cancel 0 failing 4
   scenario bothdead 3 bothdead 4
+  # 8 (#631): three sessions (three ids) of one state directory share one
+  # control directory; stores of each, every master lost at once: 1 new login.
+  # A second ECCE_REALUSERHOME on the same account gets a directory of its own.
+  : > $ASKLOG
+  export XDG_RUNTIME_DIR=/tmp/xdg-sessions
+  rm -rf $XDG_RUNTIME_DIR; install -d -m 700 $XDG_RUNTIME_DIR
+  dirs=
+  for i in 1 2 3; do
+    ECCE_SESSION_ID=$(ecce_new_session_id); export ECCE_SESSION_ID
+    ecce_ssh_control_setup
+    dirs="$dirs:$ECCE_SSH_CONTROL_DIR"
+  done
+  dirs=${dirs#:}
+  echo "=== sessions (control dirs $dirs)"
+  [ "$(echo $dirs | tr : "\n" | sort -u | wc -l)" = 1 ] ||
+    { echo "FAIL sessions of one state directory got different control dirs"; rc=1; }
+  other=$(ECCE_REALUSERHOME=/tmp/otherhome; ecce_ssh_control_setup; echo $ECCE_SSH_CONTROL_DIR)
+  [ -n "$other" ] && [ "$other" != "${dirs%%:*}" ] &&
+    echo "ok   another ECCE_REALUSERHOME on this account: its own directory" ||
+    { echo "FAIL another ECCE_REALUSERHOME shares the directory ($other)"; rc=1; }
+  before=$(logins)
+  ECCE_SESSION_DIRS=$dirs build-ssh/testOwnedMaster sessions 3 || rc=1
+  echo "     sshd saw $(( $(logins) - before )) password logins"
   exit $rc'

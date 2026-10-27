@@ -68,10 +68,10 @@ ecce_session_pointer() {
   printf '%s/session_%s' "$STATEDIR" "$(ecce_session_host | ecce_session_sanitize)"
 }
 
-# The directories that hold a session's ssh control sockets (#487), one
-# per line, best first: local tmpfs (works when home is NFS/AFS), else under
-# the state directory. A session's own directory is <root>/<first 8 hex of
-# its id>: a unix socket path holds 104 bytes on macOS.
+# The directories that hold the ssh control sockets (#487), one per line,
+# best first: local tmpfs (works when home is NFS/AFS), else under the state
+# directory. The directory itself is <root>/<8 hex>, see below: a unix
+# socket path holds 104 bytes on macOS.
 ecce_ssh_control_roots() {
   local t
   if [ -n "${XDG_RUNTIME_DIR:-}" ]; then echo "${XDG_RUNTIME_DIR%/}/ecce-ssh"; fi
@@ -80,16 +80,26 @@ ecce_ssh_control_roots() {
   echo "${ECCE_REALUSERHOME:-$HOME}/.ECCE/cm"
 }
 
-# Make this session's control directory (0700, ours) and export
+# The control directory belongs to the state directory, not to a session
+# (#631): a job store keeps running after its session ends, and a store of
+# every session must find the one master and its login lock. Keyed on uid,
+# ECCE_REALUSERHOME and ECCE_HOME, so two people on one Unix account with
+# different homes do not share masters.
+ecce_ssh_control_key() {
+  printf '%s\n%s\n%s\n' "$(id -u)" "${ECCE_REALUSERHOME:-$HOME}" "${ECCE_HOME:-}" |
+    cksum | awk '{ printf "%08x", $1 }'
+}
+
+# Make the state directory's control directory (0700, ours) and export
 # ECCE_SSH_CONTROL_DIR; none when no root is short enough, in which case
 # ssh is used as before.
 ecce_ssh_control_setup() {
-  local id="${1-${ECCE_SESSION_ID:-}}" root dir
+  local root dir key
   unset ECCE_SSH_CONTROL_DIR
   case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) return 0 ;; esac
-  ecce_session_id_valid "$id" || return 0
+  key="$(ecce_ssh_control_key)"
   while read -r root; do
-    dir="$root/$(printf '%s' "$id" | cut -c1-8)"
+    dir="$root/$key"
     [ "${#dir}" -le 66 ] || continue
     ( umask 077; mkdir -p "$root" && mkdir -p "$dir" ) 2>/dev/null || continue
     [ -d "$dir" ] && [ ! -L "$dir" ] && [ -O "$dir" ] || continue
@@ -99,8 +109,10 @@ ecce_ssh_control_setup() {
     [ -e "$dir/.born" ] || : > "$dir/.born"
     # The root is shared by every install (a build tree, a test's isolated
     # home); a reaper sees only its own install's programs, so it may only
-    # judge the directories that install made.
+    # judge the directories that install made. .state marks the new naming
+    # (the old <session id> directories have none).
     [ -e "$dir/.home" ] || printf '%s\n' "${ECCE_HOME:-}" > "$dir/.home"
+    [ -e "$dir/.state" ] || printf '%s\n' "${ECCE_REALUSERHOME:-$HOME}" > "$dir/.state"
     ECCE_SSH_CONTROL_DIR="$dir"
     export ECCE_SSH_CONTROL_DIR
     return 0

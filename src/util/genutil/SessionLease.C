@@ -228,7 +228,7 @@ void procPrograms(const string& realhome, vector<SessionLease::Holder>& found)
 
 namespace SessionLease {
 
-vector<Holder> othersUsingServices()
+static vector<Holder> collect(bool sameSessionToo)
 {
   vector<Holder> all, others;
   string realhome = Ecce::realUserHome();
@@ -239,10 +239,16 @@ vector<Holder> othersUsingServices()
   for (size_t i = 0; i < all.size(); i++) {
     const Holder& h = all[i];
     if (h.pid == (long)getpid() || !seen.insert(h.pid).second) continue;
-    if (!own.empty() && h.key == own && !isJob(h.name)) continue;
+    if (!sameSessionToo && !own.empty() && h.key == own && !isJob(h.name)) continue;
     others.push_back(h);
   }
   return others;
 }
+
+vector<Holder> othersUsingServices() { return collect(false); }
+
+// Every other program of this state directory, whatever its session: the
+// ssh masters are the state directory's, not a session's (#631).
+vector<Holder> otherPrograms() { return collect(true); }
 
 }  // namespace SessionLease
