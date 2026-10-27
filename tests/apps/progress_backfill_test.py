@@ -72,7 +72,7 @@ def run(display, data, work):
     apps.run(display, "organizer", windowTimeout=60, settle=20,
              env={"ECCE_TEST_ORGANIZER": commands}, inspect=waitImport)
 
-    project = os.path.join(root, "Examples")
+    project = os.path.join(root, examples_test.FIRST)
     calcs = {c: os.path.join(project, c) for c in CALCS}
     for name, path in calcs.items():
         if not hasProgress(path):
