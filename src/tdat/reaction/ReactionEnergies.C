@@ -2,7 +2,8 @@
 #include <locale>
 #include <sstream>
 
-#include "ReactionEnergies.H"
+#include "tdat/EnergyFormat.H"
+#include "tdat/ReactionEnergies.H"
 
 namespace {
 const char *const ROLE[3] = {"reactant", "transition state", "product"};
@@ -19,7 +20,7 @@ void compare(RxnResult& r, const char *what, const std::string v[3])
 
 double rxnToUnit(double hartree, bool kcal)
 {
-  return hartree * (kcal ? 627.5095 : 2625.4996);
+  return hartreeTo(hartree, kcal ? EU_KCAL : EU_KJ);
 }
 
 RxnResult rxnAnalyse(const RxnState s[3])

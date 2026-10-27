@@ -3,7 +3,7 @@ type: map
 title: "Reaction Energies panel: a TS job's barrier from three calculations, listed by TE but only for QST/NEB-TS"
 area: codereg
 section: "How a property gets from disk into the Properties menu"
-paths: ["src/apps/builder/ReactionPanel.C", "src/apps/builder/ReactionEnergies.C", "data/client/config/PropertyPanelDescriptor.xml", "tests/apps/rxn_energies_panel_test.py", "tests/rxnenergies/reaction_energies_test.C"]
+paths: ["src/apps/builder/ReactionPanel.C", "src/tdat/reaction/ReactionEnergies.C", "data/client/config/PropertyPanelDescriptor.xml", "tests/apps/rxn_energies_panel_test.py", "tests/rxnenergies/reaction_energies_test.C"]
 issues: [419]
 ---
 The panel is triggered by `TE` like Energies, so its entry sits before

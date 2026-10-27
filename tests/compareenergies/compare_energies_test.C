@@ -80,6 +80,21 @@ int main()
           n[4] == "O2", "sorted list");
   }
 
+  {
+    check(fmtAbsolute(-76.0107465054306) == "-76.010747", "absolute: 6 decimals");
+    check(fmtDifference(0.33176911, EU_KJ) == "871.1" &&
+          fmtDifference(0.33176911, EU_KCAL) == "208.2" &&
+          fmtDifference(0.33176911, EU_EV) == "9.03",
+          "differences: 1 decimal kJ/mol and kcal/mol, 2 in eV");
+    check(fmtDifference(-1e-9, EU_KJ) == "0.0", "a rounded zero has no minus sign");
+    EnergyEntry x = entry("a", -7.43), y = entry("b", -7.24);
+    EnergyComparison k = compareEnergies(x, y);
+    const std::string shown = comparisonResults(x, y, k);
+    check(has(shown, "E(A) -7.430000 Hartree") && has(shown, "498.8 kJ/mol") &&
+          !has(shown, "498.844"), "shown text is rounded");
+    check(has(comparisonCopyText(x, y, k), "498.8449"), "Copy keeps full values");
+  }
+
   printf("%d failure(s)\n", failures);
   return failures ? 1 : 0;
 }

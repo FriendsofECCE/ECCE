@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "tdat/EnergyFormat.H"
+
 class PropertyTask;
 
 /**
@@ -54,14 +56,14 @@ struct EnergyComparison
 
 EnergyComparison compareEnergies(const EnergyEntry& a, const EnergyEntry& b);
 
-/** 0 hartree, 1 kJ/mol, 2 kcal/mol, 3 eV. */
-double hartreeTo(double hartree, int unit);
-const char *energyUnitName(int unit);
-
 /** The energies block and the notes, as the two text areas show them. */
 std::string comparisonResults(const EnergyEntry& a, const EnergyEntry& b,
                               const EnergyComparison& c);
 std::string comparisonNotes(const EnergyComparison& c);
+
+/** The same with full precision, for Copy. */
+std::string comparisonCopyText(const EnergyEntry& a, const EnergyEntry& b,
+                               const EnergyComparison& c);
 
 /** Both in one text, as the hook prints it and the dialog shows it. */
 std::string comparisonText(const EnergyEntry& a, const EnergyEntry& b,

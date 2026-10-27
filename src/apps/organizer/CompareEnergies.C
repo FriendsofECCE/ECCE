@@ -3,6 +3,8 @@
 #include <cctype>
 #include <cstdio>
 
+#include "tdat/EnergyFormat.H"
+
 
 using std::string;
 
@@ -76,33 +78,16 @@ EnergyComparison compareEnergies(const EnergyEntry& a, const EnergyEntry& b)
   return r;
 }
 
-double hartreeTo(double hartree, int unit)
-{
-  switch (unit) {
-    case 1: return hartree * KJ_PER_HARTREE;
-    case 2: return hartree * KCAL_PER_HARTREE;
-    case 3: return hartree * EV_PER_HARTREE;
-  }
-  return hartree;
-}
-
-const char *energyUnitName(int unit)
-{
-  static const char *const n[4] = {"Hartree", "kJ/mol", "kcal/mol", "eV"};
-  return n[unit < 0 || unit > 3 ? 0 : unit];
-}
-
 string comparisonResults(const EnergyEntry& a, const EnergyEntry& b,
                          const EnergyComparison& c)
 {
   string t;
   if (!c.ok) return t;
-  t += "E(A) " + num(c.a, 8) + " Hartree  " + a.name + "\n";
-  t += "E(B) " + num(c.b, 8) + " Hartree  " + b.name + "\n";
+  t += "E(A) " + fmtAbsolute(c.a) + " Hartree  " + a.name + "\n";
+  t += "E(B) " + fmtAbsolute(c.b) + " Hartree  " + b.name + "\n";
   t += "E(B) - E(A):\n";
   for (int u = 0; u < 4; u++)
-    t += "  " + num(hartreeTo(c.delta, u), u == 0 ? 8 : 4) + " " +
-         energyUnitName(u) + "\n";
+    t += "  " + fmtDifference(c.delta, u) + " " + energyUnitName(u) + "\n";
   return t;
 }
 
@@ -147,4 +132,16 @@ bool calcNameLess(const string& a, const string& b)
     }
   }
   return a.size() - i < b.size() - j;
+}
+
+string comparisonCopyText(const EnergyEntry& a, const EnergyEntry& b,
+                          const EnergyComparison& c)
+{
+  if (!c.ok) return comparisonNotes(c);
+  string t = "E(A) " + num(c.a, 10) + " Hartree  " + a.name + "\n";
+  t += "E(B) " + num(c.b, 10) + " Hartree  " + b.name + "\n";
+  t += "E(B) - E(A):\n";
+  for (int u = 0; u < 4; u++)
+    t += "  " + num(hartreeTo(c.delta, u), 10) + " " + energyUnitName(u) + "\n";
+  return t + comparisonNotes(c);
 }

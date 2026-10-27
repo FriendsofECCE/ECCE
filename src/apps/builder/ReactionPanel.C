@@ -24,6 +24,7 @@
 #include "XYPlotCanvas.H"
 
 #include "ReactionPanel.H"
+#include "tdat/EnergyFormat.H"
 
 namespace {
 const wxWindowID ID_UNIT = wxNewId();
@@ -273,9 +274,9 @@ void ReactionPanel::fill()
     const RxnLevel& l = p_result.levels[i];
     p_grid->SetRowLabelValue((int)i, wxString::FromUTF8(l.label.c_str()));
     for (int k = 0; k < 3; k++)
-      p_grid->SetCellValue((int)i, k, wxString::Format("%.6f", l.value[k]));
-    p_grid->SetCellValue((int)i, 3, wxString::Format("%.2f", rxnToUnit(l.barrier(), kcal)));
-    p_grid->SetCellValue((int)i, 4, wxString::Format("%.2f", rxnToUnit(l.reaction(), kcal)));
+      p_grid->SetCellValue((int)i, k, wxString::FromUTF8(fmtAbsolute(l.value[k]).c_str()));
+    p_grid->SetCellValue((int)i, 3, wxString::FromUTF8(fmtDifference(l.barrier(), kcal ? EU_KCAL : EU_KJ).c_str()));
+    p_grid->SetCellValue((int)i, 4, wxString::FromUTF8(fmtDifference(l.reaction(), kcal ? EU_KCAL : EU_KJ).c_str()));
   }
   p_grid->SetColLabelSize(wxGRID_AUTOSIZE);
   p_grid->SetRowLabelSize(wxGRID_AUTOSIZE);
@@ -295,7 +296,7 @@ void ReactionPanel::fill()
     p_plot->addCurve(x, y, 3, wxString(), 3, XYPlotCanvas::LINE);
     for (int k = 0; k < 3; k++) {
       const int c = p_plot->addCurve(x + k, y + k, 1, role[k], k, XYPlotCanvas::LEVELS);
-      p_plot->setPointLabel(c, 0, wxString::Format("%s: %.2f %s", role[k], y[k], unit));
+      p_plot->setPointLabel(c, 0, wxString::Format("%s: %.1f %s", role[k], y[k], unit));
     }
     p_plot->setXPadding(0.6);
     p_plot->setTitle(wxString::FromUTF8((p_result.names[0] + "  >  " + p_result.names[1] +

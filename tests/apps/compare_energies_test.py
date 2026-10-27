@@ -114,21 +114,21 @@ def run(display, pngs):
             print("      " + line)
         withBoth, withNone = ab
         delta = E_B - E_A
-        check(number(withBoth, "Hartree") is not None and abs(number(withBoth, "Hartree") - delta) < 1e-7,
+        check(number(withBoth, "Hartree") is not None and abs(number(withBoth, "Hartree") - delta) < 1e-6,
               "A against B: E(B) - E(A) in Hartree", withBoth)
-        check(number(withBoth, "kJ/mol") is not None and abs(number(withBoth, "kJ/mol") - delta * KJ) < 1e-3,
+        check(number(withBoth, "kJ/mol") is not None and abs(number(withBoth, "kJ/mol") - delta * KJ) < 0.06,
               "A against B: kJ/mol", withBoth)
-        check(number(withBoth, "kcal/mol") is not None and abs(number(withBoth, "kcal/mol") - delta * KCAL) < 1e-3,
+        check(number(withBoth, "kcal/mol") is not None and abs(number(withBoth, "kcal/mol") - delta * KCAL) < 0.06,
               "A against B: kcal/mol", withBoth)
-        check(number(withBoth, "eV") is not None and abs(number(withBoth, "eV") - delta * EV) < 1e-3,
+        check(number(withBoth, "eV") is not None and abs(number(withBoth, "eV") - delta * EV) < 0.006,
               "A against B: eV", withBoth)
-        check("E(A) -76.01074651 Hartree" in withBoth and "E(B) -75.50000000 Hartree" in withBoth,
+        check("E(A) -76.010747 Hartree" in withBoth and "E(B) -75.500000 Hartree" in withBoth,
               "A against B: both final energies", withBoth)
         check("Note: The code differs: A NWChem, B ORCA." in withBoth,
               "A against B: the note that the code differs", withBoth)
         check("E(B) - E(A)" not in withNone and "water-c (B) has no final energy" in withNone,
               "A against C: no difference, a note that C has no final energy", withNone)
-        check("-76.01074651 Hartree" in dlg[0] and "Notes:" in dlg[0] and
+        check("-76.010747 Hartree" in dlg[0] and "Notes:" in dlg[0] and
               "code differs" in dlg[0].split("Notes:")[1],
               "the dialog shows the energies and, in its own area, the note", dlg[0])
         png = os.path.join(pngs, "compare-energies.png")
