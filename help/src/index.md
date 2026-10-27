@@ -114,6 +114,9 @@ describe what you did and what happened.
 25. [Reconnect Selected](reconnect-selected.md): reconnecting several jobs
    to their calculations after a restart or a lost connection, in one step.
 
+26. [Launch Selected](launch-selected.md): submitting several calculations
+   in one step, with their stored settings or on another machine.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the

@@ -67,6 +67,21 @@ def main():
     for entry in os.listdir(wrappers):
         os.chmod(os.path.join(wrappers, entry), 0o755)
     s.registerMachine("localhost", "Shell", {"CP2K": "/bin/true"})
+    #  Launch on (#492): "small" cuts cores and wall time and has no "batch"
+    #  queue (a Shell manager lists no queues, so Slurm, staged: the submit
+    #  stops after the settings are stored); "orcaonly" does not offer CP2K.
+    s.registerMachine("small", "Slurm", {"CP2K": "/bin/true"}, queues=("normal",),
+                      limits={"normal": (1, 12, 60)}, size="16:1",
+                      config={"userSubmit": "true"})
+    s.registerMachine("orcaonly", "Shell", {"ORCA": "/bin/true"})
+    runsmall = os.path.join(s.state, "run-small")
+    runproj = os.path.join(s.state, "run-project")
+    with open(os.path.join(s.state, ".ECCE", "MachPrefs"), "w") as h:
+        for m, rd in (("small", runsmall), ("orcaonly", runsmall)):
+            h.write("%s:\t%s|ssh|normal|%s|%s|acct-1|1|1|60|0|0|1\n"
+                    % (m, s.user(), rd, rd))
+    with open(os.path.join(s.state, ".ECCE", "MachProfiles"), "w") as h:
+        h.write("profile\tsmall\tProject|acct-2|%s|%s|normal\n" % (runproj, runproj))
     work = os.path.join(s.state, "decks")
     rundir = os.path.join(s.state, "run")
     os.makedirs(work, exist_ok=True)
@@ -104,6 +119,11 @@ def main():
                                 os.path.join(badrun, "sub"),
                                 extra=("procs=1", "queue=normal", "nodes=1"))
         check(failing is not None, "calculation with an unusable run directory created")
+        #  Stored for another machine: a queue it lacks, more cores than it has.
+        cut, out = s.create("cut", "cp2k_es", deck, "cp2k.cp2kin", rundir,
+                            extra=("procs=48", "queue=batch", "nodes=2",
+                                   "wall=0 4:0", "mem=8192"))
+        check(cut is not None, "calculation to retarget created")
         states = [s.state_of(u) for u in urls]
         check(all(x == "ready" for x in states), "all start ready: %s" % states)
 
@@ -150,8 +170,36 @@ def main():
         check(all(s.state_of(u) == "ready" for u in urls),
               "the summary alone submits nothing")
 
+        #  Launch on: summary for another machine, then the real thing.
+        shot2 = os.path.splitext(shot)[0] + "-on.png"
+        ans = send("launchselectedshot %s on=small %s %s" % (shot2, cut, " ".join(every)))
+        check(ans == "not launched" and os.path.getsize(shot2) > 1000,
+              "summary dialog for another machine saved (%s)" % ans)
+        ans = send("launchselected on=orcaonly %s" % urls[0])
+        say("  answer: %s" % ans)
+        check("sel0: skipped: code CP2K is not registered on orcaonly" in ans,
+              "a code the machine does not offer is skipped with the reason")
+        check(s.state_of(urls[0]) == "ready", "the skipped calculation stays ready")
+        ans = send("launchselected on=small profile=Project %s" % cut)
+        say("  answer: %s" % ans)
+        check("cut: failed: machine small is set to staged launches" in ans,
+              "the launch on the other machine is tried (a staged machine stops it)")
+        for want in ("machine localhost \u2192 small", "queue batch \u2192 normal",
+                     "48 \u2192 12 cores", "nodes 2 \u2192 1",
+                     "wall time 4:00 h \u2192 1:00 h", "profile Default \u2192 Project"):
+            check(want in ans, "changes list: %s" % want)
+        rc, out = s.driver("launchdata", cut)
+        stored = dict(l.split("=", 1) for l in out.splitlines() if "=" in l)
+        say("  stored: %s" % stored)
+        check(stored.get("machine") == "small" and stored.get("queue") == "normal" and
+              stored.get("procs") == "12" and stored.get("profile") == "Project" and
+              stored.get("rundir") == runproj and stored.get("memory") == "8192",
+              "the machine and cut settings are stored with the calculation")
+
         ans = send("launchselected %s" % " ".join(every))
         say("  answer: %s" % ans)
+        check(all("[" not in part for part in ans.split("|") if part.startswith("sel")),
+              "As set up lists no changes")
         check(ans.startswith("ok "), "batch answered ok")
         for n in range(3):
             check(("sel%d: submitted" % n) in ans, "sel%d reported submitted" % n)
@@ -174,6 +222,9 @@ def main():
             ans = send("launchselected %s" % failing)
             check("failsub: submitted" in ans, "relaunch submitted (%s)" % ans[:100])
             check(s.reason_of(failing) == "", "a successful launch clears the reason")
+        rc, out = s.driver("launchdata", urls[1])
+        check("machine=localhost" in out and "queue=normal" in out and "procs=1\n" in out,
+              "As set up leaves the stored settings as they were")
         for n, u in enumerate(urls):
             st = s.waitState(u, seconds=120,
                              want=harness.FINAL_STATES + ("submitted", "running"))

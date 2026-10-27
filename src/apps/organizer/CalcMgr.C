@@ -1297,9 +1297,15 @@ void CalcMgr::runTestCommand(const string& line)
       std::istringstream args(calcName);
       string png, u;
       if (command == "launchselectedshot") args >> png;
+      // "on=MACHINE" and "profile=NAME" before the URLs launch on that machine.
+      LaunchBatch::Target target;
       vector<EcceURL> urls;
-      while (args >> u) urls.push_back(EcceURL(u));
-      launchSelected(urls, false, &outcome, png);
+      while (args >> u) {
+        if (u.compare(0, 3, "on=") == 0) target.machine = u.substr(3);
+        else if (u.compare(0, 8, "profile=") == 0) target.profile = u.substr(8);
+        else urls.push_back(EcceURL(u));
+      }
+      launchSelected(urls, false, &outcome, png, target);
     } else if (command == "reconnectselectedlist" || command == "reconnectselected"
                || command == "reconnectselectedshot") {
       // "reconnectselectedlist URL...": what the dialog would list, one
@@ -2705,7 +2711,8 @@ vector<EcceURL> CalcMgr::launchSelection()
 
 
 void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
-                             string *outcome, const string& shot)
+                             string *outcome, const string& shot,
+                             const LaunchBatch::Target& initial)
 {
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
@@ -2717,10 +2724,11 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
     if (outcome) *outcome = "no calculations";
     return;
   }
-  vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks);
+  LaunchBatch::Target target = initial;
+  vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks, target);
   bool go = true;
   if (interactive || !shot.empty()) {
-    go = LaunchSelected::confirm(this, rows,
+    go = LaunchSelected::confirm(this, rows, target,
         [this](const string& url) { startApp("Launcher", 0, url); }, shot);
   }
   if (!go) {
