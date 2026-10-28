@@ -43,6 +43,9 @@ dmpng {t}-dm-zoom 700 560
 dmstate
 dmzoomreset
 dmstate
+dmwheel 2 @1
+dmrefine
+dmzoomreset
 hold 1
 """,
     "ethene-wide": """list Density Map
@@ -93,6 +96,13 @@ def main():
                         problems.append("zoom state sequence %s" % wins)
                     elif not min(width) < width[0] / 3:
                         problems.append("zoomed window %.2f of %.2f" % (min(width), width[0]))
+                    #  the wheel draws a coarse grid at once; dmrefine (the
+                    #  panel's rest timer) the full one, with the zoom's step.
+                    steps = {c: float(g) for c, g in re.findall(
+                        r"^DENSITYMAP: (dmwheel|dmrefine)\n(?:.*\n)*?grid \d+ \d+ (\S+)", log, re.M)}
+                    print("   wheel steps:", steps)
+                    if len(steps) != 2 or not steps["dmwheel"] > steps["dmrefine"]:
+                        problems.append("wheel zoom steps %s" % steps)
                 if key == "ethene-wide":
                     for n in ("wide", "wider"):
                         p = os.path.join(out, n + ".txt")

@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <wx/timer.h>
+
 #include "tdat/DensityPlane.H"
 #include "util/Listener.H"
 #include "VizPropertyPanel.H"
@@ -86,8 +88,12 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       void setPlaneControlsOpen(bool open);
       bool planeControlsOpen() const { return p_planeOpen; }
       /** Zoom the map about plane point (u, v), A; factor > 1 zooms in.  The
-       *  window is recomputed at the same contour levels. */
-      bool zoomAt(double u, double v, double factor);
+       *  window is recomputed at the same contour levels.  Interactive (the
+       *  mouse wheel): a coarse grid at once, the full one when the zooming
+       *  has rested (refineZoom). */
+      bool zoomAt(double u, double v, double factor, bool interactive = false);
+      /** The full grid in place of a coarse one; no-op when it is full. */
+      void refineZoom();
       /** Back to the whole plane. */
       void resetZoom();
       bool zoomed() const { return p_zoomed; }
@@ -114,7 +120,7 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
 
    private:
       void build();
-      void compute(bool coarse = false);
+      void compute(bool coarse = false, bool progressInPanel = false);
       void syncControls();
       bool currentPlane(DensityPlane::Plane& plane, std::string& why);
       void onChanged();
@@ -142,7 +148,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       std::unique_ptr<DensityPlane::Evaluator> p_eval;
       DensityPlane::Map p_map;
       DensityPlane::Plane p_viewPlane;
-      bool p_haveMap, p_haveView, p_busy, p_inViewer, p_dragging;
+      bool p_haveMap, p_haveView, p_busy, p_inViewer, p_dragging, p_mapCoarse;
+      wxTimer p_zoomRest;
 
       wxChoice *p_show, *p_spin, *p_atomA, *p_atomB, *p_atomC;
       wxRadioBox *p_plane;

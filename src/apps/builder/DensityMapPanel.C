@@ -50,7 +50,8 @@ const wxWindowID ID_SHOW = wxNewId(), ID_SPIN = wxNewId(), ID_MO = wxNewId(),
 
 const char *PLANE_NAME = "DensityMapPlane";
 const double MARGIN = 1.5;            // A beyond the atoms' extent
-const double COARSE_STEP = 0.15;      // while the slider is dragged
+const double COARSE_STEP = 0.15;      // while the slider is dragged or the map zoomed
+const int ZOOM_REST_MS = 400;          // no wheel step for this long: the full grid
 const int OFFSET_MAX = 500;           // slider range, +-5.00 A in 0.01 A
 
 }  // namespace
@@ -112,7 +113,7 @@ wxFORCE_LINK_THIS_MODULE(DensityMapPanel)
 
 DensityMapPanel::DensityMapPanel()
   : VizPropertyPanel(), p_haveMap(false), p_haveView(false), p_busy(false),
-    p_inViewer(false), p_dragging(false), p_show(0), p_spin(0), p_atomA(0),
+    p_inViewer(false), p_dragging(false), p_mapCoarse(false), p_show(0), p_spin(0), p_atomA(0),
     p_atomB(0), p_atomC(0), p_plane(0), p_offsetField(0), p_resetOffset(0),
     p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
     p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
@@ -129,6 +130,7 @@ DensityMapPanel::DensityMapPanel(IPropCalculation *calculation,
 
 DensityMapPanel::~DensityMapPanel()
 {
+  p_zoomRest.Stop();
   removePlaneFromViewer();
   unsubscribe();
 }
@@ -320,7 +322,9 @@ void DensityMapPanel::build()
   p_zoomReset->SetToolTip("Mouse wheel zooms around the pointer; double-click also resets");
   p_zoomReset->Hide();
   row1->Add(p_zoomReset, 0);
-  p_canvas->onZoom = [this](double u, double v, double f) { zoomAt(u, v, f); };
+  p_canvas->onZoom = [this](double u, double v, double f) { zoomAt(u, v, f, true); };
+  p_zoomRest.SetOwner(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { refineZoom(); }, p_zoomRest.GetId());
   p_canvas->onZoomReset = [this]() { resetZoom(); };
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { resetZoom(); }, ID_ZOOMRESET);
   addOrbitalPointNote(this, top, getCalculation());
@@ -465,7 +469,7 @@ bool DensityMapPanel::atomPoint(int n, double& u, double& v) const
   return true;
 }
 
-bool DensityMapPanel::zoomAt(double u, double v, double factor)
+bool DensityMapPanel::zoomAt(double u, double v, double factor, bool interactive)
 {
   if (!p_haveMap || !p_eval || factor <= 0) return false;
   if (!p_zoomed) {
@@ -503,12 +507,25 @@ bool DensityMapPanel::zoomAt(double u, double v, double factor)
   p_zoomWin[0] = u0;  p_zoomWin[1] = u0 + w;
   p_zoomWin[2] = v0;  p_zoomWin[3] = v0 + h;
   p_zoomed = true;
-  compute();
+  if (interactive) {
+    //  Each wheel step at full resolution made zooming crawl.
+    compute(true);
+    p_zoomRest.StartOnce(ZOOM_REST_MS);
+  } else {
+    compute();
+  }
   return p_haveMap;
+}
+
+void DensityMapPanel::refineZoom()
+{
+  p_zoomRest.Stop();
+  if (p_haveMap && p_mapCoarse && !p_dragging) compute(false, true);
 }
 
 void DensityMapPanel::resetZoom()
 {
+  p_zoomRest.Stop();
   if (!p_zoomed) return;
   p_zoomed = false;
   compute();
@@ -614,7 +631,7 @@ bool DensityMapPanel::currentPlane(Plane& plane, string& why)
   return true;
 }
 
-void DensityMapPanel::compute(bool coarse)
+void DensityMapPanel::compute(bool coarse, bool progressInPanel)
 {
   if (p_busy || !p_eval || !p_canvas) return;
   string why;
@@ -650,11 +667,22 @@ void DensityMapPanel::compute(bool coarse)
   //  Shown only if the map takes long enough to be noticed.
   wxStopWatch clock;
   std::unique_ptr<wxProgressDialog> progress;
+  int shownPercent = -1;
   p_busy = true;
   Map out;
   const bool done = p_eval->map(plane,
       what == 0 ? DENSITY : what == 1 ? ORBITAL : ORBITAL_SET, orbital, beta,
       zstep, MARGIN, out, [&](double fraction) {
+        if (progressInPanel) {
+          //  After a zoom: the status line, not a dialog over the map.
+          const int percent = (int)(100*fraction) / 10 * 10;
+          if (clock.Time() > 300 && percent != shownPercent && p_status) {
+            shownPercent = percent;
+            p_status->SetLabel(wxString::Format("Full grid: %d %%", percent));
+            p_status->Update();
+          }
+          return true;
+        }
         if (!progress && !coarse && clock.Time() > 500 && fraction < 0.7)
           progress.reset(new wxProgressDialog("Density map", "Evaluating...",
               100, this, wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_APP_MODAL));
@@ -665,6 +693,7 @@ void DensityMapPanel::compute(bool coarse)
   if (p_zoomed) out.levelTop = p_levelTop;
   p_map = out;
   p_haveMap = true;
+  p_mapCoarse = coarse;
   p_canvas->show(p_map);
   std::string lev;
   {
@@ -684,7 +713,8 @@ void DensityMapPanel::compute(bool coarse)
            : p_map.quantity == ORBITAL_SET ? " bohr\xE2\x81\xBB\xC2\xB3"
            : " bohr\xE2\x81\xBB\xC2\xB3\xE2\x81\x84\xC2\xB2";
   }
-  p_statusText = coarse ? "Coarse grid while dragging"
+  p_statusText = coarse ? (p_dragging ? "Coarse grid while dragging"
+                                       : "Coarse grid while zooming")
       : lev.empty() ? std::string("No contour level is reached in this plane")
       : "Contours at " + lev + " (each twice the previous)" +
         (p_map.quantity == ORBITAL ? "; dashed: negative" : "");

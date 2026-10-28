@@ -314,13 +314,17 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
   } else if (cmd == "dmcollapse" && w.size() == 2) {
     //  The "Hide/Show plane controls" button: 1 = collapsed.
     dm->setPlaneControlsOpen(w[1] == "0");
-  } else if (cmd == "dmzoom" && w.size() >= 3) {
-    //  dmzoom F U V (plane coordinates, A) | dmzoom F @N (atom N, 1-based)
+  } else if ((cmd == "dmzoom" || cmd == "dmwheel") && w.size() >= 3) {
+    //  dmzoom F U V (plane coordinates, A) | dmzoom F @N (atom N, 1-based);
+    //  dmwheel: as the mouse wheel, a coarse grid until dmrefine
+    //  (what the panel's timer does when the zooming rests).
     double u = 0, v = 0;
     if (w[2][0] == '@') ok = dm->atomPoint(atoi(w[2].c_str() + 1), u, v);
     else if (w.size() >= 4) { u = atof(w[2].c_str()); v = atof(w[3].c_str()); }
     else ok = false;
-    ok = ok && dm->zoomAt(u, v, atof(w[1].c_str()));
+    ok = ok && dm->zoomAt(u, v, atof(w[1].c_str()), cmd == "dmwheel");
+  } else if (cmd == "dmrefine") {
+    dm->refineZoom();
   } else if (cmd == "dmzoomreset") {
     dm->resetZoom();
   } else if (cmd == "dmclose") {
