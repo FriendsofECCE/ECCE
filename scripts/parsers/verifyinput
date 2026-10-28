@@ -2148,6 +2148,56 @@ sub ecceqm
 }
 
 
+#  ====================================================================
+#  xtb
+#
+#  One file in two parts: line 1 is "xtb" and the command-line options
+#  (--chrg, --uhf ...), then an xyz file -- the atom count, a title line,
+#  and that many atom lines.  scripts/gensub splits it before the run.
+#  Options are never judged, only that the line is there and the xyz
+#  part agrees with its own count.
+#  ====================================================================
+sub xtb
+{
+  my @L = @stripped;
+
+  if (!@L || $L[0] !~ /^\s*xtb\b/) {
+    finding("BAD", 1, "options",
+            "Line 1 should start with \"xtb\" followed by the options; " .
+            "it is what the launch script runs xtb with.");
+    return;
+  }
+  finding("GOOD", 1, "options", "An option line is present.");
+
+  my $charge = ($L[0] =~ /--chrg\s+(-?\d+)/) ? $1 : 0;
+  my $unpaired = ($L[0] =~ /--uhf\s+(\d+)/) ? $1 : 0;
+  my $assumed = ($L[0] =~ /--uhf\s/) ? 0 : 1;
+  finding("GOOD", 1, "charge", "Charge $charge, multiplicity " .
+          ($unpaired + 1) . ($assumed ? " (assumed: no --uhf)" : "") . ".");
+  electronCount($charge, $unpaired + 1, \@atomSymbols, $assumed);
+
+  if (scalar(@L) < 3 || $L[1] !~ /^\s*(\d+)\s*$/) {
+    finding("BAD", 2, "sections",
+            "Line 2 should be the number of atoms, the first line of the " .
+            "xyz part.");
+    return;
+  }
+  my $count = $1;
+  my $atoms = 0;
+  for my $i (3 .. $#L) {
+    last if ($L[$i] !~ /^\s*[A-Za-z]{1,2}\d*\s+$NUM\s+$NUM\s+$NUM/);
+    $atoms++;
+  }
+  if ($atoms == $count) {
+    finding("GOOD", "2-" . (3 + $atoms), "geometry",
+            "$count atoms, as the count on line 2 says.");
+  } else {
+    finding("BAD", 2, "geometry",
+            "Line 2 says $count atoms but $atoms atom lines follow the " .
+            "title line, which xtb refuses.");
+  }
+}
+
 #  ------------------------------------------------------- which code
 if    ($code =~ /^Gaussian/)          { gaussian();  }
 elsif ($code eq "ORCA")               { orca();      }
@@ -2155,6 +2205,7 @@ elsif ($code eq "NWChem")             { nwchem();    }
 elsif ($code eq "MOPAC")              { mopac();     }
 elsif ($code eq "QuantumESPRESSO")    { espresso();  }
 elsif ($code eq "CP2K")               { cp2k();      }
+elsif ($code eq "xTB")                { xtb();       }
 elsif ($code eq "ECCE-QM")            { ecceqm();    }
 elsif ($code ne "") {
   finding("UNSURE", 0, "code",

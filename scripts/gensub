@@ -594,6 +594,7 @@ sub determineStatus()
   my %normalTermination = (
     'orca' => 'ORCA TERMINATED NORMALLY',
     'ecce-qm' => 'end_of_output',
+    'xtb' => 'normal termination of xtb',
   );
   if (defined $normalTermination{$lccode}) {
     my $marker = $normalTermination{$lccode};
@@ -615,6 +616,8 @@ sub determineStatus()
     'cp2k' => ['SCF run NOT converged',
                'MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED'],
     'mopac' => ['EXCESS NUMBER OF OPTIMIZATION CYCLES'],
+    # xtb exits 0 after an optimization that ran out of cycles.
+    'xtb' => ['FAILED TO CONVERGE GEOMETRY OPTIMIZATION'],
     # pw.x ends an md run with the same "maximum number of steps" line, so it
     # counts only before the end of a BFGS relax.
     'quantumespresso' => ['convergence NOT achieved',
@@ -2092,6 +2095,53 @@ sub mopac()
     $retval .= "  cp $base.out $::outFile\n";
     $retval .= "fi\n";
   }
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# xtb.  The sub name is lc(applicationType) of xtb_es; the CONFIG key is
+# "xtb" for the path of the xtb binary.
+#
+# The input file (xtb.xtbin, written by ai.xtb) is line 1 = the options for
+# xtb, the rest an xyz file; xtb takes the geometry as a file argument, so
+# the file is split here.  xtb prints no coordinates, so after the run the
+# trajectory (xtbopt.log for an optimization, else the input geometry) is
+# appended to the output between ECCE-XTB-FRAME markers for xtb.desc.  The
+# script's status is xtb's own, kept across the appending.
+###########################################################################
+sub xtb()
+{
+  use strict vars;
+  my ($retval,$xtb,$cmd);
+  $retval = "";
+  $xtb = $::config{$::lccode};
+  if ($xtb eq "") { die "Path for xtb not found"; }
+  $cmd = &userCmd("xtbcommand");
+
+  $retval .= &pathVar("xtb", "$xtb", "ECCE_XTB");
+  $retval .= "echo \"Using xtb path: \$xtb\" >> $::logfile\n";
+
+  $retval .= "\n$::CC - Split the deck: options on line 1, xyz geometry below.\n";
+  $retval .= "xtbopts=`sed -n '1s/^[[:space:]]*xtb[[:space:]]*//p' $::inFile`\n";
+  $retval .= "tail -n +2 $::inFile > xtb.xyz\n";
+  $retval .= "OMP_NUM_THREADS=$::totalprocs,1; export OMP_NUM_THREADS\n";
+  $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
+  $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
+  $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\"\$xtb\" xtb.xyz \$xtbopts > $::outFile 2>&1\n";
+  }
+  $retval .= "xtbStatus=\$?\n";
+  $retval .= "\n$::CC - Append the geometries for the parser.\n";
+  $retval .= "if [ -s xtbopt.log ]; then xtbTraj=xtbopt.log; else xtbTraj=xtb.xyz; fi\n";
+  $retval .= "awk 'BEGIN{left=0;f=0} left==0 && NF==0 {next}\n";
+  $retval .= "  left==0 {n=\$1; left=n+1; f++; print \"ECCE-XTB-FRAME \" f \" \" n; next}\n";
+  $retval .= "  {print; left--; if (left==0) print \"ECCE-XTB-ENDFRAME\"}' \$xtbTraj >> $::outFile\n";
+  $retval .= "(exit \$xtbStatus)\n";
   return $retval;
   nouse strict vars;
 }

@@ -213,6 +213,14 @@ case("mopac 1SCF with PL (SCF iterations printed)", "mopac.desc",
      fx("mopac", "o2_sp_pl.out"),
      {"scf": {"cycle": "8", "converged": "yes"}})
 
+case("xtb opt (methane, normal)", "xtb.desc", fx("xtb", "ch4_opt.out"),
+     {"opt": {"step": "12", "converged": "yes",
+              "grad": lambda v: v.endswith("/0.1000000E-02")},
+      "scf": {"converged": "yes"}},
+     {"opt": (12, 12)})
+case("xtb opt, not converged", "xtb.desc", fx("xtb", "capped.out"),
+     {"opt": {"step": "3", "converged": "no"}})
+
 case("qe relax (pw.x 6.7)", "qe.desc", fx("qe", "h2o_relax.pwout"),
      {"opt": {"istep": "3", "converged": "yes", "maxgrad": lambda v: "/" not in v},
       "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes", "scferr": target}},

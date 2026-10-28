@@ -2600,6 +2600,63 @@ CASES = [
             'HIRSHFELD': dict(blocks=1, keys={'HIRSHFELD': {'size': '2'}}),
         },
     ),
+    # -----------------------------------------------------------------
+    # xtb 6.7.1 (#362).  The fixtures are what scripts/gensub's xtb() sub
+    # leaves in the output file: xtb's own report followed by the
+    # ECCE-XTB-FRAME blocks.
+    # -----------------------------------------------------------------
+    dict(
+        # GFN2-xTB single point of water: no optimizer, so the one frame
+        # is the input geometry and carries no energy (no TEVEC).
+        name='xtb-h2o-sp',
+        desc='xtb.desc',
+        fixture='xtb/h2o_sp.out',
+        parse_args=('.', 'Energy', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-5.070370761845',
+                                    'units': 'Hartree'}}),
+            'HLGAP': dict(keys={'HLGAP': {'values': '14.629673576893',
+                                          'units': 'eV'}}),
+            'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
+                                            'units': 'Debye'}}),
+            'GEOMTRACE][TEVEC': dict(blocks=1, keys={'GEOMTRACE': {
+                'size': '1 3 3', 'rowlabels': '1-O 2-H 3-H',
+                'units': 'Angstrom'}}),
+        },
+    ),
+    dict(
+        # Methane --opt normal: 12 cycles, so 12 frames and 12 TEVEC entries
+        # (TEVEC may never outnumber GEOMTRACE).
+        name='xtb-ch4-opt',
+        desc='xtb.desc',
+        fixture='xtb/ch4_opt.out',
+        parse_args=('.', 'Geometry', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-4.175217784720',
+                                    'units': 'Hartree'}}),
+            'HLGAP': dict(keys={'HLGAP': {'values': '17.346667996473',
+                                          'units': 'eV'}}),
+            'DIPOLE': dict(keys={'DIPOLE': {'units': 'Debye'}}),
+            'GEOMTRACE][TEVEC': dict(blocks=12, keys={
+                'GEOMTRACE': {'size': '1 5 3',
+                              'rowlabels': '1-C 2-H 3-H 4-H 5-H',
+                              'units': 'Angstrom'},
+                'TEVEC': {'units': 'Hartree'}}),
+        },
+    ),
+    dict(
+        # Optimization stopped at its cycle limit: xtb exits 0 and still
+        # prints a result, which gensub turns into "not converged".
+        name='xtb-ch4-notconverged',
+        desc='xtb.desc',
+        fixture='xtb/ch4_notconverged.out',
+        parse_args=('.', 'Geometry', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'units': 'Hartree'}}),
+            'GEOMTRACE][TEVEC': dict(blocks=3, keys={'GEOMTRACE': {
+                'size': '1 5 3'}}),
+        },
+    ),
 ]
 
 

@@ -463,7 +463,7 @@ void CalcEd::createCodeButtons()
   static const char *const groupName[4] = { "DFT:", "Semi-empirical:",
                                             "Periodic:", "MD:" };
   static const char *const order[] = { "ECCE-QM", "Gaussian-16", "ORCA",
-                                       "NWChem", "MOPAC", "QuantumESPRESSO",
+                                       "NWChem", "MOPAC", "xTB", "QuantumESPRESSO",
                                        "CP2K", "GROMACS" };
   std::vector<std::pair<int, wxCustomButton*> > groups[4];
 
@@ -483,7 +483,7 @@ void CalcEd::createCodeButtons()
       const string& c = codes[it];
       const int g = c=="GROMACS" ? 3
                   : (c=="QuantumESPRESSO" || c=="CP2K") ? 2
-                  : c=="MOPAC" ? 1 : 0;
+                  : (c=="MOPAC" || c=="xTB") ? 1 : 0;
       int rank = 100;
       for (int r = 0; r < (int)(sizeof order / sizeof order[0]); r++)
         if (c == order[r]) rank = r;

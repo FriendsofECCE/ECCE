@@ -75,6 +75,12 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Dipole Moment: where the atomic charges point against the dipole moment
   (carbon monoxide), the arrow stays between the atoms and the text says so.
 
+## Coming in 9.5.0
+
+- xTB: GFN2-xTB, GFN1-xTB and GFN-FF through the `xtb` program, as a new
+  code in the code bar: energy and geometry optimisation, with an implicit
+  solvent (ALPB or GBSA). Orbitals, charges and vibrations follow.
+
 ## First steps
 
 The same pages are in ECCE under **Help**. To see it done first, the

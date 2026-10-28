@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   xtb (Grimme group GFN-xTB tight-binding code) registration, stage 1:
+   energy and geometry optimization.  Modeled on MOPAC.edml and CP2K.edml.
+   Orbitals (Molden), charges and vibrations are later stages and add
+   parse entries to xtb.desc and runtypes here.
+
+   Semiempirical, so no basis set: every Theory is needsBasis="false".
+
+   The input file is one file in two parts, because xtb has no input
+   format that holds both settings and coordinates: line 1 is the xtb
+   command line (options only), the rest is an xyz file.  scripts/gensub
+   splits it before the run.  The name must be .xtbin: xtb is handed
+   the extracted xtb.xyz, so the input itself is free to carry an
+   extension of its own for the Apache MIME mapping.
+
+   xtb prints no geometry, so gensub appends the trajectory
+   (xtbopt.log, or the input xyz for an energy run) to the output file
+   between ECCE-XTB-FRAME markers; xtb.desc reads the geometry trace
+   from there.
+-->
+
+<appdescriptor>
+
+<SupportsConstraints>false</SupportsConstraints>
+
+<Editor theorydialog="xtbtheory.py" runtypedialog="xtbruntype.py">
+  <Theory category="SE" name="GFN2-xTB" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+  </Theory>
+  <Theory category="SE" name="GFN1-xTB" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+  </Theory>
+  <Theory category="SE" name="GFN-FF" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+  </Theory>
+
+  <TheorySummary>
+    <item key="ES.Theory.Solvent.Model" label="Solvent Model"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.Solvent.Name" label="Solvent"></item>
+  </TheorySummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.Level" label="Optimization Level"></item>
+  </RuntypeSummary>
+</Editor>
+
+<DataFiles>
+  <Input  type="primary" mimetype="chemical/x-xtb-input" comment="false">xtb.xtbin</Input>
+  <Output type="primary" mimetype="chemical/x-xtb-output">xtb.xtbout</Output>
+  <Output type="parse" verifypattern="x T B" mimetype="chemical/x-xtb-output">xtb.xtbout</Output>
+</DataFiles>
+
+<IntegrationFiles>
+  <Template>xtb.tpl</Template>
+  <InputGenerator>ai.xtb</InputGenerator>
+  <ParseSpecification>xtb.desc</ParseSpecification>
+  <LaunchPreprocessor>xtb.launchpp</LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>

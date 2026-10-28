@@ -140,6 +140,10 @@ AmicaOther	Cowan-Griffin Relativistic Correction	ERELCORR_A	Energy		PropValue
 Energy		Gx Energy				GXENERGY	Energy		PropValue	Total
 Energy		Heat of Formation			HFENERGY	Energy		PropValue	Total
 #
+# xtb's HOMO-LUMO gap.  Units class NA: it is stored in eV, which the
+# Hartree/kcal converter must not rescale.
+Energy		HOMO-LUMO Gap			HLGAP		NA		PropValue	Derived
+#
 Energy		Zero Point Energy			EZEROPT		Energy		PropValue	Thermochemistry
 #
 # Thermochemistry (298.15K, 1 atm ideal-gas statistical mechanics) --
