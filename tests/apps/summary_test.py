@@ -83,13 +83,13 @@ def launchProblem(text):
     """The Launch Info block (#648): two columns, rows with nothing to show
     are not made. The fixtures ran on localhost with no queue: a stored
     process id is not a Job ID, and there is no allocation."""
-    m = re.search(r"launch=(\S*)", text)
+    m = re.search(r"launch=(.*?;) (?:formula-gap|tool)=", text)
     rows = {}
     for item in (m.group(1) if m else "").split(";"):
         if "@" in item:
             name, pos = item.split("@")
             rows[name] = tuple(int(v) for v in pos.split(","))
-    for name in ("Machine:", "Processors:", "Start Date:"):
+    for name in ("Machine:", "Processors:", "Start Date:", "Cost:"):
         if name not in rows:
             return "Launch Info has no %s row (got %s)" % (name, sorted(rows))
     for name in ("Queue:", "Job ID:", "Allocation:", "Left:"):

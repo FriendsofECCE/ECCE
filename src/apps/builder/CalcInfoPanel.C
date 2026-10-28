@@ -17,6 +17,8 @@
 #include "dsm/JCode.H"
 #include "dsm/PropFactory.H"
 #include "dsm/TaskJob.H"
+#include "util/TDateTime.H"
+#include <ctime>
 #include "dsm/LaunchInfoRows.H"
 #include "comm/AllocationQuery.H"
 
@@ -84,6 +86,20 @@ CalcInfoPanel::~CalcInfoPanel()
 {
 }
 
+
+
+//  Cores x wall time, to the completion date or, while running, to now.
+static std::string launchCost(TaskJob *job, long processors)
+{
+  const std::string start = job->startDate(), end = job->completionDate();
+  if (start.empty()) return "";
+  const bool running = end.empty() &&
+      job->getState() == ResourceDescriptor::STATE_RUNNING;
+  if (end.empty() && !running) return "";
+  const long s = TDateTime(start).toSeconds();
+  const long e = running ? (long)time(NULL) : TDateTime(end).toSeconds();
+  return LaunchInfoRows::coreHoursText(processors, s, e, running);
+}
 
 void CalcInfoPanel::refresh()
 {
@@ -240,6 +256,7 @@ void CalcInfoPanel::refresh()
     in.jobId = job.jobid;
     in.startDate = taskJob->startDate();
     in.completionDate = taskJob->completionDate();
+    in.coreHours = launchCost(taskJob, launch.totalprocs);
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);
     if (!in.allocation.empty()) {

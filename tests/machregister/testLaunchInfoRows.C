@@ -58,6 +58,22 @@ int main()
     c = build(in);
     check(c.left.empty(), "unknown processors and machine make no rows");
 
+    // Cost: cores x hours, thousands grouped, "so far" while running.
+    check(coreHoursText(128, 0 + 1000, 1000 + 9 * 3600, false) == "1 152 CPU-h",
+          "128 cores for 9 h is 1 152 CPU-h");
+    check(coreHoursText(4, 1000, 1000 + 1800, true) == "2.0 CPU-h so far",
+          "a running job's cost says so far");
+    check(coreHoursText(0, 1000, 2000, false).empty() &&
+          coreHoursText(4, 0, 2000, false).empty() &&
+          coreHoursText(4, 3000, 2000, false).empty(),
+          "no cores, no start, or an end before the start: no cost");
+    in.coreHours = "5.0 CPU-h";
+    in.machine = "m";
+    c = build(in);
+    check(labels(c.right).find("Comp. Date: Cost:") != std::string::npos ||
+          labels(c.right).find("Cost:") != std::string::npos,
+          "Cost is in the right column");
+
     printf(failures ? "FAILED\n" : "all passed\n");
     return failures ? 1 : 0;
 }

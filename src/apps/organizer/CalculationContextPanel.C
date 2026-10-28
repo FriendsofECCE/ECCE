@@ -20,6 +20,7 @@
 #include "util/PreferenceLabels.H"
 #include "util/ResourceUtils.H"
 #include "util/TDateTime.H"
+#include <ctime>
 #include "tdat/TFormula.H"
 #include "tdat/TProperty.H"
 #include "tdat/PropVector.H"
@@ -265,6 +266,20 @@ void CalculationContextPanel::refresh()
 
 
 
+//  Cores x wall time, to the completion date or, while running, to now.
+static std::string launchCost(TaskJob *job, long processors)
+{
+  const std::string start = job->startDate(), end = job->completionDate();
+  if (start.empty()) return "";
+  const bool running = end.empty() &&
+      job->getState() == ResourceDescriptor::STATE_RUNNING;
+  if (end.empty() && !running) return "";
+  const long s = TDateTime(start).toSeconds();
+  const long e = running ? (long)time(NULL) : TDateTime(end).toSeconds();
+  return LaunchInfoRows::coreHoursText(processors, s, e, running);
+}
+
+
 /**
  * Builds the Launch Info block (see LaunchInfoRows.H): rows with nothing to
  * show are not made. The allocation answer comes from a background read, so
@@ -285,6 +300,7 @@ void CalculationContextPanel::refreshLaunchInfo()
     in.jobId = job->jobdata().jobid;
     in.startDate = formatDateTime(job->startDate());
     in.completionDate = formatDateTime(job->completionDate());
+    in.coreHours = launchCost(job, launch.totalprocs);
     if (!launch.machine.empty()) {
       in.allocation = AllocationQuery::account(launch);
       wxWeakRef<CalculationContextPanel> self(this);
