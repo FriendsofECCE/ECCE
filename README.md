@@ -66,6 +66,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Run Mgmt > Re-Parse Outputs reads a finished calculation's stored outputs
   again with the current parsers, without logging in to the machine.
 - Density Map: a diatomic starts on the molecular plane through its axis.
+- Dipole Moment: where the atomic charges point against the dipole moment
+  (carbon monoxide), the arrow stays between the atoms and the text says so.
 
 ## First steps
 
