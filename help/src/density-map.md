@@ -82,7 +82,8 @@ appears if so.
 The mouse wheel zooms the map about the pointer, with the same contour
 levels as the whole plane. While you zoom the map is drawn on a coarse grid;
 when the wheel rests for a moment the full grid follows, with its progress in
-the line under the map. **Whole plane**, or a double-click on the map, zooms
+the line under the map. Dragging with the right mouse button moves a zoomed
+map within the plane. **Whole plane**, or a double-click on the map, zooms
 out again.
 
 An example: for benzene, the **Molecular plane** with an offset of 0.8 Å shows

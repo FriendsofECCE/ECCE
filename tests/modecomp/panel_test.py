@@ -105,7 +105,8 @@ def main():
     if os.path.exists(high):
         lines = [l.rstrip("\n").split("\t") for l in open(high, encoding="utf-8")]
         check(lines[0] == ["key C2–O3 stretch"], "key names the bond: %s" % lines[0])
-        hot = [i for i, l in enumerate(lines[1:]) if float(l[1]) >= 10]
+        check(lines[1] == ["picked 2-3"], "Add Selected gives the bond: %s" % lines[1])
+        hot = [i for i, l in enumerate(lines[2:]) if float(l[1]) >= 10]
         check(len(hot) == 1, "one mode highlighted: %s" % hot)
         shutil.copy(high + ".png", os.path.join(png, "highlight.png"))
     print("%d failed" % len(failed))

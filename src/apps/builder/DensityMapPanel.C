@@ -81,10 +81,33 @@ class DensityMapCanvas : public wxPanel
       Bind(wxEVT_LEFT_DCLICK, [this](wxMouseEvent&) {
         if (onZoomReset) onZoomReset();
       });
+      //  Right-drag moves a zoomed map: the plane point under the pointer
+      //  follows the pointer.
+      Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
+        p_drag = e.GetPosition();
+        p_panning = true;
+        if (!HasCapture()) CaptureMouse();
+      });
+      Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent&) { endPan(); });
+      Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) { p_panning = false; });
+      Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
+        double u0, v0, u1, v1;
+        if (!p_panning || !e.RightIsDown() || !p_have || !onPan) { e.Skip(); return; }
+        const wxPoint at = e.GetPosition();
+        if (at == p_drag) return;
+        if (densityMapPointAt(GetClientSize(), p_map, p_drag.x, p_drag.y, u0, v0) &&
+            densityMapPointAt(GetClientSize(), p_map, at.x, at.y, u1, v1)) {
+          p_drag = at;
+          onPan(u0 - u1, v0 - v1);
+        }
+      });
     }
+
+    ~DensityMapCanvas() { if (HasCapture()) ReleaseMouse(); }
 
     std::function<void(double, double, double)> onZoom;   // u, v, factor
     std::function<void()> onZoomReset;
+    std::function<void(double, double)> onPan;   // du, dv
     void show(const Map& m) { p_map = m; p_have = true; p_message.clear(); Refresh(); }
     std::function<void()> onPaintHook;
     void say(const wxString& msg) { p_have = false; p_message = msg; Refresh(); }
@@ -102,9 +125,17 @@ class DensityMapCanvas : public wxPanel
       if (onPaintHook) onPaintHook();
     }
 
+    void endPan()
+    {
+      p_panning = false;
+      if (HasCapture()) ReleaseMouse();
+    }
+
     Map p_map;
     bool p_have;
     wxString p_message;
+    bool p_panning = false;
+    wxPoint p_drag;
 };
 
 
@@ -322,6 +353,7 @@ void DensityMapPanel::build()
   p_zoomReset->Hide();
   row1->Add(p_zoomReset, 0);
   p_canvas->onZoom = [this](double u, double v, double f) { zoomAt(u, v, f, true); };
+  p_canvas->onPan = [this](double du, double dv) { panBy(du, dv, true); };
   p_zoomRest.SetOwner(this);
   Bind(wxEVT_TIMER, [this](wxTimerEvent&) { refineZoom(); }, p_zoomRest.GetId());
   p_canvas->onZoomReset = [this]() { resetZoom(); };
@@ -508,6 +540,24 @@ bool DensityMapPanel::zoomAt(double u, double v, double factor, bool interactive
   p_zoomed = true;
   if (interactive) {
     //  Each wheel step at full resolution made zooming crawl.
+    compute(true);
+    p_zoomRest.StartOnce(ZOOM_REST_MS);
+  } else {
+    compute();
+  }
+  return p_haveMap;
+}
+
+bool DensityMapPanel::panBy(double du, double dv, bool interactive)
+{
+  if (!p_haveMap || !p_eval || !p_zoomed) return false;
+  const double w = p_zoomWin[1] - p_zoomWin[0], h = p_zoomWin[3] - p_zoomWin[2];
+  const double u0 = std::min(std::max(p_zoomWin[0] + du, p_fullWin[0]), p_fullWin[1] - w);
+  const double v0 = std::min(std::max(p_zoomWin[2] + dv, p_fullWin[2]), p_fullWin[3] - h);
+  if (u0 == p_zoomWin[0] && v0 == p_zoomWin[2]) return true;
+  p_zoomWin[0] = u0;  p_zoomWin[1] = u0 + w;
+  p_zoomWin[2] = v0;  p_zoomWin[3] = v0 + h;
+  if (interactive) {
     compute(true);
     p_zoomRest.StartOnce(ZOOM_REST_MS);
   } else {

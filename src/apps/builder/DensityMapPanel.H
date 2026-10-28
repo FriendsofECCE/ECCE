@@ -92,6 +92,9 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
        *  mouse wheel): a coarse grid at once, the full one when the zooming
        *  has rested (refineZoom). */
       bool zoomAt(double u, double v, double factor, bool interactive = false);
+      /** Move the zoomed window by (du, dv), A, staying on the plane;
+       *  interactive as for zoomAt.  No-op when not zoomed. */
+      bool panBy(double du, double dv, bool interactive = false);
       /** The full grid in place of a coarse one; no-op when it is full. */
       void refineZoom();
       /** Back to the whole plane. */

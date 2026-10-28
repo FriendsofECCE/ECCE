@@ -192,6 +192,8 @@ class NModePanel : public NModesGUI,
       wxWeakRef<wxFrame> p_compFrame;            // Mode composition (#486)
       wxGrid *p_compGrid = 0;
       wxTextCtrl *p_compExtra = 0;
+      std::vector<int> p_picked;          // atoms selected in the 3-D view, 0-based
+      std::string pickedCoordinate() const;
       wxStaticText *p_compNote = 0;
       void fitCompColumn();
       vector<string> p_compLabels;               // short label per mode, as in the table
