@@ -883,7 +883,7 @@ TransportResult OpenSshTransport::runWithData(const std::string& script, int inF
 bool OpenSshTransport::connect(std::string& error)
 {
   p_connected = false;
-  TransportResult r = runImpl("exit 0\n", 60, false);
+  TransportResult r = runImpl("exit 0\n", p_connectTimeout + 15, false);
   if (r.status != 0) {
     std::string why = r.error;
     if (why.empty()) {

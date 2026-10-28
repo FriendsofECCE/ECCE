@@ -1,3 +1,4 @@
+#include <memory>
 ///////////////////////////////////////////////////////////////////////////////
 // SOURCE FILENAME: RunMgmt.C
 //
@@ -231,7 +232,8 @@ static bool holdsId(const string& text, const string& id)
 }
 
 
-RunMgmt::MachineCheck RunMgmt::checkOnMachine(const TaskJob *calc)
+RunMgmt::MachineCheck RunMgmt::checkOnMachine(const TaskJob *calc,
+    const std::function<bool(const RCommandLogin&, RCommand*&, string&)>& login)
 {
   MachineCheck c;
   Jobdata job = calc->jobdata();
@@ -283,12 +285,25 @@ RunMgmt::MachineCheck RunMgmt::checkOnMachine(const TaskJob *calc)
   }
   script += "echo 'ecce-check job-end'\n";
 
-  RCommand rcmd(refMachine->fullname(), launch.remoteShell,
-                refMachine->shell(), launch.user, "",
-                refMachine->frontendMachine(), refMachine->frontendBypass(),
-                refMachine->shellPath(), refMachine->libPath(),
-                refMachine->sourceFile());
+  RCommandLogin args;
+  args.machine = refMachine->fullname();
+  args.remShell = launch.remoteShell;
+  args.locShell = refMachine->shell();
+  args.user = launch.user;
+  args.frontend = refMachine->frontendMachine();
+  args.frontendBypass = refMachine->frontendBypass();
+  args.shellPath = refMachine->shellPath();
+  args.libPath = refMachine->libPath();
+  args.sourceFile = refMachine->sourceFile();
   delete refMachine;
+  RCommand* conn = 0;
+  if (login) {
+    if (!login(args, conn, c.error)) return c;
+  } else {
+    conn = args.open();
+  }
+  std::unique_ptr<RCommand> own(conn);
+  RCommand& rcmd = *conn;
   string output;
   if (!rcmd.isOpen()) {
     c.error = rcmd.commError();

@@ -44,7 +44,29 @@ static void leaveWaiting(TaskJob* calc, const string& why)
 }
 
 
-bool JobCatchUp::reconnect(TaskJob* calc, string& message)
+bool JobCatchUp::loginFor(const TaskJob* calc, RCommandLogin& login, string& why)
+{
+  const Launchdata& ld = calc->launchdata();
+  RefMachine* m = RefMachine::refLookup(ld.machine);
+  if (!m) {
+    why = ld.machine + " is not a registered ECCE machine";
+    return false;
+  }
+  login.machine = m->fullname();
+  login.remShell = ld.remoteShell;
+  login.locShell = m->shell();
+  login.user = ld.user;
+  login.frontend = m->frontendMachine();
+  login.frontendBypass = m->frontendBypass();
+  login.shellPath = m->shellPath();
+  login.libPath = m->libPath();
+  login.sourceFile = m->sourceFile();
+  delete m;
+  return true;
+}
+
+
+bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginFn)
 {
   Jobdata job = calc->jobdata();
   if (job.jobid.empty()) {
@@ -52,6 +74,18 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message)
     return false;
   }
   ResourceDescriptor::RUNSTATE state = calc->getState();
+
+  //  Log in before anything is removed: a host that does not answer leaves
+  //  the calculation's results as they were.
+  RCommand* conn = 0;
+  if (loginFn) {
+    OpenSshTransport::forgetMasterAttempts();
+    RCommandLogin args;
+    if (!loginFor(calc, args, message) || !loginFn(args, conn, message)) {
+      leaveWaiting(calc, message);
+      return false;
+    }
+  }
 
   // The new monitor parses the output from the start.
   PropertyTask* ptask = dynamic_cast<PropertyTask*>(calc);
@@ -72,6 +106,7 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message)
   if (!calc->application()) {
     message = "No code registration data found for the calculation";
     leaveWaiting(calc, message);
+    delete conn;
     return false;
   }
   TypedFile file;
@@ -99,7 +134,8 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message)
 
   Launch launch(calc, kvargs);
   //  A Reconnect asks for the login again, even right after a cancel.
-  OpenSshTransport::forgetMasterAttempts();
+  if (conn) launch.adoptConnection(conn);
+  else OpenSshTransport::forgetMasterAttempts();
   bool ok = launch.validateLocalDir() &&
             launch.validateRemoteLogin() &&
             launch.generateJobMonitoringFiles() &&
@@ -144,7 +180,7 @@ JobCatchUp::Plan JobCatchUp::plan(TaskJob* calc)
 
 
 vector<JobCatchUp::Result> JobCatchUp::run(
-    std::function<void(size_t, size_t)> progress)
+    std::function<void(size_t, size_t)> progress, const LoginFn& login)
 {
   vector<Result> results;
   vector<string> urls = WaitingJobs::list();
@@ -172,7 +208,7 @@ vector<JobCatchUp::Result> JobCatchUp::run(
       WaitingJobs::remove(urls[i]);
       continue;
     }
-    r.ok = reconnect(calc, r.message);
+    r.ok = reconnect(calc, r.message, login);
     r.message = calc->getName() + ": " + r.message;
     results.push_back(r);
   }
