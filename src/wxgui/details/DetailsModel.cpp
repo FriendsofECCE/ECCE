@@ -358,7 +358,9 @@ void Model::initialize()
         int d = find("ES.Theory.SCF.Dispersion");
         int g = find("ES.Theory.DFT.Grid");
         string base = value, disp, grid;
-        for (;;) {
+        // A known name ends the peeling, so B97-D3 keeps its D3.
+        while (std::find(it.choices.begin(), it.choices.end(), base) ==
+               it.choices.end()) {
           size_t cut = base.find_last_of(" -");
           if (cut == string::npos || cut == 0) break;
           string tail = base.substr(cut + 1);

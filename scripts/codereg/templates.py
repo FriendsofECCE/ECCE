@@ -582,8 +582,8 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         if not func or value in func[0].combo.GetStrings():
             return value
         base, d, g = value, "", ""
-        while True:
-            m = re.match(r"^(\S+?)[ -](D3BJ|D3ZERO|D3\(0\)|D3|D4|DEFGRID[123])$",
+        while base not in func[0].combo.GetStrings():
+            m = re.match(r"^(.+)[ -](D3BJ|D3ZERO|D3\(0\)|D3|D4|DEFGRID[123])$",
                          base, re.IGNORECASE)
             if not m:
                 break

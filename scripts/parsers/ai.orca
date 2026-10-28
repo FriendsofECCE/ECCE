@@ -532,7 +532,8 @@ sub SplitDispersion {
   #  A DEFGRID keyword may sit in the name too ("PBE0 DEFGRID3 D3BJ"); both
   #  are peeled off, in either order.
   my ($disp, $grid) = ("", "");
-  while ($name =~ /^(\S+?)[ -](D3BJ|D3ZERO|D3\(0\)|D3|D4|DEFGRID[123])$/i) {
+  while ($name ne "B97-D3" && $name ne "wB97X-D3" &&
+         $name =~ /^(.+)[ -](D3BJ|D3ZERO|D3\(0\)|D3|D4|DEFGRID[123])$/i) {
     my ($base, $tok) = ($1, uc($2));
     if ($tok =~ /^DEFGRID/) { last if ($grid ne ""); $grid = $tok; }
     else { last if ($disp ne ""); $disp = $tok; }
