@@ -79,3 +79,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A failed job's output ends inside a .desc block; the monitor drops it instead of dying, so output, status and progress are stored (#470, #467)](failed-job-ends-inside-a-parse-block.md)
 - [A calculation's start date is set by the first "running" only; a restarted monitor used to move it to the restart, and dates now show seconds (#463)](job-start-date-is-the-first-running.md)
 - [passdialog exit status and ecce-askpass](passdialog-exit-status.md) — a wx OnInit returning false exits 255; askpass took OK as cancel (#487)
+- [Ubuntu 26.04 mosquitto AppArmor profile blocks the per-user broker; ecce-client adds a local block (#646)](ubuntu-26-mosquitto-apparmor-profile.md)
