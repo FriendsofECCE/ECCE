@@ -121,6 +121,9 @@ CASES = [
     ("cp2k-silicon.cp2kin",   "CP2K",             2, [("GOOD", "sections"),
                                                       ("GOOD", "kinds"),
                                                       ("GOOD", "geometry")]),
+    #  A kind label (Si_e) is an atom with its own &KIND.
+    ("cp2k-kind-label.cp2kin", "CP2K",            2, [("GOOD", "kinds"),
+                                                      ("GOOD", "geometry")]),
     ("cp2k-nio-u-opt.cp2kin", "CP2K",             2, [("GOOD", "run"),
                                                       ("GOOD", "spin"),
                                                       ("GOOD", "plus_u")]),

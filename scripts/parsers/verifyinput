@@ -115,8 +115,9 @@ my @runs;        # atoms in each consecutive block of atom lines
 my $prevAtom = 0;
 for my $i (0 .. $#lines) {
   #  Trailing tokens are allowed: MOPAC writes an optimisation flag
-  #  after each coordinate, and NWChem permits a tag.
-  if ($lines[$i] =~ /^\s*([A-Z][a-z]?|x)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+  #  after each coordinate, and NWChem permits a tag.  A CP2K kind label
+  #  (Nb_e) is an element with a suffix.
+  if ($lines[$i] =~ /^\s*([A-Z][a-z]?|x)\d*(?:_\w+)?\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
     #  A Gaussian ModRedundant line ("D 11 8 5 1 S 12 30") looks like a
     #  deuterium or boron atom; its numbers are atom indices, never decimals.
     next if ($lines[$i] =~ /^\s*[BADLX]\s+\d+\s+\d+(\s+\d+){0,2}(\s+[A-Z]\b|\s+[-+]?\d*\.\d+|\s*$)/);
@@ -199,7 +200,7 @@ my @atomSymbols;
 for my $i (0 .. $#stripped) {
   #  QST decks repeat the molecule; count its electrons once.
   last if ($qstWanted && @runs && $i + 1 >= $firstAtom + $runs[0]);
-  if ($stripped[$i] =~ /^\s*([A-Z][a-z]?|x)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+  if ($stripped[$i] =~ /^\s*([A-Z][a-z]?|x)\d*(?:_\w+)?\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
     my $element = ucfirst(lc($1));
     #  NWChem tags are case-insensitive, so a hand-typed dummy may be "x".
     next if (lc($1) eq "x");   # a dummy atom: no nucleus, electrons or basis
@@ -1513,8 +1514,9 @@ sub cp2k
     $line =~ s/[#!].*//;
     if ($line =~ /^\s*&COORD\b/i)     { $inCoord = 1; next; }
     if ($line =~ /^\s*&END\s+COORD\b/i) { $inCoord = 0; next; }
-    if ($inCoord && $line =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM\s+$NUM\s+$NUM/) {
-      $atoms{$1} = 1;
+    #  The label (Nb_e, Fe1) names its &KIND; the element is the fallback.
+    if ($inCoord && $line =~ /^\s*(([A-Z][a-z]?)\w*)\s+$NUM\s+$NUM\s+$NUM/) {
+      $atoms{$1} = $2;
       next;
     }
     if ($line =~ /^\s*&KIND\s+(\S+)/i) { $cur = $1; $kind{$cur} = {}; next; }
@@ -1524,10 +1526,11 @@ sub cp2k
     }
   }
   my @missing;
-  foreach my $el (sort keys %atoms) {
-    push(@missing, $el)
-      if (!exists($kind{$el}) || !exists($kind{$el}{BASIS_SET}) ||
-          !exists($kind{$el}{POTENTIAL}));
+  my $full = sub { my $k = $kind{$_[0]};
+                   $k && exists($k->{BASIS_SET}) && exists($k->{POTENTIAL}) };
+  foreach my $label (sort keys %atoms) {
+    push(@missing, $label)
+      if (!$full->($label) && !$full->($atoms{$label}));
   }
   if (@missing) {
     finding("BAD", 0, "kinds", "No &KIND with both a BASIS_SET and a " .
