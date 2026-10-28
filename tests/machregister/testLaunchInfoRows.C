@@ -25,6 +25,15 @@ static std::string labels(const std::vector<Row>& v)
 
 int main()
 {
+    {
+        Input w;
+        w.queue = "normal";
+        w.queueWait = "waiting: other jobs have priority";
+        Columns cw = build(w);
+        check(labels(cw.left) == "Queue: Queue state:", "queue wait row (#641)");
+        w.queueWait = "";
+        check(labels(build(w).left) == "Queue:", "no queue wait: no row");
+    }
     Input in;
     in.machine = "kebnekaise";
     in.processors = 28;
@@ -33,15 +42,22 @@ int main()
     in.startDate = "2026-10-28";
     in.completionDate = "2026-10-29";
     in.allocation = "hpc2n2026-001";
-    in.allocationLeft = "21.2 % used";
     Columns c = build(in);
     check(labels(c.left) == "Machine: Processors: Queue: Job ID:", "left column order");
-    check(labels(c.right) == "Start Date: Comp. Date: Allocation: Left:", "right column order");
+    check(labels(c.right) == "Start Date: Comp. Date: Allocation:", "right column order, no Left row");
     check(c.left[3].value == "12345", "job id value");
 
-    in.allocationLeft = "";
+    in.allocationRemaining = "95.1 % of 5 000 CPU-h/month (past 30 days)";
     c = build(in);
-    check(labels(c.right) == "Start Date: Comp. Date: Allocation:", "empty Left makes no row");
+    check(labels(c.right) == "Start Date: Comp. Date: Allocation: Remaining on submission:",
+          "remaining row follows Allocation");
+    in.allocation = "";
+    c = build(in);
+    check(labels(c.right) == "Start Date: Comp. Date:", "no allocation: no remaining row either");
+    in.allocation = "hpc2n2026-001";
+    in.allocationRemaining = "";
+    c = build(in);
+    check(labels(c.right) == "Start Date: Comp. Date: Allocation:", "no snapshot: no remaining row");
 
     in.completionDate = "";
     in.allocation = "";

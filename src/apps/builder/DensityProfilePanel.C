@@ -2,7 +2,9 @@
 #include <cmath>
 #include <cstdio>
 #include <functional>
+#include <atomic>
 #include <memory>
+#include <thread>
 
 #include <wx/bitmap.h>
 #include <wx/button.h>
@@ -18,6 +20,8 @@
 #include <wx/panel.h>
 #include <wx/progdlg.h>
 #include <wx/stopwatch.h>
+#include <wx/timer.h>
+#include <wx/utils.h>
 #include <wx/spinctrl.h>
 #include <wx/splitter.h>
 #include <wx/stattext.h>
@@ -148,6 +152,8 @@ DensityProfilePanel::DensityProfilePanel()
     p_labelYAxis(0), p_labelA(0), p_labelB(0),
     p_labelCentre(0), p_labelMargin(0), p_list(0), p_combine(0), p_clip(0), p_text(0), p_plot(0)
 {
+  p_alive = std::make_shared<DensityProfilePanel*>(this);
+  p_inProgressUpdate = false;
 }
 
 DensityProfilePanel::DensityProfilePanel(IPropCalculation *calculation,
@@ -160,6 +166,8 @@ DensityProfilePanel::DensityProfilePanel(IPropCalculation *calculation,
 
 DensityProfilePanel::~DensityProfilePanel()
 {
+  *p_alive = nullptr;
+  cancelAverage();
   unsubscribe();
 }
 
@@ -557,6 +565,7 @@ void DensityProfilePanel::recompute()
     explicit Busy(bool& b) : f(b) { f = true; }
     ~Busy() { f = false; }
   } busyFlag(p_busy);
+  cancelAverage();
   wxBusyCursor busy;
   const bool atom = p_mode->GetSelection() == 1;
   const bool bohr = p_unit->GetSelection() == 1;
@@ -592,6 +601,8 @@ void DensityProfilePanel::recompute()
 
   std::vector<RadialDist::Curve> curves;
   std::vector<double> axis;
+  RadialDist::Options asyncOpt;
+  double asyncCentre[3] = { 0, 0, 0 };
   p_marks.clear();
   //  Short labels that name the quantity, so they fit a small plot.
   const wxString length = bohr ? wxString("bohr") : U("Å");
@@ -611,27 +622,11 @@ void DensityProfilePanel::recompute()
     const int a = std::max(0, p_centre->GetSelection());
     const double c[3] = { p_eval->coordsAng[3*a], p_eval->coordsAng[3*a+1],
                           p_eval->coordsAng[3*a+2] };
-    //  On a cluster the average takes minutes (#629): fewer directions
-    //  there, and a progress bar with Cancel once it is slow enough to notice.
+    //  On a cluster the average is slow: fewer directions there (#629).
     if (p_eval->symbols.size() * std::max<size_t>(1, specs.size()) > 1500)
       opt.lebedev = 110;
-    wxStopWatch clock;
-    std::unique_ptr<wxProgressDialog> progress;
-    const bool done = specs.empty() || RadialDist::compute(*p_eval, c, opt, specs, curves,
-        [&](double fraction) {
-          if (!progress && clock.Time() > 500 && fraction < 0.7)
-            progress.reset(new wxProgressDialog("Density Profile",
-                "Averaging around the atom...", 100, this,
-                wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_REMAINING_TIME));
-          return progress ? progress->Update((int)(100*fraction)) : true;
-        });
-    if (!done) {
-      p_plot->clearCurves();
-      p_plot->clearVLines();
-      p_text->SetValue("Stopped. Fewer curves (Show: Total density only, or "
-                       "selected orbitals) make the average quicker.");
-      return;
-    }
+    asyncOpt = opt;
+    std::copy(c, c + 3, asyncCentre);
     axis = RadialDist::grid(opt);
     xLabel = "r (" + length + ")";
     yLabel = quantity == 0 ? U("r²ψ², radial distribution (") + length + U("⁻¹)")
@@ -660,6 +655,8 @@ void DensityProfilePanel::recompute()
                            : U("density ρ (") + perVol + ")";
   }
 
+  //  The part that reads the curves runs after the worker for an atom.
+  auto finish = [=](std::vector<RadialDist::Curve>& curves) {
   p_axis = axis;
   p_shown = curves;
   p_sumError = -1.0;
@@ -759,6 +756,116 @@ void DensityProfilePanel::recompute()
                              p_sumError, p_sumPeak);
   p_text->SetValue(text);
   p_plot->Refresh();
+  };
+  if (atom && !specs.empty()) {
+    startAverage(asyncCentre, asyncOpt, specs, finish);
+    return;
+  }
+  finish(curves);
+}
+
+struct DensityProfilePanel::AverageJob
+{
+  std::atomic<bool> cancel{false};
+  std::atomic<bool> userCancelled{false};
+  std::atomic<double> fraction{0.0};
+  bool ok = false;
+  std::vector<RadialDist::Curve> curves;
+  std::function<void(std::vector<RadialDist::Curve>&)> finish;
+  wxStopWatch clock;
+};
+
+//  The worker gets copies and a shared evaluator and never touches the panel;
+//  the result comes back through the app's event queue.
+void DensityProfilePanel::startAverage(const double centre[3], const RadialDist::Options& opt,
+    const std::vector<RadialDist::Spec>& specs,
+    std::function<void(std::vector<RadialDist::Curve>&)> finish)
+{
+  cancelAverage();
+  std::shared_ptr<AverageJob> job = std::make_shared<AverageJob>();
+  job->finish = std::move(finish);
+  p_job = job;
+  p_text->SetValue("Averaging around the atom...");
+  if (!p_timer) {
+    p_timer.reset(new wxTimer(this));
+    Bind(wxEVT_TIMER, &DensityProfilePanel::onTimer, this);
+  }
+  p_timer->Start(100);
+  std::shared_ptr<DensityPlane::Evaluator> ev = p_eval;
+  std::shared_ptr<DensityProfilePanel*> alive = p_alive;
+  const std::vector<double> c(centre, centre + 3);
+  std::thread([job, ev, c, opt, specs, alive]() {
+    try {
+      job->ok = RadialDist::compute(*ev, c.data(), opt, specs, job->curves,
+          [&job](double f) { job->fraction = f; return !job->cancel.load(); });
+    } catch (...) {
+      job->ok = false;
+    }
+    if (wxTheApp) wxTheApp->CallAfter([alive, job]() { deliver(alive, job); });
+  }).detach();
+}
+
+void DensityProfilePanel::cancelAverage()
+{
+  if (p_job) p_job->cancel = true;
+  p_job.reset();
+  if (p_timer) p_timer->Stop();
+  //  Not from inside the dialog's own Update: the timer handler closes it.
+  if (!p_inProgressUpdate) p_progress.reset();
+}
+
+void DensityProfilePanel::deliver(std::shared_ptr<DensityProfilePanel*> alive,
+                                  std::shared_ptr<AverageJob> job)
+{
+  if (DensityProfilePanel *panel = *alive) panel->finishAverage(job);
+}
+
+void DensityProfilePanel::finishAverage(const std::shared_ptr<AverageJob>& job)
+{
+  if (job != p_job) return;                        // superseded: never drawn
+  if (p_inProgressUpdate) {                        // the dialog is in the middle of Update
+    wxTheApp->CallAfter([alive = p_alive, job]() { deliver(alive, job); });
+    return;
+  }
+  p_job.reset();
+  p_timer->Stop();
+  p_progress.reset();
+  if (job->ok) {
+    job->finish(job->curves);
+  } else if (job->userCancelled) {
+    p_plot->clearCurves();
+    p_plot->clearVLines();
+    p_text->SetValue("Stopped. Fewer curves (Show: Total density only, or "
+                     "selected orbitals) make the average quicker.");
+  }
+}
+
+//  A progress bar with Cancel only once the average is slow enough to notice.
+void DensityProfilePanel::onTimer(wxTimerEvent&)
+{
+  if (!p_job || p_inProgressUpdate) return;
+  const double fraction = p_job->fraction;
+  if (!p_progress && p_job->clock.Time() > 500 && fraction < 0.7)
+    p_progress.reset(new wxProgressDialog("Density Profile",
+        "Averaging around the atom...", 100, this,
+        wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_REMAINING_TIME));
+  if (!p_progress) return;
+  p_inProgressUpdate = true;
+  const bool go = p_progress->Update((int)(100*fraction));
+  p_inProgressUpdate = false;
+  if (!go && p_job) {
+    p_job->userCancelled = true;
+    p_job->cancel = true;
+    p_timer->Stop();
+  }
+}
+
+void DensityProfilePanel::waitForCompute()
+{
+  while (p_job) {
+    wxMilliSleep(5);
+    if (wxTheApp) wxTheApp->ProcessPendingEvents();
+  }
 }
 
 //  A molecule with many occupied orbitals: all of them in one plot is

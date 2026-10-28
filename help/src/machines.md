@@ -217,13 +217,15 @@ Profiles are stored in `~/.ECCE/MachProfiles`. The machine settings in
 `~/.ECCE/MachPrefs` are unchanged, and older ECCE versions ignore the new
 file.
 
-When the machine has an **Allocation command**, the Launcher block of the
-Organizer's calculation summary, and the Viewer's **Calculation Summary**,
-show the **Allocation:** the job was submitted under and how much is
-**Left:**. ECCE reads this only over a connection that is already logged
-in; it never asks for a password for it. A calculation launched before the
-account was recorded shows the account of the machine's profile
-**Default**.
+The Launcher block of the Organizer's calculation summary, and the Viewer's
+**Calculation Summary**, show the **Allocation:** the job was submitted
+under. A calculation launched before the account was recorded shows the
+account of the machine's profile **Default**. **Remaining on submission:**
+shows how much of the allocation was left when the job was submitted, not
+what this job used; it is shown only when the cluster's allocation command
+gave a recognised answer at that moment, and is not refreshed afterwards.
+Current figures are in **Tools > Allocations...** (see
+[Allocations](allocations.md)).
 
 ## The `dummy` machine: submitting by hand
 

@@ -160,6 +160,24 @@ bool compute(const DensityPlane::Evaluator& ev, const double centre[3],
   const double perUnit = opt.bohr ? 1.0 : 1.0 / BOHR_ANG;
   const double fourPi = 4.0 * M_PI;
 
+  //  The basis functions are evaluated once per point for all specs, not
+  //  once per orbital of each spec (same numbers as value()).
+  vector<char> needA(ev.orbitals(false), 0), needB(ev.orbitals(true), 0);
+  bool wantRho = false;
+  for (const Spec& s : specs) {
+    if (s.total) { wantRho = true; continue; }
+    if (s.mo > 0 && s.mo <= (int)(s.beta ? needB : needA).size())
+      (s.beta ? needB : needA)[s.mo - 1] = 1;
+    for (const Member& m : s.more)
+      if (m.mo > 0 && m.mo <= (int)(m.beta ? needB : needA).size())
+        (m.beta ? needB : needA)[m.mo - 1] = 1;
+  }
+  vector<double> psiA, psiB, phi;
+  auto psi = [&](int mo, bool beta) {
+    const vector<double>& v = beta ? psiB : psiA;
+    return mo >= 1 && mo <= (int)v.size() ? v[mo - 1] : 0.0;
+  };
+
   for (size_t i = 1; i < r.size(); i++) {
     const double rA = r[i] * rScale;
     const double rb = rA / BOHR_ANG;
@@ -167,8 +185,16 @@ bool compute(const DensityPlane::Evaluator& ev, const double centre[3],
       const double *u = leb.data[q];
       const double x = centre[0] + rA*u[0], y = centre[1] + rA*u[1],
                    z = centre[2] + rA*u[2];
+      double rho = 0;
+      ev.evaluateAt(x, y, z, needA, needB, wantRho, psiA, psiB, phi, rho);
       for (size_t k = 0; k < specs.size(); k++) {
-        const double f = value(ev, specs[k], x, y, z);
+        const Spec& s = specs[k];
+        double f = 0;
+        if (s.total) f = rho;
+        else {
+          if (s.mo > 0) { const double a = psi(s.mo, s.beta); f += s.weight * a * a; }
+          for (const Member& m : s.more) { const double a = psi(m.mo, m.beta); f += m.weight * a * a; }
+        }
         out[k].p[i] += u[3] * f;
       }
     }

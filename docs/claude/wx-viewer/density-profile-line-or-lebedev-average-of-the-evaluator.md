@@ -44,3 +44,11 @@ issues: []
   A molecule with more than 8 occupied orbitals opens on Total + the 4 largest
   integrals along the line (`rankLargest`, re-ranked until the user touches
   Show, the list or the mode).
+- **Atom average is threaded (#629).** `RadialDist::compute` runs on a detached
+  `std::thread` on copies of the specs/options and a shared evaluator
+  (`p_eval` is a `shared_ptr`); the result returns via `wxTheApp->CallAfter`
+  and is drawn only if its `AverageJob` is still `p_job` (a newer request
+  cancels it) and the panel is alive (`p_alive`). The progress dialog is made
+  by a timer after 0.5 s. Hooks call `waitForCompute()` after each command, so
+  `dpstate`/`dpcsv` see the finished curves. `compute` evaluates the basis once
+  per point for all specs (`Evaluator::evaluateAt`), same bits as `value()`.

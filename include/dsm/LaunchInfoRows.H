@@ -4,7 +4,7 @@
 //  alone (tests/machregister/testLaunchInfoRows.C).
 //
 //  Left column: Machine, Processors, Queue, Job ID. Right column: Start Date,
-//  Comp. Date, Cost (CPU-h), Allocation, Left. A row whose value is not known is not made at
+//  Comp. Date, Cost (CPU-h), Allocation, Remaining on submission. A row whose value is not known is not made at
 //  all, so there is nothing to hide.
 #ifndef LAUNCHINFOROWS_HH
 #define LAUNCHINFOROWS_HH
@@ -37,7 +37,8 @@ namespace LaunchInfoRows
         std::string completionDate;
         std::string coreHours;    // coreHoursText(), or ""
         std::string allocation;
-        std::string allocationLeft;
+        std::string allocationRemaining;   // snapshot at submission, or ""
+        std::string queueWait;    // why a Submitted job waits (#641), or ""
         Input() : processors(0) {}
     };
 
@@ -88,11 +89,13 @@ namespace LaunchInfoRows
         add(c.left, "Queue:", in.queue);
         add(c.left, "Job ID:",
             showJobId(in.jobId, in.queue) ? in.jobId : std::string());
+        add(c.left, "Queue state:", in.queueWait);
         add(c.right, "Start Date:", in.startDate);
         add(c.right, "Comp. Date:", in.completionDate);
         add(c.right, "Cost:", in.coreHours);
         add(c.right, "Allocation:", in.allocation);
-        add(c.right, "Left:", in.allocationLeft);
+        add(c.right, "Remaining on submission:",
+            in.allocation.empty() ? std::string() : in.allocationRemaining);
         return c;
     }
 }

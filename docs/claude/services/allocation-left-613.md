@@ -130,3 +130,29 @@ only shows the result.
   Viewer's `CalcInfoPanel`.
 - A calculation with no stored `launch_account` (launched before #541) uses
   the account of its profile, or of Default when none is stored.
+
+## Moved to Tools > Allocations (2026-10-28)
+The "Left" row was removed from both calculation summaries: it read as what
+the job used, and an unrecognised command showed a raw output line. The
+usage per account is now a window, Tools > Allocations
+(`src/apps/organizer/AllocationsDialog.C`): one row per machine and profile
+account (`AllocationQuery::targets()`), read with `AllocationQuery::check`
+(same cache, live login only, `force` for Refresh). Unrecognised output shows
+"not recognised" with the raw line as the row's tooltip; the cache text holds
+both (`AllocationLeft::encode`/`decode`). For Slurm's default command
+`AllocationQuery` substitutes `AllocationLeft::slurmCommand()`
+(`sshare -n -P -A ##account_no## -o Account,User,RawUsage`); the Machine
+Browser keeps `sshare -l -U -u $USER`. Test hook: `allocations` in the
+`ECCE_TEST_ORGANIZER` commands prints `ALLOC: machine|account|used|checked`.
+
+## Remaining on submission (2026-10-28)
+The summary's Allocation row is followed by "Remaining on submission:", a
+snapshot stored once per submission as `launch_allocleft` (`TaskJob::
+allocationSnapshot`, read into `Launchdata::allocationLeft`; not part of
+`launchdata()`'s setter, and in `StoredCalcCopy`'s kSkip). `Launch::doLaunch`
+clears it, calls `AllocationQuery::snapshotBegin` before submitting (a
+background read, or a fresh cache hit) and `snapshot()` after the job store
+is started: it stores the text only if an answer under 15 minutes old is
+already in, else nothing. Nothing waits and nothing logs in. The text is
+`AllocationLeft::remaining` (projinfo only; the cache line has a third
+field for it). Not tested: the live path.

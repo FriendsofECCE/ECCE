@@ -45,6 +45,7 @@ dmzoomreset
 dmstate
 dmwheel 2 @1
 dmrefine
+dmpan 0.4 0.2
 dmzoomreset
 hold 1
 """,
@@ -103,6 +104,14 @@ def main():
                     print("   wheel steps:", steps)
                     if len(steps) != 2 or not steps["dmwheel"] > steps["dmrefine"]:
                         problems.append("wheel zoom steps %s" % steps)
+                    #  dmpan (a right-drag) moves the window, same size.
+                    pan = re.findall(r"^DENSITYMAP: (dmrefine|dmpan)\n(?:.*\n)*?"
+                                     r"zoom 1 window (\S+) (\S+) (\S+) (\S+)", log, re.M)
+                    print("   pan:", pan)
+                    if len(pan) != 2 or abs((float(pan[1][2]) - float(pan[1][1])) -
+                                            (float(pan[0][2]) - float(pan[0][1]))) > 1e-3 \
+                            or float(pan[1][1]) == float(pan[0][1]):
+                        problems.append("pan %s" % pan)
                 if key == "ethene-wide":
                     for n in ("wide", "wider"):
                         p = os.path.join(out, n + ".txt")

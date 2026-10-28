@@ -1,6 +1,7 @@
 #ifndef DENSITYPROFILEPANEL__H
 #define DENSITYPROFILEPANEL__H
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -18,7 +19,10 @@ class wxChoice;
 class wxPanel;
 class wxSpinCtrlDouble;
 class wxSplitterWindow;
+class wxProgressDialog;
 class wxStaticText;
+class wxTimer;
+class wxTimerEvent;
 class wxTextCtrl;
 class XYPlotCanvas;
 
@@ -92,6 +96,9 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       bool savePng(const wxString& path, int width, int height);
       bool exportCsv(const wxString& path);
 
+      /** Blocks until a running average has been drawn (hooks and tests only). */
+      void waitForCompute();
+
       /** "key value" lines for headless checks. */
       std::string state() const;
 
@@ -105,6 +112,17 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       void chooseDefaults();
       void fillQuantities(bool resetShow = false);
       void recompute();
+      //  The average about an atom runs on a worker thread; its result is
+      //  drawn only while its job is still the current one.
+      struct AverageJob;
+      void startAverage(const double centre[3], const RadialDist::Options& opt,
+            const std::vector<RadialDist::Spec>& specs,
+            std::function<void(std::vector<RadialDist::Curve>&)> finish);
+      void cancelAverage();
+      void finishAverage(const std::shared_ptr<AverageJob>& job);
+      static void deliver(std::shared_ptr<DensityProfilePanel*> alive,
+            std::shared_ptr<AverageJob> job);
+      void onTimer(wxTimerEvent& event);
       void rankLargest(bool bohr);
       void onControl(wxCommandEvent& event);
       void syncControls();
@@ -114,7 +132,12 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       void ensureSelection();
       void remember() const;
 
-      std::unique_ptr<DensityPlane::Evaluator> p_eval;
+      std::shared_ptr<DensityPlane::Evaluator> p_eval;   // the worker keeps its own reference
+      std::shared_ptr<AverageJob> p_job;
+      std::shared_ptr<DensityProfilePanel*> p_alive;     // nulled in the destructor
+      std::unique_ptr<wxTimer> p_timer;
+      std::unique_ptr<wxProgressDialog> p_progress;
+      bool p_inProgressUpdate;
       std::vector<std::string> p_shell;          // "2s" of an atom's occupied MOs
       std::vector<std::string> p_sym;            // the code's symmetry labels
       bool tagsUnique() const { return !p_shell.empty(); }

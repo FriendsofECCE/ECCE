@@ -2734,6 +2734,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_details_enabled PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Details dialogs show no internal setting keys as tooltips (self-contained).
+  add_test(NAME apps_details_tooltip
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/details_tooltip_test.py)
+  set_tests_properties(apps_details_tooltip PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_calced_nosym
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_nosym_test.py
@@ -2966,6 +2972,13 @@ if(PYTHON3_EXECUTABLE)
     set_tests_properties(apps_smallscreen_${size} PROPERTIES TIMEOUT 1800
                          SKIP_RETURN_CODE 77)
   endforeach()
+
+  # Details dialogs are resizable and keep Close/Reset in view (self-contained).
+  add_test(NAME apps_details_resize
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/details_resize_test.py)
+  set_tests_properties(apps_details_resize PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
 
   # No control is cut off (tests/apps/clip_test.py): every app window, every
   # Builder panel in every layout and every codereg dialog, at the default
@@ -3678,6 +3691,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/slurm_cancel_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_slurm_cancel PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  # #641: a pending Slurm job's reason and start reach ECCE once per change.
+  add_test(NAME launch_slurm_pending
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/slurm_pending_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_slurm_pending PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
   add_test(NAME launch_machines
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/machines_test.py

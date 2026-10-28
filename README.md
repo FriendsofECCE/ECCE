@@ -44,6 +44,9 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.3
 
+- A Submitted Slurm job shows why it waits and its estimated start (message
+  area and the summary's Queue state row).
+- Details dialogs no longer show internal setting names as tooltips.
 - Density Map: zooming draws a coarse map at once and the full one when
   the wheel rests, without a dialog.
 - Ubuntu 26.04: the package lets ECCE's message broker run under Ubuntu's
@@ -59,6 +62,9 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   refractive index.
 - Launch Info in the summary: a Job ID row and a Cost row (cores × wall time
   in CPU hours).
+- Tools > Allocations lists each cluster account of your machine profiles and
+  how much of it is used. The calculation summary shows how much of the
+  allocation was left when the job was submitted.
 - Comp. Date is when the job ended, also after a later Reconnect.
 - A job the queue system ends (out of memory, wall time reached, node
   failure) is Incomplete instead of System Error, and the reason names the
@@ -68,12 +74,16 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Launch Selected leaves the Organizer usable while a batch is submitted,
   with a Stop button.
 - Density Map: a diatomic starts on the molecular plane through its axis.
+- Density Profile: the average around an atom runs in the background, so the
+  window stays usable, and is several times quicker with many orbitals.
 - General Chemistry: argon at 40, 100, 130 and 200 K (solid, liquid, liquid
   near its critical point, gas) under Gases, liquids and solids.
 - The input check counts CP2K atoms with a kind label (such as Nb_e).
 - Register Machines is narrower: Vendor, Model and Processor are no longer shown.
 - Dipole Moment: where the atomic charges point against the dipole moment
   (carbon monoxide), the arrow stays between the atoms and the text says so.
+- Theory Details and Runtype Details dialogs of every code can always be resized; their
+  buttons stay in view on a small screen and the settings scroll.
 
 ## Coming in 9.5.0
 

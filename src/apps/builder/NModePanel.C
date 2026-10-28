@@ -2386,7 +2386,11 @@ bool NModePanel::showComposition(const wxString& extra, wxString *error)
                               "Atom numbers are those in the coordinate names.");
       row->Add(p_compExtra, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
       wxButton *apply = new wxButton(pane, wxID_ANY, "Apply");
-      row->Add(apply, 0, wxALIGN_CENTER_VERTICAL);
+      row->Add(apply, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+      wxButton *addSel = new wxButton(pane, wxID_ANY, "Add Selected");
+      addSel->SetToolTip("Adds the 2, 3 or 4 atoms selected in the 3-D view as "
+                         "a stretch, bend or torsion, ordered along their bonds.");
+      row->Add(addSel, 0, wxALIGN_CENTER_VERTICAL);
       top->Add(row, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
       p_compNote = new wxStaticText(pane, wxID_ANY, "");
       top->Add(p_compNote, 0, wxEXPAND | wxALL, 6);
@@ -2425,6 +2429,16 @@ bool NModePanel::showComposition(const wxString& extra, wxString *error)
       };
       apply->Bind(wxEVT_BUTTON, doApply);
       p_compExtra->Bind(wxEVT_TEXT_ENTER, doApply);
+      addSel->Bind(wxEVT_BUTTON, [this, doApply](wxCommandEvent& e) {
+         const std::string c = pickedCoordinate();
+         if (c.empty()) {
+            p_compNote->SetLabel("Select 2, 3 or 4 atoms in the 3-D view first.");
+            return;
+         }
+         wxString t = p_compExtra->GetValue().Trim();
+         p_compExtra->ChangeValue(t.empty() ? wxString(c) : t + ", " + c);
+         doApply(e);
+      });
    }
    p_comp = comp;
    p_compFreqs = freqs;
@@ -2579,8 +2593,10 @@ void NModePanel::dumpCompositionIfRequested()
          int a;
          while (is >> a) atoms.push_back(a - 1);
          const std::string key = highlightAtoms(atoms);
+         p_picked = atoms;
          if (FILE *out = fopen(target.c_str(), "w")) {
             fprintf(out, "key %s\n", key.c_str());
+            fprintf(out, "picked %s\n", pickedCoordinate().c_str());
             for (size_t m = 0; m < p_spectrum->highlight().size(); m++)
                fprintf(out, "%zu\t%.2f\n", m + 1, p_spectrum->highlight()[m]);
             fclose(out);
@@ -2659,5 +2675,35 @@ void NModePanel::eventMCB(const ecce::Event& event)
       if (a >= 0 && a < (int)frag->numAtoms() && frag->atomRef(a)->atomicSymbol() != "Nub")
          picked.push_back(a);
    }
+   p_picked = picked;
    highlightAtoms(picked);
+}
+
+
+//  The picked atoms as "a-b-c" (1-based), reordered so that consecutive
+//  atoms are bonded: the bend's apex in the middle, a torsion as a chain.
+//  Pick order is kept when the atoms do not form such a chain.
+std::string NModePanel::pickedCoordinate() const
+{
+   const size_t n = p_picked.size();
+   if (n < 2 || n > 4) return "";
+   SGFragment *frag = const_cast<NModePanel*>(this)->getFW().getSceneGraph().getFragment();
+   if (!frag) return "";
+   auto bonded = [frag](int a, int b) {
+      std::vector<TAtm*> *nb = frag->atomRef(a)->connectedAtoms();
+      bool yes = nb && std::find(nb->begin(), nb->end(), frag->atomRef(b)) != nb->end();
+      delete nb;
+      return yes;
+   };
+   std::vector<int> order(p_picked), best(p_picked);
+   std::sort(order.begin(), order.end());
+   do {
+      bool chain = true;
+      for (size_t i = 0; i + 1 < n && chain; i++) chain = bonded(order[i], order[i + 1]);
+      if (chain) { best = order; break; }
+   } while (std::next_permutation(order.begin(), order.end()));
+   std::string out;
+   for (size_t i = 0; i < n; i++)
+      out += (i ? "-" : "") + std::to_string(best[i] + 1);
+   return out;
 }

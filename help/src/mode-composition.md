@@ -28,6 +28,11 @@ them. To add coordinates, type atom numbers in the box and press **Apply**:
 
 Separate several with commas or spaces.
 
+Or select the atoms in the 3-D view and press **Add Selected**: two atoms add
+their stretch, three a bend and four a torsion. The atoms are put in order
+along their bonds, so the bend's middle atom is the one bonded to the other
+two, whatever order they were picked in.
+
 ## Colouring the spectrum
 
 Select a bond (two atoms) in the 3-D view and the peaks of the modes that lie

@@ -17,7 +17,12 @@ the bottom of the Organizer.
 ## While the job is on the machine
 
 - **Submitted**: the job is in the queue of the compute machine and has not
-  started.
+  started. For a Slurm job, the message area (when the calculation is
+  selected) and the summary's **Queue state** row say why it waits, in plain
+  words, for example "waiting: no free resources yet; estimated start Fri 30
+  Oct 14:20". A reason such as "the requested node type does not exist"
+  means the job will not start until it is changed. The line disappears
+  when the job starts.
 - **Running**: the job runs, and ECCE follows its output.
 - **Running?**: the job was running when ECCE last heard from it, and the
   connection to the machine is lost for the moment.

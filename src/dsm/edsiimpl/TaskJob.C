@@ -430,6 +430,20 @@ bool TaskJob::launchdata(const Launchdata& launchinfo)
 
 
 /**
+ * Stores what was left of the allocation when the job was submitted (#613),
+ * "" to clear it. Not part of launchdata(): a retarget rewrites that, and the
+ * snapshot belongs to one submission.
+ */
+bool TaskJob::allocationSnapshot(const string& text)
+{
+  vector<MetaDataResult> results(1);
+  results[0].name = VDoc::getEcceNamespace() + ":launch_allocleft";
+  results[0].value = text;
+  return addProps(results);
+}
+
+
+/**
  * Gets launch data associated with the task.
  *
  * @param useInputProvider  when true, queries input provider metadata as well
@@ -460,6 +474,7 @@ Launchdata TaskJob::launchdata(const bool &useInputProvider) const
   props->findValue(VDoc::getEcceNamespace() + ":launch_account", ret.account);
   props->findValue(VDoc::getEcceNamespace() + ":launch_profile", ret.profile);
   props->findValue(VDoc::getEcceNamespace() + ":launch_forceCsh", ret.forceCsh);
+  props->findValue(VDoc::getEcceNamespace() + ":launch_allocleft", ret.allocationLeft);
 
   tmp = "";
   props->findValue(VDoc::getEcceNamespace() + ":launch_nodes", tmp);

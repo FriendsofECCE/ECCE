@@ -5,6 +5,7 @@
 #include <set>
 #include <sstream>
 #include <thread>
+#include <vector>
 
 #include "comm/AllocationQuery.H"
 #include "comm/RCommand.H"
@@ -41,32 +42,67 @@ string AllocationQuery::account(const Launchdata& l)
   return prefs ? prefs->getProfile(l.profile).account : string();
 }
 
+std::vector<AllocationQuery::Target> AllocationQuery::targets()
+{
+  std::vector<Target> out;
+  std::set<string> seen;
+  for (int i = 0; i < MachinePreferences::countItems(); i++) {
+    MachinePreferences *prefs = MachinePreferences::getItemAt(i);
+    RefMachine *rgstn = prefs ? prefs->getRegisteredMachine() : NULL;
+    if (!rgstn || rgstn->noRemoteAccess())
+      continue;
+    const QueueManager *qm = QueueManager::lookup(prefs->getItemKey());
+    const RefQueueManager *rq = qm ?
+      RefQueueManager::lookup(qm->queueMgrName()) : NULL;
+    if (RefQueueManager::allocationCommand(rq, rgstn->allocationCommand()).empty())
+      continue;
+    const std::vector<string> names = prefs->profileNames();
+    for (size_t k = 0; k < names.size(); k++) {
+      const string a = prefs->getProfile(names[k]).account;
+      if (!AllocationLeft::validAccount(a) ||
+          !seen.insert(prefs->getItemKey() + "\n" + a).second)
+        continue;
+      Target t;
+      t.machine = prefs->getItemKey();
+      t.account = a;
+      out.push_back(t);
+    }
+  }
+  return out;
+}
+
 //  A stale answer is shown until the refresh lands; a good answer is kept 15
 //  minutes, a failure is retried after RETRY_SECONDS.
-string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
+AllocationQuery::Result AllocationQuery::check(const Target& t, bool force,
+                                               std::function<void()> onDone)
 {
-  const string account = AllocationQuery::account(l);
-  if (l.machine.empty() || !AllocationLeft::validAccount(account))
-    return "";
-  MachinePreferences *prefs = MachinePreferences::lookup(l.machine);
+  Result r;
+  MachinePreferences *prefs = MachinePreferences::lookup(t.machine);
   RefMachine *rgstn = prefs ? prefs->getRegisteredMachine() : NULL;
-  if (!rgstn || rgstn->noRemoteAccess())
-    return "";
-  const QueueManager *queueMngr = QueueManager::lookup(l.machine);
+  if (!rgstn || rgstn->noRemoteAccess() ||
+      !AllocationLeft::validAccount(t.account))
+    return r;
+  r.host = rgstn->fullname();
+  const QueueManager *queueMngr = QueueManager::lookup(t.machine);
   const RefQueueManager *refQMngr = queueMngr ?
     RefQueueManager::lookup(queueMngr->queueMgrName()) : NULL;
   string command = RefQueueManager::allocationCommand(refQMngr, rgstn->allocationCommand());
   if (command.empty())
-    return "";
-  command = AllocationLeft::substitute(command, account);
+    return r;
+  //  Slurm's own default lists a user's fair share; usage per account needs
+  //  the account-keyed form. The Machine Browser keeps the default.
+  if (rgstn->allocationCommand().empty() && command == "sshare -l -U -u $USER")
+    command = AllocationLeft::slurmCommand();
+  command = AllocationLeft::substitute(command, t.account);
 
   //  Per host, not per ECCE machine: entries for one cluster (one per node
   //  type, say) share the answer, so the command runs once per cluster.
-  const string host = rgstn->fullname();
-  const string key = AllocationLeft::Cache::key(host, account);
+  const string host = r.host;
+  const string key = AllocationLeft::Cache::key(host, t.account);
+  const string account = t.account;
   const long now = (long)time(NULL);
   AllocationLeft::Cache::Entry e;
-  bool have, fresh;
+  bool have, fresh, failed;
   {
     std::lock_guard<std::mutex> lock(gAllocMu);
     if (!gAllocLoaded) {
@@ -77,14 +113,17 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
       gAllocCache.parse(all.str());
     }
     have = gAllocCache.find(key, e);
-    fresh = gAllocCache.fresh(key, now);
+    fresh = !force && gAllocCache.fresh(key, now);
     std::map<string, long>::const_iterator f = gAllocFailed.find(key);
-    if (!fresh && f != gAllocFailed.end() && now - f->second < RETRY_SECONDS)
+    failed = f != gAllocFailed.end();
+    if (failed && !force && now - f->second < RETRY_SECONDS)
       fresh = true;                       // failed a moment ago
     if (!fresh && gAllocBusy.count(key))
       fresh = true;                       // being read
     else if (!fresh)
       gAllocBusy.insert(key);
+    if (gAllocBusy.count(key))
+      r.state = Result::Checking;
   }
 
   if (!fresh) {
@@ -97,7 +136,7 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
       const bool ran = RCommand::execOnLiveLogin(machine, user, front, bypass,
                                                  shellPath, command, out);
       if (ran)
-        text = AllocationLeft::summarize(out, account);
+        text = AllocationLeft::encode(out, account);
       {
         std::lock_guard<std::mutex> lock(gAllocMu);
         gAllocBusy.erase(key);
@@ -113,8 +152,38 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
       }
       if (onDone) onDone();
     }).detach();
+    r.state = Result::Checking;
   }
-  if (!have || e.text.empty())
+  if (have) {
+    AllocationLeft::decode(e.text, r.used, r.raw, &r.remaining);
+    r.when = e.when;
+    if (r.state != Result::Checking)
+      r.state = Result::Value;
+  } else if (r.state != Result::Checking) {
+    r.state = failed ? Result::NotLoggedIn : Result::Checking;
+  }
+  return r;
+}
+
+void AllocationQuery::snapshotBegin(const Launchdata& l)
+{
+  Target t;
+  t.machine = l.machine;
+  t.account = AllocationQuery::account(l);
+  if (!t.machine.empty() && !t.account.empty())
+    check(t, false, std::function<void()>());
+}
+
+string AllocationQuery::snapshot(const Launchdata& l)
+{
+  Target t;
+  t.machine = l.machine;
+  t.account = AllocationQuery::account(l);
+  if (t.machine.empty() || t.account.empty())
     return "";
-  return e.text + " (checked " + AllocationLeft::checkedAt(e.when) + ")";
+  const Result r = check(t, false, std::function<void()>());
+  const long now = (long)time(NULL);
+  if (r.when <= 0 || now < r.when || now - r.when >= AllocationLeft::CACHE_SECONDS)
+    return "";
+  return r.remaining;
 }

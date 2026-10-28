@@ -1,11 +1,12 @@
-//  How much of an allocation is left (#613): reads the output of a machine's
-//  allocation command (HPC2N/NAISS `projinfo`, or anything else) into one line
-//  for the calculation summary, and keeps the answers for 15 minutes.
+//  How much of an allocation is used (#613): reads the output of a machine's
+//  allocation command (HPC2N/NAISS `projinfo`, Slurm `sshare`, or anything
+//  else) into one line for Tools > Allocations, and keeps the answers for 15
+//  minutes.
 //
 //  Header-only and free of ECCE and wx types so the rules can be tested alone
-//  (tests/machregister/testAllocationLeft.C). Wrong numbers are worse than the
-//  site's own words, so what is not recognised is shown as the output line
-//  that names the account, or not at all.
+//  (tests/machregister/testAllocationLeft.C). Wrong numbers are worse than no
+//  number, so output that is not recognised gives no summary; the output line
+//  that names the account is kept separately for a tooltip.
 #ifndef ALLOCATIONLEFT_HH
 #define ALLOCATIONLEFT_HH
 
@@ -121,11 +122,10 @@ namespace AllocationLeft
         return true;
     }
 
-    //  The project's block of `projinfo` output as one line, "" when the
-    //  account has no block or the block has no recognised allocation. With
-    //  several CPU allocations the one named resource is taken.
-    inline std::string projinfo(const std::string& output, const std::string& account,
-                                const std::string& resource)
+    //  The recognised allocation lines of the account's block of `projinfo`
+    //  output; false when the account has no block.
+    inline bool projinfoRates(const std::string& output, const std::string& account,
+                              std::vector<Rate>& rates)
     {
         const std::string head = "information for project " + lower(account) + ":";
         std::vector<std::string> v = lines(output);
@@ -134,9 +134,8 @@ namespace AllocationLeft
             if (lower(trim(v[i])) == head)
                 break;
         if (i == v.size())
-            return "";
+            return false;
 
-        std::vector<Rate> rates;
         bool inAlloc = false;
         for (i++; i < v.size(); i++)
         {
@@ -155,7 +154,13 @@ namespace AllocationLeft
             if (inAlloc && parseRate(t, r))
                 rates.push_back(r);
         }
+        return true;
+    }
 
+    //  The CPU allocation that is ours: the only one, else the named resource;
+    //  0 when which one is ours is not known.
+    inline const Rate *pickCpu(const std::vector<Rate>& rates, const std::string& resource)
+    {
         const Rate *cpu = 0;
         int cpuCount = 0;
         for (size_t k = 0; k < rates.size(); k++)
@@ -166,7 +171,19 @@ namespace AllocationLeft
                     cpu = &rates[k];
             }
         if (cpuCount > 1 && (resource.empty() || !cpu || cpu->resource != resource))
-            return "";                  // which one is ours is not known
+            return 0;
+        return cpu;
+    }
+
+    //  The project's block of `projinfo` output as one line, "" when the
+    //  account has no block or the block has no recognised allocation.
+    inline std::string projinfo(const std::string& output, const std::string& account,
+                                const std::string& resource)
+    {
+        std::vector<Rate> rates;
+        if (!projinfoRates(output, account, rates))
+            return "";
+        const Rate *cpu = pickCpu(rates, resource);
         if (!cpu)
             return "";
 
@@ -175,6 +192,55 @@ namespace AllocationLeft
             if (rates[k].kind != "CPU")
                 out += "; " + rates[k].used + " % of " + grouped(rates[k].amount) + " " +
                        rates[k].kind + "-h/month";
+        return out;
+    }
+
+    //  100 - used, one decimal as projinfo gives it, clamped at 0 (used can
+    //  pass 100); "" for a number that does not parse. "95.1", "100".
+    inline std::string remainingPercent(const std::string& used)
+    {
+        char *end = 0;
+        double u = std::strtod(used.c_str(), &end);
+        if (used.empty() || end == used.c_str() || *end != 0 || u < 0)
+            return "";
+        double r = 100.0 - u;
+        if (r < 0)
+            r = 0;
+        char buf[32];
+        std::snprintf(buf, sizeof buf, "%.1f", r);
+        std::string t = buf;
+        if (t.size() > 2 && t.compare(t.size() - 2, 2, ".0") == 0)
+            t.erase(t.size() - 2);
+        return t;
+    }
+
+    //  What was left of the allocation, per kind, "95.1 % of 5 000
+    //  CPU-h/month (past 30 days); 100 % of 100 GPU-h/month". "" when the
+    //  size is unknown (not projinfo) or any figure does not parse.
+    inline std::string remaining(const std::string& output, const std::string& account,
+                                 const std::string& resource = "")
+    {
+        if (!validAccount(account))
+            return "";
+        std::vector<Rate> rates;
+        if (!projinfoRates(output, account, rates))
+            return "";
+        const Rate *cpu = pickCpu(rates, resource);
+        if (!cpu)
+            return "";
+        std::string p = remainingPercent(cpu->used);
+        if (p.empty())
+            return "";
+        std::string out = p + " % of " + grouped(cpu->amount) + " CPU-h/month (past 30 days)";
+        for (size_t k = 0; k < rates.size(); k++)
+            if (rates[k].kind != "CPU")
+            {
+                std::string g = remainingPercent(rates[k].used);
+                if (g.empty())
+                    return "";
+                out += "; " + g + " % of " + grouped(rates[k].amount) + " " +
+                       rates[k].kind + "-h/month";
+            }
         return out;
     }
 
@@ -197,17 +263,62 @@ namespace AllocationLeft
         return false;
     }
 
-    //  What the summary shows for the command's output: the recognised
-    //  summary, else the first output line that names the account (120
-    //  characters at most), else nothing.
+    //  Slurm's default: the account's own usage, one "account|user|RawUsage"
+    //  line per association. `sshare -l` has no fixed column layout.
+    inline const char *slurmCommand()
+    {
+        return "sshare -n -P -A ##account_no## -o Account,User,RawUsage";
+    }
+
+    //  CPU-seconds of the account's own line (empty User), as
+    //  "1 234 CPU-h used (no allocation size known)"; "" if not in that format.
+    inline std::string sshare(const std::string& output, const std::string& account)
+    {
+        const std::string a = lower(account);
+        std::vector<std::string> v = lines(output);
+        for (size_t i = 0; i < v.size(); i++)
+        {
+            std::vector<std::string> f;
+            std::string t = trim(v[i]), cur;
+            for (size_t k = 0; k <= t.size(); k++)
+            {
+                if (k == t.size() || t[k] == '|')
+                {
+                    f.push_back(trim(cur));
+                    cur.clear();
+                }
+                else
+                    cur += t[k];
+            }
+            if (f.size() != 3 || lower(f[0]) != a || !f[1].empty() || f[2].empty())
+                continue;
+            for (size_t k = 0; k < f[2].size(); k++)
+                if (!std::isdigit((unsigned char)f[2][k]))
+                    return "";
+            const double h = std::atof(f[2].c_str()) / 3600.0;
+            char buf[64];
+            std::snprintf(buf, sizeof buf, "%.0f", h);
+            return grouped(buf) + " CPU-h used (no allocation size known)";
+        }
+        return "";
+    }
+
+    //  What is shown for the command's output: the recognised summary, else "".
     inline std::string summarize(const std::string& output, const std::string& account,
                                  const std::string& resource = "")
     {
         if (!validAccount(account))
             return "";
         std::string s = projinfo(output, account, resource);
-        if (!s.empty())
-            return s;
+        return s.empty() ? sshare(output, account) : s;
+    }
+
+    //  For a tooltip: the first output line that names the account (120
+    //  characters at most), spaces squeezed, else "".
+    inline std::string rawLine(const std::string& output, const std::string& account)
+    {
+        if (!validAccount(account))
+            return "";
         std::string a = lower(account);
         std::vector<std::string> v = lines(output);
         for (size_t i = 0; i < v.size(); i++)
@@ -229,6 +340,31 @@ namespace AllocationLeft
             }
         }
         return "";
+    }
+
+    //  The cache keeps the summary, the raw line and the remaining text
+    //  (for the launch snapshot) in one text, separated by \x1f.
+    inline std::string encode(const std::string& output, const std::string& account)
+    {
+        std::string used = summarize(output, account);
+        return used + "\x1f" + (used.empty() ? rawLine(output, account) : "") +
+               "\x1f" + remaining(output, account);
+    }
+
+    inline void decode(const std::string& text, std::string& used, std::string& raw,
+                       std::string *left = 0)
+    {
+        size_t at = text.find('\x1f');
+        used = text.substr(0, at);
+        raw = "";
+        if (left)
+            *left = "";
+        if (at == std::string::npos)
+            return;
+        size_t at2 = text.find('\x1f', at + 1);
+        raw = text.substr(at + 1, at2 == std::string::npos ? at2 : at2 - at - 1);
+        if (left && at2 != std::string::npos)
+            *left = text.substr(at2 + 1);
     }
 
     inline std::string checkedAt(long when)
