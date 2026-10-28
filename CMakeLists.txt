@@ -3878,3 +3878,23 @@ add_test(NAME lowdin_composition COMMAND lowdin_composition_test)
 add_executable(box_shape_test tests/boxshape/box_shape_test.C)
 target_link_libraries(box_shape_test PRIVATE eccetdat ecceutil)
 add_test(NAME box_shape COMMAND box_shape_test ${CMAKE_SOURCE_DIR}/tests/boxshape/fixtures)
+
+# results.h5: ECCE's internal results format and converters (wx-free).
+option(ECCE_WITH_HDF5 "Build ecce-results and the results.h5 library (needs libhdf5-dev, C API)" ON)
+if(ECCE_WITH_HDF5)
+  find_package(HDF5 COMPONENTS C)
+  if(HDF5_FOUND)
+    add_library(ecceresultsh5 STATIC
+      src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
+      src/tdat/resultsh5/ResultsConvert.C
+      src/tdat/chemistry/EspField.C src/tdat/chemistry/CoulombIntegrals.C)
+    target_include_directories(ecceresultsh5 PUBLIC ${CMAKE_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS})
+    target_link_libraries(ecceresultsh5 PUBLIC ${HDF5_LIBRARIES})
+    add_executable(ecce-results src/tdat/resultsh5/ecce_results.C)
+    target_link_libraries(ecce-results PRIVATE ecceresultsh5)
+    install(TARGETS ecce-results RUNTIME DESTINATION bin COMPONENT client)
+    include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
+  else()
+    message(STATUS "HDF5 not found: ecce-results and results.h5 are not built")
+  endif()
+endif()
