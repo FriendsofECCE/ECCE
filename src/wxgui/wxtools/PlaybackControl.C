@@ -23,7 +23,7 @@ const char * TIP_START_CHECKED    = "Stop animating";
 const char * TIP_PREVIOUS         = "Previous step";
 const char * TIP_PLAY_UNCHECKED   = "Animate with looping";
 const char * TIP_PLAY_CHECKED     = "Stop animating";
-const char * TIP_STOP             = "Stop animating and go to initial step";
+const char * TIP_STOP             = "Stop animating at the current step";
 const char * TIP_NEXT             = "Next step";
 const char * TIP_END_UNCHECKED    = "Animate forward until last step";
 const char * TIP_END_CHECKED      = "Stop animating";
@@ -393,9 +393,8 @@ void PlaybackControl::OnPlayClick(wxCommandEvent& event)
 
 void PlaybackControl::OnStopClick(wxCommandEvent& event)
 {
+  // Stop keeps the frame; the Start button animates back to the first one.
   Pause();
-  *p_currentStep = *p_startIndex;
-  SendTickEvent();
   UpdateTooltips();
   event.Skip();
 }

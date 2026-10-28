@@ -195,6 +195,28 @@ def deleteCase(s, env, wrappers):
           % (n[1],))
 
 
+DECANE = os.path.join(REPO, "data", "client", "examples", "genchem",
+                      "gases-liquids-solids", "gromacs-decane-opls",
+                      "1-dynamics", "start.gro")
+
+
+def selectMoleculeCase(s, env, wrappers):
+    """#660: Select All, Wireframe, a plain click (selects a bond there),
+    then Select Molecule selects that one molecule (32 atoms of 200), not
+    the whole solute."""
+    lines = ["wait 4000", "mode select", "menu Edit|Select All", "menu Render|Wireframe", "selection",
+             "atomclick plain 5", "selection", "menu Edit|Select Molecule",
+             "selection", "quit"]
+    text = runBuilder(s, env, wrappers, "selmol", lines, structure=DECANE)
+    n = selections(text)
+    if not check(len(n) == 3, "the script ran (%s)" % (n,)):
+        say("\n".join("      | " + l for l in text.splitlines()[-30:]))
+        return
+    check(n[0] == 6400, "Select All selects every atom (%d)" % n[0])
+    check(n[1] < 6400, "a click replaces the Select All selection (%d)" % n[1])
+    check(n[2] == 32, "Select Molecule selects that molecule (%d)" % n[2])
+
+
 def coordDumps(text):
     """Each 'coords' dump: the list of (x, y, z) per atom."""
     out, cur = [], None
@@ -308,6 +330,8 @@ def main():
         orderCase(s, env, wrappers, shots)
         deleteCase(s, env, wrappers)
         dragCases(s, env, wrappers, shots)
+        # Last: Wireframe is remembered and makes the drag cases miss atoms.
+        selectMoleculeCase(s, env, wrappers)
     finally:
         if display:
             display.__exit__(None, None, None)
