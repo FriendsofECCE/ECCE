@@ -695,6 +695,10 @@ endfunction()
 set(_sym_dir ${CMAKE_SOURCE_DIR}/src/apps/symmetry)
 ecce_fortran_app(autosym
   SOURCES ${_sym_dir}/autosym.f ${_sym_dir}/geom_hnd.f ${_sym_dir}/deter3.f ${_sym_dir}/errquit.f)
+# C++ migration target for the automatic molecular point-group detector.
+# Keep it beside the established Fortran executable so tests can select the
+# new implementation without replacing the reference binary.
+add_executable(autosym_cpp ${_sym_dir}/autosym.cpp)
 ecce_fortran_app(getfrag
   SOURCES ${_sym_dir}/getfrag.f ${_sym_dir}/findfrag.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
@@ -1071,7 +1075,7 @@ set(ECCE_GUI_APPS
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
-  autosym getfrag genmol genmollat cleansym symops mdanalysis)
+  autosym autosym_cpp getfrag genmol genmollat cleansym symops mdanalysis)
 if(NOT WIN32)
   list(APPEND ECCE_CLI_APPS ecce-flock)
 endif()
