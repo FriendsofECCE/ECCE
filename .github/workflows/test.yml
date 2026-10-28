@@ -47,7 +47,7 @@ concurrency:
 jobs:
   scripts:
     name: Parsers and dialogs (no build, no display)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Bounded so a hung job cannot hold a runner slot for GitHub's
     # 6-hour default; see the concurrency note above.
     timeout-minutes: 20
@@ -102,7 +102,7 @@ jobs:
 
   e2e:
     name: End-to-end (real code, real monitor, real parsers)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Debian, not the runner's Ubuntu, and deliberately.
     #
     # This suite exists to notice when a CODE's behaviour changes, so
@@ -165,7 +165,7 @@ jobs:
 
   apps:
     name: GUI apps (build, install, Xvfb)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Bounded so a hung job cannot hold a runner slot for GitHub's
     # 6-hour default; see the concurrency note above.
     timeout-minutes: 50

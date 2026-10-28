@@ -146,7 +146,9 @@ jobs:
   ubuntu:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'ubuntu' }}
     name: Ubuntu (apt)
-    runs-on: ubuntu-latest
+    # The release notes name Ubuntu 24.04; ubuntu-latest moved to 26.04,
+    # where AppArmor confines /usr/sbin/mosquitto to system paths.
+    runs-on: ubuntu-24.04
     # Bounded so a hung job cannot hold a runner slot for GitHub's
     # 6-hour default; see the concurrency note above.
     timeout-minutes: 90
