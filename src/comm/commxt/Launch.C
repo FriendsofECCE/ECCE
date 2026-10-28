@@ -698,11 +698,12 @@ bool Launch::validateRemoteLogin(void)
 
     string password = (*p_options)["##password1##"];
 
-    p_connection = new RCommand(p_cache->fullMachineName,
-                                p_cache->remoteShell, locShell,
-                                p_cache->userName, password,
-                                frontendMachine, frontendBypass,
-                                shellPath, libPath, sourceFile);
+    if (!p_connection)
+      p_connection = new RCommand(p_cache->fullMachineName,
+                                  p_cache->remoteShell, locShell,
+                                  p_cache->userName, password,
+                                  frontendMachine, frontendBypass,
+                                  shellPath, libPath, sourceFile);
 
   } else {
     p_lastMessage = p_cache->machineName;

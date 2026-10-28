@@ -334,7 +334,7 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
 
   // Port 0 leaves the port to ~/.ssh/config, as for the ssh command.
   SshTransport* t = new SshTransport(machine, 0, userName);
-  t->setConnectTimeout(RC_CONNECT_TIMEOUT);
+  t->setConnectTimeout(connectTimeout());
   t->setPasswordAttempts(3);
   t->setPromptCallback(promptFor(c, machine));
   if (jumpHost != "") {
@@ -390,6 +390,31 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
 }
 
 #endif  // ECCE_HAVE_LIBSSH
+
+RCommand* RCommandLogin::open() const
+{
+  return new RCommand(machine, remShell, locShell, user, password, frontend,
+                      frontendBypass, shellPath, libPath, sourceFile);
+}
+
+int RCommand::connectTimeout()
+{
+  const char* e = getenv("ECCE_SSH_CONNECT_TIMEOUT");
+  int t = e ? atoi(e) : 0;
+  return t > 0 ? t : (int)RC_CONNECT_TIMEOUT;
+}
+
+bool RCommand::hostDidNotAnswer(const string& error)
+{
+  string l;
+  for (char ch : error) l += (char)tolower((unsigned char)ch);
+  for (const char* k : {"timed out", "connection refused", "no route to host",
+                        "network is unreachable", "could not resolve",
+                        "name or service not known",
+                        "temporary failure in name resolution"})
+    if (l.find(k) != string::npos) return true;
+  return false;
+}
 
 // A new transport replaces the one this connection had.
 void RCommand::adoptTransport(Transport* t)
@@ -451,7 +476,7 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
   if (tryLibssh) *tryLibssh = false;
   p_loginCancelled = p_loginPrompted = false;
   OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
-  t->setConnectTimeout(RC_CONNECT_TIMEOUT);
+  t->setConnectTimeout(connectTimeout());
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
   t->setAskpass(askpassProgram());
   // Offered to an ECCE-owned master's password prompt only (see setPassword).
@@ -471,7 +496,8 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
     if (tryLibssh && t->ownsMaster() && !t->loginCancelled() &&
         !t->loginRefused() &&
         !OpenSshTransport::configSharesConnection(machine, userName) &&
-        !OpenSshTransport::configProxiesConnection(machine, userName))
+        !OpenSshTransport::configProxiesConnection(machine, userName) &&
+        !hostDidNotAnswer(error))
       *tryLibssh = true;
     delete t;
     return false;
@@ -512,8 +538,8 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
     // ECCE's master failed, or the front end refuses forwarding: the same
     // host goes on with libssh.
     if (tryLibssh)
-      fprintf(stderr, "ecce: using the built-in ssh client for %s\n",
-              machine.c_str());
+      fprintf(stderr, "ecce: ssh to %s failed (%s); trying the built-in client\n",
+              machine.c_str(), p_errMessage.substr(0, p_errMessage.find('\n')).c_str());
     else if (!OpenSshTransport::forwardingRefused(machine, jumpHost)) return false;
 #else
     return false;

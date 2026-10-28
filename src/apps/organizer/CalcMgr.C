@@ -2973,7 +2973,7 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
   // connection (and the per-host lock) that the later jobs and their job
   // stores reuse, so one machine asks once.
   ReconnectSelected::run(this, rows, interactive,
-      [this](ReconnectSelected::Row& r) {
+      [this](ReconnectSelected::Row& r, wxProgressDialog *pd) {
         EcceURL url(r.plan.url);
         if (r.task->getState() != ResourceDescriptor::STATE_WAITING) {
           JMSMessage *msg = newMessage();
@@ -2985,7 +2985,10 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
             return false;
           }
         }
-        bool ok = JobCatchUp::reconnect(r.task, r.outcome);
+        bool ok = JobCatchUp::reconnect(r.task, r.outcome,
+            [this, pd](const RCommandLogin& l, RCommand*& c, string& why) {
+              return ReconnectSelected::openLogin(this, pd, l, c, why);
+            });
         if (ok) {
           p_contact.erase(progressKey(url));
           p_machineCheck.erase(progressKey(url));
@@ -7028,8 +7031,11 @@ void CalcMgr::checkJobOnMachine(WxResourceTreeItemData *itemData)
   if (!calc) return;
   vector<string> lines;
   {
-    wxBusyCursor busy;
-    lines = RunMgmt::checkOnMachine(calc).describe();
+    ReconnectSelected::DeferMessages defer;
+    lines = RunMgmt::checkOnMachine(calc,
+        [this](const RCommandLogin& l, RCommand*& c, string& why) {
+          return ReconnectSelected::openLogin(this, 0, l, c, why);
+        }).describe();
   }
   time_t now = time(0);
   char at[32];
@@ -7072,8 +7078,9 @@ void CalcMgr::catchUpWaitingJobs()
       !WaitingJobs::firstInSession(Ecce::sessionKey()))
     return;
 
-  wxBusyCursor busy;
+  ReconnectSelected::DeferMessages defer;
   ewxProgressDialog* progress = 0;
+  bool cancelled = false;   // one Cancel skips the logins still to come
   vector<JobCatchUp::Result> results =
     JobCatchUp::run([&](size_t done, size_t total) {
       if (!progress)
@@ -7081,6 +7088,9 @@ void CalcMgr::catchUpWaitingJobs()
             "Checking calculations that finished or ran on while ECCE was "
             "away...", (int)total, this, wxPD_AUTO_HIDE);
       progress->Update((int)done);
+    }, [&](const RCommandLogin& l, RCommand*& c, string& why) {
+      if (cancelled) { why = "Cancelled while connecting to " + l.machine; return false; }
+      return ReconnectSelected::openLogin(this, 0, l, c, why, &cancelled);
     });
   delete progress;
 
@@ -7136,7 +7146,15 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
   }
 
   string message;
-  if (JobCatchUp::reconnect(calc, message)) {
+  bool reconnected;
+  {
+    ReconnectSelected::DeferMessages defer;
+    reconnected = JobCatchUp::reconnect(calc, message,
+        [this](const RCommandLogin& l, RCommand*& c, string& why) {
+          return ReconnectSelected::openLogin(this, 0, l, c, why);
+        });
+  }
+  if (reconnected) {
     p_reconnectNote = "reconnected: " + message;
     setMessage(message, WxFeedback::INFO);
     // The new monitor's own silence counts from now (#284).

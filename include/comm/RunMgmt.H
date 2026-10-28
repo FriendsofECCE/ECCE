@@ -7,7 +7,10 @@
 #include <vector>
   using std::vector;
 
+#include <functional>
+
 #include "util/EcceException.H"
+#include "comm/RCommand.H"
 
 class TaskJob;
 
@@ -44,7 +47,10 @@ class RunMgmt
         // Plain sentences, one per line, for the Progress box and tests.
         vector<string> describe() const;
       };
-      static MachineCheck checkOnMachine(const TaskJob *calc);
+      // login, when given, opens the connection (off the GUI thread).
+      static MachineCheck checkOnMachine(const TaskJob *calc,
+        const std::function<bool(const RCommandLogin&, RCommand*&, string&)>&
+          login = nullptr);
 
       /**
        * Register the local machine if not already registered.

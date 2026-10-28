@@ -4,6 +4,10 @@
 #include "wx/progdlg.h"
 
 #include <algorithm>
+#include <chrono>
+#include <memory>
+#include <mutex>
+#include <thread>
 
 #include "ReconnectSelected.H"
 #include "dsm/TaskJob.H"
@@ -85,17 +89,12 @@ bool ReconnectSelected::confirm(wxWindow *parent, vector<Row>& rows, const strin
 }
 
 void ReconnectSelected::run(wxWindow *parent, vector<Row>& rows, bool progress,
-                            const std::function<bool(Row&)>& one)
+                            const std::function<bool(Row&, wxProgressDialog*)>& one)
 {
   size_t total = 0, n = 0;
   for (const Row& r : rows) if (r.eligible()) total++;
 
-  //  As Launch Selected: broker messages wait until the steps are done.
-  struct Defer {
-    WxJMSSubscriber *s;
-    Defer() : s(dynamic_cast<WxJMSSubscriber*>(wxTheApp)) { if (s) s->deferMessages(true); }
-    ~Defer() { if (s) s->deferMessages(false); }
-  } defer;
+  DeferMessages defer;
   wxProgressDialog *pd = 0;
   if (progress)
     pd = new wxProgressDialog("Reconnect Selected", "Starting...", (int)total,
@@ -109,9 +108,78 @@ void ReconnectSelected::run(wxWindow *parent, vector<Row>& rows, bool progress,
       if (!pd->Update((int)n - 1, U(msg))) break;
     }
     r.attempted = true;
-    r.ok = one(r);
+    r.ok = one(r, pd);
+    if (pd && pd->WasCancelled()) break;
   }
   if (pd) { pd->Update((int)total); delete pd; }
+}
+
+ReconnectSelected::DeferMessages::DeferMessages()
+{
+  if (WxJMSSubscriber *s = dynamic_cast<WxJMSSubscriber*>(wxTheApp)) s->deferMessages(true);
+}
+
+ReconnectSelected::DeferMessages::~DeferMessages()
+{
+  if (WxJMSSubscriber *s = dynamic_cast<WxJMSSubscriber*>(wxTheApp)) s->deferMessages(false);
+}
+
+bool ReconnectSelected::openLogin(wxWindow *parent, wxProgressDialog *pd,
+                                  const RCommandLogin& login, RCommand*& conn,
+                                  string& why, bool *cancelled)
+{
+  struct State {
+    std::mutex mu;
+    bool done = false, abandoned = false;
+    RCommand *conn = 0;
+  };
+  auto st = std::make_shared<State>();
+  conn = 0;
+  if (cancelled) *cancelled = false;
+  //  Detached: a Cancel must not wait for a connect that may never return.
+  std::thread([st, login]() {
+    RCommand *c = login.open();
+    std::lock_guard<std::mutex> lock(st->mu);
+    if (st->abandoned) delete c;
+    else st->conn = c;
+    st->done = true;
+  }).detach();
+
+  const wxString msg = U("Connecting to " + login.machine + "...");
+  wxWindowDisabler off(pd);
+  std::unique_ptr<wxProgressDialog> own;
+  const auto t0 = std::chrono::steady_clock::now();
+  for (;;) {
+    {
+      std::lock_guard<std::mutex> lock(st->mu);
+      if (st->done) break;
+    }
+    if (!pd && !own && std::chrono::steady_clock::now() - t0 > std::chrono::seconds(1))
+      own.reset(new wxProgressDialog("ECCE", msg, 100, parent,
+                                     wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_SMOOTH));
+    wxProgressDialog *d = pd ? pd : own.get();
+    if (d && !d->Pulse(msg)) {
+      std::lock_guard<std::mutex> lock(st->mu);
+      if (!st->done) {
+        st->abandoned = true;
+        why = "Cancelled while connecting to " + login.machine;
+        if (cancelled) *cancelled = true;
+        return false;
+      }
+      break;
+    }
+    wxTheApp->Yield(true);
+    wxMilliSleep(50);
+  }
+  conn = st->conn;
+  if (!conn) { why = "Unable to connect to " + login.machine; return false; }
+  if (!conn->isOpen()) {
+    why = conn->commError();
+    delete conn;
+    conn = 0;
+    return false;
+  }
+  return true;
 }
 
 string ReconnectSelected::listing(const vector<Row>& rows)

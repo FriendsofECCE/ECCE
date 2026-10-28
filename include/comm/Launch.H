@@ -86,6 +86,9 @@ public:
   // Public Operations (not called by nextOperation but directly)
         bool validateLocalDir(void);
         bool validateRemoteLogin(void);
+  // A login opened elsewhere (off the GUI thread) that validateRemoteLogin
+  // uses instead of opening its own; Launch owns it from here.
+        void adoptConnection(RCommand* connection) { p_connection = connection; }
         bool generateJobMonitoringFiles(void);
         bool moveJobMonitoringFiles(void);
         bool startJobStore(const string& importDir);
