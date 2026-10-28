@@ -12,9 +12,11 @@ $coords{$index
 $en
 $en\n
 $env{ecce_home}/scripts/parsers
+$eps\n
 $fragfile\n
 $func
 $functional
+$grid
 $images\nend\n
 $letter
 $lmax\n
@@ -25,6 +27,7 @@ $maxiter\nend\n
 $maxsteps\n
 $message\n
 $model
+$n\nend\n
 $name
 $namebasis
 $nametobasis{$oldbasis}\n
@@ -126,6 +129,7 @@ $wrote
 \'$result\'
 \d+
 \n
+\n#
 \nend\n
 \s*
 a
@@ -142,6 +146,7 @@ appear
 are
 argument
 as
+atom:
 atoms!\n
 attached
 aug-cc-pcvdz
@@ -241,6 +246,7 @@ core
 couldn't
 cpcm
 cs
+custom
 d
 d2
 d2d
@@ -269,8 +275,7 @@ def2-svp/c
 def2-tzvp
 def2-tzvpp
 def2/j
-defgrid1
-defgrid2
+defgrid
 defgrid3
 descriptive
 details
@@ -292,6 +297,7 @@ end\n
 energies
 energy
 engrad
+epsilon
 eq
 error
 error:
@@ -316,9 +322,11 @@ es.theory.dft.grid
 es.theory.dft.xcfunctionals
 es.theory.scf.convergenceiterations
 es.theory.scf.convergencetolerance
+es.theory.scf.dielectric
 es.theory.scf.dispersion
 es.theory.scf.memorysize
 es.theory.scf.orbitalguessfile
+es.theory.scf.refractiveindex
 es.theory.scf.rijcosxauxbasis
 es.theory.scf.solvationmodel
 es.theory.scf.solvent
@@ -406,6 +414,7 @@ midi
 mini
 missing
 model
+model.\n
 molecular
 moread
 mp2
@@ -421,6 +430,7 @@ neb_guess.xyz
 neb_product.xyz
 neb_ts_xyzfile
 need
+needs
 newecp
 newgto
 nimages
@@ -436,8 +446,10 @@ nwchem
 o
 off
 oh
+one
 open
 opt
+optimisation
 options:
 optts
 or
@@ -481,6 +493,7 @@ re-save
 read
 read\n
 recalc_hess
+refrac
 replaced
 retrying
 revpbe
@@ -506,6 +519,7 @@ smd
 smd.\n
 smdsolvent
 solvation
+solvent
 sp
 state
 sto-3g

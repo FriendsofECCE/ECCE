@@ -34,6 +34,7 @@ $fragfile\n
 $geo_zcoords[$i]
 $group
 $i
+$in
 $iter
 $itmp
 $key
@@ -74,6 +75,7 @@ $y
 $z
 %-2s%3d
 %-46s
+%.6f\n
 %.8f
 %16.8f
 %16.8f\n
@@ -85,6 +87,7 @@ $z
 %mem
 %oldchk
 %s
+%s\nepsinf
 &$sub
 &$subname
 &$subname;
@@ -326,6 +329,7 @@ cs
 csgt
 curium
 current
+custom
 d
 d*h
 d2
@@ -370,7 +374,6 @@ dft
 dftcdfitting
 dftxcfitting
 dictionary
-dielectric
 difference
 differs
 diis
@@ -401,6 +404,7 @@ energy
 enonly
 epr-ii
 epr-iii
+eps
 eq
 erbium
 error
@@ -432,6 +436,7 @@ es.theory.mp.direct
 es.theory.scf.dielectric
 es.theory.scf.direct
 es.theory.scf.orbitalguessfile
+es.theory.scf.refractiveindex
 es.theory.scf.scrf
 es.theory.scf.solvent
 es.theory.scf.usescrf
@@ -491,6 +496,7 @@ gd3-bj
 gd3bj
 gen
 generated
+generic
 geometry
 geovib
 germanium
@@ -626,6 +632,7 @@ mpw3pbe
 mpwpw91
 multiplicity
 must
+my
 n12
 n12sx
 name_gbs
@@ -810,6 +817,7 @@ sogga11x
 solvent
 sp
 specified.
+specify
 spherical
 state
 steepest
