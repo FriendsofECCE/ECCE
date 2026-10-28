@@ -50,6 +50,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   the wheel rests, without a dialog.
 - Density Profile: the average around an atom computed in the background.
 - ORCA: an integration grid choice (DefGrid1/2/3) in Theory Details.
+- ORCA: a geometry optimisation of a single atom runs as a single point
+  (with frequencies) instead of stopping without an energy.
 
 ## First steps
 
