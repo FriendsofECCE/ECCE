@@ -8,6 +8,11 @@ Density Profile / Density Map details of #580, #581 and #583, headless:
   583  the Density Map names every atom near the plane, also the
        screen-parallel plane of a molecule pointing at the viewer
 
+  629  on a large cluster a click holds the GUI thread under a second (the
+       curves are computed on a worker); needs ECCE_DP_CLUSTER=<calc folder>
+       of an ORCA cluster (e.g. Nb10O28Li, ~1400 basis functions; 18 MB, too
+       big to ship), else that case is skipped
+
     ECCE_DP_PNG=<dir>   also copy the pictures there
     ECCE_DP_REPORT=1    print the numbers but do not fail
 
@@ -43,7 +48,11 @@ CALCS = {
     "hf": stored("genchem/molecular-orbitals-of-diatomics", "ecceqm-HF"),
     "lih": stored("genchem/molecular-orbitals-of-diatomics", "ecceqm-LiH"),
 }
+if os.environ.get("ECCE_DP_CLUSTER"):
+    CALCS["cluster"] = CALCS["clusterpre"] = os.environ["ECCE_DP_CLUSTER"]
 SCREEN = os.environ.get("ECCE_DP_SCREEN", "1366x768x24")
+#  Longest the GUI thread may be held by one click or control (#629).
+MAX_BLOCK_MS = 1000
 
 SCENES = {
     "acala": """dpopen
@@ -64,6 +73,25 @@ dpstate
 dpselect 1
 dpstate
 dpselect 1 2
+dpstate
+hold 1
+""",
+    "cluster": """dpopen
+dpselect 1
+dpstate
+dpselect 2 5
+dpstate
+dpshow all
+dpstate
+dpmode atom
+dpstate
+dpcancelafter 1500
+dpselect 3
+dpstate
+hold 1
+""",
+    "clusterpre": """select 6
+dpopen
 dpstate
 hold 1
 """,
@@ -122,6 +150,33 @@ def check(case, log):
             p.append("click on atom 1: mode %s centre %s" % (state(seq[1], "mode"), state(seq[1], "centre")))
         if state(seq[2], "mode") != "line" or state(seq[2], "line") != "1 2":
             p.append("click on atoms 1+2: mode %s line %s" % (state(seq[2], "mode"), state(seq[2], "line")))
+    elif case == "cluster":
+        held = [l.split() for l in log.splitlines() if l.startswith("DENSITYPROFILE-BLOCK:")]
+        if len(held) < 7:
+            p.append("%d timed commands" % len(held))
+        for w in held:
+            # DENSITYPROFILE-BLOCK: cmd init N ms, command M ms
+            if int(w[6]) > MAX_BLOCK_MS:
+                p.append("%s held the GUI thread %s ms" % (w[1], w[6]))
+        if len(seq) >= 4:
+            if not state(seq[0], "line").startswith("1 "):
+                p.append("one atom on a cluster: line %s" % state(seq[0], "line"))
+            if len(seq[2]["curves"]) < 20:
+                p.append("All occupied has %d curves" % len(seq[2]["curves"]))
+            if state(seq[3], "mode") != "atom":
+                p.append("atom mode: mode %s" % state(seq[3], "mode"))
+            if state(seq[3], "progress") != "1":
+                p.append("the average showed no progress dialog")
+            if len(seq) < 5 or state(seq[4], "stopped") != "1" or state(seq[4], "centre") != "3":
+                p.append("Cancel in the progress dialog did not stop the average")
+        else:
+            p.append("only %d states" % len(seq))
+        if os.environ.get("ECCE_DP_REPORT"):
+            print("\n".join(" ".join(w) for w in held))
+    elif case == "clusterpre":
+        if not opened or not state(opened[0], "line").startswith("6 "):
+            p.append("atom selected before the panel opened: line %s"
+                     % (state(opened[0], "line") if opened else "-"))
     elif case == "lih":
         lab = [l.split()[1:] for l in log.splitlines() if l.startswith("labelled")]
         if len(lab) < 2:
