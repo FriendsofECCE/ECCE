@@ -190,8 +190,16 @@ bool JobCatchUp::reparse(TaskJob* calc, std::string& message)
   }
   const ResourceDescriptor::RUNSTATE state = calc->getState();
   if (state == ResourceDescriptor::STATE_SUBMITTED ||
-      state == ResourceDescriptor::STATE_RUNNING) {
-    message = "the job is still being monitored; Reconnect or wait";
+      state == ResourceDescriptor::STATE_RUNNING ||
+      state == ResourceDescriptor::STATE_WAITING) {
+    message = "the job may still be running; Reconnect or wait";
+    return false;
+  }
+  //  An MD run's results come from trajectory and topology files that are
+  //  not staged here; removing its properties first would lose them.
+  const std::string code = calc->application()->name();
+  if (code == "GROMACS" || code == "NWChemMD") {
+    message = code + " results need the run's trajectory files; use Reconnect";
     return false;
   }
 

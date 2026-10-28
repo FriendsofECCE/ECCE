@@ -24,12 +24,15 @@ properties than its output contains.
   longer find is removed.
 - The Progress box record is made again from the stored output.
 - The run state, the start and completion dates, the reason a run was
-  unsuccessful and the run log stay as they were.
+  incomplete and the run log stay as they were.
 
 ## When it cannot be used
 
-- A calculation that is **Submitted** or **Running** is skipped. Use **Run
-  Mgmt > Reconnect** for it.
+- A calculation that is **Submitted**, **Running** or **Waiting for Login**
+  is skipped. Use **Run Mgmt > Reconnect** for it.
+- GROMACS and NWChem MD calculations are skipped: their results come from
+  trajectory and topology files as well as the output. Use **Run Mgmt >
+  Reconnect** for them.
 - A calculation without a stored output file is skipped. Only the output files
   stored with the calculation are read. Files that were never brought back from
   the compute machine cannot be parsed.
