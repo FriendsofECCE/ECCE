@@ -142,7 +142,7 @@ check_central_server() {
 case "$(uname -s)" in MSYS*|MINGW*|CYGWIN*) ON_WINDOWS=1 ;; *) ON_WINDOWS=0 ;; esac
 if [ "$ON_WINDOWS" = 0 ]; then
 exec 9>>"$STATEDIR/.gateway.lock"
-ecce_flock -w 90 9 || echo "ecce-gateway-start: could not lock $STATEDIR/.gateway.lock; continuing" >&2
+ecce_lock_wait "$STATEDIR/.gateway.lock" ecce-gateway-start || echo "ecce-gateway-start: could not lock $STATEDIR/.gateway.lock; continuing" >&2
 
 # --- 0. Clean up after a session that died badly -----------------------
 # Issue #102: an aborted session's leftovers were adopted by the next one.
@@ -151,6 +151,9 @@ if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
   # It would wait for the lock we hold; tell it we hold it.
   ECCE_GATEWAY_LOCKED=1 "$ECCE_HOME/bin/ecce-gateway-reap" 9>&- || true
 fi
+# Another session's last program may have reaped the control directory
+# between `ecce` making it and this lock; make and claim it again.
+if [ -n "${ECCE_SSH_CONTROL_DIR:-}" ]; then ecce_ssh_control_setup; fi
 fi
 
 # --- 1. Which broker ----------------------------------------------------

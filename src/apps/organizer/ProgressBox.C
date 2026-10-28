@@ -155,6 +155,7 @@ vector<JobProgress::Block> ProgressBox::blocks() const
 vector<string> ProgressBox::outcome() const
 {
   vector<string> out = p_progress.summary(p_completed);
+  if (!p_stopped.empty()) out.push_back("Incomplete: " + p_stopped);
   if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
   return out;
 }
@@ -762,7 +763,15 @@ void ProgressBox::OnSize(wxSizeEvent& event)
 
 void ProgressBox::OnTimer(wxTimerEvent&)
 {
-  if (IsShownOnScreen()) Refresh(false);
+  if (!IsShownOnScreen()) return;
+  //  The aged lines (updated n s ago, out of contact for ...) can change the
+  //  height; measured here too, or the buttons overlap what lies below.
+  const wxSize want = layout(0);
+  if (want != GetMinSize()) {
+    SetMinSize(want);
+    if (p_relayout) CallAfter([this]() { if (p_relayout) p_relayout(); });
+  }
+  Refresh(false);
 }
 
 

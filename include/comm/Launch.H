@@ -86,9 +86,15 @@ public:
   // Public Operations (not called by nextOperation but directly)
         bool validateLocalDir(void);
         bool validateRemoteLogin(void);
+  // A login opened elsewhere (off the GUI thread) that validateRemoteLogin
+  // uses instead of opening its own; Launch owns it from here.
+        void adoptConnection(RCommand* connection) { p_connection = connection; }
         bool generateJobMonitoringFiles(void);
         bool moveJobMonitoringFiles(void);
         bool startJobStore(const string& importDir);
+  // startJobStore's remote part, for a caller that runs it off the GUI
+  // thread first; startJobStore then does not repeat it.
+        void prepareJobStore(void);
         bool doLaunch(void);
 
 private:
@@ -117,6 +123,7 @@ private:
         RCommand               *p_localconn;
         bool                    p_valid;
         bool                    p_storeStarted;
+        bool                    p_storePrepared = false;
         string                  p_lastMessage;
         string                  p_infoMessage;
         string                  p_launchWarning;

@@ -39,6 +39,7 @@ CASES = [
     ("co", "genchem/molecular-orbitals-of-diatomics/ecceqm-CO/stored/CO"),
     ("hcl", "genchem/polar-bonds-and-dipole-moments/ecceqm-HCl/stored/HCl"),
     ("h2o", "getting-started/ecceqm-water/stored/water"),
+    ("nh3", "getting-started/mopac-ammonia/stored/ammonia"),
     ("acala", "spectroscopy/amides-and-peptides/orca-ac_ala_nhme/stored/ac_ala_nhme"),
 ]
 
@@ -65,7 +66,7 @@ def poles(calc, xyz):
         sel = [(qi, c) for qi, c in zip(q, xyz) if qi * sign > 0]
         tot = sum(qi for qi, _ in sel)
         out.append([sum(qi * c[k] for qi, c in sel) / tot for k in range(3)])
-    return key, out[0], out[1]
+    return key, out[0], out[1], sum(qi for qi in q if qi > 0)
 
 
 def runBuilder(display, url, out, png, turn):
@@ -150,7 +151,7 @@ def main():
             failures.append(what)
 
     # The molecule is turned so the arrow lies across the view.
-    turn = {"so2": 90, "h2o": 90, "hcl": 90, "hf": 90}
+    turn = {"so2": 90, "h2o": 90, "hcl": 90, "hf": 90, "nh3": 70, "co": 90}
     with xdisplay.Display() as display:
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
                        env=display.env(), timeout=180)
@@ -186,12 +187,9 @@ def main():
                     check(n == 0, "%s: mu = 0, no arrow" % name)
                     check(label == "Dipole moment \u03bc = 0 D", "%s: label is 'Dipole moment \u03bc = 0 D' (%r)" % (name, label))
                     continue
-                key, neg, pos = poles(calc, xyz)
-                # Charges pointing against mu: the arrow runs from their
-                # positive pole to their negative one, along mu.
+                key, neg, pos, qpos = poles(calc, xyz)
+                # The charges may point against mu (CO): only the label says so.
                 oppose = sum((pos[k] - neg[k]) * mu[k] for k in range(3)) < 0
-                if oppose:
-                    neg, pos = pos, neg
                 short = {"ESPFIT": "ESP", "MKFIT": "MK", "MULLIKEN": "Mulliken"}[key]
                 short += " charges point the other way" if oppose else " charges"
                 check(n == 1, "%s: one arrow" % name)
@@ -206,21 +204,17 @@ def main():
                 start, d, length = vec(m.group(1)), vec(m.group(2)), float(m.group(3))
                 tip = [start[k] + d[k] * length for k in range(3)]
                 dist = lambda a, b: math.sqrt(sum((a[k] - b[k]) ** 2 for k in range(3)))
-                uh = [x / mag for x in mu]
-                along = lambda a, b: sum((a[k] - b[k]) * uh[k] for k in range(3))
-                off = dist(tip, pos)
-                print("     %s charges, mu %.3f D, poles %.3f A apart, tail-neg %.3f "
-                      "tip-pos %.3f (along mu %.3f)" % (key, mag, dist(neg, pos),
-                      dist(start, neg), off, along(tip, pos)))
-                check(dist(start, neg) < 0.05, "%s: tail at the negative pole "
-                      "(the positive one where the charges oppose mu)" % name)
-                # Where the charges reproduce mu the head is at the positive
-                # pole; where the pole line is skew to mu it is level with it
-                # along mu, and the pole is that far off the arrow's line.
-                check(abs(along(tip, pos)) < 0.05,
-                      "%s: head level with the positive pole along mu" % name)
-                check(off < 0.05 or name == "acala",
-                      "%s: head at the positive pole (%.3f A)" % (name, off))
+                # Poles carry +-qpos and sit mu/qpos apart along mu, centred
+                # between the centres of negative and positive charge.
+                want = min(mag / 4.80320 / qpos, 10.0)
+                mid = [0.5 * (neg[k] + pos[k]) for k in range(3)]
+                centre = [0.5 * (start[k] + tip[k]) for k in range(3)]
+                sep = dist(start, tip)
+                print("     %s charges, mu %.3f D, q %.3f e, poles %.3f A apart (want %.3f)"
+                      % (key, mag, qpos, sep, want))
+                check(abs(sep - want) < 0.02, "%s: poles mu/q apart (%.3f, want %.3f A)"
+                      % (name, sep, want))
+                check(dist(centre, mid) < 0.05, "%s: centred between the charge centres" % name)
                 dot = sum(d[k] * mu[k] for k in range(3)) / mag
                 check(dot > 0.99, "%s: the arrow points along mu (cos %.3f)" % (name, dot))
         finally:

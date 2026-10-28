@@ -3,7 +3,7 @@
 //  free of wx and ECCE types so the order and the hiding rules are tested
 //  alone (tests/machregister/testLaunchInfoRows.C).
 //
-//  Left column: Machine, Processors, Queue, Job ID. Right column: Start Date,
+//  Left column: Machine, Processors, Queue, Job ID; below both, full width: Queue state. Right column: Start Date,
 //  Comp. Date, Cost (CPU-h), Allocation, Remaining on submission. A row whose value is not known is not made at
 //  all, so there is nothing to hide.
 #ifndef LAUNCHINFOROWS_HH
@@ -25,6 +25,7 @@ namespace LaunchInfoRows
     {
         std::vector<Row> left;
         std::vector<Row> right;
+        std::vector<Row> full;    // under both columns, full width
     };
 
     struct Input
@@ -89,7 +90,7 @@ namespace LaunchInfoRows
         add(c.left, "Queue:", in.queue);
         add(c.left, "Job ID:",
             showJobId(in.jobId, in.queue) ? in.jobId : std::string());
-        add(c.left, "Queue state:", in.queueWait);
+        add(c.full, "Queue state:", in.queueWait);
         add(c.right, "Start Date:", in.startDate);
         add(c.right, "Comp. Date:", in.completionDate);
         add(c.right, "Cost:", in.coreHours);

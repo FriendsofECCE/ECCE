@@ -781,7 +781,7 @@ void CalcMgr::runTestCommand(const string& line)
         }
         // The Launch Info rows that exist, as "label@x,y" (#648).
         static const char *launchLabels[] = {"Machine:", "Processors:",
-          "Queue:", "Job ID:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:",
+          "Queue:", "Job ID:", "Queue state:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:",
           "Remaining on submission:"};
         outcome += " launch=";
         for (const char *lbl : launchLabels) {
@@ -789,6 +789,14 @@ void CalcMgr::runTestCommand(const string& line)
           if (!w) continue;
           outcome += string(lbl) + "@" + std::to_string(w->GetPosition().x) +
                      "," + std::to_string(w->GetPosition().y) + ";";
+        }
+        // Where the values of the blocks start (one common column, #657).
+        outcome += " valuex=";
+        for (const char *nm : {"theory", "empiricalFormula", "name",
+                               "launchvalue:Machine:"}) {
+          wxWindow *w = panel ? panel->FindWindow(nm) : 0;
+          if (w) outcome += string(nm) + "@" +
+                            std::to_string(w->GetPosition().x) + ";";
         }
         // The space between the formula and the "Charge:" column beside it
         // (negative: they overlap).
@@ -2869,6 +2877,50 @@ void CalcMgr::OnReconnectSelectedClick( wxCommandEvent& event )
 }
 
 
+//  Terminate for several rows: only the jobs still on a machine are
+//  terminated, the others are named as skipped.
+void CalcMgr::OnTerminateSelectedClick( wxCommandEvent& event )
+{
+  if (refuseDuringBatch("Terminate Selected")) return;
+  vector<EcceURL> urls = launchSelection();
+  vector<WxResourceTreeItemData*> live;
+  int skipped = 0;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNode(urls[i], false, true);
+    TaskJob *job = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
+    const ResourceDescriptor::RUNSTATE st = job ? job->getState()
+                                                : ResourceDescriptor::STATE_ILLEGAL;
+    if (st == ResourceDescriptor::STATE_SUBMITTED ||
+        st == ResourceDescriptor::STATE_RUNNING ||
+        st == ResourceDescriptor::STATE_WAITING)
+      live.push_back(n);
+    else
+      skipped++;
+  }
+  if (live.empty()) {
+    setMessage("None of the selected calculations is submitted or running.");
+    return;
+  }
+  char msg[200];
+  snprintf(msg, sizeof msg, "Terminate %d job%s?%s", (int)live.size(),
+           live.size() == 1 ? "" : "s",
+           skipped ? " The selected calculations that are not submitted or "
+                     "running are left as they are." : "");
+  ewxMessageDialog dlg(this, msg, "Terminate?", wxOK | wxCANCEL | wxICON_QUESTION,
+                       wxDefaultPosition);
+  if (dlg.ShowModal() == wxID_CANCEL) return;
+  for (size_t i = 0; i < live.size(); i++) {
+    const EcceURL url = live[i]->getUrl();
+    terminateCalc(live[i]);
+    updateUrl(url);
+  }
+  snprintf(msg, sizeof msg, "Terminated %d job%s%s", (int)live.size(),
+           live.size() == 1 ? "" : "s",
+           skipped ? (", " + std::to_string(skipped) + " skipped (not running)").c_str() : "");
+  setMessage(msg);
+}
+
+
 void CalcMgr::OnReparseOutputsClick( wxCommandEvent& event )
 {
   reparseOutputs(launchSelection(), true);
@@ -2973,7 +3025,7 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
   // connection (and the per-host lock) that the later jobs and their job
   // stores reuse, so one machine asks once.
   ReconnectSelected::run(this, rows, interactive,
-      [this](ReconnectSelected::Row& r) {
+      [this](ReconnectSelected::Row& r, wxProgressDialog *pd) {
         EcceURL url(r.plan.url);
         if (r.task->getState() != ResourceDescriptor::STATE_WAITING) {
           JMSMessage *msg = newMessage();
@@ -2985,7 +3037,13 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
             return false;
           }
         }
-        bool ok = JobCatchUp::reconnect(r.task, r.outcome);
+        bool ok = JobCatchUp::reconnect(r.task, r.outcome,
+            [this, pd](const RCommandLogin& l, RCommand*& c, string& why) {
+              return ReconnectSelected::openLogin(this, pd, l, c, why);
+            },
+            [this, pd](const string& what, const std::function<bool()>& work, bool& res) {
+              return ReconnectSelected::runRemote(this, pd, what, work, res);
+            });
         if (ok) {
           p_contact.erase(progressKey(url));
           p_machineCheck.erase(progressKey(url));
@@ -3475,7 +3533,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "14";
+const char *const kExampleSetVersion = "15";
 
 string treeName(string s)
 {
@@ -4629,8 +4687,9 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"ar-slab-40K",
      "GROMACS, Lennard-Jones argon, a crystal slab of 864 atoms in vacuum, "
      "40 K, 5 ns. This calculation shows a solid: the atoms vibrate about "
-     "their lattice sites and the mean-square displacement stays flat; use "
-     "Compare to draw the warmer slabs over it."},
+     "their lattice sites and the mean-square displacement stays flat, yet "
+     "their speeds follow the Maxwell-Boltzmann distribution as in a gas; "
+     "use Compare to draw the warmer slabs over it."},
     {"ar-slab-100K",
      "GROMACS, Lennard-Jones argon, the same slab at 100 K, 5 ns. This "
      "calculation shows the crystal melted into a liquid that holds "
@@ -5568,6 +5627,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     if (allCalcs) {
       menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
       menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      menu.Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
       menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
   }
@@ -7027,8 +7087,11 @@ void CalcMgr::checkJobOnMachine(WxResourceTreeItemData *itemData)
   if (!calc) return;
   vector<string> lines;
   {
-    wxBusyCursor busy;
-    lines = RunMgmt::checkOnMachine(calc).describe();
+    ReconnectSelected::DeferMessages defer;
+    lines = RunMgmt::checkOnMachine(calc,
+        [this](const RCommandLogin& l, RCommand*& c, string& why) {
+          return ReconnectSelected::openLogin(this, 0, l, c, why);
+        }).describe();
   }
   time_t now = time(0);
   char at[32];
@@ -7071,15 +7134,27 @@ void CalcMgr::catchUpWaitingJobs()
       !WaitingJobs::firstInSession(Ecce::sessionKey()))
     return;
 
-  wxBusyCursor busy;
+  ReconnectSelected::DeferMessages defer;
   ewxProgressDialog* progress = 0;
+  bool cancelled = false;   // one Cancel leaves the rest waiting
+  const wxString checking = "Checking calculations that finished or ran on "
+                            "while ECCE was away...";
   vector<JobCatchUp::Result> results =
     JobCatchUp::run([&](size_t done, size_t total) {
       if (!progress)
-        progress = new ewxProgressDialog("ECCE",
-            "Checking calculations that finished or ran on while ECCE was "
-            "away...", (int)total, this, wxPD_AUTO_HIDE);
-      progress->Update((int)done);
+        progress = new ewxProgressDialog("ECCE", checking, (int)total, this,
+                                         wxPD_AUTO_HIDE | wxPD_CAN_ABORT);
+      if (!cancelled && !progress->Update((int)done, checking)) cancelled = true;
+      return !cancelled;
+    }, [&](const RCommandLogin& l, RCommand*& c, string& why) {
+      if (cancelled) { why = "Cancelled while connecting to " + l.machine; return false; }
+      return ReconnectSelected::openLogin(this, progress, l, c, why, &cancelled);
+    }, [&](const string& what, const std::function<bool()>& work, bool& res) {
+      if (!cancelled &&
+          ReconnectSelected::runRemote(this, progress, what, work, res))
+        return true;
+      cancelled = true;
+      return false;
     });
   delete progress;
 
@@ -7135,7 +7210,18 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
   }
 
   string message;
-  if (JobCatchUp::reconnect(calc, message)) {
+  bool reconnected;
+  {
+    ReconnectSelected::DeferMessages defer;
+    reconnected = JobCatchUp::reconnect(calc, message,
+        [this](const RCommandLogin& l, RCommand*& c, string& why) {
+          return ReconnectSelected::openLogin(this, 0, l, c, why);
+        },
+        [this](const string& what, const std::function<bool()>& work, bool& res) {
+          return ReconnectSelected::runRemote(this, 0, what, work, res);
+        });
+  }
+  if (reconnected) {
     p_reconnectNote = "reconnected: " + message;
     setMessage(message, WxFeedback::INFO);
     // The new monitor's own silence counts from now (#284).
@@ -9183,6 +9269,7 @@ void CalcMgr::updateSelectionMenus()
     if (allCalcs) {
       rm->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
       rm->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      rm->Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
       rm->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
     enableTopMenu(menuBar, _("Run Mgmt"), allCalcs, p_menuTitlesChanged);

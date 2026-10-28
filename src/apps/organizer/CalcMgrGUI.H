@@ -111,6 +111,7 @@ public:
     virtual    void OnLaunchSelectedClick( wxCommandEvent& event );
     virtual    void OnReconnectSelectedClick( wxCommandEvent& event );
     virtual    void OnReparseOutputsClick( wxCommandEvent& event );
+    virtual    void OnTerminateSelectedClick( wxCommandEvent& event );
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
     virtual    void OnCutClick( wxCommandEvent& event );
@@ -271,6 +272,7 @@ public:
     static const wxWindowID wxID_LAUNCH_SELECTED;
     static const wxWindowID wxID_RECONNECT_SELECTED;
     static const wxWindowID wxID_REPARSE_OUTPUTS;
+    static const wxWindowID wxID_TERMINATE_SELECTED;
     static const wxWindowID wxID_HOMEASROOT;
     static const wxWindowID ID_FRAME;
     static const wxWindowID wxID_SORT_TYPE;

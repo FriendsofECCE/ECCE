@@ -97,7 +97,8 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       bool exportCsv(const wxString& path);
 
       /** Blocks until a running average has been drawn (hooks and tests only). */
-      void waitForCompute();
+      void waitForCompute(long cancelAfterMs = -1);
+      bool p_progressShown = false;        // the progress dialog appeared (hooks)
 
       /** "key value" lines for headless checks. */
       std::string state() const;
@@ -112,18 +113,19 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       void chooseDefaults();
       void fillQuantities(bool resetShow = false);
       void recompute();
-      //  The average about an atom runs on a worker thread; its result is
-      //  drawn only while its job is still the current one.
+      //  The curves (line and atom average) are computed on a worker thread;
+      //  a result is drawn only while its job is still the current one.
       struct AverageJob;
-      void startAverage(const double centre[3], const RadialDist::Options& opt,
-            const std::vector<RadialDist::Spec>& specs,
-            std::function<void(std::vector<RadialDist::Curve>&)> finish);
+      void startJob(const wxString& message, std::function<bool(AverageJob&)> work,
+            std::function<void(AverageJob&)> finish);
       void cancelAverage();
       void finishAverage(const std::shared_ptr<AverageJob>& job);
       static void deliver(std::shared_ptr<DensityProfilePanel*> alive,
             std::shared_ptr<AverageJob> job);
       void onTimer(wxTimerEvent& event);
-      void rankLargest(bool bohr);
+      void applySelection();
+      bool applyPick(const std::vector<int>& atoms);
+      void startRanking(bool bohr);
       void onControl(wxCommandEvent& event);
       void syncControls();
       bool densityLike() const;
@@ -134,6 +136,7 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
 
       std::shared_ptr<DensityPlane::Evaluator> p_eval;   // the worker keeps its own reference
       std::shared_ptr<AverageJob> p_job;
+      std::shared_ptr<AverageJob> p_deferred;    // finished during the dialog's Update
       std::shared_ptr<DensityProfilePanel*> p_alive;     // nulled in the destructor
       std::unique_ptr<wxTimer> p_timer;
       std::unique_ptr<wxProgressDialog> p_progress;
@@ -149,6 +152,7 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       double p_sumError;                         // negative: not applicable
       double p_sumPeak;
       bool p_ok, p_busy, p_atomsOnly;
+      bool p_ranked = false;                     // the ranking for this recompute is done
       bool p_autoActive;                         // Total + the largest contributors
       wxString p_autoNote;
       bool p_showDensityList;                    // which Show list is in the choice

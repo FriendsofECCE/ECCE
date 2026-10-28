@@ -31,7 +31,7 @@ int main()
           "N/A start: no start text");
     check(QueueWait::text("Priority") == "waiting: other jobs have priority",
           "no start field at all");
-    check(has(QueueWait::text("BadConstraints|N/A"), "node type does not exist"),
+    check(has(QueueWait::text("BadConstraints|N/A"), "requested type is free right now"),
           "BadConstraints");
     check(has(QueueWait::text("AssocGrpCPUMinutesLimit|N/A"), "allocation used up"),
           "AssocGrpCPUMinutesLimit");

@@ -203,16 +203,16 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
       wxString from = key.empty() ?
          wxString::FromUTF8("The calculation has no atomic charges: the "
             "arrow is 1 \u00c5 long, through the centre of nuclear charge.") :
-         wxString::Format(wxString::FromUTF8("The poles are the centres of "
-            "negative and positive %s charge."),
+         wxString::Format(wxString::FromUTF8("The arrow runs from the "
+            "negative to the positive pole along \u03bc. Each pole carries "
+            "the total positive %s charge, and they are as far apart as that "
+            "charge must be to give \u03bc."),
             AddDipoleMomentCmd::chargeName(key));
       wxString note = wxString::Format(wxString::FromUTF8(
-         "|\u03bc| = %.3f D. The arrow runs from the negative to the "
-         "positive pole, along \u03bc; its length follows the geometry, "
-         "not |\u03bc|. %s"), sqrt(mu), from);
-      ewxStaticText *text = new ewxStaticText(panel, wxID_STATIC, note);
-      text->Wrap(260);
-      GetSizer()->Add(text, 0, wxALIGN_LEFT|wxALL, 3);
+         "|\u03bc| = %.3f D. %s"), sqrt(mu), from);
+      p_dipoleNote = new ewxStaticText(panel, wxID_STATIC, note);
+      p_dipoleNote->Wrap(260);
+      GetSizer()->Add(p_dipoleNote, 0, wxALIGN_LEFT|wxALL, 3);
    }
 
    GetSizer()->Fit(this);
@@ -401,6 +401,18 @@ void MomentsPanel::showVectors(bool guessScale)
       fw.getViewer().setURightText(AddDipoleMomentCmd::label(sqrt(m2),
             AddDipoleMomentCmd::chargeKey(expt),
             cmd->getParameter("ChargesOppose")->getBoolean()));
+      const double q = cmd->getParameter("PoleCharge")->getDouble();
+      if (p_dipoleNote && q > 0.0) {
+         p_dipoleNote->SetLabel(wxString::Format(wxString::FromUTF8(
+            "|\u03bc| = %.3f D. The arrow runs from the negative to the "
+            "positive pole along \u03bc. The poles carry \u00b1%.2f e (the "
+            "positive %s charge) and are %.2f \u00c5 apart, as far as that "
+            "charge must be to give \u03bc."), sqrt(m2), q,
+            AddDipoleMomentCmd::chargeName(AddDipoleMomentCmd::chargeKey(expt)),
+            cmd->getParameter("PoleSeparation")->getDouble()));
+         p_dipoleNote->Wrap(260);
+         Layout();
+      }
    }
 
    if (guessScale && p_slider) {

@@ -20,6 +20,7 @@
 #include "util/PreferenceLabels.H"
 #include "util/ResourceUtils.H"
 #include "util/TDateTime.H"
+#include "util/PrefDateTime.H"
 #include <ctime>
 #include "tdat/TFormula.H"
 #include "tdat/TProperty.H"
@@ -98,25 +99,7 @@ static void setSizerChildVisible(wxWindow *window, bool visible)
 
 
 
-//  The date as the user's preferences show it; unreadable preferences leave
-//  the stored text.
-static string formatDateTime(const string& stored)
-{
-  if (stored.empty()) return stored;
-  Preferences eccePref(PrefLabels::GLOBALPREFFILE);
-  int dateFormat, timeFormat;
-  if (!eccePref.getInt(PrefLabels::DATEFORMAT, dateFormat) ||
-      !eccePref.getInt(PrefLabels::TIMEFORMAT, timeFormat))
-    return stored;
-  if ((TDateTime::DateFormat)dateFormat < TDateTime::AmericanLocale ||
-      (TDateTime::DateFormat)dateFormat > TDateTime::TOTALDATE ||
-      (TDateTime::TimeFormat)timeFormat < TDateTime::HM24 ||
-      (TDateTime::TimeFormat)timeFormat > TDateTime::TOTALTIME)
-    return stored;
-  TDateTime datetime(stored);
-  return datetime.toString((TDateTime::DateFormat)dateFormat,
-           TDateTime::withSeconds((TDateTime::TimeFormat)timeFormat));
-}
+static string formatDateTime(const string& stored) { return prefDateTime(stored); }
 
 
 
@@ -309,7 +292,12 @@ void CalculationContextPanel::refreshLaunchInfo()
       in.allocationRemaining = launch.allocationLeft;
     }
   }
-  p_launchHolder->Add(ewxLaunchInfoBlock(this, LaunchInfoRows::build(in)));
+  wxSizer *block = ewxLaunchInfoBlock(this, LaunchInfoRows::build(in));
+  p_launchHolder->Add(block);
+  // The values of every block start at one x (#657).
+  vector<wxSizer*> aligned(p_firstGrids.begin(), p_firstGrids.end());
+  aligned.push_back(block);
+  ewxAlignLabelColumns(aligned);
   Layout();
   ewxFitLaunchInfo(this);
   Layout();
@@ -376,6 +364,9 @@ void CalculationContextPanel::updateProgress()
     }
   }
 
+  p_progressBox->setStopped(state == ResourceDescriptor::STATE_UNSUCCESSFUL
+      ? p_itemData->getResource()->getProp(VDoc::getEcceNamespace() + ":runStatusReason")
+      : string());
   const bool queued = state == ResourceDescriptor::STATE_SUBMITTED;
   p_progressBox->setQueued(
       queued,
@@ -471,6 +462,7 @@ void CalculationContextPanel::createControls()
         cols,   // number of coluns to use
         vgap,   // size of vertical gap between children
         hgap);  // size of horizontal gap between children
+    if (!isLauncher) p_firstGrids.push_back(grid);
 
     // get the ResourceProperties for this tool and iterate through them
     multimap<int, ResourceProperty*> properties;

@@ -2286,6 +2286,12 @@ endif()
 add_test(NAME session-display-gate COMMAND bash
          ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
 set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
+if(NOT WIN32 AND NOT APPLE)
+  add_test(NAME session-lock-holder COMMAND bash
+           ${CMAKE_SOURCE_DIR}/tests/session/gateway_lock_holder.sh ${CMAKE_SOURCE_DIR})
+  add_test(NAME session-control-dir-claim COMMAND bash
+           ${CMAKE_SOURCE_DIR}/tests/session/control_dir_claim.sh ${CMAKE_SOURCE_DIR})
+endif()
 
 # tests/gromacs_md -- GROMACS MD study tasks.  gromacs_structure checks the
 # .gro reader of the Inputs page against gmx editconf; gromacs_md runs the
@@ -3111,6 +3117,16 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(testOpenSshTransport PRIVATE eccercmd ecceutil)
   add_test(NAME transport_openssh COMMAND testOpenSshTransport)
   set_tests_properties(transport_openssh PROPERTIES TIMEOUT 180)
+
+  # A host that accepts TCP and never sends the ssh banner fails in bounded
+  # time, with no libssh retry after OpenSSH timed out.
+  add_executable(testSilentHost tests/transport/testSilentHost.C)
+  target_link_libraries(testSilentHost PRIVATE
+    eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_silent_host COMMAND testSilentHost)
+  set_tests_properties(transport_silent_host PROPERTIES TIMEOUT 120
+    ENVIRONMENT "ECCE_SSH_CONNECT_TIMEOUT=5" SKIP_RETURN_CODE 77)
 
   # SshTransport against tests/transport/sshd; needs that sshd running, so
   # not a ctest.  tests/transport/sshd/build_test.sh builds it in a container.

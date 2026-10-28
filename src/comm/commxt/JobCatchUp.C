@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -44,7 +45,30 @@ static void leaveWaiting(TaskJob* calc, const string& why)
 }
 
 
-bool JobCatchUp::reconnect(TaskJob* calc, string& message)
+bool JobCatchUp::loginFor(const TaskJob* calc, RCommandLogin& login, string& why)
+{
+  const Launchdata& ld = calc->launchdata();
+  RefMachine* m = RefMachine::refLookup(ld.machine);
+  if (!m) {
+    why = ld.machine + " is not a registered ECCE machine";
+    return false;
+  }
+  login.machine = m->fullname();
+  login.remShell = ld.remoteShell;
+  login.locShell = m->shell();
+  login.user = ld.user;
+  login.frontend = m->frontendMachine();
+  login.frontendBypass = m->frontendBypass();
+  login.shellPath = m->shellPath();
+  login.libPath = m->libPath();
+  login.sourceFile = m->sourceFile();
+  delete m;
+  return true;
+}
+
+
+bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginFn,
+                           const RemoteFn& remote)
 {
   Jobdata job = calc->jobdata();
   if (job.jobid.empty()) {
@@ -52,6 +76,18 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message)
     return false;
   }
   ResourceDescriptor::RUNSTATE state = calc->getState();
+
+  //  Log in before anything is removed: a host that does not answer leaves
+  //  the calculation's results as they were.
+  RCommand* conn = 0;
+  if (loginFn) {
+    OpenSshTransport::forgetMasterAttempts();
+    RCommandLogin args;
+    if (!loginFor(calc, args, message) || !loginFn(args, conn, message)) {
+      leaveWaiting(calc, message);
+      return false;
+    }
+  }
 
   // The new monitor parses the output from the start.
   PropertyTask* ptask = dynamic_cast<PropertyTask*>(calc);
@@ -72,6 +108,7 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message)
   if (!calc->application()) {
     message = "No code registration data found for the calculation";
     leaveWaiting(calc, message);
+    delete conn;
     return false;
   }
   TypedFile file;
@@ -97,19 +134,34 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message)
     }
   }
 
-  Launch launch(calc, kvargs);
+  //  Shared with the remote work, which outlives a Cancel.
+  std::shared_ptr<Launch> launch = std::make_shared<Launch>(calc, kvargs);
   //  A Reconnect asks for the login again, even right after a cancel.
-  OpenSshTransport::forgetMasterAttempts();
-  bool ok = launch.validateLocalDir() &&
-            launch.validateRemoteLogin() &&
-            launch.generateJobMonitoringFiles() &&
-            launch.moveJobMonitoringFiles() &&
-            launch.startJobStore("");
+  if (conn) launch->adoptConnection(conn);
+  else OpenSshTransport::forgetMasterAttempts();
+  bool ok = launch->validateLocalDir() &&
+            launch->validateRemoteLogin() &&
+            launch->generateJobMonitoringFiles();
+  if (ok) {
+    std::function<bool()> work = [launch]() {
+      if (!launch->moveJobMonitoringFiles()) return false;
+      launch->prepareJobStore();
+      return true;
+    };
+    const string machine = calc->launchdata().machine;
+    if (!remote) ok = work();
+    else if (!remote("Copying the job monitor to " + machine + "...", work, ok)) {
+      message = "Cancelled while copying the job monitor to " + machine;
+      leaveWaiting(calc, message);
+      return false;
+    }
+  }
+  ok = ok && launch->startJobStore("");
   if (ok) {
     message = "Monitoring reconnected to job " + job.jobid + " on " +
               calc->launchdata().machine;
   } else {
-    message = launch.message();
+    message = launch->message();
     leaveWaiting(calc, message);
   }
   return ok;
@@ -144,13 +196,14 @@ JobCatchUp::Plan JobCatchUp::plan(TaskJob* calc)
 
 
 vector<JobCatchUp::Result> JobCatchUp::run(
-    std::function<void(size_t, size_t)> progress)
+    std::function<bool(size_t, size_t)> progress, const LoginFn& login,
+    const RemoteFn& remote)
 {
   vector<Result> results;
   vector<string> urls = WaitingJobs::list();
   for (size_t i = 0; i < urls.size(); i++) {
-    if (progress)
-      progress(i, urls.size());
+    if (progress && !progress(i, urls.size()))
+      break;
     Result r;
     r.url = urls[i];
     r.ok = false;
@@ -172,7 +225,7 @@ vector<JobCatchUp::Result> JobCatchUp::run(
       WaitingJobs::remove(urls[i]);
       continue;
     }
-    r.ok = reconnect(calc, r.message);
+    r.ok = reconnect(calc, r.message, login, remote);
     r.message = calc->getName() + ": " + r.message;
     results.push_back(r);
   }

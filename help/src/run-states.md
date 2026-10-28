@@ -41,7 +41,9 @@ the bottom of the Organizer.
   [Importing a calculation](importing-a-calculation.md).
 - **Killed**: the job was cancelled by a user, with **Run Mgmt > Terminate
   Calculation...** or with the queue system's own cancel command on the
-  machine.
+  machine. With several calculations selected in a project's table, **Run
+  Mgmt > Terminate Selected...** terminates those that are submitted or
+  running and leaves the others as they are.
 - **Incomplete**: the job ended without a complete result, and what it
   produced is kept: the output, the results read from it and the files
   copied back. The reason names the cause, for example:

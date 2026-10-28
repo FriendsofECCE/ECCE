@@ -4,6 +4,7 @@
 //  tests/plots/capture.py.
 
 #include <cmath>
+#include <wx/stopwatch.h>
 #include <wx/aui/aui.h>
 #include <wx/app.h>
 #include <wx/bitmap.h>
@@ -410,10 +411,15 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
 //    dpxaxis linear|sqrt|log (atom) | dpyaxis linear|log
 //    dpshift ANGSTROM [in|out] (line) | dpzoom whole|fit|in|out | dpmore 0|1
 //    dpfollow N [beta]    what a click on an MO Diagram level does
+//    dpcancelafter MS    press Cancel in the next command's progress dialog
 //    dpcsv <name> | dppng <name> <w> <h> | dpstate
 bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
                                     const string& outdir)
 {
+  //  How long the GUI thread is held: opening the panel and its init, then
+  //  the command itself (the curves come from a worker, waited for after).
+  wxStopWatch clock;
+  static long cancelAfterMs = -1;
   wxAuiPaneInfo &pane = p_mgr.GetPane("Density Profile");
   if (!pane.IsOk()) return s.fail(w[0] + ": no Density Profile panel");
   if (w[0] == "dpclose") {
@@ -437,7 +443,9 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     dp = dynamic_cast<DensityProfilePanel*>(*it);
   if (!dp) return s.fail(w[0] + ": no Density Profile panel for this calculation");
   dp->ensureInitialized();
+  const long initMs = clock.Time();
   dp->waitForCompute();
+  clock.Start();
   const std::string& cmd = w[0];
   bool ok = true;
   if (cmd == "dpmode" && w.size() == 2) {
@@ -500,11 +508,19 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
   } else if (cmd == "dppng" && w.size() == 4) {
     ok = dp->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
                      atoi(w[3].c_str()));
+  } else if (cmd == "dpcancelafter" && w.size() == 2) {
+    cancelAfterMs = atol(w[1].c_str());       // Cancel in the next command's dialog
   } else if (cmd != "dpopen" && cmd != "dpstate") {
     return s.fail("unknown density profile command: " + cmd);
   }
+  const long blockMs = clock.Time();
   if (!ok) return s.fail(cmd + ": refused");
-  dp->waitForCompute();
+  if (cmd != "dpcancelafter") {
+    dp->waitForCompute(cancelAfterMs);
+    cancelAfterMs = -1;
+  }
+  fprintf(stderr, "DENSITYPROFILE-BLOCK: %s init %ld ms, command %ld ms\n", cmd.c_str(),
+          initMs, blockMs);
   fprintf(stderr, "DENSITYPROFILE: %s\n%s", cmd.c_str(), dp->state().c_str());
   return true;
 }

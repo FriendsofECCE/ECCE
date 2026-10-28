@@ -107,6 +107,9 @@ ecce_ssh_control_setup() {
     # Written once, never touched: the reaper's age of this directory (its
     # own mtime moves with every socket).
     [ -e "$dir/.born" ] || : > "$dir/.born"
+    # Renewed by every start: the directory outlives sessions, so .born
+    # alone let the previous session's reaper remove it as this one began.
+    : > "$dir/.claim"
     # The root is shared by every install (a build tree, a test's isolated
     # home); a reaper sees only its own install's programs, so it may only
     # judge the directories that install made. .state marks the new naming
@@ -191,6 +194,41 @@ ecce_use_proc() {
 # ecce_try_lock FILE COMMAND...: runs COMMAND holding an exclusive lock on
 # FILE, without waiting; status 99 when someone else holds it.
 ecce_try_lock() { ecce_flock -n -E 99 "$@"; }
+
+# The processes that have the lock file open, one line each: pid, state and
+# command line. Linux only (/proc); nothing elsewhere.
+ecce_lock_openers() {
+  local file="$1" fd pid st cmd seen=" $$ ${BASHPID:-} "
+  [ -d /proc/self/fd ] || return 0
+  #  One find over all descriptors: a readlink per descriptor took longer
+  #  than the wait itself on a busy desktop.
+  while read -r fd; do
+    pid="${fd#/proc/}"; pid="${pid%%/*}"
+    case "$seen" in *" $pid "*) continue ;; esac
+    seen="$seen$pid "
+    st="$(sed -n 's/^State:[[:space:]]*\([A-Za-z]\).*/\1/p' "/proc/$pid/status" 2>/dev/null)"
+    cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | cut -c1-120)"
+    echo "$pid ${st:-?} ${cmd% }"
+  done < <(find /proc/[0-9]*/fd -maxdepth 1 -lname "$file" 2>/dev/null)
+}
+
+# flock -w 90 on descriptor 9 (always 9 in our scripts), but after 5 s say
+# who has the lock file open: a stopped process (Ctrl+Z) holds it forever
+# and the start used to wait in silence (#666).
+ecce_lock_wait() {
+  local file="$1" who="$2" pid st cmd any=0
+  ecce_flock -w 5 9 && return 0
+  while read -r pid st cmd; do
+    [ -n "$pid" ] || continue
+    any=1
+    case "$st" in
+      T|t) echo "$who: $file is held by pid $pid ($cmd), stopped (Ctrl+Z?): run kill -CONT $pid or kill $pid" >&2 ;;
+      *) echo "$who: waiting for $file, open in pid $pid ($cmd), state $st" >&2 ;;
+    esac
+  done < <(ecce_lock_openers "$file" 9>&-)
+  [ "$any" = 1 ] || echo "$who: waiting for $file (another ECCE start or stop holds it)" >&2
+  ecce_flock -w 85 9
+}
 
 # flock(1), or ECCE's own subset of it where util-linux is absent (macOS).
 _ECCE_LIBDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"

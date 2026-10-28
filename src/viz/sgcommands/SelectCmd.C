@@ -139,10 +139,22 @@ bool SelectCmd::execute()
    // Every molecule an atom of the selection belongs to; the solute
    // when nothing is selected.
    if (getParameter("molecule")->getBoolean()) {
-      if (p_selAtoms.empty()) {
+      // A click on a wireframe line selects a bond and no atom, so the
+      // ends of selected bonds seed the molecule too; otherwise it looked
+      // like an empty selection and fell back to the whole solute.
+      vector<int> seeds = p_selAtoms;
+      vector<TBond*> *allBonds = frag->bonds();
+      for (size_t b = 0; b < p_selBonds.size(); b++) {
+         int ib = p_selBonds[b];
+         if (ib < 0 || ib >= (int)allBonds->size()) continue;
+         seeds.push_back((*allBonds)[ib]->atom1()->index());
+         seeds.push_back((*allBonds)[ib]->atom2()->index());
+      }
+      delete allBonds;
+      if (seeds.empty()) {
          frag->getSolute(atombits,bondbits);
       } else {
-         frag->getMolecules(p_selAtoms,atombits,bondbits);
+         frag->getMolecules(seeds,atombits,bondbits);
       }
    }
 

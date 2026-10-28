@@ -36,6 +36,16 @@ static const long RC_EXEC_TIMEOUT = 30;     // Normal execute timeout seconds
 static const long RC_COPY_TIMEOUT = 900;    // Copy timeout seconds
 static const long RC_COMMAND_TIMEOUT = 180; // Command timeout seconds
 
+class RCommand;
+
+// What opens a machine's login, gathered from the registry on the GUI
+// thread, so that the connect itself can run on another one.
+struct RCommandLogin {
+  string machine, remShell, locShell = "bash", user, password,
+         frontend, frontendBypass, shellPath, libPath, sourceFile;
+  RCommand* open() const;
+};
+
 class RCommand
 {
 
@@ -129,6 +139,13 @@ public:
     // the user is told to run ssh once by hand.
     typedef bool (*HostKeyHook)(const string& host, const string& fingerprint);
     static HostKeyHook hostKeyHook;
+
+    // RC_CONNECT_TIMEOUT, or ECCE_SSH_CONNECT_TIMEOUT seconds (tests).
+    static int connectTimeout();
+    // An ssh error that says the host itself did not answer (timeout,
+    // refused, unreachable, unknown name): another client would only wait
+    // as long again.
+    static bool hostDidNotAnswer(const string& error);
 
     // Non-empty (a message fit to show the user) when remShell is anything
     // but the ssh family (ssh, and the old sshpass and ssh/ftp, which mean

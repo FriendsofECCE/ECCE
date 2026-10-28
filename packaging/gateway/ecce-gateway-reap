@@ -75,7 +75,7 @@ say() { [ -n "${ECCE_REAP_QUIET:-}" ] || echo "ecce-gateway-reap: $*"; }
 # decisions and says so when it calls us.
 if [ -z "${ECCE_GATEWAY_LOCKED:-}" ]; then
   exec 9>>"$STATEDIR/.gateway.lock"
-  ecce_flock -w 90 9 || say "could not lock $STATEDIR/.gateway.lock; continuing"
+  ecce_lock_wait "$STATEDIR/.gateway.lock" ecce-gateway-reap || say "could not lock $STATEDIR/.gateway.lock; continuing"
 fi
 
 
@@ -171,7 +171,11 @@ while read -r root; do
     key="$(basename "$d")"
     case "$key" in *[!0-9a-f]*) continue ;; esac
     [ "${#key}" -eq 8 ] || continue
-    [ -z "$(find "$d/.born" -mmin -2 2>/dev/null)" ] || continue
+    [ -z "$(find "$d/.born" "$d/.claim" -mmin -2 2>/dev/null)" ] || continue
+    # The start sweep runs for a session that is about to use this one.
+    if [ "$IF_IDLE$EXPLICIT_STOP" = 00 ] && [ "$d" = "${ECCE_SSH_CONTROL_DIR:-}" ]; then
+      continue
+    fi
     [ "$(cat "$d/.home" 2>/dev/null)" = "${ECCE_HOME:-}" ] || continue
     if [ -e "$d/.state" ]; then
       [ "$(cat "$d/.state" 2>/dev/null)" = "$ECCE_REALUSERHOME" ] || continue

@@ -675,7 +675,8 @@ ssh_session SshTransport::rawSession(const std::string& host, int port,
   ssh_options_set(s, SSH_OPTIONS_HOST, host.c_str());
   if (port > 0) ssh_options_set(s, SSH_OPTIONS_PORT, &port);
   if (!user.empty()) ssh_options_set(s, SSH_OPTIONS_USER, user.c_str());
-  ssh_options_set(s, SSH_OPTIONS_TIMEOUT, &p_connectTimeout);
+  long timeout = p_connectTimeout;   // libssh reads a long
+  ssh_options_set(s, SSH_OPTIONS_TIMEOUT, &timeout);
   if (p_useConfig) {
     const char* cf = p_configFile.empty() ? 0 : p_configFile.c_str();
     if (ssh_options_parse_config(s, cf) != 0) {

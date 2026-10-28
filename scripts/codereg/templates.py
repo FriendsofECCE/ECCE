@@ -119,10 +119,10 @@ class EcceFrame(wx.Frame):
         # wx.RESIZE_BOX doesn't exist in Phoenix (a legacy, effectively
         # Windows-only decorative style bit Classic had; there's no
         # separate "resize box" concept from RESIZE_BORDER on GTK either
-        # way, so dropping it changes nothing here).
+        # way, so dropping it changes nothing here).  Resizable from the
+        # start: GTK ignores RESIZE_BORDER added after the window is created.
         wx.Frame.__init__(self, parent, id, title,
-                          style = wx.DEFAULT_FRAME_STYLE &
-                          ~(wx.RESIZE_BORDER|wx.MAXIMIZE_BOX))
+                          style = wx.DEFAULT_FRAME_STYLE & ~wx.MAXIMIZE_BOX)
 
         self.SetFont(EcceGlobals.FontDefault)
         wx.ToolTip.Enable(EcceGlobals.ShowTip)

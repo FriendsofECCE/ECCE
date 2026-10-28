@@ -195,6 +195,8 @@ bool DensityMapPanel::Show(bool show)
   const bool ret = VizPropertyPanel::Show(show);
   if (show) {
     ensureInitialized();
+    //  Atoms selected before the panel opened define the plane too.
+    applySelection();
     drawPlaneInViewer();
   } else {
     removePlaneFromViewer();
@@ -886,9 +888,13 @@ void DensityMapPanel::followMo(int mo, bool beta)
 
 void DensityMapPanel::eventMCB(const ecce::Event& event)
 {
-  if (event.getName() != "SelectionChanged" || !p_eval || !IsShown() ||
-      !p_vizfw || !p_canvas)
-    return;
+  if (event.getName() != "SelectionChanged" || !IsShown()) return;
+  applySelection();
+}
+
+void DensityMapPanel::applySelection()
+{
+  if (!p_eval || !p_vizfw || !p_canvas) return;
   SGFragment *frag = getFW().getSceneGraph().getFragment();
   if (!frag) return;
   vector<int> picked;

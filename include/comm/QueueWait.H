@@ -20,7 +20,7 @@ namespace QueueWait
         if (r == "Priority")
             return "other jobs have priority";
         if (r == "BadConstraints")
-            return "the requested node type does not exist (BadConstraints)";
+            return "no node of the requested type is free right now (BadConstraints)";
         if (r == "QOSMaxJobsPerUserLimit")
             return "the limit on running jobs per user is reached "
                    "(QOSMaxJobsPerUserLimit)";
