@@ -25,7 +25,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.4.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.1)),
+  [9.4.2](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.2)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -42,37 +42,12 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.4.2
+## Coming in 9.4.3
 
-- The Progress box for queued jobs: since when, the job id, when the queue
-  was last checked, lost contact.
-- One login for all jobs on a compute machine when its connection drops,
-  and Reconnect for several jobs at once.
-- Several allocations on one compute machine, set up in Register Machines,
-  and the allocation left shown with the calculation.
-- Launch Selected can send calculations to another machine.
-- Request lines per queue in Register Machines (e.g. a Slurm --constraint),
-  and Memory always offered for Slurm machines.
-- Browse for a code's program in Register Machines shows the files of the
-  machine being registered, also when it is another computer.
-- A calculation that stops without converging (ORCA or MOPAC optimisation
-  at its cycle limit, CP2K or Quantum ESPRESSO SCF or optimisation) ends
-  Unsuccessful, not Complete.
-- Compare Energies: a sum of calculations with coefficients on each side,
-  with E, E+ZPE, H and G rows and a solvation label.
-- A Slurm job cancelled on the machine shows as Killed.
-- CP2K 2023 geometry optimisations show their steps in the Progress box.
-- Return in a message box presses the highlighted button on Linux, not
-  Cancel.
-- The number of real and imaginary frequencies for ORCA, Gaussian 16,
-  NWChem, MOPAC and ECCE-QM; ECCE-QM's Hessian shows its progress.
-- A Mac reached over ssh can be a compute machine.
-- macOS: the GROMACS examples import with their structures and trajectories.
-- Argon is drawn, water molecules stay whole in MD examples, and the noble
-  gases have their usual colours.
-- No crash at the first start after an upgrade when the old examples are
-  removed.
-- macOS and Windows: names such as Löwdin and Å show correctly.
+- Launch Selected leaves the Organizer usable while a batch is submitted,
+  with a Stop button.
+- Density Map: zooming no longer evaluates the map again at every step.
+- Density Profile: the average around an atom computed in the background.
 
 ## First steps
 
