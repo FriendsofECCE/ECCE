@@ -1,13 +1,13 @@
 # Two-letter chemical element symbols (lowercased). Used to catch genuine elements like
-# Hf/Hg/He/Kr/Os *before* the single-letter fallbacks below would collapse them to H/K/O.
+# Hf/Hg/Kr/Os *before* the single-letter fallbacks below would collapse them to H/K/O.
 # Deliberately EXCLUDES force-field type codes that equal a symbol but mean something else:
-#   'ho' = CLAYFF/MINFF hydroxyl hydrogen  (must stay H, not Holmium)
+#   'ho', 'he' = CLAYFF/MINFF hydroxyl hydrogens (must be H, not Holmium or Helium)
 #   'at' = tetrahedral-aluminium code      (must not become Astatine)
 #   'sc' = already mapped to a Si variant above
 # Matching is on the FULL token (exact equality), so multi-char FF names ('ob', 'oh',
 # 'st', 'ao', 'nap'...) are unaffected and fall through to the prefix rules.
 _TWO_LETTER_ELEMENTS = frozenset({
-    'he', 'li', 'be', 'ne', 'na', 'mg', 'al', 'si', 'cl', 'ar', 'ca', 'ti', 'cr', 'mn',
+    'li', 'be', 'ne', 'na', 'mg', 'al', 'si', 'cl', 'ar', 'ca', 'ti', 'cr', 'mn',
     'fe', 'co', 'ni', 'cu', 'zn', 'ga', 'ge', 'as', 'se', 'br', 'kr', 'rb', 'sr', 'zr',
     'nb', 'mo', 'tc', 'ru', 'rh', 'pd', 'ag', 'cd', 'in', 'sn', 'sb', 'te', 'xe', 'cs',
     'ba', 'la', 'ce', 'pr', 'nd', 'pm', 'sm', 'eu', 'gd', 'tb', 'dy', 'er', 'tm', 'yb',
@@ -112,6 +112,8 @@ def element(atoms):
             atom['element'] = 'Ow'
         elif atomtype_lower.startswith('hw'):
             atom['element'] = 'Hw'
+        elif atomtype_lower.startswith('nc'):
+            atom['element'] = 'N'
         elif atomtype_lower.startswith('wat'):
             # Water-oxygen site label (e.g. AMCSD ice CIFs label O positions 'Wat1').
             atom['element'] = 'O'

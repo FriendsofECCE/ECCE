@@ -263,7 +263,7 @@ except ImportError:
     pass
 
 # Version information
-__version__ = "0.98"
+__version__ = "1.1"
 
 # Expose key functions at the package level
 __all__ = [

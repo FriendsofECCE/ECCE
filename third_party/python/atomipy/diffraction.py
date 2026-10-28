@@ -78,6 +78,7 @@ two_theta, intensity, fig = xrd(
 ```
 """
 
+import re
 import warnings
 import numpy as np
 from .distances import dist_matrix
@@ -147,7 +148,7 @@ WAASMAIER_KIRFEL_DATA = [ # Plain Python list for mixed types
 ['Mn3+', 25, 3.0, 54.93805, 1.5, 6.926972, 2.081342, 11.128379, 2.375107, -0.419287, -0.093713, 0.378315, 0.015054, 5.379957, 14.429586, 0.004939],
 ['Mn4+', 25, 4.0, 54.93805, 1.5, 12.409131, 7.466993, 1.809947, -12.138477, 10.780248, 0.672146, 0.3004, 0.112814, 12.520756, 0.168653, 5.173237],
 ['Fe', 26, 0.0, 55.84500, 0.0, 12.311098, 1.876623, 3.066177, 2.070451, 6.975185, -0.304931, 5.009415, 0.014461, 18.74304, 82.767876, 0.346506],
-['Fe1.5+', 26, 1.5, 55.84500, 1.5, 12.78432135, 62.56327581, 1.683751473, 1.432130736, 6.958358598, -61.44564969, 6.234159837, -0.000399296, 1.063292887, 21.58593936, 0.374772458],
+['Fe1.5+', 26, 1.5, 55.84500, 1.5, 12.16796984, 2.93541306, 2.74435628, 1.05974975, 7.00626983, -1.41375875, 4.9525849, 0.00772244, 16.37702218, 82.38092108, 0.34251264],
 ['Fe2+', 26, 2.0, 55.84500, 1.5, 11.776765, 11.165097, 3.533495, 0.165345, 7.036932, -9.676919, 4.912232, 0.001748, 14.166556, 42.381958, 0.341324],
 ['Fe3+', 26, 3.0, 55.84500, 1.5, 9.721638, 63.403847, 2.141347, 2.629274, 7.033846, -61.930725, 4.869297, 0.000293, 4.867602, 13.539076, 0.33852],
 ['Co', 27, 0.0, 58.93320, 0.0, 12.91451, 2.481908, 3.466894, 2.106351, 6.960892, -0.936572, 4.507138, 0.009126, 16.438129, 76.98732, 0.314418],
@@ -338,7 +339,13 @@ def atomic_scattering_factors(atom_label, wavelength, two_theta, b_iso=0.0):
         # Handle labels that start with a digit
         atom_label = atom_label[1:]
 
-        # Handle common ionic forms
+        # Every form of Hs, He, Ho and Hw (force-field hydrogen types, water hydrogen) is hydrogen. Hf and
+    # Hg stay the real elements. This runs before the exact table match, which would otherwise give
+    # helium or holmium. (Oc is neutral oxygen and Nc is nitrogen, handled below.)
+    if re.match(r'^h[eows]', atom_label, re.IGNORECASE):
+        atom_label = 'H'
+
+    # Handle common ionic forms
     if atom_label == 'O':
         # A bare oxygen is O1-, as in the MATLAB implementation. Explicit 'O1-' and 'O2-' are
         # used as given; they used to become 'O1-1-' / 'O2-1-', match nothing, and silently fall
@@ -346,19 +353,43 @@ def atomic_scattering_factors(atom_label, wavelength, two_theta, b_iso=0.0):
         atom_label = 'O1-'
 
 
-    # Handle common ionic forms
-    if atom_label in ['Li', 'Na', 'K', 'Cs']:
-        atom_label = atom_label + '1+'
-    elif atom_label in ['Mg', 'Ca', 'Sr', 'Ba', 'Cu']:
-        atom_label = atom_label + '2+'
+    # Handle common ionic forms (case-insensitive, so lowercase forcefield
+    # spellings like 'cu'/'na'/'mg' get the aqueous ion, not the oxygen fallback).
+    if atom_label.capitalize() in ['Li', 'Na', 'K', 'Cs']:
+        atom_label = atom_label.capitalize() + '1+'
+    elif atom_label.capitalize() in ['Mg', 'Ca', 'Sr', 'Ba', 'Cu']:
+        atom_label = atom_label.capitalize() + '2+'
     
     # Handle special cases in line with MATLAB implementation
     if atom_label.startswith('Nc'):
         atom_label = 'N'
-    elif atom_label in ['Al']:
-        atom_label = 'Al1.5+'
-    elif atom_label in ['Si']:
-        atom_label = 'Si2+'
+
+    # CLAYFF/MINFF structural site types -> their partial-charge scattering label
+    # (case-insensitive): the octahedral / tetrahedral / edge Al, Si, Mg, Fe, Li,
+    # Ti and Ca forcefield atom types. Settled jointly with the mholmboe/atom
+    # MATLAB toolbox from the actual force-field charges.
+    #   NOTE: a label's partial charge is FORCE-FIELD DEPENDENT -- MINFF and CLAYFF
+    #   disagree on the same label (e.g. Sit 1.884 vs 2.100, Mgh 1.740 vs 1.050,
+    #   Alo 1.782 vs 1.575) -- but one fixed label->ion mapping suffices only
+    #   because the tabulated Waasmaier-Kirfel rows are coarse enough that both
+    #   charges round to the same row. Adding finer partial-charge rows would break
+    #   that assumption.
+    #   Mn / Mn2 / Mn3 / Mn4 are deliberately NOT remapped: their CLAYFF digits
+    #   (2.1 / 1.36 / 1.575 / 2.1) are site labels, not oxidation states and not
+    #   monotonic in charge, so they stay neutral rather than guess an ion.
+    _CLAY_TYPES = {
+        'al': 'Al1.5+', 'alt': 'Al1.5+', 'alo': 'Al1.5+', 'ale': 'Al1.5+',
+        'alr': 'Al1.5+', 'am': 'Al1.5+', 'ao': 'Al1.5+', 'ae': 'Al1.5+', 'at': 'Al1.5+',
+        'si': 'Si2+', 'sit': 'Si2+', 'sio': 'Si2+', 'st': 'Si2+',
+        'mgo': 'Mg1+', 'mgh': 'Mg1+', 'mge': 'Mg1+',
+        'fe': 'Fe1.5+', 'feo': 'Fe1.5+', 'fet': 'Fe1.5+', 'feo2': 'Fe1.5+',
+        'feo3': 'Fe1.5+', 'fet2': 'Fe1.5+', 'fet3': 'Fe1.5+', 'fee': 'Fe1.5+',
+        'fee2': 'Fe1.5+', 'fee3': 'Fe1.5+', 'fe2': 'Fe1.5+', 'dfeo': 'Fe1.5+',
+        'lio': 'Li1+', 'tio': 'Ti2+', 'cao': 'Ca2+', 'cah': 'Ca2+',
+    }
+    if atom_label.lower() in _CLAY_TYPES:
+        atom_label = _CLAY_TYPES[atom_label.lower()]
+
     idx = -1
     if isinstance(atom_label, str):
         # Try exact match first
@@ -380,16 +411,16 @@ def atomic_scattering_factors(atom_label, wavelength, two_theta, b_iso=0.0):
             # Special cases for common forcefield-specific atom types (e.g. CLAYFF, MINFF)
             if element_symbol in ['Sit', 'St']:
                 element_symbol = 'Si'
-            elif element_symbol in ['Op', 'Oh', 'Ob', 'Od', 'Oe', 'Ow', 'Owc', 'Owh']:
+            elif element_symbol in ['Op', 'Oh', 'Ob', 'Od', 'Oe', 'Oc', 'Ow', 'Owc', 'Owh']:
                 element_symbol = 'O'
             elif element_symbol in ['Alo', 'Alt', 'Alr', 'Am']:
                 element_symbol = 'Al'
             elif element_symbol in ['Mgo', 'Mgt']:
                 element_symbol = 'Mg'
             elif element_symbol in ['Fet', 'Feo']:
-                element_symbol = 'Fe'
-            elif element_symbol in ['Hw', 'Ho', 'He']:
-                element_symbol = 'H'
+                # Octahedral/tetrahedral Fe forcefield types -> Fe1.5+ (CLAYFF charge),
+                # matching the MATLAB atom toolbox. (Was neutral 'Fe' before.)
+                element_symbol = 'Fe1.5+'
             elif element_symbol in ['Cao', 'Cat']:
                 element_symbol = 'Ca'
             
@@ -725,9 +756,18 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
 
     print("Starting XRD calculation...")
     
+    # Capture each atom's ORIGINAL forcefield label before element() collapses it
+    # to a bare element. Used below so that (a) explicit tabulated ions like 'Fe2+'
+    # or 'Hf4+' are used as-is instead of being collapsed (Fe2+ -> Fe -> Fe1.5+),
+    # and (b) massless virtual/dummy sites (TIP4P 'MW', TIP5P 'LP*', 'Du') are given
+    # a zero scattering factor instead of silently scattering as oxygen.
+    _orig_labels = [str(a.get('type') or a.get('fftype') or a.get('element') or '') for a in atoms]
+    _WK_LABELS = frozenset(row[0] for row in WAASMAIER_KIRFEL_DATA)
+    _VIRTUAL_SITES = frozenset(['MW', 'MW1', 'LP', 'LP1', 'LP2', 'LP3', 'DU', 'DUM', 'MY1'])
+
     # Standardize atom types/elements using atomipy.element
     # We do this on a shallow copy of the list to avoid modifying the original list
-    # but the atom dicts themselves might still be modified. 
+    # but the atom dicts themselves might still be modified.
     # For XRD, this is generally desired to ensure correct scattering factors.
     atoms = element(list(atoms))
 
@@ -789,10 +829,17 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
     y_frac = np.array([atom['yfrac'] for atom in atoms])
     z_frac = np.array([atom['zfrac'] for atom in atoms])
     
-    # Get atom types
+    # Get atom types. Prefer the atom's original forcefield label when it is a
+    # virtual/dummy site (-> no scattering) or an explicit tabulated ion (-> used
+    # verbatim); otherwise fall back to the element() result.
     atom_types = []
-    for atom in atoms:
-        if 'element' in atom and atom['element']:
+    for i, atom in enumerate(atoms):
+        orig = _orig_labels[i] if i < len(_orig_labels) else ''
+        if orig.upper() in _VIRTUAL_SITES:
+            atom_types.append('__VIRTUAL__')
+        elif orig in _WK_LABELS:
+            atom_types.append(orig)
+        elif 'element' in atom and atom['element']:
             atom_types.append(atom['element'])
         elif 'type' in atom:
             atom_types.append(atom['type'])
@@ -900,6 +947,18 @@ def xrd(atoms, Box, wavelength=1.54187, angle_step=0.02,
         # Find all atoms of this type
         type_indices = [i for i, at in enumerate(atom_types) if at == atom_type]
         
+        # Virtual / dummy sites (TIP4P MW, TIP5P lone pairs, Du): charge but no
+        # electrons, so they contribute nothing to an X-ray structure factor.
+        if atom_type == '__VIRTUAL__':
+            atomic_scattering_data[atom_type] = {
+                'scattering_label': '(virtual site, f=0)',
+                'f_values': np.zeros_like(two_theta_disc, dtype=float),
+                'two_theta': two_theta_disc,
+                'atom_count': len(type_indices),
+            }
+            print(f"Processing {len(type_indices)} virtual/dummy site(s) of type {atom_type} (f=0)")
+            continue
+
         # Get scattering factors for this atom type
         scattering_label = atom_type
         if neutral_atoms:
