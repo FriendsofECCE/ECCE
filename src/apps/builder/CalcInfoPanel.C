@@ -17,6 +17,7 @@
 #include "dsm/JCode.H"
 #include "dsm/PropFactory.H"
 #include "dsm/TaskJob.H"
+#include "dsm/LaunchInfoRows.H"
 #include "comm/AllocationQuery.H"
 
 #include "wxgui/ewxNonBoldLabel.H"
@@ -69,7 +70,7 @@ bool CalcInfoPanel::Create(IPropCalculation *calculation,
   p_body = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition,
                                 wxDefaultSize, wxVSCROLL | wxNO_BORDER);
   p_body->SetScrollRate(0, 10);
-  p_body->SetSizer(new wxFlexGridSizer(0,2,1,5));
+  p_body->SetSizer(new wxBoxSizer(wxVERTICAL));
   wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
   //  The standard border: labels touched the left edge, long values the right.
   outer->Add(p_body, 1, wxEXPAND | wxLEFT | wxRIGHT, 8);
@@ -90,6 +91,12 @@ void CalcInfoPanel::refresh()
   //  otherwise, and a refresh (the allocation answer) shifts every row by
   //  one cell, labels into the value column.
   p_body->GetSizer()->Clear(true);
+  //  Rows before and after the Launch Info block are separate grids; the
+  //  block is two columns of its own.
+  vector<wxFlexGridSizer*> grids;
+  wxFlexGridSizer *grid = new wxFlexGridSizer(0, 2, 1, 5);
+  grids.push_back(grid);
+  p_body->GetSizer()->Add(grid);
 
   TaskJob *taskJob = dynamic_cast<TaskJob*>(getCalculation());
   ICalculation *escalc = dynamic_cast<ICalculation*>(getCalculation());
@@ -101,8 +108,8 @@ void CalcInfoPanel::refresh()
   if (taskJob) {
     const JCode* app = taskJob->application() ;
     if (app && !app->name().empty()) {
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, "Application"));
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, app->name()));
+      grid->Add(new ewxStaticText(p_body, wxID_ANY, "Application"));
+      grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, app->name()));
     }
   }
 
@@ -127,42 +134,42 @@ void CalcInfoPanel::refresh()
       trString += "NA";
     }
 
-    p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, "Theory/Runtype"));
-    p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, trString));
+    grid->Add(new ewxStaticText(p_body, wxID_ANY, "Theory/Runtype"));
+    grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, trString));
   }
 
   // CHEMICAL SYSTEM
   if (escalc) {
-    p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, "Chemical System"));
-    p_body->GetSizer()->AddSpacer(0);
+    grid->Add(new ewxStaticText(p_body, wxID_ANY, "Chemical System"));
+    grid->AddSpacer(0);
 
     if (frag) {
       if (!frag->name().empty()) {
-        p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Name:"),
+        grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Name:"),
                    0, wxALIGN_RIGHT);
-        p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, frag->name()));
+        grid->Add(new ewxStaticText(p_body, wxID_ANY, frag->name()));
       }
 
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Charge:"),
+      grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Charge:"),
                  0, wxALIGN_RIGHT);
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY,
+      grid->Add(new ewxStaticText(p_body, wxID_ANY,
                  wxString::Format("%d", frag->charge())));
 
       if (!frag->pointGroup().empty()) {
-        p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Point Group:"),
+        grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Point Group:"),
                    0, wxALIGN_RIGHT);
-        p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, frag->pointGroup()));
+        grid->Add(new ewxStaticText(p_body, wxID_ANY, frag->pointGroup()));
       }
     }
 
-    p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Spin Multiplicity:"),
+    grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Spin Multiplicity:"),
                0, wxALIGN_RIGHT);
-    p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY,
+    grid->Add(new ewxStaticText(p_body, wxID_ANY,
                SpinMult::toString(escalc->spinMultiplicity())));
 
-    p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Open Shells:"),
+    grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Open Shells:"),
                0, wxALIGN_RIGHT);
-    p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY,
+    grid->Add(new ewxStaticText(p_body, wxID_ANY,
                wxString::Format("%lu", escalc->openShells())));
   }
 
@@ -170,26 +177,26 @@ void CalcInfoPanel::refresh()
   if (escalc) {
     TGBSConfig *config = escalc->gbsConfig();
     if (config && !config->empty()) {
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, "Basis Set"));
-      p_body->GetSizer()->AddSpacer(0);
+      grid->Add(new ewxStaticText(p_body, wxID_ANY, "Basis Set"));
+      grid->AddSpacer(0);
 
       if (!config->name().empty()) {
-        p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Orbital:"),
+        grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Orbital:"),
                    0, wxALIGN_RIGHT);
-        p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, config->name()));
+        grid->Add(new ewxStaticText(p_body, wxID_ANY, config->name()));
       }
 
       if (frag) {
         TagCountMap* tcMap = frag->tagCountsSTL();
         if (tcMap) {
-          p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "# Functions:"),
+          grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "# Functions:"),
                      0, wxALIGN_RIGHT);
-          p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY,
+          grid->Add(new ewxStaticText(p_body, wxID_ANY,
                   wxString::Format("%d", config->num_functions(*tcMap))));
 
-          p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "# Primitives:"),
+          grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "# Primitives:"),
                      0, wxALIGN_RIGHT);
-          p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY,
+          grid->Add(new ewxStaticText(p_body, wxID_ANY,
                   wxString::Format("%d", config->num_primitives(*tcMap))));
 
           delete tcMap;
@@ -197,22 +204,22 @@ void CalcInfoPanel::refresh()
       }
 
       if (!config->ecpName().empty()) {
-        p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "ECPs:"),
+        grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "ECPs:"),
                    0, wxALIGN_RIGHT);
-        p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, config->ecpName()));
+        grid->Add(new ewxStaticText(p_body, wxID_ANY, config->ecpName()));
       }
 
       if (!config->dftFittingName().empty()) {
-        p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Exchange Fitting:"),
+        grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Exchange Fitting:"),
                    0, wxALIGN_RIGHT);
-        p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY,
+        grid->Add(new ewxStaticText(p_body, wxID_ANY,
                 config->dftFittingName()));
       }
 
       if (!config->dftChargeFittingName().empty()) {
-        p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Charge Fitting:"),
+        grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Charge Fitting:"),
                    0, wxALIGN_RIGHT);
-        p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY,
+        grid->Add(new ewxStaticText(p_body, wxID_ANY,
                 config->dftChargeFittingName()));
       }
     }
@@ -223,64 +230,47 @@ void CalcInfoPanel::refresh()
     Jobdata job = taskJob->jobdata();
     Launchdata launch = taskJob->launchdata();
 
-    p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, "Launch Info"));
-    p_body->GetSizer()->AddSpacer(0);
+    grid->Add(new ewxStaticText(p_body, wxID_ANY, "Launch Info"));
+    grid->AddSpacer(0);
 
-    if (!launch.machine.empty()) {
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Machine:"),
-                 0, wxALIGN_RIGHT);
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, launch.machine));
-    }
-
-    if (!launch.queue.empty()) {
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Queue:"),
-                 0, wxALIGN_RIGHT);
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, launch.queue));
-    }
-
-    const string allocAccount = AllocationQuery::account(launch);
-    if (!allocAccount.empty() && !launch.machine.empty()) {
+    LaunchInfoRows::Input in;
+    in.machine = launch.machine;
+    in.processors = launch.totalprocs;
+    in.queue = launch.queue;
+    in.jobId = job.jobid;
+    in.startDate = taskJob->startDate();
+    in.completionDate = taskJob->completionDate();
+    in.allocation = launch.machine.empty() ? string() :
+                    AllocationQuery::account(launch);
+    if (!in.allocation.empty()) {
       wxWeakRef<CalcInfoPanel> self(this);
-      string left = AllocationQuery::left(launch, [self]() {
+      in.allocationLeft = AllocationQuery::left(launch, [self]() {
         wxTheApp->CallAfter([self]() { if (self) self->refresh(); });
       });
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Allocation:"),
-                 0, wxALIGN_RIGHT);
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, allocAccount));
-      if (!left.empty()) {
-        p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Left:"),
-                   0, wxALIGN_RIGHT);
-        p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, left));
-      }
     }
+    p_body->GetSizer()->Add(ewxLaunchInfoBlock(p_body, LaunchInfoRows::build(in)),
+                            0, wxTOP | wxBOTTOM, 2);
 
-    p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "# Processors:"),
-               0, wxALIGN_RIGHT);
-    p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY,
-            wxString::Format("%ld", launch.totalprocs)));
+    grid = new wxFlexGridSizer(0, 2, 1, 5);
+    grids.push_back(grid);
+    p_body->GetSizer()->Add(grid);
 
     if (!job.jobpath.empty()) {
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Run Directory:"),
+      grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Run Directory:"),
                  0, wxALIGN_RIGHT);
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, job.jobpath));
+      grid->Add(new ewxStaticText(p_body, wxID_ANY, job.jobpath));
     }
 
     if (!launch.scratchdir.empty()) {
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Scratch Directory:"),
+      grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Scratch Directory:"),
                  0, wxALIGN_RIGHT);
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, launch.scratchdir));
-    }
-
-    if (!taskJob->startDate().empty()) {
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, "Start Date:"),
-                 0, wxALIGN_RIGHT);
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, taskJob->startDate()));
+      grid->Add(new ewxStaticText(p_body, wxID_ANY, launch.scratchdir));
     }
   }
 
   // RUN STATS
-  p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, "Run Statistics"));
-  p_body->GetSizer()->AddSpacer(0);
+  grid->Add(new ewxStaticText(p_body, wxID_ANY, "Run Statistics"));
+  grid->AddSpacer(0);
   set<Property_Ref> processKeys = PropFactory::ofClassification("Process");
   //  In the properties file's order, so a code's statistics read as it lists them.
   vector<Property_Ref> processRefs(processKeys.begin(), processKeys.end());
@@ -304,23 +294,26 @@ void CalcInfoPanel::refresh()
         if (units == "Degree") valueStr += wxString::FromUTF8(" \xc2\xb0");
         else if (!units.empty() && units != "NA") valueStr += wxString::FromUTF8((" " + unitLabel(units)).c_str());
       }
-      p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, key), 0, wxALIGN_RIGHT);
-      p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, valueStr.c_str()));
+      grid->Add(new ewxNonBoldLabel(p_body, wxID_ANY, key), 0, wxALIGN_RIGHT);
+      grid->Add(new ewxStaticText(p_body, wxID_ANY, valueStr.c_str()));
     }
   }
 
   //  Width from the rows; height is left to the dock, the rows scroll.
   //  The value column can be selected and copied (#408).
-  wxSizerItemList &items = p_body->GetSizer()->GetChildren();
-  int col = 0;
-  for (wxSizerItemList::compatibility_iterator n = items.GetFirst(); n;
-       n = n->GetNext(), col = 1 - col)
-    if (col == 1 && n->GetData()->GetWindow())
-      ewxMakeSelectable(n->GetData()->GetWindow());
+  for (wxFlexGridSizer *g : grids) {
+    wxSizerItemList &items = g->GetChildren();
+    int col = 0;
+    for (wxSizerItemList::compatibility_iterator n = items.GetFirst(); n;
+         n = n->GetNext(), col = 1 - col)
+      if (col == 1 && n->GetData()->GetWindow())
+        ewxMakeSelectable(n->GetData()->GetWindow());
+  }
   ewxWrapValueColumn(p_body);  // long values wrap within the panel (#490)
   p_body->FitInside();
   SetMinSize(wxSize(p_body->GetSizer()->GetMinSize().x, -1));
   Layout();
+  ewxFitLaunchInfo(p_body);
 
   // we're done with the frag and we're supposed to clean it up
   // according to the documentation

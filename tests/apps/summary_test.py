@@ -79,6 +79,29 @@ def organizer(display, url, png, env, args=()):
     return result
 
 
+def launchProblem(text):
+    """The Launch Info block (#648): two columns, rows with nothing to show
+    are not made. The fixtures ran on localhost with no queue: a stored
+    process id is not a Job ID, and there is no allocation."""
+    m = re.search(r"launch=(\S*)", text)
+    rows = {}
+    for item in (m.group(1) if m else "").split(";"):
+        if "@" in item:
+            name, pos = item.split("@")
+            rows[name] = tuple(int(v) for v in pos.split(","))
+    for name in ("Machine:", "Processors:", "Start Date:"):
+        if name not in rows:
+            return "Launch Info has no %s row (got %s)" % (name, sorted(rows))
+    for name in ("Queue:", "Job ID:", "Allocation:", "Left:"):
+        if name in rows:
+            return "Launch Info shows %s with nothing to show" % name
+    if rows["Start Date:"][0] <= rows["Machine:"][0]:
+        return "Start Date is not in a column right of Machine"
+    if rows["Processors:"][1] <= rows["Machine:"][1]:
+        return "Processors is not below Machine"
+    return None
+
+
 def check(label, result, expect):
     log = result.log or ""
     done = re.search(r"ECCE_TEST_ORGANIZER: summary \S+: (.*)", log)
@@ -99,6 +122,8 @@ def check(label, result, expect):
                  for k, v in sorted(expect.items()) if got.get(k) != v]
         if wrong:
             problem = "summary fields wrong: " + ", ".join(wrong)
+        elif launchProblem(done.group(1)):
+            problem = launchProblem(done.group(1))
         #  Both codes here have basis sets: the Basis Set button stays.
         elif "tool=Basis" not in done.group(1):
             problem = "no Basis Set button in the summary"

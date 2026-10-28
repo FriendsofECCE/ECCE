@@ -1,5 +1,6 @@
 #include <ctime>
 #include <fstream>
+#include <map>
 #include <mutex>
 #include <set>
 #include <sstream>
@@ -20,6 +21,11 @@ std::mutex gAllocMu;
 AllocationLeft::Cache gAllocCache;
 bool gAllocLoaded = false;
 std::set<string> gAllocBusy;
+//  When a query last failed (no live shared login, or the command failed), per
+//  key. A failure is tried again after this, not after the 15 minutes of a
+//  good answer: a monitor may have logged in meanwhile.
+std::map<string, long> gAllocFailed;
+const long RETRY_SECONDS = 30;
 
 string allocCachePath()
 {
@@ -69,6 +75,9 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
     }
     have = gAllocCache.find(key, e);
     fresh = gAllocCache.fresh(key, now);
+    std::map<string, long>::const_iterator f = gAllocFailed.find(key);
+    if (!fresh && f != gAllocFailed.end() && now - f->second < RETRY_SECONDS)
+      fresh = true;                       // failed a moment ago
     if (!fresh && gAllocBusy.count(key))
       fresh = true;                       // being read
     else if (!fresh)
@@ -81,17 +90,22 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
                  shellPath = rgstn->shellPath();
     std::thread([=]() {
       string out, text;
-      if (RCommand::execOnLiveLogin(machine, user, front, bypass, shellPath,
-                                    command, out))
+      const bool ran = RCommand::execOnLiveLogin(machine, user, front, bypass,
+                                                 shellPath, command, out);
+      if (ran)
         text = AllocationLeft::summarize(out, account);
       {
         std::lock_guard<std::mutex> lock(gAllocMu);
         gAllocBusy.erase(key);
-        //  A failure is kept too: the refresh would otherwise start the next
-        //  attempt at once.
-        gAllocCache.put(key, (long)time(NULL), text);
-        std::ofstream o(allocCachePath().c_str());
-        o << gAllocCache.serialise();
+        if (ran) {
+          gAllocFailed.erase(key);
+          gAllocCache.put(key, (long)time(NULL), text);
+          std::ofstream o(allocCachePath().c_str());
+          o << gAllocCache.serialise();
+        } else {
+          //  In memory only: an older answer stays on file.
+          gAllocFailed[key] = (long)time(NULL);
+        }
       }
       if (onDone) onDone();
     }).detach();

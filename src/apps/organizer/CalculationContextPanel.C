@@ -36,6 +36,7 @@
 #include "dsm/ResourceTool.H"
 #include "dsm/Session.H"
 #include "dsm/TaskJob.H"
+#include "dsm/LaunchInfoRows.H"
 #include "dsm/ICalculation.H"
 #include "dsm/TCalculation.H"
 #include "comm/AllocationQuery.H"
@@ -96,6 +97,28 @@ static void setSizerChildVisible(wxWindow *window, bool visible)
 
 
 
+//  The date as the user's preferences show it; unreadable preferences leave
+//  the stored text.
+static string formatDateTime(const string& stored)
+{
+  if (stored.empty()) return stored;
+  Preferences eccePref(PrefLabels::GLOBALPREFFILE);
+  int dateFormat, timeFormat;
+  if (!eccePref.getInt(PrefLabels::DATEFORMAT, dateFormat) ||
+      !eccePref.getInt(PrefLabels::TIMEFORMAT, timeFormat))
+    return stored;
+  if ((TDateTime::DateFormat)dateFormat < TDateTime::AmericanLocale ||
+      (TDateTime::DateFormat)dateFormat > TDateTime::TOTALDATE ||
+      (TDateTime::TimeFormat)timeFormat < TDateTime::HM24 ||
+      (TDateTime::TimeFormat)timeFormat > TDateTime::TOTALTIME)
+    return stored;
+  TDateTime datetime(stored);
+  return datetime.toString((TDateTime::DateFormat)dateFormat,
+           TDateTime::withSeconds((TDateTime::TimeFormat)timeFormat));
+}
+
+
+
 /**
  * Constructor with default parameters.
  */
@@ -113,13 +136,17 @@ CalculationContextPanel::CalculationContextPanel( CalcMgr * calcMgr,
   p_properties(NULL),
   p_inpProvProps(NULL),
   p_progressBox(NULL),
-  p_progressSizer(NULL)
+  p_progressSizer(NULL),
+  p_launchHolder(NULL)
 {
   // set the scroll rate of the scrolled window
   SetScrollbars(10, 10, 0, 0);
 
   // generate the tool portion of the panel
   createControls();
+
+  // the Launch Info values wrap to the width the panel has
+  Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { e.Skip(); ewxFitLaunchInfo(this); });
 
   // update data fields
   refresh();
@@ -166,6 +193,8 @@ void CalculationContextPanel::refresh()
        tpvIt++) {
     if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
       continue;
+    if (tpvIt->second.first->getName() == "Launcher")
+      continue;
 
     // get the ResourceProperties for this tool and iterate through them
     multimap<int, ResourceProperty*> properties;
@@ -190,7 +219,7 @@ void CalculationContextPanel::refresh()
   if (shown.empty() && !annotation.empty()) shown = annotation;
   annotationCtrl->SetValue(shown);
 
-  refreshAllocation();
+  refreshLaunchInfo();
 
   p_storedProgress.clear();
   p_properties->findValue(VDoc::getEcceNamespace() + ":progress",
@@ -237,37 +266,36 @@ void CalculationContextPanel::refresh()
 
 
 /**
- * Fills the Allocation and Left rows of the Launcher block, hiding what is
- * not known. The answer comes from a background read, so this is called again
- * when it lands.
+ * Builds the Launch Info block (see LaunchInfoRows.H): rows with nothing to
+ * show are not made. The allocation answer comes from a background read, so
+ * this is called again when it lands.
  */
-void CalculationContextPanel::refreshAllocation()
+void CalculationContextPanel::refreshLaunchInfo()
 {
-  wxWindow *accWin = FindWindow("allocAccount");
-  wxWindow *leftWin = FindWindow("allocLeft");
-  if (!accWin || !leftWin) return;
-  ewxStaticText *acc = dynamic_cast<ewxStaticText*>(accWin);
-  ewxStaticText *left = dynamic_cast<ewxStaticText*>(leftWin);
-  wxWindow *accLabel = FindWindow("allocAccountLabel");
-  wxWindow *leftLabel = FindWindow("allocLeftLabel");
-  TaskJob *job = dynamic_cast<TaskJob*>(p_itemData->getResource());
-  if (!acc || !left || !accLabel || !leftLabel || !job) return;
+  if (!p_launchHolder) return;
+  p_launchHolder->Clear(true);
 
-  Launchdata launch = job->launchdata();
-  string account, text;
-  if (!launch.machine.empty()) {
-    account = AllocationQuery::account(launch);
-    wxWeakRef<CalculationContextPanel> self(this);
-    text = AllocationQuery::left(launch, [self]() {
-      wxTheApp->CallAfter([self]() { if (self) self->refreshAllocation(); });
-    });
+  LaunchInfoRows::Input in;
+  TaskJob *job = dynamic_cast<TaskJob*>(p_itemData->getResource());
+  if (job) {
+    Launchdata launch = job->launchdata();
+    in.machine = launch.machine;
+    in.processors = launch.totalprocs;
+    in.queue = launch.queue;
+    in.jobId = job->jobdata().jobid;
+    in.startDate = formatDateTime(job->startDate());
+    in.completionDate = formatDateTime(job->completionDate());
+    if (!launch.machine.empty()) {
+      in.allocation = AllocationQuery::account(launch);
+      wxWeakRef<CalculationContextPanel> self(this);
+      in.allocationLeft = AllocationQuery::left(launch, [self]() {
+        wxTheApp->CallAfter([self]() { if (self) self->refreshLaunchInfo(); });
+      });
+    }
   }
-  acc->SetLabel(wxString::FromUTF8(account.c_str()));
-  left->SetLabel(wxString::FromUTF8(text.c_str()));
-  setSizerChildVisible(accLabel, !account.empty());
-  setSizerChildVisible(acc, !account.empty());
-  setSizerChildVisible(leftLabel, !text.empty());
-  setSizerChildVisible(left, !text.empty());
+  p_launchHolder->Add(ewxLaunchInfoBlock(this, LaunchInfoRows::build(in)));
+  Layout();
+  ewxFitLaunchInfo(this);
   Layout();
   FitInside();
 }
@@ -418,8 +446,6 @@ void CalculationContextPanel::createControls()
     // these variables help format the grid used to display the data
     int rows = 4;       // max number of rows to use in the grid
     const bool isLauncher = pairRT_TPV.first->getName() == "Launcher";
-    if (isLauncher)
-      rows = 6;         // room for Allocation and Left under Comp. Date
     int cols = 2;       // max number of columns to use in the grid
     int vgap = 0;       // size of vertical gap between children in the grid
     int hgap = 5;       // size of horizontal gap between children in the grid
@@ -433,7 +459,8 @@ void CalculationContextPanel::createControls()
     // get the ResourceProperties for this tool and iterate through them
     multimap<int, ResourceProperty*> properties;
     multimap<int, ResourceProperty*>::iterator propIt;
-    properties = pairRT_TPV.second->getProperties();
+    if (!isLauncher)
+      properties = pairRT_TPV.second->getProperties();
 
     for (propIt = properties.begin(); propIt != properties.end(); propIt++) {
       // For the properties grid, increment current row so we know which row we 
@@ -478,26 +505,19 @@ void CalculationContextPanel::createControls()
       }
     } // end of ResourceProperties for loop
 
-    // Allocation and Left (#613): shown by refreshAllocation() when known.
+    // The Launcher rows are two columns of their own (#648), filled by
+    // refreshLaunchInfo() from what is known.
     if (isLauncher) {
-      const char *names[2][2] = {{"Allocation:", "allocAccount"},
-                                 {"Left:", "allocLeft"}};
-      for (int i = 0; i < 2; i++) {
-        currentRow++;
-        grid->Add(new ewxNonBoldLabel(this, wxID_ANY, names[i][0],
-                      wxDefaultPosition, wxDefaultSize, 0,
-                      string(names[i][1]) + "Label"),
-                  0, wxALIGN_LEFT|wxALIGN_TOP|wxALL, 1);
-        ewxStaticText *v = new ewxStaticText(this, wxID_ANY, "",
-                      wxDefaultPosition, wxDefaultSize, 0, names[i][1]);
-        ewxMakeSelectable(v);
-        grid->Add(v, 0, wxALIGN_LEFT|wxALIGN_TOP|wxALL, 1);
-      }
+      p_launchHolder = new wxBoxSizer(wxVERTICAL);
+      sizer->Add(p_launchHolder, 0, wxALIGN_LEFT | wxALIGN_TOP | wxALL, 1);
+      delete grid;
+      grid = NULL;
     }
 
     // add the grid sizer we were last filling when we ran out of properties to
     // display in it
-    sizer->Add(grid,
+    if (grid)
+      sizer->Add(grid,
         0,            // do not stretch,
         wxALIGN_LEFT| // place in left
         wxALIGN_TOP|  //    upper area of tool/prop sizer
@@ -785,34 +805,7 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
   }
   else if (type == GridProperty::PT_DATE_TIME)
   {
-    bool success = true;
-    Preferences * eccePref = new Preferences(PrefLabels::GLOBALPREFFILE);
-    int dateFormat;
-    int timeFormat;
-    if (! eccePref->getInt(PrefLabels::DATEFORMAT, dateFormat) ||
-        ! eccePref->getInt(PrefLabels::TIMEFORMAT, timeFormat))
-    {
-      success = false;
-    }
-
-    // double check that the timedate formats are within the enum bounds
-    if ((TDateTime::DateFormat)dateFormat >= TDateTime::AmericanLocale &&
-        (TDateTime::DateFormat)dateFormat <= TDateTime::TOTALDATE &&
-        (TDateTime::TimeFormat)timeFormat >= TDateTime::HM24 &&
-        (TDateTime::TimeFormat)timeFormat <= TDateTime::TOTALTIME)
-    {
-      success &= true;
-    }
-    else
-    {
-      success = false;
-    }
-
-    if (success && valuestr != "") {
-      TDateTime datetime(valuestr);
-      valuestr = datetime.toString((TDateTime::DateFormat)dateFormat,
-                   TDateTime::withSeconds((TDateTime::TimeFormat)timeFormat));
-    }
+    valuestr = formatDateTime(valuestr);
     prop->SetLabel(valuestr);
   }
   else if (type == GridProperty::PT_CHECK)

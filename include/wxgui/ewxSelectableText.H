@@ -2,6 +2,7 @@
 #define _EWXSELECTABLETEXT_H
 
 #include <wx/textctrl.h>
+#include "dsm/LaunchInfoRows.H"
 
 /**
  * A value shown like a label that can still be selected with the mouse and
@@ -40,5 +41,19 @@ bool ewxIsSelectable(wxWindow *w);
  * line. Call after the rows are added; the wrap follows size events.
  */
 void ewxWrapValueColumn(wxWindow *body);
+
+/**
+ * The Launch Info rows (#648) as two independent columns side by side, each
+ * a label and a value per row, labels left-aligned. A row that is not in
+ * `cols` does not exist. Labels are named "launch:<label>" and values
+ * "launchvalue:<label>" so a test can find them. Values wrap to the width
+ * that ewxFitLaunchInfo() works out; call it from the owner's size event and
+ * after a Layout().
+ */
+wxSizer *ewxLaunchInfoBlock(wxWindow *parent,
+                            const LaunchInfoRows::Columns& cols);
+
+/** Wraps the values of every ewxLaunchInfoBlock below `body`'s sizer. */
+void ewxFitLaunchInfo(wxWindow *body);
 
 #endif
