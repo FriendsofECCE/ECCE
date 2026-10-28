@@ -198,6 +198,20 @@ class OrcaTheoryPanel(EccePanel):
             dispSizer.AddWidget(self.dispersion)
             self.panelSizer.Add(dispSizer)
 
+        # INTEGRATION GRID -- DFT only; ai.orca writes DEFGRID1/2/3 as its
+        # own keyword, "Default" writes none.
+        if EcceGlobals.Category == "DFT":
+            gridSizer = EcceBoxSizer(self, label="Integration Grid", cols=1)
+            self.dftGrid = EcceComboBox(self,
+                                        choices=["Default", "DefGrid1",
+                                                 "DefGrid2", "DefGrid3"],
+                                        name="ES.Theory.DFT.Grid",
+                                        default=0,
+                                        label="Grid:",
+                                        export=1)
+            gridSizer.AddWidget(self.dftGrid)
+            self.panelSizer.Add(gridSizer)
+
         # SOLVATION -- ORCA had none at all: zero references to CPCM, SMD
         # or solvation in either this dialog or ai.orca, so every ORCA job
         # ECCE generated was gas phase with no way to say otherwise.

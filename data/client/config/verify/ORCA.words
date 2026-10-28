@@ -269,6 +269,9 @@ def2-svp/c
 def2-tzvp
 def2-tzvpp
 def2/j
+defgrid1
+defgrid2
+defgrid3
 descriptive
 details
 details.\n
@@ -309,6 +312,7 @@ es.runtype.orca.usembis
 es.runtype.orca.usenbo
 es.runtype.vibration.method
 es.runtype.vibration.useraman
+es.theory.dft.grid
 es.theory.dft.xcfunctionals
 es.theory.scf.convergenceiterations
 es.theory.scf.convergencetolerance

@@ -2059,6 +2059,8 @@ add_test(NAME tddft_setup COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/tddft/run_te
 set_tests_properties(tddft_setup PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
 # ORCA dispersion setting and legacy functional names (#593).
 add_test(NAME orca_dispersion COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_dispersion/run_tests.py)
+# ORCA integration grid setting (DefGrid1/2/3) and grid keywords in legacy functional names (#644).
+add_test(NAME orca_grid COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_grid/run_tests.py)
 # Opt=QST2/QST3 decks for HCN<->HNC, run with Gaussian 16 when installed (#419)
 add_test(NAME gaussian_qst
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_qst/run_tests.py ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
