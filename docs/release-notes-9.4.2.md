@@ -44,5 +44,6 @@
 - **Density Profile:** the average around an atom on a large cluster is still slow (now with progress and Cancel); a background computation follows (#629).
 - **Density Map:** each zoom step re-evaluates the map behind a progress dialog (#645).
 - **Launch Selected** keeps the Organizer busy until the batch is submitted (#640).
+- **Ubuntu 26.04:** ECCE's message broker is blocked by Ubuntu's AppArmor profile for mosquitto, so the apps do not start; the Ubuntu package is for 24.04 (#646).
 - **Windows:** the first start after installing takes about a minute on slower computers, with progress shown (#444).
 - **GROMACS, CP2K and Quantum ESPRESSO** remain experimental. **The MO diagram** is experimental.
