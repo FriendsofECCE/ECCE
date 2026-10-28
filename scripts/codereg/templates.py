@@ -743,6 +743,11 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
                             elif valType == "menu_input":
                                 value = self.SplitLegacyDispersion(
                                     name, value)
+                                # Gaussian's "Manual" solvent is now "Custom".
+                                if name == "ES.Theory.SCF.Solvent" and \
+                                   value == "Manual" and \
+                                   "Custom" in setting.combo.GetStrings():
+                                    value = "Custom"
                                 try:
                                     setting.SetValue(value)
                                 except wx.core.PyAssertionError:

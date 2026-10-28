@@ -60,6 +60,8 @@ def main():
     d, _ = deck("ai.gauss16", "g16.tpl", "STO-3G", g % "Custom")
     check("SCRF=(CPCM,Solvent=Generic,Read)" in d, "G16 route Solvent=Generic,Read")
     check("\nEps=30.0\nEpsInf=2.016400\n\n" in d, "G16 input section Eps and EpsInf = n^2")
+    # Gaussian ends the input at a second blank line, before the section.
+    check("0.59\n\nEps=" in d, "one blank line between the geometry and Eps")
     d, _ = deck("ai.gauss16", "g16.tpl", "STO-3G", g % "Manual")
     check("Solvent=Generic,Read" in d and "Eps=30.0" in d, "old Manual means Custom")
     d, _ = deck("ai.gauss16", "g16.tpl", "STO-3G", g % "Water")

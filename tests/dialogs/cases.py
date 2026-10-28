@@ -323,6 +323,19 @@ RESTORE_CASES = [
         """),
 
     dict(
+        name="g16-manual-solvent-is-custom",
+        script="ged16theory.py", category="SCF", theory="RHF",
+        changes={"ES.Theory.SCF.UseSCRF": ("1", None),
+                 "ES.Theory.SCF.Solvent": ("Manual", None),
+                 "ES.Theory.SCF.Dielectric": ("31.5", None)},
+        expect={"ES.Theory.SCF.Solvent": {"value": "Custom"},
+                "ES.Theory.SCF.Dielectric": {"value": "31.5"}},
+        why="""
+            #642.  The old "Manual" solvent is "Custom" now; a calculation
+            saved with it must reopen as Custom, not the default solvent.
+        """),
+
+    dict(
         name="orca-memory-stale-unit",
         script="orcatheory.py", category="DFT", theory="RDFT",
         changes={"ES.Theory.SCF.MemorySize": ("1000", "Megabytes / core")},
