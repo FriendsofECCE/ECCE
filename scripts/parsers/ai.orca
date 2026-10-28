@@ -260,6 +260,7 @@ sub ORCARoute {
   $route .= &FreqMethodToken . " ";
   $route .= &SolvationToken . " ";
   $route .= &DispersionToken . " ";
+  $route .= &GridToken . " ";
   $route .= &ChelpgToken . " ";
   $route .= &SymmetryToken . " ";
   $route .= &AuxCBasisToken . " ";
@@ -525,13 +526,35 @@ sub ChelpgToken {
 #  functional + dispersion so the keyword is neither lost nor doubled.
 sub SplitDispersion {
   my ($name) = @_;
-  return ($name, "") unless defined($name);
+  return ($name, "", "") unless defined($name);
   #  These two names contain a D3 that is part of the functional itself.
-  return ($name, "") if ($name eq "B97-D3" || $name eq "wB97X-D3");
-  if ($name =~ /^(\S+?)[ -](D3BJ|D3ZERO|D3\(0\)|D3|D4)$/i) {
-    return ($1, uc($2));
+  return ($name, "", "") if ($name eq "B97-D3" || $name eq "wB97X-D3");
+  #  A DEFGRID keyword may sit in the name too ("PBE0 DEFGRID3 D3BJ"); both
+  #  are peeled off, in either order.
+  my ($disp, $grid) = ("", "");
+  while ($name =~ /^(\S+?)[ -](D3BJ|D3ZERO|D3\(0\)|D3|D4|DEFGRID[123])$/i) {
+    my ($base, $tok) = ($1, uc($2));
+    if ($tok =~ /^DEFGRID/) { last if ($grid ne ""); $grid = $tok; }
+    else { last if ($disp ne ""); $disp = $tok; }
+    $name = $base;
   }
-  return ($name, "");
+  return ($name, $disp, $grid);
+}
+
+#  Integration grid is its own setting (ES.Theory.DFT.Grid: Default,
+#  DefGrid1/2/3), DFT only.  ORCA's DefGridN sets the DFT and COSX grids
+#  together.  A grid left in the functional name is honoured the same way
+#  dispersion is.
+sub GridToken {
+  return "" unless ($AbiDict{"Category"} eq "DFT");
+  my $grid = $AbiDict{"ES.Theory.DFT.Grid"};
+  $grid = "" unless defined($grid);
+  if ($grid =~ /^DefGrid([123])$/i) {
+    return "DEFGRID" . $1;
+  }
+  return "" unless ($grid eq "" || $grid eq "Default");
+  my (undef, undef, $legacy) = &SplitDispersion($AbiDict{"ES.Theory.DFT.XCFunctionals"});
+  return $legacy;
 }
 
 sub DispersionToken {

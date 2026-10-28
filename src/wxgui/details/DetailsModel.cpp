@@ -330,7 +330,7 @@ void Model::close()
 void Model::initialize()
 {
   std::vector<int> notRestored;
-  bool legacyDispersion = false;
+  bool legacyDispersion = false, legacyGrid = false;
   if (par_.restoreFlag == "GUIValues") {
     std::ifstream f(par_.restoreFile);
     string line;
@@ -345,28 +345,47 @@ void Model::initialize()
         continue;
       }
       if (name == "ES.Theory.SCF.Dispersion" && legacyDispersion) continue;
+      if (name == "ES.Theory.DFT.Grid" && legacyGrid) continue;
       Item& it = items_[i];
       // ORCA: a functional stored as "PBE0 D3BJ" or "B3LYP-D3" is the
-      // functional plus the Dispersion choice (templates.py does the same).
+      // functional plus the Dispersion (and Grid) choice; templates.py
+      // does the same.
       string value = value0;
       if (name == "ES.Theory.DFT.XCFunctionals" &&
           std::find(it.choices.begin(), it.choices.end(), value) ==
               it.choices.end()) {
+        // Tails are peeled off in either order, each at most once.
         int d = find("ES.Theory.SCF.Dispersion");
-        size_t cut = value.find_last_of(" -");
-        if (d >= 0 && cut != string::npos && cut > 0) {
-          string base = value.substr(0, cut), tail = value.substr(cut + 1);
+        int g = find("ES.Theory.DFT.Grid");
+        string base = value, disp, grid;
+        for (;;) {
+          size_t cut = base.find_last_of(" -");
+          if (cut == string::npos || cut == 0) break;
+          string tail = base.substr(cut + 1);
           for (char& c : tail) c = (char)toupper((unsigned char)c);
-          string disp = (tail == "D3" || tail == "D3ZERO" || tail == "D3(0)")
-                            ? "D3(0)" : tail;
-          if ((disp == "D3(0)" || disp == "D3BJ" || disp == "D4") &&
-              std::find(it.choices.begin(), it.choices.end(), base) !=
-                  it.choices.end()) {
+          if (tail == "D3" || tail == "D3ZERO" || tail == "D3(0)") tail = "D3(0)";
+          bool isGrid = tail == "DEFGRID1" || tail == "DEFGRID2" ||
+                        tail == "DEFGRID3";
+          bool isDisp = tail == "D3(0)" || tail == "D3BJ" || tail == "D4";
+          if (isGrid && grid.empty()) grid = tail;
+          else if (isDisp && disp.empty()) disp = tail;
+          else break;
+          base = base.substr(0, cut);
+        }
+        if (base != value &&
+            std::find(it.choices.begin(), it.choices.end(), base) !=
+                it.choices.end()) {
+          if (!disp.empty() && d >= 0) {
             items_[d].value = normalize(items_[d], disp);
             touch(d);
             legacyDispersion = true;
-            value = base;
           }
+          if (!grid.empty() && g >= 0) {
+            items_[g].value = normalize(items_[g], "DefGrid" + grid.substr(7));
+            touch(g);
+            legacyGrid = true;
+          }
+          value = base;
         }
       }
       string stored = trim(unit), widget = trim(unitOf(it));

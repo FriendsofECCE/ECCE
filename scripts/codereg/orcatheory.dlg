@@ -26,6 +26,11 @@ list DISPCAT = SCF|DFT
 box label="Dispersion" cols=1 when="category in @DISPCAT"
 combo name=ES.Theory.SCF.Dispersion label="Correction:" choices="None|D3BJ|D3(0)|D4" default=None export=1
 
+# ai.orca writes DEFGRID1/2/3 as its own keyword; ORCA's DefGridN sets the DFT
+# and the COSX grid together.  Default writes nothing.
+box label="Integration Grid" cols=1 when="category==DFT"
+combo name=ES.Theory.DFT.Grid label="Grid:" choices="Default|DefGrid1|DefGrid2|DefGrid3" default=Default export=1
+
 box label="Solvation" cols=2
 check name=ES.Theory.SCF.UseSolvation label=" Use implicit solvation" default=0 export=1
 combo name=ES.Theory.SCF.SolvationModel label="Model:" choices="CPCM|SMD" default=CPCM export=1 enable_if="ES.Theory.SCF.UseSolvation==1"

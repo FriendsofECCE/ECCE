@@ -288,6 +288,17 @@ guess, which saves SCF iterations and helps difficult cases converge.
 The orbitals are a binary file of a few megabytes, copied to the machine
 that runs the job.
 
+## Integration grid (ORCA)
+
+In **Theory Details...** of an ORCA **DFT** calculation, **Grid:** sets the
+numerical integration grid. **Default** leaves ORCA's own choice. **DefGrid1**,
+**DefGrid2** and **DefGrid3** write `DEFGRID1`, `DEFGRID2` or `DEFGRID3` in the
+`!` line; each step is a finer grid and a slower calculation. ORCA's DefGrid
+setting applies to the DFT grid and, with **Use RIJCOSX**, to the exchange grid
+as well. Use a finer grid when the result seems to depend on how the molecule
+is oriented, or for functionals such as the meta-GGAs that are sensitive to
+the grid.
+
 ## Geometry optimisation settings (ORCA)
 
 In **Runtype Details...** of an ORCA **Geometry** or **GeoVib** calculation:

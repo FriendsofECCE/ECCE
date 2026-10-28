@@ -270,6 +270,18 @@ SKIP_DIALOGS = {}
 # ---------------------------------------------------------------------------
 RESTORE_CASES = [
     dict(
+        name="orca-legacy-grid-in-functional",
+        script="orcatheory.py", category="DFT", theory="RDFT",
+        changes={"ES.Theory.DFT.XCFunctionals": ("PBE0 DEFGRID3 D3BJ", None)},
+        expect={"ES.Theory.DFT.XCFunctionals": {"value": "PBE0"},
+                "ES.Theory.DFT.Grid": {"value": "DefGrid3"},
+                "ES.Theory.SCF.Dispersion": {"value": "D3BJ"}},
+        why="""
+            #644.  A grid keyword left in the functional name must become the
+            Grid choice, not a lost or garbled functional.
+        """),
+
+    dict(
         name="orca-legacy-dispersion-in-functional",
         script="orcatheory.py", category="DFT", theory="RDFT",
         changes={"ES.Theory.DFT.XCFunctionals": ("PBE0 D3BJ", None)},
