@@ -167,8 +167,9 @@ jobs:
     name: GUI apps (build, install, Xvfb)
     runs-on: ubuntu-24.04
     # Bounded so a hung job cannot hold a runner slot for GitHub's
-    # 6-hour default; see the concurrency note above.
-    timeout-minutes: 50
+    # 6-hour default; see the concurrency note above.  A normal run takes
+    # 45-50 min, so 50 cancelled healthy runs.
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
 
