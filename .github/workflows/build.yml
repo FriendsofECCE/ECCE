@@ -53,6 +53,12 @@ on:
         description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos, windows); empty runs all"
         required: false
         default: ""
+      macos_arch:
+        description: "Architecture for the macOS job"
+        type: choice
+        options: [all, arm64, x86_64]
+        required: false
+        default: all
 
 # One run per branch.  Without this every push starts a full run and none
 # of them cancel the older ones, so a run of quick pushes leaves a dozen
@@ -333,10 +339,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { os: macos-latest, arch: arm64, target: "11.0", experimental: false }
-          # Catalina: the oldest macOS many 2012-2014 Intel Macs can run.
-          - { os: macos-15-intel, arch: x86_64, target: "10.15", experimental: true }
+        # Catalina is the oldest macOS many 2012-2014 Intel Macs can run.
+        include: ${{ fromJSON(inputs.macos_arch == 'arm64' && '[{"os":"macos-latest","arch":"arm64","target":"11.0","experimental":false}]' || inputs.macos_arch == 'x86_64' && '[{"os":"macos-15-intel","arch":"x86_64","target":"10.15","experimental":true}]' || '[{"os":"macos-latest","arch":"arm64","target":"11.0","experimental":false},{"os":"macos-15-intel","arch":"x86_64","target":"10.15","experimental":true}]') }}
     env:
       # Oldest macOS the app is built for (#133).  Our code and every
       # bundled library are built to this; the minimum-macOS step fails
