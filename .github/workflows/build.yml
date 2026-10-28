@@ -457,6 +457,15 @@ jobs:
           export PATH="$ECCE_DEPS/bin:$PATH"
           packaging/macos/make-app.sh stage dist
 
+      # Publish the client as soon as packaging succeeds, before long optional
+      # smoke tests, so it is available for visual checks.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ECCE-macos-dmg-${{ matrix.arch }}
+          path: dist/*.dmg
+          if-no-files-found: ignore
+
       # ECCE.app runs from wherever it is put (#133): no installed script
       # may name the runner's build tree or library prefix.
       - name: No build paths in ECCE.app
@@ -558,15 +567,6 @@ jobs:
       - name: Summary on failure
         if: failure()
         run: echo '### macOS packaging FAILED (see the failed step above)' >> "$GITHUB_STEP_SUMMARY"
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ECCE-macos-dmg-${{ matrix.arch }}
-          path: |
-            dist/*.dmg
-            minos/minos.txt
-          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         if: always()
