@@ -114,10 +114,13 @@ runs in the no-build CI job. `ECCE_TEST_SYMOPS` points at it elsewhere.
 
 ## The C++ autosym migration target
 
-`src/apps/symmetry/autosym.cpp` is an independently buildable C++ detector.
-The established Fortran `autosym` remains the normal executable while the
-remaining point-group classification and principal-axis output are ported.
-Build the migration target and run the same threshold checks against it with:
+`src/apps/symmetry/autosym.cpp` is an independently buildable C++ port of the
+`HND_AUTSYM`, `HND_MOLINR`, `HND_MOLAXS`, and `HND_MOLOPS` workflow, including
+the mass table, inertia classification, axis tests, and point-group
+conditions. It currently preserves input coordinates; standard-orientation
+output remains with the established Fortran `autosym`, which is still the
+normal executable. Build the migration target and run the same threshold
+checks against it with:
 
 ```sh
 cmake --build build-cmake --target autosym_cpp
