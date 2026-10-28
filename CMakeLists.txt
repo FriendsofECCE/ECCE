@@ -916,6 +916,11 @@ install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker-setup
         DESTINATION bin
         COMPONENT client)
+# Ubuntu 26.04's mosquitto AppArmor profile (#646); run by the client's
+# maintainer scripts.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-apparmor-mosquitto
+        DESTINATION bin
+        COMPONENT client)
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker-run
         DESTINATION bin
         COMPONENT server)
@@ -1739,16 +1744,18 @@ file(WRITE ${_ecce_conffiles_debian} "${_ecce_conffiles_content}")
 # touch a conffile): the admin converts with `sudo ecce-csh2sh --convert --siteconfig`.
 configure_file(${CMAKE_SOURCE_DIR}/packaging/postinst.in
                ${CMAKE_BINARY_DIR}/conffiles/postinst @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/packaging/prerm.in
+               ${CMAKE_BINARY_DIR}/conffiles/prerm @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/packaging/rpm-post.sh.in
                ${CMAKE_BINARY_DIR}/conffiles/rpm-post.sh @ONLY)
 set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION TRUE)
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
-    "${_ecce_conffiles_debian};${CMAKE_BINARY_DIR}/conffiles/postinst")
+    "${_ecce_conffiles_debian};${CMAKE_BINARY_DIR}/conffiles/postinst;${CMAKE_BINARY_DIR}/conffiles/prerm")
 set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE ${CMAKE_BINARY_DIR}/conffiles/rpm-post.sh)
 set(CPACK_RPM_USER_FILELIST "${_ecce_rpm_filelist}")
 # siteconfig/ is all client-side, so under the split it goes with ecce-client.
 set(CPACK_DEBIAN_CLIENT_PACKAGE_CONTROL_EXTRA
-    "${_ecce_conffiles_debian};${CMAKE_BINARY_DIR}/conffiles/postinst")
+    "${_ecce_conffiles_debian};${CMAKE_BINARY_DIR}/conffiles/postinst;${CMAKE_BINARY_DIR}/conffiles/prerm")
 set(CPACK_RPM_CLIENT_POST_INSTALL_SCRIPT_FILE ${CMAKE_BINARY_DIR}/conffiles/rpm-post.sh)
 set(CPACK_RPM_CLIENT_USER_FILELIST "${_ecce_rpm_filelist}")
 

@@ -252,3 +252,22 @@ jobs:
           for f in "$STATE"/*.log "$STATE"/dataserver/logs/error_log; do
             [ -f "$f" ] && { echo "=== $f"; tail -50 "$f"; }
           done || true
+
+  # Ubuntu 26.04 confines /usr/sbin/mosquitto with an AppArmor profile that
+  # stops ECCE's per-user broker (#646).  Needs a runner where AppArmor is
+  # active, so no container; fails first without the block, then passes with it.
+  apparmor:
+    name: Mosquitto AppArmor profile (26.04)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mosquitto
+        run: sudo apt-get update && sudo apt-get install -y mosquitto mosquitto-clients apparmor-utils
+
+      - name: Block script unit check
+        run: tests/apparmor/run_tests.sh
+
+      - name: Broker under the profile, without and with the block
+        run: tests/apparmor/live_broker.sh

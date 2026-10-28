@@ -28,6 +28,13 @@ in the dependencies itself. `ecce-client` depends on `perl`, `xterm`,
 server needs only `ecce-client`; apt recommends `ecce-server` and
 `mosquitto` with it, and `--no-install-recommends` leaves them out.
 
+On Ubuntu 26.04 the `mosquitto` package confines the broker with an
+AppArmor profile. Installing `ecce-client` adds ECCE's rules to
+`/etc/apparmor.d/local/mosquitto` (between `# BEGIN ECCE` and `# END ECCE`
+lines; your own lines there are kept) and reloads the profile; removing the
+package takes the block out again. If you install `mosquitto` after ECCE,
+run `sudo /opt/ecce/bin/ecce-apparmor-mosquitto install`.
+
 On RHEL, Rocky or Fedora, `sudo dnf install ./ecce-client-<version>.x86_64.rpm
 ./ecce-server-<version>.x86_64.rpm`; on RHEL and Rocky run `sudo dnf install
 epel-release` first, since Mosquitto and Coin3D (`Coin4`) come from EPEL. The

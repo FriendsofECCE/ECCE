@@ -1,0 +1,71 @@
+#!/bin/sh
+# ecce-apparmor-mosquitto install|remove
+#
+# Ubuntu 26.04's mosquitto package confines /usr/sbin/mosquitto to the
+# system service's files, which stops ECCE's per-user broker (config, log
+# and Unix socket under ~/.ECCE) and the shared broker.  The profile ends
+# with `include if exists <local/mosquitto>`, so ECCE adds a marked block
+# there and leaves the site's own lines alone.  Run by the ecce-client
+# maintainer scripts; a failure must never fail the (un)install.
+#   ECCE_APPARMOR_DIR   default /etc/apparmor.d
+#   ECCE_HOME           where the broker plugin and ACL live (default: this tree)
+#   ECCE_APPARMOR_NORELOAD=1   edit the file only
+BEGIN='# BEGIN ECCE (ecce-client)'
+END='# END ECCE'
+DIR="${ECCE_APPARMOR_DIR:-/etc/apparmor.d}"
+LOCAL="$DIR/local/mosquitto"
+[ -n "${ECCE_HOME:-}" ] || ECCE_HOME="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)"
+
+block() {
+  cat <<EOB
+$BEGIN
+# Added by the ecce-client package; removed with it.
+owner @{HOME}/.ECCE/** rwk,
+owner @{run}/user/*/ecce-*/** rwk,
+owner /tmp/ecce-*/** rwk,
+unix type=stream,
+$ECCE_HOME/server/ecce_users_auth.so mr,
+$ECCE_HOME/server/mosquitto.acl r,
+/var/lib/ecce-broker/** rwk,
+/var/lib/private/ecce-broker/** rwk,
+$END
+EOB
+}
+
+strip() {   # the file without ECCE's block
+  awk -v b="$BEGIN" -v e="$END" '
+    $0 == b { skip = 1; next }
+    skip && $0 == e { skip = 0; next }
+    !skip { print }' "$1"
+}
+
+reload() {
+  [ -z "${ECCE_APPARMOR_NORELOAD:-}" ] || return 0
+  command -v apparmor_parser >/dev/null 2>&1 || return 0
+  if command -v aa-enabled >/dev/null 2>&1; then
+    aa-enabled -q >/dev/null 2>&1 || return 0
+  else
+    [ "$(cat /sys/module/apparmor/parameters/enabled 2>/dev/null)" = Y ] || return 0
+  fi
+  apparmor_parser -r "$DIR/mosquitto" 2>/dev/null || true
+}
+
+case "$1" in
+  install)
+    [ -f "$DIR/mosquitto" ] || exit 0
+    mkdir -p "$DIR/local" || exit 0
+    tmp="$LOCAL.ecce.$$"
+    { [ -f "$LOCAL" ] && strip "$LOCAL"; block; } >"$tmp" 2>/dev/null &&
+      { cmp -s "$tmp" "$LOCAL" 2>/dev/null || cat "$tmp" >"$LOCAL"; }
+    rm -f "$tmp"
+    reload ;;
+  remove)
+    [ -f "$LOCAL" ] || exit 0
+    tmp="$LOCAL.ecce.$$"
+    strip "$LOCAL" >"$tmp" 2>/dev/null &&
+      { if grep -q '[^[:space:]]' "$tmp"; then cat "$tmp" >"$LOCAL"; else rm -f "$LOCAL"; fi; }
+    rm -f "$tmp"
+    [ -f "$DIR/mosquitto" ] && reload ;;
+  *) echo "usage: ecce-apparmor-mosquitto install|remove" >&2; exit 2 ;;
+esac
+exit 0

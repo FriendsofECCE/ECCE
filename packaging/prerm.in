@@ -1,0 +1,12 @@
+#!/bin/sh
+# Takes ECCE's block out of the mosquitto AppArmor profile's local file on
+# removal (not on upgrade); the site's own lines stay.  Never fails.
+case "$1" in
+  remove|deconfigure)
+    ECCE_HOME=@ECCE_HOME_DIR@
+    if [ -x "$ECCE_HOME/bin/ecce-apparmor-mosquitto" ]; then
+      ECCE_HOME="$ECCE_HOME" "$ECCE_HOME/bin/ecce-apparmor-mosquitto" remove || true
+    fi
+    ;;
+esac
+exit 0
