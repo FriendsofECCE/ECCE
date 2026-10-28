@@ -255,10 +255,24 @@ class Cp2kTheoryPanel(EccePanel):
                                    hardRange="[1..)",
                                    softRange="[10..1000]",
                                    name="ES.Theory.GPW.MaxScf",
-                                   default=100,
+                                   default=30,
                                    label="Max. SCF Iterations:",
                                    export=1)
         scfSizer.AddWidget(self.maxScf)
+        self.outerScf = EcceCheckBox(self,
+                                     label=" Outer SCF loop (with OT)",
+                                     name="ES.Theory.GPW.OuterScf",
+                                     default=True,
+                                     export=1)
+        scfSizer.AddWidget(self.outerScf)
+        self.outerMaxScf = EcceSpinCtrl(self,
+                                        hardRange="[1..)",
+                                        softRange="[1..100]",
+                                        name="ES.Theory.GPW.OuterMaxScf",
+                                        default=10,
+                                        label="Max. outer cycles:",
+                                        export=1)
+        scfSizer.AddWidget(self.outerMaxScf)
         self.smearTemp = EcceFloatInput(self,
                                         unit="K",
                                         name="ES.Theory.GPW.SmearTemperature",
@@ -288,6 +302,8 @@ class Cp2kTheoryPanel(EccePanel):
         ot = self.useOT.GetValue()
         self.otMinimizer.Enable(ot)
         self.otPreconditioner.Enable(ot)
+        self.outerScf.Enable(ot)
+        self.outerMaxScf.Enable(ot and self.outerScf.GetValue())
         self.smearTemp.Enable(not ot)
 
         for el, orb, u in zip(self.hubbardEl, self.hubbardOrb,

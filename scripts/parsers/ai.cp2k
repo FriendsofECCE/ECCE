@@ -457,6 +457,14 @@ sub scfLines {
     push(@l, "  &OT", "    PRECONDITIONER $pre", "    MINIMIZER $min");
     push(@l, "    LINESEARCH 2PNT") if ($min eq "CG");
     push(@l, "  &END OT");
+    # A short inner OT loop wrapped in outer cycles converges cases where one
+    # long OT loop stalls; the outer threshold follows the inner one.
+    if (&flag("ES.Theory.GPW.OuterScf", 1)) {
+      push(@l, "  &OUTER_SCF",
+               "    MAX_SCF " . &intOr("ES.Theory.GPW.OuterMaxScf", 10),
+               "    EPS_SCF " . &numOr("ES.Theory.GPW.EpsScf", "1.0E-6"),
+               "  &END OUTER_SCF");
+    }
   } else {
     my $temp = &numOr("ES.Theory.GPW.SmearTemperature", "0");
     push(@l, "  ADDED_MOS 20") if ($temp + 0 > 0);

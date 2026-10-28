@@ -294,6 +294,20 @@ def deck_tests():
           and "EPS_SCF 1e-8" in scf and "MAX_SCF 77" in scf, "OT with CG, FULL_ALL, EPS_SCF 1e-8, MAX_SCF 77")
     check(cp2k_check(text) in (True, None), "  cp2k --check accepts it")
 
+    print("outer SCF loop")
+    text, _, _ = deck(SI, "Energy", CHEAP + ["ES.Theory.GPW.MaxScf: 30", "ES.Theory.GPW.EpsScf: 1e-7"])
+    scf = section(text, "SCF")
+    outer = section(scf, "OUTER_SCF")
+    check("&OT" in scf and "MAX_SCF 10" in outer and "EPS_SCF 1e-7" in outer,
+          "OT: &OUTER_SCF with MAX_SCF 10 and the inner EPS_SCF by default")
+    check(cp2k_check(text) in (True, None), "  cp2k --check accepts it")
+    text, _, _ = deck(SI, "Energy", CHEAP + ["ES.Theory.GPW.OuterMaxScf: 4"])
+    check("MAX_SCF 4" in section(section(text, "SCF"), "OUTER_SCF"), "outer MAX_SCF follows the dialog")
+    text, _, _ = deck(SI, "Energy", CHEAP + ["ES.Theory.GPW.UseOT: 0", "ES.Theory.GPW.OuterScf: 1"])
+    check("OUTER_SCF" not in text, "diagonalisation: no &OUTER_SCF")
+    text, _, _ = deck(SI, "Energy", CHEAP + ["ES.Theory.GPW.OuterScf: 0"])
+    check("OUTER_SCF" not in text and "&OT" in section(text, "SCF"), "outer loop turned off: none written")
+
     print("a geometry optimisation deck")
     text, _, rc = deck(NIO, "Geometry", CHEAP + ["ES.Runtype.GPW.MaxIter: 7",
                                                   "ES.Runtype.GPW.Optimizer: LBFGS",
