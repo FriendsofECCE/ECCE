@@ -298,6 +298,21 @@ class Cp2kTheoryPanel(EccePanel):
                 "structure."
                 % (len(basis), len(pot)))
 
+    def OnChanges(self, event):
+        # OT restarts in the outer loop, so 30 inner cycles suit it;
+        # diagonalisation (metals, smearing) needs more.  Only a click on OT
+        # swaps the limit, and only from the other method's default.
+        if event is not None and event.GetEventObject() is self.useOT:
+            try:
+                n = int(self.maxScf.GetValue())
+            except (TypeError, ValueError):
+                n = None
+            if self.useOT.GetValue() and n == 100:
+                self.maxScf.SetValue(30)
+            elif not self.useOT.GetValue() and n == 30:
+                self.maxScf.SetValue(100)
+        EccePanel.OnChanges(self, event)
+
     def CheckDependency(self):
         ot = self.useOT.GetValue()
         self.otMinimizer.Enable(ot)
