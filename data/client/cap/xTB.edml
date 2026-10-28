@@ -25,13 +25,13 @@
 
 <SupportsConstraints>false</SupportsConstraints>
 
-<!-- xtb's orbitals (--molden) are in a Cartesian, non-orthonormal STO-nG
-     basis; the coefficients are rewritten by xtb.mo so that ECCE's own
-     normalisation of d (all six like xx) applies.  Checked as
+<!-- xtb's orbitals (the molden option) are in a Cartesian, non-orthonormal STO-nG
+     basis; each Cartesian d component is unit-normalised (Gaussian's
+     convention, hence componentNormalized).  Checked as
      trace(P.S) = N electrons (tests/parsers/xtb_trace_ps_test.py). -->
 <SphericalCoordinates>False</SphericalCoordinates>
 
-<MOOrdering type="cartesian" >
+<MOOrdering type="cartesian" componentNormalized="true">
    <lshell lval="0" a1="1"></lshell>
    <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
    <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz"

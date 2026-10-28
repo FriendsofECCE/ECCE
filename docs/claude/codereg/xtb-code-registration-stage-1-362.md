@@ -48,12 +48,15 @@ runtypes Energy and Geometry.
 - The file's conventions, found by building an independent overlap matrix
   (`tests/parsers/xtb_trace_ps_test.py`, trace(P.S) = N, C'SC = 1):
   coefficients are for **unnormalised** primitives; d is **Cartesian**
-  (no `[5D]`), order xx yy zz xy xz yz, with xy/xz/yz unit-normalised, so
-  `xtb.mo` multiplies those three columns by sqrt(3) (ECCE normalises every
-  Cartesian d like xx); p is x y z. UHF gives ONE set with fractional
+  (no `[5D]`), order xx yy zz xy xz yz, each component unit-normalised, which
+  is Gaussian's convention: `xTB.edml` sets `componentNormalized="true"` on
+  its cartesian MOOrdering and `BasisFlatten::getoddNormalize` applies the
+  sqrt(3); p is x y z. UHF gives ONE set with fractional
   occupations (no beta).
 - A GFN-FF run has no molden file and nothing is stored.
-- Still open: no ECCE code turns `GTOBASIS` into a `TGBSConfig` yet
-  (`ICalcUtils::slaterBasisConfig` only knows `SLATERBASIS`, and `MoAoBasis`
-  treats that fallback as orthonormal), so 3-D orbitals and the MO diagram
-  for xtb need that consumer.
+- `ICalcUtils::slaterBasisConfig` falls back to `GTOBASIS`
+  (`gtoBasisConfig`, primitive-norm factor so NORMP cancels) and reports
+  `orthonormal=false` for it; only MOPAC's `SLATERBASIS` is orthonormal
+  (`MoAoBasis` uses that flag). `tests/basisflatten/run_xtb_tests.py` gives
+  trace(P.S) = N through the C++ (needs a build tree with this change).
+- Never write `--` in an XML comment in an .edml: the parse aborts the code.

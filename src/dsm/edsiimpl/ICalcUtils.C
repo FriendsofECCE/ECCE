@@ -10,6 +10,7 @@
 // SEE ALSO:
 //    
 ///////////////////////////////////////////////////////////////////////////////
+#include <cmath>
 #include <set>
 #include <stdio.h>
 
@@ -710,12 +711,72 @@ void ICalcUtils::importECPContractions(istream& infile,
  * with different exponents means this has been misread, and the right
  * answer then is to render nothing.
  */
-TGBSConfig* ICalcUtils::slaterBasisConfig(IPropCalculation* calc)
+//  xtb's explicit basis (GTOBASIS: Z, l, exponent, coefficient for an
+//  unnormalised primitive, shell number; five numbers per primitive), as the
+//  NumericalBasis text importConfig() reads.  The coefficient is multiplied
+//  by the primitive's norm for the same reason as in SlaterBasisSet.
+TGBSConfig* ICalcUtils::gtoBasisConfig(const vector<double>& rows)
 {
+  const int n = rows.size()/5;
+  if (n <= 0 || rows.size() != (size_t)n*5) return (TGBSConfig*)0;
+  #define GV(r, c) rows[(r)*5 + (c)]
+
+  std::ostringstream os;
+  os << "NumericalBasis" << endl;
+  os << "basis \"ao basis\" print" << endl;
+  const char labels[] = "SPDFG";
+  int i = 0;
+  while (i < n) {
+    const int z = (int)(GV(i, 0) + 0.5);
+    const int l = (int)(GV(i, 1) + 0.5);
+    const int shell = (int)(GV(i, 4) + 0.5);
+    if (z < 1 || l < 0 || l > 4) return (TGBSConfig*)0;
+    TAtm atom((short)z);
+    if (atom.atomicSymbol().empty()) return (TGBSConfig*)0;
+    os << atom.atomicSymbol() << "    " << labels[l] << endl;
+    while (i < n && (int)(GV(i, 0) + 0.5) == z &&
+           (int)(GV(i, 4) + 0.5) == shell) {
+      const double a = GV(i, 2);
+      double dfact = 1.0;
+      for (int k = 1; k <= l; k++) dfact *= (2.0*k - 1.0)/2.0;
+      const double ee = 2.0*a;
+      const double norm = sqrt(dfact*pow(3.14159265358979323846, 1.5)/
+                               (ee*sqrt(ee)*pow(ee, l)));
+      char buf[100];
+      snprintf(buf, sizeof(buf), "%23.12f%23.12f", a, GV(i, 3)*norm);
+      os << buf << endl;
+      i++;
+    }
+  }
+  #undef GV
+  os << "END" << endl << "EndNumericalBasis" << endl;
+
+  std::istringstream in(os.str());
+  TGBSConfig* config = importConfig(in);
+  if (config != 0 && config->empty()) {
+    delete config;
+    config = (TGBSConfig*)0;
+  }
+  return config;
+}
+
+TGBSConfig* ICalcUtils::slaterBasisConfig(IPropCalculation* calc,
+                                          bool* orthonormal)
+{
+  if (orthonormal != 0) *orthonormal = false;
   if (calc == 0) return (TGBSConfig*)0;
 
   PropTable* slater = (PropTable*)calc->getProperty("SLATERBASIS");
-  if (slater == 0) return (TGBSConfig*)0;
+  if (slater == 0) {
+    //  xtb: a real, non-orthonormal Gaussian basis.
+    PropTable* gto = (PropTable*)calc->getProperty("GTOBASIS");
+    if (gto == 0 || gto->columns() != 5) return (TGBSConfig*)0;
+    vector<double> rows;
+    for (int r = 0; r < gto->rows(); r++)
+      for (int c = 0; c < 5; c++) rows.push_back(gto->value(r, c));
+    return gtoBasisConfig(rows);
+  }
+  if (orthonormal != 0) *orthonormal = true;
 
   const int numAtoms = slater->rows();
   if (numAtoms <= 0 || slater->columns() != 4) return (TGBSConfig*)0;

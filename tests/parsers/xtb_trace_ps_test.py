@@ -5,8 +5,8 @@ The Molden files in fixtures/xtb are real xtb 6.7.1 --molden output (water,
 methane, SO2 for the d functions).  What ECCE would see is what xtb.mo
 prints (MO, ORBOCC, GTOBASIS), so that is what is checked: the overlap
 matrix is built here, independently of ECCE and of xtb, from the primitives
-of GTOBASIS (unnormalised, with every Cartesian d treated like xx as ECCE's
-NORMP/NORMF do) in the order xtb.mo promises (atoms in order, shells by l;
+of GTOBASIS (unnormalised primitives, off-axis Cartesian components scaled
+as ECCE's componentNormalized does) in the order xtb.mo promises (atoms in order, shells by l;
 p = x y z, d = xx yy zz xy xz yz), and the density matrix from the parsed
 MOs.  A wrong order or normalisation gives a trace that is not N and
 orbitals with c'Sc != 1.  Needs numpy only.
@@ -92,7 +92,11 @@ def ao_list(atoms, gto):
             kind = 'spd'[int(sh[0, 1])]
             prims = [(row[2], row[3]) for row in sh]
             for pw in PWR[kind]:
-                aos.append((np.array(xyz), pw, prims))
+                # componentNormalized: ECCE scales off-axis Cartesian
+                # components by sqrt((2L-1)!!/prod (2a-1)!!) (BasisAngularNorm.C).
+                f = math.sqrt(dfact(2 * sum(pw) - 1) / math.prod(
+                    dfact(2 * k - 1) for k in pw))
+                aos.append((np.array(xyz), pw, [(e, c * f) for e, c in prims]))
     return aos
 
 

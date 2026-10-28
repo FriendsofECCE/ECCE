@@ -11,9 +11,8 @@
 #   * the basis is NOT orthonormal (STO-nG expansions of xtb's Slater basis),
 #     which is why the MO diagram works for xtb and not for MOPAC;
 #   * s, p are x y z; d is CARTESIAN (6 functions, no [5D] flag) in the order
-#     xx yy zz xy xz yz, and xy/xz/yz are unit-normalised.  ECCE normalises
-#     every Cartesian d like xx, so those three columns are multiplied by
-#     sqrt(3) here (c' * xy = c * sqrt(3) * xy).
+#     xx yy zz xy xz yz, and xy/xz/yz are unit-normalised: Gaussian's
+#     convention, which xTB.edml selects with componentNormalized="true".
 # Columns are put in ECCE's canonical order (atoms in order, shells of one
 # atom stably sorted by l), and MOAOORDER says so.
 ################################################################################
@@ -65,7 +64,7 @@ for (my $i = 0; $i <= $#lines; $i++) {
 exit(0) if (!@mo || !@atomZ);
 
 # Column permutation: molden order -> canonical (stable by l within an atom),
-# with the d scaling.
+# (no value scaling: see above).
 my (@perm, @scale);
 my $col = 0;
 for my $at (0 .. $#atomShells) {
@@ -79,7 +78,7 @@ for my $at (0 .. $#atomShells) {
     my $k = 0;
     foreach my $c (@{$s->[1]}) {
       push(@perm, $c);
-      push(@scale, ($s->[2] eq "d" && $k >= 3) ? $SQ3 : 1.0);
+      push(@scale, 1.0);
       $k++;
     }
   }
