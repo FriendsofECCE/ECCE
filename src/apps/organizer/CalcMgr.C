@@ -8679,8 +8679,10 @@ void CalcMgr::contactChanged(const EcceURL & url)
   if (node) p_treeCtrl->refreshState(node);
   CalculationContextPanel *panel =
       dynamic_cast<CalculationContextPanel*>(p_contextPanel);
-  if (panel && progressKey(panel->getUrl()) == key)
+  if (panel && progressKey(panel->getUrl()) == key) {
     panel->updateProgress();
+    panel->updateLaunchInfo();
+  }
   if (ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel))
     table->updateProgress(url);
 }
@@ -9229,6 +9231,20 @@ void CalcMgr::updateSelectionMenus()
         ResourceDescriptor::RUNSTATE state = ResourceUtils::stringToState(
                     itemData->getResource()->getProp(
                         VDoc::getEcceNamespace() + ":state"));
+        //  A queued job shows why it waits and when it may start (#641).
+        if (state == ResourceDescriptor::STATE_SUBMITTED) {
+          const string wait = itemData->getResource()->getProp(
+                                  VDoc::getEcceNamespace() + ":queueWait");
+          if (!wait.empty()) {
+            shownNow = true;
+            const string key = itemData->getResource()->getURL().toString()
+                               + "\n" + wait;
+            if (key != lastShown) {
+              lastShown = key;
+              setMessage(wait, WxFeedback::INFO);
+            }
+          }
+        }
         //  A Ready calculation carries a reason only after a failed submit.
         if (state == ResourceDescriptor::STATE_READY ||
             state == ResourceDescriptor::STATE_UNSUCCESSFUL ||

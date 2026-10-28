@@ -53,6 +53,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
      * appears, disappears or changes size.
      */
     void updateProgress();
+    void updateLaunchInfo() { refreshLaunchInfo(); }   // queue wait (#641)
 
     /** The Progress box, for tests; null if this calculation has none. */
     ProgressBox *getProgressBox() const { return p_progressBox; }

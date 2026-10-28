@@ -38,6 +38,7 @@ namespace LaunchInfoRows
         std::string coreHours;    // coreHoursText(), or ""
         std::string allocation;
         std::string allocationRemaining;   // snapshot at submission, or ""
+        std::string queueWait;    // why a Submitted job waits (#641), or ""
         Input() : processors(0) {}
     };
 
@@ -88,6 +89,7 @@ namespace LaunchInfoRows
         add(c.left, "Queue:", in.queue);
         add(c.left, "Job ID:",
             showJobId(in.jobId, in.queue) ? in.jobId : std::string());
+        add(c.left, "Queue state:", in.queueWait);
         add(c.right, "Start Date:", in.startDate);
         add(c.right, "Comp. Date:", in.completionDate);
         add(c.right, "Cost:", in.coreHours);

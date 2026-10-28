@@ -72,6 +72,7 @@
 #include "comm/JobParser.H"
 #include "comm/JobFailureReason.H"
 #include "comm/JobLogDates.H"
+#include "comm/QueueWait.H"
 #include "util/WaitingJobs.H"
 
 
@@ -115,6 +116,7 @@ void cleanup(int exitStatus);
 string unsuccessfulReason(int status);
 string gensubLogReason(const string& outputFilePath);
 void recordStatusReason(const string& reason);
+void queueWaitStore(const string& text);
 void configRead(const string& fileName);
 void envRead(void);
 void fail(const char* name, const string& msg);
@@ -639,6 +641,9 @@ void calcUpdateState(ResourceDescriptor::RUNSTATE state)
   // update if the calc resource itself never loaded.
   if (!calculation || gReparse) return;
 
+  if (state != ResourceDescriptor::STATE_SUBMITTED)
+    queueWaitStore("");
+
   if (state < ResourceDescriptor::STATE_COMPLETED) {
     // Only the first "running" is the start: a restarted monitor reports
     // running again, which must not move the start to the restart (#463).
@@ -699,6 +704,24 @@ string gensubLogReason(const string& outputFilePath)
 // themselves are announced, so a lamp-only "incomplete"/"failed" icon
 // isn't the only place the reason can be seen.
 // ------------------------------------------------------------------------- //
+// Shown while the calculation is Submitted; cleared when it starts (#641).
+void queueWaitStore(const string& text)
+{
+  if (!calculation || gReparse) return;
+  const string key = VDoc::getEcceNamespace() + ":queueWait";
+  if (calculation->getProp(key) == text) return;
+  vector<MetaDataResult> results(1);
+  results[0].name = key;
+  results[0].value = text;
+  try {
+    calculation->addProps(results);
+    calculation->notifyProperty("queueWait", text);
+  } catch (DavException& ex) {
+    logErr("DAV Server", string("storing the queue wait: ") + ex.what());
+  }
+}
+
+
 void recordStatusReason(const string& reason)
 {
   if (gReparse) return;
@@ -2475,8 +2498,15 @@ void interactUp(char* upData)
 {
   string msg = firstToken(upData);
 
+  const string second = nextToken();
+  if (second == "queue") {
+    // Why the pending job waits (#641); the monitor sends it on a change.
+    const char *value = nextToken();
+    queueWaitStore(QueueWait::text(value ? value : ""));
+    return;
+  }
   msg += ": job monitor running on ";
-  msg += nextToken();
+  msg += second;
 
   logMessage("eccejobmonitor", msg);
 
@@ -2565,6 +2595,7 @@ void interactStatus(char* statusData)
       calcUpdateState(ResourceDescriptor::STATE_COMPLETED);
     } else if (status == 301) {
       gUnsuccessfulStatus = 0;
+      queueWaitStore("");
       calcUpdateState(ResourceDescriptor::STATE_RUNNING);
 
       // special STTR reaction rate study logic to reset the state of all

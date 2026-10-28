@@ -297,6 +297,10 @@ void CalculationContextPanel::refreshLaunchInfo()
     in.processors = launch.totalprocs;
     in.queue = launch.queue;
     in.jobId = job->jobdata().jobid;
+    if (ResourceUtils::stringToState(job->getProp(
+            VDoc::getEcceNamespace() + ":state")) ==
+        ResourceDescriptor::STATE_SUBMITTED)
+      in.queueWait = job->getProp(VDoc::getEcceNamespace() + ":queueWait");
     in.startDate = formatDateTime(job->startDate());
     in.completionDate = formatDateTime(job->completionDate());
     in.coreHours = launchCost(job, launch.totalprocs);

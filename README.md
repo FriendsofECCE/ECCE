@@ -44,6 +44,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.3
 
+- A Submitted Slurm job shows why it waits and its estimated start (message
+  area and the summary's Queue state row).
 - Details dialogs no longer show internal setting names as tooltips.
 - Density Map: zooming draws a coarse map at once and the full one when
   the wheel rests, without a dialog.

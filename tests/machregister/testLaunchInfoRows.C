@@ -25,6 +25,15 @@ static std::string labels(const std::vector<Row>& v)
 
 int main()
 {
+    {
+        Input w;
+        w.queue = "normal";
+        w.queueWait = "waiting: other jobs have priority";
+        Columns cw = build(w);
+        check(labels(cw.left) == "Queue: Queue state:", "queue wait row (#641)");
+        w.queueWait = "";
+        check(labels(build(w).left) == "Queue:", "no queue wait: no row");
+    }
     Input in;
     in.machine = "kebnekaise";
     in.processors = 28;

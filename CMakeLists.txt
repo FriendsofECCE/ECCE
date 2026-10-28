@@ -3683,6 +3683,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/slurm_cancel_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_slurm_cancel PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  # #641: a pending Slurm job's reason and start reach ECCE once per change.
+  add_test(NAME launch_slurm_pending
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/slurm_pending_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_slurm_pending PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
   add_test(NAME launch_machines
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/machines_test.py

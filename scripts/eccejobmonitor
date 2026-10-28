@@ -186,6 +186,7 @@ my $gSocketDead = 0;
 my $gWaitFileStatus = 1;
 my $gUpCount = 0;
 my $gUpFreq = 6;
+my $gQueueLast = '';			# last pending reason sent (#641)
 my $gUser = ($^O eq 'MSWin32') ? ($ENV{USERNAME} || $ENV{ECCE_REALUSER} || "") : getpwuid($<);
 
 # configuration parameters
@@ -2375,6 +2376,7 @@ sub JobCheck
                 elsif (grep {$state eq $_} qw{PENDING})
                 {
                     $status = $JOB_STATE_PENDING;
+                    &SlurmQueueSend($id);
                     last;
                 }
                 elsif (grep {$state eq $_} qw{COMPLETING
@@ -2407,6 +2409,7 @@ sub JobCheck
 				                elsif (grep {$state eq $_} qw{PENDING})
 				                {
 				                    $status = $JOB_STATE_PENDING;
+				                    &SlurmQueueSend($id);
 				                    last;
 				                }
 				                elsif (grep {$state eq $_} qw{COMPLETING
@@ -2476,6 +2479,30 @@ sub JobCheck
 # with the other outputs unless it is empty, or the job exited 0 and the file
 # is large.
 # --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# Why a pending Slurm job waits (#641): the reason and Slurm's estimated start
+# (UTC), sent to ECCE only when they change.  Sent as an "up" message with
+# the token "queue", which an older job store logs and ignores.
+# --------------------------------------------------------------------------- #
+
+
+sub SlurmQueueSend
+{
+    my($id) = @_;
+
+    return unless $gConfig{'monitoringMode'} eq 'live';
+    return unless (open(QUEUEQ, "TZ=UTC squeue -h -a -j $id -o '%r|%S' 2>/dev/null |"));
+    my $l = <QUEUEQ>;
+    close QUEUEQ;
+    return unless (defined($l) && $l =~ /^\s*(\S+?)\|(\S+)\s*$/);
+    my($reason, $start) = ($1, $2);
+    $start .= 'Z' if ($start =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/);
+    my $value = "$reason|$start";
+    return if ($value eq $gQueueLast);
+    $gQueueLast = $value;
+    &MsgSend(join $MSG_SEP, $MSG_TYPE_UP, scalar localtime, 'queue', $value);
+}
 
 # --------------------------------------------------------------------------- #
 # Slurm's end time for a finished job, kept as UTC ISO for the status
