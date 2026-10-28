@@ -49,6 +49,7 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Density Map: zooming draws a coarse map at once and the full one when
   the wheel rests, without a dialog.
 - Density Profile: the average around an atom computed in the background.
+- ORCA: an integration grid choice (DefGrid1/2/3) in Theory Details.
 
 ## First steps
 
