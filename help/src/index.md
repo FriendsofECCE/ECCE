@@ -119,6 +119,10 @@ describe what you did and what happened.
 26. [Launch Selected](launch-selected.md): submitting several calculations
    in one step, with their stored settings or on another machine.
 
+27. [Run states](run-states.md): what Created, Running, Completed,
+   Incomplete, Killed, Monitor Error, System Error and the other states
+   mean, and where the reason for an ended job is shown.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the
