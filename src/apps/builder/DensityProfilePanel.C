@@ -413,6 +413,7 @@ void DensityProfilePanel::build()
   fillQuantities();
   syncControls();
   recompute();
+  applySelection();
   Layout();
 }
 
@@ -555,6 +556,20 @@ void DensityProfilePanel::remember() const
   cfg->Flush();
 }
 
+struct DensityProfilePanel::AverageJob
+{
+  std::atomic<bool> cancel{false};
+  std::atomic<bool> userCancelled{false};
+  std::atomic<double> fraction{0.0};
+  bool ok = false;
+  std::vector<RadialDist::Curve> curves;
+  std::vector<double> axis;
+  std::vector<LineProfile::Mark> marks;
+  std::function<void(AverageJob&)> finish;
+  wxString message;
+  wxStopWatch clock;
+};
+
 void DensityProfilePanel::recompute()
 {
   if (!p_ok || p_busy) return;
@@ -572,7 +587,11 @@ void DensityProfilePanel::recompute()
   const bool like = densityLike();
   const int quantity = p_quantity->GetSelection();
   const bool bohrAuto = bohr;
-  if (p_autoActive && !atom && like && p_show->GetSelection() <= 1) rankLargest(bohrAuto);
+  if (p_autoActive && !atom && like && p_show->GetSelection() <= 1 && !p_ranked) {
+    startRanking(bohrAuto);
+    return;
+  }
+  p_ranked = false;
   const int showIdx = p_show->GetSelection();
   //  Density-like: 0 total + all, 1 total + selected, 2 selected, 3 total only.
   //  Otherwise: 0 selected, 1 all occupied.
@@ -599,10 +618,8 @@ void DensityProfilePanel::recompute()
     specs.push_back(t);
   }
 
-  std::vector<RadialDist::Curve> curves;
-  std::vector<double> axis;
-  RadialDist::Options asyncOpt;
-  double asyncCentre[3] = { 0, 0, 0 };
+  std::function<bool(AverageJob&)> work;
+  std::shared_ptr<DensityPlane::Evaluator> ev = p_eval;
   p_marks.clear();
   //  Short labels that name the quantity, so they fit a small plot.
   const wxString length = bohr ? wxString("bohr") : U("Å");
@@ -625,9 +642,12 @@ void DensityProfilePanel::recompute()
     //  On a cluster the average is slow: fewer directions there (#629).
     if (p_eval->symbols.size() * std::max<size_t>(1, specs.size()) > 1500)
       opt.lebedev = 110;
-    asyncOpt = opt;
-    std::copy(c, c + 3, asyncCentre);
-    axis = RadialDist::grid(opt);
+    const std::vector<double> centre(c, c + 3);
+    work = [ev, centre, opt, specs](AverageJob& job) {
+      job.axis = RadialDist::grid(opt);
+      return specs.empty() || RadialDist::compute(*ev, centre.data(), opt, specs, job.curves,
+          [&job](double f) { job.fraction = f; return !job.cancel.load(); });
+    };
     xLabel = "r (" + length + ")";
     yLabel = quantity == 0 ? U("r²ψ², radial distribution (") + length + U("⁻¹)")
                            : U("ψ², averaged over directions (") + perVol + ")";
@@ -642,21 +662,29 @@ void DensityProfilePanel::recompute()
     const LineProfile::Line line = LineProfile::throughAtoms(*p_eval, a, b, p_margin->GetValue(),
         p_shift->GetValue(),
         p_shiftDir->GetSelection() == 0);
-    LineProfile::Result r;
     const LineProfile::Quantity q = quantity == 2 ? LineProfile::PSI
         : quantity == 1 ? LineProfile::PSI2 : LineProfile::DENSITY;
-    if (!specs.empty()) LineProfile::compute(*p_eval, line, 801, bohr, q, specs, r);
-    curves = r.curves;
-    axis = r.s;
-    p_marks = r.marks;
+    work = [ev, line, bohr, q, specs](AverageJob& job) {
+      LineProfile::Result r;
+      if (!specs.empty() && !LineProfile::compute(*ev, line, 801, bohr, q, specs, r,
+            [&job](double f) { job.fraction = f; return !job.cancel.load(); }))
+        return false;
+      job.curves = r.curves;
+      job.axis = r.s;
+      job.marks = r.marks;
+      return true;
+    };
     xLabel = "position along the line (" + length + ")";
     yLabel = quantity == 2 ? U("ψ (") + length + U("⁻³/²)")
            : quantity == 1 ? U("ψ² (") + perVol + ")"
                            : U("density ρ (") + perVol + ")";
   }
 
-  //  The part that reads the curves runs after the worker for an atom.
-  auto finish = [=](std::vector<RadialDist::Curve>& curves) {
+  //  The part that reads the curves runs after the worker.
+  auto finish = [=](AverageJob& job) {
+  const std::vector<RadialDist::Curve>& curves = job.curves;
+  const std::vector<double>& axis = job.axis;
+  p_marks = job.marks;
   p_axis = axis;
   p_shown = curves;
   p_sumError = -1.0;
@@ -757,47 +785,29 @@ void DensityProfilePanel::recompute()
   p_text->SetValue(text);
   p_plot->Refresh();
   };
-  if (atom && !specs.empty()) {
-    startAverage(asyncCentre, asyncOpt, specs, finish);
-    return;
-  }
-  finish(curves);
+  startJob(atom ? "Averaging around the atom..." : "Computing along the line...", work, finish);
 }
-
-struct DensityProfilePanel::AverageJob
-{
-  std::atomic<bool> cancel{false};
-  std::atomic<bool> userCancelled{false};
-  std::atomic<double> fraction{0.0};
-  bool ok = false;
-  std::vector<RadialDist::Curve> curves;
-  std::function<void(std::vector<RadialDist::Curve>&)> finish;
-  wxStopWatch clock;
-};
 
 //  The worker gets copies and a shared evaluator and never touches the panel;
 //  the result comes back through the app's event queue.
-void DensityProfilePanel::startAverage(const double centre[3], const RadialDist::Options& opt,
-    const std::vector<RadialDist::Spec>& specs,
-    std::function<void(std::vector<RadialDist::Curve>&)> finish)
+void DensityProfilePanel::startJob(const wxString& message,
+    std::function<bool(AverageJob&)> work, std::function<void(AverageJob&)> finish)
 {
   cancelAverage();
   std::shared_ptr<AverageJob> job = std::make_shared<AverageJob>();
   job->finish = std::move(finish);
+  job->message = message;
   p_job = job;
-  p_text->SetValue("Averaging around the atom...");
+  p_text->SetValue(message);
   if (!p_timer) {
     p_timer.reset(new wxTimer(this));
     Bind(wxEVT_TIMER, &DensityProfilePanel::onTimer, this);
   }
   p_timer->Start(100);
-  std::shared_ptr<DensityPlane::Evaluator> ev = p_eval;
   std::shared_ptr<DensityProfilePanel*> alive = p_alive;
-  const std::vector<double> c(centre, centre + 3);
-  std::thread([job, ev, c, opt, specs, alive]() {
+  std::thread([job, work, alive]() {
     try {
-      job->ok = RadialDist::compute(*ev, c.data(), opt, specs, job->curves,
-          [&job](double f) { job->fraction = f; return !job->cancel.load(); });
+      job->ok = work(*job);
     } catch (...) {
       job->ok = false;
     }
@@ -823,15 +833,17 @@ void DensityProfilePanel::deliver(std::shared_ptr<DensityProfilePanel*> alive,
 void DensityProfilePanel::finishAverage(const std::shared_ptr<AverageJob>& job)
 {
   if (job != p_job) return;                        // superseded: never drawn
-  if (p_inProgressUpdate) {                        // the dialog is in the middle of Update
-    wxTheApp->CallAfter([alive = p_alive, job]() { deliver(alive, job); });
+  //  Inside the dialog's Update: kept for onTimer.  Re-posting it would be
+  //  handled again by the same Yield, round and round, and the GUI would hang.
+  if (p_inProgressUpdate) {
+    p_deferred = job;
     return;
   }
   p_job.reset();
   p_timer->Stop();
   p_progress.reset();
   if (job->ok) {
-    job->finish(job->curves);
+    job->finish(*job);
   } else if (job->userCancelled) {
     p_plot->clearCurves();
     p_plot->clearVLines();
@@ -845,59 +857,102 @@ void DensityProfilePanel::onTimer(wxTimerEvent&)
 {
   if (!p_job || p_inProgressUpdate) return;
   const double fraction = p_job->fraction;
+  //  Making and updating the dialog both yield; a result arriving then is
+  //  deferred to here (see finishAverage).
+  p_inProgressUpdate = true;
   if (!p_progress && p_job->clock.Time() > 500 && fraction < 0.7)
     p_progress.reset(new wxProgressDialog("Density Profile",
-        "Averaging around the atom...", 100, this,
+        p_job->message, 100, this,
         wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_REMAINING_TIME));
-  if (!p_progress) return;
-  p_inProgressUpdate = true;
-  const bool go = p_progress->Update((int)(100*fraction));
+  const bool go = !p_progress || p_progress->Update((int)(100*fraction));
   p_inProgressUpdate = false;
   if (!go && p_job) {
     p_job->userCancelled = true;
     p_job->cancel = true;
+  }
+  if (p_deferred) {
+    std::shared_ptr<AverageJob> done;
+    done.swap(p_deferred);
+    if (done->userCancelled) done->ok = false;
+    finishAverage(done);
+  } else if (!go) {
     p_timer->Stop();
   }
 }
 
-void DensityProfilePanel::waitForCompute()
+//  For the script hooks.  A nested event loop would run the next scene
+//  command, so the timer that drives the progress dialog is called here;
+//  cancelAfterMs presses the dialog's Cancel button as a user would.
+void DensityProfilePanel::waitForCompute(long cancelAfterMs)
 {
+  wxStopWatch clock, tick;
   while (p_job) {
     wxMilliSleep(5);
     if (wxTheApp) wxTheApp->ProcessPendingEvents();
+    if (p_job && p_timer && p_timer->IsRunning() && tick.Time() >= 100) {
+      tick.Start();
+      wxTimerEvent e;
+      onTimer(e);
+      if (p_progress) p_progressShown = true;
+    }
+    if (cancelAfterMs >= 0 && clock.Time() > cancelAfterMs && p_progress) {
+      cancelAfterMs = -1;
+      if (wxWindow *b = p_progress->FindWindow(wxID_CANCEL)) {
+        wxCommandEvent press(wxEVT_BUTTON, wxID_CANCEL);
+        press.SetEventObject(b);
+        b->GetEventHandler()->ProcessEvent(press);
+      }
+    }
   }
 }
 
 //  A molecule with many occupied orbitals: all of them in one plot is
-//  unreadable, so show the total and the few that contribute most along the line.
-void DensityProfilePanel::rankLargest(bool bohr)
+//  unreadable, so show the total and the few that contribute most along the
+//  line.  The ranking runs on the worker, then recompute() draws the result.
+void DensityProfilePanel::startRanking(bool bohr)
 {
   const int a = std::max(0, p_atomA->GetSelection()), b = std::max(0, p_atomB->GetSelection());
-  if (a == b) return;
   const RadialDist::Spin spin = !p_eval->unrestricted ? RadialDist::ALPHA
       : p_spin->GetSelection() == 0 ? RadialDist::ALPHA
       : p_spin->GetSelection() == 1 ? RadialDist::BETA : RadialDist::BOTH;
-  std::vector<RadialDist::Spec> specs = RadialDist::orbitalSpecs(
+  const std::vector<RadialDist::Spec> specs = RadialDist::orbitalSpecs(
       *p_eval, p_occupied, spin, true, false, tags(), tagsUnique());
   const LineProfile::Line line = LineProfile::throughAtoms(*p_eval, a, b, p_margin->GetValue(),
       p_shift->GetValue(), p_shiftDir->GetSelection() == 0);
-  LineProfile::Result r;
-  LineProfile::compute(*p_eval, line, 201, bohr, LineProfile::DENSITY, specs, r);
-  std::vector<std::pair<double, int> > rank;   // integral along the line, MO
-  for (size_t k = 0; k < r.curves.size() && k < p_occupied.size(); k++) {
-    double sum = 0;
-    for (size_t i = 1; i < r.s.size() && i < r.curves[k].p.size(); i++)
-      sum += 0.5 * (r.curves[k].p[i] + r.curves[k].p[i-1]) * (r.s[i] - r.s[i-1]);
-    rank.push_back(std::make_pair(sum, p_occupied[k]));
-  }
-  std::sort(rank.begin(), rank.end(), std::greater<std::pair<double, int> >());
-  for (unsigned i = 0; i < p_list->GetCount(); i++) p_list->Check(i, false);
-  const size_t keep = std::min<size_t>(AUTO_ORBITALS, rank.size());
-  for (size_t i = 0; i < keep; i++) p_list->Check((unsigned)rank[i].second - 1, true);
-  selectShow("totalselected");
-  p_autoNote = wxString::Format(
-      "Total and the %d largest contributions along the line (of %d occupied); "
-      "\"All occupied orbitals\" shows every one.\n", (int)keep, (int)p_occupied.size());
+  std::shared_ptr<DensityPlane::Evaluator> ev = p_eval;
+  const bool skip = a == b;
+  auto work = [ev, line, bohr, specs, skip](AverageJob& job) {
+    if (skip) return true;
+    LineProfile::Result r;
+    if (!LineProfile::compute(*ev, line, 201, bohr, LineProfile::DENSITY, specs, r,
+          [&job](double f) { job.fraction = f; return !job.cancel.load(); }))
+      return false;
+    job.curves = r.curves;
+    job.axis = r.s;
+    return true;
+  };
+  auto finish = [this, skip](AverageJob& job) {
+    if (!skip) {
+      std::vector<std::pair<double, int> > rank;   // integral along the line, MO
+      for (size_t k = 0; k < job.curves.size() && k < p_occupied.size(); k++) {
+        double sum = 0;
+        for (size_t i = 1; i < job.axis.size() && i < job.curves[k].p.size(); i++)
+          sum += 0.5 * (job.curves[k].p[i] + job.curves[k].p[i-1]) * (job.axis[i] - job.axis[i-1]);
+        rank.push_back(std::make_pair(sum, p_occupied[k]));
+      }
+      std::sort(rank.begin(), rank.end(), std::greater<std::pair<double, int> >());
+      for (unsigned i = 0; i < p_list->GetCount(); i++) p_list->Check(i, false);
+      const size_t keep = std::min<size_t>(AUTO_ORBITALS, rank.size());
+      for (size_t i = 0; i < keep; i++) p_list->Check((unsigned)rank[i].second - 1, true);
+      selectShow("totalselected");
+      p_autoNote = wxString::Format(
+          "Total and the %d largest contributions along the line (of %d occupied); "
+          "\"All occupied orbitals\" shows every one.\n", (int)keep, (int)p_occupied.size());
+    }
+    p_ranked = true;
+    recompute();
+  };
+  startJob("Computing along the line...", work, finish);
 }
 
 void DensityProfilePanel::onControl(wxCommandEvent& event)
@@ -947,6 +1002,12 @@ bool DensityProfilePanel::setAtoms(int a, int b)
 bool DensityProfilePanel::pickAtoms(const std::vector<int>& atoms)
 {
   ensureInitialized();
+  return applyPick(atoms);
+}
+
+//  Without ensureInitialized(): build() calls it through applySelection().
+bool DensityProfilePanel::applyPick(const std::vector<int>& atoms)
+{
   if (!p_ok || (atoms.size() != 1 && atoms.size() != 2)) return false;
   const int n = (int)p_eval->symbols.size();
   for (size_t i = 0; i < atoms.size(); i++)
@@ -983,8 +1044,14 @@ bool DensityProfilePanel::pickAtoms(const std::vector<int>& atoms)
 
 void DensityProfilePanel::eventMCB(const ecce::Event& event)
 {
-  if (event.getName() != "SelectionChanged" || !p_ok || !IsShown() || !p_vizfw)
-    return;
+  if (event.getName() != "SelectionChanged" || !IsShown()) return;
+  applySelection();
+}
+
+//  The viewer's selection, also one made before the panel opened.
+void DensityProfilePanel::applySelection()
+{
+  if (!p_ok || !p_vizfw) return;
   SGFragment *frag = getFW().getSceneGraph().getFragment();
   if (!frag) return;
   std::vector<int> picked;
@@ -994,7 +1061,7 @@ void DensityProfilePanel::eventMCB(const ecce::Event& event)
         frag->atomRef(a)->atomicSymbol() != "Nub")
       picked.push_back(a + 1);
   }
-  if (picked.size() == 1 || picked.size() == 2) pickAtoms(picked);
+  if (picked.size() == 1 || picked.size() == 2) applyPick(picked);
 }
 
 bool DensityProfilePanel::setMargin(double angstrom)
@@ -1199,6 +1266,9 @@ std::string DensityProfilePanel::state() const
   if (!p_ok) return "ok 0\n";
   std::string s = "ok 1\n";
   char buf[400];
+  snprintf(buf, sizeof buf, "progress %d\nstopped %d\n", p_progressShown ? 1 : 0,
+           p_text->GetValue().StartsWith("Stopped.") ? 1 : 0);
+  s += buf;
   snprintf(buf, sizeof buf, "mode %s\nquantity %d\nshow %d\nunit %s\ncurves %d\nmarks %d\nsumerror %.3e\n",
            p_mode->GetSelection() ? "atom" : "line", p_quantity->GetSelection(),
            p_show->GetSelection(), p_unit->GetSelection() ? "bohr" : "A",
@@ -1268,5 +1338,6 @@ void DensityProfilePanel::orbitalPointChanged()
   fillQuantities();
   syncControls();
   recompute();
+  applySelection();
   Layout();
 }

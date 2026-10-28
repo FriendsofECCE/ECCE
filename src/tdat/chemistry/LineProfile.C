@@ -72,7 +72,7 @@ Line throughAtoms(const DensityPlane::Evaluator& ev, int i, int j, double margin
 
 bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
              bool bohr, Quantity q, const vector<RadialDist::Spec>& specs,
-             Result& out)
+             Result& out, std::function<bool(double)> onStep)
 {
   points = max(2, points);
   double length = 0;
@@ -119,17 +119,20 @@ bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
     out.curves[k].spec = specs[k];
     out.curves[k].p.assign(points, 0.0);
   }
+  RadialDist::PointValues pv(ev, specs);
   for (int n = 0; n < points; n++) {
     const double t = ts[n];
     double x[3];
     for (int d = 0; d < 3; d++) x[d] = line.start[d] + t * (line.end[d] - line.start[d]);
     out.s[n] = (startS + t * length) / unitA;
+    pv.at(x[0], x[1], x[2]);
     for (size_t k = 0; k < specs.size(); k++) {
       double v;
-      if (q == PSI) v = RadialDist::amplitude(ev, specs[k], x[0], x[1], x[2]) * pow(BOHR_ANG / unitA, -1.5);
-      else v = RadialDist::value(ev, specs[k], x[0], x[1], x[2]) * pow(BOHR_ANG / unitA, -3.0);
+      if (q == PSI) v = pv.amplitude(specs[k]) * pow(BOHR_ANG / unitA, -1.5);
+      else v = pv.value(specs[k]) * pow(BOHR_ANG / unitA, -3.0);
       out.curves[k].p[n] = v;
     }
+    if (onStep && n % 16 == 15 && !onStep(double(n + 1) / points)) return false;
   }
   out.marks.clear();
   const int natoms = (int)ev.symbols.size();

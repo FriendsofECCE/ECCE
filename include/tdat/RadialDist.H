@@ -58,6 +58,26 @@ namespace RadialDist
   double amplitude(const DensityPlane::Evaluator& ev, const Spec& s,
                    double x, double y, double z);
 
+  /**
+   * value() and amplitude() of many specs at a point from one pass over the
+   * basis functions (a cluster has ~1000 of them), with the same numbers.
+   */
+  class PointValues
+  {
+    public:
+      PointValues(const DensityPlane::Evaluator& ev, const vector<Spec>& specs);
+      void at(double x, double y, double z);
+      double value(const Spec& s) const;
+      double amplitude(const Spec& s) const;
+    private:
+      double psi(int mo, bool beta) const;
+      const DensityPlane::Evaluator& p_ev;
+      vector<char> p_needA, p_needB;
+      bool p_wantRho;
+      vector<double> p_psiA, p_psiB, p_phi;
+      double p_rho;
+  };
+
   struct Curve
   {
     Spec           spec;

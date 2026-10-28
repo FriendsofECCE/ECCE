@@ -1,6 +1,7 @@
 #ifndef LINEPROFILE_HH
 #define LINEPROFILE_HH
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -53,11 +54,12 @@ namespace LineProfile
    * Sample `specs` at `points` positions, plus a fine run (0.004 Angstrom)
    * through each atom the line passes, where the density is sharpest.  PSI uses each spec's first
    * member, signed; PSI2 and DENSITY the weighted sum of |psi|^2 (the
-   * total density for a total spec).
+   * total density for a total spec).  onStep gets the fraction done and
+   * stops the run (false returned) when it returns false.
    */
   bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
                bool bohr, Quantity q, const vector<RadialDist::Spec>& specs,
-               Result& out);
+               Result& out, std::function<bool(double)> onStep = nullptr);
 
   /** "s,label,..." rows. */
   string csv(const Result& r, bool bohr);
