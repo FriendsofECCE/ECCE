@@ -748,7 +748,15 @@ sub FrozenCore {
 #      after the basis set description
 #
 ############################################################################## 
+#  The window and the SCRF Read sections share one template line, so an
+#  empty window adds no blank line before the SCRF section (see cleanup).
 sub OrbitalsToCorrelate {
+  my $result = &WindowSection(@_) . &SCRFInput();
+  $_ = $result;
+  return $result;
+}
+
+sub WindowSection {
   local($frozenCoreVal,$exclVirVal);
   local($type,$result);
   $result = "";
@@ -1320,10 +1328,11 @@ sub SCRFOptions {
     }
   
     # solvent/dielectric 
-    if ($AbiDict{"ES.Theory.SCF.Solvent"} eq "Manual") {
-      if (defined($AbiDict{"ES.Theory.SCF.Dielectric"})) {
-        $options .= "Dielectric=".$AbiDict{"ES.Theory.SCF.Dielectric"}."";
-      }
+    #  "Manual" is the old name of Custom.  Generic,Read takes Eps= and
+    #  EpsInf= from the input section that SCRFInput writes.
+    if ($AbiDict{"ES.Theory.SCF.Solvent"} eq "Custom" ||
+        $AbiDict{"ES.Theory.SCF.Solvent"} eq "Manual") {
+      $options .= "Solvent=Generic,Read";
     } elsif ($AbiDict{"ES.Theory.SCF.Solvent"} eq "") {
       $options .= "Solvent=water";
     } else {
@@ -1340,6 +1349,21 @@ sub SCRFOptions {
   }
 }
 
+
+# Eps and EpsInf (= n^2) of a Custom solvent, after the basis set section.
+sub SCRFInput {
+  my $result = "";
+  my $s = $AbiDict{"ES.Theory.SCF.Solvent"};
+  if ($AbiDict{"ES.Theory.SCF.UseSCRF"} && ($s eq "Custom" || $s eq "Manual")) {
+    my $eps = $AbiDict{"ES.Theory.SCF.Dielectric"};
+    my $n = $AbiDict{"ES.Theory.SCF.RefractiveIndex"};
+    $eps = 78.4 if ($eps eq "");
+    $n = 1.4 if ($n eq "");
+    $result = sprintf("Eps=%s\nEpsInf=%.6f\n", $eps, $n * $n);
+  }
+  $_ = $result;
+  return $result;
+}
 
 ########################################################################
 # analytic gradients, no hessian 
@@ -2291,6 +2315,16 @@ sub verifyGBSFile {
 ## Close input file and exit nicely.
 sub cleanup {
   close(NEWFILE);
+  #  Empty sections (a route-card basis, no frozen-core window) each leave
+  #  a blank line, and Gaussian ends the input at the second one, before
+  #  the SCRF=Read section ("Must specify Eps for generic solvent").
+  if (&SCRFInput() ne "" && open(my $in, "<", "tmpfile")) {
+    local $/;
+    my $text = <$in>;
+    close($in);
+    $text =~ s/\n(?:[ \t]*\n){2,}(?=Eps=)/\n\n/;
+    if (open(my $out, ">", "tmpfile")) { print $out $text; close($out); }
+  }
   rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
   close(ABIDICT);
 }

@@ -294,6 +294,48 @@ RESTORE_CASES = [
         """),
 
     dict(
+        name="orca-custom-solvent",
+        script="orcatheory.py", category="DFT", theory="RDFT",
+        changes={"ES.Theory.SCF.UseSolvation": ("1", None),
+                 "ES.Theory.SCF.Solvent": ("Custom", None),
+                 "ES.Theory.SCF.Dielectric": ("31.5", None),
+                 "ES.Theory.SCF.RefractiveIndex": ("1.38", None)},
+        expect={"ES.Theory.SCF.Solvent": {"value": "Custom"},
+                "ES.Theory.SCF.Dielectric": {"value": "31.5"},
+                "ES.Theory.SCF.RefractiveIndex": {"value": "1.38"}},
+        why="""
+            #642.  The Custom solvent and its two numbers must come back from
+            a saved calculation, or re-saving silently runs another solvent.
+        """),
+
+    dict(
+        name="g16-custom-solvent",
+        script="ged16theory.py", category="SCF", theory="RHF",
+        changes={"ES.Theory.SCF.UseSCRF": ("1", None),
+                 "ES.Theory.SCF.Solvent": ("Custom", None),
+                 "ES.Theory.SCF.Dielectric": ("31.5", None),
+                 "ES.Theory.SCF.RefractiveIndex": ("1.38", None)},
+        expect={"ES.Theory.SCF.Solvent": {"value": "Custom"},
+                "ES.Theory.SCF.Dielectric": {"value": "31.5"},
+                "ES.Theory.SCF.RefractiveIndex": {"value": "1.38"}},
+        why="""
+            #642.  Same for Gaussian 16.
+        """),
+
+    dict(
+        name="g16-manual-solvent-is-custom",
+        script="ged16theory.py", category="SCF", theory="RHF",
+        changes={"ES.Theory.SCF.UseSCRF": ("1", None),
+                 "ES.Theory.SCF.Solvent": ("Manual", None),
+                 "ES.Theory.SCF.Dielectric": ("31.5", None)},
+        expect={"ES.Theory.SCF.Solvent": {"value": "Custom"},
+                "ES.Theory.SCF.Dielectric": {"value": "31.5"}},
+        why="""
+            #642.  The old "Manual" solvent is "Custom" now; a calculation
+            saved with it must reopen as Custom, not the default solvent.
+        """),
+
+    dict(
         name="orca-memory-stale-unit",
         script="orcatheory.py", category="DFT", theory="RDFT",
         changes={"ES.Theory.SCF.MemorySize": ("1000", "Megabytes / core")},

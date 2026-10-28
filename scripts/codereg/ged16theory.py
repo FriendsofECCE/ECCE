@@ -756,7 +756,7 @@ class Ged16TheoryPanel(EccePanel):
                          "Acetonitrile",
                          "Methanol",
                          "Ethanol",
-                         "Manual",
+                         "Custom",
                          "1,4-Dioxane",
                          "methylcyclohexane",
                          "Benzene",
@@ -795,9 +795,17 @@ class Ged16TheoryPanel(EccePanel):
                                           default = 78.4,
                                           name = "ES.Theory.SCF.Dielectric",
                                           label = "Dielectric Constant:",
-                                          hardRange = "(0..)",
-                                          unit = "Debye")
+                                          hardRange = "(0..)")
         sovRightSizer.AddWidget(self.scrfDielec,
+                                border = EcceGlobals.BorderDefault)
+
+        # Written as Eps= and EpsInf=n^2 in Gaussian's Generic solvent input.
+        self.scrfRefrac = EcceFloatInput(self,
+                                          default = 1.4,
+                                          name = "ES.Theory.SCF.RefractiveIndex",
+                                          label = "Refractive index:",
+                                          hardRange = "(0..)")
+        sovRightSizer.AddWidget(self.scrfRefrac,
                                 border = EcceGlobals.BorderDefault)
 
         sovSizer.AddWidget(sovLeftSizer,
@@ -843,8 +851,10 @@ class Ged16TheoryPanel(EccePanel):
              and EcceGlobals.RunType == "Energy")):
             self.solvent.Enable(self.useSCRF.GetValue())
             self.scrf.Enable(self.useSCRF.GetValue())
-            self.scrfDielec.Enable(self.useSCRF.GetValue() and
-                                   self.solvent.GetValue() == "Manual")
+            custom = (self.useSCRF.GetValue() and
+                      self.solvent.GetValue() == "Custom")
+            self.scrfDielec.Enable(custom)
+            self.scrfRefrac.Enable(custom)
         # end SCRF
 
         if (EcceGlobals.Category == "MP" or

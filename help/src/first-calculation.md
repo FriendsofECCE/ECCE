@@ -305,6 +305,17 @@ as well. Use a finer grid when the result seems to depend on how the molecule
 is oriented, or for functionals such as the meta-GGAs that are sensitive to
 the grid.
 
+## A solvent that is not in the list (ORCA and Gaussian 16)
+
+For a mixture of solvents, or any solvent the list does not name, tick **Use
+implicit solvation** (ORCA) or **Use SCRF** (Gaussian 16) in **Theory
+Details...** and choose **Custom** as the solvent. Two fields become available:
+**Dielectric constant** (the static value, epsilon) and **Refractive index** (n;
+the optical dielectric constant used is n squared). In ORCA, Custom works with
+the CPCM model only; SMD needs solvent parameters that ORCA keeps for its named
+solvents. The Calculation Summary shows such a solvent as `Custom (ε = 30.0,
+n = 1.42)`.
+
 ## Geometry optimisation settings (ORCA)
 
 In **Runtype Details...** of an ORCA **Geometry** or **GeoVib** calculation:

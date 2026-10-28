@@ -15,16 +15,24 @@
 
 $| = 1;
 
-my ($model, $radii, $solvent, $eps);
+my ($model, $radii, $solvent, $eps, $epsinf);
 while (<STDIN>) {
   if (/^\s*Model\s*:\s*(\S+?)\.?\s*$/) { $model = $1; }
   elsif (/^\s*Atomic radii\s*:\s*(\S+?)\.?\s*$/) { $radii = $1; }
+  elsif (/^\s*Solvent\s*:\s*Generic,\s*$/) { $solvent = "Generic"; }
+  elsif (/^\s*Eps\s+=\s*(\d+\.\d+)/) { $eps = $1; }
+  elsif (/^\s*Eps\(infinity\)\s+=\s*(\d+\.\d+)/) { $epsinf = $1; }
   elsif (/^\s*Solvent\s*:\s*([^,]+?)\s*,\s*Eps=\s*(\d+\.\d+)/) { $solvent = $1; $eps = $2; }
 }
 exit(0) if (!defined($model));
 $model = "SMD" if (defined($radii) && $radii =~ /^SMD/);
 my $text = $model;
-if (defined($solvent) && lc($solvent) ne "other") {
+if (defined($solvent) && lc($solvent) eq "generic" && defined($eps)) {
+  # Generic (user-given Eps/EpsInf) prints the values on the next lines.
+  $text .= sprintf(", Custom (\xCE\xB5 = %.1f", $eps);
+  $text .= sprintf(", n = %.2f", sqrt($epsinf)) if (defined($epsinf));
+  $text .= ")";
+} elsif (defined($solvent) && lc($solvent) ne "other") {
   $text .= ", $solvent";
 } elsif (defined($eps)) {
   $text .= sprintf(", \xCE\xB5 = %.1f", $eps);
