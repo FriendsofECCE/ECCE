@@ -5,7 +5,7 @@ reason stay as they were.
 
     tests/apps/reparse_outputs_test.py       own Xvfb, services, local data
 
-A CP2K and an ORCA output are imported (the import stores their outputs and
+A MOPAC and an ORCA output are imported (the import stores their outputs and
 parses them). The parsed properties are then deleted from the data folder, and
 the Organizer hook `reparseoutputs URL...` -- what the menu item calls -- runs
 the job store over the stored outputs. The properties must come back, and the
@@ -32,7 +32,9 @@ import xdisplay   # noqa: E402
 
 SKIP = 77
 FIXTURES = os.path.join(HERE, "..", "parsers", "fixtures")
-OUTPUTS = ["cp2k/si_scf.cp2kout", "orca/h2o_sym.out"]
+# CP2K and Quantum ESPRESSO have no importer: no stored calculation of
+# theirs can be made here.
+OUTPUTS = ["mopac/ch4_opt.out", "orca/h2o_sym.out"]
 STATE_KEYS = re.compile(r"ecce:(state|startdate|completiondate|"
                         r"runStatusReason)\b")
 failures = []
