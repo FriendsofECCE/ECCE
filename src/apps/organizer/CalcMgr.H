@@ -142,6 +142,11 @@ public:
   void OnDuplicate3Click( wxCommandEvent& event );
   void OnLaunchSelectedClick( wxCommandEvent& event );
   void OnReconnectSelectedClick( wxCommandEvent& event );
+  // Re-Parse Outputs (#651): parsers and progress record over the stored
+  // outputs of the selected calculations; no login, state and dates kept.
+  void OnReparseOutputsClick( wxCommandEvent& event );
+  void reparseOutputs(const vector<EcceURL>& urls, bool interactive,
+                      string *outcome = 0);
   // Reconnect Selected (#601), same selection; `listOnly`/`shot` for tests.
   void reconnectSelected(const vector<EcceURL>& urls, bool interactive,
                          string *outcome = 0, const string& shot = "",

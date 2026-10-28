@@ -292,6 +292,9 @@ static string cpRemoteShell;
 static string cpLocalShell;
 static string cpUserName;
 static string cpImportDir;
+// Re-parse of the stored outputs: properties are replaced, but run state,
+// dates, status reason and the run log stay as the real run left them.
+static bool gReparse = false;
 static string cpMdStoreTrj;
 static string cpRxnMetadynamicsTask;
 
@@ -346,6 +349,11 @@ void jobstore_main(RCommand* rconn, const string& jobId,
   // store keeps it until the monitor sends more.
   if (!restartFlag)
     progressClear();
+
+  // The parsed results are replaced, not added to: a property the new
+  // parse no longer finds must not stay behind.
+  if (gReparse && calculation)
+    calculation->removeProperties();
 
   // A restart after a monitor error or a park sets the state back to
   // submitted; one after silence left the job running, which it stays
@@ -463,7 +471,7 @@ void calcLoad(void)
     fail("DAV Server", errMsg);
   }
 
-  if (logModeJobStore!=::LOGMODE_NO) {
+  if (logModeJobStore!=::LOGMODE_NO && !gReparse) {
     // don't start a new job log when it is a restart
     if (restartFlag) {
       logIsOpen = true;
@@ -629,7 +637,7 @@ void calcUpdateState(ResourceDescriptor::RUNSTATE state)
   // EDSIFactory::getResource() failure path, where calculation is still
   // NULL. Confirmed live via a real core dump. Nothing meaningful to
   // update if the calc resource itself never loaded.
-  if (!calculation) return;
+  if (!calculation || gReparse) return;
 
   if (state < ResourceDescriptor::STATE_COMPLETED) {
     // Only the first "running" is the start: a restarted monitor reports
@@ -693,6 +701,7 @@ string gensubLogReason(const string& outputFilePath)
 // ------------------------------------------------------------------------- //
 void recordStatusReason(const string& reason)
 {
+  if (gReparse) return;
   //  NEVER DOWNGRADE.  A job store can run more than once for one job (a
   //  restart), and a later pass that could not see the cause recorded
   //  gensub's generic "... setting status to failed" line over the
@@ -927,6 +936,8 @@ void configRead(const string& fileName)
   if (!param->findValue("userName", cpUserName)) {
     message += "\nMissing 'userName' parameter";
   }
+  string reparseStr;
+  gReparse = param->findValue("reparse", reparseStr) && reparseStr == "yes";
   if (!param->findValue("importDir", cpImportDir)) {
     message += "\nMissing 'importDir' parameter";
   }

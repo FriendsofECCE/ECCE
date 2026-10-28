@@ -19,6 +19,9 @@
 #include "comm/JobCatchUp.H"
 #include "comm/OpenSshTransport.H"
 #include "comm/Launch.H"
+#include <fstream>
+#include "util/TempStorage.H"
+#include "util/SDirectory.H"
 #include "comm/ReconnectRules.H"
 #include "dsm/MachinePreferences.H"
 #include "tdat/RefMachine.H"
@@ -174,4 +177,58 @@ vector<JobCatchUp::Result> JobCatchUp::run(
     results.push_back(r);
   }
   return results;
+}
+
+
+//  The stored outputs are copied to a scratch directory and read by the job
+//  store as an import is: that is the one path that parses without a login.
+bool JobCatchUp::reparse(TaskJob* calc, std::string& message)
+{
+  if (!calc || !calc->application()) {
+    message = "No code registration data found for the calculation";
+    return false;
+  }
+  const ResourceDescriptor::RUNSTATE state = calc->getState();
+  if (state == ResourceDescriptor::STATE_SUBMITTED ||
+      state == ResourceDescriptor::STATE_RUNNING) {
+    message = "the job is still being monitored; Reconnect or wait";
+    return false;
+  }
+
+  SDirectory* dir = TempStorage::getTempJobDirectory(
+                              calc->getURL().getFilePathTail().c_str());
+  const std::string stage = dir->path();
+
+  EcceMap kvargs;
+  const JCode::CodeFileType kinds[2] = { JCode::PARSE_OUTPUT,
+                                         JCode::PRIMARY_OUTPUT };
+  const char* keys[2] = { "##parse##", "##output##" };
+  int copied = 0;
+  for (int i = 0; i < 2; i++) {
+    TypedFile file;
+    calc->getDataFile(kinds[i], file);
+    std::istream* is = calc->getDataFile(kinds[i]);
+    if (!is || file.name().empty()) { delete is; continue; }
+    std::ofstream out((stage + "/" + file.name()).c_str(), std::ios::binary);
+    out << is->rdbuf();
+    delete is;
+    if (!out) continue;
+    kvargs[keys[i]] = file.name();
+    copied++;
+  }
+  if (!copied) {
+    message = "the calculation has no stored output to parse";
+    return false;
+  }
+  if (kvargs["##parse##"].empty()) kvargs["##parse##"] = kvargs["##output##"];
+  if (kvargs["##output##"].empty()) kvargs["##output##"] = kvargs["##parse##"];
+
+  Launch launch(calc, kvargs, false, stage + "/", calc->getName(), true);
+  bool ok = launch.validateLocalDir() &&
+            launch.validateRemoteLogin() &&
+            launch.generateJobMonitoringFiles() &&
+            launch.moveJobMonitoringFiles() &&
+            launch.startJobStore(stage + "/");
+  message = ok ? "re-parsing the stored outputs" : launch.message();
+  return ok;
 }

@@ -158,6 +158,7 @@ public:
   string jobId;
   string importDir;
   string importName;
+  bool reparse;   // parse the stored outputs again; no login, no state change
   bool   frontendFlag;
   bool   checkScratchFlag;
   bool   isMd;
@@ -220,7 +221,8 @@ static void copyStoredFile(istream *is, ofstream &ofs, bool whole)
 Launch::Launch(TaskJob* task,
                EcceMap& kvargs,
                const bool& fullLaunchFlag,
-               const string& importDir, const string& importName)
+               const string& importDir, const string& importName,
+               bool reparse)
 {
   p_restartProvider = 0;
   p_topologyProvider = 0;
@@ -338,7 +340,7 @@ Launch::Launch(TaskJob* task,
   p_connection = (RCommand*)0;
   p_localconn = (RCommand*)0;
   p_curOp = 0;
-  cacheCalcInfo(importDir, importName);
+  cacheCalcInfo(importDir, importName, reparse);
 
   // Copy the options
   p_options =new EcceMap(kvargs);
@@ -500,7 +502,8 @@ void Launch::clearLaunchWarning(void)
 //    work of validating and launching a remote job.
 //
 ////////////////////////////////////////////////////////////////////////////// 
-void Launch::cacheCalcInfo(const string& importDir, const string& importName)
+void Launch::cacheCalcInfo(const string& importDir, const string& importName,
+                           bool reparse)
 {
   p_cache = new CalcInfo;
 
@@ -509,6 +512,22 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName)
   Launchdata launchdata = p_taskjob->launchdata();
   Jobdata jobdata = p_taskjob->jobdata();
 
+  //  A re-parse runs the monitor on a copy of the stored outputs on this
+  //  computer, as an import does; the calculation's own machine, user and
+  //  job id stay as they are.
+  if (reparse) {
+    RefMachine* here = RefMachine::abbrevLookup(RCommand::whereami());
+    if (!here) here = RefMachine::refLookup("localhost");
+    if (here) launchdata.machine = here->refname();
+    delete here;
+    launchdata.user = "";
+    launchdata.remoteShell = "";
+    jobdata.jobid = "";
+    jobdata.jobpath = importDir;
+    if (!jobdata.jobpath.empty() && jobdata.jobpath.back() == '/')
+      jobdata.jobpath.pop_back();
+  }
+  p_cache->reparse = reparse;
   p_cache->machineName = launchdata.machine;
 
   p_cache->scriptName = submitPrefix + p_taskjob->getName();
@@ -1255,6 +1274,8 @@ bool Launch::generateJobMonitoringFiles(void)
     storeConfigFile << "remoteShell: " << p_cache->remoteShell << endl;
     storeConfigFile << "userName: " << p_cache->userName << endl;
     storeConfigFile << "importDir: " << p_cache->importDir << endl;
+    if (p_cache->reparse)
+      storeConfigFile << "reparse: yes" << endl;
     if (p_cache->mdStoreTrj == 1)
       storeConfigFile << "mdStoreTrj: archive" << endl;
     else if (p_cache->mdStoreTrj==2 && Ecce::ecceStoreTrajectories())

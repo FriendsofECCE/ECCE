@@ -55,7 +55,8 @@ public:
         Launch(TaskJob * taskjob,
                EcceMap& kvargs,
                const bool& fullLaunchFlag=true,
-               const string& importDir="", const string& importName="");
+               const string& importDir="", const string& importName="",
+               bool reparse=false);
 
   // Virtual Destructor
         virtual ~Launch(void);
@@ -123,7 +124,8 @@ private:
         string                  p_inputFile;
 
   // Encapsulated Behavior
-        void cacheCalcInfo(const string& importDir, const string& importName);
+        void cacheCalcInfo(const string& importDir, const string& importName,
+                           bool reparse);
         bool postProcessInput(void);
         bool instanceScript(EcceMap& kv);
         void instanceCommand(string& command,
