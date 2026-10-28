@@ -68,6 +68,10 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Launch Selected leaves the Organizer usable while a batch is submitted,
   with a Stop button.
 - Density Map: a diatomic starts on the molecular plane through its axis.
+- General Chemistry: argon at 40, 100, 130 and 200 K (solid, liquid, liquid
+  near its critical point, gas) under Gases, liquids and solids.
+- The input check counts CP2K atoms with a kind label (such as Nb_e).
+- Register Machines is narrower: Vendor, Model and Processor are no longer shown.
 - Dipole Moment: where the atomic charges point against the dipole moment
   (carbon monoxide), the arrow stays between the atoms and the text says so.
 
