@@ -63,6 +63,9 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - A job the queue system ends (out of memory, wall time reached, node
   failure) is Incomplete instead of System Error, and the reason names the
   cause. A new help page, Run states, says what each state means.
+- Run Mgmt > Re-Parse Outputs reads a finished calculation's stored outputs
+  again with the current parsers, without logging in to the machine.
+- Density Map: a diatomic starts on the molecular plane through its axis.
 
 ## First steps
 
