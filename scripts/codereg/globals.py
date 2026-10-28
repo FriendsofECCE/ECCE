@@ -56,7 +56,6 @@ class Globals:
     ChainedMetadynamics = 0
 
     ShowTip = True
-    NameAsTip = True
     EventLoopStarted = False
     EnableDebug = False
 
