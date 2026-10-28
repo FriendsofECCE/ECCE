@@ -292,7 +292,12 @@ void CalculationContextPanel::refreshLaunchInfo()
       in.allocationRemaining = launch.allocationLeft;
     }
   }
-  p_launchHolder->Add(ewxLaunchInfoBlock(this, LaunchInfoRows::build(in)));
+  wxSizer *block = ewxLaunchInfoBlock(this, LaunchInfoRows::build(in));
+  p_launchHolder->Add(block);
+  // The values of every block start at one x (#657).
+  vector<wxSizer*> aligned(p_firstGrids.begin(), p_firstGrids.end());
+  aligned.push_back(block);
+  ewxAlignLabelColumns(aligned);
   Layout();
   ewxFitLaunchInfo(this);
   Layout();
@@ -457,6 +462,7 @@ void CalculationContextPanel::createControls()
         cols,   // number of coluns to use
         vgap,   // size of vertical gap between children
         hgap);  // size of horizontal gap between children
+    if (!isLauncher) p_firstGrids.push_back(grid);
 
     // get the ResourceProperties for this tool and iterate through them
     multimap<int, ResourceProperty*> properties;

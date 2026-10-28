@@ -781,7 +781,7 @@ void CalcMgr::runTestCommand(const string& line)
         }
         // The Launch Info rows that exist, as "label@x,y" (#648).
         static const char *launchLabels[] = {"Machine:", "Processors:",
-          "Queue:", "Job ID:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:",
+          "Queue:", "Job ID:", "Queue state:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:",
           "Remaining on submission:"};
         outcome += " launch=";
         for (const char *lbl : launchLabels) {
@@ -789,6 +789,14 @@ void CalcMgr::runTestCommand(const string& line)
           if (!w) continue;
           outcome += string(lbl) + "@" + std::to_string(w->GetPosition().x) +
                      "," + std::to_string(w->GetPosition().y) + ";";
+        }
+        // Where the values of the blocks start (one common column, #657).
+        outcome += " valuex=";
+        for (const char *nm : {"theory", "empiricalFormula", "name",
+                               "launchvalue:Machine:"}) {
+          wxWindow *w = panel ? panel->FindWindow(nm) : 0;
+          if (w) outcome += string(nm) + "@" +
+                            std::to_string(w->GetPosition().x) + ";";
         }
         // The space between the formula and the "Charge:" column beside it
         // (negative: they overlap).

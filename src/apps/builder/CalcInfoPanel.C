@@ -111,6 +111,7 @@ void CalcInfoPanel::refresh()
   //  Rows before and after the Launch Info block are separate grids; the
   //  block is two columns of its own.
   vector<wxFlexGridSizer*> grids;
+  wxSizer *launchBlock = NULL;
   wxFlexGridSizer *grid = new wxFlexGridSizer(0, 2, 1, 5);
   grids.push_back(grid);
   p_body->GetSizer()->Add(grid);
@@ -261,8 +262,8 @@ void CalcInfoPanel::refresh()
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);
     in.allocationRemaining = launch.allocationLeft;
-    p_body->GetSizer()->Add(ewxLaunchInfoBlock(p_body, LaunchInfoRows::build(in)),
-                            0, wxTOP | wxBOTTOM, 2);
+    launchBlock = ewxLaunchInfoBlock(p_body, LaunchInfoRows::build(in));
+    p_body->GetSizer()->Add(launchBlock, 0, wxTOP | wxBOTTOM, 2);
 
     grid = new wxFlexGridSizer(0, 2, 1, 5);
     grids.push_back(grid);
@@ -321,6 +322,12 @@ void CalcInfoPanel::refresh()
          n = n->GetNext(), col = 1 - col)
       if (col == 1 && n->GetData()->GetWindow())
         ewxMakeSelectable(n->GetData()->GetWindow());
+  }
+  {
+    //  One value column for the grids and the Launch Info between them.
+    vector<wxSizer*> blocks(grids.begin(), grids.end());
+    if (launchBlock) blocks.insert(blocks.begin() + 1, launchBlock);
+    ewxAlignLabelColumns(blocks);
   }
   ewxWrapValueColumn(p_body);  // long values wrap within the panel (#490)
   p_body->FitInside();

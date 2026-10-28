@@ -1,6 +1,7 @@
 #ifndef _EWXSELECTABLETEXT_H
 #define _EWXSELECTABLETEXT_H
 
+#include <vector>
 #include <wx/textctrl.h>
 #include "dsm/LaunchInfoRows.H"
 
@@ -44,7 +45,8 @@ void ewxWrapValueColumn(wxWindow *body);
 
 /**
  * The Launch Info rows (#648) as two independent columns side by side, each
- * a label and a value per row, labels left-aligned. A row that is not in
+ * a label and a value per row, labels left-aligned, with `cols.full` rows
+ * under both. A row that is not in
  * `cols` does not exist. Labels are named "launch:<label>" and values
  * "launchvalue:<label>" so a test can find them. Values wrap to the width
  * that ewxFitLaunchInfo() works out; call it from the owner's size event and
@@ -55,5 +57,12 @@ wxSizer *ewxLaunchInfoBlock(wxWindow *parent,
 
 /** Wraps the values of every ewxLaunchInfoBlock below `body`'s sizer. */
 void ewxFitLaunchInfo(wxWindow *body);
+
+/**
+ * Gives the label columns of these grids and Launch Info blocks one width,
+ * the widest, so that their values start at the same x. Call after the rows
+ * are added and before the Layout().
+ */
+void ewxAlignLabelColumns(const std::vector<wxSizer*>& blocks);
 
 #endif

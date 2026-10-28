@@ -30,9 +30,11 @@ int main()
         w.queue = "normal";
         w.queueWait = "waiting: other jobs have priority";
         Columns cw = build(w);
-        check(labels(cw.left) == "Queue: Queue state:", "queue wait row (#641)");
+        check(labels(cw.left) == "Queue:" && labels(cw.full) == "Queue state:",
+              "queue wait is a full-width row under both columns (#657)");
         w.queueWait = "";
-        check(labels(build(w).left) == "Queue:", "no queue wait: no row");
+        check(labels(build(w).left) == "Queue:" && build(w).full.empty(),
+              "no queue wait: no row");
     }
     Input in;
     in.machine = "kebnekaise";
