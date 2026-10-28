@@ -6,8 +6,9 @@ projinfo parsing on an anonymised real sample, the 15-minute cache).
 
     profiles_test.py
 
-Compiles testAllocationProfiles.C and testAllocationLeft.C, which include
-include/dsm/AllocationProfiles.H and AllocationLeft.H directly (no wx or ecce
+Compiles testAllocationProfiles.C, testAllocationLeft.C and
+testLaunchInfoRows.C (#648), which include include/dsm/AllocationProfiles.H,
+AllocationLeft.H and LaunchInfoRows.H directly (no wx or ecce
 libraries), and runs them. SKIPs (77) without g++.
 """
 
@@ -20,7 +21,8 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 DRIVERS = (("testAllocationProfiles", []),
            ("testAllocationLeft",
-            [os.path.join(HERE, "fixtures", "projinfo-kebnekaise.txt")]))
+            [os.path.join(HERE, "fixtures", "projinfo-kebnekaise.txt")]),
+           ("testLaunchInfoRows", []))
 
 
 def main():

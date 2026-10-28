@@ -71,7 +71,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
 
     // Internal helper functions
     void            createControls();
-    void            refreshAllocation();
+    void            refreshLaunchInfo();
     EcceTool*       createToolButton(ResourceTool* resTool);
     wxBoxSizer*     createPropLabel(ResourceProperty* resProp);
     wxBoxSizer*     createPropHolder(ResourceProperty* resProp);
@@ -98,6 +98,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
     ProgressBox *p_progressBox;
     bool p_energyRead = false;
     wxBoxSizer *p_progressSizer;
+    wxBoxSizer *p_launchHolder;  // the Launch Info block (#648)
 
     /** The stored snapshot (ecce:progress) as of the last refresh. */
     std::string p_storedProgress;

@@ -775,6 +775,17 @@ void CalcMgr::runTestCommand(const string& line)
           outcome += string(" ") + f[0] + "=" +
                      (t ? string(t->GetLabel().ToUTF8()) : string("<none>"));
         }
+        // The Launch Info rows that exist, as "label@x,y" (#648).
+        static const char *launchLabels[] = {"Machine:", "Processors:",
+          "Queue:", "Job ID:", "Start Date:", "Comp. Date:", "Allocation:",
+          "Left:"};
+        outcome += " launch=";
+        for (const char *lbl : launchLabels) {
+          wxWindow *w = panel ? panel->FindWindow(string("launch:") + lbl) : 0;
+          if (!w) continue;
+          outcome += string(lbl) + "@" + std::to_string(w->GetPosition().x) +
+                     "," + std::to_string(w->GetPosition().y) + ";";
+        }
         // The space between the formula and the "Charge:" column beside it
         // (negative: they overlap).
         wxWindow *formula = panel ? panel->FindWindow("empiricalFormula") : 0;

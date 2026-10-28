@@ -1,5 +1,6 @@
 #include <ctime>
 #include <fstream>
+#include <map>
 #include <mutex>
 #include <set>
 #include <sstream>
@@ -20,6 +21,11 @@ std::mutex gAllocMu;
 AllocationLeft::Cache gAllocCache;
 bool gAllocLoaded = false;
 std::set<string> gAllocBusy;
+//  When a query last failed (no live shared login, or the command failed), per
+//  key. A failure is tried again after this, not after the 15 minutes of a
+//  good answer: a monitor may have logged in meanwhile.
+std::map<string, long> gAllocFailed;
+const long RETRY_SECONDS = 30;
 
 string allocCachePath()
 {
@@ -35,8 +41,8 @@ string AllocationQuery::account(const Launchdata& l)
   return prefs ? prefs->getProfile(l.profile).account : string();
 }
 
-//  A stale answer is shown until the refresh lands; a refresh that fails
-//  leaves "" cached for 15 minutes.
+//  A stale answer is shown until the refresh lands; a good answer is kept 15
+//  minutes, a failure is retried after RETRY_SECONDS.
 string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
 {
   const string account = AllocationQuery::account(l);
@@ -54,7 +60,10 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
     return "";
   command = AllocationLeft::substitute(command, account);
 
-  const string key = AllocationLeft::Cache::key(l.machine, account);
+  //  Per host, not per ECCE machine: entries for one cluster (one per node
+  //  type, say) share the answer, so the command runs once per cluster.
+  const string host = rgstn->fullname();
+  const string key = AllocationLeft::Cache::key(host, account);
   const long now = (long)time(NULL);
   AllocationLeft::Cache::Entry e;
   bool have, fresh;
@@ -69,6 +78,9 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
     }
     have = gAllocCache.find(key, e);
     fresh = gAllocCache.fresh(key, now);
+    std::map<string, long>::const_iterator f = gAllocFailed.find(key);
+    if (!fresh && f != gAllocFailed.end() && now - f->second < RETRY_SECONDS)
+      fresh = true;                       // failed a moment ago
     if (!fresh && gAllocBusy.count(key))
       fresh = true;                       // being read
     else if (!fresh)
@@ -76,22 +88,28 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
   }
 
   if (!fresh) {
-    const string machine = l.machine, user = prefs->getUsername(),
+    //  The shared login is keyed on the host, not on ECCE's machine name.
+    const string machine = host, user = prefs->getUsername(),
                  front = rgstn->frontendMachine(), bypass = rgstn->frontendBypass(),
                  shellPath = rgstn->shellPath();
     std::thread([=]() {
       string out, text;
-      if (RCommand::execOnLiveLogin(machine, user, front, bypass, shellPath,
-                                    command, out))
+      const bool ran = RCommand::execOnLiveLogin(machine, user, front, bypass,
+                                                 shellPath, command, out);
+      if (ran)
         text = AllocationLeft::summarize(out, account);
       {
         std::lock_guard<std::mutex> lock(gAllocMu);
         gAllocBusy.erase(key);
-        //  A failure is kept too: the refresh would otherwise start the next
-        //  attempt at once.
-        gAllocCache.put(key, (long)time(NULL), text);
-        std::ofstream o(allocCachePath().c_str());
-        o << gAllocCache.serialise();
+        if (ran) {
+          gAllocFailed.erase(key);
+          gAllocCache.put(key, (long)time(NULL), text);
+          std::ofstream o(allocCachePath().c_str());
+          o << gAllocCache.serialise();
+        } else {
+          //  In memory only: an older answer stays on file.
+          gAllocFailed[key] = (long)time(NULL);
+        }
       }
       if (onDone) onDone();
     }).detach();
