@@ -568,6 +568,14 @@ jobs:
         if: failure()
         run: echo '### macOS packaging FAILED (see the failed step above)' >> "$GITHUB_STEP_SUMMARY"
 
+      # The minimum-macOS check result, after the checks have run.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ECCE-macos-minos-${{ matrix.arch }}
+          path: minos/minos.txt
+          if-no-files-found: ignore
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
