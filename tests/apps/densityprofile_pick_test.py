@@ -83,9 +83,10 @@ dpselect 2 5
 dpstate
 dpshow all
 dpstate
+dpcancelafter 1500
 dpmode atom
 dpstate
-dpcancelafter 1500
+dpshow total
 dpselect 3
 dpstate
 hold 1
@@ -163,12 +164,13 @@ def check(case, log):
                 p.append("one atom on a cluster: line %s" % state(seq[0], "line"))
             if len(seq[2]["curves"]) < 20:
                 p.append("All occupied has %d curves" % len(seq[2]["curves"]))
-            if state(seq[3], "mode") != "atom":
-                p.append("atom mode: mode %s" % state(seq[3], "mode"))
             if state(seq[3], "progress") != "1":
                 p.append("the average showed no progress dialog")
-            if len(seq) < 5 or state(seq[4], "stopped") != "1" or state(seq[4], "centre") != "3":
+            if state(seq[3], "mode") != "atom" or state(seq[3], "stopped") != "1":
                 p.append("Cancel in the progress dialog did not stop the average")
+            if len(seq) < 5 or state(seq[4], "stopped") != "0" or state(seq[4], "centre") != "3" \
+                    or len(seq[4]["curves"]) < 1:
+                p.append("the average after a Cancel did not finish")
         else:
             p.append("only %d states" % len(seq))
         if os.environ.get("ECCE_DP_REPORT"):
@@ -206,7 +208,9 @@ def main():
                 with open(scene, "w") as h:
                     h.write(SCENES[case].format(t=t))
                 result = apps.run(display, "builder", args=("-context", url),
-                                  windowTimeout=240, settle=300,
+                                  windowTimeout=240,
+                                  #  Each average on the cluster takes a minute or more.
+                                  settle=900 if case == "cluster" else 300,
                                   env={"ECCE_PANEL_FULLSCREEN": "1",
                                        "ECCE_VIEWER_SCENE": scene,
                                        "ECCE_VIEWER_SCENE_OUT": out})

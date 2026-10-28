@@ -515,8 +515,10 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
   }
   const long blockMs = clock.Time();
   if (!ok) return s.fail(cmd + ": refused");
-  dp->waitForCompute(cancelAfterMs);
-  cancelAfterMs = -1;
+  if (cmd != "dpcancelafter") {
+    dp->waitForCompute(cancelAfterMs);
+    cancelAfterMs = -1;
+  }
   fprintf(stderr, "DENSITYPROFILE-BLOCK: %s init %ld ms, command %ld ms\n", cmd.c_str(),
           initMs, blockMs);
   fprintf(stderr, "DENSITYPROFILE: %s\n%s", cmd.c_str(), dp->state().c_str());

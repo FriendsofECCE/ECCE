@@ -44,11 +44,26 @@ issues: []
   A molecule with more than 8 occupied orbitals opens on Total + the 4 largest
   integrals along the line (`rankLargest`, re-ranked until the user touches
   Show, the list or the mode).
-- **Atom average is threaded (#629).** `RadialDist::compute` runs on a detached
-  `std::thread` on copies of the specs/options and a shared evaluator
-  (`p_eval` is a `shared_ptr`); the result returns via `wxTheApp->CallAfter`
-  and is drawn only if its `AverageJob` is still `p_job` (a newer request
-  cancels it) and the panel is alive (`p_alive`). The progress dialog is made
-  by a timer after 0.5 s. Hooks call `waitForCompute()` after each command, so
-  `dpstate`/`dpcsv` see the finished curves. `compute` evaluates the basis once
-  per point for all specs (`Evaluator::evaluateAt`), same bits as `value()`.
+- **All curves are computed on a worker (#629).** The line, the ranking of
+  the largest contributors (its own job; its finish ticks the list and calls
+  `recompute()` again with `p_ranked` set) and the atom average run on a
+  detached `std::thread` via `startJob(message, work, finish)`, on copies
+  and the shared `p_eval`. The result returns via `wxTheApp->CallAfter` and is
+  drawn only if its `AverageJob` is still `p_job` and the panel is alive
+  (`p_alive`). The progress dialog is made by a timer after 0.5 s.
+- **Pitfall: never re-post a result from inside the dialog's `Update()`.**
+  `Update()` (and the dialog's constructor) yield; a `CallAfter` re-posted
+  there is handled again by the same yield, round and round, and the GUI
+  hangs with the bar frozen. A result that arrives then goes to `p_deferred`
+  and `onTimer` finishes it after `Update()` returns.
+- **One basis pass per point.** `RadialDist::PointValues` evaluates the basis
+  once per point for all specs (same bits as `value()`/`amplitude()`); both
+  `RadialDist::compute` and `LineProfile::compute` use it. On a ~1400-function
+  cluster the per-spec evaluation held the GUI 5-12 s per click.
+- **Hooks.** `waitForCompute()` calls `onTimer` itself (headless, the real timer
+  never runs inside a scene command), so the dialog is exercised;
+  `dpcancelafter MS` presses its Cancel button during the next command; each
+  command prints `DENSITYPROFILE-BLOCK: <cmd> init N ms, command M ms` (GUI
+  thread held). `densityprofile_pick_test.py` checks < 1 s on an ORCA cluster
+  given as `ECCE_DP_CLUSTER` (18 MB, not shipped). A viewer selection made
+  before the panel opens is applied in `build()` (`applySelection`).
