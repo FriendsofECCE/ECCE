@@ -1116,7 +1116,7 @@ namespace { vector<int> specKey(const VibCoordSpec& c); }
 
 bool VibAnalysis::composition(const VibInput& in, const vector<VibCoordSpec>& chosen,
                               const vector<int>& centres, VibComposition& out,
-                              bool torsions)
+                              bool torsions, bool chBends)
 {
    out = VibComposition();
    const size_t N = in.elements.size();
@@ -1163,8 +1163,8 @@ bool VibAnalysis::composition(const VibInput& in, const vector<VibCoordSpec>& ch
          for (size_t i = 0; i < nbr[c].size(); i++)
             for (size_t k = i + 1; k < nbr[c].size(); k++) {
                //  Bends at carbon that move an H overlap the heavy-atom
-               //  bends and stretches and swamp them; give them by hand.
-               if (centres.empty() && Z[c] == 6 &&
+               //  bends and stretches and swamp them; chBends brings them in.
+               if (!chBends && centres.empty() && Z[c] == 6 &&
                    (Z[nbr[c][i]] == 1 || Z[nbr[c][k]] == 1)) continue;
                VibCoordSpec s = { 3, { nbr[c][i], (int)c, nbr[c][k], -1 } };
                specs.push_back(s);

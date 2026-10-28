@@ -48,6 +48,8 @@
 #include "dsm/JCode.H"
 #include "util/EcceURL.H"
 #include <wx/filedlg.h>
+#include <wx/clipbrd.h>
+#include <wx/file.h>
 #include "dsm/IPropCalculation.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/Resource.H"
@@ -688,7 +690,7 @@ void NModePanel::createSpectrumPane()
                         wxALIGN_CENTER_VERTICAL | wxALL, 3);
       composition->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
          wxString err;
-         if (!showComposition(wxString(), &err))
+         if (!showComposition(-1, &err))
             wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
       });
       //  Enabled, not hidden, so the row does not reflow at narrow widths.
@@ -2287,20 +2289,7 @@ void NModePanel::updateVectors(int mode,
 //  Mode composition (#486)
 //  ------------------------------------------------------------------
 
-//  A coordinate and its reverse (c-b-a for a-b-c) are the same one.
-static bool sameCoord(const VibCoordSpec& a, const VibCoordSpec& b)
-{
-   if (a.n != b.n) return false;
-   bool fwd = true, rev = true;
-   for (int t = 0; t < a.n; t++) {
-      fwd = fwd && a.at[t] == b.at[t];
-      rev = rev && a.at[t] == b.at[a.n - 1 - t];
-   }
-   return fwd || rev;
-}
-
-
-bool NModePanel::compositionRows(const wxString& extra, VibComposition& comp,
+bool NModePanel::compositionRows(bool chBends, VibComposition& comp,
                                  vector<double>& freqs, wxString *error)
 {
    auto fail = [&](const wxString& why) { if (error) *error = why; return false; };
@@ -2324,96 +2313,23 @@ bool NModePanel::compositionRows(const wxString& extra, VibComposition& comp,
    p_compLabels.clear();
    for (size_t m = 0; m < p_vib.modes.size(); m++) p_compLabels.push_back(p_vib.modes[m].label);
 
-   //  The extra coordinates are added to the automatic set.
-   vector<VibCoordSpec> chosen;
-   p_compAdded.clear();
-   p_compMsg.clear();
-   const string text = string(extra.utf8_str());
-   for (size_t i = 0; i < text.size();) {
-      if (text[i] == ',' || text[i] == ' ' || text[i] == ';') { i++; continue; }
-      size_t e = i;
-      while (e < text.size() && text[e] != ',' && text[e] != ' ' && text[e] != ';') e++;
-      VibCoordSpec c = { 0, { -1, -1, -1, -1 } };
-      const string tok = text.substr(i, e - i);
-      i = e;
-      size_t k = 0;
-      bool ok = true;
-      while (k < tok.size() && ok) {
-         size_t d = k;
-         while (d < tok.size() && isdigit((unsigned char)tok[d])) d++;
-         if (d == k || c.n >= 4) { ok = false; break; }
-         c.at[c.n++] = atoi(tok.substr(k, d - k).c_str()) - 1;
-         if (d < tok.size() && tok[d] != '-') ok = false;
-         k = d + 1;
-      }
-      if (!ok || c.n < 2)
-         return fail(wxString::FromUTF8(("Cannot read \"" + tok + "\": give 2, 3 or 4 "
-                     "atom numbers joined by dashes, e.g. 3-4 or 9-4-2.").c_str()));
-      for (int t = 0; t < c.n; t++)
-         if (c.at[t] < 0 || c.at[t] >= nat)
-            return fail(wxString::FromUTF8(("\"" + tok + "\" names an atom the structure "
-                        "does not have.").c_str()));
-      chosen.push_back(c);
-   }
    //  Torsions are in the automatic set because the table's description
    //  (VibAnalysis::describe) has them; without them a torsion is spread
    //  over bends and the two views name different motions.
-   if (!VibAnalysis::composition(in, vector<VibCoordSpec>(), vector<int>(), comp, true))
+   if (!VibAnalysis::composition(in, vector<VibCoordSpec>(), vector<int>(), comp, true, chBends))
       return fail("No internal coordinates could be built for this structure.");
-   if (!chosen.empty()) {
-      const vector<VibCoordSpec> automatic = comp.coords;
-      vector<VibCoordSpec> all = automatic;
-      all.insert(all.end(), chosen.begin(), chosen.end());
-      if (!VibAnalysis::composition(in, all, vector<int>(), comp))
-         return fail("No internal coordinates could be built for this structure.");
-      //  Say what became of each typed coordinate; a silent no-op looked like a bug.
-      auto find = [&](const vector<VibCoordSpec>& set, const VibCoordSpec& c) {
-         for (size_t i = 0; i < set.size(); i++)
-            if (sameCoord(set[i], c)) return (int)i;
-         return -1;
-      };
-      auto bonded = [&](int a, int b) {
-         for (size_t i = 0; i < in.bonds.size(); i++)
-            if ((in.bonds[i].a == a && in.bonds[i].b == b) ||
-                (in.bonds[i].a == b && in.bonds[i].b == a)) return true;
-         return false;
-      };
-      wxString added, skipped;
-      vector<VibCoordSpec> seen;
-      for (size_t i = 0; i < chosen.size(); i++) {
-         const VibCoordSpec& c = chosen[i];
-         wxString nm;
-         for (int t = 0; t < c.n; t++)
-            nm += (t ? wxString(wxT("\u2013")) : wxString()) + wxString::Format("%d", c.at[t] + 1);
-         wxString why;
-         if (find(seen, c) >= 0) why = "typed twice";
-         else if (find(comp.coords, c) < 0)
-            why = c.n == 3 ? "no bend (straight or no motion)" : "no motion along it";
-         const bool inAuto = why.empty() && find(automatic, c) >= 0;
-         seen.push_back(c);
-         bool chain = !in.bonds.empty();
-         for (int t = 0; t + 1 < c.n && chain; t++) chain = bonded(c.at[t], c.at[t + 1]);
-         if (!why.empty()) skipped += (skipped.empty() ? "" : "; ") + nm + ": " + why;
-         else {
-            if (inAuto) skipped += (skipped.empty() ? "" : "; ") + nm + ": already in the automatic set";
-            else added += (added.empty() ? "" : ", ") + nm;
-            if (!in.bonds.empty() && !chain) skipped += (skipped.empty() ? "" : "; ") + nm + ": atoms are not bonded in a chain, computed anyway";
-            p_compAdded.push_back(c);
-         }
-      }
-      if (!added.empty()) p_compMsg = "Added " + added + "; shares recomputed.";
-      if (!skipped.empty())
-         p_compMsg += (p_compMsg.empty() ? "" : " ") + wxString("Note: ") + skipped + ".";
-   }
    return true;
 }
 
 
-bool NModePanel::showComposition(const wxString& extra, wxString *error)
+bool NModePanel::showComposition(int chBends, wxString *error)
 {
+   bool ch = true;
+   ewxConfig::getConfig(INIFILE)->Read("NMode/CompositionCHBends", &ch, true);
+   if (chBends >= 0) ch = chBends != 0;
    VibComposition comp;
    vector<double> freqs;
-   if (!compositionRows(extra, comp, freqs, error)) return false;
+   if (!compositionRows(ch, comp, freqs, error)) return false;
    if (!p_compFrame) {
       wxFrame *frame = new wxFrame(wxGetTopLevelParent(this), wxID_ANY,
                                    "Vibrational Frequencies: mode composition",
@@ -2421,30 +2337,21 @@ bool NModePanel::showComposition(const wxString& extra, wxString *error)
       wxPanel *pane = new wxPanel(frame);
       wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
       wxStaticText *intro = new wxStaticText(pane, wxID_ANY,
-         "Share of each mode along bond stretches, angle bends and torsions "
-         "(all bonds, the bends at non-hydrogen atoms, and one torsion per "
-         "bond), normalised to 100 % over this set. The Mode column of the "
-         "frequency table uses all bends and out-of-plane motions as well, "
-         "grouped by equivalence, so its percentages differ. This is not a "
-         "potential energy distribution: coordinates overlap, so shares are "
-         "indicative.");
+         "Share of each mode along bond stretches, angle bends and torsions, "
+         "normalised to 100 % over this set. Indicative, not a potential "
+         "energy distribution.");
       intro->Wrap(780);
       top->Add(intro, 0, wxEXPAND | wxALL, 6);
       wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
-      row->Add(new wxStaticText(pane, wxID_ANY, "Add coordinates (atom numbers):"),
-               0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-      p_compExtra = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
-                                   wxDefaultSize, wxTE_PROCESS_ENTER);
-      p_compExtra->SetToolTip("2 atoms = stretch, 3 = bend about the middle "
-                              "atom, 4 = torsion; e.g. \"3-4, 9-4-2, 1-2-4-5\". "
-                              "Atom numbers are those in the coordinate names.");
-      row->Add(p_compExtra, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-      wxButton *apply = new wxButton(pane, wxID_ANY, "Apply");
-      row->Add(apply, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-      wxButton *addSel = new wxButton(pane, wxID_ANY, "Add Selected");
-      addSel->SetToolTip("Adds the 2, 3 or 4 atoms selected in the 3-D view as "
-                         "a stretch, bend or torsion, ordered along their bonds.");
-      row->Add(addSel, 0, wxALIGN_CENTER_VERTICAL);
+      p_compCH = new wxCheckBox(pane, wxID_ANY, wxT("Include C\u2013H bends"));
+      p_compCH->SetToolTip("Add the bends that move a hydrogen on carbon "
+                           "(H-C-X and H-C-H) to the set of coordinates.");
+      row->Add(p_compCH, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
+      wxButton *copy = new wxButton(pane, wxID_ANY, "Copy table");
+      copy->SetToolTip("Copy the table to the clipboard, tab-separated.");
+      row->Add(copy, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+      wxButton *exp = new wxButton(pane, wxID_ANY, "Export .csv...");
+      row->Add(exp, 0, wxALIGN_CENTER_VERTICAL);
       top->Add(row, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
       p_compNote = new wxStaticText(pane, wxID_ANY, "");
       top->Add(p_compNote, 0, wxEXPAND | wxALL, 6);
@@ -2476,29 +2383,31 @@ bool NModePanel::showComposition(const wxString& extra, wxString *error)
       fs->Add(pane, 1, wxEXPAND);
       frame->SetSizer(fs);
       p_compFrame = frame;
-      auto doApply = [this](wxCommandEvent&) {
+      p_compCH->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+         ewxConfig::getConfig(INIFILE)->Write("NMode/CompositionCHBends", p_compCH->GetValue());
          wxString err;
-         if (!showComposition(p_compExtra->GetValue(), &err))
-            p_compNote->SetLabel(err);   // the old table stays, as does its note
-      };
-      apply->Bind(wxEVT_BUTTON, doApply);
-      p_compExtra->Bind(wxEVT_TEXT_ENTER, doApply);
-      addSel->Bind(wxEVT_BUTTON, [this, doApply](wxCommandEvent& e) {
-         const std::string c = pickedCoordinate();
-         if (c.empty()) {
-            p_compNote->SetLabel("Select 2, 3 or 4 atoms in the 3-D view first.");
-            return;
+         if (!showComposition(p_compCH->GetValue() ? 1 : 0, &err)) p_compNote->SetLabel(err);
+      });
+      copy->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+         if (wxTheClipboard->Open()) {
+            wxTheClipboard->SetData(new wxTextDataObject(compositionText('\t')));
+            wxTheClipboard->Close();
          }
-         wxString t = p_compExtra->GetValue().Trim();
-         p_compExtra->ChangeValue(t.empty() ? wxString(c) : t + ", " + c);
-         doApply(e);
+      });
+      exp->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+         wxFileDialog dlg(p_compFrame, "Export mode composition", "", "mode-composition.csv",
+                          "CSV files (*.csv)|*.csv", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+         if (dlg.ShowModal() != wxID_OK) return;
+         wxFile f(dlg.GetPath(), wxFile::write);
+         if (!f.IsOpened() || !f.Write(compositionText(','), wxConvUTF8))
+            wxMessageBox("The file could not be written.", "Mode composition",
+                         wxOK | wxICON_ERROR, p_compFrame);
       });
    }
+   p_compCH->SetValue(ch);
    p_comp = comp;
    p_compFreqs = freqs;
-   if (p_compExtra && p_compExtra->GetValue() != extra) p_compExtra->ChangeValue(extra);
    fillComposition();
-   if (p_compNote && !p_compMsg.empty()) p_compNote->SetLabel(p_compMsg);
    p_compFrame->Show(true);
    p_compFrame->Raise();
    return true;
@@ -2510,7 +2419,6 @@ void NModePanel::fillComposition()
    if (!p_compGrid) return;
    if (p_compGrid->GetNumberRows() > 0)
       p_compGrid->DeleteRows(0, p_compGrid->GetNumberRows());
-   if (p_compNote) p_compNote->SetLabel("");
    for (size_t m = 0; m < p_comp.percent.size(); m++) {
       if (fabs(p_compFreqs[m]) < 10.0) continue;   // translations, rotations
       vector<size_t> order(p_comp.names.size());
@@ -2528,20 +2436,6 @@ void NModePanel::fillComposition()
          text += wxString::FromUTF8(p_comp.names[order[i]].c_str());
          text += wxString::Format(" %s %%", pc[order[i]] < 1.0 ? "<1" : wxString::Format("%.0f", pc[order[i]]));
       }
-      //  Typed coordinates are always listed, so an addition is visible
-      //  however little of the mode lies along it.
-      wxString added;
-      for (size_t k = 0; k < p_compAdded.size(); k++) {
-         const VibCoordSpec& c = p_compAdded[k];
-         for (size_t i = 0; i < p_comp.coords.size(); i++) {
-            if (!sameCoord(p_comp.coords[i], c)) continue;
-            if (!added.empty()) added += ", ";
-            added += wxString::FromUTF8(p_comp.names[i].c_str()) +
-                     wxString::Format(" %.1f %%", pc[i]);
-            break;
-         }
-      }
-      if (!added.empty()) text += (text.empty() ? "" : "  |  ") + wxString("added: ") + added;
       const int r = p_compGrid->GetNumberRows();
       p_compGrid->AppendRows(1);
       p_compGrid->SetCellValue(r, 0, wxString::Format("%d", (int)m + 1));
@@ -2576,11 +2470,34 @@ void NModePanel::fitCompColumn()
 }
 
 
-bool NModePanel::scriptComposition(const wxString& extra, const wxString& textPath,
+//  The table as the Copy and Export buttons give it; csv quotes the cells.
+wxString NModePanel::compositionText(char sep) const
+{
+   auto cell = [sep](const wxString& v) {
+      if (sep != ',') return v;
+      wxString q = v;
+      q.Replace("\"", "\"\"");
+      return "\"" + q + "\"";
+   };
+   wxString out;
+   for (int c = 0; c < p_compGrid->GetNumberCols(); c++)
+      out += (c ? wxString(sep) : wxString()) +
+             cell(c == 1 ? wxString(wxT("cm-1")) : p_compGrid->GetColLabelValue(c));
+   out += "\n";
+   for (int r = 0; r < p_compGrid->GetNumberRows(); r++) {
+      for (int c = 0; c < p_compGrid->GetNumberCols(); c++)
+         out += (c ? wxString(sep) : wxString()) + cell(p_compGrid->GetCellValue(r, c));
+      out += "\n";
+   }
+   return out;
+}
+
+
+bool NModePanel::scriptComposition(int chBends, const wxString& textPath,
                                    const wxString& pngPath)
 {
    wxString err;
-   if (!showComposition(extra, &err)) return false;
+   if (!showComposition(chBends, &err)) return false;
    FILE *out = fopen(textPath.utf8_str(), "w");
    if (out == 0) return false;
    fprintf(out, "coords");
@@ -2619,13 +2536,23 @@ bool NModePanel::scriptComposition(const wxString& extra, const wxString& textPa
             p_compFrame->SetSize(atoi(w), p_compFrame->GetSize().y);
             widths("after");
          }
-         fprintf(g, "note\t%s\n", p_compNote ? (const char*)p_compNote->GetLabel().utf8_str() : "");
+         fprintf(g, "ch\t%d\n", p_compCH && p_compCH->GetValue() ? 1 : 0);
          for (int r = 0; r < p_compGrid->GetNumberRows(); r++) {
             fprintf(g, "row");
             for (int c = 0; c < p_compGrid->GetNumberCols(); c++)
                fprintf(g, "\t%s", (const char*)p_compGrid->GetCellValue(r, c).utf8_str());
             fprintf(g, "\n");
          }
+         fclose(g);
+      }
+   }
+   //  ECCE_NMODE_COMPOSITION_COPY=<path>: the text the Copy button puts on
+   //  the clipboard; <path>.csv is what Export writes.
+   if (const char *cp = getenv("ECCE_NMODE_COMPOSITION_COPY")) {
+      for (int pass = 0; pass < 2; pass++) {
+         FILE *g = fopen((string(cp) + (pass ? ".csv" : "")).c_str(), "w");
+         if (!g) continue;
+         fputs((const char*)compositionText(pass ? ',' : '\t').utf8_str(), g);
          fclose(g);
       }
    }
@@ -2649,7 +2576,7 @@ bool NModePanel::scriptComposition(const wxString& extra, const wxString& textPa
 /**
  * ECCE_NMODE_COMPOSITION_DUMP=<path> (#486): once the panel is up, open the
  * Mode composition window, write its numbers to <path> and its picture to
- * <path>.png.  ECCE_NMODE_COMPOSITION_COORDS adds coordinates ("3-4 9-4-2").
+ * <path>.png.  ECCE_NMODE_COMPOSITION_CH sets the C-H bends checkbox.
  */
 void NModePanel::dumpCompositionIfRequested()
 {
@@ -2669,7 +2596,6 @@ void NModePanel::dumpCompositionIfRequested()
          p_picked = atoms;
          if (FILE *out = fopen(target.c_str(), "w")) {
             fprintf(out, "key %s\n", key.c_str());
-            fprintf(out, "picked %s\n", pickedCoordinate().c_str());
             for (size_t m = 0; m < p_spectrum->highlight().size(); m++)
                fprintf(out, "%zu\t%.2f\n", m + 1, p_spectrum->highlight()[m]);
             fclose(out);
@@ -2690,11 +2616,12 @@ void NModePanel::dumpCompositionIfRequested()
    const char *path = getenv("ECCE_NMODE_COMPOSITION_DUMP");
    if (path == 0) return;
    const string target(path);
-   const char *extra = getenv("ECCE_NMODE_COMPOSITION_COORDS");
-   const wxString coords = extra ? wxString::FromUTF8(extra) : wxString();
+   //  ECCE_NMODE_COMPOSITION_CH=0/1 sets the C-H bends checkbox.
+   const char *chEnv = getenv("ECCE_NMODE_COMPOSITION_CH");
+   const int ch = chEnv ? atoi(chEnv) : -1;
    wxTimer *timer = new wxTimer();
-   timer->Bind(wxEVT_TIMER, [this, target, coords](wxTimerEvent&) {
-      scriptComposition(coords, wxString::FromUTF8(target.c_str()),
+   timer->Bind(wxEVT_TIMER, [this, target, ch](wxTimerEvent&) {
+      scriptComposition(ch, wxString::FromUTF8(target.c_str()),
                         wxString::FromUTF8((target + ".png").c_str()));
       if (getenv("ECCE_EXIT_AFTER_DUMP") != 0)
          wxTheApp->CallAfter([]() {
@@ -2750,33 +2677,4 @@ void NModePanel::eventMCB(const ecce::Event& event)
    }
    p_picked = picked;
    highlightAtoms(picked);
-}
-
-
-//  The picked atoms as "a-b-c" (1-based), reordered so that consecutive
-//  atoms are bonded: the bend's apex in the middle, a torsion as a chain.
-//  Pick order is kept when the atoms do not form such a chain.
-std::string NModePanel::pickedCoordinate() const
-{
-   const size_t n = p_picked.size();
-   if (n < 2 || n > 4) return "";
-   SGFragment *frag = const_cast<NModePanel*>(this)->getFW().getSceneGraph().getFragment();
-   if (!frag) return "";
-   auto bonded = [frag](int a, int b) {
-      std::vector<TAtm*> *nb = frag->atomRef(a)->connectedAtoms();
-      bool yes = nb && std::find(nb->begin(), nb->end(), frag->atomRef(b)) != nb->end();
-      delete nb;
-      return yes;
-   };
-   std::vector<int> order(p_picked), best(p_picked);
-   std::sort(order.begin(), order.end());
-   do {
-      bool chain = true;
-      for (size_t i = 0; i + 1 < n && chain; i++) chain = bonded(order[i], order[i + 1]);
-      if (chain) { best = order; break; }
-   } while (std::next_permutation(order.begin(), order.end()));
-   std::string out;
-   for (size_t i = 0; i < n; i++)
-      out += (i ? "-" : "") + std::to_string(best[i] + 1);
-   return out;
 }
