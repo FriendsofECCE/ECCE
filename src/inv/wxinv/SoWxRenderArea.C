@@ -1157,6 +1157,7 @@ void SoWxRenderArea::redraw()
     GLPath::record((const char*)glGetString(GL_RENDERER),
                    (const char*)glGetString(GL_VENDOR),
                    (const char*)glGetString(GL_VERSION));
+  GLPath::setContentScaleFactor(GetContentScaleFactor());
 #ifdef OIV_COIN
   if (!p_alphaChecked) {
     p_softwareGL = GLPath::software();

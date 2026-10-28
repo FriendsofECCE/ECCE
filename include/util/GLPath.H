@@ -38,6 +38,10 @@ namespace GLPath
   /// False until record() has run in this process.
   bool known();
 
+  /// Current window-to-framebuffer scale, updated by the active render area.
+  void setContentScaleFactor(double scale);
+  double contentScaleFactor();
+
   /// The path in use.  Hardware until a renderer is known.
   bool software();
 

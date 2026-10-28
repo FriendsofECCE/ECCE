@@ -12,6 +12,7 @@ using std::string;
 
 static bool s_known = false;
 static bool s_software = false;
+static double s_contentScaleFactor = 1.0;
 static string s_line;
 
 static string lower(const char* s)
@@ -86,6 +87,13 @@ void GLPath::record(const char* renderer, const char* vendor,
 }
 
 bool GLPath::known() { return s_known; }
+
+void GLPath::setContentScaleFactor(double scale)
+{
+  s_contentScaleFactor = scale > 0.0 ? scale : 1.0;
+}
+
+double GLPath::contentScaleFactor() { return s_contentScaleFactor; }
 
 bool GLPath::software() { return s_known && s_software; }
 
