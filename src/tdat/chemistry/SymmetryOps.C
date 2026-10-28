@@ -44,7 +44,16 @@
 //  Resolved against $ECCE_HOME/bin instead, by the same shared
 //  Ecce::ecceBinCommand() every other caller of these helpers uses.
 static string cleanCmd        = Ecce::ecceBinCommand("cleansym");
-static string autosymCmd      = Ecce::ecceBinCommand("autosym");
+static string autosymCommand()
+{
+   // Keep the Fortran implementation as the default.  Setting this before
+   // launching ECCE lets testers exercise the C++ migration without changing
+   // the rest of the symmetry workflow or replacing the reference binary.
+   const char* useCpp = getenv("ECCE_CXX_SYMMETRY");
+   return Ecce::ecceBinCommand(useCpp && strcmp(useCpp, "1") == 0
+                               ? "autosym_cpp" : "autosym");
+}
+static string autosymCmd      = autosymCommand();
 static string getIFrag        = Ecce::ecceBinCommand("getfrag");
 static string genFrag         = Ecce::ecceBinCommand("genmol");
 static string genLatticeFrag  = Ecce::ecceBinCommand("genmollat");

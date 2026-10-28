@@ -112,11 +112,34 @@ closure fail.
 Skipped with a message when `symops` is not built, so the suite still
 runs in the no-build CI job. `ECCE_TEST_SYMOPS` points at it elsewhere.
 
+## The C++ autosym migration target
+
+`src/apps/symmetry/autosym.cpp` is an independently buildable C++ detector.
+The established Fortran `autosym` remains the normal executable while the
+remaining point-group classification and principal-axis output are ported.
+Build the migration target and run the same threshold checks against it with:
+
+```sh
+cmake --build build-cmake --target autosym_cpp
+ECCE_TEST_AUTOSYM="$PWD/build-cmake/autosym_cpp" tests/symmetry/run_tests.py
+```
+
+Those checks pin water (`C2V` at 0.01 Å and `CS` at 0.05 Å), ammonia
+(`C3V` at 0.01 Å), methane (`TD` at 0.01 Å), and Builder geometries for
+benzene (`D6H`) and cyclohexane (`D3D`). The latter catch nearly collinear
+anchor vectors and distinguish `Dnd` from `Dnh`. B(OH)3 (`C3H`) is pinned
+at 0.05 Å, the tolerance needed by its rounded Builder geometry. The tests
+also compare through `ECCE_TEST_AUTOSYM` without changing the default path,
+which stays pointed at the established executable.
+
+At runtime, `SymmetryOps` reads `ECCE_CXX_SYMMETRY` when the application
+starts. Set it to `1` before launching ECCE to select `autosym_cpp`; if it is
+unset or has any other value, ECCE uses the Fortran `autosym` executable.
+
 ## Scope
 
-Thirteen groups: C1, Cs, Ci, C2, C2v, C3v, C4v, C2h, D2h, D3h, D4h, Td,
-Oh — enough for AH_n and ML_n, which is the scope #132 sets for the
-first MO diagram.
+The first migration targets common groups for AH_n and ML_n, including C1,
+Cs, Ci, C2, C2v, C3v, C4v, C2h, D2h, D3h, D3d, D4h, D6h, Td, and Oh.
 
 Only **real** characters. The cyclic groups Cn with n > 2 have complex
 characters for their E irreps; none of the above is one, and a group

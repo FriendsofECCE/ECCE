@@ -804,7 +804,8 @@ def checkAutosymThreshold(report):
     panel's default field and MoDiagramPanel) and because a future
     autosym change that shifted this would be invisible otherwise.
     """
-    binary = os.path.join(ROOT, "build-cmake", "autosym")
+    binary = os.environ.get("ECCE_TEST_AUTOSYM",
+                           os.path.join(ROOT, "build-cmake", "autosym"))
     if not (os.path.isfile(binary) and os.access(binary, os.X_OK)):
         binary = "/opt/ecce/bin/autosym"
     if not (os.path.isfile(binary) and os.access(binary, os.X_OK)):
@@ -818,6 +819,13 @@ def checkAutosymThreshold(report):
     METHANE = [("C", 6, 0.0, 0.0, 0.0),
                ("H", 1, d, d, d), ("H", 1, d, -d, -d),
                ("H", 1, -d, d, -d), ("H", 1, -d, -d, d)]
+    ammoniaRadius = 1.0
+    AMMONIA = [("N", 7, 0.0, 0.0, 0.5),
+               ("H", 1, ammoniaRadius, 0.0, -0.1),
+               ("H", 1, -0.5 * ammoniaRadius,
+                0.8660254037844386 * ammoniaRadius, -0.1),
+               ("H", 1, -0.5 * ammoniaRadius,
+                -0.8660254037844386 * ammoniaRadius, -0.1)]
 
     def detect(atoms, threshold):
         lines = ["%d" % len(atoms), "%g" % threshold]
@@ -837,6 +845,25 @@ def checkAutosymThreshold(report):
     report.check(detect(METHANE, 0.01) == "TD",
                  "autosym finds TD for methane at 0.01 A (got %s)"
                  % detect(METHANE, 0.01))
+    report.check(detect(AMMONIA, 0.01) == "C3V",
+                 "autosym finds C3V for ammonia at 0.01 A (got %s)"
+                 % detect(AMMONIA, 0.01))
+
+    # Regression geometries from Builder qmin files.  Benzene carries tiny
+    # out-of-plane coordinate noise that used to make a radial C-H anchor
+    # appear non-collinear; cyclohexane checks the Dnd subgroup classifier.
+    for fixture, expected in (("autosym-benzene.in", "D6H"),
+                              ("autosym-cyclohexane.in", "D3D"),
+                              ("autosym-boh3-c3h.in", "C3H")):
+        with open(os.path.join(HERE, "fixtures", fixture)) as stream:
+            geometry = stream.read()
+        run = subprocess.run([binary], input=geometry, capture_output=True,
+                             text=True, timeout=60)
+        actual = (run.stdout.split("\n")[0].strip()
+                  if run.returncode == 0 and run.stdout.strip() else None)
+        report.check(actual == expected,
+                     "autosym finds %s for %s (got %s)"
+                     % (expected, fixture, actual))
 
     #  And the trap itself, asserted so that anyone who loosens the
     #  threshold sees why they should not.
