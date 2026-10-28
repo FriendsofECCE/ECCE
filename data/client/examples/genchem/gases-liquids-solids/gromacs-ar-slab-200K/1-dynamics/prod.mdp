@@ -1,0 +1,31 @@
+; Argon slab in vacuum, NVT at 200 K, 5 ns; positions every 5 ps.
+; No dispersion correction: the system is not homogeneous.
+cutoff-scheme = Verlet
+; tighter buffer: at 40 K the default lets T drift by up to 0.4 %
+verlet-buffer-tolerance = 0.001
+nstlist = 20
+coulombtype = Cut-off
+rcoulomb = 1.2
+vdwtype = Cut-off
+vdw-modifier = Potential-shift
+rvdw = 1.2
+DispCorr = no
+pbc = xyz
+integrator = md
+dt = 0.002
+tcoupl = v-rescale
+tc-grps = System
+tau-t = 1.0
+ref-t = 200
+pcoupl = no
+comm-mode = Linear
+nstcomm = 100
+nstcalcenergy = 100
+nstenergy = 500
+nstlog = 5000
+nsteps = 2500000
+gen-vel = yes
+gen-temp = 200
+gen-seed = 20261028
+nstxout-compressed = 2500
+compressed-x-precision = 1000
