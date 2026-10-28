@@ -29,6 +29,8 @@
 #include "viz/FixedPixelText.H"
 #include "viz/VR3dXVSmouse.H"
 
+#include "util/GLPath.H"
+
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "wxviz/SGViewer.H"
@@ -632,20 +634,22 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
         else if (idx==3) pos.setValue(0.70,0.96);  //uright
 
         // A long right-hand text moves left so that it ends inside the view
-        // (10 pixels a character).
+        // (10 logical pixels a character).
         if (idx==1 || idx==3) {
            float width = SoViewportRegionElement::get(action->getState())
                             .getViewportSizePixels()[0];
+           const float scale = (float)GLPath::contentScaleFactor();
            if (width > 0.f)
               pos[0] = std::max(0.010f, std::min(0.70f,
-                          1.0f - (float)(fixedPixelLength(text)*10 + 14)/width));
+                          1.0f - (float)(fixedPixelLength(text)*10 + 14)*scale/width));
         }
 
         float x =0;float y =0;float z =0;
         vv.getPlanePoint(vv.getNearDist()+ 0.1 * vv.getDepth(), pos).getValue(x,y,z);
 
         glRasterPos3f(x,y,z);
-        drawFixedPixelText(Fixed9x15_Character_Map, text, 10.0);
+        drawFixedPixelText(Fixed9x15_Character_Map, text, 10.0,
+                           GLPath::contentScaleFactor());
      }
 
      glPopAttrib();
