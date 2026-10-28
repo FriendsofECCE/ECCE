@@ -28,6 +28,11 @@ namespace {
 // Below this |mu| (Debye) the label would read 0.00 anyway.
 const double ZERO_MU = 0.005;
 
+// 1 e Angstrom in debye.
+const double DEBYE_PER_E_ANGSTROM = 4.80320;
+// Nearly uncharged atoms would put the poles far outside the molecule.
+const double MAX_POLE_SEPARATION = 10.0;
+
 // Centre of the atoms' charges of one sign: sum q r / sum q.
 bool pole(const vector<double>& q, const vector<const double*>& xyz,
           bool positive, double c[3])
@@ -53,6 +58,8 @@ AddDipoleMomentCmd::AddDipoleMomentCmd(const string& name, Receiver *receiver,
   : AddVectorCmd(name, receiver, calc)
 {
    addParameter(new CommandParameter("ChargesOppose", false));
+   addParameter(new CommandParameter("PoleCharge", 0.0));
+   addParameter(new CommandParameter("PoleSeparation", 0.0));
 }
 
 AddDipoleMomentCmd::~AddDipoleMomentCmd()
@@ -165,6 +172,7 @@ bool AddDipoleMomentCmd::execute()
    bool arrow = mag >= ZERO_MU;
    bool oppose = false;
    bool havePoles = false;
+   double poleCharge = 0.0;
    SGFragment *frag = sg->getFragment();
 
    if (arrow && frag) {
@@ -179,22 +187,20 @@ bool AddDipoleMomentCmd::execute()
          xyz.push_back(frag->atomRef(i)->coordinates());
       }
       if (pole(q, xyz, false, neg) && pole(q, xyz, true, pos)) {
+         // The charges give how much charge sits at each pole; the poles are
+         // put along mu, centred between the charge centres, as far apart as
+         // that charge must be to give mu (charges alone can point elsewhere,
+         // or the other way, as in CO).
          havePoles = true;
-         // The pole separation measured along mu: the head then lies on mu's
-         // line at the positive pole's height.
-         double dist = 0.0;
-         for (int k = 0; k < 3; k++) {
-            start[k] = neg[k];
-            len += (pos[k]-neg[k])*m[k]/mag;
-            dist += (pos[k]-neg[k])*(pos[k]-neg[k]);
-         }
-         if (len < 0.0) {
-            oppose = true;
-            len = -len;
-            for (int k = 0; k < 3; k++) start[k] = pos[k];
-         } else if (len == 0.0) {
-            len = sqrt(dist);
-         }
+         double qpos = 0.0, along = 0.0;
+         for (size_t i = 0; i < q.size(); i++) if (q[i] > 0.0) qpos += q[i];
+         for (int k = 0; k < 3; k++) along += (pos[k]-neg[k])*m[k]/mag;
+         oppose = along < 0.0;
+         len = qpos > 0.0 ? mag/DEBYE_PER_E_ANGSTROM/qpos : 0.0;
+         if (len > MAX_POLE_SEPARATION) len = MAX_POLE_SEPARATION;
+         poleCharge = qpos;
+         for (int k = 0; k < 3; k++)
+            start[k] = 0.5*(neg[k]+pos[k]) - 0.5*len*m[k]/mag;
       } else {
          // No charges: a 1 A arrow centred on the centre of nuclear charge.
          vector<double*> c;
@@ -206,6 +212,8 @@ bool AddDipoleMomentCmd::execute()
       if (len <= 0.0) arrow = false;
    }
    getParameter("ChargesOppose")->setBoolean(oppose);
+   getParameter("PoleCharge")->setDouble(havePoles ? poleCharge : 0.0);
+   getParameter("PoleSeparation")->setDouble(havePoles ? len : 0.0);
 
    Color color(getParameter("neutral")->getString());
    if (arrow) {
@@ -218,8 +226,6 @@ bool AddDipoleMomentCmd::execute()
       vec->fixedThickness(0.04f, 0.10f, 0.20f);
       vec->showThroughMolecule();
       root->addChild(vec);
-      //  The poles are drawn at the arrow's ends: point charges miss the
-      //  atoms' own polarisation, so their centres need not lie on mu's line.
       if (havePoles) {
          double head[3];
          for (int k = 0; k < 3; k++) head[k] = start[k] + len*m[k]/mag;

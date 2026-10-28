@@ -15,6 +15,8 @@ class wxGrid;
  * X,Y,Z values.  
  * Subclass for a more generic display - see QuadPolePanel
  */
+class ewxStaticText;
+
 class MomentsPanel : public VizPropertyPanel
 {
    DECLARE_DYNAMIC_CLASS(MomentsPanel)
@@ -58,6 +60,9 @@ class MomentsPanel : public VizPropertyPanel
       wxGrid *p_grid;  
 
       SliderCombo *p_slider;
+
+      /* The dipole's note: magnitude, pole charge and separation. */
+      ewxStaticText *p_dipoleNote = 0;
 
       /* The first time, we want to let the command guess the scale
          but after that, stick with the user's choice. */
