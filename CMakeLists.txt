@@ -2061,6 +2061,8 @@ set_tests_properties(tddft_setup PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
 add_test(NAME orca_dispersion COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_dispersion/run_tests.py)
 # ORCA integration grid setting (DefGrid1/2/3) and grid keywords in legacy functional names (#644).
 add_test(NAME orca_grid COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_grid/run_tests.py)
+# Custom solvent (dielectric constant + refractive index) for ORCA and Gaussian 16 (#642).
+add_test(NAME custom_solvent COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/custom_solvent/run_tests.py)
 # ORCA Geometry/GeoVib on one atom: no Opt, Freq kept; runs ORCA when installed (#623).
 add_test(NAME orca_one_atom COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_one_atom/run_tests.py)
 # Opt=QST2/QST3 decks for HCN<->HNC, run with Gaussian 16 when installed (#419)

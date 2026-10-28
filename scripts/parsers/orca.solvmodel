@@ -16,16 +16,22 @@
 
 $| = 1;
 
-my ($eps, $type, $solvent, $smd);
+my ($eps, $refrac, $type, $solvent, $smd);
 while (<STDIN>) {
   if (/^\s*Epsilon\s+\.\.\.\s+(\d+\.\d+)/) { $eps = $1; }
+  elsif (/^\s*Refrac\s+\.\.\.\s+(\d+\.\d+)/) { $refrac = $1; }
   elsif (/^\s*Epsilon function type\s+\.\.\.\s+(\S+)/) { $type = $1; }
   elsif (/^Solvent:\s+\.\.\.\s+(\S.*?)\s*$/) { $solvent = ucfirst(lc($1)); }
   elsif (/^SMD-CDS solvent descriptors/) { $smd = 1; }
 }
 exit(0) if (!defined($type) && !$smd);
 my $text = $smd ? "SMD" : $type;
-if (defined($solvent)) {
+if (defined($solvent) && uc($solvent) eq "CUSTOM" && defined($eps)) {
+  # A custom solvent names only its two parameters.
+  $text .= sprintf(", Custom (\xCE\xB5 = %.1f", $eps);
+  $text .= sprintf(", n = %.2f", $refrac) if (defined($refrac));
+  $text .= ")";
+} elsif (defined($solvent)) {
   $text .= ", $solvent";
 } elsif (defined($eps)) {
   $text .= sprintf(", \xCE\xB5 = %.1f", $eps);

@@ -599,7 +599,8 @@ sub SolvationToken {
     #  project has hit nine times in one afternoon across the Gaussian
     #  dialogs. The dialog suite flagged it here before it could bite.
     if ($model eq "CPCM") {
-      $result = "CPCM(" . $solvent . ")";
+      #  Custom: plain CPCM; epsilon and refrac come from ORCABlocks.
+      $result = ($solvent eq "Custom") ? "CPCM" : "CPCM(" . $solvent . ")";
     } elsif ($model eq "SMD") {
       #  Emitted as a %cpcm block by ORCABlocks, not as a route keyword.
       $result = "";
@@ -688,7 +689,20 @@ sub ORCABlocks {
       $AbiDict{"ES.Theory.SCF.SolvationModel"} eq "SMD") {
     my $solvent = $AbiDict{"ES.Theory.SCF.Solvent"};
     $solvent = "water" if ($solvent eq "");
+    die "ai.orca error: a Custom solvent needs the CPCM model.\n"
+      if ($solvent eq "Custom");
     $result .= "%cpcm\n  smd true\n  SMDsolvent \"" . $solvent . "\"\nend\n";
+  }
+  #  Custom solvent: epsilon/refrac as ORCA 6.1.1 accepts them (reported
+  #  back as "Epsilon" and "Refrac" in the CPCM block of the output).
+  if ($AbiDict{"ES.Theory.SCF.UseSolvation"} eq "1" &&
+      $AbiDict{"ES.Theory.SCF.SolvationModel"} eq "CPCM" &&
+      $AbiDict{"ES.Theory.SCF.Solvent"} eq "Custom") {
+    my $eps = $AbiDict{"ES.Theory.SCF.Dielectric"};
+    my $n = $AbiDict{"ES.Theory.SCF.RefractiveIndex"};
+    $eps = 30.0 if ($eps eq "");
+    $n = 1.4 if ($n eq "");
+    $result .= "%cpcm\n  epsilon $eps\n  refrac $n\nend\n";
   }
   #  TD-DFT/CIS.  ORCA's UKS has no singlet/triplet split, so triplets
   #  are only requested for restricted references.

@@ -8,3 +8,4 @@
 ##chemsys##               ! cartesian (or zmatrix) geometry listing
 ##basis##
 ##OrbitalsToCorrelate##
+##SCRFInput##

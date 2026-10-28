@@ -1320,10 +1320,11 @@ sub SCRFOptions {
     }
   
     # solvent/dielectric 
-    if ($AbiDict{"ES.Theory.SCF.Solvent"} eq "Manual") {
-      if (defined($AbiDict{"ES.Theory.SCF.Dielectric"})) {
-        $options .= "Dielectric=".$AbiDict{"ES.Theory.SCF.Dielectric"}."";
-      }
+    #  "Manual" is the old name of Custom.  Generic,Read takes Eps= and
+    #  EpsInf= from the input section that SCRFInput writes.
+    if ($AbiDict{"ES.Theory.SCF.Solvent"} eq "Custom" ||
+        $AbiDict{"ES.Theory.SCF.Solvent"} eq "Manual") {
+      $options .= "Solvent=Generic,Read";
     } elsif ($AbiDict{"ES.Theory.SCF.Solvent"} eq "") {
       $options .= "Solvent=water";
     } else {
@@ -1340,6 +1341,21 @@ sub SCRFOptions {
   }
 }
 
+
+# Eps and EpsInf (= n^2) of a Custom solvent, after the basis set section.
+sub SCRFInput {
+  my $result = "";
+  my $s = $AbiDict{"ES.Theory.SCF.Solvent"};
+  if ($AbiDict{"ES.Theory.SCF.UseSCRF"} && ($s eq "Custom" || $s eq "Manual")) {
+    my $eps = $AbiDict{"ES.Theory.SCF.Dielectric"};
+    my $n = $AbiDict{"ES.Theory.SCF.RefractiveIndex"};
+    $eps = 78.4 if ($eps eq "");
+    $n = 1.4 if ($n eq "");
+    $result = sprintf("Eps=%s\nEpsInf=%.6f\n\n", $eps, $n * $n);
+  }
+  $_ = $result;
+  return $result;
+}
 
 ########################################################################
 # analytic gradients, no hessian 

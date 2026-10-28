@@ -267,12 +267,30 @@ class OrcaTheoryPanel(EccePanel):
                                              "octanol",
                                              "pyridine",
                                              "THF",
-                                             "toluene"],
+                                             "toluene",
+                                             "Custom"],
                                     name="ES.Theory.SCF.Solvent",
                                     default=0,
                                     label="Solvent:",
                                     export=1)
         solvSizer.AddWidget(self.solvent)
+
+        # Custom (a mixture with no name in ORCA's list) is written as
+        # %cpcm epsilon/refrac, which SMD has no equivalent for.
+        self.dielectric = EcceFloatInput(self,
+                                         default=30.0,
+                                         name="ES.Theory.SCF.Dielectric",
+                                         label="Dielectric constant:",
+                                         hardRange="(0..)",
+                                         export=1)
+        solvSizer.AddWidget(self.dielectric)
+        self.refrac = EcceFloatInput(self,
+                                     default=1.4,
+                                     name="ES.Theory.SCF.RefractiveIndex",
+                                     label="Refractive index:",
+                                     hardRange="(0..)",
+                                     export=1)
+        solvSizer.AddWidget(self.refrac)
         self.panelSizer.Add(solvSizer)
 
         # EXCITED STATES -- ai.orca writes a %tddft block.  No triplets-only
@@ -318,6 +336,10 @@ class OrcaTheoryPanel(EccePanel):
         useSolv = self.useSolvation.GetValue()
         self.solvModel.Enable(useSolv)
         self.solvent.Enable(useSolv)
+        custom = (useSolv and self.solvModel.GetValue() == "CPCM" and
+                  self.solvent.GetValue() == "Custom")
+        self.dielectric.Enable(custom)
+        self.refrac.Enable(custom)
         if EcceGlobals.Category in ("SCF", "DFT"):
             useTD = self.useTDDFT.GetValue()
             self.tdRoots.Enable(useTD)
