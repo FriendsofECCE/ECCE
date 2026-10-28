@@ -8,6 +8,8 @@ eccejobmonitor with stand-in sacct and squeue on the PATH:
 
   a. sacct "CANCELLED by 4086", squeue empty -> status 304 (cancelled)
   b. sacct "FAILED", squeue empty             -> status 302 (no status file)
+  c. sacct "OUT_OF_MEMORY" / "TIMEOUT"         -> status 305 with the state and
+     the scheduler's End time (#649, #650)
 
     tests/launch/slurm_cancel_test.py
 """
@@ -50,12 +52,14 @@ Script=none
 """
 
 
-def run(sacctState):
+def run(sacctState, endTime=""):
     work = tempfile.mkdtemp(prefix="ecce-slurmcancel-")
     try:
         bin_ = os.path.join(work, "bin")
         os.makedirs(bin_)
-        for name, body in (("sacct", "echo '%s'\n" % sacctState),
+        sacct = ("case \"$*\" in *End) echo '%s';; *) echo '%s';; esac\n"
+                 % (endTime, sacctState))
+        for name, body in (("sacct", sacct),
                            ("squeue", "exit 0\n")):
             path = os.path.join(bin_, name)
             with open(path, "w") as f:
@@ -99,6 +103,16 @@ def main():
     check(rc == 0, "failed: the monitor ends (%s)" % (rc if rc is not None else text))
     check(re.search(r"jmSTATUS 302\b", text) is not None and "jmSTATUS 304" not in text,
           "failed: status 302, not cancelled")
+
+    for state in ("OUT_OF_MEMORY", "TIMEOUT"):
+        rc, text = run(state, "2026-10-28T07:12:50")
+        check(rc == 0, "%s: the monitor ends (%s)" % (state, rc if rc is not None else text))
+        check(re.search(r"jmSTATUS 305 state=%s end=2026-10-28T07:12:50Z" % state, text)
+              is not None, "%s: status 305 with state and end time" % state)
+
+    rc, text = run("OUT_OF_MEMORY")
+    check(re.search(r"jmSTATUS 305 state=OUT_OF_MEMORY(?! end=)", text) is not None,
+          "no End from sacct: status 305 without an end time")
 
     if failures:
         print("FAILED: " + "; ".join(failures))

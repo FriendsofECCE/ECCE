@@ -487,16 +487,22 @@ inline std::string extractReason(const std::vector<std::string>& filePaths)
 // file is missing or has no text, so the reason is left as it was.
 // ------------------------------------------------------------------------
 inline std::string schedulerErrNote(const std::string& name,
-                                    const std::string& path)
+                                    const std::string& path,
+                                    bool schedulerLine = false)
 {
   std::vector<std::string> lines = readLines(path);
   std::string last;
-  for (size_t i = lines.size(); i > 0 && last.empty(); i--) {
-    const std::string& l = lines[i-1];
-    size_t b = l.find_first_not_of(" \t\r");
-    if (b != std::string::npos)
-      last = l.substr(b, l.find_last_not_of(" \t\r") - b + 1);
-  }
+  // For a job the scheduler ended, its own message (slurmstepd: ... oom_kill,
+  // ... DUE TO TIME LIMIT) follows the code's stderr; prefer it.
+  for (int pass = schedulerLine ? 0 : 1; pass < 2 && last.empty(); pass++)
+    for (size_t i = lines.size(); i > 0 && last.empty(); i--) {
+      const std::string& l = lines[i-1];
+      if (pass == 0 && l.find("slurmstepd") == std::string::npos)
+        continue;
+      size_t b = l.find_first_not_of(" \t\r");
+      if (b != std::string::npos)
+        last = l.substr(b, l.find_last_not_of(" \t\r") - b + 1);
+    }
   if (last.empty())
     return "";
   if (last.size() > 160)

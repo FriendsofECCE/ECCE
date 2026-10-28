@@ -99,6 +99,7 @@ my $MSG_VAL_STAT_RUNNING = 301;		# value: status: job is running
 my $MSG_VAL_STAT_UNAVAIL = 302;		# value: status: unavailable
 my $MSG_VAL_STAT_IMPORTED = 303;	# value: status: imported
 my $MSG_VAL_STAT_CANCELLED = 304;	# value: status: cancelled on the machine
+my $MSG_VAL_STAT_SCHEDEND = 305;	# value: status: the scheduler ended it
 
 # return values from JobCheck
 my $JOB_STATE_PENDING	= 0x1;
@@ -127,6 +128,8 @@ my $gJobCheckComplaintIssued = 0;
 my $gJobCheckEnqueuedIssued = 0;
 my $gJobCheckState = $JOB_STATE_NONE;
 my $gSchedCancelled = 0;	# the scheduler says the job was cancelled
+my $gSchedState = '';		# scheduler end state: OUT_OF_MEMORY, TIMEOUT, ...
+my $gSchedEnd = '';		# the scheduler's end time, UTC ISO, when known
 my $gLogFileOpen = 0;
 my $gLogNumErrors = 0;
 my $gLogNumWarnings = 0;
@@ -2364,6 +2367,8 @@ sub JobCheck
                 elsif ($state =~ /^(CANCELLED|FAILED|TIMEOUT|NODE_FAIL|OUT_OF_MEMORY|PREEMPTED|BOOT_FAIL|DEADLINE)\b/)
                 {
                     $gSchedCancelled = 1 if ($1 eq 'CANCELLED');
+                    $gSchedState = $1 if ($1 =~ /^(TIMEOUT|NODE_FAIL|OUT_OF_MEMORY|PREEMPTED)$/);
+                    &SlurmEndTime($id);
                     $status = $JOB_STATE_DONE;
                     last;
                 }
@@ -2375,6 +2380,7 @@ sub JobCheck
                 elsif (grep {$state eq $_} qw{COMPLETING
 											  COMPLETED})
                 {
+                    &SlurmEndTime($id);
                     $status = $JOB_STATE_DONE;
                     last;
                 }
@@ -2470,6 +2476,43 @@ sub JobCheck
 # with the other outputs unless it is empty, or the job exited 0 and the file
 # is large.
 # --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# Slurm's end time for a finished job, kept as UTC ISO for the status
+# message.  It dates a job whose script never wrote "Completed Job" (#650).
+# --------------------------------------------------------------------------- #
+
+sub SlurmEndTime
+{
+    my($id) = @_;
+
+    return if ($gSchedEnd ne '');
+    if (open(ENDQ, "TZ=UTC sacct -n -X -j $id -P -o End 2>/dev/null |"))
+    {
+        my $l = <ENDQ>;
+        close ENDQ;
+        $gSchedEnd = "$1Z"
+            if (defined($l) && $l =~ /^\s*(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)\s*$/);
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Send the job's status, with the scheduler's end state and end time after
+# it (an old job store reads the leading number only).
+# --------------------------------------------------------------------------- #
+
+sub MsgSendStatusEnd
+{
+    my($status) = @_;
+
+    $status =~ s/^\s+|\s+$//g;
+    $status = $MSG_VAL_STAT_SCHEDEND
+        if ($gSchedState ne '' && $status ne '0' && $status ne '304');
+    my $extra = '';
+    $extra .= " state=$gSchedState" if ($gSchedState ne '');
+    $extra .= " end=$gSchedEnd" if ($gSchedEnd ne '');
+    &MsgSendStatus($status . $extra);
+}
 
 sub SchedulerErrSend
 {
@@ -2605,7 +2648,7 @@ sub JobFilesGet
             }
             else
             {
-                &MsgSendStatus($buf);
+                &MsgSendStatusEnd($buf);
             }
         }
         else
@@ -2623,8 +2666,8 @@ sub JobFilesGet
     # notify client if job status file is unavailable
     if ($errMsg || ! $gWaitFileStatus)
     {
-        &MsgSendStatus($gSchedCancelled ? $MSG_VAL_STAT_CANCELLED
-                                        : $MSG_VAL_STAT_UNAVAIL);
+        &MsgSendStatusEnd($gSchedCancelled ? $MSG_VAL_STAT_CANCELLED
+                                           : $MSG_VAL_STAT_UNAVAIL);
     }
 }
 

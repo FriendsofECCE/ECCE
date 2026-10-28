@@ -267,6 +267,8 @@
   print SUBMIT "\n";
   print SUBMIT "printf \"Starting Job: \" >> $::logfile\n";
   print SUBMIT "date >> $::logfile\n";
+  print SUBMIT "printf \"Starting Job (UTC): \" >> $::logfile\n";
+  print SUBMIT "date -u +%Y-%m-%dT%H:%M:%SZ >> $::logfile\n";
 
   print SUBMIT "\n$CC - code/queue manager section...\n";
   print SUBMIT &mark("command", $lccode . "_loophole", $lccode . "command");
@@ -315,7 +317,9 @@
 
   print SUBMIT "\n";
   print SUBMIT "printf \"Completed Job: \" >> $::logfile\n";
-  print SUBMIT "date >> $::logfile\n\n";
+  print SUBMIT "date >> $::logfile\n";
+  print SUBMIT "printf \"Completed Job (UTC): \" >> $::logfile\n";
+  print SUBMIT "date -u +%Y-%m-%dT%H:%M:%SZ >> $::logfile\n\n";
 
   # If there is a specific wrapup registered, add it
   if (defined($config{$lccode . "_wrapup"})) {

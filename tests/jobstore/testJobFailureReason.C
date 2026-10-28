@@ -217,6 +217,16 @@ int main(int argc, char** argv)
                    JobFailureReason::schedulerErrNote("slurm.err", path),
                    "see slurm.err in Outputs: slurmstepd: error: oom-kill");
     f = fopen(path.c_str(), "w");
+    fputs("slurmstepd: error: Detected 10 oom_kill events in StepId=1.batch\n"
+          "ORCA finished by error termination in SCF\n", f);
+    fclose(f);
+    expectContains("scheduler-ended job: the slurmstepd line, not the last",
+                   JobFailureReason::schedulerErrNote("slurm.err", path, true),
+                   "Outputs: slurmstepd: error: Detected 10 oom_kill");
+    expectContains("code failure: the last line",
+                   JobFailureReason::schedulerErrNote("slurm.err", path),
+                   "Outputs: ORCA finished by error");
+    f = fopen(path.c_str(), "w");
     fputs("\n \n", f);
     fclose(f);
     expectEmpty("scheduler note, blank file",

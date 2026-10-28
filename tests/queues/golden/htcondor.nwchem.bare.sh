@@ -57,6 +57,8 @@ export OMPI_MCA_btl_sm_backing_directory=/qtest/run
 
 printf "Starting Job: " >> /qtest/run/ecce.submit.log
 date >> /qtest/run/ecce.submit.log
+printf "Starting Job (UTC): " >> /qtest/run/ecce.submit.log
+date -u +%Y-%m-%dT%H:%M:%SZ >> /qtest/run/ecce.submit.log
 
 #  - code/queue manager section...
 nwchem=/opt/codes/nwchem
@@ -96,6 +98,8 @@ echo "Final exit status = $exitStatus" >> /qtest/run/ecce.submit.log
 
 printf "Completed Job: " >> /qtest/run/ecce.submit.log
 date >> /qtest/run/ecce.submit.log
+printf "Completed Job (UTC): " >> /qtest/run/ecce.submit.log
+date -u +%Y-%m-%dT%H:%M:%SZ >> /qtest/run/ecce.submit.log
 
 
 #  Removing files specified by FilesToRemove

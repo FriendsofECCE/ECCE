@@ -71,6 +71,7 @@
 #include "comm/RCommand.H"
 #include "comm/JobParser.H"
 #include "comm/JobFailureReason.H"
+#include "comm/JobLogDates.H"
 #include "util/WaitingJobs.H"
 
 
@@ -248,6 +249,13 @@ static int gUnsuccessfulStatus = 0;
 
 // Name of the queue system's stderr file when the monitor sent one.
 static string gSchedulerErrFile;
+
+// From the monitor's status message ("305 state=TIMEOUT end=<ISO>Z"): the
+// scheduler's end state when it ended the job, and its end time (UTC ISO)
+// when it knows one.  The latter dates a job whose script never got to
+// write "Completed Job".
+static string gSchedState;
+static long gSchedEndTime = -1;
 
 // Same idea as gUnsuccessfulStatus, for the STATE_FAILED/STATE_SYSTEM_FAILURE
 // paths (fail()/restart()/restartSystem()): they already have a specific,
@@ -723,6 +731,32 @@ void cleanup(int exitStatus)
   // Set the final run state (if set) just before exitting to guarantee
   // output files have been uplodaed to data server
   if (endState != ResourceDescriptor::STATE_ILLEGAL) {
+    // Dates from the job script's own log block, else the scheduler's end
+    // time; calcUpdateState() left "now", which is wrong on a Reconnect of
+    // a finished job (#650).
+    {
+      TypedFile dFile;
+      calculation->getDataFile(JCode::PRIMARY_OUTPUT, dFile);
+      long endT = -1, startT = -1;
+      if (!dFile.name().empty()) {
+        const string dPath = tmpStorage + "/" + dFile.name();
+        endT = JobLogDates::logBlockTime(dPath, "Completed Job");
+        startT = JobLogDates::logBlockTime(dPath, "Starting Job");
+      }
+      if (endT < 0)
+        endT = gSchedEndTime;
+      if (endT >= 0) {
+        TDateTime edate;
+        edate.setFromTimeT((time_t)endT);
+        calculation->completionDate(edate.toString());
+      }
+      if (startT >= 0 && calculation->startDate().empty()) {
+        TDateTime sdate;
+        sdate.setFromTimeT((time_t)startT);
+        calculation->startDate(sdate.toString());
+      }
+    }
+
     calculation->setState(endState);
     string stateStr = ResourceUtils::stateToString(endState);
     logMessage("Calculation State Change", stateStr);
@@ -746,7 +780,17 @@ void cleanup(int exitStatus)
 
       TypedFile outFile;
       calculation->getDataFile(JCode::PRIMARY_OUTPUT, outFile);
-      if (!outFile.name().empty()) {
+      if (gUnsuccessfulStatus == 305) {
+        // The scheduler's verdict names the cause, its own slurm.err line
+        // follows.  The code's output is not scanned: it only stopped early.
+        reason = JobLogDates::schedulerEndReason(gSchedState);
+        if (reason.empty())
+          reason = "The scheduler ended the job (" + gSchedState + ")";
+        const string errName =
+            gSchedulerErrFile.empty() ? string("slurm.err") : gSchedulerErrFile;
+        reason += JobFailureReason::schedulerErrNote(
+                      errName, tmpStorage + "/" + errName, true);
+      } else if (!outFile.name().empty()) {
         string outPath = tmpStorage + "/" + outFile.name();
 
         string logReason = gensubLogReason(outPath);
@@ -776,7 +820,7 @@ void cleanup(int exitStatus)
         }
       }
 
-      if (!gSchedulerErrFile.empty())
+      if (gUnsuccessfulStatus != 305 && !gSchedulerErrFile.empty())
         reason += JobFailureReason::schedulerErrNote(
                       gSchedulerErrFile, tmpStorage + "/" + gSchedulerErrFile);
 
@@ -2479,10 +2523,28 @@ void interactStatus(char* statusData)
   else
     status = atoi(statusData);
 
+  if (!emptyStatus) {
+    const string sd = statusData;
+    size_t p = sd.find(" state=");
+    if (p != string::npos)
+      gSchedState = sd.substr(p + 7, sd.find(' ', p + 7) - (p + 7));
+    p = sd.find(" end=");
+    if (p != string::npos)
+      gSchedEndTime = JobLogDates::parse(sd.substr(p + 5));
+  }
+
   if (lastStatus != status) {
     lastStatus = status;
     // update state in database
-    if (status == 0) {
+    if (status == 305) {
+      // The scheduler ended the job (out of memory, time limit, ...): the
+      // output and properties are kept, as for a run that did not
+      // converge; the reason is made in cleanup() (#649).
+      gUnsuccessfulStatus = status;
+      calcUpdateState(ResourceDescriptor::STATE_UNSUCCESSFUL);
+      logMessage("Calculation Incomplete",
+                 JobLogDates::schedulerEndReason(gSchedState));
+    } else if (status == 0) {
       gUnsuccessfulStatus = 0;
       calcUpdateState(ResourceDescriptor::STATE_COMPLETED);
     } else if (status == 301) {
