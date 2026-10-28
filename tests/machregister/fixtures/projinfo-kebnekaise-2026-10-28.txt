@@ -1,0 +1,22 @@
+Project info for all projects for user: andy
+Information for project hpc2ncourses2026-002:
+    Michael Holmboe: Course allocation: Computational Chemistry 5KE176 VT26
+    Active from 20260204 to 20270301
+Allocations:
+    kebnekaise:       5000 CPUhours/month, used 4.9% the past 30 days
+    kebnekaise-gpu:    100 GPUhours/month, used 3.1% the past 30 days
+Usage on kebnekaise-gpu:
+    2026 Oct:            3 GPUhours 
+Usage on kebnekaise:
+    2026 Oct:          245 CPUhours 
+
+Information for project hpc2n2026-351:
+    Andy Ohlin: Dopant effects in niobium oxide anodes from substituted decaniobate clusters
+    Active from 20261026 to 20271101
+Allocations:
+    kebnekaise:      30000 CPUhours/month, used 25.4% the past 30 days
+Usage on kebnekaise:
+    2026 Oct:         7620 CPUhours 
+
+NOTE: Used hours may differ against SUPR if you have used
+      the GPU-nodes. The usage in SUPR is correct!

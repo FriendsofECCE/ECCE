@@ -62,13 +62,26 @@ int main(int argc, char **argv)
     decode(encode(other, "naiss-2"), used, raw);
     check(used.empty() && raw == "naiss-2 0.5 1000 12345", "cache text round trip, unrecognised", raw);
 
+    {
+        std::ifstream g(std::string(argc > 1 ? argv[1] : "projinfo-kebnekaise.txt").substr(0,
+            std::string(argc > 1 ? argv[1] : "projinfo-kebnekaise.txt").rfind('/') + 1) +
+            "projinfo-kebnekaise-2026-10-28.txt");
+        std::stringstream b; b << g.rdbuf();
+        check(summarize(b.str(), "hpc2n2026-351") ==
+              "25.4 % of 30 000 CPU-h/month used (past 30 days)", "real projinfo, own project");
+        check(summarize(b.str(), "hpc2ncourses2026-002") ==
+              "4.9 % of 5 000 CPU-h/month used (past 30 days); 3.1 % of 100 GPU-h/month",
+              "real projinfo, course project");
+    }
     //  Slurm default: sshare -n -P -A <acct> -o Account,User,RawUsage
     std::string sh = "naiss-2||4446000\nnaiss-2|alice|1800000\nnaiss-2|bob|2646000\n";
     s = summarize(sh, "naiss-2");
     check(s == "1 235 CPU-h used (no allocation size known)", "sshare: RawUsage seconds to CPU-h", s);
     check(summarize(sh, "NAISS-2") == s, "sshare: account in any case");
     check(summarize(sh, "naiss-3").empty(), "sshare: another account");
-    check(summarize("naiss-2|alice|1800000\n", "naiss-2").empty(), "sshare: user line alone is not the account");
+    //  HPC2N lists only the user's line (2026-10-28)
+    check(summarize("hpc2n2026-351|andy|26323155\n", "hpc2n2026-351") ==
+          "7 312 CPU-h used by you (no allocation size known)", "sshare: the user's line alone");
     check(summarize("naiss-2||12x\n", "naiss-2").empty(), "sshare: non-numeric usage");
     decode(encode(sh, "naiss-2"), used, raw);
     check(used == s && raw.empty(), "cache text round trip, recognised", used);
@@ -100,7 +113,7 @@ int main(int argc, char **argv)
     decode(used + "\x1f" + raw, used, raw, &left);
     check(left.empty(), "an older cache line has no remaining text");
 
-    check(substitute(slurmCommand(), "p1") == "sshare -n -P -A p1 -o Account,User,RawUsage", "slurm command");
+    check(substitute(slurmCommand(), "p1") == "projinfo 2>/dev/null || sshare -n -P -A p1 -o Account,User,RawUsage", "slurm command");
     s = summarize("garbled\nInformation for project p1:\nAllocations:\n  x: lots of CPUhours\n", "p1");
     check(s.empty(), "an unreadable block has no summary", s);
 

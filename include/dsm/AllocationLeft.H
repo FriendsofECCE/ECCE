@@ -267,15 +267,20 @@ namespace AllocationLeft
     //  line per association. `sshare -l` has no fixed column layout.
     inline const char *slurmCommand()
     {
-        return "sshare -n -P -A ##account_no## -o Account,User,RawUsage";
+        //  NAISS centres (HPC2N and others) have projinfo, which knows the
+        //  allocation's size; sshare elsewhere.
+        return "projinfo 2>/dev/null || sshare -n -P -A ##account_no## -o Account,User,RawUsage";
     }
 
     //  CPU-seconds of the account's own line (empty User), as
-    //  "1 234 CPU-h used (no allocation size known)"; "" if not in that format.
+    //  "1 234 CPU-h used (no allocation size known)"; without that line (sshare
+    //  lists only the user's line on some sites) the user's own, said so.
+    //  "" if not in that format.
     inline std::string sshare(const std::string& output, const std::string& account)
     {
         const std::string a = lower(account);
         std::vector<std::string> v = lines(output);
+        std::string mine;
         for (size_t i = 0; i < v.size(); i++)
         {
             std::vector<std::string> f;
@@ -290,17 +295,19 @@ namespace AllocationLeft
                 else
                     cur += t[k];
             }
-            if (f.size() != 3 || lower(f[0]) != a || !f[1].empty() || f[2].empty())
+            if (f.size() != 3 || lower(f[0]) != a || f[2].empty())
                 continue;
             for (size_t k = 0; k < f[2].size(); k++)
                 if (!std::isdigit((unsigned char)f[2][k]))
                     return "";
-            const double h = std::atof(f[2].c_str()) / 3600.0;
             char buf[64];
-            std::snprintf(buf, sizeof buf, "%.0f", h);
-            return grouped(buf) + " CPU-h used (no allocation size known)";
+            std::snprintf(buf, sizeof buf, "%.0f", std::atof(f[2].c_str()) / 3600.0);
+            if (f[1].empty())
+                return grouped(buf) + " CPU-h used (no allocation size known)";
+            if (mine.empty())
+                mine = grouped(buf) + " CPU-h used by you (no allocation size known)";
         }
-        return "";
+        return mine;
     }
 
     //  What is shown for the command's output: the recognised summary, else "".
