@@ -44,6 +44,21 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.3
 
+- Reconnect, Reconnect Selected, Check Job on Machine and the start-up check
+  log in off the window's thread with a working Cancel; a machine that does
+  not answer fails after the connect timeout instead of blocking ECCE, and a
+  failed login no longer deletes the calculation's stored results.
+- Run Mgmt > Terminate Selected terminates several selected jobs at once.
+- The Progress box of an Incomplete calculation ends with the reason.
+- Density Map: right-drag moves a zoomed map; atoms selected before the
+  panel opens define the plane. Density Profile: the line profile and its
+  orbital ranking run in the background as well, several times faster.
+- Mode composition: Add Selected adds the selected atoms as a stretch, bend
+  or torsion; every mode lists its three largest contributions and the added
+  coordinates, and the note says what Apply did.
+- Dipole Moment: a small sphere marks each end of the arrow.
+- General Chemistry argon slabs: speed distributions (Maxwell-Boltzmann) at
+  all four temperatures.
 - A Submitted Slurm job shows why it waits and its estimated start (message
   area and the summary's Queue state row).
 - Details dialogs no longer show internal setting names as tooltips.
@@ -79,7 +94,7 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - General Chemistry: argon at 40, 100, 130 and 200 K (solid, liquid, liquid
   near its critical point, gas) under Gases, liquids and solids.
 - The input check counts CP2K atoms with a kind label (such as Nb_e).
-- Register Machines is narrower: Vendor, Model and Processor are no longer shown.
+- Register Machines no longer shows Vendor, Model and Processor.
 - Dipole Moment: where the atomic charges point against the dipole moment
   (carbon monoxide), the arrow stays between the atoms and the text says so.
 - Theory Details and Runtype Details dialogs of every code can always be resized; their
