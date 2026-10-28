@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -66,7 +67,8 @@ bool JobCatchUp::loginFor(const TaskJob* calc, RCommandLogin& login, string& why
 }
 
 
-bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginFn)
+bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginFn,
+                           const RemoteFn& remote)
 {
   Jobdata job = calc->jobdata();
   if (job.jobid.empty()) {
@@ -132,20 +134,34 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginF
     }
   }
 
-  Launch launch(calc, kvargs);
+  //  Shared with the remote work, which outlives a Cancel.
+  std::shared_ptr<Launch> launch = std::make_shared<Launch>(calc, kvargs);
   //  A Reconnect asks for the login again, even right after a cancel.
-  if (conn) launch.adoptConnection(conn);
+  if (conn) launch->adoptConnection(conn);
   else OpenSshTransport::forgetMasterAttempts();
-  bool ok = launch.validateLocalDir() &&
-            launch.validateRemoteLogin() &&
-            launch.generateJobMonitoringFiles() &&
-            launch.moveJobMonitoringFiles() &&
-            launch.startJobStore("");
+  bool ok = launch->validateLocalDir() &&
+            launch->validateRemoteLogin() &&
+            launch->generateJobMonitoringFiles();
+  if (ok) {
+    std::function<bool()> work = [launch]() {
+      if (!launch->moveJobMonitoringFiles()) return false;
+      launch->prepareJobStore();
+      return true;
+    };
+    const string machine = calc->launchdata().machine;
+    if (!remote) ok = work();
+    else if (!remote("Copying the job monitor to " + machine + "...", work, ok)) {
+      message = "Cancelled while copying the job monitor to " + machine;
+      leaveWaiting(calc, message);
+      return false;
+    }
+  }
+  ok = ok && launch->startJobStore("");
   if (ok) {
     message = "Monitoring reconnected to job " + job.jobid + " on " +
               calc->launchdata().machine;
   } else {
-    message = launch.message();
+    message = launch->message();
     leaveWaiting(calc, message);
   }
   return ok;
@@ -180,13 +196,14 @@ JobCatchUp::Plan JobCatchUp::plan(TaskJob* calc)
 
 
 vector<JobCatchUp::Result> JobCatchUp::run(
-    std::function<void(size_t, size_t)> progress, const LoginFn& login)
+    std::function<bool(size_t, size_t)> progress, const LoginFn& login,
+    const RemoteFn& remote)
 {
   vector<Result> results;
   vector<string> urls = WaitingJobs::list();
   for (size_t i = 0; i < urls.size(); i++) {
-    if (progress)
-      progress(i, urls.size());
+    if (progress && !progress(i, urls.size()))
+      break;
     Result r;
     r.url = urls[i];
     r.ok = false;
@@ -208,7 +225,7 @@ vector<JobCatchUp::Result> JobCatchUp::run(
       WaitingJobs::remove(urls[i]);
       continue;
     }
-    r.ok = reconnect(calc, r.message, login);
+    r.ok = reconnect(calc, r.message, login, remote);
     r.message = calc->getName() + ": " + r.message;
     results.push_back(r);
   }

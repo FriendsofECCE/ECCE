@@ -2286,6 +2286,12 @@ endif()
 add_test(NAME session-display-gate COMMAND bash
          ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
 set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
+if(NOT WIN32 AND NOT APPLE)
+  add_test(NAME session-lock-holder COMMAND bash
+           ${CMAKE_SOURCE_DIR}/tests/session/gateway_lock_holder.sh ${CMAKE_SOURCE_DIR})
+  add_test(NAME session-control-dir-claim COMMAND bash
+           ${CMAKE_SOURCE_DIR}/tests/session/control_dir_claim.sh ${CMAKE_SOURCE_DIR})
+endif()
 
 # tests/gromacs_md -- GROMACS MD study tasks.  gromacs_structure checks the
 # .gro reader of the Inputs page against gmx editconf; gromacs_md runs the

@@ -124,6 +124,52 @@ ReconnectSelected::DeferMessages::~DeferMessages()
   if (WxJMSSubscriber *s = dynamic_cast<WxJMSSubscriber*>(wxTheApp)) s->deferMessages(false);
 }
 
+namespace {
+// Keeps the GUI answering until done() holds; false on Cancel.
+bool pumpUntil(wxWindow *parent, wxProgressDialog *pd, const wxString& msg,
+               const std::function<bool()>& done)
+{
+  wxWindowDisabler off(pd);
+  std::unique_ptr<wxProgressDialog> own;
+  const auto t0 = std::chrono::steady_clock::now();
+  while (!done()) {
+    if (!pd && !own && std::chrono::steady_clock::now() - t0 > std::chrono::seconds(1))
+      own.reset(new wxProgressDialog("ECCE", msg, 100, parent,
+                                     wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_SMOOTH));
+    wxProgressDialog *d = pd ? pd : own.get();
+    if (d && !d->Pulse(msg)) return false;
+    wxTheApp->Yield(true);
+    wxMilliSleep(50);
+  }
+  return true;
+}
+}
+
+bool ReconnectSelected::runRemote(wxWindow *parent, wxProgressDialog *pd,
+                                  const string& what,
+                                  const std::function<bool()>& work, bool& result)
+{
+  struct State {
+    std::mutex mu;
+    bool done = false, ok = false;
+  };
+  auto st = std::make_shared<State>();
+  std::thread([st, work]() {
+    bool ok = work();
+    std::lock_guard<std::mutex> lock(st->mu);
+    st->ok = ok;
+    st->done = true;
+  }).detach();
+  const bool finished = pumpUntil(parent, pd, U(what), [st]() {
+    std::lock_guard<std::mutex> lock(st->mu);
+    return st->done;
+  });
+  std::lock_guard<std::mutex> lock(st->mu);
+  if (!finished && !st->done) return false;
+  result = st->ok;
+  return true;
+}
+
 bool ReconnectSelected::openLogin(wxWindow *parent, wxProgressDialog *pd,
                                   const RCommandLogin& login, RCommand*& conn,
                                   string& why, bool *cancelled)

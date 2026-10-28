@@ -4,7 +4,7 @@ title: "ECCE's own ssh master (ECCE_SSH_CONTROL_DIR): one login per host per sta
 area: services
 section: "Pitfalls"
 paths: ["src/comm/rcommand/OpenSshTransport.C", "src/comm/rcommand/RCommand.C", "packaging/ecce.in", "packaging/gateway/ecce-session-lib.sh", "packaging/gateway/ecce-gateway-reap", "src/apps/gateway/GatewayApp.C", "scripts/ecce-askpass", "tests/transport/sshd/owned_master_test.sh", "tests/transport/testOwnedMaster.C"]
-issues: [487, 599, 631]
+issues: [487, 599, 631, 666]
 ---
 **With `ECCE_SSH_CONTROL_DIR` set (Linux/macOS), every compute-machine
 connection is OpenSSH under a master ECCE owns**, so the Launcher, the job
@@ -26,6 +26,16 @@ host instead of one each, across all sessions of the state directory. Unset, inv
   and jump host, so a socket never serves another route. `.home` (`ECCE_HOME`) and `.state`
   (`ECCE_REALUSERHOME`) name the owner for the reaper, and `.born` is written once; the reaper leaves directories younger than two
   minutes alone (the directory's own mtime moves with every socket).
+  **The name is reused by every session** of the state directory, so `.born`
+  alone let an old session's reaper remove it while a new one started
+  (#666: the new session then fell back to libssh). Every setup writes
+  `.claim`, which counts as `.born` does; the start sweep skips its own
+  session's directory; `ecce-gateway-start` sets it up again after the
+  sweep; and `ownedControlDir()` makes a missing one again (0700, inside a
+  parent that is ours and 0700, with `.home`/`.state`) instead of refusing.
+  A `.gateway.lock` not free after 5 s is explained (`ecce_lock_wait`: the
+  pids that have it open, and `kill -CONT` for a stopped one); tests
+  `session-control-dir-claim`, `session-lock-holder`.
 - **Login.** Through `ecce-askpass` (`SSH_ASKPASS_REQUIRE=force`), under an
   `flock` on `<hash>.lock` (the base socket's, whatever overflow master is
   in use). A password the Launcher or AuthCache already has is passed once
