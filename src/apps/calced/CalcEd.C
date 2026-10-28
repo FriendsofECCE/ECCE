@@ -4065,8 +4065,10 @@ bool CalcEd::generateInput(const bool& paramFlag)
 
     //  A freshly-generated deck is not a hand edit, whatever the file
     //  it just replaced was.
-    if (success)
+    if (success) {
       p_handEdited = false;
+      storeInputFingerprint();
+    }
 
     //  A deck has just been written, or the attempt to write one has
     //  just failed -- either way something changed that the lamp
@@ -4107,11 +4109,82 @@ wxWindowID CalcEd::doClose(const bool& allowCancel)
 }
 
 
+namespace {
+// FNV-1a 64 over the text, with its length: stable across platforms.
+string fingerprintOf(const string& text)
+{
+  uint64_t h = 1469598103934665603ULL;
+  for (size_t i = 0; i < text.size(); i++) {
+    h ^= (unsigned char)text[i];
+    h *= 1099511628211ULL;
+  }
+  char buf[48];
+  snprintf(buf, sizeof buf, "%zu:%016llx", text.size(), (unsigned long long)h);
+  return buf;
+}
+}
+
+
+//  Recorded on the calculation (a DAV property, like the generator
+//  warnings) so it outlives this window.  Final Edit never calls this.
+void CalcEd::storeInputFingerprint()
+{
+  if (!p_iCalc) return;
+  istream* is = p_iCalc->getDataFile(JCode::PRIMARY_INPUT);
+  if (!is) return;
+  string text;
+  StringConverter::streamToText(*is, text);
+  delete is;
+  p_iCalc->addProp(TaskJob::inputFingerprintProp(), fingerprintOf(text));
+}
+
+
+//  True only when a fingerprint exists and the file no longer matches it;
+//  calculations from before the fingerprint behave as they always did.
+bool CalcEd::inputEditedByHand()
+{
+  if (!p_iCalc) return false;
+  string want = p_iCalc->getProp(TaskJob::inputFingerprintProp());
+  if (want.empty()) return false;
+  istream* is = p_iCalc->getDataFile(JCode::PRIMARY_INPUT);
+  if (!is) return false;
+  string text;
+  StringConverter::streamToText(*is, text);
+  delete is;
+  return fingerprintOf(text) != want;
+}
+
+
 void CalcEd::doSave()
 {
   // check that there's really been something changed
   if (p_feedback->getEditStatus() == WxFeedback::MODIFIED)
   {
+    //  Settings are saved either way; only the input file is at stake.
+    //  ECCE_CALCED_HANDEDIT=keep|regenerate|cancel answers for tests.
+    p_keepHandInput = false;
+    if (inputEditedByHand()) {
+      int answer;
+      const char *env = getenv("ECCE_CALCED_HANDEDIT");
+      if (env) {
+        string a = env;
+        answer = a == "regenerate" ? wxID_NO
+               : a == "cancel" ? wxID_CANCEL : wxID_YES;
+      } else {
+        ewxMessageDialog dialog(this,
+            "The input file was edited after ECCE generated it.\n\n"
+            "Saving now can regenerate it from the settings, which loses "
+            "your edits.",
+            "The input file was changed by hand",
+            wxYES_NO | wxCANCEL | wxICON_QUESTION | wxYES_DEFAULT);
+        dialog.SetButtonLabel(wxID_YES, "Keep my input");
+        dialog.SetButtonLabel(wxID_NO, "Regenerate");
+        answer = dialog.ShowModal();
+      }
+      if (answer == wxID_CANCEL) return;
+      p_keepHandInput = (answer == wxID_YES);
+    }
+
     // save code
     bool saveCode = false;
     const JCode *currentCode = p_iCalc->application();
@@ -4215,7 +4288,11 @@ void CalcEd::doSave()
     // input file
     // must generate a valid input file before changing state so that
     // other apps (launcher) are guaranteed the calculation is launchable
-    if (generateInput(save_param)) {
+    if (p_keepHandInput) {
+      p_keepHandInput = false;
+      p_feedback->setMessage("Settings saved; your edited input file was "
+                             "kept.", WxFeedback::INFO);
+    } else if (generateInput(save_param)) {
       p_feedback->setMessage("New input file generated.", WxFeedback::INFO);
       if (p_iCalc->getState() != p_feedback->getRunState()) {
         p_iCalc->setState(p_feedback->getRunState());

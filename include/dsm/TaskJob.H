@@ -146,6 +146,8 @@ class TaskJob : public Job,
       /** DAV property holding the generator warnings that go with the
           deck in Inputs/ (see CalcEd); cleared with the deck. */
       static string inputWarningsProp();
+      // Fingerprint of the input file as ECCE last generated it (#622).
+      static string inputFingerprintProp();
 
       /** Orbitals from an earlier calculation, kept as an input file so
           that this calculation's own regenerated deck does not remove

@@ -237,6 +237,9 @@ class CalcEd: public CalcEdGUI,
     void makeRuntypeNoSphericalConsistent();
     void urlChangeNotify(const string& topic) const;
     bool generateInput(const bool& paramFlag);
+    void storeInputFingerprint();
+    bool inputEditedByHand();
+    bool p_keepHandInput = false;   // set by doSave: leave the input alone
 
     wxWindowID doClose(const bool& allowCancel=true);
     void doSave();
