@@ -763,7 +763,15 @@ void ProgressBox::OnSize(wxSizeEvent& event)
 
 void ProgressBox::OnTimer(wxTimerEvent&)
 {
-  if (IsShownOnScreen()) Refresh(false);
+  if (!IsShownOnScreen()) return;
+  //  The aged lines (updated n s ago, out of contact for ...) can change the
+  //  height; measured here too, or the buttons overlap what lies below.
+  const wxSize want = layout(0);
+  if (want != GetMinSize()) {
+    SetMinSize(want);
+    if (p_relayout) CallAfter([this]() { if (p_relayout) p_relayout(); });
+  }
+  Refresh(false);
 }
 
 
