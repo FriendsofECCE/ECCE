@@ -2869,6 +2869,50 @@ void CalcMgr::OnReconnectSelectedClick( wxCommandEvent& event )
 }
 
 
+//  Terminate for several rows: only the jobs still on a machine are
+//  terminated, the others are named as skipped.
+void CalcMgr::OnTerminateSelectedClick( wxCommandEvent& event )
+{
+  if (refuseDuringBatch("Terminate Selected")) return;
+  vector<EcceURL> urls = launchSelection();
+  vector<WxResourceTreeItemData*> live;
+  int skipped = 0;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNode(urls[i], false, true);
+    TaskJob *job = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
+    const ResourceDescriptor::RUNSTATE st = job ? job->getState()
+                                                : ResourceDescriptor::STATE_ILLEGAL;
+    if (st == ResourceDescriptor::STATE_SUBMITTED ||
+        st == ResourceDescriptor::STATE_RUNNING ||
+        st == ResourceDescriptor::STATE_WAITING)
+      live.push_back(n);
+    else
+      skipped++;
+  }
+  if (live.empty()) {
+    setMessage("None of the selected calculations is submitted or running.");
+    return;
+  }
+  char msg[200];
+  snprintf(msg, sizeof msg, "Terminate %d job%s?%s", (int)live.size(),
+           live.size() == 1 ? "" : "s",
+           skipped ? " The selected calculations that are not submitted or "
+                     "running are left as they are." : "");
+  ewxMessageDialog dlg(this, msg, "Terminate?", wxOK | wxCANCEL | wxICON_QUESTION,
+                       wxDefaultPosition);
+  if (dlg.ShowModal() == wxID_CANCEL) return;
+  for (size_t i = 0; i < live.size(); i++) {
+    const EcceURL url = live[i]->getUrl();
+    terminateCalc(live[i]);
+    updateUrl(url);
+  }
+  snprintf(msg, sizeof msg, "Terminated %d job%s%s", (int)live.size(),
+           live.size() == 1 ? "" : "s",
+           skipped ? (", " + std::to_string(skipped) + " skipped (not running)").c_str() : "");
+  setMessage(msg);
+}
+
+
 void CalcMgr::OnReparseOutputsClick( wxCommandEvent& event )
 {
   reparseOutputs(launchSelection(), true);
@@ -5572,6 +5616,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     if (allCalcs) {
       menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
       menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      menu.Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
       menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
   }
@@ -9202,6 +9247,7 @@ void CalcMgr::updateSelectionMenus()
     if (allCalcs) {
       rm->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
       rm->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      rm->Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
       rm->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
     enableTopMenu(menuBar, _("Run Mgmt"), allCalcs, p_menuTitlesChanged);
