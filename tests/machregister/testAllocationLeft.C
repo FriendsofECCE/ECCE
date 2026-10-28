@@ -47,19 +47,34 @@ int main(int argc, char **argv)
         "    a:   100 CPUhours/month, used 1.0% the past 30 days\n"
         "    b:   200 CPUhours/month, used 2.0% the past 30 days\n";
     s = summarize(two, "p1");
-    check(s == "Information for project p1:",
-          "two CPU allocations, no resource named: not guessed, the heading line", s);
+    check(s.empty(), "two CPU allocations, no resource named: not guessed", s);
     s = summarize(two, "p1", "b");
     check(s == "2.0 % of 200 CPU-h/month used (past 30 days)",
           "two CPU allocations: the named resource", s);
 
-    //  Not projinfo: the line that names the account, else nothing
-    std::string sshare = "Account User RawShares\n root 1\n  naiss-2   0.5  1000   12345\n";
-    s = summarize(sshare, "naiss-2");
-    check(s == "naiss-2 0.5 1000 12345", "another tool: the account's line, spaces squeezed", s);
-    check(summarize(sshare, "naiss-9").empty(), "another tool, account not in it: nothing");
+    //  Not projinfo, not sshare's account line: no summary, the line for a tooltip
+    std::string other = "Account User RawShares\n root 1\n  naiss-2   0.5  1000   12345\n";
+    check(summarize(other, "naiss-2").empty(), "unrecognised output has no summary");
+    s = rawLine(other, "naiss-2");
+    check(s == "naiss-2 0.5 1000 12345", "its line for the tooltip, spaces squeezed", s);
+    check(rawLine(other, "naiss-9").empty(), "account not in it: no line");
+    std::string used, raw;
+    decode(encode(other, "naiss-2"), used, raw);
+    check(used.empty() && raw == "naiss-2 0.5 1000 12345", "cache text round trip, unrecognised", raw);
+
+    //  Slurm default: sshare -n -P -A <acct> -o Account,User,RawUsage
+    std::string sh = "naiss-2||4446000\nnaiss-2|alice|1800000\nnaiss-2|bob|2646000\n";
+    s = summarize(sh, "naiss-2");
+    check(s == "1 235 CPU-h used (no allocation size known)", "sshare: RawUsage seconds to CPU-h", s);
+    check(summarize(sh, "NAISS-2") == s, "sshare: account in any case");
+    check(summarize(sh, "naiss-3").empty(), "sshare: another account");
+    check(summarize("naiss-2|alice|1800000\n", "naiss-2").empty(), "sshare: user line alone is not the account");
+    check(summarize("naiss-2||12x\n", "naiss-2").empty(), "sshare: non-numeric usage");
+    decode(encode(sh, "naiss-2"), used, raw);
+    check(used == s && raw.empty(), "cache text round trip, recognised", used);
+    check(substitute(slurmCommand(), "p1") == "sshare -n -P -A p1 -o Account,User,RawUsage", "slurm command");
     s = summarize("garbled\nInformation for project p1:\nAllocations:\n  x: lots of CPUhours\n", "p1");
-    check(s == "Information for project p1:", "an unreadable block falls back to its heading line", s);
+    check(s.empty(), "an unreadable block has no summary", s);
 
     check(substitute("projinfo -p ##account_no##", "p1") == "projinfo -p p1", "command substitution");
     check(validAccount("hpc2n2026-351") && !validAccount("") && !validAccount("a b") &&

@@ -440,6 +440,9 @@ protected:
   class CompareEnergiesDialog *newCompareEnergiesDialog(const vector<EcceURL>& sel);
   void OnCompareEnergies(wxCommandEvent& event);
   bool p_compareEnergiesWired = false;
+  // Tools > Allocations (#613).
+  void OnAllocations(wxCommandEvent& event);
+  bool p_allocationsWired = false;
   // Ids already wired to OnGlobalTool, so rebuilding the menu does not
   // stack duplicate handlers.
   std::set<int> p_globalToolIds;

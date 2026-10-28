@@ -33,15 +33,10 @@ int main()
     in.startDate = "2026-10-28";
     in.completionDate = "2026-10-29";
     in.allocation = "hpc2n2026-001";
-    in.allocationLeft = "21.2 % used";
     Columns c = build(in);
     check(labels(c.left) == "Machine: Processors: Queue: Job ID:", "left column order");
-    check(labels(c.right) == "Start Date: Comp. Date: Allocation: Left:", "right column order");
+    check(labels(c.right) == "Start Date: Comp. Date: Allocation:", "right column order, no Left row");
     check(c.left[3].value == "12345", "job id value");
-
-    in.allocationLeft = "";
-    c = build(in);
-    check(labels(c.right) == "Start Date: Comp. Date: Allocation:", "empty Left makes no row");
 
     in.completionDate = "";
     in.allocation = "";

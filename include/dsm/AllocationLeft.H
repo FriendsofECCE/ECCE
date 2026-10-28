@@ -1,11 +1,12 @@
-//  How much of an allocation is left (#613): reads the output of a machine's
-//  allocation command (HPC2N/NAISS `projinfo`, or anything else) into one line
-//  for the calculation summary, and keeps the answers for 15 minutes.
+//  How much of an allocation is used (#613): reads the output of a machine's
+//  allocation command (HPC2N/NAISS `projinfo`, Slurm `sshare`, or anything
+//  else) into one line for Tools > Allocations, and keeps the answers for 15
+//  minutes.
 //
 //  Header-only and free of ECCE and wx types so the rules can be tested alone
-//  (tests/machregister/testAllocationLeft.C). Wrong numbers are worse than the
-//  site's own words, so what is not recognised is shown as the output line
-//  that names the account, or not at all.
+//  (tests/machregister/testAllocationLeft.C). Wrong numbers are worse than no
+//  number, so output that is not recognised gives no summary; the output line
+//  that names the account is kept separately for a tooltip.
 #ifndef ALLOCATIONLEFT_HH
 #define ALLOCATIONLEFT_HH
 
@@ -197,17 +198,62 @@ namespace AllocationLeft
         return false;
     }
 
-    //  What the summary shows for the command's output: the recognised
-    //  summary, else the first output line that names the account (120
-    //  characters at most), else nothing.
+    //  Slurm's default: the account's own usage, one "account|user|RawUsage"
+    //  line per association. `sshare -l` has no fixed column layout.
+    inline const char *slurmCommand()
+    {
+        return "sshare -n -P -A ##account_no## -o Account,User,RawUsage";
+    }
+
+    //  CPU-seconds of the account's own line (empty User), as
+    //  "1 234 CPU-h used (no allocation size known)"; "" if not in that format.
+    inline std::string sshare(const std::string& output, const std::string& account)
+    {
+        const std::string a = lower(account);
+        std::vector<std::string> v = lines(output);
+        for (size_t i = 0; i < v.size(); i++)
+        {
+            std::vector<std::string> f;
+            std::string t = trim(v[i]), cur;
+            for (size_t k = 0; k <= t.size(); k++)
+            {
+                if (k == t.size() || t[k] == '|')
+                {
+                    f.push_back(trim(cur));
+                    cur.clear();
+                }
+                else
+                    cur += t[k];
+            }
+            if (f.size() != 3 || lower(f[0]) != a || !f[1].empty() || f[2].empty())
+                continue;
+            for (size_t k = 0; k < f[2].size(); k++)
+                if (!std::isdigit((unsigned char)f[2][k]))
+                    return "";
+            const double h = std::atof(f[2].c_str()) / 3600.0;
+            char buf[64];
+            std::snprintf(buf, sizeof buf, "%.0f", h);
+            return grouped(buf) + " CPU-h used (no allocation size known)";
+        }
+        return "";
+    }
+
+    //  What is shown for the command's output: the recognised summary, else "".
     inline std::string summarize(const std::string& output, const std::string& account,
                                  const std::string& resource = "")
     {
         if (!validAccount(account))
             return "";
         std::string s = projinfo(output, account, resource);
-        if (!s.empty())
-            return s;
+        return s.empty() ? sshare(output, account) : s;
+    }
+
+    //  For a tooltip: the first output line that names the account (120
+    //  characters at most), spaces squeezed, else "".
+    inline std::string rawLine(const std::string& output, const std::string& account)
+    {
+        if (!validAccount(account))
+            return "";
         std::string a = lower(account);
         std::vector<std::string> v = lines(output);
         for (size_t i = 0; i < v.size(); i++)
@@ -229,6 +275,20 @@ namespace AllocationLeft
             }
         }
         return "";
+    }
+
+    //  The cache keeps both in one text: summary, a separator, raw line.
+    inline std::string encode(const std::string& output, const std::string& account)
+    {
+        std::string used = summarize(output, account);
+        return used + "\x1f" + (used.empty() ? rawLine(output, account) : "");
+    }
+
+    inline void decode(const std::string& text, std::string& used, std::string& raw)
+    {
+        size_t at = text.find('\x1f');
+        used = text.substr(0, at);
+        raw = at == std::string::npos ? "" : text.substr(at + 1);
     }
 
     inline std::string checkedAt(long when)

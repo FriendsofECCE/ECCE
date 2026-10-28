@@ -259,12 +259,6 @@ void CalcInfoPanel::refresh()
     in.coreHours = launchCost(taskJob, launch.totalprocs);
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);
-    if (!in.allocation.empty()) {
-      wxWeakRef<CalcInfoPanel> self(this);
-      in.allocationLeft = AllocationQuery::left(launch, [self]() {
-        wxTheApp->CallAfter([self]() { if (self) self->refresh(); });
-      });
-    }
     p_body->GetSizer()->Add(ewxLaunchInfoBlock(p_body, LaunchInfoRows::build(in)),
                             0, wxTOP | wxBOTTOM, 2);
 

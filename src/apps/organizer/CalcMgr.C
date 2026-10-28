@@ -160,6 +160,7 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CalcMgr.H"
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
+#include "AllocationsDialog.H"
 
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
 
@@ -517,6 +518,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * scrollsummary   scroll the calculation summary to its bottom and back
  * showbox         scroll the summary panel so that the Progress box is at
  *                 its top
+ * allocations    Tools > Allocations: prints "ALLOC: machine|account|used|
+ *                 checked" for each row on stderr
  * compareenergies <sideA> <sideB>
  *                 what Tools > Compare Energies shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
@@ -540,6 +543,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  */
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
+static const int ID_ALLOCATIONS = wxNewId();
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -777,8 +781,7 @@ void CalcMgr::runTestCommand(const string& line)
         }
         // The Launch Info rows that exist, as "label@x,y" (#648).
         static const char *launchLabels[] = {"Machine:", "Processors:",
-          "Queue:", "Job ID:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:",
-          "Left:"};
+          "Queue:", "Job ID:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:"};
         outcome += " launch=";
         for (const char *lbl : launchLabels) {
           wxWindow *w = panel ? panel->FindWindow(string("launch:") + lbl) : 0;
@@ -1135,6 +1138,19 @@ void CalcMgr::runTestCommand(const string& line)
                   " energyselectable=" + (box->energySelectable() ? "1" : "0");
         for (const string& l : box->describe()) outcome += " | " + l;
       }
+    } else if (command == "allocations") {
+      // "allocations": opens Tools > Allocations, waits up to 10 s for the
+      // answers and prints each row as "ALLOC: machine|account|used|checked".
+      AllocationsDialog *d = new AllocationsDialog(this);
+      d->Show();
+      for (int i = 0; i < 100 && (i == 0 || d->checking()); i++) {
+        wxMilliSleep(100);
+        wxYield();
+      }
+      for (const string& r : d->rowTexts())
+        fprintf(stderr, "ALLOC: %s\n", r.c_str());
+      outcome = "ok " + std::to_string(d->rowTexts().size()) + " rows";
+      d->Destroy();
     } else if (command == "compareenergies" || command == "comparedialog") {
       // "compareenergies <sideA> <sideB>": the table and notes the dialog
       // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
@@ -5906,6 +5922,12 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
             wxCommandEventHandler(CalcMgr::OnCompareEnergies));
     p_compareEnergiesWired = true;
   }
+  menu.Append(ID_ALLOCATIONS, _("Allocations..."));
+  if (!p_allocationsWired) {
+    Connect(ID_ALLOCATIONS, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnAllocations));
+    p_allocationsWired = true;
+  }
   added = true;
 
   if (added) menu.AppendSeparator();
@@ -5941,6 +5963,12 @@ void CalcMgr::OnCompareEnergies(wxCommandEvent&)
   CompareEnergiesDialog *dialog = newCompareEnergiesDialog(p_currentSelection);
   dialog->ShowModal();
   dialog->Destroy();
+}
+
+void CalcMgr::OnAllocations(wxCommandEvent&)
+{
+  //  Not modal: the answers arrive in the background.
+  (new AllocationsDialog(this))->Show();
 }
 
 void CalcMgr::OnGlobalTool(wxCommandEvent& event)

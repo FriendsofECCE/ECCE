@@ -126,6 +126,9 @@ describe what you did and what happened.
 28. [Re-Parse Outputs](reparse-outputs.md): running the parsers again over the
    outputs stored with a calculation, without logging in to the machine.
 
+29. [Allocations](allocations.md): the usage of each cluster account, from
+   Tools > Allocations.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the

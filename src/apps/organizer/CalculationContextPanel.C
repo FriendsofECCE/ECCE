@@ -282,8 +282,7 @@ static std::string launchCost(TaskJob *job, long processors)
 
 /**
  * Builds the Launch Info block (see LaunchInfoRows.H): rows with nothing to
- * show are not made. The allocation answer comes from a background read, so
- * this is called again when it lands.
+ * show are not made.
  */
 void CalculationContextPanel::refreshLaunchInfo()
 {
@@ -303,10 +302,6 @@ void CalculationContextPanel::refreshLaunchInfo()
     in.coreHours = launchCost(job, launch.totalprocs);
     if (!launch.machine.empty()) {
       in.allocation = AllocationQuery::account(launch);
-      wxWeakRef<CalculationContextPanel> self(this);
-      in.allocationLeft = AllocationQuery::left(launch, [self]() {
-        wxTheApp->CallAfter([self]() { if (self) self->refreshLaunchInfo(); });
-      });
     }
   }
   p_launchHolder->Add(ewxLaunchInfoBlock(this, LaunchInfoRows::build(in)));
