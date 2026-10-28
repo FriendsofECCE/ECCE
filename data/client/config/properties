@@ -332,6 +332,10 @@ EStruct		One Density Matrix			DMAT1		Electrons	PropTable<Basis Function,Basis Fu
 #  user reads -- it is what lets the orbital renderer rebuild the basis a
 #  semiempirical calculation never writes one for (#128).
 EStruct		Slater Basis				SLATERBASIS	NA		PropTable<Atom,Coordinate>
+#  The explicit Gaussian basis of a code that has none in ECCE's library
+#  (xtb's STO-nG expansions), one row per primitive: Z, l, exponent,
+#  coefficient (for an unnormalised primitive), shell number in the element.
+EStruct		Gaussian Basis (explicit)		GTOBASIS	NA		PropTable<Atom,Coordinate>
 EStruct		Electronic State			ESTATE		NA		PropString
 EStruct		Gaussian CUBE				CUBE		Electrons	PropVecGrid
 EStruct		Trajectory				TRJ		NA	NA

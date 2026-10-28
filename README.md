@@ -79,7 +79,9 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 - xTB: GFN2-xTB, GFN1-xTB and GFN-FF through the `xtb` program, as a new
   code in the code bar: energy and geometry optimisation, with an implicit
-  solvent (ALPB or GBSA). Orbitals, charges and vibrations follow.
+  solvent (ALPB or GBSA). The orbitals (energies, occupations and
+  coefficients) are read from xtb's Molden file for GFN2 and GFN1; GFN-FF has
+  no orbitals. Charges and vibrations follow.
 
 ## First steps
 

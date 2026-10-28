@@ -1,0 +1,33 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    xtb-so2-molden
+desc:    xtb.desc
+fixture: xtb/so2_molden.out (424 lines)
+args:    '.' 'Energy' 'SE' 'GFN2-xTB' '0'
+
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][GTOBASIS]  Script=xtb.mo  Freq=last  Skip=0  Lines=-
+  Begin=^ECCE-XTB-MOLDEN\s*$
+  End=^ECCE-XTB-ENDMOLDEN
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1 fed=424 rc=0 first-fed='ECCE-XTB-MOLDEN'
+    key: ORBENG
+      size: 17
+      values: -0.81262673 -0.69857647 -0.65211570 -0.55290180 -0.55110184 -0.54940536 -0.48138430 -0.45988916 -0.45010414 -0.32208760 -0.16432307 -0.11612666 0.00887204 0.08213372 0.13890619 0.62459976 1.16266443
+      units: Hartree
+    key: ORBOCC
+      size: 17
+      values: 2.000000 2.000000 2.000000 2.000000 2.000000 2.000000 2.000000 2.000000 2.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000
+      units: electrons
+    key: MO
+      size: 17 18
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10 MO-11 MO-12 MO-13 MO-14 MO-15 MO-16 MO-17
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17 BasFun-18
+      values: 0.8527516342 0.0000000000 -0.0000000000 -0.0012734299 0.0367134858 -0.0265544061 -0.0101590797 -0.0000000000 0.0000000000 -0.0000000000 0.1099730122 0.0000000000 -0.0989194116 0.0745075095 0.1099730122 0.0000000000 0.0989194116 0.0745075095 0.0000000000 0.0000000000 0.2821025445 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0706429244 0.5696673022 -0.000000000 ...[4137 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+    key: GTOBASIS
+      size: 19 5
+      rowlabels: Primitive-1 Primitive-2 Primitive-3 Primitive-4 Primitive-5 Primitive-6 Primitive-7 Primitive-8 Primitive-9 Primitive-10 Primitive-11 Primitive-12 Primitive-13 Primitive-14 Primitive-15 Primitive-16 Primitive-17 Primitive-18 Primitive-19
+      columnlabels: Z l Exponent Coefficient Shell
+      values: 16 0 5.94059715667 -0.0893724173116 1 16 0 1.67332031647 -0.180826416098 1 16 0 0.300052353376 0.217239963389 1 16 0 0.147626982611 0.0609303623866 1 16 1 7.60402394306 -0.258148203246 2 16 1 0.785799530644 0.290555694476 2 16 1 0.355154539933 0.228494836712 2 16 1 0.171689541475 0.0337904873008 2 16 2 1.51575937639 0.574808919567 3 16 2 0.475268595434 0.261853961963 3 16 2 0.185128831078 0.034887 ...[694 chars]
+

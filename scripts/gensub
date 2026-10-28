@@ -2129,6 +2129,9 @@ sub xtb()
   $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
   $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
   $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
+  # GFN-FF has no orbitals, so it gets no --molden.
+  $retval .= "rm -f molden.input\n";
+  $retval .= "case \" \$xtbopts \" in *\" --gfnff \"*) ;; *) xtbopts=\"\$xtbopts --molden\" ;; esac\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
@@ -2141,6 +2144,11 @@ sub xtb()
   $retval .= "awk 'BEGIN{left=0;f=0} left==0 && NF==0 {next}\n";
   $retval .= "  left==0 {n=\$1; left=n+1; f++; print \"ECCE-XTB-FRAME \" f \" \" n; next}\n";
   $retval .= "  {print; left--; if (left==0) print \"ECCE-XTB-ENDFRAME\"}' \$xtbTraj >> $::outFile\n";
+  $retval .= "if [ -s molden.input ]; then\n";
+  $retval .= "  echo ECCE-XTB-MOLDEN >> $::outFile\n";
+  $retval .= "  cat molden.input >> $::outFile\n";
+  $retval .= "  echo ECCE-XTB-ENDMOLDEN >> $::outFile\n";
+  $retval .= "fi\n";
   $retval .= "(exit \$xtbStatus)\n";
   return $retval;
   nouse strict vars;

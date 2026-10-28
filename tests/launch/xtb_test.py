@@ -47,14 +47,14 @@ def check(ok, what):
     return ok
 
 
-def deck(atoms, runtype, level="normal"):
+def deck(atoms, runtype, level="normal", theory="GFN2-xTB"):
     """The input deck ai.xtb writes for a molecule."""
     tmp = tempfile.mkdtemp(prefix="xtbdeck-")
     try:
         open(os.path.join(tmp, "x.param"), "w").write(
-            "title:\txtbtest\nTheory:\tGFN2-xTB\nCategory:\tSE\n"
+            "title:\txtbtest\nTheory:\t%s\nCategory:\tSE\n"
             "RunType:\t%s\nCharge:\t0\nES.ChemSys.Multiplicity:\t1\n"
-            "ES.Runtype.GeomOpt.Level:\t%s\n" % (runtype, level))
+            "ES.Runtype.GeomOpt.Level:\t%s\n" % (theory, runtype, level))
         frag = ["x", "title:\txtbtest", "type:\tmolecule",
                 "num_atoms:\t%d" % len(atoms), "atom_info:\tsymbol cart",
                 "atom_list:"]
@@ -146,6 +146,10 @@ def main():
             for key in ("TE", "HLGAP", "DIPOLE", "GEOMTRACE"):
                 check(key in props, "%s present in Props/" % key)
             check("TEVEC" not in props, "no energy trace for a single point")
+            for key in ("MO", "ORBENG", "ORBOCC", "MOAOORDER", "GTOBASIS"):
+                check(key in props, "%s present in Props/ (xtb --molden)" % key)
+            check(sum(numbers(calc, "ORBOCC")) == 8, "ORBOCC sums to 8 electrons")
+            check(len(numbers(calc, "MO")) == 36, "MO is 6 orbitals x 6 basis functions")
             e = re.findall(r"\| TOTAL ENERGY\s+(\S+) Eh", out)
             te = numbers(calc, "TE")
             check(e and te and abs(te[-1] - float(e[-1])) < 1e-9,
@@ -176,6 +180,15 @@ def main():
             te = numbers(calc, "TE")
             check(e and te and abs(te[-1] - float(e[-1])) < 1e-9,
                   "TE %s is the final energy in the stored output %s" % (te[-1:], e[-1:]))
+
+        say("--- water, GFN-FF energy: no orbitals, no error")
+        text, rc = deck(WATER, "Energy", theory="GFN-FF")
+        calc = runJob(s, "f-%d" % int(time.time()), text, work, rundir)
+        if calc:
+            props = s.props("file://" + calc)
+            check("TE" in props, "TE present in Props/")
+            check("MO" not in props and "ORBENG" not in props,
+                  "a force-field run stores no orbitals")
     finally:
         left = s.stop()
         if left:

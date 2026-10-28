@@ -1,8 +1,8 @@
 # Parse descriptor for xtb 6.7.1 output (GFN2-xTB, GFN1-xTB, GFN-FF).
 #
-# Stage 1: energy, HOMO-LUMO gap, dipole, geometry trace, progress.  Orbitals
-# (--molden), charges and vibrations (--hess) are later stages and add
-# entries here.
+# Energy, HOMO-LUMO gap, dipole, geometry trace, progress, and (stage 2) the
+# orbitals from the Molden file gensub appends.  Charges and vibrations are
+# later stages and add entries here.
 #
 # No two Begins may match one physical line, and an End line is consumed with
 # its block; the entries below use Lines= or markers gensub writes, so
@@ -42,6 +42,16 @@ Begin=^ECCE-XTB-FRAME\s
 Skip=1
 Frequency=all
 End=^ECCE-XTB-ENDFRAME
+[END]
+
+# gensub appends xtb's molden.input (not for GFN-FF, which has no orbitals).
+# Begin/End lines are consumed with the block.
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][GTOBASIS]
+Script=xtb.mo
+Begin=^ECCE-XTB-MOLDEN\s*$
+Skip=0
+Frequency=last
+End=^ECCE-XTB-ENDMOLDEN
 [END]
 
 # SCF iterations: "  3     -4.1470395 -0.177636E-14  0.199E-07   10.79  100000.0  T"

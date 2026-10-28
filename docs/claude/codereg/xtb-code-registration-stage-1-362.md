@@ -1,6 +1,6 @@
 ---
 type: map
-title: "xtb (xTB) is registered like MOPAC/CP2K: a one-file deck split by gensub, geometries appended to the output, orbitals/charges/vibrations still to come (#362)"
+title: "xtb (xTB) is registered like MOPAC/CP2K: a one-file deck split by gensub, geometries appended to the output, orbitals (stage 2), charges/vibrations still to come (#362)"
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
 paths: ["data/client/cap/xTB.edml", "scripts/parsers/ai.xtb", "scripts/parsers/xtb.desc", "scripts/gensub", "scripts/codereg/xtbtheory.py", "tests/launch/xtb_test.py"]
@@ -38,3 +38,22 @@ runtypes Energy and Geometry.
   CM5/Hirshfeld block; vibrations: `--ohess` and a Vibration runtype in
   `xTB.edml`. No `<Importer>`: a raw xtb output has no geometry, so an import
   needs the frames block or a companion xyz.
+
+## Stage 2: orbitals (`--molden`)
+
+- gensub adds `--molden` (never with `--gfnff`) and appends `molden.input` to
+  the output between `ECCE-XTB-MOLDEN`/`ECCE-XTB-ENDMOLDEN`; `xtb.mo` emits
+  MO/ORBENG/ORBOCC/MOAOORDER and the new `GTOBASIS` (one row per primitive:
+  Z, l, exponent, coefficient, shell).
+- The file's conventions, found by building an independent overlap matrix
+  (`tests/parsers/xtb_trace_ps_test.py`, trace(P.S) = N, C'SC = 1):
+  coefficients are for **unnormalised** primitives; d is **Cartesian**
+  (no `[5D]`), order xx yy zz xy xz yz, with xy/xz/yz unit-normalised, so
+  `xtb.mo` multiplies those three columns by sqrt(3) (ECCE normalises every
+  Cartesian d like xx); p is x y z. UHF gives ONE set with fractional
+  occupations (no beta).
+- A GFN-FF run has no molden file and nothing is stored.
+- Still open: no ECCE code turns `GTOBASIS` into a `TGBSConfig` yet
+  (`ICalcUtils::slaterBasisConfig` only knows `SLATERBASIS`, and `MoAoBasis`
+  treats that fallback as orthonormal), so 3-D orbitals and the MO diagram
+  for xtb need that consumer.

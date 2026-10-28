@@ -2625,6 +2625,42 @@ CASES = [
         },
     ),
     dict(
+        # Same water run with the Molden file gensub appends (--molden):
+        # 6 orbitals over 6 basis functions (O s,p; two H s), 4 occupied.
+        name='xtb-h2o-sp-molden',
+        desc='xtb.desc',
+        fixture='xtb/h2o_sp_molden.out',
+        parse_args=('.', 'Energy', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-5.070370761845'}}),
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]'
+            '[MOAOORDER][GTOBASIS': dict(blocks=1, keys={
+                'ORBENG': {'units': 'Hartree'},
+                'ORBOCC': {'values': '2.000000 2.000000 2.000000 2.000000 '
+                                     '0.000000 0.000000',
+                           'units': 'electrons'},
+                'MO': {'size': '6 6'},
+                'MOAOORDER': {'values': 'angular-momentum'},
+                'GTOBASIS': {'size': '11 5'},
+            }),
+        },
+    ),
+    dict(
+        # SO2 has a Cartesian d shell on S (18 basis functions); only the
+        # Molden block, as gensub appends it.  See xtb_trace_ps_test.py.
+        name='xtb-so2-molden',
+        desc='xtb.desc',
+        fixture='xtb/so2_molden.out',
+        parse_args=('.', 'Energy', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]'
+            '[MOAOORDER][GTOBASIS': dict(blocks=1, keys={
+                'MO': {'size': '17 18'},
+                'ORBOCC': {'units': 'electrons'},
+            }),
+        },
+    ),
+    dict(
         # Methane --opt normal: 12 cycles, so 12 frames and 12 TEVEC entries
         # (TEVEC may never outnumber GEOMTRACE).
         name='xtb-ch4-opt',

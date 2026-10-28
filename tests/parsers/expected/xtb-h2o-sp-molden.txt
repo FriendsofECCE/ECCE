@@ -1,0 +1,73 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    xtb-h2o-sp-molden
+desc:    xtb.desc
+fixture: xtb/h2o_sp_molden.out (380 lines)
+args:    '.' 'Energy' 'SE' 'GFN2-xTB' '0'
+
+[TE]  Script=xtb.energy  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| TOTAL ENERGY\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=264 fed=1 rc=0 first-fed='          | TOTAL ENERGY               -5.070370761845 Eh   |'
+    key: TE
+      size: 1
+      values: -5.070370761845
+      units: Hartree
+
+[HLGAP]  Script=xtb.hlgap  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| HOMO-LUMO GAP\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=266 fed=1 rc=0 first-fed='          | HOMO-LUMO GAP              14.629673576893 eV   |'
+    key: HLGAP
+      size: 1
+      values: 14.629673576893
+      units: eV
+
+[DIPOLE]  Script=xtb.dipole  Freq=last  Skip=0  Lines=4
+  Begin=^molecular dipole:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=251 fed=4 rc=0 first-fed='molecular dipole:'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0.000 0.000 -0.894
+      units: Debye
+
+[GEOMTRACE][TEVEC]  Script=xtb.geomtrace  Freq=all  Skip=1  Lines=-
+  Begin=^ECCE-XTB-FRAME\s
+  End=^ECCE-XTB-ENDFRAME
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=281 fed=5 rc=0 first-fed='h2osp'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000000 0.000000000 0.117300000 0.000000000 0.757200000 -0.469200000 0.000000000 -0.757200000 -0.469200000
+      units: Angstrom
+
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][GTOBASIS]  Script=xtb.mo  Freq=last  Skip=0  Lines=-
+  Begin=^ECCE-XTB-MOLDEN\s*$
+  End=^ECCE-XTB-ENDMOLDEN
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=287 fed=94 rc=0 first-fed='ECCE-XTB-MOLDEN'
+    key: ORBENG
+      size: 6
+      values: -0.68166420 -0.56646744 -0.51470628 -0.44749270 0.09013791 0.24560958
+      units: Hartree
+    key: ORBOCC
+      size: 6
+      values: 2.000000 2.000000 2.000000 2.000000 0.000000 0.000000
+      units: electrons
+    key: MO
+      size: 6 6
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6
+      values: -0.7922423131 0.0000000000 -0.0000000000 0.0886964629 -0.1854643476 -0.1854643476 -0.0000000000 -0.0000000000 0.6987848130 -0.0000000000 0.3540488625 -0.3540488625 -0.4567905040 -0.0000000000 -0.0000000000 -0.8042957486 0.2385390881 0.2385390881 0.0000000000 -1.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.8394214299 0.0000000000 0.0000000000 -0.7228174612 -0.7698643315 -0.76 ...[488 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+    key: GTOBASIS
+      size: 11 5
+      rowlabels: Primitive-1 Primitive-2 Primitive-3 Primitive-4 Primitive-5 Primitive-6 Primitive-7 Primitive-8 Primitive-9 Primitive-10 Primitive-11
+      columnlabels: Z l Exponent Coefficient Shell
+      values: 8 0 69.1379619062 -0.204787563701 1 8 0 11.9061291327 -0.249970231368 1 8 0 0.956708277443 0.400258802406 1 8 0 0.364625204961 0.159522066677 1 8 1 8.21241932578 1.13215567992 2 8 1 2.12935769971 1.04768407823 2 8 1 0.750664482024 0.549565082172 2 8 1 0.298852465433 0.0829084865928 2 1 0 3.37022769753 0.273591105889 1 1 0 0.613891182215 0.264605406539 1 1 0 0.166142911484 0.0824659475341 1
+

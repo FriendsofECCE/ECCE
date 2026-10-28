@@ -68,5 +68,17 @@ and for an optimisation the geometry at every cycle, with the energy of each
 cycle in the Geometry Trace plot. The Progress box follows the optimisation
 cycles and their gradient norm against the convergence limit.
 
+### Orbitals
+
+GFN2-xTB and GFN1-xTB are run with `--molden`, and the job script adds xtb's
+Molden file to the end of the output file (between lines beginning with
+`ECCE-XTB-MOLDEN`). ECCE reads the orbital energies, occupations and
+coefficients from it, together with the basis xtb uses: each Slater function
+is expanded in Gaussians (STO-nG), so the basis is not orthonormal, which is
+what the fragment MO diagram needs. The p functions are x, y, z; the d
+functions are Cartesian. A GFN-FF run has no orbitals and stores none.
+Open-shell runs have one set of orbitals with fractional occupations, as xtb
+writes them.
+
 xtb itself prints no coordinates, so the job script adds the structures to
 the end of the output file, between lines beginning with `ECCE-XTB-FRAME`.
