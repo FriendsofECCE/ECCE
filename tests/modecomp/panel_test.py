@@ -64,6 +64,7 @@ def main():
     display = None
     comp = os.path.join(s.state, "comp.dump")
     high = os.path.join(s.state, "high.dump")
+    grid = os.path.join(s.state, "grid.dump")
     try:
         if not s.services(True):
             check(False, "services came up")
@@ -82,7 +83,8 @@ def main():
             ["wait 12000", "quit"], png, "nma",
             {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies",
              "ECCE_NMODE_COMPOSITION_DUMP": comp,
-             "ECCE_NMODE_COMPOSITION_COORDS": "2-4-9",
+             "ECCE_NMODE_COMPOSITION_COORDS": "2-4-9, 1-2-3, 1-5",
+             "ECCE_NMODE_COMPOSITION_GRID": grid,
              "ECCE_NMODE_HIGHLIGHT": high, "ECCE_NMODE_HIGHLIGHT_ATOMS": "2 3"})
     finally:
         if display:
@@ -102,6 +104,21 @@ def main():
         co = names.index("C2–O3 stretch")
         check(float(amide1[2 + co]) > 60, "window: amide I is mostly C=O (%s %%)" % amide1[2 + co])
         shutil.copy(comp + ".png", os.path.join(png, "composition.png"))
+    check(os.path.exists(grid), "the grid's cells dumped")
+    if os.path.exists(grid):
+        glines = [l.rstrip("\n").split("\t") for l in open(grid, encoding="utf-8")]
+        rows = [l for l in glines if l[0] == "row"]
+        note = [l for l in glines if l[0] == "note"][0][1:]
+        small = [l for l in rows if not l[4].strip()]
+        check(rows and not small, "#656: no empty 'Largest contributions' cell (%d rows)" % len(rows))
+        #  2-4-9 is already in the automatic set; it must still be listed in
+        #  every row, however small its share.
+        check(all("added: " in l[4] and "H9" in l[4] for l in rows),
+              "#656: the typed bend is listed in every row")
+        check(note and note[0].startswith("Added ") and "shares recomputed" in note[0],
+              "#656: the note says what Apply did: %s" % note)
+        check(any("not bonded" in n or "Note" in n for n in note),
+              "#656: the note flags 1-5 (not bonded): %s" % note)
     if os.path.exists(high):
         lines = [l.rstrip("\n").split("\t") for l in open(high, encoding="utf-8")]
         check(lines[0] == ["key C2–O3 stretch"], "key names the bond: %s" % lines[0])

@@ -2287,6 +2287,19 @@ void NModePanel::updateVectors(int mode,
 //  Mode composition (#486)
 //  ------------------------------------------------------------------
 
+//  A coordinate and its reverse (c-b-a for a-b-c) are the same one.
+static bool sameCoord(const VibCoordSpec& a, const VibCoordSpec& b)
+{
+   if (a.n != b.n) return false;
+   bool fwd = true, rev = true;
+   for (int t = 0; t < a.n; t++) {
+      fwd = fwd && a.at[t] == b.at[t];
+      rev = rev && a.at[t] == b.at[a.n - 1 - t];
+   }
+   return fwd || rev;
+}
+
+
 bool NModePanel::compositionRows(const wxString& extra, VibComposition& comp,
                                  vector<double>& freqs, wxString *error)
 {
@@ -2313,6 +2326,8 @@ bool NModePanel::compositionRows(const wxString& extra, VibComposition& comp,
 
    //  The extra coordinates are added to the automatic set.
    vector<VibCoordSpec> chosen;
+   p_compAdded.clear();
+   p_compMsg.clear();
    const string text = string(extra.utf8_str());
    for (size_t i = 0; i < text.size();) {
       if (text[i] == ',' || text[i] == ' ' || text[i] == ';') { i++; continue; }
@@ -2346,10 +2361,49 @@ bool NModePanel::compositionRows(const wxString& extra, VibComposition& comp,
    if (!VibAnalysis::composition(in, vector<VibCoordSpec>(), vector<int>(), comp, true))
       return fail("No internal coordinates could be built for this structure.");
    if (!chosen.empty()) {
-      vector<VibCoordSpec> all = comp.coords;
+      const vector<VibCoordSpec> automatic = comp.coords;
+      vector<VibCoordSpec> all = automatic;
       all.insert(all.end(), chosen.begin(), chosen.end());
       if (!VibAnalysis::composition(in, all, vector<int>(), comp))
          return fail("No internal coordinates could be built for this structure.");
+      //  Say what became of each typed coordinate; a silent no-op looked like a bug.
+      auto find = [&](const vector<VibCoordSpec>& set, const VibCoordSpec& c) {
+         for (size_t i = 0; i < set.size(); i++)
+            if (sameCoord(set[i], c)) return (int)i;
+         return -1;
+      };
+      auto bonded = [&](int a, int b) {
+         for (size_t i = 0; i < in.bonds.size(); i++)
+            if ((in.bonds[i].a == a && in.bonds[i].b == b) ||
+                (in.bonds[i].a == b && in.bonds[i].b == a)) return true;
+         return false;
+      };
+      wxString added, skipped;
+      vector<VibCoordSpec> seen;
+      for (size_t i = 0; i < chosen.size(); i++) {
+         const VibCoordSpec& c = chosen[i];
+         wxString nm;
+         for (int t = 0; t < c.n; t++)
+            nm += (t ? wxString(wxT("\u2013")) : wxString()) + wxString::Format("%d", c.at[t] + 1);
+         wxString why;
+         if (find(seen, c) >= 0) why = "typed twice";
+         else if (find(comp.coords, c) < 0)
+            why = c.n == 3 ? "no bend (straight or no motion)" : "no motion along it";
+         const bool inAuto = why.empty() && find(automatic, c) >= 0;
+         seen.push_back(c);
+         bool chain = !in.bonds.empty();
+         for (int t = 0; t + 1 < c.n && chain; t++) chain = bonded(c.at[t], c.at[t + 1]);
+         if (!why.empty()) skipped += (skipped.empty() ? "" : "; ") + nm + ": " + why;
+         else {
+            if (inAuto) skipped += (skipped.empty() ? "" : "; ") + nm + ": already in the automatic set";
+            else added += (added.empty() ? "" : ", ") + nm;
+            if (!in.bonds.empty() && !chain) skipped += (skipped.empty() ? "" : "; ") + nm + ": atoms are not bonded in a chain, computed anyway";
+            p_compAdded.push_back(c);
+         }
+      }
+      if (!added.empty()) p_compMsg = "Added " + added + "; shares recomputed.";
+      if (!skipped.empty())
+         p_compMsg += (p_compMsg.empty() ? "" : " ") + wxString("Note: ") + skipped + ".";
    }
    return true;
 }
@@ -2425,7 +2479,7 @@ bool NModePanel::showComposition(const wxString& extra, wxString *error)
       auto doApply = [this](wxCommandEvent&) {
          wxString err;
          if (!showComposition(p_compExtra->GetValue(), &err))
-            p_compNote->SetLabel(err);
+            p_compNote->SetLabel(err);   // the old table stays, as does its note
       };
       apply->Bind(wxEVT_BUTTON, doApply);
       p_compExtra->Bind(wxEVT_TEXT_ENTER, doApply);
@@ -2444,6 +2498,7 @@ bool NModePanel::showComposition(const wxString& extra, wxString *error)
    p_compFreqs = freqs;
    if (p_compExtra && p_compExtra->GetValue() != extra) p_compExtra->ChangeValue(extra);
    fillComposition();
+   if (p_compNote && !p_compMsg.empty()) p_compNote->SetLabel(p_compMsg);
    p_compFrame->Show(true);
    p_compFrame->Raise();
    return true;
@@ -2464,12 +2519,29 @@ void NModePanel::fillComposition()
       std::sort(order.begin(), order.end(),
                 [&](size_t a, size_t b) { return pc[a] > pc[b]; });
       wxString text;
+      //  On a large molecule every share can be below 5 %, so the top three
+      //  are shown whatever their size; the figure says how small they are.
       for (size_t i = 0; i < order.size() && i < 4; i++) {
-         if (pc[order[i]] < 5.0) break;
+         if (i >= 3 && pc[order[i]] < 5.0) break;
+         if (pc[order[i]] <= 0.0) break;
          if (!text.empty()) text += "; ";
          text += wxString::FromUTF8(p_comp.names[order[i]].c_str());
-         text += wxString::Format(" %.0f %%", pc[order[i]]);
+         text += wxString::Format(" %s %%", pc[order[i]] < 1.0 ? "<1" : wxString::Format("%.0f", pc[order[i]]));
       }
+      //  Typed coordinates are always listed, so an addition is visible
+      //  however little of the mode lies along it.
+      wxString added;
+      for (size_t k = 0; k < p_compAdded.size(); k++) {
+         const VibCoordSpec& c = p_compAdded[k];
+         for (size_t i = 0; i < p_comp.coords.size(); i++) {
+            if (!sameCoord(p_comp.coords[i], c)) continue;
+            if (!added.empty()) added += ", ";
+            added += wxString::FromUTF8(p_comp.names[i].c_str()) +
+                     wxString::Format(" %.1f %%", pc[i]);
+            break;
+         }
+      }
+      if (!added.empty()) text += (text.empty() ? "" : "  |  ") + wxString("added: ") + added;
       const int r = p_compGrid->GetNumberRows();
       p_compGrid->AppendRows(1);
       p_compGrid->SetCellValue(r, 0, wxString::Format("%d", (int)m + 1));
@@ -2547,6 +2619,7 @@ bool NModePanel::scriptComposition(const wxString& extra, const wxString& textPa
             p_compFrame->SetSize(atoi(w), p_compFrame->GetSize().y);
             widths("after");
          }
+         fprintf(g, "note\t%s\n", p_compNote ? (const char*)p_compNote->GetLabel().utf8_str() : "");
          for (int r = 0; r < p_compGrid->GetNumberRows(); r++) {
             fprintf(g, "row");
             for (int c = 0; c < p_compGrid->GetNumberCols(); c++)

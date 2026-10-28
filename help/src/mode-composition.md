@@ -26,7 +26,15 @@ them. To add coordinates, type atom numbers in the box and press **Apply**:
 - three atoms, `9-4-2`: the bend at the middle atom;
 - four atoms, `1-2-4-5`: the torsion about the middle bond.
 
-Separate several with commas or spaces.
+Separate several with commas or spaces. Every added coordinate is listed in
+the last column of every mode, after `added:`, with its share, however small,
+and the line under the box says what Apply did: what was added, or why a
+coordinate was not (already in the set, typed twice, no motion along it, atoms
+not bonded).
+
+Each mode's cell shows at least its three largest contributions, also when all
+of them are small, as in a large molecule with many coordinates; the
+percentages say how small.
 
 Or select the atoms in the 3-D view and press **Add Selected**: two atoms add
 their stretch, three a bend and four a torsion. The atoms are put in order

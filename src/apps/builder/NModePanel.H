@@ -198,6 +198,8 @@ class NModePanel : public NModesGUI,
       void fitCompColumn();
       vector<string> p_compLabels;               // short label per mode, as in the table
       VibComposition p_comp;
+      vector<VibCoordSpec> p_compAdded;           // typed coordinates that were accepted
+      wxString p_compMsg;                        // what Apply did, for the note line
       vector<double> p_compFreqs;
       std::shared_ptr<VibSpectrum> p_compare;   // the second curve, if any
       string p_compareName, p_compareCode;
