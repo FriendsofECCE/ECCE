@@ -39,6 +39,7 @@ CASES = [
     ("co", "genchem/molecular-orbitals-of-diatomics/ecceqm-CO/stored/CO"),
     ("hcl", "genchem/polar-bonds-and-dipole-moments/ecceqm-HCl/stored/HCl"),
     ("h2o", "getting-started/ecceqm-water/stored/water"),
+    ("nh3", "getting-started/mopac-ammonia/stored/ammonia"),
     ("acala", "spectroscopy/amides-and-peptides/orca-ac_ala_nhme/stored/ac_ala_nhme"),
 ]
 
@@ -150,7 +151,7 @@ def main():
             failures.append(what)
 
     # The molecule is turned so the arrow lies across the view.
-    turn = {"so2": 90, "h2o": 90, "hcl": 90, "hf": 90}
+    turn = {"so2": 90, "h2o": 90, "hcl": 90, "hf": 90, "nh3": 70, "co": 90}
     with xdisplay.Display() as display:
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
                        env=display.env(), timeout=180)

@@ -11,7 +11,9 @@ is the average of the atom positions of one sign, weighted by the charges. The
 arrow lies along the dipole moment the code reports, and its tail is at the
 negative pole. Where the two poles are not exactly on the line of the dipole
 moment (the atomic charges do not reproduce it), the head is level with the
-positive pole along that line.
+positive pole along that line. A small maroon sphere marks each end of the
+arrow, and it shows through an atom when a pole lies on a nucleus, as the
+negative pole of ammonia lies on the nitrogen.
 
 The atomic charges can point the other way from the dipole moment. Carbon
 monoxide is the best-known case: the charges make oxygen negative, but the
