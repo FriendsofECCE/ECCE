@@ -61,7 +61,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Launch Info in the summary: a Job ID row and a Cost row (cores × wall time
   in CPU hours).
 - Tools > Allocations lists each cluster account of your machine profiles and
-  how much of it is used.
+  how much of it is used. The calculation summary shows how much of the
+  allocation was left when the job was submitted.
 - Comp. Date is when the job ended, also after a later Reconnect.
 - A job the queue system ends (out of memory, wall time reached, node
   failure) is Incomplete instead of System Error, and the reason names the

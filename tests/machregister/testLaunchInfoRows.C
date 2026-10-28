@@ -38,6 +38,18 @@ int main()
     check(labels(c.right) == "Start Date: Comp. Date: Allocation:", "right column order, no Left row");
     check(c.left[3].value == "12345", "job id value");
 
+    in.allocationRemaining = "95.1 % of 5 000 CPU-h/month (past 30 days)";
+    c = build(in);
+    check(labels(c.right) == "Start Date: Comp. Date: Allocation: Remaining on submission:",
+          "remaining row follows Allocation");
+    in.allocation = "";
+    c = build(in);
+    check(labels(c.right) == "Start Date: Comp. Date:", "no allocation: no remaining row either");
+    in.allocation = "hpc2n2026-001";
+    in.allocationRemaining = "";
+    c = build(in);
+    check(labels(c.right) == "Start Date: Comp. Date: Allocation:", "no snapshot: no remaining row");
+
     in.completionDate = "";
     in.allocation = "";
     c = build(in);

@@ -31,6 +31,7 @@ namespace AllocationQuery
         std::string host;       // the cluster the login is to
         std::string used;       // "" when the output was not recognised
         std::string raw;        // the output line naming the account, for a tooltip
+        std::string remaining;  // for the launch snapshot, "" when unknown
         long when;              // time of the answer shown, 0 if none
         Result() : state(NotLoggedIn), when(0) {}
     };
@@ -41,6 +42,14 @@ namespace AllocationQuery
     //  asks again at once. onDone is called from that thread when a refresh
     //  has finished.
     Result check(const Target& t, bool force, std::function<void()> onDone);
+
+    //  The launch snapshot (#613): what was left of the allocation when the
+    //  job was submitted. snapshotBegin() before the submission starts the
+    //  read (a fresh cached answer needs none); snapshot() after it returns
+    //  the text if an answer under 15 minutes old is in, "" otherwise. Neither
+    //  waits for the cluster, and neither logs in.
+    void snapshotBegin(const Launchdata& l);
+    std::string snapshot(const Launchdata& l);
 }
 
 #endif

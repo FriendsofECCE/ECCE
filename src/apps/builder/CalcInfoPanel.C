@@ -259,6 +259,7 @@ void CalcInfoPanel::refresh()
     in.coreHours = launchCost(taskJob, launch.totalprocs);
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);
+    in.allocationRemaining = launch.allocationLeft;
     p_body->GetSizer()->Add(ewxLaunchInfoBlock(p_body, LaunchInfoRows::build(in)),
                             0, wxTOP | wxBOTTOM, 2);
 

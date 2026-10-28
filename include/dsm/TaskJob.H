@@ -65,6 +65,7 @@ struct Launchdata {
   string remoteShell;       /**< Type of remote communications shell */
   string account;           /**< Allocation account the job was submitted under */
   string profile;           /**< Allocation profile it was launched with ("" = Default) */
+  string allocationLeft;    /**< Allocation left when submitted (#613); read only, see allocationSnapshot() */
   string forceCsh;          /**< read from calculations saved by older versions; never written */
 
   Launchdata()
@@ -123,6 +124,7 @@ class TaskJob : public Job,
 
       virtual bool launchdata(const Launchdata& launchinfo);
       virtual Launchdata launchdata(const bool &useInputProvider = false) const;
+      virtual bool allocationSnapshot(const string& text);
 
       /** The user asked for this job to be cancelled.  eccejobstore reads it
           to tell a cancelled job from one that vanished.  Cleared by

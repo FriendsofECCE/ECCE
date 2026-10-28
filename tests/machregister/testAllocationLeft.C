@@ -72,6 +72,34 @@ int main(int argc, char **argv)
     check(summarize("naiss-2||12x\n", "naiss-2").empty(), "sshare: non-numeric usage");
     decode(encode(sh, "naiss-2"), used, raw);
     check(used == s && raw.empty(), "cache text round trip, recognised", used);
+    //  Remaining on submission (the calculation summary row)
+    std::string rem = remaining(out, "hpc2n2026-351");
+    check(rem == "92.6 % of 30 000 CPU-h/month (past 30 days)", "remaining, single-CPU project", rem);
+    rem = remaining(out, "hpc2ncourses2026-002");
+    check(rem == "95.1 % of 5 000 CPU-h/month (past 30 days); 96.9 % of 100 GPU-h/month",
+          "remaining, project with a GPU allocation", rem);
+    check(remainingPercent("4.9") == "95.1" && remainingPercent("0") == "100" &&
+          remainingPercent("0.0") == "100" && remainingPercent("100.0") == "0" &&
+          remainingPercent("112.5") == "0" && remainingPercent("7.4") == "92.6",
+          "remaining percent: one decimal, 100 without one, clamped at 0");
+    check(remainingPercent("").empty() && remainingPercent("x").empty() &&
+          remainingPercent("-3").empty(), "remaining percent: not a number");
+    std::string gpu = "Information for project p1:\nAllocations:\n"
+        "    kebnekaise:   5000 CPUhours/month, used 4.9% the past 30 days\n"
+        "    kebnekaise-gpu:   100 GPUhours/month, used 0% the past 30 days\n";
+    s = remaining(gpu, "p1");
+    check(s == "95.1 % of 5 000 CPU-h/month (past 30 days); 100 % of 100 GPU-h/month",
+          "remaining with a GPU allocation", s);
+    check(remaining(two, "p1").empty(), "remaining: two CPU allocations, not guessed");
+    check(remaining(sh, "naiss-2").empty(), "remaining: sshare has no size");
+    check(remaining(other, "naiss-2").empty() && remaining("", "p1").empty(),
+          "remaining: unrecognised or empty output");
+    std::string left;
+    decode(encode(gpu, "p1"), used, raw, &left);
+    check(left == s, "cache text carries the remaining text", left);
+    decode(used + "\x1f" + raw, used, raw, &left);
+    check(left.empty(), "an older cache line has no remaining text");
+
     check(substitute(slurmCommand(), "p1") == "sshare -n -P -A p1 -o Account,User,RawUsage", "slurm command");
     s = summarize("garbled\nInformation for project p1:\nAllocations:\n  x: lots of CPUhours\n", "p1");
     check(s.empty(), "an unreadable block has no summary", s);

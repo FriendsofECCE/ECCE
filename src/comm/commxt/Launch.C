@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <strings.h>   // strcasecmp
 
+#include "comm/AllocationQuery.H"
 #include "util/ErrMsg.H"
 #include "util/Ecce.H"
 #include "util/SFile.H"
@@ -2050,6 +2051,12 @@ bool Launch::doLaunch(void)
       // any command that is executed to invoke the job submission does
       // set the $status variable appropriately.
 
+      //  The allocation left (#613) is read while the job is submitted and
+      //  never waited for; a snapshot from an earlier submission is dropped.
+      const Launchdata snapLaunch = p_taskjob->launchdata();
+      p_taskjob->allocationSnapshot("");
+      AllocationQuery::snapshotBegin(snapLaunch);
+
       // Check if this machine requires users to submit the job
       RefMachine* refMachine = RefMachine::refLookup(p_cache->machineName);
       if (refMachine != (RefMachine*)0 && refMachine->userSubmit()) {
@@ -2099,6 +2106,11 @@ bool Launch::doLaunch(void)
 
       if (ret)
         ret = startJobStore("");
+      if (ret) {
+        const string left = AllocationQuery::snapshot(snapLaunch);
+        if (!left.empty())
+          p_taskjob->allocationSnapshot(left);
+      }
     }
   }
 

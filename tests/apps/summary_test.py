@@ -92,7 +92,7 @@ def launchProblem(text):
     for name in ("Machine:", "Processors:", "Start Date:", "Cost:"):
         if name not in rows:
             return "Launch Info has no %s row (got %s)" % (name, sorted(rows))
-    for name in ("Queue:", "Job ID:", "Allocation:", "Left:"):
+    for name in ("Queue:", "Job ID:", "Allocation:", "Remaining on submission:"):
         if name in rows:
             return "Launch Info shows %s with nothing to show" % name
     if rows["Start Date:"][0] <= rows["Machine:"][0]:

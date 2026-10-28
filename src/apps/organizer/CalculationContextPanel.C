@@ -302,6 +302,7 @@ void CalculationContextPanel::refreshLaunchInfo()
     in.coreHours = launchCost(job, launch.totalprocs);
     if (!launch.machine.empty()) {
       in.allocation = AllocationQuery::account(launch);
+      in.allocationRemaining = launch.allocationLeft;
     }
   }
   p_launchHolder->Add(ewxLaunchInfoBlock(this, LaunchInfoRows::build(in)));
