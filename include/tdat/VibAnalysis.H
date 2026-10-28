@@ -91,11 +91,14 @@ class VibAnalysis
     * With `torsions`, the automatic set also has the description's
     * torsions (one per bond, through the heaviest neighbours), so a motion
     * the description calls a torsion is not spread over bends here.
+    * With `chBends` the bends that move a hydrogen on carbon are in the
+    * automatic set too.
     * Rigid-motion rows get all zeros.  False without a usable input.
     */
    static bool composition(const VibInput& in, const vector<VibCoordSpec>& chosen,
                            const vector<int>& centres, VibComposition& out,
-                           bool torsions = false);
+                           bool torsions = false,
+                           bool chBends = false);
 
    /** Symmetry and description both; false if neither could be produced. */
    static bool analyse(const VibInput& in, VibResult& out);

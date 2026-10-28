@@ -107,12 +107,11 @@ class NModePanel : public NModesGUI,
       bool compareWith(const string& name);
       VibKind spectrumKindShown() const;
 
-      /** The Mode composition window (#486), with `extra` added to the
-          automatic coordinate set: coordinates as 1-based atom numbers
-          joined by dashes (2 = stretch, 3 = bend, 4 = torsion), separated
-          by commas or spaces.  False, with `error` set, if `extra` is not
-          understood or the calculation has no modes. */
-      bool showComposition(const wxString& extra, wxString *error = 0);
+      /** The Mode composition window (#486): a read-only assignment table.
+          chBends -1 takes the remembered state of "Include C-H bends",
+          0/1 sets it.  False, with `error` set, if the calculation has no
+          modes. */
+      bool showComposition(int chBends, wxString *error = 0);
 
       /** Colour the spectrum by the share of each mode in the atoms
           (0-based) selected in the viewer; fewer than two clears it.
@@ -124,7 +123,7 @@ class NModePanel : public NModesGUI,
 
       /** Test hook (#486): the composition table as text ("coords" line,
           then one line per mode); optionally the window's picture. */
-      bool scriptComposition(const wxString& extra, const wxString& textPath,
+      bool scriptComposition(int chBends, const wxString& textPath,
                              const wxString& pngPath);
 
       /** The structure in the viewer is the one these modes belong to:
@@ -146,9 +145,10 @@ class NModePanel : public NModesGUI,
       static void setWrapped(wxStaticText *label, const std::vector<wxString>& parts);
       void dumpTableIfRequested();
       void dumpCompositionIfRequested();
-      bool compositionRows(const wxString& extra, VibComposition& comp,
+      bool compositionRows(bool chBends, VibComposition& comp,
                            vector<double>& freqs, wxString *error);
       void fillComposition();
+      wxString compositionText(char sep) const;
       wxString cellTip(int row, int col) const;
       void OnGridMotion(wxMouseEvent& event);
       void OnLabelMotion(wxMouseEvent& event);
@@ -191,15 +191,12 @@ class NModePanel : public NModesGUI,
       wxWeakRef<SpectrumCanvas> p_spectrumPop;
       wxWeakRef<wxFrame> p_compFrame;            // Mode composition (#486)
       wxGrid *p_compGrid = 0;
-      wxTextCtrl *p_compExtra = 0;
+      wxCheckBox *p_compCH = 0;
       std::vector<int> p_picked;          // atoms selected in the 3-D view, 0-based
-      std::string pickedCoordinate() const;
       wxStaticText *p_compNote = 0;
       void fitCompColumn();
       vector<string> p_compLabels;               // short label per mode, as in the table
       VibComposition p_comp;
-      vector<VibCoordSpec> p_compAdded;           // typed coordinates that were accepted
-      wxString p_compMsg;                        // what Apply did, for the note line
       vector<double> p_compFreqs;
       std::shared_ptr<VibSpectrum> p_compare;   // the second curve, if any
       string p_compareName, p_compareCode;

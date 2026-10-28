@@ -63,6 +63,8 @@ def main():
         os.chmod(os.path.join(wrappers, entry), 0o755)
     display = None
     comp = os.path.join(s.state, "comp.dump")
+    comp1 = os.path.join(s.state, "comp1.dump")
+    copy = os.path.join(s.state, "copy.txt")
     high = os.path.join(s.state, "high.dump")
     grid = os.path.join(s.state, "grid.dump")
     try:
@@ -78,52 +80,69 @@ def main():
         shutil.copy(bo.PROJECT_META, os.path.join(project, ".ecce-meta"))
         vp.makeCalc(project, "nma", FIXTURE, "orca.desc", "Vibration", ELEMENTS, "NMA")
         url = "file://" + os.path.join(project, "nma") + "/"
-        text, _shots = bo.runScript(
-            s, display, env, wrappers, ["-context", url],
-            ["wait 12000", "quit"], png, "nma",
-            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies",
-             "ECCE_NMODE_COMPOSITION_DUMP": comp,
-             "ECCE_NMODE_COMPOSITION_COORDS": "2-4-9, 1-2-3, 1-5",
-             "ECCE_NMODE_COMPOSITION_GRID": grid,
-             "ECCE_NMODE_HIGHLIGHT": high, "ECCE_NMODE_HIGHLIGHT_ATOMS": "2 3"})
+        base = {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies"}
+        #  Same calculation twice: C-H bends off, then on.
+        for dump, ch, extra in ((comp, "0", {"ECCE_NMODE_COMPOSITION_GRID": grid,
+                                             "ECCE_NMODE_COMPOSITION_COPY": copy,
+                                             "ECCE_NMODE_HIGHLIGHT": high,
+                                             "ECCE_NMODE_HIGHLIGHT_ATOMS": "2 3"}),
+                                (comp1, "1", {})):
+            env2 = dict(base, ECCE_NMODE_COMPOSITION_DUMP=dump,
+                        ECCE_NMODE_COMPOSITION_CH=ch, **extra)
+            bo.runScript(s, display, env, wrappers, ["-context", url],
+                         ["wait 12000", "quit"], png, "nma", env2)
     finally:
         if display:
             display.__exit__(None, None, None)
         s.stop()
 
-    check(os.path.exists(comp), "the composition window dumped its table")
+    check(os.path.exists(comp) and os.path.exists(comp1), "the composition window dumped its tables")
     check(os.path.exists(high), "the spectrum highlight dumped")
-    if os.path.exists(comp):
-        lines = [l.rstrip("\n").split("\t") for l in open(comp, encoding="utf-8")]
-        names = lines[0][1:]
-        check(any(n == "C2–N4–H9 bend" for n in names) and
-              names.count("C2–N4–H9 bend") == 2 or
-              "C2–N4–H9 bend" in names,
-              "a typed coordinate is in the set")
-        amide1 = [l for l in lines[1:] if 1700 < float(l[1]) < 2000][0]
-        co = names.index("C2–O3 stretch")
-        check(float(amide1[2 + co]) > 60, "window: amide I is mostly C=O (%s %%)" % amide1[2 + co])
-        shutil.copy(comp + ".png", os.path.join(png, "composition.png"))
+    names = {}
+    for tag, path in (("off", comp), ("on", comp1)):
+        if not os.path.exists(path):
+            continue
+        lines = [l.rstrip("\n").split("\t") for l in open(path, encoding="utf-8")]
+        names[tag] = lines[0][1:]
+        sums = [sum(float(v) for v in l[2:]) for l in lines[1:]]
+        check(all(abs(t - 100) < 0.5 or t < 1e-6 for t in sums),
+              "C-H bends %s: shares sum to 100 %%" % tag)
+        if tag == "off":
+            amide1 = [l for l in lines[1:] if 1700 < float(l[1]) < 2000][0]
+            co = names[tag].index("C2–O3 stretch")
+            check(float(amide1[2 + co]) > 60,
+                  "window: amide I is mostly C=O (%s %%)" % amide1[2 + co])
+            shutil.copy(path + ".png", os.path.join(png, "composition.png"))
+    if len(names) == 2:
+        extra = len(names["on"]) - len(names["off"])
+        check(extra >= 6, "C-H bends add coordinates (%d more)" % extra)
+        check(any(n.startswith("H") and "C" in n and "bend" in n for n in names["on"]) and
+              not any(n.startswith("H") and "C" in n and "bend" in n for n in names["off"]),
+              "H-C-X bends appear only with the checkbox")
     check(os.path.exists(grid), "the grid's cells dumped")
     if os.path.exists(grid):
         glines = [l.rstrip("\n").split("\t") for l in open(grid, encoding="utf-8")]
         rows = [l for l in glines if l[0] == "row"]
-        note = [l for l in glines if l[0] == "note"][0][1:]
-        small = [l for l in rows if not l[4].strip()]
-        check(rows and not small, "#656: no empty 'Largest contributions' cell (%d rows)" % len(rows))
-        #  2-4-9 is already in the automatic set; it must still be listed in
-        #  every row, however small its share.
-        check(all("added: " in l[4] and "H9" in l[4] for l in rows),
-              "#656: the typed bend is listed in every row")
-        check(note and note[0].startswith("Added ") and "shares recomputed" in note[0],
-              "#656: the note says what Apply did: %s" % note)
-        check(any("not bonded" in n or "Note" in n for n in note),
-              "#656: the note flags 1-5 (not bonded): %s" % note)
+        check(rows and all(l[4].strip() for l in rows),
+              "no empty 'Largest contributions' cell (%d rows)" % len(rows))
+        check(all(len(l[4].split("; ")) >= 3 for l in rows),
+              "every mode lists three contributions")
+        check(not any("added:" in l[4] for l in rows), "no 'added:' text")
+        check([l for l in glines if l[0] == "ch"] == [["ch", "0"]], "checkbox state is dumped")
+    check(os.path.exists(copy), "the Copy text dumped")
+    if os.path.exists(copy):
+        clines = [l.split("\t") for l in open(copy, encoding="utf-8").read().splitlines()]
+        check(clines[0] == ["Mode", "cm-1", "Mode type", "Largest contributions"],
+              "Copy header: %s" % clines[0])
+        check(all(len(l) == 4 for l in clines) and len(clines) == len(rows) + 1,
+              "Copy: tab-separated, one line per row")
+        csv = open(copy + ".csv", encoding="utf-8").read().splitlines()
+        check(csv[0] == 'Mode,cm-1,Mode type,Largest contributions' or
+              csv[0] == '"Mode","cm-1","Mode type","Largest contributions"', "csv header")
     if os.path.exists(high):
         lines = [l.rstrip("\n").split("\t") for l in open(high, encoding="utf-8")]
         check(lines[0] == ["key C2–O3 stretch"], "key names the bond: %s" % lines[0])
-        check(lines[1] == ["picked 2-3"], "Add Selected gives the bond: %s" % lines[1])
-        hot = [i for i, l in enumerate(lines[2:]) if float(l[1]) >= 10]
+        hot = [i for i, l in enumerate(lines[1:]) if float(l[1]) >= 10]
         check(len(hot) == 1, "one mode highlighted: %s" % hot)
         shutil.copy(high + ".png", os.path.join(png, "highlight.png"))
     print("%d failed" % len(failed))

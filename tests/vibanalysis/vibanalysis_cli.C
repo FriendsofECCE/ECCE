@@ -61,7 +61,10 @@ int main(int argc, char **argv)
          chosen.push_back(c);
       }
       VibComposition comp;
-      if (!VibAnalysis::composition(in, chosen, std::vector<int>(), comp)) {
+      //  ECCE_COMP_PANEL=1: the Composition window's set (with torsions);
+      //  ECCE_COMP_CH=1 also the bends that move a hydrogen on carbon.
+      if (!VibAnalysis::composition(in, chosen, std::vector<int>(), comp,
+                                    getenv("ECCE_COMP_PANEL") != 0, getenv("ECCE_COMP_CH") != 0)) {
          std::cerr << "no composition\n"; return 1;
       }
       std::printf("coords");
