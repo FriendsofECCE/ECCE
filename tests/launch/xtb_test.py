@@ -84,11 +84,21 @@ def numbers(calc, key):
     return [float(v) for v in re.findall(r"[-+]?\d+\.\d+(?:[eE][-+]?\d+)?", body)]
 
 
-def runJob(s, name, text, work, rundir):
+def runJob(s, name, text, work, rundir, atoms=None):
     path = os.path.join(work, name + ".xtbin")
     open(path, "w").write(text)
+    #  The code and the structure, as the Calculation Editor stores them:
+    #  the Builder's orbital views look the basis ordering up by code.
+    extra = ["procs=1", "code=xTB"]
+    if atoms:
+        xyz = os.path.join(work, name + ".xyz")
+        with open(xyz, "w") as h:
+            h.write("%d\n%s\n" % (len(atoms), name))
+            for a in atoms:
+                h.write("%s %.6f %.6f %.6f\n" % a)
+        extra.append("xyz=" + xyz)
     url, out = s.create(name, "xtb_es", path, "xtb.xtbin", rundir,
-                        extra=("procs=1",))
+                        extra=tuple(extra))
     if not check(url is not None, "%s created" % name):
         say(out)
         return None
@@ -138,7 +148,8 @@ def main():
         text, rc = deck(WATER, "Energy")
         check(rc == 0 and text.startswith("xtb --gfn 2 --chrg 0 --uhf 0 --sp"),
               "ai.xtb wrote the deck: %r" % text.splitlines()[0])
-        calc = runJob(s, "w-%d" % int(time.time()), text, work, rundir)
+        calc = runJob(s, "w-%d" % int(time.time()), text, work, rundir,
+                      WATER)
         if calc:
             out = storedOutput(calc)
             props = s.props("file://" + calc)
@@ -165,7 +176,8 @@ def main():
         text, rc = deck(METHANE, "Geometry", "normal")
         check(rc == 0 and "--opt normal" in text.splitlines()[0],
               "ai.xtb wrote the deck: %r" % text.splitlines()[0])
-        calc = runJob(s, "m-%d" % int(time.time()), text, work, rundir)
+        calc = runJob(s, "m-%d" % int(time.time()), text, work, rundir,
+                      METHANE)
         if calc:
             out = storedOutput(calc)
             props = s.props("file://" + calc)
@@ -190,7 +202,8 @@ def main():
         text, rc = deck(WATER, "GeoVib", "normal")
         check(rc == 0 and "--ohess normal" in text.splitlines()[0],
               "ai.xtb wrote the deck: %r" % text.splitlines()[0])
-        calc = runJob(s, "v-%d" % int(time.time()), text, work, rundir)
+        calc = runJob(s, "v-%d" % int(time.time()), text, work, rundir,
+                      WATER)
         if calc:
             props = s.props("file://" + calc)
             say("  properties: " + " ".join(props))
@@ -211,7 +224,8 @@ def main():
 
         say("--- water, GFN-FF energy: no orbitals, no error")
         text, rc = deck(WATER, "Energy", theory="GFN-FF")
-        calc = runJob(s, "f-%d" % int(time.time()), text, work, rundir)
+        calc = runJob(s, "f-%d" % int(time.time()), text, work, rundir,
+                      WATER)
         if calc:
             props = s.props("file://" + calc)
             check("TE" in props, "TE present in Props/")

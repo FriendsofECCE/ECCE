@@ -723,7 +723,10 @@ TGBSConfig* ICalcUtils::gtoBasisConfig(const vector<double>& rows)
 
   std::ostringstream os;
   os << "NumericalBasis" << endl;
-  os << "basis \"ao basis\" print" << endl;
+  //  xtb's d shells are Cartesian.  Without the keyword the config is
+  //  spherical, xTB.edml has no spherical MOOrdering, and an s/p-only
+  //  molecule (same function count either way) flattens to empty functions.
+  os << "basis \"ao basis\" cartesian print" << endl;
   const char labels[] = "SPDFG";
   int i = 0;
   while (i < n) {
@@ -757,6 +760,7 @@ TGBSConfig* ICalcUtils::gtoBasisConfig(const vector<double>& rows)
     delete config;
     config = (TGBSConfig*)0;
   }
+  if (config != 0) config->coordsys(TGaussianBasisSet::Cartesian);
   return config;
 }
 

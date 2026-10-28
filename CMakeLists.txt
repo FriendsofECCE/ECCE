@@ -2948,6 +2948,16 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # #362: xtb results in the Builder (MOs, MO Diagram, Density Map,
+  # vibrations, charges) from real Launch runs; skipped without xtb or Xvfb.
+  add_test(NAME apps_xtb_viewer
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/xtb_viewer_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_xtb_viewer PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+
   # The Periodic Builder pane (docked, closable, reopenable in every panel
   # layout) and the layout choice for run and not-yet-run calculations.
   add_test(NAME apps_pbc_ux

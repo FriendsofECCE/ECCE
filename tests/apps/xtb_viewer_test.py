@@ -5,7 +5,8 @@ Two real xtb calculations are made through Launch (tests/launch/xtb_test.py's
 helpers), copied into a local data folder and opened with Builder scene
 commands, no input events:
 
-  * water GFN2-xTB energy: the MOs panel's Compute draws an orbital (a grid
+  * water GFN2-xTB energy (code and structure stored as the Calculation
+    Editor stores them): the MOs panel's Compute draws an orbital (a grid
     with a non-zero range), the MO Diagram opens, is not refused as an
     orthonormal basis and a click on a level draws that MO, and the Density
     Map follows the click;
@@ -32,27 +33,6 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "tests", "launch"))
 
 SKIP = 77
-CHEMSYS = """title: xtb
-type: molecule
-num_atoms: 3
-atom_info: symbol cart
-atom_list: 
-O 0.00000 0.00000 0.11730
-H 0.00000 0.75720 -0.46920
-H 0.00000 -0.75720 -0.46920
-attr_list:
- 0.000000   1   0   0   0
- 0.000000   1   0   0   0
- 0.000000   1   0   0   0
-atom_type_list:
-        6   2
-        1   2
-        1   2
-num_bonds: 2
-bond_list: 
-1 2 1.00000 2
-1 3 1.00000 2
-"""
 failures = []
 
 
@@ -106,7 +86,7 @@ def main():
                                     ("vib", "GeoVib", "normal")):
             text_, rc = xt.deck(xt.WATER, runtype, level)
             calcs[key] = xt.runJob(s, "%s-%d" % (key, int(time.time())),
-                                   text_, work, rundir)
+                                   text_, work, rundir, xt.WATER)
     finally:
         s.stop()
     if not check(all(calcs.values()), "both xtb calculations completed"):
@@ -135,10 +115,6 @@ def main():
         dest = os.path.join(project, key)
         shutil.copytree(calc, dest, ignore=shutil.ignore_patterns(".DAV"))
         urls[key] = "file://" + dest + "/"
-        #  launchjob stores no structure; the Builder's own save would.
-        os.makedirs(os.path.join(dest, "Parameters"), exist_ok=True)
-        with open(os.path.join(dest, "Parameters", "chemsys.mvm"), "w") as h:
-            h.write(CHEMSYS)
     xdisplay.SCREEN = "1700x1000x24"
 
     def run(display, key, name, scene, panel, env=None):
@@ -174,8 +150,9 @@ def main():
             check("orthonormalised" not in log and
                   "ECCE_TEST_DIALOG" not in log,
                   "MO Diagram: not refused as an orthonormal basis")
-            check("DENSITYMAP: dmstate" in log,
-                  "Density Map: draws for the xtb calculation")
+            check(re.search(r"DENSITYMAP: dmstate\n(.*\n)*?have 1", log)
+                  is not None,
+                  "Density Map: has a map for the xtb calculation")
 
             dump = os.path.join(tmp, "spectrum.dump")
             scene = ("hold 3\nvibfocus\nvibanim\nvibmode 1\nvibstep 3\n"

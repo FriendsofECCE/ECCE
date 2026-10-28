@@ -59,6 +59,19 @@ runtypes Energy and Geometry.
   `orthonormal=false` for it; only MOPAC's `SLATERBASIS` is orthonormal
   (`MoAoBasis` uses that flag). `tests/basisflatten/run_xtb_tests.py` gives
   trace(P.S) = N through the C++ (needs a build tree with this change).
+- **The rebuilt config must say Cartesian.** An imported NumericalBasis is
+  spherical unless its `basis` line says `cartesian`. `JCode::getAngFunc`
+  returns an EMPTY ordering (not null) for a system the .edml does not list,
+  and an s/p-only molecule (water) has the same function count either way,
+  so the width check accepted the spherical try: every flattened function
+  had no angular terms, and the MOs panel drew a zero grid, the MO Diagram had
+  no overlap matrix and the Density Map had no map. The fixture test passed
+  because it asks for the Cartesian ordering itself. `gtoBasisConfig` now
+  writes `cartesian` and sets `coordsys`.
+- `tests/launch/launchjob create` takes `code=<JCode>` and `xyz=<file>` and
+  stores both, as the Calculation Editor's save does; without the code
+  `PropertyTask::isOutputFileProp` dereferenced a null `application()`.
+  `tests/apps/xtb_viewer_test.py` (`apps_xtb_viewer`) uses them.
 - Never write `--` in an XML comment in an .edml: the parse aborts the code.
 
 ## Stage 3: charges and frequencies
