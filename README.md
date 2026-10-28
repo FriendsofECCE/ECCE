@@ -44,8 +44,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.3
 
-- Reconnect, Reconnect Selected, Check Job on Machine and the start-up check
-  log in off the window's thread with a working Cancel; a machine that does
+- Reconnect, Reconnect Selected and the start-up check log in and copy the
+  job monitor off the window's thread, with a working Cancel; a machine that does
   not answer fails after the connect timeout instead of blocking ECCE, and a
   failed login no longer deletes the calculation's stored results.
 - Run Mgmt > Terminate Selected terminates several selected jobs at once.
@@ -53,10 +53,12 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Density Map: right-drag moves a zoomed map; atoms selected before the
   panel opens define the plane. Density Profile: the line profile and its
   orbital ranking run in the background as well, several times faster.
-- Mode composition: Add Selected adds the selected atoms as a stretch, bend
-  or torsion; every mode lists its three largest contributions and the added
-  coordinates, and the note says what Apply did.
-- Dipole Moment: a small sphere marks each end of the arrow.
+- Mode composition is a read-only assignment table: the three largest
+  contributions of every mode, Copy table and Export .csv, and C–H bends
+  included (a checkbox).
+- Dipole Moment: the arrow runs pole to pole along the dipole moment; each
+  pole carries the atoms' total positive charge and is marked by a sphere,
+  and the poles lie as far apart as that charge needs to give the moment.
 - General Chemistry argon slabs: speed distributions (Maxwell-Boltzmann) at
   all four temperatures.
 - A Submitted Slurm job shows why it waits and its estimated start (message
