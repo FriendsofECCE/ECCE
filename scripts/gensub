@@ -2130,7 +2130,7 @@ sub xtb()
   $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
   $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
   # GFN-FF has no orbitals, so it gets no --molden.
-  $retval .= "rm -f molden.input charges vibspectrum g98.out\n";
+  $retval .= "rm -f molden.input charges vibspectrum g98.out xtbopt.log\n";
   $retval .= "case \" \$xtbopts \" in *\" --gfnff \"*) ;; *) xtbopts=\"\$xtbopts --molden\" ;; esac\n";
 
   if ($cmd ne "") {

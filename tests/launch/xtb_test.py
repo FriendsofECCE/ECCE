@@ -143,8 +143,13 @@ def main():
             out = storedOutput(calc)
             props = s.props("file://" + calc)
             say("  properties: " + " ".join(props))
-            for key in ("TE", "HLGAP", "DIPOLE", "GEOMTRACE"):
+            for key in ("TE", "HLGAP", "DIPOLE"):
                 check(key in props, "%s present in Props/" % key)
+            #  PropertyTask::propertyNames lists GEOMTRACE only for more than
+            #  one step; the single frame is still stored (checked below).
+            check("GEOMTRACE" not in props and os.path.exists(
+                os.path.join(calc, "Props", "GEOMTRACE")),
+                "GEOMTRACE stored as one frame, unlisted for a single point")
             check("TEVEC" not in props, "no energy trace for a single point")
             for key in ("MO", "ORBENG", "ORBOCC", "MOAOORDER", "GTOBASIS"):
                 check(key in props, "%s present in Props/ (xtb --molden)" % key)
@@ -210,6 +215,8 @@ def main():
         if calc:
             props = s.props("file://" + calc)
             check("TE" in props, "TE present in Props/")
+            check(os.path.exists(os.path.join(calc, "Props", "GEOMTRACE")),
+                  "GEOMTRACE stored for the force-field run too")
             check("MO" not in props and "ORBENG" not in props,
                   "a force-field run stores no orbitals")
     finally:
