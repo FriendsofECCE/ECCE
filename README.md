@@ -44,11 +44,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.3
 
-- Launch Selected leaves the Organizer usable while a batch is submitted,
-  with a Stop button.
 - Density Map: zooming draws a coarse map at once and the full one when
   the wheel rests, without a dialog.
-- Density Profile: the average around an atom computed in the background.
 - Ubuntu 26.04: the package lets ECCE's message broker run under Ubuntu's
   AppArmor profile for mosquitto.
 - ORCA: an integration grid choice (DefGrid1/2/3) in Theory Details.
