@@ -341,6 +341,8 @@ void CalcMgrApp::msgURLRemovedMCB(JMSMessage& msg)
 void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
+  if (msg.getProperty("name") == "reparse")
+    p_calcMgr->reparseFinished(url, msg.getProperty("value"));
   p_calcMgr->queueUpdate(CalcMgr::UPDATE_CHANGED, url);
 }
 

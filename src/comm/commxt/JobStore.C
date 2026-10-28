@@ -737,6 +737,11 @@ void cleanup(int exitStatus)
   // state change arrives.
   progressStore(true);
 
+  // A re-parse changes no state, so nothing else tells the Organizer it
+  // has ended.
+  if (gReparse && calculation)
+    calculation->notifyProperty("reparse", exitStatus == 0 ? "done" : "failed");
+
   // Set the final run state (if set) just before exitting to guarantee
   // output files have been uplodaed to data server
   if (endState != ResourceDescriptor::STATE_ILLEGAL) {

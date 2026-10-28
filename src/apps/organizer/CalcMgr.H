@@ -148,6 +148,8 @@ public:
   void OnReparseOutputsClick( wxCommandEvent& event );
   void reparseOutputs(const vector<EcceURL>& urls, bool interactive,
                       string *outcome = 0);
+  // A job store ended a re-parse ("done" or "failed").
+  void reparseFinished(const EcceURL& url, const string& result);
   // Reconnect Selected (#601), same selection; `listOnly`/`shot` for tests.
   void reconnectSelected(const vector<EcceURL>& urls, bool interactive,
                          string *outcome = 0, const string& shot = "",
@@ -360,6 +362,10 @@ public:
   void catchUpWaitingJobs();
   bool stopOldMonitor(const EcceURL& url);
   string p_reconnectNote;   // the single Reconnect's last message (test hook)
+  // Re-parses started and not yet ended (URL -> name), and those that failed.
+  std::map<string, string> p_reparsing;
+  vector<string> p_reparseFailed;
+  int p_reparseDone = 0;
 
   WxResourceTreeItemData * findNode(const EcceURL &targetUrl,
                                     bool openWhenFound = true,

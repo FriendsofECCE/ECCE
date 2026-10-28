@@ -14,8 +14,12 @@ properties than its output contains.
    menu of a calculation. It is available for a calculation that is
    **Completed**, **Failed**, **Killed** or otherwise ended.
 3. The Organizer starts the parsing in the background. The properties appear
-   as each calculation finishes. When several calculations are selected and
-   copying their outputs takes a moment, a progress window is shown.
+   as each calculation finishes. The message area at the bottom of the
+   Organizer reads "Re-parsing 3 calculations..." while it runs and
+   "Re-parse finished: 3 done" when the last one has ended; a calculation
+   that could not be parsed is named there, and its run log says why. When
+   several calculations are selected and copying their outputs takes a
+   moment, a progress window is shown.
 
 ## What changes
 

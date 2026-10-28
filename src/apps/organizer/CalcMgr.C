@@ -2880,17 +2880,46 @@ void CalcMgr::reparseOutputs(const vector<EcceURL>& urls, bool interactive,
       break;
     string message;
     const bool done = JobCatchUp::reparse(task, message);
-    if (done) ok++;
+    if (done) {
+      ok++;
+      p_reparsing[task->getURL().toString()] = task->getName();
+    }
     report += task->getName() + (done ? ": started: " : ": skipped: ") +
               message + "|";
   }
   if (pd) { pd->Update((int)urls.size()); delete pd; }
-  if (interactive)
-    setMessage(std::to_string(ok) + " of " + std::to_string(urls.size()) +
-               " calculations are being re-parsed; the properties appear "
-               "as each one finishes",
-               ok ? WxFeedback::INFO : WxFeedback::ERROR);
+  if (ok)
+    setMessage("Re-parsing " + std::to_string(p_reparsing.size()) +
+               (p_reparsing.size() == 1 ? " calculation..." : " calculations..."),
+               WxFeedback::INFO);
+  else if (interactive)
+    setMessage("No calculation was re-parsed", WxFeedback::ERROR);
   if (outcome) *outcome = "ok " + report;
+}
+
+
+void CalcMgr::reparseFinished(const EcceURL& url, const string& result)
+{
+  auto it = p_reparsing.find(url.toString());
+  if (it == p_reparsing.end()) return;
+  if (result == "done") p_reparseDone++;
+  else p_reparseFailed.push_back(it->second);
+  p_reparsing.erase(it);
+  if (!p_reparsing.empty()) return;
+
+  string msg = "Re-parse finished: " + std::to_string(p_reparseDone) + " done";
+  if (!p_reparseFailed.empty()) {
+    msg += ", " + std::to_string(p_reparseFailed.size()) + " failed (";
+    for (size_t i = 0; i < p_reparseFailed.size(); i++)
+      msg += (i ? ", " : "") + p_reparseFailed[i];
+    msg += "; see their run logs)";
+  }
+  setMessage(msg, p_reparseFailed.empty() ? WxFeedback::INFO
+                                          : WxFeedback::WARNING);
+  if (getenv("ECCE_TEST_ORGANIZER"))
+    fprintf(stderr, "REPARSE: %s\n", msg.c_str());
+  p_reparseDone = 0;
+  p_reparseFailed.clear();
 }
 
 

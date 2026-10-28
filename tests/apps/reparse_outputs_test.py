@@ -111,7 +111,7 @@ def run(display, data, work):
 
     def waitReparse(_display):
         waitFor(lambda: all(props(c) for c in calcs), 120)
-        time.sleep(10)
+        time.sleep(15)
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=10,
                       env={"ECCE_TEST_ORGANIZER": second},
@@ -119,6 +119,9 @@ def run(display, data, work):
     log = result.log or ""
     if result.crashed:
         return fail("Re-Parse Outputs", "CRASHED (%s)" % result.signalName, log)
+    if "REPARSE: Re-parse finished: %d done" % len(calcs) not in log:
+        fail("finished message", "no 'Re-parse finished: %d done' in the "
+             "Organizer's log" % len(calcs), log)
     for calc in calcs:
         name = os.path.basename(calc)
         had, state = before[calc]
