@@ -35,6 +35,8 @@ CASES = [
     ("so2", "genchem/polar-bonds-and-dipole-moments/ecceqm-SO2/stored/SO2"),
     ("hf", "genchem/polar-bonds-and-dipole-moments/ecceqm-HF_dipole/stored/HF_dipole"),
     ("co2", "genchem/polar-bonds-and-dipole-moments/ecceqm-CO2/stored/CO2"),
+    # CO: the CHELPG charges put O negative, mu puts C negative (#653).
+    ("co", "genchem/molecular-orbitals-of-diatomics/ecceqm-CO/stored/CO"),
     ("hcl", "genchem/polar-bonds-and-dipole-moments/ecceqm-HCl/stored/HCl"),
     ("h2o", "getting-started/ecceqm-water/stored/water"),
     ("acala", "spectroscopy/amides-and-peptides/orca-ac_ala_nhme/stored/ac_ala_nhme"),
@@ -184,10 +186,17 @@ def main():
                     check(n == 0, "%s: mu = 0, no arrow" % name)
                     check(label == "Dipole moment \u03bc = 0 D", "%s: label is 'Dipole moment \u03bc = 0 D' (%r)" % (name, label))
                     continue
-                key = poles(calc, xyz)[0]
+                key, neg, pos = poles(calc, xyz)
+                # Charges pointing against mu: the arrow runs from their
+                # positive pole to their negative one, along mu.
+                oppose = sum((pos[k] - neg[k]) * mu[k] for k in range(3)) < 0
+                if oppose:
+                    neg, pos = pos, neg
                 short = {"ESPFIT": "ESP", "MKFIT": "MK", "MULLIKEN": "Mulliken"}[key]
+                short += " charges point the other way" if oppose else " charges"
                 check(n == 1, "%s: one arrow" % name)
-                check(label == "Dipole moment \u03bc = %.2f D (%s charges)" % (mag, short),
+                check(oppose == (name == "co"), "%s: charges against mu only for CO" % name)
+                check(label == "Dipole moment \u03bc = %.2f D (%s)" % (mag, short),
                       "%s: corner text 'Dipole moment \u03bc = %.2f D' (%r)" % (name, mag, label))
                 m = re.search(r"vector DIPOLE 0 start=(\S+) dir=(\S+) "
                               r"length=(\S+)", log)
@@ -196,7 +205,6 @@ def main():
                     continue
                 start, d, length = vec(m.group(1)), vec(m.group(2)), float(m.group(3))
                 tip = [start[k] + d[k] * length for k in range(3)]
-                key, neg, pos = poles(calc, xyz)
                 dist = lambda a, b: math.sqrt(sum((a[k] - b[k]) ** 2 for k in range(3)))
                 uh = [x / mag for x in mu]
                 along = lambda a, b: sum((a[k] - b[k]) * uh[k] for k in range(3))
@@ -204,7 +212,8 @@ def main():
                 print("     %s charges, mu %.3f D, poles %.3f A apart, tail-neg %.3f "
                       "tip-pos %.3f (along mu %.3f)" % (key, mag, dist(neg, pos),
                       dist(start, neg), off, along(tip, pos)))
-                check(dist(start, neg) < 0.05, "%s: tail at the negative pole" % name)
+                check(dist(start, neg) < 0.05, "%s: tail at the negative pole "
+                      "(the positive one where the charges oppose mu)" % name)
                 # Where the charges reproduce mu the head is at the positive
                 # pole; where the pole line is skew to mu it is level with it
                 # along mu, and the pole is that far off the arrow's line.

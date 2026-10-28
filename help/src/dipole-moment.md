@@ -13,6 +13,17 @@ negative pole. Where the two poles are not exactly on the line of the dipole
 moment (the atomic charges do not reproduce it), the head is level with the
 positive pole along that line.
 
+The atomic charges can point the other way from the dipole moment. Carbon
+monoxide is the best-known case: the charges make oxygen negative, but the
+measured dipole moment, and the one most methods give, has carbon at the
+negative end. Point charges on the atoms leave out how each atom's electron
+cloud is shifted, and in CO the lone pair on the far side of carbon outweighs
+the charge carbon gives to oxygen. The dipole moment is then the one to
+believe. The arrow still follows it and runs between the two poles, from the
+charges' positive pole to their negative one, and the text in the corner adds
+that the charges point the other way, for example **Dipole moment μ = 0.06 D
+(ESP charges point the other way)**.
+
 The length of the arrow is the distance between the poles. It follows the
 geometry of the molecule and does not scale with the size of the moment; a
 water molecule gives a short arrow. The magnitude is in the upper right corner

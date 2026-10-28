@@ -399,7 +399,8 @@ void MomentsPanel::showVectors(bool guessScale)
       for (int i = 0; mu && i < 3 && i < (int)mu->rows(); i++)
          m2 += mu->value(i)*mu->value(i);
       fw.getViewer().setURightText(AddDipoleMomentCmd::label(sqrt(m2),
-            AddDipoleMomentCmd::chargeKey(expt)));
+            AddDipoleMomentCmd::chargeKey(expt),
+            cmd->getParameter("ChargesOppose")->getBoolean()));
    }
 
    if (guessScale && p_slider) {

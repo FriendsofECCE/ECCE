@@ -44,6 +44,7 @@ AddDipoleMomentCmd::AddDipoleMomentCmd(const string& name, Receiver *receiver,
                          IPropCalculation *calc)
   : AddVectorCmd(name, receiver, calc)
 {
+   addParameter(new CommandParameter("ChargesOppose", false));
 }
 
 AddDipoleMomentCmd::~AddDipoleMomentCmd()
@@ -70,15 +71,16 @@ string AddDipoleMomentCmd::chargeName(const string& key)
 }
 
 
-string AddDipoleMomentCmd::label(double mu, const string& key)
+string AddDipoleMomentCmd::label(double mu, const string& key, bool oppose)
 {
    if (mu < ZERO_MU) return "Dipole moment \u03bc = 0 D";
    char buf[64];
    snprintf(buf, sizeof buf, "Dipole moment \u03bc = %.2f D", mu);
    string r = buf;
-   if (key == "ESPFIT") r += " (ESP charges)";
-   else if (key == "MKFIT") r += " (MK charges)";
-   else if (key == "MULLIKEN") r += " (Mulliken charges)";
+   const string against = oppose ? " point the other way" : "";
+   if (key == "ESPFIT") r += " (ESP charges" + against + ")";
+   else if (key == "MKFIT") r += " (MK charges" + against + ")";
+   else if (key == "MULLIKEN") r += " (Mulliken charges" + against + ")";
    return r;
 }
 
@@ -86,7 +88,9 @@ string AddDipoleMomentCmd::label(double mu, const string& key)
 /**
  * The arrow starts at the negative pole and runs along mu as far as the
  * positive pole lies along mu, so it points the way mu does even where the
- * charges do not reproduce mu exactly.  The shape is constant: the corner text, not the
+ * charges do not reproduce mu exactly.  Where the charges point against mu
+ * (CO: atomic dipoles outweigh the charge transfer) it runs between the same
+ * poles from the positive one, so both ends stay on the molecule.  The shape is constant: the corner text, not the
  * arrow, carries |mu|.
  */
 bool AddDipoleMomentCmd::execute()
@@ -107,6 +111,7 @@ bool AddDipoleMomentCmd::execute()
 
    double start[3] = {0, 0, 0}, len = 0.0;
    bool arrow = mag >= ZERO_MU;
+   bool oppose = false;
    SGFragment *frag = sg->getFragment();
 
    if (arrow && frag) {
@@ -129,7 +134,13 @@ bool AddDipoleMomentCmd::execute()
             len += (pos[k]-neg[k])*m[k]/mag;
             dist += (pos[k]-neg[k])*(pos[k]-neg[k]);
          }
-         if (len <= 0.0) len = sqrt(dist);
+         if (len < 0.0) {
+            oppose = true;
+            len = -len;
+            for (int k = 0; k < 3; k++) start[k] = pos[k];
+         } else if (len == 0.0) {
+            len = sqrt(dist);
+         }
       } else {
          // No charges: a 1 A arrow centred on the centre of nuclear charge.
          vector<double*> c;
@@ -140,6 +151,7 @@ bool AddDipoleMomentCmd::execute()
       }
       if (len <= 0.0) arrow = false;
    }
+   getParameter("ChargesOppose")->setBoolean(oppose);
 
    Color color(getParameter("neutral")->getString());
    if (arrow) {

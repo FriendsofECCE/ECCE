@@ -3,7 +3,7 @@ type: rule
 title: "The dipole arrow runs from the negative to the positive charge pole, value in the viewer corner (#578, was #266)"
 area: wx-viewer
 paths: [src/viz/propsgcommands/AddDipoleMomentCmd.C, src/viz/propsgcommands/AddVectorCmd.C, src/viz/nodes/VRVector.C, src/apps/builder/MomentsPanel.C, src/apps/builder/BuilderScript.C, tests/apps/builder_overlay_test.py, tests/apps/dipole_poles_test.py, help/src/dipole-moment.md]
-issues: [266, 578]
+issues: [266, 578, 653]
 ---
 Properties > Dipole Moment (and MP2 Dipole Moment) is `MomentsPanel`
 (`data/client/config/PropertyPanelDescriptor.xml`); its `showVectors`
@@ -17,7 +17,11 @@ one `VRVector` under the property's switch.
 - **Arrow.** Tail at r-, along mu as parsed (NWChem, ORCA, Gaussian 16 and
   MOPAC report mu = sum q r, negative to positive end; IUPAC direction), length
   = (r+ - r-) . mu-hat, so the head is level with r+ along mu where the pole
-  line is skew to mu (Ac-Ala-NHMe, Mulliken: 0.14 A off). Length follows the
+  line is skew to mu (Ac-Ala-NHMe, Mulliken: 0.14 A off). Charges against mu
+  (CO, CHELPG: O negative, mu C-negative; #653): tail at r+ instead, same
+  projected length, so the arrow stays between the atoms (it used to start at
+  O and point out of the molecule); the command's `ChargesOppose` parameter
+  makes the corner text add "charges point the other way". Length follows the
   geometry, not |mu|: no scale slider (it was Angstrom per Debye, 0.5, until
   #578). `VRVector` puts its tip at 1.075 |direction|; the command divides that
   out. Constant shape 0.04/0.10/0.20 A, drawn again through the molecule

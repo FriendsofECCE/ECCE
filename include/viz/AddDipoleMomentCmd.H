@@ -25,8 +25,10 @@ class AddDipoleMomentCmd : public AddVectorCmd
       static string chargeKey(IPropCalculation *calc);
       // Name of those charges for the user.
       static string chargeName(const string& key);
-      // The viewer corner text for |mu| in Debye.
-      static string label(double mu, const string& chargeKey);
+      // The viewer corner text for |mu| in Debye; `oppose`: the charges'
+      // poles point against mu (the ChargesOppose parameter after execute).
+      static string label(double mu, const string& chargeKey,
+                          bool oppose = false);
 };
 
 #endif
