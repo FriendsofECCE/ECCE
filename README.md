@@ -52,6 +52,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - ORCA: an integration grid choice (DefGrid1/2/3) in Theory Details.
 - ORCA: a geometry optimisation of a single atom runs as a single point
   (with frequencies) instead of stopping without an energy.
+- Saving in the Calculation Editor asks before regenerating an input file
+  that was edited by hand (Keep my input is the default).
 - CP2K: an outer SCF loop (&OUTER_SCF) with the OT minimiser, on by default,
   with the inner iteration limit of a new calculation set to 30.
 
