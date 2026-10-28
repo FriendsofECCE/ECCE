@@ -43,8 +43,6 @@ Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.3
-- Theory Details and Runtype Details dialogs of every code can always be resized; their
-  buttons stay in view on a small screen and the settings scroll.
 
 - Density Map: zooming draws a coarse map at once and the full one when
   the wheel rests, without a dialog.
@@ -75,7 +73,9 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - The input check counts CP2K atoms with a kind label (such as Nb_e).
 - Register Machines is narrower: Vendor, Model and Processor are no longer shown.
 - Dipole Moment: where the atomic charges point against the dipole moment
-  (carbon monoxide), the arrow stays between the atoms and the text says so.
+  (carbon monoxide), the arrow stays between the atoms and the text says so.- Theory Details and Runtype Details dialogs of every code can always be resized; their
+  buttons stay in view on a small screen and the settings scroll.
+
 
 ## First steps
 
