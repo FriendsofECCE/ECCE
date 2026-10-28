@@ -170,6 +170,16 @@ namespace DensityPlane
       void integrate(double step, double margin, double& total, double& spin) const;
       /** psi_mo at a point; mo is 1-based. */
       double orbital(int mo, bool beta, double x, double y, double z) const;
+      /**
+       * One pass over the basis functions for many values at a point: psi of
+       * every orbital flagged in needA/needB (others left 0), and, when
+       * wantRho, the density.  Bit-identical to orbital() and density(), at
+       * the cost of one basis evaluation instead of one per call.  `phi` is
+       * scratch kept by the caller.
+       */
+      void evaluateAt(double x, double y, double z, const vector<char>& needA,
+                      const vector<char>& needB, bool wantRho, vector<double>& psiA,
+                      vector<double>& psiB, vector<double>& phi, double& rho) const;
 
       /**
        * Evaluate on a plane.  The window is the atoms' extent plus

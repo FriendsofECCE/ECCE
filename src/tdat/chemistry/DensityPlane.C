@@ -614,6 +614,26 @@ double Evaluator::orbital(int mo, bool beta, double x, double y, double z) const
   return combine(c[mo-1], phi);
 }
 
+void Evaluator::evaluateAt(double x, double y, double z, const vector<char>& needA,
+                           const vector<char>& needB, bool wantRho, vector<double>& psiA,
+                           vector<double>& psiB, vector<double>& phi, double& rho) const
+{
+  functions(x, y, z, phi);
+  psiA.assign(p_c.size(), 0.0);
+  psiB.assign(p_cBeta.size(), 0.0);
+  rho = 0;
+  for (size_t m = 0; m < p_c.size(); m++) {
+    const bool occupied = wantRho && occ[m] != 0.0;
+    if (occupied || (m < needA.size() && needA[m])) psiA[m] = combine(p_c[m], phi);
+    if (occupied) rho += occ[m]*psiA[m]*psiA[m];
+  }
+  for (size_t m = 0; m < p_cBeta.size(); m++) {
+    const bool occupied = wantRho && occBeta[m] != 0.0;
+    if (occupied || (m < needB.size() && needB[m])) psiB[m] = combine(p_cBeta[m], phi);
+    if (occupied) rho += occBeta[m]*psiB[m]*psiB[m];
+  }
+}
+
 bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
                     double step, double margin, Map& out,
                     std::function<bool(double)> onRow,
