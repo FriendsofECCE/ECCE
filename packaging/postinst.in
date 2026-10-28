@@ -15,6 +15,10 @@ case "$1" in
         echo "ecce: convert what can be (keeps *.csh-backup): sudo ecce-csh2sh --convert --siteconfig"
       fi
     fi
+    # Ubuntu 26.04's mosquitto AppArmor profile blocks ECCE's per-user broker.
+    if [ -x "$ECCE_HOME/bin/ecce-apparmor-mosquitto" ]; then
+      ECCE_HOME="$ECCE_HOME" "$ECCE_HOME/bin/ecce-apparmor-mosquitto" install || true
+    fi
     ;;
 esac
 exit 0
