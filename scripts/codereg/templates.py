@@ -819,8 +819,6 @@ class EcceCheckBox(wx.CheckBox):
                              style, validator, name)
         self.parent = parent
 
-        if not tip and EcceGlobals.NameAsTip:
-            tip = name
         if tip:
             self.SetToolTip(wx.ToolTip(tip))
 
@@ -898,8 +896,6 @@ class EcceFloatInput(wx.BoxSizer):
                                 validator, name)
         self.parent = parent
 
-        if not tip and EcceGlobals.NameAsTip:
-            tip = name
         if tip:
             self.text.SetToolTip(wx.ToolTip(tip))
 
@@ -1201,8 +1197,6 @@ class EcceComboBox(wx.BoxSizer):
         self.combo = wx.Choice(parent, id, pos, size, choices,
                                style, validator, name)
 
-        if not tip and EcceGlobals.NameAsTip:
-            tip = name
         if tip:
             self.combo.SetToolTip(wx.ToolTip(tip))
         self.SetBackgroundColour(EcceGlobals.InputColour)
@@ -1359,8 +1353,6 @@ class EcceSpinCtrl(wx.BoxSizer):
                               lower, upper, initial, name)
         self.parent = parent
 
-        if not tip and EcceGlobals.NameAsTip:
-            tip = name
         if tip:
             self.spin.SetToolTip(wx.ToolTip(tip))
 
@@ -1610,8 +1602,6 @@ class EcceTextInput(wx.BoxSizer):
                                 validator, name)
         self.parent = parent
 
-        if not tip and EcceGlobals.NameAsTip:
-            tip = name
         if tip:
             self.text.SetToolTip(wx.ToolTip(tip))
 

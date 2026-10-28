@@ -44,6 +44,7 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.4.3
 
+- Details dialogs no longer show internal setting names as tooltips.
 - Density Map: zooming draws a coarse map at once and the full one when
   the wheel rests, without a dialog.
 - Ubuntu 26.04: the package lets ECCE's message broker run under Ubuntu's
