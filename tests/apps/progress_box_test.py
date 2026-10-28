@@ -200,6 +200,10 @@ def run(display, pngs):
         nebrun = makeCalc(project, "hcn-neb", "Running", NEB.format(**stamp))
         gmxrun = makeCalc(project, "gmx-md", "Running", GMX.format(**stamp))
         hessrun = makeCalc(project, "orca-hessian", "Running", HESS.format(**stamp))
+        oom = makeCalc(project, "water-oom", "Unsuccessful", DONE.format(**stamp))
+        with open(os.path.join(oom, ".ecce-meta"), "a") as handle:
+            handle.write(".\t%srunStatusReason\t\t%s\n" %
+                         (NS, "Out of memory: the scheduler killed the job (OUT_OF_MEMORY)"))
         live = os.path.join(work, "live.txt")
         with open(live, "w") as handle:
             handle.write(LIVE.format(sent=now, at=int(now)))
@@ -251,6 +255,8 @@ def run(display, pngs):
                 "summary file://" + hessrun,
                 "progressbox",
                 "snap " + png("progress-orca-hessian.png"),
+                "summary file://" + oom,
+                "progressbox",
             ]) + "\n")
         result = apps.run(display, "organizer", windowTimeout=60, settle=45,
                           env={"ECCE_TEST_ORGANIZER": cmds,
@@ -262,13 +268,15 @@ def run(display, pngs):
             return
         boxes = answers(log, "progressbox")
         counts = answers(log, "counts")
-        if not check(len(boxes) == 11 and len(counts) == 2,
+        if not check(len(boxes) == 12 and len(counts) == 2,
                      "every command answered (%d boxes, %d counts)" % (len(boxes), len(counts)),
                      run_tests._tail(log, 30)):
             return
         for b in boxes:
             print("      " + b)
-        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3, neb, hess = boxes
+        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3, neb, hess, oomBox = boxes
+        check("Incomplete: Out of memory: the scheduler killed the job" in oomBox,
+              "an Incomplete job's reason is the last word in the Progress box", oomBox)
 
         def field(b, k):
             m = re.search(r"\b%s=(\S+)" % k, b)

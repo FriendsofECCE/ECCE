@@ -376,6 +376,9 @@ void CalculationContextPanel::updateProgress()
     }
   }
 
+  p_progressBox->setStopped(state == ResourceDescriptor::STATE_UNSUCCESSFUL
+      ? p_itemData->getResource()->getProp(VDoc::getEcceNamespace() + ":runStatusReason")
+      : string());
   const bool queued = state == ResourceDescriptor::STATE_SUBMITTED;
   p_progressBox->setQueued(
       queued,

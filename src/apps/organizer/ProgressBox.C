@@ -155,6 +155,7 @@ vector<JobProgress::Block> ProgressBox::blocks() const
 vector<string> ProgressBox::outcome() const
 {
   vector<string> out = p_progress.summary(p_completed);
+  if (!p_stopped.empty()) out.push_back("Incomplete: " + p_stopped);
   if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
   return out;
 }
