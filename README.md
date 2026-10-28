@@ -76,6 +76,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Register Machines is narrower: Vendor, Model and Processor are no longer shown.
 - Dipole Moment: where the atomic charges point against the dipole moment
   (carbon monoxide), the arrow stays between the atoms and the text says so.
+- Theory Details and Runtype Details dialogs of every code can always be resized; their
+  buttons stay in view on a small screen and the settings scroll.
 
 ## First steps
 
