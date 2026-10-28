@@ -434,6 +434,7 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     dp = dynamic_cast<DensityProfilePanel*>(*it);
   if (!dp) return s.fail(w[0] + ": no Density Profile panel for this calculation");
   dp->ensureInitialized();
+  dp->waitForCompute();
   const std::string& cmd = w[0];
   bool ok = true;
   if (cmd == "dpmode" && w.size() == 2) {
@@ -500,6 +501,7 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     return s.fail("unknown density profile command: " + cmd);
   }
   if (!ok) return s.fail(cmd + ": refused");
+  dp->waitForCompute();
   fprintf(stderr, "DENSITYPROFILE: %s\n%s", cmd.c_str(), dp->state().c_str());
   return true;
 }

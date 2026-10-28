@@ -465,6 +465,50 @@ static void atomLabels(const string& root)
   }
 }
 
+//  compute() shares one basis pass among all specs; it must give the numbers
+//  of summing value() (one pass per orbital) directly.  The 6-point Lebedev
+//  grid is the six axis directions with weight 1/6, so the reference is easy.
+static void sharedPassMatchesValue(const string& root)
+{
+  IPropCalculation *calc;
+  open(root + "/n2", calc);
+  DensityPlane::Evaluator ev;
+  CHECK(calc && ev.build(calc), "n2 builds");
+  if (!calc || ev.symbols.empty()) return;
+  RadialDist::Options opt;
+  opt.lebedev = 6;
+  opt.points = 41;
+  opt.rMax = 4.0;
+  vector<RadialDist::Spec> specs = { mo(1), mo(3), mo(5) };
+  RadialDist::Spec joined = mo(2);
+  RadialDist::Member extra;
+  extra.mo = 4; extra.beta = false; extra.weight = 2.0;
+  joined.weight = 2.0;
+  joined.more.push_back(extra);
+  specs.push_back(joined);
+  RadialDist::Spec t;
+  t.label = "total";
+  specs.push_back(t);
+  const double c[3] = { 0.1, -0.2, 0.3 };
+  vector<RadialDist::Curve> out;
+  CHECK(RadialDist::compute(ev, c, opt, specs, out), "compute");
+  const vector<double> r = RadialDist::grid(opt);
+  const double dir[6][3] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
+  double worst = 0;
+  for (size_t k = 0; k < specs.size(); k++)
+    for (size_t i = 1; i < r.size(); i++) {
+      double sum = 0;
+      for (int q = 0; q < 6; q++)
+        sum += (1.0/6.0) * RadialDist::value(ev, specs[k], c[0] + r[i]*dir[q][0],
+                                             c[1] + r[i]*dir[q][1], c[2] + r[i]*dir[q][2]);
+      const double rb = r[i] / BOHR;
+      const double want = sum * 4.0 * M_PI * rb * rb / BOHR;
+      worst = max(worst, fabs(out[k].p[i] - want) / max(1e-30, fabs(want)));
+    }
+  fprintf(stderr, "shared pass vs value(): worst relative difference %.2e\n", worst);
+  CHECK(worst < 1e-12, "compute() matches the per-orbital value() sums");
+}
+
 int main(int argc, char **argv)
 {
   numerics();
@@ -475,6 +519,7 @@ int main(int argc, char **argv)
   EDSIServerCentral central;
   hydrogen(argv[1]);
   neon(argv[1]);
+  sharedPassMatchesValue(argv[1]);
   hydrogenLine(argv[1]);
   neonLine(argv[1]);
   argon(argv[1]);
