@@ -130,7 +130,11 @@ class EcceFrame(wx.Frame):
 
     def Finalize(self):
         if EcceGlobals.RestoreFlag != "NO_GUIValues":
-            self.Fit()
+            # Frame.Fit() would use the (small) minimum size.
+            if hasattr(self, "TargetSize"):
+                self.SetClientSize(self.TargetSize)
+            else:
+                self.Fit()
             self.PlaceOverEditor()
             self.Show(True)
             app.MainLoop()
@@ -358,6 +362,8 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
     # the window is mapped.  Generous, because a dialog that ends a few
     # pixels past the screen has no title-bar-free way to be moved up (#351).
     TitleReserve = 56
+    MinSettingsHeight = 150
+    MinSettingsWidth = 300
 
     def __init__(self, parent, helpURL=""):
         wx.lib.scrolledpanel.ScrolledPanel.__init__(
@@ -464,19 +470,28 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         natural = self.panelSizer.GetMinSize()
 
         capHeight = area.height - self.TitleReserve - footer.y
+        capWidth = area.width - 16
         bar = wx.SystemSettings.GetMetric(wx.SYS_VSCROLL_X)
         width, height = natural.x, natural.y
         if height > capHeight:
             height = capHeight
             width += bar
-            # Frames are fixed-size by default; one that has to scroll must
-            # be resizable too, or the user cannot make room (#351).
-            frame.SetWindowStyleFlag(frame.GetWindowStyleFlag()
-                                     | wx.RESIZE_BORDER)
-        width = min(max(width, footer.x), area.width)
-        self.SetMinSize(wx.Size(width, height))
-        self.SetupScrolling(scroll_x = False, scroll_y = True,
-                            rate_y = 10, scrollToTop = False)
+        width = min(max(width, footer.x), capWidth)
+        height = max(height, self.MinSettingsHeight)
+
+        # Always resizable, and the settings area may shrink well below its
+        # content (it scrolls), so a short screen or a small window never
+        # pushes the footer buttons out of view.
+        frame.SetWindowStyleFlag(frame.GetWindowStyleFlag() | wx.RESIZE_BORDER)
+        self.SetMinSize(wx.Size(min(width, self.MinSettingsWidth),
+                                min(height, self.MinSettingsHeight)))
+        self.SetupScrolling(scroll_x = True, scroll_y = True,
+                            rate_x = 10, rate_y = 10, scrollToTop = False)
+        self.TargetSize = wx.Size(width, height + footer.y)
+        frame.TargetSize = self.TargetSize
+        frame.SetMinSize(frame.ClientToWindowSize(wx.Size(
+            min(width, self.MinSettingsWidth),
+            min(height, self.MinSettingsHeight) + footer.y)))
         frame.Layout()
 
 
@@ -485,7 +500,7 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         # to refit is what a change in content needs.
         if hasattr(self, "footer"):
             self.FitToScreen()
-            self.GetParent().Fit()
+            self.GetParent().SetClientSize(self.TargetSize)
             self.GetParent().SendSizeEvent()
         else:
             wx.lib.scrolledpanel.ScrolledPanel.Fit(self)

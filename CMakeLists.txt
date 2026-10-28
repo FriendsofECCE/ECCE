@@ -2967,6 +2967,13 @@ if(PYTHON3_EXECUTABLE)
                          SKIP_RETURN_CODE 77)
   endforeach()
 
+  # Details dialogs are resizable and keep Close/Reset in view (self-contained).
+  add_test(NAME apps_details_resize
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/details_resize_test.py)
+  set_tests_properties(apps_details_resize PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
+
   # No control is cut off (tests/apps/clip_test.py): every app window, every
   # Builder panel in every layout and every codereg dialog, at the default
   # and at a small screen.  Same installed tree as `apps`.
