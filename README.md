@@ -58,6 +58,14 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   that was edited by hand (Keep my input is the default).
 - CP2K: an outer SCF loop (&OUTER_SCF) with the OT minimiser, on by default,
   with the inner iteration limit of a new calculation set to 30.
+- ORCA and Gaussian 16: a custom solvent given by its dielectric constant and
+  refractive index.
+- Launch Info in the summary: a Job ID row and a Cost row (cores × wall time
+  in CPU hours).
+- Comp. Date is when the job ended, also after a later Reconnect.
+- A job the queue system ends (out of memory, wall time reached, node
+  failure) is Incomplete instead of System Error, and the reason names the
+  cause. A new help page, Run states, says what each state means.
 
 ## First steps
 
