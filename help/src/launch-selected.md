@@ -18,6 +18,9 @@ memory, wall time, run directory), unless another machine is chosen.
    Launcher** to set it up there.
 4. Choose **Launch**. A progress window shows the calculation being
    submitted, and a result list follows.
+   The Organizer stays usable while the batch launches. **Stop** in the
+   progress window finishes the calculation being submitted and submits no
+   more. Delete, Cut, Paste, Run Mgmt actions and Quit wait until it is done.
 
 ## Launch on
 

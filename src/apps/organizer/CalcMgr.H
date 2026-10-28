@@ -26,6 +26,7 @@
 #include "util/EditListener.H"
 
 #include "comm/LaunchBatch.H"
+#include "LaunchSelected.H"
 #include "dsm/TaskJob.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/ResourceType.H"
@@ -158,6 +159,12 @@ public:
   void launchSelected(const vector<EcceURL>& urls, bool interactive,
                       string *outcome = 0, const string& shot = "",
                       const LaunchBatch::Target& target = LaunchBatch::Target());
+  // Test hook: the batch without dialogs, left running; false if one runs.
+  bool launchSelectedAsync(const vector<EcceURL>& urls, string *outcome);
+  string launchBatchStatus() const;
+  // A Launch Selected batch is submitting (#640): the calculations in it
+  // must not be deleted, moved, launched or stopped meanwhile.
+  bool batchRunning() const { return p_batch != 0; }
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
   void OnCutClick( wxCommandEvent& event );
@@ -443,6 +450,10 @@ protected:
   void OnActivate(wxActivateEvent& event);
   ewxPanel   *p_machineNoticePanel;
   ReleaseNotice *p_releaseNotice;   // #273
+  LaunchSelected::Batch *p_batch = 0;
+  string p_batchReport;
+  void startBatch(const vector<LaunchSelected::Row>& rows, bool showReport);
+  bool refuseDuringBatch(const string& what);
   bool p_quitAsking = false;        // the Quit dialog is open (#291)
   bool p_quitConfirmed = false;     // the user said yes; teardown pending
 

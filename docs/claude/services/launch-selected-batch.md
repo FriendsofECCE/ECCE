@@ -36,3 +36,12 @@ becomes its default. A Shell-manager machine lists no queues, so nothing is
 cut or replaced there. `storeTarget` writes the changed settings just before
 the submit, so a submit that then fails (or a staged machine) still leaves
 them stored. `launchjob launchdata URL` prints them.
+
+Non-blocking (#640): the interactive batch is `LaunchSelected::Batch`, a
+wxTimer-driven state machine (one `tick()` per 30 ms, one worker thread per
+submit step, no nested Yield) owned by `CalcMgr::p_batch`. While it exists
+`refuseDuringBatch` blocks Delete/Cut/Paste/drag, Run Mgmt tasks and a second
+Launch Selected, and `confirmAndQuit` refuses to quit. Broker messages stay
+deferred until it ends. The hooks `launchselected` stay synchronous
+(`LaunchSelected::run`); `launchselectedasync URL...` and `launchselectedstatus`
+leave the batch running for the test.
