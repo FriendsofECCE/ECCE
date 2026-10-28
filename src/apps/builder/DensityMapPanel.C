@@ -252,9 +252,8 @@ void DensityMapPanel::build()
         ? wxString("A linear molecule has no molecular plane to stand on: use \"Through three atoms\" or the molecular plane.")
         : why);
     p_plane->SetSelection(flat ? 0 : 1);
-    //  One or two atoms: three-atom and molecular planes are degenerate or
-    //  arbitrary, so start from the screen plane (the unrotated camera when
-    //  the viewer is not there yet).
+    //  A lone atom has no molecular plane: start from the screen plane (the
+    //  unrotated camera when the viewer is not there yet).
     if (startsOnViewPlane(labels.size())) {
       double right[3] = { 1, 0, 0 }, up[3] = { 0, 1, 0 };
       SoCamera *cam = p_vizfw ? getFW().getViewer().getCamera() : 0;

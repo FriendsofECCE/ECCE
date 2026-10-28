@@ -37,7 +37,9 @@ The slice is flat. Choose how it is placed.
 
 - **Molecular plane**: the best-fit plane through all the atoms, for a flat
   molecule. Benzene gives the ring plane. A linear molecule has no single
-  plane; the map is then drawn on a plane that contains the axis.
+  plane; the map is then drawn on a plane that contains the axis. This is
+  where the map starts for a flat or linear molecule, a diatomic included;
+  a single atom starts on **This view**.
   For a molecule that is not flat this entry is greyed out; use
   **Through three atoms**.
 - **Through three atoms A, B, C**: the plane through the three atoms you

@@ -141,8 +141,8 @@ int main(int argc, char **argv)
   const string root = argv[1];
   EDSIServerCentral central;
 
-  CHECK(startsOnViewPlane(1) && startsOnViewPlane(2) && !startsOnViewPlane(3),
-        "one or two atoms open on the screen plane, three or more do not");
+  CHECK(startsOnViewPlane(1) && !startsOnViewPlane(2) && !startsOnViewPlane(3),
+        "one atom opens on the screen plane, two or more do not");
 
   //  Ne 2s: psi is negative at the nucleus and positive outside, so there is
   //  one inner node, a ring about 0.12 A out.  The zero contour must find it
