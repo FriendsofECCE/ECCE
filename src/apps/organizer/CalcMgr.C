@@ -3475,7 +3475,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "14";
+const char *const kExampleSetVersion = "15";
 
 string treeName(string s)
 {
@@ -4629,8 +4629,9 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"ar-slab-40K",
      "GROMACS, Lennard-Jones argon, a crystal slab of 864 atoms in vacuum, "
      "40 K, 5 ns. This calculation shows a solid: the atoms vibrate about "
-     "their lattice sites and the mean-square displacement stays flat; use "
-     "Compare to draw the warmer slabs over it."},
+     "their lattice sites and the mean-square displacement stays flat, yet "
+     "their speeds follow the Maxwell-Boltzmann distribution as in a gas; "
+     "use Compare to draw the warmer slabs over it."},
     {"ar-slab-100K",
      "GROMACS, Lennard-Jones argon, the same slab at 100 K, 5 ns. This "
      "calculation shows the crystal melted into a liquid that holds "
