@@ -267,7 +267,14 @@ sub ORCARoute {
   $route .= &OrbitalGuessToken;
   $route =~ s/\s+/ /g;
   $route =~ s/\s+$//;
+  $route .= "\n# one atom: no geometry optimisation" if (&NoOptForOneAtom());
   return $route;
+}
+
+# ORCA stops without an energy when Opt is asked for a single atom, so the
+# optimisation is dropped (Freq stays) and the run ends as a normal one.
+sub NoOptForOneAtom {
+  return ($chemsys_atoms == 1 && $AbiDict{"RunType"} =~ /^(Geometry|GeoVib)$/) ? 1 : 0;
 }
 
 #  "! MORead" with "%moinp" (see ORCABlocks): start from the orbitals of an
@@ -620,7 +627,7 @@ sub SCFConvergenceToken {
 # "Convergence Tolerances" TolE value.
 sub GeomConvergenceToken {
   my $runtype = $AbiDict{"RunType"};
-  return "" if ($runtype !~ /Geo/i);
+  return "" if ($runtype !~ /Geo/i || &NoOptForOneAtom());
   my %map = (
     "Loose"      => "LooseOpt",
     "Tight"      => "TightOpt",
@@ -734,7 +741,7 @@ sub ORCABlocks {
     $result .= "%scf\n  MaxIter $maxiter\nend\n";
   }
   my $runtype = $AbiDict{"RunType"};
-  if ($runtype =~ /Geo/i) {
+  if ($runtype =~ /Geo/i && !&NoOptForOneAtom()) {
     my $maxsteps = $AbiDict{"ES.Runtype.GeomOpt.MaximumStepsValue"};
     my $geom = "";
     $geom .= "  MaxIter $maxsteps\n" if ($maxsteps ne "");
@@ -907,7 +914,9 @@ sub RunType {
   my ($runtype) = @_;
   my $result;
 
-  if ($runtype eq "Energy") {
+  if (&NoOptForOneAtom()) {
+    $result = ($runtype eq "GeoVib") ? "Freq" : "";
+  } elsif ($runtype eq "Energy") {
     $result = "";
   } elsif ($runtype eq "Gradient") {
     $result = "EnGrad";

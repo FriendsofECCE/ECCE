@@ -316,6 +316,11 @@ In **Runtype Details...** of an ORCA **Geometry** or **GeoVib** calculation:
   (a frequency job, or an optimisation with **Calculate**). If none is
   attached the checker warns and ORCA uses its default.
 
+A molecule of a single atom has no geometry to optimise, and ORCA stops
+without an energy if asked to. ECCE therefore writes the input without `Opt`:
+a **Geometry** run is a single point, and a **GeoVib** run keeps `Freq`, so
+the energy and the thermochemistry are still computed.
+
 ## Plane-wave calculations (NWPW)
 
 NWChem's plane-wave module, NWPW, has no code of its own in the list of
