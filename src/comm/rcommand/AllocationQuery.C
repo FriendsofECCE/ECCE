@@ -41,8 +41,8 @@ string AllocationQuery::account(const Launchdata& l)
   return prefs ? prefs->getProfile(l.profile).account : string();
 }
 
-//  A stale answer is shown until the refresh lands; a refresh that fails
-//  leaves "" cached for 15 minutes.
+//  A stale answer is shown until the refresh lands; a good answer is kept 15
+//  minutes, a failure is retried after RETRY_SECONDS.
 string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
 {
   const string account = AllocationQuery::account(l);
@@ -60,7 +60,10 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
     return "";
   command = AllocationLeft::substitute(command, account);
 
-  const string key = AllocationLeft::Cache::key(l.machine, account);
+  //  Per host, not per ECCE machine: entries for one cluster (one per node
+  //  type, say) share the answer, so the command runs once per cluster.
+  const string host = rgstn->fullname();
+  const string key = AllocationLeft::Cache::key(host, account);
   const long now = (long)time(NULL);
   AllocationLeft::Cache::Entry e;
   bool have, fresh;
@@ -85,7 +88,8 @@ string AllocationQuery::left(const Launchdata& l, std::function<void()> onDone)
   }
 
   if (!fresh) {
-    const string machine = l.machine, user = prefs->getUsername(),
+    //  The shared login is keyed on the host, not on ECCE's machine name.
+    const string machine = host, user = prefs->getUsername(),
                  front = rgstn->frontendMachine(), bypass = rgstn->frontendBypass(),
                  shellPath = rgstn->shellPath();
     std::thread([=]() {
