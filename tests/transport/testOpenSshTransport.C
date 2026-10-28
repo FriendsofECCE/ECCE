@@ -792,8 +792,20 @@ int main()
     symlink(cd.c_str(), link.c_str());
     setenv("ECCE_SSH_CONTROL_DIR", link.c_str(), 1);
     check("symlinked dir refused", O::ownedControlDir().empty());
-    setenv("ECCE_SSH_CONTROL_DIR", (tmp + "/nonexistent").c_str(), 1);
-    check("missing dir refused", O::ownedControlDir().empty());
+    setenv("ECCE_SSH_CONTROL_DIR", (wide + "/gone").c_str(), 1);
+    check("missing dir under a shared parent refused", O::ownedControlDir().empty());
+    // #666: a reaper removed it after ecce set it up; made again, reapable.
+    {
+      string priv = tmp + "/priv", gone = priv + "/gone";
+      mkdir(priv.c_str(), 0700);
+      setenv("ECCE_SSH_CONTROL_DIR", gone.c_str(), 1);
+      struct stat gs;
+      check("missing dir in a private parent made again",
+            O::ownedControlDir() == gone && lstat(gone.c_str(), &gs) == 0 &&
+            (gs.st_mode & 0777) == 0700 &&
+            access((gone + "/.state").c_str(), F_OK) == 0 &&
+            access((gone + "/.home").c_str(), F_OK) == 0);
+    }
     string longd = tmp + "/" + string(90, 'd');
     mkdir(longd.c_str(), 0700);
     setenv("ECCE_SSH_CONTROL_DIR", longd.c_str(), 1);

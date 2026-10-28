@@ -299,6 +299,40 @@ void OpenSshTransport::noteForwardingRefused(const TransportResult& r)
             p_jumpHost.c_str(), p_host.c_str());
 }
 
+#ifndef _WIN32
+// The directory's name is ours (ecce_ssh_control_setup) but a reaper may
+// have removed it after `ecce` set it up; libssh instead would cost a login
+// per process. Made again only inside a private parent, with the files the
+// reaper reads, so it is still swept with the state directory's last program.
+static bool remakeControlDir(const std::string& dir)
+{
+  const std::string::size_type slash = dir.rfind('/');
+  if (slash == std::string::npos || slash == 0) return false;
+  const std::string root = dir.substr(0, slash);
+  if (mkdir(root.c_str(), 0700) != 0 && errno != EEXIST) return false;
+  struct stat rb;
+  if (lstat(root.c_str(), &rb) != 0 || !S_ISDIR(rb.st_mode) ||
+      rb.st_uid != geteuid() || (rb.st_mode & 077) != 0)
+    return false;
+  if (mkdir(dir.c_str(), 0700) != 0) return errno == EEXIST;
+  if (chmod(dir.c_str(), 0700) != 0) return false;
+  const char* home = getenv("ECCE_HOME");
+  const char* state = getenv("ECCE_REALUSERHOME");
+  if (!state || !*state) state = getenv("HOME");
+  const struct { const char* name; std::string text; } files[] = {
+    {"/.born", ""}, {"/.claim", ""},
+    {"/.home", std::string(home ? home : "") + "\n"},
+    {"/.state", std::string(state ? state : "") + "\n"}};
+  for (const auto& f : files) {
+    FILE* fp = fopen((dir + f.name).c_str(), "wx");
+    if (!fp) continue;
+    fputs(f.text.c_str(), fp);
+    fclose(fp);
+  }
+  return true;
+}
+#endif
+
 std::string OpenSshTransport::ownedControlDir()
 {
 #ifdef _WIN32
@@ -309,6 +343,8 @@ std::string OpenSshTransport::ownedControlDir()
   std::string dir = e;
   while (dir.size() > 1 && dir[dir.size()-1] == '/') dir.erase(dir.size()-1);
   struct stat sb;
+  if (lstat(dir.c_str(), &sb) != 0 && errno == ENOENT && remakeControlDir(dir))
+    lstat(dir.c_str(), &sb);
   if (lstat(dir.c_str(), &sb) != 0 || !S_ISDIR(sb.st_mode) ||
       sb.st_uid != geteuid() || (sb.st_mode & 0777) != 0700) {
     logOnce(dir + " is not a directory of ours with mode 0700");

@@ -54,6 +54,15 @@ public:
                         const RCommandLogin& login, RCommand*& conn,
                         std::string& why, bool *cancelled = 0);
 
+  /** Runs `work` (remote commands after the login) on a worker thread as
+   *  openLogin connects: `pd` pulses with `what`, or a dialog of its own
+   *  shows after a second.  False on Cancel: the worker is abandoned and
+   *  finishes alone, so `work` must own what it uses.  Else `result` is
+   *  what `work` returned. */
+  static bool runRemote(wxWindow *parent, wxProgressDialog *pd,
+                        const std::string& what,
+                        const std::function<bool()>& work, bool& result);
+
   /** Broker messages wait while this lives (as for Launch Selected). */
   struct DeferMessages {
     DeferMessages();

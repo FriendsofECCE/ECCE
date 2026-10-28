@@ -34,8 +34,16 @@ using LoginFn = std::function<bool(const RCommandLogin&, RCommand*& login,
 // What opens the login of the calculation's machine; false if unregistered.
 bool loginFor(const TaskJob* calc, RCommandLogin& login, std::string& why);
 
+// Runs the remote work after the login (copying the job monitor, its
+// commands); the Organizer runs it off its GUI thread. work owns what it
+// uses, so an abandoned one finishes alone. False: cancelled.
+using RemoteFn = std::function<bool(const std::string& what,
+                                    const std::function<bool()>& work,
+                                    bool& result)>;
+
 bool reconnect(TaskJob* calc, std::string& message,
-               const LoginFn& login = nullptr);
+               const LoginFn& login = nullptr,
+               const RemoteFn& remote = nullptr);
 
 // Re-Parse Outputs (#651): the code's parsers and the progress record run
 // again over the outputs stored with the calculation, with no login to the
@@ -59,9 +67,11 @@ struct Result {
 
 // Every waiting calculation not already watched by a running monitor.
 // progress(done, total) is called before each one.
+// progress returning false (Cancel) leaves the rest waiting.
 std::vector<Result> run(
-    std::function<void(size_t, size_t)> progress = nullptr,
-    const LoginFn& login = nullptr);
+    std::function<bool(size_t, size_t)> progress = nullptr,
+    const LoginFn& login = nullptr,
+    const RemoteFn& remote = nullptr);
 
 }
 

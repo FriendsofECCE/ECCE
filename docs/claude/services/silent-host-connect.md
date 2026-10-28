@@ -27,5 +27,16 @@ Both are `RCommand::connectTimeout()` (60 s, `ECCE_SSH_CONNECT_TIMEOUT`).
   `JobCatchUp::reconnect` logs in *before* deleting the old properties and
   output files, so a host that does not answer leaves them in place.
   Before: one frozen minute or two per job, Cancel only between jobs.
+- **The work after the login is off the GUI thread too** (#666). Reconnect,
+  Reconnect Selected and the catch-up run `moveJobMonitoringFiles` and the
+  job store's `chmod` (`Launch::prepareJobStore`) through
+  `ReconnectSelected::runRemote`; the data-server writes, the local
+  `eccejobmaster` start and `updateState` stay on the GUI thread. The
+  catch-up dialog has Cancel; a Cancel leaves that job and the rest
+  Waiting with the reason. Over libssh each command was already bounded
+  (`SshTransport::runImpl`: an idle deadline of the RCommand timeout, 30 s;
+  sftp by `SSH_OPTIONS_TIMEOUT`), so a slow login node cost minutes on the
+  GUI thread, in `ssh_select` (the loop's 50 ms poll), not a hang.
+  Check Job on Machine still runs its status commands on the GUI thread.
 - Test: `transport_silent_host` (ctest; a listener that never writes, a
   private ssh config through a wrapper `ssh -F`, 5 s timeout).

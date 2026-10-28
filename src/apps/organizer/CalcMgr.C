@@ -3032,6 +3032,9 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
         bool ok = JobCatchUp::reconnect(r.task, r.outcome,
             [this, pd](const RCommandLogin& l, RCommand*& c, string& why) {
               return ReconnectSelected::openLogin(this, pd, l, c, why);
+            },
+            [this, pd](const string& what, const std::function<bool()>& work, bool& res) {
+              return ReconnectSelected::runRemote(this, pd, what, work, res);
             });
         if (ok) {
           p_contact.erase(progressKey(url));
@@ -7125,17 +7128,25 @@ void CalcMgr::catchUpWaitingJobs()
 
   ReconnectSelected::DeferMessages defer;
   ewxProgressDialog* progress = 0;
-  bool cancelled = false;   // one Cancel skips the logins still to come
+  bool cancelled = false;   // one Cancel leaves the rest waiting
+  const wxString checking = "Checking calculations that finished or ran on "
+                            "while ECCE was away...";
   vector<JobCatchUp::Result> results =
     JobCatchUp::run([&](size_t done, size_t total) {
       if (!progress)
-        progress = new ewxProgressDialog("ECCE",
-            "Checking calculations that finished or ran on while ECCE was "
-            "away...", (int)total, this, wxPD_AUTO_HIDE);
-      progress->Update((int)done);
+        progress = new ewxProgressDialog("ECCE", checking, (int)total, this,
+                                         wxPD_AUTO_HIDE | wxPD_CAN_ABORT);
+      if (!cancelled && !progress->Update((int)done, checking)) cancelled = true;
+      return !cancelled;
     }, [&](const RCommandLogin& l, RCommand*& c, string& why) {
       if (cancelled) { why = "Cancelled while connecting to " + l.machine; return false; }
-      return ReconnectSelected::openLogin(this, 0, l, c, why, &cancelled);
+      return ReconnectSelected::openLogin(this, progress, l, c, why, &cancelled);
+    }, [&](const string& what, const std::function<bool()>& work, bool& res) {
+      if (!cancelled &&
+          ReconnectSelected::runRemote(this, progress, what, work, res))
+        return true;
+      cancelled = true;
+      return false;
     });
   delete progress;
 
@@ -7197,6 +7208,9 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
     reconnected = JobCatchUp::reconnect(calc, message,
         [this](const RCommandLogin& l, RCommand*& c, string& why) {
           return ReconnectSelected::openLogin(this, 0, l, c, why);
+        },
+        [this](const string& what, const std::function<bool()>& work, bool& res) {
+          return ReconnectSelected::runRemote(this, 0, what, work, res);
         });
   }
   if (reconnected) {

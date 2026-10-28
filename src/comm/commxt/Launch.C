@@ -2256,17 +2256,22 @@ bool Launch::launchNormal(void)
 //    Start eccejobstore on local machine after submit.
 //
 ////////////////////////////////////////////////////////////////////////////// 
-bool Launch::startJobStore(const string& importDir)
+void Launch::prepareJobStore(void)
 {
-  bool ret = true;
-  p_storeStarted = true;
-
   // make files writable so they can be copied over if the job is killed
   // this is called whenever job monitoring is being done (full job
   // launch, reconnect, etc.) so this is the common location for this code
   // rather then in doLaunch.
   (void)p_connection->exec(
               "chmod u+w eccejobmonitor eccejobmonitor.conf *.desc submit__*");
+  p_storePrepared = true;
+}
+
+bool Launch::startJobStore(const string& importDir)
+{
+  bool ret = true;
+  p_storeStarted = true;
+  if (!p_storePrepared) prepareJobStore();
 
   if (p_cache->frontendFlag) {
     extern void jobstore_main(RCommand* remoteconn, const string& jobId,
