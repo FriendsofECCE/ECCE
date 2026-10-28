@@ -2693,6 +2693,45 @@ CASES = [
                 'size': '1 5 3'}}),
         },
     ),
+    dict(
+        # GFN2-xTB --ohess water: charges, frequencies (3 real modes after
+        # 6 rigid ones), IR, normal modes and thermochemistry.
+        name='xtb-h2o-ohess',
+        desc='xtb.desc',
+        fixture='xtb/h2o_ohess.out',
+        parse_args=('.', 'GeoVib', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'MULLIKEN': dict(keys={'MULLIKEN': {
+                'size': '3', 'values': '-0.56474259 0.28237129 0.28237129',
+                'units': 'e'}}),
+            'VIBFREQ][VIBIR': dict(keys={
+                'VIBFREQ': {'size': '9', 'units': 'cm-1'},
+                'VIBIR': {'size': '9', 'units': 'KM/Mole'}}),
+            'VIB': dict(keys={'VIB': {'size': '9 3 3',
+                                      'units': 'Angstrom'}}),
+            'EZEROPT': dict(keys={'EZEROPT': {
+                'values': '0.020120859945', 'units': 'Hartree'}}),
+            'ENTHALPY': dict(keys={'ENTHALPY': {
+                'values': '-5.046642494166'}}),
+            'EGIBBS': dict(keys={'EGIBBS': {'values': '-5.068041464462'}}),
+            'ENTROPY][THERMOTEMP': dict(keys={
+                'ENTROPY': {'values': '0.021399000000'},
+                'THERMOTEMP': {'values': '298.15'}}),
+        },
+    ),
+    dict(
+        # Methane --ohess: 15 rows, 9 vibrations, the degenerate ones listed
+        # individually.
+        name='xtb-ch4-ohess',
+        desc='xtb.desc',
+        fixture='xtb/ch4_ohess.out',
+        parse_args=('.', 'GeoVib', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'VIBFREQ][VIBIR': dict(keys={'VIBFREQ': {'size': '15'},
+                                         'VIBIR': {'size': '15'}}),
+            'VIB': dict(keys={'VIB': {'size': '15 5 3'}}),
+        },
+    ),
 ]
 
 

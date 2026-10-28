@@ -2,9 +2,8 @@
 
 <!--
    xtb (Grimme group GFN-xTB tight-binding code) registration: energy,
-   geometry optimization and orbitals (stage 2).  Modeled on MOPAC.edml and
-   CP2K.edml.  Charges and vibrations are later stages and add parse
-   entries to xtb.desc and runtypes here.
+   geometry optimization, orbitals, charges and frequencies.  Modeled on
+   MOPAC.edml and CP2K.edml.  Vibration runs the xtb hess option, GeoVib the ohess option.
 
    Semiempirical, so no basis set: every Theory is needsBasis="false".
 
@@ -42,14 +41,20 @@
   <Theory category="SE" name="GFN2-xTB" needsBasis="false">
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
   </Theory>
   <Theory category="SE" name="GFN1-xTB" needsBasis="false">
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
   </Theory>
   <Theory category="SE" name="GFN-FF" needsBasis="false">
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
   </Theory>
 
   <TheorySummary>

@@ -181,6 +181,29 @@ def main():
             check(e and te and abs(te[-1] - float(e[-1])) < 1e-9,
                   "TE %s is the final energy in the stored output %s" % (te[-1:], e[-1:]))
 
+        say("--- water, GFN2-xTB geometry + vibration (--ohess)")
+        text, rc = deck(WATER, "GeoVib", "normal")
+        check(rc == 0 and "--ohess normal" in text.splitlines()[0],
+              "ai.xtb wrote the deck: %r" % text.splitlines()[0])
+        calc = runJob(s, "v-%d" % int(time.time()), text, work, rundir)
+        if calc:
+            props = s.props("file://" + calc)
+            say("  properties: " + " ".join(props))
+            for key in ("MULLIKEN", "VIBFREQ", "VIBIR", "VIB", "EZEROPT",
+                        "ENTHALPY", "EGIBBS", "ENTROPY", "GEOMTRACE"):
+                check(key in props, "%s present in Props/" % key)
+            check(len(numbers(calc, "MULLIKEN")) == 3, "3 atomic charges")
+            freq = numbers(calc, "VIBFREQ")
+            check(len(freq) == 9 and sum(1 for f in freq if f > 1000) == 3,
+                  "9 modes, 3 of them vibrations: %r" % freq)
+            ir = numbers(calc, "VIBIR")
+            check(len(ir) == 9 and max(ir) > 100, "IR intensities: %r" % ir)
+
+        say("--- water, GFN2-xTB vibration at the given geometry (--hess)")
+        text, rc = deck(WATER, "Vibration")
+        check(rc == 0 and " --hess" in text.splitlines()[0],
+              "ai.xtb wrote the deck: %r" % text.splitlines()[0])
+
         say("--- water, GFN-FF energy: no orbitals, no error")
         text, rc = deck(WATER, "Energy", theory="GFN-FF")
         calc = runJob(s, "f-%d" % int(time.time()), text, work, rundir)

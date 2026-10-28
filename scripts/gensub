@@ -2130,7 +2130,7 @@ sub xtb()
   $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
   $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
   # GFN-FF has no orbitals, so it gets no --molden.
-  $retval .= "rm -f molden.input\n";
+  $retval .= "rm -f molden.input charges vibspectrum g98.out\n";
   $retval .= "case \" \$xtbopts \" in *\" --gfnff \"*) ;; *) xtbopts=\"\$xtbopts --molden\" ;; esac\n";
 
   if ($cmd ne "") {
@@ -2149,6 +2149,14 @@ sub xtb()
   $retval .= "  cat molden.input >> $::outFile\n";
   $retval .= "  echo ECCE-XTB-ENDMOLDEN >> $::outFile\n";
   $retval .= "fi\n";
+  # Atomic charges, and for a frequency run the spectrum and normal modes.
+  $retval .= "for f in charges:CHARGES vibspectrum:VIBSPECTRUM g98.out:G98; do\n";
+  $retval .= "  if [ -s \${f%%:*} ]; then\n";
+  $retval .= "    echo ECCE-XTB-\${f##*:} >> $::outFile\n";
+  $retval .= "    cat \${f%%:*} >> $::outFile\n";
+  $retval .= "    echo ECCE-XTB-END\${f##*:} >> $::outFile\n";
+  $retval .= "  fi\n";
+  $retval .= "done\n";
   $retval .= "(exit \$xtbStatus)\n";
   return $retval;
   nouse strict vars;

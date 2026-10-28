@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+# xtb's `charges` file (appended by gensub between ECCE-XTB-CHARGES markers):
+# one atomic charge per line, in atom order.  GFN1/GFN2 write Mulliken-type
+# charges; GFN-FF writes its EEQ charges.  Both go to MULLIKEN, the key the
+# existing charges panel reads.
+$| = 1;
+my @v;
+while (<STDIN>) {
+  push(@v, $1) if (/^\s*(-?\d+\.\d+)\s*$/);
+}
+exit(0) if (!@v);
+print "key: MULLIKEN\nsize:\n", scalar(@v), "\nvalues:\n", join(" ", @v),
+      "\nunits:\ne\nEND\n";
+exit(0);

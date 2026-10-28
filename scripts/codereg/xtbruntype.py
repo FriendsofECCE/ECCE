@@ -11,7 +11,7 @@ class XtbRunTypePanel(EccePanel):
     def __init__(self, parent, helpURL):
         EccePanel.__init__(self, parent, helpURL)
 
-        if EcceGlobals.RunType == "Geometry":
+        if EcceGlobals.RunType in ("Geometry", "GeoVib"):
             geometrySizer = EcceBoxSizer(self,
                                          label="Geometry Optimization",
                                          cols=1)

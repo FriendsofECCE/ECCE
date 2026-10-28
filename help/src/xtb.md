@@ -42,6 +42,11 @@ other code. xtb has no basis set, so the Basis Set Tool is not used.
   crude, sloppy, loose, normal (the default), tight, verytight or extreme.
   An optimisation that reaches xtb's cycle limit without converging ends as
   Incomplete, with that as the reason.
+- **Vibration**: the frequencies at the geometry as it is (xtb `--hess`). The
+  geometry should already be optimised at the same level, or the frequencies
+  are not meaningful and some come out imaginary.
+- **Geometry + Vibration**: an optimisation followed by the frequencies
+  (xtb `--ohess`), with the same **Level**.
 
 ## The input file
 
@@ -67,6 +72,25 @@ The Builder shows the total energy, the HOMO-LUMO gap and the dipole moment,
 and for an optimisation the geometry at every cycle, with the energy of each
 cycle in the Geometry Trace plot. The Progress box follows the optimisation
 cycles and their gradient norm against the convergence limit.
+
+### Charges
+
+The atomic charges are read from the `charges` file xtb writes and appear
+under **Mulliken Charges**. For GFN2-xTB and GFN1-xTB they are xtb's
+Mulliken-type charges; for GFN-FF they are the charges of its own
+electronegativity-equalisation model.
+
+### Frequencies
+
+A Vibration or Geometry + Vibration run adds the frequencies, the IR
+intensities and the normal modes (animated in the Builder), and the
+thermochemistry at 298.15 K: zero-point energy, enthalpy, Gibbs energy and
+T*S, all in Hartree. The job script adds xtb's `vibspectrum` and `g98.out`
+files to the output file (between lines beginning with `ECCE-XTB-VIBSPECTRUM`
+and `ECCE-XTB-G98`). xtb prints the normal modes to two decimals, so the
+animation is a little less exact than the frequencies. xtb prints no internal
+energy, so that value is not shown. The five or six translations and
+rotations are listed first at zero, as for the other codes.
 
 ### Orbitals
 

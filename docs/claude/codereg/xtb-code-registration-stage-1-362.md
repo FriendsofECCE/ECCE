@@ -60,3 +60,24 @@ runtypes Energy and Geometry.
   (`MoAoBasis` uses that flag). `tests/basisflatten/run_xtb_tests.py` gives
   trace(P.S) = N through the C++ (needs a build tree with this change).
 - Never write `--` in an XML comment in an .edml: the parse aborts the code.
+
+## Stage 3: charges and frequencies
+
+- gensub appends `charges`, `vibspectrum` and `g98.out` between
+  `ECCE-XTB-CHARGES`, `-VIBSPECTRUM` and `-G98` markers (after removing stale
+  copies before the run). Run types: Vibration = `--hess` (the given
+  geometry, so GEOMTRACE is the input xyz), GeoVib = `--ohess <level>`.
+- `charges` goes to `MULLIKEN` (GFN-FF writes EEQ charges there too).
+  `vibspectrum` lists all 3N modes with the rigid ones at 0.00, so
+  `xtb.vibspec` gives VIBFREQ and VIBIR already aligned like ORCA's.
+- **`g98.out` holds the unit mass-weighted eigenvectors, not Cartesian
+  displacements** (cos = 1.0 against an eigendecomposition of xtb's own
+  `hessian`; the Cartesian reading gave 0.98), to two decimals, and only the
+  3N-6 vibrations. `xtb.vib` divides by sqrt(mass), renormalises (ORCA's
+  convention) and pads leading zero modes. Its atoms are in xtbopt.log's
+  frame, so there is no frame problem for the Builder (#312).
+- Thermochemistry from the output: `:: zero point energy`, `| TOTAL
+  ENTHALPY`, `| TOTAL FREE ENERGY`, and the `T/K ... T*S` row (ENTROPY is
+  T*S, as for the other codes). ETHERM is not set: xtb prints no U.
+- Parsed degenerate modes (methane) agree with the hessian only as a
+  subspace, as expected; compare subspaces, not single vectors.

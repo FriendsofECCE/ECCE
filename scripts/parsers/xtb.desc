@@ -1,8 +1,8 @@
 # Parse descriptor for xtb 6.7.1 output (GFN2-xTB, GFN1-xTB, GFN-FF).
 #
 # Energy, HOMO-LUMO gap, dipole, geometry trace, progress, and (stage 2) the
-# orbitals from the Molden file gensub appends.  Charges and vibrations are
-# later stages and add entries here.
+# orbitals from the Molden file gensub appends, atomic charges and
+# vibrations from the xtb files gensub appends (charges, vibspectrum, g98.out).
 #
 # No two Begins may match one physical line, and an End line is consumed with
 # its block; the entries below use Lines= or markers gensub writes, so
@@ -52,6 +52,67 @@ Begin=^ECCE-XTB-MOLDEN\s*$
 Skip=0
 Frequency=last
 End=^ECCE-XTB-ENDMOLDEN
+[END]
+
+# Files gensub appends after the run, each between ECCE-XTB-<name> and
+# ECCE-XTB-END<name>; Skip=1 drops the marker line itself.
+[MULLIKEN]
+Script=xtb.charges
+Begin=^ECCE-XTB-CHARGES\s*$
+Skip=1
+Frequency=last
+End=^ECCE-XTB-ENDCHARGES
+[END]
+
+[VIBFREQ][VIBIR]
+Script=xtb.vibspec
+Begin=^ECCE-XTB-VIBSPECTRUM\s*$
+Skip=1
+Frequency=last
+End=^ECCE-XTB-ENDVIBSPECTRUM
+[END]
+
+[VIB]
+Script=xtb.vib
+Begin=^ECCE-XTB-G98\s*$
+Skip=1
+Frequency=last
+End=^ECCE-XTB-ENDG98
+[END]
+
+# Thermochemistry of a frequency run (all in the closing box or the
+# thermodynamics table).
+[EZEROPT]
+Script=xtb.thermo
+Begin=^\s+:: zero point energy\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[ENTHALPY]
+Script=xtb.thermo
+Begin=^\s+\| TOTAL ENTHALPY\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[EGIBBS]
+Script=xtb.thermo
+Begin=^\s+\| TOTAL FREE ENERGY\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+# The "T/K  H(0)-H(T)+PV  H(T)  T*S  G(T)" row: T*S and the temperature.
+[ENTROPY][THERMOTEMP]
+Script=xtb.thermo
+Begin=^\s+\d+\.\d+\s+\S+E[-+]\d+\s+\S+E[-+]\d+\s+\S+E[-+]\d+\s+\S+E[-+]\d+\s*$
+Frequency=last
+Skip=0
+Lines=1
 [END]
 
 # SCF iterations: "  3     -4.1470395 -0.177636E-14  0.199E-07   10.79  100000.0  T"

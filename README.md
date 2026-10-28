@@ -81,7 +81,9 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   code in the code bar: energy and geometry optimisation, with an implicit
   solvent (ALPB or GBSA). The orbitals (energies, occupations and
   coefficients) are read from xtb's Molden file for GFN2 and GFN1; GFN-FF has
-  no orbitals. Charges and vibrations follow.
+  no orbitals. Atomic charges, and a Vibration and a Geometry + Vibration
+  run type with frequencies, IR intensities, normal modes and the
+  thermochemistry (zero-point energy, enthalpy, Gibbs energy, T*S).
 
 ## First steps
 

@@ -282,16 +282,18 @@ sub MethodOption {
 sub RunTypeOptions {
   my $runtype = $AbiDict{"RunType"};
   return "--sp" if ($runtype eq "Energy");
-  if ($runtype eq "Geometry") {
+  # --hess is the frequencies at the given geometry, --ohess optimizes first.
+  return "--hess" if ($runtype eq "Vibration");
+  if ($runtype eq "Geometry" || $runtype eq "GeoVib") {
     my $level = $AbiDict{"ES.Runtype.GeomOpt.Level"};
     my %ok = ("crude" => 1, "sloppy" => 1, "loose" => 1, "normal" => 1,
               "tight" => 1, "vtight" => 1, "extreme" => 1);
     $level = "normal" if (!defined($level) || !$ok{lc($level)});
     $level = "verytight" if (lc($level) eq "vtight");
-    return "--opt " . lc($level);
+    return ($runtype eq "GeoVib" ? "--ohess " : "--opt ") . lc($level);
   }
-  die "ai.xtb error: unsupported runtype '$runtype' (Energy and Geometry " .
-      "only)\n";
+  die "ai.xtb error: unsupported runtype '$runtype' (Energy, Geometry, " .
+      "Vibration and GeoVib only)\n";
 }
 
 # The solvent menu is the ALPB list; GBSA has fewer solvents and its own
