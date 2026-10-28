@@ -18,6 +18,7 @@
 #include "dsm/PropFactory.H"
 #include "dsm/TaskJob.H"
 #include "util/TDateTime.H"
+#include "util/PrefDateTime.H"
 #include <ctime>
 #include "dsm/LaunchInfoRows.H"
 #include "comm/AllocationQuery.H"
@@ -254,8 +255,8 @@ void CalcInfoPanel::refresh()
     in.processors = launch.totalprocs;
     in.queue = launch.queue;
     in.jobId = job.jobid;
-    in.startDate = taskJob->startDate();
-    in.completionDate = taskJob->completionDate();
+    in.startDate = prefDateTime(taskJob->startDate());
+    in.completionDate = prefDateTime(taskJob->completionDate());
     in.coreHours = launchCost(taskJob, launch.totalprocs);
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);

@@ -20,6 +20,7 @@
 #include "util/PreferenceLabels.H"
 #include "util/ResourceUtils.H"
 #include "util/TDateTime.H"
+#include "util/PrefDateTime.H"
 #include <ctime>
 #include "tdat/TFormula.H"
 #include "tdat/TProperty.H"
@@ -98,25 +99,7 @@ static void setSizerChildVisible(wxWindow *window, bool visible)
 
 
 
-//  The date as the user's preferences show it; unreadable preferences leave
-//  the stored text.
-static string formatDateTime(const string& stored)
-{
-  if (stored.empty()) return stored;
-  Preferences eccePref(PrefLabels::GLOBALPREFFILE);
-  int dateFormat, timeFormat;
-  if (!eccePref.getInt(PrefLabels::DATEFORMAT, dateFormat) ||
-      !eccePref.getInt(PrefLabels::TIMEFORMAT, timeFormat))
-    return stored;
-  if ((TDateTime::DateFormat)dateFormat < TDateTime::AmericanLocale ||
-      (TDateTime::DateFormat)dateFormat > TDateTime::TOTALDATE ||
-      (TDateTime::TimeFormat)timeFormat < TDateTime::HM24 ||
-      (TDateTime::TimeFormat)timeFormat > TDateTime::TOTALTIME)
-    return stored;
-  TDateTime datetime(stored);
-  return datetime.toString((TDateTime::DateFormat)dateFormat,
-           TDateTime::withSeconds((TDateTime::TimeFormat)timeFormat));
-}
+static string formatDateTime(const string& stored) { return prefDateTime(stored); }
 
 
 

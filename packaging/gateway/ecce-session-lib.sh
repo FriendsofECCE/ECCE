@@ -200,15 +200,16 @@ ecce_try_lock() { ecce_flock -n -E 99 "$@"; }
 ecce_lock_openers() {
   local file="$1" fd pid st cmd seen=" $$ ${BASHPID:-} "
   [ -d /proc/self/fd ] || return 0
-  for fd in /proc/[0-9]*/fd/*; do
-    [ "$(readlink "$fd" 2>/dev/null)" = "$file" ] || continue
+  #  One find over all descriptors: a readlink per descriptor took longer
+  #  than the wait itself on a busy desktop.
+  while read -r fd; do
     pid="${fd#/proc/}"; pid="${pid%%/*}"
     case "$seen" in *" $pid "*) continue ;; esac
     seen="$seen$pid "
     st="$(sed -n 's/^State:[[:space:]]*\([A-Za-z]\).*/\1/p' "/proc/$pid/status" 2>/dev/null)"
     cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | cut -c1-120)"
     echo "$pid ${st:-?} ${cmd% }"
-  done
+  done < <(find /proc/[0-9]*/fd -maxdepth 1 -lname "$file" 2>/dev/null)
 }
 
 # flock -w 90 on descriptor 9 (always 9 in our scripts), but after 5 s say
