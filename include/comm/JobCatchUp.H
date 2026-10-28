@@ -26,6 +26,12 @@ namespace JobCatchUp {
 // On failure the calculation is left waiting for login, with the reason.
 bool reconnect(TaskJob* calc, std::string& message);
 
+// Re-Parse Outputs (#651): the code's parsers and the progress record run
+// again over the outputs stored with the calculation, with no login to the
+// compute machine. Properties are replaced; run state, dates and the status
+// reason are kept. The job store does the work in the background.
+bool reparse(TaskJob* calc, std::string& message);
+
 // One calculation of Reconnect Selected (#601): what the dialog lists.
 struct Plan {
   std::string url, name, machine, state;

@@ -30,8 +30,8 @@ calculation answer slowly until then.
 
 - **not launched**: the calculation is **Created** or **Ready**.
 - **already finished**: the calculation is **Completed**, **Failed**,
-  **Killed** or otherwise ended. Use **Run Mgmt > Reconnect** on a single
-  calculation to parse its output again.
+  **Killed** or otherwise ended. Use **Run Mgmt > Re-Parse Outputs** to parse its stored output again; **Run Mgmt > Reconnect** on a single
+  unfinished calculation logs in and reads the job again.
 - **no machine stored**, or **machine "..." is not registered here**: the
   calculation names no compute machine, or one that is not registered under
   **Tools > Register Machines...** on this computer.

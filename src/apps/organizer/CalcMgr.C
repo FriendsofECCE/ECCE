@@ -1330,6 +1330,13 @@ void CalcMgr::runTestCommand(const string& line)
       vector<EcceURL> urls;
       while (args >> u) urls.push_back(EcceURL(u));
       reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist");
+    } else if (command == "reparseoutputs") {
+      // "reparseoutputs URL...": Re-Parse Outputs without dialogs.
+      std::istringstream args(calcName);
+      string u;
+      vector<EcceURL> urls;
+      while (args >> u) urls.push_back(EcceURL(u));
+      reparseOutputs(urls, false, &outcome);
     } else if (command == "reconnectjob") {
       // "reconnectjob URL": the single Run Mgmt > Reconnect, without dialogs.
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
@@ -2764,6 +2771,48 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
 void CalcMgr::OnReconnectSelectedClick( wxCommandEvent& event )
 {
   reconnectSelected(launchSelection(), true);
+}
+
+
+void CalcMgr::OnReparseOutputsClick( wxCommandEvent& event )
+{
+  reparseOutputs(launchSelection(), true);
+}
+
+
+void CalcMgr::reparseOutputs(const vector<EcceURL>& urls, bool interactive,
+                             string *outcome)
+{
+  //  The progress dialog appears only when the copying of the stored
+  //  outputs has taken a moment; a single small calculation never shows it.
+  const auto t0 = std::chrono::steady_clock::now();
+  wxProgressDialog *pd = 0;
+  string report;
+  int ok = 0;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (!task) continue;
+    if (interactive && urls.size() > 1 && !pd &&
+        std::chrono::steady_clock::now() - t0 > std::chrono::seconds(1))
+      pd = new wxProgressDialog("Re-Parse Outputs", "Starting...",
+                                (int)urls.size(), this,
+                                wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_SMOOTH);
+    if (pd && !pd->Update((int)i, wxString::FromUTF8(("Re-parsing " + task->getName()).c_str())))
+      break;
+    string message;
+    const bool done = JobCatchUp::reparse(task, message);
+    if (done) ok++;
+    report += task->getName() + (done ? ": started: " : ": skipped: ") +
+              message + "|";
+  }
+  if (pd) { pd->Update((int)urls.size()); delete pd; }
+  if (interactive)
+    setMessage(std::to_string(ok) + " of " + std::to_string(urls.size()) +
+               " calculations are being re-parsed; the properties appear "
+               "as each one finishes",
+               ok ? WxFeedback::INFO : WxFeedback::ERROR);
+  if (outcome) *outcome = "ok " + report;
 }
 
 
@@ -5349,6 +5398,9 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     reconnect->Enable(state == ResourceDescriptor::STATE_SUBMITTED ||
                       state == ResourceDescriptor::STATE_RUNNING ||
                       state == ResourceDescriptor::STATE_WAITING);
+    menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), _("Run the "
+                "parsers again over the outputs stored with the calculation"))
+        ->Enable(state >= ResourceDescriptor::STATE_COMPLETED);
     string why;
     bool can = OrbitalGuess::available(
         dynamic_cast<TaskJob*>(itemData->getResource()), why);
@@ -5371,6 +5423,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     if (allCalcs) {
       menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
       menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
   }
   menu.Append(wxID_RENAME, wxT("&Rename"));
@@ -5650,6 +5703,12 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
       itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
     if (menu.GetMenuItemCount() > 0) menu.AppendSeparator();
     menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."), "",
+                wxITEM_NORMAL);
+  }
+  if (state >= ResourceDescriptor::STATE_COMPLETED &&
+      itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
+    if (menu.GetMenuItemCount() > 0) menu.AppendSeparator();
+    menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), "",
                 wxITEM_NORMAL);
   }
 }
@@ -8965,6 +9024,7 @@ void CalcMgr::updateSelectionMenus()
     if (allCalcs) {
       rm->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
       rm->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      rm->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
     enableTopMenu(menuBar, _("Run Mgmt"), allCalcs, p_menuTitlesChanged);
     enableTopMenu(menuBar, _("Tools"), false, p_menuTitlesChanged);

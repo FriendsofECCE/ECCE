@@ -2755,6 +2755,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_backfill PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Run Mgmt > Re-Parse Outputs (#651): properties from the stored outputs,
+  # state and dates kept.
+  add_test(NAME apps_reparse_outputs
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/reparse_outputs_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_reparse_outputs PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Compare between GROMACS runs in studies of an imported example set (#560).
   add_test(NAME apps_md_compare_examples
            COMMAND ${PYTHON3_EXECUTABLE}

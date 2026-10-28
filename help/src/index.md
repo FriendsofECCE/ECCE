@@ -123,6 +123,9 @@ describe what you did and what happened.
    Incomplete, Killed, Monitor Error, System Error and the other states
    mean, and where the reason for an ended job is shown.
 
+28. [Re-Parse Outputs](reparse-outputs.md): running the parsers again over the
+   outputs stored with a calculation, without logging in to the machine.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the
