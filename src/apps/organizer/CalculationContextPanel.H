@@ -100,6 +100,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
     bool p_energyRead = false;
     wxBoxSizer *p_progressSizer;
     wxBoxSizer *p_launchHolder;  // the Launch Info block (#648)
+    std::vector<wxFlexGridSizer*> p_firstGrids;  // first property grid of each tool
 
     /** The stored snapshot (ecce:progress) as of the last refresh. */
     std::string p_storedProgress;
