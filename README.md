@@ -46,7 +46,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 - Launch Selected leaves the Organizer usable while a batch is submitted,
   with a Stop button.
-- Density Map: zooming no longer evaluates the map again at every step.
+- Density Map: zooming draws a coarse map at once and the full one when
+  the wheel rests, without a dialog.
 - Density Profile: the average around an atom computed in the background.
 
 ## First steps
