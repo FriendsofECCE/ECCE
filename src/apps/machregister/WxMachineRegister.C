@@ -393,20 +393,14 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
               wxSizerFlags().Right().Border().CentreVertical());
     grid->Add(p_refName, wxSizerFlags(1).Expand().Border().CentreVertical());
 
+    // Vendor, model and processor are kept in the registration but not
+    // shown: nothing uses them, and the row made the window wider.
     p_vendor = new ewxTextCtrl(page, wxID_ANY);
     p_model = new ewxTextCtrl(page, wxID_ANY);
     p_proc = new ewxTextCtrl(page, wxID_ANY);
-    wxBoxSizer* kind = new wxBoxSizer(wxHORIZONTAL);
-    kind->Add(p_vendor, wxSizerFlags(1).Border().CentreVertical());
-    kind->Add(new ewxStaticText(page, wxID_ANY, "Model"),
-              wxSizerFlags().Border().CentreVertical());
-    kind->Add(p_model, wxSizerFlags(1).Border().CentreVertical());
-    kind->Add(new ewxStaticText(page, wxID_ANY, "Processor"),
-              wxSizerFlags().Border().CentreVertical());
-    kind->Add(p_proc, wxSizerFlags(1).Border().CentreVertical());
-    grid->Add(new ewxStaticText(page, wxID_ANY, "Vendor"),
-              wxSizerFlags().Right().Border().CentreVertical());
-    grid->Add(kind, wxSizerFlags(1).Expand());
+    p_vendor->Hide();
+    p_model->Hide();
+    p_proc->Hide();
 
     p_procs = new ewxSpinCtrl(page, wxID_ANY, "1", wxDefaultPosition,
                               wxDefaultSize, wxSP_ARROW_KEYS, 1, 100000, 1);

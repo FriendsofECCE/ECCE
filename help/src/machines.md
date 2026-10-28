@@ -135,8 +135,7 @@ described in [Register Machines](register-machines.md).
 3. On the **Machine** tab, enter the fully qualified host name in
    **Machine**, for example `login.hpc.example.edu`.
 4. In **Name**, enter a short name for the list, for example `hpc`.
-   **Machine** and **Name** are required; **Vendor**, **Model** and
-   **Processor** are optional.
+   **Machine** and **Name** are required.
 5. Set **Processors** and **Nodes**.
 6. On the **Codes** tab, select each code you use and enter the full path
    to it on that machine in **Program**, for example

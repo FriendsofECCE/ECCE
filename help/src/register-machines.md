@@ -15,7 +15,7 @@ are:
 
 | Tab | What it holds |
 |---|---|
-| **Machine** | **Machine** (the host name), **Name**, **Vendor**, **Model**, **Processor**, **Nodes** and **Processors**, and four values that are yours only: **Run directory**, **Scratch directory**, **Account** and **Username**. The Launcher starts from them. The first three are the profile **Default**; **Allocation profiles** adds, edits and deletes more of them (see [Allocation profiles](machines.md#allocation-profiles)). |
+| **Machine** | **Machine** (the host name), **Name**, **Nodes** and **Processors**, and four values that are yours only: **Run directory**, **Scratch directory**, **Account** and **Username**. The Launcher starts from them. The first three are the profile **Default**; **Allocation profiles** adds, edits and deletes more of them (see [Allocation profiles](machines.md#allocation-profiles)). |
 | **Connection** | The remote environment (**Shell**, which is bash unless you choose another, and the script run at login), the **Allocation command**, the login host, paths on the remote machine, and **How jobs reach this machine**. |
 | **Codes** | One entry per code: **Modules** (environment modules loaded before the code runs), **Program** (the full path to the executable), **Environment variables**, **Command line**, and under **Advanced** commands run before and after the program and files to remove. |
 | **Job script** | The request lines for the queue manager, and the commands run before and after the calculation. |
