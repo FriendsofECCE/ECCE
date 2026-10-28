@@ -49,6 +49,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 - Density Map: zooming draws a coarse map at once and the full one when
   the wheel rests, without a dialog.
 - Density Profile: the average around an atom computed in the background.
+- Ubuntu 26.04: the package lets ECCE's message broker run under Ubuntu's
+  AppArmor profile for mosquitto.
 - ORCA: an integration grid choice (DefGrid1/2/3) in Theory Details.
 - ORCA: a geometry optimisation of a single atom runs as a single point
   (with frequencies) instead of stopping without an energy.
