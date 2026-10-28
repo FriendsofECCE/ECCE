@@ -1,9 +1,9 @@
 # Offloading long builds and test suites
 
 Full builds and `tests/teaching` take long enough to overload the developer
-machine. `run-offload.sh` runs them on radium instead.
+machine. `run-offload.sh` runs them on NerdEgg (through its Slurm queue) instead; radium only with `--host radium`.
 
-    tools/offload/run-offload.sh [--host radium|auto] <git ref> <command> [args]
+    tools/offload/run-offload.sh [--host nerdegg|radium|auto] <git ref> <command> [args]
 
 `<git ref>` is a branch, `origin/<branch>` or a commit that is **already
 pushed to GitHub**: the host fetches from GitHub, not from this machine.

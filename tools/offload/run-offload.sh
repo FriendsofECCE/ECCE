@@ -39,9 +39,9 @@ if [ "$host" != auto ] && ! host_free "$host"; then
     exit 3
 fi
 if [ "$host" = auto ]; then
-    # radium is the only host.
+    # NerdEgg is the offload host; radium only with --host radium.
     # A host that does not answer is skipped; a full one queues the job.
-    order="radium"
+    order="nerdegg"
     host= queue=
     for h in $order; do
         if ! host_free "$h"; then
