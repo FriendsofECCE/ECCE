@@ -729,6 +729,12 @@ string TaskJob::inputWarningsProp()
 }
 
 
+string TaskJob::inputFingerprintProp()
+{
+  return VDoc::getEcceNamespace() + ":inputfingerprint";
+}
+
+
 string TaskJob::orbitalGuessFile() const
 {
   const JCode *code = application();

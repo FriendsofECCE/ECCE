@@ -132,6 +132,12 @@ variable. If you close the editor without saving, nothing changes. If you
 save a change, ECCE uses your edited file, and later changes in the
 Electronic Structure Editor ask before they replace it.
 
+ECCE remembers the input file it generated. If you have changed that file
+by hand, or replaced it with one of your own, **Save** asks before it
+generates a new one: **Keep my input** saves the settings and leaves the
+file as it is, **Regenerate** replaces it with a file built from the
+settings (your edits are lost), and **Cancel** saves nothing.
+
 ![The Electronic Structure Editor](img/calced-water.png)
 
 <!-- capture: Electronic Structure Editor with NWChem, RHF, Geometry, 6-31G* set for water -->
