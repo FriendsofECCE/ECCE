@@ -213,36 +213,54 @@ def _reachable(host, port, https, context):
         return None
 
 
-def remote_setup(host, port):
+def remote_setup(host, port, certificate=None):
     """~/.ECCE/RemoteServer for HOST, as `ecce-remote-setup HOST --user --auto`
     writes it: TLS with a certificate the system trusts, else TLS pinned to
     the certificate the server presents now, else plain http; the first that
-    answers.  Returns which one, or None with nothing written."""
+    answers. With CERTIFICATE, require the server's TLS certificate to match
+    that PEM file exactly; do not fall back to an unpinned connection.
+    Returns which one, or None with nothing written."""
     pem = None
     way, scheme, dport = None, "http", port or 8096
     tport = port or 8443
-    ctx = ssl.create_default_context()
-    # As lenient as curl was about certificate extensions; the chain and the
-    # host name are still checked.
-    ctx.verify_flags &= ~getattr(ssl, "VERIFY_X509_STRICT", 0)
-    if _reachable(host, tport, True, ctx) is not None:
-        way, scheme, dport = "trusted", "https", tport
-    else:
+    if certificate:
         try:
-            pem = ssl.get_server_certificate((host, tport), timeout=5)
+            with open(certificate, encoding="ascii") as f:
+                pem = f.read()
             pinned = ssl.PEM_cert_to_DER_cert(pem)
-            loose = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-            loose.check_hostname = False
-            loose.verify_mode = ssl.CERT_NONE
-            if _reachable(host, tport, True, loose) == pinned:
-                way, scheme, dport = "pinned", "https", tport
-        except (OSError, ssl.SSLError, ValueError):
-            pass
-    if way is None:
-        pem = None
-        if _reachable(host, dport, False, None) is None:
-            return None
-        way = "plain"
+            pinned_der = bytes.fromhex(pinned)
+        except (OSError, UnicodeError, ValueError):
+            return "invalid-certificate"
+        loose = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        loose.check_hostname = False
+        loose.verify_mode = ssl.CERT_NONE
+        if _reachable(host, tport, True, loose) != pinned_der:
+            return "certificate-mismatch"
+        pem = ssl.DER_cert_to_PEM_cert(pinned_der)
+        way, scheme, dport = "pinned", "https", tport
+    else:
+        ctx = ssl.create_default_context()
+        # As lenient as curl was about certificate extensions; the chain and
+        # the host name are still checked.
+        ctx.verify_flags &= ~getattr(ssl, "VERIFY_X509_STRICT", 0)
+        if _reachable(host, tport, True, ctx) is not None:
+            way, scheme, dport = "trusted", "https", tport
+        else:
+            try:
+                pem = ssl.get_server_certificate((host, tport), timeout=5)
+                pinned = ssl.PEM_cert_to_DER_cert(pem)
+                loose = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                loose.check_hostname = False
+                loose.verify_mode = ssl.CERT_NONE
+                if _reachable(host, tport, True, loose) == pinned:
+                    way, scheme, dport = "pinned", "https", tport
+            except (OSError, ssl.SSLError, ValueError):
+                pass
+        if way is None:
+            pem = None
+            if _reachable(host, dport, False, None) is None:
+                return None
+            way = "plain"
     if not broker_answers(host, way != "plain"):
         return "nobroker-tls" if way != "plain" else "nobroker"
 
@@ -331,7 +349,7 @@ def choose_peruser():
     record("server this computer")
 
 
-def choose_server(address):
+def choose_server(address, certificate=None):
     """None when connected, else a sentence for the user."""
     address = address.strip()
     if not address or any(c.isspace() for c in address) or "/" in address:
@@ -341,10 +359,16 @@ def choose_server(address):
     host, _, port = address.partition(":")
     if not host or (port and not port.isdigit()):
         return "Type the address of the server, for example ecce.example.edu"
-    if is_this_computer(host) and server_installed() and not broker_answers(host):
+    if (not certificate and is_this_computer(host) and server_installed() and
+            not broker_answers(host)):
         choose_peruser()
         return None
-    way = remote_setup(host, int(port) if port else None)
+    way = remote_setup(host, int(port) if port else None, certificate)
+    if way == "invalid-certificate":
+        return "Select a readable PEM certificate provided by the server administrator."
+    if way == "certificate-mismatch":
+        return ("The server certificate does not match the selected file, or the server's "
+                "TLS endpoint could not be reached. Check the address and certificate.")
     if way and way.startswith("nobroker"):
         return ("ECCE could not reach the message broker of %s (port %d).\n"
                 "Ask the administrator whether the server is set up for other "
@@ -413,6 +437,33 @@ def build_dialog(wx, change):
     box.Add(row, 0, wx.EXPAND | wx.LEFT | wx.TOP, 24)
     box.Add(label("for example  ecce.example.edu"), 0, wx.LEFT | wx.TOP, 4)
 
+    cert_row = wx.BoxSizer(wx.HORIZONTAL)
+    cert_row.Add(wx.StaticText(panel, label="Server certificate:"), 0,
+                 wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+    cert_value = wx.TextCtrl(panel, size=(280, -1), style=wx.TE_READONLY)
+    cert_row.Add(cert_value, 1, wx.RIGHT, 8)
+    cert_button = wx.Button(panel, label="Choose file...")
+    cert_row.Add(cert_button, 0)
+    box.Add(cert_row, 0, wx.EXPAND | wx.LEFT | wx.TOP, 24)
+    box.Add(label("Optional: select the PEM certificate provided by the server administrator."),
+            0, wx.LEFT | wx.TOP, 4)
+
+    def choose_certificate(_evt=None):
+        wildcard = ("Certificate files (*.pem;*.crt;*.cer)|*.pem;*.crt;*.cer|"
+                    "All files (*.*)|*.*")
+        dlg_file = wx.FileDialog(dlg, "Select the server certificate",
+                                 wildcard=wildcard,
+                                 style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        try:
+            if dlg_file.ShowModal() == wx.ID_OK:
+                cert_value.SetValue(dlg_file.GetPath())
+                r_server.SetValue(True)
+                sync()
+        finally:
+            dlg_file.Destroy()
+
+    cert_button.Bind(wx.EVT_BUTTON, choose_certificate)
+
     status = wx.StaticText(panel, label="")
     status.SetForegroundColour(wx.Colour(168, 32, 32))
     box.Add(status, 0, wx.TOP, 12)
@@ -422,6 +473,8 @@ def build_dialog(wx, change):
 
     def sync(_evt=None):
         addr.Enable(r_server.GetValue())
+        cert_value.Enable(r_server.GetValue())
+        cert_button.Enable(r_server.GetValue())
         status.SetLabel("")
         panel.Layout()
     r_local.Bind(wx.EVT_RADIOBUTTON, sync)
@@ -457,7 +510,8 @@ def build_dialog(wx, change):
         elif mode == "here" and is_this_computer(addr.GetValue().strip().split(":")[0]):
             record("server this computer")   # the own data server, kept
             result["changed"] = False
-        elif mode == "server" and addr.GetValue().strip() == host:
+        elif (mode == "server" and addr.GetValue().strip() == host and
+              not cert_value.GetValue().strip()):
             result["changed"] = False   # the server already set up
         else:
             go.Disable()
@@ -465,7 +519,7 @@ def build_dialog(wx, change):
             status.SetLabel("Connecting to %s ..." % addr.GetValue().strip())
             panel.Layout()
             wx.GetApp().Yield()
-            err = choose_server(addr.GetValue())
+            err = choose_server(addr.GetValue(), cert_value.GetValue().strip() or None)
             go.Enable()
             cancel.Enable()
             if err:
