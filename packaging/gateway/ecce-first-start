@@ -306,7 +306,9 @@ def remote_setup(host, port, certificate=None, addresses=None):
             with open(certificate, encoding="ascii") as f:
                 pem = f.read()
             pinned = ssl.PEM_cert_to_DER_cert(pem)
-            pinned_der = bytes.fromhex(pinned)
+            # PEM_cert_to_DER_cert returns DER bytes on current Python, but
+            # older versions returned a hex string.
+            pinned_der = pinned if isinstance(pinned, bytes) else bytes.fromhex(pinned)
         except (OSError, UnicodeError, ValueError):
             return "invalid-certificate"
         loose = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
