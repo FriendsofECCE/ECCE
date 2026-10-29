@@ -6,6 +6,7 @@
 - **Windows: the local data folder chosen in Preferences is used** (#680). The Windows launcher always used `ecce-local` in your user folder and ignored the preference; it now reads it, as on Linux and macOS, and offers to move your calculations to the new folder at the next start. Without the preference, Windows keeps using `ecce-local`.
 - **Windows: atom labels are drawn again** (#672). The labels use the font bundled with ECCE on every system.
 - **Viewer:** a long text in the top-right corner (such as the dipole moment) moves one line down instead of running into the text on the left.
+- **Viewer, Calculation Summary:** Launch Info in one column, so dates, Cost and Allocation are no longer cut off at the panel's edge. The Organizer's summary keeps its two columns.
 - **Spin density tables:** every cell is centred vertically, also beside a wrapped cell.
 - **CP2K:** a converged geometry optimisation says "Optimisation converged" in the Progress box instead of "stopped". Run Mgmt > Re-Parse Outputs corrects a calculation that has already finished.
 - **Properties menu:** UV/Vis Spectrum (was UV-vis Spectrum).
