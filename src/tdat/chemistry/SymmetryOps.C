@@ -43,14 +43,17 @@
 //
 //  Resolved against $ECCE_HOME/bin instead, by the same shared
 //  Ecce::ecceBinCommand() every other caller of these helpers uses.
+static bool useCppSymmetry()
+{
+   const char* value = getenv("ECCE_CXX_SYMMETRY");
+   return value && strcmp(value, "1") == 0;
+}
 static string cleanCommand()
 {
    // Use the same opt-in switch for both C++ symmetry stages so a test run
    // exercises one consistent implementation from point-group detection
    // through coordinate projection.
-   const char* useCpp = getenv("ECCE_CXX_SYMMETRY");
-   return Ecce::ecceBinCommand(useCpp && strcmp(useCpp, "1") == 0
-                               ? "cleansym_cpp" : "cleansym");
+   return Ecce::ecceBinCommand(useCppSymmetry() ? "cleansym_cpp" : "cleansym");
 }
 static string cleanCmd        = cleanCommand();
 static string autosymCommand()
@@ -58,16 +61,9 @@ static string autosymCommand()
    // Keep the Fortran implementation as the default.  Setting this before
    // launching ECCE lets testers exercise the C++ migration without changing
    // the rest of the symmetry workflow or replacing the reference binary.
-   const char* useCpp = getenv("ECCE_CXX_SYMMETRY");
-   return Ecce::ecceBinCommand(useCpp && strcmp(useCpp, "1") == 0
-                               ? "autosym_cpp" : "autosym");
+   return Ecce::ecceBinCommand(useCppSymmetry() ? "autosym_cpp" : "autosym");
 }
 static string autosymCmd      = autosymCommand();
-static bool useCppSymmetry()
-{
-   const char* value = getenv("ECCE_CXX_SYMMETRY");
-   return value && strcmp(value, "1") == 0;
-}
 static string symmetryHelper(const char* fortran, const char* cpp)
 {
    return Ecce::ecceBinCommand(useCppSymmetry() ? cpp : fortran);
