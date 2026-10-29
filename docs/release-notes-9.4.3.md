@@ -1,6 +1,6 @@
 **ECCE 9.4.3.** Please report problems as [issues](https://github.com/FriendsofECCE/ECCE/issues).
 
-**Platforms.** Linux (Debian 13; Ubuntu 24.04, RHEL/Rocky 9 and Fedora packages are built on those systems but not tested). Windows 10 and 11. macOS, Apple silicon and Intel: experimental.
+**Platforms.** Linux (Debian 13; Ubuntu 24.04, RHEL/Rocky 9 and Fedora 44 packages are built on those systems but not tested). Windows 10 and 11. macOS, Apple silicon and Intel: experimental.
 
 ## Fixes
 - **A machine that does not answer no longer blocks ECCE** (#666). Reconnect, Reconnect Selected and the check at start-up log in and copy the job monitor in the background, with a Cancel that works at once; a host that does not answer fails after the connect timeout, without a second try through the built-in ssh client. A failed reconnect no longer deletes the calculation's stored results.
