@@ -2737,6 +2737,8 @@ void MoPanel::fillSpinView()
       p_spinSomoFull.push_back(s.full);
       for (int c = 0; c < 3; c++)
          p_spinSomo->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
+      //  The wrapped column makes the row taller; keep every cell centred.
+      p_spinSomo->SetCellAlignment(r, 3, wxALIGN_LEFT, wxALIGN_CENTRE);
    }
 
    const bool popTable = data.message.empty() && data.haveBasis;
@@ -2756,6 +2758,7 @@ void MoPanel::fillSpinView()
       p_spinPop->SetCellValue(r, 0, wxString::FromUTF8(p.atom.c_str()));
       p_spinPop->SetCellValue(r, 1, wxString::Format("%.3f", p.spin));
       p_spinPop->SetCellValue(r, 2, wxString::Format("%.1f", p.share));
+      p_spinPop->SetCellAlignment(r, 0, wxALIGN_LEFT, wxALIGN_CENTRE);
       for (int c = 1; c < 3; c++)
          p_spinPop->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
    }
