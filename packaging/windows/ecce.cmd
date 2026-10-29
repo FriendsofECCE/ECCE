@@ -52,7 +52,16 @@ goto waitold
 :waited
 set "ECCE_SWITCHED_LOCAL="
 :local
+rem The folder chosen in Preferences, as the wrappers on the other systems
+rem ask ecce-localdata for it; marked as the preference's, so a move asked
+rem for there is offered at this start.
+if defined ECCE_LOCAL_DATA goto localset
+set "ECCE_LOCAL=1"
+for /f "usebackq delims=" %%L in (`"%ECCE_ROOT%\bin\ecce-localdata.exe" 2^>nul`) do set "ECCE_LOCAL_DATA=%%L"
+set "ECCE_LOCAL="
+if defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA_FROM_PREF=1"
 if not defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA=%UH%/ecce-local"
+:localset
 if not exist "%USERPROFILE%\ecce-local" mkdir "%USERPROFILE%\ecce-local"
 rem No data server; the session's own broker (ecce-broker-win, loopback only,
 rem a login made up for the session) carries the messages between the tools.

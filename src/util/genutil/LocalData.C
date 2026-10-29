@@ -167,7 +167,12 @@ bool removeTree(const string& path)
 
 string LocalData::defaultDir()
 {
+#ifdef _WIN32
+  // The folder ecce.cmd has always used; a dot folder is hidden in Explorer.
+  return string(Ecce::realUserHome()) + "/ecce-local";
+#else
   return string(Ecce::realUserHome()) + "/.ECCE-local";
+#endif
 }
 
 string LocalData::dir()
