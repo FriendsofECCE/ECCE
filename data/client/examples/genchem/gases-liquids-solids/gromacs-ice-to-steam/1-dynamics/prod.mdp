@@ -1,4 +1,4 @@
-; NVT heating ramp 200 K -> 500 K over 30 ns, then 10 ns at 500 K (40 ns total).
+; NVT heating ramp 200 K -> 650 K over 40 ns, then 10 ns at 650 K (50 ns total).
 ; Positions every 10 ps (5000 steps) to .xtc.
 cutoff-scheme = Verlet
 coulombtype = PME
@@ -25,9 +25,9 @@ tinit = 0
 ref-t = 200
 annealing = single
 annealing-npoints = 3
-annealing-time = 0 30000 40000
-annealing-temp = 200 500 500
-nsteps = 20000000
+annealing-time = 0 40000 50000
+annealing-temp = 200 650 650
+nsteps = 25000000
 gen-vel = no
 continuation = yes
 nstxout-compressed = 5000
