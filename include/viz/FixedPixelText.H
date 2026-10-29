@@ -40,7 +40,8 @@ inline std::size_t fixedPixelLength(const char *text)
 
 inline void drawFixedPixelText(const GLubyte *const *glyphs,
                                const char *text,
-                               GLdouble glyphAdvance)
+                               GLdouble glyphAdvance,
+                               GLdouble pixelScale = 1.0)
 {
    if (!glyphs || !text || !*text)
       return;
@@ -82,19 +83,19 @@ inline void drawFixedPixelText(const GLubyte *const *glyphs,
       // most-significant-bit-first bytes for each of its 16 rows.  The
       // visible font is 9x15, as in the former glBitmap display lists.
       const GLubyte *bitmap = glyph + 1;
-      const GLdouble originX = raster[0] + glyphAdvance * index;
+      const GLdouble originX = raster[0] + glyphAdvance * pixelScale * index;
       for (int row = 0; row < 15; ++row) {
          const unsigned int bits =
             (static_cast<unsigned int>(bitmap[row * 2]) << 8) |
              static_cast<unsigned int>(bitmap[row * 2 + 1]);
          for (int column = 0; column < 9; ++column) {
             if ((bits & (0x8000u >> column)) == 0) continue;
-            const GLdouble x = originX + column;
-            const GLdouble y = raster[1] + row;
-            glVertex3d(x,     y,     windowZ);
-            glVertex3d(x + 1, y,     windowZ);
-            glVertex3d(x + 1, y + 1, windowZ);
-            glVertex3d(x,     y + 1, windowZ);
+            const GLdouble x = originX + column * pixelScale;
+            const GLdouble y = raster[1] + row * pixelScale;
+            glVertex3d(x,              y,              windowZ);
+            glVertex3d(x + pixelScale, y,              windowZ);
+            glVertex3d(x + pixelScale, y + pixelScale, windowZ);
+            glVertex3d(x,              y + pixelScale, windowZ);
          }
       }
    }

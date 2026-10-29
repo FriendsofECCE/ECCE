@@ -50,7 +50,11 @@ namespace QueueWait
         struct tm t = {};
         t.tm_year = y - 1900; t.tm_mon = mo - 1; t.tm_mday = d;
         t.tm_hour = h; t.tm_min = mi; t.tm_sec = s;
+#ifdef _WIN32
+        const time_t when = _mkgmtime(&t);
+#else
         const time_t when = timegm(&t);
+#endif
         if (when == (time_t)-1)
             return "";
         struct tm loc;

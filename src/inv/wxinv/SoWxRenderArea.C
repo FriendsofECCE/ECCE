@@ -1157,6 +1157,10 @@ void SoWxRenderArea::redraw()
     GLPath::record((const char*)glGetString(GL_RENDERER),
                    (const char*)glGetString(GL_VENDOR),
                    (const char*)glGetString(GL_VERSION));
+#ifdef __APPLE__
+  //  Fixed-pixel text is drawn in framebuffer pixels: two per point on Retina.
+  GLPath::setContentScaleFactor(GetContentScaleFactor());
+#endif
 #ifdef OIV_COIN
   if (!p_alphaChecked) {
     p_softwareGL = GLPath::software();

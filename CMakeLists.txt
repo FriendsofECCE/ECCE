@@ -3129,7 +3129,8 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(transport_openssh PROPERTIES TIMEOUT 180)
 
   # A host that accepts TCP and never sends the ssh banner fails in bounded
-  # time, with no libssh retry after OpenSSH timed out.
+  # time, with no libssh retry after OpenSSH timed out.  POSIX sockets.
+  if(NOT WIN32)
   add_executable(testSilentHost tests/transport/testSilentHost.C)
   target_link_libraries(testSilentHost PRIVATE
     eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
@@ -3137,6 +3138,7 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_silent_host COMMAND testSilentHost)
   set_tests_properties(transport_silent_host PROPERTIES TIMEOUT 120
     ENVIRONMENT "ECCE_SSH_CONNECT_TIMEOUT=5" SKIP_RETURN_CODE 77)
+  endif()
 
   # SshTransport against tests/transport/sshd; needs that sshd running, so
   # not a ctest.  tests/transport/sshd/build_test.sh builds it in a container.

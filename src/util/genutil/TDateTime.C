@@ -379,10 +379,15 @@ long TDateTime::toSeconds(const char *value,
 
 long TDateTime::toSeconds() const
 {
-  long ret = 0;  // the beginning of time...
-  struct tm tmp = p_tm;  // copy because mktime doesn't want const
-  ret = mktime(&tmp);
-  return ret;
+  //  p_tm holds GMT: mktime would read it as local time and be off by the
+  //  time zone (an hour of 28 cores was 28 CPU-h too many in the summary).
+  struct tm tmp = p_tm;
+  tmp.tm_isdst = 0;
+#ifdef _WIN32
+  return (long)_mkgmtime(&tmp);
+#else
+  return (long)timegm(&tmp);
+#endif
 }
 
 
