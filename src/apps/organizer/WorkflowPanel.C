@@ -86,7 +86,8 @@ public:
     Bind(wxEVT_PAINT, &WorkflowCanvas::OnPaint, this);
     Bind(wxEVT_LEFT_DOWN, &WorkflowCanvas::OnClick, this);
     Bind(wxEVT_LEFT_DCLICK, &WorkflowCanvas::OnDClick, this);
-    Bind(wxEVT_RIGHT_DOWN, &WorkflowCanvas::OnRightClick, this);
+    Bind(wxEVT_RIGHT_DOWN, &WorkflowCanvas::OnRightDown, this);
+    Bind(wxEVT_CONTEXT_MENU, &WorkflowCanvas::OnContextMenu, this);
   }
 
   void relayout()
@@ -190,15 +191,35 @@ public:
     return o.str();
   }
 
+  const WfBox *boxOf(const EcceURL &url) const
+  {
+    for (size_t i = 0; i < p_boxes.size(); i++)
+      if (p_boxes[i].step->getURL() == url) return &p_boxes[i];
+    return 0;
+  }
+
+  /// What a right-click on the box does, without the popup when popup is
+  /// false (the test hook): the menu's labels, or "error: ...".
+  string rightClick(const WfBox *b, bool popup)
+  {
+    if (!b) return "error: no such box";
+    string error = CalcMgr::guarded([&]() { select(b, true); });
+    if (!error.empty()) return "error: " + error;
+    return p_panel->contextMenu(popup);
+  }
+
 private:
-  void select(const WfBox *b)
+  // A right-click selects synchronously: the menu is built from the
+  // selection, and a pending event would leave it on the previous one.
+  void select(const WfBox *b, bool now = false)
   {
     if (!b) return;
     wxCommandEvent evt(wxEVT_COMMAND_MENU_SELECTED, wxID_PANEL_SELECTION);
     evt.SetString(b->step->getURL().toString());
     evt.SetInt(1);
     p_panel->p_selected = b->step->getURL();
-    p_panel->AddPendingEvent(evt);
+    if (now) p_panel->GetEventHandler()->ProcessEvent(evt);
+    else p_panel->AddPendingEvent(evt);
     Refresh();
   }
 
@@ -214,14 +235,23 @@ private:
     if (b) p_panel->p_calcMgr->findNode(b->step->getURL(), true);
   }
 
-  void OnRightClick(wxMouseEvent &e)
+  // The menu comes from the context-menu event, not the button: handled
+  // here it never reaches CalcMgr::OnContextMenu, which would show the
+  // tree's menu a second time.
+  void OnRightDown(wxMouseEvent &e)
   {
-    const WfBox *b = boxAt(CalcUnscrolledPosition(e.GetPosition()));
-    if (!b) return;
-    select(b);
-    wxMenu menu;
-    p_panel->p_calcMgr->getContextMenu(menu);
-    ewxPopupMenu(p_panel, menu);
+    SetFocus();
+    e.Skip();
+  }
+
+  void OnContextMenu(wxContextMenuEvent &e)
+  {
+    const WfBox *b = 0;
+    if (e.GetPosition() == wxDefaultPosition)      // keyboard
+      b = boxOf(p_panel->p_selected);
+    else
+      b = boxAt(CalcUnscrolledPosition(ScreenToClient(e.GetPosition())));
+    if (b) rightClick(b, true);
   }
 
   void OnPaint(wxPaintEvent &)
@@ -454,6 +484,35 @@ void WorkflowPanel::launchReadyClicked()
 {
   say("");
   p_calcMgr->launchReadySteps(p_session, true, 0, "");
+}
+
+
+string WorkflowPanel::contextMenu(bool popup)
+{
+  wxMenu menu;
+  string error = CalcMgr::guarded([&]() {
+    p_calcMgr->getContextMenu(menu);
+    if (popup) ewxPopupMenu(this, menu);
+  });
+  if (!error.empty()) {
+    p_calcMgr->setMessage("The menu for this box could not be made: " + error,
+                          WxFeedback::ERROR);
+    return "error: " + error;
+  }
+  string labels;
+  wxMenuItemList &items = menu.GetMenuItems();
+  for (wxMenuItemList::iterator it = items.begin(); it != items.end(); ++it)
+    if (!(*it)->IsSeparator())
+      labels += (labels.empty() ? "" : "|") +
+                (*it)->GetItemLabelText().ToStdString();
+  return labels;
+}
+
+
+string WorkflowPanel::rightClick(const EcceURL &step, bool popup)
+{
+  p_canvas->relayout();
+  return p_canvas->rightClick(p_canvas->boxOf(step), popup);
 }
 
 

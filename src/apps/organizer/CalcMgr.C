@@ -28,6 +28,10 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <typeinfo>
+#if defined(__GNUC__) || defined(__clang__)
+#include <cxxabi.h>
+#endif
 #include "ReleaseNotice.H"
 #include <memory>
 #include <algorithm>
@@ -651,6 +655,8 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowready WF      the steps Launch Ready Steps would launch
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
+      //   workflowmenu WF STEP  a right-click on STEP's box: the menu's
+      //     labels, or "error: ..." with what threw (#681)
       std::istringstream args(calcName);
       string a, b, c, d, flag, geomFrom;
       int setCharge = -99, setMult = 0;
@@ -664,7 +670,7 @@ void CalcMgr::runTestCommand(const string& line)
           if (flag.compare(0, 7, "charge=") == 0) setCharge = atoi(flag.c_str() + 7);
           if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
         }
-      } else if (command == "workflowcopy") {
+      } else if (command == "workflowcopy" || command == "workflowmenu") {
         args >> a >> b >> c;
       } else if (command == "workflowshot" || command == "workflowdialogshot") {
         args >> d >> a >> b >> c;       // d = PNG
@@ -756,6 +762,17 @@ void CalcMgr::runTestCommand(const string& line)
           wp->layoutReport();
           outcome = (ecceWindowShot(this, d) ? "ok " : "not saved ") +
                     wp->layoutReport();
+        }
+      } else if (command == "workflowmenu") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        if (!wp) outcome = "no workflow panel";
+        else {
+          string got = wp->rightClick(EcceURL(b), false);
+          outcome = got.compare(0, 6, "error:") == 0 ? got : "ok " + got;
         }
       } else if (command == "workflowdialogshot") {
         Resource *source = step(c);
@@ -2067,10 +2084,14 @@ void CalcMgr::addRoot(const string& name, const string& url)
 void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 {
   wxMenu menu;
-  getContextMenu(menu);
   p_popupOnTree = true;
-  ewxPopupMenu(this, menu);
+  string error = guarded([&]() {
+    getContextMenu(menu);
+    ewxPopupMenu(this, menu);
+  });
   p_popupOnTree = false;
+  if (!error.empty())
+    setMessage("The menu could not be made: " + error, WxFeedback::ERROR);
   /*
   wxPoint pt = event.GetPosition();
   
@@ -5719,6 +5740,41 @@ bool CalcMgr::getTypeAndState(WxResourceTreeItemData * itemData,
  *                  allows the caller to customize their context menu
  * @param itemData  helps determing content of the menu
  */
+namespace {
+
+string demangled(const char *name)
+{
+#if defined(__GNUC__) || defined(__clang__)
+  int status = 0;
+  char *d = abi::__cxa_demangle(name, 0, 0, &status);
+  if (d) { string r(d); free(d); return r; }
+#endif
+  return name ? name : "unknown";
+}
+
+}
+
+
+string CalcMgr::guarded(const std::function<void()>& f)
+{
+  try {
+    f();
+    return "";
+  }
+  catch (const std::exception &e) {
+    return demangled(typeid(e).name()) + ": " + e.what();
+  }
+  catch (...) {
+#if defined(__GNUC__) || defined(__clang__)
+    std::type_info *t = abi::__cxa_current_exception_type();
+    return "exception " + (t ? demangled(t->name()) : string("of unknown type"));
+#else
+    return "exception of unknown type";
+#endif
+  }
+}
+
+
 void CalcMgr::getContextMenu(wxMenu & menu)
 {
   ResourceType * resType = 0;
