@@ -855,6 +855,13 @@ void DensityProfilePanel::finishAverage(const std::shared_ptr<AverageJob>& job)
 //  A progress bar with Cancel only once the average is slow enough to notice.
 void DensityProfilePanel::onTimer(wxTimerEvent&)
 {
+  updateProgress();
+}
+
+//  Shared by the real timer event and the script hook, which must drive
+//  progress without constructing a synthetic wxTimerEvent.
+void DensityProfilePanel::updateProgress()
+{
   if (!p_job || p_inProgressUpdate) return;
   const double fraction = p_job->fraction;
   //  Making and updating the dialog both yield; a result arriving then is
@@ -891,8 +898,7 @@ void DensityProfilePanel::waitForCompute(long cancelAfterMs)
     if (wxTheApp) wxTheApp->ProcessPendingEvents();
     if (p_job && p_timer && p_timer->IsRunning() && tick.Time() >= 100) {
       tick.Start();
-      wxTimerEvent e;
-      onTimer(e);
+      updateProgress();
       if (p_progress) p_progressShown = true;
     }
     if (cancelAfterMs >= 0 && clock.Time() > cancelAfterMs && p_progress) {

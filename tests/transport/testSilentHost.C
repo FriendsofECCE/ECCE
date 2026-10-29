@@ -50,7 +50,7 @@ static int silentListener(int& port)
   memset(&a, 0, sizeof a);
   a.sin_family = AF_INET;
   a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  if (bind(s, (sockaddr*)&a, sizeof a) != 0 || listen(s, 16) != 0) return -1;
+  if (::bind(s, (sockaddr*)&a, sizeof a) != 0 || listen(s, 16) != 0) return -1;
   socklen_t l = sizeof a;
   getsockname(s, (sockaddr*)&a, &l);
   port = ntohs(a.sin_port);

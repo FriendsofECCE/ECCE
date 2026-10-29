@@ -123,6 +123,7 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       static void deliver(std::shared_ptr<DensityProfilePanel*> alive,
             std::shared_ptr<AverageJob> job);
       void onTimer(wxTimerEvent& event);
+      void updateProgress();
       void applySelection();
       bool applyPick(const std::vector<int>& atoms);
       void startRanking(bool bohr);
