@@ -440,8 +440,8 @@ Builder::Builder()
     p_commandManager(NULL),
     p_dirty(),
     p_import(),
-    p_lockBitmap("center_view_lock16.png", wxBITMAP_TYPE_PNG),
-    p_unlockBitmap("center_view_unlock16.png", wxBITMAP_TYPE_PNG),
+    p_lockBitmap("svg/center-view-lock.svg"),
+    p_unlockBitmap("svg/center-view-unlock.svg"),
     p_orthoBitmap("orthographic16.png", wxBITMAP_TYPE_PNG),
     p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
     p_centerLockButton(NULL),
@@ -518,8 +518,8 @@ Builder::Builder( wxWindow* parent, bool standalone, wxWindowID id,
     p_commandManager(NULL),
     p_dirty(),
     p_import(),
-    p_lockBitmap("center_view_lock16.png", wxBITMAP_TYPE_PNG),
-    p_unlockBitmap("center_view_unlock16.png", wxBITMAP_TYPE_PNG),
+    p_lockBitmap("svg/center-view-lock.svg"),
+    p_unlockBitmap("svg/center-view-unlock.svg"),
     p_orthoBitmap("orthographic16.png", wxBITMAP_TYPE_PNG),
     p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
     p_centerLockButton(NULL),
@@ -995,7 +995,7 @@ void Builder::createRotators(wxWindow *parent)
   //p_viewerButton = new ewxButton(parent, ID_CHOICE_VIEWER, "VCB");
   //p_rotSizer->Add(p_viewerButton);
 
-  ewxBitmap centerBitmap("center_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap centerBitmap("svg/center-view.svg");
   ewxBitmapButton * zoomFit = new ewxBitmapButton(parent, wxID_ZOOM_FIT,
           centerBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
@@ -1010,14 +1010,14 @@ void Builder::createRotators(wxWindow *parent)
   p_centerLockButton->SetToolTip(_T("Auto center after each operation"));
   p_rotSizer->Add(p_centerLockButton, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap homeBitmap("home_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap homeBitmap("svg/home-view.svg");
   ewxBitmapButton * homeView = new ewxBitmapButton(parent, ID_TOOL_GOHOME,
           homeBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(homeView, 0, wxALIGN_CENTER|wxALL, 0);
   homeView->SetToolTip(_T("Go to home view"));
 
-  ewxBitmap setHomeBitmap("set_home_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap setHomeBitmap("svg/set-home-view.svg");
   ewxBitmapButton * setHomeView = new ewxBitmapButton(parent, ID_TOOL_SETHOME,
           setHomeBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
@@ -1032,21 +1032,21 @@ void Builder::createRotators(wxWindow *parent)
   p_rotSizer->Add(p_cameraButton, 0, wxALIGN_CENTER|wxALL, 0);
   p_cameraButton->SetToolTip(_T("Toggle between perpective and orthographic cameras "));
 
-  ewxBitmap zoomToBitmap("viewmagfit.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomToBitmap("svg/zoom-fit.svg");
   ewxBitmapButton * zoomTo = new ewxBitmapButton(parent, 
           ViewerEvtHandler::ID_ZOOM_TO, zoomToBitmap, wxDefaultPosition,
           wxDefaultSize, wxBU_AUTODRAW|wxNO_BORDER);
   zoomTo->SetToolTip(_T("Zoom to fit"));
   p_rotSizer->Add(zoomTo, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap zoomInBitmap("viewmag+.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomInBitmap("svg/zoom-in.svg");
   ewxBitmapButton * zoomIn = new ewxBitmapButton(parent, wxID_ZOOM_IN,
           zoomInBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
   zoomIn->SetToolTip(_T("Zoom in"));
   p_rotSizer->Add(zoomIn, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap zoomOutBitmap("viewmag-.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomOutBitmap("svg/zoom-out.svg");
   ewxBitmapButton * zoomOut = new ewxBitmapButton(parent, wxID_ZOOM_OUT,
           zoomOutBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
