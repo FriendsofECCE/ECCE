@@ -44,7 +44,8 @@ There are three deployment modes:
   * **ECCE-QM**, a Hartree–Fock and density functional program built into
     ECCE, for small molecules; it runs on the computer you work at and
     needs nothing else installed;
-  * **ORCA**, **Gaussian 16**, **NWChem** and **MOPAC**;
+  * **ORCA**, **Gaussian 16**, **NWChem**, **MOPAC** and **xTB** (GFN2-xTB,
+    GFN1-xTB and GFN-FF through the `xtb` program);
   * **GROMACS**, **CP2K** and **Quantum ESPRESSO** (experimental).
 * **Check the input before it goes out**: Verify inspects the generated
   input file before it is submitted, and the Calculation Editor lists in
@@ -105,29 +106,29 @@ There are three deployment modes:
 
 ### Codes and methods
 
-| | ECCE-QM | ORCA | Gaussian 16 | NWChem | MOPAC |
-|---|:-:|:-:|:-:|:-:|:-:|
-| Hartree–Fock, DFT | ✓ | ✓ | ✓ | ✓ | – |
-| MP2 | – | ✓ | ✓ | ✓ | – |
-| Coupled cluster | – | ✓ | ✓ | ✓ | – |
-| CI, QCISD | – | – | ✓ | – | – |
-| Semi-empirical | – | – | ✓ | – | ✓ |
-| Energy, gradient | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Geometry optimisation | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Frequencies, IR | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Raman activities | ✓ | ✓ | ✓ | – | – |
-| TS search from one structure | ✓ | ✓ | ✓ | ✓ | – |
-| TS from two structures (NEB-TS, QST2/QST3) | – | ✓ | ✓ | – | – |
-| IRC | ✓ | ✓ | ✓ | – | – |
-| Relaxed scan | ✓ | ✓ | ✓ | – | – |
-| Initial Hessian choice | – | ✓ | ✓ | – | – |
-| Implicit solvent | ✓ | ✓ | ✓ | ✓ | – |
-| Dispersion correction | – | ✓ | ✓ | ✓ | – |
-| TD-DFT excited states, UV-vis | – | ✓ | ✓ | – | – |
-| NMR shielding | – | ✓ | ✓ | ✓ | – |
-| NBO analysis | – | ✓ | ✓ | – | – |
-| Start from a previous calculation's orbitals | ✓ | ✓ | ✓ | ✓ | – |
-| Import of an output run elsewhere | ✓ | ✓ | ✓ | ✓ | ✓ |
+| | ECCE-QM | ORCA | Gaussian 16 | NWChem | MOPAC | xTB |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| Hartree–Fock, DFT | ✓ | ✓ | ✓ | ✓ | – | – |
+| MP2 | – | ✓ | ✓ | ✓ | – | – |
+| Coupled cluster | – | ✓ | ✓ | ✓ | – | – |
+| CI, QCISD | – | – | ✓ | – | – | – |
+| Semi-empirical | – | – | ✓ | – | ✓ | ✓ (tight binding) |
+| Energy, gradient | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Geometry optimisation | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Frequencies, IR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Raman activities | ✓ | ✓ | ✓ | – | – | – |
+| TS search from one structure | ✓ | ✓ | ✓ | ✓ | – | – |
+| TS from two structures (NEB-TS, QST2/QST3) | – | ✓ | ✓ | – | – | – |
+| IRC | ✓ | ✓ | ✓ | – | – | – |
+| Relaxed scan | ✓ | ✓ | ✓ | – | – | – |
+| Initial Hessian choice | – | ✓ | ✓ | – | – | – |
+| Implicit solvent | ✓ | ✓ | ✓ | ✓ | – | ✓ |
+| Dispersion correction | – | ✓ | ✓ | ✓ | – | ✓ (built in) |
+| TD-DFT excited states, UV-vis | – | ✓ | ✓ | – | – | – |
+| NMR shielding | – | ✓ | ✓ | ✓ | – | – |
+| NBO analysis | – | ✓ | ✓ | – | – | – |
+| Start from a previous calculation's orbitals | ✓ | ✓ | ✓ | ✓ | – | – |
+| Import of an output run elsewhere | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 Per code:
 
@@ -156,6 +157,10 @@ Per code:
   Solvate).
 * **MOPAC**: AM1, MNDO, PM3, PM6, PM7 and RM1, restricted or unrestricted;
   energy, gradient, optimisation and frequencies.
+* **xTB**: GFN2-xTB, GFN1-xTB and GFN-FF; energy, optimisation (crude to
+  extreme), frequencies and thermochemistry; ALPB or GBSA solvent; orbitals
+  from the Molden file (GFN2, GFN1), atomic charges; runs made outside ECCE
+  can be imported with the files xtb wrote beside the output.
 * **Quantum ESPRESSO** (experimental): plane waves and pseudopotentials;
   energy, geometry optimisation and dynamics; cut-off, k-points, smearing
   and dispersion correction; the cluster's pseudopotential folder is used
@@ -254,7 +259,13 @@ Per code:
   Launcher and Viewer.
 * Data on an ECCE server (local or central) or in a local data folder.
 * Import Calculation from Output File: ECCE-QM, ORCA, Gaussian 16, NWChem,
-  MOPAC.
+  MOPAC, xTB.
+* Workflows: **File > New > Workflow...** keeps a chain of calculations
+  together and draws it as a tree of boxes; a new step of any code starts
+  from the final geometry, charge and multiplicity of the box it comes from
+  (e.g. an xTB optimisation refined with ORCA), several steps from one box
+  are branches, and Launch Ready Steps starts every step whose source has
+  finished.
 * Import GROMACS Run.
 * Manage Files, View Input/Output File, reviewed/unreviewed marks.
 
@@ -263,8 +274,10 @@ Per code:
 File > Open Example Calculations imports example sets, already read in,
 sorted by topic, each calculation with a note:
 
-* **Getting Started**: small calculations with ECCE-QM, MOPAC, NWChem and
-  ORCA, imported at first start.
+* **Getting Started**: small calculations with ECCE-QM, MOPAC, NWChem,
+  ORCA and xTB, imported at first start.
+* **Workflows**: hydrated Na+: xTB optimises arrangements of
+  Na+(H2O)6 and ORCA refines each result.
 * **General Chemistry**: atoms; ionisation energies and electron
   affinities; Koopmans' theorem; molecular orbitals of diatomics; polar
   bonds and dipole moments; VSEPR; Lewis structures and resonance; gases,

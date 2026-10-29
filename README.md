@@ -8,10 +8,12 @@ molecule, set up a calculation, run it on your own computer or a cluster,
 and look at the results (orbitals, densities, vibrations, geometry
 optimisations), with every calculation kept in one place.
 
-It works with **ORCA, Gaussian, NWChem and MOPAC**, and experimentally with
+It works with **ORCA, Gaussian, NWChem, MOPAC and xTB**, and experimentally with
 **GROMACS, CP2K and Quantum ESPRESSO**; ECCE 9 also includes
 ECCE-QM, a small built-in Hartree–Fock/DFT program that needs
-nothing else installed. ECCE was developed at Pacific Northwest National
+nothing else installed. Calculations can be chained into **workflows**:
+for example, xTB finds a structure quickly and ORCA refines it, each step
+starting from the geometry of the one before. ECCE was developed at Pacific Northwest National
 Laboratory, which stopped supporting it around 2017; it is maintained
 here since, with PNNL's blessing.
 
