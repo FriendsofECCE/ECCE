@@ -38,6 +38,7 @@
 #include "wxgui/WxState.H"
 
 #include "wxgui/WxDavAuth.H"
+#include "wxgui/LocalDataMove.H"
 
 #include "CalcMgrApp.H"
 #include "CalcMgr.H"
@@ -136,6 +137,9 @@ bool CalcMgrApp::OnInit()
   // No gateway here: the Organizer has the session's login window.
   WxDavAuth::setRestartsOnSwitch(true);
   WxDavAuth::setOnSwitch(restartInLocalMode);
+  // Before anything opens the data folder, and before the splash, which
+  // would lie over the question.
+  offerLocalDataMove();
 #endif
 #if defined(__WXMSW__) || defined(__WXMAC__)
   // ecce.cmd (and on macOS the gateway) marks the start it makes; the
