@@ -131,6 +131,9 @@ describe what you did and what happened.
 29. [Allocations](allocations.md): the usage of each cluster account, from
    Tools > Allocations.
 
+30. [Workflows](workflows.md): calculations that start from the geometry of
+   an earlier one, drawn as a tree, with Launch Ready Steps.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the

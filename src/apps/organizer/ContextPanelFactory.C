@@ -58,6 +58,8 @@ ContextPanelInterface * ContextPanelFactory::createContextPanel
     ret = new CalculationContextPanel(calcMgr, node, parent);
   else if (panelName == "MdContextPanel")
     ret = new SessionProjectContextPanel(calcMgr, node, parent);
+  else if (panelName == "WorkflowContextPanel")
+    ret = new SessionProjectContextPanel(calcMgr, node, parent);
   else if (panelName == "ReactionContextPanel")
     ret = new SessionProjectContextPanel(calcMgr, node, parent);
   else if (panelName == "PropertyContextPanel")

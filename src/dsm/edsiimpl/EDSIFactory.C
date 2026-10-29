@@ -237,6 +237,7 @@ Resource *EDSIFactory::getResource(const EcceURL& url,
         case ResourceDescriptor::RC_MD_SESSION:
         case ResourceDescriptor::RC_REACTION_SESSION:
         case ResourceDescriptor::RC_CONDENSED_REACTION_SESSION:
+        case ResourceDescriptor::RC_WORKFLOW_SESSION:
           ret = new Session(url);
           break;
         case ResourceDescriptor::RC_MD_TASK:
@@ -743,6 +744,9 @@ EcceURL* EDSIFactory::createResource(EDSI* interface,
           ret = createSession(interface, name, 
                               ResourceDescriptor::AT_CONDENSED_REACTION_STUDY);
           break;
+        case ResourceDescriptor::RC_WORKFLOW_SESSION:
+          ret = createSession(interface, name, ResourceDescriptor::AT_WORKFLOW);
+          break;
         case ResourceDescriptor::RC_MD_TASK:
         case ResourceDescriptor::RC_REACTION_TASK:
         case ResourceDescriptor::RC_CONDENSED_REACTION_TASK:
@@ -1235,6 +1239,9 @@ EDSIFactory::addSessionTask(const EcceURL& taskId,
     // the logic for adding a session task is done within the Organizer
     // (CalcMgr::createResource)
     // addSessionMdTask(taskId, sessionId);
+  }
+  else if (sessionType == ResourceDescriptor::RC_WORKFLOW_SESSION) {
+    // linked by the Organizer (CalcMgr::createWorkflowStep)
   }
   else if (sessionType == ResourceDescriptor::RC_REACTION_SESSION) {
     // since we aren't paying attention to selection for linking new reaction

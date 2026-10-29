@@ -194,6 +194,7 @@
           <ContainsResource name="ecceqm_es"/>
           <ContainsResource name="nwchem_md_study"/>
           <ContainsResource name="gromacs_md_study"/>
+          <ContainsResource name="workflow"/>
         </Contains>
         <ContainedBy>
           <ContainedByResource name="project"/>
@@ -3651,6 +3652,47 @@
     </EnabledRunManagementTasks>
   </ResourceType>
 
+  <!-- Workflow: a session of electronic-structure steps linked by the geometry they carry -->
+  <ResourceType name="workflow" resourceType="virtual_document" contentType="ecceSession"
+    applicationType="Workflow">
+    <SortPriority>20</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>svg/study-workflow.svg</Normal>
+      <Selected>svg/study-workflow.svg</Selected>
+      <Expanded>svg/study-workflow.svg</Expanded>
+      <SelectedExpanded>svg/study-workflow.svg</SelectedExpanded>
+    </Icons>
+    <Label>Workflow</Label>
+    <StateBased>false</StateBased>
+    <MenuItem>New Workflow...</MenuItem>
+    <DescriptorFile/>
+    <FactoryCategory>WorkflowSession</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>WorkflowContextPanel</ContextPanel>
+    <IsSessionBased>true</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="ecceqm_es"/>
+          <ContainsResource name="orca_es"/>
+          <ContainsResource name="gaussian16_es"/>
+          <ContainsResource name="nwchem_es"/>
+          <ContainsResource name="mopac_es"/>
+          <ContainsResource name="xtb_es"/>
+          <ContainsResource name="qe_es"/>
+          <ContainsResource name="cp2k_es"/>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools/>
+    <DefaultTools/>
+    <EnabledRunManagementTasks/>
+  </ResourceType>
   <!-- GROMACS MD Study resource -->
   <ResourceType name="gromacs_md_study" resourceType="virtual_document" contentType="ecceSession"
     applicationType="GROMACS">

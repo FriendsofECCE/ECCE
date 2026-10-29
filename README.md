@@ -44,6 +44,13 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.5.0
 
+- Workflows (preview): **File > New > Workflow...** makes a set of calculations
+  of any electronic-structure code (ECCE-QM, ORCA, Gaussian-16, NWChem, MOPAC,
+  xTB, Quantum ESPRESSO, CP2K) drawn as a tree. Select a box and a code on the
+  right to add a step that starts from the final geometry, charge and
+  multiplicity of that box (several steps from one box are branches), and
+  **Launch Ready Steps** launches every step whose source is Complete.
+
 - xTB: GFN2-xTB, GFN1-xTB and GFN-FF through the `xtb` program, as a new
   code in the code bar: energy and geometry optimisation, with an implicit
   solvent (ALPB or GBSA). The orbitals (energies, occupations and

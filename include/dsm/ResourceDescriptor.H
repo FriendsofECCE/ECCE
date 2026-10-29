@@ -146,6 +146,7 @@ class ResourceDescriptor
       AT_POLYRATE,
       AT_SOLVATE,
       AT_METADYNAMICS,
+      AT_WORKFLOW,
       AT_UNDEFINED,
       NUMBER_OF_AT
     };
@@ -189,6 +190,7 @@ class ResourceDescriptor
       RC_MD_TASK,
       RC_REACTION_TASK,
       RC_CONDENSED_REACTION_TASK,
+      RC_WORKFLOW_SESSION,
       RC_UNDEFINED
     };
 
