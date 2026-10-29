@@ -32,7 +32,8 @@ SETS = {"getting-started": ("Examples/Getting_Started", 5),
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",
             "startdate", "completiondate", "job_path", "job_jobid",
             "job_clienthost", "job_clientid", "launch_user", "launch_machine",
-            "launch_remoteShell", "launch_rundir", "version"}
+            "launch_remoteShell", "launch_rundir", "launch_account",
+            "launch_profile", "launch_allocleft", "submitdate", "version"}
 # The progress record carries the clock of the run it came from.
 # seq counts the monitor's messages, which depends on timing, not content.
 CLOCK = re.compile(r"(seq|sent|at)=[0-9.]+")
@@ -95,7 +96,7 @@ def compare(parsed, copied):
                 if ra.get(key) != rb.get(key):
                     problems.append("%s %s: parse %r, copy %r" % (
                         rel, key[1].rsplit(":", 1)[-1],
-                        (ra.get(key) or "-")[:60], (rb.get(key) or "-")[:60]))
+                        ra.get(key, "-")[-160:], rb.get(key, "-")[-160:]))
         elif os.path.basename(rel) == "eccejobstorelog.ecce_run_log":
             continue    # a log of this run, with its own times
         else:
