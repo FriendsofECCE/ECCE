@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="TEVEC" rowLabel="Geometry Step" rows="1" units="Hartree">
+
+  <step number="1">-30.399808352450</step>
+  <step number="2">-30.401816861632</step>
+  <step number="3">-30.406024809397</step>
+  <step number="4">-30.408588133817</step>
+  <step number="5">-30.411030777499</step>
+  <step number="6">-30.412771501322</step>
+  <step number="7">-30.414530933153</step>
+  <step number="8">-30.415794317827</step>
+  <step number="9">-30.416376267211</step>
+  <step number="10">-30.417109294423</step>
+  <step number="11">-30.417501861458</step>
+  <step number="12">-30.418107591753</step>
+  <step number="13">-30.418311261312</step>
+  <step number="14">-30.418608620986</step>
+  <step number="15">-30.418340477390</step>
+  <step number="16">-30.418834179964</step>
+  <step number="17">-30.418894488328</step>
+  <step number="18">-30.418976353917</step>
+  <step number="19">-30.419106367908</step>
+  <step number="20">-30.417310028272</step>
+  <step number="21">-30.419368052366</step>
+  <step number="22">-30.419558436905</step>
+  <step number="23">-30.419768181101</step>
+  <step number="24">-30.419849192657</step>
+  <step number="25">-30.419930823945</step>
+  <step number="26">-30.419933074005</step>
+  <step number="27">-30.420006037730</step>
+  <step number="28">-30.420031959953</step>
+  <step number="29">-30.420051873695</step>
+  <step number="30">-30.420071188235</step>
+  <step number="31">-30.420078530547</step>
+  <step number="32">-30.420089833367</step>
+  <step number="33">-30.420103006411</step>
+  <step number="34">-30.420109271224</step>
+  <step number="35">-30.420117325874</step>
+  <step number="36">-30.420127748782</step>
+  <step number="37">-30.420138161449</step>
+  <step number="38">-30.420150496116</step>
+  <step number="39">-30.420156157093</step>
+  <step number="40">-30.420161846004</step>
+  <step number="41">-30.420166117737</step>
+  <step number="42">-30.420169704175</step>
+  <step number="43">-30.420170680264</step>
+
+</tsvector>

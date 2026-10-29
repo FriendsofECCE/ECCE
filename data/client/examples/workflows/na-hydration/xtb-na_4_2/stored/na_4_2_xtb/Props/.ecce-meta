@@ -1,0 +1,6 @@
+DIPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+GEOMTRACE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+HLGAP	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+MULLIKEN	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TEVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
