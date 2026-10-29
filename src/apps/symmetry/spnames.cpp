@@ -1,0 +1,154 @@
+#include "symmetry_cpp.h"
+
+#include <algorithm>
+
+namespace ecce_symmetry {
+namespace {
+std::string normalized(const std::string& value) {
+  std::string result;
+  for (unsigned char c : value)
+    if (c != ' ' && c != '\t' && c != '_') result.push_back(static_cast<char>(c));
+  return result;
+}
+const std::vector<std::string>& spaceGroupNames() {
+  static const std::vector<std::string> names = {
+    "P1", "P-1", "P2", "P2_1", "C2",
+    "Pm", "Pc", "Cm", "Cc", "P2/m",
+    "P2_1/m", "C2/m", "P2/c", "P2_1/c", "C2/c",
+    "P222", "P222_1", "P2_12_12", "P2_12_12_1", "C222_1",
+    "C222", "F222", "I222", "I2_12_12_1", "Pmm2",
+    "Pmc2_1", "Pcc2", "Pma2", "Pca2_1", "Pnc2",
+    "Pmn2_1", "Pba2", "Pna2_1", "Pnn2", "Cmm2",
+    "Cmc2_1", "Ccc2", "Amm2", "Abm2", "Ama2",
+    "Aba2", "Fmm2", "Fdd2", "Imm2", "Iba2",
+    "Ima2", "Pmmm", "Pnnn", "Pccm", "Pban",
+    "Pmma", "Pnna", "Pmna", "Pcca", "Pbam",
+    "Pccn", "Pbcm", "Pnnm", "Pmmn", "Pbcn",
+    "Pbca", "Pnma", "Cmcm", "Cmca", "Cmmm",
+    "Cccm", "Cmma", "Ccca", "Fmmm", "Fddd",
+    "Immm", "Ibam", "Ibca", "Imma", "P4",
+    "P4_1", "P4_2", "P4_3", "I4", "I4_1",
+    "P-4", "I-4", "P4/m", "P4_2/m", "P4/n",
+    "P4_2/n", "I4/m", "I4_1/a", "P422", "P42_12",
+    "P4_122", "P4_12_12", "P4_222", "P4_22_12", "P4_322",
+    "P4_32_12", "I422", "I4_122", "P4mm", "P4bm",
+    "P4_2cm", "P4_2nm", "P4cc", "P4nc", "P4_2mc",
+    "P4_2bc", "I4mm", "I4cm", "I4_1md", "I4_1cd",
+    "P-42m", "P-42c", "P-42_1m", "P-42_1c", "P-4m2",
+    "P-4c2", "P-4b2", "P-4n2", "I-4m2", "I-4c2",
+    "I-42m", "I-42d", "P4/mmm", "P4/mcc", "P4/nbm",
+    "P4/nnc", "P4/mbm", "P4/mnc", "P4/nmm", "P4/ncc",
+    "P4_2/mmc", "P4_2/mcm", "P4_2/nbc", "P4_2/nnm", "P4_2/mbc",
+    "P4_2/mnm", "P4_2/nmc", "P4_2/ncm", "I4/mmm", "I4/mcm",
+    "I4_1/amd", "I4_1/acd", "P3", "P3_1", "P3_2",
+    "R3", "P-3", "R-3", "P312", "P321",
+    "P3_112", "P3_121", "P3_212", "P3_221", "R32",
+    "P3m1", "P31m", "P3c1", "P31c", "R3m",
+    "R3c", "P-31m", "P-31c", "P-3m1", "P-3c1",
+    "R-3m", "R-3c", "P6", "P6_1", "P6_5",
+    "P6_2", "P6_4", "P6_3", "P-6", "P6/m",
+    "P6_3/m", "P622", "P6_122", "P6_522", "P6_222",
+    "P6_422", "P6_322", "P6mm", "P6cc", "P6_3cm",
+    "P6_3mc", "P-6m2", "P-6c2", "P-62m", "P-62c",
+    "P6/mmm", "P6/mcc", "P6_3/mcm", "P6_3/mmc", "P23",
+    "F23", "I23", "P2_13", "I2_13", "Pm-3",
+    "Pn-3", "Fm-3", "Fd-3", "Im-3", "Pa-3",
+    "Ia-3", "P432", "P4_232", "F432", "F4_132",
+    "I432", "P4_332", "P4_132", "I4_132", "P-43m",
+    "F-43m", "I-43m", "P-43n", "F-43c", "I-43d",
+    "Pm-3m", "Pn-3n", "Pm-3n", "Pn-3m", "Fm-3m",
+    "Fm-3c", "Fd-3m", "Fd-3c", "Im-3m", "Ia-3d",
+  };
+  return names;
+}
+const std::vector<std::string>& layerGroupNames() {
+  static const std::vector<std::string> names = {
+    "P1", "P-1", "P112", "P11m", "P11a",
+    "P112/m", "P112/a", "P211", "P2_111", "C211",
+    "Pm11", "Pb11", "Cm11", "P2/m11", "P2_1/m11",
+    "C2/m11", "P2/b11", "P2_1/b11", "P222", "P2_122",
+    "P2_12_12", "C222", "Pmm2", "Pma2", "Pba2",
+    "Cmm2", "P2mm", "P2_1am", "P2_1ma", "P2mb",
+    "P2_1mn", "P2aa", "P2_1ab", "P2an", "C2mm",
+    "C2mb", "Pmmm", "Pmam", "Pmma", "Pmmn",
+    "Pbam", "Pmaa", "Pman", "Pbma", "Pbaa",
+    "Pban", "Cmmm", "Cmma", "P4", "P-4",
+    "P4/m", "P4/n", "P422", "P42_12", "P4mm",
+    "P4bm", "P-42m", "P-42_1m", "P-4m2", "P-4b2",
+    "P4/mmm", "P4/nbm", "P4/mbm", "P4/nmm", "P3",
+    "P-3", "P312", "P321", "P3m1", "P31m",
+    "P-31m", "P-3m1", "P6", "P-6", "P6/m",
+    "P622", "P6mm", "P-6m2", "P-62m", "P6/mmm",
+  };
+  return names;
+}
+const std::vector<std::string>& lineGroupNames() {
+  static const std::vector<std::string> names = {
+    "P1", "P-1", "P112", "P112_1", "P121",
+    "P111", "P11m", "P1m1", "P1c1", "Pm11",
+    "Pc11", "P112/m", "P112_1/m", "P12/m1", "P12/c1",
+    "P2/m11", "P2/c11", "P222", "P222_1", "Pmm2",
+    "Pmc2_1", "Pcm2_1", "Pcc2", "Pm2m", "Pc2m",
+    "P2mm", "P2cm", "Pmmm", "Pccm", "Pcmm",
+    "Pmcm", "P4", "P4_1", "P4_2", "P4_3",
+    "P-4", "P4/m", "P4_2/m", "P422", "P4_122",
+    "P4_222", "P4_322", "P4mm", "P4_2cm", "P4cc",
+    "P4_2mc", "P-42m", "P-42c", "P-4m2", "P-4c2",
+    "P4/mmm", "P4/mcc", "P4_2/mmc", "P4_2/mcm", "P3",
+    "P3_1", "P3_2", "P-3", "P312", "P3_112",
+    "P3_212", "P321", "P3_121", "P3_221", "P3m1",
+    "P3c1", "P31m", "P31c", "P-31m", "P-31c",
+    "P-3m1", "P-3c1", "P6", "P6_1", "P6_5",
+    "P6_2", "P6_4", "P6_3", "P-6", "P6/m",
+    "P6_3/m", "P622", "P6_122", "P6_522", "P6_222",
+    "P6_422", "P6_322", "P6mm", "P6cc", "P6_3cm",
+    "P6_3mc", "P-6m2", "P-6c2", "P-62m", "P-62c",
+    "P6/mmm", "P6/mcc", "P6_3/mcm", "P6_3/mmc",
+  };
+  return names;
+}
+const std::vector<std::string>& molecularNames() {
+  return molecularGroups();
+}
+} // namespace
+
+const std::vector<std::string>& molecularGroups() {
+  static const std::vector<std::string> names = {
+      "C1", "CS", "CI", "C2", "C3", "C4", "C5", "C6", "C7", "C8",
+      "D2", "D3", "D4", "D5", "D6", "C2V", "C3V", "C4V", "C5V",
+      "C6V", "C2H", "C3H", "C4H", "C5H", "C6H", "D2H", "D3H",
+      "D4H", "D5H", "D6H", "D8H", "D2D", "D3D", "D4D", "D5D",
+      "D6D", "S4", "S6", "S8", "T", "TH", "TD", "O", "OH", "I", "IH"};
+  return names;
+}
+
+bool groupIndicesFor(const std::string& requested, int& systemType, int& groupIndex) {
+  const std::string key = normalized(requested);
+  const std::vector<std::string>* tables[] = {&spaceGroupNames(), &layerGroupNames(),
+      &lineGroupNames(), &molecularNames()};
+  const int types[] = {3, 2, 1, 0};
+  for (int t = 0; t < 4; ++t) {
+    for (std::size_t i = 0; i < tables[t]->size(); ++i) {
+      if (normalized((*tables[t])[i]) == key) {
+        systemType = types[t];
+        groupIndex = static_cast<int>(i) + 1;
+        return true;
+      }
+    }
+  }
+  systemType = -1;
+  groupIndex = -1;
+  return false;
+}
+
+std::string canonicalGroupName(int systemType, int groupIndex) {
+  const std::vector<std::string>* table = nullptr;
+  if (systemType == 3) table = &spaceGroupNames();
+  else if (systemType == 2) table = &layerGroupNames();
+  else if (systemType == 1) table = &lineGroupNames();
+  else if (systemType == 0) table = &molecularNames();
+  if (!table || groupIndex < 1 || static_cast<std::size_t>(groupIndex) > table->size()) return {};
+  return (*table)[static_cast<std::size_t>(groupIndex - 1)];
+}
+
+} // namespace ecce_symmetry

@@ -135,9 +135,44 @@ at 0.05 Å, the tolerance needed by its rounded Builder geometry. The tests
 also compare through `ECCE_TEST_AUTOSYM` without changing the default path,
 which stays pointed at the established executable.
 
+The same reference corpus checks the C++ `cleansym` migration. Build both
+implementations, then run the baseline and opt-in C++ cleaner against the same
+reference cases. The runtime switch also opts into `autosym_cpp` in Builder;
+the focused cleaner comparison leaves autosym on its established reference
+binary so the test isolates this migration:
+
+```sh
+cmake --build build-cmake --target autosym autosym_cpp cleansym cleansym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp symops symops_cpp
+python3 tests/symmetry/reference/run_tests.py --only cleansym --quiet
+ECCE_CXX_SYMMETRY=1 python3 tests/symmetry/reference/run_tests.py --only cleansym --quiet
+ECCE_CXX_SYMMETRY=1 python3 tests/symmetry/reference/run_tests.py --only getfrag --quiet
+ECCE_CXX_SYMMETRY=1 python3 tests/symmetry/reference/run_tests.py --only genmol --quiet
+ECCE_CXX_SYMMETRY=1 python3 tests/symmetry/reference/run_tests.py --only genmollat --quiet
+ECCE_CXX_SYMMETRY=1 python3 tests/symmetry/reference/run_tests.py --only symops --quiet
+python3 tests/symmetry/reference/compare_periodic_tables.py \
+  --fortran build-cmake/genmollat --cpp build-cmake/genmollat_cpp
+```
+
+The C++ cleaner carries the 46 molecular point groups' generator matrices in
+their established frames, expands each group with the `gensym` closure walk,
+then performs the same nearest-atom orbit averaging as `sym_avg.f`. This keeps
+the full `spgen` molecular coverage without linking the Fortran module/runtime
+into the C++ executable.
+
 At runtime, `SymmetryOps` reads `ECCE_CXX_SYMMETRY` when the application
-starts. Set it to `1` before launching ECCE to select `autosym_cpp`; if it is
-unset or has any other value, ECCE uses the Fortran `autosym` executable.
+starts. Set it to `1` before launching ECCE to select `autosym_cpp`,
+`cleansym_cpp`, `getfrag_cpp`, `genmol_cpp`, and `genmollat_cpp`; otherwise it
+uses the established Fortran executables. `symops_cpp` is also selected by
+the reference-test runner under this variable.
+
+The C++ fragment tools share ports of `findfrag.f` and `dosymops.f`, including
+the greedy irreducible-fragment selection, orbit expansion, duplicate removal,
+and original-atom ordering. The complete 230 space-group, 80 layer-group, and
+99 line-group tables are now present in the C++ generator path. `spgen_periodic.cpp`
+resolves their packed recipes into Seitz generators, applies origin shifts and
+centering vectors, then expands the operators in the same order as `gensym.f`.
+`genmollat_cpp` uses those operators directly and has no runtime Fortran
+fallback. Its periodic input/output behavior is covered by the reference cases.
 
 ## Scope
 
