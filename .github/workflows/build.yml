@@ -88,7 +88,7 @@ jobs:
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
             libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev libssl-dev \
-            python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev
+            python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev libhdf5-dev
 
       - uses: actions/checkout@v4
 
@@ -169,7 +169,7 @@ jobs:
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
             libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev libssh-dev libssl-dev \
-            python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev
+            python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev libhdf5-dev
 
       - name: Configure
         run: cmake -G Ninja -B build-cmake -DECCE_REQUIRE_LIBSSH=ON
@@ -225,7 +225,7 @@ jobs:
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
             mosquitto-devel apr-util-devel mosquitto libssh-devel openssl-devel \
-            Coin4-devel mesa-libEGL-devel python3
+            Coin4-devel mesa-libEGL-devel python3 hdf5-devel
 
       # actions/checkout doesn't work reliably inside an arbitrary
       # container image (no git-installed-as-a-prereq guarantee, and the
@@ -289,7 +289,7 @@ jobs:
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
             mosquitto-devel apr-util-devel mosquitto libssh-devel openssl-devel \
-            Coin4-devel mesa-libEGL-devel python3 libxc-devel eigen3-devel
+            Coin4-devel mesa-libEGL-devel python3 libxc-devel eigen3-devel hdf5-devel
 
       - name: Check out source
         run: |
@@ -365,7 +365,7 @@ jobs:
       - name: Install build tools
         # Only tools: the libraries come from build-deps.sh, because
         # Homebrew bottles are built for the runner's own macOS.
-        run: brew install cmake ninja pkgconf gcc bash
+        run: brew install cmake ninja pkgconf gcc bash hdf5
 
       - name: Cache libraries built for macOS ${{ env.MACOSX_DEPLOYMENT_TARGET }}
         id: deps
@@ -613,7 +613,7 @@ jobs:
             mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-mosquitto
             mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf
             mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-numpy mingw-w64-ucrt-x86_64-wxwidgets3.2-msw
-            mingw-w64-ucrt-x86_64-xerces-c mingw-w64-ucrt-x86_64-eigen3
+            mingw-w64-ucrt-x86_64-xerces-c mingw-w64-ucrt-x86_64-eigen3 mingw-w64-ucrt-x86_64-hdf5
 
       # The build is ~20 minutes cold; ccache makes a rerun after a small
       # change a few.

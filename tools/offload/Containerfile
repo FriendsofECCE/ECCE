@@ -18,6 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       mesa-utils python3-wxgtk4.0 libgtk-3-bin imagemagick xdotool \
       strace rpm activemq ant default-jdk-headless \
       gromacs python3-numpy python3-tqdm python3-gemmi \
-      quantum-espresso quantum-espresso-data-sssp libeigen3-dev libxc-dev \
+      quantum-espresso quantum-espresso-data-sssp libeigen3-dev libxc-dev libhdf5-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /work
