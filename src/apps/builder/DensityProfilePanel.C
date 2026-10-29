@@ -891,7 +891,7 @@ void DensityProfilePanel::waitForCompute(long cancelAfterMs)
     if (wxTheApp) wxTheApp->ProcessPendingEvents();
     if (p_job && p_timer && p_timer->IsRunning() && tick.Time() >= 100) {
       tick.Start();
-      wxTimerEvent e;
+      wxTimerEvent e(*p_timer);
       onTimer(e);
       if (p_progress) p_progressShown = true;
     }
