@@ -2840,6 +2840,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_bad_meta PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Workflows (#341): steps linked by carried geometry, the view's labels.
+  add_test(NAME apps_workflow
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_workflow PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Modal dialogs are shown without the busy cursor and presented
   # (ewxModalGuard); ECCE_DEBUG_MODAL.
   add_test(NAME apps_modal_guard

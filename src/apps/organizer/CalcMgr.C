@@ -108,6 +108,10 @@ static std::string s_registerMessage;
 
 #include "wxgui/ewxProgressDialog.H"
 #include "LaunchSelected.H"
+#include "wxgui/ewxPanel.H"
+#include "ContextPanelInterface.H"
+#include "SessionProjectContextPanel.H"
+#include "WorkflowPanel.H"
 #include "ReconnectSelected.H"
 #include <future>
 #include <wx/wupdlock.h>
@@ -635,6 +639,140 @@ void CalcMgr::runTestCommand(const string& line)
         createResource(rt, parentNode, true);
         p_testCreateError = 0;
         outcome = error.empty() ? "ok" : "error: " + error;
+      }
+    } else if (command.compare(0, 8, "workflow") == 0) {
+      // Workflows (WorkflowSteps.H); WF is the workflow's URL.
+      //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge]
+      //     a code button without the dialog (type = e.g. orca_es)
+      //   workflowinfo WF       steps, states, carried values and links
+      //   workflowlaunch WF     Launch Ready Steps without dialogs
+      //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
+      //   workflowcopy WF CALC-URL NAME   a stored calculation as a first step
+      //   workflowready WF      the steps Launch Ready Steps would launch
+      //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
+      //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
+      std::istringstream args(calcName);
+      string a, b, c, d, flag, geomFrom;
+      int setCharge = -99, setMult = 0;
+      WorkflowSteps::Carry carry;
+      if (command == "workflowstep") {
+        args >> a >> b >> c >> d;
+        while (args >> flag) {
+          if (flag == "nogeom") carry.geometry = false;
+          if (flag == "nocharge") carry.chargeMult = false;
+          if (flag.compare(0, 9, "geomfrom=") == 0) geomFrom = flag.substr(9);
+          if (flag.compare(0, 7, "charge=") == 0) setCharge = atoi(flag.c_str() + 7);
+          if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
+        }
+      } else if (command == "workflowcopy") {
+        args >> a >> b >> c;
+      } else if (command == "workflowshot" || command == "workflowdialogshot") {
+        args >> d >> a >> b >> c;       // d = PNG
+      } else {
+        args >> a;
+      }
+      WxResourceTreeItemData *wfNode = findNode(EcceURL(a), true, true);
+      Session *wf = wfNode ? dynamic_cast<Session*>(wfNode->getResource()) : 0;
+      ResourceType *rt = 0;
+      if (command == "workflowstep" || command == "workflowdialogshot") {
+        vector<ResourceType*> types =
+            ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+        for (size_t i = 0; i < types.size() && !rt; i++)
+          if (types[i]->getName() == b) rt = types[i];
+      }
+      auto step = [&](const string& url) -> Resource* {
+        if (!wf || url.empty() || url == "-") return 0;
+        vector<Resource*> members = wf->getMembers();
+        for (size_t i = 0; i < members.size(); i++)
+          if (members[i]->getURL() == EcceURL(url)) return members[i];
+        return 0;
+      };
+      if (!wf) {
+        outcome = "no workflow";
+      } else if (command == "workflowstep") {
+        Resource *source = step(d);
+        if (d != "-" && !d.empty() && !source) outcome = "no such source step";
+        else {
+          string result;
+          Resource *made = rt ? newWorkflowStep(wf, rt, source, false, &result,
+                                                c == "-" ? "" : c, carry)
+                              : 0;
+          if (made && (!geomFrom.empty() || setCharge != -99 || setMult)) {
+            ChemistryTask *task = dynamic_cast<ChemistryTask*>(made);
+            PropertyTask *from = geomFrom.empty() ? dynamic_cast<PropertyTask*>(made)
+                : EDSIFactory::getPropertyTask(EcceURL(geomFrom));
+            Fragment *frag = from ? from->fragment() : 0;
+            if (frag && task) {
+              if (setCharge != -99) frag->charge(setCharge);
+              task->fragment(frag);
+            }
+            delete frag;
+            ICalculation *calc = dynamic_cast<ICalculation*>(made);
+            if (calc && setMult)
+              calc->spinMultiplicity((SpinMult::SpinMultEnum)setMult);
+          }
+          outcome = !rt ? "no resource type " + b
+                  : made ? "ok " + result : "error: " + result;
+        }
+      } else if (command == "workflowcopy") {
+        ICalculation *from = dynamic_cast<ICalculation*>(
+            EDSIFactory::getResource(EcceURL(b)));
+        EcceURL to = wf->getURL().getChild(c);
+        if (!from || !from->copy(to)) outcome = "error: copy failed";
+        else {
+          Resource *made = EDSIFactory::getResource(to);
+          wf->addMember(made);
+          wf->saveLinkbase();
+          WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
+          if (node) p_treeCtrl->refresh(node);
+          outcome = "ok " + to.toString();
+        }
+      } else if (command == "workflowready") {
+        vector<string> waiting;
+        vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting);
+        outcome = "ok ready:";
+        for (size_t i = 0; i < ready.size(); i++) outcome += " " + ready[i]->getName();
+        outcome += " waiting:";
+        for (size_t i = 0; i < waiting.size(); i++) outcome += " " + waiting[i];
+      } else if (command == "workflowinfo") {
+        outcome = "ok " + WorkflowSteps::info(wf);
+      } else if (command == "workflowlaunch") {
+        launchReadySteps(wf, false, &outcome, "");
+      } else if (command == "workflowshot") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        if (!wp) outcome = "no workflow panel";
+        else {
+          if (!c.empty()) {      // an optional box to show selected
+            p_contextPanel->selectResource(EcceURL(c));
+            wxYield();
+          }
+          SetSize(1300, 900);     // the whole drawing and the code bar
+          Raise();
+          for (int i = 0; i < 5; i++) wxYield();
+          wp->layoutReport();
+          outcome = (ecceWindowShot(this, d) ? "ok " : "not saved ") +
+                    wp->layoutReport();
+        }
+      } else if (command == "workflowdialogshot") {
+        Resource *source = step(c);
+        const WorkflowSteps::Code *code = 0;
+        for (size_t i = 0; i < WorkflowSteps::codes().size(); i++)
+          if (rt && rt->getName() == WorkflowSteps::codes()[i].typeName)
+            code = &WorkflowSteps::codes()[i];
+        if (!rt || !code) outcome = "no resource type " + b;
+        else {
+          WorkflowStepDialog dlg(this, wf, *code, rt, source);
+          dlg.Show();
+          for (int i = 0; i < 5; i++) wxYield();
+          outcome = ecceWindowShot(&dlg, d) ? "ok" : "not saved";
+          dlg.Hide();
+        }
+      } else {
+        outcome = "unknown workflow command";
       }
     } else if (command == "gmximport") {
       // "gmximport PARENT-URL RUN-DIR": import a GROMACS run (layout in
@@ -8204,6 +8342,94 @@ void CalcMgr::processEditCompletion(const EditEvent& ee)
 
 
 /**
+ * A new step of a Workflow, started from source (null for the first one).
+ * The tree and the workflow view follow, and the code's Calculation Editor
+ * opens on the new step.  On failure the step is not left behind and
+ * *outcome says why.
+ */
+Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
+                                   Resource *source, bool ask, string *outcome,
+                                   const string& givenName,
+                                   const WorkflowSteps::Carry& givenCarry)
+{
+  const WorkflowSteps::Code *code = 0;
+  for (size_t i = 0; i < WorkflowSteps::codes().size(); i++)
+    if (rt->getName() == WorkflowSteps::codes()[i].typeName)
+      code = &WorkflowSteps::codes()[i];
+  if (!wf || !code) {
+    if (outcome) *outcome = "not a workflow step type";
+    return 0;
+  }
+  string name = givenName.empty() ? WorkflowSteps::defaultName(wf, *code)
+                                  : givenName;
+  WorkflowSteps::Carry carry = givenCarry;
+  if (!source) carry = WorkflowSteps::Carry();
+  if (ask) {
+    WorkflowStepDialog dlg(this, wf, *code, rt, source);
+    if (dlg.ShowModal() != wxID_OK) {
+      if (outcome) *outcome = "cancelled";
+      return 0;
+    }
+    name = dlg.name();
+    carry = dlg.carry();
+  }
+
+  FrameHold hold(this);
+  string why;
+  Resource *made = WorkflowSteps::create(wf, rt, name, source, carry, why);
+  if (!made) {
+    if (outcome) *outcome = why.empty() ? "not created" : why;
+    if (ask) setMessage(why, WxFeedback::INFO);
+    return 0;
+  }
+  const EcceURL newurl = made->getURL();
+  WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
+  if (node) {
+    p_treeCtrl->refresh(node);
+    setContextPanel();
+    if (p_contextPanel) p_contextPanel->selectResource(newurl);
+  }
+  notifyCreate(newurl.toString());
+  if (ask) {
+    ResourceTool *tool = made->getDefaultTool();
+    if (tool) startApp(tool->getName(), 0, newurl.toString());
+  }
+  if (outcome) *outcome = newurl.toString();
+  return made;
+}
+
+
+/**
+ * Launch Ready Steps: each step of the workflow not yet launched whose
+ * source is Complete, with its own saved launch settings.  The others are
+ * named in the message; nothing is launched on a later completion.
+ */
+void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
+                               const string& shot)
+{
+  vector<string> waiting;
+  vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting);
+  string note;
+  if (!waiting.empty()) {
+    note = "Waiting for their source step: ";
+    for (size_t i = 0; i < waiting.size(); i++)
+      note += (i ? ", " : "") + waiting[i];
+    note += ".";
+  }
+  if (ready.empty()) {
+    string msg = "No step is ready to launch." + (note.empty() ? "" : " " + note);
+    if (interactive) setMessage(msg, WxFeedback::INFO);
+    if (outcome) *outcome = "none ready" + (note.empty() ? "" : " " + note);
+    return;
+  }
+  if (!note.empty() && interactive) setMessage(note, WxFeedback::INFO);
+  vector<EcceURL> urls;
+  for (size_t i = 0; i < ready.size(); i++) urls.push_back(ready[i]->getURL());
+  launchSelected(urls, interactive, outcome, shot);
+}
+
+
+/**
  * Resource created in parent of type resType.  If option is selected, the
  * rename prompt is opened during creation.
  *
@@ -8263,6 +8489,27 @@ void CalcMgr::createResource(ResourceType * resType,
   FrameHold hold(this);
   try {
     Resource * parRes = parent->getResource();
+    //  A step of a Workflow is linked to the selected step, as a code
+    //  button of the workflow view does it.
+    if (parRes->getApplicationType() == ResourceDescriptor::AT_WORKFLOW &&
+        resType->getFactoryCategory() == "EsCalculation") {
+      Session *wf = dynamic_cast<Session*>(parRes);
+      Resource *source = 0;
+      if (wf && wf->numMembers() > 0 && p_contextPanel) {
+        vector<EcceURL> sel = p_contextPanel->getSelections();
+        if (sel.size() == 1) {
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++)
+            if (members[i]->getURL() == sel[0]) source = members[i];
+        }
+        if (!source) throw InvalidException(
+            "Select the step the new one starts from first.", WHERE);
+      }
+      string why;
+      if (!newWorkflowStep(wf, resType, source, false, &why) && !why.empty())
+        throw InvalidException(why, WHERE);
+      return;
+    }
     Resource * newRes = parRes->createChild(name, resType);
 
     if (newRes == 0)

@@ -26,6 +26,8 @@ using namespace std;
 #include "ProjectContextPanel.H"
 #include "SessionContextPanel.H"
 #include "SessionProjectContextPanel.H"
+#include "WorkflowPanel.H"
+#include "dsm/ResourceDescriptor.H"
 
 
 /*!
@@ -51,13 +53,15 @@ SessionProjectContextPanel::SessionProjectContextPanel( CalcMgr * calcMgr,
 {
   p_calcMgr = calcMgr;
   p_itemData = itemData;
+  p_session = 0;
+  p_workflow = 0;
 
   CreateControls();
   GetSizer()->Fit(this);
   GetSizer()->SetSizeHints(this);
 
   // in the workflow, make sure the leaf of the primary path is visible
-  p_session->ensureVisiblePrimaryLeaf();
+  if (p_session) p_session->ensureVisiblePrimaryLeaf();
 }
 
 
@@ -80,17 +84,28 @@ void SessionProjectContextPanel::CreateControls()
                                            wxDefaultSize,
                                            wxSP_3DBORDER|wxSP_3DSASH|wxNO_BORDER );
   
-  p_session = new SessionContextPanel(p_calcMgr, p_itemData, p_splitterWindow);
+  wxWindow *top = 0;
+  if (p_itemData->getResource()->getApplicationType() ==
+      ResourceDescriptor::AT_WORKFLOW) {
+    p_workflow = new WorkflowPanel(p_calcMgr, p_itemData, p_splitterWindow);
+    top = p_workflow;
+  } else {
+    p_session = new SessionContextPanel(p_calcMgr, p_itemData, p_splitterWindow);
+    top = p_session;
+  }
   p_project = new ProjectContextPanel(p_calcMgr, p_itemData, p_splitterWindow);
 
   p_project->p_projectView->enableMultiSelect(false);
 
 
   Preferences prefs("Organizer");
-  int splitPos = 300;
-  prefs.getInt("Organizer.SessionHeight", splitPos);
+  //  The workflow drawing and its code bar need more height than an MD
+  //  study's.
+  int splitPos = p_workflow ? 420 : 300;
+  prefs.getInt(p_workflow ? "Organizer.WorkflowHeight"
+                          : "Organizer.SessionHeight", splitPos);
 
-  p_splitterWindow->SplitHorizontally(p_session, p_project, splitPos);
+  p_splitterWindow->SplitHorizontally(top, p_project, splitPos);
 
   topSizer->Add(p_splitterWindow, 1, wxGROW|wxALL, 0);
 }
@@ -99,7 +114,8 @@ void SessionProjectContextPanel::CreateControls()
 void SessionProjectContextPanel::refresh()
 {
   p_project->refresh();
-  p_session->refresh();
+  if (p_session) p_session->refresh();
+  if (p_workflow) p_workflow->refresh();
   p_project->p_projectView->enableMultiSelect(false);
 }
 
@@ -107,7 +123,8 @@ void SessionProjectContextPanel::refresh()
 void SessionProjectContextPanel::selectResource(const EcceURL & url)
 {
   p_project->selectResource(url);
-  p_session->selectResource(url);
+  if (p_session) p_session->selectResource(url);
+  if (p_workflow) p_workflow->selectResource(url);
 }
 
 
@@ -128,14 +145,16 @@ vector<EcceURL> SessionProjectContextPanel::getSelections()
 void SessionProjectContextPanel::loseFocus()
 {
   p_project->loseFocus();
-  p_session->loseFocus();
+  if (p_session) p_session->loseFocus();
+  if (p_workflow) p_workflow->loseFocus();
 }
 
 
 void SessionProjectContextPanel::OnSashPosChanged( wxSplitterEvent & event )
 {
   Preferences prefs("Organizer");
-  prefs.setInt("Organizer.SessionHeight",
+  prefs.setInt(p_workflow ? "Organizer.WorkflowHeight"
+                          : "Organizer.SessionHeight",
                p_splitterWindow->GetSashPosition());
   prefs.saveFile();
   event.Skip();
