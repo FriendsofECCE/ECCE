@@ -57,6 +57,11 @@ void mkdirs(const string& path, mode_t mode)
   }
 }
 
+// Windows opens files as text unless told otherwise.
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 // Relative path -> size (-1 for a directory, -2 for a symlink).
 typedef std::map<string, long long> Listing;
 
@@ -95,9 +100,10 @@ bool copyOne(const string& from, const string& to, const struct stat& st)
     buf[n] = 0;
     return symlink(buf, to.c_str()) == 0;
   }
-  int in = open(from.c_str(), O_RDONLY);
+  int in = open(from.c_str(), O_RDONLY | O_BINARY);
   if (in < 0) return false;
-  int out = open(to.c_str(), O_WRONLY | O_CREAT | O_EXCL, st.st_mode & 07777);
+  int out = open(to.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_BINARY,
+                 st.st_mode & 07777);
   if (out < 0) { close(in); return false; }
   bool ok = true;
   char buf[65536];
@@ -137,7 +143,9 @@ bool copyTree(const string& from, const string& to)
   struct dirent *e;
   while (ok && (e = readdir(d)) != 0) {
     string name = e->d_name;
-    if (name == "." || name == "..") continue;
+    // The lock is the session's, not data; the move holds it exclusively,
+    // which on Windows also keeps it from being read.
+    if (name == "." || name == ".." || name == IN_USE_FILE) continue;
     ok = copyTree(from + "/" + name, to + "/" + name);
   }
   closedir(d);
@@ -359,6 +367,8 @@ LocalData::MoveResult LocalData::move(const string& fromIn, const string& toIn,
   bool targetExisted = isDir(to);
   Listing before, after;
   bool ok = list(from, "", before) && copyTree(from, to) && list(to, "", after);
+  before.erase(IN_USE_FILE);
+  after.erase(IN_USE_FILE);
   if (ok && before != after) {
     ok = false;
     msg = "The copy in " + to + " does not match " + from +
