@@ -28,12 +28,15 @@ ECCE_FIRST_START_SHOT=<file.png> saves a picture of the window first.
 """
 import http.client
 import os
+import queue
 import re
 import shutil
 import socket
 import ssl
 import subprocess
 import sys
+import threading
+import time
 
 HOME = os.environ.get("ECCE_REALUSERHOME") or os.path.expanduser("~")
 ECCE_HOME = os.environ.get("ECCE_HOME") or "/opt/ecce"
@@ -197,13 +200,82 @@ def choose_local():
     return rc == 0
 
 
-def _reachable(host, port, https, context):
+def _resolve_host(host, timeout=5):
+    """Resolve HOST with a deadline; getaddrinfo itself has no timeout."""
+    result = queue.Queue(maxsize=1)
+
+    def lookup():
+        try:
+            value = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        except OSError:
+            value = []
+        try:
+            result.put_nowait(value)
+        except queue.Full:
+            pass
+
+    threading.Thread(target=lookup, daemon=True).start()
+    try:
+        return result.get(timeout=timeout)
+    except queue.Empty:
+        return None
+
+
+def _connect_resolved(addresses, port, timeout=5):
+    """Connect to already-resolved addresses, sharing one deadline."""
+    deadline = time.monotonic() + timeout
+    last_error = None
+    for family, socktype, proto, _, sockaddr in addresses:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        sock = socket.socket(family, socktype, proto)
+        sock.settimeout(remaining)
+        peer = (sockaddr[0], port) + tuple(sockaddr[2:])
+        try:
+            sock.connect(peer)
+            return sock
+        except OSError as error:
+            last_error = error
+            sock.close()
+    if last_error:
+        raise last_error
+    raise OSError("no usable address for server")
+
+
+class _ResolvedHTTPConnection(http.client.HTTPConnection):
+    """HTTPConnection that uses the bounded DNS result from _resolve_host."""
+    def __init__(self, host, port, addresses, **kwargs):
+        self._addresses = addresses
+        super().__init__(host, port, **kwargs)
+
+    def connect(self):
+        self.sock = _connect_resolved(self._addresses, self.port, self.timeout)
+
+
+class _ResolvedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPSConnection preserving HOST for SNI while connecting by IP."""
+    def __init__(self, host, port, addresses, **kwargs):
+        self._addresses = addresses
+        super().__init__(host, port, **kwargs)
+
+    def connect(self):
+        sock = _connect_resolved(self._addresses, self.port, self.timeout)
+        try:
+            self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+        except BaseException:
+            sock.close()
+            raise
+
+
+def _reachable(host, port, https, context, addresses):
     """The first HTTP(S) answer's peer certificate (DER) or b"", else None."""
     try:
         if https:
-            c = http.client.HTTPSConnection(host, port, timeout=5, context=context)
+            c = _ResolvedHTTPSConnection(host, port, addresses, timeout=5,
+                                         context=context)
         else:
-            c = http.client.HTTPConnection(host, port, timeout=5)
+            c = _ResolvedHTTPConnection(host, port, addresses, timeout=5)
         c.request("GET", "/")
         c.getresponse().read(1)
         der = c.sock.getpeercert(True) if https else b""
@@ -213,7 +285,7 @@ def _reachable(host, port, https, context):
         return None
 
 
-def remote_setup(host, port, certificate=None):
+def remote_setup(host, port, certificate=None, addresses=None):
     """~/.ECCE/RemoteServer for HOST, as `ecce-remote-setup HOST --user --auto`
     writes it: TLS with a certificate the system trusts, else TLS pinned to
     the certificate the server presents now, else plain http; the first that
@@ -223,6 +295,12 @@ def remote_setup(host, port, certificate=None):
     pem = None
     way, scheme, dport = None, "http", port or 8096
     tport = port or 8443
+    if addresses is None:
+        addresses = _resolve_host(host)
+    if addresses is None:
+        return "resolve-timeout"
+    if not addresses:
+        return "resolve-failed"
     if certificate:
         try:
             with open(certificate, encoding="ascii") as f:
@@ -234,7 +312,7 @@ def remote_setup(host, port, certificate=None):
         loose = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         loose.check_hostname = False
         loose.verify_mode = ssl.CERT_NONE
-        if _reachable(host, tport, True, loose) != pinned_der:
+        if _reachable(host, tport, True, loose, addresses) != pinned_der:
             return "certificate-mismatch"
         pem = ssl.DER_cert_to_PEM_cert(pinned_der)
         way, scheme, dport = "pinned", "https", tport
@@ -243,25 +321,22 @@ def remote_setup(host, port, certificate=None):
         # As lenient as curl was about certificate extensions; the chain and
         # the host name are still checked.
         ctx.verify_flags &= ~getattr(ssl, "VERIFY_X509_STRICT", 0)
-        if _reachable(host, tport, True, ctx) is not None:
+        if _reachable(host, tport, True, ctx, addresses) is not None:
             way, scheme, dport = "trusted", "https", tport
         else:
-            try:
-                pem = ssl.get_server_certificate((host, tport), timeout=5)
-                pinned = ssl.PEM_cert_to_DER_cert(pem)
-                loose = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                loose.check_hostname = False
-                loose.verify_mode = ssl.CERT_NONE
-                if _reachable(host, tport, True, loose) == pinned:
-                    way, scheme, dport = "pinned", "https", tport
-            except (OSError, ssl.SSLError, ValueError):
-                pass
+            loose = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            loose.check_hostname = False
+            loose.verify_mode = ssl.CERT_NONE
+            peer = _reachable(host, tport, True, loose, addresses)
+            if peer:
+                pem = ssl.DER_cert_to_PEM_cert(peer)
+                way, scheme, dport = "pinned", "https", tport
         if way is None:
             pem = None
-            if _reachable(host, dport, False, None) is None:
+            if _reachable(host, dport, False, None, addresses) is None:
                 return None
             way = "plain"
-    if not broker_answers(host, way != "plain"):
+    if not broker_answers(host, way != "plain", addresses):
         return "nobroker-tls" if way != "plain" else "nobroker"
 
     site = os.path.join(ECCE_HOME, "siteconfig")
@@ -319,9 +394,13 @@ def broker_port(tls):
                else os.environ.get("ECCE_BROKER_PORT", 8088))
 
 
-def broker_answers(host, tls=False):
+def broker_answers(host, tls=False, addresses=None):
     try:
-        socket.create_connection((host, broker_port(tls)), timeout=5).close()
+        if addresses is None:
+            addresses = _resolve_host(host)
+        if not addresses:
+            return False
+        _connect_resolved(addresses, broker_port(tls), timeout=5).close()
         return True
     except OSError:
         return False
@@ -359,11 +438,20 @@ def choose_server(address, certificate=None):
     host, _, port = address.partition(":")
     if not host or (port and not port.isdigit()):
         return "Type the address of the server, for example ecce.example.edu"
+    addresses = _resolve_host(host)
+    if addresses is None:
+        return "Looking up %s timed out. Check the server address or DNS and try again." % host
+    if not addresses:
+        return "Could not resolve the server address %s. Check the address and try again." % host
     if (not certificate and is_this_computer(host) and server_installed() and
-            not broker_answers(host)):
+            not broker_answers(host, addresses=addresses)):
         choose_peruser()
         return None
-    way = remote_setup(host, int(port) if port else None, certificate)
+    way = remote_setup(host, int(port) if port else None, certificate, addresses)
+    if way == "resolve-timeout":
+        return "Looking up %s timed out. Check the server address or DNS and try again." % host
+    if way == "resolve-failed":
+        return "Could not resolve the server address %s. Check the address and try again." % host
     if way == "invalid-certificate":
         return "Select a readable PEM certificate provided by the server administrator."
     if way == "certificate-mismatch":
