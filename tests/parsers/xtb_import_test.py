@@ -26,6 +26,12 @@ EXT = os.path.join(FIX, "external")
 
 failures = []
 
+# The importer finds the run's side files through a symlink; Perl on Windows
+# does not see os.symlink links as links, so the lookup cannot be tested there.
+if os.name == "nt":
+    print("skipped on Windows")
+    sys.exit(0)
+
 
 def check(ok, msg):
     print(("ok   " if ok else "FAIL ") + msg)
