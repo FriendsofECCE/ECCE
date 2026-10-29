@@ -2456,6 +2456,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # An xtb run made outside ECCE imports with its companion files (#362).
+  add_test(NAME parsers_xtb_import
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_import_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The stored geometry and the normal modes are in one frame (#312).
   add_test(NAME parsers_vib_frame
            COMMAND ${PYTHON3_EXECUTABLE}

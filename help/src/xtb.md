@@ -7,11 +7,11 @@ it a quick way to pre-optimise a structure before a DFT calculation, or to
 look at a molecule of a few hundred atoms.
 
 On Debian and Ubuntu the program is the package `xtb`
-(`sudo apt install xtb`). Register it like any other code: in
-**Register Machines** the path of the code is `xtb` on a machine where it
-is on the PATH, or the full path such as `/usr/bin/xtb`.
-[TO CHECK: the field name in Register Machines, and the xTB button in the
-code bar on a build with this code.]
+(`sudo apt install xtb`; Debian 13 has version 6.7.1). Register it like
+any other code: on the **Codes** tab of the machine in **Register
+Machines**, select **xTB** and set **Program** to the full path of
+the program, such as `/usr/bin/xtb`; **Find** looks for it. The xTB button
+in the code bar then starts a calculation with this code.
 
 ## Theory
 
@@ -106,3 +106,18 @@ writes them.
 
 xtb itself prints no coordinates, so the job script adds the structures to
 the end of the output file, between lines beginning with `ECCE-XTB-FRAME`.
+
+## Importing a run made outside ECCE
+
+The output of an `xtb` run can be imported with **File > Import Calculation
+from Output File** in the Organizer (see
+[Importing a calculation](importing-a-calculation.md)). The output itself
+holds no coordinates, so ECCE reads the geometry from the files xtb wrote
+beside it: `xtbopt.log` for an optimisation, otherwise the coordinate file
+the run was given. Orbitals (`molden.input`, from a run with `--molden`),
+atomic charges (`charges`) and for a frequency run the modes (`vibspectrum`
+and `g98.out`) are read from the same folder, so import the output from the
+folder the run was made in. Files left by another molecule are ignored.
+Theory (GFN2-xTB, GFN1-xTB or GFN-FF), run type, charge, multiplicity and
+an implicit solvent are read from the command line xtb prints. Molecular
+dynamics, scans and path runs are not imported.

@@ -53,6 +53,7 @@ EXPECT = {
     # SLATERBASIS: the .mgf beside the output reaches its parse on import
     "ammonia": ["MO", "VIBFREQ", "SLATERBASIS"],
     "methane": ["MO", "VIBFREQ", "MULLIKEN"],
+    "water_xtb": ["TE", "MO", "VIBFREQ", "VIBIR", "MULLIKEN"],
 }
 COMPUTATIONAL = {
     # a GROMACS study: its tasks, each as "task:" and "task:PROP"
@@ -392,7 +393,7 @@ def run(display, data, work):
                             % (want, trees[-1]))
     # Theory and Run Type as the calculation ran (the importer's .param).
     want = {"water": "GeoVib", "benzene": "GeoVib", "ammonia": "GeoVib",
-            "methane": "GeoVib"}
+            "methane": "GeoVib", "water_xtb": "GeoVib"}
     sums = re.findall(r"ECCE_TEST_ORGANIZER: summary file://\S+/(\w+): (.*)$",
                       log, re.M)
     got = {c: s for c, s in sums}

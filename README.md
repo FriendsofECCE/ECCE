@@ -50,7 +50,11 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   coefficients) are read from xtb's Molden file for GFN2 and GFN1; GFN-FF has
   no orbitals. Atomic charges, and a Vibration and a Geometry + Vibration
   run type with frequencies, IR intensities, normal modes and the
-  thermochemistry (zero-point energy, enthalpy, Gibbs energy, T*S).
+  thermochemistry (zero-point energy, enthalpy, Gibbs energy, T*S). The
+  output of an `xtb` run made outside ECCE can be imported from the
+  Organizer, with the files xtb wrote beside it; the Getting Started set has
+  an xTB water example, and the [xTB help page](help/src/xtb.md) describes the
+  code.
 
 ## First steps
 

@@ -3533,7 +3533,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "15";
+const char *const kExampleSetVersion = "16";
 
 string treeName(string s)
 {
@@ -3572,7 +3572,8 @@ void collectExamples(const string &setDir, const string &topicDir,
       for (const char *ext : {".qmout", ".eprint", ".out"}) {
         vector<string> files;
         for (const auto &f : fs::directory_iterator(setDir + dirRel, ec))
-          if (f.is_regular_file() && f.path().extension() == ext)
+          if (f.is_regular_file() && f.path().extension() == ext &&
+              f.path().filename() != "g98.out")  // xtb companion
             files.push_back(f.path().filename().string());
         std::sort(files.begin(), files.end());
         if (!files.empty()) { found = files[0]; break; }
@@ -3914,7 +3915,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       {
         static const struct { const char *key, *shown; } kCodes[] = {
           {"ecceqm", "ECCE-QM"}, {"mopac", "MOPAC"}, {"nwchem", "NWChem"},
-          {"orca", "ORCA"}, {"gromacs", "GROMACS"}};
+          {"orca", "ORCA"}, {"gromacs", "GROMACS"}, {"xtb", "xTB"}};
         size_t dash = ex.name.find('-');
         size_t from = dash == string::npos ? 0 : dash + 1;
         string code = ex.name.substr(0, dash);
@@ -3998,6 +3999,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
                 "optimisation and frequency calculation, including the "
                 "umbrella inversion mode, for comparison with the DFT "
                 "examples in cost and accuracy."},
+    {"water_xtb", "xTB, GFN2-xTB, optimisation and frequencies. This "
+                  "calculation shows a tight-binding calculation of water "
+                  "with orbitals, atomic charges and vibrations, run outside "
+                  "ECCE and imported from the program's output files."},
     {"methane", "NWChem, B3LYP/6-31G*. This calculation shows the effect of "
                 "tetrahedral symmetry: degenerate orbitals (a1, t2) and "
                 "degenerate vibrational modes."},

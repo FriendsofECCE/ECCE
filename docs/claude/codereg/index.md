@@ -70,7 +70,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`scripts/parsers`](scripts-parsers.md)
 - [`scripts/gensub`](scripts-gensub.md)
 - [`[PROGRESS]` entries in a `.desc`: job progress, not properties (#284)](progress-parse-type-284.md)
-- [xtb (xTB) is registered like MOPAC/CP2K: a one-file deck split by gensub, geometries appended to the output, orbitals/charges/vibrations still to come (#362)](xtb-code-registration-stage-1-362.md)
+- [xtb (xTB) is registered like MOPAC/CP2K: a one-file deck split by gensub, geometries appended to the output, orbitals, charges, vibrations and import of outside runs (#362)](xtb-code-registration-stage-1-362.md)
 - [CP2K is registered like Quantum ESPRESSO: its own dialogs, the library scanned in ai.cp2k, the cell from the Builder, results through cp2k.desc (#329)](cp2k-code-registration-follows-qe.md)
 
 ### How a property gets from disk into the Properties menu

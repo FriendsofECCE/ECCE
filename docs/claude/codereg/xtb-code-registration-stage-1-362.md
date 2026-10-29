@@ -36,8 +36,7 @@ runtypes Energy and Geometry.
 - **Stage 2/3 hooks.** Orbitals: `--molden` and a `.desc` entry in the
   style of `mopac.mo`/`ecceqm`; charges: `--pop` (Mulliken) and the
   CM5/Hirshfeld block; vibrations: `--ohess` and a Vibration runtype in
-  `xTB.edml`. No `<Importer>`: a raw xtb output has no geometry, so an import
-  needs the frames block or a companion xyz.
+  `xTB.edml`. The importer is `xtb.expt` (last section).
 
 ## Stage 2: orbitals (`--molden`)
 
@@ -94,3 +93,21 @@ runtypes Energy and Geometry.
   T*S, as for the other codes). ETHERM is not set: xtb prints no U.
 - Parsed degenerate modes (methane) agree with the hessian only as a
   subspace, as expected; compare subspaces, not single vectors.
+
+## Import of a run made outside ECCE
+
+- `xtb.expt` (`<Importer>` in `xTB.edml`; `tests/parsers/xtb_import_test.py`,
+  `apps_calcimport`). A raw output has no geometry, orbitals, charges or
+  modes: they are files beside it. `JobParser::importCalculation` runs the
+  importer in a temporary directory holding a SYMLINK to the output, so the
+  importer resolves the link to find the run's directory, appends the same
+  `ECCE-XTB-*` blocks gensub does (xtbopt.log or the named coordinate file,
+  molden.input only with `--molden`, charges, vibspectrum and g98.out only for
+  a hessian run) to a copy that replaces the link, and the parse is then the
+  ECCE-run parse. Never write through the link: it is the user's file.
+- A companion with the wrong atom count (left by another molecule in the
+  same directory) is skipped; with no geometry at all the import is refused
+  with the reason. Theory, run type, charge, `--uhf`, level and solvent come
+  from the `program call` line xtb prints.
+- `g98.out` is also an output-looking name: the example folder scan
+  (`collectExamples`, `preparse.py`) skips it.
