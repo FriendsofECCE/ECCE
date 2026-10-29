@@ -77,7 +77,7 @@ def main():
             harness.skip("%s is not built in %s" % (exe, build))
     import xdisplay
 
-    ar, he = records("ar-gas"), records("he-gas")
+    ar, he = records("ar-gas-300K"), records("he-gas")
     s = harness.Session(build, "mdpanels", {}, local=True, keep=args.keep)
     png = args.png or os.path.join(s.state, "png")
     os.makedirs(png, exist_ok=True)
@@ -100,7 +100,7 @@ def main():
         project = os.path.join(s.localData(), "users", "local", "qm")
         os.makedirs(project, exist_ok=True)
         shutil.copy(bo.PROJECT_META, os.path.join(project, ".ecce-meta"))
-        for name, recs in (("ar-gas", ar), ("he-gas", he)):
+        for name, recs in (("ar-gas-300K", ar), ("he-gas", he)):
             calc = os.path.join(project, name)
             shutil.rmtree(calc, ignore_errors=True)
             shutil.copytree(irc.BASE, calc, symlinks=True)
@@ -115,7 +115,7 @@ def main():
                     f.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
                             '<vecstring name="%s" rowLabel="Atom Kind" rows="%d" units="NA">%s'
                             '</vecstring>\n' % (key, len(vals), "   ".join(vals)))
-        calc = os.path.join(project, "ar-gas")
+        calc = os.path.join(project, "ar-gas-300K")
         sp1, sp2, ms1 = [os.path.join(s.state, n) for n in ("sp1.csv", "sp2.csv", "msd.csv")]
         text, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + calc + "/"],

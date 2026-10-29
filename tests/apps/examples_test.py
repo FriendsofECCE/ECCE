@@ -85,7 +85,7 @@ SPECTROSCOPY.update({
     "water": ["TE", "VIBFREQ", "VIBIR", "MO"],
     "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]})
 GENCHEM = {
-    "ar-gas": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-300K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
     "he-gas": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
     "ar-liquid": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "water-spce": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],

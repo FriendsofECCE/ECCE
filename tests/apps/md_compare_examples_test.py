@@ -2,7 +2,7 @@
 """Compare between the General Chemistry gas runs, in the tree as imported.
 
 File > Open Example Calculations puts each GROMACS run in a study inside its
-topic (Examples/General_Chemistry/Gases,_liquids_and_solids/ar-gas/dynamics),
+topic (Examples/General_Chemistry/Gases,_liquids_and_solids/ar-gas-300K/dynamics),
 so Compare must look inside studies: from he-gas it offers ar-gas and the
 other way round.  With ECCE_MDCOMPARE_PNG=<dir> the argon, water and NaCl
 runs are photographed (atoms drawn, molecules whole across the cell).
@@ -74,7 +74,7 @@ def run(display, data, work):
         while time.time() < end:
             # The organizer is stopped when this returns, so wait for the
             # big trajectories too: an import cut short leaves no structure.
-            done = [task(root, st) for st in ("ar-gas", "he-gas", "water-spce",
+            done = [task(root, st) for st in ("ar-gas-300K", "he-gas", "water-spce",
                                               "nacl-dissolving")]
             if all(done) and all(os.path.exists(os.path.join(d, "Props", "GEOMTRACE"))
                                  for d in done):
@@ -86,13 +86,13 @@ def run(display, data, work):
     result = apps.run(display, "organizer", windowTimeout=60, settle=10,
                       env={"ECCE_TEST_ORGANIZER": script,
                            "ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=imported)
-    ar, he = task(root, "ar-gas"), task(root, "he-gas")
+    ar, he = task(root, "ar-gas-300K"), task(root, "he-gas")
     check(ar and he, "the gas runs were imported as studies under the topic",
           "%s / %s" % (ar, he))
     if not (ar and he):
         print((result.log or "")[-2000:])
         return
-    for own, other in ((he, "ar-gas"), (ar, "he-gas")):
+    for own, other in ((he, "ar-gas-300K"), (ar, "he-gas")):
         log = builder(display, "file://" + own + "/", ["wait 6000",
                                                         "mdcompare speed ?"])
         m = re.search(r"BUILDER: mdcompare candidates=(\d+) ms=(\d+) (.*)$", log, re.M)
@@ -108,7 +108,7 @@ def run(display, data, work):
     if shots:
         os.makedirs(shots, exist_ok=True)
     only = os.environ.get("ECCE_MDCOMPARE_ONLY")
-    for study in ("ar-gas", "water-spce", "nacl-dissolving"):
+    for study in ("ar-gas-300K", "water-spce", "nacl-dissolving"):
         if only and study != only:
             continue
         own = task(root, study)
@@ -143,7 +143,7 @@ def run(display, data, work):
         check(atoms > 0 and m and int(m.group(2)) == atoms,
               "%s: every one of its %d atoms is drawn" % (study, atoms),
               (m.group(0) if m else "") + log[-2500:])
-        if study == "ar-gas":
+        if study == "ar-gas-300K":
             check(drawn.get("Ar") == "1000", "ar-gas: 1000 Ar drawn", str(drawn))
         if study == "water-spce":
             m = re.search(r"BUILDER: bondlen bonds=(\d+) longest=([\d.]+) "
