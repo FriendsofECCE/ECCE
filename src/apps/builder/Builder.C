@@ -1140,6 +1140,15 @@ void Builder::createToolPanels()
   }
   p_tabsPanel->SetSizer(tabRow);
   p_tabsPanel->SetMinSize(ewxBitmap::scaled(wxSize(200, 34)));
+  //  AUI's caption bar keeps its 17 px at any text size.
+  if (ewxBitmap::dpiScale() > 1) {
+    wxAuiDockArt *art = p_mgr.GetArtProvider();
+    wxClientDC dc(this);
+    dc.SetFont(art->GetFont(wxAUI_DOCKART_CAPTION_FONT));
+    const int need = dc.GetTextExtent("Wg").y + ewxBitmap::scaled(6);
+    if (need > art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE))
+      art->SetMetric(wxAUI_DOCKART_CAPTION_SIZE, need);
+  }
   wxAuiPaneInfo tabInfo;
   tabInfo.Name(NAME_COLUMN_TABS).CaptionVisible(false).Right().Layer(1)
          .Position(0).Fixed().Floatable(false).Movable(false)
@@ -1156,8 +1165,8 @@ void Builder::createToolPanels()
   wxAuiPaneInfo indexInfo;
   indexInfo.Name(NAME_PROPERTY_INDEX).Caption("Properties").CaptionVisible(true)
            .Right().Layer(1).Position(1).Resizable(true).CloseButton(false)
-           .Floatable(false).MinSize(wxSize(200, 150))
-           .BestSize(wxSize(400, 230)).Show(false);
+           .Floatable(false).MinSize(ewxBitmap::scaled(wxSize(200, 150)))
+           .BestSize(ewxBitmap::scaled(wxSize(400, 230))).Show(false);
   indexInfo.dock_proportion = 1;   // sized to its rows: sizeIndexPane
   p_mgr.AddPane(p_index, indexInfo);
 

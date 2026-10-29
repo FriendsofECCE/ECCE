@@ -24,6 +24,7 @@
 
 ////@begin includes
 #include "wxgui/ewxApp.H"
+#include "wxgui/ewxBitmap.H"
 #include "wxgui/WxResourceTreeCtrl.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxBitmap.H"
@@ -385,7 +386,7 @@ void CalcMgrGUI::CreateControls()
 
     ewxPanel* itemPanel82 = new ewxPanel( p_splitterWindow, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSUNKEN_BORDER|wxTAB_TRAVERSAL );
 
-    p_splitterWindow->SplitVertically(p_treeCtrl, itemPanel82, 250);
+    p_splitterWindow->SplitVertically(p_treeCtrl, itemPanel82, ewxBitmap::scaled(250));
     p_topSizer->Add(p_splitterWindow, 1, wxGROW, 0);
 
 ////@end CalcMgrGUI content construction

@@ -403,7 +403,17 @@ ewxBitmap::ewxBitmap(const wxString& name, long type)
     wxBitmap::operator=(bmp.IsOk() ? bmp : placeholder(name));
     return;
   }
-  wxBitmap::operator=(scaled(loadPixmap(name, type)));
+  //  Where a 22 px twin of a 16 px icon exists, scaling that one up is
+  //  sharper than doubling the small one.
+  if (dpiScale() >= 1.5 && name.EndsWith("16.png")) {
+    wxBitmap big = loadPixmap(name.Left(name.length() - 6) + ".png", type);
+    if (big.IsOk() && big.GetWidth() > 16) {
+      wxImage image = big.ConvertToImage();
+      image.Rescale(scaled(16), scaled(16), wxIMAGE_QUALITY_HIGH);
+      wxBitmap::operator=(alphaToMask(wxBitmap(image, big.HasAlpha() ? 32 : -1)));
+    }
+  }
+  if (!IsOk()) wxBitmap::operator=(scaled(loadPixmap(name, type)));
   wxString icon = genericIconName(name);
   if (!icon.empty()) {
     wxBitmap art = themedIcon(icon, IsOk() ? GetSize() : wxSize(16, 16));

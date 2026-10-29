@@ -13,8 +13,8 @@ BEGIN_EVENT_TABLE(ewxStatusBar, wxStatusBar)
   EVT_SIZE(ewxStatusBar::OnSize)
 END_EVENT_TABLE()
 
-static const int BITMAP_SIZE_X = 20;
-static const int BITMAP_SIZE_Y = 20;
+#define BITMAP_SIZE_X (ewxBitmap::scaled(20))
+#define BITMAP_SIZE_Y (ewxBitmap::scaled(20))
 
 ewxStatusBar::ewxStatusBar()
   : wxStatusBar(),
@@ -52,7 +52,7 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
                                   wxNO_BORDER|wxBU_EXACTFIT);
   */
 
-  static const int widths[FIELD_MAX] = {BITMAP_SIZE_X, -1, BITMAP_SIZE_X, -1};
+  const int widths[FIELD_MAX] = {BITMAP_SIZE_X, -1, BITMAP_SIZE_X, -1};
   static const int styles[FIELD_MAX] = {wxSB_FLAT, wxSB_NORMAL,
                                         wxSB_FLAT, wxSB_FLAT};
   SetFieldsCount(FIELD_MAX);

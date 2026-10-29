@@ -7,6 +7,7 @@ using namespace std;
 #include "wx/wx.h"
 #endif
 
+#include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxDisabler.H"
 #include "wxgui/ewxBitmapButton.H"
 #include "wxgui/ewxHelpHandler.H"
@@ -39,6 +40,13 @@ bool ewxBitmapButton::Create(wxWindow* parent, wxWindowID id,
     return false;
   }
 
+  //  wxMSW sizes the button from the bitmap at the logical scale, which
+  //  leaves a scaled bitmap wider than its button.
+  if (ewxBitmap::dpiScale() > 1 && bitmap.IsOk() && size == wxDefaultSize) {
+    const wxSize best = GetBestSize(), bmp = bitmap.GetSize();
+    SetMinSize(wxSize(wxMax(best.x, bmp.x + ewxBitmap::scaled(2)),
+                      wxMax(best.y, bmp.y + ewxBitmap::scaled(2))));
+  }
   PushEventHandler(new ewxHelpHandler(this));
   p_disabler = new ewxDisabler();
   PushEventHandler(p_disabler);
