@@ -514,8 +514,16 @@ void WxBasisTool::initControls()
     int aroundX = this->GetSize().x - p_mainSplitWindow->GetSize().x;
     best.x = wxMax(best.x,
         aroundX + p_cntxtMoleculePanel->GetParent()->GetBestSize().x);
-    this->SetMinSize(wxSize(wxMax(best.x, WXBASISTOOL_WINDOW_MINWIDTH),
-                            wxMax(best.y, WXBASISTOOL_WINDOW_MINHEIGHT)));
+    //  Raw-pixel floors plus a scaled font can exceed the display: a frame
+    //  minimum taller than the screen is obeyed, so cap it and let the
+    //  content scroll (ewxWindowUtils::fitToDisplay).
+    wxSize want(wxMax(best.x, WXBASISTOOL_WINDOW_MINWIDTH),
+                wxMax(best.y, WXBASISTOOL_WINDOW_MINHEIGHT));
+    const wxSize cap = ewxWindowUtils::clientCapForDisplay(this);
+    const wxSize decor = this->GetSize() - this->GetClientSize();
+    want.x = wxMin(want.x, cap.x + decor.x);
+    want.y = wxMin(want.y, cap.y + decor.y);
+    this->SetMinSize(want);
 }
 
 
@@ -554,6 +562,7 @@ void WxBasisTool::loadSettings(string fname)
      // A size saved under a smaller font would cut the content off.
      wxSize least = this->GetMinSize();
      this->SetSize(x, y, wxMax(w, least.x), wxMax(h, least.y));
+     ewxWindowUtils::keepOnDisplay(this);
 }
 
 

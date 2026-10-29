@@ -139,6 +139,13 @@ void WxFeedbackGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer11, 1, wxGROW|wxALL, 0);
 
     ewxTextCtrl* itemTextCtrl12 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_FEEDBACK_MSG, _T(""), wxDefaultPosition, wxSize(-1, 60), wxTE_MULTILINE|wxTE_READONLY|wxTE_LEFT|wxTE_WORDWRAP );
+    //  The raw 60 px is three lines at 96 dpi; on a scaled display the pane
+    //  holds one text line (it still grows with the window).
+    if (ewxBitmap::dpiScale() > 1) {
+        const wxSize one(-1, itemTextCtrl12->GetCharHeight() + 8);
+        itemTextCtrl12->SetInitialSize(one);
+        itemTextCtrl12->SetMinSize(one);
+    }
     itemBoxSizer11->Add(itemTextCtrl12, 1, wxGROW|wxALL, 0);
 
 ////@end WxFeedbackGUI content construction

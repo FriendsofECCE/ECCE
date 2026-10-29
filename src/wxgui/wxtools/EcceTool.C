@@ -6,6 +6,7 @@
  *
  */
 
+#include <cstdlib>
 #include "dsm/ResourceTool.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxBitmap.H"
@@ -325,6 +326,33 @@ void EcceTool::clearBitMap()
 }
 
 
+//  The stored 64 px thumbnail has the molecule small in the middle of its
+//  background; on a scaled display that reads as a small picture in a white
+//  square, so the margin is cut (square, 4 px of margin kept).
+static void cropToContent(wxImage& image)
+{
+  const int w = image.GetWidth(), h = image.GetHeight();
+  if (w < 8 || h < 8 || image.HasAlpha()) return;
+  const unsigned char* d = image.GetData();
+  const int br = d[0], bg = d[1], bb = d[2];   // corner = background
+  int x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++) {
+      const unsigned char* p = d + 3 * (y * w + x);
+      if (abs(p[0] - br) + abs(p[1] - bg) + abs(p[2] - bb) > 40) {
+        x0 = wxMin(x0, x); x1 = wxMax(x1, x);
+        y0 = wxMin(y0, y); y1 = wxMax(y1, y);
+      }
+    }
+  if (x1 < 0) return;
+  const int side = wxMin(wxMax(x1 - x0, y1 - y0) + 1 + 8, wxMin(w, h));
+  const int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const int x = wxMax(0, wxMin(w - side, cx - side / 2));
+  const int y = wxMax(0, wxMin(h - side, cy - side / 2));
+  image = image.GetSubImage(wxRect(x, y, side, side));
+}
+
+
 void EcceTool::setBitMap(wxBitmap bitmap)
 {
   p_bitmap = bitmap;
@@ -334,6 +362,7 @@ void EcceTool::setBitMap(wxBitmap bitmap)
     const int px = pixels ? ewxBitmap::scaled(ICON_SIZE)
                           : (int)(ICON_SIZE * scale + 0.5);
     wxImage image = bitmap.ConvertToImage();
+    if (pixels) cropToContent(image);
     image.Rescale(px, px, wxIMAGE_QUALITY_HIGH);
     p_thumbnail = wxBitmap(image, -1, scale);
   }

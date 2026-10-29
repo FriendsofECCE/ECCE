@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 using std::ifstream;
 using std::ofstream;
@@ -1139,7 +1140,11 @@ void Builder::createToolPanels()
     tabRow->Add(p_tabButtons[t], 1, wxEXPAND | wxALL, 2);
   }
   p_tabsPanel->SetSizer(tabRow);
-  p_tabsPanel->SetMinSize(ewxBitmap::scaled(wxSize(200, 34)));
+  //  The row must hold the buttons' own best height: raw 34 px clipped the
+  //  text once the font grew with the display scale.
+  const int tabH = std::max(ewxBitmap::scaled(34),
+      std::max(p_tabButtons[0]->GetBestSize().y, p_tabButtons[1]->GetBestSize().y) + 8);
+  p_tabsPanel->SetMinSize(wxSize(ewxBitmap::scaled(200), tabH));
   //  AUI's caption bar keeps its 17 px at any text size.
   if (ewxBitmap::dpiScale() > 1) {
     wxAuiDockArt *art = p_mgr.GetArtProvider();
@@ -4789,8 +4794,12 @@ void Builder::doSaveThumb()
     // create thumbnail (without labels)
     // The offscreen render does not see the canvas's background.
     const SbColor bg = p_viewer->getBackgroundColor();
+    //  The corner texts ("5 atoms") are part of the viewer's scene graph.
+    const bool hadText = p_viewer->textLabelsShown();
+    p_viewer->showTextLabels(false);
     if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2]))
       showMessage(VizRender::msg(), true);
+    p_viewer->showTextLabels(hadText);
     // turn labels back on
     cmd.undo();
   }

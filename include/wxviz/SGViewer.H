@@ -76,6 +76,7 @@ public:
 
   void initializeText(void);
   void showTextLabels(bool show);
+  bool textLabelsShown() const { return p_showText; }
   void setText(const string& lleft, const string& lright, const string& uleft, const string& uright);
   void setLLeftText(const string& text);
   void setLRightText(const string& text);
