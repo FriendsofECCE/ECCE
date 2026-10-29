@@ -5809,7 +5809,8 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   // for each "contained", add to menu
   for (size_t i = 0; i < resVec.size(); i++) {
     // need to remove redundant "New " from each sub menu item
-    string name(resVec[i]->getMenuItem(), 4);
+    string name = resVec[i]->getMenuItem();
+    if (name.size() > 4) name = name.substr(4);
     wxMenuItem * menuItem = new wxMenuItem(&menu, resVec[i]->getId(),
             name.c_str(), _T(""), wxITEM_NORMAL);
     menuItem->SetBitmap(ewxBitmap(resVec[i]->getIcon()));
