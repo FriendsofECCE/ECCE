@@ -708,8 +708,8 @@ void Builder::setColumnTab(int tab, bool save)
 void Builder::keepColumnWidth()
 {
   wxAuiPaneInfo &idx = p_mgr.GetPane(wxString(NAME_PROPERTY_INDEX));
-  if (idx.IsOk() && idx.min_size.x > 200) {
-    idx.MinSize(wxSize(200, idx.min_size.y));
+  if (idx.IsOk() && idx.min_size.x > ewxBitmap::scaled(200)) {
+    idx.MinSize(wxSize(ewxBitmap::scaled(200), idx.min_size.y));
   }
 }
 

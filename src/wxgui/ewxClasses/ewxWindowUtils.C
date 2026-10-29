@@ -204,8 +204,9 @@ void ewxWindowUtils::saveWindowSettings(wxWindow *win,
   if (saveSize) {
     int width=0, height=0;
     win->GetSize(&width, &height);
-    config->Write("/Window/Height", height);
-    config->Write("/Window/Width", width);
+    //  Stored at 96 dpi so a size saved at one scale restores at another.
+    config->Write("/Window/Height", (int)(height / ewxBitmap::dpiScale() + 0.5));
+    config->Write("/Window/Width", (int)(width / ewxBitmap::dpiScale() + 0.5));
   }
   config->Flush();
 }
@@ -230,6 +231,8 @@ void ewxWindowUtils::restoreWindowSettings(wxWindow *win,
     int height=wxDefaultCoord;
     config->Read("/Window/Height", &height, wxDefaultCoord);
     config->Read("/Window/Width", &width, wxDefaultCoord);
+    if (height > 0) height = ewxBitmap::scaled(height);
+    if (width > 0) width = ewxBitmap::scaled(width);
     win->SetSize(x, y, width, height, wxSIZE_AUTO);
   } else {
     // GitHub #67: passing -1/wxDefaultCoord for width/height here does
@@ -268,8 +271,9 @@ void ewxWindowUtils::saveWindowSettings(wxWindow *win,
   if (saveSize) {
     int width=0, height=0;
     win->GetSize(& width, & height);
-    prefs.setInt(prefix+".Height",height);
-    prefs.setInt(prefix+".Width",width);
+    //  Stored at 96 dpi so a size saved at one scale restores at another.
+    prefs.setInt(prefix+".Height",(int)(height / ewxBitmap::dpiScale() + 0.5));
+    prefs.setInt(prefix+".Width",(int)(width / ewxBitmap::dpiScale() + 0.5));
   }
   prefs.saveFile();
 }
@@ -305,6 +309,8 @@ bool ewxWindowUtils::restoreWindowSettings(wxWindow *win,
          height = -1;
       if (width < 0)
          width = -1;
+      if (height > 0) height = ewxBitmap::scaled(height);
+      if (width > 0) width = ewxBitmap::scaled(width);
       win->SetSize(x, y, width, height);
    } else {
       // GitHub #67: see the ewxConfig overload above for the full
@@ -890,8 +896,13 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
     win->SetClientSize(target);
 
   win->Layout();
-  if (scroller != NULL)
+  //  The outer layout does not re-lay the scroller's own content when only
+  //  the content's natural size changed (a section shown or resized after
+  //  the wrap), which left it at its old height with no scrollbar.
+  if (scroller != NULL) {
+    scroller->Layout();
     scroller->FitInside();
+  }
   keepOnDisplay(win);
 }
 

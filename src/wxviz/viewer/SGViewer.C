@@ -653,6 +653,15 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
            }
         }
 
+        //  Top texts hang from the glyph top, which rises with the text scale.
+        if (idx >= 2 && GLPath::contentScaleFactor() > 1.0) {
+           const SbVec2s sz = SoViewportRegionElement::get(action->getState())
+                                 .getViewportSizePixels();
+           if (sz[1] > 0)
+              pos[1] = std::min(pos[1],
+                  1.0f - (15.f*(float)GLPath::contentScaleFactor() + 5.f)/sz[1]);
+        }
+
         float x =0;float y =0;float z =0;
         vv.getPlanePoint(vv.getNearDist()+ 0.1 * vv.getDepth(), pos).getValue(x,y,z);
 
