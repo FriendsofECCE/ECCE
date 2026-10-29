@@ -15,7 +15,7 @@ authors:
   - given-names: Matthew
     family-names: Asplund
     affiliation: Brigham Young University
-version: 9.4.3
+version: 9.4.4
 date-released: 2026-10-29
 doi: 10.5281/zenodo.23281771
 license: ECL-2.0
