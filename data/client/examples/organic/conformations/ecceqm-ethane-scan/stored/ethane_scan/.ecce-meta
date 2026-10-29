@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, relaxed scan of the H-C-C-H torsion, -180 to 180 degrees in 25 points. This calculation shows the internal rotation of ethane: in the Relaxed Scan panel the energy is lowest, 0.0 kJ/mol, for the staggered geometries at -180, -60, 60 and 180 degrees and highest, 11.8 kJ/mol, for the eclipsed ones at -120, 0 and 120 degrees, so the rotation barrier is 11.8 kJ/mol (electronic energies, no zero-point correction).
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 04:52:15 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 12:03:21 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 04:52:02 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 12:02:50 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,14 +15,16 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/ethane_scan__JLq6MB
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/ethane_scan__qIPGyE
 .	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
 .	http://www.emsl.pnl.gov/ecce:launch_nodes		0
 .	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
 .	http://www.emsl.pnl.gov/ecce:launch_queue		
 .	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
 .	http://www.emsl.pnl.gov/ecce:launch_rundir		
@@ -34,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=10 sent=1792990333.190 at=1792990334\nscan point=25/25\nscf cycle=6 energy=-79.7638123819 dE=-7.47e-12/1e-10 grad=6.01e-08/1e-07 converged=yes\nscf~ dE=-1.65e-06,-2.98e-08,-7.15e-08,-6.79e-10,-7.47e-12\nopt step=6 energy=-79.7638123819 maxgrad=1.41e-04/3e-04 rmsgrad=5.03e-05/1e-04 maxstep=4.41e-04/4e-03 rmsstep=2.19e-04/2e-03 dE=-2.90e-06/5e-06 converged=yes\nopt~ maxgrad=3.17e-03,9.71e-04,1.63e-04,8.71e-05,2.97e-02,1.10e-02,6.53e-03,3.75e-03,1.15e-03,2.31e-04,1.34e-04,3.14e-02,1.09e-02,6.52e-03,3.63e-03,9.83e-04,2.65e-04,1.48e-04,3.24e-02,1.08e-02,5.46e-03,2.88e-03,6.83e-04,2.12e-04,1.24e-04,3.29e-02,1.07e-02,4.13e-03,2.10e-03,5.02e-04,1.38e-04,3.37e-02,1.06e-02,3.24e-03,1.71e-03,4.70e-04,1.03e-04,3.56e-02,1.08e-02,2.90e-03,1.72e-03,5.64e-04,1.13e-04,3.71e-02,1.14e-02,3.11e-03,2.07e-03,7.62e-04,1.75e-04,1.19e-04,3.82e-02,1.16e-02,3.68e-03,2.82e-03,1.02e-03,2.95e-04,1.46e-04,3.97e-02,1.15e-02,4.76e-03,3.52e-03,1.15e-03,4.41e-04,1.83e-04,4.20e-02,1.10e-02,5.19e-03,3.58e-03,1.18e-03,4.86e-04,2.03e-04,4.22e-02,1.06e-02,4.52e-03,2.89e-03,1.07e-03,3.80e-04,1.64e-04,4.03e-02,1.02e-02,3.49e-03,2.13e-03,8.61e-04,2.31e-04,3.73e-02,1.03e-02,3.03e-03,1.93e-03,7.44e-04,1.41e-04\nopt~ rmsgrad=1.24e-03,4.39e-04,9.69e-05,3.36e-05,1.60e-02,5.43e-03,2.45e-03,1.49e-03,5.03e-04,1.35e-04,4.51e-05,1.67e-02,5.35e-03,2.41e-03,1.48e-03,4.31e-04,1.45e-04,4.51e-05,1.74e-02,5.48e-03,2.06e-03,1.19e-03,3.02e-04,1.14e-04,3.74e-05,1.83e-02,5.66e-03,1.64e-03,8.94e-04,2.12e-04,7.88e-05,1.91e-02,5.84e-03,1.36e-03,7.36e-04,1.91e-04,6.67e-05,2.01e-02,6.07e-03,1.30e-03,7.60e-04,2.36e-04,7.72e-05,2.10e-02,6.30e-03,1.49e-03,9.81e-04,3.41e-04,1.07e-04,3.73e-05,2.18e-02,6.52e-03,1.81e-03,1.34e-03,4.78e-04,1.48e-04,4.51e-05,2.21e-02,6.64e-03,2.11e-03,1.64e-03,5.87e-04,1.88e-04,7.05e-05,2.20e-02,6.65e-03,2.13e-03,1.65e-03,5.88e-04,1.87e-04,7.09e-05,2.15e-02,6.54e-03,1.80e-03,1.35e-03,5.00e-04,1.35e-04,5.21e-05,2.09e-02,6.37e-03,1.39e-03,1.01e-03,3.89e-04,7.90e-05,2.00e-02,6.16e-03,1.18e-03,8.52e-04,3.13e-04,5.03e-05\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=20 sent=1793275395.263 at=1793275400\nscan point=25/25\nscf cycle=6 energy=-79.7638123819 dE=-7.47e-12/1e-10 grad=6.01e-08/1e-07 converged=yes\nscf~ dE=-1.65e-06,-2.98e-08,-7.15e-08,-6.79e-10,-7.47e-12\nopt step=6 energy=-79.7638123819 maxgrad=1.41e-04/3e-04 rmsgrad=5.03e-05/1e-04 maxstep=4.41e-04/4e-03 rmsstep=2.19e-04/2e-03 dE=-2.90e-06/5e-06 converged=yes\nopt~ maxgrad=3.17e-03,9.71e-04,1.63e-04,8.71e-05,2.97e-02,1.10e-02,6.53e-03,3.75e-03,1.15e-03,2.31e-04,1.34e-04,3.14e-02,1.09e-02,6.52e-03,3.63e-03,9.83e-04,2.65e-04,1.48e-04,3.24e-02,1.08e-02,5.46e-03,2.88e-03,6.83e-04,2.12e-04,1.24e-04,3.29e-02,1.07e-02,4.13e-03,2.10e-03,5.02e-04,1.38e-04,3.37e-02,1.06e-02,3.24e-03,1.71e-03,4.70e-04,1.03e-04,3.56e-02,1.08e-02,2.90e-03,1.72e-03,5.64e-04,1.13e-04,3.71e-02,1.14e-02,3.11e-03,2.07e-03,7.62e-04,1.75e-04,1.19e-04,3.82e-02,1.16e-02,3.68e-03,2.82e-03,1.02e-03,2.95e-04,1.46e-04,3.97e-02,1.15e-02,4.76e-03,3.52e-03,1.15e-03,4.41e-04,1.83e-04,4.20e-02,1.10e-02,5.19e-03,3.58e-03,1.18e-03,4.86e-04,2.03e-04,4.22e-02,1.06e-02,4.52e-03,2.89e-03,1.07e-03,3.80e-04,1.64e-04,4.03e-02,1.02e-02,3.49e-03,2.13e-03,8.61e-04,2.31e-04,3.73e-02,1.03e-02,3.03e-03,1.93e-03,7.44e-04,1.41e-04\nopt~ rmsgrad=1.24e-03,4.39e-04,9.69e-05,3.36e-05,1.60e-02,5.43e-03,2.45e-03,1.49e-03,5.03e-04,1.35e-04,4.51e-05,1.67e-02,5.35e-03,2.41e-03,1.48e-03,4.31e-04,1.45e-04,4.51e-05,1.74e-02,5.48e-03,2.06e-03,1.19e-03,3.02e-04,1.14e-04,3.74e-05,1.83e-02,5.66e-03,1.64e-03,8.94e-04,2.12e-04,7.88e-05,1.91e-02,5.84e-03,1.36e-03,7.36e-04,1.91e-04,6.67e-05,2.01e-02,6.07e-03,1.30e-03,7.60e-04,2.36e-04,7.72e-05,2.10e-02,6.30e-03,1.49e-03,9.81e-04,3.41e-04,1.07e-04,3.73e-05,2.18e-02,6.52e-03,1.81e-03,1.34e-03,4.78e-04,1.48e-04,4.51e-05,2.21e-02,6.64e-03,2.11e-03,1.64e-03,5.87e-04,1.88e-04,7.05e-05,2.20e-02,6.65e-03,2.13e-03,1.65e-03,5.88e-04,1.87e-04,7.09e-05,2.15e-02,6.54e-03,1.80e-03,1.35e-03,5.00e-04,1.35e-04,5.21e-05,2.09e-02,6.37e-03,1.39e-03,1.01e-03,3.89e-04,7.90e-05,2.00e-02,6.16e-03,1.18e-03,8.52e-04,3.13e-04,5.03e-05\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -46,6 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Geometry
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 04:52:03 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 12:02:51 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793275370
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

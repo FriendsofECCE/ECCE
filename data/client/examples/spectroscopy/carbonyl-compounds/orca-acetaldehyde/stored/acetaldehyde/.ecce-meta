@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This calculation shows how one methyl group changes the C=O stretch of an aldehyde.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 04:52:45 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 12:04:27 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 04:52:43 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 12:04:24 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,14 +15,16 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/acetaldehyde__VQqvsp
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/acetaldehyde__vcZmfD
 .	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
 .	http://www.emsl.pnl.gov/ecce:launch_nodes		0
 .	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
 .	http://www.emsl.pnl.gov/ecce:launch_queue		
 .	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
 .	http://www.emsl.pnl.gov/ecce:launch_rundir		
@@ -34,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792990365.344 at=1792990365\nscf cycle=12 energy=-153.5372211137850513 dE=-2.14e-09/1.000e-08\nscf~ dE=0.00e+00,-5.12e-02,-1.81e-02,-1.14e-02,-2.55e-02,-1.61e-04,-4.48e-05,-7.36e-07,-3.17e-07,-1.44e-08,-6.74e-08,-2.14e-09\nfreq done=yes zpe=0.05562731\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793275466.472 at=1793275466\nscf cycle=12 energy=-153.5372211137850513 dE=-2.14e-09/1.000e-08\nscf~ dE=0.00e+00,-5.12e-02,-1.81e-02,-1.14e-02,-2.55e-02,-1.61e-04,-4.48e-05,-7.36e-07,-3.17e-07,-1.44e-08,-6.74e-08,-2.14e-09\nfreq kind=analytic point=24/24 phase=assemble last=Loop real=15 imaginary=0 done=yes zpe=0.05562731\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -46,6 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 04:52:44 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 12:04:25 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793275464
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

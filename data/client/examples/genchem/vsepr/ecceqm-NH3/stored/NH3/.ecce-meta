@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. This calculation shows the trigonal pyramidal shape of ammonia, with three bonding pairs and one lone pair around nitrogen.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 02:12:58 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 12:01:49 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 02:12:56 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 12:01:46 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,14 +15,16 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/NH3__KDssCJ
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/NH3__6BDIdZ
 .	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
 .	http://www.emsl.pnl.gov/ecce:launch_nodes		0
 .	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
 .	http://www.emsl.pnl.gov/ecce:launch_queue		
 .	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
 .	http://www.emsl.pnl.gov/ecce:launch_rundir		
@@ -34,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792980778.200 at=1792980778\nscf cycle=6 energy=-56.5101489610 dE=-1.62e-12/1e-10 grad=1.43e-08/1e-07 converged=yes\nscf~ dE=-5.16e-07,-6.72e-09,-2.19e-09,-4.49e-10,-1.62e-12\nopt step=4 energy=-56.5101489610 maxgrad=1.58e-04/3e-04 rmsgrad=8.11e-05/1e-04 maxstep=5.64e-04/4e-03 rmsstep=3.26e-04/2e-03 dE=-1.04e-06/5e-06 converged=yes\nopt~ maxgrad=6.45e-03,3.23e-03,3.57e-04,1.58e-04\nopt~ rmsgrad=2.66e-03,1.17e-03,1.83e-04,8.11e-05\nfreq point=24/24 done=yes real=6 imaginary=0 zpe=0.0345100835\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793275308.399 at=1793275308\nscf cycle=6 energy=-56.5101489610 dE=-1.62e-12/1e-10 grad=1.43e-08/1e-07 converged=yes\nscf~ dE=-5.16e-07,-6.72e-09,-2.19e-09,-4.49e-10,-1.62e-12\nopt step=4 energy=-56.5101489610 maxgrad=1.58e-04/3e-04 rmsgrad=8.11e-05/1e-04 maxstep=5.64e-04/4e-03 rmsstep=3.26e-04/2e-03 dE=-1.04e-06/5e-06 converged=yes\nopt~ maxgrad=6.45e-03,3.23e-03,3.57e-04,1.58e-04\nopt~ rmsgrad=2.66e-03,1.17e-03,1.83e-04,8.11e-05\nfreq point=24/24 done=yes real=6 imaginary=0 zpe=0.0345100835\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -46,6 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 02:12:57 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 12:01:47 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793275306
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

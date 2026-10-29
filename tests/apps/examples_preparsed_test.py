@@ -40,6 +40,7 @@ CLOCK = re.compile(r"(seq|sent|at)=[0-9.]+")
 IGNORED_FILES = re.compile(r"(^|/)(Thumbnail[^/]*|[^/]*\.lock)$")
 DATE = re.compile(r"\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d\d \w{3} \d{4} "
                   r"\d\d:\d\d:\d\d GMT")
+DATE_B = re.compile(DATE.pattern.encode())
 
 
 def runArm(out, noPreparsed, setId):
@@ -102,7 +103,7 @@ def compare(parsed, copied):
         else:
             with open(pa, "rb") as x, open(pb, "rb") as y:
                 da, db = x.read(), y.read()
-            if da != db and DATE.sub(b"", da) != DATE.sub(b"", db):
+            if da != db and DATE_B.sub(b"", da) != DATE_B.sub(b"", db):
                 problems.append("%s differs (%d and %d bytes)"
                                 % (rel, len(da), len(db)))
     return problems

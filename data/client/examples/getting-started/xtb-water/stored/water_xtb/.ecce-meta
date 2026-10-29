@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		xTB, GFN2-xTB, optimisation and frequencies. This calculation shows a tight-binding calculation of water with orbitals, atomic charges and vibrations, run outside ECCE and imported from the program's output files.
 .	http://www.emsl.pnl.gov/ecce:application		xTB
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 09:51:19 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 12:02:29 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 09:51:17 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 12:02:26 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/water_xtb__RuVfQ8
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/water_xtb__n1Op36
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
@@ -36,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793267478.951 at=1793267478\nscf cycle=3 energy=-5.1049176 converged=yes\nopt step=4 energy=-5.0705444 grad=0.0001854/0.1000000E-02 converged=yes\nopt~ energy=-5.0702223,-5.0704604,-5.0705426,-5.0705444\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793275348.702 at=1793275348\nscf cycle=3 energy=-5.1049176 converged=yes\nopt step=4 energy=-5.0705444 grad=0.0001854/0.1000000E-02 converged=yes\nopt~ energy=-5.0702223,-5.0704604,-5.0705426,-5.0705444\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -48,7 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 09:51:17 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 12:02:27 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793267477
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793275347
 .	http://www.emsl.pnl.gov/ecce:theory		SE/GFN2-xTB

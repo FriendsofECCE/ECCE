@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/def2-SVP. Optimisation and frequencies. This calculation shows the product of the Diels-Alder reaction, with an electronic energy of -234.335601 Eh. Relative to butadiene plus ethylene this is -214.8 kJ/mol (electronic energies, no zero-point correction), a computed value only.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 04:52:08 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 12:03:01 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 04:52:04 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 12:02:54 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,14 +15,16 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/cyclohexene__GHVl0C
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/cyclohexene__BBg0Fu
 .	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
 .	http://www.emsl.pnl.gov/ecce:launch_nodes		0
 .	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
 .	http://www.emsl.pnl.gov/ecce:launch_queue		
 .	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
 .	http://www.emsl.pnl.gov/ecce:launch_rundir		
@@ -34,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1792990328.511 at=1792990328\nopt step=6 energy=-234.336341991 dE=0.0000066390/0.0000010000 rmsgrad=0.0000048562/0.0000300000 maxgrad=0.0000208411/0.0001000000 rmsstep=0.0000696155/0.0006000000 maxstep=0.0001936855/0.0010000000 converged=yes\nopt~ rmsgrad=0.0026952749,0.0002352506,0.0000683141,0.0000411556,0.0000209558,0.0000048562\nopt~ maxgrad=0.0105214425,0.0017314317,0.0002819550,0.0002745360,0.0001569626,0.0000208411\nscf cycle=3 energy=-234.3130031347463955 dE=-1.85e-09/1.000e-08\nscf~ dE=0.00e+00,-4.49e-09,-1.85e-09\nfreq done=yes zpe=0.14555198\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=5 sent=1793275380.406 at=1793275380\nopt step=6 energy=-234.336341991 dE=0.0000066390/0.0000010000 rmsgrad=0.0000048562/0.0000300000 maxgrad=0.0000208411/0.0001000000 rmsstep=0.0000696155/0.0006000000 maxstep=0.0001936855/0.0010000000 converged=yes\nopt~ rmsgrad=0.0026952749,0.0002352506,0.0000683141,0.0000411556,0.0000209558,0.0000048562\nopt~ maxgrad=0.0105214425,0.0017314317,0.0002819550,0.0002745360,0.0001569626,0.0000208411\nscf cycle=3 energy=-234.3130031347463955 dE=-1.85e-09/1.000e-08\nscf~ dE=0.00e+00,-4.49e-09,-1.85e-09\nfreq kind=analytic point=48/48 phase=assemble last=Van real=42 imaginary=0 done=yes zpe=0.14555198\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -46,6 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 04:52:06 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 12:02:56 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793275375
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

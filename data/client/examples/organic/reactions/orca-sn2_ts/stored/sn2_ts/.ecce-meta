@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/ma-def2-SVP. Transition-state optimisation (OptTS) and frequencies. This calculation shows the SN2 transition state, with one imaginary mode, -341.25 cm-1, a linear Cl-C-Br arrangement (180.0 degrees), a planar CH3 group and C-Cl and C-Br distances of 2.420 and 2.473 Å. Its energy is 20.8 kJ/mol above the reactant complex and 28.9 kJ/mol below Cl- plus CH3Br (computed electronic energies, no zero-point correction).
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 26 Oct 2026 04:52:13 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 12:03:08 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.3.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 26 Oct 2026 04:52:11 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.3.3
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 12:03:02 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,14 +15,16 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/sn2_ts__NrlniZ
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/sn2_ts__oxIgQa
 .	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
 .	http://www.emsl.pnl.gov/ecce:launch_nodes		0
 .	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
 .	http://www.emsl.pnl.gov/ecce:launch_queue		
 .	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
 .	http://www.emsl.pnl.gov/ecce:launch_rundir		
@@ -34,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1792990333.362 at=1792990333\nopt step=3 energy=-3073.683478267 dE=-0.0000013317/0.0000010000 rmsgrad=0.0000049386/0.0000300000 maxgrad=0.0000149687/0.0001000000 rmsstep=0.0003537332/0.0006000000 maxstep=0.0008996582/0.0010000000 converged=yes\nopt~ rmsgrad=0.0038023941,0.0001890313,0.0000049386\nopt~ maxgrad=0.0088897731,0.0003802292,0.0000149687\nscf cycle=3 energy=-3073.6765443332856194 dE=-7.96e-09/1.000e-08\nscf~ dE=0.00e+00,-4.25e-08,-7.96e-09\nfreq done=yes zpe=0.03632824\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=4 sent=1793275387.952 at=1793275387\nopt step=3 energy=-3073.683478267 dE=-0.0000013317/0.0000010000 rmsgrad=0.0000049386/0.0000300000 maxgrad=0.0000149687/0.0001000000 rmsstep=0.0003537332/0.0006000000 maxstep=0.0008996582/0.0010000000 converged=yes\nopt~ rmsgrad=0.0038023941,0.0001890313,0.0000049386\nopt~ maxgrad=0.0088897731,0.0003802292,0.0000149687\nscf cycle=3 energy=-3073.6765443332856194 dE=-7.96e-09/1.000e-08\nscf~ dE=0.00e+00,-4.25e-08,-7.96e-09\nfreq kind=analytic point=18/18 phase=assemble last=Van real=11 imaginary=1 done=yes zpe=0.03632824\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -46,6 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 26 Oct 2026 04:52:12 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 12:03:04 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793275383
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <eccejobstore>
-     <event  type="Message"  name="Job log started for calculation"  date="Mon, 26 Oct 2026 03:12:37 CET" >file:///home/andy/.cache/ecce-apps-v1cwaext/examples-arm-lgk14l5m/data/users/local/Examples/General_Chemistry/Atoms/Si     </event>
-     <event  type="Message"  name="eccejobstore running on client"  date="Mon, 26 Oct 2026 03:12:37 CET" >niobium     </event>
-     <event  type="Message"  name="Cache"  date="Mon, 26 Oct 2026 03:12:37 CET" >Successfully started property parsing cache     </event>
-     <event  type="Message"  name="Local cache directory"  date="Mon, 26 Oct 2026 03:12:37 CET" >/tmp/ecce_andy/jobs/Si__dpdiKS     </event>
-     <event  type="Message"  name="Job Monitor"  date="Mon, 26 Oct 2026 03:12:37 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
-     <event  type="Message"  name="System"  date="Mon, 26 Oct 2026 03:12:37 CET" >Started local RCommand connection     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 03:12:37 CET" >Receiving calculation output from eccejobmonitor     </event>
-     <event  type="Message"  name="eccejobstore"  date="Mon, 26 Oct 2026 03:12:37 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Mon, 26 Oct 2026 03:12:37 CET" >Running     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 03:12:38 CET" >File marked to copy from compute host: Si.qmout     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 03:12:38 CET" >File marked to copy from compute host: Si.qmout     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Mon, 26 Oct 2026 03:12:38 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-v1cwaext/ecce-home/data/client/examples/genchem/atoms/ecceqm-Si/ecceqm.qmorb' does not exist     </event>
-     <event  type="Message"  name="Benchmark"  date="Mon, 26 Oct 2026 03:12:38 CET" >Before file copy of output files     </event>
-     <event  type="Message"  name="Benchmark"  date="Mon, 26 Oct 2026 03:12:38 CET" >After file copy of output files     </event>
-     <event  type="Message"  name="File Copy"  date="Mon, 26 Oct 2026 03:12:38 CET" >Successfully copied files from server--
-RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/Si__TEwBX4/Si.qmout,/tmp/ecce_andy/jobs/Si__TEwBX4/*.cub,/tmp/ecce_andy/jobs/Si__TEwBX4/*.cube,/tmp/ecce_andy/jobs/Si__TEwBX4/*.file30}, /tmp/ecce_andy/jobs/Si__dpdiKS) succeeded     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Mon, 26 Oct 2026 03:12:38 CET" >Loaded     </event>
-     <event  type="Message"  name="eccejobstore exit"  date="Mon, 26 Oct 2026 03:12:38 CET" >eccejobstore terminating normally, exit status 0     </event>
+     <event  type="Message"  name="Job log started for calculation"  date="Thu, 29 Oct 2026 13:01:05 CET" >file:///home/andy/.cache/ecce-apps-5x0_kkdg/examples-arm-yqv596o6/data/users/local/Examples/General_Chemistry/Atoms/Si     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Thu, 29 Oct 2026 13:01:05 CET" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Thu, 29 Oct 2026 13:01:05 CET" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Thu, 29 Oct 2026 13:01:05 CET" >/tmp/ecce_andy/jobs/Si__1WudrP     </event>
+     <event  type="Message"  name="Job Monitor"  date="Thu, 29 Oct 2026 13:01:05 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Thu, 29 Oct 2026 13:01:05 CET" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Thu, 29 Oct 2026 13:01:05 CET" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="eccejobstore"  date="Thu, 29 Oct 2026 13:01:05 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Thu, 29 Oct 2026 13:01:05 CET" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Thu, 29 Oct 2026 13:01:08 CET" >File marked to copy from compute host: Si.qmout     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Thu, 29 Oct 2026 13:01:08 CET" >File marked to copy from compute host: Si.qmout     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Thu, 29 Oct 2026 13:01:08 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-5x0_kkdg/ecce-home/data/client/examples/genchem/atoms/ecceqm-Si/ecceqm.qmorb' does not exist     </event>
+     <event  type="Message"  name="Benchmark"  date="Thu, 29 Oct 2026 13:01:08 CET" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Thu, 29 Oct 2026 13:01:08 CET" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Thu, 29 Oct 2026 13:01:08 CET" >Successfully copied files from server--
+RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/Si__eEmvVF/Si.qmout,/tmp/ecce_andy/jobs/Si__eEmvVF/*.cub,/tmp/ecce_andy/jobs/Si__eEmvVF/*.cube,/tmp/ecce_andy/jobs/Si__eEmvVF/*.file30}, /tmp/ecce_andy/jobs/Si__1WudrP) succeeded     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Thu, 29 Oct 2026 13:01:08 CET" >Loaded     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Thu, 29 Oct 2026 13:01:08 CET" >eccejobstore terminating normally, exit status 0     </event>
 </eccejobstore>
