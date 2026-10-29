@@ -4,7 +4,7 @@ Workflows imports Na hydration as a Workflow session, not as loose calculations.
 
     tests/apps/examples_workflow_test.py [--shots DIR]
 
-Checks the six steps (three xTB, three ORCA), the "geometry" link from each
+Checks the four steps (two xTB, two ORCA), the "geometry" link from each
 xTB step to its ORCA step, the charge and multiplicity of every step, and that
 no label of the drawing touches a box, a line or an arrow.  --shots keeps the
 screenshot of the view.
@@ -27,7 +27,7 @@ import isolate    # noqa: E402
 import xdisplay   # noqa: E402
 
 SKIP = 77
-ARRANGEMENTS = ("6_0", "5_1", "4_2")
+ARRANGEMENTS = ("6_0", "5_1")
 
 failures = []
 
@@ -87,7 +87,7 @@ def run(display, data, work, shots):
     table = steps(info[0][3:])
     links = info[0].split(" links:")[1].split()
     expect = {"na_%s_%s" % (n, k) for n in ARRANGEMENTS for k in ("xtb", "orca")}
-    check("six steps", set(table) == expect, "steps %s" % sorted(table))
+    check("four steps", set(table) == expect, "steps %s" % sorted(table))
     check("codes", all(table.get("na_%s_xtb" % n, {}).get("code") == "xtb" and
                        table.get("na_%s_orca" % n, {}).get("code") == "ORCA"
                        for n in ARRANGEMENTS), "%s" % table)
@@ -98,8 +98,8 @@ def run(display, data, work, shots):
           all(r.get("charge") == "1" and r.get("mult") == "1"
               for r in table.values()), "%s" % table)
     shot = answer("workflowshot")
-    check("view saved, six boxes, three links, labels clear",
-          bool(shot) and shot[0].startswith("ok boxes=6 links=3 label-overlaps=0"),
+    check("view saved, four boxes, two links, labels clear",
+          bool(shot) and shot[0].startswith("ok boxes=4 links=2 label-overlaps=0"),
           "workflowshot answered %r" % shot)
     check("view screenshot exists",
           os.path.exists(png) and os.path.getsize(png) > 5000, png)

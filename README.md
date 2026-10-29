@@ -44,7 +44,7 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.5.0
 
-- Example set Workflows: a workflow of Na+(H2O)6 in which xTB optimises three arrangements and ORCA r2SCAN-3c refines each result, opened from **File > Open Example Calculations**.
+- Example set Workflows: a workflow of Na+(H2O)6 in which xTB optimises two arrangements and ORCA r2SCAN-3c refines each result, opened from **File > Open Example Calculations**.
 
 - Workflows (preview): **File > New > Workflow...** makes a set of calculations
   of any electronic-structure code (ECCE-QM, ORCA, Gaussian-16, NWChem, MOPAC,
