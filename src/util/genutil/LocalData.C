@@ -343,7 +343,14 @@ LocalData::MoveResult LocalData::move(const string& fromIn, const string& toIn,
     close(fd);
     return MOVED;
   }
-  if (errno != EXDEV) {
+#ifdef _WIN32
+  // Windows renames no folder with an open file in it, and the lock above
+  // is one: copy instead, as across drives.
+  bool copyInstead = errno == EXDEV || errno == EACCES;
+#else
+  bool copyInstead = errno == EXDEV;
+#endif
+  if (!copyInstead) {
     msg = string("Cannot move ") + from + " to " + to + ": " + strerror(errno);
     close(fd);
     return FAILED;
