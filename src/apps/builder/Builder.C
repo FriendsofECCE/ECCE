@@ -1142,8 +1142,11 @@ void Builder::createToolPanels()
   p_tabsPanel->SetSizer(tabRow);
   //  The row must hold the buttons' own best height: raw 34 px clipped the
   //  text once the font grew with the display scale.
-  const int tabH = std::max(ewxBitmap::scaled(34),
-      std::max(p_tabButtons[0]->GetBestSize().y, p_tabButtons[1]->GetBestSize().y) + 8);
+  const int tabH = ewxBitmap::dpiScale() > 1
+      ? std::max(ewxBitmap::scaled(34),
+                 std::max(p_tabButtons[0]->GetBestSize().y,
+                          p_tabButtons[1]->GetBestSize().y) + 8)
+      : 34;
   p_tabsPanel->SetMinSize(wxSize(ewxBitmap::scaled(200), tabH));
   //  AUI's caption bar keeps its 17 px at any text size.
   if (ewxBitmap::dpiScale() > 1) {
