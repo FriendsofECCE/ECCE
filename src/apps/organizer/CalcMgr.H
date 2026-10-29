@@ -9,6 +9,7 @@
 
 #include <wx/weakref.h>
 #include <wx/timer.h>
+#include <functional>
 #include <map>
 #include <set>
 #include <utility>
@@ -395,6 +396,9 @@ public:
                        ResourceType *& resType,
                        ResourceDescriptor::RUNSTATE & state);
   void getContextMenu(wxMenu & menu);
+  /// Runs f; an exception it throws comes back as text (its type and
+  /// message) instead of leaving a wx event handler and ending the app.
+  static string guarded(const std::function<void()>& f);
 
   void getFileMenu(   wxMenu & menu, WxResourceTreeItemData * itemData );
   void getHistoryMenu(wxMenu & menu, WxResourceTreeItemData * itemData );

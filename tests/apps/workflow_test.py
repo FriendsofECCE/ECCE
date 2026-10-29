@@ -9,7 +9,8 @@ from it (final geometry, charge and multiplicity carried), an ORCA step from
 that, and a second ORCA step as a branch.  Checks the carried geometry,
 charge and multiplicity, the stored "geometry" links, which steps Launch
 Ready Steps would launch, and that no link label in the drawing touches a
-box, a line, an arrow or another label.  --shots keeps the screenshots of
+box, a line, an arrow or another label.  A right-click on each box builds its
+context menu without an exception (#681).  --shots keeps the screenshots of
 the view and the New-step dialog.
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
@@ -34,6 +35,8 @@ SKIP = 77
 PROJECT_META = os.path.join(ROOT, "tools", "screenshots", "data",
                             "project.ecce-meta")
 CALC = os.path.join(HERE, "fixtures", "calc-water-opt")
+# orca-1 twice: the second right-click is on the box already selected.
+MENU_STEPS = ("orca-1", "xtb-1", "nw-water", "orca-1")
 
 failures = []
 
@@ -90,7 +93,7 @@ def run(display, data, work, shots):
         "workflowready %s" % wf,
         "workflowshot %s %s %s/orca-1" % (png, wf, wf),
         "workflowdialogshot %s %s orca_es %s/xtb-1" % (dlg, wf, wf),
-    ]
+    ] + ["workflowmenu %s %s/%s" % (wf, wf, n) for n in MENU_STEPS]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -164,6 +167,11 @@ def run(display, data, work, shots):
           "workflowshot answered %r" % shot)
     check("view screenshot exists", os.path.getsize(png) > 5000
           if os.path.exists(png) else False, png)
+    menus = answer("workflowmenu")
+    check("right-click menu on every box (%s)" % " ".join(MENU_STEPS),
+          len(menus) == len(MENU_STEPS) and
+          all(m.startswith("ok ") and "Rename" in m for m in menus),
+          "workflowmenu answered %r" % menus)
     ds = answer("workflowdialogshot")
     check("New-step dialog screenshot", bool(ds) and ds[0] == "ok" and
           os.path.exists(dlg), "answered %r" % ds)

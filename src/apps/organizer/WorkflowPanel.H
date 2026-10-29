@@ -44,6 +44,11 @@ public:
   void launchReadyClicked();
   void say(const std::string& text);
 
+  /// The box's context menu, as a right-click on it makes it: its labels
+  /// ("a|b|..."), or "error: ..." when building it threw.
+  std::string rightClick(const EcceURL& step, bool popup);
+  std::string contextMenu(bool popup);
+
   /// Geometry of the drawing, for the screenshot test.
   std::string layoutReport();
 
