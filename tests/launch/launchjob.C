@@ -5,7 +5,10 @@
 //   launchjob create <parentURL> <name> <resourceType> <deckFile> <deckName>
 //                    <machine> <runDir> <user>            prints the calc URL
 //                    [queue=Q] [nodes=N] [procs=P] [wall="D H:M"] [mem=MB]
+//                    [code=<JCode name>] [xyz=<file>]
 //                                 batch settings, as the launcher's queue controls set them;
+//                                 code and structure as the Calculation Editor's save stores
+//                                 them (the Builder's orbital views need both)
 //                                 LAUNCHJOB_ACCOUNT in the environment sets the account at launch
 //   launchjob gromacsstudy <parentURL> <name>
 //                                 a project <name>-project holding a GROMACS MD study <name> with an Optimize, an Equilibrate and a
@@ -184,6 +187,21 @@ static int doCreate(const vector<string>& a)
     else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
     else if (k == "wall") ldat.maxwall = v;
     else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
+    else if (k == "code") {
+      const JCode* jc = CodeFactory::lookup(v.c_str());
+      if (!jc || !task->application(jc)) {
+        cerr << "could not store the code " << v << endl;
+        return 1;
+      }
+    } else if (k == "xyz") {
+      ifstream fin(v.c_str());
+      Fragment frag;
+      PropertyTask* pt = dynamic_cast<PropertyTask*>(task);
+      if (!fin || !frag.restoreXYZ(fin) || !pt || !pt->fragment(&frag)) {
+        cerr << "could not store the structure " << v << endl;
+        return 1;
+      }
+    }
     else { cerr << "create: unknown setting " << a[i] << endl; return 2; }
   }
   Jobdata jdata;

@@ -140,6 +140,10 @@ AmicaOther	Cowan-Griffin Relativistic Correction	ERELCORR_A	Energy		PropValue
 Energy		Gx Energy				GXENERGY	Energy		PropValue	Total
 Energy		Heat of Formation			HFENERGY	Energy		PropValue	Total
 #
+# xtb's HOMO-LUMO gap.  Units class NA: it is stored in eV, which the
+# Hartree/kcal converter must not rescale.
+Energy		HOMO-LUMO Gap			HLGAP		NA		PropValue	Derived
+#
 Energy		Zero Point Energy			EZEROPT		Energy		PropValue	Thermochemistry
 #
 # Thermochemistry (298.15K, 1 atm ideal-gas statistical mechanics) --
@@ -328,6 +332,10 @@ EStruct		One Density Matrix			DMAT1		Electrons	PropTable<Basis Function,Basis Fu
 #  user reads -- it is what lets the orbital renderer rebuild the basis a
 #  semiempirical calculation never writes one for (#128).
 EStruct		Slater Basis				SLATERBASIS	NA		PropTable<Atom,Coordinate>
+#  The explicit Gaussian basis of a code that has none in ECCE's library
+#  (xtb's STO-nG expansions), one row per primitive: Z, l, exponent,
+#  coefficient (for an unnormalised primitive), shell number in the element.
+EStruct		Gaussian Basis (explicit)		GTOBASIS	NA		PropTable<Atom,Coordinate>
 EStruct		Electronic State			ESTATE		NA		PropString
 EStruct		Gaussian CUBE				CUBE		Electrons	PropVecGrid
 EStruct		Trajectory				TRJ		NA	NA

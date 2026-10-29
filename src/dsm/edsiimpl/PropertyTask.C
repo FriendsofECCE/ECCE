@@ -1987,6 +1987,8 @@ bool PropertyTask::isOutputFileProp(const string& propName)
 {
   bool ret = false;
   const JCode *codeCap = application();
+  //  A calculation stored without its code (a script-made one) has none.
+  if (codeCap == 0) return false;
   vector<TypedFile> names = codeCap->getCodeFiles(JCode::PROPERTY_OUTPUT);
   size_t i;
 

@@ -10,7 +10,7 @@
 # unreachable from ECCE: the input deck and submit script are generated
 # locally and ECCE stops there, telling you the directory to copy. See
 # CONFIG.dummy, which carries "noRemoteAccess: true".
-dummy	dummy.invalid	Generic	Manual submission only	Unspecified	1024:128	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO:CP2K	MN:RD:SD:Q:TL:MM:SS:AA
+dummy	dummy.invalid	Generic	Manual submission only	Unspecified	1024:128	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO:CP2K:xTB	MN:RD:SD:Q:TL:MM:SS:AA
 
 # The machine ECCE is running on. Jobs run directly here under the "Shell"
 # queue manager (no batch system), which is the normal arrangement for a
@@ -20,4 +20,4 @@ dummy	dummy.invalid	Generic	Manual submission only	Unspecified	1024:128	ssh	:NWC
 # Processor count is deliberately generous rather than detected: this file
 # is shipped, not generated, and the number only bounds the launcher's own
 # controls. Lower it in ~/.ECCE/MyMachines if you want it honest.
-localhost	localhost	Generic	Local workstation	Unspecified	64:1	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO:CP2K:ECCE-QM	WS
+localhost	localhost	Generic	Local workstation	Unspecified	64:1	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO:CP2K:xTB:ECCE-QM	WS

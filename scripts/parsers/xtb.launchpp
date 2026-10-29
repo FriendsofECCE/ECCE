@@ -1,0 +1,16 @@
+#!/usr/bin/env perl
+###############################################################################
+# xtb has nothing in its input that depends on the launch (gensub sets the
+# thread count from the launcher's processor count), but
+# Launch::postProcessInput() shells out to the code's launch preprocessor
+# unconditionally, so there has to be one.
+###############################################################################
+use Getopt::Std;
+
+&getopts('p:v');
+
+if ($opt_v) {
+  print "Revision: 1.0\n";
+  exit 0;
+}
+exit 0;

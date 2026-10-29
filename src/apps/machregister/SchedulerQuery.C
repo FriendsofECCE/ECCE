@@ -225,6 +225,11 @@ static ProgramHelp baseHelp(const string& code)
         h.examples.push_back("/usr/bin/cp2k.psmp");
         h.signature = "CP2K";
     }
+    else if (code == "xTB")
+    {
+        h.examples.push_back("/usr/bin/xtb");
+        h.signature = "xtb";
+    }
     else if (code == "MOPAC")
     {
         h.examples.push_back("/opt/mopac/MOPAC2016.exe");

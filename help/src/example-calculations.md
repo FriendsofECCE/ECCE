@@ -53,6 +53,7 @@ entries from the **Properties** menu.
 | `benzene` | ORCA | B3LYP/6-31G*, geometry optimisation and frequencies | Molecular orbitals, vibrational frequencies, and the charges from CHELPG, Hirshfeld, MBIS and natural population analysis (NPA, from NBO 7). |
 | `ethanol` | ECCE-QM | B3LYP/6-31G*, geometry optimisation, frequencies and Raman activities | Vibrational frequencies with IR intensities, Raman activities and depolarisation ratios, shown in the spectrum viewer's IR and Raman panes. |
 | `ammonia` | MOPAC | PM7, geometry optimisation, then frequencies | Molecular orbitals and vibrational frequencies of a semiempirical calculation. |
+| `water_xtb` | xTB | GFN2-xTB, geometry optimisation, then frequencies | Orbitals, atomic charges and the three vibrations of a tight-binding calculation, imported from the output files of a run made outside ECCE. |
 | `methane` | NWChem | B3LYP/6-31G*, geometry optimisation, frequencies and properties | Molecular orbitals, vibrational frequencies and Mulliken charges. |
 
 The original output and input files are in the folder

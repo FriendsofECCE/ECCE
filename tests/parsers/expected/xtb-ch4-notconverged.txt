@@ -1,0 +1,72 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    xtb-ch4-notconverged
+desc:    xtb.desc
+fixture: xtb/ch4_notconverged.out (558 lines)
+args:    '.' 'Geometry' 'SE' 'GFN2-xTB' '0'
+
+[TE]  Script=xtb.energy  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| TOTAL ENERGY\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=514 fed=1 rc=0 first-fed='          | TOTAL ENERGY               -4.174869103528 Eh   |'
+    key: TE
+      size: 1
+      values: -4.174869103528
+      units: Hartree
+
+[HLGAP]  Script=xtb.hlgap  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| HOMO-LUMO GAP\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=516 fed=1 rc=0 first-fed='          | HOMO-LUMO GAP              17.115514593456 eV   |'
+    key: HLGAP
+      size: 1
+      values: 17.115514593456
+      units: eV
+
+[DIPOLE]  Script=xtb.dipole  Freq=last  Skip=0  Lines=4
+  Begin=^molecular dipole:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=475 fed=4 rc=0 first-fed='molecular dipole:'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: -0.000 0.006 -0.011
+      units: Debye
+
+[GEOMTRACE][TEVEC]  Script=xtb.geomtrace  Freq=all  Skip=1  Lines=-
+  Begin=^ECCE-XTB-FRAME\s
+  End=^ECCE-XTB-ENDFRAME
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=535 fed=7 rc=0 first-fed=' energy: -4.125923563974 gnorm: 0.134619015842 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00000000000000 0.00000000000000 0.00000000000000 0.70000000000000 0.70000000000000 0.70000000000000 -0.70000000000000 -0.70000000000000 0.80000000000000 -0.70000000000000 0.70000000000000 -0.70000000000000 0.70000000000000 -0.80000000000000 -0.70000000000000
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.125923563974
+      units: Hartree
+  block 2: begin-line=543 fed=7 rc=0 first-fed=' energy: -4.169814366508 gnorm: 0.056807478715 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: -0.00017872853006 -0.01716828851266 0.01907221837851 0.66378435712691 0.64248131144172 0.63417405392335 -0.65168173326206 -0.63869485277488 0.71406419859737 -0.64382855188387 0.62257546776213 -0.63901674619502 0.63190465654908 -0.70919363791630 -0.62829372470422
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.169814366508
+      units: Hartree
+  block 3: begin-line=551 fed=7 rc=0 first-fed=' energy: -4.171385210874 gnorm: 0.055629190362 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: -0.00002038601743 -0.01573554082532 0.00056941918659 0.61867737162098 0.58755763332322 0.61498514842543 -0.57238266794276 -0.58921520621505 0.65110183116513 -0.62362496123187 0.59329442218898 -0.60680655988749 0.57735064357110 -0.67590130847183 -0.55984983888966
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.171385210874
+      units: Hartree
+

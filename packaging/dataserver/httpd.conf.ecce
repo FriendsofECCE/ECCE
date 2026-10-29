@@ -279,6 +279,11 @@ AddType  chemical/x-qe-output .pwout
 AddType  chemical/x-cp2k-input  .cp2kin
 AddType  chemical/x-cp2k-output .cp2kout
 
+# xtb. The deck is split by gensub and the report goes to stdout, so the
+# extensions are free; generic names would be typed text/plain.
+AddType  chemical/x-xtb-input   .xtbin
+AddType  chemical/x-xtb-output  .xtbout
+
 # ECCE Server Side Compression: deferred, see header comment. The
 # SetOutputFilter/SetInputFilter SS_COMPRESSION directives and their
 # ssc* settings from the legacy template are intentionally omitted here.

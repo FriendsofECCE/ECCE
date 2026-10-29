@@ -2600,6 +2600,138 @@ CASES = [
             'HIRSHFELD': dict(blocks=1, keys={'HIRSHFELD': {'size': '2'}}),
         },
     ),
+    # -----------------------------------------------------------------
+    # xtb 6.7.1 (#362).  The fixtures are what scripts/gensub's xtb() sub
+    # leaves in the output file: xtb's own report followed by the
+    # ECCE-XTB-FRAME blocks.
+    # -----------------------------------------------------------------
+    dict(
+        # GFN2-xTB single point of water: no optimizer, so the one frame
+        # is the input geometry and carries no energy (no TEVEC).
+        name='xtb-h2o-sp',
+        desc='xtb.desc',
+        fixture='xtb/h2o_sp.out',
+        parse_args=('.', 'Energy', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-5.070370761845',
+                                    'units': 'Hartree'}}),
+            'HLGAP': dict(keys={'HLGAP': {'values': '14.629673576893',
+                                          'units': 'eV'}}),
+            'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
+                                            'units': 'Debye'}}),
+            'GEOMTRACE][TEVEC': dict(blocks=1, keys={'GEOMTRACE': {
+                'size': '1 3 3', 'rowlabels': '1-O 2-H 3-H',
+                'units': 'Angstrom'}}),
+        },
+    ),
+    dict(
+        # Same water run with the Molden file gensub appends (--molden):
+        # 6 orbitals over 6 basis functions (O s,p; two H s), 4 occupied.
+        name='xtb-h2o-sp-molden',
+        desc='xtb.desc',
+        fixture='xtb/h2o_sp_molden.out',
+        parse_args=('.', 'Energy', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-5.070370761845'}}),
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]'
+            '[MOAOORDER][GTOBASIS': dict(blocks=1, keys={
+                'ORBENG': {'units': 'Hartree'},
+                'ORBOCC': {'values': '2.000000 2.000000 2.000000 2.000000 '
+                                     '0.000000 0.000000',
+                           'units': 'electrons'},
+                'MO': {'size': '6 6'},
+                'MOAOORDER': {'values': 'angular-momentum'},
+                'GTOBASIS': {'size': '11 5'},
+            }),
+        },
+    ),
+    dict(
+        # SO2 has a Cartesian d shell on S (18 basis functions); only the
+        # Molden block, as gensub appends it.  See xtb_trace_ps_test.py.
+        name='xtb-so2-molden',
+        desc='xtb.desc',
+        fixture='xtb/so2_molden.out',
+        parse_args=('.', 'Energy', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA]'
+            '[MOAOORDER][GTOBASIS': dict(blocks=1, keys={
+                'MO': {'size': '17 18'},
+                'ORBOCC': {'units': 'electrons'},
+            }),
+        },
+    ),
+    dict(
+        # Methane --opt normal: 12 cycles, so 12 frames and 12 TEVEC entries
+        # (TEVEC may never outnumber GEOMTRACE).
+        name='xtb-ch4-opt',
+        desc='xtb.desc',
+        fixture='xtb/ch4_opt.out',
+        parse_args=('.', 'Geometry', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-4.175217784720',
+                                    'units': 'Hartree'}}),
+            'HLGAP': dict(keys={'HLGAP': {'values': '17.346667996473',
+                                          'units': 'eV'}}),
+            'DIPOLE': dict(keys={'DIPOLE': {'units': 'Debye'}}),
+            'GEOMTRACE][TEVEC': dict(blocks=12, keys={
+                'GEOMTRACE': {'size': '1 5 3',
+                              'rowlabels': '1-C 2-H 3-H 4-H 5-H',
+                              'units': 'Angstrom'},
+                'TEVEC': {'units': 'Hartree'}}),
+        },
+    ),
+    dict(
+        # Optimization stopped at its cycle limit: xtb exits 0 and still
+        # prints a result, which gensub turns into "not converged".
+        name='xtb-ch4-notconverged',
+        desc='xtb.desc',
+        fixture='xtb/ch4_notconverged.out',
+        parse_args=('.', 'Geometry', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'units': 'Hartree'}}),
+            'GEOMTRACE][TEVEC': dict(blocks=3, keys={'GEOMTRACE': {
+                'size': '1 5 3'}}),
+        },
+    ),
+    dict(
+        # GFN2-xTB --ohess water: charges, frequencies (3 real modes after
+        # 6 rigid ones), IR, normal modes and thermochemistry.
+        name='xtb-h2o-ohess',
+        desc='xtb.desc',
+        fixture='xtb/h2o_ohess.out',
+        parse_args=('.', 'GeoVib', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'MULLIKEN': dict(keys={'MULLIKEN': {
+                'size': '3', 'values': '-0.56474259 0.28237129 0.28237129',
+                'units': 'e'}}),
+            'VIBFREQ][VIBIR': dict(keys={
+                'VIBFREQ': {'size': '9', 'units': 'cm-1'},
+                'VIBIR': {'size': '9', 'units': 'KM/Mole'}}),
+            'VIB': dict(keys={'VIB': {'size': '9 3 3',
+                                      'units': 'Angstrom'}}),
+            'EZEROPT': dict(keys={'EZEROPT': {
+                'values': '0.020120859945', 'units': 'Hartree'}}),
+            'ENTHALPY': dict(keys={'ENTHALPY': {
+                'values': '-5.046642494166'}}),
+            'EGIBBS': dict(keys={'EGIBBS': {'values': '-5.068041464462'}}),
+            'ENTROPY][THERMOTEMP': dict(keys={
+                'ENTROPY': {'values': '0.021399000000'},
+                'THERMOTEMP': {'values': '298.15'}}),
+        },
+    ),
+    dict(
+        # Methane --ohess: 15 rows, 9 vibrations, the degenerate ones listed
+        # individually.
+        name='xtb-ch4-ohess',
+        desc='xtb.desc',
+        fixture='xtb/ch4_ohess.out',
+        parse_args=('.', 'GeoVib', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'VIBFREQ][VIBIR': dict(keys={'VIBFREQ': {'size': '15'},
+                                         'VIBIR': {'size': '15'}}),
+            'VIB': dict(keys={'VIB': {'size': '15 5 3'}}),
+        },
+    ),
 ]
 
 

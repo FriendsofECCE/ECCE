@@ -51,7 +51,7 @@ EXTENSIONS = (".qmout", ".eprint", ".out")   # the output of an example folder
 def outputOf(folder):
     for ext in EXTENSIONS:
         for name in sorted(os.listdir(folder)):
-            if name.endswith(ext):
+            if name.endswith(ext) and name != "g98.out":   # xtb companion
                 return name
     return None
 

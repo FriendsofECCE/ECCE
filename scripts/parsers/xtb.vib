@@ -1,0 +1,74 @@
+#!/usr/bin/env perl
+# Normal modes from xtb's g98.out (appended by gensub between ECCE-XTB-G98
+# markers).  That file holds only the 3N-6 (3N-5) vibrations, and its
+# vectors are the unit mass-weighted eigenvectors (checked against an
+# eigendecomposition of xtb's own hessian), not Cartesian displacements.
+# VIB holds Cartesian displacements normalised to 1, like ORCA's, so each
+# vector is divided by sqrt(mass) and renormalised; the leading rigid-body
+# modes are padded with zeros to keep VIB row-aligned with VIBFREQ.  xtb
+# prints the vectors to two decimals, which limits the precision.
+$| = 1;
+my @mass = (0, 1.008, 4.0026, 6.94, 9.0122, 10.81, 12.011, 14.007, 15.999,
+  18.998, 20.180, 22.990, 24.305, 26.982, 28.085, 30.974, 32.06, 35.45,
+  39.948, 39.098, 40.078, 44.956, 47.867, 50.942, 51.996, 54.938, 55.845,
+  58.933, 58.693, 63.546, 65.38, 69.723, 72.630, 74.922, 78.971, 79.904,
+  83.798, 85.468, 87.62, 88.906, 91.224, 92.906, 95.95, 98, 101.07, 102.91,
+  106.42, 107.87, 112.41, 114.82, 118.71, 121.76, 127.60, 126.90, 131.29,
+  132.91, 137.33, 138.91, 140.12, 140.91, 144.24, 145, 150.36, 151.96,
+  157.25, 158.93, 162.50, 164.93, 167.26, 168.93, 173.05, 174.97, 178.49,
+  180.95, 183.84, 186.21, 190.23, 192.22, 195.08, 196.97, 200.59, 204.38,
+  207.2, 208.98, 209, 210, 222);
+
+my @z;
+my @modes;
+my @cols;
+while (<STDIN>) {
+  if (/^\s+\d+\s+(\d+)\s+0\s+-?\d+\.\d+\s+-?\d+\.\d+\s+-?\d+\.\d+\s*$/) {
+    push(@z, $1);
+  } elsif (/^\s+Frequencies\s+--(.*)$/) {
+    my @fs = split(' ', $1);
+    @cols = map { [] } @fs;
+  } elsif (/^\s+\d+\s+\d+\s+(-?\d+\.\d+\s+-?\d+\.\d+\s+-?\d+\.\d+.*)$/ && @cols) {
+    my @v = split(' ', $1);
+    for my $c (0 .. $#cols) {
+      push(@{$cols[$c]}, @v[3*$c .. 3*$c+2]);
+    }
+    if (scalar(@{$cols[0]}) == 3 * scalar(@z)) {
+      push(@modes, @cols);
+      @cols = ();
+    }
+  }
+}
+my $natoms = scalar(@z);
+exit(0) if ($natoms < 1 || !@modes);
+my $nmodes = 3 * $natoms;
+my $npad = $nmodes - scalar(@modes);
+exit(0) if ($npad < 0);
+
+print "key: VIB\nsize:\n$nmodes $natoms 3\nvectorlabels:\n";
+for my $i (1 .. $nmodes) {
+  print " NA ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\nrowlabels:\n";
+for my $i (1 .. $natoms) {
+  print " $i ";
+  print "\n" if (($i % 10) == 0);
+}
+print "\ncolumnlabels:\nX Y Z\nvalues:\n";
+print "0.0 0.0 0.0\n" x ($npad * $natoms);
+for my $v (@modes) {
+  my @d;
+  my $norm = 0;
+  for my $i (0 .. 3 * $natoms - 1) {
+    my $x = $v->[$i] / sqrt($mass[$z[int($i / 3)]]);
+    push(@d, $x);
+    $norm += $x * $x;
+  }
+  $norm = sqrt($norm) || 1;
+  for my $a (0 .. $natoms - 1) {
+    printf("%.15e %.15e %.15e\n", map { $d[3*$a+$_] / $norm } 0 .. 2);
+  }
+}
+print "units:\nAngstrom\nEND\n";
+exit(0);

@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+# xtb's `vibspectrum` (appended by gensub between ECCE-XTB-VIBSPECTRUM
+# markers) lists all 3N modes, the 5 or 6 rigid ones first at 0.00, so
+# VIBFREQ and VIBIR come out the same length and row-aligned like ORCA's.
+# The symmetry column is blank when xtb found none, hence the optional word.
+#   "    7        a           1539.10       133.26444         YES"
+$| = 1;
+my (@f, @ir);
+while (<STDIN>) {
+  if (/^\s*\d+\s+(?:[A-Za-z]\S*\s+)?(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(YES|NO|-)/) {
+    push(@f, $1);
+    push(@ir, $2);
+  }
+}
+exit(0) if (!@f);
+sub emit {
+  my ($key, $units, @v) = @_;
+  my $n = scalar(@v);
+  print "key: $key\nsize:\n$n\nrowlabels:\n";
+  foreach my $i (1 .. $n) {
+    print " $i";
+    print "\n" if ($i % 10 == 0);
+  }
+  print "\n" if ($n % 10);
+  print "values:\n";
+  foreach my $i (1 .. $n) {
+    print " $v[$i-1]";
+    print "\n" if ($i % 10 == 0);
+  }
+  print "\n" if ($n % 10);
+  print "units:\n$units\nEND\n";
+}
+&emit("VIBFREQ", "cm-1", @f);
+&emit("VIBIR", "KM/Mole", @ir);
+exit(0);

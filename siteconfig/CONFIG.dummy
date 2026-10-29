@@ -23,4 +23,5 @@ ORCA: orca
 MOPAC: mopac
 QuantumESPRESSO: pw.x
 CP2K: cp2k.psmp
+xTB: xtb
 perlPath: /usr/bin/perl
