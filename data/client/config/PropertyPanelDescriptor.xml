@@ -391,7 +391,7 @@
   </PropertyPanel>
 
   <PropertyPanel>
-    <name>UV-vis Spectrum</name>
+    <name>UV/Vis Spectrum</name>
     <group>Excited states</group>
     <class>UvVisPanel</class>
     <consumer>true</consumer>
