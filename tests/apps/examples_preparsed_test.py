@@ -112,9 +112,19 @@ def compare(parsed, copied):
 
 
 def calcDirs(project):
-    """{name: path} of the calculations below a set's project (topics nest)."""
-    return {os.path.basename(b): b for b, d, _f in os.walk(project)
+    """{path within the project: path} of the calculations below a set's
+    project (topics nest; every MD study has its own "dynamics" task)."""
+    return {os.path.relpath(b, project): b for b, d, _f in os.walk(project)
             if "Props" in d}
+
+
+def storedNames(setId):
+    """Names of the calculations of a set that ship a stored copy.  Only these
+    differ between the arms; the others (GROMACS studies) are parsed in both,
+    in the background, so comparing them would compare timing."""
+    root = os.path.join(HERE, "..", "..", "data", "client", "examples", setId)
+    return {n for b, d, _f in os.walk(root) if os.path.basename(b) == "stored"
+            for n in d}
 
 
 def checkSet(work, setId, failures):
@@ -146,7 +156,10 @@ def checkSet(work, setId, failures):
         failures.append("%s calculations differ: %s and %s"
                         % (setId, sorted(pcalcs), sorted(ccalcs)))
         return 0
+    stored = storedNames(setId)
     for calc in sorted(pcalcs):
+        if os.path.basename(calc) not in stored:
+            continue
         problems = compare(pcalcs[calc], ccalcs[calc])
         if problems:
             failures.append("%s/%s: %d differences" % (setId, calc, len(problems)))
