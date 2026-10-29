@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+# One frame between the ECCE-XTB-FRAME markers that gensub appends to the
+# output (xtb prints no coordinates itself): an xyz comment line, then the
+# atoms.  The comment of an xtbopt.log frame carries that step's energy, so
+# GEOMTRACE and TEVEC come from the same frame and stay the same length
+# (TEVEC may never be longer than GEOMTRACE).
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my (@coordlines, $rowLabels, $energy);
+$rowLabels = "";
+while (<STDIN>) {
+  if (/^\s*energy:\s*(-?\d+\.\d+)/) {
+    $energy = $1;
+  } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    push(@coordlines, "$2 $3 $4");
+    $rowLabels .= " " . scalar(@coordlines) . "-$1";
+  }
+}
+
+my $size = scalar(@coordlines);
+exit(0) if ($size < 1);
+
+print "key: GEOMTRACE\nsize:\n1 $size 3\nrowlabels:\n$rowLabels\n";
+print "columnlabels:\nX Y Z\nvalues:\n";
+print " $_\n" foreach (@coordlines);
+print "units:\nAngstrom\nEND\n";
+
+if (defined($energy)) {
+  print "key: TEVEC\nsize:\n1\nvalues:\n$energy\nunits:\nHartree\nEND\n";
+}
+exit(0);

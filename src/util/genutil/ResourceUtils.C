@@ -194,6 +194,9 @@ ResourceDescriptor::APPLICATIONTYPE ResourceUtils::stringToApplicationType(const
     else if (lstr == "condensedreactionstudy") {
       at = ResourceDescriptor::AT_CONDENSED_REACTION_STUDY;
     }
+    else if (lstr == "workflow") {
+      at = ResourceDescriptor::AT_WORKFLOW;
+    }
     else if (lstr == "dirdyvtst") {
       at = ResourceDescriptor::AT_DRDVTST;
     }
@@ -231,6 +234,9 @@ string ResourceUtils::applicationTypeToString(ResourceDescriptor::APPLICATIONTYP
     break;
   case ResourceDescriptor::AT_GROMACS:
     atStr = "GROMACS";
+    break;
+  case ResourceDescriptor::AT_WORKFLOW:
+    atStr = "Workflow";
     break;
   case ResourceDescriptor::AT_REACTION_STUDY:
     atStr = "ReactionStudy";
@@ -442,6 +448,9 @@ ResourceUtils::stringToResourceCategory(const string& str)
     else if (lstr == "condensedreactionsession") {
       resourceCategory = ResourceDescriptor::RC_CONDENSED_REACTION_SESSION;
     }
+    else if (lstr == "workflowsession") {
+      resourceCategory = ResourceDescriptor::RC_WORKFLOW_SESSION;
+    }
     else if (lstr == "mdtask") {
       resourceCategory = ResourceDescriptor::RC_MD_TASK;
     }
@@ -482,6 +491,9 @@ string ResourceUtils::resourceCategoryToString(
     break;
   case ResourceDescriptor::RC_CONDENSED_REACTION_SESSION:
     rcStr = "condensedreactionsession";
+    break;
+  case ResourceDescriptor::RC_WORKFLOW_SESSION:
+    rcStr = "workflowsession";
     break;
   case ResourceDescriptor::RC_MD_TASK:
     rcStr = "mdtask";

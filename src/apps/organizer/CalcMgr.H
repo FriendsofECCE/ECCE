@@ -39,9 +39,11 @@
 
 #include "CalcMgrGUI.H"
 #include "ContextPanelInterface.H"
+#include "WorkflowSteps.H"
 #include "WxProperties.H"
 
 class BookmarkEditor;
+class Session;
 class WxFind;
 class GlobalPrefs;
 class ewxPanel;
@@ -305,6 +307,14 @@ public:
   void saveSettings();
   void restoreSettings();
   void setContextPanel();
+  /// Workflow steps (WorkflowSteps.H): the code buttons and the hooks.
+  /// ask: show the New-step dialog; false takes its defaults.
+  Resource *newWorkflowStep(Session *workflow, ResourceType *type,
+                            Resource *source, bool ask, string *outcome,
+                            const string& name = "",
+                            const WorkflowSteps::Carry& carry = WorkflowSteps::Carry());
+  void launchReadySteps(Session *workflow, bool interactive, string *outcome,
+                        const string& shot);
   void createResource(ResourceType * resource,
                       WxResourceTreeItemData * parent = NULL,
                       const bool& bypassNamePrompt = false);

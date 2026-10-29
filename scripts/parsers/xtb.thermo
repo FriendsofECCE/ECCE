@@ -1,0 +1,28 @@
+#!/usr/bin/env perl
+# Thermochemistry from xtb's output; the key is chosen by the line's own
+# text, as orca.thermo does.  All values are in Hartree and absolute except
+# the zero-point energy (a correction), like the other codes.  xtb prints no
+# internal energy, so ETHERM is left unset.
+#   ":: zero point energy           0.020120859968 Eh   ::"
+#   "| TOTAL ENTHALPY             -5.046642494144 Eh   |"
+#   "| TOTAL FREE ENERGY          -5.068041464440 Eh   |"
+#   "    298.15    0.378102E-02    0.239019E-01    0.213990E-01    0.250291E-02"
+#      (T/K, H(0)-H(T)+PV, H(T), T*S, G(T), all Eh)
+$| = 1;
+sub scalar1 {
+  my ($key, $value) = @_;
+  print "key: $key\nsize:\n1\nvalues:\n$value\nunits:\nHartree\nEND\n";
+}
+$_ = <STDIN>;
+if (/zero point energy\s+(-?\d+\.\d+)\s+Eh/) {
+  &scalar1("EZEROPT", $1);
+} elsif (/TOTAL ENTHALPY\s+(-?\d+\.\d+)\s+Eh/) {
+  &scalar1("ENTHALPY", $1);
+} elsif (/TOTAL FREE ENERGY\s+(-?\d+\.\d+)\s+Eh/) {
+  &scalar1("EGIBBS", $1);
+} elsif (/^\s*(\d+\.\d+)\s+\S+\s+\S+\s+(\S+E[-+]\d+)\s+\S+\s*$/) {
+  my ($t, $ts) = ($1, $2 + 0);
+  &scalar1("ENTROPY", sprintf("%.12f", $ts));
+  print "key: THERMOTEMP\nsize:\n1\nvalues:\n$t\nunits:\nKelvin\nEND\n";
+}
+exit(0);

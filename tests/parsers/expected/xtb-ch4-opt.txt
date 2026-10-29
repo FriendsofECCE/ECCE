@@ -1,0 +1,171 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    xtb-ch4-opt
+desc:    xtb.desc
+fixture: xtb/ch4_opt.out (786 lines)
+args:    '.' 'Geometry' 'SE' 'GFN2-xTB' '0'
+
+[TE]  Script=xtb.energy  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| TOTAL ENERGY\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=670 fed=1 rc=0 first-fed='          | TOTAL ENERGY               -4.175217784720 Eh   |'
+    key: TE
+      size: 1
+      values: -4.175217784720
+      units: Hartree
+
+[HLGAP]  Script=xtb.hlgap  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| HOMO-LUMO GAP\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=672 fed=1 rc=0 first-fed='          | HOMO-LUMO GAP              17.346667996473 eV   |'
+    key: HLGAP
+      size: 1
+      values: 17.346667996473
+      units: eV
+
+[DIPOLE]  Script=xtb.dipole  Freq=last  Skip=0  Lines=4
+  Begin=^molecular dipole:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=631 fed=4 rc=0 first-fed='molecular dipole:'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0.000 -0.000 0.000
+      units: Debye
+
+[GEOMTRACE][TEVEC]  Script=xtb.geomtrace  Freq=all  Skip=1  Lines=-
+  Begin=^ECCE-XTB-FRAME\s
+  End=^ECCE-XTB-ENDFRAME
+  begins=12 delivered=12 buffered_away=0
+  block 1: begin-line=691 fed=7 rc=0 first-fed=' energy: -4.125923563974 gnorm: 0.134619015842 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00000000000000 0.00000000000000 0.00000000000000 0.70000000000000 0.70000000000000 0.70000000000000 -0.70000000000000 -0.70000000000000 0.80000000000000 -0.70000000000000 0.70000000000000 -0.70000000000000 0.70000000000000 -0.80000000000000 -0.70000000000000
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.125923563974
+      units: Hartree
+  block 2: begin-line=699 fed=7 rc=0 first-fed=' energy: -4.169814366508 gnorm: 0.056807478715 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: -0.00017872853006 -0.01716828851266 0.01907221837851 0.66378435712691 0.64248131144172 0.63417405392335 -0.65168173326206 -0.63869485277488 0.71406419859737 -0.64382855188387 0.62257546776213 -0.63901674619502 0.63190465654908 -0.70919363791630 -0.62829372470422
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.169814366508
+      units: Hartree
+  block 3: begin-line=707 fed=7 rc=0 first-fed=' energy: -4.171385210874 gnorm: 0.055629190362 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: -0.00002038601743 -0.01573554082532 0.00056941918659 0.61867737162098 0.58755763332322 0.61498514842543 -0.57238266794276 -0.58921520621505 0.65110183116513 -0.62362496123187 0.59329442218898 -0.60680655988749 0.57735064357110 -0.67590130847183 -0.55984983888966
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.171385210874
+      units: Hartree
+  block 4: begin-line=715 fed=7 rc=0 first-fed=' energy: -4.174869103528 gnorm: 0.009804039699 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: -0.00003207577645 -0.02489242414142 0.03197443587255 0.66010817224646 0.62096262369458 0.59941635419820 -0.64810857825700 -0.61548798010960 0.67765334232535 -0.62080388995467 0.58219814052560 -0.60921605989042 0.60883637174166 -0.66278035996915 -0.59982807250568
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.174869103528
+      units: Hartree
+  block 5: begin-line=723 fed=7 rc=0 first-fed=' energy: -4.174615231173 gnorm: 0.016056117664 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00054870705887 -0.01016679466080 0.00734984246507 0.63372860429540 0.61541505126470 0.62946743289450 -0.60292600670299 -0.61674321031540 0.68436760686898 -0.63123199814857 0.61189630394447 -0.62607544784783 0.59988069349728 -0.70040135023298 -0.59510943438071
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.174615231173
+      units: Hartree
+  block 6: begin-line=731 fed=7 rc=0 first-fed=' energy: -4.175211627875 gnorm: 0.001482569272 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: -0.00039093854726 -0.02134726297611 0.01867710755867 0.64552928779524 0.61206524930273 0.61159223671335 -0.62390340246131 -0.60901042967802 0.67833768750720 -0.62637174632089 0.59399453452341 -0.61448542901238 0.60513679953421 -0.67570209117201 -0.59412160276684
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175211627875
+      units: Hartree
+  block 7: begin-line=739 fed=7 rc=0 first-fed=' energy: -4.175073357410 gnorm: 0.005921908266 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00197578149704 -0.01436762666750 0.02657032186823 0.65189562839525 0.62638945058332 0.61050516684006 -0.62285671181824 -0.62457612267498 0.66700842885113 -0.62160568328337 0.59265252097509 -0.61578602915703 0.59059098520932 -0.68009822221594 -0.58829788840239
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175073357410
+      units: Hartree
+  block 8: begin-line=747 fed=7 rc=0 first-fed=' energy: -4.175202223571 gnorm: 0.002000938702 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00069522320878 -0.01822655267659 0.02234819075020 0.64788688816210 0.61890067270896 0.61169710811388 -0.62343660757240 -0.61618756949875 0.67421984923265 -0.62347340335611 0.59329568171088 -0.61561285816288 0.59832789955764 -0.67778223224449 -0.59265228993386
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175202223571
+      units: Hartree
+  block 9: begin-line=755 fed=7 rc=0 first-fed=' energy: -4.175214732172 gnorm: 0.000896311730 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: -0.00021253186950 -0.01951467119230 0.01926918473193 0.64795151766920 0.61408502308029 0.61061785153770 -0.62447104645851 -0.61192855890001 0.67546940463548 -0.62755861474530 0.59460506850467 -0.61381081809716 0.60429067540410 -0.67724686149265 -0.59154562280794
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175214732172
+      units: Hartree
+  block 10: begin-line=763 fed=7 rc=0 first-fed=' energy: -4.175199076987 gnorm: 0.002041998771 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00016309186184 -0.02190381409126 0.02034929540330 0.64262288144086 0.61411448789014 0.61437785978031 -0.62252190218735 -0.60966145829624 0.68152108549159 -0.62153057850810 0.59242170488616 -0.61737675881364 0.60126650739274 -0.67497092038880 -0.59887148186156
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175199076987
+      units: Hartree
+  block 11: begin-line=771 fed=7 rc=0 first-fed=' energy: -4.175216396878 gnorm: 0.000675769396 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00008696009270 -0.02058027484210 0.02029177433757 0.64522125017574 0.61492724316121 0.61253809816829 -0.62336960876008 -0.61150805623840 0.67829095987347 -0.62384391944213 0.59340510373649 -0.61575851373249 0.60190531793376 -0.67624401581720 -0.59536231864683
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175216396878
+      units: Hartree
+  block 12: begin-line=779 fed=7 rc=0 first-fed=' energy: -4.175217784714 gnorm: 0.000413514941 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00001486051018 -0.01950695548429 0.01985331934299 0.64745033953792 0.61443192862667 0.61164565625350 -0.62409573610483 -0.61189874807702 0.67618729556203 -0.62642594106392 0.59373498161065 -0.61484162718053 0.60305647712065 -0.67676120667601 -0.59284464397799
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175217784714
+      units: Hartree
+

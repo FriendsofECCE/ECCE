@@ -33,6 +33,9 @@ CASES = [
     ("gaussian-16/co_freq.log", "Gaussian-16"),
     ("orca/h2o_sym.out", "ORCA"),
     ("mopac/ch4_opt.out", "MOPAC"),
+    # run outside ECCE: geometry, orbitals, charges and modes from the files
+    # beside the output
+    ("xtb/external/h2o_ohess/h2o_ohess.out", "xTB"),
     # eprint trace with the program's stdout beside it
     ("../../../data/client/examples/getting-started/nwchem-methane/"
      "methane.eprint", "NWChem"),

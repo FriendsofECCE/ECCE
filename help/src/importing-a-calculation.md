@@ -18,6 +18,7 @@ ECCE recognises the code from a marker line in the output file:
 | ORCA | The output of a run (the file contains the "O   R   C   A" banner). |
 | ECCE-QM | The output file of the built-in program (`.qmout`). |
 | MOPAC | The output of a run (the file contains "MOPAC v"). ECCE reads the Hamiltonian, run type, charge, spin and the last geometry. |
+| xTB | The output of an `xtb` run (the file contains the "x T B" banner), with the files xtb wrote beside it: the geometry, and orbitals, charges and modes when the run produced them. See [xTB](xtb.md). |
 
 Output files of other codes are not recognised and the import ends with
 "Unrecognized output file format--cannot import." Quantum

@@ -54,6 +54,8 @@ describe what you did and what happened.
    pick the cutoff, the k-points, smearing and the box.
    [CP2K: the SCF loop](cp2k-scf.md) explains the OT minimiser and the outer
    SCF loop.
+   [xTB: tight-binding calculations with xtb](xtb.md): GFN2-xTB, GFN1-xTB and
+   GFN-FF energies and optimisations.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small
    protein through Prepare, Optimize, Equilibrate and Dynamics.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
@@ -128,6 +130,9 @@ describe what you did and what happened.
 
 29. [Allocations](allocations.md): the usage of each cluster account, from
    Tools > Allocations.
+
+30. [Workflows](workflows.md): calculations that start from the geometry of
+   an earlier one, drawn as a tree, with Launch Ready Steps.
 
 Reference:
 

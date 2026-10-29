@@ -59,7 +59,12 @@ class ICalcUtils
       *         calculation has no such property or it cannot be used.
       *         Null means "do not render", never "render approximately".
       */
-     static TGBSConfig* slaterBasisConfig(IPropCalculation* calc);
+     /** Basis from five numbers per primitive (Z, l, exponent, coefficient
+      *  for an unnormalised primitive, shell); null if unusable. */
+     static TGBSConfig* gtoBasisConfig(const std::vector<double>& rows);
+
+     static TGBSConfig* slaterBasisConfig(IPropCalculation* calc,
+                                          bool* orthonormal = 0);
 
 
   private:

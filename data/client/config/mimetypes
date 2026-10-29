@@ -70,6 +70,8 @@ chemical/x-qe-input                      .pwin
 chemical/x-qe-output                     .pwout
 chemical/x-cp2k-input                    .cp2kin
 chemical/x-cp2k-output                   .cp2kout
+chemical/x-xtb-input                     .xtbin
+chemical/x-xtb-output                    .xtbout
 application/x-compress                   .Z
 application/x-gzip                       .gz .tgz
 image/x-icon                             .ico

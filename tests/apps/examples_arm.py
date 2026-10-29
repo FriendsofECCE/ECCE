@@ -80,7 +80,7 @@ def waitStable(project, count, seconds=300):
 def main():
     out = sys.argv[1]
     setId, projectName, count = (sys.argv[2:5] if len(sys.argv) >= 5
-                                 else ("getting-started", "Examples/Getting_Started", "5"))
+                                 else ("getting-started", "Examples/Getting_Started", "6"))
     count = int(count)
     if not os.path.exists(os.path.join(apps.WRAPPERS, "ecce-organizer")):
         print("SKIP: no ecce-organizer under %s" % apps.WRAPPERS)

@@ -108,11 +108,13 @@ bool MoAoBasis::functionCounts(IPropCalculation *expt,
   //  orthonormal basis (S=I), so a caller must not push them through a
   //  real Slater overlap (#175).
   if (config == 0 || config->empty()) {
-    TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
+    bool orthonormal = false;
+    TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt, &orthonormal);
     if (slater != 0) {
       delete config;
       config = slater;
-      if (semiempirical != 0) *semiempirical = true;
+      //  Only MOPAC's SLATERBASIS is orthonormal; xtb's GTOBASIS is not.
+      if (semiempirical != 0) *semiempirical = orthonormal;
     }
   }
   if (config == 0 || config->empty()) { delete config; return false; }

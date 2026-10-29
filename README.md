@@ -42,6 +42,27 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
+## Coming in 9.5.0
+
+- Workflows (preview): **File > New > Workflow...** makes a set of calculations
+  of any electronic-structure code (ECCE-QM, ORCA, Gaussian-16, NWChem, MOPAC,
+  xTB, Quantum ESPRESSO, CP2K) drawn as a tree. Select a box and a code on the
+  right to add a step that starts from the final geometry, charge and
+  multiplicity of that box (several steps from one box are branches), and
+  **Launch Ready Steps** launches every step whose source is Complete.
+
+- xTB: GFN2-xTB, GFN1-xTB and GFN-FF through the `xtb` program, as a new
+  code in the code bar: energy and geometry optimisation, with an implicit
+  solvent (ALPB or GBSA). The orbitals (energies, occupations and
+  coefficients) are read from xtb's Molden file for GFN2 and GFN1; GFN-FF has
+  no orbitals. Atomic charges, and a Vibration and a Geometry + Vibration
+  run type with frequencies, IR intensities, normal modes and the
+  thermochemistry (zero-point energy, enthalpy, Gibbs energy, T*S). The
+  output of an `xtb` run made outside ECCE can be imported from the
+  Organizer, with the files xtb wrote beside it; the Getting Started set has
+  an xTB water example, and the [xTB help page](help/src/xtb.md) describes the
+  code.
+
 ## First steps
 
 The same pages are in ECCE under **Help**. To see it done first, the

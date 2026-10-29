@@ -1,0 +1,426 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  ai.xtb
+#
+# SYNTAX: ai.xtb -p -f -n <basename> -t <template> [-h] [-v]
+#
+# PURPOSE:
+#       Take the ECCE dictionary (.param) and fragment (.frag) and produce an
+#       xtb input deck (xtb.xtbin).  The deck is one file in two parts:
+#       line 1 is "xtb" followed by the command-line options, the rest is an
+#       xyz file (atom count, title, atoms).  scripts/gensub splits it before
+#       the run.  Nothing in the options is required to be edited by hand,
+#       but anything xtb accepts on its command line may be added to line 1.
+#
+# The dictionary reader and the ##tag## template engine are shared with the
+# other ai.<code> scripts.  xtb is semiempirical: no basis set, no -b.
+################################################################################
+
+use Getopt::Std;
+use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
+            $opt_e $opt_s $opt_q);
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+&loadPT;
+
+$| = 1;
+
+&getopts(':n:t:pfbcqeshv');
+&handle_options;
+
+%AbiDict = ();
+
+if ($TplFILE eq "") {
+  &usage;
+}
+
+&verifyAbiFile;
+&verifyFragFile;
+&readDict;
+&aiDebugDict;
+&readChemSys;
+&modifyInputFile;
+&cleanup;
+exit(0);
+
+################################################################################
+# Generic ##tag## substitution engine -- identical to ai.orca's/ai.gauss16's
+# modifyInputFile. Walks the template line by line, replaces ##key## with
+# either &key(value) if such a sub exists, else the raw dictionary value,
+# else (no match at any level of the dot-separated key) drops the line.
+#
+# CONTRACT (same as ai.gauss16's CheckpointFile / ai.orca's ORCABlocks): a
+# sub that wants to emit nothing must set $_ = "" itself, because the
+# engine only overwrites $_ when the sub's return value is non-empty.
+################################################################################
+################################################################################
+# Verbose troubleshooting output for the ##tag## substitution engine.
+#
+# Every silent-failure bug this project has chased through the input
+# generators has one shape: a tag resolves to the empty string, its line is
+# dropped, and the setting the user picked is simply not in the deck.  Nothing
+# says so -- the script exits 0 and the job runs with different settings than
+# the dialog showed.  (The NWChem BP86 case: the dialog offered "BP86 (GGA)",
+# the resolver only matched "BP86 (hybrid)", and every such job silently ran
+# on the default LDA instead.)
+#
+# Set ECCE_AI_DEBUG=1 for one line per tag on STDERR saying what it resolved
+# to and, crucially, when it resolved to nothing.  An environment variable
+# rather than a switch because these scripts are invoked with a fixed argument
+# list from C++, so this needs no C++ change to turn on.
+################################################################################
+sub aiDebug {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my ($message) = @_;
+  print STDERR "[ecce-ai] $message\n";
+}
+
+# A resolver that returns "" is not automatically a bug.  The convention in
+# these scripts is that a resolver which produces several lines either sets $_
+# itself or prints straight to NEWFILE, and returns "" either way.  Four
+# outcomes have to be told apart, and only the first two are trouble:
+#
+#   $_ still holds ##tag##   nothing replaced it; the literal tag text is
+#                            about to be written into the input deck
+#   nothing written at all   the line is dropped.  Intentional for an optional
+#                            setting, and the silent-drop bug when it is not --
+#                            the message names the tag, so a user report names
+#                            the setting that vanished
+#   bytes went to NEWFILE    the resolver wrote its own output (chemsys and
+#                            friends do this); fine
+#   $_ became something else likewise fine
+#
+# The NEWFILE byte count is what separates "dropped" from "written another
+# way"; without it every multi-line resolver looks like a silent drop.
+# Called from the `else { &aiUnmatched(@_); $result = ""; }` fallback that ends almost every
+# translator in these scripts.  That fallback IS the silent-failure mechanism:
+# the dialog offered a string, this sub has no case for it, the empty result
+# propagates, and the job runs without the setting -- or, as with the Gaussian
+# "None" case, the whole method string collapses to a bare "r".  @_ is the
+# sub's own argument list, so the unmatched value reports itself without each
+# call site having to name its parameter.
+sub aiUnmatched {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my $sub = (caller(1))[3] || "main";
+  $sub =~ s/^main:://;
+  my $value = defined($_[0]) ? $_[0] : "(no argument)";
+  &aiDebug("  !! &$sub has no case for '$value' -- returning empty. If that "
+           . "value came from a dialog, the dialog and this script disagree "
+           . "and the setting will be missing from the input.");
+}
+
+# The full dictionary the dialogs and calced handed this script.  Logged once
+# at startup because every "the job ran with the wrong settings" report needs
+# both halves: what was asked for, and what reached the deck.
+sub aiDebugDict {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  # readDict() stores every dotted SUFFIX of each key, so a single setting
+  # appears four or five times.  Print only the longest form of each -- a key
+  # that no other key ends with -- or the dump is mostly noise.
+  my @keys = sort keys %AbiDict;
+  my %isSuffix;
+  foreach my $key (@keys) {
+    foreach my $other (@keys) {
+      $isSuffix{$key} = 1 if ($other ne $key && $other =~ /\.\Q$key\E$/);
+    }
+  }
+  &aiDebug("dictionary as read from the .param file:");
+  foreach my $key (@keys) {
+    next if $isSuffix{$key};
+    &aiDebug(sprintf("    %-46s = '%s'", $key, $AbiDict{$key}));
+  }
+}
+
+sub aiDebugEmpty {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my ($tag, $sub, $tellBefore) = @_;
+  my $wrote = tell(NEWFILE) - $tellBefore;
+  if ($_ =~ /\#\#\Q$tag\E\#\#/) {
+    &aiDebug("  ##$tag##: &$sub returned EMPTY and nothing replaced the tag "
+             . "-- the literal ##$tag## text will appear in the input file");
+  } elsif ($wrote > 0) {
+    &aiDebug("  ##$tag##: &$sub wrote $wrote bytes to the input directly");
+  } elsif ($_ eq "") {
+    &aiDebug("  ##$tag##: &$sub returned EMPTY and wrote nothing -- the line "
+             . "was dropped; if that setting was chosen in the GUI, it is NOT "
+             . "in the generated input");
+  } else {
+    &aiDebug("  ##$tag##: &$sub replaced the line itself");
+  }
+}
+
+sub modifyInputFile {
+  local($keysave, $key, $subname, $prefix, $postfix, $finished);
+  $inputFile = $TplFILE;
+  open(TEMPLATE, $inputFile);
+  open(NEWFILE, ">tmpfile");
+  while (<TEMPLATE>) {
+    if (/([^#]*)##([^#]*)##(.*)/) {
+      $prefix = $1;
+      $postfix = $3;
+      $keysave = $key = $2;
+      &aiDebug("tag ##$key## (template line $.)");
+      $finished = 0;
+      while ($finished == 0) {
+        $subname = $key;
+        $subname =~ s/\./_/g;
+        if (defined($AbiDict{$key})) {
+          $finished = 1;
+          $value = $AbiDict{$key};
+          $fct = "&$subname('$value')";
+          $eccePrevLine = $_;
+          $eccePrevTell = tell(NEWFILE);
+          $result = eval $fct;
+          # #92: eval catches a die() inside the resolver, and the engine
+          # reads undef as "no such sub / no substitution" -- so a
+          # deliberate error used to vanish along with the tag's line and
+          # the script exited 0 with a quietly incomplete deck. Re-raise
+          # anything that is a real error; an "Undefined subroutine"
+          # failure IS the no-substitution case the engine relies on, so
+          # it stays silent.
+          if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
+          if (!(defined $result)) {
+            s/##$keysave##/$value/;
+          } elsif ($result eq "") {
+            &aiDebugEmpty($keysave, $subname, $eccePrevTell);
+          } elsif ($result ne "") {
+            &aiDebug("  ##$keysave## -> \'$result\'");
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        } else {
+          $finished = 1;
+          $fct = "&$subname";
+          $eccePrevLine = $_;
+          $eccePrevTell = tell(NEWFILE);
+          $result = eval $fct;
+          # #92: eval catches a die() inside the resolver, and the engine
+          # reads undef as "no such sub / no substitution" -- so a
+          # deliberate error used to vanish along with the tag's line and
+          # the script exited 0 with a quietly incomplete deck. Re-raise
+          # anything that is a real error; an "Undefined subroutine"
+          # failure IS the no-substitution case the engine relies on, so
+          # it stays silent.
+          if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
+          if (!(defined $result)) {
+            if (index($key, ".") >= $[) {
+              $key =~ s/\.[^\.]*$//;
+              &aiDebug("  no &$subname; retrying as ##$key##");
+              $finished = 0;
+            } else {
+              &aiDebug("  ##$keysave##: no dictionary value and no resolver -- LINE REMOVED");
+              $_ = "";
+            }
+          } elsif ($result eq "") {
+            &aiDebugEmpty($keysave, $subname, $eccePrevTell);
+          } elsif ($result ne "") {
+            &aiDebug("  ##$keysave## -> \'$result\'");
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        }
+      }
+    }
+    print(NEWFILE);
+  }
+  close(TEMPLATE);
+  close(NEWFILE);
+}
+
+################################################################################
+# Code-specific tag resolvers
+################################################################################
+
+# The three positional header lines of a MOPAC data set: keywords,
+# title, comment.  Emitted as one block by one sub so the "never blank"
+# rule for lines 2 and 3 (see the header note about prettyInput) is
+# enforced in exactly one place.
+
+sub XtbHeader {
+  my $result = &OptionLine . "\n" . &CountLine;
+  $_ = $result;
+  return $result;
+}
+
+sub CountLine {
+  return $chemsys_atoms . "\n" . &TitleLine;
+}
+
+sub TitleLine {
+  my $title = $AbiDict{"title"};
+  $title =~ s/^\s+//;
+  $title =~ s/\s+$//;
+  $title = "ECCE xtb calculation" if ($title eq "");
+  return $title;
+}
+
+sub OptionLine {
+  my @kw = ("xtb");
+  push(@kw, &MethodOption);
+  push(@kw, "--chrg", &Charge);
+  push(@kw, "--uhf", &Unpaired);
+  push(@kw, &RunTypeOptions);
+  push(@kw, &SolventOptions);
+
+  my $etemp = $AbiDict{"ES.Theory.SCF.ElectronicTemperature"};
+  push(@kw, "--etemp", $etemp)
+    if ($etemp ne "" && $etemp > 0 && $etemp != 300);
+  my $acc = $AbiDict{"ES.Theory.SCF.Accuracy"};
+  push(@kw, "--acc", $acc) if ($acc ne "" && $acc > 0 && $acc != 1);
+
+  return join(" ", grep { $_ ne "" } @kw);
+}
+
+sub MethodOption {
+  my $theory = $AbiDict{"Theory"};
+  my %map = ("GFN2-xTB" => "--gfn 2", "GFN1-xTB" => "--gfn 1",
+             "GFN-FF" => "--gfnff");
+  my $opt = $map{$theory};
+  die "ai.xtb error: unsupported theory '$theory'\n" if (!defined($opt));
+  return $opt;
+}
+
+sub RunTypeOptions {
+  my $runtype = $AbiDict{"RunType"};
+  return "--sp" if ($runtype eq "Energy");
+  # --hess is the frequencies at the given geometry, --ohess optimizes first.
+  return "--hess" if ($runtype eq "Vibration");
+  if ($runtype eq "Geometry" || $runtype eq "GeoVib") {
+    my $level = $AbiDict{"ES.Runtype.GeomOpt.Level"};
+    my %ok = ("crude" => 1, "sloppy" => 1, "loose" => 1, "normal" => 1,
+              "tight" => 1, "vtight" => 1, "extreme" => 1);
+    $level = "normal" if (!defined($level) || !$ok{lc($level)});
+    $level = "verytight" if (lc($level) eq "vtight");
+    return ($runtype eq "GeoVib" ? "--ohess " : "--opt ") . lc($level);
+  }
+  die "ai.xtb error: unsupported runtype '$runtype' (Energy, Geometry, " .
+      "Vibration and GeoVib only)\n";
+}
+
+# The solvent menu is the ALPB list; GBSA has fewer solvents and its own
+# spellings, so a solvent it lacks is refused here rather than by xtb.
+sub SolventOptions {
+  my $model = $AbiDict{"ES.Theory.Solvent.Model"};
+  return "" if (!defined($model) || $model eq "" || $model eq "None");
+  my $solvent = lc($AbiDict{"ES.Theory.Solvent.Name"});
+  $solvent = "water" if ($solvent eq "");
+  if ($model eq "ALPB") {
+    return ("--alpb", $solvent);
+  }
+  if ($model eq "GBSA") {
+    my %gbsa = ("acetone" => "acetone", "acetonitrile" => "acetonitrile",
+                "benzene" => "benzene", "ch2cl2" => "ch2cl2",
+                "chcl3" => "chcl3", "cs2" => "cs2", "dmf" => "dmf",
+                "dmso" => "dmso", "ether" => "ether", "water" => "h2o",
+                "methanol" => "methanol", "hexane" => "n-hexane",
+                "thf" => "thf", "toluene" => "toluene");
+    die "ai.xtb error: GBSA has no parameters for $solvent; choose ALPB " .
+        "or another solvent\n" if (!defined($gbsa{$solvent}));
+    my $theory = $AbiDict{"Theory"};
+    die "ai.xtb error: GBSA $solvent is not parametrized for $theory\n"
+      if (($gbsa{$solvent} eq "dmf" || $gbsa{$solvent} eq "n-hexane")
+          && $theory eq "GFN1-xTB");
+    return ("--gbsa", $gbsa{$solvent});
+  }
+  die "ai.xtb error: unknown solvent model '$model'\n";
+}
+
+sub Charge {
+  my $charge = $AbiDict{"Charge"};
+  return ($charge eq "") ? 0 : $charge;
+}
+
+# xtb counts unpaired electrons, the multiplicity minus one.
+sub Unpaired {
+  my $multiplicity = 1;
+  if ($AbiDict{"ChemSys.Multiplicity"} =~ /(\d+)/) {
+    $multiplicity = $1;
+  }
+  return $multiplicity - 1;
+}
+
+sub chemsys {
+  ($chemsys_atoms != 0) || die "ai.xtb error: Fragment has no atoms!\n";
+  for (my $index = 0; $index < $chemsys_atoms; $index++) {
+    my $symbol = $tags{$index};
+    die "ai.xtb error: xtb has no dummy atom\n" if ($symbol eq "X");
+    printf(NEWFILE "%-2s  %14.9f  %14.9f  %14.9f\n", $symbol,
+           $coords{$index,0}, $coords{$index,1}, $coords{$index,2});
+  }
+  $_ = "";
+}
+
+sub verifyAbiFile {
+  open(ABIDICT, $AbiFILE) || die "ai.mopac error: Couldn't open $AbiFILE\n";
+}
+
+sub verifyFragFile {
+  open(CHEMSYS, $FragFILE) || die "ai.mopac error: Couldn't open $FragFILE\n";
+}
+
+sub cleanup {
+  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
+  close(ABIDICT);
+}
+
+sub readDict {
+  while (<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      my ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      my $tagkey = $key;
+      while ($tagkey ne "") {
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+sub readChemSys {
+  my $symbols = 0;
+  $chemsys_atoms = 0;
+  $_ = <CHEMSYS>;
+  while (<CHEMSYS>) {
+    if (/^num_atoms:/) {
+      (undef, $chemsys_atoms) = split;
+    } elsif (/^title:/) {
+      (undef, $chemsys_name) = split;
+    } elsif (/^atom_info:/) {
+      $symbols = /symbol/;
+    } elsif (/^atom_list:/) {
+      for (my $index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($tags{$index}, $coords{$index,0}, $coords{$index,1}, $coords{$index,2}) = split;
+        if (!$symbols) {
+          $tags{$index} = $number_to_symbol{$tags{$index}};
+        }
+      }
+    }
+  }
+}
+
+sub usage {
+  print "Usage: ai.xtb -p -f -n <basename> -t <template>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+
+sub handle_options {
+  &usage && exit if ($opt_h || $opt_help);
+  my $revision = '$Revision: 1 $';
+  $revision =~ s/\$//g;
+  print "$revision\n" if ($opt_v);
+  exit if ($opt_v);
+  $AbiFILE = "$opt_n.param" if ($opt_p);
+  $FragFILE = "$opt_n.frag" if ($opt_f);
+  $BasisFILE = "$opt_n.basis" if ($opt_b);
+  $CnstrntFILE = "$opt_n.con" if ($opt_c);
+  $TplFILE = $opt_t;
+}
+

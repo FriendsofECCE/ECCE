@@ -19,6 +19,7 @@ Debian 13 has these codes in its archive:
 |---|---|---|
 | NWChem | `nwchem` | 7.2.3 |
 | MOPAC | `mopac` | 23.1.2 |
+| xTB | `xtb` | 6.7.1 |
 | GROMACS | `gromacs` | 2025.2 |
 | Quantum ESPRESSO | `quantum-espresso` | 6.7 |
 | CP2K | `cp2k` | 2025.1 |

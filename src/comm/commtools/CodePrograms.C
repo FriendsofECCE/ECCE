@@ -29,6 +29,8 @@ vector<string> CodePrograms::names(const string& code)
         n.push_back("cp2k.ssmp");
         n.push_back("cp2k");
     }
+    else if (code == "xTB")
+        n.push_back("xtb");
     else if (code == "MOPAC")
     {
         n.push_back("MOPAC2016.exe");

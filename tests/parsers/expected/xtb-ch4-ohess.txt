@@ -1,0 +1,178 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    xtb-ch4-ohess
+desc:    xtb.desc
+fixture: xtb/ch4_ohess.out (896 lines)
+args:    '.' 'GeoVib' 'SE' 'GFN2-xTB' '0'
+
+[TE]  Script=xtb.energy  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| TOTAL ENERGY\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=595 fed=1 rc=0 first-fed='          | TOTAL ENERGY               -4.175217249993 Eh   |'
+    key: TE
+      size: 1
+      values: -4.175217249993
+      units: Hartree
+
+[HLGAP]  Script=xtb.hlgap  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| HOMO-LUMO GAP\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=599 fed=1 rc=0 first-fed='          | HOMO-LUMO GAP              17.388690728159 eV   |'
+    key: HLGAP
+      size: 1
+      values: 17.388690728159
+      units: eV
+
+[DIPOLE]  Script=xtb.dipole  Freq=last  Skip=0  Lines=4
+  Begin=^molecular dipole:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=488 fed=4 rc=0 first-fed='molecular dipole:'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0.000 -0.000 0.000
+      units: Debye
+
+[GEOMTRACE][TEVEC]  Script=xtb.geomtrace  Freq=all  Skip=1  Lines=-
+  Begin=^ECCE-XTB-FRAME\s
+  End=^ECCE-XTB-ENDFRAME
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=627 fed=7 rc=0 first-fed=' energy: -4.175010641837 gnorm: 0.012067472119 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00000000000000 0.00000000000000 0.00000000000000 0.63000000000000 0.63000000000000 0.63000000000000 -0.63000000000000 -0.63000000000000 0.63000000000000 -0.63000000000000 0.63000000000000 -0.63000000000000 0.63000000000000 -0.63000000000000 -0.63000000000000
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175010641837
+      units: Hartree
+  block 2: begin-line=635 fed=7 rc=0 first-fed=' energy: -4.175214256723 gnorm: 0.001757363209 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00000000000000 -0.00000000000000 0.00000000000000 0.62552834588709 0.62552834588709 0.62552834588709 -0.62552834588709 -0.62552834588709 0.62552834588709 -0.62552834588709 0.62552834588709 -0.62552834588709 0.62552834588709 -0.62552834588709 -0.62552834588709
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175214256723
+      units: Hartree
+  block 3: begin-line=643 fed=7 rc=0 first-fed=' energy: -4.175217249993 gnorm: 0.000963309966 xtb: 6.7.1 (unknown)'
+    key: GEOMTRACE
+      size: 1 5 3
+      rowlabels: 1-C 2-H 3-H 4-H 5-H
+      columnlabels: X Y Z
+      values: 0.00000000000000 0.00000000000000 -0.00000000000000 0.62438508082003 0.62438508082003 0.62438508082003 -0.62438508082003 -0.62438508082003 0.62438508082003 -0.62438508082003 0.62438508082003 -0.62438508082003 0.62438508082003 -0.62438508082003 -0.62438508082003
+      units: Angstrom
+    key: TEVEC
+      size: 1
+      values: -4.175217249993
+      units: Hartree
+
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][GTOBASIS]  Script=xtb.mo  Freq=last  Skip=0  Lines=-
+  Begin=^ECCE-XTB-MOLDEN\s*$
+  End=^ECCE-XTB-ENDMOLDEN
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=651 fed=152 rc=0 first-fed='ECCE-XTB-MOLDEN'
+    key: ORBENG
+      size: 8
+      values: -0.75875539 -0.61113400 -0.54898639 -0.50054905 -0.15778529 -0.04991861 0.33684929 0.46804202
+      units: Hartree
+    key: ORBOCC
+      size: 8
+      values: 2.000000 2.000000 2.000000 2.000000 0.000000 0.000000 0.000000 0.000000
+      units: electrons
+    key: MO
+      size: 8 8
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8
+      values: 0.7953417849 0.0000000000 -0.0000000000 -0.0709767266 0.1795900644 0.0139129181 0.1795900644 0.0139129181 -0.0000000000 0.0000000000 -0.7074883778 0.0000000000 -0.3321805498 -0.0455903114 0.3321805498 0.0455903114 -0.3832835140 0.0000000000 -0.0000000000 -0.8505768989 0.1832706313 0.0477703765 0.1832706313 0.0477703765 0.0000000000 1.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0 ...[856 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+    key: GTOBASIS
+      size: 23 5
+      rowlabels: Primitive-1 Primitive-2 Primitive-3 Primitive-4 Primitive-5 Primitive-6 Primitive-7 Primitive-8 Primitive-9 Primitive-10 Primitive-11 Primitive-12 Primitive-13 Primitive-14 Primitive-15 Primitive-16 Primitive-17 Primitive-18 Primitive-19 Primitive-20 Primitive-21 Primitive-22 Primitive-23
+      columnlabels: Z l Exponent Coefficient Shell
+      values: 8 0 152.287696608 -0.128259784124 1 8 0 27.928015216 -0.17897224953 1 8 0 7.84837479238 -0.172118558939 1 8 0 1.12233502027 0.26005374377 1 8 0 0.509384658791 0.24155320801 1 8 0 0.242922665325 0.0422442047465 1 8 1 27.2034214872 0.701740873673 2 8 1 7.09409912598 0.848929183574 2 8 1 2.53833626053 0.86699036087 2 8 1 1.06107307678 0.62167307641 2 8 1 0.485194891641 0.231598405186 2 8 1 0.22938302 ...[813 chars]
+
+[MULLIKEN]  Script=xtb.charges  Freq=last  Skip=1  Lines=-
+  Begin=^ECCE-XTB-CHARGES\s*$
+  End=^ECCE-XTB-ENDCHARGES
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=803 fed=6 rc=0 first-fed='   -0.15590692'
+    key: MULLIKEN
+      size: 5
+      values: -0.15590692 0.03897673 0.03897673 0.03897673 0.03897673
+      units: e
+
+[VIBFREQ][VIBIR]  Script=xtb.vibspec  Freq=last  Skip=1  Lines=-
+  Begin=^ECCE-XTB-VIBSPECTRUM\s*$
+  End=^ECCE-XTB-ENDVIBSPECTRUM
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=810 fed=20 rc=0 first-fed='$vibrational spectrum'
+    key: VIBFREQ
+      size: 15
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+      values: -0.00 -0.00 -0.00 -0.00 0.00 0.00 1384.66 1384.66 1384.66 1556.79 1556.79 3097.24 3110.95 3110.95 3110.95
+      units: cm-1
+    key: VIBIR
+      size: 15
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+      values: 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 15.06400 15.06400 15.06400 0.00000 0.00000 0.00000 29.41309 29.41309 29.41309
+      units: KM/Mole
+
+[VIB]  Script=xtb.vib  Freq=last  Skip=1  Lines=-
+  Begin=^ECCE-XTB-G98\s*$
+  End=^ECCE-XTB-ENDG98
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=831 fed=65 rc=0 first-fed=' Entering Gaussian System'
+    key: VIB
+      size: 15 5 3
+      vectorlabels: NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+      rowlabels: 1 2 3 4 5
+      columnlabels: X Y Z
+      values: 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 -5.381130215212796e-02 9.812649215976275 ...[3397 chars]
+      units: Angstrom
+
+[EZEROPT]  Script=xtb.thermo  Freq=last  Skip=0  Lines=1
+  Begin=^\s+:: zero point energy\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=586 fed=1 rc=0 first-fed='         :: zero point energy           0.044874592309 Eh   ::'
+    key: EZEROPT
+      size: 1
+      values: 0.044874592309
+      units: Hartree
+
+[ENTHALPY]  Script=xtb.thermo  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| TOTAL ENTHALPY\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=596 fed=1 rc=0 first-fed='          | TOTAL ENTHALPY             -4.126534290146 Eh   |'
+    key: ENTHALPY
+      size: 1
+      values: -4.126534290146
+      units: Hartree
+
+[EGIBBS]  Script=xtb.thermo  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\| TOTAL FREE ENERGY\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=597 fed=1 rc=0 first-fed='          | TOTAL FREE ENERGY          -4.147628873992 Eh   |'
+    key: EGIBBS
+      size: 1
+      values: -4.147628873992
+      units: Hartree
+
+[ENTROPY][THERMOTEMP]  Script=xtb.thermo  Freq=last  Skip=0  Lines=1
+  Begin=^\s+\d+\.\d+\s+\S+E[-+]\d+\s+\S+E[-+]\d+\s+\S+E[-+]\d+\s+\S+E[-+]\d+\s*$
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=577 fed=1 rc=0 first-fed='    298.15    0.380837E-02    0.486830E-01    0.210946E-01    0.275884E-01'
+    key: ENTROPY
+      size: 1
+      values: 0.021094600000
+      units: Hartree
+    key: THERMOTEMP
+      size: 1
+      values: 298.15
+      units: Kelvin
+

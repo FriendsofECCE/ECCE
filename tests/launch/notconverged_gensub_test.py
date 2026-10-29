@@ -29,6 +29,10 @@ QE = "QuantumESPRESSO: /opt/codes/pw.x\n"
 CASES = [
     ("mopac", "MOPAC", "mopac.mop", "mopac.mopout", "",
      os.path.join(PROGRESS, "mopac", "capped.out"), 241),
+    ("xtb", "xTB", "xtb.xtbin", "xtb.xtbout", "xTB: /usr/bin/xtb\n",
+     os.path.join(PROGRESS, "xtb", "capped.out"), 241),
+    ("xtb", "xTB", "xtb.xtbin", "xtb.xtbout", "xTB: /usr/bin/xtb\n",
+     os.path.join(PROGRESS, "xtb", "ch4_opt.out"), 0),
     ("quantumespresso", "QuantumESPRESSO", "qe.pwin", "qe.pwout", QE,
      os.path.join(SYNTH, "qe-noconverge.pwout"), 241),
     ("quantumespresso", "QuantumESPRESSO", "qe.pwin", "qe.pwout", QE,

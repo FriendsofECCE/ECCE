@@ -53,6 +53,7 @@ EXPECT = {
     # SLATERBASIS: the .mgf beside the output reaches its parse on import
     "ammonia": ["MO", "VIBFREQ", "SLATERBASIS"],
     "methane": ["MO", "VIBFREQ", "MULLIKEN"],
+    "water_xtb": ["TE", "MO", "VIBFREQ", "VIBIR", "MULLIKEN"],
 }
 COMPUTATIONAL = {
     # a GROMACS study: its tasks, each as "task:" and "task:PROP"
@@ -91,10 +92,10 @@ GENCHEM = {
     "decane-opls": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "nacl-dissolving": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "ice-to-steam": ["dynamics:", "dynamics:TE"],
-    "ar-slab-40K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
-    "ar-slab-100K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
-    "ar-slab-130K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
-    "ar-slab-200K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-40K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-100K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-130K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-200K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
 }
 # The ECCE-QM topics: the calculation names are the folder names without
 # "ecceqm-"; atoms, ions and the He2 single point have no vibrations, and
@@ -254,13 +255,14 @@ def run(display, data, work):
         print("ok    the Organizer window is shown before the import starts")
     progress = re.findall(r"Organizer: example progress: (\d+) of (\d+) - (.*)$",
                           lg, re.M)
-    if [(a, b) for a, b, _ in progress] != [(str(i), "5") for i in range(1, 6)]:
+    if [(a, b) for a, b, _ in progress] != [(str(i), str(len(EXPECT)))
+                                             for i in range(1, len(EXPECT) + 1)]:
         fail("import progress", "progress lines %s" % progress, lg)
     else:
         print("ok    progress names each calculation: %s"
               % ", ".join(n for _, _, n in progress))
     got = (first.get("props") or {}).get(FIRST, {})
-    if result.crashed or sorted(c.split("_")[0] for c in got) != sorted(EXPECT):
+    if result.crashed or sorted(c if c in EXPECT else c.split("_")[0] for c in got) != sorted(EXPECT):
         fail("first start imports exactly the general set",
              "%s holds %s" % (FIRST, sorted(got)), result.log)
     else:
@@ -392,7 +394,7 @@ def run(display, data, work):
                             % (want, trees[-1]))
     # Theory and Run Type as the calculation ran (the importer's .param).
     want = {"water": "GeoVib", "benzene": "GeoVib", "ammonia": "GeoVib",
-            "methane": "GeoVib"}
+            "methane": "GeoVib", "water_xtb": "GeoVib"}
     sums = re.findall(r"ECCE_TEST_ORGANIZER: summary file://\S+/(\w+): (.*)$",
                       log, re.M)
     got = {c: s for c, s in sums}

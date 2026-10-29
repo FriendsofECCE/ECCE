@@ -2456,6 +2456,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # An xtb run made outside ECCE imports with its companion files (#362).
+  add_test(NAME parsers_xtb_import
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_import_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The stored geometry and the normal modes are in one frame (#312).
   add_test(NAME parsers_vib_frame
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -2834,6 +2840,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_bad_meta PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Workflows (#341): steps linked by carried geometry, the view's labels.
+  add_test(NAME apps_workflow
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_workflow PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Modal dialogs are shown without the busy cursor and presented
   # (ewxModalGuard); ECCE_DEBUG_MODAL.
   add_test(NAME apps_modal_guard
@@ -2946,6 +2959,16 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/orca_mo_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+
+  # #362: xtb results in the Builder (MOs, MO Diagram, Density Map,
+  # vibrations, charges) from real Launch runs; skipped without xtb or Xvfb.
+  add_test(NAME apps_xtb_viewer
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/xtb_viewer_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_xtb_viewer PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
   # The Periodic Builder pane (docked, closable, reopenable in every panel
@@ -3357,6 +3380,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_cp2k PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  # #362: xtb, water energy and a methane optimisation, created and run
+  # through Launch in a local data folder; skipped (77) without xtb.
+  add_test(NAME launch_xtb
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/xtb_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_xtb PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # #329: a CP2K calculation in the real Calculation Editor (script hook, private
   # Xvfb): settings sent as the dialogs send them, the saved deck checked.
   add_test(NAME launch_cp2k_calced

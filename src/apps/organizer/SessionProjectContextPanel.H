@@ -13,6 +13,7 @@
 class CalcMgr;
 class WxResourceTreeItemData;
 class SessionContextPanel;
+class WorkflowPanel;
 class ProjectContextPanel;
 
 
@@ -48,6 +49,8 @@ public:
 
   void OnSashPosChanged( wxSplitterEvent & event );
 
+  WorkflowPanel * getWorkflowPanel() { return p_workflow; }
+
 
 protected:
   /// Constructors
@@ -64,6 +67,9 @@ protected:
   wxSplitterWindow * p_splitterWindow;
 
   SessionContextPanel * p_session;
+
+  /// Set instead of p_session when the session is a Workflow.
+  WorkflowPanel * p_workflow;
 
   ProjectContextPanel * p_project;
 

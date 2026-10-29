@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+# The dipole, from the four lines starting at "molecular dipole:".  The
+# "full:" row (charges plus atomic dipoles) is the molecule's dipole:
+#   full:        0.000      -0.000      -0.975       2.479
+# GFN-FF prints no such block, and then nothing is stored.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+while (<STDIN>) {
+  next unless (/^\s*full:\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+\d/);
+  print "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n$1 $2 $3\n";
+  print "units:\nDebye\nEND\n";
+  last;
+}
+exit(0);

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   xtb (Grimme group GFN-xTB tight-binding code) registration: energy,
+   geometry optimization, orbitals, charges and frequencies.  Modeled on
+   MOPAC.edml and CP2K.edml.  Vibration runs the xtb hess option, GeoVib the ohess option.
+
+   Semiempirical, so no basis set: every Theory is needsBasis="false".
+
+   The input file is one file in two parts, because xtb has no input
+   format that holds both settings and coordinates: line 1 is the xtb
+   command line (options only), the rest is an xyz file.  scripts/gensub
+   splits it before the run.  The name must be .xtbin: xtb is handed
+   the extracted xtb.xyz, so the input itself is free to carry an
+   extension of its own for the Apache MIME mapping.
+
+   xtb prints no geometry, so gensub appends the trajectory
+   (xtbopt.log, or the input xyz for an energy run) to the output file
+   between ECCE-XTB-FRAME markers; xtb.desc reads the geometry trace
+   from there.
+-->
+
+<appdescriptor>
+
+<SupportsConstraints>false</SupportsConstraints>
+
+<!-- xtb's orbitals (the molden option) are in a Cartesian, non-orthonormal STO-nG
+     basis; each Cartesian d component is unit-normalised (Gaussian's
+     convention, hence componentNormalized).  Checked as
+     trace(P.S) = N electrons (tests/parsers/xtb_trace_ps_test.py). -->
+<SphericalCoordinates>False</SphericalCoordinates>
+
+<MOOrdering type="cartesian" componentNormalized="true">
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz"
+    a6="yz"></lshell>
+</MOOrdering>
+
+<Editor theorydialog="xtbtheory.py" runtypedialog="xtbruntype.py">
+  <Theory category="SE" name="GFN2-xTB" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="GFN1-xTB" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="SE" name="GFN-FF" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+
+  <TheorySummary>
+    <item key="ES.Theory.Solvent.Model" label="Solvent Model"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.Solvent.Name" label="Solvent"></item>
+  </TheorySummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.Level" label="Optimization Level"></item>
+  </RuntypeSummary>
+</Editor>
+
+<DataFiles>
+  <Input  type="primary" mimetype="chemical/x-xtb-input" comment="false">xtb.xtbin</Input>
+  <Output type="primary" mimetype="chemical/x-xtb-output">xtb.xtbout</Output>
+  <Output type="parse" verifypattern="x T B" mimetype="chemical/x-xtb-output">xtb.xtbout</Output>
+</DataFiles>
+
+<IntegrationFiles>
+  <Template>xtb.tpl</Template>
+  <InputGenerator>ai.xtb</InputGenerator>
+  <Importer>xtb.expt</Importer>
+  <ParseSpecification>xtb.desc</ParseSpecification>
+  <LaunchPreprocessor>xtb.launchpp</LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>

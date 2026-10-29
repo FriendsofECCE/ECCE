@@ -1,0 +1,247 @@
+#!/usr/bin/env perl
+###############################################################################
+# FILENAME:  xtb.expt
+#
+# SYNTAX: xtb.expt <outfile>
+#
+# PURPOSE:
+#       Reads the output of an xtb run and writes the ECCE .frag/.param pair,
+#       so it can be imported as a completed calculation.
+#
+#       xtb prints no coordinates and keeps orbitals, charges and normal
+#       modes in files beside the output.  A run made by ECCE already has
+#       them appended (ECCE-XTB-* blocks).  For an output from a run made
+#       elsewhere they are read from the directory the file is in (xtbopt.log,
+#       the coordinate file the run names, molden.input, charges,
+#       vibspectrum, g98.out) and appended here, to a copy that replaces the
+#       import's link, so the parse is the same for both.
+###############################################################################
+
+use Getopt::Std;
+use Cwd 'abs_path';
+
+$| = 1;
+&getopts(':hv');
+&usage if ($opt_h || $opt_help);
+exit if ($opt_v);
+&usage if ($#ARGV != 0);
+
+my $file = $ARGV[0];
+open(INPUT, $file) || die "Can't locate output file $file";
+my @lines = <INPUT>;
+close(INPUT);
+my $text = join("", @lines);
+
+if ($text !~ /x T B/) {
+  print "$file is not an xtb output\n";
+  exit(1);
+}
+
+my ($call) = $text =~ /^\s*program call\s*:\s*(.*)$/m;
+$call = "" unless (defined($call));
+my ($version) = $text =~ /xtb version (\S+)/;
+
+foreach my $bad ("--md", "--omd", "--scan", "--path", "--metadyn", "--modef") {
+  if ($call =~ /(^|\s)\Q$bad\E(\s|$)/) {
+    print "xtb $bad runs cannot be imported (energy, geometry optimization " .
+          "and frequency runs can)\n";
+    exit(1);
+  }
+}
+
+my $theory = "GFN2-xTB";
+$theory = "GFN-FF" if ($call =~ /--gfnff/);
+$theory = "GFN1-xTB" if ($call =~ /--gfn\s*1\b/);
+if ($call =~ /--gfn\s*0\b/) {
+  print "GFN0-xTB runs cannot be imported (GFN2-xTB, GFN1-xTB and GFN-FF " .
+        "can)\n";
+  exit(1);
+}
+
+my $opt = ($call =~ /(^|\s)(--opt|--ohess|-o)(\s|$)/) ? 1 : 0;
+my $hess = ($call =~ /(^|\s)(--hess|--ohess)(\s|$)/) ? 1 : 0;
+my $runType = ($opt && $hess) ? "GeoVib" : $opt ? "Geometry"
+            : $hess ? "Vibration" : "Energy";
+my ($level) = $call =~ /(?:--opt|--ohess|-o)\s+(crude|sloppy|loose|normal|tight|vtight|verytight|extreme)\b/;
+$level = "vtight" if (defined($level) && $level eq "verytight");
+
+my $charge = 0;
+$charge = $1 if ($call =~ /(?:--chrg|--charge|-c)\s+(-?\d+)/);
+my $uhf = 0;
+$uhf = $1 if ($call =~ /(?:--uhf|-u)\s+(\d+)/);
+my $mult = $uhf + 1;
+
+my ($model, $solvent);
+if ($call =~ /--alpb\s+(\S+)/) {
+  ($model, $solvent) = ("ALPB", lc($1));
+} elsif ($call =~ /(?:--gbsa|-g)\s+(\S+)/) {
+  ($model, $solvent) = ("GBSA", lc($1));
+  $solvent = "water" if ($solvent eq "h2o");
+  $solvent = "hexane" if ($solvent eq "n-hexane");
+}
+
+# --- the run's files -------------------------------------------------------
+my $combined = $text;
+my $haveFrames = ($text =~ /^ECCE-XTB-FRAME\s/m);
+
+my $dir = ".";
+if (-l $file) {
+  my $real = abs_path($file);
+  ($dir = $real) =~ s{/[^/]*$}{} if (defined($real));
+}
+
+if (!$haveFrames) {
+  my $coord = "";
+  $coord = $1 if ($text =~ /^\s*coordinate file\s*:\s*(\S+)/m);
+  my $natoms;
+  my @geom;
+  my @cands;
+  push(@cands, "$dir/xtbopt.log", "$dir/xtbopt.xyz") if ($opt);
+  # The coordinate file is only the starting structure of an optimization,
+  # so it comes after xtbopt.log; for an energy or frequency run it is it.
+  push(@cands, "$dir/$coord") if ($coord ne "");
+  my $xyz = "";
+  foreach my $c (@cands) {
+    next unless (-s $c);
+    open(X, $c) || next;
+    my $first = <X>;
+    close(X);
+    next unless (defined($first) && $first =~ /^\s*(\d+)\s*$/);
+    $xyz = $c;
+    last;
+  }
+  if ($xyz eq "") {
+    print "No molecular geometry found for $file: xtb prints none; put " .
+          "xtbopt.log (or the coordinate file " .
+          ($coord ne "" ? $coord : "of the run") . ") in the same directory\n";
+    exit(1);
+  }
+  open(X, $xyz);
+  my @x = <X>;
+  close(X);
+  my $n = 0;
+  my $f = 0;
+  my $left = 0;
+  my $frameText = "";
+  foreach (@x) {
+    next if ($left == 0 && /^\s*$/);
+    if ($left == 0) {
+      /^\s*(\d+)/ || next;
+      $n = $1;
+      $left = $n + 1;
+      $f++;
+      $frameText .= "ECCE-XTB-FRAME $f $n\n";
+      next;
+    }
+    $frameText .= $_;
+    $left--;
+    $frameText .= "ECCE-XTB-ENDFRAME\n" if ($left == 0);
+  }
+  $combined .= "\n" unless ($combined =~ /\n$/);
+  $combined .= $frameText;
+
+  # Orbitals only with --molden and never for GFN-FF; a file left by an
+  # earlier run in the directory must have this molecule's atom count.
+  my $molden = "$dir/molden.input";
+  if ($call =~ /--molden/ && $theory ne "GFN-FF" && -s $molden) {
+    my $s = &slurp($molden);
+    my $count = 0;
+    if ($s =~ /\[Atoms\][^\n]*\n((?:\s*\S+\s+\d+\s+\d+\s+\S+\s+\S+\s+\S+\n)+)/) {
+      $count = () = $1 =~ /\n/g;
+    }
+    $combined .= "ECCE-XTB-MOLDEN\n$s" . ($s =~ /\n$/ ? "" : "\n") .
+                 "ECCE-XTB-ENDMOLDEN\n" if ($count == $n);
+  }
+  my $cs = "$dir/charges";
+  if (-s $cs) {
+    my $s = &slurp($cs);
+    my $count = () = $s =~ /\n/g;
+    $combined .= "ECCE-XTB-CHARGES\n$s" . "ECCE-XTB-ENDCHARGES\n"
+      if ($count == $n);
+  }
+  if ($hess) {
+    my $vs = "$dir/vibspectrum";
+    if (-s $vs) {
+      my $s = &slurp($vs);
+      my $modes = () = $s =~ /^\s+\d+\s+\S*\s+-?\d+\.\d+\s+\d+\.\d+/mg;
+      $combined .= "ECCE-XTB-VIBSPECTRUM\n$s" . "ECCE-XTB-ENDVIBSPECTRUM\n"
+        if ($modes == 3 * $n);
+    }
+    my $g = "$dir/g98.out";
+    if (-s $g) {
+      my $s = &slurp($g);
+      $combined .= "ECCE-XTB-G98\n$s" . "ECCE-XTB-ENDG98\n"
+        if ($s =~ /Atom AN/ || $s =~ /Frequencies/);
+    }
+  }
+
+  # Replace the link (never write through it to the user's file).
+  unlink($file);
+  open(OUT, ">$file") || die "Can't write $file";
+  print(OUT $combined);
+  close(OUT);
+}
+
+# --- structure: the last frame ---------------------------------------------
+my @atoms;
+{
+  my $inFrame = 0;
+  my @cur;
+  foreach (split(/\n/, $combined)) {
+    if (/^ECCE-XTB-FRAME\s/) { $inFrame = 1; @cur = (); $skip = 1; next; }
+    if (/^ECCE-XTB-ENDFRAME/) { @atoms = @cur; $inFrame = 0; next; }
+    next unless ($inFrame);
+    if ($skip) { $skip = 0; next; }
+    push(@cur, [$1, $2, $3, $4])
+      if (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/);
+  }
+}
+if (!@atoms) {
+  print "No molecular geometry found in $file\n";
+  exit(1);
+}
+
+(my $root = $file) =~ s/\.[^.]*$//;
+(my $title = $root) =~ s{.*/}{};
+
+open(PARAMS, ">$root.param");
+print(PARAMS "title:\t$title\n");
+print(PARAMS "version:\t$version\n") if (defined($version));
+print(PARAMS "Category:\tSE\n");
+print(PARAMS "Theory:\t$theory\n");
+print(PARAMS "RunType:\t$runType\n");
+print(PARAMS "Charge:\t$charge\n");
+print(PARAMS "ES.ChemSys.Multiplicity:\t$mult\n");
+print(PARAMS "ES.Runtype.GeomOpt.Level:\t$level\n") if (defined($level));
+if (defined($model)) {
+  print(PARAMS "ES.Theory.Solvent.Model:\t$model\n");
+  print(PARAMS "ES.Theory.Solvent.Name:\t$solvent\n");
+}
+close(PARAMS);
+
+open(MOL, ">$root.frag");
+print(MOL "title:\t$title\ntype:\tmolecule\n");
+print(MOL "charge:\t$charge\n");
+print(MOL "num_atoms:\t" . scalar(@atoms) . "\n");
+print(MOL "atom_info:\tsymbol cart\natom_list:\n");
+foreach my $a (@atoms) {
+  print(MOL " $a->[0] $a->[1] $a->[2] $a->[3]\n");
+}
+close(MOL);
+exit(0);
+
+sub slurp {
+  my ($f) = @_;
+  open(S, $f) || return "";
+  local $/;
+  my $s = <S>;
+  close(S);
+  return $s;
+}
+
+sub usage {
+  print "Usage: xtb.expt <outfile>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}

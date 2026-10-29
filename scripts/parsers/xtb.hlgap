@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+# The HOMO-LUMO gap, from the closing summary box:
+#   "          | HOMO-LUMO GAP              14.629673576893 eV   |"
+# Units class NA (data/client/config/properties): the stored string is what
+# the Energies panel shows.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_));
+exit(0) if (!/HOMO-LUMO GAP\s+(-?\d+\.\d+)\s+eV/);
+
+print "key: HLGAP\nsize:\n1\nvalues:\n$1\nunits:\neV\nEND\n";
+exit(0);
