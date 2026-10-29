@@ -25,3 +25,5 @@ sets it, and `labelCheck` in `compare.py` (scene `labels.scene`) reports
 "Name", "Type" and residue labels are empty for a plain XYZ fixture (no names
 or residues in the file), so they are only meaningful on a loaded
 calculation (`calc-water.scene`).
+
+On Windows, `FixFonts.H` used to set `DEFAULT_FONT` to "Arial", a name with no file in `data/client/fonts`, so no atom label drew there (#672). Every platform now uses the bundled Utopia-Regular.

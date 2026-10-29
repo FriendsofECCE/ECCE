@@ -27,11 +27,8 @@
 \**************************************************************************/
 
 
-#ifdef WIN32
-#	define DEFAULT_FONT "Arial"
-#	define HIGHLIGHT_DEFAULT_FONT "Arial"
-#else
-#	define DEFAULT_FONT "Utopia-Regular"
-#	define HIGHLIGHT_DEFAULT_FONT "Utopia-Italic"
-#endif
+//  The bundled font, on every platform: Windows has no font file named
+//  "Arial" in data/client/fonts, and labels drew nothing there (#672).
+#define DEFAULT_FONT "Utopia-Regular"
+#define HIGHLIGHT_DEFAULT_FONT "Utopia-Italic"
 
