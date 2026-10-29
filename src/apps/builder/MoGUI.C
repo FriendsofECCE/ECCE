@@ -32,6 +32,7 @@
 ////@end includes
 
 #include "MoGUI.H"
+#include "wxgui/ewxBitmap.H"
 
 ////@begin XPM images
 
@@ -111,10 +112,10 @@ void MoGUI::CreateControls()
     itemVizPropertyPanel1->SetSizer(itemBoxSizer2);
 
     ewxGrid* itemGrid3 = new ewxGrid( itemVizPropertyPanel1, ID_GRID_MO, wxDefaultPosition, wxSize(200, 150), wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
-    itemGrid3->SetDefaultColSize(50);
-    itemGrid3->SetDefaultRowSize(25);
-    itemGrid3->SetColLabelSize(25);
-    itemGrid3->SetRowLabelSize(50);
+    itemGrid3->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid3->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid3->SetColLabelSize(ewxBitmap::scaled(25));
+    itemGrid3->SetRowLabelSize(ewxBitmap::scaled(50));
     itemGrid3->CreateGrid(5, 5, wxGrid::wxGridSelectRows);
     itemBoxSizer2->Add(itemGrid3, 1, wxGROW|wxALL, 5);
 

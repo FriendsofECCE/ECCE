@@ -40,6 +40,7 @@
 ////@end includes
 
 #include "WxBasisToolGUI.H"
+#include "wxgui/ewxBitmap.H"
 
 ////@begin XPM images
 
@@ -532,10 +533,10 @@ void WxBasisToolGUI::CreateControls()
     itemPanel80->SetSizer(itemBoxSizer81);
 
     ewxGrid* itemGrid82 = new ewxGrid( itemPanel80, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_0, wxDefaultPosition, wxSize(430, 240), wxHSCROLL|wxVSCROLL );
-    itemGrid82->SetDefaultColSize(50);
-    itemGrid82->SetDefaultRowSize(25);
-    itemGrid82->SetColLabelSize(25);
-    itemGrid82->SetRowLabelSize(50);
+    itemGrid82->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid82->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid82->SetColLabelSize(ewxBitmap::scaled(25));
+    itemGrid82->SetRowLabelSize(ewxBitmap::scaled(50));
     itemGrid82->CreateGrid(1, 7, wxGrid::wxGridSelectCells);
     //  Reserve room for the scrollbars and make the grid wide enough for
     //  its own columns.  Seven columns at the 50px default plus a 50px row
@@ -555,10 +556,10 @@ void WxBasisToolGUI::CreateControls()
     itemPanel83->SetSizer(itemBoxSizer84);
 
     ewxGrid* itemGrid85 = new ewxGrid( itemPanel83, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_1, wxDefaultPosition, wxSize(430, 240), wxHSCROLL|wxVSCROLL );
-    itemGrid85->SetDefaultColSize(50);
-    itemGrid85->SetDefaultRowSize(25);
-    itemGrid85->SetColLabelSize(25);
-    itemGrid85->SetRowLabelSize(50);
+    itemGrid85->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid85->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid85->SetColLabelSize(ewxBitmap::scaled(25));
+    itemGrid85->SetRowLabelSize(ewxBitmap::scaled(50));
     itemGrid85->CreateGrid(1, 7, wxGrid::wxGridSelectCells);
     itemGrid85->SetMargins(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X),
                           wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y));
@@ -573,10 +574,10 @@ void WxBasisToolGUI::CreateControls()
     itemPanel86->SetSizer(itemBoxSizer87);
 
     ewxGrid* itemGrid88 = new ewxGrid( itemPanel86, ID_GRID_WXBASISTOOL_CONTEXT_BASISSETS_2, wxDefaultPosition, wxSize(430, 240), wxHSCROLL|wxVSCROLL );
-    itemGrid88->SetDefaultColSize(50);
-    itemGrid88->SetDefaultRowSize(25);
-    itemGrid88->SetColLabelSize(25);
-    itemGrid88->SetRowLabelSize(50);
+    itemGrid88->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid88->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid88->SetColLabelSize(ewxBitmap::scaled(25));
+    itemGrid88->SetRowLabelSize(ewxBitmap::scaled(50));
     itemGrid88->CreateGrid(1, 7, wxGrid::wxGridSelectCells);
     itemGrid88->SetMargins(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X),
                           wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y));

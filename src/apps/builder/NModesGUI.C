@@ -141,10 +141,10 @@ void NModesGUI::CreateControls()
     itemBoxSizer2->Add(p_gridPlotSizer, 1, wxGROW|wxALL, 0);
 
     ewxGrid* itemGrid4 = new ewxGrid( itemVizPropertyPanel1, ID_GRID_NMODE, wxDefaultPosition, wxSize(200, 225), wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
-    itemGrid4->SetDefaultColSize(50);
-    itemGrid4->SetDefaultRowSize(25);
-    itemGrid4->SetColLabelSize(40);
-    itemGrid4->SetRowLabelSize(50);
+    itemGrid4->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid4->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid4->SetColLabelSize(ewxBitmap::scaled(40));
+    itemGrid4->SetRowLabelSize(ewxBitmap::scaled(50));
     // CreateGrid() itself (below, not here) is deferred to the end of this
     // function, after every other control is constructed -- it internally
     // calls wxGrid::SetTable(), which on wx3.2/GTK3 synchronously fires a
