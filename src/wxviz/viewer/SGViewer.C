@@ -636,12 +636,21 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
         // A long right-hand text moves left so that it ends inside the view
         // (10 logical pixels a character).
         if (idx==1 || idx==3) {
-           float width = SoViewportRegionElement::get(action->getState())
-                            .getViewportSizePixels()[0];
+           const SbVec2s size = SoViewportRegionElement::get(action->getState())
+                                   .getViewportSizePixels();
+           const float width = size[0], height = size[1];
            const float scale = (float)GLPath::contentScaleFactor();
-           if (width > 0.f)
+           if (width > 0.f && height > 0.f) {
               pos[0] = std::max(0.010f, std::min(0.70f,
                           1.0f - (float)(fixedPixelLength(text)*10 + 14)*scale/width));
+              //  Where it would run into the left-hand text on the same
+              //  line, it goes one line further in.
+              const char *left = viewer->p_cornerText[idx-1].c_str();
+              const float leftEnd = 0.010f +
+                 (float)(fixedPixelLength(left)*10 + 14)*scale/width;
+              if (*left && pos[0] < leftEnd)
+                 pos[1] += (idx==1 ? 1.f : -1.f) * 18.f*scale/height;
+           }
         }
 
         float x =0;float y =0;float z =0;
