@@ -92,10 +92,10 @@ GENCHEM = {
     "decane-opls": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "nacl-dissolving": ["dynamics:", "dynamics:TE", "dynamics:MDMSD"],
     "ice-to-steam": ["dynamics:", "dynamics:TE"],
-    "ar-slab-40K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
-    "ar-slab-100K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
-    "ar-slab-130K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
-    "ar-slab-200K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-40K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-100K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-130K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
+    "ar-gas-200K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
 }
 # The ECCE-QM topics: the calculation names are the folder names without
 # "ecceqm-"; atoms, ions and the He2 single point have no vibrations, and
