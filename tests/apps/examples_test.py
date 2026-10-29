@@ -113,9 +113,13 @@ for _topic in sorted(os.listdir(_GC)):
                                 "lewis-structures-and-resonance")
         GENCHEM[_name] = (QM_LOC if _molecular and _name not in ("He2", "LiF")
                           else ["TE", "MO"])
+WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE"] if c == "xtb"
+                                   else ["TE", "VIBFREQ"])
+             for n in ("6_0", "5_1") for c in ("xtb", "orca")}
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
             "Examples/Spectroscopy": SPECTROSCOPY,
-            "Examples/General_Chemistry": GENCHEM}
+            "Examples/General_Chemistry": GENCHEM,
+            "Examples/Workflows": WORKFLOWS}
 FIRST = "Examples/Getting_Started"
 COMP = "Examples/Computational"
 # The study has no thumbnail and no theory/run type of its own.
@@ -284,7 +288,8 @@ def run(display, data, work):
     with open(script, "w") as handle:
         handle.write("examples computational\nexamples computational\n"
                      "examples getting-started\nexamples organic\n"
-                     "examples spectroscopy\nexamples genchem\nexamples organic\n")
+                     "examples spectroscopy\nexamples genchem\nexamples organic\n"
+                     "examples workflows\n")
 
     box = {}
     projects = [COMP]
@@ -334,7 +339,8 @@ def run(display, data, work):
                    "ok Examples/Organic_Chemistry created",
                    "ok Examples/Spectroscopy created",
                    "ok Examples/General_Chemistry created",
-                   "ok Examples/Organic_Chemistry existing"]:
+                   "ok Examples/Organic_Chemistry existing",
+                   "ok Examples/Workflows created"]:
         problems.append("answers %s" % answers)
     for extra in ("Examples_2", "Examples_3", "Examples_Organic",
                   "Examples_Spectroscopy", "Examples_Computational"):

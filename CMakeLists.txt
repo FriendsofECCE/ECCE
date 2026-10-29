@@ -2847,6 +2847,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_workflow PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The Workflows example set imports as a workflow session (#341).
+  add_test(NAME apps_examples_workflow
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_workflow_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_examples_workflow PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Modal dialogs are shown without the busy cursor and presented
   # (ewxModalGuard); ECCE_DEBUG_MODAL.
   add_test(NAME apps_modal_guard

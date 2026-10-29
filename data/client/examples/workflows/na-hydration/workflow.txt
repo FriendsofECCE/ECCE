@@ -1,0 +1,4 @@
+xtb-na_6_0
+orca-na_6_0 < xtb-na_6_0
+xtb-na_5_1
+orca-na_5_1 < xtb-na_5_1

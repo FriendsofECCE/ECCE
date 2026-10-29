@@ -3660,6 +3660,11 @@ struct ExampleOut {
 struct ExampleTopic {
   string name;                 // "" = directly in the set's project
   vector<ExampleOut> outputs;
+  // A topic folder holding a workflow.txt is a Workflow session instead of
+  // a project; its calculations are the steps, linked as (source, target)
+  // calculation names.
+  bool workflow = false;
+  vector<std::pair<string, string>> links;
 };
 struct ExampleSet {
   string id, title, line, project;
@@ -3671,7 +3676,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "19";
+const char *const kExampleSetVersion = "20";
 
 string treeName(string s)
 {
@@ -3721,6 +3726,26 @@ void collectExamples(const string &setDir, const string &topicDir,
       o.calc = found.substr(0, found.rfind('.'));
     }
     topic.outputs.push_back(o);
+  }
+  // workflow.txt: one example folder per line, "<folder>" for a first step
+  // or "<folder> < <source folder>" for a step made from another.
+  std::ifstream wf(setDir + topicDir + "/workflow.txt");
+  if (!topicDir.empty() && wf) {
+    topic.workflow = true;
+    auto calcOf = [&](const string &folder) {
+      for (const ExampleOut &o : topic.outputs)
+        if (o.name == folder) return o.calc;
+      return string();
+    };
+    string l;
+    while (std::getline(wf, l)) {
+      std::istringstream words(l);
+      string folder, lt, source;
+      if (!(words >> folder) || folder[0] == '#') continue;
+      words >> lt >> source;
+      const string to = calcOf(folder), from = calcOf(source);
+      if (!to.empty() && !from.empty()) topic.links.push_back({from, to});
+    }
   }
 }
 
@@ -4017,6 +4042,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
   vector<string> addedTopics;
   const auto t0 = std::chrono::steady_clock::now();
   double gmxSeconds = 0;
+  ResourceType *workflowType = 0;
+  for (ResourceType *rt :
+       ResourceDescriptor::getResourceDescriptor().getResourceTypes())
+    if (rt->getName() == "workflow") workflowType = rt;
   {
     WxCalcImport dlg(this);
     dlg.registerListener(this);
@@ -4033,7 +4062,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     if (!topic.name.empty()) {
       parent = childOf(proj, treeName(topic.name));
       if (!parent) {
-        parent = proj->createChild(treeName(topic.name), projectType);
+        parent = proj->createChild(treeName(topic.name),
+                                   topic.workflow ? workflowType : projectType);
         if (parent) addedTopics.push_back(topic.name);
       }
       if (!parent) {
@@ -4043,6 +4073,9 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       if (WxResourceTreeItemData *n = findNode(project, false, false))
         p_treeCtrl->refresh(n);
     }
+    Session *flow = topic.workflow ? dynamic_cast<Session*>(parent) : 0;
+    if (flow)
+      for (const auto &l : topic.links) p_flowSources[l.second] = l.first;
     findNode(parent->getURL(), true, true);
     for (const ExampleOut *exp : todo->second) {
       const ExampleOut &ex = *exp;
@@ -4089,6 +4122,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         // A copy of what the parsers made of this very output when the
         // package was built is much faster than parsing it again; the
         // parse stays as the fallback.
+        bool copied = false;
         const string stored = dir + ex.dirRel + "/stored";
         const string calcName = StoredCalcCopy::calcName(stored);
         string why;
@@ -4101,12 +4135,17 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
                << std::chrono::duration<double>(
                       std::chrono::steady_clock::now() - c0).count()
                << " s" << endl;
+          copied = true;
         } else {
           if (!why.empty())
             cerr << "Organizer: example copy failed (" << why
                  << "), parsing" << endl;
           dlg.importFile(dir + rel);
         }
+        // A parsed step joins at importValidationComplete().
+        if (flow && copied)
+          joinExampleWorkflow(EDSIFactory::getResource(
+              flow->getURL().getChild(ex.calc)));
       }
     }
     }
@@ -4141,6 +4180,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
                   "calculation shows a tight-binding calculation of water "
                   "with orbitals, atomic charges and vibrations, run outside "
                   "ECCE and imported from the program's output files."},
+    {"na_6_0_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with six waters in the first shell, relaxed with the cheap method that starts the workflow."},
+    {"na_6_0_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (six waters in the first shell) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
+    {"na_5_1_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with five waters in the first shell and one in the second, relaxed with the cheap method that starts the workflow."},
+    {"na_5_1_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (five waters in the first shell and one in the second) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
     {"methane", "NWChem, B3LYP/6-31G*. This calculation shows the effect of "
                 "tetrahedral symmetry: degenerate orbitals (a1, t2) and "
                 "degenerate vibrational modes."},
@@ -4858,8 +4901,9 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     for (Resource *calc : vector<Resource *>(*calcs)) {
       if (!calc) continue;
       if (calc->getDescriptor() &&
-          calc->getDescriptor()->getName() == "project") {
-        annotate(calc);   // a topic
+          (calc->getDescriptor()->getName() == "project" ||
+           calc->getDescriptor()->getName() == "workflow")) {
+        annotate(calc);   // a topic, or a workflow's steps
         continue;
       }
       if (dynamic_cast<ICalculation*>(calc) && added.count(calc->getName()))
@@ -9178,7 +9222,10 @@ TaskJob *CalcMgr::getContainer(const string& name)
 
   while (projRes != (Resource*)0 &&
          projRes->getDescriptor() != (ResourceType*)0 &&
-         projRes->getDescriptor()->getName() != "project") {
+         projRes->getDescriptor()->getName() != "project" &&
+         // an example workflow's steps are imported into the session itself
+         !(p_batchImport &&
+           projRes->getDescriptor()->getName() == "workflow")) {
     WxResourceTreeItemData *parentData = p_treeCtrl->getParent(projData);
 
     // getParent() returns the node itself once it reaches the server
@@ -9227,6 +9274,48 @@ TaskJob *CalcMgr::getContainer(const string& name)
   return ret;
 }
 
+
+// A step of an example workflow becomes a member of its session, and the
+// links of workflow.txt are made as soon as both ends are members.
+void CalcMgr::joinExampleWorkflow(Resource *step)
+{
+  if (!step || p_flowSources.empty()) return;
+  Session *wf = dynamic_cast<Session*>(
+      EDSIFactory::getResource(step->getURL().getParent()));
+  if (!wf || !wf->getDescriptor() ||
+      wf->getDescriptor()->getName() != "workflow")
+    return;
+  try {
+    vector<Resource*> members = wf->getMembers();
+    auto same = [](const Resource *a, const Resource *b) {
+      return a->getURL() == b->getURL();
+    };
+    bool isMember = false;
+    for (Resource *m : members) if (same(m, step)) isMember = true;
+    if (!isMember) {
+      wf->addMember(step);
+      members = wf->getMembers();
+    }
+    auto member = [&](const string &name) -> Resource * {
+      for (Resource *m : members) if (m->getName() == name) return m;
+      return 0;
+    };
+    for (const auto &l : p_flowSources) {
+      Resource *to = member(l.first), *from = member(l.second);
+      if (!to || !from) continue;
+      bool linked = false;
+      // fresh each time: addLink() may rebuild the link objects
+      for (Session::Link *k : wf->getLinks())
+        if (same(k->source, from) && same(k->target, to)) linked = true;
+      if ((same(to, step) || same(from, step)) && !linked)
+        wf->addLink(from, to, Session::INPUT_PROVIDER,
+                    WorkflowSteps::kGeometryLink);
+    }
+    wf->saveLinkbase();
+  } catch (InvalidException &ex) {
+    cerr << "Organizer: example workflow: " << ex.what() << endl;
+  }
+}
 
 void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
                                        string message)
@@ -9294,6 +9383,7 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
     // let the world know this calculation was created/imported
     notifyCreate(ipc->getURL().toString());
 
+    joinExampleWorkflow(ipc);
     if (p_batchImport)
       return;
 
