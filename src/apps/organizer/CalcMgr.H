@@ -641,6 +641,10 @@ protected:
   // True while openExampleSet() imports several outputs: the tree is rebuilt
   // once at the end, not after each calculation (#263).
   bool p_batchImport = false;
+  // The workflow example being imported: target step -> source step (names).
+  // A step joins its session, and the links are made, when its import is done.
+  std::map<std::string, std::string> p_flowSources;
+  void joinExampleWorkflow(Resource *step);
   std::string p_batchError;     // the first import that failed in the batch
   int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;
   // url -> (snapshot, when it arrived, seconds since 1970)

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="EGRAD" rowLabel="Geometry Step" rows="1" units="Hartree/Bohr">
+
+  <step number="1">0.0259201917</step>
+  <step number="2">0.0257930280</step>
+  <step number="3">0.0249340279</step>
+  <step number="4">0.0159246255</step>
+  <step number="5">0.0072874289</step>
+  <step number="6">0.0045471469</step>
+  <step number="7">0.0034231658</step>
+  <step number="8">0.0030474715</step>
+  <step number="9">0.0038229393</step>
+  <step number="10">0.0046481329</step>
+  <step number="11">0.0044709279</step>
+  <step number="12">0.0031889136</step>
+  <step number="13">0.0024653917</step>
+  <step number="14">0.0027972829</step>
+  <step number="15">0.0030028237</step>
+  <step number="16">0.0026028555</step>
+  <step number="17">0.0017719776</step>
+  <step number="18">0.0015044676</step>
+  <step number="19">0.0015694172</step>
+  <step number="20">0.0017602265</step>
+  <step number="21">0.0020433404</step>
+  <step number="22">0.0022004206</step>
+  <step number="23">0.0018850501</step>
+  <step number="24">0.0013413983</step>
+  <step number="25">0.0010002988</step>
+  <step number="26">0.0010067160</step>
+  <step number="27">0.0012306626</step>
+  <step number="28">0.0012099145</step>
+  <step number="29">0.0009383803</step>
+  <step number="30">0.0007298089</step>
+  <step number="31">0.0007177260</step>
+  <step number="32">0.0007294965</step>
+  <step number="33">0.0006919014</step>
+  <step number="34">0.0006662216</step>
+  <step number="35">0.0006691167</step>
+  <step number="36">0.0006454338</step>
+  <step number="37">0.0006047041</step>
+  <step number="38">0.0006425837</step>
+  <step number="39">0.0007703127</step>
+  <step number="40">0.0008270552</step>
+  <step number="41">0.0007314691</step>
+  <step number="42">0.0005917957</step>
+  <step number="43">0.0006099284</step>
+  <step number="44">0.0007090278</step>
+  <step number="45">0.0006238303</step>
+  <step number="46">0.0004215908</step>
+
+</tsvector>

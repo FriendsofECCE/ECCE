@@ -26,14 +26,16 @@ SKIP = 77
 SETS = {"getting-started": ("Examples/Getting_Started", 6),
         "organic": ("Examples/Organic_Chemistry", 21),
         "spectroscopy": ("Examples/Spectroscopy", 19),
-        "genchem": ("Examples/General_Chemistry", 97)}
+        "genchem": ("Examples/General_Chemistry", 97),
+        "workflows": ("Examples/Workflows", 6)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",
             "startdate", "completiondate", "job_path", "job_jobid",
             "job_clienthost", "job_clientid", "launch_user", "launch_machine",
             "launch_remoteShell", "launch_rundir", "launch_account",
-            "launch_profile", "launch_allocleft", "submitdate", "version"}
+            "launch_profile", "launch_allocleft", "submitdate", "version",
+            "taskIndex"}
 # The progress record carries the clock of the run it came from.
 # seq counts the monitor's messages, which depends on timing, not content.
 CLOCK = re.compile(r"(seq|sent|at)=[0-9.]+")
