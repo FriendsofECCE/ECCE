@@ -7,7 +7,9 @@ Workflows imports Na hydration as a Workflow session, not as loose calculations.
 Checks the six steps (three xTB, three ORCA), the "geometry" link from each
 xTB step to its ORCA step, the charge and multiplicity of every step, and that
 no label of the drawing touches a box, a line or an arrow.  --shots keeps the
-screenshot of the view.
+screenshot of the view.  A right-click on an ORCA and an xTB box builds the
+context menu without an exception (#681); the first-start import of the
+example sets runs in the same start.
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
@@ -64,7 +66,9 @@ def run(display, data, work, shots):
     root = os.path.join(data, "users", "local")
     wf = "file://" + root + "/Examples/Workflows/Na_hydration"
     png = os.path.join(shots, "workflow-na-hydration.png")
-    commands = ["examples workflows", "workflowinfo " + wf,
+    menus = ["workflowmenu %s %s/na_6_0_%s" % (wf, wf, k)
+             for k in ("orca", "xtb", "orca")]
+    commands = ["examples workflows"] + menus + ["workflowinfo " + wf,
                 "workflowshot %s %s" % (png, wf)]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
@@ -97,6 +101,11 @@ def run(display, data, work, shots):
     check("charge 1 and multiplicity 1 on every step",
           all(r.get("charge") == "1" and r.get("mult") == "1"
               for r in table.values()), "%s" % table)
+    got = answer("workflowmenu")
+    check("right-click menu on ORCA and xTB boxes",
+          len(got) == 3 and all(m.startswith("ok ") and "Rename" in m
+                                for m in got),
+          "workflowmenu answered %r" % got)
     shot = answer("workflowshot")
     check("view saved, six boxes, three links, labels clear",
           bool(shot) and shot[0].startswith("ok boxes=6 links=3 label-overlaps=0"),

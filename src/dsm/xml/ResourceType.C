@@ -202,6 +202,10 @@ vector<ResourceType*> ResourceType::getOfferedContains(bool emptySession)
     string name = p_containsResources[i]->getName();
     if (name == "dirdyvtst" || name == "polyrate" || name == "rxn_solvate")
       continue;
+    // A type with no menu item (import_es, which a workflow may hold) is
+    // only made by an import, never from New.
+    if (p_containsResources[i]->getMenuItem().empty())
+      continue;
     if (emptySession && (name == "nwchem_md_optimize" ||
         name == "nwchem_md_energy" || name == "nwchem_md_dynamics"))
       continue;
