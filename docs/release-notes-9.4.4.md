@@ -7,6 +7,7 @@
 - **Windows: atom labels are drawn again** (#672). The labels use the font bundled with ECCE on every system.
 - **Viewer:** a long text in the top-right corner (such as the dipole moment) moves one line down instead of running into the text on the left.
 - **Spin density tables:** every cell is centred vertically, also beside a wrapped cell.
+- **CP2K:** a converged geometry optimisation says "Optimisation converged" in the Progress box instead of "stopped". Run Mgmt > Re-Parse Outputs corrects a calculation that has already finished.
 - **Properties menu:** UV/Vis Spectrum (was UV-vis Spectrum).
 
 ## Known issues
