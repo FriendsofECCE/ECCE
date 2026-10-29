@@ -123,12 +123,14 @@ EcceTool::EcceTool(wxWindow * parent, wxWindowID id,
 void EcceTool::Create(wxWindow * parent, wxWindowID id, const wxString& name)
 {
   p_isHover = false;
-  int height = 68;
-  int width = BUTTON_WIDTH;
+  // wxMSW draws in device pixels, so the layout below is scaled by hand.
+  int height = ewxBitmap::scaled(68);
+  int width = ewxBitmap::scaled(BUTTON_WIDTH);
   if (p_bundle.IsOk()) {
-    height = ICON_SIZE + 10 + parent->GetCharHeight();
+    height = ewxBitmap::scaled(ICON_SIZE + 10) + parent->GetCharHeight();
     // wide enough for the label, which the sizer then makes room for
-    width = wxMax(width, parent->GetTextExtent(p_label).x + 12);
+    width = wxMax(width, parent->GetTextExtent(p_label).x
+                         + ewxBitmap::scaled(12));
   }
   ewxPanel::Create(parent, id, wxDefaultPosition, wxSize(width, height),
                    wxNO_BORDER|wxTAB_TRAVERSAL, name);
@@ -248,22 +250,26 @@ void EcceTool::OnPaint( wxPaintEvent& event )
   wxRendererNative::Get().DrawPushButton(this, dc, rect, flags);
 
   if (p_bundle.IsOk()) {
+    const int icon = ewxBitmap::scaled(ICON_SIZE);
+    const int top = ewxBitmap::scaled(4);
+    const bool pixels = ewxBitmap::dpiScale() > 1;
     wxBitmap bmp = p_thumbnail.IsOk() ? p_thumbnail
-                                      : p_bundle.GetBitmapFor(this);
+                 : pixels ? p_bundle.GetBitmap(wxSize(icon, icon))
+                          : p_bundle.GetBitmapFor(this);
     if (!IsEnabled()) bmp = bmp.ConvertToDisabled();
-    wxSize sz = p_thumbnail.IsOk() ? wxSize(ICON_SIZE, ICON_SIZE)
+    wxSize sz = p_thumbnail.IsOk() || pixels ? wxSize(icon, icon)
                                    : p_bundle.GetPreferredLogicalSizeFor(this);
-    dc.DrawBitmap(bmp, (rect.width - sz.x) / 2, 4, true);
+    dc.DrawBitmap(bmp, (rect.width - sz.x) / 2, top, true);
     if (p_thumbnail.IsOk()) drawThumbnailFrame(dc, wxRect(
-        wxPoint((rect.width - sz.x) / 2, 4), sz));
+        wxPoint((rect.width - sz.x) / 2, top), sz));
     dc.SetFont(GetFont());
     dc.SetTextForeground(wxSystemSettings::GetColour(
         IsEnabled() ? wxSYS_COLOUR_BTNTEXT : wxSYS_COLOUR_GRAYTEXT));
     wxSize ts = dc.GetTextExtent(p_label);
     dc.DrawText(p_label, wxMax(0, (rect.width - ts.x) / 2),
-                4 + ICON_SIZE + 2);
+                top + icon + ewxBitmap::scaled(2));
   } else {
-    dc.DrawBitmap(p_bitmap, 2, 2, true);
+    dc.DrawBitmap(p_bitmap, ewxBitmap::scaled(2), ewxBitmap::scaled(2), true);
   }
 
   if (HasFocus())
@@ -323,8 +329,10 @@ void EcceTool::setBitMap(wxBitmap bitmap)
 {
   p_bitmap = bitmap;
   if (p_bundle.IsOk() && bitmap.IsOk()) {
-    const double scale = GetContentScaleFactor();
-    const int px = (int)(ICON_SIZE * scale + 0.5);
+    const bool pixels = ewxBitmap::dpiScale() > 1;
+    const double scale = pixels ? 1.0 : GetContentScaleFactor();
+    const int px = pixels ? ewxBitmap::scaled(ICON_SIZE)
+                          : (int)(ICON_SIZE * scale + 0.5);
     wxImage image = bitmap.ConvertToImage();
     image.Rescale(px, px, wxIMAGE_QUALITY_HIGH);
     p_thumbnail = wxBitmap(image, -1, scale);

@@ -510,7 +510,7 @@ namespace {
 //  below it.  The decoration cannot be told from the menu bar in
 //  GetSize() - GetClientSize(), nor measured before the window is mapped, so
 //  this is always reserved on top of what is measured.
-const int TITLE_RESERVE = 36;
+#define TITLE_RESERVE (ewxBitmap::scaled(36))
 
 wxRect displayArea(wxWindow *win)
 {

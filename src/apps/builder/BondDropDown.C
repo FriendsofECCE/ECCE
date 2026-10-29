@@ -63,7 +63,7 @@ bool BondDropDown::Create(double order, wxWindow* parent, wxWindowID id,
 
    //  Large icons with their names beside them: at 24 px the two bond
    //  pictures could not be told apart.
-   SetToolBitmapSize(wxSize(32, 32));
+   SetToolBitmapSize(ewxBitmap::scaled(wxSize(32, 32)));
    //  A bond is covalent or metal-pi; orders are not a user choice (#439).
    AddTool(SINGLE, "Covalent",
            ewxBitmap::colorIcon(TBond::orderToImage(TBond::Single), wxSize(32, 32)),

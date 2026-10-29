@@ -1157,7 +1157,13 @@ void SoWxRenderArea::redraw()
     GLPath::record((const char*)glGetString(GL_RENDERER),
                    (const char*)glGetString(GL_VENDOR),
                    (const char*)glGetString(GL_VERSION));
-  GLPath::setContentScaleFactor(GetContentScaleFactor());
+  // Overlay text is drawn in framebuffer pixels.  wxMSW reports content
+  // scale 1 even at 200 %, where the text needs the DPI factor.
+  double textScale = GetContentScaleFactor();
+#ifdef __WXMSW__
+  if (GetDPIScaleFactor() > textScale) textScale = GetDPIScaleFactor();
+#endif
+  GLPath::setContentScaleFactor(textScale);
 #ifdef OIV_COIN
   if (!p_alphaChecked) {
     p_softwareGL = GLPath::software();

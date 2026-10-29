@@ -34,6 +34,7 @@
 ////@end includes
 
 #include "wxgui/PTDataFrameGUI.H"
+#include "wxgui/ewxBitmap.H"
 
 ////@begin XPM images
 
@@ -225,10 +226,10 @@ void PTDataFrameGUI::CreateControls()
     itemPanel23->SetSizer(itemBoxSizer24);
 
     p_ionPotentGrid = new ewxGrid( itemPanel23, ID_GRID, wxDefaultPosition, wxSize(200, 150), wxNO_BORDER|wxHSCROLL|wxVSCROLL );
-    p_ionPotentGrid->SetDefaultColSize(50);
-    p_ionPotentGrid->SetDefaultRowSize(25);
-    p_ionPotentGrid->SetColLabelSize(25);
-    p_ionPotentGrid->SetRowLabelSize(50);
+    p_ionPotentGrid->SetDefaultColSize(ewxBitmap::scaled(50));
+    p_ionPotentGrid->SetDefaultRowSize(ewxBitmap::scaled(25));
+    p_ionPotentGrid->SetColLabelSize(ewxBitmap::scaled(25));
+    p_ionPotentGrid->SetRowLabelSize(ewxBitmap::scaled(50));
     p_ionPotentGrid->CreateGrid(95, 21, wxGrid::wxGridSelectCells);
     itemBoxSizer24->Add(p_ionPotentGrid, 1, wxGROW|wxALL, 5);
 

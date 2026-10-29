@@ -34,6 +34,7 @@
 ////@end includes
 
 #include "WxContractionEditorGUI.H"
+#include "wxgui/ewxBitmap.H"
 
 ////@begin XPM images
 
@@ -147,9 +148,9 @@ void WxContractionEditorGUI::CreateControls()
     itemBoxSizer4->Add(itemStaticText9, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxGrid* itemGrid10 = new ewxGrid( itemPanel3, ID_GRID_WXCONTRACTIONEDITOR_CONTRACTIONS, wxDefaultPosition, wxSize(200, 150), wxDOUBLE_BORDER|wxHSCROLL|wxVSCROLL );
-    itemGrid10->SetDefaultColSize(50);
-    itemGrid10->SetDefaultRowSize(25);
-    itemGrid10->SetColLabelSize(25);
+    itemGrid10->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid10->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid10->SetColLabelSize(ewxBitmap::scaled(25));
     itemGrid10->SetRowLabelSize(0);
     itemGrid10->CreateGrid(2, 4, wxGrid::wxGridSelectCells);
     itemBoxSizer4->Add(itemGrid10, 1, wxGROW|wxALL, 3);
@@ -167,9 +168,9 @@ void WxContractionEditorGUI::CreateControls()
     itemBoxSizer13->Add(itemStaticText14, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxGrid* itemGrid15 = new ewxGrid( itemPanel3, ID_GRID_WXCONTRACTIONEDITOR_SUMMARY, wxDefaultPosition, wxSize(300, 150), wxNO_BORDER|wxHSCROLL|wxVSCROLL );
-    itemGrid15->SetDefaultColSize(50);
-    itemGrid15->SetDefaultRowSize(25);
-    itemGrid15->SetColLabelSize(25);
+    itemGrid15->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid15->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid15->SetColLabelSize(ewxBitmap::scaled(25));
     itemGrid15->SetRowLabelSize(0);
     itemGrid15->CreateGrid(2, 5, wxGrid::wxGridSelectCells);
     itemBoxSizer13->Add(itemGrid15, 0, wxALIGN_LEFT|wxALL, 3);

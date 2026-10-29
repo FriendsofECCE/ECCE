@@ -358,7 +358,7 @@ void CalcMgrGUI::CreateControls()
 
     p_toolBar = new wxToolBar( itemFrame1, ID_TOOLBAR1, wxDefaultPosition, wxDefaultSize, wxTB_HORIZONTAL );
     p_toolBar->SetToolPacking(2);
-    p_toolBar->SetToolBitmapSize(wxSize(24, 24));
+    p_toolBar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(24, 24)));
     p_toolBar->AddTool(wxID_HOME, _T(""), ewxBitmap::bundle(wxT("gohome.xpm")), _("Go to user home on current server"), wxITEM_NORMAL);
     p_toolBar->AddTool(wxID_UP, _T(""), ewxBitmap::bundle(wxT("goup.xpm")), _("Go up"), wxITEM_NORMAL);
     p_toolBar->AddTool(wxID_BACKWARD, _T(""), ewxBitmap::bundle(wxT("back.xpm")), _("Go back"), wxITEM_NORMAL);

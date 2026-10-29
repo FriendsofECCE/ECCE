@@ -29,6 +29,14 @@ class ewxBitmap : public wxBitmap
       static wxBitmap loadPixmap(const wxString& name, long type);
       static wxBitmap placeholder(const wxString& name);
       static wxIcon icon(const wxString& name);
+
+      // Pixels per logical pixel for bitmaps the toolkit does not scale
+      // itself: >1 only on wxMSW (wxGTK and wxOSX scale a bitmap on draw).
+      // ECCE_BITMAP_SCALE overrides it, to exercise the path anywhere.
+      static double dpiScale();
+      static int scaled(int px);
+      static wxSize scaled(const wxSize& size);
+      static wxBitmap scaled(const wxBitmap& bitmap);
 };
 
 #endif

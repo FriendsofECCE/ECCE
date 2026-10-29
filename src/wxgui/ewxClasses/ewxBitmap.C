@@ -111,6 +111,38 @@ wxString ewxBitmap::pixmapFile(const wxString& name)
 }
 
 
+double ewxBitmap::dpiScale()
+{
+  static double scale = 0;
+  if (scale == 0) {
+    scale = 1;
+    const char* env = getenv("ECCE_BITMAP_SCALE");
+    if (env) {
+      scale = atof(env);
+    } else {
+#ifdef __WXMSW__
+      wxScreenDC dc;
+      scale = dc.GetPPI().y / 96.0;
+#endif
+    }
+    if (scale < 1.05 || scale > 8) scale = 1;
+  }
+  return scale;
+}
+
+
+int ewxBitmap::scaled(int px)
+{
+  return (int)(px * dpiScale() + 0.5);
+}
+
+
+wxSize ewxBitmap::scaled(const wxSize& size)
+{
+  return wxSize(scaled(size.x), scaled(size.y));
+}
+
+
 wxString ewxBitmap::genericIconName(const wxString& file)
 {
   wxString base = wxFileName(file).GetName();
@@ -153,6 +185,16 @@ static wxBitmap alphaToMask(const wxBitmap& bmp)
 #else
 static const wxBitmap& alphaToMask(const wxBitmap& bmp) { return bmp; }
 #endif
+
+
+wxBitmap ewxBitmap::scaled(const wxBitmap& bitmap)
+{
+  if (!bitmap.IsOk() || dpiScale() == 1) return bitmap;
+  wxImage image = bitmap.ConvertToImage();
+  image.Rescale(scaled(image.GetWidth()), scaled(image.GetHeight()),
+                wxIMAGE_QUALITY_HIGH);
+  return alphaToMask(wxBitmap(image, bitmap.HasAlpha() ? 32 : -1));
+}
 
 
 /**
@@ -260,7 +302,7 @@ wxBitmap ewxBitmap::themedIcon(const wxString& icon, const wxSize& size)
 wxBitmap ewxBitmap::saveIcon()
 {
   wxBitmap art = wxArtProvider::GetBitmap(wxART_FILE_SAVE, wxART_BUTTON,
-                                          wxSize(16, 16));
+                                          scaled(wxSize(16, 16)));
   return art.IsOk() ? art : wxBitmap(ewxBitmap("save.xpm"));
 }
 
@@ -356,11 +398,12 @@ ewxBitmap::ewxBitmap(const wxString& name, long type)
 {
   // A resource icon may be an SVG; the tree image lists are 16x16.
   if (name.EndsWith(".svg")) {
-    wxBitmap bmp = colorIcon(name, wxSize(16, 16)).GetBitmap(wxSize(16, 16));
+    wxSize px = scaled(wxSize(16, 16));
+    wxBitmap bmp = colorIcon(name, wxSize(16, 16)).GetBitmap(px);
     wxBitmap::operator=(bmp.IsOk() ? bmp : placeholder(name));
     return;
   }
-  wxBitmap::operator=(loadPixmap(name, type));
+  wxBitmap::operator=(scaled(loadPixmap(name, type)));
   wxString icon = genericIconName(name);
   if (!icon.empty()) {
     wxBitmap art = themedIcon(icon, IsOk() ? GetSize() : wxSize(16, 16));

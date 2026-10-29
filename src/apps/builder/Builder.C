@@ -716,7 +716,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_fileToolbar->SetToolSeparation(0);
     p_fileToolbar->SetToolPacking(0);
-    p_fileToolbar->SetToolBitmapSize(wxSize(22, 22));
+    p_fileToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
     p_fileToolbar->AddTool(wxID_NEW, _T(""), ewxBitmap::colorIcon("svg/candidates/e/new.svg", wxSize(22, 22)), _("New"));
     p_fileToolbar->AddTool(wxID_OPEN, _T(""), ewxBitmap::colorIcon("svg/candidates/e/open.svg", wxSize(22, 22)), _("Open"));
     p_fileToolbar->AddTool(wxID_SAVE, _T(""), ewxBitmap::colorIcon("svg/candidates/e/save.svg", wxSize(22, 22)), _("Save"));
@@ -728,7 +728,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_modeToolbar->SetToolSeparation(0);
     p_modeToolbar->SetToolPacking(0);
-    p_modeToolbar->SetToolBitmapSize(wxSize(22, 22));
+    p_modeToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
     wxBitmapBundle selBitmap = ewxBitmap::colorIcon("svg/candidates/e/select.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_SELECT, _T(""), selBitmap,
                            _("Select"), wxITEM_CHECK);
@@ -764,7 +764,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_viewToolbar->SetToolSeparation(0);
     p_viewToolbar->SetToolPacking(0);
-    p_viewToolbar->SetToolBitmapSize(wxSize(22, 22));
+    p_viewToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_DEPTH_CUEING, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/depthcue.svg", wxSize(22, 22)),
             _("Enable/disable depth cueing"), wxITEM_CHECK);
@@ -793,7 +793,7 @@ void Builder::createToolbar()
             wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_manipulatorToolbar->SetToolSeparation(0);
     p_manipulatorToolbar->SetToolPacking(0);
-    p_manipulatorToolbar->SetToolBitmapSize(wxSize(22, 22));
+    p_manipulatorToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_SPHERE,
             _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_sphere.svg", wxSize(22, 22)),
             _("Create Sphere Manipulator"), wxITEM_NORMAL);
@@ -812,7 +812,7 @@ void Builder::createToolbar()
             wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_measureToolbar->SetToolSeparation(0);
     p_measureToolbar->SetToolPacking(0);
-    p_measureToolbar->SetToolBitmapSize(wxSize(22, 22));
+    p_measureToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_DIST, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/measure_length.svg", wxSize(22, 22)),
             _("Measure Distance"), wxITEM_NORMAL);
@@ -973,19 +973,19 @@ void Builder::createRotators(wxWindow *parent)
   p_rotSizer->Add(new wxStaticText(parent, -1, "Rotation: X"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
   p_xrot = new wxSpinCtrl(parent, ID_ROT_X, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotSizer->Add(p_xrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Y"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
   p_yrot = new wxSpinCtrl(parent, ID_ROT_Y, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotSizer->Add(p_yrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Z"), 0,
                    wxALIGN_CENTER|wxLEFT, 5);
   p_zrot = new wxSpinCtrl(parent, ID_ROT_Z, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotz = 0;
   p_rotSizer->Add(p_zrot, 0, wxALIGN_CENTER|wxALL, 0);
@@ -1139,7 +1139,7 @@ void Builder::createToolPanels()
     tabRow->Add(p_tabButtons[t], 1, wxEXPAND | wxALL, 2);
   }
   p_tabsPanel->SetSizer(tabRow);
-  p_tabsPanel->SetMinSize(wxSize(200, 34));
+  p_tabsPanel->SetMinSize(ewxBitmap::scaled(wxSize(200, 34)));
   wxAuiPaneInfo tabInfo;
   tabInfo.Name(NAME_COLUMN_TABS).CaptionVisible(false).Right().Layer(1)
          .Position(0).Fixed().Floatable(false).Movable(false)

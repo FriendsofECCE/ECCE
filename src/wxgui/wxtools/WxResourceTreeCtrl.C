@@ -111,7 +111,7 @@ bool WxResourceTreeCtrl::Create(wxWindow* parent, wxWindowID id,
 
   // Somehow putting this space and indent setting in ewxTreeCtrl() won't work
   SetSpacing(8);
-  SetIndent(20);
+  SetIndent(ewxBitmap::scaled(20));
 
   // Image list for folder expand and collapse button (the native MSW tree
   // draws its own and has no button list)

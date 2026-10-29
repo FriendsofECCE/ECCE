@@ -809,7 +809,11 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
       if (!functional.empty()) valuestr += " \xc2\xb7 " + functional;
       delete params;
     }
-    prop->SetLabel(valuestr);
+    // The middle dot above is UTF-8; plain conversion reads it as the
+    // locale's charset (Latin-1 on Windows).
+    wxString label = wxString::FromUTF8(valuestr.c_str());
+    if (label.empty() && !valuestr.empty()) label = valuestr;
+    prop->SetLabel(label);
   }
   else if (type == GridProperty::PT_DATE_TIME)
   {
