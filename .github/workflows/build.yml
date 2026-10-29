@@ -53,6 +53,11 @@ on:
         description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos, windows); empty runs all"
         required: false
         default: ""
+      skip_optional_studies:
+        description: "Skip the optional GROMACS and diatomics studies"
+        type: boolean
+        required: false
+        default: false
 
 # One run per branch.  Without this every push starts a full run and none
 # of them cancel the older ones, so a run of quick pushes leaves a dozen
@@ -408,6 +413,7 @@ jobs:
       # They need no build, so this runs whatever the build did; it is
       # allowed to fail until it has been seen to pass on a runner.
       - name: GROMACS MD study suite
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_optional_studies }}
         continue-on-error: true
         timeout-minutes: 15
         env:
@@ -526,7 +532,7 @@ jobs:
       # the apps' test hooks, on the app's own Python.  Energies are in the
       # summary and the lab-out artifact.
       - name: Diatomics lab (local client)
-        if: always() && hashFiles('dist/*.dmg') != ''
+        if: ${{ (github.event_name != 'workflow_dispatch' || !inputs.skip_optional_studies) && always() && hashFiles('dist/*.dmg') != '' }}
         continue-on-error: true
         timeout-minutes: 40
         run: |
