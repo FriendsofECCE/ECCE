@@ -412,10 +412,10 @@ bool readFile(const string& path, Model& m, string& err) {
   m.nelectron[1] = int(rdInt(f, "nelectron_beta", -1));
   if (has(f, "provenance")) {
     hid_t g = H5Gopen2(f, "provenance", H5P_DEFAULT);
-    H5O_info_t oi; H5Oget_info(g, &oi, H5O_INFO_NUM_ATTRS);
-    for (hsize_t i = 0; i < oi.num_attrs; i++) {
+    // H5Oget_info changed signature between HDF5 1.10 and 1.12; walk by index instead.
+    for (hsize_t i = 0;; i++) {
       char nm[256];
-      H5Aget_name_by_idx(g, ".", H5_INDEX_NAME, H5_ITER_INC, i, nm, sizeof nm, H5P_DEFAULT);
+      if (H5Aget_name_by_idx(g, ".", H5_INDEX_NAME, H5_ITER_INC, i, nm, sizeof nm, H5P_DEFAULT) < 0) break;
       m.provenance[nm] = rdStr(g, nm);
     }
     H5Gclose(g);

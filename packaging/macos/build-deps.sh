@@ -59,6 +59,11 @@ cm libssh -DOPENSSL_ROOT_DIR="$P" -DWITH_EXAMPLES=OFF \
 fetch https://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.3.0.tar.xz xerces
 cm xerces -Dnetwork=OFF
 
+# Built here, not from Homebrew, so the dylib honours the deployment target.
+fetch https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.6/hdf5-1.14.6.tar.gz hdf5
+cm hdf5 -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_TOOLS=OFF \
+  -DHDF5_BUILD_CPP_LIB=OFF -DHDF5_ENABLE_SZIP_SUPPORT=OFF
+
 fetch https://github.com/freetype/freetype/archive/refs/tags/VER-2-13-3.tar.gz freetype
 cm freetype -DFT_DISABLE_BZIP2=ON -DFT_DISABLE_PNG=ON -DFT_DISABLE_HARFBUZZ=ON \
   -DFT_DISABLE_BROTLI=ON

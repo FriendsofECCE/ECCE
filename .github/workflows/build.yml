@@ -365,7 +365,7 @@ jobs:
       - name: Install build tools
         # Only tools: the libraries come from build-deps.sh, because
         # Homebrew bottles are built for the runner's own macOS.
-        run: brew install cmake ninja pkgconf gcc bash hdf5
+        run: brew install cmake ninja pkgconf gcc bash
 
       - name: Cache libraries built for macOS ${{ env.MACOSX_DEPLOYMENT_TARGET }}
         id: deps
