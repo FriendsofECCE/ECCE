@@ -255,13 +255,14 @@ def run(display, data, work):
         print("ok    the Organizer window is shown before the import starts")
     progress = re.findall(r"Organizer: example progress: (\d+) of (\d+) - (.*)$",
                           lg, re.M)
-    if [(a, b) for a, b, _ in progress] != [(str(i), "5") for i in range(1, 6)]:
+    if [(a, b) for a, b, _ in progress] != [(str(i), str(len(EXPECT)))
+                                             for i in range(1, len(EXPECT) + 1)]:
         fail("import progress", "progress lines %s" % progress, lg)
     else:
         print("ok    progress names each calculation: %s"
               % ", ".join(n for _, _, n in progress))
     got = (first.get("props") or {}).get(FIRST, {})
-    if result.crashed or sorted(c.split("_")[0] for c in got) != sorted(EXPECT):
+    if result.crashed or sorted(c if c in EXPECT else c.split("_")[0] for c in got) != sorted(EXPECT):
         fail("first start imports exactly the general set",
              "%s holds %s" % (FIRST, sorted(got)), result.log)
     else:
