@@ -225,11 +225,11 @@ History=rmsgrad
 [END]
 
 [PROGRESS]
-Begin=^\s+\*\*\* GEOMETRY OPTIMIZATION COMPLETED \*\*\*
+Begin=^\s+\*\*\*\s+GEOMETRY OPTIMIZATION COMPLETED\s+\*\*\*
 Progress=opt converged=yes
 [END]
 
 [PROGRESS]
-Begin=^\s+\*\*\* MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED \*\*\*
+Begin=^\s+\*\*\*\s+MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED\s+\*\*\*
 Progress=opt converged=no
 [END]
