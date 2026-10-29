@@ -3674,7 +3674,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "17";
+const char *const kExampleSetVersion = "19";
 
 string treeName(string s)
 {
@@ -4786,7 +4786,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows that the two O-O bonds of ozone are "
      "equivalent, as the average of two resonance structures."},
-    {"ar-gas",
+    {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "
      "(mean 399 m/s) and the mean-square displacement of an almost ideal "
@@ -4824,12 +4824,12 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "taking a shell of water molecules with it."},
     {"ice-to-steam",
      "GROMACS, a slab of 1600 TIP4P/Ice molecules (ice Ih) with vacuum "
-     "above and below, heated from 200 K to 500 K over 30 ns and held at "
-     "500 K for 10 ns. This calculation shows melting as a jump in the "
-     "potential energy of about 4 kJ/mol per molecule near 280 K (the "
-     "model melts at about 270 K; a heating ramp overshoots), followed by "
-     "molecules evaporating from the liquid into the vacuum as the "
-     "temperature rises."},
+     "above and below, heated from 200 K to 650 K over 40 ns and held at "
+     "650 K for 10 ns. This calculation shows melting as a jump in the "
+     "potential energy a little above the model's melting point (a heating "
+     "ramp overshoots), then molecules evaporating from the liquid into the "
+     "vacuum from the middle of the ramp onward, until the vapour "
+     "spreads through the whole box."},
     {"ar-gas-40K",
      "GROMACS, Lennard-Jones argon, a crystal slab of 864 atoms in vacuum, "
      "40 K, 5 ns. This calculation shows a solid: the atoms vibrate about "
