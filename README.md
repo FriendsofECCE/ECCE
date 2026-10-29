@@ -25,7 +25,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.4.2](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.2)),
+  [9.4.3](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.3)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -41,66 +41,6 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
-
-## Coming in 9.4.3
-
-- Reconnect, Reconnect Selected and the start-up check log in and copy the
-  job monitor off the window's thread, with a working Cancel; a machine that does
-  not answer fails after the connect timeout instead of blocking ECCE, and a
-  failed login no longer deletes the calculation's stored results.
-- Run Mgmt > Terminate Selected terminates several selected jobs at once.
-- The Progress box of an Incomplete calculation ends with the reason.
-- Density Map: right-drag moves a zoomed map; atoms selected before the
-  panel opens define the plane. Density Profile: the line profile and its
-  orbital ranking run in the background as well, several times faster.
-- Mode composition is a read-only assignment table: the three largest
-  contributions of every mode, Copy table and Export .csv, and C–H bends
-  included (a checkbox).
-- Dipole Moment: the arrow runs pole to pole along the dipole moment; each
-  pole carries the atoms' total positive charge and is marked by a sphere,
-  and the poles lie as far apart as that charge needs to give the moment.
-- General Chemistry argon slabs: speed distributions (Maxwell-Boltzmann) at
-  all four temperatures.
-- A Submitted Slurm job shows why it waits and its estimated start (message
-  area and the summary's Queue state row).
-- Details dialogs no longer show internal setting names as tooltips.
-- Density Map: zooming draws a coarse map at once and the full one when
-  the wheel rests, without a dialog.
-- Ubuntu 26.04: the package lets ECCE's message broker run under Ubuntu's
-  AppArmor profile for mosquitto.
-- ORCA: an integration grid choice (DefGrid1/2/3) in Theory Details.
-- ORCA: a geometry optimisation of a single atom runs as a single point
-  (with frequencies) instead of stopping without an energy.
-- Saving in the Calculation Editor asks before regenerating an input file
-  that was edited by hand (Keep my input is the default).
-- CP2K: an outer SCF loop (&OUTER_SCF) with the OT minimiser, on by default,
-  with the inner iteration limit of a new calculation set to 30.
-- ORCA and Gaussian 16: a custom solvent given by its dielectric constant and
-  refractive index.
-- Launch Info in the summary: a Job ID row and a Cost row (cores × wall time
-  in CPU hours).
-- Tools > Allocations lists each cluster account of your machine profiles and
-  how much of it is used. The calculation summary shows how much of the
-  allocation was left when the job was submitted.
-- Comp. Date is when the job ended, also after a later Reconnect.
-- A job the queue system ends (out of memory, wall time reached, node
-  failure) is Incomplete instead of System Error, and the reason names the
-  cause. A new help page, Run states, says what each state means.
-- Run Mgmt > Re-Parse Outputs reads a finished calculation's stored outputs
-  again with the current parsers, without logging in to the machine.
-- Launch Selected leaves the Organizer usable while a batch is submitted,
-  with a Stop button.
-- Density Map: a diatomic starts on the molecular plane through its axis.
-- Density Profile: the average around an atom runs in the background, so the
-  window stays usable, and is several times quicker with many orbitals.
-- General Chemistry: argon at 40, 100, 130 and 200 K (solid, liquid, liquid
-  near its critical point, gas) under Gases, liquids and solids.
-- The input check counts CP2K atoms with a kind label (such as Nb_e).
-- Register Machines no longer shows Vendor, Model and Processor.
-- Dipole Moment: where the atomic charges point against the dipole moment
-  (carbon monoxide), the arrow stays between the atoms and the text says so.
-- Theory Details and Runtype Details dialogs of every code can always be resized; their
-  buttons stay in view on a small screen and the settings scroll.
 
 ## First steps
 
