@@ -60,6 +60,8 @@ set "ECCE_LOCAL=1"
 for /f "usebackq delims=" %%L in (`"%ECCE_ROOT%\bin\ecce-localdata.exe" 2^>nul`) do set "ECCE_LOCAL_DATA=%%L"
 set "ECCE_LOCAL="
 if defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA_FROM_PREF=1"
+rem Forward slashes, as the default below: ECCE makes file URLs of it.
+if defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA=%ECCE_LOCAL_DATA:\=/%"
 if not defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA=%UH%/ecce-local"
 :localset
 if not exist "%USERPROFILE%\ecce-local" mkdir "%USERPROFILE%\ecce-local"
