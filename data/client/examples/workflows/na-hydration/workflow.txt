@@ -1,6 +1,9 @@
 xtb-na_6_0
-orca-na_6_0 < xtb-na_6_0
+orca-gas-na_6_0 < xtb-na_6_0
+orca-water-na_6_0 < xtb-na_6_0
 xtb-na_5_1
-orca-na_5_1 < xtb-na_5_1
+orca-gas-na_5_1 < xtb-na_5_1
+orca-water-na_5_1 < xtb-na_5_1
 xtb-na_4_2
-orca-na_4_2 < xtb-na_4_2
+orca-gas-na_4_2 < xtb-na_4_2
+orca-water-na_4_2 < xtb-na_4_2

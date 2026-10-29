@@ -115,7 +115,8 @@ for _topic in sorted(os.listdir(_GC)):
                           else ["TE", "MO"])
 WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE"] if c == "xtb"
                                    else ["TE", "VIBFREQ"])
-             for n in ("6_0", "5_1", "4_2") for c in ("xtb", "orca")}
+             for n in ("6_0", "5_1", "4_2")
+             for c in ("xtb", "orca_gas", "orca_water")}
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
             "Examples/Spectroscopy": SPECTROSCOPY,
             "Examples/General_Chemistry": GENCHEM,

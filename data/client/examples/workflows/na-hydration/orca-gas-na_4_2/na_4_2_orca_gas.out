@@ -220,7 +220,7 @@ WARNING: Geometry Optimization
 ================================================================================
                                        INPUT FILE
 ================================================================================
-NAME = na_4_2_orca.inp
+NAME = na_4_2_orca_gas.inp
 |  1> # Na+(H2O)6, arrangement 4+2, r2SCAN-3c optimisation and frequencies, from the xTB geometry
 |  2> ! r2SCAN-3c Opt Freq
 |  3> %pal nprocs 4 end
@@ -700,7 +700,7 @@ Hamiltonian:
 
 
 General Settings:
- Integral files         IntName         .... na_4_2_orca
+ Integral files         IntName         .... na_4_2_orca_gas
  Hartree-Fock type      HFTyp           .... RHF
  Total Charge           Charge          ....    1
  Multiplicity           Mult            ....    1
@@ -794,7 +794,7 @@ Now organizing SCF variables                       ... done
                       ------------------
                       INITIAL GUESS DONE (   0.2 sec)
                       ------------------
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.3 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.2 MB
 
@@ -836,7 +836,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER  10 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -1323,7 +1323,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.1 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -1863,7 +1863,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.7 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.5 MB
 
@@ -1895,7 +1895,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   7 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -1949,7 +1949,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.2 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -2494,7 +2494,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.6 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.4 MB
 
@@ -2527,7 +2527,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   7 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -2581,7 +2581,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 11.8 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -3126,7 +3126,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.6 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.4 MB
 
@@ -3159,7 +3159,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   8 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -3213,7 +3213,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 11.9 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -3754,7 +3754,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -3786,7 +3786,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   7 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -3840,7 +3840,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.0 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -4381,7 +4381,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -4413,7 +4413,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   7 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -4467,7 +4467,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.0 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -5008,7 +5008,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -5040,7 +5040,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   7 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -5094,7 +5094,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 11.9 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -5635,7 +5635,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -5665,7 +5665,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   5 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -5719,7 +5719,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 11.9 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -6260,7 +6260,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -6291,7 +6291,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   6 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -6345,7 +6345,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.1 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -6886,7 +6886,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -6917,7 +6917,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   6 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -6971,7 +6971,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.2 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -7512,7 +7512,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -7543,7 +7543,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   6 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -7597,7 +7597,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.1 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -8138,7 +8138,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -8169,7 +8169,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   6 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -8223,7 +8223,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.1 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -8764,7 +8764,7 @@ Maximum memory used throughout the entire STARTUP-calculation: 23.5 MB
            *              working on a common directory               *
            ************************************************************
 Occupation numbers will be reassigned to an Aufbau configuration
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -8795,7 +8795,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   6 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -8849,7 +8849,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.2 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -9493,7 +9493,7 @@ Hamiltonian:
 
 
 General Settings:
- Integral files         IntName         .... na_4_2_orca
+ Integral files         IntName         .... na_4_2_orca_gas
  Hartree-Fock type      HFTyp           .... RHF
  Total Charge           Charge          ....    1
  Multiplicity           Mult            ....    1
@@ -9567,7 +9567,7 @@ Convergence Tolerance:
 ---------------------
 INITIAL GUESS: MOREAD
 ---------------------
-Guess MOs are being read from file: na_4_2_orca.gbw
+Guess MOs are being read from file: na_4_2_orca_gas.gbw
 Input Geometry matches current geometry (good)
 Input basis set matches current basis set (good)
 Occupation numbers will be reassigned to an Aufbau configuration
@@ -9576,7 +9576,7 @@ MOs were reorthogonalized (Cholesky)
                       ------------------
                       INITIAL GUESS DONE (   0.0 sec)
                       ------------------
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 Finished Guess after   0.1 sec
 Maximum memory used throughout the entire GUESS-calculation: 10.3 MB
 
@@ -9612,7 +9612,7 @@ Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Tim
                *           SCF CONVERGED AFTER   5 CYCLES          *
                *****************************************************
 
-             **** ENERGY FILE WAS UPDATED (na_4_2_orca.en.tmp) ****
+             **** ENERGY FILE WAS UPDATED (na_4_2_orca_gas.en.tmp) ****
 
 ----------------
 TOTAL SCF ENERGY
@@ -10099,7 +10099,7 @@ Maximum memory used throughout the entire LEANSCF-calculation: 12.1 MB
                          ORCA PROPERTY INTEGRAL CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                   ... na_4_2_orca.gbw
+GBWName                                   ... na_4_2_orca_gas.gbw
 Number of atoms                           ...     19
 Number of basis functions                 ...    218
 Max core memory                           ...   4096 MB
@@ -10187,7 +10187,7 @@ FINAL SINGLE POINT ENERGY      -620.743348125302
                             ORCA SCF RESPONSE CALCULATION
 ------------------------------------------------------------------------------
 
-GBWName                                 ... na_4_2_orca.gbw
+GBWName                                 ... na_4_2_orca_gas.gbw
 Number of atoms                         ...     19
 Number of basis functions               ...    218
 Max core memory                         ...   4096 MB
@@ -10211,9 +10211,9 @@ Total number of imaginary perturbations ...      0
 Total number of triplet perturbations   ...      0
 Total number of SOC perturbations       ...      0
 
-Using XC Grid                  ... (na_4_2_orca.grid_cpscf.tmp) 
-Recalculating density on grid  ... (na_4_2_orca.grho_cpscf0.tmp) done
-Calculating the xc-kernel      ... (na_4_2_orca.fxc_cpscf0.tmp) done
+Using XC Grid                  ... (na_4_2_orca_gas.grid_cpscf.tmp) 
+Recalculating density on grid  ... (na_4_2_orca_gas.grho_cpscf0.tmp) done
+Calculating the xc-kernel      ... (na_4_2_orca_gas.fxc_cpscf0.tmp) done
 
                                 **********************
                                 * REAL PERTURBATIONS *
@@ -10259,7 +10259,7 @@ Maximum memory used throughout the entire SCFRESP-calculation: 55.5 MB
                               ORCA PROPERTY CALCULATIONS
 ------------------------------------------------------------------------------
 
-GBWName                                 ... na_4_2_orca.gbw
+GBWName                                 ... na_4_2_orca_gas.gbw
 Number of atoms                         ...     19
 Number of basis functions               ...    218
 Max core memory                         ...   4096 MB
@@ -11292,7 +11292,7 @@ But we need these citations in order to attract the funding resources that allow
 
 Therefore, if you are a happy ORCA user, please consider citing a few of the papers listed below in the main body of your paper
 
-In addition to the list printed below, the program has created the file na_4_2_orca.bibtex that contains the list in bibtex format
+In addition to the list printed below, the program has created the file na_4_2_orca_gas.bibtex that contains the list in bibtex format
 You can import this file easily into all common literature databanks and citation aid programs
 
 It goes without saying that in many instances, there are alternative algorithms to achieve similar
