@@ -102,15 +102,6 @@ static char *fontPath = "/usr/share/fonts";
 #endif
 int fl_debug = FALSE;
 
-/*
- * Most Inventor font names don't exist in 
- * windows, so we'll default to a common
- * windows font.
- */
- 
-#ifdef WIN32
-static char fontDefault[_MAX_DIR];
-#endif
 
 
 /*
@@ -133,9 +124,6 @@ _flInitialize(FLfontImpl *impl)
   {
     strcat(dirBuffer,fontDir);
     fontPath=dirBuffer;
-    *fontDefault = '\0';
-    strcat(fontDefault,fontPath);
-    strcat(fontDefault,"times.ttf");
   }
 #endif
 
@@ -190,15 +178,6 @@ _flSearchFont(const GLubyte *fontName)
   if (access(buffer, R_OK) == 0) {
     path = strdup(buffer);
   }
-#ifdef WIN32
-  /*
-   * The font wasn't found, so we'll try the default
-   * windows font instead of giving up.
-   */
-  else if (access(fontDefault, R_OK) == 0) {
-    path = fontDefault;
-  }
-#endif
   else
     path = NULL;
 
