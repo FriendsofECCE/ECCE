@@ -131,6 +131,10 @@ class TaskJob : public Job,
           launch and by any reset to created/ready. */
       virtual bool killRequested(bool requested);
       virtual bool killRequested() const;
+      /** The reason given with a user's cancel, kept until the job store
+          records it as the run status reason once the job has ended. */
+      virtual bool killReason(const string& reason);
+      virtual string killReason() const;
 
       virtual bool joblog(const char* log);
       virtual string joblog(void) const;

@@ -195,6 +195,8 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
   // ecce-launch (#687)
   subscribe("ecce_launch_request", (wxJmsCBFunc)&CalcMgrApp::launchRequestMCB);
+  // ecce-terminate (#695)
+  subscribe("ecce_terminate_request", (wxJmsCBFunc)&CalcMgrApp::terminateRequestMCB);
   
   // Preference Messages
   // Not filtered: the Organizer's own Preferences dialog publishes it too.
@@ -303,6 +305,35 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
 
   vector<string> lines;
   if (!p_calcMgr->launchForCommand(urls, target, lines))
+    reply("busy", lines);
+  else
+    reply("done", lines);
+}
+
+
+// ecce-terminate: as launchRequestMCB, answered on ecce_terminate_reply.
+void CalcMgrApp::terminateRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  auto reply = [this, &id](const string& kind, const vector<string>& lines) {
+    JMSMessage* r = newMessage();
+    r->addProperty("reply_id", id);
+    r->addProperty("kind", kind);
+    r->addIntProperty("n", (int)lines.size());
+    for (size_t i = 0; i < lines.size(); i++)
+      r->addProperty("line" + std::to_string(i), lines[i]);
+    publish("ecce_terminate_reply", *r);
+    delete r;
+  };
+  reply("ack", vector<string>());
+
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+
+  vector<string> lines;
+  if (!p_calcMgr->terminateForCommand(urls, msg.getProperty("reason"), lines))
     reply("busy", lines);
   else
     reply("done", lines);

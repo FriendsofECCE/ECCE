@@ -866,6 +866,10 @@ void cleanup(int exitStatus)
                 endState == ResourceDescriptor::STATE_SYSTEM_FAILURE) &&
                !gFailReason.empty()) {
       recordStatusReason(gFailReason);
+    } else if (endState == ResourceDescriptor::STATE_KILLED) {
+      // The reason given with the user's cancel (ecce-terminate --reason);
+      // empty when none was given, which clears any earlier text as before.
+      recordStatusReason(calculation->killReason());
     } else {
       recordStatusReason("");
     }

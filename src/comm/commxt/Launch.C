@@ -2439,6 +2439,7 @@ void Launch::updateState(void)
   // cause problem or not.
   if (currentState <= ResourceDescriptor::STATE_READY) {
     p_taskjob->killRequested(false);
+    p_taskjob->killReason("");
     // The Progress box of a queued job says since when (#606).
     p_taskjob->addProp(VDoc::getEcceNamespace() + ":submitdate",
                        std::to_string((long long)time(0)));
