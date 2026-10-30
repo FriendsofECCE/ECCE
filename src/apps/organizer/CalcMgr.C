@@ -3158,6 +3158,25 @@ bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
 }
 
 
+//  Reconnect Selected for a request from another process: the same
+//  reconnectSelected, without the confirmation. One line per calculation,
+//  "name\tok\tjob id" or "name\tno\treason".
+bool CalcMgr::reconnectForCommand(const vector<EcceURL>& urls,
+                                  vector<string>& lines)
+{
+  lines.clear();
+  if (p_batch) return false;
+  vector<EcceURL> tasks;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
+    if (n && dynamic_cast<TaskJob*>(n->getResource())) tasks.push_back(urls[i]);
+    else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+  }
+  if (!tasks.empty()) reconnectSelected(tasks, false, 0, "", false, &lines);
+  return true;
+}
+
+
 string CalcMgr::launchBatchStatus() const
 {
   if (p_batch)
@@ -3296,7 +3315,8 @@ void CalcMgr::reparseFinished(const EcceURL& url, const string& result)
 
 
 void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
-                                string *outcome, const string& shot, bool listOnly)
+                                string *outcome, const string& shot, bool listOnly,
+                                vector<string> *lines)
 {
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
@@ -3358,6 +3378,17 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
         return ok;
       });
   if (interactive) ReconnectSelected::showResults(this, rows);
+  if (lines) {
+    for (size_t i = 0; i < rows.size(); i++) {
+      const ReconnectSelected::Row& r = rows[i];
+      if (r.eligible() && r.attempted && r.ok)
+        lines->push_back(r.plan.name + "\tok\t" + r.task->jobdata().jobid);
+      else
+        lines->push_back(r.plan.name + "\tno\t" +
+            (!r.eligible() ? r.plan.problem
+             : !r.attempted ? string("not attempted") : r.outcome));
+    }
+  }
   if (outcome) {
     string r = ReconnectSelected::report(rows);
     for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
