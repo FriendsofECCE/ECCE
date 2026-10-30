@@ -6,6 +6,8 @@
 #include "wx/icon.h"
 #include "wxgui/ewxStyledWindow.H"
 
+class WXDLLIMPEXP_FWD_CORE wxToolBarBase;
+
 /**
  * An extenstion of the wxBitmap class that knows where to find
  * ecce bitmaps.
