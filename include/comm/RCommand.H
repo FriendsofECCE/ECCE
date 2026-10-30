@@ -131,6 +131,8 @@ public:
     // this process was the one that asked.
     bool loginCancelled(void) const { return p_loginCancelled; }
     bool loginPrompted(void) const { return p_loginPrompted; }
+    // The password was refused (a login, not a full or unreachable host).
+    bool loginRefused(void) const { return p_loginRefused; }
     // The last execout() was stopped by its timeout.
     bool timedOut(void) const { return p_timedOut; }
 
@@ -258,6 +260,7 @@ private:
     string p_errMessage;
     bool p_loginCancelled = false;
     bool p_loginPrompted = false;
+    bool p_loginRefused = false;
     bool p_timedOut = false;
     Transport* p_transport;  // null until a connection is made
     bool p_ssh;              // the Transport is a RemoteTransport

@@ -2020,10 +2020,15 @@ void initMon(void)
     }
   } else {
     string why = remoteconn->commError();
-    if (remoteconn->loginCancelled()) {
-      why = "login to " + cpServerName + " cancelled or not answered; jobs on " +
-            cpServerName + " wait for a new login";
+    // A cancelled or refused login parks the job for good (5): a restart
+    // would only put the same question to the user again.
+    if (remoteconn->loginCancelled() || remoteconn->loginRefused()) {
+      if (remoteconn->loginCancelled())
+        why = "login to " + cpServerName + " cancelled or not answered; jobs on " +
+              cpServerName + " wait for a new login";
       parkQuiet = !remoteconn->loginPrompted();
+      logInfo("eccejobstore", "parked until Reconnect or the next session start");
+      park("System", why, 5);
     }
     restartSystem("System", why);
   }

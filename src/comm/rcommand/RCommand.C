@@ -297,12 +297,13 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
                                 const string& password, const string& jumpHost)
 {
   const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
+  p_loginCancelled = p_loginPrompted = p_loginRefused = false;
 
   // The callbacks outlive this call: the monitor stream logs in again on
   // a session of its own, reusing the password that just worked.  Each host
   // keeps its own password state, since a front end and the machine behind
   // it need not share one.
-  struct Creds { string pass; bool passTried; };
+  struct Creds { string pass; bool passTried; bool cancelled = false; };
   struct HostKey { string msg; };
   std::shared_ptr<HostKey> hk(new HostKey);
   const string shell = p_shell;
@@ -325,7 +326,10 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
         return true;
       }
       c->passTried = true;
-      if (!askPassdialog("password", host, theUser, c->pass)) return false;
+      if (!askPassdialog("password", host, theUser, c->pass)) {
+        c->cancelled = true;
+        return false;
+      }
       answer = c->pass;
       return true;
     });
@@ -366,6 +370,8 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
   if (!ok) {
     p_errMessage = hk->msg != "" ? hk->msg :
                    "Unable to open ssh connection to " + machine + ": " + error;
+    if (c->cancelled || cj->cancelled)
+      p_loginCancelled = p_loginPrompted = true;
     delete t;
     return false;
   }
@@ -474,7 +480,7 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
                                  bool* tryLibssh)
 {
   if (tryLibssh) *tryLibssh = false;
-  p_loginCancelled = p_loginPrompted = false;
+  p_loginCancelled = p_loginPrompted = p_loginRefused = false;
   OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
   t->setConnectTimeout(connectTimeout());
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
@@ -490,11 +496,13 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
     p_errMessage = error;
     p_loginCancelled = t->loginCancelled();
     p_loginPrompted = t->loginPrompted();
+    p_loginRefused = t->loginRefused();
     // ECCE's own master could not be opened for a reason other than the
     // login (a cancel, no answer or a refused password would only be asked
-    // again): the built-in client still logs in with its own dialog.
+    // again, and a full master needs no login): the built-in client still
+    // logs in with its own dialog.
     if (tryLibssh && t->ownsMaster() && !t->loginCancelled() &&
-        !t->loginRefused() &&
+        !t->loginRefused() && !t->sessionsFull() &&
         !OpenSshTransport::configSharesConnection(machine, userName) &&
         !OpenSshTransport::configProxiesConnection(machine, userName) &&
         !hostDidNotAnswer(error))
