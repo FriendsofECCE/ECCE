@@ -53,6 +53,11 @@ on:
         description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos, windows); empty runs all"
         required: false
         default: ""
+      skip_windows_ecceqm:
+        description: "Skip the ECCE-QM Windows package and acceptance tests"
+        type: boolean
+        required: false
+        default: false
       macos_arch:
         description: "Architecture for the macOS job"
         type: choice
@@ -695,6 +700,8 @@ jobs:
           Copy-Item build\launchjob.exe "$d\ecce\bin\"
 
       - name: ecce-qm in the zip
+        id: ecceqm_package
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_windows_ecceqm }}
         shell: pwsh
         run: |
           $r = "$env:RUNNER_TEMP\unpacked\ecce"
@@ -759,6 +766,7 @@ jobs:
       # ORCA oracle, orbitals, and the Builder drawing one.
       - name: ECCE-QM acceptance
         id: ecceqm
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_windows_ecceqm }}
         shell: pwsh
         continue-on-error: true
         timeout-minutes: 20
@@ -849,11 +857,17 @@ jobs:
         if: always()
         shell: bash
         run: |
+          ecceqm_package='${{ steps.ecceqm_package.outcome }}'
+          ecceqm_acceptance='${{ steps.ecceqm.outcome }}'
+          if [[ '${{ inputs.skip_windows_ecceqm }}' == 'true' ]]; then
+            [[ "$ecceqm_package" == skipped ]] && ecceqm_package=success
+            [[ "$ecceqm_acceptance" == skipped ]] && ecceqm_acceptance=success
+          fi
           { echo '### Windows'
             echo "- ctest: ${{ steps.tests.outcome }}"
             echo "- local jobs: ${{ steps.localjobs.outcome }}"
             echo "- start the apps: ${{ steps.apps.outcome }}"
-            echo "- organizer probe: ${{ steps.probe.outcome }}, ecce-qm: ${{ steps.ecceqm.outcome }}"
+            echo "- organizer probe: ${{ steps.probe.outcome }}, ecce-qm package: $ecceqm_package, acceptance: $ecceqm_acceptance"
             echo "- first-start question: ${{ steps.firststart.outcome }}"
             echo "- msi build: ${{ steps.msi.outcome }}, msi test: ${{ steps.msitest.outcome }}"; } >> "$GITHUB_STEP_SUMMARY"
-          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}${{ steps.firststart.outcome }}${{ steps.probe.outcome }}${{ steps.ecceqm.outcome }}" = successsuccesssuccesssuccesssuccesssuccess ] && [ "${{ steps.msi.outcome }}${{ steps.msitest.outcome }}" = successsuccess ]
+          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}${{ steps.firststart.outcome }}${{ steps.probe.outcome }}$ecceqm_package$ecceqm_acceptance" = successsuccesssuccesssuccesssuccesssuccesssuccess ] && [ "${{ steps.msi.outcome }}${{ steps.msitest.outcome }}" = successsuccess ]
