@@ -21,6 +21,7 @@
 
 #include <set>
 #include <string>
+#include <stdint.h>
   using std::string;
 #include <vector>
   using std::vector;
@@ -125,7 +126,7 @@ public:
     // Timeout in seconds for execout() and friends; 0 restores the default,
     // negative means none.
     void streamTimeout(const int& timeout=0);
-    int streamFd(void);
+    intptr_t streamFd(void);
 
     string commError(void); // Return error message string
     // The last connect ended because the login was cancelled or not answered

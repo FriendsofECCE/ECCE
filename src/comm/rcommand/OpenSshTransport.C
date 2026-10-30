@@ -117,7 +117,9 @@ int keepaliveSec()
 struct OpenSshStream : RemoteStream {
   OpenSshStream() : pid(-1), appFd(-1) {}
   long pid;
-  int appFd;
+  intptr_t appFd;
+  virtual intptr_t readFd() const { return appFd; }
+  virtual intptr_t writeFd() const { return appFd; }
 };
 
 }  // namespace
@@ -1126,7 +1128,7 @@ bool OpenSshTransport::getTree(const std::string& remotePath,
 
 // ---- the monitor stream ----
 
-RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
+RemoteStream* OpenSshTransport::openStream(const std::string& script, intptr_t& fd,
                                            std::string& error)
 {
   std::string err;

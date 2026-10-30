@@ -645,7 +645,7 @@ string RCommand::frontEndMode() const
 }
 
 // A dead reader must give EPIPE, not SIGPIPE.
-static bool sendAll(int fd, const string& data)
+static bool sendAll(intptr_t fd, const string& data)
 {
   size_t done = 0;
   while (done < data.size()) {
@@ -657,18 +657,20 @@ static bool sendAll(int fd, const string& data)
   return true;
 }
 
-int RCommand::streamFd(void)
+intptr_t RCommand::streamFd(void)
 {
-  return p_stream.rfd;
+  return p_sshStream ? p_sshStream->readFd() : p_stream.rfd;
 }
 
 bool RCommand::streamWrite(const string& command)
 {
-  if (p_stream.wfd < 0) {
+  if ((p_ssh && !p_sshStream) || (!p_ssh && p_stream.wfd < 0)) {
     p_errMessage = "No job monitor stream is open";
     return false;
   }
-  if (p_ssh ? sendAll(p_stream.wfd, command + "\n")
+  if (p_ssh ? sendAll(p_sshStream->writeFd() >= 0
+                          ? p_sshStream->writeFd()
+                          : p_sshStream->readFd(), command + "\n")
             : static_cast<DirectTransport*>(p_transport)->writeStream(
                 p_stream, command + "\n"))
     return true;
@@ -1342,10 +1344,10 @@ bool RCommand::execout(const string& command, string& output,
 
 bool RCommand::startStream(const string& command, bool onThisLogin)
 {
-  if (!p_transport || !p_connected || p_stream.rfd >= 0) return false;
+  if (!p_transport || !p_connected || p_stream.rfd >= 0 || p_sshStream) return false;
   string error;
   if (p_ssh) {
-    int fd = -1;
+    intptr_t fd = -1;
     RemoteTransport* t = static_cast<RemoteTransport*>(p_transport);
     p_sshStream = onThisLogin
       ? t->openStreamOnLogin(p_scriptPrefix + command, fd, error)
@@ -1354,7 +1356,6 @@ bool RCommand::startStream(const string& command, bool onThisLogin)
       p_errMessage = "Could not start " + command + ": " + error;
       return false;
     }
-    p_stream.rfd = p_stream.wfd = fd;
     if (getenv("ECCE_RCOM_LOGMODE"))
       cout << "ssh stream (" << command << ") in (" << p_transport->dir()
            << ") " << (onThisLogin ? "on this connection's login"

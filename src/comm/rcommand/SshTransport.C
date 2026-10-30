@@ -34,6 +34,10 @@
 #include <libssh/sftp.h>
 #include "util/PipeCloexec.H"
 
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#endif
+
 namespace {
 
 typedef std::chrono::steady_clock Clock;
@@ -140,6 +144,136 @@ void setTcpKeepalive(ssh_session s, int sec)
   setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof idle);
   setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof intvl);
   setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &cnt, sizeof cnt);
+#endif
+}
+
+// The monitor stream is a full-duplex local socket. Windows has no
+// socketpair(), so make the same pair over loopback TCP; the handles stay
+// inside this process and WSAPoll/select can watch them like ordinary
+// sockets.
+bool streamSocketPair(intptr_t sv[2], std::string& error)
+{
+#ifdef _WIN32
+  static std::once_flag once;
+  static int startup = 0;
+  std::call_once(once, []() {
+    WSADATA data;
+    startup = WSAStartup(MAKEWORD(2, 2), &data);
+  });
+  if (startup != 0) { error = "Winsock initialization failed"; return false; }
+
+  SOCKET listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (listener == INVALID_SOCKET) { error = "socket: " + std::to_string(WSAGetLastError()); return false; }
+  sockaddr_in addr;
+  memset(&addr, 0, sizeof addr);
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  addr.sin_port = 0;
+  if (bind(listener, (sockaddr*)&addr, sizeof addr) == SOCKET_ERROR ||
+      listen(listener, 1) == SOCKET_ERROR) {
+    error = "loopback listen failed: " + std::to_string(WSAGetLastError());
+    closesocket(listener);
+    return false;
+  }
+  int len = sizeof addr;
+  if (getsockname(listener, (sockaddr*)&addr, &len) == SOCKET_ERROR) {
+    error = "loopback address failed: " + std::to_string(WSAGetLastError());
+    closesocket(listener);
+    return false;
+  }
+  SOCKET client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (client == INVALID_SOCKET ||
+      connect(client, (sockaddr*)&addr, sizeof addr) == SOCKET_ERROR) {
+    error = "loopback connect failed: " + std::to_string(WSAGetLastError());
+    if (client != INVALID_SOCKET) closesocket(client);
+    closesocket(listener);
+    return false;
+  }
+  SOCKET server = accept(listener, 0, 0);
+  closesocket(listener);
+  if (server == INVALID_SOCKET) {
+    error = "loopback accept failed: " + std::to_string(WSAGetLastError());
+    closesocket(client);
+    return false;
+  }
+  sv[0] = (intptr_t)client;
+  sv[1] = (intptr_t)server;
+  return true;
+#else
+  int pair[2];
+  if (socketpairCloexec(AF_UNIX, SOCK_STREAM, 0, pair) != 0) {
+    error = strerror(errno);
+    return false;
+  }
+  sv[0] = pair[0];
+  sv[1] = pair[1];
+  return true;
+#endif
+}
+
+void closeStreamSocket(intptr_t fd)
+{
+  if (fd < 0) return;
+#ifdef _WIN32
+  closesocket((SOCKET)fd);
+#else
+  close((int)fd);
+#endif
+}
+
+ssize_t streamSocketRead(intptr_t fd, void* buf, size_t n)
+{
+#ifdef _WIN32
+  return recv((SOCKET)fd, (char*)buf, (int)n, 0);
+#else
+  return read((int)fd, buf, n);
+#endif
+}
+
+ssize_t streamSocketWrite(intptr_t fd, const void* buf, size_t n)
+{
+#ifdef _WIN32
+  return send((SOCKET)fd, (const char*)buf, (int)n, 0);
+#else
+  return send((int)fd, buf, n, MSG_NOSIGNAL);
+#endif
+}
+
+bool streamSocketWouldBlock()
+{
+#ifdef _WIN32
+  int e = WSAGetLastError();
+  return e == WSAEWOULDBLOCK || e == WSAEINTR;
+#else
+  return errno == EAGAIN || errno == EINTR;
+#endif
+}
+
+void streamFdSet(intptr_t fd, fd_set* set)
+{
+#ifdef _WIN32
+  FD_SET((SOCKET)fd, set);
+#else
+  FD_SET((int)fd, set);
+#endif
+}
+
+bool streamFdIsSet(intptr_t fd, fd_set* set)
+{
+#ifdef _WIN32
+  return FD_ISSET((SOCKET)fd, set) != 0;
+#else
+  return FD_ISSET((int)fd, set) != 0;
+#endif
+}
+
+int streamSelectMax(int fd)
+{
+#ifdef _WIN32
+  (void)fd;
+  return 0;  // Winsock ignores select's first argument.
+#else
+  return fd + 1;
 #endif
 }
 
@@ -1423,11 +1557,13 @@ struct SshStream : RemoteStream {
   bool ownsSession;        // false: the transport's own login, lent to it
   ssh_channel channel;
   SshJump* jump;
-  int appFd, pumpFd, ctl[2];
+  intptr_t appFd, pumpFd, ctl[2];
   std::string header;      // the script, first thing on the channel's stdin
   std::thread thread;
   std::atomic<int> graceMs;
   std::atomic<bool> intr, stop;
+  virtual intptr_t readFd() const { return appFd; }
+  virtual intptr_t writeFd() const { return appFd; }
 };
 
 namespace {
@@ -1496,9 +1632,9 @@ void pump(SshStream* st)
     }
 
     if (!sockEof && toChOff >= toCh.size()) {
-      ssize_t n = read(st->pumpFd, buf, 4096);
+      ssize_t n = streamSocketRead(st->pumpFd, buf, 4096);
       if (n > 0) { toCh.assign(buf, n); toChOff = 0; }
-      else if (n == 0 || (errno != EAGAIN && errno != EINTR)) sockEof = true;
+      else if (n == 0 || (n < 0 && !streamSocketWouldBlock())) sockEof = true;
     }
     if (toChOff < toCh.size()) {
       int n = ssh_channel_write(ch, toCh.data() + toChOff,
@@ -1522,10 +1658,9 @@ void pump(SshStream* st)
       }
     }
     if (!toApp.empty()) {
-      ssize_t w = send(st->pumpFd, toApp.data(), toApp.size(),
-                       MSG_NOSIGNAL | MSG_DONTWAIT);
+      ssize_t w = streamSocketWrite(st->pumpFd, toApp.data(), toApp.size());
       if (w > 0) toApp.erase(0, w);
-      else if (w < 0 && errno != EAGAIN && errno != EINTR) toApp.clear();
+      else if (w < 0 && !streamSocketWouldBlock()) toApp.clear();
     }
 
     bool done = (outEof && errEof) || ssh_channel_is_closed(ch);
@@ -1534,29 +1669,33 @@ void pump(SshStream* st)
 
     fd_set rfds;
     FD_ZERO(&rfds);
-    FD_SET(st->ctl[0], &rfds);
-    int maxfd = st->ctl[0];
+    streamFdSet(st->ctl[0], &rfds);
+    int maxfd = (int)st->ctl[0];
     if (!sockEof && toChOff >= toCh.size()) {
-      FD_SET(st->pumpFd, &rfds);
-      maxfd = std::max(maxfd, st->pumpFd);
+      streamFdSet(st->pumpFd, &rfds);
+      maxfd = std::max(maxfd, (int)st->pumpFd);
     }
     struct timeval tv = { 0, toApp.empty() && toChOff >= toCh.size() ? 100000 : 5000 };
     if (outEof && errEof) {
-      select(maxfd + 1, &rfds, 0, 0, &tv);
+      select(streamSelectMax(maxfd), &rfds, 0, 0, &tv);
     } else {
       ssh_channel chans[2] = { ch, 0 };
       ssh_channel outc[2] = { 0, 0 };
-      ssh_select(chans, outc, maxfd + 1, &rfds, &tv);
+      ssh_select(chans, outc, streamSelectMax(maxfd), &rfds, &tv);
     }
-    if (FD_ISSET(st->ctl[0], &rfds)) {
+    if (streamFdIsSet(st->ctl[0], &rfds)) {
       char c[16];
-      if (read(st->ctl[0], c, sizeof c) < 0) {}
+      if (streamSocketRead(st->ctl[0], c, sizeof c) < 0) {}
     }
   }
 
   // The app sees EOF first: closing a dead link can take a while.
-  shutdown(st->pumpFd, SHUT_RDWR);
-  close(st->pumpFd);
+#ifdef _WIN32
+  shutdown((SOCKET)st->pumpFd, SHUT_RDWR);
+#else
+  shutdown((int)st->pumpFd, SHUT_RDWR);
+#endif
+  closeStreamSocket(st->pumpFd);
   st->pumpFd = -1;
   ssh_channel_close(ch);
   ssh_channel_free(ch);
@@ -1574,7 +1713,7 @@ void pump(SshStream* st)
 
 }  // namespace
 
-RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
+RemoteStream* SshTransport::openStream(const std::string& script, intptr_t& fd,
                                        std::string& error)
 {
   std::string err;
@@ -1596,13 +1735,13 @@ RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
     return 0;
   }
 
-  int sp[2], ctl[2];
-  if (socketpairCloexec(AF_UNIX, SOCK_STREAM, 0, sp) != 0) {
-    error = strerror(errno);
-  } else if (pipeCloexec(ctl) != 0) {
-    error = strerror(errno);
-    close(sp[0]); close(sp[1]);
-  } else {
+  intptr_t sp[2], ctl[2];
+  bool havePair = streamSocketPair(sp, error);
+  if (havePair && !streamSocketPair(ctl, error)) {
+    closeStreamSocket(sp[0]); closeStreamSocket(sp[1]);
+    havePair = false;
+  }
+  if (havePair) {
     SshStream* st = new SshStream;
     st->session = s;
     st->channel = ch;
@@ -1612,7 +1751,13 @@ RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
     st->ctl[0] = ctl[0];
     st->ctl[1] = ctl[1];
     st->header = oneLine(envp + withDir(script));
-    fcntl(st->pumpFd, F_SETFL, fcntl(st->pumpFd, F_GETFL) | O_NONBLOCK);
+#ifdef _WIN32
+    u_long nonblocking = 1;
+    ioctlsocket((SOCKET)st->pumpFd, FIONBIO, &nonblocking);
+#else
+    fcntl((int)st->pumpFd, F_SETFL,
+          fcntl((int)st->pumpFd, F_GETFL) | O_NONBLOCK);
+#endif
     st->thread = std::thread(pump, st);
     fd = st->appFd;
     return st;
@@ -1628,7 +1773,7 @@ RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
 // A channel on p_session itself: no second login, so no second password or
 // one-time code.  libssh objects belong to one thread at a time, so the pump
 // thread has the session to itself until closeStream() joins it.
-RemoteStream* SshTransport::openStreamOnLogin(const std::string& script, int& fd,
+RemoteStream* SshTransport::openStreamOnLogin(const std::string& script, intptr_t& fd,
                                               std::string& error)
 {
   if (!p_session) { error = "not connected"; return 0; }
@@ -1645,13 +1790,13 @@ RemoteStream* SshTransport::openStreamOnLogin(const std::string& script, int& fd
     return 0;
   }
 
-  int sp[2], ctl[2];
-  if (socketpairCloexec(AF_UNIX, SOCK_STREAM, 0, sp) != 0) {
-    error = strerror(errno);
-  } else if (pipeCloexec(ctl) != 0) {
-    error = strerror(errno);
-    close(sp[0]); close(sp[1]);
-  } else {
+  intptr_t sp[2], ctl[2];
+  bool havePair = streamSocketPair(sp, error);
+  if (havePair && !streamSocketPair(ctl, error)) {
+    closeStreamSocket(sp[0]); closeStreamSocket(sp[1]);
+    havePair = false;
+  }
+  if (havePair) {
     SshStream* st = new SshStream;
     st->session = p_session;
     st->ownsSession = false;
@@ -1661,7 +1806,13 @@ RemoteStream* SshTransport::openStreamOnLogin(const std::string& script, int& fd
     st->ctl[0] = ctl[0];
     st->ctl[1] = ctl[1];
     st->header = oneLine(envp + withDir(script));
-    fcntl(st->pumpFd, F_SETFL, fcntl(st->pumpFd, F_GETFL) | O_NONBLOCK);
+#ifdef _WIN32
+    u_long nonblocking = 1;
+    ioctlsocket((SOCKET)st->pumpFd, FIONBIO, &nonblocking);
+#else
+    fcntl((int)st->pumpFd, F_SETFL,
+          fcntl((int)st->pumpFd, F_GETFL) | O_NONBLOCK);
+#endif
     p_lent = true;
     st->thread = std::thread(pump, st);
     fd = st->appFd;
@@ -1677,7 +1828,7 @@ void SshTransport::interruptStream(RemoteStream* rs)
   SshStream* st = static_cast<SshStream*>(rs);
   if (!st) return;
   st->intr = true;
-  if (write(st->ctl[1], "i", 1) < 0) {}
+  if (streamSocketWrite(st->ctl[1], "i", 1) < 0) {}
 }
 
 void SshTransport::closeStream(RemoteStream* rs, int graceMs)
@@ -1686,11 +1837,11 @@ void SshTransport::closeStream(RemoteStream* rs, int graceMs)
   if (!st) return;
   st->graceMs = graceMs;
   st->stop = true;
-  if (write(st->ctl[1], "s", 1) < 0) {}
+  if (streamSocketWrite(st->ctl[1], "s", 1) < 0) {}
   st->thread.join();
   if (!st->ownsSession) p_lent = false;
-  close(st->appFd);
-  close(st->ctl[0]);
-  close(st->ctl[1]);
+  closeStreamSocket(st->appFd);
+  closeStreamSocket(st->ctl[0]);
+  closeStreamSocket(st->ctl[1]);
   delete st;
 }
