@@ -331,8 +331,8 @@ static bool nebMatch(ICalculation* self, std::string& status,
       std::vector<std::string> el;
       std::vector<double> xyz;
       bool opt;
-      std::string why;
-      if (!qstPickStructure(urls[k], el, xyz, opt, 0, &why)) {
+      std::string why, title;
+      if (!qstPickStructure(urls[k], el, xyz, opt, &title, &why)) {
          warning = std::string("Transition State (NEB-TS): the ") + role[k] +
                    " calculation has no structure" +
                    (why.empty() ? "." : ": " + why);
@@ -358,7 +358,7 @@ static bool nebMatch(ICalculation* self, std::string& status,
          dt << role[k] << ": " << r.far.size()
             << " atom(s) move more than 1 A after alignment (expected for "
                "an isomerisation). ";
-      if (write && !writeXyz(file[k], t->getName(), el, xyz)) return false;
+      if (write && !writeXyz(file[k], title, el, xyz)) return false;
       mapped[k] = xyz;
    }
    char cnt[16];
