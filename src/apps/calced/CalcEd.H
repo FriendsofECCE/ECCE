@@ -396,6 +396,7 @@ class CalcEd: public CalcEdGUI,
     bool   p_startUp;
     int    p_holdDepth = 0;
     bool   p_refitPending = false;
+    bool   p_revealSettings = true; // next refit scrolls Settings into view
 
     /**
      * True once Final Edit has written a hand-edited deck back to DAV
