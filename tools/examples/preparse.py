@@ -95,13 +95,15 @@ def stamp(path):
 
 def main():
     SETS = setsOnDisk()
-    sets = sys.argv[1:] or sorted(SETS)
+    # PREPARSE_SETS: for runners that cannot pass arguments (run-offload apptest)
+    sets = sys.argv[1:] or os.environ.get("PREPARSE_SETS", "").split() or sorted(SETS)
     arm = os.path.join(ROOT, "tests", "apps", "examples_arm.py")
     env = dict(os.environ, ECCE_NO_PREPARSED="1")
     for setId in sets:
         outputs = examplesOf(setId)
-        out = tempfile.mkdtemp(prefix="preparse-",
-                               dir=os.path.expanduser("~/.cache"))
+        cache = os.path.expanduser("~/.cache")
+        os.makedirs(cache, exist_ok=True)
+        out = tempfile.mkdtemp(prefix="preparse-", dir=cache)
         rc = subprocess.run([sys.executable, arm, out, setId, SETS[setId],
                              str(len(outputs))], env=env).returncode
         if rc != 0:
