@@ -907,6 +907,30 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
 }
 
 
+void ewxWindowUtils::revealInScroller(wxWindow *child)
+{
+  wxScrolledWindow *sw = NULL;
+  for (wxWindow *w = child ? child->GetParent() : NULL; w && !sw;
+       w = w->GetParent())
+    sw = dynamic_cast<wxScrolledWindow*>(w);
+  if (!sw)
+    return;
+  int ux, uy;
+  sw->GetScrollPixelsPerUnit(&ux, &uy);
+  if (uy <= 0)
+    return;
+  const wxPoint pos = sw->CalcUnscrolledPosition(
+      sw->ScreenToClient(child->GetScreenPosition()));
+  const int top = pos.y, bottom = pos.y + child->GetSize().y;
+  const int viewTop = sw->GetViewStart().y * uy;
+  const int viewH = sw->GetClientSize().y;
+  if (top >= viewTop && bottom <= viewTop + viewH)
+    return;
+  const int want = wxMax(0, wxMin(top, bottom - viewH));
+  sw->Scroll(-1, want / uy);
+}
+
+
 //  ---- clipping audit -------------------------------------------------
 
 #include "wx/tglbtn.h"

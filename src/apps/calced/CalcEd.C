@@ -3283,6 +3283,9 @@ void CalcEd::refit()
   }
   GetSizer()->SetSizeHints(this);
   fitToScreen();
+  //  On a scaled display the content outgrows the window and scrolls; the
+  //  Settings box (theory, run type and their details) must be in view.
+  if (p_detailsBox) ewxWindowUtils::revealInScroller(p_detailsBox);
 }
 
 
