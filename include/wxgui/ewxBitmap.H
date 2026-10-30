@@ -39,6 +39,10 @@ class ewxBitmap : public wxBitmap
       static int scaled(int px);
       static wxSize scaled(const wxSize& size);
       static wxBitmap scaled(const wxBitmap& bitmap);
+
+      // With ECCE_DPI_LOG=<file>: appends the scales a toolbar sees, so a
+      // HiDPI report from a Windows machine can be read instead of guessed.
+      static void logDpi(const char *where, wxToolBarBase *bar);
 };
 
 #endif

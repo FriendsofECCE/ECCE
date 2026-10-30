@@ -378,6 +378,7 @@ void CalcMgrGUI::CreateControls()
     p_toolBar->AddTool(wxID_DOWNLOAD, _T(""), ewxBitmap::bundle(wxT("download.xpm")), _("Download File..."), wxITEM_NORMAL);
     p_toolBar->AddTool(wxID_VIEW_PROPERTY, _T(""), ewxBitmap::bundle(wxT("info.xpm")), _("View Properties..."), wxITEM_NORMAL);
     p_toolBar->Realize();
+    ewxBitmap::logDpi("organizer toolbar", p_toolBar);
     p_topSizer->Add(p_toolBar, 0, wxGROW|wxALL, 0);
 
     p_splitterWindow = new wxSplitterWindow( itemFrame1, ID_SPLITTERWINDOW, wxDefaultPosition, wxSize(100, 100), wxSP_3DBORDER|wxSP_3DSASH|wxNO_BORDER );

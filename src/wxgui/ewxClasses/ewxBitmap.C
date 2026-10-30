@@ -14,6 +14,8 @@ using namespace std;
 #include "wx/ffile.h"
 #include "wx/bmpbndl.h"
 #include "wx/tokenzr.h"
+#include "wx/display.h"
+#include "wx/toolbar.h"
 #include <cstdlib>
 #include <functional>
 #include <map>
@@ -138,6 +140,35 @@ double ewxBitmap::dpiScale()
     if (scale < 1.05 || scale > 8) scale = 1;
   }
   return scale;
+}
+
+
+void ewxBitmap::logDpi(const char *where, wxToolBarBase *bar)
+{
+  const char *path = getenv("ECCE_DPI_LOG");
+  if (!path || !*path) return;
+  FILE *f = fopen(path, "a");
+  if (!f) return;
+  fprintf(f, "%s: dpiScale=%.3f env=%s", where, dpiScale(),
+          getenv("ECCE_BITMAP_SCALE") ? getenv("ECCE_BITMAP_SCALE") : "-");
+#ifdef __WXMSW__
+  wxScreenDC dc;
+  fprintf(f, " screenPPI=%d", dc.GetPPI().y);
+  typedef UINT (WINAPI *GetDpiFn)();
+  HMODULE user32 = GetModuleHandleW(L"user32.dll");
+  GetDpiFn fn = user32 ? (GetDpiFn) GetProcAddress(user32, "GetDpiForSystem") : NULL;
+  if (fn) fprintf(f, " systemDPI=%u", fn());
+#endif
+  if (bar) {
+    const int d = wxDisplay::GetFromWindow(bar);
+    fprintf(f, " display=%.3f content=%.3f dpiFactor=%.3f toolBitmap=%dx%d toolSize=%dx%d",
+            d == wxNOT_FOUND ? 0.0 : wxDisplay(d).GetScaleFactor(),
+            bar->GetContentScaleFactor(), bar->GetDPIScaleFactor(),
+            bar->GetToolBitmapSize().x, bar->GetToolBitmapSize().y,
+            bar->GetToolSize().x, bar->GetToolSize().y);
+  }
+  fprintf(f, "\n");
+  fclose(f);
 }
 
 
