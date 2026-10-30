@@ -25,7 +25,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.4.5](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.5)),
+  [9.4.6](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.6)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
