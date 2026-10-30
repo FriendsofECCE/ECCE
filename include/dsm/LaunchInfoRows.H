@@ -4,7 +4,7 @@
 //  alone (tests/machregister/testLaunchInfoRows.C).
 //
 //  Left column: Machine, Processors, Queue, Job ID; below both, full width: Queue state. Right column: Start Date,
-//  Comp. Date, Cost (CPU-h), Allocation, Remaining on submission. A row whose value is not known is not made at
+//  Comp. Date, Cost (CPU-h), Wall time, Allocation, Remaining on submission. A row whose value is not known is not made at
 //  all, so there is nothing to hide.
 #ifndef LAUNCHINFOROWS_HH
 #define LAUNCHINFOROWS_HH
@@ -37,6 +37,7 @@ namespace LaunchInfoRows
         std::string startDate;    // as shown
         std::string completionDate;
         std::string coreHours;    // coreHoursText(), or ""
+        std::string wallTime;     // wallTimeText(), or ""
         std::string allocation;
         std::string allocationRemaining;   // snapshot at submission, or ""
         std::string queueWait;    // why a Submitted job waits (#641), or ""
@@ -70,6 +71,52 @@ namespace LaunchInfoRows
         return out + " CPU-h" + (soFar ? " so far" : "");
     }
 
+    //  The Launcher's wall time, "D H:M"; 0 when none was set.
+    inline long maxWallSeconds(const std::string& maxwall)
+    {
+        int d = 0, h = 0, m = 0;
+        if (sscanf(maxwall.c_str(), "%d %d:%d", &d, &h, &m) != 3)
+            return 0;
+        return ((long)d * 24 + h) * 3600L + m * 60L;
+    }
+
+    inline std::string durationText(long sec)
+    {
+        if (sec < 0) sec = 0;
+        const long min = (sec + 59) / 60, d = min / 1440, h = min % 1440 / 60,
+                   m = min % 60;
+        std::string t;
+        if (d) t += std::to_string(d) + " d";
+        if (h) t += (t.empty() ? "" : " ") + std::to_string(h) + " h";
+        if (m && !d) t += (t.empty() ? "" : " ") + std::to_string(m) + " min";
+        return t.empty() ? "0 min" : t;
+    }
+
+    enum Phase { WAITING, RUNNING, ENDED };
+
+    //  How much of the requested wall time is left, so a job about to be cut
+    //  off by the scheduler shows it. "" without a limit or a start date.
+    inline std::string wallTimeText(long limitSec, Phase phase, long startSec,
+                                    long nowOrEndSec)
+    {
+        if (limitSec <= 0)
+            return "";
+        const std::string limit = durationText(limitSec);
+        if (phase == WAITING)
+            return limit + " requested";
+        if (startSec <= 0 || nowOrEndSec < startSec)
+            return "";
+        const long used = nowOrEndSec - startSec;
+        if (phase == ENDED)
+            return "used " + durationText(used) + " of " + limit;
+        if (used >= limitSec)
+            return "limit of " + limit + " reached";
+        std::string t = durationText(limitSec - used) + " left of " + limit;
+        if ((limitSec - used) * 10 < limitSec)
+            t += " (nearly out)";
+        return t;
+    }
+
     inline void add(std::vector<Row>& col, const char *label,
                     const std::string& value)
     {
@@ -94,6 +141,7 @@ namespace LaunchInfoRows
         add(c.right, "Start Date:", in.startDate);
         add(c.right, "Comp. Date:", in.completionDate);
         add(c.right, "Cost:", in.coreHours);
+        add(c.right, "Wall time:", in.wallTime);
         add(c.right, "Allocation:", in.allocation);
         add(c.right, "Remaining on submission:",
             in.allocation.empty() ? std::string() : in.allocationRemaining);
