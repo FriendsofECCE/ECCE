@@ -60,3 +60,22 @@ Launcher afterwards show where it ran.
 A machine set to staged launches cannot be used here; launch from the
 Launcher. A failed submit leaves the calculation **Ready**, with the reason
 in the Progress box and the run log.
+
+## From the command line
+
+With ECCE running, calculations prepared outside the window can be launched
+from a terminal:
+
+    ecce-launch [on=MACHINE] [profile=NAME] <calculation folder or URL>...
+
+The Organizer submits them in one batch, with the same rules as Launch
+Selected, and its tree shows the change at once. `on=` and `profile=` act as
+**Launch on** and **Profile** do. A folder inside the data folder is turned
+into the calculation's address; with a data server, give the address.
+
+One line is printed for each calculation, either `name: job id N` or
+`name: not launched: reason` (for example, a calculation that is already
+submitted). The exit status is 0 only when every calculation was launched.
+Without a running ECCE session the command says `ECCE is not running: start
+ECCE first` and launches nothing. While a Launch Selected batch is submitting,
+it asks to be run again later.

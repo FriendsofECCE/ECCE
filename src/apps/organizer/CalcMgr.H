@@ -168,6 +168,12 @@ public:
   // Test hook: the batch without dialogs, left running; false if one runs.
   bool launchSelectedAsync(const vector<EcceURL>& urls, string *outcome);
   string launchBatchStatus() const;
+  // ecce-launch (#687): Launch Selected without dialogs for a request from
+  // another process. One line per calculation, "name\tok\tjob id" or
+  // "name\tno\treason"; false, with lines empty, while a batch submits.
+  bool launchForCommand(const vector<EcceURL>& urls,
+                        const LaunchBatch::Target& target,
+                        vector<string>& lines);
   // A Launch Selected batch is submitting (#640): the calculations in it
   // must not be deleted, moved, launched or stopped meanwhile.
   bool batchRunning() const { return p_batch != 0; }

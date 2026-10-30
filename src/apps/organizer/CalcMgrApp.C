@@ -193,6 +193,8 @@ bool CalcMgrApp::OnInit()
   // Desk Top Messages
   subscribe("ecce_quit", (wxJmsCBFunc)&CalcMgrApp::quitMCB);
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
+  // ecce-launch (#687)
+  subscribe("ecce_launch_request", (wxJmsCBFunc)&CalcMgrApp::launchRequestMCB);
   
   // Preference Messages
   // Not filtered: the Organizer's own Preferences dialog publishes it too.
@@ -271,6 +273,39 @@ void CalcMgrApp::identifyMCB(JMSMessage& msg)
   reply->addProperty("info", "Organizer: " + currentNode);
   publish("ecce_identify_reply", *reply);
   delete reply;
+}
+
+
+// ecce-launch: an "ack" at once tells the command an Organizer is there; the
+// answer follows when the batch has submitted.
+void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  auto reply = [this, &id](const string& kind, const vector<string>& lines) {
+    JMSMessage* r = newMessage();
+    r->addProperty("reply_id", id);
+    r->addProperty("kind", kind);
+    r->addIntProperty("n", (int)lines.size());
+    for (size_t i = 0; i < lines.size(); i++)
+      r->addProperty("line" + std::to_string(i), lines[i]);
+    publish("ecce_launch_reply", *r);
+    delete r;
+  };
+  reply("ack", vector<string>());
+
+  LaunchBatch::Target target;
+  target.machine = msg.getProperty("on");
+  target.profile = msg.getProperty("profile");
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+
+  vector<string> lines;
+  if (!p_calcMgr->launchForCommand(urls, target, lines))
+    reply("busy", lines);
+  else
+    reply("done", lines);
 }
 
 
