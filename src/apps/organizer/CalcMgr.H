@@ -464,6 +464,7 @@ protected:
   string p_batchReport;
   void startBatch(const vector<LaunchSelected::Row>& rows, bool showReport);
   bool refuseDuringBatch(const string& what);
+  bool refuseMoveOfActiveJob(Resource *res, const string& what);
   bool p_quitAsking = false;        // the Quit dialog is open (#291)
   bool p_quitConfirmed = false;     // the user said yes; teardown pending
 

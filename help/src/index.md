@@ -129,6 +129,9 @@ describe what you did and what happened.
 29. [Allocations](allocations.md): the usage of each cluster account, from
    Tools > Allocations.
 
+30. [Renaming and moving calculations](rename-and-move.md): Rename, Cut and
+   Paste, dragging, and why a calculation with a running job stays where it is.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the
