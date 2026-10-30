@@ -68,8 +68,11 @@ def run(display, data, work, shots):
     png = os.path.join(shots, "workflow-na-hydration.png")
     menus = ["workflowmenu %s %s/na_6_0_%s" % (wf, wf, k)
              for k in ("orca", "xtb", "orca")]
+    sn2 = "file://" + root + "/Examples/Workflows/SN2_Cl-_and_CH3Br"
+    png2 = os.path.join(shots, "workflow-sn2.png")
     commands = ["examples workflows"] + menus + ["workflowinfo " + wf,
-                "workflowshot %s %s" % (png, wf)]
+                "workflowshot %s %s" % (png, wf), "workflowinfo " + sn2,
+                "workflowshot %s %s" % (png2, sn2)]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -112,6 +115,29 @@ def run(display, data, work, shots):
           "workflowshot answered %r" % shot)
     check("view screenshot exists",
           os.path.exists(png) and os.path.getsize(png) > 5000, png)
+
+    # The SN2 workflow (#674): a scan-point link and a join.
+    if len(info) < 2 or not info[1].startswith("ok "):
+        return fail(what, "no SN2 workflowinfo answer %r" % info, log)
+    t2 = steps(info[1][3:])
+    l2 = info[1].split(" links:")[1].split()
+    check("SN2: five G16 steps",
+          set(t2) == {"sn2_reactant", "sn2_scan", "sn2_product", "sn2_qst3",
+                      "sn2_irc"} and all(r["code"] == "G16" for r in t2.values()),
+          "%s" % t2)
+    check("SN2: links, the point and the join roles",
+          sorted(l2) == sorted([
+              "sn2_reactant>sn2_scan:geometry",
+              "sn2_scan>sn2_product:geometry.last",
+              "sn2_reactant>sn2_qst3:reactant", "sn2_product>sn2_qst3:product",
+              "sn2_scan>sn2_qst3:tsguess.max", "sn2_qst3>sn2_irc:geometry"]),
+          "links %s" % l2)
+    check("SN2: charge -1 on every step",
+          all(r.get("charge") == "-1" for r in t2.values()), "%s" % t2)
+    shot2 = answer("workflowshot")
+    check("SN2 view: five boxes, six links, labels clear",
+          len(shot2) > 1 and shot2[1].startswith("ok boxes=5 links=6 label-overlaps=0"),
+          "workflowshot answered %r" % shot2)
 
 
 def main():
