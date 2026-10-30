@@ -67,6 +67,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   an xTB water example, and the [xTB help page](help/src/xtb.md) describes the
   code.
 
+- Results file: the `ecce-results` command converts orbitals from Molden, Gaussian fchk and ORCA files, and an ORCA Hessian, into one HDF5 file (`results.h5`) with a fixed orbital order, the basis for carrying orbitals and Hessians from one workflow step to the next; the [results file help page](help/src/results-file-format.md) describes it.
+
 ## First steps
 
 The same pages are in ECCE under **Help**. To see it done first, the
