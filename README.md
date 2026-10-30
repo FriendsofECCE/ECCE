@@ -71,6 +71,10 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 - `ecce-launch`: launch Ready calculations from the command line, inside the running ECCE session, with their stored machine, cores and wall time; it prints each job id ([#687](https://github.com/FriendsofECCE/ECCE/issues/687)).
 
+- Workflow joins: Ctrl-click a reactant, a product and a TS guess and choose Gaussian 16 or ORCA to make a QST3 (or QST2) or NEB-TS step; a step can start from a scan's last point, its maximum or any point. Example: an SN2 reaction, Cl⁻ + CH₃Br, from the reactant complex through a relaxed scan to the QST3 transition state and its IRC.
+
+- Gaussian 16 IRC: points per direction, step size and direction in Runtype Details ([#688](https://github.com/FriendsofECCE/ECCE/issues/688)).
+
 ## First steps
 
 The same pages are in ECCE under **Help**. To see it done first, the
