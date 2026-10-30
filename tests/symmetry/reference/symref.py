@@ -83,6 +83,12 @@ def args_for(c):
 
 def resolve(impl, prog):
     """impl is a directory holding the programs, or a path prefix."""
+    # Keep automatic point-group detection on its reference binary while
+    # selecting the converted fragment tools and explicit operation printer.
+    if os.environ.get("ECCE_CXX_SYMMETRY") == "1":
+        prog = {"cleansym": "cleansym_cpp", "getfrag": "getfrag_cpp",
+                "genmol": "genmol_cpp", "genmollat": "genmollat_cpp",
+                "symops": "symops_cpp"}.get(prog, prog)
     cands = []
     if os.path.isdir(impl):
         cands = [os.path.join(impl, prog), os.path.join(impl, prog + ".exe")]

@@ -669,7 +669,7 @@ if(ECCE_GL_X11)
   set_target_properties(viewer-bench PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
 
-# --- src/apps/symmetry -> 5 standalone Fortran executables, no wx involvement.
+# --- src/apps/symmetry -> standalone symmetry helpers, no wx involvement.
 # Mirrors the old Makefile's "default:" target exactly (testnames is a
 # dev/test-only program the old default build skipped - left out here too).
 # Each program links only the specific .f/.f90 object files its old Makefile
@@ -702,21 +702,39 @@ add_executable(autosym_cpp ${_sym_dir}/autosym.cpp)
 ecce_fortran_app(getfrag
   SOURCES ${_sym_dir}/getfrag.f ${_sym_dir}/findfrag.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+# The migrated point-group helpers share the molecular tables and group
+# closure code with cleansym_cpp. Keep the Fortran binaries installed as the
+# default/reference implementation.
+set(_sym_cpp_common ${_sym_dir}/spnames.cpp ${_sym_dir}/spgen.cpp
+  ${_sym_dir}/spgen_periodic.cpp ${_sym_dir}/gensym.cpp
+  ${_sym_dir}/deter3.cpp ${_sym_dir}/errquit.cpp
+  ${_sym_dir}/symmetry_fragments.cpp)
+add_executable(getfrag_cpp ${_sym_dir}/getfrag.cpp ${_sym_cpp_common})
 ecce_fortran_app(genmol
   SOURCES ${_sym_dir}/genmol.f ${_sym_dir}/dosymops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+add_executable(genmol_cpp ${_sym_dir}/genmol.cpp ${_sym_cpp_common})
 ecce_fortran_app(genmollat
   SOURCES ${_sym_dir}/genmollat.f ${_sym_dir}/dosymops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+add_executable(genmollat_cpp ${_sym_dir}/genmollat.cpp ${_sym_cpp_common})
 # Added for the symmetry analysis behind the MO diagrams (#132): gensym
 # already turns a group name into its operation matrices, and nothing
 # outside these Fortran tools could reach them.
 ecce_fortran_app(symops
   SOURCES ${_sym_dir}/symops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+add_executable(symops_cpp ${_sym_dir}/symops.cpp ${_sym_cpp_common})
 ecce_fortran_app(cleansym
   SOURCES ${_sym_dir}/cleansym.f ${_sym_dir}/sym_avg.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+# C++ port of the complete cleansym molecular operation/projection path.
+# Keep the Fortran executable installed beside it as the default/reference;
+# SymmetryOps selects cleansym_cpp only when ECCE_CXX_SYMMETRY=1.
+add_executable(cleansym_cpp
+  ${_sym_dir}/cleansym.cpp ${_sym_dir}/sym_avg.cpp ${_sym_dir}/spnames.cpp
+  ${_sym_dir}/spgen.cpp ${_sym_dir}/gensym.cpp ${_sym_dir}/deter3.cpp
+  ${_sym_dir}/errquit.cpp)
 
 # ------------------------------------------------------------------------
 # The messaging gateway: packaging/gateway/ecce-gateway-* start a per-user
@@ -1075,7 +1093,8 @@ set(ECCE_GUI_APPS
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
-  autosym autosym_cpp getfrag genmol genmollat cleansym symops mdanalysis)
+  autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
+  cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
   list(APPEND ECCE_CLI_APPS ecce-flock)
 endif()
