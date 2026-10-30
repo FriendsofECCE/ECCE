@@ -1183,7 +1183,7 @@ sub RunType {
     $result = "Opt".&GeomOptions();
     $result .= " Freq".&VibOptions() if ($runtype =~ /Frequencies$/);
   } elsif ($runtype eq "IRC") {
-    $result = "IRC=(calcfc)";
+    $result = "IRC=" . &IRCOptions();
   } else {
     $result = "bad runtype in ai.gauss09\n";
     die "ai.gauss09 error:  bad runtype in ai.gauss09\n";
@@ -1459,6 +1459,21 @@ sub GeomOptions {
   $result .= ") ";
 
   return $result;
+}
+
+# IRC keywords only where the user left Gaussian's defaults
+# (10 points, step 10, both directions), so older calculations regenerate
+# unchanged.
+sub IRCOptions {
+  my $n    = $AbiDict{"ES.Runtype.IRC.MaximumStepsValue"};
+  my $step = $AbiDict{"ES.Runtype.IRC.StepSizeValue"};
+  my $dir  = lc($AbiDict{"ES.Runtype.IRC.Direction"});
+  my @o = ("calcfc");
+  push @o, "MaxPoints=$n" if (defined($n) && $n =~ /^\d+$/ && $n > 0 && $n != 10);
+  push @o, "StepSize=$step" if (defined($step) && $step =~ /^\d+$/ && $step > 0 && $step != 10);
+  push @o, "Forward" if ($dir eq "forward");
+  push @o, "Reverse" if ($dir eq "reverse" || $dir eq "backward");
+  return "(" . join(",", @o) . ")";
 }
 
 ##############################################################################
