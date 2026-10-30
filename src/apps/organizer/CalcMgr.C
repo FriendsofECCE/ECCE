@@ -5524,6 +5524,20 @@ bool CalcMgr::getTypeAndState(WxResourceTreeItemData * itemData,
 }
 
 
+//  Reconnect is offered in the states the resource type's own reconnectJob
+//  task lists (ResourceDescriptor.xml), so the context menus and Run Mgmt
+//  cannot disagree: an incomplete job is reconnectable from all of them.
+static bool offersReconnect(ResourceType *resType,
+                            ResourceDescriptor::RUNSTATE state)
+{
+  if (!resType) return false;
+  vector<ResourceRmTask *> tasks = resType->getRmTasks(state);
+  for (size_t i = 0; i < tasks.size(); i++)
+    if (tasks[i]->getName() == RECONNECTJOB) return true;
+  return false;
+}
+
+
 /**
  * Generate the right click menu based on the given tree item.
  * If a tree item is given, then it is used to determine the content of the
@@ -5599,13 +5613,9 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
     menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-    //  Offered under the same rule as the Run Mgmt item: only for a job
-    //  that has been submitted.
     wxMenuItem *reconnect = menu.Append(wxID_RECONNECT_SELECTED,
                                         _("Reconnect Selected..."));
-    reconnect->Enable(state == ResourceDescriptor::STATE_SUBMITTED ||
-                      state == ResourceDescriptor::STATE_RUNNING ||
-                      state == ResourceDescriptor::STATE_WAITING);
+    reconnect->Enable(offersReconnect(resType, state));
     menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), _("Run the "
                 "parsers again over the outputs stored with the calculation"))
         ->Enable(state >= ResourceDescriptor::STATE_COMPLETED);
@@ -5906,9 +5916,7 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."), "",
                 wxITEM_NORMAL);
   }
-  if ((state == ResourceDescriptor::STATE_SUBMITTED ||
-       state == ResourceDescriptor::STATE_RUNNING ||
-       state == ResourceDescriptor::STATE_WAITING) &&
+  if (offersReconnect(resType, state) &&
       itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
     if (menu.GetMenuItemCount() > 0) menu.AppendSeparator();
     menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."), "",
