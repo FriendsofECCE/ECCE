@@ -314,6 +314,11 @@ public:
                             Resource *source, bool ask, string *outcome,
                             const string& name = "",
                             const WorkflowSteps::Carry& carry = WorkflowSteps::Carry());
+  /// A step taking several sources (G16 QST2/QST3, ORCA NEB-TS); ask shows
+  /// the join dialog with the given roles as its defaults.
+  Resource *newWorkflowJoin(Session *workflow, ResourceType *type,
+                            const vector<WorkflowSteps::JoinSource>& sources,
+                            bool ask, string *outcome, const string& name = "");
   void launchReadySteps(Session *workflow, bool interactive, string *outcome,
                         const string& shot);
   void createResource(ResourceType * resource,

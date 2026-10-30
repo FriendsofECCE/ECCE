@@ -86,6 +86,7 @@ static std::string s_registerMessage;
 
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
+#include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
@@ -649,6 +650,10 @@ void CalcMgr::runTestCommand(const string& line)
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
       //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge]
       //     a code button without the dialog (type = e.g. orca_es)
+      //     point=last|max|N: the scan point the link carries
+      //   workflowjoin WF TYPE NAME SRC=role[@point] ...   a join, roles
+      //     reactant|product|tsguess; the step's structure files as
+      //     TS Search writes them: workflowqst WF STEP
       //   workflowinfo WF       steps, states, carried values and links
       //   workflowlaunch WF     Launch Ready Steps without dialogs
       //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
@@ -660,6 +665,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     labels, or "error: ..." with what threw (#681)
       std::istringstream args(calcName);
       string a, b, c, d, flag, geomFrom;
+      vector<string> joinArgs;
       int setCharge = -99, setMult = 0;
       WorkflowSteps::Carry carry;
       if (command == "workflowstep") {
@@ -668,11 +674,16 @@ void CalcMgr::runTestCommand(const string& line)
           if (flag == "nogeom") carry.geometry = false;
           if (flag == "nocharge") carry.chargeMult = false;
           if (flag.compare(0, 9, "geomfrom=") == 0) geomFrom = flag.substr(9);
+          if (flag.compare(0, 6, "point=") == 0) carry.point = flag.substr(6);
           if (flag.compare(0, 7, "charge=") == 0) setCharge = atoi(flag.c_str() + 7);
           if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
         }
-      } else if (command == "workflowcopy" || command == "workflowmenu") {
+      } else if (command == "workflowcopy" || command == "workflowmenu" ||
+                 command == "workflowqst") {
         args >> a >> b >> c;
+      } else if (command == "workflowjoin") {
+        args >> a >> b >> c;
+        while (args >> flag) joinArgs.push_back(flag);
       } else if (command == "workflowshot" || command == "workflowdialogshot") {
         args >> d >> a >> b >> c;       // d = PNG
       } else {
@@ -681,7 +692,8 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *wfNode = findNode(EcceURL(a), true, true);
       Session *wf = wfNode ? dynamic_cast<Session*>(wfNode->getResource()) : 0;
       ResourceType *rt = 0;
-      if (command == "workflowstep" || command == "workflowdialogshot") {
+      if (command == "workflowstep" || command == "workflowdialogshot" ||
+          command == "workflowjoin") {
         vector<ResourceType*> types =
             ResourceDescriptor::getResourceDescriptor().getResourceTypes();
         for (size_t i = 0; i < types.size() && !rt; i++)
@@ -720,6 +732,48 @@ void CalcMgr::runTestCommand(const string& line)
           }
           outcome = !rt ? "no resource type " + b
                   : made ? "ok " + result : "error: " + result;
+        }
+      } else if (command == "workflowjoin") {
+        vector<WorkflowSteps::JoinSource> sources;
+        string bad;
+        for (size_t i = 0; i < joinArgs.size(); i++) {
+          size_t eq = joinArgs[i].rfind('=');
+          Resource *src = eq == string::npos ? 0 : step(joinArgs[i].substr(0, eq));
+          if (!src) { bad = "no such source step " + joinArgs[i]; break; }
+          WorkflowSteps::JoinSource js = {src, "", ""};
+          WorkflowSteps::splitLinkName(joinArgs[i].substr(eq + 1), js.role, js.point);
+          sources.push_back(js);
+        }
+        if (!bad.empty()) outcome = "error: " + bad;
+        else {
+          string result;
+          Resource *made = rt ? newWorkflowJoin(wf, rt, sources, false, &result,
+                                                c == "-" ? "" : c)
+                              : 0;
+          outcome = !rt ? "no resource type " + b
+                  : made ? "ok " + result : "error: " + result;
+        }
+      } else if (command == "workflowqst") {
+        // The structure files TS Search hands to the input generator.
+        ICalculation *calc = dynamic_cast<ICalculation*>(step(b));
+        if (!calc) outcome = "no such step";
+        else {
+          char tmpl[] = "/tmp/wfqst-XXXXXX";
+          if (!mkdtemp(tmpl)) outcome = "error: no temporary directory";
+          else {
+            string status, warning;
+            const bool neb = calc->runtype().name().compare(0, 25,
+                                           "Transition State (NEB-TS)") == 0;
+            const string base = string(tmpl) + "/ts";
+            char *here = getcwd(0, 0);
+            if (neb && chdir(tmpl) != 0) {}      // neb files go to the cwd
+            bool ok = neb ? nebWriteStructureFiles(calc, status, warning)
+                          : qstWriteStructureFiles(calc, base, status, warning);
+            if (here) { if (chdir(here) != 0) {} free(here); }
+            outcome = (ok ? "ok " : "error: ") + string(tmpl) + " runtype=" +
+                      calc->runtype().name() + " status=" + status +
+                      " warning=" + warning;
+          }
         }
       } else if (command == "workflowcopy") {
         ICalculation *from = dynamic_cast<ICalculation*>(
@@ -8484,6 +8538,62 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   FrameHold hold(this);
   string why;
   Resource *made = WorkflowSteps::create(wf, rt, name, source, carry, why);
+  if (!made) {
+    if (outcome) *outcome = why.empty() ? "not created" : why;
+    if (ask) setMessage(why, WxFeedback::INFO);
+    return 0;
+  }
+  const EcceURL newurl = made->getURL();
+  WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
+  if (node) {
+    p_treeCtrl->refresh(node);
+    setContextPanel();
+    if (p_contextPanel) p_contextPanel->selectResource(newurl);
+  }
+  notifyCreate(newurl.toString());
+  if (ask) {
+    ResourceTool *tool = made->getDefaultTool();
+    if (tool) startApp(tool->getName(), 0, newurl.toString());
+  }
+  if (outcome) *outcome = newurl.toString();
+  return made;
+}
+
+
+/**
+ * A join (WorkflowSteps::createJoin): the tree and the view follow and the
+ * Calculation Editor opens on the new step, where TS Search shows the picks.
+ */
+Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
+                                   const vector<WorkflowSteps::JoinSource>& given,
+                                   bool ask, string *outcome, const string& givenName)
+{
+  const WorkflowSteps::Code *code = 0;
+  for (size_t i = 0; i < WorkflowSteps::codes().size(); i++)
+    if (rt->getName() == WorkflowSteps::codes()[i].typeName)
+      code = &WorkflowSteps::codes()[i];
+  if (!wf || !code || !WorkflowSteps::canJoin(*code)) {
+    if (outcome) *outcome = "not a step type that takes a join";
+    return 0;
+  }
+  string name = givenName.empty() ? WorkflowSteps::defaultName(wf, *code)
+                                  : givenName;
+  vector<WorkflowSteps::JoinSource> sources = given;
+  if (ask) {
+    vector<Resource*> steps;
+    for (size_t i = 0; i < given.size(); i++) steps.push_back(given[i].step);
+    WorkflowJoinDialog dlg(this, wf, *code, rt, steps);
+    if (dlg.ShowModal() != wxID_OK) {
+      if (outcome) *outcome = "cancelled";
+      return 0;
+    }
+    name = dlg.name();
+    sources = dlg.sources();
+  }
+
+  FrameHold hold(this);
+  string why;
+  Resource *made = WorkflowSteps::createJoin(wf, rt, name, sources, why);
   if (!made) {
     if (outcome) *outcome = why.empty() ? "not created" : why;
     if (ask) setMessage(why, WxFeedback::INFO);
