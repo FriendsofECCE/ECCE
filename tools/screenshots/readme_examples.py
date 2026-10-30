@@ -58,7 +58,7 @@ def organizer(display, data, work, out):
         if not calc:
             return "no ethylene calculation"
         with open(cmds, "a") as h:
-            h.write("size 1300 1000\nsummary file://%s\n" % calc)
+            h.write("size 1300 1060\nsummary file://%s\n" % calc)
         time.sleep(10)
         with open(cmds, "a") as h:
             h.write("snap %s\n" % shot)
