@@ -33,7 +33,9 @@ class ewxBitmapButton : public wxBitmapButton, public ewxStyledWindow
     void setSvg(const wxString& svg, int logical = 16);
 
   protected:
+    void logSize(const wxString& where);
     bool p_editable;
+    bool p_sizeLogged = false;
     ewxDisabler *p_disabler;
 };
 
