@@ -7009,6 +7009,7 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
 void Builder::addToolBar(wxToolBar * toolbar, const string& name)
 {
   toolbar->Realize();
+  ewxBitmap::logDpi(("viewer toolbar " + name).c_str(), toolbar);
   
   wxAuiPaneInfo pinfo;
   pinfo.Name(name).Caption(name).ToolbarPane().Top().Position(p_toolbarCount).
