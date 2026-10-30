@@ -583,8 +583,28 @@ vector<string> JobProgress::summary(bool completed) const
   if (opt) {
     const string step = !opt->field("step").empty() ? opt->field("step")
                                                    : opt->field("istep");
+    // A Complete run whose last step meets every criterion has converged,
+    // even when the code's own "converged" line never reached the snapshot
+    // (#722); a run stopped at the step limit is Unsuccessful, not Complete.
+    bool allMet = false;
+    if (completed) {
+      int criteria = 0, met = 0;
+      for (size_t i = 0; i < opt->fields.size(); i++) {
+        const string& v = opt->fields[i].second;
+        const size_t slash = v.find('/');
+        if (slash == string::npos || opt->fields[i].first == "step") continue;
+        char *e1 = 0, *e2 = 0;
+        const double got = strtod(v.c_str(), &e1);
+        const double lim = strtod(v.c_str() + slash + 1, &e2);
+        if (e1 != v.c_str() + slash || e2 == v.c_str() + slash + 1) continue;
+        criteria++;
+        if (fabs(got) <= lim) met++;
+      }
+      allMet = criteria > 0 && met == criteria;
+    }
     string line;
-    if (opt->field("converged") == "yes")
+    if (opt->field("converged") == "yes" ||
+        (allMet && opt->field("converged") != "no"))
       line = "Optimisation converged in " + step + " steps";
     else if (opt->field("converged") == "no")
       line = "Optimisation not converged after " + step + " steps";

@@ -99,6 +99,23 @@ int main()
   check(has(sum, "Frequencies: 3 real, 0 imaginary") && has(sum, "ZPE 0.021346"),
         "summary: frequencies and ZPE");
 
+  //  #722: the code's own converged line missed the snapshot, but the run is
+  //  Complete and its last step meets every limit.
+  JobProgress cm;
+  cm.parse("# seq=822 sent=1793383130.561\n"
+           "opt step=99 energy=-3910.3263062233 maxstep=0.0024287371/0.0030000000 "
+           "rmsstep=0.0005668482/0.0015000000 maxgrad=0.0003239626/0.0004500000 "
+           "rmsgrad=0.0000903064/0.0003000000\n");
+  check(has(cm.summary(true), "Optimisation converged in 99 steps"),
+        "summary: Complete, every limit met -> converged");
+  check(has(cm.summary(false), "Optimisation stopped at step 99"),
+        "summary: not Complete -> stopped, however close");
+  JobProgress cn;
+  cn.parse("# seq=1 sent=1793383130.561\n"
+           "opt step=40 maxstep=0.0040/0.0030 maxgrad=0.0003/0.00045\n");
+  check(has(cn.summary(true), "Optimisation stopped at step 40"),
+        "summary: a limit not met -> stopped");
+
   //  Imaginary modes after a converged optimisation: wrong for a minimum
   //  unless 0, for a transition state unless 1.
   {
