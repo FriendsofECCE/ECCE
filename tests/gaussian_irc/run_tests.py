@@ -38,7 +38,7 @@ def route(extra):
 
 def main():
     d = route("")
-    check("IRC=(calcfc) " in d or "IRC=(calcfc)\n" in d, "default: IRC=(calcfc)")
+    check("IRC=(calcfc)" in d, "default: IRC=(calcfc)")
     check("MaxPoints" not in d and "StepSize" not in d, "default: no extra keywords")
     d = route("ES.Runtype.IRC.MaximumStepsValue: 12\nES.Runtype.IRC.StepSizeValue: 5\n")
     check("IRC=(calcfc,MaxPoints=12,StepSize=5)" in d, "IRC=(calcfc,MaxPoints=12,StepSize=5)")
