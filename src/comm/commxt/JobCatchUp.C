@@ -68,11 +68,17 @@ bool JobCatchUp::loginFor(const TaskJob* calc, RCommandLogin& login, string& why
 
 
 bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginFn,
-                           const RemoteFn& remote)
+                           const RemoteFn& remote, bool forget)
 {
   Jobdata job = calc->jobdata();
   if (job.jobid.empty()) {
     message = "No job id available to reconnect";
+    return false;
+  }
+  //  A live eccejobmaster (also one between restarts of its store, with the
+  //  job shown Waiting) still monitors the job: a second one must not start.
+  if (WaitingJobs::watched(calc->getURL().toString())) {
+    message = "previous monitor still running";
     return false;
   }
   ResourceDescriptor::RUNSTATE state = calc->getState();
@@ -81,7 +87,7 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginF
   //  the calculation's results as they were.
   RCommand* conn = 0;
   if (loginFn) {
-    OpenSshTransport::forgetMasterAttempts();
+    if (forget) OpenSshTransport::forgetMasterAttempts();
     RCommandLogin args;
     if (!loginFor(calc, args, message) || !loginFn(args, conn, message)) {
       leaveWaiting(calc, message);
@@ -138,7 +144,7 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginF
   std::shared_ptr<Launch> launch = std::make_shared<Launch>(calc, kvargs);
   //  A Reconnect asks for the login again, even right after a cancel.
   if (conn) launch->adoptConnection(conn);
-  else OpenSshTransport::forgetMasterAttempts();
+  else if (forget) OpenSshTransport::forgetMasterAttempts();
   bool ok = launch->validateLocalDir() &&
             launch->validateRemoteLogin() &&
             launch->generateJobMonitoringFiles();
@@ -201,6 +207,7 @@ vector<JobCatchUp::Result> JobCatchUp::run(
 {
   vector<Result> results;
   vector<string> urls = WaitingJobs::list();
+  OpenSshTransport::forgetMasterAttempts();
   for (size_t i = 0; i < urls.size(); i++) {
     if (progress && !progress(i, urls.size()))
       break;
@@ -225,7 +232,7 @@ vector<JobCatchUp::Result> JobCatchUp::run(
       WaitingJobs::remove(urls[i]);
       continue;
     }
-    r.ok = reconnect(calc, r.message, login, remote);
+    r.ok = reconnect(calc, r.message, login, remote, false);
     r.message = calc->getName() + ": " + r.message;
     results.push_back(r);
   }

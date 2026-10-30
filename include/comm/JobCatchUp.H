@@ -41,9 +41,12 @@ using RemoteFn = std::function<bool(const std::string& what,
                                     const std::function<bool()>& work,
                                     bool& result)>;
 
+// forget: drop the remembered cancelled or refused logins first, so that
+// the user's Reconnect may ask again; a run over many jobs does it once, so
+// that one Cancel is not followed by a dialog per job.
 bool reconnect(TaskJob* calc, std::string& message,
                const LoginFn& login = nullptr,
-               const RemoteFn& remote = nullptr);
+               const RemoteFn& remote = nullptr, bool forget = true);
 
 // Re-Parse Outputs (#651): the code's parsers and the progress record run
 // again over the outputs stored with the calculation, with no login to the

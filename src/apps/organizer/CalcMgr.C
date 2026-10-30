@@ -56,6 +56,7 @@ static std::string s_registerMessage;
 #include "util/LocalData.H"
 #include "util/SessionLease.H"
 #include "util/WaitingJobs.H"
+#include "comm/OpenSshTransport.H"
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Host.H"
@@ -3183,10 +3184,13 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
   // One at a time, rows of a machine together: the first login makes the
   // connection (and the per-host lock) that the later jobs and their job
   // stores reuse, so one machine asks once.
+  OpenSshTransport::forgetMasterAttempts();
   ReconnectSelected::run(this, rows, interactive,
       [this](ReconnectSelected::Row& r, wxProgressDialog *pd) {
         EcceURL url(r.plan.url);
-        if (r.task->getState() != ResourceDescriptor::STATE_WAITING) {
+        // A Waiting job can still have its eccejobmaster, restarting the store.
+        if (r.task->getState() != ResourceDescriptor::STATE_WAITING ||
+            WaitingJobs::watched(url.toString())) {
           JMSMessage *msg = newMessage();
           msg->addProperty("url", url.toString());
           publish("ecce_ejs_kill", *msg);
@@ -3202,7 +3206,7 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
             },
             [this, pd](const string& what, const std::function<bool()>& work, bool& res) {
               return ReconnectSelected::runRemote(this, pd, what, work, res);
-            });
+            }, false);
         if (ok) {
           p_contact.erase(progressKey(url));
           p_machineCheck.erase(progressKey(url));

@@ -383,6 +383,10 @@ const char* const kHostKeyText[] = {
 const char* const kLoginText[] = {
   "permission denied", "no more authentication methods",
   "too many authentication failures", 0 };
+// A master that has no room for another session (sshd MaxSessions).
+const char* const kSessionRefusedText[] = {
+  "administratively prohibited", "session open refused",
+  "session request failed", 0 };
 
 bool mentions(const std::string& low, const char* const* list)
 {
@@ -609,20 +613,17 @@ std::string OpenSshTransport::controlSocketPath() const
 bool OpenSshTransport::nextOverflowMaster(const TransportResult& r)
 {
   if (!ownsFromDir() || r.timedOut || r.status != 255) return false;
-  const std::string low = lower(r.err);
-  if (low.find("administratively prohibited") == std::string::npos &&
-      low.find("session open refused") == std::string::npos &&
-      low.find("session request failed") == std::string::npos)
-    return false;
+  if (!mentions(lower(r.err), kSessionRefusedText)) return false;
   const std::string base = socketFor(0);
   {
     // A process that met the same refusal may have moved on already: join it.
+    // After the last index the first comes again: its master may have died
+    // (a dropped network) or have room by now, and a dead one is opened
+    // again with the shared login, never by the libssh fallback.
     HostLock lk(base + ".lock");
     int cur = overflowIndex();
-    if (cur == p_usedIdx) {
-      if (cur >= kMaxOverflow) return false;
-      writeSmall(base + ".idx", std::to_string(cur + 1) + "\n");
-    }
+    if (cur == p_usedIdx)
+      writeSmall(base + ".idx", std::to_string((cur + 1) % (kMaxOverflow + 1)) + "\n");
   }
   // A master another process opened is joined; otherwise open one.
   return masterAlive() || (!p_askpass.empty() && openMaster());
@@ -851,11 +852,20 @@ std::string OpenSshTransport::envPrefix(std::string& error) const
 void OpenSshTransport::explain(TransportResult& r) const
 {
   if (r.timedOut) return;
+  p_sessionsFull = false;
   if (r.status == 255) {
     // "Run ssh in a terminal" helps only when the user's own config shares.
     std::string why = explainFailure(p_host, r.err,
       configSharesConnection(p_host, p_user, p_configFile));
-    if (ownsFromDir() && mentions(lower(r.err), kLoginText))
+    // ssh follows a master's refusal with a login of its own, which BatchMode
+    // denies on a password-only host: that denial says nothing of the password.
+    const std::string low = lower(r.err);
+    if (ownsFromDir() && mentions(low, kSessionRefusedText) &&
+        low.find("stdio forwarding failed") == std::string::npos && masterAlive()) {
+      p_sessionsFull = true;
+      why = "Every shared connection to " + p_host + " is at the server's "
+            "session limit (MaxSessions); try again when a job has ended.";
+    } else if (ownsFromDir() && mentions(low, kLoginText))
       why = p_cancelled ? "The login to " + p_host + " was cancelled or not answered."
                         : "The login to " + p_host + " was refused; check the "
                           "user name and password, then try again.";
