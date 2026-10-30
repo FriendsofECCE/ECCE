@@ -67,12 +67,17 @@ ewxBitmapButton::~ewxBitmapButton()
 
 void ewxBitmapButton::setSvg(const wxString& svg, int logical)
 {
-  wxBitmap bmp = ewxBitmap::svgBitmap(this, svg, logical);
-  SetBitmapLabel(bmp);
-  if (bmp.GetWidth() > logical) {
-    const int pad = FromDIP(2);
-    SetMinSize(wxSize(bmp.GetWidth() + pad, bmp.GetHeight() + pad));
+  //  The bundle, not a bitmap drawn at the scale: wxMSW takes a plain bitmap
+  //  as 100 % and sizes the button for it, so a pre-scaled one stays small.
+  wxBitmapBundle b = wxBitmapBundle::FromSVGFile(ewxBitmap::pixmapFile(svg),
+                                                 wxSize(logical, logical));
+  if (!b.IsOk()) {
+    SetBitmapLabel(ewxBitmap::placeholder(svg));
+    return;
   }
+  SetBitmapLabel(b);
+  if (ewxBitmap::dpiScale() > 1)
+    SetMinSize(FromDIP(wxSize(logical + 2, logical + 2)));
 }
 
 
