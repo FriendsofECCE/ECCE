@@ -721,7 +721,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_fileToolbar->SetToolSeparation(0);
     p_fileToolbar->SetToolPacking(0);
-    p_fileToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
+    ewxBitmap::toolBitmapSize(p_fileToolbar, wxSize(22, 22));
     p_fileToolbar->AddTool(wxID_NEW, _T(""), ewxBitmap::colorIcon("svg/candidates/e/new.svg", wxSize(22, 22)), _("New"));
     p_fileToolbar->AddTool(wxID_OPEN, _T(""), ewxBitmap::colorIcon("svg/candidates/e/open.svg", wxSize(22, 22)), _("Open"));
     p_fileToolbar->AddTool(wxID_SAVE, _T(""), ewxBitmap::colorIcon("svg/candidates/e/save.svg", wxSize(22, 22)), _("Save"));
@@ -733,7 +733,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_modeToolbar->SetToolSeparation(0);
     p_modeToolbar->SetToolPacking(0);
-    p_modeToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
+    ewxBitmap::toolBitmapSize(p_modeToolbar, wxSize(22, 22));
     wxBitmapBundle selBitmap = ewxBitmap::colorIcon("svg/candidates/e/select.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_SELECT, _T(""), selBitmap,
                            _("Select"), wxITEM_CHECK);
@@ -769,7 +769,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_viewToolbar->SetToolSeparation(0);
     p_viewToolbar->SetToolPacking(0);
-    p_viewToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
+    ewxBitmap::toolBitmapSize(p_viewToolbar, wxSize(22, 22));
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_DEPTH_CUEING, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/depthcue.svg", wxSize(22, 22)),
             _("Enable/disable depth cueing"), wxITEM_CHECK);
@@ -798,7 +798,7 @@ void Builder::createToolbar()
             wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_manipulatorToolbar->SetToolSeparation(0);
     p_manipulatorToolbar->SetToolPacking(0);
-    p_manipulatorToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
+    ewxBitmap::toolBitmapSize(p_manipulatorToolbar, wxSize(22, 22));
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_SPHERE,
             _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_sphere.svg", wxSize(22, 22)),
             _("Create Sphere Manipulator"), wxITEM_NORMAL);
@@ -817,7 +817,7 @@ void Builder::createToolbar()
             wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_measureToolbar->SetToolSeparation(0);
     p_measureToolbar->SetToolPacking(0);
-    p_measureToolbar->SetToolBitmapSize(ewxBitmap::scaled(wxSize(22, 22)));
+    ewxBitmap::toolBitmapSize(p_measureToolbar, wxSize(22, 22));
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_DIST, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/measure_length.svg", wxSize(22, 22)),
             _("Measure Distance"), wxITEM_NORMAL);

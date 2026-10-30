@@ -172,6 +172,12 @@ void ewxBitmap::logDpi(const char *where, wxToolBarBase *bar)
 }
 
 
+void ewxBitmap::toolBitmapSize(wxToolBarBase *bar, const wxSize& logical)
+{
+  if (bar && dpiScale() <= 1) bar->SetToolBitmapSize(logical);
+}
+
+
 int ewxBitmap::scaled(int px)
 {
   return (int)(px * dpiScale() + 0.5);
