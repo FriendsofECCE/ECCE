@@ -114,6 +114,19 @@ int main()
     "    [ -e \"$cp\" ] || { echo \"u@$host: Permission denied (publickey,password).\" >&2; exit 255; }\n"
     "    if [ \"$host\" = ownfull ]; then case \"$cp\" in *-1) ;; *)\n"
     "      echo \"channel 2: open failed: administratively prohibited: open failed\" >&2; exit 255;; esac; fi;;\n"
+    // ownroom: as ownm, but a master with a file <cp>.full refuses sessions,
+    // and ssh's own login after that is denied (BatchMode, password only).
+    "  ownroom)\n"
+    "    deny() { echo \"u@$host: Permission denied (publickey,password).\" >&2; exit 255; }\n"
+    "    if [ -n \"$op\" ]; then [ -e \"$cp\" ] && exit 0\n"
+    "      echo \"Control socket connect($cp): No such file or directory\" >&2; exit 255; fi\n"
+    "    if [ -n \"$master\" ]; then\n"
+    "      ans=$(\"$SSH_ASKPASS\" \"u@$host's password: \") || deny\n"
+    "      [ \"$ans\" = secret ] || deny\n"
+    "      : > \"$cp\"; exit 0; fi\n"
+    "    if [ -e \"$cp.full\" ]; then\n"
+    "      echo \"channel 2: open failed: administratively prohibited: open failed\" >&2; deny; fi\n"
+    "    [ -e \"$cp\" ] || deny;;\n"
     "  noauth) echo \"u@noauth: Permission denied (publickey,password).\" >&2; exit 255;;\n"
     // MaxSessions: the first master is full, the overflow one (-1) is not.
     "  full)\n"
@@ -518,6 +531,46 @@ int main()
           count(v, 1) == N && lines(asklog) == 1,
           std::to_string(count(v, 1)) + " ok, " + std::to_string(lines(asklog)) + " dialogs");
     check("overflow: the shared index moved exactly once", slurp(idxFile) == "1\n", slurp(idxFile));
+
+    // #684: the index is at the last master, which is full, and the first
+    // master died with the network.  The index comes round to it and one
+    // shared login opens it; nobody is told a password was refused.
+    string base;
+    {
+      OpenSshTransport* x = mk("ownroom", ans);
+      sh("rm -rf " + cd + "/* " + asklog);
+      base = x->controlSocketPath();
+      delete x;
+    }
+    auto fullMasters = [&](int from) {
+      sh("rm -rf " + cd + "/* " + asklog);
+      for (int i = from; i <= 8; i++) {
+        string m = i ? base + "-" + std::to_string(i) : base;
+        spit(m, "");
+        spit(m + ".full", "");
+      }
+      spit(base + ".idx", "8\n");
+    };
+    fullMasters(5);
+    v = openers(N, "ownroom", ans, false);
+    check("#684 last master full, first dead: all connect, one dialog",
+          count(v, 1) == N && lines(asklog) == 1 && count(v, 4) == 0,
+          std::to_string(count(v, 1)) + " ok, " + std::to_string(lines(asklog)) + " dialogs");
+    check("#684 the index came round to the first master", slurp(base + ".idx") == "0\n",
+          slurp(base + ".idx"));
+
+    // Every master full: no dialog, no "refused", and the caller is told so
+    // (RCommand then neither falls back to libssh nor parks it as a login).
+    fullMasters(0);
+    {
+      OpenSshTransport* x = mk("ownroom", ans);
+      string e;
+      bool ok = x->connect(e);
+      check("#684 all masters full: not connected, sessions full, not refused",
+            !ok && x->sessionsFull() && !x->loginRefused() && !x->loginCancelled() &&
+            e.find("session limit") != string::npos && lines(asklog) == 0, e);
+      delete x;
+    }
     unsetenv("ECCE_SSH_CONTROL_DIR");
   }
 
