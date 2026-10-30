@@ -58,7 +58,7 @@ def organizer(display, data, work, out):
         if not calc:
             return "no ethylene calculation"
         with open(cmds, "a") as h:
-            h.write("size 1300 900\nsummary file://%s\n" % calc)
+            h.write("size 1300 1000\nsummary file://%s\n" % calc)
         time.sleep(10)
         with open(cmds, "a") as h:
             h.write("snap %s\n" % shot)
@@ -83,7 +83,7 @@ def viewer(display, data, work, out):
     known = set(w for w, _ in display.windows())
     env = {"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": work,
            "ECCE_VIEWER_SCENE_SIZE": "800x600", "ECCE_VIEWER_SCENE_HOLD": "1",
-           "ECCE_OPEN_PANEL": "MO Diagram", "ECCE_NO_UPDATE_CHECK": "1", "ECCE_TRANSPARENCY_FALLBACK_MS": "0"}
+           "ECCE_OPEN_PANEL": "MOs", "ECCE_NO_UPDATE_CHECK": "1", "ECCE_TRANSPARENCY_FALLBACK_MS": "0"}
     proc = readme.launch(display, "ecce-builder", ["-context", "file://" + calc],
                          env, log=os.path.join(work, "builder.log"))
     try:
