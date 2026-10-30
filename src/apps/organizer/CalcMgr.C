@@ -3123,7 +3123,7 @@ bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
     if (st != ResourceDescriptor::STATE_SUBMITTED &&
         st != ResourceDescriptor::STATE_RUNNING &&
         st != ResourceDescriptor::STATE_WAITING) {
-      lines.push_back(name + "\tno\tnot terminated: state is " +
+      lines.push_back(name + "\tno\tstate is " +
                       ResourceUtils::stateToString(st));
       continue;
     }

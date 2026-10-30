@@ -198,7 +198,7 @@ def main():
 
         rc, out, err = run(urls["one"])
         say(out)
-        check(rc == 1 and "not terminated: state is killed" in out,
+        check(rc == 1 and "not terminated: state is Killed" in out,
               "a second call on a killed calculation is refused (rc=%s)" % rc)
     finally:
         if org and org.poll() is None:
