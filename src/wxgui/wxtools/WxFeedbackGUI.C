@@ -140,7 +140,7 @@ void WxFeedbackGUI::CreateControls()
 
     ewxTextCtrl* itemTextCtrl12 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_FEEDBACK_MSG, _T(""), wxDefaultPosition, wxSize(-1, 60), wxTE_MULTILINE|wxTE_READONLY|wxTE_LEFT|wxTE_WORDWRAP );
     //  The raw 60 px is three lines at 96 dpi; on a scaled display the pane
-    //  holds one text line (it still grows with the window).  The size
+    //  holds exactly one text line.  The size
     //  comes from the control's own chrome, which differs per platform.
     if (ewxBitmap::dpiScale() > 1 || itemTextCtrl12->GetContentScaleFactor() > 1.05) {
         const wxSize one = itemTextCtrl12->GetSizeFromTextSize(
@@ -148,6 +148,8 @@ void WxFeedbackGUI::CreateControls()
         const wxSize fixed(-1, one.y);
         itemTextCtrl12->SetInitialSize(fixed);
         itemTextCtrl12->SetMinSize(fixed);
+        itemTextCtrl12->SetMaxSize(fixed);   // exactly one line at any window height
+        itemBoxSizer2->GetItem(itemBoxSizer11)->SetProportion(0);
     }
     itemBoxSizer11->Add(itemTextCtrl12, 1, wxGROW|wxALL, 0);
 

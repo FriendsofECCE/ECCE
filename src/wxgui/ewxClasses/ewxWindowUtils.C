@@ -887,6 +887,12 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
   if (scroller != NULL) {
     scroller->InvalidateBestSize();
     win->GetSizer()->Layout();
+    //  The scroller's virtual size must follow the content's minimum, or a
+    //  sizer is given less than it needs and rows draw over each other.
+    if (scroller->GetSizer()) {
+      scroller->GetSizer()->Layout();
+      scroller->SetVirtualSize(scroller->GetSizer()->GetMinSize());
+    }
     wxSize fit = win->GetSizer()->GetMinSize();
     win->SetMinClientSize(fit);
     target = wxSize(wxMin(wxMax(client.x, fit.x), cap.x),

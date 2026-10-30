@@ -1,3 +1,4 @@
+#include "wx/wrapsizer.h"
 #include <algorithm>
 #include <fstream>
 using std::ifstream;
@@ -972,7 +973,12 @@ void Builder::createMainPanel()
 
 void Builder::createRotators(wxWindow *parent)
 {
-  p_rotSizer = new wxBoxSizer(wxHORIZONTAL);
+  //  Where the scaled controls no longer fit the pane's width the row wraps
+  //  instead of drawing the corner buttons over each other.
+  if (ewxBitmap::dpiScale() > 1)
+    p_rotSizer = new wxWrapSizer(wxHORIZONTAL);
+  else
+    p_rotSizer = new wxBoxSizer(wxHORIZONTAL);
   p_mainSizer->Add(p_rotSizer, 0, wxEXPAND|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Rotation: X"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
@@ -1156,11 +1162,16 @@ void Builder::createToolPanels()
   //  plus padding in DIPs.  Unchanged (34 px) at 100 %.
   int tabH = 34;
   if (ewxBitmap::dpiScale() > 1 || GetContentScaleFactor() > 1.05) {
+    //  Padding around the text: 8 DIP above and below, 12 left and right.
     const int textH = p_tabButtons[0]->GetTextExtent("Wg").y;
     const int btnH = std::max(p_tabButtons[0]->GetBestSize().y,
-                              textH + FromDIP(14));
-    for (int t = 0; t < 2; ++t) p_tabButtons[t]->SetMinSize(wxSize(-1, btnH));
-    tabH = std::max(ewxBitmap::scaled(34), btnH + 4 + FromDIP(4));
+                              textH + 2 * FromDIP(8));
+    for (int t = 0; t < 2; ++t) {
+      const int btnW = std::max(p_tabButtons[t]->GetBestSize().x,
+          p_tabButtons[t]->GetTextExtent(tabNames[t]).x + 2 * FromDIP(12));
+      p_tabButtons[t]->SetMinSize(wxSize(btnW, btnH));
+    }
+    tabH = std::max(ewxBitmap::scaled(34), btnH + 4 + 2 * FromDIP(4));
   }
   p_tabsPanel->SetMinSize(wxSize(ewxBitmap::scaled(200), tabH));
   //  AUI's caption bar keeps its 17 px at any text size.
@@ -4815,10 +4826,11 @@ void Builder::doSaveThumb()
     //  The corner texts ("5 atoms") are part of the viewer's scene graph.
     const bool hadText = p_viewer->textLabelsShown();
     p_viewer->showTextLabels(false);
-    //  Rendered at the button's physical size: a 64 px picture stretched
-    //  to a scaled button is soft.  64 px at 100 %.
+    //  64 px at 100 %.  On a scaled display twice the button's physical
+    //  size: the button shrinks it with a smoothing filter, which gives
+    //  clean edges on the atoms and sticks of the small picture.
     const double sc = std::max(ewxBitmap::dpiScale(), GetContentScaleFactor());
-    const int tpx = sc > 1.05 ? (int)(64 * sc + 0.5) : 64;
+    const int tpx = sc > 1.05 ? 2 * (int)(64 * sc + 0.5) : 64;
     if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2],
                               tpx, tpx))
       showMessage(VizRender::msg(), true);
