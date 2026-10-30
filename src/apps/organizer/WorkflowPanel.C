@@ -569,13 +569,19 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
   p_charge->Enable(source != 0);
   wxCheckBox *orbitals = new wxCheckBox(this, wxID_ANY,
                            "Orbitals as the starting guess");
-  wxCheckBox *hessian = new wxCheckBox(this, wxID_ANY, "Hessian (for a TS search)");
+  p_hessian = new wxCheckBox(this, wxID_ANY,
+                             "Start from the source's Hessian");
+  const bool canHessian = WorkflowSteps::canCarryHessian(source, type);
+  p_hessian->Enable(canHessian);
+  p_hessian->SetValue(canHessian);
+  p_hessian->SetToolTip(canHessian
+      ? "The optimisation reads the Hessian of the source step as its "
+        "initial Hessian."
+      : "Needs an ORCA step with a stored Hessian as source and an ORCA step "
+        "as the new one.");
   orbitals->Enable(false);
-  hessian->Enable(false);
-  const wxString notYet = "not yet: needs orbital converters";
-  orbitals->SetToolTip(notYet);
-  hessian->SetToolTip(notYet);
-  for (wxCheckBox *c : {p_geometry, p_charge, orbitals, hessian})
+  orbitals->SetToolTip("not yet: needs orbital converters");
+  for (wxCheckBox *c : {p_geometry, p_charge, orbitals, p_hessian})
     top->Add(c, 0, wxLEFT | wxTOP, 28);
 
   if (source && !haveResult) {
@@ -617,6 +623,7 @@ WorkflowSteps::Carry WorkflowStepDialog::carry() const
   WorkflowSteps::Carry c;
   c.geometry = p_geometry->GetValue();
   c.chargeMult = p_charge->GetValue();
+  c.hessian = p_hessian->IsEnabled() && p_hessian->GetValue();
   return c;
 }
 

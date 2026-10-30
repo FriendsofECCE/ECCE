@@ -86,6 +86,7 @@ private:
   wxTextCtrl *p_name;
   wxCheckBox *p_geometry;
   wxCheckBox *p_charge;
+  wxCheckBox *p_hessian;
   wxStaticText *p_problem;
   wxButton *p_create;
 };

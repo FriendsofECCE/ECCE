@@ -25,3 +25,10 @@ special.
 - The session's `taskIndex` is the order in the importing session and is not
   copied (`StoredCalcCopy` skips it; `VOLATILE` in the preparsed test too).
 - Test: `tests/apps/examples_workflow_test.py` (`apps_examples_workflow`).
+
+A line `<folder> < <source folder>+hess` also makes the step read the
+source's Hessian: `joinExampleWorkflow` copies the source's stored `.hess`
+into the step (`OrbitalGuess::attachHessian`, stored as `inhess.hess`) and
+sets `ecce:hessianfromsource`; `ESInputController` then writes Initial
+Hessian = Read from previous calculation unless the dialog chose another
+value. The gas step's stored `Outputs/` must therefore hold its `.hess`.

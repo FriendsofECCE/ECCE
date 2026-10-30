@@ -334,9 +334,20 @@ bool CalcEd::write_setup(const string& output_file)
       os << "ES.Theory.SCF.OrbitalGuessFile: " << guessJob->orbitalGuessFile()
          << endl;
 
-    if (guessJob != 0 && guessJob->hasHessianInput())
+    if (guessJob != 0 && guessJob->hasHessianInput()) {
       os << "ES.Runtype.GeomOpt.HessianFile: " << guessJob->hessianInputFile()
          << endl;
+      //  A workflow step made with "Start from the source's Hessian" reads
+      //  it unless the Initial Hessian was set to something else; the
+      //  last line of a key wins.
+      GUIValue *source = guivalues != 0 ?
+          guivalues->get("ES.Runtype.GeomOpt.InitialHessian") : 0;
+      const string chosen = source != 0 ? source->getValueAsString() : "";
+      if (!guessJob->getProp(TaskJob::hessianFromSourceProp()).empty() &&
+          (chosen.empty() || chosen == "Default"))
+        os << "ES.Runtype.GeomOpt.InitialHessian: "
+              "Read from previous calculation" << endl;
+    }
 
     os.close();
 

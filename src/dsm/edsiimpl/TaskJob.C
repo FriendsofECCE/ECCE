@@ -792,6 +792,12 @@ string TaskJob::orbitalGuessSourceProp()
 }
 
 
+string TaskJob::hessianFromSourceProp()
+{
+  return VDoc::getEcceNamespace() + ":hessianfromsource";
+}
+
+
 string TaskJob::orbitalGuessBasisProp()
 {
   return VDoc::getEcceNamespace() + ":orbitalguessbasis";

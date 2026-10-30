@@ -159,6 +159,8 @@ class TaskJob : public Job,
           called guess.*), "" for a code without one. */
       string orbitalGuessFile() const;
       static string orbitalGuessSourceProp();
+      /// Name of the calculation whose Hessian is this one's initial Hessian.
+      static string hessianFromSourceProp();
       static string orbitalGuessBasisProp();
       /** Name of the initial-Hessian input the code declares
           (inhess.*), "" for a code without one; has... says whether

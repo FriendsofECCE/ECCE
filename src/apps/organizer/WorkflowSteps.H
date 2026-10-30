@@ -35,11 +35,16 @@ namespace WorkflowSteps {
   struct Carry {
     bool geometry;
     bool chargeMult;
-    Carry() : geometry(true), chargeMult(true) {}
+    bool hessian;   ///< the source's Hessian as the initial Hessian (ORCA)
+    Carry() : geometry(true), chargeMult(true), hessian(false) {}
   };
 
   /// The link name a step carries its geometry under.
   extern const char *const kGeometryLink;
+
+  /// True if `to` can start from the Hessian of `source`: both are ORCA
+  /// calculations and the source kept a .hess.
+  bool canCarryHessian(Resource *source, ResourceType *toType);
 
   /// True if the step has a geometry from a run (not only its input).
   bool hasResultGeometry(Resource *step);

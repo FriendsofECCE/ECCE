@@ -23,6 +23,14 @@ bool available(const TaskJob *source, std::string &why);
     `target` is normally a fresh duplicate of `source`. */
 bool attach(TaskJob *target, TaskJob *source, std::string &why);
 
+/** True when `source` kept the Hessian (.hess) of its run. */
+bool hessianAvailable(const TaskJob *source);
+
+/** Copy the Hessian of `source` into `target` as its initial Hessian file
+    (inhess.hess) and record the source, without the orbitals.  Both must
+    be of a code that reads a Hessian. */
+bool attachHessian(TaskJob *target, TaskJob *source, std::string &why);
+
 /** The stored record, "" when `calc` has no guess attached. */
 std::string sourceName(const TaskJob *calc);
 std::string sourceBasis(const TaskJob *calc);

@@ -70,6 +70,57 @@ bool OrbitalGuess::available(const TaskJob *source, string &why)
 }
 
 
+namespace {
+
+EcceURL keptHessian(const TaskJob *calc)
+{
+  vector<EcceURL> files = calc->getDataFiles(JCode::AUXILIARY_OUTPUT);
+  for (size_t i = 0; i < files.size(); i++) {
+    const string tail = files[i].getFilePathTail();
+    if (tail.size() > 5 && tail.compare(tail.size() - 5, 5, ".hess") == 0)
+      return files[i];
+  }
+  return EcceURL();
+}
+
+}
+
+
+bool OrbitalGuess::hessianAvailable(const TaskJob *source)
+{
+  return source != 0 && !keptHessian(source).toString().empty();
+}
+
+
+bool OrbitalGuess::attachHessian(TaskJob *target, TaskJob *source,
+                                 string &why)
+{
+  if (target->hessianInputFile().empty()) {
+    why = "The calculation's code cannot read a starting Hessian.";
+    return false;
+  }
+  if (!hessianAvailable(source)) {
+    why = "The source calculation has no stored Hessian.";
+    return false;
+  }
+  SFile *temp = TempStorage::getTempFile();
+  SFile *got = source->getAnyFile(keptHessian(source), temp);
+  bool ok = false;
+  if (got != 0 && temp->exists()) {
+    std::ifstream in(temp->path().c_str(), std::ios::in | std::ios::binary);
+    ok = target->putInputFile(target->hessianInputFile(), &in);
+  }
+  temp->remove();
+  delete temp;
+  if (!ok) {
+    why = "The Hessian could not be copied from the source calculation.";
+    return false;
+  }
+  target->addProp(TaskJob::hessianFromSourceProp(), source->getName());
+  return true;
+}
+
+
 bool OrbitalGuess::attach(TaskJob *target, TaskJob *source, string &why)
 {
   if (!available(source, why)) return false;
@@ -96,24 +147,9 @@ bool OrbitalGuess::attach(TaskJob *target, TaskJob *source, string &why)
   }
 
   //  The Hessian is optional: a run that computed none leaves no .hess.
-  if (!target->hessianInputFile().empty()) {
-    vector<EcceURL> files = source->getDataFiles(JCode::AUXILIARY_OUTPUT);
-    for (size_t i = 0; i < files.size(); i++) {
-      const string tail = files[i].getFilePathTail();
-      if (tail.size() <= 5 || tail.compare(tail.size() - 5, 5, ".hess") != 0)
-        continue;
-      SFile *htemp = TempStorage::getTempFile();
-      SFile *hgot = source->getAnyFile(files[i], htemp);
-      if (hgot != 0 && htemp->exists()) {
-        std::ifstream hin(htemp->path().c_str(),
-                          std::ios::in | std::ios::binary);
-        target->putInputFile(target->hessianInputFile(), &hin);
-        hin.close();
-      }
-      htemp->remove();
-      delete htemp;
-      break;
-    }
+  if (!target->hessianInputFile().empty() && hessianAvailable(source)) {
+    string ignored;
+    attachHessian(target, source, ignored);
   }
 
   string basis;

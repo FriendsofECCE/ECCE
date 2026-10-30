@@ -647,7 +647,7 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command.compare(0, 8, "workflow") == 0) {
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
-      //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge]
+      //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge] [hess]
       //     a code button without the dialog (type = e.g. orca_es)
       //   workflowinfo WF       steps, states, carried values and links
       //   workflowlaunch WF     Launch Ready Steps without dialogs
@@ -667,6 +667,7 @@ void CalcMgr::runTestCommand(const string& line)
         while (args >> flag) {
           if (flag == "nogeom") carry.geometry = false;
           if (flag == "nocharge") carry.chargeMult = false;
+          if (flag == "hess") carry.hessian = true;
           if (flag.compare(0, 9, "geomfrom=") == 0) geomFrom = flag.substr(9);
           if (flag.compare(0, 7, "charge=") == 0) setCharge = atoi(flag.c_str() + 7);
           if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
@@ -3721,6 +3722,8 @@ struct ExampleTopic {
   // calculation names.
   bool workflow = false;
   vector<std::pair<string, string>> links;
+  // steps (calculation names) that start from their source's Hessian
+  vector<string> hessian;
 };
 struct ExampleSet {
   string id, title, line, project;
@@ -3784,7 +3787,8 @@ void collectExamples(const string &setDir, const string &topicDir,
     topic.outputs.push_back(o);
   }
   // workflow.txt: one example folder per line, "<folder>" for a first step
-  // or "<folder> < <source folder>" for a step made from another.
+  // or "<folder> < <source folder>" for a step made from another;
+  // "<source folder>+hess" also starts it from the source's Hessian.
   std::ifstream wf(setDir + topicDir + "/workflow.txt");
   if (!topicDir.empty() && wf) {
     topic.workflow = true;
@@ -3799,8 +3803,12 @@ void collectExamples(const string &setDir, const string &topicDir,
       string folder, lt, source;
       if (!(words >> folder) || folder[0] == '#') continue;
       words >> lt >> source;
+      const size_t plus = source.find("+hess");
+      const bool hess = plus != string::npos && plus + 5 == source.size();
+      if (hess) source.erase(plus);
       const string to = calcOf(folder), from = calcOf(source);
       if (!to.empty() && !from.empty()) topic.links.push_back({from, to});
+      if (hess && !to.empty()) topic.hessian.push_back(to);
     }
   }
 }
@@ -4131,7 +4139,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     }
     Session *flow = topic.workflow ? dynamic_cast<Session*>(parent) : 0;
     if (flow)
+    {
       for (const auto &l : topic.links) p_flowSources[l.second] = l.first;
+      for (const string &h : topic.hessian) p_flowHessian.insert(h);
+    }
     findNode(parent->getURL(), true, true);
     for (const ExampleOut *exp : todo->second) {
       const ExampleOut &ex = *exp;
@@ -9406,6 +9417,19 @@ void CalcMgr::joinExampleWorkflow(Resource *step)
                     WorkflowSteps::kGeometryLink);
     }
     wf->saveLinkbase();
+    // "+hess" in workflow.txt: the step reads the Hessian of its source
+    for (const auto &l : p_flowSources) {
+      Resource *to = member(l.first), *from = member(l.second);
+      if (!to || !from || !p_flowHessian.count(l.first)) continue;
+      if (!same(to, step) && !same(from, step)) continue;
+      TaskJob *target = dynamic_cast<TaskJob*>(to);
+      string why;
+      if (target && !target->hasHessianInput() &&
+          !OrbitalGuess::attachHessian(target, dynamic_cast<TaskJob*>(from),
+                                       why))
+        cerr << "Organizer: example workflow: " << to->getName()
+             << ": " << why << endl;
+    }
   } catch (InvalidException &ex) {
     cerr << "Organizer: example workflow: " << ex.what() << endl;
   }

@@ -54,8 +54,14 @@ says what to do next.
      used and the window says so.
    - **Charge and multiplicity** carries the charge and the spin
      multiplicity.
-   - **Orbitals as the starting guess** and **Hessian** are not available
-     yet.
+   - **Start from the source's Hessian** (ORCA after ORCA, when the
+     source has a stored Hessian; on by default then) copies the Hessian
+     of the source step into the new step. If the new step is a geometry
+     optimisation, its input reads that Hessian as the initial Hessian
+     (**Initial Hessian** in the Details of the run type, unless you set
+     it to something else). A Hessian from the gas phase is a good start
+     for an optimisation in water.
+   - **Orbitals as the starting guess** is not available yet.
 4. Choose **Create**. The new calculation is made inside the workflow and
    linked to the selected step, and the Calculation Editor of its code opens
    with these values filled in.
