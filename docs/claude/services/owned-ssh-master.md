@@ -4,7 +4,7 @@ title: "ECCE's own ssh master (ECCE_SSH_CONTROL_DIR): one login per host per sta
 area: services
 section: "Pitfalls"
 paths: ["src/comm/rcommand/OpenSshTransport.C", "src/comm/rcommand/RCommand.C", "packaging/ecce.in", "packaging/gateway/ecce-session-lib.sh", "packaging/gateway/ecce-gateway-reap", "src/apps/gateway/GatewayApp.C", "scripts/ecce-askpass", "tests/transport/sshd/owned_master_test.sh", "tests/transport/testOwnedMaster.C"]
-issues: [487, 599, 631, 666]
+issues: [487, 599, 631, 666, 684]
 ---
 **With `ECCE_SSH_CONTROL_DIR` set (Linux/macOS), every compute-machine
 connection is OpenSSH under a master ECCE owns**, so the Launcher, the job
@@ -57,7 +57,14 @@ host instead of one each, across all sessions of the state directory. Unset, inv
 - **MaxSessions.** One master carries about 10 sessions and a monitor holds
   one for its whole job. A refused session (`Session open refused by peer`,
   `administratively prohibited`) moves the host to the overflow master
-  `<hash>-1`, `-2`, ... (up to 8): about one login per 9 jobs. The index
+  `<hash>-1`, `-2`, ... (up to 8): about one login per 9 jobs. After `-8`
+  the index comes round to `<hash>` again (#684): it used to stop at `-8`,
+  so once that master was full every new connection was refused although
+  the earlier masters had died with the network. ssh follows a refused
+  session with a BatchMode login of its own, which a password-only host
+  denies; that denial is not a refused password. When every master
+  refuses, the transport reports `sessionsFull()` and RCommand does not
+  fall back to libssh (that fallback was a passdialog per job store). The index
   in use is the file `<hash>.idx`, read and written under the host lock, so
   that every process of the session is on the same master. For monitor
   streams ssh first prints the refusal and then tries a direct connection

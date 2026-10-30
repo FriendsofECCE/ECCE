@@ -3,7 +3,7 @@ type: map
 title: Organizer Reconnect Selected runs the single-job reconnect per eligible calculation
 area: services
 paths: [src/comm/commxt/JobStore.C, tests/launch/reconnect_race_test.py, include/comm/ReconnectRules.H, src/comm/commxt/JobCatchUp.C, src/apps/organizer/ReconnectSelected.C, src/apps/organizer/CalcMgr.C, tests/progress/reconnect_rules_test.C, tests/launch/reconnect_selected_test.py]
-issues: [601, 599]
+issues: [601, 599, 684]
 ---
 Run Mgmt > Reconnect Selected... (also the calculation context menu and the
 multi-select Run Mgmt menu) takes the same selection as Launch Selected
@@ -41,8 +41,13 @@ old monitor ends on SIGPIPE at its next write.
 Both Reconnect paths then wait in `CalcMgr::stopOldMonitor` (at most 15 s,
 100 ms steps) until `WaitingJobs::watched(url)` is false -- the old
 `eccejobmaster` holds that flock for its store's life -- and start nothing on
-timeout ("previous monitor still running"). A Waiting row has no old store and
-skips the wait.
+timeout ("previous monitor still running"). A Waiting row is stopped and
+waited for too when its lock is held: eccejobmaster keeps the lock while it
+restarts a store that parked with exit 4 (#684: skipping it started a second
+monitor per job). `JobCatchUp::reconnect` itself refuses while the job is
+watched. Reconnect Selected and the catch-up call `forgetMasterAttempts()`
+once per run (`reconnect(..., forget=false)`), so one Cancel is not followed
+by a dialog per job.
 
 A monitor FATAL before the store has seen any job status (missing or
 half-copied configuration, Init errors) goes to `restartSystem()`: the job is

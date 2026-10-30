@@ -4,7 +4,7 @@ title: "Waiting for login: a lost monitor parks the job, session start catches i
 area: services
 section: "Pitfalls"
 paths: ["src/comm/commxt/JobStore.C", "src/apps/jobstore/eccejobmaster.C", "include/util/WaitingJobs.H", "src/util/genutil/WaitingJobs.C", "include/comm/JobCatchUp.H", "src/comm/commxt/JobCatchUp.C", "src/apps/organizer/CalcMgr.C", "src/apps/organizer/CalcMgrApp.C", "tests/launch/waiting_test.py", "src/dsm/dav/DavEDSI.C"]
-issues: [208, 206, 284]
+issues: [208, 206, 284, 684]
 ---
 Losing the monitor says nothing about the job (#208, option A). When
 eccejobstore loses it -- monitor died, login refused,
@@ -13,7 +13,8 @@ last try, or SIGTERM at shutdown or logout -- it calls `park()`: state **Waiting
 `STATE_WAITING`, between running and completed), reason in
 `runStatusReason`, the URL recorded in `~/.ECCE/waiting/<fnv>.job` of the
 *client* (in `-remote` mode too; the server is not involved). Exit 4 lets
-eccejobmaster retry, exit 5 (SIGTERM) does not. A used-up restart budget
+eccejobmaster retry, exit 5 (SIGTERM, or a login that was cancelled, not
+answered or refused, #684) does not: a restart would only ask again. A used-up restart budget
 therefore leaves Waiting, never `system`. A heartbeat timeout before the
 last try reconnects with the job left running ("running?", see
 out-of-contact-284.md). `restart()` (exit 2: protocol or
