@@ -54,14 +54,14 @@ const WorkflowSteps::Code *WorkflowSteps::codeOf(const Resource *step)
 
 string WorkflowSteps::linkName(const string& role, const string& point)
 {
-  return point.empty() ? role : role + "@" + point;
+  return point.empty() ? role : role + "." + point;
 }
 
 
 void WorkflowSteps::splitLinkName(const string& name, string& role,
                                   string& point)
 {
-  size_t at = name.find('@');
+  size_t at = name.find('.');
   role = name.substr(0, at);
   point = at == string::npos ? string() : name.substr(at + 1);
 }

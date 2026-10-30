@@ -44,7 +44,8 @@ namespace WorkflowSteps {
   /// The link name a step carries its geometry under.
   extern const char *const kGeometryLink;
 
-  /// Link names are "<role>" or "<role>@<point>": geometry, reactant,
+  /// Link names are "<role>" or "<role>.<point>" ("@" is not allowed in a link
+  /// name): geometry, reactant,
   /// product, tsguess.
   std::string linkName(const std::string& role, const std::string& point);
   void splitLinkName(const std::string& name, std::string& role,

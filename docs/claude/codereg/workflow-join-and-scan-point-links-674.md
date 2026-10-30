@@ -5,7 +5,7 @@ area: codereg
 paths: [src/apps/organizer/WorkflowSteps.C, src/apps/organizer/WorkflowPanel.C, src/dsm/edsiimpl/ScanPoint.C, src/dsm/edsiimpl/QstStructures.C, tests/apps/workflow_test.py, data/client/examples/workflows]
 issues: [674, 410, 419]
 ---
-- Link name = `<role>` or `<role>@<point>`; role `geometry` (one source),
+- Link name = `<role>` or `<role>.<point>` (@ is not a valid link-name character); role `geometry` (one source),
   `reactant`/`product`/`tsguess` (a join); point `last`, `max` or a 1-based
   number (`ScanPoint.H`). The arrow label is `WorkflowSteps::linkLabel`.
 - A join is `WorkflowSteps::createJoin`: it sets the run type

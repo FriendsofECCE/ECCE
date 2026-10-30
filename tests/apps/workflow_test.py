@@ -171,8 +171,8 @@ def run_joins(display, data, work, shots):
           "noprod" not in table and "xtbjoin" not in table,
           "steps %s" % sorted(table))
     check("links carry the point and the role",
-          {"scan>pt-max:geometry@max", "scan>pt-last:geometry@last",
-           "react>qst3:reactant", "prod>qst3:product", "scan>qst3:tsguess@max",
+          {"scan>pt-max:geometry.max", "scan>pt-last:geometry.last",
+           "react>qst3:reactant", "prod>qst3:product", "scan>qst3:tsguess.max",
            "react>qst2:reactant", "prod>qst2:product"} <= set(links),
           "links %s" % links)
     if not {"pt-max", "pt-last", "qst3"} <= set(table):

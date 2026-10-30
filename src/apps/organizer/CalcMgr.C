@@ -741,7 +741,10 @@ void CalcMgr::runTestCommand(const string& line)
           Resource *src = eq == string::npos ? 0 : step(joinArgs[i].substr(0, eq));
           if (!src) { bad = "no such source step " + joinArgs[i]; break; }
           WorkflowSteps::JoinSource js = {src, "", ""};
-          WorkflowSteps::splitLinkName(joinArgs[i].substr(eq + 1), js.role, js.point);
+          const string rp = joinArgs[i].substr(eq + 1);
+          const size_t at = rp.find('@');
+          js.role = rp.substr(0, at);
+          if (at != string::npos) js.point = rp.substr(at + 1);
           sources.push_back(js);
         }
         if (!bad.empty()) outcome = "error: " + bad;
