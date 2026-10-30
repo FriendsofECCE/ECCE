@@ -132,7 +132,8 @@ describe what you did and what happened.
    Tools > Allocations.
 
 30. [Workflows](workflows.md): calculations that start from the geometry of
-   an earlier one, drawn as a tree, with Launch Ready Steps.
+   an earlier one (or from a point of a scan, or several for a TS search),
+   drawn as a tree, with Launch Ready Steps.
 
 Reference:
 

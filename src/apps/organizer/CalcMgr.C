@@ -3743,7 +3743,8 @@ struct ExampleTopic {
   // a project; its calculations are the steps, linked as (source, target)
   // calculation names.
   bool workflow = false;
-  vector<std::pair<string, string>> links;
+  struct FlowLink { string from, to, name; };
+  vector<FlowLink> links;
 };
 struct ExampleSet {
   string id, title, line, project;
@@ -3819,11 +3820,24 @@ void collectExamples(const string &setDir, const string &topicDir,
     string l;
     while (std::getline(wf, l)) {
       std::istringstream words(l);
-      string folder, lt, source;
+      string folder, lt, tok;
       if (!(words >> folder) || folder[0] == '#') continue;
-      words >> lt >> source;
-      const string to = calcOf(folder), from = calcOf(source);
-      if (!to.empty() && !from.empty()) topic.links.push_back({from, to});
+      words >> lt;
+      // "<source>", "<source>@max" (a scan point), or for a join
+      // "<source>=<role>[@<point>]" for each source.
+      const string to = calcOf(folder);
+      while (words >> tok) {
+        const size_t at = tok.find('@');
+        const size_t eq = tok.find('=');
+        const size_t end = std::min(eq, at);
+        const string role = eq == string::npos ? string(WorkflowSteps::kGeometryLink)
+            : tok.substr(eq + 1, at == string::npos || at < eq ? string::npos
+                                                               : at - eq - 1);
+        const string point = at == string::npos ? string() : tok.substr(at + 1);
+        const string from = calcOf(tok.substr(0, end));
+        if (!to.empty() && !from.empty())
+          topic.links.push_back({from, to, WorkflowSteps::linkName(role, point)});
+      }
     }
   }
 }
@@ -4154,7 +4168,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     }
     Session *flow = topic.workflow ? dynamic_cast<Session*>(parent) : 0;
     if (flow)
-      for (const auto &l : topic.links) p_flowSources[l.second] = l.first;
+      for (const auto &l : topic.links)
+        p_flowSources[l.to].push_back({l.from, l.name});
     findNode(parent->getURL(), true, true);
     for (const ExampleOut *exp : todo->second) {
       const ExampleOut &ex = *exp;
@@ -9473,17 +9488,18 @@ void CalcMgr::joinExampleWorkflow(Resource *step)
       for (Resource *m : members) if (m->getName() == name) return m;
       return 0;
     };
-    for (const auto &l : p_flowSources) {
-      Resource *to = member(l.first), *from = member(l.second);
-      if (!to || !from) continue;
-      bool linked = false;
-      // fresh each time: addLink() may rebuild the link objects
-      for (Session::Link *k : wf->getLinks())
-        if (same(k->source, from) && same(k->target, to)) linked = true;
-      if ((same(to, step) || same(from, step)) && !linked)
-        wf->addLink(from, to, Session::INPUT_PROVIDER,
-                    WorkflowSteps::kGeometryLink);
-    }
+    for (const auto &l : p_flowSources)
+      for (const auto &src : l.second) {
+        Resource *to = member(l.first), *from = member(src.first);
+        if (!to || !from) continue;
+        bool linked = false;
+        // fresh each time: addLink() may rebuild the link objects
+        for (Session::Link *k : wf->getLinks())
+          if (same(k->source, from) && same(k->target, to) &&
+              k->linkName == src.second) linked = true;
+        if ((same(to, step) || same(from, step)) && !linked)
+          wf->addLink(from, to, Session::INPUT_PROVIDER, src.second);
+      }
     wf->saveLinkbase();
   } catch (InvalidException &ex) {
     cerr << "Organizer: example workflow: " << ex.what() << endl;
