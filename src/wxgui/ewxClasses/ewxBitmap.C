@@ -389,6 +389,24 @@ wxBitmapBundle ewxBitmap::bundle(const wxString& name, long type)
 
 
 /**
+ * An SVG rasterised at the physical size it will be drawn at on this
+ * window (logical size x the larger of the window's content scale and
+ * dpiScale), not at the 100 % size and stretched.  Identical to the
+ * unscaled bitmap at 100 %.
+ */
+wxBitmap ewxBitmap::svgBitmap(const wxWindow* win, const wxString& svg,
+                              int logical)
+{
+  const double sc = wxMax(dpiScale(), win ? win->GetContentScaleFactor() : 1.0);
+  const int px = sc > 1.05 ? (int)(logical * sc + 0.5) : logical;
+  wxBitmapBundle b = wxBitmapBundle::FromSVGFile(pixmapFile(svg),
+                                                 wxSize(logical, logical));
+  if (!b.IsOk()) return placeholder(svg);
+  return alphaToMask(b.GetBitmap(wxSize(px, px)));
+}
+
+
+/**
  * Constructor.
  * Takes name of bitmap and prepends the path where the file is located
  * so wxBitmap can find it.  A generic action's pixmap is replaced by the

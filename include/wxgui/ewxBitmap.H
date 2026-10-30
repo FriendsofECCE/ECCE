@@ -23,6 +23,8 @@ class ewxBitmap : public wxBitmap
       static wxBitmapBundle svgIcon(const wxString& name, const wxSize& size,
                                     const wxString& fallback = wxString());
       static wxBitmapBundle colorIcon(const wxString& svg, const wxSize& size);
+      static wxBitmap svgBitmap(const wxWindow* win, const wxString& svg,
+                                int logical = 16);
       static wxString genericIconName(const wxString& file);
       static wxBitmap saveIcon();
       static wxBitmap themedIcon(const wxString& icon, const wxSize& size);
