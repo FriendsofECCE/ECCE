@@ -102,6 +102,25 @@ static std::string launchCost(TaskJob *job, long processors)
   return LaunchInfoRows::coreHoursText(processors, s, e, running);
 }
 
+
+//  Wall time left while running; requested while queued; used once ended.
+static std::string launchWallTime(TaskJob *job, const std::string& maxwall)
+{
+  const long limit = LaunchInfoRows::maxWallSeconds(maxwall);
+  const std::string start = job->startDate(), end = job->completionDate();
+  const ResourceDescriptor::RUNSTATE st = job->getState();
+  if (!end.empty() && !start.empty())
+    return LaunchInfoRows::wallTimeText(limit, LaunchInfoRows::ENDED,
+        TDateTime(start).toSeconds(), TDateTime(end).toSeconds());
+  if (!start.empty() && (st == ResourceDescriptor::STATE_RUNNING ||
+                         st == ResourceDescriptor::STATE_WAITING))
+    return LaunchInfoRows::wallTimeText(limit, LaunchInfoRows::RUNNING,
+        TDateTime(start).toSeconds(), (long)time(NULL));
+  if (st == ResourceDescriptor::STATE_SUBMITTED)
+    return LaunchInfoRows::wallTimeText(limit, LaunchInfoRows::WAITING, 0, 0);
+  return "";
+}
+
 void CalcInfoPanel::refresh()
 {
   //  Clear(true), not DestroyChildren(): the spacers stay in the sizer
@@ -259,6 +278,7 @@ void CalcInfoPanel::refresh()
     in.startDate = prefDateTime(taskJob->startDate());
     in.completionDate = prefDateTime(taskJob->completionDate());
     in.coreHours = launchCost(taskJob, launch.totalprocs);
+    in.wallTime = launchWallTime(taskJob, launch.maxwall);
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);
     in.allocationRemaining = launch.allocationLeft;

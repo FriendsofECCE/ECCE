@@ -227,6 +227,14 @@ gave a recognised answer at that moment, and is not refreshed afterwards.
 Current figures are in **Tools > Allocations...** (see
 [Allocations](allocations.md)).
 
+**Wall time:** the time limit set in the Launcher, compared with the job's
+start date. While the job runs it shows what is left (for example
+`1 h 20 min left of 4 h`), marked *nearly out* when less than a tenth is
+left, and *limit reached* once the scheduler may stop the job at any
+moment; while the job waits in the queue it shows the time requested, and
+after the job has ended the time used. The figure is worked out when the
+summary is drawn, so select the calculation again to update it.
+
 ## The `dummy` machine: submitting by hand
 
 Some clusters cannot be reached by ECCE, for example because they require
