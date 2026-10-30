@@ -609,10 +609,12 @@ sub determineStatus()
   # unconverged energy or structure would pass as a result (#614).  An entry
   # is a grep pattern, or [pattern, context] when the pattern also ends a
   # converged or intended run and only counts with the context line within
-  # two lines after it.
+  # two lines after it, or [pattern, undef, family] when only the last line
+  # of the family counts: an optimisation or MD run survives early SCF
+  # failures if its final SCF converged (#691).
   my %notConverged = (
     'orca' => ['The optimization did not converge'],
-    'cp2k' => ['SCF run NOT converged',
+    'cp2k' => [['SCF run NOT converged', undef, 'SCF run (NOT )?converged'],
                'MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED'],
     'mopac' => ['EXCESS NUMBER OF OPTIMIZATION CYCLES'],
     # pw.x ends an md run with the same "maximum number of steps" line, so it
@@ -624,10 +626,17 @@ sub determineStatus()
   if (defined $notConverged{$lccode}) {
     $retval .= "\nif [ \"\$exitStatus\" = 0 ]; then\n";
     foreach my $entry (@{$notConverged{$lccode}}) {
-      my ($marker, $context) = ref($entry) ? @$entry : ($entry, undef);
+      my ($marker, $context, $family) = ref($entry) ? @$entry : ($entry);
       my $test = "grep -q \"$marker\" $qRunDir/$outFile";
       $test = "grep -A2 \"$marker\" $qRunDir/$outFile | grep -q \"$context\""
         if defined $context;
+      if (defined $family) {
+        $test = "grep -E \"$family\" $qRunDir/$outFile | tail -1 | grep -q \"$marker\"";
+        $retval .= "  n=`grep -c \"$marker\" $qRunDir/$outFile`\n";
+        $retval .= "  if [ \"\$n\" -gt 0 ] && ! $test; then\n";
+        $retval .= "    echo \"\$n intermediate '$marker' in $outFile; the final one converged\" >> $logfile\n";
+        $retval .= "  fi\n";
+      }
       $retval .= "  if [ \"\$exitStatus\" = 0 ] && $test; then\n";
       $retval .= "    echo \"'$marker' in $outFile - setting status to not converged\" >> $logfile\n";
       $retval .= "    exitStatus=\$X_NOT_CONVERGED\n";
