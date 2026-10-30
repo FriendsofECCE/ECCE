@@ -17,7 +17,8 @@
 #include "util/TempStorage.H"
 #include "util/SFile.H"
 
-#include "QstStructures.H"
+#include "dsm/QstStructures.H"
+#include "dsm/ScanPoint.H"
 
 bool qstFinalStructure(PropertyTask* calc, std::vector<std::string>& el,
                        std::vector<double>& xyz, bool& optimised)
@@ -39,9 +40,52 @@ bool qstFinalStructure(PropertyTask* calc, std::vector<std::string>& el,
    return !el.empty();
 }
 
+static const char kPointTag[] = "#point=";
+
+std::string qstPickUrl(const std::string& pick)
+{
+   size_t i = pick.find(kPointTag);
+   return i == std::string::npos ? pick : pick.substr(0, i);
+}
+
+std::string qstPickPoint(const std::string& pick)
+{
+   size_t i = pick.find(kPointTag);
+   return i == std::string::npos ? std::string()
+                                 : pick.substr(i + sizeof(kPointTag) - 1);
+}
+
+std::string qstMakePick(const std::string& url, const std::string& point)
+{
+   return point.empty() ? url : url + kPointTag + point;
+}
+
+bool qstPickStructure(const std::string& pick, std::vector<std::string>& el,
+                      std::vector<double>& xyz, bool& optimised,
+                      std::string* title, std::string* why)
+{
+   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(qstPickUrl(pick).c_str()));
+   const std::string point = qstPickPoint(pick);
+   if (title && t) {
+      *title = t->getName();
+      if (!point.empty()) *title += " (" + ScanPoint::words(point) + ")";
+   }
+   if (point.empty()) return qstFinalStructure(t, el, xyz, optimised);
+   optimised = true;
+   std::string w;
+   bool ok = t && ScanPoint::structure(t, point, el, xyz, w);
+   if (!ok && why) *why = w.empty() ? "the calculation cannot be read." : w;
+   return ok;
+}
+
 Fragment* qstReactantFragment(const std::string& url)
 {
-   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(url.c_str()));
+   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(qstPickUrl(url).c_str()));
+   const std::string point = qstPickPoint(url);
+   if (t && !point.empty()) {
+      std::string why;
+      return ScanPoint::fragment(t, point, why);
+   }
    Fragment* frag = t ? t->fragment() : 0;
    if (!frag) return 0;
    t->getFragmentStep(frag, -1);
@@ -185,14 +229,14 @@ static bool qstMatch(ICalculation* self, const std::string& base,
    std::ostringstream st, rm, wr, dt;
    for (int k = 0; k < n; k++) {
       std::string title = role[k];
-      PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(urls[k].c_str()));
       bool opt;
-      if (!qstFinalStructure(t, els[k], xyz[k], opt)) {
+      std::string why;
+      if (!qstPickStructure(urls[k], els[k], xyz[k], opt, &title, &why)) {
          warning = std::string("Transition State (QST): the ") + role[k] +
-                   " calculation has no structure.";
+                   " calculation has no structure" +
+                   (why.empty() ? "." : ": " + why);
          return true;
       }
-      title = t->getName();
       AtomMapResult r;
       if (!mapOnto(refEl, ref, els[k], xyz[k], role[k], "Transition State (QST)",
                    r, warning))
@@ -287,10 +331,11 @@ static bool nebMatch(ICalculation* self, std::string& status,
       std::vector<std::string> el;
       std::vector<double> xyz;
       bool opt;
-      PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(urls[k].c_str()));
-      if (!qstFinalStructure(t, el, xyz, opt)) {
+      std::string why, title;
+      if (!qstPickStructure(urls[k], el, xyz, opt, &title, &why)) {
          warning = std::string("Transition State (NEB-TS): the ") + role[k] +
-                   " calculation has no structure.";
+                   " calculation has no structure" +
+                   (why.empty() ? "." : ": " + why);
          return true;
       }
       AtomMapResult r;
@@ -313,7 +358,7 @@ static bool nebMatch(ICalculation* self, std::string& status,
          dt << role[k] << ": " << r.far.size()
             << " atom(s) move more than 1 A after alignment (expected for "
                "an isomerisation). ";
-      if (write && !writeXyz(file[k], t->getName(), el, xyz)) return false;
+      if (write && !writeXyz(file[k], title, el, xyz)) return false;
       mapped[k] = xyz;
    }
    char cnt[16];
@@ -370,12 +415,12 @@ std::string TsLevel::text() const
 TsLevel tsLevelOfCalculation(const std::string& url)
 {
    TsLevel lv;
-   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(url.c_str()));
+   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(qstPickUrl(url).c_str()));
    ICalculation* c = dynamic_cast<ICalculation*>(t);
    if (!c) return lv;
    std::vector<std::string> el;
    std::vector<double> xyz;
-   qstFinalStructure(t, el, xyz, lv.optimised);
+   qstPickStructure(url, el, xyz, lv.optimised, 0, 0);
    if (TTheory* th = c->theory()) {
       lv.theory = th->name();
       delete th;

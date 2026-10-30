@@ -33,7 +33,7 @@
 #include "dsm/VDoc.H"
 
 #include "CalcEd.H"
-#include "QstStructures.H"
+#include "dsm/QstStructures.H"
 
 
 string CalcEd::changeWD(const string& newDir)

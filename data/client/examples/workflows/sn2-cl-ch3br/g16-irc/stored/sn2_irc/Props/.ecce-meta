@@ -1,0 +1,11 @@
+APT	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+CPUSEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+DIPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+EGRADVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+GEOMTRACE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+HEXPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+KE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+MULLIKEN	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+NNREPUL	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+OCTAPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+QUADPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml

@@ -508,6 +508,10 @@ target_link_libraries(eccejobmaster PRIVATE
 add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
 target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
+# Launches Ready calculations inside the running session (#687).
+add_executable(ecce-launch src/apps/launch/ecce-launch.C)
+target_include_directories(ecce-launch PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-launch PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
 # Speed distributions and MSD of a GROMACS run (the Builder's MD panels).
 add_executable(mdanalysis src/apps/mdanalysis/mdanalysis.C)
 
@@ -669,7 +673,7 @@ if(ECCE_GL_X11)
   set_target_properties(viewer-bench PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
 
-# --- src/apps/symmetry -> 5 standalone Fortran executables, no wx involvement.
+# --- src/apps/symmetry -> standalone symmetry helpers, no wx involvement.
 # Mirrors the old Makefile's "default:" target exactly (testnames is a
 # dev/test-only program the old default build skipped - left out here too).
 # Each program links only the specific .f/.f90 object files its old Makefile
@@ -702,21 +706,39 @@ add_executable(autosym_cpp ${_sym_dir}/autosym.cpp)
 ecce_fortran_app(getfrag
   SOURCES ${_sym_dir}/getfrag.f ${_sym_dir}/findfrag.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+# The migrated point-group helpers share the molecular tables and group
+# closure code with cleansym_cpp. Keep the Fortran binaries installed as the
+# default/reference implementation.
+set(_sym_cpp_common ${_sym_dir}/spnames.cpp ${_sym_dir}/spgen.cpp
+  ${_sym_dir}/spgen_periodic.cpp ${_sym_dir}/gensym.cpp
+  ${_sym_dir}/deter3.cpp ${_sym_dir}/errquit.cpp
+  ${_sym_dir}/symmetry_fragments.cpp)
+add_executable(getfrag_cpp ${_sym_dir}/getfrag.cpp ${_sym_cpp_common})
 ecce_fortran_app(genmol
   SOURCES ${_sym_dir}/genmol.f ${_sym_dir}/dosymops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+add_executable(genmol_cpp ${_sym_dir}/genmol.cpp ${_sym_cpp_common})
 ecce_fortran_app(genmollat
   SOURCES ${_sym_dir}/genmollat.f ${_sym_dir}/dosymops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+add_executable(genmollat_cpp ${_sym_dir}/genmollat.cpp ${_sym_cpp_common})
 # Added for the symmetry analysis behind the MO diagrams (#132): gensym
 # already turns a group name into its operation matrices, and nothing
 # outside these Fortran tools could reach them.
 ecce_fortran_app(symops
   SOURCES ${_sym_dir}/symops.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+add_executable(symops_cpp ${_sym_dir}/symops.cpp ${_sym_cpp_common})
 ecce_fortran_app(cleansym
   SOURCES ${_sym_dir}/cleansym.f ${_sym_dir}/sym_avg.f ${_sym_dir}/spnames.f90 ${_sym_dir}/spgen.f90
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
+# C++ port of the complete cleansym molecular operation/projection path.
+# Keep the Fortran executable installed beside it as the default/reference;
+# SymmetryOps selects cleansym_cpp only when ECCE_CXX_SYMMETRY=1.
+add_executable(cleansym_cpp
+  ${_sym_dir}/cleansym.cpp ${_sym_dir}/sym_avg.cpp ${_sym_dir}/spnames.cpp
+  ${_sym_dir}/spgen.cpp ${_sym_dir}/gensym.cpp ${_sym_dir}/deter3.cpp
+  ${_sym_dir}/errquit.cpp)
 
 # ------------------------------------------------------------------------
 # The messaging gateway: packaging/gateway/ecce-gateway-* start a per-user
@@ -1027,6 +1049,22 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-site-admin\" \"$@\"
 ")
 install(PROGRAMS ${_sadm_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+# ecce-launch is run from a terminal, so its wrapper takes the session's data
+# mode (a path argument is turned into a URL in that folder) but starts nothing.
+set(_launch_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-launch)
+file(WRITE ${_launch_wrapper}
+"#!/bin/bash
+${ECCE_HOME_SH}
+export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
+export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
+export HOST=\${HOST:-$(hostname)}
+if [ -z \"\${ECCE_LOCAL_DATA+x}\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -x \"$ECCE_HOME/bin/ecce-localdata\" ]; then
+  ECCE_LOCAL_DATA=$(\"$ECCE_HOME/bin/ecce-localdata\" 2>/dev/null) || ECCE_LOCAL_DATA=
+  export ECCE_LOCAL_DATA
+fi
+exec \"$ECCE_HOME/bin/ecce-launch\" \"$@\"
+")
+install(PROGRAMS ${_launch_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
   file(WRITE ${_ds_wrapper}
@@ -1074,8 +1112,9 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
-  autosym autosym_cpp getfrag genmol genmollat cleansym symops mdanalysis)
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-site-admin mocomp
+  autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
+  cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
   list(APPEND ECCE_CLI_APPS ecce-flock)
 endif()
@@ -2081,6 +2120,9 @@ add_test(NAME gaussian_qst
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_qst/run_tests.py ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 set_tests_properties(gaussian_qst PROPERTIES TIMEOUT 1800)
 
+# Gaussian 16 IRC route keywords (#688).
+add_test(NAME gaussian_irc COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_irc/run_tests.py)
+
 # tests/dummy_atoms (#298): dummy atom X is not an element for basis/formula.
 add_executable(dummy_fragment_test tests/dummy_atoms/dummy_fragment_test.C)
 target_link_libraries(dummy_fragment_test PRIVATE eccetdat ecceutil)
@@ -2847,6 +2889,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_workflow PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The Workflows example set imports as a workflow session (#341).
+  add_test(NAME apps_examples_workflow
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_workflow_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_examples_workflow PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Modal dialogs are shown without the busy cursor and presented
   # (ewxModalGuard); ECCE_DEBUG_MODAL.
   add_test(NAME apps_modal_guard
@@ -3407,6 +3456,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_selected PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  # #687: ecce-launch launches Ready calculations inside the running
+  # Organizer's session; skipped (77) without Xvfb.
+  add_test(NAME ecce_launch
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecce_launch_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(ecce_launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # #75: an ORCA job's final orbitals as the guess of the next (local data,
   # then a data server); skipped (77) without ORCA 6 under /opt/orca.
   add_test(NAME launch_orca_guess
@@ -3911,3 +3969,23 @@ add_test(NAME lowdin_composition COMMAND lowdin_composition_test)
 add_executable(box_shape_test tests/boxshape/box_shape_test.C)
 target_link_libraries(box_shape_test PRIVATE eccetdat ecceutil)
 add_test(NAME box_shape COMMAND box_shape_test ${CMAKE_SOURCE_DIR}/tests/boxshape/fixtures)
+
+# results.h5: ECCE's internal results format and converters (wx-free).
+option(ECCE_WITH_HDF5 "Build ecce-results and the results.h5 library (needs libhdf5-dev, C API)" ON)
+if(ECCE_WITH_HDF5)
+  find_package(HDF5 COMPONENTS C)
+  if(HDF5_FOUND)
+    add_library(ecceresultsh5 STATIC
+      src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
+      src/tdat/resultsh5/ResultsConvert.C
+      src/tdat/chemistry/EspField.C src/tdat/chemistry/CoulombIntegrals.C)
+    target_include_directories(ecceresultsh5 PUBLIC ${CMAKE_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS})
+    target_link_libraries(ecceresultsh5 PUBLIC ${HDF5_LIBRARIES})
+    add_executable(ecce-results src/tdat/resultsh5/ecce_results.C)
+    target_link_libraries(ecce-results PRIVATE ecceresultsh5)
+    install(TARGETS ecce-results RUNTIME DESTINATION bin COMPONENT client)
+    include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
+  else()
+    message(STATUS "HDF5 not found: ecce-results and results.h5 are not built")
+  endif()
+endif()

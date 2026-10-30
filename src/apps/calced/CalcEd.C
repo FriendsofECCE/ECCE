@@ -73,7 +73,7 @@
 
 #include "tdat/QmSolventWarning.H"
 #include "CalcEd.H"
-#include "QstStructures.H"
+#include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
 #include "PartialCharge.H"
 
@@ -5231,7 +5231,7 @@ void CalcEd::refreshTsBox()
     int sel = 0;
     for (size_t i = 0; i < p_tsUrls.size(); i++) {
       p_tsChoice[k]->Append(wxString::FromUTF8(p_tsNames[i].c_str()));
-      if (p_tsUrls[i] == p_tsPick[k]) sel = (int)i + 1;
+      if (p_tsUrls[i] == qstPickUrl(p_tsPick[k])) sel = (int)i + 1;
     }
     p_tsChoice[k]->SetSelection(sel);
   }

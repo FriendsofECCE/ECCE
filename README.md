@@ -8,15 +8,17 @@ molecule, set up a calculation, run it on your own computer or a cluster,
 and look at the results (orbitals, densities, vibrations, geometry
 optimisations), with every calculation kept in one place.
 
-It works with **ORCA, Gaussian, NWChem and MOPAC**, and experimentally with
+It works with **ORCA, Gaussian, NWChem, MOPAC and xTB**, and experimentally with
 **GROMACS, CP2K and Quantum ESPRESSO**; ECCE 9 also includes
 ECCE-QM, a small built-in Hartree–Fock/DFT program that needs
-nothing else installed. ECCE was developed at Pacific Northwest National
+nothing else installed. Calculations can be chained into **workflows**:
+for example, xTB finds a structure quickly and ORCA refines it, each step
+starting from the geometry of the one before. ECCE was developed at Pacific Northwest National
 Laboratory, which stopped supporting it around 2017; it is maintained
 here since, with PNNL's blessing.
 
-<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="384" alt="The Organizer: projects and calculations, with a completed ORCA calculation selected"></a>
-<a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="420" alt="The viewer, showing a molecular orbital of benzene"></a>
+<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="384" alt="The Organizer: the Examples project tree and the Progress box of a finished ORCA optimisation and frequency calculation on ethylene, with SCF and optimisation plots"></a>
+<a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="465" alt="The viewer showing the pi orbital of ethene on a white background, with the Properties list and the MO table"></a>
 
 More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 
@@ -25,7 +27,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.4.3](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.3)),
+  [9.4.5](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.5)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -43,6 +45,8 @@ Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.5.0
+
+- Example set Workflows: a workflow of Na+(H2O)6 in which xTB optimises three arrangements (6+0, 5+1, 4+2) and ORCA r2SCAN-3c refines each result, opened from **File > Open Example Calculations**.
 
 - Workflows (preview): **File > New > Workflow...** makes a set of calculations
   of any electronic-structure code (ECCE-QM, ORCA, Gaussian-16, NWChem, MOPAC,
@@ -62,6 +66,14 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
   Organizer, with the files xtb wrote beside it; the Getting Started set has
   an xTB water example, and the [xTB help page](help/src/xtb.md) describes the
   code.
+
+- Results file: the `ecce-results` command converts orbitals from Molden, Gaussian fchk and ORCA files, and an ORCA Hessian, into one HDF5 file (`results.h5`) with a fixed orbital order, the basis for carrying orbitals and Hessians from one workflow step to the next; the [results file help page](help/src/results-file-format.md) describes it.
+
+- `ecce-launch`: launch Ready calculations from the command line, inside the running ECCE session, with their stored machine, cores and wall time; it prints each job id ([#687](https://github.com/FriendsofECCE/ECCE/issues/687)).
+
+- Workflow joins: Ctrl-click a reactant, a product and a TS guess and choose Gaussian 16 or ORCA to make a QST3 (or QST2) or NEB-TS step; a step can start from a scan's last point, its maximum or any point. Example: an SN2 reaction, Cl⁻ + CH₃Br, from the reactant complex through a relaxed scan to the QST3 transition state and its IRC.
+
+- Gaussian 16 IRC: points per direction, step size and direction in Runtype Details ([#688](https://github.com/FriendsofECCE/ECCE/issues/688)).
 
 ## First steps
 

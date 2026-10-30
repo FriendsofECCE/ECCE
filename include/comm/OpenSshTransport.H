@@ -149,6 +149,9 @@ public:
   bool loginRefused() const { return p_refused; }
   // This process put up the login dialog (the others only waited for it).
   bool loginPrompted() const { return p_prompted; }
+  // Every one of ECCE's masters for the host refused a new session (sshd
+  // MaxSessions): no login was refused, and asking for one would not help.
+  bool sessionsFull() const { return p_sessionsFull; }
   // A shared connection to the host is open now (`ssh -O check`, a local
   // socket test); never logs in, never asks.
   bool loginIsLive() const { return sharedConnection() && masterAlive(); }
@@ -200,6 +203,7 @@ private:
   bool p_cancelled;
   bool p_refused;
   bool p_prompted;
+  mutable bool p_sessionsFull = false;
   mutable int p_usedIdx;   // overflow master the last ssh command line named
 };
 

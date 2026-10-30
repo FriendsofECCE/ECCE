@@ -35,7 +35,7 @@ subagent flags, directly.
   previous tag, with the fix cherry-picked from `main` (`-x`), as
   8.18.1 and 8.18.2 were. Before tagging, run `tests/teaching` on the
   release branch; after tagging, fast-forward `stable-8` to the new
-  tag and push it, since it is what 8.x users build from. The `v9` branch was merged into `main` and retired
+  tag and push it, since it is what 8.x users build from. **9.4.x gets bug-fix backports until 2026-11-16** (Andy's teaching version, 2026-10-29): fixes cherry-picked (`-x`) onto `release/9.4.N` off the previous 9.4 tag, as for 8.x. The `v9` branch was merged into `main` and retired
   (`archive/v9`); work that needs isolation goes on short-lived `wip/*`
   branches. Old branches (`develop`, `modernize-build`, `stable`,
   `master`, `make`) were consolidated into `main` and renamed to

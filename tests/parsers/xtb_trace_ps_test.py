@@ -31,7 +31,7 @@ PWR = {'s': [(0, 0, 0)],
 
 def read_atoms(path):
     atoms, sec = [], None
-    for ln in open(path).read().splitlines():
+    for ln in open(path, encoding="utf-8").read().splitlines():
         if ln.startswith('['):
             sec = ln.split()[0].lower()
             continue
@@ -125,7 +125,7 @@ def main():
         path = os.path.join(FIX, name)
         text = subprocess.run(
             ['perl', PARSER, '.', 'Energy', 'SE', 'GFN2-xTB'],
-            input='ECCE-XTB-MOLDEN\n' + open(path).read(),
+            input='ECCE-XTB-MOLDEN\n' + open(path, encoding="utf-8").read(),
             capture_output=True, text=True, check=True).stdout
         o = parse_out(text)
         nmo, nbas = o['MO'][0]

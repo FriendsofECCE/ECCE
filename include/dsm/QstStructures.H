@@ -27,6 +27,19 @@ struct QstEntry
 bool qstFinalStructure(PropertyTask* calc, std::vector<std::string>& elements,
                        std::vector<double>& xyz, bool& optimised);
 
+/** A pick is a calculation URL, optionally followed by "#point=<spec>" (see
+ *  ScanPoint.H) to take one point of a scan or IRC instead of the final
+ *  structure (#674). */
+std::string qstPickUrl(const std::string& pick);
+std::string qstPickPoint(const std::string& pick);
+std::string qstMakePick(const std::string& url, const std::string& point);
+
+/** The structure a pick stands for.  title, when given, is the calculation's
+ *  name (plus the point); why gets the reason on failure. */
+bool qstPickStructure(const std::string& pick, std::vector<std::string>& el,
+                      std::vector<double>& xyz, bool& optimised,
+                      std::string* title, std::string* why);
+
 /** A copy of a calculation's final structure, for a transition-state job to
  *  store as its own.  Caller deletes; 0 when it has none. */
 Fragment* qstReactantFragment(const std::string& url);

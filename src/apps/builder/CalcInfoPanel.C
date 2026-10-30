@@ -109,7 +109,7 @@ void CalcInfoPanel::refresh()
   //  one cell, labels into the value column.
   p_body->GetSizer()->Clear(true);
   //  Rows before and after the Launch Info block are separate grids; the
-  //  block is two columns of its own.
+  //  block is a grid of its own.
   vector<wxFlexGridSizer*> grids;
   wxSizer *launchBlock = NULL;
   wxFlexGridSizer *grid = new wxFlexGridSizer(0, 2, 1, 5);
@@ -262,7 +262,11 @@ void CalcInfoPanel::refresh()
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);
     in.allocationRemaining = launch.allocationLeft;
-    launchBlock = ewxLaunchInfoBlock(p_body, LaunchInfoRows::build(in));
+    //  One column: the docked panel is too narrow for the Organizer's two.
+    LaunchInfoRows::Columns cols = LaunchInfoRows::build(in);
+    cols.left.insert(cols.left.end(), cols.right.begin(), cols.right.end());
+    cols.right.clear();
+    launchBlock = ewxLaunchInfoBlock(p_body, cols);
     p_body->GetSizer()->Add(launchBlock, 0, wxTOP | wxBOTTOM, 2);
 
     grid = new wxFlexGridSizer(0, 2, 1, 5);

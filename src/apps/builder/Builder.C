@@ -12,6 +12,8 @@ using std::ostringstream;
 using std::ends;
 #include <vector>
 
+#include <wx/dcscreen.h>
+#include <wx/dcmemory.h>
 #include <wx/display.h>
 using std::vector;
   
@@ -6156,6 +6158,25 @@ void Builder::updatePropertyMenus()
             wxMilliSleep(20);
           }
           return true;
+        }
+        //  "windowsize <w> <h>": resize the Builder window (no window
+        //  manager in the headless display to do it).
+        if (w[0] == "windowsize" && w.size() == 3) {
+          SetSize(0, 0, atoi(w[1].c_str()), atoi(w[2].c_str()));
+          for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(20); }
+          return true;
+        }
+        //  "screen <name>": the Builder window, GL canvas included, to
+        //  <name>.png (a client DC does not read the canvas back).
+        if (w[0] == "screen" && w.size() == 2) {
+          wxScreenDC cdc;
+          const wxRect r = GetScreenRect();   // the Builder window only
+          wxBitmap bmp(r.width, r.height);
+          wxMemoryDC mdc(bmp);
+          mdc.Blit(0, 0, r.width, r.height, &cdc, r.x, r.y);
+          mdc.SelectObject(wxNullBitmap);
+          return bmp.SaveFile(outdir + "/" + w[1] + ".png", wxBITMAP_TYPE_PNG) ||
+                 s.fail("screen: cannot save " + w[1]);
         }
         //  "savethumb": the calculation thumbnail, as File > Save writes it.
         if (w[0] == "savethumb" && w.size() == 1) {

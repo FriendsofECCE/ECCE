@@ -4284,6 +4284,7 @@
           <ContainsResource name="xtb_es"/>
           <ContainsResource name="qe_es"/>
           <ContainsResource name="cp2k_es"/>
+          <ContainsResource name="import_es"/>
           <ContainsResource name="project"/>
         </Contains>
         <ContainedBy>

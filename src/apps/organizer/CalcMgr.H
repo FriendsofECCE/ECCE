@@ -9,6 +9,7 @@
 
 #include <wx/weakref.h>
 #include <wx/timer.h>
+#include <functional>
 #include <map>
 #include <set>
 #include <utility>
@@ -167,6 +168,12 @@ public:
   // Test hook: the batch without dialogs, left running; false if one runs.
   bool launchSelectedAsync(const vector<EcceURL>& urls, string *outcome);
   string launchBatchStatus() const;
+  // ecce-launch (#687): Launch Selected without dialogs for a request from
+  // another process. One line per calculation, "name\tok\tjob id" or
+  // "name\tno\treason"; false, with lines empty, while a batch submits.
+  bool launchForCommand(const vector<EcceURL>& urls,
+                        const LaunchBatch::Target& target,
+                        vector<string>& lines);
   // A Launch Selected batch is submitting (#640): the calculations in it
   // must not be deleted, moved, launched or stopped meanwhile.
   bool batchRunning() const { return p_batch != 0; }
@@ -313,6 +320,11 @@ public:
                             Resource *source, bool ask, string *outcome,
                             const string& name = "",
                             const WorkflowSteps::Carry& carry = WorkflowSteps::Carry());
+  /// A step taking several sources (G16 QST2/QST3, ORCA NEB-TS); ask shows
+  /// the join dialog with the given roles as its defaults.
+  Resource *newWorkflowJoin(Session *workflow, ResourceType *type,
+                            const vector<WorkflowSteps::JoinSource>& sources,
+                            bool ask, string *outcome, const string& name = "");
   void launchReadySteps(Session *workflow, bool interactive, string *outcome,
                         const string& shot);
   void createResource(ResourceType * resource,
@@ -395,6 +407,9 @@ public:
                        ResourceType *& resType,
                        ResourceDescriptor::RUNSTATE & state);
   void getContextMenu(wxMenu & menu);
+  /// Runs f; an exception it throws comes back as text (its type and
+  /// message) instead of leaving a wx event handler and ending the app.
+  static string guarded(const std::function<void()>& f);
 
   void getFileMenu(   wxMenu & menu, WxResourceTreeItemData * itemData );
   void getHistoryMenu(wxMenu & menu, WxResourceTreeItemData * itemData );
@@ -641,6 +656,11 @@ protected:
   // True while openExampleSet() imports several outputs: the tree is rebuilt
   // once at the end, not after each calculation (#263).
   bool p_batchImport = false;
+  // The workflow example being imported: target step -> source step (names).
+  // A step joins its session, and the links are made, when its import is done.
+  std::map<std::string, std::vector<std::pair<std::string, std::string> > >
+    p_flowSources;   // target calc -> (source calc, link name)
+  void joinExampleWorkflow(Resource *step);
   std::string p_batchError;     // the first import that failed in the batch
   int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;
   // url -> (snapshot, when it arrived, seconds since 1970)

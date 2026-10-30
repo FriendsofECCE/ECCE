@@ -16,11 +16,11 @@ W=$(mktemp -d)
 trap 'rm -rf "$W"' EXIT
 cd "$W"
 
-fetch() { # url dir
+fetch() { # url dir [strip-components]
   echo "== fetch $1"
   curl -fsSL --retry 3 "$1" -o src.tar
   mkdir -p "$2"
-  tar -xf src.tar -C "$2" --strip-components=1
+  tar -xf src.tar -C "$2" --strip-components="${3:-1}"
   rm -f src.tar
 }
 cm() { # srcdir extra cmake args...
@@ -58,6 +58,11 @@ cm libssh -DOPENSSL_ROOT_DIR="$P" -DWITH_EXAMPLES=OFF \
 
 fetch https://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.3.0.tar.xz xerces
 cm xerces -Dnetwork=OFF
+
+# Built here, not from Homebrew, so the dylib honours the deployment target.
+fetch https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.6/hdf5-1.14.6.tar.gz hdf5 2  # tarball members start with ./
+cm hdf5 -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_TOOLS=OFF \
+  -DHDF5_BUILD_CPP_LIB=OFF -DHDF5_ENABLE_SZIP_SUPPORT=OFF
 
 fetch https://github.com/freetype/freetype/archive/refs/tags/VER-2-13-3.tar.gz freetype
 cm freetype -DFT_DISABLE_BZIP2=ON -DFT_DISABLE_PNG=ON -DFT_DISABLE_HARFBUZZ=ON \

@@ -37,6 +37,8 @@ const char *const kSkip[] = {"owner", "creationdate", "createdWith",
 
 bool skipped(const string& name)
 {
+  // the order of a calculation in the session it is copied into
+  if (name == VDoc::getDcQualifierNamespace() + ":taskIndex") return true;
   const string ns = VDoc::getEcceNamespace() + ":";
   if (name.compare(0, ns.size(), ns) != 0) return false;
   const string tail = name.substr(ns.size());
