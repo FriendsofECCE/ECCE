@@ -92,6 +92,32 @@ int main()
           labels(c.right).find("Cost:") != std::string::npos,
           "Cost is in the right column");
 
+    {
+        check(maxWallSeconds("0 4:00") == 4 * 3600 &&
+              maxWallSeconds("1 2:30") == 26 * 3600 + 1800 &&
+              maxWallSeconds("") == 0, "wall time parsed from D H:M");
+        const long L = 4 * 3600;
+        check(wallTimeText(L, WAITING, 0, 0) == "4 h requested", "queued: requested");
+        check(wallTimeText(L, RUNNING, 1000, 1000 + 2 * 3600 + 40 * 60) ==
+              "1 h 20 min left of 4 h", "running: left of the limit");
+        check(wallTimeText(L, RUNNING, 1000, 1000 + L - 600) ==
+              "10 min left of 4 h (nearly out)", "under 10 % left: nearly out");
+        check(wallTimeText(L, RUNNING, 1000, 1000 + L + 5) ==
+              "limit of 4 h reached", "past the limit");
+        check(wallTimeText(L, ENDED, 1000, 1000 + 3 * 3600 + 12 * 60) ==
+              "used 3 h 12 min of 4 h", "ended: used of the limit");
+        check(wallTimeText(0, RUNNING, 1000, 2000).empty(), "no limit: no row");
+        Input w;
+        w.queue = "batch";
+        w.queueWait = "waiting: no node free";
+        w.coreHours = "317 CPU-h so far";
+        w.wallTime = "1 h 20 min left of 4 h";
+        w.allocation = "hpc2n2026-351";
+        Columns cw = build(w);
+        check(labels(cw.right) == "Cost: Wall time: Allocation:" &&
+              labels(cw.full) == "Queue state:",
+              "wall time after Cost; queue state stays a row of its own");
+    }
     printf(failures ? "FAILED\n" : "all passed\n");
     return failures ? 1 : 0;
 }
