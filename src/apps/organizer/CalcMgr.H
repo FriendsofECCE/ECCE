@@ -180,6 +180,9 @@ public:
                            vector<string>& lines);
   // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
   bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
+  // ecce-fetch: run-directory files into the Outputs (or a listing).
+  bool fetchForCommand(const EcceURL& url, const vector<string>& patterns,
+                       bool listOnly, vector<string>& lines);
   // A Launch Selected batch is submitting (#640): the calculations in it
   // must not be deleted, moved, launched or stopped meanwhile.
   bool batchRunning() const { return p_batch != 0; }

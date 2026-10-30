@@ -104,3 +104,22 @@ calculation, either `name: reconnected, job id N` or `name: not reconnected:
 reason`, for example when the calculation's state cannot be reconnected; the
 exit status is 0 only when every calculation was reconnected. Paths, URLs and
 the message without a running ECCE session are as for `ecce-launch`.
+
+### Fetching files from the run directory
+
+    ecce-fetch [--list] <calculation folder or URL> [pattern ...]
+
+copies files from the calculation's run directory on its compute machine into
+the calculation's stored outputs, for a job whose automatic copy-back missed
+them, for example cube or PDOS files. It works for a finished calculation as
+well as a running one. The patterns are file-name patterns such as `*.cube`,
+relative to the run directory; without any, `*.cube *.cub *.pdos` are
+fetched. A file already stored under the same name is replaced.
+
+`--list` only lists the run directory and stores nothing. The login is the one
+Reconnect uses, so a machine that needs a password asks for it in the
+Organizer window. One line is printed for each file, `name: fetched (N
+bytes)`, for a pattern that matched nothing `pattern: no file matched`, and
+`name: not fetched: reason` when nothing could be fetched; the exit status is
+0 only when every pattern fetched something. Paths, URLs and the message
+without a running ECCE session are as for `ecce-launch`.

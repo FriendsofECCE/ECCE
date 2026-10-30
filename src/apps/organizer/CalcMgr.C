@@ -3177,6 +3177,33 @@ bool CalcMgr::reconnectForCommand(const vector<EcceURL>& urls,
 }
 
 
+//  ecce-fetch: files of the run directory into the stored Outputs over the
+//  login Reconnect uses. Lines as JobCatchUp::fetchFiles; false while a
+//  batch submits.
+bool CalcMgr::fetchForCommand(const EcceURL& url, const vector<string>& patterns,
+                              bool listOnly, vector<string>& lines)
+{
+  lines.clear();
+  if (p_batch) return false;
+  WxResourceTreeItemData *n = findNodeFresh(url, false);
+  TaskJob *task = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
+  if (!task) {
+    lines.push_back(url.toString() + "\tno\tnot a calculation in this session");
+    return true;
+  }
+  OpenSshTransport::forgetMasterAttempts();
+  JobCatchUp::fetchFiles(task, patterns, listOnly,
+      [this](const RCommandLogin& l, RCommand*& c, string& why) {
+        return ReconnectSelected::openLogin(this, 0, l, c, why);
+      },
+      [this](const string& what, const std::function<bool()>& work, bool& res) {
+        return ReconnectSelected::runRemote(this, 0, what, work, res);
+      }, lines);
+  if (!listOnly) updateUrl(url);
+  return true;
+}
+
+
 string CalcMgr::launchBatchStatus() const
 {
   if (p_batch)
