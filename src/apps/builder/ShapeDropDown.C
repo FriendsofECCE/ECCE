@@ -44,7 +44,7 @@ bool ShapeDropDown::Create(ShapeData::Shape shape, wxWindow* parent,
     return false;
   }
 
-  SetToolBitmapSize(ewxBitmap::scaled(wxSize(24, 24)));
+  ewxBitmap::toolBitmapSize(this, wxSize(24, 24));
   addShape(ShapeData::lone);
   addShape(ShapeData::terminal);
   addShape(ShapeData::linear);

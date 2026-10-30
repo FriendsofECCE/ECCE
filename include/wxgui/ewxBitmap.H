@@ -45,6 +45,10 @@ class ewxBitmap : public wxBitmap
       // With ECCE_DPI_LOG=<file>: appends the scales a toolbar sees, so a
       // HiDPI report from a Windows machine can be read instead of guessed.
       static void logDpi(const char *where, wxToolBarBase *bar);
+
+      // A toolbar's bitmap size at 100 %. On a scaled display it is left to
+      // the icon bundles: wxMSW divides a size set here by the scale again.
+      static void toolBitmapSize(wxToolBarBase *bar, const wxSize& logical);
 };
 
 #endif
