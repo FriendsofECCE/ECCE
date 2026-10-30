@@ -16,6 +16,7 @@ import shutil
 import sys
 import tempfile
 import threading
+import subprocess
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +45,8 @@ def organizer(display, data, work, out):
     shot = os.path.join(work, "organizer-raw.png")
     known = set(w for w, _ in display.windows())
     proc = readme.launch(display, "ecce-organizer", [],
-                         {"ECCE_TEST_ORGANIZER": cmds, "ECCE_NO_EXAMPLE_IMPORT": ""},
+                         {"ECCE_TEST_ORGANIZER": cmds, "ECCE_NO_EXAMPLE_IMPORT": "",
+                          "ECCE_NO_UPDATE_CHECK": "1"},
                          log=os.path.join(work, "organizer.log"))
     try:
         win = readme.waitWindow(display, known, 90, "ECCE Organizer")
@@ -55,22 +57,23 @@ def organizer(display, data, work, out):
         calc = find(root, "ethylene")
         if not calc:
             return "no ethylene calculation"
+        readme.xdo(display, "windowmove", win[0], "0", "0")
+        readme.xdo(display, "windowsize", win[0], "1300", "900")
         with open(cmds, "a") as h:
-            h.write("size 1300 800\nsummary file://%s\n" % calc)
-        time.sleep(8)
-        with open(cmds, "a") as h:
-            h.write("progressbox\nshowbox\nsnap %s\n" % shot)
-        time.sleep(10)
+            h.write("summary file://%s\n" % calc)
+        time.sleep(15)
+        subprocess.run(["import", "-display", display.name, "-window", "root", shot],
+                       check=True)
     finally:
         readme.stop(proc)
     if not os.path.exists(shot):
         return "no snapshot"
-    shutil.copy(shot, os.path.join(out, "organizer.png"))
+    readme.png(shot, os.path.join(out, "organizer.png"), "1300x900+0+0")
     return None
 
 
 def viewer(display, data, work, out):
-    calc = find(os.path.join(data, "users", "local", PROJECT), "ecceqm-ethene")
+    calc = find(os.path.join(data, "users", "local", PROJECT), "ethene")
     if not calc:
         return "no ethene calculation"
     scene = os.path.join(work, "viewer.scene")
@@ -80,7 +83,7 @@ def viewer(display, data, work, out):
     known = set(w for w, _ in display.windows())
     env = {"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": work,
            "ECCE_VIEWER_SCENE_SIZE": "800x600", "ECCE_VIEWER_SCENE_HOLD": "150",
-           "ECCE_OPEN_PANEL": "MO Diagram", "ECCE_TRANSPARENCY_FALLBACK_MS": "0"}
+           "ECCE_OPEN_PANEL": "MO Diagram", "ECCE_NO_UPDATE_CHECK": "1", "ECCE_TRANSPARENCY_FALLBACK_MS": "0"}
     proc = readme.launch(display, "ecce-builder", ["-context", "file://" + calc],
                          env, log=os.path.join(work, "builder.log"))
     try:
@@ -93,7 +96,6 @@ def viewer(display, data, work, out):
         readme.xdo(display, "windowsize", wid, "1300", "800")
         time.sleep(25)
         raw = os.path.join(work, "viewer-raw.png")
-        import subprocess
         subprocess.run(["import", "-display", display.name, "-window", "root", raw],
                        check=True)
         readme.png(raw, os.path.join(out, "viewer.png"), "1300x800+0+0")
@@ -119,7 +121,6 @@ def main():
     os.environ["ECCE_LOCAL_DATA"] = data
     errors = []
     with xdisplay.Display(number=176) as display:
-        import subprocess
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
                        env=display.env(), timeout=180)
         try:
