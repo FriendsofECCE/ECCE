@@ -105,18 +105,27 @@ bool OrbitalGuess::attachHessian(TaskJob *target, TaskJob *source,
   }
   SFile *temp = TempStorage::getTempFile();
   SFile *got = source->getAnyFile(keptHessian(source), temp);
-  bool ok = false;
-  if (got != 0 && temp->exists()) {
-    std::ifstream in(temp->path().c_str(), std::ios::in | std::ios::binary);
-    ok = target->putInputFile(target->hessianInputFile(), &in);
-  }
+  bool ok = got != 0 && temp->exists() &&
+            attachHessianFile(target, temp->path(), source->getName(), why);
   temp->remove();
   delete temp;
-  if (!ok) {
-    why = "The Hessian could not be copied from the source calculation.";
+  return ok;
+}
+
+
+bool OrbitalGuess::attachHessianFile(TaskJob *target, const string &path,
+                                     const string &sourceName, string &why)
+{
+  if (target->hessianInputFile().empty()) {
+    why = "The calculation's code cannot read a starting Hessian.";
     return false;
   }
-  target->addProp(TaskJob::hessianFromSourceProp(), source->getName());
+  std::ifstream in(path.c_str(), std::ios::in | std::ios::binary);
+  if (!in || !target->putInputFile(target->hessianInputFile(), &in)) {
+    why = "The Hessian could not be stored in the calculation.";
+    return false;
+  }
+  target->addProp(TaskJob::hessianFromSourceProp(), sourceName);
   return true;
 }
 

@@ -3722,8 +3722,9 @@ struct ExampleTopic {
   // calculation names.
   bool workflow = false;
   vector<std::pair<string, string>> links;
-  // steps (calculation names) that start from their source's Hessian
-  vector<string> hessian;
+  // steps (calculation names) that start from their source's Hessian, with
+  // the .hess file the source's example folder ships
+  vector<std::pair<string, string>> hessian;
 };
 struct ExampleSet {
   string id, title, line, project;
@@ -3808,7 +3809,9 @@ void collectExamples(const string &setDir, const string &topicDir,
       if (hess) source.erase(plus);
       const string to = calcOf(folder), from = calcOf(source);
       if (!to.empty() && !from.empty()) topic.links.push_back({from, to});
-      if (hess && !to.empty()) topic.hessian.push_back(to);
+      if (hess && !to.empty())
+        topic.hessian.push_back({to, setDir + topicDir + "/" + source + "/" +
+                                     from + ".hess"});
     }
   }
 }
@@ -4141,7 +4144,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     if (flow)
     {
       for (const auto &l : topic.links) p_flowSources[l.second] = l.first;
-      for (const string &h : topic.hessian) p_flowHessian.insert(h);
+      for (const auto &h : topic.hessian) p_flowHessian[h.first] = h.second;
     }
     findNode(parent->getURL(), true, true);
     for (const ExampleOut *exp : todo->second) {
@@ -9420,13 +9423,14 @@ void CalcMgr::joinExampleWorkflow(Resource *step)
     // "+hess" in workflow.txt: the step reads the Hessian of its source
     for (const auto &l : p_flowSources) {
       Resource *to = member(l.first), *from = member(l.second);
-      if (!to || !from || !p_flowHessian.count(l.first)) continue;
+      auto hess = p_flowHessian.find(l.first);
+      if (!to || !from || hess == p_flowHessian.end()) continue;
       if (!same(to, step) && !same(from, step)) continue;
       TaskJob *target = dynamic_cast<TaskJob*>(to);
       string why;
       if (target && !target->hasHessianInput() &&
-          !OrbitalGuess::attachHessian(target, dynamic_cast<TaskJob*>(from),
-                                       why))
+          !OrbitalGuess::attachHessianFile(target, hess->second,
+                                           from->getName(), why))
         cerr << "Organizer: example workflow: " << to->getName()
              << ": " << why << endl;
     }

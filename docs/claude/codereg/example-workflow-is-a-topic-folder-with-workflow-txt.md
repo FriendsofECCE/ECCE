@@ -27,8 +27,10 @@ special.
 - Test: `tests/apps/examples_workflow_test.py` (`apps_examples_workflow`).
 
 A line `<folder> < <source folder>+hess` also makes the step read the
-source's Hessian: `joinExampleWorkflow` copies the source's stored `.hess`
-into the step (`OrbitalGuess::attachHessian`, stored as `inhess.hess`) and
-sets `ecce:hessianfromsource`; `ESInputController` then writes Initial
-Hessian = Read from previous calculation unless the dialog chose another
-value. The gas step's stored `Outputs/` must therefore hold its `.hess`.
+source's Hessian: `joinExampleWorkflow` stores the `<calc>.hess` that sits in
+the source's example folder as the step's `inhess.hess`
+(`OrbitalGuess::attachHessianFile`) and sets `ecce:hessianfromsource`;
+`ESInputController` then writes Initial Hessian = Read from previous
+calculation unless the dialog chose another value. The parse of the source
+stores no `.hess`, so the file comes from the folder; the step's stored copy
+carries it in `Inputs/` and the copy route needs no attach.

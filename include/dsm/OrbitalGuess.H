@@ -31,6 +31,11 @@ bool hessianAvailable(const TaskJob *source);
     be of a code that reads a Hessian. */
 bool attachHessian(TaskJob *target, TaskJob *source, std::string &why);
 
+/** The same from a .hess file on disk (an example ships the Hessian of its
+    source step next to the output); `sourceName` is recorded. */
+bool attachHessianFile(TaskJob *target, const std::string &path,
+                       const std::string &sourceName, std::string &why);
+
 /** The stored record, "" when `calc` has no guess attached. */
 std::string sourceName(const TaskJob *calc);
 std::string sourceBasis(const TaskJob *calc);
