@@ -508,6 +508,10 @@ target_link_libraries(eccejobmaster PRIVATE
 add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
 target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
+# Launches Ready calculations inside the running session (#687).
+add_executable(ecce-launch src/apps/launch/ecce-launch.C)
+target_include_directories(ecce-launch PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-launch PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
 # Speed distributions and MSD of a GROMACS run (the Builder's MD panels).
 add_executable(mdanalysis src/apps/mdanalysis/mdanalysis.C)
 
@@ -1045,6 +1049,22 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-site-admin\" \"$@\"
 ")
 install(PROGRAMS ${_sadm_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+# ecce-launch is run from a terminal, so its wrapper takes the session's data
+# mode (a path argument is turned into a URL in that folder) but starts nothing.
+set(_launch_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-launch)
+file(WRITE ${_launch_wrapper}
+"#!/bin/bash
+${ECCE_HOME_SH}
+export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
+export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
+export HOST=\${HOST:-$(hostname)}
+if [ -z \"\${ECCE_LOCAL_DATA+x}\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -x \"$ECCE_HOME/bin/ecce-localdata\" ]; then
+  ECCE_LOCAL_DATA=$(\"$ECCE_HOME/bin/ecce-localdata\" 2>/dev/null) || ECCE_LOCAL_DATA=
+  export ECCE_LOCAL_DATA
+fi
+exec \"$ECCE_HOME/bin/ecce-launch\" \"$@\"
+")
+install(PROGRAMS ${_launch_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
   file(WRITE ${_ds_wrapper}
@@ -1092,7 +1112,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-site-admin mocomp
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -3432,6 +3452,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_selected PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
+  # #687: ecce-launch launches Ready calculations inside the running
+  # Organizer's session; skipped (77) without Xvfb.
+  add_test(NAME ecce_launch
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecce_launch_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(ecce_launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
   # #75: an ORCA job's final orbitals as the guess of the next (local data,
   # then a data server); skipped (77) without ORCA 6 under /opt/orca.

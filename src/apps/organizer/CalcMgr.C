@@ -3015,6 +3015,37 @@ bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome)
 }
 
 
+bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
+                               const LaunchBatch::Target& target,
+                               vector<string>& lines)
+{
+  lines.clear();
+  if (p_batch) return false;
+  vector<TaskJob*> tasks;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (task) tasks.push_back(task);
+    else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+  }
+  if (tasks.empty()) return true;
+  vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks, target);
+  LaunchSelected::run(rows);
+  for (size_t i = 0; i < rows.size(); i++) {
+    const LaunchSelected::Row& r = rows[i];
+    string line = r.plan.name + "\t";
+    if (!r.plan.ready) line += "no\t" + r.plan.problem;
+    else if (!r.attempted) line += "no\tnot attempted";
+    else if (r.submitted) {
+      string id = r.task->jobdata().jobid;
+      line += "ok\t" + (id.empty() ? string("not reported") : id);
+    } else line += "no\t" + r.outcome;
+    lines.push_back(line);
+  }
+  return true;
+}
+
+
 string CalcMgr::launchBatchStatus() const
 {
   if (p_batch)
