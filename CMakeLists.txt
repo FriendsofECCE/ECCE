@@ -520,6 +520,10 @@ target_link_libraries(ecce-terminate PRIVATE eccetdat ecceutil ${XercesC_LIBRARI
 add_executable(ecce-reconnect src/apps/launch/ecce-reconnect.C)
 target_include_directories(ecce-reconnect PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-reconnect PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
+# Copies run-directory files into a calculation's Outputs inside the session.
+add_executable(ecce-fetch src/apps/launch/ecce-fetch.C)
+target_include_directories(ecce-fetch PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-fetch PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
 # Speed distributions and MSD of a GROMACS run (the Builder's MD panels).
 add_executable(mdanalysis src/apps/mdanalysis/mdanalysis.C)
 
@@ -1083,6 +1087,10 @@ set(_reconn_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-reconnect)
 string(REPLACE "bin/ecce-terminate" "bin/ecce-reconnect" _reconn_text "${_term_text}")
 file(WRITE ${_reconn_wrapper} "${_reconn_text}")
 install(PROGRAMS ${_reconn_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+set(_fetch_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-fetch)
+string(REPLACE "bin/ecce-terminate" "bin/ecce-fetch" _fetch_text "${_term_text}")
+file(WRITE ${_fetch_wrapper} "${_fetch_text}")
+install(PROGRAMS ${_fetch_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
   file(WRITE ${_ds_wrapper}
@@ -1130,7 +1138,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-reconnect ecce-site-admin mocomp
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-reconnect ecce-fetch ecce-site-admin mocomp
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -3500,6 +3508,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(ecce_reconnect PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
+  # ecce-fetch copies run-directory files into the Outputs through the
+  # running Organizer; skipped (77) without Xvfb.
+  add_test(NAME ecce_fetch
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecce_fetch_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(ecce_fetch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
   # #75: an ORCA job's final orbitals as the guess of the next (local data,
   # then a data server); skipped (77) without ORCA 6 under /opt/orca.

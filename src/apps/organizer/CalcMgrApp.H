@@ -37,6 +37,7 @@ DECLARE_CLASS(CalcMgrApp)
   void launchRequestMCB(JMSMessage& msg);
   void terminateRequestMCB(JMSMessage& msg);
   void reconnectRequestMCB(JMSMessage& msg);
+  void fetchRequestMCB(JMSMessage& msg);
   void miscPrefChangeMCB(JMSMessage& msg);
   void invokeMCB(JMSMessage& msg);
   void msgStatusMCB(JMSMessage& msg);

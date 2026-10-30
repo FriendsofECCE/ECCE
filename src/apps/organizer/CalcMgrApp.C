@@ -199,6 +199,8 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_terminate_request", (wxJmsCBFunc)&CalcMgrApp::terminateRequestMCB);
   // ecce-reconnect
   subscribe("ecce_reconnect_request", (wxJmsCBFunc)&CalcMgrApp::reconnectRequestMCB);
+  // ecce-fetch
+  subscribe("ecce_fetch_request", (wxJmsCBFunc)&CalcMgrApp::fetchRequestMCB);
   
   // Preference Messages
   // Not filtered: the Organizer's own Preferences dialog publishes it too.
@@ -365,6 +367,36 @@ void CalcMgrApp::reconnectRequestMCB(JMSMessage& msg)
 
   vector<string> lines;
   if (!p_calcMgr->reconnectForCommand(urls, lines))
+    reply("busy", lines);
+  else
+    reply("done", lines);
+}
+
+
+// ecce-fetch: as reconnectRequestMCB, answered on ecce_fetch_reply.
+void CalcMgrApp::fetchRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  auto reply = [this, &id](const string& kind, const vector<string>& lines) {
+    JMSMessage* r = newMessage();
+    r->addProperty("reply_id", id);
+    r->addProperty("kind", kind);
+    r->addIntProperty("n", (int)lines.size());
+    for (size_t i = 0; i < lines.size(); i++)
+      r->addProperty("line" + std::to_string(i), lines[i]);
+    publish("ecce_fetch_reply", *r);
+    delete r;
+  };
+  reply("ack", vector<string>());
+
+  vector<string> patterns;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    patterns.push_back(msg.getProperty("pattern" + std::to_string(i)));
+
+  vector<string> lines;
+  if (!p_calcMgr->fetchForCommand(EcceURL(msg.getProperty("url")), patterns,
+                                  msg.getProperty("list") == "1", lines))
     reply("busy", lines);
   else
     reply("done", lines);
