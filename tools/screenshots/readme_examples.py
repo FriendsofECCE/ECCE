@@ -78,7 +78,7 @@ def viewer(display, data, work, out):
     scene = os.path.join(work, "viewer.scene")
     with open(scene, "w") as h:
         h.write("style Ball And Stick\nviewall\nbackground 1 1 1\n"
-                "mo 8 0.1 50 opaque\nrotate 35\nrotatex -60\nwindowsize 1300 800\n"
+                "mo 8 0.12 50 opaque\nrotate 35\nrotatex -60\nwindowsize 1300 800\n"
                 "hold 10\nviewall\nhold 10\nscreen readme-viewer\n"
                 "rotatex 30\nviewall\nhold 10\nscreen readme-viewer-b\n")
     known = set(w for w, _ in display.windows())
