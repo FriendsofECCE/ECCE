@@ -394,6 +394,9 @@ public:
   vector<string> p_reparseFailed;
   int p_reparseDone = 0;
 
+  // findNode, re-reading the parent folder once when the node is missing.
+  WxResourceTreeItemData * findNodeFresh(const EcceURL &targetUrl,
+                                         bool openWhenFound);
   WxResourceTreeItemData * findNode(const EcceURL &targetUrl,
                                     bool openWhenFound = true,
                                     bool loadFromServer = true);

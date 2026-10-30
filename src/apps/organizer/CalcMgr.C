@@ -3083,7 +3083,7 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
   if (p_batch) return false;
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    WxResourceTreeItemData *item = findNodeFresh(urls[i], true);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (task) tasks.push_back(task);
     else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
@@ -3115,7 +3115,7 @@ bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
   lines.clear();
   if (p_batch) return false;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *n = findNode(urls[i], false, true);
+    WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
     TaskJob *job = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
     if (!job) {
       lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
@@ -9518,6 +9518,21 @@ WxResourceTreeItemData * CalcMgr::findNode(const EcceURL &targetUrl,
                                            bool loadFromServer)
 {
   return p_treeCtrl->findNode(targetUrl, openWhenFound, loadFromServer);
+}
+
+
+//  A calculation copied into a folder after the tree read that folder is not
+//  among its cached children, so the commands (ecce-launch, ecce-terminate)
+//  re-read the parent once before giving up (#721).
+WxResourceTreeItemData * CalcMgr::findNodeFresh(const EcceURL &targetUrl,
+                                                bool openWhenFound)
+{
+  WxResourceTreeItemData *item = findNode(targetUrl, openWhenFound, true);
+  if (item) return item;
+  WxResourceTreeItemData *parent = findNode(targetUrl.getParent(), false, true);
+  if (!parent) return 0;
+  p_treeCtrl->refresh(parent);
+  return findNode(targetUrl, openWhenFound, true);
 }
 
 
