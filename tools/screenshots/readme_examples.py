@@ -8,7 +8,7 @@ Writes organizer.png (the Organizer on the finished ORCA Opt+Freq of
 ethylene, Progress box in view) and viewer.png (the Builder with the HOMO of
 ethene on a white background, MO Diagram docked, Properties showing).  The
 examples are imported by the Organizer's own `examples organic` command;
-nothing is clicked.  Needs Xvfb, xdotool and ImageMagick.
+nothing is clicked.  Needs only Xvfb; the viewer image is the whole display, to be cropped.
 """
 import argparse
 import os
@@ -57,18 +57,17 @@ def organizer(display, data, work, out):
         calc = find(root, "ethylene")
         if not calc:
             return "no ethylene calculation"
-        readme.xdo(display, "windowmove", win[0], "0", "0")
-        readme.xdo(display, "windowsize", win[0], "1300", "900")
         with open(cmds, "a") as h:
-            h.write("summary file://%s\n" % calc)
-        time.sleep(15)
-        subprocess.run(["import", "-display", display.name, "-window", "root", shot],
-                       check=True)
+            h.write("size 1300 900\nsummary file://%s\n" % calc)
+        time.sleep(10)
+        with open(cmds, "a") as h:
+            h.write("snap %s\n" % shot)
+        time.sleep(10)
     finally:
         readme.stop(proc)
     if not os.path.exists(shot):
         return "no snapshot"
-    readme.png(shot, os.path.join(out, "organizer.png"), "1300x900+0+0")
+    shutil.copy(shot, os.path.join(out, "organizer.png"))
     return None
 
 
@@ -79,26 +78,24 @@ def viewer(display, data, work, out):
     scene = os.path.join(work, "viewer.scene")
     with open(scene, "w") as h:
         h.write("style Ball And Stick\nviewall\nbackground 1 1 1\n"
-                "mo 8 0.04 50\nrotate 35\n")
+                "mo 8 0.04 50\nrotate 35\nwindowsize 1300 800\n"
+                "hold 20\nscreen readme-viewer\n")
     known = set(w for w, _ in display.windows())
     env = {"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": work,
-           "ECCE_VIEWER_SCENE_SIZE": "800x600", "ECCE_VIEWER_SCENE_HOLD": "150",
+           "ECCE_VIEWER_SCENE_SIZE": "800x600", "ECCE_VIEWER_SCENE_HOLD": "1",
            "ECCE_OPEN_PANEL": "MO Diagram", "ECCE_NO_UPDATE_CHECK": "1", "ECCE_TRANSPARENCY_FALLBACK_MS": "0"}
     proc = readme.launch(display, "ecce-builder", ["-context", "file://" + calc],
                          env, log=os.path.join(work, "builder.log"))
     try:
-        win = readme.waitWindow(display, known, 90, "ECCE Viewer")
-        if not win:
-            return "no Builder window"
-        wid = win[0]
-        readme.xdo(display, "windowmove", wid, "0", "0")
-        time.sleep(40)
-        readme.xdo(display, "windowsize", wid, "1300", "800")
-        time.sleep(25)
-        raw = os.path.join(work, "viewer-raw.png")
-        subprocess.run(["import", "-display", display.name, "-window", "root", raw],
-                       check=True)
-        readme.png(raw, os.path.join(out, "viewer.png"), "1300x800+0+0")
+        raw = os.path.join(work, "readme-viewer.png")
+        for _ in range(200):
+            if os.path.exists(raw) or proc.poll() is not None:
+                break
+            time.sleep(1)
+        time.sleep(2)
+        if not os.path.exists(raw):
+            return "no viewer snapshot"
+        shutil.copy(raw, os.path.join(out, "viewer-display.png"))   # crop to 1300x800 at 0,0
     finally:
         readme.stop(proc)
     return None
