@@ -175,7 +175,7 @@ void CalculationContextPanel::refresh()
   for (tpvIt = toolPropertyViews.begin();
        tpvIt != toolPropertyViews.end();
        tpvIt++) {
-    if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
+    if (tpvIt->second.first->getName() == BASISTOOL && !p_basisRows)
       continue;
     if (tpvIt->second.first->getName() == "Launcher")
       continue;
@@ -451,6 +451,7 @@ void CalculationContextPanel::createControls()
        tpvIt++) {
     if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
       continue;
+    if (tpvIt->second.first->getName() == BASISTOOL) p_basisRows = true;
     pair<ResourceTool*,ToolPropertyView*> pairRT_TPV = tpvIt->second;
 
     // create the sizer for this tool
