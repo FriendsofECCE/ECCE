@@ -427,14 +427,28 @@ static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
     for (double t = step; t <= xEnd + 1e-9; t += step)
       if (t > 1) xt.values.push_back(t);
   }
+  auto tickX = [&](double t) {
+    return area.x + m + (int)std::lround(xFrac(t) * (area.width - 2 * m));
+  };
+  auto tickText = [&](double t) { return wxString::Format("%.*f", xt.decimals, t); };
+  //  The last cycle or step is always labelled, so the length of the run can
+  //  be read off; a regular tick too close to it gives way.
+  if (xEnd > 0 && (xt.values.empty() || xt.values.back() < xEnd - 1e-9)) {
+    const int gap = dc.GetTextExtent(tickText(xEnd)).x + dc.GetCharWidth();
+    if (!xt.values.empty() && xt.values.size() > 1 &&
+        tickX(xEnd) - tickX(xt.values.back()) < gap)
+      xt.values.pop_back();
+    xt.values.push_back(xEnd);
+  }
   for (double t : xt.values) {
-    const int px = area.x + m + (int)std::lround(xFrac(t) * (area.width - 2 * m));
-    const wxString s = wxString::Format("%.*f", xt.decimals, t);
+    const int px = tickX(t);
+    const wxString s = tickText(t);
     const int w = dc.GetTextExtent(s).x;
-    if (px + w / 2 > r.GetRight()) continue;
     dc.SetPen(wxPen(pal.axis));
     dc.DrawLine(px, area.GetBottom(), px, area.GetBottom() + 3);
-    dc.DrawText(s, std::max(area.x, px - w / 2), area.GetBottom() + 2);
+    //  Kept inside the frame: flush right at the end, flush left at the start.
+    dc.DrawText(s, std::max(area.x, std::min(px - w / 2, area.GetRight() - w)),
+                area.GetBottom() + 2);
   }
   dc.DrawText(U(label + (blk.plotXUnit.empty() ? "" : " (x: " + blk.plotXUnit + ")")),
               r.x, area.GetBottom() + axisH);
