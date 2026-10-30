@@ -91,7 +91,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
        *  window is recomputed at the same contour levels.  Interactive (the
        *  mouse wheel): a coarse grid at once, the full one when the zooming
        *  has rested (refineZoom). */
-      bool zoomAt(double u, double v, double factor, bool interactive = false);
+      void outerWindow(double out[4]) const;
+    bool zoomAt(double u, double v, double factor, bool interactive = false);
       /** Move the zoomed window by (du, dv), A, staying on the plane;
        *  interactive as for zoomAt.  No-op when not zoomed. */
       /** The plane through the 2 or 3 atoms selected in the viewer. */
