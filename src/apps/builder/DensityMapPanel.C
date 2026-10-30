@@ -279,7 +279,9 @@ void DensityMapPanel::build()
     const bool standing = hasMolecularPlane(p_eval->coordsAng);
     p_plane->Enable(0, flat);
     p_plane->Enable(2, standing);
-    const wxString why = "This molecule is not planar: use \"Through three atoms\".";
+    const wxString why = labels.size() == 1
+        ? wxString("One atom has no molecular plane: the map lies in the plane of the screen; turn the molecule and press \"Update from view\".")
+        : wxString("This molecule is not planar: use \"Through three atoms\".");
     if (!flat) p_plane->SetItemToolTip(0, why);
     if (!standing) p_plane->SetItemToolTip(2, flat
         ? wxString("A linear molecule has no molecular plane to stand on: use \"Through three atoms\" or the molecular plane.")
@@ -502,6 +504,17 @@ bool DensityMapPanel::atomPoint(int n, double& u, double& v) const
   return true;
 }
 
+//  The farthest a zoomed or panned window may reach: the whole plane grown
+//  by one and a half of its widths on every side.
+void DensityMapPanel::outerWindow(double out[4]) const
+{
+  const double gw = 1.5 * (p_fullWin[1] - p_fullWin[0]);
+  const double gh = 1.5 * (p_fullWin[3] - p_fullWin[2]);
+  out[0] = p_fullWin[0] - gw;  out[1] = p_fullWin[1] + gw;
+  out[2] = p_fullWin[2] - gh;  out[3] = p_fullWin[3] + gh;
+}
+
+
 bool DensityMapPanel::zoomAt(double u, double v, double factor, bool interactive)
 {
   if (!p_haveMap || !p_eval || factor <= 0) return false;
@@ -520,12 +533,16 @@ bool DensityMapPanel::zoomAt(double u, double v, double factor, bool interactive
     p_zoomKey = zoomKey(plane, what, what == 0 ? 0 : p_mo->GetValue(),
                         p_spin->GetSelection() == 1);
   }
-  const double fullW = p_fullWin[1] - p_fullWin[0], fullH = p_fullWin[3] - p_fullWin[2];
   double w = (p_zoomWin[1] - p_zoomWin[0]) / factor;
   double h = (p_zoomWin[3] - p_zoomWin[2]) / factor;
-  if (w >= fullW * 0.999) {
-    resetZoom();
-    return true;
+  //  Zooming out may go past the whole plane: its margin is a fixed 1.5 A,
+  //  too small for the diffuse orbitals of an atom or a small molecule.
+  double outer[4];
+  outerWindow(outer);
+  const double outW = outer[1] - outer[0], outH = outer[3] - outer[2];
+  if (w > outW || h > outH) {
+    const double k = std::min(outW / w, outH / h);
+    w *= k;  h *= k;
   }
   if (std::min(w, h) < 0.3) {
     const double k = 0.3 / std::min(w, h);
@@ -535,8 +552,8 @@ bool DensityMapPanel::zoomAt(double u, double v, double factor, bool interactive
   const double fu = (u - p_zoomWin[0]) / (p_zoomWin[1] - p_zoomWin[0]);
   const double fv = (v - p_zoomWin[2]) / (p_zoomWin[3] - p_zoomWin[2]);
   double u0 = u - fu * w, v0 = v - fv * h;
-  u0 = std::min(std::max(u0, p_fullWin[0]), p_fullWin[1] - w);
-  v0 = std::min(std::max(v0, p_fullWin[2]), p_fullWin[3] - h);
+  u0 = std::min(std::max(u0, outer[0]), outer[1] - w);
+  v0 = std::min(std::max(v0, outer[2]), outer[3] - h);
   p_zoomWin[0] = u0;  p_zoomWin[1] = u0 + w;
   p_zoomWin[2] = v0;  p_zoomWin[3] = v0 + h;
   p_zoomed = true;
@@ -554,8 +571,10 @@ bool DensityMapPanel::panBy(double du, double dv, bool interactive)
 {
   if (!p_haveMap || !p_eval || !p_zoomed) return false;
   const double w = p_zoomWin[1] - p_zoomWin[0], h = p_zoomWin[3] - p_zoomWin[2];
-  const double u0 = std::min(std::max(p_zoomWin[0] + du, p_fullWin[0]), p_fullWin[1] - w);
-  const double v0 = std::min(std::max(p_zoomWin[2] + dv, p_fullWin[2]), p_fullWin[3] - h);
+  double outer[4];
+  outerWindow(outer);
+  const double u0 = std::min(std::max(p_zoomWin[0] + du, outer[0]), outer[1] - w);
+  const double v0 = std::min(std::max(p_zoomWin[2] + dv, outer[2]), outer[3] - h);
   if (u0 == p_zoomWin[0] && v0 == p_zoomWin[2]) return true;
   p_zoomWin[0] = u0;  p_zoomWin[1] = u0 + w;
   p_zoomWin[2] = v0;  p_zoomWin[3] = v0 + h;
