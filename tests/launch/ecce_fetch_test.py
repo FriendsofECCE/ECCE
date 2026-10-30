@@ -155,7 +155,7 @@ def main():
         say(out)
         say(err)
         lines = out.splitlines()
-        check(rc == 1, "default patterns: *.cub matched nothing, exit 1 (%s)" % rc)
+        check(rc == 0, "default patterns: *.cub matched nothing, still exit 0 (%s)" % rc)
         check("x.cube: fetched (100 bytes)" in lines, "x.cube is fetched")
         check("y.pdos: fetched (70 bytes)" in lines, "y.pdos is fetched")
         check("*.cub: no file matched" in lines, "*.cub says no file matched")
@@ -167,7 +167,7 @@ def main():
         open(os.path.join(hits[0], "x.cube"), "w").write("new\n")
         rc, out, err = run(url, "x.cube", "*.nothing")
         check("x.cube: fetched (4 bytes)" in out.splitlines() and
-              "*.nothing: no file matched" in out.splitlines() and rc == 1,
+              "*.nothing: no file matched" in out.splitlines() and rc == 0,
               "a refetch replaces the stored file and a miss is reported")
         check(open(os.path.join(outputs, "x.cube")).read() == "new\n",
               "the stored x.cube is the new one")

@@ -121,5 +121,5 @@ Reconnect uses, so a machine that needs a password asks for it in the
 Organizer window. One line is printed for each file, `name: fetched (N
 bytes)`, for a pattern that matched nothing `pattern: no file matched`, and
 `name: not fetched: reason` when nothing could be fetched; the exit status is
-0 only when every pattern fetched something. Paths, URLs and the message
+0 when at least one file was fetched (or listed) and nothing was refused. Paths, URLs and the message
 without a running ECCE session are as for `ecce-launch`.

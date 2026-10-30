@@ -198,16 +198,19 @@ int main(int argc, char **argv)
     return 3;
   }
 
+  bool anyDone = false;
   for (size_t i = 0; i < gLines.size(); i++) {
     size_t a = gLines[i].find('\t');
     size_t b = a == string::npos ? a : gLines[i].find('\t', a + 1);
     if (b == string::npos) { std::cout << gLines[i] << std::endl; allOk = false; continue; }
     string name = gLines[i].substr(0, a), ok = gLines[i].substr(a + 1, b - a - 1),
            text = gLines[i].substr(b + 1);
-    if (ok == "ls") std::cout << text << std::endl;
-    else if (ok == "ok") std::cout << name << ": fetched (" << text << " bytes)" << std::endl;
-    else if (ok == "none") { std::cout << name << ": no file matched" << std::endl; allOk = false; }
+    if (ok == "ls") { std::cout << text << std::endl; anyDone = true; }
+    else if (ok == "ok") { std::cout << name << ": fetched (" << text << " bytes)" << std::endl; anyDone = true; }
+    else if (ok == "none") std::cout << name << ": no file matched" << std::endl;
     else { std::cout << name << ": not fetched: " << text << std::endl; allOk = false; }
   }
-  return allOk ? 0 : 1;
+  //  A default pattern with no match (*.cub beside *.cube) is not a failure;
+  //  fetching nothing at all is.
+  return allOk && anyDone ? 0 : 1;
 }
