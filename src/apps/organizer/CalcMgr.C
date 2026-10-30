@@ -3574,6 +3574,10 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
     // If the new name is different from old name, make the move..
     if (newName != oldUrl.getFilePathTail()) {
       EcceURL newUrl = oldUrl.getParent().getChild(newName);
+      if (refuseMoveOfActiveJob(res, "Rename")) {
+        stopDisabler();
+        return;
+      }
       if (res->move(newUrl)) {
         // Refresh the moved node
         p_treeCtrl->refresh(node);
@@ -5342,6 +5346,10 @@ void CalcMgr::OnTreectrlEndDrag( wxTreeEvent& event )
   string sourceName = sourceUrl.getFilePathTail();
   EcceURL newUrl = targetUrl.getChild(sourceName);
   
+  if (refuseMoveOfActiveJob(p_dragSource->getResource(), "Move")) {
+    stopDisabler();
+    return;
+  }
   if (p_dragSource->getResource()->move(newUrl)) {
     p_treeCtrl->refresh(p_treeCtrl->getParent(p_dragSource));
     p_treeCtrl->refresh(findNode(targetUrl, false, true));
@@ -5631,6 +5639,45 @@ void CalcMgr::copySelectionToClipboard(bool deleteAfterPaste)
  */
 // Menu state can lag behind the selection (keyboard Delete, accelerators),
 // so the handlers refuse system folders themselves.
+//  The job store writes a running job's results back to the calculation's
+//  address, so a calculation (or a folder holding one) is not renamed or
+//  moved while its job is submitted, running or waiting for login (#700).
+static bool activeJobIn(Resource *r, string& name, int depth)
+{
+  if (!r) return false;
+  if (TaskJob *job = dynamic_cast<TaskJob*>(r)) {
+    const ResourceDescriptor::RUNSTATE st = job->getState();
+    if (st == ResourceDescriptor::STATE_SUBMITTED ||
+        st == ResourceDescriptor::STATE_RUNNING ||
+        st == ResourceDescriptor::STATE_WAITING) {
+      name = r->getName();
+      return true;
+    }
+    return false;
+  }
+  if (depth > 8) return false;
+  vector<Resource*> *children = r->getChildren();
+  if (!children) return false;
+  for (size_t i = 0; i < children->size(); i++)
+    if (activeJobIn((*children)[i], name, depth + 1)) return true;
+  return false;
+}
+
+
+bool CalcMgr::refuseMoveOfActiveJob(Resource *res, const string& what)
+{
+  string name;
+  if (!activeJobIn(res, name, 0)) return false;
+  const string msg = what + " is not possible while the job of \"" + name +
+      "\" is submitted or running: its results are written back to where "
+      "the calculation is now. Wait until the job has ended, or terminate it.";
+  ewxMessageDialog dlg(this, msg, what + " Not Allowed",
+                       wxOK | wxICON_EXCLAMATION, wxDefaultPosition);
+  dlg.ShowModal();
+  return true;
+}
+
+
 bool CalcMgr::selectionHasSystemFolder()
 {
   if (!getSelection()) return false;
@@ -10228,6 +10275,8 @@ wxDragResult CalcMgr::dropInTree( const vector<EcceURL> & urls,
     if (def == wxDragMove && !sourceUrl.isLocal())
       def = wxDragCopy;
 
+    if (def == wxDragMove && refuseMoveOfActiveJob(source, "Move"))
+      continue;
     if (def == wxDragMove) {
       if (source->move(newUrl)) {
         notifyRename(sourceUrl.toString(), newUrl.toString(), "");
