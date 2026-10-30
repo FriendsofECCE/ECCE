@@ -83,7 +83,8 @@ the signed ψ; its ticks are powers of ten. Values that are zero cannot be drawn
 on a log axis and are left out.
 
 The mouse wheel zooms about the pointer (Shift+wheel zooms the vertical axis
-only), dragging a rectangle zooms to it, the
+only); on a linear vertical axis the bottom of the axis stays where it is,
+so the baseline below zero stays in view. Dragging a rectangle zooms to it, the
 right or middle button pans, and a double click returns to the opening view.
 **Show all** resets the zoom to show the whole curves, including the peaks that **clip peaks**
 cut off at the nuclei.
