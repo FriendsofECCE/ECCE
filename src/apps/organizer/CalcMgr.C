@@ -86,6 +86,7 @@ static std::string s_registerMessage;
 
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
+#include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
@@ -649,6 +650,10 @@ void CalcMgr::runTestCommand(const string& line)
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
       //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge]
       //     a code button without the dialog (type = e.g. orca_es)
+      //     point=last|max|N: the scan point the link carries
+      //   workflowjoin WF TYPE NAME SRC=role[@point] ...   a join, roles
+      //     reactant|product|tsguess; the step's structure files as
+      //     TS Search writes them: workflowqst WF STEP
       //   workflowinfo WF       steps, states, carried values and links
       //   workflowlaunch WF     Launch Ready Steps without dialogs
       //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
@@ -660,6 +665,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     labels, or "error: ..." with what threw (#681)
       std::istringstream args(calcName);
       string a, b, c, d, flag, geomFrom;
+      vector<string> joinArgs;
       int setCharge = -99, setMult = 0;
       WorkflowSteps::Carry carry;
       if (command == "workflowstep") {
@@ -668,11 +674,16 @@ void CalcMgr::runTestCommand(const string& line)
           if (flag == "nogeom") carry.geometry = false;
           if (flag == "nocharge") carry.chargeMult = false;
           if (flag.compare(0, 9, "geomfrom=") == 0) geomFrom = flag.substr(9);
+          if (flag.compare(0, 6, "point=") == 0) carry.point = flag.substr(6);
           if (flag.compare(0, 7, "charge=") == 0) setCharge = atoi(flag.c_str() + 7);
           if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
         }
-      } else if (command == "workflowcopy" || command == "workflowmenu") {
+      } else if (command == "workflowcopy" || command == "workflowmenu" ||
+                 command == "workflowqst") {
         args >> a >> b >> c;
+      } else if (command == "workflowjoin") {
+        args >> a >> b >> c;
+        while (args >> flag) joinArgs.push_back(flag);
       } else if (command == "workflowshot" || command == "workflowdialogshot") {
         args >> d >> a >> b >> c;       // d = PNG
       } else {
@@ -681,7 +692,8 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *wfNode = findNode(EcceURL(a), true, true);
       Session *wf = wfNode ? dynamic_cast<Session*>(wfNode->getResource()) : 0;
       ResourceType *rt = 0;
-      if (command == "workflowstep" || command == "workflowdialogshot") {
+      if (command == "workflowstep" || command == "workflowdialogshot" ||
+          command == "workflowjoin") {
         vector<ResourceType*> types =
             ResourceDescriptor::getResourceDescriptor().getResourceTypes();
         for (size_t i = 0; i < types.size() && !rt; i++)
@@ -720,6 +732,51 @@ void CalcMgr::runTestCommand(const string& line)
           }
           outcome = !rt ? "no resource type " + b
                   : made ? "ok " + result : "error: " + result;
+        }
+      } else if (command == "workflowjoin") {
+        vector<WorkflowSteps::JoinSource> sources;
+        string bad;
+        for (size_t i = 0; i < joinArgs.size(); i++) {
+          size_t eq = joinArgs[i].rfind('=');
+          Resource *src = eq == string::npos ? 0 : step(joinArgs[i].substr(0, eq));
+          if (!src) { bad = "no such source step " + joinArgs[i]; break; }
+          WorkflowSteps::JoinSource js = {src, "", ""};
+          const string rp = joinArgs[i].substr(eq + 1);
+          const size_t at = rp.find('@');
+          js.role = rp.substr(0, at);
+          if (at != string::npos) js.point = rp.substr(at + 1);
+          sources.push_back(js);
+        }
+        if (!bad.empty()) outcome = "error: " + bad;
+        else {
+          string result;
+          Resource *made = rt ? newWorkflowJoin(wf, rt, sources, false, &result,
+                                                c == "-" ? "" : c)
+                              : 0;
+          outcome = !rt ? "no resource type " + b
+                  : made ? "ok " + result : "error: " + result;
+        }
+      } else if (command == "workflowqst") {
+        // The structure files TS Search hands to the input generator.
+        ICalculation *calc = dynamic_cast<ICalculation*>(step(b));
+        if (!calc) outcome = "no such step";
+        else {
+          char tmpl[] = "/tmp/wfqst-XXXXXX";
+          if (!mkdtemp(tmpl)) outcome = "error: no temporary directory";
+          else {
+            string status, warning;
+            const bool neb = calc->runtype().name().compare(0, 25,
+                                           "Transition State (NEB-TS)") == 0;
+            const string base = string(tmpl) + "/ts";
+            char *here = getcwd(0, 0);
+            if (neb && chdir(tmpl) != 0) {}      // neb files go to the cwd
+            bool ok = neb ? nebWriteStructureFiles(calc, status, warning)
+                          : qstWriteStructureFiles(calc, base, status, warning);
+            if (here) { if (chdir(here) != 0) {} free(here); }
+            outcome = (ok ? "ok " : "error: ") + string(tmpl) + " runtype=" +
+                      calc->runtype().name() + " status=" + status +
+                      " warning=" + warning;
+          }
         }
       } else if (command == "workflowcopy") {
         ICalculation *from = dynamic_cast<ICalculation*>(
@@ -3720,7 +3777,8 @@ struct ExampleTopic {
   // a project; its calculations are the steps, linked as (source, target)
   // calculation names.
   bool workflow = false;
-  vector<std::pair<string, string>> links;
+  struct FlowLink { string from, to, name; };
+  vector<FlowLink> links;
 };
 struct ExampleSet {
   string id, title, line, project;
@@ -3796,11 +3854,24 @@ void collectExamples(const string &setDir, const string &topicDir,
     string l;
     while (std::getline(wf, l)) {
       std::istringstream words(l);
-      string folder, lt, source;
+      string folder, lt, tok;
       if (!(words >> folder) || folder[0] == '#') continue;
-      words >> lt >> source;
-      const string to = calcOf(folder), from = calcOf(source);
-      if (!to.empty() && !from.empty()) topic.links.push_back({from, to});
+      words >> lt;
+      // "<source>", "<source>@max" (a scan point), or for a join
+      // "<source>=<role>[@<point>]" for each source.
+      const string to = calcOf(folder);
+      while (words >> tok) {
+        const size_t at = tok.find('@');
+        const size_t eq = tok.find('=');
+        const size_t end = std::min(eq, at);
+        const string role = eq == string::npos ? string(WorkflowSteps::kGeometryLink)
+            : tok.substr(eq + 1, at == string::npos || at < eq ? string::npos
+                                                               : at - eq - 1);
+        const string point = at == string::npos ? string() : tok.substr(at + 1);
+        const string from = calcOf(tok.substr(0, end));
+        if (!to.empty() && !from.empty())
+          topic.links.push_back({from, to, WorkflowSteps::linkName(role, point)});
+      }
     }
   }
 }
@@ -4131,7 +4202,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     }
     Session *flow = topic.workflow ? dynamic_cast<Session*>(parent) : 0;
     if (flow)
-      for (const auto &l : topic.links) p_flowSources[l.second] = l.first;
+      for (const auto &l : topic.links)
+        p_flowSources[l.to].push_back({l.from, l.name});
     findNode(parent->getURL(), true, true);
     for (const ExampleOut *exp : todo->second) {
       const ExampleOut &ex = *exp;
@@ -4242,6 +4314,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"na_5_1_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (five waters in the first shell and one in the second) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
     {"na_4_2_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with four waters in the first shell and two beyond them, relaxed with the cheap method that starts the workflow."},
     {"na_4_2_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (four waters in the first shell and two beyond them) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
+    {"sn2_reactant", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies. This calculation shows the ion-dipole complex of chloride with methyl bromide, the first step of the SN2 workflow and the geometry the scan starts from."},
+    {"sn2_scan", "Gaussian 16, B3LYP/6-31+G(d), charge -1, relaxed scan of the C...Cl distance. This calculation shows the energy along the approach of chloride to the carbon, with a maximum whose structure is the transition-state guess of the join."},
+    {"sn2_product", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies, started from the last point of the scan. This calculation shows the product complex of methyl chloride and bromide."},
+    {"sn2_qst3", "Gaussian 16, B3LYP/6-31+G(d), charge -1, QST3 transition-state search and frequencies, a join of the reactant, the product and the maximum of the scan. This calculation shows a saddle point with one imaginary frequency, the inversion at carbon."},
+    {"sn2_irc", "Gaussian 16, B3LYP/6-31+G(d), charge -1, IRC in both directions from the transition state. This calculation shows the path from the transition state towards the reactant side and the product side."},
     {"methane", "NWChem, B3LYP/6-31G*. This calculation shows the effect of "
                 "tetrahedral symmetry: degenerate orbitals (a1, t2) and "
                 "degenerate vibrational modes."},
@@ -8538,6 +8615,62 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
 
 
 /**
+ * A join (WorkflowSteps::createJoin): the tree and the view follow and the
+ * Calculation Editor opens on the new step, where TS Search shows the picks.
+ */
+Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
+                                   const vector<WorkflowSteps::JoinSource>& given,
+                                   bool ask, string *outcome, const string& givenName)
+{
+  const WorkflowSteps::Code *code = 0;
+  for (size_t i = 0; i < WorkflowSteps::codes().size(); i++)
+    if (rt->getName() == WorkflowSteps::codes()[i].typeName)
+      code = &WorkflowSteps::codes()[i];
+  if (!wf || !code || !WorkflowSteps::canJoin(*code)) {
+    if (outcome) *outcome = "not a step type that takes a join";
+    return 0;
+  }
+  string name = givenName.empty() ? WorkflowSteps::defaultName(wf, *code)
+                                  : givenName;
+  vector<WorkflowSteps::JoinSource> sources = given;
+  if (ask) {
+    vector<Resource*> steps;
+    for (size_t i = 0; i < given.size(); i++) steps.push_back(given[i].step);
+    WorkflowJoinDialog dlg(this, wf, *code, rt, steps);
+    if (dlg.ShowModal() != wxID_OK) {
+      if (outcome) *outcome = "cancelled";
+      return 0;
+    }
+    name = dlg.name();
+    sources = dlg.sources();
+  }
+
+  FrameHold hold(this);
+  string why;
+  Resource *made = WorkflowSteps::createJoin(wf, rt, name, sources, why);
+  if (!made) {
+    if (outcome) *outcome = why.empty() ? "not created" : why;
+    if (ask) setMessage(why, WxFeedback::INFO);
+    return 0;
+  }
+  const EcceURL newurl = made->getURL();
+  WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
+  if (node) {
+    p_treeCtrl->refresh(node);
+    setContextPanel();
+    if (p_contextPanel) p_contextPanel->selectResource(newurl);
+  }
+  notifyCreate(newurl.toString());
+  if (ask) {
+    ResourceTool *tool = made->getDefaultTool();
+    if (tool) startApp(tool->getName(), 0, newurl.toString());
+  }
+  if (outcome) *outcome = newurl.toString();
+  return made;
+}
+
+
+/**
  * Launch Ready Steps: each step of the workflow not yet launched whose
  * source is Complete, with its own saved launch settings.  The others are
  * named in the message; nothing is launched on a later completion.
@@ -9394,17 +9527,18 @@ void CalcMgr::joinExampleWorkflow(Resource *step)
       for (Resource *m : members) if (m->getName() == name) return m;
       return 0;
     };
-    for (const auto &l : p_flowSources) {
-      Resource *to = member(l.first), *from = member(l.second);
-      if (!to || !from) continue;
-      bool linked = false;
-      // fresh each time: addLink() may rebuild the link objects
-      for (Session::Link *k : wf->getLinks())
-        if (same(k->source, from) && same(k->target, to)) linked = true;
-      if ((same(to, step) || same(from, step)) && !linked)
-        wf->addLink(from, to, Session::INPUT_PROVIDER,
-                    WorkflowSteps::kGeometryLink);
-    }
+    for (const auto &l : p_flowSources)
+      for (const auto &src : l.second) {
+        Resource *to = member(l.first), *from = member(src.first);
+        if (!to || !from) continue;
+        bool linked = false;
+        // fresh each time: addLink() may rebuild the link objects
+        for (Session::Link *k : wf->getLinks())
+          if (same(k->source, from) && same(k->target, to) &&
+              k->linkName == src.second) linked = true;
+        if ((same(to, step) || same(from, step)) && !linked)
+          wf->addLink(from, to, Session::INPUT_PROVIDER, src.second);
+      }
     wf->saveLinkbase();
   } catch (InvalidException &ex) {
     cerr << "Organizer: example workflow: " << ex.what() << endl;

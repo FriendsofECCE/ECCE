@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="ESCFVEC" rowLabel="Geometry Step" rows="1" units="Hartree">
+
+  <step number="1">-3071.92608048</step>
+  <step number="2">-3071.92698384</step>
+  <step number="3">-3071.92712300</step>
+  <step number="4">-3071.92723154</step>
+  <step number="5">-3071.92728386</step>
+  <step number="6">-3071.92730513</step>
+  <step number="7">-3071.92730726</step>
+
+</tsvector>

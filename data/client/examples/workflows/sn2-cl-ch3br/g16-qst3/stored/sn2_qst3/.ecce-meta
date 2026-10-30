@@ -1,0 +1,55 @@
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://purl.org/dc/terms/:taskIndex		2
+.	http://www.emsl.pnl.gov/ecce:annotation		Gaussian 16, B3LYP/6-31+G(d), charge -1, QST3 transition-state search and frequencies, a join of the reactant, the product and the maximum of the scan. This calculation shows a saddle point with one imaginary frequency, the inversion at carbon.
+.	http://www.emsl.pnl.gov/ecce:application		Gaussian-16
+.	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
+.	http://www.emsl.pnl.gov/ecce:completiondate		Fri, 30 Oct 2026 04:01:18 GMT
+.	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
+.	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Fri, 30 Oct 2026 04:01:14 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
+.	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
+.	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
+.	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		nerdegg
+.	http://www.emsl.pnl.gov/ecce:job_clientid		
+.	http://www.emsl.pnl.gov/ecce:job_jobid		
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/sn2_qst3__UzlPpL
+.	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
+.	http://www.emsl.pnl.gov/ecce:launch_machine		nerdegg
+.	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
+.	http://www.emsl.pnl.gov/ecce:launch_maxwall		
+.	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
+.	http://www.emsl.pnl.gov/ecce:launch_nodes		0
+.	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
+.	http://www.emsl.pnl.gov/ecce:launch_queue		
+.	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
+.	http://www.emsl.pnl.gov/ecce:launch_rundir		
+.	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
+.	http://www.emsl.pnl.gov/ecce:launch_user		
+.	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
+.	http://www.emsl.pnl.gov/ecce:moleculeDocument		chemsys.mvm
+.	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
+.	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
+.	http://www.emsl.pnl.gov/ecce:owner		andy
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793332875.874 at=1793332878\nscf cycle=1 energy=-3071.91691215 converged=yes\nopt step=6 maxgrad=0.000005/0.000450 rmsgrad=0.000002/0.000300 maxstep=0.000234/0.001800 rmsstep=0.000058/0.001200 converged=yes\nopt~ maxgrad=0.000355,0.001084,0.000301,0.000143,0.000110,0.000005,0.000005\nopt~ rmsgrad=0.000082,0.000315,0.000096,0.000046,0.000031,0.000002,0.000002\nfreq kind=analytic pass=8 real=11 imaginary=1 done=yes zpe=0.037354\n
+.	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
+.	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
+.	http://www.emsl.pnl.gov/ecce:rerun		false
+.	http://www.emsl.pnl.gov/ecce:resourcetype		virtual_document
+.	http://www.emsl.pnl.gov/ecce:reviewed		false
+.	http://www.emsl.pnl.gov/ecce:reviewedDate		
+.	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
+.	http://www.emsl.pnl.gov/ecce:runStatusReason		
+.	http://www.emsl.pnl.gov/ecce:runtype		Transition State (QST) + Frequencies
+.	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
+.	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
+.	http://www.emsl.pnl.gov/ecce:startdate		Fri, 30 Oct 2026 04:29:44 GMT
+.	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793332874
+.	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

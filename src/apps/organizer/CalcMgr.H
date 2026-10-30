@@ -320,6 +320,11 @@ public:
                             Resource *source, bool ask, string *outcome,
                             const string& name = "",
                             const WorkflowSteps::Carry& carry = WorkflowSteps::Carry());
+  /// A step taking several sources (G16 QST2/QST3, ORCA NEB-TS); ask shows
+  /// the join dialog with the given roles as its defaults.
+  Resource *newWorkflowJoin(Session *workflow, ResourceType *type,
+                            const vector<WorkflowSteps::JoinSource>& sources,
+                            bool ask, string *outcome, const string& name = "");
   void launchReadySteps(Session *workflow, bool interactive, string *outcome,
                         const string& shot);
   void createResource(ResourceType * resource,
@@ -653,7 +658,8 @@ protected:
   bool p_batchImport = false;
   // The workflow example being imported: target step -> source step (names).
   // A step joins its session, and the links are made, when its import is done.
-  std::map<std::string, std::string> p_flowSources;
+  std::map<std::string, std::vector<std::pair<std::string, std::string> > >
+    p_flowSources;   // target calc -> (source calc, link name)
   void joinExampleWorkflow(Resource *step);
   std::string p_batchError;     // the first import that failed in the batch
   int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;

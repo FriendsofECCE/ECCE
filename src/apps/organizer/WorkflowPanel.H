@@ -11,6 +11,7 @@
 
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
+
 #endif
 
 #include <string>
@@ -27,6 +28,7 @@ class ResourceType;
 class Session;
 class WorkflowCanvas;
 class WxResourceTreeItemData;
+class PointChooser;
 
 class WorkflowPanel : public ewxPanel
 {
@@ -38,6 +40,13 @@ public:
   void selectResource(const EcceURL& url);
   void loseFocus();
   EcceURL selected() const { return p_selected; }
+
+  /// Ctrl-click on a box adds it to (or takes it from) the boxes a join
+  /// takes; a plain click leaves only that box.
+  void pick(const EcceURL& step, bool add);
+
+  /// The boxes a code button works on: the picked ones, or the selected one.
+  std::vector<Resource*> pickedSteps() const;
 
   /// A code button: asks for the step's details and makes it.
   void codeClicked(size_t code);
@@ -56,10 +65,13 @@ private:
   friend class WorkflowCanvas;
   void createControls();
   void updateTexts();
+  void joinClicked(const WorkflowSteps::Code& code, ResourceType *rt,
+                   const std::vector<Resource*>& sources);
 
   CalcMgr *p_calcMgr;
   Session *p_session;
   EcceURL p_selected;
+  std::vector<EcceURL> p_picked;
   WorkflowCanvas *p_canvas;
   wxStaticText *p_help;
   wxStaticText *p_status;
@@ -84,8 +96,38 @@ private:
   Session *p_session;
   ResourceType *p_type;
   wxTextCtrl *p_name;
+  PointChooser *p_point;
   wxCheckBox *p_geometry;
   wxCheckBox *p_charge;
+  wxStaticText *p_problem;
+  wxButton *p_create;
+};
+
+
+
+/// Asks for a join's name and the role of each source (reactant, product,
+/// TS guess), and the scan point of each source that is a scan.
+class WorkflowJoinDialog : public wxDialog
+{
+public:
+  WorkflowJoinDialog(wxWindow *parent, Session *wf,
+                     const WorkflowSteps::Code& code, ResourceType *type,
+                     const std::vector<Resource*>& sources);
+
+  std::string name() const;
+  std::vector<WorkflowSteps::JoinSource> sources() const;
+
+private:
+  void validate();
+
+  Session *p_session;
+  ResourceType *p_type;
+  WorkflowSteps::Code p_code;
+  std::vector<Resource*> p_steps;
+  wxTextCtrl *p_name;
+  std::vector<wxChoice*> p_role;
+  std::vector<PointChooser*> p_points;
+  wxStaticText *p_what;
   wxStaticText *p_problem;
   wxButton *p_create;
 };

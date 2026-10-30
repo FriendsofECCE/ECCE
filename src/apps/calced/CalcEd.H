@@ -17,7 +17,7 @@ using std::vector;
 #include "tdat/SpinMult.H"
 #include "tdat/TRunType.H"
 #include "tdat/TTheory.H"
-#include "QstStructures.H"
+#include "dsm/QstStructures.H"
 #include "tdat/ESPConstraintModel.H"
 #include "tdat/GeomConstraintModel.H"
 
