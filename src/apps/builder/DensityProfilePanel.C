@@ -215,6 +215,7 @@ void DensityProfilePanel::build()
                                  wxSP_LIVE_UPDATE | wxSP_3DSASH);
   p_list = new wxCheckListBox(p_outer, ID_LIST, wxDefaultPosition, wxSize(-1, 46));
   p_plot = new XYPlotCanvas(p_inner);
+  p_plot->setKeepYBottom(true);
   p_plot->SetMinSize(wxSize(240, 160));
   p_text = new wxTextCtrl(p_inner, wxID_ANY, wxEmptyString, wxDefaultPosition,
                           wxSize(-1, 44), wxTE_MULTILINE | wxTE_READONLY);

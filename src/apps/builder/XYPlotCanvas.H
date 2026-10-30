@@ -191,6 +191,9 @@ class XYPlotCanvas : public wxPanel
     XScale xScale() const { return p_xScale; }
     void setYLog(bool on) { p_yLog = on; p_zoomed = false; Refresh(); }
     bool yLog() const { return p_yLog; }
+    /** Zooming keeps the bottom of a linear y axis where it is, so a curve
+     *  that dips below zero keeps its baseline in view (Density Profile). */
+    void setKeepYBottom(bool on) { p_keepYBottom = on; }
 
     /** Shown instead of the plot, for a quantity that is zero everywhere. */
     void setMessage(const wxString& m) { p_message = m; Refresh(); }
@@ -528,6 +531,7 @@ class XYPlotCanvas : public wxPanel
     bool p_whole = false;
     XScale p_xScale = X_LINEAR;
     bool p_yLog = false;
+    bool p_keepYBottom = false;
     wxString p_message;
 
     struct Curve
@@ -945,6 +949,7 @@ class XYPlotCanvas : public wxPanel
     void zoomAbout(double cx, double cy, double factor, bool alsoX = true)
     {
       startView();
+      if (p_keepYBottom && !p_yLog) cy = p_vy0;
       if (alsoX) {
         p_vx0 = cx + (p_vx0 - cx) * factor;  p_vx1 = cx + (p_vx1 - cx) * factor;
       }
