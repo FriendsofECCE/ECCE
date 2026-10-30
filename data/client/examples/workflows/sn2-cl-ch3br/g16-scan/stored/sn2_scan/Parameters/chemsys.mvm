@@ -1,0 +1,34 @@
+title: Cl- + CH3Br relaxed scan of C...Cl
+type: molecule
+fragment_attributes:
+  charge: -1
+end_fragment_attributes:
+num_atoms: 6
+atom_info: symbol cart
+atom_list: 
+C -1.46149 0.000740000 -0.000271000
+H -1.09600 0.987818 -0.275265
+H -1.09536 -0.254318 0.991903
+H -1.09506 -0.730866 -0.717193
+Br 1.91631 -7.00000e-05 2.30000e-05
+Cl -3.23621 -0.000272000 8.10000e-05
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        4   1
+        1   1
+        1   1
+        1   1
+        0   1
+        1   1
+num_bonds: 4
+bond_list: 
+1 2 1.00000 1
+1 3 1.00000 1
+1 4 1.00000 1
+1 6 1.00000 1

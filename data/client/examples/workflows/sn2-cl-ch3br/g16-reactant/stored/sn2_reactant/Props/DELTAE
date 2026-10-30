@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="DELTAE" rowLabel="Wave Step" rows="1" units="Hartree">
+
+  <step number="1">-0.034935043764</step>
+  <step number="2">-0.038889268220</step>
+  <step number="3">-0.022057038024</step>
+  <step number="4">-0.000995806049</step>
+  <step number="5">-0.000075962796</step>
+  <step number="6">-0.000005285416</step>
+  <step number="7">-0.000000011567</step>
+  <step number="8">-0.000000000968</step>
+  <step number="9">-0.000000000098</step>
+  <step number="10">-0.000000000005</step>
+  <step number="11">0.092577806244</step>
+  <step number="12">-0.093188798967</step>
+  <step number="13">0.000145991781</step>
+  <step number="14">-0.000447493342</step>
+  <step number="15">-0.000001716765</step>
+  <step number="16">-0.000000125297</step>
+  <step number="17">-0.000000006120</step>
+  <step number="18">-0.000000000388</step>
+  <step number="19">-0.000000000010</step>
+  <step number="20">0.000000000001</step>
+  <step number="21">-0.000029948113</step>
+  <step number="22">-0.000000623266</step>
+  <step number="23">-0.000001323693</step>
+  <step number="24">-0.000000113583</step>
+  <step number="25">-0.000000003576</step>
+  <step number="26">-0.000000000212</step>
+  <step number="27">-0.000000000059</step>
+  <step number="28">0.000000000000</step>
+  <step number="29">-0.000107120942</step>
+  <step number="30">0.000003749822</step>
+  <step number="31">-0.000010302932</step>
+  <step number="32">-0.000000057189</step>
+  <step number="33">-0.000000010860</step>
+  <step number="34">-0.000000001007</step>
+  <step number="35">-0.000000000111</step>
+  <step number="36">-0.000000000003</step>
+  <step number="37">-0.000066949308</step>
+  <step number="38">0.000005391827</step>
+  <step number="39">-0.000010262754</step>
+  <step number="40">-0.000000089275</step>
+  <step number="41">-0.000000006966</step>
+  <step number="42">-0.000000000365</step>
+  <step number="43">-0.000000000007</step>
+  <step number="44">0.000000000008</step>
+  <step number="45">-0.000015079784</step>
+  <step number="46">0.000000970852</step>
+  <step number="47">-0.000001841981</step>
+  <step number="48">-0.000000012924</step>
+  <step number="49">-0.000000000439</step>
+  <step number="50">-0.000000000109</step>
+  <step number="51">0.000000000002</step>
+  <step number="52">-0.000002796726</step>
+  <step number="53">0.000000025336</step>
+  <step number="54">-0.000000119370</step>
+  <step number="55">-0.000000002197</step>
+  <step number="56">-0.000000000175</step>
+  <step number="57">-0.000000000032</step>
+  <step number="58">0.000000000003</step>
+
+</tsvector>

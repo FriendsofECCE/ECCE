@@ -1,0 +1,55 @@
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://purl.org/dc/terms/:taskIndex		4
+.	http://www.emsl.pnl.gov/ecce:annotation		Gaussian 16, B3LYP/6-31+G(d), charge -1, relaxed scan of the C...Cl distance. This calculation shows the energy along the approach of chloride to the carbon, with a maximum whose structure is the transition-state guess of the join.
+.	http://www.emsl.pnl.gov/ecce:application		Gaussian-16
+.	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
+.	http://www.emsl.pnl.gov/ecce:completiondate		Fri, 30 Oct 2026 04:01:32 GMT
+.	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
+.	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
+.	http://www.emsl.pnl.gov/ecce:creationdate		Fri, 30 Oct 2026 04:01:14 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
+.	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
+.	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
+.	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		nerdegg
+.	http://www.emsl.pnl.gov/ecce:job_clientid		
+.	http://www.emsl.pnl.gov/ecce:job_jobid		
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/sn2_scan__E7RyT4
+.	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
+.	http://www.emsl.pnl.gov/ecce:launch_machine		nerdegg
+.	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
+.	http://www.emsl.pnl.gov/ecce:launch_maxwall		
+.	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
+.	http://www.emsl.pnl.gov/ecce:launch_nodes		0
+.	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
+.	http://www.emsl.pnl.gov/ecce:launch_queue		
+.	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
+.	http://www.emsl.pnl.gov/ecce:launch_rundir		
+.	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
+.	http://www.emsl.pnl.gov/ecce:launch_user		
+.	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
+.	http://www.emsl.pnl.gov/ecce:moleculeDocument		chemsys.mvm
+.	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
+.	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
+.	http://www.emsl.pnl.gov/ecce:owner		andy
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=12 sent=1793332887.823 at=1793332892\nscf cycle=7 energy=-3071.92929368 dE=0.000000000004 converged=yes\nscf~ dE=-0.000000847770,-0.000000007128,-0.000000008503,-0.000000000367,-0.000000000025,0.000000000004\nopt step=4 dE=-1.00e-06 maxgrad=0.000023/0.000450 rmsgrad=0.000011/0.000300 maxstep=0.000311/0.001800 rmsstep=0.000141/0.001200 converged=yes\nopt~ maxgrad=0.000021,0.008050,0.003287,0.001138,0.000116,0.008365,0.000276,0.000048,0.008759,0.000423,0.000037,0.009170,0.000885,0.000182,0.000036,0.009576,0.000703,0.000112,0.000041,0.009814,0.001802,0.000391,0.000265,0.000016,0.009574,0.001891,0.000506,0.000167,0.000006,0.010278,0.001284,0.000348,0.000108,0.000043,0.011539,0.000630,0.000215,0.000153,0.000043,0.000009,0.011947,0.000769,0.000226,0.000126,0.012072,0.001223,0.000468,0.000067,0.012002,0.000705,0.000122,0.000071,0.011785,0.000783,0.000168,0.000023\nopt~ rmsgrad=0.000004,0.002160,0.000709,0.000259,0.000044,0.002218,0.000073,0.000011,0.002307,0.000136,0.000018,0.002437,0.000211,0.000068,0.000014,0.002638,0.000183,0.000051,0.000015,0.002942,0.000395,0.000154,0.000103,0.000006,0.003424,0.000419,0.000165,0.000043,0.000003,0.004136,0.000331,0.000121,0.000041,0.000018,0.004569,0.000278,0.000082,0.000053,0.000016,0.000004,0.004712,0.000296,0.000088,0.000043,0.004757,0.000427,0.000169,0.000030,0.004749,0.000299,0.000047,0.000027,0.004698,0.000266,0.000056,0.000011\nopt~ dE=-5.75e-04,-4.81e-05,-1.61e-05,-5.93e-04,-1.97e-06,-5.54e-04,-3.75e-06,-5.43e-04,-5.26e-06,-7.62e-07,-6.18e-04,-7.55e-06,-1.04e-06,-8.71e-04,-4.27e-05,-2.70e-06,-1.82e-06,-1.60e-03,-1.76e-04,-4.26e-06,-4.25e-07,-2.22e-03,-5.92e-05,-3.50e-06,3.27e-07,-1.73e-03,-2.44e-05,-1.86e-06,-1.37e-06,-1.69e-07,-1.56e-03,-2.30e-05,-2.72e-06,-1.48e-03,-2.00e-05,-5.43e-06,-1.41e-03,-1.76e-05,-1.21e-06,-1.35e-03,-7.99e-06,-1.00e-06\nscan point=14/14\n
+.	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
+.	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
+.	http://www.emsl.pnl.gov/ecce:rerun		false
+.	http://www.emsl.pnl.gov/ecce:resourcetype		virtual_document
+.	http://www.emsl.pnl.gov/ecce:reviewed		false
+.	http://www.emsl.pnl.gov/ecce:reviewedDate		
+.	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
+.	http://www.emsl.pnl.gov/ecce:runStatusReason		
+.	http://www.emsl.pnl.gov/ecce:runtype		Geometry
+.	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
+.	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
+.	http://www.emsl.pnl.gov/ecce:startdate		Fri, 30 Oct 2026 03:43:39 GMT
+.	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793332875
+.	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
