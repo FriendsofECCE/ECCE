@@ -4,8 +4,9 @@ Workflows imports Na hydration as a Workflow session, not as loose calculations.
 
     tests/apps/examples_workflow_test.py [--shots DIR]
 
-Checks the six steps (three xTB, three ORCA), the "geometry" link from each
-xTB step to its ORCA step, the charge and multiplicity of every step, and that
+Checks the nine steps (three xTB, three ORCA gas, three ORCA water), the
+"geometry" links xTB > gas > water, that each water step starts from the Hessian
+of its gas step, the charge and multiplicity of every step, and that
 no label of the drawing touches a box, a line or an arrow.  --shots keeps the
 screenshot of the view.  A right-click on an ORCA and an xTB box builds the
 context menu without an exception (#681); the first-start import of the
@@ -90,14 +91,23 @@ def run(display, data, work, shots):
         return fail(what, "no workflowinfo answer %r" % info, log)
     table = steps(info[0][3:])
     links = info[0].split(" links:")[1].split()
-    expect = {"na_%s_%s" % (n, k) for n in ARRANGEMENTS for k in ("xtb", "orca")}
-    check("six steps", set(table) == expect, "steps %s" % sorted(table))
+    expect = {"na_%s_%s" % (n, k) for n in ARRANGEMENTS
+              for k in ("xtb", "orca", "orca_water")}
+    check("nine steps", set(table) == expect, "steps %s" % sorted(table))
     check("codes", all(table.get("na_%s_xtb" % n, {}).get("code") == "xtb" and
-                       table.get("na_%s_orca" % n, {}).get("code") == "ORCA"
-                       for n in ARRANGEMENTS), "%s" % table)
-    check("each xTB step is the source of its ORCA step",
-          sorted(links) == sorted("na_%s_xtb>na_%s_orca:geometry" % (n, n)
-                                  for n in ARRANGEMENTS), "links %s" % links)
+                       table.get("na_%s_%s" % (n, e), {}).get("code") == "ORCA"
+                       for n in ARRANGEMENTS for e in ("orca", "orca_water")),
+          "%s" % table)
+    check("xTB > gas > water links",
+          sorted(links) == sorted(
+              ["na_%s_xtb>na_%s_orca:geometry" % (n, n) for n in ARRANGEMENTS] +
+              ["na_%s_orca>na_%s_orca_water:geometry" % (n, n)
+               for n in ARRANGEMENTS]), "links %s" % links)
+    check("water steps carry the Hessian of their gas step, no other step does",
+          all(table["na_%s_orca_water" % n].get("hess") == "na_%s_orca" % n
+              for n in ARRANGEMENTS) and
+          not any("hess" in r for k, r in table.items()
+                  if not k.endswith("_water")), "%s" % table)
     check("charge 1 and multiplicity 1 on every step",
           all(r.get("charge") == "1" and r.get("mult") == "1"
               for r in table.values()), "%s" % table)
@@ -107,8 +117,8 @@ def run(display, data, work, shots):
                                 for m in got),
           "workflowmenu answered %r" % got)
     shot = answer("workflowshot")
-    check("view saved, six boxes, three links, labels clear",
-          bool(shot) and shot[0].startswith("ok boxes=6 links=3 label-overlaps=0"),
+    check("view saved, nine boxes, six links, labels clear",
+          bool(shot) and shot[0].startswith("ok boxes=9 links=6 label-overlaps=0"),
           "workflowshot answered %r" % shot)
     check("view screenshot exists",
           os.path.exists(png) and os.path.getsize(png) > 5000, png)

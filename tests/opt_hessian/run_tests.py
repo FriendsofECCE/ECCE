@@ -95,6 +95,15 @@ def orca():
           "Read -> inhess read + InHessName", g)
     check("inhess" not in deck("orca", H % "Calculate" + F).lower(),
           "a file without the Read choice is ignored")
+    # A workflow water step: the Hessian file is declared as an auxiliary
+    # input, which is what makes Launch stage it into the run directory.
+    edml = open(os.path.join(ROOT, "data", "client", "cap", "ORCA.edml")).read()
+    check('<Input   type="auxiliary" mimetype="chemical/x-orca-hess">inhess.hess</Input>' in edml,
+          "ORCA.edml declares inhess.hess as an auxiliary input")
+    g = geom_block(deck("orca", H % "Read from previous calculation" + F +
+                        "ES.Runtype.GeomOpt.MaximumStepsValue: 100\n"))
+    check('inhess read' in g and 'InHessName "inhess.hess"' in g and "MaxIter 100" in g,
+          "Read + MaxIter: both in %geom", g)
 
 
 def checker():

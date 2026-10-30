@@ -277,7 +277,8 @@ sorted by topic, each calculation with a note:
 * **Getting Started**: small calculations with ECCE-QM, MOPAC, NWChem,
   ORCA and xTB, imported at first start.
 * **Workflows**: hydrated Na+: xTB optimises arrangements of
-  Na+(H2O)6 and ORCA refines each result.
+  Na+(H2O)6 and ORCA refines each result in the gas phase and in water,
+  the water step starting from the Hessian of the gas step.
 * **General Chemistry**: atoms; ionisation energies and electron
   affinities; Koopmans' theorem; molecular orbitals of diatomics; polar
   bonds and dipole moments; VSEPR; Lewis structures and resonance; gases,
