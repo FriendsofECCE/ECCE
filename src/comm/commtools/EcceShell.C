@@ -368,7 +368,8 @@ string EcceShell::sshTerminal(RefMachine* refMachine, const string& shell,
   RCommand rcmd(refMachine->fullname(), shell, refMachine->shell(), user,
                 password, refMachine->frontendMachine(),
                 refMachine->frontendBypass(), refMachine->shellPath(),
-                refMachine->libPath(), refMachine->sourceFile());
+                refMachine->libPath(), refMachine->sourceFile(),
+                refMachine->twoFactorAuth() == "totp");
   if (!rcmd.isOpen()) {
     ErrMsg().flush();
     p_status = -1;
@@ -464,7 +465,8 @@ string EcceShell::remoteShell
   RCommand rcmd(refMachine->fullname(), shell, refMachine->shell(), user,
                 password, refMachine->frontendMachine(),
                 refMachine->frontendBypass(), refMachine->shellPath(),
-                refMachine->libPath(), refMachine->sourceFile());
+                refMachine->libPath(), refMachine->sourceFile(),
+                refMachine->twoFactorAuth() == "totp");
   if (!rcmd.isOpen()) {
     ErrMsg().flush();
     p_status = -1;

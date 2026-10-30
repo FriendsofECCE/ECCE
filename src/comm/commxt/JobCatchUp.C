@@ -62,6 +62,7 @@ bool JobCatchUp::loginFor(const TaskJob* calc, RCommandLogin& login, string& why
   login.shellPath = m->shellPath();
   login.libPath = m->libPath();
   login.sourceFile = m->sourceFile();
+  login.requireTotp = m->twoFactorAuth() == "totp";
   delete m;
   return true;
 }

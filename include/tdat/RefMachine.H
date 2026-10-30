@@ -76,6 +76,8 @@ public:
     string        shell(void) const;
     string        frontendMachine(void) const;
     string        frontendBypass(void) const;
+    // The machine's configured SSH second factor: "totp" or "none".
+    string        twoFactorAuth(void) const;
     // The machine's own allocation query ("" = use the queue manager's)
     string        allocationCommand(void) const;
     bool          singleConnect(void) const;
@@ -87,14 +89,9 @@ public:
     // ssh, no file transfer, no job monitoring. Set by the "noRemoteAccess"
     // key in the machine's config file.
     //
-    // This is the two-factor-authentication case (issue #94): an
-    // interactive 2FA prompt cannot be satisfied by ECCE's automated
-    // remote-shell layer, so every remote operation fails and the user
-    // loses input generation and output analysis too, neither of which
-    // needs the remote machine. With this set, Launch stops after
-    // generating the input deck and the submit script locally and tells
-    // the user where they are; the user moves, submits and retrieves the
-    // job themselves.
+    // Set this when ECCE must not perform any remote operation. For a host
+    // that asks for a TOTP code, use twoFactorAuth() instead; ECCE can prompt
+    // during SSH authentication and wait for the login to complete.
     //
     // Distinct from userSubmit(), which still transfers files over ssh and
     // only leaves the final submit command to the user.

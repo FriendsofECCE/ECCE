@@ -28,6 +28,7 @@ namespace SchedulerQuery
     {
         string machine, remShell, locShell, userName, password,
                frontendMachine, frontendBypass, shellPath, libPath, sourceFile;
+        bool requireTotp = false;
     };
 
     /// One queue as the scheduler reports it, in the units of the .Q file:

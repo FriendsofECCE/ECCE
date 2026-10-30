@@ -376,6 +376,19 @@ string RefMachine::frontendBypass(void) const
 }
 
 
+string RefMachine::twoFactorAuth(void) const
+{
+  string mode;
+  map<string,string> config = RefMachine::config(refname());
+  if (findConfig(config, "twoFactorAuth", mode)) {
+    string lowered;
+    StringConverter::toLower(mode, lowered);
+    if (lowered == "totp") return lowered;
+  }
+  return "none";
+}
+
+
 string RefMachine::allocationCommand(void) const
 {
   map<string,string> config = RefMachine::config(refname());

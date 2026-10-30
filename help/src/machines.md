@@ -146,8 +146,11 @@ described in [Register Machines](register-machines.md).
 
 ECCE connects to ssh machines with its own ssh library. It asks for the
 password, the verification code or an unknown host key in dialogs, so you
-do not need a terminal. If the machine needs a two-factor login that ECCE
-cannot answer, use the `dummy` machine instead (see below).
+do not need a terminal. For a host that uses a TOTP verification code, set
+**Two factor authentication** to **TOTP** on the **Connection** tab. ECCE
+prompts for the code while opening SSH and reports a failed login if the
+host rejects it. Other two-factor methods that ECCE cannot answer can use
+the `dummy` machine instead (see below).
 
 Code settings that are not paths, such as `module load` lines, go on the
 **Job script** and **Codes** tabs; see [Register
@@ -277,7 +280,7 @@ and copies the output back as usual.
 ### Don't submit; only make the files
 
 **Use it when** ECCE cannot log in to the machine at all, for example when
-the machine requires two-factor authentication.
+the machine requires a two-factor method other than the supported TOTP mode.
 
 **ECCE does:** writes the input and the job script on this computer and
 stops. It never contacts the machine, and says which directory holds the

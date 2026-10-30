@@ -477,7 +477,7 @@ bool Remote::open(string& err)
         p_rc = new RCommand(p_c.machine, p_c.remShell, p_c.locShell,
                             p_c.userName, p_c.password, p_c.frontendMachine,
                             p_c.frontendBypass, p_c.shellPath, p_c.libPath,
-                            p_c.sourceFile);
+                            p_c.sourceFile, p_c.requireTotp);
     if (!p_rc->isOpen())
     {
         p_err = err = p_rc->commError();

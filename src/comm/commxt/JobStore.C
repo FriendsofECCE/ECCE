@@ -1937,7 +1937,8 @@ void initConn(void)
     if (remoteconn == (RCommand*)0)
       remoteconn = new RCommand(cpServerName, cpRemoteShell, cpLocalShell,
                                 cpUserName, "", frontendMachine, frontendBypass,
-                                shellPath, libPath, sourceFile);
+                                shellPath, libPath, sourceFile,
+                                refMachine->twoFactorAuth() == "totp");
   } else
     (void)remoteconn->hop(nodeForRestart, cpLocalShell, cpUserName,
                           "", shellPath, libPath, sourceFile);

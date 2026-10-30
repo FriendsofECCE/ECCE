@@ -464,7 +464,8 @@ string MachineBrowser::queryStatus(int mode)
 
     RCommand cnctn(fullName, remShell, shell, userName, password,
                    frontendMachine, frontendBypass,
-                   shellPath, libPath, sourceFile);
+                   shellPath, libPath, sourceFile,
+                   rgstn->twoFactorAuth() == "totp");
 
     if (cnctn.isOpen())
     {

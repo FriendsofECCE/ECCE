@@ -703,7 +703,8 @@ bool Launch::validateRemoteLogin(void)
                                   p_cache->remoteShell, locShell,
                                   p_cache->userName, password,
                                   frontendMachine, frontendBypass,
-                                  shellPath, libPath, sourceFile);
+                                  shellPath, libPath, sourceFile,
+                                  refMachine->twoFactorAuth() == "totp");
 
   } else {
     p_lastMessage = p_cache->machineName;

@@ -291,6 +291,15 @@ static bool looksLikeCode(const string& prompt)
          l.find("duo")!=string::npos || l.find("code")!=string::npos;
 }
 
+static bool looksLikePassword(const string& prompt)
+{
+  string l;
+  for (size_t i = 0; i < prompt.size(); i++)
+    l += (char)tolower((unsigned char)prompt[i]);
+  return l.find("password") != string::npos ||
+         l.find("passphrase") != string::npos;
+}
+
 // Logs in over libssh: the password given, then AuthCache, then passdialog;
 // passdialog's "passcode" for what looks like a second factor.
 bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
@@ -314,11 +323,17 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
     c->passTried = false;
     return c;
   };
-  auto promptFor = [shell, theUser](std::shared_ptr<Creds> c, const string& host) {
-    return SshTransport::PromptFn([c, shell, host, theUser](const string& prompt,
+  auto promptFor = [shell, theUser](std::shared_ptr<Creds> c,
+                                    const string& host, bool totp) {
+    return SshTransport::PromptFn([c, shell, host, theUser, totp](const string& prompt,
                                                             bool echo, string& answer) {
-      if (echo || looksLikeCode(prompt))
-        return askPassdialog("passcode", host, theUser, answer);
+      if (echo || looksLikeCode(prompt) ||
+          (totp && !looksLikePassword(prompt))) {
+        const bool ok = askPassdialog(totp ? "TOTP code" : "passcode",
+                                      host, theUser, answer);
+        if (!ok) c->cancelled = true;
+        return ok;
+      }
       if (!c->passTried &&
           (c->pass != "" || RCommand::getPassCache(shell, host, theUser, c->pass))) {
         c->passTried = true;
@@ -340,10 +355,10 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
   SshTransport* t = new SshTransport(machine, 0, userName);
   t->setConnectTimeout(connectTimeout());
   t->setPasswordAttempts(3);
-  t->setPromptCallback(promptFor(c, machine));
+  t->setPromptCallback(promptFor(c, machine, p_requireTotp));
   if (jumpHost != "") {
     t->setJumpHost(jumpHost, 0, userName);
-    t->setJumpPromptCallback(promptFor(cj, jumpHost));
+    t->setJumpPromptCallback(promptFor(cj, jumpHost, false));
   }
   t->setHostKeyCallback([hk](const string& host, const string& fingerprint,
                              const string& keyType) {
@@ -400,7 +415,8 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
 RCommand* RCommandLogin::open() const
 {
   return new RCommand(machine, remShell, locShell, user, password, frontend,
-                      frontendBypass, shellPath, libPath, sourceFile);
+                      frontendBypass, shellPath, libPath, sourceFile,
+                      requireTotp);
 }
 
 int RCommand::connectTimeout()
@@ -538,6 +554,20 @@ bool RCommand::useOpenssh(const string& machine, const string& userName,
 bool RCommand::sshConnect(const string& machine, const string& userName,
                           const string& password, const string& jumpHost)
 {
+  // OpenSSH's askpass path classifies prompts from their text. Use libssh for
+  // an explicitly configured TOTP machine so an unfamiliar prompt can still
+  // be sent to the code dialog and authentication completion is observed here.
+  if (p_requireTotp) {
+#ifdef ECCE_HAVE_LIBSSH
+    const bool ok = sshConnectLibssh(machine, userName, password, jumpHost);
+    if (!ok)
+      p_errMessage = "TOTP login failed: " + p_errMessage;
+    return ok;
+#else
+    p_errMessage = "TOTP login failed: this ECCE build has no libssh support";
+    return false;
+#endif
+  }
   if (useOpenssh(machine, userName, jumpHost)) {
     bool tryLibssh = false;
     if (sshConnectOpenssh(machine, userName, jumpHost, password, &tryLibssh))
@@ -810,13 +840,15 @@ RCommand::RCommand(const string& machine, const string& remShell,
                    const string& locShell, const string& userName,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
-                   const string& libPath, const string& sourceFile)
+                   const string& libPath, const string& sourceFile,
+                   bool requireTotp)
 {
   p_connected = false;
   p_timeout = RC_EXEC_TIMEOUT;
   p_transport = 0;
   p_ssh = false;
   p_sshStream = 0;
+  p_requireTotp = requireTotp;
 
   noteLegacyTransport();
 

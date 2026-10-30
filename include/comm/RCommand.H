@@ -43,6 +43,7 @@ class RCommand;
 struct RCommandLogin {
   string machine, remShell, locShell = "bash", user, password,
          frontend, frontendBypass, shellPath, libPath, sourceFile;
+  bool requireTotp = false;
   RCommand* open() const;
 };
 
@@ -61,7 +62,8 @@ public:
              const string& locShell="bash", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
-             const string& libPath="", const string& sourceFile="");
+             const string& libPath="", const string& sourceFile="",
+             bool requireTotp=false);
 
   // Destructor
     ~RCommand(void);
@@ -262,6 +264,7 @@ private:
     bool p_loginPrompted = false;
     bool p_loginRefused = false;
     bool p_timedOut = false;
+    bool p_requireTotp = false;
     Transport* p_transport;  // null until a connection is made
     bool p_ssh;              // the Transport is a RemoteTransport
     string p_scriptPrefix;   // PATH/LD_LIBRARY_PATH setup for every script
