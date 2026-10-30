@@ -3285,12 +3285,28 @@ void CalcEd::refit()
   GetSizer()->SetSizeHints(this);
   fitToScreen();
   //  On a scaled display the content outgrows the window and scrolls; the
-  //  Settings box (theory, run type and their details) must be in view when
-  //  a calculation opens, but later refits must not undo the user's scroll.
+  //  Settings box must be in view when a calculation opens, but later
+  //  refits must not undo the user's scroll.
   if (p_revealSettings && p_detailsBox) {
-    ewxWindowUtils::revealInScroller(p_detailsBox);
     p_revealSettings = false;
+    revealSettingsWhenShown(40);
   }
+}
+
+
+//  The scroller exists and is laid out only once the window is shown, which
+//  is after the first refit; wait for that (a few idle rounds at most).
+void CalcEd::revealSettingsWhenShown(int tries)
+{
+  CallAfter([this, tries]() {
+    if (!p_detailsBox) return;
+    if ((!IsShown() || !p_detailsBox->IsShownOnScreen()) && tries > 0) {
+      revealSettingsWhenShown(tries - 1);
+      return;
+    }
+    Layout();
+    ewxWindowUtils::revealInScroller(p_detailsBox);
+  });
 }
 
 

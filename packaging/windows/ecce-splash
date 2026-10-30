@@ -93,9 +93,25 @@ def stop_requested():
         return False
 
 
+def _declare_dpi_aware():
+    """Windows stretches a window of a DPI-unaware process (fuzzy text);
+    declare awareness before the first window exists.  Errors ignored."""
+    if sys.platform != "win32":
+        return
+    import ctypes
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+
+
 def main():
     import wx
     import wx.adv
+    _declare_dpi_aware()
     app = wx.App(False)
     card = wx.Bitmap(os.path.join(ECCE_HOME, "data", "client", "pixmaps",
                                   "ecce-splash.png"), wx.BITMAP_TYPE_PNG)

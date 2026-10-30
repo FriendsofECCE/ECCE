@@ -15,6 +15,9 @@ using namespace std;
 #include "wx/bmpbndl.h"
 #include "wx/tokenzr.h"
 #include <cstdlib>
+#include <functional>
+#include <map>
+#include <utility>
 #include <cstring>
 
 #include "util/Ecce.H"
@@ -123,6 +126,13 @@ double ewxBitmap::dpiScale()
 #ifdef __WXMSW__
       wxScreenDC dc;
       scale = dc.GetPPI().y / 96.0;
+      // Ask Windows directly as well; the larger value wins, so a PPI
+      // that wx reports as 96 cannot hide a 150 % setting.
+      typedef UINT (WINAPI *GetDpiFn)();
+      HMODULE user32 = GetModuleHandleW(L"user32.dll");
+      GetDpiFn fn = user32 ? (GetDpiFn) GetProcAddress(user32, "GetDpiForSystem")
+                           : NULL;
+      if (fn && fn() / 96.0 > scale) scale = fn() / 96.0;
 #endif
     }
     if (scale < 1.05 || scale > 8) scale = 1;
@@ -187,14 +197,58 @@ static const wxBitmap& alphaToMask(const wxBitmap& bmp) { return bmp; }
 #endif
 
 
+/**
+ * Resample to w x h.  A mask is turned into alpha first: resampling a
+ * masked image blends the mask colour into the edge and leaves the rest
+ * black.  The result is masked again for wxMSW at the end.
+ */
+static wxBitmap resampled(const wxBitmap& bitmap, int w, int h)
+{
+  wxImage image = bitmap.ConvertToImage();
+  if (image.HasMask() && !image.HasAlpha()) image.InitAlpha();
+  image.Rescale(w, h, wxIMAGE_QUALITY_HIGH);
+  return alphaToMask(wxBitmap(image, image.HasAlpha() ? 32 : -1));
+}
+
+
 wxBitmap ewxBitmap::scaled(const wxBitmap& bitmap)
 {
   if (!bitmap.IsOk() || dpiScale() == 1) return bitmap;
-  wxImage image = bitmap.ConvertToImage();
-  image.Rescale(scaled(image.GetWidth()), scaled(image.GetHeight()),
-                wxIMAGE_QUALITY_HIGH);
-  return alphaToMask(wxBitmap(image, bitmap.HasAlpha() ? 32 : -1));
+  return resampled(bitmap, scaled(bitmap.GetWidth()),
+                   scaled(bitmap.GetHeight()));
 }
+
+
+/**
+ * A bundle that renders its icon at exactly the size the toolkit asks
+ * for.  FromBitmaps(1x, 2x) hands back one of the two stretched at 150 %,
+ * which comes out at 100 % size and, for a masked bitmap, black where it
+ * was transparent.
+ */
+class ExactBundle : public wxBitmapBundleImpl
+{
+public:
+  typedef std::function<wxBitmap(const wxSize&)> Render;
+  ExactBundle(const wxSize& size, Render r) : p_size(size), p_render(r) { }
+  virtual wxSize GetDefaultSize() const { return p_size; }
+  virtual wxSize GetPreferredBitmapSizeAtScale(double scale) const
+  {
+    return wxSize((int)(p_size.x * scale + 0.5), (int)(p_size.y * scale + 0.5));
+  }
+  virtual wxBitmap GetBitmap(const wxSize& size)
+  {
+    const std::pair<int,int> key(size.x, size.y);
+    std::map<std::pair<int,int>, wxBitmap>::iterator it = p_cache.find(key);
+    if (it != p_cache.end()) return it->second;
+    wxBitmap b = p_render(size);
+    if (b.IsOk()) p_cache[key] = b;
+    return b;
+  }
+private:
+  wxSize p_size;
+  Render p_render;
+  std::map<std::pair<int,int>, wxBitmap> p_cache;
+};
 
 
 /**
@@ -239,9 +293,10 @@ wxBitmapBundle ewxBitmap::svgIcon(const wxString& name, const wxSize& size,
 {
   wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
   wxString path = pixmapFile("svg/icon-" + name + ".svg");
-  wxBitmap one = svgFileIcon(path, size, ink);
-  wxBitmap two = svgFileIcon(path, size * 2, ink);
-  if (one.IsOk() && two.IsOk()) return wxBitmapBundle::FromBitmaps(one, two);
+  if (svgFileIcon(path, size, ink).IsOk()) {
+    return wxBitmapBundle::FromImpl(new ExactBundle(size,
+        [path, ink](const wxSize& at) { return svgFileIcon(path, at, ink); }));
+  }
   return bundle(fallback);
 }
 
@@ -257,8 +312,8 @@ wxBitmapBundle ewxBitmap::colorIcon(const wxString& svg, const wxSize& size)
   if (!svg.EndsWith(".svg")) return bundle(svg);
   wxBitmapBundle b = wxBitmapBundle::FromSVGFile(pixmapFile(svg), size);
   if (!b.IsOk()) return wxBitmapBundle(placeholder(svg));
-  return wxBitmapBundle::FromBitmaps(alphaToMask(b.GetBitmap(size)),
-                                     alphaToMask(b.GetBitmap(size * 2)));
+  return wxBitmapBundle::FromImpl(new ExactBundle(size,
+      [b](const wxSize& at) { return alphaToMask(b.GetBitmap(at)); }));
 }
 
 
@@ -379,12 +434,17 @@ wxBitmapBundle ewxBitmap::bundle(const wxString& name, long type)
   wxString icon = genericIconName(name);
   if (!icon.empty()) {
     wxSize size = legacy.IsOk() ? legacy.GetSize() : wxSize(16, 16);
-    wxBitmap one = themedIcon(icon, size);
-    wxBitmap two = themedIcon(icon, size*2);
-    if (one.IsOk() && two.IsOk()) return wxBitmapBundle::FromBitmaps(one, two);
-    if (one.IsOk()) return wxBitmapBundle(one);
+    if (themedIcon(icon, size).IsOk()) {
+      return wxBitmapBundle::FromImpl(new ExactBundle(size,
+          [icon](const wxSize& at) { return themedIcon(icon, at); }));
+    }
   }
-  return wxBitmapBundle(legacy.IsOk() ? legacy : placeholder(name));
+  if (!legacy.IsOk()) return wxBitmapBundle(placeholder(name));
+  return wxBitmapBundle::FromImpl(new ExactBundle(legacy.GetSize(),
+      [legacy](const wxSize& at) {
+        return at == legacy.GetSize() ? legacy
+                                      : resampled(legacy, at.x, at.y);
+      }));
 }
 
 
@@ -398,7 +458,7 @@ wxBitmap ewxBitmap::svgBitmap(const wxWindow* win, const wxString& svg,
                               int logical)
 {
   const double sc = wxMax(dpiScale(), win ? win->GetContentScaleFactor() : 1.0);
-  const int px = sc > 1.05 ? (int)(logical * sc + 0.5) : logical;
+  const int px = sc > 1.05 ? (int)(logical * sc + 0.5) : logical;  // real factor, not rounded to a whole one
   wxBitmapBundle b = wxBitmapBundle::FromSVGFile(pixmapFile(svg),
                                                  wxSize(logical, logical));
   if (!b.IsOk()) return placeholder(svg);
@@ -417,7 +477,7 @@ ewxBitmap::ewxBitmap(const wxString& name, long type)
   // A resource icon may be an SVG; the tree image lists are 16x16.
   if (name.EndsWith(".svg")) {
     wxSize px = scaled(wxSize(16, 16));
-    wxBitmap bmp = colorIcon(name, wxSize(16, 16)).GetBitmap(px);
+    wxBitmap bmp = colorIcon(name, wxSize(16, 16)).GetBitmap(px);  // exact size
     wxBitmap::operator=(bmp.IsOk() ? bmp : placeholder(name));
     return;
   }
@@ -426,9 +486,7 @@ ewxBitmap::ewxBitmap(const wxString& name, long type)
   if (dpiScale() >= 1.5 && name.EndsWith("16.png")) {
     wxBitmap big = loadPixmap(name.Left(name.length() - 6) + ".png", type);
     if (big.IsOk() && big.GetWidth() > 16) {
-      wxImage image = big.ConvertToImage();
-      image.Rescale(scaled(16), scaled(16), wxIMAGE_QUALITY_HIGH);
-      wxBitmap::operator=(alphaToMask(wxBitmap(image, big.HasAlpha() ? 32 : -1)));
+      wxBitmap::operator=(resampled(big, scaled(16), scaled(16)));
     }
   }
   if (!IsOk()) wxBitmap::operator=(scaled(loadPixmap(name, type)));

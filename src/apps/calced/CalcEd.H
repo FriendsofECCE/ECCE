@@ -200,6 +200,7 @@ class CalcEd: public CalcEdGUI,
     // refresh & enable/disable & show/hide indicated field sets
     void updateAllFields();
     void refit();
+    void revealSettingsWhenShown(int tries);
     // A change that updates several field sets: one refit and one repaint
     // at the end, not a resized, half-drawn window per set (MSW).
     struct UpdateHold;
