@@ -132,32 +132,4 @@ private:
   wxButton *p_create;
 };
 
-/// Asks for a join's name and the role of each source (reactant, product,
-/// TS guess), and the scan point of each source that is a scan.
-class WorkflowJoinDialog : public wxDialog
-{
-public:
-  WorkflowJoinDialog(wxWindow *parent, Session *wf,
-                     const WorkflowSteps::Code& code, ResourceType *type,
-                     const std::vector<Resource*>& sources);
-
-  std::string name() const;
-  std::vector<WorkflowSteps::JoinSource> sources() const;
-
-private:
-  void validate();
-
-  Session *p_session;
-  ResourceType *p_type;
-  WorkflowSteps::Code p_code;
-  std::vector<Resource*> p_steps;
-  wxTextCtrl *p_name;
-  std::vector<wxChoice*> p_role;
-  std::vector<PointChooser*> p_points;
-  wxStaticText *p_what;
-  wxStaticText *p_problem;
-  wxButton *p_create;
-};
-
-
 #endif
