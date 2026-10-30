@@ -157,7 +157,7 @@ public:
   // Reconnect Selected (#601), same selection; `listOnly`/`shot` for tests.
   void reconnectSelected(const vector<EcceURL>& urls, bool interactive,
                          string *outcome = 0, const string& shot = "",
-                         bool listOnly = false);
+                         bool listOnly = false, vector<string> *lines = 0);
   // Launch steps run on a worker thread; a login it needs is asked here.
   bool getAuthorization(AuthEvent& event);
   // Launch Selected (#492); `outcome` and `shot` only for the test hook.
@@ -178,6 +178,8 @@ public:
   // format as launchForCommand. False, with lines empty, while a batch submits.
   bool terminateForCommand(const vector<EcceURL>& urls, const string& reason,
                            vector<string>& lines);
+  // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
+  bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
   // A Launch Selected batch is submitting (#640): the calculations in it
   // must not be deleted, moved, launched or stopped meanwhile.
   bool batchRunning() const { return p_batch != 0; }

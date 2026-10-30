@@ -92,3 +92,15 @@ calculation, either `name: terminated, job id N` or `name: not terminated:
 reason`; the exit status is 0 only when every calculation was terminated.
 Paths, URLs and the message without a running ECCE session are as for
 `ecce-launch`.
+
+### Reconnecting from the command line
+
+    ecce-reconnect <calculation folder or URL>...
+
+reconnects calculations the way **Run Mgmt > Reconnect Selected** does,
+without asking for confirmation. A machine that needs a password asks for it
+in the Organizer window, as the menu item does. One line is printed for each
+calculation, either `name: reconnected, job id N` or `name: not reconnected:
+reason`, for example when the calculation's state cannot be reconnected; the
+exit status is 0 only when every calculation was reconnected. Paths, URLs and
+the message without a running ECCE session are as for `ecce-launch`.
