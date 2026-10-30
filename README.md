@@ -17,8 +17,8 @@ starting from the geometry of the one before. ECCE was developed at Pacific Nort
 Laboratory, which stopped supporting it around 2017; it is maintained
 here since, with PNNL's blessing.
 
-<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="384" alt="The Organizer: projects and calculations, with a completed ORCA calculation selected"></a>
-<a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="420" alt="The viewer, showing a molecular orbital of benzene"></a>
+<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="384" alt="The Organizer: the Examples project tree and the Progress box of a finished ORCA optimisation and frequency calculation on ethylene, with SCF and optimisation plots"></a>
+<a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="465" alt="The viewer showing the pi orbital of ethene on a white background, with the Properties list and the MO table"></a>
 
 More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 
