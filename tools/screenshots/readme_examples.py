@@ -104,7 +104,7 @@ def viewer(display, data, work, out):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--out", default=os.path.join(os.path.expanduser("~"), "readme-shots"))
     ap.add_argument("--only", choices=["organizer", "viewer"])
     opts = ap.parse_args()
     os.makedirs(opts.out, exist_ok=True)
