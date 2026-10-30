@@ -1,0 +1,5 @@
+# Na+(H2O)6 6_0 in water (CPCM): from the gas-phase r2SCAN-3c geometry and Hessian
+! r2SCAN-3c Opt Freq CPCM(water) TightSCF DefGrid3
+%pal nprocs 4 end
+%geom InHess Read InHessName "gas.hess" end
+* xyzfile 1 1 gas.xyz

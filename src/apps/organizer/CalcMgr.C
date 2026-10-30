@@ -3736,7 +3736,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "21";
+const char *const kExampleSetVersion = "22";
 
 string treeName(string s)
 {
@@ -4252,10 +4252,13 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
                   "ECCE and imported from the program's output files."},
     {"na_6_0_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with six waters in the first shell, relaxed with the cheap method that starts the workflow."},
     {"na_6_0_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (six waters in the first shell) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
+    {"na_6_0_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with six waters in the first shell in water, where the order of the arrangements differs from the gas phase."},
     {"na_5_1_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with five waters in the first shell and one in the second, relaxed with the cheap method that starts the workflow."},
     {"na_5_1_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (five waters in the first shell and one in the second) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
+    {"na_5_1_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with five waters in the first shell and one in the second in water, where the order of the arrangements differs from the gas phase."},
     {"na_4_2_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with four waters in the first shell and two beyond them, relaxed with the cheap method that starts the workflow."},
     {"na_4_2_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (four waters in the first shell and two beyond them) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
+    {"na_4_2_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with four waters in the first shell and two beyond them in water, where the order of the arrangements differs from the gas phase."},
     {"methane", "NWChem, B3LYP/6-31G*. This calculation shows the effect of "
                 "tetrahedral symmetry: degenerate orbitals (a1, t2) and "
                 "degenerate vibrational modes."},
