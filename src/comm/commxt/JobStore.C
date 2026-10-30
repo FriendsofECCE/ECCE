@@ -1411,7 +1411,7 @@ void interactGetFiles(void)
   // MD Traject.trj, .rst, and .pmf dependent upon whether trajectories will be stored
   // then add the +1 for the null entry at the end of the array
   // allocate extra space as needed for files added below
-  int extraCount = 4;
+  int extraCount = 5;
   if (cpMdStoreTrj != "none")
     extraCount += 3;
   if (cpRxnMetadynamicsTask == "yes")
@@ -1447,6 +1447,10 @@ void interactGetFiles(void)
 
   // DirDyVTST specific file
   fullFile = cpRemoteDir + "/*.file30";
+  fileStrs[it++] = strdup((char*)fullFile.c_str());
+
+  // CP2K &PDOS output, one file per kind and per &LDOS list
+  fullFile = cpRemoteDir + "/*.pdos";
   fileStrs[it++] = strdup((char*)fullFile.c_str());
 
   if (cpMdStoreTrj != "none") {
@@ -1595,13 +1599,21 @@ void interactGetFiles(void)
   // because they were copied over from the compute server with a wildcard.
   // Need to figure out what got copied over with a local ls command
   // and then upload each of those to the data server
+  //  One ls per pattern: ls exits non-zero when any of its patterns matches
+  //  nothing, and execout then drops the files the others did match.
   string lsout, fileName;
-  if (localconn->execout("/bin/ls *.cub *.cube", lsout)) {
-    StringTokenizer cubeFiles(lsout, " \t\n\r");
-    while (!(fileName=cubeFiles.next()).empty()) {
+  string storedExtra;
+  auto storeMatches = [&](const char* pattern) {
+    if (!localconn->execout(string("/bin/ls -d -- ") + pattern, lsout)) return;
+    StringTokenizer files(lsout, "\n\r");
+    while (!(fileName=files.next()).empty()) {
       calcPutOutFileName(fileName, "");
+      storedExtra += " " + fileName;
     }
-  }
+  };
+  storeMatches("*.cub");
+  storeMatches("*.cube");
+  storeMatches("*.pdos");
 
   if (localconn->execout("/bin/ls *.file30", lsout)) {
     StringTokenizer file30Files(lsout, " \t\n\r");
@@ -1651,13 +1663,12 @@ void interactGetFiles(void)
   }
 
   if (cpRxnMetadynamicsTask == "yes") {
-    if (localconn->execout("/bin/ls *.db *.movecs *.vmovecs *.vpp *.psp", lsout)) {
-      StringTokenizer metaFiles(lsout, " \t\n\r");
-      while (!(fileName=metaFiles.next()).empty()) {
-        calcPutOutFileName(fileName, "");
-      }
-    }
+    for (const char* pattern : {"*.db", "*.movecs", "*.vmovecs", "*.vpp", "*.psp"})
+      storeMatches(pattern);
   }
+  logMessage("File Copy", storedExtra.empty()
+             ? string("No cube, PDOS or other wildcard output files arrived")
+             : "Wildcard output files stored:" + storedExtra);
 
   if (cpMdStoreTrj != "none") {
     bool uploadTrj = false;
