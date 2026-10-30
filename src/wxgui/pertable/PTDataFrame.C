@@ -85,7 +85,7 @@ PTDataFrame::PTDataFrame(int atomicNum, PerTabPanel * parent, wxWindowID id,
   p_isotopeGrid->SetColLabelValue( 2, "Atomic Mass" );
 
   //	Remove the Row label
-  p_isotopeGrid->SetRowLabelSize(1);
+  p_isotopeGrid->SetRowLabelSize(ewxBitmap::scaled(1));
   p_isotopeGrid->AutoSize();
 
   //	Set Readonly

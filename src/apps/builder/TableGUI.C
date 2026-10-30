@@ -27,6 +27,7 @@
 ////@end includes
 
 #include "TableGUI.H"
+#include "wxgui/ewxBitmap.H"
 
 ////@begin XPM images
 
@@ -99,10 +100,10 @@ void TableGUI::CreateControls()
     itemBoxSizer2->Add(itemBoxSizer3, 1, wxGROW|wxALL, 0);
 
     ewxGrid* itemGrid4 = new ewxGrid( itemPropertyPanel1, ID_GRID_TABLE, wxDefaultPosition, wxSize(200, 150), wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
-    itemGrid4->SetDefaultColSize(50);
-    itemGrid4->SetDefaultRowSize(25);
-    itemGrid4->SetColLabelSize(25);
-    itemGrid4->SetRowLabelSize(50);
+    itemGrid4->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid4->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid4->SetColLabelSize(ewxBitmap::scaled(25));
+    itemGrid4->SetRowLabelSize(ewxBitmap::scaled(50));
     itemGrid4->CreateGrid(5, 5, wxGrid::wxGridSelectRows);
     itemBoxSizer3->Add(itemGrid4, 1, wxGROW|wxALL, 5);
 

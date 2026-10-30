@@ -579,6 +579,7 @@ void CalcEd::setCurrentCodeButton(const string& currentCode)
 
 void CalcEd::setContext(const string& url, const string& codeName)
 {
+  p_revealSettings = true;
   // Make sure it is raised/uniconified for popup dialogs.  Not while it is
   // still hidden: Raise() is gtk_window_present() on GTK, which maps the
   // window at its empty size before the fields are filled.
@@ -3283,6 +3284,29 @@ void CalcEd::refit()
   }
   GetSizer()->SetSizeHints(this);
   fitToScreen();
+  //  On a scaled display the content outgrows the window and scrolls; the
+  //  Settings box must be in view when a calculation opens, but later
+  //  refits must not undo the user's scroll.
+  if (p_revealSettings && p_detailsBox) {
+    p_revealSettings = false;
+    revealSettingsWhenShown(40);
+  }
+}
+
+
+//  The scroller exists and is laid out only once the window is shown, which
+//  is after the first refit; wait for that (a few idle rounds at most).
+void CalcEd::revealSettingsWhenShown(int tries)
+{
+  CallAfter([this, tries]() {
+    if (!p_detailsBox) return;
+    if ((!IsShown() || !p_detailsBox->IsShownOnScreen()) && tries > 0) {
+      revealSettingsWhenShown(tries - 1);
+      return;
+    }
+    Layout();
+    ewxWindowUtils::revealInScroller(p_detailsBox);
+  });
 }
 
 

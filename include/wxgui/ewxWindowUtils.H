@@ -101,6 +101,10 @@ public:
   // Safe to call again after the content changes.
   static void fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow = NULL);
 
+  // Scroll the scrolled window holding `child` (if any) the least that
+  // brings the whole of `child` into view.  No-op when nothing scrolls.
+  static void revealInScroller(wxWindow *child);
+
   // Clipping audit (tests/apps/clip_test.py).  Walks the controls under
   // `top` and returns one line per control that is cut off: smaller than its
   // best size, outside an ancestor's client area, a button with nothing

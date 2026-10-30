@@ -14,7 +14,12 @@ using namespace std;
 #include "wx/ffile.h"
 #include "wx/bmpbndl.h"
 #include "wx/tokenzr.h"
+#include "wx/display.h"
+#include "wx/toolbar.h"
 #include <cstdlib>
+#include <functional>
+#include <map>
+#include <utility>
 #include <cstring>
 
 #include "util/Ecce.H"
@@ -111,6 +116,80 @@ wxString ewxBitmap::pixmapFile(const wxString& name)
 }
 
 
+double ewxBitmap::dpiScale()
+{
+  static double scale = 0;
+  if (scale == 0) {
+    scale = 1;
+    const char* env = getenv("ECCE_BITMAP_SCALE");
+    if (env) {
+      scale = atof(env);
+    } else {
+#ifdef __WXMSW__
+      wxScreenDC dc;
+      scale = dc.GetPPI().y / 96.0;
+      // Ask Windows directly as well; the larger value wins, so a PPI
+      // that wx reports as 96 cannot hide a 150 % setting.
+      typedef UINT (WINAPI *GetDpiFn)();
+      HMODULE user32 = GetModuleHandleW(L"user32.dll");
+      GetDpiFn fn = user32 ? (GetDpiFn) GetProcAddress(user32, "GetDpiForSystem")
+                           : NULL;
+      if (fn && fn() / 96.0 > scale) scale = fn() / 96.0;
+#endif
+    }
+    if (scale < 1.05 || scale > 8) scale = 1;
+  }
+  return scale;
+}
+
+
+void ewxBitmap::logDpi(const char *where, wxToolBarBase *bar)
+{
+  const char *path = getenv("ECCE_DPI_LOG");
+  if (!path || !*path) return;
+  FILE *f = fopen(path, "a");
+  if (!f) return;
+  fprintf(f, "%s: dpiScale=%.3f env=%s", where, dpiScale(),
+          getenv("ECCE_BITMAP_SCALE") ? getenv("ECCE_BITMAP_SCALE") : "-");
+#ifdef __WXMSW__
+  wxScreenDC dc;
+  fprintf(f, " screenPPI=%d", dc.GetPPI().y);
+  typedef UINT (WINAPI *GetDpiFn)();
+  HMODULE user32 = GetModuleHandleW(L"user32.dll");
+  GetDpiFn fn = user32 ? (GetDpiFn) GetProcAddress(user32, "GetDpiForSystem") : NULL;
+  if (fn) fprintf(f, " systemDPI=%u", fn());
+#endif
+  if (bar) {
+    const int d = wxDisplay::GetFromWindow(bar);
+    fprintf(f, " display=%.3f content=%.3f dpiFactor=%.3f toolBitmap=%dx%d toolSize=%dx%d",
+            d == wxNOT_FOUND ? 0.0 : wxDisplay(d).GetScaleFactor(),
+            bar->GetContentScaleFactor(), bar->GetDPIScaleFactor(),
+            bar->GetToolBitmapSize().x, bar->GetToolBitmapSize().y,
+            bar->GetToolSize().x, bar->GetToolSize().y);
+  }
+  fprintf(f, "\n");
+  fclose(f);
+}
+
+
+void ewxBitmap::toolBitmapSize(wxToolBarBase *bar, const wxSize& logical)
+{
+  if (bar && dpiScale() <= 1) bar->SetToolBitmapSize(logical);
+}
+
+
+int ewxBitmap::scaled(int px)
+{
+  return (int)(px * dpiScale() + 0.5);
+}
+
+
+wxSize ewxBitmap::scaled(const wxSize& size)
+{
+  return wxSize(scaled(size.x), scaled(size.y));
+}
+
+
 wxString ewxBitmap::genericIconName(const wxString& file)
 {
   wxString base = wxFileName(file).GetName();
@@ -156,6 +235,60 @@ static const wxBitmap& alphaToMask(const wxBitmap& bmp) { return bmp; }
 
 
 /**
+ * Resample to w x h.  A mask is turned into alpha first: resampling a
+ * masked image blends the mask colour into the edge and leaves the rest
+ * black.  The result is masked again for wxMSW at the end.
+ */
+static wxBitmap resampled(const wxBitmap& bitmap, int w, int h)
+{
+  wxImage image = bitmap.ConvertToImage();
+  if (image.HasMask() && !image.HasAlpha()) image.InitAlpha();
+  image.Rescale(w, h, wxIMAGE_QUALITY_HIGH);
+  return alphaToMask(wxBitmap(image, image.HasAlpha() ? 32 : -1));
+}
+
+
+wxBitmap ewxBitmap::scaled(const wxBitmap& bitmap)
+{
+  if (!bitmap.IsOk() || dpiScale() == 1) return bitmap;
+  return resampled(bitmap, scaled(bitmap.GetWidth()),
+                   scaled(bitmap.GetHeight()));
+}
+
+
+/**
+ * A bundle that renders its icon at exactly the size the toolkit asks
+ * for.  FromBitmaps(1x, 2x) hands back one of the two stretched at 150 %,
+ * which comes out at 100 % size and, for a masked bitmap, black where it
+ * was transparent.
+ */
+class ExactBundle : public wxBitmapBundleImpl
+{
+public:
+  typedef std::function<wxBitmap(const wxSize&)> Render;
+  ExactBundle(const wxSize& size, Render r) : p_size(size), p_render(r) { }
+  virtual wxSize GetDefaultSize() const { return p_size; }
+  virtual wxSize GetPreferredBitmapSizeAtScale(double scale) const
+  {
+    return wxSize((int)(p_size.x * scale + 0.5), (int)(p_size.y * scale + 0.5));
+  }
+  virtual wxBitmap GetBitmap(const wxSize& size)
+  {
+    const std::pair<int,int> key(size.x, size.y);
+    std::map<std::pair<int,int>, wxBitmap>::iterator it = p_cache.find(key);
+    if (it != p_cache.end()) return it->second;
+    wxBitmap b = p_render(size);
+    if (b.IsOk()) p_cache[key] = b;
+    return b;
+  }
+private:
+  wxSize p_size;
+  Render p_render;
+  std::map<std::pair<int,int>, wxBitmap> p_cache;
+};
+
+
+/**
  * The bundled Lucide icon drawn in the text colour (its stroke is
  * currentColor), for platforms with no icon theme.
  */
@@ -197,9 +330,10 @@ wxBitmapBundle ewxBitmap::svgIcon(const wxString& name, const wxSize& size,
 {
   wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
   wxString path = pixmapFile("svg/icon-" + name + ".svg");
-  wxBitmap one = svgFileIcon(path, size, ink);
-  wxBitmap two = svgFileIcon(path, size * 2, ink);
-  if (one.IsOk() && two.IsOk()) return wxBitmapBundle::FromBitmaps(one, two);
+  if (svgFileIcon(path, size, ink).IsOk()) {
+    return wxBitmapBundle::FromImpl(new ExactBundle(size,
+        [path, ink](const wxSize& at) { return svgFileIcon(path, at, ink); }));
+  }
   return bundle(fallback);
 }
 
@@ -215,8 +349,8 @@ wxBitmapBundle ewxBitmap::colorIcon(const wxString& svg, const wxSize& size)
   if (!svg.EndsWith(".svg")) return bundle(svg);
   wxBitmapBundle b = wxBitmapBundle::FromSVGFile(pixmapFile(svg), size);
   if (!b.IsOk()) return wxBitmapBundle(placeholder(svg));
-  return wxBitmapBundle::FromBitmaps(alphaToMask(b.GetBitmap(size)),
-                                     alphaToMask(b.GetBitmap(size * 2)));
+  return wxBitmapBundle::FromImpl(new ExactBundle(size,
+      [b](const wxSize& at) { return alphaToMask(b.GetBitmap(at)); }));
 }
 
 
@@ -260,7 +394,7 @@ wxBitmap ewxBitmap::themedIcon(const wxString& icon, const wxSize& size)
 wxBitmap ewxBitmap::saveIcon()
 {
   wxBitmap art = wxArtProvider::GetBitmap(wxART_FILE_SAVE, wxART_BUTTON,
-                                          wxSize(16, 16));
+                                          scaled(wxSize(16, 16)));
   return art.IsOk() ? art : wxBitmap(ewxBitmap("save.xpm"));
 }
 
@@ -337,12 +471,35 @@ wxBitmapBundle ewxBitmap::bundle(const wxString& name, long type)
   wxString icon = genericIconName(name);
   if (!icon.empty()) {
     wxSize size = legacy.IsOk() ? legacy.GetSize() : wxSize(16, 16);
-    wxBitmap one = themedIcon(icon, size);
-    wxBitmap two = themedIcon(icon, size*2);
-    if (one.IsOk() && two.IsOk()) return wxBitmapBundle::FromBitmaps(one, two);
-    if (one.IsOk()) return wxBitmapBundle(one);
+    if (themedIcon(icon, size).IsOk()) {
+      return wxBitmapBundle::FromImpl(new ExactBundle(size,
+          [icon](const wxSize& at) { return themedIcon(icon, at); }));
+    }
   }
-  return wxBitmapBundle(legacy.IsOk() ? legacy : placeholder(name));
+  if (!legacy.IsOk()) return wxBitmapBundle(placeholder(name));
+  return wxBitmapBundle::FromImpl(new ExactBundle(legacy.GetSize(),
+      [legacy](const wxSize& at) {
+        return at == legacy.GetSize() ? legacy
+                                      : resampled(legacy, at.x, at.y);
+      }));
+}
+
+
+/**
+ * An SVG rasterised at the physical size it will be drawn at on this
+ * window (logical size x the larger of the window's content scale and
+ * dpiScale), not at the 100 % size and stretched.  Identical to the
+ * unscaled bitmap at 100 %.
+ */
+wxBitmap ewxBitmap::svgBitmap(const wxWindow* win, const wxString& svg,
+                              int logical)
+{
+  const double sc = wxMax(dpiScale(), win ? win->GetContentScaleFactor() : 1.0);
+  const int px = sc > 1.05 ? (int)(logical * sc + 0.5) : logical;  // real factor, not rounded to a whole one
+  wxBitmapBundle b = wxBitmapBundle::FromSVGFile(pixmapFile(svg),
+                                                 wxSize(logical, logical));
+  if (!b.IsOk()) return placeholder(svg);
+  return alphaToMask(b.GetBitmap(wxSize(px, px)));
 }
 
 
@@ -356,11 +513,20 @@ ewxBitmap::ewxBitmap(const wxString& name, long type)
 {
   // A resource icon may be an SVG; the tree image lists are 16x16.
   if (name.EndsWith(".svg")) {
-    wxBitmap bmp = colorIcon(name, wxSize(16, 16)).GetBitmap(wxSize(16, 16));
+    wxSize px = scaled(wxSize(16, 16));
+    wxBitmap bmp = colorIcon(name, wxSize(16, 16)).GetBitmap(px);  // exact size
     wxBitmap::operator=(bmp.IsOk() ? bmp : placeholder(name));
     return;
   }
-  wxBitmap::operator=(loadPixmap(name, type));
+  //  Where a 22 px twin of a 16 px icon exists, scaling that one up is
+  //  sharper than doubling the small one.
+  if (dpiScale() >= 1.5 && name.EndsWith("16.png")) {
+    wxBitmap big = loadPixmap(name.Left(name.length() - 6) + ".png", type);
+    if (big.IsOk() && big.GetWidth() > 16) {
+      wxBitmap::operator=(resampled(big, scaled(16), scaled(16)));
+    }
+  }
+  if (!IsOk()) wxBitmap::operator=(scaled(loadPixmap(name, type)));
   wxString icon = genericIconName(name);
   if (!icon.empty()) {
     wxBitmap art = themedIcon(icon, IsOk() ? GetSize() : wxSize(16, 16));

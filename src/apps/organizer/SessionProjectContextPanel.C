@@ -20,6 +20,7 @@ using namespace std;
 
 #include "util/Preferences.H"
 
+#include "wxgui/ewxBitmap.H"
 #include "wxgui/WxResourceTreeItemData.H"
 
 #include "ContextPanelInterface.H"
@@ -104,6 +105,7 @@ void SessionProjectContextPanel::CreateControls()
   int splitPos = p_workflow ? 420 : 300;
   prefs.getInt(p_workflow ? "Organizer.WorkflowHeight"
                           : "Organizer.SessionHeight", splitPos);
+  splitPos = ewxBitmap::scaled(splitPos);
 
   p_splitterWindow->SplitHorizontally(top, p_project, splitPos);
 
@@ -155,7 +157,8 @@ void SessionProjectContextPanel::OnSashPosChanged( wxSplitterEvent & event )
   Preferences prefs("Organizer");
   prefs.setInt(p_workflow ? "Organizer.WorkflowHeight"
                           : "Organizer.SessionHeight",
-               p_splitterWindow->GetSashPosition());
+               (int)(p_splitterWindow->GetSashPosition() /
+                     ewxBitmap::dpiScale() + 0.5));
   prefs.saveFile();
   event.Skip();
 }

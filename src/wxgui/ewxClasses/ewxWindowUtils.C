@@ -204,8 +204,9 @@ void ewxWindowUtils::saveWindowSettings(wxWindow *win,
   if (saveSize) {
     int width=0, height=0;
     win->GetSize(&width, &height);
-    config->Write("/Window/Height", height);
-    config->Write("/Window/Width", width);
+    //  Stored at 96 dpi so a size saved at one scale restores at another.
+    config->Write("/Window/Height", (int)(height / ewxBitmap::dpiScale() + 0.5));
+    config->Write("/Window/Width", (int)(width / ewxBitmap::dpiScale() + 0.5));
   }
   config->Flush();
 }
@@ -230,6 +231,8 @@ void ewxWindowUtils::restoreWindowSettings(wxWindow *win,
     int height=wxDefaultCoord;
     config->Read("/Window/Height", &height, wxDefaultCoord);
     config->Read("/Window/Width", &width, wxDefaultCoord);
+    if (height > 0) height = ewxBitmap::scaled(height);
+    if (width > 0) width = ewxBitmap::scaled(width);
     win->SetSize(x, y, width, height, wxSIZE_AUTO);
   } else {
     // GitHub #67: passing -1/wxDefaultCoord for width/height here does
@@ -268,8 +271,9 @@ void ewxWindowUtils::saveWindowSettings(wxWindow *win,
   if (saveSize) {
     int width=0, height=0;
     win->GetSize(& width, & height);
-    prefs.setInt(prefix+".Height",height);
-    prefs.setInt(prefix+".Width",width);
+    //  Stored at 96 dpi so a size saved at one scale restores at another.
+    prefs.setInt(prefix+".Height",(int)(height / ewxBitmap::dpiScale() + 0.5));
+    prefs.setInt(prefix+".Width",(int)(width / ewxBitmap::dpiScale() + 0.5));
   }
   prefs.saveFile();
 }
@@ -305,6 +309,8 @@ bool ewxWindowUtils::restoreWindowSettings(wxWindow *win,
          height = -1;
       if (width < 0)
          width = -1;
+      if (height > 0) height = ewxBitmap::scaled(height);
+      if (width > 0) width = ewxBitmap::scaled(width);
       win->SetSize(x, y, width, height);
    } else {
       // GitHub #67: see the ewxConfig overload above for the full
@@ -510,7 +516,7 @@ namespace {
 //  below it.  The decoration cannot be told from the menu bar in
 //  GetSize() - GetClientSize(), nor measured before the window is mapped, so
 //  this is always reserved on top of what is measured.
-const int TITLE_RESERVE = 36;
+#define TITLE_RESERVE (ewxBitmap::scaled(36))
 
 wxRect displayArea(wxWindow *win)
 {
@@ -881,6 +887,12 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
   if (scroller != NULL) {
     scroller->InvalidateBestSize();
     win->GetSizer()->Layout();
+    //  The scroller's virtual size must follow the content's minimum, or a
+    //  sizer is given less than it needs and rows draw over each other.
+    if (scroller->GetSizer()) {
+      scroller->GetSizer()->Layout();
+      scroller->SetVirtualSize(scroller->GetSizer()->GetMinSize());
+    }
     wxSize fit = win->GetSizer()->GetMinSize();
     win->SetMinClientSize(fit);
     target = wxSize(wxMin(wxMax(client.x, fit.x), cap.x),
@@ -890,9 +902,38 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
     win->SetClientSize(target);
 
   win->Layout();
-  if (scroller != NULL)
+  //  The outer layout does not re-lay the scroller's own content when only
+  //  the content's natural size changed (a section shown or resized after
+  //  the wrap), which left it at its old height with no scrollbar.
+  if (scroller != NULL) {
+    scroller->Layout();
     scroller->FitInside();
+  }
   keepOnDisplay(win);
+}
+
+
+void ewxWindowUtils::revealInScroller(wxWindow *child)
+{
+  wxScrolledWindow *sw = NULL;
+  for (wxWindow *w = child ? child->GetParent() : NULL; w && !sw;
+       w = w->GetParent())
+    sw = dynamic_cast<wxScrolledWindow*>(w);
+  if (!sw)
+    return;
+  int ux, uy;
+  sw->GetScrollPixelsPerUnit(&ux, &uy);
+  if (uy <= 0)
+    return;
+  const wxPoint pos = sw->CalcUnscrolledPosition(
+      sw->ScreenToClient(child->GetScreenPosition()));
+  const int top = pos.y, bottom = pos.y + child->GetSize().y;
+  const int viewTop = sw->GetViewStart().y * uy;
+  const int viewH = sw->GetClientSize().y;
+  if (top >= viewTop && bottom <= viewTop + viewH)
+    return;
+  const int want = wxMax(0, wxMin(top, bottom - viewH));
+  sw->Scroll(-1, want / uy);
 }
 
 

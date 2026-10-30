@@ -16,6 +16,7 @@
 #include "wxgui/ewxGrid.H"
 
 #include "Vec3ColPanel.H"
+#include "wxgui/ewxBitmap.H"
 
 
 //static const char *INIFILE = "wxbuilder.ini";
@@ -71,10 +72,10 @@ bool Vec3ColPanel::Create(IPropCalculation *calculation,
    wxBoxSizer* tableSizer = new wxBoxSizer(wxHORIZONTAL);
    panel->GetSizer()->Add(tableSizer, 1, wxGROW|wxALL, 0);
    p_grid = new ewxGrid( panel, wxID_ANY, wxDefaultPosition, wxSize(200, 225), wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
-   p_grid->SetDefaultColSize(50);
-   p_grid->SetDefaultRowSize(25);
-   p_grid->SetColLabelSize(40);
-   p_grid->SetRowLabelSize(50);
+   p_grid->SetDefaultColSize(ewxBitmap::scaled(50));
+   p_grid->SetDefaultRowSize(ewxBitmap::scaled(25));
+   p_grid->SetColLabelSize(ewxBitmap::scaled(40));
+   p_grid->SetRowLabelSize(ewxBitmap::scaled(50));
    p_grid->SetRowLabelSize(0);
    p_grid->SetColLabelSize(0);
    p_grid->CreateGrid(5, 5, wxGrid::wxGridSelectRows);

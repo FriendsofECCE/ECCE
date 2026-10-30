@@ -32,6 +32,7 @@
 #include "PlaybackLoop.H"
 #include "PointNote.H"
 #include "IRCPanel.H"
+#include "wxgui/ewxBitmap.H"
 
 namespace {
 const double HARTREE_KJ = 2625.4996;
@@ -170,7 +171,7 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
   p_grid->EnableEditing(false);
-  p_grid->SetRowLabelSize(40);
+  p_grid->SetRowLabelSize(ewxBitmap::scaled(40));
   p_grid->SetColLabelValue(0, "Coordinate");
   p_grid->SetColLabelValue(1, "Energy (Eh)");
   p_grid->SetColLabelValue(2, "Relative");

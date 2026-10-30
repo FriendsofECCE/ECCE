@@ -1,3 +1,5 @@
+#include "wx/wrapsizer.h"
+#include <algorithm>
 #include <fstream>
 using std::ifstream;
 using std::ofstream;
@@ -223,6 +225,9 @@ using std::vector;
 #include <wx/accel.h>
 #include "Builder.H"
 
+static const char *PERSP_SVG = "svg/view-persp.svg";
+static const char *ORTHO_SVG = "svg/view-ortho.svg";
+
 static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
 
 
@@ -441,10 +446,10 @@ Builder::Builder()
     p_commandManager(NULL),
     p_dirty(),
     p_import(),
-    p_lockBitmap("center_view_lock16.png", wxBITMAP_TYPE_PNG),
-    p_unlockBitmap("center_view_unlock16.png", wxBITMAP_TYPE_PNG),
-    p_orthoBitmap("orthographic16.png", wxBITMAP_TYPE_PNG),
-    p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
+    p_lockBitmap("svg/center-view-lock.svg"),
+    p_unlockBitmap("svg/center-view-unlock.svg"),
+    p_orthoBitmap("svg/view-ortho.svg"),
+    p_perspBitmap("svg/view-persp.svg"),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
     p_propertyPanelInfo(),
@@ -519,10 +524,10 @@ Builder::Builder( wxWindow* parent, bool standalone, wxWindowID id,
     p_commandManager(NULL),
     p_dirty(),
     p_import(),
-    p_lockBitmap("center_view_lock16.png", wxBITMAP_TYPE_PNG),
-    p_unlockBitmap("center_view_unlock16.png", wxBITMAP_TYPE_PNG),
-    p_orthoBitmap("orthographic16.png", wxBITMAP_TYPE_PNG),
-    p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
+    p_lockBitmap("svg/center-view-lock.svg"),
+    p_unlockBitmap("svg/center-view-unlock.svg"),
+    p_orthoBitmap("svg/view-ortho.svg"),
+    p_perspBitmap("svg/view-persp.svg"),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
     p_propertyPanelInfo(),
@@ -718,7 +723,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_fileToolbar->SetToolSeparation(0);
     p_fileToolbar->SetToolPacking(0);
-    p_fileToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_fileToolbar, wxSize(22, 22));
     p_fileToolbar->AddTool(wxID_NEW, _T(""), ewxBitmap::colorIcon("svg/candidates/e/new.svg", wxSize(22, 22)), _("New"));
     p_fileToolbar->AddTool(wxID_OPEN, _T(""), ewxBitmap::colorIcon("svg/candidates/e/open.svg", wxSize(22, 22)), _("Open"));
     p_fileToolbar->AddTool(wxID_SAVE, _T(""), ewxBitmap::colorIcon("svg/candidates/e/save.svg", wxSize(22, 22)), _("Save"));
@@ -730,7 +735,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_modeToolbar->SetToolSeparation(0);
     p_modeToolbar->SetToolPacking(0);
-    p_modeToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_modeToolbar, wxSize(22, 22));
     wxBitmapBundle selBitmap = ewxBitmap::colorIcon("svg/candidates/e/select.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_SELECT, _T(""), selBitmap,
                            _("Select"), wxITEM_CHECK);
@@ -766,7 +771,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_viewToolbar->SetToolSeparation(0);
     p_viewToolbar->SetToolPacking(0);
-    p_viewToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_viewToolbar, wxSize(22, 22));
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_DEPTH_CUEING, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/depthcue.svg", wxSize(22, 22)),
             _("Enable/disable depth cueing"), wxITEM_CHECK);
@@ -795,7 +800,7 @@ void Builder::createToolbar()
             wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_manipulatorToolbar->SetToolSeparation(0);
     p_manipulatorToolbar->SetToolPacking(0);
-    p_manipulatorToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_manipulatorToolbar, wxSize(22, 22));
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_SPHERE,
             _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_sphere.svg", wxSize(22, 22)),
             _("Create Sphere Manipulator"), wxITEM_NORMAL);
@@ -814,7 +819,7 @@ void Builder::createToolbar()
             wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_measureToolbar->SetToolSeparation(0);
     p_measureToolbar->SetToolPacking(0);
-    p_measureToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_measureToolbar, wxSize(22, 22));
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_DIST, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/measure_length.svg", wxSize(22, 22)),
             _("Measure Distance"), wxITEM_NORMAL);
@@ -970,24 +975,29 @@ void Builder::createMainPanel()
 
 void Builder::createRotators(wxWindow *parent)
 {
-  p_rotSizer = new wxBoxSizer(wxHORIZONTAL);
+  //  Where the scaled controls no longer fit the pane's width the row wraps
+  //  instead of drawing the corner buttons over each other.
+  if (ewxBitmap::dpiScale() > 1)
+    p_rotSizer = new wxWrapSizer(wxHORIZONTAL);
+  else
+    p_rotSizer = new wxBoxSizer(wxHORIZONTAL);
   p_mainSizer->Add(p_rotSizer, 0, wxEXPAND|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Rotation: X"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
   p_xrot = new wxSpinCtrl(parent, ID_ROT_X, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotSizer->Add(p_xrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Y"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
   p_yrot = new wxSpinCtrl(parent, ID_ROT_Y, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotSizer->Add(p_yrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Z"), 0,
                    wxALIGN_CENTER|wxLEFT, 5);
   p_zrot = new wxSpinCtrl(parent, ID_ROT_Z, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotz = 0;
   p_rotSizer->Add(p_zrot, 0, wxALIGN_CENTER|wxALL, 0);
@@ -996,10 +1006,11 @@ void Builder::createRotators(wxWindow *parent)
   //p_viewerButton = new ewxButton(parent, ID_CHOICE_VIEWER, "VCB");
   //p_rotSizer->Add(p_viewerButton);
 
-  ewxBitmap centerBitmap("center_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap centerBitmap("svg/center-view.svg");
   ewxBitmapButton * zoomFit = new ewxBitmapButton(parent, wxID_ZOOM_FIT,
           centerBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomFit->setSvg("svg/center-view.svg");
   zoomFit->SetToolTip(_T("Center system"));
   p_rotSizer->Add(zoomFit, 0, wxALIGN_CENTER|wxALL, 0);
 
@@ -1008,21 +1019,24 @@ void Builder::createRotators(wxWindow *parent)
                                            p_unlockBitmap,
                                            wxDefaultPosition, wxDefaultSize,
                                            wxBU_AUTODRAW|wxNO_BORDER);
+  p_centerLockButton->setSvg("svg/center-view-unlock.svg");
   p_centerLockButton->SetToolTip(_T("Auto center after each operation"));
   p_rotSizer->Add(p_centerLockButton, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap homeBitmap("home_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap homeBitmap("svg/home-view.svg");
   ewxBitmapButton * homeView = new ewxBitmapButton(parent, ID_TOOL_GOHOME,
           homeBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(homeView, 0, wxALIGN_CENTER|wxALL, 0);
+  homeView->setSvg("svg/home-view.svg");
   homeView->SetToolTip(_T("Go to home view"));
 
-  ewxBitmap setHomeBitmap("set_home_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap setHomeBitmap("svg/set-home-view.svg");
   ewxBitmapButton * setHomeView = new ewxBitmapButton(parent, ID_TOOL_SETHOME,
           setHomeBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(setHomeView, 0, wxALIGN_CENTER|wxALL, 0);
+  setHomeView->setSvg("svg/set-home-view.svg");
   setHomeView->SetToolTip(_T("Set the home view"));
 
   p_cameraButton = new ewxBitmapButton(parent,
@@ -1031,26 +1045,30 @@ void Builder::createRotators(wxWindow *parent)
                                        wxDefaultPosition, wxDefaultSize,
                                        wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(p_cameraButton, 0, wxALIGN_CENTER|wxALL, 0);
+  p_cameraButton->setSvg(PERSP_SVG);
   p_cameraButton->SetToolTip(_T("Toggle between perpective and orthographic cameras "));
 
-  ewxBitmap zoomToBitmap("viewmagfit.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomToBitmap("svg/zoom-fit.svg");
   ewxBitmapButton * zoomTo = new ewxBitmapButton(parent, 
           ViewerEvtHandler::ID_ZOOM_TO, zoomToBitmap, wxDefaultPosition,
           wxDefaultSize, wxBU_AUTODRAW|wxNO_BORDER);
+  zoomTo->setSvg("svg/zoom-fit.svg");
   zoomTo->SetToolTip(_T("Zoom to fit"));
   p_rotSizer->Add(zoomTo, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap zoomInBitmap("viewmag+.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomInBitmap("svg/zoom-in.svg");
   ewxBitmapButton * zoomIn = new ewxBitmapButton(parent, wxID_ZOOM_IN,
           zoomInBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomIn->setSvg("svg/zoom-in.svg");
   zoomIn->SetToolTip(_T("Zoom in"));
   p_rotSizer->Add(zoomIn, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap zoomOutBitmap("viewmag-.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomOutBitmap("svg/zoom-out.svg");
   ewxBitmapButton * zoomOut = new ewxBitmapButton(parent, wxID_ZOOM_OUT,
           zoomOutBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomOut->setSvg("svg/zoom-out.svg");
   zoomOut->SetToolTip(_T("Zoom out"));
   p_rotSizer->Add(zoomOut, 0, wxALIGN_CENTER|wxALL, 0);
 }
@@ -1141,7 +1159,32 @@ void Builder::createToolPanels()
     tabRow->Add(p_tabButtons[t], 1, wxEXPAND | wxALL, 2);
   }
   p_tabsPanel->SetSizer(tabRow);
-  p_tabsPanel->SetMinSize(wxSize(200, 34));
+  //  Windows reports a best height that clips the text once the display is
+  //  scaled, so the height comes from the extent of the font actually used
+  //  plus padding in DIPs.  Unchanged (34 px) at 100 %.
+  int tabH = 34;
+  if (ewxBitmap::dpiScale() > 1 || GetContentScaleFactor() > 1.05) {
+    //  Padding around the text: 8 DIP above and below, 12 left and right.
+    const int textH = p_tabButtons[0]->GetTextExtent("Wg").y;
+    const int btnH = std::max(p_tabButtons[0]->GetBestSize().y,
+                              textH + 2 * FromDIP(8));
+    for (int t = 0; t < 2; ++t) {
+      const int btnW = std::max(p_tabButtons[t]->GetBestSize().x,
+          p_tabButtons[t]->GetTextExtent(tabNames[t]).x + 2 * FromDIP(12));
+      p_tabButtons[t]->SetMinSize(wxSize(btnW, btnH));
+    }
+    tabH = std::max(ewxBitmap::scaled(34), btnH + 4 + 2 * FromDIP(4));
+  }
+  p_tabsPanel->SetMinSize(wxSize(ewxBitmap::scaled(200), tabH));
+  //  AUI's caption bar keeps its 17 px at any text size.
+  if (ewxBitmap::dpiScale() > 1) {
+    wxAuiDockArt *art = p_mgr.GetArtProvider();
+    wxClientDC dc(this);
+    dc.SetFont(art->GetFont(wxAUI_DOCKART_CAPTION_FONT));
+    const int need = dc.GetTextExtent("Wg").y + ewxBitmap::scaled(6);
+    if (need > art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE))
+      art->SetMetric(wxAUI_DOCKART_CAPTION_SIZE, need);
+  }
   wxAuiPaneInfo tabInfo;
   tabInfo.Name(NAME_COLUMN_TABS).CaptionVisible(false).Right().Layer(1)
          .Position(0).Fixed().Floatable(false).Movable(false)
@@ -1158,8 +1201,8 @@ void Builder::createToolPanels()
   wxAuiPaneInfo indexInfo;
   indexInfo.Name(NAME_PROPERTY_INDEX).Caption("Properties").CaptionVisible(true)
            .Right().Layer(1).Position(1).Resizable(true).CloseButton(false)
-           .Floatable(false).MinSize(wxSize(200, 150))
-           .BestSize(wxSize(400, 230)).Show(false);
+           .Floatable(false).MinSize(ewxBitmap::scaled(wxSize(200, 150)))
+           .BestSize(ewxBitmap::scaled(wxSize(400, 230))).Show(false);
   indexInfo.dock_proportion = 1;   // sized to its rows: sizeIndexPane
   p_mgr.AddPane(p_index, indexInfo);
 
@@ -4782,8 +4825,18 @@ void Builder::doSaveThumb()
     // create thumbnail (without labels)
     // The offscreen render does not see the canvas's background.
     const SbColor bg = p_viewer->getBackgroundColor();
-    if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2]))
+    //  The corner texts ("5 atoms") are part of the viewer's scene graph.
+    const bool hadText = p_viewer->textLabelsShown();
+    p_viewer->showTextLabels(false);
+    //  64 px at 100 %.  On a scaled display twice the button's physical
+    //  size: the button shrinks it with a smoothing filter, which gives
+    //  clean edges on the atoms and sticks of the small picture.
+    const double sc = std::max(ewxBitmap::dpiScale(), GetContentScaleFactor());
+    const int tpx = sc > 1.05 ? 2 * (int)(64 * sc + 0.5) : 64;
+    if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2],
+                              tpx, tpx))
       showMessage(VizRender::msg(), true);
+    p_viewer->showTextLabels(hadText);
     // turn labels back on
     cmd.undo();
   }
@@ -6956,6 +7009,7 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
 void Builder::addToolBar(wxToolBar * toolbar, const string& name)
 {
   toolbar->Realize();
+  ewxBitmap::logDpi(("viewer toolbar " + name).c_str(), toolbar);
   
   wxAuiPaneInfo pinfo;
   pinfo.Name(name).Caption(name).ToolbarPane().Top().Position(p_toolbarCount).
@@ -7253,10 +7307,10 @@ void Builder::removePropertyPanels(const string& context)
 void Builder::toggleTool(int id, bool isChecked)
 {
   if (id == ViewerEvtHandler::ID_CAMERA_TYPE) {
-    p_cameraButton->SetBitmapLabel(isChecked? p_orthoBitmap:p_perspBitmap);
+    p_cameraButton->setSvg(isChecked ? ORTHO_SVG : PERSP_SVG);
   }
   else if (id == ViewerEvtHandler::ID_AUTO_NORMALIZE) {
-    p_centerLockButton->SetBitmapLabel(isChecked? p_lockBitmap:p_unlockBitmap);
+    p_centerLockButton->setSvg(isChecked ? "svg/center-view-lock.svg" : "svg/center-view-unlock.svg");
   }
   else if (p_modeToolbar->FindById(id)) {
     p_modeToolbar->ToggleTool(id, isChecked);

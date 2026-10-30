@@ -176,7 +176,7 @@ void TableAtomCoords::fillTable()
 
    // Requires wxwidgets 2.8.8
    //p_grid->SetRowLabelSize(wxGRID_AUTOSIZE);
-   p_grid->SetRowLabelSize(25);
+   p_grid->SetRowLabelSize(ewxBitmap::scaled(25));
    p_grid->AutoSize();
 }
 

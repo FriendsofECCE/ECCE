@@ -1903,7 +1903,8 @@ void CalcMgr::saveSettings()
   
 
   prefs.setInt("Organizer.TreeWidth",
-                  p_splitterWindow->GetSashPosition());
+               (int)(p_splitterWindow->GetSashPosition() /
+                     ewxBitmap::dpiScale() + 0.5));
   prefs.setInt("Organizer.TreeSort",
                   p_treeSort);
   prefs.setInt("Organizer.PropertyView",
@@ -1948,7 +1949,7 @@ void CalcMgr::restoreSettings()
 
   int prefTmp = 250;
   if (prefs.getInt("Organizer.TreeWidth", prefTmp))
-    p_splitterWindow->SetSashPosition(prefTmp);
+    p_splitterWindow->SetSashPosition(ewxBitmap::scaled(prefTmp));
 
   p_treeSort = 0;
   if (prefs.getInt("Organizer.TreeSort", prefTmp))
@@ -2024,8 +2025,10 @@ void CalcMgr::restoreSettings()
     int idx = wxDisplay::GetFromWindow(this);
     wxRect area = wxDisplay((unsigned)(idx == wxNOT_FOUND ? 0 : idx))
                     .GetClientArea();
-    int w = std::max(860, std::min(1100, area.width * 60 / 100));
-    int h = std::max(600, std::min(800, area.height * 80 / 100));
+    int w = std::max(ewxBitmap::scaled(860),
+                     std::min(ewxBitmap::scaled(1100), area.width * 60 / 100));
+    int h = std::max(ewxBitmap::scaled(600),
+                     std::min(ewxBitmap::scaled(800), area.height * 80 / 100));
     SetSize(std::min(w, area.width), std::min(h, area.height));
     Centre();
   }

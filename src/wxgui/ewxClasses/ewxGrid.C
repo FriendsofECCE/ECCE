@@ -7,6 +7,7 @@
 #include "wxgui/ewxGrid.H"
 #include "wxgui/ewxHelpHandler.H"
 #include "wxgui/ExportTableDialog.H"
+#include "wxgui/ewxBitmap.H"
 
 
 IMPLEMENT_CLASS(ewxGrid, wxGrid)
@@ -59,8 +60,8 @@ ewxGrid::ewxGrid(wxWindow* parent, wxWindowID id,
 
   EnableGridLines(true);
 
-  SetDefaultRowSize(20, true);
-  SetColLabelSize(25);
+  SetDefaultRowSize(ewxBitmap::scaled(20), true);
+  SetColLabelSize(ewxBitmap::scaled(25));
   
   AutoSize();
 }
