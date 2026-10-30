@@ -371,6 +371,22 @@ bool TaskJob::killRequested(bool requested)
 }
 
 
+bool TaskJob::killReason(const string& reason)
+{
+  vector<MetaDataResult> results(1);
+  results[0].name = VDoc::getEcceNamespace() + ":killreason";
+  results[0].value = reason;
+  return addProps(results);
+}
+
+
+string TaskJob::killReason() const
+{
+  const_cast<TaskJob*>(this)->updateProps();
+  return getProp(VDoc::getEcceNamespace() + ":killreason");
+}
+
+
 /** Reads from the server, not the property cache: the request is made by
     another process. */
 bool TaskJob::killRequested() const

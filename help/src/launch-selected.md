@@ -79,3 +79,16 @@ submitted). The exit status is 0 only when every calculation was launched.
 Without a running ECCE session the command says `ECCE is not running: start
 ECCE first` and launches nothing. While a Launch Selected batch is submitting,
 it asks to be run again later.
+
+### Terminating from the command line
+
+    ecce-terminate [--reason "text"] <calculation folder or URL>...
+
+cancels submitted, running or waiting calculations the way **Run Mgmt >
+Terminate Selected** does, without asking for confirmation. Calculations in
+other states are refused by name, with their state. The reason, if given, is
+shown as the calculation's run status reason. One line is printed for each
+calculation, either `name: terminated, job id N` or `name: not terminated:
+reason`; the exit status is 0 only when every calculation was terminated.
+Paths, URLs and the message without a running ECCE session are as for
+`ecce-launch`.

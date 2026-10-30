@@ -174,6 +174,10 @@ public:
   bool launchForCommand(const vector<EcceURL>& urls,
                         const LaunchBatch::Target& target,
                         vector<string>& lines);
+  // ecce-terminate (#695): Terminate Selected without the dialog; same line
+  // format as launchForCommand. False, with lines empty, while a batch submits.
+  bool terminateForCommand(const vector<EcceURL>& urls, const string& reason,
+                           vector<string>& lines);
   // A Launch Selected batch is submitting (#640): the calculations in it
   // must not be deleted, moved, launched or stopped meanwhile.
   bool batchRunning() const { return p_batch != 0; }
@@ -538,7 +542,7 @@ protected:
                   const string& shell, const string& user, const string& file);
   void shellInRunDir(   WxResourceTreeItemData*);
   void manageFiles(     WxResourceTreeItemData*);
-  void terminateCalc(   WxResourceTreeItemData*);
+  string terminateCalc( WxResourceTreeItemData*);
   void checkJob(        WxResourceTreeItemData*);
   void checkJobOnMachine(WxResourceTreeItemData*);
   void reconnectJob(    WxResourceTreeItemData*);

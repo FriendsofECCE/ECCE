@@ -3103,6 +3103,58 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
 }
 
 
+//  Terminate Selected for a request from another process (#695): the same
+//  terminateCalc, without the confirmation. One line per calculation,
+//  "name\tok\tjob id" or "name\tno\treason".
+bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
+                                  const string& reason, vector<string>& lines)
+{
+  lines.clear();
+  if (p_batch) return false;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNode(urls[i], false, true);
+    TaskJob *job = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
+    if (!job) {
+      lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+      continue;
+    }
+    const string name = n->getName();
+    const ResourceDescriptor::RUNSTATE st = job->getState();
+    if (st != ResourceDescriptor::STATE_SUBMITTED &&
+        st != ResourceDescriptor::STATE_RUNNING &&
+        st != ResourceDescriptor::STATE_WAITING) {
+      lines.push_back(name + "\tno\tnot terminated: state is " +
+                      ResourceUtils::stateToString(st));
+      continue;
+    }
+    const string id = job->jobdata().jobid;
+    // Before the request: the job store records it when the job ends.
+    if (!reason.empty()) job->killReason(reason);
+    const EcceURL url = n->getUrl();
+    const string msg = terminateCalc(n);
+    updateUrl(url);
+    const bool issued = id.empty() ||
+        msg.find("has been issued") != string::npos ||
+        msg.find("process not found") != string::npos;
+    if (!issued) {
+      job->killReason("");
+      lines.push_back(name + "\tno\t" + msg);
+    } else {
+      if (id.empty() && !reason.empty()) {
+        // An import has no job store pass left to record it.
+        vector<MetaDataResult> r(1);
+        r[0].name = VDoc::getEcceNamespace() + ":runStatusReason";
+        r[0].value = reason;
+        job->addProps(r);
+        job->notifyProperty("runStatusReason", reason);
+      }
+      lines.push_back(name + "\tok\t" + (id.empty() ? string("none (imported job)") : id));
+    }
+  }
+  return true;
+}
+
+
 string CalcMgr::launchBatchStatus() const
 {
   if (p_batch)
@@ -7400,7 +7452,7 @@ void CalcMgr::manageFiles(WxResourceTreeItemData *itemData)
  *
  * @param itemData  the tree node containing the calculation to terminate
  */
-void CalcMgr::terminateCalc(WxResourceTreeItemData *itemData)
+string CalcMgr::terminateCalc(WxResourceTreeItemData *itemData)
 {
   // Get URL
   EcceURL url = itemData->getUrl();
@@ -7416,11 +7468,11 @@ void CalcMgr::terminateCalc(WxResourceTreeItemData *itemData)
     msg->addProperty("url", url.toString());
     publish("ecce_ejs_kill", *msg);
     delete msg;
-  } else {
-    string msg;
-    msg = RunMgmt::terminate(calc);
-    setMessage(msg, WxFeedback::INFO);
+    return "";
   }
+  string msg = RunMgmt::terminate(calc);
+  setMessage(msg, WxFeedback::INFO);
+  return msg;
 }
 
 
