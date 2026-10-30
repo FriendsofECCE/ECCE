@@ -20,7 +20,7 @@ sudo apt-get install -y \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
   libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev libssl-dev \
-  python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev
+  python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev libhdf5-dev
 ```
 
 `libxc-dev` and `libeigen3-dev` are for ecce-qm, the engine ECCE bundles (code
@@ -30,6 +30,10 @@ as it always does for libcint. `-DECCE_BUILD_QM=OFF` leaves the engine out.
 On Rocky 9 (with EPEL and CRB enabled) and Fedora the Coin3D packages are
 `Coin4-devel` (runtime `Coin4`) and `mesa-libEGL-devel`; OpenSSL is
 `openssl-devel` (`libssl-dev` on Debian).
+
+`libhdf5-dev` (C API) is for `ecce-results` and the `results.h5` file; it is
+`hdf5-devel` on Rocky 9 and Fedora, `hdf5` in Homebrew and
+`mingw-w64-ucrt-x86_64-hdf5` in MSYS2. Without it that tool is not built.
 
 ## 2. Build
 

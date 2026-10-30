@@ -204,3 +204,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Example sets and topics are folders plus set.txt; tree Examples/<Set>/<Topic>/<calc>](example-sets-and-topics-are-data.md) — adding an example is data-only; version 9 upgrade
 - [File= properties (GEOMTRACE, MDMSD) are stored last; a long GROMACS log delays them by minutes (#544)](file-parse-properties-are-stored-last.md)
 - [Allocation profiles (#541): Default is the MachPrefs line, the rest are in MachProfiles, each calculation stores its own](allocation-profiles-541.md)
+- [results.h5: internal results format (format_version 1), canonical AO order, converters, gates](results-h5-format.md) — layout, units, why the AO order is not the viewer's per-code order
