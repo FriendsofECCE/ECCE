@@ -28,6 +28,9 @@ class ewxBitmapButton : public wxBitmapButton, public ewxStyledWindow
     virtual void setCustomDisabledStyle(bool disabled);
     virtual void SetEditable(bool editable);
     virtual bool IsEditable();
+    // The SVG (pixmaps-relative) at this button's physical size, and the
+    // button at least as big as it.
+    void setSvg(const wxString& svg, int logical = 16);
 
   protected:
     bool p_editable;

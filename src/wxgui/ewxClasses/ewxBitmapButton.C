@@ -65,6 +65,17 @@ ewxBitmapButton::~ewxBitmapButton()
 }
 
 
+void ewxBitmapButton::setSvg(const wxString& svg, int logical)
+{
+  wxBitmap bmp = ewxBitmap::svgBitmap(this, svg, logical);
+  SetBitmapLabel(bmp);
+  if (bmp.GetWidth() > logical) {
+    const int pad = FromDIP(2);
+    SetMinSize(wxSize(bmp.GetWidth() + pad, bmp.GetHeight() + pad));
+  }
+}
+
+
 /**
  * Set widget to our custom disabled style.
  * @param enabled true to enable, false to disable

@@ -222,6 +222,9 @@ using std::vector;
 #include <wx/accel.h>
 #include "Builder.H"
 
+static const char *PERSP_SVG = "svg/candidates/viewer-corner/view-persp.svg";
+static const char *ORTHO_SVG = "svg/candidates/viewer-corner/view-ortho.svg";
+
 static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
 
 
@@ -442,8 +445,8 @@ Builder::Builder()
     p_import(),
     p_lockBitmap("svg/center-view-lock.svg"),
     p_unlockBitmap("svg/center-view-unlock.svg"),
-    p_orthoBitmap("orthographic16.png", wxBITMAP_TYPE_PNG),
-    p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
+    p_orthoBitmap("svg/candidates/viewer-corner/view-ortho.svg"),
+    p_perspBitmap("svg/candidates/viewer-corner/view-persp.svg"),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
     p_propertyPanelInfo(),
@@ -520,8 +523,8 @@ Builder::Builder( wxWindow* parent, bool standalone, wxWindowID id,
     p_import(),
     p_lockBitmap("svg/center-view-lock.svg"),
     p_unlockBitmap("svg/center-view-unlock.svg"),
-    p_orthoBitmap("orthographic16.png", wxBITMAP_TYPE_PNG),
-    p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
+    p_orthoBitmap("svg/candidates/viewer-corner/view-ortho.svg"),
+    p_perspBitmap("svg/candidates/viewer-corner/view-persp.svg"),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
     p_propertyPanelInfo(),
@@ -999,6 +1002,7 @@ void Builder::createRotators(wxWindow *parent)
   ewxBitmapButton * zoomFit = new ewxBitmapButton(parent, wxID_ZOOM_FIT,
           centerBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomFit->setSvg("svg/center-view.svg");
   zoomFit->SetToolTip(_T("Center system"));
   p_rotSizer->Add(zoomFit, 0, wxALIGN_CENTER|wxALL, 0);
 
@@ -1007,6 +1011,7 @@ void Builder::createRotators(wxWindow *parent)
                                            p_unlockBitmap,
                                            wxDefaultPosition, wxDefaultSize,
                                            wxBU_AUTODRAW|wxNO_BORDER);
+  p_centerLockButton->setSvg("svg/center-view-unlock.svg");
   p_centerLockButton->SetToolTip(_T("Auto center after each operation"));
   p_rotSizer->Add(p_centerLockButton, 0, wxALIGN_CENTER|wxALL, 0);
 
@@ -1015,6 +1020,7 @@ void Builder::createRotators(wxWindow *parent)
           homeBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(homeView, 0, wxALIGN_CENTER|wxALL, 0);
+  homeView->setSvg("svg/home-view.svg");
   homeView->SetToolTip(_T("Go to home view"));
 
   ewxBitmap setHomeBitmap("svg/set-home-view.svg");
@@ -1022,6 +1028,7 @@ void Builder::createRotators(wxWindow *parent)
           setHomeBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(setHomeView, 0, wxALIGN_CENTER|wxALL, 0);
+  setHomeView->setSvg("svg/set-home-view.svg");
   setHomeView->SetToolTip(_T("Set the home view"));
 
   p_cameraButton = new ewxBitmapButton(parent,
@@ -1030,12 +1037,14 @@ void Builder::createRotators(wxWindow *parent)
                                        wxDefaultPosition, wxDefaultSize,
                                        wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(p_cameraButton, 0, wxALIGN_CENTER|wxALL, 0);
+  p_cameraButton->setSvg(PERSP_SVG);
   p_cameraButton->SetToolTip(_T("Toggle between perpective and orthographic cameras "));
 
   ewxBitmap zoomToBitmap("svg/zoom-fit.svg");
   ewxBitmapButton * zoomTo = new ewxBitmapButton(parent, 
           ViewerEvtHandler::ID_ZOOM_TO, zoomToBitmap, wxDefaultPosition,
           wxDefaultSize, wxBU_AUTODRAW|wxNO_BORDER);
+  zoomTo->setSvg("svg/zoom-fit.svg");
   zoomTo->SetToolTip(_T("Zoom to fit"));
   p_rotSizer->Add(zoomTo, 0, wxALIGN_CENTER|wxALL, 0);
 
@@ -1043,6 +1052,7 @@ void Builder::createRotators(wxWindow *parent)
   ewxBitmapButton * zoomIn = new ewxBitmapButton(parent, wxID_ZOOM_IN,
           zoomInBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomIn->setSvg("svg/zoom-in.svg");
   zoomIn->SetToolTip(_T("Zoom in"));
   p_rotSizer->Add(zoomIn, 0, wxALIGN_CENTER|wxALL, 0);
 
@@ -1050,6 +1060,7 @@ void Builder::createRotators(wxWindow *parent)
   ewxBitmapButton * zoomOut = new ewxBitmapButton(parent, wxID_ZOOM_OUT,
           zoomOutBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomOut->setSvg("svg/zoom-out.svg");
   zoomOut->SetToolTip(_T("Zoom out"));
   p_rotSizer->Add(zoomOut, 0, wxALIGN_CENTER|wxALL, 0);
 }
@@ -1140,13 +1151,17 @@ void Builder::createToolPanels()
     tabRow->Add(p_tabButtons[t], 1, wxEXPAND | wxALL, 2);
   }
   p_tabsPanel->SetSizer(tabRow);
-  //  The row must hold the buttons' own best height: raw 34 px clipped the
-  //  text once the font grew with the display scale.
-  const int tabH = ewxBitmap::dpiScale() > 1
-      ? std::max(ewxBitmap::scaled(34),
-                 std::max(p_tabButtons[0]->GetBestSize().y,
-                          p_tabButtons[1]->GetBestSize().y) + 8)
-      : 34;
+  //  Windows reports a best height that clips the text once the display is
+  //  scaled, so the height comes from the extent of the font actually used
+  //  plus padding in DIPs.  Unchanged (34 px) at 100 %.
+  int tabH = 34;
+  if (ewxBitmap::dpiScale() > 1 || GetContentScaleFactor() > 1.05) {
+    const int textH = p_tabButtons[0]->GetTextExtent("Wg").y;
+    const int btnH = std::max(p_tabButtons[0]->GetBestSize().y,
+                              textH + FromDIP(14));
+    for (int t = 0; t < 2; ++t) p_tabButtons[t]->SetMinSize(wxSize(-1, btnH));
+    tabH = std::max(ewxBitmap::scaled(34), btnH + 4 + FromDIP(4));
+  }
   p_tabsPanel->SetMinSize(wxSize(ewxBitmap::scaled(200), tabH));
   //  AUI's caption bar keeps its 17 px at any text size.
   if (ewxBitmap::dpiScale() > 1) {
@@ -4800,7 +4815,12 @@ void Builder::doSaveThumb()
     //  The corner texts ("5 atoms") are part of the viewer's scene graph.
     const bool hadText = p_viewer->textLabelsShown();
     p_viewer->showTextLabels(false);
-    if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2]))
+    //  Rendered at the button's physical size: a 64 px picture stretched
+    //  to a scaled button is soft.  64 px at 100 %.
+    const double sc = std::max(ewxBitmap::dpiScale(), GetContentScaleFactor());
+    const int tpx = sc > 1.05 ? (int)(64 * sc + 0.5) : 64;
+    if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2],
+                              tpx, tpx))
       showMessage(VizRender::msg(), true);
     p_viewer->showTextLabels(hadText);
     // turn labels back on
@@ -7253,10 +7273,10 @@ void Builder::removePropertyPanels(const string& context)
 void Builder::toggleTool(int id, bool isChecked)
 {
   if (id == ViewerEvtHandler::ID_CAMERA_TYPE) {
-    p_cameraButton->SetBitmapLabel(isChecked? p_orthoBitmap:p_perspBitmap);
+    p_cameraButton->setSvg(isChecked ? ORTHO_SVG : PERSP_SVG);
   }
   else if (id == ViewerEvtHandler::ID_AUTO_NORMALIZE) {
-    p_centerLockButton->SetBitmapLabel(isChecked? p_lockBitmap:p_unlockBitmap);
+    p_centerLockButton->setSvg(isChecked ? "svg/center-view-lock.svg" : "svg/center-view-unlock.svg");
   }
   else if (p_modeToolbar->FindById(id)) {
     p_modeToolbar->ToggleTool(id, isChecked);
