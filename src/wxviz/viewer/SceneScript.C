@@ -245,9 +245,9 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
   } else if (c == "mo") {
     ICalculation *ic = dynamic_cast<ICalculation*>(p_calc);
     if (!ic || w.size() < 2) return fail("mo: needs a calculation and an MO number");
-    double iso = w.size() > 2 ? atof(w[2].c_str()) : 0.05;
+    double iso = w.size() > 2 && w[2] != "opaque" ? atof(w[2].c_str()) : 0.05;
     lastIso = iso;
-    int res = w.size() > 3 ? atoi(w[3].c_str()) : 40;
+    int res = w.size() > 3 && w[3] != "opaque" ? atoi(w[3].c_str()) : 40;
     //  Grid box: atom extent plus 3.5 Angstrom.
     double lo[3] = {1e9, 1e9, 1e9}, hi[3] = {-1e9, -1e9, -1e9};
     for (int i = 0; i < frag->numAtoms(); i++) {
@@ -276,7 +276,9 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     if (!grid || !(grid->fieldMax() > grid->fieldMin()))
       return fail("mo: no field computed");
     IsoSurfaceCmd surf("Iso Surface", p_sg, p_calc);
-    surf.getParameter("transparency")->setDouble(0.5);
+    //  "opaque" (last word): screen-door dithering shows as dots on software GL.
+    const bool opaque = w.back() == "opaque";
+    surf.getParameter("transparency")->setDouble(opaque ? 0.0 : 0.5);
     surf.getParameter("positiveRed")->setDouble(1.0);
     surf.getParameter("positiveGreen")->setDouble(0.0);
     surf.getParameter("positiveBlue")->setDouble(0.0);
@@ -289,10 +291,11 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     type.execute();
     //  The Builder's MoPanel does this on focus; without it the viewer
     //  keeps its construction default and never takes the lobe mode.
-    p_viewer->setTransparencyType(SoGLRenderAction::SCREEN_DOOR);
+    p_viewer->setTransparencyType(opaque ? SoGLRenderAction::SORTED_OBJECT_BLEND
+                                         : SoGLRenderAction::SCREEN_DOOR);
     IsoValueCmd val("Iso Value", p_sg, p_calc);
     val.getParameter("Value")->setDouble(log10(iso));   // a log10 slider value
-    val.getParameter("transparency")->setDouble(0.5);
+    val.getParameter("transparency")->setDouble(opaque ? 0.0 : 0.5);
     val.getParameter("positiveRed")->setDouble(1.0);
     val.getParameter("positiveGreen")->setDouble(0.0);
     val.getParameter("positiveBlue")->setDouble(0.0);

@@ -78,8 +78,8 @@ def viewer(display, data, work, out):
     scene = os.path.join(work, "viewer.scene")
     with open(scene, "w") as h:
         h.write("style Ball And Stick\nviewall\nbackground 1 1 1\n"
-                "mo 8 0.04 50\nrotate 35\nwindowsize 1300 800\n"
-                "hold 20\nscreen readme-viewer\n")
+                "mo 8 0.04 50 opaque\nrotate 35\nrotatex -60\nwindowsize 1300 800\n"
+                "hold 20\nscreen readme-viewer\nrotatex 30\nhold 5\nscreen readme-viewer-b\n")
     known = set(w for w, _ in display.windows())
     env = {"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": work,
            "ECCE_VIEWER_SCENE_SIZE": "800x600", "ECCE_VIEWER_SCENE_HOLD": "1",
@@ -92,10 +92,13 @@ def viewer(display, data, work, out):
             if os.path.exists(raw) or proc.poll() is not None:
                 break
             time.sleep(1)
-        time.sleep(2)
+        time.sleep(15)
         if not os.path.exists(raw):
             return "no viewer snapshot"
-        shutil.copy(raw, os.path.join(out, "viewer-display.png"))   # crop to 1300x800 at 0,0
+        for suffix, name in (("", "viewer.png"), ("-b", "viewer-b.png")):
+            src = os.path.join(work, "readme-viewer%s.png" % suffix)
+            if os.path.exists(src):
+                shutil.copy(src, os.path.join(out, name))
     finally:
         readme.stop(proc)
     return None
