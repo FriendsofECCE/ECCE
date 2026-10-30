@@ -222,8 +222,8 @@ using std::vector;
 #include <wx/accel.h>
 #include "Builder.H"
 
-static const char *PERSP_SVG = "svg/candidates/viewer-corner/view-persp.svg";
-static const char *ORTHO_SVG = "svg/candidates/viewer-corner/view-ortho.svg";
+static const char *PERSP_SVG = "svg/view-persp.svg";
+static const char *ORTHO_SVG = "svg/view-ortho.svg";
 
 static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
 
@@ -445,8 +445,8 @@ Builder::Builder()
     p_import(),
     p_lockBitmap("svg/center-view-lock.svg"),
     p_unlockBitmap("svg/center-view-unlock.svg"),
-    p_orthoBitmap("svg/candidates/viewer-corner/view-ortho.svg"),
-    p_perspBitmap("svg/candidates/viewer-corner/view-persp.svg"),
+    p_orthoBitmap("svg/view-ortho.svg"),
+    p_perspBitmap("svg/view-persp.svg"),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
     p_propertyPanelInfo(),
@@ -523,8 +523,8 @@ Builder::Builder( wxWindow* parent, bool standalone, wxWindowID id,
     p_import(),
     p_lockBitmap("svg/center-view-lock.svg"),
     p_unlockBitmap("svg/center-view-unlock.svg"),
-    p_orthoBitmap("svg/candidates/viewer-corner/view-ortho.svg"),
-    p_perspBitmap("svg/candidates/viewer-corner/view-persp.svg"),
+    p_orthoBitmap("svg/view-ortho.svg"),
+    p_perspBitmap("svg/view-persp.svg"),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
     p_propertyPanelInfo(),
