@@ -153,6 +153,9 @@ def run_joins(display, data, work, shots):
         return re.findall(r"ECCE_TEST_ORGANIZER: %s.*?: (.*)$" % re.escape(prefix),
                           log, re.M)
 
+    for prefix in ("workflowstep", "workflowjoin"):
+        for line in answer(prefix):
+            print("      %s -> %s" % (prefix, line[:160]))
     info = answer("workflowinfo")
     if not info or not info[0].startswith("ok "):
         return fail(what, "no workflowinfo answer", log)
