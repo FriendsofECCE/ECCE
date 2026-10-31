@@ -69,6 +69,7 @@
                        // the full definition here to fill one in below.
 
 #include "comm/RCommand.H"
+#include "comm/JobWorker.H"
 #include "comm/JobParser.H"
 #include "comm/JobFailureReason.H"
 #include "comm/JobLogDates.H"
@@ -334,6 +335,8 @@ void jobstore_main(RCommand* rconn, const string& jobId,
 
   // invoke eccejobmonitor
   initMon();
+  JobWorker::transition(JobWorker::MONITORING, JobWorker::PHASE_CHANGED,
+                        "Connected to the monitor on the worker SSH session");
 
   // establish local RCommand connection for property parsing scripts
   initCache();
@@ -413,6 +416,8 @@ cout << "total JobParser::storeProperty DAV storage time (" << dbTimer.elapsedTi
   cleanup(0);
 
   // success
+  JobWorker::transition(JobWorker::COMPLETE, JobWorker::FINISHED,
+                        "Calculation monitoring and result storage complete");
   exit(0);
 }
 
@@ -1047,6 +1052,7 @@ void envRead(void)
 // ------------------------------------------------------------------------- //
 void fail(const char* name, const string& msg)
 {
+  JobWorker::transition(JobWorker::FAILED, JobWorker::FAILURE, msg);
   logPrint(ActivityLog::FATAL, name, msg);
   logNumErrors++;
 
@@ -1061,6 +1067,7 @@ void fail(const char* name, const string& msg)
 
 void restart(const char* name, const string& msg)
 {
+  JobWorker::transition(JobWorker::RECOVERING, JobWorker::FAILURE, msg);
   logPrint(ActivityLog::FATAL, name, msg);
   logNumErrors++;
 
@@ -1092,6 +1099,7 @@ static bool parkQuiet = false;
 
 void park(const char* name, const string& msg, int exitStatus)
 {
+  JobWorker::transition(JobWorker::RECOVERING, JobWorker::FAILURE, msg);
   if (parkQuiet)
     logMessage(name, msg);
   else {
@@ -2439,6 +2447,7 @@ void interactProperty(char* propData, char seqCode)
       if (bookmarkFile) {
         bookmarkFile << bookmarkStr << endl;
         bookmarkFile.close();
+        JobWorker::updateBookmark(bookmarkStr);
       }
     }
 

@@ -2274,23 +2274,32 @@ bool Launch::startJobStore(const string& importDir)
 {
   bool ret = true;
   p_storeStarted = true;
-  if (!p_storePrepared) prepareJobStore();
 
   // The worker is the lifetime boundary for submission and monitoring. Run
   // JobStore here with the launch's authenticated RCommand so an SSH/TOTP
   // login is not repeated at the point monitoring starts. JobStore owns the
   // remainder of this worker process and exits when monitoring is complete.
   if (p_workerMonitoring) {
-    JobWorker::emitEvent(JobWorker::PHASE_CHANGED, JobWorker::SUBMITTED,
+    string stateError;
+    if (!JobWorker::persistSubmission(p_cache->jobId,
+            p_cache->directory + "/eccejobstore.conf", p_cache->remoteDir,
+            stateError))
+      JobWorker::transition(JobWorker::SUBMITTED, JobWorker::WARNING,
+          "Could not preserve restart state: " + stateError);
+    JobWorker::transition(JobWorker::SUBMITTED, JobWorker::PHASE_CHANGED,
         "Scheduler accepted calculation " + p_cache->jobId);
-    JobWorker::emitEvent(JobWorker::PHASE_CHANGED, JobWorker::MONITORING,
-        "Monitoring submitted calculation on the launch SSH session");
+    // The scheduler ID and durable config path must reach disk before any
+    // further remote command. If this process stops during setup, recovery
+    // can still attach to the accepted job instead of submitting again.
+    if (!p_storePrepared) prepareJobStore();
     extern void jobstore_main(RCommand* remoteconn, const string& jobId,
                 const string& configFileName, const bool& restartFlag);
     jobstore_main(p_connection, p_cache->jobId,
                   p_cache->directory + "/eccejobstore.conf", false);
     return true; // jobstore_main normally exits; retained for API completeness
   }
+
+  if (!p_storePrepared) prepareJobStore();
 
   if (p_cache->frontendFlag) {
     extern void jobstore_main(RCommand* remoteconn, const string& jobId,

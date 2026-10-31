@@ -10,25 +10,36 @@ the same SSH connection. Keep SSH as the reliable baseline before adding MQTT.
 1. Define the worker contract
 =============================
 
-Implementation started on the 9.4.6 release base:
+Implemented on the 9.4.6 release base:
 
 - `include/comm/JobWorker.H` defines host-independent request, job-record,
   phase, and event types. Event names are stable for a line-oriented adapter.
-- `eccejobworker` is a wx-free command-line worker. It accepts a calculation
-  URL and the existing AuthCache pipe handoff, then emits JSON event lines.
-  JobStore still writes its legacy diagnostics while monitoring, so a
-  dedicated named-pipe event channel is needed before a GUI consumes this as
-  a production protocol.
+- The Windows Launcher creates a local, current-user named pipe, starts the
+  wx-free `eccejobworker`, sends the calculation URL and existing AuthCache
+  handoff, and reads lifecycle events. It returns control once JobStore has
+  attached to the worker's SSH connection. Launch warnings are confirmed in
+  the Launcher before work continues.
 - The worker-mode launch calls JobStore inside the worker with the existing
   authenticated `RCommand`; normal Launcher callers keep the existing
   detached jobstore path. Remote TOTP continues through RCommand's registered
   machine setting and authentication prompt.
+- Worker state is stored under
+  `$ECCE_REALUSERHOME/.ECCE/jobworker/`. It records phase, calculation URL,
+  scheduler ID, monitor config location, and the bookmark. The monitor config
+  and bookmark are kept beside each other in a persistent per-job directory.
+  Run Management > Reconnect starts a fresh worker in resume mode when a
+  saved record exists; it opens a new SSH session and therefore asks for a
+  fresh TOTP code when required.
+- Before each launch step the worker saves its phase. If it stopped during
+  scheduler submission without a saved job ID, ECCE marks the record as
+  needing reconciliation and refuses to submit it again.
 
-This is the lifecycle foundation, not the finished Windows integration. The
-Windows named-pipe request/event adapter, durable worker restart record,
-GUI start/reconnect controls, and interactive confirmation of launch warnings
-remain follow-up work. Until durable recovery is added, a worker process exit
-still relies on ECCE's existing JobStore recovery mechanisms.
+The named pipe carries request, warning, and lifecycle messages until the
+monitor connects. After that the worker keeps running if the GUI closes. Fine
+grained monitor progress continues through ECCE's existing JobStore/JMS path;
+the worker record and monitor bookmark provide recovery after the worker
+process exits. A simultaneous Launcher cannot attach to a worker that still
+holds the per-job lock; use Run Management after that worker exits.
 
 Separate the job lifecycle from where the worker runs. Give both worker modes
 the same inputs and outputs:

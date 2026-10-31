@@ -12,11 +12,16 @@
     using std::ios;
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <future>
 #include <thread>
     using std::find;
     using std::min;
     using std::max;
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "wx/event.h"
 #include "wx/wx.h"
@@ -41,6 +46,7 @@
 #include "tdat/QmSolventWarning.H"
 #include "tdat/QueueMgr.H"
 #include "tdat/TTheory.H"
+#include "tdat/AuthCache.H"
 
 #include "MemoryUnits.H"
 
@@ -57,6 +63,7 @@
 
 #include "comm/EcceShell.H"
 #include "comm/LaunchBatch.H"
+#include "comm/JobWorker.H"
 #include "comm/RCommand.H"
 
 #include "wxgui/ewxBitmap.H"
@@ -2887,6 +2894,42 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
     bool localOnly = (rgstn != (RefMachine*)0 && rgstn->noRemoteAccess());
     bool doLaunch =  fullLaunchFlag && !rgstn->userSubmit() && !localOnly;
 
+#ifdef _WIN32
+    // Keep the Windows GUI out of the long-lived SSH/monitor process. A
+    // saved record selects RESUME so reopening a calculation never submits
+    // it a second time.
+    if (doLaunch) {
+        JobWorker::Record record;
+        bool resume = false;
+        if (JobWorker::loadRecord(p_taskJob->getURL().toString(), record)) {
+            if ((record.phase == JobWorker::SUBMITTING ||
+                 record.phase == JobWorker::NEEDS_RECONCILIATION) &&
+                record.schedulerJobId.empty()) {
+                p_messagesFeedback->setMessage(
+                    "The prior submission may have reached the scheduler. "
+                    "Reconcile the scheduler job before retrying.",
+                    WxFeedback::ERROR, false, true);
+                return;
+            }
+            resume = !record.schedulerJobId.empty() &&
+                record.phase != JobWorker::COMPLETE &&
+                record.phase != JobWorker::FAILED;
+        }
+        string workerError;
+        if (runJobWorker(resume, workerError)) {
+            calcStateNotify(p_taskJob->getState());
+            p_messagesFeedback->setMessage(
+                resume ? "Monitoring reconnected to the saved job."
+                       : "Successfully submitted job.",
+                WxFeedback::INFO, false, true);
+        } else if (!workerError.empty()) {
+            p_messagesFeedback->setMessage(workerError, WxFeedback::ERROR,
+                                            false, true);
+        }
+        return;
+    }
+#endif
+
     p_launchData = new Launch(p_taskJob, kvargs, doLaunch);
     bool valid = true;
     p_launchError = "";
@@ -3001,6 +3044,204 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
         }
     }
 }
+
+#ifdef _WIN32
+namespace {
+static bool writeNamedPipe(HANDLE pipe, const string& text)
+{
+    size_t sent = 0;
+    while (sent < text.size()) {
+        DWORD n = 0;
+        if (!WriteFile(pipe, text.data() + sent,
+                       (DWORD)(text.size() - sent), &n, NULL) || n == 0)
+            return false;
+        sent += n;
+    }
+    return true;
+}
+
+static bool readNamedPipeLine(HANDLE pipe, string& line)
+{
+    const auto deadline = std::chrono::steady_clock::now() +
+                          std::chrono::seconds(20);
+    while (std::chrono::steady_clock::now() < deadline) {
+        DWORD available = 0;
+        if (!PeekNamedPipe(pipe, NULL, 0, NULL, &available, NULL)) return false;
+        if (available) {
+            char c;
+            DWORD n = 0;
+            if (!ReadFile(pipe, &c, 1, &n, NULL) || n != 1) return false;
+            if (c == '\n') {
+                if (!line.empty() && line.back() == '\r') line.pop_back();
+                return true;
+            }
+            line += c;
+        } else {
+            wxTheApp->Yield(true);
+            wxMilliSleep(20);
+        }
+    }
+    return false;
+}
+
+static string decodeHex(const string& encoded)
+{
+    string value;
+    if (encoded.size() % 2) return value;
+    for (size_t i = 0; i < encoded.size(); i += 2) {
+        char byte[3] = {encoded[i], encoded[i + 1], '\0'};
+        value += (char)strtoul(byte, NULL, 16);
+    }
+    return value;
+}
+
+static bool readAvailable(HANDLE pipe, string& pending, string& line,
+                          bool& disconnected)
+{
+    DWORD available = 0;
+    if (!PeekNamedPipe(pipe, NULL, 0, NULL, &available, NULL)) {
+        disconnected = true;
+        return false;
+    }
+    if (!available) return false;
+    char buf[4096];
+    DWORD n = 0;
+    if (!ReadFile(pipe, buf, (DWORD)std::min<size_t>(sizeof(buf), available), &n, NULL)) {
+        disconnected = true;
+        return false;
+    }
+    pending.append(buf, n);
+    size_t end = pending.find('\n');
+    if (end == string::npos) return false;
+    line = pending.substr(0, end);
+    pending.erase(0, end + 1);
+    if (!line.empty() && line.back() == '\r') line.pop_back();
+    return true;
+}
+}
+
+bool WxLauncher::runJobWorker(bool resume, string& error)
+{
+    struct MessageDeferral {
+        WxJMSSubscriber *subscriber;
+        MessageDeferral() : subscriber(dynamic_cast<WxJMSSubscriber*>(wxTheApp))
+            { if (subscriber) subscriber->deferMessages(true); }
+        ~MessageDeferral() { if (subscriber) subscriber->deferMessages(false); }
+    } defer;
+    wxWindowDisabler noInput;
+
+    const string pipeName = "\\\\.\\pipe\\ECCE.JobWorker." +
+        std::to_string((unsigned long)GetCurrentProcessId()) + "." +
+        std::to_string((unsigned long long)GetTickCount64());
+    HANDLE pipe = CreateNamedPipeA(pipeName.c_str(), PIPE_ACCESS_DUPLEX,
+        PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT | PIPE_REJECT_REMOTE_CLIENTS,
+        1, 8192, 8192, 0, NULL);
+    if (pipe == INVALID_HANDLE_VALUE) {
+        error = "Cannot create the local job worker pipe";
+        return false;
+    }
+
+    string helper = Ecce::ecceBinCommand("eccejobworker");
+    if (helper.size() >= 2 && helper[0] == '"' && helper[helper.size()-1] == '"')
+        helper = helper.substr(1, helper.size() - 2);
+    wxArrayString args;
+    args.Add(wxString::FromUTF8(helper.c_str()));
+    args.Add("-ipc"); args.Add(wxString::FromUTF8(pipeName.c_str()));
+
+    const string authPipe = AuthCache::pipeName();
+    args.Add("-authPipe"); args.Add(wxString::FromUTF8(authPipe.c_str()));
+    long pid = wxExecute(args, wxEXEC_ASYNC | wxEXEC_HIDE_CONSOLE);
+    if (pid <= 0) {
+        CloseHandle(pipe);
+        error = "Unable to start eccejobworker";
+        return false;
+    }
+    AuthCache::getCache().pipeOut(authPipe);
+
+    bool connected = false;
+    const auto connectDeadline = std::chrono::steady_clock::now() +
+                                 std::chrono::seconds(20);
+    while (!connected && std::chrono::steady_clock::now() < connectDeadline) {
+        if (ConnectNamedPipe(pipe, NULL)) connected = true;
+        else if (GetLastError() == ERROR_PIPE_CONNECTED) connected = true;
+        else if (GetLastError() != ERROR_PIPE_LISTENING) break;
+        if (!connected) { wxTheApp->Yield(true); wxMilliSleep(20); }
+    }
+    if (!connected) {
+        CloseHandle(pipe);
+        error = "eccejobworker did not connect to the Launcher pipe";
+        return false;
+    }
+    DWORD mode = PIPE_READMODE_BYTE | PIPE_WAIT;
+    if (!SetNamedPipeHandleState(pipe, &mode, NULL, NULL)) {
+        DisconnectNamedPipe(pipe); CloseHandle(pipe);
+        error = "Cannot set the Launcher pipe to blocking mode";
+        return false;
+    }
+
+    string ready;
+    if (!readNamedPipeLine(pipe, ready) || ready != "READY") {
+        DisconnectNamedPipe(pipe); CloseHandle(pipe);
+        error = "eccejobworker did not complete the pipe handshake";
+        return false;
+    }
+    if (!writeNamedPipe(pipe, string(resume ? "RESUME\n" : "START\n") +
+                              p_taskJob->getURL().toString() + "\n")) {
+        DisconnectNamedPipe(pipe); CloseHandle(pipe);
+        error = "Cannot send the calculation request to eccejobworker";
+        return false;
+    }
+
+    bool monitoring = false, failed = false, disconnected = false;
+    string pending;
+    const auto eventDeadline = std::chrono::steady_clock::now() +
+                               std::chrono::minutes(10);
+    while (!monitoring && !failed && !disconnected &&
+           std::chrono::steady_clock::now() < eventDeadline) {
+        string frame;
+        if (readAvailable(pipe, pending, frame, disconnected)) {
+            vector<string> fields;
+            size_t start = 0;
+            for (size_t i = 0; i <= frame.size(); ++i) {
+                if (i == frame.size() || frame[i] == '|') {
+                    fields.push_back(frame.substr(start, i - start));
+                    start = i + 1;
+                }
+            }
+            if (fields.size() >= 5 && fields[0] == "EVT") {
+                const string type = fields[1], phase = fields[2];
+                const string message = decodeHex(fields[4]);
+                WxFeedback::Severity severity = WxFeedback::INFO;
+                if (type == "failure") severity = WxFeedback::ERROR;
+                else if (type == "warning") severity = WxFeedback::WARNING;
+                if (!message.empty())
+                    p_messagesFeedback->setMessage(message, severity, false, true);
+                if (type == "warning") {
+                    const bool proceed = confirmLaunchWarning(message);
+                    if (!writeNamedPipe(pipe, proceed ? "CONTINUE\n" : "CANCEL\n"))
+                        disconnected = true;
+                    if (!proceed) { failed = true; error = "Launch cancelled."; }
+                } else if (type == "failure") {
+                    failed = true;
+                    error = message;
+                } else if (phase == "monitoring") {
+                    monitoring = true;
+                }
+            }
+        }
+        if (!monitoring && !failed && !disconnected) {
+            wxTheApp->Yield(true);
+            wxMilliSleep(20);
+        }
+    }
+    if (!monitoring && !failed && !disconnected)
+        error = "Timed out waiting for the job worker to connect its monitor. "
+                "The saved worker record can be resumed from Run Management.";
+    DisconnectNamedPipe(pipe);
+    CloseHandle(pipe); // the detached worker continues with durable state
+    return monitoring;
+}
+#endif
 
 
 /**

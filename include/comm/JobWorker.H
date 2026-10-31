@@ -16,7 +16,7 @@ namespace JobWorker
 {
   enum Phase {
     CREATED, PREPARING, AUTHENTICATING, SUBMITTING, SUBMITTED,
-    MONITORING, RECOVERING, COMPLETE, FAILED
+    MONITORING, RECOVERING, NEEDS_RECONCILIATION, COMPLETE, FAILED
   };
 
   enum EventType {
@@ -26,15 +26,16 @@ namespace JobWorker
 
   struct Request {
     std::string calculationUrl;
-    // Reserved for the local/data-server choice; a worker never changes the
-    // target after submission begins.
-    std::string executionLocation;
+    bool resume;
+    Request() : resume(false) {}
   };
 
   struct Record {
     std::string calculationUrl;
     std::string schedulerJobId;
     std::string monitorBookmark;
+    std::string configFile;
+    std::string remoteDirectory;
     Phase phase;
     unsigned long sequence;
     Record() : phase(CREATED), sequence(0) {}
@@ -51,8 +52,27 @@ namespace JobWorker
   /** Stable wire names used by the newline-delimited worker event protocol. */
   const char *phaseName(Phase phase);
   const char *eventName(EventType type);
-  // Writes one protocol event to stdout. The monotonically increasing
-  // sequence number is process-local and shared by the launcher and monitor.
+  /** Persistent per-user state location, stable for a calculation URL. */
+  std::string recordPathFor(const std::string& calculationUrl);
+  std::string recordDirectoryFor(const std::string& calculationUrl);
+  bool loadRecord(const std::string& calculationUrl, Record& record);
+  bool initializeRecord(const std::string& path, const Record& record,
+                        std::string& error);
+  bool acquireRecordLock(const std::string& path, std::string& error);
+  void releaseRecordLock();
+  void setActiveRecord(const std::string& path, const Record& record);
+  Record activeRecord();
+  bool persistSubmission(const std::string& jobId,
+                         const std::string& configFile,
+                         const std::string& remoteDirectory,
+                         std::string& error);
+  void updateBookmark(const std::string& bookmark);
+  bool transition(Phase phase, EventType type, const std::string& message);
+
+  typedef bool (*EventWriter)(void *context, const std::string& frame);
+  void setEventWriter(EventWriter writer, void *context);
+  // Writes one protocol event to the configured IPC stream, or stdout when
+  // the worker was started without an IPC adapter.
   void emitEvent(EventType type, Phase phase, const std::string& message);
 }
 

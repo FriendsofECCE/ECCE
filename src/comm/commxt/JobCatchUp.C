@@ -20,6 +20,9 @@
 #include "comm/JobCatchUp.H"
 #include "comm/OpenSshTransport.H"
 #include "comm/Launch.H"
+#include "comm/JobWorker.H"
+#include "tdat/AuthCache.H"
+#include "util/Ecce.H"
 #include <fstream>
 #include "util/TempStorage.H"
 #include "util/SDirectory.H"
@@ -29,6 +32,38 @@
 
 using std::string;
 using std::vector;
+
+#ifdef _WIN32
+// Run Management > Reconnect resumes a durable worker record directly. The
+// detached process takes its own AuthCache snapshot and opens a fresh SSH
+// connection, which is where a remote TOTP challenge is answered.
+static bool startSavedWorker(TaskJob *calc, const JobWorker::Record& record,
+                             string& message)
+{
+  string helper = Ecce::ecceBinCommand("eccejobworker");
+  if (helper.size() >= 2 && helper[0] == '"' && helper[helper.size()-1] == '"')
+    helper = helper.substr(1, helper.size() - 2);
+  const string authPipe = AuthCache::pipeName();
+  string command = Ecce::winArg(helper) + " -authPipe " + Ecce::winArg(authPipe) +
+      " -calcURL " + Ecce::winArg(calc->getURL().toString()) + " -resume";
+  STARTUPINFOA startup = {};
+  startup.cb = sizeof(startup);
+  PROCESS_INFORMATION process = {};
+  std::vector<char> mutableCommand(command.begin(), command.end());
+  mutableCommand.push_back('\0');
+  if (!CreateProcessA(helper.c_str(), mutableCommand.data(), NULL, NULL, FALSE,
+                      DETACHED_PROCESS | CREATE_NO_WINDOW, NULL, NULL,
+                      &startup, &process)) {
+    message = "Unable to start the saved job worker";
+    return false;
+  }
+  CloseHandle(process.hThread);
+  CloseHandle(process.hProcess);
+  AuthCache::getCache().pipeOut(authPipe);
+  message = "Restarted worker monitoring for saved job " + record.schedulerJobId;
+  return true;
+}
+#endif
 
 
 static void leaveWaiting(TaskJob* calc, const string& why)
@@ -82,6 +117,15 @@ bool JobCatchUp::reconnect(TaskJob* calc, string& message, const LoginFn& loginF
     message = "previous monitor still running";
     return false;
   }
+#ifdef _WIN32
+  JobWorker::Record workerRecord;
+  if (JobWorker::loadRecord(calc->getURL().toString(), workerRecord) &&
+      !workerRecord.schedulerJobId.empty() && !workerRecord.configFile.empty() &&
+      workerRecord.phase != JobWorker::COMPLETE &&
+      workerRecord.phase != JobWorker::FAILED) {
+    return startSavedWorker(calc, workerRecord, message);
+  }
+#endif
   ResourceDescriptor::RUNSTATE state = calc->getState();
 
   //  Log in before anything is removed: a host that does not answer leaves

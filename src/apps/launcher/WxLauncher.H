@@ -240,6 +240,11 @@ class WxLauncher : public WxLauncherGUI,
         void relocateMachineListItem(string refname, int trgtPostn);
 
         void launchCalc(const bool &fullLaunchFlag);
+#ifdef _WIN32
+        // Start a durable, connection-owning worker and wait only until its
+        // monitor is attached (or submission/recovery fails).
+        bool runJobWorker(bool resume, string& error);
+#endif
         void buildArgs(EcceMap& kvargs);
         void startShell();
 
