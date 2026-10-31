@@ -536,6 +536,10 @@ void WxMachineRegister::addCfgRow(wxWindow* page, wxFlexGridSizer* grid,
             items.Add("bash"); items.Add("sh"); items.Add("csh");
             items.Add("tcsh");
         }
+        else if (kind == CfgTwoFactor)
+        {
+            items.Add("None"); items.Add("TOTP");
+        }
         else
         {
             items.Add("auto"); items.Add("yes"); items.Add("no");
@@ -626,6 +630,12 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     addCfgRow(page, env, "sourceFile", "Script run at login (e.g. module setup)", CfgText,
               "A file on the remote machine that sets up the environment "
               "(module commands, paths) before a job runs.");
+
+    GRID(twoFactor)
+    addCfgRow(page, twoFactor, "twoFactorAuth", "Two factor authentication",
+              CfgTwoFactor,
+              "Choose TOTP when this machine asks for a time-based "
+              "verification code during SSH login.");
 
     addHeading(page, sizer, "Allocation");
     GRID(alloc)
@@ -2651,6 +2661,7 @@ string WxMachineRegister::cfgDefault(const CfgRow& r) const
         case CfgCheck: return "false";
         case CfgCheckYes: return "true";
         case CfgTri: return "no";
+        case CfgTwoFactor: return "none";
         default: return "";
     }
 }
@@ -2668,6 +2679,8 @@ string WxMachineRegister::cfgCanon(const CfgRow& r, const string& raw) const
         case CfgTri:
             return isOneOf(raw, "true", "yes") ? "yes"
                  : isOneOf(raw, "false", "no") ? "no" : "auto";
+        case CfgTwoFactor:
+            return lowerOf(strip(raw)) == "totp" ? "totp" : "none";
         default:
             return strip(raw);
     }
@@ -2685,6 +2698,8 @@ string WxMachineRegister::cfgCtrlText(const CfgRow& r) const
         case CfgShell:
         case CfgTri:
             return (string)static_cast<wxChoice*>(r.ctrl)->GetStringSelection();
+        case CfgTwoFactor:
+            return lowerOf((string)static_cast<wxChoice*>(r.ctrl)->GetStringSelection());
         default:
             return strip((string)static_cast<wxTextCtrl*>(r.ctrl)->GetValue());
     }
@@ -2732,6 +2747,10 @@ void WxMachineRegister::cfgToControl(const CfgRow& r)
         case CfgCheck:
         case CfgCheckYes:
             static_cast<wxCheckBox*>(r.ctrl)->SetValue(show == "true");
+            break;
+        case CfgTwoFactor:
+            static_cast<wxChoice*>(r.ctrl)->SetStringSelection(
+                show == "totp" ? "TOTP" : "None");
             break;
         default:
         {

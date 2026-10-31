@@ -219,7 +219,7 @@ static const char* programName = "eccejobstore";
 // global variables
 static RCommand* remoteconn = 0;
 static RCommand* localconn = 0;
-static int fdesc;
+static intptr_t fdesc;
 static TaskJob* calculation = 0;
 static JobParser* jobparser = 0;
 static bool restartFlag = false;
@@ -1937,7 +1937,8 @@ void initConn(void)
     if (remoteconn == (RCommand*)0)
       remoteconn = new RCommand(cpServerName, cpRemoteShell, cpLocalShell,
                                 cpUserName, "", frontendMachine, frontendBypass,
-                                shellPath, libPath, sourceFile);
+                                shellPath, libPath, sourceFile,
+                                refMachine->twoFactorAuth() == "totp");
   } else
     (void)remoteconn->hop(nodeForRestart, cpLocalShell, cpUserName,
                           "", shellPath, libPath, sourceFile);
@@ -2087,7 +2088,7 @@ static char databuf[MAX_BLOCK_LENGTH];
 
 enum ReadState {idState, countState, dataState};
 
-void getJobMonitorInput(int fid)
+void getJobMonitorInput(intptr_t fid)
 {
   static enum ReadState readState = idState;
   static int needRead = 1;
@@ -2097,7 +2098,11 @@ void getJobMonitorInput(int fid)
   static char seqCode;
   static bool ignoreFlag = false;
 
-  int nbytes = read(fid, dataptr, needRead);
+#ifdef _WIN32
+  int nbytes = recv((SOCKET)fid, dataptr, needRead, 0);
+#else
+  int nbytes = read((int)fid, dataptr, needRead);
+#endif
   if (nbytes > 0)
     contactHeard();
 
@@ -2216,7 +2221,16 @@ static int winPoll(struct pollfd* fds, int n, int timeoutMs)
     for (int i = 0; i < n; i++) {
       fds[i].revents = 0;
       if (fds[i].fd < 0) continue;
-      HANDLE h = (HANDLE)_get_osfhandle(fds[i].fd);
+      // The monitor descriptor is a Winsock socket handle, not a CRT file
+      // descriptor; WSAPoll consumes it directly.  Other entries may be CRT
+      // pipes (signals) or sockets (the message broker).
+      if ((intptr_t)fds[i].fd == fdesc) {
+        struct pollfd one = fds[i];
+        if (WSAPoll(&one, 1, 0) > 0) fds[i].revents = one.revents;
+        if (fds[i].revents) ready++;
+        continue;
+      }
+      HANDLE h = (HANDLE)_get_osfhandle((int)fds[i].fd);
       DWORD avail = 0;
       if (h != INVALID_HANDLE_VALUE && GetFileType(h) == FILE_TYPE_PIPE) {
         if (PeekNamedPipe(h, 0, 0, 0, &avail, 0))
@@ -2240,7 +2254,7 @@ static int winPoll(struct pollfd* fds, int n, int timeoutMs)
 
 // Wait for and handle one round of events: queued signals first, then an
 // expired timeout, then input from the monitor and the broker.
-static void processEvents(int monFd)
+static void processEvents(intptr_t monFd)
 {
   const short ready = POLLIN | POLLHUP | POLLERR | POLLNVAL;
   for (;;) {

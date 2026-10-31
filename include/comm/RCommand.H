@@ -21,6 +21,7 @@
 
 #include <set>
 #include <string>
+#include <stdint.h>
   using std::string;
 #include <vector>
   using std::vector;
@@ -43,6 +44,7 @@ class RCommand;
 struct RCommandLogin {
   string machine, remShell, locShell = "bash", user, password,
          frontend, frontendBypass, shellPath, libPath, sourceFile;
+  bool requireTotp = false;
   RCommand* open() const;
 };
 
@@ -61,7 +63,8 @@ public:
              const string& locShell="bash", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
-             const string& libPath="", const string& sourceFile="");
+             const string& libPath="", const string& sourceFile="",
+             bool requireTotp=false);
 
   // Destructor
     ~RCommand(void);
@@ -123,7 +126,7 @@ public:
     // Timeout in seconds for execout() and friends; 0 restores the default,
     // negative means none.
     void streamTimeout(const int& timeout=0);
-    int streamFd(void);
+    intptr_t streamFd(void);
 
     string commError(void); // Return error message string
     // The last connect ended because the login was cancelled or not answered
@@ -262,6 +265,7 @@ private:
     bool p_loginPrompted = false;
     bool p_loginRefused = false;
     bool p_timedOut = false;
+    bool p_requireTotp = false;
     Transport* p_transport;  // null until a connection is made
     bool p_ssh;              // the Transport is a RemoteTransport
     string p_scriptPrefix;   // PATH/LD_LIBRARY_PATH setup for every script

@@ -29,7 +29,7 @@ MARK = os.path.join(HOME, ".ECCE", "prewarmed")
 # What a session needs first: the Organizer, the first-start window's helper,
 # the broker; then the tools in about the order they are opened.
 FIRST = ["organizer", "ecce-localdata", "mosquitto", "mosquitto_passwd",
-         "builder", "eccejobmaster", "eccejobstore", "vizthumbnail", "calced",
+         "builder", "eccejobmaster", "eccejobstore", "eccejobworker", "vizthumbnail", "calced",
          "launcher", "basistool", "machregister", "ecce-qm"]
 WORKERS = 1
 

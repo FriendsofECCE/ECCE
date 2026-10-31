@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 53315)
+Total output lines: 3884
+
 cmake_minimum_required(VERSION 3.16)
 project(ECCE CXX C Fortran)
 
@@ -504,6 +507,8 @@ target_include_directories(eccejobmaster PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(eccejobmaster PRIVATE
   eccecommxt eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
   ${XercesC_LIBRARIES})
+ecce_app(eccejobworker src/apps/jobworker
+  LINK eccecommxt eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 # The wrappers ask it which data mode a session is in (#216).
 add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
 target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1074,7 +1079,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
+  load_tgbs ecmd eccejobmaster eccejobstore eccejobworker ecce-localdata ecce-site-admin mocomp
   autosym autosym_cpp getfrag genmol genmollat cleansym symops mdanalysis)
 if(NOT WIN32)
   list(APPEND ECCE_CLI_APPS ecce-flock)
@@ -1360,7 +1365,7 @@ endif()
 # #233), and every program of the session must derive the same host.
 # DISPLAY is defaulted only so that X programs start under cron or ssh; it
 # is not part of the session (drop the default with #166).
-set(ECCE_MESSAGING_APPS ${ECCE_GUI_APPS} eccejobmaster eccejobstore)
+set(ECCE_MESSAGING_APPS ${ECCE_GUI_APPS} eccejobmaster eccejobstore eccejobworker)
 
 foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   set(_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-${_app})
@@ -1873,231 +1878,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
-    # idiomatic equivalent for "this package supersedes an older one
-    # that owned the same paths", and Conflicts blocks the two from
-    # being installed side by side (the old monolithic package is
-    # exactly what ecce-client+ecce-server now provide between them, so
-    # letting both stay installed would leave stale duplicate files).
-    set(CPACK_RPM_CLIENT_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_CLIENT_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_SERVER_PACKAGE_NAME "ecce-server")
-    set(CPACK_RPM_SERVER_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools, mod_ssl, openssl, mosquitto, apr-util, ecce-client = ${_ecce_deb_version}")
-    set(CPACK_RPM_SERVER_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_SERVER_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
-    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
-    set(CPACK_RPM_CLIENT_PACKAGE_AUTOREQ ON)
-    set(CPACK_RPM_CLIENT_PACKAGE_PROVIDES "config(ecce-client) = %{version}-%{release}")
-    set(CPACK_RPM_SERVER_PACKAGE_AUTOREQ ON)
-    set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
-  endif()
-endif()
-
-include(CPack)
-
-# ---------------------------------------------------------------------------
-# Tests
-#
-# tests/parsers is a standalone, script-level regression suite for the
-# parser / property pipeline: it replays checked-in chemistry-code output
-# through the real .desc Begin/Skip/Lines/End/Frequency algorithm and the
-# real scripts/parsers/* scripts and diffs the extracted properties against
-# checked-in expected output.  It needs only python3 and perl -- no build,
-# no GUI, no ECCE services, no chemistry codes -- so it is registered here
-# purely so `ctest` picks it up; nothing else in the build depends on it,
-# and the fixtures are deliberately NOT installed into the package.
-#
-#     cd build-cmake && ctest -R parsers --output-on-failure
-# ---------------------------------------------------------------------------
-enable_testing()
-find_program(PYTHON3_EXECUTABLE NAMES python3)
-
-# HTTP/WebDAV dates must parse English month names independently of LC_TIME.
-add_executable(datetime_test tests/datetime/datetime_test.C)
-target_link_libraries(datetime_test PRIVATE ecceutil)
-add_test(NAME datetime COMMAND datetime_test)
-
-# tests/exceptions -- which exceptions print a "Throw Log" when thrown.
-add_executable(throwlog_test tests/exceptions/throwlog_test.C)
-target_link_libraries(throwlog_test PRIVATE ecceutil)
-add_test(NAME throwlog COMMAND throwlog_test)
-add_test(NAME throwlog-all COMMAND throwlog_test all)
-
-# tests/releasecheck -- version order and release-line choice of the update
-# check (#273), on canned GitHub JSON.
-add_executable(releasecheck_test tests/releasecheck/releasecheck_test.C)
-target_link_libraries(releasecheck_test PRIVATE ecceutil)
-add_test(NAME releasecheck COMMAND releasecheck_test)
-
-# tests/systemfolder -- the Organizer's Local data node is a system folder (#288).
-add_executable(systemfolder_test tests/systemfolder/systemfolder_test.C)
-target_link_libraries(systemfolder_test PRIVATE ecceutil)
-add_test(NAME systemfolder COMMAND systemfolder_test)
-
-# A trace step with no frame goes to the nearest frame (GROMACS traces are
-# thinned to 100 frames, the energy plot is not).
-add_executable(proptsvec_nearest_test tests/tdat/proptsvec_nearest_test.C)
-target_link_libraries(proptsvec_nearest_test PRIVATE eccetdat ecceutil)
-add_test(NAME proptsvec_nearest COMMAND proptsvec_nearest_test)
-
-# The ECCE_HIDE_MO_DIAGRAM site setting (#280).
-add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
-target_link_libraries(sitehide_test PRIVATE ecceutil)
-add_test(NAME sitehide COMMAND sitehide_test)
-
-# tests/cpucores (#436): physical/logical core counts.
-add_executable(cpucores_test tests/cpucores/cpucores_test.C)
-target_link_libraries(cpucores_test PRIVATE ecceutil)
-add_test(NAME cpucores COMMAND cpucores_test)
-
-# Preferences > Advanced switches reach started programs' environment (#307).
-add_executable(envswitches_test tests/envswitches/envswitches_test.C)
-target_link_libraries(envswitches_test PRIVATE ecceutil)
-add_test(NAME envswitches COMMAND envswitches_test)
-
-# The viewer's software/hardware OpenGL path choice (#566).
-add_executable(glpath_test tests/glpath/glpath_test.C)
-target_link_libraries(glpath_test PRIVATE ecceutil)
-add_test(NAME glpath COMMAND glpath_test)
-
-# tests/formula -- the Hill-order formula shown in the Organizer.
-# tests/builder (#222): the element chooser's layout and search, no display.
-add_executable(elementlayout_test tests/builder/elementlayout_test.C)
-target_include_directories(elementlayout_test PRIVATE src/apps/builder)
-target_link_libraries(elementlayout_test PRIVATE eccetdat ecceutil)
-# The chooser alone, for screenshots on a display with no ECCE services.
-add_executable(chooser_shot tests/builder/chooser_shot.C src/apps/builder/ElementChooser.C)
-target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS})
-target_compile_definitions(chooser_shot PRIVATE ${wxWidgets_DEFINITIONS})
-target_link_libraries(chooser_shot PRIVATE eccewxgui eccewxthings eccetdat ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
-# The Calculation Summary's long-value wrap alone (#490).
-# It calls GTK directly, so only where wx is built on GTK.
-if(GTK3_FOUND)
-  add_executable(summary_wrap_shot tests/builder/summary_wrap_shot.C)
-  target_include_directories(summary_wrap_shot PRIVATE ${wxWidgets_INCLUDE_DIRS} ${GTK3_INCLUDE_DIRS})
-  target_compile_definitions(summary_wrap_shot PRIVATE ${wxWidgets_DEFINITIONS})
-  target_link_libraries(summary_wrap_shot PRIVATE eccewxgui eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
-endif()
-add_test(NAME elementlayout COMMAND elementlayout_test)
-# The Density Map's picture of a calculation folder without the Builder (#215).
-add_executable(densitymap_shot tests/builder/densitymap_shot.C src/apps/builder/DensityMapDraw.C)
-target_include_directories(densitymap_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS} ${XercesC_INCLUDE_DIRS})
-target_compile_definitions(densitymap_shot PRIVATE ${wxWidgets_DEFINITIONS})
-target_link_libraries(densitymap_shot PRIVATE eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES})
-
-set_tests_properties(elementlayout PROPERTIES
-  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=elementlayout;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/elementlayout-home")
-
-# tests/tdat/densityplane_test (#215): plane model, offset, degenerate sum.
-add_executable(densityplane_test tests/tdat/densityplane_test.C)
-target_include_directories(densityplane_test PRIVATE ${XercesC_INCLUDE_DIRS})
-target_link_libraries(densityplane_test PRIVATE
-  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
-  ${XercesC_LIBRARIES})
-add_test(NAME densityplane
-  COMMAND densityplane_test ${CMAKE_SOURCE_DIR}/tests/builder/densitymap-fixtures)
-set_tests_properties(densityplane PROPERTIES
-  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityplane;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityplane-home")
-
-# tests/tdat/radialdist_test: quadrature on analytic functions, and the
-# stored H, Ne, Ar, H2, N2 calculations: spherical averages and line profiles.
-add_executable(radialdist_test tests/tdat/radialdist_test.C)
-target_include_directories(radialdist_test PRIVATE ${XercesC_INCLUDE_DIRS})
-target_link_libraries(radialdist_test PRIVATE
-  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
-  ${XercesC_LIBRARIES})
-add_test(NAME radialdist
-  COMMAND radialdist_test ${CMAKE_SOURCE_DIR}/tests/builder/radialdist-fixtures)
-set_tests_properties(radialdist PROPERTIES
-  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=radialdist;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/radialdist-home")
-
-# tests/tdat/spintables_test: composition text, ordering and share in the
-# MOs panel's spin density tables.
-add_executable(spintables_test tests/tdat/spintables_test.C)
-target_link_libraries(spintables_test PRIVATE eccetdat ecceutil)
-add_test(NAME spintables COMMAND spintables_test)
-
-# tests/tdat/spindensity_test: the spin density integrates to Nalpha - Nbeta.
-add_executable(spindensity_test tests/tdat/spindensity_test.C)
-target_include_directories(spindensity_test PRIVATE ${XercesC_INCLUDE_DIRS})
-target_link_libraries(spindensity_test PRIVATE
-  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
-  ${XercesC_LIBRARIES})
-add_test(NAME spindensity
-  COMMAND spindensity_test ${CMAKE_SOURCE_DIR}/tests/builder/radialdist-fixtures
-          ${CMAKE_SOURCE_DIR}/tests/ecceqm/fixtures)
-set_tests_properties(spindensity PROPERTIES
-  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=spindensity;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/spindensity-home")
-
-add_executable(formula_test tests/formula/formula_test.C)
-target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
-add_test(NAME formula COMMAND formula_test)
-
-# tests/multipole (#428): angular surfaces of the quadrupole to hexadecapole.
-add_executable(multipole_test tests/multipole/multipole_test.C)
-target_link_libraries(multipole_test PRIVATE ecceutil)
-target_compile_definitions(multipole_test PRIVATE ECCE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
-add_test(NAME multipole COMMAND multipole_test)
-
-# tests/geomconstraint (#393): the scan setting survives the constraint XML.
-add_executable(scan_xml_test tests/geomconstraint/scan_xml_test.C)
-if(APPLE)   # ld64 resolves the cycles itself and has no RESCAN group
-  target_link_libraries(scan_xml_test PRIVATE eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
-else()
-  target_link_libraries(scan_xml_test PRIVATE
-    "$<LINK_GROUP:RESCAN,eccexml;eccetdat;ecceutil>" ${XercesC_LIBRARIES})
-endif()
-add_test(NAME scan_xml COMMAND scan_xml_test)
-set_tests_properties(scan_xml PROPERTIES
-  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
-add_test(NAME gaussian_scan_decks
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_scan/run_tests.py)
-add_test(NAME opt_hessian_decks
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/opt_hessian/run_tests.py)
-# Reference test for the symmetry helpers (#422): runs the Fortran binaries of
-# this build over tests/symmetry/reference/corpus and compares with the goldens.
-add_test(NAME symmetry_reference
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/symmetry/reference/run_tests.py
-          --impl ${CMAKE_BINARY_DIR} --quiet)
-add_test(NAME symmetry_reference_determinism
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/symmetry/reference/generate_goldens.py
-          --impl ${CMAKE_BINARY_DIR} --check-determinism)
-# ORCA relaxed scan (#393): deck and a real ORCA 6 run, skipped without ORCA
-add_test(NAME orca_scan COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_scan/run_tests.py)
-set_tests_properties(orca_scan PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
-# TD-DFT options reach the ORCA and Gaussian 16 decks (#383).
-add_test(NAME tddft_setup COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/tddft/run_tests.py)
-set_tests_properties(tddft_setup PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
-# ORCA dispersion setting and legacy functional names (#593).
-add_test(NAME orca_dispersion COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_dispersion/run_tests.py)
-# ORCA integration grid setting (DefGrid1/2/3) and grid keywords in legacy functional names (#644).
-add_test(NAME orca_grid COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_grid/run_tests.py)
-# Custom solvent (dielectric constant + refractive index) for ORCA and Gaussian 16 (#642).
-add_test(NAME custom_solvent COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/custom_solvent/run_tests.py)
-# ORCA Geometry/GeoVib on one atom: no Opt, Freq kept; runs ORCA when installed (#623).
-add_test(NAME orca_one_atom COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_one_atom/run_tests.py)
-# Opt=QST2/QST3 decks for HCN<->HNC, run with Gaussian 16 when installed (#419)
-add_test(NAME gaussian_qst
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/gaussian_qst/run_tests.py ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
-set_tests_properties(gaussian_qst PROPERTIES TIMEOUT 1800)
-
-# tests/dummy_atoms (#298): dummy atom X is not an element for basis/formula.
-add_executable(dummy_fragment_test tests/dummy_atoms/dummy_fragment_test.C)
-target_link_libraries(dummy_fragment_test PRIVATE eccetdat ecceutil)
-add_test(NAME dummy_fragment COMMAND dummy_fragment_test)
-set_tests_properties(dummy_fragment PROPERTIES
-  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
-add_test(NAME dummy_atoms_decks
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
-
-# tests/layerstack (#357): layer builder geometry, wx-free.
-add_executable(layer_stack_test tests/layerstack/layer_stack_test.C)
-target_link_libraries(layer_stack_test PRIVATE eccetdat ecceutil)
-add_test(NAME layer_stack COMMAND layer_stack_test)
-
-# tests/metal_bonds (#325): Metal bonds need no nubs.
-add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
-target_link_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
+    # idiomatic equival…3315 tokens truncated…ink_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
 add_test(NAME metal_bonds COMMAND metal_bond_test)
 add_executable(metal_clean_test tests/metal_bonds/metal_clean_test.C)
 target_link_libraries(metal_clean_test PRIVATE eccetdat ecceutil)

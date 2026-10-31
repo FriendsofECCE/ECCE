@@ -137,7 +137,8 @@ string RunMgmt::terminate(const TaskJob *calc)
                   refMachine->shell(), launch.user, "",
                   refMachine->frontendMachine(),refMachine->frontendBypass(),
                   refMachine->shellPath(), refMachine->libPath(),
-                  refMachine->sourceFile());
+                  refMachine->sourceFile(),
+                  refMachine->twoFactorAuth() == "totp");
 
     // Write .ecce.status file with killed state.  This should someday all
     // be moved to a killed script.  There are possible timing problems
@@ -458,7 +459,9 @@ string RunMgmt::cleanServerDirs(const TaskJob *calc)
       }
       RCommand rcmd(launch.machine, launch.remoteShell, refMachine->shell(),
                     launch.user, "", refMachine->frontendMachine(),
-                    refMachine->frontendBypass());
+                    refMachine->frontendBypass(), refMachine->shellPath(),
+                    refMachine->libPath(), refMachine->sourceFile(),
+                    refMachine->twoFactorAuth() == "totp");
       if (rcmd.isOpen()) {
         if (rcmd.directory(remoteDir)) {
           if (!rcmd.execout(cmd1, output)) {
@@ -749,7 +752,10 @@ vector<string> RunMgmt::updateCacheFromComputeHost(const TaskJob* job,
                                     ldata.remoteShell, refMachine->shell(),
                                     ldata.user, "",
                                     refMachine->frontendMachine(),
-                                    refMachine->frontendBypass());
+                                    refMachine->frontendBypass(),
+                                    refMachine->shellPath(), refMachine->libPath(),
+                                    refMachine->sourceFile(),
+                                    refMachine->twoFactorAuth() == "totp");
 
       if (rcmd->commError() == "") {
          if (rcmd->cd(jdata.jobpath)) {

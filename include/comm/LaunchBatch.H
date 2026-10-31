@@ -71,7 +71,9 @@ public:
   /** Steps of one launch: begin(), then step() until done() or failed. */
   class Job {
   public:
-    explicit Job(TaskJob *task);
+    // workerMonitoring makes this process own both the launch and monitor;
+    // normal GUI/batch callers retain the established detached monitor path.
+    explicit Job(TaskJob *task, bool workerMonitoring = false);
     ~Job();
     bool begin(std::string& error);
     bool done() const;
@@ -83,6 +85,7 @@ public:
     TaskJob *p_task;
     Launch *p_launch;
     EcceMap *p_args;
+    bool p_workerMonitoring;
   };
 };
 

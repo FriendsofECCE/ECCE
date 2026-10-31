@@ -160,6 +160,8 @@ SchedulerQuery::Connection WxMachineRegister::connection()
     c.sourceFile = cfg.count("sourcefile") ? cfg["sourcefile"] : "";
     c.frontendMachine = cfg.count("frontendmachine") ? cfg["frontendmachine"] : "";
     c.frontendBypass = cfg.count("frontendbypass") ? cfg["frontendbypass"] : "";
+    c.requireTotp = cfg.count("twofactorauth") &&
+                    lowered(cfg["twofactorauth"]) == "totp";
     return c;
 }
 

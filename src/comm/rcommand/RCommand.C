@@ -291,6 +291,15 @@ static bool looksLikeCode(const string& prompt)
          l.find("duo")!=string::npos || l.find("code")!=string::npos;
 }
 
+static bool looksLikePassword(const string& prompt)
+{
+  string l;
+  for (size_t i = 0; i < prompt.size(); i++)
+    l += (char)tolower((unsigned char)prompt[i]);
+  return l.find("password") != string::npos ||
+         l.find("passphrase") != string::npos;
+}
+
 // Logs in over libssh: the password given, then AuthCache, then passdialog;
 // passdialog's "passcode" for what looks like a second factor.
 bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
@@ -314,11 +323,17 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
     c->passTried = false;
     return c;
   };
-  auto promptFor = [shell, theUser](std::shared_ptr<Creds> c, const string& host) {
-    return SshTransport::PromptFn([c, shell, host, theUser](const string& prompt,
+  auto promptFor = [shell, theUser](std::shared_ptr<Creds> c,
+                                    const string& host, bool totp) {
+    return SshTransport::PromptFn([c, shell, host, theUser, totp](const string& prompt,
                                                             bool echo, string& answer) {
-      if (echo || looksLikeCode(prompt))
-        return askPassdialog("passcode", host, theUser, answer);
+      if (echo || looksLikeCode(prompt) ||
+          (totp && !looksLikePassword(prompt))) {
+        const bool ok = askPassdialog(totp ? "TOTP code" : "passcode",
+                                      host, theUser, answer);
+        if (!ok) c->cancelled = true;
+        return ok;
+      }
       if (!c->passTried &&
           (c->pass != "" || RCommand::getPassCache(shell, host, theUser, c->pass))) {
         c->passTried = true;
@@ -340,10 +355,10 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
   SshTransport* t = new SshTransport(machine, 0, userName);
   t->setConnectTimeout(connectTimeout());
   t->setPasswordAttempts(3);
-  t->setPromptCallback(promptFor(c, machine));
+  t->setPromptCallback(promptFor(c, machine, p_requireTotp));
   if (jumpHost != "") {
     t->setJumpHost(jumpHost, 0, userName);
-    t->setJumpPromptCallback(promptFor(cj, jumpHost));
+    t->setJumpPromptCallback(promptFor(cj, jumpHost, false));
   }
   t->setHostKeyCallback([hk](const string& host, const string& fingerprint,
                              const string& keyType) {
@@ -400,7 +415,8 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
 RCommand* RCommandLogin::open() const
 {
   return new RCommand(machine, remShell, locShell, user, password, frontend,
-                      frontendBypass, shellPath, libPath, sourceFile);
+                      frontendBypass, shellPath, libPath, sourceFile,
+                      requireTotp);
 }
 
 int RCommand::connectTimeout()
@@ -538,6 +554,20 @@ bool RCommand::useOpenssh(const string& machine, const string& userName,
 bool RCommand::sshConnect(const string& machine, const string& userName,
                           const string& password, const string& jumpHost)
 {
+  // OpenSSH's askpass path classifies prompts from their text. Use libssh for
+  // an explicitly configured TOTP machine so an unfamiliar prompt can still
+  // be sent to the code dialog and authentication completion is observed here.
+  if (p_requireTotp) {
+#ifdef ECCE_HAVE_LIBSSH
+    const bool ok = sshConnectLibssh(machine, userName, password, jumpHost);
+    if (!ok)
+      p_errMessage = "TOTP login failed: " + p_errMessage;
+    return ok;
+#else
+    p_errMessage = "TOTP login failed: this ECCE build has no libssh support";
+    return false;
+#endif
+  }
   if (useOpenssh(machine, userName, jumpHost)) {
     bool tryLibssh = false;
     if (sshConnectOpenssh(machine, userName, jumpHost, password, &tryLibssh))
@@ -615,7 +645,7 @@ string RCommand::frontEndMode() const
 }
 
 // A dead reader must give EPIPE, not SIGPIPE.
-static bool sendAll(int fd, const string& data)
+static bool sendAll(intptr_t fd, const string& data)
 {
   size_t done = 0;
   while (done < data.size()) {
@@ -627,18 +657,20 @@ static bool sendAll(int fd, const string& data)
   return true;
 }
 
-int RCommand::streamFd(void)
+intptr_t RCommand::streamFd(void)
 {
-  return p_stream.rfd;
+  return p_sshStream ? p_sshStream->readFd() : p_stream.rfd;
 }
 
 bool RCommand::streamWrite(const string& command)
 {
-  if (p_stream.wfd < 0) {
+  if ((p_ssh && !p_sshStream) || (!p_ssh && p_stream.wfd < 0)) {
     p_errMessage = "No job monitor stream is open";
     return false;
   }
-  if (p_ssh ? sendAll(p_stream.wfd, command + "\n")
+  if (p_ssh ? sendAll(p_sshStream->writeFd() >= 0
+                          ? p_sshStream->writeFd()
+                          : p_sshStream->readFd(), command + "\n")
             : static_cast<DirectTransport*>(p_transport)->writeStream(
                 p_stream, command + "\n"))
     return true;
@@ -810,13 +842,15 @@ RCommand::RCommand(const string& machine, const string& remShell,
                    const string& locShell, const string& userName,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
-                   const string& libPath, const string& sourceFile)
+                   const string& libPath, const string& sourceFile,
+                   bool requireTotp)
 {
   p_connected = false;
   p_timeout = RC_EXEC_TIMEOUT;
   p_transport = 0;
   p_ssh = false;
   p_sshStream = 0;
+  p_requireTotp = requireTotp;
 
   noteLegacyTransport();
 
@@ -1310,10 +1344,10 @@ bool RCommand::execout(const string& command, string& output,
 
 bool RCommand::startStream(const string& command, bool onThisLogin)
 {
-  if (!p_transport || !p_connected || p_stream.rfd >= 0) return false;
+  if (!p_transport || !p_connected || p_stream.rfd >= 0 || p_sshStream) return false;
   string error;
   if (p_ssh) {
-    int fd = -1;
+    intptr_t fd = -1;
     RemoteTransport* t = static_cast<RemoteTransport*>(p_transport);
     p_sshStream = onThisLogin
       ? t->openStreamOnLogin(p_scriptPrefix + command, fd, error)
@@ -1322,7 +1356,6 @@ bool RCommand::startStream(const string& command, bool onThisLogin)
       p_errMessage = "Could not start " + command + ": " + error;
       return false;
     }
-    p_stream.rfd = p_stream.wfd = fd;
     if (getenv("ECCE_RCOM_LOGMODE"))
       cout << "ssh stream (" << command << ") in (" << p_transport->dir()
            << ") " << (onThisLogin ? "on this connection's login"

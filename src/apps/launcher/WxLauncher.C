@@ -566,7 +566,9 @@ void  WxLauncher::shellOpenButtonClickCB(wxCommandEvent& event)
 
     if (!frontendFlag) {
         RCommand rcmd(rgstn->fullname(), remShell, rgstn->shell(), uname, pswd1,
-                      rgstn->frontendMachine(), rgstn->frontendBypass());
+                      rgstn->frontendMachine(), rgstn->frontendBypass(),
+                      rgstn->shellPath(), rgstn->libPath(), rgstn->sourceFile(),
+                      rgstn->twoFactorAuth() == "totp");
 
         if (!rcmd.isOpen())
         {

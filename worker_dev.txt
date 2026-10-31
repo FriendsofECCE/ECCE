@@ -1,0 +1,134 @@
+ECCE Job Worker Development Workflow
+
+Goal
+====
+
+Build a worker that first supports local submission from Windows and can later
+run on the ECCE data server. The worker owns submission and monitoring over
+the same SSH connection. Keep SSH as the reliable baseline before adding MQTT.
+
+1. Define the worker contract
+=============================
+
+Implementation started on the 9.4.6 release base:
+
+- `include/comm/JobWorker.H` defines host-independent request, job-record,
+  phase, and event types. Event names are stable for a line-oriented adapter.
+- `eccejobworker` is a wx-free command-line worker. It accepts a calculation
+  URL and the existing AuthCache pipe handoff, then emits JSON event lines.
+  JobStore still writes its legacy diagnostics while monitoring, so a
+  dedicated named-pipe event channel is needed before a GUI consumes this as
+  a production protocol.
+- The worker-mode launch calls JobStore inside the worker with the existing
+  authenticated `RCommand`; normal Launcher callers keep the existing
+  detached jobstore path. Remote TOTP continues through RCommand's registered
+  machine setting and authentication prompt.
+
+This is the lifecycle foundation, not the finished Windows integration. The
+Windows named-pipe request/event adapter, durable worker restart record,
+GUI start/reconnect controls, and interactive confirmation of launch warnings
+remain follow-up work. Until durable recovery is added, a worker process exit
+still relies on ECCE's existing JobStore recovery mechanisms.
+
+Separate the job lifecycle from where the worker runs. Give both worker modes
+the same inputs and outputs:
+
+- Launch package: calculation identity, machine and scheduler settings,
+  remote paths, generated files, and requested mode.
+- Job record: owner, submission phase, scheduler ID, current state, monitor
+  bookmark, and recovery status.
+- Events: waiting for authentication, submitted, progress, output available,
+  failed, and complete.
+
+Persist the submission phase before each risky operation. If a worker restarts
+during submission, reconcile with the scheduler before retrying. Once it has a
+scheduler ID, recovery must resume monitoring that job, never resubmit it.
+
+2. Make the Windows worker own local submission and monitoring
+=============================================================
+
+Keep input generation in the GUI initially. Start a per-user Windows helper
+process before any remote submission. Send it the launch package over a local
+named pipe.
+
+The worker opens SSH, prompts for TOTP, transfers the files, submits the job,
+saves the scheduler ID, and starts monitoring on that same RCommand
+connection. It continues if the GUI closes. The GUI receives progress and
+status events from the worker and can reconnect to it later.
+
+Move the remote parts of Launch into the worker and replace the current
+eccejobmaster -> eccejobstore process boundary for this mode. JobStore.C has
+substantial process-global state and restart paths, so extract its monitoring
+logic into a reusable component that can run inside the connection-owning
+worker.
+
+A dropped SSH connection still requires a fresh TOTP code. Persist the job ID
+and bookmark so the worker can reconnect and continue without submitting
+again.
+
+3. Add MQTT monitoring as an optional transport
+===============================================
+
+First keep the existing SSH monitor stream working as the fallback. Then
+prototype a small, self-contained compute-side MQTT publisher for small status
+and progress events. Keep SSH for authentication, file transfer, submission,
+cancellation, and fetching larger results.
+
+Plan for:
+
+- A broker the compute network can reach. ECCE's per-user Unix-socket broker
+  isn't reachable from a compute node; this likely needs a TLS TCP broker or
+  a tunnel.
+- Short-lived, job-scoped publish credentials. Don't give the compute helper
+  the user's general broker password.
+- Sequence numbers and duplicate handling. The worker should persist an event
+  before acknowledging it at the application level.
+- SSH-stream fallback and gap recovery if MQTT is unavailable or loses events.
+
+Measure latency, bandwidth, and compute-node overhead against the current
+persistent SSH stream. MQTT may help with resilience and fanout, but the
+existing stream is already persistent, so better performance needs to be
+demonstrated.
+
+4. Move the worker to the data server
+=====================================
+
+Run the same job runner under the user's mapped data-server account. The GUI
+sends it a launch package over an authenticated data-server API; the worker
+owns compute SSH, submission, monitoring, and durable state. For TOTP, it sends
+a one-use, expiring challenge to the authenticated client and holds the answer
+in memory only.
+
+Keep worker storage and MQTT topics scoped to that user. The data-server
+worker should use the same launch and job-record contract as the Windows
+worker, with host-specific service management and IPC behind adapters.
+
+5. Add the user's submission choice
+===================================
+
+Expose:
+
+- Submit from this Windows computer.
+- Submit through the data server.
+
+Keep the choice explicit for each run; don't silently switch modes after
+submission, since that could submit the same job twice. Keep local submission
+available while the data-server path is validated.
+
+Acceptance criteria
+===================
+
+- One TOTP prompt at initial connection.
+- Monitoring continues after the GUI disconnects.
+- A real SSH loss requires fresh authentication.
+- Recovery resumes the saved job and bookmark without resubmission.
+- MQTT outage falls back to the SSH stream and missing events can be recovered.
+- One user's worker state and topics are isolated from other users.
+- Local Windows and data-server submission use the same job lifecycle contract.
+
+Main architectural risk
+=======================
+
+Extracting the current JobStore lifecycle cleanly is the main risk. Treat the
+MQTT helper as an optional later stage; it should not block getting the
+Windows worker and data-server migration working over SSH first.

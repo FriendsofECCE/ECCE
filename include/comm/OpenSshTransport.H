@@ -72,7 +72,7 @@ public:
   virtual bool remoteGlob(const std::string& pattern,
                           std::vector<std::string>& out, std::string& error);
 
-  virtual RemoteStream* openStream(const std::string& script, int& fd,
+  virtual RemoteStream* openStream(const std::string& script, intptr_t& fd,
                                    std::string& error);
   virtual void interruptStream(RemoteStream* s);
   virtual void closeStream(RemoteStream* s, int graceMs = 2000);

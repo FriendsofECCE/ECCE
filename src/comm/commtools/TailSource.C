@@ -54,7 +54,8 @@ bool TailSource::open(const string& machineName, const string& shell,
   // password lets RCommand take it from AuthCache or ask through passdialog.
   RCommand* rc = new RCommand(m->fullname(), shell, m->shell(), user, "",
                               m->frontendMachine(), m->frontendBypass(),
-                              m->shellPath(), m->libPath(), m->sourceFile());
+                              m->shellPath(), m->libPath(), m->sourceFile(),
+                              m->twoFactorAuth() == "totp");
   return start(rc, path, lines, error, missing);
 }
 

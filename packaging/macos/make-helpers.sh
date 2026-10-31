@@ -13,7 +13,7 @@ VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/C
 mkdir -p "$HELP"
 
 # Programs with no window of their own: no Dock icon, no menu bar.
-accessory=" gateway vizthumbnail eccejobstore eccejobmaster ecmd load_tgbs "
+accessory=" gateway vizthumbnail eccejobstore eccejobmaster eccejobworker ecmd load_tgbs "
 
 title_of() {
   case "$1" in

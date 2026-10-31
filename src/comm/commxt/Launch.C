@@ -65,6 +65,7 @@
 
 #include "comm/RCommand.H"
 #include "comm/Launch.H"
+#include "comm/JobWorker.H"
 
 #define MAXLINE 256
 
@@ -338,6 +339,7 @@ Launch::Launch(TaskJob* task,
 
   p_valid = true;
   p_storeStarted = false;
+  p_workerMonitoring = false;
   p_connection = (RCommand*)0;
   p_localconn = (RCommand*)0;
   p_curOp = 0;
@@ -703,7 +705,8 @@ bool Launch::validateRemoteLogin(void)
                                   p_cache->remoteShell, locShell,
                                   p_cache->userName, password,
                                   frontendMachine, frontendBypass,
-                                  shellPath, libPath, sourceFile);
+                                  shellPath, libPath, sourceFile,
+                                  refMachine->twoFactorAuth() == "totp");
 
   } else {
     p_lastMessage = p_cache->machineName;
@@ -2272,6 +2275,22 @@ bool Launch::startJobStore(const string& importDir)
   bool ret = true;
   p_storeStarted = true;
   if (!p_storePrepared) prepareJobStore();
+
+  // The worker is the lifetime boundary for submission and monitoring. Run
+  // JobStore here with the launch's authenticated RCommand so an SSH/TOTP
+  // login is not repeated at the point monitoring starts. JobStore owns the
+  // remainder of this worker process and exits when monitoring is complete.
+  if (p_workerMonitoring) {
+    JobWorker::emitEvent(JobWorker::PHASE_CHANGED, JobWorker::SUBMITTED,
+        "Scheduler accepted calculation " + p_cache->jobId);
+    JobWorker::emitEvent(JobWorker::PHASE_CHANGED, JobWorker::MONITORING,
+        "Monitoring submitted calculation on the launch SSH session");
+    extern void jobstore_main(RCommand* remoteconn, const string& jobId,
+                const string& configFileName, const bool& restartFlag);
+    jobstore_main(p_connection, p_cache->jobId,
+                  p_cache->directory + "/eccejobstore.conf", false);
+    return true; // jobstore_main normally exits; retained for API completeness
+  }
 
   if (p_cache->frontendFlag) {
     extern void jobstore_main(RCommand* remoteconn, const string& jobId,

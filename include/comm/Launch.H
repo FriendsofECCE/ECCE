@@ -89,6 +89,9 @@ public:
   // A login opened elsewhere (off the GUI thread) that validateRemoteLogin
   // uses instead of opening its own; Launch owns it from here.
         void adoptConnection(RCommand* connection) { p_connection = connection; }
+        // Keep submission and the monitor in one process. The worker mode
+        // passes its already authenticated connection directly to JobStore.
+        void setWorkerMonitoring(bool enabled) { p_workerMonitoring = enabled; }
         bool generateJobMonitoringFiles(void);
         bool moveJobMonitoringFiles(void);
         bool startJobStore(const string& importDir);
@@ -123,6 +126,7 @@ private:
         RCommand               *p_localconn;
         bool                    p_valid;
         bool                    p_storeStarted;
+        bool                    p_workerMonitoring;
         bool                    p_storePrepared = false;
         string                  p_lastMessage;
         string                  p_infoMessage;

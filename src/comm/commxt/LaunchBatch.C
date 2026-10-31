@@ -361,7 +361,9 @@ void LaunchBatch::buildArgs(TaskJob *task, EcceMap& kv)
   kv["##priority##"] = nice;
 }
 
-LaunchBatch::Job::Job(TaskJob *task) : p_task(task), p_launch(0), p_args(0) {}
+LaunchBatch::Job::Job(TaskJob *task, bool workerMonitoring)
+  : p_task(task), p_launch(0), p_args(0),
+    p_workerMonitoring(workerMonitoring) {}
 
 LaunchBatch::Job::~Job() { delete p_launch; delete p_args; }
 
@@ -392,6 +394,7 @@ bool LaunchBatch::Job::begin(string& error)
   p_args = new EcceMap();
   buildArgs(p_task, *p_args);
   p_launch = new Launch(p_task, *p_args, true);
+  p_launch->setWorkerMonitoring(p_workerMonitoring);
   return true;
 }
 

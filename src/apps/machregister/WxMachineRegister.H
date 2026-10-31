@@ -86,7 +86,8 @@ class WxMachineRegister: public ewxFrame
 
         //  One CONFIG key on the Connection tab: label, control, source tag
         //  and an undo button for the user's own value.
-        enum CfgKind { CfgText, CfgShell, CfgCheck, CfgCheckYes, CfgTri };
+        enum CfgKind { CfgText, CfgShell, CfgCheck, CfgCheckYes, CfgTri,
+                       CfgTwoFactor };
         struct CfgRow {
             string key, label;
             CfgKind kind;

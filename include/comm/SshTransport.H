@@ -102,10 +102,10 @@ public:
   // A private thread owns the session and shuttles between the channel and
   // the socket; when the channel or the connection ends, it closes its end
   // so the reader sees EOF.  The script runs in dir() with the env set.
-  virtual RemoteStream* openStream(const std::string& script, int& fd,
+  virtual RemoteStream* openStream(const std::string& script, intptr_t& fd,
                                    std::string& error);
   // SIGINT to the script's shell (the session has no tty for ^C).
-  virtual RemoteStream* openStreamOnLogin(const std::string& script, int& fd,
+  virtual RemoteStream* openStreamOnLogin(const std::string& script, intptr_t& fd,
                                           std::string& error);
   virtual void interruptStream(RemoteStream* s);
   // Sends EOF, gives the script graceMs to finish, closes everything and

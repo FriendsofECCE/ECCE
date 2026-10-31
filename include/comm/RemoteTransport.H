@@ -3,12 +3,15 @@
 
 #include <string>
 #include <vector>
+#include <stdint.h>
 
 #include "comm/Transport.H"
 
 // A long-running script's stream, owned by the transport that opened it.
 struct RemoteStream {
   virtual ~RemoteStream() {}
+  virtual intptr_t readFd() const { return -1; }
+  virtual intptr_t writeFd() const { return -1; }
 };
 
 // What RCommand needs from a transport to an ssh machine, so that libssh
@@ -49,13 +52,13 @@ public:
   // one end of a socketpair: read the script's stdout and stderr from it,
   // write what the script should get on stdin.  The script runs in dir()
   // with the env set.  Reading EOF means the script or the connection ended.
-  virtual RemoteStream* openStream(const std::string& script, int& fd,
+  virtual RemoteStream* openStream(const std::string& script, intptr_t& fd,
                                    std::string& error) = 0;
   // The same, on the login this connection already made, so that nothing
   // asks for credentials again.  Until closeStream() the connection serves
   // only this stream.  A transport whose streams already share its login
   // (the OpenSSH client on a shared connection) needs nothing more.
-  virtual RemoteStream* openStreamOnLogin(const std::string& script, int& fd,
+  virtual RemoteStream* openStreamOnLogin(const std::string& script, intptr_t& fd,
                                           std::string& error)
   { return openStream(script, fd, error); }
   // Asks the script to stop, as ^C would.
