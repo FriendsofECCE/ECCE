@@ -30,7 +30,7 @@
 //   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name> [frag=<mvm|pdb>] [all]
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
-//   launchjob mdsetup <taskURL> <machine> <runDir> <user> [procs=P]
+//   launchjob mdsetup <taskURL> <machine> <runDir> <user> [queue=Q] [nodes=N] [procs=P] [wall="D H:M"] [mem=MB]
 //                                 launch settings for an MD study task made some other
 //                                 way (the Organizer's New menu), as the Launcher saves them
 //   launchjob setup  <calcURL> <dir> <name.out> [SetupParams]
@@ -408,9 +408,16 @@ static int doMdSetup(const vector<string>& a)
   ldat.user = a[3];
   ldat.remoteShell = "ssh";
   ldat.maxwall = "0 0:0";
+  //  The same keys as create: without a queue, Launch Selected skips the task.
   for (size_t i = 4; i < a.size(); i++) {
-    if (a[i].compare(0, 6, "procs=") == 0)
-      ldat.totalprocs = strtoul(a[i].c_str() + 6, 0, 10);
+    string::size_type eq = a[i].find('=');
+    string k = a[i].substr(0, eq), v = eq == string::npos ? "" : a[i].substr(eq + 1);
+    if (k == "queue") ldat.queue = v;
+    else if (k == "nodes") ldat.nodes = strtoul(v.c_str(), 0, 10);
+    else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
+    else if (k == "wall") ldat.maxwall = v;
+    else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
+    else { cerr << "mdsetup: unknown option " << a[i] << endl; return 2; }
   }
   Jobdata jdata;
   jdata.jobpath = a[2] + TempStorage::getJobRunDirectoryPath(task->getURL());
