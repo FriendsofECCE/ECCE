@@ -3150,7 +3150,7 @@ bool WxLauncher::runJobWorker(bool resume, string& error)
 
     const string authPipe = AuthCache::pipeName();
     args.Add("-authPipe"); args.Add(wxString::FromUTF8(authPipe.c_str()));
-    long pid = wxExecute(args, wxEXEC_ASYNC | wxEXEC_HIDE_CONSOLE);
+    long pid = wxExecute(args, wxEXEC_ASYNC | wxEXEC_HIDE_CONSOLE, NULL);
     if (pid <= 0) {
         CloseHandle(pipe);
         error = "Unable to start eccejobworker";

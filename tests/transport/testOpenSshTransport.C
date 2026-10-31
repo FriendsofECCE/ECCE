@@ -635,7 +635,7 @@ int main()
   {
     string e;
     t->setDir(tmp);
-    int fd = -1;
+    intptr_t fd = -1;
     RemoteStream* s = t->openStream("pwd; echo err 1>&2; cat; echo after-eof", fd, e);
     check("stream opens", s && fd > 2, e);
     string first = readFor(fd, "err\n", 5000);
@@ -671,7 +671,7 @@ int main()
   }
   {
     string e;
-    int fd = -1;
+    intptr_t fd = -1;
     RemoteStream* s = t->openStream("echo up; sleep 60", fd, e);
     readFor(fd, "up\n", 5000);
     usleep(300000);   // let the script reach its sleep: a signal during fork() orphans it

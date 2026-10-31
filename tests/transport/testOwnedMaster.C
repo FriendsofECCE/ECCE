@@ -57,7 +57,7 @@ static OpenSshTransport* make(const string& pw = "")
 // A stream that has printed "up": its session is open on a master.
 static RemoteStream* openUp(OpenSshTransport* t, string& err)
 {
-  int fd = -1;
+  intptr_t fd = -1;
   RemoteStream* s = t->openStream("echo up; sleep 60", fd, err);
   if (!s) return 0;
   char buf[8];
