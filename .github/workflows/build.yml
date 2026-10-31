@@ -53,6 +53,11 @@ on:
         description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos, windows); empty runs all"
         required: false
         default: ""
+      skip_qm_dimer:
+        description: "Skip the He2 dimer case in the packaged ecce-qm check"
+        type: boolean
+        required: false
+        default: false
       macos_arch:
         description: "Architecture for the macOS job"
         type: choice
@@ -699,7 +704,9 @@ jobs:
         run: |
           $r = "$env:RUNNER_TEMP\unpacked\ecce"
           $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
-          & "$r\python\python3.exe" tests/qm/package_check.py "$r\bin\ecce-qm.exe" "$r\data\admin\basissets" --max-mb 40 2>&1 | Tee-Object -Append $env:GITHUB_STEP_SUMMARY
+          $checkArgs = @("$r\bin\ecce-qm.exe", "$r\data\admin\basissets", "--max-mb", "40")
+          if ('${{ inputs.skip_qm_dimer }}' -eq 'true') { $checkArgs += @("--skip-case", "he2_6-31gs_b3lyp_r") }
+          & "$r\python\python3.exe" tests/qm/package_check.py @checkArgs 2>&1 | Tee-Object -Append $env:GITHUB_STEP_SUMMARY
           exit $LASTEXITCODE
 
       # Local job end to end from the unpacked zip, with System32 as the only

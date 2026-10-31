@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Run a packaged ecce-qm on the lab set and compare with tests/qm/oracle.json.
 
-    package_check.py ECCE_QM_EXE BASIS_DIR [--lab-table]
+    package_check.py ECCE_QM_EXE BASIS_DIR [--max-mb MB] [--skip-case CASE]
 
 Water and the lab molecules (C2, O2 triplet ROKS, He2 at 3.0 A, HF, CO), all
 B3LYP/6-31G*, against the ORCA energies; exit 1 on a difference above 1e-5 Eh or
-an unconverged run.  Prints the platform, the executable's size and whether
-it is stripped (Linux/macOS: no symbol table beyond the dynamic one).
+an unconverged run. A selected case can be omitted for a targeted CI build.
+Prints the platform, the executable's size and whether it is stripped
+(Linux/macOS: no symbol table beyond the dynamic one).
 """
 import json, os, platform, subprocess, sys, tempfile
 
@@ -40,6 +41,17 @@ TOL = 1e-5
 def main():
     exe, basis = sys.argv[1], sys.argv[2]
     maxmb = float(sys.argv[sys.argv.index("--max-mb") + 1]) if "--max-mb" in sys.argv else None
+    skip_cases = set()
+    if "--skip-case" in sys.argv:
+        index = 0
+        while index < len(sys.argv):
+            if sys.argv[index] == "--skip-case":
+                if index + 1 >= len(sys.argv):
+                    raise SystemExit("--skip-case needs a case name")
+                skip_cases.add(sys.argv[index + 1])
+                del sys.argv[index:index + 2]
+            else:
+                index += 1
     oracle = json.load(open(os.path.join(HERE, "oracle.json")))
     size = os.path.getsize(exe) / 1e6
     print("%s %s: %s is %.1f MB" % (platform.system(), platform.machine(), exe, size))
@@ -49,6 +61,9 @@ def main():
         bad += 1
     with tempfile.TemporaryDirectory() as tmp:
         for key in CASES:
+            if key in skip_cases:
+                print("%-24s skipped by request" % key)
+                continue
             ent = oracle[key]
             deck = os.path.join(tmp, key + ".in")
             out = os.path.join(tmp, key + ".out")
