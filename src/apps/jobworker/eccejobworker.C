@@ -17,6 +17,7 @@
 #include "comm/JobWorker.H"
 #include "comm/LaunchBatch.H"
 #include "dsm/EDSI.H"
+#include "dsm/EDSIFactory.H"
 #include "dsm/TaskJob.H"
 #include "tdat/AuthCache.H"
 #include "util/Ecce.H"
