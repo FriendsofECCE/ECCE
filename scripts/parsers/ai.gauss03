@@ -1935,7 +1935,14 @@ sub verifyGBSFile {
 ## Close input file and exit nicely.
 sub cleanup {
   close(NEWFILE);
-  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
+  # Close the source before replacing it; Windows holds open files against
+  # rename, and File::Copy safely overwrites an existing destination.
+  close(TEMPLATE);
+  require File::Copy;
+  File::Copy::copy("tmpfile", $inputFile)
+      or die "Input generator error: Could not write generated input $inputFile: $!\n";
+  unlink("tmpfile")
+      or die "Input generator error: Could not remove temporary input tmpfile: $!\n";
   close(ABIDICT);
 }
 

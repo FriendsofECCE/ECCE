@@ -2325,8 +2325,8 @@ sub cleanup {
     $text =~ s/\n(?:[ \t]*\n){2,}(?=Eps=)/\n\n/;
     if (open(my $out, ">", "tmpfile")) { print $out $text; close($out); }
   }
-  # File::Copy handles an existing destination on Windows; rename() does not
-  # replace one there, and silently left the original template in place.
+  # Close the source before replacing it, and report a failed replacement.
+  close(TEMPLATE);
   require File::Copy;
   File::Copy::copy("tmpfile", $inputFile)
       or die "ai.gauss16 error: Could not write generated input $inputFile: $!\n";
