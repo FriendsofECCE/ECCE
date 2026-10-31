@@ -26,6 +26,9 @@ namespace JobWorker
 
   struct Request {
     std::string calculationUrl;
+    // Reserved for the local/data-server choice; once submission begins the
+    // selected execution location must remain fixed for this job.
+    std::string executionLocation;
     bool resume;
     Request() : resume(false) {}
   };
