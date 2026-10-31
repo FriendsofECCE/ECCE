@@ -3144,18 +3144,22 @@ bool WxLauncher::runJobWorker(bool resume, string& error)
     string helper = Ecce::ecceBinCommand("eccejobworker");
     if (helper.size() >= 2 && helper[0] == '"' && helper[helper.size()-1] == '"')
         helper = helper.substr(1, helper.size() - 2);
-    wxArrayString args;
-    args.Add(wxString::FromUTF8(helper.c_str()));
-    args.Add("-ipc"); args.Add(wxString::FromUTF8(pipeName.c_str()));
-
     const string authPipe = AuthCache::pipeName();
-    args.Add("-authPipe"); args.Add(wxString::FromUTF8(authPipe.c_str()));
-    long pid = wxExecute(args, wxEXEC_ASYNC | wxEXEC_HIDE_CONSOLE, NULL);
-    if (pid <= 0) {
+    const string command = Ecce::winArg(helper) + " -ipc " + Ecce::winArg(pipeName) +
+        " -authPipe " + Ecce::winArg(authPipe);
+    STARTUPINFOA startup = {};
+    startup.cb = sizeof(startup);
+    PROCESS_INFORMATION process = {};
+    vector<char> mutableCommand(command.begin(), command.end());
+    mutableCommand.push_back(0);
+    if (!CreateProcessA(helper.c_str(), mutableCommand.data(), NULL, NULL, FALSE,
+                        CREATE_NO_WINDOW, NULL, NULL, &startup, &process)) {
         CloseHandle(pipe);
         error = "Unable to start eccejobworker";
         return false;
     }
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
     AuthCache::getCache().pipeOut(authPipe);
 
     bool connected = false;

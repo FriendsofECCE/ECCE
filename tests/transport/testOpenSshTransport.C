@@ -682,7 +682,7 @@ int main()
     bool eof = read(fd, &c, 1) == 0;
     check("interruptStream ends the stream", eof && now() - t0 < 3.5, std::to_string(now() - t0));
     t->closeStream(s, 500);
-    int fd2 = -1;
+    intptr_t fd2 = -1;
     RemoteStream* n = make("noauth")->openStream("cat", fd2, e);
     // The stand-in exits at once, so the script cannot be delivered.
     char b[16];
