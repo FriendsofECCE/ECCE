@@ -17,3 +17,10 @@ small programs failed on CI. After changing which library links which,
 check with GNU ld before pushing: a separate build directory with
 `-DCMAKE_LINKER_TYPE=BFD` (ccache makes the compile cheap) and `ninja` the
 programs whose `LINK` lists are shortest.
+
+On Windows the apps link their libraries as one `$<LINK_GROUP:RESCAN,...>`
+group (ecce_app), so order inside the group does not matter, but a library
+outside the group that depends back on a member is a cycle CMake refuses at
+configure time ("strongly connected component"). So eccercmd's dependencies
+on eccetdat/ecceutil are declared for non-Windows only, and on Windows
+ecce_app adds eccercmd to the group whenever eccedsi is in it.
