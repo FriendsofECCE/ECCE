@@ -770,6 +770,13 @@ int main(int argc, char** argv)
     cout << (t->killRequested() ? "set" : "clear") << endl;
     return 0;
   }
+  // A stored metadata value such as ecce:annotation ("props" lists results only).
+  if (mode == "meta" && a.size() == 2) {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    cout << t->getProp(VDoc::getEcceNamespace() + ":" + a[1]) << endl;
+    return 0;
+  }
   if (a.size() != 1) { cerr << mode << ": needs a calculation URL" << endl; return 2; }
   if (mode == "launch") return doLaunch(a[0]);
   if (mode == "reconnect") {

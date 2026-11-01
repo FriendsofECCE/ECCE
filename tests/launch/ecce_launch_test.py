@@ -146,11 +146,8 @@ def main():
         check(s.state_of(urls["one"]) == "ready", "nothing was launched without a session")
 
         def annotation(url):
-            rc, props = s.driver("props", url)
-            for l in props.splitlines():
-                if "annotation" in l:
-                    return l
-            return ""
+            rc, out = s.driver("meta", url, "annotation")
+            return out.strip() if rc == 0 else ""
 
         check("made by create" in annotation(urls["one"]),
               "create annotation= is stored (%r)" % annotation(urls["one"]))
