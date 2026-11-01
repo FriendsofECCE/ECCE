@@ -157,6 +157,20 @@ bool ServerList::parseSsh(const string& address, string& user, string& host,
 namespace {
 std::set<string>& addedRefs() { static std::set<string> s; return s; }
 std::map<string, string>& logins() { static std::map<string, string> m; return m; }
+ServerList::LoginProvider& provider() { static ServerList::LoginProvider p = 0; return p; }
+// True once this process keeps the set itself (the Organizer).
+bool& managed() { static bool m = false; return m; }
+
+// The session store's login for an ECCE server listed in AddedServers.
+string sessionLogin(const string& ref)
+{
+  if (managed() || !provider() || ref.empty()) return "";
+  vector<ServerEntry> list = ServerList::load();
+  for (size_t i = 0; i < list.size(); i++)
+    if (list[i].type == "ecce" && ServerList::refOf(list[i].address) == ref)
+      return provider()(ref);
+  return "";
+}
 }
 
 string ServerList::refOf(const string& address)
@@ -164,9 +178,14 @@ string ServerList::refOf(const string& address)
   return EcceURL(address).getRef();
 }
 
-void ServerList::markAdded(const string& ref) { addedRefs().insert(ref); }
-void ServerList::clearAdded() { addedRefs().clear(); }
-bool ServerList::isAdded(const string& ref) { return addedRefs().count(ref) != 0; }
+void ServerList::setLoginProvider(LoginProvider p) { provider() = p; }
+
+void ServerList::markAdded(const string& ref) { managed() = true; addedRefs().insert(ref); }
+void ServerList::clearAdded() { managed() = true; addedRefs().clear(); }
+bool ServerList::isAdded(const string& ref)
+{
+  return addedRefs().count(ref) != 0 || !sessionLogin(ref).empty();
+}
 
 void ServerList::setLogin(const string& ref, const string& user)
 {
@@ -176,7 +195,7 @@ void ServerList::setLogin(const string& ref, const string& user)
 string ServerList::loginFor(const string& ref)
 {
   std::map<string, string>::const_iterator it = logins().find(ref);
-  return it == logins().end() ? string() : it->second;
+  return it == logins().end() ? sessionLogin(ref) : it->second;
 }
 
 string ServerList::userFor(const string& url)

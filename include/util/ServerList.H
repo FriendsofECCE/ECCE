@@ -58,6 +58,12 @@ class ServerList
     // The account whose home /Ecce/users/<account> is meant under url: an
     // added server's own login ("" before it), else Ecce::serverUser().
     static string userFor(const string& url);
+    // Processes other than the Organizer (the job store, Launcher, Builder)
+    // never see markAdded/setLogin.  They find an added server by its entry
+    // in the user list and its login in the session credential store, which
+    // AuthCache registers here (util cannot call tdat).
+    typedef string (*LoginProvider)(const string& ref);
+    static void setLoginProvider(LoginProvider p);
     static bool parseSsh(const string& address, string& user, string& host,
                          string& folder);
 };
