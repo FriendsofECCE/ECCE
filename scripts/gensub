@@ -596,6 +596,7 @@ sub determineStatus()
     'ecce-qm' => 'end_of_output',
     'xtb' => 'normal termination of xtb',
     'crest' => 'CREST terminated normally',
+    'mlp' => 'ecce-mlp terminated normally',
   );
   if (defined $normalTermination{$lccode}) {
     my $marker = $normalTermination{$lccode};
@@ -621,6 +622,8 @@ sub determineStatus()
     'mopac' => ['EXCESS NUMBER OF OPTIMIZATION CYCLES'],
     # xtb exits 0 after an optimization that ran out of cycles.
     'xtb' => ['FAILED TO CONVERGE GEOMETRY OPTIMIZATION'],
+    # ecce-mlp stops at its step or time limit and keeps the last structure.
+    'mlp' => ['ecce-mlp: NOT CONVERGED'],
     # pw.x ends an md run with the same "maximum number of steps" line, so it
     # counts only before the end of a BFGS relax.
     'quantumespresso' => ['convergence NOT achieved',
@@ -2230,6 +2233,43 @@ sub crest()
   $retval .= "  echo ECCE-CREST-ENDBEST >> $::outFile\n";
   $retval .= "fi\n";
   $retval .= "(exit \$crestStatus)\n";
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# ML potential (#728).  The CONFIG key "mlp" is the Python interpreter of the
+# environment that has ASE and the potential (mace-torch).  The runner,
+# scripts/ecce-mlp, is written into the run directory from here, so a cluster
+# needs no ECCE installation; the deck is the input file itself.
+###########################################################################
+sub mlp()
+{
+  use strict vars;
+  my ($retval,$python,$cmd,$runner);
+  $retval = "";
+  $python = $::config{$::lccode};
+  if ($python eq "") { die "Path for the ML Potential Python not found"; }
+  $cmd = &userCmd("mlpcommand");
+
+  $runner = "$::ecceHome/scripts/ecce-mlp";
+  open(my $fh, "<", $runner) || die "Cannot read $runner: $!";
+  my $source = do { local $/; <$fh> };
+  close($fh);
+  $source .= "\n" if ($source !~ /\n$/);
+
+  $retval .= &pathVar("mlp", "$python", "ECCE_MLP");
+  $retval .= "echo \"Using python path: \$mlp\" >> $::logfile\n";
+  $retval .= "\n$::CC - The runner, so a remote machine needs no ECCE installation.\n";
+  $retval .= "cat > ecce-mlp.py <<'ECCE_MLP_RUNNER_EOF'\n$source" . "ECCE_MLP_RUNNER_EOF\n";
+  $retval .= "OMP_NUM_THREADS=$::totalprocs; export OMP_NUM_THREADS\n";
+  $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
+  $retval .= "rm -f ecce-mlp.extxyz\n";
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\"\$mlp\" ecce-mlp.py $::inFile > $::outFile 2>&1\n";
+  }
   return $retval;
   nouse strict vars;
 }

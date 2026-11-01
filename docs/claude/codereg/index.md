@@ -206,3 +206,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [File= properties (GEOMTRACE, MDMSD) are stored last; a long GROMACS log delays them by minutes (#544)](file-parse-properties-are-stored-last.md)
 - [Allocation profiles (#541): Default is the MachPrefs line, the rest are in MachProfiles, each calculation stores its own](allocation-profiles-541.md)
 - [results.h5: internal results format (format_version 1), canonical AO order, converters, gates](results-h5-format.md) — layout, units, why the AO order is not the viewer's per-code order
+- [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)

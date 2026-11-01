@@ -1233,6 +1233,12 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_contacts.py
         DESTINATION bin RENAME ecce-contacts
         COMPONENT client)
 
+# scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
+# Potential job, so it only has to exist on the client.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
+        DESTINATION scripts
+        COMPONENT client)
+
 # scripts/minff_topology.py: the GROMACS Prepare editor's "Mineral (MINFF)"
 # Build button runs it as $ECCE_HOME/scripts/minff_topology.py on the client.
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/minff_topology.py)
@@ -2439,6 +2445,17 @@ add_test(NAME contacts
                  ${CMAKE_SOURCE_DIR}/tests/contacts/run_tests.py)
 set_tests_properties(contacts PROPERTIES TIMEOUT 600)
 
+# tests/mlp -- scripts/ecce-mlp with a model-free mock calculator (#728); the
+# real MACE test SKIPs (77) without mace (ECCE_MLP_PYTHON names the Python).
+add_test(NAME mlp
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/mlp/run_tests.py)
+set_tests_properties(mlp PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+add_test(NAME mlp_mace
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/mlp/mace_test.py)
+set_tests_properties(mlp_mace PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)
 # without gmx or network access (the example systems are fetched).
@@ -3491,6 +3508,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_crest PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #728: ecce-mlp with the mock calculator through Launch; skipped (77)
+  # without ASE.
+  add_test(NAME launch_mlp
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/mlp_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_mlp PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # #329: a CP2K calculation in the real Calculation Editor (script hook, private
   # Xvfb): settings sent as the dialogs send them, the saved deck checked.
   add_test(NAME launch_cp2k_calced

@@ -58,6 +58,8 @@ describe what you did and what happened.
    GFN-FF energies and optimisations.
    [CREST: conformer search](crest.md): the low-energy conformers of a
    molecule or a non-covalent complex, shown in the Viewer.
+   [ML Potential: a machine-learned potential (MACE)](mlp.md): screening
+   energies and relaxations of periodic cells.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small
    protein through Prepare, Optimize, Equilibrate and Dynamics.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules

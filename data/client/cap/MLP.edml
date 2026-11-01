@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   Machine-learned potential (ASE) registration, stage 1: energy and geometry
+   (atoms, and the cell of a periodic structure) with MACE.  Modeled on
+   xTB.edml.  The potential is a calculator behind ASE, so another backend
+   is another Theory.
+
+   No basis set, charge or spin.  The "program" registered in Register
+   Machines is the Python of an environment that has ASE and mace-torch;
+   ECCE ships no PyTorch and no weights (downloaded on first use).
+
+   The input file is one file in two parts: line 1 is "mlp" followed by
+   key=value settings, the rest an extended-xyz structure.  scripts/gensub
+   writes scripts/ecce-mlp into the run directory and runs it with that
+   Python.  The name must be .mlpin for the Apache MIME mapping.
+
+   ecce-mlp prints its structures, final energy, forces and stress in a form
+   mlp.desc reads directly.
+-->
+
+<appdescriptor>
+
+<SupportsConstraints>false</SupportsConstraints>
+
+<Editor theorydialog="mlptheory.py" runtypedialog="mlpruntype.py">
+  <Theory category="SE" name="MACE" needsBasis="false">
+    <runtype>Energy</runtype>
+    <runtype>Geometry</runtype>
+  </Theory>
+
+  <TheorySummary>
+    <item key="ES.Theory.MLP.Model" label="Model"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.MLP.Precision" label="Precision"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.MLP.Dispersion" label="D3 Dispersion"></item>
+  </TheorySummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.Optimizer" label="Optimizer"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.RelaxCell" label="Relax the Cell"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.Fmax" label="Force Limit (eV/A)"></item>
+  </RuntypeSummary>
+</Editor>
+
+<DataFiles>
+  <Input  type="primary" mimetype="chemical/x-mlp-input" comment="false">mlp.mlpin</Input>
+  <Output type="primary" mimetype="chemical/x-mlp-output">mlp.mlpout</Output>
+  <Output type="parse" verifypattern="ecce-mlp" mimetype="chemical/x-mlp-output">mlp.mlpout</Output>
+</DataFiles>
+
+<IntegrationFiles>
+  <Template>mlp.tpl</Template>
+  <InputGenerator>ai.mlp</InputGenerator>
+  <ParseSpecification>mlp.desc</ParseSpecification>
+  <LaunchPreprocessor>mlp.launchpp</LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>

@@ -230,6 +230,12 @@ static ProgramHelp baseHelp(const string& code)
         h.examples.push_back("/usr/local/bin/crest");
         h.signature = "crest";
     }
+    else if (code == "MLP")
+    {
+        // The Python of the environment that has ASE and the potential
+        // (mace-torch); ECCE ships no PyTorch.
+        h.examples.push_back("/home/you/mlp-venv/bin/python3");
+    }
     else if (code == "xTB")
     {
         h.examples.push_back("/usr/bin/xtb");
