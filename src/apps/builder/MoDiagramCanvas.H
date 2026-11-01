@@ -1291,6 +1291,27 @@ class MoDiagramCanvas : public wxPanel
      * pairs of levels whose arrows or label boxes overlap, and pairs that
      * are not in one lane (drawn sideways of each other).
      */
+    /**
+     * Test hook: for each correlation line as last painted, how far its
+     * end at the molecular level stops from that level's bar (px), as
+     * "level <i> left|right gap <px>" lines.  0 means it reaches the bar.
+     */
+    string linkGaps() const
+    {
+      string out;
+      for (size_t k = 0; k < p_linkEnds.size(); k++) {
+        const LinkEnd& e = p_linkEnds[k];
+        if (e.level < 0 || (size_t)e.level >= p_cLanes.size()) continue;
+        const CentreLane& c = p_cLanes[e.level];
+        const int count = max(1, p_centre.levels[e.level].degeneracy);
+        const int bar = p_barX0 + c.lineX + (e.left ? -2 : count*centreSlot() - 2);
+        const int gap = abs(e.x - bar) + abs(e.y - c.y);
+        out += "level " + std::to_string(e.level) + (e.left ? " left" : " right") +
+               " gap " + std::to_string(gap) + "\n";
+      }
+      return out;
+    }
+
     int centreOverlaps() const
     {
       //  Measured from the drawn heights and the arrow glyph's real size,
@@ -2367,6 +2388,8 @@ class MoDiagramCanvas : public wxPanel
       }
 
       //  Correlation lines first, so the levels sit on top of them.
+      p_linkEnds.clear();
+      p_barX0 = xCentre;
       if (p_haveFragments) {
         for (size_t i = 0; i < p_links.size(); i++) {
           const MoConnection& link = p_links[i];
@@ -2418,16 +2441,28 @@ class MoDiagramCanvas : public wxPanel
             cxL = xCentre + c.linkL;
             cxR = xCentre + c.linkR;
           }
+          //  The links meet the label column's outer edge; a level leader
+          //  runs on from there to the bar, behind the label's white box,
+          //  or a long construction label leaves the line short of its level.
+          const int barL = (model && (size_t)link.centreLevel < p_cLanes.size())
+              ? xCentre + p_cLanes[link.centreLevel].lineX - 2 : cxL;
+          const int barR = (model && (size_t)link.centreLevel < p_cLanes.size())
+              ? xCentre + p_cLanes[link.centreLevel].lineX +
+                max(1, p_centre.levels[link.centreLevel].degeneracy)*centreSlot() - 2
+              : cxR;
           if (link.leftLevel >= 0 && link.leftLevel < (int)p_left.levels.size()) {
-            dc.DrawLine(xLeft + leftWidth,
-                        levelYIn(dc, p_left, plot, true, link.leftLevel),
-                        cxL, cy);
+            const int ly = levelYIn(dc, p_left, plot, true, link.leftLevel);
+            dc.DrawLine(xLeft + leftWidth, ly, cxL, cy);
+            if (barL > cxL) dc.DrawLine(cxL, cy, barL, cy);
+            p_linkEnds.push_back(LinkEnd{link.centreLevel, true, barL > cxL ? barL : cxL, cy});
           }
           if (link.rightLevel >= 0 &&
               link.rightLevel < (int)p_right.levels.size()) {
+            if (cxR > barR) dc.DrawLine(barR, cy, cxR, cy);
             dc.DrawLine(cxR, cy,
                         xRight,
                         levelYIn(dc, p_right, plot, true, link.rightLevel));
+            p_linkEnds.push_back(LinkEnd{link.centreLevel, false, cxR > barR ? barR : cxR, cy});
           }
         }
       }
@@ -2765,6 +2800,9 @@ class MoDiagramCanvas : public wxPanel
     MoDiagramClickTarget *p_owner;
     MoColumn p_left, p_centre, p_right;
     vector<MoConnection> p_links;
+    struct LinkEnd { int level; bool left; int x, y; };
+    vector<LinkEnd> p_linkEnds;   // where each painted link ends at its level
+    int p_barX0 = 0;              // the centre column's x as last painted
 
     /**
      * A reason the diagram is missing, said where it will be read.
