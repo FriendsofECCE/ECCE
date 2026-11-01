@@ -15,6 +15,7 @@
 #include <wx/textctrl.h>
 
 #include "PointNote.H"
+#include "MoDiagramPanel.H"
 #include "util/EventDispatcher.H"
 #include "util/InternalException.H"
 #include "util/PreferenceLabels.H"
@@ -62,6 +63,16 @@
 #include "DensityMapPanel.H"
 #include "GridDlg.H"
 #include "MoCoeffs.H"
+
+//  The MO diagram is always canonical; it labels itself while the table
+//  lists the localised set.
+static void tellDiagrams(IPropCalculation *calc, bool localised)
+{
+   if (calc == 0) return;
+   for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString()))
+      if (MoDiagramPanel *d = dynamic_cast<MoDiagramPanel*>(p))
+         d->orbitalSetChanged(localised);
+}
 
 namespace {
 //  Height of a label's text as drawn, all its lines.
@@ -440,6 +451,7 @@ void MoPanel::updateUIOptions()
    if (espOk) typewin->Insert(ESP_FIELD_TYPE,0);
    if (spinOk) typewin->Insert("Spin Density",0);
    if (densityOk) typewin->Insert("Density",0);
+   if (p_localised) tellDiagrams(getCalculation(), false);
    p_localised = false;
    if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG")) {
       typewin->Insert("Localised MO",0);
@@ -2199,6 +2211,14 @@ bool MoPanel::espFieldSelected()
 //   arithmetic on the row: the table is filled in reverse, and with
 //   beta orbitals it is filled twice.
 /////////////////////////////////////////////////////////////////////////////
+void MoPanel::setLocalised(bool localised)
+{
+   p_localised = localised;
+   rebuildTable();
+   tellDiagrams(getCalculation(), localised);
+}
+
+
 bool MoPanel::showOrbital(int orbengIndex)
 {
    //  A panel nobody has opened has not read the basis or coefficients
@@ -2206,6 +2226,14 @@ bool MoPanel::showOrbital(int orbengIndex)
    ensureInitialized();
    if (!p_isValid || p_mogrid == 0) return false;
    if (orbengIndex < 0) return false;
+
+   //  The diagram's levels are canonical MOs: a localised table would
+   //  match a localised orbital of the same number instead.
+   if (p_localised) {
+      ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+      if (typewin) typewin->SetStringSelection(_("MO"));
+      setLocalised(false);
+   }
 
    const wxString col1 = p_mogrid->GetColLabelValue(0);
    const int offset = (col1 == "Type") ? 1 : 0;
@@ -2824,10 +2852,8 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
          showMainView();
       }
       if ((chosen == "MO" || chosen == "Localised MO") &&
-          p_localised != (chosen == "Localised MO")) {
-         p_localised = (chosen == "Localised MO");
-         rebuildTable();
-      }
+          p_localised != (chosen == "Localised MO"))
+         setLocalised(chosen == "Localised MO");
    }
 
 

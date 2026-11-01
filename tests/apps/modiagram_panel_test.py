@@ -12,6 +12,13 @@ Water (calc-orca-water-ccpvdz), with only the MO Diagram panel opened:
     population): ..."); a degenerate set names every MO and says the
     composition is their mean.
 
+ECCE-QM HF (#745): every correlation line ends on its molecular level's bar,
+however long the construction label between them.
+
+ECCE-QM O2 with localised orbitals (#745): with "Localised MO" chosen in the
+MOs panel the diagram's status line says it shows the canonical MOs, and a
+click on a level switches the list back to the canonical set.
+
 Same installed tree and isolation as orca_mo_test.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
 """
@@ -36,12 +43,20 @@ def text(out, name):
 
 
 BENZENE = os.path.join(os.path.dirname(HERE), "mocomp", "fixtures", "benzene")
+#  ECCE-QM ROKS O2 with localised orbitals stored (LOCMO*).
+O2LOC = os.path.join(os.path.dirname(HERE), "ecceqm", "fixtures", "o2-roks-loc")
 
 
 def makeBenzene(data):
-    """Benzene (D6h, doubly degenerate e levels): the water calculation's
-    shell with the benzene geometry, basis and orbitals put in."""
-    url = base.makeCalc(data, "benzene")
+    """Benzene (D6h, doubly degenerate e levels)."""
+    return makeFrom(data, "benzene", BENZENE)
+
+
+def makeFrom(data, name, source):
+    """The water calculation's shell with <source>'s geometry, basis and
+    stored properties put in."""
+    BENZENE = source
+    url = base.makeCalc(data, name)
     calc = url[len("file://"):].rstrip("/")
     for name in ("chemsys.mvm", "BasisSet.ecce_basisset"):
         shutil.copy(os.path.join(BENZENE, "Parameters", name),
@@ -145,6 +160,39 @@ def main():
                       for t in pairs),
                   "a degenerate set names its MOs and gives the mean "
                   "composition")
+            #  #745: HF's construction labels are long; every correlation
+            #  line must still end on its level's bar.
+            hfdir = os.path.join(os.path.dirname(HERE), "modiagram", "fixtures", "ecceqm-hf")
+            url = makeFrom(data, "hf", hfdir)
+            out = os.path.join(work, "hf")
+            res = base.runBuilder(display, url, out, "hold 3\nmodiagram links links 0\n",
+                                  panel="MO Diagram")
+            links = text(out, "links") or ""
+            gaps = [int(l.split()[-1]) for l in links.splitlines() if " gap " in l]
+            print("HF links:\n" + links.strip())
+            check(any(" left " in l for l in links.splitlines()) and
+                  any(" right " in l for l in links.splitlines()),
+                  "HF draws correlation lines from both atoms (%d)" % len(gaps))
+            check(gaps and max(gaps) <= 1,
+                  "every HF correlation line reaches its level's bar (gaps %s)" % gaps)
+            #  #745: the diagram is canonical; with the localised set listed
+            #  it says so, and a click on a level brings the canonical list back.
+            url = base.makeCalc(data, "o2loc", source=O2LOC)
+            out = os.path.join(work, "o2loc")
+            scene = ("hold 3\nmodiagram s0 status 0\nproperty MOs\nhold 2\n"
+                     "mofield Localised MO\nmodiagram s1 status 0\n"
+                     "modiagram c click 3\nmodiagram s2 status 0\n")
+            res = base.runBuilder(display, url, out, scene, panel="MO Diagram")
+            if os.path.exists(os.path.join(out, "FAILED")):
+                print("o2loc: %s\n%s" % (text(out, "FAILED"), "\n".join(
+                    (res.log or "").splitlines()[-15:])))
+            s0, s1, s2 = (text(out, n) or "" for n in ("s0", "s1", "s2"))
+            print("status lines: %r %r %r" % (s0.strip(), s1.strip(), s2.strip()))
+            check(s0.strip() == "status", "no status line with the canonical MOs listed")
+            check("canonical MOs" in s1 and "localised" in s1,
+                  "with Localised MO chosen the diagram says it shows the canonical MOs")
+            check(s2.strip() == "status" and "grid yes" in (text(out, "c") or ""),
+                  "a click on a level draws it and the MOs panel lists the canonical set again")
         finally:
             subprocess.run([os.path.join(apps.INSTALL, "bin",
                                          "ecce-gateway-stop")],
