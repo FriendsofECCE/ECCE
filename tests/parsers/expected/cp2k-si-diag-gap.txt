@@ -1,0 +1,20 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    cp2k-si-diag-gap
+desc:    cp2k.desc
+fixture: cp2k/si_diag_gap.cp2kout (5 lines)
+args:    '.' 'Energy' 'QS' 'GPW' '0'
+
+[HLGAP]  Script=cp2k.hlgap  Freq=all  Skip=0  Lines=1
+  Begin=(?:HOMO\s*-\s*LUMO\s+gap\s*\[eV\]|MO\|\s*Band\s+gap)
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=3 fed=1 rc=0 first-fed='  HOMO - LUMO gap [eV] :    1.234567'
+    key: HLGAP
+      size: 1
+      values: 1.234567
+      units: eV
+  block 2: begin-line=5 fed=1 rc=0 first-fed='  MO| Band gap [eV]                                                   1.234568'
+    key: HLGAP
+      size: 1
+      values: 1.234568
+      units: eV
+

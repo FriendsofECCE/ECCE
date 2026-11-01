@@ -2614,6 +2614,21 @@ CASES = [
             'HIRSHFELD': dict(blocks=1, keys={'HIRSHFELD': {'size': '2'}}),
         },
     ),
+    dict(
+        #  Synthetic excerpt, not genuine CP2K output: the gap is printed
+        #  only with &DFT/&PRINT/&MO EIGENVALUES on, and none of the
+        #  captured runs turns it on.  Both spellings across CP2K versions
+        #  appear so cp2k.hlgap's two branches are both exercised; the last
+        #  block is the one a Frequency=all scalar keeps.
+        name='cp2k-si-diag-gap',
+        desc='cp2k.desc',
+        fixture='cp2k/si_diag_gap.cp2kout',
+        parse_args=('.', 'Energy', 'QS', 'GPW', '0'),
+        expect={
+            'HLGAP': dict(blocks=2, keys={
+                'HLGAP': {'values': '1.234568', 'units': 'eV'}}),
+        },
+    ),
     # -----------------------------------------------------------------
     # xtb 6.7.1 (#362).  The fixtures are what scripts/gensub's xtb() sub
     # leaves in the output file: xtb's own report followed by the

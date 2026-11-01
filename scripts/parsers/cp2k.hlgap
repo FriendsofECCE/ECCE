@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+# The HOMO-LUMO gap, which CP2K prints among the MO eigenvalues when
+# &DFT/&PRINT/&MO EIGENVALUES is on.  Two spellings across versions:
+#   " HOMO - LUMO gap [eV] :    2.3456"   (the MO-eigenvalues block)
+#   " MO| Band gap [eV]      2.3456"      (the newer MO section)
+# Units class NA (data/client/config/properties): the string is the value
+# the Energies panel shows.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_));
+
+my $gap;
+if (/HOMO\s*-\s*LUMO\s+gap\s*\[eV\]\s*:?\s*(-?\d+\.\d+(?:[EeDd][-+]?\d+)?)/i) {
+  $gap = $1;
+} elsif (/MO\|\s*Band\s+gap\s*\[eV\]\s*:?\s*(-?\d+\.\d+(?:[EeDd][-+]?\d+)?)/i) {
+  $gap = $1;
+}
+exit(0) if (!defined($gap));
+
+print "key: HLGAP\nsize:\n1\nvalues:\n$gap\nunits:\neV\nEND\n";
+exit(0);
