@@ -4,9 +4,9 @@
 A local-mode Organizer (ECCE_LOCAL_DATA) with this run's data server in
 ~/.ECCE/AddedServers: the root "<name> (ECCE server)" appears "(not connected)",
 the login window (ECCE_TEST_AUTH_ANSWER=login:USER:PASS) connects it, a
-project and a calculation made there land in that server's htdocs, a copy
+project and a calculation made there land in that server's htdocs, a calculation there may be launched, a copy
 between trees is refused, and a wrong password leaves the root unconnected
-with Local data still the session's tree.  Exit 77 (skip) without an
+with Local data still the session's tree and a launch refused.  Exit 77 (skip) without an
 install or Xvfb.
 """
 import os
@@ -90,7 +90,7 @@ def main():
              % (fixture.dataserverPort(), user, proj),
              lambda a: a.startswith("refused: Copying between Local data")),
             ("server launchcheck http://localhost:%d/Ecce/users/%s/%s/c1"
-             % (fixture.dataserverPort(), user, proj), lambda a: a == "refused"),
+             % (fixture.dataserverPort(), user, proj), lambda a: a == "allowed"),
         ]
         def stored(log):
             if not os.path.isdir(os.path.join(home, proj, "c1")):
@@ -103,6 +103,9 @@ def main():
         bad = [
             ("server connect " + NAME, lambda a: a == "not connected"),
             ("server roots", notConn),
+            #  No login for the server: Launch asks again, is refused, never hangs.
+            ("server launchcheck http://localhost:%d/Ecce/users/%s/%s/c1"
+             % (fixture.dataserverPort(), user, proj), lambda a: a == "refused"),
         ]
         def stayed(log):
             if "switched" in log.lower() and "local" in log.lower().split("switched")[1][:40]:

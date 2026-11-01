@@ -164,10 +164,11 @@ login is cancelled or refused the tree stays marked **(not connected)** and
 **Reconnect** in its right-click menu asks again; this never changes where
 ECCE keeps your calculations. **Remove** in Preferences takes the tree out of
 the Organizer at once. In a server tree you can browse, make projects and
-calculations, open, rename, delete and copy within that tree. Copying or
-moving between **Local data** and a server, or between two servers, is not
-supported yet, and neither is launching a calculation stored on an added
-server. SSH folders are not shown in the Organizer yet.
+calculations, open, rename, delete and copy within that tree. A calculation in a server
+tree is launched like any other (Launch, Launch Selected, the Launcher): the
+job runs where you choose, and its output and results are stored on that
+server with your login there. Copying or moving between **Local data** and a
+server, or between two servers, is not supported yet. SSH folders are not shown in the Organizer yet.
 
 A server that your administrator set up for the installation is listed as
 **Set by your administrator** and cannot be changed or removed. ECCE does

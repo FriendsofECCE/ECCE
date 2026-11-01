@@ -440,7 +440,7 @@ A client with nothing configured works on this computer and asks nothing:
 added later in **Edit > Preferences > Data**, box **Servers** (**Add
 Server...**: an SSH folder or an ECCE server; the list is `~/.ECCE/AddedServers`,
 one `type<TAB>name<TAB>address` line each, `ecce-localdata servers list|add|remove`
-for scripts). Added servers are only listed in this version. The old window
+for scripts). An added ECCE server is its own root in the Organizer with its own login; a calculation there is launched and monitored from this computer, and its output and results are stored on that server. The old window
 ("Welcome to ECCE") is `ecce-first-start --change`. A server recorded
 earlier (`~/.ECCE/RemoteServer/`, which `ecce-remote-setup <host>
 --user --auto` writes without root, or an answer "server ..." in

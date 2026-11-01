@@ -34,6 +34,7 @@
 #include "dsm/ResourceType.H"
 #include "dsm/Session.H"
 #include "dsm/VDoc.H"
+#include "util/ServerList.H"
 
 
 AuthEventListener     *EDSIFactory::p_aeListener = NULL;
@@ -840,7 +841,7 @@ EDSIFactory::createCalculation(EDSI* interface,
             ResourceDescriptor::RT_VIRTUAL_DOCUMENT);
 
     results[2].name = VDoc::getEcceNamespace() + ":owner";
-    results[2].value = Ecce::serverUser();
+    results[2].value = ServerList::userFor(ret->toString());
 
     // We keep our own creation data that we can modify so that the
     // imported or old OS calcs can have an accurate date.
@@ -877,7 +878,7 @@ EDSIFactory::createCalculation(EDSI* interface,
     vector<MetaDataResult> taskmd(2);
 
     taskmd[0].name = VDoc::getEcceNamespace() + ":owner";
-    taskmd[0].value = Ecce::serverUser();
+    taskmd[0].value = ServerList::userFor(ret->toString());
 
     taskmd[1].name = VDoc::getEcceNamespace() + ":state";
     taskmd[1].value = ResourceUtils::stateToString(
@@ -987,7 +988,7 @@ EcceURL* EDSIFactory::createSession(EDSI* interface,
     results[2].value = ResourceUtils::applicationTypeToString(appType);
 
     results[3].name = VDoc::getEcceNamespace() + ":owner";
-    results[3].value = Ecce::serverUser();
+    results[3].value = ServerList::userFor(ret->toString());
 
     TDateTime now;
     results[4].name = VDoc::getEcceNamespace() + ":creationdate";
@@ -1094,7 +1095,7 @@ EcceURL* EDSIFactory::createTask(EDSI* interface,
             ResourceDescriptor::RT_VIRTUAL_DOCUMENT);
 
     results[3].name = VDoc::getEcceNamespace() + ":owner";
-    results[3].value = Ecce::serverUser();
+    results[3].value = ServerList::userFor(ret->toString());
 
     // We keep our own creation data that we can modify so that the
     // imported or old OS calcs can have an accurate date.
@@ -1130,7 +1131,7 @@ EcceURL* EDSIFactory::createTask(EDSI* interface,
     vector<MetaDataResult> taskmd(2);
 
     taskmd[0].name = VDoc::getEcceNamespace() + ":owner";
-    taskmd[0].value = Ecce::serverUser();
+    taskmd[0].value = ServerList::userFor(ret->toString());
 
     taskmd[1].name = VDoc::getEcceNamespace() + ":state";
     taskmd[1].value = ResourceUtils::stateToString(

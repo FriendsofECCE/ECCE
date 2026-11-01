@@ -2306,13 +2306,24 @@ string CalcMgr::crossTreeRefusal(const vector<EcceURL>& sources,
 }
 
 
+// A calculation on an added server is launched with that server's login:
+// ask for it when this session has none, and refuse (with the reason) when
+// it is not given or not accepted, instead of letting the job store hang on it.
 bool CalcMgr::refuseAddedLaunch(const vector<EcceURL>& urls)
 {
+  set<string> done;
   for (size_t i = 0; i < urls.size(); i++) {
-    if (urls[i].getProtocol().find("http") == 0 &&
-        ServerList::isAdded(urls[i].getRef())) {
-      tellRefusal("Launching calculations stored on an added server is not "
-                  "supported yet.");
+    if (urls[i].getProtocol().find("http") != 0) continue;
+    const string ref = urls[i].getRef();
+    if (!ServerList::isAdded(ref) || !done.insert(ref).second) continue;
+    if (!ServerList::loginFor(ref).empty() &&
+        !AuthCache::getCache().getAuthentication(ref, ServerList::loginFor(ref),
+                                                 "", 1)) {
+      ServerList::setLogin(ref, "");
+    }
+    if (ServerList::loginFor(ref).empty() && !connectServer(ref)) {
+      tellRefusal("Not launched: the login for the server " + ref +
+                  " was not given or not accepted.");
       return true;
     }
   }
@@ -8182,6 +8193,20 @@ void CalcMgr::catchUpWaitingJobs()
   if (WaitingJobs::list().empty() ||
       !WaitingJobs::firstInSession(Ecce::sessionKey()))
     return;
+
+  // Jobs of an added server store to it with its own login, which this
+  // session does not have yet after a restart: ask once per server.
+  {
+    vector<string> waiting = WaitingJobs::list();
+    set<string> asked;
+    for (size_t i = 0; i < waiting.size(); i++) {
+      EcceURL u(waiting[i]);
+      const string ref = u.getRef();
+      if (u.getProtocol().find("http") == 0 && ServerList::isAdded(ref) &&
+          ServerList::loginFor(ref).empty() && asked.insert(ref).second)
+        connectServer(ref);
+    }
+  }
 
   ReconnectSelected::DeferMessages defer;
   ewxProgressDialog* progress = 0;
