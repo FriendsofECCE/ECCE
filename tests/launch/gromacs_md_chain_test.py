@@ -74,7 +74,7 @@ def main():
         study, opt, eq, dyn = [u.rstrip("/") + "/" for u in urls]
         rundir = os.path.join(s.state, "run")
         for u in (eq, dyn):
-            rc, out = s.driver("mdsetup", u, "localhost", rundir, s.user())
+            rc, out = s.driver("mdsetup", u, "localhost", rundir, s.user(), "queue=normal")
             check(rc == 0, "launch settings stored for %s" % u.rstrip("/").rsplit("/", 1)[-1])
         attached = os.path.join(FIXTURES, "conf.gro")
         # a trailing number in the base name is what the old pick preferred
