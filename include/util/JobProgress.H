@@ -98,6 +98,11 @@ public:
   // When the job store relayed it (its clock, seconds since 1970); 0 if
   // not known.
   double at() const { return p_at; }
+  // Seconds without output when the job store judged the run stalled
+  // (#769), else 0.
+  double stalled() const { return p_stall; }
+  // "Running (stalled: no output for 2 h 10 min)".
+  static std::string stalledText(double seconds);
   const std::vector<Stage>& stages() const { return p_stages; }
   const Stage* stage(const std::string& name) const;
 
@@ -160,6 +165,7 @@ private:
   std::vector<std::string> p_order;
   int p_seq = 0;
   double p_at = 0;
+  double p_stall = 0;
   std::vector<Stage> p_stages;
 };
 
