@@ -9,7 +9,8 @@ eccejobmonitor with stand-in sacct and squeue on the PATH:
   a. sacct "CANCELLED by 4086", squeue empty -> status 304 (cancelled)
   b. sacct "FAILED", squeue empty             -> status 302 (no status file)
   c. sacct "OUT_OF_MEMORY" / "TIMEOUT"         -> status 305 with the state and
-     the scheduler's End time (#649, #650)
+     the scheduler's End time (#649, #650); the output is sent once its size
+     has settled (#732)
 
     tests/launch/slurm_cancel_test.py
 """
@@ -52,7 +53,7 @@ Script=none
 """
 
 
-def run(sacctState, endTime=""):
+def run(sacctState, endTime="", grow=False):
     work = tempfile.mkdtemp(prefix="ecce-slurmcancel-")
     try:
         bin_ = os.path.join(work, "bin")
@@ -69,6 +70,13 @@ def run(sacctState, endTime=""):
             with open(os.path.join(work, name), "w") as f:
                 f.write(text)
         env = dict(os.environ, PATH=bin_ + os.pathsep + os.environ["PATH"])
+        if grow:
+            # Output that is still arriving when sacct reports the end.
+            out = os.path.join(work, "job.out")
+            open(out, "w").close()
+            subprocess.Popen(
+                ["sh", "-c", "sleep 2; echo AAAA-first-part >> %s; sleep 3; "
+                 "echo ZZZZ-last-part >> %s" % (out, out)])
         try:
             mon = subprocess.run(
                 ["perl", MONITOR, "-configFile", "eccejobmonitor.conf",
@@ -77,8 +85,11 @@ def run(sacctState, endTime=""):
                 stderr=subprocess.STDOUT, timeout=120)
         except subprocess.TimeoutExpired:
             return None, "the monitor was still waiting after 120 s"
-        return mon.returncode, mon.stdout.replace(b"\x00", b" ").decode(
-            errors="replace")
+        text = mon.stdout.replace(b"\x00", b" ").decode(errors="replace")
+        for name in os.listdir(work):
+            if name.startswith("eccejobmonitor.log"):
+                text += open(os.path.join(work, name), errors="replace").read()
+        return mon.returncode, text
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -113,6 +124,12 @@ def main():
     rc, text = run("OUT_OF_MEMORY")
     check(re.search(r"jmSTATUS 305 state=OUT_OF_MEMORY(?! end=)", text) is not None,
           "no End from sacct: status 305 without an end time")
+
+    rc, text = run("OUT_OF_MEMORY", grow=True)
+    # The message names the file, the client reads it afterwards, so the
+    # monitor must see the size settle (31 bytes in all) before it sends.
+    check(rc == 0 and re.search(r"sizes [\d,]*,31,31 \(settled\)", text) is not None,
+          "scheduler-ended: waits for the growing output to settle before sending (#732)")
 
     if failures:
         print("FAILED: " + "; ".join(failures))
