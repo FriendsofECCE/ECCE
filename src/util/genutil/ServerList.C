@@ -83,6 +83,9 @@ string ServerList::check(const ServerEntry& e)
     string u, h, f;
     if (!parseSsh(e.address, u, h, f))
       return "An SSH folder needs a user, a host and a folder.";
+    // RCommand takes the port from ~/.ssh/config only (OpenSSH and libssh alike).
+    if (h.find(':') != string::npos)
+      return "Use a Host entry in ~/.ssh/config for a port other than 22.";
   }
   return "";
 }
@@ -149,6 +152,8 @@ bool ServerList::parseSsh(const string& address, string& user, string& host,
   if (at == string::npos || slash == string::npos || at > slash) return false;
   user = rest.substr(0, at);
   host = rest.substr(at + 1, slash - at - 1);
+  if (host.size() > 3 && host.compare(host.size() - 3, 3, ":22") == 0)
+    host.erase(host.size() - 3);   // the default port, as typed
   folder = rest.substr(slash);
   return !user.empty() && !host.empty();
 }
@@ -198,8 +203,25 @@ string ServerList::loginFor(const string& ref)
   return it == logins().end() ? sessionLogin(ref) : it->second;
 }
 
+string ServerList::sshRootOf(const string& url)
+{
+  vector<ServerEntry> list = load();
+  for (size_t i = 0; i < list.size(); i++) {
+    if (list[i].type != "ssh") continue;
+    const string& a = list[i].address;
+    if (url == a || (url.size() > a.size() && url.compare(0, a.size(), a) == 0 &&
+                     url[a.size()] == '/'))
+      return a;
+  }
+  return "";
+}
+
 string ServerList::userFor(const string& url)
 {
+  if (url.compare(0, 7, "sftp://") == 0) {
+    string u, h, f;
+    return parseSsh(url, u, h, f) ? u : Ecce::serverUser();
+  }
   const string ref = EcceURL(url).getRef();
   if (isAdded(ref)) return loginFor(ref);
   return Ecce::serverUser();

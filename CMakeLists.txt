@@ -313,6 +313,14 @@ ecce_library(eccecommxt src/comm/commxt)
 ecce_library(eccercmd   src/comm/rcommand)
 # SftpEDSI runs its operations through RCommand.
 target_link_libraries(eccedsi PUBLIC eccercmd)
+target_link_libraries(eccetdat PUBLIC ecceutil)
+# RCommand uses AuthCache: without this a program that links eccedsi but
+# names eccetdat earlier fails with GNU ld (mold does not care about order).
+# On Windows the apps link one RESCAN group, and eccercmd joins it instead
+# (ecce_app): a dependency back into the group would be a cycle CMake refuses.
+if(NOT WIN32)
+  target_link_libraries(eccercmd PUBLIC eccetdat ecceutil)
+endif()
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
 pkg_check_modules(LIBSSH IMPORTED_TARGET libssh>=0.10)
@@ -486,6 +494,10 @@ function(ecce_app name dir)
   endif()
   if(WIN32)
     # The static libraries reference each other in cycles; GNU ld rescans a group.
+    # eccedsi needs eccercmd (SftpEDSI), which must be inside the group.
+    if("eccedsi" IN_LIST ECCE_APP_LINK AND NOT "eccercmd" IN_LIST ECCE_APP_LINK)
+      list(APPEND ECCE_APP_LINK eccercmd)
+    endif()
     target_link_libraries(${name} PRIVATE
       "$<LINK_GROUP:RESCAN,${ECCE_APP_LINK}>" ${XercesC_LIBRARIES})
   else()

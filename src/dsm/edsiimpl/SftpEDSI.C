@@ -31,6 +31,24 @@ namespace {
 std::mutex gMutex;
 std::map<string, RCommand*> gLogins;
 unsigned gCounter = 0;
+// Prompts are only for the Organizer's connect step.  Every other process
+// (job store, monitor, editors) rides the session's master or fails, so a
+// launch never stops on a hidden password prompt.
+bool gInteractive = false;
+
+RCommand* newLogin(const string& host, const string& user)
+{
+  string saved;
+  const char* e = getenv("ECCE_ASKPASS");
+  const bool had = e != 0;
+  if (e) saved = e;
+  if (!gInteractive) setenv("ECCE_ASKPASS", "/bin/false", 1);
+  RCommand* rc = new RCommand(host, "ssh", "bash", user);
+  if (!gInteractive) {
+    if (had) setenv("ECCE_ASKPASS", saved.c_str(), 1); else unsetenv("ECCE_ASKPASS");
+  }
+  return rc;
+}
 
 string q(const string& s)
 {
@@ -120,7 +138,7 @@ bool runRemote(const string& user, const string& host, const string& script,
     RCommand *&rc = gLogins[key];
     if (!rc || !rc->isOpen()) {
       delete rc;
-      rc = new RCommand(host, "ssh", "bash", user);
+      rc = newLogin(host, user);
       if (!rc->isOpen()) {
         err = "Cannot log in to " + key + ": " + rc->commError();
         delete rc; rc = 0;
@@ -152,7 +170,7 @@ bool copyRemote(const string& user, const string& host, bool put,
   RCommand *&rc = gLogins[key];
   if (!rc || !rc->isOpen()) {
     delete rc;
-    rc = new RCommand(host, "ssh", "bash", user);
+    rc = newLogin(host, user);
     if (!rc->isOpen()) {
       err = "Cannot log in to " + key + ": " + rc->commError();
       delete rc; rc = 0;
@@ -243,6 +261,7 @@ class SftpOp {
     // minutes is taken as left by a dead client.
     bool lock(const vector<string>& dirs, bool autoMode)
     {
+      if (getenv("ECCE_SFTP_NOLOCK")) return true;   // test only: shows the lock is what keeps updates
       std::set<string> sorted(dirs.begin(), dirs.end());
       string script = "lockone() { d=$1; n=0\n"
         "  while :; do\n"
@@ -472,6 +491,29 @@ bool SftpEDSI::parseURL(const string& url, string& user, string& host, string& p
   size_t colon = host.find(':');   // a port is the ssh configuration's business
   if (colon != string::npos) host = host.substr(0, colon);
   return !host.empty();
+}
+
+void SftpEDSI::setInteractive(bool on) { std::lock_guard<std::mutex> g(gMutex); gInteractive = on; }
+
+SftpEDSI::Probe SftpEDSI::probe(const string& user, const string& host,
+                                const string& folder, bool create, string& message)
+{
+  const string who = user + "@" + host;
+  string out, err;
+  const string d = q(folder);
+  setInteractive(true);
+  bool ran = runRemote(user, host, "d=" + d + "\n" + (create ? "[ -e \"$d\" ] || mkdir -p \"$d\" 2>/dev/null\n" : "") +
+                       "if [ -d \"$d\" ]; then if [ -w \"$d\" ]; then echo ECCE_OK; else echo ECCE_RO; fi; "
+                       "else echo ECCE_MISSING; fi\ntrue\n", out, err, 60);
+  setInteractive(false);
+  if (!ran) { message = err.empty() ? "Cannot log in to " + who + "." : err; return PROBE_NO_LOGIN; }
+  if (out.find("ECCE_OK") != string::npos) { message = ""; return PROBE_OK; }
+  if (out.find("ECCE_RO") != string::npos) {
+    message = "You can log in to " + who + ", but " + folder + " is not writable for " + user + ".";
+    return PROBE_NOT_WRITABLE;
+  }
+  message = "You can log in to " + who + ", but the folder " + folder + " does not exist.";
+  return PROBE_MISSING;
 }
 
 SftpEDSI::SftpEDSI() : EDSI(), p_authListener(0), p_progressListener(0) {}
