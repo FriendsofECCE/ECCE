@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+"""ecce-mlp: energy and geometry with a machine-learned potential, through ASE.
+
+    ecce-mlp <deck>
+
+The deck is what scripts/parsers/ai.mlp writes: line 1 is "mlp key=value ...",
+the rest an extended-xyz structure (a Lattice= entry makes it periodic).
+Keys: runtype (Energy|Geometry), model, dtype (float32|float64),
+dispersion (on|off), optimizer (FIRE|BFGS), relax (atoms|cell), fmax (eV/A),
+steps, timelimit (minutes, 0 = none).
+
+Everything goes to stdout, which ECCE reads: a header naming the model, one
+Step/Energy/Fmax block per optimiser step, each structure between
+ECCE-MLP-FRAME markers, then an ECCE-MLP-FINAL block (energy, forces, stress).
+The trajectory is also written to ecce-mlp.extxyz as it goes.
+
+ECCE_MLP_MOCK=lj|emt swaps the network for an ASE calculator that needs no
+model; it exists for the tests and the numbers mean nothing.
+"""
+
+import io
+import os
+import sys
+import time
+
+# MIT models first; the others are Academic Software License (no commercial
+# use) and the Calculation Editor warns about them.
+MODELS = {
+    "medium-mpa-0": "MIT",
+    "medium-0b3": "MIT",
+    "small": "MIT",
+    "medium": "MIT",
+    "large": "MIT",
+    "medium-omat-0": "ASL",
+    "small-omat-0": "ASL",
+    "mace-matpes-pbe-0": "ASL",
+    "mace-matpes-r2scan-0": "ASL",
+}
+ASL_NOTICE = ("This model is under the Academic Software License (no "
+              "commercial use).")
+
+EV_TO_HARTREE = 1.0 / 27.211386245988
+BOHR = 0.529177210903
+# ASE stress is (1/V) dE/dstrain in eV/A^3; ECCE stores kbar with the sign of
+# the pressure (positive when compressed), as for Quantum ESPRESSO.
+EV_A3_TO_KBAR = 1602.1766208
+
+
+def say(text=""):
+    print(text, flush=True)
+
+
+def fail(text, code=2):
+    say("ecce-mlp: ERROR: " + text)
+    sys.exit(code)
+
+
+def read_deck(path):
+    with open(path) as handle:
+        lines = handle.read().splitlines()
+    if not lines or not lines[0].split() or lines[0].split()[0] != "mlp":
+        fail("line 1 of the deck must start with \"mlp\" followed by key=value options")
+    opts = {}
+    for word in lines[0].split()[1:]:
+        key, _, value = word.partition("=")
+        opts[key] = value
+    return opts, "\n".join(lines[1:]) + "\n"
+
+
+def make_calculator(opts):
+    """Return (calculator, description, version, licence)."""
+    mock = os.environ.get("ECCE_MLP_MOCK", "")
+    if mock:
+        if mock == "emt":
+            from ase.calculators.emt import EMT
+            return EMT(), "mock (ASE EMT)", "ase", "none (test calculator)"
+        from ase.calculators.lj import LennardJones
+        return (LennardJones(sigma=2.5, epsilon=0.1, rc=8.0),
+                "mock (ASE Lennard-Jones)", "ase", "none (test calculator)")
+
+    model = opts.get("model", "medium-mpa-0")
+    if model not in MODELS:
+        fail("unknown model '%s'; choose one of: %s" % (model, ", ".join(MODELS)))
+    dtype = opts.get("dtype", "float32")
+    if dtype not in ("float32", "float64"):
+        fail("dtype must be float32 or float64")
+    disp = opts.get("dispersion", "off") == "on"
+    try:
+        from mace.calculators import mace_mp
+    except ImportError as err:
+        fail("the mace package is not importable by this Python (%s). Install "
+             "it in the environment registered for the ML Potential code: "
+             "pip install mace-torch" % err)
+    if disp:
+        try:
+            import torch_dftd  # noqa: F401
+        except ImportError:
+            fail("dispersion=on needs torch-dftd in this Python environment: "
+                 "pip install torch-dftd")
+    try:
+        calc = mace_mp(model=model, default_dtype=dtype, dispersion=disp)
+    except Exception as err:  # download or load failure
+        fail("could not load model %s: %s" % (model, err))
+    try:
+        from importlib.metadata import version
+        ver = "mace-torch " + version("mace-torch")
+    except Exception:
+        ver = "mace-torch (version unknown)"
+    return calc, "MACE " + model, ver, MODELS[model]
+
+
+def number(opts, key, default, cast=float):
+    try:
+        return cast(opts.get(key, default))
+    except ValueError:
+        fail("%s=%s is not a number" % (key, opts.get(key)))
+
+
+def frame_block(index, atoms, energy):
+    out = ["ECCE-MLP-FRAME %d %d" % (index, len(atoms)),
+           "energy: %.10f" % energy]
+    if atoms.pbc.any():
+        out.append("cell: " + " ".join("%.10f" % v
+                                       for v in atoms.cell.array.flatten()))
+    for sym, pos in zip(atoms.get_chemical_symbols(), atoms.get_positions()):
+        out.append("%-2s %16.10f %16.10f %16.10f" % (sym, pos[0], pos[1], pos[2]))
+    out.append("ECCE-MLP-ENDFRAME")
+    return "\n".join(out)
+
+
+def main():
+    if len(sys.argv) != 2:
+        fail("usage: ecce-mlp <deck>")
+    opts, body = read_deck(sys.argv[1])
+    runtype = opts.get("runtype", "Energy")
+    if runtype not in ("Energy", "Geometry"):
+        fail("runtype must be Energy or Geometry")
+    fmax = number(opts, "fmax", 0.05)
+    steps = number(opts, "steps", 200, int)
+    limit = number(opts, "timelimit", 0.0) * 60.0
+    optimizer = opts.get("optimizer", "FIRE")
+    if optimizer not in ("FIRE", "BFGS"):
+        fail("optimizer must be FIRE or BFGS")
+    relax = opts.get("relax", "atoms")
+
+    try:
+        import numpy as np
+        from ase.io import read, write
+    except ImportError as err:
+        fail("ASE is not importable by this Python (%s): pip install ase" % err)
+    try:
+        atoms = read(io.StringIO(body), format="extxyz")
+    except Exception as err:
+        fail("cannot read the structure in the deck: %s" % err)
+    periodic = bool(atoms.pbc.any())
+    if relax == "cell" and runtype == "Geometry" and not periodic:
+        fail("relax=cell needs a periodic structure; this one has no cell")
+
+    start = time.time()
+    calc, name, version, licence = make_calculator(opts)
+    atoms.calc = calc
+
+    say("ecce-mlp 1.0")
+    say("Model:        %s" % name)
+    say("Version:      %s" % version)
+    say("Licence:      %s" % licence)
+    if licence == "ASL":
+        say("Notice:       " + ASL_NOTICE)
+    say("Precision:    %s" % opts.get("dtype", "float32"))
+    say("Dispersion:   %s" % opts.get("dispersion", "off"))
+    say("Run type:     %s" % runtype)
+    say("Atoms:        %d   periodic: %s" % (len(atoms), "yes" if periodic else "no"))
+    if runtype == "Geometry":
+        say("Optimiser:    %s%s" % (optimizer,
+                                    ", atoms and cell (FrechetCellFilter)"
+                                    if relax == "cell" else ", atoms only"))
+        say("convergence: fmax %g eV/A" % fmax)
+        say("Limits:       %d steps%s" % (steps, ", %g minutes" % (limit / 60)
+                                         if limit > 0 else ""))
+    say("Note:         energies are for screening, not for reporting.")
+    say("")
+
+    trajectory = "ecce-mlp.extxyz"
+    if os.path.exists(trajectory):
+        os.remove(trajectory)
+    state = {"frames": 0, "stopped": ""}
+
+    def active_forces(target):
+        return target.get_forces()
+
+    def record(target):
+        energy = atoms.get_potential_energy()
+        forces = active_forces(target)
+        fm = float(np.sqrt((forces ** 2).sum(axis=1)).max()) if len(forces) else 0.0
+        state["frames"] += 1
+        write(trajectory, atoms, format="extxyz", append=True)
+        say("Step %4d" % (state["frames"] - 1))
+        say("  Energy %.8f eV" % energy)
+        say("  Fmax   %.5f eV/A" % fm)
+        say("  Time   %.1f s" % (time.time() - start))
+        say(frame_block(state["frames"], atoms, energy))
+        return fm
+
+    converged = True
+    if runtype == "Energy":
+        record(atoms)
+    else:
+        from ase.optimize import BFGS, FIRE
+        target = atoms
+        if relax == "cell":
+            try:
+                from ase.filters import FrechetCellFilter
+            except ImportError:
+                fail("relax=cell needs ASE 3.23 or newer (FrechetCellFilter)")
+            target = FrechetCellFilter(atoms)
+        opt = (FIRE if optimizer == "FIRE" else BFGS)(target, logfile=None)
+        opt.attach(lambda: record(target), interval=1)
+        converged = False
+        for converged in opt.irun(fmax=fmax, steps=steps):
+            if converged:
+                break
+            if limit > 0 and time.time() - start > limit:
+                state["stopped"] = "time limit of %g minutes" % (limit / 60)
+                break
+        if not converged and not state["stopped"]:
+            state["stopped"] = "step limit of %d" % steps
+
+    energy = atoms.get_potential_energy()
+    forces = atoms.get_forces()
+    say("")
+    say("ECCE-MLP-FINAL")
+    say("energy: %.10f" % energy)
+    say("forces:")
+    for sym, f in zip(atoms.get_chemical_symbols(), forces):
+        say("%-2s %16.10f %16.10f %16.10f" % (sym, f[0], f[1], f[2]))
+    if periodic:
+        try:
+            s = atoms.get_stress(voigt=False)
+        except Exception:
+            s = None
+        if s is not None:
+            say("stress (kbar):")
+            for row in s:
+                say(" ".join("%16.8f" % (-v * EV_A3_TO_KBAR) for v in row))
+    say("ECCE-MLP-ENDFINAL")
+    say("")
+    if runtype == "Geometry":
+        if converged:
+            say("Optimisation converged after %d steps." % (state["frames"] - 1))
+        else:
+            say("ecce-mlp: NOT CONVERGED: stopped at the %s; the last "
+                "structure is kept." % state["stopped"])
+    say("Total energy: %.8f eV (%.8f Hartree)" % (energy, energy * EV_TO_HARTREE))
+    say("ecce-mlp terminated normally")
+
+
+if __name__ == "__main__":
+    main()
