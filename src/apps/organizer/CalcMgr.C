@@ -2303,7 +2303,6 @@ bool CalcMgr::connectSsh(const string& address)
   }
   if (p != SftpEDSI::PROBE_OK) {
     ServerList::setLogin(address, "");
-    if (getenv("ECCE_TEST_ORGANIZER")) cerr << "ssh connect: " << message << endl;
     setMessage("Not connected to " + name + ": " + message, WxFeedback::ERROR);
     syncServerRoots();
     return false;

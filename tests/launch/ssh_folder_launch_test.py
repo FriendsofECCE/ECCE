@@ -127,6 +127,10 @@ def main():
         ans = send("server roots")
         check("Folder (SSH) (not connected)" in ans and "Bad (SSH) (not connected)" in ans
               and ans.startswith("Local data"), "both SSH roots start not connected: %s" % ans)
+        # A tree search past a root that is not connected (here: a URL in no
+        # tree) used to recurse without end and crash the Organizer.
+        ans = send("panelmessage file:///nowhere/p/c")
+        check(ans == "not in the tree", "a search past the unconnected roots ends: %s" % ans)
         ans = send("server connect Bad")
         check(ans == "not connected", "a key the server does not know leaves it disconnected: %s" % ans)
         ans = send("server launchcheck %s/p/c" % BAD)
@@ -155,7 +159,7 @@ def main():
                 h.write("%s %.6f %.6f %.6f\n" % a)
         name = "w-%d" % int(time.time())
         rc, out = drive("create", BASE, name, "xtb_es", deck, "xtb.xtbin", "localhost", rundir,
-                        "bashuser", "procs=1", "queue=normal", "nodes=1", "code=xTB", "xyz=" + xyz)
+                        user, "procs=1", "queue=normal", "nodes=1", "code=xTB", "xyz=" + xyz)
         url = out.strip().splitlines()[-1] if rc == 0 else None
         if not check(url and url.startswith("sftp"), "xtb calculation made in the folder: %s" % (url or out[-300:])):
             return 1
@@ -180,7 +184,7 @@ def main():
         say("  properties: " + " ".join(props))
         for key in ("TE", "HLGAP", "DIPOLE"):
             check(key in props, "%s is stored in the server's folder" % key)
-        check("bashuser" in onServer("cat %s/.ecce-meta ecce-data/.ecce-meta 2>/dev/null" % calc),
+        check("bashuser" in onServer("cat %s/.ecce-meta ecce-data/.ecce-meta 2>/dev/null; true" % calc),
               "the owner stamped is the ssh user")
         stray = [r for r, d, f in os.walk(s.localData()) if name in os.path.basename(r)]
         check(not stray, "nothing of it in Local data: %s" % stray)

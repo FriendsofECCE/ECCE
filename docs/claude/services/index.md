@@ -85,3 +85,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Ubuntu 26.04 mosquitto AppArmor profile blocks the per-user broker; ecce-client adds a local block (#646)](ubuntu-26-mosquitto-apparmor-profile.md)
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
 - [ecce-annotate](ecce-annotate-writes-through-the-organizer.md): through the Organizer, else FileEDSI; never a hand-edited `.ecce-meta` (#742).
+- [A root without a resource (server not connected) taken for the hidden root: findNode recursed to a stack overflow (#767)](unconnected-root-taken-for-hidden-root.md)

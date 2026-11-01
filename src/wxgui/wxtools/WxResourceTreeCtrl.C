@@ -617,6 +617,11 @@ WxResourceTreeCtrl::findNode(const EcceURL & targetUrl,
                              bool openWhenFound,
                              bool loadFromServer)
 {
+  // A server root that is not connected has no resource, so its URL is
+  // empty like the hidden root's; taken for the hidden root it would walk
+  // the roots again, itself included, without end.  It holds nothing.
+  const bool hidden = current == GetItemData(GetRootItem());
+  if (!hidden && !current->getResource()) return 0;
   EcceURL currentUrl = current->getUrl();
 
   WxResourceTreeItemData * result = 0;
@@ -652,9 +657,7 @@ WxResourceTreeCtrl::findNode(const EcceURL & targetUrl,
     }
     result = current;
   }
-  // When currentUrl equals EcceURL(), it means the node is the hidden root
-  // of the tree
-  else if (currentUrl == EcceURL()) {
+  else if (hidden) {
     // The hidden root.  Its item data's id is not the root's id on wxMSW
     // (no child is found under it there), so walk GetRootItem() itself.
     wxTreeItemIdValue cookie;
