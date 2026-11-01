@@ -66,6 +66,18 @@ int main(int argc, char** argv)
   }
   string fx = argv[1];
 
+  // ORCA, optimisation out of cycles before Freq: the boxed "ERROR !!!"
+  // is named by the sentence under it.
+  {
+    vector<string> files;
+    files.push_back(fx + "/orca-opt-maxiter/orca.orcaout");
+    string reason = JobFailureReason::extractReason(files);
+    expectContains("ORCA ERROR !!! box", reason,
+                   "\"The optimization did not converge but reached the "
+                   "maximum number of optimization cycles.\"");
+    expectShortSingleLine("ORCA ERROR !!! reason is short", reason);
+  }
+
   // ORCA, real failure: Open MPI refused to bind 8 processes to a
   // 4-core node (benzene-1-1, ran BEFORE gensub's marker-check landed --
   // no "setting status"/"ORCA TERMINATED NORMALLY" text at all, so this
