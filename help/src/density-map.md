@@ -9,7 +9,8 @@ orbitals.
 
 For a relaxed scan or an IRC the map belongs to the last computed point. For
 ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC Path**
-panel instead, and a note at the top of the panel names the point.
+panel instead, and a note at the top of the panel names the point. An ORCA
+IRC has orbitals at the TS point only.
 
 While the panel is open, the slice is drawn in the 3-D view as a translucent
 square, so you can see where it cuts the molecule. The square follows every

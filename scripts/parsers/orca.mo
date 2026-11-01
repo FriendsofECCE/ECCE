@@ -212,14 +212,40 @@ sub printMO {
   return 1;
 }
 
+# An IRC prints the MOs once, at the TS.  Besides MO/ORBENG/ORBOCC they go
+# out as the one-table PTORB/PTMO (#751), which PropertyTask pairs with the
+# TS frame only, so no other IRC point is shown with them.
+my $isIrc = ($runtype =~ /IRC/i);
+
+sub printPointTables {
+  my ($moKey, $orbKey, $orbEnergyRef, $orbOccRef, $coeffRef, $nbas) = @_;
+  my @orbEnergy = @$orbEnergyRef;
+  my @orbOcc = @$orbOccRef;
+  my $nmo = scalar(@orbEnergy);
+  return if ($nmo == 0 || $nbas == 0);
+  print "key: $orbKey\nsize:\n1 $nmo 2\nrowlabels:\n",
+        join(" ", map { "MO-$_" } 1 .. $nmo), "\ncolumnlabels:\nEnergy Occupation\nvalues:\n";
+  print "$orbEnergy[$_] $orbOcc[$_]\n" for (0 .. $nmo - 1);
+  print "units:\nNA\nEND\n";
+  print "key: $moKey\nsize:\n1 $nmo $nbas\nrowlabels:\n",
+        join(" ", map { "MO-$_" } 1 .. $nmo), "\ncolumnlabels:\n",
+        join(" ", map { "BasFun-$_" } 1 .. $nbas), "\nvalues:\n";
+  for my $m (0 .. $nmo - 1) {
+    print join(" ", map { $$coeffRef{$m}{$_} } 0 .. $nbas - 1), "\n";
+  }
+  print "units:\nElectrons\nEND\n";
+}
+
 my $printedAny = 0;
 if (@segments >= 1) {
   my ($orbEnergy, $orbOcc, $coeff, $nbas) = parseSegment($segments[0]);
   $printedAny |= printMO("MO", "ORBENG", "ORBOCC", $orbEnergy, $orbOcc, $coeff, $nbas);
+  &printPointTables("PTMO", "PTORB", $orbEnergy, $orbOcc, $coeff, $nbas) if ($isIrc);
 }
 if (@segments >= 2) {
   my ($orbEnergy, $orbOcc, $coeff, $nbas) = parseSegment($segments[1]);
   $printedAny |= printMO("MOBETA", "ORBENGBETA", "ORBOCCBETA", $orbEnergy, $orbOcc, $coeff, $nbas);
+  &printPointTables("PTMOBETA", "PTORBBETA", $orbEnergy, $orbOcc, $coeff, $nbas) if ($isIrc);
 }
 
 # Tells the C++ side (MoAoOrder::reorderToNative()) that MO/MOBETA's

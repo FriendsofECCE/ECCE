@@ -402,7 +402,7 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
  */
 TProperty* PropertyTask::getProperty(const string& name)
 {
-  if (p_orbitalPoint >= 0) {
+  if (p_orbitalPoint >= 0 || orbitalsAtSomePointsOnly()) {
     bool hide = false;
     TProperty *pt = pointOrbitalProperty(name, hide);
     if (pt || hide) return pt;
@@ -431,6 +431,42 @@ bool PropertyTask::hasPointOrbitals()
 
 
 /**
+ * ORCA prints the MOs once, at the TS of an IRC, so PTMO holds one table
+ * while IRCGEOM has a frame per path point.  The calculation's own MO set is
+ * that TS set, which belongs to no other point's structure.
+ */
+bool PropertyTask::orbitalsAtSomePointsOnly()
+{
+  PropTSVecTable *mo = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
+  PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
+  return mo && geom && mo->tables() == 1 && geom->tables() > 1;
+}
+
+
+/**
+ * The PTMO/PTORB table holding a point's orbitals, -1 if it has none.  The
+ * TS frame is the IRCCOORD row at zero, which is also its IRCGEOM frame
+ * (ORCA stores one frame per summary row).
+ */
+int PropertyTask::orbitalTable(int point)
+{
+  if (!orbitalsAtSomePointsOnly()) return point;
+  PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
+  PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
+  if (!c || !geom || (int)c->values().size() != geom->tables()) return -1;
+  for (size_t i = 0; i < c->values().size(); i++)
+    if (c->values()[i] == 0) return (int)i == point ? 0 : -1;
+  return -1;
+}
+
+
+bool PropertyTask::pointHasOrbitals(int point)
+{
+  return orbitalTable(point) >= 0;
+}
+
+
+/**
  * MO, ORBENG, ORBOCC (and the beta forms) of the selected scan/IRC point,
  * built from the PTMO/PTORB tables with the stored property's units and
  * labels.  0 when the key is not one of them or the point has no table.
@@ -444,11 +480,13 @@ TProperty* PropertyTask::pointOrbitalProperty(const string& name, bool& hide)
     {"ORBENG", "PTORB", 0}, {"ORBOCC", "PTORB", 1},
     {"ORBENGBETA", "PTORBBETA", 0}, {"ORBOCCBETA", "PTORBBETA", 1}};
   hide = false;
+  const int tbl = orbitalTable(p_orbitalPoint);
   if (name.compare(0, 5, "LOCMO") == 0) {
+    if (tbl < 0) { hide = true; return 0; }
     PropTSVecTable *orb = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTORB"));
     PropVector *fin = dynamic_cast<PropVector*>(getStoredProperty("ORBENG"));
-    if (!orb || p_orbitalPoint >= orb->tables() || !fin) return 0;
-    const vector<double>& v = orb->values(p_orbitalPoint);
+    if (!orb || tbl >= orb->tables() || !fin) return 0;
+    const vector<double>& v = orb->values(tbl);
     const vector<double>& f = fin->values();
     if ((int)f.size() * 2 != (int)v.size()) { hide = true; return 0; }
     for (size_t i = 0; i < f.size(); i++)
@@ -459,16 +497,17 @@ TProperty* PropertyTask::pointOrbitalProperty(const string& name, bool& hide)
   for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
     if (name == keys[i].key) k = (int)i;
   if (k < 0) return 0;
+  if (tbl < 0) { hide = true; return 0; }
   PropTSVecTable *src = dynamic_cast<PropTSVecTable*>(getStoredProperty(keys[k].src));
-  if (!src || p_orbitalPoint >= src->tables()) return 0;
-  const string cacheKey = name + "@" + std::to_string(p_orbitalPoint);
+  if (!src || tbl >= src->tables()) return 0;
+  const string cacheKey = name + "@" + std::to_string(tbl);
   map<string, TProperty*>::iterator it = p_pointProps.find(cacheKey);
   if (it != p_pointProps.end()) return it->second;
   TProperty *base = getStoredProperty(name);
   TProperty *out = base ? PropFactory::getProperty(name) : 0;
   if (!out) return 0;
   out->units(base->units());
-  const vector<double>& v = src->values(p_orbitalPoint);
+  const vector<double>& v = src->values(tbl);
   const int rows = src->rows(), cols = src->columns();
   bool ok = (int)v.size() == rows * cols;
   if (ok && keys[k].col < 0) {

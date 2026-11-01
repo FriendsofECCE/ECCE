@@ -47,6 +47,8 @@ class PropertyTask : public ChemistryTask,
       virtual void orbitalPoint(int point);
       virtual int orbitalPoint() const;
       virtual bool hasPointOrbitals();
+      virtual bool orbitalsAtSomePointsOnly();
+      virtual bool pointHasOrbitals(int point);
 
       virtual bool fragment(Fragment* frag);
       virtual Fragment* fragment() const;
@@ -122,6 +124,7 @@ class PropertyTask : public ChemistryTask,
 
       TProperty* getStoredProperty(const string& name);
       TProperty* pointOrbitalProperty(const string& name, bool& hide);
+      int orbitalTable(int point);
       int p_orbitalPoint = -1;
       // Built from the per-point tables, "<key>@<point>"; kept until the
       // cache is flushed, since panels hold the pointers they were given.

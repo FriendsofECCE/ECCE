@@ -2887,6 +2887,10 @@ void MoPanel::orbitalPointChanged()
 {
    //  A panel nobody has opened yet reads the point when first shown; the
    //  grids drawn belong to the old point's orbitals.
-   if (p_mogrid == 0 || p_mogrid->GetNumberRows() == 0) return;
+   //  An ORCA IRC panel opened at a point without orbitals is empty, and
+   //  must fill when the TS point is selected.
+   IPropCalculation *calc = getCalculation();
+   const bool sparse = calc && calc->orbitalsAtSomePointsOnly();
+   if (p_mogrid == 0 || (p_mogrid->GetNumberRows() == 0 && !sparse)) return;
    initialize(true);
 }
