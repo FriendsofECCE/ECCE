@@ -2998,10 +2998,12 @@ def caseAuthUseLocal(checks, display, logdir):
             if not checks.check(wid, "the login window opened"):
                 return
             time.sleep(2)
-            subprocess.run(["import", "-display", display.name, "-window", wid,
-                            shot], stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
-            checks.check(os.path.exists(shot), "the login window photographed (%s)" % shot)
+            # The photo is for a reader; without ImageMagick the case still runs.
+            if shutil.which("import"):
+                subprocess.run(["import", "-display", display.name, "-window", wid,
+                                shot], stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL)
+                checks.check(os.path.exists(shot), "the login window photographed (%s)" % shot)
             first = session.gateway()
             sid1 = session.sid(timeout=10)
             deadline = time.time() + 60
