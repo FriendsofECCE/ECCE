@@ -52,6 +52,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [In local data mode the Organizer's root is the user's home, labelled Local data](organizer-local-tree-has-no-users-level.md)
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
 - [SftpEDSI (sftp:// URLs): FileEDSI logic on a scratch mirror, mkdir lock, link and test traps (#767)](sftpedsi-ssh-folder-storage.md)
+- [SSH-folder trees in the Organizer: keyed by address, prompts only while connecting, port refused (#767)](ssh-folder-trees-767.md)
 - [ECCE's own ssh master (ECCE_SSH_CONTROL_DIR): one login per host per state directory](owned-ssh-master.md)
 - [The calculation summary shows the allocation and how much is left (#613)](allocation-left-613.md)
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
@@ -84,3 +85,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Ubuntu 26.04 mosquitto AppArmor profile blocks the per-user broker; ecce-client adds a local block (#646)](ubuntu-26-mosquitto-apparmor-profile.md)
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
 - [ecce-annotate](ecce-annotate-writes-through-the-organizer.md): through the Organizer, else FileEDSI; never a hand-edited `.ecce-meta` (#742).
+- [A root without a resource (server not connected) taken for the hidden root: findNode recursed to a stack overflow (#767)](unconnected-root-taken-for-hidden-root.md)
