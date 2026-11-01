@@ -216,21 +216,10 @@ void PropTable::values(istream& istrm)
 void PropTable::values(const int& rows, const int& cols,
                         const vector<double>& values)
 {
-  if (values.size() != rows * cols) {
-     // Both call sites (PropertyTask::updatePropTable/getPropTable) already
-     // check property->values().size() != rows*cols right after calling
-     // this and gracefully treat that as "property data missing/invalid"
-     // (ret = false) -- but could never reach that check, since EE_FATAL
-     // aborts the whole process first. A malformed/incomplete property
-     // document (e.g. a freshly created calculation with no data yet for
-     // a given table property) is a real, unexceptional case those
-     // callers are already written to handle; it doesn't warrant crashing
-     // the whole app. Warn and leave existing state untouched instead, so
-     // the caller's own size check actually gets to run.
-     EE_RT_ASSERT(false, EE_WARNING,
-                  "input vector length does not match rows*columns");
+  // Callers (PropertyTask) check the count and name the property and
+  // calculation once; a bare warning here said neither.
+  if (values.size() != (size_t)(rows * cols))
      return;
-  }
 
   delete p_values;         // clear preexisting values
   p_values = new vector<double>(values);

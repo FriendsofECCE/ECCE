@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <iostream>
+#include <set>
   using std::find;
 #include <strstream>
   using std::ostrstream;
@@ -16,6 +18,20 @@
 
 #include <xercesc/util/XMLString.hpp>
 using namespace xercesc;
+
+// A stored table whose value count differs from rows x columns: say which
+// property of which calculation, once per run (ecce-check-props lists them).
+static void warnShape(const std::string& calc, const std::string& prop,
+                      size_t have, unsigned long rows, unsigned long cols)
+{
+  static std::set<std::string> seen;
+  if (!seen.insert(calc + "|" + prop).second)
+    return;
+  std::cerr << "WARNING: property " << prop << " of " << calc << " has " << have
+       << " values for " << rows << " x " << cols
+       << "; Re-Parse Outputs rewrites it" << std::endl;
+}
+
 
 #include "dsm/BasicDOMParser.H"
 #include "dsm/BasicDOMWriter.H"
@@ -1138,7 +1154,11 @@ bool PropertyTask::updatePropTable(PropTable* property, PropertyDoc&  doc)
    if (cp) {
       vector<double> valueVector;
       parseValues(cp, valueVector);
-      property->values(numRows, numColumns, valueVector);
+      if (valueVector.size() != numRows * numColumns)
+         warnShape(getURL().toString(), property->type(), valueVector.size(),
+                   numRows, numColumns);
+      else
+         property->values(numRows, numColumns, valueVector);
       delete cp;
    }
 
@@ -1203,7 +1223,11 @@ bool PropertyTask::getPropTable(PropTable* property, PropertyDoc&  doc)
    if (cp) {
       vector<double> valueVector;
       parseValues(cp, valueVector);
-      property->values(numRows, numColumns, valueVector);
+      if (valueVector.size() != numRows * numColumns)
+         warnShape(getURL().toString(), property->type(), valueVector.size(),
+                   numRows, numColumns);
+      else
+         property->values(numRows, numColumns, valueVector);
       delete cp;
    } 
 

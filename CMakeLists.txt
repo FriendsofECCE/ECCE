@@ -1228,6 +1228,17 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/processmachine)
           COMPONENT client)
 endif()
 
+# ecce-check-props (#719): lists stored properties whose value count differs
+# from their rows x columns.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-check-props
+        DESTINATION bin
+        COMPONENT client)
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME tools_check_props
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/check_props_test.py)
+endif()
+
 # ecce-contacts (#693, #708): coordination shells, H-bonds, ensemble patterns.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_contacts.py
         DESTINATION bin RENAME ecce-contacts
