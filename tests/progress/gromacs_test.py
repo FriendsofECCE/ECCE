@@ -128,6 +128,24 @@ def main():
                 if l[0] not in "#@":
                     o.write(("ECCE-DENSITY %s\n" % " ".join(l.split()[:2])).encode())
 
+        # gensub's helper, as the job script runs it: the 20 s loop is a
+        # subshell and the last call is in the main shell; together they must
+        # echo each energy-file record once.
+        src = open(os.path.join(ROOT, "scripts", "gensub")).read()
+        i = src.index('"  echo 0 > dens_n.txt')
+        j = src.index('"  }\\n";', i) + 1
+        helper = "".join(re.sub(r'\\(["$`])', r"\1", m.group(1)).replace("\\n", "\n") for m in
+                         re.finditer(r'\.= "(.*)";', src[i:j + 8]))
+        script = "gmx='%s'\n%s\ncp md.edr ener.edr\n" % (gmx[0], helper)
+        script += "( ecceDensity ) \necceDensity\n"
+        with open(os.path.join(work, "dens.log"), "wb"):
+            pass
+        script = script.replace("$::logfile", "dens.log").replace("$::logfile", "dens.log")
+        subprocess.run(["sh", "-c", script], cwd=work, capture_output=True)
+        times = [l.split()[1] for l in open(os.path.join(work, "dens.log")) if l.startswith("ECCE-DENSITY")]
+        check(len(times) == 9 and len(set(times)) == 9,
+              "md: gensub density helper echoes %d points, %d distinct" % (len(times), len(set(times))))
+
         # Minimisation: log, and stderr with its carriage returns
         snap = monitor(work, os.path.join(work, "em.log"), os.path.join(work, "em.out"), "em")[0]
         print(snap)
