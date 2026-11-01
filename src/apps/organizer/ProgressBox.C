@@ -160,7 +160,15 @@ vector<JobProgress::Block> ProgressBox::blocks() const
   if (p_queued && !p_finished && p_progress.empty())
     return vector<JobProgress::Block>(
         1, JobProgress::queued(p_submitted, p_jobId, (double)time(0)));
-  return p_progress.running(std::max(0.0, age()), p_finished);
+  vector<JobProgress::Block> b =
+      p_progress.running(std::max(0.0, age()), p_finished);
+  if (!p_finished && !outOfContact() && p_progress.stalled() > 0) {
+    JobProgress::Block note;
+    note.title = "Status";
+    note.lines.push_back(JobProgress::stalledText(p_progress.stalled()));
+    b.insert(b.begin(), note);
+  }
+  return b;
 }
 
 

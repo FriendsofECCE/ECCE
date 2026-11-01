@@ -10050,7 +10050,9 @@ string CalcMgr::progressCellText(Resource * resource) const
   if (liveProgress(resource->getURL(), live, at)) text = live;
   else text = resource->getProp(ecce + ":progress");
   JobProgress p;
-  return p.parse(text) ? p.shortLine() : "";
+  if (!p.parse(text)) return "";
+  if (p.stalled() > 0) return JobProgress::stalledText(p.stalled());
+  return p.shortLine();
 }
 
 

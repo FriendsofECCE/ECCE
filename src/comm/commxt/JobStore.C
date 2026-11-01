@@ -36,6 +36,7 @@
 #include <sstream>
   using std::ofstream;
 
+#include "util/StalledRule.H"
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Preferences.H"
@@ -212,6 +213,12 @@ static unsigned long readTimeoutMilliseconds = 180000;
 static int gContactSeconds = 60;
 static bool gContactLost = false;
 static time_t gLastHeard = 0;                 // wall clock, for the Organizer
+// Stalled (#769): a note on a running job whose output stopped growing.
+static StalledRule gStallRule;
+static bool gStalled = false;
+static string gStepKey;
+static void stallLimits(void);
+static void stallStrip(string& snapshot);
 static struct timespec gLastHeardMono = {0, 0};
 
 // file names
@@ -2896,18 +2903,68 @@ void interactProgress(char* text)
 {
   convertToNewlines(text);
   string snap = text;
+  stallLimits();
+  const string key = StalledRule::stepKey(snap);
+  if (!key.empty() && key != gStepKey) {
+    gStepKey = key;
+    gStallRule.step((double)time(0));
+  }
+  const double idle = StalledRule::idleOf(snap);
+  const bool stalledNow = gStallRule.stalled(idle, gContactLost);
+  if (stalledNow != gStalled) {
+    gStalled = stalledNow;
+    if (stalledNow)
+      logPrint(ActivityLog::WARNING, "eccejobmonitor",
+               "Stalled: " + StalledRule::text(idle) +
+               "; the job is still running");
+    else
+      logMessage("eccejobmonitor", "Output resumed");
+  }
   // When this job store relayed it, for "updated n s ago" after a restart
   // of the Organizer (the monitor's own clock may be another machine's).
   const string::size_type eol = snap.find('\n');
   if (snap.compare(0, 2, "# ") == 0 && eol != string::npos) {
     char at[32];
-    snprintf(at, sizeof at, " at=%ld", (long)time(0));
+    if (gStalled)
+      snprintf(at, sizeof at, " at=%ld stall=%ld", (long)time(0), (long)idle);
+    else
+      snprintf(at, sizeof at, " at=%ld", (long)time(0));
     snap.insert(eol, at);
   }
   gProgress = snap;
   if (calculation)
     sendNotify("ecce_url_progress", "progress", gProgress);
   progressStore(false);
+}
+
+
+// ECCE_JOB_STALL_SECONDS (floor, default 1800) and
+// ECCE_JOB_STALL_FEWSTEPS_SECONDS (fewer than 3 steps seen, default 7200).
+static void stallLimits(void)
+{
+  static bool done = false;
+  if (done) return;
+  done = true;
+  double floor = 1800, few = 7200;
+  const char* env = getenv("ECCE_JOB_STALL_SECONDS");
+  if (env && atof(env) > 0) floor = atof(env);
+  env = getenv("ECCE_JOB_STALL_FEWSTEPS_SECONDS");
+  if (env && atof(env) > 0) few = atof(env);
+  gStallRule.setLimits(floor, few);
+}
+
+
+// The note leaves the snapshot when contact is lost: silence is then the
+// monitor's, not the job's.
+static void stallStrip(string& snapshot)
+{
+  const string::size_type eol = snapshot.find('\n');
+  const string::size_type at = snapshot.find(" stall=");
+  if (at == string::npos || at > eol) return;
+  string::size_type end = at + 1;
+  while (end < snapshot.size() && snapshot[end] != ' ' && snapshot[end] != '\n')
+    end++;
+  snapshot.erase(at, end - at);
 }
 
 
@@ -2934,6 +2991,9 @@ void progressStore(bool force)
 
 void progressClear(void)
 {
+  gStalled = false;
+  gStallRule.reset();
+  gStepKey.clear();
   if (!calculation)
     return;
   // A new run is in contact until its own monitor falls silent.
@@ -3035,6 +3095,10 @@ void contactStore(const string& value)
 void contactLost(void)
 {
   gContactLost = true;
+  if (gStalled) {
+    gStalled = false;
+    stallStrip(gProgress);
+  }
   char lost[64];
   snprintf(lost, sizeof lost, "lost %ld", (long)gLastHeard);
   char msg[160];
