@@ -99,11 +99,11 @@ def main():
             h.write("integrator=md\ndt=0.002\nnsteps=400\nconstraints=h-bonds\n"
                     "tcoupl=v-rescale\ntc-grps=System\ntau-t=0.1\nref-t=300\n"
                     "pcoupl=c-rescale\ntau-p=1\ncompressibility=4.5e-5\nref-p=1\n"
-                    "gen-vel=yes\ngen-temp=300\nnstcalcenergy=10\nnstenergy=50\n" + common % 50)
+                    "gen-vel=yes\ngen-temp=300\nnstcalcenergy=10\nnstenergy=50\nnstxout-compressed=50\n" + common % 50)
 
         def mdrun(tpr, log, conf, verbose, name):
             cmd = (["mpirun", "-np", "1"] if mpi else []) + gmx + ["mdrun"] + \
-                  (["-v"] if verbose else []) + ["-s", tpr, "-g", log, "-c", conf, "-e", log[:-4] + ".edr"]
+                  (["-v"] if verbose else []) + ["-s", tpr, "-g", log, "-c", conf, "-e", log[:-4] + ".edr", "-x", log[:-4] + ".xtc"]
             cmd += ["-ntomp", "1"] if mpi else ["-ntmpi", "1", "-ntomp", "1"]
             with open(os.path.join(work, name + ".out"), "wb") as o:
                 if verbose:
@@ -145,6 +145,36 @@ def main():
         times = [l.split()[1] for l in open(os.path.join(work, "dens.log")) if l.startswith("ECCE-DENSITY")]
         check(len(times) == 9 and len(set(times)) == 9,
               "md: gensub density helper echoes %d points, %d distinct" % (len(times), len(set(times))))
+
+        # gensub's trajectory function, run on the finished xtc and on a
+        # truncated copy (a running job's file): the Geometry Trace reads
+        # ecce-parse-traj.txt, so frames so far must be there mid-run.
+        i = src.index('"  ecceTraj() {')
+        j = src.index('"  }\\n";', i) + 1
+        # The strings are Perl's: evaluate them as gensub does.
+        func = subprocess.run(["perl", "-e", 'our $logfile = "x.log"; for (split /\\n/, shift) { '
+                               'print eval(qq("$1")) if /\\.= "(.*)";\\s*$/ }', src[i:j + 8]],
+                              capture_output=True, text=True).stdout
+        def frames_after(xtc):
+            d = os.path.join(work, "traj_" + str(len(xtc)))
+            os.mkdir(d)
+            for f in ("md.tpr",):
+                shutil.copy(os.path.join(work, f), os.path.join(d, "topol.tpr"))
+            open(os.path.join(d, "traj.xtc"), "wb").write(xtc)
+            subprocess.run(["sh", "-c", "gmx='%s'\n%s\necceTraj" % (gmx[0], func)], cwd=d,
+                           capture_output=True)
+            t = os.path.join(d, "ecce-parse-traj.txt")
+            if not os.path.exists(t):
+                return None, ""
+            return open(t).read().count("ECCE-TRAJ frame"), subprocess.run(
+                ["perl", os.path.join(ROOT, "scripts", "parsers", "gromacs.geomtrace")],
+                stdin=open(t), capture_output=True, text=True).stdout.count("key: GEOMTRACE")
+        xtc = open(os.path.join(work, "md.xtc"), "rb").read()
+        full, parsed = frames_after(xtc)
+        check(full == 9 and parsed == 9, "md: ecceTraj gives %s frames, %s GEOMTRACE steps from the finished xtc" % (full, parsed))
+        part, parsed = frames_after(xtc[:len(xtc) * 2 // 3])
+        check(part is not None and 0 < part < 9 and parsed == part,
+              "md: ecceTraj on a truncated xtc gives %s frames, %s GEOMTRACE steps" % (part, parsed))
 
         # Minimisation: log, and stderr with its carriage returns
         snap = monitor(work, os.path.join(work, "em.log"), os.path.join(work, "em.out"), "em")[0]
