@@ -39,11 +39,11 @@ for name, es, hbs in groups:
             ax.add_patch(Circle((X['th'] + 24 + 11 * math.cos(a), y + 17 + 11 * math.sin(a)), 2.5, fc='#d22'))
         y += 34
     y += 2
-ax.text(14, 548, 'Right-click: Copy as CSV / JSON      Double-click a row: show in the 3-D view',
+ax.text(14, 572, 'Right-click: Copy as CSV / JSON      Double-click a row: show in the 3-D view',
         fontsize=8, color='#555')
 x = 12
 for t, w in [('Superpose selected', 190), ('New calculation from selected', 270),
              ('Select representatives', 210), ('Export CSV...', 150)]:
-    ax.add_patch(Rectangle((x, 580), w, 28, fc='#e8e8e8', ec='#666'))
-    ax.text(x + 10, 598, t, fontsize=9); x += w + 12
+    ax.add_patch(Rectangle((x, 586), w, 28, fc='#e8e8e8', ec='#666'))
+    ax.text(x + 10, 604, t, fontsize=9); x += w + 12
 fig.savefig(out)
