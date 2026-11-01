@@ -122,6 +122,9 @@ class MoPanel : public MoGUI,
 
      /** Choose a field type as a click in the type drop-down does. */
      bool selectFieldType(const string& name);
+
+     /** The table lists the localised orbitals ("Localised MO" chosen). */
+     bool localisedShown() const { return p_localised; }
      bool sortByHeading(const string& heading, bool ascending);
 
      /** The text shown under the table: the selected MO's composition. */
@@ -136,6 +139,7 @@ class MoPanel : public MoGUI,
      void updateSurface();
      void updateUIOptions();
      bool rebuildTable();   // table and graphs for the canonical or localised set
+     void setLocalised(bool localised);  // switch the table's set, tell the MO diagram
      void fillUI();
      void selectMo(int index);
      void showComposition();

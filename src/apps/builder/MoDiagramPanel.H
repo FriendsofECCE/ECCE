@@ -96,6 +96,16 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       virtual void refresh();
 
+      /**
+       * The MOs panel switched between the canonical and the localised set.
+       * The diagram is always built from the canonical orbitals, so with the
+       * localised set listed it says so in its status line.
+       */
+      void orbitalSetChanged(bool localisedListed);
+
+      /** The status line under the diagram's controls; empty when hidden. */
+      string statusText() const;
+
    protected:
 
       /**
@@ -149,6 +159,8 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       /** Levels of the model column whose blocks overlap as last drawn (-1: none drawn). */
       int centreOverlaps() const;
+      /** Where each correlation line stops short of its level's bar, as painted. */
+      string linkGaps() const;
 
    protected:
 
@@ -188,6 +200,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       bool             p_optOpen, p_fragWasOpen;
       wxCheckListBox  *p_fragments;
       wxStaticText    *p_fragmentHint;
+      wxStaticText    *p_status = nullptr;
       wxCheckBox      *p_autoFragments;
       wxChoice        *p_construction;
       wxCheckBox      *p_piOnly;
