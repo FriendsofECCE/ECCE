@@ -1271,6 +1271,12 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_contacts.py
         DESTINATION bin RENAME ecce-contacts
         COMPONENT client)
 
+# ecce-displacement (#701): per-element displacement and aligned (Kabsch) RMSD
+# between stored calculations.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displacement.py
+        DESTINATION bin RENAME ecce-displacement
+        COMPONENT client)
+
 # scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
 # Potential job, so it only has to exist on the client.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
@@ -2506,6 +2512,12 @@ add_test(NAME contacts
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/contacts/run_tests.py)
 set_tests_properties(contacts PROPERTIES TIMEOUT 600)
+
+# tests/displacement -- scripts/ecce_displacement.py: Kabsch fit, per-element
+# displacement and the CLI on stored calculations (#701).
+add_test(NAME displacement
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/displacement/run_tests.py)
 
 # tests/mlp -- scripts/ecce-mlp with a model-free mock calculator (#728); the
 # real MACE test SKIPs (77) without mace (ECCE_MLP_PYTHON names the Python).
