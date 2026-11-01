@@ -1,0 +1,18 @@
+! B3LYP D3BJ ma-def2-SVP TightSCF IRC 
+%pal nprocs 6 end
+%maxcore 1500
+%output
+  Print[P_MOs] 1
+  Print[P_OrbEn] 2
+end
+%irc MaxIter 40
+ InitHess calc_anfreq
+end
+* xyz -1 1
+C      0.000004     0.000000    -0.028068
+Cl    -0.000030     0.000001     2.392112
+Br    -0.000041    -0.000001    -2.500660
+H      1.081807    -0.000000    -0.001105
+H     -0.540870     0.936874    -0.001142
+H     -0.540870    -0.936873    -0.001139
+*
