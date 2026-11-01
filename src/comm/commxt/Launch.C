@@ -1280,6 +1280,16 @@ bool Launch::checkLocalCmd(const string& command,
   return ret;
 }
 
+// CP2K writes one .pdos per kind and &LDOS list, but only when the deck has
+// a &PDOS section; ask for the wildcard only then, so an ordinary run's
+// copy-back does not fetch (and log) a pattern that can never match.  CP2K
+// section names are case-insensitive, and no other code's deck has this
+// section, so the check needs no code-name guard (#720).
+string Launch::cp2kCopyBackPatterns(const string& deck)
+{
+  return STLUtil::lower(deck).find("&pdos") != string::npos ? "*.pdos" : "";
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //  man
 //
@@ -1363,6 +1373,22 @@ bool Launch::generateJobMonitoringFiles(void)
       storeConfigFile << "mdStoreTrj: none" << endl;
     storeConfigFile << "rxnMetadynamicsTask: " <<
                        (p_isMetadynamicsTask? "yes": "no") << endl;
+
+    // The deck's CP2K output sections are known here, where the deck is,
+    // and carried to eccejobstore in the config it reads; another code's
+    // deck matches none, so its copy-back list is unchanged (#720).
+    {
+      string input = p_inputFile.empty() ? (*p_options)["##input##"] : p_inputFile;
+      ifstream deckFile((p_cache->directory + "/" + input).c_str());
+      if (deckFile) {
+        string deck, line;
+        while (getline(deckFile, line))
+          deck += line + "\n";
+        string extra = cp2kCopyBackPatterns(deck);
+        if (!extra.empty())
+          storeConfigFile << "cp2kGetPatterns: " << extra << endl;
+      }
+    }
 
     storeConfigFile.close();
   }
