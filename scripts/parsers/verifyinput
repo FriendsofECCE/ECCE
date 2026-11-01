@@ -2159,12 +2159,14 @@ sub ecceqm
 #  ====================================================================
 sub xtb
 {
+  #  crest decks have the same two-part shape; $prog is the word on line 1.
+  my $prog = shift || "xtb";
   my @L = @stripped;
 
-  if (!@L || $L[0] !~ /^\s*xtb\b/) {
+  if (!@L || $L[0] !~ /^\s*\Q$prog\E\b/) {
     finding("BAD", 1, "options",
-            "Line 1 should start with \"xtb\" followed by the options; " .
-            "it is what the launch script runs xtb with.");
+            "Line 1 should start with \"$prog\" followed by the options; " .
+            "it is what the launch script runs $prog with.");
     return;
   }
   finding("GOOD", 1, "options", "An option line is present.");
@@ -2194,7 +2196,7 @@ sub xtb
   } else {
     finding("BAD", 2, "geometry",
             "Line 2 says $count atoms but $atoms atom lines follow the " .
-            "title line, which xtb refuses.");
+            "title line, which $prog refuses.");
   }
 }
 
@@ -2206,6 +2208,7 @@ elsif ($code eq "MOPAC")              { mopac();     }
 elsif ($code eq "QuantumESPRESSO")    { espresso();  }
 elsif ($code eq "CP2K")               { cp2k();      }
 elsif ($code eq "xTB")                { xtb();       }
+elsif ($code eq "CREST")              { xtb("crest"); }
 elsif ($code eq "ECCE-QM")            { ecceqm();    }
 elsif ($code ne "") {
   finding("UNSURE", 0, "code",

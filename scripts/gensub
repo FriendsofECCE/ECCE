@@ -595,6 +595,7 @@ sub determineStatus()
     'orca' => 'ORCA TERMINATED NORMALLY',
     'ecce-qm' => 'end_of_output',
     'xtb' => 'normal termination of xtb',
+    'crest' => 'CREST terminated normally',
   );
   if (defined $normalTermination{$lccode}) {
     my $marker = $normalTermination{$lccode};
@@ -2167,6 +2168,68 @@ sub xtb()
   $retval .= "  fi\n";
   $retval .= "done\n";
   $retval .= "(exit \$xtbStatus)\n";
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# CREST.  The CONFIG key "crest" is the program; it runs xtb itself, so the
+# xtb path comes from the same machine's "xtb" key (CREST --xnam).
+#
+# Like xtb, the input file (crest.crestin, from ai.crest) is line 1 = the
+# options, the rest an xyz file, split here.  CREST's ensemble is a file
+# (crest_conformers.xyz), not output, so after the run its frames are
+# appended to the output between ECCE-CREST-FRAME markers with each frame's
+# energy relative to the lowest (kcal/mol) in the comment line, followed by
+# crest_best.xyz, for crest.desc.  The status is CREST's own.
+###########################################################################
+sub crest()
+{
+  use strict vars;
+  my ($retval,$crest,$xtb,$cmd);
+  $retval = "";
+  $crest = $::config{$::lccode};
+  if ($crest eq "") { die "Path for crest not found"; }
+  $xtb = $::config{"xtb"};
+  if ($xtb eq "") { die "CREST needs the xTB program: register xTB on this machine too"; }
+  $cmd = &userCmd("crestcommand");
+
+  $retval .= &pathVar("crest", "$crest", "ECCE_CREST");
+  $retval .= &pathVar("xtb", "$xtb", "ECCE_XTB");
+  $retval .= "echo \"Using crest path: \$crest, xtb path: \$xtb\" >> $::logfile\n";
+
+  $retval .= "\n$::CC - Split the deck: options on line 1, xyz geometry below.\n";
+  $retval .= "crestopts=`sed -n '1s/^[[:space:]]*crest[[:space:]]*//p' $::inFile`\n";
+  $retval .= "tail -n +2 $::inFile > crest.xyz\n";
+  $retval .= "OMP_NUM_THREADS=$::totalprocs,1; export OMP_NUM_THREADS\n";
+  $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
+  $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
+  $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
+  $retval .= "rm -f crest_conformers.xyz crest_best.xyz\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\"\$crest\" crest.xyz \$crestopts --xnam \"\$xtb\" -T $::totalprocs > $::outFile 2>&1\n";
+  }
+  $retval .= "crestStatus=\$?\n";
+  $retval .= "\n$::CC - Append the ensemble for the parser.\n";
+  $retval .= "if [ -s crest_conformers.xyz ]; then\n";
+  $retval .= "  awk 'NF==0 {next}\n";
+  $retval .= "    left==0 {n=\$1; left=n+1; f++; nat[f]=n; e[f]=\$0; next}\n";
+  $retval .= "    left==n+1 {en[f]=\$1; left--; next}\n";
+  $retval .= "    {a[f]=a[f] \$0 \"\\n\"; left--}\n";
+  $retval .= "    END {m=en[1]; for (i=2;i<=f;i++) if (en[i]<m) m=en[i];\n";
+  $retval .= "      for (i=1;i<=f;i++) {print \"ECCE-CREST-FRAME \" i \" \" nat[i];\n";
+  $retval .= "        printf \"energy: %s relative: %.4f\\n\", en[i], (en[i]-m)*627.5094740631;\n";
+  $retval .= "        printf \"%s\", a[i]; print \"ECCE-CREST-ENDFRAME\"}}' crest_conformers.xyz >> $::outFile\n";
+  $retval .= "fi\n";
+  $retval .= "if [ -s crest_best.xyz ]; then\n";
+  $retval .= "  echo ECCE-CREST-BEST >> $::outFile\n";
+  $retval .= "  cat crest_best.xyz >> $::outFile\n";
+  $retval .= "  echo ECCE-CREST-ENDBEST >> $::outFile\n";
+  $retval .= "fi\n";
+  $retval .= "(exit \$crestStatus)\n";
   return $retval;
   nouse strict vars;
 }

@@ -1,0 +1,21 @@
+# Parse descriptor for CREST 3.0.x output (conformer search).
+#
+# gensub appends the ensemble after the run, because CREST keeps it in
+# crest_conformers.xyz:
+#   ECCE-CREST-FRAME <n> <atoms> / "energy: <Eh> relative: <kcal/mol>" /
+#   atoms / ECCE-CREST-ENDFRAME
+# One GEOMTRACE step and one CONFREL value per conformer, from the same
+# frame so the two stay the same length.
+[GEOMTRACE][CONFREL]
+Script=crest.conformers
+Begin=^ECCE-CREST-FRAME\s
+Skip=1
+Frequency=all
+End=^ECCE-CREST-ENDFRAME
+[END]
+
+# "  ::::::::::::: starting MTD    3 :::::::::::::"
+[PROGRESS]
+Begin=^\s+:+ starting MTD\s+(\d+)\s
+Progress=sampling mtd=$1
+[END]

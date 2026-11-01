@@ -4225,6 +4225,11 @@ static string builtinCommand(const string& code)
         return "$xtb xtb.xyz <options from line 1 of $inFile> > $outFile "
                "2>&1\n# gensub first splits $inFile into the options and "
                "xtb.xyz; threads come from OMP_NUM_THREADS=$totalprocs";
+    if (code == "CREST")
+        return "$crest crest.xyz <options from line 1 of $inFile> --xnam "
+               "$xtb -T $totalprocs > $outFile 2>&1\n# gensub first splits "
+               "$inFile into the options and crest.xyz; $xtb is the path "
+               "registered for xTB on this machine";
     if (code == "MOPAC")
         return "$mopac $inFile >> $runDir/ecce.submit.log 2>&1\n"
                "# before it, $outFile is linked to the .out file MOPAC "
@@ -4257,7 +4262,7 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
         if (code == "NWChem")
             return "e.g. NWCHEM_BASIS_LIBRARY /usr/share/nwchem/libraries/";
         if (code == "ORCA") return "e.g. OMP_NUM_THREADS 1";
-        if (code == "MOPAC" || code == "xTB")
+        if (code == "MOPAC" || code == "xTB" || code == "CREST")
             return "e.g. OMP_NUM_THREADS 4";
         if (code == "QuantumESPRESSO")
             return "e.g. ESPRESSO_PSEUDO /opt/pseudo";
@@ -4283,6 +4288,8 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
             return "e.g. $orca $inFile \"--bind-to core\" > $outFile";
         if (code == "GROMACS")
             return "e.g. $gmx mdrun -deffnm md -ntomp $totalprocs -nb gpu";
+        if (code == "CREST")
+            return "e.g. nice $crest crest.xyz --gfnff --xnam $xtb > $outFile";
         if (code == "xTB")
             return "e.g. nice $xtb xtb.xyz --gfn 2 > $outFile";
         if (code == "MOPAC")
