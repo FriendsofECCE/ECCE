@@ -4,8 +4,10 @@
 Local data, no data server.  For each system the deck is made by the real
 ai.cp2k (the generator test's decks), stored with a new calculation, and run
 on `localhost` through Launch, gensub (sub cp2k: mpirun -np 4 cp2k.psmp),
-eccejobmaster, eccejobstore and eccejobmonitor.  Each must reach "completed"
-with what the Organizer and Builder read stored in the calculation:
+eccejobmaster, eccejobstore and eccejobmonitor.  Silicon must reach
+"completed"; the NiO optimisation is stopped at its step limit, so it ends
+"unsuccessful" (not converged, #614).  Each stores what the Organizer and
+Builder read:
 
   * silicon, ENERGY_FORCE: TE, EWVEC, DELTAE, MULLIKEN, HIRSHFELD, EGRADVEC,
     ETIME, with TE equal to the energy in the stored output;
@@ -97,7 +99,7 @@ def progressMessages(url, proc, path):
     return msgs
 
 
-def runJob(s, name, deckText, work, rundir, listen=False):
+def runJob(s, name, deckText, work, rundir, listen=False, expect="completed"):
     deck = os.path.join(work, name + ".cp2kin")
     open(deck, "w").write(deckText)
     url, out = s.create(name, "cp2k_es", deck, "cp2k.cp2kin", rundir, extra=("procs=4",))
@@ -110,7 +112,7 @@ def runJob(s, name, deckText, work, rundir, listen=False):
     if not check(rc == 0, "%s: Launch ran to the end" % name):
         return None, None
     state = s.waitState(url, seconds=1200)
-    if not check(state == "completed", "%s reached completed (last: %s)" % (name, state)):
+    if not check(state == expect, "%s reached %s (last: %s)" % (name, expect, state)):
         rc, why = s.driver("reason", url)
         say(why)
         return None, None
@@ -177,7 +179,8 @@ def main():
             say("--- NiO with U on Ni, UKS, three optimisation steps")
             text, err, rc = feat.deck(feat.NIO, "Geometry", feat.NIO_SPIN + ["ES.Runtype.GPW.MaxIter: 3"])
             check(rc == 0, "ai.cp2k wrote the deck")
-            calc, msgs = runJob(s, "nio-%d" % int(time.time()), text, work, rundir, listen=True)
+            calc, msgs = runJob(s, "nio-%d" % int(time.time()), text, work, rundir,
+                                listen=True, expect="unsuccessful")
             if calc:
                 out = storedOutput(calc)
                 props = s.props("file://" + calc)
