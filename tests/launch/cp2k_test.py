@@ -97,7 +97,7 @@ def progressMessages(url, proc, path):
     return msgs
 
 
-def runJob(s, name, deckText, work, rundir, listen=False):
+def runJob(s, name, deckText, work, rundir, listen=False, want="completed"):
     deck = os.path.join(work, name + ".cp2kin")
     open(deck, "w").write(deckText)
     url, out = s.create(name, "cp2k_es", deck, "cp2k.cp2kin", rundir, extra=("procs=4",))
@@ -110,7 +110,7 @@ def runJob(s, name, deckText, work, rundir, listen=False):
     if not check(rc == 0, "%s: Launch ran to the end" % name):
         return None, None
     state = s.waitState(url, seconds=1200)
-    if not check(state == "completed", "%s reached completed (last: %s)" % (name, state)):
+    if not check(state == want, "%s reached %s (last: %s)" % (name, want, state)):
         rc, why = s.driver("reason", url)
         say(why)
         return None, None
@@ -177,7 +177,9 @@ def main():
             say("--- NiO with U on Ni, UKS, three optimisation steps")
             text, err, rc = feat.deck(feat.NIO, "Geometry", feat.NIO_SPIN + ["ES.Runtype.GPW.MaxIter: 3"])
             check(rc == 0, "ai.cp2k wrote the deck")
-            calc, msgs = runJob(s, "nio-%d" % int(time.time()), text, work, rundir, listen=True)
+            # Three steps stop at the cycle limit unconverged: Unsuccessful (#614).
+            calc, msgs = runJob(s, "nio-%d" % int(time.time()), text, work, rundir, listen=True,
+                                want="unsuccessful")
             if calc:
                 out = storedOutput(calc)
                 props = s.props("file://" + calc)
