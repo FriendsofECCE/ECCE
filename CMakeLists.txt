@@ -2972,6 +2972,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_bad_meta PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # A node whose folder was renamed outside ECCE says so (#683).
+  add_test(NAME apps_organizer_missing_node
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_missing_node_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_missing_node PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Workflows (#341): steps linked by carried geometry, the view's labels.
   add_test(NAME apps_workflow
            COMMAND ${PYTHON3_EXECUTABLE}

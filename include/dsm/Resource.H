@@ -100,6 +100,14 @@ class Resource {
 
     virtual bool hasAccess();
 
+    /** Why the last metadata/listing read failed; ACCESS_NONE if it did not. */
+    enum AccessFailure { ACCESS_NONE, ACCESS_MISSING, ACCESS_LOGIN,
+                         ACCESS_OTHER };
+    /** Reads the metadata again, so a resource that has gone is noticed. */
+    void recheckAccess() { p_access = UNKNOWN; hasAccess(); }
+    AccessFailure accessFailure() const { return p_failure; }
+    string accessMessage() const { return p_failureText; }
+
     virtual ResourceTool *getDefaultTool();
 
     virtual Resource *getInputProvider(Session * session,
@@ -155,6 +163,10 @@ class Resource {
     EDSIMessage *p_msgStack;       /**< Holds Dav server messages */
 
     ACCESS p_access;
+    AccessFailure p_failure;
+    string p_failureText;
+
+    void noteAccess(bool ok);
   
     bool p_localHideInternal;
     static bool p_hideInternal;
