@@ -87,8 +87,9 @@ public:
   // Called after the box changed size by itself (a fold).
   void setRelayout(std::function<void()> relayout) { p_relayout = relayout; }
 
-  /** What the box shows, a line per row, for tests. */
-  std::vector<std::string> describe() const;
+  /** What the box shows, a line per row, for tests; full keeps the
+   *  scheduler note's quoted line whole, as "Copy all" copies it. */
+  std::vector<std::string> describe(bool full = false) const;
 
   int paints() const { return p_paints; }
 
@@ -104,7 +105,9 @@ private:
   wxSize layout(wxDC *dc);
   double age() const;
   std::string foldedText() const;
-  std::vector<std::string> outcome() const;
+  // shorten: the display shortens the scheduler note's quoted line; false
+  // keeps it whole, as the stored reason and "Copy all" have it.
+  std::vector<std::string> outcome(bool shorten) const;
   int headingHeight() const;
 
   // The blocks the box draws: the queued status, or the progress.

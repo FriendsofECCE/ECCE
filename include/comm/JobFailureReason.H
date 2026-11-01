@@ -538,6 +538,7 @@ inline std::string reasonForProgressBox(const std::string& reason)
 {
   static const std::string kNote = " (see ";
   static const std::string kInOutputs = " in Outputs: ";
+  static const std::string kHfx = " CP2K's HFX estimate: ";
   const size_t at = reason.find(kNote);
   if (at == std::string::npos)
     return reason;
@@ -545,8 +546,14 @@ inline std::string reasonForProgressBox(const std::string& reason)
   if (outputs == std::string::npos)
     return reason;
   const size_t lineStart = outputs + kInOutputs.size();
-  const size_t lineEnd = reason.find(')', lineStart);
-  if (lineEnd == std::string::npos)
+  // The note's quoted line runs to its closing ')'.  A ')' inside the quoted
+  // slurm line -- the OOM killer's "(1234 MB > 1024 MB)" -- is not that, so
+  // take the LAST ')' before the CP2K HFX sentence when one follows the note
+  // (the sentence's own ')' is after its "estimate: "), else the last one.
+  const size_t hfx = reason.find(kHfx, lineStart);
+  const size_t lineEnd = hfx == std::string::npos ? reason.rfind(')')
+                                                  : reason.rfind(')', hfx);
+  if (lineEnd == std::string::npos || lineEnd <= lineStart)
     return reason;
   const size_t len = lineEnd - lineStart;
   if (len <= 100)

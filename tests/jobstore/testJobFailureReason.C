@@ -327,6 +327,25 @@ int main(int argc, char** argv)
     expectEq("CP2K HFX sentence stays whole",
              JobFailureReason::reasonForProgressBox(full + hfx),
              prefix + quote.substr(0, 100) + "\xe2\x80\xa6)" + hfx);
+    // A ')' inside the quoted slurm line -- the OOM killer's "(1234 MB > "
+    // "1024 MB)" -- is not the note's closing ')' (#677): it must not stop
+    // the shortening early (short quote) or be re-appended after the
+    // ellipsis (long quote).
+    const string parenQuote =
+        "slurmstepd: error: Job 12345 exceeded its memory limit and the OOM "
+        "killer terminated the step (virtual memory 12 GB > 8 GB) to reclaim "
+        "the node for the rest of the queue";
+    expectEq("')' inside a long scheduler quote: shortened at the note's ')'",
+             JobFailureReason::reasonForProgressBox(prefix + parenQuote + ")"),
+             prefix + parenQuote.substr(0, 100) + "\xe2\x80\xa6)");
+    expectEq("')' inside a short scheduler quote: unchanged",
+             JobFailureReason::reasonForProgressBox(
+                 "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+                 "(see slurm.err in Outputs: Job 123 exceeded memory limit "
+                 "(1234 MB > 1024 MB), being killed)"),
+             "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+             "(see slurm.err in Outputs: Job 123 exceeded memory limit "
+             "(1234 MB > 1024 MB), being killed)");
   }
 
   // CP2K HFX memory estimate for a scheduler OOM kill (#739): the LAST
