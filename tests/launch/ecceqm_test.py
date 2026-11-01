@@ -191,8 +191,10 @@ def importFromOutput(env, work, name, qm, deck):
     Calculation would: ECCE-QM.expt writes molecule, theory and basis."""
     out = os.path.join(work, name + ".qmout")
     with open(out, "w") as handle:
+        # The deck says write_orbitals ecceqm.qmorb; run in work so the
+        # orbital file lands there, not in the test's own directory.
         rc = subprocess.run([qm, deck], stdout=handle, stderr=subprocess.STDOUT,
-                            env=env).returncode
+                            env=env, cwd=work).returncode
     check(rc == 0, "ecce-qm ran on the deck (rc=%d)" % rc)
     rc, text = perl(env, "ECCE-QM.expt", out)
     check(rc == 0, "ECCE-QM.expt imported the output (rc=%d) %s" % (rc, text.strip()))

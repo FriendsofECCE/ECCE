@@ -664,13 +664,15 @@ target_include_directories(spectrum-render PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/
 # Coin only: the EGL offscreen path with no wx and no display.
 if(ECCE_USE_COIN)
   add_executable(offscreen-check EXCLUDE_FROM_ALL tools/coin/offscreen/offscreen-check.C)
-  target_link_libraries(offscreen-check PRIVATE eccewxinv ${COIN_LIBRARY} ${wxWidgets_LIBRARIES} OpenGL::GL)
+  # eccewxinv's SoWxRenderArea uses GLPath, which lives in ecceutil.
+  target_link_libraries(offscreen-check PRIVATE eccewxinv ecceutil ${COIN_LIBRARY} ${wxWidgets_LIBRARIES} OpenGL::GL)
   target_include_directories(offscreen-check PRIVATE ${wxWidgets_INCLUDE_DIRS})
 endif()
 # Coin's glue display is the offscreen one, not an EGL X11 display (#237);
 # ctest coin_egl_display. Exports eglglue_display, as an EGL-only Coin does.
 if(ECCE_USE_COIN AND ECCE_GL_X11)
   add_executable(egl-display-check tools/coin/offscreen/egl-display-check.C)
+  # eccewxinv's SoWxRenderArea uses GLPath, which lives in ecceutil.
   target_link_libraries(egl-display-check PRIVATE eccewxinv ecceutil ${COIN_LIBRARY} ${wxWidgets_LIBRARIES} OpenGL::GL)
   target_include_directories(egl-display-check PRIVATE ${wxWidgets_INCLUDE_DIRS})
   set_target_properties(egl-display-check PROPERTIES ENABLE_EXPORTS ON)

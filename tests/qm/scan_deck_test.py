@@ -67,7 +67,10 @@ def main():
         if exe:
             d = deck(torsion, "Geometry", work)
             open(os.path.join(work, "run.qm"), "w").write(d)
-            p = subprocess.run([exe, os.path.join(work, "run.qm")], capture_output=True, text=True)
+            # write_orbitals in the deck writes ecceqm.qmorb to the cwd; keep
+            # it inside the temporary work directory.
+            p = subprocess.run([exe, os.path.join(work, "run.qm")], capture_output=True,
+                               text=True, cwd=work)
             table = p.stdout.split("begin scan_table")[-1]   # rewritten after every point
             rows = re.findall(r"^\d+ (\S+) (\S+) (yes|no)$", table, re.M)
             check(p.returncode == 0 and len(rows) == 3 and all(r[2] == "yes" for r in rows),
