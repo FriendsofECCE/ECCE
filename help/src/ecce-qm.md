@@ -37,9 +37,11 @@ grid of 99 radial and 590 angular points per atom. The functionals themselves co
 Chosen from the **Basis Set** menu of the Calculation Editor, in four
 groups: minimal (STO-3G); Pople (3-21G, 6-31G, 6-31G*, 6-31+G*, 6-311G*);
 Dunning (cc-pVDZ, aug-cc-pVDZ, cc-pVTZ); Karlsruhe (def2-SVP, def2-TZVP). A new calculation starts with 6-31G*. The
-basis sets are the ones in ECCE's library; the Basis Set Tool is not used for
-this code. Spherical d and f functions are used throughout. An element that a basis set does not cover, or that would
-need an effective core potential, is named before the job is launched.
+same menu opens the **Basis Set Tool**, which offers every basis set in
+ECCE's library, as for the other codes. Spherical d and f functions are used throughout. An element that a basis set does not cover is named before the job is
+launched. An element that would need an effective core potential is named as
+a warning, also before launch; the job still runs, but without the core
+potential, so those atoms are not described reliably.
 
 ## Run types
 

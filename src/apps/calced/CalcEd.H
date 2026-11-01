@@ -477,6 +477,9 @@ class CalcEd: public CalcEdGUI,
     /// Message naming the elements the chosen basis does not cover, for a
     /// code that only uses the quick picks; empty when it covers everything.
     string uncoveredElementsMessage() const;
+    /// Message naming the elements the chosen basis needs a core potential
+    /// for (ECCE-QM); call before makeConsistent() drops the ECP.
+    string ecpElementsMessage() const;
 
     // wxPython IPC for theory dialog
     int               p_theoryPid;

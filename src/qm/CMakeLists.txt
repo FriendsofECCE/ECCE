@@ -145,6 +145,9 @@ if(QM_PYTHON3)
   # The ECCE-QM basis list: the deck ai.ecceqm writes and the bare name agree
   # with each other and with ORCA.
   add_test(NAME qm_basis_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/basis_deck_test.py $<TARGET_FILE:ecce-qm>)
+  # The Basis Set Tool: a library basis outside the quick-pick list, written
+  # as basis_data, gives the same energy as its bare library name.
+  add_test(NAME qm_basis_set_tool COMMAND ${QM_PYTHON3} ${_qm_tests}/basis_set_tool_test.py $<TARGET_FILE:ecce-qm>)
   # CPCM solvation energies against ORCA (oracle numbers in the script).
   add_test(NAME qm_solvent COMMAND ${QM_PYTHON3} ${_qm_tests}/solvent_test.py $<TARGET_FILE:ecce-qm>)
   add_test(NAME qm_raman_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_deck_test.py)
