@@ -906,7 +906,7 @@ def prerequisites(build, local):
                  "eccejobstore ecmd)" % (exe, build))
     for tool in (("mopac", "mosquitto", "perl") if local else
                  ("mopac", "apache2", "htpasswd", "mosquitto", "perl")):
-        if not shutil.which(tool) and not (
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin") and not (
                 tool == "apache2" and os.access("/usr/sbin/apache2", os.X_OK)):
             skip("%s is not installed" % tool)
     if not os.path.exists(os.path.join(build, "siteconfig-local", "DataServers")):

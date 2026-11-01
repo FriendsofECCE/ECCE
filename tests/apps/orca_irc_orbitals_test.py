@@ -50,7 +50,7 @@ def main():
     args = ap.parse_args()
     build = os.path.abspath(args.build)
     for tool in ("Xvfb", "import"):
-        if not shutil.which(tool):
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
             harness.skip("%s is not installed" % tool)
     harness.prerequisites(build, ())
     for exe in bo.GUI:

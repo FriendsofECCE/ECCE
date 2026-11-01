@@ -749,7 +749,7 @@ def gromacs_test_failures():
 def organizer_new(s, build, gmx):
     """File > New > GROMACS MD Prepare, through the Organizer's test hook."""
     for tool in ("Xvfb",):
-        if not shutil.which(tool):
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
             say("  (no %s: the Organizer's New menu is not checked)" % tool)
             return
     if not os.access(os.path.join(build, "organizer"), os.X_OK):

@@ -197,7 +197,7 @@ def main():
         print("SKIP: no ecce-organizer under %s" % apps.WRAPPERS)
         return SKIP
     for tool in ("gnome-shell", "Xwayland", "dbus-daemon", "xdpyinfo"):
-        if not shutil.which(tool):
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
             print("SKIP: no %s" % tool)
             return SKIP
     try:

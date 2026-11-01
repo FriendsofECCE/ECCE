@@ -146,7 +146,7 @@ def editorPhase(s, build, orca, work, rundir, urlA, andy=False, late=False):
     through its test hook on a private X server: the line under Settings,
     Save keeping the guess, and Use Default Guess dropping it."""
     for tool in ("Xvfb",):
-        if not shutil.which(tool):
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
             say("  SKIP the editor phase: %s is not installed" % tool)
             return
     if not os.access(os.path.join(build, "calced"), os.X_OK):

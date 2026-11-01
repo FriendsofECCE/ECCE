@@ -323,7 +323,7 @@ def main():
     if not os.access(qmExe, os.X_OK):
         launch.skip("ecce-qm is not built (cmake -DECCE_BUILD_QM=ON)")
     for tool in ("mosquitto", "perl"):
-        if not shutil.which(tool):
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
             launch.skip("%s is not installed" % tool)
     if not os.path.exists(os.path.join(build, "siteconfig-local", "DataServers")):
         launch.skip("%s/siteconfig-local is missing (run cmake)" % build)
