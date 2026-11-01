@@ -114,6 +114,17 @@ string fmtG(double hartree)
   return b;
 }
 
+// Compute one treatment; on failure print the reason and return false so the
+// caller never shows H=S=G=0 as a real number.
+bool computeChecked(const ThermoInput& in, double T, ThermoStandardState ss,
+                    const TreatmentSpec& tr, ThermoResult& out)
+{
+  out = computeThermo(in, T, ss, tr.t, tr.w0);
+  if (!out.ok)
+    for (const string& n : out.notes) std::printf("error: %s\n", n.c_str());
+  return out.ok;
+}
+
 int run(const vector<string>& urls, double T, ThermoStandardState ss,
         const vector<TreatmentSpec>& trs, bool json, int sigmaOverride,
         const string& reaction)
@@ -147,20 +158,26 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
     }
     std::map<string, const Calc*> byName;
     for (const Calc& c : calcs) byName[c.name] = &c;
+    for (const Calc& c : calcs)
+      for (const string& n : c.notes)
+        std::printf("note: %s (%s)\n", n.c_str(), c.name.c_str());
     // delta G = sum(products coeff*G) - sum(reactants coeff*G)
     std::vector<std::pair<string, double> > dg;   // (treatment, hartree)
     for (const TreatmentSpec& tr : trs) {
       double d = 0.0;
       bool missing = false;
+      ThermoResult r;
       for (const Term& t : lhs) {
         const Calc* c = byName[t.name];
         if (!c) { missing = true; std::printf("error: no calc named '%s'\n", t.name.c_str()); break; }
-        d -= t.coeff * computeThermo(c->in, T, ss, tr.t, tr.w0).G;
+        if (!computeChecked(c->in, T, ss, tr, r)) return 1;
+        d -= t.coeff * r.G;
       }
       for (const Term& t : rhs) {
         const Calc* c = byName[t.name];
         if (!c) { missing = true; std::printf("error: no calc named '%s'\n", t.name.c_str()); break; }
-        d += t.coeff * computeThermo(c->in, T, ss, tr.t, tr.w0).G;
+        if (!computeChecked(c->in, T, ss, tr, r)) return 1;
+        d += t.coeff * r.G;
       }
       if (missing) return 1;
       dg.push_back(std::make_pair(tr.cli, d));
@@ -196,7 +213,8 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
                   c.in.symmetryNumber, c.in.multiplicity);
       std::printf("    \"treatments\": {\n");
       for (size_t j = 0; j < trs.size(); j++) {
-        const ThermoResult r = computeThermo(c.in, T, ss, trs[j].t, trs[j].w0);
+        ThermoResult r;
+        if (!computeChecked(c.in, T, ss, trs[j], r)) return 1;
         std::printf("      \"%s\": {\"H\": %.6f, \"S\": %.6f, \"G\": %.6f}%s\n",
                     trs[j].cli.c_str(), r.H, r.S, r.G,
                     j + 1 < trs.size() ? "," : "");
@@ -220,7 +238,8 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
     for (const string& n : c.notes) std::printf("  note: %s\n", n.c_str());
     std::printf("  %-18s %12s %12s %s\n", "treatment", "H (Hartree)", "S (J/mol/K)", "G");
     for (const TreatmentSpec& tr : trs) {
-      const ThermoResult r = computeThermo(c.in, T, ss, tr.t, tr.w0);
+      ThermoResult r;
+      if (!computeChecked(c.in, T, ss, tr, r)) return 1;
       std::printf("  %-18s %12.6f %12.3f %s\n", tr.cli.c_str(), r.H, r.S,
                   fmtG(r.G).c_str());
     }

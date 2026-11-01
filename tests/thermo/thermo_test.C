@@ -128,7 +128,7 @@ int main()
           "Head-Gordon: enthalpy moves, ZPE stays harmonic");
   }
 
-  // 1 M standard state lowers G by RT ln(cRT/p) = 7.93 kJ/mol at 298.15 K.
+  // 1 M standard state raises G by RT ln(cRT/p) = 7.93 kJ/mol at 298.15 K.
   {
     const double g1atm = computeThermo(h2o(), 298.15, THERMO_GAS_1ATM,
                                        THERMO_RRHO).G;

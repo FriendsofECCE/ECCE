@@ -19,7 +19,8 @@ const double PI = 3.14159265358979323846;
 const double AMU_KG = 1.66053906660e-27;   // kg per amu
 const double ANG2 = 1.0e-20;               // m^2 per angstrom^2
 
-// Standard atomic weights (amu) for the elements ECCE calculations use.
+// Standard atomic weights (amu), mass number for the synthetic elements;
+// goes to Og (118) so actinides and lanthanides keep their mass and inertia.
 double atomicWeight(int z)
 {
   static const double w[] = {0.0,
@@ -33,7 +34,11 @@ double atomicWeight(int z)
     137.327, 138.90547, 140.116, 140.90765, 144.242, 145.0, 150.36, 151.964,
     157.25, 158.92535, 162.500, 164.93032, 167.259, 168.93421, 173.054,
     174.9668, 178.49, 180.94788, 183.84, 186.207, 190.23, 192.217, 195.084,
-    196.966569, 200.59, 204.3833, 207.2, 208.98040, 209.0, 210.0, 222.0};
+    196.966569, 200.59, 204.3833, 207.2, 208.98040, 209.0, 210.0, 222.0,
+    223.0, 226.0, 227.0, 232.03806, 231.03588, 238.02891, 237.0, 244.0,
+    243.0, 247.0, 247.0, 251.0, 252.0, 257.0, 258.0, 259.0, 262.0, 267.0,
+    268.0, 271.0, 272.0, 270.0, 276.0, 281.0, 280.0, 285.0, 284.0, 289.0,
+    288.0, 293.0, 294.0, 294.0};
   const int n = sizeof(w) / sizeof(w[0]);
   return z >= 1 && z < n ? w[z] : 0.0;
 }
@@ -115,12 +120,16 @@ bool gatherThermoInput(const std::string& url, ThermoInput& in,
     if (atoms) {
       // Centre of mass and inertia tensor from the stored geometry.
       double m = 0.0, cx = 0.0, cy = 0.0, cz = 0.0;
+      int unknown = 0;
       for (TAtm* a : *atoms) {
         const double w = atomicWeight(a->atomicNumber());
-        if (w <= 0.0) continue;
+        if (w <= 0.0) { unknown++; continue; }
         const double* r = a->coordinates();
         m += w; cx += w * r[0]; cy += w * r[1]; cz += w * r[2];
       }
+      if (unknown)
+        notes.push_back(std::to_string(unknown) + " atom(s) of an unknown "
+                        "element were left out of the mass and inertia.");
       if (m > 0.0) {
         in.mass = m;
         cx /= m; cy /= m; cz /= m;
