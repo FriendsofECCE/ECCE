@@ -232,7 +232,7 @@ sub modifyInputFile {
 
 # Line 1 (options), then the xyz count and title; chemsys adds the atoms.
 sub CrestHeader {
-  my $result = &OptionLine . "\n" . &CountLine;
+  my $result = &OptionLine . "\n" . &SolventBlock . &CountLine;
   $_ = $result;
   return $result;
 }
@@ -255,10 +255,60 @@ sub OptionLine {
   push(@kw, "--chrg", &Charge);
   push(@kw, "--uhf", &Unpaired);
   push(@kw, &SolventOptions);
-  push(@kw, "--ewin", &EnergyWindow);
-  push(@kw, "--nci") if (&flag("ES.Runtype.Conformers.NCI"));
-  push(@kw, "--noreftopo") if (&flag("ES.Runtype.Conformers.NoRefTopo"));
+  my $runtype = $AbiDict{"RunType"};
+  if ($runtype eq "Protonation Sites") {
+    push(@kw, "--protonate");
+  } elsif ($runtype eq "Tautomers") {
+    push(@kw, "--tautomerize");
+  } elsif ($runtype eq "Solvation Shell") {
+    # gensub writes the solvent molecule (the block below line 1) to solvent.xyz.
+    push(@kw, "--qcg solvent.xyz", "--nsolv", &SolventCount, "--ensemble");
+  } else {
+    push(@kw, "--ewin", &EnergyWindow);
+    push(@kw, "--nci") if (&flag("ES.Runtype.Conformers.NCI"));
+    push(@kw, "--noreftopo") if (&flag("ES.Runtype.Conformers.NoRefTopo"));
+  }
   return join(" ", grep { $_ ne "" } @kw);
+}
+
+# Geometries of the solvent molecules QCG can add (Angstrom); QCG
+# pre-optimises the molecule with xtb, so these need only be reasonable.
+sub QcgSolvents {
+  return (
+  "water" => ["O 0.0000 0.0000 0.1173", "H 0.0000 0.7572 -0.4692",
+              "H 0.0000 -0.7572 -0.4692"],
+  "ammonia" => ["N 0.0000 0.0000 0.1160", "H 0.0000 0.9400 -0.2710",
+                "H 0.8140 -0.4700 -0.2710", "H -0.8140 -0.4700 -0.2710"],
+  "methanol" => ["C -0.7140 0.0200 0.0000", "O 0.6980 -0.1250 0.0000",
+                 "H 1.0870 0.7600 0.0000", "H -1.1570 -0.9700 0.0000",
+                 "H -1.0560 0.5600 0.8900", "H -1.0560 0.5600 -0.8900"],
+  "acetonitrile" => ["C 0.0000 0.0000 -1.1700", "C 0.0000 0.0000 0.2800",
+                     "N 0.0000 0.0000 1.4400", "H 1.0300 0.0000 -1.5400",
+                     "H -0.5150 0.8920 -1.5400", "H -0.5150 -0.8920 -1.5400"],
+  );
+}
+
+sub SolventName {
+  my $name = lc($AbiDict{"ES.Runtype.QCG.Solvent"});
+  $name = "water" if ($name eq "");
+  my %solvents = &QcgSolvents;
+  die "ai.crest error: no geometry for the solvent '$name'\n"
+      if (!defined($solvents{$name}));
+  return $name;
+}
+
+sub SolventCount {
+  my $n = $AbiDict{"ES.Runtype.QCG.Number"};
+  $n = 10 if (!defined($n) || $n !~ /^\s*\d+\s*$/ || $n < 1);
+  return $n + 0;
+}
+
+# The solvent molecule of a solvation-shell run, as a block below line 1.
+sub SolventBlock {
+  return "" if ($AbiDict{"RunType"} ne "Solvation Shell");
+  my %solvents = &QcgSolvents;
+  my @atoms = @{$solvents{&SolventName}};
+  return join("\n", '$solvent', @atoms, '$end') . "\n";
 }
 
 sub flag {
@@ -273,8 +323,14 @@ sub MethodOption {
              "GFN2//GFN-FF" => "--gfn2//gfnff --legacy");
   my $opt = $map{$theory};
   die "ai.crest error: unsupported theory '$theory'\n" if (!defined($opt));
-  die "ai.crest error: unsupported runtype '$AbiDict{RunType}' (Conformer " .
-      "Search only)\n" if ($AbiDict{"RunType"} ne "Conformer Search");
+  my $runtype = $AbiDict{"RunType"};
+  die "ai.crest error: unsupported runtype '$runtype' (Conformer Search, " .
+      "Protonation Sites, Tautomers and Solvation Shell only)\n"
+      if ($runtype !~ /^(Conformer Search|Protonation Sites|Tautomers|Solvation Shell)$/);
+  # CREST places protons from localised orbitals, which GFN-FF has none of.
+  die "ai.crest error: $runtype needs GFN2-xTB (CREST 3.0.2 cannot do it " .
+      "with $theory)\n"
+      if ($runtype =~ /^(Protonation Sites|Tautomers)$/ && $theory ne "GFN2-xTB");
   return $opt;
 }
 

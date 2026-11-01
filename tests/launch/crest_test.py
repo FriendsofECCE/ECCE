@@ -32,6 +32,14 @@ from harness import say  # noqa: E402
 
 failures = []
 
+METHYLAMINE = [("C", -0.725, 0.0, 0.0), ("N", 0.725, 0.0, 0.0),
+               ("H", 1.1, 0.82, 0.4), ("H", 1.1, -0.82, 0.4),
+               ("H", -1.1, 0.0, -1.02), ("H", -1.1, 0.89, 0.5),
+               ("H", -1.1, -0.89, 0.5)]
+FORMAMIDE = [("C", 0.0, 0.15, 0.0), ("O", 1.15, 0.45, 0.0),
+             ("N", -1.0, 1.0, 0.0), ("H", -0.8, 2.0, 0.0),
+             ("H", -2.0, 0.7, 0.0), ("H", -0.4, -0.9, 0.0)]
+
 BUTANE = [("C", 1.9, 0.2, 0.0), ("C", 0.6, -0.5, 0.2), ("C", -0.6, 0.4, 0.0),
           ("C", -1.9, -0.3, 0.2), ("H", 2.0, 1.1, 0.6), ("H", 2.8, -0.4, 0.2),
           ("H", 1.9, 0.5, -1.0), ("H", 0.6, -1.4, -0.4), ("H", 0.5, -0.8, 1.2),
@@ -46,14 +54,14 @@ def check(ok, what):
     return ok
 
 
-def deck(atoms, theory="GFN-FF", extra=""):
+def deck(atoms, theory="GFN-FF", extra="", runtype="Conformer Search"):
     """The input deck ai.crest writes for a molecule."""
     tmp = tempfile.mkdtemp(prefix="crestdeck-")
     try:
         open(os.path.join(tmp, "x.param"), "w").write(
             "title:\tcresttest\nTheory:\t%s\nCategory:\tSE\n"
-            "RunType:\tConformer Search\nCharge:\t0\n"
-            "ES.ChemSys.Multiplicity:\t1\n%s" % (theory, extra))
+            "RunType:\t%s\nCharge:\t0\n"
+            "ES.ChemSys.Multiplicity:\t1\n%s" % (theory, runtype, extra))
         frag = ["x", "title:\tcresttest", "type:\tmolecule",
                 "num_atoms:\t%d" % len(atoms), "atom_info:\tsymbol cart",
                 "atom_list:"]
@@ -148,6 +156,22 @@ def main():
                     "ES.Theory.Solvent.Name:\tbenzaldehyde\n")
     check(rc != 0, "GBSA with a solvent it lacks is refused")
 
+    text, rc = deck(METHYLAMINE, "GFN2-xTB", runtype="Protonation Sites")
+    check(rc == 0 and text.splitlines()[0] ==
+          "crest --gfn2 --chrg 0 --uhf 0 --protonate", "protonate: %r" % text.splitlines()[0])
+    text, rc = deck(FORMAMIDE, "GFN2-xTB", runtype="Tautomers")
+    check(rc == 0 and text.splitlines()[0] ==
+          "crest --gfn2 --chrg 0 --uhf 0 --tautomerize", "tautomerize: %r" % text.splitlines()[0])
+    text, rc = deck(METHYLAMINE, "GFN-FF", runtype="Protonation Sites")
+    check(rc != 0, "protonation with GFN-FF is refused (CREST needs LMOs)")
+    text, rc = deck(METHYLAMINE, "GFN2-xTB", runtype="Solvation Shell",
+                    extra="ES.Runtype.QCG.Solvent:\tmethanol\n"
+                          "ES.Runtype.QCG.Number:\t4\n")
+    lines = text.splitlines()
+    check(rc == 0 and lines[0] == "crest --gfn2 --chrg 0 --uhf 0 --qcg solvent.xyz "
+          "--nsolv 4 --ensemble" and lines[1] == "$solvent" and
+          lines[8] == "$end" and lines[9] == "7", "QCG deck: %r" % lines[:10])
+
     s = harness.Session(build, "crest", {"xTB": xtb, "CREST": crest},
                         local=True, keep=args.keep)
     work = os.path.join(s.state, "decks")
@@ -178,6 +202,64 @@ def main():
             check(rel and rel[0] == 0.0 and rel == sorted(rel),
                   "relative energies start at 0 and ascend: %r" % rel)
             check("ECCE-CREST-BEST" in out, "crest_best.xyz brought back")
+
+        #  CREST's other run types write their ensemble to another file.
+        for name, atoms, runtype, key in (
+                ("p", METHYLAMINE, "Protonation Sites", "protonate"),
+                ("t", FORMAMIDE, "Tautomers", "tautomerize")):
+            say("--- %s, GFN2-xTB" % runtype)
+            text, rc = deck(atoms, "GFN2-xTB", runtype=runtype)
+            calc = runJob(s, "%s-%d" % (name, int(time.time())), text, work,
+                          rundir, atoms)
+            if not calc:
+                continue
+            out = storedOutput(calc)
+            check("CREST terminated normally" in out, "CREST ended normally")
+            props = s.props("file://" + calc)
+            check(os.path.exists(os.path.join(calc, "Props", "GEOMTRACE")),
+                  "GEOMTRACE stored")
+            rel = numbers(calc, "CONFREL")
+            geo = numbers(calc, "GEOMTRACE")
+            #  A protomer has one more atom (the proton).
+            nat = len(atoms) + (1 if key == "protonate" else 0)
+            check(len(rel) >= 1 and len(geo) == len(rel) * nat * 3,
+                  "%d structures of %d atoms stored" % (len(rel), nat))
+            check(rel and rel[0] == 0.0 and rel == sorted(rel),
+                  "relative energies start at 0 and ascend: %r" % rel)
+
+        #  CREST 3.0.2's QCG docks with `xtb dock`, which aborts in Debian's
+        #  xtb 6.7.1 (stack smashing); run it only where that works.
+        say("--- Solvation Shell (QCG), GFN2-xTB")
+        probe = tempfile.mkdtemp(prefix="qcgprobe-")
+        try:
+            for n, a in (("a.xyz", METHYLAMINE), ("b.xyz", [
+                    ("O", 0.0, 0.0, 0.1173), ("H", 0.0, 0.7572, -0.4692),
+                    ("H", 0.0, -0.7572, -0.4692)])):
+                with open(os.path.join(probe, n), "w") as h:
+                    h.write("%d\n%s\n" % (len(a), n))
+                    for t in a:
+                        h.write("%s %.4f %.4f %.4f\n" % t)
+            res = subprocess.run([crest, "a.xyz", "--qcg", "b.xyz", "--nsolv",
+                                  "1", "--gfn2", "-T", "2"], cwd=probe,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, timeout=240)
+            grown = os.path.join(probe, "grow", "qcg_grow.xyz")
+            qcgWorks = os.path.exists(grown) and os.path.getsize(grown) > 0
+        except Exception:
+            qcgWorks = False
+        finally:
+            shutil.rmtree(probe, ignore_errors=True)
+        if not qcgWorks:
+            say("  SKIP QCG run: CREST's docking step fails with this xtb")
+        else:
+            text, rc = deck(METHYLAMINE, "GFN2-xTB", runtype="Solvation Shell",
+                            extra="ES.Runtype.QCG.Number:\t2\n")
+            calc = runJob(s, "q-%d" % int(time.time()), text, work, rundir,
+                          METHYLAMINE)
+            if calc:
+                check("GEOMTRACE" in s.props("file://" + calc) or os.path.exists(
+                    os.path.join(calc, "Props", "GEOMTRACE")),
+                    "the QCG ensemble was stored")
     finally:
         left = s.stop()
         if left:

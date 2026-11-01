@@ -2153,13 +2153,16 @@ sub xtb()
 
   $retval .= "\n$::CC - Split the deck: options on line 1, xyz geometry below.\n";
   $retval .= "xtbopts=`sed -n '1s/^[[:space:]]*xtb[[:space:]]*//p' $::inFile`\n";
-  $retval .= "tail -n +2 $::inFile > xtb.xyz\n";
+  # An MD deck has an xtb control block ($md ... $end) below line 1.
+  $retval .= "rm -f xtb.md xtb.xyz\n";
+  $retval .= "awk 'NR==1 {next} inmd {print > \"xtb.md\"; if (/^[\$]end/) inmd=0; next}\n";
+  $retval .= "  NR==2 && /^[\$]md/ {inmd=1; print > \"xtb.md\"; next} {print > \"xtb.xyz\"}' $::inFile\n";
   $retval .= "OMP_NUM_THREADS=$::totalprocs,1; export OMP_NUM_THREADS\n";
   $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
   $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
   $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
   # GFN-FF has no orbitals, so it gets no --molden.
-  $retval .= "rm -f molden.input charges vibspectrum g98.out xtbopt.log\n";
+  $retval .= "rm -f molden.input charges vibspectrum g98.out xtbopt.log xtb.trj\n";
   $retval .= "case \" \$xtbopts \" in *\" --gfnff \"*) ;; *) xtbopts=\"\$xtbopts --molden\" ;; esac\n";
 
   if ($cmd ne "") {
@@ -2169,10 +2172,14 @@ sub xtb()
   }
   $retval .= "xtbStatus=\$?\n";
   $retval .= "\n$::CC - Append the geometries for the parser.\n";
-  $retval .= "if [ -s xtbopt.log ]; then xtbTraj=xtbopt.log; else xtbTraj=xtb.xyz; fi\n";
-  $retval .= "awk 'BEGIN{left=0;f=0} left==0 && NF==0 {next}\n";
+  # An MD run's trajectory is xtb.trj; its frames are dump fs apart, the
+  # first being the start geometry, so each gets its time (ps) in the comment.
+  $retval .= "xtbDump=\n";
+  $retval .= "if [ -s xtb.trj ]; then xtbTraj=xtb.trj; xtbDump=`sed -n 's/^[[:space:]]*dump=\\([0-9.]*\\).*/\\1/p' xtb.md`;\n";
+  $retval .= "elif [ -s xtbopt.log ]; then xtbTraj=xtbopt.log; else xtbTraj=xtb.xyz; fi\n";
+  $retval .= "awk -v dump=\"\$xtbDump\" 'BEGIN{left=0;f=0} left==0 && NF==0 {next}\n";
   $retval .= "  left==0 {n=\$1; left=n+1; f++; print \"ECCE-XTB-FRAME \" f \" \" n; next}\n";
-  $retval .= "  {print; left--; if (left==0) print \"ECCE-XTB-ENDFRAME\"}' \$xtbTraj >> $::outFile\n";
+  $retval .= "  {if (dump != \"\" && left==n+1) printf \"time: %.6f \", (f-1)*dump/1000; print; left--; if (left==0) print \"ECCE-XTB-ENDFRAME\"}' \$xtbTraj >> $::outFile\n";
   $retval .= "if [ -s molden.input ]; then\n";
   $retval .= "  echo ECCE-XTB-MOLDEN >> $::outFile\n";
   $retval .= "  cat molden.input >> $::outFile\n";
@@ -2219,12 +2226,16 @@ sub crest()
 
   $retval .= "\n$::CC - Split the deck: options on line 1, xyz geometry below.\n";
   $retval .= "crestopts=`sed -n '1s/^[[:space:]]*crest[[:space:]]*//p' $::inFile`\n";
-  $retval .= "tail -n +2 $::inFile > crest.xyz\n";
+  # A solvation-shell deck has the solvent molecule ($solvent ... $end) below line 1.
+  $retval .= "rm -f crest.xyz solvent.xyz\n";
+  $retval .= "awk 'NR==1 {next} insolv {if (/^[\$]end/) {insolv=0} else {sx[++ns]=\$0}; next}\n";
+  $retval .= "  NR==2 && /^[\$]solvent/ {insolv=1; next} {print > \"crest.xyz\"}\n";
+  $retval .= "  END {if (ns) {print ns > \"solvent.xyz\"; print \"solvent\" > \"solvent.xyz\"; for (i=1;i<=ns;i++) print sx[i] > \"solvent.xyz\"}}' $::inFile\n";
   $retval .= "OMP_NUM_THREADS=$::totalprocs,1; export OMP_NUM_THREADS\n";
   $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
   $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
   $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
-  $retval .= "rm -f crest_conformers.xyz crest_best.xyz\n";
+  $retval .= "rm -rf crest_conformers.xyz crest_best.xyz protonated.xyz tautomers.xyz cluster.xyz final_ensemble.xyz ensemble grow\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
@@ -2233,7 +2244,17 @@ sub crest()
   }
   $retval .= "crestStatus=\$?\n";
   $retval .= "\n$::CC - Append the ensemble for the parser.\n";
-  $retval .= "if [ -s crest_conformers.xyz ]; then\n";
+  # Which file holds the result depends on the run type.  The QCG names are
+  # CREST's documented ones; they could not be checked here (xtb dock aborts).
+  $retval .= "case \" \$crestopts \" in\n";
+  $retval .= "  *\" --protonate \"*) crestEns=protonated.xyz ;;\n";
+  $retval .= "  *\" --tautomerize \"*) crestEns=tautomers.xyz ;;\n";
+  $retval .= "  *\" --qcg \"*) crestEns=\n";
+  $retval .= "    for f in ensemble/final_ensemble.xyz final_ensemble.xyz cluster.xyz grow/cluster.xyz; do\n";
+  $retval .= "      if [ -z \"\$crestEns\" ] && [ -s \$f ]; then crestEns=\$f; fi; done ;;\n";
+  $retval .= "  *) crestEns=crest_conformers.xyz ;;\n";
+  $retval .= "esac\n";
+  $retval .= "if [ -n \"\$crestEns\" ] && [ -s \"\$crestEns\" ]; then\n";
   $retval .= "  awk 'NF==0 {next}\n";
   $retval .= "    left==0 {n=\$1; left=n+1; f++; nat[f]=n; e[f]=\$0; next}\n";
   $retval .= "    left==n+1 {en[f]=\$1; left--; next}\n";
@@ -2241,7 +2262,7 @@ sub crest()
   $retval .= "    END {m=en[1]; for (i=2;i<=f;i++) if (en[i]<m) m=en[i];\n";
   $retval .= "      for (i=1;i<=f;i++) {print \"ECCE-CREST-FRAME \" i \" \" nat[i];\n";
   $retval .= "        printf \"energy: %s relative: %.4f\\n\", en[i], (en[i]-m)*627.5094740631;\n";
-  $retval .= "        printf \"%s\", a[i]; print \"ECCE-CREST-ENDFRAME\"}}' crest_conformers.xyz >> $::outFile\n";
+  $retval .= "        printf \"%s\", a[i]; print \"ECCE-CREST-ENDFRAME\"}}' \"\$crestEns\" >> $::outFile\n";
   $retval .= "fi\n";
   $retval .= "if [ -s crest_best.xyz ]; then\n";
   $retval .= "  echo ECCE-CREST-BEST >> $::outFile\n";

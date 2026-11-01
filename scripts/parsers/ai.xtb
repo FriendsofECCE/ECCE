@@ -236,7 +236,7 @@ sub modifyInputFile {
 # enforced in exactly one place.
 
 sub XtbHeader {
-  my $result = &OptionLine . "\n" . &CountLine;
+  my $result = &OptionLine . "\n" . &MdBlock . &CountLine;
   $_ = $result;
   return $result;
 }
@@ -292,8 +292,39 @@ sub RunTypeOptions {
     $level = "verytight" if (lc($level) eq "vtight");
     return ($runtype eq "GeoVib" ? "--ohess " : "--opt ") . lc($level);
   }
+  # The settings go in an xtb control block (the "$md" lines below line 1);
+  # scripts/gensub writes them to xtb.md.
+  return "--md --input xtb.md" if ($runtype eq "Molecular Dynamics");
   die "ai.xtb error: unsupported runtype '$runtype' (Energy, Geometry, " .
-      "Vibration and GeoVib only)\n";
+      "Vibration, GeoVib and Molecular Dynamics only)\n";
+}
+
+sub MdNumber {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v) || $v !~ /^\s*\d*\.?\d+\s*$/ || $v + 0 <= 0);
+  return $v + 0;
+}
+
+# The control block of an MD run; empty for any other run type.  xtb's
+# GFN-FF segfaults with SHAKE (6.7.1), so that combination is refused here.
+sub MdBlock {
+  return "" if ($AbiDict{"RunType"} ne "Molecular Dynamics");
+  my $time = &MdNumber("ES.Runtype.MD.Time", 1.0);
+  my $step = &MdNumber("ES.Runtype.MD.Step", 1.0);
+  my $dump = &MdNumber("ES.Runtype.MD.Dump", 20.0);
+  my $temp = &MdNumber("ES.Runtype.MD.Temperature", 300.0);
+  my $shake = $AbiDict{"ES.Runtype.MD.Shake"};
+  my %code = ("off" => 0, "X-H bonds" => 1, "all bonds" => 2);
+  $shake = "off" if (!defined($shake) || !defined($code{$shake}));
+  die "ai.xtb error: GFN-FF cannot be combined with SHAKE (xtb crashes); " .
+      "set SHAKE to off\n" if ($shake ne "off" && $AbiDict{"Theory"} eq "GFN-FF");
+  die "ai.xtb error: the dump interval ($dump fs) is shorter than the step " .
+      "($step fs)\n" if ($dump < $step);
+  die "ai.xtb error: the run (" . ($time * 1000) . " fs) is shorter than the " .
+      "dump interval ($dump fs)\n" if ($time * 1000 < $dump);
+  return join("\n", '$md', "  temp=$temp", "  time=$time", "  step=$step",
+              "  dump=$dump", "  shake=$code{$shake}", '$end') . "\n";
 }
 
 # The solvent menu is the ALPB list; GBSA has fewer solvents and its own

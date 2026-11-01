@@ -1,8 +1,10 @@
-# CREST: conformer search
+# CREST: conformer search and related run types
 
 CREST is the code button for the `crest` program of the Grimme group. It
 searches the conformations of a molecule (or a cluster of molecules) with
-tight-binding methods and returns the ensemble of low-energy structures.
+tight-binding methods and returns the ensemble of low-energy structures. It
+also finds the protonation sites and the tautomers of a molecule, and grows a
+shell of solvent molecules around it.
 Typical uses are the starting structures for a DFT calculation, and the
 arrangements of a flexible molecule or an ion with its water molecules.
 
@@ -24,11 +26,14 @@ The calculation's **Theory** is the method used for the search:
 
 - **GFN2-xTB**, the default.
 - **GFN-FF**, a force field of the same family; much faster, and a good
-  choice for a first look at a large or floppy system.
+  choice for a first look at a large or floppy system. It is not offered for
+  Protonation Sites or Tautomers, which CREST places from localised orbitals
+  that a force field does not have.
 - **GFN2//GFN-FF**: the conformers are searched with GFN-FF and then
   re-optimised and ranked with GFN2-xTB. CREST 3.0.2 offers this only in
   its older (`--legacy`) search driver, which the input line then names; that
-  driver takes longer than the default one.
+  driver takes longer than the default one. It is offered for the conformer
+  search only.
 
 The charge and the multiplicity are those of the calculation. There is no
 basis set.
@@ -38,7 +43,28 @@ and the solvent. The list is that of ALPB; GBSA has parameters for fewer
 solvents, and a deck written with a solvent GBSA lacks is refused with a
 message when the input is generated.
 
-## Run type: Conformer Search
+## Run types
+
+- **Conformer Search**: described below.
+- **Protonation Sites**: CREST's `--protonate`. It adds a proton at each
+  basic site of the molecule and returns the protonated structures, lowest
+  first. The charge of the calculation is the charge of the molecule before
+  protonation. GFN2-xTB only. A molecule with a single basic site gives an
+  ensemble of one structure.
+- **Tautomers**: CREST's `--tautomerize`. It moves protons between the sites
+  of the molecule and returns the tautomers, lowest first. GFN2-xTB only.
+  Neither of these two run types has settings of its own.
+- **Solvation Shell**: CREST's quantum cluster growth (`--qcg`). It adds
+  solvent molecules one at a time around the molecule of the calculation and
+  then samples the arrangements of the cluster (`--ensemble`).
+  **Runtype Details** has the **Solvent molecule** (water, ammonia, methanol or
+  acetonitrile) and the **Number of solvent molecules** (10 by default). The
+  implicit solvent of Theory Details is applied on top, if chosen. CREST
+  docks each solvent molecule with `xtb dock`, which aborts in the xtb 6.7.1 of
+  Debian 13 on the machine this was written on; where it does, the job ends
+  without a result, and the output file shows CREST's own error.
+
+## Conformer Search
 
 **Runtype Details** has:
 
@@ -70,15 +96,23 @@ multiplicity minus one. Anything else CREST accepts can be added to the first
 line by hand; the input check looks only at the shape of the file and at the
 charge and multiplicity.
 
+For the other run types the first line has `--protonate` or `--tautomerize`
+instead of the energy window, or `--qcg solvent.xyz --nsolv <n> --ensemble`.
+A solvation-shell deck also has the solvent molecule below the first line,
+between `$solvent` and `$end`; the job script writes it to `solvent.xyz`.
+
 ## Results
 
-The job script adds the ensemble (`crest_conformers.xyz`, lowest first) and
-the best structure (`crest_best.xyz`) to the end of the output file, between
-lines beginning with `ECCE-CREST-FRAME` and `ECCE-CREST-BEST`.
+The job script adds the ensemble to the end of the output file, between lines
+beginning with `ECCE-CREST-FRAME` (and, for a conformer search, the best
+structure between `ECCE-CREST-BEST` lines). The ensemble is
+`crest_conformers.xyz` for a conformer search, `protonated.xyz` for the
+protonation sites, `tautomers.xyz` for the tautomers and CREST's final
+ensemble for the solvation shell; each is lowest first.
 
-In the Builder, the **Geometry Trace** shows each conformer as a frame, with
-the plot **Relative Conformer Energy** in kcal/mol: the first frame is the
-lowest and has 0. These energies compare conformers within the one method of
+In the Builder, the **Geometry Trace** shows each structure as a frame, with
+the plot **Relative Conformer Energy** in kcal/mol, against the number of the
+conformer: the first frame is the lowest and has 0. These energies compare conformers within the one method of
 this calculation only. They cannot be compared with the energy from another
 method, or from another run with a different window or solvent.
 

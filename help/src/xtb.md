@@ -47,6 +47,20 @@ other code. xtb has no basis set, so the Basis Set Tool is not used.
   are not meaningful and some come out imaginary.
 - **Geometry + Vibration**: an optimisation followed by the frequencies
   (xtb `--ohess`), with the same **Level**.
+- **Molecular Dynamics**: a dynamics run (xtb `--md`) from the structure of
+  the calculation. **Runtype Details** has:
+    - **Temperature** (K, 300 by default): the thermostat temperature.
+    - **Time** (ps, 1 by default): the length of the run.
+    - **Time step** (fs, 1 by default): the integration step. xtb advises
+      about 2 fs with SHAKE and 1 fs without.
+    - **Dump interval** (fs, 20 by default): how often a structure is
+      stored. It may not be shorter than the step, and the run may not be
+      shorter than one interval.
+    - **SHAKE**: off, X-H bonds, or all bonds. SHAKE holds those bond
+      lengths fixed so that a longer step can be used. xtb 6.7.1 crashes when
+      SHAKE is combined with GFN-FF, so that choice is disabled for GFN-FF and
+      a deck that asks for it is refused when the input is generated.
+  The method and the implicit solvent are chosen as for the other run types.
 
 ## The input file
 
@@ -66,12 +80,37 @@ added to the first line by hand; the input check does not judge the options,
 only that the file has this shape and that charge and multiplicity agree with
 the number of electrons.
 
+A dynamics run has its settings in a block of lines below the first one,
+between `$md` and `$end`, which the job script hands to xtb as its control file:
+
+    xtb --gfn 2 --chrg 0 --uhf 0 --md --input xtb.md
+    $md
+      temp=300
+      time=1
+      step=1
+      dump=20
+      shake=0
+    $end
+    3
+    water
+    ...
+
 ## Results
 
 The Builder shows the total energy, the HOMO-LUMO gap and the dipole moment,
 and for an optimisation the geometry at every cycle, with the energy of each
 cycle in the Geometry Trace plot. The Progress box follows the optimisation
 cycles and their gradient norm against the convergence limit.
+
+### Molecular dynamics
+
+The trajectory (`xtb.trj`) comes back as the frames of the Geometry Trace,
+the first being the starting structure, one every dump interval. The plots
+are against the simulation time in ps and show the potential energy xtb
+records with each frame. xtb 6.7.1 prints no temperature per frame, so there
+is no temperature plot. The Progress box shows the line xtb prints at the
+start of the run and, when the run ends, that it has finished; xtb prints
+nothing else while it runs.
 
 ### Charges
 

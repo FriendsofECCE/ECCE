@@ -47,14 +47,14 @@ def check(ok, what):
     return ok
 
 
-def deck(atoms, runtype, level="normal", theory="GFN2-xTB"):
+def deck(atoms, runtype, level="normal", theory="GFN2-xTB", extra=""):
     """The input deck ai.xtb writes for a molecule."""
     tmp = tempfile.mkdtemp(prefix="xtbdeck-")
     try:
         open(os.path.join(tmp, "x.param"), "w").write(
             "title:\txtbtest\nTheory:\t%s\nCategory:\tSE\n"
             "RunType:\t%s\nCharge:\t0\nES.ChemSys.Multiplicity:\t1\n"
-            "ES.Runtype.GeomOpt.Level:\t%s\n" % (theory, runtype, level))
+            "ES.Runtype.GeomOpt.Level:\t%s\n%s" % (theory, runtype, level, extra))
         frag = ["x", "title:\txtbtest", "type:\tmolecule",
                 "num_atoms:\t%d" % len(atoms), "atom_info:\tsymbol cart",
                 "atom_list:"]
@@ -233,6 +233,35 @@ def main():
                   "GEOMTRACE stored for the force-field run too")
             check("MO" not in props and "ORBENG" not in props,
                   "a force-field run stores no orbitals")
+
+        say("--- water, GFN2-xTB molecular dynamics, 0.2 ps")
+        md = ("ES.Runtype.MD.Temperature:\t300\nES.Runtype.MD.Time:\t0.2\n"
+              "ES.Runtype.MD.Step:\t1\nES.Runtype.MD.Dump:\t20\n"
+              "ES.Runtype.MD.Shake:\tX-H bonds\n")
+        text, rc = deck(WATER, "Molecular Dynamics", extra=md)
+        lines = text.splitlines()
+        check(rc == 0 and lines[0] == "xtb --gfn 2 --chrg 0 --uhf 0 --md "
+              "--input xtb.md" and lines[1] == "$md" and "  shake=1" in lines
+              and "  dump=20" in lines and lines[8] == "3",
+              "ai.xtb wrote the deck with its $md block: %r" % lines[:10])
+        t2, rc2 = deck(WATER, "Molecular Dynamics", theory="GFN-FF", extra=md)
+        check(rc2 != 0, "GFN-FF with SHAKE is refused")
+        calc = runJob(s, "d-%d" % int(time.time()), text, work, rundir, WATER)
+        if calc:
+            out = storedOutput(calc)
+            props = s.props("file://" + calc)
+            say("  properties: " + " ".join(props))
+            for key in ("GEOMTRACE", "TEVEC", "TIMEVEC"):
+                check(key in props, "%s present in Props/" % key)
+            check("normal exit of md()" in out, "xtb ended the dynamics normally")
+            tev = numbers(calc, "TEVEC")
+            tim = numbers(calc, "TIMEVEC")
+            geo = numbers(calc, "GEOMTRACE")
+            check(len(tev) == 10 and len(tim) == 10 and len(geo) == 10 * 9,
+                  "10 frames of 3 atoms, with an energy and a time each "
+                  "(%d, %d, %d numbers)" % (len(geo), len(tev), len(tim)))
+            check(tim and abs(tim[0]) < 1e-9 and abs(tim[-1] - 0.18) < 1e-6,
+                  "frame times run from 0 to 0.18 ps: %r" % tim)
     finally:
         left = s.stop()
         if left:

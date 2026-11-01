@@ -389,7 +389,7 @@ void GeomTracePropertyPanel::fillPlot()
   }
 
   p_plotCtrl->setIntegerX(true);
-  p_plotCtrl->setXAxisLabel(StepPlotAxes::xAxisName(prop->rowLabel()));
+  p_plotCtrl->setXAxisLabel(StepPlotAxes::xAxisName(prop->rowLabel(), getCalculation()));
   p_plotCtrl->setReadout("Step", "", "", shaped.yName, shaped.yUnit);
   p_plotCtrl->setYAxisLabel(shaped.yLabel.empty() ? yUnit : shaped.yLabel);
   if (propref)
