@@ -397,6 +397,8 @@ void AtomMeasureAngle::GLRender(SoGLRenderAction *action)
   glDisable(GL_LIGHTING);
   glColor3f(r,g,b);
 
+  p_labelPos = LabelPosition;
+  p_labelLen = (int)strlen(buf);
   glRasterPos3fv(LabelPosition.getValue());
   drawViewerText(fontOffset, buf);
 

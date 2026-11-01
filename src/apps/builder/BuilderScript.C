@@ -131,6 +131,9 @@
 #include "wxgui/SliderCombo.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "viz/AtomMeasureDist.H"
+#include "viz/AtomMeasureAngle.H"
+#include "viz/AtomMeasureTorsion.H"
 
 #include "viz/FindSymmetryCmd.H"
 #include "wxgui/ewxGrid.H"
@@ -761,6 +764,64 @@ void Builder::runBuilderScript(const std::string& file)
             sel += " " + std::to_string(frag->m_atomHighLight[i] + 1);
           fprintf(stderr, "BUILDER: selected after %s click on %s:%s\n",
                   w[1].c_str(), w[2].c_str(), sel.c_str());
+        }
+      } else if (w[0] == "measure" && w.size() >= 4 && frag) {
+        //  "measure dist|angle|torsion I J [K [L]]": the Measure toolbar's
+        //  button on those atoms (1-based).
+        frag->m_atomHighLight.clear();
+        for (size_t k = 2; k < w.size(); k++)
+          frag->m_atomHighLight.push_back(atoi(w[k].c_str()) - 1);
+        wxCommandEvent ev(wxEVT_MENU,
+            w[1] == "dist" ? ViewerEvtHandler::ID_MEASURE_DIST
+          : w[1] == "angle" ? ViewerEvtHandler::ID_MEASURE_ANGLE
+                            : ViewerEvtHandler::ID_MEASURE_TORSION);
+        GetEventHandler()->ProcessEvent(ev);
+        wxTheApp->Yield(true);
+      } else if (w[0] == "labelclick" && w.size() == 2 && getSG()) {
+        //  "labelclick dist|angle|torsion": a left click in the middle of the
+        //  first such measure's number.  The popup logs instead of opening.
+        SoWxRenderArea *area = findViewerArea(p_viewer);
+        SbVec3f lp;
+        int len = 0;
+        SoGroup *top = getSG()->getTopLabel();
+        for (int i = 0; top && i < top->getNumChildren() && !len; i++) {
+          SoNode *m = ((SoSeparator*)top->getChild(i))->getChild(0);
+          if (w[1] == "dist" && m->isOfType(AtomMeasureDist::getClassTypeId())) {
+            lp = ((AtomMeasureDist*)m)->getLabelPosition();
+            len = ((AtomMeasureDist*)m)->getLabelLength();
+          } else if (w[1] == "angle" &&
+                     m->isOfType(AtomMeasureAngle::getClassTypeId())) {
+            lp = ((AtomMeasureAngle*)m)->getLabelPosition();
+            len = ((AtomMeasureAngle*)m)->getLabelLength();
+          } else if (w[1] == "torsion" &&
+                     m->isOfType(AtomMeasureTorsion::getClassTypeId())) {
+            lp = ((AtomMeasureTorsion*)m)->getLabelPosition();
+            len = ((AtomMeasureTorsion*)m)->getLabelLength();
+          }
+        }
+        if (!area || !len) {
+          outcome = "FAIL: no drawn " + w[1] + " label";
+        } else {
+          SbVec3f d;
+          const SbViewportRegion& vpr = p_viewer->getViewportRegion();
+          SbViewVolume vv =
+              p_viewer->getCamera()->getViewVolume(vpr.getViewportAspectRatio());
+          vv.projectToScreen(lp, d);
+          SbVec2s sz = vpr.getViewportSizePixels();
+          const double sc = area->GetContentScaleFactor();
+          const int lx = (int)std::lround((d[0] * sz[0] + 4.5 * len) / sc);
+          const int ly = (int)std::lround((sz[1] - 1 - d[1] * sz[1] - 7) / sc);
+          static long stamp = 200000;
+          for (int k = 0; k < 2; k++) {
+            wxMouseEvent e(k == 0 ? wxEVT_LEFT_DOWN : wxEVT_LEFT_UP);
+            e.m_x = lx;
+            e.m_y = ly;
+            e.m_leftDown = (k == 0);
+            e.SetEventObject(area);
+            e.SetTimestamp(stamp += 50);
+            area->GetEventHandler()->ProcessEvent(e);
+          }
+          wxTheApp->Yield(true);
         }
       } else if ((w[0] == "atompos" && w.size() == 2 && frag) ||
                  (w[0] == "viewpos" && w.size() == 3)) {

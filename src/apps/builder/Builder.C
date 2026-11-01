@@ -6662,6 +6662,10 @@ void Builder::lengthPopup(int x, int y, AtomMeasureDist *dist)
 {
    viewPosToScreenPos(x, y);
    float startValue = dist->getDistance();
+   if (getenv("ECCE_BUILDER_SCRIPT")) {   // test hook: no modal prompt
+      fprintf(stderr, "BUILDER: measure popup distance %.3f\n", startValue);
+      return;
+   }
    float newValue = startValue;
    wxPoint pos(x,y);
    WxMeasurePrompt txt(this, WxMeasurePrompt::DISTANCE, startValue, wxOK|wxCANCEL, pos);
@@ -6690,6 +6694,10 @@ void Builder::anglePopup(int x, int y, AtomMeasureAngle *angle)
 {
    viewPosToScreenPos(x, y);
    float startValue = angle->getAngle();
+   if (getenv("ECCE_BUILDER_SCRIPT")) {   // test hook: no modal prompt
+      fprintf(stderr, "BUILDER: measure popup angle %.3f\n", startValue);
+      return;
+   }
    float newValue = startValue;
    wxPoint pos(x,y);
    WxMeasurePrompt txt(this, WxMeasurePrompt::ANGLE, startValue, wxOK|wxCANCEL, pos);
@@ -6717,6 +6725,10 @@ void Builder::torsionPopup(int x, int y, AtomMeasureTorsion *torsion)
 {
    viewPosToScreenPos(x, y);
    float startValue = torsion->getTorsion();
+   if (getenv("ECCE_BUILDER_SCRIPT")) {   // test hook: no modal prompt
+      fprintf(stderr, "BUILDER: measure popup torsion %.3f\n", startValue);
+      return;
+   }
    float newValue = startValue;
    wxPoint pos(x,y);
    WxMeasurePrompt txt(this, WxMeasurePrompt::TORSION, startValue, wxOK|wxCANCEL, pos);

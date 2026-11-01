@@ -303,6 +303,8 @@ void AtomMeasureDist::GLRender(SoGLRenderAction *action)
   glDisable(GL_LIGHTING);
   glColor3f(r,g,b);
 
+  p_labelPos = tmp;
+  p_labelLen = (int)strlen(buf);
   glRasterPos3fv(tmp.getValue());
   drawViewerText(fontOffset, buf);
 
