@@ -2,7 +2,7 @@
 
 <!--
    CREST (Grimme group conformer-rotamer ensemble sampling tool)
-   registration, stage 1: conformer search.  Modeled on xTB.edml.
+   registration: conformer search, protonation sites, tautomers and the QCG solvation shell.  Modeled on xTB.edml.
 
    CREST drives xtb itself, so the job script gets the xtb path from the
    xTB entry of the same machine (its xtb option).  Semiempirical, so no basis set.
@@ -15,7 +15,8 @@
    CREST writes the ensemble to crest_conformers.xyz, not to its output, so
    gensub appends the conformers (with their relative energies) and
    crest_best.xyz to the output file between ECCE-CREST-FRAME markers;
-   crest.desc reads the geometry trace from there.
+   crest.desc reads the geometry trace from there.  The file is crest_conformers.xyz,
+   protonated.xyz, tautomers.xyz or the QCG ensemble, by run type.
 -->
 
 <appdescriptor>
@@ -25,9 +26,13 @@
 <Editor theorydialog="cresttheory.py" runtypedialog="crestruntype.py">
   <Theory category="SE" name="GFN2-xTB" needsBasis="false">
     <runtype>Conformer Search</runtype>
+    <runtype>Protonation Sites</runtype>
+    <runtype>Tautomers</runtype>
+    <runtype>Solvation Shell</runtype>
   </Theory>
   <Theory category="SE" name="GFN-FF" needsBasis="false">
     <runtype>Conformer Search</runtype>
+    <runtype>Solvation Shell</runtype>
   </Theory>
   <Theory category="SE" name="GFN2//GFN-FF" needsBasis="false">
     <runtype>Conformer Search</runtype>
@@ -41,6 +46,12 @@
   </TheorySummary>
   <RuntypeSummary>
     <item key="ES.Runtype.Conformers.EnergyWindow" label="Energy Window (kcal/mol)"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.QCG.Solvent" label="Solvent Molecule"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.QCG.Number" label="Number of Solvent Molecules"></item>
   </RuntypeSummary>
 </Editor>
 

@@ -55,9 +55,10 @@ describe what you did and what happened.
    [CP2K: the SCF loop](cp2k-scf.md) explains the OT minimiser and the outer
    SCF loop.
    [xTB: tight-binding calculations with xtb](xtb.md): GFN2-xTB, GFN1-xTB and
-   GFN-FF energies and optimisations.
-   [CREST: conformer search](crest.md): the low-energy conformers of a
-   molecule or a non-covalent complex, shown in the Viewer.
+   GFN-FF energies, optimisations and molecular dynamics.
+   [CREST: conformer search and related run types](crest.md): the low-energy
+   conformers, protonation sites and tautomers of a molecule, a non-covalent
+   complex, and a solvation shell, shown in the Viewer.
    [ML Potential: a machine-learned potential (MACE)](mlp.md): screening
    energies and relaxations of periodic cells.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small

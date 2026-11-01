@@ -88,7 +88,7 @@ bool VectorPlotPropertyPanel::Create(IPropCalculation *calculation,
     p_plotCtrl->setPointLabel(curve, (int)i, shaped.hover[i]);
 
   p_plotCtrl->setIntegerX(true);
-  p_plotCtrl->setXAxisLabel(StepPlotAxes::xAxisName(propVector->rowLabel()));
+  p_plotCtrl->setXAxisLabel(StepPlotAxes::xAxisName(propVector->rowLabel(), getCalculation()));
   p_plotCtrl->setYAxisLabel(shaped.yLabel.empty()
                             ? StepPlotAxes::unitText(propVector->units())
                             : shaped.yLabel);
