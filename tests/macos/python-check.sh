@@ -27,7 +27,8 @@ say "python3 in the app's environment: $py"
 inapp python3 -c 'import sys, wx; print(sys.version.split()[0], "wxPython", wx.version(), sys.prefix)' \
   2>&1 | tee -a "$SUMMARY" | grep -q wxPython || fail "import wx"
 
-# The first-start window: shot saved, answered, left.  A private ECCE_HOME
+# The first-start window (--change: a plain start no longer asks, #767):
+# shot saved, answered, left.  A private ECCE_HOME
 # without the server package, whose presence makes the window skip.
 FH=$OUT/ecce-home
 rm -rf "$FH"; mkdir -p "$FH/bin" "$FH/siteconfig"
@@ -40,7 +41,7 @@ fs() { ECCE_FIRST_START_ANSWER=local ECCE_FIRST_START_SHOT=$shot \
   ECCE_APP_RUN=1 "$APP/Contents/MacOS/ecce" env ECCE_HOME="$FH" "$FH/bin/ecce-first-start" "$@"; }
 say "first-start --check: $(fs --check 2>&1)"
 ECCE_FIRST_START_ANSWER=local ECCE_FIRST_START_SHOT=$shot ECCE_APP_RUN=1 \
-  limit 90 "$APP/Contents/MacOS/ecce" env ECCE_HOME="$FH" "$FH/bin/ecce-first-start" > "$OUT/first-start.log" 2>&1
+  limit 90 "$APP/Contents/MacOS/ecce" env ECCE_HOME="$FH" "$FH/bin/ecce-first-start" --change > "$OUT/first-start.log" 2>&1
 r=$?
 say "first-start window: exit $r, picture $( [ -s "$shot" ] && echo saved || echo MISSING )"
 [ "$r" = 0 ] && [ -s "$shot" ] || { fail "first-start window"; tail -5 "$OUT/first-start.log" | tee -a "$SUMMARY"; }

@@ -65,6 +65,7 @@ $revision\n
 $scanstep\n
 $scansteps
 $shelltype\n
+$step
 $symbol
 $tags{$i}
 $theory\n
@@ -213,6 +214,7 @@ b972
 b97d
 b97d3
 b98
+backward
 bad
 badcategory:
 barium
@@ -414,6 +416,9 @@ es.runtype.geomopt.maximumstepsvalue
 es.runtype.geomopt.recalcfc
 es.runtype.gradient.finitestepsize
 es.runtype.gradient.method
+es.runtype.irc.direction
+es.runtype.irc.maximumstepsvalue
+es.runtype.irc.stepsizevalue
 es.runtype.polar.method
 es.runtype.vibration.anharmonic
 es.runtype.vibration.computeraman
@@ -469,6 +474,7 @@ floating
 flourine
 for
 force
+forward
 found
 fragment
 francium
@@ -596,6 +602,7 @@ manual
 massage
 maxcycle
 maxdisk
+maxpoints
 may
 mcscf
 mcscf.convergencegradient.value
@@ -752,6 +759,7 @@ replaced
 reported
 require
 retrying
+reverse
 revtpss
 rhenium
 rhf

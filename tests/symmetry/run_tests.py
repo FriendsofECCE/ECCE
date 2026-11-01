@@ -45,6 +45,10 @@ import subprocess
 import sys
 import tempfile
 
+# eccedsi reaches RCommand (SftpEDSI), which brings libssh in where the build has it.
+SSH_LIBS = (["-lssh"] if subprocess.run(["pkg-config", "--exists", "libssh"],
+                                         capture_output=True).returncode == 0 else [])
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 CONFIG = os.path.join(ROOT, "data", "client", "config")
@@ -995,7 +999,7 @@ def checkShellRotation(verbose):
             os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
             os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
             "-L" + build]
-           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"] + SSH_LIBS)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("  could not build testShellRotation:")
@@ -1043,7 +1047,7 @@ def checkFullOrbitalIrrep(verbose):
             os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
             os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
             "-L" + build]
-           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"] + SSH_LIBS)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("  could not build testFullOrbitalIrrep:")
@@ -1130,7 +1134,7 @@ def checkSubgroupCrossCheck(verbose):
             os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
             os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
             "-L" + build]
-           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"] + SSH_LIBS)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("  could not build testSubgroupCrossCheck:")
@@ -1202,7 +1206,7 @@ def checkDiatomicComposition(verbose):
             os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
             os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
             "-L" + build]
-           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"] + SSH_LIBS)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("  could not build testDiatomicComposition:")
