@@ -30,6 +30,7 @@
 
 #include "dsm/EDSIFactory.H"
 #include "dsm/JCode.H"
+#include "util/Ecce.H"
 #include "dsm/MdTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
@@ -309,7 +310,6 @@ void CalculationContextPanel::refreshLaunchInfo()
     in.wallTime = launchWallTime(job, launch.maxwall);
     if (!launch.machine.empty()) {
       in.allocation = AllocationQuery::account(launch);
-      in.allocationRemaining = launch.allocationLeft;
     }
   }
   wxSizer *block = ewxLaunchInfoBlock(this, LaunchInfoRows::build(in));
@@ -402,6 +402,10 @@ void CalculationContextPanel::updateProgress()
   if (p_state) p_state->setOutOfContact(lost && !queued);
   if (ICalculation *calc = dynamic_cast<ICalculation*>(p_itemData->getResource()))
     p_progressBox->setSearch(JobProgress::searchOf(calc->runtype().name()));
+  if (TaskJob *task = dynamic_cast<TaskJob*>(p_itemData->getResource()))
+    if (task->application())
+      p_progressBox->setDescriptor(string(Ecce::ecceDataControllersPath()) + "/" +
+                                   task->application()->parseDescriptor());
   const bool resized = p_progressBox->set(text, received, finished,
                                           state == ResourceDescriptor::STATE_COMPLETED,
                                           lost ? lastHeard : 0,
@@ -465,15 +469,17 @@ void CalculationContextPanel::createControls()
       toolButton->SetToolTip("This code picks its basis set in the "
                              "Calculation Editor, not in the Basis Set Tool.");
     }
-    sizer->Add(toolButton,
-          0,                        // do not stretch horizontally
-          wxALIGN_CENTER_VERTICAL|  // center vertically
-          wxALL,                    // make border all around
-          1);                       // set border width to 1
-
     // these variables help format the grid used to display the data
     int rows = 4;       // max number of rows to use in the grid
     const bool isLauncher = pairRT_TPV.first->getName() == "Launcher";
+    // The Launch Info block grows and shrinks with the rows it has; the
+    // button stays level with its first row (#753).
+    sizer->Add(toolButton,
+          0,                        // do not stretch horizontally
+          (isLauncher ? wxALIGN_TOP : wxALIGN_CENTER_VERTICAL)|
+          wxALL,                    // make border all around
+          1);                       // set border width to 1
+
     int cols = 2;       // max number of columns to use in the grid
     int vgap = 0;       // size of vertical gap between children in the grid
     int hgap = 5;       // size of horizontal gap between children in the grid

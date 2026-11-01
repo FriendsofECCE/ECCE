@@ -1218,8 +1218,7 @@ void CalcMgr::runTestCommand(const string& line)
         }
         // The Launch Info rows that exist, as "label@x,y" (#648).
         static const char *launchLabels[] = {"Machine:", "Processors:",
-          "Queue:", "Job ID:", "Queue state:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:",
-          "Remaining on submission:"};
+          "Queue:", "Job ID:", "Queue state:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:"};
         outcome += " launch=";
         for (const char *lbl : launchLabels) {
           wxWindow *w = panel ? panel->FindWindow(string("launch:") + lbl) : 0;
@@ -1252,6 +1251,15 @@ void CalcMgr::runTestCommand(const string& line)
                            tool->GetSize().x;
             outcome += " tool=" + string(tool->getLabel().ToUTF8()) +
                        (clipped ? ":clipped" : "");
+          }
+          // Where each tool button is, "label@x,y" (#753).
+          outcome += " toolpos=";
+          for (wxWindow *w : panel->GetChildren()) {
+            EcceTool *tool = dynamic_cast<EcceTool*>(w);
+            if (!tool || tool->getLabel().empty()) continue;
+            outcome += string(tool->getLabel().ToUTF8()) + "@" +
+                       std::to_string(tool->GetPosition().x) + "," +
+                       std::to_string(tool->GetPosition().y) + ";";
           }
         }
       }

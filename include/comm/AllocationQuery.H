@@ -42,14 +42,6 @@ namespace AllocationQuery
     //  asks again at once. onDone is called from that thread when a refresh
     //  has finished.
     Result check(const Target& t, bool force, std::function<void()> onDone);
-
-    //  The launch snapshot (#613): what was left of the allocation when the
-    //  job was submitted. snapshotBegin() before the submission starts the
-    //  read (a fresh cached answer needs none); snapshot() after it returns
-    //  the text if an answer under 15 minutes old is in, "" otherwise. Neither
-    //  waits for the cluster, and neither logs in.
-    void snapshotBegin(const Launchdata& l);
-    std::string snapshot(const Launchdata& l);
 }
 
 #endif
