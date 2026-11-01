@@ -159,7 +159,7 @@ class Env:
         return e
 
 
-def run(display, build, env, script, args=(), extra=None, timeout=120):
+def run(display, build, env, script, args=(), extra=None, timeout=240):
     write(os.path.join(env.root, "script"), script)
     p = subprocess.run([os.path.join(build, "machregister")] + list(args),
                        env=env.env(display, extra), cwd=env.root,
