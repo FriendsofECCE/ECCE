@@ -63,6 +63,7 @@ using std::endl;
 #include "dsm/TaskJob.H"
 #include "dsm/VDoc.H"
 
+#include <wx/settings.h>
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxTreeCtrl.H"
 #include "wxgui/WxResourceImageList.H"
@@ -265,7 +266,7 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addServerRoot(const string& name,
   }
   node->setServer(name, ref);
   wxTreeItemId itemId = AppendItem(GetRootItem(), label, -1, -1, node);
-  if (node->getResource()) setItemImages(itemId, node->getResource());
+  styleServerRoot(itemId, node, false);
   SetItemHasChildren(itemId);
   return node;
 }
@@ -288,9 +289,38 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addSshRoot(const string& name,
   }
   node->setServer(name, address);
   wxTreeItemId itemId = AppendItem(GetRootItem(), label, -1, -1, node);
-  if (node->getResource()) setItemImages(itemId, node->getResource());
+  styleServerRoot(itemId, node, true);
   SetItemHasChildren(itemId);
   return node;
+}
+
+
+// Own icon and a light tint per kind of root; the rows below inherit the
+// tint (see tintLike) so a project's location shows when the root has
+// scrolled away.  A root without a resource is not connected: grey.
+void WxResourceTreeCtrl::styleServerRoot(const wxTreeItemId& id,
+    WxResourceTreeItemData * node, bool ssh)
+{
+  bool connected = node->getResource() != 0;
+  int img = WxResourceImageList::getServerImageIndex(ssh, connected);
+  SetItemImage(id, img, wxTreeItemIcon_Normal);
+  SetItemImage(id, img + 1, wxTreeItemIcon_Selected);
+  SetItemImage(id, img + 2, wxTreeItemIcon_Expanded);
+  SetItemImage(id, img + 3, wxTreeItemIcon_SelectedExpanded);
+  if (connected) {
+    SetItemBackgroundColour(id, WxResourceImageList::getServerTint(ssh));
+    SetItemState(id, getStateIndex(node->getResource()));
+  } else {
+    SetItemTextColour(id, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  }
+}
+
+
+void WxResourceTreeCtrl::tintLike(const wxTreeItemId& child,
+                                  const wxTreeItemId& parent)
+{
+  wxColour bg = GetItemBackgroundColour(parent);
+  if (bg.IsOk()) SetItemBackgroundColour(child, bg);
 }
 
 
@@ -399,6 +429,7 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
       wxTreeItemId itemId = AppendItem(node->GetId(), (*resItor)->getName(),
                                        -1, -1, childNode);
       setItemImages(itemId, *resItor);
+      tintLike(itemId, node->GetId());
       
       setExpandable(childNode);
     }
@@ -481,6 +512,7 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addToTree(const EcceURL & url)
     wxTreeItemId itemId = AppendItem(parent->GetId(), resource->getName(),
                                      -1, -1, ret);
     setItemImages(itemId, resource);
+    tintLike(itemId, parent->GetId());
     
     setExpandable(ret);
     SortChildren(parent->GetId());
