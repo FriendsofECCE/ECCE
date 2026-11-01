@@ -33,6 +33,7 @@
   using std::endl;
   using std::ios;
 #include <fstream>
+#include <sstream>
   using std::ofstream;
 
 #include "util/Ecce.H"
@@ -819,7 +820,8 @@ void cleanup(int exitStatus)
       calculation->getDataFile(JCode::PRIMARY_OUTPUT, outFile);
       if (gUnsuccessfulStatus == 305) {
         // The scheduler's verdict names the cause, its own slurm.err line
-        // follows.  The code's output is not scanned: it only stopped early.
+        // follows.  The code's output is not scanned for an error -- it only
+        // stopped early -- but an OOM kill gets CP2K's HFX estimate from it.
         reason = JobLogDates::schedulerEndReason(gSchedState);
         if (reason.empty())
           reason = "The scheduler ended the job (" + gSchedState + ")";
@@ -827,6 +829,14 @@ void cleanup(int exitStatus)
             gSchedulerErrFile.empty() ? string("slurm.err") : gSchedulerErrFile;
         reason += JobFailureReason::schedulerErrNote(
                       errName, tmpStorage + "/" + errName, true);
+        if (gSchedState == "OUT_OF_MEMORY" && !outFile.name().empty()) {
+          std::ifstream ifs((tmpStorage + "/" + outFile.name()).c_str());
+          std::ostringstream oss;
+          oss << ifs.rdbuf();
+          const string note = JobFailureReason::hfxMemoryNote(oss.str());
+          if (!note.empty())
+            reason += " " + note;
+        }
       } else if (!outFile.name().empty()) {
         string outPath = tmpStorage + "/" + outFile.name();
 

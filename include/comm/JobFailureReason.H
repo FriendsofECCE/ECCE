@@ -526,6 +526,45 @@ inline std::string schedulerErrNote(const std::string& name,
   return " (see " + name + " in Outputs: " + last + ")";
 }
 
+// ------------------------------------------------------------------------
+// CP2K hybrids print an HFX_MEM_INFO block each SCF step.  When the
+// scheduler killed the job for out of memory, the LAST block's two
+// program-size lines and its ERI RAM line make a short estimate; "" when
+// the text has no complete block.  Takes the raw output text.
+// ------------------------------------------------------------------------
+inline std::string hfxMemoryNote(const std::string& text)
+{
+  const std::string tag = "HFX_MEM_INFO|";
+  std::istringstream in(text);
+  std::string line, before, after, ram;
+  while (std::getline(in, line)) {
+    size_t at = line.find(tag);
+    if (at == std::string::npos)
+      continue;
+    const std::string rest = trimmed(line.substr(at + tag.size()));
+    size_t colon = rest.find_last_of(':');
+    if (colon == std::string::npos)
+      continue;
+    const std::string value = trimmed(rest.substr(colon + 1));
+    if (rest.find("Est. max. program size before HFX") != std::string::npos) {
+      before = value;   // a new block starts here
+      after.clear();
+      ram.clear();
+    } else if (rest.find("Est. max. program size after HFX") !=
+               std::string::npos) {
+      after = value;
+    } else if (rest.find("Total memory consumption ERI's RAM") !=
+               std::string::npos) {
+      ram = value;
+    }
+  }
+  if (before.empty() || after.empty() || ram.empty())
+    return "";
+  return "CP2K's HFX estimate: program size " + before + " MiB before HFX, " +
+         after + " MiB after; ERIs in RAM " + ram +
+         " MiB (set the memory per rank, or fewer ranks per node).";
+}
+
 } // namespace JobFailureReason
 
 #endif // JOBFAILUREREASON_H

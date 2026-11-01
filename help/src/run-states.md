@@ -54,7 +54,10 @@ the bottom of the Organizer.
   - the output file did not exist when the job ended;
   - the queue system ended the job: out of memory, wall time reached, node
     failure or preemption. The reason quotes the queue system's message
-    from its error file (for Slurm, `slurm.err` in Outputs).
+    from its error file (for Slurm, `slurm.err` in Outputs). For a CP2K
+    hybrid functional ended for out of memory, the reason also quotes CP2K's
+    own HFX memory estimate (set the memory per rank, or fewer ranks per
+    node).
 
   An Incomplete calculation is not an ECCE or machine fault. Change the
   input (more memory, more time, a better starting geometry) and run again.
