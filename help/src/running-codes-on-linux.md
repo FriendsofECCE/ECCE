@@ -79,6 +79,34 @@ Gaussian is a commercial program. A site with a licence installs it; ask
 your system administrator for the location of `g16` and of its setup file
 (`g16.profile`). ECCE needs the full path of `g16`.
 
+## CREST
+
+CREST is not in the Debian archive. Its makers publish a ready-built program
+for Linux on the CREST releases page on GitHub (`crest-lab/crest`). Download
+the archive for Linux (version 3.0.2 or later), unpack it and copy the
+program to `/usr/local/bin`:
+
+```
+tar xf crest-gnu-12-ubuntu-latest.tar.xz
+sudo cp crest/crest /usr/local/bin/
+```
+
+CREST runs `xtb` itself, so install xTB as well (`sudo apt install xtb`).
+See [CREST](crest.md).
+
+## ML Potential (MACE)
+
+The MLP code needs a Python environment with ASE and MACE, which ECCE does
+not ship:
+
+```
+python3 -m venv ~/mlp-venv
+~/mlp-venv/bin/pip install ase mace-torch
+```
+
+Register `~/mlp-venv/bin/python3` (written out in full) as the MLP program.
+See [ML Potential](mlp.md).
+
 ## NBO (optional)
 
 NBO 6 or 7 adds natural bond orbital analysis to ORCA and Gaussian jobs. It is

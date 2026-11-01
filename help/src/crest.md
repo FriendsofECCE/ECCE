@@ -6,6 +6,11 @@ tight-binding methods and returns the ensemble of low-energy structures.
 Typical uses are the starting structures for a DFT calculation, and the
 arrangements of a flexible molecule or an ion with its water molecules.
 
+CREST is not in the Debian archive; its makers publish a ready-built Linux
+program on the CREST releases page on GitHub (`crest-lab/crest`). Unpack it
+and copy `crest` to `/usr/local/bin`; the steps are in
+[Running codes on Linux](running-codes-on-linux.md#crest).
+
 CREST runs `xtb` itself, so both programs are needed. On the **Codes** tab of
 the machine in **Register Machines**, register **xTB** (see [xTB](xtb.md)) and
 **CREST**. For CREST set **Program** to the full path of the program, such as
