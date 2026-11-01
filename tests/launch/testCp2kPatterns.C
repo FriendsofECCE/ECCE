@@ -3,7 +3,8 @@
 //
 //   &PDOS / &pdos / &Pdos  -> *.pdos
 //
-// A deck without the section, or another code's deck, yields "".
+// The section must start a line: a "!" comment or a keyword that merely
+// contains the name does not count, and a deck without the section yields "".
 
 #include <iostream>
 #include <string>
@@ -27,6 +28,12 @@ int main()
   check("&Pdos", Launch::cp2kCopyBackPatterns("&Pdos") == "*.pdos");
   check("&PDOS mixed case",
         Launch::cp2kCopyBackPatterns("&PDoS") == "*.pdos");
+  check("a commented-out section",
+        Launch::cp2kCopyBackPatterns("! &PDOS\n&END\n") == "");
+  check("a keyword that contains the name",
+        Launch::cp2kCopyBackPatterns("&PDOS_EXTRA\n") == "");
+  check("section with trailing text",
+        Launch::cp2kCopyBackPatterns("&PDOS  NLUMO 40\n") == "*.pdos");
   check("no section", Launch::cp2kCopyBackPatterns(
             "&FORCE_EVAL\n  &PRINT\n  &END PRINT\n&END FORCE_EVAL\n") == "");
   check("a full deck",

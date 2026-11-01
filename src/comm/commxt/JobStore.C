@@ -1411,11 +1411,19 @@ void interactGetFiles(void)
   // retrieve files locally or remotely
   string calcdir = tmpStorage;
 
-  // create extra space in the array for .cub, .cube, .file30, the deck's
-  // CP2K pattern (.pdos) and possibly MD Traject.trj, .rst, and .pmf
-  // dependent upon whether trajectories will be stored; the +1 is the null
-  // entry at the end of the array
-  int extraCount = 5;
+  // create extra space in the array for .cub, .cube, .file30, one slot per
+  // space-separated CP2K pattern the deck asked for, possibly MD Traject.trj,
+  // .rst, and .pmf dependent upon whether trajectories will be stored, and
+  // the null entry at the end of the array
+  int extraCount = 4;  // .cub, .cube, .file30, and the null entry
+  for (size_t start = 0; start < cpExtraPatterns.size(); ) {
+    size_t sp = cpExtraPatterns.find(' ', start);
+    if (sp != start)
+      extraCount++;
+    if (sp == string::npos)
+      break;
+    start = sp + 1;
+  }
   if (cpMdStoreTrj != "none")
     extraCount += 3;
   if (cpRxnMetadynamicsTask == "yes")
