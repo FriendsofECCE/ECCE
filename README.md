@@ -71,6 +71,7 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 - Results file: the `ecce-results` command converts orbitals from Molden, Gaussian fchk and ORCA files, and an ORCA Hessian, into one HDF5 file (`results.h5`) with a fixed orbital order, the basis for carrying orbitals and Hessians from one workflow step to the next; the [results file help page](help/src/results-file-format.md) describes it.
 
+- CP2K: **Mixing alpha**, **Broyden history** and **Added MOs** for diagonalisation, and **Print HOMO-LUMO gap**, which stores the gap with the results ([#698](https://github.com/FriendsofECCE/ECCE/issues/698)).
 - `ecce-annotate`: set a calculation's Annotation from the command line, through the running Organizer ([#742](https://github.com/FriendsofECCE/ECCE/issues/742)).
 - Launcher: **Threads per rank** for batch-queue machines; the MPI rank count is derived from the processors, and the Slurm script gets `--cpus-per-task` and `OMP_NUM_THREADS` (CP2K runs `cp2k.psmp`) ([#739](https://github.com/FriendsofECCE/ECCE/issues/739)).
 - `ecce-launch`: launch Ready calculations from the command line, inside the running ECCE session, with their stored machine, cores and wall time; it prints each job id ([#687](https://github.com/FriendsofECCE/ECCE/issues/687)).
