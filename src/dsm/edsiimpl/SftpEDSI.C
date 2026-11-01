@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <utime.h>
 #include <algorithm>
 #include <filesystem>
 #include <functional>
@@ -21,6 +22,24 @@
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/VDoc.H"
 #include "util/ResourceUtils.H"
+
+// The mirror keeps the server's modification times; utime() is the call
+// MinGW has as well (utimes() is POSIX only).
+static void putEnv(const char* name, const char* value)
+{
+#ifdef _WIN32
+  _putenv_s(name, value ? value : "");   // "" removes it on Windows
+#else
+  if (value) setenv(name, value, 1); else unsetenv(name);
+#endif
+}
+
+static void setMtime(const std::string& path, long t)
+{
+  struct utimbuf ub;
+  ub.actime = ub.modtime = (time_t)t;
+  utime(path.c_str(), &ub);
+}
 
 namespace fs = std::filesystem;
 
@@ -42,10 +61,10 @@ RCommand* newLogin(const string& host, const string& user)
   const char* e = getenv("ECCE_ASKPASS");
   const bool had = e != 0;
   if (e) saved = e;
-  if (!gInteractive) setenv("ECCE_ASKPASS", "/bin/false", 1);
+  if (!gInteractive) putEnv("ECCE_ASKPASS", "/bin/false");
   RCommand* rc = new RCommand(host, "ssh", "bash", user);
   if (!gInteractive) {
-    if (had) setenv("ECCE_ASKPASS", saved.c_str(), 1); else unsetenv("ECCE_ASKPASS");
+    putEnv("ECCE_ASKPASS", had ? saved.c_str() : 0);
   }
   return rc;
 }
@@ -349,16 +368,15 @@ class SftpOp {
           } else {
             fs::create_directories(fs::path(lp).parent_path());
             std::ofstream(lp.c_str()).close();
-            if (truncate(lp.c_str(), size) != 0) {}
-            struct timeval tv[2] = {{mtime, 0}, {mtime, 0}};
-            utimes(lp.c_str(), tv);
+            std::error_code ec;
+            fs::resize_file(lp, (std::uintmax_t)size, ec);
+            setMtime(lp, mtime);
             p_entries[f[3]] = 'f';
           }
         }
       }
       for (size_t i = dirTimes.size(); i-- > 0;) {
-        struct timeval tv[2] = {{dirTimes[i].second, 0}, {dirTimes[i].second, 0}};
-        utimes(dirTimes[i].first.c_str(), tv);
+        setMtime(dirTimes[i].first, dirTimes[i].second);
       }
       if (kind) *kind = k;
       if (!k) return fail("No answer from " + p_host);

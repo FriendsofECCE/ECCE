@@ -47,7 +47,7 @@ AddServerDialog::AddServerDialog(wxWindow* parent, const ServerEntry* old)
   grid->Add(new ewxStaticText(this, wxID_ANY, _("Name:")), 0, wxALIGN_CENTER_VERTICAL);
   grid->Add(p_name, 1, wxGROW);
   int n = 0, m = 0;
-  struct { const wxChar* t; ewxTextCtrl* f; } ssh[] = {
+  struct { wxString t; ewxTextCtrl* f; } ssh[] = {
     { _("Host:"), p_host }, { _("User:"), p_user }, { _("Folder:"), p_folder } };
   for (int i = 0; i < 3; i++) {
     wxWindow* l = new ewxStaticText(this, wxID_ANY, ssh[i].t);
