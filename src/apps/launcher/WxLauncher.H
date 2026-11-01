@@ -128,6 +128,7 @@ class WxLauncher : public WxLauncherGUI,
         // A launch step runs off the GUI thread; its login window must not.
         bool getAuthorization(AuthEvent& event);
         void setProcessors(int n);
+        void setThreads(int n);
         void stageLaunchMenuItemClickCB(wxCommandEvent& event);
         void finishLaunchMenuItemClickCB(wxCommandEvent& event);
         void quitMenuItemClickCB(wxCommandEvent& event);
@@ -204,6 +205,9 @@ class WxLauncher : public WxLauncherGUI,
 
         void refreshProcessors(RefMachine *machRgstn);
         void refreshCoresWarning();
+        void buildThreadsRow();
+        void refreshRanksInfo();
+        string ranksWarning() const;
 
         void refreshPasswords(const string& shellName,
                               const string& machName, const string& user);
@@ -254,6 +258,10 @@ class WxLauncher : public WxLauncherGUI,
 
         WxParameterEdit     *p_wkstnProcsParamEdit;
         ewxStaticText       *p_coresWarnStaticText;
+        ewxPanel            *p_threadsPanel;
+        wxSpinCtrl          *p_threadsSpin;
+        ewxStaticText       *p_ranksInfoText;
+        ewxStaticText       *p_memNodeText;
         bool                 p_localCores;   // the machine is this computer
         ewxPanel            *p_priorityPanel;
         ewxChoice           *p_priorityChoice;

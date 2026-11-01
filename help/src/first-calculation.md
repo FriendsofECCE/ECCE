@@ -168,6 +168,23 @@ through a batch queue, and appear for those machines. A machine reached
 over the network shows the **Remote Machine Access** fields (**Username:**,
 **Password:**, **Remote Shell:**).
 
+On a batch-queue machine, **Processors:** is the total number of cores.
+**Threads per rank:** (default 1) splits them between MPI ranks and OpenMP
+threads: the number of ranks is **Processors** divided by **Threads per
+rank**, and the Launcher shows it as **MPI ranks: N (M per node)**. If
+**Processors** is not a multiple of the threads, or the ranks do not divide
+evenly over the nodes, a warning appears in the Launcher's notes; the job
+can still be launched. With more than one thread the job script requests
+`--ntasks-per-node` and `--cpus-per-task` from Slurm and sets
+`OMP_NUM_THREADS`, and a CP2K job runs the OpenMP binary `cp2k.psmp` in
+place of `cp2k.popt`. The value is saved with the calculation.
+
+**Memory Limit:** is entered in GB for every code and is a request per node;
+the Launcher converts it to the unit the scheduler wants when it writes the
+job script (for Slurm, `--mem`). When the queue has a memory limit, the
+Launcher shows it beside the field as the memory of a node. Leave the field
+at 0 to request none.
+
 ![The Launcher](img/launcher-localhost.png)
 
 <!-- capture: Launcher with Machine: localhost, Run Directory filled, before Launch -->

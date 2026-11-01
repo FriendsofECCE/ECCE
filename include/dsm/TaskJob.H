@@ -54,6 +54,7 @@ struct Launchdata {
   string machine;           /**< Launch machine */
   unsigned long nodes;      /**< Only applies to clusters or mpp */
   unsigned long totalprocs; /**< # processors (ws and/or mpp) */
+  unsigned long threads;    /**< OpenMP threads per MPI rank; 0 = not set (1) */
   string rundir;            /**< Base directory name as entered in launcher gui */
   string scratchdir;        /**< Launcher gui name is same as full scratch path */
   string user;              /**< User account name */
@@ -69,7 +70,7 @@ struct Launchdata {
 
   Launchdata()
   {
-    nodes=totalprocs=maxmemory=minscratch = 0;
+    nodes=totalprocs=threads=maxmemory=minscratch = 0;
     machine=rundir=scratchdir=user=queue=priority=maxwall=remoteShell=forceCsh="";
     account=profile="";
   };

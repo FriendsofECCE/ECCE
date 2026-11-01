@@ -111,7 +111,7 @@
   # script requesting 1 unit of memory and left "4000" as a stray argument.
   # Production launches go through the -p param file, which parses these
   # correctly, which is why it never showed up there.
-  getopts(':p:f:H:Q:q:c:a:n:N:t:T:w:r:s:i:o:S:C:m:x:R:hv');
+  getopts(':p:f:H:Q:q:c:a:n:N:K:t:T:w:r:s:i:o:S:C:m:x:R:hv');
 
   # get this from config files
   $CC = "# ";
@@ -227,6 +227,12 @@
   print SUBMIT "\n$CC Setting environment variables...\n";
   print SUBMIT &mark("environment", $lccode . "environment"),
                &doEnvironment($lccode), &mark("ecce");
+
+  # Hybrid MPI + OpenMP: the Launcher's processors are ranks x threads.
+  if ($threads > 1) {
+    print SUBMIT "\n$CC Threads per MPI rank\n";
+    print SUBMIT "export OMP_NUM_THREADS=$threads\n";
+  }
 
   # Keep Open MPI's shared memory backing files out of /dev/shm, which
   # is RAM.
@@ -476,6 +482,14 @@ sub provideVariables()
   # Need for PBS
   my ($ppn, $wallSeconds);
   $ppn = $::totalprocs/$::nodes;
+  # Ranks x threads = processors.  The per-node and per-task values stay
+  # empty for a plain MPI job so that their directive lines are dropped
+  # and the script is what it was before threads existed.
+  my ($tasksPerNode, $cpusPerTask) = ("", "");
+  if ($::threads > 1) {
+    $tasksPerNode = int(($::mpiRanks + $::nodes - 1)/$::nodes);
+    $cpusPerTask = $::threads;
+  }
   $wallSeconds = "";
   if ($::wallTime =~ /^(\d+):(\d+):(\d+)$/) {
     $wallSeconds = $1*3600 + $2*60 + $3;
@@ -486,6 +500,9 @@ sub provideVariables()
   $fixedString =~ s/\$queue/$::queue/gi;
   $fixedString =~ s/\$code/$::code/gi;
   $fixedString =~ s/\$nodes/$::nodes/gi;
+  $fixedString =~ s/\$mpiRanks/$::mpiRanks/gi;
+  $fixedString =~ s/\$tasksPerNode/$tasksPerNode/gi;
+  $fixedString =~ s/\$cpusPerTask/$cpusPerTask/gi;
   $fixedString =~ s/\$totalprocs/$::totalprocs/gi;
   $fixedString =~ s/\$ppn/$ppn/gi;
   $fixedString =~ s/\$cpuTime/$::cpuTime/gi;
@@ -529,6 +546,8 @@ sub provideVariables()
     'account'     => $::account,     'host'         => $::host,
     'qmgr'        => $::qMgr,        'queue'        => $::queue,
     'code'        => $::code,        'nodes'        => $::nodes,
+    'mpiranks'    => $::mpiRanks,    'taskspernode' => $tasksPerNode,
+    'cpuspertask' => $cpusPerTask,
     'totalprocs'  => $::totalprocs,  'cputime'      => $::cpuTime,
     'walltime'    => $::wallTime,    'wallhrmin'    => $::wallHrMin,
     'wallseconds' => $wallSeconds,
@@ -978,6 +997,7 @@ sub handleOptions()
   $submitFile = "submit__";
   $nodes = 1;
   $totalprocs = 1;
+  $threads = 1;
 
   $host = $opt_H if defined ($opt_H);
   $qMgr = $opt_Q if defined ($opt_Q);
@@ -986,6 +1006,7 @@ sub handleOptions()
   $account = $opt_a  if defined ($opt_a);
   $nodes = $opt_N  if defined ($opt_N);
   $totalprocs = $opt_n  if defined ($opt_n);
+  $threads = $opt_K  if defined ($opt_K);
   $cpuTime = $opt_t  if defined ($opt_t);
   $wallTime = $opt_T  if defined ($opt_T);
   $wallHrMin = $opt_w  if defined ($opt_w);
@@ -1025,6 +1046,7 @@ sub handleOptions()
       $account = $value  if ($opt =~ /-a/);
       $nodes = $value  if ($opt =~ /-N/);
       $totalprocs = $value  if ($opt =~ /-n/);
+      $threads = $value  if ($opt =~ /-K/);
       $cpuTime = $value  if ($opt =~ /-t/);
       $wallTime = $value  if ($opt =~ /-T/);
       $wallHrMin = $value  if ($opt =~ /-w/);
@@ -1046,6 +1068,11 @@ sub handleOptions()
      close(PARAM);
 #close(DEBUG);
   }
+
+  # MPI ranks = processors / threads per rank (at least 1).
+  $threads = 1 if !defined($threads) || $threads !~ /^\d+$/ || $threads < 1;
+  $mpiRanks = int($totalprocs/$threads);
+  $mpiRanks = 1 if $mpiRanks < 1;
 
   # Make the job name the tail of the submit file path
   (@tmp) = split(/\//,$submitFile);
@@ -1088,6 +1115,7 @@ sub listOptions()
   $info .= "$CP # Processors: $nodes\n"  if  !defined($queue);
   $info .= "$CP # Nodes: $nodes\n"  if defined($queue);
   $info .= "$CP # TotalProcessors: $totalprocs\n"  if defined($queue);
+  $info .= "$CP # Threads per rank: $threads\n"  if defined($queue) && $threads > 1;
 
   $info .= "$CP Run Directory: $runDir\n"  if defined($runDir);
   $info .= "$CP Scratch Directory: $scratchDir\n"  if defined($scratchDir);
@@ -2395,12 +2423,14 @@ sub cp2k()
   if ($cp2k eq "") { die "Path for CP2K not found"; }
   $cmd = &userCmd("cp2kcommand");
 
+  # Threads need the OpenMP build; swap the MPI-only suffix.
+  $cp2k =~ s/\.popt$/.psmp/ if $::threads > 1;
   $retval .= &pathVar("cp2k", "$cp2k", "ECCE_CP2K");
   $retval .= "echo \"Using CP2K path: \$cp2k\" >> $::logfile\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
-  } elsif ($::totalprocs <= 1) {
+  } elsif ($::mpiRanks <= 1 && $::threads <= 1) {
     $retval .= "\"\$cp2k\" -i $::inFile > $::outFile 2>&1\n";
   } else {
     $retval .= "\n$::CC - a threads-only build (ssmp, sopt) runs once with\n";
@@ -2411,7 +2441,7 @@ sub cp2k()
     $retval .= "    \"\$cp2k\" -i $::inFile > $::outFile 2>&1 ;;\n";
     $retval .= "  *)\n";
     $retval .= "    OMP_NUM_THREADS=\${OMP_NUM_THREADS:-1}; export OMP_NUM_THREADS\n";
-    $retval .= "    mpirun -np $::totalprocs \"\$cp2k\" -i $::inFile > $::outFile 2>&1 < /dev/null ;;\n";
+    $retval .= "    mpirun -np $::mpiRanks \"\$cp2k\" -i $::inFile > $::outFile 2>&1 < /dev/null ;;\n";
     $retval .= "esac\n";
   }
   return $retval;

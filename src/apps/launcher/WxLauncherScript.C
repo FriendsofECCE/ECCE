@@ -147,6 +147,8 @@ int LauncherScript::runCommand(const vector<string>& w)
     }
     else if (cmd == "procs" && n == 2)
         p_frame->setProcessors(atoi(w[1].c_str()));
+    else if (cmd == "threads" && n == 2)
+        p_frame->setThreads(atoi(w[1].c_str()));
     else if (cmd == "mpicheck" && n == 2)
         fprintf(stderr, "[LAUNCHER] mpicheck %s: %s\n", w[1].c_str(),
                 p_frame->confirmMpiLauncher(w[1]) ? "go" : "cancel");

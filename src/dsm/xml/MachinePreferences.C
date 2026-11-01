@@ -82,6 +82,7 @@ MachinePreferences::MachinePreferences(string key)
 
     p_processors = 0;   // not chosen yet: the Launcher picks a default (#436)
     p_nodes = 1;
+    p_threads = 1;
     p_maxWallTime = 0;
     p_memoryLimit = 0;
     p_scratchSpace = 0;
@@ -402,6 +403,7 @@ void MachinePreferences::initializeFrom(Launchdata ld)
     p_scratchDir = ld.scratchdir;
     p_processors = (int)ld.totalprocs;
     p_nodes = (int)ld.nodes;
+    p_threads = ld.threads > 0 ? (int)ld.threads : 1;
 
     p_prefsChgd = true;
 }
@@ -496,6 +498,7 @@ Launchdata MachinePreferences::getLaunchData() const
 
     ldat.remoteShell = p_remoteShell;
     ldat.nodes = p_nodes;
+    ldat.threads = p_threads;
     ldat.totalprocs = p_processors > 0 ? p_processors : 1;   // 0 = not chosen
     ldat.machine = p_machRgstn->refname();
     ldat.rundir = p_remoteDir;

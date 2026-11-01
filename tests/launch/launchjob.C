@@ -4,7 +4,7 @@
 //
 //   launchjob create <parentURL> <name> <resourceType> <deckFile> <deckName>
 //                    <machine> <runDir> <user>            prints the calc URL
-//                    [queue=Q] [nodes=N] [procs=P] [wall="D H:M"] [mem=MB]
+//                    [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB]
 //                    [code=<JCode name>] [xyz=<file>]
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 code and structure as the Calculation Editor's save stores
@@ -37,7 +37,7 @@
 //   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name> [frag=<mvm|pdb>] [all]
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
-//   launchjob mdsetup <taskURL> <machine> <runDir> <user> [queue=Q] [nodes=N] [procs=P] [wall="D H:M"] [mem=MB] [annotation=TEXT]
+//   launchjob mdsetup <taskURL> <machine> <runDir> <user> [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB] [annotation=TEXT]
 //                                 launch settings for an MD study task made some other
 //                                 way (the Organizer's New menu), as the Launcher saves them
 //   launchjob setup  <calcURL> <dir> <name.out> [SetupParams] [annotation=TEXT]
@@ -205,6 +205,7 @@ static int doCreate(const vector<string>& a)
     if (k == "queue") ldat.queue = v;
     else if (k == "nodes") ldat.nodes = strtoul(v.c_str(), 0, 10);
     else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
+    else if (k == "threads") ldat.threads = strtoul(v.c_str(), 0, 10);
     else if (k == "wall") ldat.maxwall = v;
     else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
     else if (k == "annotation") { if (!setAnnotation(task, v)) return 1; }
@@ -436,6 +437,7 @@ static int doMdSetup(const vector<string>& a)
     if (k == "queue") ldat.queue = v;
     else if (k == "nodes") ldat.nodes = strtoul(v.c_str(), 0, 10);
     else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
+    else if (k == "threads") ldat.threads = strtoul(v.c_str(), 0, 10);
     else if (k == "wall") ldat.maxwall = v;
     else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
     else if (k == "annotation") { if (!setAnnotation(task, v)) return 1; }
@@ -506,6 +508,7 @@ static void buildArgs(TaskJob* task, EcceMap& kv)
   Launchdata ldat = task->launchdata();
   kv["##numProcs##"] = StringConverter::toString((int)ldat.totalprocs);
   kv["##numNodes##"] = StringConverter::toString((int)ldat.nodes);
+  kv["##threads##"] = StringConverter::toString((int)(ldat.threads > 0 ? ldat.threads : 1));
   kv["##runDir##"] = task->jobdata().jobpath;
   kv["##priority##"] = "";
   //  WxLauncher sets these only for a machine whose options include Q/AA/MM/TL.

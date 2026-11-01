@@ -20,6 +20,7 @@
 
 #include "wx/event.h"
 #include "wx/wx.h"
+#include "wx/spinctrl.h"
 
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
@@ -211,6 +212,10 @@ void WxLauncher::createControls()
     p_wkstnProcsParamEdit   = (WxParameterEdit *)(FindWindow(ID_PARAMEDIT_WXLAUNCHER_WKSTNPROCS));
     p_coresWarnStaticText   = (ewxStaticText *)(FindWindow(ID_STATIC_WXLAUNCHER_CORESWARN));
     p_localCores            = false;
+    p_threadsPanel          = NULL;
+    p_threadsSpin           = NULL;
+    p_ranksInfoText         = NULL;
+    p_memNodeText           = NULL;
     p_priorityPanel         =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_PRIORITY));
     p_priorityChoice        =       (ewxChoice *)(FindWindow(ID_CHOICE_WXLAUNCHER_PRIORITY));
     p_priorityChoice->Append("Normal");
@@ -232,6 +237,7 @@ void WxLauncher::createControls()
 
     p_maxMemoryPanel        =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_MAXMEMORY));
     p_maxMemoryParamEdit    = (WxParameterEdit *)(FindWindow(ID_PARAMEDIT_WXLAUNCHER_MAXMEMORY));
+    this->buildThreadsRow();
     p_minScratchPanel       =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_MINSCRATCH));
     p_minScratchParamEdit   = (WxParameterEdit *)(FindWindow(ID_PARAMEDIT_WXLAUNCHER_MINSCRATCH));
     p_wallTimePanel         =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_WALLTIME));
@@ -839,6 +845,7 @@ void WxLauncher::refreshLaunchControls(bool cnctAllwd)
 {
     bool launchAllwd = this->checkLaunchAllowed(cnctAllwd);
 
+    this->refreshRanksInfo();
     p_launchButton->Enable(launchAllwd);
     p_stageLaunchMenuItem->Enable(launchAllwd);
     p_finishLaunchMenuItem->Enable(launchAllwd && p_jobStaged);
@@ -1366,6 +1373,8 @@ void WxLauncher::updatePreferences()
     {
         p_slctPrefs->setProcessors(p_batchProcsParamEdit->getValue());
         p_slctPrefs->setNodes(p_batchNodesParamEdit->getValue());
+        if (p_threadsSpin != NULL)
+            p_slctPrefs->setThreads(p_threadsSpin->GetValue());
 
         if (p_slctPrefs->isOptionSupported("TL"))
             p_slctPrefs->setMaxWallTime(p_wallTimeEdit->getValue());
@@ -2239,10 +2248,16 @@ void WxLauncher::refreshCoresWarning()
 {
     int phys = (int)CpuCores::physical();
     bool warn = p_localCores && p_wkstnProcsParamEdit->getValue() > phys;
-    p_coresWarnStaticText->SetLabel(warn
+    string text = warn
         ? "More than the " + StringConverter::toString(phys) +
           " physical cores: hyperthreads rarely speed up quantum chemistry."
-        : "");
+        : "";
+    if (!warn)
+    {
+        text = this->ranksWarning();
+        warn = !text.empty();
+    }
+    p_coresWarnStaticText->SetLabel(text);
     p_coresWarnStaticText->Show(warn);
     p_coresWarnStaticText->GetContainingSizer()->Layout();
 }
@@ -2652,6 +2667,9 @@ void WxLauncher::updateControls(Launchdata ldat)
             p_batchNodesParamEdit->setValue(ldat.nodes);
             p_prefsEdited = true;
         }
+
+        if (ldat.threads > 0 && p_threadsSpin != NULL)
+            p_threadsSpin->SetValue((int)ldat.threads);
 
         if (p_slctPrefs->isOptionSupported("MM") && (ldat.maxmemory > 0))
         {
@@ -3156,6 +3174,9 @@ void WxLauncher::buildArgs(EcceMap& kvargs)
     sprintf(buf, "%lu", ldat.nodes);
     kvargs["##numNodes##"] = buf;
 
+    sprintf(buf, "%lu", ldat.threads > 0 ? ldat.threads : 1UL);
+    kvargs["##threads##"] = buf;
+
     if (p_slctPrefs->isOptionSupported("SD"))
         kvargs["##scratch##"] = ldat.scratchdir;
 
@@ -3430,6 +3451,7 @@ void WxLauncher::saveJob()
     }
 
     ldat.totalprocs = p_slctPrefs->getProcessors();
+    ldat.threads = p_slctPrefs->isOptionSupported("Q") ? p_slctPrefs->getThreads() : 1;
     ldat.remoteShell = p_slctPrefs->getRemoteShell();
     AllocationProfiles::Profile prof = p_slctPrefs->getProfile(p_profile);
     ldat.rundir = prof.rundir;
@@ -3582,6 +3604,125 @@ bool WxLauncher::selectQueue(const string& name)
 }
 
 
+/**
+ *  The row under Memory Limit for hybrid MPI + OpenMP jobs.  Built here
+ *  rather than in the generated layout so that the .pjd stays unchanged.
+ */
+void WxLauncher::buildThreadsRow()
+{
+    wxSizer *sizer = p_maxMemoryPanel->GetContainingSizer();
+    wxWindow *parent = p_maxMemoryPanel->GetParent();
+
+    p_threadsPanel = new ewxPanel(parent, wxID_ANY, wxDefaultPosition,
+                                  wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL);
+    wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+
+    ewxStaticText *label = new ewxStaticText(p_threadsPanel, wxID_STATIC,
+        _("Threads per rank:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT);
+    row->Add(label, 0, wxALIGN_CENTER_VERTICAL, 3);
+    row->AddSpacer(10);
+    p_threadsSpin = new wxSpinCtrl(p_threadsPanel, wxID_ANY, "1",
+        wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 4096, 1);
+    p_threadsSpin->SetToolTip(_("OpenMP threads for each MPI rank. The processors "
+        "above are divided by this to give the number of ranks."));
+    row->Add(p_threadsSpin, 0, wxALIGN_CENTER_VERTICAL, 3);
+    col->Add(row, 0, wxGROW);
+
+    p_ranksInfoText = new ewxStaticText(p_threadsPanel, wxID_STATIC, "",
+                                        wxDefaultPosition, wxDefaultSize, 0);
+    col->Add(p_ranksInfoText, 0, wxLEFT|wxTOP, 3);
+    p_memNodeText = new ewxStaticText(p_threadsPanel, wxID_STATIC, "",
+                                      wxDefaultPosition, wxDefaultSize, 0);
+    col->Add(p_memNodeText, 0, wxLEFT|wxTOP, 3);
+    p_threadsPanel->SetSizer(col);
+
+    sizer->Add(p_threadsPanel, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    p_threadsPanel->Show(false);
+
+    p_threadsSpin->Bind(wxEVT_SPINCTRL, [this](wxCommandEvent&) {
+        if (!p_inCtrlUpdate) { p_prefsEdited = true; this->refreshLaunchControls(); }
+    });
+    p_threadsSpin->Bind(wxEVT_TEXT, [this](wxCommandEvent&) {
+        if (!p_inCtrlUpdate) { p_prefsEdited = true; this->refreshLaunchControls(); }
+    });
+}
+
+
+/**
+ *  Warning text (empty when fine) for a processor count that the threads
+ *  per rank do not divide.  A warning only; launching is never blocked.
+ */
+string WxLauncher::ranksWarning() const
+{
+    if (p_threadsSpin == NULL || p_slctPrefs == NULL
+        || !p_slctPrefs->isOptionSupported("Q"))
+        return "";
+
+    int procs = p_batchProcsParamEdit->getValue();
+    int thr = p_threadsSpin->GetValue();
+    int nodes = p_batchNodesPanel->IsShown() ? p_batchNodesParamEdit->getValue() : 1;
+    if (thr < 1 || nodes < 1)
+        return "";
+
+    if (procs % thr != 0)
+        return StringConverter::toString(procs) + " processors is not divisible by "
+            + StringConverter::toString(thr) + " threads per rank: the job will run "
+            + StringConverter::toString(procs / thr > 0 ? procs / thr : 1) + " rank(s).";
+    int ranks = procs / thr;
+    if (ranks % nodes != 0)
+        return StringConverter::toString(ranks) + " ranks do not divide evenly over "
+            + StringConverter::toString(nodes) + " nodes.";
+    return "";
+}
+
+
+/**
+ *  Derived ranks line and the per-node memory note under the threads field.
+ */
+void WxLauncher::refreshRanksInfo()
+{
+    if (p_threadsPanel == NULL)
+        return;
+
+    bool batch = p_slctPrefs != NULL && p_slctPrefs->isOptionSupported("Q");
+    p_threadsPanel->Show(batch);
+    if (!batch)
+        return;
+
+    int procs = p_batchProcsParamEdit->getValue();
+    int thr = max(1, p_threadsSpin->GetValue());
+    int nodes = p_batchNodesPanel->IsShown() ? max(1, p_batchNodesParamEdit->getValue()) : 1;
+    int ranks = max(1, procs / thr);
+    int perNode = max(1, (ranks + nodes - 1) / nodes);
+    p_ranksInfoText->SetLabel("MPI ranks: " + StringConverter::toString(ranks) +
+        " (" + StringConverter::toString(perNode) + " per node)");
+
+    //  The only per-node memory figure a machine entry carries is the
+    //  queue's memory limit.
+    string note;
+    if (p_slctPrefs->isOptionSupported("MM") && p_maxMemoryParamEdit->getRangeVisible())
+        note = "Memory is per node, of " +
+            StringConverter::toString(p_maxMemoryParamEdit->getMaximum()) +
+            " GB per node (queue limit).";
+    else if (p_slctPrefs->isOptionSupported("MM"))
+        note = "Memory is per node.";
+    p_memNodeText->SetLabel(note);
+    p_memNodeText->Show(!note.empty());
+    p_threadsPanel->Layout();
+    this->refreshCoresWarning();
+}
+
+
+void WxLauncher::setThreads(int n)
+{
+    if (p_threadsSpin != NULL)
+        p_threadsSpin->SetValue(n < 1 ? 1 : n);
+    p_prefsEdited = true;
+    this->refreshLaunchControls();
+}
+
+
 void WxLauncher::setRunDirectory(const string& path)
 {
     p_calcDrctyTextCtrl->SetValue(path);
@@ -3636,6 +3777,12 @@ string WxLauncher::hookGet(const string& what)
     if (what == "coreswarn")
         return p_coresWarnStaticText->IsShown()
                    ? (string)p_coresWarnStaticText->GetLabel() : "";
+    if (what == "threads")
+        return StringConverter::toString(p_threadsSpin->GetValue());
+    if (what == "ranksinfo")
+        return p_threadsPanel->IsShown() ? (string)p_ranksInfoText->GetLabel() : "";
+    if (what == "memnode")
+        return p_memNodeText->IsShown() ? (string)p_memNodeText->GetLabel() : "";
     if (what == "memory")
         return StringConverter::toString(p_maxMemoryParamEdit->getValue());
     if (what == "memrange")
