@@ -12,7 +12,12 @@
 #include <string>
 #include <vector>
 
+#include <map>
+
 #include "dsm/ResourceDescriptor.H"
+
+#include "KeyData.H"
+#include "Recipe.H"
 
 class Resource;
 class ResourceType;
@@ -119,6 +124,44 @@ namespace WorkflowSteps {
   Resource *createJoin(Session *wf, ResourceType *rt, const std::string& name,
                        const std::vector<JoinSource>& sources,
                        std::string& why);
+
+  // ---- recipes (#710) ----
+
+  /// The level of theory chosen for each recipe role: role id -> method, basis.
+  typedef std::map<std::string, std::pair<std::string, std::string> > Levels;
+
+  /// Makes the variant's steps in wf, linked as the recipe says, and returns
+  /// them in recipe order (empty with `why` set on failure; nothing is left
+  /// behind).  With `after`, the steps without a source start from it (its
+  /// geometry, charge and multiplicity); otherwise those that need a
+  /// structure are placeholders.  Settings, run types, the TS-search picks
+  /// and the roles are set; the structures are not.
+  std::vector<Resource*> applyRecipe(Session *wf, const Recipe& recipe,
+                                     const RecipeVariant& variant,
+                                     const Levels& levels, Resource *after,
+                                     std::string& why);
+
+  /// A recipe step with no source (hasSource false) and no structure yet.
+  bool needsStructure(Resource *step, bool hasSource);
+
+  /// The recipe a workflow was made from ("" for any other workflow).
+  std::string recipeId(Session *wf);
+
+  /// Takes the geometry, charge and multiplicity of a recipe step's sources
+  /// just before it is launched (they did not exist when it was made).
+  /// Steps not made by a recipe are left alone.  Empty, or why not.
+  std::string refreshFromSources(Session *wf, Resource *step);
+
+  /// The steps of a recipe workflow with their energies, for keyData().
+  std::vector<KeyStep> keySteps(Session *wf);
+
+  /// A workflow as a recipe: settings and links kept, structures and
+  /// results dropped.  False with `why` set when it has no steps.
+  bool toRecipe(Session *wf, const std::string& id, const std::string& title,
+                Recipe& out, std::string& why);
+
+  /// Where Save Workflow as Recipe writes: the user's Recipes directory.
+  std::string userRecipeDir();
 
   std::vector<Node> tree(Session *wf);
 

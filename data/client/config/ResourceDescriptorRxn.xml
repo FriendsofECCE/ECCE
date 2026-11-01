@@ -4843,6 +4843,7 @@
           <ContainsResource name="nwchem_es"/>
           <ContainsResource name="mopac_es"/>
           <ContainsResource name="xtb_es"/>
+          <ContainsResource name="crest_es"/>
           <ContainsResource name="qe_es"/>
           <ContainsResource name="cp2k_es"/>
           <ContainsResource name="import_es"/>

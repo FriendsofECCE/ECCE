@@ -29,6 +29,7 @@ class Session;
 class WorkflowCanvas;
 class WxResourceTreeItemData;
 class PointChooser;
+class RecipePanel;
 
 class WorkflowPanel : public ewxPanel
 {
@@ -58,6 +59,19 @@ public:
   std::string rightClick(const EcceURL& step, bool popup);
   std::string contextMenu(bool popup);
 
+  /// Apply Recipe: docks the set-up panel left of the canvas (after the
+  /// selected box, if any).  Null if it is already open.
+  RecipePanel *openRecipe();
+  RecipePanel *recipePanel() const { return p_recipe; }
+  /// Create boxes: makes the steps; "" or why not.  Closes the panel on success.
+  std::string recipeCreate(const Recipe& recipe, const RecipeVariant& variant,
+                           const WorkflowSteps::Levels& levels, Resource *after);
+  void closeRecipe();
+  /// Save Workflow as Recipe: "ok <file>" or "error: ...".
+  std::string saveAsRecipe(const std::string& id, const std::string& title);
+  /// The key-data box as text ("" for a workflow made without a recipe).
+  std::string keyDataText();
+
   /// Geometry of the drawing, for the screenshot test.
   std::string layoutReport();
   /// The Launch Ready Steps button: its label and whether it is on screen.
@@ -78,6 +92,11 @@ private:
   wxStaticText *p_help;
   wxStaticText *p_status;
   wxButton *p_launch;
+  wxButton *p_apply;
+  wxPanel *p_empty;
+  wxBoxSizer *p_left;
+  wxBoxSizer *p_top;
+  RecipePanel *p_recipe;
 };
 
 

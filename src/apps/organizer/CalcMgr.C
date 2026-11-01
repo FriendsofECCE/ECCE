@@ -117,6 +117,7 @@ static std::string s_registerMessage;
 #include "wxgui/ewxPanel.H"
 #include "ContextPanelInterface.H"
 #include "SessionProjectContextPanel.H"
+#include "RecipePanel.H"
 #include "WorkflowPanel.H"
 #include "ReconnectSelected.H"
 #include <future>
@@ -645,6 +646,146 @@ void CalcMgr::runTestCommand(const string& line)
         createResource(rt, parentNode, true);
         p_testCreateError = 0;
         outcome = error.empty() ? "ok" : "error: " + error;
+      }
+    } else if (command == "workflowrecipelist" || command == "workflowrecipe" ||
+               command == "workflowrecipepanel" || command == "workflowrecipecreate" ||
+               command == "workflowkeydata" || command == "workflowmark" ||
+               command == "workflowsaverecipe" || command == "workflowlink") {
+      // Recipes (Recipe.H, RecipePanel.H); WF is the workflow's URL.
+      //   workflowrecipelist            the recipes found: id:variants;...
+      //   workflowrecipe WF ID VARIANT SOURCE|- [method=M] [basis=B]
+      //     Create boxes without the panel
+      //   workflowrecipepanel PNG|- WF ID VARIANT SOURCE|- [method=M] [basis=B]
+      //     opens the set-up panel on SOURCE's box (or none), sets the
+      //     choices and takes a picture; answers with the panel's report
+      //   workflowrecipecreate WF       Create boxes in the open panel
+      //   workflowkeydata WF            the key-data box as text, "|" for newlines
+      //   workflowmark WF STEP KEY THERMO   make a copied step a recipe step (KEY: reactant, ts, ...)
+      //   workflowsaverecipe WF ID TITLE   Save Workflow as Recipe
+      //   workflowlink WF SRC DST NAME     a link between two steps
+      std::istringstream args(calcName);
+      string png, wfUrl, rid, vid, src, flag, method, basis;
+      if (command == "workflowrecipepanel") args >> png >> wfUrl >> rid >> vid >> src;
+      else if (command == "workflowrecipe") args >> wfUrl >> rid >> vid >> src;
+      else if (command == "workflowmark") args >> wfUrl >> rid >> vid >> src >> method;
+      else if (command == "workflowsaverecipe" || command == "workflowlink")
+        args >> wfUrl >> rid >> vid >> src;
+      else args >> wfUrl;
+      while (args >> flag) {
+        if (flag.compare(0, 7, "method=") == 0) method = flag.substr(7);
+        if (flag.compare(0, 6, "basis=") == 0) basis = flag.substr(6);
+      }
+      if (command == "workflowrecipelist") {
+        outcome = "ok";
+        vector<string> problems;
+        vector<Recipe> all = loadRecipes(recipeDirs(), &problems);
+        for (size_t i = 0; i < problems.size(); i++) outcome += " problem[" + problems[i] + "]";
+        for (size_t i = 0; i < all.size(); i++) {
+          outcome += " " + all[i].id + ":";
+          for (size_t k = 0; k < all[i].variants.size(); k++)
+            outcome += (k ? "," : "") + all[i].variants[k].id;
+          outcome += all[i].site ? "(site)" : "";
+        }
+      } else {
+        WxResourceTreeItemData *wfNode = findNode(EcceURL(wfUrl), true, true);
+        Session *wf = wfNode ? dynamic_cast<Session*>(wfNode->getResource()) : 0;
+        SessionProjectContextPanel *spc = 0;
+        WorkflowPanel *wp = 0;
+        if (wf) {
+          p_treeCtrl->SelectItem(wfNode->GetId());
+          for (int i = 0; i < 5; i++) wxYield();
+          spc = dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+          wp = spc ? spc->getWorkflowPanel() : 0;
+        }
+        Resource *source = 0;
+        if (wf && (command == "workflowrecipe" || command == "workflowrecipepanel") &&
+            !src.empty() && src != "-") {
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++)
+            if (members[i]->getURL() == EcceURL(src)) source = members[i];
+        }
+        if (!wf || !wp) outcome = "no workflow panel";
+        else if (command == "workflowrecipe") {
+          vector<Recipe> all = loadRecipes(recipeDirs());
+          const Recipe *r = 0;
+          for (size_t i = 0; i < all.size(); i++) if (all[i].id == rid) r = &all[i];
+          const RecipeVariant *v = 0;
+          for (size_t i = 0; r && i < r->variants.size(); i++)
+            if (r->variants[i].id == vid) v = &r->variants[i];
+          if (!v) outcome = "error: no such recipe or variant";
+          else {
+            WorkflowSteps::Levels levels;
+            for (size_t i = 0; i < r->roles.size(); i++)
+              levels[r->roles[i].id] = std::make_pair(
+                  method.empty() ? r->roles[i].method : method,
+                  basis.empty() ? r->roles[i].basis : basis);
+            string why = wp->recipeCreate(*r, *v, levels, source);
+            outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
+          }
+        } else if (command == "workflowrecipepanel") {
+          wp->pick(source ? source->getURL() : EcceURL(), false);
+          if (source) p_contextPanel->selectResource(source->getURL());
+          else wp->selectResource(EcceURL());
+          wp->closeRecipe();
+          RecipePanel *panel = wp->openRecipe();
+          if (!panel) outcome = "error: no panel";
+          else if (!panel->selectRecipe(rid) || !panel->selectVariant(vid))
+            outcome = "error: no such recipe or variant";
+          else {
+            if (!method.empty() || !basis.empty())
+              for (const auto &lv : panel->levels())
+                panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
+                                basis.empty() ? lv.second.second : basis);
+            SetSize(1500, 900);
+            Raise();
+            for (int i = 0; i < 8; i++) wxYield();
+            outcome = (png == "-" || ecceWindowShot(this, png) ? "ok " : "not saved ") +
+                      panel->report();
+          }
+        } else if (command == "workflowrecipecreate") {
+          RecipePanel *panel = wp->recipePanel();
+          if (!panel) outcome = "error: no panel";
+          else {
+            panel->createClicked();
+            outcome = wp->recipePanel() ? "error: panel still open: " + wp->recipePanel()->problem()
+                                        : "ok " + WorkflowSteps::info(wf);
+          }
+        } else if (command == "workflowkeydata") {
+          string t = wp->keyDataText();
+          for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
+          outcome = "ok " + t;
+        } else if (command == "workflowmark") {
+          Resource *step = 0;
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++)
+            if (members[i]->getURL() == EcceURL(rid)) step = members[i];
+          if (!step) outcome = "error: no such step";
+          else {
+            const string ns = VDoc::getEcceNamespace();
+            step->addProp(ns + ":recipe.step", step->getName());
+            step->addProp(ns + ":recipe.key", vid == "-" ? "" : vid);
+            step->addProp(ns + ":recipe.thermo", src == "1" ? "1" : "0");
+            wf->addProp(ns + ":recipe", "marked/main");
+            wp->refresh();
+            outcome = "ok";
+          }
+        } else if (command == "workflowsaverecipe") {
+          outcome = wp->saveAsRecipe(rid, vid);
+        } else if (command == "workflowlink") {
+          Resource *from = 0, *to = 0;
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++) {
+            if (members[i]->getURL() == EcceURL(rid)) from = members[i];
+            if (members[i]->getURL() == EcceURL(vid)) to = members[i];
+          }
+          if (!from || !to) outcome = "error: no such step";
+          else {
+            wf->addLink(from, to, Session::INPUT_PROVIDER, src);
+            wf->saveLinkbase();
+            wp->refresh();
+            outcome = "ok";
+          }
+        }
       }
     } else if (command.compare(0, 8, "workflow") == 0) {
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
@@ -8906,6 +9047,38 @@ Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
 
 
 /**
+ * Apply Recipe (WorkflowSteps::applyRecipe): the tree and the workflow view
+ * show the new boxes at once.
+ */
+vector<Resource*> CalcMgr::newRecipeSteps(Session *wf, const Recipe& recipe,
+                                          const RecipeVariant& variant,
+                                          const WorkflowSteps::Levels& levels,
+                                          Resource *after, string *outcome)
+{
+  FrameHold hold(this);
+  string why;
+  vector<Resource*> made = WorkflowSteps::applyRecipe(wf, recipe, variant, levels, after, why);
+  if (made.empty()) {
+    if (outcome) *outcome = why.empty() ? "not created" : why;
+    return made;
+  }
+  WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
+  if (node) {
+    p_treeCtrl->refresh(node);
+    setContextPanel();
+    if (p_contextPanel) p_contextPanel->selectResource(made[0]->getURL());
+  }
+  for (size_t i = 0; i < made.size(); i++) notifyCreate(made[i]->getURL().toString());
+  if (outcome) {
+    *outcome = "";
+    for (size_t i = 0; i < made.size(); i++)
+      *outcome += (i ? " " : "") + made[i]->getURL().toString();
+  }
+  return made;
+}
+
+
+/**
  * Launch Ready Steps: each step of the workflow not yet launched whose
  * source is Complete, with its own saved launch settings.  The others are
  * named in the message; nothing is launched on a later completion.
@@ -8930,7 +9103,11 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
   }
   if (!note.empty() && interactive) setMessage(note, WxFeedback::INFO);
   vector<EcceURL> urls;
-  for (size_t i = 0; i < ready.size(); i++) urls.push_back(ready[i]->getURL());
+  for (size_t i = 0; i < ready.size(); i++) {
+    // A recipe's steps get their sources' results now, not when made.
+    WorkflowSteps::refreshFromSources(wf, ready[i]);
+    urls.push_back(ready[i]->getURL());
+  }
   launchSelected(urls, interactive, outcome, shot);
 }
 

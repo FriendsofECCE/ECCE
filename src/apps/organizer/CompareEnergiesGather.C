@@ -100,6 +100,8 @@ EnergyTerm gatherEnergyTerm(const string& url, int coeff)
     GUIValues *gv = c->guiparams();
     GUIValue *d = gv ? gv->get("ES.Theory.SCF.Dispersion") : 0;
     if (d) s.dispersion = d->getValueAsString();
+    GUIValue *xc = gv ? gv->get("ES.Theory.DFT.XCFunctionals") : 0;
+    if (xc) s.xc = xc->getValueAsString();
     delete gv;
     Fragment *frag = c->fragment();
     if (frag) {

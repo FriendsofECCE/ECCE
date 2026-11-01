@@ -383,6 +383,162 @@ def run(display, data, work, shots):
           tree[0] != tree[1], "box icons %s, tree %s" % (icons, ts))
 
 
+EXAMPLE = os.path.join(ROOT, "data", "client", "examples", "workflows",
+                       "sn2-cl-ch3br")
+# step name, example folder, stored calculation, recipe key role, thermo
+SN2 = (("reactant", "g16-reactant", "sn2_reactant", "reactant", 1),
+       ("scan", "g16-scan", "sn2_scan", "-", 0),
+       ("product", "g16-product", "sn2_product", "product", 1),
+       ("qst3", "g16-qst3", "sn2_qst3", "ts", 1),
+       ("irc", "g16-irc", "sn2_irc", "-", 0))
+SN2_LINKS = (("reactant", "scan", "geometry"), ("scan", "product", "geometry.last"),
+             ("reactant", "qst3", "reactant"), ("product", "qst3", "product"),
+             ("scan", "qst3", "tsguess.max"), ("qst3", "irc", "geometry"))
+
+
+def run_recipes(display, data, work, shots):
+    """Apply Recipe (#710): both entry points, boxes and links, key data."""
+    root = os.path.join(data, "users", "local")
+    for name in ("recipes", "keydata"):
+        os.makedirs(os.path.join(root, name))
+        shutil.copy(PROJECT_META, os.path.join(root, name, ".ecce-meta"))
+    for step, folder, stored, _, _ in SN2:
+        shutil.copytree(os.path.join(EXAMPLE, folder, "stored", stored),
+                        os.path.join(root, "keydata", stored), symlinks=True)
+    proj = "file://" + root + "/recipes"
+    kproj = "file://" + root + "/keydata"
+    wf, kwf = proj + "/Workflow", kproj + "/Workflow"
+    recdir = os.path.join(work, "userrecipes")
+    # A hand-written recipe in the user's folder, and a broken one beside it.
+    userdir = os.path.join(os.environ["ECCE_REALUSERHOME"], ".ECCE", "Recipes")
+    os.makedirs(userdir, exist_ok=True)
+    with open(os.path.join(userdir, "handmade.recipe"), "w") as f:
+        f.write("# my own recipe\nrecipe: handmade\ntitle: Handmade\n"
+                "role: geom | Geometry | PBE | def2-SVP | my choice\n"
+                "variant: main | xtb then ORCA | ORCA\n"
+                "step: main | first | xtb | | GeoVib | xtb Opt | structure\n"
+                "step: main | second | ORCA | geom | GeoVib | ORCA Opt |\n"
+                "link: main | first | second | geometry\n")
+    # One ORCA step: the role's basis set is stored once it has a structure.
+    with open(os.path.join(userdir, "single.recipe"), "w") as f:
+        f.write("recipe: single\ntitle: Single\n"
+                "role: geom | Geometry | B3LYP | 6-31G(d) | test\n"
+                "variant: main | ORCA | ORCA\n"
+                "step: main | opt | ORCA | geom | GeoVib | ORCA Opt | structure\n")
+    with open(os.path.join(userdir, "broken.recipe"), "w") as f:
+        f.write("recipe: broken\nthis line has no colon\n")
+    shots_panel = os.path.join(shots, "recipe-panel.png")
+    shots_done = os.path.join(shots, "recipe-keydata.png")
+    commands = [
+        "summary %s" % proj, "summary %s" % kproj,
+        "new %s workflow" % proj, "new %s workflow" % kproj,
+        "workflowrecipelist",
+        "workflowrecipepanel - %s ts-irc orca -" % wf,
+        "workflowrecipepanel %s %s ts-irc g16 -" % (shots_panel, wf),
+        "workflowrecipecreate %s" % wf,
+        # a second recipe appended after the TS box
+        "workflowrecipepanel - %s conformers orca %s/ts" % (wf, wf),
+        "workflowrecipecreate %s" % wf,
+        "workflowsaverecipe %s mine My-recipe" % wf,
+    ]
+    for step, folder, stored, key, thermo in SN2:
+        commands.append("workflowcopy %s %s/%s %s" % (kwf, kproj, stored, step))
+    for a, b, name in SN2_LINKS:
+        commands.append("workflowlink %s %s/%s %s/%s %s" % (kwf, kwf, a, kwf, b, name))
+    commands.append("workflowkeydata %s" % kwf)       # not a recipe workflow yet
+    for step, folder, stored, key, thermo in SN2:
+        commands.append("workflowmark %s %s/%s %s %d" % (kwf, kwf, step, key, thermo))
+    commands += ["workflowkeydata %s" % kwf,
+                 "workflowshot %s %s" % (shots_done, kwf),
+                 "workflowrecipe %s handmade main -" % wf,
+                 "workflowrecipe %s single main %s/reactant" % (kwf, kwf)]
+    script = os.path.join(work, "commands-recipes")
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    env = {"ECCE_TEST_ORGANIZER": script, "ECCE_RECIPE_DIRS": recdir}
+    os.makedirs(recdir)
+    result = apps.run(display, "organizer", windowTimeout=60, settle=75, env=env)
+    log = result.log or ""
+    what = "Recipes"
+    if result.crashed:
+        return fail(what, "CRASHED (%s)" % result.signalName, log)
+
+    def answers(prefix):
+        return re.findall(r"ECCE_TEST_ORGANIZER: %s.*?: (.*)$" % re.escape(prefix),
+                          log, re.M)
+
+    listed = answers("workflowrecipelist")
+    check("both built-in recipes are found",
+          listed and "ts-irc:g16,orca" in listed[0] and "conformers:orca,g16" in listed[0],
+          "workflowrecipelist answered %r" % listed)
+    check("a hand-written user recipe is listed, a broken one is reported with its line",
+          listed and "handmade:main" in listed[0] and "broken.recipe: line 2" in listed[0]
+          and "ts-irc:" in listed[0], "workflowrecipelist answered %r" % listed)
+    hand = answers("workflowrecipe ")
+    single = [h for h in hand if h.startswith("ok") and "|opt ORCA" in h]
+    check("the role's basis set is stored in a step that has a structure",
+          single and re.search(r"(^|\|| )opt ORCA [^|]*basis=6-31G\*", single[0]),
+          "workflowrecipe answered %r" % hand[-1:])
+    check("the hand-written recipe builds its two boxes and the link",
+          hand and "first xtb" in hand[0] and "second ORCA" in hand[0] and
+          "first>second:geometry" in hand[0], "workflowrecipe answered %r" % hand[:1])
+    panels = answers("workflowrecipepanel")
+    check("the set-up panel previews the ORCA variant (4 boxes, 3 links, no overlap)",
+          len(panels) >= 2 and "recipe=ts-irc variant=orca boxes=4 links=3 overlaps=0" in panels[0],
+          "panel answered %r" % panels[:1])
+    check("the set-up panel previews the G16 variant (5 boxes, 6 links, no overlap)",
+          len(panels) >= 2 and "variant=g16 boxes=5 links=6 overlaps=0" in panels[1]
+          and "ok" in panels[1][:3], "panel answered %r" % panels[1:2])
+    check("the panel offers the recommendation and its reason",
+          len(panels) >= 2 and "B3LYP/6-31+G(d)" in panels[1] and "Why: the usual starting level" in panels[1],
+          "panel answered %r" % panels[1:2])
+    created = answers("workflowrecipecreate")
+    info = created[0] if created else ""
+    st = steps(info.replace("ok ", "", 1))
+    check("Create boxes makes the five G16 steps",
+          sorted(st) == ["irc", "product", "reactant", "scan", "ts"],
+          "info %r" % info[:300])
+    check("only the first box needs a structure",
+          [n for n in st if st[n].get("needs") == "1"] == ["reactant"],
+          "needs: %r" % [(n, st[n].get("needs")) for n in st])
+    want = ("reactant>scan:geometry scan>product:geometry.last reactant>ts:reactant "
+            "product>ts:product scan>ts:tsguess.max ts>irc:geometry")
+    check("the links are the recipe's (roles and scan points)",
+          all(l in info for l in want.split()), "links in %r" % info[-300:])
+    check("the TS step is the QST3 run type",
+          st.get("ts", {}).get("code") == "G16", "ts: %r" % st.get("ts"))
+    check("appended after a box: the chain starts from it",
+          len(created) > 1 and "ts>crest:geometry" in created[1]
+          and "crest>xtb:geometry" in created[1] and "xtb>dft:geometry" in created[1],
+          "second info %r" % (created[1][-300:] if len(created) > 1 else ""))
+    saved = answers("workflowsaverecipe")
+    check("Save Workflow as Recipe writes a recipe file",
+          saved and saved[0].startswith("ok ") and os.path.exists(saved[0][3:]),
+          "answered %r" % saved)
+    if saved and saved[0].startswith("ok "):
+        text = open(saved[0][3:]).read()
+        check("the saved recipe keeps links and drops structures",
+              "link: main | reactant | scan | geometry" in text and "xyz" not in text.lower(),
+              text[:300])
+
+    keys = answers("workflowkeydata")
+    check("no key data for a workflow made without a recipe",
+          keys and keys[0] == "ok ", "answered %r" % keys[:1])
+    text = keys[1] if len(keys) > 1 else ""
+    check("key data: one code, one level, shown with progress",
+          "4 of 5 steps complete" in text and "Gaussian-16  B3LYP" in text, text)
+    check("key data: reaction energy -9.6 kJ/mol and barrier +27.3 kJ/mol",
+          "E(product) - E(reactant): -9.6 kJ/mol" in text and
+          "E(TS) - E(reactant): +27.3 kJ/mol" in text, text)
+    check("key data: free-energy barrier +25.6 kJ/mol",
+          "G(TS) - G(reactant): +25.6 kJ/mol" in text, text)
+    shot = answers("workflowshot")
+    check("the drawing with the key-data box has clear labels",
+          shot and shot[-1].startswith("ok ") and "label-overlaps=0" in shot[-1] and
+          "keybox=1 keyshown=1" in shot[-1], "workflowshot answered %r" % shot[-1:])
+    shutil.rmtree(recdir, ignore_errors=True)
+
+
 def main():
     keep = None
     if "--shots" in sys.argv:
@@ -414,6 +570,7 @@ def main():
         try:
             run(display, data, work, shots)
             run_joins(display, data, work, shots)
+            run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
             subprocess.run([stop], env=display.env(), timeout=120)

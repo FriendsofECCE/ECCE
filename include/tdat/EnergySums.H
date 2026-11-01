@@ -16,6 +16,7 @@ struct EnergyTerm
 {
    RxnState state;               ///< name, energy, thermochemistry, settings
    std::string code, dispersion;
+   std::string xc;                     ///< density functional as stored, "" if none
    std::map<std::string, int> atoms;   ///< element -> count; empty if unknown
    int coeff = 1;                ///< signed stoichiometric coefficient
    bool heat = false;            ///< the energy is a heat of formation (MOPAC)

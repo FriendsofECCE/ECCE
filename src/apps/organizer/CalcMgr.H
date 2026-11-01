@@ -334,6 +334,12 @@ public:
   Resource *newWorkflowJoin(Session *workflow, ResourceType *type,
                             const vector<WorkflowSteps::JoinSource>& sources,
                             bool ask, string *outcome, const string& name = "");
+  /// Apply Recipe: the variant's steps in the workflow; the tree and view
+  /// follow.  Empty on failure, with *outcome saying why.
+  vector<Resource*> newRecipeSteps(Session *workflow, const Recipe& recipe,
+                                   const RecipeVariant& variant,
+                                   const WorkflowSteps::Levels& levels,
+                                   Resource *after, string *outcome);
   void launchReadySteps(Session *workflow, bool interactive, string *outcome,
                         const string& shot);
   void createResource(ResourceType * resource,
