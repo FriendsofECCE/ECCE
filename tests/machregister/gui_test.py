@@ -446,6 +446,62 @@ quit
           "saved: memory limit 0, default 500 GB, default processors none: %r" % qk)
 
 
+def slurm_time_limit_warning(tmp, display, build):
+    print("Slurm machine without the time-limit capability warns")
+    e = Env(tmp, "tlwarn")
+    #  A Slurm machine with no run limit on any queue has no TL capability;
+    #  the second machine has one, so it does pass a time limit.
+    write(os.path.join(e.ue, "MyMachines"),
+          "notl\tnotl.example.org\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
+          "MN:RD:SD:UN:PW:Q\n"
+          "withtl\twithtl.example.org\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
+          "MN:RD:SD:UN:PW:Q\n")
+    write(os.path.join(e.ue, "CONFIG.notl"), "nwchem: /opt/nwchem\n")
+    write(os.path.join(e.ue, "CONFIG.withtl"), "nwchem: /opt/nwchem\n")
+    write(os.path.join(e.ue, "Queues"),
+          "Queues: notl withtl\n\n"
+          "notl|queueMgrName: Slurm\nnotl|prefFile: notl.Q\n"
+          "withtl|queueMgrName: Slurm\nwithtl|prefFile: withtl.Q\n")
+    write(os.path.join(e.ue, "notl.Q"),
+          "Queues: short\n\nshort|minProcessors: 1\nshort|maxProcessors: 64\n"
+          "short|runLimit: 0\n")
+    write(os.path.join(e.ue, "withtl.Q"),
+          "Queues: short\n\nshort|minProcessors: 1\nshort|maxProcessors: 64\n"
+          "short|runLimit: 60\n")
+    p = run(display, build, e, """
+select notl
+tab machine
+expect banner 1
+expect contains banner-text 'does not pass a time limit'
+expect contains banner-text '#SBATCH --time'
+select withtl
+expect banner 0
+expect field banner-text ''
+quit
+""")
+    clean(p, "no TL on a Slurm machine warns; with a run limit it does not")
+
+    #  The note follows the queue manager as it changes on the form.
+    p = run(display, build, e, """
+select notl
+tab machine
+expect banner 1
+expect contains banner-text 'does not pass a time limit'
+tab queues
+set qmgr None
+tab machine
+expect banner 0
+expect field banner-text ''
+tab queues
+set qmgr Slurm
+tab machine
+expect banner 1
+expect contains banner-text 'does not pass a time limit'
+quit
+""")
+    clean(p, "the note follows the queue manager")
+
+
 def submit_site_comment():
     print("submit.site: the memory unit")
     site = read(os.path.join(REPO, "siteconfig", "submit.site"))
@@ -2792,6 +2848,7 @@ def main():
             fixes(tmp, disp, build)
             help_button(tmp, disp, build)
             queue_defaults(tmp, disp, build)
+            slurm_time_limit_warning(tmp, disp, build)
             submit_site_comment()
             admin_mode(tmp, disp, build)
             remote_admin(tmp, disp, build)

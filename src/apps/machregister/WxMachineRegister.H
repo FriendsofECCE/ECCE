@@ -186,7 +186,8 @@ class WxMachineRegister: public ewxFrame
         void loadQueues(const string& refName);
         void fillQueues();
         void showQueue(const string& name = "");
-        void showSiteBanner();
+        void updateInfoBar(bool fit = false);
+        bool slurmWithoutTL() const;
         string explain(const string& refName, string& err) const;
         CfgRow* cfgRow(const string& key);
         string cfgDefault(const CfgRow& r) const;
@@ -405,6 +406,7 @@ class WxMachineRegister: public ewxFrame
         std::map<string, wxWindow*> p_fields;
 
         bool                 p_adminFlag;
+        bool                 p_infoShown;
         bool                 p_inCtrlUpdate;
         bool                 p_inListUpdate;
         bool                 p_closing;
