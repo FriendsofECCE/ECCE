@@ -309,7 +309,6 @@ void CalculationContextPanel::refreshLaunchInfo()
     in.wallTime = launchWallTime(job, launch.maxwall);
     if (!launch.machine.empty()) {
       in.allocation = AllocationQuery::account(launch);
-      in.allocationRemaining = launch.allocationLeft;
     }
   }
   wxSizer *block = ewxLaunchInfoBlock(this, LaunchInfoRows::build(in));
