@@ -401,7 +401,7 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
                              wxWindow *parent)
   : ewxPanel(parent, wxID_ANY), p_calcMgr(calcMgr),
     p_session(dynamic_cast<Session*>(node->getResource())),
-    p_canvas(0), p_help(0), p_status(0)
+    p_canvas(0), p_help(0), p_status(0), p_launch(0)
 {
   createControls();
 }
@@ -419,22 +419,24 @@ void WorkflowPanel::createControls()
   // The instructions have a panel of their own, never among the controls.
   wxPanel *notes = new wxPanel(this, wxID_ANY, wxDefaultPosition,
                                wxDefaultSize, wxBORDER_SIMPLE);
-  wxBoxSizer *noteSizer = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer *noteSizer = new wxBoxSizer(wxHORIZONTAL);
   p_help = new wxStaticText(notes, wxID_ANY, "");
   p_status = new wxStaticText(notes, wxID_ANY, "");
-  noteSizer->Add(p_help, 0, wxALL, 6);
-  noteSizer->Add(p_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  wxBoxSizer *texts = new wxBoxSizer(wxVERTICAL);
+  texts->Add(p_help, 0, wxALL, 6);
+  texts->Add(p_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  // Beside the instructions, where the text that names it is read.
+  p_launch = new wxButton(notes, wxID_ANY, "Launch Ready Steps");
+  p_launch->SetToolTip("Launch every step that has not been launched and whose "
+                       "source step is Complete");
+  p_launch->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { launchReadyClicked(); });
+  noteSizer->Add(texts, 1, wxEXPAND);
+  noteSizer->Add(p_launch, 0, wxALIGN_CENTER_VERTICAL | wxALL, 8);
   notes->SetSizer(noteSizer);
   left->Add(notes, 0, wxEXPAND | wxTOP, 4);
   top->Add(left, 1, wxEXPAND);
 
   wxBoxSizer *bar = new wxBoxSizer(wxVERTICAL);
-  wxButton *launch = new wxButton(this, wxID_ANY, "Launch\nReady Steps");
-  launch->SetToolTip("Launch every step that has not been launched and whose "
-                     "source step is Complete");
-  launch->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { launchReadyClicked(); });
-  bar->Add(launch, 0, wxEXPAND | wxALL, 4);
-  bar->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, 4);
   const vector<WorkflowSteps::Code> &codes = WorkflowSteps::codes();
   for (size_t i = 0; i < codes.size(); i++) {
     bar->Add(new CodeButton(this, codes[i], [this, i]() { codeClicked(i); }),
@@ -594,6 +596,18 @@ string WorkflowPanel::rightClick(const EcceURL &step, bool popup)
 {
   p_canvas->relayout();
   return p_canvas->rightClick(p_canvas->boxOf(step), popup);
+}
+
+
+string WorkflowPanel::launchButtonReport()
+{
+  Layout();
+  const wxRect r = p_launch->GetScreenRect();
+  const wxRect mine = GetScreenRect();
+  return string("label=") + p_launch->GetLabel().ToStdString() +
+         " shown=" + (p_launch->IsShownOnScreen() ? "1" : "0") +
+         " inside=" + (mine.Contains(r) ? "1" : "0") +
+         " enabled=" + (p_launch->IsEnabled() ? "1" : "0");
 }
 
 

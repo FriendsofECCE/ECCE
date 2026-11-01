@@ -664,6 +664,8 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
       //     code button or the tree's New menu makes it, the New-step dialog
       //     logged instead of shown: "ok <made> dialogs=carry;|nocarry;"
+      //   workflowlaunchbutton WF   the view's Launch Ready Steps button:
+      //     label, shown, inside the view (not clicked)
       //   workflowmenu WF STEP  a right-click on STEP's box: the menu's
       //     labels, or "error: ..." with what threw (#681)
       std::istringstream args(calcName);
@@ -855,6 +857,13 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = !error.empty() ? "error: " + error
                 : wf->numMembers() == before ? "error: no step made dialogs=" + dialogs
                 : "ok dialogs=" + dialogs;
+      } else if (command == "workflowlaunchbutton") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        outcome = wp ? "ok " + wp->launchButtonReport() : "no workflow panel";
       } else if (command == "workflowmenu") {
         p_treeCtrl->SelectItem(wfNode->GetId());
         for (int i = 0; i < 5; i++) wxYield();
