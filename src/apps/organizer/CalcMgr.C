@@ -282,7 +282,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
                                         wxID_ANY, "Bookmark Editor");
 
 
-  p_serverListEditor = new BookmarkEditor("ServerBookmarks", false, this,
+  p_serverListEditor = new BookmarkEditor("ServerList", false, this,
                                           wxID_ANY, "Server List Editor");
   p_find = 0;
   p_prefs = 0;

@@ -2,7 +2,7 @@
  * @file
  *
  * The servers a user has added (#767): SSH folders and ECCE servers, kept
- * per user in one plain file, ~/.ECCE/ServerList, one line per server:
+ * per user in one plain file, ~/.ECCE/AddedServers, one line per server:
  *
  *     <type><TAB><name><TAB><address>
  *

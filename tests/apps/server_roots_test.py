@@ -2,7 +2,7 @@
 """An ECCE server added in the Organizer is its own tree root (#767, a2a).
 
 A local-mode Organizer (ECCE_LOCAL_DATA) with this run's data server in
-~/.ECCE/ServerList: the root "<name> (ECCE server)" appears "(not connected)",
+~/.ECCE/AddedServers: the root "<name> (ECCE server)" appears "(not connected)",
 the login window (ECCE_TEST_AUTH_ANSWER=login:USER:PASS) connects it, a
 project and a calculation made there land in that server's htdocs, a copy
 between trees is refused, and a wrong password leaves the root unconnected
@@ -28,7 +28,7 @@ ROOT = NAME + " (ECCE server)"
 
 def serverFile():
     return os.path.join(os.environ.get("ECCE_REALUSERHOME", os.path.expanduser("~")),
-                        ".ECCE", "ServerList")
+                        ".ECCE", "AddedServers")
 
 
 def run(display, steps, extra, label, after=None):

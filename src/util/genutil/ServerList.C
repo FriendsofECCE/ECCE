@@ -29,7 +29,7 @@ bool blank(const string& s)
 
 string ServerList::file()
 {
-  return string(Ecce::realUserPrefPath()) + "ServerList";
+  return string(Ecce::realUserPrefPath()) + "AddedServers";
 }
 
 

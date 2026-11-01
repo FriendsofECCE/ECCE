@@ -477,7 +477,7 @@ protected:
   void initializeGUI();
   void setTreeStyle();
   void initializeTreeData();
-  // Roots for the ECCE servers in ~/.ECCE/ServerList (#767).
+  // Roots for the ECCE servers in ~/.ECCE/AddedServers (#767).
   void syncServerRoots();
   bool connectServer(const string& ref);
   string crossTreeRefusal(const vector<EcceURL>& sources, const EcceURL& dest);

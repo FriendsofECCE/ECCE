@@ -438,7 +438,7 @@ A client with nothing configured works on this computer and asks nothing:
 `ecce-first-start` (run by `ecce`) makes the data folder (`~/.ECCE-local`,
 `ecce-local` on Windows) and turns the local data preference on. A server is
 added later in **Edit > Preferences > Data**, box **Servers** (**Add
-Server...**: an SSH folder or an ECCE server; the list is `~/.ECCE/ServerList`,
+Server...**: an SSH folder or an ECCE server; the list is `~/.ECCE/AddedServers`,
 one `type<TAB>name<TAB>address` line each, `ecce-localdata servers list|add|remove`
 for scripts). Added servers are only listed in this version. The old window
 ("Welcome to ECCE") is `ecce-first-start --change`. A server recorded
