@@ -22,8 +22,8 @@ issues: [710, 674]
   acts on recipe steps only so other workflows behave as before.
 - The method and basis chosen per role are recorded as properties.
   `applyRoleMethod` sets theory RDFT plus `ES.Theory.DFT.XCFunctionals` (or
-  SCF/RHF for HF) for G16 and ORCA only, through `methodValue`, which holds
-  copies of the functional lists in `ged16theory.py`/`orcatheory.py`: add a
+  SCF/RHF for HF) for G16, ORCA and ECCE-QM only (ECCE-QM: theory DFT/DFT or SCF/HF, functionals SVWN, PBE, B3LYP, PBE0), through `methodValue`, which holds
+  copies of the functional lists in `ged16theory.py`/`orcatheory.py`/`ecceqmtheory.py`: add a
   functional there and here. Other codes keep their default.
 - `structureSet` runs when a recipe step's structure is stored: the
   Organizer's `ecce_url_subject` subscription (the Builder publishes it on
@@ -40,5 +40,5 @@ issues: [710, 674]
 - Key data (`KeyData.C`) shows numbers only when every Complete step has the
   same code, method, basis and solvent; otherwise a note and no numbers.
 - Test hooks: `workflowrecipelist`, `workflowrecipe`, `workflowrecipepanel`,
-  `workflowrecipecreate`, `workflowkeydata`, `workflowmark`, `workflowlink`,
+  `workflowrecipecreate`, `workflowrecipehere` (the box menu's Apply Recipe from here), `workflowkeydata`, `workflowmark`, `workflowlink`,
   `workflowsaverecipe`, `workflowstructure` (CalcMgr.C); test `tests/apps/workflow_test.py`.

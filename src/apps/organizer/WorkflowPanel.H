@@ -62,6 +62,10 @@ public:
   /// Apply Recipe: docks the set-up panel left of the canvas (after the
   /// selected box, if any).  Null if it is already open.
   RecipePanel *openRecipe();
+  /// The box menu's "Apply Recipe from here...": opens the panel with the
+  /// selected box as the 'after' box.
+  RecipePanel *recipeFromHere();
+  static int recipeHereId();
   RecipePanel *recipePanel() const { return p_recipe; }
   /// Create boxes: makes the steps; "" or why not.  Closes the panel on success.
   std::string recipeCreate(const Recipe& recipe, const RecipeVariant& variant,

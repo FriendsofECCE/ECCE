@@ -581,7 +581,9 @@ void applyRoleMethod(Resource *step)
   const bool hf = methodKey(method) == "hf";
   const string value = hf ? "" : WorkflowSteps::methodValue(type, method);
   if (!hf && value.empty()) return;
-  TTheory theory(hf ? "SCF" : "DFT", hf ? "RHF" : "RDFT");
+  // ECCE-QM names its theories after the category ("DFT", "HF").
+  const bool qm = type == "ecceqm_es";
+  TTheory theory(hf ? "SCF" : "DFT", qm ? (hf ? "HF" : "DFT") : hf ? "RHF" : "RDFT");
   calc->theory(&theory);
   if (hf) return;
   GUIValues *g = calc->guiparams();
@@ -814,7 +816,7 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
 
 string WorkflowSteps::methodValue(const string& codeType, const string& method)
 {
-  // Copies of the functional lists in ged16theory.py and orcatheory.py: a
+  // Copies of the functional lists in ged16theory.py, orcatheory.py and ecceqmtheory.py: a
   // method neither list has is left to the Calculation Editor.
   static const char *g16[] = {"B3LYP (hybrid)", "B3PW91 (hybrid)", "B97D3 (nonlocal)",
     "BLYP (nonlocal)", "BP86 (GGA)", "CAM-B3LYP (range)", "M06 (hybrid)",
@@ -824,7 +826,9 @@ string WorkflowSteps::methodValue(const string& codeType, const string& method)
   static const char *orca[] = {"B2PLYP", "B3LYP", "B97-D3", "B97M-V", "BLYP", "BP86",
     "CAM-B3LYP", "DSD-PBEP86", "M06", "M062X", "M06L", "PBE", "PBE0", "PWPB95",
     "r2SCAN", "revPBE", "TPSS", "TPSSh", "wB97M-V", "wB97X-D3", "wB97X-V", 0};
-  const char **list = codeType == "gaussian16_es" ? g16 : codeType == "orca_es" ? orca : 0;
+  static const char *qm[] = {"SVWN", "PBE", "B3LYP", "PBE0", 0};   // XC_FUNCTIONALS, ecceqmtheory.py
+  const char **list = codeType == "gaussian16_es" ? g16 : codeType == "orca_es" ? orca
+                    : codeType == "ecceqm_es" ? qm : 0;
   if (!list) return "";
   const string want = methodKey(method);
   for (int i = 0; list[i]; i++) {
