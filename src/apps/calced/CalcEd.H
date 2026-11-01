@@ -109,6 +109,11 @@ class CalcEd: public CalcEdGUI,
     void storeUseSymmetry(const bool& value);
     bool useSymmetryBox() const;
     bool hasDetailsValues(const string& prefix = "ES.") const;
+    //  Whether the current theory/run type has a details dialog with fields
+    //  to show: a dialog reports its fields as ES.Theory.* / ES.Runtype.*
+    //  values, so none means it would open empty (#676).
+    bool theoryDetailsAvailable() const;
+    bool runtypeDetailsAvailable() const;
     virtual void OnButtonCalcedBasisQuickClick( wxCommandEvent& event );
     virtual void OnChoiceCalcedTheorySelected( wxCommandEvent& event );
     virtual void OnChoiceCalcedRuntypeSelected( wxCommandEvent& event );
