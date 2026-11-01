@@ -80,6 +80,11 @@ GromacsRunPanel::GromacsRunPanel(MDEdBase *owner, wxWindow *parent)
   pr->Add(p_posresName, 0);
   g1->Add(pr, 0);
   defs->Add(g1, 0, wxALL | wxEXPAND, 6);
+  p_leaveTraj = new ewxCheckBox(db, ID_RUN_FIELD,
+      _("Leave trajectory files on the machine"));
+  p_leaveTraj->SetToolTip(_("Keep traj.xtc, ener.edr and topol.tpr in the run "
+                            "directory instead of fetching them back."));
+  defs->Add(p_leaveTraj, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   p_defsBox = db;
   p_chainRow = new wxWrapSizer(wxHORIZONTAL);
   defs->Add(p_chainRow, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 6);
@@ -262,6 +267,7 @@ void GromacsRunPanel::refresh()
   p_defines->ChangeValue(W(g.defines));
   p_posres->SetValue(g.posres);
   p_posresName->ChangeValue(W(g.posresName));
+  p_leaveTraj->SetValue(g.leaveTraj);
   p_groups->ChangeValue(W(g.groups));
   p_comGroups->SetSelection(g.comGroups ? 1 : 0);
   p_tcGroups->SetSelection(g.tcGroups ? 1 : 0);
@@ -300,6 +306,7 @@ void GromacsRunPanel::store()
   GromacsRun g = im->getGromacsRun();
   g.defines = S(p_defines->GetValue());
   g.posres = p_posres->GetValue();
+  g.leaveTraj = p_leaveTraj->GetValue();
   string name = S(p_posresName->GetValue());
   g.posresName = name.empty() ? GromacsRun().posresName : name;
   g.groups = S(p_groups->GetValue());
@@ -505,6 +512,7 @@ string GromacsRunPanel::summary()
   os << "defines=" << S(p_defines->GetValue())
      << " posres=" << (p_posres->GetValue() ? 1 : 0)
      << " posresname=" << S(p_posresName->GetValue())
+     << " leavetraj=" << (p_leaveTraj->GetValue() ? 1 : 0)
      << " chains=" << chainSummary()
      << " groups=[" << oneLine(S(p_groups->GetValue())) << "]"
      << " comgroups=" << p_comGroups->GetSelection()
@@ -531,6 +539,7 @@ string GromacsRunPanel::setField(const string& name, const string& value)
   if (name == "defines") p_defines->SetValue(v);
   else if (name == "posres") p_posres->SetValue(value == "1");
   else if (name == "posresname") p_posresName->SetValue(v);
+  else if (name == "leavetraj") p_leaveTraj->SetValue(value == "1");
   else if (name.compare(0, 6, "chain:") == 0) {
     refreshChains();
     for (size_t i = 0; i < p_chainIds.size(); i++) {

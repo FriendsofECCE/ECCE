@@ -167,6 +167,8 @@ public:
   string mdSystemName;
   string mdCalcName;
   int    mdStoreTrj;
+  bool   mdWriteTraj;
+  bool   mdLeaveTraj;
   bool   mdBatchOutput;
   bool   mdPMFOutput;
   const  RefQueueManager* mgr;
@@ -667,6 +669,8 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
   p_cache->mdSystemName = "";
   p_cache->mdCalcName = "";
   p_cache->mdStoreTrj = 0;
+  p_cache->mdWriteTraj = false;
+  p_cache->mdLeaveTraj = false;
   p_cache->mdBatchOutput = false;
   p_cache->mdPMFOutput = false;
 
@@ -687,6 +691,7 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
         vector<NWChemMDModel::GUIPanel> panels;
         panels.push_back(NWChemMDModel::FILES);
         panels.push_back(NWChemMDModel::THERMODYNAMICS);
+        panels.push_back(NWChemMDModel::INTERACTION);
         NWChemMDModel taskModel(panels);
         try {
           mdTask->getTaskModel(taskModel);
@@ -694,8 +699,13 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
           FilesModel *fmodel = taskModel.getFilesModel();
           if (fmodel) {
             p_cache->mdStoreTrj = fmodel->getTrajectoryStorage();
+            p_cache->mdWriteTraj = fmodel->getWriteTrajectory();
             p_cache->mdBatchOutput = fmodel->getUseBatches() &&
                                      !p_cache->isGromacs;
+          }
+          InteractionModel *imodel = taskModel.getInteractionModel();
+          if (imodel) {
+            p_cache->mdLeaveTraj = imodel->getGromacsRun().leaveTraj;
           }
           ThermodynamicsModel *tmodel = taskModel.getThermodynamicsModel();
           if (tmodel) {
@@ -1562,6 +1572,32 @@ bool Launch::generateJobMonitoringFiles(void)
       else if (jc != 0 && !aux.empty() &&
           jc->get_string("RetainAuxiliaryOutput", retain) && retain == "yes")
         monitorConfigFile << "filesToTransfer " << aux << endl;
+    }
+
+    //  GROMACS mdrun leaves its binary results in the run directory; the
+    //  monitor fetches them unless the task asked to leave them there.  The
+    //  trajectory exists only when the task writes one.
+    if (p_cache->isGromacs && !p_isPrepareTask) {
+      string gmx;
+      if (!p_cache->mdLeaveTraj)
+        gmx = p_cache->mdWriteTraj ? "traj.xtc ener.edr topol.tpr"
+                                   : "ener.edr topol.tpr";
+      if (!gmx.empty()) {
+        monitorConfigFile << "filesToTransfer " << gmx << endl;
+
+        //  How large a single fetched file may be before the monitor leaves
+        //  it on the machine (in MB); ECCE_GROMACS_FETCH_LIMIT overrides it.
+        //  Only these GROMACS trajectory files are capped: an orbital guess
+        //  (.chk/.gbw/.movecs) must come back however large it is.
+        long fetchLimit = 500;
+        if ((value = getenv("ECCE_GROMACS_FETCH_LIMIT")) != NULL) {
+          char* end = 0;
+          long parsed = strtol(value, &end, 10);
+          if (parsed > 0 && end != value && *end == '\0')
+            fetchLimit = parsed;
+        }
+        monitorConfigFile << "fileSizeLimit " << fetchLimit << endl;
+      }
     }
 
     monitorConfigFile << "parseTypes ALL" << endl;

@@ -67,7 +67,7 @@ def find_gmx():
 
 # ---- the task models, as the serializer writes them -------------------------
 
-def model(task, interaction="", optimize="", dynamics="", files=""):
+def model(task, interaction="", optimize="", dynamics="", files="", top=""):
     return """<?xml version="1.0"?>
 <NWChemMDModel>
 <SystemName>ecceSession</SystemName>
@@ -88,11 +88,11 @@ def model(task, interaction="", optimize="", dynamics="", files=""):
     <RestartFreq> 100</RestartFreq>
 %s
   </Files>
-</NWChemMDModel>
+%s</NWChemMDModel>
 """ % (task, task, interaction,
        ("  <Optimize>\n%s  </Optimize>\n" % optimize) if optimize else "",
        ("  <Dynamics>\n%s  </Dynamics>\n" % dynamics) if dynamics else "",
-       files)
+       files, top)
 
 
 def dyn(steps, resume, npt=False, temp=300):

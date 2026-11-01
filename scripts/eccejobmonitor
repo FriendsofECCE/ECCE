@@ -205,6 +205,7 @@ my %gConfig = (
     'ecceVersion'		=> 'VersionUnspecified',
     'endOfParams'		=> 'EndOfText',
     'endOfPDF'			=> 'EndOfText',
+    'fileSizeLimit'		=> undef,	# MB; larger traj.xtc/ener.edr/topol.tpr are left
     'filesToTransfer'		=> undef,
     'freqFileReopen'		=> 18,
     'host'			=> '-',
@@ -2634,6 +2635,39 @@ sub JobFilesGet
         &MsgSendFile($i, $MSG_TYPE_F_PROP, $gPdTableFiles{$i});
     }
 
+    # filesToTransfer entries larger than fileSizeLimit stay on the machine:
+    # a note is appended to the job output (sent below) and the file is
+    # skipped here.  Only GROMACS's trajectory files are size-checked: an
+    # orbital guess (.chk/.gbw/.movecs) must come back however big it is, or
+    # the next job's guess breaks.  The job's own outputs are sent however
+    # big they are.
+    my %skipTransfer;
+    my $limit = $gConfig{'fileSizeLimit'};
+    if (defined($limit) && $limit > 0 && $gConfig{'filesToTransfer'})
+    {
+        my $maxbytes = $limit * 1024 * 1024;
+        foreach my $f (split /\s+/, $gConfig{'filesToTransfer'})
+        {
+            (my $base = $f) =~ s/^.*\///;
+            next unless ($base eq 'traj.xtc' || $base eq 'ener.edr'
+                         || $base eq 'topol.tpr');
+            my $path = ($gConfig{'monitoringMode'} eq 'live')
+                       ? $f : $gConfig{'importDir'} . $f;
+            next unless (-e $path);
+            next unless ((-s $path) > $maxbytes);
+            $skipTransfer{$f} = 1;
+            my $msg = "$f was left in the run directory: it is larger than " .
+                      "the $limit MB fetch limit. Use ecce-fetch to fetch " .
+                      "it later.\n";
+            LogMsg $msg;
+            if (open(OUT, ">> $gConfig{'jobOutputFile2'}"))
+            {
+                print OUT $msg;
+                close OUT;
+            }
+        }
+    }
+
     # send job output files
 
     # for multiple parse files, don't add the jobOutputFile to the
@@ -2684,6 +2718,7 @@ sub JobFilesGet
     {
         foreach $i (split /\s+/, $gConfig{'filesToTransfer'})
         {
+            next if ($skipTransfer{$i});
             &MsgSendFile($i, $MSG_TYPE_F_OTHER);
         }
     }

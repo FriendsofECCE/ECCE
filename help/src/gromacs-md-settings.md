@@ -95,3 +95,21 @@ Anything else goes in the last box, one `key = value` per line, for example
 the `.mdp`. A key you write replaces the line ECCE would write for it, with
 `-` and `_` and capital letters taken as the same, so there is never a second
 line for one key.
+
+## Leave trajectory files on the machine
+
+A run leaves `ener.edr` (the energies), `topol.tpr` (the run input grompp
+built) and, for a Dynamics task that writes a trajectory, `traj.xtc` in the
+run directory, and ECCE fetches them back when the job ends. Tick **Leave
+trajectory files on the machine** to keep all three there instead. Files
+larger than the fetch limit (500 MB each, unless the site sets another) are
+left there in any case, with a note in the job output; fetch them later with
+`ecce-fetch`.
+
+## Continuing a run
+
+A Dynamics task that follows another Dynamics task continues its clock: the
+new `.mdp`'s `tinit` and `init-step` start where the previous run ended,
+unless you set an **initial time** on the Dynamics page. An initial time of 0
+means the same as leaving it blank — continue from the previous task — so set
+a non-zero time when a run should restart its own clock.
