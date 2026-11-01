@@ -39,9 +39,9 @@ groups: minimal (STO-3G); Pople (3-21G, 6-31G, 6-31G*, 6-31+G*, 6-311G*);
 Dunning (cc-pVDZ, aug-cc-pVDZ, cc-pVTZ); Karlsruhe (def2-SVP, def2-TZVP). A new calculation starts with 6-31G*. The
 same menu opens the **Basis Set Tool**, which offers every basis set in
 ECCE's library, as for the other codes. Spherical d and f functions are used throughout. An element that a basis set does not cover is named before the job is
-launched. An element that would need an effective core potential is named as
-a warning, also before launch; the job still runs, but without the core
-potential, so those atoms are not described reliably.
+launched. ECCE-QM has no effective core potentials: a basis set that needs one for
+an element of the molecule (for example def2 sets beyond krypton) is named
+in a warning before launch, and its input cannot be written.
 
 ## Run types
 

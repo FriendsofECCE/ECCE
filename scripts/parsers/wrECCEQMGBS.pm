@@ -17,13 +17,10 @@ sub writeECCEQM {
   if (exists $bs{"ecp"} && scalar(keys %{$bs{"ecp"}}) > 0) {
     my @els = grep { $_ ne "polarization" } sort keys %{$bs{"ecp"}};
     if (@els) {
-      # The editor warns (without blocking) before launch; here the ECP is
-      # simply dropped and the orbital part written, so input generation
-      # never fails.  The engine has no ECP keyword to carry it either way.
-      print STDERR "Warning: ECCE-QM has no effective core potentials; the " .
-          "basis set needs one for: " . join(" ", @els) .
-          ". The core potential is not written; the result treats those " .
-          "atoms without it.\n";
+      # The editor warns before launch; generating an input without the core
+      # potential would give a wrong all-electron calculation, so refuse here.
+      die "ECCE-QM has no effective core potentials; the basis set needs one for: " .
+          join(" ", @els) . ". Choose a basis set that covers every element without one.\n";
     }
   }
 

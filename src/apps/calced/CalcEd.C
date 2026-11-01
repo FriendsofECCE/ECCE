@@ -3204,7 +3204,7 @@ string CalcEd::uncoveredElementsMessage() const
  * For a code that only offers its quick-pick basis sets (ECCE-QM): which
  * elements of the molecule the chosen basis carries a core potential for.
  * Called before ICalcUtils::makeConsistent() drops the ECP the code cannot
- * use, so the warning can name the elements; it must not block launch.
+ * use, so the warning can name the elements before launch.
  */
 string CalcEd::ecpElementsMessage() const
 {
@@ -3228,9 +3228,9 @@ string CalcEd::ecpElementsMessage() const
   string msg = "The basis set " + p_basis->name() + " uses a core potential for ";
   for (set<string>::const_iterator e = ecp.begin(); e != ecp.end(); ++e)
     msg += (e == ecp.begin() ? "" : ", ") + *e;
-  msg += ", which ECCE-QM does not support.  The calculation will run without "
-         "that core potential, so those atoms are not described reliably.  "
-         "Choose another basis set from the Basis Set menu, or another molecule.";
+  msg += ", which ECCE-QM does not have, so the input for this basis set "
+         "cannot be written.  Choose another basis set from the Basis Set menu "
+         "or the Basis Set Tool, or another molecule.";
   return msg;
 }
 
