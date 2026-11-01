@@ -329,10 +329,25 @@ void JobProgress::plotAxis(const Stage& st, const string& rec,
         break;
       }
     }
+  double scale = 1, t;
+  //  The density has a time but no step (it comes from the energy file, not
+  //  the log).  Take the ps per step from a sibling plot so it shares their
+  //  x axis; the points are spread over the time they span.
+  if (!haveK && st.name.compare(0, 4, "gmx-") == 0 &&
+      number(st.field("time"), t) && t > 0)
+    for (const Stage& o : p_stages) {
+      double ok, ot;
+      if (&o != &st && o.name.compare(0, 4, "gmx-") == 0 &&
+          number(o.field("step"), ok) && ok > 0 &&
+          number(o.field("time"), ot) && ot > 0) {
+        b.plotXUnit = "ps";
+        b.plotXLast = t;
+        b.plotXEnd = std::max(t, total * ot / ok);
+        return;
+      }
+    }
   const double last = std::max(k, n);
-  double scale = 1;
   b.plotXUnit = recName.empty() ? "record" : recName;
-  double t;
   if (haveK && k > 0 && number(st.field("time"), t) && t > 0) {
     scale = t / k;
     b.plotXUnit = "ps";

@@ -347,6 +347,20 @@ int main()
           "gmx: potential energy x axis in steps out to the run's total");
   }
 
+  // The density has a time but no step; it shares the other plots' ps axis.
+  {
+    JobProgress g;
+    g.parse("md point=200/400\ngmx-temp step=200 time=0.4 temp=2.9e+02\n"
+            "gmx-temp~ temp=287,300,291\ngmx-dens time=0.4 dens=1.0e+03\n"
+            "gmx-dens~ dens=990,1000,1010\n");
+    const JobProgress::Block *dn = 0;
+    for (const auto& b : g.running(0))
+      if (b.title == "Density") dn = &b;
+    check(dn && dn->plot.size() == 3 && dn->plotXUnit == "ps" &&
+          fabs(dn->plotXLast - 0.4) < 1e-9 && fabs(dn->plotXEnd - 0.8) < 1e-9,
+          "gmx: density x axis in ps out to the run's total, like temperature");
+  }
+
   // Dynamics shows the run's average and deviation (#517); the total energy
   // stage is for the summary only.
   {
