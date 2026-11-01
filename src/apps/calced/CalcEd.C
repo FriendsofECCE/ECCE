@@ -3163,25 +3163,20 @@ void CalcEd::applyDefaultBasis()
 
 /**
  * For a code that only offers its quick-pick basis sets (ECCE-QM): which
- * elements of the molecule the chosen basis has no functions for, or needs a
- * core potential for, in words a student can act on.
+ * elements of the molecule the chosen basis has no functions for, in words
+ * a student can act on.
  */
 string CalcEd::uncoveredElementsMessage() const
 {
   if (!p_basis || !p_code || p_code->getBasisSetPicks().empty()) return "";
 
-  set<string> missing, ecp;
+  set<string> missing;
   for (TGBSConfig::iterator it = p_basis->begin(); it != p_basis->end(); ++it) {
     const TGBSGroup *group = it->second;
     if (group == NULL) continue;
     TGBSConfigTags tags(it->first.c_str());
     vector<const TGaussianBasisSet*> *sets = group->getOrbitalGBSList();
-    const TGaussianBasisSet *ecpSet = group->ecp();
     for (size_t i = 0; i < tags.size(); i++) {
-      if (ecpSet && ecpSet->p_contractions.find(tags[i]) != ecpSet->p_contractions.end()) {
-        ecp.insert(tags[i]);
-        continue;
-      }
       bool covered = (sets != 0 && !sets->empty());
       if (sets) {
         for (size_t j = 0; j < sets->size(); j++) {
@@ -3195,21 +3190,47 @@ string CalcEd::uncoveredElementsMessage() const
     delete sets;
   }
 
-  string msg;
-  string name = p_basis->name();
-  if (!missing.empty()) {
-    msg = "The basis set " + name + " has no functions for ";
-    for (set<string>::const_iterator e = missing.begin(); e != missing.end(); ++e)
-      msg += (e == missing.begin() ? "" : ", ") + *e;
-    msg += ", which is in this molecule.  Choose another basis set from the "
-           "Basis Set menu, or another molecule.";
-  } else if (!ecp.empty()) {
-    msg = "The basis set " + name + " uses a core potential for ";
-    for (set<string>::const_iterator e = ecp.begin(); e != ecp.end(); ++e)
-      msg += (e == ecp.begin() ? "" : ", ") + *e;
-    msg += ", which ECCE-QM does not support.  Choose another basis set from "
-           "the Basis Set menu, or another molecule.";
+  if (missing.empty()) return "";
+  string msg = "The basis set " + p_basis->name() + " has no functions for ";
+  for (set<string>::const_iterator e = missing.begin(); e != missing.end(); ++e)
+    msg += (e == missing.begin() ? "" : ", ") + *e;
+  msg += ", which is in this molecule.  Choose another basis set from the "
+         "Basis Set menu, or another molecule.";
+  return msg;
+}
+
+
+/**
+ * For a code that only offers its quick-pick basis sets (ECCE-QM): which
+ * elements of the molecule the chosen basis carries a core potential for.
+ * Called before ICalcUtils::makeConsistent() drops the ECP the code cannot
+ * use, so the warning can name the elements before launch.
+ */
+string CalcEd::ecpElementsMessage() const
+{
+  if (!p_basis || !p_code || p_code->getBasisSetPicks().empty()) return "";
+
+  set<string> ecp;
+  for (TGBSConfig::iterator it = p_basis->begin(); it != p_basis->end(); ++it) {
+    const TGBSGroup *group = it->second;
+    if (group == NULL) continue;
+    TGBSConfigTags tags(it->first.c_str());
+    const TGaussianBasisSet *ecpSet = group->ecp();
+    if (!ecpSet) continue;
+    for (size_t i = 0; i < tags.size(); i++) {
+      if (ecpSet->p_contractions.find(tags[i]) != ecpSet->p_contractions.end()) {
+        ecp.insert(tags[i]);
+      }
+    }
   }
+
+  if (ecp.empty()) return "";
+  string msg = "The basis set " + p_basis->name() + " uses a core potential for ";
+  for (set<string>::const_iterator e = ecp.begin(); e != ecp.end(); ++e)
+    msg += (e == ecp.begin() ? "" : ", ") + *e;
+  msg += ", which ECCE-QM does not have, so the input for this basis set "
+         "cannot be written.  Choose another basis set from the Basis Set menu "
+         "or the Basis Set Tool, or another molecule.";
   return msg;
 }
 
@@ -3224,6 +3245,10 @@ bool CalcEd::isGbsValid()
   TTheory theory = getTheory();
 
   if (p_frag && p_basis && p_code && !theory.name().empty()) {
+    // makeConsistent() drops an ECP the code cannot use, so name the
+    // elements that would lose one first; the warning must not block launch.
+    string ecpWarning = ecpElementsMessage();
+
     if (!ICalcUtils::makeConsistent(p_frag, p_basis, p_code, &theory)) {
       if (errors.count() > 0) {
         p_feedback->setMessage(errors.messageText(errors.last()),
@@ -3236,6 +3261,8 @@ bool CalcEd::isGbsValid()
     if (!uncovered.empty()) {
       p_feedback->setMessage(uncovered, WxFeedback::ERROR);
       ret = false;
+    } else if (!ecpWarning.empty()) {
+      p_feedback->setMessage(ecpWarning, WxFeedback::WARNING);
     } else if (!GBSRules::isComplete(p_frag, p_basis, p_code, &theory)) {
       p_feedback->setMessage("The selected configuration doesn't cover all "
               "elements in the chemical system.  Use the Basis Set Tool to "

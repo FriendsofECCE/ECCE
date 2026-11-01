@@ -10,9 +10,11 @@
    GeoVib and Transition State (Opt-TS: saddle-point search from the
    structure in the editor, then frequencies) (ai.ecceqm's
    RunType() maps them to the engine's runtype keyword; the runtype
-   dialog offers Raman activities for the last two), and a fixed list of basis sets chosen
-   from the Calculation Editor's quick-pick menu.  The Basis Set Tool is
-   not used.
+   dialog offers Raman activities for the last two), and a short list of
+   basis sets chosen from the Calculation Editor's quick-pick menu.  Any
+   other basis set in ECCE's library can be chosen through the Basis Set
+   Tool; the engine reads whatever basis_data block the tool's choice
+   produces, so it needs no library of its own.
 
    The code's name, ECCE-QM, appears here (the file name), in
    ResourceDescriptor*.xml, the machine lists (siteconfig/Machines),
@@ -28,7 +30,10 @@
 <appdescriptor>
 
 <GaussianBasisSetRules>
-  <MaxLValue>4</MaxLValue>
+  <!-- The engine reads every shell S..I a basis_data block can carry and
+       has no function or primitive cap of its own, so the only limits are
+       the ones here that the engine really has (measured with ecce-qm). -->
+  <MaxLValue>6</MaxLValue>
   <ECPS>False</ECPS>
   <GeneralContractions>False</GeneralContractions>
   <PreferOptimization>	True</PreferOptimization>
@@ -39,8 +44,8 @@
   <DFTFitting>		False</DFTFitting>
   <RecommendDFTCharge>	False </RecommendDFTCharge>
   <RequireFullDFT>         False </RequireFullDFT>
-  <MaxTotalFunctions>	500</MaxTotalFunctions>
-  <MaxTotalPrimitives>	7500</MaxTotalPrimitives>
+  <MaxTotalFunctions>	64000</MaxTotalFunctions>
+  <MaxTotalPrimitives>	64000</MaxTotalPrimitives>
   <MultipleOrbitals>	false</MultipleOrbitals>
   <LibraryNames>	False</LibraryNames>
   <AllowMultipleOrbitals>False</AllowMultipleOrbitals>
@@ -96,14 +101,13 @@
     a7="xxx/2-3xyy/2"></lshell>
 </MOOrdering>
 
-<!-- The basis sets the Calculation Editor offers (its quick-pick menu,
-     in this order), and the one a new calculation starts with.  The Basis
-     Set Tool is hidden for this code.  One list, here. -->
+<!-- The basis sets the Calculation Editor offers as its quick-pick menu
+     (in this order), and the one a new calculation starts with.  The Basis
+     Set Tool is also offered, for any other basis set in ECCE's library. -->
 <Editor theorydialog="ecceqmtheory.py"
         runtypedialog="ecceqmruntype.py"
         basisSetPicks="#Minimal,STO-3G,-,#Pople,3-21G,6-31G,6-31G*,6-31+G*,6-311G*,-,#Dunning,cc-pVDZ,aug-cc-pVDZ,cc-pVTZ,-,#Karlsruhe,def2-SVP,def2-TZVP"
-        basisSetDefault="6-31G*"
-        basisSetToolHidden="true">
+        basisSetDefault="6-31G*">
   <!-- DFT first: a new calculation starts as B3LYP. -->
   <Theory category="DFT" name="DFT">
     <runtype>Energy</runtype>
