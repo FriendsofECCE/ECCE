@@ -2577,6 +2577,37 @@ sub SchedulerErrSend
 # info if it's available.
 # --------------------------------------------------------------------------- #
 
+# --------------------------------------------------------------------------- #
+# A job the scheduler ended (OUT_OF_MEMORY, TIMEOUT, ...) never ran its
+# script's end block, and on a shared file system its output may still be
+# arriving.  Wait, at most 60 s, until the output is non-empty and the same
+# size on two reads 3 s apart; the sizes go to the log (#732).
+# --------------------------------------------------------------------------- #
+
+sub SchedulerEndOutputSettle
+{
+    my $file = $gConfig{'jobOutputFile'};
+    return unless $file;
+
+    my $pause = 3;
+    my $deadline = time + 60;
+    my $prev = -1;
+    my @seen;
+    for (;;)
+    {
+        my $size = (-e $file) ? (-s $file) : 0;
+        $size = 0 unless defined $size;
+        push @seen, $size;
+        last if ($size > 0 && $size == $prev);
+        last if (time + $pause > $deadline);
+        $prev = $size;
+        select(undef, undef, undef, $pause);
+    }
+    LogMsg "SchedulerEndOutputSettle: '$file' sizes " . join(',', @seen)
+        . (($seen[-1] > 0 && @seen > 1 && $seen[-1] == $seen[-2])
+           ? " (settled)" : " (gave up)");
+}
+
 sub JobFilesGet
 {
     my $errMsg = undef;
@@ -2585,6 +2616,9 @@ sub JobFilesGet
     my $sWhat = 'job status file';
     my $timeLimit = $gConfig{'timeLimitFileExistStat'};
     my $timePause = $gConfig{'timePauseFileExistStat'};
+
+    &SchedulerEndOutputSettle() if ($gSchedState ne ''
+                                   && $gConfig{'monitoringMode'} eq 'live');
 
     if (($gConfig{'monitoringMode'} eq 'live') && $gWaitFileStatus)
     {
