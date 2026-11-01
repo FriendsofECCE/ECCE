@@ -277,7 +277,23 @@ inline bool matchOrcaError(const std::vector<std::string>& lines,
       return true;
     }
     if (std::regex_search(lines[i], errorWord)) {
-      reason = "\"" + truncate(trimmed(lines[i])) + "\"";
+      // A boxed "ERROR !!!" says nothing itself; its first sentence below
+      // ("The optimization did not converge but reached ...") is the reason.
+      std::string text = trimmed(lines[i]);
+      if (std::regex_match(text, std::regex("ERROR[\\s!:]*"))) {
+        std::string sentence;
+        for (size_t j = i + 1; j < lines.size(); j++) {
+          std::string t = trimmed(lines[j]);
+          if (t.empty() || t.find_first_not_of("-=*") == std::string::npos) {
+            if (sentence.empty()) continue;
+            break;
+          }
+          sentence += (sentence.empty() ? "" : " ") + t;
+          if (t.back() == '.') break;
+        }
+        if (!sentence.empty()) text = sentence;
+      }
+      reason = "\"" + truncate(text) + "\"";
       return true;
     }
   }

@@ -1,0 +1,31 @@
+Hessian update/contruction      :      0.023 s (45.438 %)
+Making the step                 :      0.008 s (16.449 %)
+Converting the step to Cartesian:      0.001 s ( 1.422 %)
+Storing new data                :      0.001 s ( 2.310 %)
+Checking convergence            :      0.000 s ( 0.471 %)
+Final printing                  :      0.004 s ( 8.684 %)
+Total time                      :      0.051 s
+
+Time for energy+gradient        :    417.086 s
+Time for complete geometry iter :    421.366 s
+
+
+
+
+    ----------------------------------------------------------------------------
+                                   ERROR !!!
+       The optimization did not converge but reached the maximum 
+       number of optimization cycles.
+       As a subsequent Frequencies calculation has been requested
+       ORCA will abort at this point of the run.
+       Please restart the calculation with the lowest energy geometry and/or
+       a larger maxiter for the geometry optimization.
+    ----------------------------------------------------------------------------
+
+
+
+--------------------------------
+SUGGESTED CITATIONS FOR THIS RUN
+--------------------------------
+
+Below you find a list of papers that are relevant to this ORCA run
