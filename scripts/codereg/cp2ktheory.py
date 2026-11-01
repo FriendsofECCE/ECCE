@@ -282,6 +282,37 @@ class Cp2kTheoryPanel(EccePanel):
                                         label="Smearing (0 = off, without OT):",
                                         export=1)
         scfSizer.AddWidget(self.smearTemp)
+        # Diagonalisation-only settings (ai.cp2k drops them while OT is on).
+        self.mixingAlpha = EcceFloatInput(self,
+                                          name="ES.Theory.GPW.MixingAlpha",
+                                          default=0.4,
+                                          hardRange="(0..)",
+                                          softRange="[0.1..0.6]",
+                                          label="Mixing alpha:",
+                                          export=1)
+        scfSizer.AddWidget(self.mixingAlpha)
+        self.nBroyden = EcceSpinCtrl(self,
+                                     hardRange="[1..]",
+                                     softRange="[2..20]",
+                                     name="ES.Theory.GPW.NBroyden",
+                                     default=8,
+                                     label="Broyden history:",
+                                     export=1)
+        scfSizer.AddWidget(self.nBroyden)
+        self.addedMos = EcceSpinCtrl(self,
+                                     hardRange="[0..]",
+                                     softRange="[0..100]",
+                                     name="ES.Theory.GPW.AddedMos",
+                                     default=0,
+                                     label="Added MOs:",
+                                     export=1)
+        scfSizer.AddWidget(self.addedMos)
+        self.printHomoLumoGap = EcceCheckBox(self,
+                                             label=" Print HOMO-LUMO gap",
+                                             name="ES.Theory.GPW.PrintHomoLumoGap",
+                                             default=False,
+                                             export=1)
+        scfSizer.AddWidget(self.printHomoLumoGap)
         self.panelSizer.Add(scfSizer)
 
         self.AddButtons()
@@ -320,6 +351,10 @@ class Cp2kTheoryPanel(EccePanel):
         self.outerScf.Enable(ot)
         self.outerMaxScf.Enable(ot and self.outerScf.GetValue())
         self.smearTemp.Enable(not ot)
+        self.mixingAlpha.Enable(not ot)
+        self.nBroyden.Enable(not ot)
+        self.addedMos.Enable(not ot)
+        self.printHomoLumoGap.Enable(not ot)
 
         for el, orb, u in zip(self.hubbardEl, self.hubbardOrb,
                               self.hubbardU):

@@ -234,6 +234,18 @@ sub flag {
   return ($v eq "1" || $v =~ /^(true|yes|on)$/i) ? 1 : 0;
 }
 
+# The ADDED_MOS count to write into &SCF (0 = none): the dialog's Added MOs
+# first, then one for the HOMO-LUMO gap, then the previous hard-wired 20 for
+# a smeared diagonalisation with neither, so existing decks stay byte-identical.
+sub addedMos {
+  my $added = &intOr("ES.Theory.GPW.AddedMos", 0);
+  return $added if ($added > 0);
+  return 1 if (&flag("ES.Theory.GPW.PrintHomoLumoGap", 0));
+  my $temp = &numOr("ES.Theory.GPW.SmearTemperature", "0");
+  return 20 if ($temp + 0 > 0);
+  return 0;
+}
+
 ################################################################################
 # Basis and potential per element, from the library files
 ################################################################################
@@ -467,11 +479,14 @@ sub scfLines {
     }
   } else {
     my $temp = &numOr("ES.Theory.GPW.SmearTemperature", "0");
-    push(@l, "  ADDED_MOS 20") if ($temp + 0 > 0);
+    my $added = &addedMos;
+    push(@l, "  ADDED_MOS $added") if ($added > 0);
     push(@l, "  &DIAGONALIZATION", "    ALGORITHM STANDARD",
              "  &END DIAGONALIZATION",
-             "  &MIXING", "    METHOD BROYDEN_MIXING", "    ALPHA 0.4",
-             "    NBROYDEN 8", "  &END MIXING");
+             "  &MIXING", "    METHOD BROYDEN_MIXING",
+             "    ALPHA " . &numOr("ES.Theory.GPW.MixingAlpha", "0.4"),
+             "    NBROYDEN " . &intOr("ES.Theory.GPW.NBroyden", 8),
+             "  &END MIXING");
     push(@l, "  &SMEAR", "    METHOD FERMI_DIRAC",
              "    ELECTRONIC_TEMPERATURE [K] $temp", "  &END SMEAR")
       if ($temp + 0 > 0);
@@ -533,6 +548,11 @@ sub CP2KForceEval {
        "  &QS", "    METHOD GPW", "    EPS_DEFAULT 1.0E-10", "  &END QS",
        "  &POISSON", "    PERIODIC XYZ", "  &END POISSON");
   push(@dft, &indent(2, &scfLines), &indent(2, &xcLines));
+  # The HOMO-LUMO gap is read from the MO eigenvalues CP2K prints when asked;
+  # nothing else in the deck prints them, so the section is opt-in.
+  push(@dft, "  &PRINT", "    &MO", "      EIGENVALUES T",
+             "    &END MO", "  &END PRINT")
+    if (&flag("ES.Theory.GPW.PrintHomoLumoGap", 0) && !&flag("ES.Theory.GPW.UseOT", 1));
   push(@dft, "&END DFT");
 
   my @sub = ("&SUBSYS", "  &CELL");
