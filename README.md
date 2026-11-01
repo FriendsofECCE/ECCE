@@ -46,6 +46,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.5.0
 
+- Local by default: ECCE starts with your calculations in a folder on this computer, without a question at first start (installations set up with a server start as before). **Edit > Preferences > Data** shows that folder and a list of servers; **Add Server...** adds an SSH folder or an ECCE server ([#767](https://github.com/FriendsofECCE/ECCE/issues/767); the servers' own trees in the Organizer follow).
+
 - Example set Workflows: a workflow of Na+(H2O)6 in which xTB optimises three arrangements (6+0, 5+1, 4+2) and ORCA r2SCAN-3c refines each result, opened from **File > Open Example Calculations**.
 
 - Workflows (preview): **File > New > Workflow...** makes a set of calculations
