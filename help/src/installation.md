@@ -156,8 +156,18 @@ added, with their name, type and address:
 - **Edit...** changes the selected server and **Remove** takes it out of the
   list. Nothing on the server is deleted.
 
-The list of servers is stored for you. For now the Preferences page only
-stores and lists them; connecting to them comes in a later release.
+The list of servers is stored for you. Each ECCE server in the list is a
+tree of its own in the Organizer, below **Local data**, named
+**<name> (ECCE server)**. Opening it asks for your login on that server
+(the login is kept for that server only, never used for another one). If the
+login is cancelled or refused the tree stays marked **(not connected)** and
+**Reconnect** in its right-click menu asks again; this never changes where
+ECCE keeps your calculations. **Remove** in Preferences takes the tree out of
+the Organizer at once. In a server tree you can browse, make projects and
+calculations, open, rename, delete and copy within that tree. Copying or
+moving between **Local data** and a server, or between two servers, is not
+supported yet, and neither is launching a calculation stored on an added
+server. SSH folders are not shown in the Organizer yet.
 
 A server that your administrator set up for the installation is listed as
 **Set by your administrator** and cannot be changed or removed. ECCE does

@@ -67,6 +67,13 @@ public:
   virtual WxResourceTreeItemData * addRoot(const string& name,
                                            const EcceURL& url);
 
+  // A root for an added ECCE server: connected at the home of user, or,
+  // with user empty, a "(not connected)" placeholder without a resource.
+  WxResourceTreeItemData * addServerRoot(const string& name, const string& ref,
+                                         const string& user);
+  void removeServerRoots();
+  vector<string> rootLabels();
+
   virtual bool loadChildren(WxResourceTreeItemData * node,
                             bool refresh = false);
 

@@ -4,6 +4,7 @@
  *
  */
 
+#include "util/ServerList.H"
 #include <strstream>
   using std::ostrstream;
 
@@ -286,6 +287,29 @@ WxDavAuth::WxDavAuth(wxWindow *window)
    p_prompting = false;
    p_promptCount = 0;
    p_sessionTried = false;
+   s_instance = this;
+}
+
+bool WxDavAuth::s_noPrompt = false;
+bool WxDavAuth::s_probe = false;
+string WxDavAuth::s_probeUser, WxDavAuth::s_probePass;
+
+void WxDavAuth::setProbe(const string& user, const string& pass)
+{
+   s_probe = true;
+   s_probeUser = user;
+   s_probePass = pass;
+}
+WxDavAuth *WxDavAuth::s_instance = 0;
+
+bool WxDavAuth::askAddedLogin(const string& ref, string& user, string& pass)
+{
+   if (s_instance == 0) return false;
+   const bool before = s_noPrompt;
+   s_noPrompt = false;
+   bool ok = s_instance->prompt(ref + "Ecce/", false, user, pass, 1);
+   s_noPrompt = before;
+   return ok;
 }
 
 
@@ -331,7 +355,7 @@ BasicAuth *WxDavAuth::getAuthorization(const string& url, const string& user)
 
    string username = user;
    if (username == "") {
-      username = Ecce::serverUser();
+      username = ServerList::userFor(url);
    }
 
   EcceURL eurl(url);
@@ -376,6 +400,13 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
 {
    bool ret = false;
 
+   if (s_probe) {
+      if (event.m_retryCount != 1) return false;
+      event.m_user = s_probeUser;
+      event.m_password = s_probePass;
+      return true;
+   }
+
    // Don't really need this?
    //NULLPOINTEREXCEPTION(p_window,
          //"Parent widget for authization window not set");
@@ -394,7 +425,7 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
    // Supply default user name if needed
    // If left blank, matching policies will fail.
    if (event.m_user == "") {
-      event.m_user = Ecce::serverUser();
+      event.m_user = ServerList::userFor(event.m_url);
    }
 
    // If we've started to prompt, no point in looking in cache.
@@ -433,6 +464,8 @@ bool WxDavAuth::getAuthorization(AuthEvent& event)
          return true;
       }
    }
+
+   if (ba == 0 && s_noPrompt) return false;
 
    if (ba == 0) {
       // try prompting then
@@ -607,7 +640,8 @@ bool WxDavAuth::prompt(const string& strurl,
      // The start window asks "this computer or a server" at every start,
      // so the login window does not ask it a second time.
      authDlg.showUseLocal(false);
-     const bool offerReset = perUserServer();
+     const bool added = ServerList::isAdded(url.getRef());
+     const bool offerReset = !added && perUserServer();
      authDlg.showReset(offerReset);
      if (getenv("ECCE_TEST_AUTH_ANSWER"))
        fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: reset %s\n",
@@ -741,7 +775,7 @@ bool WxDavAuth::prompt(const string& strurl,
          ret = true;
          user = authDlg.getUser();
          password = authDlg.getPassword();
-         if (perUserServerLacksAccount(user)) {
+         if (!ServerList::isAdded(url.getRef()) && perUserServerLacksAccount(user)) {
            string q = "There is no account for " + user + " on this "
              "computer's ECCE data server yet.\n\nCreate it with the "
              "password you just entered?";

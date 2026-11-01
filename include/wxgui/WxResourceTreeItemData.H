@@ -31,9 +31,18 @@ public:
   EcceURL getUrl() const;
 
   string getName() const;
+
+  // Root of an ECCE server the user added (#767): its EcceURL::getRef(),
+  // and the name from the server list.  Without a resource the server is
+  // not connected.
+  void setServer(const string& name, const string& ref) { p_serverName = name; p_serverRef = ref; }
+  const string& serverRef() const { return p_serverRef; }
+  const string& serverName() const { return p_serverName; }
   
 protected:
   Resource * p_resource;
+  string p_serverRef;
+  string p_serverName;
 };
 
 #endif

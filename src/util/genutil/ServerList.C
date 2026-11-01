@@ -1,10 +1,14 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <fstream>
 #include <sstream>
+#include <map>
+#include <set>
 
 #include "util/Ecce.H"
+#include "util/EcceURL.H"
 #include "util/PosixCompat.H"
 #include "util/ServerList.H"
 
@@ -72,7 +76,8 @@ string ServerList::check(const ServerEntry& e)
   if (blank(e.address)) return "Type the address of the server.";
   if (!clean(e.name) || !clean(e.address))
     return "The name and the address cannot contain tabs or line breaks.";
-  if (e.type == "ecce" && e.address.compare(0, 8, "https://") != 0)
+  if (e.type == "ecce" && e.address.compare(0, 8, "https://") != 0 &&
+      !getenv("ECCE_TEST_ALLOW_HTTP_SERVER"))
     return "The address of an ECCE server starts with https://";
   if (e.type == "ssh") {
     string u, h, f;
@@ -146,4 +151,37 @@ bool ServerList::parseSsh(const string& address, string& user, string& host,
   host = rest.substr(at + 1, slash - at - 1);
   folder = rest.substr(slash);
   return !user.empty() && !host.empty();
+}
+
+
+namespace {
+std::set<string>& addedRefs() { static std::set<string> s; return s; }
+std::map<string, string>& logins() { static std::map<string, string> m; return m; }
+}
+
+string ServerList::refOf(const string& address)
+{
+  return EcceURL(address).getRef();
+}
+
+void ServerList::markAdded(const string& ref) { addedRefs().insert(ref); }
+void ServerList::clearAdded() { addedRefs().clear(); }
+bool ServerList::isAdded(const string& ref) { return addedRefs().count(ref) != 0; }
+
+void ServerList::setLogin(const string& ref, const string& user)
+{
+  if (user.empty()) logins().erase(ref); else logins()[ref] = user;
+}
+
+string ServerList::loginFor(const string& ref)
+{
+  std::map<string, string>::const_iterator it = logins().find(ref);
+  return it == logins().end() ? string() : it->second;
+}
+
+string ServerList::userFor(const string& url)
+{
+  const string ref = EcceURL(url).getRef();
+  if (isAdded(ref)) return loginFor(ref);
+  return Ecce::serverUser();
 }

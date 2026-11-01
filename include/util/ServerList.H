@@ -45,6 +45,19 @@ class ServerList
     // sftp://user@host/folder, from its parts; and back.
     static string sshAddress(const string& user, const string& host,
                              const string& folder);
+    // Added ECCE servers of this process, and the login made on each.  The
+    // session's own server is not one: its user stays Ecce::serverUser().
+    // ref is EcceURL::getRef() (scheme, host, port), so two servers never
+    // share a login.
+    static string refOf(const string& address);
+    static void markAdded(const string& ref);
+    static void clearAdded();
+    static bool isAdded(const string& ref);
+    static void setLogin(const string& ref, const string& user);  // "" forgets
+    static string loginFor(const string& ref);
+    // The account whose home /Ecce/users/<account> is meant under url: an
+    // added server's own login ("" before it), else Ecce::serverUser().
+    static string userFor(const string& url);
     static bool parseSsh(const string& address, string& user, string& host,
                          string& folder);
 };
