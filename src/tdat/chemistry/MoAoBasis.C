@@ -341,6 +341,70 @@ const char* MoAoBasis::methodName(Method m)
 }
 
 
+bool MoAoBasis::spinPopulations(const vector<SpinSet>& sets,
+                                vector<double>& perAtom) const
+{
+  const size_t nbas = functions.size();
+  perAtom.assign(elements.size(), 0.0);
+  if (nbas == 0) return false;
+
+  //  Orbitals with a net spin, stored mu-major so the inner loop over
+  //  orbitals is contiguous.
+  vector<double> net;
+  vector<const vector<double>*> row;
+  for (size_t s = 0; s < sets.size(); s++) {
+    if (!sets[s].rows) continue;
+    for (size_t i = 0; i < sets[s].net.size() && i < sets[s].rows->size(); i++) {
+      if (sets[s].net[i] == 0.0) continue;
+      if ((*sets[s].rows)[i].size() != nbas) return false;
+      net.push_back(sets[s].net[i]);
+      row.push_back(&(*sets[s].rows)[i]);
+    }
+  }
+  const size_t norb = net.size();
+  if (norb == 0) return true;
+
+  vector<double> C(nbas*norb);
+  for (size_t i = 0; i < norb; i++)
+    for (size_t mu = 0; mu < nbas; mu++) C[mu*norb + i] = (*row[i])[mu];
+
+  //  A[mu][i] = c_i[mu] (S c_i)[mu]; only nonzero S elements are visited,
+  //  which is most of the saving for a large molecule.
+  const bool useS = (!orthonormal && overlap.size() == nbas*nbas);
+  vector<double> A(nbas*norb, 0.0);
+  vector<double> norm(norb, 0.0);
+  for (size_t mu = 0; mu < nbas; mu++) {
+    double *a = &A[mu*norb];
+    const double *cm = &C[mu*norb];
+    if (!useS) {
+      for (size_t i = 0; i < norb; i++) a[i] = cm[i]*cm[i];
+    } else {
+      const double *srow = &overlap[mu*nbas];
+      for (size_t nu = 0; nu < nbas; nu++) {
+        const double s = srow[nu];
+        if (s == 0.0) continue;
+        const double *cn = &C[nu*norb];
+        for (size_t i = 0; i < norb; i++) a[i] += s*cm[i]*cn[i];
+      }
+    }
+    for (size_t i = 0; i < norb; i++) norm[i] += a[i];
+  }
+
+  vector<double> scale(norb, 0.0);
+  for (size_t i = 0; i < norb; i++)
+    if (norm[i] > 1.0e-12) scale[i] = net[i]/norm[i];
+  for (size_t mu = 0; mu < nbas; mu++) {
+    const int atom = functions[mu].atom;
+    if (atom < 0 || atom >= (int)perAtom.size()) continue;
+    const double *a = &A[mu*norb];
+    double q = 0.0;
+    for (size_t i = 0; i < norb; i++) q += scale[i]*a[i];
+    perAtom[atom] += q;
+  }
+  return true;
+}
+
+
 bool MoAoBasis::analyse(const vector<double>& c, Method method,
                         Composition& out) const
 {

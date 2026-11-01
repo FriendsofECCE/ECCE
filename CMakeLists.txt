@@ -3527,6 +3527,11 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/mocomp/run_tests.py
                    ${CMAKE_BINARY_DIR})
   set_tests_properties(mocomp PROPERTIES TIMEOUT 300)
+  add_test(NAME mocompspin
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/mocomp/spin_test.py
+                   ${CMAKE_BINARY_DIR})
+  set_tests_properties(mocompspin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 
   # tests/fragorb: fragment orbitals and MO composition in them (#301);
   # EHT against YAeHMOP, the projection against Multiwfn, ML6 classes.
