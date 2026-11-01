@@ -102,3 +102,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [The Vibrational Frequencies table's Sym and Mode columns are VibAnalysis (#367): irreps from ECCE's own operations, a projection on internal coordinates, and what makes it refuse](mode-symmetry-and-description-367.md)
 - [A custom-disabled ewxChoice still changes the shown entry; the disabler puts the last accepted one back](custom-disabled-choice-shows-unaccepted-pick.md)
 - [The viewer's software/hardware GL path (#566): GL_RENDERER read once, ECCE_GL_PATH and Advanced.GLPath, text as geometry on software](gl-path-software-or-hardware-566.md)
+- [mold links what GNU ld refuses: declare static-library dependencies](mold-hides-static-link-order.md)

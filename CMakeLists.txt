@@ -313,6 +313,10 @@ ecce_library(eccecommxt src/comm/commxt)
 ecce_library(eccercmd   src/comm/rcommand)
 # SftpEDSI runs its operations through RCommand.
 target_link_libraries(eccedsi PUBLIC eccercmd)
+target_link_libraries(eccetdat PUBLIC ecceutil)
+# RCommand uses AuthCache: without this a program that links eccedsi but
+# names eccetdat earlier fails with GNU ld (mold does not care about order).
+target_link_libraries(eccercmd PUBLIC eccetdat ecceutil)
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
 pkg_check_modules(LIBSSH IMPORTED_TARGET libssh>=0.10)
