@@ -5727,7 +5727,10 @@ void CalcMgr::getContextMenu(wxMenu & menu)
 
     // The two Run Mgmt tasks used mid-run are also reachable here; the
     // state-based task list is what enables them, as in the menu bar.
-    if (isCalculationNode) {
+    // An MD study task is a TaskJob with its own content type, so it is
+    // not a "calculation node" but runs and is cancelled the same way (#731).
+    if (isCalculationNode || (itemData && dynamic_cast<MdTask*>(
+            itemData->getResource()))) {
       bool sep = false;
       vector<ResourceRmTask *> rmVec = resType->getRmTasks(state);
       for (size_t i = 0; i < rmVec.size(); i++) {
