@@ -108,13 +108,16 @@ def deleteCase(display, url):
     """Edit > Delete Selection and the Delete key act on the selection with
     the focus in the read-only Log; an editable field keeps the key (#324).
     The script posts the menu / accelerator command itself, so this covers
-    the routing, not the keyboard-to-accelerator step."""
+    the routing, not the keyboard-to-accelerator step.  Atom 1 is the carbon:
+    deleting a hydrogen would be replaced by a Nub and leave the count alone.
+    Each delete gives Nubs to the neighbours, so the counts are exact:
+    8 -> 11 -> 9 (text field: unchanged) -> 7."""
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT",
                        ["wait 4000", "panel Log", "wait 500", "info",
-                        "select 2", "delete menu log",
-                        "select 2", "delete key log",
-                        "select 2", "delete key text",
-                        "select 2", "delete key viewer",
+                        "select 1", "delete menu log",
+                        "select 1", "delete key log",
+                        "select 1", "delete key text",
+                        "select 1", "delete key viewer",
                         "wait 500", "quit"], url)
     tail = run_tests._tail(log, 25)
     start = re.search(r"BUILDER: atoms=(\d+)", log)
@@ -133,14 +136,14 @@ def deleteCase(display, url):
     keyView = steps[("key", "viewer")]
     check("Text" in menuLog[0], "the Log had the focus for the menu (%s)"
           % menuLog[0], tail)
-    check(menuLog[1] < n0, "Delete Selection with the focus in the Log "
+    check(n0 == 8 and menuLog[1] == 11, "Delete Selection with the focus in the Log "
           "deletes (%d -> %d)" % (n0, menuLog[1]), tail)
-    check(keyLog[1] < menuLog[1], "the Delete key with the focus in the Log "
+    check(keyLog[1] == 9, "the Delete key with the focus in the Log "
           "deletes (%d -> %d)" % (menuLog[1], keyLog[1]), tail)
     check(keyText[1] == keyLog[1] and keyText[2] == "",
           "the Delete key in an editable field edits the text and keeps the "
           "selection (atoms %d, text [%s])" % (keyText[1], keyText[2]), tail)
-    check(keyView[1] < keyText[1], "the Delete key with the 3-D view focused "
+    check(keyView[1] == 7, "the Delete key with the 3-D view focused "
           "deletes (%d -> %d)" % (keyText[1], keyView[1]), tail)
 
 
