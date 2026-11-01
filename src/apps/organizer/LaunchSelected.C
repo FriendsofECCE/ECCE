@@ -122,7 +122,9 @@ bool LaunchSelected::confirm(wxWindow *parent, vector<Row>& rows,
       list->SetItem(item, 2, U(p.queue.empty() ? "-" : p.queue));
       list->SetItem(item, 3, p.procs ? wxString::Format("%lu", p.procs) : wxString("-"));
       list->SetItem(item, 4, U(wallText(p.wall)));
-      list->SetItem(item, 5, U(p.changes.empty() ? (p.ready && p.retarget ? "none" : "") : p.changes));
+      string changed = p.changes.empty() ? (p.ready && p.retarget && p.notes.empty() ? "none" : "") : p.changes;
+      if (!p.notes.empty()) changed += (changed.empty() ? "" : "; ") + p.notes;
+      list->SetItem(item, 5, U(changed));
       list->SetItem(item, 6, p.ready ? U("OK") : U("Skipped: " + p.problem));
       if (!p.ready)
         list->SetItemTextColour(item, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));

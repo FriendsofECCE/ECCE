@@ -3150,6 +3150,9 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
   LaunchSelected::run(rows);
   for (size_t i = 0; i < rows.size(); i++) {
     const LaunchSelected::Row& r = rows[i];
+    //  What was filled in or dropped is said before the result, never blocks.
+    if (!r.plan.notes.empty())
+      lines.push_back(r.plan.name + "\twarn\t" + r.plan.notes);
     string line = r.plan.name + "\t";
     if (!r.plan.ready) line += "no\t" + r.plan.problem;
     else if (!r.attempted) line += "no\tnot attempted";

@@ -302,6 +302,8 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
   LaunchBatch::Target target;
   target.machine = msg.getProperty("on");
   target.profile = msg.getProperty("profile");
+  target.queue = msg.getProperty("queue");
+  target.wall = msg.getProperty("wall");
   vector<EcceURL> urls;
   int n = msg.getIntProperty("n");
   for (int i = 0; i < n; i++)

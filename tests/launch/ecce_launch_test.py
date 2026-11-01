@@ -71,6 +71,20 @@ def main():
     for entry in os.listdir(wrappers):
         os.chmod(os.path.join(wrappers, entry), 0o755)
     s.registerMachine("localhost", "Shell", {"CP2K": "/bin/true"})
+    #  #741: a staged Slurm machine without the TL capability stops after the
+    #  settings are worked out; its entry passes no time limit.
+    s.registerMachine("notl", "Slurm", {"CP2K": "/bin/true"},
+                      config={"userSubmit": "true"})
+    mym = os.path.join(s.state, ".ECCE", "MyMachines")
+    lines = open(mym).read().splitlines()
+    with open(mym, "w") as h:
+        for l in lines:
+            h.write((l.replace(":TL", "") if l.startswith("notl\t") else l) + "\n")
+    with open(os.path.join(s.state, ".ECCE", "MachPrefs"), "w") as h:
+        for m in ("notl", "localhost"):
+            rd = os.path.join(s.state, "run-" + m)
+            h.write("%s:\t%s|ssh|normal|%s|%s|acct-1|1|1|60|0|0|1\n"
+                    % (m, s.user(), rd, rd))
     work = os.path.join(s.state, "decks")
     rundir = os.path.join(s.state, "run")
     os.makedirs(work, exist_ok=True)
@@ -84,6 +98,17 @@ def main():
             check(False, "services came up")
             return 1
         urls = {}
+        #  Made before the Organizer starts, moved into a new study folder
+        #  after it has read the tree (#721).
+        late_url, out = s.create("late", "cp2k_es", deck, "cp2k.cp2kin", rundir,
+                                 extra=("procs=1", "queue=normal", "nodes=1",
+                                        "wall=0 1:0"))
+        if not check(late_url is not None, "calculation late created"):
+            say(out)
+            return 1
+        late_dir = late_url[len("file://"):]
+        late_hold = os.path.join(s.state, "late-hold")
+        shutil.move(late_dir, os.path.join(late_hold))
         for name in ("one", "two", "gone"):
             url, out = s.create(name, "cp2k_es", deck, "cp2k.cp2kin", rundir,
                                 extra=("procs=1", "queue=normal", "nodes=1",
@@ -159,6 +184,44 @@ def main():
         rc, out, err = run(os.path.join(s.state, "decks"))
         check(rc == 1 and "not inside the data folder" in out,
               "a path outside the data folder is refused (rc=%s)" % rc)
+
+        #  #721: a whole study copied in after the tree was read is found.
+        study = os.path.join(os.path.dirname(late_dir), "newstudy")
+        os.makedirs(study)
+        shutil.move(late_hold, os.path.join(study, "late"))
+        rc, out, err = run(os.path.join(study, "late"))
+        say(out)
+        check(re.search(r"^late: job id \S+$", out, re.M) is not None,
+              "a calculation in a study copied in later is launched (rc=%s)" % rc)
+
+        #  #741: queue and wall time overrides, and what was filled in or dropped.
+        for name, extra in (("noq", ("procs=1", "nodes=1", "wall=0 1:0")),
+                            ("ovr", ("procs=1", "queue=normal", "nodes=1",
+                                     "wall=0 1:0"))):
+            url, out = s.create(name, "cp2k_es", deck, "cp2k.cp2kin", rundir,
+                                extra=extra)
+            if not check(url is not None, "calculation %s created" % name):
+                say(out)
+                return 1
+            urls[name] = url
+        rc, out, err = run("on=notl", urls["noq"])
+        say(out)
+        check("noq: note: no queue stored: using " in out,
+              "a launch with no stored queue says which queue it used")
+        check("does not pass a time limit: wall time 1:00 h is not applied" in out,
+              "a machine without TL says the wall time is dropped")
+        rc, out, err = run("on=notl", "queue=debug", "wall=0:20", urls["ovr"])
+        say(out)
+        rc, ld = s.driver("launchdata", urls["ovr"])
+        stored = dict(l.split("=", 1) for l in ld.splitlines() if "=" in l)
+        check(stored.get("queue") == "debug", "queue= is stored (%s)" % stored.get("queue"))
+        #  wall= with no queue manager in the way (Shell machine, TL).
+        rc, out, err = run("on=localhost", "wall=1:30", urls["ovr"])
+        say(out)
+        rc, ld = s.driver("launchdata", urls["ovr"])
+        stored = dict(l.split("=", 1) for l in ld.splitlines() if "=" in l)
+        check(stored.get("wall") == "0 1:30",
+              "wall= is stored (%s)" % stored.get("wall"))
     finally:
         if org and org.poll() is None:
             org.terminate()

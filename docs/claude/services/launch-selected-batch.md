@@ -45,3 +45,12 @@ Launch Selected, and `confirmAndQuit` refuses to quit. Broker messages stay
 deferred until it ends. The hooks `launchselected` stay synchronous
 (`LaunchSelected::run`); `launchselectedasync URL...` and `launchselectedstatus`
 leave the batch running for the test.
+
+`Target` also carries `queue` and `wall` (`ecce-launch queue= wall=`); they
+work without `on=` (carryOver then keeps the stored machine). `Plan::notes`
+collects what was filled in or dropped (no stored queue replaced by the default,
+no stored wall time, a machine without TL that drops `#SBATCH --time`). Notes
+warn only; `ecce-launch` prints them as `name: note: ...` (`warn` lines from
+`CalcMgr::launchForCommand`) and the dialog appends them to Changed.
+`CalcMgr::findNodeFresh` re-reads from the nearest ancestor the tree has, so a
+whole study copied in after the load is found (#721).

@@ -2889,6 +2889,12 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
     bool valid = true;
     p_launchError = "";
 
+    //  The wall time field is hidden without TL, so say why none is sent.
+    if (!p_slctPrefs->isOptionSupported("TL") && p_taskJob &&
+        !LaunchBatch::noWallTime(p_taskJob->launchdata().maxwall))
+        p_messagesFeedback->setMessage("This machine entry does not pass a time limit: "
+            "the stored wall time is not applied.", WxFeedback::WARNING, false, true);
+
     //  Broker messages (state, invoke, quit, machine changes) touch the
     //  calculation the steps are using: they wait until the launch ends.
     struct DeferMessages {

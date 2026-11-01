@@ -27,15 +27,20 @@ public:
     Launchdata data;       // what the launch will use (stored when retarget)
     bool retarget;         // another machine than the one stored
     std::string changes;   // what differs from the stored settings
+    std::string notes;     // what was filled in or dropped; never blocks
     Plan() : procs(0), ready(false), retarget(false) {}
   };
 
   /** Launch on another machine than the stored one (machine empty: as set up).
-      profile "" is the machine's Default. */
+      profile "" is the machine's Default. queue and wall (as "D H:M", "H:M" or
+      minutes) replace the stored ones; empty keeps them. */
   struct Target {
-    std::string machine, profile;
-    bool any() const { return !machine.empty(); }
+    std::string machine, profile, queue, wall;
+    bool any() const { return !machine.empty() || !queue.empty() || !wall.empty(); }
   };
+
+  /** The wall time text as the stored "D H:M" form, "" if unreadable. */
+  static std::string parseWall(const std::string& text);
 
   /** A wall time is only needed where a queue manager takes it; a direct
       (Shell) or workstation launch has no limit to pass. */

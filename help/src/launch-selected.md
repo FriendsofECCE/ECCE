@@ -70,12 +70,22 @@ in the Progress box and the run log.
 With ECCE running, calculations prepared outside the window can be launched
 from a terminal:
 
-    ecce-launch [on=MACHINE] [profile=NAME] <calculation folder or URL>...
+    ecce-launch [on=MACHINE] [profile=NAME] [queue=QUEUE] [wall=H:MM] <calculation folder or URL>...
 
 The Organizer submits them in one batch, with the same rules as Launch
 Selected, and its tree shows the change at once. `on=` and `profile=` act as
-**Launch on** and **Profile** do. A folder inside the data folder is turned
+**Launch on** and **Profile** do. `queue=` and `wall=` replace the stored
+queue and wall time (`wall=1:30` is an hour and a half; a stored form such as
+`0 1:30` also works), with or without `on=`. A folder inside the data folder is turned
 into the calculation's address; with a data server, give the address.
+
+When a setting was filled in or dropped, a line `name: note: ...` says so
+before the result, for example `no queue stored: using debug` when the
+machine's default queue replaced an empty one, or `machine X does not pass a
+time limit: wall time 1:00 h is not applied` when the machine entry lacks the
+time-limit option (Register Machines, Time limit), so the job runs without a
+limit. A note never stops the launch. The same text appears in the Changed
+column of the Launch Selected dialog.
 
 One line is printed for each calculation, either `name: job id N` or
 `name: not launched: reason` (for example, a calculation that is already
