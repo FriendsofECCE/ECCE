@@ -826,7 +826,7 @@ CASES = [
             # Needs ai.orca's "%output Print[P_MOs] 1 end"; the fixture's
             # deck carries it.  Closed shell, so the BETA keys are
             # correctly absent -- see orca-oh-uhf for those.
-            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER': dict(
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][PTMO][PTMOBETA][PTORB][PTORBBETA': dict(
                 keys={
                     'ORBENG': {'values': '-20.25158 -1.25755 -0.59386 '
                                          '-0.45973 -0.39262 0.58179 0.69267',
@@ -1011,7 +1011,7 @@ CASES = [
         parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
         expect={
             'S2': dict(keys={'S2': {'values': '0.753262'}}),
-            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER': dict(
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][PTMO][PTMOBETA][PTORB][PTORBBETA': dict(
                 blocks=1, keys={
                     'ORBENG': {'values': '-20.28571 -1.29219 -0.55098 '
                                          '-0.52456 -0.42967 0.62006'},
@@ -2588,7 +2588,7 @@ CASES = [
         fixture='cp2k/nio_u_opt.cp2kout',
         parse_args=('.', 'Geometry', 'QS', 'GPW', '0'),
         expect={
-            'GEOMTRACE][TEVEC': dict(blocks=3, keys={
+            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=3, keys={
                 'GEOMTRACE': {'size': '1 2 3', 'rowlabels': '1-Ni 2-O',
                               'columnlabels': 'X Y Z', 'units': 'Angstrom'},
                 'TEVEC': {'values': '-184.9534017873', 'units': 'Hartree'}}),
@@ -2619,7 +2619,7 @@ CASES = [
                                           'units': 'eV'}}),
             'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
                                             'units': 'Debye'}}),
-            'GEOMTRACE][TEVEC': dict(blocks=1, keys={'GEOMTRACE': {
+            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=1, keys={'GEOMTRACE': {
                 'size': '1 3 3', 'rowlabels': '1-O 2-H 3-H',
                 'units': 'Angstrom'}}),
         },
@@ -2673,7 +2673,7 @@ CASES = [
             'HLGAP': dict(keys={'HLGAP': {'values': '17.346667996473',
                                           'units': 'eV'}}),
             'DIPOLE': dict(keys={'DIPOLE': {'units': 'Debye'}}),
-            'GEOMTRACE][TEVEC': dict(blocks=12, keys={
+            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=12, keys={
                 'GEOMTRACE': {'size': '1 5 3',
                               'rowlabels': '1-C 2-H 3-H 4-H 5-H',
                               'units': 'Angstrom'},
@@ -2689,7 +2689,7 @@ CASES = [
         parse_args=('.', 'Geometry', 'SE', 'GFN2-xTB', '0'),
         expect={
             'TE': dict(keys={'TE': {'units': 'Hartree'}}),
-            'GEOMTRACE][TEVEC': dict(blocks=3, keys={'GEOMTRACE': {
+            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=3, keys={'GEOMTRACE': {
                 'size': '1 5 3'}}),
         },
     ),
