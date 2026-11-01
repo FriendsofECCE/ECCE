@@ -651,7 +651,7 @@ void CalcMgr::runTestCommand(const string& line)
                command == "workflowrecipepanel" || command == "workflowrecipecreate" ||
                command == "workflowkeydata" || command == "workflowmark" ||
                command == "workflowsaverecipe" || command == "workflowlink" ||
-               command == "workflowstructure") {
+               command == "workflowstructure" || command == "workflowrecipehere") {
       // Recipes (Recipe.H, RecipePanel.H); WF is the workflow's URL.
       //   workflowrecipelist            the recipes found: id:variants;...
       //   workflowrecipe WF ID VARIANT SOURCE|- [method=M] [basis=B]
@@ -659,6 +659,8 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowrecipepanel PNG|- WF ID VARIANT SOURCE|- [method=M] [basis=B]
       //     opens the set-up panel on SOURCE's box (or none), sets the
       //     choices and takes a picture; answers with the panel's report
+      //   workflowrecipehere WF STEP    the box menu's Apply Recipe from here
+      //     on STEP: its labels, then the panel's report
       //   workflowrecipecreate WF       Create boxes in the open panel
       //   workflowkeydata WF            the key-data box as text, "|" for newlines
       //   workflowmark WF STEP KEY THERMO   make a copied step a recipe step (KEY: reactant, ts, ...)
@@ -672,7 +674,7 @@ void CalcMgr::runTestCommand(const string& line)
       else if (command == "workflowrecipe") args >> wfUrl >> rid >> vid >> src;
       else if (command == "workflowmark") args >> wfUrl >> rid >> vid >> src >> method;
       else if (command == "workflowsaverecipe" || command == "workflowlink" ||
-               command == "workflowstructure")
+               command == "workflowstructure" || command == "workflowrecipehere")
         args >> wfUrl >> rid >> vid >> src;
       else args >> wfUrl;
       while (args >> flag) {
@@ -746,6 +748,13 @@ void CalcMgr::runTestCommand(const string& line)
             outcome = (png == "-" || ecceWindowShot(this, png) ? "ok " : "not saved ") +
                       panel->report();
           }
+        } else if (command == "workflowrecipehere") {
+          wp->closeRecipe();
+          const string labels = wp->rightClick(EcceURL(rid), false);
+          RecipePanel *panel = labels.find("Apply Recipe from here") != string::npos
+                                   ? wp->recipeFromHere() : 0;
+          for (int i = 0; i < 4; i++) wxYield();
+          outcome = panel ? "ok " + panel->report() : "error: " + labels;
         } else if (command == "workflowrecipecreate") {
           RecipePanel *panel = wp->recipePanel();
           if (!panel) outcome = "error: no panel";

@@ -46,7 +46,9 @@ chain there is no structure yet and the recipe's defaults are shown. The
 rules only warn: any method and basis you type is accepted.
 
 **3 Where. Apply to** is **new workflow** or **after the selected box**
-(unavailable when no box is selected). The first boxes of a new chain that
+(unavailable when no box is selected). Right-click a box and choose
+**Apply Recipe from here...** to open the panel with that box already
+selected as the box to apply after. The first boxes of a new chain that
 need a structure are drawn in amber and marked "needs structure". After a
 box, the first boxes start from that box's geometry, charge and
 multiplicity.
@@ -60,7 +62,7 @@ The boxes are ordinary steps and can be edited like any calculation.
 - The other boxes take the geometry, charge and multiplicity of their source
   when you choose **Launch Ready Steps** after the source is Complete.
 - The method and basis chosen in the panel are kept with each box. For
-  Gaussian 16 and ORCA the method is set as the box's functional (HF as its
+  Gaussian 16, ORCA and ECCE-QM the method is set as the box's functional (HF as its
   SCF theory) when one of the editor's functionals has that name; other
   codes keep their own default. A box gets its basis set when it gets its
   structure, as a basis set is chosen per element.

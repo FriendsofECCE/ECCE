@@ -400,6 +400,7 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
     p_left(0), p_top(0), p_recipe(0)
 {
   createControls();
+  Bind(wxEVT_MENU, [this](wxCommandEvent &) { recipeFromHere(); }, recipeHereId());
 }
 
 
@@ -675,11 +676,29 @@ void WorkflowPanel::joinClicked(const WorkflowSteps::Code &code,
 }
 
 
+int WorkflowPanel::recipeHereId()
+{
+  static const int id = wxNewId();
+  return id;
+}
+
+
+// The recipe's chain is appended after the box that was right-clicked,
+// which the right-click has selected.
+RecipePanel *WorkflowPanel::recipeFromHere()
+{
+  closeRecipe();
+  return openRecipe();
+}
+
+
 string WorkflowPanel::contextMenu(bool popup)
 {
   wxMenu menu;
   string error = CalcMgr::guarded([&]() {
     p_calcMgr->getContextMenu(menu);
+    menu.AppendSeparator();
+    menu.Append(recipeHereId(), "Apply Recipe from here...");
     if (popup) ewxPopupMenu(this, menu);
   });
   if (!error.empty()) {

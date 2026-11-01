@@ -425,6 +425,11 @@ def run_recipes(display, data, work, shots):
                 "role: geom | Geometry | B3LYP | 6-31G(d) | test\n"
                 "variant: main | ORCA | ORCA\n"
                 "step: main | opt | ORCA | geom | GeoVib | ORCA Opt | structure\n")
+    with open(os.path.join(userdir, "singleqm.recipe"), "w") as f:
+        f.write("recipe: singleqm\ntitle: Single QM\n"
+                "role: geom | Geometry | PBE0 | cc-pVDZ | test\n"
+                "variant: main | ECCE-QM | ECCE-QM\n"
+                "step: main | opt | ECCE-QM | geom | GeoVib | ECCE-QM Opt | structure\n")
     # The anion rule: a structure stored later turns 6-31G(d) into 6-31+G(d).
     with open(os.path.join(userdir, "anion.recipe"), "w") as f:
         f.write("recipe: anion\ntitle: Anion\n"
@@ -459,9 +464,12 @@ def run_recipes(display, data, work, shots):
                  "workflowshot %s %s" % (shots_done, kwf),
                  "workflowrecipe %s handmade main -" % wf,
                  "workflowrecipe %s single main %s/reactant" % (kwf, kwf),
+                 "workflowrecipe %s singleqm main %s/reactant" % (kwf, kwf),
                  "workflowrecipe %s anion main -" % wf,
                  "workflowstructure %s %s/start %s/reactant" % (wf, wf, kwf),
-                 "workflowinfo %s" % wf]
+                 "workflowinfo %s" % wf,
+                 "workflowrecipehere %s %s/start" % (wf, wf),
+                 "workflowrecipehere %s %s/first" % (wf, wf)]
     script = os.path.join(work, "commands-recipes")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -495,6 +503,17 @@ def run_recipes(display, data, work, shots):
     check("ORCA gets the role's method as its theory and functional",
           single and re.search(r"(^|\|)opt ORCA [^|]*theory=RDFT[^|]*xc=B3LYP( |$|\|)", single[0]),
           "workflowrecipe answered %r" % hand[-1:])
+    # The step's name is made unique ("opt-2") when an "opt" already exists.
+    qmStep = r"(^|\|)opt(-\d+)? ECCE-QM [^|]*"
+    qm = [h for h in hand if h.startswith("ok") and re.search(qmStep, h)]
+    check("ECCE-QM gets the role's method as its functional (PBE0) and basis",
+          qm and re.search(qmStep + r"theory=DFT[^|]*xc=PBE0( |$|\|)", qm[0])
+          and re.search(qmStep + r"basis=cc-pVDZ", qm[0]),
+          "workflowrecipe answered %r" % hand[-2:])
+    here = answers("workflowrecipehere")
+    check("the box menu's Apply Recipe from here opens the panel after that box",
+          len(here) == 2 and here[0].startswith("ok") and "apply=after" in here[0],
+          "workflowrecipehere answered %r" % here)
     stored = answers("workflowstructure")
     check("a structure stored later re-applies the rules (anion: diffuse basis)",
           stored and stored[0].startswith("ok") and "start=PBE0/6-31+G(d)" in stored[0],
