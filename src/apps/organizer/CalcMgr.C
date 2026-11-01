@@ -147,6 +147,7 @@ static std::string s_registerMessage;
 
 #include "BookmarkEditor.H"
 #include "ContextPanelFactory.H"
+#include "NoAccessContextPanel.H"
 #include "CalculationContextPanel.H"
 #include "ProjectContextPanel.H"
 #include "util/JobProgress.H"
@@ -1193,6 +1194,22 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "tail-snap") {
       outcome = p_testTail && p_testTail->snapshot(calcName) ? "saved"
                                                              : "not saved";
+    } else if (command == "panelmessage") {
+      // "panelmessage URL": select the node already in the tree and tell
+      // the no-access panel's text (newlines shown as |), if that is shown.
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, false);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        NoAccessContextPanel *na = dynamic_cast<NoAccessContextPanel*>(p_contextPanel);
+        if (na) {
+          string t = string(na->message().ToUTF8());
+          for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
+          outcome = "ok " + t;
+        } else outcome = "ok other panel";
+      }
     } else if (command == "summary") {
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
       if (!node) {
