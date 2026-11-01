@@ -16,10 +16,10 @@ The diagonalisation-only fields are disabled while OT is on:
   keyword unwritten, and a non-zero value is written with or without
   smearing.
 
-**Print HOMO-LUMO gap** makes CP2K print the molecular-orbital eigenvalues
-and read the HOMO-LUMO gap into ECCE as a result. It works with either SCF
-method; when **Added MOs** is 0 it writes `ADDED_MOS 1` so there is an
-unoccupied orbital to form the gap.
+- **Print HOMO-LUMO gap** makes CP2K print the molecular-orbital eigenvalues
+  at each SCF step, and ECCE reads the gap of the last step into the
+  results. When **Added MOs** is 0 it writes `ADDED_MOS 1` so there is an
+  unoccupied orbital to form the gap.
 
 **Outer SCF loop** is available with OT and is on by default. CP2K then runs
 several short OT minimisations one after another, up to **Max. outer

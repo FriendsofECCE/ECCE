@@ -462,8 +462,6 @@ sub scfLines {
   my @l = ("&SCF", "  SCF_GUESS ATOMIC",
            "  MAX_SCF " . &intOr("ES.Theory.GPW.MaxScf", 100),
            "  EPS_SCF " . &numOr("ES.Theory.GPW.EpsScf", "1.0E-6"));
-  my $added = &addedMos;
-  push(@l, "  ADDED_MOS $added") if ($added > 0);
   if (&flag("ES.Theory.GPW.UseOT", 1)) {
     my $min = ($AbiDict{"ES.Theory.GPW.OTMinimizer"} =~ /^CG/i) ? "CG" : "DIIS";
     my $pre = ($AbiDict{"ES.Theory.GPW.OTPreconditioner"} =~ /FULL_ALL/i)
@@ -481,6 +479,8 @@ sub scfLines {
     }
   } else {
     my $temp = &numOr("ES.Theory.GPW.SmearTemperature", "0");
+    my $added = &addedMos;
+    push(@l, "  ADDED_MOS $added") if ($added > 0);
     push(@l, "  &DIAGONALIZATION", "    ALGORITHM STANDARD",
              "  &END DIAGONALIZATION",
              "  &MIXING", "    METHOD BROYDEN_MIXING",
@@ -552,7 +552,7 @@ sub CP2KForceEval {
   # nothing else in the deck prints them, so the section is opt-in.
   push(@dft, "  &PRINT", "    &MO", "      EIGENVALUES T",
              "    &END MO", "  &END PRINT")
-    if (&flag("ES.Theory.GPW.PrintHomoLumoGap", 0));
+    if (&flag("ES.Theory.GPW.PrintHomoLumoGap", 0) && !&flag("ES.Theory.GPW.UseOT", 1));
   push(@dft, "&END DFT");
 
   my @sub = ("&SUBSYS", "  &CELL");

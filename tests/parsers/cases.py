@@ -2625,8 +2625,8 @@ CASES = [
         fixture='cp2k/si_diag_gap.cp2kout',
         parse_args=('.', 'Energy', 'QS', 'GPW', '0'),
         expect={
-            'HLGAP': dict(blocks=2, keys={
-                'HLGAP': {'values': '1.234568', 'units': 'eV'}}),
+            'HLGAP': dict(blocks=1, keys={
+                'HLGAP': {'values': '10.756318', 'units': 'eV'}}),
         },
     ),
     # -----------------------------------------------------------------

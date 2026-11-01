@@ -354,6 +354,7 @@ class Cp2kTheoryPanel(EccePanel):
         self.mixingAlpha.Enable(not ot)
         self.nBroyden.Enable(not ot)
         self.addedMos.Enable(not ot)
+        self.printHomoLumoGap.Enable(not ot)
 
         for el, orb, u in zip(self.hubbardEl, self.hubbardOrb,
                               self.hubbardU):
