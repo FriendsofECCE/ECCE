@@ -168,6 +168,9 @@ if(QM_PYTHON3)
   # IRC (#452 stage 2): HCN <-> HNC against ORCA's IRC (tests/qm/irc_oracle.json).
   add_test(NAME qm_irc COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_test.py $<TARGET_FILE:ecce-qm> --quick)
   set_tests_properties(qm_irc PROPERTIES TIMEOUT 600)
+  # IRC from a start a little off the saddle: the two ends must differ (#764).
+  add_test(NAME qm_irc_offset COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_offset_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_irc_offset PROPERTIES TIMEOUT 300)
   set_tests_properties(qm_ts_quick PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts PROPERTIES TIMEOUT 3600)
   set_tests_properties(qm_scan_quick PROPERTIES TIMEOUT 1800)
