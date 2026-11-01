@@ -34,3 +34,12 @@ centre of nuclear charge. The arrow colour is set with the colour button.
 
 The arrow is drawn through atoms and bonds, so a diatomic's arrow can be seen
 inside its bond.
+
+The dipole moment of an ion depends on the origin it is measured from, so the
+value is only meaningful together with the origin. ECCE-QM reports an ion's
+dipole moment about the centre of mass (the panel says so next to the value);
+for a neutral molecule the origin does not matter. ORCA's output states its
+electric origin, which ECCE shows when the output gives it. Gaussian 16 does not
+state the origin in its output; its default for the dipole moment is the centre of
+nuclear charge, so ion dipole moments from different codes are not directly
+comparable.

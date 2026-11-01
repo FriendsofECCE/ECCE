@@ -35,6 +35,11 @@ sub vectorProp {
   print "END\n";
 }
 
+sub stringProp {
+  my ($key, $val) = @_;
+  print "key: $key\nsize:\n1\nvalues:\n$val\nunits:\nNA\nEND\n";
+}
+
 my %energyKey = (
   energy_total          => 'TE',
   energy_nuclear        => 'NNREPUL',
@@ -220,6 +225,8 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
   &scalarProp("ETIME", $1);
 } elsif ($first =~ /^dipole_debye\s+(\S+)\s+(\S+)\s+(\S+)/) {
   print "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n$1 $2 $3\nunits:\nDebye\nEND\n";
+} elsif ($first =~ /^dipole_origin\s+(\S+)/) {
+  &stringProp("DIPOLEORIGIN", $1);
 } elsif ($first =~ /^begin atoms\b/) {
   # index symbol Z x y z mulliken_net_charge
   my @q;

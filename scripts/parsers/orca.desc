@@ -160,6 +160,13 @@ Frequency=all
 End=TIMINGS
 [END]
 
+[DIPOLEORIGIN]
+Script=orca.dipoleorigin
+Begin=Choice of electric origin
+Frequency=last
+Lines=1
+[END]
+
 [DIPOLE]
 Script=orca.dipole
 Begin=Total Dipole Moment

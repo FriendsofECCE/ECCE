@@ -6,6 +6,7 @@
 #include <memory>
 #include "integrals.hpp"
 #include "solvent.hpp"
+#include "vibration.hpp"
 
 namespace qm {
 
@@ -381,6 +382,24 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     double nuc = 0;
     for (const auto& a : mol.atoms) nuc += a.Z * a.x[c];
     R.dipole[c] = nuc - ((R.D_a + R.D_b).array() * oe.dip[c].array()).sum();
+  }
+  // An ion's dipole depends on the origin (mu' = mu - q R): report it about
+  // the centre of mass, the usual choice.  A neutral dipole does not.
+  for (int c = 0; c < 3; ++c) R.dipole_rep[c] = R.dipole[c];
+  R.dipole_origin_kind = "independent";
+  if (mol.charge != 0) {
+    double mt = 0, rc[3] = {0, 0, 0};
+    for (const auto& a : mol.atoms) {
+      if (a.Z <= 0) continue;
+      const double m = a.Z <= 36 ? isotope_mass(a.Z) : 2.0 * a.Z;  // isotope table ends at Kr
+      mt += m;
+      for (int c = 0; c < 3; ++c) rc[c] += m * a.x[c];
+    }
+    for (int c = 0; c < 3; ++c) {
+      R.dipole_origin[c] = rc[c] / mt;
+      R.dipole_rep[c] = R.dipole[c] - mol.charge * R.dipole_origin[c];
+    }
+    R.dipole_origin_kind = "centre_of_mass";
   }
   const double sz = 0.5 * (na - nb);
   R.s2 = sz * (sz + 1);

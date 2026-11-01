@@ -60,7 +60,12 @@ struct ScfResult {
   Mat F_a, F_b;                   // Fock matrices of the last iteration (gradient)
   Mat S;
   std::vector<double> mulliken;   // net atomic charges
-  double dipole[3] = {0, 0, 0};   // a.u., origin at the coordinate origin
+  double dipole[3] = {0, 0, 0};   // a.u., origin at the coordinate origin (derivatives use this)
+  // The dipole as reported: about the centre of mass for an ion, where the
+  // value depends on the origin; unchanged for a neutral system.
+  double dipole_rep[3] = {0, 0, 0};
+  double dipole_origin[3] = {0, 0, 0};  // bohr
+  std::string dipole_origin_kind;       // "centre_of_mass" | "independent"
   double s2 = 0;                  // <S^2> (UHF/UKS; S(S+1) otherwise)
   double xc_electrons = 0;        // grid integral of the density (DFT)
   int nalpha = 0, nbeta = 0;

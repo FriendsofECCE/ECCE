@@ -1,0 +1,9 @@
+title cn-
+charge -1
+multiplicity 1
+method b3lyp
+basis aug-cc-pVDZ
+geometry
+C 0 0 0
+N 0 0 1.1718
+end

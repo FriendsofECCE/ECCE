@@ -266,6 +266,7 @@ Vibration	Anharmonic IR Intensities		ANHARMIR	IRIntensity	PropVector<Normal Mode
 Derived		S**2					S2		NA		PropValue
 Derived		S**2 After Annihilation			S2A		NA		PropValue
 Derived		SCF Dipole Moment			DIPOLE		Dipole		PropVector<Coordinate>
+Derived		Dipole Moment Origin			DIPOLEORIGIN	NA		PropString
 Derived		MP2 Dipole Moment			MP2DIPOLE	Dipole		PropVector<Coordinate>
 Derived		Quadrupole Moment			QUADPOLE	Quadrupole	PropVector<Unknown>
 Derived		Octapole Moment				OCTAPOLE	Octapole	PropVector<Unknown>
