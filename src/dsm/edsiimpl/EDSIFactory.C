@@ -25,6 +25,7 @@
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSITraversable.H"
 #include "dsm/FileEDSI.H"
+#include "dsm/SftpEDSI.H"
 #include "dsm/MdTask.H"
 #include "dsm/PolyrateTask.H"
 #include "dsm/PropertyTask.H"
@@ -443,6 +444,8 @@ EDSI *EDSIFactory::getEDSI(const EcceURL& url)
   } else if (url.getProtocol().find("file") == 0 ||
       url.getProtocol().empty()) {
     ret = new FileEDSI(url);
+  } else if (url.getProtocol().find("sftp") == 0) {
+    ret = new SftpEDSI(url);
   }
 
   EE_ASSERT(ret,EE_WARNING,"Unrecognized URL - no EDSI returned.");

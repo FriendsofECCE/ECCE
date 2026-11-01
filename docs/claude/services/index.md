@@ -51,6 +51,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A calculation can live in any local folder, not only in a data store](calculations-in-any-local-folder.md)
 - [In local data mode the Organizer's root is the user's home, labelled Local data](organizer-local-tree-has-no-users-level.md)
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
+- [SftpEDSI (sftp:// URLs): FileEDSI logic on a scratch mirror, mkdir lock, link and test traps (#767)](sftpedsi-ssh-folder-storage.md)
 - [ECCE's own ssh master (ECCE_SSH_CONTROL_DIR): one login per host per state directory](owned-ssh-master.md)
 - [The calculation summary shows the allocation and how much is left (#613)](allocation-left-613.md)
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
