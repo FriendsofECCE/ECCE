@@ -2013,11 +2013,14 @@ sub gromacs()
     #  pressure coupling a helper reads it from a copy of the energy file
     #  every 20 s and echoes the new points to the job output, where the
     #  monitor reads them; it ends with the script, however that ends.
-    $retval .= "  densN=0\n";
+    #  The count lives in a file: the 20 s loop is a subshell, and a shell
+    #  variable it updates is not seen by the final call in the main shell,
+    #  which would echo every point a second time.
+    $retval .= "  echo 0 > dens_n.txt\n";
     $retval .= "  ecceDensity() {\n";
     $retval .= "    [ -s ener.edr ] && cp ener.edr dens_tmp.edr && echo Density | \"\$gmx\" energy -f dens_tmp.edr -o dens_tmp.xvg > /dev/null 2>&1 || return 0\n";
-    $retval .= "    grep -v '^[#@]' dens_tmp.xvg | awk -v n=\$densN 'NR>n{print \"ECCE-DENSITY\", \$1, \$2}' >> $::logfile\n";
-    $retval .= "    densN=`grep -vc '^[#@]' dens_tmp.xvg`\n";
+    $retval .= "    grep -v '^[#@]' dens_tmp.xvg | awk -v n=\`cat dens_n.txt\` 'NR>n{print \"ECCE-DENSITY\", \$1, \$2}' >> $::logfile\n";
+    $retval .= "    grep -vc '^[#@]' dens_tmp.xvg > dens_n.txt\n";
     $retval .= "  }\n";
     $retval .= "  densPid=\n";
     $retval .= "  if grep -qiE '^[[:space:]]*pcoupl[[:space:]]*=[[:space:]]*(berendsen|c-rescale|parrinello-rahman|mttk)' $::inFile; then\n";
