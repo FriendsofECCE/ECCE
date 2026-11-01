@@ -687,35 +687,42 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
             0, wxALIGN_CENTER_VERTICAL);
   top->Add(grid, 0, wxEXPAND | wxALL, 14);
 
-  wxStaticText *carryLabel = new wxStaticText(this, wxID_ANY, "Carry over:");
-  wxFont bold = carryLabel->GetFont(); bold.SetWeight(wxFONTWEIGHT_BOLD);
-  carryLabel->SetFont(bold);
-  top->Add(carryLabel, 0, wxLEFT | wxRIGHT, 14);
-
   p_point = 0;
-  if (source && WorkflowSteps::isScan(source)) {
-    top->Add(new wxStaticText(this, wxID_ANY, "Structure of the scan:"), 0,
-             wxLEFT | wxRIGHT, 14);
-    p_point = new PointChooser(this, "last");
-    top->Add(p_point, 0, wxLEFT | wxTOP | wxBOTTOM, 28);
+  p_geometry = 0;
+  p_charge = 0;
+  if (!source) {
+    // Nothing to carry over: say so instead of showing dead checkboxes.
+    top->Add(new wxStaticText(this, wxID_ANY,
+        "This step has no source: it starts from its own structure."),
+        0, wxLEFT | wxRIGHT, 14);
+  } else {
+    wxStaticText *carryLabel = new wxStaticText(this, wxID_ANY, "Carry over:");
+    wxFont bold = carryLabel->GetFont(); bold.SetWeight(wxFONTWEIGHT_BOLD);
+    carryLabel->SetFont(bold);
+    top->Add(carryLabel, 0, wxLEFT | wxRIGHT, 14);
+
+    if (WorkflowSteps::isScan(source)) {
+      top->Add(new wxStaticText(this, wxID_ANY, "Structure of the scan:"), 0,
+               wxLEFT | wxRIGHT, 14);
+      p_point = new PointChooser(this, "last");
+      top->Add(p_point, 0, wxLEFT | wxTOP | wxBOTTOM, 28);
+    }
+    p_geometry = new wxCheckBox(this, wxID_ANY,
+                                p_point ? "Geometry of that point" : "Final geometry");
+    p_charge = new wxCheckBox(this, wxID_ANY, "Charge and multiplicity");
+    p_geometry->SetValue(true);
+    p_charge->SetValue(true);
+    wxCheckBox *orbitals = new wxCheckBox(this, wxID_ANY,
+                             "Orbitals as the starting guess");
+    wxCheckBox *hessian = new wxCheckBox(this, wxID_ANY, "Hessian (for a TS search)");
+    orbitals->Enable(false);
+    hessian->Enable(false);
+    const wxString notYet = "not yet: needs orbital converters";
+    orbitals->SetToolTip(notYet);
+    hessian->SetToolTip(notYet);
+    for (wxCheckBox *c : {p_geometry, p_charge, orbitals, hessian})
+      top->Add(c, 0, wxLEFT | wxTOP, 28);
   }
-  p_geometry = new wxCheckBox(this, wxID_ANY,
-                              p_point ? "Geometry of that point" : "Final geometry");
-  p_charge = new wxCheckBox(this, wxID_ANY, "Charge and multiplicity");
-  p_geometry->SetValue(source != 0);
-  p_charge->SetValue(source != 0);
-  p_geometry->Enable(source != 0);
-  p_charge->Enable(source != 0);
-  wxCheckBox *orbitals = new wxCheckBox(this, wxID_ANY,
-                           "Orbitals as the starting guess");
-  wxCheckBox *hessian = new wxCheckBox(this, wxID_ANY, "Hessian (for a TS search)");
-  orbitals->Enable(false);
-  hessian->Enable(false);
-  const wxString notYet = "not yet: needs orbital converters";
-  orbitals->SetToolTip(notYet);
-  hessian->SetToolTip(notYet);
-  for (wxCheckBox *c : {p_geometry, p_charge, orbitals, hessian})
-    top->Add(c, 0, wxLEFT | wxTOP, 28);
 
   if (source && !haveResult) {
     wxStaticText *note = new wxStaticText(this, wxID_ANY,
@@ -754,8 +761,8 @@ string WorkflowStepDialog::name() const
 WorkflowSteps::Carry WorkflowStepDialog::carry() const
 {
   WorkflowSteps::Carry c;
-  c.geometry = p_geometry->GetValue();
-  c.chargeMult = p_charge->GetValue();
+  if (p_geometry) c.geometry = p_geometry->GetValue();
+  if (p_charge) c.chargeMult = p_charge->GetValue();
   if (p_point) c.point = p_point->spec();
   return c;
 }

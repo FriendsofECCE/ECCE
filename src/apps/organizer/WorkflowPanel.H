@@ -88,6 +88,8 @@ public:
 
   std::string name() const;
   WorkflowSteps::Carry carry() const;
+  /// Whether the dialog offers the carry-over boxes (a step with a source).
+  bool hasCarry() const { return p_geometry != 0; }
 
 private:
   void OnName(wxCommandEvent& event);
