@@ -339,6 +339,17 @@ wxBitmapBundle ewxBitmap::svgIcon(const wxString& name, const wxSize& size,
 
 
 /**
+ * ECCE's line icon drawn in the given colour rather than the text colour
+ * (the Organizer's server roots), as a plain bitmap for an image list.
+ */
+wxBitmap ewxBitmap::tintedIcon(const wxString& name, const wxSize& size,
+                               const wxColour& ink)
+{
+  return svgFileIcon(pixmapFile("svg/icon-" + name + ".svg"), size, ink);
+}
+
+
+/**
  * A multi-colour SVG (path relative to the pixmaps directory, e.g. the
  * Builder's bond and geometry icons), drawn as it is at the size and
  * twice it.  The old pixmap name may be passed in its place: that loads

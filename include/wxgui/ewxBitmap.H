@@ -24,6 +24,8 @@ class ewxBitmap : public wxBitmap
                                    long type=wxBITMAP_TYPE_XPM);
       static wxBitmapBundle svgIcon(const wxString& name, const wxSize& size,
                                     const wxString& fallback = wxString());
+      static wxBitmap tintedIcon(const wxString& name, const wxSize& size,
+                                 const wxColour& ink);
       static wxBitmapBundle colorIcon(const wxString& svg, const wxSize& size);
       static wxBitmap svgBitmap(const wxWindow* win, const wxString& svg,
                                 int logical = 16);
