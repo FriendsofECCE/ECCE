@@ -143,6 +143,9 @@ Energy		Heat of Formation			HFENERGY	Energy		PropValue	Total
 # xtb's HOMO-LUMO gap.  Units class NA: it is stored in eV, which the
 # Hartree/kcal converter must not rescale.
 Energy		HOMO-LUMO Gap			HLGAP		NA		PropValue	Derived
+# CREST conformer energies relative to the lowest, kcal/mol (class NA: stored
+# as kcal/mol, not rescaled); meaningful within one method only.
+Energy		Relative Conformer Energy		CONFREL		NA		PropTSVector<Geometry Step>
 #
 Energy		Zero Point Energy			EZEROPT		Energy		PropValue	Thermochemistry
 #

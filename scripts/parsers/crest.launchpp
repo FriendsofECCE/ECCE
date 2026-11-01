@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+###############################################################################
+# Nothing in a crest deck depends on the launch (gensub passes the processor
+# count to -T), but Launch::postProcessInput() shells out to the code's launch
+# preprocessor unconditionally, so there has to be one.
+###############################################################################
+use Getopt::Std;
+
+&getopts('p:v');
+
+if ($opt_v) {
+  print "Revision: 1.0\n";
+  exit 0;
+}
+exit 0;

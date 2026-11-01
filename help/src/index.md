@@ -56,6 +56,8 @@ describe what you did and what happened.
    SCF loop.
    [xTB: tight-binding calculations with xtb](xtb.md): GFN2-xTB, GFN1-xTB and
    GFN-FF energies and optimisations.
+   [CREST: conformer search](crest.md): the low-energy conformers of a
+   molecule or a non-covalent complex, shown in the Viewer.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small
    protein through Prepare, Optimize, Equilibrate and Dynamics.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
