@@ -77,13 +77,18 @@ logarithm shows the weak outer tail. The tick marks are always in r itself
 radial curve is no longer the number of electrons; the panel says so beneath the
 plot. Along a line the axis is always linear.
 
-**y axis** is **Linear** or **Log**. Log is for quantities that are never
-negative (the density, ψ² and the radial distribution) and is not offered for
-the signed ψ; its ticks are powers of ten. Values that are zero cannot be drawn
-on a log axis and are left out.
+**y axis** is **Linear**, **Log** or **√y**. Log is for quantities that are
+never negative (the density, ψ² and the radial distribution) and is not offered
+for the signed ψ; its ticks are powers of ten. Values that are zero cannot be
+drawn on a log axis and are left out. √y spreads the small values without the
+decades of the log axis: the curve is drawn at the square root of its value and
+the tick marks are in the real values (0, 0.01, 0.05, 0.1, ...). A value below
+zero is drawn at minus the square root of its size, so a signed ψ is mirrored
+about the zero line and stays readable. The area under a curve is no longer the
+number of electrons on a √y axis.
 
 The mouse wheel zooms about the pointer (Shift+wheel zooms the vertical axis
-only); on a linear vertical axis the bottom of the axis stays where it is,
+only); on a linear or √y vertical axis the bottom of the axis stays where it is,
 so the baseline below zero stays in view. Dragging a rectangle zooms to it, the
 right or middle button pans, and a double click returns to the opening view.
 **Show all** resets the zoom to show the whole curves, including the peaks that **clip peaks**
