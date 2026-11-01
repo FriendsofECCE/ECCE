@@ -555,6 +555,13 @@ static string providerClockXml(MdTask *task)
     size_t e = key.find_last_not_of(" \t");
     if (b == string::npos) continue;
     key = key.substr(b, e - b + 1);
+    //  grompp matches .mdp option names with - and _ alike and without
+    //  regard to case (as the extra-line merge does), so a key a user wrote
+    //  as "DT" or "init_step" is the same key here.
+    for (size_t i = 0; i < key.size(); i++) {
+      if (key[i] == '_') key[i] = '-';
+      else if (key[i] >= 'A' && key[i] <= 'Z') key[i] += 'a' - 'A';
+    }
     std::istringstream vs(line.substr(eq + 1));
     string val;
     vs >> val;                    // first whitespace-delimited token
