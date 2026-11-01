@@ -3644,6 +3644,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_md_chain PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # A running GROMACS study task offers Terminate in its right-click menu (#731).
+  add_test(NAME launch_md_terminate
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/md_terminate_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_md_terminate PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # A GROMACS Prepare (pdb2gmx, editconf, solvate, genion) and the Optimize
   # after it, through the real launch path; skipped (77) without gmx.
   # The GROMACS tutorial (help/src/gromacs-first-calculation.md): a protein
