@@ -68,12 +68,16 @@ def checkDates(c, held, startBefore=None):
     except (KeyError, ValueError):
         c.check(False, "dates readable")
         return
+    c.check(start <= end, "the start is not after the completion (%s, %s)"
+            % (d["start"], d["completion"]))
     c.check(end - start >= held,
             "completion is at least %d s after the start (%d s)"
             % (held, end - start))
     if startBefore is not None:
-        c.check(d["start"] == startBefore,
-                "the start date survived the monitor restart (%s, was %s)"
+        # The job's own log start replaces the stored one at the end: not
+        # later than the date stored before the restart.
+        c.check(seconds(d["start"]) <= seconds(startBefore),
+                "the start date was not moved by the monitor restart (%s, was %s)"
                 % (d["start"], startBefore))
 
 
