@@ -1228,6 +1228,11 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/processmachine)
           COMPONENT client)
 endif()
 
+# ecce-contacts (#693, #708): coordination shells, H-bonds, ensemble patterns.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_contacts.py
+        DESTINATION bin RENAME ecce-contacts
+        COMPONENT client)
+
 # scripts/minff_topology.py: the GROMACS Prepare editor's "Mineral (MINFF)"
 # Build button runs it as $ECCE_HOME/scripts/minff_topology.py on the client.
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/minff_topology.py)
@@ -2426,6 +2431,13 @@ set_tests_properties(gromacs_prepare_options PROPERTIES TIMEOUT 600 SKIP_RETURN_
 add_test(NAME resource_tool_views
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/tool_views_test.py)
+
+# tests/contacts -- scripts/ecce_contacts.py on hand-made geometries and a
+# CREST ensemble (SKIPs the CREST part without crest).
+add_test(NAME contacts
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/contacts/run_tests.py)
+set_tests_properties(contacts PROPERTIES TIMEOUT 600)
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)
