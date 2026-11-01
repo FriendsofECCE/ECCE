@@ -269,25 +269,30 @@ def deck_tests():
     check(rc == 0 and "Cu" in err and "X\n" not in text, "a row for an element not in the structure is ignored with a note")
 
     print("per-element basis and potential files")
-    text, err, rc = deck(NAW, "Energy", CHEAP + NAW_UZH)
-    check(rc == 0, "Na from the UZH files (row 6): ai.cp2k exits 0")
-    bfs = re.findall(r"BASIS_SET_FILE_NAME (\S+)", text)
-    check(bfs == ["BASIS_MOLOPT", "BASIS_MOLOPT_UZH"],
-          "one BASIS_SET_FILE_NAME per distinct basis file, the calculation's first")
-    check("POTENTIAL_FILE_NAME GTH_POTENTIALS" in text, "the calculation-wide POTENTIAL_FILE_NAME stays")
-    na = re.search(r"&KIND Na\n(.*?)&END KIND", text, re.S).group(1)
-    check("BASIS_SET TZVP-MOLOPT-PBE-GTH-q1" in na and "POTENTIAL GTH-PBE-q1" in na
-          and "POTENTIAL_FILE_NAME POTENTIAL_UZH" in na,
-          "Na &KIND carries its own basis, potential and potential file")
-    o = re.search(r"&KIND O\n(.*?)&END KIND", text, re.S).group(1)
-    check("POTENTIAL_FILE_NAME" not in o, "the other kinds keep the calculation-wide potential file")
-    check(cp2k_check(text) in (True, None), "cp2k --check accepts it")
+    has_uzh = (os.path.isfile(os.path.join(LIB, "BASIS_MOLOPT_UZH"))
+               and os.path.isfile(os.path.join(LIB, "POTENTIAL_UZH")))
+    if has_uzh:
+        text, err, rc = deck(NAW, "Energy", CHEAP + NAW_UZH)
+        check(rc == 0, "Na from the UZH files (row 6): ai.cp2k exits 0")
+        bfs = re.findall(r"BASIS_SET_FILE_NAME (\S+)", text)
+        check(bfs == ["BASIS_MOLOPT", "BASIS_MOLOPT_UZH"],
+              "one BASIS_SET_FILE_NAME per distinct basis file, the calculation's first")
+        check("POTENTIAL_FILE_NAME GTH_POTENTIALS" in text, "the calculation-wide POTENTIAL_FILE_NAME stays")
+        na = re.search(r"&KIND Na\n(.*?)&END KIND", text, re.S).group(1)
+        check("BASIS_SET TZVP-MOLOPT-PBE-GTH-q1" in na and "POTENTIAL GTH-PBE-q1" in na
+              and "POTENTIAL_FILE_NAME POTENTIAL_UZH" in na,
+              "Na &KIND carries its own basis, potential and potential file")
+        o = re.search(r"&KIND O\n(.*?)&END KIND", text, re.S).group(1)
+        check("POTENTIAL_FILE_NAME" not in o, "the other kinds keep the calculation-wide potential file")
+        check(cp2k_check(text) in (True, None), "cp2k --check accepts it")
 
-    # A basis looked up in a row's own file is refused with that file named.
-    text, err, rc = deck(fe, "Energy", CHEAP + [
-        "ES.Theory.GPW.KindElement1: Fe", "ES.Theory.GPW.KindPotential1: GTH-PBE-q8",
-        "ES.Theory.GPW.KindBasisFile1: BASIS_MOLOPT_UZH"])
-    check(rc != 0 and "BASIS_MOLOPT_UZH" in err, "a name not found in a row's basis file names that file")
+        # A basis looked up in a row's own file is refused with that file named.
+        text, err, rc = deck(fe, "Energy", CHEAP + [
+            "ES.Theory.GPW.KindElement1: Fe", "ES.Theory.GPW.KindPotential1: GTH-PBE-q8",
+            "ES.Theory.GPW.KindBasisFile1: BASIS_MOLOPT_UZH"])
+        check(rc != 0 and "BASIS_MOLOPT_UZH" in err, "a name not found in a row's basis file names that file")
+    else:
+        print("  skip  BASIS_MOLOPT_UZH/POTENTIAL_UZH are not in %s" % LIB)
 
     print("spin")
     text, _, _ = deck(NIO, "Energy", CHEAP + ["ChemSys.Multiplicity: 3"])
@@ -504,11 +509,15 @@ def run_tests(work):
     e = nums(r"ENERGY\| Total FORCE_EVAL \( QS \) energy \[hartree\]\s+(\S+)", o)
     check(e and abs(vals(got, "TE")[-1][0] - e[-1]) < 1e-9, "TE is the last energy (%.9f)" % e[-1])
 
-    print("(d) Na, Cl and water: Na from the UZH files, energy")
-    text, _, _ = deck(NAW, "Energy", CHEAP + NAW_UZH)
-    out, o = run_cp2k(text, work, "naw")
-    check("PROGRAM STOPPED" in o and "SCF run converged" in o,
-          "CP2K ran to the end and converged with the UZH files")
+    if os.path.isfile(os.path.join(LIB, "BASIS_MOLOPT_UZH")) and \
+            os.path.isfile(os.path.join(LIB, "POTENTIAL_UZH")):
+        print("(d) Na, Cl and water: Na from the UZH files, energy")
+        text, _, _ = deck(NAW, "Energy", CHEAP + NAW_UZH)
+        out, o = run_cp2k(text, work, "naw")
+        check("PROGRAM STOPPED" in o and "SCF run converged" in o,
+              "CP2K ran to the end and converged with the UZH files")
+    else:
+        print("(d) skipped: BASIS_MOLOPT_UZH/POTENTIAL_UZH are not in %s" % LIB)
 
 
 def main():
