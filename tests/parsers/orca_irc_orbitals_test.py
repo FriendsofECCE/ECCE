@@ -3,10 +3,8 @@
 
     tests/parsers/orca_irc_orbitals_test.py
 
-fixtures/orca/hcn_irc_mos.out is hcn_irc.out with a MOLECULAR ORBITALS block
-(copied from the H2O STO-3G fixture, so the basis does not match the HCN
-atoms: the parser does not care) inserted where ORCA prints it, before the
-IRC starts.  Replayed through orca.desc and orca.mo: the block must come out as
+fixtures/orca/hcn_irc_mos.out is a real ORCA 6.1.1 run (HF/3-21G HCN IRC,
+Print[P_MOs]); its one MOLECULAR ORBITALS block is at the TS.  Replayed through orca.desc and orca.mo: the block must come out as
 one PTORB and one PTMO table next to MO/ORBENG, the same numbers, and a run
 that is not an IRC must not emit them.
 """
@@ -20,7 +18,7 @@ import eccejobmonitor_sim as sim            # noqa: E402
 
 FIXTURE = os.path.join(HERE, "fixtures", "orca", "hcn_irc_mos.out")
 PARSERS = os.path.join(REPO, "scripts", "parsers")
-NMO, NBF = 7, 7
+NMO, NBF = 20, 20
 
 
 def floats(s):

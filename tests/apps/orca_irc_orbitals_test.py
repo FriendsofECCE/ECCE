@@ -7,7 +7,7 @@ Stores what the real orca.mo returns for the MOLECULAR ORBITALS block of
 tests/parsers/fixtures/orca/hcn_irc_mos.out (an IRC run; the block is the one
 orca.mo emits as MO and as the one-table PTMO/PTORB) together with the
 path's energies and structures, opens the MOs and IRC Path panels and selects
-the TS (point 11 of 21) and two other points.  Checked: at the TS the MOs
+the TS (point 4 of 7) and two other points.  Checked: at the TS the MOs
 panel lists the stored orbital energies and its note names the TS point; at
 the other points it lists no orbitals and the note says ORCA gives none
 there.  Exit status 77 (skip) without Xvfb, import or the binaries.
@@ -34,7 +34,7 @@ from harness import say  # noqa: E402
 check = bo.check
 FIXTURE = os.path.join(REPO, "tests", "parsers", "fixtures", "orca", "hcn_irc_mos.out")
 PARSE = os.path.join(REPO, "scripts", "parsers", "orca.mo")
-TS = 10
+TS = 3
 
 
 def moBlock():
@@ -77,7 +77,13 @@ def main():
         check(len(rec.get(key, [])) == 1, "orca.mo emitted %s once" % key)
     eng = numbers(rec["ORBENG"][0])
     nbf = len(eng)
-    energy, frames = ip.orcaPath()
+    # The run's own summary energies; its trajectory is not kept, so the
+    # structures are the middle 7 of the hcn_irc.out path.
+    summary = open(FIXTURE).read().split("IRC PATH SUMMARY")[1].split("SUGGESTED CITATIONS")[0]
+    energy = [float(m) for m in re.findall(
+        r"^\s+\d+\s+(-?\d+\.\d+)\s+-?\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+", summary, re.M)]
+    frames = ip.orcaPath()[1][7:14]
+    check(len(energy) == len(frames) == 7, "7 IRC points")
     coord = [float(i - TS) for i in range(len(energy))]
 
     display = None
@@ -117,11 +123,11 @@ def main():
             with open(os.path.join(props, name), "w") as f:
                 f.write(text)
 
-        lines = ["wait 6000", "panel IRC Path", "wait 1500", "ircclick 3", "wait 1000",
+        lines = ["wait 6000", "panel IRC Path", "wait 1500", "ircclick 1", "wait 1000",
                  "panel MOs", "wait 1500", "mostate",
                  "panel IRC Path", "ircclick %d" % TS, "wait 1000",
                  "panel MOs", "wait 1500", "mostate",
-                 "panel IRC Path", "ircclick 17", "wait 1000",
+                 "panel IRC Path", "ircclick 5", "wait 1000",
                  "panel MOs", "wait 1500", "mostate", "quit"]
         text, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + calc + "/"],
@@ -135,11 +141,11 @@ def main():
         say("notes: %s" % " / ".join(notes))
         other1, at_ts, other2 = (rowEnergies(text, i) for i in range(3))
         check("only at the TS" in notes[0] and not other1,
-              "point 4: no orbitals listed, note says ORCA gives none")
-        check("TS point (11)" in notes[1] and listed(at_ts, eng),
+              "point 2: no orbitals listed, note says ORCA gives none")
+        check("TS point (4)" in notes[1] and listed(at_ts, eng),
               "TS: the stored energies and a note naming the TS point")
         check("only at the TS" in notes[2] and not other2,
-              "point 18: no orbitals listed, note says ORCA gives none")
+              "point 6: no orbitals listed, note says ORCA gives none")
     finally:
         if display:
             display.__exit__(None, None, None)
