@@ -20,6 +20,7 @@
 
 ////@begin includes
 #include "wxgui/ewxPanel.H"
+#include "wxgui/ewxStaticText.H"
 ////@end includes
 
 /*!
@@ -83,6 +84,9 @@ public:
 
     /// Should we show tooltips?
     static bool ShowToolTips();
+
+    /// The text shown; NoAccessContextPanel sets what actually failed.
+    ewxStaticText* p_message;
 
 ////@begin NoAccessContextPanelGUI member variables
     static const wxWindowID ID_DIALOG;

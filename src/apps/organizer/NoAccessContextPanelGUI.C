@@ -71,6 +71,7 @@ NoAccessContextPanelGUI::NoAccessContextPanelGUI( wxWindow* parent, wxWindowID i
 bool NoAccessContextPanelGUI::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style )
 {
 ////@begin NoAccessContextPanelGUI member initialisation
+    p_message = 0;
 ////@end NoAccessContextPanelGUI member initialisation
 
 ////@begin NoAccessContextPanelGUI creation
@@ -93,7 +94,7 @@ void NoAccessContextPanelGUI::CreateControls()
     wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxVERTICAL);
     itemPanel1->SetSizer(itemBoxSizer2);
 
-    ewxStaticText* itemStaticText3 = new ewxStaticText( itemPanel1, wxID_STATIC, _("The content of this project is password protected.\nTo re-enter password, click on the refresh button\non the tool bar."), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText3 = p_message = new ewxStaticText( itemPanel1, wxID_STATIC, _("The content of this project is password protected.\nTo re-enter password, click on the refresh button\non the tool bar."), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer2->Add(itemStaticText3, 0, wxALIGN_LEFT|wxALL|wxFIXED_MINSIZE, 20);
 
 ////@end NoAccessContextPanelGUI content construction

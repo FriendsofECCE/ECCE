@@ -55,7 +55,7 @@ Resource::Resource()
   p_properties = new EcceMap();
   p_descriptor = 0;
   p_children = 0;
-  p_access = UNKNOWN;
+  p_access = UNKNOWN; p_failure = ACCESS_NONE;
   p_localHideInternal = false;
 }
 
@@ -75,7 +75,7 @@ Resource::Resource(const EcceURL& resourceId)
   p_descriptor = 0;
   p_children = 0;
   p_msgStack = new EDSIMessage;
-  p_access = UNKNOWN;
+  p_access = UNKNOWN; p_failure = ACCESS_NONE;
   p_localHideInternal = false;
 }
 
@@ -101,7 +101,7 @@ Resource::Resource(const Resource& rhs)
 
   p_msgStack = new EDSIMessage;
 
-  p_access = UNKNOWN;
+  p_access = UNKNOWN; p_failure = ACCESS_NONE;
 
   p_localHideInternal = rhs.p_localHideInternal;
 }
@@ -128,7 +128,7 @@ Resource& Resource::operator=(const Resource& rhs)
     p_descriptor = rhs.p_descriptor;
 
     clearChildren();
-    p_access = UNKNOWN;
+    p_access = UNKNOWN; p_failure = ACCESS_NONE;
   }
   return *this;
 }
@@ -474,13 +474,13 @@ vector<Resource*> * Resource::getChildren(bool refresh)
           p_children->push_back(resource);
         }
       }
-      p_access = SUCCEEDED;
+      noteAccess(true);
     } 
     else {
       // List Collection failed - go ahead and clear/delete children
       // for next attempt - if there is one
       clearChildren();
-      p_access = FAILED;
+      noteAccess(false);
     }
   }
 
@@ -880,12 +880,39 @@ void Resource::updateProps()
   if (getEDSI()->getMetaData(vmdr,result, false)) {
     clearProps();
     cacheProps(result.metaData);
-    p_access = SUCCEEDED;
+    noteAccess(true);
   }
   else
-    p_access = FAILED;
+    noteAccess(false);
 
   getEDSI()->setURL(originalUrl);
+}
+
+
+
+/**
+ * Records the outcome of a read through getEDSI(): a login is blamed only
+ * when the server refused it, a missing resource is told apart from other
+ * failures so the Organizer can say which one it is.
+ */
+void Resource::noteAccess(bool ok)
+{
+  p_failureText = "";
+  if (ok) {
+    p_access = SUCCEEDED;
+    p_failure = ACCESS_NONE;
+    return;
+  }
+  p_access = FAILED;
+  const EDSIMessage& m = getEDSI()->m_msgStack;
+  if (m.findKey("RESOURCE_NOT_FOUND") || m.findKey("NOT_EXIST"))
+    p_failure = ACCESS_MISSING;
+  else if (m.findKey("NOT_AUTHENTICATION") || m.findKey("NOT_PRIVLEDGES") ||
+           m.findKey("CANCELED") || m.findKey("TOO_MANY_RETRIES"))
+    p_failure = ACCESS_LOGIN;
+  else
+    p_failure = ACCESS_OTHER;
+  p_failureText = m.getMessage();
 }
 
 

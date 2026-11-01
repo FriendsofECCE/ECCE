@@ -42,6 +42,7 @@ import geomtrace_stress                                       # noqa: E402
 import nmode_edit_test                                        # noqa: E402
 import organizer_local_tree_test                              # noqa: E402
 import organizer_bad_meta_test                               # noqa: E402
+import organizer_missing_node_test                           # noqa: E402
 import organizer_tree_icons_test                             # noqa: E402
 import vib_frame_builder_test                                 # noqa: E402
 import builder_mode_test                                      # noqa: E402
@@ -691,6 +692,7 @@ def main():
                 pbc_ux_test.check(display, results)
                 organizer_local_tree_test.check(display, results)
                 organizer_bad_meta_test.check(display, results)
+                organizer_missing_node_test.check(display, results)
                 organizer_tree_icons_test.check(display, results)
             finally:
                 restorePrefs()

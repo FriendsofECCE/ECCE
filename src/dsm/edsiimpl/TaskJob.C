@@ -101,10 +101,10 @@ void TaskJob::updateProps()
   if (getEDSI()->getMetaData(vmdr,result, true)) {
     clearProps();
     cacheProps(result.metaData);
-    p_access = SUCCEEDED;
+    noteAccess(true);
   }
   else
-    p_access = FAILED;
+    noteAccess(false);
 
   getEDSI()->setURL(originalUrl);
 }

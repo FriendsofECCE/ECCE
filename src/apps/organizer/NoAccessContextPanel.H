@@ -33,6 +33,9 @@ public:
 
   void refresh();
 
+  /// The text shown (test hook).
+  wxString message() const { return p_message ? p_message->GetLabel() : wxString(); }
+
 protected:
 
   NoAccessContextPanel( CalcMgr * calcMgr,
