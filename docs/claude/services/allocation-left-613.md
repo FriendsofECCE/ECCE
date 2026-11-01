@@ -145,14 +145,11 @@ both (`AllocationLeft::encode`/`decode`). For Slurm's default command
 Browser keeps `sshare -l -U -u $USER`. Test hook: `allocations` in the
 `ECCE_TEST_ORGANIZER` commands prints `ALLOC: machine|account|used|checked`.
 
-## Remaining on submission (2026-10-28)
-The summary's Allocation row is followed by "Remaining on submission:", a
-snapshot stored once per submission as `launch_allocleft` (`TaskJob::
-allocationSnapshot`, read into `Launchdata::allocationLeft`; not part of
-`launchdata()`'s setter, and in `StoredCalcCopy`'s kSkip). `Launch::doLaunch`
-clears it, calls `AllocationQuery::snapshotBegin` before submitting (a
-background read, or a fresh cache hit) and `snapshot()` after the job store
-is started: it stores the text only if an answer under 15 minutes old is
-already in, else nothing. Nothing waits and nothing logs in. The text is
-`AllocationLeft::remaining` (projinfo only; the cache line has a third
-field for it). Not tested: the live path.
+## "Remaining on submission" removed (#737, 2026-11-01)
+The summary row, the submit-time snapshot (`launch_allocleft`,
+`TaskJob::allocationSnapshot`, `AllocationQuery::snapshotBegin/snapshot`) and
+the Launch.C calls are gone: the value had no timestamp and was missing for
+some jobs. Tools > Allocations (live, with the time read) is the one place for
+the allocation left. Old stored calculations still carry `launch_allocleft`;
+it stays in `StoredCalcCopy`'s kSkip and the examples_preparsed volatile
+list, and nothing reads it.

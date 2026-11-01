@@ -92,8 +92,8 @@ def launchProblem(text, queued=False):
     for name in ("Machine:", "Processors:", "Start Date:", "Cost:"):
         if name not in rows:
             return "Launch Info has no %s row (got %s)" % (name, sorted(rows))
-    for name in (("Allocation:", "Remaining on submission:") if queued else
-                 ("Job ID:", "Allocation:", "Remaining on submission:")):
+    for name in (("Allocation:",) if queued else
+                 ("Job ID:", "Allocation:")):
         if name in rows:
             return "Launch Info shows %s with nothing to show" % name
     if ("Queue:" in rows) != queued:

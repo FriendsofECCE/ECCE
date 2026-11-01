@@ -281,7 +281,6 @@ void CalcInfoPanel::refresh()
     in.wallTime = launchWallTime(taskJob, launch.maxwall);
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);
-    in.allocationRemaining = launch.allocationLeft;
     //  One column: the docked panel is too narrow for the Organizer's two.
     LaunchInfoRows::Columns cols = LaunchInfoRows::build(in);
     cols.left.insert(cols.left.end(), cols.right.begin(), cols.right.end());

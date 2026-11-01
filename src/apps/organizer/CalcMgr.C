@@ -1209,8 +1209,7 @@ void CalcMgr::runTestCommand(const string& line)
         }
         // The Launch Info rows that exist, as "label@x,y" (#648).
         static const char *launchLabels[] = {"Machine:", "Processors:",
-          "Queue:", "Job ID:", "Queue state:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:",
-          "Remaining on submission:"};
+          "Queue:", "Job ID:", "Queue state:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:"};
         outcome += " launch=";
         for (const char *lbl : launchLabels) {
           wxWindow *w = panel ? panel->FindWindow(string("launch:") + lbl) : 0;

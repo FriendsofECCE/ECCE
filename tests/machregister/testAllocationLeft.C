@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     check(summarize("naiss-2||12x\n", "naiss-2").empty(), "sshare: non-numeric usage");
     decode(encode(sh, "naiss-2"), used, raw);
     check(used == s && raw.empty(), "cache text round trip, recognised", used);
-    //  Remaining on submission (the calculation summary row)
+    //  remaining()
     std::string rem = remaining(out, "hpc2n2026-351");
     check(rem == "92.6 % of 30 000 CPU-h/month (past 30 days)", "remaining, single-CPU project", rem);
     rem = remaining(out, "hpc2ncourses2026-002");

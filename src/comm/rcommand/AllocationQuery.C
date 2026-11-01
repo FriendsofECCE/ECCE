@@ -164,26 +164,3 @@ AllocationQuery::Result AllocationQuery::check(const Target& t, bool force,
   }
   return r;
 }
-
-void AllocationQuery::snapshotBegin(const Launchdata& l)
-{
-  Target t;
-  t.machine = l.machine;
-  t.account = AllocationQuery::account(l);
-  if (!t.machine.empty() && !t.account.empty())
-    check(t, false, std::function<void()>());
-}
-
-string AllocationQuery::snapshot(const Launchdata& l)
-{
-  Target t;
-  t.machine = l.machine;
-  t.account = AllocationQuery::account(l);
-  if (t.machine.empty() || t.account.empty())
-    return "";
-  const Result r = check(t, false, std::function<void()>());
-  const long now = (long)time(NULL);
-  if (r.when <= 0 || now < r.when || now - r.when >= AllocationLeft::CACHE_SECONDS)
-    return "";
-  return r.remaining;
-}
