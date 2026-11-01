@@ -661,6 +661,9 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowready WF      the steps Launch Ready Steps would launch
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
+      //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
+      //     code button or the tree's New menu makes it, the New-step dialog
+      //     logged instead of shown: "ok <made> dialogs=carry;|nocarry;"
       //   workflowmenu WF STEP  a right-click on STEP's box: the menu's
       //     labels, or "error: ..." with what threw (#681)
       std::istringstream args(calcName);
@@ -684,6 +687,8 @@ void CalcMgr::runTestCommand(const string& line)
       } else if (command == "workflowjoin") {
         args >> a >> b >> c;
         while (args >> flag) joinArgs.push_back(flag);
+      } else if (command == "workflownew") {
+        args >> a >> b >> c >> d;       // c = panel|tree, d = source or -
       } else if (command == "workflowshot" || command == "workflowdialogshot") {
         args >> d >> a >> b >> c;       // d = PNG
       } else {
@@ -693,7 +698,7 @@ void CalcMgr::runTestCommand(const string& line)
       Session *wf = wfNode ? dynamic_cast<Session*>(wfNode->getResource()) : 0;
       ResourceType *rt = 0;
       if (command == "workflowstep" || command == "workflowdialogshot" ||
-          command == "workflowjoin") {
+          command == "workflowjoin" || command == "workflownew") {
         vector<ResourceType*> types =
             ResourceDescriptor::getResourceDescriptor().getResourceTypes();
         for (size_t i = 0; i < types.size() && !rt; i++)
@@ -821,6 +826,35 @@ void CalcMgr::runTestCommand(const string& line)
           outcome = (ecceWindowShot(this, d) ? "ok " : "not saved ") +
                     wp->layoutReport();
         }
+      } else if (command == "workflownew") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        size_t code = 0;
+        while (code < WorkflowSteps::codes().size() &&
+               rt && WorkflowSteps::codes()[code].typeName != rt->getName())
+          code++;
+        const size_t before = wf->numMembers();
+        string dialogs;
+        p_testStepDialogs = &dialogs;
+        string error;
+        if (!rt || !wp || code >= WorkflowSteps::codes().size())
+          error = "no resource type, panel or code";
+        else if (c == "panel") {
+          if (d != "-") wp->pick(EcceURL(d), false);
+          wp->codeClicked(code);
+        } else {
+          if (d != "-") p_contextPanel->selectResource(EcceURL(d));
+          p_testCreateError = &error;
+          createResource(rt, wfNode, false);
+          p_testCreateError = 0;
+        }
+        p_testStepDialogs = 0;
+        outcome = !error.empty() ? "error: " + error
+                : wf->numMembers() == before ? "error: no step made dialogs=" + dialogs
+                : "ok dialogs=" + dialogs;
       } else if (command == "workflowmenu") {
         p_treeCtrl->SelectItem(wfNode->GetId());
         for (int i = 0; i < 5; i++) wxYield();
@@ -844,6 +878,7 @@ void CalcMgr::runTestCommand(const string& line)
           dlg.Show();
           for (int i = 0; i < 5; i++) wxYield();
           outcome = ecceWindowShot(&dlg, d) ? "ok" : "not saved";
+          outcome += string(" carry=") + (dlg.hasCarry() ? "1" : "0");
           dlg.Hide();
         }
       } else {
@@ -880,6 +915,19 @@ void CalcMgr::runTestCommand(const string& line)
       ICalculation *icalc = dynamic_cast<ICalculation*>(res);
       outcome = icalc ? ResourceUtils::stateToString(icalc->getState())
                       : "no such calculation";
+    } else if (command == "setstate") {
+      // "setstate <calc url> running|completed|...": the stored state, as
+      // the monitor would leave it (for views that draw it).
+      std::istringstream args(calcName);
+      string u, n;
+      args >> u >> n;
+      TaskJob *job = dynamic_cast<TaskJob*>(EDSIFactory::getResource(EcceURL(u)));
+      int found = -1;
+      for (int i = 0; i <= (int)WxState::OUT_OF_CONTACT; i++)
+        if (WxState::getName((ResourceDescriptor::RUNSTATE)i, false) == n) found = i;
+      if (n == "imported") found = (int)ResourceDescriptor::STATE_LOADED;
+      outcome = !job ? "no such task" : found < 0 ? "no such state"
+              : job->setState((ResourceDescriptor::RUNSTATE)found) ? "ok" : "not set";
     } else if (command == "walk") {
       // Select and expand every node below the home as a user clicking
       // through the tree does: the tree's own event handlers run.
@@ -8752,7 +8800,11 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   if (!source) carry = WorkflowSteps::Carry();
   if (ask) {
     WorkflowStepDialog dlg(this, wf, *code, rt, source);
-    if (dlg.ShowModal() != wxID_OK) {
+    if (p_testStepDialogs) {
+      // Test hook: record what the dialog offers, take its defaults.
+      *p_testStepDialogs += string(source ? "carry" : "nocarry") + ";";
+      if (dlg.hasCarry() != (source != 0)) *p_testStepDialogs += "WRONG;";
+    } else if (dlg.ShowModal() != wxID_OK) {
       if (outcome) *outcome = "cancelled";
       return 0;
     }
@@ -8776,7 +8828,7 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
     if (p_contextPanel) p_contextPanel->selectResource(newurl);
   }
   notifyCreate(newurl.toString());
-  if (ask) {
+  if (ask && !p_testStepDialogs) {
     ResourceTool *tool = made->getDefaultTool();
     if (tool) startApp(tool->getName(), 0, newurl.toString());
   }
@@ -8887,7 +8939,11 @@ void CalcMgr::createResource(ResourceType * resType,
   }
   
   string name = resType->getLabel();
-  if (!bypassNamePrompt && GetMenuBar()->IsChecked(wxID_ASKFORNAME)) {
+  // A workflow step is named in its own New-step dialog.
+  const bool wfStep = parent && parent->getResource() &&
+      parent->getResource()->getApplicationType() == ResourceDescriptor::AT_WORKFLOW &&
+      resType->getFactoryCategory() == "EsCalculation";
+  if (!bypassNamePrompt && !wfStep && GetMenuBar()->IsChecked(wxID_ASKFORNAME)) {
     bool showInvalidMsg = false;
     string invalidMsg = "A name may contain only letters, digits, "
       "'.', '_' and '-'.\n\n";
@@ -8947,8 +9003,10 @@ void CalcMgr::createResource(ResourceType * resType,
         if (!source) throw InvalidException(
             "Select the step the new one starts from first.", WHERE);
       }
+      // The same New-step dialog as a code button of the view shows.
       string why;
-      if (!newWorkflowStep(wf, resType, source, false, &why) && !why.empty())
+      if (!newWorkflowStep(wf, resType, source, true, &why) &&
+          !why.empty() && why != "cancelled")
         throw InvalidException(why, WHERE);
       return;
     }
