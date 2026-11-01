@@ -5,7 +5,8 @@
 //   ecce-mocomp CALC --mo N [--beta] [--method mulliken|c2] [--min PCT]
 //               [--by ao,shell,type,atom] [--tsv]
 //   ecce-mocomp CALC --list [--beta]
-//   ecce-mocomp CALC --spin       (Mulliken spin population per atom)
+//   ecce-mocomp CALC --spin       (Mulliken spin population per atom:
+//                                  index, element, one pass, per-orbital sum)
 //
 // CALC is a calculation folder in local data mode (a path, or file:// URL).
 // --mo takes a number, "homo" or "lumo", and may be repeated.  Mulliken
@@ -97,12 +98,28 @@ static int printSpin(IPropCalculation *calc, const vector<string>& symbols,
     return 1;
   }
   std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+  //  The per-orbital sum the view used before, as an independent check:
+  //  net electrons times the orbital's Mulliken share on each atom.
+  vector<double> old(pop.size(), 0.0);
+  for (int s = 0; s < 2; s++)
+    for (size_t i = 0; sets[s].rows && i < sets[s].net.size() &&
+                       i < sets[s].rows->size(); i++) {
+      if (sets[s].net[i] == 0.0) continue;
+      MoAoBasis::Composition comp;
+      if (!basis.analyse((*sets[s].rows)[i], MoAoBasis::MULLIKEN, comp))
+        continue;
+      for (size_t a = 0; a < comp.atoms.size() && a < old.size(); a++)
+        old[a] += sets[s].net[i]*comp.atoms[a].share;
+    }
+  std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
   for (size_t a = 0; a < pop.size(); a++)
-    printf("%zu\t%s\t%.6f\n", a, basis.elements[a].c_str(), pop[a]);
-  fprintf(stderr, "basis functions %zu; overlap %.3f s; spin pass %.3f s\n",
-          basis.functions.size(),
+    printf("%zu\t%s\t%.8f\t%.8f\n", a, basis.elements[a].c_str(), pop[a],
+           old[a]);
+  fprintf(stderr, "basis functions %zu; overlap %.3f s; spin pass %.3f s; "
+          "per-orbital sum %.3f s\n", basis.functions.size(),
           std::chrono::duration<double>(t1 - t0).count(),
-          std::chrono::duration<double>(t2 - t1).count());
+          std::chrono::duration<double>(t2 - t1).count(),
+          std::chrono::duration<double>(t3 - t2).count());
   return 0;
 }
 
