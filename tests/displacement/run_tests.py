@@ -51,10 +51,20 @@ check('rotated+translated copy: aligned coordinates',
       all(all(abs(aligned[i][k] - MOL[i][k]) < 1e-7 for k in range(3))
           for i in range(len(MOL))), aligned)
 
-# 2. A reflection is not reported as 0 (proper rotation only).
+# 2. A reflection is not reported as 0 (proper rotation only), and the
+# routine returns the optimal proper rotation, not the worst one: the
+# no-rotation RMSD (1.105 A) is itself a valid proper rotation, so the
+# optimum must beat it (Horn's most-negative eigenvalue, larger in magnitude
+# for a mirror, would give the worst rotation, 1.434 A).  The optimum is the
+# closed-form Kabsch value sqrt((sum|p|^2 + sum|q|^2 - 2*(s1+s2-s3)) / n).
 mirror = [(-v[0], v[1], v[2]) for v in MOL]
 rmsd, _ = D.kabsch(MOL, mirror)
+no_rot = math.sqrt(sum(sum((MOL[i][k] - mirror[i][k]) ** 2 for k in range(3))
+                       for i in range(len(MOL))) / len(MOL))
 check('mirror image: RMSD not 0', rmsd > 1e-3, rmsd)
+check('mirror image: optimal, not the worst, rotation', rmsd < no_rot,
+      (rmsd, no_rot))
+check('mirror image: known optimal RMSD', abs(rmsd - 0.562792) < 1e-4, rmsd)
 
 # 3. A known displacement gives the known per-element numbers.
 a = [(0.0, 0.0, 0.0), (1.0, 0.0, 0.0)]

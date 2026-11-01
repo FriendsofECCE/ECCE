@@ -117,18 +117,26 @@ def centroid(pts):
 
 
 def _dom_eigvec(n4):
-    """Largest-magnitude eigenvector of a symmetric 4x4 matrix (the optimal
-    rotation quaternion); power iteration is ample for a 4x4."""
+    """Eigenvector of the largest *algebraic* eigenvalue of Horn's symmetric
+    4x4 matrix -- the optimal rotation quaternion.  Power iteration finds the
+    largest magnitude, but for mirror-related structures (det S < 0) the most
+    negative eigenvalue has the larger magnitude, so shift by the Frobenius
+    norm (>= -(lambda_max + lambda_min) / 2) first; then the largest algebraic
+    eigenvalue is also the largest magnitude."""
+    shift = math.sqrt(sum(x * x for row in n4 for x in row))
+    m = [row[:] for row in n4]
+    for i in range(4):
+        m[i][i] += shift
     v = [1.0, 2.0, 3.0, 4.0]
     norm = math.sqrt(sum(x * x for x in v))
     v = [x / norm for x in v]
-    for _ in range(200):
-        w = [sum(n4[i][j] * v[j] for j in range(4)) for i in range(4)]
+    for _ in range(500):
+        w = [sum(m[i][j] * v[j] for j in range(4)) for i in range(4)]
         norm = math.sqrt(sum(x * x for x in w))
         if norm < 1e-30:
             break
         w = [x / norm for x in w]
-        if sum((w[i] - v[i]) ** 2 for i in range(4)) < 1e-26:
+        if sum((w[i] - v[i]) ** 2 for i in range(4)) < 1e-30:
             v = w
             break
         v = w

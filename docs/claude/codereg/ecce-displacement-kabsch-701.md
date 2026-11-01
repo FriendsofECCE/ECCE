@@ -15,8 +15,10 @@ calculation folders.
 - One calculation: per-element max and rms displacement from the first frame
   over the trace.  Frames share a coordinate frame, so no alignment.
 - Two calculations: the last frame of each is fitted with Kabsch.  Proper
-  rotation only (Horn's quaternion method, the dominant eigenvector of the 4x4
-  cross-covariance matrix via power iteration), so a mirror image is never
+  rotation only (Horn's quaternion method: the eigenvector of the largest
+  *algebraic* eigenvalue of the 4x4 cross-covariance matrix, via power
+  iteration shifted by the Frobenius norm so a mirror's most-negative
+  eigenvalue is not mistaken for the largest), so a mirror image is never
   reported as RMSD 0.  `--select` restricts both the fit and the table: 1-based
   indices or `within R of atom i` (the pocket around an ion).
 - Output text/CSV/JSON via `--json`/`--csv`; two-calculation JSON keys are
