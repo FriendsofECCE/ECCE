@@ -2588,7 +2588,7 @@ CASES = [
         fixture='cp2k/nio_u_opt.cp2kout',
         parse_args=('.', 'Geometry', 'QS', 'GPW', '0'),
         expect={
-            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=3, keys={
+            'GEOMTRACE][TEVEC': dict(blocks=3, keys={
                 'GEOMTRACE': {'size': '1 2 3', 'rowlabels': '1-Ni 2-O',
                               'columnlabels': 'X Y Z', 'units': 'Angstrom'},
                 'TEVEC': {'values': '-184.9534017873', 'units': 'Hartree'}}),
