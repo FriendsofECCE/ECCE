@@ -307,9 +307,9 @@ sub qOf {
 # that carries the plain family name as an alias (the file's default), then
 # the others by falling number of valence electrons.
 sub potentialCandidates {
-  my ($el, $family) = @_;
+  my ($el, $family, $lib) = @_;
   my ($default, %byQ);
-  foreach my $entry (@{$potentialLib->{$el}}) {
+  foreach my $entry (@{$lib->{$el}}) {
     my @names = @$entry;
     my ($qname) = grep { /^\Q$family\E-q\d+$/ } @names;
     next if (!defined($qname));
@@ -332,9 +332,9 @@ sub basisStems {
 }
 
 sub pickBasis {
-  my ($el, $q) = @_;
+  my ($el, $q, $lib) = @_;
   foreach my $stem (&basisStems) {
-    foreach my $entry (@{$basisLib->{$el}}) {
+    foreach my $entry (@{$lib->{$el}}) {
       return "$stem-q$q" if (grep { $_ eq "$stem-q$q" } @$entry);
     }
   }
@@ -342,20 +342,30 @@ sub pickBasis {
 }
 
 sub resolveLibrary {
-  my $bpath = &libraryPath(&basisFileName);
-  my $ppath = &libraryPath(&potentialFileName);
-  $basisLib = &scanLibrary($bpath);
-  die "ai.cp2k error: the basis set file '$bpath' cannot be read.\n" .
+  # Scan each library file once, however many rows name it; the entry for a
+  # name is keyed by the bare file name so a missing file is not rescanned.
+  my %scan;
+  my $cached = sub {
+    my ($name) = @_;
+    return $scan{$name} if (exists $scan{$name});
+    $scan{$name} = &scanLibrary(&libraryPath($name));
+    return $scan{$name};
+  };
+
+  my $gb = &basisFileName;
+  my $gp = &potentialFileName;
+  my $gblib = $cached->($gb);
+  die "ai.cp2k error: the basis set file '" . &libraryPath($gb) . "' cannot be read.\n" .
       "  Set Theory Details -> Library Files (Directory and Basis file); on\n" .
       "  Debian the CP2K data is in /usr/share/cp2k (package cp2k-data).\n"
-    if (!defined($basisLib));
-  $potentialLib = &scanLibrary($ppath);
-  die "ai.cp2k error: the potential file '$ppath' cannot be read.\n" .
+    if (!defined($gblib));
+  my $gplib = $cached->($gp);
+  die "ai.cp2k error: the potential file '" . &libraryPath($gp) . "' cannot be read.\n" .
       "  Set Theory Details -> Library Files (Directory and Potential file).\n"
-    if (!defined($potentialLib));
+    if (!defined($gplib));
 
   my %override = ();
-  for (my $i = 1; $i <= 3; $i++) {
+  for (my $i = 1; $i <= 6; $i++) {
     my $el = &typedElement($AbiDict{"ES.Theory.GPW.KindElement$i"});
     next if ($el eq "");
     if (!defined($speciesIndex{$el})) {
@@ -365,16 +375,43 @@ sub resolveLibrary {
     }
     my $b = $AbiDict{"ES.Theory.GPW.KindBasis$i"};
     my $p = $AbiDict{"ES.Theory.GPW.KindPotential$i"};
-    $override{$el} = [ (defined($b) ? $b : ""), (defined($p) ? $p : "") ];
+    $override{$el} = [
+      (defined($b) ? $b : ""),
+      (defined($p) ? $p : ""),
+      &numOr("ES.Theory.GPW.KindBasisFile$i", ""),
+      &numOr("ES.Theory.GPW.KindPotentialFile$i", ""),
+    ];
   }
 
   my $family = (&functionalInfo)->{family};
   %kindBasis = ();
   %kindPotential = ();
+  %kindBasisFile = ();
+  %kindPotentialFile = ();
+  # The calculation's own basis file is written first in the deck, even when
+  # every element is overridden, so a deck never loses the default.
+  @basisFilesInDeck = ($gb);
+  my %seenBasisFile = ($gb => 1);
   my @problems = ();
   foreach my $el (@species) {
-    my ($ob, $op) = defined($override{$el}) ? @{$override{$el}} : ("", "");
-    my @pots = ($op ne "") ? ($op) : &potentialCandidates($el, $family);
+    my ($ob, $op, $obf, $opf) = defined($override{$el})
+        ? @{$override{$el}} : ("", "", "", "");
+    my $bfile = ($obf ne "") ? $obf : $gb;
+    my $pfile = ($opf ne "") ? $opf : $gp;
+    my $bpath = &libraryPath($bfile);
+    my $ppath = &libraryPath($pfile);
+    my $blib = $cached->($bfile);
+    die "ai.cp2k error: the basis set file '$bpath' cannot be read.\n" .
+        "  Set Theory Details -> Per-element Basis and Potential (Basis file).\n"
+      if (!defined($blib));
+    my $plib = $cached->($pfile);
+    die "ai.cp2k error: the potential file '$ppath' cannot be read.\n" .
+        "  Set Theory Details -> Per-element Basis and Potential (Potential file).\n"
+      if (!defined($plib));
+
+    push(@basisFilesInDeck, $bfile) if (!$seenBasisFile{$bfile}++);
+
+    my @pots = ($op ne "") ? ($op) : &potentialCandidates($el, $family, $plib);
     if (!@pots) {
       push(@problems, "$el: no $family potential in $ppath");
       next;
@@ -383,7 +420,7 @@ sub resolveLibrary {
     foreach my $cand (@pots) {
       if ($ob ne "") { $pot = $cand; last; }
       my $q = qOf($cand);
-      my $b = defined($q) ? &pickBasis($el, $q) : "";
+      my $b = defined($q) ? &pickBasis($el, $q, $blib) : "";
       if ($b ne "") { ($pot, $basis) = ($cand, $b); last; }
     }
     if ($pot eq "") {
@@ -392,12 +429,14 @@ sub resolveLibrary {
            " basis in $bpath");
       next;
     }
-    my $found = grep { grep { $_ eq $pot } @$_ } @{$potentialLib->{$el}};
+    my $found = grep { grep { $_ eq $pot } @$_ } @{$plib->{$el}};
     print STDERR "ai.cp2k warning: $pot is not an $el entry of $ppath; " .
       "CP2K will stop unless it is defined elsewhere.\n"
       if ($op ne "" && !$found);
     $kindBasis{$el} = $basis;
     $kindPotential{$el} = $pot;
+    $kindBasisFile{$el} = $bfile;
+    $kindPotentialFile{$el} = $pfile;
   }
   die "ai.cp2k error: no basis set and potential for\n  " .
       join("\n  ", @problems) . "\n" .
@@ -521,6 +560,10 @@ sub kindLines {
   foreach my $el (@species) {
     push(@l, "&KIND $el", "  BASIS_SET $kindBasis{$el}",
              "  POTENTIAL $kindPotential{$el}");
+    # CP2K takes a POTENTIAL_FILE_NAME inside a &KIND too; the row's own
+    # potential file is written there, the calculation-wide one stays in &DFT.
+    push(@l, "  POTENTIAL_FILE_NAME " . &libraryDeckName($kindPotentialFile{$el}))
+      if ($kindPotentialFile{$el} ne &potentialFileName);
     if (defined($u{$el})) {
       push(@l, "  &DFT_PLUS_U", "    L $u{$el}->[1]",
                "    U_MINUS_J [eV] $u{$el}->[2]", "  &END DFT_PLUS_U");
@@ -531,9 +574,12 @@ sub kindLines {
 }
 
 sub CP2KForceEval {
-  my @dft = ("&DFT",
-    "  BASIS_SET_FILE_NAME " . &libraryDeckName(&basisFileName),
-    "  POTENTIAL_FILE_NAME " . &libraryDeckName(&potentialFileName));
+  my @dft = ("&DFT");
+  # CP2K reads every BASIS_SET_FILE_NAME line, so one per distinct basis file
+  # in use (the calculation's file first) names the per-element overrides.
+  push(@dft, "  BASIS_SET_FILE_NAME " . &libraryDeckName($_))
+    for (@basisFilesInDeck);
+  push(@dft, "  POTENTIAL_FILE_NAME " . &libraryDeckName(&potentialFileName));
   my $charge = $AbiDict{"Charge"};
   $charge = 0 if (!defined($charge) || $charge !~ /^\s*-?\d+\s*$/);
   push(@dft, "  CHARGE " . ($charge + 0));

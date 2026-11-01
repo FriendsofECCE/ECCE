@@ -54,6 +54,8 @@ describe what you did and what happened.
    pick the cutoff, the k-points, smearing and the box.
    [CP2K: the SCF loop](cp2k-scf.md) explains the OT minimiser and the outer
    SCF loop.
+   [CP2K: basis sets and potentials](cp2k-basis-potential.md) explains the
+   basis level, the library files and the per-element overrides.
    [xTB: tight-binding calculations with xtb](xtb.md): GFN2-xTB, GFN1-xTB and
    GFN-FF energies, optimisations and molecular dynamics.
    [CREST: conformer search and related run types](crest.md): the low-energy

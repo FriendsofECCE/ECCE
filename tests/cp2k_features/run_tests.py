@@ -52,6 +52,13 @@ NIO = dict(
     title="nio",
     lattice=["0.0 2.085 2.085", "2.085 0.0 2.085", "2.085 2.085 0.0"],
     atoms=[("Ni", 0.0, 0.0, 0.0), ("O", 2.135, 2.115, 2.085)])
+# A box of Na, Cl and one water: Na comes from the UZH files (valence-only
+# q1), the other elements from the default BASIS_MOLOPT / GTH_POTENTIALS.
+NAW = dict(
+    title="naw",
+    lattice=["10.0 0.0 0.0", "0.0 10.0 0.0", "0.0 0.0 10.0"],
+    atoms=[("Na", 1.0, 1.0, 1.0), ("Cl", 5.0, 1.0, 1.0),
+           ("O", 3.0, 4.0, 1.0), ("H", 2.0, 4.6, 1.0), ("H", 4.0, 4.6, 1.0)])
 
 CHEAP = ["ES.Theory.GPW.Cutoff: 100", "ES.Theory.GPW.RelCutoff: 30"]
 NIO_SPIN = ["ChemSys.Multiplicity: 3", "ES.Theory.GPW.BasisLevel: SZV-MOLOPT-SR-GTH",
@@ -59,6 +66,12 @@ NIO_SPIN = ["ChemSys.Multiplicity: 3", "ES.Theory.GPW.BasisLevel: SZV-MOLOPT-SR-
             "ES.Theory.GPW.HubbardElement1: Ni", "ES.Theory.GPW.HubbardOrbital1: d",
             "ES.Theory.GPW.HubbardU1: 4.0", "ES.Theory.GPW.OTMinimizer: CG",
             "ES.Theory.GPW.OTPreconditioner: FULL_ALL", "ES.Theory.GPW.MaxScf: 300"]
+# Na from the UZH files, placed on row 6 so a row beyond three is exercised.
+NAW_UZH = ["ES.Theory.GPW.KindElement6: Na",
+           "ES.Theory.GPW.KindBasis6: TZVP-MOLOPT-PBE-GTH-q1",
+           "ES.Theory.GPW.KindBasisFile6: BASIS_MOLOPT_UZH",
+           "ES.Theory.GPW.KindPotential6: GTH-PBE-q1",
+           "ES.Theory.GPW.KindPotentialFile6: POTENTIAL_UZH"]
 
 
 def deck(system, runtype, params, work=None, lattice=True):
@@ -254,6 +267,32 @@ def deck_tests():
     text, err, rc = deck(fe, "Energy", CHEAP + ["ES.Theory.GPW.KindElement1: Cu",
                                                "ES.Theory.GPW.KindBasis1: X"])
     check(rc == 0 and "Cu" in err and "X\n" not in text, "a row for an element not in the structure is ignored with a note")
+
+    print("per-element basis and potential files")
+    has_uzh = (os.path.isfile(os.path.join(LIB, "BASIS_MOLOPT_UZH"))
+               and os.path.isfile(os.path.join(LIB, "POTENTIAL_UZH")))
+    if has_uzh:
+        text, err, rc = deck(NAW, "Energy", CHEAP + NAW_UZH)
+        check(rc == 0, "Na from the UZH files (row 6): ai.cp2k exits 0")
+        bfs = re.findall(r"BASIS_SET_FILE_NAME (\S+)", text)
+        check(bfs == ["BASIS_MOLOPT", "BASIS_MOLOPT_UZH"],
+              "one BASIS_SET_FILE_NAME per distinct basis file, the calculation's first")
+        check("POTENTIAL_FILE_NAME GTH_POTENTIALS" in text, "the calculation-wide POTENTIAL_FILE_NAME stays")
+        na = re.search(r"&KIND Na\n(.*?)&END KIND", text, re.S).group(1)
+        check("BASIS_SET TZVP-MOLOPT-PBE-GTH-q1" in na and "POTENTIAL GTH-PBE-q1" in na
+              and "POTENTIAL_FILE_NAME POTENTIAL_UZH" in na,
+              "Na &KIND carries its own basis, potential and potential file")
+        o = re.search(r"&KIND O\n(.*?)&END KIND", text, re.S).group(1)
+        check("POTENTIAL_FILE_NAME" not in o, "the other kinds keep the calculation-wide potential file")
+        check(cp2k_check(text) in (True, None), "cp2k --check accepts it")
+
+        # A basis looked up in a row's own file is refused with that file named.
+        text, err, rc = deck(fe, "Energy", CHEAP + [
+            "ES.Theory.GPW.KindElement1: Fe", "ES.Theory.GPW.KindPotential1: GTH-PBE-q8",
+            "ES.Theory.GPW.KindBasisFile1: BASIS_MOLOPT_UZH"])
+        check(rc != 0 and "BASIS_MOLOPT_UZH" in err, "a name not found in a row's basis file names that file")
+    else:
+        print("  skip  BASIS_MOLOPT_UZH/POTENTIAL_UZH are not in %s" % LIB)
 
     print("spin")
     text, _, _ = deck(NIO, "Energy", CHEAP + ["ChemSys.Multiplicity: 3"])
@@ -469,6 +508,16 @@ def run_tests(work):
     check(len(got.get("EGRADVEC", [])) == 1 and len(vals(got, "EGRADVEC")[0]) == 6, "EGRADVEC for two atoms")
     e = nums(r"ENERGY\| Total FORCE_EVAL \( QS \) energy \[hartree\]\s+(\S+)", o)
     check(e and abs(vals(got, "TE")[-1][0] - e[-1]) < 1e-9, "TE is the last energy (%.9f)" % e[-1])
+
+    if os.path.isfile(os.path.join(LIB, "BASIS_MOLOPT_UZH")) and \
+            os.path.isfile(os.path.join(LIB, "POTENTIAL_UZH")):
+        print("(d) Na, Cl and water: Na from the UZH files, energy")
+        text, _, _ = deck(NAW, "Energy", CHEAP + NAW_UZH)
+        out, o = run_cp2k(text, work, "naw")
+        check("PROGRAM STOPPED" in o and "SCF run converged" in o,
+              "CP2K ran to the end and converged with the UZH files")
+    else:
+        print("(d) skipped: BASIS_MOLOPT_UZH/POTENTIAL_UZH are not in %s" % LIB)
 
 
 def main():
