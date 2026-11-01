@@ -650,7 +650,8 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "workflowrecipelist" || command == "workflowrecipe" ||
                command == "workflowrecipepanel" || command == "workflowrecipecreate" ||
                command == "workflowkeydata" || command == "workflowmark" ||
-               command == "workflowsaverecipe" || command == "workflowlink") {
+               command == "workflowsaverecipe" || command == "workflowlink" ||
+               command == "workflowstructure") {
       // Recipes (Recipe.H, RecipePanel.H); WF is the workflow's URL.
       //   workflowrecipelist            the recipes found: id:variants;...
       //   workflowrecipe WF ID VARIANT SOURCE|- [method=M] [basis=B]
@@ -663,12 +664,15 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowmark WF STEP KEY THERMO   make a copied step a recipe step (KEY: reactant, ts, ...)
       //   workflowsaverecipe WF ID TITLE   Save Workflow as Recipe
       //   workflowlink WF SRC DST NAME     a link between two steps
+      //   workflowstructure WF STEP FROM   stores FROM's structure in STEP as
+      //     the Builder does, then what its ecce_url_subject notice triggers
       std::istringstream args(calcName);
       string png, wfUrl, rid, vid, src, flag, method, basis;
       if (command == "workflowrecipepanel") args >> png >> wfUrl >> rid >> vid >> src;
       else if (command == "workflowrecipe") args >> wfUrl >> rid >> vid >> src;
       else if (command == "workflowmark") args >> wfUrl >> rid >> vid >> src >> method;
-      else if (command == "workflowsaverecipe" || command == "workflowlink")
+      else if (command == "workflowsaverecipe" || command == "workflowlink" ||
+               command == "workflowstructure")
         args >> wfUrl >> rid >> vid >> src;
       else args >> wfUrl;
       while (args >> flag) {
@@ -754,6 +758,19 @@ void CalcMgr::runTestCommand(const string& line)
           string t = wp->keyDataText();
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
           outcome = "ok " + t;
+        } else if (command == "workflowstructure") {
+          PropertyTask *from = dynamic_cast<PropertyTask*>(EDSIFactory::getResource(EcceURL(vid)));
+          ChemistryTask *to = 0;
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++)
+            if (members[i]->getURL() == EcceURL(rid)) to = dynamic_cast<ChemistryTask*>(members[i]);
+          Fragment *frag = from ? from->fragment() : 0;
+          if (!to || !frag) outcome = "error: no such step or structure";
+          else {
+            to->fragment(frag);
+            outcome = "ok " + structureStored(EcceURL(rid));
+          }
+          delete frag;
         } else if (command == "workflowmark") {
           Resource *step = 0;
           vector<Resource*> members = wf->getMembers();
@@ -9043,6 +9060,22 @@ Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
   }
   if (outcome) *outcome = newurl.toString();
   return made;
+}
+
+
+string CalcMgr::structureStored(const EcceURL& url)
+{
+  // Most notices are for calculations outside a recipe workflow: the
+  // property check keeps those to one lookup.
+  Resource *step = EDSIFactory::getResource(url);
+  if (!step || step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()) return "";
+  WxResourceTreeItemData *node = findNode(url.getParent(), true, true);
+  Session *wf = node ? dynamic_cast<Session*>(node->getResource()) : 0;
+  if (!wf) return "";
+  vector<Resource*> members = wf->getMembers();
+  for (size_t i = 0; i < members.size(); i++)
+    if (members[i]->getURL() == url) return WorkflowSteps::structureSet(wf, members[i]);
+  return "";
 }
 
 

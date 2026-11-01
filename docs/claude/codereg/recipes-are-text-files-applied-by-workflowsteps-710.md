@@ -20,8 +20,18 @@ issues: [710, 674]
   ("needs structure"). Its successors get geometry, charge and multiplicity
   only when launched: `launchReadySteps` calls `refreshFromSources`, which
   acts on recipe steps only so other workflows behave as before.
-- The method and basis chosen per role are recorded as properties; only G16's
-  `ES.Theory.DFT.XCFunctionals` is set from the method. A basis set needs a
+- The method and basis chosen per role are recorded as properties.
+  `applyRoleMethod` sets theory RDFT plus `ES.Theory.DFT.XCFunctionals` (or
+  SCF/RHF for HF) for G16 and ORCA only, through `methodValue`, which holds
+  copies of the functional lists in `ged16theory.py`/`orcatheory.py`: add a
+  functional there and here. Other codes keep their default.
+- `structureSet` runs when a recipe step's structure is stored: the
+  Organizer's `ecce_url_subject` subscription (the Builder publishes it on
+  save) calls `CalcMgr::structureStored`, and `refreshFromSources` calls it
+  after carrying a source's structure. It re-runs `recommend` with the
+  structure for every not-submitted recipe step whose level is still the
+  recommendation (blank-facts default or the last ruled value in
+  `ecce:recipe.ruled`), then applies method and basis. A basis set needs a
   structure (per-element assignment), so `applyRoleBasis` stores the role's
   basis when the step gets one (at creation from the box it is appended to,
   or from its source at launch); `6-31+G(d)` is looked up as `6-31+G*` too.
@@ -31,4 +41,4 @@ issues: [710, 674]
   same code, method, basis and solvent; otherwise a note and no numbers.
 - Test hooks: `workflowrecipelist`, `workflowrecipe`, `workflowrecipepanel`,
   `workflowrecipecreate`, `workflowkeydata`, `workflowmark`, `workflowlink`,
-  `workflowsaverecipe` (CalcMgr.C); test `tests/apps/workflow_test.py`.
+  `workflowsaverecipe`, `workflowstructure` (CalcMgr.C); test `tests/apps/workflow_test.py`.
