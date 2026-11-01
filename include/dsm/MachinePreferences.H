@@ -58,6 +58,8 @@ class MachinePreferences
         void setNodes(int nodes);
         void setMaxWallTime(long t);
         void setMemoryLimit(long mbytes);
+        int getThreads() const { return p_threads; }
+        void setThreads(int t) { p_threads = t < 1 ? 1 : t; }
         void setScratchSpace(long mbytes);
         void setPriority(int p);
 
@@ -124,6 +126,7 @@ class MachinePreferences
 
         int          p_processors;         //  Number of processors to use
         int          p_nodes;              //  Number of nodes to use
+        int          p_threads;            //  OpenMP threads per MPI rank (session only)
         long         p_maxWallTime;        //  Maximum Wall time, in minutes
         long         p_memoryLimit;        //  Memory Limit, in MBytes
         long         p_scratchSpace;       //  Scratch Space, in MBytes

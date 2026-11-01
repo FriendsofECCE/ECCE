@@ -411,6 +411,8 @@ void LaunchBatch::buildArgs(TaskJob *task, EcceMap& kv)
   }
   snprintf(buf, sizeof buf, "%lu", l.totalprocs);  kv["##numProcs##"] = buf;
   snprintf(buf, sizeof buf, "%lu", l.nodes);       kv["##numNodes##"] = buf;
+  snprintf(buf, sizeof buf, "%lu", l.threads > 0 ? l.threads : 1UL);
+  kv["##threads##"] = buf;
   if (prefs && prefs->isOptionSupported("SD")) kv["##scratch##"] = l.scratchdir;
   kv["##runDir##"] = task->jobdata().jobpath;
 

@@ -2659,6 +2659,9 @@ bool Launch::instanceScript(EcceMap& kv)
     if (kv.count("##numNodes##") == 1) {
       os << " -N " + kv["##numNodes##"] << "\n";
     }
+    if (kv.count("##threads##") == 1 && kv["##threads##"] != "1") {
+      os << " -K " + kv["##threads##"] << "\n";
+    }
     if (kv.count("##runDir##") == 1) {
       os << " -r " + kv["##runDir##"] << "\n";
     }

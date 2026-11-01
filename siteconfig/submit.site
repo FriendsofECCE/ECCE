@@ -204,7 +204,9 @@ Moab {
 Slurm {
 #SBATCH --partition=$queue
 #SBATCH --nodes=$nodes
-#SBATCH --ntasks=$totalprocs
+#SBATCH --ntasks=$mpiRanks
+#SBATCH --ntasks-per-node=$tasksPerNode
+#SBATCH --cpus-per-task=$cpusPerTask
 #SBATCH --time=$wallTime
 # The Launcher hands the memory limit to gensub in MB, and the M after the
 # value is literal, so the unit is MB whatever the machine's .Q file says
