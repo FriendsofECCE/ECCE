@@ -248,6 +248,54 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addRoot(const string& name,
 }
 
 
+WxResourceTreeItemData * WxResourceTreeCtrl::addServerRoot(const string& name,
+    const string& ref, const string& user)
+{
+  string label = name + " (ECCE server)";
+  WxResourceTreeItemData * node = 0;
+  if (!user.empty()) {
+    EDSIServerCentral servers;
+    EcceURL home = servers.getUserHome(EcceURL(ref + "Ecce/"));
+    Resource * res = EDSIFactory::getResource(home);
+    if (res) node = new WxResourceTreeItemData(res);
+  }
+  if (!node) {
+    node = new WxResourceTreeItemData();
+    label += " (not connected)";
+  }
+  node->setServer(name, ref);
+  wxTreeItemId itemId = AppendItem(GetRootItem(), label, -1, -1, node);
+  if (node->getResource()) setItemImages(itemId, node->getResource());
+  SetItemHasChildren(itemId);
+  return node;
+}
+
+
+void WxResourceTreeCtrl::removeServerRoots()
+{
+  vector<wxTreeItemId> gone;
+  wxTreeItemIdValue cookie;
+  for (wxTreeItemId id = GetFirstChild(GetRootItem(), cookie); id.IsOk();
+       id = GetNextChild(GetRootItem(), cookie)) {
+    WxResourceTreeItemData * d =
+      dynamic_cast<WxResourceTreeItemData *>(GetItemData(id));
+    if (d && !d->serverRef().empty()) gone.push_back(id);
+  }
+  for (size_t i = 0; i < gone.size(); i++) Delete(gone[i]);
+}
+
+
+vector<string> WxResourceTreeCtrl::rootLabels()
+{
+  vector<string> out;
+  wxTreeItemIdValue cookie;
+  for (wxTreeItemId id = GetFirstChild(GetRootItem(), cookie); id.IsOk();
+       id = GetNextChild(GetRootItem(), cookie))
+    out.push_back(GetItemText(id).ToStdString());
+  return out;
+}
+
+
 /**
  * Load the children of node.
  *

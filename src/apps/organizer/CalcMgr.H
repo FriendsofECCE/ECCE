@@ -477,6 +477,12 @@ protected:
   void initializeGUI();
   void setTreeStyle();
   void initializeTreeData();
+  // Roots for the ECCE servers in ~/.ECCE/AddedServers (#767).
+  void syncServerRoots();
+  bool connectServer(const string& ref);
+  string crossTreeRefusal(const vector<EcceURL>& sources, const EcceURL& dest);
+  bool refuseAddedLaunch(const vector<EcceURL>& urls);
+  void tellRefusal(const string& msg);
 
   void progressNotice(ProgressEvent& event);
   bool getSelection();
@@ -622,6 +628,8 @@ protected:
   WxAccessControl       * p_accessControlDialog;
   BookmarkEditor        * p_bookmarkEditor;
   BookmarkEditor        * p_serverListEditor;
+  wxTimer               * p_serverTimer = 0;
+  long                    p_serverListStamp = -1;
   WxFind                * p_find;
   GlobalPrefs           * p_prefs;
   

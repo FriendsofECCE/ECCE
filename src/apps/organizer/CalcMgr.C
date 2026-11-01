@@ -54,6 +54,8 @@ static std::string s_registerMessage;
 #include <wx/treectrl.h>
 
 #include "util/LocalData.H"
+#include "util/ServerList.H"
+#include "tdat/AuthCache.H"
 #include "util/SessionLease.H"
 #include "util/WaitingJobs.H"
 #include "comm/OpenSshTransport.H"
@@ -579,6 +581,51 @@ void CalcMgr::runTestCommand(const string& line)
       dlg.registerListener(this);
       dlg.importFile(calcName);
       outcome = "done";
+    } else if (command == "server") {
+      // "server roots|sync|connect NAME|copycheck SRC DST|launchcheck URL"
+      std::istringstream args(calcName);
+      string sub, a, b, c;
+      args >> sub >> a >> b >> c;
+      if (sub == "newproject" || sub == "newcalc") {
+        // "server newproject NAME PROJECT", "server newcalc NAME PROJECT CALC"
+        string ref;
+        vector<ServerEntry> list = ServerList::load();
+        for (size_t i = 0; i < list.size(); i++)
+          if (list[i].type == "ecce" && list[i].name == a)
+            ref = ServerList::refOf(list[i].address);
+        EDSIServerCentral servers;
+        EcceURL shome = servers.getUserHome(EcceURL(ref + "Ecce/"));
+        ResourceDescriptor& srd = ResourceDescriptor::getResourceDescriptor();
+        Resource *parentRes = EDSIFactory::getResource(
+            sub == "newproject" ? shome : shome.getChild(b));
+        ResourceType *rt = sub == "newproject"
+            ? srd.getResourceType("collection", "ecceProject", "")
+            : srd.getResourceType("virtual_document", "ecceCalculation", "NWChem");
+        Resource *made = (ref.empty() || !parentRes || !rt) ? 0
+            : parentRes->createChild(sub == "newproject" ? b : c, rt);
+        outcome = made ? "ok " + made->getURL().toString() : "not created";
+      } else if (sub == "sync") {
+        syncServerRoots();
+        outcome = "ok";
+      } else if (sub == "roots") {
+        vector<string> labels = p_treeCtrl->rootLabels();
+        for (size_t i = 0; i < labels.size(); i++)
+          outcome += (i ? ";" : "") + labels[i];
+      } else if (sub == "connect") {
+        string ref;
+        vector<ServerEntry> list = ServerList::load();
+        for (size_t i = 0; i < list.size(); i++)
+          if (list[i].type == "ecce" && list[i].name == a)
+            ref = ServerList::refOf(list[i].address);
+        outcome = ref.empty() ? "no such server"
+                              : (connectServer(ref) ? "connected" : "not connected");
+      } else if (sub == "copycheck") {
+        string r = crossTreeRefusal(vector<EcceURL>(1, EcceURL(a)), EcceURL(b));
+        outcome = r.empty() ? "allowed" : "refused: " + r;
+      } else if (sub == "launchcheck") {
+        outcome = refuseAddedLaunch(vector<EcceURL>(1, EcceURL(a)))
+                  ? "refused" : "allowed";
+      }
     } else if (command == "examples") {
       // File > Open Example Calculations
       // "examples SET" imports a set without the dialog (default getting-started)
@@ -2131,7 +2178,145 @@ void CalcMgr::initializeTreeData()
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
   p_treeCtrl->SetFocus();
+  if (!p_serverTimer) {
+    // Add Server / Remove in Preferences write the list; pick it up here.
+    p_serverTimer = new wxTimer();
+    p_serverTimer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      struct stat st;
+      long stamp = stat(ServerList::file().c_str(), &st) == 0
+                   ? (long)st.st_mtime * 1000 + (st.st_mtime ? 1 : 0) + (long)st.st_size : 0;
+      if (stamp != p_serverListStamp) syncServerRoots();
+    });
+    p_serverTimer->Start(1000);
+  }
+}
+
+
+void CalcMgr::syncServerRoots()
+{
+  struct stat st;
+  p_serverListStamp = stat(ServerList::file().c_str(), &st) == 0
+                      ? (long)st.st_mtime * 1000 + (st.st_mtime ? 1 : 0) + (long)st.st_size : 0;
+  // The session's own server is already a root; it is not added twice.
+  set<string> own;
+  {
+    EDSIServerCentral servers;
+    vector<Bookmark> * mount = servers.getEDSIProviders();
+    for (size_t i = 0; mount && i < mount->size(); i++)
+      own.insert((*mount)[i].getEcceUrl().getRef());
+    delete mount;
+  }
+  p_treeCtrl->removeServerRoots();
+  ServerList::clearAdded();
+  vector<ServerEntry> list = ServerList::load();
+  for (size_t i = 0; i < list.size(); i++) {
+    if (list[i].type != "ecce") continue;
+    string ref = ServerList::refOf(list[i].address);
+    if (ref.empty() || own.count(ref)) continue;
+    ServerList::markAdded(ref);
+    p_treeCtrl->addServerRoot(list[i].name, ref, ServerList::loginFor(ref));
+  }
+}
+
+
+/**
+ * Ask for the login of an added server and check it by opening the user's
+ * home there.  A failure leaves the root "(not connected)"; the session's
+ * own login and mode are never touched.
+ */
+bool CalcMgr::connectServer(const string& ref)
+{
+  string name = ref;
+  vector<ServerEntry> list = ServerList::load();
+  for (size_t i = 0; i < list.size(); i++)
+    if (list[i].type == "ecce" && ServerList::refOf(list[i].address) == ref)
+      name = list[i].name;
+  ServerList::markAdded(ref);
+  string user = ServerList::loginFor(ref), pass;
+  if (!WxDavAuth::askAddedLogin(ref, user, pass)) {
+    setMessage("Not connected to " + name + ": the login was cancelled.",
+               WxFeedback::ERROR);
+    return false;
+  }
+  ServerList::setLogin(ref, user);
+  string why;
+  bool ok = false;
+  WxDavAuth::setProbe(user, pass);
+  try {
+    EDSIServerCentral servers;
+    EcceURL home = servers.getUserHome(EcceURL(ref + "Ecce/"));
+    EDSI *c = EDSIFactory::getEDSI(home);
+    if (c) {
+      ok = c->exists();
+      why = c->m_msgStack.getMessage();
+      delete c;
+    }
+  } catch (...) {
+    ok = false;
+  }
+  WxDavAuth::clearProbe();
+  if (ok) {
+    AuthCache::getCache().addAuthentication(ref, user, pass, "", false);
+  } else {
+    ServerList::setLogin(ref, "");
+    AuthCache::getCache().remove(ref, user, "");
+    setMessage("Not connected to " + name + ": " + (why.empty() ?
+        "the login was not accepted, or " + user + " has no account there."
+        : why), WxFeedback::ERROR);
+  }
+  syncServerRoots();
+  return ok;
+}
+
+
+static string treeOf(const EcceURL& u)
+{
+  return u.getProtocol().find("http") == 0 ? u.getRef() : string("local");
+}
+
+
+void CalcMgr::tellRefusal(const string& msg)
+{
+  if (getenv("ECCE_TEST_ORGANIZER")) {
+    setMessage(msg, WxFeedback::ERROR);
+    return;
+  }
+  ewxMessageDialog dlg(this, msg.c_str(), "Not supported yet",
+                       wxOK | wxICON_INFORMATION, wxDefaultPosition);
+  dlg.ShowModal();
+}
+
+
+// Local data and each server are separate trees; a copy or move between
+// them is refused until the transfer is done properly.
+string CalcMgr::crossTreeRefusal(const vector<EcceURL>& sources,
+                                 const EcceURL& dest)
+{
+  const string to = treeOf(dest);
+  for (size_t i = 0; i < sources.size(); i++) {
+    const string from = treeOf(sources[i]);
+    if (from == to) continue;
+    if (from == "local" || to == "local")
+      return "Copying between Local data and a server is not supported yet.";
+    return "Copying between servers is not supported yet.";
+  }
+  return "";
+}
+
+
+bool CalcMgr::refuseAddedLaunch(const vector<EcceURL>& urls)
+{
+  for (size_t i = 0; i < urls.size(); i++) {
+    if (urls[i].getProtocol().find("http") == 0 &&
+        ServerList::isAdded(urls[i].getRef())) {
+      tellRefusal("Launching calculations stored on an added server is not "
+                  "supported yet.");
+      return true;
+    }
+  }
+  return false;
 }
 
 
@@ -2402,6 +2587,20 @@ void CalcMgr::addRoot(const string& name, const string& url)
 void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 {
   wxMenu menu;
+  {
+    WxResourceTreeItemData *sel = dynamic_cast<WxResourceTreeItemData*>(
+        p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()));
+    if (sel && !sel->getResource() && !sel->serverRef().empty()) {
+      string ref = sel->serverRef();
+      int id = wxWindow::NewControlId();
+      menu.Append(id, _("Reconnect"));
+      menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent&) {
+        CallAfter([this, ref]() { connectServer(ref); });
+      }, id);
+      ewxPopupMenu(this, menu);
+      return;
+    }
+  }
   p_popupOnTree = true;
   string error = guarded([&]() {
     getContextMenu(menu);
@@ -2673,6 +2872,7 @@ void CalcMgr::OnShowInternalClick( wxCommandEvent& event )
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
 
   stopDisabler();
 }
@@ -2691,6 +2891,7 @@ void CalcMgr::OnShowRunstatesClick( wxCommandEvent& event )
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
 
   stopDisabler();
 }
@@ -2822,6 +3023,7 @@ void CalcMgr::OnAddServerClick( wxCommandEvent& event )
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
 
   stopDisabler();
 }
@@ -2840,6 +3042,7 @@ void CalcMgr::OnHomeasrootClick( wxCommandEvent& event )
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
 
   stopDisabler();
 }
@@ -3255,6 +3458,10 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
                              string *outcome, const string& shot,
                              const LaunchBatch::Target& initial)
 {
+  if (refuseAddedLaunch(urls)) {
+    if (outcome) *outcome = "refused";
+    return;
+  }
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *item = findNode(urls[i], true, true);
@@ -5583,6 +5790,15 @@ void CalcMgr::OnTreectrlSelChanged( wxTreeEvent& event )
     return;
   }
 
+  {
+    WxResourceTreeItemData *picked = dynamic_cast<WxResourceTreeItemData*>(
+        p_treeCtrl->GetItemData(event.GetItem()));
+    if (picked && !picked->getResource() && !picked->serverRef().empty()) {
+      event.Skip();
+      return;
+    }
+  }
+
   onSelectionChange(true);
 
 #ifdef __WXMSW__
@@ -5824,6 +6040,15 @@ void CalcMgr::OnTreectrlItemExpanding( wxTreeEvent& event )
   //  cerr << "Expanding node: " << itemData->getName() << endl;
   //  cerr << "Children in widget tree: " << p_treeCtrl->GetChildrenCount(event.GetItem(), false) << endl;
   //  cerr << "Children in data tree: " << itemData->getnumChildren() << endl;
+
+  if (itemData && !itemData->getResource() && !itemData->serverRef().empty()) {
+    // An added server that is not connected: log in first.
+    string ref = itemData->serverRef();
+    event.Veto();
+    CallAfter([this, ref]() { connectServer(ref); });
+    stopDisabler();
+    return;
+  }
 
   bool authSucceed = true;
   if (p_treeCtrl->GetChildrenCount(itemData->GetId(), false) == 0) {
@@ -6146,8 +6371,12 @@ void CalcMgr::paste()
   WxResourceTreeItemData * destination = p_treeCtrl->getSelection();
   EcceURL destinationUrl = destination->getUrl();
   
+  string crossRefusal = crossTreeRefusal(p_clipboard, destinationUrl);
+  if (!crossRefusal.empty()) {
+    tellRefusal(crossRefusal);
+  }
   // First check if destination is a sub folder of the folder being copied
-  if (destinationUrl == p_clipboard[0] ||
+  else if (destinationUrl == p_clipboard[0] ||
       destinationUrl.isChildOf(p_clipboard[0])) {
     ewxMessageDialog dlg(this, "Cannot paste parent folder into a child "
                          "folder", "Paste Failed!", 
@@ -10675,7 +10904,7 @@ wxDragResult CalcMgr::dropInTree( const vector<EcceURL> & urls,
     (p_treeCtrl->GetItemData(id));
 
   // Check if dropped target exists
-  if (target == 0)
+  if (target == 0 || target->getUrl().toString().empty())
     return wxDragCancel;
 
   // Check for authentication to access the target.
@@ -10690,6 +10919,14 @@ wxDragResult CalcMgr::dropInTree( const vector<EcceURL> & urls,
 
   EcceURL targetUrl = target->getUrl();
   EcceURL currentSelection = p_treeCtrl->getSelection()->getUrl();
+
+  {
+    string refusal = crossTreeRefusal(urls, targetUrl);
+    if (!refusal.empty()) {
+      tellRefusal(refusal);
+      return wxDragCancel;
+    }
+  }
 
   startDisabler();
   for (int i=0; i<urls.size(); ++i) {

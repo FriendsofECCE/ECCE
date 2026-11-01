@@ -25,7 +25,7 @@ shutil.rmtree(scratch, ignore_errors=True)
 os.makedirs(scratch + "/.ECCE")
 env = {k: v for k, v in os.environ.items() if not k.startswith("ECCE_")}
 env["ECCE_REALUSERHOME"] = scratch
-fileName = scratch + "/.ECCE/ServerList"
+fileName = scratch + "/.ECCE/AddedServers"
 
 
 def run(*a):

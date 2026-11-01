@@ -4,7 +4,7 @@
 The ECCE_TEST_ORGANIZER "prefs data ..." hook drives the real Preferences
 window and dialog as clicks do: an empty server list, Add Server for an ECCE
 server and an SSH folder (through the dialog's OK path), the stored
-~/.ECCE/ServerList, Remove, and the row of a server set by the installation
+~/.ECCE/AddedServers, Remove, and the row of a server set by the installation
 (ECCE_TEST_PREFS_ADMIN_SERVER, shown in every picture).  PNGs go to ECCE_SHOTS_DIR
 (default ~/ecce-767/shots) as 767-*.png.
 

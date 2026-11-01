@@ -16,7 +16,7 @@ answer "server ..." in `~/.ECCE/first-start-answer`, `~/.ECCE/dataserver`,
 the preference off). `--check` prints `local` or `skip: <why>`. The old
 window survives as `--change` (tests, `ecce-first-start --apply` for
 scripts); Preferences no longer starts it. Preferences > Data lists the
-user's servers (`~/.ECCE/ServerList`, ServerList.H, `ecce-localdata servers`)
+user's servers (`~/.ECCE/AddedServers`, ServerList.H, `ecce-localdata servers`)
 and shows an installation's or an earlier start's server as read-only;
 Remove on the earlier one runs `--apply local`. Added servers are only
 stored in a1. The skip list is the contract: add a new kind of
