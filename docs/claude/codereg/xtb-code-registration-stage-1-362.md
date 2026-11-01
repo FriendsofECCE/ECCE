@@ -99,8 +99,9 @@ runtypes Energy and Geometry.
 - `xtb.expt` (`<Importer>` in `xTB.edml`; `tests/parsers/xtb_import_test.py`,
   `apps_calcimport`). A raw output has no geometry, orbitals, charges or
   modes: they are files beside it. `JobParser::importCalculation` runs the
-  importer in a temporary directory holding a SYMLINK to the output, so the
-  importer resolves the link to find the run's directory, appends the same
+  importer in a temporary directory holding a SYMLINK to the output (a copy
+  on Windows) and passes the source directory, so the importer reads the
+  run's files there, appends the same
   `ECCE-XTB-*` blocks gensub does (xtbopt.log or the named coordinate file,
   molden.input only with `--molden`, charges, vibspectrum and g98.out only for
   a hessian run) to a copy that replaces the link, and the parse is then the
