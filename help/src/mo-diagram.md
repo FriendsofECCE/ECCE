@@ -9,7 +9,8 @@ against the orbital itself.
 
 For a relaxed scan or an IRC the diagram belongs to the last computed point.
 For ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC
-Path** panel instead, as do the **MOs** panel and its orbital list.
+Path** panel instead, as do the **MOs** panel and its orbital list. An ORCA
+IRC has orbitals at the TS point only; select it to see them.
 
 Click a level and its orbital is drawn in the 3-D view by the **MOs** panel.
 Click an atom or a bond in the 3-D view first to choose the part the diagram

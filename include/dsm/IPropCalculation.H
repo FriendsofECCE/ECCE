@@ -49,6 +49,10 @@ class IPropCalculation
       virtual int orbitalPoint() const { return -1; }
       // Whether this calculation stores orbitals for every scan/IRC point.
       virtual bool hasPointOrbitals() { return false; }
+      // True when orbitals exist for some points only (an ORCA IRC: the TS).
+      virtual bool orbitalsAtSomePointsOnly() { return false; }
+      // Whether the given point has orbitals of its own.
+      virtual bool pointHasOrbitals(int point) { return true; }
 
       virtual bool promptBeforeSave(Fragment *frag, string& msg, string& title) = 0;
 

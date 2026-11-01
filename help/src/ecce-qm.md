@@ -70,8 +70,11 @@ ECCE-QM stores the orbitals of every scan point and every IRC point, so the
 **MOs**, **MO Diagram**, **Density Map** and **Density Profile** panels show
 the orbitals and density of the point selected in the **Relaxed Scan** or
 **IRC Path** panel, together with that point's structure. Until a point is
-selected they show the last computed point. For the other codes these panels
-always show the last computed point.
+selected they show the last computed point. ORCA prints the orbitals of an
+IRC once, at the TS: with the TS point selected in the **IRC Path** panel
+the orbital panels show them, and for every other point a note says that ORCA
+gives no orbitals there. For the other codes these panels always show the
+last computed point.
 A transition-state guess can also come from two calculations, a reactant and a
 product (**TS Search** in the Calculation Editor).
 

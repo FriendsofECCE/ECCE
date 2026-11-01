@@ -29,6 +29,17 @@ std::string orbitalPointNote(IPropCalculation *calc)
   const bool irc = calc->getProperty("IRCCOORD") != 0;
   if (!irc && !calc->getProperty("SCANCOORD")) return std::string();
   const char *kind = irc ? "IRC" : "scan";
+  if (calc->hasPointOrbitals() && calc->orbitalsAtSomePointsOnly()) {
+    std::map<std::string, int>::const_iterator r =
+        rowOf().find(calc->getURL().toString());
+    if (calc->orbitalPoint() >= 0 && r != rowOf().end() &&
+        calc->pointHasOrbitals(calc->orbitalPoint()))
+      return "Orbitals and density of the TS point (" +
+             std::to_string(r->second + 1) + ").";
+    return "ORCA gives orbitals only at the TS of an IRC. Select the TS "
+           "point in the IRC Path panel to see them; there are none for "
+           "the other points.";
+  }
   if (calc->hasPointOrbitals()) {
     std::map<std::string, int>::const_iterator r =
         rowOf().find(calc->getURL().toString());
