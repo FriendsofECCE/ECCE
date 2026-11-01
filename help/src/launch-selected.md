@@ -56,6 +56,10 @@ Launcher afterwards show where it ran.
 - **no run directory stored**: with **As set up** the calculation has none;
   with a machine, its profile has none.
 - **no core count stored**, or **no queue stored**.
+- **waits for ...**: an MD study task takes its starting structure from
+  the task before it, which has not completed yet. Launch it after that task
+  has finished. Launching it alone from its editor only warns, and
+  **Launch anyway** goes ahead.
 
 A machine set to staged launches cannot be used here; launch from the
 Launcher. A failed submit leaves the calculation **Ready**, with the reason
