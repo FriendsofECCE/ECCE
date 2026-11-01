@@ -113,6 +113,37 @@ int main(int argc, char** argv) {
       check(herr < 1e-6, std::string("AO second derivatives vs finite difference ") + bname, herr);
     }
   }
+  // An ion's dipole depends on the origin (#746).  CN-, STO-3G: the reported
+  // dipole is the electronic dipole from the density plus the nuclear charges,
+  // shifted by mu' = mu - q R to the centre of mass (masses 12 and 14.003074),
+  // formed here from the one-electron matrices; moving the molecule 10 A along
+  // z must not change it, while the coordinate-origin dipole does.
+  {
+    Molecule cn;
+    cn.charge = -1;
+    cn.atoms = {{6, {0, 0, 0.0}}, {7, {0, 0, 2.2}}};
+    ScfOptions so;
+    Basis b(cn, lib, "STO-3G", 1);
+    const ScfResult r = run_scf(b, cn, so);
+    OneElectron oe = one_electron(b);
+    const double mC = 12.0, mN = 14.003074, zc = 2.2 * mN / (mC + mN);
+    double mu_z = 6 * 0.0 + 7 * 2.2 - ((r.D_a + r.D_b).array() * oe.dip[2].array()).sum();
+    mu_z -= cn.charge * zc;
+    check(std::abs(r.dipole_rep[2] - mu_z) < 1e-9, "CN-: dipole about the centre of mass (hand shift mu - qR)",
+          r.dipole_rep[2] - mu_z);
+    check(r.dipole_origin_kind == "centre_of_mass" && std::abs(r.dipole_origin[2] - zc) < 1e-9,
+          "CN-: reported origin is the centre of mass", r.dipole_origin[2]);
+    Molecule cn2 = cn;
+    for (auto& a : cn2.atoms) a.x[2] += 10.0 / 0.529177210903;
+    Basis b2(cn2, lib, "STO-3G", 1);
+    const ScfResult r2 = run_scf(b2, cn2, so);
+    check(std::abs(r2.dipole_rep[2] - r.dipole_rep[2]) < 1e-6, "CN-: centre-of-mass dipole unchanged by a 10 A shift",
+          r2.dipole_rep[2] - r.dipole_rep[2]);
+    check(std::abs(r2.dipole[2] - r.dipole[2]) > 1.0, "CN-: coordinate-origin dipole does move with the molecule",
+          r2.dipole[2] - r.dipole[2]);
+    std::cout << "CN- STO-3G dipole about COM (D): " << r.dipole_rep[2] * 2.541746 << "\n";
+  }
+
   // Vibrations.  A diatomic with a given Hessian and dipole derivative has
   // closed-form answers: nu = 5140.487 sqrt(k/mu) cm-1 for k in hartree/bohr^2
   // and mu in amu, and I = 974.88 (dmu/dQ)^2 km/mol for dmu/dQ in e/sqrt(amu).

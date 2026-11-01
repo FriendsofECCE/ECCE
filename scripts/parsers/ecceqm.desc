@@ -173,6 +173,14 @@ Skip=0
 Lines=1
 [END]
 
+[DIPOLEORIGIN]
+Script=ecceqm.parse
+Begin=^dipole_origin\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [MULLIKEN]
 Script=ecceqm.parse
 Begin=^begin atoms\b

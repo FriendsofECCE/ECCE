@@ -183,6 +183,15 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
       values: -0.000000444 -0.000000055 0.000000000 0.000000737 0.000000149 -0.000000000 -0.000000294 -0.000000093 0.000000000
       units: Hartree/Bohr
 
+[DIPOLEORIGIN]  Script=orca.dipoleorigin  Freq=last  Skip=-  Lines=1
+  Begin=Choice of electric origin
+  begins=8 delivered=1 buffered_away=7
+  block 1: begin-line=2583 fed=1 rc=0 first-fed='Choice of electric origin               ... Center of mass'
+    key: DIPOLEORIGIN
+      size: 1
+      values: centre_of_mass
+      units: NA
+
 [DIPOLE]  Script=orca.dipole  Freq=last  Skip=-  Lines=-
   Begin=Total Dipole Moment
   End=Rotational spectrum

@@ -1982,6 +1982,20 @@ CASES = [
     # input decks are beside the fixtures.
     # -----------------------------------------------------------------
     dict(
+        # An ion's dipole depends on the origin (#746): the run says which.
+        name='ecceqm-cn-anion-dipole-origin',
+        desc='ecceqm.desc',
+        fixture='ecceqm/cn_anion.qmout',
+        parse_args=('.', 'Energy', 'SCF', 'DFT', '0'),
+        silent_ok={'*': 'only the dipole keys are pinned here'},
+        expect={
+            'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
+                                            'units': 'Debye'}}),
+            'DIPOLEORIGIN': dict(keys={'DIPOLEORIGIN': {
+                'values': 'centre_of_mass'}}),
+        },
+    ),
+    dict(
         name='ecceqm-h2o-hf',
         desc='ecceqm.desc',
         fixture='ecceqm/h2o_hf.qmout',
