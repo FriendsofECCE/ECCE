@@ -186,6 +186,33 @@ static string stagedTopologyName(const CalcInfo *c)
   return c->isGromacs ? string("topol.top") : c->mdSystemName + ".top";
 }
 
+// A GROMACS provider holds up to two files of one type: what the user
+// attached (an input) and what its run ended with (an output named
+// resultName).  The next task starts from the result when there is one;
+// a task's own previous result is never its start.  The trailing-digit
+// pick of getDataFile would choose between them by file name.
+static vector<EcceURL> gromacsStartFile(TaskJob *t, JCode::CodeFileType type,
+                                        bool ownTask, const string& resultName)
+{
+  vector<EcceURL> all = t->getDataFiles(type);
+  vector<EcceURL> inputs, results, named;
+  for (size_t i = 0; i < all.size(); i++) {
+    if (all[i].toString().find("/Outputs/") == string::npos)
+      inputs.push_back(all[i]);
+    else {
+      results.push_back(all[i]);
+      if (!resultName.empty() && all[i].getFilePathTail() == resultName)
+        named.push_back(all[i]);
+    }
+  }
+  vector<EcceURL> pool = ownTask ? inputs
+                       : !named.empty() ? named
+                       : !inputs.empty() ? inputs : results;
+  vector<EcceURL> pick;
+  if (!pool.empty()) pick.push_back(t->getLatestDataFile(pool));
+  return pick;
+}
+
 // Copies a stored file to the run directory.  GROMACS files go across
 // whole: the legacy loop below breaks lines at 255 characters and always
 // ends the file with a newline, neither of which a topology survives.
@@ -251,7 +278,10 @@ Launch::Launch(TaskJob* task,
     // A GROMACS Prepare after other tasks of the study must not get their
     // structure and topology: it pairs them with its own mineral.
     const bool gromacsPrepare = gromacs && !gromacsInputs;
-    if (gromacsInputs && task->getDataFiles(JCode::RESTART_OUTPUT).size() > 0) {
+    p_restartFile.clear();
+    p_topologyFile.clear();
+    if (gromacsInputs &&
+        !gromacsStartFile(task, JCode::RESTART_OUTPUT, true, "").empty()) {
       p_restartProvider = task;
       finishedSearch = true;
     }
@@ -279,7 +309,8 @@ Launch::Launch(TaskJob* task,
     p_topologyProvider = 0;
     searchTask = dynamic_cast<TaskJob*>(EDSIFactory::getResource(task->getURL()));
     finishedSearch = false;
-    if (gromacsInputs && task->getDataFiles(JCode::TOPOLOGY_OUTPUT).size() > 0) {
+    if (gromacsInputs &&
+        !gromacsStartFile(task, JCode::TOPOLOGY_OUTPUT, true, "").empty()) {
       p_topologyProvider = task;
       finishedSearch = true;
     }
@@ -300,6 +331,22 @@ Launch::Launch(TaskJob* task,
           searchTask = p_topologyProvider;
           p_topologyProvider = 0;
         }
+      }
+    }
+
+    if (gromacs) {
+      for (int k = 0; k < 2; k++) {
+        TaskJob *prov = k == 0 ? p_restartProvider : p_topologyProvider;
+        if (prov == 0) continue;
+        const JCode::CodeFileType ft =
+          k == 0 ? JCode::RESTART_OUTPUT : JCode::TOPOLOGY_OUTPUT;
+        MdTask *md = dynamic_cast<MdTask*>(prov);
+        if (md == 0)
+          md = dynamic_cast<MdTask*>(EDSIFactory::getResource(prov->getURL()));
+        string result;
+        if (md != 0) result = k == 0 ? md->getRestartName() : md->getTopologyName();
+        (k == 0 ? p_restartFile : p_topologyFile) =
+          gromacsStartFile(prov, ft, prov == task, result);
       }
     }
 
@@ -334,6 +381,15 @@ Launch::Launch(TaskJob* task,
     // back extra output files in order to allow task chaining
     if (task->getApplicationType() == ResourceDescriptor::AT_METADYNAMICS)
       p_isMetadynamicsTask = true;
+  }
+
+  // Warn, never block: the user may know the provider's files are current.
+  {
+    const string waits = waitsFor(task);
+    if (!waits.empty())
+      p_launchWarning = "The starting structure comes from " + waits +
+        ", which is not complete. This task would start from what that task "
+        "was given, not from its result.";
   }
 
   p_valid = true;
@@ -482,6 +538,23 @@ string Launch::message(void) const
 
 string Launch::info(void) const
 { return p_infoMessage; }
+
+string Launch::waitsFor(TaskJob *task)
+{
+  if (task == 0 || task->getSession() == 0) return "";
+  if (task->getContentType() == ResourceDescriptor::CT_MDPREPARE) return "";
+  if (dynamic_cast<MdTask*>(EDSIFactory::getResource(task->getURL())) == 0)
+    return "";
+  // a structure attached to the task itself does not depend on the provider
+  if (task->getApplicationType() == ResourceDescriptor::AT_GROMACS &&
+      !gromacsStartFile(task, JCode::RESTART_OUTPUT, true, "").empty())
+    return "";
+  TaskJob *prov =
+    dynamic_cast<TaskJob*>(task->getInputProvider(task->getSession()));
+  if (prov == 0 || prov->getState() == ResourceDescriptor::STATE_COMPLETED)
+    return "";
+  return prov->getName();
+}
 
 string Launch::launchWarning(void) const
 { return p_launchWarning; }
@@ -842,7 +915,9 @@ bool Launch::validateCalculation(void)
             vector<EcceURL> restartFiles = p_restartProvider->getDataFiles(
                                                          JCode::RESTART_OUTPUT);
             if (restartFiles.size() > 0) {
-              is = p_restartProvider->getDataFile(JCode::RESTART_OUTPUT);
+              is = !p_restartFile.empty()
+                ? p_restartProvider->getAnyFile(p_restartFile[0])
+                : p_restartProvider->getDataFile(JCode::RESTART_OUTPUT);
               if (is) {
                 inputFilePath = p_cache->directory + "/" +
                                 stagedRestartName(p_cache);
@@ -869,7 +944,9 @@ bool Launch::validateCalculation(void)
             vector<EcceURL> topologyFiles = p_topologyProvider->getDataFiles(
                                                       JCode::TOPOLOGY_OUTPUT);
             if (topologyFiles.size() > 0) {
-              is = p_topologyProvider->getDataFile(JCode::TOPOLOGY_OUTPUT);
+              is = !p_topologyFile.empty()
+                ? p_topologyProvider->getAnyFile(p_topologyFile[0])
+                : p_topologyProvider->getDataFile(JCode::TOPOLOGY_OUTPUT);
               if (is) {
                 inputFilePath = p_cache->directory + "/" +
                                 stagedTopologyName(p_cache);
@@ -2525,7 +2602,8 @@ bool Launch::postProcessInput(void)
        // (RCommand returns every newline as CR LF.)
        size_t mark = output.find("ECCE-LAUNCH-WARNING");
        if (mark != string::npos) {
-         p_launchWarning = output.substr(mark + 19);
+         p_launchWarning = (p_launchWarning.empty() ? "" : p_launchWarning + "\n") +
+                           output.substr(mark + 19);
          size_t cr;
          while ((cr = p_launchWarning.find('\r')) != string::npos)
            p_launchWarning.erase(cr, 1);

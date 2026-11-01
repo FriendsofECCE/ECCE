@@ -222,6 +222,10 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task, const Target& target)
     p.problem = "not ready (already submitted or finished)";
     return p;
   }
+  {
+    const string waits = Launch::waitsFor(task);
+    if (!waits.empty()) { p.problem = "waits for " + waits; return p; }
+  }
   if (target.any()) {
     carryOver(task, l, target, p.changes, p.problem);
     if (!p.problem.empty()) return p;

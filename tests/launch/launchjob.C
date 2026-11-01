@@ -24,6 +24,12 @@
 //   launchjob gromacsaddprepare <studyURL> <name>
 //                                 a bare Prepare appended to the study's chain, as New makes it
 //                                 with the last task selected; prints its URL
+//   launchjob mdfile <taskURL> <file> [name]
+//                                 attach <file> to an MD task's Inputs (as the editor's Inputs page does)
+//   launchjob mdmdp <taskURL> [resume]
+//                                 write the task's default gromacs.mdp (continuation with "resume") and
+//                                 leave it Ready, as the editor's Save does
+//   launchjob plan <taskURL>      what Launch Selected makes of the task: "ready" or the reason it is skipped
 //   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name> [frag=<mvm|pdb>] [all]
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
@@ -79,6 +85,7 @@
 #include <vector>
 
 #include "comm/JobCatchUp.H"
+#include "comm/LaunchBatch.H"
 #include "comm/Launch.H"
 #include "comm/RunMgmt.H"
 #include "dsm/CodeFactory.H"
@@ -403,6 +410,42 @@ static int doMdSetup(const vector<string>& a)
   return 0;
 }
 
+static int doMdFile(const vector<string>& a)
+{
+  if (a.size() < 2) { cerr << "mdfile: wrong argument count" << endl; return 2; }
+  TaskJob* task = getTask(a[0]);
+  if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  ifstream in(a[1].c_str());
+  const string name = a.size() > 2 ? a[2] : a[1].substr(a[1].find_last_of('/') + 1);
+  if (!in || !task->putInputFile(name, &in)) { cerr << "could not store " << name << endl; return 1; }
+  return 0;
+}
+
+static int doMdMdp(const vector<string>& a)
+{
+  if (a.empty()) { cerr << "mdmdp: wrong argument count" << endl; return 2; }
+  TaskJob* task = getTask(a[0]);
+  if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  GromacsMDModel mm(task->getContentType());
+  if (a.size() > 1 && a[1] == "resume" && mm.getDynamicsModel())
+    mm.getDynamicsModel()->setResumeOpt(true);
+  if (!generateInput(task, mm, "md.gmxtask", "gromacs.mdp")) {
+    cerr << "could not write the .mdp" << endl;
+    return 1;
+  }
+  task->setState(ResourceDescriptor::STATE_READY);
+  return 0;
+}
+
+static int doPlan(const vector<string>& a)
+{
+  TaskJob* task = a.empty() ? 0 : getTask(a[0]);
+  if (!task) { cerr << "not a calculation" << endl; return 1; }
+  LaunchBatch::Plan p = LaunchBatch::plan(task, LaunchBatch::Target());
+  cout << (p.ready ? string("ready") : p.problem) << endl;
+  return 0;
+}
+
 static void buildArgs(TaskJob* task, EcceMap& kv)
 {
   TypedFile f;
@@ -646,6 +689,9 @@ int main(int argc, char** argv)
   }
   if (mode == "listen") return doListen(a);
   if (mode == "mdsetup") return doMdSetup(a);
+  if (mode == "mdfile") return doMdFile(a);
+  if (mode == "mdmdp") return doMdMdp(a);
+  if (mode == "plan") return doPlan(a);
   if (mode == "gromacsstudy") return doMdStudy(a, true);
   if (mode == "gromacsaddprepare") return doGromacsAddPrepare(a);
   if (mode == "gromacsprepstudy") return doGromacsPrepStudy(a);
