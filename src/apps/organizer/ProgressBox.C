@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cmath>
 #include <ctime>
+#include <fstream>
+#include <sstream>
 
 #include <wx/arrstr.h>
 #include <wx/button.h>
@@ -74,6 +76,17 @@ ProgressBox::ProgressBox(wxWindow *parent)
 ProgressBox::~ProgressBox()
 {
   p_timer.Stop();
+}
+
+
+void ProgressBox::setDescriptor(const string& path)
+{
+  if (path == p_descPath) return;
+  p_descPath = path;
+  std::ifstream in(path.c_str());
+  std::stringstream text;
+  text << in.rdbuf();
+  p_progress.setStageOrder(JobProgress::stageOrderOf(text.str()));
 }
 
 

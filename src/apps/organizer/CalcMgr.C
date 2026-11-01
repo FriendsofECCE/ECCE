@@ -816,6 +816,15 @@ void CalcMgr::runTestCommand(const string& line)
             outcome += " tool=" + string(tool->getLabel().ToUTF8()) +
                        (clipped ? ":clipped" : "");
           }
+          // Where each tool button is, "label@x,y" (#753).
+          outcome += " toolpos=";
+          for (wxWindow *w : panel->GetChildren()) {
+            EcceTool *tool = dynamic_cast<EcceTool*>(w);
+            if (!tool || tool->getLabel().empty()) continue;
+            outcome += string(tool->getLabel().ToUTF8()) + "@" +
+                       std::to_string(tool->GetPosition().x) + "," +
+                       std::to_string(tool->GetPosition().y) + ";";
+          }
         }
       }
     } else if (command == "home" || command == "up") {
