@@ -671,7 +671,7 @@ endif()
 # ctest coin_egl_display. Exports eglglue_display, as an EGL-only Coin does.
 if(ECCE_USE_COIN AND ECCE_GL_X11)
   add_executable(egl-display-check tools/coin/offscreen/egl-display-check.C)
-  target_link_libraries(egl-display-check PRIVATE eccewxinv ${COIN_LIBRARY} ${wxWidgets_LIBRARIES} OpenGL::GL)
+  target_link_libraries(egl-display-check PRIVATE eccewxinv ecceutil ${COIN_LIBRARY} ${wxWidgets_LIBRARIES} OpenGL::GL)
   target_include_directories(egl-display-check PRIVATE ${wxWidgets_INCLUDE_DIRS})
   set_target_properties(egl-display-check PROPERTIES ENABLE_EXPORTS ON)
 endif()
