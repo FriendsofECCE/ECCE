@@ -5,7 +5,7 @@
    registration, stage 1: conformer search.  Modeled on xTB.edml.
 
    CREST drives xtb itself, so the job script gets the xtb path from the
-   xTB entry of the same machine (--xnam).  Semiempirical, so no basis set.
+   xTB entry of the same machine (its xtb option).  Semiempirical, so no basis set.
 
    The input file is one file in two parts, as for xtb: line 1 is the crest
    command line (options only), the rest is an xyz file; scripts/gensub

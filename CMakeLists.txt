@@ -3045,6 +3045,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_xtb_viewer PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # #682: a CREST ensemble from a real Launch run in the Geometry Trace panel.
+  add_test(NAME apps_crest_viewer
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/crest_viewer_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_crest_viewer PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
 
   # The Periodic Builder pane (docked, closable, reopenable in every panel
   # layout) and the layout choice for run and not-yet-run calculations.
