@@ -147,6 +147,13 @@ describe what you did and what happened.
    tools, and the AGENTS.md file that tells a script or an assistant how ECCE
    stores its data and how to work with it.
 
+33. [Recipes](recipes.md): workflow templates for a kind of study (TS search with
+   IRC, conformers), the set-up panel with its preview, the key-data box,
+   Save Workflow as Recipe, and recipes for a site.
+
+34. [Writing a recipe](writing-a-recipe.md): the file format, every field, the
+   folders recipes are read from, and a complete example.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the

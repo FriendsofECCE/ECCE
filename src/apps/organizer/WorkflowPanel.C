@@ -9,6 +9,7 @@
 #include "wx/tooltip.h"
 
 #include <algorithm>
+#include <fstream>
 #include <functional>
 #include "wx/statline.h"
 #include "wx/spinctrl.h"
@@ -26,6 +27,8 @@
 #include "wxgui/WxStateImageList.H"
 
 #include "CalcMgr.H"
+#include "RecipePanel.H"
+#include "WorkflowLayout.H"
 #include "WorkflowPanel.H"
 
 using std::string;
@@ -33,8 +36,7 @@ using std::vector;
 
 namespace {
 
-const int kBoxW = 230, kBoxH = 62, kGapX = 170, kGapY = 44, kMargin = 24;
-const int kDrop = 40;      // the vertical segment sits this far right of a box
+const int kMargin = kWfMargin;
 
 wxColour codeColour(const WorkflowSteps::Code *c)
 {
@@ -59,14 +61,10 @@ struct WfBox {
   Resource *source;
   wxRect rect;
   double row;
+  bool hasIn = false;
 };
 
-/// One link: its elbow, arrow and label, all in unscrolled coordinates.
-struct WfLink {
-  wxPoint p0, p1, p2, p3;    // p0 source edge, p3 target edge
-  wxRect label;
-  string text;
-};
+typedef WfLayoutLink WfLink;
 
 
 class WorkflowCanvas : public wxScrolledWindow
@@ -93,86 +91,59 @@ public:
     Session *wf = p_panel->p_session;
     vector<WorkflowSteps::Node> nodes = WorkflowSteps::tree(wf);
 
-    std::map<const Resource*, size_t> index;
+    std::map<const Resource*, int> index;
+    for (size_t i = 0; i < nodes.size(); i++) index[nodes[i].step] = (int)i;
+    vector<WfLayoutNode> ln(nodes.size());
+    for (size_t i = 0; i < nodes.size(); i++) {
+      ln[i].depth = nodes[i].depth;
+      ln[i].source = nodes[i].source ? index[nodes[i].source] : -1;
+      for (size_t k = 0; k < nodes[i].in.size(); k++)
+        ln[i].in.push_back(std::make_pair(index[nodes[i].in[k].source],
+            WorkflowSteps::linkLabel(nodes[i].in[k].name)));
+    }
+    wxClientDC dc(this);
+    dc.SetFont(GetFont());
+    WfLayoutResult res = layoutWorkflow(dc, ln);
     for (size_t i = 0; i < nodes.size(); i++) {
       WfBox b;
-      b.step = nodes[i].step; b.source = nodes[i].source; b.row = 0;
-      index[b.step] = p_boxes.size();
+      b.step = nodes[i].step; b.source = nodes[i].source;
+      b.row = res.rows[i]; b.rect = res.boxes[i]; b.hasIn = !nodes[i].in.empty();
       p_boxes.push_back(b);
     }
-    // Rows by a walk in tree order so siblings stay in creation order.
-    double nextRow = 0;
-    std::vector<double> row(p_boxes.size(), -1);
-    struct R {
-      vector<WfBox> &b; vector<double> &row; double &next;
-      double go(size_t i) {
-        vector<double> kr;
-        for (size_t k = 0; k < b.size(); k++)
-          if (b[k].source == b[i].step) kr.push_back(go(k));
-        if (kr.empty()) return row[i] = next++;
-        return row[i] = (kr.front() + kr.back()) / 2;
-      }
-    } r = {p_boxes, row, nextRow};
-    for (size_t i = 0; i < p_boxes.size(); i++)
-      if (!p_boxes[i].source) r.go(i);
+    p_links = res.links;
+    int maxX = res.maxX, maxY = res.maxY;
 
-    wxClientDC dc(this);
-    wxFont small = GetFont();
-    dc.SetFont(small);
-    wxSize th = dc.GetTextExtent("geometry");
-    // The gap between columns holds the longest label and the arrow.
-    int maxLabel = 0;
-    for (size_t i = 0; i < nodes.size(); i++)
-      for (size_t k = 0; k < nodes[i].in.size(); k++)
-        maxLabel = std::max(maxLabel, dc.GetTextExtent(wxString::FromUTF8(
-            WorkflowSteps::linkLabel(nodes[i].in[k].name).c_str())).x);
-    const int gapX = std::max(kGapX, maxLabel + kDrop + 50);
-
-    // A join's box is tall enough for an arrow and its label per source.
-    std::vector<int> height(nodes.size(), kBoxH);
-    int maxH = kBoxH;
-    for (size_t i = 0; i < nodes.size(); i++) {
-      if (nodes[i].in.size() > 1)
-        height[i] = std::max(kBoxH, (int)(nodes[i].in.size() + 1) * (th.y + 10));
-      maxH = std::max(maxH, height[i]);
-    }
-    int maxX = 0, maxY = 0;
-    for (size_t i = 0; i < nodes.size(); i++) {
-      p_boxes[i].row = row[i];
-      p_boxes[i].rect = wxRect(kMargin + nodes[i].depth * (kBoxW + gapX),
-                               kMargin + (int)(row[i] * (maxH + kGapY)) +
-                                   (maxH - height[i]) / 2,
-                               kBoxW, height[i]);
-      maxX = std::max(maxX, p_boxes[i].rect.GetRight());
-      maxY = std::max(maxY, p_boxes[i].rect.GetBottom());
-    }
-    for (size_t i = 0; i < p_boxes.size(); i++) {
-      const vector<WorkflowSteps::Incoming> &in = nodes[i].in;
-      // Top to bottom by where the source is, so the arrows do not cross.
-      vector<size_t> order(in.size());
-      for (size_t k = 0; k < order.size(); k++) order[k] = k;
-      std::stable_sort(order.begin(), order.end(), [&](size_t x, size_t y) {
-        return p_boxes[index[in[x].source]].rect.y <
-               p_boxes[index[in[y].source]].rect.y;
-      });
-      const wxRect &t = p_boxes[i].rect;
-      for (size_t slot = 0; slot < order.size(); slot++) {
-        const WorkflowSteps::Incoming &inc = in[order[slot]];
-        const wxRect &s = p_boxes[index[inc.source]].rect;
-        WfLink l;
-        l.p0 = wxPoint(s.GetRight() + 1, s.y + s.height / 2);
-        l.p1 = wxPoint(l.p0.x + kDrop, l.p0.y);
-        l.p2 = wxPoint(l.p1.x, order.size() == 1
-                                   ? t.y + t.height / 2
-                                   : t.y + (int)(slot + 1) * t.height /
-                                               (int)(order.size() + 1));
-        l.p3 = wxPoint(t.x, l.p2.y);
-        l.text = WorkflowSteps::linkLabel(inc.name);
-        // Above the segment that enters the target, just before the arrow.
-        const int w = dc.GetTextExtent(wxString::FromUTF8(l.text.c_str())).x;
-        l.label = wxRect(l.p3.x - 14 - w, l.p3.y - 5 - th.y, w, th.y);
-        p_links.push_back(l);
+    // A recipe workflow ends with its key-data box, right of the last column.
+    p_keyRect = wxRect();
+    p_key = KeyDataResult();
+    p_hasKey = !WorkflowSteps::recipeId(wf).empty() && !nodes.empty();
+    if (p_hasKey) {
+      p_key = keyData(WorkflowSteps::keySteps(wf));
+      const int lh = dc.GetTextExtent("Ag").y + 4;
+      const int kw = 540;
+      p_keyLines.clear();
+      if (!p_key.level.empty())
+        p_keyLines.push_back(std::make_pair(wxString::FromUTF8(p_key.level.c_str()), wxString()));
+      for (size_t i = 0; i < p_key.rows.size(); i++)
+        p_keyLines.push_back(std::make_pair(
+            wxString::FromUTF8(p_key.rows[i].first.c_str()),
+            wxString::FromUTF8(p_key.rows[i].second.c_str())));
+      // The note wraps at the card's width.
+      wxString line;
+      wxArrayString words = wxSplit(wxString::FromUTF8(p_key.note.c_str()), ' ');
+      for (size_t i = 0; i < words.size(); i++) {
+        wxString next = line.empty() ? words[i] : line + " " + words[i];
+        if (dc.GetTextExtent(next).x > kw - 28 && !line.empty()) {
+          p_keyLines.push_back(std::make_pair(line, wxString()));
+          next = words[i];
+        }
+        line = next;
       }
+      if (!line.empty()) p_keyLines.push_back(std::make_pair(line, wxString()));
+      p_keyNote = line.empty() ? 0 : 1;
+      p_keyRect = wxRect(maxX + 60, kMargin, kw, ((int)p_keyLines.size() + 2) * lh + 20);
+      maxX = p_keyRect.GetRight();
+      maxY = std::max(maxY, p_keyRect.GetBottom());
     }
     SetVirtualSize(maxX + kMargin, maxY + kMargin);
   }
@@ -187,24 +158,13 @@ public:
   /// Labels that touch a box, a line, an arrow or another label.
   int overlaps() const
   {
-    int n = 0;
-    vector<wxRect> lines;
-    for (const WfLink &l : p_links) {
-      wxPoint pts[4] = {l.p0, l.p1, l.p2, l.p3};
-      for (int k = 0; k < 3; k++) {
-        wxRect r(pts[k], pts[k + 1]);
-        r.Inflate(2, 2);
-        lines.push_back(r);
-      }
-      lines.push_back(wxRect(l.p3.x - 10, l.p3.y - 5, 10, 10));   // arrow head
-    }
-    for (size_t i = 0; i < p_links.size(); i++) {
-      wxRect lab = p_links[i].label;
-      for (const WfBox &b : p_boxes) if (lab.Intersects(b.rect)) n++;
-      for (const wxRect &r : lines) if (lab.Intersects(r)) n++;
-      for (size_t k = 0; k < p_links.size(); k++)
-        if (k != i && lab.Intersects(p_links[k].label)) n++;
-    }
+    WfLayoutResult res;
+    for (const WfBox &b : p_boxes) res.boxes.push_back(b.rect);
+    res.links = p_links;
+    int n = layoutOverlaps(res);
+    if (p_hasKey)
+      for (const WfLink &l : p_links)
+        if (l.label.Intersects(p_keyRect)) n++;
     return n;
   }
 
@@ -212,7 +172,8 @@ public:
   {
     std::ostringstream o;
     o << "boxes=" << p_boxes.size() << " links=" << p_links.size()
-      << " label-overlaps=" << overlaps() << " icons=";
+      << " label-overlaps=" << overlaps() << " keybox=" << (p_hasKey ? 1 : 0)
+      << " keyshown=" << (p_hasKey && p_key.shown ? 1 : 0) << " icons=";
     for (size_t i = 0; i < p_boxes.size(); i++)
       o << (i ? "," : "") << p_boxes[i].step->getName() << ":"
         << stateIcon(WorkflowSteps::stateOf(p_boxes[i].step));
@@ -323,7 +284,9 @@ private:
           std::find(p_panel->p_picked.begin(), p_panel->p_picked.end(),
                     b.step->getURL()) != p_panel->p_picked.end();
       const wxRect &r = b.rect;
-      dc.SetBrush(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
+      const bool needs = WorkflowSteps::needsStructure(b.step, b.hasIn);
+      dc.SetBrush(wxBrush(needs ? wxColour(0xff, 0xf3, 0xcf)
+                                : wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
       dc.SetPen(isSel ? wxPen(wxColour(0x1c, 0x7e, 0xd6), 4) : wxPen(dim, 2));
       dc.DrawRoundedRectangle(r, 8);
       dc.SetPen(*wxTRANSPARENT_PEN);
@@ -335,15 +298,16 @@ private:
       dc.DrawText(code ? code->label : "?", r.x + 18, r.y + 8);
 
       ResourceDescriptor::RUNSTATE st = WorkflowSteps::stateOf(b.step);
-      string word = ResourceUtils::stateToString(st);
+      string word = needs ? "needs structure" : ResourceUtils::stateToString(st);
       dc.SetFont(base);
-      dc.SetTextForeground(dim);
+      dc.SetTextForeground(needs ? wxColour(0x9c, 0x5a, 0x00) : dim);
       wxSize ws = dc.GetTextExtent(word);
       WxStateImageList *icons = WxStateImageList::getImageList();
       wxBitmap icon = icons->GetBitmap(stateIcon(st));
-      dc.DrawBitmap(icon, r.GetRight() - 10 - icon.GetWidth(),
-                    r.y + 16 - icon.GetHeight() / 2, true);
-      dc.DrawText(word, r.GetRight() - 16 - icon.GetWidth() - ws.x,
+      if (!needs)
+        dc.DrawBitmap(icon, r.GetRight() - 10 - icon.GetWidth(),
+                      r.y + 16 - icon.GetHeight() / 2, true);
+      dc.DrawText(word, r.GetRight() - (needs ? 12 : 16 + icon.GetWidth()) - ws.x,
                   r.y + 16 - ws.y / 2);
 
       dc.SetTextForeground(text);
@@ -351,11 +315,42 @@ private:
                                            dc, wxELLIPSIZE_END, r.width - 32);
       dc.DrawText(name, r.x + 18, r.y + r.height - 8 - dc.GetTextExtent(name).y);
     }
+
+    if (p_hasKey) {
+      const wxRect &k = p_keyRect;
+      const int lh = dc.GetTextExtent("Ag").y + 4;
+      dc.SetBrush(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
+      dc.SetPen(wxPen(dim, 2));
+      dc.DrawRoundedRectangle(k, 6);
+      dc.SetFont(bold);
+      dc.SetTextForeground(text);
+      dc.DrawText("Key data", k.x + 14, k.y + 10);
+      dc.SetFont(base);
+      int y = k.y + 10 + lh + 6;
+      for (size_t i = 0; i < p_keyLines.size(); i++, y += lh) {
+        const bool isRow = !p_keyLines[i].second.empty();
+        dc.SetTextForeground(isRow || (int)i < (p_key.level.empty() ? 0 : 1) ? text : dim);
+        if (!isRow) {
+          dc.DrawText(p_keyLines[i].first, k.x + 14, y);
+          continue;
+        }
+        const int vw = dc.GetTextExtent(p_keyLines[i].second).x;
+        dc.DrawText(wxControl::Ellipsize(p_keyLines[i].first, dc, wxELLIPSIZE_END,
+                                         k.width - 40 - vw),
+                    k.x + 14, y);
+        dc.DrawText(p_keyLines[i].second, k.GetRight() - 14 - vw, y);
+      }
+    }
   }
 
   WorkflowPanel *p_panel;
   vector<WfBox> p_boxes;
   vector<WfLink> p_links;
+  KeyDataResult p_key;
+  wxRect p_keyRect;
+  bool p_hasKey = false;
+  int p_keyNote = 0;
+  vector<std::pair<wxString, wxString> > p_keyLines;
 };
 
 
@@ -401,7 +396,8 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
                              wxWindow *parent)
   : ewxPanel(parent, wxID_ANY), p_calcMgr(calcMgr),
     p_session(dynamic_cast<Session*>(node->getResource())),
-    p_canvas(0), p_help(0), p_status(0), p_launch(0)
+    p_canvas(0), p_help(0), p_status(0), p_launch(0), p_apply(0), p_empty(0),
+    p_left(0), p_top(0), p_recipe(0)
 {
   createControls();
 }
@@ -411,10 +407,34 @@ void WorkflowPanel::createControls()
 {
   wxBoxSizer *top = new wxBoxSizer(wxHORIZONTAL);
   SetSizer(top);
+  p_top = top;
 
   wxBoxSizer *left = new wxBoxSizer(wxVERTICAL);
+  p_left = left;
   p_canvas = new WorkflowCanvas(this);
   left->Add(p_canvas, 1, wxEXPAND);
+
+  // An empty workflow offers its two ways to start.
+  p_empty = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SUNKEN);
+  wxBoxSizer *es = new wxBoxSizer(wxVERTICAL);
+  wxStaticText *et = new wxStaticText(p_empty, wxID_ANY, "This workflow is empty.");
+  wxFont ef = et->GetFont(); ef.SetWeight(wxFONTWEIGHT_BOLD); ef.SetPointSize(ef.GetPointSize() + 3);
+  et->SetFont(ef);
+  wxButton *eApply = new wxButton(p_empty, wxID_ANY, "Apply Recipe...");
+  wxButton *eStep = new wxButton(p_empty, wxID_ANY, "New Step...");
+  eApply->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { openRecipe(); });
+  eStep->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+    say("Pick a code on the right to add the first step.");
+  });
+  wxBoxSizer *eb = new wxBoxSizer(wxHORIZONTAL);
+  eb->Add(eApply, 0, wxRIGHT, 10);
+  eb->Add(eStep, 0);
+  es->AddStretchSpacer(1);
+  es->Add(et, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, 14);
+  es->Add(eb, 0, wxALIGN_CENTER_HORIZONTAL);
+  es->AddStretchSpacer(1);
+  p_empty->SetSizer(es);
+  left->Add(p_empty, 1, wxEXPAND);
 
   // The instructions have a panel of their own, never among the controls.
   wxPanel *notes = new wxPanel(this, wxID_ANY, wxDefaultPosition,
@@ -430,7 +450,25 @@ void WorkflowPanel::createControls()
   p_launch->SetToolTip("Launch every step that has not been launched and whose "
                        "source step is Complete");
   p_launch->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { launchReadyClicked(); });
+  p_apply = new wxButton(notes, wxID_ANY, "Apply Recipe...");
+  p_apply->SetToolTip("Add the steps of a recipe, after the selected box if there is one");
+  p_apply->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { openRecipe(); });
+  wxButton *saveRecipe = new wxButton(notes, wxID_ANY, "Save as Recipe...");
+  saveRecipe->SetToolTip("Save this workflow's steps, settings and links as a recipe");
+  saveRecipe->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+    wxTextEntryDialog dlg(this, "Title of the recipe:", "Save Workflow as Recipe",
+                          wxString::FromUTF8(p_session->getName().c_str()));
+    if (dlg.ShowModal() != wxID_OK) return;
+    const string title = string(dlg.GetValue().ToUTF8());
+    string id;
+    for (size_t i = 0; i < title.size(); i++)
+      id += isalnum((unsigned char)title[i]) ? (char)tolower(title[i]) : '-';
+    const string got = saveAsRecipe(id, title);
+    say(got.compare(0, 3, "ok ") == 0 ? "Saved as a recipe: " + got.substr(3) : got);
+  });
   noteSizer->Add(texts, 1, wxEXPAND);
+  noteSizer->Add(saveRecipe, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM | wxLEFT, 8);
+  noteSizer->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM | wxLEFT, 8);
   noteSizer->Add(p_launch, 0, wxALIGN_CENTER_VERTICAL | wxALL, 8);
   notes->SetSizer(noteSizer);
   left->Add(notes, 0, wxEXPAND | wxTOP, 4);
@@ -454,6 +492,11 @@ void WorkflowPanel::createControls()
 
 void WorkflowPanel::updateTexts()
 {
+  if (p_left && !p_recipe) {
+    const bool empty = p_session->numMembers() == 0;
+    p_left->Show(p_canvas, !empty);
+    p_left->Show(p_empty, empty);
+  }
   if (p_session->numMembers() == 0)
     p_help->SetLabel("Pick a code on the right to add the first step.  "
                      "Its structure is set in the Builder.");
@@ -480,6 +523,68 @@ void WorkflowPanel::refresh()
   updateTexts();
   Layout();
   p_canvas->Refresh();
+}
+
+
+RecipePanel *WorkflowPanel::openRecipe()
+{
+  if (p_recipe) return 0;
+  Resource *after = 0;
+  vector<Resource*> picked = pickedSteps();
+  if (picked.size() == 1) after = picked[0];
+  p_recipe = new RecipePanel(this, this, p_session, after);
+  p_left->Show(false);
+  p_top->Insert(0, p_recipe, 1, wxEXPAND);
+  Layout();
+  return p_recipe;
+}
+
+
+void WorkflowPanel::closeRecipe()
+{
+  if (!p_recipe) return;
+  p_top->Detach(p_recipe);
+  p_recipe->Destroy();
+  p_recipe = 0;
+  p_left->Show(true);
+  updateTexts();
+  Layout();
+}
+
+
+string WorkflowPanel::recipeCreate(const Recipe &recipe, const RecipeVariant &variant,
+                                   const WorkflowSteps::Levels &levels, Resource *after)
+{
+  string outcome;
+  vector<Resource*> made = p_calcMgr->newRecipeSteps(p_session, recipe, variant, levels,
+                                                     after, &outcome);
+  if (made.empty()) return outcome.empty() ? "Nothing was created." : outcome;
+  closeRecipe();
+  refresh();
+  return "";
+}
+
+
+string WorkflowPanel::saveAsRecipe(const string &id, const string &title)
+{
+  Recipe r;
+  string why;
+  if (!WorkflowSteps::toRecipe(p_session, id, title, r, why)) return "error: " + why;
+  const string dir = WorkflowSteps::userRecipeDir();
+  string mk = "mkdir -p '" + dir + "'";
+  if (system(mk.c_str()) != 0) return "error: cannot make " + dir;
+  const string file = dir + "/" + id + ".recipe";
+  std::ofstream f(file.c_str());
+  f << recipeText(r);
+  f.close();
+  return f ? "ok " + file : "error: cannot write " + file;
+}
+
+
+string WorkflowPanel::keyDataText()
+{
+  if (WorkflowSteps::recipeId(p_session).empty()) return "";
+  return keyData(WorkflowSteps::keySteps(p_session)).text();
 }
 
 

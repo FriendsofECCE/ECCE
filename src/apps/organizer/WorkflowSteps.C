@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstring>
 #include <map>
 #include <set>
 #include <sstream>
@@ -9,6 +10,9 @@
 #include "util/ResourceUtils.H"
 
 #include "dsm/EDSIFactory.H"
+#include "dsm/EDSIGaussianBasisSetLibrary.H"
+#include "dsm/EDSIServerCentral.H"
+#include "dsm/TGBSConfig.H"
 #include "dsm/ICalculation.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/PropertyTask.H"
@@ -18,6 +22,9 @@
 #include "dsm/Session.H"
 #include "tdat/GUIValues.H"
 #include "tdat/TRunType.H"
+#include "dsm/VDoc.H"
+#include "util/Ecce.H"
+#include "CompareEnergies.H"
 
 #include "WorkflowSteps.H"
 
@@ -30,6 +37,7 @@ const vector<WorkflowSteps::Code>& WorkflowSteps::codes()
 {
   static const vector<Code> list = {
     {"xtb",     "xtb_es",        0x7a, 0x4f, 0xa3},
+    {"CREST",   "crest_es",      0x5a, 0x3f, 0x8f},
     {"ORCA",    "orca_es",       0x1f, 0x6f, 0xb2},
     {"ECCE-QM", "ecceqm_es",     0x2b, 0x8a, 0x3e},
     {"G16",     "gaussian16_es", 0xb3, 0x5c, 0x00},
@@ -447,6 +455,10 @@ string WorkflowSteps::info(Session *wf)
         << "charge=" << (frag ? frag->charge() : -99) << " "
         << "mult=" << (calc ? (int)calc->spinMultiplicity() : -1) << " "
         << "atoms=" << (frag ? (int)frag->numAtoms() : -1);
+    if (needsStructure(step, !nodes[i].in.empty())) out << " needs=1";
+    TGBSConfig *gbs = calc ? calc->gbsConfig() : 0;
+    if (gbs && !gbs->name().empty()) out << " basis=" << gbs->name();
+    delete gbs;
     if (frag && frag->numAtoms() > 0) {
       const double *c = frag->atomRef(0)->coordinates();
       out << " xyz0=" << c[0] << "," << c[1] << "," << c[2];
@@ -467,4 +479,373 @@ string WorkflowSteps::info(Session *wf)
       out << " " << links[i]->source->getName() << ">"
           << links[i]->target->getName() << ":" << links[i]->linkName;
   return out.str();
+}
+
+
+// ---- recipes (#710) ----
+
+namespace {
+
+const string kRecipeProp = ":recipe";
+
+string nsKey(const char *suffix)
+{
+  return VDoc::getEcceNamespace() + suffix;
+}
+
+string uniqueName(Session *wf, const string& want)
+{
+  std::set<string> used;
+  vector<Resource*> members = wf->getMembers();
+  for (size_t i = 0; i < members.size(); i++) used.insert(members[i]->getName());
+  if (!used.count(want)) return want;
+  for (int n = 2;; n++) {
+    string name = want + "-" + std::to_string(n);
+    if (!used.count(name)) return name;
+  }
+}
+
+const WorkflowSteps::Code *codeByLabel(const string& label)
+{
+  for (size_t i = 0; i < WorkflowSteps::codes().size(); i++)
+    if (label == WorkflowSteps::codes()[i].label) return &WorkflowSteps::codes()[i];
+  return 0;
+}
+
+ResourceType *typeNamed(const string& name)
+{
+  vector<ResourceType*> types =
+      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+  for (size_t i = 0; i < types.size(); i++)
+    if (types[i]->getName() == name) return types[i];
+  return 0;
+}
+
+void setKey(GUIValues *g, const string& key, const string& value)
+{
+  GUIValue *e = g->get(key);
+  if (!e) {
+    e = new GUIValue();
+    e->m_key = key;
+    e->m_type = "menu_input";
+    e->m_sensitive = true;
+    e->m_write = true;
+    g->set(key, e);
+  }
+  e->setValue(value);
+}
+
+// The library names d and p polarisation with stars; a recipe may use either.
+string libraryBasisName(const string& name)
+{
+  string n = name;
+  const char *from[2] = {"(d,p)", "(d)"}, *to[2] = {"**", "*"};
+  for (int k = 0; k < 2; k++) {
+    size_t at = n.find(from[k]);
+    if (at != string::npos) n.replace(at, strlen(from[k]), to[k]);
+  }
+  return n;
+}
+
+// A basis set is per element, so the role's one is stored once the step
+// has a structure; a name the library does not know leaves the step as is.
+void applyRoleBasis(Resource *step)
+{
+  const string name = step->getProp(nsKey(":recipe.basis"));
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+  if (name.empty() || !calc || !task) return;
+  if (calc->getState() >= ResourceDescriptor::STATE_SUBMITTED) return;
+  Fragment *frag = task->fragment();
+  const string tags = frag && frag->numAtoms() > 0 ? frag->uniqueTagStr() : "";
+  delete frag;
+  if (tags.empty()) return;
+  EDSIServerCentral central;
+  EDSIGaussianBasisSetLibrary lib(central.getDefaultBasisSetLibrary());
+  const string names[2] = {name, libraryBasisName(name)};
+  for (int k = 0; k < 2; k++) {
+    vector<TGaussianBasisSet*> found =
+        lib.lookup(names[k].c_str(), TGaussianBasisSet::UnknownGBSType, tags.c_str());
+    for (size_t i = 0; i < found.size(); i++) delete found[i];
+    if (found.empty()) continue;
+    TGBSConfig *cfg = lib.simpleLookup(names[k].c_str(), tags.c_str());
+    calc->gbsConfig(cfg);
+    delete cfg;
+    return;
+  }
+}
+
+// Copies what a link carries from `source` into `made`.
+void carryInto(Resource *source, Resource *made, const string& point)
+{
+  ICalculation *from = dynamic_cast<ICalculation*>(source);
+  ICalculation *to = dynamic_cast<ICalculation*>(made);
+  PropertyTask *fromTask = dynamic_cast<PropertyTask*>(source);
+  ChemistryTask *toTask = dynamic_cast<ChemistryTask*>(made);
+  if (!from || !to || !fromTask || !toTask) return;
+  Fragment *frag = 0;
+  if (!point.empty()) {
+    string w;
+    frag = ScanPoint::fragment(fromTask, point, w);
+  } else {
+    frag = fromTask->fragment();
+    if (frag) fromTask->getFragmentStep(frag, -1);
+  }
+  if (frag && frag->numAtoms() > 0) toTask->fragment(frag);
+  delete frag;
+  to->spinMultiplicity(from->spinMultiplicity());
+  to->openShells(from->openShells());
+  applyRoleBasis(made);
+}
+
+}  // namespace
+
+
+vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
+                                             const RecipeVariant& variant,
+                                             const Levels& levels,
+                                             Resource *after, string& why)
+{
+  vector<Resource*> made;
+  std::map<string, Resource*> byId;
+  try {
+    vector<string> names;
+    {
+      std::set<string> used;
+      vector<Resource*> members = wf->getMembers();
+      for (size_t i = 0; i < members.size(); i++) used.insert(members[i]->getName());
+      for (size_t i = 0; i < variant.steps.size(); i++) {
+        string n = variant.steps[i].id;
+        for (int k = 2; used.count(n); k++) n = variant.steps[i].id + "-" + std::to_string(k);
+        used.insert(n);
+        names.push_back(n);
+      }
+    }
+    for (size_t i = 0; i < variant.steps.size(); i++) {
+      const RecipeStep& rs = variant.steps[i];
+      const Code *code = codeByLabel(rs.code);
+      ResourceType *rt = code ? typeNamed(code->typeName) : 0;
+      if (!rt) throw InvalidException("This installation has no " + rs.code + ".", WHERE);
+      Resource *step = wf->createChild(names[i], rt);
+      if (!step) throw InvalidException("The step " + rs.id + " could not be created", WHERE);
+      // A step exists as a link source only once something is stored in it.
+      ICalculation *first = dynamic_cast<ICalculation*>(step);
+      if (first) {
+        TRunType rtype;
+        rtype.name(rs.runType);
+        first->runtype(rtype);
+      }
+      made.push_back(step);
+      byId[rs.id] = step;
+    }
+    // Session::createChild re-reads the linkbase from disk, dropping members
+    // not yet saved, so the steps join the session only once all exist; the
+    // session's own objects are used, as the links compare pointers.
+    {
+      vector<Resource*> *kids = wf->getChildren(false);
+      for (size_t i = 0; i < made.size(); i++)
+        for (size_t k = 0; kids && k < kids->size(); k++)
+          if ((*kids)[k]->getURL() == made[i]->getURL()) {
+            made[i] = (*kids)[k];
+            byId[variant.steps[i].id] = (*kids)[k];
+          }
+      for (size_t i = 0; i < made.size(); i++)
+        if (!wf->addMember(made[i]))
+          throw InvalidException("The step " + variant.steps[i].id +
+                                 " could not join the workflow", WHERE);
+      if (after) {
+        vector<Resource*> members = wf->getMembers();
+        for (size_t k = 0; k < members.size(); k++)
+          if (members[k]->getURL() == after->getURL()) after = members[k];
+      }
+    }
+    // Links, with the picks of a TS search (what createJoin stores).
+    std::map<string, string> picks[3];
+    vector<bool> hasSource(variant.steps.size(), false);
+    for (size_t k = 0; k < variant.links.size(); k++) {
+      const RecipeLink& l = variant.links[k];
+      wf->addLink(byId[l.from], byId[l.to], Session::INPUT_PROVIDER, l.name);
+      for (size_t i = 0; i < variant.steps.size(); i++)
+        if (variant.steps[i].id == l.to) hasSource[i] = true;
+      string role, point;
+      splitLinkName(l.name, role, point);
+      const int slot = role == "reactant" ? 0 : role == "product" ? 1
+                       : role == "tsguess" ? 2 : -1;
+      if (slot >= 0) picks[slot][l.to] = qstMakePick(byId[l.from]->getURL().toString(), point);
+    }
+    if (after)
+      for (size_t i = 0; i < variant.steps.size(); i++)
+        if (!hasSource[i]) {
+          wf->addLink(after, made[i], Session::INPUT_PROVIDER, kGeometryLink);
+          carryInto(after, made[i], "");
+          hasSource[i] = true;
+        }
+    wf->saveLinkbase();
+
+    for (size_t i = 0; i < variant.steps.size(); i++) {
+      const RecipeStep& rs = variant.steps[i];
+      Resource *step = made[i];
+      ICalculation *calc = dynamic_cast<ICalculation*>(step);
+      if (!calc) continue;
+      TRunType runtype;
+      runtype.name(rs.runType);
+      calc->runtype(runtype);
+      GUIValues *g = calc->guiparams();
+      if (!g) g = new GUIValues();
+      const bool neb = string(codeByLabel(rs.code)->typeName) == "orca_es";
+      const char *keys[3] = {
+        neb ? "ES.Runtype.NEB.Reactant" : "ES.Runtype.GeomOpt.QSTReactant",
+        neb ? "ES.Runtype.NEB.Product" : "ES.Runtype.GeomOpt.QSTProduct",
+        neb ? "ES.Runtype.NEB.Guess" : "ES.Runtype.GeomOpt.QSTGuess"};
+      for (int k = 0; k < 3; k++)
+        if (picks[k].count(rs.id)) setKey(g, keys[k], picks[k][rs.id]);
+      for (size_t k = 0; k < rs.settings.size(); k++)
+        setKey(g, rs.settings[k].first, rs.settings[k].second);
+      Levels::const_iterator lv = levels.find(rs.role);
+      const string method = lv == levels.end() ? "" : lv->second.first;
+      const string basis = lv == levels.end() ? "" : lv->second.second;
+      // Only G16 is known to take this value; other codes keep their own
+      // default and the choice is recorded for the Calculation Editor.
+      if (method == "B3LYP" && string(codeByLabel(rs.code)->typeName) == "gaussian16_es" &&
+          g->get("ES.Theory.DFT.XCFunctionals"))
+        setKey(g, "ES.Theory.DFT.XCFunctionals", "B3LYP (hybrid)");
+      calc->guiparams(g);
+      delete g;
+
+      step->addProp(nsKey(":recipe.step"), rs.id);
+      step->addProp(nsKey(":recipe.role"), rs.role);
+      step->addProp(nsKey(":recipe.key"), rs.keyRole);
+      step->addProp(nsKey(":recipe.thermo"), rs.thermo ? "1" : "0");
+      step->addProp(nsKey(":recipe.method"), method);
+      step->addProp(nsKey(":recipe.basis"), basis);
+      step->addProp(nsKey(":recipe.caption"), rs.caption);
+      applyRoleBasis(step);
+    }
+    wf->addProp(nsKey(kRecipeProp.c_str()), recipe.id + "/" + variant.id);
+  }
+  catch (InvalidException& ex) {
+    why = ex.what();
+    for (size_t i = made.size(); i-- > 0;) {
+      try { wf->removeMember(made[i]); } catch (...) {}
+      made[i]->remove();
+    }
+    try { wf->saveLinkbase(); } catch (...) {}
+    return vector<Resource*>();
+  }
+  return made;
+}
+
+
+bool WorkflowSteps::needsStructure(Resource *step, bool hasSource)
+{
+  if (hasSource || !step || step->getProp(nsKey(":recipe.step")).empty()) return false;
+  PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+  Fragment *frag = task ? task->fragment() : 0;
+  const bool empty = !frag || frag->numAtoms() == 0;
+  delete frag;
+  return empty;
+}
+
+
+string WorkflowSteps::recipeId(Session *wf)
+{
+  return wf ? wf->getProp(nsKey(kRecipeProp.c_str())) : string();
+}
+
+
+string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
+{
+  if (step->getProp(nsKey(":recipe.step")).empty()) return "";
+  for (Session::Link *l : wf->getLinks()) {
+    if (l->linkType != Session::INPUT_PROVIDER || l->target != step) continue;
+    string role, point;
+    splitLinkName(l->linkName, role, point);
+    if ((role == "geometry" || role == "reactant") &&
+        hasResultGeometry(l->source))
+      carryInto(l->source, step, role == "reactant" ? "" : point);
+  }
+  return "";
+}
+
+
+vector<KeyStep> WorkflowSteps::keySteps(Session *wf)
+{
+  vector<KeyStep> out;
+  vector<Node> nodes = tree(wf);
+  for (size_t i = 0; i < nodes.size(); i++) {
+    Resource *step = nodes[i].step;
+    if (step->getProp(nsKey(":recipe.step")).empty()) continue;
+    KeyStep k;
+    k.name = step->getName();
+    k.keyRole = step->getProp(nsKey(":recipe.key"));
+    k.thermo = step->getProp(nsKey(":recipe.thermo")) == "1";
+    k.complete = isComplete(step);
+    if (k.complete) k.term = gatherEnergyTerm(step->getURL().toString(), 1);
+    out.push_back(k);
+  }
+  return out;
+}
+
+
+bool WorkflowSteps::toRecipe(Session *wf, const string& id, const string& title,
+                             Recipe& out, string& why)
+{
+  vector<Node> nodes = tree(wf);
+  if (nodes.empty()) { why = "The workflow has no steps."; return false; }
+  out = Recipe();
+  out.id = id;
+  out.title = title;
+  out.field = "Mine";
+  out.summary = "Saved from the workflow " + wf->getName();
+  out.description = out.summary + ": its settings and links, without structures or results.";
+  RecipeVariant v;
+  v.id = "main";
+  std::map<const Resource*, string> ids;
+  for (size_t i = 0; i < nodes.size(); i++) {
+    Resource *step = nodes[i].step;
+    const Code *code = codeOf(step);
+    ICalculation *calc = dynamic_cast<ICalculation*>(step);
+    if (!code || !calc) continue;
+    RecipeStep s;
+    string name = step->getName();
+    for (size_t c = 0; c < name.size(); c++)
+      if (name[c] == '|' || name[c] == ' ') name[c] = '_';
+    s.id = name;
+    ids[step] = s.id;
+    s.code = code->label;
+    s.runType = calc->runtype().name();
+    s.caption = step->getProp(nsKey(":recipe.caption"));
+    s.keyRole = step->getProp(nsKey(":recipe.key"));
+    s.thermo = step->getProp(nsKey(":recipe.thermo")) == "1";
+    s.role = step->getProp(nsKey(":recipe.role"));
+    s.needsStructure = nodes[i].in.empty();
+    GUIValues *g = calc->guiparams();
+    if (g) {
+      for (GUIValues::const_iterator it = g->begin(); it != g->end(); ++it) {
+        const string val = it->second->getValueAsString();
+        if (!it->second->m_write || it->first.compare(0, 3, "ES.") != 0 ||
+            it->first.find("QST") != string::npos || it->first.find("NEB.") != string::npos ||
+            val.empty() || val.find('|') != string::npos || val.find('\n') != string::npos)
+          continue;
+        s.settings.push_back(std::make_pair(it->first, val));
+      }
+      delete g;
+    }
+    if (v.code.empty()) { v.code = s.code; v.label = s.code; }
+    v.steps.push_back(s);
+  }
+  for (size_t i = 0; i < nodes.size(); i++)
+    for (size_t k = 0; k < nodes[i].in.size(); k++)
+      if (ids.count(nodes[i].step) && ids.count(nodes[i].in[k].source))
+        v.links.push_back({ids[nodes[i].in[k].source], ids[nodes[i].step],
+                           nodes[i].in[k].name});
+  if (v.steps.empty()) { why = "The workflow has no calculation steps."; return false; }
+  out.variants.push_back(v);
+  return true;
+}
+
+
+string WorkflowSteps::userRecipeDir()
+{
+  return Ecce::userRegistrationDir() + "Recipes";
 }

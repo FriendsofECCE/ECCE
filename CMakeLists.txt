@@ -2269,6 +2269,15 @@ add_executable(compare_energies_test tests/compareenergies/compare_energies_test
 target_include_directories(compare_energies_test PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer ${XercesC_INCLUDE_DIRS})
 target_link_libraries(compare_energies_test PRIVATE eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
 add_test(NAME compare_energies COMMAND compare_energies_test)
+# Recipes (#710): parser, rules and the key-data numbers (no wx)
+add_executable(recipe_test tests/recipes/recipe_test.C
+  src/apps/organizer/Recipe.C src/apps/organizer/KeyData.C
+  src/apps/organizer/CompareEnergies.C src/apps/organizer/CompareEnergiesGather.C)
+target_include_directories(recipe_test PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer ${XercesC_INCLUDE_DIRS})
+target_link_libraries(recipe_test PRIVATE eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+add_test(NAME recipes COMMAND recipe_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(recipes PROPERTIES ENVIRONMENT
+  "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSERHOME=${CMAKE_BINARY_DIR};HOME=${CMAKE_BINARY_DIR}")
 
 # tests/tspath -- straight-path check for TS searches (#468)
 add_executable(tspath_test tests/tspath/tspath_test.C)
