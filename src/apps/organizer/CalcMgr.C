@@ -1941,6 +1941,13 @@ void CalcMgr::runTestCommand(const string& line)
       args >> what >> arg;
       if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
       p_prefs->Show(true);
+      if (what == "data") {
+        // "prefs data show|snap P|file|remove NAME|form TYPE P|add TYPE NAME F.. P"
+        for (int i = 0; i < 10; i++) wxYield();
+        string rest;
+        std::getline(args, rest);
+        outcome = p_prefs->dataTest(arg + rest);
+      } else {
       p_prefs->showColoursPage();
       for (int i = 0; i < 10; i++) wxYield();
       if (what == "colours") {
@@ -1965,6 +1972,7 @@ void CalcMgr::runTestCommand(const string& line)
             ? "saved" : "not saved";
       } else {
         outcome = "ok";
+      }
       }
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.

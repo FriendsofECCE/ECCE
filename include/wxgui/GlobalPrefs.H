@@ -45,6 +45,7 @@ public:
   bool chooseColourScheme(const string& scheme);
   string colourSchemeShown() const;
   bool tickAdvanced(const string& key, bool on);   // as a click does
+  string dataTest(const string& line);             // "prefs data ..."
 
   // One "command" setting: a choice of well-known programs plus a text
   // field that is editable for "Other".  Stored value is the command;

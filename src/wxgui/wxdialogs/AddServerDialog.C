@@ -202,3 +202,27 @@ void AddServerDialog::OnOk(wxCommandEvent&)
   p_entry = e;
   EndModal(wxID_OK);
 }
+
+
+void AddServerDialog::fillForTest(bool ssh, const std::string& name,
+                                  const std::string& a, const std::string& b,
+                                  const std::string& c)
+{
+  p_type->SetSelection(ssh ? 0 : 1);
+  showType();
+  p_name->SetValue(wxString::FromUTF8(name.c_str()));
+  if (ssh) {
+    p_host->SetValue(wxString::FromUTF8(a.c_str()));
+    p_user->SetValue(wxString::FromUTF8(b.c_str()));
+    p_folder->SetValue(wxString::FromUTF8(c.c_str()));
+  } else {
+    p_address->SetValue(wxString::FromUTF8(a.c_str()));
+  }
+}
+
+
+void AddServerDialog::acceptForTest()
+{
+  wxCommandEvent ev(wxEVT_BUTTON, wxID_OK);
+  OnOk(ev);
+}

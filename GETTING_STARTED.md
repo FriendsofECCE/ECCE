@@ -489,7 +489,7 @@ is the default (#133).
 
 #### Local data mode (a data folder instead of a data server)
 
-Set **Edit > Preferences > Data folder** (default `~/.ECCE-local`; it takes
+Set **Edit > Preferences > Data** (default `~/.ECCE-local`; it takes
 effect at the next start), or `ECCE_LOCAL_DATA=<folder>` in the environment,
 which wins over the preference, and no data server is started (#216). The
 broker is unchanged. Local mode keeps one data

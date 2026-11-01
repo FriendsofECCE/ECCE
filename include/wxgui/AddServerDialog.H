@@ -25,6 +25,11 @@ public:
   // The entry as stored; valid after ShowModal() returned wxID_OK.
   const ServerEntry& entry() const { return p_entry; }
 
+  // Test hooks: fill the fields as typing does; press OK.
+  void fillForTest(bool ssh, const std::string& name, const std::string& a,
+                   const std::string& b, const std::string& c);
+  void acceptForTest();
+
 private:
   void OnType(wxCommandEvent& event);
   void OnTest(wxCommandEvent& event);

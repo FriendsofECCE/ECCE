@@ -15,6 +15,7 @@
 #include "wx/file.h"
 
 #include <cstdlib>
+#include <sstream>
 #include <algorithm>
 
 #include "util/JMSMessage.H"
@@ -45,6 +46,7 @@
 
 #include "wxgui/AddServerDialog.H"
 #include "wxgui/GlobalPrefs.H"
+#include "wxgui/WindowShot.H"
 
 namespace {
 
@@ -136,7 +138,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
 
   wxPanel* data = new wxPanel(p_book);
   createDataPage(data);
-  p_book->AddPage(data, _("Data folder"));
+  p_book->AddPage(data, _("Data"));
 
   wxPanel* advanced = new wxPanel(p_book);
   createAdvancedPage(advanced);
@@ -646,10 +648,10 @@ void GlobalPrefs::createDataPage(wxWindow* page)
   wxStaticBoxSizer* sbox = new wxStaticBoxSizer(wxVERTICAL, page, _("Servers"));
   wxWindow* ss = sbox->GetStaticBox();
   p_serverList = new wxListCtrl(ss, wxID_ANY, wxDefaultPosition,
-                                wxSize(480, 120), wxLC_REPORT|wxLC_SINGLE_SEL);
+                                wxSize(600, 140), wxLC_REPORT|wxLC_SINGLE_SEL);
   p_serverList->InsertColumn(0, _("Name"), wxLIST_FORMAT_LEFT, 130);
   p_serverList->InsertColumn(1, _("Type"), wxLIST_FORMAT_LEFT, 100);
-  p_serverList->InsertColumn(2, _("Address"), wxLIST_FORMAT_LEFT, 240);
+  p_serverList->InsertColumn(2, _("Address"), wxLIST_FORMAT_LEFT, 340);
   sbox->Add(p_serverList, 1, wxGROW|wxALL, PAD);
   wxBoxSizer* srow = new wxBoxSizer(wxHORIZONTAL);
   p_addServer = new ewxButton(ss, wxID_ANY, _("Add Server..."));
@@ -696,7 +698,8 @@ static string dataFolderToOpen(bool folderMode)
 //  the user's ServerList.
 static bool installationServer(string& address)
 {
-  if (wxFileExists(string(Ecce::ecceHome()) + "/siteconfig/RemoteServer/DataServers") ||
+  if (getenv("ECCE_TEST_PREFS_ADMIN_SERVER") ||
+      wxFileExists(string(Ecce::ecceHome()) + "/siteconfig/RemoteServer/DataServers") ||
       wxFileExists(string(Ecce::ecceHome()) + "/siteconfig/SharedBroker") ||
       wxFileExists(string(Ecce::realUserPrefPath()) + "mosquitto.server")) {
     address = _("Set by your administrator").ToStdString();
@@ -1353,4 +1356,85 @@ bool GlobalPrefs::isDefaultPrograms()
 {
   return programValue(p_editor).empty() && programValue(p_terminal).empty() &&
          programValue(p_browser).empty();
+}
+
+
+//  Test hook, the Organizer's "prefs data ..." command: drives the Data page
+//  and the Add Server dialog as clicks do, and reports what they stored.
+string GlobalPrefs::dataTest(const string& line)
+{
+  std::istringstream in(line);
+  string op;
+  in >> op;
+  for (size_t i = 0; i < p_book->GetPageCount(); i++)
+    if (p_book->GetPageText(i) == _("Data")) p_book->SetSelection(i);
+  updateDataPage();
+  for (int i = 0; i < 5; i++) wxYield();
+  auto words = [&in]() {
+    vector<string> w;
+    string t;
+    while (in >> t) {
+      for (size_t k = 0; k < t.size(); k++) if (t[k] == '_') t[k] = ' ';
+      w.push_back(t);
+    }
+    return w;
+  };
+  if (op == "show") {
+    string out = "rows=" + std::to_string(p_serverRows.size());
+    for (size_t i = 0; i < p_serverRows.size(); i++)
+      out += ";" + p_serverRows[i].name + "|" + p_serverRows[i].type + "|" + p_serverRows[i].address;
+    out += string(";folder=") + p_localFolder->GetValue().ToStdString();
+    return out;
+  }
+  if (op == "snap") {
+    vector<string> w = words();
+    return !w.empty() && ecceClientShot(this, wxString::FromUTF8(w[0].c_str())) ? "saved" : "not saved";
+  }
+  if (op == "file") {
+    string out;
+    vector<ServerEntry> l = ServerList::load();
+    for (size_t i = 0; i < l.size(); i++)
+      out += l[i].type + "|" + l[i].name + "|" + l[i].address + ";";
+    return out.empty() ? "empty" : out;
+  }
+  if (op == "remove") {
+    vector<string> w = words();
+    for (size_t i = 0; i < p_serverRows.size(); i++)
+      if (!w.empty() && p_serverRows[i].name == w[0]) {
+        p_serverList->SetItemState(i, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+        wxCommandEvent ev(wxEVT_BUTTON, p_removeServer->GetId());
+        OnRemoveServer(ev);
+        return "ok";
+      }
+    return "no such row";
+  }
+  if (op == "add" || op == "form") {
+    // add TYPE NAME FIELD... SNAPPATH   |   form TYPE SNAPPATH (then Cancel)
+    vector<string> w = words();
+    if (w.size() < 2) return "bad arguments";
+    AddServerDialog dlg(this);
+    string snap = w.back();
+    bool ssh = w[0] == "ssh";
+    wxTimer timer;
+    string result = "dialog did not close";
+    timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
+      if (op == "add") dlg.fillForTest(ssh, w[1], w.size() > 3 ? w[2] : "",
+                                       w.size() > 4 ? w[3] : "", w.size() > 5 ? w[4] : "");
+      else dlg.fillForTest(ssh, "", "", "", "");
+      for (int i = 0; i < 5; i++) wxYield();
+      result = ecceClientShot(&dlg, wxString::FromUTF8(snap.c_str())) ? "saved" : "not saved";
+      if (op == "add") dlg.acceptForTest();
+      // Refused (a duplicate name): the dialog stays; picture the message.
+      if (dlg.IsModal()) {
+        for (int i = 0; i < 5; i++) wxYield();
+        ecceClientShot(&dlg, wxString::FromUTF8(snap.c_str()));
+        dlg.EndModal(wxID_CANCEL);
+      }
+    });
+    timer.StartOnce(700);
+    dlg.ShowModal();
+    updateDataPage();
+    return result;
+  }
+  return "unknown data command";
 }

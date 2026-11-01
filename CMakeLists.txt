@@ -2944,6 +2944,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_advanced_prefs PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Preferences > Data and the Add Server dialog (#767).
+  add_test(NAME apps_prefs_data
+           COMMAND 
+                   /tests/apps/prefs_data_test.py
+           WORKING_DIRECTORY /tests/apps)
+  set_tests_properties(apps_prefs_data PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The viewer's software/hardware GL path and its measure labels (#566).
   add_test(NAME apps_gl_path
            COMMAND ${PYTHON3_EXECUTABLE}
