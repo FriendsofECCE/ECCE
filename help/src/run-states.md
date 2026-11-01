@@ -40,8 +40,9 @@ the bottom of the Organizer.
   elsewhere, as are the example calculations. See
   [Importing a calculation](importing-a-calculation.md).
 - **Killed**: the job was cancelled by a user, with **Run Mgmt > Terminate
-  Calculation...** or with the queue system's own cancel command on the
-  machine. With several calculations selected in a project's table, **Run
+  Calculation...** (also in the right-click menu of a calculation or of a
+  study task such as a GROMACS Equilibrate) or with the queue system's own
+  cancel command on the machine. With several calculations selected in a project's table, **Run
   Mgmt > Terminate Selected...** terminates those that are submitted or
   running and leaves the others as they are.
 - **Incomplete**: the job ended without a complete result, and what it
