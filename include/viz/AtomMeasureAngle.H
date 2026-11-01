@@ -36,6 +36,12 @@ public:
   TAtm *atom2();
   TAtm *atom3();
   float getAngle();
+
+  /// Where the value text was last drawn (model space) and its length in
+  /// characters, so a click on the number can be told from a miss.
+  SbVec3f getLabelPosition() const { return p_labelPos; }
+  int getLabelLength() const { return p_labelLen; }
+
   string getAngleName();
 
   void replaceSGFragment(SGFragment* frag) ;
@@ -57,6 +63,8 @@ public:
   SoSeparator *p_parent;
 
   // Current value
+  SbVec3f p_labelPos;
+  int p_labelLen = 0;
   float p_value; 
 
    // This implements the GL rendering action. We will inherit

@@ -39,6 +39,12 @@ public:
   TAtm *atom3();
   TAtm *atom4();
   float getTorsion();
+
+  /// Where the value text was last drawn (model space) and its length in
+  /// characters, so a click on the number can be told from a miss.
+  SbVec3f getLabelPosition() const { return p_labelPos; }
+  int getLabelLength() const { return p_labelLen; }
+
   string getTorsionName();
 
   void replaceSGFragment(SGFragment* frag) ;
@@ -49,6 +55,8 @@ protected:
 
   SoVertexProperty * p_planes; 
 
+  SbVec3f p_labelPos;
+  int p_labelLen = 0;
   float p_value;       // current torsion.
 
   // For moving lines when atoms are deleted

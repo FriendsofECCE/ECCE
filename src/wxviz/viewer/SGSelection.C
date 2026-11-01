@@ -27,6 +27,9 @@ using std::endl;
 #include "inv/ChemKit/ChemDisplayPath.H"
 
 #include "viz/SGFragment.H"
+#include "viz/AtomMeasureDist.H"
+#include "viz/AtomMeasureAngle.H"
+#include "viz/AtomMeasureTorsion.H"
 
 #include "wxviz/MotionListener.H"
 #include "wxviz/MotionData.H"
@@ -129,6 +132,36 @@ SGSelection::~SGSelection()
 // Use: protected
 //
 ////////////////////////////////////////////////////////////////////////
+// The value text of a measure is a GL bitmap, not geometry, so a ray pick
+// never hits it. Test the click against the bitmap's box on screen instead.
+// Labels can overlap (an angle's next to a distance's), so the box whose
+// centre is nearest the click wins, across all kinds of measure.
+template <class M>
+static void labelUnderClick(SoNode *root, const SbViewVolume &vv,
+                            const SbVec2s &win, const SbVec2s &pos,
+                            SoNode *&best, float &bestD2, int kind, int &bestKind)
+{
+  SoSearchAction sa;
+  sa.setType(M::getClassTypeId());
+  sa.setInterest(SoSearchAction::ALL);
+  sa.apply(root);
+  const SoPathList &paths = sa.getPaths();
+  for (int i = 0; i < paths.getLength(); i++) {
+    M *m = (M*)paths[i]->getTail();
+    if (m->getLabelLength() == 0) continue;
+    SbVec3f d;
+    vv.projectToScreen(m->getLabelPosition(), d);
+    const float x0 = d[0] * win[0], y0 = d[1] * win[1];
+    const float w = 9.0f * m->getLabelLength();
+    if (pos[0] >= x0 - 2 && pos[0] <= x0 + w + 2 &&
+        pos[1] >= y0 - 3 && pos[1] <= y0 + 15 + 3) {
+      const float dx = pos[0] - (x0 + w / 2), dy = pos[1] - (y0 + 7.5f);
+      const float d2 = dx * dx + dy * dy;
+      if (!best || d2 < bestD2) { best = m; bestD2 = d2; bestKind = kind; }
+    }
+  }
+}
+
 void SGSelection::initClass()
 {
   // Initialize Molecular Inventor classes if necessary
@@ -711,6 +744,32 @@ void SGSelection::handleEvent(SoHandleEventAction *action)
                   mouseDownPickPathII = 0;
             }
          } else {
+
+            // A click on a measure's number acts as a click on its line.
+            SoNode *root = viewer() ? viewer()->getSceneGraph() : 0;
+            if (root) {
+               const SbViewVolume &lvv =
+                  SoViewVolumeElement::get(action->getState());
+               const SbVec2s win =
+                  viewer()->getViewportRegion().getViewportSizePixels();
+               const SbVec2s cpos = be->getPosition();
+               SoNode *hit = 0;
+               float d2 = 0;
+               int kind = 0;
+               labelUnderClick<AtomMeasureDist>(root, lvv, win, cpos, hit, d2, 1, kind);
+               labelUnderClick<AtomMeasureAngle>(root, lvv, win, cpos, hit, d2, 2, kind);
+               labelUnderClick<AtomMeasureTorsion>(root, lvv, win, cpos, hit, d2, 3, kind);
+               SbBool *flag = kind == 1 ? &distPickflag : kind == 2 ? &thetaPickflag :
+                              kind == 3 ? &phyPickflag : 0;
+               if (flag) lll_node = hit;
+               if (flag) {
+                  be->getPosition().getValue(pos_pick[0],pos_pick[1]);
+                  *flag = true;
+                  if (finishCBList) finishCBList->invokeCallbacks(this);
+                  *flag = false;
+                  return;
+               }
+            }
 
             if (!mouseDownPickPathII && !mouseUpPickPath) {
 
