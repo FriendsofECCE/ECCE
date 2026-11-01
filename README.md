@@ -92,6 +92,7 @@ videos with subtitles: installing ECCE, a first calculation with ECCE-QM
    ORCA and the others, and telling ECCE where they are.
 4. [Importing a structure](help/src/importing-a-structure.md) or
    [a calculation](help/src/importing-a-calculation.md) that ran elsewhere.
+5. [Scripting and AI assistants](help/src/scripting-and-ai.md): the command-line tools and the `AGENTS.md` file that says how to work with ECCE's data.
 
 ## Getting help and reporting a problem
 

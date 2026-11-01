@@ -143,6 +143,10 @@ describe what you did and what happened.
 31. [Renaming and moving calculations](rename-and-move.md): Rename, Cut and
    Paste, dragging, and why a calculation with a running job stays where it is.
 
+32. [Scripting and AI assistants](scripting-and-ai.md): the command-line
+   tools, and the AGENTS.md file that tells a script or an assistant how ECCE
+   stores its data and how to work with it.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the
