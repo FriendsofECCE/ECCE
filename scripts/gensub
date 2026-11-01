@@ -2028,6 +2028,24 @@ sub gromacs()
     $retval .= "    ( while kill -0 \$me 2>/dev/null; do sleep 20; ecceDensity; done ) &\n";
     $retval .= "    densPid=\$!\n";
     $retval .= "  fi\n";
+    #  The frames go to ecce-parse-traj.txt, which gromacs.desc parses as a File=
+    #  of its own, so they are not part of the log.  The function also runs
+    #  every 30 s while mdrun writes traj.xtc, on a copy and moved into place
+    #  whole, so the Geometry Trace can be played on the frames so far.  Whole
+    #  molecules (-pbc mol) so the chain does not tear at the box edge; at
+    #  most 100 frames are kept (every k-th plus the last).
+    $retval .= "  ecceTraj() {\n";
+    $retval .= "    [ -s traj.xtc ] && [ -s topol.tpr ] || return 1\n";
+    $retval .= "    cp traj.xtc ecce_traj_new.xtc && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f ecce_traj_new.xtc -pbc mol -ur compact -o ecce_traj_new.pdb || { rm -f ecce_traj_new.xtc ecce_traj_new.pdb; return 1; }\n";
+    $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj_new.pdb`\n";
+    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj_new.pdb > ecce-parse-traj.new\n";
+    $retval .= "    mv ecce-parse-traj.new ecce-parse-traj.txt && mv ecce_traj_new.pdb ecce_traj.pdb\n";
+    $retval .= "    rm -f ecce_traj_new.xtc ecce_traj_new.pdb\n";
+    $retval .= "  }\n";
+    $retval .= "  trajPid=\n";
+    $retval .= "  me=\$\$\n";
+    $retval .= "  ( while kill -0 \$me 2>/dev/null; do sleep 30; ecceTraj > /dev/null 2>&1; done ) &\n";
+    $retval .= "  trajPid=\$!\n";
     $run = "mdrun \$verbose -s topol.tpr -g $log -c $restart -e ener.edr -x traj.xtc";
     #  mdrun refuses to start when OMP_NUM_THREADS differs from -ntomp, and
     #  cluster environments often preset it (Kebnekaise sets 1).
@@ -2039,17 +2057,12 @@ sub gromacs()
       $retval .= "  \"\$gmx\" $run -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
     }
     $retval .= "  mdrunStatus=\$?\n";
+    $retval .= "  kill \$trajPid 2>/dev/null; wait \$trajPid 2>/dev/null\n";
     $retval .= "  [ -n \"\$densPid\" ] && { kill \$densPid 2>/dev/null; wait \$densPid 2>/dev/null; ecceDensity; }\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $log $::outFile\n";
-    #  The frames go to ecce-parse-traj.txt, which gromacs.desc parses as a File=
-    #  of its own, so they are not part of the log.
-    #  Whole molecules (-pbc mol) so the chain does not tear at the box
-    #  edge; at most 100 frames are kept (every k-th plus the last).
-    $retval .= "  if [ -s traj.xtc ] && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f traj.xtc -pbc mol -ur compact -o ecce_traj.pdb >> $::logfile 2>&1; then\n";
-    $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj.pdb`\n";
-    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce-parse-traj.txt\n";
-    $retval .= "  fi\n";
+    #  Final frames, from the whole trajectory (ecceTraj is defined above).
+    $retval .= "  ecceTraj >> $::logfile 2>&1\n";
     #  A pulling run: coordinate and force joined, for gromacs.pull.
     $retval .= "  if [ -s pullx.xvg ] && [ -s pullf.xvg ]; then\n";
     $retval .= "    grep -v '^[#@]' pullx.xvg | awk '{print \$1, \$2}' > ecce_pullx.tmp\n";

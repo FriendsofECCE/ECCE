@@ -93,6 +93,10 @@ Builder**) to see the minimised structure, and the energy with the
 from about -19 000 to -86 000 kJ/mol in 200 steps, as the water relaxes
 around the protein.
 
+While a GROMACS job is still running, the **Geometry Trace** panel can be
+played over the frames written so far; it is refreshed about every 30
+seconds.
+
 ## 4. Equilibrate
 
 1. Select the first **Equilibrate** and click **GROMACS MD Dynamics Editor**.
