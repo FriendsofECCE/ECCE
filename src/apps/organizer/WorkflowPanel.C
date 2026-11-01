@@ -23,6 +23,7 @@
 
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/WxResourceTreeItemData.H"
+#include "wxgui/WxStateImageList.H"
 
 #include "CalcMgr.H"
 #include "WorkflowPanel.H"
@@ -40,18 +41,11 @@ wxColour codeColour(const WorkflowSteps::Code *c)
   return c ? wxColour(c->r, c->g, c->b) : wxColour(0x86, 0x8e, 0x96);
 }
 
-wxColour stateColour(ResourceDescriptor::RUNSTATE s)
+/// The Organizer tree's run-state icon: the image list is indexed by the
+/// state itself, so a box and the tree can never disagree.
+int stateIcon(ResourceDescriptor::RUNSTATE s)
 {
-  switch (s) {
-    case ResourceDescriptor::STATE_COMPLETED:
-    case ResourceDescriptor::STATE_LOADED:      return wxColour(0x2b, 0x8a, 0x3e);
-    case ResourceDescriptor::STATE_RUNNING:
-    case ResourceDescriptor::STATE_SUBMITTED:   return wxColour(0x1f, 0x6f, 0xb2);
-    case ResourceDescriptor::STATE_WAITING:     return wxColour(0xe8, 0xa4, 0x00);
-    case ResourceDescriptor::STATE_READY:       return wxColour(0x86, 0x8e, 0x96);
-    case ResourceDescriptor::STATE_CREATED:     return wxColour(0xce, 0xd4, 0xda);
-    default:                                    return wxColour(0xc9, 0x2a, 0x2a);
-  }
+  return (int)s;
 }
 
 struct Seg { wxPoint a, b; };
@@ -218,7 +212,10 @@ public:
   {
     std::ostringstream o;
     o << "boxes=" << p_boxes.size() << " links=" << p_links.size()
-      << " label-overlaps=" << overlaps();
+      << " label-overlaps=" << overlaps() << " icons=";
+    for (size_t i = 0; i < p_boxes.size(); i++)
+      o << (i ? "," : "") << p_boxes[i].step->getName() << ":"
+        << stateIcon(WorkflowSteps::stateOf(p_boxes[i].step));
     return o.str();
   }
 
@@ -342,10 +339,12 @@ private:
       dc.SetFont(base);
       dc.SetTextForeground(dim);
       wxSize ws = dc.GetTextExtent(word);
-      dc.SetBrush(wxBrush(stateColour(st)));
-      dc.SetPen(wxPen(dim, 1));
-      dc.DrawCircle(r.GetRight() - 17, r.y + 16, 6);
-      dc.DrawText(word, r.GetRight() - 30 - ws.x, r.y + 16 - ws.y / 2);
+      WxStateImageList *icons = WxStateImageList::getImageList();
+      wxBitmap icon = icons->GetBitmap(stateIcon(st));
+      dc.DrawBitmap(icon, r.GetRight() - 10 - icon.GetWidth(),
+                    r.y + 16 - icon.GetHeight() / 2, true);
+      dc.DrawText(word, r.GetRight() - 16 - icon.GetWidth() - ws.x,
+                  r.y + 16 - ws.y / 2);
 
       dc.SetTextForeground(text);
       wxString name = wxControl::Ellipsize(wxString::FromUTF8(b.step->getName().c_str()),
