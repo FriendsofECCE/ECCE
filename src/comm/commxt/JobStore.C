@@ -787,7 +787,10 @@ void cleanup(int exitStatus)
         edate.setFromTimeT((time_t)endT);
         calculation->completionDate(edate.toString());
       }
-      if (startT >= 0 && calculation->startDate().empty()) {
+      // The log's start is the job's own; the date stored at the first
+      // "running" is when the monitor noticed it, after the end for a job of
+      // a few seconds, so the log's time replaces it.
+      if (startT >= 0) {
         TDateTime sdate;
         sdate.setFromTimeT((time_t)startT);
         calculation->startDate(sdate.toString());
