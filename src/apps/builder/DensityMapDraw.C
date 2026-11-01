@@ -58,7 +58,11 @@ static void mapGeometry(const wxSize& size, const Map& m, double& scale, double&
                  double& oy, double& pw, double& ph, int *leftOut, int *topOut)
 {
   const int left = 62, right = std::max(92, std::min(150, size.x * 3 / 10)),
-            top = size.y < 300 ? 26 : 34, bottom = size.y < 300 ? 26 : 62;
+            top = size.y < 300 ? 26 : 34;
+  //  A map with nothing in it gets a strip of its own under the axes for
+  //  the explanation, so the text never lies over the plot.
+  const bool zero = !(fabs(m.zmax) + fabs(m.zmin) > 0);
+  const int bottom = size.y < 300 ? 26 : zero ? 92 : 62;
   const double w = m.nu - 1, h = m.nv - 1;       // in steps
   const double avail = std::max(50, size.x - left - right);
   const double availH = std::max(50, size.y - top - bottom);
@@ -131,6 +135,9 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     dc.DrawLine(wxRound(ox) - 4, y, wxRound(ox), y);
     dc.DrawLabel(wxString::Format("%d", t), wxRect(wxRound(ox) - 30, y - 7, 24, 14), wxALIGN_RIGHT);
   }
+  //  The unit is on the axes at any size; the long title only when there is room.
+  dc.DrawLabel(wxString::FromUTF8("\xC3\x85"), wxRect(wxRound(ox) - 46, wxRound(oy + ph) + 5, 24, 14),
+               wxALIGN_RIGHT);
   if (roomy) dc.DrawLabel(wxString::FromUTF8("distance in the plane (\xC3\x85)"),
                wxRect(wxRound(ox), wxRound(oy + ph) + 22, wxRound(pw), 16),
                wxALIGN_CENTER);
@@ -196,11 +203,12 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   }
   dc.DestroyClippingRegion();
   const bool zero = !(fabs(m.zmax) + fabs(m.zmin) > 0);
-  if (zero) {
+  if (zero && roomy) {
     dc.SetTextForeground(wxColour(80, 80, 80));
     dc.DrawLabel(wxString::FromUTF8("zero in this plane \xE2\x80\x94 a \xCF\x80 orbital is zero on the\n"
                                     "axis or nodal plane: move the plane off it"),
-                 wxRect(wxRound(ox), wxRound(oy) + 8, wxRound(pw), 40), wxALIGN_CENTER_HORIZONTAL | wxALIGN_TOP);
+                 wxRect(left, wxRound(oy + ph) + 40, std::max(120, wxRound(ox + pw) - left), 32),
+                 wxALIGN_LEFT | wxALIGN_TOP);
     dc.SetTextForeground(*wxBLACK);
   }
 
