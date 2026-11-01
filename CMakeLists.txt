@@ -311,6 +311,16 @@ ecce_library(eccevizsg
 ecce_library(eccecomm   src/comm/commtools)
 ecce_library(eccecommxt src/comm/commxt)
 ecce_library(eccercmd   src/comm/rcommand)
+# SftpEDSI runs its operations through RCommand.
+target_link_libraries(eccedsi PUBLIC eccercmd)
+target_link_libraries(eccetdat PUBLIC ecceutil)
+# RCommand uses AuthCache: without this a program that links eccedsi but
+# names eccetdat earlier fails with GNU ld (mold does not care about order).
+# On Windows the apps link one RESCAN group, and eccercmd joins it instead
+# (ecce_app): a dependency back into the group would be a cycle CMake refuses.
+if(NOT WIN32)
+  target_link_libraries(eccercmd PUBLIC eccetdat ecceutil)
+endif()
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
 pkg_check_modules(LIBSSH IMPORTED_TARGET libssh>=0.10)
@@ -484,6 +494,10 @@ function(ecce_app name dir)
   endif()
   if(WIN32)
     # The static libraries reference each other in cycles; GNU ld rescans a group.
+    # eccedsi needs eccercmd (SftpEDSI), which must be inside the group.
+    if("eccedsi" IN_LIST ECCE_APP_LINK AND NOT "eccercmd" IN_LIST ECCE_APP_LINK)
+      list(APPEND ECCE_APP_LINK eccercmd)
+    endif()
     target_link_libraries(${name} PRIVATE
       "$<LINK_GROUP:RESCAN,${ECCE_APP_LINK}>" ${XercesC_LIBRARIES})
   else()
@@ -3358,6 +3372,16 @@ if(PYTHON3_EXECUTABLE)
       eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
 
+    # SftpEDSI (#767) against the same sshd, both backends; a ctest that
+    # SKIPs (77) without podman.
+    add_executable(testSftpEDSI tests/transport/testSftpEDSI.C)
+    target_link_libraries(testSftpEDSI PRIVATE
+      eccedsi eccedav eccercmd eccecipc eccefaces eccexml eccetdat
+      ecceutil ${XercesC_LIBRARIES})
+    add_test(NAME sftpedsi
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/transport/sshd/sftpedsi_test.sh)
+    set_tests_properties(sftpedsi PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+
     # The same through a front end; tests/transport/sshd/frontend_test.sh.
     add_executable(testRCommandFrontend tests/transport/testRCommandFrontend.C)
     target_link_libraries(testRCommandFrontend PRIVATE
@@ -3398,6 +3422,15 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(launchjob PRIVATE
     eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
+  # #720: the copy-back wildcards a CP2K deck's sections ask for.
+  add_executable(testCp2kPatterns tests/launch/testCp2kPatterns.C)
+  target_include_directories(testCp2kPatterns PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(testCp2kPatterns PRIVATE
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME launch_cp2kpatterns COMMAND testCp2kPatterns)
+  set_tests_properties(launch_cp2kpatterns PROPERTIES TIMEOUT 60
+    ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=cp2kpatterns;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/cp2kpatterns-home")
   # tests/queues/configdump: RefMachine::config() for config_test.py.
   add_executable(configdump tests/queues/configdump.C)
   target_link_libraries(configdump PRIVATE eccetdat ecceutil)

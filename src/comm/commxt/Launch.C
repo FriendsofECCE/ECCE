@@ -1280,6 +1280,32 @@ bool Launch::checkLocalCmd(const string& command,
   return ret;
 }
 
+// CP2K writes one .pdos per kind and &LDOS list, but only when the deck has
+// a &PDOS section; ask for the wildcard only then, so an ordinary run's
+// copy-back does not fetch (and log) a pattern that can never match.  The
+// section name is case-insensitive and must start a line: a "!" comment or a
+// keyword that merely contains the name does not count (#720).
+string Launch::cp2kCopyBackPatterns(const string& deck)
+{
+  size_t start = 0;
+  while (start < deck.size()) {
+    size_t nl = deck.find('\n', start);
+    string line = deck.substr(start, nl == string::npos ? string::npos
+                                                       : nl - start);
+    string s = STLUtil::trim(line);
+    if (!s.empty() && s[0] != '!') {
+      string first = STLUtil::lower(s);
+      first = first.substr(0, first.find_first_of(" \t"));
+      if (first == "&pdos")
+        return "*.pdos";
+    }
+    if (nl == string::npos)
+      break;
+    start = nl + 1;
+  }
+  return "";
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //  man
 //
@@ -1363,6 +1389,23 @@ bool Launch::generateJobMonitoringFiles(void)
       storeConfigFile << "mdStoreTrj: none" << endl;
     storeConfigFile << "rxnMetadynamicsTask: " <<
                        (p_isMetadynamicsTask? "yes": "no") << endl;
+
+    // The deck's CP2K output sections are known here, where the deck is,
+    // and carried to eccejobstore in the config it reads.  Gate on the code
+    // name, not on deck text: only CP2K has these sections, so another
+    // code's deck that mentions &PDOS keeps an unchanged copy-back (#720).
+    if (strcasecmp(jcode->name().c_str(), "cp2k") == 0) {
+      string input = p_inputFile.empty() ? (*p_options)["##input##"] : p_inputFile;
+      ifstream deckFile((p_cache->directory + "/" + input).c_str());
+      if (deckFile) {
+        string deck, line;
+        while (getline(deckFile, line))
+          deck += line + "\n";
+        string extra = cp2kCopyBackPatterns(deck);
+        if (!extra.empty())
+          storeConfigFile << "cp2kGetPatterns: " << extra << endl;
+      }
+    }
 
     storeConfigFile.close();
   }

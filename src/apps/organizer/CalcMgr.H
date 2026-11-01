@@ -480,6 +480,7 @@ protected:
   // Roots for the ECCE servers in ~/.ECCE/AddedServers (#767).
   void syncServerRoots();
   bool connectServer(const string& ref);
+  bool connectSsh(const string& address);
   string crossTreeRefusal(const vector<EcceURL>& sources, const EcceURL& dest);
   bool refuseAddedLaunch(const vector<EcceURL>& urls);
   void tellRefusal(const string& msg);

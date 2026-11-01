@@ -152,7 +152,11 @@ added, with their name, type and address:
   the address of the server, for example `https://ecce.example.edu`; the
   login is asked when you connect. **Test connection** checks that an ECCE
   server answers and shows whether its certificate is trusted. For an SSH
-  folder it is not available yet.
+  folder it logs in, checks that the folder exists and can be written, and
+  offers to create it if it is missing. The server needs only an SSH
+  account and a folder; nothing is installed or run there. A port other than
+  22 is not typed in the address: give the machine a `Host` entry with a
+  `Port` line in `~/.ssh/config` and use that name as the host.
 - **Edit...** changes the selected server and **Remove** takes it out of the
   list. Nothing on the server is deleted.
 
@@ -164,10 +168,21 @@ login is cancelled or refused the tree stays marked **(not connected)** and
 **Reconnect** in its right-click menu asks again; this never changes where
 ECCE keeps your calculations. **Remove** in Preferences takes the tree out of
 the Organizer at once. In a server tree you can browse, make projects and
-calculations, open, rename, delete and copy within that tree. Copying or
-moving between **Local data** and a server, or between two servers, is not
-supported yet, and neither is launching a calculation stored on an added
-server. SSH folders are not shown in the Organizer yet.
+calculations, open, rename, delete and copy within that tree. A calculation in a server
+tree is launched like any other (Launch, Launch Selected, the Launcher): the
+job runs where you choose, and its output and results are stored on that
+server with your login there. Copying or moving between **Local data** and a
+server, or between two servers, is not supported yet.
+
+Each SSH folder in the list is a tree too, named **<name> (SSH)**, with the
+folder as its top level. Opening it logs in to the machine the way job
+submission does (a key, a password or a code, and the shared connection if
+your `~/.ssh/config` has one), so it is asked once; if that fails the tree
+stays **(not connected)** and **Reconnect** tries again. Browsing, making
+projects and calculations, renaming and deleting work as in the other trees,
+and a calculation there is launched like any other: the job runs where you
+choose and its results are written to the folder over the same login. A
+launch is refused with a message if there is no login to the folder.
 
 A server that your administrator set up for the installation is listed as
 **Set by your administrator** and cannot be changed or removed. ECCE does

@@ -71,6 +71,8 @@ public:
   // with user empty, a "(not connected)" placeholder without a resource.
   WxResourceTreeItemData * addServerRoot(const string& name, const string& ref,
                                          const string& user);
+  WxResourceTreeItemData * addSshRoot(const string& name, const string& address,
+                                      bool connected);
   void removeServerRoots();
   vector<string> rootLabels();
 

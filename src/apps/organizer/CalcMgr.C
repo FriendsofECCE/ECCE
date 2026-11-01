@@ -91,6 +91,7 @@ static std::string s_registerMessage;
 #include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
+#include "dsm/SftpEDSI.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/EDSIExporter.H"
 #include "dsm/EDSI.H"
@@ -588,13 +589,16 @@ void CalcMgr::runTestCommand(const string& line)
       args >> sub >> a >> b >> c;
       if (sub == "newproject" || sub == "newcalc") {
         // "server newproject NAME PROJECT", "server newcalc NAME PROJECT CALC"
-        string ref;
+        string ref, sshHome;
         vector<ServerEntry> list = ServerList::load();
         for (size_t i = 0; i < list.size(); i++)
           if (list[i].type == "ecce" && list[i].name == a)
             ref = ServerList::refOf(list[i].address);
+          else if (list[i].type == "ssh" && list[i].name == a)
+            ref = sshHome = list[i].address;
         EDSIServerCentral servers;
-        EcceURL shome = servers.getUserHome(EcceURL(ref + "Ecce/"));
+        EcceURL shome = sshHome.empty() ? servers.getUserHome(EcceURL(ref + "Ecce/"))
+                                        : EcceURL(sshHome);
         ResourceDescriptor& srd = ResourceDescriptor::getResourceDescriptor();
         Resource *parentRes = EDSIFactory::getResource(
             sub == "newproject" ? shome : shome.getChild(b));
@@ -617,6 +621,8 @@ void CalcMgr::runTestCommand(const string& line)
         for (size_t i = 0; i < list.size(); i++)
           if (list[i].type == "ecce" && list[i].name == a)
             ref = ServerList::refOf(list[i].address);
+          else if (list[i].type == "ssh" && list[i].name == a)
+            ref = list[i].address;
         outcome = ref.empty() ? "no such server"
                               : (connectServer(ref) ? "connected" : "not connected");
       } else if (sub == "copycheck") {
@@ -2212,6 +2218,11 @@ void CalcMgr::syncServerRoots()
   ServerList::clearAdded();
   vector<ServerEntry> list = ServerList::load();
   for (size_t i = 0; i < list.size(); i++) {
+    if (list[i].type == "ssh") {
+      p_treeCtrl->addSshRoot(list[i].name, list[i].address,
+                             !ServerList::loginFor(list[i].address).empty());
+      continue;
+    }
     if (list[i].type != "ecce") continue;
     string ref = ServerList::refOf(list[i].address);
     if (ref.empty() || own.count(ref)) continue;
@@ -2228,6 +2239,7 @@ void CalcMgr::syncServerRoots()
  */
 bool CalcMgr::connectServer(const string& ref)
 {
+  if (ref.compare(0, 7, "sftp://") == 0) return connectSsh(ref);
   string name = ref;
   vector<ServerEntry> list = ServerList::load();
   for (size_t i = 0; i < list.size(); i++)
@@ -2271,8 +2283,42 @@ bool CalcMgr::connectServer(const string& ref)
 }
 
 
+// Log in to an SSH folder with ECCE's own ssh login (the prompts and the
+// shared connection are those of jobs) and check the folder.  A failure
+// leaves the root "(not connected)" and the session untouched.
+bool CalcMgr::connectSsh(const string& address)
+{
+  string name = address, user, host, folder, message;
+  vector<ServerEntry> list = ServerList::load();
+  for (size_t i = 0; i < list.size(); i++)
+    if (list[i].type == "ssh" && list[i].address == address) name = list[i].name;
+  if (!ServerList::parseSsh(address, user, host, folder)) return false;
+  SftpEDSI::Probe p = SftpEDSI::probe(user, host, folder, false, message);
+  if (p == SftpEDSI::PROBE_MISSING && !getenv("ECCE_TEST_ORGANIZER")) {
+    ewxMessageDialog ask(this, ("The folder " + folder + " does not exist on " + host +
+                                ".  Create it?").c_str(), "Create folder",
+                         wxYES_NO | wxICON_QUESTION, wxDefaultPosition);
+    if (ask.ShowModal() == wxID_YES)
+      p = SftpEDSI::probe(user, host, folder, true, message);
+  }
+  if (p != SftpEDSI::PROBE_OK) {
+    ServerList::setLogin(address, "");
+    setMessage("Not connected to " + name + ": " + message, WxFeedback::ERROR);
+    syncServerRoots();
+    return false;
+  }
+  ServerList::setLogin(address, user);
+  syncServerRoots();
+  return true;
+}
+
+
 static string treeOf(const EcceURL& u)
 {
+  if (u.getProtocol().find("sftp") == 0) {
+    string root = ServerList::sshRootOf(u.toString());
+    return root.empty() ? u.toString() : root;
+  }
   return u.getProtocol().find("http") == 0 ? u.getRef() : string("local");
 }
 
@@ -2306,13 +2352,35 @@ string CalcMgr::crossTreeRefusal(const vector<EcceURL>& sources,
 }
 
 
+// A calculation on an added server is launched with that server's login:
+// ask for it when this session has none, and refuse (with the reason) when
+// it is not given or not accepted, instead of letting the job store hang on it.
 bool CalcMgr::refuseAddedLaunch(const vector<EcceURL>& urls)
 {
+  set<string> done;
   for (size_t i = 0; i < urls.size(); i++) {
-    if (urls[i].getProtocol().find("http") == 0 &&
-        ServerList::isAdded(urls[i].getRef())) {
-      tellRefusal("Launching calculations stored on an added server is not "
-                  "supported yet.");
+    if (urls[i].getProtocol().find("sftp") == 0) {
+      // The job store and monitor are other processes: they get no prompt,
+      // so the login has to be made here, once, before anything is submitted.
+      const string root = ServerList::sshRootOf(urls[i].toString());
+      if (root.empty() || !done.insert(root).second) continue;
+      if (ServerList::loginFor(root).empty() && !connectSsh(root)) {
+        tellRefusal("Not launched: there is no login to " + root + ".");
+        return true;
+      }
+      continue;
+    }
+    if (urls[i].getProtocol().find("http") != 0) continue;
+    const string ref = urls[i].getRef();
+    if (!ServerList::isAdded(ref) || !done.insert(ref).second) continue;
+    if (!ServerList::loginFor(ref).empty() &&
+        !AuthCache::getCache().getAuthentication(ref, ServerList::loginFor(ref),
+                                                 "", 1)) {
+      ServerList::setLogin(ref, "");
+    }
+    if (ServerList::loginFor(ref).empty() && !connectServer(ref)) {
+      tellRefusal("Not launched: the login for the server " + ref +
+                  " was not given or not accepted.");
       return true;
     }
   }
@@ -8182,6 +8250,20 @@ void CalcMgr::catchUpWaitingJobs()
   if (WaitingJobs::list().empty() ||
       !WaitingJobs::firstInSession(Ecce::sessionKey()))
     return;
+
+  // Jobs of an added server store to it with its own login, which this
+  // session does not have yet after a restart: ask once per server.
+  {
+    vector<string> waiting = WaitingJobs::list();
+    set<string> asked;
+    for (size_t i = 0; i < waiting.size(); i++) {
+      EcceURL u(waiting[i]);
+      const string ref = u.getRef();
+      if (u.getProtocol().find("http") == 0 && ServerList::isAdded(ref) &&
+          ServerList::loginFor(ref).empty() && asked.insert(ref).second)
+        connectServer(ref);
+    }
+  }
 
   ReconnectSelected::DeferMessages defer;
   ewxProgressDialog* progress = 0;

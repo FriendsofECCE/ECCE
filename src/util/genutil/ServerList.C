@@ -83,6 +83,9 @@ string ServerList::check(const ServerEntry& e)
     string u, h, f;
     if (!parseSsh(e.address, u, h, f))
       return "An SSH folder needs a user, a host and a folder.";
+    // RCommand takes the port from ~/.ssh/config only (OpenSSH and libssh alike).
+    if (h.find(':') != string::npos)
+      return "Use a Host entry in ~/.ssh/config for a port other than 22.";
   }
   return "";
 }
@@ -149,6 +152,8 @@ bool ServerList::parseSsh(const string& address, string& user, string& host,
   if (at == string::npos || slash == string::npos || at > slash) return false;
   user = rest.substr(0, at);
   host = rest.substr(at + 1, slash - at - 1);
+  if (host.size() > 3 && host.compare(host.size() - 3, 3, ":22") == 0)
+    host.erase(host.size() - 3);   // the default port, as typed
   folder = rest.substr(slash);
   return !user.empty() && !host.empty();
 }
@@ -157,6 +162,20 @@ bool ServerList::parseSsh(const string& address, string& user, string& host,
 namespace {
 std::set<string>& addedRefs() { static std::set<string> s; return s; }
 std::map<string, string>& logins() { static std::map<string, string> m; return m; }
+ServerList::LoginProvider& provider() { static ServerList::LoginProvider p = 0; return p; }
+// True once this process keeps the set itself (the Organizer).
+bool& managed() { static bool m = false; return m; }
+
+// The session store's login for an ECCE server listed in AddedServers.
+string sessionLogin(const string& ref)
+{
+  if (managed() || !provider() || ref.empty()) return "";
+  vector<ServerEntry> list = ServerList::load();
+  for (size_t i = 0; i < list.size(); i++)
+    if (list[i].type == "ecce" && ServerList::refOf(list[i].address) == ref)
+      return provider()(ref);
+  return "";
+}
 }
 
 string ServerList::refOf(const string& address)
@@ -164,9 +183,14 @@ string ServerList::refOf(const string& address)
   return EcceURL(address).getRef();
 }
 
-void ServerList::markAdded(const string& ref) { addedRefs().insert(ref); }
-void ServerList::clearAdded() { addedRefs().clear(); }
-bool ServerList::isAdded(const string& ref) { return addedRefs().count(ref) != 0; }
+void ServerList::setLoginProvider(LoginProvider p) { provider() = p; }
+
+void ServerList::markAdded(const string& ref) { managed() = true; addedRefs().insert(ref); }
+void ServerList::clearAdded() { managed() = true; addedRefs().clear(); }
+bool ServerList::isAdded(const string& ref)
+{
+  return addedRefs().count(ref) != 0 || !sessionLogin(ref).empty();
+}
 
 void ServerList::setLogin(const string& ref, const string& user)
 {
@@ -176,11 +200,28 @@ void ServerList::setLogin(const string& ref, const string& user)
 string ServerList::loginFor(const string& ref)
 {
   std::map<string, string>::const_iterator it = logins().find(ref);
-  return it == logins().end() ? string() : it->second;
+  return it == logins().end() ? sessionLogin(ref) : it->second;
+}
+
+string ServerList::sshRootOf(const string& url)
+{
+  vector<ServerEntry> list = load();
+  for (size_t i = 0; i < list.size(); i++) {
+    if (list[i].type != "ssh") continue;
+    const string& a = list[i].address;
+    if (url == a || (url.size() > a.size() && url.compare(0, a.size(), a) == 0 &&
+                     url[a.size()] == '/'))
+      return a;
+  }
+  return "";
 }
 
 string ServerList::userFor(const string& url)
 {
+  if (url.compare(0, 7, "sftp://") == 0) {
+    string u, h, f;
+    return parseSsh(url, u, h, f) ? u : Ecce::serverUser();
+  }
   const string ref = EcceURL(url).getRef();
   if (isAdded(ref)) return loginFor(ref);
   return Ecce::serverUser();

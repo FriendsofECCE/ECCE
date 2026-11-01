@@ -105,6 +105,9 @@ class AuthCache
 
     virtual int size() const;
 
+    // Login name stored for the data server ref (scheme://host:port/), or "".
+    static string sessionLoginFor(const string& ref);
+
 
   protected:
     AuthCache();

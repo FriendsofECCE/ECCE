@@ -30,6 +30,7 @@
 #include "util/TempStorage.H"
 #include "util/JMSPublisher.H"
 #include "util/MqttLink.H"
+#include "util/ServerList.H"
 
 #include "tdat/RefMachine.H"
 #include "tdat/AuthCache.H"
@@ -205,6 +206,30 @@ bool AuthCache::brokerCredential(const string& sessionKey,
 static struct BrokerCredentialRegistration {
   BrokerCredentialRegistration() { MqttLink::setCredentialProvider(AuthCache::brokerCredential); }
 } s_brokerCredentialRegistration;
+
+
+// The login a process other than the Organizer uses on an added server: the
+// newest session store entry of that server (ServerList::loginFor).
+string AuthCache::sessionLoginFor(const string& ref)
+{
+  // What a parent piped in (-pipe) first, then the session store.
+  AuthCache& cache = getCache();
+  for (size_t i = 0; i < cache.p_memcache.size(); i++)
+    if (cache.p_memcache[i]->url.compare(0, ref.size(), ref) == 0 &&
+        !cache.p_memcache[i]->pass.empty())
+      return cache.p_memcache[i]->user;
+  vector<AuthTuple> stored;
+  sessionReadFile(sessionFile(), stored);
+  string user;
+  for (size_t i = 0; i < stored.size(); i++)
+    if (stored[i].url.compare(0, ref.size(), ref) == 0 && !stored[i].pass.empty())
+      user = stored[i].user;
+  return user;
+}
+
+static struct AddedLoginRegistration {
+  AddedLoginRegistration() { ServerList::setLoginProvider(AuthCache::sessionLoginFor); }
+} s_addedLoginRegistration;
 
 
 /**
@@ -760,7 +785,17 @@ BasicAuth *AuthCache::getAuthentication
 
     // The newest credential of the same kind: a compute machine's password
     // (ssh://, cached by RCommand) must never be sent to a data server.
-    if (pass=="" && p_URLPolicy==LAST_URL) {
+    if (pass=="" && p_URLPolicy==LAST_URL && ServerList::isAdded(url.getRef())) {
+      // An added server: only its own credential, never another server's.
+      const string server = makeKey(urlstr, "");
+      for (size_t i = 0; i < p_memcache.size(); i++) {
+        if (p_memcache[i]->user == user && p_memcache[i]->url.find(server) == 0) {
+          pass = p_memcache[i]->pass;
+          break;
+        }
+      }
+    }
+    if (pass=="" && p_URLPolicy==LAST_URL && !ServerList::isAdded(url.getRef())) {
       const bool http = sessionWorthy(key);
       for (size_t i = 0; i < p_memcache.size(); i++) {
         if (sessionWorthy(p_memcache[i]->url) == http) {
