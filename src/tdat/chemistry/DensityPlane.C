@@ -42,7 +42,7 @@ Plane::Plane() : rms(0.0), offset(0.0)
 }
 
 Map::Map() : quantity(DENSITY), mo(0), beta(false), nu(0), nv(0), u0(0),
-             v0(0), step(0.05), zmin(0), zmax(0), levelTop(0) {}
+             v0(0), step(0.05), zmin(0), zmax(0), difference(false), colourLimit(0), levelTop(0) {}
 
 //  Eigen-decomposition of the 3x3 covariance (Jacobi): the smallest
 //  spread is the plane's normal, the largest its long axis.
@@ -548,6 +548,56 @@ static double combine(const vector<double>& c, const vector<double>& phi)
   return s;
 }
 
+void Evaluator::addFragment(std::shared_ptr<const Evaluator> fragment, const string& name)
+{
+  p_fragments.push_back(fragment);
+  p_fragmentNames.push_back(name);
+}
+
+void Evaluator::clearFragments() { p_fragments.clear(); p_fragmentNames.clear(); }
+
+string Evaluator::differenceTitle() const
+{
+  string t = "Density difference: complex";
+  for (const string& n : p_fragmentNames) t += " - " + n;
+  return t;
+}
+
+bool matchFragment(const Evaluator& whole, const Evaluator& fragment,
+                   vector<char>& used, string& complaint, double tolerance)
+{
+  used.resize(whole.symbols.size(), 0);
+  for (size_t f = 0; f < fragment.symbols.size(); f++) {
+    int hit = -1;
+    for (size_t a = 0; a < whole.symbols.size() && hit < 0; a++) {
+      if (whole.symbols[a] != fragment.symbols[f]) continue;
+      double d2 = 0;
+      for (int k = 0; k < 3; k++) {
+        const double d = whole.coordsAng[3*a + k] - fragment.coordsAng[3*f + k];
+        d2 += d*d;
+      }
+      if (d2 <= tolerance*tolerance) hit = (int)a;
+    }
+    char buf[200];
+    if (hit < 0) {
+      snprintf(buf, sizeof buf, "Fragment atom %s%d is not at the position of any "
+               "%s atom of the complex (within %.2f A); the fragment must be "
+               "computed at its geometry in the complex.",
+               fragment.symbols[f].c_str(), (int)f + 1, fragment.symbols[f].c_str(), tolerance);
+      complaint = buf;
+      return false;
+    }
+    if (used[hit]) {
+      snprintf(buf, sizeof buf, "Atom %s%d of the complex is in more than one fragment.",
+               whole.symbols[hit].c_str(), hit + 1);
+      complaint = buf;
+      return false;
+    }
+    used[hit] = 1;
+  }
+  return true;
+}
+
 double Evaluator::density(double x, double y, double z) const
 {
   vector<double> phi;
@@ -563,6 +613,7 @@ double Evaluator::density(double x, double y, double z) const
     const double psi = combine(p_cBeta[m], phi);
     rho += occBeta[m]*psi*psi;
   }
+  for (const auto& f : p_fragments) rho -= f->density(x, y, z);
   return rho;
 }
 
@@ -654,6 +705,7 @@ void Evaluator::evaluateAt(double x, double y, double z, const vector<char>& nee
     if (occupied || (m < needB.size() && needB[m])) psiB[m] = combine(p_cBeta[m], phi);
     if (occupied) rho += occBeta[m]*psiB[m]*psiB[m];
   }
+  if (wantRho) for (const auto& f : p_fragments) rho -= f->density(x, y, z);
 }
 
 FieldPoint::FieldPoint()
@@ -809,7 +861,7 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
     if (!beta && set.front() <= homo() && set.back() > homo())
       out.title += " - partly occupied";
   } else {
-    out.title = "Total electron density";
+    out.title = isDifference() ? differenceTitle() : "Total electron density";
   }
 
   vector<double> phi;
@@ -833,6 +885,15 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
   }
   out.zmin = *std::min_element(out.z.begin(), out.z.end());
   out.zmax = *std::max_element(out.z.begin(), out.z.end());
+  if (q == DENSITY && isDifference()) {
+    //  The nuclear regions would swamp the bonding region at full range.
+    out.difference = true;
+    vector<double> a(out.z.size());
+    for (size_t i = 0; i < a.size(); i++) a[i] = fabs(out.z[i]);
+    std::nth_element(a.begin(), a.begin() + (size_t)(0.99*(a.size() - 1)), a.end());
+    out.colourLimit = a[(size_t)(0.99*(a.size() - 1))];
+    if (!(out.colourLimit > 0)) out.colourLimit = std::max(fabs(out.zmin), fabs(out.zmax));
+  }
   return true;
 }
 

@@ -3,7 +3,9 @@
 
 #include <wx/brush.h>
 #include <wx/control.h>
+#include <wx/bitmap.h>
 #include <wx/font.h>
+#include <wx/image.h>
 #include <wx/pen.h>
 
 #include "DensityMapDraw.H"
@@ -45,6 +47,16 @@ wxColour viridis(double t)
 wxString levelText(double v)
 {
   return wxString::Format("%g", v);
+}
+
+//  Blue where density is gained, red where lost, white at zero; t in -1..1.
+wxColour diverging(double t)
+{
+  t = std::max(-1.0, std::min(1.0, t));
+  const double w = fabs(t);
+  const wxColour& c = t >= 0 ? POSITIVE : NEGATIVE;
+  auto mix = [w](unsigned char v) { return (unsigned char)(255 - w * (255 - v)); };
+  return wxColour(mix(c.Red()), mix(c.Green()), mix(c.Blue()));
 }
 
 //  Named in the picture when within this distance of the plane (A).
@@ -147,8 +159,27 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   struct Line { double value; wxColour colour; wxPenStyle style; };
   vector<Line> legend;
   bool scaled = false;
-  const vector<double> lv = mapLevels(m, scaled);
-  if (m.quantity != ORBITAL) {
+  const vector<double> lv = m.difference ? vector<double>() : mapLevels(m, scaled);
+  if (m.difference) {
+    //  Bilinear sample of the grid at every screen pixel of the frame.
+    const int w = std::max(1, wxRound(pw)), h = std::max(1, wxRound(ph));
+    wxImage img(w, h, false);
+    unsigned char *d = img.GetData();
+    const double lim = m.colourLimit > 0 ? m.colourLimit : 1.0;
+    for (int py = 0; py < h; py++)
+      for (int px = 0; px < w; px++) {
+        const double gi = std::max(0.0, std::min(m.nu - 1.0, (px + 0.5)/scale/m.step));
+        const double gj = std::max(0.0, std::min(m.nv - 1.0, (h - py - 0.5)/scale/m.step));
+        const int i = std::min(m.nu - 2, (int)gi), j = std::min(m.nv - 2, (int)gj);
+        const double fi = gi - i, fj = gj - j;
+        auto Z = [&](int a, int b) { return m.z[(size_t)b*m.nu + a]; };
+        const double z = (1-fj)*((1-fi)*Z(i,j) + fi*Z(i+1,j)) + fj*((1-fi)*Z(i,j+1) + fi*Z(i+1,j+1));
+        const wxColour c = diverging(z/lim);
+        unsigned char *q = d + 3*((size_t)py*w + px);
+        q[0] = c.Red(); q[1] = c.Green(); q[2] = c.Blue();
+      }
+    dc.DrawBitmap(wxBitmap(img), wxRound(ox), wxRound(oy));
+  } else if (m.quantity != ORBITAL) {
     for (size_t k = 0; k < lv.size(); k++) {
       Line l = { lv[k], viridis(lv.size() > 1 ? double(k)/(lv.size()-1) : 0.0), wxPENSTYLE_SOLID };
       legend.push_back(l);
@@ -231,10 +262,28 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   const int lx = wxRound(ox + pw) + 16;
   dc.SetBrush(*wxTRANSPARENT_BRUSH);
   dc.SetPen(*wxBLACK_PEN);
-  dc.DrawText(m.quantity == DENSITY ? wxString::FromUTF8("e / bohr\xC2\xB3")
+  dc.DrawText(m.quantity == DENSITY ? wxString::FromUTF8(m.difference ? "\xCE\x94\xCF\x81 / e bohr\xE2\x81\xBB\xC2\xB3" : "e / bohr\xC2\xB3")
                   : m.quantity == ORBITAL_SET ? wxString::FromUTF8("\xCF\x88\xC2\xB2 / bohr\xC2\xB3")
                                      : wxString::FromUTF8("\xCF\x88 / bohr\xE2\x81\xBB\xC2\xB3\xE2\x81\x84\xC2\xB2"),
               lx, ly - 18);
+  if (m.difference) {
+    //  Colour bar, +limit at the top; the ends saturate.
+    const int bh = std::max(60, std::min(wxRound(ph) - 40, 160));
+    for (int y = 0; y < bh; y++) {
+      dc.SetPen(wxPen(diverging(1.0 - 2.0*y/(bh - 1)), 1));
+      dc.DrawLine(lx, ly + y, lx + 20, ly + y);
+    }
+    dc.SetPen(wxPen(wxColour(120, 120, 120), 1));
+    dc.DrawRectangle(lx, ly, 21, bh);
+    dc.SetTextForeground(*wxBLACK);
+    dc.DrawText(wxString::Format("+%.3g", m.colourLimit), lx + 26, ly - 2);
+    dc.DrawText("0", lx + 26, ly + bh/2 - 7);
+    dc.DrawText(wxString::Format("-%.3g", m.colourLimit), lx + 26, ly + bh - 14);
+    ly += bh + 4;
+    dc.SetTextForeground(wxColour(80, 80, 80));
+    dc.DrawText("gain: blue, loss: red", lx, ly);
+    ly += 17;
+  }
   for (size_t k = 0; k < legend.size(); k++, ly += 17) {
     dc.SetPen(wxPen(legend[k].colour, 2, legend[k].style));
     dc.DrawLine(lx, ly + 8, lx + 26, ly + 8);
@@ -244,14 +293,14 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     if (m.quantity == ORBITAL && legend[k].value > 0) t = "+" + t;
     dc.DrawText(t, lx + 32, ly);
   }
-  if (legend.empty()) {
+  if (legend.empty() && !m.difference) {
     dc.DrawText(fabs(m.zmax) + fabs(m.zmin) > 0 ? "no level reached" : "zero in this plane", lx, ly);
     ly += 17;
   }
   dc.SetTextForeground(wxColour(80, 80, 80));
   if (!zero) {
     dc.DrawText(wxString::Format("max %.3g", m.zmax), lx, ly + 8);
-    if (m.quantity == ORBITAL)
+    if (m.quantity == ORBITAL || m.difference)
       dc.DrawText(wxString::Format("min %.3g", m.zmin), lx, ly + 25);
   }
   if (roomy)
