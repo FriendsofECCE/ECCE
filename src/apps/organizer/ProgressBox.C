@@ -18,6 +18,7 @@
 #include <wx/settings.h>
 #include <wx/stattext.h>
 
+#include "comm/JobFailureReason.H"
 #include "tdat/VibSpectrum.H"
 #include "wxgui/PlotStyle.H"
 #include "wxgui/ewxConfig.H"
@@ -168,7 +169,11 @@ vector<JobProgress::Block> ProgressBox::blocks() const
 vector<string> ProgressBox::outcome() const
 {
   vector<string> out = p_progress.summary(p_completed);
-  if (!p_stopped.empty()) out.push_back("Incomplete: " + p_stopped);
+  // Only the display is shortened; the stored reason (run log, ecce-* tools)
+  // keeps the scheduler note's full quoted line.
+  if (!p_stopped.empty())
+    out.push_back("Incomplete: " +
+                  JobFailureReason::reasonForProgressBox(p_stopped));
   if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
   return out;
 }
@@ -214,7 +219,12 @@ string ProgressBox::foldedText() const
     return JobProgress::noContactText((double)time(0) - p_lastHeard);
   if (p_finished) {
     vector<string> s = outcome();
-    return s.empty() ? string() : s[0];
+    if (s.empty()) return string();
+    // The whole reason as the one folded line would run wider than the box;
+    // a folded box says only that the job is Incomplete (the open box has
+    // the reason).
+    if (s[0].compare(0, 11, "Incomplete:") == 0) return "Incomplete";
+    return s[0];
   }
   if (p_queued && p_progress.empty()) {
     const vector<JobProgress::Block> q = blocks();
