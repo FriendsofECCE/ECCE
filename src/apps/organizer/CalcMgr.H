@@ -658,6 +658,9 @@ protected:
   //  Set by the "new" test command: createResource reports its error
   //  here instead of in a modal dialog.
   string *p_testCreateError = 0;
+  //  Set by the workflownew test command: a New-step dialog is not shown
+  //  but logged here ("carry;" with a source, "nocarry;" without).
+  string *p_testStepDialogs = 0;
   //  Set by the "duplicate" test command: the tree's selection and
   //  collapse events, in order.
   std::vector<string> *p_testTreeEvents = 0;

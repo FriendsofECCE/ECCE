@@ -23,6 +23,7 @@
 
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/WxResourceTreeItemData.H"
+#include "wxgui/WxStateImageList.H"
 
 #include "CalcMgr.H"
 #include "WorkflowPanel.H"
@@ -40,18 +41,11 @@ wxColour codeColour(const WorkflowSteps::Code *c)
   return c ? wxColour(c->r, c->g, c->b) : wxColour(0x86, 0x8e, 0x96);
 }
 
-wxColour stateColour(ResourceDescriptor::RUNSTATE s)
+/// The Organizer tree's run-state icon: the image list is indexed by the
+/// state itself, so a box and the tree can never disagree.
+int stateIcon(ResourceDescriptor::RUNSTATE s)
 {
-  switch (s) {
-    case ResourceDescriptor::STATE_COMPLETED:
-    case ResourceDescriptor::STATE_LOADED:      return wxColour(0x2b, 0x8a, 0x3e);
-    case ResourceDescriptor::STATE_RUNNING:
-    case ResourceDescriptor::STATE_SUBMITTED:   return wxColour(0x1f, 0x6f, 0xb2);
-    case ResourceDescriptor::STATE_WAITING:     return wxColour(0xe8, 0xa4, 0x00);
-    case ResourceDescriptor::STATE_READY:       return wxColour(0x86, 0x8e, 0x96);
-    case ResourceDescriptor::STATE_CREATED:     return wxColour(0xce, 0xd4, 0xda);
-    default:                                    return wxColour(0xc9, 0x2a, 0x2a);
-  }
+  return (int)s;
 }
 
 struct Seg { wxPoint a, b; };
@@ -218,7 +212,10 @@ public:
   {
     std::ostringstream o;
     o << "boxes=" << p_boxes.size() << " links=" << p_links.size()
-      << " label-overlaps=" << overlaps();
+      << " label-overlaps=" << overlaps() << " icons=";
+    for (size_t i = 0; i < p_boxes.size(); i++)
+      o << (i ? "," : "") << p_boxes[i].step->getName() << ":"
+        << stateIcon(WorkflowSteps::stateOf(p_boxes[i].step));
     return o.str();
   }
 
@@ -342,10 +339,12 @@ private:
       dc.SetFont(base);
       dc.SetTextForeground(dim);
       wxSize ws = dc.GetTextExtent(word);
-      dc.SetBrush(wxBrush(stateColour(st)));
-      dc.SetPen(wxPen(dim, 1));
-      dc.DrawCircle(r.GetRight() - 17, r.y + 16, 6);
-      dc.DrawText(word, r.GetRight() - 30 - ws.x, r.y + 16 - ws.y / 2);
+      WxStateImageList *icons = WxStateImageList::getImageList();
+      wxBitmap icon = icons->GetBitmap(stateIcon(st));
+      dc.DrawBitmap(icon, r.GetRight() - 10 - icon.GetWidth(),
+                    r.y + 16 - icon.GetHeight() / 2, true);
+      dc.DrawText(word, r.GetRight() - 16 - icon.GetWidth() - ws.x,
+                  r.y + 16 - ws.y / 2);
 
       dc.SetTextForeground(text);
       wxString name = wxControl::Ellipsize(wxString::FromUTF8(b.step->getName().c_str()),
@@ -402,7 +401,7 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
                              wxWindow *parent)
   : ewxPanel(parent, wxID_ANY), p_calcMgr(calcMgr),
     p_session(dynamic_cast<Session*>(node->getResource())),
-    p_canvas(0), p_help(0), p_status(0)
+    p_canvas(0), p_help(0), p_status(0), p_launch(0)
 {
   createControls();
 }
@@ -420,22 +419,24 @@ void WorkflowPanel::createControls()
   // The instructions have a panel of their own, never among the controls.
   wxPanel *notes = new wxPanel(this, wxID_ANY, wxDefaultPosition,
                                wxDefaultSize, wxBORDER_SIMPLE);
-  wxBoxSizer *noteSizer = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer *noteSizer = new wxBoxSizer(wxHORIZONTAL);
   p_help = new wxStaticText(notes, wxID_ANY, "");
   p_status = new wxStaticText(notes, wxID_ANY, "");
-  noteSizer->Add(p_help, 0, wxALL, 6);
-  noteSizer->Add(p_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  wxBoxSizer *texts = new wxBoxSizer(wxVERTICAL);
+  texts->Add(p_help, 0, wxALL, 6);
+  texts->Add(p_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  // Beside the instructions, where the text that names it is read.
+  p_launch = new wxButton(notes, wxID_ANY, "Launch Ready Steps");
+  p_launch->SetToolTip("Launch every step that has not been launched and whose "
+                       "source step is Complete");
+  p_launch->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { launchReadyClicked(); });
+  noteSizer->Add(texts, 1, wxEXPAND);
+  noteSizer->Add(p_launch, 0, wxALIGN_CENTER_VERTICAL | wxALL, 8);
   notes->SetSizer(noteSizer);
   left->Add(notes, 0, wxEXPAND | wxTOP, 4);
   top->Add(left, 1, wxEXPAND);
 
   wxBoxSizer *bar = new wxBoxSizer(wxVERTICAL);
-  wxButton *launch = new wxButton(this, wxID_ANY, "Launch\nReady Steps");
-  launch->SetToolTip("Launch every step that has not been launched and whose "
-                     "source step is Complete");
-  launch->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { launchReadyClicked(); });
-  bar->Add(launch, 0, wxEXPAND | wxALL, 4);
-  bar->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, 4);
   const vector<WorkflowSteps::Code> &codes = WorkflowSteps::codes();
   for (size_t i = 0; i < codes.size(); i++) {
     bar->Add(new CodeButton(this, codes[i], [this, i]() { codeClicked(i); }),
@@ -598,6 +599,18 @@ string WorkflowPanel::rightClick(const EcceURL &step, bool popup)
 }
 
 
+string WorkflowPanel::launchButtonReport()
+{
+  Layout();
+  const wxRect r = p_launch->GetScreenRect();
+  const wxRect mine = GetScreenRect();
+  return string("label=") + p_launch->GetLabel().ToStdString() +
+         " shown=" + (p_launch->IsShownOnScreen() ? "1" : "0") +
+         " inside=" + (mine.Contains(r) ? "1" : "0") +
+         " enabled=" + (p_launch->IsEnabled() ? "1" : "0");
+}
+
+
 string WorkflowPanel::layoutReport()
 {
   p_canvas->relayout();
@@ -688,35 +701,42 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
             0, wxALIGN_CENTER_VERTICAL);
   top->Add(grid, 0, wxEXPAND | wxALL, 14);
 
-  wxStaticText *carryLabel = new wxStaticText(this, wxID_ANY, "Carry over:");
-  wxFont bold = carryLabel->GetFont(); bold.SetWeight(wxFONTWEIGHT_BOLD);
-  carryLabel->SetFont(bold);
-  top->Add(carryLabel, 0, wxLEFT | wxRIGHT, 14);
-
   p_point = 0;
-  if (source && WorkflowSteps::isScan(source)) {
-    top->Add(new wxStaticText(this, wxID_ANY, "Structure of the scan:"), 0,
-             wxLEFT | wxRIGHT, 14);
-    p_point = new PointChooser(this, "last");
-    top->Add(p_point, 0, wxLEFT | wxTOP | wxBOTTOM, 28);
+  p_geometry = 0;
+  p_charge = 0;
+  if (!source) {
+    // Nothing to carry over: say so instead of showing dead checkboxes.
+    top->Add(new wxStaticText(this, wxID_ANY,
+        "This step has no source: it starts from its own structure."),
+        0, wxLEFT | wxRIGHT, 14);
+  } else {
+    wxStaticText *carryLabel = new wxStaticText(this, wxID_ANY, "Carry over:");
+    wxFont bold = carryLabel->GetFont(); bold.SetWeight(wxFONTWEIGHT_BOLD);
+    carryLabel->SetFont(bold);
+    top->Add(carryLabel, 0, wxLEFT | wxRIGHT, 14);
+
+    if (WorkflowSteps::isScan(source)) {
+      top->Add(new wxStaticText(this, wxID_ANY, "Structure of the scan:"), 0,
+               wxLEFT | wxRIGHT, 14);
+      p_point = new PointChooser(this, "last");
+      top->Add(p_point, 0, wxLEFT | wxTOP | wxBOTTOM, 28);
+    }
+    p_geometry = new wxCheckBox(this, wxID_ANY,
+                                p_point ? "Geometry of that point" : "Final geometry");
+    p_charge = new wxCheckBox(this, wxID_ANY, "Charge and multiplicity");
+    p_geometry->SetValue(true);
+    p_charge->SetValue(true);
+    wxCheckBox *orbitals = new wxCheckBox(this, wxID_ANY,
+                             "Orbitals as the starting guess");
+    wxCheckBox *hessian = new wxCheckBox(this, wxID_ANY, "Hessian (for a TS search)");
+    orbitals->Enable(false);
+    hessian->Enable(false);
+    const wxString notYet = "not yet: needs orbital converters";
+    orbitals->SetToolTip(notYet);
+    hessian->SetToolTip(notYet);
+    for (wxCheckBox *c : {p_geometry, p_charge, orbitals, hessian})
+      top->Add(c, 0, wxLEFT | wxTOP, 28);
   }
-  p_geometry = new wxCheckBox(this, wxID_ANY,
-                              p_point ? "Geometry of that point" : "Final geometry");
-  p_charge = new wxCheckBox(this, wxID_ANY, "Charge and multiplicity");
-  p_geometry->SetValue(source != 0);
-  p_charge->SetValue(source != 0);
-  p_geometry->Enable(source != 0);
-  p_charge->Enable(source != 0);
-  wxCheckBox *orbitals = new wxCheckBox(this, wxID_ANY,
-                           "Orbitals as the starting guess");
-  wxCheckBox *hessian = new wxCheckBox(this, wxID_ANY, "Hessian (for a TS search)");
-  orbitals->Enable(false);
-  hessian->Enable(false);
-  const wxString notYet = "not yet: needs orbital converters";
-  orbitals->SetToolTip(notYet);
-  hessian->SetToolTip(notYet);
-  for (wxCheckBox *c : {p_geometry, p_charge, orbitals, hessian})
-    top->Add(c, 0, wxLEFT | wxTOP, 28);
 
   if (source && !haveResult) {
     wxStaticText *note = new wxStaticText(this, wxID_ANY,
@@ -755,8 +775,8 @@ string WorkflowStepDialog::name() const
 WorkflowSteps::Carry WorkflowStepDialog::carry() const
 {
   WorkflowSteps::Carry c;
-  c.geometry = p_geometry->GetValue();
-  c.chargeMult = p_charge->GetValue();
+  if (p_geometry) c.geometry = p_geometry->GetValue();
+  if (p_charge) c.chargeMult = p_charge->GetValue();
   if (p_point) c.point = p_point->spec();
   return c;
 }

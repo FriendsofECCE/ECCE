@@ -60,6 +60,8 @@ public:
 
   /// Geometry of the drawing, for the screenshot test.
   std::string layoutReport();
+  /// The Launch Ready Steps button: its label and whether it is on screen.
+  std::string launchButtonReport();
 
 private:
   friend class WorkflowCanvas;
@@ -75,6 +77,7 @@ private:
   WorkflowCanvas *p_canvas;
   wxStaticText *p_help;
   wxStaticText *p_status;
+  wxButton *p_launch;
 };
 
 
@@ -88,6 +91,8 @@ public:
 
   std::string name() const;
   WorkflowSteps::Carry carry() const;
+  /// Whether the dialog offers the carry-over boxes (a step with a source).
+  bool hasCarry() const { return p_geometry != 0; }
 
 private:
   void OnName(wxCommandEvent& event);

@@ -20,7 +20,8 @@ MOPAC, xTB, Quantum ESPRESSO and CP2K, in any mixture.
 ## The view
 
 Each step is a box with the code in its colour, the state of the calculation
-(a coloured dot and its name, as in [Run states](run-states.md)) and the name
+(the icon and the name of the state, the same icon as in the Organizer tree;
+see [Run states](run-states.md)) and the name
 of the step. The first step is at the left; the steps that start from a step
 are to its right, joined by an arrow labelled **geometry**; the label names what the
 arrow carries, for example **geometry (maximum)** from a scan (see
@@ -47,11 +48,14 @@ says what to do next.
 
 1. Click the box the new step starts from.
 2. Click the code button of the code the new step uses.
-3. In the **New step** window:
+3. In the **New step** window (it opens however the step is made: from a
+   code button of the view or from **New** in the tree):
    - **Name:** is the name of the calculation. It may contain letters,
      digits, `.`, `_` and `-`, and must differ from the names of the other
      steps.
    - **Starts from:** shows the code, name and state of the selected step.
+   - A first step, which has no source, has no carry-over choices: the
+     window says it starts from its own structure.
    - **Final geometry** gives the new step the last geometry of the
      selected step. If that step has no result yet, its input geometry is
      used and the window says so.
@@ -133,7 +137,7 @@ the vibrational modes.
 
 ## Launch Ready Steps
 
-**Launch Ready Steps** (at the lower right of the view) launches every step
+**Launch Ready Steps** (the button beside the instructions below the diagram) launches every step
 that has not been launched and whose source step is Complete, in one go. Each
 step is launched with the launch settings it already stores, as in
 [Launch Selected](launch-selected.md): the window lists the steps with the
