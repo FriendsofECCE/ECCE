@@ -8,6 +8,8 @@
  * ecce-localdata pref on|off     set the "local data folder" preference
  *                                (ecce-first-start, #240)
  * ecce-localdata pref-state      print on, off or unset
+ * ecce-localdata servers list|add TYPE NAME ADDRESS|remove NAME
+ *                                the user's added servers (ServerList, #767)
  *
  * The wrappers use the first form to decide, once per session, whether
  * a data server is wanted; the others are for tests and for scripts.
@@ -15,9 +17,11 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <vector>
 #include "util/LocalData.H"
 #include "util/PreferenceLabels.H"
 #include "util/Preferences.H"
+#include "util/ServerList.H"
 
 int main(int argc, char **argv)
 {
@@ -61,7 +65,24 @@ int main(int argc, char **argv)
                                                            : "unset") << std::endl;
     return 0;
   }
+  if (cmd == "servers" && argc >= 3) {
+    std::string sub = argv[2];
+    if (sub == "list") {
+      std::vector<ServerEntry> l = ServerList::load();
+      for (size_t i = 0; i < l.size(); i++)
+        std::cout << l[i].type << '\t' << l[i].name << '\t' << l[i].address << std::endl;
+      return 0;
+    }
+    if (sub == "add" && argc == 6) {
+      ServerEntry e; e.type = argv[3]; e.name = argv[4]; e.address = argv[5];
+      std::string err = ServerList::add(e);
+      if (!err.empty()) std::cerr << err << std::endl;
+      return err.empty() ? 0 : 1;
+    }
+    if (sub == "remove" && argc == 4) return ServerList::remove(argv[3]) ? 0 : 1;
+    return 64;
+  }
   if (cmd == "in-use" && argc == 3) return LocalData::inUse(argv[2]) ? 0 : 1;
-  std::cerr << "usage: ecce-localdata [move FROM TO | in-use DIR | pref on|off | pref-state]" << std::endl;
+  std::cerr << "usage: ecce-localdata [move FROM TO | in-use DIR | pref on|off | pref-state | servers list|add TYPE NAME ADDRESS|remove NAME]" << std::endl;
   return 64;
 }

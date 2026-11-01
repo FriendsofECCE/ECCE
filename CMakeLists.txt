@@ -2583,6 +2583,10 @@ add_test(NAME first_start_question
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/apps/first_start_test.py
                  $<TARGET_FILE:ecce-localdata> ${CMAKE_BINARY_DIR}/first-start-test)
 set_tests_properties(first_start_question PROPERTIES TIMEOUT 60)
+add_test(NAME server_list
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/apps/serverlist_test.py
+                 $<TARGET_FILE:ecce-localdata> ${CMAKE_BINARY_DIR}/server-list-test)
+set_tests_properties(server_list PROPERTIES TIMEOUT 60)
 
 # The central server over TLS (#236): the real data server and broker scripts
 # on loopback with a fresh certificate, then the clients with and without
