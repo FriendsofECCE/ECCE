@@ -9649,18 +9649,26 @@ WxResourceTreeItemData * CalcMgr::findNode(const EcceURL &targetUrl,
 }
 
 
-//  A calculation copied into a folder after the tree read that folder is not
-//  among its cached children, so the commands (ecce-launch, ecce-terminate)
-//  re-read the parent once before giving up (#721).
+//  A calculation, or the study holding it, copied in after the tree read its
+//  folder is not among the cached children. Re-read from the nearest ancestor
+//  the tree knows, since the direct parent may itself be missing (#721).
 WxResourceTreeItemData * CalcMgr::findNodeFresh(const EcceURL &targetUrl,
                                                 bool openWhenFound)
 {
   WxResourceTreeItemData *item = findNode(targetUrl, openWhenFound, true);
   if (item) return item;
-  WxResourceTreeItemData *parent = findNode(targetUrl.getParent(), false, true);
-  if (!parent) return 0;
-  p_treeCtrl->refresh(parent);
-  return findNode(targetUrl, openWhenFound, true);
+  EcceURL up = targetUrl;
+  for (int depth = 0; depth < 32; depth++) {
+    EcceURL next = up.getParent();
+    if (next.toString() == up.toString()) break;
+    up = next;
+    WxResourceTreeItemData *known = findNode(up, false, true);
+    if (known) {
+      p_treeCtrl->refresh(known);
+      return findNode(targetUrl, openWhenFound, true);
+    }
+  }
+  return 0;
 }
 
 
