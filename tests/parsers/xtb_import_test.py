@@ -153,5 +153,31 @@ try:
 finally:
     shutil.rmtree(tmp, True)
 
+# A link whose target is itself a link (the imported file is a link): the
+# side files are the real output's, not the link directory the caller passes.
+if LINK:
+    tmp = scratch()
+    try:
+        realdir = os.path.join(tmp, "real")
+        shutil.copytree(os.path.join(EXT, "h2o_sp"), realdir)
+        linkdir = os.path.join(tmp, "linkdir")
+        os.mkdir(linkdir)
+        os.symlink(os.path.join(realdir, "h2o_sp.out"),
+                   os.path.join(linkdir, "h2o_sp.out"))
+        work = os.path.join(tmp, "job")
+        os.mkdir(work)
+        os.symlink(os.path.join(linkdir, "h2o_sp.out"),
+                   os.path.join(work, "h2o_sp.out"))
+        r = subprocess.run(["perl", EXPT, "h2o_sp.out", linkdir],
+                           cwd=work, capture_output=True, text=True)
+        check(r.returncode == 0, "link to a link: importer exit 0 (%s)" %
+              (r.stdout.strip() or r.stderr.strip()))
+        frag = open(os.path.join(work, "h2o_sp.frag"),
+                    encoding="utf-8", errors="replace").read()
+        check("num_atoms:\t3" in frag,
+              "link to a link: geometry from the real output's directory")
+    finally:
+        shutil.rmtree(tmp, True)
+
 print("%d failure(s)" % len(failures))
 sys.exit(1 if failures else 0)

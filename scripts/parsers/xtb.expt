@@ -86,16 +86,16 @@ if ($call =~ /--alpb\s+(\S+)/) {
 my $combined = $text;
 my $haveFrames = ($text =~ /^ECCE-XTB-FRAME\s/m);
 
-# The side files are next to the original output.  The importer links the
-# output into a fresh directory and passes the source directory (its link is
-# not one Perl sees on Windows); abs_path resolves the link where it can.
+# The side files are next to the original output.  Resolve the link where
+# Perl sees one (Unix, chasing any link chain to the real file); where it
+# does not (Windows copies the file), the caller passes the source directory.
 my $dir = ".";
-if (defined($ARGV[1]) && $ARGV[1] ne "") {
-  $dir = $ARGV[1];
-  $dir =~ s{/+$}{};
-} else {
+if (-l $file) {
   my $real = abs_path($file);
   ($dir = $real) =~ s{/[^/]*$}{} if (defined($real));
+} elsif (defined($ARGV[1]) && $ARGV[1] ne "") {
+  $dir = $ARGV[1];
+  $dir =~ s{/+$}{};
 }
 
 if (!$haveFrames) {
