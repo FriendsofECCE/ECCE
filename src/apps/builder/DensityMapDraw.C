@@ -62,7 +62,7 @@ static void mapGeometry(const wxSize& size, const Map& m, double& scale, double&
   //  A map with nothing in it gets a strip of its own under the axes for
   //  the explanation, so the text never lies over the plot.
   const bool zero = !(fabs(m.zmax) + fabs(m.zmin) > 0);
-  const int bottom = size.y < 300 ? 26 : zero ? 92 : 62;
+  const int bottom = size.y < 300 ? 26 : zero ? 112 : 62;
   const double w = m.nu - 1, h = m.nv - 1;       // in steps
   const double avail = std::max(50, size.x - left - right);
   const double availH = std::max(50, size.y - top - bottom);
@@ -175,9 +175,23 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     dc.SetPen(wxPen(legend[k].colour, nodes && k + 1 == legend.size() ? 2 : 1,
                     legend[k].style));
     const vector<Segment> seg = contour(m, legend[k].value);
-    for (size_t s = 0; s < seg.size(); s++)
+    const bool nodeLine = nodes && k + 1 == legend.size();
+    const double floorZ = 1e-3 * std::max(fabs(m.zmin), fabs(m.zmax));
+    for (size_t s = 0; s < seg.size(); s++) {
+      //  A basis-set tail changes sign far out where psi is below 0.1 % of
+      //  its peak; that is noise, not a node (an exact 2p has no ring).
+      if (nodeLine) {
+        const int ci = std::max(0, std::min(m.nu - 2, (int)floor(((seg[s].u0 + seg[s].u1)/2 - m.u0)/m.step)));
+        const int cj = std::max(0, std::min(m.nv - 2, (int)floor(((seg[s].v0 + seg[s].v1)/2 - m.v0)/m.step)));
+        double top = 0;
+        for (int dj = 0; dj < 2; dj++)
+          for (int di = 0; di < 2; di++)
+            top = std::max(top, fabs(m.z[(size_t)(cj + dj)*m.nu + ci + di]));
+        if (top < floorZ) continue;
+      }
       dc.DrawLine(wxRound(X(seg[s].u0)), wxRound(Y(seg[s].v0)),
                   wxRound(X(seg[s].u1)), wxRound(Y(seg[s].v1)));
+    }
   }
 
   //  Atoms: filled when in the plane, open and grey when off it.  Every atom
@@ -207,7 +221,7 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     dc.SetTextForeground(wxColour(80, 80, 80));
     dc.DrawLabel(wxString::FromUTF8("zero in this plane \xE2\x80\x94 a \xCF\x80 orbital is zero on the\n"
                                     "axis or nodal plane: move the plane off it"),
-                 wxRect(left, wxRound(oy + ph) + 40, std::max(120, wxRound(ox + pw) - left), 32),
+                 wxRect(left, wxRound(oy + ph) + 40, std::max(120, wxRound(ox + pw) - left), 40),
                  wxALIGN_LEFT | wxALIGN_TOP);
     dc.SetTextForeground(*wxBLACK);
   }
