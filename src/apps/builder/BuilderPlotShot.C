@@ -408,7 +408,7 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
 //    dpshow all|totalselected|selected|total
 //    dpmo N,N,...|none    exactly these orbitals ticked
 //    dpspin alpha|beta|both | dpunit A|bohr | dpcombine 0|1 | dpclip 0|1
-//    dpxaxis linear|sqrt|log (atom) | dpyaxis linear|log
+//    dpxaxis linear|sqrt|log (atom) | dpyaxis linear|log|sqrt
 //    dpshift ANGSTROM [in|out] (line) | dpzoom whole|fit|in|out | dpmore 0|1
 //    dpfollow N [beta]    what a click on an MO Diagram level does
 //    dpcancelafter MS    press Cancel in the next command's progress dialog

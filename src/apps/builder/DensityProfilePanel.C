@@ -271,8 +271,9 @@ void DensityProfilePanel::build()
   p_yaxis = new wxChoice(this, ID_YAXIS);
   p_yaxis->Append("Linear");
   p_yaxis->Append("Log");
+  p_yaxis->Append(U("√y"));
   p_yaxis->SetSelection(0);
-  p_yaxis->SetToolTip(U("Log shows the weak tails; only for quantities that are never negative"));
+  p_yaxis->SetToolTip(U("Log shows the weak tails (not for a signed ψ); √y spreads the small values and mirrors negative ones about zero"));
   p_labelYAxis = new wxStaticText(this, wxID_ANY, "y axis");
   wxBoxSizer *yPair = new wxBoxSizer(wxHORIZONTAL);
   yPair->Add(p_labelYAxis, 0, RIGHT, 4);
@@ -540,10 +541,9 @@ void DensityProfilePanel::syncControls()
   if (!atom) p_xaxis->SetSelection(0);
   p_xaxis->Show(atom);
   p_labelXAxis->Show(atom);
-  //  Log needs values that are never negative.
+  //  Log needs values that are never negative; √y takes either sign.
   const bool signedPsi = !atom && p_quantity->GetSelection() == 2;
-  if (signedPsi) p_yaxis->SetSelection(0);
-  p_yaxis->Enable(!signedPsi);
+  if (signedPsi && p_yaxis->GetSelection() == 1) p_yaxis->SetSelection(0);
   p_moreButton->SetLabel(p_moreOpen ? U("More \xE2\x96\xBE") : U("More \xE2\x96\xB8"));
   p_more->Show(p_moreOpen);
   Layout();
@@ -697,12 +697,14 @@ void DensityProfilePanel::recompute()
   }
 
   const int xs = atom ? p_xaxis->GetSelection() : 0;
-  const bool yLog = p_yaxis->IsEnabled() && p_yaxis->GetSelection() == 1;
+  const bool yLog = p_yaxis->GetSelection() == 1 && !(!atom && quantity == 2);
+  const bool ySqrt = p_yaxis->GetSelection() == 2;
   p_plot->clearCurves();
   p_plot->clearVLines();
   p_plot->setXScale(xs == 1 ? XYPlotCanvas::X_SQRT : xs == 2 ? XYPlotCanvas::X_LOG
                                                              : XYPlotCanvas::X_LINEAR);
   p_plot->setYLog(yLog);
+  p_plot->setYSqrt(ySqrt);
   p_plot->setXAxisLabel(xs == 1 ? U("√r, labelled in r (") + length + ")"
                       : xs == 2 ? "log r, labelled in r (" + length + ")" : xLabel);
   p_plot->setYAxisLabel(yLabel);
@@ -1178,8 +1180,8 @@ bool DensityProfilePanel::setXAxis(const std::string& name)
 bool DensityProfilePanel::setYAxis(const std::string& name)
 {
   if (!p_ok) return false;
-  const int i = name == "linear" ? 0 : name == "log" ? 1 : -1;
-  if (i < 0 || (i == 1 && !p_yaxis->IsEnabled())) return false;
+  const int i = name == "linear" ? 0 : name == "log" ? 1 : name == "sqrt" ? 2 : -1;
+  if (i < 0 || (i == 1 && p_mode->GetSelection() != 1 && p_quantity->GetSelection() == 2)) return false;
   p_yaxis->SetSelection(i);
   recompute();
   return true;
@@ -1288,13 +1290,16 @@ std::string DensityProfilePanel::state() const
              "xaxis %s\nyaxis %s%s\nshift %.3f %s\nmore %d\nticked %s\nview %.6g %.6g %.6g %.6g\n"
              "message %d\nkeyrows %d\nplotheight %d\nline %d %d\ncentre %d\nauto %d\n",
              p_xaxis->GetSelection() == 1 ? "sqrt" : p_xaxis->GetSelection() == 2 ? "log" : "linear",
-             p_yaxis->GetSelection() == 1 ? "log" : "linear", p_yaxis->IsEnabled() ? "" : " (disabled)",
+             p_yaxis->GetSelection() == 1 ? "log" : p_yaxis->GetSelection() == 2 ? "sqrt" : "linear", "",
              p_shift->GetValue(), p_shiftDir->GetSelection() == 0 ? "out" : "in",
              p_moreOpen ? 1 : 0, ticked.empty() ? "none" : ticked.c_str(), x0, x1, y0, y1,
              p_plot->message().empty() ? 0 : 1, p_plot->keyRowsDrawn(), p_plot->plotHeight(),
              p_atomA->GetSelection() + 1, p_atomB->GetSelection() + 1,
              p_centre->GetSelection() + 1, p_autoActive ? 1 : 0);
     s += buf;
+    s += "yticks";
+    for (double v : p_plot->yTickValues()) { snprintf(buf, sizeof buf, " %.6g", v); s += buf; }
+    s += "\n";
     //  What the lists say for the atom; the test compares it with the
     //  viewer's own numbering.
     s += "centrelabel " + std::string(p_centre->GetStringSelection().utf8_str()) + "\n";
