@@ -4997,56 +4997,61 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "energy minus that of the neutral atom is "
      "the ionisation energy."},
     {"Li_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "lithium atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
     {"Li_anion",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "lithium anion, the atom with one extra electron; the energy of the "
      "neutral atom minus the energy of this anion is the electron "
      "affinity."},
     {"Be_B3LYP_neutral",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "beryllium atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
     {"Be_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "beryllium anion, the atom with one extra electron; the energy of "
      "the neutral atom minus the energy of this anion is the electron "
-     "affinity."},
+     "affinity. The 2s orbital of beryllium is full, so the extra "
+     "electron has to go into the higher 2p orbital, and the anion is "
+     "not more stable than the atom."},
     {"C_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "carbon atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
     {"N_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "nitrogen atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
     {"O_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "oxygen atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
     {"F_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "fluorine atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
     {"C_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "carbon anion, the atom with one extra electron; the energy of the "
      "neutral atom minus the energy of this anion is the electron "
      "affinity."},
     {"N_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "nitrogen anion, the atom with one extra electron; the energy of "
      "the neutral atom minus the energy of this anion is the electron "
-     "affinity."},
+     "affinity. The 2p orbitals of nitrogen are half full, one "
+     "electron in each, so the extra electron has to pair with one of "
+     "them and feels the repulsion of that electron, and the anion is "
+     "not more stable than the atom."},
     {"O_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "oxygen anion, the atom with one extra electron; the energy of the "
      "neutral atom minus the energy of this anion is the electron "
      "affinity."},
     {"F_anion",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "fluorine anion, the atom with one extra electron; the energy of "
      "the neutral atom minus the energy of this anion is the electron "
      "affinity."},
