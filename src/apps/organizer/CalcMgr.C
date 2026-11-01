@@ -4351,7 +4351,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "cation, the atom after loss of its outermost electron; its "
      "energy minus that of the neutral atom is "
      "the ionisation energy."},
-    {"Li_B3LYP_neutral",
+    {"Li_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "lithium atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
@@ -4360,7 +4360,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "lithium anion, the atom with one extra electron; the energy of the "
      "neutral atom minus the energy of this anion is the electron "
      "affinity."},
-    {"Be_B3LYP_neutral",
+    {"Be_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "beryllium atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
@@ -4371,19 +4371,19 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "affinity. The 2s orbital of beryllium is full, so the extra "
      "electron has to go into the higher 2p orbital, and the anion is "
      "not more stable than the atom."},
-    {"C_B3LYP_neutral",
+    {"C_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "carbon atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
-    {"N_B3LYP_neutral",
+    {"N_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "nitrogen atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
-    {"O_B3LYP_neutral",
+    {"O_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "oxygen atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
-    {"F_B3LYP_neutral",
+    {"F_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "fluorine atom; with the anion, Tools > Compare Energies gives the "
      "electron affinity as the difference of their energies."},
