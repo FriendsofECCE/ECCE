@@ -4228,3 +4228,24 @@ if(ECCE_WITH_HDF5)
     message(STATUS "HDF5 not found: ecce-results and results.h5 are not built")
   endif()
 endif()
+
+# Windows: programs linked outside ecce_app's RESCAN group can name eccetdat
+# before eccedsi pulls in eccercmd, whose RCommand needs AuthCache (eccetdat);
+# GNU ld then misses it.  eccercmd cannot depend on eccetdat there (it is a
+# group member), so such programs get eccercmd eccetdat ecceutil at the end.
+if(WIN32)
+  get_property(_ecce_targets DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
+  foreach(_t IN LISTS _ecce_targets)
+    get_target_property(_type ${_t} TYPE)
+    if(NOT _type STREQUAL "EXECUTABLE")
+      continue()
+    endif()
+    get_target_property(_libs ${_t} LINK_LIBRARIES)
+    if(NOT _libs OR "${_libs}" MATCHES "LINK_GROUP")
+      continue()
+    endif()
+    if("eccedsi" IN_LIST _libs OR "eccercmd" IN_LIST _libs)
+      target_link_libraries(${_t} PRIVATE eccercmd eccetdat ecceutil)
+    endif()
+  endforeach()
+endif()
