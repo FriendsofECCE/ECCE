@@ -47,5 +47,12 @@ podman run --rm --network host -v "$root:/src:Z" -v "$state:/state:Z,ro" \
     $T dead sftp://bashuser@deadhost/home/bashuser/data > /tmp/$backend.dead.log 2>&1 || rc=1
     grep -E "^(FAIL|PASS|message)" /tmp/$backend.dead.log | sed "s/^/  dead: /"
   done
+  # Negative control: without the lock the two writers must lose updates,
+  # otherwise "no lost update" above proves nothing.
+  export ECCE_SSH_BACKEND=openssh
+  ssh bashuser@127.0.0.1 "rm -rf data && mkdir -p data/shared" || { echo "FAIL ssh"; exit 1; }
+  ECCE_SFTP_NOLOCK=1 $T twowriters sftp://bashuser@127.0.0.1/home/bashuser/data > /tmp/nolock.log 2>&1
+  if grep -q "^FAIL no lost update" /tmp/nolock.log; then echo "  PASS control: without the lock updates are lost ($(grep "^FAIL no lost" /tmp/nolock.log | sed "s/.*: //"))"
+  else echo "  FAIL control: updates survived with the lock disabled"; rc=1; fi
   exit $rc'
 exit $?

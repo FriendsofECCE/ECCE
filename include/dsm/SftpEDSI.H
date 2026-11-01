@@ -78,6 +78,13 @@ class SftpEDSI : public EDSI
     virtual string getClassName();
 
     // user, host and path of an sftp URL; false if it is not one.
+    // Log in as user@host (with prompts, as jobs do) and look at the folder.
+    // The login stays open for the operations that follow in this process.
+    enum Probe { PROBE_OK, PROBE_NO_LOGIN, PROBE_MISSING, PROBE_NOT_WRITABLE };
+    static Probe probe(const string& user, const string& host, const string& folder,
+                       bool create, string& message);
+    // Prompts are off except while probe() runs.
+    static void setInteractive(bool on);
     static bool parseURL(const string& url, string& user, string& host,
                          string& path);
 

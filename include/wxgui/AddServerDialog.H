@@ -1,6 +1,8 @@
 #ifndef ADDSERVERDIALOG_H
 #define ADDSERVERDIALOG_H
 
+#include <atomic>
+#include <memory>
 #include <string>
 #include "wx/wx.h"
 #include "util/ServerList.H"
@@ -21,6 +23,7 @@ class AddServerDialog : public wxDialog
 public:
   // oldEntry NULL adds; otherwise the entry named oldEntry->name is edited.
   AddServerDialog(wxWindow* parent, const ServerEntry* oldEntry = NULL);
+  ~AddServerDialog();
 
   // The entry as stored; valid after ShowModal() returned wxID_OK.
   const ServerEntry& entry() const { return p_entry; }
@@ -35,6 +38,7 @@ private:
   void OnTest(wxCommandEvent& event);
   void OnTestDone(wxProcessEvent& event);
   void OnOk(wxCommandEvent& event);
+  void testSsh(bool create);
   void showType();
   bool collect(ServerEntry& e) const;
 
@@ -49,6 +53,7 @@ private:
   ewxButton* p_test;
   ewxStaticText* p_status;
   wxProcess* p_proc;
+  std::shared_ptr<std::atomic<bool> > p_alive;   // a login thread may outlive the dialog
   wxBoxSizer* p_top;
   wxWindow* p_sshRows[6];
   wxWindow* p_eccRows[2];

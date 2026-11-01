@@ -4,7 +4,9 @@
 #include "wx/sstream.h"
 #include "wx/gbsizer.h"
 
+#include <thread>
 #include "util/Ecce.H"
+#include "dsm/SftpEDSI.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxStaticText.H"
@@ -19,7 +21,7 @@ const int PAD = 5;
 AddServerDialog::AddServerDialog(wxWindow* parent, const ServerEntry* old)
   : wxDialog(parent, wxID_ANY, old ? _("Edit Server") : _("Add Server"),
              wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE),
-    p_proc(NULL)
+    p_proc(NULL), p_alive(new std::atomic<bool>(true))
 {
   if (old) p_old = old->name;
   wxBoxSizer* top = new wxBoxSizer(wxVERTICAL);
@@ -102,14 +104,19 @@ AddServerDialog::AddServerDialog(wxWindow* parent, const ServerEntry* old)
 }
 
 
+AddServerDialog::~AddServerDialog()
+{
+  *p_alive = false;
+}
+
+
 void AddServerDialog::showType()
 {
   bool ssh = p_type->GetSelection() == 0;
   for (int i = 0; i < 6; i++) p_sshRows[i]->Show(ssh);
   for (int i = 0; i < 2; i++) p_eccRows[i]->Show(!ssh);
-  // An SSH folder cannot be reached from here until the backend exists.
-  p_test->Enable(!ssh);
-  p_test->SetToolTip(ssh ? _("Available when SSH folders are supported.")
+  p_test->Enable(true);
+  p_test->SetToolTip(ssh ? _("Log in and check that the folder exists and can be written.")
                          : _("Check that the server answers and its certificate."));
   p_status->SetLabel(wxEmptyString);
   Layout();
@@ -140,8 +147,48 @@ bool AddServerDialog::collect(ServerEntry& e) const
 }
 
 
+// The login runs on a thread so the dialog stays alive while a password or
+// code is asked for; the answer is one sentence in the status line.
+void AddServerDialog::testSsh(bool create)
+{
+  ServerEntry e;
+  collect(e);
+  std::string bad = ServerList::check(e), u, h, f;
+  if (!bad.empty() || !ServerList::parseSsh(e.address, u, h, f)) {
+    p_status->SetLabel(wxString::FromUTF8((bad.empty() ? "Fill in the host, user and folder first." : bad).c_str()));
+    Layout();
+    Fit();
+    return;
+  }
+  p_test->Disable();
+  p_status->SetLabel(_("Testing..."));
+  std::shared_ptr<std::atomic<bool> > alive = p_alive;
+  std::thread([this, alive, u, h, f, create]() {
+    std::string msg;
+    SftpEDSI::Probe p = SftpEDSI::probe(u, h, f, create, msg);
+    wxTheApp->CallAfter([this, alive, p, msg, f, h]() {
+      if (!*alive) return;
+      p_test->Enable();
+      if (p == SftpEDSI::PROBE_OK) {
+        p_status->SetLabel(_("Connected: the folder exists and can be written."));
+      } else {
+        p_status->SetLabel(wxString::FromUTF8(msg.c_str()));
+        if (p == SftpEDSI::PROBE_MISSING) {
+          wxMessageDialog ask(this, wxString::FromUTF8(("Create the folder " + f + " on " + h + "?").c_str()),
+                              _("Create folder"), wxYES_NO | wxICON_QUESTION);
+          if (ask.ShowModal() == wxID_YES) { testSsh(true); return; }
+        }
+      }
+      Layout();
+      Fit();
+    });
+  }).detach();
+}
+
+
 void AddServerDialog::OnTest(wxCommandEvent&)
 {
+  if (p_type->GetSelection() == 0) { testSsh(false); return; }
   if (p_proc) return;
   std::string a = p_address->GetValue().Trim().Trim(false).ToStdString();
   if (a.empty()) {
@@ -181,7 +228,7 @@ void AddServerDialog::OnTestDone(wxProcessEvent&)
   }
   delete p_proc;
   p_proc = NULL;
-  p_test->Enable(p_type->GetSelection() == 1);
+  p_test->Enable();
   p_status->SetLabel(out.Trim().IsEmpty() ? wxString(_("No answer.")) : out.Trim());
   Layout();
   Fit();
