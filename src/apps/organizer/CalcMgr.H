@@ -178,6 +178,10 @@ public:
   // format as launchForCommand. False, with lines empty, while a batch submits.
   bool terminateForCommand(const vector<EcceURL>& urls, const string& reason,
                            vector<string>& lines);
+  // ecce-annotate (#742): the Annotation field set without the editor; same
+  // line format ("name\tok\t" or "name\tno\treason"). Never refused.
+  bool annotateForCommand(const vector<EcceURL>& urls, const string& text,
+                          vector<string>& lines);
   // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
   bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
   // ecce-fetch: run-directory files into the Outputs (or a listing).

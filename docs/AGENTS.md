@@ -76,12 +76,29 @@ matter when checking or launching:
 | `application` | the code (ORCA, Gaussian 16, NWChem, MOPAC, GROMACS, ECCE-QM, ...) |
 | `theory`, `runtype` | method and run type |
 | `spinmultiplicity` | spin multiplicity |
-| `annotation` | the user's note |
+| `annotation` | the user's note (set with `ecce-annotate`) |
 | `launch_machine`, `launch_queue`, `launch_totalprocs`, `launch_maxwall` | the stored launch settings |
 | `job_path` | the run directory on the compute machine |
 | `progress` | fraction done while running |
 
-Read it; do not write it.
+Read it; do not write it. To set the `annotation`, use `ecce-annotate`.
+
+**Is it safe to write `ecce:annotation` into `.ecce-meta` while the Organizer
+or a job monitor has the calculation open?** Only if the write does what ECCE's
+own does, and then it is no better than `ecce-annotate`. One `.ecce-meta`
+holds the properties of every calculation in its folder (one line per
+property: resource name, property name, type, value, tab-separated, with
+backslash escapes for tab and newline). ECCE changes it by taking an exclusive
+`flock` on `.ecce-meta.lock` in that folder, reading the whole file, changing
+one property and replacing the file by renaming a temporary file over it, all
+under the lock. A reader never sees half a file, because of the rename. A
+writer that skips the lock can lose an update: a job monitor storing progress
+or state in the same folder between your read and your rename overwrites your
+change, or you overwrite its, and the state of a sibling calculation goes
+wrong. A running Organizer also keeps the values it has read, so it shows a
+hand-written annotation only when it next re-reads the calculation, and can
+write its old copy back. Use `ecce-annotate`; it goes through the Organizer
+when ECCE is running.
 
 ### Studies
 
@@ -112,8 +129,8 @@ to. Other variables: the `ENVIRONMENT.md` file next to this one.
 
 ## Commands
 
-The `ecce-launch`, `ecce-terminate`, `ecce-reconnect` and `ecce-fetch`
-commands do not start ECCE; they ask the running Organizer to act, so ECCE has
+The `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch` and
+`ecce-annotate` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
 to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.
@@ -146,6 +163,20 @@ is stored as `runStatusReason`. Output: `name: terminated, job id N` or
 `name: not terminated: reason`.
 
     ecce-terminate --reason "wrong basis set" proj/calc-1
+
+### ecce-annotate
+
+    ecce-annotate <calculation>... "text"
+
+Sets the Annotation field (the note shown in the Organizer) of calculations
+and of the tasks of an MD study; the last argument is the text, `""` clears
+it. With ECCE running the Organizer stores it as its Annotation editor does
+and shows it at once. Without a running session, a calculation in the local
+data folder is written through the same data layer (with its locking); with a
+data server it needs the running Organizer and says so (exit 2). Output:
+`name: annotated` or `name: not annotated: reason`.
+
+    ecce-annotate proj/calc-1 "ORCA B3LYP/def2-SVP, tests the new basis"
 
 ### ecce-reconnect
 

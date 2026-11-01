@@ -3358,6 +3358,32 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
 }
 
 
+//  The Annotation editor's store (processEditCompletion) for a request from
+//  another process (#742), on any node of the tree: calculations and MD
+//  study tasks alike. The tree and the other apps are told as after an edit.
+bool CalcMgr::annotateForCommand(const vector<EcceURL>& urls,
+                                 const string& text, vector<string>& lines)
+{
+  lines.clear();
+  const string property = VDoc::getEcceNamespace() + ":annotation";
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
+    if (!n || !n->getResource()) {
+      lines.push_back(urls[i].toString() + "\tno\tnot in this session");
+      continue;
+    }
+    if (!n->getResource()->addProp(property, text)) {
+      lines.push_back(n->getName() + "\tno\t" + n->getResource()->messages());
+      continue;
+    }
+    updateUrl(urls[i]);
+    notifyProperty(urls[i].toString(), property, text);
+    lines.push_back(n->getName() + "\tok\t");
+  }
+  return true;
+}
+
+
 //  Terminate Selected for a request from another process (#695): the same
 //  terminateCalc, without the confirmation. One line per calculation,
 //  "name\tok\tjob id" or "name\tno\treason".

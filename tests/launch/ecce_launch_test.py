@@ -110,9 +110,12 @@ def main():
         late_hold = os.path.join(s.state, "late-hold")
         shutil.move(late_dir, os.path.join(late_hold))
         for name in ("one", "two", "gone"):
+            #  #742: annotation= on create is stored as the Annotation.
             url, out = s.create(name, "cp2k_es", deck, "cp2k.cp2kin", rundir,
                                 extra=("procs=1", "queue=normal", "nodes=1",
-                                       "wall=0 1:0"))
+                                       "wall=0 1:0")
+                                + (("annotation=made by create",)
+                                   if name == "one" else ()))
             if not check(url is not None, "calculation %s created" % name):
                 say(out)
                 return 1
@@ -141,6 +144,32 @@ def main():
         check(rc == 2 and "ECCE is not running: start ECCE first" in err,
               "without a session: exit 2 and the message (rc=%s %r)" % (rc, err))
         check(s.state_of(urls["one"]) == "ready", "nothing was launched without a session")
+
+        def annotation(url):
+            rc, props = s.driver("props", url)
+            for l in props.splitlines():
+                if "annotation" in l:
+                    return l
+            return ""
+
+        check("made by create" in annotation(urls["one"]),
+              "create annotation= is stored (%r)" % annotation(urls["one"]))
+        #  #742: without a session a local calculation is written through
+        #  the data layer.
+        annot = os.path.join(build, "ecce-annotate")
+        empty2 = tempfile.mkdtemp(prefix="ecce-annotate-nosession-")
+        try:
+            r_ = subprocess.run([annot, urls["two"], "written offline"],
+                                env=s.env({"ECCE_SESSION_ID": "0123456789abcdef",
+                                           "ECCE_REALUSERHOME": empty2}),
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                timeout=120)
+        finally:
+            shutil.rmtree(empty2, ignore_errors=True)
+        check(r_.returncode == 0 and b"annotated" in r_.stdout and
+              "written offline" in annotation(urls["two"]),
+              "ecce-annotate without a session writes the local calculation "
+              "(rc=%s %r)" % (r_.returncode, r_.stdout + r_.stderr))
 
         display = xdisplay.Display().__enter__()
         genv = s.env({"DISPLAY": display.name,
@@ -184,6 +213,21 @@ def main():
         rc, out, err = run(os.path.join(s.state, "decks"))
         check(rc == 1 and "not inside the data folder" in out,
               "a path outside the data folder is refused (rc=%s)" % rc)
+
+        #  #742: through the running Organizer, by path and by URL, with a
+        #  line for a path that is no calculation.
+        r_ = subprocess.run([annot, path_one, urls["two"], "through the Organizer"],
+                            env=s.env(), stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, timeout=120)
+        say(r_.stdout.decode())
+        check(r_.returncode == 0 and r_.stdout.decode().count(": annotated") == 2 and
+              all("through the Organizer" in annotation(urls[n]) for n in ("one", "two")),
+              "ecce-annotate through the Organizer sets both (rc=%s)" % r_.returncode)
+        r_ = subprocess.run([annot, os.path.join(s.state, "decks"), "x"],
+                            env=s.env(), stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, timeout=120)
+        check(r_.returncode == 1 and b"not annotated" in r_.stdout,
+              "a path outside the data folder is refused by ecce-annotate")
 
         #  #721: a whole study copied in after the tree was read is found.
         study = os.path.join(os.path.dirname(late_dir), "newstudy")
