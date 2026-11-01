@@ -2842,6 +2842,18 @@ MOFILE_CASES = [
             'MO': {'size': '5 5'},
         },
     ),
+    # An IRC job punches the MOs of its last path point into fort.7 (#751);
+    # real G16 run, HCN IRC HF/3-21G, last point is the HNC side.
+    dict(
+        name='g16-hcn-irc-mofile',
+        script='gaussian-16.mo',
+        fixture='gaussian-16/hcn_irc_mo.fort7',
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'ORBENG': {'size': '20', 'units': 'Hartree'},
+            'MO': {'size': '20 20'},
+        },
+    ),
     # The MSD of the NaCl-dissolving example (#544): three ECCE-MDMSD
     # records (NA, CL, SOL, ~1250 characters each) from the mdanalysis
     # program become one MDMSD vector of three strings.
