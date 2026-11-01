@@ -115,7 +115,16 @@ if ($runtype{$task} eq "Dynamics") {
   my $data = get("Dynamics", "DataSteps", 0);
   $p{"ES.Runtype.MD.NumberOfSteps"} = $eq + $data;
   $p{"ES.Runtype.MD.TimeStep"}      = get("Dynamics", "TimeStep", 0.001);
-  $p{"ES.Runtype.MD.InitialTime"}   = get("Dynamics", "InitialTime", 0);
+  # A chained task continues the previous task's clock: the editor injects
+  # the provider's end time/step (Top section).  A time the user set wins;
+  # the serializer omits a zero InitialTime, so 0 means "continue".  When the
+  # user set a time, the step counter restarts at 0 (tinit = init-step*dt).
+  my $initTime = get("Dynamics", "InitialTime", "");
+  if ($initTime eq "") {
+    $initTime = get("Top", "ProviderEndTime", 0);
+    $p{"ES.Runtype.MD.InitStep"} = get("Top", "ProviderEndStep", 0);
+  }
+  $p{"ES.Runtype.MD.InitialTime"} = $initTime;
 
   my $nvt = get("Dynamics", "UseNVT", 0) == 1;
   my $npt = get("Dynamics", "UseNPT", 0) == 1;

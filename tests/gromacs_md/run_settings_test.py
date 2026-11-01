@@ -37,9 +37,9 @@ def tag(name, value):
     return "    <%s>%s</%s>\n" % (name, esc(str(value)), name)
 
 
-def mdp_of(task, interaction="", dynamics="", optimize=""):
+def mdp_of(task, interaction="", dynamics="", optimize="", top=""):
     xml = rt.model(task, interaction=interaction, dynamics=dynamics,
-                   optimize=optimize)
+                   optimize=optimize, top=top)
     r = rt.run([os.path.join(PARSERS, "md.gmxtask")], input=xml.encode())
     return r
 
@@ -155,6 +155,18 @@ def text_tests():
     check("; a comment" in mdp, "comment lines pass through")
     rc, mdp = mdp_of(EQ, dynamics=npt(), interaction=tag("GmxExtraMdp", "TCOUPL = berendsen"))
     check(keys(mdp)["tcoupl"] == ["berendsen"], "keys are compared without regard to case")
+
+    print("== continuing the clock")
+    top = tag("ProviderEndTime", "2.0") + tag("ProviderEndStep", "1000")
+    rc, mdp = mdp_of("ecceMdDynamics", dynamics=npt(), top=top)
+    k = keys(mdp)
+    check(k["tinit"] == ["2.0"] and k["init-step"] == ["1000"],
+          "no initial time: tinit and init-step continue where the provider ended")
+    rc, mdp = mdp_of("ecceMdDynamics",
+                     dynamics=npt() + tag("InitialTime", 1.5), top=top)
+    k = keys(mdp)
+    check(k["tinit"] == ["1.5"] and "init-step" not in k,
+          "an explicit initial time restarts the step counter (no init-step)")
 
 
 def ndx_groups(path):

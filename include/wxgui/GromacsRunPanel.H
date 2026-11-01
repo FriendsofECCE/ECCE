@@ -46,7 +46,7 @@ class GromacsRunPanel : public ewxPanel
       /**
        * Set a field as the user would (through its widget and event):
        * defines, posres, posresname, chain:<id>, groups, comgroups, tcgroups,
-       * barostat, pcoupltype, nstpcouple, extra, or "fill".
+       * barostat, pcoupltype, nstpcouple, extra, leavetraj, or "fill".
        */
       string setField(const string& name, const string& value);
 
@@ -69,6 +69,7 @@ class GromacsRunPanel : public ewxPanel
       ewxTextCtrl   *p_defines;
       ewxCheckBox   *p_posres;
       ewxTextCtrl   *p_posresName;
+      ewxCheckBox   *p_leaveTraj;
       wxWindow      *p_defsBox;
       wxSizer       *p_chainRow;
       vector<string> p_chainIds;

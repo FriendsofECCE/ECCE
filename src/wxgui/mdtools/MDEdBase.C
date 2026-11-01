@@ -14,6 +14,8 @@
   using std::endl;
   using std::ends;
 #include <fstream>
+#include <sstream>
+#include <cstdlib>
 #include <memory>
   using std::ofstream;
   using std::ifstream;
@@ -513,6 +515,66 @@ void MDEdBase::setPageShown(wxWindow *page, bool show)
 }
 
 
+// A GROMACS Dynamics task that follows another Dynamics task carries on the
+// simulation clock: the next .mdp's tinit/init-step start where the previous
+// run ended.  The provider's stored .mdp is the only place that end state is
+// written, so it is read here and injected into the model XML that
+// generateInputFile pipes to md.gmxtask.  No provider (or a provider that is
+// not a GROMACS Dynamics task) means the clock starts at 0.
+static string providerClockXml(MdTask *task)
+{
+  if (task == 0) return "";
+  if (task->getApplicationType() != ResourceDescriptor::AT_GROMACS) return "";
+  ResourceDescriptor::CONTENTTYPE ct = task->getContentType();
+  if (ct != ResourceDescriptor::CT_MDDYNAMICS &&
+      ct != ResourceDescriptor::CT_MDEQUILIBRATE) return "";
+
+  Session *s = task->getSession();
+  MdTask *prov = s ? dynamic_cast<MdTask*>(task->getInputProvider(s)) : 0;
+  if (prov == 0) return "";
+  if (prov->getApplicationType() != ResourceDescriptor::AT_GROMACS) return "";
+  ResourceDescriptor::CONTENTTYPE pct = prov->getContentType();
+  if (pct != ResourceDescriptor::CT_MDDYNAMICS &&
+      pct != ResourceDescriptor::CT_MDEQUILIBRATE) return "";
+
+  istream *is = prov->getDataFile(JCode::PRIMARY_INPUT);
+  if (is == 0) return "";
+  string text;
+  StringConverter::streamToText(*is, text);
+  delete is;
+
+  double dt = 0, tinit = 0;
+  long nsteps = 0, initStep = 0;
+  std::istringstream in(text);
+  string line;
+  while (std::getline(in, line)) {
+    size_t eq = line.find('=');
+    if (eq == string::npos) continue;
+    string key = line.substr(0, eq);
+    size_t b = key.find_first_not_of(" \t");
+    size_t e = key.find_last_not_of(" \t");
+    if (b == string::npos) continue;
+    key = key.substr(b, e - b + 1);
+    std::istringstream vs(line.substr(eq + 1));
+    string val;
+    vs >> val;                    // first whitespace-delimited token
+    if (val.empty() || val[0] == ';') continue;
+    size_t semi = val.find(';');
+    if (semi != string::npos) val = val.substr(0, semi);
+    if (key == "dt") dt = atof(val.c_str());
+    else if (key == "nsteps") nsteps = atol(val.c_str());
+    else if (key == "tinit") tinit = atof(val.c_str());
+    else if (key == "init-step") initStep = atol(val.c_str());
+  }
+
+  std::ostringstream os;
+  os << "<ProviderEndTime>" << (tinit + nsteps * dt)
+     << "</ProviderEndTime>" << endl
+     << "<ProviderEndStep>" << (initStep + nsteps)
+     << "</ProviderEndStep>";
+  return os.str();
+}
+
 /**
  * Re-generate the input file from the model and upload it to the data server.
  * @throw IOException if the input file generation failed for some reason or
@@ -527,10 +589,21 @@ void MDEdBase::generateInputFile(MdTask *task)
      throw IOException("Could not find code cap file", WHERE);
    }
 
+   string modelXml = task->serializeModel(&model);
+
+   // A chained task continues the provider's clock: insert the provider's
+   // end state just before the root element closes, where md.gmxtask reads
+   // it from the Top section.
+   string clockXml = providerClockXml(task);
+   if (!clockXml.empty()) {
+     string::size_type pos = modelXml.rfind("</NWChemMDModel>");
+     if (pos != string::npos) modelXml.insert(pos, clockXml);
+   }
+
    // Write the model to a file
    SFile *tmpModel = TempStorage::getTempFile();
    ofstream outfile(tmpModel->path().c_str());
-   outfile << task->serializeModel(&model);
+   outfile << modelXml;
    outfile.flush();
    outfile.close();
 
