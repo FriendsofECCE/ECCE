@@ -2916,6 +2916,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_details_enabled PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # A run type with no details panel must not open an empty Details dialog:
+  # the button is disabled and the handler refuses (#676).
+  add_test(NAME apps_calced_details_guard
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_details_guard_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calced_details_guard PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Details dialogs show no internal setting keys as tooltips (self-contained).
   add_test(NAME apps_details_tooltip
            COMMAND ${PYTHON3_EXECUTABLE}
