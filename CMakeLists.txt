@@ -1379,6 +1379,15 @@ install(FILES ${CMAKE_SOURCE_DIR}/docs/ENVIRONMENT.md
         DESTINATION doc
         COMPONENT client)
 
+# AGENTS.md (#759): how scripts and AI assistants work with ECCE, and the
+# same as a Claude Code skill pointing at it.
+install(FILES ${CMAKE_SOURCE_DIR}/docs/AGENTS.md
+        DESTINATION doc
+        COMPONENT client)
+install(FILES ${CMAKE_SOURCE_DIR}/docs/ai/skills/ecce/SKILL.md
+        DESTINATION share/ecce/ai/skills/ecce
+        COMPONENT client)
+
 # scripts/codereg: Theory/Runtype "Details" dialogs (JCode::
 # getTheoryRunTypeEditorNames(), src/dsm/xml/JCode.C). Wrongly assessed in
 # an earlier pass of the audit above as unported Python 2/wxPython
@@ -1986,6 +1995,12 @@ include(CPack)
 #     cd build-cmake && ctest -R parsers --output-on-failure
 # ---------------------------------------------------------------------------
 enable_testing()
+
+# #759: the commands AGENTS.md names exist in the build.
+add_test(NAME agents_md
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/ai/agents_md_test.py
+                 ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 find_program(PYTHON3_EXECUTABLE NAMES python3)
 
 # HTTP/WebDAV dates must parse English month names independently of LC_TIME.
