@@ -1289,7 +1289,7 @@ expect code-listed Gaussian-03 0
 expect code-listed Gaussian-98 0
 expect code-listed GAMESS-UK 0
 expect code-listed Amica 0
-expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,GROMACS,MOPAC,ORCA,QuantumESPRESSO'
+expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
 code Gaussian-16
 expect label code:title Gaussian-16
 expect field code:gaussian-16 /site/g16
@@ -1321,9 +1321,9 @@ expect shown blk:ccmd:hint 0
 expect label tag:cenv '%(yours)s'
 expect shown undo:cenv 1
 set code:gaussian-16 /opt/g16/g16
-expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,GROMACS,MOPAC,ORCA,QuantumESPRESSO'
+expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
 set code:gaussian-16 ''
-expect field code:list 'NWChem  *,CP2K,Gaussian-16,GROMACS,MOPAC,ORCA,QuantumESPRESSO'
+expect field code:list 'NWChem  *,CP2K,CREST,Gaussian-16,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
 set code:gaussian-16 /opt/g16/g16
 set code:files '*.rwf'
 set code:prelim '*.old'
