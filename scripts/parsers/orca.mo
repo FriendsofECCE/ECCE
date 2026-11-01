@@ -75,20 +75,17 @@ push(@segments, [@current]) if (@current);
 
 #  ORCA prints this block in FIXED-WIDTH columns, so a value wide enough to
 #  fill its field runs straight into the previous one with no space between
-#  them -- "0.452636-11.266403" is two coefficients, not one.  Splitting on
-#  whitespace then silently yields one token too few for that row, and the
-#  whole MO table ends up short: PropTable rejects it on load with "input
-#  vector length does not match rows*columns" and the panel gets nothing.
-#  Seen live with a coefficient of -11.266403 (issue #108).
-#
-#  A minus sign directly after a digit can only be the start of the next
-#  number, never part of this one -- this block prints plain decimals, and
-#  an exponent's sign follows an "e"/"E" rather than a digit, so that case
-#  is left alone.
+#  them: "0.452636-11.266403" (#108) and, with diffuse functions, positive
+#  ones too, "11.344124150.444498" (#719).  Each value on a line has the
+#  same number of decimals, so a token with more than one point is cut
+#  after that many decimals; the last token's tail gives the count.
 sub splitFixed {
   my $text = shift;
-  $text =~ s/(?<=\d)-(?=\d)/ -/g;
-  return split(' ', $text);
+  my @tokens = split(' ', $text);
+  return @tokens unless grep { tr/.// > 1 } @tokens;
+  my $decimals = ($tokens[-1] =~ /\.(\d+)$/) ? length($1) : 0;
+  return @tokens unless $decimals;
+  return ($text =~ /-?\d*\.\d{$decimals}/g);
 }
 
 
