@@ -2,7 +2,7 @@
 ###############################################################################
 # FILENAME:  xtb.expt
 #
-# SYNTAX: xtb.expt <outfile>
+# SYNTAX: xtb.expt <outfile> [<sourcedir>]
 #
 # PURPOSE:
 #       Reads the output of an xtb run and writes the ECCE .frag/.param pair,
@@ -11,10 +11,12 @@
 #       xtb prints no coordinates and keeps orbitals, charges and normal
 #       modes in files beside the output.  A run made by ECCE already has
 #       them appended (ECCE-XTB-* blocks).  For an output from a run made
-#       elsewhere they are read from the directory the file is in (xtbopt.log,
-#       the coordinate file the run names, molden.input, charges,
-#       vibspectrum, g98.out) and appended here, to a copy that replaces the
-#       import's link, so the parse is the same for both.
+#       elsewhere they are read from the source directory -- passed as the
+#       second argument where the caller knows it, else the output's own
+#       directory (xtbopt.log, the coordinate file the run names,
+#       molden.input, charges, vibspectrum, g98.out) -- and appended here, to
+#       a copy that replaces the import's link, so the parse is the same for
+#       both.
 ###############################################################################
 
 use Getopt::Std;
@@ -24,7 +26,7 @@ $| = 1;
 &getopts(':hv');
 &usage if ($opt_h || $opt_help);
 exit if ($opt_v);
-&usage if ($#ARGV != 0);
+&usage if ($#ARGV != 0 && $#ARGV != 1);
 
 my $file = $ARGV[0];
 open(INPUT, $file) || die "Can't locate output file $file";
@@ -84,8 +86,14 @@ if ($call =~ /--alpb\s+(\S+)/) {
 my $combined = $text;
 my $haveFrames = ($text =~ /^ECCE-XTB-FRAME\s/m);
 
+# The side files are next to the original output.  The importer links the
+# output into a fresh directory and passes the source directory (its link is
+# not one Perl sees on Windows); abs_path resolves the link where it can.
 my $dir = ".";
-if (-l $file) {
+if (defined($ARGV[1]) && $ARGV[1] ne "") {
+  $dir = $ARGV[1];
+  $dir =~ s{/+$}{};
+} else {
   my $real = abs_path($file);
   ($dir = $real) =~ s{/[^/]*$}{} if (defined($real));
 }
@@ -240,7 +248,7 @@ sub slurp {
 }
 
 sub usage {
-  print "Usage: xtb.expt <outfile>\n";
+  print "Usage: xtb.expt <outfile> [<sourcedir>]\n";
   print "Options:    -h        this help\n";
   print "            -v        version\n";
   exit;

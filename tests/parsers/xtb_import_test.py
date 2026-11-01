@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """An xtb run made outside ECCE is imported through xtb.expt (Organizer >
 File > Import).  xtb prints no coordinates and keeps orbitals, charges and
-modes in files beside the output, so the importer reads them from the
-output's directory (as the import's symbolic link resolves to it) and
-appends them in the form gensub does, replacing the link.  Checked here: the
+modes in files beside the output, so the importer reads them from the source
+directory -- found by resolving the import's link on Unix, or passed to the
+script where the link is not one Perl sees (Windows, a copy) -- and appends
+them in the form gensub does, replacing the link.  Checked here: the
 structure and settings, the original left alone, a stale file with another
-atom count ignored, and that the real parse specification then delivers every
-property a run launched from ECCE gets.
+atom count ignored, the link and copy paths, and that the real parse
+specification then delivers every property a run launched from ECCE gets.
 """
 import os
 import shutil
@@ -26,11 +27,10 @@ EXT = os.path.join(FIX, "external")
 
 failures = []
 
-# The importer finds the run's side files through a symlink; Perl on Windows
-# does not see os.symlink links as links, so the lookup cannot be tested there.
-if os.name == "nt":
-    print("skipped on Windows")
-    sys.exit(0)
+# On Unix the importer links the output into a fresh directory and finds the
+# side files by resolving the link; on Windows it gets a copy and passes the
+# source directory to xtb.expt, so no link is made or resolved here.
+LINK = os.name != "nt"
 
 
 def check(ok, msg):
@@ -43,15 +43,22 @@ def scratch():
     return tempfile.mkdtemp(prefix="xtbimp-", dir=os.environ.get("TMPDIR"))
 
 
-def do_import(srcdir, out, work):
-    """What JobParser::importCalculation does: link the file into a fresh
-    directory and run the importer there."""
-    link = os.path.join(work, out)
-    os.symlink(os.path.join(srcdir, out), link)
+def do_import(srcdir, out, work, link=True):
+    """What JobParser::importCalculation does: put the file into a fresh
+    directory -- linked on Unix, a copy where the link is not one Perl sees
+    (Windows) -- and run the importer there, with the source directory given
+    in the copy case so the side files are found."""
+    dest = os.path.join(work, out)
+    args = ["perl", EXPT, out]
+    if link:
+        os.symlink(os.path.join(srcdir, out), dest)
+    else:
+        shutil.copyfile(os.path.join(srcdir, out), dest)
+        args.append(srcdir)
     env = dict(os.environ, ECCE_HOME=REPO)
-    r = subprocess.run(["perl", EXPT, out], cwd=work, env=env,
+    r = subprocess.run(args, cwd=work, env=env,
                        capture_output=True, text=True)
-    return r, link
+    return r, dest
 
 
 def types_delivered(path):
@@ -64,15 +71,16 @@ def types_delivered(path):
     return got
 
 
-def run(name, out, theory, runtype, natoms, need, absent=()):
+def run(name, out, theory, runtype, natoms, need, absent=(),
+        link=LINK, fixture=None):
     tmp = scratch()
     try:
         src = os.path.join(tmp, "src")
-        shutil.copytree(os.path.join(EXT, name), src)
+        shutil.copytree(os.path.join(EXT, fixture or name), src)
         before = open(os.path.join(src, out), encoding="utf-8", errors="replace").read()
         work = os.path.join(tmp, "job")
         os.mkdir(work)
-        r, link = do_import(src, out, work)
+        r, dest = do_import(src, out, work, link)
         check(r.returncode == 0, "%s: importer exit 0 (%s)" %
               (name, r.stdout.strip() or r.stderr.strip()))
         if r.returncode:
@@ -85,10 +93,11 @@ def run(name, out, theory, runtype, natoms, need, absent=()):
               (name, runtype))
         check("num_atoms:\t%d" % natoms in frag, "%s: %d atoms" %
               (name, natoms))
-        check(not os.path.islink(link), "%s: link replaced by a copy" % name)
+        if link:
+            check(not os.path.islink(dest), "%s: link replaced by a copy" % name)
         check(open(os.path.join(src, out), encoding="utf-8", errors="replace").read() == before,
               "%s: the user's output file untouched" % name)
-        got = types_delivered(link)
+        got = types_delivered(dest)
         for t in need:
             check(t in got, "%s: parse delivers %s" % (name, t))
         for t in absent:
@@ -103,6 +112,13 @@ run("h2o_ohess", "h2o_ohess.out", "GFN2-xTB", "GeoVib", 3,
 run("h2o_sp", "h2o_sp.out", "GFN2-xTB", "Energy", 3,
     ["TE", "GEOMTRACE", "MULLIKEN"], absent=["MO", "VIBFREQ"])
 
+# The same through a plain copy with the source directory passed explicitly
+# (what a Windows import is), not a link to resolve.
+run("h2o_ohess (copy)", "h2o_ohess.out", "GFN2-xTB", "GeoVib", 3,
+    ["TE", "HLGAP", "DIPOLE", "GEOMTRACE", "TEVEC", "MO", "ORBENG", "MULLIKEN",
+     "VIBFREQ", "VIBIR", "VIB", "EZEROPT", "EGIBBS"],
+    link=False, fixture="h2o_ohess")
+
 # A leftover molden.input from another molecule must not be attached.
 tmp = scratch()
 try:
@@ -112,14 +128,14 @@ try:
                 os.path.join(src, "molden.input"))
     work = os.path.join(tmp, "job")
     os.mkdir(work)
-    r, link = do_import(src, "h2o_sp.out", work)
-    check(r.returncode == 0 and "ECCE-XTB-MOLDEN" not in open(link, encoding="utf-8", errors="replace").read(),
+    r, dest = do_import(src, "h2o_sp.out", work, LINK)
+    check(r.returncode == 0 and "ECCE-XTB-MOLDEN" not in open(dest, encoding="utf-8", errors="replace").read(),
           "stale molden.input of another molecule ignored")
     # An output without any geometry beside it is refused with the reason.
     os.remove(os.path.join(src, "h2o.xyz"))
     work2 = os.path.join(tmp, "job2")
     os.mkdir(work2)
-    r, link = do_import(src, "h2o_sp.out", work2)
+    r, dest = do_import(src, "h2o_sp.out", work2, LINK)
     check(r.returncode == 1 and "No molecular geometry" in r.stdout,
           "no geometry beside the output: refused with a reason")
 finally:
