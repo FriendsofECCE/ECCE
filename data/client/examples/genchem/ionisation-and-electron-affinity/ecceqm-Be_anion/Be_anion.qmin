@@ -1,8 +1,8 @@
-title Be- anion, B3LYP/aug-cc-pVTZ (unrestricted), for the electron affinity
+title Be- anion, PBE0/aug-cc-pVDZ (unrestricted), for the electron affinity
 charge -1
 multiplicity 2
-method ub3lyp
-basis aug-cc-pVTZ
+method upbe0
+basis aug-cc-pVDZ
 runtype energy
 conv_energy 1e-8
 conv_grad 1e-4

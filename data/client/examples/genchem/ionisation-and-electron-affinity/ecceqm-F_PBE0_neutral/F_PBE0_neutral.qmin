@@ -1,0 +1,12 @@
+title F atom, PBE0/aug-cc-pVDZ (unrestricted), ground state
+charge 0
+multiplicity 2
+method upbe0
+basis aug-cc-pVDZ
+runtype energy
+charges loewdin
+conv_energy 1e-8
+conv_grad 1e-4
+geometry
+ F      0.00000000     0.00000000     0.00000000
+end
