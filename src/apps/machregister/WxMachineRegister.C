@@ -4230,6 +4230,10 @@ static string builtinCommand(const string& code)
                "$xtb -T $totalprocs > $outFile 2>&1\n# gensub first splits "
                "$inFile into the options and crest.xyz; $xtb is the path "
                "registered for xTB on this machine";
+    if (code == "MLP")
+        return "$mlp ecce-mlp.py $inFile > $outFile 2>&1\n# $mlp is the "
+               "Python registered for ML Potential; gensub writes ecce-mlp.py "
+               "into the run directory";
     if (code == "MOPAC")
         return "$mopac $inFile >> $runDir/ecce.submit.log 2>&1\n"
                "# before it, $outFile is linked to the .out file MOPAC "
@@ -4262,7 +4266,7 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
         if (code == "NWChem")
             return "e.g. NWCHEM_BASIS_LIBRARY /usr/share/nwchem/libraries/";
         if (code == "ORCA") return "e.g. OMP_NUM_THREADS 1";
-        if (code == "MOPAC" || code == "xTB" || code == "CREST")
+        if (code == "MOPAC" || code == "xTB" || code == "CREST" || code == "MLP")
             return "e.g. OMP_NUM_THREADS 4";
         if (code == "QuantumESPRESSO")
             return "e.g. ESPRESSO_PSEUDO /opt/pseudo";
@@ -4288,6 +4292,8 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
             return "e.g. $orca $inFile \"--bind-to core\" > $outFile";
         if (code == "GROMACS")
             return "e.g. $gmx mdrun -deffnm md -ntomp $totalprocs -nb gpu";
+        if (code == "MLP")
+            return "e.g. CUDA_VISIBLE_DEVICES=0 $mlp ecce-mlp.py $inFile > $outFile";
         if (code == "CREST")
             return "e.g. nice $crest crest.xyz --gfnff --xnam $xtb > $outFile";
         if (code == "xTB")

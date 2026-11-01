@@ -1,0 +1,19 @@
+#!/usr/bin/env perl
+# The model, its software version and licence, from the three header lines
+# ecce-mlp prints ("Model:", "Version:", "Licence:"), as one VERSION string.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my ($model, $version, $licence);
+while (<STDIN>) {
+  $model = $1 if (/^Model:\s+(.+?)\s*$/);
+  $version = $1 if (/^Version:\s+(.+?)\s*$/);
+  $licence = $1 if (/^Licence:\s+(.+?)\s*$/);
+}
+exit(0) if (!defined($model));
+my $value = $model;
+my @more = grep { defined($_) } ($version, defined($licence) ? "licence $licence" : undef);
+$value .= " (" . join(", ", @more) . ")" if (@more);
+
+print "key: VERSION\nsize:\n1\nvalues:\n$value\nEND\n";
+exit(0);

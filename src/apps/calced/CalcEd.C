@@ -464,7 +464,7 @@ void CalcEd::createCodeButtons()
                                             "Periodic:", "MD:" };
   static const char *const order[] = { "ECCE-QM", "Gaussian-16", "ORCA",
                                        "NWChem", "MOPAC", "xTB", "CREST", "QuantumESPRESSO",
-                                       "CP2K", "GROMACS" };
+                                       "CP2K", "MLP", "GROMACS" };
   std::vector<std::pair<int, wxCustomButton*> > groups[4];
 
   for (size_t it = 0; it < codes.size(); it++) {
@@ -482,7 +482,7 @@ void CalcEd::createCodeButtons()
       codeButton->SetToolTip(codes[it]);
       const string& c = codes[it];
       const int g = c=="GROMACS" ? 3
-                  : (c=="QuantumESPRESSO" || c=="CP2K") ? 2
+                  : (c=="QuantumESPRESSO" || c=="CP2K" || c=="MLP") ? 2
                   : (c=="MOPAC" || c=="xTB" || c=="CREST") ? 1 : 0;
       int rank = 100;
       for (int r = 0; r < (int)(sizeof order / sizeof order[0]); r++)

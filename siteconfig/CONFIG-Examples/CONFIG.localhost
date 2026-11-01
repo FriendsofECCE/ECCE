@@ -18,4 +18,5 @@ QuantumESPRESSO: pw.x
 CP2K: cp2k.psmp
 xTB: xtb
 CREST: crest
+MLP: python3
 perlPath: /usr/bin/perl

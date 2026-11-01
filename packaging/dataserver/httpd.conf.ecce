@@ -285,6 +285,8 @@ AddType  chemical/x-xtb-input   .xtbin
 AddType  chemical/x-xtb-output  .xtbout
 AddType  chemical/x-crest-input  .crestin
 AddType  chemical/x-crest-output .crestout
+AddType  chemical/x-mlp-input    .mlpin
+AddType  chemical/x-mlp-output   .mlpout
 
 # ECCE Server Side Compression: deferred, see header comment. The
 # SetOutputFilter/SetInputFilter SS_COMPRESSION directives and their
