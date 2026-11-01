@@ -1,0 +1,17 @@
+#!/usr/bin/env perl
+# Stores the electric origin ORCA states in its property settings
+# ("Choice of electric origin ... Center of mass") as DIPOLEORIGIN, so the
+# dipole view can say which origin an ion's dipole refers to.
+$| = 1;
+while (<STDIN>) {
+  if (/Choice of electric origin\s*\.\.\.\s*(.+?)\s*$/) {
+    my $c = lc($1);
+    my $v = $c =~ /mass/ ? "centre_of_mass"
+          : $c =~ /charge/ ? "centre_of_charge"
+          : $c =~ /origin|zero/ ? "coordinate_origin" : "";
+    exit(0) unless $v;
+    print "key: DIPOLEORIGIN\nsize:\n1\nvalues:\n$v\nunits:\nNA\nEND\n";
+    last;
+  }
+}
+exit(0);

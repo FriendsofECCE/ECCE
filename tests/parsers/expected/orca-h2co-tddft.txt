@@ -66,6 +66,15 @@ args:    '.' 'Energy' 'DFT' 'B3LYP' '0'
   block 1: begin-line=664 fed=28 rc=0 first-fed=''
     (script emitted no property)
 
+[DIPOLEORIGIN]  Script=orca.dipoleorigin  Freq=last  Skip=-  Lines=1
+  Begin=Choice of electric origin
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=1179 fed=1 rc=0 first-fed='Choice of electric origin               ... Center of mass'
+    key: DIPOLEORIGIN
+      size: 1
+      values: centre_of_mass
+      units: NA
+
 [DIPOLE]  Script=orca.dipole  Freq=last  Skip=-  Lines=-
   Begin=Total Dipole Moment
   End=Rotational spectrum

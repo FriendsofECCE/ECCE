@@ -267,6 +267,15 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       values: -0.000000001 -0.000000024 0.000140555 0.000000006 0.000104058 -0.000070275 -0.000000005 -0.000104034 -0.000070279
       units: Hartree/Bohr
 
+[DIPOLEORIGIN]  Script=orca.dipoleorigin  Freq=last  Skip=-  Lines=1
+  Begin=Choice of electric origin
+  begins=7 delivered=1 buffered_away=6
+  block 1: begin-line=3290 fed=1 rc=0 first-fed='Choice of electric origin               ... Center of mass'
+    key: DIPOLEORIGIN
+      size: 1
+      values: centre_of_mass
+      units: NA
+
 [DIPOLE]  Script=orca.dipole  Freq=last  Skip=-  Lines=-
   Begin=Total Dipole Moment
   End=Rotational spectrum

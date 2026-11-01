@@ -348,10 +348,14 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   // not listed (#390); open-shell runs (ROHF/ROKS and UHF/UKS) keep it.
   if (r.reference != Reference::Restricted)
     os << "s_squared " << r.s2 << "\n";
-  os << "dipole_au " << r.dipole[0] << " " << r.dipole[1] << " " << r.dipole[2] << "\n";
-  double dn = std::sqrt(r.dipole[0] * r.dipole[0] + r.dipole[1] * r.dipole[1] + r.dipole[2] * r.dipole[2]);
-  os << "dipole_debye " << r.dipole[0] * kDebyePerAu << " " << r.dipole[1] * kDebyePerAu << " "
-     << r.dipole[2] * kDebyePerAu << " " << dn * kDebyePerAu << "\n";
+  const double* dp = r.dipole_rep;
+  os << "dipole_au " << dp[0] << " " << dp[1] << " " << dp[2] << "\n";
+  double dn = std::sqrt(dp[0] * dp[0] + dp[1] * dp[1] + dp[2] * dp[2]);
+  os << "dipole_debye " << dp[0] * kDebyePerAu << " " << dp[1] * kDebyePerAu << " "
+     << dp[2] * kDebyePerAu << " " << dn * kDebyePerAu << "\n";
+  os << "dipole_origin " << (r.dipole_origin_kind.empty() ? "independent" : r.dipole_origin_kind) << " "
+     << r.dipole_origin[0] * kBohrToAngstrom << " " << r.dipole_origin[1] * kBohrToAngstrom << " "
+     << r.dipole_origin[2] * kBohrToAngstrom << "  # angstrom\n";
   os << "wall_seconds " << std::setprecision(2) << seconds << std::setprecision(12) << "\n";
   os << "begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge\n";
   const std::vector<double> mull = spread(r.mulliken);
