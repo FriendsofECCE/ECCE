@@ -311,6 +311,8 @@ ecce_library(eccevizsg
 ecce_library(eccecomm   src/comm/commtools)
 ecce_library(eccecommxt src/comm/commxt)
 ecce_library(eccercmd   src/comm/rcommand)
+# SftpEDSI runs its operations through RCommand.
+target_link_libraries(eccedsi PUBLIC eccercmd)
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
 pkg_check_modules(LIBSSH IMPORTED_TARGET libssh>=0.10)
@@ -3357,6 +3359,16 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(testRCommandSsh PRIVATE
       eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
+
+    # SftpEDSI (#767) against the same sshd, both backends; a ctest that
+    # SKIPs (77) without podman.
+    add_executable(testSftpEDSI tests/transport/testSftpEDSI.C)
+    target_link_libraries(testSftpEDSI PRIVATE
+      eccedsi eccedav eccercmd eccecipc eccefaces eccexml eccetdat
+      ecceutil ${XercesC_LIBRARIES})
+    add_test(NAME sftpedsi
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/transport/sshd/sftpedsi_test.sh)
+    set_tests_properties(sftpedsi PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
 
     # The same through a front end; tests/transport/sshd/frontend_test.sh.
     add_executable(testRCommandFrontend tests/transport/testRCommandFrontend.C)
