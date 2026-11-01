@@ -110,8 +110,9 @@ int main()
                                      THERMO_HEADGORDON_QRRHO).G;
     check(gGrimme > gRrho && gTruhlar > gRrho,
           "NMA: qRRHO and raise-to-100 raise G above plain RRHO");
-    check(std::fabs(gGrimme - gTruhlar) > 1e-4,
-          "NMA: the treatments spread (a kJ/mol or more)");
+    const double lo = std::min(std::min(gRrho, gGrimme), std::min(gTruhlar, gHg));
+    const double hi = std::max(std::max(gRrho, gGrimme), std::max(gTruhlar, gHg));
+    check((hi - lo) * KJ > 1.0, "NMA: the treatments spread more than 1 kJ/mol");
     // H2O has no soft mode, so every treatment agrees.
     const double hRrho = computeThermo(h2o(), 298.15, THERMO_GAS_1ATM,
                                        THERMO_RRHO).G;
