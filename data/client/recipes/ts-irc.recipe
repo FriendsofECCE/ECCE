@@ -1,0 +1,31 @@
+# Transition state search with IRC: reactant, product, TS search, frequencies, IRC.
+recipe: ts-irc
+title: TS search with IRC
+field: Reactions
+summary: Reactant and product, a TS search with frequencies, then the IRC
+description: Optimises reactant and product with frequencies, finds the transition state between them and follows the reaction path from it in both directions. The Gaussian 16 variant starts the TS search from a relaxed scan (QST3); the ORCA variant runs an NEB-TS between reactant and product.
+role: geom | Optimisations, TS search, frequencies, IRC | B3LYP | 6-31+G(d) | the usual starting level for barriers; diffuse functions when a species is an anion
+role: solvent | Solvent | none | | gas phase by default; choose a solvent model when the reaction runs in solution
+rules: anion-diffuse, heavy-ecp, size, registered
+
+variant: g16 | Gaussian 16 (QST3) | G16
+step: g16 | reactant | G16 | geom | GeoVib | Opt + Freq | structure, key=reactant, thermo
+step: g16 | scan | G16 | geom | Geometry | relaxed scan from the reactant |
+step: g16 | product | G16 | geom | GeoVib | Opt + Freq from the scan's last point | key=product, thermo
+step: g16 | ts | G16 | geom | Transition State (QST) + Frequencies | QST3 + Freq | key=ts, thermo
+step: g16 | irc | G16 | geom | IRC | IRC from the TS |
+link: g16 | reactant | scan | geometry
+link: g16 | scan | product | geometry.last
+link: g16 | reactant | ts | reactant
+link: g16 | product | ts | product
+link: g16 | scan | ts | tsguess.max
+link: g16 | ts | irc | geometry
+
+variant: orca | ORCA (NEB-TS) | ORCA
+step: orca | reactant | ORCA | geom | GeoVib | Opt + Freq | structure, key=reactant, thermo
+step: orca | product | ORCA | geom | GeoVib | Opt + Freq | structure, key=product, thermo
+step: orca | ts | ORCA | geom | Transition State (NEB-TS) + Frequencies | NEB-TS + Freq | key=ts, thermo
+step: orca | irc | ORCA | geom | IRC | IRC from the TS |
+link: orca | reactant | ts | reactant
+link: orca | product | ts | product
+link: orca | ts | irc | geometry

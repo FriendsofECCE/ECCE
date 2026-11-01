@@ -143,6 +143,13 @@ describe what you did and what happened.
 31. [Renaming and moving calculations](rename-and-move.md): Rename, Cut and
    Paste, dragging, and why a calculation with a running job stays where it is.
 
+32. [Recipes](recipes.md): workflow templates for a kind of study (TS search with
+   IRC, conformers), the set-up panel with its preview, the key-data box,
+   Save Workflow as Recipe, and recipes for a site.
+
+33. [Writing a recipe](writing-a-recipe.md): the file format, every field, the
+   folders recipes are read from, and a complete example.
+
 Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the
