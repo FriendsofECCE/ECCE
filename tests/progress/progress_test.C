@@ -361,6 +361,38 @@ int main()
           "gmx: density x axis in ps out to the run's total, like temperature");
   }
 
+  // The blocks keep the order of the code's progress rules whichever record
+  // arrives first (#753); the integrator stage takes its {integrator} slot.
+  {
+    const std::string desc = "[PROGRESS]\nProgress={integrator} point=$1/{n}\n[END]\n"
+        "[PROGRESS]\nProgress=gmx-temp step=$1\n[END]\n"
+        "[PROGRESS]\nProgress=gmx-pres step=$1\n[END]\n"
+        "[PROGRESS]\nProgress=gmx-dens time=$1 dens=$2\n[END]\n";
+    const std::vector<std::string> order = JobProgress::stageOrderOf(desc);
+    check(order.size() == 4 && order[0] == "{integrator}" && order[3] == "gmx-dens",
+          "stage order read from the rules");
+    const char *densFirst = "gmx-dens time=0.4 dens=990\ngmx-pres step=400 time=0.8 pres=1\n"
+        "md point=400/400\ngmx-temp step=400 time=0.8 temp=300\n";
+    const char *densLast = "md point=400/400\ngmx-temp step=400 time=0.8 temp=300\n"
+        "gmx-pres step=400 time=0.8 pres=1\ngmx-dens time=0.4 dens=990\n";
+    std::string seen[2];
+    int i = 0;
+    for (const char *text : {densFirst, densLast}) {
+      JobProgress g;
+      g.setStageOrder(order);
+      g.parse(text);
+      for (const auto& b : g.running(0)) seen[i] += b.title + "|";
+      i++;
+    }
+    check(seen[0] == seen[1] && seen[0].find("Density|") + 8 == seen[0].size() &&
+          seen[0].compare(0, 4, "Mole") == 0,
+          "gmx: blocks in the rules' order, not arrival order (" + seen[0] + " / " + seen[1] + ")");
+    JobProgress none;
+    none.setStageOrder(order);
+    none.parse("gmx-temp step=1 time=0.1 temp=300\n");
+    check(none.running(0).size() == 1, "a block the run lacks is left out");
+  }
+
   // Dynamics shows the run's average and deviation (#517); the total energy
   // stage is for the summary only.
   {

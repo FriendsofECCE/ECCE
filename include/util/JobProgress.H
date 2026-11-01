@@ -106,6 +106,13 @@ public:
   // `finished`: the job has ended, so no time left is shown.
   std::vector<Block> running(double age, bool finished = false) const;
 
+  // The order the code's progress rules give the blocks (#753): stage
+  // names as `Progress=<stage>` first appears in its .desc. A name in braces
+  // ({integrator}) stands for any stage the list does not name. Empty keeps
+  // the built-in order. Blocks the run has not produced are not made.
+  void setStageOrder(const std::vector<std::string>& order) { p_order = order; }
+  static std::vector<std::string> stageOrderOf(const std::string& descText);
+
   // A job still waiting in its queue has no snapshot; the box shows what is
   // known of it: when it was submitted (seconds since 1970, 0 if not
   // known) and the scheduler's job id ("" if not known).  The scheduler's
@@ -150,6 +157,7 @@ private:
   void plotAxis(const Stage& st, const std::string& rec,
                 const std::string& recName, Block& b) const;
 
+  std::vector<std::string> p_order;
   int p_seq = 0;
   double p_at = 0;
   std::vector<Stage> p_stages;

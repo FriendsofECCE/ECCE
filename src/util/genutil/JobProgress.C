@@ -8,6 +8,8 @@
 #include <sstream>
 
 using std::string;
+using std::pair;
+using std::make_pair;
 using std::vector;
 
 
@@ -563,8 +565,46 @@ bool JobProgress::average(const string& stageName, double& avg, double& sd,
 }
 
 
+vector<string> JobProgress::stageOrderOf(const string& descText)
+{
+  vector<string> order;
+  size_t pos = 0;
+  while (pos < descText.size()) {
+    size_t eol = descText.find('\n', pos);
+    if (eol == string::npos) eol = descText.size();
+    const string line = descText.substr(pos, eol - pos);
+    pos = eol + 1;
+    if (line.compare(0, 9, "Progress=") != 0) continue;
+    const size_t end = line.find_first_of(" \t\r", 9);
+    const string name = line.substr(9, end == string::npos ? end : end - 9);
+    if (!name.empty() && std::find(order.begin(), order.end(), name) == order.end())
+      order.push_back(name);
+  }
+  return order;
+}
+
+
 vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
 {
+  if (!p_order.empty()) {
+    // Rank by the code's rules; a stage they do not name takes the slot of
+    // a {placeholder} rule, else goes last. Ties keep arrival order.
+    size_t wild = p_order.size();
+    for (size_t i = 0; i < p_order.size(); i++)
+      if (p_order[i][0] == '{') { wild = i; break; }
+    vector<pair<size_t, const Stage*> > ranked;
+    for (const auto& st : p_stages) {
+      if (st.name == "gmx-etot") continue;
+      const auto it = std::find(p_order.begin(), p_order.end(), st.name);
+      ranked.push_back(make_pair(it == p_order.end() ? wild : (size_t)(it - p_order.begin()), &st));
+    }
+    std::stable_sort(ranked.begin(), ranked.end(),
+        [](const pair<size_t, const Stage*>& a, const pair<size_t, const Stage*>& b)
+        { return a.first < b.first; });
+    vector<Block> sorted;
+    for (const auto& r : ranked) sorted.push_back(stageBlock(*r.second, age, finished));
+    return sorted;
+  }
   // The innermost loop at the top: SCF, optimisation, scan (the outermost),
   // then frequencies; other stages in the order they appeared.
   vector<Block> out;
