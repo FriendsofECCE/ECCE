@@ -218,7 +218,7 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_url_removed", (wxJmsCBFunc)&CalcMgrApp::msgURLRemovedMCB);
   subscribe("ecce_url_state", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB, false);
   subscribe("ecce_url_property", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
-  subscribe("ecce_url_subject", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
+  subscribe("ecce_url_subject", (wxJmsCBFunc)&CalcMgrApp::msgSubjectMCB);
   subscribe("ecce_url_code", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
   subscribe("ecce_url_spin", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
   subscribe("ecce_url_theory", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
@@ -479,6 +479,13 @@ void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
   if (msg.getProperty("name") == "reparse")
     p_calcMgr->reparseFinished(url, msg.getProperty("value"));
   p_calcMgr->queueUpdate(CalcMgr::UPDATE_CHANGED, url);
+}
+
+
+void CalcMgrApp::msgSubjectMCB(JMSMessage& msg)
+{
+  p_calcMgr->structureStored(EcceURL(msg.getProperty("url")));
+  msgChangedMCB(msg);
 }
 
 

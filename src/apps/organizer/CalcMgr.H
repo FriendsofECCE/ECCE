@@ -336,6 +336,9 @@ public:
                             bool ask, string *outcome, const string& name = "");
   /// Apply Recipe: the variant's steps in the workflow; the tree and view
   /// follow.  Empty on failure, with *outcome saying why.
+  /// A calculation's structure was stored (JMS ecce_url_subject): a recipe
+  /// step's workflow gets the rules and levels again.  What was stored, or "".
+  string structureStored(const EcceURL& url);
   vector<Resource*> newRecipeSteps(Session *workflow, const Recipe& recipe,
                                    const RecipeVariant& variant,
                                    const WorkflowSteps::Levels& levels,

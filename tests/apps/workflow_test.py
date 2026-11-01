@@ -425,6 +425,13 @@ def run_recipes(display, data, work, shots):
                 "role: geom | Geometry | B3LYP | 6-31G(d) | test\n"
                 "variant: main | ORCA | ORCA\n"
                 "step: main | opt | ORCA | geom | GeoVib | ORCA Opt | structure\n")
+    # The anion rule: a structure stored later turns 6-31G(d) into 6-31+G(d).
+    with open(os.path.join(userdir, "anion.recipe"), "w") as f:
+        f.write("recipe: anion\ntitle: Anion\n"
+                "role: geom | Geometry | PBE0 | 6-31G(d) | test\n"
+                "rules: anion-diffuse\n"
+                "variant: main | ORCA | ORCA\n"
+                "step: main | start | ORCA | geom | GeoVib | ORCA Opt | structure\n")
     with open(os.path.join(userdir, "broken.recipe"), "w") as f:
         f.write("recipe: broken\nthis line has no colon\n")
     shots_panel = os.path.join(shots, "recipe-panel.png")
@@ -451,7 +458,10 @@ def run_recipes(display, data, work, shots):
     commands += ["workflowkeydata %s" % kwf,
                  "workflowshot %s %s" % (shots_done, kwf),
                  "workflowrecipe %s handmade main -" % wf,
-                 "workflowrecipe %s single main %s/reactant" % (kwf, kwf)]
+                 "workflowrecipe %s single main %s/reactant" % (kwf, kwf),
+                 "workflowrecipe %s anion main -" % wf,
+                 "workflowstructure %s %s/start %s/reactant" % (wf, wf, kwf),
+                 "workflowinfo %s" % wf]
     script = os.path.join(work, "commands-recipes")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -482,6 +492,18 @@ def run_recipes(display, data, work, shots):
     check("the hand-written recipe builds its two boxes and the link",
           hand and "first xtb" in hand[0] and "second ORCA" in hand[0] and
           "first>second:geometry" in hand[0], "workflowrecipe answered %r" % hand[:1])
+    check("ORCA gets the role's method as its theory and functional",
+          single and re.search(r"(^|\|)opt ORCA [^|]*theory=RDFT[^|]*xc=B3LYP( |$|\|)", single[0]),
+          "workflowrecipe answered %r" % hand[-1:])
+    stored = answers("workflowstructure")
+    check("a structure stored later re-applies the rules (anion: diffuse basis)",
+          stored and stored[0].startswith("ok") and "start=PBE0/6-31+G(d)" in stored[0],
+          "workflowstructure answered %r" % stored)
+    infos = answers("workflowinfo")
+    after = steps(infos[-1].replace("ok ", "", 1)).get("start", {}) if infos else {}
+    check("the re-applied level is stored in the step (6-31+G*, PBE0)",
+          after.get("basis") == "6-31+G*" and after.get("xc") == "PBE0"
+          and after.get("theory") == "RDFT", "start: %r" % after)
     panels = answers("workflowrecipepanel")
     check("the set-up panel previews the ORCA variant (4 boxes, 3 links, no overlap)",
           len(panels) >= 2 and "recipe=ts-irc variant=orca boxes=4 links=3 overlaps=0" in panels[0],
@@ -505,6 +527,9 @@ def run_recipes(display, data, work, shots):
             "product>ts:product scan>ts:tsguess.max ts>irc:geometry")
     check("the links are the recipe's (roles and scan points)",
           all(l in info for l in want.split()), "links in %r" % info[-300:])
+    check("G16 gets the role's method (B3LYP) as its functional",
+          st.get("reactant", {}).get("xc") == "B3LYP_(hybrid)"
+          and st.get("reactant", {}).get("theory") == "RDFT", "reactant: %r" % st.get("reactant"))
     check("the TS step is the QST3 run type",
           st.get("ts", {}).get("code") == "G16", "ts: %r" % st.get("ts"))
     check("appended after a box: the chain starts from it",

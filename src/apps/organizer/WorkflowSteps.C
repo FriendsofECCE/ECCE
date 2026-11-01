@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <map>
 #include <set>
@@ -22,6 +23,7 @@
 #include "dsm/Session.H"
 #include "tdat/GUIValues.H"
 #include "tdat/TRunType.H"
+#include "tdat/TTheory.H"
 #include "dsm/VDoc.H"
 #include "util/Ecce.H"
 #include "CompareEnergies.H"
@@ -456,6 +458,17 @@ string WorkflowSteps::info(Session *wf)
         << "mult=" << (calc ? (int)calc->spinMultiplicity() : -1) << " "
         << "atoms=" << (frag ? (int)frag->numAtoms() : -1);
     if (needsStructure(step, !nodes[i].in.empty())) out << " needs=1";
+    TTheory *th = calc ? calc->theory() : 0;
+    if (th && !th->name().empty()) out << " theory=" << th->name();
+    delete th;
+    GUIValues *gv = calc ? calc->guiparams() : 0;
+    GUIValue *xc = gv ? gv->get("ES.Theory.DFT.XCFunctionals") : 0;
+    if (xc && !xc->getValueAsString().empty()) {
+      string v = xc->getValueAsString();
+      std::replace(v.begin(), v.end(), ' ', '_');
+      out << " xc=" << v;
+    }
+    delete gv;
     TGBSConfig *gbs = calc ? calc->gbsConfig() : 0;
     if (gbs && !gbs->name().empty()) out << " basis=" << gbs->name();
     delete gbs;
@@ -545,6 +558,37 @@ string libraryBasisName(const string& name)
     if (at != string::npos) n.replace(at, strlen(from[k]), to[k]);
   }
   return n;
+}
+
+// A recipe method names a functional as the papers do (M06-2X, wB97X-D);
+// the codes' choice lists drop dashes, so compare without them.
+string methodKey(const string& m)
+{
+  string k;
+  for (char c : m) if (c != '-' && c != ' ') k += (char)tolower((unsigned char)c);
+  return k;
+}
+
+// Stores the role's method as the step's theory and functional, for codes
+// whose functional list is known here (see WorkflowSteps::methodValue).
+void applyRoleMethod(Resource *step)
+{
+  const string method = step->getProp(nsKey(":recipe.method"));
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  if (method.empty() || !calc) return;
+  if (calc->getState() >= ResourceDescriptor::STATE_SUBMITTED) return;
+  const string type = step->getDescriptor() ? step->getDescriptor()->getName() : "";
+  const bool hf = methodKey(method) == "hf";
+  const string value = hf ? "" : WorkflowSteps::methodValue(type, method);
+  if (!hf && value.empty()) return;
+  TTheory theory(hf ? "SCF" : "DFT", hf ? "RHF" : "RDFT");
+  calc->theory(&theory);
+  if (hf) return;
+  GUIValues *g = calc->guiparams();
+  if (!g) g = new GUIValues();
+  setKey(g, "ES.Theory.DFT.XCFunctionals", value);
+  calc->guiparams(g);
+  delete g;
 }
 
 // A basis set is per element, so the role's one is stored once the step
@@ -704,11 +748,6 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       Levels::const_iterator lv = levels.find(rs.role);
       const string method = lv == levels.end() ? "" : lv->second.first;
       const string basis = lv == levels.end() ? "" : lv->second.second;
-      // Only G16 is known to take this value; other codes keep their own
-      // default and the choice is recorded for the Calculation Editor.
-      if (method == "B3LYP" && string(codeByLabel(rs.code)->typeName) == "gaussian16_es" &&
-          g->get("ES.Theory.DFT.XCFunctionals"))
-        setKey(g, "ES.Theory.DFT.XCFunctionals", "B3LYP (hybrid)");
       calc->guiparams(g);
       delete g;
 
@@ -719,6 +758,7 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       step->addProp(nsKey(":recipe.method"), method);
       step->addProp(nsKey(":recipe.basis"), basis);
       step->addProp(nsKey(":recipe.caption"), rs.caption);
+      applyRoleMethod(step);
       applyRoleBasis(step);
     }
     wf->addProp(nsKey(kRecipeProp.c_str()), recipe.id + "/" + variant.id);
@@ -756,15 +796,103 @@ string WorkflowSteps::recipeId(Session *wf)
 string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
 {
   if (step->getProp(nsKey(":recipe.step")).empty()) return "";
+  bool carried = false;
   for (Session::Link *l : wf->getLinks()) {
     if (l->linkType != Session::INPUT_PROVIDER || l->target != step) continue;
     string role, point;
     splitLinkName(l->linkName, role, point);
     if ((role == "geometry" || role == "reactant") &&
-        hasResultGeometry(l->source))
+        hasResultGeometry(l->source)) {
       carryInto(l->source, step, role == "reactant" ? "" : point);
+      carried = true;
+    }
+  }
+  if (carried) structureSet(wf, step);
+  return "";
+}
+
+
+string WorkflowSteps::methodValue(const string& codeType, const string& method)
+{
+  // Copies of the functional lists in ged16theory.py and orcatheory.py: a
+  // method neither list has is left to the Calculation Editor.
+  static const char *g16[] = {"B3LYP (hybrid)", "B3PW91 (hybrid)", "B97D3 (nonlocal)",
+    "BLYP (nonlocal)", "BP86 (GGA)", "CAM-B3LYP (range)", "M06 (hybrid)",
+    "M062X (hybrid)", "M06L (meta-GGA)", "MN15 (hybrid)", "PBE (GGA)",
+    "PBE0 (hybrid)", "PBE1PBE (hybrid)", "TPSSh (hybrid)", "wB97XD (range)",
+    "X3LYP (hybrid)", 0};
+  static const char *orca[] = {"B2PLYP", "B3LYP", "B97-D3", "B97M-V", "BLYP", "BP86",
+    "CAM-B3LYP", "DSD-PBEP86", "M06", "M062X", "M06L", "PBE", "PBE0", "PWPB95",
+    "r2SCAN", "revPBE", "TPSS", "TPSSh", "wB97M-V", "wB97X-D3", "wB97X-V", 0};
+  const char **list = codeType == "gaussian16_es" ? g16 : codeType == "orca_es" ? orca : 0;
+  if (!list) return "";
+  const string want = methodKey(method);
+  for (int i = 0; list[i]; i++) {
+    string name = list[i];
+    const size_t paren = name.find(" (");
+    if (methodKey(paren == string::npos ? name : name.substr(0, paren)) == want)
+      return name;
   }
   return "";
+}
+
+
+string WorkflowSteps::structureSet(Session *wf, Resource *step)
+{
+  if (!wf || !step || step->getProp(nsKey(":recipe.step")).empty()) return "";
+  const string rid = recipeId(wf);
+  StructureFacts facts;
+  PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+  Fragment *frag = task ? task->fragment() : 0;
+  if (frag && frag->numAtoms() > 0) {
+    facts.known = true;
+    facts.charge = frag->charge();
+    facts.atoms = (int)frag->numAtoms();
+    for (size_t i = 0; i < frag->numAtoms(); i++) {
+      const int z = frag->atomRef(i)->atomicNumber();
+      if (std::find(facts.elements.begin(), facts.elements.end(), z) == facts.elements.end())
+        facts.elements.push_back(z);
+    }
+  }
+  delete frag;
+  if (!facts.known) return "";
+
+  const Recipe *recipe = 0;
+  vector<Recipe> all = loadRecipes(recipeDirs());
+  const string id = rid.substr(0, rid.find('/'));
+  for (size_t i = 0; i < all.size(); i++) if (all[i].id == id) recipe = &all[i];
+  vector<Resource*> members = wf->getMembers();
+  std::ostringstream out;
+  for (size_t m = 0; m < members.size(); m++) {
+    Resource *r = members[m];
+    const string role = r->getProp(nsKey(":recipe.role"));
+    if (role.empty()) continue;
+    ICalculation *calc = dynamic_cast<ICalculation*>(r);
+    if (calc && calc->getState() >= ResourceDescriptor::STATE_SUBMITTED) continue;
+    for (size_t k = 0; recipe && k < recipe->roles.size(); k++) {
+      const RecipeRole& rr = recipe->roles[k];
+      if (rr.id != role) continue;
+      // Only a level that is still a recommendation follows the structure;
+      // one typed in the set-up panel stays.
+      const RoleChoice blank = recommend(*recipe, rr, StructureFacts());
+      const RoleChoice now = recommend(*recipe, rr, facts);
+      const string ruled = r->getProp(nsKey(":recipe.ruled"));
+      const string method = r->getProp(nsKey(":recipe.method"));
+      const string basis = r->getProp(nsKey(":recipe.basis"));
+      const bool asRecommended = (method == blank.method && basis == blank.basis) ||
+                                 method + "|" + basis == ruled;
+      if (asRecommended) {
+        r->addProp(nsKey(":recipe.method"), now.method);
+        r->addProp(nsKey(":recipe.basis"), now.basis);
+        r->addProp(nsKey(":recipe.ruled"), now.method + "|" + now.basis);
+      }
+    }
+    applyRoleMethod(r);
+    applyRoleBasis(r);
+    out << (out.tellp() > 0 ? " " : "") << r->getName() << "="
+        << r->getProp(nsKey(":recipe.method")) << "/" << r->getProp(nsKey(":recipe.basis"));
+  }
+  return out.str();
 }
 
 

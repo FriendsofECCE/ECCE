@@ -152,6 +152,16 @@ namespace WorkflowSteps {
   /// Steps not made by a recipe are left alone.  Empty, or why not.
   std::string refreshFromSources(Session *wf, Resource *step);
 
+  /// A recipe step's structure was stored (by the Builder, or carried in
+  /// from its source): the recipe's rules are applied again with what is now
+  /// known of the molecule, and each recipe step that has a structure gets
+  /// its role's method and basis set.  A level chosen by hand is kept.
+  /// Returns what was stored, for the test hook.
+  std::string structureSet(Session *wf, Resource *step);
+
+  /// The code's own value for a recipe method, "" when it has none.
+  std::string methodValue(const std::string& codeType, const std::string& method);
+
   /// The steps of a recipe workflow with their energies, for keyData().
   std::vector<KeyStep> keySteps(Session *wf);
 

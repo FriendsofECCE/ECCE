@@ -59,10 +59,16 @@ The boxes are ordinary steps and can be edited like any calculation.
   or import the structure in the Builder.
 - The other boxes take the geometry, charge and multiplicity of their source
   when you choose **Launch Ready Steps** after the source is Complete.
-- The method and basis chosen in the panel are kept with each box. A box
-  gets its basis set when it gets its structure, as a basis set is chosen
-  per element. The Calculation Editor shows the other settings of the
-  recipe's run type.
+- The method and basis chosen in the panel are kept with each box. For
+  Gaussian 16 and ORCA the method is set as the box's functional (HF as its
+  SCF theory) when one of the editor's functionals has that name; other
+  codes keep their own default. A box gets its basis set when it gets its
+  structure, as a basis set is chosen per element.
+- When a box's structure is saved in the Builder, or taken from its source,
+  the recipe's rules run again with that structure: an anion gets diffuse
+  functions, an element beyond Kr a def2 basis. A level you typed in the
+  panel is kept; only the recommended one changes.
+- The Calculation Editor shows the other settings of the recipe's run type.
 
 ## Key data
 
