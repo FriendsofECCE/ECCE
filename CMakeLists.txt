@@ -3410,6 +3410,15 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(launchjob PRIVATE
     eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
+  # #720: the copy-back wildcards a CP2K deck's sections ask for.
+  add_executable(testCp2kPatterns tests/launch/testCp2kPatterns.C)
+  target_include_directories(testCp2kPatterns PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(testCp2kPatterns PRIVATE
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME launch_cp2kpatterns COMMAND testCp2kPatterns)
+  set_tests_properties(launch_cp2kpatterns PROPERTIES TIMEOUT 60
+    ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=cp2kpatterns;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/cp2kpatterns-home")
   # tests/queues/configdump: RefMachine::config() for config_test.py.
   add_executable(configdump tests/queues/configdump.C)
   target_link_libraries(configdump PRIVATE eccetdat ecceutil)

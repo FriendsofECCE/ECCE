@@ -300,6 +300,9 @@ static string cpImportDir;
 static bool gReparse = false;
 static string cpMdStoreTrj;
 static string cpRxnMetadynamicsTask;
+// Space-separated wildcard patterns the launch found in the deck (a CP2K
+// &PDOS or cube section); copied back in addition to the generic list.
+static string cpExtraPatterns;
 
 #ifdef JSPERLTIMER
 ETimer perlTimer;
@@ -994,6 +997,7 @@ void configRead(const string& fileName)
   if (!param->findValue("rxnMetadynamicsTask", cpRxnMetadynamicsTask)) {
     message += "\nMissing 'rxnMetadynamicsTask' parameter";
   }
+  param->findValue("cp2kGetPatterns", cpExtraPatterns);
   delete param;
 
   if (message != "") {
@@ -1417,11 +1421,19 @@ void interactGetFiles(void)
   // retrieve files locally or remotely
   string calcdir = tmpStorage;
 
-  // create extra space in the array for .cub, .cube, and possibly
-  // MD Traject.trj, .rst, and .pmf dependent upon whether trajectories will be stored
-  // then add the +1 for the null entry at the end of the array
-  // allocate extra space as needed for files added below
-  int extraCount = 5;
+  // create extra space in the array for .cub, .cube, .file30, one slot per
+  // space-separated CP2K pattern the deck asked for, possibly MD Traject.trj,
+  // .rst, and .pmf dependent upon whether trajectories will be stored, and
+  // the null entry at the end of the array
+  int extraCount = 4;  // .cub, .cube, .file30, and the null entry
+  for (size_t start = 0; start < cpExtraPatterns.size(); ) {
+    size_t sp = cpExtraPatterns.find(' ', start);
+    if (sp != start)
+      extraCount++;
+    if (sp == string::npos)
+      break;
+    start = sp + 1;
+  }
   if (cpMdStoreTrj != "none")
     extraCount += 3;
   if (cpRxnMetadynamicsTask == "yes")
@@ -1459,9 +1471,28 @@ void interactGetFiles(void)
   fullFile = cpRemoteDir + "/*.file30";
   fileStrs[it++] = strdup((char*)fullFile.c_str());
 
-  // CP2K &PDOS output, one file per kind and per &LDOS list
-  fullFile = cpRemoteDir + "/*.pdos";
-  fileStrs[it++] = strdup((char*)fullFile.c_str());
+  // The CP2K wildcard the deck asked for (.pdos), added only if not already
+  // in the list; it was moved here so an ordinary CP2K run does not ask for
+  // a pattern it can never produce (#720).
+  {
+    size_t start = 0;
+    while (start < cpExtraPatterns.size()) {
+      size_t sp = cpExtraPatterns.find(' ', start);
+      string pat = cpExtraPatterns.substr(start, sp == string::npos
+                                                   ? sp : sp - start);
+      if (!pat.empty()) {
+        string want = cpRemoteDir + "/" + pat;
+        bool have = false;
+        for (int k = 0; k < it; k++)
+          if (strcmp(fileStrs[k], want.c_str()) == 0) { have = true; break; }
+        if (!have)
+          fileStrs[it++] = strdup(want.c_str());
+      }
+      if (sp == string::npos)
+        break;
+      start = sp + 1;
+    }
+  }
 
   if (cpMdStoreTrj != "none") {
     fullFile = cpRemoteDir + "/*.trj";
@@ -1544,15 +1575,26 @@ void interactGetFiles(void)
   }
 
   if (status) {
-    string msg = "Successfully copied files from server--\nRCommand::get(" +
-                 cpServerName + ", " + cpRemoteShell + ", " + cpUserName +
-                 ", <elided>, {";
-    for (it=0; fileStrs[it]!=NULL;  it++) {
-      msg += fileStrs[it];
-      msg += ",";
+    // One line per requested pattern: a wildcard that matched nothing is
+    // normal (CP2K rarely writes *.cub or *.file30) and must read as such,
+    // not as a copy that succeeded while files went missing (#720).
+    string msg = "Successfully copied files from server";
+    for (it=0; fileStrs[it]!=NULL; it++) {
+      string base = fileStrs[it];
+      base = base.substr(base.rfind('/') + 1);
+      string listing;
+      bool matched = localconn->execout(string("/bin/ls -d -- ") + base,
+                                        listing);
+      string line;
+      if (matched && !listing.empty()) {
+        for (size_t c = 0; c < listing.size(); c++)
+          if (listing[c] == '\n' || listing[c] == '\r') listing[c] = ' ';
+        line = base + ": " + listing;
+      } else {
+        line = "no files matched " + base;
+      }
+      msg += "\n" + line;
     }
-    msg.resize(msg.length() - 1);
-    msg += "}, " + calcdir + ") succeeded";
 
     if (copyfile) {
       copyfile << msg << endl;

@@ -304,6 +304,27 @@ static void copyChecks(const string& tmp)
         r && slurp(tmp + "/cdst2/a1.txt") == "one\n" &&
         slurp(tmp + "/cdst2/a2.txt") == "two\n");
 
+  // #720: a glob that matches nothing (a CP2K run's *.cub / *.file30) must
+  // not stop the remaining patterns from being copied.
+  const string run720 = tmp + "/run720", got720 = tmp + "/got720";
+  mkdir(run720.c_str(), 0755);
+  mkdir(got720.c_str(), 0755);
+  put(run720 + "/cp2k.cp2kout", "out\n");
+  put(run720 + "/a.cube", "a\n");
+  put(run720 + "/b.cube", "b\n");
+  vector<string> patterns;
+  patterns.push_back(run720 + "/cp2k.cp2kout");
+  patterns.push_back(run720 + "/*.cub");
+  patterns.push_back(run720 + "/*.cube");
+  patterns.push_back(run720 + "/*.file30");
+  err = "";
+  r = RCommand::get(err, "system", "", "", "", patterns, got720);
+  check("copy: an unmatched glob does not stop the others (#720)",
+        r && err == "" &&
+        slurp(got720 + "/cp2k.cp2kout") == "out\n" &&
+        slurp(got720 + "/a.cube") == "a\n" &&
+        slurp(got720 + "/b.cube") == "b\n");
+
   // A name that matches nothing is dropped by the glob, so cp gets no
   // source and says so; that is a failure, not the "No such file" warning.
   err = "";
