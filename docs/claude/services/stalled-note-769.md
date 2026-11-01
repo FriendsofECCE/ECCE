@@ -9,7 +9,7 @@ issues: [769, 284]
 **Not a run state.** The job stays Running; nothing is blocked or terminated.
 
 - **Monitor.** `$gLastOut` is the time of the last line read. While the
-  output is silent for 10 s the monitor marks the snapshot dirty every 10 s
+  output is silent for 60 s the monitor marks the snapshot dirty once a minute
   and the `# seq= sent=` header carries `idle=<s>` (0 once a line arrives).
   Only a code with `[PROGRESS]` entries sends snapshots, so only such codes
   are judged.

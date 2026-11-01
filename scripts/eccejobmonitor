@@ -3134,9 +3134,9 @@ sub JobOutputGet
 
                         # a snapshot held back by the throttle goes now
                         &ProgressTail(1) if (@gProgList);
-                        # silent for 10 s: say so every 10 s (#769)
-                        if (@gProgList && time - $gLastOut >= 10
-                            && time - $gIdleAt >= 10)
+                        # silent for a minute: say so once a minute (#769)
+                        if (@gProgList && time - $gLastOut >= 60
+                            && time - $gIdleAt >= 60)
                         {
                             $gIdleAt = time;
                             $gProgDirty = 1;
