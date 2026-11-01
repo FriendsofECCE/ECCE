@@ -716,8 +716,11 @@ def viewer_section(s, build, display, genv, wrappers, prep, png):
         f = os.path.join(out, name + ".txt")
         text = open(f).read() if os.path.exists(f) else ""
         say("  viewer %s: %s" % (name, " | ".join(text.splitlines()[:8])))
-    check(os.path.exists(shot) and os.path.exists(shot_cell),
-          "the Viewer's screenshots were taken")
+    if shutil.which("import"):
+        check(os.path.exists(shot) and os.path.exists(shot_cell),
+              "the Viewer's screenshots were taken")
+    else:
+        say("  (ImageMagick import not installed: the screenshots are not checked)")
     before = open(os.path.join(out, "before.txt")).read() \
         if os.path.exists(os.path.join(out, "before.txt")) else ""
     m = re.search(r"^atoms (\d+)$", before, re.M)
