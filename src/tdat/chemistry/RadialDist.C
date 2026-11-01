@@ -201,6 +201,13 @@ bool compute(const DensityPlane::Evaluator& ev, const double centre[3],
 
   PointValues pv(ev, specs);
 
+  //  The plain average at r = 0 is the value at the centre (an s orbital is
+  //  largest there); r^2 psi^2 really is 0 at r = 0.
+  if (!opt.radial && r[0] == 0.0) {
+    pv.at(centre[0], centre[1], centre[2]);
+    for (size_t k = 0; k < specs.size(); k++)
+      out[k].p[0] = perUnit * perUnit * perUnit * pv.value(specs[k]);
+  }
   for (size_t i = 1; i < r.size(); i++) {
     const double rA = r[i] * rScale;
     const double rb = rA / BOHR_ANG;
