@@ -2583,6 +2583,10 @@ add_test(NAME first_start_question
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/apps/first_start_test.py
                  $<TARGET_FILE:ecce-localdata> ${CMAKE_BINARY_DIR}/first-start-test)
 set_tests_properties(first_start_question PROPERTIES TIMEOUT 60)
+add_test(NAME server_list
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/apps/serverlist_test.py
+                 $<TARGET_FILE:ecce-localdata> ${CMAKE_BINARY_DIR}/server-list-test)
+set_tests_properties(server_list PROPERTIES TIMEOUT 60)
 
 # The central server over TLS (#236): the real data server and broker scripts
 # on loopback with a fresh certificate, then the clients with and without
@@ -2939,6 +2943,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/advanced_prefs_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_advanced_prefs PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Preferences > Data and the Add Server dialog (#767).
+  add_test(NAME apps_prefs_data
+           COMMAND 
+                   /tests/apps/prefs_data_test.py
+           WORKING_DIRECTORY /tests/apps)
+  set_tests_properties(apps_prefs_data PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # The viewer's software/hardware GL path and its measure labels (#566).
   add_test(NAME apps_gl_path

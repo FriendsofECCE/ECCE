@@ -135,61 +135,56 @@ stripes. Logging in with "GNOME on Xorg" avoids this.
 
 ## What you see the first time
 
-### The first question
+### Where your work is kept
 
-Each time you start ECCE it asks, in a window called "Welcome to ECCE",
-where your work goes. If you used ECCE before, the window shows how it is
-set up now and has that choice selected; click **Continue** to keep it:
+ECCE works on this computer by default and asks nothing at the first
+start. Your projects and calculations are kept in a folder on this
+computer (`~/.ECCE-local`; on Windows the folder `ecce-local` in your user
+folder), and the Organizer opens directly.
 
-![The first question](img/first-start.png)
+To keep calculations on a server as well, choose **Edit > Preferences**, tab
+**Data**. The box **Calculations on this computer** shows the folder and has
+**Change...** and **Open**. The box **Servers** lists the servers you have
+added, with their name, type and address:
 
-- **Store data on this computer** keeps your calculations in a folder on this
-  computer (`~/.ECCE-local`; on Windows the folder `ecce-local` in your
-  user folder). Choose this if you work alone.
-- **Connect to a server** keeps your calculations on an ECCE server. Enter
-  its address, for example `ecce.example.edu`; the address field is filled in
-  with the last server you used, or with this computer if it has its own ECCE
-  server. Click **Continue**. If the address is this computer and no shared
-  server runs here, ECCE uses this computer's own server. Otherwise ECCE shows
-  the login window; use the user name and password you were given. If the
-  server is not set up for other computers, ECCE says so and does not change
-  anything.
+- **Add Server...** asks for a type. An **SSH folder (SFTP)** needs a name,
+  a host, a user and a folder. An **ECCE server (https)** needs a name and
+  the address of the server, for example `https://ecce.example.edu`; the
+  login is asked when you connect. **Test connection** checks that an ECCE
+  server answers and shows whether its certificate is trusted. For an SSH
+  folder it is not available yet.
+- **Edit...** changes the selected server and **Remove** takes it out of the
+  list. Nothing on the server is deleted.
 
-Click **Continue** to confirm. ECCE remembers your choice and does not ask
-again. **Quit** closes ECCE without choosing anything.
+The list of servers is stored for you. For now the Preferences page only
+stores and lists them; connecting to them comes in a later release.
 
-ECCE asks on Linux, macOS and Windows alike: on your own laptop you can
-connect to your teacher's server in the same way. Once you have answered,
-it does not ask again. It does not ask at all on a computer whose
-administrator has already set up a server, or in the account that runs the
-server.
-
-If ECCE cannot connect, it tells you in the same window. Check the address
-and your network connection, then click **Continue** again.
+A server that your administrator set up for the installation is listed as
+**Set by your administrator** and cannot be changed or removed. ECCE does
+not ask at the start on a computer whose administrator has already set up a
+server, in the account that runs the server, or for a user who connected to a
+server in an earlier version. That earlier server stays listed; **Remove** on
+it goes back to the folder on this computer from the next start.
 
 If the server proves who it is with a certificate that your computer already
 trusts, ECCE connects without further questions. Otherwise ECCE remembers
 the certificate the server shows the first time you connect. If that
 certificate ever changes, ECCE does not log you in and says so; ask the
-server's administrator, then choose **Edit > Preferences**, tab **Data folder**, **Change Server...** and connect
-again.
+server's administrator.
 
 The login window for a server also has a button **Use this computer
-instead...**. It makes the same choice as **Store data on this computer**
-and ECCE goes on to start on this computer. On Windows, start ECCE again
-to work on this computer.
+instead...**. It switches to the folder on this computer and ECCE goes on
+to start on this computer. On Windows, start ECCE again to work on this
+computer.
 
-To change your mind later, choose **Edit > Preferences**, tab **Data folder**, **Change Server...** in the
-Organizer. The window says where ECCE works now, and which folder holds your
-calculations if it is this computer. The change applies the next time you
-start ECCE: close all ECCE windows, then start ECCE again. Your
-calculations are not copied from one place to the other. This works the same
-on Linux, macOS and Windows.
+Changes of where ECCE works apply the next time you start ECCE: close all
+ECCE windows, then start ECCE again. Your calculations are not copied from
+one place to the other. This works the same on Linux, macOS and Windows.
 
 If you did not choose a server, ECCE keeps your projects and calculations in
 one of two places on this computer.
 
-### On a data server (the default)
+### On a data server
 
 ECCE starts a data server for you. Before your first start, create your
 account on it:
@@ -250,12 +245,10 @@ To use it from the first start:
 To make it permanent:
 
 1. In the Organizer, choose **Edit > Preferences**.
-2. Open the **Data folder** tab.
-3. Tick **Keep calculations in a folder on this computer, not on a data
-   server**.
-4. To use another folder, click **Change...** next to **Folder:** and
+2. Open the **Data** tab.
+3. To use another folder, click **Change...** next to **Folder:** and
    choose it.
-5. Close the window and restart ECCE. The setting applies from the next
+4. Close the window and restart ECCE. The setting applies from the next
    start.
 
 Changing mode copies nothing. The calculations of the other mode stay where

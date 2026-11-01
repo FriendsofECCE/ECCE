@@ -2670,6 +2670,16 @@ def firstStartRun(checks, display, logdir, tag, extra, shot):
     return session, session.organizer()
 
 
+def seedChoice(display, extra, answer):
+    """A server chosen before the start, as an earlier version's window or
+    `ecce-first-start --apply` leaves it; the plain start no longer asks (#767)."""
+    r = subprocess.run([os.path.join(extra["ECCE_HOME"], "bin", "ecce-first-start"),
+                        "--apply", answer], env=dict(display.env(), **extra),
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=90)
+    if r.returncode:
+        print("seedChoice %s failed: %s" % (answer, r.stdout.decode(errors="replace")))
+
+
 def preselected(logdir, tag):
     """What the first-start window of start `tag` preselected, from its log."""
     try:
@@ -2695,13 +2705,13 @@ def caseFirstLocal(checks, display, logdir):
     os.makedirs(pngdir, exist_ok=True)
     shot = os.path.join(pngdir, "first-start-welcome.png")
     extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
-             "ECCE_NO_FIRST_START": "",
-             "ECCE_FIRST_START_ANSWER": "local"}
-    session, frame = firstStartRun(checks, display, logdir, "local", extra, shot)
+             "ECCE_NO_FIRST_START": ""}
+    session, frame = firstStartRun(checks, display, logdir, "local", extra, None)
     try:
         if not checks.check(frame, "the Organizer opened after the answer"):
             return
-        checks.check(os.path.exists(shot), "the question was drawn (%s)" % shot)
+        checks.check("Welcome to ECCE" not in " ".join(t for _, t in display.windows()),
+                     "no question was shown")
         checks.check(os.path.isdir(os.path.join(user, ".ECCE-local")),
                      "~/.ECCE-local was made")
         env = dict(display.env(), **extra)
@@ -2718,13 +2728,10 @@ def caseFirstLocal(checks, display, logdir):
         firstStartEnd(checks, display, session, frame)
     finally:
         session.kill()
-    # Asked at every start, with the choice preselected; Continue keeps it.
-    again = dict(extra, ECCE_FIRST_START_ANSWER="continue")
-    session, frame = firstStartRun(checks, display, logdir, "local2", again, shot)
+    # The next start is local too.
+    session, frame = firstStartRun(checks, display, logdir, "local2", dict(extra), None)
     try:
         checks.check(frame, "the second start opened the Organizer")
-        checks.check(preselected(logdir, "local2") == "local",
-                     "the second start asked with this computer preselected")
         orgs = named(display.name, "organizer")
         got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
         checks.check(got == os.path.join(user, ".ECCE-local"),
@@ -2757,8 +2764,8 @@ def caseFirstServer(checks, display, logdir):
     os.makedirs(pngdir, exist_ok=True)
     shot = os.path.join(pngdir, "first-start-server.png")
     extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
-             "ECCE_NO_FIRST_START": "",
-             "ECCE_FIRST_START_ANSWER": "server:localhost:%d" % dport}
+             "ECCE_NO_FIRST_START": ""}
+    seedChoice(display, extra, "server:localhost:%d" % dport)
     accessLog = os.path.join(statedir(), "dataserver", "logs", "access_log")
     logStart = os.path.getsize(accessLog) if os.path.exists(accessLog) else 0
     session, frame = firstStartRun(checks, display, logdir, "server", extra, shot)
@@ -2794,13 +2801,10 @@ def caseFirstServer(checks, display, logdir):
                      "the server's services are still up")
     finally:
         session.kill()
-    # Asked again with the server preselected; Continue keeps the server.
-    again = dict(extra, ECCE_FIRST_START_ANSWER="continue")
-    session, frame = firstStartRun(checks, display, logdir, "server2", again, shot)
+    # The recorded server keeps working at the next start.
+    session, frame = firstStartRun(checks, display, logdir, "server2", dict(extra), None)
     try:
         checks.check(frame, "the second start opened the Organizer")
-        checks.check(preselected(logdir, "server2") == "server",
-                     "the second start asked with the server preselected")
         orgs = named(display.name, "organizer")
         env = procEnv(orgs[0]) if orgs else {}
         checks.check(env.get("ECCE_REMOTE_SERVER") == "1",
@@ -2843,8 +2847,8 @@ def caseCreateAccount(checks, display, logdir):
     user = firstStartUser("create")
     extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": os.environ["ECCE_HOME"],
              "ECCE_NO_FIRST_START": "",
-             "ECCE_FIRST_START_ANSWER": "server:localhost",
              "ECCE_TEST_AUTH_ANSWER": "login:newstud:Sup3rSecret"}
+    seedChoice(display, extra, "server:localhost")
     users = os.path.join(user, ".ECCE", "dataserver", "users")
 
     def entries():
@@ -2924,9 +2928,9 @@ def caseCreateAccountCentral(checks, display, logdir):
         user = firstStartUser("create-central")
         extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": os.environ["ECCE_HOME"],
                  "ECCE_NO_FIRST_START": "",
-                 "ECCE_FIRST_START_ANSWER": "server:localhost:%d" % dport,
                  "ECCE_TEST_AUTH_ANSWER": "login:nobodyhere:Whatever1",
                  "ECCE_TEST_DIALOG_CLOSE": "4"}
+        seedChoice(display, extra, "server:localhost:%d" % dport)
         log = os.path.join(logdir, "create-account-central.log")
         session = Session(display, log, extra=extra)
         try:
@@ -2979,9 +2983,9 @@ def caseAuthUseLocal(checks, display, logdir):
             os.unlink(shot)
         extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
                  "ECCE_NO_FIRST_START": "",
-                 "ECCE_FIRST_START_ANSWER": "server:localhost:%d" % dport,
                  "ECCE_TEST_AUTH_ANSWER": "uselocal:10",
                  "ECCE_TEST_DIALOG_CLOSE": "4"}
+        seedChoice(display, extra, "server:localhost:%d" % dport)
         log = os.path.join(logdir, "auth-uselocal.log")
         session = Session(display, log, extra=extra)
         try:
@@ -2994,10 +2998,12 @@ def caseAuthUseLocal(checks, display, logdir):
             if not checks.check(wid, "the login window opened"):
                 return
             time.sleep(2)
-            subprocess.run(["import", "-display", display.name, "-window", wid,
-                            shot], stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
-            checks.check(os.path.exists(shot), "the login window photographed (%s)" % shot)
+            # The photo is for a reader; without ImageMagick the case still runs.
+            if shutil.which("import"):
+                subprocess.run(["import", "-display", display.name, "-window", wid,
+                                shot], stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL)
+                checks.check(os.path.exists(shot), "the login window photographed (%s)" % shot)
             first = session.gateway()
             sid1 = session.sid(timeout=10)
             deadline = time.time() + 60
@@ -3019,8 +3025,8 @@ def caseAuthUseLocal(checks, display, logdir):
             text = open(log, errors="replace").read()
             checks.check("ECCE_TEST_AUTH_ANSWER: uselocal" in text,
                          "the button was pressed")
-            checks.check(text.count("ecce-first-start: preselected") == 1,
-                         "the question was not asked again after the switch")
+            checks.check("ecce-first-start: preselected" not in text,
+                         "no question was asked after the switch")
             checks.check("From the next start" not in text and
                          "Authentication Failure" not in text and
                          "ended by SIG" not in text,
@@ -3044,13 +3050,10 @@ def caseAuthUseLocal(checks, display, logdir):
         checks.check(answer == "local", "the answer is recorded (%s)" % answer)
         # The next start: this computer preselected, no login, local mode.
         again = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
-                 "ECCE_NO_FIRST_START": "",
-                 "ECCE_FIRST_START_ANSWER": "continue"}
+                 "ECCE_NO_FIRST_START": ""}
         session, frame = firstStartRun(checks, display, logdir, "uselocal2", again, None)
         try:
             checks.check(frame, "the next start opened the Organizer")
-            checks.check(preselected(logdir, "uselocal2") == "local",
-                         "it asked with this computer preselected")
             orgs = named(display.name, "organizer")
             got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
             checks.check(got == os.path.join(user, ".ECCE-local"),

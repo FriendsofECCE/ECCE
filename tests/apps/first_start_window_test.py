@@ -4,7 +4,7 @@
     first_start_window_test.py <ecce-localdata binary> <scratch dir> [<ecce-first-start>]
 
 Runs the real window (wxPython, a display) with ECCE_FIRST_START_ANSWER, as
-ecce, ecce.cmd and Edit > Change Server... start it, for both answers and
+`ecce-first-start --change` starts it, for both answers and
 checks what is left on disk: local = the data folder and the preference on;
 server = ~/.ECCE/RemoteServer written against a stub data server (an HTTP
 listener).  Linux, macOS and Windows; exit 77 without wxPython.
@@ -75,6 +75,9 @@ def fresh(name):
 
 
 def window(env, answer, *args):
+    # The plain start no longer asks (#767): the window is --change.
+    if "--change" not in args:
+        args += ("--change",)
     env = dict(env, ECCE_FIRST_START_ANSWER=answer)
     return subprocess.run([sys.executable, SCRIPT, *args], env=env,
                           capture_output=True, text=True, timeout=180)
@@ -113,13 +116,13 @@ check(r.returncode == 0 and "preselected server" in r.stderr
 # Edit > Change Server...: from the server back to this computer, then away again.
 r = window(env, "local", "--change")
 check(r.returncode == 0 and not os.path.exists(ds) and pref(env) == "on",
-      "Change Server, to this computer (rc=%d %s)" % (r.returncode, r.stderr.strip()))
+      "--change, to this computer (rc=%d %s)" % (r.returncode, r.stderr.strip()))
 r = window(env, "server:127.0.0.1:%d" % port, "--change")
 check(r.returncode == 0 and os.path.exists(ds) and pref(env) == "off",
-      "Change Server, to the server (rc=%d %s)" % (r.returncode, r.stderr.strip()))
+      "--change, to the server (rc=%d %s)" % (r.returncode, r.stderr.strip()))
 
 # A Linux user who already works on the per-user data server, with the
-# server package installed: asked, "Connect to a server" preselected with
+# server package installed: the window preselects "Connect to a server" preselected with
 # localhost, and Continue keeps that data server (no local folder,
 # preference untouched).
 env, user = fresh("perusersrv")
@@ -127,7 +130,8 @@ os.makedirs(os.path.join(user, ".ECCE", "dataserver"))
 open(os.path.join(env["ECCE_HOME"], "bin", "ecce-dataserver-start"), "w").close()
 r = subprocess.run([sys.executable, SCRIPT, "--check"], env=env, capture_output=True,
                    text=True, timeout=60)
-check(r.stdout.strip() == "ask", "per-user data server user is asked (%s)" % r.stdout.strip())
+check(r.stdout.strip().startswith("skip"),
+      "per-user data server user is left alone at start (%s)" % r.stdout.strip())
 r = window(env, "continue")
 ans = os.path.join(user, ".ECCE", "first-start-answer")
 check(r.returncode == 0 and "preselected server" in r.stderr
@@ -192,6 +196,37 @@ check(r.returncode == 4 and "message broker" in r.stderr
       and pref(env2) == "unset",
       "a server whose broker does not answer is refused, nothing written (rc=%d %s)"
       % (r.returncode, r.stderr.strip()))
+
+# #767: the plain start asks nothing. Unconfigured: local at once, with no
+# window (the hook line says "local by default" and no preselection).
+def plain(env):
+    return subprocess.run([sys.executable, SCRIPT], env=dict(env, ECCE_FIRST_START_ANSWER="local", DISPLAY=":99"),
+                          capture_output=True, text=True, timeout=60)
+
+env, user = fresh("plain-fresh")
+r = plain(env)
+check(r.returncode == 0 and "local by default" in r.stderr and "preselected" not in r.stderr
+      and os.path.isdir(os.path.join(user, local_dir)) and pref(env) == "on",
+      "plain start, nothing configured: local without the question (rc=%d %s)"
+      % (r.returncode, r.stderr.strip()))
+
+configured = [
+    ("siteremote", lambda e, u, h: (os.makedirs(h + "/siteconfig/RemoteServer"),
+                                     open(h + "/siteconfig/RemoteServer/DataServers", "w").close())),
+    ("sharedbroker", lambda e, u, h: open(h + "/siteconfig/SharedBroker", "w").close()),
+    ("remoteenv", lambda e, u, h: e.update(ECCE_REMOTE_SERVER="1")),
+    ("serveraccount", lambda e, u, h: (os.makedirs(u + "/.ECCE", exist_ok=True),
+                                       open(u + "/.ECCE/mosquitto.server", "w").close())),
+    ("recorded", lambda e, u, h: (os.makedirs(u + "/.ECCE/RemoteServer"),
+                                   open(u + "/.ECCE/RemoteServer/DataServers", "w").close())),
+]
+for name, setup in configured:
+    env, user = fresh("plain-" + name)
+    setup(env, user, env["ECCE_HOME"])
+    r = plain(env)
+    check(r.returncode == 0 and "not asking" in r.stderr
+          and not os.path.isdir(os.path.join(user, local_dir)) and pref(env) == "unset",
+          "plain start, %s: left as it is (rc=%d %s)" % (name, r.returncode, r.stderr.strip()))
 
 httpd.shutdown()
 sys.exit(1 if failures else 0)
