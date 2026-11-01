@@ -197,6 +197,8 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_launch_request", (wxJmsCBFunc)&CalcMgrApp::launchRequestMCB);
   // ecce-terminate (#695)
   subscribe("ecce_terminate_request", (wxJmsCBFunc)&CalcMgrApp::terminateRequestMCB);
+  // ecce-annotate (#742)
+  subscribe("ecce_annotate_request", (wxJmsCBFunc)&CalcMgrApp::annotateRequestMCB);
   // ecce-reconnect
   subscribe("ecce_reconnect_request", (wxJmsCBFunc)&CalcMgrApp::reconnectRequestMCB);
   // ecce-fetch
@@ -314,6 +316,27 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
     reply("busy", lines);
   else
     reply("done", lines);
+}
+
+
+// ecce-annotate: as launchRequestMCB, answered on ecce_annotate_reply.
+void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+  vector<string> lines;
+  p_calcMgr->annotateForCommand(urls, msg.getProperty("text"), lines);
+  JMSMessage* r = newMessage();
+  r->addProperty("reply_id", id);
+  r->addProperty("kind", "done");
+  r->addIntProperty("n", (int)lines.size());
+  for (size_t i = 0; i < lines.size(); i++)
+    r->addProperty("line" + std::to_string(i), lines[i]);
+  publish("ecce_annotate_reply", *r);
+  delete r;
 }
 
 

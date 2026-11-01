@@ -516,6 +516,13 @@ target_link_libraries(ecce-launch PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES}
 add_executable(ecce-terminate src/apps/launch/ecce-terminate.C)
 target_include_directories(ecce-terminate PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-terminate PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
+# Sets a calculation's Annotation from the command line (#742); without a
+# running session it writes through the data layer, as launchjob does.
+add_executable(ecce-annotate src/apps/launch/ecce-annotate.C)
+target_include_directories(ecce-annotate PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-annotate PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # Reconnects calculations inside the running session.
 add_executable(ecce-reconnect src/apps/launch/ecce-reconnect.C)
 target_include_directories(ecce-reconnect PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1085,6 +1092,10 @@ file(READ ${_launch_wrapper} _term_text)
 string(REPLACE "bin/ecce-launch" "bin/ecce-terminate" _term_text "${_term_text}")
 file(WRITE ${_term_wrapper} "${_term_text}")
 install(PROGRAMS ${_term_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+set(_annot_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-annotate)
+string(REPLACE "bin/ecce-terminate" "bin/ecce-annotate" _annot_text "${_term_text}")
+file(WRITE ${_annot_wrapper} "${_annot_text}")
+install(PROGRAMS ${_annot_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 set(_reconn_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-reconnect)
 string(REPLACE "bin/ecce-terminate" "bin/ecce-reconnect" _reconn_text "${_term_text}")
 file(WRITE ${_reconn_wrapper} "${_reconn_text}")
@@ -1140,7 +1151,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-reconnect ecce-fetch ecce-site-admin mocomp
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-reconnect ecce-fetch ecce-site-admin mocomp
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)

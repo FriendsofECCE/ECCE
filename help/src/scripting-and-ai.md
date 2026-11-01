@@ -2,8 +2,26 @@
 
 Everything ECCE does can be done from the command line, so scripts and AI
 assistants can work with it too. The commands are `ecce-launch`,
-`ecce-terminate`, `ecce-reconnect`, `ecce-fetch` and `ecce-contacts`; see
-[Launch Selected](launch-selected.md) for the first four.
+`ecce-terminate`, `ecce-annotate`, `ecce-reconnect`, `ecce-fetch` and
+`ecce-contacts`; see [Launch Selected](launch-selected.md) for the launch and
+terminate commands.
+
+## Setting an annotation
+
+`ecce-annotate <calculation>... "text"` sets the Annotation field of
+calculations and MD study tasks. With ECCE running, the Organizer stores the
+text as its Annotation editor does and shows it at once. Without a running
+session, a calculation in the local data folder is written directly, through
+the same code and locking ECCE uses.
+
+Do not write `ecce:annotation` into `.ecce-meta` by hand while the Organizer
+or a job monitor has the calculation open. One `.ecce-meta` holds the
+properties of every calculation in its folder, and ECCE changes it under an
+exclusive lock on `.ecce-meta.lock`, by renaming a complete new file over the
+old one. A write without the lock can overwrite a state or progress update
+that a job monitor stores in the same folder at the same moment, and the
+Organizer keeps its own copy of what it has read and can write that back. The
+command avoids both.
 
 ## The AGENTS.md file
 

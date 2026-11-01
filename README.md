@@ -69,6 +69,7 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 - Results file: the `ecce-results` command converts orbitals from Molden, Gaussian fchk and ORCA files, and an ORCA Hessian, into one HDF5 file (`results.h5`) with a fixed orbital order, the basis for carrying orbitals and Hessians from one workflow step to the next; the [results file help page](help/src/results-file-format.md) describes it.
 
+- `ecce-annotate`: set a calculation's Annotation from the command line, through the running Organizer ([#742](https://github.com/FriendsofECCE/ECCE/issues/742)).
 - `ecce-launch`: launch Ready calculations from the command line, inside the running ECCE session, with their stored machine, cores and wall time; it prints each job id ([#687](https://github.com/FriendsofECCE/ECCE/issues/687)).
 
 - Workflow joins: Ctrl-click a reactant, a product and a TS guess and choose Gaussian 16 or ORCA to make a QST3 (or QST2) or NEB-TS step; a step can start from a scan's last point, its maximum or any point. Example: an SN2 reaction, Cl⁻ + CH₃Br, from the reactant complex through a relaxed scan to the QST3 transition state and its IRC.
