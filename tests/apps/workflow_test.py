@@ -246,6 +246,8 @@ def run(display, data, work, shots):
     wf = proj + "/Workflow"
     png = os.path.join(shots, "workflow-view.png")
     dlg = os.path.join(shots, "workflow-new-step.png")
+    dlg2 = os.path.join(shots, "workflow-new-first-step.png")
+    png2 = os.path.join(shots, "workflow-states.png")
     commands = [
         "summary %s/water" % proj,
         "new %s workflow" % proj,
@@ -258,7 +260,20 @@ def run(display, data, work, shots):
         "workflowready %s" % wf,
         "workflowshot %s %s %s/orca-1" % (png, wf, wf),
         "workflowdialogshot %s %s orca_es %s/xtb-1" % (dlg, wf, wf),
-    ] + ["workflowmenu %s %s/%s" % (wf, wf, n) for n in MENU_STEPS]
+        "workflowdialogshot %s %s orca_es -" % (dlg2, wf),
+    ] + ["workflowmenu %s %s/%s" % (wf, wf, n) for n in MENU_STEPS] + [
+        # every creation path of a step with a source shows the dialog (#674)
+        "workflownew %s orca_es panel %s/orca-1" % (wf, wf),
+        "workflownew %s gaussian16_es tree %s/xtb-1" % (wf, wf),
+        "workflowlaunchbutton %s" % wf,
+        # a Complete and a Running step side by side, as the tree draws them
+        "setstate %s/nw-water completed" % wf,
+        "setstate %s/xtb-1 running" % wf,
+        "workflowshot %s %s %s/xtb-1" % (png2, wf, wf),
+        "treestate %s/nw-water" % wf,
+        "treestate %s/xtb-1" % wf,
+        "treestate %s/orca-3" % wf,
+    ]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -338,8 +353,34 @@ def run(display, data, work, shots):
           all(m.startswith("ok ") and "Rename" in m for m in menus),
           "workflowmenu answered %r" % menus)
     ds = answer("workflowdialogshot")
-    check("New-step dialog screenshot", bool(ds) and ds[0] == "ok" and
-          os.path.exists(dlg), "answered %r" % ds)
+    check("New-step dialog screenshot", len(ds) == 2 and
+          ds[0] == "ok carry=1" and os.path.exists(dlg), "answered %r" % ds)
+    check("a step without a source gets no Carry-over boxes",
+          len(ds) == 2 and ds[1] == "ok carry=0" and os.path.exists(dlg2),
+          "answered %r" % ds)
+    new = answer("workflownew")
+    check("New-step dialog with Carry over from the view's code button and "
+          "from the tree's New menu",
+          new == ["ok dialogs=carry;", "ok dialogs=carry;"],
+          "workflownew answered %r" % new)
+    button = answer("workflowlaunchbutton")
+    check("Launch Ready Steps button is in the view, shown, inside it",
+          bool(button) and button[0] == "ok label=Launch Ready Steps shown=1 "
+          "inside=1 enabled=1", "answered %r" % button)
+    ts = answer("treestate")
+    states = answer("workflowshot")
+    icons = {}
+    if len(states) == 2:
+        m = re.search(r"icons=(\S+)", states[1])
+        for pair in (m.group(1).split(",") if m else []):
+            name, _, idx = pair.rpartition(":")
+            icons[name] = idx
+    tree = [re.search(r"image=(\d+)", t).group(1) if re.search(r"image=(\d+)", t)
+            else None for t in ts]
+    check("boxes draw the tree's run-state icon (Complete and Running differ)",
+          len(tree) == 3 and
+          [icons.get(n) for n in ("nw-water", "xtb-1", "orca-3")] == tree and
+          tree[0] != tree[1], "box icons %s, tree %s" % (icons, ts))
 
 
 def main():
