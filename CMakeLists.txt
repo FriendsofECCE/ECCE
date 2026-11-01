@@ -2625,6 +2625,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
   set_tests_properties(parsers_partial PROPERTIES TIMEOUT 600)
 
+  # tests/jobstore -- JobFailureReason/JobLogDates header unit tests,
+  # compiled with plain g++ by the driver (no ECCE/X11 dependencies).
+  add_test(NAME jobstore
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/jobstore/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/jobstore)
+
   # tests/dialogs -- the GUI-side sibling of the above: runs the real
   # scripts/codereg dialogs headlessly (broadwayd, GTK3's displayless
   # backend; falls back to xvfb; SKIPs cleanly with neither) and diffs what

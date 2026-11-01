@@ -58,6 +58,37 @@ static void expectShortSingleLine(const string& label, const string& reason)
   }
 }
 
+// The HFX_MEM_INFO block of a real CP2K 2025.1 PBE0 water run (MAX_MEMORY
+// 200), with the two program-size lines and the ERI RAM line parameterized
+// so the two-block case below can differ from the verbatim first block.
+static string hfxBlock(const string& before, const string& after,
+                       const string& ram)
+{
+  return string(" SCF WAVEFUNCTION OPTIMIZATION\n")
+       + "\n"
+       + "  Step     Update method      Time    Convergence         Total energy    Change\n"
+       + "  ------------------------------------------------------------------------------\n"
+       + "\n"
+       + "  HFX_MEM_INFO| Est. max. program size before HFX [MiB]:                     " + before + "\n"
+       + "  HFX_MEM_INFO| Number of cart. primitive ERI's calculated:            275133392\n"
+       + "  HFX_MEM_INFO| Number of sph. ERI's calculated:                           89381\n"
+       + "  HFX_MEM_INFO| Number of sph. ERI's stored in-core:                       89381\n"
+       + "  HFX_MEM_INFO| Number of sph. ERI's stored on disk:                           0\n"
+       + "  HFX_MEM_INFO| Number of sph. ERI's calculated on the fly:                    0\n"
+       + "  HFX_MEM_INFO| Total memory consumption ERI's RAM [MiB]:                      " + ram + "\n"
+       + "  HFX_MEM_INFO| Whereof max-vals [MiB]:                                        1\n"
+       + "  HFX_MEM_INFO| Total compression factor ERI's RAM:                         3.23\n"
+       + "  HFX_MEM_INFO| Total memory consumption ERI's disk [MiB]:                     0\n"
+       + "  HFX_MEM_INFO| Total compression factor ERI's disk:                        0.00\n"
+       + "  HFX_MEM_INFO| Size of density/Fock matrix [MiB]:                             0\n"
+       + "  HFX_MEM_INFO| Size of buffers [MiB]:                                         0\n"
+       + "  HFX_MEM_INFO| Number of periodic image cells considered:                    81\n"
+       + "  HFX_MEM_INFO| Est. max. program size after HFX  [MiB]:                     " + after + "\n"
+       + "\n"
+       + "\n"
+       + " MO| EIGENVALUES AND OCCUPATION NUMBERS AFTER SCF STEP 0\n";
+}
+
 int main(int argc, char** argv)
 {
   if (argc < 2) {
@@ -246,6 +277,27 @@ int main(int argc, char** argv)
     remove(path.c_str());
     expectEmpty("scheduler note, missing file",
                 JobFailureReason::schedulerErrNote("slurm.err", path));
+  }
+
+  // CP2K HFX memory estimate for a scheduler OOM kill (#739): the LAST
+  // HFX_MEM_INFO block's two program-size lines and its ERI RAM line
+  // become one short sentence; "" when there is no such block.
+  {
+    const string one = hfxBlock("291", "294", "1");
+    expectContains("hfx single block",
+                   JobFailureReason::hfxMemoryNote(one),
+                   "CP2K's HFX estimate: program size 291 MiB before HFX, "
+                   "294 MiB after; ERIs in RAM 1 MiB");
+    const string two = one + hfxBlock("300", "305", "7");
+    const string note = JobFailureReason::hfxMemoryNote(two);
+    expectContains("hfx last block wins", note,
+                   "program size 300 MiB before HFX, 305 MiB after; "
+                   "ERIs in RAM 7 MiB");
+    expectContains("hfx advice", note, "set the memory per rank");
+    expectShortSingleLine("hfx note is short", note);
+    expectEmpty("hfx no lines", JobFailureReason::hfxMemoryNote(
+                   "a CP2K output with no HFX_MEM_INFO\n"));
+    expectEmpty("hfx empty text", JobFailureReason::hfxMemoryNote(""));
   }
 
   if (failures) {
