@@ -71,6 +71,9 @@ public:
         // A problem the launch check found that the user decides about
         // (the Launcher asks); "" when there is none.
         string launchWarning(void) const;
+        // Name of the input provider an MD study task takes its starting
+        // structure from while that provider is not Complete; "" otherwise.
+        static string waitsFor(TaskJob *task);
         void clearLaunchWarning(void);
 
         // Where the generated input deck and submit script were written.
@@ -111,6 +114,10 @@ private:
         TaskJob                *p_taskjob;
         TaskJob                *p_restartProvider;
         TaskJob                *p_topologyProvider;
+        // The one stored file a GROMACS task starts from (empty: use the
+        // provider's own pick, as the other MD codes do).
+        vector<EcceURL>         p_restartFile;
+        vector<EcceURL>         p_topologyFile;
         TaskJob                *p_fragmentProvider;
         bool                    p_isPrepareTask;
         bool                    p_isMetadynamicsTask;
