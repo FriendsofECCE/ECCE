@@ -104,6 +104,9 @@ def main(argv=None):
     ap.add_argument("--amplitude", type=float, default=0.1)
     ap.add_argument("--sign", choices=["+", "-", "both"], default="+")
     ap.add_argument("--source", default="")
+    ap.add_argument("--lines", action="store_true",
+                    help="plain text for the GUI: per structure a line "
+                         "'note <text>' and N lines 'x y z'")
     a = ap.parse_args(argv)
     if a.amplitude <= 0:
         ap.error("amplitude must be positive")
@@ -115,6 +118,12 @@ def main(argv=None):
     except ValueError as e:
         print("ecce-displace: %s" % e, file=sys.stderr)
         return 1
+    if a.lines:
+        for r in res:
+            print("note " + r["note"])
+            for c in r["coords"]:
+                print("%.8f %.8f %.8f" % tuple(c))
+        return 0
     json.dump({"elements": els, "results": res}, sys.stdout)
     print()
     return 0

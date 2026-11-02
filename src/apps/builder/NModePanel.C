@@ -1,4 +1,9 @@
 #include "util/UnitDisplay.H"
+#include "util/Ecce.H"
+#include "dsm/ICalculation.H"
+#include "dsm/TaskJob.H"
+#include "tdat/TRunType.H"
+#include "util/VDoc.H"
 #include <cmath>
 #include <iostream>
   using std::cout;
@@ -9,7 +14,13 @@
 #include <limits>
 
 #include <sstream>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <wx/checkbox.h>
+#include <wx/dialog.h>
+#include <wx/utils.h>
+#include <wx/radiobox.h>
 #include <wx/dcclient.h>
 #include <wx/dcscreen.h>
 #include <wx/app.h>
@@ -693,6 +704,13 @@ void NModePanel::createSpectrumPane()
          if (!showComposition(-1, &err))
             wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
       });
+      wxButton *displace = new wxButton(viewBox->GetParent(), wxID_ANY,
+                                        "Displace...");
+      displace->SetToolTip("New calculation(s) with the structure displaced "
+                           "along the selected mode or all imaginary modes: "
+                           "the way off a saddle point.");
+      viewSizer->Insert(at + 5, displace, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      displace->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { displaceDialog(); });
       //  Enabled, not hidden, so the row does not reflow at narrow widths.
       p_compareRemove = new wxButton(viewBox->GetParent(), wxID_ANY,
                                      "Remove comparison");
@@ -1468,6 +1486,150 @@ void NModePanel::analyseModes()
    } catch (...) {
       p_vib = VibResult();
    }
+}
+
+
+//  The arithmetic is ecce-displace's (scripts/ecce_displace.py); this writes
+//  its input, runs it and puts the answer into copies of the calculation.
+string NModePanel::displaceCalculation(int mode, double amplitude,
+                                       const string& sign, vector<string> *urls)
+{
+   IPropCalculation *calc = getCalculation();
+   Resource *res = dynamic_cast<Resource*>(calc);
+   PropVector *vec = calc ? (PropVector*) calc->getProperty("VIBFREQ") : 0;
+   PropVecTable *vib = calc ? dynamic_cast<PropVecTable*>(calc->getProperty("VIB")) : 0;
+   Fragment frag;
+   if (!res || !vec || !vib || !calc->getFragment(frag))
+      return "This calculation has no stored normal modes and structure.";
+   const int nat = (int)frag.numAtoms(), nm = vec->rows();
+   if (nat == 0 || vib->rows() != nat || vib->tables() != nm)
+      return "The normal modes do not match the structure.";
+   if (mode >= nm) return "No such mode.";
+   if (!(amplitude > 0)) return "The amplitude must be positive.";
+
+   namespace fs = std::filesystem;
+   std::error_code ec;
+   fs::path tmp = fs::temp_directory_path(ec) /
+                  ("ecce-displace-" + std::to_string((long)wxGetProcessId()));
+   fs::create_directories(tmp, ec);
+   {
+      std::ofstream f((tmp / "modes").string());
+      f.precision(10);
+      f << nat << "\n";
+      for (int a = 0; a < nat; a++) {
+         const double *x = frag.atomRef(a)->coordinates();
+         f << frag.atomRef(a)->atomicSymbol() << " " << x[0] << " " << x[1]
+           << " " << x[2] << "\n";
+      }
+      f << "modes " << nm << "\n";
+      for (int m = 0; m < nm; m++) {
+         f << vec->value(m) << "\n";
+         for (int a = 0; a < nat; a++)
+            f << vib->value(m, a, 0) << " " << vib->value(m, a, 1) << " "
+              << vib->value(m, a, 2) << "\n";
+      }
+   }
+   const char *home = getenv("ECCE_HOME");
+   string script = home && *home ? string(home) + "/bin/ecce-displace"
+                                 : string("ecce-displace");
+   std::ostringstream amp;
+   amp << amplitude;
+   string args = "'" + (tmp / "modes").string() + "' " +
+                 (mode < 0 ? string("--imaginary") : "--mode " + std::to_string(mode + 1)) +
+                 " --amplitude " + amp.str() + " --sign '" + sign + "' --source '" +
+                 res->getName() + "' --lines";
+#ifdef _WIN32
+   fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+   string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+   string cmd = "\"" + pyExe + "\" \"" + script + "\" " + args;
+#else
+   string cmd = "'" + script + "' " + args + " 2>/dev/null";
+#endif
+   string text;
+   int status = Ecce::readCommand(cmd, text);
+   fs::remove_all(tmp, ec);
+   if (status != 0)
+      return mode < 0 ? "This calculation has no imaginary mode."
+                      : "The displacement could not be computed.";
+
+   std::istringstream in(text);
+   string line;
+   vector<string> out;
+   while (std::getline(in, line)) {
+      if (!line.empty() && line.back() == '\r') line.pop_back();
+      if (line.compare(0, 5, "note ") != 0) continue;
+      const string note = line.substr(5);
+      vector<double> xyz;
+      for (int a = 0; a < nat && std::getline(in, line); a++) {
+         std::istringstream ls(line);
+         double x, y, z;
+         ls >> x >> y >> z;
+         xyz.push_back(x); xyz.push_back(y); xyz.push_back(z);
+      }
+      if ((int)xyz.size() != 3*nat) return "The displacement could not be read.";
+      EcceURL url = res->getURL();
+      if (!res->copy(url)) return "The calculation could not be copied: " + res->messages();
+      Resource *made = EDSIFactory::getResource(url);
+      PropertyTask *pt = dynamic_cast<PropertyTask*>(made);
+      ICalculation *ic = dynamic_cast<ICalculation*>(made);
+      TaskJob *job = dynamic_cast<TaskJob*>(made);
+      Fragment *nf = pt ? pt->fragment() : 0;
+      if (!nf || !ic || !job || (int)nf->numAtoms() != nat) {
+         if (made) made->remove();
+         return "The copy has no structure to displace.";
+      }
+      for (int a = 0; a < nat; a++)
+         nf->atomRef(a)->coordinates(xyz[3*a], xyz[3*a+1], xyz[3*a+2]);
+      pt->fragment(nf);
+      TRunType rt;
+      rt.name("Geometry");
+      ic->runtype(rt);
+      job->resetForRerun(ResourceDescriptor::STATE_CREATED);
+      made->addProp(VDoc::getEcceNamespace() + ":annotation", note);
+      out.push_back(url.toString());
+   }
+   if (out.empty()) return "The displacement could not be read.";
+   if (urls) *urls = out;
+   return "";
+}
+
+
+void NModePanel::displaceDialog()
+{
+   wxDialog dlg(this, wxID_ANY, "Displace along a mode");
+   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+   wxArrayString what, sign;
+   what.Add("Selected mode");
+   what.Add("All imaginary modes");
+   sign.Add("+");
+   sign.Add("-");
+   sign.Add("Both (two calculations)");
+   wxRadioBox *w = new wxRadioBox(&dlg, wxID_ANY, "Along", wxDefaultPosition,
+                                  wxDefaultSize, what, 1);
+   wxRadioBox *sg = new wxRadioBox(&dlg, wxID_ANY, "Direction",
+                                   wxDefaultPosition, wxDefaultSize, sign, 1);
+   wxTextCtrl *amp = new wxTextCtrl(&dlg, wxID_ANY, "0.10");
+   top->Add(w, 0, wxALL | wxEXPAND, 6);
+   top->Add(sg, 0, wxALL | wxEXPAND, 6);
+   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+   row->Add(new wxStaticText(&dlg, wxID_ANY, "Largest atom displacement (\u00c5)"),
+            0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+   row->Add(amp, 1);
+   top->Add(row, 0, wxALL | wxEXPAND, 6);
+   top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 6);
+   dlg.SetSizerAndFit(top);
+   if (dlg.ShowModal() != wxID_OK) return;
+   double a = 0;
+   if (!amp->GetValue().ToDouble(&a)) a = -1;
+   const char *signs[] = {"+", "-", "both"};
+   vector<string> urls;
+   string err = displaceCalculation(w->GetSelection() == 0 ? p_mode : -1, a,
+                                    signs[sg->GetSelection()], &urls);
+   wxString msg = err.empty()
+      ? wxString::Format("Created %d new calculation(s) next to this one; "
+                         "refresh the Organizer to see them.", (int)urls.size())
+      : wxString::FromUTF8(err);
+   wxMessageBox(msg, "Displace along a mode", wxOK | wxICON_INFORMATION, this);
 }
 
 

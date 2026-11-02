@@ -112,6 +112,13 @@ class NModePanel : public NModesGUI,
           0/1 sets it.  False, with `error` set, if the calculation has no
           modes. */
       bool showComposition(int chBends, wxString *error = 0);
+      /// New calculation(s) next to this one, the structure displaced along
+      /// mode (0-based row; -1 = all imaginary modes) by `amplitude`
+      /// Angstrom at the largest atom, sign "+", "-" or "both" (#618).
+      /// Returns "" and the new calculations' URLs, or the reason it failed.
+      string displaceCalculation(int mode, double amplitude, const string& sign,
+                                 vector<string> *urls = 0);
+      void displaceDialog();
 
       /** Colour the spectrum by the share of each mode in the atoms
           (0-based) selected in the viewer; fewer than two clears it.

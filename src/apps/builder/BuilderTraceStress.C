@@ -23,6 +23,11 @@
 
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/ICalculation.H"
+#include "dsm/PropertyTask.H"
+#include "tdat/Fragment.H"
+#include "util/VDoc.H"
 #include "viz/VRVector.H"
 
 #include "XYPlotCanvas.H"
@@ -464,6 +469,33 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
   //  "vibscale <v>": v typed into the Arrow length / Amplitude field.
   if (c == "vibscale" && w.size() == 2) {
     fprintf(stderr, "VIBSCALE: %.2f\n", nm->typeScale(atof(w[1].c_str())));
+    return true;
+  }
+  //  "vibdisplace <row|all> <amplitude> <+|-|both>" (#618): the Displace
+  //  dialog's action; prints each new calculation's run type, annotation and
+  //  structure for the test to compare with the source.
+  if (c == "vibdisplace" && w.size() == 4) {
+    vector<string> urls;
+    string err = nm->displaceCalculation(w[1] == "all" ? -1 : atoi(w[1].c_str()),
+                                         atof(w[2].c_str()), w[3], &urls);
+    fprintf(stderr, "VIBDISPLACE: error=%s n=%d\n", err.c_str(), (int)urls.size());
+    for (size_t i = 0; i < urls.size(); i++) {
+      Resource *r = EDSIFactory::getResource(EcceURL(urls[i]));
+      ICalculation *ic = dynamic_cast<ICalculation*>(r);
+      PropertyTask *pt = dynamic_cast<PropertyTask*>(r);
+      Fragment *f = pt ? pt->fragment() : 0;
+      string xyz;
+      char b[80];
+      for (size_t a = 0; f && a < f->numAtoms(); a++) {
+        const double *x = f->atomRef(a)->coordinates();
+        snprintf(b, sizeof b, " %.6f %.6f %.6f", x[0], x[1], x[2]);
+        xyz += b;
+      }
+      fprintf(stderr, "VIBDISPLACED: runtype=%s note=%s xyz=%s\n",
+              ic ? ic->runtype().name().c_str() : "?",
+              r ? r->getProp(VDoc::getEcceNamespace() + ":annotation").c_str() : "?",
+              xyz.c_str());
+    }
     return true;
   }
   //  "vibspace": the Space key in the viewer.

@@ -77,3 +77,18 @@ full PED may follow later.
 - **Frequency table**: wavenumbers are shown with one decimal and intensities
   with two. The Mode column can be dragged wider; hover a Mode cell for the
   label and the shares.
+
+## Displacing along a mode
+
+**Displace...** beside **Composition...** makes a new calculation next to
+the open one, with the structure moved along the selected mode or along all
+imaginary modes. This is the usual way off a saddle point: a structure with
+an imaginary frequency is displaced and optimised again.
+
+Choose the amplitude (the distance the atom that moves most is displaced,
+0.10 Å by default) and the direction: **+**, **-**, or **Both**, which makes
+two calculations. The stored mode vectors are scaled to that amplitude; for
+all imaginary modes each is scaled first, then the sum is rescaled. The copy
+has the same code, theory and basis, the run type Geometry optimisation, and
+an annotation such as "displaced +0.10 Å along mode 1 (412i cm-1) of
+source". Refresh the Organizer to see it.
