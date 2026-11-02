@@ -854,9 +854,12 @@ void CalcEd::doSetContext(const string& codeName)
 
   updateAllFields();
 
-  if (isDetailsReady() && !hasDetailsValues()) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately: a saved calc may hold theory values
+  // but no run type values (or vice versa), so one dialog's defaults can
+  // still be missing while the other has data.
+  if (isDetailsReady()) {
+    if (!hasDetailsValues("ES.Theory")) startTheoryApp(true);
+    if (!hasDetailsValues("ES.Runtype")) startRuntypeApp(true);
   }
 
   // GDB 2/19/13  Fix for dialog states getting cleared between app invocations
@@ -1384,6 +1387,11 @@ void CalcEd::OnCheckboxCalcedUseExponentsClick( wxCommandEvent& event )
 
 void CalcEd::OnButtonCalcedTheoryClick( wxCommandEvent& event )
 {
+  if (!theoryDetailsAvailable()) {
+    p_feedback->setMessage("The current theory has no details to set.",
+                           WxFeedback::INFO);
+    return;
+  }
   startTheoryApp(false);
 
   event.Skip();
@@ -1392,6 +1400,11 @@ void CalcEd::OnButtonCalcedTheoryClick( wxCommandEvent& event )
 
 void CalcEd::OnButtonCalcedRuntypeClick( wxCommandEvent& event )
 {
+  if (!runtypeDetailsAvailable()) {
+    p_feedback->setMessage("The current run type has no details to set.",
+                           WxFeedback::INFO);
+    return;
+  }
   startRuntypeApp(false);
 
   event.Skip();
@@ -2036,9 +2049,12 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
 
   updateAllFields();
 
-  if (isDetailsReady() && !hasDetailsValues()) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately: a saved calc may hold theory values
+  // but no run type values (or vice versa), so one dialog's defaults can
+  // still be missing while the other has data.
+  if (isDetailsReady()) {
+    if (!hasDetailsValues("ES.Theory")) startTheoryApp(true);
+    if (!hasDetailsValues("ES.Runtype")) startRuntypeApp(true);
   }
 
   // auto-save
@@ -2574,6 +2590,20 @@ bool CalcEd::hasDetailsValues(const string& prefix) const
       return true;
   }
   return false;
+}
+
+
+//  A details dialog sends its fields as ES.Theory.* / ES.Runtype.* values, so
+//  a theory/run type whose dialog has nothing to show reports none.  This is
+//  the one check both the button enable and the click handler share (#676).
+bool CalcEd::theoryDetailsAvailable() const
+{
+  return hasDetailsValues("ES.Theory");
+}
+
+bool CalcEd::runtypeDetailsAvailable() const
+{
+  return hasDetailsValues("ES.Runtype");
 }
 
 
@@ -3725,12 +3755,13 @@ void CalcEd::enableDetailsFields()
   bool hasFragment(p_frag);
 
   p_detailsBox->Enable(hasFragment);
-  //  A calculation at the defaults stores no values, yet its dialog opens
-  //  fine; only a dialog still starting has nothing to show yet.
+  //  A Details dialog is worth opening only when it has fields to show.
+  //  Until it has reported values the button stays closed, so a theory/run
+  //  type with no details panel cannot be opened into an empty dialog (#676).
   FindWindow(ID_BUTTON_CALCED_THEORY)->Enable(isDetailsReady()
-          && (hasDetailsValues("ES.Theory") || !p_theoryHoldFlag));
+          && theoryDetailsAvailable());
   FindWindow(ID_BUTTON_CALCED_RUNTYPE)->Enable(isDetailsReady()
-          && (hasDetailsValues("ES.Runtype") || !p_runtypeHoldFlag));
+          && runtypeDetailsAvailable());
 }
 
 
