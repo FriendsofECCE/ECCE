@@ -776,10 +776,14 @@ bool OpenSshTransport::openMaster()
 
   // The password to offer: the caller's, else the one the last login here
   // used (kept beside the master, see onTmpfs).
-  std::string pw = p_password;
+  // Not on a route through another host: ssh asks the jump host first, and a
+  // password for the target must never go to a different host's prompt.
+  const bool viaOtherHost = !p_jumpHost.empty() ||
+      configProxiesConnection(p_host, p_user, p_configFile);
+  std::string pw = viaOtherHost ? std::string() : p_password;
   std::string pwFile;
   bool pwKept = false;
-  if (owned) {
+  if (owned && !viaOtherHost) {
     pwFile = base + ".pw";
     pwKept = onTmpfs(ownedControlDir());
     if (pw.empty() && pwKept) pw = readSecret(pwFile);
@@ -882,7 +886,7 @@ bool OpenSshTransport::openMaster()
     if (!pwFile.empty()) unlink(pwFile.c_str());
     p_forgetCached = true;
   }
-  if (ok && owned) {
+  if (ok && owned && !viaOtherHost) {
     const std::string good = !answered.empty() ? answered : fed ? pw : "";
     if (!good.empty()) {
       p_accepted = good;
