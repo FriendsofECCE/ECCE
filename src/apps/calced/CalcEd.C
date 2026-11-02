@@ -854,9 +854,12 @@ void CalcEd::doSetContext(const string& codeName)
 
   updateAllFields();
 
-  if (isDetailsReady() && !hasDetailsValues()) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately: a saved calc may hold theory values
+  // but no run type values (or vice versa), so one dialog's defaults can
+  // still be missing while the other has data.
+  if (isDetailsReady()) {
+    if (!hasDetailsValues("ES.Theory")) startTheoryApp(true);
+    if (!hasDetailsValues("ES.Runtype")) startRuntypeApp(true);
   }
 
   // GDB 2/19/13  Fix for dialog states getting cleared between app invocations
@@ -2046,9 +2049,12 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
 
   updateAllFields();
 
-  if (isDetailsReady() && !hasDetailsValues()) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately: a saved calc may hold theory values
+  // but no run type values (or vice versa), so one dialog's defaults can
+  // still be missing while the other has data.
+  if (isDetailsReady()) {
+    if (!hasDetailsValues("ES.Theory")) startTheoryApp(true);
+    if (!hasDetailsValues("ES.Runtype")) startRuntypeApp(true);
   }
 
   // auto-save

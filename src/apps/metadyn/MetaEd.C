@@ -310,9 +310,11 @@ void MetaEd::doSetContext()
 
   updateAllFields();
 
-  if (isDetailsReady() && p_GUIValues->size() == 0) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately (as in CalcEd): theory values may be
+  // stored while the run type defaults have not been fetched yet.
+  if (isDetailsReady()) {
+    if (!theoryDetailsAvailable()) startTheoryApp(true);
+    if (!runtypeDetailsAvailable()) startRuntypeApp(true);
   }
 
   // GDB 2/19/13  Fix for dialog states getting cleared between app invocations
@@ -744,9 +746,11 @@ void MetaEd::subjectMCB(wxCommandEvent& event)
 
   updateAllFields();
 
-  if (isDetailsReady() && p_GUIValues->size() == 0) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately (as in CalcEd): theory values may be
+  // stored while the run type defaults have not been fetched yet.
+  if (isDetailsReady()) {
+    if (!theoryDetailsAvailable()) startTheoryApp(true);
+    if (!runtypeDetailsAvailable()) startRuntypeApp(true);
   }
 
   // auto-save
