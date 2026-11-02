@@ -136,6 +136,26 @@ void WxAuth::OnChange( wxCommandEvent& event )
 
 
 
+void WxAuth::enableRemember(bool enable)
+{
+  if (!enable) return;
+  if (!p_remember) {
+    wxWindow* anchor = FindWindow(ID_CHECKBOX_AUTH_SAVEPASSWORDS);
+    p_remember = new ewxCheckBox(this, wxID_ANY, _("Remember on this computer"));
+    p_remember->SetToolTip(_("Keep this password in the system's password store"
+                             " (keyring) so that ECCE can log in again."));
+    anchor->GetContainingSizer()->Add(p_remember,
+        wxSizerFlags().Left().Border(wxTOP, wxSizerFlags::GetDefaultBorder()));
+    Layout();
+    GetSizer()->SetSizeHints(this);
+  }
+}
+
+bool WxAuth::remembered() const
+{
+  return p_remember && p_remember->GetValue();
+}
+
 void WxAuth::OnSavePasswordsClick( wxCommandEvent& event )
 {
   ewxCheckBox *c =((ewxCheckBox*)FindWindow(ID_CHECKBOX_AUTH_SAVEPASSWORDS));

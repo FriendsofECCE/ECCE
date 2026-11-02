@@ -297,7 +297,7 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
                                 const string& password, const string& jumpHost)
 {
   const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
-  p_loginCancelled = p_loginPrompted = p_loginRefused = false;
+  p_loginCancelled = p_loginPrompted = p_loginRefused = p_loginUnreachable = false;
 
   // The callbacks outlive this call: the monitor stream logs in again on
   // a session of its own, reusing the password that just worked.  Each host
@@ -412,14 +412,7 @@ int RCommand::connectTimeout()
 
 bool RCommand::hostDidNotAnswer(const string& error)
 {
-  string l;
-  for (char ch : error) l += (char)tolower((unsigned char)ch);
-  for (const char* k : {"timed out", "connection refused", "no route to host",
-                        "network is unreachable", "could not resolve",
-                        "name or service not known",
-                        "temporary failure in name resolution"})
-    if (l.find(k) != string::npos) return true;
-  return false;
+  return OpenSshTransport::hostDidNotAnswer(error);
 }
 
 // A new transport replaces the one this connection had.
@@ -480,7 +473,7 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
                                  bool* tryLibssh)
 {
   if (tryLibssh) *tryLibssh = false;
-  p_loginCancelled = p_loginPrompted = p_loginRefused = false;
+  p_loginCancelled = p_loginPrompted = p_loginRefused = p_loginUnreachable = false;
   OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
   t->setConnectTimeout(connectTimeout());
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
@@ -492,11 +485,22 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
                            userName == "" ? string(Ecce::realUser()) : userName, pw);
   t->setPassword(pw);
   string error;
-  if (!t->connect(error)) {
+  const bool connected = t->connect(error);
+  // A stored password that was refused is forgotten here too, whatever the
+  // dialog that followed came to.
+  if (t->forgetCached())
+    AuthCache::getCache().remove("ssh://" + machine,
+        userName == "" ? string(Ecce::realUser()) : userName, "");
+  if (connected && t->ownsMaster() && !t->acceptedPassword().empty())
+    setPassCache(p_shell, machine,
+                 userName == "" ? string(Ecce::realUser()) : userName,
+                 t->acceptedPassword());
+  if (!connected) {
     p_errMessage = error;
     p_loginCancelled = t->loginCancelled();
     p_loginPrompted = t->loginPrompted();
     p_loginRefused = t->loginRefused();
+    p_loginUnreachable = t->hostUnreachable();
     // ECCE's own master could not be opened for a reason other than the
     // login (a cancel, no answer or a refused password would only be asked
     // again, and a full master needs no login): the built-in client still

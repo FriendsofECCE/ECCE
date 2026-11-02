@@ -75,6 +75,12 @@ static string readFor(int fd, const string& want, int ms)
 
 int main()
 {
+  check("network failures are unreachable, a refusal is not",
+        OpenSshTransport::hostDidNotAnswer("ssh: connect to host h port 22: Network is unreachable") &&
+        OpenSshTransport::hostDidNotAnswer("Connection timed out during banner exchange") &&
+        OpenSshTransport::hostDidNotAnswer("ssh: Could not resolve hostname h") &&
+        !OpenSshTransport::hostDidNotAnswer("Permission denied (publickey,password).") &&
+        !OpenSshTransport::hostDidNotAnswer(""));
   char tmpl[] = "/tmp/testOpenSshXXXXXX";
   const string tmp = mkdtemp(tmpl);
   const string stub = tmp + "/ssh", log = tmp + "/ssh.log";
@@ -321,9 +327,9 @@ int main()
     setenv("STUB_ASKLOG", asklog.c_str(), 1);
     const string ok = tmp + "/askpass-ok", cancel = tmp + "/askpass-cancel",
                  slow = tmp + "/askpass-slow";
-    spit(ok, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\necho secret\n", 0755);
-    spit(cancel, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nexit 1\n", 0755);
-    spit(slow, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nsleep 30\necho secret\n", 0755);
+    spit(ok, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\n[ -z \"$ECCE_ASKPASS_ANSWER\" ] || : > \"${ECCE_ASKPASS_ANSWER%/*}/asked\"\necho secret\n", 0755);
+    spit(cancel, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\n[ -z \"$ECCE_ASKPASS_ANSWER\" ] || : > \"${ECCE_ASKPASS_ANSWER%/*}/asked\"\nexit 1\n", 0755);
+    spit(slow, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\n[ -z \"$ECCE_ASKPASS_ANSWER\" ] || : > \"${ECCE_ASKPASS_ANSWER%/*}/asked\"\nsleep 30\necho secret\n", 0755);
     spit(tmp + "/shared.cfg", "Host noauth needmaster\n  ControlMaster auto\n  ControlPath " +
          tmp + "/cm-%C\n");
     const string noMaster = "No shared ssh connection to needmaster is open. Run "
@@ -417,10 +423,10 @@ int main()
     setenv("STUB_ASKLOG", asklog.c_str(), 1);
     const string ans = tmp + "/own-answer", cancel = tmp + "/own-cancel",
                  hang = tmp + "/own-hang";
-    spit(ans, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nsleep 1\necho secret\n", 0755);
-    spit(cancel, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nsleep 1\n"
+    spit(ans, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\n[ -z \"$ECCE_ASKPASS_ANSWER\" ] || : > \"${ECCE_ASKPASS_ANSWER%/*}/asked\"\nsleep 1\necho secret\n", 0755);
+    spit(cancel, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\n[ -z \"$ECCE_ASKPASS_ANSWER\" ] || : > \"${ECCE_ASKPASS_ANSWER%/*}/asked\"\nsleep 1\n"
          ": > \"$ECCE_ASKPASS_STATE\"\nexit 1\n", 0755);
-    spit(hang, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nsleep 30\necho secret\n", 0755);
+    spit(hang, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\n[ -z \"$ECCE_ASKPASS_ANSWER\" ] || : > \"${ECCE_ASKPASS_ANSWER%/*}/asked\"\nsleep 30\necho secret\n", 0755);
 
     auto lines = [&](const string& f) {
       string x = slurp(f);

@@ -145,6 +145,7 @@ void getJobMonitorInput(int fid);
 void restart(const char* name, const string& msg);
 void restartSystem(const char* name, const string& msg);
 void park(const char* name, const string& msg, int exitStatus);
+static bool parkAndWait(const string& why);
 void setTimeout(const unsigned long& seconds);
 void handleSignal(int signalValue);
 void handleTimeout(unsigned long milliseconds);
@@ -1142,6 +1143,61 @@ void park(const char* name, const string& msg, int exitStatus)
   exit(exitStatus);
 }
 
+// The compute server does not answer (network down, host rebooting).  Wait
+// here, not in eccejobmaster: this process hears ecce_ejs_kill (Reconnect)
+// and ecce_quit through the subscriber's wake-up fd, which a sleeping
+// eccejobmaster would not.  Retries back off from 15 s to 300 s (+-20 %
+// jitter, so the stores of one host do not all knock at once) and give up
+// after ECCE_SSH_RETRY_HOURS (default 24): the caller then parks with 5.
+static bool parkAndWait(const string& why)
+{
+  const char* e = getenv("ECCE_SSH_RETRY_HOURS");
+  double hours = e ? atof(e) : 24.0;
+  if (hours <= 0) hours = 24.0;
+  logMessage("System", "waiting for " + cpServerName + " to answer: " + why);
+
+  initMessaging();
+  WaitingJobs::add(cpCalcURL);
+  endState = ResourceDescriptor::STATE_ILLEGAL;
+  calcUpdateState(ResourceDescriptor::STATE_WAITING);
+
+  const time_t giveUpAt = time(0) + (time_t)(hours * 3600);
+  // ECCE_SSH_RETRY_SECONDS fixes the interval (tests); default 15 s doubling to 300 s.
+  const char* fixed = getenv("ECCE_SSH_RETRY_SECONDS");
+  const int fixedSec = fixed ? atoi(fixed) : 0;
+  int backoff = fixedSec > 0 ? fixedSec : 15;
+  srand((unsigned)(getpid() ^ time(0)));
+  while (time(0) < giveUpAt) {
+    int ms = (int)(backoff * 1000 * (0.8 + 0.4 * (rand() / (double)RAND_MAX)));
+    struct timespec t0;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    for (;;) {
+      struct timespec t1;
+      clock_gettime(CLOCK_MONOTONIC, &t1);
+      long left = ms - ((t1.tv_sec - t0.tv_sec) * 1000 +
+                        (t1.tv_nsec - t0.tv_nsec) / 1000000);
+      if (left <= 0) break;
+      struct pollfd pfd = {vMsgFd, POLLIN, 0};
+      int n = poll(&pfd, vMsgFd >= 0 ? 1 : 0, (int)left);
+      if (n > 0 && (pfd.revents & POLLIN) && vMsgFd == pfd.fd)
+        msgDispatch();  // a kill or quit message exits from here
+    }
+    if (fixedSec <= 0 && backoff < 300) backoff = std::min(backoff * 2, 300);
+    delete remoteconn;
+    remoteconn = (RCommand*)0;
+    initConn();
+    if (remoteconn->isOpen()) {
+      logMessage("System", cpServerName + " answers again; reconnected");
+      return true;
+    }
+    if (!(remoteconn->loginUnreachable() ||
+          RCommand::hostDidNotAnswer(remoteconn->commError())))
+      return false;  // now a login question, which parks as usual
+  }
+  return false;
+}
+
+
 void handleSignal(int signalValue)
 {
   switch (signalValue)
@@ -2097,6 +2153,16 @@ void initMon(void)
     }
   } else {
     string why = remoteconn->commError();
+    // An unanswering host is waited for, not parked as a refused login.
+    if (nodeForRestart == "" && !remoteconn->loginCancelled() &&
+        !remoteconn->loginRefused() &&
+        (remoteconn->loginUnreachable() || RCommand::hostDidNotAnswer(why))) {
+      if (parkAndWait(why)) {
+        initMon();
+        return;
+      }
+      why = remoteconn->commError();
+    }
     // A cancelled or refused login parks the job for good (5): a restart
     // would only put the same question to the user again.
     if (remoteconn->loginCancelled() || remoteconn->loginRefused()) {

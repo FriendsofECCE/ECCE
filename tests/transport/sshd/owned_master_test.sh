@@ -16,6 +16,16 @@
 #      exactly 1 new login
 #   8. three sessions' masters lost at once, two stores each: 1 new login
 #      wanted (#631); another ECCE_REALUSERHOME gets its own directory
+#   9. (in 2, 7, 8) the password of the dialog login is kept (0600, tmpfs
+#      only) and the next login after a lost master asks nothing
+#  10. a refused stored password: ssh is refused once, one dialog follows
+#      (cancelled here), the stored password is gone
+#  13. the dialog's "remember" box is ticked: the system store (a stub
+#      secret-tool) gives the password after the master and .pw are gone; it
+#      is on the tool stdin only, and a refusal forgets it
+#  12. the master dies and the network is cut (the sshd container is
+#      paused): 4 openers all say "unreachable" (not refused), no dialog;
+#      after the resume the next opener logs in at once (#777)
 # Own sshd container and port (ECCE_OWNED_PORT); builds in build-ssh in the
 # worktree, untracked. Usage: owned_master_test.sh
 set -eu
@@ -33,7 +43,12 @@ podman image exists localhost/ecce-sshbuild ||
 
 logs=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/ecce-owned.XXXXXX")
 chmod 777 "$logs"
-cleanup() { podman rm -f $name >/dev/null 2>&1 || true; rm -rf "$logs"; }
+ctl=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/ecce-ownedctl.XXXXXX")
+chmod 777 "$ctl"
+cleanup() {
+  [ -z "${watcher:-}" ] || kill "$watcher" 2>/dev/null || true
+  podman unpause $name >/dev/null 2>&1 || true
+  podman rm -f $name >/dev/null 2>&1 || true; rm -rf "$logs" "$ctl"; }
 trap cleanup EXIT
 podman rm -f $name >/dev/null 2>&1 || true
 podman run -d --name $name -p 127.0.0.1:$port:22 -v "$logs:/log:Z" \
@@ -41,8 +56,19 @@ podman run -d --name $name -p 127.0.0.1:$port:22 -v "$logs:/log:Z" \
   -o KbdInteractiveAuthentication=no -o MaxSessions=3 -o PerSourcePenalties=no >/dev/null
 for i in $(seq 40); do (exec 3<>/dev/tcp/127.0.0.1/$port) 2>/dev/null && break; sleep 0.5; done
 
-podman run --rm --network host -v "$root:/src:Z" -v "$logs:/log:Z,ro" \
-  -e PORT=$port localhost/ecce-sshbuild bash -c '
+# Scenario 12 asks for the network cut through files in $ctl.
+( while :; do
+    for w in pause resume; do
+      if [ -e "$ctl/$w" ]; then
+        if [ $w = pause ]; then podman pause $name >/dev/null; else podman unpause $name >/dev/null; fi
+        rm -f "$ctl/$w"; : > "$ctl/$w.done"
+      fi
+    done
+    sleep 0.1
+  done ) &
+watcher=$!
+podman run --rm --network host -v "$root:/src:Z" -v "$logs:/log:Z,ro" -v "$ctl:/ctl:Z" \
+  -e PORT=$port -e ECCE_CTL_DIR=/ctl localhost/ecce-sshbuild bash -c '
   set -e
   export HOME=/tmp/ownhome ECCE_REALUSERHOME=/tmp/ownhome
   rm -rf $HOME; install -d -m 700 $HOME/.ssh $HOME/.ECCE
@@ -71,8 +97,21 @@ case \$(cat /tmp/fakehome/mode 2>/dev/null) in
   slow) if [ ! -e /tmp/fakehome/slowed ]; then : > /tmp/fakehome/slowed; sleep 6; fi;;
 esac
 echo ecce-test
+case "\$*" in *remember*) [ ! -e /tmp/fakehome/remember ] || echo remember;; esac
 STUB
   chmod +x $fh/bin/passdialog
+  # a stand-in secret-tool: the secret is on stdin only; argv goes to a log
+  cat > $fh/bin/secret-tool <<STUB
+#!/bin/sh
+echo "\$@" >> /tmp/fakehome/secret-argv.log
+case \$1 in
+  store) cat > /tmp/fakehome/secret;;
+  lookup) [ -e /tmp/fakehome/secret ] && printf %s "\$(cat /tmp/fakehome/secret)";;
+  clear) rm -f /tmp/fakehome/secret;;
+esac
+STUB
+  chmod +x $fh/bin/secret-tool
+  export ECCE_SECRET_TOOL=$fh/bin/secret-tool DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent
   export ECCE_HOME=$fh ECCE_ASKPASS=/src/scripts/ecce-askpass ASKLOG=/tmp/ask.log
   . /src/packaging/gateway/ecce-session-lib.sh
   STATEDIR=$HOME/.ECCE
@@ -82,8 +121,9 @@ STUB
   scenario() {  # name expected-logins driver-args...
     local n=$1 want=$2; shift 2
     : > $ASKLOG
-    rm -f $fh/slowed $fh/mode
+    rm -f $fh/slowed $fh/mode $fh/remember $fh/secret $fh/secret-argv.log
     [ -z "${MODE:-}" ] || echo $MODE > $fh/mode
+    [ -z "${REMEMBER:-}" ] || : > $fh/remember
     export XDG_RUNTIME_DIR=/tmp/xdg-$n
     rm -rf $XDG_RUNTIME_DIR; install -d -m 700 $XDG_RUNTIME_DIR
     ECCE_SESSION_ID=$(ecce_new_session_id); export ECCE_SESSION_ID
@@ -122,6 +162,15 @@ STUB
   MODE=slow ECCE_SSH_ASK_TIMEOUT=2 MINSOCKS=0 scenario slow 0 failing 4
   MODE=cancel MINSOCKS=0 scenario cancel 0 failing 4
   scenario bothdead 3 bothdead 4
+  # 9-11 (#777): a stored password re-logs in with 0 dialogs (kill, bothdead
+  # and sessions above); a refused stored one: 1 dialog, then forgotten
+  MINSOCKS=0 scenario refused 1 refused
+  # 13: "Remember on this computer" ticked: the system store (not .pw) logs in
+  # again, and the password was only ever on the tool stdin
+  REMEMBER=1 scenario remember 2 remember
+  # 12: the dead network is "unreachable", not a refused password (#777)
+  rm -f /ctl/*.done
+  scenario outage 2 outage 4
   # 8 (#631): three sessions (three ids) of one state directory share one
   # control directory; stores of each, every master lost at once: 1 new login.
   # A second ECCE_REALUSERHOME on the same account gets a directory of its own.

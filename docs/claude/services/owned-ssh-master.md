@@ -40,6 +40,17 @@ host instead of one each, across all sessions of the state directory. Unset, inv
   `flock` on `<hash>.lock` (the base socket's, whatever overflow master is
   in use). A password the Launcher or AuthCache already has is passed once
   through a FIFO, to the password prompt only (0 dialogs).
+  The password that
+  logged in is kept as `<hash>.pw` (0600) in the control directory **only
+  when that is under `$XDG_RUNTIME_DIR`** (tmpfs; macOS `$TMPDIR`), never on
+  the `~/.ECCE/cm` fallback, and **never in AuthCache's session store**
+  (`brokerCredential` would take an `ssh://` tuple as the broker login).
+  `openMaster` offers the caller's password, then `.pw`, then the dialog;
+  askpass reports `answer`, `fed`, `asked` and `refused` in the state
+  directory (inside the control directory). A stored password ssh refused is
+  deleted and `forgetCached()` makes RCommand drop its AuthCache copy; the
+  dialog follows in the same ssh run. `loginPrompted()` is true only when a
+  dialog was shown. On a route through another host (`-J`, ProxyJump, ProxyCommand) nothing is fed or kept: ssh asks the jump host first, and the target's password must never reach another host's prompt, so those routes ask in the dialog as before..
   **N processes that lose the master together cost one dialog, whether or
   not it is answered.** The holder writes `<hash>.outcome` (epoch time and
   `ok|cancelled|failed|timeout`) before releasing the lock; a waiter that
@@ -47,7 +58,12 @@ host instead of one each, across all sessions of the state directory. Unset, inv
   waiting, or from the last 120 s, does not ask: it reports a cancel
   (`cancelled`, `timeout`: `loginCancelled()`) or a refusal (`failed`:
   `loginRefused()`) and returns false. An unanswered dialog is
-  `ECCE_SSH_ASK_TIMEOUT` seconds (default 120). Only the process that
+  `ECCE_SSH_ASK_TIMEOUT` seconds (default 120). A network or connect
+  failure (`Network is unreachable`, ConnectTimeout, no route) is the outcome
+  `unreachable`, **not** `failed`: waiters set `hostUnreachable()` /
+  `RCommand::loginUnreachable()`, never `loginRefused()`, and a later caller
+  may try again at once (no 120 s gate). Written as `failed` it parked every
+  waiting monitor for good as a "refused password". Only the process that
   asked (`loginPrompted()`) writes the user-visible line in the job store;
   the others park the job as Waiting quietly. A cancel, no answer or a
   refused password is never a reason for the libssh fallback

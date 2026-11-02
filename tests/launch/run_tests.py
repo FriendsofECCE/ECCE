@@ -19,7 +19,7 @@ prints where each one resolves.
     tests/launch/run_tests.py --local              # #216: data in a local folder
     tests/launch/run_tests.py --folder             # calc in a plain folder (Save As)
     tests/launch/run_tests.py --machine sshtest --remote-user bashuser \
-                              [--drop]
+                              [--drop] [--outage]
 
 With --machine the job runs on a machine reached over ssh instead of on
 localhost.  The test registers it (MyMachines, Queues, CONFIG.<machine>) for
@@ -284,6 +284,21 @@ class Suite(object):
     def remote(self):
         return self.args.machine != "localhost"
 
+    def netctl(self, what):
+        """Ask the host script to pause or resume the sshd container."""
+        ctl = os.environ.get("ECCE_CTL_DIR")
+        if not ctl:
+            self.check(False, "ECCE_CTL_DIR set for the outage case")
+            return
+        open(os.path.join(ctl, what), "w").close()
+        done = os.path.join(ctl, what + ".done")
+        for _ in range(300):
+            if os.path.exists(done):
+                os.unlink(done)
+                return
+            time.sleep(0.1)
+        self.check(False, "network %s done" % what)
+
     def sshRun(self, command):
         """Run the sh script `command` on the remote machine, outside ECCE.
 
@@ -383,6 +398,11 @@ class Suite(object):
         kills: kill the remote monitor process that many times, as a login
         node would (#206); giveup: expect monitoring to be abandoned."""
         say("--- %s" % label)
+        #  outage (#777): the sshd is paused, as a dead network is, and resumed
+        outage = drop == "outage"
+        drop = drop is True
+        paused = False
+        pausedAt = waitingAt = 0
         self.dropNote = ""
         if self.remote():
             left = self.monitorPids()
@@ -390,7 +410,7 @@ class Suite(object):
                        "previous run%s" % (" (pids %s)" % left if left else ""))
             self.sshRun("pkill -9 -f '^perl eccejobmonitor'; "
                         "pkill -f mopac-slow; true")
-            self.setMopacDelay(150 if kills else 30 if drop or self.args.hold else 12)
+            self.setMopacDelay(150 if kills else 45 if outage else 30 if drop or self.args.hold else 12)
             if os.path.exists(self.stubLog()):
                 os.unlink(self.stubLog())
         name = "mopac-ch4-%s-%d" % (label, int(time.time()))
@@ -443,7 +463,7 @@ class Suite(object):
         seenAt = {}             # pid -> first time seen
         self.monitorLog = ""
         self.monitorConf = ""
-        wait = drop or self.args.hold
+        wait = drop or outage or self.args.hold
         deadline = time.time() + WAIT_SECONDS * (
             4 if kills else 2 if wait else 1)
         while time.time() < deadline:
@@ -451,7 +471,11 @@ class Suite(object):
             self.readMonitorLog(name)
             self.readMonitorConf(name)
             self.masterLog(name)
-            if self.remote():
+            if paused:
+                #  Nothing may reach the paused sshd, the test's own ssh too.
+                time.sleep(1)
+                found = None
+            elif self.remote():
                 found = self.remoteMonitorStdin()
                 if found and not stdin:
                     stdin = found
@@ -468,6 +492,14 @@ class Suite(object):
                             killed.append((pid, now))
                             say("  killed remote monitor %d (%d of %d)"
                                 % (pid, len(killed), kills))
+                if found and outage and not dropped:
+                    dropped = paused = True
+                    rc, out = self.sshRun(DROP_SESSION)
+                    self.check(out.startswith("killed"),
+                               "killed the monitor's sshd session")
+                    self.netctl("pause")
+                    pausedAt = time.time()
+                    say("  network cut (sshd paused)")
                 if found and drop and not dropped:
                     dropped = True
                     oldPids = self.monitorPids()
@@ -496,6 +528,26 @@ class Suite(object):
                     stdin = stdin or monitorStdin()
                     time.sleep(0.05)
             rc, out = self.driver("state", url)
+            if paused:
+                #  libssh's connect to a paused sshd takes its own timeout to
+                #  fail; Waiting must come after it, and survive one retry.
+                if out.strip().endswith("waiting") and not waitingAt:
+                    waitingAt = time.time()
+                    say("  Waiting %.0fs after the cut" % (waitingAt - pausedAt))
+                if ((waitingAt and time.time() - waitingAt > 15)
+                        or time.time() - pausedAt > 150):
+                    self.check(bool(waitingAt),
+                               "the job is Waiting during the outage (%s)"
+                               % out.strip())
+                    self.readMonitorLog(name)
+                    self.check("refused" not in self.masterLog(name) and
+                               "parked until" not in self.monitorLog,
+                               "not parked as a refused login")
+                    if not waitingAt:
+                        say("  ---- eccejobstore.log\n" + self.monitorLog[-2000:])
+                    self.netctl("resume")
+                    paused = False
+                    say("  network back")
             was = state
             state = out.strip().splitlines()[-1] if out.strip() else ""
             if state != was:
@@ -542,6 +594,15 @@ class Suite(object):
         self.check(state == "completed",
                    "run state reached completed within %ds (last: %s)"
                    % (WAIT_SECONDS, state or "none"))
+        if outage:
+            #  The dropped session costs one restart; after that the store
+            #  waits in-process for the host instead of exiting 4 again.
+            text = self.masterLog(name)
+            self.check("restart count is 1" in text and
+                       "restart count is 2" not in text and
+                       text.count("eccejobstore invoked") == 2,
+                       "one eccejobstore restart, then it waited through the "
+                       "outage (%d starts)" % text.count("eccejobstore invoked"))
         if self.args.job_comms in ("socket", "socketlocal"):
             #  Socket comms are gone; the request is read as stdio, said so
             #  in the log, and the job is monitored over the stream.
@@ -554,7 +615,7 @@ class Suite(object):
                        "(%d)" % (kills, len(killed)))
             self.check("restart count reset" in self.masterLog(name),
                        "eccejobmaster reset the restart count")
-        if self.args.sshd_log:
+        if self.args.sshd_log and not outage:
             self.checkLogins(name, loginsBefore, launchOut)
         if state == "completed" and (drop or kills):
             #  Nothing may be left once the job is done: neither the
@@ -933,6 +994,9 @@ def main():
     parser.add_argument("--drop", action="store_true",
                         help="also run with the "
                         "monitor's ssh session killed mid-job")
+    parser.add_argument("--outage", action="store_true",
+                        help="#777: also run with the sshd paused mid-job "
+                        "(needs ECCE_CTL_DIR); the job must wait, then finish")
     parser.add_argument("--kill", action="store_true",
                         help="#205/#206: kill the remote monitor process four "
                         "times, as a login node would; the restart count "
@@ -1043,6 +1107,8 @@ def main():
         ("%s-%d" % (label, i + 1), False) for i in range(args.jobs)]
     if args.drop and args.machine != "localhost":
         modes.append((label + "-drop", True))
+    if args.outage and args.machine != "localhost":
+        modes.append((label + "-outage", "outage"))
     try:
         if not suite.services(True):
             suite.check(False, "services started")

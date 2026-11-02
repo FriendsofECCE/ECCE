@@ -14,6 +14,7 @@
 using std::string;
 
 #include "wxgui/WxAuthGUI.H"
+#include "wxgui/ewxCheckBox.H"
 
 /**
  * The implementation of wxAUthGUI.
@@ -61,9 +62,16 @@ public:
   /** An error line under the fields (e.g. the last password was refused); "" hides it. */
   void setStatus(const string& message);
 
+  /** "Remember on this computer": hidden unless enabled (ssh logins only). */
+  void enableRemember(bool enable);
+  bool remembered() const;
+
   string getUser();
   string getPassword();
   string getNewPassword();
+
+private:
+  ewxCheckBox* p_remember = 0;
 
 };
 

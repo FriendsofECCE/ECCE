@@ -133,6 +133,8 @@ public:
     bool loginPrompted(void) const { return p_loginPrompted; }
     // The password was refused (a login, not a full or unreachable host).
     bool loginRefused(void) const { return p_loginRefused; }
+    // The host did not answer (not a refused password): worth retrying later.
+    bool loginUnreachable(void) const { return p_loginUnreachable; }
     // The last execout() was stopped by its timeout.
     bool timedOut(void) const { return p_timedOut; }
 
@@ -261,6 +263,7 @@ private:
     bool p_loginCancelled = false;
     bool p_loginPrompted = false;
     bool p_loginRefused = false;
+    bool p_loginUnreachable = false;
     bool p_timedOut = false;
     Transport* p_transport;  // null until a connection is made
     bool p_ssh;              // the Transport is a RemoteTransport
