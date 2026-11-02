@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <future>
+#include <memory>
 #include <thread>
 
 #include "LaunchSelected.H"
@@ -313,7 +314,7 @@ bool LaunchSelected::Batch::nextRow()
     string error;
     //  The logins this launch can make, as RCommand keys them.
     p_passKeys.clear();
-    RefMachine *rm = RefMachine::refLookup(r.plan.data.machine);
+    std::unique_ptr<RefMachine> rm(RefMachine::refLookup(r.plan.data.machine));  // refLookup allocates
     const string who = r.plan.data.user.empty() ? string(Ecce::realUser())
                                                 : r.plan.data.user;
     for (const string& shell : {string("ssh"), r.plan.data.remoteShell})
