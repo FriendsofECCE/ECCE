@@ -3307,6 +3307,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_displacement_panel PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Take Coordinates From... with a stored calculation's final geometry (#620).
+  add_test(NAME apps_takecoords_calc
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/takecoords_calc_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_takecoords_calc PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Thermochemistry panel against ecce-thermo (#692).
   add_test(NAME apps_thermo_panel
            COMMAND ${PYTHON3_EXECUTABLE}

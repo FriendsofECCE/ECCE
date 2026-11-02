@@ -14,7 +14,7 @@ TakeCoordsDialog::TakeCoordsDialog(wxWindow *parent,
 {
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   top->Add(new wxStaticText(this, wxID_ANY,
-      _("Calculation with the same atoms, in the same order:")), 0, wxALL, 8);
+      _("Structure with the same atoms, in the same order:")), 0, wxALL, 8);
   p_calc = new wxChoice(this, wxID_ANY);
   for (const std::string& n : names) p_calc->Append(wxString::FromUTF8(n.c_str()));
   p_calc->SetSelection(0);

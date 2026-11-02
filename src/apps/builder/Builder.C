@@ -74,6 +74,7 @@ using std::vector;
 #include "dsm/EDSIFactory.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropertyTask.H"
+#include "tdat/PropTSVecTable.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceTool.H"
 #include "dsm/Session.H"
@@ -3481,8 +3482,71 @@ bool Builder::takeCoordinates(const string& set, const string& elements,
 
 
 /**
- * Edit > Take Coordinates From...: other calculations in this folder whose
- * input structure has as many atoms (#620).  The element order is checked by
+ * The structures Take Coordinates can use: for each other calculation in this
+ * folder with as many atoms, its final geometry (last GEOMTRACE frame, as
+ * Duplicate with final geometry takes it) when it has one, and its input
+ * structure.  A trace without the dummy atoms maps onto the other atoms in
+ * order.
+ */
+void Builder::takeSources(vector<string>& labels, vector<string>& elems,
+                          vector<string>& coords)
+{
+   SGFragment *cur = getSG()->getFragment();
+   if (!cur || !p_calculation) return;
+   Resource *folder = EDSIFactory::getResource(p_calculation->getURL().getParent());
+   vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+   for (size_t i = 0; kids && i < kids->size(); i++) {
+      PropertyTask *other = dynamic_cast<PropertyTask*>((*kids)[i]);
+      if (!other || other->getURL().toString() == p_calculation->getURL().toString())
+         continue;
+      Fragment *f = other->fragment();
+      if (!f) continue;
+      const size_t n = f->numAtoms();
+      vector<double> xyz[2];   // [0] final geometry, [1] input structure
+      for (size_t a = 0; a < n; a++) {
+         const double *c = f->atomRef(a)->coordinates();
+         for (int k = 0; k < 3; k++) xyz[1].push_back(c[k]);
+      }
+      PropTSVecTable *tr = dynamic_cast<PropTSVecTable*>(other->getProperty("GEOMTRACE"));
+      if (tr && tr->tables() > 0) {
+         const vector<double>& v = tr->values(tr->tables() - 1);
+         vector<size_t> real;
+         for (size_t a = 0; a < n; a++)
+            if (f->atomRef(a)->atomicSymbol() != "X") real.push_back(a);
+         xyz[0] = xyz[1];
+         if (v.size() == 3 * n) {
+            xyz[0] = vector<double>(v.begin(), v.end());
+         } else if (real.size() != n && v.size() == 3 * real.size()) {
+            for (size_t k = 0; k < real.size(); k++)
+               for (int j = 0; j < 3; j++) xyz[0][3*real[k]+j] = v[3*k+j];
+         } else {
+            xyz[0].clear();
+         }
+      }
+      string el;
+      for (size_t a = 0; a < n; a++) el += f->atomRef(a)->atomicSymbol() + " ";
+      const string tail = other->getURL().getFilePathTail();
+      for (int w = 0; w < 2; w++) {
+         if (n != cur->numAtoms() || xyz[w].empty()) continue;
+         string text;
+         char buf[128];
+         for (size_t a = 0; a < n; a++) {
+            snprintf(buf, sizeof buf, "%.12g %.12g %.12g ", xyz[w][3*a],
+                     xyz[w][3*a+1], xyz[w][3*a+2]);
+            text += buf;
+         }
+         labels.push_back(tail + (w == 0 ? " (final geometry)" : " (input structure)"));
+         elems.push_back(el);
+         coords.push_back(text);
+      }
+      delete f;
+   }
+}
+
+
+/**
+ * Edit > Take Coordinates From...: other calculations in this folder, final
+ * geometry or input structure (#620).  The element order is checked by
  * the command.
  */
 void Builder::OnTakeCoordsClick( wxCommandEvent& event )
@@ -3493,29 +3557,7 @@ void Builder::OnTakeCoordsClick( wxCommandEvent& event )
       return;
    }
    vector<string> names, elems, coords;
-   Resource *folder = EDSIFactory::getResource(p_calculation->getURL().getParent());
-   vector<Resource*> *kids = folder ? folder->getChildren() : 0;
-   for (size_t i = 0; kids && i < kids->size(); i++) {
-      PropertyTask *other = dynamic_cast<PropertyTask*>((*kids)[i]);
-      if (!other || other->getURL().toString() == p_calculation->getURL().toString())
-         continue;
-      Fragment *f = other->fragment();
-      if (!f) continue;
-      if (f->numAtoms() == frag->numAtoms()) {
-         string el, xyz;
-         char buf[128];
-         for (size_t a = 0; a < f->numAtoms(); a++) {
-            const double *c = f->atomRef(a)->coordinates();
-            snprintf(buf, sizeof buf, "%.12g %.12g %.12g ", c[0], c[1], c[2]);
-            el += f->atomRef(a)->atomicSymbol() + " ";
-            xyz += buf;
-         }
-         names.push_back(other->getURL().getFilePathTail());
-         elems.push_back(el);
-         coords.push_back(xyz);
-      }
-      delete f;
-   }
+   takeSources(names, elems, coords);
    if (names.empty()) {
       wxMessageBox(_("No other calculation in this folder has a structure "
                      "with the same number of atoms."), _("Take Coordinates"),

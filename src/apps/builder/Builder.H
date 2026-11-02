@@ -358,6 +358,8 @@ class Builder: public BuilderGUI,
       virtual void OnSelectIonsClick( wxCommandEvent& event );
       virtual void OnDistortBondsClick( wxCommandEvent& event );
       virtual void OnTakeCoordsClick( wxCommandEvent& event );
+      void takeSources(vector<string>& labels, vector<string>& elems,
+                       vector<string>& coords);
       bool takeCoordinates(const string& set, const string& elements,
                            const string& coords, bool align, double *rmsd = 0);
       virtual void OnSelectBackboneClick( wxCommandEvent& event );
