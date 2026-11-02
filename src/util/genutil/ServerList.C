@@ -87,6 +87,9 @@ string ServerList::check(const ServerEntry& e)
     int port;
     if (!splitHostPort(h, bare, port))
       return "The port of an SSH folder is a number from 1 to 65535.";
+    // EcceURL cannot parse a bracketed IPv6 authority back.
+    if (bare.find(':') != string::npos)
+      return "Give the host of an SSH folder by name (or a Host alias in ~/.ssh/config), not as an IPv6 address.";
   }
   return "";
 }
