@@ -16,6 +16,7 @@ struct IrcOptions {
   int max_points = 20;     // per direction
   int max_micro = 25;      // constrained-optimisation iterations per point
   double rms_grad = 5e-4, max_grad = 2e-3;  // the path ends when the gradient is below both
+  double flat_energy = 1e-6;  // ... and the last step lowered the energy by less (hartree): a slope is not a minimum
   double tol_rms = 1e-4, tol_max = 3e-4;    // constrained optimisation: gradient across the sphere
   int min_points = 5;      // no gradient or energy stop before this many points
   int hessian_every = 0;   // recompute the Hessian every n points (0: Bofill updates only)
