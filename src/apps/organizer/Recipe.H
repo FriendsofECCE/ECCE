@@ -102,6 +102,12 @@ std::vector<std::string> checkLevel(const Recipe& recipe,
                                     const std::string& basis,
                                     const StructureFacts& facts);
 
+/// Shared solvent names accepted by every mapped code in the variant.
+std::vector<std::string> recipeSolvents(const RecipeVariant& variant);
+std::string recipeSolventModel(const std::string& code);
+std::vector<std::pair<std::string, std::string>> recipeSolventSettings(
+    const std::string& code, const std::string& solvent);
+
 /// A code label is usable when `registered` holds it (empty: all are).
 bool codeAvailable(const std::string& code,
                    const std::set<std::string>& registered);

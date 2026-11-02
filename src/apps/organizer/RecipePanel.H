@@ -26,6 +26,7 @@ class Session;
 class WorkflowPanel;
 class wxListCtrl;
 class RecipePreview;
+class wxScrolledWindow;
 
 class RecipePanel : public wxPanel
 {
@@ -53,7 +54,8 @@ public:
   void cancelClicked();
 
 private:
-  void fillRoles();
+  void fillRoles(bool preserve = false);
+  void layoutSettings();
   void fillVariants();
   void changed();
   std::set<std::string> registeredCodes() const;
@@ -71,12 +73,14 @@ private:
   wxListCtrl *p_list;
   wxBoxSizer *p_variantBox;
   std::vector<wxRadioButton*> p_variantButtons;
+  wxScrolledWindow *p_settings;
+  wxPanel *p_where;
   wxPanel *p_rolePanel;
   wxBoxSizer *p_roleSizer;
   struct RoleRow {
     std::string id;
     wxComboBox *method, *basis;
-    wxStaticText *why;
+    wxStaticText *why, *label, *applies;
   };
   std::vector<RoleRow> p_roles;
   wxRadioButton *p_new, *p_afterButton;

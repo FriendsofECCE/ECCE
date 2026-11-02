@@ -31,8 +31,10 @@ ORCA (NEB-TS) for the TS search. Choose one with its button. A code that this
 installation does not have is greyed.
 
 **2 Level of theory.** One row per role, for example "Optimisations, TS
-search, frequencies, IRC". Each row has a **Method** and a **Basis** box, both
+search, frequencies, IRC". Each row has a **Method** and a **Basis set** box, both
 editable, and a green line **Why** giving the reason for the recommendation.
+The full role label wraps over several lines when needed. **Applies to:** lists
+which boxes that row sets, for the chosen code variant.
 The recommendation is the recipe's default, changed by its rules:
 
 - an anion gets a basis with diffuse functions;
@@ -45,13 +47,28 @@ The rules read the selected box when the recipe is applied after it; for a new
 chain there is no structure yet and the recipe's defaults are shown. The
 rules only warn: any method and basis you type is accepted.
 
-**3 Where. Apply to** is **new workflow** or **after the selected box**
-(unavailable when no box is selected). Right-click a box and choose
+**3 Where the new steps go** offers **Start a new workflow** or
+**Continue after the selected box "&lt;name&gt;"**. This section is hidden when no
+box is selected, since only a new workflow is possible then. Right-click a
+box and choose
 **Apply Recipe from here...** to open the panel with that box already
 selected as the box to apply after. The first boxes of a new chain that
 need a structure are drawn in amber and marked "needs structure". After a
 box, the first boxes start from that box's geometry, charge and
 multiplicity.
+
+## Solvent
+
+Every recipe has one **Solvent** row, including recipes supplied by a site or
+written by hand. It applies to every step. Choose **none** for gas phase, or
+choose a solvent once for the whole chain. The list offers shared solvents
+accepted by the supported codes in the chosen variant. Changing the variant
+keeps the choice if available; otherwise it returns to **none**.
+
+The row names the model used by each code: CREST and xTB use ALPB, ORCA uses
+CPCM, and Gaussian 16 uses PCM. ECCE-QM uses its own CPCM support. A code
+without a recipe solvent mapping is noted in the row; set its solvent in
+that box. Every box remains editable after creation.
 
 ## After Create boxes
 

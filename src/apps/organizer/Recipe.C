@@ -131,6 +131,16 @@ bool parseRecipe(const string& text, Recipe& out, string& error)
   if (out.variants.empty()) return bad("no variant");
   for (size_t i = 0; i < out.variants.size(); i++)
     if (out.variants[i].steps.empty()) return bad("variant " + out.variants[i].id + " has no step");
+  // Solvent is a workflow-wide choice, including in recipes without a role.
+  auto solvent = std::find_if(out.roles.begin(), out.roles.end(),
+      [](const RecipeRole& r) { return r.id == "solvent"; });
+  if (solvent == out.roles.end())
+    out.roles.push_back({"solvent", "Solvent", "", "none", "gas phase by default"});
+  else {
+    if (solvent->basis.empty())
+      solvent->basis = solvent->method.empty() || solvent->method == "none" ? "none" : "water";
+    solvent->method.clear();
+  }
   return true;
 }
 
@@ -305,4 +315,78 @@ vector<string> checkLevel(const Recipe& recipe, const string& method,
 bool codeAvailable(const string& code, const std::set<string>& registered)
 {
   return registered.empty() || registered.count(code) > 0;
+}
+
+
+namespace {
+// Names from the code editors' solvent lists. Empty entries are unavailable;
+// aliases belong here so one choice has the same meaning in every step.
+struct SolventNames { const char *name, *xtb, *orca, *g16, *qm; };
+const SolventNames solvents[] = {
+  {"water", "water", "water", "Water", "Water"},
+  {"methanol", "methanol", "methanol", "Methanol", "Methanol"},
+  {"ethanol", "", "ethanol", "Ethanol", "Ethanol"},
+  {"acetonitrile", "acetonitrile", "acetonitrile", "Acetonitrile", "Acetonitrile"},
+  {"DMSO", "dmso", "DMSO", "Dimethylsulfoxide", "DMSO"},
+  {"chloroform", "chcl3", "chloroform", "Chloroform", "Chloroform"},
+  {"toluene", "toluene", "toluene", "Toluene", "Toluene"},
+  {"hexane", "hexane", "hexane", "", "Hexane"},
+  {"acetone", "acetone", "acetone", "Acetone", ""},
+  {"benzene", "benzene", "benzene", "Benzene", ""},
+  {"dichloromethane", "ch2cl2", "CH2Cl2", "Dichloromethane", ""},
+  {"THF", "thf", "THF", "Tetrahydrofuran", ""},
+  {"DMF", "dmf", "DMF", "n,n-dimethylformamide", ""},
+  {"nitromethane", "nitromethane", "nitromethane", "Nitromethane", ""},
+  {"octanol", "octanol", "octanol", "n-Octanol", ""}
+};
+string solventName(const SolventNames& s, const string& code)
+{
+  if (code == "CREST" || code == "xtb") return s.xtb;
+  if (code == "ORCA") return s.orca;
+  if (code == "G16") return s.g16;
+  if (code == "ECCE-QM") return s.qm;
+  return "";
+}
+}
+
+string recipeSolventModel(const string& code)
+{
+  if (code == "CREST" || code == "xtb") return "ALPB";
+  if (code == "ORCA" || code == "ECCE-QM") return "CPCM";
+  if (code == "G16") return "PCM";
+  return "";
+}
+
+vector<string> recipeSolvents(const RecipeVariant& variant)
+{
+  vector<string> out = {"none"};
+  for (const auto& s : solvents) {
+    bool ok = true;
+    for (const auto& step : variant.steps)
+      if (!recipeSolventModel(step.code).empty() && solventName(s, step.code).empty()) ok = false;
+    if (ok) out.push_back(s.name);
+  }
+  return out;
+}
+
+vector<std::pair<string, string>> recipeSolventSettings(const string& code, const string& solvent)
+{
+  string name;
+  for (const auto& s : solvents) if (solvent == s.name) name = solventName(s, code);
+  const bool gas = solvent == "none";
+  if (!gas && name.empty()) return {};
+  if (code == "CREST" || code == "xtb")
+    return {{"ES.Theory.Solvent.Model", gas ? "None" : "ALPB"},
+            {"ES.Theory.Solvent.Name", gas ? "water" : name}};
+  if (code == "ORCA")
+    return {{"ES.Theory.SCF.UseSolvation", gas ? "0" : "1"},
+            {"ES.Theory.SCF.SolvationModel", "CPCM"},
+            {"ES.Theory.SCF.Solvent", gas ? "water" : name}};
+  if (code == "G16")
+    return {{"ES.Theory.SCF.UseSCRF", gas ? "0" : "1"},
+            {"ES.Theory.SCF.SCRF", "PCM"},
+            {"ES.Theory.SCF.Solvent", gas ? "Water" : name}};
+  if (code == "ECCE-QM")
+    return {{"ES.Theory.ECCEQM.Solvent", gas ? "None" : name}};
+  return {};
 }
