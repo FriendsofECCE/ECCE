@@ -490,6 +490,18 @@ CASES = [
         },
     ),
     dict(
+        name='orca-hcn-irc-mos',
+        desc='orca.desc',
+        fixture='orca/hcn_irc_mos.out',
+        # Real HF/3-21G IRC with Print[P_MOs]; gensub's appended TS, backward
+        # and forward end-point orbital blocks give three PTMO tables (#751).
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'PTMO][PTMOBETA][PTORB][PTORBBETA': dict(blocks=3),
+        },
+    ),
+    dict(
         name='orca-h2o2-scan',
         desc='orca.desc',
         fixture='orca/h2o2_dihedral_scan.out',
@@ -826,7 +838,7 @@ CASES = [
             # Needs ai.orca's "%output Print[P_MOs] 1 end"; the fixture's
             # deck carries it.  Closed shell, so the BETA keys are
             # correctly absent -- see orca-oh-uhf for those.
-            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][PTMO][PTMOBETA][PTORB][PTORBBETA': dict(
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER': dict(
                 keys={
                     'ORBENG': {'values': '-20.25158 -1.25755 -0.59386 '
                                          '-0.45973 -0.39262 0.58179 0.69267',
@@ -1011,7 +1023,7 @@ CASES = [
         parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
         expect={
             'S2': dict(keys={'S2': {'values': '0.753262'}}),
-            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][PTMO][PTMOBETA][PTORB][PTORBBETA': dict(
+            'MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER': dict(
                 blocks=1, keys={
                     'ORBENG': {'values': '-20.28571 -1.29219 -0.55098 '
                                          '-0.52456 -0.42967 0.62006'},
@@ -2840,6 +2852,18 @@ MOFILE_CASES = [
         expect={
             'ORBENG': {'size': '5', 'units': 'Hartree'},
             'MO': {'size': '5 5'},
+        },
+    ),
+    # An IRC job punches the MOs of its last path point into fort.7 (#751);
+    # real G16 run, HCN IRC HF/3-21G, last point is the HNC side.
+    dict(
+        name='g16-hcn-irc-mofile',
+        script='gaussian-16.mo',
+        fixture='gaussian-16/hcn_irc_mo.fort7',
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'ORBENG': {'size': '20', 'units': 'Hartree'},
+            'MO': {'size': '20 20'},
         },
     ),
     # The MSD of the NaCl-dissolving example (#544): three ECCE-MDMSD

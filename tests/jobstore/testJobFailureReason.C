@@ -58,6 +58,18 @@ static void expectShortSingleLine(const string& label, const string& reason)
   }
 }
 
+static void expectEq(const string& label, const string& got,
+                     const string& want)
+{
+  if (got != want) {
+    cerr << "FAIL " << label << ": expected \"" << want
+         << "\", got: \"" << got << "\"" << endl;
+    failures++;
+  } else {
+    cout << "PASS " << label << endl;
+  }
+}
+
 // The HFX_MEM_INFO block of a real CP2K 2025.1 PBE0 water run (MAX_MEMORY
 // 200), with the two program-size lines and the ERI RAM line parameterized
 // so the two-block case below can differ from the verbatim first block.
@@ -277,6 +289,63 @@ int main(int argc, char** argv)
     remove(path.c_str());
     expectEmpty("scheduler note, missing file",
                 JobFailureReason::schedulerErrNote("slurm.err", path));
+  }
+
+  // reasonForProgressBox: for the Progress box, the scheduler note's quoted
+  // line is shortened to 100 chars + ellipsis; everything else -- CP2K's HFX
+  // estimate sentence above all -- and the stored reason stay whole.
+  {
+    const string quote =
+        "slurmstepd: error: Detected 10 oom_kill events in StepId=1366008."
+        "extern Some of the step tasks have been OOM Killed by the cgroup "
+        "memory controller before the run could checkpoint.";
+    const string full =
+        "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+        "(see slurm.err in Outputs: " + quote + ")";
+    const string hfx = " CP2K's HFX estimate: program size 291 MiB before "
+                       "HFX, 294 MiB after; ERIs in RAM 1 MiB (set the "
+                       "memory per rank, or fewer ranks per node).";
+    const string prefix =
+        "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+        "(see slurm.err in Outputs: ";
+
+    expectEq("long scheduler quote shortened to 100 chars + ellipsis",
+             JobFailureReason::reasonForProgressBox(full),
+             prefix + quote.substr(0, 100) + "\xe2\x80\xa6)");
+    expectEq("short scheduler quote unchanged",
+             JobFailureReason::reasonForProgressBox(
+                 "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+                 "(see slurm.err in Outputs: slurmstepd: error: oom-kill)"),
+             "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+             "(see slurm.err in Outputs: slurmstepd: error: oom-kill)");
+    expectEq("reason with no scheduler note unchanged",
+             JobFailureReason::reasonForProgressBox(
+                 "\"The optimization did not converge but reached the "
+                 "maximum number of optimization cycles.\""),
+             "\"The optimization did not converge but reached the maximum "
+             "number of optimization cycles.\"");
+    expectEq("CP2K HFX sentence stays whole",
+             JobFailureReason::reasonForProgressBox(full + hfx),
+             prefix + quote.substr(0, 100) + "\xe2\x80\xa6)" + hfx);
+    // A ')' inside the quoted slurm line -- the OOM killer's "(1234 MB > "
+    // "1024 MB)" -- is not the note's closing ')' (#677): it must not stop
+    // the shortening early (short quote) or be re-appended after the
+    // ellipsis (long quote).
+    const string parenQuote =
+        "slurmstepd: error: Job 12345 exceeded its memory limit and the OOM "
+        "killer terminated the step (virtual memory 12 GB > 8 GB) to reclaim "
+        "the node for the rest of the queue";
+    expectEq("')' inside a long scheduler quote: shortened at the note's ')'",
+             JobFailureReason::reasonForProgressBox(prefix + parenQuote + ")"),
+             prefix + parenQuote.substr(0, 100) + "\xe2\x80\xa6)");
+    expectEq("')' inside a short scheduler quote: unchanged",
+             JobFailureReason::reasonForProgressBox(
+                 "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+                 "(see slurm.err in Outputs: Job 123 exceeded memory limit "
+                 "(1234 MB > 1024 MB), being killed)"),
+             "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+             "(see slurm.err in Outputs: Job 123 exceeded memory limit "
+             "(1234 MB > 1024 MB), being killed)");
   }
 
   // CP2K HFX memory estimate for a scheduler OOM kill (#739): the LAST

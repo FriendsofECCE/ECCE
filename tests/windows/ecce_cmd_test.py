@@ -87,13 +87,26 @@ def cmd(env, cwd, log):
     return r.returncode, open(log, errors="replace").read()
 
 
+def choose(env, answer):
+    """A plain start no longer asks (#767): a server is chosen with --change."""
+    r = subprocess.run([os.path.join(root, "python", "python3.exe"),
+                        os.path.join(root, "bin", "ecce-first-start"), "--change"],
+                       env=dict(env, ECCE_FIRST_START_ANSWER=answer, ECCE_HOME=root),
+                       capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=180)
+    print("choose %s: rc=%d\n%s%s" % (answer, r.returncode, r.stdout, r.stderr))
+
+
 def run(name, answer, **extra):
     profile = os.path.join(scratch, name)
     shutil.rmtree(profile, ignore_errors=True)
     os.makedirs(profile)
     os.makedirs(scratch, exist_ok=True)
     env = {k: v for k, v in os.environ.items() if not k.startswith("ECCE_")}
-    env.update(USERPROFILE=profile, ECCE_FIRST_START_ANSWER=answer, **extra)
+    env.update(USERPROFILE=profile, **extra)
+    if answer.startswith("server:"):
+        choose(env, answer)
+    else:
+        env["ECCE_FIRST_START_ANSWER"] = answer
     rc, text = cmd(env, profile, os.path.join(scratch, name + ".log"))
     up = False
     for _ in range(30):
@@ -131,8 +144,8 @@ profile = os.path.join(scratch, "switch")
 shutil.rmtree(profile, ignore_errors=True)
 os.makedirs(profile)
 env = {k: v for k, v in os.environ.items() if not k.startswith("ECCE_")}
-env.update(USERPROFILE=profile, ECCE_FIRST_START_ANSWER="server:127.0.0.1:%d" % lport,
-           ECCE_BROKER_PORT=str(bport), ECCE_TEST_AUTH_ANSWER="uselocal:2")
+env.update(USERPROFILE=profile, ECCE_BROKER_PORT=str(bport), ECCE_TEST_AUTH_ANSWER="uselocal:2")
+choose(env, "server:127.0.0.1:%d" % lport)
 rc, text = cmd(env, profile, os.path.join(scratch, "switch.log"))
 first = organizer_pids()
 pids, local_broker = first, ""
@@ -163,7 +176,8 @@ env = {k: v for k, v in os.environ.items() if not k.startswith("ECCE_")}
 env.update(USERPROFILE=profile, ECCE_FIRST_START_ANSWER="", ECCE_NO_FIRST_START="1",
            ECCE_BROKER_PORT=str(bport))
 for f in glob.glob(profile + "/.ECCE/broker_*"):
-    os.remove(f)
+    if os.path.isfile(f):
+        os.remove(f)
 rc, text = cmd(env, profile, os.path.join(scratch, "down.log"))
 print("down: rc=%d\n%s" % (rc, text))
 check(rc != 0 and not organizer_running(), "server down: ecce.cmd stops with an error")

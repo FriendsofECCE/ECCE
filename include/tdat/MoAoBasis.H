@@ -107,6 +107,25 @@ class MoAoBasis
     bool analyse(const vector<double>& coefficients, Method method,
                  Composition& out) const;
 
+    /** Signed electron count per orbital of one spin set (zero = skipped). */
+    struct SpinSet
+    {
+      const vector< vector<double> > *rows;   // coefficient rows, as analyse()
+      vector<double> net;                     // one per row
+      SpinSet() : rows(0) {}
+    };
+
+    /**
+     * Mulliken spin population on each atom, q_A = sum over mu on A of
+     * [(Pa - Pb) S]_mumu, in one pass over the nonzero overlaps.  Each
+     * orbital is normalised in this basis, as analyse() does, so the
+     * result equals summing net * (Mulliken share) orbital by orbital.
+     * Nothing is built per orbital beyond a row of the nbas x norb work
+     * matrix.  False if a row's length does not match the basis.
+     */
+    bool spinPopulations(const vector<SpinSet>& sets,
+                         vector<double>& perAtom) const;
+
     /**
      * One orbital's rows of the calculation's "MO" or "MOBETA" table,
      * with the per-code column order undone (MoAoOrder), so they line

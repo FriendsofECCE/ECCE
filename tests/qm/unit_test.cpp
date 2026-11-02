@@ -18,6 +18,7 @@
 #include "localise.hpp"
 #include "solvent.hpp"
 #include "vibration.hpp"
+#include "tscheck.hpp"
 #include <array>
 
 using namespace qm;
@@ -490,6 +491,38 @@ int main(int argc, char** argv) {
     o.solvent_eps = 78.3553;
     const ScfResult r2 = run_scf(b, w, o);
     check(r2.converged && r2.e_solvent < -0.005 && r2.energy < r0.energy - 0.005, "water in water: energy lowered by the reaction field", r2.energy - r0.energy);
+  }
+
+  // TS check (#509): warns on a saddle that does not move the coordinate it was
+  // started along, and on a dissociated end structure; silent on a good one.
+  {
+    auto mk = [](double rcl, double rf) {
+      Molecule m;
+      const int Z[6] = {17, 6, 9, 1, 1, 1};
+      const double zc = rcl, zf = rcl + rf;
+      const double pos[6][3] = {{0, 0, 0}, {0, 0, zc}, {0, 0, zf}, {1.06, 0, zc}, {-0.53, 0.92, zc}, {-0.53, -0.92, zc}};
+      for (int i = 0; i < 6; ++i) {
+        Atom a; a.Z = Z[i];
+        for (int k = 0; k < 3; ++k) a.x[k] = pos[i][k] * kAngstromToBohr;
+        m.atoms.push_back(a);
+      }
+      return m;
+    };
+    const Molecule start = mk(2.35, 1.9);
+    VibResult v;
+    v.modes = Mat::Zero(18, 1);
+    v.modes(2, 0) = -0.5; v.modes(5, 0) = 0.5; v.modes(8, 0) = 0.5;  // Cl, C, F along z: the reaction coordinate
+    OptOptions opt;
+    check(check_saddle(start, mk(2.45, 1.85), v, opt).empty(), "ts check: reaction mode on the changing bonds is silent");
+    VibResult wag;
+    wag.modes = Mat::Zero(18, 1);
+    wag.modes(9, 0) = 0.7; wag.modes(10, 0) = 0.7;  // an H moves, no bond to Cl or F does
+    auto w1 = check_saddle(start, mk(2.6, 1.8), wag, opt);
+    check(w1.size() == 1 && w1[0].find("does not move") != std::string::npos, "ts check: warns when the mode misses the changing bonds");
+    auto w2 = check_saddle(start, mk(2.2, 7.2), v, opt);
+    bool broken = false;
+    for (const auto& s : w2) broken |= s.find("is broken") != std::string::npos;
+    check(broken, "ts check: warns on a dissociated end structure");
   }
 
   return fails ? 1 : 0;

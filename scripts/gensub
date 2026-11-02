@@ -1566,9 +1566,59 @@ sub orca()
     $retval .= "  perl -i -ne 'print unless /^\\s*%pal\\b/i' $::inFile\n";
     $retval .= "fi\n";
     $retval .= "if [ -z \"\$orcabad\" ]; then \"\$orca\" $::inFile > $::outFile 2>&1; else echo \"\$orcabad\" > $::outFile; false; fi\n";
+    $retval .= &orcaIrcEnds($::inFile, $::outFile);
   }
   return $retval;
   nouse strict vars;
+}
+
+# An IRC's two end points have their own orbitals (<job>_IRC_B.gbw and
+# _IRC_F.gbw), which ORCA never prints.  A converter from the binary file
+# would have to redo ORCA's AO ordering, so ORCA itself prints them: the
+# job's input with the IRC removed, MOREAD NoIter from the end gbw and the
+# end geometry.  Each block is appended under a heading orca.desc's PTMO
+# entry takes (orca.mo's MO entry does not), so a failure here only means
+# no end-point orbitals (#751).
+sub orcaIrcEnds
+{
+  my ($in, $out) = @_;
+  my $perl = <<'PERL';
+my ($in, $gbw, $xyz, $dst) = @ARGV;
+open(my $fh, "<", $in) or exit 1;
+my (@o, $skip, $chg, $mult);
+while (<$fh>) {
+  if ($skip) { $skip = 0 if /^\s*end\b/i; next; }
+  if (/^\s*%irc\b/i) { $skip = 1 unless /\bend\s*$/i; next; }
+  if (/^\s*\*\s*(?:xyz|xyzfile|int|gzmt)\s+(-?\d+)\s+(\d+)/i) { ($chg, $mult) = ($1, $2); last; }
+  s/\bIRC\b/MOREAD NoIter/i if /^\s*!/;
+  push(@o, $_);
+}
+exit 1 unless defined $chg;
+open(my $oh, ">", $dst) or exit 1;
+print $oh @o, "%moinp \"$gbw\"\n* xyzfile $chg $mult $xyz\n";
+PERL
+  my $r = "\n$::CC - Orbitals at the end points of an IRC (#751)\n";
+  $r .= "orcaStatus=\$?\n";
+  $r .= "cat > ecce_ircend.pl <<'ECCE_PERL_END'\n$perl" . "ECCE_PERL_END\n";
+  # The TS block is appended again under the same heading, first, so that
+  # orca.desc's PTMO entry sees the three blocks in one rule.
+  my $awk = "awk 'f==0 && /^MOLECULAR ORBITALS/ {print \"ECCE-IRC-END-ORBITALS\"; f=1; next} f==1 {print; if (/MULLIKEN POPULATION ANALYSIS/) exit}'";
+  $r .= "if [ -s ${in}_IRC_Full_trj.xyz ]; then\n";
+  $r .= "  $awk $out > ecce_irc_all.blk\n";
+  $r .= "  for e in B F; do\n";
+  $r .= "    g=${in}_IRC_\$e.gbw; x=${in}_IRC_\$e.xyz\n";
+  $r .= "    if [ -s \"\$g\" ] && [ -s \"\$x\" ] && perl ecce_ircend.pl $in \"\$g\" \"\$x\" ecce_irc_\$e.inp; then\n";
+  $r .= "      \"\$orca\" ecce_irc_\$e.inp > ecce_irc_\$e.out 2>&1\n";
+  $r .= "      $awk ecce_irc_\$e.out >> ecce_irc_all.blk\n";
+  $r .= "    fi\n";
+  $r .= "    rm -f ecce_irc_\$e.*\n";
+  $r .= "  done\n";
+  $r .= "  cat ecce_irc_all.blk >> $out\n";
+  $r .= "  rm -f ecce_irc_all.blk\n";
+  $r .= "fi\n";
+  $r .= "rm -f ecce_ircend.pl\n";
+  $r .= "(exit \$orcaStatus)\n";
+  return $r;
 }
 
 #############################################################################

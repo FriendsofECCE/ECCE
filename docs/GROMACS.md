@@ -66,6 +66,19 @@ temperature.
 | include files | as named | `chemical/x-gromacs-include` (`.itp`, `.ndx`) | as named |
 | output | `gromacs.gmxlog` | `chemical/x-gromacs-log` | `gromacs.log` (mdrun insists on `.log`; the declared name is a symlink while it runs, a copy after) |
 | final structure | `ecceSession_<calc>.gro` and `chemsys.pdb` | `.gro` as above; `chemical/x-pdb` | |
+| energies, run input, trajectory | `ener.edr`, `topol.tpr`, `traj.xtc` | not declared in `GROMACS.edml`; fetched back by the monitor (see "Copy-back") | left in the run directory |
+
+### Copy-back
+
+`mdrun` leaves `ener.edr` (energies), `topol.tpr` (the run input grompp
+built) and, for a Dynamics task that writes one, `traj.xtc` in the run
+directory. At job end `eccejobmonitor` fetches them back (they are sent as
+`filesToTransfer`, like ORCA's auxiliary files), unless the task's Run
+settings page has **Leave trajectory files on the machine** ticked, which
+fetches none of the three. Files over the fetch size limit (500 MB each by
+default, `ECCE_GROMACS_FETCH_LIMIT` in MB to change) are left in the run
+directory with a note in the job output; fetch them later with
+`ecce-fetch`.
 
 **Why `.gmxtop`.** `.top` is NWChem's topology type
 (`chemical/x-nwchem-topology`) and a second `AddType` for it would change
@@ -89,7 +102,7 @@ K, kJ/mol, Pa and 1/Pa; only the last two are converted (to bar and 1/bar).
 | Constraints: on | `constraints = h-bonds` |
 | Optimize: maximum steps, initial step, maximum force | `nsteps`, `emstep`, `emtol` (integrator is always `steep`) |
 | Dynamics: time step | `dt`; `nsteps` is equilibration steps plus data steps |
-| Dynamics: initial time | `tinit` |
+| Dynamics: initial time | `tinit`; `init-step` starts the step counter. A Dynamics task after another starts both where the previous task's `.mdp` ended (`tinit + nsteps*dt`, `init-step + nsteps`) unless an initial time is set; a zero initial time is the same as unset and means "continue" |
 | Dynamics: remove centre of mass motion, interval | `comm-mode`, `nstcomm` |
 | Dynamics: constant temperature, temperature, relaxation time | `tcoupl = v-rescale`, `ref-t`, `tau-t` |
 | Dynamics: annealing | `annealing = single`, `annealing-time`, `annealing-temp` |

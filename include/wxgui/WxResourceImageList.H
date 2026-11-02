@@ -19,6 +19,12 @@ class WxResourceImageList : public ewxImageList
 {
   public:
     static WxResourceImageList* getImageList();
+    // Roots of added ECCE servers (maroon) and SSH folders (green); a root
+    // that is not connected is grey.  The tint is the colour mixed lightly
+    // into the tree background, for the rows below the root.
+    static int getServerImageIndex(bool ssh, bool connected);
+    static wxColour getServerInk(bool ssh);
+    static wxColour getServerTint(bool ssh);
     static int getImageIndex(Resource * resource,
                              ResourceDescriptor::IconType iconType =
                              ResourceDescriptor::IT_NORMAL);

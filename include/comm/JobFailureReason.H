@@ -527,6 +527,42 @@ inline std::string schedulerErrNote(const std::string& name,
 }
 
 // ------------------------------------------------------------------------
+// The reason as the Progress box shows it: the scheduler note's quoted line
+// is shortened to ~100 characters so the "Incomplete:" line stays readable
+// (the full line is in slurm.err in Outputs), while everything else -- in
+// particular CP2K's HFX estimate sentence, which callers append after the
+// note -- stays whole.  Display-only: the stored reason (run log, ecce-*
+// tools) is not changed.
+// ------------------------------------------------------------------------
+inline std::string reasonForProgressBox(const std::string& reason)
+{
+  static const std::string kNote = " (see ";
+  static const std::string kInOutputs = " in Outputs: ";
+  static const std::string kHfx = " CP2K's HFX estimate: ";
+  const size_t at = reason.find(kNote);
+  if (at == std::string::npos)
+    return reason;
+  const size_t outputs = reason.find(kInOutputs, at);
+  if (outputs == std::string::npos)
+    return reason;
+  const size_t lineStart = outputs + kInOutputs.size();
+  // The note's quoted line runs to its closing ')'.  A ')' inside the quoted
+  // slurm line -- the OOM killer's "(1234 MB > 1024 MB)" -- is not that, so
+  // take the LAST ')' before the CP2K HFX sentence when one follows the note
+  // (the sentence's own ')' is after its "estimate: "), else the last one.
+  const size_t hfx = reason.find(kHfx, lineStart);
+  const size_t lineEnd = hfx == std::string::npos ? reason.rfind(')')
+                                                  : reason.rfind(')', hfx);
+  if (lineEnd == std::string::npos || lineEnd <= lineStart)
+    return reason;
+  const size_t len = lineEnd - lineStart;
+  if (len <= 100)
+    return reason;
+  return reason.substr(0, lineStart) + reason.substr(lineStart, 100) +
+         "\xe2\x80\xa6" + reason.substr(lineEnd);
+}
+
+// ------------------------------------------------------------------------
 // CP2K hybrids print an HFX_MEM_INFO block each SCF step.  When the
 // scheduler killed the job for out of memory, the LAST block's two
 // program-size lines and its ERI RAM line make a short estimate; "" when

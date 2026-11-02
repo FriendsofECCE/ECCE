@@ -209,10 +209,11 @@ sub printMO {
   return 1;
 }
 
-# An IRC prints the MOs once, at the TS.  Besides MO/ORBENG/ORBOCC they go
-# out as the one-table PTORB/PTMO (#751), which PropertyTask pairs with the
-# TS frame only, so no other IRC point is shown with them.
+# An IRC has orbitals at the TS and its two end points (#751).  orca.ptmo
+# runs this script once per block (TS first) with $main::PTONLY and gets one
+# PTORB/PTMO table each; the plain run gives MO/ORBENG/ORBOCC of the TS block.
 my $isIrc = ($runtype =~ /IRC/i);
+my $ptOnly = $main::PTONLY;
 
 sub printPointTables {
   my ($moKey, $orbKey, $orbEnergyRef, $orbOccRef, $coeffRef, $nbas) = @_;
@@ -236,13 +237,13 @@ sub printPointTables {
 my $printedAny = 0;
 if (@segments >= 1) {
   my ($orbEnergy, $orbOcc, $coeff, $nbas) = parseSegment($segments[0]);
-  $printedAny |= printMO("MO", "ORBENG", "ORBOCC", $orbEnergy, $orbOcc, $coeff, $nbas);
-  &printPointTables("PTMO", "PTORB", $orbEnergy, $orbOcc, $coeff, $nbas) if ($isIrc);
+  $printedAny |= printMO("MO", "ORBENG", "ORBOCC", $orbEnergy, $orbOcc, $coeff, $nbas) if (!$ptOnly);
+  &printPointTables("PTMO", "PTORB", $orbEnergy, $orbOcc, $coeff, $nbas) if ($ptOnly && $isIrc);
 }
 if (@segments >= 2) {
   my ($orbEnergy, $orbOcc, $coeff, $nbas) = parseSegment($segments[1]);
-  $printedAny |= printMO("MOBETA", "ORBENGBETA", "ORBOCCBETA", $orbEnergy, $orbOcc, $coeff, $nbas);
-  &printPointTables("PTMOBETA", "PTORBBETA", $orbEnergy, $orbOcc, $coeff, $nbas) if ($isIrc);
+  $printedAny |= printMO("MOBETA", "ORBENGBETA", "ORBOCCBETA", $orbEnergy, $orbOcc, $coeff, $nbas) if (!$ptOnly);
+  &printPointTables("PTMOBETA", "PTORBBETA", $orbEnergy, $orbOcc, $coeff, $nbas) if ($ptOnly && $isIrc);
 }
 
 # Tells the C++ side (MoAoOrder::reorderToNative()) that MO/MOBETA's

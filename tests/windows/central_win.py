@@ -57,7 +57,7 @@ env.update({
 })
 
 # 1. The first-start question, answered as its "Connect to a server" button.
-r = subprocess.run([tree + "/python/python3.exe", BIN + "/ecce-first-start"],
+r = subprocess.run([tree + "/python/python3.exe", BIN + "/ecce-first-start", "--change"],
                    env=dict(env, ECCE_FIRST_START_ANSWER="server:" + server),
                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=120)
 say("first start: rc=%d %s" % (r.returncode, r.stdout.decode(errors="replace").strip()))

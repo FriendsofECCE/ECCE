@@ -152,6 +152,9 @@ public:
 protected:
   int getStateIndex(Resource * resource);
   void setItemImages(const wxTreeItemId& itemId, Resource * resource);
+  void styleServerRoot(const wxTreeItemId& id, WxResourceTreeItemData * node,
+                       bool ssh);
+  void tintLike(const wxTreeItemId& child, const wxTreeItemId& parent);
 
 private:
   

@@ -2687,42 +2687,55 @@ MoPanel::SpinData MoPanel::spinDensityData()
    }
 
    const bool haveBasis = ensureAoBasis();
-   const size_t natoms = haveBasis ? p_aoBasis->elements.size() : 0;
-   vector<double> spinPop(natoms, 0.0);
-   vector<string> atomName(natoms);
    for (int set = 0; set < (unrestricted ? 2 : 1); set++) {
       const vector<double>& en = (energy[set] ? energy[set] : energy[0])->values();
       for (size_t i = 0; i < net[set].size(); i++) {
          if (fabs(net[set][i]) < 1e-6) continue;
+         // A beta orbital is singly occupied only where the alpha one is not.
+         if (unrestricted && set == 1 && i < net[0].size() && net[0][i] != 0.0)
+            continue;
+         if (unrestricted && set == 0 && i < net[1].size() && net[1][i] != 0.0)
+            continue;
+         //  The composition is only worth its cost for the orbitals listed.
          MoAoBasis::Composition comp;
          string main, full;
          if (haveBasis && i < p_aoRows[set].size() &&
              p_aoBasis->analyse(p_aoRows[set][i], MoAoBasis::MULLIKEN, comp)) {
-            for (size_t a = 0; a < comp.atoms.size() && a < natoms; a++) {
-               spinPop[a] += net[set][i] * comp.atoms[a].share;
-               atomName[a] = comp.atoms[a].label;
-            }
             vector<SpinTables::Part> parts;
             for (size_t a = 0; a < comp.atoms.size(); a++)
                parts.push_back({ comp.atoms[a].label, comp.atoms[a].share });
             main = SpinTables::compositionText(parts);
             full = SpinTables::fullCompositionText(parts);
          }
-         // A beta orbital is singly occupied only where the alpha one is not.
-         if (unrestricted && set == 1 && i < net[0].size() && net[0][i] != 0.0)
-            continue;
-         if (unrestricted && set == 0 && i < net[1].size() && net[1][i] != 0.0)
-            continue;
          data.somos.push_back({ (int)(i + 1), set == 1,
                                 i < en.size() ? en[i] : 0.0, main, full });
       }
    }
 
-   data.haveBasis = haveBasis;
+   //  Atomic spin populations from the whole spin density in one pass.
+   vector<double> spinPop;
+   vector<string> atomName;
+   bool havePop = false;
    if (haveBasis) {
+      vector<MoAoBasis::SpinSet> sets(2);
+      for (int set = 0; set < (unrestricted ? 2 : 1); set++) {
+         sets[set].rows = &p_aoRows[set];
+         sets[set].net = net[set];
+         for (size_t i = 0; i < sets[set].net.size(); i++)
+            if (fabs(sets[set].net[i]) < 1e-6) sets[set].net[i] = 0.0;
+      }
+      havePop = p_aoBasis->spinPopulations(sets, spinPop);
+      for (size_t a = 0; a < p_aoBasis->elements.size(); a++)
+         atomName.push_back(p_aoBasis->elements[a] + std::to_string(a + 1));
+   }
+
+   data.haveBasis = haveBasis;
+   if (havePop) {
       data.populations = SpinTables::populations(atomName, spinPop);
    } else {
-      data.why = p_aoWhy;
+      data.haveBasis = false;
+      data.why = haveBasis ? "the orbital coefficients do not match the basis"
+                           : p_aoWhy;
    }
    return data;
 }

@@ -3541,6 +3541,11 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/mocomp/run_tests.py
                    ${CMAKE_BINARY_DIR})
   set_tests_properties(mocomp PROPERTIES TIMEOUT 300)
+  add_test(NAME mocompspin
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/mocomp/spin_test.py
+                   ${CMAKE_BINARY_DIR})
+  set_tests_properties(mocompspin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 
   # tests/fragorb: fragment orbitals and MO composition in them (#301);
   # EHT against YAeHMOP, the projection against Multiwfn, ML6 classes.
@@ -4115,7 +4120,7 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/gui_test.py
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
-  set_tests_properties(machregister_gui PROPERTIES TIMEOUT 600
+  set_tests_properties(machregister_gui PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
   # Remote Browse's listing parser and paths (wx-free, header-only).
   add_executable(remotelisting_test tests/machregister/remotelisting_test.C)

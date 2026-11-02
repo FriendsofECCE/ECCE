@@ -583,6 +583,9 @@ class Suite(object):
                        "the monitor of a remote job keeps its default pause")
         else:
             self.check(local, "the monitor of a local job polls every 2 s")
+        if self.monitorConf:
+            self.check("fileSizeLimit" not in self.monitorConf,
+                       "a non-GROMACS launch writes no fetch size limit")
 
         rc, out = self.driver("props", url)
         props = out.split()

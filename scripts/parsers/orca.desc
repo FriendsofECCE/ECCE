@@ -117,11 +117,23 @@ Lines=2
 # to text output at all. Deriving ORBENG/ORBOCC from this block instead of
 # the separate "ORBITAL ENERGIES" section since that section truncates to
 # the first 10 virtuals by default while this one prints every orbital.
-[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][PTMO][PTMOBETA][PTORB][PTORBBETA]
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER]
 Script=orca.mo
 Begin=MOLECULAR ORBITALS
 Skip=2
 Frequency=last
+End=MULLIKEN POPULATION ANALYSIS
+[END]
+
+# An IRC's orbitals per point (#751): gensub appends the TS block again and
+# the two end-point blocks under the heading ECCE-IRC-END-ORBITALS (TS,
+# backward end, forward end).  One table each, in file order.  The heading
+# differs from the MO entry's so that rule does not also take them.
+[PTMO][PTMOBETA][PTORB][PTORBBETA]
+Script=orca.ptmo
+Begin=ECCE-IRC-END-ORBITALS
+Skip=2
+Frequency=all
 End=MULLIKEN POPULATION ANALYSIS
 [END]
 

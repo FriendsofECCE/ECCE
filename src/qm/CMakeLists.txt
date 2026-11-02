@@ -87,7 +87,7 @@ FetchContent_MakeAvailable(libcint)
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
   molecule.cpp basislib.cpp basis.cpp integrals.cpp ao.cpp grid.cpp xc.cpp
-  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp irc.cpp vibration.cpp polar.cpp localise.cpp solvent.cpp input.cpp output.cpp)
+  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp tscheck.cpp irc.cpp vibration.cpp polar.cpp localise.cpp solvent.cpp input.cpp output.cpp)
 target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include)
 target_link_libraries(eccems PUBLIC Eigen3::Eigen cint qm_xc)
 if(OpenMP_CXX_FOUND)
@@ -171,6 +171,12 @@ if(QM_PYTHON3)
   # IRC (#452 stage 2): HCN <-> HNC against ORCA's IRC (tests/qm/irc_oracle.json).
   add_test(NAME qm_irc COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_test.py $<TARGET_FILE:ecce-qm> --quick)
   set_tests_properties(qm_irc PROPERTIES TIMEOUT 600)
+  # IRC from a start a little off the saddle: the two ends must differ (#764).
+  add_test(NAME qm_irc_offset COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_offset_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_irc_offset PROPERTIES TIMEOUT 300)
+  # Cl- + CH3Br from a start off the saddle: ends are the two different complexes (#764).
+  add_test(NAME qm_irc_sn2 COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_sn2_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_irc_sn2 PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts_quick PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts PROPERTIES TIMEOUT 3600)
   set_tests_properties(qm_scan_quick PROPERTIES TIMEOUT 1800)

@@ -54,6 +54,7 @@
 //   launchjob rerun  <calcURL>                            "Reset for Rerun" (state ready)
 //   launchjob jobid  <calcURL>                            prints the job id Launch parsed
 //   launchjob state  <calcURL>                            prints the run state
+//   launchjob status <calcURL>                            the same with the stalled note (#769)
 //   launchjob launchdata <calcURL>                        the stored launch settings, one key=value a line
 //   launchjob props  <calcURL>                            one property per line
 //   launchjob restart <calcURL> <deckFile> <deckName>     "Reset for Restart", then
@@ -89,6 +90,7 @@
 #include <string>
 #include <vector>
 
+#include "util/JobProgress.H"
 #include "comm/JobCatchUp.H"
 #include "comm/LaunchBatch.H"
 #include "comm/Launch.H"
@@ -865,6 +867,18 @@ int main(int argc, char** argv)
   TaskJob* task = getTask(a[0]);
   if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
   if (mode == "state") { cout << stateName(task->getState()) << endl; return 0; }
+  if (mode == "status") {
+    // The state as a person reads it: a running job whose output stopped
+    // growing carries the job store's note (#769).
+    string line = stateName(task->getState());
+    JobProgress p;
+    if (task->getState() == ResourceDescriptor::STATE_RUNNING &&
+        p.parse(task->getProp(VDoc::getEcceNamespace() + ":progress")) &&
+        p.stalled() > 0)
+      line = JobProgress::stalledText(p.stalled());
+    cout << line << endl;
+    return 0;
+  }
   if (mode == "launchdata") {
     Launchdata l = task->launchdata();
     cout << "machine=" << l.machine << "\nqueue=" << l.queue << "\nprocs=" << l.totalprocs

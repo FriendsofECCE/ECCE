@@ -38,6 +38,7 @@ struct GromacsRun
    int    pcoupltype;    ///< 0 isotropic, 1 semiisotropic, 2 anisotropic
    int    nstpcouple;    ///< 0: leave to grompp
    string extraMdp;      ///< lines written at the end of the .mdp
+   bool   leaveTraj;     ///< keep traj.xtc/ener.edr/topol.tpr on the machine
    bool   pull;          ///< centre-of-mass pulling between two groups
    string pullGroup1;    ///< names of index groups (GromacsRun::groups)
    string pullGroup2;

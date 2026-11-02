@@ -55,6 +55,25 @@ in a warning before launch, and its input cannot be written.
 | Transition State (Opt-TS) | searches for a first-order saddle point from one starting structure (eigenvector following on an exact starting Hessian), then computes the frequencies there: a transition state has exactly one imaginary frequency |
 | IRC | follows the reaction path down from a transition state in both directions; **Properties > IRC Path** plots the energy against the reaction coordinate, and a click on a point shows its structure |
 
+The **Runtype Details** of a Transition State (Opt-TS) search have three
+settings for a hard start, such as a point from a relaxed scan:
+
+* **Start along mode n**: the vibrational mode, counted from the lowest, that
+  the first step climbs along. 0 takes the lowest, which is right when the
+  starting structure is near the saddle point. Later steps follow the mode
+  that looks most like the previous one.
+* **Start along the mode that moves**: a bond, angle or torsion written as
+  `bond 1 2`, `angle 1 2 3` or `torsion 1 2 3 4` (atom numbers as in the
+  Builder). The first step climbs along the mode that overlaps most with it.
+  Empty means not used. A scanned bond can overlap most with a mode
+  that is not the reaction mode, so leave this empty unless the default
+  search fails.
+* **New Hessian every n steps**: how often the second derivatives are
+  computed again. 0 is automatic: every step for a closed-shell Hartree-Fock
+  calculation, where it is cheap, and otherwise at the start and whenever the
+  updated Hessian no longer has a negative curvature. A computed Hessian for
+  DFT costs two gradient calculations per coordinate.
+
 The optimiser stops under the same thresholds as ORCA's default optimisation.
 The vibration calculation takes the second derivatives from finite differences
 of the analytic forces, so it is only meaningful at a stationary point of the

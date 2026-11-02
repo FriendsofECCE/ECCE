@@ -1,3 +1,4 @@
+#include "util/StalledRule.H"
 #include "util/JobProgress.H"
 
 #include <algorithm>
@@ -55,6 +56,7 @@ bool JobProgress::parse(const string& text)
   p_stages.clear();
   p_seq = 0;
   p_at = 0;
+  p_stall = 0;
   std::istringstream in(text);
   string line;
   while (std::getline(in, line)) {
@@ -66,6 +68,7 @@ bool JobProgress::parse(const string& text)
       while (words >> w)
         if (w.compare(0, 4, "seq=") == 0) p_seq = atoi(w.c_str() + 4);
         else if (w.compare(0, 3, "at=") == 0) p_at = atof(w.c_str() + 3);
+        else if (w.compare(0, 6, "stall=") == 0) p_stall = atof(w.c_str() + 6);
       continue;
     }
     const bool hist = head.size() > 1 && head.back() == '~';
@@ -205,6 +208,12 @@ static string agoText(double seconds)
   if (seconds < 90) return fmt("%.0f s", seconds);
   if (seconds < 5400) return fmt("%.0f min", std::floor(seconds / 60));
   return fmt("%.1f h", seconds / 3600);
+}
+
+
+string JobProgress::stalledText(double seconds)
+{
+  return "Running (stalled: " + StalledRule::text(seconds) + ")";
 }
 
 
