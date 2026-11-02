@@ -16,6 +16,7 @@
 #include <map>
 #include <set>
 #include <memory>
+#include <mutex>
   using std::map;
 
 #include <stdlib.h> // getenv
@@ -489,8 +490,8 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
   // A stored password that was refused is forgotten here too, whatever the
   // dialog that followed came to.
   if (t->forgetCached())
-    AuthCache::getCache().remove("ssh://" + machine,
-        userName == "" ? string(Ecce::realUser()) : userName, "");
+    forgetPassCache("ssh", machine,
+                    userName == "" ? string(Ecce::realUser()) : userName);
   if (connected && t->ownsMaster() && !t->acceptedPassword().empty())
     setPassCache(p_shell, machine,
                  userName == "" ? string(Ecce::realUser()) : userName,
@@ -1850,10 +1851,64 @@ bool RCommand::shellget(const char** fromFiles, const string& toFile)
 }
 
 
+namespace {
+struct PassChange { bool forget; string shell, machine, user, pass; };
+std::mutex gPassMu;
+std::vector<PassChange> gPassPending;   // from login threads, for the GUI's
+thread_local RCommand::PassCacheDeferral* tPassDefer = 0;
+
+string passKey(const string& shell, const string& machine, const string& user)
+{
+  return shell + "://" + machine + "\t" + user;
+}
+
+void deferChange(const PassChange& c)
+{
+  if (c.forget) tPassDefer->known[passKey(c.shell, c.machine, c.user)] = "";
+  else tPassDefer->known[passKey(c.shell, c.machine, c.user)] = c.pass;
+  std::lock_guard<std::mutex> lock(gPassMu);
+  gPassPending.push_back(c);
+}
+}  // namespace
+
+void RCommand::prefetchPassCache(PassCacheDeferral& d, const string& shell,
+                                 const string& machine, const string& user)
+{
+  string pw;
+  if (getPassCache(shell, machine, user, pw))
+    d.known[passKey(shell, machine, user)] = pw;
+}
+
+void RCommand::deferPassCache(PassCacheDeferral* d)
+{
+  tPassDefer = d;
+}
+
+void RCommand::applyDeferredPassCache()
+{
+  std::vector<PassChange> todo;
+  {
+    std::lock_guard<std::mutex> lock(gPassMu);
+    todo.swap(gPassPending);
+  }
+  for (const PassChange& c : todo) {
+    if (c.forget) forgetPassCache(c.shell, c.machine, c.user);
+    else setPassCache(c.shell, c.machine, c.user, c.pass);
+  }
+}
+
 const bool RCommand::getPassCache(const string& shell, const string& machine,
                                   const string& user, string& password)
 {
   bool ret = false;
+
+  if (tPassDefer) {
+    // Only what was looked up before the thread started; "" is forgotten.
+    auto i = tPassDefer->known.find(passKey(shell, machine, user));
+    if (i == tPassDefer->known.end() || i->second.empty()) return false;
+    password = i->second;
+    return true;
+  }
 
   string url = shell + "://" + machine;
   BasicAuth *ba = AuthCache::getCache().getAuthentication(url, user, "", 1);
@@ -1870,8 +1925,17 @@ const bool RCommand::getPassCache(const string& shell, const string& machine,
 void RCommand::setPassCache(const string& shell, const string& machine,
                             const string& user, const string& password)
 {
+  if (tPassDefer) { deferChange({false, shell, machine, user, password}); return; }
   // add to AuthCache so it is available to other apps
   string url = shell + "://" + machine;
   AuthCache::getCache().addAuthentication(url, user, password, "",true);
+}
+
+
+void RCommand::forgetPassCache(const string& shell, const string& machine,
+                               const string& user)
+{
+  if (tPassDefer) { deferChange({true, shell, machine, user, ""}); return; }
+  AuthCache::getCache().remove(shell + "://" + machine, user, "");
 }
 

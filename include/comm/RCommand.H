@@ -19,6 +19,7 @@
 #ifndef RCOMMAND_HH
 #define RCOMMAND_HH
 
+#include <map>
 #include <set>
 #include <string>
   using std::string;
@@ -242,6 +243,18 @@ public:
                                 const string& shellPath, const string& command,
                                 string& output, int timeoutSec = 20);
 
+
+    // AuthCache belongs to the GUI thread (no locking; a change publishes
+    // over JMS).  A login opened on another thread runs with a deferral:
+    // the passwords it may need are looked up beforehand on the GUI thread,
+    // and what it learns (accepted, refused) waits until that thread calls
+    // applyDeferredPassCache().
+    struct PassCacheDeferral { std::map<string, string> known; };
+    static void prefetchPassCache(PassCacheDeferral& d, const string& shell,
+                                  const string& machine, const string& userName);
+    static void deferPassCache(PassCacheDeferral* d);   // this thread; 0 ends
+    static void applyDeferredPassCache();
+
 private:
     // get/put for every overload: local cp, or SFTP for an ssh machine.
     static bool copyFiles(bool putFlag, string& errMessage,
@@ -254,6 +267,9 @@ private:
                                    const string& userName, string& passBuf);
     static void  setPassCache(const string& shell, const string& machine,
                               const string& userName, const string& password);
+    static void  forgetPassCache(const string& shell, const string& machine,
+                                 const string& userName);
+
 
     bool p_connected;
     int p_timeout;           // seconds for execout(); <= 0 means none

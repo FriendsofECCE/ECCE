@@ -10,7 +10,9 @@
 #include <thread>
 
 #include "ReconnectSelected.H"
+#include "comm/RCommand.H"
 #include "dsm/TaskJob.H"
+#include "util/Ecce.H"
 #include "wxgui/WindowShot.H"
 #include "wxgui/WxJMSSubscriber.H"
 #include "wxgui/ewxDialog.H"
@@ -154,8 +156,12 @@ bool ReconnectSelected::runRemote(wxWindow *parent, wxProgressDialog *pd,
     bool done = false, ok = false;
   };
   auto st = std::make_shared<State>();
+  //  Nothing for AuthCache to look up here; anything it would learn waits.
   std::thread([st, work]() {
+    RCommand::PassCacheDeferral none;
+    RCommand::deferPassCache(&none);
     bool ok = work();
+    RCommand::deferPassCache(0);
     std::lock_guard<std::mutex> lock(st->mu);
     st->ok = ok;
     st->done = true;
@@ -165,6 +171,7 @@ bool ReconnectSelected::runRemote(wxWindow *parent, wxProgressDialog *pd,
     return st->done;
   });
   std::lock_guard<std::mutex> lock(st->mu);
+  if (st->done) RCommand::applyDeferredPassCache();
   if (!finished && !st->done) return false;
   result = st->ok;
   return true;
@@ -182,9 +189,19 @@ bool ReconnectSelected::openLogin(wxWindow *parent, wxProgressDialog *pd,
   auto st = std::make_shared<State>();
   conn = 0;
   if (cancelled) *cancelled = false;
+  //  AuthCache is this thread's: the worker gets the stored passwords now,
+  //  and what it learns is applied here once it is done (or at the next login).
+  RCommand::applyDeferredPassCache();
+  auto known = std::make_shared<RCommand::PassCacheDeferral>();
+  const string who = login.user.empty() ? string(Ecce::realUser()) : login.user;
+  RCommand::prefetchPassCache(*known, "ssh", login.machine, who);
+  if (!login.frontend.empty())
+    RCommand::prefetchPassCache(*known, "ssh", login.frontend, who);
   //  Detached: a Cancel must not wait for a connect that may never return.
-  std::thread([st, login]() {
+  std::thread([st, login, known]() {
+    RCommand::deferPassCache(known.get());
     RCommand *c = login.open();
+    RCommand::deferPassCache(0);
     std::lock_guard<std::mutex> lock(st->mu);
     if (st->abandoned) delete c;
     else st->conn = c;
@@ -217,6 +234,7 @@ bool ReconnectSelected::openLogin(wxWindow *parent, wxProgressDialog *pd,
     wxTheApp->Yield(true);
     wxMilliSleep(50);
   }
+  RCommand::applyDeferredPassCache();
   conn = st->conn;
   if (!conn) { why = "Unable to connect to " + login.machine; return false; }
   if (!conn->isOpen()) {
