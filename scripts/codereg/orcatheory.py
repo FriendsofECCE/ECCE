@@ -1,5 +1,8 @@
 from templates import *
 
+# Composite methods: own basis and dispersion; keep with orcatheory.dlg and ai.orca.
+COMPOSITES_3C = ("B97-3c", "HF-3c", "PBEh-3c", "r2SCAN-3c", "wB97X-3c")
+
 # ECCE ORCA "Theory Details" dialog (issue #38, reduced scope).
 #
 # Deliberately minimal: every field here corresponds to an AbiDict key
@@ -141,12 +144,13 @@ class OrcaTheoryPanel(EccePanel):
             #  Verified against the real ORCA 6.1.1 binary: every entry
             #  here runs on water/def2-SVP. SCAN, M11 and MN15 are
             #  absent because 6.1.1 does not have them under those names,
-            #  and the "-3c" composites because they carry their own
-            #  prescribed basis set.
+            #  The "-3c" composites carry their own basis set and
+            #  dispersion; ai.orca then writes only the composite keyword.
             xcFuncChoice = [
                             "B2GP-PLYP",
                             "B2PLYP",
                             "B3LYP",
+                            "B97-3c",
                             "B97-D3",
                             "B97M-V",
                             "BLYP",
@@ -154,14 +158,17 @@ class OrcaTheoryPanel(EccePanel):
                             "CAM-B3LYP",
                             "DSD-BLYP",
                             "DSD-PBEP86",
+                            "HF-3c",
                             "M06",
                             "M062X",
                             "M06L",
                             "mPW2PLYP",
                             "PBE",
                             "PBE0",
+                            "PBEh-3c",
                             "PWPB95",
                             "r2SCAN",
+                            "r2SCAN-3c",
                             "revPBE",
                             "revTPSS",
                             "RPBE",
@@ -169,6 +176,7 @@ class OrcaTheoryPanel(EccePanel):
                             "TPSSh",
                             "wB2PLYP",
                             "wB97M-V",
+                            "wB97X-3c",
                             "wB97X-D3",
                             "wB97X-V"]
             #  By NAME, so the sorted order above cannot change which
@@ -182,6 +190,9 @@ class OrcaTheoryPanel(EccePanel):
                                        label="Functional:",
                                        export=1)
             dftSizer.AddWidget(self.xcFunc)
+            self.compNote = wx.StaticText(self,
+                label="the composite carries its own basis")
+            dftSizer.AddWidget(self.compNote)
             self.panelSizer.Add(dftSizer)
 
         # DISPERSION -- its own setting, for HF as well as DFT (ORCA 6.1.1
@@ -330,6 +341,12 @@ class OrcaTheoryPanel(EccePanel):
         self.AddButtons()
 
     def CheckDependency(self):
+        comp = (EcceGlobals.Category == "DFT" and
+                self.xcFunc.GetValue() in COMPOSITES_3C)
+        if EcceGlobals.Category == "DFT":
+            self.compNote.Show(comp)
+        if EcceGlobals.Category in ("SCF", "DFT"):
+            self.dispersion.Enable(not comp)
         self.auxBasis.Enable(self.useRIJCOSX.GetValue())
         # Grey the solvation controls out until solvation is asked for,
         # matching how auxBasis follows useRIJCOSX above.

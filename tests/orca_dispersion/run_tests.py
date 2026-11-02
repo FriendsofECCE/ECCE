@@ -56,6 +56,13 @@ def main():
         check("wB97X-D3" in r and "D3ZERO" not in r, "wB97X-D3 is a functional, not split")
         r = route(work, "", func="B97-D3")
         check("B97-D3" in r and "D3ZERO" not in r, "B97-D3 is a functional, not split")
+        # -3c composites (#772): the keyword alone, no basis, no D3/D4.
+        for comp in ("r2SCAN-3c", "B97-3c", "PBEh-3c", "wB97X-3c"):
+            r = route(work, d("D4"), func=comp)
+            check(comp in r and "def2-SVP" not in r and "D4" not in r and "D3BJ" not in r
+                  and "D3ZERO" not in r, "%s alone: %s" % (comp, " ".join(r)))
+        r = route(work, "", func="HF-3c")
+        check("HF-3c" in r and "RKS" not in r and "def2-SVP" not in r, "HF-3c alone: " + " ".join(r))
     print("FAILED: %d" % fails if fails else "all passed")
     return 1 if fails else 0
 
