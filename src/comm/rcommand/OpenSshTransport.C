@@ -692,6 +692,9 @@ bool OpenSshTransport::wantsMaster(const TransportResult& r) const
 {
   if (p_askpass.empty() || r.status != 255 || r.timedOut) return false;
   const std::string low = lower(r.err);
+  // The probe got as far as a login: the host answers now, whatever a recent
+  // "unreachable" outcome says.
+  p_probeAnswered = mentions(low, kLoginText);
   if (mentions(low, kLoginText) || mentions(low, kHostKeyText))
     return sharedConnection();
   // A refused login on a proxy's hop says nothing at LogLevel=ERROR; 255
@@ -726,8 +729,9 @@ bool OpenSshTransport::openMaster()
     char w[16] = "";
     if (sscanf(readSmall(outcomeFile).c_str(), "%ld %15s", &t, w) == 2 &&
         strcmp(w, "ok") != 0 &&
-        (t >= waitedAt ||
-         (time(0) - t < kRetryAfterSec && strcmp(w, "unreachable") != 0))) {
+        (strcmp(w, "unreachable") == 0
+           ? (t >= waitedAt && !p_probeAnswered)
+           : (t >= waitedAt || time(0) - t < kRetryAfterSec))) {
       p_cancelled = !strcmp(w, "cancelled") || !strcmp(w, "timeout");
       p_unreachable = !strcmp(w, "unreachable");
       p_refused = !p_cancelled && !p_unreachable;
@@ -882,6 +886,8 @@ void OpenSshTransport::explain(TransportResult& r) const
       p_sessionsFull = true;
       why = "Every shared connection to " + p_host + " is at the server's "
             "session limit (MaxSessions); try again when a job has ended.";
+    } else if (ownsFromDir() && p_unreachable) {
+      why = p_host + " did not answer; ECCE tries again later.";
     } else if (ownsFromDir() && mentions(low, kLoginText))
       why = p_cancelled ? "The login to " + p_host + " was cancelled or not answered."
                         : "The login to " + p_host + " was refused; check the "

@@ -304,7 +304,16 @@ int main(int argc, char** argv)
     // Straight after the outage: the outcome file must not hold it back.
     OpenSshTransport* u = make("ecce-test");
     string er;
-    check("the next opener logs in again", u->connect(er), er);
+    bool again = u->connect(er);
+    check("the next opener logs in again", again, er);
+    if (!again) {
+      string oc = u->controlSocketPath();
+      oc = oc.substr(0, oc.size() - (oc.size() > 2 && oc[oc.size() - 2] == '-' ? 2 : 0)) + ".outcome";
+      std::ifstream in(oc);
+      string l;
+      std::getline(in, l);
+      std::cout << "     outcome file: " << l << std::endl;
+    }
   } else if (mode == "prefill") {
     OpenSshTransport* t = make("ecce-test");
     TransportResult r = t->run("echo hi");
