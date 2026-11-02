@@ -23,6 +23,7 @@ import re
 import shutil
 import stat
 import subprocess
+import time
 import sys
 import tempfile
 
@@ -161,10 +162,17 @@ class Env:
 
 def run(display, build, env, script, args=(), extra=None, timeout=240):
     write(os.path.join(env.root, "script"), script)
-    p = subprocess.run([os.path.join(build, "machregister")] + list(args),
-                       env=env.env(display, extra), cwd=env.root,
-                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                       text=True, timeout=timeout)
+    t0 = time.time()
+    first = (script.strip().splitlines() or [""])[0]
+    try:
+        p = subprocess.run([os.path.join(build, "machregister")] + list(args),
+                           env=env.env(display, extra), cwd=env.root,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print("  [run TIMEOUT %ds] %s" % (timeout, first), flush=True)
+        raise
+    print("  [run %.1fs] %s" % (time.time() - t0, first), flush=True)
     return p
 
 
