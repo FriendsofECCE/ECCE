@@ -12,11 +12,12 @@ using std::vector;
 
 namespace {
 const int kBoxW = 230, kBoxH = 62, kGapX = 170, kGapY = 44;
-const int kDrop = 40;      // the vertical segment sits this far right of a box
+const int kDrop = 40;      // keep the first elbow clear of the source box
 }
 
 
-WfLayoutResult layoutWorkflow(wxDC &dc, const vector<WfLayoutNode> &nodes)
+WfLayoutResult layoutWorkflow(wxDC &dc, const vector<WfLayoutNode> &nodes,
+                              bool vertical)
 {
   WfLayoutResult res;
   const size_t n = nodes.size();
@@ -46,18 +47,31 @@ WfLayoutResult layoutWorkflow(wxDC &dc, const vector<WfLayoutNode> &nodes)
           wxString::FromUTF8(nodes[i].in[k].second.c_str())).x);
   const int gapX = std::max(kGapX, maxLabel + kDrop + 50);
 
-  vector<int> height(n, kBoxH);
+  vector<int> width(n, kBoxW), height(n, kBoxH);
+  int maxW = kBoxW;
   int maxH = kBoxH;
   for (size_t i = 0; i < n; i++) {
-    if (nodes[i].in.size() > 1)
-      height[i] = std::max(kBoxH, (int)(nodes[i].in.size() + 1) * (th.y + 10));
+    if (nodes[i].in.size() > 1) {
+      // Vertical arrows need a lane each so their horizontal labels stay clear.
+      if (vertical)
+        width[i] = std::max(kBoxW, (int)(nodes[i].in.size() + 1) * (maxLabel + 30));
+      else
+        height[i] = std::max(kBoxH, (int)(nodes[i].in.size() + 1) * (th.y + 10));
+    }
+    maxW = std::max(maxW, width[i]);
     maxH = std::max(maxH, height[i]);
   }
+  const int left = kWfMargin + (vertical ? std::max(0, maxLabel + 6 - kBoxW / 2) : 0);
   for (size_t i = 0; i < n; i++) {
     res.boxes[i] = wxRect(kWfMargin + nodes[i].depth * (kBoxW + gapX),
                           kWfMargin + (int)(res.rows[i] * (maxH + kGapY)) +
                               (maxH - height[i]) / 2,
                           kBoxW, height[i]);
+    if (vertical)
+      res.boxes[i] = wxRect(left + (int)(res.rows[i] * (maxW + kGapY)) +
+                              (maxW - width[i]) / 2,
+                          kWfMargin + nodes[i].depth * (maxH + kGapX),
+                          width[i], height[i]);
     res.maxX = std::max(res.maxX, res.boxes[i].GetRight());
     res.maxY = std::max(res.maxY, res.boxes[i].GetBottom());
   }
@@ -67,7 +81,8 @@ WfLayoutResult layoutWorkflow(wxDC &dc, const vector<WfLayoutNode> &nodes)
     vector<size_t> order(in.size());
     for (size_t k = 0; k < order.size(); k++) order[k] = k;
     std::stable_sort(order.begin(), order.end(), [&](size_t x, size_t y) {
-      return res.boxes[in[x].first].y < res.boxes[in[y].first].y;
+      return vertical ? res.boxes[in[x].first].x < res.boxes[in[y].first].x
+                      : res.boxes[in[x].first].y < res.boxes[in[y].first].y;
     });
     const wxRect &t = res.boxes[i];
     for (size_t slot = 0; slot < order.size(); slot++) {
@@ -85,6 +100,16 @@ WfLayoutResult layoutWorkflow(wxDC &dc, const vector<WfLayoutNode> &nodes)
       // Above the segment that enters the target, just before the arrow.
       const int w = dc.GetTextExtent(wxString::FromUTF8(l.text.c_str())).x;
       l.label = wxRect(l.p3.x - 14 - w, l.p3.y - 5 - th.y, w, th.y);
+      if (vertical) {
+        l.p0 = wxPoint(s.x + s.width / 2, s.GetBottom() + 1);
+        l.p1 = wxPoint(l.p0.x, l.p0.y + kDrop);
+        l.p2 = wxPoint(order.size() == 1 ? t.x + t.width / 2
+                          : t.x + (int)(slot + 1) * t.width / (int)(order.size() + 1),
+                       l.p1.y);
+        l.p3 = wxPoint(l.p2.x, t.y);
+        // Keep text horizontal, beside the segment entering the target.
+        l.label = wxRect(l.p3.x - 6 - w, l.p3.y - 14 - th.y, w, th.y);
+      }
       res.links.push_back(l);
     }
   }
@@ -103,7 +128,9 @@ int layoutOverlaps(const WfLayoutResult &res)
       r.Inflate(2, 2);
       lines.push_back(r);
     }
-    lines.push_back(wxRect(l.p3.x - 10, l.p3.y - 5, 10, 10));   // arrow head
+    lines.push_back(l.p2.x == l.p3.x
+        ? wxRect(l.p3.x - 5, l.p3.y - 10, 10, 10)
+        : wxRect(l.p3.x - 10, l.p3.y - 5, 10, 10));
   }
   for (size_t i = 0; i < res.links.size(); i++) {
     wxRect lab = res.links[i].label;

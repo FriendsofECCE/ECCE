@@ -39,6 +39,7 @@ public:
                 wxWindow *parent);
 
   void refresh();
+  void setVertical(bool vertical);
   void selectResource(const EcceURL& url);
   void loseFocus();
   EcceURL selected() const { return p_selected; }
@@ -102,6 +103,9 @@ private:
   wxBoxSizer *p_left;
   wxBoxSizer *p_top;
   RecipePanel *p_recipe;
+  bool p_vertical;
+  wxToolBar *p_toolbar;
+  int p_orientationId;
 };
 
 

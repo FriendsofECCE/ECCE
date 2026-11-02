@@ -36,6 +36,13 @@ tree. The right-click menu of a box is that of the calculation.
 The code buttons are at the right of the view. The text under the drawing
 says what to do next.
 
+## Canvas height and orientation
+
+Drag the divider between the workflow view and the calculation table to change
+the canvas height; the Organizer remembers the position.
+Use **Change tree orientation** above the canvas to switch between left-to-right
+and top-to-bottom flow; this choice is remembered separately from the Study view.
+
 ## Adding the first step
 
 1. Click a code button, for example **xtb**.

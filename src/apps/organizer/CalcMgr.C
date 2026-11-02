@@ -893,6 +893,53 @@ void CalcMgr::runTestCommand(const string& line)
           }
         }
       }
+    } else if (command == "workflowsash") {
+      // workflowsash [N]: drag the current view's divider, or report it.
+      SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+      WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+      wxSplitterWindow *split = wp ? dynamic_cast<wxSplitterWindow*>(wp->GetParent()) : 0;
+      if (!split) outcome = "no workflow splitter";
+      else {
+        if (line.size() > command.size() + 1) {
+          const int x = split->GetClientSize().x / 2;
+          wxMouseEvent down(wxEVT_LEFT_DOWN);
+          down.SetEventObject(split);
+          down.SetPosition(wxPoint(x, split->GetSashPosition() + split->GetSashSize() / 2));
+          down.SetLeftDown(true);
+          split->GetEventHandler()->ProcessEvent(down);
+          wxMouseEvent move(wxEVT_MOTION);
+          move.SetEventObject(split);
+          move.SetPosition(wxPoint(x, atoi(calcName.c_str()) + split->GetSashSize() / 2));
+          move.SetLeftDown(true);
+          split->GetEventHandler()->ProcessEvent(move);
+          wxMouseEvent up(wxEVT_LEFT_UP);
+          up.SetEventObject(split);
+          up.SetPosition(move.GetPosition());
+          split->GetEventHandler()->ProcessEvent(up);
+          for (int i = 0; i < 5; i++) wxYield();
+        }
+        Preferences prefs("Organizer");
+        int saved = -1;
+        prefs.getInt("Organizer.Workflow.Sash", saved);
+        outcome = "ok sash=" + std::to_string(split->GetSashPosition()) +
+                  " saved=" + std::to_string(ewxBitmap::scaled(saved)) +
+                  " top=" + std::to_string(wp->GetSize().y) +
+                  " table=" + std::to_string(split->GetWindow2()->GetSize().y) +
+                  " " + wp->layoutReport();
+      }
+    } else if (command == "workfloworient") {
+      // workfloworient vertical|horizontal: the current workflow view.
+      SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+      WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+      if (!wp) outcome = "no workflow panel";
+      else if (calcName != "vertical" && calcName != "horizontal")
+        outcome = "expected vertical|horizontal";
+      else {
+        wp->setVertical(calcName == "vertical");
+        outcome = "ok " + wp->layoutReport();
+      }
     } else if (command.compare(0, 8, "workflow") == 0) {
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
       //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge]

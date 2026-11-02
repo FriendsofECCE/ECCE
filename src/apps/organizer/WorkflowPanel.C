@@ -17,6 +17,9 @@
 #include <sstream>
 
 #include "util/ResourceUtils.H"
+#include "util/Preferences.H"
+#include "wxgui/ewxBitmap.H"
+#include "wx/toolbar.h"
 
 #include "dsm/PropertyTask.H"
 #include "dsm/ResourceType.H"
@@ -104,7 +107,7 @@ public:
     }
     wxClientDC dc(this);
     dc.SetFont(GetFont());
-    WfLayoutResult res = layoutWorkflow(dc, ln);
+    WfLayoutResult res = layoutWorkflow(dc, ln, p_panel->p_vertical);
     for (size_t i = 0; i < nodes.size(); i++) {
       WfBox b;
       b.step = nodes[i].step; b.source = nodes[i].source;
@@ -143,7 +146,9 @@ public:
       if (!line.empty()) p_keyLines.push_back(std::make_pair(line, wxString()));
       p_keyNote = line.empty() ? 0 : 1;
       p_keyRect = wxRect(maxX + 60, kMargin, kw, ((int)p_keyLines.size() + 2) * lh + 20);
-      maxX = p_keyRect.GetRight();
+      if (p_panel->p_vertical)
+        p_keyRect.SetPosition(wxPoint(kMargin, maxY + 60));
+      maxX = std::max(maxX, p_keyRect.GetRight());
       maxY = std::max(maxY, p_keyRect.GetBottom());
     }
     SetVirtualSize(maxX + kMargin, maxY + kMargin);
@@ -171,10 +176,19 @@ public:
 
   string report() const
   {
+    int boxOverlaps = 0, rankErrors = 0;
+    for (size_t i = 0; i < p_boxes.size(); i++)
+      for (size_t j = i + 1; j < p_boxes.size(); j++)
+        if (p_boxes[i].rect.Intersects(p_boxes[j].rect)) boxOverlaps++;
+    for (const WfLink &l : p_links)
+      if (p_panel->p_vertical ? l.p3.y <= l.p0.y : l.p3.x <= l.p0.x)
+        rankErrors++;
     std::ostringstream o;
     o << "boxes=" << p_boxes.size() << " links=" << p_links.size()
       << " label-overlaps=" << overlaps() << " keybox=" << (p_hasKey ? 1 : 0)
-      << " keyshown=" << (p_hasKey && p_key.shown ? 1 : 0) << " icons=";
+      << " keyshown=" << (p_hasKey && p_key.shown ? 1 : 0) << " vertical=" << p_panel->p_vertical
+      << " box-overlaps=" << boxOverlaps << " rank-errors=" << rankErrors
+      << " canvas-height=" << GetSize().y << " icons=";
     for (size_t i = 0; i < p_boxes.size(); i++)
       o << (i ? "," : "") << p_boxes[i].step->getName() << ":"
         << stateIcon(WorkflowSteps::stateOf(p_boxes[i].step));
@@ -267,9 +281,14 @@ private:
     for (const WfLink &l : p_links) {
       dc.DrawLine(l.p0, l.p1);
       dc.DrawLine(l.p1, l.p2);
-      dc.DrawLine(l.p2, wxPoint(l.p3.x - 8, l.p3.y));
+      dc.DrawLine(l.p2, p_panel->p_vertical ? wxPoint(l.p3.x, l.p3.y - 8)
+                                          : wxPoint(l.p3.x - 8, l.p3.y));
       wxPoint head[3] = {l.p3, wxPoint(l.p3.x - 9, l.p3.y - 5),
                          wxPoint(l.p3.x - 9, l.p3.y + 5)};
+      if (p_panel->p_vertical) {
+        head[1] = wxPoint(l.p3.x - 5, l.p3.y - 9);
+        head[2] = wxPoint(l.p3.x + 5, l.p3.y - 9);
+      }
       dc.SetPen(*wxTRANSPARENT_PEN);
       dc.DrawPolygon(3, head);
       dc.SetPen(wxPen(dim, 2));
@@ -398,8 +417,11 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
   : ewxPanel(parent, wxID_ANY), p_calcMgr(calcMgr),
     p_session(dynamic_cast<Session*>(node->getResource())),
     p_canvas(0), p_help(0), p_status(0), p_launch(0), p_apply(0), p_empty(0),
-    p_left(0), p_top(0), p_recipe(0)
+    p_left(0), p_top(0), p_recipe(0), p_vertical(false),
+    p_toolbar(0), p_orientationId(wxWindow::NewControlId())
 {
+  Preferences prefs("Organizer");
+  prefs.getBool("Organizer.Workflow.Vertical", p_vertical);
   createControls();
   Bind(wxEVT_MENU, [this](wxCommandEvent &) { recipeFromHere(); }, recipeHereId());
 }
@@ -413,6 +435,16 @@ void WorkflowPanel::createControls()
 
   wxBoxSizer *left = new wxBoxSizer(wxVERTICAL);
   p_left = left;
+  p_toolbar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                            wxTB_HORIZONTAL | wxTB_NODIVIDER);
+  p_toolbar->AddTool(p_orientationId, "Orientation",
+      ewxBitmap(p_vertical ? "vtree16.xpm" : "htree16.xpm"),
+      "Change tree orientation");
+  p_toolbar->Realize();
+  p_toolbar->Bind(wxEVT_TOOL, [this](wxCommandEvent &) {
+    setVertical(!p_vertical);
+  }, p_orientationId);
+  left->Add(p_toolbar, 0, wxEXPAND);
   p_canvas = new WorkflowCanvas(this);
   left->Add(p_canvas, 1, wxEXPAND);
 
@@ -486,9 +518,26 @@ void WorkflowPanel::createControls()
            wxALIGN_CENTER_HORIZONTAL | wxTOP, 4);
   top->Add(bar, 0, wxEXPAND | wxALL, 4);
 
+  p_canvas->SetMinSize(wxSize(1, 120));
   p_canvas->relayout();
   updateTexts();
+  // Keep the code bar and instructions visible even at the smallest canvas.
+  SetMinSize(wxSize(1, top->GetMinSize().y));
   Layout();
+}
+
+
+void WorkflowPanel::setVertical(bool vertical)
+{
+  p_vertical = vertical;
+  p_toolbar->SetToolNormalBitmap(p_orientationId,
+      ewxBitmap(p_vertical ? "vtree16.xpm" : "htree16.xpm"));
+  Preferences prefs("Organizer");
+  prefs.setBool("Organizer.Workflow.Vertical", p_vertical);
+  prefs.saveFile();
+  p_canvas->Scroll(0, 0);
+  p_canvas->relayout();
+  p_canvas->Refresh();
 }
 
 
