@@ -4282,8 +4282,11 @@ bool CalcMgr::getAuthorization(AuthEvent& event)
   if (wxThread::IsMain())
     return WxDavAuth::getAuthorization(event);
   std::promise<bool> answer;
+  //  The step waits on the answer: a throw must still give one.
   wxTheApp->CallAfter([this, &event, &answer]() {
-    answer.set_value(WxDavAuth::getAuthorization(event));
+    bool ok = false;
+    try { ok = WxDavAuth::getAuthorization(event); } catch (...) {}
+    answer.set_value(ok);
   });
   return answer.get_future().get();
 }

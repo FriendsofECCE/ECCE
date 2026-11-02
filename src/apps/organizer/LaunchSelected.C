@@ -4,9 +4,14 @@
 #include "wx/gauge.h"
 
 #include <atomic>
+#include <future>
 #include <thread>
 
 #include "LaunchSelected.H"
+#include "comm/Launch.H"
+#include "comm/RCommand.H"
+#include "tdat/AuthCache.H"
+#include "util/Ecce.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/TaskJob.H"
 #include "tdat/RefMachine.H"
@@ -221,7 +226,7 @@ LaunchSelected::Batch::Batch(wxWindow *parent, const vector<Row>& rows,
 LaunchSelected::Batch::~Batch()
 {
   p_timer.Stop();
-  if (p_worker.joinable()) p_worker.join();
+  if (p_worker.joinable()) stepJoined();
   if (p_deferred) {
     WxJMSSubscriber *s = dynamic_cast<WxJMSSubscriber*>(wxTheApp);
     if (s) s->deferMessages(false);
@@ -234,6 +239,19 @@ void LaunchSelected::Batch::start()
   //  Broker messages wait until the steps are done, as in the Launcher.
   WxJMSSubscriber *s = dynamic_cast<WxJMSSubscriber*>(wxTheApp);
   if (s) { s->deferMessages(true); p_deferred = true; }
+  //  A step hands AuthCache to eccejobmaster; the cache is the GUI thread's.
+  Launch::authPipeData = []() {
+    if (wxThread::IsMain()) {
+      RCommand::applyDeferredPassCache();
+      return AuthCache::getCache().pipeData();
+    }
+    std::promise<string> data;
+    wxTheApp->CallAfter([&data]() {
+      RCommand::applyDeferredPassCache();
+      data.set_value(AuthCache::getCache().pipeData());
+    });
+    return data.get_future().get();
+  };
   if (p_parent) {
     //  Not modal: the Organizer stays usable. No close box; Stop is the way out.
     p_frame = new wxFrame(p_parent, wxID_ANY, "Launch Selected", wxDefaultPosition,
@@ -293,6 +311,15 @@ bool LaunchSelected::Batch::nextRow()
     }
     p_job.reset(new LaunchBatch::Job(r.task));
     string error;
+    //  The logins this launch can make, as RCommand keys them.
+    p_passKeys.clear();
+    RefMachine *rm = RefMachine::refLookup(r.plan.data.machine);
+    const string who = r.plan.data.user.empty() ? string(Ecce::realUser())
+                                                : r.plan.data.user;
+    for (const string& shell : {string("ssh"), r.plan.data.remoteShell})
+      for (const string& host : {r.plan.data.machine, rm ? rm->fullname() : string(),
+                                 rm ? rm->frontendMachine() : string()})
+        if (!shell.empty() && !host.empty()) p_passKeys.push_back({shell, host, who});
     if (!p_job->begin(error)) {
       r.outcome = error;
       LaunchBatch::recordFailure(r.task, error);
@@ -339,7 +366,7 @@ bool LaunchSelected::Batch::tick()
   if (p_finished) return true;
   if (p_worker.joinable()) {
     if (!p_stepDone) return false;
-    p_worker.join();
+    stepJoined();
     Row& r = *p_cur;
     if (!p_stepOk) {
       r.outcome = p_job->message();
@@ -355,11 +382,31 @@ bool LaunchSelected::Batch::tick()
   }
   if (!p_cur && !nextRow()) { finish(); return true; }
   if (p_cur && p_job && p_job->done()) { endRow(true); return false; }
-  if (p_cur && p_job) {
-    p_stepDone = false;
-    p_worker = std::thread([this]() { p_stepOk = p_job->step(); p_stepDone = true; });
-  }
+  if (p_cur && p_job) startStep();
   return false;
+}
+
+//  AuthCache has no lock and publishes over JMS: the step's logins get the
+//  stored passwords now and what they learn is applied here after the step.
+void LaunchSelected::Batch::startStep()
+{
+  RCommand::applyDeferredPassCache();
+  auto known = std::make_shared<RCommand::PassCacheDeferral>();
+  for (const vector<string>& k : p_passKeys)
+    RCommand::prefetchPassCache(*known, k[0], k[1], k[2]);
+  p_stepDone = false;
+  p_worker = std::thread([this, known]() {
+    RCommand::deferPassCache(known.get());
+    p_stepOk = p_job->step();
+    RCommand::deferPassCache(0);
+    p_stepDone = true;
+  });
+}
+
+void LaunchSelected::Batch::stepJoined()
+{
+  p_worker.join();
+  RCommand::applyDeferredPassCache();
 }
 
 void LaunchSelected::run(vector<Row>& rows)

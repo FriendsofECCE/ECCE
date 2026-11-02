@@ -46,7 +46,14 @@ Both are `RCommand::connectTimeout()` (60 s, `ECCE_SSH_CONNECT_TIMEOUT`).
   (`deferPassCache`, thread-local); the worker's accepted or forgotten
   password is queued and applied by `applyDeferredPassCache()` on the GUI
   thread after the wait (or at the next login, after a Cancel).
-  `runRemote` defers too. LaunchSelected's step thread does not.
+  `runRemote` defers too, and so does Launch Selected's step thread
+  (`Batch::startStep`: machine, full name and front end, under "ssh" and
+  the launch's shell; applied after each step). The step's hand-over to
+  eccejobmaster reads AuthCache on the GUI thread too (`Launch::authPipeData`,
+  which first applies the queued passwords); only the FIFO write stays on
+  the worker. libssh's front-end thread (`frontEndMain`) runs the jump
+  host's prompt callback, so a lookup there would bypass any deferral:
+  `sshConnect` looks the cached passwords up before `connect()`.
 - An owned master's rewritten error ("H did not answer; ECCE tries again
   later.") is not what `hostDidNotAnswer` matches: the libssh-retry guard
   also tests `hostUnreachable()`.
