@@ -662,9 +662,6 @@ void CalcEd::setContext(const string& url, const string& codeName)
 
 void CalcEd::doSetContext(const string& codeName)
 {
-  // hack to support two builder implementations
-  fixBuilderButtonId();
-
   // make sure detail dialogs are closed
   closeTheoryApp(true);
   closeRuntypeApp(true);
@@ -733,6 +730,8 @@ void CalcEd::doSetContext(const string& codeName)
   if (!isValidCode(p_code)) {
     return;
   }
+
+  fixBuilderButtonId();
 
   SetTitle("ECCE " + p_code->name() + " Editor");
   p_detailsBox->SetLabel(p_code->name() + " Settings");
@@ -2149,7 +2148,12 @@ void CalcEd::replaceBasisSetButton()
 
 void CalcEd::fixBuilderButtonId()
 {
-  vector<ResourceTool*> tools = p_iCalc->getDescriptor()->getTools();
+  // The selected code is not stored until Save; the calculation's
+  // descriptor can still describe the previous code during a switch.
+  ResourceType *descriptor = ResourceDescriptor::getResourceDescriptor().
+      getResourceType("virtual_document", "ecceCalculation", p_code->name());
+  if (!descriptor) return;
+  vector<ResourceTool*> tools = descriptor->getTools();
   vector<ResourceTool*>::iterator tool;
   for (tool = tools.begin(); tool != tools.end(); tool++) {
     string name = (*tool)->getName();
@@ -2157,6 +2161,8 @@ void CalcEd::fixBuilderButtonId()
       break;
     }
   }
+  // Keep the existing binding when this descriptor has no Builder.
+  if (tool == tools.end()) return;
   Disconnect( p_builderTool->GetId(), wxEVT_COMMAND_BUTTON_CLICKED,
               wxCommandEventHandler( CalcEd::OnToolClick ) );
   p_builderTool->SetId((*tool)->getId());
