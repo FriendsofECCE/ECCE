@@ -1797,6 +1797,9 @@ bool Builder::mouseEvent(wxMouseEvent *event)
         if (!constraintsReadOnly())
           menu.Append(ID_GEOM_CONSTRAINTS, _("Constrain Selected Atoms..."));
         menu.Append(ID_ADD_DUMMY, _("Add Dummy Atom..."));
+        SGFragment *sf = getSG()->getFragment();
+        if (sf && sf->m_atomHighLight.size() == 1)
+          menu.Append(ID_DISTORT_BONDS, _("Distort Bonds..."));
         PopupMenu(&menu);
       });
    }
