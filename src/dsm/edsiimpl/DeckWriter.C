@@ -270,6 +270,15 @@ bool writeParams(ICalculation *calc, const string& file,
 
 DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
 {
+  // The basis translators (std2<code>) are run by name; only the ecce-<app>
+  // wrappers of the GUI put them on PATH.
+  {
+    const string dir = Ecce::ecceDataControllersPath();
+    const char *old = getenv("PATH");
+    const string path = old ? old : "";
+    if (!dir.empty() && ("::" + path + ":").find(":" + dir + ":") == string::npos)
+      setenv("PATH", (dir + (path.empty() ? "" : ":") + path).c_str(), 1);
+  }
   Result r;
   string &message = r.message;
 

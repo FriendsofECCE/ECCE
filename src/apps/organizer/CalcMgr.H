@@ -149,6 +149,11 @@ public:
   // Re-Parse Outputs (#651): parsers and progress record over the stored
   // outputs of the selected calculations; no login, state and dates kept.
   void OnReparseOutputsClick( wxCommandEvent& event );
+  /// "New series from this...": one calculation per structure with the
+  /// template's setup (#621); `sources` are .xyz paths or calculation URLs.
+  void OnNewSeriesClick( wxCommandEvent& event );
+  void newSeries(const EcceURL& templ, const vector<string>& sources,
+                 string *outcome);
   void OnTerminateSelectedClick( wxCommandEvent& event );
   void reparseOutputs(const vector<EcceURL>& urls, bool interactive,
                       string *outcome = 0);

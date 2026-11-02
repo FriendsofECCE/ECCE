@@ -89,6 +89,7 @@ static std::string s_registerMessage;
 
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
+#include "dsm/Series.H"
 #include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
@@ -527,6 +528,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * progress <url> <file>
  *                 hand the snapshot in <file> to the Organizer as an
  *                 ecce_url_progress message does (empty file: forget it)
+ * newseries <template url> <source>...
+ *                 New Series from This (#621) without dialogs; the report,
+ *                 lines separated by " | "
  * duplicate <url> [last]
  *                 right-click <url> > Duplicate for Rerun (or Duplicate
  *                 Setup with Last Geometry); the tree's selection and
@@ -2028,6 +2032,17 @@ void CalcMgr::runTestCommand(const string& line)
       vector<EcceURL> urls;
       while (args >> u) urls.push_back(EcceURL(u));
       reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist");
+    } else if (command == "newseries") {
+      // "newseries TEMPLATE_URL SOURCE...": New Series without dialogs; the
+      // answer is the report, newlines as " | ".
+      std::istringstream args(calcName);
+      string t, s;
+      args >> t;
+      vector<string> sources;
+      while (args >> s) sources.push_back(s);
+      newSeries(EcceURL(t), sources, &outcome);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
     } else if (command == "reparseoutputs") {
       // "reparseoutputs URL...": Re-Parse Outputs without dialogs.
       std::istringstream args(calcName);
@@ -4000,6 +4015,76 @@ void CalcMgr::OnTerminateSelectedClick( wxCommandEvent& event )
            live.size() == 1 ? "" : "s",
            skipped ? (", " + std::to_string(skipped) + " skipped (not running)").c_str() : "");
   setMessage(msg);
+}
+
+
+// The template is the selected calculation; other calculations selected with
+// it, and the .xyz files picked here, are the structures.
+void CalcMgr::OnNewSeriesClick( wxCommandEvent& event )
+{
+  if (refuseDuringBatch("New Series")) return;
+  vector<EcceURL> rows = launchSelection();
+  getSelection();
+  if (p_currentSelection.empty()) return;
+  const EcceURL templ = p_currentSelection[0];
+  vector<string> sources;
+  for (size_t i = 0; i < rows.size(); i++)
+    if (rows[i].toString() != templ.toString())
+      sources.push_back(rows[i].toString());
+  for (size_t i = 1; i < p_currentSelection.size(); i++) {
+    string u = p_currentSelection[i].toString();
+    if (std::find(sources.begin(), sources.end(), u) == sources.end())
+      sources.push_back(u);
+  }
+  ewxFileDialog dlg(this, "Structures for the series (.xyz files)",
+                    Ecce::realUserHome(), "", "XYZ files|*.xyz|All Files|*",
+                    wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST,
+                    wxDefaultPosition);
+  if (dlg.ShowModal() == wxID_OK) {
+    wxArrayString paths;
+    dlg.GetPaths(paths);
+    for (size_t i = 0; i < paths.GetCount(); i++)
+      sources.push_back(string(paths[i].ToUTF8()));
+  }
+  if (sources.empty()) {
+    wxMessageBox(_("No structures were chosen: pick .xyz files, or select "
+                   "other calculations along with the template."),
+                 _("New Series"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  string report;
+  newSeries(templ, sources, &report);
+  wxMessageBox(wxString::FromUTF8(report.c_str()), _("New Series"),
+               wxOK | wxICON_INFORMATION, this);
+}
+
+
+void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
+                        string *outcome)
+{
+  WxResourceTreeItemData *node = findNode(templ, true, true);
+  WxResourceTreeItemData *container = node ? nearestContainer(node, 0) : 0;
+  if (!container) {
+    if (outcome) *outcome = "the template is not in the tree";
+    return;
+  }
+  vector<Series::Outcome> r = Series::make(templ, container->getUrl(), sources);
+  string report;
+  int made = 0;
+  for (size_t i = 0; i < r.size(); i++) {
+    if (r[i].ok) {
+      made++;
+      p_treeCtrl->addToTree(EcceURL(r[i].url));
+      notifyCreate(r[i].url);
+      report += r[i].name + ": made" +
+                (r[i].note.empty() ? string() : " (" + r[i].note + ")") + "\n";
+    } else {
+      report += r[i].name + ": not made: " + r[i].note + "\n";
+    }
+  }
+  if (made) p_treeCtrl->refresh(container);
+  report += "Select the new calculations and use Run Mgmt > Launch Selected.";
+  if (outcome) *outcome = report;
 }
 
 
@@ -6886,6 +6971,9 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   if (isCalculationNode) {
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
     menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
+    menu.Append(wxID_NEW_SERIES, _("New Series from This..."),
+                _("Make one calculation per structure with this "
+                  "calculation's setup"));
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
     wxMenuItem *reconnect = menu.Append(wxID_RECONNECT_SELECTED,
                                         _("Reconnect Selected..."));
