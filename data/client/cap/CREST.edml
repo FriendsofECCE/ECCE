@@ -53,6 +53,9 @@
   <RuntypeSummary>
     <item key="ES.Runtype.QCG.Number" label="Number of Solvent Molecules"></item>
   </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.QCG.Ensemble" label="Ensemble of Clusters"></item>
+  </RuntypeSummary>
 </Editor>
 
 <DataFiles>

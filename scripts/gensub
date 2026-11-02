@@ -2363,7 +2363,7 @@ sub crest()
   $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
   $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
   $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
-  $retval .= "rm -rf crest_conformers.xyz crest_best.xyz protonated.xyz tautomers.xyz cluster.xyz final_ensemble.xyz ensemble grow\n";
+  $retval .= "rm -rf crest_conformers.xyz crest_best.xyz protonated.xyz tautomers.xyz cluster.xyz ecce_cluster.xyz final_ensemble.xyz ensemble grow\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
@@ -2373,13 +2373,20 @@ sub crest()
   $retval .= "crestStatus=\$?\n";
   $retval .= "\n$::CC - Append the ensemble for the parser.\n";
   # Which file holds the result depends on the run type.  The QCG names are
-  # CREST's documented ones; they could not be checked here (xtb dock aborts).
+  # CREST's own (checked on a real run).
   $retval .= "case \" \$crestopts \" in\n";
   $retval .= "  *\" --protonate \"*) crestEns=protonated.xyz ;;\n";
   $retval .= "  *\" --tautomerize \"*) crestEns=tautomers.xyz ;;\n";
   $retval .= "  *\" --qcg \"*) crestEns=\n";
   $retval .= "    for f in ensemble/final_ensemble.xyz final_ensemble.xyz cluster.xyz grow/cluster.xyz; do\n";
-  $retval .= "      if [ -z \"\$crestEns\" ] && [ -s \$f ]; then crestEns=\$f; fi; done ;;\n";
+  $retval .= "      if [ -z \"\$crestEns\" ] && [ -s \$f ]; then crestEns=\$f; fi; done\n";
+  # Without --ensemble the result is the grown cluster, whose comment line is
+  # empty; its energy is the last row of grow/qcg_energy.dat (column 2, Eh).
+  $retval .= "    case \"\$crestEns\" in *cluster.xyz)\n";
+  $retval .= "      qe=`awk 'NF>=2 {e=\$2} END {print e}' grow/qcg_energy.dat 2>/dev/null`\n";
+  $retval .= "      if [ -n \"\$qe\" ]; then\n";
+  $retval .= "        awk -v e=\"\$qe\" 'NR==2 {print e; next} {print}' \"\$crestEns\" > ecce_cluster.xyz && crestEns=ecce_cluster.xyz\n";
+  $retval .= "      fi ;; esac ;;\n";
   $retval .= "  *) crestEns=crest_conformers.xyz ;;\n";
   $retval .= "esac\n";
   $retval .= "if [ -n \"\$crestEns\" ] && [ -s \"\$crestEns\" ]; then\n";

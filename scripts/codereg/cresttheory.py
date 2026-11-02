@@ -11,6 +11,19 @@ class CrestTheoryPanel(EccePanel):
     def __init__(self, parent, helpURL=""):
         EccePanel.__init__(self, parent, helpURL)
 
+        # A solvation shell has one solvent: the molecule chosen in the
+        # Runtype dialog, which the stored values carry (restore.in).
+        self.qcg = EcceGlobals.RunType == "Solvation Shell"
+        self.qcgSolvent = "water"
+        if self.qcg and EcceGlobals.RestoreFlag == "GUIValues":
+            try:
+                for line in open(EcceGlobals.FdIn):
+                    f = line.split("|")
+                    if f[0] == "ES.Runtype.QCG.Solvent" and f[1]:
+                        self.qcgSolvent = f[1].strip()
+            except IOError:
+                pass
+
         # The method (GFN2-xTB, GFN-FF, GFN2//GFN-FF) is the calculation's
         # Theory, chosen in the editor.  Charge and multiplicity come from the
         # calculation; ai.crest turns them into --chrg and --uhf.
@@ -18,7 +31,7 @@ class CrestTheoryPanel(EccePanel):
         self.solvModel = EcceComboBox(self,
                                       choices=["None", "ALPB", "GBSA"],
                                       name="ES.Theory.Solvent.Model",
-                                      default=0,
+                                      default=1 if self.qcg else 0,
                                       label="Model:",
                                       export=1)
         solvSizer.AddWidget(self.solvModel)
@@ -42,7 +55,12 @@ class CrestTheoryPanel(EccePanel):
         self.AddButtons()
 
     def CheckDependency(self):
-        self.solvName.Enable(self.solvModel.GetValue() != "None")
+        if self.qcg:
+            # Shown but not editable (and so left out of the summary).
+            self.solvName.SetValue(self.qcgSolvent)
+            self.solvName.Enable(False)
+        else:
+            self.solvName.Enable(self.solvModel.GetValue() != "None")
 
 
 frame = CrestTheoryFrame(None,

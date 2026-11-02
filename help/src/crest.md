@@ -55,11 +55,17 @@ message when the input is generated.
   of the molecule and returns the tautomers, lowest first. GFN2-xTB only.
   Neither of these two run types has settings of its own.
 - **Solvation Shell**: CREST's quantum cluster growth (`--qcg`). It adds
-  solvent molecules one at a time around the molecule of the calculation and
-  then samples the arrangements of the cluster (`--ensemble`).
-  **Runtype Details** has the **Solvent molecule** (water, ammonia, methanol or
-  acetonitrile) and the **Number of solvent molecules** (10 by default). The
-  implicit solvent of Theory Details is applied on top, if chosen. CREST
+  solvent molecules one at a time around the molecule of the calculation.
+  **Runtype Details** has the **Solvent molecule** (water, methanol or
+  acetonitrile), the **Number of solvent molecules** (10 by default) and
+  **Ensemble of clusters**. The solvent is chosen once: Theory Details shows
+  the same solvent, greyed, and its **Model** is ALPB by default (None gives
+  a cluster without implicit solvent), so the deck has `--alpb <solvent>`.
+  The solvent has to have ALPB parameters, which is why ammonia is not on the
+  list. **Ensemble of clusters** (off by default) adds `--ensemble`, which
+  samples the arrangements of the finished cluster. CREST 3.0.2 crashes in
+  that step, so it is off; without it the result is the grown cluster, one
+  structure with its energy. CREST
   docks each solvent molecule with `xtb dock`, which aborts in xtb 6.7.1
   (Debian 13's package and the 6.7.1 release alike); the job then ends without
   a result, and the output file shows CREST's own error. A newer xtb (the
@@ -99,7 +105,7 @@ line by hand; the input check looks only at the shape of the file and at the
 charge and multiplicity.
 
 For the other run types the first line has `--protonate` or `--tautomerize`
-instead of the energy window, or `--qcg solvent.xyz --nsolv <n> --ensemble`.
+instead of the energy window, or `--qcg solvent.xyz --nsolv <n>` (with `--ensemble` if chosen).
 A solvation-shell deck also has the solvent molecule below the first line,
 between `$solvent` and `$end`; the job script writes it to `solvent.xyz`.
 
