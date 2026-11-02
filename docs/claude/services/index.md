@@ -86,3 +86,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
 - [ecce-annotate](ecce-annotate-writes-through-the-organizer.md): through the Organizer, else FileEDSI; never a hand-edited `.ecce-meta` (#742).
 - [A root without a resource (server not connected) taken for the hidden root: findNode recursed to a stack overflow (#767)](unconnected-root-taken-for-hidden-root.md)
+- [AuthCache: an ssh password only for its own host[:port] and user, also under the job store's LAST_URL (#791)](authcache-ssh-own-host-only.md)
