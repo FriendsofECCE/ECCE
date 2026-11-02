@@ -41,8 +41,7 @@ The slice is flat. Choose how it is placed.
   plane; the map is then drawn on a plane that contains the axis. This is
   where the map starts for a flat or linear molecule, a diatomic included;
   a single atom starts on **This view**.
-  For a molecule that is not flat this entry is greyed out; use
-  **Through three atoms**.
+  For a molecule that is not flat this starts on the best-fit plane.
 - **Through three atoms A, B, C**: the plane through the three atoms you
   choose. Use it for a molecule that is not flat. For ammonia, choose H–N–H to
   see an orbital in the plane of two N–H bonds.
@@ -53,12 +52,22 @@ The slice is flat. Choose how it is placed.
   A and B can be any pair, not only bonded ones: in benzene, C1 and C3 give a
   slice across the ring along a chord. B starts as an atom bonded to A, and
   atoms that are not bonded to A are marked "(not bonded)" in the list. This
-  entry is greyed out for a molecule that is not flat and for a linear one.
+  entry uses the best-fit molecular plane for a non-planar molecule and is
+  greyed out for a linear one.
 - **This view (parallel to the screen)**: the plane parallel to the screen
   through the centre of the molecule, as the 3-D view is now. Choosing it
   takes the view at once. Rotate the molecule in the 3-D view and press
   **Update from view** to take the new view. The plane is stored, not the
   view: it stays where it was when you rotate again.
+
+### Principal planes
+
+For a non-planar cage or cluster, **Molecular plane** offers three principal
+planes through the unweighted centroid of all atoms. The choice lists their
+RMS out-of-plane distances in Å, from **1: best fit** (smallest distance) to
+3 (largest). These planes follow the principal axes of the atomic positions;
+they need not be mirror planes. Flat molecules retain their molecular plane.
+The command-line tool accepts `--plane principal1`, `principal2`, or `principal3`.
 
 ### Picking atoms in the 3-D view
 

@@ -47,6 +47,10 @@ namespace DensityPlane
                  const vector<string>& labels, int a, int b, int c,
                  Plane& plane, string& complaint);
 
+  /** Three centroid planes, ordered by increasing RMS distance (A).
+   *  Empty for fewer than three atoms or a linear geometry. */
+  vector<Plane> principalPlanes(const vector<double>& coordsAng);
+
   /**
    * The plane moved `distance` A along its normal (from the plane as it
    * was before any offset), for the offset slider.  The description then
@@ -75,7 +79,7 @@ namespace DensityPlane
   /** Collinear atoms. */
   bool isLinear(const vector<double>& coordsAng);
 
-  /** A molecular plane exists: planar and not linear (the two-atom plane needs it). */
+  /** A molecular or best-fit plane exists (not a linear geometry). */
   bool hasMolecularPlane(const vector<double>& coordsAng);
 
   /** Covalent-radius bonding of atoms a and b (0-based), as a hint for defaults. */

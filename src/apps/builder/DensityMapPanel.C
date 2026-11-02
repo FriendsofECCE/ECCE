@@ -145,7 +145,7 @@ wxFORCE_LINK_THIS_MODULE(DensityMapPanel)
 DensityMapPanel::DensityMapPanel()
   : VizPropertyPanel(), p_haveMap(false), p_haveView(false), p_busy(false),
     p_inViewer(false), p_dragging(false), p_mapCoarse(false), p_show(0), p_spin(0), p_atomA(0),
-    p_atomB(0), p_atomC(0), p_plane(0), p_offsetField(0), p_resetOffset(0),
+    p_atomB(0), p_atomC(0), p_plane(0), p_principal(0), p_offsetField(0), p_resetOffset(0),
     p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
     p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
 {
@@ -245,6 +245,9 @@ void DensityMapPanel::build()
   planes.Add("This view (parallel to the screen)");
   p_plane = new wxRadioBox(this, ID_PLANE, "Plane", wxDefaultPosition,
                            wxDefaultSize, planes, 1, wxRA_SPECIFY_COLS);
+  p_principal = new wxChoice(this, wxID_ANY);
+  p_principal->SetToolTip(wxString::FromUTF8("Principal plane through the centroid; RMS distance of all atoms in Å"));
+  if (ok) updatePrincipalPlanes();
 
   p_atomRow = new wxBoxSizer(wxHORIZONTAL);
   wxWrapSizer *atoms = new wxWrapSizer(wxHORIZONTAL);
@@ -277,16 +280,16 @@ void DensityMapPanel::build()
     //  A plane that cannot be defined is greyed out, not left to fail.
     const bool flat = isPlanar(p_eval->coordsAng);
     const bool standing = hasMolecularPlane(p_eval->coordsAng);
-    p_plane->Enable(0, flat);
+    p_plane->Enable(0, flat || standing);
     p_plane->Enable(2, standing);
     const wxString why = labels.size() == 1
         ? wxString("One atom has no molecular plane: the map lies in the plane of the screen; turn the molecule and press \"Update from view\".")
-        : wxString("This molecule is not planar: use \"Through three atoms\".");
+        : wxString("This molecule is not planar: the molecular plane is the best-fit plane through all atoms.");
     if (!flat) p_plane->SetItemToolTip(0, why);
     if (!standing) p_plane->SetItemToolTip(2, flat
         ? wxString("A linear molecule has no molecular plane to stand on: use \"Through three atoms\" or the molecular plane.")
         : why);
-    p_plane->SetSelection(flat ? 0 : 1);
+    p_plane->SetSelection(flat || standing ? 0 : 1);
     //  A lone atom has no molecular plane: start from the screen plane (the
     //  unrotated camera when the viewer is not there yet).
     if (startsOnViewPlane(labels.size())) {
@@ -364,6 +367,7 @@ void DensityMapPanel::build()
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { resetZoom(); }, ID_ZOOMRESET);
   addOrbitalPointNote(this, top, getCalculation());
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  top->Add(p_principal, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_atomRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_viewRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(rowOff, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -420,9 +424,10 @@ void DensityMapPanel::build()
   if (!ok) {
     p_canvas->say(wxString::FromUTF8(p_eval->complaint.c_str()));
     for (wxWindow *w : std::initializer_list<wxWindow*>{ p_show, p_mo, p_spin,
-         p_plane, p_atomA, p_atomB, p_atomC, p_offset, p_offsetField,
+         p_plane, p_principal, p_atomA, p_atomB, p_atomC, p_offset, p_offsetField,
          p_resetOffset, p_useView })
       w->Enable(false);
+    p_principal->Hide();
     return;
   }
   p_spin->Show(p_eval->unrestricted);
@@ -636,6 +641,8 @@ void DensityMapPanel::onControl(wxCommandEvent& event)
     if (p_plane->GetSelection() == 2) chooseBondedB();
     else fillAtomLists();
     if (p_plane->GetSelection() == 3) { useCurrentView(); return; }
+  } else if (event.GetEventObject() == p_principal) {
+    newPlane();
   } else if (id == ID_ATOM) {
     newPlane();
     if (p_plane->GetSelection() == 2 && event.GetEventObject() == p_atomA)
@@ -644,6 +651,26 @@ void DensityMapPanel::onControl(wxCommandEvent& event)
   }
   syncControls();
   compute();
+}
+
+void DensityMapPanel::updatePrincipalPlanes()
+{
+  const int selected = std::max(0, p_principal->GetSelection());
+  p_principalPlanes.clear();
+  p_principal->Clear();
+  const bool flat = isPlanar(p_eval->coordsAng);
+  const bool standing = hasMolecularPlane(p_eval->coordsAng);
+  if (!flat) p_principalPlanes = principalPlanes(p_eval->coordsAng);
+  for (size_t i = 0; i < p_principalPlanes.size(); ++i)
+    p_principal->Append(wxString::Format(wxString::FromUTF8("%d: %s(RMS %.2f Å)"), int(i + 1),
+        i == 0 ? "best fit " : "", p_principalPlanes[i].rms));
+  if (!p_principalPlanes.empty()) p_principal->SetSelection(std::min(selected, 2));
+  p_plane->Enable(0, flat || standing);
+  p_plane->Enable(2, standing);
+  if (flat) p_plane->SetItemToolTip(0, wxEmptyString);
+  else p_plane->SetItemToolTip(0, standing
+      ? "This molecule is not planar: the molecular plane is the best-fit plane through all atoms."
+      : "One atom has no molecular plane: use the screen plane.");
 }
 
 void DensityMapPanel::syncControls()
@@ -658,6 +685,7 @@ void DensityMapPanel::syncControls()
   p_labelC->Show(three);         p_atomC->Show(three);
   p_planeToggle->SetLabel(p_planeOpen ? "Hide plane controls" : "Show plane controls");
   GetSizer()->Show(p_plane, p_planeOpen, true);
+  GetSizer()->Show(p_principal, p_planeOpen && plane == 0 && !p_principalPlanes.empty());
   GetSizer()->Show(p_atomRow, p_planeOpen && (two || three), true);
   GetSizer()->Show(p_viewRow, p_planeOpen && plane == 3, true);
   Layout();
@@ -690,6 +718,8 @@ bool DensityMapPanel::currentPlane(Plane& plane, string& why)
       return false;
     }
     plane = p_viewPlane;
+  } else if (sel == 0 && !p_principalPlanes.empty()) {
+    plane = p_principalPlanes[p_principal->GetSelection()];
   } else {
     const PlaneKind kind = sel == 0 ? MOLECULAR : sel == 1 ? THREE_ATOMS : AXIAL;
     if (!makePlane(kind, p_eval->coordsAng, p_eval->atomLabels(),
@@ -1058,6 +1088,7 @@ void DensityMapPanel::orbitalPointChanged()
   p_mo->SetRange(1, n);
   p_mo->SetValue(std::min(p_mo->GetValue(), n));
   p_spin->Show(p_eval->unrestricted);
+  updatePrincipalPlanes();
   fillAtomLists();
   syncControls();
   compute();
