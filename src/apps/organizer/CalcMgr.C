@@ -3812,7 +3812,7 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
   if (p_batch) return false;
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *item = findNodeFresh(urls[i], true);
+    WxResourceTreeItemData *item = findNodeFresh(urls[i], false);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (task) tasks.push_back(task);
     else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");

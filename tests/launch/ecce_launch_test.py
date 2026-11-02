@@ -172,14 +172,40 @@ def main():
         genv = s.env({"DISPLAY": display.name,
                       "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         olog = os.path.join(s.state, "organizer.log")
+        cmds = os.path.join(s.state, "organizer-commands")
+        open(cmds, "w").close()
         org = subprocess.Popen(
-            [os.path.join(wrappers, "ecce-organizer")], env=genv,
+            [os.path.join(wrappers, "ecce-organizer")],
+            env=dict(genv, ECCE_TEST_ORGANIZER=cmds),
             cwd=os.path.join(s.home, "bin"), stdout=open(olog, "w"),
             stderr=subprocess.STDOUT, start_new_session=True)
+        import time
+
+        def send(line, timeout=120):
+            seen = len(open(olog, errors="replace").read().splitlines())
+            with open(cmds, "a") as h:
+                h.write(line + "\n")
+            want = "ECCE_TEST_ORGANIZER: %s: " % line
+            end = time.time() + timeout
+            while time.time() < end:
+                if org.poll() is not None:
+                    return "the Organizer ended (%s)" % org.returncode
+                for t in open(olog, errors="replace").read().splitlines()[seen:]:
+                    if t.startswith(want):
+                        return t[len(want):]
+                time.sleep(0.5)
+            return "no answer"
+
+        def selected():
+            m = re.search(r" selected=(\S+)", send("tree"))
+            return m.group(1) if m else None
+
+        #  #781: a launch from the command line leaves the selection alone.
+        before = selected()
+        check(before is not None, "the tree hook reports the selection (%s)" % before)
 
         #  The Organizer needs a moment to subscribe: ack arrives, or retry.
         path_one = urls["one"][len("file://"):]
-        import time
         rc = out = err = None
         end = time.time() + 120
         while time.time() < end:
@@ -197,6 +223,9 @@ def main():
               "URL argument: 'two: job id N'")
         check(any(l.startswith("gone: not launched: not ready") for l in lines),
               "submitted calculation refused with the reason")
+        after = selected()
+        check(after == before,
+              "the Organizer's selection is unchanged (%s -> %s)" % (before, after))
         for name in ("one", "two"):
             st = s.waitState(urls[name], seconds=120,
                              want=harness.FINAL_STATES + ("submitted", "running"))
@@ -234,6 +263,8 @@ def main():
         say(out)
         check(re.search(r"^late: job id \S+$", out, re.M) is not None,
               "a calculation in a study copied in later is launched (rc=%s)" % rc)
+        check(selected() == before,
+              "the selection is unchanged after the re-read launch")
 
         #  #741: queue and wall time overrides, and what was filled in or dropped.
         for name, extra in (("noq", ("procs=1", "nodes=1", "wall=0 1:0")),
