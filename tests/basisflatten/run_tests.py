@@ -29,6 +29,10 @@ import os
 import subprocess
 import sys
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 
@@ -47,7 +51,7 @@ def main():
             "-o", out,
             os.path.join(HERE, "testBasisFlatten.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("could not build testBasisFlatten:")
@@ -89,7 +93,7 @@ def run_cro_moaoorder(env):
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
             "-o", out, os.path.join(HERE, "testCrOMoAoOrder.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("could not build testCrOMoAoOrder:")

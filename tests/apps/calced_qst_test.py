@@ -36,6 +36,10 @@ import fixture    # noqa: E402
 import run_tests  # noqa: E402
 import symmetry_find_test as sym  # noqa: E402
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 LOG = os.path.join(REPO, "tests", "parsers", "fixtures", "gaussian-16", "hcn_irc.log")
 SYM = {6: "C", 7: "N", 1: "H"}
 KEY = "ES.Runtype.GeomOpt."
@@ -97,7 +101,7 @@ def makeProject(folder, linear=False):
         ["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o", driver,
          os.path.join(REPO, "tests", "filedsi", "resourceTest.C"), "-L" + build]
         + ["-l" + l for l in libs] * 3
-        + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"],
+        + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if built.returncode != 0:
         return None, built.stdout.decode()[-1500:]

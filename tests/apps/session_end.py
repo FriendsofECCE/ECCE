@@ -183,6 +183,10 @@ import fixture   # noqa: E402
 import sessionkey  # noqa: E402
 import xdisplay  # noqa: E402
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 try:
     from Xlib import X, display as xlibdisplay, protocol
 except ImportError:
@@ -1999,7 +2003,7 @@ def makeLocalCalculation(env, home, data, mode="create", user=None):
     driver = os.path.join(state, "resourceTest")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o",
             driver, os.path.join(HERE, "..", "filedsi", "resourceTest.C"),
-            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     built = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if built.returncode != 0:
         return built.stdout.decode()[-1500:]
