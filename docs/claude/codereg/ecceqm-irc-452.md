@@ -2,8 +2,8 @@
 type: map
 title: "ECCE-QM IRC (#452 stage 2): runtype irc, Gonzalez-Schlegel, output keys the IRC panel reads"
 area: codereg
-paths: ["src/qm/irc.cpp", "src/qm/main.cpp", "src/qm/output.cpp", "scripts/parsers/ecceqm.desc", "scripts/parsers/ecceqm.parse", "scripts/parsers/ai.ecceqm", "scripts/parsers/verifyinput", "scripts/codereg/ecceqmruntype.py", "tests/qm/irc_test.py"]
-issues: [452]
+paths: ["src/qm/irc.cpp", "src/qm/main.cpp", "src/qm/output.cpp", "scripts/parsers/ecceqm.desc", "scripts/parsers/ecceqm.parse", "scripts/parsers/ai.ecceqm", "scripts/parsers/verifyinput", "scripts/codereg/ecceqmruntype.py", "tests/qm/irc_test.py", "tests/qm/irc_offset_test.py"]
+issues: [452, 764]
 ---
 `runtype irc` starts from the editor's structure as the transition state:
 Hessian there (the one frequency runs use), then each direction leaves along
@@ -13,8 +13,17 @@ downhill, Bofill-updated Hessian, translation and rotation projected out).
 Keywords: `irc_step` (0.1 bohr*sqrt(amu)), `irc_max_points` (20 per
 direction), `irc_direction both|forward|backward`, `irc_hessian_every`.
 A direction ends at rms/max gradient 5e-4/2e-3 (ORCA's) once the gradient
-has also fallen to half the largest one met on the path, when the energy
-rises, or at the point limit; neither stop applies before 5 points. Without
+has also fallen to half the largest one met on the path and the last step
+lowered the energy by under 1e-6 Eh (a slowly falling plateau is not a
+minimum, #764), when the energy rises or the downhill direction turns back
+(both bracket a minimum), or at the point limit; neither stop applies before
+5 points. Trap (#764): a start a little off the saddle (another program's TS,
+rounded coordinates) with a soft heavy-atom mode puts the saddle more than one
+step along the mode; a plain first step of -step then stays on the forward
+slope and the backward branch runs into the forward valley. The first point is
+therefore measured from the quadratic-model saddle x0 = -g.m/lambda, and a
+first point whose downhill direction points back ends the branch with that
+message (`tests/qm/irc_offset_test.py`). Without
 that a near-flat TS (gradient under the thresholds from the first step) gave
 a 3-point "path" (`tests/qm/unit_test.cpp`, flat model). Forward is the way the largest component of
 the mode is positive; the sign of an eigenvector means nothing.

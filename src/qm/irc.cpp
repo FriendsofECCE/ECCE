@@ -116,6 +116,7 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
     if (std::fabs(mode(i)) > std::fabs(mode(big))) big = i;
   if (mode(big) < 0) mode = -mode;
   Vec dir = sign * mode;
+  const double lam0 = es.eigenvalues()(0);
 
   auto to_molecule = [&](const Vec& y) {
     Molecule m = ts;
@@ -141,16 +142,44 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
   OptEval cur = eval(ts);
   Vec g = mw_grad(cur);
   double s_total = 0;
-  const double half = 0.5 * opt.step;
   double peak_rms = 0;   // largest gradient met on the path: a minimum is where it has fallen
   if (why) *why = "max points";
+
+  // A start structure a little off the saddle (another program's or level's
+  // TS, rounded coordinates) puts the saddle at x0 along the mode.  A soft
+  // heavy-atom mode makes x0 larger than one step, and a plain step of -step
+  // then stays on the forward slope: the backward branch turns round and runs
+  // into the forward valley.  So the first point is measured from the saddle
+  // of the quadratic model.
+  double x0 = -g.dot(mode) / lam0;
+  x0 = std::max(-10 * opt.step, std::min(10 * opt.step, x0));
+  const double e_saddle = cur.energy - 0.5 * lam0 * x0 * x0;
+  Vec last_step = sign * mode;   // the way the path went last; a reversal means it turned back
+  int unconverged = 0;
 
   for (int k = 0; k < opt.max_points; ++k) {
     if (k > 0 && opt.hessian_every > 0 && k % opt.hessian_every == 0)
       H = P * weight_hessian(hessian(to_molecule(y)), sm) * P;
-    if (k > 0) dir = -g / g.norm();
+    double len = opt.step;
+    if (k == 0) {
+      const Vec d = (x0 + sign * opt.step) * mode;
+      len = d.norm();
+      dir = d / len;
+    } else {
+      dir = -g / g.norm();
+      if (dir.dot(last_step) < 0) {
+        // Downhill points back the way the path came.  At the first point that
+        // means it is on the other side of the saddle; later, that the last
+        // step passed the bottom of the valley (as "energy rose" one step on).
+        if (why)
+          *why = k == 1 ? "the first point is on the other side of the TS: is the start a transition state?"
+                        : "the path turns back: minimum reached";
+        break;
+      }
+    }
+    const double half = 0.5 * len;
     const Vec pivot = y + half * dir;
-    Vec q = y + opt.step * dir;
+    Vec q = y + len * dir;
     OptEval eq = eval(to_molecule(q));
     Vec gq = mw_grad(eq);
     for (int it = 0;; ++it) {
@@ -165,7 +194,8 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
         mx = gc.cwiseAbs().maxCoeff();
         rms = std::sqrt(gc.squaredNorm() / n);
       }
-      if ((rms <= opt.tol_rms && mx <= opt.tol_max) || it >= opt.max_micro) break;
+      if (rms <= opt.tol_rms && mx <= opt.tol_max) break;
+      if (it >= opt.max_micro) { ++unconverged; break; }
       const Vec dq = B * sphere_step(B.transpose() * H * B, B.transpose() * gq, B.transpose() * D, half);
       const Vec qn = q + dq;
       OptEval en = eval(to_molecule(qn));
@@ -180,7 +210,7 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
       if (why) *why = "energy rose: minimum reached";
       break;
     }
-    if (path.empty() && eq.energy > cur.energy + 1e-9) throw Error("irc: the first step goes uphill; is the start a transition state?");
+    if (path.empty() && eq.energy > e_saddle + 1e-9) throw Error("irc: the first step goes uphill; is the start a transition state?");
     s_total += sign * (q - y).norm();
     IrcPoint pt;
     pt.mol = to_molecule(q);
@@ -189,14 +219,18 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
     cart_norms(eq, pt.rms_grad, pt.max_grad);
     path.push_back(pt);
     if (on_point) on_point(pt);
+    last_step = path.size() == 1 ? Vec(sign * mode) : Vec(q - y);
+    const double drop = (path.size() > 1 ? path[path.size() - 2].energy : e_saddle) - eq.energy;
     y = q; cur = eq; g = gq;
     peak_rms = std::max(peak_rms, pt.rms_grad);
     if (pt.rms_grad <= opt.rms_grad && pt.max_grad <= opt.max_grad && static_cast<int>(path.size()) >= opt.min_points &&
-        pt.rms_grad <= 0.5 * peak_rms) {
+        pt.rms_grad <= 0.5 * peak_rms && drop < opt.flat_energy) {
       if (why) *why = "gradient below threshold: minimum reached";
       break;
     }
   }
+  if (why && unconverged > 0)
+    *why += "; " + std::to_string(unconverged) + " points with the step not converged on its sphere (try a smaller irc_step)";
   return path;
 }
 
