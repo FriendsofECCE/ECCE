@@ -44,6 +44,7 @@ class RCommand;
 struct RCommandLogin {
   string machine, remShell, locShell = "bash", user, password,
          frontend, frontendBypass, shellPath, libPath, sourceFile;
+  int port = 0;   // 0: the ssh configuration's
   RCommand* open() const;
 };
 
@@ -62,7 +63,8 @@ public:
              const string& locShell="bash", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
-             const string& libPath="", const string& sourceFile="");
+             const string& libPath="", const string& sourceFile="",
+             int port = 0);
 
   // Destructor
     ~RCommand(void);
@@ -275,6 +277,7 @@ private:
     int p_timeout;           // seconds for execout(); <= 0 means none
     string p_shell;
     string p_machine;
+    int p_port = 0;          // ssh port of p_machine; 0 leaves it to ~/.ssh/config
     string p_errMessage;
     bool p_loginCancelled = false;
     bool p_loginPrompted = false;
@@ -297,6 +300,7 @@ private:
     static bool useOpenssh(const string& machine, const string& userName,
                            const string& jumpHost);
     void adoptTransport(Transport* t);
+    string passHost(const string& machine) const;
     bool sshHop(const string& hopMachine, const string& locShell,
                 const string& userName, const string& password,
                 const string& shellPath, const string& libPath,

@@ -49,13 +49,14 @@ private:
   ewxTextCtrl* p_host;
   ewxTextCtrl* p_user;
   ewxTextCtrl* p_folder;
+  ewxTextCtrl* p_port;
   ewxTextCtrl* p_address;
   ewxButton* p_test;
   ewxStaticText* p_status;
   wxProcess* p_proc;
   std::shared_ptr<std::atomic<bool> > p_alive;   // a login thread may outlive the dialog
   wxBoxSizer* p_top;
-  wxWindow* p_sshRows[6];
+  wxWindow* p_sshRows[8];
   wxWindow* p_eccRows[2];
 };
 

@@ -42,9 +42,14 @@ class ServerList
     static string check(const ServerEntry& e);
 
     static string typeLabel(const string& type);   // "SSH folder", "ECCE server"
-    // sftp://user@host/folder, from its parts; and back.
+    // sftp://user@host[:port]/folder, from its parts; and back.  parseSsh's
+    // host is the whole authority, host[:port]; port 22 is never written.
     static string sshAddress(const string& user, const string& host,
-                             const string& folder);
+                             const string& folder, int port = 22);
+    static string hostPort(const string& host, int port);
+    // host[:port] (or [v6]:port) into its parts; port is 22 when none is
+    // given.  False when the port is not a number from 1 to 65535.
+    static bool splitHostPort(const string& authority, string& host, int& port);
     // Added ECCE servers of this process, and the login made on each.  The
     // session's own server is not one: its user stays Ecce::serverUser().
     // ref is EcceURL::getRef() (scheme, host, port), so two servers never
