@@ -485,7 +485,17 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
                            userName == "" ? string(Ecce::realUser()) : userName, pw);
   t->setPassword(pw);
   string error;
-  if (!t->connect(error)) {
+  const bool connected = t->connect(error);
+  // A stored password that was refused is forgotten here too, whatever the
+  // dialog that followed came to.
+  if (t->forgetCached())
+    AuthCache::getCache().remove("ssh://" + machine,
+        userName == "" ? string(Ecce::realUser()) : userName, "");
+  if (connected && t->ownsMaster() && !t->acceptedPassword().empty())
+    setPassCache(p_shell, machine,
+                 userName == "" ? string(Ecce::realUser()) : userName,
+                 t->acceptedPassword());
+  if (!connected) {
     p_errMessage = error;
     p_loginCancelled = t->loginCancelled();
     p_loginPrompted = t->loginPrompted();

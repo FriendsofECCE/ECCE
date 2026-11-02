@@ -151,6 +151,11 @@ public:
   // about the password, so a caller may wait and try again.
   bool hostUnreachable() const { return p_unreachable; }
   static bool hostDidNotAnswer(const std::string& error);
+  // The password that logged in (the dialog's answer or the stored one),
+  // empty when none is known; and whether a stored one was refused, so that
+  // the caller drops its own copy too.
+  const std::string& acceptedPassword() const { return p_accepted; }
+  bool forgetCached() const { return p_forgetCached; }
   // This process put up the login dialog (the others only waited for it).
   bool loginPrompted() const { return p_prompted; }
   // Every one of ECCE's masters for the host refused a new session (sshd
@@ -207,6 +212,8 @@ private:
   bool p_cancelled;
   bool p_refused;
   bool p_unreachable;
+  std::string p_accepted;
+  bool p_forgetCached = false;
   mutable bool p_probeAnswered = false;
   bool p_prompted;
   mutable bool p_sessionsFull = false;

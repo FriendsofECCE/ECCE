@@ -109,7 +109,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < n; i++) if (ss[i]) up++;
     check("all streams are up", up == n, std::to_string(up) + " of " + std::to_string(n));
     check("exactly two logins for " + std::to_string(n) + " streams (master + overflow)",
-          dialogs() == 2, std::to_string(dialogs()) + " dialogs");
+          dialogs() == 1, std::to_string(dialogs()) + " dialogs (the overflow master reuses the stored password)");
     for (int i = 0; i < n; i++) if (ss[i]) ts[i]->closeStream(ss[i], 200);
   } else if (mode == "kill") {
     OpenSshTransport* t = make();
@@ -145,7 +145,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < n; i++) if (st[i] == 0) ok++;
     check("every opener got through", ok == n, std::to_string(ok) + " of " + std::to_string(n));
     check("the dead master cost exactly one new login with " + std::to_string(n) + " openers",
-          dialogs() == 2, std::to_string(dialogs()) + " dialogs in all");
+          dialogs() == 1, std::to_string(dialogs()) + " dialogs in all (the stored password re-logs in)");
     if (s) t->closeStream(s, 200);
   } else if (mode == "failing") {
     // RCommand falls back to libssh (a second dialog) unless the login was
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
       th.push_back(std::thread([&, i]() { string e; ss[i] = openUp(ts[i], e); }));
     }
     for (size_t i = 0; i < th.size(); i++) th[i].join();
-    check("two logins so far (master + overflow)", dialogs() == 2, std::to_string(dialogs()));
+    check("one dialog so far (the overflow master reuses the password)", dialogs() == 1, std::to_string(dialogs()));
     OpenSshTransport* t = make();
     const string second = t->controlSocketPath();
     check("the index moved to the overflow master", second.size() > 2 &&
@@ -207,7 +207,7 @@ int main(int argc, char** argv)
     }
     check("every process got through", ok == n, std::to_string(ok) + " of " + std::to_string(n));
     check("both masters dead cost exactly one new login",
-          dialogs() == 3, std::to_string(dialogs()) + " dialogs in all");
+          dialogs() == 1, std::to_string(dialogs()) + " dialogs in all (the stored password re-logs in)");
   } else if (mode == "sessions") {
     // #631: job stores keep the control directory of the session that
     // started them.  N sessions each log in, every master dies at once, and
@@ -261,8 +261,32 @@ int main(int argc, char** argv)
     }
     check("every store got through", ok == 2 * n, std::to_string(ok) + " of " + std::to_string(2 * n));
     check("the lost masters of " + std::to_string(n) + " sessions cost one new login",
-          dialogs() - before == 1, std::to_string(dialogs() - before) + " new dialogs");
+          dialogs() - before == 0, std::to_string(dialogs() - before) + " new dialogs");
     setenv("ECCE_SSH_CONTROL_DIR", base.c_str(), 1);
+  } else if (mode == "refused") {
+    // The stored password is wrong now (changed on the server): ssh gets it
+    // once, is refused, and the dialog follows in the same run (here it is
+    // cancelled): one dialog, and the stored password is gone.
+    OpenSshTransport* t = make();
+    string e;
+    check("login by dialog", t->connect(e), e);
+    const string base0 = t->controlSocketPath();
+    const string pwf = base0.substr(0, base0.size() - (base0.size() > 2 && base0[base0.size()-2] == '-' ? 2 : 0)) + ".pw";
+    struct stat st;
+    check("the password is kept, mode 0600", stat(pwf.c_str(), &st) == 0 &&
+          (st.st_mode & 0777) == 0600, pwf);
+    long pid = masterPid(t->controlSocketPath());
+    if (pid > 1) kill((pid_t)pid, SIGKILL);
+    usleep(500000);
+    { std::ofstream(pwf) << "wrong-password\n"; }
+    { std::ofstream("/tmp/fakehome/mode") << "cancel\n"; }
+    const int dlg = dialogs();
+    OpenSshTransport* u = make();
+    string er;
+    check("the cancelled dialog fails the login", !u->connect(er), er);
+    check("exactly one dialog", dialogs() - dlg == 1, std::to_string(dialogs() - dlg));
+    check("the refused password is forgotten", access(pwf.c_str(), F_OK) != 0);
+    check("the transport says to forget its own copy", u->forgetCached());
   } else if (mode == "outage") {
     const char* ctl = getenv("ECCE_CTL_DIR");
     if (!ctl) { std::cerr << "needs ECCE_CTL_DIR" << std::endl; return 2; }

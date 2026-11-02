@@ -558,6 +558,32 @@ std::string readSmall(const std::string& path)
   return n > 0 ? std::string(b, n) : "";
 }
 
+// A password is longer than readSmall's buffer.
+std::string readSecret(const std::string& path)
+{
+  int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+  if (fd < 0) return "";
+  char b[4096];
+  ssize_t n = read(fd, b, sizeof b - 1);
+  close(fd);
+  std::string s = n > 0 ? std::string(b, n) : "";
+  while (!s.empty() && (s[s.size()-1] == '\n' || s[s.size()-1] == '\r')) s.erase(s.size()-1);
+  return s;
+}
+
+// A stored password is kept only on tmpfs: the fallback directory under the
+// home may be NFS.
+bool onTmpfs(const std::string& dir)
+{
+  const char* x = getenv("XDG_RUNTIME_DIR");
+  std::string root = x ? x : "";
+#ifdef __APPLE__
+  if (root.empty()) { const char* t = getenv("TMPDIR"); root = t ? t : ""; }
+#endif
+  while (root.size() > 1 && root[root.size()-1] == '/') root.erase(root.size()-1);
+  return !root.empty() && dir.compare(0, root.size() + 1, root + "/") == 0;
+}
+
 void writeSmall(const std::string& path, const std::string& text)
 {
   int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC,
@@ -720,6 +746,8 @@ bool OpenSshTransport::openMaster()
   // Another session may have opened it while this one waited its turn.
   if (masterAlive()) return true;
   p_cancelled = p_refused = p_unreachable = p_prompted = false;
+  p_forgetCached = false;
+  p_accepted.clear();
   std::string key;
   if (owned) {
     // The holder before us asked and was not answered or refused: asking
@@ -745,13 +773,25 @@ bool OpenSshTransport::openMaster()
       return false;
     }
   }
-  p_prompted = true;
+
+  // The password to offer: the caller's, else the one the last login here
+  // used (kept beside the master, see onTmpfs).
+  std::string pw = p_password;
+  std::string pwFile;
+  bool pwKept = false;
+  if (owned) {
+    pwFile = base + ".pw";
+    pwKept = onTmpfs(ownedControlDir());
+    if (pw.empty() && pwKept) pw = readSecret(pwFile);
+  }
 
   // ssh asks again after a refusal; askpass records a cancel in this file
-  // (its directory is ours alone) so that one cancel is one dialog.
+  // (its directory is ours alone) so that one cancel is one dialog.  An
+  // owned master's state directory lives in the control directory (tmpfs).
   const char* tmpdir = getenv("TMPDIR");
-  std::string stateDir = std::string(tmpdir && *tmpdir ? tmpdir : "/tmp") +
-                         "/ecce-askpass.XXXXXX";
+  std::string stateDir = (owned ? ownedControlDir() + "/.ask"
+                          : std::string(tmpdir && *tmpdir ? tmpdir : "/tmp") +
+                            "/ecce-askpass") + ".XXXXXX";
   std::vector<char> tmpl(stateDir.begin(), stateDir.end());
   tmpl.push_back('\0');
   const bool haveState = mkdtemp(&tmpl[0]) != 0;
@@ -762,17 +802,17 @@ bool OpenSshTransport::openMaster()
   std::string fifo;
   std::thread writer;
   std::atomic<bool> giveUp(false);
-  if (owned && haveState && !p_password.empty()) {
+  if (owned && haveState && !pw.empty()) {
     fifo = stateDir + "/password";
     if (mkfifo(fifo.c_str(), 0600) == 0) {
-      const std::string pw = p_password + "\n";
-      writer = std::thread([fifo, pw, &giveUp]() {
+      const std::string pwl = pw + "\n";
+      writer = std::thread([fifo, pwl, &giveUp]() {
         int fd = open(fifo.c_str(), O_WRONLY | O_CLOEXEC);  // waits for askpass
         if (fd < 0) return;
         if (!giveUp) {
           size_t done = 0;
-          while (done < pw.size()) {
-            ssize_t w = write(fd, pw.data() + done, pw.size() - done);
+          while (done < pwl.size()) {
+            ssize_t w = write(fd, pwl.data() + done, pwl.size() - done);
             if (w > 0) done += w;
             else if (!(w < 0 && errno == EINTR)) break;
           }
@@ -790,6 +830,7 @@ bool OpenSshTransport::openMaster()
   a.push_back("SSH_ASKPASS=" + p_askpass);
   if (haveState) a.push_back("ECCE_ASKPASS_STATE=" + stateDir + "/cancelled");
   if (!fifo.empty()) a.push_back("ECCE_ASKPASS_PWFIFO=" + fifo);
+  if (haveState) a.push_back("ECCE_ASKPASS_ANSWER=" + stateDir + "/answer");
   a.push_back("SSH_ASKPASS_REQUIRE=force");
   a.push_back("ECCE_ASKPASS_HOST=" + p_host);
   a.push_back("ECCE_ASKPASS_USER=" + p_user);
@@ -826,6 +867,28 @@ bool OpenSshTransport::openMaster()
   // A network or connect failure says nothing about the password.
   p_unreachable = !ok && !p_cancelled && !p_refused &&
                   hostDidNotAnswer(r.err);
+  // What askpass saw: a dialog shown, the stored password fed, and whether
+  // ssh asked again after it (= it was refused).
+  auto marked = [&](const char* f) {
+    return haveState && access((stateDir + "/" + f).c_str(), F_OK) == 0;
+  };
+  p_prompted = marked("asked");
+  const bool fed = marked("fed");
+  const bool storedRefused = marked("refused") || (!ok && p_refused && fed);
+  std::string answered;
+  if (haveState) answered = readSecret(stateDir + "/answer");
+  if (storedRefused) {
+    // Forget it: the same wrong password must not be sent again.
+    if (!pwFile.empty()) unlink(pwFile.c_str());
+    p_forgetCached = true;
+  }
+  if (ok && owned) {
+    const std::string good = !answered.empty() ? answered : fed ? pw : "";
+    if (!good.empty()) {
+      p_accepted = good;
+      if (pwKept && good != readSecret(pwFile)) writeSmall(pwFile, good + "\n");
+    }
+  }
   if (!ok && !userCancel) {
     std::string why = r.timedOut ? "no answer in time" : r.err;
     while (!why.empty() && (why[why.size()-1] == '\n' || why[why.size()-1] == '\r'))
@@ -836,6 +899,8 @@ bool OpenSshTransport::openMaster()
   if (haveState) {
     unlink((stateDir + "/password").c_str());
     unlink((stateDir + "/cancelled").c_str());
+    for (const char* f : {"answer", "fed", "refused", "asked"})
+      unlink((stateDir + "/" + f).c_str());
     rmdir(stateDir.c_str());
   }
   if (owned) {

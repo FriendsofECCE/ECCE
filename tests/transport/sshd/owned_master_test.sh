@@ -16,12 +16,13 @@
 #      exactly 1 new login
 #   8. three sessions' masters lost at once, two stores each: 1 new login
 #      wanted (#631); another ECCE_REALUSERHOME gets its own directory
+#   9. (in 2, 7, 8) the password of the dialog login is kept (0600, tmpfs
+#      only) and the next login after a lost master asks nothing
+#  10. a refused stored password: ssh is refused once, one dialog follows
+#      (cancelled here), the stored password is gone
 #  12. the master dies and the network is cut (the sshd container is
 #      paused): 4 openers all say "unreachable" (not refused), no dialog;
 #      after the resume the next opener logs in at once (#777)
-#  12. the master dies and the network is cut (the sshd is paused): every
-#      opener says "unreachable" (not refused), no dialog; after resume the
-#      next opener logs in at once (#777)
 # Own sshd container and port (ECCE_OWNED_PORT); builds in build-ssh in the
 # worktree, untracked. Usage: owned_master_test.sh
 set -eu
@@ -144,6 +145,9 @@ STUB
   MODE=slow ECCE_SSH_ASK_TIMEOUT=2 MINSOCKS=0 scenario slow 0 failing 4
   MODE=cancel MINSOCKS=0 scenario cancel 0 failing 4
   scenario bothdead 3 bothdead 4
+  # 9-11 (#777): a stored password re-logs in with 0 dialogs (kill, bothdead
+  # and sessions above); a refused stored one: 1 dialog, then forgotten
+  MINSOCKS=0 scenario refused 1 refused
   # 12: the dead network is "unreachable", not a refused password (#777)
   rm -f /ctl/*.done
   scenario outage 2 outage 4
