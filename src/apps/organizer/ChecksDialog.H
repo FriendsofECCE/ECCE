@@ -17,7 +17,8 @@ class wxGridEvent;
 class ChecksDialog : public wxDialog
 {
 public:
-  ChecksDialog(wxWindow *parent, const std::vector<EcceURL>& calcs);
+  /// `rank` shows the Rank table (#703) instead: dE and dG against the lowest.
+  ChecksDialog(wxWindow *parent, const std::vector<EcceURL>& calcs, bool rank = false);
 
   /// False, with `why`, when the table could not be made.
   bool ok(std::string& why) const { why = p_why; return p_ok; }
@@ -35,6 +36,7 @@ private:
   wxGrid *p_grid = nullptr;
   int p_sortCol = -1;
   bool p_ascending = true;
+  bool p_rank = false;
   bool p_ok = false;
   std::string p_why;
 };

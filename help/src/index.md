@@ -79,6 +79,8 @@ describe what you did and what happened.
    [Checks table](checks-table.md): one row per calculation under a
    folder with termination, convergence, imaginary modes, S2, charge,
    multiplicity, method, energies; problems highlighted; CSV or LaTeX.
+   [Rank calculations](rank-table.md): the calculations of a folder from the
+   lowest energy up, dE and dG in kJ/mol and eV, mismatches flagged.
    [Excluded calculations](excluded.md): mark a calculation as not to be
    used, with a reason; exports and workflows skip it.
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a

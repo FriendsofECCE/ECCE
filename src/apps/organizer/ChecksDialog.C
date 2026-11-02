@@ -69,13 +69,14 @@ vector<EcceURL> calculationsUnder(const vector<EcceURL>& roots)
   return out;
 }
 
-ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs)
-  : wxDialog(parent, wxID_ANY, "Checks table", wxDefaultPosition,
+ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool rank)
+  : wxDialog(parent, wxID_ANY, rank ? "Rank" : "Checks table", wxDefaultPosition,
              wxSize(1100, 480), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
-    p_calcs(calcs)
+    p_calcs(calcs), p_rank(rank)
 {
   string text;
-  if (!checksTable(p_calcs, "csv", text, p_why)) return;
+  if (!(p_rank ? rankTable(p_calcs, "csv", text, p_why)
+                : checksTable(p_calcs, "csv", text, p_why))) return;
   vector<vector<string>> all = parseCsv(text);
   if (all.empty()) { p_why = "The table is empty."; return; }
   p_head = all[0];
@@ -114,7 +115,7 @@ void ChecksDialog::fill()
     p_grid->SetColLabelValue((int)j, wxString::FromUTF8(p_head[j].c_str()) +
         ((int)j == p_sortCol ? (p_ascending ? " ▲" : " ▼") : ""));
     if (p_head[j] == "excluded") excl = (int)j;
-    if (p_head[j] == "problems") prob = (int)j;
+    if (p_head[j] == "problems" || p_head[j] == "flags") prob = (int)j;
   }
   for (size_t i = 0; i < p_rows.size(); i++) {
     const bool x = excl >= 0 && !p_rows[i][excl].empty();
@@ -167,13 +168,14 @@ string ChecksDialog::csv() const
 
 void ChecksDialog::exportAs(const string& format)
 {
-  wxFileDialog dlg(this, "Write the Checks table to", "",
-                   format == "csv" ? "checks.csv" : "checks.tex", "*",
+  wxFileDialog dlg(this, p_rank ? "Write the Rank table to" : "Write the Checks table to", "",
+                   format == "csv" ? (p_rank ? "rank.csv" : "checks.csv") : (p_rank ? "rank.tex" : "checks.tex"), "*",
                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
   if (dlg.ShowModal() != wxID_OK) return;
   string text, why;
   if (format == "csv") text = csv();
-  else if (!checksTable(p_calcs, format, text, why)) {
+  else if (!(p_rank ? rankTable(p_calcs, format, text, why)
+                    : checksTable(p_calcs, format, text, why))) {
     wxMessageBox(wxString::FromUTF8(why.c_str()), "Checks table", wxOK | wxICON_ERROR, this);
     return;
   }

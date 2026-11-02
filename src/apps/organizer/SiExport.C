@@ -11,6 +11,8 @@
 #include "dsm/TGBSConfig.H"
 #include "dsm/VDoc.H"
 #include "tdat/Fragment.H"
+#include "tdat/LatticeDef.H"
+#include "tdat/MPoint.H"
 #include "tdat/PropString.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/PropValue.H"
@@ -88,7 +90,29 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
     TGBSConfig *g = c->gbsConfig();
     if (g) { basis = g->name(); delete g; }
   }
+  // The cell, for the Rank table's same-cell check (#703).
+  if (LatticeDef *lat = frag->getLattice())
+    if (vector<MPoint> *v = lat->toVectors()) {
+      m.close();
+      string text;
+      {
+        std::ifstream in(dir / "Parameters" / "chemsys.mvm");
+        text.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+      }
+      string cell = "lattice_vectors:\n";
+      for (int k = 0; k < 3 && k < (int)v->size(); k++) {
+        snprintf(buf, sizeof buf, "%.6f %.6f %.6f\n", (*v)[k].x(), (*v)[k].y(), (*v)[k].z());
+        cell += buf;
+      }
+      delete v;
+      const size_t at = text.find("num_atoms:");
+      if (at != string::npos) text.insert(at, cell);
+      std::ofstream(dir / "Parameters" / "chemsys.mvm") << text;
+    }
   delete frag;
+  // ecce-thermo (Rank's --treatment) needs the stored calculation itself.
+  std::ofstream(dir / ".ecce-meta", std::ios::app)
+      << ".\t" << NS << "sourceurl\t\t" << t->getURL().toString() << "\n";
   // The Checks table reads the state, run type and last progress snapshot
   // (its newlines written as the two characters \n, as the store does).
   string progress = t->getProp(VDoc::getEcceNamespace() + ":progress");
@@ -159,6 +183,12 @@ bool checksTable(const vector<EcceURL>& calcs, const string& format,
                  string& text, string& why)
 {
   return runScript(calcs, " --checks " + format, text, why);
+}
+
+bool rankTable(const vector<EcceURL>& calcs, const string& format,
+               string& text, string& why)
+{
+  return runScript(calcs, " --rank " + format, text, why);
 }
 
 bool siExport(const vector<EcceURL>& calcs, const string& xyzFile,

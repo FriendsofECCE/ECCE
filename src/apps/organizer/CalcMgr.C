@@ -548,6 +548,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * checks <out.csv> <url>,<url>...
  *                 the Checks table dialog's rows (folders expanded) as CSV
  *                 (#615); "ok" or "failed: <why>"
+ * rank <out.csv> <url>,<url>...
+ *                 the Rank table dialog's rows (#703), as for "checks"
  * compareenergies <sideA> <sideB>
  *                 what Tools > Compare Energies shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
@@ -1806,7 +1808,7 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = siExport(sel, out, table == "none" ? string() : table, why,
                        flag == "include-excluded")
                 ? string("ok") : "failed: " + why;
-    } else if (command == "checks") {
+    } else if (command == "checks" || command == "rank") {
       // "checks <out.csv> <url>,<url>...": the Checks table dialog's rows
       // (folders expanded to their calculations) written as CSV (#615).
       std::istringstream args(calcName);
@@ -1819,7 +1821,7 @@ void CalcMgr::runTestCommand(const string& line)
         roots.push_back(EcceURL(urls.substr(at, end - at)));
         at = end + 1;
       }
-      ChecksDialog dlg(this, calculationsUnder(roots));
+      ChecksDialog dlg(this, calculationsUnder(roots), command == "rank");
       string why;
       if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
       else outcome = "failed: " + why;
@@ -7019,6 +7021,13 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     }, id);
   }
   {
+    int id = wxWindow::NewControlId();
+    menu.Append(id, _("Rank..."));
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+      CallAfter([this]() { wxCommandEvent e; OnRank(e); });
+    }, id);
+  }
+  {
     // Only calculations can be excluded (#617).
     Resource *first = getSelection() && !p_currentSelection.empty()
         ? [&]{ WxResourceTreeItemData *n = findNode(p_currentSelection[0], false, true);
@@ -7487,6 +7496,25 @@ void CalcMgr::OnChecks(wxCommandEvent&)
   if (!dlg.ok(why)) {
     wxMessageBox(wxString::FromUTF8(why.c_str()), _("Checks Table"),
                  wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
+}
+
+// The Rank table of the selected folders and calculations (#703).
+void CalcMgr::OnRank(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(p_currentSelection);
+  if (calcs.empty()) {
+    wxMessageBox(_("Select a folder or calculations first."), _("Rank"),
+                 wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  ChecksDialog dlg(this, calcs, true);
+  string why;
+  if (!dlg.ok(why)) {
+    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Rank"), wxOK | wxICON_ERROR, this);
     return;
   }
   dlg.ShowModal();

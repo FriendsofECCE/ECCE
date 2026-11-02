@@ -2617,6 +2617,11 @@ add_test(NAME checks_table
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/siexport/checks_test.py)
 
+# tests/siexport/rank_test.py -- ecce-si-export --rank (#703).
+add_test(NAME rank_table
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/siexport/rank_test.py)
+
 # tests/displace -- scripts/ecce_displace.py on stored ORCA and G16 modes (#618).
 add_test(NAME displace
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3369,6 +3374,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/checks_table_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Rank table: the dialog's deltas equal ecce-si-export --rank (#703).
+  add_test(NAME apps_rank_table
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/rank_table_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_rank_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Vibrations panel Displace: new calculations along a mode (#618).
