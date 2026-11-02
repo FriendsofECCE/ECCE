@@ -3019,6 +3019,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_hand_edit PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Saving regenerates each code's deck byte for byte as stored (DeckWriter, #621).
+  add_test(NAME apps_deck_regen
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/deck_regen_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_deck_regen PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
   # A finished calculation without ecce:progress gets one from its stored
   # output (#284): CalcMgr::backfillProgress.
   add_test(NAME apps_progress_backfill
