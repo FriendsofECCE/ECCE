@@ -2566,6 +2566,10 @@ add_test(NAME displacement
 add_test(NAME siexport
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/siexport/run_tests.py)
+# tests/siexport/checks_test.py -- the Checks table CLI (#615).
+add_test(NAME checks_table
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/siexport/checks_test.py)
 
 # tests/displace -- scripts/ecce_displace.py on stored ORCA and G16 modes (#618).
 add_test(NAME displace
@@ -3276,6 +3280,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/exclude_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_exclude PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Checks table: the dialog's rows equal ecce-si-export --checks (#615).
+  add_test(NAME apps_checks_table
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/checks_table_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Vibrations panel Displace: new calculations along a mode (#618).
