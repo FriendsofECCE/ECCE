@@ -595,6 +595,12 @@ target_include_directories(ecce-thermo PRIVATE
   ${CMAKE_SOURCE_DIR}/src/apps/thermo ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-thermo PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+# ELF, LOL, RDG and sign(lambda2)rho as cube files from stored orbitals (#799, #800).
+add_executable(ecce-density-field src/apps/densityfield/ecce-density-field.C)
+target_include_directories(ecce-density-field PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-density-field PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES} Threads::Threads)
 # Shared gathering with Organizer; the comparison itself lives in eccetdat.
 add_executable(ecce-force-compare src/apps/forcecompare/forcecompare.C
   src/apps/organizer/CompareForcesGather.C
@@ -1197,7 +1203,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -2211,6 +2217,23 @@ add_test(NAME densityplane
   COMMAND densityplane_test ${CMAKE_SOURCE_DIR}/tests/builder/densitymap-fixtures)
 set_tests_properties(densityplane PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityplane;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityplane-home")
+
+# #799/#800: analytic AO derivatives against finite differences, and the CLI
+# against numbers from Multiwfn (see tests/tdat/densityfields_oracle.py).
+add_executable(densityfields_test tests/tdat/densityfields_test.C)
+target_include_directories(densityfields_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(densityfields_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME densityfields
+  COMMAND densityfields_test ${CMAKE_SOURCE_DIR}/tests/tdat/densityfields-fixtures)
+set_tests_properties(densityfields PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityfields;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityfields-home")
+add_test(NAME densityfields_cli
+  COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tdat/densityfields_cli_test.py
+          $<TARGET_FILE:ecce-density-field> ${CMAKE_SOURCE_DIR}/tests/tdat/densityfields-fixtures)
+set_tests_properties(densityfields_cli PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityfields;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityfields-home")
 
 # tests/tdat/radialdist_test: quadrature on analytic functions, and the
 # stored H, Ne, Ar, H2, N2 calculations: spherical averages and line profiles.
@@ -3471,6 +3494,15 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/orca_mo_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+
+  # ELF, LOL and NCI as 3-D views (#799, #800): each builds a surface for the
+  # water dimer; NCI shows the hydrogen bond blue and carries its colour bar.
+  add_test(NAME apps_density_fields_3d
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/density_fields_3d_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_density_fields_3d PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # #362: xtb results in the Builder (MOs, MO Diagram, Density Map,

@@ -111,27 +111,31 @@ describe what you did and what happened.
 17. [The Density Map](density-map.md): the electron density or one orbital as
    contours on a plane through the molecule; the plane, the offset, picking
    atoms, reading the map and exporting it.
-18. [The MO diagram](mo-diagram.md): the orbitals of a calculation as levels
+18. [ELF, LOL and NCI in the 3-D view](electron-density-views.md): where
+   electrons are localised, and the weak interactions between molecules
+   coloured by their strength; what the surfaces and colours mean and the
+   isovalue and density cut-off boxes.
+19. [The MO diagram](mo-diagram.md): the orbitals of a calculation as levels
    joined to the orbitals of its parts; what the labels, the star, nb and the
    line weights mean.
-19. [Mode composition](mode-composition.md): what each normal mode is made of
+20. [Mode composition](mode-composition.md): what each normal mode is made of
    (stretches and bends), the amber highlight in the spectrum, and why it is
    not a full PED.
-20. [Localised orbitals](localised-orbitals.md): the occupied orbitals as bonds,
+21. [Localised orbitals](localised-orbitals.md): the occupied orbitals as bonds,
    lone pairs and core orbitals, and how to read their names.
 
-21. [Density profile](density-profile.md): the electron density and each
+22. [Density profile](density-profile.md): the electron density and each
    orbital's share of it along a line through two atoms, or averaged around one
    atom: shells, penetration, nodes and the build-up in a bond.
 
-22. [Dipole moment](dipole-moment.md): the arrow from the negative to the
+23. [Dipole moment](dipole-moment.md): the arrow from the negative to the
    positive pole, its label, and which atomic charges place the poles.
 
-23. [Speeds and diffusion](md-speeds-and-diffusion.md): the distribution of
+24. [Speeds and diffusion](md-speeds-and-diffusion.md): the distribution of
    atomic speeds of a dynamics run against Maxwell-Boltzmann, and the
    mean-square displacement with the diffusion coefficient.
 
-24. [Compare Energies](compare-energies.md): the difference between the final
+25. [Compare Energies](compare-energies.md): the difference between the final
    energies of two calculations in Hartree, kJ/mol, kcal/mol and eV, and the
    notes on differing code, method or basis set.
 
@@ -139,41 +143,41 @@ describe what you did and what happened.
    stored frequencies with a chosen low-frequency treatment, temperature and
    standard state.
 
-25. [Reconnect Selected](reconnect-selected.md): reconnecting several jobs
+26. [Reconnect Selected](reconnect-selected.md): reconnecting several jobs
    to their calculations after a restart or a lost connection, in one step.
 
-26. [Launch Selected](launch-selected.md): submitting several calculations
+27. [Launch Selected](launch-selected.md): submitting several calculations
    in one step, with their stored settings or on another machine.
 
-27. [Run states](run-states.md): what Created, Running, Completed,
+28. [Run states](run-states.md): what Created, Running, Completed,
    Incomplete, Killed, Monitor Error, System Error and the other states
    mean, and where the reason for an ended job is shown.
 
-28. [Re-Parse Outputs](reparse-outputs.md): running the parsers again over the
+29. [Re-Parse Outputs](reparse-outputs.md): running the parsers again over the
    outputs stored with a calculation, without logging in to the machine.
 
-29. [Allocations](allocations.md): the usage of each cluster account, from
+30. [Allocations](allocations.md): the usage of each cluster account, from
    Tools > Allocations.
 
-30. [Workflows](workflows.md): calculations that start from the geometry of
+31. [Workflows](workflows.md): calculations that start from the geometry of
    an earlier one (or from a point of a scan, or several for a TS search),
    drawn as a tree, with Launch Ready Steps.
 
-31. [Renaming and moving calculations](rename-and-move.md): Rename, Cut and
+32. [Renaming and moving calculations](rename-and-move.md): Rename, Cut and
    Paste, dragging, and why a calculation with a running job stays where it is.
 
-32. [Scripting and AI assistants](scripting-and-ai.md): the command-line
+33. [Scripting and AI assistants](scripting-and-ai.md): the command-line
    tools, and the AGENTS.md file that tells a script or an assistant how ECCE
    stores its data and how to work with it.
 
-33. [Recipes](recipes.md): workflow templates for a kind of study (TS search with
+34. [Recipes](recipes.md): workflow templates for a kind of study (TS search with
    IRC, conformers), the set-up panel with its preview, the key-data box,
    Save Workflow as Recipe, and recipes for a site.
 
-34. [Writing a recipe](writing-a-recipe.md): the file format, every field, the
+35. [Writing a recipe](writing-a-recipe.md): the file format, every field, the
    folders recipes are read from, and a complete example.
 
-35. [New Series](new-series.md): one calculation's setup applied to a list of
+36. [New Series](new-series.md): one calculation's setup applied to a list of
    structures (xyz files or calculations), from the right-click menu or
    `ecce-series`.
 

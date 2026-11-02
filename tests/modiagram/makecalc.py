@@ -111,6 +111,10 @@ VIRTUALS = ""   # ecceqm: "ivo" for improved virtual orbitals
 for _el in ("H", "C", "Ne", "Ar"):
     MOLECULES[_el.lower()] = [(_el, 0.0, 0.0, 0.0)]
 MOLECULES["h2"] = [("H", 0.0, 0.0, -0.37), ("H", 0.0, 0.0, 0.37)]
+#  Water dimer (S22 geometry), Cs: the NCI / ELF comparison case.
+MOLECULES["h2o2"] = [("O", -1.551007, -0.114520, 0.0), ("H", -1.934259, 0.762503, 0.0),
+                     ("H", -0.599677, 0.040712, 0.0), ("O", 1.350625, 0.111469, 0.0),
+                     ("H", 1.680398, -0.373741, -0.758561), ("H", 1.680398, -0.373741, 0.758561)]
 MOLECULES["hcn"] = [("C", 0.0, 0.0, 0.0), ("H", 0.0, 0.0, -1.065), ("N", 0.0, 0.0, 1.153)]
 
 

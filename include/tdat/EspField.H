@@ -48,6 +48,13 @@ struct EspBasisFunction
 
    /** The value of this basis function at a point. */
    double value(double x, double y, double z) const;
+
+   /**
+    * Value, gradient and Hessian (xx, yy, zz, xy, xz, yz) at a point,
+    * analytic, with exactly the normalisation of value().
+    */
+   void derivatives(double x, double y, double z, double& v, double g[3],
+                    double h[6]) const;
 };
 
 
