@@ -23,6 +23,7 @@ import re
 import shutil
 import stat
 import subprocess
+import time
 import sys
 import tempfile
 
@@ -161,10 +162,13 @@ class Env:
 
 def run(display, build, env, script, args=(), extra=None, timeout=240):
     write(os.path.join(env.root, "script"), script)
+    t0 = time.time()
     p = subprocess.run([os.path.join(build, "machregister")] + list(args),
                        env=env.env(display, extra), cwd=env.root,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                        text=True, timeout=timeout)
+    print("  [run %.1fs] %s" % (time.time() - t0, script.strip().splitlines()[0]),
+          flush=True)
     return p
 
 
