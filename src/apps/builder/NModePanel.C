@@ -1584,8 +1584,15 @@ string NModePanel::displaceCalculation(int mode, double amplitude,
       TRunType rt;
       rt.name("Geometry");
       ic->runtype(rt);
+      //  Settings of the frequency step make no sense for an optimisation.
+      if (GUIValues *g = ic->guiparams()) {
+         g->deletePrefix("ES.Runtype.Vibration.");
+         ic->guiparams(g);
+         delete g;
+      }
       job->resetForRerun(ResourceDescriptor::STATE_CREATED);
       made->addProp(VDoc::getEcceNamespace() + ":annotation", note);
+      EDSIFactory::notifyCreate(url.toString(), false);
       out.push_back(url.toString());
    }
    if (out.empty()) return "The displacement could not be read.";
@@ -1626,8 +1633,7 @@ void NModePanel::displaceDialog()
    string err = displaceCalculation(w->GetSelection() == 0 ? p_mode : -1, a,
                                     signs[sg->GetSelection()], &urls);
    wxString msg = err.empty()
-      ? wxString::Format("Created %d new calculation(s) next to this one; "
-                         "refresh the Organizer to see them.", (int)urls.size())
+      ? wxString::Format("Created %d new calculation(s) next to this one.", (int)urls.size())
       : wxString::FromUTF8(err);
    wxMessageBox(msg, "Displace along a mode", wxOK | wxICON_INFORMATION, this);
 }

@@ -27,6 +27,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/PropertyTask.H"
 #include "tdat/Fragment.H"
+#include "tdat/GUIValues.H"
 #include "dsm/VDoc.H"
 #include "viz/VRVector.H"
 
@@ -476,6 +477,21 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
   //  structure for the test to compare with the source.
   if (c == "vibdisplace" && w.size() == 4) {
     vector<string> urls;
+    {
+      Fragment sf;
+      string sxyz, els;
+      char b[80];
+      IPropCalculation *sc = p_calculation;
+      if (sc && sc->getFragment(sf))
+        for (size_t a = 0; a < sf.numAtoms(); a++) {
+          const double *x = sf.atomRef(a)->coordinates();
+          snprintf(b, sizeof b, " %.6f %.6f %.6f", x[0], x[1], x[2]);
+          sxyz += b;
+          els += (a ? " " : "") + sf.atomRef(a)->atomicSymbol();
+        }
+      fprintf(stderr, "VIBSOURCE: url=%s els=%s xyz=%s\n",
+              sc ? sc->getURL().toString().c_str() : "", els.c_str(), sxyz.c_str());
+    }
     string err = nm->displaceCalculation(w[1] == "all" ? -1 : atoi(w[1].c_str()),
                                          atof(w[2].c_str()), w[3], &urls);
     fprintf(stderr, "VIBDISPLACE: error=%s n=%d\n", err.c_str(), (int)urls.size());
@@ -491,7 +507,11 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
         snprintf(b, sizeof b, " %.6f %.6f %.6f", x[0], x[1], x[2]);
         xyz += b;
       }
-      fprintf(stderr, "VIBDISPLACED: runtype=%s note=%s xyz=%s\n",
+      GUIValues *gv = ic ? ic->guiparams() : 0;
+      const int vibkeys = gv && gv->get("ES.Runtype.Vibration.Method") ? 1 : 0;
+      delete gv;
+      fprintf(stderr, "VIBDISPLACED: url=%s vibkeys=%d runtype=%s note=%s xyz=%s\n",
+              urls[i].c_str(), vibkeys,
               ic ? ic->runtype().name().c_str() : "?",
               r ? r->getProp(VDoc::getEcceNamespace() + ":annotation").c_str() : "?",
               xyz.c_str());

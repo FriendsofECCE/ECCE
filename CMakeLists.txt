@@ -3243,6 +3243,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_displacement_panel PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Vibrations panel Displace: new calculations along a mode (#618).
+  add_test(NAME apps_nmode_displace
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmode_displace_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_nmode_displace PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
   # draws; a 23-function one gives one plain dialog; the pane fits its rows.
   add_test(NAME apps_orca_mo
