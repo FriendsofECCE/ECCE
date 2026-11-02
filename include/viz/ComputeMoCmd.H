@@ -39,6 +39,19 @@
 #define ESP_FIELD_TYPE         "Density (ESP)"
 #define ESP_CHARGES_FIELD_TYPE "Density (ESP from atomic charges)"
 
+/**
+ * ELF, LOL and NCI (#799, #800): volume views computed from the density's
+ * analytic derivatives (DensityPlane::Evaluator::fieldsAt), not from the
+ * MO loop the Density types use.  NCI holds the reduced density gradient s
+ * as the field and sign(lambda2)rho as its colour field.
+ */
+#define ELF_FIELD_TYPE "ELF (3D)"
+#define LOL_FIELD_TYPE "LOL (3D)"
+#define NCI_FIELD_TYPE "NCI (3D)"
+#define NCI_COLOR_MIN  (-0.035f)
+#define NCI_COLOR_MAX  (0.02f)
+#define NCI_RHO_CUTOFF 0.05
+
 class TAtm;
 class TGBSAngFunc;
 class PropTable;
@@ -87,6 +100,14 @@ class  ComputeMoCmd :  public  PropCmd
       static double hNormFactor;
       static double iNormFactor;
       float *makeField(int length);
+
+      /**
+       * ELF, LOL or NCI on the grid, threaded by plane, with progress and
+       * Cancel.  Returns false if the user interrupted it; sets *failed
+       * when the calculation could not supply what the fields need.
+       */
+      bool computeFieldView(SingleGrid *grid, const std::string& fieldType,
+                            bool *failed);
 
       /**
        * The electrostatic potential from atomic point charges, for

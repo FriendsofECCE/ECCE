@@ -383,6 +383,53 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     val.getParameter("Value")->setDouble(log10(0.002));
     val.getParameter("transparency")->setDouble(0.0);
     val.execute();
+  } else if (c == "field" && w.size() >= 2) {
+    //  "field elf|lol|nci [res] [iso] [cutoff]": the ELF, LOL or NCI view as
+    //  MoPanel computes and draws it (opaque; NCI coloured by sign(lambda2)rho).
+    ICalculation *ic = dynamic_cast<ICalculation*>(p_calc);
+    const bool isElf = w[1] == "elf", isLol = w[1] == "lol", isNci = w[1] == "nci";
+    if (!ic || !(isElf || isLol || isNci)) return fail("field: needs a calculation and elf, lol or nci");
+    const string type = isElf ? ELF_FIELD_TYPE : isLol ? LOL_FIELD_TYPE : NCI_FIELD_TYPE;
+    int res = w.size() > 2 && w[2] != "opaque" ? atoi(w[2].c_str()) : 40;
+    double iso = w.size() > 3 && w[3] != "opaque" ? atof(w[3].c_str()) : isElf ? 0.8 : 0.5;
+    double cut = w.size() > 4 && w[4] != "opaque" ? atof(w[4].c_str()) : NCI_RHO_CUTOFF;
+    double lo[3] = {1e9, 1e9, 1e9}, hi[3] = {-1e9, -1e9, -1e9};
+    for (int i = 0; i < frag->numAtoms(); i++) {
+      const double *x = frag->atomRef(i)->coordinates();
+      for (int k = 0; k < 3; k++) {
+        lo[k] = std::min(lo[k], x[k]);
+        hi[k] = std::max(hi[k], x[k]);
+      }
+    }
+    ComputeMoCmd mo("Compute Mo", p_sg, p_calc, 0);
+    mo.getParameter("FieldType")->setString(type);
+    mo.getParameter("CoefCutoff")->setDouble(0.0);
+    mo.getParameter("SelectedMO")->setInteger(1);
+    mo.getParameter("Type")->setString("alpha");
+    mo.getParameter("Code")->setString(ic->application()->name());
+    const char *ax[3] = {"X", "Y", "Z"};
+    for (int k = 0; k < 3; k++) {
+      mo.getParameter(string("res") + ax[k])->setInteger(res);
+      mo.getParameter(string("from") + ax[k])->setDouble(lo[k] - 3.0);
+      mo.getParameter(string("to") + ax[k])->setDouble(hi[k] + 3.0);
+    }
+    if (!mo.execute()) return fail("field: no field computed");
+    p_viewer->setTransparencyType(isNci || w.back() == "opaque"
+                                      ? SoGLRenderAction::SORTED_OBJECT_BLEND
+                                      : SoGLRenderAction::SCREEN_DOOR);
+    IsoSurfaceCmd surf("Iso Surface", p_sg, p_calc);
+    //  "opaque" (last word): screen-door dithering shows as dots on software GL.
+    const bool opaque = isNci || w.back() == "opaque";
+    surf.getParameter("transparency")->setDouble(opaque ? 0.0 : 0.5);
+    surf.getParameter("isovalue")->setDouble(iso);
+    surf.getParameter("rhoCutoff")->setDouble(cut);
+    surf.getParameter("positiveRed")->setDouble(1.0);
+    surf.getParameter("positiveGreen")->setDouble(0.0);
+    surf.getParameter("positiveBlue")->setDouble(0.0);
+    surf.execute();
+    SurfDisplayTypeCmd stype("Surface Type", p_sg, p_calc);
+    stype.getParameter("IsosurfStyle")->setString("Solid");
+    stype.execute();
   } else if (c == "espdump" && w.size() == 2) {
     //  "espdump <file>": the current grid (after "esp") for a numeric check
     //  against another program: a header line with the dimensions, origin and
@@ -390,7 +437,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  node, z fastest (the SingleGrid itself runs x fastest).
     SingleGrid *grid = p_sg->getCurrentGrid();
     if (!grid || !grid->fieldData() || !grid->colorFieldData())
-      return fail("espdump: no ESP grid");
+      return fail("espdump: no grid with a colour field");
     int *n = grid->dimensions();
     double *o = grid->origin(), *k = grid->corner();
     FILE *fp = fopen(w[1].c_str(), "w");

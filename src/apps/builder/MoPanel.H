@@ -139,6 +139,8 @@ class MoPanel : public MoGUI,
 
      double getTransparency();
      bool espFieldSelected();
+     /** ELF (3D), LOL (3D) or NCI (3D) chosen; `nci` says which kind. */
+     bool fieldViewSelected(bool *nci = 0);
      void updateIsoValue();
      void updateIsoValue(double val);
      void updateSurface();
@@ -206,6 +208,13 @@ class MoPanel : public MoGUI,
       void onFieldTypeChanged(wxCommandEvent& event);
       void chooseMoFieldType();
       void rebuildEspSurface();
+      void buildFieldViewControls();
+      void showFieldViewControls(bool show, bool nci);
+      void onFieldViewChanged(wxCommandEvent& event);
+      void onFieldViewFocusLost(wxFocusEvent& event);
+      /** The row's isovalue and (NCI) density cut-off; defaults when blank. */
+      double fieldViewIsovalue(const string& type) const;
+      double fieldViewCutoff() const;
 
       //  The legend for a potential-mapped surface: the surface's own ramp,
       //  the range it is stretched over, and the density isovalue.  Shown
@@ -248,6 +257,10 @@ class MoPanel : public MoGUI,
       wxStaticText *p_espBarMin = 0;
       wxStaticText *p_espBarMax = 0;
       wxStaticText *p_espBarInfo = 0;
+      wxBoxSizer  *p_fieldSizer = 0;
+      ewxTextCtrl *p_fieldIso = 0;
+      wxStaticText *p_fieldCutLabel = 0;
+      ewxTextCtrl *p_fieldCut = 0;
       string p_espDrawnType;     // field type of the surface on screen
       string p_drawnType;        // any field type drawn; empty before one
 

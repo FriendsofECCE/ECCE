@@ -3479,6 +3479,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # ELF, LOL and NCI as 3-D views (#799, #800): each builds a surface for the
+  # water dimer; NCI shows the hydrogen bond blue and carries its colour bar.
+  add_test(NAME apps_density_fields_3d
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/density_fields_3d_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_density_fields_3d PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # #362: xtb results in the Builder (MOs, MO Diagram, Density Map,
   # vibrations, charges) from real Launch runs; skipped without xtb or Xvfb.
   add_test(NAME apps_xtb_viewer
