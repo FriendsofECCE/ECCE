@@ -182,9 +182,10 @@ def main():
             return [l for l in r.stdout.decode("utf-8", "replace").splitlines() if "PUBACK" in l]
         own, other = pub("ecce/%s/probe" % cfg["user"]), pub("ecce/someone_else/probe")
         say("publish to own topic: %s; to another user's topic: %s" % (own, other))
-        s.check(own and "135" not in own[0],
+        # match the reason code itself: the random client id can contain "135"
+        s.check(own and "RC:0)" in own[0],
                 "publish below the user's own topic is accepted")
-        s.check(other and "135" in other[0], "publish to another user's topic is denied by the ACL (PUBACK 135)")
+        s.check(other and "RC:135)" in other[0], "publish to another user's topic is denied by the ACL (PUBACK 135)")
     url = s.userUrl = "file://%s/localdata/users/local" % st
     rc, out = s.drv("create", url, "wintest", "mopac_es", a.deck, "mopac.mop",
                     "localhost", st + "/jobs", "andy")
