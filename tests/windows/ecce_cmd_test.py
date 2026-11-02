@@ -91,7 +91,7 @@ def choose(env, answer):
     """A plain start no longer asks (#767): a server is chosen with --change."""
     r = subprocess.run([os.path.join(root, "python", "python3.exe"),
                         os.path.join(root, "bin", "ecce-first-start"), "--change"],
-                       env=dict(env, ECCE_FIRST_START_ANSWER=answer),
+                       env=dict(env, ECCE_FIRST_START_ANSWER=answer, ECCE_HOME=root),
                        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=180)
     print("choose %s: rc=%d\n%s%s" % (answer, r.returncode, r.stdout, r.stderr))
 
