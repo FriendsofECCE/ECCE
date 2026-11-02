@@ -9,6 +9,11 @@
 //                               cancelled: one dialog, all see a cancel
 //   testOwnedMaster bothdead N  streams on the overflow master, both masters
 //                               killed, N processes: one new login
+//   testOwnedMaster outage N   the master dies and the network is cut (the
+//                               script pauses the sshd on request through
+//                               ECCE_CTL_DIR): N openers say "unreachable",
+//                               not "refused", and ask nothing; after the
+//                               network is back the next opener logs in
 // Needs ECCE_SSH_CONTROL_DIR, ECCE_TEST_SSH_CONFIG (host `own`), ECCE_ASKPASS
 // and ASKLOG, one line of which is written per password dialog.
 #include <cstdlib>
@@ -258,6 +263,48 @@ int main(int argc, char** argv)
     check("the lost masters of " + std::to_string(n) + " sessions cost one new login",
           dialogs() - before == 1, std::to_string(dialogs() - before) + " new dialogs");
     setenv("ECCE_SSH_CONTROL_DIR", base.c_str(), 1);
+  } else if (mode == "outage") {
+    const char* ctl = getenv("ECCE_CTL_DIR");
+    if (!ctl) { std::cerr << "needs ECCE_CTL_DIR" << std::endl; return 2; }
+    // The script acts on a request file and answers with <name>.done.
+    auto request = [&](const string& what) {
+      { std::ofstream(string(ctl) + "/" + what) << "x"; }
+      for (int i = 0; i < 300 && access((string(ctl) + "/" + what + ".done").c_str(), F_OK); i++)
+        usleep(100000);
+    };
+    OpenSshTransport* t = make("ecce-test");
+    string e;
+    check("login", t->connect(e), e);
+    long pid = masterPid(t->controlSocketPath());
+    check("master pid found", pid > 1);
+    if (pid > 1) kill((pid_t)pid, SIGKILL);
+    usleep(500000);
+    request("pause");
+    const int dlg = dialogs();
+    std::vector<std::thread> th;
+    std::vector<int> st(n, -1), unreach(n, 0), wrong(n, 0);
+    for (int i = 0; i < n; i++)
+      th.push_back(std::thread([&, i]() {
+        OpenSshTransport* u = make();
+        u->setConnectTimeout(3);
+        string er;
+        st[i] = u->connect(er) ? 0 : 1;
+        unreach[i] = u->hostUnreachable();
+        wrong[i] = u->loginRefused() || u->loginCancelled();
+        delete u;
+      }));
+    for (size_t i = 0; i < th.size(); i++) th[i].join();
+    int f = 0, un = 0, wr = 0;
+    for (int i = 0; i < n; i++) { f += st[i] == 1; un += unreach[i]; wr += wrong[i]; }
+    check("every opener failed", f == n, std::to_string(f) + " of " + std::to_string(n));
+    check("every opener says unreachable", un == n, std::to_string(un) + " of " + std::to_string(n));
+    check("none says refused or cancelled", wr == 0, std::to_string(wr));
+    check("a dead network asks nothing", dialogs() == dlg, std::to_string(dialogs() - dlg));
+    request("resume");
+    // Straight after the outage: the outcome file must not hold it back.
+    OpenSshTransport* u = make("ecce-test");
+    string er;
+    check("the next opener logs in again", u->connect(er), er);
   } else if (mode == "prefill") {
     OpenSshTransport* t = make("ecce-test");
     TransportResult r = t->run("echo hi");

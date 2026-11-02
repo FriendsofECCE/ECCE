@@ -147,6 +147,10 @@ public:
   bool loginCancelled() const { return p_cancelled; }
   // A password for the master was refused, here or in the shared outcome.
   bool loginRefused() const { return p_refused; }
+  // The host did not answer (network down, refused, no route): says nothing
+  // about the password, so a caller may wait and try again.
+  bool hostUnreachable() const { return p_unreachable; }
+  static bool hostDidNotAnswer(const std::string& error);
   // This process put up the login dialog (the others only waited for it).
   bool loginPrompted() const { return p_prompted; }
   // Every one of ECCE's masters for the host refused a new session (sshd
@@ -202,6 +206,7 @@ private:
   bool p_connected;
   bool p_cancelled;
   bool p_refused;
+  bool p_unreachable;
   bool p_prompted;
   mutable bool p_sessionsFull = false;
   mutable int p_usedIdx;   // overflow master the last ssh command line named

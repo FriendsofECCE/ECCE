@@ -47,7 +47,12 @@ host instead of one each, across all sessions of the state directory. Unset, inv
   waiting, or from the last 120 s, does not ask: it reports a cancel
   (`cancelled`, `timeout`: `loginCancelled()`) or a refusal (`failed`:
   `loginRefused()`) and returns false. An unanswered dialog is
-  `ECCE_SSH_ASK_TIMEOUT` seconds (default 120). Only the process that
+  `ECCE_SSH_ASK_TIMEOUT` seconds (default 120). A network or connect
+  failure (`Network is unreachable`, ConnectTimeout, no route) is the outcome
+  `unreachable`, **not** `failed`: waiters set `hostUnreachable()` /
+  `RCommand::loginUnreachable()`, never `loginRefused()`, and a later caller
+  may try again at once (no 120 s gate). Written as `failed` it parked every
+  waiting monitor for good as a "refused password". Only the process that
   asked (`loginPrompted()`) writes the user-visible line in the job store;
   the others park the job as Waiting quietly. A cancel, no answer or a
   refused password is never a reason for the libssh fallback
