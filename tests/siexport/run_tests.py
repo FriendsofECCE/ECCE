@@ -90,12 +90,15 @@ try:
     check("rows have equal column counts", len({l.count("&") for l in body}) == 1, body)
     check("underscores escaped", "orca_water" not in tex and r"orca\_water" in tex)
     check("no bare underscore outside math", not re.search(r"(?<!\\)_", re.sub(r"\$[^$]*\$", "", tex)))
-    check("imaginary count 1 for the G16 copy", r"& 1 \\" in tex or r"& 1 \\\\" in tex, tex)
+    g16 = [l for l in body if "g16" in l.lower()]
+    check("imaginary count 1 for the G16 copy",
+          g16 and [c.strip() for c in g16[0].rstrip("\\").split("&")][7] == "1", tex)
     # CSV and a bad folder.
     p = subprocess.run([sys.executable, SCRIPT] + calcs + ["-o", out, "--table", "csv"],
                        capture_output=True, text=True)
     csv = open(os.path.join(tmp, "si.csv")).read().splitlines()
-    check("csv header + 3 rows", len(csv) == 4 and csv[0].split(",")[-1] == "nimag", csv)
+    head = csv[0].split(",") if csv else []
+    check("csv header + 3 rows", len(csv) == 4 and "nimag" in head and head[-1] == "excluded", csv)
     p = subprocess.run([sys.executable, SCRIPT, os.path.join(tmp, "none"), "-o", out],
                        capture_output=True, text=True)
     check("missing folder fails", p.returncode != 0)
