@@ -186,6 +186,7 @@ void write_progress_scf(std::ostream& os, const ScfCycle& c, const ScfOptions& o
   if (!std::isnan(c.dE)) os << " dE=" << sci(c.dE) << "/" << sci(opt.conv_energy, 0);
   os << " grad=" << sci(c.grad) << "/" << sci(opt.conv_grad, 0);
   if (c.converged) os << " converged=yes";
+  if (c.by_plateau) os << " criterion=energy_plateau";
   os << "\n";
   os.flush();
 }
@@ -321,6 +322,7 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "nbf " << b.nbf() << "\n";
   os << "nalpha " << r.nalpha << "\nnbeta " << r.nbeta << "\n";
   os << "converged " << (r.converged ? "yes" : "no") << "\n";
+  if (r.converged && !r.convergence_note.empty()) os << "convergence_note " << r.convergence_note << "\n";
   os << "iterations " << r.iterations << "\n";
   if (opt) {
     os << "opt_converged " << (opt->converged ? "yes" : "no") << "\n";
