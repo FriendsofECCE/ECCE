@@ -3811,6 +3811,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_crest PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #682: xtb dock (aISS) of 18-crown-6 + K+ through Launch; skipped (77)
+  # without xtb.  Uses a stand-in when this xtb's dock aborts.
+  add_test(NAME launch_dock
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/dock_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_dock PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # #682: xTB "Conformer search (simple)" of n-butane and pentane through
   # Launch; skipped (77) without xtb.
   add_test(NAME launch_confsearch

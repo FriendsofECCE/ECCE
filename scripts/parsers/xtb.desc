@@ -36,9 +36,12 @@ Lines=4
 
 # gensub appends the frames after the run (xtb prints no coordinates):
 #   ECCE-XTB-FRAME <n> <atoms> / xyz comment line / atoms / ECCE-XTB-ENDFRAME
-# "Conformer search (simple)": ecce-confsearch prints its ensemble between the
-# same markers, with "relative:" in the comment, which adds CONFREL.
-[GEOMTRACE][TEVEC][TIMEVEC][CONFREL]
+# A docking pose's comment line is its total energy (TEVEC); the interaction
+# energies (POSESCORE) come from xtb's stdout table.  "Conformer search (simple)":
+# ecce-confsearch prints its ensemble between the same markers, with "relative:"
+# in the comment, which adds CONFREL.  A key is a separate section only if its
+# markers are.
+[GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL]
 Script=xtb.geomtrace
 Begin=^ECCE-XTB-FRAME\s
 Skip=1

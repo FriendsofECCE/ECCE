@@ -22,6 +22,7 @@ use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
 
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 require "pertab.pl";
+require "docking.pl";
 &loadPT;
 
 $| = 1;
@@ -236,6 +237,11 @@ sub modifyInputFile {
 # enforced in exactly one place.
 
 sub XtbHeader {
+  # A docking deck is the option line and blocks that chemsys writes.
+  if ($AbiDict{"RunType"} eq "Docking (aISS)") {
+    $_ = &DockOptionLine;
+    return $_;
+  }
   my $result = &OptionLine . "\n" . &MdBlock . &CountLine;
   $_ = $result;
   return $result;
@@ -268,6 +274,33 @@ sub OptionLine {
   push(@kw, "--acc", $acc) if ($acc ne "" && $acc > 0 && $acc != 1);
 
   return join(" ", grep { $_ ne "" } @kw);
+}
+
+# xtb dock takes molecule A (receptor) and B (ligand); the charges and the
+# unpaired electrons of A and B are separate options.  The unpaired electrons
+# all go on the receptor.
+sub DockOptionLine {
+  my $theory = $AbiDict{"Theory"};
+  my %map = ("GFN2-xTB" => "--gfn2", "GFN-FF" => "--gfnff");
+  die "ai.xtb error: Docking (aISS) runs with GFN2-xTB or GFN-FF, not " .
+      "'$theory'\n" if (!defined($map{$theory}));
+  my $lcharge = $AbiDict{"ES.Runtype.Docking.LigandCharge"};
+  $lcharge = 0 if (!defined($lcharge) || $lcharge !~ /^\s*-?\d+\s*$/);
+  my @kw = ("xtb dock", $map{$theory});
+  push(@kw, "--chrg", &Charge - $lcharge, "--chrg2", $lcharge + 0);
+  push(@kw, "--uhf", &Unpaired);
+  push(@kw, &SolventOptions);
+  push(@kw, "--fast") if (&flag("ES.Runtype.Docking.Fast", 1));
+  my $n = $AbiDict{"ES.Runtype.Docking.NumPoses"};
+  push(@kw, "--nfinal", $n + 0) if (defined($n) && $n =~ /^\s*\d+\s*$/ && $n > 0);
+  return join(" ", grep { $_ ne "" } @kw);
+}
+
+sub flag {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v) || $v eq "");
+  return ($v eq "1" || $v =~ /^(true|yes|on)$/i) ? 1 : 0;
 }
 
 sub MethodOption {
@@ -305,7 +338,7 @@ sub RunTypeOptions {
     return "--opt normal --ecce-confsearch samples=$n,seed=$seed,ewin=$ewin,rmsd=$rmsd";
   }
   die "ai.xtb error: unsupported runtype '$runtype' (Energy, Geometry, " .
-      "Vibration, GeoVib, Molecular Dynamics and Conformer search (simple) only)\n";
+      "Vibration, GeoVib, Molecular Dynamics, Conformer search (simple) and Docking (aISS) only)\n";
 }
 
 sub MdNumber {
@@ -380,11 +413,32 @@ sub Unpaired {
 
 sub chemsys {
   ($chemsys_atoms != 0) || die "ai.xtb error: Fragment has no atoms!\n";
+  return &dockChemsys if ($AbiDict{"RunType"} eq "Docking (aISS)");
   for (my $index = 0; $index < $chemsys_atoms; $index++) {
     my $symbol = $tags{$index};
     die "ai.xtb error: xtb has no dummy atom\n" if ($symbol eq "X");
     printf(NEWFILE "%-2s  %14.9f  %14.9f  %14.9f\n", $symbol,
            $coords{$index,0}, $coords{$index,1}, $coords{$index,2});
+  }
+  $_ = "";
+}
+
+# $order lists the atoms of the receptor and then of the ligand by their
+# number in the calculation, so gensub can put the poses back in that order.
+sub dockChemsys {
+  my ($rec, $lig) = &dockSplit(\%AbiDict, $chemsys_atoms, \%tags, \%coords);
+  print(NEWFILE join("\n", '$order', join(" ", map { $_ + 1 } (@$rec, @$lig)),
+                     '$end') . "\n");
+  foreach my $part (["receptor", $rec], ["ligand", $lig]) {
+    my ($name, $list) = @$part;
+    print(NEWFILE '$' . "$name\n" . scalar(@$list) . "\n" .
+          &TitleLine . " ($name)\n");
+    foreach my $index (@$list) {
+      die "ai.xtb error: xtb has no dummy atom\n" if ($tags{$index} eq "X");
+      printf(NEWFILE "%-2s  %14.9f  %14.9f  %14.9f\n", $tags{$index},
+             $coords{$index,0}, $coords{$index,1}, $coords{$index,2});
+    }
+    print(NEWFILE '$end' . "\n");
   }
   $_ = "";
 }

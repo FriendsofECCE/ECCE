@@ -32,7 +32,7 @@ args:    '.' 'GeoVib' 'SE' 'GFN2-xTB' '0'
       values: 0.000 -0.000 0.000
       units: Debye
 
-[GEOMTRACE][TEVEC][TIMEVEC][CONFREL]  Script=xtb.geomtrace  Freq=all  Skip=1  Lines=-
+[GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL]  Script=xtb.geomtrace  Freq=all  Skip=1  Lines=-
   Begin=^ECCE-XTB-FRAME\s
   End=^ECCE-XTB-ENDFRAME
   begins=3 delivered=3 buffered_away=0

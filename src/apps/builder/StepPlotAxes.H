@@ -74,6 +74,8 @@ inline wxString xAxisName(const std::string& rowLabel, IPropCalculation *calc)
 {
   if (rowLabel == "Geometry Step" && calc && calc->getProperty("CONFREL"))
     return "Conformer";
+  if (rowLabel == "Geometry Step" && calc && calc->getProperty("POSESCORE"))
+    return "Pose";
   return xAxisName(rowLabel);
 }
 

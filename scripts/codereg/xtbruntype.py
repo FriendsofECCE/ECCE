@@ -27,6 +27,39 @@ class XtbRunTypePanel(EccePanel):
             geometrySizer.AddWidget(self.level)
             self.panelSizer.Add(geometrySizer)
 
+        if EcceGlobals.RunType == "Docking (aISS)":
+            dockSizer = EcceBoxSizer(self, label="Docking", cols=1)
+            # Empty means the smallest molecule in the system (docking.pl).
+            self.ligand = EcceTextInput(self,
+                                        name="ES.Runtype.Docking.LigandAtoms",
+                                        size=(160, -1),
+                                        default="",
+                                        label="Ligand atoms (empty: smallest molecule):",
+                                        tip="Atom numbers, for example 1-5,9",
+                                        export=1)
+            dockSizer.AddWidget(self.ligand)
+            self.lcharge = EcceSpinCtrl(self,
+                                        name="ES.Runtype.Docking.LigandCharge",
+                                        default=0,
+                                        hardRange="[-10..10]",
+                                        label="Ligand charge:",
+                                        export=1)
+            dockSizer.AddWidget(self.lcharge)
+            self.nposes = EcceSpinCtrl(self,
+                                       name="ES.Runtype.Docking.NumPoses",
+                                       default=4,
+                                       hardRange="[1..100]",
+                                       label="Poses to optimise:",
+                                       export=1)
+            dockSizer.AddWidget(self.nposes)
+            self.fast = EcceCheckBox(self,
+                                     label=" Fast search (small molecules)",
+                                     name="ES.Runtype.Docking.Fast",
+                                     default=True,
+                                     export=1)
+            dockSizer.AddWidget(self.fast)
+            self.panelSizer.Add(dockSizer)
+
         if EcceGlobals.RunType == "Molecular Dynamics":
             mdSizer = EcceBoxSizer(self, label="Molecular Dynamics", cols=1)
             self.temp = EcceFloatInput(self,
