@@ -61,6 +61,42 @@ void diagonalize(const Mat& F, const Mat& X, Vec& eps, Mat& C) {
 
 Mat density(const Mat& C, int nocc) { return C.leftCols(nocc) * C.leftCols(nocc).transpose(); }
 
+// Restricted open shell: reorder (C, eps) so that columns [0, nb) are the
+// orbitals that overlap most with the previous doubly occupied space Dc and
+// [nb, na) those that overlap most with the previous singly occupied space Do
+// (maximum overlap method).  In an unevenly filled degenerate shell (O 2p4,
+// Ti 3d2) the eigenvalues of the doubly and singly occupied members cross
+// from cycle to cycle, and an aufbau pick swaps them and never converges.
+void mom_reorder(const Mat& S, const Mat& Dc, const Mat& Do, int na, int nb, Mat& C, Vec& eps) {
+  const int n = static_cast<int>(C.cols());
+  const Mat SC = S * C;
+  std::vector<int> pick;
+  std::vector<bool> used(n, false);
+  auto take = [&](const Mat& D, int count) {
+    const Vec p = (SC.transpose() * D * SC).diagonal();
+    std::vector<int> idx;
+    for (int k = 0; k < n; ++k)
+      if (!used[k]) idx.push_back(k);
+    std::partial_sort(idx.begin(), idx.begin() + count, idx.end(), [&](int a, int b) { return p(a) > p(b); });
+    std::sort(idx.begin(), idx.begin() + count);
+    for (int i = 0; i < count; ++i) { used[idx[i]] = true; pick.push_back(idx[i]); }
+  };
+  take(Dc, nb);
+  take(Do, na - nb);
+  for (int k = 0; k < n; ++k)
+    if (!used[k]) pick.push_back(k);
+  Mat C2(C.rows(), n);
+  Vec e2(n);
+  for (int k = 0; k < n; ++k) { C2.col(k) = C.col(pick[k]); e2(k) = eps(pick[k]); }
+  C = C2;
+  eps = e2;
+}
+
+// Electrons that moved out of the previous doubly / singly occupied spaces.
+double occupied_change(const Mat& S, const Mat& Dprev, const Mat& Dnew, int nocc) {
+  return nocc - (Dprev * S * Dnew * S).trace();
+}
+
 // Spin-averaged fractional-occupation atomic HF density for the initial guess.
 Mat atomic_density(int Z, BasisLibrary& lib, const std::string& name, bool sph) {
   Molecule am;
@@ -219,6 +255,11 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   }
 
   Diis diis;
+  // ROHF: aufbau occupations until two successive cycles fill the same
+  // doubly and singly occupied spaces (or after mom_latest cycles), then
+  // the maximum overlap method keeps that configuration.
+  bool mom = false;
+  const int mom_latest = 8;
   Vec eps_a, eps_b;
   Mat Ca, Cb;
   double Eold = 0;
@@ -318,7 +359,11 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
       // final orbitals from the (unextrapolated) effective Fock
       if (closed) { diagonalize(Fa, X, eps_a, Ca); eps_b = eps_a; Cb = Ca; }
       else if (ref == Reference::Unrestricted) { diagonalize(Fa, X, eps_a, Ca); diagonalize(Fb, X, eps_b, Cb); }
-      else { diagonalize(F, X, eps_a, Ca); eps_b = eps_a; Cb = Ca; }
+      else {
+        diagonalize(F, X, eps_a, Ca);
+        if (mom) mom_reorder(S, Db, Da - Db, na, nb, Ca, eps_a);
+        eps_b = eps_a; Cb = Ca;
+      }
       break;
     }
     Eold = E;
@@ -337,10 +382,20 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
       Db = density(Cb, nb);
     } else {
       diagonalize(Fx, X, eps_a, Ca);
+      if (mom) mom_reorder(S, Db, Da - Db, na, nb, Ca, eps_a);
       eps_b = eps_a;
       Cb = Ca;
-      Da = density(Ca, na);
-      Db = density(Ca, nb);
+      const Mat Da_new = density(Ca, na), Db_new = density(Ca, nb);
+      if (!mom && !first_pass) {
+        const double moved = occupied_change(S, Db, Db_new, nb) + occupied_change(S, Da - Db, Da_new - Db_new, na - nb);
+        if (moved < 0.1 || it >= mom_latest) {
+          mom = true;
+          diis.reset();  // earlier Fock matrices belong to other configurations
+          if (opt.verbose) std::cerr << "maximum overlap occupations from cycle " << it + 1 << "\n";
+        }
+      }
+      Da = Da_new;
+      Db = Db_new;
     }
     R.iterations = it;
     R.energy = E;
