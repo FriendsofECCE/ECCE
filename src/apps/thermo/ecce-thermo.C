@@ -12,6 +12,20 @@
 #include "ThermoGather.H"
 #include "tdat/thermo/ThermoChem.H"
 
+// JSON string literal: names, URLs and notes may hold quotes or backslashes.
+static std::string jstr(const std::string& s)
+{
+  std::string o = "\"";
+  for (unsigned char ch : s) {
+    if (ch == '"' || ch == '\\') { o += '\\'; o += (char)ch; }
+    else if (ch == '\n') o += "\\n";
+    else if (ch == '\t') o += "\\t";
+    else if (ch < 0x20) { char b[8]; std::snprintf(b, sizeof b, "\\u%04x", ch); o += b; }
+    else o += (char)ch;
+  }
+  return o + "\"";
+}
+
 using std::string;
 using std::vector;
 
@@ -176,9 +190,9 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
     for (const auto& e : dg) { lo = std::min(lo, e.second); hi = std::max(hi, e.second); }
     if (json) {
       std::printf("{\n  \"reaction\": %s,\n  \"deltaG\": {\n",
-                  reaction.c_str());
+                  jstr(reaction).c_str());
       for (size_t i = 0; i < dg.size(); i++)
-        std::printf("    \"%s\": %.6f%s\n", dg[i].first.c_str(), dg[i].second,
+        std::printf("    %s: %.6f%s\n", jstr(dg[i].first).c_str(), dg[i].second,
                     i + 1 < dg.size() ? "," : "");
       std::printf("  },\n  \"spread_kJ_per_mol\": %.3f\n}\n", (hi - lo) * KJ_PER_HARTREE);
     } else {
@@ -195,8 +209,8 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
     std::printf("[\n");
     for (size_t i = 0; i < calcs.size(); i++) {
       const Calc& c = calcs[i];
-      std::printf("  {\n    \"name\": \"%s\",\n    \"url\": \"%s\",\n",
-                  c.name.c_str(), c.url.c_str());
+      std::printf("  {\n    \"name\": %s,\n    \"url\": %s,\n",
+                  jstr(c.name).c_str(), jstr(c.url).c_str());
       std::printf("    \"T\": %.2f,\n    \"standardState\": \"%s\",\n",
                   T, standardStateName(ss));
       std::printf("    \"symmetryNumber\": %d,\n    \"multiplicity\": %d,\n",
@@ -205,13 +219,13 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
       for (size_t j = 0; j < trs.size(); j++) {
         ThermoResult r;
         if (!computeChecked(c.in, T, ss, trs[j], r)) return 1;
-        std::printf("      \"%s\": {\"H\": %.6f, \"S\": %.6f, \"G\": %.6f}%s\n",
-                    trs[j].cli.c_str(), r.H, r.S, r.G,
+        std::printf("      %s: {\"H\": %.6f, \"S\": %.6f, \"G\": %.6f}%s\n",
+                    jstr(trs[j].cli).c_str(), r.H, r.S, r.G,
                     j + 1 < trs.size() ? "," : "");
       }
       std::printf("    },\n    \"notes\": [");
       for (size_t j = 0; j < c.notes.size(); j++)
-        std::printf("%s\"%s\"", j ? ", " : " ", c.notes[j].c_str());
+        std::printf("%s%s", j ? ", " : " ", jstr(c.notes[j]).c_str());
       std::printf(" ]\n  }%s\n", i + 1 < calcs.size() ? "," : "");
     }
     std::printf("]\n");
