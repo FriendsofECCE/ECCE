@@ -105,6 +105,13 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
       << ".\t" << NS << "spinmultiplicity\t\t" << mult << "\n"
       << ".\t" << NS << "excluded\t\t"
       << t->getProp(VDoc::getEcceNamespace() + ":excluded") << "\n";
+  // Booked and used core-hours (#627) come from the launch settings and the
+  // job's own start and end.
+  for (const char *k : {"launch_totalprocs", "launch_maxwall", "startdate",
+                        "completiondate"})
+    std::ofstream(dir / ".ecce-meta", std::ios::app)
+        << ".\t" << NS << k << "\t\t"
+        << t->getProp(VDoc::getEcceNamespace() + ":" + k) << "\n";
   std::ofstream(dir / "Parameters" / ".ecce-meta")
       << "BasisSet.ecce_basisset\t" << NS << "name\t\t" << basis << "\n";
   return true;

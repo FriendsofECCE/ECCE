@@ -13,12 +13,24 @@ so that a failed or doubtful run is seen before its numbers are used.
 Columns: state; normal termination; optimisation converged; SCF converged;
 number of imaginary modes; the expectation value of S<sup>2</sup> and its
 deviation from S(S+1); charge; multiplicity; method; basis; solvent;
-electronic energy E, zero-point energy and Gibbs energy (Hartree); the reason
+electronic energy E, zero-point energy and Gibbs energy (Hartree); the core-hours
+booked and used (see below); the reason
 if the calculation is excluded; and a Problems column.
 
 A value that is not stored is shown as `-`, never as 0. Convergence is read
 from the last progress snapshot kept with the calculation, so a calculation
 without one shows `-`.
+
+## Core-hours booked and used
+
+**Booked (core-h)** is the cores times the wall time limit the job was
+launched with: what the queue was asked for. **Used (core-h)** is the cores
+times the time the job ran, from the start and end time of the job itself. A
+calculation that was never launched, or has no start or end time, shows `-`.
+`ecce-si-export --checks csv --total <folder>` adds a last row, `total`, that
+sums both columns over the calculations in the folder (a folder stands for
+the calculations below it); a calculation without a value adds nothing to the
+sum.
 
 ## What is highlighted
 

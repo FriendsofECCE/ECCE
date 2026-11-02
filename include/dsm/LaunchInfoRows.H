@@ -4,7 +4,7 @@
 //  alone (tests/machregister/testLaunchInfoRows.C).
 //
 //  Left column: Machine, Processors, Queue, Job ID; below both, full width: Queue state. Right column: Start Date,
-//  Comp. Date, Cost (CPU-h), Wall time, Allocation. A row whose value is not known is not made at
+//  Comp. Date, Booked (core-h), Used (core-h), Wall time, Allocation. A row whose value is not known is not made at
 //  all, so there is nothing to hide.
 #ifndef LAUNCHINFOROWS_HH
 #define LAUNCHINFOROWS_HH
@@ -36,7 +36,8 @@ namespace LaunchInfoRows
         std::string jobId;
         std::string startDate;    // as shown
         std::string completionDate;
-        std::string coreHours;    // coreHoursText(), or ""
+        std::string booked;       // bookedText(), or ""
+        std::string coreHours;    // used: coreHoursText(), or ""
         std::string wallTime;     // wallTimeText(), or ""
         std::string allocation;
         std::string queueWait;    // why a Submitted job waits (#641), or ""
@@ -50,24 +51,29 @@ namespace LaunchInfoRows
         return !jobId.empty() && !queue.empty();
     }
 
-    //  What the job costs: cores x wall time, start to end (or to now for a
-    //  running job, marked "so far"). "" when the start or the cores are unknown.
-    inline std::string coreHoursText(long processors, long startSec,
-                                     long endSec, bool soFar)
+    //  Core-hours as shown: thousands grouped, one decimal below 100.
+    inline std::string coreHoursFormat(double h)
     {
-        if (processors <= 0 || startSec <= 0 || endSec < startSec)
-            return "";
-        const double h = processors * (endSec - startSec) / 3600.0;
         char buf[64];
         snprintf(buf, sizeof buf, h < 100 ? "%.1f" : "%.0f", h);
-        //  Thousands grouped and CPU-h, as the allocation line has them.
         std::string n = buf, out;
         const size_t dot = n.find('.') == std::string::npos ? n.size() : n.find('.');
         for (size_t i = 0; i < n.size(); i++) {
             if (i > 0 && i < dot && (dot - i) % 3 == 0) out += ' ';
             out += n[i];
         }
-        return out + " CPU-h" + (soFar ? " so far" : "");
+        return out + " core-h";
+    }
+
+    //  What the job used: cores x elapsed time, start to end (or to now for a
+    //  running job, marked "so far"). "" when the start or the cores are unknown.
+    inline std::string coreHoursText(long processors, long startSec,
+                                     long endSec, bool soFar)
+    {
+        if (processors <= 0 || startSec <= 0 || endSec < startSec)
+            return "";
+        return coreHoursFormat(processors * (endSec - startSec) / 3600.0) +
+               (soFar ? " so far" : "");
     }
 
     //  The Launcher's wall time, "D H:M"; 0 when none was set.
@@ -77,6 +83,21 @@ namespace LaunchInfoRows
         if (sscanf(maxwall.c_str(), "%d %d:%d", &d, &h, &m) != 3)
             return 0;
         return ((long)d * 24 + h) * 3600L + m * 60L;
+    }
+
+    //  What the job booked: cores x requested wall time. A machine entry does
+    //  not say whether a queue books whole nodes, so the cores are used as set.
+    //  Negative when the cores or the wall time are unknown.
+    inline double bookedCoreHours(long processors, long wallSec)
+    {
+        return (processors <= 0 || wallSec <= 0) ? -1.0
+                                                 : processors * wallSec / 3600.0;
+    }
+
+    inline std::string bookedText(long processors, long wallSec)
+    {
+        const double h = bookedCoreHours(processors, wallSec);
+        return h < 0 ? std::string() : coreHoursFormat(h);
     }
 
     inline std::string durationText(long sec)
@@ -139,7 +160,8 @@ namespace LaunchInfoRows
         add(c.full, "Queue state:", in.queueWait);
         add(c.right, "Start Date:", in.startDate);
         add(c.right, "Comp. Date:", in.completionDate);
-        add(c.right, "Cost:", in.coreHours);
+        add(c.right, "Booked:", in.booked);
+        add(c.right, "Used:", in.coreHours);
         add(c.right, "Wall time:", in.wallTime);
         add(c.right, "Allocation:", in.allocation);
         return c;

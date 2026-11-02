@@ -89,7 +89,7 @@ def launchProblem(text, queued=False):
         if "@" in item:
             name, pos = item.split("@")
             rows[name] = tuple(int(v) for v in pos.split(","))
-    for name in ("Machine:", "Processors:", "Start Date:", "Cost:"):
+    for name in ("Machine:", "Processors:", "Start Date:", "Used:"):
         if name not in rows:
             return "Launch Info has no %s row (got %s)" % (name, sorted(rows))
     for name in (("Allocation:",) if queued else

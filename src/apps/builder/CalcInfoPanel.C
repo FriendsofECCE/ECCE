@@ -278,6 +278,8 @@ void CalcInfoPanel::refresh()
     in.startDate = prefDateTime(taskJob->startDate());
     in.completionDate = prefDateTime(taskJob->completionDate());
     in.coreHours = launchCost(taskJob, launch.totalprocs);
+    in.booked = LaunchInfoRows::bookedText(launch.totalprocs,
+        LaunchInfoRows::maxWallSeconds(launch.maxwall));
     in.wallTime = launchWallTime(taskJob, launch.maxwall);
     in.allocation = launch.machine.empty() ? string() :
                     AllocationQuery::account(launch);

@@ -117,6 +117,43 @@ try:
     out = subprocess.run([sys.executable, SCRIPT, "--checks", "latex", good],
                          capture_output=True, text=True).stdout
     check("LaTeX table", out.startswith("\\begin{tabular}") and "opt\\_freq" in out, out)
+
+    # Core-hours (#627). 28 cores x "1 0:00" = 672 booked; start to end 2 h
+    # 30 min = 70 used.  The same figures as tests/machregister/testLaunchInfoRows.C.
+    chd = os.path.join(tmp, "folder")
+    os.makedirs(chd)
+    a = os.path.join(chd, "run_a")
+    shutil.copytree(os.path.join(QM, "h2o-geovib"), a)
+    for k, v in (("launch_totalprocs", "28"), ("launch_maxwall", "1 0:00"),
+                 ("startdate", "Fri, 30 Oct 2026 03:00:00 GMT"),
+                 ("completiondate", "Fri, 30 Oct 2026 05:30:00 GMT")):
+        setmeta(a, k, v)
+    b2 = os.path.join(chd, "run_b")      # booked only: still waiting or killed unstarted
+    shutil.copytree(os.path.join(QM, "h2o-geovib"), b2)
+    for k, v in (("launch_totalprocs", "4"), ("launch_maxwall", "0 0:30"),
+                 ("startdate", ""), ("completiondate", "")):
+        setmeta(b2, k, v)
+    c2 = os.path.join(chd, "run_c")      # nothing stored: never 0
+    shutil.copytree(os.path.join(QM, "h2o-geovib"), c2)
+    for k in ("launch_totalprocs", "launch_maxwall", "startdate", "completiondate"):
+        setmeta(c2, k, "")
+    pc = subprocess.run([sys.executable, SCRIPT, "--checks", "csv", "--total", chd],
+                        capture_output=True, text=True)
+    cr = {r["name"]: r for r in csv.DictReader(io.StringIO(pc.stdout))}
+    check("folder expands to its calculations plus a total",
+          list(cr) == ["run_a", "run_b", "run_c", "total"], list(cr))
+    check("booked 28 x 24 h = 672.0, used 28 x 2.5 h = 70.0",
+          (cr["run_a"]["booked_coreh"], cr["run_a"]["used_coreh"]) == ("672.0", "70.0"), cr["run_a"])
+    check("booked without a start: used is '-'",
+          (cr["run_b"]["booked_coreh"], cr["run_b"]["used_coreh"]) == ("2.0", "-"), cr["run_b"])
+    check("nothing stored: '-', not 0",
+          (cr["run_c"]["booked_coreh"], cr["run_c"]["used_coreh"]) == ("-", "-"), cr["run_c"])
+    check("folder total is the sum of the column, missing values add nothing",
+          (cr["total"]["booked_coreh"], cr["total"]["used_coreh"]) == ("674.0", "70.0"), cr["total"])
+    allmissing = subprocess.run([sys.executable, SCRIPT, "--checks", "csv", "--total", c2],
+                                capture_output=True, text=True).stdout.splitlines()[-1]
+    check("total of calculations with no values is '-'", allmissing.startswith("total,") and
+          "0.0" not in allmissing, allmissing)
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 

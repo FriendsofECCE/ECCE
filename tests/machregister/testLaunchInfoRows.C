@@ -70,20 +70,33 @@ int main()
     check(c.left.empty(), "unknown processors and machine make no rows");
 
     // Cost: cores x hours, thousands grouped, "so far" while running.
-    check(coreHoursText(128, 0 + 1000, 1000 + 9 * 3600, false) == "1 152 CPU-h",
-          "128 cores for 9 h is 1 152 CPU-h");
-    check(coreHoursText(4, 1000, 1000 + 1800, true) == "2.0 CPU-h so far",
+    check(coreHoursText(128, 0 + 1000, 1000 + 9 * 3600, false) == "1 152 core-h",
+          "128 cores for 9 h is 1 152 core-h");
+    check(coreHoursText(4, 1000, 1000 + 1800, true) == "2.0 core-h so far",
           "a running job's cost says so far");
     check(coreHoursText(0, 1000, 2000, false).empty() &&
           coreHoursText(4, 0, 2000, false).empty() &&
           coreHoursText(4, 3000, 2000, false).empty(),
           "no cores, no start, or an end before the start: no cost");
-    in.coreHours = "5.0 CPU-h";
+    // Booked: cores x requested wall time (#627); unknown wall time or cores: none.
+    check(bookedText(28, maxWallSeconds("1 0:00")) == "672 core-h",
+          "28 cores booked for 24 h is 672 core-h");
+    check(bookedText(4, maxWallSeconds("0 0:30")) == "2.0 core-h",
+          "4 cores booked for 30 min is 2.0 core-h");
+    check(bookedText(4, 0).empty() && bookedText(0, 3600).empty(),
+          "no wall time or no cores: nothing booked is shown");
+    check(bookedCoreHours(4, 0) < 0 && bookedCoreHours(2, 7200) == 4.0,
+          "booked core-hours as a number");
+    in.booked = "672 core-h";
+    c = build(in);
+    check(labels(c.right).find("Booked:") != std::string::npos,
+          "Booked is in the right column");
+    in.coreHours = "5.0 core-h";
     in.machine = "m";
     c = build(in);
-    check(labels(c.right).find("Comp. Date: Cost:") != std::string::npos ||
-          labels(c.right).find("Cost:") != std::string::npos,
-          "Cost is in the right column");
+    check(labels(c.right).find("Comp. Date: Used:") != std::string::npos ||
+          labels(c.right).find("Used:") != std::string::npos,
+          "Used is in the right column");
 
     {
         check(maxWallSeconds("0 4:00") == 4 * 3600 &&
@@ -103,13 +116,13 @@ int main()
         Input w;
         w.queue = "batch";
         w.queueWait = "waiting: no node free";
-        w.coreHours = "317 CPU-h so far";
+        w.coreHours = "317 core-h so far";
         w.wallTime = "1 h 20 min left of 4 h";
         w.allocation = "hpc2n2026-351";
         Columns cw = build(w);
-        check(labels(cw.right) == "Cost: Wall time: Allocation:" &&
+        check(labels(cw.right) == "Used: Wall time: Allocation:" &&
               labels(cw.full) == "Queue state:",
-              "wall time after Cost; queue state stays a row of its own");
+              "wall time after Used; queue state stays a row of its own");
     }
     printf(failures ? "FAILED\n" : "all passed\n");
     return failures ? 1 : 0;

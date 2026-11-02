@@ -316,6 +316,8 @@ void CalculationContextPanel::refreshLaunchInfo()
     in.startDate = formatDateTime(job->startDate());
     in.completionDate = formatDateTime(job->completionDate());
     in.coreHours = launchCost(job, launch.totalprocs);
+    in.booked = LaunchInfoRows::bookedText(launch.totalprocs,
+        LaunchInfoRows::maxWallSeconds(launch.maxwall));
     in.wallTime = launchWallTime(job, launch.maxwall);
     if (!launch.machine.empty()) {
       in.allocation = AllocationQuery::account(launch);
