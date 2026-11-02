@@ -15,11 +15,18 @@ class PropertyTask;
 
 namespace ScanPoint {
 
-  /// "", "last", "max" or a positive number.
+  /// "", "last", "max", a positive number, or "cK": the K-th conformer of a
+  /// CREST ensemble by relative energy (1 = lowest).
   bool valid(const std::string& spec);
 
   /// "last point", "maximum", "point 5"; "" for the final structure.
   std::string words(const std::string& spec);
+
+  /// Number of conformers (GEOMTRACE frames with a CONFREL each); 0 if none.
+  int ensembleSize(PropertyTask *calc);
+
+  /// Relative energy (kcal/mol) of the conformer of rank `rank`, 0 if none.
+  double conformerEnergy(PropertyTask *calc, int rank);
 
   /// True if the calculation has an energy and a structure per point.
   bool isScan(PropertyTask *calc);

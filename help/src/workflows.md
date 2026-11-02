@@ -89,6 +89,20 @@ which: **geometry (last point)**, **geometry (maximum)** or **geometry
 says so. Other steps are not offered the choice and carry their final
 geometry.
 
+## Starting from the best conformers of a CREST search
+
+When the selected step is a CREST conformer search with a result, the
+**New step** window also has **From the best conformers**, with a number
+(3 to begin with, at most the number of conformers found). Ticking it makes
+that many steps at once, side by side, each starting from one conformer: the
+first from the conformer with the lowest relative energy, the second from the
+next one, and so on. The arrows say which: **geometry (conformer 2)**. Each
+step's Annotation gives the conformer's number and its relative energy.
+
+The relative energies belong to the CREST method alone, so they rank the
+conformers of that search and are not energies to compare with a later
+calculation. **Launch Ready Steps** launches all the steps at once.
+
 ## Joining steps
 
 A transition-state search needs several structures: a reactant, a product

@@ -43,7 +43,10 @@ namespace WorkflowSteps {
     /// For a scan or IRC source: "last", "max" or a point number (ScanPoint.H);
     /// empty takes the final geometry.
     std::string point;
-    Carry() : geometry(true), chargeMult(true) {}
+    /// From a CREST ensemble: make this many steps, one per conformer from
+    /// the lowest relative energy up (0 = one ordinary step).
+    int best;
+    Carry() : geometry(true), chargeMult(true), best(0) {}
   };
 
   /// The link name a step carries its geometry under.
@@ -72,6 +75,18 @@ namespace WorkflowSteps {
 
   /// A name for a new step of this code that no member has yet.
   std::string defaultName(Session *wf, const Code& code);
+
+  /// True if the source is a CREST ensemble (a structure and a relative
+  /// energy per conformer).
+  bool isEnsemble(Resource *step);
+
+  /// Makes n steps from the n lowest-energy conformers of an ensemble
+  /// source, named "<name>-conf<k>", each linked as "geometry.c<k>" and
+  /// annotated with its rank and relative energy.  Empty with `why` set if
+  /// n is not 1..ensemble size or a step fails; nothing is left behind.
+  std::vector<Resource*> createBest(Session *wf, ResourceType *rt,
+                                    const std::string& name, Resource *source,
+                                    int n, const Carry& carry, std::string& why);
 
   /// Makes a step of type rt in wf, links it to source (null for the first
   /// step) and copies what carry says.  Null with `why` set on failure.

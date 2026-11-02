@@ -194,6 +194,57 @@ Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
 }
 
 
+bool WorkflowSteps::isEnsemble(Resource *step)
+{
+  return ScanPoint::ensembleSize(dynamic_cast<PropertyTask*>(step)) > 0;
+}
+
+
+vector<Resource*> WorkflowSteps::createBest(Session *wf, ResourceType *rt,
+                                            const string& name,
+                                            Resource *source, int n,
+                                            const Carry& carry, string& why)
+{
+  vector<Resource*> made;
+  PropertyTask *task = dynamic_cast<PropertyTask*>(source);
+  const int size = ScanPoint::ensembleSize(task);
+  if (size < 1) {
+    why = "The source has no conformer ensemble.";
+    return made;
+  }
+  if (n < 1 || n > size) {
+    char buf[96];
+    snprintf(buf, sizeof buf, "The ensemble has %d conformers; %d asked for.",
+             size, n);
+    why = buf;
+    return made;
+  }
+  for (int k = 1; k <= n; k++) {
+    Carry c = carry;
+    c.point = "c" + std::to_string(k);
+    Resource *step = create(wf, rt, name + "-conf" + std::to_string(k), source,
+                            c, why);
+    if (!step) {
+      for (size_t i = 0; i < made.size(); i++) {
+        try { wf->removeMember(made[i]); } catch (...) {}
+        made[i]->remove();
+      }
+      made.clear();
+      return made;
+    }
+    char note[200];
+    snprintf(note, sizeof note,
+             "Conformer %d of %d from %s, relative energy %.3f kcal/mol "
+             "(within the CREST method only).",
+             k, size, source->getName().c_str(),
+             ScanPoint::conformerEnergy(task, k));
+    step->addProp(VDoc::getEcceNamespace() + ":annotation", note);
+    made.push_back(step);
+  }
+  return made;
+}
+
+
 bool WorkflowSteps::canJoin(const Code& code)
 {
   const string t = code.typeName;

@@ -25,3 +25,9 @@ issues: [674, 410, 419]
   `<folder> < <source>=<role>[@point] ...`.
 - Hooks: `workflowstep ... point=max`, `workflowjoin`, `workflowqst` (writes
   the .qstN.frag files into a temp dir and prints it).
+- Best N conformers (#682): a CREST source (GEOMTRACE + CONFREL of equal
+  length) accepts the point spec `cK`, the K-th conformer by relative energy
+  (`ScanPoint`, not `isScan`: no scan UI for it). `WorkflowSteps::createBest`
+  makes `<name>-conf<K>` steps, links `geometry.cK`, annotation with rank and
+  energy; hook `workflowstep ... best=N`; test `workflow_test.py` (fixture
+  `tests/apps/fixtures/crest-butane-ensemble`).

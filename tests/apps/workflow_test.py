@@ -109,6 +109,87 @@ def frag_atoms(path):
     return [r[0] for r in out], [float(v) for r in out for v in r[1:]]
 
 
+CREST = os.path.join(HERE, "fixtures", "crest-butane-ensemble")
+
+
+def ensemble():
+    """(relative energies, [flat xyz per conformer]) of the CREST fixture."""
+    rel = open(os.path.join(CREST, "Props", "CONFREL")).read()
+    rel = numbers(" ".join(re.findall(r"<step number=\"\d+\">(.*?)</step>", rel)))
+    geom = open(os.path.join(CREST, "Props", "GEOMTRACE")).read()
+    steps = re.findall(r"<step number=\"\d+\">(.*?)</step>", geom, re.S)
+    return rel, [numbers(t) for t in steps]
+
+
+def run_best(display, data, work, shots):
+    """Steps from the best N conformers of a CREST ensemble (#682)."""
+    root = os.path.join(data, "users", "local")
+    project = os.path.join(root, "conf")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CREST, os.path.join(project, "crest"), symlinks=True)
+    proj = "file://" + root + "/conf"
+    wf = proj + "/Workflow"
+    commands = [
+        "summary %s/crest" % proj,
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/crest ens" % (wf, proj),
+        "workflowstep %s orca_es best %s/ens best=3" % (wf, wf),
+        "workflowstep %s orca_es toomany %s/ens best=7" % (wf, wf),
+        "workflowinfo %s" % wf,
+        "workflowready %s" % wf,
+    ]
+    script = os.path.join(work, "commands-best")
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=75,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    what = "Best conformers"
+    if result.crashed:
+        return fail(what, "CRASHED (%s)" % result.signalName, log)
+
+    def answer(prefix):
+        return re.findall(r"ECCE_TEST_ORGANIZER: %s.*?: (.*)$" % re.escape(prefix),
+                          log, re.M)
+
+    info = answer("workflowinfo")
+    if not info or not info[0].startswith("ok "):
+        return fail(what, "no workflowinfo answer", log)
+    table = steps(info[0][3:])
+    links = info[0].split(" links:")[1].split()
+    want = {"best-conf1", "best-conf2", "best-conf3"}
+    check("three sibling steps are made", want <= set(table), "steps %s" % sorted(table))
+    check("more steps than conformers makes none",
+          not any(n.startswith("toomany") for n in table) and
+          any("conformers" in l for l in answer("workflowstep")),
+          "steps %s, answers %s" % (sorted(table), answer("workflowstep")))
+    check("each step is linked from the ensemble under its rank",
+          {"ens>best-conf%d:geometry.c%d" % (k, k) for k in (1, 2, 3)} <= set(links),
+          "links %s" % links)
+    if not want <= set(table):
+        return
+    rel, frames = ensemble()
+    order = sorted(range(len(rel)), key=lambda i: rel[i])
+    for k in (1, 2, 3):
+        rec = table["best-conf%d" % k]
+        got = [float(v) for v in rec["xyz0"].split(",")]
+        ref = frames[order[k - 1]][:3]
+        check("conformer %d (frame %d, %.3f kcal/mol) is the step's start" %
+              (k, order[k - 1] + 1, rel[order[k - 1]]),
+              all(abs(a - b) < 1e-4 for a, b in zip(got, ref)), "%s vs %s" % (got, ref))
+    check("the conformers differ", len({tuple(frames[order[k]][:6]) for k in range(3)}) == 3,
+          "frames equal")
+    note = os.path.join(root, "conf", "Workflow", "best-conf2", ".ecce-meta")
+    text = open(note).read() if os.path.exists(note) else ""
+    check("the annotation names the conformer and its energy",
+          "Conformer 2 of 6" in text and "%.3f kcal/mol" % rel[order[1]] in text,
+          text[:300])
+    ready = answer("workflowready")
+    check("Launch Ready Steps takes all three",
+          bool(ready) and all(n in ready[0] for n in want), "ready %s" % ready)
+
+
 def run_joins(display, data, work, shots):
     root = os.path.join(data, "users", "local")
     project = os.path.join(root, "joins")
@@ -614,6 +695,7 @@ def main():
         try:
             run(display, data, work, shots)
             run_joins(display, data, work, shots)
+            run_best(display, data, work, shots)
             run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
