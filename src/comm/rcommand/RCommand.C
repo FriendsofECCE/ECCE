@@ -509,7 +509,7 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
         !t->loginRefused() && !t->sessionsFull() &&
         !OpenSshTransport::configSharesConnection(machine, userName) &&
         !OpenSshTransport::configProxiesConnection(machine, userName) &&
-        !hostDidNotAnswer(error))
+        !t->hostUnreachable() && !hostDidNotAnswer(error))
       *tryLibssh = true;
     delete t;
     return false;

@@ -4293,6 +4293,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_reconnect_selected PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # Session-start catch-up against a host that never sends the ssh banner
+  # (#780): the Organizer survives and no libssh retry follows.
+  add_test(NAME launch_silent_host_catchup
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/silent_host_catchup_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_silent_host_catchup PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Reconnect with the old job store still alive (#601).
   add_test(NAME launch_reconnect_race
            COMMAND ${PYTHON3_EXECUTABLE}
