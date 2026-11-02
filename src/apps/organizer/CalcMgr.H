@@ -498,6 +498,9 @@ protected:
   class CompareEnergiesDialog *newCompareEnergiesDialog(const vector<EcceURL>& sel);
   void OnCompareEnergies(wxCommandEvent& event);
   bool p_compareEnergiesWired = false;
+  // File > Export > Supporting Information (#625).
+  void OnSiExport(wxCommandEvent& event);
+  bool p_siExportWired = false;
   // Tools > Allocations (#613).
   void OnAllocations(wxCommandEvent& event);
   bool p_allocationsWired = false;

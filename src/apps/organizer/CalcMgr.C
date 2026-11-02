@@ -176,6 +176,7 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CalcMgr.H"
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
+#include "SiExport.H"
 #include "AllocationsDialog.H"
 
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
@@ -536,6 +537,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 its top
  * allocations    Tools > Allocations: prints "ALLOC: machine|account|used|
  *                 checked" for each row on stderr
+ * siexport <out.xyz> <csv|latex|none> <url>,<url>...
+ *                 File > Export > Supporting Information (#625); "ok" or
+ *                 "failed: <why>"
  * compareenergies <sideA> <sideB>
  *                 what Tools > Compare Energies shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
@@ -562,6 +566,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
+static const int ID_SI_EXPORT = wxNewId();
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -1736,6 +1741,22 @@ void CalcMgr::runTestCommand(const string& line)
         fprintf(stderr, "ALLOC: %s\n", r.c_str());
       outcome = "ok " + std::to_string(d->rowTexts().size()) + " rows";
       d->Destroy();
+    } else if (command == "siexport") {
+      // "siexport <out.xyz> <csv|latex|none> <url>,<url>...": File > Export >
+      // Supporting Information without its dialogs.
+      std::istringstream args(calcName);
+      string out, table, urls;
+      args >> out >> table >> urls;
+      vector<EcceURL> sel;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        sel.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      string why;
+      outcome = siExport(sel, out, table == "none" ? string() : table, why)
+                ? string("ok") : "failed: " + why;
     } else if (command == "compareenergies" || command == "comparedialog") {
       // "compareenergies <sideA> <sideB>": the table and notes the dialog
       // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
@@ -6984,6 +7005,16 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
 
   menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
               _T(""), wxITEM_NORMAL);
+  {
+    wxMenu *exportMenu = new wxMenu;
+    exportMenu->Append(ID_SI_EXPORT, _("&Supporting Information..."));
+    menu.Append(wxID_ANY, _("E&xport"), exportMenu);
+    if (!p_siExportWired) {
+      Connect(ID_SI_EXPORT, wxEVT_COMMAND_MENU_SELECTED,
+              wxCommandEventHandler(CalcMgr::OnSiExport));
+      p_siExportWired = true;
+    }
+  }
   menu.Append(wxID_IMPORTGROMACS, _("Import &GROMACS Run..."),
               _T(""), wxITEM_NORMAL);
   menu.Append(wxID_OPENEXAMPLES, _("Open &Example Calculations"),
@@ -7206,6 +7237,32 @@ void CalcMgr::OnCompareEnergies(wxCommandEvent&)
   CompareEnergiesDialog *dialog = newCompareEnergiesDialog(p_currentSelection);
   dialog->ShowModal();
   dialog->Destroy();
+}
+
+// The selected calculations as an xyz file (and a table): the file and the
+// table format are asked for; the arithmetic is ecce-si-export's.
+void CalcMgr::OnSiExport(wxCommandEvent&)
+{
+  getSelection();
+  if (p_currentSelection.empty()) {
+    wxMessageBox(_("Select the calculations to export first."),
+                 _("Supporting Information"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  ewxFileDialog dlg(this, "Write structures and energies to", Ecce::realUserHome(),
+                    "supporting-information.xyz", "XYZ files|*.xyz|All Files|*",
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT, wxDefaultPosition);
+  if (dlg.ShowModal() != wxID_OK) return;
+  const wxString formats[] = {_("No table"), _("CSV table"), _("LaTeX table")};
+  wxSingleChoiceDialog pick(this, _("Also write a table of the same values (name, code, method, charge, multiplicity, E, G, imaginary frequencies)?"),
+                            _("Supporting Information"), 3, formats);
+  if (pick.ShowModal() != wxID_OK) return;
+  const int k = pick.GetSelection();
+  string why;
+  if (!siExport(p_currentSelection, dlg.GetPath().ToStdString(),
+                k == 1 ? "csv" : k == 2 ? "latex" : "", why))
+    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Supporting Information"),
+                 wxOK | wxICON_ERROR, this);
 }
 
 void CalcMgr::OnAllocations(wxCommandEvent&)
