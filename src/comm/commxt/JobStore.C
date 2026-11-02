@@ -1162,7 +1162,10 @@ static bool parkAndWait(const string& why)
   calcUpdateState(ResourceDescriptor::STATE_WAITING);
 
   const time_t giveUpAt = time(0) + (time_t)(hours * 3600);
-  int backoff = 15;
+  // ECCE_SSH_RETRY_SECONDS fixes the interval (tests); default 15 s doubling to 300 s.
+  const char* fixed = getenv("ECCE_SSH_RETRY_SECONDS");
+  const int fixedSec = fixed ? atoi(fixed) : 0;
+  int backoff = fixedSec > 0 ? fixedSec : 15;
   srand((unsigned)(getpid() ^ time(0)));
   while (time(0) < giveUpAt) {
     int ms = (int)(backoff * 1000 * (0.8 + 0.4 * (rand() / (double)RAND_MAX)));
@@ -1179,7 +1182,7 @@ static bool parkAndWait(const string& why)
       if (n > 0 && (pfd.revents & POLLIN) && vMsgFd == pfd.fd)
         msgDispatch();  // a kill or quit message exits from here
     }
-    if (backoff < 300) backoff = std::min(backoff * 2, 300);
+    if (fixedSec <= 0 && backoff < 300) backoff = std::min(backoff * 2, 300);
     delete remoteconn;
     remoteconn = (RCommand*)0;
     initConn();
