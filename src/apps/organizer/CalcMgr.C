@@ -888,6 +888,8 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
       //     code button or the tree's New menu makes it, the New-step dialog
       //     logged instead of shown: "ok <made> dialogs=carry;|nocarry;"
+      //   workflowicons WF      box icons and tree icons, polled until
+      //     they agree: "ok|differ icons=STEP:N,.. tree=STEP:N,.."
       //   workflowlaunchbutton WF   the view's Launch Ready Steps button:
       //     label, shown, inside the view (not clicked)
       //   workflowmenu WF STEP  a right-click on STEP's box: the menu's
@@ -1035,6 +1037,43 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok " + WorkflowSteps::info(wf);
       } else if (command == "workflowlaunch") {
         launchReadySteps(wf, false, &outcome, "");
+      } else if (command == "workflowicons") {
+        // Box icons and tree icons read in the same poll, until they agree
+        // (the tree follows a stored state change a moment later) or 10 s.
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        if (!wp) {
+          outcome = "no workflow panel";
+        } else {
+          string boxes, tree;
+          bool same = false;
+          for (int i = 0; i < 200 && !same; i++) {
+            if (i) { wxYield(); wxMilliSleep(50); }
+            string rep = wp->layoutReport();
+            size_t at = rep.find("icons=");
+            boxes = at == string::npos ? "" : rep.substr(at + 6);
+            tree.clear();
+            vector<Resource*> members = wf->getMembers();
+            for (size_t m = 0; m < members.size(); m++) {
+              WxResourceTreeItemData *n = p_treeCtrl->findNode(
+                  members[m]->getURL(), true, true);
+              tree += (m ? "," : "") + members[m]->getName() + ":" +
+                  (n ? std::to_string(p_treeCtrl->GetItemState(n->GetId()))
+                     : string("-"));
+            }
+            auto sorted = [](const string& list) {
+              std::vector<string> v;
+              std::istringstream in(list);
+              for (string t; std::getline(in, t, ',');) v.push_back(t);
+              std::sort(v.begin(), v.end());
+              return v;
+            };
+            same = sorted(boxes) == sorted(tree);
+          }
+          outcome = string(same ? "ok" : "differ") + " icons=" + boxes +
+                    " tree=" + tree;
+        }
       } else if (command == "workflowshot") {
         p_treeCtrl->SelectItem(wfNode->GetId());
         for (int i = 0; i < 5; i++) wxYield();
