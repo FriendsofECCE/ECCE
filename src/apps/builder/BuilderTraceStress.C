@@ -362,12 +362,23 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
   //  then every atom's coordinates (#620).
   if (c == "gttake" && w.size() >= 3) {
     vector<string> labels, el, xyz;
-    takeSources(labels, el, xyz);
     string label = w[1];
     for (size_t i = 0; i < label.size(); i++) if (label[i] == '_') label[i] = ' ';
-    size_t at = labels.size();
-    for (size_t i = 0; i < labels.size(); i++) if (labels[i] == label) at = i;
-    if (at == labels.size()) return s.fail("gttake: no source " + label);
+    size_t at = 0;
+    //  The folder listing can still be arriving from the server.
+    for (int tries = 0; tries < 40; tries++) {
+      labels.clear(); el.clear(); xyz.clear();
+      takeSources(labels, el, xyz);
+      for (at = 0; at < labels.size() && labels[at] != label; at++) {}
+      if (at < labels.size()) break;
+      spin(250);
+    }
+    if (at == labels.size()) {
+      string have;
+      for (const string& l : labels) have += " [" + l + "]";
+      fprintf(stderr, "GTSTRESS: gttake sources:%s\n", have.c_str());
+      return s.fail("gttake: no source " + label);
+    }
     double rmsd = 0;
     bool ok = takeCoordinates(w[2] == "selected" ? "" : w[2], el[at], xyz[at],
                               w.size() > 3 && w[3] == "align", &rmsd);
