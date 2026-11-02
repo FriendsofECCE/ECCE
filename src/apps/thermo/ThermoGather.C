@@ -6,7 +6,12 @@
 #include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
 #include "dsm/PropertyTask.H"
+#include "dsm/TGBSConfig.H"
+#include "dsm/VDoc.H"
 #include "tdat/Fragment.H"
+#include "tdat/GUIValues.H"
+#include "tdat/PropString.H"
+#include "tdat/TTheory.H"
 #include "tdat/PropTSVecString.H"
 #include "tdat/PropValue.H"
 #include "tdat/PropVector.H"
@@ -164,4 +169,27 @@ bool gatherThermoInput(const std::string& url, ThermoInput& in,
   if (in.mass <= 0.0) notes.push_back("the molecular mass could not be derived "
                                       "from the geometry.");
   return true;
+}
+
+std::string gatherMethodKey(const std::string& url)
+{
+  PropertyTask* t = url.empty() ? 0 : EDSIFactory::getPropertyTask(EcceURL(url));
+  if (!t) return "";
+  std::string key = t->getProp(VDoc::getEcceNamespace() + ":application");
+  PropString* sm = dynamic_cast<PropString*>(t->getProperty("SOLVMODEL"));
+  ICalculation* c = dynamic_cast<ICalculation*>(t);
+  if (c) {
+    TTheory* th = c->theory();
+    if (th) { key += " / " + th->toConciseString(); delete th; }
+    TGBSConfig* g = c->gbsConfig();
+    if (g) { key += " / " + g->name(); delete g; }
+    GUIValues* gv = c->guiparams();
+    for (const char* k : {"ES.Theory.DFT.XCFunctionals", "ES.Theory.SCF.Dispersion"}) {
+      GUIValue* v = gv ? gv->get(k) : 0;
+      if (v && !v->getValueAsString().empty()) key += " / " + v->getValueAsString();
+    }
+    delete gv;
+  }
+  if (sm) key += " / " + sm->value();
+  return key;
 }

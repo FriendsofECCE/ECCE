@@ -3347,6 +3347,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_thermo_panel PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # ecce-thermo --reactions: reaction overview data (#709).
+  add_test(NAME apps_thermo_reactions
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_reactions_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_thermo_reactions PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Organizer File > Export > Supporting Information (#625).
   add_test(NAME apps_si_export
            COMMAND ${PYTHON3_EXECUTABLE}
