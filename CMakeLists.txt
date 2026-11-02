@@ -1291,6 +1291,12 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displace.py
         DESTINATION bin RENAME ecce-displace
         COMPONENT client)
 
+# ecce-si-export (#625): xyz + table of stored calculations for a
+# Supporting Information file.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_si_export.py
+        DESTINATION bin RENAME ecce-si-export
+        COMPONENT client)
+
 # scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
 # Potential job, so it only has to exist on the client.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
@@ -2556,6 +2562,11 @@ add_test(NAME displacement
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/displacement/run_tests.py)
 
+# tests/siexport -- scripts/ecce_si_export.py on stored ORCA, G16, ECCE-QM (#625).
+add_test(NAME siexport
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/siexport/run_tests.py)
+
 # tests/displace -- scripts/ecce_displace.py on stored ORCA and G16 modes (#618).
 add_test(NAME displace
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3249,6 +3260,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_panel_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_thermo_panel PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Organizer File > Export > Supporting Information (#625).
+  add_test(NAME apps_si_export
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/si_export_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_si_export PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Vibrations panel Displace: new calculations along a mode (#618).

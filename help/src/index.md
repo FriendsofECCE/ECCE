@@ -73,6 +73,9 @@ describe what you did and what happened.
    [How far the atoms moved](displacement.md): displacement from the first
    frame, colour by displacement, and the aligned difference between two
    calculations.
+   [Export for Supporting Information](si-export.md): the selected
+   calculations as one XYZ file with charge, multiplicity, E and G, and a
+   CSV or LaTeX table.
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a
    bond, an angle or a torsion fixed during an optimisation, and use a dummy
    atom as a reference point; the potential of ammonia as the example.
