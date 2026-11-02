@@ -197,6 +197,10 @@ void DetailsPanel::build()
         shown.Replace("Angstrom", wxString::FromUTF8("\xC3\x85"));
         w.unitLab = new wxStaticText(this, wxID_ANY,
             "  " + shown + wxString::FromUTF8("\n   " + rng));
+        // The Python dialog draws unit/range text one point smaller.
+        wxFont sf = GetFont();
+        sf.SetPointSize(sf.GetPointSize() - 1);
+        w.unitLab->SetFont(sf);
         row->Add(w.unitLab, 0, fl, 0);
       }
       grid->Add(row, 0, fl, 3);
@@ -294,7 +298,13 @@ void DetailsPanel::itemUpdated(int i)
   }
   for (wxWindow *x : {w.w, w.w2, (wxWindow*)w.lab, (wxWindow*)w.unitLab}) {
     if (!x) continue;
-    if (x->IsEnabled() != it.enabled) x->Enable(it.enabled);
+    if (x->IsEnabled() != it.enabled) {
+      x->Enable(it.enabled);
+      // The Python dialog greys a disabled entry's background.
+      if (x == w.w && (k == "text" || k == "float"))
+        x->SetBackgroundColour(it.enabled ? wxNullColour :
+            wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
+    }
     if (x->IsShown() != it.shown) x->Show(it.shown);
   }
 }
