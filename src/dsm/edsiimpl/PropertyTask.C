@@ -1725,9 +1725,9 @@ bool PropertyTask::getPropTSVecString(PropTSVecString* property,
 
 
    unsigned long numRows = doc.lastStep();
-   // Validate checke to make sure essential parts of the property are present
-   if (property->type().empty() || 
-       (numRows != 0)) {
+   // Validate check to make sure essential parts of the property are present
+   if (property->type().empty() ||
+       (numRows == 0)) {
       ret = false;
    }
 
@@ -1735,7 +1735,7 @@ bool PropertyTask::getPropTSVecString(PropTSVecString* property,
    //Now that we have all data let's stuff it into a transient property.
    //
    char * cp = 0;
-   for (size_t idx = 1; idx < doc.lastStep(); idx++) {
+   for (size_t idx = 0; idx < doc.lastStep(); idx++) {
       if ((cp = doc.values(idx))) {
          property->appendValue(cp);
          delete cp;

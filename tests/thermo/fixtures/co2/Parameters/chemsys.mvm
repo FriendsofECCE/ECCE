@@ -1,0 +1,15 @@
+title:
+type: molecule
+fragment_attributes:
+  point_group: Dinfh
+end_fragment_attributes:
+num_atoms: 3
+atom_info: symbol cart
+atom_list:
+C 0.000000 0.000000 0.000000
+O 0.000000 0.000000 1.160000
+O 0.000000 0.000000 -1.160000
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0

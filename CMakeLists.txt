@@ -285,6 +285,7 @@ ecce_library(eccetdat
   src/tdat/properties
   src/tdat/reaction
   src/tdat/resources
+  src/tdat/thermo
 )
 
 # --- src/dsm -> 5 separate libraries, matching the old per-subdir mapping ---
@@ -577,6 +578,14 @@ target_include_directories(lineprofile PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(lineprofile PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
+# Recompute H, S, G from a calculation's stored frequencies with a chosen
+# low-frequency treatment (#692); the thermochemistry lives in tdat/thermo.
+add_executable(ecce-thermo
+  src/apps/thermo/ecce-thermo.C src/apps/thermo/ThermoGather.C)
+target_include_directories(ecce-thermo PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/apps/thermo ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-thermo PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
 # flock(1) for the session scripts where util-linux is absent (macOS).
 if(NOT WIN32)   # the Windows client has no session scripts (#133)
   add_executable(ecce-flock src/apps/flock/ecce-flock.c)
@@ -1165,7 +1174,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-reconnect ecce-fetch ecce-site-admin mocomp
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -2302,6 +2311,23 @@ add_executable(compare_energies_test tests/compareenergies/compare_energies_test
 target_include_directories(compare_energies_test PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer ${XercesC_INCLUDE_DIRS})
 target_link_libraries(compare_energies_test PRIVATE eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
 add_test(NAME compare_energies COMMAND compare_energies_test)
+# Thermochemistry recomputed from stored frequencies (#692): ORCA and hand oracles.
+add_executable(thermo_test tests/thermo/thermo_test.C
+  src/tdat/thermo/ThermoChem.C)
+target_link_libraries(thermo_test PRIVATE ecceutil)
+add_test(NAME thermo COMMAND thermo_test)
+# gatherThermoInput reads real stored calculations through FileEDSI (#692):
+# the mass, rotational constants, linear flag and symmetry number come from
+# the stored geometry and point group, never from the test.
+add_executable(thermo_gather_test tests/thermo/thermo_gather_test.C
+  src/apps/thermo/ThermoGather.C src/tdat/thermo/ThermoChem.C)
+target_include_directories(thermo_gather_test PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/apps/thermo ${XercesC_INCLUDE_DIRS})
+target_link_libraries(thermo_gather_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+add_test(NAME thermo_gather COMMAND thermo_gather_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(thermo_gather PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=thermo;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/thermo-gather-home")
 # Recipes (#710): parser, rules and the key-data numbers (no wx)
 add_executable(recipe_test tests/recipes/recipe_test.C
   src/apps/organizer/Recipe.C src/apps/organizer/KeyData.C
