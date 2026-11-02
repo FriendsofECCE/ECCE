@@ -37,6 +37,13 @@ const std::vector<ThermoTreatmentInfo>& thermoTreatments();
 /** Runs ecce-thermo on one calculation; oneMolar selects the 1 M standard state. */
 ThermoRunResult runThermo(const std::string& url, double kelvin, bool oneMolar);
 
+/**
+ * Runs `ecce-thermo --reactions file --chosen treatment --format csv` (#709)
+ * and returns its CSV; false with `error` when it could not be run.
+ */
+bool runThermoReactions(const std::string& file, const std::string& treatment,
+                        std::string& csv, std::string& error);
+
 /** Hartree -> kJ/mol, the constant ecce-thermo uses. */
 double thermoHartreeToKJ(double hartree);
 

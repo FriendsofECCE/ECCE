@@ -17,6 +17,7 @@
 #include <wx/textctrl.h>
 
 #include "CompareEnergies.H"
+#include "ReactionOverviewDialog.H"
 #include "util/ThermoRun.H"
 
 using std::string;
@@ -87,6 +88,21 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
     }
   });
   buttons->Add(copy, 0, wxRIGHT, 8);
+  wxButton *overview = new wxButton(this, wxID_ANY, _("Reaction overview..."));
+  overview->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    // Side A is the reactants and B the products; a negative term goes across.
+    string lhs, rhs;
+    for (int s = 0; s < 2; s++)
+      for (const std::pair<string, int>& t : termsOf(s)) {
+        string& side = ((t.second < 0) == (s == 0)) ? rhs : lhs;
+        if (!side.empty()) side += ", ";
+        const int n = t.second < 0 ? -t.second : t.second;
+        side += (n > 1 ? std::to_string(n) + "*" : string()) + t.first;
+      }
+    ReactionOverviewDialog dlg(this, lhs + " -> " + rhs);
+    dlg.ShowModal();
+  });
+  buttons->Add(overview, 0, wxRIGHT, 8);
   buttons->AddStretchSpacer();
   buttons->Add(new wxButton(this, wxID_CLOSE, _("Close")));
   top->Add(buttons, 0, wxEXPAND | wxALL, 10);

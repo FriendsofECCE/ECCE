@@ -109,3 +109,30 @@ ThermoRunResult runThermo(const string& url, double kelvin, bool oneMolar)
   if (!r.ok) r.error = "ecce-thermo gave no values.";
   return r;
 }
+
+bool runThermoReactions(const string& file, const string& treatment, string& csv,
+                        string& error)
+{
+  const char *home = getenv("ECCE_HOME");
+  const string exe = (home && *home ? string(home) + "/bin/" : string()) + "ecce-thermo";
+  auto q = [](const string& v) {
+    string o;
+    for (char c : v) o += c == '\'' ? string("'\\''") : string(1, c);
+    return "'" + o + "'";
+  };
+#ifdef _WIN32
+  const string cmd = "\"" + exe + ".exe\" --reactions \"" + file + "\" --chosen " + treatment +
+                     " --format csv";
+#else
+  const string cmd = q(exe) + " --reactions " + q(file) + " --chosen " + q(treatment) +
+                     " --format csv 2>/dev/null";
+#endif
+  const int status = Ecce::readCommand(cmd, csv);
+  if (status != 0 || csv.compare(0, 8, "reaction") != 0) {
+    const size_t e = csv.find("error: ");
+    error = e == string::npos ? "ecce-thermo could not be run."
+                              : csv.substr(e + 7, csv.find('\n', e) - e - 7);
+    return false;
+  }
+  return true;
+}

@@ -244,7 +244,13 @@ Per code:
   calculations.
 * Compare Energies (Organizer): the difference of two final energies in
   Hartree, kJ/mol, kcal/mol and eV, with notes on differing code, method
-  or basis set.
+  or basis set. Its Reaction overview button charts dE and dG of several
+  reactions (reactants -> products, one per line), each dG with its spread
+  over the six low-frequency treatments as an error bar; clicking a reaction
+  lists the modes below 100 cm-1 with their share of S and of the G
+  correction. A reaction whose species differ in code, method, basis set
+  or solvent is refused with the reason. Export: CSV and PNG. The same
+  numbers: `ecce-thermo --reactions FILE [--format text|json|csv]`.
 * MD: MD Summary (final values, averages with standard deviations),
   trajectory playback in the true box (including dodecahedral and
   truncated-octahedral cells), every logged series against time with a

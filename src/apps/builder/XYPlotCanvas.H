@@ -108,6 +108,16 @@ class XYPlotCanvas : public wxPanel
       Refresh();
     }
 
+    /** Error bars: the absolute low and high y of each point (NaN = none). */
+    void setCurveErrorBars(int curve, const std::vector<double>& lo,
+                           const std::vector<double>& hi)
+    {
+      if (!curveOk(curve)) return;
+      p_curves[curve].errLo = lo;
+      p_curves[curve].errHi = hi;
+      Refresh();
+    }
+
     /** 0 circle, 1 square, 2 cross. */
     void setCurveMarker(int curve, int marker)
     {
@@ -554,6 +564,7 @@ class XYPlotCanvas : public wxPanel
       int  width = 2;        // line width when not thin
       Style style;
       wxColour colour;       // invalid: the palette's series colour
+      std::vector<double> errLo, errHi;   // optional error bars (absolute y)
     };
 
     wxColour colourOf(const Curve& cv) const
@@ -735,6 +746,11 @@ class XYPlotCanvas : public wxPanel
           if (!any) { x0 = x1 = x; y0 = y1 = y; any = true; continue; }
           x0 = std::min(x0, x); x1 = std::max(x1, x);
           y0 = std::min(y0, y); y1 = std::max(y1, y);
+          const Curve& cv = p_curves[c];
+          for (const std::vector<double>* e : {&cv.errLo, &cv.errHi})
+            if (i < e->size() && std::isfinite(ty((*e)[i]))) {
+              y0 = std::min(y0, ty((*e)[i])); y1 = std::max(y1, ty((*e)[i]));
+            }
         }
       if (!any) return false;
       double dx = x1 - x0, dy = y1 - y0;
@@ -859,6 +875,16 @@ class XYPlotCanvas : public wxPanel
         dc.SetPen(wxPen(col, 1));
         dc.SetBrush(wxBrush(col));
         for (size_t i = 0; i < pts.size(); i++) drawMarker(dc, cv.marker, pts[i]);
+      }
+      //  Error bars: a vertical line with caps (points with a gap are skipped).
+      dc.SetPen(wxPen(col, 1));
+      for (size_t i = 0; i < cv.x.size() && i < cv.errLo.size() && i < cv.errHi.size(); i++) {
+        if (!std::isfinite(cv.x[i]) || !std::isfinite(cv.errLo[i]) ||
+            !std::isfinite(cv.errHi[i])) continue;
+        const int px = xOf(cv.x[i]), a = yOf(cv.errLo[i]), b = yOf(cv.errHi[i]);
+        dc.DrawLine(px, a, px, b);
+        dc.DrawLine(px - 4, a, px + 5, a);
+        dc.DrawLine(px - 4, b, px + 5, b);
       }
     }
 
