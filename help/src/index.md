@@ -70,6 +70,9 @@ describe what you did and what happened.
    bond lengths.
    [Arranging the Viewer's panels](viewer-panels.md): take a panel out into a
    window of its own when its plot or table needs more room.
+   [How far the atoms moved](displacement.md): displacement from the first
+   frame, colour by displacement, and the aligned difference between two
+   calculations.
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a
    bond, an angle or a torsion fixed during an optimisation, and use a dummy
    atom as a reference point; the potential of ammonia as the example.
