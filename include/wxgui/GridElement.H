@@ -40,6 +40,8 @@ class GridElement
     virtual GridProperty *getProperty() const;
     virtual GridProperty::PropertyType getPropertyType();
     virtual wxGridCellAttr *getAttributes();
+    /// Non-empty: the row is drawn greyed and struck through, this is why (#617).
+    virtual string mutedReason() const;
 
 
     virtual int getDefaultWidth();

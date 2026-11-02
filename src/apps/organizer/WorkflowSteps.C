@@ -252,6 +252,43 @@ vector<Resource*> WorkflowSteps::createBest(Session *wf, ResourceType *rt,
 }
 
 
+vector<Resource*> WorkflowSteps::createPatterns(Session *wf, ResourceType *rt,
+                                                const string& name,
+                                                Resource *source,
+                                                const Carry& carry, string& why)
+{
+  vector<Resource*> made;
+  PropertyTask *task = dynamic_cast<PropertyTask*>(source);
+  vector<ScanPoint::Pattern> pats;
+  if (!ScanPoint::ensemblePatterns(task, pats, why)) return made;
+  const int size = ScanPoint::ensembleSize(task);
+  for (size_t k = 0; k < pats.size(); k++) {
+    Carry c = carry;
+    c.point = "c" + std::to_string(pats[k].rank);
+    Resource *step = create(wf, rt, name + "-pat" + std::to_string(k + 1),
+                            source, c, why);
+    if (!step) {
+      for (size_t i = 0; i < made.size(); i++) {
+        try { wf->removeMember(made[i]); } catch (...) {}
+        made[i]->remove();
+      }
+      made.clear();
+      return made;
+    }
+    char note[400];
+    snprintf(note, sizeof note,
+             "Pattern %d of %d, %s (%d of %d conformers): conformer %d of %s, "
+             "relative energy %.3f kcal/mol (within the CREST method only).",
+             (int)k + 1, (int)pats.size(), pats[k].label.c_str(),
+             pats[k].count, size, pats[k].rank, source->getName().c_str(),
+             pats[k].relative);
+    step->addProp(VDoc::getEcceNamespace() + ":annotation", note);
+    made.push_back(step);
+  }
+  return made;
+}
+
+
 bool WorkflowSteps::canJoin(const Code& code)
 {
   const string t = code.typeName;
@@ -476,6 +513,8 @@ vector<Resource*> WorkflowSteps::readySteps(Session *wf, vector<string> *waiting
   for (size_t i = 0; i < nodes.size(); i++) {
     Resource *step = nodes[i].step;
     if (isLaunched(step)) continue;
+    // An excluded step is not launched (#617).
+    if (!step->getProp(VDoc::getEcceNamespace() + ":excluded").empty()) continue;
     bool sourcesDone = true;
     for (size_t k = 0; k < nodes[i].in.size(); k++)
       if (!isComplete(nodes[i].in[k].source)) sourcesDone = false;

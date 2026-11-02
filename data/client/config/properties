@@ -148,7 +148,7 @@ Energy		HOMO-LUMO Gap			HLGAP		NA		PropValue	Derived
 Energy		Relative Conformer Energy		CONFREL		NA		PropTSVector<Geometry Step>
 # Docking poses: one GEOMTRACE frame and one score per pose (kcal/mol), ranked by
 # the score within one run; another docking code gives its score its own key.
-Energy		Docking Pose Score			POSESCORE	NA		PropTSVector<Geometry Step>
+Energy		Interaction energy (kcal/mol, monomers not relaxed)			POSESCORE	NA		PropTSVector<Geometry Step>
 #
 Energy		Zero Point Energy			EZEROPT		Energy		PropValue	Thermochemistry
 #

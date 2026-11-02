@@ -39,6 +39,7 @@
 using std::cerr;
 #include <set>
 using std::set;
+using std::string;
 using std::endl;
 
 #include "wx/treectrl.h"
@@ -109,6 +110,17 @@ bool WxResourceTreeCtrl::Create(wxWindow* parent, wxWindowID id,
     wxFAIL_MSG( wxT("WxResourceTreeCtrl creation failed") );
     return false;
   }
+
+  // A tooltip with the reason, on an excluded calculation (#617).
+  Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
+    int flags = 0;
+    wxTreeItemId hit = HitTest(e.GetPosition(), flags);
+    string tip = hit.IsOk() ? itemTip(hit) : string();
+    wxString now = GetToolTipText();
+    wxString want = wxString::FromUTF8(tip.c_str());
+    if (now != want) SetToolTip(want);
+    e.Skip();
+  });
 
   // Somehow putting this space and indent setting in ewxTreeCtrl() won't work
   SetSpacing(8);
@@ -1030,6 +1042,32 @@ void WxResourceTreeCtrl::setItemImages(const wxTreeItemId& itemId,
   SetItemImage(itemId, resIcon+2, wxTreeItemIcon_Expanded);
   SetItemImage(itemId, resIcon+3, wxTreeItemIcon_SelectedExpanded);
   SetItemState(itemId, getStateIndex(resource));
+
+  // Excluded: grey and struck through, so it reads as not part of the set.
+  if (!excludedReason(resource).empty()) {
+    wxFont f = GetFont();
+    f.SetStrikethrough(true);
+    SetItemFont(itemId, f);
+    SetItemTextColour(itemId, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  } else {
+    SetItemFont(itemId, GetFont());
+    SetItemTextColour(itemId, GetForegroundColour());
+  }
+}
+
+
+string WxResourceTreeCtrl::excludedReason(Resource * resource)
+{
+  if (!resource || !resource->hasAccess()) return "";
+  return resource->getProp(VDoc::getEcceNamespace() + ":excluded");
+}
+
+
+string WxResourceTreeCtrl::itemTip(const wxTreeItemId& id)
+{
+  WxResourceTreeItemData *d = dynamic_cast<WxResourceTreeItemData*>(GetItemData(id));
+  string why = d ? excludedReason(d->getResource()) : string();
+  return why.empty() ? why : "Excluded: " + why;
 }
 
 

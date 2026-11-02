@@ -328,8 +328,17 @@ sub RunTypeOptions {
   # The settings go in an xtb control block (the "$md" lines below line 1);
   # scripts/gensub writes them to xtb.md.
   return "--md --input xtb.md" if ($runtype eq "Molecular Dynamics");
+  # Not an xtb option: gensub strips it and hands the settings to
+  # ecce-confsearch, which runs xtb --opt on each random start structure.
+  if ($runtype eq "Conformer search (simple)") {
+    my $n = int(&MdNumber("ES.Runtype.Conformers.Samples", 30));
+    my $seed = int(&MdNumber("ES.Runtype.Conformers.Seed", 682));
+    my $ewin = &MdNumber("ES.Runtype.Conformers.EnergyWindow", 6);
+    my $rmsd = &MdNumber("ES.Runtype.Conformers.RMSD", 0.25);
+    return "--opt normal --ecce-confsearch samples=$n,seed=$seed,ewin=$ewin,rmsd=$rmsd";
+  }
   die "ai.xtb error: unsupported runtype '$runtype' (Energy, Geometry, " .
-      "Vibration, GeoVib, Molecular Dynamics and Docking (aISS) only)\n";
+      "Vibration, GeoVib, Molecular Dynamics, Conformer search (simple) and Docking (aISS) only)\n";
 }
 
 sub MdNumber {

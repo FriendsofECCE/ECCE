@@ -831,6 +831,7 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
   p_charge = 0;
   p_best = 0;
   p_bestN = 0;
+  p_patterns = 0;
   if (!source) {
     // Nothing to carry over: say so instead of showing dead checkboxes.
     top->Add(new wxStaticText(this, wxID_ANY,
@@ -871,6 +872,21 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
                                wxDefaultSize, wxSP_ARROW_KEYS, 1, conformers,
                                std::min(3, conformers));
       p_bestN->Enable(false);
+      std::vector<ScanPoint::Pattern> pats;
+      std::string patWhy;
+      if (ScanPoint::ensemblePatterns(dynamic_cast<PropertyTask*>(source),
+                                      pats, patWhy)) {
+        p_patterns = new wxCheckBox(this, wxID_ANY,
+            wxString::Format("One per coordination pattern (%d patterns, "
+                             "lowest energy of each)", (int)pats.size()));
+        p_patterns->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
+          const bool on = p_patterns->GetValue();
+          if (on) p_best->SetValue(false);
+          p_best->Enable(!on);
+          p_bestN->Enable(!on && p_best->GetValue());
+          p_geometry->Enable(!on);
+        });
+      }
       p_best->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
         p_bestN->Enable(p_best->GetValue());
         p_geometry->Enable(!p_best->GetValue());
@@ -883,6 +899,7 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
                                 conformers)),
                0, wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
       top->Add(row, 0, wxLEFT | wxTOP, 28);
+      if (p_patterns) top->Add(p_patterns, 0, wxLEFT | wxTOP, 28);
     }
   }
 
@@ -926,7 +943,10 @@ WorkflowSteps::Carry WorkflowStepDialog::carry() const
   if (p_geometry) c.geometry = p_geometry->GetValue();
   if (p_charge) c.chargeMult = p_charge->GetValue();
   if (p_point) c.point = p_point->spec();
-  if (p_best && p_best->GetValue()) {
+  if (p_patterns && p_patterns->GetValue()) {
+    c.perPattern = true;
+    c.geometry = true;
+  } else if (p_best && p_best->GetValue()) {
     c.best = p_bestN->GetValue();
     c.geometry = true;
   }

@@ -37,12 +37,17 @@ What a second docking code (AutoDock Vina, #455) reuses; xtb is the first user.
   `WorkflowSteps::createBest` writes "Pose K of N ... score" for poses
   (`ScanPoint::ensembleIsPoses`). Test: `workflow_test.py` `run_best_poses`.
 - **xtb**: run type `Docking (aISS)`, `xtb dock receptor.xyz ligand.xyz`.
-  gensub takes the poses from `optimized_structures.xyz`, else
-  `best_after_gen.xyz` (the genetic algorithm's best pose); the comment line
-  of a pose ends in its interaction energy.
-- **xtb 6.7.1 (Debian 13) aborts** in `xtb dock`, after the genetic
-  optimisation ("stack smashing", GFN2; "allocate already allocated 'neigh'",
-  GFN-FF), exit 134 or 2, leaving only `best_after_gen.xyz`. The format of
-  `optimized_structures.xyz` is therefore unchecked against a successful run.
-  `tests/launch/dock_test.py` probes for that and runs a stand-in xtb script
-  when the real one aborts.
+  Real format (xtb 6.7.1-e20416b, a build newer than the release): the poses
+  are `final_structures.xyz` (ranked; the comment line is the TOTAL energy in
+  Hartree, not a score), and the interaction energies (kcal/mol) exist only in
+  stdout, a table after "Interaction energies" / `# E_int (kcal/mol)`, one row
+  per pose in the file's order. gensub reads both and writes each frame's
+  comment as `score: <E_int> energy: <E_h>`, so `xtb.geomtrace` gives
+  GEOMTRACE, TEVEC and POSESCORE. xtb says the monomers are not optimized and
+  the energies are not physical; the POSESCORE label carries that.
+  Fixture: `tests/parsers/fixtures/xtb/h2o_dimer_dock.out`.
+- **xtb 6.7.1 (the release, and Debian 13) aborts** in `xtb dock` after the
+  genetic optimisation ("stack smashing", GFN2; "allocate already allocated
+  'neigh'", GFN-FF). `tests/launch/dock_test.py` uses the xtb named by
+  `ECCE_TEST_XTB_DOCK` (else the one on PATH) when a probe shows its dock
+  works, else a stand-in that writes the real format, and prints which.

@@ -149,6 +149,11 @@ public:
   // Re-Parse Outputs (#651): parsers and progress record over the stored
   // outputs of the selected calculations; no login, state and dates kept.
   void OnReparseOutputsClick( wxCommandEvent& event );
+  /// "New series from this...": one calculation per structure with the
+  /// template's setup (#621); `sources` are .xyz paths or calculation URLs.
+  void OnNewSeriesClick( wxCommandEvent& event );
+  void newSeries(const EcceURL& templ, const vector<string>& sources,
+                 string *outcome);
   void OnTerminateSelectedClick( wxCommandEvent& event );
   void reparseOutputs(const vector<EcceURL>& urls, bool interactive,
                       string *outcome = 0);
@@ -181,7 +186,9 @@ public:
   // ecce-annotate (#742): the Annotation field set without the editor; same
   // line format ("name\tok\t" or "name\tno\treason"). Never refused.
   bool annotateForCommand(const vector<EcceURL>& urls, const string& text,
-                          vector<string>& lines);
+                          vector<string>& lines, const string& key = "");
+  // Exclude... / Include again on the selection (#617); the same store.
+  void excludeSelected(bool exclude);
   // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
   bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
   // ecce-fetch: run-directory files into the Outputs (or a listing).
@@ -498,6 +505,10 @@ protected:
   class CompareEnergiesDialog *newCompareEnergiesDialog(const vector<EcceURL>& sel);
   void OnCompareEnergies(wxCommandEvent& event);
   bool p_compareEnergiesWired = false;
+  // File > Export > Supporting Information (#625).
+  void OnSiExport(wxCommandEvent& event);
+  void OnChecks(wxCommandEvent& event);
+  bool p_siExportWired = false;
   // Tools > Allocations (#613).
   void OnAllocations(wxCommandEvent& event);
   bool p_allocationsWired = false;

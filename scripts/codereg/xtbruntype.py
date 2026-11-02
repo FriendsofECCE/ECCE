@@ -109,6 +109,42 @@ class XtbRunTypePanel(EccePanel):
             mdSizer.AddWidget(self.shake)
             self.panelSizer.Add(mdSizer)
 
+        if EcceGlobals.RunType == "Conformer search (simple)":
+            confSizer = EcceBoxSizer(self, label="Conformer Search", cols=1)
+            self.samples = EcceSpinCtrl(self,
+                                            name="ES.Runtype.Conformers.Samples",
+                                            default=30,
+                                            hardRange="[1..]",
+                                            label="Random samples:",
+                                            export=1)
+            confSizer.AddWidget(self.samples)
+            self.ewin = EcceFloatInput(self,
+                                       unit="kcal/mol",
+                                       name="ES.Runtype.Conformers.EnergyWindow",
+                                       default=6.0,
+                                       hardRange="(0..)",
+                                       softRange="[1..30]",
+                                       label="Energy window:",
+                                       export=1)
+            confSizer.AddWidget(self.ewin)
+            self.rmsd = EcceFloatInput(self,
+                                       unit="A",
+                                       name="ES.Runtype.Conformers.RMSD",
+                                       default=0.25,
+                                       hardRange="(0..)",
+                                       softRange="[0.05..1]",
+                                       label="Heavy-atom RMSD threshold:",
+                                       export=1)
+            confSizer.AddWidget(self.rmsd)
+            self.seed = EcceSpinCtrl(self,
+                                         name="ES.Runtype.Conformers.Seed",
+                                         default=682,
+                                         hardRange="[0..]",
+                                         label="Random seed:",
+                                         export=1)
+            confSizer.AddWidget(self.seed)
+            self.panelSizer.Add(confSizer)
+
         self.AddButtons()
 
     def CheckDependency(self):

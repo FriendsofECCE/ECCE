@@ -1,0 +1,35 @@
+Title "nwchem"
+
+Start  nwchem
+
+echo
+
+charge 0
+
+geometry autosym units angstrom
+ O     0.00000     0.00000     0.00000
+ H     0.766044     0.642788     0.00000
+ H     -0.766044     0.642788     0.00000
+end
+
+ecce_print ecce.out
+
+basis "ao basis" cartesian print
+  H library "6-31G*"
+  O library "6-31G*"
+END
+
+scf
+  RHF
+  nopen 0
+  vectors output nwchem.movecs
+end
+
+driver
+  default
+end
+
+task scf optimize
+scf
+end
+task scf gradient

@@ -9,10 +9,12 @@ eccejobmaster, eccejobstore and eccejobmonitor.  The result must be GEOMTRACE
 with one frame of all 43 atoms per pose, and POSESCORE (kcal/mol) with one score
 per pose, the K+ at atom 1 in every frame.
 
-xtb 6.7.1 (Debian) aborts in the final optimisation of xtb dock.  When a probe
-shows that, a stand-in "xtb" script that writes optimized_structures.xyz in the
-format xtb writes is used for the run, and the test says so; the deck, the
-split, gensub, the parser and the storage are the real ones either way.
+The 6.7.1 release of xtb (and Debian's) aborts in xtb dock; a current build
+works.  ECCE_TEST_XTB_DOCK names an xtb to use for the run; it is used when a
+probe shows its dock works, else the xtb on PATH is probed, else a stand-in
+script that writes final_structures.xyz and the E_int table is used.  The test
+says which.  The deck, the split, gensub, the parser and the storage are the
+real ones in every case.
 
     tests/launch/dock_test.py [--build build-cmake] [--keep]
 
@@ -71,15 +73,18 @@ def read(path):
     rows = open(path).read().split("\n")
     return [r.split() for r in rows[2:2 + int(rows[0])]]
 a, b = read(sys.argv[2]), read(sys.argv[3])
-with open("optimized_structures.xyz", "w") as out:
-    # Not in rank order on purpose: the score is what ranks the poses.
-    for i, e in enumerate((-20.5, -31.25, -12.0)):
-        out.write("%d\n SCF done %.8f\n" % (len(a) + len(b), e))
+energies = (-20.5, -31.25, -12.0)
+with open("final_structures.xyz", "w") as out:
+    for i, e in enumerate(energies):
+        out.write("%d\n %.8f\n" % (len(a) + len(b), -100.0 + e / 100))
         for r in a:
             out.write("%s %s %s %s\n" % tuple(r))
         for r in b:
             out.write("%s %.6f %.6f %.6f\n" % (r[0], float(r[1]) + 3.0 + i,
                                                 float(r[2]), float(r[3])))
+print(" Interaction energies\n #   E_int (kcal/mol)")
+for i, e in enumerate(energies):
+    print(" %d  %10.2f" % (i + 1, e))
 print(" normal termination of xtb")
 """
 
@@ -144,9 +149,10 @@ def realDockWorks(xtb):
         res = subprocess.run([xtb, "dock", "a.xyz", "b.xyz", "--gfnff", "--fast"],
                              cwd=probe, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, timeout=120)
-        poses = os.path.join(probe, "optimized_structures.xyz")
-        return (res.returncode == 0 and os.path.exists(poses)
-                and os.path.getsize(poses) > 0)
+        return res.returncode == 0 and any(
+            os.path.exists(os.path.join(probe, f)) and
+            os.path.getsize(os.path.join(probe, f)) > 0
+            for f in ("final_structures.xyz", "optimized_structures.xyz"))
     except Exception:
         return False
     finally:
@@ -161,6 +167,9 @@ def main():
     build = os.path.abspath(args.build)
 
     xtb = shutil.which("xtb")
+    env = os.environ.get("ECCE_TEST_XTB_DOCK")
+    if env and os.access(os.path.expanduser(env), os.X_OK):
+        xtb = os.path.expanduser(env)
     if not xtb:
         harness.skip("xtb is not installed")
     harness.prerequisites(build, ())
@@ -196,7 +205,9 @@ def main():
         with open(prog, "w") as h:
             h.write(STAND_IN)
         os.chmod(prog, 0o755)
-        say("  NOTE: xtb dock aborts with this xtb; using a stand-in for the run")
+        say("  NOTE: xtb dock aborts with %s; using a stand-in for the run" % xtb)
+    else:
+        say("  using the real xtb dock of %s" % xtb)
 
     s = harness.Session(build, "dock", {"xTB": prog}, local=True, keep=args.keep)
     work = os.path.join(s.state, "decks")
@@ -240,6 +251,9 @@ def main():
         check(len(score) >= 1, "%d poses stored" % len(score))
         check(len(geo) == len(score) * N * 3,
               "GEOMTRACE has one frame of %d atoms per pose" % N)
+        if real:
+            check(len(numbers(calc, "TEVEC")) == len(score),
+                  "one total energy (TEVEC) per pose")
         check(all(v < 0 for v in score),
               "interaction energies are negative: %r" % score)
         if not real and len(geo) == 3 * N * 3:

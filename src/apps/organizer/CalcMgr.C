@@ -89,6 +89,7 @@ static std::string s_registerMessage;
 
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
+#include "dsm/Series.H"
 #include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
@@ -176,6 +177,8 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CalcMgr.H"
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
+#include "SiExport.H"
+#include "ChecksDialog.H"
 #include "AllocationsDialog.H"
 
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
@@ -525,6 +528,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * progress <url> <file>
  *                 hand the snapshot in <file> to the Organizer as an
  *                 ecce_url_progress message does (empty file: forget it)
+ * newseries <template url> <source>...
+ *                 New Series from This (#621) without dialogs; the report,
+ *                 lines separated by " | "
  * duplicate <url> [last]
  *                 right-click <url> > Duplicate for Rerun (or Duplicate
  *                 Setup with Last Geometry); the tree's selection and
@@ -536,9 +542,17 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 its top
  * allocations    Tools > Allocations: prints "ALLOC: machine|account|used|
  *                 checked" for each row on stderr
+ * siexport <out.xyz> <csv|latex|none> <url>,<url>... [include-excluded]
+ *                 File > Export > Supporting Information (#625); "ok" or
+ *                 "failed: <why>"
+ * checks <out.csv> <url>,<url>...
+ *                 the Checks table dialog's rows (folders expanded) as CSV
+ *                 (#615); "ok" or "failed: <why>"
  * compareenergies <sideA> <sideB>
  *                 what Tools > Compare Energies shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
+ *                 an optional third word names an ecce-thermo treatment for
+ *                 the G row; the spread over treatments is always shown
  * comparedialog <sideA> <sideB> [png]
  *                 open that dialog preset to the two sides, report its text
  *                 areas and the Copy text, and save a capture of it
@@ -549,6 +563,11 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * checklines <url> <line>|<line>
  *                 what Check Job on Machine said, as if it had run
  * fold open|shut  fold the Progress box, as a click on its heading does
+ * exclude <url> <reason> | include <url>
+ *                 Exclude.../Include again (#617); "name\tok\t"
+ * tableexcluded  the shown project table's excluded rows, "name|tip|grey|strike"
+ * summaryexcluded the shown calculation summary's "Excluded: reason" line
+ * treetip <url>   the tree item's tooltip, strikethrough and grey (#617)
  * treestate <url> the tree icon's index, and those of running and of
  *                 out of contact
  * tablestates     the shown project table's State cells
@@ -560,6 +579,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
+static const int ID_SI_EXPORT = wxNewId();
+static const int ID_CHECKS = wxNewId();
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -874,6 +895,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     a code button without the dialog (type = e.g. orca_es)
       //     point=last|max|N: the scan point the link carries
       //     best=N: from a CREST ensemble, N steps (conformers by energy)
+      //     patterns: one step per coordination pattern of the ensemble
       //   workflowjoin WF TYPE NAME SRC=role[@point] ...   a join, roles
       //     reactant|product|tsguess; the step's structure files as
       //     TS Search writes them: workflowqst WF STEP
@@ -887,6 +909,8 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
       //     code button or the tree's New menu makes it, the New-step dialog
       //     logged instead of shown: "ok <made> dialogs=carry;|nocarry;"
+      //   workflowicons WF      box icons and tree icons, polled until
+      //     they agree: "ok|differ icons=STEP:N,.. tree=STEP:N,.."
       //   workflowlaunchbutton WF   the view's Launch Ready Steps button:
       //     label, shown, inside the view (not clicked)
       //   workflowmenu WF STEP  a right-click on STEP's box: the menu's
@@ -903,6 +927,7 @@ void CalcMgr::runTestCommand(const string& line)
           if (flag == "nocharge") carry.chargeMult = false;
           if (flag.compare(0, 9, "geomfrom=") == 0) geomFrom = flag.substr(9);
           if (flag.compare(0, 6, "point=") == 0) carry.point = flag.substr(6);
+          if (flag == "patterns") carry.perPattern = true;
           if (flag.compare(0, 5, "best=") == 0) carry.best = atoi(flag.c_str() + 5);
           if (flag.compare(0, 7, "charge=") == 0) setCharge = atoi(flag.c_str() + 7);
           if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
@@ -1033,6 +1058,43 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok " + WorkflowSteps::info(wf);
       } else if (command == "workflowlaunch") {
         launchReadySteps(wf, false, &outcome, "");
+      } else if (command == "workflowicons") {
+        // Box icons and tree icons read in the same poll, until they agree
+        // (the tree follows a stored state change a moment later) or 10 s.
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        if (!wp) {
+          outcome = "no workflow panel";
+        } else {
+          string boxes, tree;
+          bool same = false;
+          for (int i = 0; i < 200 && !same; i++) {
+            if (i) { wxYield(); wxMilliSleep(50); }
+            string rep = wp->layoutReport();
+            size_t at = rep.find("icons=");
+            boxes = at == string::npos ? "" : rep.substr(at + 6);
+            tree.clear();
+            vector<Resource*> members = wf->getMembers();
+            for (size_t m = 0; m < members.size(); m++) {
+              WxResourceTreeItemData *n = p_treeCtrl->findNode(
+                  members[m]->getURL(), true, true);
+              tree += (m ? "," : "") + members[m]->getName() + ":" +
+                  (n ? std::to_string(p_treeCtrl->GetItemState(n->GetId()))
+                     : string("-"));
+            }
+            auto sorted = [](const string& list) {
+              std::vector<string> v;
+              std::istringstream in(list);
+              for (string t; std::getline(in, t, ',');) v.push_back(t);
+              std::sort(v.begin(), v.end());
+              return v;
+            };
+            same = sorted(boxes) == sorted(tree);
+          }
+          outcome = string(same ? "ok" : "differ") + " icons=" + boxes +
+                    " tree=" + tree;
+        }
       } else if (command == "workflowshot") {
         p_treeCtrl->SelectItem(wfNode->GetId());
         for (int i = 0; i < 5; i++) wxYield();
@@ -1563,6 +1625,39 @@ void CalcMgr::runTestCommand(const string& line)
       for (int i = 0; i < 5; i++) wxYield();
       outcome = box ? string("folded=") + (box->collapsed() ? "1" : "0")
                     : string("no box");
+    } else if (command == "exclude" || command == "include") {
+      // "exclude <url> <reason...>" / "include <url>": the menu items without
+      // the dialog; the reason is stored as ecce:excluded.
+      std::istringstream args(calcName);
+      string url, reason;
+      args >> url;
+      std::getline(args >> std::ws, reason);
+      vector<EcceURL> sel(1, EcceURL(url));
+      vector<string> lines;
+      annotateForCommand(sel, command == "exclude" ? reason : string(), lines,
+                         "excluded");
+      outcome = lines.empty() ? string("none") : lines[0];
+    } else if (command == "tableexcluded" || command == "summaryexcluded") {
+      // The shown project table's excluded rows (name|tooltip|grey|strike), or
+      // the shown calculation summary's Excluded line (#617).
+      ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      CalculationContextPanel *sum = dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      if (command == "tableexcluded") {
+        outcome = table ? "rows" : "no table";
+        if (table) for (const string& r : table->excludedRows()) outcome += " ; " + r;
+      } else {
+        outcome = sum ? "line=" + sum->excludedLine() : string("no summary");
+      }
+    } else if (command == "treetip") {
+      // "treetip <url>": tooltip text, font strike and text colour of the item
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
+      if (!node) outcome = "no node";
+      else {
+        wxColour c = p_treeCtrl->GetItemTextColour(node->GetId());
+        outcome = "tip=" + p_treeCtrl->itemTip(node->GetId()) + " strike=" +
+            (p_treeCtrl->GetItemFont(node->GetId()).GetStrikethrough() ? "1" : "0") +
+            " grey=" + (c == wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT) ? "1" : "0");
+      }
     } else if (command == "treestate") {
       // "treestate <url>": the tree icon shown, against those of running
       // and of out of contact.
@@ -1693,6 +1788,41 @@ void CalcMgr::runTestCommand(const string& line)
         fprintf(stderr, "ALLOC: %s\n", r.c_str());
       outcome = "ok " + std::to_string(d->rowTexts().size()) + " rows";
       d->Destroy();
+    } else if (command == "siexport") {
+      // "siexport <out.xyz> <csv|latex|none> <url>,<url>...": File > Export >
+      // Supporting Information without its dialogs.
+      std::istringstream args(calcName);
+      string out, table, urls;
+      string flag;
+      args >> out >> table >> urls >> flag;
+      vector<EcceURL> sel;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        sel.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      string why;
+      outcome = siExport(sel, out, table == "none" ? string() : table, why,
+                       flag == "include-excluded")
+                ? string("ok") : "failed: " + why;
+    } else if (command == "checks") {
+      // "checks <out.csv> <url>,<url>...": the Checks table dialog's rows
+      // (folders expanded to their calculations) written as CSV (#615).
+      std::istringstream args(calcName);
+      string out, urls;
+      args >> out >> urls;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      ChecksDialog dlg(this, calculationsUnder(roots));
+      string why;
+      if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
+      else outcome = "failed: " + why;
     } else if (command == "compareenergies" || command == "comparedialog") {
       // "compareenergies <sideA> <sideB>": the table and notes the dialog
       // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
@@ -1701,8 +1831,12 @@ void CalcMgr::runTestCommand(const string& line)
       string ua, ub, png;
       args >> ua >> ub >> png;
       if (command == "compareenergies") {
-        const SumResult c = sumEnergies(gatherSide(ua), gatherSide(ub));
+        // The optional third word is an ecce-thermo treatment for the G row.
+        const vector<EnergyTerm> ta = gatherSide(ua), tb = gatherSide(ub);
+        SumResult c = sumEnergies(ta, tb);
+        const string problem = applyThermoTreatments(c, ta, tb, png == "stored" ? string() : png);
         outcome = "ok";
+        if (!problem.empty()) outcome += " | Problem: " + problem;
         std::istringstream lines(sumText(c, false));
         for (string l; std::getline(lines, l); ) outcome += " | " + l;
       } else {
@@ -1898,6 +2032,17 @@ void CalcMgr::runTestCommand(const string& line)
       vector<EcceURL> urls;
       while (args >> u) urls.push_back(EcceURL(u));
       reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist");
+    } else if (command == "newseries") {
+      // "newseries TEMPLATE_URL SOURCE...": New Series without dialogs; the
+      // answer is the report, newlines as " | ".
+      std::istringstream args(calcName);
+      string t, s;
+      args >> t;
+      vector<string> sources;
+      while (args >> s) sources.push_back(s);
+      newSeries(EcceURL(t), sources, &outcome);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
     } else if (command == "reparseoutputs") {
       // "reparseoutputs URL...": Re-Parse Outputs without dialogs.
       std::istringstream args(calcName);
@@ -3663,10 +3808,12 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
 //  another process (#742), on any node of the tree: calculations and MD
 //  study tasks alike. The tree and the other apps are told as after an edit.
 bool CalcMgr::annotateForCommand(const vector<EcceURL>& urls,
-                                 const string& text, vector<string>& lines)
+                                 const string& text, vector<string>& lines,
+                                 const string& key)
 {
   lines.clear();
-  const string property = VDoc::getEcceNamespace() + ":annotation";
+  const string property = VDoc::getEcceNamespace() + ":" +
+                          (key.empty() ? string("annotation") : key);
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
     if (!n || !n->getResource()) {
@@ -3679,9 +3826,31 @@ bool CalcMgr::annotateForCommand(const vector<EcceURL>& urls,
     }
     updateUrl(urls[i]);
     notifyProperty(urls[i].toString(), property, text);
+    if (key == "excluded") p_treeCtrl->refreshState(n);
     lines.push_back(n->getName() + "\tok\t");
   }
   return true;
+}
+
+
+//  Exclude... asks for the reason (one for all selected); Include again
+//  clears it. Local, server and CLI all store ecce:excluded the same way.
+void CalcMgr::excludeSelected(bool exclude)
+{
+  string reason;
+  if (exclude) {
+    ewxTextEntryDialog dialog(this,
+        "Why is this calculation excluded? (shown as its tooltip and in "
+        "exports)", "Exclude", "", wxOK | wxCANCEL);
+    if (dialog.ShowModal() != wxID_OK) return;
+    reason = dialog.GetValue();
+    if (reason.empty()) reason = "excluded";
+  }
+  vector<string> lines;
+  annotateForCommand(p_currentSelection, reason, lines, "excluded");
+  for (size_t i = 0; i < lines.size(); i++)
+    if (lines[i].find("\tno\t") != string::npos)
+      setMessage(lines[i], WxFeedback::ERROR);
 }
 
 
@@ -3846,6 +4015,76 @@ void CalcMgr::OnTerminateSelectedClick( wxCommandEvent& event )
            live.size() == 1 ? "" : "s",
            skipped ? (", " + std::to_string(skipped) + " skipped (not running)").c_str() : "");
   setMessage(msg);
+}
+
+
+// The template is the selected calculation; other calculations selected with
+// it, and the .xyz files picked here, are the structures.
+void CalcMgr::OnNewSeriesClick( wxCommandEvent& event )
+{
+  if (refuseDuringBatch("New Series")) return;
+  vector<EcceURL> rows = launchSelection();
+  getSelection();
+  if (p_currentSelection.empty()) return;
+  const EcceURL templ = p_currentSelection[0];
+  vector<string> sources;
+  for (size_t i = 0; i < rows.size(); i++)
+    if (rows[i].toString() != templ.toString())
+      sources.push_back(rows[i].toString());
+  for (size_t i = 1; i < p_currentSelection.size(); i++) {
+    string u = p_currentSelection[i].toString();
+    if (std::find(sources.begin(), sources.end(), u) == sources.end())
+      sources.push_back(u);
+  }
+  ewxFileDialog dlg(this, "Structures for the series (.xyz files)",
+                    Ecce::realUserHome(), "", "XYZ files|*.xyz|All Files|*",
+                    wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST,
+                    wxDefaultPosition);
+  if (dlg.ShowModal() == wxID_OK) {
+    wxArrayString paths;
+    dlg.GetPaths(paths);
+    for (size_t i = 0; i < paths.GetCount(); i++)
+      sources.push_back(string(paths[i].ToUTF8()));
+  }
+  if (sources.empty()) {
+    wxMessageBox(_("No structures were chosen: pick .xyz files, or select "
+                   "other calculations along with the template."),
+                 _("New Series"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  string report;
+  newSeries(templ, sources, &report);
+  wxMessageBox(wxString::FromUTF8(report.c_str()), _("New Series"),
+               wxOK | wxICON_INFORMATION, this);
+}
+
+
+void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
+                        string *outcome)
+{
+  WxResourceTreeItemData *node = findNode(templ, true, true);
+  WxResourceTreeItemData *container = node ? nearestContainer(node, 0) : 0;
+  if (!container) {
+    if (outcome) *outcome = "the template is not in the tree";
+    return;
+  }
+  vector<Series::Outcome> r = Series::make(templ, container->getUrl(), sources);
+  string report;
+  int made = 0;
+  for (size_t i = 0; i < r.size(); i++) {
+    if (r[i].ok) {
+      made++;
+      p_treeCtrl->addToTree(EcceURL(r[i].url));
+      notifyCreate(r[i].url);
+      report += r[i].name + ": made" +
+                (r[i].note.empty() ? string() : " (" + r[i].note + ")") + "\n";
+    } else {
+      report += r[i].name + ": not made: " + r[i].note + "\n";
+    }
+  }
+  if (made) p_treeCtrl->refresh(container);
+  report += "Select the new calculations and use Run Mgmt > Launch Selected.";
+  if (outcome) *outcome = report;
 }
 
 
@@ -6732,6 +6971,9 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   if (isCalculationNode) {
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
     menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
+    menu.Append(wxID_NEW_SERIES, _("New Series from This..."),
+                _("Make one calculation per structure with this "
+                  "calculation's setup"));
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
     wxMenuItem *reconnect = menu.Append(wxID_RECONNECT_SELECTED,
                                         _("Reconnect Selected..."));
@@ -6769,6 +7011,27 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Enable(wxID_RENAME, true);
   menu.Append(wxID_DELETE, wxT("&Delete"));
   menu.Enable(wxID_DELETE, true);
+  {
+    int id = wxWindow::NewControlId();
+    menu.Append(id, _("Checks Table..."));
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+      CallAfter([this]() { wxCommandEvent e; OnChecks(e); });
+    }, id);
+  }
+  {
+    // Only calculations can be excluded (#617).
+    Resource *first = getSelection() && !p_currentSelection.empty()
+        ? [&]{ WxResourceTreeItemData *n = findNode(p_currentSelection[0], false, true);
+               return n ? n->getResource() : (Resource*)0; }() : 0;
+    if (dynamic_cast<TaskJob*>(first)) {
+      const bool is = !WxResourceTreeCtrl::excludedReason(first).empty();
+      int id = wxWindow::NewControlId();
+      menu.Append(id, is ? _("Include again") : _("Exclude..."));
+      menu.Bind(wxEVT_MENU, [this, is](wxCommandEvent&) {
+        CallAfter([this, is]() { excludeSelected(!is); });
+      }, id);
+    }
+  }
 
   // get the tools available based on the state of the selection
   if (getSelection()) {
@@ -6937,6 +7200,19 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
 
   menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
               _T(""), wxITEM_NORMAL);
+  {
+    wxMenu *exportMenu = new wxMenu;
+    exportMenu->Append(ID_SI_EXPORT, _("&Supporting Information..."));
+    exportMenu->Append(ID_CHECKS, _("&Checks Table..."));
+    menu.Append(wxID_ANY, _("E&xport"), exportMenu);
+    if (!p_siExportWired) {
+      Connect(ID_SI_EXPORT, wxEVT_COMMAND_MENU_SELECTED,
+              wxCommandEventHandler(CalcMgr::OnSiExport));
+      Connect(ID_CHECKS, wxEVT_COMMAND_MENU_SELECTED,
+              wxCommandEventHandler(CalcMgr::OnChecks));
+      p_siExportWired = true;
+    }
+  }
   menu.Append(wxID_IMPORTGROMACS, _("Import &GROMACS Run..."),
               _T(""), wxITEM_NORMAL);
   menu.Append(wxID_OPENEXAMPLES, _("Open &Example Calculations"),
@@ -7159,6 +7435,61 @@ void CalcMgr::OnCompareEnergies(wxCommandEvent&)
   CompareEnergiesDialog *dialog = newCompareEnergiesDialog(p_currentSelection);
   dialog->ShowModal();
   dialog->Destroy();
+}
+
+// The selected calculations as an xyz file (and a table): the file and the
+// table format are asked for; the arithmetic is ecce-si-export's.
+void CalcMgr::OnSiExport(wxCommandEvent&)
+{
+  getSelection();
+  if (p_currentSelection.empty()) {
+    wxMessageBox(_("Select the calculations to export first."),
+                 _("Supporting Information"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  ewxFileDialog dlg(this, "Write structures and energies to", Ecce::realUserHome(),
+                    "supporting-information.xyz", "XYZ files|*.xyz|All Files|*",
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT, wxDefaultPosition);
+  if (dlg.ShowModal() != wxID_OK) return;
+  const wxString formats[] = {_("No table"), _("CSV table"), _("LaTeX table")};
+  wxSingleChoiceDialog pick(this, _("Also write a table of the same values (name, code, method, charge, multiplicity, E, G, imaginary frequencies)?"),
+                            _("Supporting Information"), 3, formats);
+  if (pick.ShowModal() != wxID_OK) return;
+  const int k = pick.GetSelection();
+  string why;
+  // Excluded calculations are left out unless the user wants them (#617).
+  size_t nExcl = 0;
+  for (const EcceURL& u : p_currentSelection) {
+    WxResourceTreeItemData *n = findNode(u, false, true);
+    if (n && !WxResourceTreeCtrl::excludedReason(n->getResource()).empty()) nExcl++;
+  }
+  const bool withExcluded = nExcl > 0 && wxMessageBox(
+      wxString::Format(_("%zu selected calculation(s) are excluded. Include them in the export?"), nExcl),
+      _("Supporting Information"), wxYES_NO, this) == wxYES;
+  if (!siExport(p_currentSelection, dlg.GetPath().ToStdString(),
+                k == 1 ? "csv" : k == 2 ? "latex" : "", why, withExcluded))
+    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Supporting Information"),
+                 wxOK | wxICON_ERROR, this);
+}
+
+// The Checks table of the selected folders and calculations (#615).
+void CalcMgr::OnChecks(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(p_currentSelection);
+  if (calcs.empty()) {
+    wxMessageBox(_("Select a folder or calculations first."), _("Checks Table"),
+                 wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  ChecksDialog dlg(this, calcs);
+  string why;
+  if (!dlg.ok(why)) {
+    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Checks Table"),
+                 wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
 }
 
 void CalcMgr::OnAllocations(wxCommandEvent&)
@@ -9387,7 +9718,9 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   FrameHold hold(this);
   string why;
   vector<Resource*> all;
-  if (source && carry.best > 0) {
+  if (source && carry.perPattern) {
+    all = WorkflowSteps::createPatterns(wf, rt, name, source, carry, why);
+  } else if (source && carry.best > 0) {
     all = WorkflowSteps::createBest(wf, rt, name, source, carry.best, carry, why);
   } else if (Resource *one = WorkflowSteps::create(wf, rt, name, source, carry, why)) {
     all.push_back(one);

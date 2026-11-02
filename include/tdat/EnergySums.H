@@ -19,6 +19,7 @@ struct EnergyTerm
    std::string xc;                     ///< density functional as stored, "" if none
    std::map<std::string, int> atoms;   ///< element -> count; empty if unknown
    int coeff = 1;                ///< signed stoichiometric coefficient
+   std::string url;              ///< the calculation, for recomputing G (#692)
    bool heat = false;            ///< the energy is a heat of formation (MOPAC)
    bool scanned = false;         ///< the energy is a relaxed scan's last point
 };
@@ -31,6 +32,8 @@ struct SumRow
    std::string reason;           ///< when not available
    double a = 0, b = 0;          ///< hartree
    double delta() const { return b - a; }
+   bool hasSpread = false;       ///< max - min of delta() over the treatments (#692)
+   double spread = 0;            ///< hartree
 };
 
 struct SumResult

@@ -46,6 +46,25 @@ class SpinTables
     static std::vector<Population> populations(
         const std::vector<std::string>& names,
         const std::vector<double>& spin, double threshold = 0.0005);
+
+    /** The atom with the largest |spin|; atom is empty when there is none. */
+    static Population largest(const std::vector<std::string>& names,
+                              const std::vector<double>& spin);
+
+    /**
+     * The summed spin per element, largest |sum| first (equal ones keep the
+     * order in which the elements first occur).
+     */
+    static std::vector<std::pair<std::string, double> > byElement(
+        const std::vector<std::string>& elements,
+        const std::vector<double>& spin);
+
+    /**
+     * Colour for a spin on the diverging scale of "Show on structure": blue
+     * for negative, white for zero, red for positive; scale is the |spin|
+     * that gets the full colour.
+     */
+    static void colour(double spin, double scale, float rgb[3]);
 };
 
 #endif

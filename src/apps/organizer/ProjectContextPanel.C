@@ -191,6 +191,34 @@ vector<string> ProjectContextPanel::progressCells()
 }
 
 
+string ProjectContextPanel::rowTip(int row)
+{
+  if (!p_projectView || row < 0 || row >= p_projectView->getRowCount()) return "";
+  GridElement *e = p_projectView->getElement(row, 0);
+  string why = e ? e->mutedReason() : string();
+  return why.empty() ? why : "Excluded: " + why;
+}
+
+
+// "name|tip|grey|strike" per row that is excluded, as the grid draws it.
+vector<string> ProjectContextPanel::excludedRows()
+{
+  vector<string> out;
+  if (!p_projectView) return out;
+  for (int row = 0; row < p_projectView->getRowCount(); row++) {
+    const string tip = rowTip(row);
+    if (tip.empty()) continue;
+    wxGridCellAttr *a = p_projectView->getModel()->GetAttr(row, 0, wxGridCellAttr::Any);
+    GridPropElement *e = dynamic_cast<GridPropElement*>(p_projectView->getElement(row, 0));
+    out.push_back(e->getResource()->getName() + "|" + tip + "|" +
+        (a && a->GetTextColour() == wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT) ? "1" : "0") + "|" +
+        (a && a->GetFont().GetStrikethrough() ? "1" : "0"));
+    if (a) a->DecRef();
+  }
+  return out;
+}
+
+
 vector<string> ProjectContextPanel::stateCells()
 {
   return columnCells(GridProperty::PT_RUNSTATE_ICON);
@@ -294,6 +322,18 @@ void ProjectContextPanel::initialize()
   wxSizer *sizer = this->GetSizer();
   p_projectView = new WxGridView(this, wxID_ANY, ORGANIZER);
   p_projectView->getGrid()->enableContextMenu(false);
+  // The reason of an excluded calculation as the tooltip of its row (#617).
+  {
+    wxGrid *g = p_projectView->getGrid();
+    g->GetGridWindow()->Bind(wxEVT_MOTION, [this, g](wxMouseEvent& e) {
+      wxPoint p = g->CalcUnscrolledPosition(e.GetPosition());
+      int row = g->YToRow(p.y);
+      wxString tip = wxString::FromUTF8(rowTip(row).c_str());
+      if (g->GetGridWindow()->GetToolTipText() != tip)
+        g->GetGridWindow()->SetToolTip(tip);
+      e.Skip();
+    });
+  }
   sizer->Add(p_projectView, 1, wxGROW|wxALL, 0);
 
   // Get properties to view on grid

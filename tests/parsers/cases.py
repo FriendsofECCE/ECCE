@@ -2660,7 +2660,7 @@ CASES = [
                                           'units': 'eV'}}),
             'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
                                             'units': 'Debye'}}),
-            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=1, keys={'GEOMTRACE': {
+            'GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL': dict(blocks=1, keys={'GEOMTRACE': {
                 'size': '1 3 3', 'rowlabels': '1-O 2-H 3-H',
                 'units': 'Angstrom'}}),
         },
@@ -2702,6 +2702,24 @@ CASES = [
         },
     ),
     dict(
+        # xtb dock (aISS), water onto water, from an xtb newer than the 6.7.1
+        # release (which aborts in dock): 15 poses.  The frame comment carries
+        # the total energy, so TEVEC is Hartree; POSESCORE is the E_int table
+        # of the output, matched by row.
+        name='xtb-dock-h2o-dimer',
+        desc='xtb.desc',
+        fixture='xtb/h2o_dimer_dock.out',
+        parse_args=('.', 'Docking (aISS)', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL': dict(blocks=15, keys={
+                'GEOMTRACE': {'size': '1 6 3',
+                              'rowlabels': '1-O 2-H 3-H 4-O 5-H 6-H',
+                              'units': 'Angstrom'},
+                'TEVEC': {'units': 'Hartree'},
+                'POSESCORE': {'units': 'kcal/mol'}}),
+        },
+    ),
+    dict(
         # Methane --opt normal: 12 cycles, so 12 frames and 12 TEVEC entries
         # (TEVEC may never outnumber GEOMTRACE).
         name='xtb-ch4-opt',
@@ -2714,7 +2732,7 @@ CASES = [
             'HLGAP': dict(keys={'HLGAP': {'values': '17.346667996473',
                                           'units': 'eV'}}),
             'DIPOLE': dict(keys={'DIPOLE': {'units': 'Debye'}}),
-            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=12, keys={
+            'GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL': dict(blocks=12, keys={
                 'GEOMTRACE': {'size': '1 5 3',
                               'rowlabels': '1-C 2-H 3-H 4-H 5-H',
                               'units': 'Angstrom'},
@@ -2730,7 +2748,7 @@ CASES = [
         parse_args=('.', 'Geometry', 'SE', 'GFN2-xTB', '0'),
         expect={
             'TE': dict(keys={'TE': {'units': 'Hartree'}}),
-            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=3, keys={'GEOMTRACE': {
+            'GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL': dict(blocks=3, keys={'GEOMTRACE': {
                 'size': '1 5 3'}}),
         },
     ),

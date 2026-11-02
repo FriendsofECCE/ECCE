@@ -190,6 +190,52 @@ def run_best(display, data, work, shots):
           bool(ready) and all(n in ready[0] for n in want), "ready %s" % ready)
 
 
+def run_patterns(display, data, work, shots):
+    """One step per coordination pattern of a CREST ensemble around Na+ (#682)."""
+    import ensemble_patterns_test as ep
+    root = os.path.join(data, "users", "local")
+    project = os.path.join(root, "pat")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    ep.fixture(os.path.join(project, "crest"))
+    proj = "file://" + root + "/pat"
+    wf = proj + "/Workflow"
+    commands = [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/crest ens" % (wf, proj),
+        "workflowstep %s orca_es pat %s/ens patterns" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ]
+    script = os.path.join(work, "commands-patterns")
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=75,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    what = "One step per pattern"
+    if result.crashed:
+        return fail(what, "CRASHED (%s)" % result.signalName, log)
+    info = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo.*?: (.*)$", log, re.M)
+    if not info or not info[0].startswith("ok "):
+        return fail(what, "no workflowinfo answer", log)
+    table = steps(info[0][3:])
+    check("three pattern steps are made",
+          {"pat-pat1", "pat-pat2", "pat-pat3"} <= set(table), "steps %s" % sorted(table))
+    links = info[0].split(" links:")[1].split()
+    # Patterns by lowest energy: 6_0 (frame 4, rank 1), 5_1 (frame 2, rank 2),
+    # 4_2 (frame 6, rank 5).
+    for k, (tag, frame, rank) in enumerate((("6_0", 4, 1), ("5_1", 2, 2), ("4_2", 6, 5)), 1):
+        check("pattern %d is linked from conformer %d" % (k, rank),
+              "ens>pat-pat%d:geometry.c%d" % (k, rank) in links, "links %s" % links)
+        rec = table.get("pat-pat%d" % k)
+        if not rec:
+            continue
+        got = [float(v) for v in rec["xyz0"].split(",")]
+        ref = [float(v) for r in ep.atoms(tag) for v in r[1:]][:3]
+        check("pattern %d starts from the %s structure (frame %d)" % (k, tag, frame),
+              all(abs(a - b) < 1e-4 for a, b in zip(got, ref)), "%s vs %s" % (got, ref))
+
+
 def run_best_poses(display, data, work, shots):
     """Best N of a docking pose ensemble, ranked by its score (#682).
 
@@ -422,9 +468,7 @@ def run(display, data, work, shots):
         "setstate %s/nw-water completed" % wf,
         "setstate %s/xtb-1 running" % wf,
         "workflowshot %s %s %s/xtb-1" % (png2, wf, wf),
-        "treestate %s/nw-water" % wf,
-        "treestate %s/xtb-1" % wf,
-        "treestate %s/orca-3" % wf,
+        "workflowicons %s" % wf,
     ]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
@@ -519,20 +563,20 @@ def run(display, data, work, shots):
     check("Launch Ready Steps button is in the view, shown, inside it",
           bool(button) and button[0] == "ok label=Launch Ready Steps shown=1 "
           "inside=1 enabled=1", "answered %r" % button)
-    ts = answer("treestate")
-    states = answer("workflowshot")
+    got = answer("workflowicons")
     icons = {}
-    if len(states) == 2:
-        m = re.search(r"icons=(\S+)", states[1])
+    tree = {}
+    for key, into in (("icons", icons), ("tree", tree)):
+        m = re.search(key + r"=(\S+)", got[0]) if got else None
         for pair in (m.group(1).split(",") if m else []):
             name, _, idx = pair.rpartition(":")
-            icons[name] = idx
-    tree = [re.search(r"image=(\d+)", t).group(1) if re.search(r"image=(\d+)", t)
-            else None for t in ts]
+            into[name] = idx
+    names = ("nw-water", "xtb-1", "orca-3")
     check("boxes draw the tree's run-state icon (Complete and Running differ)",
-          len(tree) == 3 and
-          [icons.get(n) for n in ("nw-water", "xtb-1", "orca-3")] == tree and
-          tree[0] != tree[1], "box icons %s, tree %s" % (icons, ts))
+          bool(got) and got[0].startswith("ok ") and
+          all(n in icons and icons[n] == tree.get(n) for n in names) and
+          icons.get("nw-water") != icons.get("xtb-1"),
+          "workflowicons answered %r" % got)
 
 
 EXAMPLE = os.path.join(ROOT, "data", "client", "examples", "workflows",
@@ -768,6 +812,7 @@ def main():
             run_joins(display, data, work, shots)
             run_best(display, data, work, shots)
             run_best_poses(display, data, work, shots)
+            run_patterns(display, data, work, shots)
             run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")

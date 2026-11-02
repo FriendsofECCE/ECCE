@@ -116,4 +116,9 @@ conformer: the first frame is the lowest and has 0. These energies compare confo
 this calculation only. They cannot be compared with the energy from another
 method, or from another run with a different window or solvent.
 
+For an ensemble around an ion, the Geometry Trace also lists the coordination
+patterns: the donor atoms in the first shell, how many conformers have each
+pattern, and the lowest relative energy and the conformer number of each. The
+same table is printed by `ecce-contacts crest_conformers.xyz --group`.
+
 The Progress box counts the metadynamics runs of the search.

@@ -538,6 +538,12 @@ target_include_directories(ecce-annotate PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-annotate PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
+# One calculation's setup applied to a list of structures (#621).
+add_executable(ecce-series src/apps/launch/ecce-series.C)
+target_include_directories(ecce-series PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-series PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # Reconnects calculations inside the running session.
 add_executable(ecce-reconnect src/apps/launch/ecce-reconnect.C)
 target_include_directories(ecce-reconnect PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1119,6 +1125,10 @@ set(_annot_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-annotate)
 string(REPLACE "bin/ecce-terminate" "bin/ecce-annotate" _annot_text "${_term_text}")
 file(WRITE ${_annot_wrapper} "${_annot_text}")
 install(PROGRAMS ${_annot_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+set(_series_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-series)
+string(REPLACE "bin/ecce-terminate" "bin/ecce-series" _series_text "${_term_text}")
+file(WRITE ${_series_wrapper} "${_series_text}")
+install(PROGRAMS ${_series_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 set(_reconn_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-reconnect)
 string(REPLACE "bin/ecce-terminate" "bin/ecce-reconnect" _reconn_text "${_term_text}")
 file(WRITE ${_reconn_wrapper} "${_reconn_text}")
@@ -1174,7 +1184,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -1286,9 +1296,26 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displacement.py
         DESTINATION bin RENAME ecce-displacement
         COMPONENT client)
 
+# ecce-displace (#618): the structure displaced along a normal mode.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displace.py
+        DESTINATION bin RENAME ecce-displace
+        COMPONENT client)
+
+# ecce-si-export (#625): xyz + table of stored calculations for a
+# Supporting Information file.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_si_export.py
+        DESTINATION bin RENAME ecce-si-export
+        COMPONENT client)
+
 # scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
 # Potential job, so it only has to exist on the client.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
+        DESTINATION scripts
+        COMPONENT client)
+
+# scripts/ecce-confsearch: gensub copies it into the run directory of an xTB
+# "Conformer search (simple)" job.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-confsearch
         DESTINATION scripts
         COMPONENT client)
 
@@ -2545,6 +2572,20 @@ add_test(NAME displacement
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/displacement/run_tests.py)
 
+# tests/siexport -- scripts/ecce_si_export.py on stored ORCA, G16, ECCE-QM (#625).
+add_test(NAME siexport
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/siexport/run_tests.py)
+# tests/siexport/checks_test.py -- the Checks table CLI (#615).
+add_test(NAME checks_table
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/siexport/checks_test.py)
+
+# tests/displace -- scripts/ecce_displace.py on stored ORCA and G16 modes (#618).
+add_test(NAME displace
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/displace/run_tests.py)
+
 # tests/mlp -- scripts/ecce-mlp with a model-free mock calculator (#728); the
 # real MACE test SKIPs (77) without mace (ECCE_MLP_PYTHON names the Python).
 add_test(NAME mlp
@@ -2869,6 +2910,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/dock_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_dock PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # MOs panel Spin Density view: largest-spin atom, per-element sums, Show on
+  # structure colours and their restore (#616).
+  add_test(NAME apps_spin_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/spin_panel_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_spin_panel PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Organizer Import Calculation from Output File, ECCE_TEST_CALCIMPORT hook.
   add_test(NAME apps_calcimport
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -2981,6 +3029,26 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_hand_edit PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Saving regenerates each code's deck byte for byte as stored (DeckWriter, #621).
+  add_test(NAME apps_deck_regen
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/deck_regen_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_deck_regen PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # New Series from This (Organizer hook newseries, #621).
+  add_test(NAME apps_new_series
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/new_series_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_new_series PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # ecce-series: one setup, several structures (ORCA, G16, ECCE-QM; #621).
+  add_test(NAME series_cli
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/series/series_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/series)
+  set_tests_properties(series_cli PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # A finished calculation without ecce:progress gets one from its stored
   # output (#284): CalcMgr::backfillProgress.
   add_test(NAME apps_progress_backfill
@@ -3210,6 +3278,62 @@ if(PYTHON3_EXECUTABLE)
     set_tests_properties(apps_ecceqm_irc_follow PROPERTIES TIMEOUT 900
                          SKIP_RETURN_CODE 77)
   endif()
+
+  # CREST ensemble around an ion grouped by coordination pattern (#682).
+  add_test(NAME apps_ensemble_patterns
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ensemble_patterns_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_ensemble_patterns PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Displacement section of the Geometry Trace panel against the CLI (#701).
+  add_test(NAME apps_displacement_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/displacement_panel_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_displacement_panel PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Thermochemistry panel against ecce-thermo (#692).
+  add_test(NAME apps_thermo_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_panel_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_thermo_panel PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Organizer File > Export > Supporting Information (#625).
+  add_test(NAME apps_si_export
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/si_export_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_si_export PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Exclude a calculation with a reason (#617).
+  add_test(NAME apps_exclude
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/exclude_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_exclude PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Checks table: the dialog's rows equal ecce-si-export --checks (#615).
+  add_test(NAME apps_checks_table
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/checks_table_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Vibrations panel Displace: new calculations along a mode (#618).
+  add_test(NAME apps_nmode_displace
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmode_displace_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_nmode_displace PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
 
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
   # draws; a 23-function one gives one plain dialog; the pane fits its rows.
@@ -3695,6 +3819,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_dock PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #682: xTB "Conformer search (simple)" of n-butane and pentane through
+  # Launch; skipped (77) without xtb.
+  add_test(NAME launch_confsearch
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/confsearch_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_confsearch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # #728: ecce-mlp with the mock calculator through Launch; skipped (77)
   # without ASE.
   add_test(NAME launch_mlp

@@ -109,6 +109,11 @@ public:
 
   virtual void refreshState(WxResourceTreeItemData * node);
 
+  /// Why the calculation is excluded (#617): ecce:excluded, "" if it is not.
+  static std::string excludedReason(Resource * resource);
+  /// The tooltip text of an item: the exclusion reason, else "".
+  std::string itemTip(const wxTreeItemId& id);
+
   virtual void setTreeSort(int treeSort);
 
   virtual WxResourceTreeItemData * getSelection();

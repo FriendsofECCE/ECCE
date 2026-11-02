@@ -172,6 +172,12 @@ GridProperty::PropertyType GridElement::getPropertyType()
 }
 
 
+string GridElement::mutedReason() const
+{
+  return "";
+}
+
+
 wxGridCellAttr *GridElement::getAttributes()
 {
   wxGridCellAttr *cellAttr = new wxGridCellAttr();

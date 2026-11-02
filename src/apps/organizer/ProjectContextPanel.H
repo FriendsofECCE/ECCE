@@ -61,6 +61,9 @@ class ProjectContextPanel : public ProjectContextPanelGUI
     int rowCount() const { return p_projectView ? p_projectView->getRowCount() : 0; }
     // The same for the State column (the stored state, or "running?").
     vector<string> stateCells();
+    // Excluded rows as drawn (#617): "name|tooltip|grey|strike".
+    vector<string> excludedRows();
+    string rowTip(int row);
     int progressPaints() const { return p_progressSets; }
 
     vector<EcceURL> getSelections();

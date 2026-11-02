@@ -1,7 +1,10 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 
+#include "util/Ecce.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/ScanPoint.H"
@@ -14,6 +17,13 @@ using std::string;
 using std::vector;
 
 namespace {
+
+// Distinguishes the temporary files of two programs running at once.
+long pidNow()
+{
+  return (long)std::filesystem::file_time_type::clock::now()
+             .time_since_epoch().count();
+}
 
 struct Keys { PropVector *energy; PropTSVecTable *geom; };
 
@@ -219,4 +229,92 @@ bool ScanPoint::structure(PropertyTask *calc, const string& spec,
   }
   delete frag;
   return !el.empty();
+}
+
+
+bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
+                                 string& why)
+{
+  out.clear();
+  const int n = ensembleSize(calc);
+  if (n < 1) { why = "The calculation has no conformer ensemble."; return false; }
+
+  // Frames go out in rank order, so the script's index is the rank.
+  static int serial = 0;
+  const std::filesystem::path file = std::filesystem::temp_directory_path() /
+      ("ecce-patterns-" + std::to_string(pidNow()) + "-" +
+       std::to_string(serial++) + ".xyz");
+  {
+    std::ofstream f(file);
+    if (!f) { why = "Cannot write a temporary file."; return false; }
+    for (int k = 1; k <= n; k++) {
+      vector<string> el;
+      vector<double> xyz;
+      if (!structure(calc, "c" + std::to_string(k), el, xyz, why)) {
+        f.close();
+        std::error_code ec;
+        std::filesystem::remove(file, ec);
+        return false;
+      }
+      char line[160];
+      snprintf(line, sizeof line, "%d\nenergy: 0 relative: %.6f\n",
+               (int)el.size(), conformerEnergy(calc, k));
+      f << line;
+      for (size_t i = 0; i < el.size(); i++) {
+        snprintf(line, sizeof line, "%s %.6f %.6f %.6f\n", el[i].c_str(),
+                 xyz[3*i], xyz[3*i+1], xyz[3*i+2]);
+        f << line;
+      }
+    }
+  }
+
+  // The script is Python; on Windows it is not directly executable.
+  const char *home = getenv("ECCE_HOME");
+  string script = home && *home ? string(home) + "/bin/ecce-contacts"
+                                : string("ecce-contacts");
+#ifdef _WIN32
+  // The Windows package carries its own Python (as CalcEd's pythonw); the
+  // console python.exe is needed here, since the output is read back.
+  std::filesystem::path py = std::filesystem::path(Ecce::ecceHome()) / "python" / "python.exe";
+  string pyExe = std::filesystem::exists(py) ? py.string() : string("python.exe");
+  string cmd = "\"" + pyExe + "\" \"" + script + "\" \"" + file.string() + "\" --group";
+#else
+  string cmd = "'" + script + "' '" + file.string() + "' --group 2>/dev/null";
+#endif
+  string text;
+  int status = Ecce::readCommand(cmd, text);
+  std::error_code ec;
+  std::filesystem::remove(file, ec);
+  if (status != 0) {
+    why = "ecce-contacts could not be run.";
+    return false;
+  }
+
+  // Header line, then pattern <tab> count <tab> representative <tab> relative.
+  size_t pos = text.find('\n');
+  while (pos != string::npos && pos < text.size()) {
+    size_t end = text.find('\n', pos + 1);
+    string line = text.substr(pos + 1, end == string::npos ? end : end - pos - 1);
+    pos = end;
+    vector<string> col;
+    size_t a = 0, b;
+    while ((b = line.find('\t', a)) != string::npos) {
+      col.push_back(line.substr(a, b - a));
+      a = b + 1;
+    }
+    col.push_back(line.substr(a));
+    if (col.size() < 4) continue;
+    Pattern pt;
+    pt.label = col[0];
+    pt.count = atoi(col[1].c_str());
+    pt.rank = atoi(col[2].c_str());
+    pt.relative = atof(col[3].c_str());
+    out.push_back(pt);
+  }
+  if (out.empty() || out[0].label == "no metal") {
+    out.clear();
+    why = "The ensemble has no ion to group around.";
+    return false;
+  }
+  return true;
 }

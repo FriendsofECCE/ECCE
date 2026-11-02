@@ -32,6 +32,24 @@ namespace ScanPoint {
   /// Relative energy or score (kcal/mol) of the member of rank `rank`, 0 if none.
   double conformerEnergy(PropertyTask *calc, int rank);
 
+  /// One coordination pattern of a CREST ensemble: its label (the key of
+  /// ecce-contacts, e.g. "Na: 6×O(H2O)"), the number of conformers that have
+  /// it and its lowest-energy member as a rank (1 = lowest) with that
+  /// member's relative energy (kcal/mol).
+  struct Pattern {
+    std::string label;
+    int count;
+    int rank;
+    double relative;
+  };
+
+  /// Groups the ensemble by first-shell donor atoms with ecce-contacts (one
+  /// implementation of the rule for the CLI and the GUI), lowest energy
+  /// first.  False with `why` set if there is no ensemble, no ion in it, or
+  /// ecce-contacts cannot be run.
+  bool ensemblePatterns(PropertyTask *calc, std::vector<Pattern>& out,
+                        std::string& why);
+
   /// True if the calculation has an energy and a structure per point.
   bool isScan(PropertyTask *calc);
 

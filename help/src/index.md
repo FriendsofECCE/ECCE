@@ -70,6 +70,17 @@ describe what you did and what happened.
    bond lengths.
    [Arranging the Viewer's panels](viewer-panels.md): take a panel out into a
    window of its own when its plot or table needs more room.
+   [How far the atoms moved](displacement.md): displacement from the first
+   frame, colour by displacement, and the aligned difference between two
+   calculations.
+   [Export for Supporting Information](si-export.md): the selected
+   calculations as one XYZ file with charge, multiplicity, E and G, and a
+   CSV or LaTeX table.
+   [Checks table](checks-table.md): one row per calculation under a
+   folder with termination, convergence, imaginary modes, S2, charge,
+   multiplicity, method, energies; problems highlighted; CSV or LaTeX.
+   [Excluded calculations](excluded.md): mark a calculation as not to be
+   used, with a reason; exports and workflows skip it.
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a
    bond, an angle or a torsion fixed during an optimisation, and use a dummy
    atom as a reference point; the potential of ammonia as the example.
@@ -122,6 +133,10 @@ describe what you did and what happened.
    energies of two calculations in Hartree, kJ/mol, kcal/mol and eV, and the
    notes on differing code, method or basis set.
 
+24a. [Thermochemistry](thermochemistry.md): H, S and G recomputed from the
+   stored frequencies with a chosen low-frequency treatment, temperature and
+   standard state.
+
 25. [Reconnect Selected](reconnect-selected.md): reconnecting several jobs
    to their calculations after a restart or a lost connection, in one step.
 
@@ -155,6 +170,10 @@ describe what you did and what happened.
 
 34. [Writing a recipe](writing-a-recipe.md): the file format, every field, the
    folders recipes are read from, and a complete example.
+
+35. [New Series](new-series.md): one calculation's setup applied to a list of
+   structures (xyz files or calculations), from the right-click menu or
+   `ecce-series`.
 
 Reference:
 

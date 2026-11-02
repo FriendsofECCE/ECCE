@@ -49,4 +49,15 @@ calculationsIn(const std::string& projectUrl);
 std::vector<std::pair<std::string, int> > parseSide(const std::string& spec);
 std::vector<EnergyTerm> gatherSide(const std::string& spec);
 
+/**
+ * G for the chosen low-frequency treatment (#692), from ecce-thermo, and the
+ * spread of the delta G over all treatments, in the G row of r.  treatment
+ * is an ecce-thermo name, or empty to keep the code's own G (the spread is
+ * still added).  Returns "" or why nothing was changed.
+ */
+std::string applyThermoTreatments(SumResult& r,
+                                  const std::vector<EnergyTerm>& a,
+                                  const std::vector<EnergyTerm>& b,
+                                  const std::string& treatment);
+
 #endif
