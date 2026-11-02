@@ -49,3 +49,21 @@ off. This is a warning only; nothing is blocked.
 
 The orders Clean used can be drawn: **Options > Advanced > Show Bond Orders
 Used by Clean**. It is off by default.
+
+## Distorting the bonds to one atom
+
+To start a small distortion, such as a Jahn-Teller elongation or a polaron
+around a metal ion, select the centre atom and choose **Edit > Distort
+Bonds...**. The dialog lists every atom bonded to it with its present
+distance and a field for the change in Å: positive stretches the bond,
+negative shrinks it. Each neighbour moves along the bond, and the centre does
+not move. Atoms hanging off a neighbour, such as the hydrogens of a water
+ligand, move with it, so the ligand keeps its shape.
+
+**All the same** fills every field with one value. **Jahn-Teller** fills the
+fields for an atom with six bonds: the pair of trans bonds closest to the
+chosen axis (x, y, z, or the longest pair) changes by the value, and the other
+four by minus half of it. Press OK to apply. It is one step in **Edit > Undo**.
+
+This only moves atoms to seed a distorted geometry. Run **Clean** or an
+optimisation afterwards and the structure will relax towards its own minimum.

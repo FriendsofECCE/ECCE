@@ -356,6 +356,7 @@ class Builder: public BuilderGUI,
       virtual void OnSelectMoleculeClick( wxCommandEvent& event );
       virtual void OnSelectSolventClick( wxCommandEvent& event );
       virtual void OnSelectIonsClick( wxCommandEvent& event );
+      virtual void OnDistortBondsClick( wxCommandEvent& event );
       virtual void OnSelectBackboneClick( wxCommandEvent& event );
       virtual void OnSelectSidechainsClick( wxCommandEvent& event );
       virtual void OnSelectReverseClick( wxCommandEvent& event );
