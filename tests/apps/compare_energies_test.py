@@ -31,6 +31,9 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import json        # noqa: E402
+import subprocess  # noqa: E402
+
 import apps       # noqa: E402
 import fixture    # noqa: E402
 import run_tests  # noqa: E402
@@ -92,6 +95,25 @@ def decimals(line):
     return [len(x.split(".")[1]) for x in re.findall(r"-?\d+\.\d+", line)]
 
 
+def thermoCase(display, project, data):
+    """#692: G for a chosen treatment and its spread equal ecce-thermo's reaction mode."""
+    sys.path.insert(0, os.path.join(ROOT, "tests", "launch"))
+    import thermo_panel_test as tp
+    a = tp.makeThermoCalc(project, "soft-a", [25.0, 60.0, 150.0, 1645.0, 3866.0, 3965.0])
+    b = tp.makeThermoCalc(project, "soft-b", [90.0, 130.0, 310.0, 1600.0, 3800.0, 3900.0])
+    ua, ub = "file://" + a, "file://" + b
+    home = tempfile.mkdtemp(prefix="ecce-compare-home-")
+    try:
+        env = dict(os.environ, ECCE_HOME=apps.INSTALL, ECCE_REALUSERHOME=home)
+        ref = json.loads(subprocess.run(
+            [os.path.join(apps.INSTALL, "bin", "ecce-thermo"), ua, ub, "--json",
+             "--reaction", "soft-a->soft-b"], env=env, capture_output=True,
+            text=True).stdout)
+    finally:
+        shutil.rmtree(home, ignore_errors=True)
+    return ua, ub, ref
+
+
 def run(display, pngs):
     data = tempfile.mkdtemp(prefix="ecce-compare-data-")
     work = tempfile.mkdtemp(prefix="ecce-compare-")
@@ -103,6 +125,7 @@ def run(display, pngs):
         b = makeCalc(project, "water-b", E_B, "ORCA")
         c = makeCalc(project, "water-c", None, "NWChem")
         ua, ub, uc = ("file://" + p for p in (a, b, c))
+        tua, tub, ref = thermoCase(display, project, data)
         cmds = os.path.join(work, "commands")
         with open(cmds, "w") as handle:
             handle.write("\n".join([
@@ -110,6 +133,8 @@ def run(display, pngs):
                 "compareenergies %s %s" % (ua, uc),
                 "compareenergies %s 2*%s" % (ua, ub),
                 "comparedialog %s %s %s" % (ua, ub, os.path.join(pngs, "compare-energies.png")),
+                "compareenergies %s %s stored" % (tua, tub),
+                "compareenergies %s %s qrrho-grimme:200" % (tua, tub),
             ]) + "\n")
         result = apps.run(display, "organizer", windowTimeout=60, settle=30,
                           env={"ECCE_TEST_ORGANIZER": cmds,
@@ -121,7 +146,9 @@ def run(display, pngs):
             return
         ab = answers(log, "compareenergies")
         dlg = answers(log, "comparedialog")
-        if not check(len(ab) == 3 and len(dlg) == 1, "every command answered",
+        thermo = ab[3:]
+        ab = ab[:3]
+        if not check(len(ab) == 3 and len(dlg) == 1 and len(thermo) == 2, "every command answered",
                      run_tests._tail(log, 30)):
             return
         for line in ab + dlg:
@@ -151,6 +178,18 @@ def run(display, pngs):
               "the dialog shows the table and, in its own area, the warning", dlg[0])
         check("Copy:" in dlg[0] and "-76.0107465054" in dlg[0].split("Copy:")[1],
               "the dialog's Copy text keeps full precision", dlg[0])
+        spread = ref["spread_kJ_per_mol"]
+        for text, treatment in zip(thermo, (None, "qrrho-grimme:200")):
+            g = [l for l in text.split(" | ") if l.startswith("G (")]
+            nums = [float(x) for x in re.findall(r"-?\d+\.\d+", g[0])] if g else []
+            check(len(nums) == 6 and abs(nums[5] - spread) < 0.06,
+                  "G spread over treatments equals ecce-thermo's reaction spread (%s)"
+                  % (treatment or "code's own G"), "%s vs %.3f" % (g, spread))
+            if treatment and len(nums) == 6:
+                want = ref["deltaG"][treatment] * KJ
+                check(abs(nums[2] - want) < 0.06,
+                      "delta G of %s equals ecce-thermo's" % treatment,
+                      "%.3f vs %.3f" % (nums[2], want))
         png = os.path.join(pngs, "compare-energies.png")
         check(os.path.exists(png) and os.path.getsize(png) > 1000, "saved the dialog's capture")
     finally:

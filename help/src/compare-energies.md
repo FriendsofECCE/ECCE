@@ -52,6 +52,22 @@ A gas-phase and a solvent calculation of one molecule (same atoms, charge,
 multiplicity, method and basis set) give **B - A** as the solvation energy, and
 the window says so.
 
+## G over treatments
+
+When every calculation has stored frequencies, the **G** row has an extra
+column, **G spread**: the largest minus the smallest **B - A** of G over six
+treatments of the low frequencies (RRHO; Grimme's quasi-RRHO entropy with
+omega0 = 50, 100 and 200 cm-1; Truhlar's raising of modes to 100 cm-1;
+Head-Gordon's quasi-RRHO enthalpy), in kJ/mol at 1 atm. A large spread says
+that the reaction G depends on how the soft modes are treated, which matters
+for loosely bound complexes and clusters.
+
+**G treatment** chooses what the G row itself shows: the code's own G (the
+default) or G recomputed with one of the treatments. The recomputed numbers
+come from the `ecce-thermo` command, so they equal what it prints for the same
+calculations. If the stored frequencies cannot be read, a note says why and
+the code's own G is kept.
+
 ## Warnings and notes
 
 The **Notes** area, below the table, says when the sides are not directly

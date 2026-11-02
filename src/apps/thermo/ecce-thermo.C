@@ -95,6 +95,10 @@ bool parseSide(const string& side, vector<Term>& out)
     if (end == string::npos) end = side.size();
     string item = side.substr(pos, end - pos);
     pos = end + 1;
+    // "a -> b" and "a, b" are written with spaces
+    const size_t first = item.find_first_not_of(" \t");
+    item = first == string::npos ? string()
+         : item.substr(first, item.find_last_not_of(" \t") - first + 1);
     if (item.empty()) continue;
     int sign = 1, n = 1;
     if (item[0] == '-') { sign = -1; item.erase(0, 1); }

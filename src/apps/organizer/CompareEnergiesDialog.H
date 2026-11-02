@@ -30,6 +30,8 @@ public:
                         const Side& a, const Side& b);
   std::string resultText() const;
   std::string notesText() const;
+  /** Test hook: choose the treatment of the G row (ecce-thermo name, "" = the code's own). */
+  void setTreatment(const std::string& treatment);
   /** What Copy puts on the clipboard: full precision. */
   std::string copyText() const;
 
@@ -54,6 +56,7 @@ private:
 
   std::vector<std::pair<std::string, std::string> > p_calcs;
   SideBox p_side[2];
+  wxChoice *p_treatment;
   wxTextCtrl *p_results, *p_notes;
   std::string p_copy;
 };

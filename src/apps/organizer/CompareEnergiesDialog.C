@@ -17,6 +17,7 @@
 #include <wx/textctrl.h>
 
 #include "CompareEnergies.H"
+#include "util/ThermoRun.H"
 
 using std::string;
 
@@ -51,8 +52,20 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
     if (init.empty()) addRow(s, string(), 1);
   }
 
+  wxBoxSizer *tbar = new wxBoxSizer(wxHORIZONTAL);
+  tbar->Add(new wxStaticText(this, wxID_ANY, _("G treatment:")), 0,
+            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_treatment = new wxChoice(this, wxID_ANY);
+  p_treatment->Append(_("The code's own G"));
+  for (const ThermoTreatmentInfo& t : thermoTreatments())
+    p_treatment->Append(wxString::FromUTF8(t.label));
+  p_treatment->SetSelection(0);
+  p_treatment->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { update(); });
+  tbar->Add(p_treatment, 0);
+  top->Add(tbar, 0, wxLEFT | wxRIGHT | wxTOP, 10);
+
   p_results = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
-                             wxSize(640, 140),
+                             wxSize(720, 140),
                              wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
   p_results->SetFont(wxFont(wxFontInfo(wxSystemSettings::GetFont(
       wxSYS_DEFAULT_GUI_FONT).GetPointSize()).Family(wxFONTFAMILY_TELETYPE)));
@@ -171,10 +184,24 @@ void CompareEnergiesDialog::update()
     p_copy.clear();
     return;
   }
-  const SumResult r = sumEnergies(t[0], t[1]);
+  SumResult r = sumEnergies(t[0], t[1]);
+  const int sel = p_treatment->GetSelection();
+  const string problem = applyThermoTreatments(r, t[0], t[1],
+      sel > 0 ? string(thermoTreatments()[sel - 1].cli) : string());
+  if (!problem.empty()) r.notes.push_back(problem);
   p_results->SetValue(wxString::FromUTF8(sumTable(r, false).c_str()));
   p_notes->SetValue(wxString::FromUTF8(sumNotes(r).c_str()));
   p_copy = sumText(r, true);
+}
+
+void CompareEnergiesDialog::setTreatment(const string& treatment)
+{
+  const std::vector<ThermoTreatmentInfo>& t = thermoTreatments();
+  int sel = 0;
+  for (size_t i = 0; i < t.size(); i++)
+    if (treatment == t[i].cli) sel = (int)i + 1;
+  p_treatment->SetSelection(sel);
+  update();
 }
 
 string CompareEnergiesDialog::resultText() const
