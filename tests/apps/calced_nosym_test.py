@@ -53,6 +53,12 @@ def main():
         try:
             for label, source, constrained, steps in CASES:
                 calc = cl.makeCalc(project, label, source)
+                # makeCalc stores Geometry (#502), which uses the constraints
+                # and so opens with symmetry off; these cases start on Energy.
+                meta = os.path.join(calc, ".ecce-meta")
+                text = open(meta, errors="surrogateescape").read()
+                text = re.sub(r"(ecce:runtype\t\t)[^\n]*", r"\g<1>Energy", text)
+                open(meta, "w", errors="surrogateescape").write(text)
                 if not constrained:
                     os.remove(os.path.join(calc, "Parameters", "GeomConstraintModel.gcst"))
                 script = ["wait 9000", "symmetry"]
