@@ -874,6 +874,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     a code button without the dialog (type = e.g. orca_es)
       //     point=last|max|N: the scan point the link carries
       //     best=N: from a CREST ensemble, N steps (conformers by energy)
+      //     patterns: one step per coordination pattern of the ensemble
       //   workflowjoin WF TYPE NAME SRC=role[@point] ...   a join, roles
       //     reactant|product|tsguess; the step's structure files as
       //     TS Search writes them: workflowqst WF STEP
@@ -903,6 +904,7 @@ void CalcMgr::runTestCommand(const string& line)
           if (flag == "nocharge") carry.chargeMult = false;
           if (flag.compare(0, 9, "geomfrom=") == 0) geomFrom = flag.substr(9);
           if (flag.compare(0, 6, "point=") == 0) carry.point = flag.substr(6);
+          if (flag == "patterns") carry.perPattern = true;
           if (flag.compare(0, 5, "best=") == 0) carry.best = atoi(flag.c_str() + 5);
           if (flag.compare(0, 7, "charge=") == 0) setCharge = atoi(flag.c_str() + 7);
           if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
@@ -9387,7 +9389,9 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   FrameHold hold(this);
   string why;
   vector<Resource*> all;
-  if (source && carry.best > 0) {
+  if (source && carry.perPattern) {
+    all = WorkflowSteps::createPatterns(wf, rt, name, source, carry, why);
+  } else if (source && carry.best > 0) {
     all = WorkflowSteps::createBest(wf, rt, name, source, carry.best, carry, why);
   } else if (Resource *one = WorkflowSteps::create(wf, rt, name, source, carry, why)) {
     all.push_back(one);

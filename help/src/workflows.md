@@ -99,6 +99,13 @@ first from the conformer with the lowest relative energy, the second from the
 next one, and so on. The arrows say which: **geometry (conformer 2)**. Each
 step's Annotation gives the conformer's number and its relative energy.
 
+For a cluster around an ion (for example Na+ with water) the window also has
+**One per coordination pattern**. It makes one step for each pattern of
+first-shell donor atoms found in the ensemble ("6 O", "5 O", "4 O" around
+Na+), each starting from the lowest-energy conformer with that pattern, and
+the Annotation names the pattern and how many conformers have it. The option
+is not offered when the ensemble has no ion.
+
 The relative energies belong to the CREST method alone, so they rank the
 conformers of that search and are not energies to compare with a later
 calculation. **Launch Ready Steps** launches all the steps at once.

@@ -8,6 +8,7 @@
 #include <vector>
   using std::vector;
 
+#include <wx/listctrl.h>
 #include "wxgui/TearableContentProvider.H"
 
 #include "VizPropertyPanel.H"
@@ -55,6 +56,9 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     int frameCount() const { return numSteps(); }
     //  Plot the series `key` (as the Plot choice does); false if unknown.
     bool showSeries(const string& key);
+    //  The coordination-pattern table of a CREST ensemble, one string per row
+    //  ("pattern | count | lowest kcal/mol | conformer"); empty if none shown.
+    vector<string> patternRows() const;
     virtual void saveSettings();
     virtual void restoreSettings();
     virtual bool isRelevant(IPropCalculation *propCalc) const;
@@ -82,6 +86,7 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     virtual void receiveFocus();
     virtual void loseFocus();
 
+    wxListCtrl      *p_patterns;     // CREST ensembles: pattern table
     XYPlotCanvas     *p_plotCtrl;
     PlaybackControl *p_playback;
     wxChoice        *p_propChoice;   // every logged series, above the plot

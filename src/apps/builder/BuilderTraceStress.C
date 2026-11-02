@@ -302,6 +302,16 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     return true;
   }
 
+  //  "gtpatterns": the coordination-pattern table, one row per line.
+  if (c == "gtpatterns") {
+    if (!gt) return s.fail("gtpatterns: no Geometry Trace panel");
+    vector<string> rows = gt->patternRows();
+    fprintf(stderr, "GTSTRESS: patterns=%d\n", (int)rows.size());
+    for (size_t i = 0; i < rows.size(); i++)
+      fprintf(stderr, "GTSTRESS: pattern %s\n", rows[i].c_str());
+    return true;
+  }
+
   //  "gtseries <key>": plot that series; reports the axis labels.
   if (c == "gtseries" && w.size() == 2) {
     XYPlotCanvas *plot = plotOf(gt);

@@ -130,6 +130,7 @@ private:
   wxCheckBox *p_charge;
   wxCheckBox *p_best;
   wxSpinCtrl *p_bestN;
+  wxCheckBox *p_patterns;
   wxStaticText *p_problem;
   wxButton *p_create;
 };

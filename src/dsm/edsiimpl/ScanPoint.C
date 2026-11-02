@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <unistd.h>
 
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropertyTask.H"
@@ -208,4 +209,78 @@ bool ScanPoint::structure(PropertyTask *calc, const string& spec,
   }
   delete frag;
   return !el.empty();
+}
+
+
+bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
+                                 string& why)
+{
+  out.clear();
+  const int n = ensembleSize(calc);
+  if (n < 1) { why = "The calculation has no conformer ensemble."; return false; }
+
+  // Frames go out in rank order, so the script's index is the rank.
+  const char *tmp = getenv("TMPDIR");
+  string path = string(tmp && *tmp ? tmp : "/tmp") + "/ecce-patterns-XXXXXX";
+  int fd = mkstemp(&path[0]);
+  if (fd < 0) { why = "Cannot write a temporary file."; return false; }
+  FILE *f = fdopen(fd, "w");
+  for (int k = 1; k <= n; k++) {
+    vector<string> el;
+    vector<double> xyz;
+    if (!structure(calc, "c" + std::to_string(k), el, xyz, why)) {
+      fclose(f);
+      unlink(path.c_str());
+      return false;
+    }
+    fprintf(f, "%d\nenergy: 0 relative: %.6f\n", (int)el.size(),
+            conformerEnergy(calc, k));
+    for (size_t i = 0; i < el.size(); i++)
+      fprintf(f, "%s %.6f %.6f %.6f\n", el[i].c_str(), xyz[3*i], xyz[3*i+1],
+              xyz[3*i+2]);
+  }
+  fclose(f);
+
+  const char *home = getenv("ECCE_HOME");
+  string cmd = home && *home ? string(home) + "/bin/ecce-contacts"
+                             : string("ecce-contacts");
+  cmd = "'" + cmd + "' '" + path + "' --group 2>/dev/null";
+  FILE *p = popen(cmd.c_str(), "r");
+  string text;
+  char buf[512];
+  while (p && fgets(buf, sizeof buf, p)) text += buf;
+  int status = p ? pclose(p) : -1;
+  unlink(path.c_str());
+  if (status != 0) {
+    why = "ecce-contacts could not be run.";
+    return false;
+  }
+
+  // Header line, then pattern <tab> count <tab> representative <tab> relative.
+  size_t pos = text.find('\n');
+  while (pos != string::npos && pos < text.size()) {
+    size_t end = text.find('\n', pos + 1);
+    string line = text.substr(pos + 1, end == string::npos ? end : end - pos - 1);
+    pos = end;
+    vector<string> col;
+    size_t a = 0, b;
+    while ((b = line.find('\t', a)) != string::npos) {
+      col.push_back(line.substr(a, b - a));
+      a = b + 1;
+    }
+    col.push_back(line.substr(a));
+    if (col.size() < 4) continue;
+    Pattern pt;
+    pt.label = col[0];
+    pt.count = atoi(col[1].c_str());
+    pt.rank = atoi(col[2].c_str());
+    pt.relative = atof(col[3].c_str());
+    out.push_back(pt);
+  }
+  if (out.empty() || out[0].label == "no metal") {
+    out.clear();
+    why = "The ensemble has no ion to group around.";
+    return false;
+  }
+  return true;
 }

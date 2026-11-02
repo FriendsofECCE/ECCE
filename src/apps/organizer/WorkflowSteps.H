@@ -46,7 +46,10 @@ namespace WorkflowSteps {
     /// From a CREST ensemble: make this many steps, one per conformer from
     /// the lowest relative energy up (0 = one ordinary step).
     int best;
-    Carry() : geometry(true), chargeMult(true), best(0) {}
+    /// From a CREST ensemble: one step per coordination pattern, from the
+    /// pattern's lowest-energy conformer (ScanPoint::ensemblePatterns).
+    bool perPattern;
+    Carry() : geometry(true), chargeMult(true), best(0), perPattern(false) {}
   };
 
   /// The link name a step carries its geometry under.
@@ -87,6 +90,14 @@ namespace WorkflowSteps {
   std::vector<Resource*> createBest(Session *wf, ResourceType *rt,
                                     const std::string& name, Resource *source,
                                     int n, const Carry& carry, std::string& why);
+
+  /// Like createBest, but one step per coordination pattern of the ensemble,
+  /// named "<name>-pat<k>" (k = 1.. by the pattern's lowest energy) and
+  /// annotated with the pattern, its count and its representative.
+  std::vector<Resource*> createPatterns(Session *wf, ResourceType *rt,
+                                        const std::string& name,
+                                        Resource *source, const Carry& carry,
+                                        std::string& why);
 
   /// Makes a step of type rt in wf, links it to source (null for the first
   /// step) and copies what carry says.  Null with `why` set on failure.
