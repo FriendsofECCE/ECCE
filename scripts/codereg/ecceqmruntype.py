@@ -31,7 +31,41 @@ class EcceqmRunTypePanel(EccePanel):
                                          export=1)
             vibSizer.AddWidget(self.useRaman)
             self.panelSizer.Add(vibSizer)
-        elif EcceGlobals.RunType == "IRC":
+
+        if EcceGlobals.RunType == "Transition State (Opt-TS)":
+            tsSizer = EcceBoxSizer(self, label="Saddle-Point Search", cols=1)
+            #  0 follows the lowest mode first, the engine's default.
+            self.tsMode = EcceSpinCtrl(self,
+                                       hardRange="[0..)",
+                                       softRange="[0..30]",
+                                       name="ES.Runtype.TS.Mode",
+                                       default=0,
+                                       label="Start along mode n (0: lowest):",
+                                       export=1)
+            tsSizer.AddWidget(self.tsMode)
+            self.tsFollow = EcceTextInput(self,
+                                          size=(160, -1),
+                                          name="ES.Runtype.TS.Follow",
+                                          default="",
+                                          label="Start along the mode that moves (empty: none):",
+                                          tip="bond 1 2, angle 1 2 3 or torsion 1 2 3 4 "
+                                              "(atom numbers as in the Builder)",
+                                          export=1)
+            tsSizer.AddWidget(self.tsFollow)
+            #  0 leaves it to the engine: every step when the Hessian is
+            #  analytic, otherwise only when the updated one loses its
+            #  negative curvature.
+            self.tsHessEvery = EcceSpinCtrl(self,
+                                            hardRange="[0..)",
+                                            softRange="[0..20]",
+                                            name="ES.Runtype.TS.HessianEvery",
+                                            default=0,
+                                            label="New Hessian every n steps (0: automatic):",
+                                            export=1)
+            tsSizer.AddWidget(self.tsHessEvery)
+            self.panelSizer.Add(tsSizer)
+
+        if EcceGlobals.RunType == "IRC":
             ircSizer = EcceBoxSizer(self, label="Reaction Path", cols=1)
             self.ircSteps = EcceSpinCtrl(self,
                                          hardRange="[1..)",
