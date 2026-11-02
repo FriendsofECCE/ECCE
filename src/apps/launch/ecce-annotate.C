@@ -9,6 +9,9 @@
  * and a rename of the new .ecce-meta), which is safe with nothing open; a
  * data server needs the Organizer's login, so there it is refused.
  *
+ * --exclude <calc>... "reason" marks calculations as excluded (#617): the
+ * same path, property ecce:excluded; --include <calc>... clears the mark.
+ *
  * Prints "name: annotated" or "name: not annotated: reason". Exit 0: all
  * annotated; 1: some were not (or no answer); 2: no running ECCE session
  * and no local data folder; 64: usage.
@@ -123,14 +126,26 @@ int main(int argc, char **argv)
 
   // The last argument is the text; "" clears the annotation.
   vector<string> args;
-  for (int i = 1; i < argc; i++) args.push_back(argv[i]);
-  if (args.size() < 2) {
-    std::cerr << "usage: ecce-annotate <calculation path or URL>... \"text\""
+  string key = "annotation", done = "annotated", undone = "not annotated";
+  bool noText = false;
+  for (int i = 1; i < argc; i++) {
+    string a = argv[i];
+    if (args.empty() && (a == "--exclude" || a == "--include")) {
+      key = "excluded";
+      done = a == "--exclude" ? "excluded" : "included";
+      undone = "not " + done;
+      noText = a == "--include";
+    } else args.push_back(a);
+  }
+  if (args.size() < (noText ? 1u : 2u)) {
+    std::cerr << "usage: ecce-annotate <calculation path or URL>... \"text\"\n"
+                 "       ecce-annotate --exclude <calculation>... \"reason\"\n"
+                 "       ecce-annotate --include <calculation>..."
               << std::endl;
     return 64;
   }
-  const string text = args.back();
-  args.pop_back();
+  const string text = noText ? string() : args.back();
+  if (!noText) args.pop_back();
 
   const bool running = !sessionKey().empty();
   if (!running && LocalData::dir().empty()) return notRunning();
@@ -141,7 +156,7 @@ int main(int argc, char **argv)
     string url, why;
     if (toUrl(args[i], url, why)) urls.push_back(url);
     else {
-      std::cout << args[i] << ": not annotated: " << why << std::endl;
+      std::cout << args[i] << ": " << undone << ": " << why << std::endl;
       allOk = false;
     }
   }
@@ -153,10 +168,10 @@ int main(int argc, char **argv)
     Ecce::initialize();
     for (size_t i = 0; i < urls.size(); i++) {
       Resource *rsc = EDSIFactory::getResource(EcceURL(urls[i]));
-      if (rsc && rsc->addProp(VDoc::getEcceNamespace() + ":annotation", text))
-        std::cout << args[i] << ": annotated" << std::endl;
+      if (rsc && rsc->addProp(VDoc::getEcceNamespace() + ":" + key, text))
+        std::cout << args[i] << ": " << done << std::endl;
       else {
-        std::cout << args[i] << ": not annotated: "
+        std::cout << args[i] << ": " << undone << ": "
                   << (rsc ? rsc->messages() : string("not a calculation")) << std::endl;
         allOk = false;
       }
@@ -183,6 +198,7 @@ int main(int argc, char **argv)
   JMSMessage *msg = pub.newMessage();
   msg->addProperty("reply_id", gReplyId);
   msg->addProperty("text", text);
+  msg->addProperty("property", key);
   msg->addIntProperty("n", (int)urls.size());
   for (size_t i = 0; i < urls.size(); i++)
     msg->addProperty("url" + std::to_string(i), urls[i]);
@@ -212,8 +228,8 @@ int main(int argc, char **argv)
     if (b == string::npos) { std::cout << gLines[i] << std::endl; allOk = false; continue; }
     string name = gLines[i].substr(0, a), ok = gLines[i].substr(a + 1, b - a - 1),
            reason = gLines[i].substr(b + 1);
-    if (ok == "ok") std::cout << name << ": annotated" << std::endl;
-    else { std::cout << name << ": not annotated: " << reason << std::endl; allOk = false; }
+    if (ok == "ok") std::cout << name << ": " << done << std::endl;
+    else { std::cout << name << ": " << undone << ": " << reason << std::endl; allOk = false; }
   }
   return allOk ? 0 : 1;
 }

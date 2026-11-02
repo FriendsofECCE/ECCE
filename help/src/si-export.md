@@ -27,3 +27,8 @@ methods are not combined or compared.
 The same files can be made from the command line:
 
     ecce-si-export calc1 calc2 -o si.xyz --table latex
+
+Calculations marked as excluded (see [Excluded calculations](excluded.md))
+are left out of the XYZ file and the table. If the selection contains any,
+the export asks whether to include them; the table then has an `excluded`
+column with the reason.

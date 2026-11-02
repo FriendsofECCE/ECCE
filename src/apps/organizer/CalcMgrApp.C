@@ -328,7 +328,8 @@ void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
   for (int i = 0; i < n; i++)
     urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
   vector<string> lines;
-  p_calcMgr->annotateForCommand(urls, msg.getProperty("text"), lines);
+  p_calcMgr->annotateForCommand(urls, msg.getProperty("text"), lines,
+                                msg.getProperty("property"));
   JMSMessage* r = newMessage();
   r->addProperty("reply_id", id);
   r->addProperty("kind", "done");

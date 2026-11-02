@@ -506,6 +506,8 @@ vector<Resource*> WorkflowSteps::readySteps(Session *wf, vector<string> *waiting
   for (size_t i = 0; i < nodes.size(); i++) {
     Resource *step = nodes[i].step;
     if (isLaunched(step)) continue;
+    // An excluded step is not launched (#617).
+    if (!step->getProp(VDoc::getEcceNamespace() + ":excluded").empty()) continue;
     bool sourcesDone = true;
     for (size_t k = 0; k < nodes[i].in.size(); k++)
       if (!isComplete(nodes[i].in[k].source)) sourcesDone = false;

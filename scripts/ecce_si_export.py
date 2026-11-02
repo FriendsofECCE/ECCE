@@ -13,7 +13,7 @@ same fields plus the number of imaginary frequencies.  This is a listing: the
 numbers of different codes and methods are never combined.
 
 Usage: ecce_si_export.py <calc>... -o out.xyz [--table csv|latex]
-       [--table-file FILE]      (default: the .xyz name with .csv / .tex)
+       [--include-excluded] [--table-file FILE]      (default: the .xyz name with .csv / .tex)
 """
 import argparse
 import os
@@ -23,7 +23,8 @@ import xml.etree.ElementTree as ET
 
 MULT = {"singlet": 1, "doublet": 2, "triplet": 3, "quartet": 4, "quintet": 5,
         "sextet": 6, "septet": 7, "octet": 8, "nonet": 9, "decet": 10}
-FIELDS = ["name", "code", "method", "charge", "mult", "E", "G", "nimag"]
+FIELDS = ["name", "code", "method", "charge", "mult", "E", "G", "nimag",
+          "excluded"]
 
 
 def _meta(path, key, owner="."):
@@ -111,7 +112,8 @@ def read_calc(calc):
         "method": method, "charge": charge, "mult": mult,
         "E": _value_text(os.path.join(calc, "Props", "TE")) or "-",
         "G": _value_text(os.path.join(calc, "Props", "EGIBBS")) or "-",
-        "nimag": nimag, "elements": els, "coords": xyz,
+        "nimag": nimag, "excluded": _meta(meta, "excluded"),
+        "elements": els, "coords": xyz,
     }
 
 
@@ -144,9 +146,9 @@ def csv_text(recs):
 
 def latex_text(recs):
     head = ["Name", "Code", "Method", "Charge", "Mult.", "$E$ (E$_\\mathrm{h}$)",
-            "$G$ (E$_\\mathrm{h}$)", "Imag. freq."]
+            "$G$ (E$_\\mathrm{h}$)", "Imag. freq.", "Excluded"]
     rows = [" & ".join(_tex(r[k]) for k in FIELDS) + r" \\" for r in recs]
-    return "\n".join([r"\begin{tabular}{lllrrrrr}", r"\hline",
+    return "\n".join([r"\begin{tabular}{lllrrrrrl}", r"\hline",
                       " & ".join(head) + r" \\", r"\hline"] + rows +
                      [r"\hline", r"\end{tabular}"]) + "\n"
 
@@ -157,6 +159,8 @@ def main(argv=None):
     ap.add_argument("-o", "--output", required=True)
     ap.add_argument("--table", choices=["csv", "latex"])
     ap.add_argument("--table-file")
+    ap.add_argument("--include-excluded", action="store_true",
+                    help="also list calculations marked excluded (ecce:excluded)")
     a = ap.parse_args(argv)
     recs = []
     for c in a.calcs:
@@ -165,6 +169,8 @@ def main(argv=None):
         except (OSError, ValueError) as e:
             print("ecce-si-export: %s: %s" % (c, e), file=sys.stderr)
             return 1
+    if not a.include_excluded:
+        recs = [r for r in recs if not r["excluded"]]
     open(a.output, "w").write(xyz_text(recs))
     if a.table:
         tf = a.table_file or (os.path.splitext(a.output)[0] +

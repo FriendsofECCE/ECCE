@@ -89,7 +89,9 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
       << ".\t" << NS << "application\t\t"
       << t->getProp(VDoc::getEcceNamespace() + ":application") << "\n"
       << ".\t" << NS << "theory\t\t" << theory << "\n"
-      << ".\t" << NS << "spinmultiplicity\t\t" << mult << "\n";
+      << ".\t" << NS << "spinmultiplicity\t\t" << mult << "\n"
+      << ".\t" << NS << "excluded\t\t"
+      << t->getProp(VDoc::getEcceNamespace() + ":excluded") << "\n";
   std::ofstream(dir / "Parameters" / ".ecce-meta")
       << "BasisSet.ecce_basisset\t" << NS << "name\t\t" << basis << "\n";
   return true;
@@ -98,7 +100,7 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
 }  // namespace
 
 bool siExport(const vector<EcceURL>& calcs, const string& xyzFile,
-              const string& table, string& why)
+              const string& table, string& why, bool includeExcluded)
 {
   static int serial = 0;
   const fs::path tmp = fs::temp_directory_path() /
@@ -119,6 +121,7 @@ bool siExport(const vector<EcceURL>& calcs, const string& xyzFile,
   if (!n) { why = "None of the selected items is a calculation with a structure."; return false; }
   args += " -o " + quote(xyzFile);
   if (!table.empty()) args += " --table " + table;
+  if (includeExcluded) args += " --include-excluded";
 
   const char *home = getenv("ECCE_HOME");
   string script = home && *home ? string(home) + "/bin/ecce-si-export"

@@ -3270,6 +3270,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_si_export PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Exclude a calculation with a reason (#617).
+  add_test(NAME apps_exclude
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/exclude_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_exclude PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Vibrations panel Displace: new calculations along a mode (#618).
   add_test(NAME apps_nmode_displace
            COMMAND ${PYTHON3_EXECUTABLE}
