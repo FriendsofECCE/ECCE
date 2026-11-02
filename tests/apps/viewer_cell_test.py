@@ -23,15 +23,69 @@ from builder_panes_test import _Results   # noqa: E402
 LATTICE = "lattice_vectors: \n 6.0 0.0 0.0\n 0.0 6.0 0.0\n 0.0 0.0 6.0\n"
 
 
-def addCell(calc):
+TRICLINIC = "lattice_vectors: \n 5.0 0.0 0.0\n 2.0 6.0 0.0\n 1.0 1.5 7.0\n"
+
+
+def addTriclinic(calc):
+    addCell(calc, TRICLINIC)
+
+
+def addCell(calc, lattice=LATTICE):
     path = os.path.join(calc, "Parameters", "chemsys.mvm")
     text = open(path).read()
     assert "num_atoms:" in text
-    open(path, "w").write(text.replace("num_atoms:", LATTICE + "num_atoms:", 1))
+    open(path, "w").write(text.replace("num_atoms:", lattice + "num_atoms:", 1))
+
+
+def readCell(dump):
+    vecs, labels, corner, drawn, rep = [], [], [0.0] * 3, None, [1, 1, 1]
+    for line in open(dump):
+        w = line.split()
+        if w[:1] == ["vector"]:
+            vecs.append([float(v) for v in w[1:4]])
+        elif w[:1] == ["latticecorner"]:
+            corner = [float(v) for v in w[1:4]]
+        elif w[:1] == ["latticelabel"]:
+            labels.append([float(v) for v in w[2:5]])
+        elif w[:1] == ["latticedrawn"]:
+            drawn = [float(v) for v in w[1:7]]
+        elif w[:1] == ["replication"]:
+            rep = [int(v) for v in w[1:4]]
+    return vecs, labels, corner, drawn, rep
+
+
+def cellProblems(dump, tol=0.1, offset=0.05):
+    """The drawn cell is the current toLines() cell, and the a/b/c labels sit
+    at the ends of the base cell's edges (#723)."""
+    vecs, labels, corner, drawn, rep = readCell(dump)
+    if len(vecs) != 3 or len(labels) != 3 or not drawn:
+        return ["%d vectors, %d labels, drawn %s in the dump"
+                % (len(vecs), len(labels), drawn)]
+    out = []
+    lo = list(corner)
+    hi = [corner[k] + sum(max(0.0, v[k]) for v in vecs) for k in range(3)]
+    lo = [corner[k] + sum(min(0.0, v[k]) for v in vecs) for k in range(3)]
+    for k in range(3):   # replication extends the box by (n-1) vectors
+        for i, v in enumerate(vecs):
+            ext = (rep[i] - 1) * v[k]
+            hi[k] += max(0.0, ext)
+            lo[k] += min(0.0, ext)
+    for k in range(3):
+        if abs(drawn[k] - lo[k]) > tol or abs(drawn[3 + k] - hi[k]) > tol:
+            out.append("drawn cell %s..%s, current cell %s..%s"
+                       % (drawn[:3], drawn[3:], lo, hi))
+            break
+    for n, p in enumerate(labels):
+        end = [corner[k] + vecs[n][k] for k in range(3)]
+        if any(abs(p[k] + offset - end[k]) > tol for k in range(3)):
+            out.append("label %d at %s, edge end at %s" % (n, p, end))
+    return out
 
 
 def check(display, results):
     for name, mutate, want in (("viewer-cell", addCell, 1),
+                               ("viewer-triclinic", addTriclinic, 1),
+                               ("viewer-rep", addCell, 1),
                                ("viewer-nocell", None, 0)):
         url, error = pbc_ux_test.install(name, mutate)
         if error:
@@ -41,7 +95,10 @@ def check(display, results):
         auth = fixture.authFile(os.path.join(fixture.stateHome(), ".ECCE",
                                              "auth.pipe"), user=fixture.USER)
         work, problems, log = pbc_ux_test.runScene(
-            display, name, ["fragdump opened", "panestate state Periodic_Builder"],
+            display, name, ["fragdump opened", "panestate state Periodic_Builder"]
+            + (["translate 1.7 -2.3 0.9", "fragdump moved"] if want else [])
+            + (["pbcopen", "pbcpress replicate 2", "fragdump replicated"]
+               if name == "viewer-rep" else []),
             url, ("-pipe", auth, "-context", url))
         for p in problems:
             results.fail("viewer cell " + name, p)
@@ -62,6 +119,15 @@ def check(display, results):
             results.fail("viewer cell " + name,
                          "cell drawn %s, expected %d (Periodic Builder off)"
                          % (counts.get("latticeshown"), want))
+        if want:
+            last = "replicated" if name == "viewer-rep" else "moved"
+            for tag in ("opened", "moved") + (("replicated",) if last == "replicated" else ()):
+                path = os.path.join(work, tag + ".txt")
+                if not os.path.exists(path):
+                    results.fail("viewer cell " + name, "no %s dump" % tag)
+                    continue
+                for p in cellProblems(path):
+                    results.fail("viewer cell %s (%s)" % (name, tag), p)
         fixture.remove(name)
 
 

@@ -680,6 +680,7 @@ void PBC::showLattice(bool showit)
     SoSwitch *s = (SoSwitch*)getFW().getSceneGraph().findNode("latticeswitch");
     if (s) {
       s->whichChild.setValue(showit ? SO_SWITCH_ALL : SO_SWITCH_NONE);
+      if (showit) getFW().getSceneGraph().touchLattice();
     }
 }
 

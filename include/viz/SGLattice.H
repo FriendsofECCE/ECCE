@@ -24,6 +24,13 @@ class  SGLattice : public SoLineSet
 
       void setLattice(LatticeDef *lattice);
 
+      // World position of the a/b/c label (i = 0..2) as drawn; false when
+      // the cell has none (a GROMACS compact box).
+      bool labelPosition(int i, double xyz[3]);
+
+      // Lowest and highest drawn vertex (all replicas); false if none.
+      bool drawnBounds(double lo[3], double hi[3]);
+
    SoINTERNAL public:
       static void		initClass();
 
