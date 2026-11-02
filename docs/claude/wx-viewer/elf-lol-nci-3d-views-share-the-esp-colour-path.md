@@ -1,6 +1,6 @@
 ---
 type: map
-title: "ELF (3D), LOL (3D) and NCI (3D) are MoPanel field types computed by ComputeMoCmd::computeFieldView; NCI rides the ESP colour-field path with its own ramp, and its density cut-off is applied when the surface is built"
+title: "ELF, LOL and NCI are MoPanel field types computed by ComputeMoCmd::computeFieldView; NCI rides the ESP colour-field path with its own ramp, and its density cut-off is applied when the surface is built"
 area: wx-viewer
 section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 paths: ["src/viz/propsgcommands/ComputeMoCmd.C", "src/viz/propsgcommands/IsoSurfaceCmd.C", "src/apps/builder/MoPanel.C", "src/wxviz/viewer/SceneScript.C", "include/viz/ComputeMoCmd.H", "tests/apps/density_fields_3d_test.py", "help/src/electron-density-views.md"]
@@ -37,7 +37,7 @@ issues: [798, 799, 800]
   still reads it.
 - **Hooks.** Scene command `field elf|lol|nci [res] [iso] [cutoff]` (computes
   and draws as the panel does; `espdump` writes an NCI grid, s and
-  sign(lambda2)rho per node); `mofield NCI (3D)` + `mopanel` + `mobar` press
+  sign(lambda2)rho per node); `mofield NCI` + `mopanel` + `mobar` press
   the panel. `tests/apps/density_fields_3d_test.py` (water dimer) checks
   triangles for each view and a blue (< 0) sign(lambda2)rho shell between the
   donor H and acceptor O.

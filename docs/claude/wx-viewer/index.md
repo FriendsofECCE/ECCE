@@ -104,4 +104,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [The viewer's software/hardware GL path (#566): GL_RENDERER read once, ECCE_GL_PATH and Advanced.GLPath, text as geometry on software](gl-path-software-or-hardware-566.md)
 - [mold links what GNU ld refuses: declare static-library dependencies](mold-hides-static-link-order.md)
 - [ELF, LOL, s and sign(lambda2)rho: Evaluator::fieldsAt derivatives, ecce-density-field, the Multiwfn oracle (#798-#800)](density-fields-elf-lol-nci-from-evaluator-derivatives.md)
-- [ELF (3D), LOL (3D) and NCI (3D) are MoPanel field types computed by ComputeMoCmd::computeFieldView; NCI rides the ESP colour-field path with its own ramp, and its density cut-off is applied when the surface is built](elf-lol-nci-3d-views-share-the-esp-colour-path.md)
+- [ELF, LOL and NCI are MoPanel field types computed by ComputeMoCmd::computeFieldView; NCI rides the ESP colour-field path with its own ramp, and its density cut-off is applied when the surface is built](elf-lol-nci-3d-views-share-the-esp-colour-path.md)

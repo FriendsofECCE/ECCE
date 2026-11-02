@@ -12,6 +12,8 @@
 #include "viz/SGContainer.H"
 #include "tdat/EspField.H"
 
+class Fragment;
+
 /**
  * Field types naming an electron density surface coloured by the
  * electrostatic potential.
@@ -45,9 +47,9 @@
  * MO loop the Density types use.  NCI holds the reduced density gradient s
  * as the field and sign(lambda2)rho as its colour field.
  */
-#define ELF_FIELD_TYPE "ELF (3D)"
-#define LOL_FIELD_TYPE "LOL (3D)"
-#define NCI_FIELD_TYPE "NCI (3D)"
+#define ELF_FIELD_TYPE "ELF"
+#define LOL_FIELD_TYPE "LOL"
+#define NCI_FIELD_TYPE "NCI"
 #define NCI_COLOR_MIN  (-0.035f)
 #define NCI_COLOR_MAX  (0.02f)
 #define NCI_RHO_CUTOFF 0.05
@@ -107,7 +109,7 @@ class  ComputeMoCmd :  public  PropCmd
        * when the calculation could not supply what the fields need.
        */
       bool computeFieldView(SingleGrid *grid, const std::string& fieldType,
-                            bool *failed);
+                            bool *failed, const Fragment *shown = 0);
 
       /**
        * The electrostatic potential from atomic point charges, for

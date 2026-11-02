@@ -139,7 +139,7 @@ class MoPanel : public MoGUI,
 
      double getTransparency();
      bool espFieldSelected();
-     /** ELF (3D), LOL (3D) or NCI (3D) chosen; `nci` says which kind. */
+     /** ELF, LOL or NCI chosen; `nci` says which kind. */
      bool fieldViewSelected(bool *nci = 0);
      void updateIsoValue();
      void updateIsoValue(double val);

@@ -57,6 +57,23 @@ static void basisFunction()
   }
 }
 
+// Contraction {1,-1} on exponents {1,2} is 0 at its centre while the Hessian
+// diagonal is 2: the derivatives must not be dropped with the value.
+static void cancellingContraction()
+{
+  EspBasisFunction f;
+  f.center[0] = f.center[1] = f.center[2] = 0.0;
+  f.exponent = { 1.0, 2.0 };
+  f.contraction = { 1.0, -1.0 };
+  f.angularCoef = { 1.0 };
+  f.powerX = { 0 }; f.powerY = { 0 }; f.powerZ = { 0 };
+  double v, g[3], H[6];
+  f.derivatives(0.0, 0.0, 0.0, v, g, H);
+  CHECK(fabs(v) < 1e-14, "cancelling contraction: value 0 at the centre");
+  CHECK(fabs(H[0] - 2.0) < 1e-12 && fabs(H[1] - 2.0) < 1e-12 &&
+        fabs(H[2] - 2.0) < 1e-12, "cancelling contraction: Hessian diagonal kept");
+}
+
 static void guards()
 {
   FieldPoint p;       // empty: rho = 0
@@ -69,6 +86,8 @@ static void guards()
   p.tau[0] = p.tau[1] = 0.5*0.3*pow(3*pi*pi, 2.0/3.0)*pow(rho, 5.0/3.0);
   CHECK(fabs(DensityFields::elf(p) - 0.5) < 1e-12, "ELF of the uniform gas is 1/2");
   CHECK(fabs(DensityFields::lol(p) - 0.5) < 1e-12, "LOL of the uniform gas is 1/2");
+  p.tau[0] = p.tau[1] = 0.0;
+  CHECK(fabs(DensityFields::lol(p) - 1.0) < 1e-12, "LOL is 1 where tau = 0 and rho > 0");
 }
 
 static void pointsOf(const string& root, const string& name, const double pts[][3], int npts)
@@ -138,6 +157,7 @@ int main(int argc, char **argv)
   if (argc < 2) { cerr << "usage: densityfields_test FIXTURE-ROOT\n"; return 2; }
   basisFunction();
   guards();
+  cancellingContraction();
   const double water[][3] = { {0, 0, 0.5}, {0.3, 0.4, -0.9}, {0.2, 0.9, -0.3}, {0, 1.5, 0.2}, {1.1, -0.6, 0.7} };
   const double o2[][3] = { {0.1, 0.2, 0.3}, {0, 0.9, 0}, {0.5, 0, 1.2}, {0.9, 0.3, 0.2} };
   pointsOf(argv[1], "water", water, 5);

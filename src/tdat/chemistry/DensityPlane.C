@@ -468,15 +468,16 @@ string csv(const Map& m, const string& calcName)
 Evaluator::Evaluator() : unrestricted(false), p_basis(new vector<EspBasisFunction>) {}
 Evaluator::~Evaluator() { delete p_basis; }
 
-bool Evaluator::build(IPropCalculation *calc)
+bool Evaluator::build(IPropCalculation *calc, const Fragment *shown)
 {
   complaint.clear();
-  std::unique_ptr<Fragment> frag(calc->getFragmentStep(-1));
+  std::unique_ptr<Fragment> own(shown ? 0 : calc->getFragmentStep(-1));
+  const Fragment *frag = shown ? shown : own.get();
   if (!frag || frag->numAtoms() == 0) {
     complaint = "The calculation has no chemical system.";
     return false;
   }
-  if (!MoAoBasis::fragmentGeometry(frag.get(), symbols, coordsAng)) {
+  if (!MoAoBasis::fragmentGeometry(const_cast<Fragment*>(frag), symbols, coordsAng)) {
     complaint = "The chemical system has no usable atoms.";
     return false;
   }

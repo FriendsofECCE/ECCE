@@ -21,6 +21,7 @@ using std::string;
 using std::vector;
 
 class IPropCalculation;
+class Fragment;
 struct EspBasisFunction;
 
 namespace DensityPlane
@@ -169,7 +170,8 @@ namespace DensityPlane
       Evaluator();
       ~Evaluator();
 
-      bool build(IPropCalculation *calc);
+      //  shown: the geometry on screen (else the final step's), so a surface sits on the atoms drawn.
+      bool build(IPropCalculation *calc, const Fragment *shown = 0);
 
       int  orbitals(bool beta) const;
       /** 1-based number of the highest occupied alpha orbital. */

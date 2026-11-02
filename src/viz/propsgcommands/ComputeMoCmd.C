@@ -189,6 +189,8 @@ void ComputeMoCmd::init(void)
    //  Outputs: set when the coefficients do not fit the calculation's
    //  basis, so the panel can say that instead of "the grid is 0".
    addParameter(new CommandParameter("CoefWidth", 0));
+   //  Set to 1 when an ELF/LOL/NCI compute failed or was cancelled.
+   addParameter(new CommandParameter("FieldFailed", 0));
    addParameter(new CommandParameter("BasisWidth", 0));
    //  Set when the orbital was drawn with the basis as stored because only
    //  that one has the output's number of functions (#265): the width of
@@ -404,6 +406,43 @@ bool ComputeMoCmd::execute()
     }
   }
 
+  if (doComputation &&
+      (fieldType == ELF_FIELD_TYPE || fieldType == LOL_FIELD_TYPE ||
+       fieldType == NCI_FIELD_TYPE)) {
+    //  Computed into a grid of its own and published only on success: a
+    //  cancelled recompute at a higher resolution must not leave the cached
+    //  grid with new dimensions on its old, smaller arrays.
+    SingleGrid *fresh = new SingleGrid();
+    fresh->name(key);
+    unsigned long gridRes = 0;
+    float xDelta, yDelta, zDelta;
+    setGrid(fresh,gridRes,xDelta,yDelta,zDelta);
+    fresh->type(fieldType);
+    bool failed = false;
+    const bool done = computeFieldView(fresh, fieldType, &failed,
+                                       cvsg->getFragment());
+    if (!done || failed) {
+      delete fresh;
+      getParameter("FieldFailed")->setInteger(1);
+      if (!done) throw CancelException(WHERE);
+      return false;
+    }
+    if (grid != 0) {
+      cvsg->removeMOGrid(key);
+      if (cvsg->getCurrentGrid() != grid) delete grid;
+    }
+    cvsg->addMOGrid(fresh);
+    cvsg->setCurrentGrid(fresh);
+    return true;
+  }
+  if (!doComputation && (fieldType == ELF_FIELD_TYPE ||
+                         fieldType == LOL_FIELD_TYPE ||
+                         fieldType == NCI_FIELD_TYPE)) {
+    //  A valid cached grid is a success: repeating "field elf" must work.
+    cvsg->setCurrentGrid(grid);
+    return true;
+  }
+
   if (doComputation) {
     // Create new grid and add it to the cache right away
     cvsg->addMOGrid(grid);
@@ -415,20 +454,6 @@ bool ComputeMoCmd::execute()
     // Initialize new grid
     setGrid(grid,gridRes,xDelta,yDelta,zDelta);
     grid->type(fieldType);
-
-    if (fieldType == ELF_FIELD_TYPE || fieldType == LOL_FIELD_TYPE ||
-        fieldType == NCI_FIELD_TYPE) {
-      bool failed = false;
-      const bool done = computeFieldView(grid, fieldType, &failed);
-      if (!done || failed) {
-        //  A cached empty grid would be found, not recomputed, next time.
-        cvsg->removeMOGrid(grid->name());
-        if (!done) throw CancelException(WHERE);
-        return false;
-      }
-      cvsg->setCurrentGrid(grid);
-      return true;
-    }
 
     //  Either ESP type is an ordinary density surface that is then
     //  coloured, so both take the whole density path and add a step at
@@ -1206,12 +1231,12 @@ bool ComputeMoCmd::execute()
 //   the progress monitor.
 /////////////////////////////////////////////////////////////////////////////
 bool ComputeMoCmd::computeFieldView(SingleGrid *grid, const string& fieldType,
-                                    bool *failed)
+                                    bool *failed, const Fragment *shown)
 {
   *failed = true;
   IPropCalculation *calc = getCalculation();
   DensityPlane::Evaluator ev;
-  if (calc == 0 || !ev.build(calc)) {
+  if (calc == 0 || !ev.build(calc, shown)) {
     cerr << fieldType << ": " << (calc ? ev.complaint : string("no calculation"))
          << endl;
     return true;

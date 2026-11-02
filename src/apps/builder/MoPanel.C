@@ -1661,6 +1661,12 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    cmd->getParameter("toZ")->setDouble(toz);
    fw.execute(cmd);
 
+   //  A cancelled or failed ELF/LOL/NCI compute: nothing new to draw.
+   if (cmd->getParameter("FieldFailed")->getInteger() > 0) {
+      event.Skip();
+      return;
+   }
+
    //  Coefficients that do not fit the basis are not a zero grid, and the
    //  grid still holds the previous orbital: say what is wrong and stop.
    const int usedWidth = cmd->getParameter("FallbackWidth")->getInteger();
@@ -2383,6 +2389,13 @@ double MoPanel::getTransparency()
    //  the surface IS the object, not a shell around one -- so the
    //  configured MO transparency does not apply to it.
    if (espFieldSelected()) return 0.0;
+
+   //  An ELF surface is a shell around the atoms: always translucent.
+   ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   if (tw != 0 && tw->GetSelection() != wxNOT_FOUND &&
+       string((const char*)tw->GetString(tw->GetSelection()).mb_str()) ==
+          ELF_FIELD_TYPE)
+      return 0.5;
 
    double ret = 0.0;
    int id;

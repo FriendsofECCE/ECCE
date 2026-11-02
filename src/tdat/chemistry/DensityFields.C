@@ -40,9 +40,9 @@ double DensityFields::lol(const FieldPoint& p)
   if (p.rhoTotal < RHO_FLOOR) return 0.0;
   double D, D0, tau;
   spinSums(p, D, D0, tau);
-  if (tau <= 0.0) return 0.0;
-  const double t = D0/tau;
-  return t/(1.0 + t);
+  //  LOL = t/(1+t), t = D0/tau, written so that tau = 0 gives 1.
+  if (D0 + tau <= 0.0) return 0.0;
+  return D0/(D0 + tau);
 }
 
 double DensityFields::rdg(const FieldPoint& p)

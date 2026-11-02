@@ -101,7 +101,8 @@ void EspBasisFunction::derivatives(double x, double y, double z, double& v,
   v = 0.0;
   for (int k = 0; k < 3; k++) g[k] = 0.0;
   for (int k = 0; k < 6; k++) h[k] = 0.0;
-  if (R == 0.0) return;
+  //  R can cancel to 0 while S1 and S2 do not (contraction {1,-1}).
+  if (R == 0.0 && S1 == 0.0 && S2 == 0.0) return;
 
   double Rg[3], Rh[6];
   for (int k = 0; k < 3; k++) Rg[k] = -2.0*d[k]*S1;

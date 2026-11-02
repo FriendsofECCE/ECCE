@@ -114,6 +114,17 @@ def main():
                              if os.path.exists(why) else ""), res.log)
                     else:
                         print("ok    %s: %d triangles" % (name, n))
+                # A second "field elf" is a cache hit and must still succeed.
+                out = os.path.join(work, "elf2")
+                scene = ("field elf %d 0.8\nfield elf %d 0.7\nidleframes 6\n"
+                         "exportiso elf2\n" % (RES, RES))
+                res = omo.runBuilder(display, url, out, scene)
+                n = triangles(os.path.join(out, "elf2-iso.txt"))
+                if n <= 0:
+                    fail("repeated field elf", "no surface (%d triangles)" % n,
+                         res.log)
+                else:
+                    print("ok    repeated field elf: %d triangles" % n)
                 if os.path.exists(dump):
                     cols = hbondColours(dump)
                     if len(cols) < 5 or min(cols) > -0.005:
@@ -128,8 +139,8 @@ def main():
                     fail("nci", "no grid dump")
                 # The panel: the entries, the bar words, the cut-off control.
                 out = os.path.join(work, "panel")
-                scene = ("mofield NCI (3D)\nmopanel nci\nhold 3\nmobar nci\n"
-                         "mofield ELF (3D)\nmopanel elf\nmobar elf\n")
+                scene = ("mofield NCI\nmopanel nci\nhold 3\nmobar nci\n"
+                         "mofield ELF\nmopanel elf\nmobar elf\n")
                 res = omo.runBuilder(display, url, out, scene,
                                      extraEnv={"ECCE_PANEL_FULLSCREEN": "1"})
                 nci = omo.readState(out, "nci") or {}
