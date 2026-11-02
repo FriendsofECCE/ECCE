@@ -6,7 +6,7 @@ paths: ["scripts/ecce_displacement.py", "tests/displacement/run_tests.py"]
 issues: [701]
 ---
 `scripts/ecce_displacement.py` (installed as `bin/ecce-displacement`) is wx-free
-Python; the Viewer panel and the CLI both display it.  Input: one or two stored
+Python, a command-line tool for now (the Viewer panel is a later step).  Input: one or two stored
 calculation folders.
 - Geometry comes from `Props/GEOMTRACE` (a tsvectable: `rows` atoms x `columns`
   3, one `<step>` per frame, Angstrom).  Elements come from the `rowLabels`
