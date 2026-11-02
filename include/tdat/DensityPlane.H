@@ -138,6 +138,24 @@ namespace DensityPlane
   /** The map as CSV: u, v, x, y, z (stored frame, A) and the value. */
   string csv(const Map& m, const string& calcName);
 
+  /**
+   * The density and what ELF, LOL and NCI need, at one point, in bohr units.
+   * Per spin: rho, gradient, tau = 1/2 sum n_i |grad psi_i|^2.  A restricted
+   * open shell (one MO set, occupations 0..2) puts min(n,1) electrons of an
+   * orbital in alpha and the rest in beta.
+   */
+  struct FieldPoint
+  {
+    double rho[2];        // alpha, beta
+    double grad[2][3];
+    double tau[2];
+    double rhoTotal;
+    double gradTotal[3];
+    double hess[6];       // total density: xx yy zz xy xz yz
+    double eig[3];        // ascending
+    FieldPoint();
+  };
+
   class Evaluator
   {
     public:
@@ -184,6 +202,9 @@ namespace DensityPlane
       void evaluateAt(double x, double y, double z, const vector<char>& needA,
                       const vector<char>& needB, bool wantRho, vector<double>& psiA,
                       vector<double>& psiB, vector<double>& phi, double& rho) const;
+
+      /** Everything in FieldPoint at x, y, z (A, stored frame). */
+      void fieldsAt(double x, double y, double z, FieldPoint& out) const;
 
       /**
        * Evaluate on a plane.  The window is the atoms' extent plus

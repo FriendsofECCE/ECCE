@@ -103,3 +103,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A custom-disabled ewxChoice still changes the shown entry; the disabler puts the last accepted one back](custom-disabled-choice-shows-unaccepted-pick.md)
 - [The viewer's software/hardware GL path (#566): GL_RENDERER read once, ECCE_GL_PATH and Advanced.GLPath, text as geometry on software](gl-path-software-or-hardware-566.md)
 - [mold links what GNU ld refuses: declare static-library dependencies](mold-hides-static-link-order.md)
+- [ELF, LOL, s and sign(lambda2)rho: Evaluator::fieldsAt derivatives, ecce-density-field, the Multiwfn oracle (#798-#800)](density-fields-elf-lol-nci-from-evaluator-derivatives.md)
