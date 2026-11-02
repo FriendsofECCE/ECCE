@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <sstream>
 
 #include <wx/button.h>
 #include <wx/checkbox.h>
@@ -11,9 +13,13 @@
 #include <wx/textctrl.h>
 
 #include "tdat/PropVecString.H"
+#include "util/Preferences.H"
+#include "util/StringConverter.H"
+#include "util/TDateTime.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/Resource.H"
+#include "dsm/ResourceType.H"
 #include "XYPlotCanvas.H"
 
 #include "MdAnalysisPanels.H"
@@ -26,6 +32,34 @@ const wxWindowID ID_FIT = wxNewId();
 const wxWindowID ID_LOG = wxNewId();
 
 wxString utf8(const std::string& s) { return wxString::FromUTF8(s.c_str()); }
+
+// Keep each curve's own abscissa: compared runs need not share sample times.
+std::string comparisonColumns(const std::string& csv)
+{
+  std::istringstream input(csv);
+  std::string line, metadata;
+  std::vector<std::vector<std::string>> blocks;
+  size_t rows = 0;
+  while (std::getline(input, line)) {
+    if (line.empty()) continue;
+    if (line[0] == '#') { metadata += line + "\n"; continue; }
+    if (line.compare(0, 6, "speed_") == 0 || line.compare(0, 5, "time_") == 0)
+      blocks.emplace_back();
+    blocks.back().push_back(line);
+    rows = std::max(rows, blocks.back().size());
+  }
+  std::string out = metadata;
+  for (size_t row = 0; row < rows; row++) {
+    for (size_t b = 0; b < blocks.size(); b++) {
+      if (b) out += ",";
+      if (row < blocks[b].size()) out += blocks[b][row];
+      else out += blocks[b][0].compare(0, 6, "speed_") == 0 ? ",," : ",";
+    }
+    out += "\n";
+  }
+  return out;
+}
+
 }
 
 IMPLEMENT_ABSTRACT_CLASS(MdAnalysisPanel, PropertyPanel)
@@ -66,9 +100,9 @@ bool MdAnalysisPanel::build(IPropCalculation *calculation, wxWindow *parent,
   // Two rows so the buttons fit a docked panel at 1366x768.
   wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
   wxButton *compare = new wxButton(this, ID_COMPARE, "Compare...");
-  compare->SetToolTip("Draw another calculation of this folder over this one");
+  compare->SetToolTip("Draw other calculations of this folder over this one");
   p_remove = new wxButton(this, ID_REMOVE, "Remove");
-  p_remove->SetToolTip("Remove the compared calculation");
+  p_remove->SetToolTip("Remove the compared calculations");
   p_remove->Enable(false);
   bar->Add(compare, 0, wxRIGHT, 4);
   bar->Add(p_remove, 0, wxRIGHT, 4);
@@ -84,7 +118,7 @@ bool MdAnalysisPanel::build(IPropCalculation *calculation, wxWindow *parent,
   p_plot->setShowKey(true);
   GetSizer()->Add(p_plot, 1, wxEXPAND);
 
-  loadRecords(recordsOf(calculation), std::vector<std::string>());
+  loadRecords(recordsOf(calculation), {});
   redraw();
   Bind(wxEVT_BUTTON, &MdAnalysisPanel::onCompare, this, ID_COMPARE);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { compareWith(std::string()); }, ID_REMOVE);
@@ -102,14 +136,36 @@ void MdAnalysisPanel::refill()
 // in a project inside a project (Examples/<set>/<topic>/<calc>).
 static void collectCalcs(Resource *folder, const std::string& own,
                          const std::string& prefix, int depth,
-                         const std::string& key,
+                         const std::string& key, int treeSort,
                          std::vector<IPropCalculation*>& out,
                          std::vector<std::string>& labels)
 {
   std::vector<Resource*> *kids = folder ? folder->getChildren() : 0;
   if (!kids) return;
-  for (size_t i = 0; i < kids->size(); i++) {
-    Resource *r = (*kids)[i];
+  // Data-server listings have no display order. Match the Organizer tree
+  // without rearranging the resource cache shared by other panels.
+  std::vector<Resource*> ordered = *kids;
+  const bool session = folder->getDescriptor()->getIsSessionBased();
+  std::stable_sort(ordered.begin(), ordered.end(),
+      [session, treeSort](Resource *a, Resource *b) {
+        if (session && a->getSessionIndex() != b->getSessionIndex())
+          return a->getSessionIndex() < b->getSessionIndex();
+        int cmp = 0;
+        if (treeSort == 0 || treeSort == 1)
+          cmp = a->getDescriptor()->getSortPriority() -
+                b->getDescriptor()->getSortPriority();
+        if (treeSort < 4 && cmp == 0)
+          cmp = StringConverter::compare(a->getName(), b->getName(), false);
+        if (treeSort == 4 || treeSort == 5) {
+          TDateTime *left = a->getModifiedDate();
+          TDateTime *right = b->getModifiedDate();
+          if (left && right) cmp = left->compare(*right);
+          delete left;
+          delete right;
+        }
+        return treeSort % 2 ? cmp > 0 : cmp < 0;
+      });
+  for (Resource *r : ordered) {
     IPropCalculation *other = dynamic_cast<IPropCalculation*>(r);
     if (other) {
       if (other->getURL().toString() == own) continue;
@@ -120,7 +176,7 @@ static void collectCalcs(Resource *folder, const std::string& own,
                (r->getContentType() == ResourceDescriptor::CT_PROJECT ||
                 r->getContentType() == ResourceDescriptor::CT_SESSION)) {
       //  A GROMACS run is a study (session) holding its tasks.
-      collectCalcs(r, own, prefix + r->getName() + "/", depth - 1, key, out,
+      collectCalcs(r, own, prefix + r->getName() + "/", depth - 1, key, treeSort, out,
                    labels);
     }
   }
@@ -147,7 +203,10 @@ std::vector<IPropCalculation*> MdAnalysisPanel::comparable(
       break;
     folder = above;
   }
-  collectCalcs(folder, calc->getURL().toString(), "", 2, propertyKey(), out,
+  Preferences prefs("Organizer");
+  int treeSort = 0;
+  prefs.getInt("Organizer.TreeSort", treeSort);
+  collectCalcs(folder, calc->getURL().toString(), "", 2, propertyKey(), treeSort, out,
                names);
   // A calculation in the calculation's own folder carries its bare name.
   for (size_t i = 0; i < out.size(); i++)
@@ -159,25 +218,34 @@ std::vector<IPropCalculation*> MdAnalysisPanel::comparable(
 
 bool MdAnalysisPanel::compareWith(const std::string& name)
 {
-  if (name.empty()) {
-    p_compareName.clear();
-    p_otherRecords.clear();
-    if (p_remove) p_remove->Enable(false);
-    refill();
-    return true;
-  }
+  return compareWith(name.empty() ? std::vector<std::string>() :
+                                    std::vector<std::string>{name});
+}
+
+bool MdAnalysisPanel::compareWith(const std::vector<std::string>& names)
+{
   std::vector<std::string> labels;
-  const std::vector<IPropCalculation*> found = comparable(&labels);
-  for (size_t i = 0; i < found.size(); i++) {
-    if (labels[i] != name && found[i]->getURL().getFilePathTail() != name)
-      continue;
-    p_compareName = found[i]->getURL().getFilePathTail();
-    p_otherRecords = recordsOf(found[i]);
-    if (p_remove) p_remove->Enable(true);
-    refill();
-    return true;
+  const std::vector<IPropCalculation*> found = names.empty() ?
+      std::vector<IPropCalculation*>() : comparable(&labels);
+  std::vector<bool> selected(found.size(), false);
+  for (const std::string& name : names) {
+    size_t i = 0;
+    for (; i < found.size(); i++)
+      if (labels[i] == name || found[i]->getURL().getFilePathTail() == name) break;
+    if (i == found.size()) return false;
+    selected[i] = true;
   }
-  return false;
+  p_compareNames.clear();
+  p_otherRecords.clear();
+  // Folder order keeps colours stable when the selection order changes.
+  for (size_t i = 0; i < found.size() && p_compareNames.size() < 8; i++) {
+    if (!selected[i]) continue;
+    p_compareNames.push_back(labels[i]);
+    p_otherRecords.push_back(recordsOf(found[i]));
+  }
+  if (p_remove) p_remove->Enable(!p_compareNames.empty());
+  refill();
+  return true;
 }
 
 void MdAnalysisPanel::onCompare(wxCommandEvent&)
@@ -190,11 +258,23 @@ void MdAnalysisPanel::onCompare(wxCommandEvent&)
     return;
   }
   wxArrayString names;
-  for (size_t i = 0; i < found.size(); i++)
+  wxArrayInt selected;
+  for (size_t i = 0; i < found.size(); i++) {
     names.Add(utf8(labels[i]));
-  const int at = wxGetSingleChoiceIndex(
-      "Draw this calculation as well, in the same plot:", "Compare", names, this);
-  if (at >= 0) compareWith(labels[at]);
+    if (std::find(p_compareNames.begin(), p_compareNames.end(), labels[i]) !=
+        p_compareNames.end()) selected.Add(i);
+  }
+  wxMultiChoiceDialog dialog(this,
+      "Draw these calculations as well, in the same plot:", "Compare", names);
+  dialog.SetSelections(selected);
+  if (dialog.ShowModal() != wxID_OK) return;
+  selected = dialog.GetSelections();
+  if (selected.size() > 8)
+    wxMessageBox("At most 8 calculations can be compared. The first 8 in folder order will be used.",
+                 "Compare", wxOK | wxICON_INFORMATION, this);
+  std::vector<std::string> chosen;
+  for (int i : selected) chosen.push_back(labels[i]);
+  compareWith(chosen);
 }
 
 bool MdAnalysisPanel::exportCsv(const wxString& path)
@@ -247,10 +327,12 @@ bool SpeedPanel::Create(IPropCalculation *calculation, wxWindow *parent,
 }
 
 void SpeedPanel::loadRecords(const std::vector<std::string>& own,
-                             const std::vector<std::string>& other)
+                             const std::vector<std::vector<std::string>>& other)
 {
   if (!decodeSpeed(own, p_own)) p_own.clear();
-  if (!decodeSpeed(other, p_other)) p_other.clear();
+  p_other.resize(other.size());
+  for (size_t i = 0; i < other.size(); i++)
+    if (!decodeSpeed(other[i], p_other[i])) p_other[i].clear();
 }
 
 void SpeedPanel::redraw()
@@ -260,9 +342,9 @@ void SpeedPanel::redraw()
   p_curveTotal = 0;
   wxString text;
   int series = 0;
-  for (int pass = 0; pass < 2; pass++) {
-    const std::vector<SpeedCurve>& set = pass ? p_other : p_own;
-    const std::string run = pass ? p_compareName : calcName();
+  for (size_t pass = 0; pass <= p_other.size(); pass++) {
+    const std::vector<SpeedCurve>& set = pass ? p_other[pass - 1] : p_own;
+    const std::string run = pass ? p_compareNames[pass - 1] : calcName();
     for (const SpeedCurve& c : set) {
       const size_t n = c.density.size();
       std::vector<double> v(n), meas(n), mb(n);
@@ -271,10 +353,11 @@ void SpeedPanel::redraw()
         meas[b] = 1000 * c.density[b];
         mb[b] = 1000 * mbDensity(v[b], c.mass, c.refT);
       }
-      const wxString who = utf8(c.label) + " (" + utf8(run) + ")";
+      const wxString label = utf8(c.label + (pass ? "_" + run : ""));
+      const wxString who = pass ? label : label + " (" + utf8(run) + ")";
       const int a = p_plot->addCurve(v, meas, who + " simulation", series, XYPlotCanvas::MARKERS);
       p_plot->setCurveColour(a, p_plot->seriesColour(series));
-      const int b = p_plot->addCurve(v, mb, utf8(c.label) +
+      const int b = p_plot->addCurve(v, mb, label +
           wxString::Format(" Maxwell-Boltzmann, %.0f K", c.refT), series, XYPlotCanvas::LINE);
       p_plot->setCurveColour(b, p_plot->seriesColour(series));
       p_plot->setCurveStyle(b, false, 2);
@@ -297,8 +380,10 @@ void SpeedPanel::redraw()
 std::string SpeedPanel::csvText()
 {
   std::vector<SpeedCurve> all = p_own;
-  for (SpeedCurve c : p_other) { c.label += "_" + p_compareName; all.push_back(c); }
-  return speedCsv(all);
+  for (size_t i = 0; i < p_other.size(); i++)
+    for (SpeedCurve c : p_other[i]) { c.label += "_" + p_compareNames[i]; all.push_back(c); }
+  const std::string csv = speedCsv(all);
+  return p_other.empty() ? csv : comparisonColumns(csv);
 }
 
 // ---------------------------------------------------------------- MSD
@@ -348,10 +433,12 @@ void MsdPanel::addControls(wxSizer *bar)
 }
 
 void MsdPanel::loadRecords(const std::vector<std::string>& own,
-                           const std::vector<std::string>& other)
+                           const std::vector<std::vector<std::string>>& other)
 {
   if (!decodeMsd(own, p_own)) p_own.clear();
-  if (!decodeMsd(other, p_other)) p_other.clear();
+  p_other.resize(other.size());
+  for (size_t i = 0; i < other.size(); i++)
+    if (!decodeMsd(other[i], p_other[i])) p_other[i].clear();
 }
 
 void MsdPanel::setFit(double from, double to)
@@ -383,11 +470,12 @@ void MsdPanel::redraw()
   wxString text;
   int series = 0;
   bool first = true;
-  for (int pass = 0; pass < 2; pass++) {
-    const std::vector<MsdCurve>& set = pass ? p_other : p_own;
-    const std::string run = pass ? p_compareName : calcName();
+  for (size_t pass = 0; pass <= p_other.size(); pass++) {
+    const std::vector<MsdCurve>& set = pass ? p_other[pass - 1] : p_own;
+    const std::string run = pass ? p_compareNames[pass - 1] : calcName();
     for (const MsdCurve& c : set) {
-      const wxString who = utf8(c.label) + " (" + utf8(run) + ")";
+      const wxString label = utf8(c.label + (pass ? "_" + run : ""));
+      const wxString who = pass ? label : label + " (" + utf8(run) + ")";
       const int a = p_plot->addCurve(c.time, c.msd, who, series, XYPlotCanvas::LINE);
       p_plot->setCurveColour(a, p_plot->seriesColour(series));
       p_curveTotal++;
@@ -436,6 +524,8 @@ void MsdPanel::onLogLog(wxCommandEvent&)
 std::string MsdPanel::csvText()
 {
   std::vector<MsdCurve> all = p_own;
-  for (MsdCurve c : p_other) { c.label += "_" + p_compareName; all.push_back(c); }
-  return msdCsv(all, p_from, p_to);
+  for (size_t i = 0; i < p_other.size(); i++)
+    for (MsdCurve c : p_other[i]) { c.label += "_" + p_compareNames[i]; all.push_back(c); }
+  const std::string csv = msdCsv(all, p_from, p_to);
+  return p_other.empty() ? csv : comparisonColumns(csv);
 }

@@ -17,7 +17,7 @@ class XYPlotCanvas;
  * Shared part of the Speed Distribution and Displacement panels of a
  * GROMACS dynamics run: the analysis comes from the run's MDSPEED / MDMSD
  * property (include/util/MdAnalysis.H does the numbers, the panel draws), and
- * another calculation of the same folder can be drawn over it.
+ * other calculations of the same folder can be drawn over it.
  */
 class MdAnalysisPanel : public PropertyPanel
 {
@@ -30,7 +30,7 @@ class MdAnalysisPanel : public PropertyPanel
       /** Draw the calculation of this name over this one; "" removes it.
           False if no calculation of the folder has the data. */
       bool compareWith(const std::string& name);
-      const std::string& compareName() const { return p_compareName; }
+      bool compareWith(const std::vector<std::string>& names);
       bool exportCsv(const wxString& path);
       int curves() const { return p_curveTotal; }
       /** The text the panel shows above its plot. */
@@ -44,7 +44,7 @@ class MdAnalysisPanel : public PropertyPanel
       virtual const char *propertyKey() const = 0;
       virtual const char *exportName() const = 0;
       virtual void loadRecords(const std::vector<std::string>& own,
-                               const std::vector<std::string>& other) = 0;
+                               const std::vector<std::vector<std::string>>& other) = 0;
       virtual void redraw() = 0;
       virtual std::string csvText() = 0;
       /** A control row beside the buttons (fit range ...); may add nothing. */
@@ -56,7 +56,7 @@ class MdAnalysisPanel : public PropertyPanel
 
       XYPlotCanvas *p_plot;
       wxStaticText *p_text;
-      std::string p_compareName;
+      std::vector<std::string> p_compareNames;
       int p_curveTotal;
 
    public:
@@ -67,7 +67,7 @@ class MdAnalysisPanel : public PropertyPanel
    private:
       void onCompare(wxCommandEvent&);
       void onExport(wxCommandEvent&);
-      std::vector<std::string> p_otherRecords;
+      std::vector<std::vector<std::string>> p_otherRecords;
       wxButton *p_remove;
 };
 
@@ -92,12 +92,13 @@ class SpeedPanel : public MdAnalysisPanel
       virtual const char *propertyKey() const { return "MDSPEED"; }
       virtual const char *exportName() const { return "speeds"; }
       virtual void loadRecords(const std::vector<std::string>& own,
-                               const std::vector<std::string>& other);
+                               const std::vector<std::vector<std::string>>& other);
       virtual void redraw();
       virtual std::string csvText();
 
    private:
-      std::vector<SpeedCurve> p_own, p_other;
+      std::vector<SpeedCurve> p_own;
+      std::vector<std::vector<SpeedCurve>> p_other;
 };
 
 /** MSD of the molecules against lag time, with the Einstein fit for D. */
@@ -128,7 +129,7 @@ class MsdPanel : public MdAnalysisPanel
       virtual const char *propertyKey() const { return "MDMSD"; }
       virtual const char *exportName() const { return "msd"; }
       virtual void loadRecords(const std::vector<std::string>& own,
-                               const std::vector<std::string>& other);
+                               const std::vector<std::vector<std::string>>& other);
       virtual void redraw();
       virtual std::string csvText();
       virtual void addControls(wxSizer *bar);
@@ -136,7 +137,8 @@ class MsdPanel : public MdAnalysisPanel
    private:
       void onFit(wxCommandEvent&);
       void onLogLog(wxCommandEvent&);
-      std::vector<MsdCurve> p_own, p_other;
+      std::vector<MsdCurve> p_own;
+      std::vector<std::vector<MsdCurve>> p_other;
       double p_from, p_to;
       wxTextCtrl *p_fromBox, *p_toBox;
       wxCheckBox *p_log;
