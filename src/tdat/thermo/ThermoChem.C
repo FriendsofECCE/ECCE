@@ -172,6 +172,30 @@ ThermoResult computeThermo(const ThermoInput& in, double T,
     }
   }
 
+  // Per-mode terms, with the same damping as the totals above.
+  for (double f : in.frequencies) {
+    ThermoMode m;
+    m.freq = f;
+    const double hnu = 6.62607015e-34 * C_CM * f / EH;
+    const double x = HC_K * f / T;
+    const double ho = hnu / (std::exp(x) - 1.0);
+    double zp = 0.5 * hnu, th = ho, s = R_ * sHo(f, T);
+    if (tr == THERMO_GRIMME_QRRHO) {
+      const double w = damping(f, w0);
+      s = R_ * (w * sHo(f, T) + (1.0 - w) * sFr(f, T));
+    } else if (tr == THERMO_TRUHLAR_RAISE && f < 100.0) {
+      const double g = 100.0, y = HC_K * g / T;
+      const double hg = 6.62607015e-34 * C_CM * g / EH;
+      zp = 0.5 * hg; th = hg / (std::exp(y) - 1.0); s = R_ * sHo(g, T);
+    } else if (tr == THERMO_HEADGORDON_QRRHO) {
+      const double w = damping(f, 100.0);
+      th = w * ho + (1.0 - w) * 0.5 * K_B * T / EH;
+    }
+    m.S = s;
+    m.Gcorr = zp + th - T * s / (EH * N_A);
+    r.modes.push_back(m);
+  }
+
   r.S = r.sElec + r.sTrans + r.sRot + r.sVib;
   r.G = r.H - T * r.S / (EH * N_A);
   return r;

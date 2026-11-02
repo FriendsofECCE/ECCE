@@ -35,6 +35,14 @@ enum ThermoStandardState {
    THERMO_SOLN_1M             ///< 1 M standard state
 };
 
+/** One vibration's share of S and of the G correction under the treatment used. */
+struct ThermoMode
+{
+   double freq = 0.0;     ///< cm-1, as stored (before any raising)
+   double S = 0.0;        ///< J/mol/K; the modes add up to ThermoResult::sVib
+   double Gcorr = 0.0;    ///< hartree: zero point + thermal energy - T*S of this mode
+};
+
 struct ThermoResult
 {
    bool ok = false;
@@ -46,6 +54,7 @@ struct ThermoResult
    double H = 0.0;                   ///< hartree
    double S = 0.0;                   ///< J/mol/K
    double G = 0.0;                   ///< hartree
+   std::vector<ThermoMode> modes;    ///< one per frequency, in input order
    double sElec = 0.0, sTrans = 0.0, sRot = 0.0, sVib = 0.0;  ///< J/mol/K
 };
 

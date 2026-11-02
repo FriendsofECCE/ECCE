@@ -15,4 +15,11 @@ bool gatherThermoInput(const std::string& url, ThermoInput& in,
                        std::string& name, std::vector<std::string>& notes,
                        std::string& error);
 
+/**
+ * Code, method, basis set, solvent, functional and dispersion of a
+ * calculation as one line, for deciding whether two calculations may be
+ * compared (never across methods).  Empty when the calculation cannot be read.
+ */
+std::string gatherMethodKey(const std::string& url);
+
 #endif

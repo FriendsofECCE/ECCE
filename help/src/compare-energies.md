@@ -90,6 +90,29 @@ Energies from different methods or basis sets do not subtract to a physical
 quantity. The warning is a reminder of that, and the number is still there if
 the comparison is what you intend.
 
+## Reaction overview
+
+**Reaction overview...**, at the bottom of the Compare Energies window, opens
+a chart of ΔE and ΔG for one or more reactions. It starts with the reaction
+set up in the window: side A as the reactants and side B as the products.
+
+- The text box holds the reactions, one per line, in the form
+  `a, 2*b -> c`, where each name is a calculation and `2*` a coefficient.
+  Add lines to chart several reactions side by side.
+- **G treatment** chooses the treatment of the low frequencies for ΔG (the
+  default is Grimme's quasi-RRHO with omega0 = 100 cm-1). **Update** redraws
+  the chart after the text is changed.
+- For each reaction the chart shows the electronic ΔE and ΔG in kJ/mol. The
+  bar on ΔG is the spread over the six treatments listed under
+  [G over treatments](#g-over-treatments).
+- Click a point to list the soft modes (below 100 cm-1) of each species with
+  their share of its entropy and of G.
+- **Export CSV...** writes the numbers, and **Export PNG...** the chart.
+
+A reaction whose calculations differ in code, method, basis set, solvent or
+dispersion correction is not drawn, and the box below the chart says why.
+The numbers are those of `ecce-thermo --reactions`.
+
 ## Compare Forces
 
 Select exactly two calculations, then choose **Tools > Compare Forces...**.

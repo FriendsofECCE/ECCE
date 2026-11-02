@@ -177,6 +177,7 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CalcMgr.H"
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
+#include "ReactionOverviewDialog.H"
 #include "CompareForcesDialog.H"
 #include "SiExport.H"
 #include "ChecksDialog.H"
@@ -1935,6 +1936,26 @@ void CalcMgr::runTestCommand(const string& line)
         for (string l; std::getline(r, l); ) outcome += " | " + l;
         d->Destroy();
       }
+    } else if (command == "reactionoverview") {
+      // "reactionoverview <file> <treatment> [png [csv]]": the dialog for the
+      // reactions in <file>; prints the chart points and what a click on
+      // reaction 1 lists, and writes the PNG and CSV exports.
+      std::istringstream args(calcName);
+      string file, treatment, png, csvOut;
+      args >> file >> treatment >> png >> csvOut;
+      std::ifstream in(file.c_str());
+      std::stringstream text;
+      text << in.rdbuf();
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, text.str());
+      d->Show();
+      d->setTreatment(treatment);
+      for (int i = 0; i < 5; i++) wxYield();
+      outcome = "ok";
+      std::istringstream r(d->chartText() + "Click 1:\n" + d->clickText(1));
+      for (string l; std::getline(r, l); ) outcome += " | " + l;
+      if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
+      if (!csvOut.empty()) outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
+      d->Destroy();
     } else if (command == "table") {
       // "table [PROJECT-URL]": select the project (when given) and report
       // its table's Progress cells, one "name=text" each.
