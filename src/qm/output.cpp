@@ -1,4 +1,5 @@
 #include "output.hpp"
+#include "util/VibFrequency.H"
 #include "localise.hpp"
 #include "polar.hpp"
 #include <cctype>
@@ -230,11 +231,14 @@ void write_progress_hessian(std::ostream& os, int done, int total, int pass, boo
 
 void write_progress_freq_end(std::ostream& os, int points, const FrequencyOutput& f) {
   const int imag = f.vib.n_imaginary;
+  int real = 0;
+  for (double nu : f.vib.freq)
+    if (VibFrequency::isReal(nu)) ++real;
   if (f.step == 0)
     os << "progress freq kind=analytic done=yes real=";
   else
     os << "progress freq kind=numerical point=" << points << "/" << points << " done=yes real=";
-  os << static_cast<int>(f.vib.freq.size()) - imag << " imaginary=" << imag << " zpe=" << fix(f.thermo.zpe) << "\n";
+  os << real << " imaginary=" << imag << " zpe=" << fix(f.thermo.zpe) << "\n";
   os.flush();
 }
 

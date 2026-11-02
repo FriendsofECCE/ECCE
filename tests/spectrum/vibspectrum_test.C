@@ -242,6 +242,12 @@ static void testSticks()
   o.setIntensities(VIB_IR, std::vector<double>(oi, oi + 9), "KM/Mole");
   CHECK(o.sticks(VIB_IR).size() == 3);
 
+  o.setModes({-0.0, -0.01, -0.9, -50.0, 1200.0, -2.0, 2.0}, {});
+  o.setIntensities(VIB_IR, {0, 0, 0, 1, 1, 1, 1}, "KM/Mole");
+  ir = o.sticks(VIB_IR);
+  CHECK(ir.size() == 4 && ir[0].mode == 3 && ir[0].imaginary);
+  CHECK(!ir[1].imaginary && ir[2].imaginary && !ir[3].imaginary);
+
   //  Imaginary modes are kept and flagged, and do not feed the envelope.
   VibSpectrum im;
   const double mf[] = {-250.0, 1500.0};

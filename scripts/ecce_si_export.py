@@ -50,6 +50,18 @@ MULT = {"singlet": 1, "doublet": 2, "triplet": 3, "quartet": 4, "quintet": 5,
 FIELDS = ["name", "code", "method", "charge", "mult", "E", "G", "nimag",
           "excluded"]
 
+# Match util/VibFrequency.H: numerical translation/rotation zeros must not
+# turn a converged minimum into an imaginary-frequency warning.
+IMAG_THRESHOLD = 1.0  # cm-1
+
+
+def mode_counts(values):
+    """Return real, imaginary and numerical-zero counts from stored cm-1."""
+    freqs = [float(v) for v in values]
+    return (sum(f >= IMAG_THRESHOLD for f in freqs),
+            sum(f < -IMAG_THRESHOLD for f in freqs),
+            sum(abs(f) < IMAG_THRESHOLD for f in freqs))
+
 
 def _meta(path, key, owner="."):
     """Value of ecce:<key> for `owner` in a .ecce-meta file (tab separated)."""
@@ -130,7 +142,7 @@ def read_calc(calc):
     if os.path.isfile(vf):
         t = _value_text(vf)
         if t is not None:
-            nimag = str(sum(1 for v in t.split() if float(v) < 0))
+            nimag = str(mode_counts(t.split())[1])
     return {
         "name": re.sub(r"\s+", "_", os.path.basename(calc)),
         "code": _meta(meta, "application") or "-",
@@ -263,7 +275,7 @@ def read_checks(calc):
     nimag = "-"
     t = _value_text(os.path.join(calc, "Props", "VIBFREQ"))
     if t is not None:
-        nimag = str(sum(1 for v in t.split() if float(v) < 0))
+        nimag = str(mode_counts(t.split())[1])
     elif "imaginary" in stages.get("freq", {}):
         nimag = stages["freq"]["imaginary"]
     mult = MULT.get(_meta(meta, "spinmultiplicity").lower())

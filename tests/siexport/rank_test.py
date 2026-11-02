@@ -58,7 +58,8 @@ tmp = tempfile.mkdtemp(prefix="rank-")
 try:
     f = os.path.join(tmp, "isomers")
     os.makedirs(f)
-    make(f, "iso_b", -76.30, -76.28)
+    bcalc = make(f, "iso_b", -76.30, -76.28)
+    setprop(bcalc, "VIBFREQ", "-0.0 -0.01 -0.9 1200")
     make(f, "iso_a", -76.40, -76.35)
     make(f, "iso_c", -76.25, -76.30)       # higher E but lowest G than iso_b
     make(f, "iso_big", -80.00, -80.00, basis="cc-pVQZ")
@@ -68,6 +69,8 @@ try:
     check("exit 0", p.returncode == 0, p.stderr)
     check("order by dE, then the left-out rows", order[:3] == ["iso_a", "iso_b", "iso_c"], order)
     a, b, c = rows["iso_a"], rows["iso_b"], rows["iso_c"]
+    check("numerical zeros do not add imaginary-mode Rank flags",
+          "imaginary" not in b["flags"], b)
     check("reference is 0", a["dE_kJ"] == "0.0000" and a["dG_kJ"] == "0.0000", a)
     check("dE kJ and eV", abs(float(b["dE_kJ"]) - 0.10 * KJ) < 1e-3 and
           abs(float(b["dE_eV"]) - 0.10 * EV) < 1e-3, b)

@@ -55,6 +55,10 @@ public:
   // The code's parse descriptor: its progress rules fix the order of the blocks.
   void setDescriptor(const std::string& path);
 
+  // Stored frequencies take precedence over incomplete or older snapshots.
+  void setFrequencies(const std::vector<double>& frequencies)
+  { p_frequencies = frequencies; }
+
   bool hasProgress() const { return !p_progress.empty(); }
   bool outOfContact() const { return p_lastHeard > 0 && !p_finished; }
   // Shown at all: progress to show, or a job out of contact.
@@ -118,6 +122,7 @@ private:
   double p_checked = 0;
   std::string p_jobId;
   JobProgress p_progress;
+  std::vector<double> p_frequencies;
   std::string p_descPath;
   std::string p_text;
   double p_received;

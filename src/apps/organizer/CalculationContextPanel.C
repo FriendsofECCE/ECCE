@@ -370,6 +370,11 @@ void CalculationContextPanel::updateProgress()
   if (finished && !p_energyRead) {
     p_energyRead = true;
     PropertyTask *task = dynamic_cast<PropertyTask*>(p_itemData->getResource());
+    vector<double> frequencies;
+    PropVector *freq = task ? dynamic_cast<PropVector*>(task->getProperty("VIBFREQ")) : 0;
+    if (freq)
+      for (int i = 0; i < freq->rows(); ++i) frequencies.push_back(freq->value(i));
+    p_progressBox->setFrequencies(frequencies);
     const FinalEnergy fe = finalEnergyOf(task);
     const bool scanned = fe.scanned, hof = fe.heat;
     if (fe.found) {

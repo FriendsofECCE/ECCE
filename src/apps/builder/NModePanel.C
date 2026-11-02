@@ -1,4 +1,5 @@
 #include "util/UnitDisplay.H"
+#include "util/VibFrequency.H"
 #include "util/Ecce.H"
 #include "dsm/ICalculation.H"
 #include "dsm/TaskJob.H"
@@ -393,7 +394,7 @@ void NModePanel::initialize()
    //  on the first real vibration, not a zero-scale translation.
    for (int r = 0; r < p_grid->GetNumberRows(); r++) {
       double f = 0;
-      if (p_grid->GetCellValue(r, 0).ToDouble(&f) && fabs(f) >= 10.0) {
+      if (p_grid->GetCellValue(r, 0).ToDouble(&f) && (VibFrequency::isReal(f) || VibFrequency::isImaginary(f))) {
          p_mode = r;
          break;
       }
@@ -1835,7 +1836,7 @@ void NModePanel::fillTable()
          //  An imaginary mode (stored as a negative wavenumber) decides
          //  whether the structure is a minimum or a transition state, so
          //  its whole row stands out.
-         if (vec->value(idx) < 0.0)
+         if (VibFrequency::isImaginary(vec->value(idx)))
             for (int c = 0; c < p_grid->GetNumberCols(); c++)
                p_grid->SetCellTextColour(idx, c, imaginaryColour());
       }
@@ -2981,7 +2982,7 @@ void NModePanel::fillComposition()
    if (p_compGrid->GetNumberRows() > 0)
       p_compGrid->DeleteRows(0, p_compGrid->GetNumberRows());
    for (size_t m = 0; m < p_comp.percent.size(); m++) {
-      if (fabs(p_compFreqs[m]) < 10.0) continue;   // translations, rotations
+      if (VibFrequency::isZero(p_compFreqs[m])) continue;   // translations, rotations
       vector<size_t> order(p_comp.names.size());
       for (size_t i = 0; i < order.size(); i++) order[i] = i;
       const vector<double>& pc = p_comp.percent[m];
@@ -3004,7 +3005,7 @@ void NModePanel::fillComposition()
       p_compGrid->SetCellValue(r, 2, m < p_compLabels.size()
                                ? wxString::FromUTF8(p_compLabels[m].c_str()) : wxString());
       p_compGrid->SetCellValue(r, 3, text);
-      if (p_compFreqs[m] < 0.0)
+      if (VibFrequency::isImaginary(p_compFreqs[m]))
          for (int c = 0; c < p_compGrid->GetNumberCols(); c++)
             p_compGrid->SetCellTextColour(r, c, imaginaryColour());
    }

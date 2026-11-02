@@ -1,5 +1,6 @@
 #include "util/StalledRule.H"
 #include "util/JobProgress.H"
+#include "util/VibFrequency.H"
 
 #include <algorithm>
 #include <cmath>
@@ -111,6 +112,32 @@ bool JobProgress::parse(const string& text)
                                   s.field("istep").empty(); }),
       p_stages.end());
   return !p_stages.empty();
+}
+
+
+void JobProgress::setFrequencies(const vector<double>& frequencies)
+{
+  if (frequencies.empty()) return;
+  int real = 0, imaginary = 0;
+  for (double f : frequencies) {
+    if (VibFrequency::isImaginary(f)) ++imaginary;
+    else if (VibFrequency::isReal(f)) ++real;
+  }
+  Stage *freq = 0;
+  for (auto& st : p_stages)
+    if (st.name == "freq") freq = &st;
+  if (!freq) {
+    p_stages.push_back(Stage());
+    freq = &p_stages.back();
+    freq->name = "freq";
+  }
+  freq->fields.erase(std::remove_if(freq->fields.begin(), freq->fields.end(),
+      [](const pair<string, string>& f) {
+        return f.first == "real" || f.first == "imaginary" || f.first == "done";
+      }), freq->fields.end());
+  freq->fields.push_back(make_pair("real", std::to_string(real)));
+  freq->fields.push_back(make_pair("imaginary", std::to_string(imaginary)));
+  freq->fields.push_back(make_pair("done", "yes"));
 }
 
 
@@ -427,7 +454,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
         double real, imag;
         if (number(st.field("real"), real) &&
             number(st.field("imaginary"), imag))
-          first += fmt(" \xc2\xb7 %.0f real", real) +
+          first += fmt(" \xc2\xb7 %.0f modes", real + imag) +
                    fmt(", %.0f imaginary", imag);
       } else if (st.name != "prepare" && st.field("kind") != "analytic" &&
                  !finished &&
@@ -449,10 +476,16 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     double real, imag;
     if (st.field("done") == "yes" && number(st.field("real"), real) &&
         number(st.field("imaginary"), imag))
-      first += fmt(" \xc2\xb7 %.0f real", real) +
+      first += fmt(" \xc2\xb7 %.0f modes", real + imag) +
                fmt(", %.0f imaginary", imag);
     else if (st.field("done") == "yes")
       first += " \xc2\xb7 done";
+  }
+  if (st.name == "freq" && first.empty() && st.field("done") == "yes") {
+    double real, imag;
+    if (number(st.field("real"), real) && number(st.field("imaginary"), imag))
+      first = fmt("%.0f modes", real + imag) + fmt(", %.0f imaginary", imag);
+    else first = "done";
   }
   if (!st.field("energy").empty())
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "E = " +
@@ -687,7 +720,7 @@ vector<string> JobProgress::summary(bool completed) const
     split(freq->field("point"), k, n, hasN);
     if (freq->field("done") == "yes" && number(freq->field("real"), real) &&
         number(freq->field("imaginary"), imag)) {
-      string line = fmt("Frequencies: %.0f real", real) +
+      string line = fmt("Frequencies: %.0f modes", real + imag) +
                     fmt(", %.0f imaginary", imag);
       if (number(freq->field("zpe"), zpe))
         line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " hartree";

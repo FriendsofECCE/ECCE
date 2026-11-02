@@ -187,7 +187,10 @@ def run(display, pngs):
         running = makeCalc(project, "water-running", "Running",
                            STORED.format(**stamp))
         done = makeCalc(project, "water-done", "Complete",
-                        DONE.format(**stamp))
+                        DONE.format(**stamp).replace("real=3 imaginary=0 ", ""))
+        with open(os.path.join(done, "Props", "VIBFREQ"), "w") as handle:
+            handle.write('<vector name="VIBFREQ" rows="5" units="cm-1">'
+                         '-0.0 -0.01 -0.9 -50 1200</vector>\n')
         fresh = makeCalc(project, "water-new", "Created", None)
         scan = makeCalc(project, "water-scan", "Complete", DONE.format(**stamp))
         with open(os.path.join(scan, "Props", "SCANENERGY"), "w") as handle:
@@ -307,12 +310,12 @@ def run(display, pngs):
         check(counts[1].startswith("notices=0 applied=0"),
               "live: no tree or summary update for a progress message", counts[1])
         check("Optimisation converged in 6 steps" in completed and
-              "Frequencies: 3 real, 0 imaginary" in completed and
+              "Frequencies: 2 modes, 1 imaginary" in completed and
               "ZPE 0.021346 hartree" in completed and
               "plot Optimisation: energy per step, all points" in completed and
               completed.index("plot Optimisation") < completed.index("summary: ") and
               "s left" not in completed and "updated" not in completed,
-              "completed: the plots stay, the outcome lines follow them", completed)
+              "completed: stored frequencies supply counts, plots stay, outcome follows", completed)
         check(re.search(r"summary: Final energy -?\d+\.\d{6} Hartree$", completed)
               is not None,
               "completed: the last line is the final energy (#352)", completed)

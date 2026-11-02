@@ -34,6 +34,14 @@ sum.
 
 ## What is highlighted
 
+Imaginary modes have wavenumbers below -1 cm⁻¹. Frequencies with magnitude
+below 1 cm⁻¹ are numerical translation/rotation zeros and are excluded from
+mode counts, including small negative values displayed as `-0.0`.
+The same rule is used in Rank flags, thermochemistry, the vibrations panel
+and the finished job's progress panel. Progress shows the total number of
+vibrational modes (real plus imaginary), followed by the imaginary count;
+stored frequencies supply the counts when the output does not report them.
+
 A row is shown in red when the calculation did not terminate normally, did
 not converge, has an imaginary-mode count that does not fit its run type (none
 for a minimum, one for a transition state), or has S<sup>2</sup> more than 0.1
