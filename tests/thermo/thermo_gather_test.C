@@ -59,7 +59,8 @@ int main(int argc, char** argv)
            c.label, in.mass, in.rotConstants[0], in.rotConstants[1],
            in.rotConstants[2], in.linear ? 1 : 0, in.symmetryNumber);
     check(ok && error.empty(), c.label + string(": gathered (") + error + ")");
-    check(near(in.mass, c.mass, 1e-3), c.label + ": total mass to 1e-3 amu");
+    check(near(in.mass, c.mass, 1e-3),
+          c.label + string(": total mass to 1e-3 amu"));
     for (int i = 0; i < 3; i++) {
       char buf[128];
       snprintf(buf, sizeof buf, "%s: B[%d] within 1%%", c.label, i);
