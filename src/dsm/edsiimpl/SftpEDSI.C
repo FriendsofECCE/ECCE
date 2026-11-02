@@ -19,6 +19,7 @@
 #include "comm/RCommand.H"
 #include "dsm/FileEDSI.H"
 #include "dsm/SftpEDSI.H"
+#include "util/ServerList.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/VDoc.H"
 #include "util/ResourceUtils.H"
@@ -55,14 +56,20 @@ unsigned gCounter = 0;
 // launch never stops on a hidden password prompt.
 bool gInteractive = false;
 
-RCommand* newLogin(const string& host, const string& user)
+// host is the URL's authority, host[:port]: a login (and its master and
+// stored password) belongs to one port.
+RCommand* newLogin(const string& authority, const string& user)
 {
+  string host;
+  int port = 22;
+  if (!ServerList::splitHostPort(authority, host, port)) host = authority;
   string saved;
   const char* e = getenv("ECCE_ASKPASS");
   const bool had = e != 0;
   if (e) saved = e;
   if (!gInteractive) putEnv("ECCE_ASKPASS", "/bin/false");
-  RCommand* rc = new RCommand(host, "ssh", "bash", user);
+  RCommand* rc = new RCommand(host, "ssh", "bash", user, "", "", "", "", "", "",
+                              port == 22 ? 0 : port);
   if (!gInteractive) {
     putEnv("ECCE_ASKPASS", had ? saved.c_str() : 0);
   }
@@ -506,8 +513,12 @@ bool SftpEDSI::parseURL(const string& url, string& user, string& host, string& p
   size_t at = auth.rfind('@');
   user = at == string::npos ? "" : auth.substr(0, at);
   host = at == string::npos ? auth : auth.substr(at + 1);
-  size_t colon = host.find(':');   // a port is the ssh configuration's business
-  if (colon != string::npos) host = host.substr(0, colon);
+  // The port stays in host (gLogins and messages tell ports apart); 22 is
+  // dropped so that host and host:22 are one login.
+  string bare;
+  int port;
+  if (!ServerList::splitHostPort(host, bare, port)) return false;
+  host = ServerList::hostPort(bare, port);
   return !host.empty();
 }
 

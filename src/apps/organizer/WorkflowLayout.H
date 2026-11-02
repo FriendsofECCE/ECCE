@@ -39,9 +39,10 @@ struct WfLayoutResult {
   int maxX = 0, maxY = 0;     ///< right and bottom edge of the boxes
 };
 
-/// Boxes flow left to right; a box with several sources is taller, one slot
-/// per arrow.  `dc` has the font the labels are drawn in.
-WfLayoutResult layoutWorkflow(wxDC& dc, const std::vector<WfLayoutNode>& nodes);
+/// Boxes flow left to right or top to bottom, with one slot per incoming
+/// arrow in a joined box.  `dc` has the font the labels are drawn in.
+WfLayoutResult layoutWorkflow(wxDC& dc, const std::vector<WfLayoutNode>& nodes,
+                              bool vertical = false);
 
 /// Labels that touch a box, a line, an arrow or another label.
 int layoutOverlaps(const WfLayoutResult& layout);

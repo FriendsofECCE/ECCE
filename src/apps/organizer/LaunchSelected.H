@@ -68,6 +68,8 @@ public:
   private:
     bool nextRow();
     void endRow(bool ok);
+    void startStep();
+    void stepJoined();
     void showProgress();
     void finish();
     std::vector<Row> p_rows;
@@ -83,6 +85,7 @@ public:
     std::thread p_worker;
     std::atomic<bool> p_stepDone;
     bool p_stepOk, p_stopped, p_finished, p_deferred;
+    std::vector<std::vector<std::string> > p_passKeys;  // shell, host, user
   };
 
   /** Submit every ready row, waiting here (test hook; no window). */

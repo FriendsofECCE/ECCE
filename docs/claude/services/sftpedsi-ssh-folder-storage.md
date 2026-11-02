@@ -3,7 +3,7 @@ type: pitfall
 title: "SftpEDSI (sftp:// URLs): FileEDSI's logic on a scratch mirror, server-side mkdir lock, and the link and test traps"
 area: services
 paths: ["src/dsm/edsiimpl/SftpEDSI.C", "include/dsm/SftpEDSI.H", "src/dsm/edsiimpl/EDSIFactory.C", "tests/transport/testSftpEDSI.C", "tests/transport/sshd/sftpedsi_test.sh", "tests/filedsi/run_tests.py"]
-issues: [767]
+issues: [767, 789]
 ---
 **How it works.** `sftp://user@host/folder` is an SSH folder with FileEDSI's
 layout. Every operation runs sh scripts through `RCommand::execout` (and
@@ -29,8 +29,8 @@ to a hidden temp name and `mv` over the target.
   framed by byte count (sidecars travel as base64) and `\r` is stripped.
 - A script's exit status is its last command: a trailing `[ ... ] && cmd`
   that is false made `execout` report failure. Scripts end in `true`.
-- `RCommand` has no port argument: a `:port` in the URL is dropped and the
-  port comes from the ssh configuration.
+- A `:port` in the URL reaches `RCommand`'s `port` argument (#789); see
+  ssh-folder-trees-767.md.
 - `eccedsi` now needs `eccercmd` (and libssh) at link time:
   `target_link_libraries(eccedsi PUBLIC eccercmd)`, and `-lssh` in
   `tests/filedsi/run_tests.py`; a hand-written link line of any test that

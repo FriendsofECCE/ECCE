@@ -316,6 +316,7 @@ def run_joins(display, data, work, shots):
     proj = "file://" + root + "/joins"
     wf = proj + "/Workflow"
     png = os.path.join(shots, "workflow-join.png")
+    vertical_png = os.path.join(shots, "workflow-join-vertical.png")
     g16 = "gaussian16_es"
     commands = [
         "summary %s/butscan" % proj,
@@ -336,6 +337,17 @@ def run_joins(display, data, work, shots):
         "workflowqst %s %s/qst3" % (wf, wf),
         "workflowqst %s %s/qst2" % (wf, wf),
         "workflowshot %s %s %s/qst3" % (png, wf, wf),
+        "workflowsash 520",
+        "workfloworient vertical",
+        "workflowshot %s %s %s/qst3" % (vertical_png, wf, wf),
+        # Recreate the context panel to check the saved choice is restored.
+        "summary %s" % proj,
+        "workflowshot %s %s %s/qst3" % (vertical_png, wf, wf),
+        "workflowsash",
+        "workflowsash 1",
+        "workflowsash 9999",
+        "workflowsash 420",
+        "workfloworient horizontal",
     ]
     script = os.path.join(work, "commands-joins")
     with open(script, "w") as handle:
@@ -428,9 +440,31 @@ def run_joins(display, data, work, shots):
         for d in (d3, d2):
             shutil.rmtree(d, ignore_errors=True)
     shot = answer("workflowshot")
-    check("join view saved, seven boxes, seven links, labels clear",
-          bool(shot) and shot[0].startswith("ok boxes=7 links=7 label-overlaps=0"),
+    check("join views in both orientations: clear labels, separate boxes, increasing ranks",
+          len(shot) == 3 and all(
+              entry.startswith("ok boxes=7 links=7 label-overlaps=0") and
+              "box-overlaps=0 rank-errors=0" in entry for entry in shot) and
+          "vertical=0" in shot[0] and all("vertical=1" in entry for entry in shot[1:]),
           "workflowshot answered %r" % shot)
+    check("orientation hook switches both ways",
+          len(answer("workfloworient")) == 2 and
+          "vertical=1" in answer("workfloworient")[0] and
+          "vertical=0" in answer("workfloworient")[1],
+          "workfloworient answered %r" % answer("workfloworient"))
+    sash = [dict(re.findall(r"(sash|saved|top|table|canvas-height)=(-?\d+)", entry))
+            for entry in answer("workflowsash")]
+    check("sash moves and is restored after reopening the view",
+          len(sash) == 5 and all(int(sash[i].get("sash", -1)) == 520 and
+                                 int(sash[i].get("saved", -1)) == 520 for i in (0, 1)),
+          "workflowsash answered %r" % sash)
+    check("sash clamps both panes and can be moved back",
+          len(sash) == 5 and int(sash[2].get("canvas-height", -1)) >= 120 and
+          int(sash[3].get("table", -1)) >= 80 and
+          int(sash[4].get("sash", -1)) == 420,
+          "workflowsash answered %r" % sash)
+    for image in (png, vertical_png):
+        check("orientation screenshot exists: " + image,
+              os.path.exists(image) and os.path.getsize(image) > 5000, image)
 
 
 def run(display, data, work, shots):
@@ -637,6 +671,7 @@ def run_recipes(display, data, work, shots):
         f.write("recipe: broken\nthis line has no colon\n")
     shots_panel = os.path.join(shots, "recipe-panel.png")
     shots_done = os.path.join(shots, "recipe-keydata.png")
+    shots_vertical = os.path.join(shots, "recipe-keydata-vertical.png")
     commands = [
         "summary %s" % proj, "summary %s" % kproj,
         "new %s workflow" % proj, "new %s workflow" % kproj,
@@ -658,6 +693,9 @@ def run_recipes(display, data, work, shots):
         commands.append("workflowmark %s %s/%s %s %d" % (kwf, kwf, step, key, thermo))
     commands += ["workflowkeydata %s" % kwf,
                  "workflowshot %s %s" % (shots_done, kwf),
+                 "workfloworient vertical",
+                 "workflowshot %s %s" % (shots_vertical, kwf),
+                 "workfloworient horizontal",
                  "workflowrecipe %s handmade main -" % wf,
                  "workflowrecipe %s single main %s/reactant" % (kwf, kwf),
                  "workflowrecipe %s singleqm main %s/reactant" % (kwf, kwf),
@@ -773,9 +811,11 @@ def run_recipes(display, data, work, shots):
     check("key data: free-energy barrier +25.6 kJ/mol",
           "G(TS) - G(reactant): +25.6 kJ/mol" in text, text)
     shot = answers("workflowshot")
-    check("the drawing with the key-data box has clear labels",
-          shot and shot[-1].startswith("ok ") and "label-overlaps=0" in shot[-1] and
-          "keybox=1 keyshown=1" in shot[-1], "workflowshot answered %r" % shot[-1:])
+    check("both orientations with the key-data box have clear labels",
+          len(shot) == 2 and all(entry.startswith("ok ") and
+          "label-overlaps=0" in entry and "keybox=1 keyshown=1" in entry for entry in shot)
+          and "vertical=0" in shot[0] and "vertical=1" in shot[1],
+          "workflowshot answered %r" % shot)
     shutil.rmtree(recdir, ignore_errors=True)
 
 

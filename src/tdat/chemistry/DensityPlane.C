@@ -102,6 +102,30 @@ bool isPlanar(const vector<double>& c, double tolerance)
   return sqrt(l[0]) < tolerance;
 }
 
+vector<Plane> principalPlanes(const vector<double>& c)
+{
+  if (c.size() < 9 || c.size() % 3 != 0) return {};
+  V3 centroid, axes[3];
+  double spread[3];
+  principalAxes(c, centroid, spread, axes);
+  if (sqrt(spread[1]) < 0.05) return {};
+  vector<Plane> planes(3);
+  for (int i = 0; i < 3; ++i) {
+    Plane& p = planes[i];
+    const int along = i == 2 ? 1 : 2;
+    for (int k = 0; k < 3; ++k) {
+      p.origin[k] = centroid[k];
+      p.n[k] = axes[i][k];
+      p.u[k] = axes[along][k];
+    }
+    cross(p.n, p.u, p.v);
+    p.rms = sqrt(spread[i]);
+    p.description = p.base = "principal plane " + std::to_string(i + 1) +
+                             (i == 0 ? " (best fit)" : "");
+  }
+  return planes;
+}
+
 static bool makePlaneBase(PlaneKind kind, const vector<double>& c,
                const vector<string>& labels, int a, int b, int cc,
                Plane& p, string& why)
@@ -139,11 +163,10 @@ static bool makePlaneBase(PlaneKind kind, const vector<double>& c,
       return true;
     }
     if (p.rms >= 0.1) {
-      char buf[160];
-      snprintf(buf, sizeof buf, "The molecule is not planar (atoms scatter "
-               "%.2f A about the best plane): choose three atoms.", p.rms);
-      why = buf;
-      return false;
+      const vector<Plane> planes = principalPlanes(c);
+      if (planes.empty()) { why = "The atoms define no plane."; return false; }
+      p = planes[0];
+      return true;
     }
     for (int k = 0; k < 3; k++) {
       p.origin[k] = centroid[k]; p.u[k] = ev[2][k]; p.n[k] = ev[0][k];
@@ -183,10 +206,8 @@ static bool makePlaneBase(PlaneKind kind, const vector<double>& c,
   for (int k = 0; k < 3; k++) u[k] = c[3*b+k] - c[3*a+k];
   if (!normalise(u)) { why = "The two atoms coincide."; return false; }
   const bool linear = sqrt(lam[1]) < 0.05;
-  if (linear || p.rms >= 0.1) {
-    why = linear ? "A linear molecule has no molecular plane to stand on."
-                 : "The molecule is not planar, so there is no plane to "
-                   "stand on: choose three atoms.";
+  if (linear) {
+    why = "A linear molecule has no molecular plane to stand on.";
     return false;
   }
   for (int k = 0; k < 3; k++) ref[k] = ev[0][k];
@@ -217,7 +238,7 @@ bool isLinear(const vector<double>& c)
 
 bool hasMolecularPlane(const vector<double>& c)
 {
-  return isPlanar(c) && !isLinear(c);
+  return c.size() >= 9 && !isLinear(c);
 }
 
 bool bonded(const vector<string>& sym, const vector<double>& c, int a, int b)

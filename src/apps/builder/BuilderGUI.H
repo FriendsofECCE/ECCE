@@ -149,6 +149,8 @@ public:
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_SELECTALL
     virtual    void OnSelectallClick( wxCommandEvent& event );
 
+    virtual void OnSelectWithinClick(wxCommandEvent& event) { event.Skip(); }
+
     /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_SELECT_MOLECULE
     virtual    void OnSelectMoleculeClick( wxCommandEvent& event );
 
@@ -210,6 +212,7 @@ public:
     static const wxWindowID ID_UNSELECT;
     static const wxWindowID ID_IMPORT;
     static const wxWindowID ID_SELECT_REVERSE;
+    static const wxWindowID ID_SELECT_WITHIN;
     static const wxWindowID ID_SELECT_MOLECULE;
     static const wxWindowID ID_DUMPSG;
     static const wxWindowID ID_SELECT_SOLVENT;

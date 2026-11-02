@@ -148,15 +148,17 @@ To keep calculations on a server as well, choose **Edit > Preferences**, tab
 added, with their name, type and address:
 
 - **Add Server...** asks for a type. An **SSH folder (SFTP)** needs a name,
-  a host, a user and a folder. An **ECCE server (https)** needs a name and
-  the address of the server, for example `https://ecce.example.edu`; the
-  login is asked when you connect. **Test connection** checks that an ECCE
+  a host, a port, a user and a folder. The port is 22 unless the site gives
+  another one. An **ECCE server (https)** needs a name and
+  the address of the server, for example `https://ecce.example.edu`; a port
+  other than 443 goes in the address, as in `https://ecce.example.edu:8443`.
+  The login is asked when you connect. **Test connection** checks that an ECCE
   server answers and shows whether its certificate is trusted. For an SSH
   folder it logs in, checks that the folder exists and can be written, and
   offers to create it if it is missing. The server needs only an SSH
-  account and a folder; nothing is installed or run there. A port other than
-  22 is not typed in the address: give the machine a `Host` entry with a
-  `Port` line in `~/.ssh/config` and use that name as the host.
+  account and a folder; nothing is installed or run there. A login and a
+  remembered password belong to the host and its port, so two SSH folders
+  on one host with different ports are two logins.
 - **Edit...** changes the selected server and **Remove** takes it out of the
   list. Nothing on the server is deleted.
 

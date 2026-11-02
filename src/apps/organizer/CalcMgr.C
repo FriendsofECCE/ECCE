@@ -178,6 +178,7 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
 #include "ReactionOverviewDialog.H"
+#include "CompareForcesDialog.H"
 #include "SiExport.H"
 #include "ChecksDialog.H"
 #include "AllocationsDialog.H"
@@ -549,6 +550,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * checks <out.csv> <url>,<url>...
  *                 the Checks table dialog's rows (folders expanded) as CSV
  *                 (#615); "ok" or "failed: <why>"
+ * rank <out.csv> <url>,<url>...
+ *                 the Rank table dialog's rows (#703), as for "checks"
  * compareenergies <sideA> <sideB>
  *                 what Tools > Compare Energies shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
@@ -579,6 +582,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  */
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
+static const int ID_COMPARE_FORCES = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
 static const int ID_SI_EXPORT = wxNewId();
 static const int ID_CHECKS = wxNewId();
@@ -889,6 +893,53 @@ void CalcMgr::runTestCommand(const string& line)
             outcome = "ok";
           }
         }
+      }
+    } else if (command == "workflowsash") {
+      // workflowsash [N]: drag the current view's divider, or report it.
+      SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+      WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+      wxSplitterWindow *split = wp ? dynamic_cast<wxSplitterWindow*>(wp->GetParent()) : 0;
+      if (!split) outcome = "no workflow splitter";
+      else {
+        if (line.size() > command.size() + 1) {
+          const int x = split->GetClientSize().x / 2;
+          wxMouseEvent down(wxEVT_LEFT_DOWN);
+          down.SetEventObject(split);
+          down.SetPosition(wxPoint(x, split->GetSashPosition() + split->GetSashSize() / 2));
+          down.SetLeftDown(true);
+          split->GetEventHandler()->ProcessEvent(down);
+          wxMouseEvent move(wxEVT_MOTION);
+          move.SetEventObject(split);
+          move.SetPosition(wxPoint(x, atoi(calcName.c_str()) + split->GetSashSize() / 2));
+          move.SetLeftDown(true);
+          split->GetEventHandler()->ProcessEvent(move);
+          wxMouseEvent up(wxEVT_LEFT_UP);
+          up.SetEventObject(split);
+          up.SetPosition(move.GetPosition());
+          split->GetEventHandler()->ProcessEvent(up);
+          for (int i = 0; i < 5; i++) wxYield();
+        }
+        Preferences prefs("Organizer");
+        int saved = -1;
+        prefs.getInt("Organizer.Workflow.Sash", saved);
+        outcome = "ok sash=" + std::to_string(split->GetSashPosition()) +
+                  " saved=" + std::to_string(ewxBitmap::scaled(saved)) +
+                  " top=" + std::to_string(wp->GetSize().y) +
+                  " table=" + std::to_string(split->GetWindow2()->GetSize().y) +
+                  " " + wp->layoutReport();
+      }
+    } else if (command == "workfloworient") {
+      // workfloworient vertical|horizontal: the current workflow view.
+      SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+      WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+      if (!wp) outcome = "no workflow panel";
+      else if (calcName != "vertical" && calcName != "horizontal")
+        outcome = "expected vertical|horizontal";
+      else {
+        wp->setVertical(calcName == "vertical");
+        outcome = "ok " + wp->layoutReport();
       }
     } else if (command.compare(0, 8, "workflow") == 0) {
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
@@ -1807,7 +1858,7 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = siExport(sel, out, table == "none" ? string() : table, why,
                        flag == "include-excluded")
                 ? string("ok") : "failed: " + why;
-    } else if (command == "checks") {
+    } else if (command == "checks" || command == "rank") {
       // "checks <out.csv> <url>,<url>...": the Checks table dialog's rows
       // (folders expanded to their calculations) written as CSV (#615).
       std::istringstream args(calcName);
@@ -1820,10 +1871,40 @@ void CalcMgr::runTestCommand(const string& line)
         roots.push_back(EcceURL(urls.substr(at, end - at)));
         at = end + 1;
       }
-      ChecksDialog dlg(this, calculationsUnder(roots));
+      ChecksDialog dlg(this, calculationsUnder(roots), command == "rank");
       string why;
       if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
       else outcome = "failed: " + why;
+    } else if (command == "compareforcesselection") {
+      std::istringstream args(calcName);
+      string url;
+      vector<EcceURL> urls;
+      while (args >> url) urls.push_back(EcceURL(url));
+      WxResourceTreeItemData *parent = urls.empty() ? 0 :
+          findNode(urls[0].getParent(), true, true);
+      if (parent) {
+        p_treeCtrl->SelectItem(parent->GetId());
+        for (int i = 0; i < 40; ++i) { wxYield(); wxMilliSleep(50); }
+      }
+      if (p_contextPanel) p_contextPanel->selectResources(urls);
+      p_focusOnTree = false;
+      updateSelectionMenus();
+      wxMenuBar *bar = GetMenuBar();
+      wxMenuItem *item = bar->FindItem(ID_COMPARE_FORCES);
+      outcome = item && item->IsEnabled() &&
+          bar->IsEnabledTop(bar->FindMenu(_("Tools"))) ? "enabled" : "disabled";
+    } else if (command == "compareforcesdialog") {
+      std::istringstream args(calcName);
+      string a, b, png;
+      args >> a >> b >> png;
+      CompareForcesDialog *d = new CompareForcesDialog(this, a, b);
+      d->Show();
+      for (int i = 0; i < 5; ++i) wxYield();
+      if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+      outcome = "ok";
+      std::istringstream lines(d->resultText() + "\nCopy:\n" + d->copyText());
+      for (string line; std::getline(lines, line); ) outcome += " | " + line;
+      d->Destroy();
     } else if (command == "compareenergies" || command == "comparedialog") {
       // "compareenergies <sideA> <sideB>": the table and notes the dialog
       // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
@@ -3799,7 +3880,7 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
   if (p_batch) return false;
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *item = findNodeFresh(urls[i], true);
+    WxResourceTreeItemData *item = findNodeFresh(urls[i], false);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (task) tasks.push_back(task);
     else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
@@ -4269,8 +4350,11 @@ bool CalcMgr::getAuthorization(AuthEvent& event)
   if (wxThread::IsMain())
     return WxDavAuth::getAuthorization(event);
   std::promise<bool> answer;
+  //  The step waits on the answer: a throw must still give one.
   wxTheApp->CallAfter([this, &event, &answer]() {
-    answer.set_value(WxDavAuth::getAuthorization(event));
+    bool ok = false;
+    try { ok = WxDavAuth::getAuthorization(event); } catch (...) {}
+    answer.set_value(ok);
   });
   return answer.get_future().get();
 }
@@ -7040,6 +7124,13 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     }, id);
   }
   {
+    int id = wxWindow::NewControlId();
+    menu.Append(id, _("Rank..."));
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+      CallAfter([this]() { wxCommandEvent e; OnRank(e); });
+    }, id);
+  }
+  {
     // Only calculations can be excluded (#617).
     Resource *first = getSelection() && !p_currentSelection.empty()
         ? [&]{ WxResourceTreeItemData *n = findNode(p_currentSelection[0], false, true);
@@ -7409,10 +7500,21 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
     added = true;
   }
 
+  menu.Append(ID_COMPARE_FORCES, _("Compare Forces..."));
+  bool forcePair = false;
+  if (p_treeCtrl && p_treeCtrl->getSelection()) {
+    getSelection();
+    forcePair = p_currentSelection.size() == 2;
+    for (const EcceURL& url : p_currentSelection)
+      forcePair = forcePair && dynamic_cast<PropertyTask*>(EDSIFactory::getResource(url));
+  }
+  menu.Enable(ID_COMPARE_FORCES, forcePair);
   menu.Append(ID_COMPARE_ENERGIES, _("Compare Energies..."));
   if (!p_compareEnergiesWired) {
     Connect(ID_COMPARE_ENERGIES, wxEVT_COMMAND_MENU_SELECTED,
             wxCommandEventHandler(CalcMgr::OnCompareEnergies));
+    Connect(ID_COMPARE_FORCES, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnCompareForces));
     p_compareEnergiesWired = true;
   }
   menu.Append(ID_ALLOCATIONS, _("Allocations..."));
@@ -7448,6 +7550,16 @@ CompareEnergiesDialog *CalcMgr::newCompareEnergiesDialog(
     if (isCalc && sel.size() == 1) a.push_back(std::make_pair(sel[0].toString(), 1));
   }
   return new CompareEnergiesDialog(this, calculationsIn(project), a, b);
+}
+
+void CalcMgr::OnCompareForces(wxCommandEvent&)
+{
+  getSelection();
+  if (p_currentSelection.size() != 2) return;
+  CompareForcesDialog *dialog = new CompareForcesDialog(this,
+      p_currentSelection[0].toString(), p_currentSelection[1].toString());
+  dialog->ShowModal();
+  dialog->Destroy();
 }
 
 void CalcMgr::OnCompareEnergies(wxCommandEvent&)
@@ -7508,6 +7620,25 @@ void CalcMgr::OnChecks(wxCommandEvent&)
   if (!dlg.ok(why)) {
     wxMessageBox(wxString::FromUTF8(why.c_str()), _("Checks Table"),
                  wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
+}
+
+// The Rank table of the selected folders and calculations (#703).
+void CalcMgr::OnRank(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(p_currentSelection);
+  if (calcs.empty()) {
+    wxMessageBox(_("Select a folder or calculations first."), _("Rank"),
+                 wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  ChecksDialog dlg(this, calcs, true);
+  string why;
+  if (!dlg.ok(why)) {
+    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Rank"), wxOK | wxICON_ERROR, this);
     return;
   }
   dlg.ShowModal();
@@ -11085,7 +11216,13 @@ void CalcMgr::updateSelectionMenus()
       rm->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
     enableTopMenu(menuBar, _("Run Mgmt"), allCalcs, p_menuTitlesChanged);
-    enableTopMenu(menuBar, _("Tools"), false, p_menuTitlesChanged);
+    // A pair needs the comparison tools even though ordinary launchers
+    // act on a single calculation.
+    wxMenu *tools = menuBar->GetMenu(menuBar->FindMenu(_("Tools")));
+    clearMenu(*tools);
+    addGlobalTools(*tools);
+    enableTopMenu(menuBar, _("Tools"), allCalcs && p_currentSelection.size() == 2,
+                  p_menuTitlesChanged);
     enableMenuItem(menuBar, wxID_CHANGE_ACCESS, false);
     enableMenuItem(menuBar, wxID_RENAME, false);
     enableMenuItem(menuBar, wxID_VIEW_PROPERTY, false);

@@ -18,4 +18,8 @@ bool siExport(const std::vector<EcceURL>& calcs, const std::string& xyzFile,
 bool checksTable(const std::vector<EcceURL>& calcs, const std::string& format,
                  std::string& text, std::string& why);
 
+/// The Rank table (#703): ecce-si-export --rank `format` for `calcs`.
+bool rankTable(const std::vector<EcceURL>& calcs, const std::string& format,
+               std::string& text, std::string& why);
+
 #endif

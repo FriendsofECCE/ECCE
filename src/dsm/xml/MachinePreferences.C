@@ -853,19 +853,15 @@ void MachinePreferences::refresh(bool force)
 {
     if (p_prefsChgd || force)
     {
-        // Delete any existing instances of MachinePreferences
-        vector<MachinePreferences * >::iterator it;
-
-        for (it = p_prefsElmts->begin(); it < p_prefsElmts->end(); it++)
+        //  Null until something has loaded the preferences: a refresh can
+        //  come first (ecce-launch with nothing selected in the Organizer).
+        if (p_prefsElmts != NULL)
         {
-            if ((*it) != NULL)
-            {
-                delete (*it);
-            }
+            for (MachinePreferences *prefs : *p_prefsElmts)
+                delete prefs;
+            delete p_prefsElmts;
+            p_prefsElmts = NULL;
         }
-
-        p_prefsElmts->clear();
-        delete p_prefsElmts;
 
         p_prefsLoaded = false;
         MachinePreferences::loadSettings();

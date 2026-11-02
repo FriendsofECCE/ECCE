@@ -595,6 +595,15 @@ target_include_directories(ecce-thermo PRIVATE
   ${CMAKE_SOURCE_DIR}/src/apps/thermo ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-thermo PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+# Shared gathering with Organizer; the comparison itself lives in eccetdat.
+add_executable(ecce-force-compare src/apps/forcecompare/forcecompare.C
+  src/apps/organizer/CompareForcesGather.C
+  src/apps/organizer/CompareEnergies.C src/apps/organizer/CompareEnergiesGather.C)
+target_include_directories(ecce-force-compare PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/apps/organizer ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-force-compare PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+
 # flock(1) for the session scripts where util-linux is absent (macOS).
 if(NOT WIN32)   # the Windows client has no session scripts (#133)
   add_executable(ecce-flock src/apps/flock/ecce-flock.c)
@@ -1188,7 +1197,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -2126,6 +2135,12 @@ add_executable(proptsvec_nearest_test tests/tdat/proptsvec_nearest_test.C)
 target_link_libraries(proptsvec_nearest_test PRIVATE eccetdat ecceutil)
 add_test(NAME proptsvec_nearest COMMAND proptsvec_nearest_test)
 
+add_executable(distance_selection_test tests/tdat/distance_selection_test.C)
+target_link_libraries(distance_selection_test PRIVATE eccetdat ecceutil)
+add_test(NAME distance_selection COMMAND distance_selection_test)
+set_tests_properties(distance_selection PROPERTIES ENVIRONMENT
+  "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}")
+
 # BondDistort: bond changes around one atom, Jahn-Teller preset (#619).
 add_executable(bonddistort_test tests/tdat/bonddistort_test.C)
 target_link_libraries(bonddistort_test PRIVATE eccetdat ecceutil)
@@ -2365,6 +2380,10 @@ add_executable(compare_energies_test tests/compareenergies/compare_energies_test
 target_include_directories(compare_energies_test PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer ${XercesC_INCLUDE_DIRS})
 target_link_libraries(compare_energies_test PRIVATE eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
 add_test(NAME compare_energies COMMAND compare_energies_test)
+add_executable(compare_forces_test tests/compareenergies/compare_forces_test.C)
+target_link_libraries(compare_forces_test PRIVATE eccetdat ecceutil)
+add_test(NAME compare_forces COMMAND compare_forces_test)
+
 # Thermochemistry recomputed from stored frequencies (#692): ORCA and hand oracles.
 add_executable(thermo_test tests/thermo/thermo_test.C
   src/tdat/thermo/ThermoChem.C)
@@ -2618,6 +2637,11 @@ add_test(NAME checks_table
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/siexport/checks_test.py)
 
+# tests/siexport/rank_test.py -- ecce-si-export --rank (#703).
+add_test(NAME rank_table
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/siexport/rank_test.py)
+
 # tests/displace -- scripts/ecce_displace.py on stored ORCA and G16 modes (#618).
 add_test(NAME displace
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -2691,6 +2715,14 @@ target_link_libraries(authcache_pipe_test PRIVATE
   ${XercesC_LIBRARIES})
 add_test(NAME authcache-pipe COMMAND authcache_pipe_test)
 set_tests_properties(authcache-pipe PROPERTIES TIMEOUT 120)
+# An ssh password goes to its own host, port and user only (#791).
+add_executable(authcache_host_test tests/mqtt/authcache_host_test.C)
+target_include_directories(authcache_host_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(authcache_host_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME authcache-host COMMAND authcache_host_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(authcache-host PROPERTIES TIMEOUT 60)
 endif()
 
 # tests/tls -- https data-server client (#236): pinned certificate, CA mode
@@ -3031,6 +3063,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_code_change PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Switching every Calculation Editor code button must keep the editor alive.
+  add_test(NAME apps_calced_code_switch
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_code_switch_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calced_code_switch PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Theory/Runtype Details buttons are enabled on open as after re-choosing
   # (#427).
   add_test(NAME apps_calced_details_enabled
@@ -3118,9 +3157,9 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # Preferences > Data and the Add Server dialog (#767).
   add_test(NAME apps_prefs_data
-           COMMAND 
-                   /tests/apps/prefs_data_test.py
-           WORKING_DIRECTORY /tests/apps)
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/prefs_data_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_prefs_data PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Added ECCE servers as Organizer roots, with their own login (#767).
@@ -3153,6 +3192,10 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_box PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Tools > Compare Forces: selection, shared CLI and dialog.
+  add_test(NAME apps_compare_forces
+    COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/compare_forces_test.py)
+  set_tests_properties(apps_compare_forces PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # Tools > Compare Energies (#573): the hook and the dialog.
   add_test(NAME apps_compare_energies
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3386,6 +3429,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/checks_table_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Rank table: the dialog's deltas equal ecce-si-export --rank (#703).
+  add_test(NAME apps_rank_table
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/rank_table_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_rank_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Vibrations panel Displace: new calculations along a mode (#618).
@@ -4169,6 +4220,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_distort PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_select_within
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_select_within_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_select_within PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Edit > Take Coordinates From...: atoms from another structure, and undo (#620).
   add_test(NAME apps_builder_takecoords
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4296,6 +4353,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_reconnect_selected PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # Session-start catch-up against a host that never sends the ssh banner
+  # (#780): the Organizer survives and no libssh retry follows.
+  add_test(NAME launch_silent_host_catchup
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/silent_host_catchup_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_silent_host_catchup PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Reconnect with the old job store still alive (#601).
   add_test(NAME launch_reconnect_race

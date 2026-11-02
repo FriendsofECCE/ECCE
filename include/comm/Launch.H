@@ -24,6 +24,7 @@
 #ifndef LAUNCH_HH
 #define LAUNCH_HH
 
+#include <functional>
 #include <string>
   using std::string;
 #include <vector>
@@ -63,6 +64,11 @@ public:
 
   // Modifiers
         bool nextOperation(void);
+
+        // The AuthCache contents handed to eccejobmaster.  AuthCache belongs
+        // to one thread; an app that runs steps on another sets this to read
+        // it there.  Empty: read it on the calling thread.
+        static std::function<string()> authPipeData;
 
   // Accessors
         string description(void) const;

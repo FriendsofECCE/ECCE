@@ -353,6 +353,8 @@ class Builder: public BuilderGUI,
       virtual void OnClearClick( wxCommandEvent& event );
       virtual void OnDeleteClick( wxCommandEvent& event );
       virtual void OnSelectallClick( wxCommandEvent& event );
+      virtual void OnSelectWithinClick(wxCommandEvent& event);
+      bool selectWithin(double radius, bool molecules, bool keep);
       virtual void OnSelectMoleculeClick( wxCommandEvent& event );
       virtual void OnSelectSolventClick( wxCommandEvent& event );
       virtual void OnSelectIonsClick( wxCommandEvent& event );

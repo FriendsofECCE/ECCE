@@ -19,6 +19,7 @@
 #ifndef RCOMMAND_HH
 #define RCOMMAND_HH
 
+#include <map>
 #include <set>
 #include <string>
   using std::string;
@@ -43,6 +44,7 @@ class RCommand;
 struct RCommandLogin {
   string machine, remShell, locShell = "bash", user, password,
          frontend, frontendBypass, shellPath, libPath, sourceFile;
+  int port = 0;   // 0: the ssh configuration's
   RCommand* open() const;
 };
 
@@ -61,7 +63,8 @@ public:
              const string& locShell="bash", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
-             const string& libPath="", const string& sourceFile="");
+             const string& libPath="", const string& sourceFile="",
+             int port = 0);
 
   // Destructor
     ~RCommand(void);
@@ -242,6 +245,18 @@ public:
                                 const string& shellPath, const string& command,
                                 string& output, int timeoutSec = 20);
 
+
+    // AuthCache belongs to the GUI thread (no locking; a change publishes
+    // over JMS).  A login opened on another thread runs with a deferral:
+    // the passwords it may need are looked up beforehand on the GUI thread,
+    // and what it learns (accepted, refused) waits until that thread calls
+    // applyDeferredPassCache().
+    struct PassCacheDeferral { std::map<string, string> known; };
+    static void prefetchPassCache(PassCacheDeferral& d, const string& shell,
+                                  const string& machine, const string& userName);
+    static void deferPassCache(PassCacheDeferral* d);   // this thread; 0 ends
+    static void applyDeferredPassCache();
+
 private:
     // get/put for every overload: local cp, or SFTP for an ssh machine.
     static bool copyFiles(bool putFlag, string& errMessage,
@@ -254,11 +269,15 @@ private:
                                    const string& userName, string& passBuf);
     static void  setPassCache(const string& shell, const string& machine,
                               const string& userName, const string& password);
+    static void  forgetPassCache(const string& shell, const string& machine,
+                                 const string& userName);
+
 
     bool p_connected;
     int p_timeout;           // seconds for execout(); <= 0 means none
     string p_shell;
     string p_machine;
+    int p_port = 0;          // ssh port of p_machine; 0 leaves it to ~/.ssh/config
     string p_errMessage;
     bool p_loginCancelled = false;
     bool p_loginPrompted = false;
@@ -281,6 +300,7 @@ private:
     static bool useOpenssh(const string& machine, const string& userName,
                            const string& jumpHost);
     void adoptTransport(Transport* t);
+    string passHost(const string& machine) const;
     bool sshHop(const string& hopMachine, const string& locShell,
                 const string& userName, const string& password,
                 const string& shellPath, const string& libPath,
