@@ -39,17 +39,21 @@ AddServerDialog::AddServerDialog(wxWindow* parent, const ServerEntry* old)
   p_host = new ewxTextCtrl(this, wxID_ANY);
   p_user = new ewxTextCtrl(this, wxID_ANY);
   p_folder = new ewxTextCtrl(this, wxID_ANY);
+  p_port = new ewxTextCtrl(this, wxID_ANY, "22");
   p_address = new ewxTextCtrl(this, wxID_ANY);
   p_host->SetHint(_("hpc.example.edu"));
   p_folder->SetHint(_("/home/me/ecce"));
-  p_address->SetHint(_("https://ecce.example.edu"));
+  p_address->SetHint(_("https://ecce.example.edu:port"));
+  p_address->SetToolTip(_("A port other than 443 goes in the address: https://host:8443"));
+  p_port->SetToolTip(_("The port the SSH server listens on; 22 unless the site says otherwise."));
 
   grid->Add(new ewxStaticText(this, wxID_ANY, _("Name:")), 0, wxALIGN_CENTER_VERTICAL);
   grid->Add(p_name, 1, wxGROW);
   int n = 0, m = 0;
   struct { wxString t; ewxTextCtrl* f; } ssh[] = {
-    { _("Host:"), p_host }, { _("User:"), p_user }, { _("Folder:"), p_folder } };
-  for (int i = 0; i < 3; i++) {
+    { _("Host:"), p_host }, { _("Port:"), p_port }, { _("User:"), p_user },
+    { _("Folder:"), p_folder } };
+  for (int i = 0; i < 4; i++) {
     wxWindow* l = new ewxStaticText(this, wxID_ANY, ssh[i].t);
     grid->Add(l, 0, wxALIGN_CENTER_VERTICAL);
     grid->Add(ssh[i].f, 1, wxGROW);
@@ -89,7 +93,11 @@ AddServerDialog::AddServerDialog(wxWindow* parent, const ServerEntry* old)
       std::string u, h, f;
       if (ServerList::parseSsh(old->address, u, h, f)) {
         p_user->SetValue(wxString::FromUTF8(u.c_str()));
-        p_host->SetValue(wxString::FromUTF8(h.c_str()));
+        std::string bare;
+        int port;
+        if (!ServerList::splitHostPort(h, bare, port)) { bare = h; port = 22; }
+        p_host->SetValue(wxString::FromUTF8(bare.c_str()));
+        p_port->SetValue(wxString::Format("%d", port));
         p_folder->SetValue(wxString::FromUTF8(f.c_str()));
       }
     }
@@ -113,7 +121,7 @@ AddServerDialog::~AddServerDialog()
 void AddServerDialog::showType()
 {
   bool ssh = p_type->GetSelection() == 0;
-  for (int i = 0; i < 6; i++) p_sshRows[i]->Show(ssh);
+  for (int i = 0; i < 8; i++) p_sshRows[i]->Show(ssh);
   for (int i = 0; i < 2; i++) p_eccRows[i]->Show(!ssh);
   p_test->Enable(true);
   p_test->SetToolTip(ssh ? _("Log in and check that the folder exists and can be written.")
@@ -136,9 +144,16 @@ bool AddServerDialog::collect(ServerEntry& e) const
   if (p_type->GetSelection() == 0) {
     e.type = "ssh";
     wxString f = p_folder->GetValue().Trim().Trim(false);
+    std::string host = p_host->GetValue().Trim().Trim(false).ToStdString();
+    const std::string pt = p_port->GetValue().Trim().Trim(false).ToStdString();
+    // A port that is not a number stays in the address, so check() names it.
+    long port = 22;
+    if (pt.empty() || (wxString(pt).ToLong(&port) && port >= 1 && port <= 65535))
+      host = ServerList::hostPort(host, (int)port);
+    else
+      host += ":" + pt;
     e.address = ServerList::sshAddress(
-        p_user->GetValue().Trim().Trim(false).ToStdString(),
-        p_host->GetValue().Trim().Trim(false).ToStdString(), f.ToStdString());
+        p_user->GetValue().Trim().Trim(false).ToStdString(), host, f.ToStdString());
   } else {
     e.type = "ecce";
     e.address = p_address->GetValue().Trim().Trim(false).ToStdString();

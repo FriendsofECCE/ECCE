@@ -29,7 +29,11 @@ from harness import say  # noqa: E402
 import xtb_test  # noqa: E402
 
 failures = []
-BASE = "sftp://bashuser@sshtest/home/bashuser/ecce-data"
+# The port is in the address (#789); Host sshport has no Port line.
+PORT = int(os.environ.get("ECCE_TEST_SSH_PORT", "2232"))
+PORT2 = int(os.environ.get("ECCE_TEST_SSH_PORT2", str(PORT + 1)))
+BASE = "sftp://bashuser@sshport:%d/home/bashuser/ecce-data" % PORT
+OTHER = "sftp://bashuser@sshport:%d/home/bashuser/ecce-data" % PORT2
 BAD = "sftp://bashuser@sshbad/home/bashuser/ecce-data"
 
 
@@ -40,8 +44,8 @@ def check(ok, what):
     return ok
 
 
-def onServer(cmd):
-    r = subprocess.run(["ssh", "bashuser@sshtest", cmd], capture_output=True, text=True, timeout=60)
+def onServer(cmd, port=None):
+    r = subprocess.run(["ssh", "-p", str(port or PORT), "bashuser@sshport", cmd], capture_output=True, text=True, timeout=60)
     if r.returncode:
         say("  ssh to the test sshd failed (%d): %s" % (r.returncode, r.stderr.strip()[-200:]))
     return r.stdout
@@ -87,8 +91,13 @@ def main():
         os.environ.setdefault("ECCE_REALUSER", s.user())
         user = s.user()
         onServer("rm -rf ecce-data; mkdir ecce-data")
+        onServer("rm -rf ecce-data; mkdir ecce-data", PORT2)
         with open(os.path.join(s.state, ".ECCE", "AddedServers"), "w") as h:
-            h.write("ssh\tFolder\t%s\nssh\tBad\t%s\n" % (BASE, BAD))
+            h.write("ssh\tFolder\t%s\nssh\tBad\t%s\nssh\tOther\t%s\n" % (BASE, BAD, OTHER))
+        # ECCE's own masters: one per route, so the port must tell them apart.
+        control = os.path.join(s.state, "cm")
+        os.makedirs(control, mode=0o700, exist_ok=True)
+        os.chmod(control, 0o700)
 
         def drive(*argv):
             return s.run([os.path.join(s.home, "bin", "launchjob")] + list(argv),
@@ -98,6 +107,7 @@ def main():
         genv = s.env({"DISPLAY": display.name,
                       "PATH": wrappers + os.pathsep + s.env()["PATH"],
                       "ECCE_NATIVE_DIALOGS": "explicit",
+                      "ECCE_SSH_CONTROL_DIR": control,
                       "ECCE_ASKPASS": "/bin/false"})
         if os.environ.get("ECCE_TEST_PRELOAD"):   # e.g. a crash-backtrace library
             genv["LD_PRELOAD"] = os.environ["ECCE_TEST_PRELOAD"]
@@ -146,6 +156,16 @@ def main():
         check(ans.startswith("ok sftp://"), "calculation created: %s" % ans)
         listing = onServer("ls -a ecce-data ecce-data/p767 ecce-data/p767/c1")
         check(".ecce-meta" in listing and "c1" in listing, "they are in the server's folder")
+        ans = send("server connect Other")
+        check(ans == "connected", "the folder on the other port connects: %s" % ans)
+        ans = send("server newproject Other p789")
+        check(ans.startswith("ok sftp://bashuser@sshport:%d/" % PORT2), "project made on the other port: %s" % ans)
+        one, two = onServer("ls ecce-data"), onServer("ls ecce-data", PORT2)
+        check("p789" in two and "p767" not in two and "p789" not in one,
+              "two ports on one host reach two servers, no shared master: %r / %r" % (one, two))
+        socks = [f for f in os.listdir(control) if len(f) == 16 and "." not in f]
+        say("  owned masters: %s" % socks)
+        check(len(socks) >= 2, "one owned master per port")
         ans = send("server copycheck %s/p767 file:///tmp" % BASE)
         check(ans.startswith("refused: Copying between Local data and a server"), "copy to Local data refused: %s" % ans)
 

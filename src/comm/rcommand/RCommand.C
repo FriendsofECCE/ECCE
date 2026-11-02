@@ -338,11 +338,11 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
   std::shared_ptr<Creds> c = newCreds(), cj = newCreds();
   //  Looked up here: a front end's prompt runs on libssh's front-end thread,
   //  which has no deferral and must not touch AuthCache.
-  RCommand::getPassCache(shell, machine, theUser, c->cached);
+  RCommand::getPassCache(shell, passHost(machine), theUser, c->cached);
   if (jumpHost != "") RCommand::getPassCache(shell, jumpHost, theUser, cj->cached);
 
   // Port 0 leaves the port to ~/.ssh/config, as for the ssh command.
-  SshTransport* t = new SshTransport(machine, 0, userName);
+  SshTransport* t = new SshTransport(machine, p_port, userName);
   t->setConnectTimeout(connectTimeout());
   t->setPasswordAttempts(3);
   t->setPromptCallback(promptFor(c, machine));
@@ -388,7 +388,7 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
   adoptTransport(t);
 
   if (thePass != "")
-    RCommand::setPassCache(p_shell, machine, theUser, thePass);
+    RCommand::setPassCache(p_shell, passHost(machine), theUser, thePass);
   if (jumpHost != "" && theJumpPass != "")
     RCommand::setPassCache(p_shell, jumpHost, theUser, theJumpPass);
 
@@ -405,7 +405,15 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
 RCommand* RCommandLogin::open() const
 {
   return new RCommand(machine, remShell, locShell, user, password, frontend,
-                      frontendBypass, shellPath, libPath, sourceFile);
+                      frontendBypass, shellPath, libPath, sourceFile, port);
+}
+
+// AuthCache key of the machine's ssh password: host for port 22 (the key
+// before ports existed, so those stored passwords still match), else
+// host:port.
+string RCommand::passHost(const string& machine) const
+{
+  return p_port > 0 ? machine + ":" + std::to_string(p_port) : machine;
 }
 
 int RCommand::connectTimeout()
@@ -479,14 +487,16 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
 {
   if (tryLibssh) *tryLibssh = false;
   p_loginCancelled = p_loginPrompted = p_loginRefused = p_loginUnreachable = false;
-  OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
+  // The port is part of the owned master's socket name and of the stored
+  // password's key, so two ports on one host never share either.
+  OpenSshTransport* t = new OpenSshTransport(machine, p_port, userName);
   t->setConnectTimeout(connectTimeout());
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
   t->setAskpass(askpassProgram());
   // Offered to an ECCE-owned master's password prompt only (see setPassword).
   string pw = password;
   if (pw == "" && !OpenSshTransport::ownedControlDir().empty())
-    RCommand::getPassCache(p_shell,  machine,
+    RCommand::getPassCache(p_shell, passHost(machine),
                            userName == "" ? string(Ecce::realUser()) : userName, pw);
   t->setPassword(pw);
   string error;
@@ -494,10 +504,10 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
   // A stored password that was refused is forgotten here too, whatever the
   // dialog that followed came to.
   if (t->forgetCached())
-    forgetPassCache("ssh", machine,
+    forgetPassCache("ssh", passHost(machine),
                     userName == "" ? string(Ecce::realUser()) : userName);
   if (connected && t->ownsMaster() && !t->acceptedPassword().empty())
-    setPassCache(p_shell, machine,
+    setPassCache(p_shell, passHost(machine),
                  userName == "" ? string(Ecce::realUser()) : userName,
                  t->acceptedPassword());
   if (!connected) {
@@ -589,6 +599,7 @@ bool RCommand::sshHop(const string& hopMachine, const string& locShell,
     "LD_LIBRARY_PATH=" + shQuote(libPath) + ":$LD_LIBRARY_PATH; "
     "export LD_LIBRARY_PATH\n";
   p_scriptPrefix = pathLine + libLine;
+  p_port = 0;   // a hop's machine has no port of its own
   if (!sshConnect(hopMachine, user, password, jump)) return false;
   if (sourceFile != "") {
     std::set<std::string> changed;
@@ -819,9 +830,11 @@ RCommand::RCommand(const string& machine, const string& remShell,
                    const string& locShell, const string& userName,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
-                   const string& libPath, const string& sourceFile)
+                   const string& libPath, const string& sourceFile,
+                   int port)
 {
   p_connected = false;
+  p_port = port == 22 ? 0 : port;
   p_timeout = RC_EXEC_TIMEOUT;
   p_transport = 0;
   p_ssh = false;
@@ -848,7 +861,8 @@ RCommand::RCommand(const string& machine, const string& remShell,
   p_machine = (machine=="" || machine=="-f" || machine=="system")?
                RCommand::whereami(): machine;
 
-  const bool remote = RCommand::isRemote(machine, remShell, userName);
+  // Another port on this host is another sshd, never this process's shell.
+  const bool remote = p_port > 0 || RCommand::isRemote(machine, remShell, userName);
   if (remote) {
     p_errMessage = RCommand::removedShellMessage(remShell);
     if (p_errMessage != "")

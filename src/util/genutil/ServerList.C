@@ -83,9 +83,10 @@ string ServerList::check(const ServerEntry& e)
     string u, h, f;
     if (!parseSsh(e.address, u, h, f))
       return "An SSH folder needs a user, a host and a folder.";
-    // RCommand takes the port from ~/.ssh/config only (OpenSSH and libssh alike).
-    if (h.find(':') != string::npos)
-      return "Use a Host entry in ~/.ssh/config for a port other than 22.";
+    string bare;
+    int port;
+    if (!splitHostPort(h, bare, port))
+      return "The port of an SSH folder is a number from 1 to 65535.";
   }
   return "";
 }
@@ -134,11 +135,47 @@ string ServerList::typeLabel(const string& type)
 
 
 string ServerList::sshAddress(const string& user, const string& host,
-                              const string& folder)
+                              const string& folder, int port)
 {
   string f = folder;
   if (f.empty() || f[0] != '/') f = "/" + f;
-  return "sftp://" + user + "@" + host + f;
+  return "sftp://" + user + "@" + hostPort(host, port) + f;
+}
+
+
+string ServerList::hostPort(const string& host, int port)
+{
+  // Port 22 is left out, so the addresses (and the login and password keys
+  // derived from them) of folders added before ports existed stay the same.
+  if (port == 22 || port == 0) return host;
+  const bool v6 = host.find(':') != string::npos && host[0] != '[';
+  return (v6 ? "[" + host + "]" : host) + ":" + std::to_string(port);
+}
+
+
+bool ServerList::splitHostPort(const string& authority, string& host, int& port)
+{
+  host = authority;
+  port = 22;
+  size_t colon = authority.rfind(':');
+  if (colon == string::npos) return !host.empty();
+  if (authority[0] == '[') {
+    size_t close = authority.find(']');
+    if (close == string::npos) return false;
+    host = authority.substr(1, close - 1);
+    if (close + 1 == authority.size()) return !host.empty();
+    if (authority[close + 1] != ':') return false;
+    colon = close + 1;
+  } else if (authority.find(':') != colon) {
+    return true;   // a bare IPv6 address: no port
+  } else {
+    host = authority.substr(0, colon);
+  }
+  const string p = authority.substr(colon + 1);
+  if (p.empty() || p.size() > 5 ||
+      p.find_first_not_of("0123456789") != string::npos) return false;
+  port = atoi(p.c_str());
+  return !host.empty() && port >= 1 && port <= 65535;
 }
 
 
