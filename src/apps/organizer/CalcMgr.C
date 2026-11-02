@@ -46,6 +46,7 @@ static bool offerStopServer(bool& inUse);
 // The outcome of the local machine registration at startup, for "probe".
 static std::string s_registerMessage;
 
+#include <wx/stopwatch.h>
 #include <wx/dataobj.h>
 #include <wx/filename.h>
 #include <wx/process.h>
@@ -1262,6 +1263,21 @@ void CalcMgr::runTestCommand(const string& line)
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
           outcome = "ok " + t;
         } else outcome = "ok other panel";
+      }
+    } else if (command == "foldertable") {
+      // "foldertable URL": select that folder, wait until its table is
+      // built, and tell the rows shown and the seconds it took (#675).
+      wxStopWatch watch;
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        ProjectContextPanel *pcp = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+        outcome = pcp ? "ok rows=" + std::to_string(pcp->rowCount()) +
+                        " seconds=" + std::to_string(watch.Time() / 1000.0)
+                      : "no project panel";
       }
     } else if (command == "summary") {
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
