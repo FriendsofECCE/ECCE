@@ -90,6 +90,88 @@ int multiLineHeight(wxStaticText *t)
 
 
 
+namespace {
+struct FieldLabel { const char *key; const char *label; const char *description; };
+const FieldLabel surfaceFields[] = {
+   {"Density", "Density", "Total electron density ρ(r). The surface encloses the region where ρ exceeds the isovalue (au)."},
+   {"Spin Density", "Spin Density", "ρ_α - ρ_β: where the unpaired electrons are; the two colours mark alpha and beta excess."},
+   {ESP_FIELD_TYPE, "ESP on Density", "Electrostatic potential on a density surface: red negative (electron-rich), blue positive."}
+};
+const FieldLabel chargeField = {ESP_CHARGES_FIELD_TYPE,
+   "ESP on Density (atomic charges)", ""};
+
+string fieldKey(const string& label)
+{
+   for (const auto& field : surfaceFields)
+      if (label == field.label) return field.key;
+   return label == chargeField.label ? chargeField.key : label;
+}
+
+string fieldLabel(const string& key)
+{
+   for (const auto& field : surfaceFields)
+      if (key == field.key) return field.label;
+   return key == chargeField.key ? chargeField.label : key;
+}
+}
+
+std::vector<MoPanel::SurfaceEntry> MoPanel::surfaceEntries() const
+{
+   IPropCalculation *calc = getCalculation();
+   const bool density = calc->getProperty("MO") && calc->getProperty("ORBOCC") &&
+      (!calc->getProperty("MOBETA") || calc->getProperty("ORBOCCBETA"));
+   bool spin = density && calc->getProperty("MOBETA");
+   if (density && !spin) {
+      if (auto *occ = dynamic_cast<PropVector*>(calc->getProperty("ORBOCC")))
+         for (double o : occ->values())
+            if (o > 1e-6 && fabs(o - 2.0) > 1e-6) spin = true;
+   }
+   std::vector<SurfaceEntry> entries;
+   for (const auto& field : surfaceFields) {
+      if (density && (string(field.key) != "Spin Density" || spin))
+         entries.push_back({field.label, field.description});
+   }
+   return entries;
+}
+
+string MoPanel::selectedFieldKey() const
+{
+   auto *choice = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   return !choice || choice->GetSelection() == wxNOT_FOUND ? string() :
+      fieldKey(choice->GetStringSelection().ToStdString());
+}
+
+string MoPanel::selectedSurface() const
+{
+   const string key = selectedFieldKey();
+   for (const auto& field : surfaceFields)
+      if (key == field.key) return field.label;
+   return "MOs";
+}
+
+void MoPanel::updateFieldNote()
+{
+   p_fieldDescription.clear();
+   const string key = selectedFieldKey();
+   for (const auto& field : surfaceFields)
+      if (key == field.key) p_fieldDescription = wxString::FromUTF8(field.description);
+   auto *choice = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   wxString tip = p_fieldDescription;
+   if (tip.IsEmpty()) {
+      const auto surfaces = surfaceEntries();
+      const bool haveSpin = std::any_of(surfaces.begin(), surfaces.end(),
+         [](const SurfaceEntry& entry) { return fieldKey(entry.label) == "Spin Density"; });
+      if (!surfaces.empty() && !haveSpin)
+         tip = _("Spin density is offered for open-shell calculations (UHF, ROHF, UKS).");
+   }
+   choice->SetToolTip(tip);
+   p_fieldNote->SetLabel(p_fieldDescription);
+   p_fieldNote->SetToolTip(p_fieldDescription);
+   p_fieldNote->Wrap(std::max(80, GetClientSize().x - 12));
+   p_fieldNote->Show(!p_fieldDescription.IsEmpty());
+   reflow();
+}
+
 static const char *INIFILE = "wxbuilder.ini";
 
 const wxWindowID MoPanel::ID_SLIDER = wxNewId();
@@ -368,6 +450,17 @@ bool MoPanel::Create(IPropCalculation *calculation,
 
    buildEspRangeControls();
    buildBasisWarning();
+   p_fieldNote = new wxStaticText(this, wxID_ANY, wxEmptyString);
+   p_fieldNote->SetMinSize(wxSize(1, -1));
+   GetSizer()->Add(p_fieldNote, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+   p_fieldNote->Hide();
+   Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+      e.Skip();
+      if (p_fieldNote && !p_fieldDescription.IsEmpty()) {
+         p_fieldNote->SetLabel(p_fieldDescription);
+         p_fieldNote->Wrap(std::max(80, GetClientSize().x - 12));
+      }
+   });
 
    //  Dynamically, for the reason given in buildEspRangeControls().
    ((ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE))->Bind(
@@ -460,44 +553,19 @@ void MoPanel::updateUIOptions()
    ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
    INTERNALEXCEPTION(escalc, "Cannot down cast to ICalucation");
 
-   // If we don't have the occupations, we can't do density
-   bool densityOk=true;
-   if (expt->getProperty("MO") && !expt->getProperty("ORBOCC")) {
-      densityOk=false;
-   } else if (expt->getProperty("MOBETA") && !expt->getProperty("ORBOCCBETA")){
-      densityOk=false;
+   const auto surfaces = surfaceEntries();
+   bool densityOk = false, spinOk = false;
+   for (const auto& entry : surfaces) {
+      if (fieldKey(entry.label) == "Density") densityOk = true;
+      if (fieldKey(entry.label) == "Spin Density") spinOk = true;
    }
-
-   // If we don't have the occupations, we can't do spin density
-   //  Two MO sets (UHF/UKS), or one set with singly occupied orbitals
-   //  (restricted open shell); a closed shell has no spin density.
-   bool spinOk=false;
-   if (expt->getProperty("MO") && expt->getProperty("MOBETA") &&
-         expt->getProperty("ORBOCC") && expt->getProperty("ORBOCCBETA")) {
-      spinOk=true;
-   } else if (expt->getProperty("MO") && !expt->getProperty("MOBETA")) {
-      if (PropVector *occ = dynamic_cast<PropVector*>(expt->getProperty("ORBOCC"))) {
-         for (double o : occ->values())
-            if (o > 1e-6 && fabs(o - 2.0) > 1e-6) spinOk = true;
-      }
-   }
-
-   //  Both potentials are mapped onto a density surface, so both need
-   //  the density.  The canonical one integrates over that density and
-   //  so needs nothing further; the point-charge one needs charges, and
-   //  is offered only when they exist rather than being offered and
-   //  then quietly producing a plain surface.
-   bool espOk = densityOk;
-   bool espChargesOk = densityOk && (expt->getProperty("ESPCHARGE") ||
-                                     expt->getProperty("ESPFIT") ||
-                                     expt->getProperty("MULLIKEN"));
-
+   const bool espChargesOk = densityOk && (expt->getProperty("ESPCHARGE") ||
+      expt->getProperty("ESPFIT") || expt->getProperty("MULLIKEN"));
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    typewin->Clear();
-   if (espChargesOk) typewin->Insert(ESP_CHARGES_FIELD_TYPE,0);
-   if (espOk) typewin->Insert(ESP_FIELD_TYPE,0);
-   if (spinOk) typewin->Insert("Spin Density",0);
-   if (densityOk) typewin->Insert("Density",0);
+   if (espChargesOk) typewin->Insert(chargeField.label, 0);
+   for (auto entry = surfaces.rbegin(); entry != surfaces.rend(); ++entry)
+      typewin->Insert(wxString::FromUTF8(entry->label.c_str()), 0);
    if (p_localised) tellDiagrams(getCalculation(), false);
    p_localised = false;
    if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG")) {
@@ -540,6 +608,7 @@ void MoPanel::updateUIOptions()
    //  The range controls belong to the ESP types alone.  Shown when one
    //  is chosen, which OnTypeSelected below keeps in step.
    showEspRangeControls(false);
+   updateFieldNote();
 
    // Make sure we have a GBSConfig.  If not we'll crash when
    // we try to compute.
@@ -1168,6 +1237,9 @@ string MoPanel::tableState() const
    if (ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE)) {
       s << "fieldTypes";
       for (unsigned i = 0; i < tw->GetCount(); i++) s << (i ? " | " : " ") << tw->GetString(i);
+      s << "\nfieldSelected " << tw->GetStringSelection()
+        << "\nfieldNote " << p_fieldDescription
+        << "\nfieldNoteShown " << (p_fieldNote && p_fieldNote->IsShownOnScreen() ? 1 : 0);
       s << "\n" << "fieldTypeTip " << (tw->GetToolTip() ? tw->GetToolTip()->GetTip() : wxString()) << "\n";
    }
    s << "virtNote " << p_virtNote << "\n";
@@ -1624,8 +1696,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    Command *cmd = new ComputeMoCmd("Compute Mo", &sg, expt, &progress);
 
    string fieldtype = "MO";
-   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-   fieldtype = typewin->GetString(typewin->GetSelection());
+   fieldtype = selectedFieldKey();
    cmd->getParameter("FieldType")->setString(fieldtype);
    ewxTextCtrl *cutoff = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MO_CUTOFF);
    cmd->getParameter("CoefCutoff")->setDouble(cutoff->getValueAsDouble());
@@ -2247,8 +2318,7 @@ bool MoPanel::espFieldSelected()
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    if (typewin == 0 || typewin->GetSelection() == wxNOT_FOUND) return false;
 
-   const string chosen = (const char*)typewin->GetString(
-                                          typewin->GetSelection()).mb_str();
+   const string chosen = selectedFieldKey();
    return (chosen == ESP_FIELD_TYPE || chosen == ESP_CHARGES_FIELD_TYPE);
 }
 
@@ -2594,7 +2664,7 @@ void MoPanel::reflow()
 bool MoPanel::selectFieldType(const string& name)
 {
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-   const int at = typewin->FindString(wxString::FromUTF8(name.c_str()));
+   const int at = typewin->FindString(wxString::FromUTF8(fieldLabel(name).c_str()));
    if (at == wxNOT_FOUND) return false;
    typewin->SetSelection(at);
    wxCommandEvent ev(wxEVT_CHOICE, typewin->GetId());
@@ -2937,11 +3007,13 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
 
    const bool esp = espFieldSelected();
    showEspRangeControls(esp);
+   updateFieldNote();
+   if (IsShownOnScreen())
+      if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+         builder->syncIndexSelection(this);
 
    {
-      ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-      const string chosen = tw->GetSelection() == wxNOT_FOUND ? string() :
-         string(tw->GetString(tw->GetSelection()).mb_str());
+      const string chosen = selectedFieldKey();
       const bool spin = chosen == "Spin Density";
       if (spin != p_spinShown) {
          if (!spin) paintSpin(false);

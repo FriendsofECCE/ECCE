@@ -21,6 +21,7 @@ class PropertyIndexPanel : public wxPanel
     struct Entry {
       std::string name;    // the panel's name, which is its pane's name
       std::string group;   // heading from PropertyPanelDescriptor.xml
+      std::string tooltip;
     };
 
     PropertyIndexPanel(wxWindow *parent);

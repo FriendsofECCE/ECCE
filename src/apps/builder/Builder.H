@@ -154,7 +154,8 @@ class Builder: public BuilderGUI,
       // Ctrl+A (selectAllKey); Edit > Select All is wxID_SELECTALL
       ID_ACCEL_SELECTALL,
       // Ctrl+S: Save, or Save As when there is nothing to save into
-      ID_ACCEL_SAVE
+      ID_ACCEL_SAVE,
+      ID_SURFACE_MENU_BASE = 3500
     };
 
     const static string NAME_TOOL_CONTEXT;

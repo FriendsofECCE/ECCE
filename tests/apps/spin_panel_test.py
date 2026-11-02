@@ -43,12 +43,43 @@ def checkApp(display, name, results, verbose=False):
         out = os.path.join(folder, "shots")
         os.makedirs(out, exist_ok=True)
         with open(scene, "w") as h:
-            h.write("plotshot spinv 0 0 MOs:dockedspin\n"
+            h.write("ptree categories\n"
+                    "list Density\nhold 1\nmotable density-note\n"
+                    "list Spin Density\nhold 1\nmotable spin-note\n"
+                    "property ESP on Density\nhold 1\nmotable esp-note\n"
+                    "ptree selected-surface\n"
+                    "list MOs\nhold 1\n"
+                    "plotshot spinv 0 0 MOs:dockedspin\n"
                     "plotshot spinc 0 0 MOs:dockedspinpaint\nhold 1\n")
         log = apps.run(display, "builder", args=("-context", urls["o2"]),
                        windowTimeout=120, settle=300,
-                       env={"ECCE_PANEL_FULLSCREEN": "1", "ECCE_VIEWER_SCENE": scene,
+                       env={"ECCE_PANEL_MODE": "detail", "ECCE_PANEL_FULLSCREEN": "1", "ECCE_VIEWER_SCENE": scene,
                             "ECCE_VIEWER_SCENE_OUT": out}).log or ""
+        categories_path = os.path.join(out, "categories.txt")
+        categories = open(categories_path).read().splitlines() if os.path.exists(categories_path) else []
+        surfaces = [line for line in categories if line.startswith("entry Surfaces/")]
+        if surfaces != ["entry Surfaces/Density", "entry Surfaces/Spin Density",
+                        "entry Surfaces/ESP on Density"]:
+            results.fail("surfaces", "wrong ordered category: %r" % surfaces)
+        for unchanged in ("Density Map", "Density Profile"):
+            if "entry Orbitals/" + unchanged not in categories:
+                results.fail("surfaces", unchanged + " moved or renamed")
+        expected_notes = {
+            "density-note": ("Density", "Total electron density ρ(r). The surface encloses the region where ρ exceeds the isovalue (au)."),
+            "spin-note": ("Spin Density", "ρ_α - ρ_β: where the unpaired electrons are; the two colours mark alpha and beta excess."),
+            "esp-note": ("ESP on Density", "Electrostatic potential on a density surface: red negative (electron-rich), blue positive."),
+        }
+        for state, (label, description) in expected_notes.items():
+            path = os.path.join(out, state + ".txt")
+            lines = open(path).read().splitlines() if os.path.exists(path) else []
+            for expected in ("fieldSelected " + label, "fieldNote " + description,
+                             "fieldNoteShown 1", "fieldTypeTip " + description):
+                if expected not in lines:
+                    results.fail("surfaces", state + " missing " + expected)
+        selected_path = os.path.join(out, "selected-surface.txt")
+        selected = open(selected_path).read() if os.path.exists(selected_path) else ""
+        if "tree ESP on Density\n" not in selected or "shown MOs\n" not in selected:
+            results.fail("surfaces", "menu did not select the existing MOs pane: " + selected)
         text = mt.parseState(log, "spinv").get("spinView", "")
         m = re.search(r"largest spin: (O\d) (-?\d+\.\d+) \(Mulliken\)", text)
         if not m or abs(abs(float(m.group(2))) - 1.0) > 0.1:

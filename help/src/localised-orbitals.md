@@ -42,7 +42,8 @@ Editor to switch this off.
 
 ## Spin density
 
-Choose **Spin Density** next to **Compute** (open-shell calculations) and the
+Choose **Properties > Surfaces > Spin Density**, or **Spin Density** next to
+**Compute** (open-shell calculations), and the
 table gives way to two tables: the singly occupied orbitals, which make the
 spin density, and the Mulliken spin population on each atom, worked out from
 the orbital coefficients. If the populations cannot be worked out, only the

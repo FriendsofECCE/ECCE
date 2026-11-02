@@ -127,6 +127,9 @@ class MoPanel : public MoGUI,
 
      /** Choose a field type as a click in the type drop-down does. */
      bool selectFieldType(const string& name);
+     struct SurfaceEntry { string label; string description; };
+     std::vector<SurfaceEntry> surfaceEntries() const;
+     string selectedSurface() const;
 
      /** The table lists the localised orbitals ("Localised MO" chosen). */
      bool localisedShown() const { return p_localised; }
@@ -205,6 +208,10 @@ class MoPanel : public MoGUI,
       void showEspRangeControls(bool show);
       void onFieldTypeChanged(wxCommandEvent& event);
       void chooseMoFieldType();
+      string selectedFieldKey() const;
+      void updateFieldNote();
+      wxStaticText *p_fieldNote = nullptr;
+      wxString p_fieldDescription;
       void rebuildEspSurface();
 
       //  The legend for a potential-mapped surface: the surface's own ramp,
