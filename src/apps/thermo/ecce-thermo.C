@@ -59,21 +59,11 @@ bool parseTreatments(const string& spec, vector<TreatmentSpec>& out, string& err
       out.push_back({THERMO_GRIMME_QRRHO, 200.0, "qrrho-grimme:200"});
       out.push_back({THERMO_TRUHLAR_RAISE, 100.0, "truhlar"});
       out.push_back({THERMO_HEADGORDON_QRRHO, 100.0, "head-gordon"});
-    } else if (s == "rrho") {
-      out.push_back({THERMO_RRHO, 100.0, item});
-    } else if (s == "truhlar") {
-      out.push_back({THERMO_TRUHLAR_RAISE, 100.0, item});
-    } else if (s == "head-gordon" || s == "headgordon") {
-      out.push_back({THERMO_HEADGORDON_QRRHO, 100.0, item});
-    } else if (s.compare(0, 14, "qrrho-grimme:") == 0 ||
-               s.compare(0, 11, "qrrho:") == 0) {
-      const size_t colon = s.find(':');
-      const double w0 = atof(s.substr(colon + 1).c_str());
-      if (w0 < 1.0) { err = "bad w0 in '" + item + "'"; return false; }
-      out.push_back({THERMO_GRIMME_QRRHO, w0, item});
     } else {
-      err = "unknown treatment '" + item + "'";
-      return false;
+      ThermoTreatment t;
+      double w0 = 100.0;
+      if (!parseTreatmentName(item, t, w0, err)) return false;
+      out.push_back({t, w0, item});
     }
   }
   if (out.empty()) err = "no treatments";

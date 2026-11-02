@@ -45,6 +45,18 @@ static ThermoInput h2o()
   return in;
 }
 
+static ThermoInput singleMode(double nu)
+{
+  ThermoInput in;
+  in.electronicEnergy = -10.0;
+  in.frequencies = {nu};
+  in.mass = 20.0;
+  in.rotConstants[0] = in.rotConstants[1] = in.rotConstants[2] = 1.0;
+  in.symmetryNumber = 1;
+  in.multiplicity = 1;
+  return in;
+}
+
 static ThermoInput nma()
 {
   ThermoInput in;
@@ -165,6 +177,42 @@ int main()
       if (n.find("imaginary") != string::npos) hasImag = true;
     }
     check(hasTrans && hasImag, "notes mention dropped and imaginary modes");
+  }
+
+  // --treatment qrrho-grimme:50 must parse (the CLI used wrong compare
+  // lengths, so the w0-bearing treatments never matched).
+  {
+    ThermoTreatment t;
+    double w0 = 0.0;
+    string err;
+    check(parseTreatmentName("qrrho-grimme:50", t, w0, err) &&
+          t == THERMO_GRIMME_QRRHO && w0 == 50.0, "qrrho-grimme:50 -> w0=50");
+    check(parseTreatmentName("qrrho:200", t, w0, err) &&
+          t == THERMO_GRIMME_QRRHO && w0 == 200.0, "qrrho:200 -> w0=200");
+    check(!parseTreatmentName("qrrho-grimme:0", t, w0, err) &&
+          err.find("w0") != string::npos, "qrrho-grimme:0 is rejected");
+    const double g50 = computeThermo(nma(), 298.15, THERMO_GAS_1ATM,
+                                     THERMO_GRIMME_QRRHO, 50.0).G;
+    const double g100 = computeThermo(nma(), 298.15, THERMO_GAS_1ATM,
+                                      THERMO_GRIMME_QRRHO, 100.0).G;
+    check(std::fabs(g50 - g100) > 1e-7,
+          "NMA: qRRHO w0=50 gives a different G than w0=100");
+  }
+
+  // Truhlar raises a soft mode for ZPE and thermal energy too, not just the
+  // entropy: H of a 30 cm-1 mode equals plain RRHO H of the same mode raised
+  // to 100 cm-1 (entropy cancels out of H, so the old entropy-only version
+  // would have left H unchanged).
+  {
+    const ThermoResult t = computeThermo(singleMode(30.0), 298.15,
+                                         THERMO_GAS_1ATM, THERMO_TRUHLAR_RAISE);
+    const ThermoResult rr = computeThermo(singleMode(30.0), 298.15,
+                                          THERMO_GAS_1ATM, THERMO_RRHO);
+    const ThermoResult hi = computeThermo(singleMode(100.0), 298.15,
+                                          THERMO_GAS_1ATM, THERMO_RRHO);
+    check(near(t.H, hi.H, 1e-12), "Truhlar H(30 cm-1) equals RRHO H(100 cm-1)");
+    check(std::fabs((t.H - rr.H) - 1.6603647969e-05) < 1e-10,
+          "Truhlar raises ZPE + thermal energy by the 30->100 cm-1 amount");
   }
 
   printf("%d failure(s)\n", failures);

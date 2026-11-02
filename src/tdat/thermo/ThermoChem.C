@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 
 namespace {
 
@@ -81,6 +82,28 @@ double sRot(const double* b, bool linear, int sigma, double T)
   return R_ * (std::log(q) + 1.5);
 }
 
+bool startsWith(const std::string& s, const std::string& prefix)
+{
+  return s.size() >= prefix.size() && s.compare(0, prefix.size(), prefix) == 0;
+}
+
+std::string lower(const std::string& s)
+{
+  std::string r;
+  for (char c : s) r += (char)std::tolower((unsigned char)c);
+  return r;
+}
+
+// Truhlar's quasi-harmonic correction raises every mode below the floor
+// before any vibrational term is computed (ZPE, thermal energy, entropy alike).
+std::vector<double> raisedTo(const std::vector<double>& nu, double floor)
+{
+  std::vector<double> r = nu;
+  for (double& f : r)
+    if (f < floor) f = floor;
+  return r;
+}
+
 }
 
 ThermoResult computeThermo(const ThermoInput& in, double T,
@@ -120,11 +143,17 @@ ThermoResult computeThermo(const ThermoInput& in, double T,
         r.sVib += R_ * (w * sHo(f, T) + (1.0 - w) * sFr(f, T));
       }
       break;
-    case THERMO_TRUHLAR_RAISE:
+    case THERMO_TRUHLAR_RAISE: {
+      const std::vector<double> nu = raisedTo(in.frequencies, 100.0);
+      r.zpe = zpeOf(nu);
+      r.thermalVib = vibThermalOf(nu, T);
+      r.H = in.electronicEnergy + r.zpe + r.thermalVib + r.thermalRot +
+            r.thermalTrans + K_B * T / EH;
       r.sVib = 0.0;
-      for (double f : in.frequencies)
-        r.sVib += R_ * sHo(f < 100.0 ? 100.0 : f, T);
+      for (double f : nu)
+        r.sVib += R_ * sHo(f, T);
       break;
+    }
     case THERMO_HEADGORDON_QRRHO: {
       // Quasi-RRHO for the thermal enthalpy only: a low mode's thermal energy
       // is damped from the harmonic value toward the free rotor's kT/2; the
@@ -146,6 +175,25 @@ ThermoResult computeThermo(const ThermoInput& in, double T,
   r.S = r.sElec + r.sTrans + r.sRot + r.sVib;
   r.G = r.H - T * r.S / (EH * N_A);
   return r;
+}
+
+bool parseTreatmentName(const std::string& name, ThermoTreatment& t,
+                        double& w0, std::string& err)
+{
+  const std::string s = lower(name);
+  if (s == "rrho") { t = THERMO_RRHO; w0 = 100.0; return true; }
+  if (s == "truhlar") { t = THERMO_TRUHLAR_RAISE; w0 = 100.0; return true; }
+  if (s == "head-gordon" || s == "headgordon") {
+    t = THERMO_HEADGORDON_QRRHO; w0 = 100.0; return true;
+  }
+  if (startsWith(s, "qrrho-grimme:") || startsWith(s, "qrrho:")) {
+    const size_t colon = s.find(':');
+    const double v = std::atof(s.substr(colon + 1).c_str());
+    if (v < 1.0) { err = "bad w0 in '" + name + "'"; return false; }
+    t = THERMO_GRIMME_QRRHO; w0 = v; return true;
+  }
+  err = "unknown treatment '" + name + "'";
+  return false;
 }
 
 int symmetryNumberForPointGroup(const std::string& pointGroup)

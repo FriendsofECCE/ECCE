@@ -26,7 +26,7 @@ struct ThermoInput
 enum ThermoTreatment {
    THERMO_RRHO = 0,           ///< plain rigid-rotor / harmonic-oscillator
    THERMO_GRIMME_QRRHO,       ///< Grimme quasi-RRHO entropy, w0 in [50,200]
-   THERMO_TRUHLAR_RAISE,      ///< raise-to-100 cm-1 in the vibrational entropy
+   THERMO_TRUHLAR_RAISE,      ///< raise-to-100 cm-1 (ZPE, thermal energy and entropy)
    THERMO_HEADGORDON_QRRHO    ///< Head-Gordon quasi-RRHO enthalpy
 };
 
@@ -68,6 +68,15 @@ int symmetryNumberForPointGroup(const std::string& pointGroup);
  */
 std::vector<double> realVibrations(const std::vector<double>& storedFreqs,
                                    std::vector<std::string>& notes);
+
+/**
+ * Parse one low-frequency treatment name as the CLI/panel spells it
+ * (case-insensitive): "rrho", "truhlar", "head-gordon" (or "headgordon"),
+ * "qrrho-grimme:<w0>" or "qrrho:<w0>".  Sets t and w0; returns false and
+ * sets err when the name or its w0 is not recognised.
+ */
+bool parseTreatmentName(const std::string& name, ThermoTreatment& t,
+                        double& w0, std::string& err);
 
 const char* treatmentName(ThermoTreatment t);
 const char* standardStateName(ThermoStandardState s);
