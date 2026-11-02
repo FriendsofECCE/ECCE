@@ -34,7 +34,8 @@ not fit its electrons is not made, and the report says so.
 The code, theory, run type, the values of the theory and run type details,
 the basis set, the solvent and the launch settings. Results, run state and
 geometry constraints of the template are not carried: the constraints refer
-to the template's atoms. If a structure contains elements the template's
+to the template's atoms, so the new calculations have none, and the report
+says when constraints were left out. If a structure contains elements the template's
 basis set was not assigned to, the basis set of the same name is assigned to
 the new elements.
 

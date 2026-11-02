@@ -10,6 +10,8 @@
 #include "dsm/TGBSConfig.H"
 #include "dsm/TaskJob.H"
 #include "tdat/Fragment.H"
+#include "tdat/GeomConstraintModel.H"
+#include "tdat/GeomConstraintRules.H"
 #include "tdat/SpinMult.H"
 #include "tdat/TAtm.H"
 #include "tdat/TTheory.H"
@@ -102,6 +104,15 @@ vector<Series::Outcome> Series::make(const EcceURL& templ, const EcceURL& folder
   if (TGBSConfig *cfg = tcalc->gbsConfig()) basisName = cfg->name();
   Fragment *tfrag = tcalc->fragment();
   const string templateTags = tfrag ? tfrag->uniqueTagStr() : string();
+  // Constraints name atom indices of the template's structure.
+  int templateConstraints = 0;
+  if (tfrag) {
+    GeomConstraintModel gcon(*tfrag, GeomConstraintRules());
+    if (ChemistryTask *tt = dynamic_cast<ChemistryTask*>(tres)) {
+      tt->getGeomConstraintModel(gcon);
+      templateConstraints = gcon.size();
+    }
+  }
   delete tfrag;
 
   for (size_t i = 0; i < sources.size(); i++) {
@@ -164,6 +175,18 @@ vector<Series::Outcome> Series::make(const EcceURL& templ, const EcceURL& folder
     bool good = job && calc && ctask;
     if (good) {
       job->resetForRerun(ResourceDescriptor::STATE_CREATED);
+      // Remove the copied constraints; one stored without a configuration
+      // entry is not found by name, so delete its file if it is still read.
+      ctask->setGeomConstraintModel(0);
+      if (Fragment *f0 = ctask->fragment()) {
+        GeomConstraintModel left(*f0, GeomConstraintRules());
+        ctask->getGeomConstraintModel(left);
+        delete f0;
+        if (left.size() > 0)
+          if (Resource *file = EDSIFactory::getResource(
+                  target.getChild("Parameters").getChild("GeomConstraintModel.gcst")))
+            file->remove();
+      }
       good = ctask->fragment(frag) &&
              calc->spinMultiplicity((SpinMult::SpinMultEnum)mult) &&
              calc->openShells(mult - 1);
@@ -190,6 +213,11 @@ vector<Series::Outcome> Series::make(const EcceURL& templ, const EcceURL& folder
         o.note = "warning: the template's theory " + tn +
                  " is restricted and the structure has multiplicity " +
                  std::to_string(mult) + "; use an unrestricted template";
+    }
+    if (good && templateConstraints > 0) {
+      if (!o.note.empty()) o.note += "; ";
+      o.note += "the template's " + std::to_string(templateConstraints) +
+                " geometry constraint(s) were not carried";
     }
     delete frag;
     o.ok = good;

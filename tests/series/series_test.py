@@ -98,6 +98,11 @@ def main():
             print(code)
             tpl = os.path.join(project, "tpl-" + code)
             shutil.copytree(source, tpl, symlinks=True)
+            if code == "orca":
+                with open(os.path.join(tpl, "Parameters", "GeomConstraintModel.gcst"), "w") as h:
+                    h.write("<GeomConstraintModel>\n<Constraint type=\"bond\">\n"
+                            "  <Group>0 1</Group>\n  <Value>0.96</Value>\n</Constraint>\n"
+                            "</GeomConstraintModel>\n")
             # git does not keep the empty Inputs folder of a stored calculation
             os.makedirs(os.path.join(tpl, "Inputs"), exist_ok=True)
             folder = os.path.join(project, "series-" + code)
@@ -132,6 +137,13 @@ def main():
                 deck = open(os.path.join(inp, decks[0]), errors="replace").read() \
                     if decks else ""
                 check(bool(deck), "%s: a deck was generated" % calcname)
+                if code == "orca":
+                    check(not os.path.exists(os.path.join(calc, "Parameters",
+                                                          "GeomConstraintModel.gcst")),
+                          "%s: no geometry constraints carried" % calcname)
+                    check(not re.search(r"(?i)%geom|constraints|\bC\s*\{|\bB\s+\d", deck),
+                          "%s: no constraint block in the deck" % calcname)
+                    check("not carried" in r.stdout, "the report says constraints were left out")
                 # only some codes write the calculation's name into the deck
                 if code == "g16":
                     check(calcname in deck, "%s: the deck names the calculation" % calcname)
