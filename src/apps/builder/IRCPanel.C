@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <locale>
 #include <sstream>
 
@@ -516,6 +517,14 @@ void IRCPanel::followMo(IPropCalculation *calc, int oldPoint)
   if (pick < 0) {
     fprintf(stderr, "BUILDER: ircfollow skipped: no overlap matrix\n");
     return;
+  }
+  // For tests: the overlap matrix the match used, to check it independently.
+  if (const char *dump = getenv("ECCE_IRC_FOLLOW_DUMP")) {
+    if (FILE *f = fopen(dump, "a")) {
+      fprintf(f, "point %d %d\n", p_selected + 1, (int)rows[0].size());
+      for (double v : S) fprintf(f, "%.12e\n", v);
+      fclose(f);
+    }
   }
   p_followRow = rows[pick];
   p_followPoint = calc->orbitalPoint();

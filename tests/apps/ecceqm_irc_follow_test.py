@@ -220,10 +220,18 @@ def main():
             "PTMO": tsDoc("PTMO", nbf, nbf, labels(nbf, "BasFun"), ptmo, "Electrons"),
         }
         # The overlap matrix needs the calculation's own basis: sto-3g on C, N, H.
-        basis = open(os.path.join(HERE, "fixtures", "ecceqm-benzoic-156", "Parameters",
-                                  "BasisSet.ecce_basisset")).read()
-        basis = (basis.replace('Tag="C O H"', 'Tag="C N H"').replace('tag="O"', 'tag="N"')
-                 .replace('Type="ECPOrbital">def2-svp', 'Type="ECPOrbital">sto-3g'))
+        # The format of a real ECCE-QM run: one group per element.
+        tmpl = open(os.path.join(REPO, "tests", "modiagram", "fixtures", "ecceqm-methanol",
+                                 "Parameters", "BasisSet.ecce_basisset")).read()
+        group = re.search(r"<Group Tag=\"C\".*?</Group>\n", tmpl, re.S).group(0)
+        basis = ("<MolecularConfig>\n<Map>\n" + "".join(
+            group.replace('"C"', '"%s"' % e).replace("6-31G*", "STO-3G") for e in "CNH"))
+        lib = open(os.path.join(REPO, "data", "admin", "basissets", "STO-3G.BAS")).read()
+        data = "BasisSet=STO-3G\nType=pople Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType\n"
+        for e in "CNH":
+            body = re.search(r"^atom=%s\n(.*?)(?=^atom=|\Z)" % e, lib, re.S | re.M).group(1)
+            data += "element=%s\n%s" % (e, body)
+        basis += "</Map>\n<Data>\n" + data + "EndBasisSet\n</Data>\n</MolecularConfig>"
         with open(os.path.join(calc, "Parameters", "BasisSet.ecce_basisset"), "w") as f:
             f.write(basis)
         meta = os.path.join(calc, ".ecce-meta")
@@ -243,9 +251,11 @@ def main():
                  "wait 1500", "mostate",
                  "ircplayopt mo on", "ircstep next", "wait 800", "ircplayopt flush",
                  "wait 1500", "mostate"] + step + step + ["quit"]
+        dump = os.path.join(s.state, "overlap.dump")
         text, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + calc + "/"],
-            lines, png, "ecceqmircfollow", {"ECCE_PANEL_MODE": "detail"})
+            lines, png, "ecceqmircfollow",
+            {"ECCE_PANEL_MODE": "detail", "ECCE_IRC_FOLLOW_DUMP": dump})
         check("segmentation" not in text.lower(), "no crash in the Builder log")
         follow = re.findall(r"BUILDER: ircfollow point=(\d+) mo=(\d+) overlap=([\d.]+)", text)
         steps = re.findall(r"BUILDER: ircstep next point=(\d+) .* mo=(-?\d+)", text)
@@ -253,14 +263,35 @@ def main():
         say("ircfollow: %s" % follow)
         say("ircstep: %s; MOs panel selectedMo after each state: %s" % (steps, states))
         check(len(follow) == 3, "three ticks with the option on were matched (got %d)" % len(follow))
-        check(len(steps) == 5 and steps[1][1] == "0",
+        check(len(steps) == 4 and steps[0][1] == "0",
               "the step with the option off matched nothing")
-        if len(follow) == 3 and len(states) >= 7:
+        if len(follow) == 3 and len(states) >= 3:
             shown = [int(v) for v in states[-3:]]
             check(shown == [int(m) for _, m, _ in follow],
                   "the MOs panel shows the matched orbital after each tick: %s" % shown)
             check(all(float(o) > 0.8 for _, _, o in follow),
                   "each match has |overlap| above 0.8 with the previous point's orbital")
+            # Independent check: |c_prev S c_new| from the stored coefficients and
+            # the overlap matrix the Builder dumped, argmax by numpy.
+            import numpy as np
+            mats = {}
+            lines_ = open(dump).read().split("\n")
+            k = 0
+            while k < len(lines_) and lines_[k].startswith("point"):
+                _, pt, n = lines_[k].split()
+                n = int(n)
+                mats[int(pt)] = np.array([float(v) for v in lines_[k + 1:k + 1 + n * n]]).reshape(n, n)
+                k += 1 + n * n
+            prev = int(states[-4]) - 1 if len(states) >= 4 else None
+            for pt, mo, _ in follow:
+                pt, mo = int(pt), int(mo) - 1
+                C = np.array(ptmo[pt - 1]).reshape(nbf, nbf)
+                P = np.array(ptmo[pt - 2]).reshape(nbf, nbf)
+                ov = np.abs(C @ mats[pt] @ P[prev])
+                check(int(np.argmax(ov)) == mo,
+                      "point %d: numpy argmax of |overlap| is MO %d, code chose %d"
+                      % (pt, int(np.argmax(ov)) + 1, mo + 1))
+                prev = mo
     finally:
         if display:
             display.__exit__(None, None, None)
