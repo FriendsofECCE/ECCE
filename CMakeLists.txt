@@ -3225,6 +3225,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_ensemble_patterns PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Thermochemistry panel against ecce-thermo (#692).
+  add_test(NAME apps_thermo_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_panel_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_thermo_panel PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
   # draws; a 23-function one gives one plain dialog; the pane fits its rows.
   add_test(NAME apps_orca_mo
