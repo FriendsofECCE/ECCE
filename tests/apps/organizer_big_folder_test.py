@@ -2,7 +2,10 @@
 """Selecting an Organizer folder with many calculations shows them all, in
 a reasonable time (#675).
 
-    tests/apps/organizer_big_folder_test.py [N]
+    tests/apps/organizer_big_folder_test.py [N | --source DIR]
+
+With --source, DIR is copied as the folder instead of the fixture copies
+and the row count is that of its sub-folders.
 
 Copies the stored water calculation N times (default 200) into a folder,
 selects the folder through the Organizer test hook "foldertable" and
@@ -32,6 +35,7 @@ PROJECT_META = os.path.join(ROOT, "tools", "screenshots", "data",
                             "project.ecce-meta")
 CALC = os.path.join(HERE, "fixtures", "calc-water-opt")
 N = 200
+SOURCE = None
 LIMIT = 20.0
 
 failures = []
@@ -46,11 +50,17 @@ def fail(what, why, log=""):
 def run(display, data, work):
     root = os.path.join(data, "users", "local")
     project = os.path.join(root, "big")
-    os.makedirs(project)
-    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
-    for i in range(N):
-        shutil.copytree(CALC, os.path.join(project, "calc%03d" % i),
-                        symlinks=True)
+    global N
+    if SOURCE:
+        shutil.copytree(SOURCE, project, symlinks=True)
+        N = len([d for d in os.listdir(project)
+                 if os.path.isdir(os.path.join(project, d))])
+    else:
+        os.makedirs(project)
+        shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+        for i in range(N):
+            shutil.copytree(CALC, os.path.join(project, "calc%03d" % i),
+                            symlinks=True)
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("foldertable file://%s\n" % project)
@@ -92,8 +102,10 @@ def check(display, results, verbose=False):
 
 
 def main():
-    global N
-    if len(sys.argv) > 1:
+    global N, SOURCE
+    if len(sys.argv) > 2 and sys.argv[1] == "--source":
+        SOURCE = os.path.abspath(sys.argv[2])
+    elif len(sys.argv) > 1:
         N = int(sys.argv[1])
     if not os.path.exists(os.path.join(apps.WRAPPERS, "ecce-organizer")):
         print("SKIP: no ecce-organizer under %s" % apps.WRAPPERS)
