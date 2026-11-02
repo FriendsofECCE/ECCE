@@ -142,7 +142,8 @@ def run(display, data, work):
                       header.index(labels[0]) < header.index(labels[1]) < header.index(labels[2]) and
                       len(header) == (12 if kind == "speed" else 8) and
                       all(len(row) == len(header) for row in rows),
-                      "%s: all three compared runs reach CSV columns in folder order" % kind)
+                      "%s: all three compared runs reach CSV columns in folder order" % kind,
+                      repr(header))
             else:
                 check(False, "%s: comparison CSV exists" % kind)
     shots = os.environ.get("ECCE_MDCOMPARE_PNG")

@@ -13,9 +13,13 @@
 #include <wx/textctrl.h>
 
 #include "tdat/PropVecString.H"
+#include "util/Preferences.H"
+#include "util/StringConverter.H"
+#include "util/TDateTime.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/Resource.H"
+#include "dsm/ResourceType.H"
 #include "XYPlotCanvas.H"
 
 #include "MdAnalysisPanels.H"
@@ -132,14 +136,36 @@ void MdAnalysisPanel::refill()
 // in a project inside a project (Examples/<set>/<topic>/<calc>).
 static void collectCalcs(Resource *folder, const std::string& own,
                          const std::string& prefix, int depth,
-                         const std::string& key,
+                         const std::string& key, int treeSort,
                          std::vector<IPropCalculation*>& out,
                          std::vector<std::string>& labels)
 {
   std::vector<Resource*> *kids = folder ? folder->getChildren() : 0;
   if (!kids) return;
-  for (size_t i = 0; i < kids->size(); i++) {
-    Resource *r = (*kids)[i];
+  // Data-server listings have no display order. Match the Organizer tree
+  // without rearranging the resource cache shared by other panels.
+  std::vector<Resource*> ordered = *kids;
+  const bool session = folder->getDescriptor()->getIsSessionBased();
+  std::stable_sort(ordered.begin(), ordered.end(),
+      [session, treeSort](Resource *a, Resource *b) {
+        if (session && a->getSessionIndex() != b->getSessionIndex())
+          return a->getSessionIndex() < b->getSessionIndex();
+        int cmp = 0;
+        if (treeSort == 0 || treeSort == 1)
+          cmp = a->getDescriptor()->getSortPriority() -
+                b->getDescriptor()->getSortPriority();
+        if (treeSort < 4 && cmp == 0)
+          cmp = StringConverter::compare(a->getName(), b->getName(), false);
+        if (treeSort == 4 || treeSort == 5) {
+          TDateTime *left = a->getModifiedDate();
+          TDateTime *right = b->getModifiedDate();
+          if (left && right) cmp = left->compare(*right);
+          delete left;
+          delete right;
+        }
+        return treeSort % 2 ? cmp > 0 : cmp < 0;
+      });
+  for (Resource *r : ordered) {
     IPropCalculation *other = dynamic_cast<IPropCalculation*>(r);
     if (other) {
       if (other->getURL().toString() == own) continue;
@@ -150,7 +176,7 @@ static void collectCalcs(Resource *folder, const std::string& own,
                (r->getContentType() == ResourceDescriptor::CT_PROJECT ||
                 r->getContentType() == ResourceDescriptor::CT_SESSION)) {
       //  A GROMACS run is a study (session) holding its tasks.
-      collectCalcs(r, own, prefix + r->getName() + "/", depth - 1, key, out,
+      collectCalcs(r, own, prefix + r->getName() + "/", depth - 1, key, treeSort, out,
                    labels);
     }
   }
@@ -177,7 +203,10 @@ std::vector<IPropCalculation*> MdAnalysisPanel::comparable(
       break;
     folder = above;
   }
-  collectCalcs(folder, calc->getURL().toString(), "", 2, propertyKey(), out,
+  Preferences prefs("Organizer");
+  int treeSort = 0;
+  prefs.getInt("Organizer.TreeSort", treeSort);
+  collectCalcs(folder, calc->getURL().toString(), "", 2, propertyKey(), treeSort, out,
                names);
   // A calculation in the calculation's own folder carries its bare name.
   for (size_t i = 0; i < out.size(); i++)
