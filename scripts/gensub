@@ -2241,12 +2241,30 @@ sub xtb()
   $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
   # GFN-FF has no orbitals, so it gets no --molden.
   $retval .= "rm -f molden.input charges vibspectrum g98.out xtbopt.log xtb.trj\n";
-  $retval .= "case \" \$xtbopts \" in *\" --gfnff \"*) ;; *) xtbopts=\"\$xtbopts --molden\" ;; esac\n";
+  # "Conformer search (simple)": ai.xtb leaves --ecce-confsearch <settings> on
+  # line 1; it is not an xtb option, so it goes to ecce-confsearch instead.
+  $retval .= "confopts=`echo \"\$xtbopts\" | sed -n 's/.*--ecce-confsearch \\([^ ]*\\).*/\\1/p'`\n";
+  $retval .= "xtbopts=`echo \"\$xtbopts\" | sed 's/--ecce-confsearch [^ ]*//'`\n";
+  $retval .= "case \" \$xtbopts \" in *\" --gfnff \"*) ;; *) [ -n \"\$confopts\" ] || xtbopts=\"\$xtbopts --molden\" ;; esac\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
+    $retval .= "if [ -n \"\$confopts\" ]; then\n";
+    # The runner is written from here, so a cluster needs no ECCE installation.
+    my $runner = "$::ecceHome/scripts/ecce-confsearch";
+    open(my $fh, "<", $runner) || die "Cannot read $runner: $!";
+    my $source = do { local $/; <$fh> };
+    close($fh);
+    $source .= "\n" if ($source !~ /\n$/);
+    $retval .= "cat > ecce-confsearch.py <<'ECCE_CONFSEARCH_EOF'\n$source" . "ECCE_CONFSEARCH_EOF\n";
+    $retval .= "  rm -rf confsearch_*\n";
+    $retval .= "  csamples=; cseed=; cewin=; crmsd=\n";
+    $retval .= "  eval `echo \"\$confopts\" | sed 's/,/ /g; s/\\([a-z]*\\)=\\([0-9.]*\\)/c\\1=\\2;/g'`\n";
+    $retval .= "  python3 ecce-confsearch.py xtb.xyz --xtb \"\$xtb\" --opts \"\$xtbopts\" --samples \$csamples --seed \$cseed --ewin \$cewin --rmsd \$crmsd --procs $::totalprocs > $::outFile 2>&1\n";
+    $retval .= "else\n";
     $retval .= "\"\$xtb\" xtb.xyz \$xtbopts > $::outFile 2>&1\n";
+    $retval .= "fi\n";
   }
   $retval .= "xtbStatus=\$?\n";
   $retval .= "\n$::CC - Append the geometries for the parser.\n";
@@ -2254,6 +2272,7 @@ sub xtb()
   # first being the start geometry, so each gets its time (ps) in the comment.
   $retval .= "xtbDump=\n";
   $retval .= "if [ -s xtb.trj ]; then xtbTraj=xtb.trj; xtbDump=`sed -n 's/^[[:space:]]*dump=\\([0-9.]*\\).*/\\1/p' xtb.md`;\n";
+  $retval .= "elif [ -n \"\$confopts\" ]; then xtbTraj=/dev/null;\n";
   $retval .= "elif [ -s xtbopt.log ]; then xtbTraj=xtbopt.log; else xtbTraj=xtb.xyz; fi\n";
   $retval .= "awk -v dump=\"\$xtbDump\" 'BEGIN{left=0;f=0} left==0 && NF==0 {next}\n";
   $retval .= "  left==0 {n=\$1; left=n+1; f++; print \"ECCE-XTB-FRAME \" f \" \" n; next}\n";

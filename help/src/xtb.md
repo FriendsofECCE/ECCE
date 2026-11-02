@@ -61,6 +61,34 @@ other code. xtb has no basis set, so the Basis Set Tool is not used.
       SHAKE is combined with GFN-FF, so that choice is disabled for GFN-FF and
       a deck that asks for it is refused when the input is generated.
   The method and the implicit solvent are chosen as for the other run types.
+- **Conformer search (simple)**: a basic conformer search for a flexible
+  molecule that needs only xtb, not CREST. It rotates the rotatable single
+  bonds (not in a ring, with a heavy atom with further heavy-atom neighbours
+  on each side, and not double, partial-double or linear bonds) to random
+  angles, discards starts with atoms on top of each other, optimises each
+  start with xtb, and keeps the distinct minima. The structure of the
+  calculation is always one of the starts. **Runtype Details** has:
+    - **Random samples** (30 by default): the number of start structures.
+      A molecule with more rotatable bonds needs more.
+    - **Energy window** (kcal/mol, 6 by default): minima higher than this
+      above the lowest are dropped.
+    - **Heavy-atom RMSD threshold** (A, 0.25 by default): two minima closer
+      than this, after superposition of the heavy atoms, count as the same
+      conformer. Mirror images are different conformers, so the two gauche
+      forms of butane are both listed.
+    - **Random seed** (682 by default): the same seed with the same input
+      gives the same starts; it is printed in the output.
+
+  GFN-FF is the quick choice for a first look; GFN2-xTB gives better
+  relative energies. The ensemble is stored like a CREST ensemble: the
+  conformers are the geometry trace in the Builder, ordered by relative
+  energy (kcal/mol, within this one method), and the workflow steps that take
+  the lowest conformers or one conformer per coordination pattern work on
+  it unchanged. The step runs `python3` on the machine that runs the
+  job, and uses the processors of the job to optimise several starts at
+  once. This search is much simpler than CREST's (no metadynamics, no
+  topology check beyond bonds being unchanged), so for a large or very
+  flexible molecule use CREST.
 
 ## The input file
 

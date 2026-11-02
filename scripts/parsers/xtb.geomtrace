@@ -7,12 +7,15 @@
 $| = 1;
 ($key, $runtype, $ucCategory, $theory) = @ARGV;
 
-my (@coordlines, $rowLabels, $energy, $time);
+# A conformer-search frame (ecce-confsearch) has "relative: <kcal/mol>" in its
+# comment and gives CONFREL instead of TEVEC, as for a CREST ensemble.
+my (@coordlines, $rowLabels, $energy, $time, $rel);
 $rowLabels = "";
 while (<STDIN>) {
   if (/(?:^|\s)(?:energy|time):/) {
     $energy = $1 if (/(?:^|\s)energy:\s*(-?\d+\.\d+)/);
     $time = $1 if (/(?:^|\s)time:\s*(\d+\.\d+)/);
+    $rel = $1 if (/(?:^|\s)relative:\s*(-?\d+\.\d+)/);
   } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
     push(@coordlines, "$2 $3 $4");
     $rowLabels .= " " . scalar(@coordlines) . "-$1";
@@ -27,12 +30,15 @@ print "columnlabels:\nX Y Z\nvalues:\n";
 print " $_\n" foreach (@coordlines);
 print "units:\nAngstrom\nEND\n";
 
-if (defined($energy)) {
+if (defined($energy) && !defined($rel)) {
   print "key: TEVEC\nsize:\n1\nvalues:\n$energy\nunits:\nHartree\nEND\n";
 }
 # An MD frame carries its time in ps (gensub puts it in the comment line);
 # it is the plot's x axis.
 if (defined($time)) {
   print "key: TIMEVEC\nsize:\n1\nvalues:\n$time\nunits:\nps\nEND\n";
+}
+if (defined($rel)) {
+  print "key: CONFREL\nsize:\n1\nvalues:\n$rel\nunits:\nkcal/mol\nEND\n";
 }
 exit(0);

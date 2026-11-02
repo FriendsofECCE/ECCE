@@ -36,7 +36,9 @@ Lines=4
 
 # gensub appends the frames after the run (xtb prints no coordinates):
 #   ECCE-XTB-FRAME <n> <atoms> / xyz comment line / atoms / ECCE-XTB-ENDFRAME
-[GEOMTRACE][TEVEC][TIMEVEC]
+# "Conformer search (simple)": ecce-confsearch prints its ensemble between the
+# same markers, with "relative:" in the comment, which adds CONFREL.
+[GEOMTRACE][TEVEC][TIMEVEC][CONFREL]
 Script=xtb.geomtrace
 Begin=^ECCE-XTB-FRAME\s
 Skip=1

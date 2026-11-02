@@ -45,6 +45,7 @@
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
     <runtype>Molecular Dynamics</runtype>
+    <runtype>Conformer search (simple)</runtype>
   </Theory>
   <Theory category="SE" name="GFN1-xTB" needsBasis="false">
     <runtype>Energy</runtype>
@@ -52,6 +53,7 @@
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
     <runtype>Molecular Dynamics</runtype>
+    <runtype>Conformer search (simple)</runtype>
   </Theory>
   <Theory category="SE" name="GFN-FF" needsBasis="false">
     <runtype>Energy</runtype>
@@ -59,6 +61,7 @@
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
     <runtype>Molecular Dynamics</runtype>
+    <runtype>Conformer search (simple)</runtype>
   </Theory>
 
   <TheorySummary>
@@ -69,6 +72,9 @@
   </TheorySummary>
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.Level" label="Optimization Level"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.Conformers.Samples" label="Conformer Samples"></item>
   </RuntypeSummary>
   <RuntypeSummary>
     <item key="ES.Runtype.MD.Temperature" label="MD Temperature (K)"></item>
