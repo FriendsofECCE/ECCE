@@ -498,10 +498,17 @@ jobs:
           hdiutil detach "$mnt" -quiet
           exit ${rc:-0}
 
+      # hashFiles() walks the whole workspace, which timed out after a build;
+      # a plain test for the dmg answers the same question.
+      - name: Is there a dmg
+        id: dmg
+        if: always()
+        run: if ls dist/*.dmg >/dev/null 2>&1; then echo have=1 >> "$GITHUB_OUTPUT"; fi
+
       # The Python in the app (#133): the first-start window and a Theory
       # Details dialog on the bundled Python and wxPython alone.
       - name: Python and wxPython in the app
-        if: always() && hashFiles('dist/*.dmg') != ''
+        if: always() && steps.dmg.outputs.have == '1'
         timeout-minutes: 10
         run: |
           mnt=$(mktemp -d)
@@ -516,7 +523,7 @@ jobs:
           exit $rc
 
       - name: Run the packaged app
-        if: always() && hashFiles('dist/*.dmg') != ''
+        if: always() && steps.dmg.outputs.have == '1'
         timeout-minutes: 25
         run: |
           pkill -f "$PWD/stage" || true
@@ -539,7 +546,7 @@ jobs:
       # the apps' test hooks, on the app's own Python.  Energies are in the
       # summary and the lab-out artifact.
       - name: Diatomics lab (local client)
-        if: always() && hashFiles('dist/*.dmg') != ''
+        if: always() && steps.dmg.outputs.have == '1'
         continue-on-error: true
         timeout-minutes: 40
         run: |
