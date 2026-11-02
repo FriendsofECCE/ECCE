@@ -248,6 +248,8 @@ static void copyStoredFile(istream *is, ofstream &ofs, bool whole)
 //    during the validation process are ok.
 //
 ///////////////////////////////////////////////////////////////////////////////
+std::function<string()> Launch::authPipeData;
+
 Launch::Launch(TaskJob* task,
                EcceMap& kvargs,
                const bool& fullLaunchFlag,
@@ -2563,7 +2565,8 @@ bool Launch::startJobStore(const string& importDir)
       updateState();
 
     // Write the current authentication cache to a pipe for eccejobmaster
-    AuthCache::getCache().pipeOut(pipeName);
+    AuthCache::pipeOutData(pipeName, authPipeData ? authPipeData()
+                                     : AuthCache::getCache().pipeData());
   }
 
   return ret;

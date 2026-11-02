@@ -441,6 +441,21 @@ string AuthCache::pipeName()
 
 void AuthCache::pipeOut(const string& pipeName)
 {
+  pipeOutData(pipeName, pipeData());
+}
+
+string AuthCache::pipeData() const
+{
+  string data = StringConverter::toString(p_memcache.size()) + "\n";
+  for (size_t idx = 0; idx < p_memcache.size(); idx++) {
+    const AuthTuple *cur = p_memcache[idx];
+    data += cur->url + "|" + cur->user + "|" + cur->pass + "\n";
+  }
+  return data;
+}
+
+void AuthCache::pipeOutData(const string& pipeName, const string& data)
+{
   // pipeName will be a unique name per invocation
 #ifdef _WIN32
   // No FIFOs here: a plain file, written whole and renamed into place, which
@@ -449,12 +464,7 @@ void AuthCache::pipeOut(const string& pipeName)
     string tmp = pipeName + ".tmp";
     FILE *fp = fopen(tmp.c_str(), "wb");
     if (fp) {
-      fprintf(fp, "%d\n", (int)p_memcache.size());
-      for (size_t idx = 0; idx < p_memcache.size(); idx++) {
-        AuthTuple *cur = p_memcache[idx];
-        fprintf(fp, "%s|%s|%s\n", cur->url.c_str(), cur->user.c_str(),
-                cur->pass.c_str());
-      }
+      fwrite(data.data(), 1, data.size(), fp);
       fclose(fp);
       if (renameReplace(tmp.c_str(), pipeName.c_str()) != 0)
         unlink(tmp.c_str());
@@ -463,27 +473,21 @@ void AuthCache::pipeOut(const string& pipeName)
   return;
 #endif
   if (mkfifo(pipeName.c_str(), S_IRUSR|S_IWUSR) == 0) {
-    // A plain O_WRONLY open() blocks until a reader opens the pipe too --
-    // if the child app never starts properly, the caller (e.g. gateway)
-    // hangs forever. O_NONBLOCK makes open() fail immediately with ENXIO
-    // instead of blocking when there's no reader yet, so poll for up to
-    // 10 seconds (matching pipeIn()'s own existing timeout) rather than
-    // waiting indefinitely.  The reader normally opens within milliseconds,
-    // so poll at 20 ms: a 1 s sleep here cost every import and launch a
-    // second.
+    // O_NONBLOCK: open() fails at once while no reader has the pipe open, so
+    // a child that never starts costs at most 10 s (pipeIn()'s timeout),
+    // polled at 20 ms since the reader normally opens within milliseconds.
     int fd = -1;
     for (int it = 0; it < 500 && fd == -1; it++) {
       fd = open(pipeName.c_str(), O_WRONLY|O_NONBLOCK);
       if (fd == -1) usleep(20000);
     }
     if (fd != -1) {
-      string line;
-      line = StringConverter::toString(p_memcache.size()) + "\n";
-      write(fd, line.c_str(), line.length());
-      for (int idx=0; idx<p_memcache.size(); idx++) {
-        AuthTuple *cur = p_memcache[idx];
-        line = cur->url + "|" + cur->user + "|" + cur->pass + "\n";
-        write(fd, line.c_str(), line.length());
+      size_t off = 0;
+      for (int waits = 0; off < data.size() && waits < 10000; ) {
+        ssize_t n = write(fd, data.data() + off, data.size() - off);
+        if (n > 0) off += (size_t)n;
+        else if (n < 0 && errno == EAGAIN) { usleep(1000); waits++; }
+        else break;
       }
       close(fd);
     }

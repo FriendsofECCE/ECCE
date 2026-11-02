@@ -304,7 +304,7 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
   // a session of its own, reusing the password that just worked.  Each host
   // keeps its own password state, since a front end and the machine behind
   // it need not share one.
-  struct Creds { string pass; bool passTried; bool cancelled = false; };
+  struct Creds { string pass, cached; bool passTried; bool cancelled = false; };
   struct HostKey { string msg; };
   std::shared_ptr<HostKey> hk(new HostKey);
   const string shell = p_shell;
@@ -320,8 +320,8 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
                                                             bool echo, string& answer) {
       if (echo || looksLikeCode(prompt))
         return askPassdialog("passcode", host, theUser, answer);
-      if (!c->passTried &&
-          (c->pass != "" || RCommand::getPassCache(shell, host, theUser, c->pass))) {
+      if (!c->passTried && c->pass == "") c->pass = c->cached;
+      if (!c->passTried && c->pass != "") {
         c->passTried = true;
         answer = c->pass;
         return true;
@@ -336,6 +336,10 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
     });
   };
   std::shared_ptr<Creds> c = newCreds(), cj = newCreds();
+  //  Looked up here: a front end's prompt runs on libssh's front-end thread,
+  //  which has no deferral and must not touch AuthCache.
+  RCommand::getPassCache(shell, machine, theUser, c->cached);
+  if (jumpHost != "") RCommand::getPassCache(shell, jumpHost, theUser, cj->cached);
 
   // Port 0 leaves the port to ~/.ssh/config, as for the ssh command.
   SshTransport* t = new SshTransport(machine, 0, userName);
