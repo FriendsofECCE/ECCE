@@ -118,7 +118,8 @@ WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE", "MO", "ORBENG"]
                                    else ["TE", "VIBFREQ", "MO", "ORBENG"])
              for n in ("6_0", "5_1", "4_2") for c in ("xtb", "orca")}
 WORKFLOWS.update({"sn2_" + k: ["TE"] for k in
-                  ("reactant", "scan", "product", "qst3", "irc")})
+                  ("reactant", "scan", "product", "qst3")})
+WORKFLOWS["sn2_irc"] = ["GEOMTRACE"]
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
             "Examples/Spectroscopy": SPECTROSCOPY,
             "Examples/General_Chemistry": GENCHEM,
@@ -386,8 +387,13 @@ def run(display, data, work):
             if "This calculation shows" not in text:
                 problems.append("%s/%s: its note does not say what it shows"
                                 % (project, calc))
+            # a Gaussian calculation may name its program; no note may
+            # bring Gaussian into another code's results
+            note = "".join(re.findall(r"ecce:annotation\t+(.*)", text))
+            own = "Gaussian" in "".join(
+                re.findall(r"ecce:application\t+(.*)", text))
             for bad in ("Gaussian", "literature"):
-                if bad in text:
+                if bad in note and not (bad == "Gaussian" and own):
                     problems.append("%s/%s: note mentions %s"
                                     % (project, calc, bad))
     trees = re.findall(r"ECCE_TEST_ORGANIZER: tree: ok (.*)$", log, re.M)
