@@ -41,8 +41,7 @@ class CrestRunTypePanel(EccePanel):
             qcgSizer = EcceBoxSizer(self, label="Solvation Shell (QCG)", cols=1)
             # ai.crest holds a geometry for each of these.
             self.solvent = EcceComboBox(self,
-                                        choices=["water", "ammonia",
-                                                 "methanol", "acetonitrile"],
+                                        choices=["water", "methanol", "acetonitrile"],
                                         name="ES.Runtype.QCG.Solvent",
                                         default=0,
                                         label="Solvent molecule:",
@@ -55,6 +54,13 @@ class CrestRunTypePanel(EccePanel):
                                       label="Number of solvent molecules:",
                                       export=1)
             qcgSizer.AddWidget(self.nsolv)
+            # CREST 3.0.2 crashes in CREGEN on this step, so it is opt-in.
+            self.ensemble = EcceCheckBox(self,
+                                         label=" Ensemble of clusters",
+                                         name="ES.Runtype.QCG.Ensemble",
+                                         default=False,
+                                         export=1)
+            qcgSizer.AddWidget(self.ensemble)
             self.panelSizer.Add(qcgSizer)
         # Protonation Sites and Tautomers have no settings of their own.
 
