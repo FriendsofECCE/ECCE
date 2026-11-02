@@ -251,18 +251,22 @@ sub TitleLine {
 
 sub OptionLine {
   my @kw = ("crest");
+  my $runtype = $AbiDict{"RunType"};
+  # CREST 3.0.2 reads no solute when --chrg/--uhf come before --qcg
+  # ("No (valid) solute file"), so --qcg goes first.
+  if ($runtype eq "Solvation Shell") {
+    # gensub writes the solvent molecule (the block below line 1) to solvent.xyz.
+    push(@kw, "--qcg solvent.xyz", "--nsolv", &SolventCount, "--ensemble");
+  }
   push(@kw, &MethodOption);
   push(@kw, "--chrg", &Charge);
   push(@kw, "--uhf", &Unpaired);
   push(@kw, &SolventOptions);
-  my $runtype = $AbiDict{"RunType"};
   if ($runtype eq "Protonation Sites") {
     push(@kw, "--protonate");
   } elsif ($runtype eq "Tautomers") {
     push(@kw, "--tautomerize");
   } elsif ($runtype eq "Solvation Shell") {
-    # gensub writes the solvent molecule (the block below line 1) to solvent.xyz.
-    push(@kw, "--qcg solvent.xyz", "--nsolv", &SolventCount, "--ensemble");
   } else {
     push(@kw, "--ewin", &EnergyWindow);
     push(@kw, "--nci") if (&flag("ES.Runtype.Conformers.NCI"));

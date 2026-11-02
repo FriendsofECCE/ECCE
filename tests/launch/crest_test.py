@@ -168,8 +168,8 @@ def main():
                     extra="ES.Runtype.QCG.Solvent:\tmethanol\n"
                           "ES.Runtype.QCG.Number:\t4\n")
     lines = text.splitlines()
-    check(rc == 0 and lines[0] == "crest --gfn2 --chrg 0 --uhf 0 --qcg solvent.xyz "
-          "--nsolv 4 --ensemble" and lines[1] == "$solvent" and
+    check(rc == 0 and lines[0] == "crest --qcg solvent.xyz --nsolv 4 "
+          "--ensemble --gfn2 --chrg 0 --uhf 0" and lines[1] == "$solvent" and
           lines[8] == "$end" and lines[9] == "7", "QCG deck: %r" % lines[:10])
 
     s = harness.Session(build, "crest", {"xTB": xtb, "CREST": crest},
@@ -240,7 +240,8 @@ def main():
                     for t in a:
                         h.write("%s %.4f %.4f %.4f\n" % t)
             res = subprocess.run([crest, "a.xyz", "--qcg", "b.xyz", "--nsolv",
-                                  "1", "--gfn2", "-T", "2"], cwd=probe,
+                                  "1", "--gfn2", "--chrg", "0", "--uhf", "0",
+                                  "-T", "2"], cwd=probe,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT, timeout=240)
             grown = os.path.join(probe, "grow", "qcg_grow.xyz")
