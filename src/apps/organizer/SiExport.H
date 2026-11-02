@@ -10,6 +10,7 @@
 /// calculation with what ecce-si-export reads, runs it, and returns false
 /// with `why` set when that fails.  `table` is "", "csv" or "latex".
 bool siExport(const std::vector<EcceURL>& calcs, const std::string& xyzFile,
-              const std::string& table, std::string& why);
+              const std::string& table, std::string& why,
+              bool includeExcluded = false);
 
 #endif

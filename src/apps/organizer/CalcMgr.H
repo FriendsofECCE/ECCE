@@ -181,7 +181,9 @@ public:
   // ecce-annotate (#742): the Annotation field set without the editor; same
   // line format ("name\tok\t" or "name\tno\treason"). Never refused.
   bool annotateForCommand(const vector<EcceURL>& urls, const string& text,
-                          vector<string>& lines);
+                          vector<string>& lines, const string& key = "");
+  // Exclude... / Include again on the selection (#617); the same store.
+  void excludeSelected(bool exclude);
   // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
   bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
   // ecce-fetch: run-directory files into the Outputs (or a listing).

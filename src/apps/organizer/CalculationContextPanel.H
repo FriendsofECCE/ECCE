@@ -57,6 +57,11 @@ class CalculationContextPanel : public ewxScrolledWindow,
 
     /** The Progress box, for tests; null if this calculation has none. */
     ProgressBox *getProgressBox() const { return p_progressBox; }
+    // The "Excluded: reason" line shown in the summary (#617), "" if hidden.
+    std::string excludedLine() const {
+      wxWindow *w = FindWindow("excludedline");
+      return w && w->IsShown() ? std::string(w->GetLabel().ToUTF8()) : std::string();
+    }
     WxState *getStateIcon() const { return p_state; }
 
   protected:

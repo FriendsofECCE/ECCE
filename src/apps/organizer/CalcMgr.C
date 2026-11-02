@@ -537,7 +537,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 its top
  * allocations    Tools > Allocations: prints "ALLOC: machine|account|used|
  *                 checked" for each row on stderr
- * siexport <out.xyz> <csv|latex|none> <url>,<url>...
+ * siexport <out.xyz> <csv|latex|none> <url>,<url>... [include-excluded]
  *                 File > Export > Supporting Information (#625); "ok" or
  *                 "failed: <why>"
  * compareenergies <sideA> <sideB>
@@ -555,6 +555,11 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * checklines <url> <line>|<line>
  *                 what Check Job on Machine said, as if it had run
  * fold open|shut  fold the Progress box, as a click on its heading does
+ * exclude <url> <reason> | include <url>
+ *                 Exclude.../Include again (#617); "name\tok\t"
+ * tableexcluded  the shown project table's excluded rows, "name|tip|grey|strike"
+ * summaryexcluded the shown calculation summary's "Excluded: reason" line
+ * treetip <url>   the tree item's tooltip, strikethrough and grey (#617)
  * treestate <url> the tree icon's index, and those of running and of
  *                 out of contact
  * tablestates     the shown project table's State cells
@@ -1611,6 +1616,39 @@ void CalcMgr::runTestCommand(const string& line)
       for (int i = 0; i < 5; i++) wxYield();
       outcome = box ? string("folded=") + (box->collapsed() ? "1" : "0")
                     : string("no box");
+    } else if (command == "exclude" || command == "include") {
+      // "exclude <url> <reason...>" / "include <url>": the menu items without
+      // the dialog; the reason is stored as ecce:excluded.
+      std::istringstream args(calcName);
+      string url, reason;
+      args >> url;
+      std::getline(args >> std::ws, reason);
+      vector<EcceURL> sel(1, EcceURL(url));
+      vector<string> lines;
+      annotateForCommand(sel, command == "exclude" ? reason : string(), lines,
+                         "excluded");
+      outcome = lines.empty() ? string("none") : lines[0];
+    } else if (command == "tableexcluded" || command == "summaryexcluded") {
+      // The shown project table's excluded rows (name|tooltip|grey|strike), or
+      // the shown calculation summary's Excluded line (#617).
+      ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      CalculationContextPanel *sum = dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      if (command == "tableexcluded") {
+        outcome = table ? "rows" : "no table";
+        if (table) for (const string& r : table->excludedRows()) outcome += " ; " + r;
+      } else {
+        outcome = sum ? "line=" + sum->excludedLine() : string("no summary");
+      }
+    } else if (command == "treetip") {
+      // "treetip <url>": tooltip text, font strike and text colour of the item
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
+      if (!node) outcome = "no node";
+      else {
+        wxColour c = p_treeCtrl->GetItemTextColour(node->GetId());
+        outcome = "tip=" + p_treeCtrl->itemTip(node->GetId()) + " strike=" +
+            (p_treeCtrl->GetItemFont(node->GetId()).GetStrikethrough() ? "1" : "0") +
+            " grey=" + (c == wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT) ? "1" : "0");
+      }
     } else if (command == "treestate") {
       // "treestate <url>": the tree icon shown, against those of running
       // and of out of contact.
@@ -1746,7 +1784,8 @@ void CalcMgr::runTestCommand(const string& line)
       // Supporting Information without its dialogs.
       std::istringstream args(calcName);
       string out, table, urls;
-      args >> out >> table >> urls;
+      string flag;
+      args >> out >> table >> urls >> flag;
       vector<EcceURL> sel;
       for (size_t at = 0; at < urls.size(); ) {
         size_t end = urls.find(',', at);
@@ -1755,7 +1794,8 @@ void CalcMgr::runTestCommand(const string& line)
         at = end + 1;
       }
       string why;
-      outcome = siExport(sel, out, table == "none" ? string() : table, why)
+      outcome = siExport(sel, out, table == "none" ? string() : table, why,
+                       flag == "include-excluded")
                 ? string("ok") : "failed: " + why;
     } else if (command == "compareenergies" || command == "comparedialog") {
       // "compareenergies <sideA> <sideB>": the table and notes the dialog
@@ -3731,10 +3771,12 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
 //  another process (#742), on any node of the tree: calculations and MD
 //  study tasks alike. The tree and the other apps are told as after an edit.
 bool CalcMgr::annotateForCommand(const vector<EcceURL>& urls,
-                                 const string& text, vector<string>& lines)
+                                 const string& text, vector<string>& lines,
+                                 const string& key)
 {
   lines.clear();
-  const string property = VDoc::getEcceNamespace() + ":annotation";
+  const string property = VDoc::getEcceNamespace() + ":" +
+                          (key.empty() ? string("annotation") : key);
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
     if (!n || !n->getResource()) {
@@ -3747,9 +3789,31 @@ bool CalcMgr::annotateForCommand(const vector<EcceURL>& urls,
     }
     updateUrl(urls[i]);
     notifyProperty(urls[i].toString(), property, text);
+    if (key == "excluded") p_treeCtrl->refreshState(n);
     lines.push_back(n->getName() + "\tok\t");
   }
   return true;
+}
+
+
+//  Exclude... asks for the reason (one for all selected); Include again
+//  clears it. Local, server and CLI all store ecce:excluded the same way.
+void CalcMgr::excludeSelected(bool exclude)
+{
+  string reason;
+  if (exclude) {
+    ewxTextEntryDialog dialog(this,
+        "Why is this calculation excluded? (shown as its tooltip and in "
+        "exports)", "Exclude", "", wxOK | wxCANCEL);
+    if (dialog.ShowModal() != wxID_OK) return;
+    reason = dialog.GetValue();
+    if (reason.empty()) reason = "excluded";
+  }
+  vector<string> lines;
+  annotateForCommand(p_currentSelection, reason, lines, "excluded");
+  for (size_t i = 0; i < lines.size(); i++)
+    if (lines[i].find("\tno\t") != string::npos)
+      setMessage(lines[i], WxFeedback::ERROR);
 }
 
 
@@ -6837,6 +6901,20 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Enable(wxID_RENAME, true);
   menu.Append(wxID_DELETE, wxT("&Delete"));
   menu.Enable(wxID_DELETE, true);
+  {
+    // Only calculations can be excluded (#617).
+    Resource *first = getSelection() && !p_currentSelection.empty()
+        ? [&]{ WxResourceTreeItemData *n = findNode(p_currentSelection[0], false, true);
+               return n ? n->getResource() : (Resource*)0; }() : 0;
+    if (dynamic_cast<TaskJob*>(first)) {
+      const bool is = !WxResourceTreeCtrl::excludedReason(first).empty();
+      int id = wxWindow::NewControlId();
+      menu.Append(id, is ? _("Include again") : _("Exclude..."));
+      menu.Bind(wxEVT_MENU, [this, is](wxCommandEvent&) {
+        CallAfter([this, is]() { excludeSelected(!is); });
+      }, id);
+    }
+  }
 
   // get the tools available based on the state of the selection
   if (getSelection()) {
@@ -7259,8 +7337,17 @@ void CalcMgr::OnSiExport(wxCommandEvent&)
   if (pick.ShowModal() != wxID_OK) return;
   const int k = pick.GetSelection();
   string why;
+  // Excluded calculations are left out unless the user wants them (#617).
+  size_t nExcl = 0;
+  for (const EcceURL& u : p_currentSelection) {
+    WxResourceTreeItemData *n = findNode(u, false, true);
+    if (n && !WxResourceTreeCtrl::excludedReason(n->getResource()).empty()) nExcl++;
+  }
+  const bool withExcluded = nExcl > 0 && wxMessageBox(
+      wxString::Format(_("%zu selected calculation(s) are excluded. Include them in the export?"), nExcl),
+      _("Supporting Information"), wxYES_NO, this) == wxYES;
   if (!siExport(p_currentSelection, dlg.GetPath().ToStdString(),
-                k == 1 ? "csv" : k == 2 ? "latex" : "", why))
+                k == 1 ? "csv" : k == 2 ? "latex" : "", why, withExcluded))
     wxMessageBox(wxString::FromUTF8(why.c_str()), _("Supporting Information"),
                  wxOK | wxICON_ERROR, this);
 }

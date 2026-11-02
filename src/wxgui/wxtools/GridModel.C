@@ -131,6 +131,24 @@ void GridModel::SetValue(int row, int col, const wxString& value)
 }
 
 
+wxGridCellAttr *GridModel::GetAttr(int row, int col,
+                                   wxGridCellAttr::wxAttrKind kind)
+{
+  wxGridCellAttr *attr = wxGridTableBase::GetAttr(row, col, kind);
+  if (kind != wxGridCellAttr::Any && kind != wxGridCellAttr::Cell) return attr;
+  GridElement *e = GetValueAsGridElement(row, col);
+  if (!e || e->mutedReason().empty()) return attr;
+  wxGridCellAttr *styled = attr ? attr->Clone() : new wxGridCellAttr();
+  if (attr) attr->DecRef();
+  styled->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  wxFont f = GetView() ? GetView()->GetFont()
+                       : wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+  f.SetStrikethrough(true);
+  styled->SetFont(f);
+  return styled;
+}
+
+
 GridElement* GridModel::GetValueAsGridElement(int row, int col)
 {
   GridElement *ret = 0;

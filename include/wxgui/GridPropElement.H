@@ -25,6 +25,7 @@ class GridPropElement : public GridElement
     virtual ~GridPropElement();
 
     virtual wxGridCellAttr *getAttributes();
+    virtual string mutedReason() const;
 
     virtual Resource *getResource() const;
 
