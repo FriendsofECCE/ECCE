@@ -19,6 +19,7 @@ issues: [707]
   panel calls `ecce-spectrum --parse-exp`. The envelope is implemented twice
   (C++ and `ecce_spectrum.Curve`); `tests/apps/nmode_spectrum_test.py` compares
   every exported column with the CLI to catch drift.
-- The difference is drawn in a strip with its own scale over the bottom of the
-  pane; the y axis is not signed.
+- The difference is drawn in its own pane under the plot (about 25 % of the
+  height, `paintDiffPane`) with a signed y axis; it carries the x tick labels and
+  title, the main pane keeps its axes. Not in compact (docked) height.
 - Zoom fields call `SpectrumCanvas::zoomRange` (the axis's `zoomTo`, as drag-zoom).

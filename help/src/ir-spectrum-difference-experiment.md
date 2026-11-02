@@ -14,10 +14,10 @@ click **Zoom** (or press Enter). Dragging on the plot, the mouse wheel and
 
 1. Click **Compare...** and choose a second calculation. Its curve is drawn
    with the same line width and the same **Freq. factor** as the first.
-2. Tick **Difference**. A strip along the bottom of the plot shows the second
-   calculation's curve minus the first's, with a dotted zero line. The strip is
-   scaled to its own largest value, which the label gives, so a band that
-   moved shows as a peak at its new place and a dip at its old one. Where the
+2. Tick **Difference**. A pane under the plot, with the same wavenumber axis and zoom,
+   shows the second calculation's curve minus the first's on its own signed
+   axis, with a solid zero line. A band that moved shows as a peak at its new
+   place and a dip at its old one. Where the
    bands coincide the difference is zero.
 
 ## Experimental spectrum
