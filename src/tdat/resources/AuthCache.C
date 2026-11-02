@@ -779,7 +779,8 @@ BasicAuth *AuthCache::getAuthentication
      * ANY_USER.  I think its a bit
      * confusing - the user doesn't know who they are authenticated as.
      */
-    if (pass=="" && p_userPolicy==ANY_USER) {
+    // Never for ssh: another user's password would be tried as this one's.
+    if (pass=="" && p_userPolicy==ANY_USER && sessionWorthy(key)) {
       pass = findAny(key, user, retryCount);
     }
 
@@ -787,8 +788,10 @@ BasicAuth *AuthCache::getAuthentication
       pass = findBest(key, user, retryCount);
     }
 
-    // The newest credential of the same kind: a compute machine's password
-    // (ssh://, cached by RCommand) must never be sent to a data server.
+    // LAST_URL (the job store) widens only data-server lookups.  An ssh
+    // password is offered to its own host[:port] and user alone (the exact
+    // find above): sent to another sshd it would leak and be reported as a
+    // wrong password there, so with none cached the login asks.
     if (pass=="" && p_URLPolicy==LAST_URL && ServerList::isAdded(url.getRef())) {
       // An added server: only its own credential, never another server's.
       const string server = makeKey(urlstr, "");
@@ -799,10 +802,12 @@ BasicAuth *AuthCache::getAuthentication
         }
       }
     }
-    if (pass=="" && p_URLPolicy==LAST_URL && !ServerList::isAdded(url.getRef())) {
-      const bool http = sessionWorthy(key);
+    // The session's own data server: its realm need not be the one the
+    // password was cached under.
+    if (pass=="" && p_URLPolicy==LAST_URL && sessionWorthy(key) &&
+        !ServerList::isAdded(url.getRef())) {
       for (size_t i = 0; i < p_memcache.size(); i++) {
-        if (sessionWorthy(p_memcache[i]->url) == http) {
+        if (sessionWorthy(p_memcache[i]->url)) {
           pass = p_memcache[i]->pass;
           break;
         }
