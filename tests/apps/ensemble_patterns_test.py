@@ -66,9 +66,18 @@ def cli(tmp):
     return xyz
 
 
-def fixture(out):
-    """The butane CREST calculation with the ion cluster's structures."""
-    shutil.copytree(BASE, out, symlinks=True)
+def fixture(out, dav=False):
+    """The butane CREST calculation with the ion cluster's structures.  With
+    dav, the data-server layout of calc-water-vib (as geomtrace_stress.py
+    uses) holding only these two properties."""
+    if dav:
+        shutil.copytree(os.path.join(HERE, "fixtures", "calc-water-vib"), out)
+        for d in (os.path.join(out, "Props"), os.path.join(out, "Props", ".DAV")):
+            for name in os.listdir(d):
+                if name != ".DAV":
+                    os.remove(os.path.join(d, name))
+    else:
+        shutil.copytree(BASE, out, symlinks=True)
     a = atoms("6_0")
     n = len(a)
     chem = ["title: na_ensemble", "type: molecule", "num_atoms: %d" % n,
@@ -76,7 +85,8 @@ def fixture(out):
     chem += ["%s %s %s %s" % tuple(r) for r in a]
     chem += ["attr_list:"] + [" 0.000000   1   0   0   0"] * n
     chem += ["atom_type_list:"] + ["        1   1"] * n + ["num_bonds: 0", "bond_list: "]
-    open(os.path.join(out, "Parameters", "chemsys.mvm"), "w").write("\n".join(chem) + "\n")
+    for sub in (("Parameters",), ("Parameters", ".DAV")) if dav else (("Parameters",),):
+        open(os.path.join(out, *sub, "chemsys.mvm"), "w").write("\n".join(chem) + "\n")
     steps = []
     for tag, _r in FRAMES:
         steps.append("   ".join(c for r in atoms(tag) for c in r[1:]))
@@ -96,6 +106,11 @@ def fixture(out):
         for i, (_t, r) in enumerate(FRAMES):
             f.write('  <step number="%d">%.3f</step>\n' % (i + 1, r))
         f.write("</tsvector>\n")
+    # The data server lists properties from Props/.DAV, local mode from .ecce-meta.
+    if dav:
+        for key in ("GEOMTRACE", "CONFREL"):
+            shutil.copy(os.path.join(out, "Props", key),
+                        os.path.join(out, "Props", ".DAV", key))
 
 
 def panel(tmp):
@@ -111,7 +126,7 @@ def panel(tmp):
     isolate.killLeftovers(state)
     os.environ["ECCE_NO_REAP"] = "1"
     src = os.path.join(tmp, "na-ensemble")
-    fixture(src)
+    fixture(src, dav=True)
     with xdisplay.Display() as display:
         log = []
         apps.startServices(display, log)

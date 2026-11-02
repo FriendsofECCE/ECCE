@@ -1,8 +1,10 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <unistd.h>
+#include <filesystem>
+#include <fstream>
 
+#include "util/Ecce.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/ScanPoint.H"
@@ -15,6 +17,13 @@ using std::string;
 using std::vector;
 
 namespace {
+
+// Distinguishes the temporary files of two programs running at once.
+long pidNow()
+{
+  return (long)std::filesystem::file_time_type::clock::now()
+             .time_since_epoch().count();
+}
 
 struct Keys { PropVector *energy; PropTSVecTable *geom; };
 
@@ -220,37 +229,47 @@ bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
   if (n < 1) { why = "The calculation has no conformer ensemble."; return false; }
 
   // Frames go out in rank order, so the script's index is the rank.
-  const char *tmp = getenv("TMPDIR");
-  string path = string(tmp && *tmp ? tmp : "/tmp") + "/ecce-patterns-XXXXXX";
-  int fd = mkstemp(&path[0]);
-  if (fd < 0) { why = "Cannot write a temporary file."; return false; }
-  FILE *f = fdopen(fd, "w");
-  for (int k = 1; k <= n; k++) {
-    vector<string> el;
-    vector<double> xyz;
-    if (!structure(calc, "c" + std::to_string(k), el, xyz, why)) {
-      fclose(f);
-      unlink(path.c_str());
-      return false;
+  static int serial = 0;
+  const std::filesystem::path file = std::filesystem::temp_directory_path() /
+      ("ecce-patterns-" + std::to_string(pidNow()) + "-" +
+       std::to_string(serial++) + ".xyz");
+  {
+    std::ofstream f(file);
+    if (!f) { why = "Cannot write a temporary file."; return false; }
+    for (int k = 1; k <= n; k++) {
+      vector<string> el;
+      vector<double> xyz;
+      if (!structure(calc, "c" + std::to_string(k), el, xyz, why)) {
+        f.close();
+        std::error_code ec;
+        std::filesystem::remove(file, ec);
+        return false;
+      }
+      char line[160];
+      snprintf(line, sizeof line, "%d\nenergy: 0 relative: %.6f\n",
+               (int)el.size(), conformerEnergy(calc, k));
+      f << line;
+      for (size_t i = 0; i < el.size(); i++) {
+        snprintf(line, sizeof line, "%s %.6f %.6f %.6f\n", el[i].c_str(),
+                 xyz[3*i], xyz[3*i+1], xyz[3*i+2]);
+        f << line;
+      }
     }
-    fprintf(f, "%d\nenergy: 0 relative: %.6f\n", (int)el.size(),
-            conformerEnergy(calc, k));
-    for (size_t i = 0; i < el.size(); i++)
-      fprintf(f, "%s %.6f %.6f %.6f\n", el[i].c_str(), xyz[3*i], xyz[3*i+1],
-              xyz[3*i+2]);
   }
-  fclose(f);
 
+  // The script is Python; on Windows it is not directly executable.
   const char *home = getenv("ECCE_HOME");
-  string cmd = home && *home ? string(home) + "/bin/ecce-contacts"
-                             : string("ecce-contacts");
-  cmd = "'" + cmd + "' '" + path + "' --group 2>/dev/null";
-  FILE *p = popen(cmd.c_str(), "r");
+  string script = home && *home ? string(home) + "/bin/ecce-contacts"
+                                : string("ecce-contacts");
+#ifdef _WIN32
+  string cmd = "python \"" + script + "\" \"" + file.string() + "\" --group";
+#else
+  string cmd = "'" + script + "' '" + file.string() + "' --group 2>/dev/null";
+#endif
   string text;
-  char buf[512];
-  while (p && fgets(buf, sizeof buf, p)) text += buf;
-  int status = p ? pclose(p) : -1;
-  unlink(path.c_str());
+  int status = Ecce::readCommand(cmd, text);
+  std::error_code ec;
+  std::filesystem::remove(file, ec);
   if (status != 0) {
     why = "ecce-contacts could not be run.";
     return false;
