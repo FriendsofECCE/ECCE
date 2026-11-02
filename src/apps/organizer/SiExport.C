@@ -12,7 +12,7 @@
 #include "dsm/VDoc.H"
 #include "tdat/Fragment.H"
 #include "tdat/LatticeDef.H"
-#include "tdat/MPoint.H"
+#include "util/Transformations.H"
 #include "tdat/PropString.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/PropValue.H"
