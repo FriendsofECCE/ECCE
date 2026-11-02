@@ -61,6 +61,11 @@ class GridModel : public wxGridTableBase
 
       virtual void refresh();
 
+      /// Cells of a muted element (GridElement::mutedReason) come back grey
+      /// and struck through, whatever the sort order.
+      virtual wxGridCellAttr *GetAttr(int row, int col,
+                                      wxGridCellAttr::wxAttrKind kind);
+
       virtual void sortGrid(int col, bool ascSort, bool caseSensitive);
 
       virtual int findRowByColVal(int col, wxString val);

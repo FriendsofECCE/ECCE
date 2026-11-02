@@ -65,7 +65,13 @@ def run(display):
             h.write("treetip %s\n" % u)
             h.write("exclude %s %s\n" % (u, REASON))
             h.write("treetip %s\n" % u)
+            h.write("summary file://%s\n" % project)
+            h.write("tableexcluded x\n")
+            h.write("summary %s\n" % u)
+            h.write("summaryexcluded x\n")
             h.write("include %s\n" % u)
+            h.write("summary file://%s\n" % project)
+            h.write("tableexcluded x\n")
             h.write("treetip %s\n" % u)
             # workflow: a step that is excluded is not ready
             h.write("new file://%s workflow\n" % project)
@@ -98,6 +104,13 @@ def run(display):
         # The meta holds the reason after the exclude and nothing after include.
         check("excluded" not in meta(calc) or not re.search(r"excluded\t\t\S", meta(calc)),
               "include cleared the stored reason")
+
+        tab = ans("tableexcluded")
+        check(len(tab) == 2 and ("water|Excluded: " + REASON + "|1|1") in tab[0] and
+              tab[1].strip() == "rows", "project table row greyed, struck through, "
+              "tooltip has the reason; plain after include", tab)
+        line = ans("summaryexcluded")
+        check(line == ["line=Excluded: " + REASON], "summary shows the Excluded line", line)
 
         ready = ans("workflowready")
         check(len(ready) == 2 and " a" in ready[0] and " b" in ready[0],

@@ -35,6 +35,8 @@
 #include "dsm/ITraversable.H"
 #include "dsm/ResourceType.H"
 #include "dsm/GridProperty.H"
+#include "dsm/VDoc.H"
+#include "dsm/Resource.H"
 
 #include "wxgui/GridElement.H"
 #include "wxgui/WxResourceImageList.H"
@@ -146,6 +148,13 @@ wxGridCellAttr *GridPropElement::getAttributes()
       cellAttr->SetEditor(new wxGridCellTextEditor);
   }
   return cellAttr;
+}
+
+
+string GridPropElement::mutedReason() const
+{
+  if (!p_resource || !p_resource->hasAccess()) return "";
+  return p_resource->getProp(VDoc::getEcceNamespace() + ":excluded");
 }
 
 

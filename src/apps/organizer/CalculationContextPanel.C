@@ -204,6 +204,15 @@ void CalculationContextPanel::refresh()
   if (shown.empty() && !annotation.empty()) shown = annotation;
   annotationCtrl->SetValue(shown);
 
+  if (wxStaticText *excl = dynamic_cast<wxStaticText*>(FindWindow("excludedline"))) {
+    string why;
+    p_properties->findValue(VDoc::getEcceNamespace() + ":excluded", why);
+    excl->SetLabel(why.empty() ? wxString() :
+                   "Excluded: " + wxString::FromUTF8(why.c_str()));
+    excl->Show(!why.empty());
+    excl->GetContainingSizer()->Layout();
+  }
+
   refreshLaunchInfo();
 
   p_storedProgress.clear();
@@ -622,6 +631,12 @@ void CalculationContextPanel::createControls()
   Connect( CalcMgrGUI::wxID_ANNOTATION, 
            wxEVT_COMMAND_BUTTON_CLICKED,
            wxCommandEventHandler( CalculationContextPanel::OnButtonClick) );
+
+  // Why the calculation is excluded (#617); shown only when it is.
+  wxStaticText *excl = new wxStaticText(this, wxID_ANY, "",
+      wxDefaultPosition, wxDefaultSize, 0, "excludedline");
+  excl->Hide();
+  GetSizer()->Add(excl, 0, wxEXPAND|wxLEFT|wxTOP, 5);
 
   // the text control to display the annotation in
   ewxTextCtrl *anno = new ewxTextCtrl(this, 

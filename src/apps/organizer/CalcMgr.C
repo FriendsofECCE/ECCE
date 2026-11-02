@@ -557,6 +557,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * fold open|shut  fold the Progress box, as a click on its heading does
  * exclude <url> <reason> | include <url>
  *                 Exclude.../Include again (#617); "name\tok\t"
+ * tableexcluded  the shown project table's excluded rows, "name|tip|grey|strike"
+ * summaryexcluded the shown calculation summary's "Excluded: reason" line
  * treetip <url>   the tree item's tooltip, strikethrough and grey (#617)
  * treestate <url> the tree icon's index, and those of running and of
  *                 out of contact
@@ -1626,6 +1628,17 @@ void CalcMgr::runTestCommand(const string& line)
       annotateForCommand(sel, command == "exclude" ? reason : string(), lines,
                          "excluded");
       outcome = lines.empty() ? string("none") : lines[0];
+    } else if (command == "tableexcluded" || command == "summaryexcluded") {
+      // The shown project table's excluded rows (name|tooltip|grey|strike), or
+      // the shown calculation summary's Excluded line (#617).
+      ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      CalculationContextPanel *sum = dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      if (command == "tableexcluded") {
+        outcome = table ? "rows" : "no table";
+        if (table) for (const string& r : table->excludedRows()) outcome += " ; " + r;
+      } else {
+        outcome = sum ? "line=" + sum->excludedLine() : string("no summary");
+      }
     } else if (command == "treetip") {
       // "treetip <url>": tooltip text, font strike and text colour of the item
       WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
