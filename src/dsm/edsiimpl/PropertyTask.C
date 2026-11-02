@@ -442,7 +442,25 @@ int PropertyTask::orbitalPoint() const
 bool PropertyTask::hasPointOrbitals()
 {
   PropTSVecTable *t = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
-  return t && t->tables() > 0;
+  return (t && t->tables() > 0) || tsOnlyIrcOrbitals() >= 0;
+}
+
+
+/**
+ * An ORCA IRC output without per-point tables (an import, or a job run before
+ * the end-point blocks existed) still has the MOs ORCA printed at the TS.
+ * Returns that TS frame's index, -1 when this is not such a calculation.
+ */
+int PropertyTask::tsOnlyIrcOrbitals()
+{
+  if (getStoredProperty("PTMO") || !getStoredProperty("MO")) return -1;
+  PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
+  PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
+  if (!c || !geom || geom->tables() < 2 ||
+      (int)c->values().size() != geom->tables()) return -1;
+  for (size_t i = 0; i < c->values().size(); i++)
+    if (c->values()[i] == 0) return (int)i;
+  return -1;
 }
 
 
@@ -455,7 +473,7 @@ bool PropertyTask::orbitalsAtSomePointsOnly()
 {
   PropTSVecTable *mo = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
   PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
-  return mo && geom && mo->tables() < geom->tables();
+  return (mo && geom && mo->tables() < geom->tables()) || tsOnlyIrcOrbitals() >= 0;
 }
 
 
@@ -468,6 +486,8 @@ bool PropertyTask::orbitalsAtSomePointsOnly()
 int PropertyTask::orbitalTable(int point)
 {
   if (!orbitalsAtSomePointsOnly()) return point;
+  const int tsOnly = tsOnlyIrcOrbitals();
+  if (tsOnly >= 0) return point == tsOnly ? 0 : -1;
   PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
   PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
   PropTSVecTable *mo = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));

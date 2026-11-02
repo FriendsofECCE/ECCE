@@ -60,7 +60,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     ap.add_argument("--keep", action="store_true")
+    ap.add_argument("--ts-only", action="store_true",
+                    help="an output without the end-point blocks (an import): the TS "
+                    "keeps the orbitals ORCA printed, the end points have none")
     args = ap.parse_args()
+    global FIXTURE
+    if args.ts_only:
+        FIXTURE = FIXTURE.replace("hcn_irc_mos.out", "hcn_irc_mos_ts_only.out")
     build = os.path.abspath(args.build)
     for tool in ("Xvfb", "import"):
         if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
@@ -88,8 +94,8 @@ def main():
     rec = parsed(run.stdout)
     for key in ("MO", "ORBENG", "ORBOCC"):
         check(len(rec.get(key, [])) == 1, "orca.mo emitted %s once" % key)
-    ends = endTables()
-    check(len(ends) == 3, "the fixture has the TS and two end-point blocks")
+    ends = [] if args.ts_only else endTables()
+    check(len(ends) == (0 if args.ts_only else 3), "the fixture's end-point blocks")
     ptorb = [numbers(e["PTORB"][0]) for e in ends]
     ptmo = [numbers(e["PTMO"][0]) for e in ends]
     eng = numbers(rec["ORBENG"][0])
@@ -131,16 +137,15 @@ def main():
             "ORBENG": vectorDoc("ORBENG", eng, "Hartree"),
             "ORBOCC": vectorDoc("ORBOCC", numbers(rec["ORBOCC"][0]), "electrons"),
             "MO": tableDoc("MO", nbf, nbf, numbers(rec["MO"][0])),
-            "PTORB": tsDoc("PTORB", nbf, 2, "Energy Occupation",
-                           ptorb, "NA"),
-            "PTMO": tsDoc("PTMO", nbf, nbf, labels(nbf, "BasFun"),
-                          ptmo, "Electrons"),
         }
+        if not args.ts_only:
+            docs["PTORB"] = tsDoc("PTORB", nbf, 2, "Energy Occupation", ptorb, "NA")
+            docs["PTMO"] = tsDoc("PTMO", nbf, nbf, labels(nbf, "BasFun"), ptmo, "Electrons")
         for name, text in docs.items():
             with open(os.path.join(props, name), "w") as f:
                 f.write(text)
 
-        steps = [1, TS, 0, 6, 5]
+        steps = [1, TS, 0] if args.ts_only else [1, TS, 0, 6, 5]
         lines = ["wait 6000", "panel IRC Path", "wait 1500"]
         for k in steps:
             lines += ["ircclick %d" % k, "wait 1000", "panel MOs", "wait 1500", "mostate",
@@ -151,12 +156,20 @@ def main():
             lines, png, "orcaircmo", {"ECCE_PANEL_MODE": "detail"})
         check("segmentation" not in text.lower(), "no crash in the Builder log")
         notes = re.findall(r"BUILDER: monote (.*)", text)
-        if len(notes) != 5 or text.count("BUILDER: mostate\n") != 5:
+        if len(notes) != len(steps) or text.count("BUILDER: mostate\n") != len(steps):
             say(text[-3000:])
-            check(False, "five MOs panel states were reported")
+            check(False, "every MOs panel state was reported")
             return 1
         say("notes: %s" % " / ".join(notes))
-        rows = [rowEnergies(text, i) for i in range(5)]
+        rows = [rowEnergies(text, i) for i in range(len(steps))]
+        if args.ts_only:
+            check("only at the TS of an IRC" in notes[0] and not rows[0],
+                  "point 2: none, TS-only note")
+            check("Orbitals and density of point 4" in notes[1] and listed(rows[1], eng),
+                  "TS: the orbitals ORCA printed")
+            check("only at the TS of an IRC" in notes[2] and not rows[2],
+                  "backward end: none without the end-point blocks")
+            return 1 if bo.failures else 0
         ends_eng = [ptorb[t][0::2] for t in range(3)]
         for i, (name, want) in enumerate([("point 2", None), ("TS", ends_eng[0]),
                                           ("backward end", ends_eng[1]),

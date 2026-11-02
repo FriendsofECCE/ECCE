@@ -36,6 +36,10 @@ std::string orbitalPointNote(IPropCalculation *calc)
         calc->pointHasOrbitals(calc->orbitalPoint()))
       return "Orbitals and density of point " +
              std::to_string(r->second + 1) + ".";
+    if (!calc->getProperty("PTMO"))
+      return "ORCA gives orbitals only at the TS of an IRC. Select the TS "
+             "point in the IRC Path panel to see them; there are none for "
+             "the other points.";
     return "ORCA gives orbitals at the TS and the two end points of an "
            "IRC. Select one of them in the IRC Path panel to see them; "
            "there are none for the other points.";

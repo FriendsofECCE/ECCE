@@ -48,6 +48,7 @@ class PropertyTask : public ChemistryTask,
       virtual int orbitalPoint() const;
       virtual bool hasPointOrbitals();
       virtual bool orbitalsAtSomePointsOnly();
+      int tsOnlyIrcOrbitals();
       virtual bool pointHasOrbitals(int point);
 
       virtual bool fragment(Fragment* frag);
