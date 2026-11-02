@@ -89,10 +89,11 @@ def cmd(env, cwd, log):
 
 def choose(env, answer):
     """A plain start no longer asks (#767): a server is chosen with --change."""
-    subprocess.run([os.path.join(root, "python", "python3.exe"),
-                    os.path.join(root, "bin", "ecce-first-start"), "--change"],
-                   env=dict(env, ECCE_FIRST_START_ANSWER=answer),
-                   capture_output=True, stdin=subprocess.DEVNULL, timeout=180)
+    r = subprocess.run([os.path.join(root, "python", "python3.exe"),
+                        os.path.join(root, "bin", "ecce-first-start"), "--change"],
+                       env=dict(env, ECCE_FIRST_START_ANSWER=answer),
+                       capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=180)
+    print("choose %s: rc=%d\n%s%s" % (answer, r.returncode, r.stdout, r.stderr))
 
 
 def run(name, answer, **extra):
