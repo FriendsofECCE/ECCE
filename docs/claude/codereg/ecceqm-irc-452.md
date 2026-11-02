@@ -2,7 +2,7 @@
 type: map
 title: "ECCE-QM IRC (#452 stage 2): runtype irc, Gonzalez-Schlegel, output keys the IRC panel reads"
 area: codereg
-paths: ["src/qm/irc.cpp", "src/qm/main.cpp", "src/qm/output.cpp", "scripts/parsers/ecceqm.desc", "scripts/parsers/ecceqm.parse", "scripts/parsers/ai.ecceqm", "scripts/parsers/verifyinput", "scripts/codereg/ecceqmruntype.py", "tests/qm/irc_test.py", "tests/qm/irc_offset_test.py"]
+paths: ["src/qm/irc.cpp", "src/qm/main.cpp", "src/qm/output.cpp", "scripts/parsers/ecceqm.desc", "scripts/parsers/ecceqm.parse", "scripts/parsers/ai.ecceqm", "scripts/parsers/verifyinput", "scripts/codereg/ecceqmruntype.py", "tests/qm/irc_test.py", "tests/qm/irc_offset_test.py", "tests/qm/irc_sn2_test.py"]
 issues: [452, 764]
 ---
 `runtype irc` starts from the editor's structure as the transition state:
@@ -21,7 +21,7 @@ minimum, #764), when the energy rises or the downhill direction turns back
 rounded coordinates) with a soft heavy-atom mode puts the saddle more than one
 step along the mode; a plain first step of -step then stays on the forward
 slope and the backward branch runs into the forward valley. The first point is
-therefore measured from the quadratic-model saddle x0 = -g.m/lambda, and a
+therefore moved to the saddle first (Newton steps on the start Hessian while the rms gradient is above 3e-5; a line search along the mode is not enough, the line misses the saddle when the mode is soft and the start is far off: the SN2 case, `tests/qm/irc_sn2_test.py`), and measured from the remaining model offset x0 = -g.m/lambda, and a
 first point whose downhill direction points back ends the branch with that
 message (`tests/qm/irc_offset_test.py`). Without
 that a near-flat TS (gradient under the thresholds from the first step) gave

@@ -174,6 +174,9 @@ if(QM_PYTHON3)
   # IRC from a start a little off the saddle: the two ends must differ (#764).
   add_test(NAME qm_irc_offset COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_offset_test.py $<TARGET_FILE:ecce-qm>)
   set_tests_properties(qm_irc_offset PROPERTIES TIMEOUT 300)
+  # Cl- + CH3Br from a start off the saddle: ends are the two different complexes (#764).
+  add_test(NAME qm_irc_sn2 COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_sn2_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_irc_sn2 PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts_quick PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts PROPERTIES TIMEOUT 3600)
   set_tests_properties(qm_scan_quick PROPERTIES TIMEOUT 1800)

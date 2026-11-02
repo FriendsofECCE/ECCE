@@ -145,14 +145,24 @@ std::vector<IrcPoint> irc_path(const Molecule& ts, const Mat& Hcart, int sign, c
   double peak_rms = 0;   // largest gradient met on the path: a minimum is where it has fallen
   if (why) *why = "max points";
 
-  // A start structure a little off the saddle (another program's or level's
-  // TS, rounded coordinates) puts the saddle at x0 along the mode.  A soft
-  // heavy-atom mode makes x0 larger than one step, and a plain step of -step
-  // then stays on the forward slope: the backward branch turns round and runs
-  // into the forward valley.  So the first point is measured from the saddle
-  // of the quadratic model.
-  double x0 = -g.dot(mode) / lam0;
-  x0 = std::max(-10 * opt.step, std::min(10 * opt.step, x0));
+  // A start structure off the saddle (another program's or level's TS) makes
+  // the two branches leave from a slope, and both can run into the same
+  // valley.  So the start is first moved to the saddle with Newton steps on
+  // the start Hessian (uphill along the mode, downhill in the rest); the
+  // first point is then measured from the remaining quadratic-model offset x0.
+  {
+    const Eigen::SelfAdjointEigenSolver<Mat> hb(B.transpose() * H * B);
+    for (int it = 0; it < 12 && g.norm() / std::sqrt(static_cast<double>(n)) > 3e-5; ++it) {
+      const Vec gb = B.transpose() * g;
+      Vec db = -hb.eigenvectors() * (hb.eigenvectors().transpose() * gb).cwiseQuotient(hb.eigenvalues());
+      const double cap = 0.5;   // bohr*sqrt(amu)
+      if (db.norm() > cap) db *= cap / db.norm();
+      y += B * db;
+      cur = eval(to_molecule(y));
+      g = mw_grad(cur);
+    }
+  }
+  double x0 = std::max(-10 * opt.step, std::min(10 * opt.step, -g.dot(mode) / lam0));
   const double e_saddle = cur.energy - 0.5 * lam0 * x0 * x0;
   Vec last_step = sign * mode;   // the way the path went last; a reversal means it turned back
   int unconverged = 0;
