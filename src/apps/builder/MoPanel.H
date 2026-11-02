@@ -65,6 +65,8 @@ class MoPanel : public MoGUI,
             const wxString& name="MoPanelVizPropertyPanel");
     virtual ~MoPanel();
     int getSelectedMo() const;
+    /** ORBENG index (0-based) of the selected alpha orbital, -1 if none or not alpha. */
+    int selectedAlphaIndex() const;
     string getSelectedType() const;
 
     virtual void receiveFocus();

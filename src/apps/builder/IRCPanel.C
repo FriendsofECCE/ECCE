@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <locale>
 #include <sstream>
 
@@ -16,6 +17,7 @@
 
 #include "tdat/PropVector.H"
 #include "tdat/PropTSVecTable.H"
+#include "tdat/MoAoBasis.H"
 #include "tdat/TProperty.H"
 #include "dsm/IPropCalculation.H"
 #include "viz/GTStepCmd.H"
@@ -28,6 +30,9 @@
 #include "XYPlotCanvas.H"
 #include "PointCalc.H"
 
+#include "tdat/PropVecString.H"
+#include "MoFollow.H"
+#include "MoPanel.H"
 #include "PlaybackExtras.H"
 #include "PlaybackLoop.H"
 #include "PointNote.H"
@@ -166,7 +171,7 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_playback->SetStopIndex(0L);
   if (wxWindow *rec = FindWindow(PlaybackControl::ID_RECORD)) rec->Hide();
   GetSizer()->Add(p_playback, 0, wxLEFT | wxRIGHT, 4);
-  p_extras = new PlaybackExtras(this, GetSizer(), &p_delay);
+  p_extras = new PlaybackExtras(this, GetSizer(), &p_delay, true);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
@@ -352,7 +357,9 @@ void IRCPanel::OnPlayback(wxCommandEvent& event)
     p_playback->SetCurrentStep(p.cur);
     at = p.cur;
   }
+  p_stepping = true;
   selectPoint((int)at);
+  p_stepping = false;
 }
 
 void IRCPanel::setPlaybackSpeed(const std::string& name)
@@ -403,7 +410,9 @@ int IRCPanel::step(const std::string& which)
   else if (which == "last") i = n - 1;
   else if (which == "prev") i = std::max(0, i - 1);
   else if (which == "next") i = std::min(n - 1, i + 1);
+  p_stepping = true;
   selectPoint(i);
+  p_stepping = false;
   return p_selected;
 }
 
@@ -450,8 +459,111 @@ int IRCPanel::showPoint(int index)
   frag->touchNumbers();
   sg.touchChemDisplay();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
+  const int oldPoint = calc->orbitalPoint();
   selectOrbitalPoint(calc, p_frame[index], index);
+  if (p_stepping && showMo()) followMo(calc, oldPoint);
   return p_frame[index];
+}
+
+// Keeps the orbital shown by its character: the MO of the new point with the
+// largest |overlap| with the previous point's one, in the new geometry's AO
+// overlap.  The match is made at every tick; only the surface is skipped when
+// ticks come faster than it is drawn.
+void IRCPanel::followMo(IPropCalculation *calc, int oldPoint)
+{
+  if (!calc->hasPointOrbitals()) {
+    fprintf(stderr, "BUILDER: ircfollow skipped: no per-point orbitals\n");
+    return;
+  }
+  MoPanel *mp = 0;
+  for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString()))
+    if ((mp = dynamic_cast<MoPanel*>(p)) != 0) break;
+  if (!mp) {
+    p_status->SetLabel("Open the MOs panel and select an orbital to follow it.");
+    fprintf(stderr, "BUILDER: ircfollow skipped: no MOs panel\n");
+    return;
+  }
+  SGFragment *frag = getFW().getSceneGraph().getFragment();
+  std::vector<std::string> symbols;
+  std::vector<double> coords;
+  std::vector< std::vector<double> > rows;
+  if (!MoAoBasis::fragmentGeometry(frag, symbols, coords) ||
+      !MoAoBasis::coefficients(calc, symbols, false, rows) || rows.empty()) {
+    fprintf(stderr, "BUILDER: ircfollow skipped: no coefficients\n");
+    return;
+  }
+  if (p_followRow.empty() || p_followPoint != oldPoint) {
+    // First tick, or a click moved the point: start from what the MOs panel
+    // shows, read from the previous point's orbitals.
+    const int shown = mp->selectedAlphaIndex();
+    const int cur = calc->orbitalPoint();
+    calc->orbitalPoint(oldPoint);
+    std::vector< std::vector<double> > old;
+    const bool ok = MoAoBasis::coefficients(calc, symbols, false, old);
+    calc->orbitalPoint(cur);
+    if (!ok || shown < 0 || shown >= (int)old.size()) {
+      fprintf(stderr, "BUILDER: ircfollow skipped: no orbital to start from\n");
+      return;
+    }
+    p_followRow = old[shown];
+  }
+  std::vector<int> perAtom;
+  std::vector<double> S;
+  double ov = 0.0;
+  int pick = -1;
+  if (MoAoBasis::overlapMatrix(calc, symbols, coords, (int)rows[0].size(),
+                               perAtom, S))
+    pick = mofollow::best(p_followRow, rows, S, &ov);
+  if (pick < 0) {
+    fprintf(stderr, "BUILDER: ircfollow skipped: no overlap matrix\n");
+    return;
+  }
+  // For tests: the overlap matrix the match used, to check it independently.
+  if (const char *dump = getenv("ECCE_IRC_FOLLOW_DUMP")) {
+    if (FILE *f = fopen(dump, "a")) {
+      fprintf(f, "point %d %d\n", p_selected + 1, (int)rows[0].size());
+      for (double v : S) fprintf(f, "%.12e\n", v);
+      fclose(f);
+    }
+  }
+  p_followRow = rows[pick];
+  p_followPoint = calc->orbitalPoint();
+  p_followMo = pick;
+  fprintf(stderr, "BUILDER: ircfollow point=%d mo=%d overlap=%.4f\n",
+          p_selected + 1, pick + 1, ov);
+  p_pendingMo = pick;
+  if (!p_drawQueued) {
+    p_drawQueued = true;
+    CallAfter(&IRCPanel::drawFollowed);
+  }
+}
+
+// Draws the newest requested orbital; requests that were replaced meanwhile
+// are never drawn.
+void IRCPanel::drawFollowed()
+{
+  p_drawQueued = false;
+  IPropCalculation *calc = getCalculation();
+  if (!calc || p_pendingMo < 0) return;
+  const int mo = p_pendingMo;
+  p_pendingMo = -1;
+  for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString()))
+    if (MoPanel *mp = dynamic_cast<MoPanel*>(p)) { mp->showOrbital(mo); break; }
+}
+
+void IRCPanel::flushFollow()
+{
+  drawFollowed();
+}
+
+void IRCPanel::setShowMo(bool on)
+{
+  if (p_extras) p_extras->setShowMo(on);
+}
+
+bool IRCPanel::showMo() const
+{
+  return p_extras && p_extras->showMo();
 }
 
 std::string IRCPanel::newCalcFromPoint(int index)

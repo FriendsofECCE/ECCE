@@ -1340,6 +1340,8 @@ void Builder::runBuilderScript(const std::string& file)
         } else {
           const std::string arg = w.size() >= 3 ? w[2] : "";
           if (w[1] == "speed") { if (ip) ip->setPlaybackSpeed(arg); else sp->setPlaybackSpeed(arg); }
+          if (w[1] == "mo" && ip) { ip->setShowMo(arg == "on"); ip->flushFollow(); }
+          if (w[1] == "flush" && ip) ip->flushFollow();
           if (w[1] == "loop") { if (ip) ip->setPlaybackLoop(arg == "on"); else sp->setPlaybackLoop(arg == "on"); }
           std::string order;
           if (w[1] == "order")
@@ -1392,9 +1394,9 @@ void Builder::runBuilderScript(const std::string& file)
           } else {
             ip->step(w[1]);
           }
-          fprintf(stderr, "BUILDER: %s %s point=%d row=%d marker=%d order:%s\n",
+          fprintf(stderr, "BUILDER: %s %s point=%d row=%d marker=%d mo=%d order:%s\n",
                   w[0].c_str(), w[1].c_str(), ip->selectedPoint(), ip->selectedRow(),
-                  ip->markerPoint(), order.c_str());
+                  ip->markerPoint(), ip->followedMo() + 1, order.c_str());
         }
       } else if (w[0] == "ircclick" && w.size() >= 2) {
         //  ircclick <index>: what a click on IRC Path plot point <index>

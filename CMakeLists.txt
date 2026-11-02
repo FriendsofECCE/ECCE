@@ -3167,6 +3167,14 @@ if(PYTHON3_EXECUTABLE)
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
     set_tests_properties(apps_ecceqm_scan_panel PROPERTIES TIMEOUT 900
                          SKIP_RETURN_CODE 77)
+    # IRC playback: the shown MO follows the path by overlap (#757).
+    add_test(NAME apps_ecceqm_irc_follow
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ecceqm_irc_follow_test.py
+                     --build ${CMAKE_BINARY_DIR}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+    set_tests_properties(apps_ecceqm_irc_follow PROPERTIES TIMEOUT 900
+                         SKIP_RETURN_CODE 77)
   endif()
 
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
