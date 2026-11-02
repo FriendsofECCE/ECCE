@@ -158,6 +158,8 @@ describe what you did and what happened.
 
 Reference:
 
+- [ORCA composite methods](orca-composite-methods.md): r2SCAN-3c, B97-3c,
+  PBEh-3c, wB97X-3c and HF-3c, which bring their own basis set and dispersion.
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the
   original PNNL papers.
 - [ECCE-QM](ecce-qm.md): the built-in Hartree-Fock and density functional
