@@ -538,6 +538,12 @@ target_include_directories(ecce-annotate PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-annotate PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
+# One calculation's setup applied to a list of structures (#621).
+add_executable(ecce-series src/apps/launch/ecce-series.C)
+target_include_directories(ecce-series PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-series PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # Reconnects calculations inside the running session.
 add_executable(ecce-reconnect src/apps/launch/ecce-reconnect.C)
 target_include_directories(ecce-reconnect PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1119,6 +1125,10 @@ set(_annot_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-annotate)
 string(REPLACE "bin/ecce-terminate" "bin/ecce-annotate" _annot_text "${_term_text}")
 file(WRITE ${_annot_wrapper} "${_annot_text}")
 install(PROGRAMS ${_annot_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+set(_series_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-series)
+string(REPLACE "bin/ecce-terminate" "bin/ecce-series" _series_text "${_term_text}")
+file(WRITE ${_series_wrapper} "${_series_text}")
+install(PROGRAMS ${_series_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 set(_reconn_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-reconnect)
 string(REPLACE "bin/ecce-terminate" "bin/ecce-reconnect" _reconn_text "${_term_text}")
 file(WRITE ${_reconn_wrapper} "${_reconn_text}")
@@ -1174,7 +1184,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -3026,6 +3036,26 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_hand_edit PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Saving regenerates each code's deck byte for byte as stored (DeckWriter, #621).
+  add_test(NAME apps_deck_regen
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/deck_regen_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_deck_regen PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # New Series from This (Organizer hook newseries, #621).
+  add_test(NAME apps_new_series
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/new_series_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_new_series PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # ecce-series: one setup, several structures (ORCA, G16, ECCE-QM; #621).
+  add_test(NAME series_cli
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/series/series_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/series)
+  set_tests_properties(series_cli PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # A finished calculation without ecce:progress gets one from its stored
   # output (#284): CalcMgr::backfillProgress.
   add_test(NAME apps_progress_backfill
@@ -3788,6 +3818,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_crest PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #682: xtb dock (aISS) of 18-crown-6 + K+ through Launch; skipped (77)
+  # without xtb.  Uses a stand-in when this xtb's dock aborts.
+  add_test(NAME launch_dock
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/dock_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_dock PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # #682: xTB "Conformer search (simple)" of n-butane and pentane through
   # Launch; skipped (77) without xtb.
   add_test(NAME launch_confsearch

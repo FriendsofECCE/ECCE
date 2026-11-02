@@ -60,9 +60,11 @@ message when the input is generated.
   **Runtype Details** has the **Solvent molecule** (water, ammonia, methanol or
   acetonitrile) and the **Number of solvent molecules** (10 by default). The
   implicit solvent of Theory Details is applied on top, if chosen. CREST
-  docks each solvent molecule with `xtb dock`, which aborts in the xtb 6.7.1 of
-  Debian 13 on the machine this was written on; where it does, the job ends
-  without a result, and the output file shows CREST's own error.
+  docks each solvent molecule with `xtb dock`, which aborts in xtb 6.7.1
+  (Debian 13's package and the 6.7.1 release alike); the job then ends without
+  a result, and the output file shows CREST's own error. A newer xtb (the
+  developers' current build) docks; register its path as the machine's xTB,
+  which CREST uses. The same holds for xTB's own Docking run type.
 
 ## Conformer Search
 

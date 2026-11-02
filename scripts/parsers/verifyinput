@@ -2181,6 +2181,9 @@ sub xtb
     electronCount($charge, $unpaired + 1, \@atomSymbols, $assumed);
   }
 
+  # A docking deck is blocks ($order, $receptor, $ligand), not one xyz part.
+  return if ($L[0] =~ /^\s*xtb\s+dock\b/ && $L[1] =~ /^\s*[\$]order/);
+
   if (scalar(@L) < 3 || $L[1] !~ /^\s*(\d+)\s*$/) {
     finding("BAD", 2, "sections",
             "Line 2 should be the number of atoms, the first line of the " .

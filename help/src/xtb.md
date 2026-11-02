@@ -90,6 +90,29 @@ other code. xtb has no basis set, so the Basis Set Tool is not used.
   topology check beyond bonds being unchanged), so for a large or very
   flexible molecule use CREST.
 
+- **Docking (aISS)**: docks a ligand onto a receptor with xtb's docking
+  module (`xtb dock`, the aISS algorithm) and lists the poses it finds. The
+  method is GFN2-xTB or GFN-FF. **Runtype Details** has:
+    - **Ligand atoms**: the atom numbers of the ligand, such as `1-5,9`. Left
+      empty, the smallest separate molecule is the ligand, which is right for
+      a guest on a host such as K+ with 18-crown-6.
+    - **Ligand charge** (0 by default): the receptor gets the rest of the
+      calculation's charge.
+    - **Poses to optimise** (4 by default) and **Fast search**, which is
+      suitable for small molecules.
+
+  The poses are the geometry trace in the Builder, best first, with the total
+  energy of each. The **Interaction energy (kcal/mol, monomers not relaxed)**
+  of each pose is stored beside it; as xtb itself says, the monomers are not
+  optimised, so these energies are for ranking the poses and are not physical
+  interaction energies. A workflow step can take the best N poses.
+
+  Docking needs an xtb newer than the 6.7.1 release: `xtb dock` of 6.7.1,
+  which is the version in Debian 13, crashes after the search. Build or
+  download a current xtb and register that program for the machine that runs
+  the job (**Register Machines**, **Codes** tab, **xTB**, **Program**), as
+  described above.
+
 ## The input file
 
 The input is a single file. Its first line is the command line for xtb,

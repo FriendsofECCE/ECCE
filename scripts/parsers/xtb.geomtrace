@@ -12,7 +12,8 @@ $| = 1;
 my (@coordlines, $rowLabels, $energy, $time, $rel);
 $rowLabels = "";
 while (<STDIN>) {
-  if (/(?:^|\s)(?:energy|time):/) {
+  if (/(?:^|\s)(?:energy|time|score):/) {
+    $score = $1 if (/(?:^|\s)score:\s*(-?\d+\.?\d*)/);
     $energy = $1 if (/(?:^|\s)energy:\s*(-?\d+\.\d+)/);
     $time = $1 if (/(?:^|\s)time:\s*(\d+\.\d+)/);
     $rel = $1 if (/(?:^|\s)relative:\s*(-?\d+\.\d+)/);
@@ -32,6 +33,10 @@ print "units:\nAngstrom\nEND\n";
 
 if (defined($energy) && !defined($rel)) {
   print "key: TEVEC\nsize:\n1\nvalues:\n$energy\nunits:\nHartree\nEND\n";
+}
+# A docking pose: its interaction energy, kcal/mol (see scripts/parsers/dock.poses).
+if (defined($score)) {
+  print "key: POSESCORE\nsize:\n1\nvalues:\n$score\nunits:\nkcal/mol\nEND\n";
 }
 # An MD frame carries its time in ps (gensub puts it in the comment line);
 # it is the plot's x axis.

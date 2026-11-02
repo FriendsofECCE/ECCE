@@ -171,6 +171,10 @@ describe what you did and what happened.
 34. [Writing a recipe](writing-a-recipe.md): the file format, every field, the
    folders recipes are read from, and a complete example.
 
+35. [New Series](new-series.md): one calculation's setup applied to a list of
+   structures (xyz files or calculations), from the right-click menu or
+   `ecce-series`.
+
 Reference:
 
 - [ORCA composite methods](orca-composite-methods.md): r2SCAN-3c, B97-3c,
