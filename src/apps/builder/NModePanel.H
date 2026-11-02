@@ -105,6 +105,16 @@ class NModePanel : public NModesGUI,
           spectrum (#173); "" removes it.  False if there is no such
           calculation with IR or Raman data. */
       bool compareWith(const string& name);
+
+      /** Spectrum extras (#707).  An experimental spectrum from a CSV file
+          (kind "auto", "absorbance" or "transmittance"), read by
+          ecce-spectrum --parse-exp; "" as path removes it.  The difference
+          curve (the compared calculation minus this one) on or off.  A
+          zoom to [lo, hi] cm-1. */
+      bool importExperimental(const string& path, const string& kind,
+                              wxString *error = 0);
+      void setShowDifference(bool on);
+      void zoomSpectrum(double lo, double hi);
       VibKind spectrumKindShown() const;
 
       /** The Mode composition window (#486): a read-only assignment table.
@@ -176,6 +186,7 @@ class NModePanel : public NModesGUI,
       void exportSpectrumDialog();
       void compareDialog();
       void matchBandsDialog();
+      void importExperimentalDialog();
       bool writeModesFile(IPropCalculation *calc, const string& path,
                           wxString *error);
       vector<IPropCalculation*> comparableCalculations(bool needSpectrum = true);
@@ -213,6 +224,11 @@ class NModePanel : public NModesGUI,
       wxGrid *p_compGrid = 0;
       wxWeakRef<wxFrame> p_bandFrame;            // Matched bands (#707)
       wxGrid *p_bandGrid = 0;
+      vector<double> p_expX, p_expY;             // experimental spectrum (#707)
+      string p_expLabel;
+      bool p_showDiff = false;
+      wxCheckBox *p_diffCheck = 0;
+      wxTextCtrl *p_zoomLo = 0, *p_zoomHi = 0;
       wxStaticText *p_bandNote = 0;
       wxCheckBox *p_compCH = 0;
       std::vector<int> p_picked;          // atoms selected in the 3-D view, 0-based

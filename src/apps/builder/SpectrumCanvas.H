@@ -194,6 +194,9 @@ class SpectrumCanvas : public wxPanel
     bool reversed() const { return p_s->axis.reversed(); }
 
     SpectrumAxis& axis() { return p_s->axis; }
+    /** Show [a, b] on the axis (the two Range fields of the panel). */
+    void zoomRange(double a, double b)
+    { p_s->axis.zoomTo(a, b); p_cacheValid = false; Refresh(); }
     void resetZoom() { p_s->axis.reset(); p_cacheValid = false; Refresh(); }
 
     /** The mode (table row) drawn highlighted, or -1. */
@@ -658,6 +661,60 @@ class SpectrumCanvas : public wxPanel
             dc.DrawLine(x, base, x, yOf(pane, cs[i].intensity,
                                         sc.left.y.top));
           }
+        }
+      }
+      //  An experimental curve (#707) on the envelope's axis, and the
+      //  difference B - A in a strip of its own at the bottom, zero line
+      //  dotted, scaled to its own largest value (named in the label).
+      if (envelope && !p_s->spec.electronic()) {
+        const VibSpectrum& sp = p_s->spec;
+        dc.SetFont(*wxSMALL_FONT);
+        int labelY = pane.y + 4;
+        if (sp.hasExperimental()) {
+          const double f = sp.experimentalFactor(kind, lo, hi);
+          dc.SetPen(wxPen(p_palette.text, 1, wxPENSTYLE_SHORT_DASH));
+          std::vector<wxPoint> run;
+          for (int px = 0; px <= pane.width; px++) {
+            const double v = sp.experimentalValue(
+                p_s->axis.fromFraction((px + 0.5) / (double)pane.width), f);
+            if (v == v && px < pane.width)
+              run.push_back(wxPoint(pane.x + px, yOf(pane, v, envAxis.y.top)));
+            else {
+              if (run.size() > 1) dc.DrawLines((int)run.size(), &run[0]);
+              run.clear();
+            }
+          }
+          dc.SetTextForeground(p_palette.text);
+          dc.DrawText(wxString::FromUTF8(("- - experimental: " + sp.experimentalLabel()).c_str()),
+                      pane.x + 6, labelY);
+          labelY += dc.GetCharHeight() + 2;
+        }
+        if (second && sp.difference()) {
+          const int zero = base - (int)(0.2 * pane.height);
+          const int half = (int)(0.15 * pane.height);
+          std::vector<double> d;
+          double top = 0;
+          for (int px = 0; px < pane.width; px++) {
+            d.push_back(sp.differenceEnvelope(kind, p_s->axis.fromFraction(
+                (px + 0.5) / (double)pane.width)));
+            top = std::max(top, std::fabs(d.back()));
+          }
+          const wxColour dcol = kind == VIB_IR ? p_palette.raman : p_palette.ir;
+          dc.SetPen(wxPen(p_palette.grid, 1, wxPENSTYLE_DOT));
+          dc.DrawLine(pane.x, zero, pane.GetRight(), zero);
+          std::vector<wxPoint> dp;
+          for (size_t i = 0; i < d.size(); i++)
+            dp.push_back(wxPoint(pane.x + (int)i,
+                                 zero - (top > 0 ? (int)(d[i] / top * half) : 0)));
+          if (dp.size() > 1) {
+            dc.SetPen(wxPen(dcol, 1));
+            dc.DrawLines((int)dp.size(), &dp[0]);
+          }
+          dc.SetTextForeground(dcol);
+          dc.DrawText(wxString::Format("difference %s minus %s (strip: +/-%.3g)",
+                                       wxString::FromUTF8(sp.compareLabel().c_str()),
+                                       wxString::FromUTF8(sp.label().c_str()), top),
+                      pane.x + 6, zero + half + 2);
         }
       }
       dc.DestroyClippingRegion();

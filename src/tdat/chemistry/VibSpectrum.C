@@ -1,3 +1,4 @@
+#include <limits>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -336,6 +337,42 @@ double VibSpectrum::compareEnvelope(VibKind kind, double wn) const
   return p_cmp->envelope(kind, wn) * compareFactor(kind);
 }
 
+void VibSpectrum::setExperimental(const vector<double>& x,
+                                  const vector<double>& a, const string& label)
+{
+  p_expX = x;
+  p_expY = a;
+  p_expLabel = label;
+}
+
+double VibSpectrum::experimentalFactor(VibKind kind, double lo, double hi) const
+{
+  if (!hasExperimental() || !(hi > lo)) return 0.0;
+  double top = 0;
+  for (size_t i = 0; i < p_expX.size(); i++)
+    if (p_expX[i] >= lo && p_expX[i] <= hi) top = max(top, p_expY[i]);
+  const long n = (long)std::floor((hi - lo) + 1e-9);
+  double mine = 0;
+  for (long i = 0; i <= n; i++) mine = max(mine, envelope(kind, lo + i));
+  return top > 0 ? mine / top : 0.0;
+}
+
+double VibSpectrum::experimentalValue(double x, double factor) const
+{
+  const size_t n = p_expX.size();
+  if (n < 2 || x < p_expX[0] || x > p_expX[n - 1])
+    return std::numeric_limits<double>::quiet_NaN();
+  size_t lo = 0, hi = n - 1;
+  while (hi - lo > 1) {
+    const size_t mid = (lo + hi) / 2;
+    if (p_expX[mid] <= x) lo = mid; else hi = mid;
+  }
+  const double dx = p_expX[hi] - p_expX[lo];
+  const double y = dx == 0 ? p_expY[lo]
+      : p_expY[lo] + (p_expY[hi] - p_expY[lo]) * (x - p_expX[lo]) / dx;
+  return factor * y;
+}
+
 double VibSpectrum::maxStick(VibKind kind, double lo, double hi) const
 {
   double m = 0;
@@ -495,19 +532,34 @@ string vibSpectrumCsv(const VibSpectrum& s, VibKind kind,
           << cs[i].intensity << "," << cs[i].irrep << "\n";
   }
 
+  if (s.hasExperimental())
+    out << "\n# experimental: " << s.experimentalLabel()
+        << ", absorbance scaled so its largest value in the range equals the "
+           "computed maximum; the frequency scaling factor does not apply to it\n";
   if (curve) {
     out << "\n# broadened curve, " << step << " cm-1 grid from " << lo
         << " to " << hi << "\n";
+    const bool diff = second && s.difference();
+    const bool exp = s.hasExperimental();
     if (second)
-      out << "wavenumber_cm-1,intensity_" << nameA << ",intensity_" << nameB
-          << "\n";
+      out << "wavenumber_cm-1,intensity_" << nameA << ",intensity_" << nameB;
     else
-      out << "wavenumber_cm-1,intensity\n";
+      out << "wavenumber_cm-1,intensity";
+    if (diff) out << ",difference_" << nameB << "_minus_" << nameA;
+    if (exp) out << ",experimental";
+    out << "\n";
+    const double factor = exp ? s.experimentalFactor(kind, lo, hi) : 0.0;
     const long n = (long)std::floor((hi - lo) / step + 1e-9);
     for (long i = 0; i <= n; i++) {
       const double x = lo + i * step;
       out << x << "," << s.envelope(kind, x);
       if (second) out << "," << s.compareEnvelope(kind, x);
+      if (diff) out << "," << s.differenceEnvelope(kind, x);
+      if (exp) {
+        const double v = s.experimentalValue(x, factor);
+        out << ",";
+        if (v == v) out << v;
+      }
       out << "\n";
     }
   }
