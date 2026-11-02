@@ -629,6 +629,52 @@ void NModePanel::createSpectrumPane()
    row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
    col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
 
+   //  Zoom range, difference and experimental curve (#707); wraps so the
+   //  docked panel does not grow.
+   wxWrapSizer *more = new wxWrapSizer(wxHORIZONTAL);
+   more->Add(new wxStaticText(pane, wxID_ANY, "Range:"), 0,
+             wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
+   p_zoomLo = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
+                             wxSize(52, -1), wxTE_PROCESS_ENTER);
+   p_zoomHi = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
+                             wxSize(52, -1), wxTE_PROCESS_ENTER);
+   p_zoomLo->SetToolTip("Lowest wavenumber shown, cm-1.");
+   p_zoomHi->SetToolTip("Highest wavenumber shown, cm-1.");
+   more->Add(p_zoomLo, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   more->Add(new wxStaticText(pane, wxID_ANY, "to"), 0,
+             wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   more->Add(p_zoomHi, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   wxButton *zoomBtn = new wxButton(pane, wxID_ANY, "Zoom");
+   zoomBtn->SetToolTip("Show this wavenumber range (dragging on the plot "
+                       "does the same).");
+   more->Add(zoomBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   auto doZoom = [this]() {
+      double a, b;
+      if (p_zoomLo->GetValue().ToCDouble(&a) && p_zoomHi->GetValue().ToCDouble(&b))
+         zoomSpectrum(a, b);
+   };
+   zoomBtn->Bind(wxEVT_BUTTON, [doZoom](wxCommandEvent&) { doZoom(); });
+   p_zoomHi->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
+   p_zoomLo->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
+   p_diffCheck = new wxCheckBox(pane, wxID_ANY, "Difference");
+   p_diffCheck->SetToolTip("Draw the second calculation's curve minus this "
+                           "one's (choose Compare... first), with the same "
+                           "line width and scaling factor.");
+   p_diffCheck->SetValue(p_showDiff);
+   p_diffCheck->Enable(p_compare != 0);
+   p_diffCheck->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+      setShowDifference(e.IsChecked());
+   });
+   more->Add(p_diffCheck, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+   wxButton *expBtn = new wxButton(pane, wxID_ANY, "Experimental...");
+   expBtn->SetToolTip("Draw a measured spectrum from a CSV file (wavenumber "
+                      "and absorbance or transmittance), scaled to this "
+                      "calculation's tallest peak in view. Choose it again "
+                      "with Cancel to remove it.");
+   expBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { importExperimentalDialog(); });
+   more->Add(expBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+   col->Add(more, 0, wxEXPAND | wxBOTTOM, 3);
+
    //  The dock can give this panel less height than a plot is readable
    //  in; then this stands in for the whole plot rather than a squashed one.
    wxBoxSizer *noRoom = new wxBoxSizer(wxHORIZONTAL);
@@ -980,6 +1026,9 @@ bool NModePanel::fillGraph()
   }
   spectrum.setLabel(expt->getURL().getFilePathTail());
   if (p_compare) spectrum.setCompare(*p_compare, p_compareName);
+  spectrum.setDifference(p_showDiff);
+  if (p_expX.size() > 1) spectrum.setExperimental(p_expX, p_expY, p_expLabel);
+  if (p_diffCheck) p_diffCheck->Enable(p_compare != 0);
   p_spectrum->setSpectrum(spectrum);
 
   return any;
@@ -1257,6 +1306,99 @@ int NModePanel::scriptBandClick(int row)
 }
 
 
+void NModePanel::setShowDifference(bool on)
+{
+   p_showDiff = on;
+   if (p_diffCheck) p_diffCheck->SetValue(on);
+   fillGraph();
+}
+
+
+void NModePanel::zoomSpectrum(double lo, double hi)
+{
+   if (p_spectrum == 0) return;
+   p_spectrum->zoomRange(lo, hi);
+   if (p_zoomLo && p_zoomHi) {
+      p_zoomLo->ChangeValue(wxString::Format("%g", p_spectrum->axis().lo()));
+      p_zoomHi->ChangeValue(wxString::Format("%g", p_spectrum->axis().hi()));
+   }
+}
+
+
+//  The reading, format detection and T -> A conversion are
+//  ecce-spectrum's (scripts/ecce_spectrum.py), so the plot and the command
+//  line cannot disagree.
+bool NModePanel::importExperimental(const string& path, const string& kind,
+                                    wxString *error)
+{
+   if (path.empty()) {
+      p_expX.clear();
+      p_expY.clear();
+      p_expLabel.clear();
+      fillGraph();
+      return true;
+   }
+   const char *home = getenv("ECCE_HOME");
+   string script = home && *home ? string(home) + "/bin/ecce-spectrum"
+                                 : string("ecce-spectrum");
+   string args = "--parse-exp '" + path + "' --exp-kind " + (kind.empty() ? "auto" : kind);
+#ifdef _WIN32
+   namespace fs = std::filesystem;
+   fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+   string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+   string cmd = "\"" + pyExe + "\" \"" + script + "\" " + args;
+#else
+   string cmd = "'" + script + "' " + args + " 2>&1";
+#endif
+   string text;
+   if (Ecce::readCommand(cmd, text) != 0) {
+      if (error) *error = wxString::FromUTF8(text.c_str());
+      return false;
+   }
+   vector<double> x, y;
+   string detected, line;
+   std::istringstream in(text);
+   while (std::getline(in, line)) {
+      if (line.compare(0, 5, "kind\t") == 0) { detected = line.substr(5); continue; }
+      double a, b;
+      if (sscanf(line.c_str(), "%lf %lf", &a, &b) == 2) { x.push_back(a); y.push_back(b); }
+   }
+   if (x.size() < 2) {
+      if (error) *error = "No spectrum found in the file.";
+      return false;
+   }
+   p_expX = x;
+   p_expY = y;
+   string name = path;
+   const size_t at = name.find_last_of("/\\");
+   if (at != string::npos) name = name.substr(at + 1);
+   p_expLabel = name + " (" + detected + ")";
+   fillGraph();
+   return true;
+}
+
+
+void NModePanel::importExperimentalDialog()
+{
+   if (!p_expX.empty()) {
+      const int r = wxMessageBox("Remove the experimental spectrum? No keeps "
+                                 "it and lets you choose another file.",
+                                 "Experimental spectrum",
+                                 wxYES_NO | wxCANCEL | wxICON_QUESTION, this);
+      if (r == wxCANCEL) return;
+      if (r == wxYES) { importExperimental("", ""); return; }
+   }
+   wxFileDialog dlg(this, "Experimental spectrum (wavenumber, absorbance or "
+                    "transmittance)", wxEmptyString, wxEmptyString,
+                    "Spectrum files (*.csv;*.txt;*.dat)|*.csv;*.txt;*.dat|All files|*",
+                    wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+   if (dlg.ShowModal() != wxID_OK) return;
+   wxString err;
+   if (!importExperimental((const char*)dlg.GetPath().utf8_str(), "auto", &err))
+      wxMessageBox(err, "Experimental spectrum", wxOK | wxICON_ERROR, this);
+}
+
+
 void NModePanel::matchBandsDialog()
 {
   wxBusyCursor busy;
@@ -1334,6 +1476,23 @@ void NModePanel::dumpSpectrumIfRequested()
    //  ECCE_SPECTRUM_CSV=<path>: the CSV an export would write.
    const char *other = getenv("ECCE_SPECTRUM_COMPARE");
    const bool compared = other != 0 && compareWith(other);
+   //  ECCE_SPECTRUM_EXPERIMENTAL=<file>[:<kind>], ECCE_SPECTRUM_DIFFERENCE=1
+   //  and ECCE_SPECTRUM_ZOOM=<lo>,<hi> (#707) before the CSV and the paint.
+   if (const char *e = getenv("ECCE_SPECTRUM_EXPERIMENTAL")) {
+      string f = e, kind = "auto";
+      const size_t colon = f.rfind(':');
+      if (colon != string::npos && colon + 1 < f.size() &&
+          (f.substr(colon + 1) == "absorbance" || f.substr(colon + 1) == "transmittance")) {
+         kind = f.substr(colon + 1);
+         f = f.substr(0, colon);
+      }
+      importExperimental(f, kind);
+   }
+   if (getenv("ECCE_SPECTRUM_DIFFERENCE") != 0) setShowDifference(true);
+   if (const char *z = getenv("ECCE_SPECTRUM_ZOOM")) {
+      double a, b;
+      if (sscanf(z, "%lf,%lf", &a, &b) == 2) zoomSpectrum(a, b);
+   }
    const char *csv = getenv("ECCE_SPECTRUM_CSV");
    if (csv != 0) exportSpectrumCsv(csv, spectrumKindShown());
 

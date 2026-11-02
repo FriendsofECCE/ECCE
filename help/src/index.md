@@ -194,3 +194,7 @@ Reference:
 
 25. [Match bands](match-bands.md): which band of one calculation is which band
    of another, the shift of each, and how the modes are matched.
+
+26. [Difference and experimental spectra](ir-spectrum-difference-experiment.md):
+   zoom to a range, the difference curve of two calculations, an imported
+   absorbance or transmittance spectrum and the CSV export.

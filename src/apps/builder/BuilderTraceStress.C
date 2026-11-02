@@ -520,6 +520,22 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
     while (std::getline(rows, row)) fprintf(stderr, "VIBBAND: %s\n", row.c_str());
     return true;
   }
+  //  "vibspectrum <csv> <calculation|-> <diff 0|1> <experimental file|-> <zoom lo,hi|->"
+  //  (#707): the compared calculation, the difference curve, an
+  //  experimental file and a zoom, then the CSV an export would write.
+  if (c == "vibspectrum" && w.size() == 6) {
+    bool ok = w[2] == "-" || nm->compareWith(w[2]);
+    nm->setShowDifference(w[3] == "1");
+    wxString err;
+    if (w[4] != "-") ok = nm->importExperimental(w[4], "auto", &err) && ok;
+    double a, b2;
+    if (w[5] != "-" && sscanf(w[5].c_str(), "%lf,%lf", &a, &b2) == 2)
+      nm->zoomSpectrum(a, b2);
+    ok = nm->exportSpectrumCsv(wxString::FromUTF8(w[1].c_str()), VIB_IR) && ok;
+    fprintf(stderr, "VIBSPECTRUM: ok=%d error=%s\n", ok ? 1 : 0,
+            (const char*)err.utf8_str());
+    return true;
+  }
   if (c == "vibbandclick" && w.size() == 2) {
     fprintf(stderr, "VIBBANDCLICK: selected=%d\n", nm->scriptBandClick(atoi(w[1].c_str())));
     return true;

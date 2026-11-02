@@ -1304,6 +1304,12 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
         DESTINATION bin RENAME ecce-bandshift
         COMPONENT client)
 
+# ecce-spectrum (#707): difference and experimental curves; the panel's
+# experimental import goes through it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_spectrum.py
+        DESTINATION bin RENAME ecce-spectrum
+        COMPONENT client)
+
 # ecce-displace (#618): the structure displaced along a normal mode.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displace.py
         DESTINATION bin RENAME ecce-displace
@@ -2597,6 +2603,11 @@ add_test(NAME bandshift
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/bandshift/run_tests.py)
 
+# tests/spectrum/cli_tests.py -- scripts/ecce_spectrum.py (#707).
+add_test(NAME spectrum_cli
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/spectrum/cli_tests.py)
+
 # tests/siexport -- scripts/ecce_si_export.py on stored ORCA, G16, ECCE-QM (#625).
 add_test(NAME siexport
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3374,6 +3385,15 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmode_bandshift_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_nmode_bandshift PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Vibrations panel spectrum: difference, experimental curve, zoom; the
+  # exported curves equal ecce-spectrum (#707).
+  add_test(NAME apps_nmode_spectrum
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmode_spectrum_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_nmode_spectrum PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run

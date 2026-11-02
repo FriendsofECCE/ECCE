@@ -194,6 +194,9 @@ class SpectrumCanvas : public wxPanel
     bool reversed() const { return p_s->axis.reversed(); }
 
     SpectrumAxis& axis() { return p_s->axis; }
+    /** Show [a, b] on the axis (the two Range fields of the panel). */
+    void zoomRange(double a, double b)
+    { p_s->axis.zoomTo(a, b); p_cacheValid = false; Refresh(); }
     void resetZoom() { p_s->axis.reset(); p_cacheValid = false; Refresh(); }
 
     /** The mode (table row) drawn highlighted, or -1. */
@@ -326,7 +329,26 @@ class SpectrumCanvas : public wxPanel
       for (size_t k = 0; k < kinds.size(); k++)
         scales.push_back(scaleFor(kinds[k], envelope, compact));
 
+      //  The difference B - A (#707) gets a pane of its own under the
+      //  plot, same x axis, its own signed y axis.
+      const bool diffOn = !compact && !p_s->spec.electronic() && envelope &&
+                          p_s->spec.hasCompare(kinds[0]) && p_s->spec.difference();
+      double diffTop = 0;
+      std::vector<double> diffTicks;
+      if (diffOn) {
+        for (int i = 0; i <= 600; i++)
+          diffTop = std::max(diffTop, std::fabs(p_s->spec.differenceEnvelope(
+              kinds[0], p_s->axis.fromFraction(i / 600.0))));
+        const SpectrumYAxis ya = niceYAxis(diffTop, 2);
+        diffTop = ya.top;
+        diffTicks = ya.ticks.values;
+        p_diffDecimals = ya.ticks.decimals;
+      }
       int leftLabel = 0, rightLabel = 0;
+      if (diffOn)
+        for (size_t i = 0; i < diffTicks.size(); i++)
+          leftLabel = std::max(leftLabel, dc.GetTextExtent(wxString::Format(
+              "-%.*f", p_diffDecimals, diffTicks[i])).x);
       for (size_t k = 0; k < scales.size(); k++) {
         leftLabel = std::max(leftLabel, labelWidth(dc, scales[k].left));
         if (scales[k].hasRight)
@@ -352,7 +374,9 @@ class SpectrumCanvas : public wxPanel
       const int plotW = std::max(40, size.x - left - right);
       const int plotH = size.y - top - bottom;
       const int n = (int)kinds.size();
-      const int paneH = std::max(30, (plotH - gap * (n - 1)) / n);
+      const int diffH = diffOn ? std::max(70, plotH / 4) : 0;
+      const int mainH = plotH - (diffOn ? diffH + gap : 0);
+      const int paneH = std::max(30, (mainH - gap * (n - 1)) / n);
 
       p_plotLeft = left;
       p_plotWidth = plotW;
@@ -365,11 +389,16 @@ class SpectrumCanvas : public wxPanel
       for (int k = 0; k < n; k++) {
         const wxRect pane(left, top + k * (paneH + gap), plotW, paneH);
         p_panes.push_back(pane);
-        paintPane(dc, pane, kinds[k], scales[k], xt, k == n - 1);
+        paintPane(dc, pane, kinds[k], scales[k], xt, k == n - 1 && !diffOn);
+      }
+      wxRect diffPane;
+      if (diffOn) {
+        diffPane = wxRect(left, top + plotH - diffH, plotW, diffH);
+        paintDiffPane(dc, diffPane, kinds[0], xt, diffTop, diffTicks);
       }
 
       //  X axis title under the bottom pane.
-      const wxRect last = p_panes.back();
+      const wxRect last = diffOn ? diffPane : p_panes.back();
       const wxString xtitle = wxString::FromUTF8(p_s->spec.xTitle().c_str());
       dc.SetFont(*wxNORMAL_FONT);
       dc.SetTextForeground(p_palette.text);
@@ -660,6 +689,33 @@ class SpectrumCanvas : public wxPanel
           }
         }
       }
+      //  An experimental curve (#707) on the envelope's axis, and the
+      //  difference B - A in a strip of its own at the bottom, zero line
+      //  dotted, scaled to its own largest value (named in the label).
+      if (envelope && !p_s->spec.electronic()) {
+        const VibSpectrum& sp = p_s->spec;
+        dc.SetFont(*wxSMALL_FONT);
+        int labelY = pane.y + 4;
+        if (sp.hasExperimental()) {
+          const double f = sp.experimentalFactor(kind, lo, hi);
+          dc.SetPen(wxPen(p_palette.text, 1, wxPENSTYLE_SHORT_DASH));
+          std::vector<wxPoint> run;
+          for (int px = 0; px <= pane.width; px++) {
+            const double v = sp.experimentalValue(
+                p_s->axis.fromFraction((px + 0.5) / (double)pane.width), f);
+            if (v == v && px < pane.width)
+              run.push_back(wxPoint(pane.x + px, yOf(pane, v, envAxis.y.top)));
+            else {
+              if (run.size() > 1) dc.DrawLines((int)run.size(), &run[0]);
+              run.clear();
+            }
+          }
+          dc.SetTextForeground(p_palette.text);
+          dc.DrawText(wxString::FromUTF8(("- - experimental: " + sp.experimentalLabel()).c_str()),
+                      pane.x + 6, labelY);
+          labelY += dc.GetCharHeight() + 2;
+        }
+      }
       dc.DestroyClippingRegion();
       if (second) paintKey(dc, pane, series, p_palette.series(3));
       if (!p_s->highlightLabel.empty()) {
@@ -725,6 +781,70 @@ class SpectrumCanvas : public wxPanel
       }
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(p_palette.text);
+    }
+
+    //  B - A (#707): a pane under the plot with a signed y axis and a solid
+    //  zero line; it carries the x tick labels.
+    void paintDiffPane(wxDC& dc, const wxRect& pane, VibKind kind,
+                       const SpectrumTicks& xt, double top,
+                       const std::vector<double>& ticks)
+    {
+      const VibSpectrum& sp = p_s->spec;
+      const int mid = pane.y + pane.height / 2;
+      const int half = pane.height / 2 - 2;
+      auto yAt = [&](double v) {
+        return mid - (top > 0 ? (int)std::floor(v / top * half + 0.5) : 0);
+      };
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+      dc.SetPen(wxPen(p_palette.grid, 1));
+      for (size_t i = 0; i < xt.values.size(); i++) {
+        const int x = xOf(pane, xt.values[i]);
+        dc.DrawLine(x, pane.y, x, pane.GetBottom());
+      }
+      dc.SetPen(wxPen(p_palette.axis, 1));
+      dc.DrawRectangle(pane);
+      dc.SetFont(*wxSMALL_FONT);
+      dc.SetTextForeground(p_palette.text);
+      for (size_t i = 0; i < ticks.size(); i++)
+        for (int sgn = (i == 0 ? 0 : -1); sgn <= 1; sgn += 2) {
+          const double v = sgn * ticks[i];
+          const int y = yAt(v);
+          dc.DrawLine(pane.x - 4, y, pane.x, y);
+          const wxString t = wxString::Format("%.*f", p_diffDecimals, v);
+          const wxSize e = dc.GetTextExtent(t);
+          dc.DrawText(t, pane.x - 7 - e.x, y - e.y / 2);
+          if (i == 0) break;
+        }
+      for (size_t i = 0; i < xt.values.size(); i++) {
+        const int x = xOf(pane, xt.values[i]);
+        dc.DrawLine(x, pane.GetBottom(), x, pane.GetBottom() + 4);
+        const wxString t = wxString::Format("%.*f", xt.decimals, xt.values[i]);
+        const wxSize e = dc.GetTextExtent(t);
+        dc.DrawText(t, x - e.x / 2, pane.GetBottom() + 6);
+      }
+      dc.SetClippingRegion(pane);
+      dc.SetPen(wxPen(p_palette.text, 1));
+      dc.DrawLine(pane.x, mid, pane.GetRight(), mid);
+      std::vector<wxPoint> d;
+      for (int px = 0; px < pane.width; px++)
+        d.push_back(wxPoint(pane.x + px, yAt(sp.differenceEnvelope(kind,
+            p_s->axis.fromFraction((px + 0.5) / (double)pane.width)))));
+      const wxColour col = kind == VIB_IR ? p_palette.raman : p_palette.ir;
+      if (d.size() > 1) {
+        dc.SetPen(wxPen(col, 2));
+        dc.DrawLines((int)d.size(), &d[0]);
+      }
+      dc.SetTextForeground(col);
+      dc.DrawText(wxString::FromUTF8(("difference: " + sp.compareLabel() +
+                                      " minus " + sp.label()).c_str()),
+                  pane.x + 6, pane.y + 3);
+      dc.DestroyClippingRegion();
+      dc.SetFont(*wxNORMAL_FONT);
+      dc.SetTextForeground(p_palette.text);
+      drawVerticalText(dc, wxString::FromUTF8(
+          "B \xE2\x88\x92 A (km/mol per cm\xE2\x81\xBB\xC2\xB9)"), 6,
+          pane.y + pane.height / 2, pane.height, true);
+      dc.SetFont(*wxSMALL_FONT);
     }
 
     static int labelWidthOf(wxDC& dc, const Axis& a)
@@ -1139,6 +1259,7 @@ class SpectrumCanvas : public wxPanel
     VibKind         p_hoverKind;
     int             p_hoverMode;
     wxPoint         p_hoverAt;
+    int             p_diffDecimals = 1;
     bool            p_pressed, p_dragging, p_panning, p_band;
     wxPoint         p_pressAt, p_lastPan;
     double          p_bandLo, p_bandHi;
