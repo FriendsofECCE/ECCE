@@ -94,10 +94,8 @@ def main():
                     sym.check(opened == after,
                               "%s: Details buttons on open equal those after "
                               "re-choosing" % label, "%s vs %s" % (opened, after))
-                    # ORCA Energy has no Runtype Details options (#676)
-                    want = ("on", "off") if label == "orca-energy" else ("on", "on")
-                    sym.check(opened[0] == want,
-                              "%s: Details buttons are %s" % (label, want),
+                    sym.check(opened[0] == ("on", "on"),
+                              "%s: both Details buttons are enabled" % label,
                               str(opened))
         finally:
             restorePrefs()
