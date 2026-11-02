@@ -735,9 +735,9 @@ void CalcMgr::runTestCommand(const string& line)
                command == "workflowstructure" || command == "workflowrecipehere") {
       // Recipes (Recipe.H, RecipePanel.H); WF is the workflow's URL.
       //   workflowrecipelist            the recipes found: id:variants;...
-      //   workflowrecipe WF ID VARIANT SOURCE|- [method=M] [basis=B]
+      //   workflowrecipe WF ID VARIANT SOURCE|- [method=M] [basis=B] [solvent=S]
       //     Create boxes without the panel
-      //   workflowrecipepanel PNG|- WF ID VARIANT SOURCE|- [method=M] [basis=B]
+      //   workflowrecipepanel PNG|- WF ID VARIANT SOURCE|- [method=M] [basis=B] [solvent=S]
       //     opens the set-up panel on SOURCE's box (or none), sets the
       //     choices and takes a picture; answers with the panel's report
       //   workflowrecipehere WF STEP    the box menu's Apply Recipe from here
@@ -750,7 +750,7 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowstructure WF STEP FROM   stores FROM's structure in STEP as
       //     the Builder does, then what its ecce_url_subject notice triggers
       std::istringstream args(calcName);
-      string png, wfUrl, rid, vid, src, flag, method, basis;
+      string png, wfUrl, rid, vid, src, flag, method, basis, solvent;
       if (command == "workflowrecipepanel") args >> png >> wfUrl >> rid >> vid >> src;
       else if (command == "workflowrecipe") args >> wfUrl >> rid >> vid >> src;
       else if (command == "workflowmark") args >> wfUrl >> rid >> vid >> src >> method;
@@ -761,6 +761,7 @@ void CalcMgr::runTestCommand(const string& line)
       while (args >> flag) {
         if (flag.compare(0, 7, "method=") == 0) method = flag.substr(7);
         if (flag.compare(0, 6, "basis=") == 0) basis = flag.substr(6);
+        if (flag.compare(0, 8, "solvent=") == 0) solvent = flag.substr(8);
       }
       if (command == "workflowrecipelist") {
         outcome = "ok";
@@ -806,6 +807,7 @@ void CalcMgr::runTestCommand(const string& line)
               levels[r->roles[i].id] = std::make_pair(
                   method.empty() ? r->roles[i].method : method,
                   basis.empty() ? r->roles[i].basis : basis);
+            if (!solvent.empty()) levels["solvent"] = std::make_pair("", solvent);
             string why = wp->recipeCreate(*r, *v, levels, source);
             outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
           }
@@ -821,8 +823,9 @@ void CalcMgr::runTestCommand(const string& line)
           else {
             if (!method.empty() || !basis.empty())
               for (const auto &lv : panel->levels())
-                panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
+                if (lv.first != "solvent") panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
                                 basis.empty() ? lv.second.second : basis);
+            if (!solvent.empty()) panel->setLevel("solvent", "", solvent);
             SetSize(1500, 900);
             Raise();
             for (int i = 0; i < 8; i++) wxYield();

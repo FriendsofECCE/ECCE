@@ -565,6 +565,31 @@ string WorkflowSteps::info(Session *wf)
       std::replace(v.begin(), v.end(), ' ', '_');
       out << " xc=" << v;
     }
+    if (gv && code) {
+      string model, solvent;
+      auto value = [&](const char *key) {
+        GUIValue *v = gv->get(key);
+        return v ? v->getValueAsString() : string();
+      };
+      if (code->label == string("CREST") || code->label == string("xtb")) {
+        model = value("ES.Theory.Solvent.Model");
+        solvent = value("ES.Theory.Solvent.Name");
+      } else if (code->label == string("ORCA")) {
+        model = value("ES.Theory.SCF.UseSolvation") == "1" ? value("ES.Theory.SCF.SolvationModel") : "None";
+        solvent = value("ES.Theory.SCF.Solvent");
+      } else if (code->label == string("G16")) {
+        model = value("ES.Theory.SCF.UseSCRF") == "1" ? value("ES.Theory.SCF.SCRF") : "None";
+        solvent = value("ES.Theory.SCF.Solvent");
+      } else if (code->label == string("ECCE-QM")) {
+        solvent = value("ES.Theory.ECCEQM.Solvent");
+        model = solvent == "None" || solvent.empty() ? "None" : "CPCM";
+      }
+      if (!model.empty()) out << " solvent-model=" << model << " solvent=" << solvent;
+      const char *toggleKey = code->label == string("G16") ? "ES.Theory.SCF.UseSCRF"
+                              : code->label == string("ORCA") ? "ES.Theory.SCF.UseSolvation" : "";
+      GUIValue *toggle = gv->get(toggleKey);
+      if (toggle) out << " solvent-toggle-type=" << toggle->m_type;
+    }
     delete gv;
     TGBSConfig *gbs = calc ? calc->gbsConfig() : 0;
     if (gbs && !gbs->name().empty()) out << " basis=" << gbs->name();
@@ -847,6 +872,14 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       Levels::const_iterator lv = levels.find(rs.role);
       const string method = lv == levels.end() ? "" : lv->second.first;
       const string basis = lv == levels.end() ? "" : lv->second.second;
+      auto solvent = levels.find("solvent");
+      const string solventName = solvent == levels.end() ? "none" : solvent->second.second;
+      for (const auto& kv : recipeSolventSettings(rs.code, solventName)) {
+        setKey(g, kv.first, kv.second);
+        // The theory editor restores checkboxes according to the wire type.
+        if (kv.first == "ES.Theory.SCF.UseSCRF" || kv.first == "ES.Theory.SCF.UseSolvation")
+          g->get(kv.first)->m_type = "toggle_input";
+      }
       calc->guiparams(g);
       delete g;
 
@@ -1069,6 +1102,22 @@ bool WorkflowSteps::toRecipe(Session *wf, const string& id, const string& title,
         v.links.push_back({ids[nodes[i].in[k].source], ids[nodes[i].step],
                            nodes[i].in[k].name});
   if (v.steps.empty()) { why = "The workflow has no calculation steps."; return false; }
+  // Keep a shared solution setting when the saved recipe opens its selector.
+  string solvent = "none";
+  for (const string& name : recipeSolvents(v)) {
+    if (name == "none") continue;
+    bool matches = true, mapped = false;
+    for (const RecipeStep& step : v.steps) {
+      const auto settings = recipeSolventSettings(step.code, name);
+      if (settings.empty()) continue;
+      mapped = true;
+      for (const auto& kv : settings)
+        if (std::find(step.settings.begin(), step.settings.end(), kv) == step.settings.end())
+          matches = false;
+    }
+    if (mapped && matches) solvent = name;
+  }
+  out.roles.push_back({"solvent", "Solvent", "", solvent, "saved workflow solvent"});
   out.variants.push_back(v);
   return true;
 }

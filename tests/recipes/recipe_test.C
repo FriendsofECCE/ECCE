@@ -4,6 +4,7 @@
 //   reactant E -3071.92730726  G -3071.918268
 //   product  E -3071.93096916  G -3071.922962
 //   QST3 (TS) E -3071.91691215 G -3071.908499
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -60,6 +61,32 @@ int main(int argc, char **argv)
         has(err, "unknown steps"), "a link between unknown steps is refused");
   check(!parseRecipe("recipe: x\nbogus: 1\n", bad, err) && has(err, "unknown key"),
         "an unknown key is refused");
+
+  check(ts && conf && ts->roles.back().id == "solvent" &&
+        conf->roles.back().id == "solvent" && ts->roles.back().basis == "none",
+        "legacy solvent role and missing role become the shared gas-phase row");
+  Recipe legacy;
+  check(parseRecipe("recipe: old\nrole: solvent | Solvent | PCM | DMSO | solution\n"
+                    "variant: a | A | G16\nstep: a | opt | G16 | | Geometry\n", legacy, err)
+        && legacy.roles.back().basis == "DMSO" && legacy.roles.back().method.empty(),
+        "old solvent model/basis fields map to the solvent selector");
+  check(recipeSolventSettings("G16", "DMSO")[2].second == "Dimethylsulfoxide" &&
+        recipeSolventSettings("xtb", "chloroform")[1].second == "chcl3" &&
+        recipeSolventSettings("ORCA", "chloroform")[2].second == "chloroform" &&
+        recipeSolventSettings("ECCE-QM", "water")[0].second == "Water",
+        "solvent aliases match each code's existing editor");
+  check(recipeSolventSettings("G16", "none")[0].second == "0" &&
+        recipeSolventSettings("ORCA", "none")[0].second == "0" &&
+        recipeSolventSettings("CREST", "none")[0].second == "None" &&
+        recipeSolventSettings("ECCE-QM", "none")[0].second == "None",
+        "none explicitly switches off each solvent model");
+  const auto names = recipeSolvents(conf->variants[0]);
+  check(std::find(names.begin(), names.end(), "ethanol") == names.end() &&
+        std::find(names.begin(), names.end(), "water") != names.end(),
+        "Conformers offers only solvents accepted by all three code editors");
+  check(recipeSolventModel("NWChem").empty() &&
+        recipeSolventSettings("NWChem", "water").empty(),
+        "an unmapped code has no invented solvent settings");
 
   // rules
   const RecipeRole role = ts->roles[0];
