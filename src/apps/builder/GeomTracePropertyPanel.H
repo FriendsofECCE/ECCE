@@ -9,6 +9,7 @@
   using std::vector;
 
 #include <wx/listctrl.h>
+#include <wx/collpane.h>
 #include "wxgui/TearableContentProvider.H"
 
 #include "VizPropertyPanel.H"
@@ -17,6 +18,13 @@ class wxCheckBox;
 class PlaybackControl;
 class XYPlotCanvas;
 class wxChoice;
+class wxCollapsiblePane;
+class wxCollapsiblePaneEvent;
+class wxStaticText;
+class wxTextCtrl;
+class wxButton;
+class wxPanel;
+class SbColor;
 
 
 class GeomTracePropertyPanel : public VizPropertyPanel,
@@ -59,6 +67,19 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     //  The coordination-pattern table of a CREST ensemble, one string per row
     //  ("pattern | count | lowest kcal/mol | conformer"); empty if none shown.
     vector<string> patternRows() const;
+    //  Displacement from the first frame (one calculation) or, after
+    //  compareWith(), the aligned difference to a second one (#701).  The
+    //  numbers are those of ecce-displacement; the rows are its CSV fields.
+    vector<string> displacementRows();
+    //  "aligned RMSD ..." for a comparison, else the trace summary.
+    string displacementSummary() const { return p_dispSummary; }
+    bool setDisplacementSelection(const string& spec);   // --select syntax
+    bool compareWith(const string& name);                // "" ends it
+    vector<string> comparableNames();
+    void colourByDisplacement(bool on);
+    bool exportDisplacement(const string& path) const;
+    //  Atom colours now in the viewer, "binding r g b" per atom.
+    vector<string> atomColourRows() const;
     virtual void saveSettings();
     virtual void restoreSettings();
     virtual bool isRelevant(IPropCalculation *propCalc) const;
@@ -85,6 +106,33 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
 
     virtual void receiveFocus();
     virtual void loseFocus();
+
+    void buildDisplacementPane();
+    vector<IPropCalculation*> comparable(vector<string> *labels);
+    bool runDisplacement();
+    void showDisplacement();
+    void paintDisplacement(bool on);
+    void OnDispExpand(wxCollapsiblePaneEvent& event);
+    void OnDispColour(wxCommandEvent& event);
+    void OnDispCompare(wxCommandEvent& event);
+    void OnDispSelect(wxCommandEvent& event);
+    void OnDispExport(wxCommandEvent& event);
+
+    wxCollapsiblePane *p_dispPane;
+    wxListCtrl      *p_dispList;
+    wxCheckBox      *p_dispColour;
+    wxTextCtrl      *p_dispSelect;
+    wxStaticText    *p_dispInfo;
+    wxStaticText    *p_dispLegend;
+    wxPanel         *p_dispBar;
+    string p_dispCompare;                  // second calculation's name
+    string p_dispSelection;
+    string p_dispSummary;
+    vector<string> p_dispCols;             // CSV header of the table
+    vector<vector<string> > p_dispTable;   // CSV rows
+    vector<float> p_dispSaved;             // atom colours before painting
+    int p_dispSavedBinding;
+    bool p_dispPainted;
 
     wxListCtrl      *p_patterns;     // CREST ensembles: pattern table
     XYPlotCanvas     *p_plotCtrl;

@@ -312,6 +312,34 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     return true;
   }
 
+  //  Displacement panel (#701).  "gtdisp": its rows and summary;
+  //  "gtdispcolour on|off": colour by displacement, then the atom colours;
+  //  "gtdispcompare <name>" ("-" ends it); "gtdispselect <spec>" ("-" clears);
+  //  "gtdispexport <file>".
+  if (c.compare(0, 6, "gtdisp") == 0) {
+    if (!gt) return s.fail(c + ": no Geometry Trace panel");
+    string rest;
+    for (size_t i = 1; i < w.size(); i++) rest += (i > 1 ? " " : "") + w[i];
+    if (rest == "-") rest.clear();
+    bool ok = true;
+    if (c == "gtdispcolour") gt->colourByDisplacement(rest == "on");
+    else if (c == "gtdispcompare") ok = gt->compareWith(rest);
+    else if (c == "gtdispselect") ok = gt->setDisplacementSelection(rest);
+    else if (c == "gtdispexport") ok = gt->exportDisplacement(rest);
+    else if (c != "gtdisp") return s.fail("unknown command " + c);
+    spin(50);
+    fprintf(stderr, "GTSTRESS: %s ok=%d\n", c.c_str(), (int)ok);
+    if (c == "gtdispcolour") {
+      for (const string& r : gt->atomColourRows())
+        fprintf(stderr, "GTSTRESS: colour %s\n", r.c_str());
+    } else {
+      fprintf(stderr, "GTSTRESS: summary %s\n", gt->displacementSummary().c_str());
+      for (const string& r : gt->displacementRows())
+        fprintf(stderr, "GTSTRESS: disp %s\n", r.c_str());
+    }
+    return true;
+  }
+
   //  "gtseries <key>": plot that series; reports the axis labels.
   if (c == "gtseries" && w.size() == 2) {
     XYPlotCanvas *plot = plotOf(gt);
