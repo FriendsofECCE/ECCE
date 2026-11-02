@@ -1,4 +1,5 @@
 #include <wx/checkbox.h>
+#include <wx/listctrl.h>
 #include "util/UnitDisplay.H"
 #include <algorithm>
   using std::copy;
@@ -21,6 +22,8 @@
 
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropFactory.H"
+#include "dsm/PropertyTask.H"
+#include "dsm/ScanPoint.H"
 
 #include "viz/GTStepCmd.H"
 #include "viz/PBCFoldCmd.H"
@@ -70,6 +73,7 @@ END_EVENT_TABLE()
 
 GeomTracePropertyPanel::GeomTracePropertyPanel()
   : VizPropertyPanel(),
+    p_patterns(NULL),
     p_plotCtrl(NULL),
     p_playback(NULL),
     p_propChoice(NULL),
@@ -90,6 +94,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
   : VizPropertyPanel(),
+    p_patterns(NULL),
     p_plotCtrl(NULL),
     p_playback(NULL),
     p_propChoice(NULL),
@@ -207,6 +212,32 @@ void GeomTracePropertyPanel::initialize()
   p_propChoice->Bind(wxEVT_CHOICE, &GeomTracePropertyPanel::OnPropChoice, this);
   sizer->Add(p_propChoice, 1, wxALIGN_CENTER_VERTICAL);
   GetSizer()->Add(sizer, 0, wxEXPAND|wxALL, 2);
+
+  // A CREST ensemble around an ion: its coordination patterns (ecce-contacts)
+  // with the lowest-energy conformer of each.
+  {
+    vector<ScanPoint::Pattern> pats;
+    string why;
+    if (ScanPoint::ensemblePatterns(dynamic_cast<PropertyTask*>(getCalculation()),
+                                    pats, why)) {
+      p_patterns = new wxListCtrl(this, wxID_ANY, wxDefaultPosition,
+                                  wxSize(-1, 24 * ((int)pats.size() + 1)),
+                                  wxLC_REPORT | wxLC_SINGLE_SEL);
+      p_patterns->AppendColumn("Coordination pattern", wxLIST_FORMAT_LEFT, 260);
+      p_patterns->AppendColumn("Conformers", wxLIST_FORMAT_RIGHT, 90);
+      p_patterns->AppendColumn("Lowest (kcal/mol)", wxLIST_FORMAT_RIGHT, 120);
+      p_patterns->AppendColumn("Conformer", wxLIST_FORMAT_RIGHT, 80);
+      for (size_t i = 0; i < pats.size(); i++) {
+        long row = p_patterns->InsertItem((long)i, wxString::FromUTF8(pats[i].label.c_str()));
+        p_patterns->SetItem(row, 1, wxString::Format("%d", pats[i].count));
+        p_patterns->SetItem(row, 2, wxString::Format("%.3f", pats[i].relative));
+        p_patterns->SetItem(row, 3, wxString::Format("%d", pats[i].rank));
+      }
+      p_patterns->SetToolTip("Conformers grouped by first-shell donor atoms; "
+          "relative energies are within the one CREST method only");
+      GetSizer()->Add(p_patterns, 0, wxEXPAND|wxALL, 2);
+    }
+  }
 
   // create our wxPlotCtrl, add to sizer
   p_plotCtrl = new XYPlotCanvas(this);
@@ -421,6 +452,26 @@ void GeomTracePropertyPanel::OnPropChoice(wxCommandEvent& event)
   p_propChosen = true;
   fillPlot();
   saveSettings();
+}
+
+
+vector<string> GeomTracePropertyPanel::patternRows() const
+{
+  vector<string> rows;
+  if (!p_patterns) return rows;
+  for (long i = 0; i < p_patterns->GetItemCount(); i++) {
+    string r;
+    for (int c = 0; c < 4; c++) {
+      wxListItem it;
+      it.SetId(i);
+      it.SetColumn(c);
+      it.SetMask(wxLIST_MASK_TEXT);
+      p_patterns->GetItem(it);
+      r += (c ? " | " : "") + string(it.GetText().utf8_str());
+    }
+    rows.push_back(r);
+  }
+  return rows;
 }
 
 

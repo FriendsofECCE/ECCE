@@ -2,7 +2,7 @@
 type: map
 title: "ecce-contacts: coordination shells, H-bonds and the pattern key used to group ensembles (#693, #708)"
 area: codereg
-paths: ["scripts/ecce_contacts.py", "tests/contacts/run_tests.py"]
+paths: ["scripts/ecce_contacts.py", "tests/contacts/run_tests.py", "src/dsm/edsiimpl/ScanPoint.C", "src/apps/builder/GeomTracePropertyPanel.C"]
 issues: [693, 708, 682]
 ---
 `scripts/ecce_contacts.py` (installed as `bin/ecce-contacts`) is wx-free Python.
@@ -15,4 +15,7 @@ in an ensemble).
 - Key: `Na: 4×O(H2O), 1×O2(ClO4, bidentate)`; tokens sorted, so atom order is irrelevant.
 - H-bond: H...A <= 2.01 A (Builder's limit) and D-H...A >= 120 deg; the Builder's own
   angle test (>= 60 deg) accepts almost everything and was not reused.
-- Not done: reading GEOMTRACE from a stored calculation, the panel (mock-up only).
+- `ScanPoint::ensemblePatterns` (src/dsm/edsiimpl/ScanPoint.C) writes the stored ensemble
+  as an xyz in rank order and runs `$ECCE_HOME/bin/ecce-contacts --group`, so the rule lives
+  only in Python; the Geometry Trace panel table and the Workflow "one per pattern" step
+  (`WorkflowSteps::createPatterns`) both use it. Test: `tests/apps/ensemble_patterns_test.py`.
