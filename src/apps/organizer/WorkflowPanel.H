@@ -22,6 +22,7 @@
 
 #include "WorkflowSteps.H"
 
+class wxSpinCtrl;
 class CalcMgr;
 class Resource;
 class ResourceType;
@@ -127,6 +128,8 @@ private:
   PointChooser *p_point;
   wxCheckBox *p_geometry;
   wxCheckBox *p_charge;
+  wxCheckBox *p_best;
+  wxSpinCtrl *p_bestN;
   wxStaticText *p_problem;
   wxButton *p_create;
 };

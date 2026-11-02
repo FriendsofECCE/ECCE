@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 
@@ -33,12 +34,62 @@ Keys keysOf(PropertyTask *task)
   return k;
 }
 
+// A CREST ensemble: one GEOMTRACE frame and one CONFREL value per conformer.
+Keys ensembleKeys(PropertyTask *task)
+{
+  Keys k = {0, 0};
+  IPropCalculation *calc = task;
+  if (!calc) return k;
+  PropVector *e = dynamic_cast<PropVector*>(calc->getProperty("CONFREL"));
+  PropTSVecTable *g = dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE"));
+  if (e && g && !e->values().empty() && g->tables() == e->values().size()) {
+    k.energy = e;
+    k.geom = g;
+  }
+  return k;
+}
+
+// "c3" is the conformer of rank 3 by relative energy; 0 if spec is not one.
+int conformerRank(const string& spec)
+{
+  if (spec.size() < 2 || spec[0] != 'c') return 0;
+  char *end = 0;
+  long n = strtol(spec.c_str() + 1, &end, 10);
+  return (*end == 0 && n >= 1) ? (int)n : 0;
+}
+
+// Frame indices, lowest relative energy first (ties keep the file's order).
+vector<int> energyOrder(const vector<double>& e)
+{
+  vector<int> idx(e.size());
+  for (size_t i = 0; i < idx.size(); i++) idx[i] = (int)i;
+  std::stable_sort(idx.begin(), idx.end(),
+                   [&e](int a, int b) { return e[a] < e[b]; });
+  return idx;
+}
+
 }  // namespace
+
+
+int ScanPoint::ensembleSize(PropertyTask *calc)
+{
+  Keys k = ensembleKeys(calc);
+  return k.geom ? (int)k.energy->values().size() : 0;
+}
+
+
+double ScanPoint::conformerEnergy(PropertyTask *calc, int rank)
+{
+  Keys k = ensembleKeys(calc);
+  if (!k.geom || rank < 1 || rank > (int)k.energy->values().size()) return 0;
+  return k.energy->values()[energyOrder(k.energy->values())[rank - 1]];
+}
 
 
 bool ScanPoint::valid(const string& spec)
 {
   if (spec.empty() || spec == "last" || spec == "max") return true;
+  if (conformerRank(spec)) return true;
   char *end = 0;
   long n = strtol(spec.c_str(), &end, 10);
   return *end == 0 && n >= 1;
@@ -50,6 +101,7 @@ string ScanPoint::words(const string& spec)
   if (spec.empty()) return "";
   if (spec == "last") return "last point";
   if (spec == "max") return "maximum";
+  if (conformerRank(spec)) return "conformer " + spec.substr(1);
   return "point " + spec;
 }
 
@@ -62,6 +114,22 @@ bool ScanPoint::isScan(PropertyTask *calc)
 
 int ScanPoint::frame(PropertyTask *calc, const string& spec, string& why)
 {
+  if (conformerRank(spec)) {
+    Keys ek = ensembleKeys(calc);
+    int rank = conformerRank(spec);
+    int n = ek.geom ? (int)ek.energy->values().size() : 0;
+    if (!n) {
+      why = "The calculation has no conformer ensemble.";
+      return -1;
+    }
+    if (rank > n) {
+      char buf[96];
+      snprintf(buf, sizeof buf, "The ensemble has %d conformers, not %d.", n, rank);
+      why = buf;
+      return -1;
+    }
+    return energyOrder(ek.energy->values())[rank - 1];
+  }
   Keys k = keysOf(calc);
   if (!k.geom) {
     why = "The calculation has no structure for each point of a scan.";
@@ -116,7 +184,8 @@ Fragment *ScanPoint::fragment(PropertyTask *calc, const string& spec,
   if (f < 0) return 0;
   Fragment *frag = calc->fragment();
   if (!frag) { why = "The calculation has no chemical system."; return 0; }
-  if (!apply(frag, keysOf(calc).geom->values(f), why)) {
+  Keys keys = conformerRank(spec) ? ensembleKeys(calc) : keysOf(calc);
+  if (!apply(frag, keys.geom->values(f), why)) {
     delete frag;
     return 0;
   }

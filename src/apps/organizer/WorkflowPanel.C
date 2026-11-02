@@ -18,6 +18,7 @@
 
 #include "util/ResourceUtils.H"
 
+#include "dsm/PropertyTask.H"
 #include "dsm/ResourceType.H"
 #include "dsm/ScanPoint.H"
 #include "dsm/Session.H"
@@ -828,6 +829,8 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
   p_point = 0;
   p_geometry = 0;
   p_charge = 0;
+  p_best = 0;
+  p_bestN = 0;
   if (!source) {
     // Nothing to carry over: say so instead of showing dead checkboxes.
     top->Add(new wxStaticText(this, wxID_ANY,
@@ -860,6 +863,27 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
     hessian->SetToolTip(notYet);
     for (wxCheckBox *c : {p_geometry, p_charge, orbitals, hessian})
       top->Add(c, 0, wxLEFT | wxTOP, 28);
+    const int conformers = ScanPoint::ensembleSize(dynamic_cast<PropertyTask*>(source));
+    if (conformers > 0) {
+      // A CREST ensemble: one step per conformer, lowest energy first.
+      p_best = new wxCheckBox(this, wxID_ANY, "From the best conformers:");
+      p_bestN = new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition,
+                               wxDefaultSize, wxSP_ARROW_KEYS, 1, conformers,
+                               std::min(3, conformers));
+      p_bestN->Enable(false);
+      p_best->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
+        p_bestN->Enable(p_best->GetValue());
+        p_geometry->Enable(!p_best->GetValue());
+      });
+      wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+      row->Add(p_best, 0, wxALIGN_CENTER_VERTICAL);
+      row->Add(p_bestN, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
+      row->Add(new wxStaticText(this, wxID_ANY,
+               wxString::Format("of %d (lowest relative energy first)",
+                                conformers)),
+               0, wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
+      top->Add(row, 0, wxLEFT | wxTOP, 28);
+    }
   }
 
   if (source && !haveResult) {
@@ -902,6 +926,10 @@ WorkflowSteps::Carry WorkflowStepDialog::carry() const
   if (p_geometry) c.geometry = p_geometry->GetValue();
   if (p_charge) c.chargeMult = p_charge->GetValue();
   if (p_point) c.point = p_point->spec();
+  if (p_best && p_best->GetValue()) {
+    c.best = p_bestN->GetValue();
+    c.geometry = true;
+  }
   return c;
 }
 
