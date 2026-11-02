@@ -1,6 +1,7 @@
 title: sn2_irc
 type: molecule
 fragment_attributes:
+  point_group: Cs
   charge: -1
 end_fragment_attributes:
 num_atoms: 6
