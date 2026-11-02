@@ -286,10 +286,7 @@ class CalcEd: public CalcEdGUI,
     void closeRuntypeApp(const bool& sendTerm);
 
     // input file generation, aka InputController
-    string changeWD(const string& newDir);
-    bool write_cs(const string& output_file);
     /** Opt=QST2/QST3 structures next to the .frag (#419). */
-    bool write_qst(const string& baseName);
     void setMatchTooltip();
 
     // Transition-state source of the structure (#419): reactant, product and
@@ -309,13 +306,6 @@ class CalcEd: public CalcEdGUI,
     void tsPicked(int role, int sel);
     void showTsMapping();
     bool tsRuntypeSelected() const;
-    bool write_esp(const string& output_file, bool& file_flag);
-    bool write_constraints(const string& output_file, bool& file_flag);
-    bool write_gbsconfig(const string& output_file, const bool& useExpCoeff,
-                         bool& file_flag, bool& ecp_flag, bool& spherical_flag);
-    bool write_setup(const string& output_file);
-    bool write_template(RCommand& localconn, const string& templateFile,
-                        const string& output_file);
     bool input_controller(const bool& saveParamFlag, const bool& useExpCoeff,
                           string& message);
 
