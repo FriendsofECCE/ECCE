@@ -50,8 +50,7 @@ host instead of one each, across all sessions of the state directory. Unset, inv
   directory (inside the control directory). A stored password ssh refused is
   deleted and `forgetCached()` makes RCommand drop its AuthCache copy; the
   dialog follows in the same ssh run. `loginPrompted()` is true only when a
-  dialog was shown. Not done: matching the FIFO to the jump host's prompt
-  (ssh may print HostName, not the alias).
+  dialog was shown. On a route through another host (`-J`, ProxyJump, ProxyCommand) nothing is fed or kept: ssh asks the jump host first, and the target's password must never reach another host's prompt, so those routes ask in the dialog as before..
   **N processes that lose the master together cost one dialog, whether or
   not it is answered.** The holder writes `<hash>.outcome` (epoch time and
   `ok|cancelled|failed|timeout`) before releasing the lock; a waiter that
