@@ -262,7 +262,11 @@ bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
   string script = home && *home ? string(home) + "/bin/ecce-contacts"
                                 : string("ecce-contacts");
 #ifdef _WIN32
-  string cmd = "python \"" + script + "\" \"" + file.string() + "\" --group";
+  // The Windows package carries its own Python (as CalcEd's pythonw); the
+  // console python.exe is needed here, since the output is read back.
+  std::filesystem::path py = std::filesystem::path(Ecce::ecceHome()) / "python" / "python.exe";
+  string pyExe = std::filesystem::exists(py) ? py.string() : string("python.exe");
+  string cmd = "\"" + pyExe + "\" \"" + script + "\" \"" + file.string() + "\" --group";
 #else
   string cmd = "'" + script + "' '" + file.string() + "' --group 2>/dev/null";
 #endif
