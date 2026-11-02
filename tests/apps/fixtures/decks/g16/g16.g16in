@@ -1,0 +1,9 @@
+#P rhf/6-31G* 6D 10F Polar() Symmetry=(PG=C2V,Loose)  Punch=(MO) Pop=(full) 
+
+g16
+
+0 1 ! charge and multiplicity
+ O     0.00000     0.00000     0.117790
+ H     0.00000     0.755450     -0.471160
+ H     0.00000     -0.755450     -0.471160
+
