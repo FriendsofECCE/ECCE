@@ -104,9 +104,12 @@ void PropertyIndexPanel::setEntries(const std::vector<Entry>& entries)
   }
   for (size_t g = 0; g < groupOrder.size(); ++g) {
     const std::vector<const Entry*>& list = byGroup[groupOrder[g]];
-    if (list.size() == 1) {
-      p_tree->AppendItem(root, list[0]->name, -1, -1,
-                         new NameData(list[0]->name));
+    //  A category keeps its heading even with one entry, so the same
+    //  property sits in the same place for every calculation.
+    if (groupOrder[g].empty()) {
+      for (size_t i = 0; i < list.size(); ++i)
+        p_tree->AppendItem(root, list[i]->name, -1, -1,
+                           new NameData(list[i]->name));
       continue;
     }
     wxTreeItemId head = p_tree->AppendItem(root, groupOrder[g]);
