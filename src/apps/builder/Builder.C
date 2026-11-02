@@ -141,6 +141,11 @@ using std::vector;
 #include "viz/CenterCmd.H"
 #include "viz/DistortBondsCmd.H"
 #include "DistortBondsDialog.H"
+#include "TakeCoordsDialog.H"
+#include "viz/TakeCoordsCmd.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/Resource.H"
+#include "dsm/PropertyTask.H"
 #include "viz/ClearResidueInfoCmd.H"
 #include "viz/CSLoadColorsCmd.H"
 #include "viz/CSRadiiCmd.H"
@@ -1355,6 +1360,8 @@ Command *Builder::createCommand(const string& input)
         cmd = new CenterCmd(cmdname, getSG());
      } else if (cmdname == "distort") {
         cmd = new DistortBondsCmd(cmdname, getSG());
+     } else if (cmdname == "takecoords") {
+        cmd = new TakeCoordsCmd(cmdname, getSG());
      } else if (cmdname == "addh") {
         cmd = new HydrogensCmd(cmdname, getSG());
      } else if (cmdname == "removeh") {
@@ -3452,6 +3459,88 @@ void Builder::OnDistortBondsClick( wxCommandEvent& event )
    cmd->getParameter("centre")->setInteger(centre + 1);
    cmd->getParameter("list")->setString(dlg.list());
    execute(cmd);
+}
+
+
+/**
+ * The coordinates of `set` taken from another structure (#620); one undo step.
+ * Errors reach the user through reportError.
+ */
+bool Builder::takeCoordinates(const string& set, const string& elements,
+                              const string& coords, bool align, double *rmsd)
+{
+   TakeCoordsCmd *cmd = new TakeCoordsCmd("Take Coordinates", getSG());
+   cmd->getParameter("set")->setString(set);
+   cmd->getParameter("elements")->setString(elements);
+   cmd->getParameter("coords")->setString(coords);
+   cmd->getParameter("align")->setBoolean(align);
+   bool ok = execute(cmd);
+   if (rmsd) *rmsd = cmd->rmsd();
+   return ok;
+}
+
+
+/**
+ * Edit > Take Coordinates From...: other calculations in this folder whose
+ * input structure has as many atoms (#620).  The element order is checked by
+ * the command.
+ */
+void Builder::OnTakeCoordsClick( wxCommandEvent& event )
+{
+   SGFragment *frag = getSG()->getFragment();
+   if (!frag || frag->numAtoms() == 0 || !p_calculation) {
+      reportError("Open a structure in a calculation first.");
+      return;
+   }
+   vector<string> names, elems, coords;
+   Resource *folder = EDSIFactory::getResource(p_calculation->getURL().getParent());
+   vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+   for (size_t i = 0; kids && i < kids->size(); i++) {
+      PropertyTask *other = dynamic_cast<PropertyTask*>((*kids)[i]);
+      if (!other || other->getURL().toString() == p_calculation->getURL().toString())
+         continue;
+      Fragment *f = other->fragment();
+      if (!f) continue;
+      if (f->numAtoms() == frag->numAtoms()) {
+         string el, xyz;
+         char buf[128];
+         for (size_t a = 0; a < f->numAtoms(); a++) {
+            const double *c = f->atomRef(a)->coordinates();
+            snprintf(buf, sizeof buf, "%.12g %.12g %.12g ", c[0], c[1], c[2]);
+            el += f->atomRef(a)->atomicSymbol() + " ";
+            xyz += buf;
+         }
+         names.push_back(other->getURL().getFilePathTail());
+         elems.push_back(el);
+         coords.push_back(xyz);
+      }
+      delete f;
+   }
+   if (names.empty()) {
+      wxMessageBox(_("No other calculation in this folder has a structure "
+                     "with the same number of atoms."), _("Take Coordinates"),
+                   wxOK | wxICON_INFORMATION, this);
+      return;
+   }
+   string sel;
+   vector<int> hl = frag->m_atomHighLight;
+   sort(hl.begin(), hl.end());
+   for (size_t i = 0; i < hl.size(); ) {
+      size_t j = i;
+      while (j + 1 < hl.size() && hl[j + 1] == hl[j] + 1) j++;
+      char buf[48];
+      if (j > i) snprintf(buf, sizeof buf, "%s%d-%d", sel.empty() ? "" : ",", hl[i] + 1, hl[j] + 1);
+      else snprintf(buf, sizeof buf, "%s%d", sel.empty() ? "" : ",", hl[i] + 1);
+      sel += buf;
+      i = j + 1;
+   }
+   TakeCoordsDialog dlg(this, names, sel);
+   if (dlg.ShowModal() != wxID_OK || dlg.source() < 0) return;
+   double rmsd = 0;
+   if (takeCoordinates(dlg.atoms(), elems[dlg.source()], coords[dlg.source()],
+                       dlg.align(), &rmsd) && dlg.align())
+      wxMessageBox(wxString::Format(_("Fitted over the other atoms: RMSD %.4f A"),
+                                    rmsd), _("Take Coordinates"), wxOK, this);
 }
 
 

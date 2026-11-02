@@ -67,3 +67,20 @@ four by minus half of it. Press OK to apply. It is one step in **Edit > Undo**.
 
 This only moves atoms to seed a distorted geometry. Run **Clean** or an
 optimisation afterwards and the structure will relax towards its own minimum.
+
+## Taking coordinates from another calculation
+
+To put the cluster from one calculation together with the counter-ion from
+another, choose **Edit > Take Coordinates From...**. Pick a calculation in
+the same folder, and give the atoms to take from it as numbers from 1, such
+as `1-12,40`; the field starts with the atoms currently selected. The two
+structures must have the same number of atoms in the same element order. If
+they do not, nothing changes and the message names the first atom that
+differs.
+
+The chosen atoms get the other structure's coordinates and every other atom
+keeps its own. If the two were built in different frames, tick **Align
+first**: the other structure is fitted onto this one over the atoms that are
+not taken, by rotation and translation only (a mirror image is never fitted),
+and the RMSD of that fit is shown. At least three atoms must remain outside
+the chosen set. It is one step in **Edit > Undo**.
