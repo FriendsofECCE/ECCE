@@ -1280,6 +1280,12 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_contacts.py
         DESTINATION bin RENAME ecce-contacts
         COMPONENT client)
 
+# ecce-displacement (#701): per-element displacement and aligned (Kabsch) RMSD
+# between stored calculations.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displacement.py
+        DESTINATION bin RENAME ecce-displacement
+        COMPONENT client)
+
 # scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
 # Potential job, so it only has to exist on the client.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
@@ -2521,6 +2527,12 @@ add_test(NAME contacts
                  ${CMAKE_SOURCE_DIR}/tests/contacts/run_tests.py)
 set_tests_properties(contacts PROPERTIES TIMEOUT 600)
 
+# tests/displacement -- scripts/ecce_displacement.py: Kabsch fit, per-element
+# displacement and the CLI on stored calculations (#701).
+add_test(NAME displacement
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/displacement/run_tests.py)
+
 # tests/mlp -- scripts/ecce-mlp with a model-free mock calculator (#728); the
 # real MACE test SKIPs (77) without mace (ECCE_MLP_PYTHON names the Python).
 add_test(NAME mlp
@@ -3038,6 +3050,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_bad_meta PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # A folder of 200 calculations lists them all in reasonable time (#675).
+  add_test(NAME apps_organizer_big_folder
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_big_folder_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_big_folder PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # A node whose folder was renamed outside ECCE says so (#683).
   add_test(NAME apps_organizer_missing_node
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3161,6 +3180,14 @@ if(PYTHON3_EXECUTABLE)
                      --build ${CMAKE_BINARY_DIR}
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
     set_tests_properties(apps_ecceqm_scan_panel PROPERTIES TIMEOUT 900
+                         SKIP_RETURN_CODE 77)
+    # IRC playback: the shown MO follows the path by overlap (#757).
+    add_test(NAME apps_ecceqm_irc_follow
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ecceqm_irc_follow_test.py
+                     --build ${CMAKE_BINARY_DIR}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+    set_tests_properties(apps_ecceqm_irc_follow PROPERTIES TIMEOUT 900
                          SKIP_RETURN_CODE 77)
   endif()
 

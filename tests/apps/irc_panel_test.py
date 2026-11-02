@@ -194,11 +194,15 @@ def exampleCase(s, display, env, wrappers, project, png):
                           block, re.M)
         if rows:
             frames.append([[float(v) for v in r] for r in rows])
-    check(len(frames) == 29, "example trajectory has 29 frames (%d)" % len(frames))
+    # the stored rerun (#751) decides the count; a click needs >= 3 points
+    check(len(frames) >= 3, "example trajectory has frames (%d)" % len(frames))
+    last = len(frames) - 1
+    mid = last // 2
     calc = os.path.join(project, "calc-sn2-example")
     shutil.rmtree(calc, ignore_errors=True)
     shutil.copytree(os.path.join(EXAMPLE, "stored", "sn2_irc"), calc, symlinks=True)
-    lines = ["wait 6000", "ircclick 0", "ircclick 13", "ircclick 28", "quit"]
+    lines = ["wait 6000", "ircclick 0", "ircclick %d" % mid,
+             "ircclick %d" % last, "quit"]
     out, _ = bo.runScript(
         s, display, env, wrappers, ["-context", "file://" + calc + "/"],
         lines, png, "ircexample",
@@ -206,11 +210,11 @@ def exampleCase(s, display, env, wrappers, project, png):
     clicks = dict((m[0], m) for m in re.findall(
         r"BUILDER: ircclick (\d+) frame=(\S+) atoms: (\S+) (\S+) (\S+) "
         r"(\S+) (\S+) (\S+)", out))
-    for idx in (0, 13, 28):
+    for idx in (0, mid, last):
         got = clicks.get(str(idx))
         check(got is not None and got[1] == str(idx),
               "SN2 example: click on point %d shows frame %d" % (idx, idx))
-        if got and len(frames) == 29:
+        if got:
             want = frames[idx][0] + frames[idx][1]
             check(all(abs(float(a) - b) < 2e-5 for a, b in zip(got[2:], want)),
                   "SN2 example point %d: the viewer holds the trajectory's structure" % idx)
@@ -273,7 +277,7 @@ def qmCase(s, display, env, wrappers, project, png):
     # Table row and playback both select a point, mark it in plot and table,
     # and play runs the whole path in order.
     def state(cmd, arg):
-        m = re.findall(r"BUILDER: %s %s point=(-?\d+) row=(-?\d+) marker=(-?\d+) order:([\d ]*)" % (cmd, arg), text)
+        m = re.findall(r"BUILDER: %s %s point=(-?\d+) row=(-?\d+) marker=(-?\d+)(?: mo=-?\d+)? order:([\d ]*)" % (cmd, arg), text)
         return m[0] if m else None
     got = state("ircrow", "4")
     check(got and got[:3] == ("4", "4", "4"), "ECCE-QM: table row 5 selects point 5 in plot and table (%s)" % (got,))

@@ -96,6 +96,15 @@ IRC once, at the TS: with the TS point selected in the **IRC Path** panel
 the orbital panels show them, and for every other point a note says that ORCA
 gives no orbitals there. For the other codes these panels always show the
 last computed point.
+Tick **Show MO while playing** under the IRC playback buttons (off by
+default) to watch an orbital change along the path: select an orbital in the
+**MOs** panel, then play or step. On every new point the panel shows the
+orbital of that point that overlaps most with the one shown on the previous
+point, so it is followed by its character, not by its number; an open
+**Density Map** or **Density Profile** follows it too. Clicking a point, and
+playback with the box unticked, only change the geometry. If the surface of a
+point takes longer to draw than the delay between points, the points in
+between are skipped and the newest surface is drawn.
 A transition-state guess can also come from two calculations, a reactant and a
 product (**TS Search** in the Calculation Editor).
 

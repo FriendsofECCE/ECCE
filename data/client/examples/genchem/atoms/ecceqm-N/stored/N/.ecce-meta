@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the three 2p electrons of nitrogen in different p orbitals with parallel spins.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 12:01:03 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:14:59 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 12:01:00 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:14:57 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,7 +15,8 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/N__rTtc0G
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/N__Jwdlza
+.	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
@@ -29,6 +30,7 @@
 .	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
 .	http://www.emsl.pnl.gov/ecce:launch_rundir		
 .	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_threads		0
 .	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
 .	http://www.emsl.pnl.gov/ecce:launch_user		
 .	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
@@ -36,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793275262.282 at=1793275262\nscf cycle=8 energy=-54.5779247257 dE=-1.09e-11/1e-10 grad=4.53e-08/1e-07 converged=yes\nscf~ dE=-2.00e-01,-4.24e-03,-6.29e-04,-5.84e-05,-5.11e-07,-3.73e-09,-1.09e-11\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793592899.239 idle=0 at=1793592899\nscf cycle=8 energy=-54.5779247257 dE=-1.09e-11/1e-10 grad=4.53e-08/1e-07 converged=yes\nscf~ dE=-2.00e-01,-4.24e-03,-6.29e-04,-5.84e-05,-5.11e-07,-3.73e-09,-1.09e-11\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -48,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Quartet
-.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 12:01:01 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:14:58 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793275260
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793592898
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

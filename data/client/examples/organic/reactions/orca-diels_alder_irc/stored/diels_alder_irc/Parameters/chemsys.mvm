@@ -1,5 +1,8 @@
 title: diels_alder_irc
 type: molecule
+fragment_attributes:
+  point_group: Cs
+end_fragment_attributes:
 num_atoms: 16
 atom_info: symbol cart
 atom_list: 

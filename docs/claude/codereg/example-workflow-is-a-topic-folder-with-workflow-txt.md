@@ -25,3 +25,9 @@ special.
 - The session's `taskIndex` is the order in the importing session and is not
   copied (`StoredCalcCopy` skips it; `VOLATILE` in the preparsed test too).
 - Test: `tests/apps/examples_workflow_test.py` (`apps_examples_workflow`).
+- The Na+(H2O)6 steps are produced by `tools/examples/rerun_na_hydration.py`
+  (ai.xtb / ai.orca decks, run through Launch in an isolated ECCE), so they
+  carry the MO print and the Molden block (#712). ECCE's Theory Details
+  offers no r2SCAN-3c; the deck gets it as an XCFunctional passthrough with
+  an empty `useRouteCard` basis. `examples_test.py` expects MO and ORBENG
+  on all six steps.

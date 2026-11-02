@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This calculation shows the amide I and amide II bands of the peptide linkage in trans-N-methylacetamide.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 29 Oct 2026 12:04:33 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:17:00 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.3
-.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 29 Oct 2026 12:04:29 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.3
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:16:58 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,7 +15,8 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/n_methylacetamide__ALq2x3
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/n_methylacetamide__zwNb5x
+.	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
@@ -29,6 +30,7 @@
 .	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
 .	http://www.emsl.pnl.gov/ecce:launch_rundir		
 .	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_threads		0
 .	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
 .	http://www.emsl.pnl.gov/ecce:launch_user		
 .	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
@@ -36,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793275472.192 at=1793275472\nscf cycle=12 energy=-248.0552615965837617 dE=-4.22e-09/1.000e-08\nscf~ dE=0.00e+00,-8.20e-02,-3.19e-02,-1.92e-02,-4.21e-02,-2.11e-04,-4.77e-06,-1.04e-06,-4.61e-07,-4.59e-08,-9.49e-08,-4.22e-09\nfreq kind=analytic point=39/39 phase=assemble last=Loop real=30 imaginary=0 done=yes zpe=0.10236980\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793593019.687 idle=0 at=1793593019\nscf cycle=12 energy=-248.0552615965837617 dE=-4.22e-09/1.000e-08\nscf~ dE=0.00e+00,-8.20e-02,-3.19e-02,-1.92e-02,-4.21e-02,-2.11e-04,-4.77e-06,-1.04e-06,-4.61e-07,-4.59e-08,-9.49e-08,-4.22e-09\nfreq kind=analytic point=39/39 phase=assemble last=Loop real=30 imaginary=0 done=yes zpe=0.10236980\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -48,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 29 Oct 2026 12:04:30 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:16:58 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793275470
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793593018
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

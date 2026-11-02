@@ -8,7 +8,8 @@
 #include "PlaybackLoop.H"
 #include "PlaybackExtras.H"
 
-PlaybackExtras::PlaybackExtras(wxWindow *parent, wxSizer *sizer, int *delay)
+PlaybackExtras::PlaybackExtras(wxWindow *parent, wxSizer *sizer, int *delay,
+                               bool withMo)
   : p_delay(delay)
 {
   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
@@ -25,6 +26,13 @@ PlaybackExtras::PlaybackExtras(wxWindow *parent, wxSizer *sizer, int *delay)
   p_loop->SetToolTip("Play forward to the last point, then backward to the "
                      "first, and repeat until stopped");
   row->Add(p_loop, 0, wxALIGN_CENTER_VERTICAL);
+  if (withMo) {
+    row->AddSpacer(8);
+    p_mo = new wxCheckBox(parent, wxID_ANY, "Show MO while playing");
+    p_mo->SetToolTip("Show the orbital selected in the MOs panel on every "
+                     "point, following it by its character from point to point");
+    row->Add(p_mo, 0, wxALIGN_CENTER_VERTICAL);
+  }
   sizer->Add(row, 0, wxLEFT | wxRIGHT, 4);
   p_speed->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { onSpeed(); });
 }
@@ -53,3 +61,7 @@ std::string PlaybackExtras::speed() const
 void PlaybackExtras::setLoop(bool on) { p_loop->SetValue(on); }
 
 bool PlaybackExtras::loop() const { return p_loop->GetValue(); }
+
+void PlaybackExtras::setShowMo(bool on) { if (p_mo) p_mo->SetValue(on); }
+
+bool PlaybackExtras::showMo() const { return p_mo && p_mo->GetValue(); }
