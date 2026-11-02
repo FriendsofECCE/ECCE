@@ -397,9 +397,7 @@ def run(display, data, work, shots):
         "setstate %s/nw-water completed" % wf,
         "setstate %s/xtb-1 running" % wf,
         "workflowshot %s %s %s/xtb-1" % (png2, wf, wf),
-        "treestate %s/nw-water" % wf,
-        "treestate %s/xtb-1" % wf,
-        "treestate %s/orca-3" % wf,
+        "workflowicons %s" % wf,
     ]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
@@ -494,20 +492,20 @@ def run(display, data, work, shots):
     check("Launch Ready Steps button is in the view, shown, inside it",
           bool(button) and button[0] == "ok label=Launch Ready Steps shown=1 "
           "inside=1 enabled=1", "answered %r" % button)
-    ts = answer("treestate")
-    states = answer("workflowshot")
+    got = answer("workflowicons")
     icons = {}
-    if len(states) == 2:
-        m = re.search(r"icons=(\S+)", states[1])
+    tree = {}
+    for key, into in (("icons", icons), ("tree", tree)):
+        m = re.search(key + r"=(\S+)", got[0]) if got else None
         for pair in (m.group(1).split(",") if m else []):
             name, _, idx = pair.rpartition(":")
-            icons[name] = idx
-    tree = [re.search(r"image=(\d+)", t).group(1) if re.search(r"image=(\d+)", t)
-            else None for t in ts]
+            into[name] = idx
+    names = ("nw-water", "xtb-1", "orca-3")
     check("boxes draw the tree's run-state icon (Complete and Running differ)",
-          len(tree) == 3 and
-          [icons.get(n) for n in ("nw-water", "xtb-1", "orca-3")] == tree and
-          tree[0] != tree[1], "box icons %s, tree %s" % (icons, ts))
+          bool(got) and got[0].startswith("ok ") and
+          all(n in icons and icons[n] == tree.get(n) for n in names) and
+          icons.get("nw-water") != icons.get("xtb-1"),
+          "workflowicons answered %r" % got)
 
 
 EXAMPLE = os.path.join(ROOT, "data", "client", "examples", "workflows",
