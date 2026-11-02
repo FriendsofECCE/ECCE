@@ -863,6 +863,29 @@ void Builder::runBuilderScript(const std::string& file)
                   frag->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
         }
         fprintf(stderr, "BUILDER: formula=%s\n", frag->formula().c_str());
+      } else if (w[0] == "takefrom" && w.size() >= 3) {
+        //  takefrom PATH.xyz SET|selected [align]: Take Coordinates From...
+        //  with the other structure read from an .xyz file (#620).
+        std::ifstream in(w[1]);
+        int n = 0;
+        std::string title, el, xyz;
+        in >> n;
+        std::getline(in, title);
+        std::getline(in, title);
+        for (int i = 0; i < n && in; i++) {
+          std::string s;
+          double x, y, z;
+          if (in >> s >> x >> y >> z) {
+            char buf[128];
+            snprintf(buf, sizeof buf, "%.17g %.17g %.17g ", x, y, z);
+            el += s + " ";
+            xyz += buf;
+          }
+        }
+        double rmsd = 0;
+        bool ok = takeCoordinates(w[2] == "selected" ? "" : w[2], el, xyz,
+                                  w.size() > 3 && w[3] == "align", &rmsd);
+        fprintf(stderr, "BUILDER: takefrom %s rmsd=%.6g\n", ok ? "ok" : "refused", rmsd);
       } else if (w[0] == "coordsraw" && frag) {
         for (size_t i = 0; i < frag->numAtoms(); i++) {
           const double *c = frag->atomRef(i)->coordinates();

@@ -2118,6 +2118,11 @@ add_test(NAME bonddistort COMMAND bonddistort_test)
 set_tests_properties(bonddistort PROPERTIES ENVIRONMENT
   "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}")
 
+# CoordCombine: take some atoms' coordinates from another structure (#620).
+add_executable(coordcombine_test tests/tdat/coordcombine_test.C)
+target_link_libraries(coordcombine_test PRIVATE eccetdat ecceutil)
+add_test(NAME coordcombine COMMAND coordcombine_test)
+
 # The ECCE_HIDE_MO_DIAGRAM site setting (#280).
 add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
 target_link_libraries(sitehide_test PRIVATE ecceutil)
@@ -3302,6 +3307,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_displacement_panel PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Take Coordinates From... with a stored calculation's final geometry (#620).
+  add_test(NAME apps_takecoords_calc
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/takecoords_calc_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_takecoords_calc PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Thermochemistry panel against ecce-thermo (#692).
   add_test(NAME apps_thermo_panel
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4089,6 +4102,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_distort PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Edit > Take Coordinates From...: atoms from another structure, and undo (#620).
+  add_test(NAME apps_builder_takecoords
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_takecoords_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_takecoords PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # No bond orders in building; Clean's derived orders and bond lengths (#439).
   add_test(NAME apps_builder_bond_model

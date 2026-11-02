@@ -158,6 +158,9 @@ public:
     /// Edit > Distort Bonds...
     virtual    void OnDistortBondsClick( wxCommandEvent& event ) { event.Skip(); }
 
+    /// Edit > Take Coordinates From...
+    virtual    void OnTakeCoordsClick( wxCommandEvent& event ) { event.Skip(); }
+
     /// Edit > Select Ions
     virtual    void OnSelectIonsClick( wxCommandEvent& event );
 
@@ -212,6 +215,7 @@ public:
     static const wxWindowID ID_SELECT_SOLVENT;
     static const wxWindowID ID_SELECT_IONS;
     static const wxWindowID ID_DISTORT_BONDS;
+    static const wxWindowID ID_TAKE_COORDS;
     static const wxWindowID ID_SAVE_THUMB;
     static const wxWindowID ID_SUPPORT;
     static const wxWindowID ID_MODE_PREV;

@@ -357,6 +357,41 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     return true;
   }
 
+  //  "gttake <label> <set|selected> [align]": Take Coordinates From... with
+  //  the source picked by its dialog label, e.g. "calc (final geometry)";
+  //  then every atom's coordinates (#620).
+  if (c == "gttake" && w.size() >= 3) {
+    vector<string> labels, el, xyz;
+    string label = w[1];
+    for (size_t i = 0; i < label.size(); i++) if (label[i] == '_') label[i] = ' ';
+    size_t at = 0;
+    //  The folder listing can still be arriving from the server.
+    for (int tries = 0; tries < 40; tries++) {
+      labels.clear(); el.clear(); xyz.clear();
+      takeSources(labels, el, xyz);
+      for (at = 0; at < labels.size() && labels[at] != label; at++) {}
+      if (at < labels.size()) break;
+      spin(250);
+    }
+    if (at == labels.size()) {
+      string have;
+      for (const string& l : labels) have += " [" + l + "]";
+      fprintf(stderr, "GTSTRESS: gttake sources:%s\n", have.c_str());
+      return s.fail("gttake: no source " + label);
+    }
+    double rmsd = 0;
+    bool ok = takeCoordinates(w[2] == "selected" ? "" : w[2], el[at], xyz[at],
+                              w.size() > 3 && w[3] == "align", &rmsd);
+    fprintf(stderr, "GTSTRESS: gttake ok=%d rmsd=%.6g\n", (int)ok, rmsd);
+    SGFragment *frag = getSG()->getFragment();
+    for (size_t i = 0; i < frag->numAtoms(); i++) {
+      const double *p = frag->atomRef(i)->coordinates();
+      fprintf(stderr, "GTSTRESS: take %zu %s %.10f %.10f %.10f\n", i + 1,
+              frag->atomRef(i)->atomicSymbol().c_str(), p[0], p[1], p[2]);
+    }
+    return true;
+  }
+
   //  "gtselect <n>" selects atoms 1..n; "gtselected": reports how many are.
   if (c == "gtselect" && w.size() == 2) {
     SGFragment *frag = getSG()->getFragment();
