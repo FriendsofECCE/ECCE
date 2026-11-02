@@ -442,36 +442,68 @@ int PropertyTask::orbitalPoint() const
 bool PropertyTask::hasPointOrbitals()
 {
   PropTSVecTable *t = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
-  return t && t->tables() > 0;
+  return (t && t->tables() > 0) || tsOnlyIrcOrbitals() >= 0;
 }
 
 
 /**
- * ORCA prints the MOs once, at the TS of an IRC, so PTMO holds one table
- * while IRCGEOM has a frame per path point.  The calculation's own MO set is
- * that TS set, which belongs to no other point's structure.
+ * An ORCA IRC output without per-point tables (an import, or a job run before
+ * the end-point blocks existed) still has the MOs ORCA printed at the TS.
+ * Returns that TS frame's index, -1 when this is not such a calculation.
+ */
+int PropertyTask::tsOnlyIrcOrbitals()
+{
+  if (getStoredProperty("PTMO") || !getStoredProperty("MO")) return -1;
+  PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
+  PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
+  if (!c || !geom || geom->tables() < 2 ||
+      (int)c->values().size() != geom->tables()) return -1;
+  for (size_t i = 0; i < c->values().size(); i++)
+    if (c->values()[i] == 0) return (int)i;
+  return -1;
+}
+
+
+/**
+ * ORCA has orbitals at the TS and the two end points of an IRC only, so PTMO
+ * holds fewer tables than IRCGEOM has frames.  The calculation's own MO set
+ * is the TS one, which belongs to no other point's structure.
  */
 bool PropertyTask::orbitalsAtSomePointsOnly()
 {
   PropTSVecTable *mo = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
   PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
-  return mo && geom && mo->tables() == 1 && geom->tables() > 1;
+  return (mo && geom && mo->tables() < geom->tables()) || tsOnlyIrcOrbitals() >= 0;
 }
 
 
 /**
- * The PTMO/PTORB table holding a point's orbitals, -1 if it has none.  The
- * TS frame is the IRCCOORD row at zero, which is also its IRCGEOM frame
- * (ORCA stores one frame per summary row).
+ * The PTMO/PTORB table holding a point's orbitals, -1 if it has none.  Table
+ * 0 is the TS (the IRCCOORD row at zero); then come the backward end (the
+ * most negative IRCCOORD) and the forward end (the most positive), each only
+ * if that branch exists.  ORCA stores one IRCGEOM frame per summary row.
  */
 int PropertyTask::orbitalTable(int point)
 {
   if (!orbitalsAtSomePointsOnly()) return point;
+  const int tsOnly = tsOnlyIrcOrbitals();
+  if (tsOnly >= 0) return point == tsOnly ? 0 : -1;
   PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
   PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
-  if (!c || !geom || (int)c->values().size() != geom->tables()) return -1;
-  for (size_t i = 0; i < c->values().size(); i++)
-    if (c->values()[i] == 0) return (int)i == point ? 0 : -1;
+  PropTSVecTable *mo = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
+  if (!c || !geom || !mo || (int)c->values().size() != geom->tables()) return -1;
+  const vector<double>& v = c->values();
+  if (point < 0 || point >= (int)v.size()) return -1;
+  int lo = 0, hi = 0, ts = -1;
+  for (size_t i = 0; i < v.size(); i++) {
+    if (v[i] < v[lo]) lo = (int)i;
+    if (v[i] > v[hi]) hi = (int)i;
+    if (v[i] == 0) ts = (int)i;
+  }
+  int next = 1;
+  if (point == ts) return 0;
+  if (v[lo] < 0) { if (point == lo) return next < mo->tables() ? next : -1; next++; }
+  if (v[hi] > 0 && point == hi) return next < mo->tables() ? next : -1;
   return -1;
 }
 

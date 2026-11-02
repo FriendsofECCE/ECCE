@@ -59,7 +59,7 @@ args:    '.' 'Energy' 'SCF' 'RHF' '0'
       values: 75.77131963419225
       units: Hartree
 
-[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER][PTMO][PTMOBETA][PTORB][PTORBBETA]  Script=orca.mo  Freq=last  Skip=2  Lines=-
+[MO][MOBETA][ORBENG][ORBENGBETA][ORBOCC][ORBOCCBETA][MOAOORDER]  Script=orca.mo  Freq=last  Skip=2  Lines=-
   Begin=MOLECULAR ORBITALS
   End=MULLIKEN POPULATION ANALYSIS
   begins=1 delivered=1 buffered_away=0

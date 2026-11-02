@@ -1,23 +1,31 @@
 ---
 type: pitfall
-title: "ORCA prints an IRC's MOs once, at the TS: PTMO holds one table and only the TS frame gets orbitals"
+title: "ORCA prints an IRC's MOs once, at the TS; the two end points come from re-reading their gbw (PTMO holds three tables)"
 area: codereg
-paths: ["scripts/parsers/orca.mo", "scripts/parsers/orca.desc", "src/dsm/edsiimpl/PropertyTask.C", "src/apps/builder/PointNote.C", "tests/parsers/orca_irc_orbitals_test.py", "tests/apps/orca_irc_orbitals_test.py"]
+paths: ["scripts/parsers/orca.mo", "scripts/parsers/orca.desc", "src/dsm/edsiimpl/PropertyTask.C", "src/apps/builder/PointNote.C", "scripts/gensub", "scripts/parsers/orca.ptmo", "tests/parsers/orca_irc_orbitals_test.py", "tests/apps/orca_irc_orbitals_test.py"]
 issues: [751]
 ---
 - With Print[P_MOs], ORCA writes MOLECULAR ORBITALS once, at the TS geometry
   before the IRC starts. `orca.desc` takes it with Frequency=last, which
   used to pair the TS orbitals with the last IRC structure.
-- For a runtype containing IRC, `orca.mo` also emits it as PTORB/PTMO (one
-  table each; same keys as ECCE-QM's per-point orbitals, #549).
-  `PropertyTask::orbitalsAtSomePointsOnly()` is true when PTMO has one table
-  and IRCGEOM has more; `orbitalTable(point)` then maps only the frame whose
-  IRCCOORD is 0 (the TS) to table 0. Every other point, and "no point
-  selected", hides MO/ORBENG/ORBOCC/LOCMO instead of returning the stored
-  final set.
-- The orbital note (PointNote.C) says ORCA gives orbitals at the TS only.
-  `MoPanel::orbitalPointChanged` must refill an empty grid in this case: the
-  panel is often opened at a point without orbitals first.
-- tests/parsers/fixtures/orca/hcn_irc_mos.out is hcn_irc.out with an H2O MO
-  block spliced in, not a real HCN run; replace it with a real P_MOs IRC run.
-- Later (#751 step 2): end-point orbitals from `*_IRC_F.gbw` / `_IRC_B.gbw`.
+- ORCA also writes `<job>_IRC_B.gbw` and `_IRC_F.gbw` (backward/forward end),
+  which it never prints. gensub's `orcaIrcEnds` re-runs ORCA on the compute
+  machine from each one (the input with the IRC block removed, `MOREAD
+  NoIter`, `%moinp`, `* xyzfile` of `_IRC_B.xyz`/`_IRC_F.xyz`), so the
+  printed block goes through orca.mo's own AO ordering; a molden export
+  would need its own (p is x,y,z there, z,x,y in ORCA's text).
+- gensub appends the TS block again and the two end blocks to the output under
+  the heading `ECCE-IRC-END-ORBITALS` (TS, B, F). An orca.desc rule cannot
+  share a Begin with another (the first wins), hence the new heading;
+  `[PTMO]...` (script `orca.ptmo` = orca.mo with `$main::PTONLY`) takes them
+  with Frequency=all, one table each. The `[MO]` rule keeps ORCA's own block.
+  An IRC output without these appended blocks (an import) gets no PTMO.
+- `PropertyTask::orbitalsAtSomePointsOnly()` is true when PTMO has fewer
+  tables than IRCGEOM has frames; `orbitalTable(point)` maps the IRCCOORD-0
+  frame to table 0, the most negative IRCCOORD to the backward-end table and
+  the most positive to the forward-end one (each only if that branch exists).
+  Every other point, and "no point selected", hides MO/ORBENG/ORBOCC/LOCMO.
+- The orbital note (PointNote.C) says ORCA gives orbitals at the TS and the
+  two end points. `MoPanel::orbitalPointChanged` must refill an empty grid.
+- tests/parsers/fixtures/orca/hcn_irc_mos.out is a real ORCA 6.1.1 run plus
+  the three appended blocks as gensub writes them.
