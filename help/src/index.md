@@ -76,6 +76,9 @@ describe what you did and what happened.
    [Export for Supporting Information](si-export.md): the selected
    calculations as one XYZ file with charge, multiplicity, E and G, and a
    CSV or LaTeX table.
+   [Checks table](checks-table.md): one row per calculation under a
+   folder with termination, convergence, imaginary modes, S2, charge,
+   multiplicity, method, energies; problems highlighted; CSV or LaTeX.
    [Excluded calculations](excluded.md): mark a calculation as not to be
    used, with a reason; exports and workflows skip it.
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a

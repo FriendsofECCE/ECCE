@@ -177,6 +177,7 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
 #include "SiExport.H"
+#include "ChecksDialog.H"
 #include "AllocationsDialog.H"
 
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
@@ -540,6 +541,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * siexport <out.xyz> <csv|latex|none> <url>,<url>... [include-excluded]
  *                 File > Export > Supporting Information (#625); "ok" or
  *                 "failed: <why>"
+ * checks <out.csv> <url>,<url>...
+ *                 the Checks table dialog's rows (folders expanded) as CSV
+ *                 (#615); "ok" or "failed: <why>"
  * compareenergies <sideA> <sideB>
  *                 what Tools > Compare Energies shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
@@ -572,6 +576,7 @@ static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
 static const int ID_SI_EXPORT = wxNewId();
+static const int ID_CHECKS = wxNewId();
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -1797,6 +1802,23 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = siExport(sel, out, table == "none" ? string() : table, why,
                        flag == "include-excluded")
                 ? string("ok") : "failed: " + why;
+    } else if (command == "checks") {
+      // "checks <out.csv> <url>,<url>...": the Checks table dialog's rows
+      // (folders expanded to their calculations) written as CSV (#615).
+      std::istringstream args(calcName);
+      string out, urls;
+      args >> out >> urls;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      ChecksDialog dlg(this, calculationsUnder(roots));
+      string why;
+      if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
+      else outcome = "failed: " + why;
     } else if (command == "compareenergies" || command == "comparedialog") {
       // "compareenergies <sideA> <sideB>": the table and notes the dialog
       // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
@@ -6902,6 +6924,13 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Append(wxID_DELETE, wxT("&Delete"));
   menu.Enable(wxID_DELETE, true);
   {
+    int id = wxWindow::NewControlId();
+    menu.Append(id, _("Checks Table..."));
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+      CallAfter([this]() { wxCommandEvent e; OnChecks(e); });
+    }, id);
+  }
+  {
     // Only calculations can be excluded (#617).
     Resource *first = getSelection() && !p_currentSelection.empty()
         ? [&]{ WxResourceTreeItemData *n = findNode(p_currentSelection[0], false, true);
@@ -7086,10 +7115,13 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   {
     wxMenu *exportMenu = new wxMenu;
     exportMenu->Append(ID_SI_EXPORT, _("&Supporting Information..."));
+    exportMenu->Append(ID_CHECKS, _("&Checks Table..."));
     menu.Append(wxID_ANY, _("E&xport"), exportMenu);
     if (!p_siExportWired) {
       Connect(ID_SI_EXPORT, wxEVT_COMMAND_MENU_SELECTED,
               wxCommandEventHandler(CalcMgr::OnSiExport));
+      Connect(ID_CHECKS, wxEVT_COMMAND_MENU_SELECTED,
+              wxCommandEventHandler(CalcMgr::OnChecks));
       p_siExportWired = true;
     }
   }
@@ -7350,6 +7382,26 @@ void CalcMgr::OnSiExport(wxCommandEvent&)
                 k == 1 ? "csv" : k == 2 ? "latex" : "", why, withExcluded))
     wxMessageBox(wxString::FromUTF8(why.c_str()), _("Supporting Information"),
                  wxOK | wxICON_ERROR, this);
+}
+
+// The Checks table of the selected folders and calculations (#615).
+void CalcMgr::OnChecks(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(p_currentSelection);
+  if (calcs.empty()) {
+    wxMessageBox(_("Select a folder or calculations first."), _("Checks Table"),
+                 wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  ChecksDialog dlg(this, calcs);
+  string why;
+  if (!dlg.ok(why)) {
+    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Checks Table"),
+                 wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
 }
 
 void CalcMgr::OnAllocations(wxCommandEvent&)

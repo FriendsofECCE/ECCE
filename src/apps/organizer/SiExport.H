@@ -13,4 +13,9 @@ bool siExport(const std::vector<EcceURL>& calcs, const std::string& xyzFile,
               const std::string& table, std::string& why,
               bool includeExcluded = false);
 
+/// The Checks table (#615) of `calcs` as `format` ("csv" or "latex"), made by
+/// ecce-si-export --checks from the same scratch folders.
+bool checksTable(const std::vector<EcceURL>& calcs, const std::string& format,
+                 std::string& text, std::string& why);
+
 #endif
