@@ -3,7 +3,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/TaskJob.H"
 #include "tdat/TRunType.H"
-#include "util/VDoc.H"
+#include "dsm/VDoc.H"
 #include <cmath>
 #include <iostream>
   using std::cout;

@@ -27,7 +27,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/PropertyTask.H"
 #include "tdat/Fragment.H"
-#include "util/VDoc.H"
+#include "dsm/VDoc.H"
 #include "viz/VRVector.H"
 
 #include "XYPlotCanvas.H"
