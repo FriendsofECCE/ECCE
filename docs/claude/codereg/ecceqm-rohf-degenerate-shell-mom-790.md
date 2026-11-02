@@ -22,14 +22,24 @@ How to see it: with `-v`, compare the doubly occupied space of successive
 cycles, `nb - tr(Db_old S Db_new S)`. It jumps to 1.0 (a whole orbital moved)
 on most cycles.
 
-`run_scf` therefore uses aufbau only until two successive cycles fill the same
-doubly and singly occupied spaces (or from cycle 8 at the latest), resets the
-DIIS history, and from then on picks the occupied orbitals by maximum overlap
-with the previous cycle's doubly and singly occupied densities (MOM,
-`mom_reorder`). The columns of C are reordered so that `[0, nb)` is doubly and
-`[nb, na)` singly occupied. Because of this the reported orbital energies of a
-ROHF run need not be in ascending order, and code that reads the occupied set
-must use the column index or `occ_a`/`occ_b`, never a sort by energy.
+`run_scf` therefore keeps aufbau, and switches to the maximum overlap method
+(MOM, `mom_reorder`) only when, from cycle 20 on, aufbau has moved a whole
+orbital (`moved > 0.5`) at least twice in the last five cycles. MOM then takes
+the orbitals with the largest overlap with the previous cycle's doubly and
+singly occupied densities, and the columns of C are reordered so that
+`[0, nb)` is doubly and `[nb, na)` singly occupied. As a result the reported
+ROHF orbital energies need not be in ascending order, and code that reads the
+occupied set must use the column index or `occ_a`/`occ_b`, never a sort by
+energy.
+
+Do not start MOM as soon as two cycles fill the same spaces. A first version
+did that and locked doublet NO (ROHF/def2-SVP, 1.5 A) at cycle 6 into a
+configuration 50 mEh above the aufbau result. Swaps in the first ~12 cycles
+are normal for NO, which then converges by aufbau. When a MOM solution has an
+open or virtual orbital more than 1e-3 Eh below an occupied one, the SCF
+relaxes with aufbau for up to 20 cycles and keeps the lower converged energy.
+The atoms trip this check legitimately (their doubly occupied p lies 0.06 to
+0.13 Eh above an open p), so their cycle counts include those 20 cycles.
 
 Tried and rejected: a level shift of the open and virtual blocks (it leaves
 the stationary point alone, but it slows the near-free rotation of the
@@ -49,4 +59,9 @@ Ti UKS stalls the same way; with `grid_prune off` both converge (ROKS
 near-degeneracy (3d(n)4s2 against 3d(n+1)4s1) keeps aufbau from settling
 in Ti, V and Ni ROHF/ROKS, so MOM is forced on at cycle 8 into whatever
 configuration is current and the run wanders; UHF/UKS of Sc, Fe and Co fail
-too. `tests/qm/roks_atoms_test.py` therefore covers H-Ar, Ca, Cr and Cu.
+too. `tests/qm/roks_atoms_test.py` therefore covers H-Ar, Ca, Cr and Cu,
+plus NO, O2 and CH2 pinned to the aufbau energies. It runs single-threaded,
+because two-thread XC sums made the O UKS reference fail now and then.
+O ROKS at aug-cc-pVTZ still stops at 150 cycles on one thread: it reaches the
+right energy with |grad| 2.1e-7 (dE 1e-12) by cycle 27 and then drifts on the
+pruned grid.

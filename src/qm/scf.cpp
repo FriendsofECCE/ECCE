@@ -97,6 +97,16 @@ double occupied_change(const Mat& S, const Mat& Dprev, const Mat& Dnew, int nocc
   return nocc - (Dprev * S * Dnew * S).trace();
 }
 
+// How far an orbital of a higher class (singly occupied, virtual) lies below
+// one of a lower class (doubly, singly occupied); <= 0 for an aufbau order.
+double aufbau_violation(const Vec& eps, int na, int nb) {
+  const int n = static_cast<int>(eps.size());
+  double v = -1e300;
+  if (nb > 0 && na > nb) v = std::max(v, eps.head(nb).maxCoeff() - eps.segment(nb, na - nb).minCoeff());
+  if (na > 0 && n > na) v = std::max(v, eps.head(na).maxCoeff() - eps.tail(n - na).minCoeff());
+  return v;
+}
+
 // Spin-averaged fractional-occupation atomic HF density for the initial guess.
 Mat atomic_density(int Z, BasisLibrary& lib, const std::string& name, bool sph) {
   Molecule am;
@@ -255,11 +265,18 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   }
 
   Diis diis;
-  // ROHF: aufbau occupations until two successive cycles fill the same
-  // doubly and singly occupied spaces (or after mom_latest cycles), then
-  // the maximum overlap method keeps that configuration.
-  bool mom = false;
-  const int mom_latest = 8;
+  // ROHF: aufbau occupations, and the maximum overlap method only when aufbau
+  // is still moving whole orbitals between the doubly, singly occupied and
+  // virtual spaces after aufbau_window cycles (an unevenly filled degenerate
+  // shell).  Early swaps are normal far from convergence (NO), and a settled
+  // early configuration need not be the ground state, so MOM waits.
+  bool mom = false, mom_allowed = true;
+  const int aufbau_window = 20, recent = 5, relax_cycles = 20;
+  const double order_tol = 1e-3;  // eigenvalue degeneracy tolerance, hartree
+  std::vector<int> swap_cycles;
+  int relax_left = 0;
+  struct Saved { ScfResult R; Mat Ca, Fa, Fb; Vec eps; };
+  std::unique_ptr<Saved> mom_result;
   Vec eps_a, eps_b;
   Mat Ca, Cb;
   double Eold = 0;
@@ -363,8 +380,22 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
         diagonalize(F, X, eps_a, Ca);
         if (mom) mom_reorder(S, Db, Da - Db, na, nb, Ca, eps_a);
         eps_b = eps_a; Cb = Ca;
+        const double viol = mom ? aufbau_violation(eps_a, na, nb) : 0.0;
+        if (opt.verbose && mom) std::cerr << "converged under maximum overlap, aufbau violation " << viol << "\n";
+        if (mom && viol > order_tol) {
+          // An empty or singly occupied orbital below an occupied one: MOM may
+          // hold an excited configuration.  Relax with aufbau from here for a
+          // few cycles and keep whichever converged energy is lower.  (An
+          // unevenly filled atomic shell is legitimately out of order.)
+          mom_result.reset(new Saved{R, Ca, Fa, Fb, eps_a});
+          relax_left = relax_cycles;
+          mom = mom_allowed = false;
+          R.converged = false;
+          diis.reset();
+          if (opt.verbose) std::cerr << "relaxing with aufbau occupations from cycle " << it + 1 << "\n";
+        }
       }
-      break;
+      if (R.converged) break;
     }
     Eold = E;
     if (!first || ref != Reference::RestrictedOpen) diis.push(F, err);
@@ -386,9 +417,11 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
       eps_b = eps_a;
       Cb = Ca;
       const Mat Da_new = density(Ca, na), Db_new = density(Ca, nb);
-      if (!mom && !first_pass) {
+      if (!mom && mom_allowed && !first_pass) {
         const double moved = occupied_change(S, Db, Db_new, nb) + occupied_change(S, Da - Db, Da_new - Db_new, na - nb);
-        if (moved < 0.1 || it >= mom_latest) {
+        if (moved > 0.5) swap_cycles.push_back(it);
+        const auto late = std::count_if(swap_cycles.begin(), swap_cycles.end(), [&](int c) { return c > it - recent; });
+        if (it >= aufbau_window && late >= 2) {
           mom = true;
           diis.reset();  // earlier Fock matrices belong to other configurations
           if (opt.verbose) std::cerr << "maximum overlap occupations from cycle " << it + 1 << "\n";
@@ -399,6 +432,16 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     }
     R.iterations = it;
     R.energy = E;
+    if (mom_result && --relax_left <= 0) break;
+  }
+  if (mom_result && (!R.converged || mom_result->R.energy < R.energy)) {
+    const int iters = R.iterations;
+    R = mom_result->R;
+    R.iterations = iters;
+    Ca = Cb = mom_result->Ca;
+    eps_a = eps_b = mom_result->eps;
+    Fa = mom_result->Fa;
+    Fb = mom_result->Fb;
   }
   if (!R.converged) {
     // leave the last orbitals in place
