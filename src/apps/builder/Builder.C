@@ -19,6 +19,7 @@ using std::ends;
 using std::vector;
   
 #include <math.h>
+#include <cmath>
 #include <unistd.h>
 
 // Remove some of these three once the calls are in SoWx::init
@@ -142,6 +143,9 @@ using std::vector;
 #include "viz/CenterCmd.H"
 #include "viz/DistortBondsCmd.H"
 #include "DistortBondsDialog.H"
+#include "viz/SelectWithinCmd.H"
+#include "wxgui/ewxDialog.H"
+#include <wx/checkbox.h>
 #include "TakeCoordsDialog.H"
 #include "viz/TakeCoordsCmd.H"
 #include "dsm/EDSIFactory.H"
@@ -576,6 +580,11 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   p_mgr.Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   guardSashDrag();
+  Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& event) {
+    SGContainer *sg = p_sgMgr ? getSG() : NULL;
+    SGFragment *frag = sg ? sg->getFragment() : NULL;
+    event.Enable(frag && !frag->m_atomHighLight.empty());
+  }, ID_SELECT_WITHIN);
 
   p_viewerEvtHandler = new ViewerEvtHandler(this);
   p_viewerEvtHandler->connectToolKitFW(this);
@@ -3421,9 +3430,53 @@ void Builder::OnSelectallClick( wxCommandEvent& event )
    execute(cmd);
 }
 
-/**
- * Select molecule if one atom already selected.
- */
+bool Builder::selectWithin(double radius, bool molecules, bool keep)
+{
+  Command *cmd = new SelectWithinCmd("Select Within Distance", getSG());
+  cmd->getParameter("radius")->setDouble(radius);
+  cmd->getParameter("molecules")->setBoolean(molecules);
+  cmd->getParameter("keep")->setBoolean(keep);
+  return execute(cmd);
+}
+
+void Builder::OnSelectWithinClick(wxCommandEvent&)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || frag->m_atomHighLight.empty()) return;
+  ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
+  double radius = 3.5;
+  config->Read("SelectWithin/Distance", &radius, 3.5);
+  radius = std::isfinite(radius) ? std::max(0.1, std::min(50.0, radius)) : 3.5;
+  ewxDialog dlg(this, wxID_ANY, _("Select Within Distance"));
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  row->Add(new wxStaticText(&dlg, wxID_ANY, _("Distance:")), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  wxSpinCtrlDouble *distance = new wxSpinCtrlDouble(&dlg, wxID_ANY, "",
+      wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0.1, 50.0, radius, 0.1);
+  distance->SetDigits(2);
+  row->Add(distance, 0, wxRIGHT, 6);
+  row->Add(new wxStaticText(&dlg, wxID_ANY, wxString::FromUTF8("\xC3\x85")),
+           0, wxALIGN_CENTER_VERTICAL);
+  top->Add(row, 0, wxALL, 8);
+  wxRadioButton *atoms = new wxRadioButton(&dlg, wxID_ANY, _("Atoms"),
+      wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+  wxRadioButton *molecules = new wxRadioButton(&dlg, wxID_ANY, _("Whole molecules"));
+  atoms->SetValue(true);
+  top->Add(atoms, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  top->Add(molecules, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  wxCheckBox *keep = new wxCheckBox(&dlg, wxID_ANY, _("Keep the original selection"));
+  keep->SetValue(true);
+  top->Add(keep, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 8);
+  dlg.SetSizerAndFit(top);
+  dlg.CentreOnParent();
+  if (dlg.ShowModal() != wxID_OK) return;
+  config->Write("SelectWithin/Distance", distance->GetValue());
+  config->Flush();
+  selectWithin(distance->GetValue(), molecules->GetValue(), keep->GetValue());
+}
+
 void Builder::OnSelectMoleculeClick( wxCommandEvent& event )
 {
    Command *cmd = new SelectCmd("Select Molecule", getSG());

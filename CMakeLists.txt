@@ -2125,6 +2125,12 @@ add_executable(proptsvec_nearest_test tests/tdat/proptsvec_nearest_test.C)
 target_link_libraries(proptsvec_nearest_test PRIVATE eccetdat ecceutil)
 add_test(NAME proptsvec_nearest COMMAND proptsvec_nearest_test)
 
+add_executable(distance_selection_test tests/tdat/distance_selection_test.C)
+target_link_libraries(distance_selection_test PRIVATE eccetdat ecceutil)
+add_test(NAME distance_selection COMMAND distance_selection_test)
+set_tests_properties(distance_selection PROPERTIES ENVIRONMENT
+  "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}")
+
 # BondDistort: bond changes around one atom, Jahn-Teller preset (#619).
 add_executable(bonddistort_test tests/tdat/bonddistort_test.C)
 target_link_libraries(bonddistort_test PRIVATE eccetdat ecceutil)
@@ -4164,6 +4170,12 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_distort PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_select_within
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_select_within_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_select_within PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Edit > Take Coordinates From...: atoms from another structure, and undo (#620).
   add_test(NAME apps_builder_takecoords

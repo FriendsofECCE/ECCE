@@ -41,6 +41,7 @@ const wxWindowID BuilderGUI::ID_FRAME_Builder = wxNewId();
 const wxWindowID BuilderGUI::ID_UNSELECT = wxNewId();
 const wxWindowID BuilderGUI::ID_IMPORT = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_REVERSE = wxNewId();
+const wxWindowID BuilderGUI::ID_SELECT_WITHIN = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_MOLECULE = wxNewId();
 const wxWindowID BuilderGUI::ID_DUMPSG = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_SOLVENT = wxNewId();
@@ -105,6 +106,7 @@ BEGIN_EVENT_TABLE( BuilderGUI, ewxTool )
 
     EVT_MENU( wxID_SELECTALL, BuilderGUI::OnSelectallClick )
 
+    EVT_MENU( ID_SELECT_WITHIN, BuilderGUI::OnSelectWithinClick )
     EVT_MENU( ID_SELECT_MOLECULE, BuilderGUI::OnSelectMoleculeClick )
 
     EVT_MENU( ID_SELECT_SOLVENT, BuilderGUI::OnSelectSolventClick )
@@ -204,6 +206,7 @@ void BuilderGUI::CreateControls()
     itemMenu16->AppendSeparator();
     itemMenu16->Append(wxID_SELECTALL, _("Select All\tCtrl+a"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_MOLECULE, _("Select Molecule"), _T(""), wxITEM_NORMAL);
+    itemMenu16->Append(ID_SELECT_WITHIN, _("Select Within Distance..."), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SOLVENT, _("Select Solvent"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_IONS, _("Select Ions"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_BACKBONE, _("Select Backbone"), _T(""), wxITEM_NORMAL);

@@ -32,6 +32,7 @@
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select N                    select atom (or Nub) number N (from 1), as a click
 //                                does; 0 or less none
+//    select_within R [molecules] [replace]  extend by distance in Angstrom
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -580,6 +581,20 @@ void Builder::runBuilderScript(const std::string& file)
         frag->m_atomHighLight.clear();
         if (atoi(w[1].c_str()) >= 1)
           frag->m_atomHighLight.assign(1, atoi(w[1].c_str()) - 1);
+      } else if (w[0] == "select_within" && w.size() >= 2 && frag) {
+        bool molecules = false, keep = true, valid = w.size() <= 4;
+        for (size_t i = 2; i < w.size(); ++i) {
+          if (w[i] == "molecules") molecules = true;
+          else if (w[i] == "replace") keep = false;
+          else valid = false;
+        }
+        double radius = 0.0;
+        std::istringstream input(w[1]);
+        input >> radius;
+        if (!input || !input.eof() || !std::isfinite(radius) ||
+            radius < 0.1 || radius > 50.0 || !valid || frag->m_atomHighLight.empty())
+          outcome = "FAIL: select_within needs a selection and distance 0.1-50";
+        else selectWithin(radius, molecules, keep);
       } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
         //  The first atom of element A, as a click on it selects it.
         outcome = "FAIL: no such atom";

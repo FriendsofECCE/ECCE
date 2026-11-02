@@ -121,6 +121,22 @@ nothing selected, it applies to every atom. To draw the water as wireframe
 and keep the protein as it is, choose **Select Solvent**, then **Render >
 Style > Wireframe**.
 
+## Select within a distance
+
+**Edit > Select Within Distance...** extends a selection to nearby atoms.
+Select at least one atom first, then enter a centre-to-centre distance in
+Å (0.1–50, initially 3.5). The Builder remembers the distance after OK.
+An atom qualifies if it is at or within that distance of any originally
+selected atom. Periodic structures use the nearest periodic image.
+
+Choose **Atoms** to select qualifying atoms, or **Whole molecules** to
+include every atom in each qualifying bonded fragment, as in Select Molecule.
+Leave **Keep the original selection** checked to extend the selection;
+uncheck it to select only new neighbours, excluding the originally selected
+atoms even after whole-molecule expansion. For a hydration shell, select
+Na+ or Cl− and choose Whole molecules to include complete nearby waters.
+**OK** applies the selection as one undoable action; **Cancel** leaves it alone.
+
 ## Where the data is kept
 
 A structure opened from a file with **File > Open...** can be changed, and
