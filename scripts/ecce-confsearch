@@ -1,0 +1,291 @@
+#!/usr/bin/env python3
+"""ecce-confsearch: a simple conformer search with xtb, for flexible molecules.
+
+Random rotations about the rotatable single bonds, each start structure
+optimised with xtb, unique low-energy minima kept.  It needs only Python 3
+(standard library) and xtb, so it works where CREST is not installed.  The
+random seed is an argument and is printed, so a run can be repeated.
+
+gensub copies this file into the run directory of an xTB "Conformer search
+(simple)" job.  The ensemble is printed between ECCE-XTB-FRAME markers, the
+frame format of scripts/parsers/xtb.geomtrace, with "relative:" in the comment
+line, which stores it as GEOMTRACE + CONFREL like a CREST ensemble.
+"""
+import argparse
+import math
+import os
+import random
+import re
+import shlex
+import subprocess
+import sys
+from concurrent.futures import ThreadPoolExecutor
+
+HARTREE_KCAL = 627.5095
+
+RADII = {"H": 0.31, "B": 0.84, "C": 0.76, "N": 0.71, "O": 0.66, "F": 0.57,
+         "Si": 1.11, "P": 1.07, "S": 1.05, "Cl": 1.02, "Br": 1.20, "I": 1.39,
+         "Se": 1.20, "As": 1.19}
+# Valence of a saturated atom; a bond between two atoms below it, shorter
+# than a single bond, is a double bond and is not rotated.
+SATURATED = {"C": 4, "N": 3, "O": 2, "S": 2, "P": 3}
+
+
+def radius(el):
+    return RADII.get(el, 1.4)
+
+
+def read_xyz(path):
+    with open(path) as f:
+        lines = f.read().splitlines()
+    n = int(lines[0].split()[0])
+    els, xyz = [], []
+    for ln in lines[2:2 + n]:
+        p = ln.split()
+        els.append(p[0].capitalize())
+        xyz.append([float(p[1]), float(p[2]), float(p[3])])
+    return els, xyz
+
+
+def dist(a, b):
+    return math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(3)))
+
+
+def bonds_of(els, xyz):
+    n = len(els)
+    nb = [set() for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            if dist(xyz[i], xyz[j]) < 1.2 * (radius(els[i]) + radius(els[j])):
+                nb[i].add(j)
+                nb[j].add(i)
+    return nb
+
+
+def side_of(nb, a, b):
+    """Atoms reached from b without crossing the bond a-b; None in a ring."""
+    seen = {b}
+    todo = [b]
+    while todo:
+        k = todo.pop()
+        for m in nb[k]:
+            if k == b and m == a:
+                continue
+            if m == a:
+                return None
+            if m not in seen:
+                seen.add(m)
+                todo.append(m)
+    return seen
+
+
+def angle(xyz, i, j, k):
+    u = [xyz[i][x] - xyz[j][x] for x in range(3)]
+    v = [xyz[k][x] - xyz[j][x] for x in range(3)]
+    c = sum(u[x] * v[x] for x in range(3)) / (math.hypot(*u) * math.hypot(*v))
+    return math.degrees(math.acos(max(-1.0, min(1.0, c))))
+
+
+def rotatable(els, xyz, nb):
+    heavy = lambda i: els[i] != "H"
+    out = []
+    for a in range(len(els)):
+        for b in nb[a]:
+            if b < a or not heavy(a) or not heavy(b):
+                continue
+            ha = [k for k in nb[a] if heavy(k) and k != b]
+            hb = [k for k in nb[b] if heavy(k) and k != a]
+            if not ha or not hb:
+                continue
+            unsat = all(len(nb[k]) < SATURATED.get(els[k], 99) for k in (a, b))
+            if unsat and dist(xyz[a], xyz[b]) < 0.92 * (radius(els[a]) + radius(els[b])):
+                continue
+            # a linear end (sp) has no torsion to sample
+            if any(len(nb[k]) == 2 and angle(xyz, next(iter(nb[k] - {o})), k, o) > 165
+                   for k, o in ((a, b), (b, a))):
+                continue
+            side = side_of(nb, a, b)
+            if side is None:
+                continue
+            out.append((a, b, side))
+    return out
+
+
+def rotate(xyz, a, b, side, ang):
+    ax = [xyz[b][i] - xyz[a][i] for i in range(3)]
+    ln = math.sqrt(sum(c * c for c in ax))
+    ax = [c / ln for c in ax]
+    c, s = math.cos(ang), math.sin(ang)
+    o = xyz[a]
+    for k in side:
+        p = [xyz[k][i] - o[i] for i in range(3)]
+        d = sum(p[i] * ax[i] for i in range(3))
+        cr = [ax[1] * p[2] - ax[2] * p[1], ax[2] * p[0] - ax[0] * p[2],
+              ax[0] * p[1] - ax[1] * p[0]]
+        xyz[k] = [o[i] + p[i] * c + cr[i] * s + ax[i] * d * (1 - c) for i in range(3)]
+
+
+def topo_dist(nb):
+    n = len(nb)
+    out = []
+    for s in range(n):
+        d = {s: 0}
+        todo = [s]
+        for k in todo:
+            for m in nb[k]:
+                if m not in d:
+                    d[m] = d[k] + 1
+                    todo.append(m)
+        out.append(d)
+    return out
+
+
+def clashes(els, xyz, td):
+    n = len(els)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if td[i].get(j, 99) >= 4 and \
+               dist(xyz[i], xyz[j]) < 0.75 * (radius(els[i]) + radius(els[j])):
+                return True
+    return False
+
+
+def jacobi_max_eig(m):
+    """Largest eigenvalue of a symmetric 4x4 matrix."""
+    a = [row[:] for row in m]
+    for _ in range(60):
+        off = sum(a[i][j] ** 2 for i in range(4) for j in range(i + 1, 4))
+        if off < 1e-22:
+            break
+        for p in range(3):
+            for q in range(p + 1, 4):
+                if abs(a[p][q]) < 1e-30:
+                    continue
+                th = (a[q][q] - a[p][p]) / (2 * a[p][q])
+                t = (1 if th >= 0 else -1) / (abs(th) + math.sqrt(th * th + 1))
+                c = 1 / math.sqrt(t * t + 1)
+                s = t * c
+                for k in range(4):
+                    kp, kq = a[k][p], a[k][q]
+                    a[k][p], a[k][q] = c * kp - s * kq, s * kp + c * kq
+                for k in range(4):
+                    pk, qk = a[p][k], a[q][k]
+                    a[p][k], a[q][k] = c * pk - s * qk, s * pk + c * qk
+    return max(a[i][i] for i in range(4))
+
+
+def rmsd(p, q):
+    """RMSD after the best proper rotation (Horn's quaternion method)."""
+    n = len(p)
+    cp = [sum(x[i] for x in p) / n for i in range(3)]
+    cq = [sum(x[i] for x in q) / n for i in range(3)]
+    p = [[x[i] - cp[i] for i in range(3)] for x in p]
+    q = [[x[i] - cq[i] for i in range(3)] for x in q]
+    g = sum(c * c for x in p for c in x) + sum(c * c for x in q for c in x)
+    s = [[sum(p[k][i] * q[k][j] for k in range(n)) for j in range(3)] for i in range(3)]
+    nm = [[s[0][0] + s[1][1] + s[2][2], s[1][2] - s[2][1], s[2][0] - s[0][2], s[0][1] - s[1][0]],
+          [s[1][2] - s[2][1], s[0][0] - s[1][1] - s[2][2], s[0][1] + s[1][0], s[2][0] + s[0][2]],
+          [s[2][0] - s[0][2], s[0][1] + s[1][0], -s[0][0] + s[1][1] - s[2][2], s[1][2] + s[2][1]],
+          [s[0][1] - s[1][0], s[2][0] + s[0][2], s[1][2] + s[2][1], -s[0][0] - s[1][1] + s[2][2]]]
+    return math.sqrt(max(0.0, (g - 2 * jacobi_max_eig(nm)) / n))
+
+
+def write_xyz(path, els, xyz, title):
+    with open(path, "w") as f:
+        f.write("%d\n%s\n" % (len(els), title))
+        for e, x in zip(els, xyz):
+            f.write("%-2s %14.8f %14.8f %14.8f\n" % (e, x[0], x[1], x[2]))
+
+
+def optimise(job):
+    idx, els, xyz, args = job
+    d = "confsearch_%03d" % idx
+    os.makedirs(d, exist_ok=True)
+    write_xyz(os.path.join(d, "start.xyz"), els, xyz, "sample %d" % idx)
+    env = dict(os.environ, OMP_NUM_THREADS="1", MKL_NUM_THREADS="1",
+               OMP_STACKSIZE=os.environ.get("OMP_STACKSIZE", "1G"))
+    with open(os.path.join(d, "xtb.out"), "w") as out:
+        subprocess.call([args.xtb, "start.xyz"] + shlex.split(args.opts),
+                        cwd=d, env=env, stdout=out, stderr=subprocess.STDOUT)
+    try:
+        text = open(os.path.join(d, "xtb.out")).read()
+        if "GEOMETRY OPTIMIZATION CONVERGED" not in text:
+            return idx, None
+        lines = open(os.path.join(d, "xtbopt.xyz")).read().splitlines()
+        e = float(re.search(r"energy:\s*(-?\d+\.\d+)", lines[1]).group(1))
+        return idx, (e,) + read_xyz(os.path.join(d, "xtbopt.xyz"))
+    except (OSError, AttributeError, ValueError, IndexError):
+        return idx, None
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("xyz")
+    ap.add_argument("--xtb", required=True)
+    ap.add_argument("--opts", default="--opt")
+    ap.add_argument("--samples", type=int, default=30)
+    ap.add_argument("--seed", type=int, default=682)
+    ap.add_argument("--ewin", type=float, default=6.0)
+    ap.add_argument("--rmsd", type=float, default=0.25)
+    ap.add_argument("--procs", type=int, default=1)
+    args = ap.parse_args()
+
+    els, xyz0 = read_xyz(args.xyz)
+    nb = bonds_of(els, xyz0)
+    td = topo_dist(nb)
+    tors = rotatable(els, xyz0, nb)
+    rng = random.Random(args.seed)
+    print("ecce-confsearch: %d atoms, %d rotatable bonds, %d samples, seed %d, "
+          "energy window %.2f kcal/mol, heavy-atom RMSD threshold %.2f A"
+          % (len(els), len(tors), args.samples, args.seed, args.ewin, args.rmsd))
+    print("ecce-confsearch: xtb options: %s" % args.opts)
+
+    starts = [list(map(list, xyz0))]
+    for _ in range(args.samples - 1 if tors else 0):
+        for _try in range(100):
+            c = list(map(list, xyz0))
+            for a, b, side in tors:
+                rotate(c, a, b, side, rng.uniform(0, 2 * math.pi))
+            if not clashes(els, c, td):
+                starts.append(c)
+                break
+
+    jobs = [(i, els, s, args) for i, s in enumerate(starts)]
+    with ThreadPoolExecutor(max_workers=max(1, args.procs)) as ex:
+        results = sorted(ex.map(optimise, jobs))
+
+    found = []
+    for idx, r in results:
+        if r is None:
+            print("ecce-confsearch: sample %d did not converge, dropped" % idx)
+        elif bonds_of(r[1], r[2]) != nb:
+            print("ecce-confsearch: sample %d changed its bonds, dropped" % idx)
+        else:
+            found.append(r)
+    if not found:
+        print("ecce-confsearch: no sample optimised; the xtb output is in "
+              "the confsearch_* directories")
+        sys.exit(1)
+    found.sort(key=lambda r: r[0])
+    emin = found[0][0]
+    hv = [i for i, e in enumerate(els) if e != "H"]
+    kept = []
+    for e, _, xyz in found:
+        if (e - emin) * HARTREE_KCAL > args.ewin:
+            break
+        hp = [xyz[i] for i in hv]
+        if all(rmsd(hp, [k[1][i] for i in hv]) > args.rmsd for k in kept):
+            kept.append((e, xyz))
+    print("ecce-confsearch: %d of %d optimised samples are unique within the window"
+          % (len(kept), len(found)))
+    for n, (e, xyz) in enumerate(kept, 1):
+        print("ECCE-XTB-FRAME %d %d" % (n, len(els)))
+        print("energy: %.8f relative: %.4f" % (e, (e - emin) * HARTREE_KCAL))
+        for el, x in zip(els, xyz):
+            print("%-2s %14.8f %14.8f %14.8f" % (el, x[0], x[1], x[2]))
+        print("ECCE-XTB-ENDFRAME")
+    print("normal termination of xtb")
+
+
+if __name__ == "__main__":
+    main()

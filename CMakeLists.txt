@@ -1292,6 +1292,12 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
         DESTINATION scripts
         COMPONENT client)
 
+# scripts/ecce-confsearch: gensub copies it into the run directory of an xTB
+# "Conformer search (simple)" job.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-confsearch
+        DESTINATION scripts
+        COMPONENT client)
+
 # scripts/minff_topology.py: the GROMACS Prepare editor's "Mineral (MINFF)"
 # Build button runs it as $ECCE_HOME/scripts/minff_topology.py on the client.
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/minff_topology.py)
@@ -3695,6 +3701,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_crest PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #682: xTB "Conformer search (simple)" of n-butane and pentane through
+  # Launch; skipped (77) without xtb.
+  add_test(NAME launch_confsearch
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/confsearch_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_confsearch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # #728: ecce-mlp with the mock calculator through Launch; skipped (77)
   # without ASE.
   add_test(NAME launch_mlp
