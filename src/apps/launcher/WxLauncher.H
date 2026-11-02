@@ -129,6 +129,7 @@ class WxLauncher : public WxLauncherGUI,
         bool getAuthorization(AuthEvent& event);
         void setProcessors(int n);
         void setThreads(int n);
+        void setWallTime(long minutes);
         void stageLaunchMenuItemClickCB(wxCommandEvent& event);
         void finishLaunchMenuItemClickCB(wxCommandEvent& event);
         void quitMenuItemClickCB(wxCommandEvent& event);
@@ -262,6 +263,7 @@ class WxLauncher : public WxLauncherGUI,
         wxSpinCtrl          *p_threadsSpin;
         ewxStaticText       *p_ranksInfoText;
         ewxStaticText       *p_memNodeText;
+        ewxStaticText       *p_bookText;
         bool                 p_localCores;   // the machine is this computer
         ewxPanel            *p_priorityPanel;
         ewxChoice           *p_priorityChoice;

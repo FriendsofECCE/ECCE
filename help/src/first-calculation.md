@@ -179,6 +179,13 @@ can still be launched. With more than one thread the job script requests
 `OMP_NUM_THREADS`, and a CP2K job runs the OpenMP binary `cp2k.psmp` in
 place of `cp2k.popt`. The value is saved with the calculation.
 
+Under **Threads per rank** the Launcher shows **Books N core-h (cores x wall
+time)**, the cores times the **Wall Time Limit**, and updates it as you change
+either. Queues that book whole nodes are not known to the machine entry, so
+the figure counts the cores as you set them. The calculation summary then
+shows **Booked** (the same figure) and, once the job has run, **Used**: the
+cores times the time the job ran.
+
 **Memory Limit:** is entered in GB for every code and is a request per node;
 the Launcher converts it to the unit the scheduler wants when it writes the
 job script (for Slurm, `--mem`). When the queue has a memory limit, the

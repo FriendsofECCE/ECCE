@@ -271,6 +271,10 @@ expect memrange ''
 expect threads 1
 expect ranksinfo 'MPI ranks: 1 (1 per node)'
 procs 8
+walltime 120
+expect booked 'Books 16.0 core-h (cores \u00d7 wall time)'
+walltime 1440
+expect booked 'Books 192 core-h (cores \u00d7 wall time)'
 threads 2
 expect threads 2
 expect ranksinfo 'MPI ranks: 4 (4 per node)'

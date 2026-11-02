@@ -33,6 +33,7 @@
 #include "util/STLUtil.H"
 #include "util/StringConverter.H"
 #include "util/CpuCores.H"
+#include "dsm/LaunchInfoRows.H"
 #include "util/StringTokenizer.H"
 #include "util/TempStorage.H"
 #include "util/TypedFile.H"
@@ -216,6 +217,7 @@ void WxLauncher::createControls()
     p_threadsSpin           = NULL;
     p_ranksInfoText         = NULL;
     p_memNodeText           = NULL;
+    p_bookText              = NULL;
     p_priorityPanel         =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_PRIORITY));
     p_priorityChoice        =       (ewxChoice *)(FindWindow(ID_CHOICE_WXLAUNCHER_PRIORITY));
     p_priorityChoice->Append("Normal");
@@ -3635,6 +3637,9 @@ void WxLauncher::buildThreadsRow()
     p_memNodeText = new ewxStaticText(p_threadsPanel, wxID_STATIC, "",
                                       wxDefaultPosition, wxDefaultSize, 0);
     col->Add(p_memNodeText, 0, wxLEFT|wxTOP, 3);
+    p_bookText = new ewxStaticText(p_threadsPanel, wxID_STATIC, "",
+                                   wxDefaultPosition, wxDefaultSize, 0);
+    col->Add(p_bookText, 0, wxLEFT|wxTOP, 3);
     p_threadsPanel->SetSizer(col);
 
     sizer->Add(p_threadsPanel, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
@@ -3709,8 +3714,26 @@ void WxLauncher::refreshRanksInfo()
         note = "Memory is per node.";
     p_memNodeText->SetLabel(note);
     p_memNodeText->Show(!note.empty());
+
+    //  What the queue is asked for. The machine entry does not say whether a
+    //  queue books whole nodes, so this is the cores as set.
+    string booked;
+    if (p_slctPrefs->isOptionSupported("TL") && p_wallTimePanel->IsShown())
+        booked = LaunchInfoRows::bookedText(procs,
+                                            p_wallTimeEdit->getValue() * 60L);
+    p_bookText->SetLabel(booked.empty() ? string() :
+        "Books " + booked + " (cores \xC3\x97 wall time)");
+    p_bookText->Show(!booked.empty());
     p_threadsPanel->Layout();
     this->refreshCoresWarning();
+}
+
+
+void WxLauncher::setWallTime(long minutes)
+{
+    p_wallTimeEdit->setValue(minutes);
+    p_prefsEdited = true;
+    this->refreshLaunchControls();
 }
 
 
@@ -3781,6 +3804,8 @@ string WxLauncher::hookGet(const string& what)
         return StringConverter::toString(p_threadsSpin->GetValue());
     if (what == "ranksinfo")
         return p_threadsPanel->IsShown() ? (string)p_ranksInfoText->GetLabel() : "";
+    if (what == "booked")
+        return p_bookText->IsShown() ? (string)p_bookText->GetLabel() : "";
     if (what == "memnode")
         return p_memNodeText->IsShown() ? (string)p_memNodeText->GetLabel() : "";
     if (what == "memory")

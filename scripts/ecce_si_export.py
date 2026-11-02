@@ -14,13 +14,14 @@ numbers of different codes and methods are never combined.
 
 Usage: ecce_si_export.py <calc>... -o out.xyz [--table csv|latex]
        [--include-excluded] [--table-file FILE]      (default: the .xyz name with .csv / .tex)
-       ecce_si_export.py --checks csv|latex <calc>... [-o FILE]   (#615)
+       ecce_si_export.py --checks csv|latex <calc-or-folder>... [-o FILE] [--total]   (#615, #627)
 
 --checks writes the Checks table instead: one row per calculation with the
 state, termination, optimisation and SCF convergence (from the stored
 ecce:progress snapshot), imaginary modes, <S^2> and its deviation from
 S(S+1), charge, multiplicity, method, basis, solvent, E, ZPE, G, the
-exclusion reason, and a "problems" column naming what looks wrong.  A value
+booked and used core-hours (cores x requested wall time; cores x the job's
+own start to end), the exclusion reason, and a "problems" column naming what looks wrong.  A value
 that is not stored is "-", never 0.
 """
 import argparse
@@ -104,6 +105,7 @@ def read_calc(calc):
         xyz = frame
     meta = os.path.join(calc, ".ecce-meta")
     mult = MULT.get(_meta(meta, "spinmultiplicity").lower(), 1)
+    booked, used = core_hours(meta)
     basis = _meta(os.path.join(calc, "Parameters", ".ecce-meta"), "name",
                   "BasisSet.ecce_basisset")
     theory = _meta(meta, "theory")
@@ -128,7 +130,7 @@ def read_calc(calc):
 CHECK_FIELDS = ["name", "state", "normal_termination", "opt_converged",
                 "scf_converged", "imaginary_modes", "S2", "S2_deviation",
                 "charge", "multiplicity", "method", "basis", "solvent",
-                "E_el", "ZPE", "G", "excluded", "problems"]
+                "E_el", "ZPE", "G", "booked_coreh", "used_coreh", "excluded", "problems"]
 S2_TOL = 0.1
 
 
@@ -163,6 +165,72 @@ def _converged(stage, complete, plain_ok=True):
         if tot and met == tot:
             return "yes"
     return "-"
+
+
+def _parse_date(text):
+    """ecce:startdate / completiondate ("Mon, 02 Nov 2026 04:17:30 GMT") -> epoch."""
+    from email.utils import parsedate_tz, mktime_tz
+    t = parsedate_tz(text) if text else None
+    return mktime_tz(t) if t else None
+
+
+def core_hours(meta):
+    """-> (booked, used) core-hours, each a float or None when not stored.
+
+    Booked is cores x the requested wall time ("D H:M"); used is cores x the
+    job's own start to end.  A machine entry does not say whether a queue
+    books whole nodes, so cores are taken as set (the same rule as
+    include/dsm/LaunchInfoRows.H, which the Launch Info rows use).
+    """
+    try:
+        cores = int(_meta(meta, "launch_totalprocs") or 0)
+    except ValueError:
+        cores = 0
+    booked = used = None
+    m = re.match(r"^\s*(\d+)\s+(\d+):(\d+)\s*$", _meta(meta, "launch_maxwall"))
+    if cores > 0 and m:
+        wall = (int(m[1]) * 24 + int(m[2])) * 3600 + int(m[3]) * 60
+        if wall > 0:
+            booked = cores * wall / 3600.0
+    s, e = _parse_date(_meta(meta, "startdate")), _parse_date(_meta(meta, "completiondate"))
+    if cores > 0 and s and e and e >= s:
+        used = cores * (e - s) / 3600.0
+    return booked, used
+
+
+def _coreh(v):
+    return "-" if v is None else "%.1f" % v
+
+
+def is_calc(path):
+    return os.path.isdir(os.path.join(path, "Parameters")) or \
+        bool(_meta(os.path.join(path, ".ecce-meta"), "state"))
+
+
+def expand_calcs(paths):
+    """A folder stands for the calculations below it."""
+    out = []
+    for p in paths:
+        if is_calc(p) or not os.path.isdir(p):
+            out.append(p)
+            continue
+        for d, subs, _ in os.walk(p):
+            subs[:] = sorted(x for x in subs if not x.startswith("."))
+            for x in subs:
+                q = os.path.join(d, x)
+                if is_calc(q):
+                    out.append(q)
+    return out
+
+
+def total_row(recs):
+    """Sum of the core-hour columns; a calculation without a value adds nothing."""
+    row = {k: "-" for k in CHECK_FIELDS}
+    row["name"] = "total"
+    for k in ("booked_coreh", "used_coreh"):
+        vals = [float(r[k]) for r in recs if r[k] != "-"]
+        row[k] = "%.1f" % sum(vals) if vals else "-"
+    return row
 
 
 def read_checks(calc):
@@ -205,6 +273,7 @@ def read_checks(calc):
         prob.append("%s imaginary mode(s), expected %d" % (nimag, 1 if ts else 0))
     if dev != "-" and abs(float(dev)) > S2_TOL:
         prob.append("<S2> deviates %s" % dev)
+    booked, used = core_hours(meta)
     basis = _meta(os.path.join(calc, "Parameters", ".ecce-meta"), "name",
                   "BasisSet.ecce_basisset")
     return {
@@ -215,6 +284,7 @@ def read_checks(calc):
         "method": _meta(meta, "theory") or "-", "basis": basis or "-",
         "solvent": _value_text(os.path.join(calc, "Props", "SOLVMODEL")) or "-",
         "E_el": prop("TE"), "ZPE": prop("EZEROPT"), "G": prop("EGIBBS"),
+        "booked_coreh": _coreh(booked), "used_coreh": _coreh(used),
         "excluded": _meta(meta, "excluded"), "problems": "; ".join(prob),
     }
 
@@ -223,10 +293,10 @@ def checks_latex(recs):
     head = ["Name", "State", "Normal", "Opt.", "SCF", "Imag.", "$\\langle S^2\\rangle$",
             "Dev.", "Charge", "Mult.", "Method", "Basis", "Solvent",
             "$E$ (E$_\\mathrm{h}$)", "ZPE (E$_\\mathrm{h}$)", "$G$ (E$_\\mathrm{h}$)",
-            "Excluded", "Problems"]
+            "Booked (core-h)", "Used (core-h)", "Excluded", "Problems"]
     rows = [" & ".join(_tex(r[k]) for k in CHECK_FIELDS) + r" \\" for r in recs]
     return "\n".join([r"\begin{tabular}{" + "l" * 2 + "c" * 4 + "r" * 4 +
-                      "lll" + "r" * 3 + "ll}", r"\hline",
+                      "lll" + "r" * 5 + "ll}", r"\hline",
                       " & ".join(head) + r" \\", r"\hline"] + rows +
                      [r"\hline", r"\end{tabular}"]) + "\n"
 
@@ -275,6 +345,8 @@ def main(argv=None):
     ap.add_argument("-o", "--output")
     ap.add_argument("--checks", choices=["csv", "latex"],
                     help="write the Checks table (#615) instead of the xyz file")
+    ap.add_argument("--total", action="store_true",
+                    help="with --checks: add a last row with the summed core-hours")
     ap.add_argument("--table", choices=["csv", "latex"])
     ap.add_argument("--table-file")
     ap.add_argument("--include-excluded", action="store_true",
@@ -282,7 +354,9 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.checks:
         try:
-            recs = [read_checks(c) for c in a.calcs]
+            recs = [read_checks(c) for c in expand_calcs(a.calcs)]
+            if a.total:
+                recs.append(total_row(recs))
         except (OSError, ValueError) as e:
             print("ecce-si-export: %s" % e, file=sys.stderr)
             return 1
