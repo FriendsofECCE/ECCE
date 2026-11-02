@@ -1937,10 +1937,10 @@
     <SortPriority>70</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>svg/candidates/codes/xtb.svg</Normal>
-      <Selected>svg/candidates/codes/xtb.svg</Selected>
-      <Expanded>svg/candidates/codes/xtb.svg</Expanded>
-      <SelectedExpanded>svg/candidates/codes/xtb.svg</SelectedExpanded>
+      <Normal>svg/candidates/codes/crest.svg</Normal>
+      <Selected>svg/candidates/codes/crest.svg</Selected>
+      <Expanded>svg/candidates/codes/crest.svg</Expanded>
+      <SelectedExpanded>svg/candidates/codes/crest.svg</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
@@ -2217,10 +2217,10 @@
     <SortPriority>70</SortPriority>
     <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
     <Icons>
-      <Normal>svg/candidates/codes/xtb.svg</Normal>
-      <Selected>svg/candidates/codes/xtb.svg</Selected>
-      <Expanded>svg/candidates/codes/xtb.svg</Expanded>
-      <SelectedExpanded>svg/candidates/codes/xtb.svg</SelectedExpanded>
+      <Normal>svg/candidates/codes/mlp.svg</Normal>
+      <Selected>svg/candidates/codes/mlp.svg</Selected>
+      <Expanded>svg/candidates/codes/mlp.svg</Expanded>
+      <SelectedExpanded>svg/candidates/codes/mlp.svg</SelectedExpanded>
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
