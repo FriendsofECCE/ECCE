@@ -40,6 +40,18 @@ host instead of one each, across all sessions of the state directory. Unset, inv
   `flock` on `<hash>.lock` (the base socket's, whatever overflow master is
   in use). A password the Launcher or AuthCache already has is passed once
   through a FIFO, to the password prompt only (0 dialogs).
+  The password that
+  logged in is kept as `<hash>.pw` (0600) in the control directory **only
+  when that is under `$XDG_RUNTIME_DIR`** (tmpfs; macOS `$TMPDIR`), never on
+  the `~/.ECCE/cm` fallback, and **never in AuthCache's session store**
+  (`brokerCredential` would take an `ssh://` tuple as the broker login).
+  `openMaster` offers the caller's password, then `.pw`, then the dialog;
+  askpass reports `answer`, `fed`, `asked` and `refused` in the state
+  directory (inside the control directory). A stored password ssh refused is
+  deleted and `forgetCached()` makes RCommand drop its AuthCache copy; the
+  dialog follows in the same ssh run. `loginPrompted()` is true only when a
+  dialog was shown. Not done: matching the FIFO to the jump host's prompt
+  (ssh may print HostName, not the alias).
   **N processes that lose the master together cost one dialog, whether or
   not it is answered.** The holder writes `<hash>.outcome` (epoch time and
   `ok|cancelled|failed|timeout`) before releasing the lock; a waiter that
