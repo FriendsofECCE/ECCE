@@ -1,0 +1,19 @@
+title:
+type: molecule
+fragment_attributes:
+  point_group: Td
+end_fragment_attributes:
+num_atoms: 5
+atom_info: symbol cart
+atom_list:
+C 0.000000 0.000000 0.000000
+H 0.627580 0.627580 0.627580
+H -0.627580 -0.627580 0.627580
+H -0.627580 0.627580 -0.627580
+H 0.627580 -0.627580 -0.627580
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0

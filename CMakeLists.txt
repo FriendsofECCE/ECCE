@@ -2316,6 +2316,18 @@ add_executable(thermo_test tests/thermo/thermo_test.C
   src/tdat/thermo/ThermoChem.C)
 target_link_libraries(thermo_test PRIVATE ecceutil)
 add_test(NAME thermo COMMAND thermo_test)
+# gatherThermoInput reads real stored calculations through FileEDSI (#692):
+# the mass, rotational constants, linear flag and symmetry number come from
+# the stored geometry and point group, never from the test.
+add_executable(thermo_gather_test tests/thermo/thermo_gather_test.C
+  src/apps/thermo/ThermoGather.C src/tdat/thermo/ThermoChem.C)
+target_include_directories(thermo_gather_test PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/apps/thermo ${XercesC_INCLUDE_DIRS})
+target_link_libraries(thermo_gather_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+add_test(NAME thermo_gather COMMAND thermo_gather_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(thermo_gather PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=thermo;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/thermo-gather-home")
 # Recipes (#710): parser, rules and the key-data numbers (no wx)
 add_executable(recipe_test tests/recipes/recipe_test.C
   src/apps/organizer/Recipe.C src/apps/organizer/KeyData.C

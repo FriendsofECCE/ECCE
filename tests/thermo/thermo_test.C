@@ -215,6 +215,23 @@ int main()
           "Truhlar raises ZPE + thermal energy by the 30->100 cm-1 amount");
   }
 
+  // Head-Gordon quasi-RRHO enthalpy for one 50 cm-1 mode, worked out here
+  // by hand: w = 1 / (1 + (w0/nu)^4) with w0 = 100 cm-1 and alpha = 4, and
+  // the damped thermal energy is w*hc nu/(exp(hc nu/kT)-1) + (1-w)*kT/2.
+  {
+    const double nu = 50.0, T = 298.15, w0 = 100.0;
+    const double h = 6.62607015e-34, c = 2.99792458e10, k = 1.380649e-23;
+    const double EH = 4.3597447222071e-18;
+    const double w = 1.0 / (1.0 + std::pow(w0 / nu, 4.0));
+    const double x = h * c * nu / (k * T);
+    const double expected = w * (h * c * nu / (std::exp(x) - 1.0)) / EH +
+                            (1.0 - w) * 0.5 * k * T / EH;
+    const ThermoResult r = computeThermo(singleMode(nu), T, THERMO_GAS_1ATM,
+                                         THERMO_HEADGORDON_QRRHO);
+    check(near(r.thermalVib, expected, 1e-6),
+          "Head-Gordon damped enthalpy matches the hand formula");
+  }
+
   printf("%d failure(s)\n", failures);
   return failures ? 1 : 0;
 }
