@@ -128,6 +128,7 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       void build();
       void compute(bool coarse = false, bool progressInPanel = false);
       void syncControls();
+      void updatePrincipalPlanes();
       bool currentPlane(DensityPlane::Plane& plane, std::string& why);
       void onChanged();
       void onPicked();
@@ -159,6 +160,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
 
       wxChoice *p_show, *p_spin, *p_atomA, *p_atomB, *p_atomC;
       wxRadioBox *p_plane;
+      wxChoice *p_principal;
+      std::vector<DensityPlane::Plane> p_principalPlanes;
       wxTextCtrl *p_offsetField;
       wxButton *p_resetOffset;
       wxStaticText *p_labelA, *p_labelB, *p_labelC, *p_caption;

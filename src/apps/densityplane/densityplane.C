@@ -33,7 +33,7 @@ using namespace DensityPlane;
 static void usage()
 {
   cerr << "usage: densityplane CALC [--mo N|homo|lumo] [--beta]\n"
-          "          [--plane molecular | --plane atoms A B C | --plane axial A B]\n"
+          "          [--plane molecular|principal1|principal2|principal3 | --plane atoms A B C | --plane axial A B]\n"
           "          [--step A] [--margin A] [--csv FILE] [--levels]\n"
           "          [--offset A] [--sum] [--view RX RY RZ UX UY UZ]\n"
           "       densityplane CALC --point X Y Z [--mo N]\n"
@@ -53,6 +53,7 @@ int main(int argc, char **argv)
   string target, mo, csvFile, pointsFile;
   bool beta = false, levels = false;
   PlaneKind kind = MOLECULAR;
+  int principal = -1;
   int atoms[3] = { -1, -1, -1 };
   double step = 0.05, margin = 1.5, offset = 0.0;
   bool sum = false, viewPlane = false;
@@ -78,7 +79,10 @@ int main(int argc, char **argv)
     else if (a == "--plane" && i+1 < argc) {
       string k = argv[++i];
       int need = 0;
+      principal = -1;
       if (k == "molecular") kind = MOLECULAR;
+      else if (k == "principal1" || k == "principal2" || k == "principal3")
+        principal = k.back() - '1';
       else if (k == "atoms") { kind = THREE_ATOMS; need = 3; }
       else if (k == "axial") { kind = AXIAL; need = 2; }
       else { usage(); return 2; }
@@ -147,9 +151,18 @@ int main(int argc, char **argv)
 
   Plane plane;
   string why;
-  if (viewPlane ? !makeViewPlane(ev.coordsAng, viewAxes, viewAxes + 3, plane, why)
-                : !makePlane(kind, ev.coordsAng, ev.atomLabels(), atoms[0],
-                             atoms[1], atoms[2], plane, why)) {
+  bool made;
+  if (!viewPlane && principal >= 0) {
+    const vector<Plane> planes = principalPlanes(ev.coordsAng);
+    made = !planes.empty();
+    if (made) plane = planes[principal];
+    else why = "Principal planes need at least three non-collinear atoms.";
+  } else {
+    made = viewPlane ? makeViewPlane(ev.coordsAng, viewAxes, viewAxes + 3, plane, why)
+                    : makePlane(kind, ev.coordsAng, ev.atomLabels(), atoms[0],
+                                atoms[1], atoms[2], plane, why);
+  }
+  if (!made) {
     cerr << "densityplane: " << why << endl;
     return 1;
   }
