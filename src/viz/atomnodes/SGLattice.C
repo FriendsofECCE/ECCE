@@ -144,6 +144,33 @@ void SGLattice::GLRender(SoGLRenderAction *action)
 }
 
 
+bool SGLattice::labelPosition(int i, double xyz[3])
+{
+   if (p_noLabels || i < 0 || i > 2) return false;
+   MPoint& p = (i == 0 ? p_a1str : (i == 1 ? p_a2str : p_a3str));
+   const float off = 0.05f;  // as in GLRender
+   xyz[0] = p.x() - off;
+   xyz[1] = p.y() - off;
+   xyz[2] = p.z() - off;
+   return true;
+}
+
+
+bool SGLattice::drawnBounds(double lo[3], double hi[3])
+{
+   int n = p_line->vertex.getNum();
+   if (n < 1) return false;
+   for (int k = 0; k < 3; k++) lo[k] = hi[k] = p_line->vertex[0][k];
+   for (int i = 1; i < n; i++)
+      for (int k = 0; k < 3; k++) {
+         double v = p_line->vertex[i][k];
+         if (v < lo[k]) lo[k] = v;
+         if (v > hi[k]) hi[k] = v;
+      }
+   return true;
+}
+
+
 void SGLattice::setLattice(LatticeDef *lattice)
 {
 

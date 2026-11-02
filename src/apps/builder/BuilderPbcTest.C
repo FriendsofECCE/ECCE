@@ -20,6 +20,8 @@
 
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "viz/SGLattice.H"
+#include "viz/TranslateCmd.H"
 #include "wxviz/ViewerEvtHandler.H"
 
 #include "wxviz/SceneScript.H"
@@ -269,6 +271,17 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     int vx = 0, vy = 0;
     scroll->GetVirtualSize(&vx, &vy);
     out << "hscroll " << (vx > width ? 1 : 0) << "\n";
+    return true;
+  }
+
+  //  "translate X Y Z": move every atom, as the Translate panel does.
+  if (c == "translate" && w.size() == 4) {
+    Command *cmd = new TranslateCmd("Translate", getSG());
+    cmd->getParameter("x")->setDouble(atof(w[1].c_str()));
+    cmd->getParameter("y")->setDouble(atof(w[2].c_str()));
+    cmd->getParameter("z")->setDouble(atof(w[3].c_str()));
+    execute(cmd);
+    settle(200);
     return true;
   }
 
@@ -547,6 +560,20 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
       int r1, r2, r3;
       lattice->getReplicationFactors(r1, r2, r3);
       out << "replication " << r1 << " " << r2 << " " << r3 << "\n";
+      out << "latticecorner " << origin.x() << " " << origin.y() << " "
+          << origin.z() << "\n";
+      // Where the a/b/c labels are drawn, for the label-inside-the-cell test.
+      SGLattice *sgl = dynamic_cast<SGLattice*>(getSG()->findNode("lattice"));
+      double lo[3], hi[3];
+      if (sgl && sgl->drawnBounds(lo, hi))
+        out << "latticedrawn " << lo[0] << " " << lo[1] << " " << lo[2] << " "
+            << hi[0] << " " << hi[1] << " " << hi[2] << "\n";
+      for (int k = 0; sgl && k < 3; k++) {
+        double q[3];
+        if (sgl->labelPosition(k, q))
+          out << "latticelabel " << k << " " << q[0] << " " << q[1] << " "
+              << q[2] << "\n";
+      }
     }
     for (int i = 0; i < n; i++) {
       TAtm *a = frag->atomRef(i);

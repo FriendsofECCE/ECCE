@@ -2809,6 +2809,9 @@ bool Builder::execute(Command *cmd, bool batch)
    //   Event event("SelectionChanged");
    //   EventDispatcher::getDispatcher().publish(event);
 
+   // Any edit may move the atoms, and the cell is drawn around them.
+   if (didit && getSG()) getSG()->touchLattice();
+
    if (!batch) {
       SGFragment *frag = NULL;
       if (getSG() && (frag = getSG()->getFragment()))
@@ -6340,7 +6343,7 @@ void Builder::updatePropertyMenus()
             w[0] == "undo" || w[0] == "redo" ||
             w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip" ||
             w[0] == "importfile" || w[0] == "tooldock" || w[0] == "collapse" ||
-            w[0] == "measure")
+            w[0] == "measure" || w[0] == "translate")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside
         //  the property panes that are shown, -> <name>.txt.
