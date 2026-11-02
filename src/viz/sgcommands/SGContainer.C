@@ -1895,9 +1895,9 @@ void SGContainer::touchLattice()
    SGLattice *sgl = (SGLattice*)findNode("lattice");
    if (frag && lattice && sgl) {
 
-      int na1, na2, na3;
-      lattice->getReplicationFactors(na1, na2, na3);
-      if (na1 == 1 && na2 == 1 && na3 == 1) {
+      // The atoms are the base cell, so its centre is the fragment centre
+      // at any replication; edges and labels must follow the atoms.
+      {
          int natoms = frag->numAtoms();
          double cmx = 0.0;
          double cmy = 0.0;
@@ -1916,9 +1916,11 @@ void SGContainer::touchLattice()
                cmz += weight*coords[2];
             }
          }
-         cmx = cmx/mtot;
-         cmy = cmy/mtot;
-         cmz = cmz/mtot;
+         if (mtot > 0.0) {
+            cmx = cmx/mtot;
+            cmy = cmy/mtot;
+            cmz = cmz/mtot;
+         }
          lattice->setFragCenter(cmx,cmy,cmz);
       }
       // Could just do sgl->touch() if we overload to redo setLattice??
