@@ -62,6 +62,26 @@ configuration is current and the run wanders; UHF/UKS of Sc, Fe and Co fail
 too. `tests/qm/roks_atoms_test.py` therefore covers H-Ar, Ca, Cr and Cu,
 plus NO, O2 and CH2 pinned to the aufbau energies. It runs single-threaded,
 because two-thread XC sums made the O UKS reference fail now and then.
-O ROKS at aug-cc-pVTZ still stops at 150 cycles on one thread: it reaches the
-right energy with |grad| 2.1e-7 (dE 1e-12) by cycle 27 and then drifts on the
-pruned grid.
+
+## Energy-plateau convergence (all SCF types)
+
+A non-spherical density on the pruned grid leaves the orbital gradient on a
+floor a little above `conv_grad` (O ROKS aug-cc-pVTZ: |grad| 2.1e-7, dE 1e-12
+from cycle 27), and DIIS then drifts until max_iter. `run_scf` therefore also
+accepts a run when five successive energies agree to `conv_energy` (four
+differences) and |grad| < 10 * `conv_grad`. Both thresholds scale with the
+input's `conv_energy`/`conv_grad`. Such a run writes `converged yes` as usual, adds
+`convergence_note SCF converged (energy stable to ...; gradient ... above the
+... target)` to the .qmout and `criterion=energy_plateau` to the progress
+line. `ecceqm.parse` and `JobProgress.C` key on `converged`, so the Organizer
+still shows the job as converged.
+
+On such a floor the energy is only defined to ~1e-8: the near-free rotation
+of the atom against the grid shifts it. With the rule, ROKS def2-SVP O moved by
+-9.5e-9 and F by +3.3e-8 against strict convergence. Molecules and spherical
+atoms were unchanged.
+
+`qm_roks_atoms` includes O ROKS B3LYP/aug-cc-pVTZ (49 cycles, about 6 s on one
+thread). Ti def2-TZVPD on the pruned grid: UKS converges by the plateau rule
+(121 cycles, -849.282354857), while ROKS still stops at 150 cycles near
+-849.281601 (#797).

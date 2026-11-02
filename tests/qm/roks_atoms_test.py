@@ -31,19 +31,22 @@ MOLECULES = [
     ("CH2", 3, [("C", 0, 0, 0), ("H", 0, 0.9978, 0.5765), ("H", 0, -0.9978, 0.5765)],
      {"rohf": -38.881911520555, "rob3lyp": -39.085972557852}),
 ]
+# The issue's own case: O at B3LYP/aug-cc-pVTZ sits on the pruned-grid
+# gradient floor and needs the energy-plateau convergence rule.
+LARGE = [("O", 3, "rob3lyp", "ub3lyp", "aug-cc-pVTZ")]
 METHODS = [("rohf", "uhf"), ("rob3lyp", "ub3lyp")]
 BASIS = "def2-SVP"
 TOL = 1e-6
 
 
-def run(exe, bdir, d, name, mult, method, atoms=None):
+def run(exe, bdir, d, name, mult, method, atoms=None, basis=BASIS):
     atoms = atoms or [(name, 0, 0, 0)]
     run_dir = tempfile.mkdtemp(prefix="%s_%s_" % (name, method), dir=d)
     inp = os.path.join(run_dir, "in.qmin")
     out = os.path.join(run_dir, "out.qmout")
     with open(inp, "w") as f:
         f.write("title %s\ncharge 0\nmultiplicity %d\nmethod %s\nbasis %s\nruntype energy\n"
-                "geometry\n" % (name, mult, method, BASIS))
+                "geometry\n" % (name, mult, method, basis))
         for a in atoms:
             f.write(" %s %.6f %.6f %.6f\n" % a)
         f.write("end\n")
@@ -82,6 +85,21 @@ def main():
             if "FAIL" in msg:
                 fails += 1
             print(msg, flush=True)
+    for sym, mult, ro, u, basis in LARGE:
+        ok, it, e = run(exe, bdir, d, sym, mult, ro, basis=basis)
+        uok, _, eu = run(exe, bdir, d, sym, mult, u, basis=basis)
+        msg = "%-2s %-8s %s converged=%s cycles=%3d E=%.8f  E(%s)=%.8f" % (sym, ro, basis, ok, it, e, u, eu)
+        if not ok:
+            msg += "  FAIL: not converged"
+        elif not uok:
+            msg += "  FAIL: unrestricted reference did not converge"
+        elif e < eu - TOL:
+            msg += "  FAIL: below the unrestricted energy by %.2e" % (eu - e)
+        else:
+            msg = "ok   " + msg
+        if "FAIL" in msg:
+            fails += 1
+        print(msg, flush=True)
     for name, mult, atoms, ref in MOLECULES:
         for method, eref in ref.items():
             ok, it, e = run(exe, bdir, d, name, mult, method, atoms)

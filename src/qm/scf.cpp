@@ -1,6 +1,7 @@
 #include "scf.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -280,6 +281,14 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   Vec eps_a, eps_b;
   Mat Ca, Cb;
   double Eold = 0;
+  // A non-spherical density on a pruned grid can leave the orbital gradient
+  // on a floor a little above conv_grad while the energy no longer moves; DIIS
+  // then drifts.  Such a run counts as converged once the energy has held to
+  // conv_energy over plateau_cycles successive energies (plateau_cycles - 1
+  // differences) and the gradient is below plateau_grad_factor * conv_grad.
+  const int plateau_cycles = 5;
+  const double plateau_grad_factor = 10.0;
+  int stable = 0;
   bool first = !have_guess;
   Mat Fa, Fb;
   for (int it = 1; it <= opt.max_iter; ++it) {
@@ -359,7 +368,10 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     const double gmax = err.cwiseAbs().maxCoeff();
     if (opt.verbose)
       std::cerr << "iter " << it << "  E = " << E << "  dE = " << E - Eold << "  |grad| = " << gmax << "\n";
-    const bool done = !first && std::fabs(E - Eold) < opt.conv_energy && gmax < opt.conv_grad;
+    stable = (!first && it > 1 && std::fabs(E - Eold) < opt.conv_energy) ? stable + 1 : 0;
+    const bool strict = !first && std::fabs(E - Eold) < opt.conv_energy && gmax < opt.conv_grad;
+    const bool plateau = !strict && stable >= plateau_cycles - 1 && gmax < plateau_grad_factor * opt.conv_grad;
+    const bool done = strict || plateau;
     if (opt.on_cycle) {
       ScfCycle c;
       c.cycle = it;
@@ -367,10 +379,18 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
       c.dE = it > 1 ? E - Eold : std::nan("");
       c.grad = gmax;
       c.converged = done;
+      c.by_plateau = plateau;
       opt.on_cycle(c);
     }
     if (done) {
       R.converged = true;
+      R.convergence_note.clear();
+      if (plateau) {
+        char b[200];
+        std::snprintf(b, sizeof b, "SCF converged (energy stable to %.0e Eh over %d cycles; gradient %.1e above the %.0e target)",
+                      opt.conv_energy, plateau_cycles, gmax, opt.conv_grad);
+        R.convergence_note = b;
+      }
       R.iterations = it;
       R.energy = E;
       // final orbitals from the (unextrapolated) effective Fock
