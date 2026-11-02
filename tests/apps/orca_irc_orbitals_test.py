@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""The orbitals of an ORCA IRC belong to the TS point only (#751), headless.
+"""The orbitals of an ORCA IRC belong to the TS and the two end points (#751), headless.
 
     tests/apps/orca_irc_orbitals_test.py [--build build-cmake] [--keep]
 
 Stores what the real orca.mo returns for the MOLECULAR ORBITALS block of
 tests/parsers/fixtures/orca/hcn_irc_mos.out (an IRC run; the block is the one
 orca.mo emits as MO and as the one-table PTMO/PTORB) together with the
-path's energies and structures, opens the MOs and IRC Path panels and selects
-the TS (point 4 of 7) and two other points.  Checked: at the TS the MOs
-panel lists the stored orbital energies and its note names the TS point; at
-the other points it lists no orbitals and the note says ORCA gives none
-there.  Exit status 77 (skip) without Xvfb, import or the binaries.
+path's energies and structures (PTMO/PTORB hold the TS, then the backward
+and forward end), opens the MOs and IRC Path panels and selects the TS
+(point 4 of 7), both ends (points 1 and 7) and two points between.  Checked:
+at those three the MOs panel lists that point's stored orbital energies; at
+the others it lists none and the note says ORCA gives none there.  Exit status 77 (skip) without Xvfb, import or the binaries.
 """
 import argparse
 import os
@@ -34,6 +34,7 @@ from harness import say  # noqa: E402
 check = bo.check
 FIXTURE = os.path.join(REPO, "tests", "parsers", "fixtures", "orca", "hcn_irc_mos.out")
 PARSE = os.path.join(REPO, "scripts", "parsers", "orca.mo")
+PTMO = os.path.join(REPO, "scripts", "parsers", "orca.ptmo")
 TS = 3
 
 
@@ -41,6 +42,18 @@ def moBlock():
     text = open(FIXTURE).read()
     block = text.split("MOLECULAR ORBITALS (RHF, ROHF)")[1].split("MULLIKEN POPULATION")[0]
     return "\n".join(block.splitlines()[2:])
+
+
+def endTables():
+    """PTORB/PTMO records of the TS and the two end blocks, as orca.ptmo gives."""
+    out = []
+    for part in open(FIXTURE).read().split("ECCE-IRC-END-ORBITALS")[1:]:
+        block = "\n".join(part.split("MULLIKEN POPULATION")[0].splitlines()[2:])
+        run = subprocess.run(["perl", PTMO, ".", "IRC", "Hartree Fock", "RHF", "0"],
+                             input=block, capture_output=True, text=True)
+        check(run.returncode == 0, "orca.ptmo parsed a block")
+        out.append(parsed(run.stdout))
+    return out
 
 
 def main():
@@ -73,8 +86,12 @@ def main():
                          input=moBlock(), capture_output=True, text=True)
     check(run.returncode == 0, "orca.mo parsed the block")
     rec = parsed(run.stdout)
-    for key in ("MO", "ORBENG", "ORBOCC", "PTMO", "PTORB"):
+    for key in ("MO", "ORBENG", "ORBOCC"):
         check(len(rec.get(key, [])) == 1, "orca.mo emitted %s once" % key)
+    ends = endTables()
+    check(len(ends) == 3, "the fixture has the TS and two end-point blocks")
+    ptorb = [numbers(e["PTORB"][0]) for e in ends]
+    ptmo = [numbers(e["PTMO"][0]) for e in ends]
     eng = numbers(rec["ORBENG"][0])
     nbf = len(eng)
     # The run's own summary energies; its trajectory is not kept, so the
@@ -115,37 +132,41 @@ def main():
             "ORBOCC": vectorDoc("ORBOCC", numbers(rec["ORBOCC"][0]), "electrons"),
             "MO": tableDoc("MO", nbf, nbf, numbers(rec["MO"][0])),
             "PTORB": tsDoc("PTORB", nbf, 2, "Energy Occupation",
-                           [numbers(rec["PTORB"][0])], "NA"),
+                           ptorb, "NA"),
             "PTMO": tsDoc("PTMO", nbf, nbf, labels(nbf, "BasFun"),
-                          [numbers(rec["PTMO"][0])], "Electrons"),
+                          ptmo, "Electrons"),
         }
         for name, text in docs.items():
             with open(os.path.join(props, name), "w") as f:
                 f.write(text)
 
-        lines = ["wait 6000", "panel IRC Path", "wait 1500", "ircclick 1", "wait 1000",
-                 "panel MOs", "wait 1500", "mostate",
-                 "panel IRC Path", "ircclick %d" % TS, "wait 1000",
-                 "panel MOs", "wait 1500", "mostate",
-                 "panel IRC Path", "ircclick 5", "wait 1000",
-                 "panel MOs", "wait 1500", "mostate", "quit"]
+        steps = [1, TS, 0, 6, 5]
+        lines = ["wait 6000", "panel IRC Path", "wait 1500"]
+        for k in steps:
+            lines += ["ircclick %d" % k, "wait 1000", "panel MOs", "wait 1500", "mostate",
+                      "panel IRC Path"]
+        lines.append("quit")
         text, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + calc + "/"],
             lines, png, "orcaircmo", {"ECCE_PANEL_MODE": "detail"})
         check("segmentation" not in text.lower(), "no crash in the Builder log")
         notes = re.findall(r"BUILDER: monote (.*)", text)
-        if len(notes) != 3 or text.count("BUILDER: mostate\n") != 3:
+        if len(notes) != 5 or text.count("BUILDER: mostate\n") != 5:
             say(text[-3000:])
-            check(False, "three MOs panel states were reported")
+            check(False, "five MOs panel states were reported")
             return 1
         say("notes: %s" % " / ".join(notes))
-        other1, at_ts, other2 = (rowEnergies(text, i) for i in range(3))
-        check("only at the TS" in notes[0] and not other1,
-              "point 2: no orbitals listed, note says ORCA gives none")
-        check("TS point (4)" in notes[1] and listed(at_ts, eng),
-              "TS: the stored energies and a note naming the TS point")
-        check("only at the TS" in notes[2] and not other2,
-              "point 6: no orbitals listed, note says ORCA gives none")
+        rows = [rowEnergies(text, i) for i in range(5)]
+        ends_eng = [ptorb[t][0::2] for t in range(3)]
+        for i, (name, want) in enumerate([("point 2", None), ("TS", ends_eng[0]),
+                                          ("backward end", ends_eng[1]),
+                                          ("forward end", ends_eng[2]), ("point 6", None)]):
+            if want is None:
+                check("at the TS and the two end points" in notes[i] and not rows[i],
+                      "%s: no orbitals listed, note says where ORCA gives them" % name)
+            else:
+                check("Orbitals and density of point" in notes[i] and listed(rows[i], want),
+                      "%s: its own stored energies and the point note" % name)
     finally:
         if display:
             display.__exit__(None, None, None)

@@ -1,0 +1,6 @@
+#!/usr/bin/env perl
+# Per-point orbital tables of an IRC (#751): orca.mo in its table-only mode.
+use File::Basename;
+$main::PTONLY = 1;
+do(dirname($0) . "/orca.mo");
+exit(0);
