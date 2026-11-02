@@ -1296,6 +1296,11 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displacement.py
         DESTINATION bin RENAME ecce-displacement
         COMPONENT client)
 
+# ecce-bandshift (#707): matched bands and their shifts between two calculations.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
+        DESTINATION bin RENAME ecce-bandshift
+        COMPONENT client)
+
 # ecce-displace (#618): the structure displaced along a normal mode.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displace.py
         DESTINATION bin RENAME ecce-displace
@@ -2584,6 +2589,11 @@ add_test(NAME displacement
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/displacement/run_tests.py)
 
+# tests/bandshift -- scripts/ecce_bandshift.py on stored frequency calculations (#707).
+add_test(NAME bandshift
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/bandshift/run_tests.py)
+
 # tests/siexport -- scripts/ecce_si_export.py on stored ORCA, G16, ECCE-QM (#625).
 add_test(NAME siexport
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3353,6 +3363,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmode_displace_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_nmode_displace PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Vibrations panel Match bands: the table equals ecce-bandshift (#707).
+  add_test(NAME apps_nmode_bandshift
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmode_bandshift_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_nmode_bandshift PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run

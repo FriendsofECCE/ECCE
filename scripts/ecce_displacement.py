@@ -159,6 +159,13 @@ def kabsch(ref, mov):
     """Proper-rotation fit of mov onto ref (Horn's quaternion method, so a
     reflection is never reported as a fit).  Returns (rmsd, aligned) with
     aligned in ref's frame (mov translated onto ref's centroid)."""
+    rmsd, aligned, _r = kabsch_rotation(ref, mov)
+    return rmsd, aligned
+
+
+def kabsch_rotation(ref, mov):
+    """As kabsch, plus the rotation matrix r (aligned = r * (mov - centroid
+    of mov) + centroid of ref); direction vectors of mov rotate with r."""
     ref = [tuple(map(float, p)) for p in ref]
     mov = [tuple(map(float, p)) for p in mov]
     n = len(ref)
@@ -184,7 +191,7 @@ def kabsch(ref, mov):
                 for i in range(3)] for j in range(n)]
     rmsd = math.sqrt(sum(sum((aligned[j][i] - ref[j][i]) ** 2 for i in range(3))
                          for j in range(n)) / n)
-    return rmsd, aligned
+    return rmsd, aligned, r
 
 
 def per_element(a, b):

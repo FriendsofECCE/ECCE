@@ -507,6 +507,23 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
     fprintf(stderr, "VIBSCALE: %.2f\n", nm->typeScale(atof(w[1].c_str())));
     return true;
   }
+  //  "vibbandshift <calculation> <atoms|->" and "vibbandclick <row>" (#707):
+  //  the Match bands action; prints the table as shown, and the mode a row
+  //  click selects.
+  if (c == "vibbandshift" && w.size() == 3) {
+    wxString err;
+    bool ok = nm->matchBands(w[1], w[2] == "-" ? string() : w[2], &err);
+    fprintf(stderr, "VIBBANDSHIFT: ok=%d error=%s\n", ok ? 1 : 0,
+            (const char*)err.utf8_str());
+    std::istringstream rows((const char*)nm->bandTableText().utf8_str());
+    string row;
+    while (std::getline(rows, row)) fprintf(stderr, "VIBBAND: %s\n", row.c_str());
+    return true;
+  }
+  if (c == "vibbandclick" && w.size() == 2) {
+    fprintf(stderr, "VIBBANDCLICK: selected=%d\n", nm->scriptBandClick(atoi(w[1].c_str())));
+    return true;
+  }
   //  "vibdisplace <row|all> <amplitude> <+|-|both>" (#618): the Displace
   //  dialog's action; prints each new calculation's run type, annotation and
   //  structure for the test to compare with the source.

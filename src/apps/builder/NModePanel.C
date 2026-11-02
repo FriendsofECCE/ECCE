@@ -693,6 +693,13 @@ void NModePanel::createSpectrumPane()
       viewSizer->Insert(at + 3, compare, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
       compare->Bind(wxEVT_BUTTON,
                     [this](wxCommandEvent&) { compareDialog(); });
+      wxButton *bands = new wxButton(viewBox->GetParent(), wxID_ANY,
+                                     "Match bands...");
+      bands->SetToolTip("Which band of another calculation in this folder is "
+                        "which band of this one, and how far it moved "
+                        "(from the overlap of the normal-mode motion).");
+      viewSizer->Insert(at + 3, bands, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      bands->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { matchBandsDialog(); });
       wxButton *composition = new wxButton(viewBox->GetParent(), wxID_ANY,
                                            "Composition...");
       composition->SetToolTip("What each mode is made of: its share along "
@@ -1016,7 +1023,7 @@ bool NModePanel::compareWith(const string& name)
 
 
 /** The other calculations in this one's folder that have IR or Raman data. */
-vector<IPropCalculation*> NModePanel::comparableCalculations()
+vector<IPropCalculation*> NModePanel::comparableCalculations(bool needSpectrum)
 {
   vector<IPropCalculation*> out;
   IPropCalculation *calc = getCalculation();
@@ -1029,8 +1036,10 @@ vector<IPropCalculation*> NModePanel::comparableCalculations()
     IPropCalculation *other = dynamic_cast<IPropCalculation*>((*kids)[i]);
     if (other == 0 || (*kids)[i]->getName() == own) continue;
     if (other->getProperty("VIBFREQ") == 0) continue;
-    if (other->getProperty("VIBIR") == 0 && other->getProperty("VIBRAM") == 0)
+    if (needSpectrum && other->getProperty("VIBIR") == 0 &&
+        other->getProperty("VIBRAM") == 0)
       continue;
+    if (!needSpectrum && other->getProperty("VIB") == 0) continue;
     out.push_back(other);
   }
   return out;
@@ -1055,6 +1064,231 @@ void NModePanel::compareDialog()
       "same scaling factor and line width:", "Compare spectra", names, this);
   if (at < 0) return;
   compareWith(at == 0 ? string() : found[at - 1]->getURL().getFilePathTail());
+}
+
+
+/** Structure, normal modes and IR intensities in ecce-bandshift's file form. */
+bool NModePanel::writeModesFile(IPropCalculation *calc, const string& path,
+                                wxString *error)
+{
+   PropVector *vec = calc ? (PropVector*) calc->getProperty("VIBFREQ") : 0;
+   PropVector *ir = calc ? (PropVector*) calc->getProperty("VIBIR") : 0;
+   PropVecTable *vib = calc ? dynamic_cast<PropVecTable*>(calc->getProperty("VIB")) : 0;
+   Fragment frag;
+   if (!vec || !vib || !calc->getFragment(frag)) {
+      if (error) *error = "This calculation has no stored normal modes and structure.";
+      return false;
+   }
+   const int nat = (int)frag.numAtoms(), nm = vec->rows();
+   if (nat == 0 || vib->rows() != nat || vib->tables() != nm) {
+      if (error) *error = "The normal modes do not match the structure.";
+      return false;
+   }
+   std::ofstream f(path);
+   f.precision(10);
+   f << nat << "\n";
+   for (int a = 0; a < nat; a++) {
+      const double *x = frag.atomRef(a)->coordinates();
+      f << frag.atomRef(a)->atomicSymbol() << " " << x[0] << " " << x[1]
+        << " " << x[2] << "\n";
+   }
+   f << "modes " << nm << "\n";
+   for (int m = 0; m < nm; m++) {
+      f << vec->value(m) << "\n";
+      for (int a = 0; a < nat; a++)
+         f << vib->value(m, a, 0) << " " << vib->value(m, a, 1) << " "
+           << vib->value(m, a, 2) << "\n";
+   }
+   if (ir && ir->rows() == nm) {
+      f << "ir " << nm << "\n";
+      for (int m = 0; m < nm; m++) f << ir->value(m) << "\n";
+   }
+   return (bool)f;
+}
+
+
+//  The arithmetic is ecce-bandshift's (scripts/ecce_bandshift.py).
+bool NModePanel::matchBands(const string& otherName, const string& atoms,
+                            wxString *error)
+{
+   IPropCalculation *self = getCalculation(), *other = 0;
+   const vector<IPropCalculation*> found = comparableCalculations(false);
+   for (size_t i = 0; i < found.size(); i++)
+      if (found[i]->getURL().getFilePathTail() == otherName) other = found[i];
+   wxString err;
+   if (!self || !other) {
+      if (error) *error = "No such calculation with stored normal modes.";
+      return false;
+   }
+   namespace fs = std::filesystem;
+   std::error_code ec;
+   fs::path tmp = fs::temp_directory_path(ec) /
+                  ("ecce-bandshift-" + std::to_string((long)wxGetProcessId()));
+   fs::create_directories(tmp, ec);
+   string text;
+   int status = -1;
+   if (writeModesFile(self, (tmp / "a").string(), error) &&
+       writeModesFile(other, (tmp / "b").string(), error)) {
+      const char *home = getenv("ECCE_HOME");
+      string script = home && *home ? string(home) + "/bin/ecce-bandshift"
+                                    : string("ecce-bandshift");
+      string args = "'" + (tmp / "a").string() + "' '" + (tmp / "b").string() +
+                    "' --lines" +
+                    (atoms.empty() ? string() : " --atoms '" + atoms + "'");
+#ifdef _WIN32
+      fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+      string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+      string cmd = "\"" + pyExe + "\" \"" + script + "\" " + args;
+#else
+      string cmd = "'" + script + "' " + args + " 2>&1";
+#endif
+      status = Ecce::readCommand(cmd, text);
+   } else {
+      fs::remove_all(tmp, ec);
+      return false;
+   }
+   fs::remove_all(tmp, ec);
+   if (status != 0) {
+      if (error) *error = wxString::FromUTF8(text.c_str());
+      return false;
+   }
+
+   if (!p_bandFrame) {
+      wxFrame *frame = new wxFrame(wxGetTopLevelParent(this), wxID_ANY,
+                                   "Vibrational Frequencies: matched bands",
+                                   wxDefaultPosition, wxSize(760, 420));
+      wxPanel *pane = new wxPanel(frame);
+      wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+      p_bandNote = new wxStaticText(pane, wxID_ANY, "");
+      top->Add(p_bandNote, 0, wxEXPAND | wxALL, 6);
+      p_bandGrid = new wxGrid(pane, wxID_ANY);
+      p_bandGrid->CreateGrid(0, 8);
+      p_bandGrid->EnableEditing(false);
+      p_bandGrid->SetRowLabelSize(0);
+      p_bandGrid->SetSelectionMode(wxGrid::wxGridSelectRows);
+      const char *cols[] = {"Mode A", "cm-1 A", "IR A", "Mode B", "cm-1 B",
+                            "IR B", "Shift", "Overlap"};
+      for (int c = 0; c < 8; c++) p_bandGrid->SetColLabelValue(c, cols[c]);
+      p_bandGrid->Bind(wxEVT_GRID_SELECT_CELL, [this](wxGridEvent& e) {
+         long m = 0;
+         if (e.GetRow() >= 0 && p_bandGrid->GetCellValue(e.GetRow(), 0).ToLong(&m) &&
+             p_grid && m >= 1 && m <= p_grid->GetNumberRows())
+            selectMode((int)m - 1);
+         e.Skip();
+      });
+      top->Add(p_bandGrid, 1, wxEXPAND | wxALL, 6);
+      pane->SetSizer(top);
+      wxBoxSizer *fs2 = new wxBoxSizer(wxVERTICAL);
+      fs2->Add(pane, 1, wxEXPAND);
+      frame->SetSizer(fs2);
+      p_bandFrame = frame;
+   }
+   p_bandFrame->SetTitle(wxString::FromUTF8(
+      ("Vibrational Frequencies: bands of " + self->getURL().getFilePathTail() +
+       " matched with " + otherName).c_str()));
+   if (p_bandGrid->GetNumberRows() > 0)
+      p_bandGrid->DeleteRows(0, p_bandGrid->GetNumberRows());
+   wxString note, unmatched;
+   std::istringstream in(text);
+   string line;
+   while (std::getline(in, line)) {
+      if (!line.empty() && line.back() == '\r') line.pop_back();
+      vector<string> f;
+      std::stringstream ls(line);
+      string cell;
+      while (std::getline(ls, cell, '\t')) f.push_back(cell);
+      if (f.size() >= 4 && f[0] == "header")
+         note = wxString::Format("%s common atoms, fit RMSD %s A, overlap "
+                                 "threshold %s. Shift is B minus A, A being "
+                                 "this calculation.",
+                                 f[1], f[2], f[3]);
+      else if (f.size() == 9 && f[0] == "match") {
+         const int r = p_bandGrid->GetNumberRows();
+         p_bandGrid->AppendRows(1);
+         auto fmt = [](const string& v, const char *pat) {
+            return v == "-" ? wxString("-") : wxString::Format(pat, atof(v.c_str()));
+         };
+         p_bandGrid->SetCellValue(r, 0, f[1]);
+         p_bandGrid->SetCellValue(r, 1, fmt(f[2], "%.1f"));
+         p_bandGrid->SetCellValue(r, 2, fmt(f[3], "%.1f"));
+         p_bandGrid->SetCellValue(r, 3, f[4]);
+         p_bandGrid->SetCellValue(r, 4, fmt(f[5], "%.1f"));
+         p_bandGrid->SetCellValue(r, 5, fmt(f[6], "%.1f"));
+         p_bandGrid->SetCellValue(r, 6, wxString::Format("%+.1f", atof(f[7].c_str())));
+         p_bandGrid->SetCellValue(r, 7, wxString::Format("%.3f", atof(f[8].c_str())));
+         for (int c = 0; c < 8; c++)
+            p_bandGrid->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
+      } else if (f.size() == 6 && f[0] == "unmatched") {
+         unmatched += wxString::Format("%s%s mode %s (%.1f cm-1)", unmatched.empty() ? "" : "; ",
+                                       f[1], f[2], atof(f[3].c_str()));
+      }
+   }
+   if (!unmatched.empty()) note += "\nUnmatched: " + unmatched + ".";
+   p_bandNote->SetLabel(note);
+   p_bandGrid->AutoSizeColumns();
+   p_bandFrame->Layout();
+   p_bandFrame->Show(true);
+   p_bandFrame->Raise();
+   return true;
+}
+
+
+wxString NModePanel::bandTableText() const
+{
+   wxString out;
+   if (!p_bandGrid) return out;
+   for (int r = 0; r < p_bandGrid->GetNumberRows(); r++) {
+      for (int c = 0; c < p_bandGrid->GetNumberCols(); c++)
+         out += (c ? "\t" : "") + p_bandGrid->GetCellValue(r, c);
+      out += "\n";
+   }
+   return out;
+}
+
+
+int NModePanel::scriptBandClick(int row)
+{
+   if (!p_bandGrid || row < 0 || row >= p_bandGrid->GetNumberRows()) return -1;
+   p_bandGrid->SelectRow(row);
+   p_bandGrid->SetGridCursor(row, 0);
+   wxGridEvent ev(wxID_ANY, wxEVT_GRID_SELECT_CELL, p_bandGrid, row, 0);
+   p_bandGrid->GetEventHandler()->ProcessEvent(ev);
+   return p_selectedRow + 1;
+}
+
+
+void NModePanel::matchBandsDialog()
+{
+  wxBusyCursor busy;
+  const vector<IPropCalculation*> found = comparableCalculations(false);
+  if (found.empty()) {
+    wxMessageBox("No other calculation in this folder has stored normal modes.",
+                 "Match bands", wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  wxArrayString names;
+  for (size_t i = 0; i < found.size(); i++)
+    names.Add(wxString::FromUTF8(found[i]->getURL().getFilePathTail().c_str()));
+  const int at = wxGetSingleChoiceIndex(
+      "Match the bands of this calculation with those of:", "Match bands",
+      names, this);
+  if (at < 0) return;
+  string atoms;
+  Fragment fa, fb;
+  if (getCalculation()->getFragment(fa) && found[at]->getFragment(fb) &&
+      fa.numAtoms() != fb.numAtoms()) {
+    wxString a = wxGetTextFromUser(
+        wxString::Format("This calculation has %d atoms and the other %d. The "
+                         "common atoms, this one's first, 1-based: for example "
+                         "1-12:5-16 maps this calculation's atoms 1-12 to the "
+                         "other's 5-16.", (int)fa.numAtoms(), (int)fb.numAtoms()),
+        "Match bands: common atoms", "", this);
+    if (a.empty()) return;
+    atoms = (const char*)a.utf8_str();
+  }
+  wxString err;
+  if (!matchBands(found[at]->getURL().getFilePathTail(), atoms, &err))
+    wxMessageBox(err, "Match bands", wxOK | wxICON_INFORMATION, this);
 }
 
 
