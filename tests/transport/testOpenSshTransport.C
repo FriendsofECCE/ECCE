@@ -75,6 +75,12 @@ static string readFor(int fd, const string& want, int ms)
 
 int main()
 {
+  check("network failures are unreachable, a refusal is not",
+        OpenSshTransport::hostDidNotAnswer("ssh: connect to host h port 22: Network is unreachable") &&
+        OpenSshTransport::hostDidNotAnswer("Connection timed out during banner exchange") &&
+        OpenSshTransport::hostDidNotAnswer("ssh: Could not resolve hostname h") &&
+        !OpenSshTransport::hostDidNotAnswer("Permission denied (publickey,password).") &&
+        !OpenSshTransport::hostDidNotAnswer(""));
   char tmpl[] = "/tmp/testOpenSshXXXXXX";
   const string tmp = mkdtemp(tmpl);
   const string stub = tmp + "/ssh", log = tmp + "/ssh.log";

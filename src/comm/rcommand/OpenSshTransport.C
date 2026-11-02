@@ -126,7 +126,7 @@ OpenSshTransport::OpenSshTransport(const std::string& host, int port,
                                    const std::string& user)
   : p_host(host), p_user(user), p_program("ssh"), p_port(port), p_jumpPort(0),
     p_connectTimeout(15), p_askTimeout(120), p_connected(false),
-    p_cancelled(false), p_refused(false), p_prompted(false), p_usedIdx(0)
+    p_cancelled(false), p_refused(false), p_unreachable(false), p_prompted(false), p_usedIdx(0)
 {
   const char* t = getenv("ECCE_SSH_ASK_TIMEOUT");
   if (t && atoi(t) > 0) p_askTimeout = atoi(t);
@@ -384,6 +384,11 @@ const char* const kLoginText[] = {
   "permission denied", "no more authentication methods",
   "too many authentication failures", 0 };
 // A master that has no room for another session (sshd MaxSessions).
+const char* const kUnreachableText[] = {
+  "timed out", "connection refused", "no route to host",
+  "network is unreachable", "could not resolve",
+  "name or service not known",
+  "temporary failure in name resolution", 0 };
 const char* const kSessionRefusedText[] = {
   "administratively prohibited", "session open refused",
   "session request failed", 0 };
@@ -395,6 +400,11 @@ bool mentions(const std::string& low, const char* const* list)
   return false;
 }
 }  // namespace
+
+bool OpenSshTransport::hostDidNotAnswer(const std::string& error)
+{
+  return mentions(lower(error), kUnreachableText);
+}
 
 std::string OpenSshTransport::explainFailure(const std::string& host,
                                              const std::string& err,
@@ -706,18 +716,21 @@ bool OpenSshTransport::openMaster()
   }
   // Another session may have opened it while this one waited its turn.
   if (masterAlive()) return true;
-  p_cancelled = p_refused = p_prompted = false;
+  p_cancelled = p_refused = p_unreachable = p_prompted = false;
   std::string key;
   if (owned) {
     // The holder before us asked and was not answered or refused: asking
     // again straight away would be a second dialog for the same login.
+    // An unreachable host asked nothing, so a later caller may try again.
     long t = 0;
     char w[16] = "";
     if (sscanf(readSmall(outcomeFile).c_str(), "%ld %15s", &t, w) == 2 &&
         strcmp(w, "ok") != 0 &&
-        (t >= waitedAt || time(0) - t < kRetryAfterSec)) {
+        (t >= waitedAt ||
+         (time(0) - t < kRetryAfterSec && strcmp(w, "unreachable") != 0))) {
       p_cancelled = !strcmp(w, "cancelled") || !strcmp(w, "timeout");
-      p_refused = !p_cancelled;
+      p_unreachable = !strcmp(w, "unreachable");
+      p_refused = !p_cancelled && !p_unreachable;
       return false;
     }
   } else {
@@ -806,6 +819,9 @@ bool OpenSshTransport::openMaster()
   // An unanswered prompt is the same to everyone else as a cancelled one.
   p_cancelled = userCancel || (!ok && r.timedOut);
   p_refused = !ok && !p_cancelled && mentions(lower(r.err), kLoginText);
+  // A network or connect failure says nothing about the password.
+  p_unreachable = !ok && !p_cancelled && !p_refused &&
+                  hostDidNotAnswer(r.err);
   if (!ok && !userCancel) {
     std::string why = r.timedOut ? "no answer in time" : r.err;
     while (!why.empty() && (why[why.size()-1] == '\n' || why[why.size()-1] == '\r'))
@@ -820,7 +836,8 @@ bool OpenSshTransport::openMaster()
   }
   if (owned) {
     const char* word = ok ? "ok" : userCancel ? "cancelled"
-                     : r.timedOut ? "timeout" : "failed";
+                     : r.timedOut ? "timeout"
+                     : p_unreachable ? "unreachable" : "failed";
     writeSmall(outcomeFile, std::to_string((long)time(0)) + " " + word + "\n");
   } else {
     if (ok) gMasterFailed.erase(key);
