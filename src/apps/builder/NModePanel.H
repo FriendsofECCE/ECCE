@@ -112,6 +112,16 @@ class NModePanel : public NModesGUI,
           0/1 sets it.  False, with `error` set, if the calculation has no
           modes. */
       bool showComposition(int chBends, wxString *error = 0);
+      /** Match this calculation's bands with another one's in the same
+          folder (#707) by ecce-bandshift and show the table; `atoms` is the
+          tool's --atoms ("" = all, needs equal atom counts).  False, with
+          `error` set, if it could not be done. */
+      bool matchBands(const string& other, const string& atoms,
+                      wxString *error = 0);
+      /// The rows of the band table as shown, tab-separated, one per line.
+      wxString bandTableText() const;
+      /// Click a row of the band table; returns the mode now selected (1-based).
+      int scriptBandClick(int row);
       /// New calculation(s) next to this one, the structure displaced along
       /// mode (0-based row; -1 = all imaginary modes) by `amplitude`
       /// Angstrom at the largest atom, sign "+", "-" or "both" (#618).
@@ -165,7 +175,10 @@ class NModePanel : public NModesGUI,
       void dumpSpectrumIfRequested();
       void exportSpectrumDialog();
       void compareDialog();
-      vector<IPropCalculation*> comparableCalculations();
+      void matchBandsDialog();
+      bool writeModesFile(IPropCalculation *calc, const string& path,
+                          wxString *error);
+      vector<IPropCalculation*> comparableCalculations(bool needSpectrum = true);
       void applySpectrumSettings();
       void updateVectors(int mode,
                          float amplitude,
@@ -198,6 +211,9 @@ class NModePanel : public NModesGUI,
       wxWeakRef<SpectrumCanvas> p_spectrumPop;
       wxWeakRef<wxFrame> p_compFrame;            // Mode composition (#486)
       wxGrid *p_compGrid = 0;
+      wxWeakRef<wxFrame> p_bandFrame;            // Matched bands (#707)
+      wxGrid *p_bandGrid = 0;
+      wxStaticText *p_bandNote = 0;
       wxCheckBox *p_compCH = 0;
       std::vector<int> p_picked;          // atoms selected in the 3-D view, 0-based
       wxStaticText *p_compNote = 0;

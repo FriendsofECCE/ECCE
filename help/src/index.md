@@ -191,3 +191,6 @@ Reference:
 
 - [The results file format](results-file-format.md): what results.h5 holds,
   the orbital order, the ecce-results commands and which codes are covered.
+
+25. [Match bands](match-bands.md): which band of one calculation is which band
+   of another, the shift of each, and how the modes are matched.
