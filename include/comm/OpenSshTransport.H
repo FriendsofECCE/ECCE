@@ -207,6 +207,7 @@ private:
   bool p_cancelled;
   bool p_refused;
   bool p_unreachable;
+  mutable bool p_probeAnswered = false;
   bool p_prompted;
   mutable bool p_sessionsFull = false;
   mutable int p_usedIdx;   // overflow master the last ssh command line named
