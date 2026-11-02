@@ -392,6 +392,16 @@ int MoPanel::getSelectedMo() const
 }
 
 
+int MoPanel::selectedAlphaIndex() const
+{
+   if (p_mogrid == 0 || p_localised || p_selectedRow < 0 ||
+       p_selectedRow >= p_mogrid->GetNumberRows() ||
+       getSelectedType() != "alpha")
+      return -1;
+   return getSelectedMo() - 1;
+}
+
+
 string MoPanel::getSelectedType() const
 {
    wxString col1 = p_mogrid->GetColLabelValue(0);
