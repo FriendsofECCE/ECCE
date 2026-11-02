@@ -139,6 +139,8 @@ using std::vector;
 #include "viz/AtomLabelsCmd.H"
 #include "viz/BondEditCmd.H"
 #include "viz/CenterCmd.H"
+#include "viz/DistortBondsCmd.H"
+#include "DistortBondsDialog.H"
 #include "viz/ClearResidueInfoCmd.H"
 #include "viz/CSLoadColorsCmd.H"
 #include "viz/CSRadiiCmd.H"
@@ -1351,6 +1353,8 @@ Command *Builder::createCommand(const string& input)
         cmd = new CenterViewCmd(cmdname, p_viewer);
      } else if (cmdname == "center") {
         cmd = new CenterCmd(cmdname, getSG());
+     } else if (cmdname == "distort") {
+        cmd = new DistortBondsCmd(cmdname, getSG());
      } else if (cmdname == "addh") {
         cmd = new HydrogensCmd(cmdname, getSG());
      } else if (cmdname == "removeh") {
@@ -1793,6 +1797,9 @@ bool Builder::mouseEvent(wxMouseEvent *event)
         if (!constraintsReadOnly())
           menu.Append(ID_GEOM_CONSTRAINTS, _("Constrain Selected Atoms..."));
         menu.Append(ID_ADD_DUMMY, _("Add Dummy Atom..."));
+        SGFragment *sf = getSG()->getFragment();
+        if (sf && sf->m_atomHighLight.size() == 1)
+          menu.Append(ID_DISTORT_BONDS, _("Distort Bonds..."));
         PopupMenu(&menu);
       });
    }
@@ -3424,6 +3431,26 @@ void Builder::OnSelectSolventClick( wxCommandEvent& event )
 {
    Command *cmd = new SelectCmd("Select Solvent", getSG());
    cmd->getParameter("solvent")->setBoolean(true);
+   execute(cmd);
+}
+
+
+/**
+ * Edit > Distort Bonds...: the selected atom is the centre (#619).
+ */
+void Builder::OnDistortBondsClick( wxCommandEvent& event )
+{
+   SGFragment *frag = getSG()->getFragment();
+   if (!frag || frag->m_atomHighLight.size() != 1) {
+      reportError("Select one atom, the centre of the bonds to distort.");
+      return;
+   }
+   int centre = frag->m_atomHighLight[0];
+   DistortBondsDialog dlg(this, *frag, centre);
+   if (dlg.ShowModal() != wxID_OK || dlg.list().empty()) return;
+   Command *cmd = new DistortBondsCmd("Distort Bonds", getSG());
+   cmd->getParameter("centre")->setInteger(centre + 1);
+   cmd->getParameter("list")->setString(dlg.list());
    execute(cmd);
 }
 

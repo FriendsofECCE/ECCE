@@ -2111,6 +2111,13 @@ add_executable(proptsvec_nearest_test tests/tdat/proptsvec_nearest_test.C)
 target_link_libraries(proptsvec_nearest_test PRIVATE eccetdat ecceutil)
 add_test(NAME proptsvec_nearest COMMAND proptsvec_nearest_test)
 
+# BondDistort: bond changes around one atom, Jahn-Teller preset (#619).
+add_executable(bonddistort_test tests/tdat/bonddistort_test.C)
+target_link_libraries(bonddistort_test PRIVATE eccetdat ecceutil)
+add_test(NAME bonddistort COMMAND bonddistort_test)
+set_tests_properties(bonddistort PROPERTIES ENVIRONMENT
+  "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}")
+
 # The ECCE_HIDE_MO_DIAGRAM site setting (#280).
 add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
 target_link_libraries(sitehide_test PRIVATE ecceutil)
@@ -4074,6 +4081,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_edit_bugs PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Edit > Distort Bonds on an octahedral atom, and its undo (#619).
+  add_test(NAME apps_builder_distort
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_distort_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_distort PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # No bond orders in building; Clean's derived orders and bond lengths (#439).
   add_test(NAME apps_builder_bond_model
