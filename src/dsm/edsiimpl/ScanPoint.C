@@ -34,17 +34,21 @@ Keys keysOf(PropertyTask *task)
   return k;
 }
 
-// A CREST ensemble: one GEOMTRACE frame and one CONFREL value per conformer.
+// An ensemble: one GEOMTRACE frame and one ranking value per member, CREST's
+// CONFREL (conformers) or a docking code's POSESCORE (poses), lowest first.
 Keys ensembleKeys(PropertyTask *task)
 {
   Keys k = {0, 0};
   IPropCalculation *calc = task;
   if (!calc) return k;
-  PropVector *e = dynamic_cast<PropVector*>(calc->getProperty("CONFREL"));
   PropTSVecTable *g = dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE"));
-  if (e && g && !e->values().empty() && g->tables() == e->values().size()) {
-    k.energy = e;
-    k.geom = g;
+  static const char *score[] = {"CONFREL", "POSESCORE"};
+  for (int i = 0; i < 2 && !k.geom; i++) {
+    PropVector *e = dynamic_cast<PropVector*>(calc->getProperty(score[i]));
+    if (e && g && !e->values().empty() && g->tables() == e->values().size()) {
+      k.energy = e;
+      k.geom = g;
+    }
   }
   return k;
 }
@@ -75,6 +79,13 @@ int ScanPoint::ensembleSize(PropertyTask *calc)
 {
   Keys k = ensembleKeys(calc);
   return k.geom ? (int)k.energy->values().size() : 0;
+}
+
+
+bool ScanPoint::ensembleIsPoses(PropertyTask *calc)
+{
+  IPropCalculation *c = calc;
+  return c && !c->getProperty("CONFREL") && c->getProperty("POSESCORE");
 }
 
 
@@ -119,7 +130,7 @@ int ScanPoint::frame(PropertyTask *calc, const string& spec, string& why)
     int rank = conformerRank(spec);
     int n = ek.geom ? (int)ek.energy->values().size() : 0;
     if (!n) {
-      why = "The calculation has no conformer ensemble.";
+      why = "The calculation has no conformer or pose ensemble.";
       return -1;
     }
     if (rank > n) {

@@ -209,7 +209,7 @@ vector<Resource*> WorkflowSteps::createBest(Session *wf, ResourceType *rt,
   PropertyTask *task = dynamic_cast<PropertyTask*>(source);
   const int size = ScanPoint::ensembleSize(task);
   if (size < 1) {
-    why = "The source has no conformer ensemble.";
+    why = "The source has no conformer or pose ensemble.";
     return made;
   }
   if (n < 1 || n > size) {
@@ -233,11 +233,18 @@ vector<Resource*> WorkflowSteps::createBest(Session *wf, ResourceType *rt,
       return made;
     }
     char note[200];
-    snprintf(note, sizeof note,
-             "Conformer %d of %d from %s, relative energy %.3f kcal/mol "
-             "(within the CREST method only).",
-             k, size, source->getName().c_str(),
-             ScanPoint::conformerEnergy(task, k));
+    if (ScanPoint::ensembleIsPoses(task))
+      snprintf(note, sizeof note,
+               "Pose %d of %d from %s, score %.3f kcal/mol "
+               "(within this docking run only).",
+               k, size, source->getName().c_str(),
+               ScanPoint::conformerEnergy(task, k));
+    else
+      snprintf(note, sizeof note,
+               "Conformer %d of %d from %s, relative energy %.3f kcal/mol "
+               "(within the CREST method only).",
+               k, size, source->getName().c_str(),
+               ScanPoint::conformerEnergy(task, k));
     step->addProp(VDoc::getEcceNamespace() + ":annotation", note);
     made.push_back(step);
   }

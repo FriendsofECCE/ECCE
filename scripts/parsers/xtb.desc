@@ -36,7 +36,9 @@ Lines=4
 
 # gensub appends the frames after the run (xtb prints no coordinates):
 #   ECCE-XTB-FRAME <n> <atoms> / xyz comment line / atoms / ECCE-XTB-ENDFRAME
-[GEOMTRACE][TEVEC][TIMEVEC]
+# A docking pose's comment line is "score: <kcal/mol>" (POSESCORE, in the
+# calculation's atom order); a key is a separate section only if its markers are.
+[GEOMTRACE][TEVEC][TIMEVEC][POSESCORE]
 Script=xtb.geomtrace
 Begin=^ECCE-XTB-FRAME\s
 Skip=1

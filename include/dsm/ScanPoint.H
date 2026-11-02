@@ -22,10 +22,14 @@ namespace ScanPoint {
   /// "last point", "maximum", "point 5"; "" for the final structure.
   std::string words(const std::string& spec);
 
-  /// Number of conformers (GEOMTRACE frames with a CONFREL each); 0 if none.
+  /// Number of conformers or docking poses (GEOMTRACE frames with a CONFREL or
+  /// POSESCORE each, ranked by that value); 0 if none.
   int ensembleSize(PropertyTask *calc);
 
-  /// Relative energy (kcal/mol) of the conformer of rank `rank`, 0 if none.
+  /// True if the ensemble is a docking pose ensemble (POSESCORE), not CREST's.
+  bool ensembleIsPoses(PropertyTask *calc);
+
+  /// Relative energy or score (kcal/mol) of the member of rank `rank`, 0 if none.
   double conformerEnergy(PropertyTask *calc, int rank);
 
   /// True if the calculation has an energy and a structure per point.

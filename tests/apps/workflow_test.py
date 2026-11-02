@@ -190,6 +190,77 @@ def run_best(display, data, work, shots):
           bool(ready) and all(n in ready[0] for n in want), "ready %s" % ready)
 
 
+def run_best_poses(display, data, work, shots):
+    """Best N of a docking pose ensemble, ranked by its score (#682).
+
+    The pose fixture is made from the CREST one: the same frames, scored with
+    POSESCORE in an order that is not the file's, so ranking matters."""
+    scores = [-20.0, -30.0, -10.0, -25.0, -5.0, -15.0]
+    root = os.path.join(data, "users", "local")
+    project = os.path.join(root, "dock")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    poses = os.path.join(project, "poses")
+    shutil.copytree(CREST, poses, symlinks=True)
+    props = os.path.join(poses, "Props")
+    os.remove(os.path.join(props, "CONFREL"))
+    with open(os.path.join(props, "POSESCORE"), "w") as handle:
+        handle.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+                     '<tsvector name="POSESCORE" rowLabel="Geometry Step" rows="1" '
+                     'units="kcal/mol">\n\n')
+        for i, v in enumerate(scores):
+            handle.write('  <step number="%d">%.3f</step>\n' % (i + 1, v))
+        handle.write("</tsvector>\n")
+    meta = os.path.join(props, ".ecce-meta")
+    with open(meta) as handle:
+        text = handle.read()
+    with open(meta, "w") as handle:
+        handle.write(text.replace("CONFREL", "POSESCORE"))
+    proj = "file://" + root + "/dock"
+    wf = proj + "/Workflow"
+    commands = [
+        "summary %s/poses" % proj,
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/poses ens" % (wf, proj),
+        "workflowstep %s orca_es best %s/ens best=2" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ]
+    script = os.path.join(work, "commands-poses")
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=75,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    what = "Best poses"
+    if result.crashed:
+        return fail(what, "CRASHED (%s)" % result.signalName, log)
+    info = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo.*?: (.*)$", log, re.M)
+    if not info or not info[0].startswith("ok "):
+        return fail(what, "no workflowinfo answer", log)
+    table = steps(info[0][3:])
+    links = info[0].split(" links:")[1].split()
+    check("best=2 makes two steps", {"best-conf1", "best-conf2"} <= set(table)
+          and "best-conf3" not in table, "steps %s" % sorted(table))
+    check("the steps are linked under their rank",
+          {"ens>best-conf1:geometry.c1", "ens>best-conf2:geometry.c2"} <= set(links),
+          "links %s" % links)
+    _, frames = ensemble()
+    order = sorted(range(len(scores)), key=lambda i: scores[i])
+    for k in (1, 2):
+        rec = table.get("best-conf%d" % k)
+        if not rec:
+            continue
+        got = [float(v) for v in rec["xyz0"].split(",")]
+        ref = frames[order[k - 1]][:3]
+        check("pose %d (frame %d, score %.1f) is the step's start" %
+              (k, order[k - 1] + 1, scores[order[k - 1]]),
+              all(abs(a - b) < 1e-4 for a, b in zip(got, ref)), "%s vs %s" % (got, ref))
+    note = os.path.join(project, "Workflow", "best-conf1", ".ecce-meta")
+    text = open(note).read() if os.path.exists(note) else ""
+    check("the annotation names the pose and its score",
+          "Pose 1 of 6" in text and "score -30.000 kcal/mol" in text, text[:300])
+
+
 def run_joins(display, data, work, shots):
     root = os.path.join(data, "users", "local")
     project = os.path.join(root, "joins")
@@ -696,6 +767,7 @@ def main():
             run(display, data, work, shots)
             run_joins(display, data, work, shots)
             run_best(display, data, work, shots)
+            run_best_poses(display, data, work, shots)
             run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
