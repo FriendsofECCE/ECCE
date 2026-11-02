@@ -1,2 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<vecstring name="PNTGRP" rowLabel="Point Group" rowLabels="1" rows="1" units="NA">C2v</vecstring>
+<tsvecstring name="PNTGRP" units="NA">
+  <step number="0">C2v</step>
+</tsvecstring>
