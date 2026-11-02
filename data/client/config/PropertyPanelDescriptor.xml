@@ -86,6 +86,16 @@
     <property class="MDSummary"/>
   </PropertyPanel>
 
+  <!-- H, S and G recomputed from the stored frequencies (#692); listed
+       before Energies, which consumes EGIBBS. -->
+  <PropertyPanel>
+    <name>Thermochemistry</name>
+    <group>Energies</group>
+    <class>ThermoPanel</class>
+    <consumer>false</consumer>
+    <property name="EGIBBS"/>
+  </PropertyPanel>
+
   <!-- Transition-state jobs only (isRelevant); listed before Energies,
        which consumes TE. -->
   <PropertyPanel>

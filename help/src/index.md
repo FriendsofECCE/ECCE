@@ -122,6 +122,10 @@ describe what you did and what happened.
    energies of two calculations in Hartree, kJ/mol, kcal/mol and eV, and the
    notes on differing code, method or basis set.
 
+24a. [Thermochemistry](thermochemistry.md): H, S and G recomputed from the
+   stored frequencies with a chosen low-frequency treatment, temperature and
+   standard state.
+
 25. [Reconnect Selected](reconnect-selected.md): reconnecting several jobs
    to their calculations after a restart or a lost connection, in one step.
 

@@ -220,9 +220,13 @@ string sumTable(const SumResult& r, bool full)
   };
   const size_t LW = 12, AW = 15, DW = full ? 18 : 11, EW = full ? 16 : 10;
   string t = padRight("", LW) + padLeft("A (sum)", AW) + padLeft("B (sum)", AW) +
-             padLeft("B - A", DW) + "\n";
+             padLeft("B - A", DW);
+  bool spread = false;
+  for (const SumRow& w : r.rows) spread = spread || (w.available && w.hasSpread);
+  t += string(spread ? string(DW + EW, ' ') + padLeft("G spread", 12) : string()) + "\n";
   t += padRight("", LW) + padLeft("Hartree", AW) + padLeft("Hartree", AW) +
-       padLeft("kJ/mol", DW) + padLeft("kcal/mol", DW) + padLeft("eV", EW) + "\n";
+       padLeft("kJ/mol", DW) + padLeft("kcal/mol", DW) + padLeft("eV", EW) +
+       (spread ? padLeft("kJ/mol", 12) : string()) + "\n";
   for (const SumRow& w : r.rows) {
     t += padRight(w.label, LW);
     if (!w.available) {
@@ -232,7 +236,11 @@ string sumTable(const SumResult& r, bool full)
     t += padLeft(abs(w.a), AW) + padLeft(abs(w.b), AW) +
          padLeft(diff(w.delta(), EU_KJ), DW) +
          padLeft(diff(w.delta(), EU_KCAL), DW) +
-         padLeft(diff(w.delta(), EU_EV), EW) + "\n";
+         padLeft(diff(w.delta(), EU_EV), EW);
+    if (w.hasSpread)
+      t += padLeft((full ? num(hartreeTo(w.spread, EU_KJ), 10)
+                         : fmtDifference(w.spread, EU_KJ)), 12);
+    t += "\n";
   }
   t += "Solvent: " + r.solventA + " / " + r.solventB + "\n";
   if (!r.deltaLabel.empty()) t += "B - A is " + r.deltaLabel + ".\n";

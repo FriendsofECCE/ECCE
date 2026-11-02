@@ -158,6 +158,7 @@
 #include <wx/stattext.h>
 #include "IRCPanel.H"
 #include "ReactionPanel.H"
+#include "ThermoPanel.H"
 #include "PullPanel.H"
 #include "MdAnalysisPanels.H"
 #include "tdat/GeomConstraintModel.H"
@@ -1217,6 +1218,24 @@ void Builder::runBuilderScript(const std::string& file)
                   rp->exportCsv(wxString::FromUTF8(w[1].c_str()),
                                 w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
+        }
+      } else if (w[0] == "thermo" && w.size() >= 2) {
+        //  thermo <treatment> [T] [1atm|1M]: set the Thermochemistry panel's
+        //  choices (#692) and print the recomputed H, S, G.
+        ThermoPanel *tp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((tp = dynamic_cast<ThermoPanel*>(p)) != 0) break;
+        if (!tp) {
+          outcome = "no Thermochemistry panel";
+        } else {
+          ThermoValue v;
+          const bool set = tp->setChoice(w[1], w.size() > 2 ? atof(w[2].c_str()) : 298.15,
+                                         w.size() > 3 && w[3] == "1M");
+          const bool have = set && tp->shown(&v);
+          fprintf(stderr, "BUILDER: thermo %s H=%.6f S=%.6f G=%.6f %s\n", w[1].c_str(),
+                  v.H, v.S, v.G, have ? "ok" : ("failed: " + tp->errorText()).c_str());
         }
       } else if (w[0] == "ircpath" && w.size() >= 2) {
         //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)

@@ -539,6 +539,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * compareenergies <sideA> <sideB>
  *                 what Tools > Compare Energies shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
+ *                 an optional third word names an ecce-thermo treatment for
+ *                 the G row; the spread over treatments is always shown
  * comparedialog <sideA> <sideB> [png]
  *                 open that dialog preset to the two sides, report its text
  *                 areas and the Copy text, and save a capture of it
@@ -1742,8 +1744,12 @@ void CalcMgr::runTestCommand(const string& line)
       string ua, ub, png;
       args >> ua >> ub >> png;
       if (command == "compareenergies") {
-        const SumResult c = sumEnergies(gatherSide(ua), gatherSide(ub));
+        // The optional third word is an ecce-thermo treatment for the G row.
+        const vector<EnergyTerm> ta = gatherSide(ua), tb = gatherSide(ub);
+        SumResult c = sumEnergies(ta, tb);
+        const string problem = applyThermoTreatments(c, ta, tb, png == "stored" ? string() : png);
         outcome = "ok";
+        if (!problem.empty()) outcome += " | Problem: " + problem;
         std::istringstream lines(sumText(c, false));
         for (string l; std::getline(lines, l); ) outcome += " | " + l;
       } else {
