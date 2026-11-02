@@ -2660,7 +2660,7 @@ CASES = [
                                           'units': 'eV'}}),
             'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
                                             'units': 'Debye'}}),
-            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=1, keys={'GEOMTRACE': {
+            'GEOMTRACE][TEVEC][TIMEVEC][CONFREL': dict(blocks=1, keys={'GEOMTRACE': {
                 'size': '1 3 3', 'rowlabels': '1-O 2-H 3-H',
                 'units': 'Angstrom'}}),
         },
@@ -2714,7 +2714,7 @@ CASES = [
             'HLGAP': dict(keys={'HLGAP': {'values': '17.346667996473',
                                           'units': 'eV'}}),
             'DIPOLE': dict(keys={'DIPOLE': {'units': 'Debye'}}),
-            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=12, keys={
+            'GEOMTRACE][TEVEC][TIMEVEC][CONFREL': dict(blocks=12, keys={
                 'GEOMTRACE': {'size': '1 5 3',
                               'rowlabels': '1-C 2-H 3-H 4-H 5-H',
                               'units': 'Angstrom'},
@@ -2730,7 +2730,7 @@ CASES = [
         parse_args=('.', 'Geometry', 'SE', 'GFN2-xTB', '0'),
         expect={
             'TE': dict(keys={'TE': {'units': 'Hartree'}}),
-            'GEOMTRACE][TEVEC][TIMEVEC': dict(blocks=3, keys={'GEOMTRACE': {
+            'GEOMTRACE][TEVEC][TIMEVEC][CONFREL': dict(blocks=3, keys={'GEOMTRACE': {
                 'size': '1 5 3'}}),
         },
     ),
