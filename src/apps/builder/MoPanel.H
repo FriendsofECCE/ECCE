@@ -115,6 +115,9 @@ class MoPanel : public MoGUI,
       * headless checks (the Builder's "motable" scene command).
       */
      string tableState() const;
+     //  Show on structure for the spin density view (the hook's entry).
+     void paintSpin(bool on);
+     std::vector<std::string> atomColourRows() const;
 
      /**
       * The ESP colour bar as drawn, "key value" lines, for headless checks
@@ -177,6 +180,8 @@ class MoPanel : public MoGUI,
         bool haveBasis = false;
         std::string why;                // why the populations are missing
         std::vector<SpinTables::Population> populations;
+        std::vector<std::string> atomElement;   // per atom, all of them
+        std::vector<double> atomSpin;
      };
      SpinData spinDensityData();
      void fillSpinView();
@@ -284,6 +289,14 @@ class MoPanel : public MoGUI,
       wxGrid *p_spinSomo = NULL, *p_spinPop = NULL;
       std::vector<std::string> p_spinSomoFull;   // tooltip per SOMO row
       bool p_spinShown = false;
+      wxStaticText *p_spinLargest = NULL, *p_spinElemHead = NULL,
+                   *p_spinLegend = NULL;
+      wxGrid *p_spinElem = NULL;
+      wxCheckBox *p_spinPaint = NULL;
+      wxPanel *p_spinBar = NULL;
+      std::vector<float> p_spinSaved;       // atom colours before painting
+      int p_spinSavedBinding = 0;
+      bool p_spinPainted = false;
       //  One atom: each orbital's shell ("1s", "2p", "3s (virtual)"), alpha
       //  then beta, replacing the symmetry label; empty for a molecule.
       vector<string> p_atomLabels[2];

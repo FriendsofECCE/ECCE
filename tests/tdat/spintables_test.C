@@ -43,6 +43,25 @@ int main()
   CHECK(fabs(sum - 100.0*1.3/1.3001) < 1e-9, "shares add up");
   CHECK(SpinTables::populations({}, {}).empty(), "no atoms");
 
+  // Largest |spin| and the per-element sums.
+  SpinTables::Population big = SpinTables::largest(names, spin);
+  CHECK(big.atom == "O3" && fabs(big.spin - 0.70) < 1e-12, "largest spin atom");
+  CHECK(SpinTables::largest({}, {}).atom.empty(), "no atoms, no largest");
+  vector<string> el = { "H", "Nb", "O", "Na", "O" };
+  vector<pair<string, double> > sums = SpinTables::byElement(el, spin);
+  CHECK(sums.size() == 4 && sums[0].first == "O" && fabs(sums[0].second - 0.60) < 1e-12,
+        "O sums 0.7 - 0.1");
+  CHECK(sums[1].first == "Nb" && fabs(sums[1].second + 0.40) < 1e-12, "Nb negative");
+  double all = 0; for (auto& e : sums) all += e.second;
+  CHECK(fabs(all - 0.3001) < 1e-9, "element sums add up to the total");
+  float c[3];
+  SpinTables::colour(0.0, 1.0, c);
+  CHECK(c[0] == 1.0f && c[1] == 1.0f && c[2] == 1.0f, "zero spin is white");
+  SpinTables::colour(1.0, 1.0, c);
+  CHECK(c[0] > c[2], "positive is red");
+  SpinTables::colour(-1.0, 1.0, c);
+  CHECK(c[2] > c[0], "negative is blue");
+
   if (failures) return 1;
   fprintf(stderr, "spintables_test: ok\n");
   return 0;

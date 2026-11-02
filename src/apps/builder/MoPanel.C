@@ -24,6 +24,10 @@
 #include "dsm/ICalcUtils.H"
 #include "tdat/MoAoBasis.H"
 #include "tdat/SpinTables.H"
+#include "inv/ChemKit/ChemColor.H"
+#include "viz/SGFragment.H"
+#include <wx/dcclient.h>
+#include <wx/checkbox.h>
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
@@ -259,6 +263,8 @@ bool MoPanel::Create(IPropCalculation *calculation,
    wxBoxSizer *spinSizer = new wxBoxSizer(wxVERTICAL);
    p_spinNote = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
    p_spinPopHead = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
+   p_spinLargest = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
+   p_spinElemHead = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
    auto makeGrid = [this]() {
       wxGrid *g = new wxGrid(p_spinView, wxID_ANY, wxDefaultPosition,
                              wxDefaultSize, wxBORDER_SUNKEN);
@@ -278,6 +284,33 @@ bool MoPanel::Create(IPropCalculation *calculation,
    };
    p_spinSomo = makeGrid();
    p_spinPop = makeGrid();
+   p_spinElem = makeGrid();
+   //  Colour each atom by its spin; the legend is the scale itself.
+   p_spinPaint = new wxCheckBox(p_spinView, wxID_ANY, "Show on structure");
+   p_spinPaint->SetToolTip(_("Colour each atom by its spin: blue negative, "
+                             "white zero, red positive. Off restores the "
+                             "normal colours."));
+   p_spinPaint->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+      paintSpin(e.IsChecked()); });
+   p_spinBar = new wxPanel(p_spinView, wxID_ANY, wxDefaultPosition,
+                           wxSize(120, 14));
+   p_spinBar->Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
+      wxPaintDC dc(p_spinBar);
+      const wxSize sz = p_spinBar->GetClientSize();
+      for (int x = 0; x < sz.x; x++) {
+         float rgb[3];
+         SpinTables::colour(sz.x > 1 ? 2.0*x/(sz.x - 1) - 1.0 : 0.0, 1.0, rgb);
+         dc.SetPen(wxPen(wxColour((unsigned char)(255*rgb[0]),
+                                  (unsigned char)(255*rgb[1]),
+                                  (unsigned char)(255*rgb[2]))));
+         dc.DrawLine(x, 0, x, sz.y);
+      }
+   });
+   p_spinLegend = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
+   wxBoxSizer *paintRow = new wxBoxSizer(wxHORIZONTAL);
+   paintRow->Add(p_spinPaint, 0, wxALIGN_CENTER_VERTICAL);
+   paintRow->Add(p_spinBar, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 8);
+   paintRow->Add(p_spinLegend, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
    //  A composition cell shows the leading atoms; the tooltip has them all.
    p_spinSomo->GetGridWindow()->Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
       e.Skip();
@@ -292,6 +325,10 @@ bool MoPanel::Create(IPropCalculation *calculation,
    spinSizer->Add(p_spinSomo, 0, wxGROW|wxLEFT|wxRIGHT, 5);
    spinSizer->Add(p_spinPopHead, 0, wxGROW|wxLEFT|wxRIGHT|wxTOP|wxBOTTOM, 8);
    spinSizer->Add(p_spinPop, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+   spinSizer->Add(p_spinLargest, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 8);
+   spinSizer->Add(p_spinElemHead, 0, wxGROW|wxLEFT|wxRIGHT, 8);
+   spinSizer->Add(p_spinElem, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+   spinSizer->Add(paintRow, 0, wxLEFT|wxRIGHT|wxBOTTOM, 8);
    p_spinView->SetSizer(spinSizer);
    p_spinView->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
       e.Skip();
@@ -612,6 +649,7 @@ bool MoPanel::rebuildTable()
    p_mogrid->UnsetSortingColumn();
    p_sortCol = -1;
    if (p_spinShown) {
+      paintSpin(false);
       p_spinShown = false;
       showMainView();
    }
@@ -1193,8 +1231,11 @@ string MoPanel::tableState() const
    s << "visibleRows " << first << " " << last << "\n";
    if (p_spinShown) {
       wxString text = p_spinNote->GetLabel() + "\n";
-      for (wxGrid *g : { p_spinSomo, p_spinPop }) {
+      for (wxGrid *g : { p_spinSomo, p_spinPop, p_spinElem }) {
          if (g == p_spinPop) text += p_spinPopHead->GetLabel() + "\n";
+         if (g == p_spinElem)
+            text += p_spinLargest->GetLabel() + "\n" +
+                    p_spinElemHead->GetLabel() + "\n";
          if (g->GetNumberRows() == 0) continue;
          for (int col = 0; col < g->GetNumberCols(); col++)
             text += (col ? " | " : "") + g->GetColLabelValue(col);
@@ -2742,6 +2783,8 @@ MoPanel::SpinData MoPanel::spinDensityData()
    data.haveBasis = haveBasis;
    if (havePop) {
       data.populations = SpinTables::populations(atomName, spinPop);
+      data.atomElement = p_aoBasis->elements;
+      data.atomSpin = spinPop;
    } else {
       data.haveBasis = false;
       data.why = haveBasis ? "the orbital coefficients do not match the basis"
@@ -2813,8 +2856,38 @@ void MoPanel::fillSpinView()
       for (int c = 1; c < 3; c++)
          p_spinPop->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
    }
+   //  The largest atom and the sum per element answer "where is the spin".
+   vector<string> names;
+   for (size_t a = 0; a < data.atomElement.size(); a++)
+      names.push_back(data.atomElement[a] + std::to_string(a + 1));
+   if (popTable && !data.atomSpin.empty()) {
+      const SpinTables::Population big =
+         SpinTables::largest(names, data.atomSpin);
+      p_spinLargest->SetLabel(wxString::Format("largest spin: %s %.2f (Mulliken)",
+         wxString::FromUTF8(big.atom.c_str()), big.spin));
+      p_spinElemHead->SetLabel(_("Summed spin per element (electrons)"));
+      const vector<std::pair<string, double> > sums =
+         SpinTables::byElement(data.atomElement, data.atomSpin);
+      static const char *const elemHeads[] = { "Element", "Spin (e)" };
+      reset(p_spinElem, elemHeads, 2, (int)sums.size());
+      for (size_t r = 0; r < sums.size(); r++) {
+         p_spinElem->SetCellValue(r, 0, wxString::FromUTF8(sums[r].first.c_str()));
+         p_spinElem->SetCellValue(r, 1, wxString::Format("%.3f", sums[r].second));
+         p_spinElem->SetCellAlignment(r, 0, wxALIGN_LEFT, wxALIGN_CENTRE);
+         p_spinElem->SetCellAlignment(r, 1, wxALIGN_RIGHT, wxALIGN_CENTRE);
+      }
+   } else {
+      p_spinLargest->SetLabel(wxEmptyString);
+      p_spinElemHead->SetLabel(wxEmptyString);
+      reset(p_spinElem, popHeads, 2, 0);
+   }
    p_spinSomo->Show(somoTable);
    p_spinPop->Show(popTable);
+   p_spinElem->Show(popTable);
+   p_spinPaint->Show(popTable);
+   p_spinBar->Show(popTable);
+   p_spinLegend->Show(popTable);
+   if (p_spinPainted) paintSpin(true);
    layoutSpinView();
 }
 
@@ -2828,13 +2901,14 @@ void MoPanel::layoutSpinView()
 {
    if (!p_spinView || !p_spinSomo) return;
    const int width = std::max(100, p_spinView->GetClientSize().x - 10);
-   for (wxStaticText *t : { p_spinNote, p_spinPopHead }) {
+   for (wxStaticText *t : { p_spinNote, p_spinPopHead, p_spinLargest,
+                            p_spinElemHead }) {
       wxString label = t->GetLabel();
       label.Replace("\n", " ");
       t->SetLabel(label);
       t->Wrap(width - 10);
    }
-   for (wxGrid *g : { p_spinSomo, p_spinPop }) {
+   for (wxGrid *g : { p_spinSomo, p_spinPop, p_spinElem }) {
       if (!g->IsShown() || g->GetNumberCols() == 0) continue;
       g->AutoSize();
       g->SetColLabelSize(g->GetTextExtent("Ey").y + 10);
@@ -2870,6 +2944,7 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
          string(tw->GetString(tw->GetSelection()).mb_str());
       const bool spin = chosen == "Spin Density";
       if (spin != p_spinShown) {
+         if (!spin) paintSpin(false);
          p_spinShown = spin;
          if (spin) fillSpinView();
          showMainView();
@@ -2942,4 +3017,64 @@ void MoPanel::orbitalPointChanged()
    const bool sparse = calc && calc->orbitalsAtSomePointsOnly();
    if (p_mogrid == 0 || (p_mogrid->GetNumberRows() == 0 && !sparse)) return;
    initialize(true);
+}
+
+
+/**
+ * Colours each atom by its Mulliken spin, as the Displacement panel colours
+ * by displacement: the colours as they were are kept and put back on off.
+ */
+void MoPanel::paintSpin(bool on)
+{
+   if (p_spinPaint) p_spinPaint->SetValue(on);
+   ChemColor *colors = getFW().getSceneGraph().getColorNode();
+   if (!colors) return;
+   if (!on) {
+      if (!p_spinPainted) return;
+      for (size_t i = 0; i*3 < p_spinSaved.size(); i++)
+         colors->atomColor.set1Value((int)i, p_spinSaved[3*i],
+                                     p_spinSaved[3*i+1], p_spinSaved[3*i+2]);
+      colors->atomColorBinding.setValue(p_spinSavedBinding);
+      p_spinPainted = false;
+      if (p_spinLegend) p_spinLegend->SetLabel(wxEmptyString);
+      getFW().getViewer().refreshRenderArea();
+      return;
+   }
+   const SpinData data = spinDensityData();
+   const int n = getFW().getSceneGraph().getFragment()->numAtoms();
+   if (data.atomSpin.empty() || (int)data.atomSpin.size() != n) return;
+   if (!p_spinPainted) {
+      p_spinSaved.clear();
+      for (int i = 0; i < colors->atomColor.getNum(); i++)
+         for (int k = 0; k < 3; k++) p_spinSaved.push_back(colors->atomColor[i][k]);
+      p_spinSavedBinding = colors->atomColorBinding.getValue();
+   }
+   double top = 0;
+   for (double v : data.atomSpin) top = std::max(top, fabs(v));
+   for (int i = 0; i < n; i++) {
+      float rgb[3];
+      SpinTables::colour(data.atomSpin[i], top, rgb);
+      colors->atomColor.set1Value(i, rgb[0], rgb[1], rgb[2]);
+   }
+   colors->atomColorBinding.setValue(ChemColor::ATOM_PER_ATOM);
+   p_spinPainted = true;
+   if (p_spinLegend)
+      p_spinLegend->SetLabel(wxString::Format("%.2f to +%.2f e", -top, top));
+   getFW().getViewer().refreshRenderArea();
+}
+
+
+vector<string> MoPanel::atomColourRows() const
+{
+   vector<string> rows;
+   ChemColor *colors = const_cast<MoPanel*>(this)->getFW().getSceneGraph()
+                          .getColorNode();
+   if (!colors) return rows;
+   const int n = const_cast<MoPanel*>(this)->getFW().getSceneGraph()
+                    .getFragment()->numAtoms();
+   for (int i = 0; i < n && i < colors->atomColor.getNum(); i++)
+      rows.push_back(string(wxString::Format("%d %.3f %.3f %.3f",
+         (int)colors->atomColorBinding.getValue(), colors->atomColor[i][0],
+         colors->atomColor[i][1], colors->atomColor[i][2]).utf8_str()));
+   return rows;
 }

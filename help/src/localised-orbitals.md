@@ -55,5 +55,13 @@ every atom with at least 1 %. The spin population table gives each atom's spin
 population in electrons and its **Share (%)** of the total absolute spin, with
 the atoms that carry most spin first.
 
+Under the tables, **largest spin** names the atom with the largest absolute
+spin population, and **Summed spin per element** adds the populations of each
+element; the sums add up to the total spin, 2S, within the rounding of the
+populations. Tick **Show on structure** to colour every atom by its spin on the
+structure: blue for negative, white for zero, red for positive. The bar beside
+the box is the scale, and the full colour is the largest absolute spin. Untick
+the box, or choose another type, to get the usual colours back.
+
 Computing the surface can take minutes on a large cluster. A window with a
 **Cancel** button appears when it runs longer than a moment.
