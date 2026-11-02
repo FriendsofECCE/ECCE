@@ -304,3 +304,19 @@ shows "from site" in that case. The undo button next to the tag removes
 your setting and returns to the site's. Ticking neither box removes the
 key (or, if the site sets one, writes `false` for it), which is the normal
 mode.
+
+## Remembering an ssh password
+
+When ECCE asks for your password for a machine, the password dialog has a
+box **Remember on this computer**. It appears only when your computer has a
+password store that ECCE can use (the Keychain on macOS, the Credential
+Manager on Windows, a keyring with `secret-tool` on Linux). Tick it and, after
+the login works, ECCE keeps the password in that store and uses it the next
+time the connection has to be opened again, without asking.
+
+If the machine refuses a remembered password, ECCE removes it everywhere and
+asks again. To remove one yourself, open **Preferences**, page **Advanced**,
+list **Remembered ssh logins**, select the login and press **Forget**.
+
+The box is not offered for a machine reached through another machine (a jump
+host), and never for one-time passcodes.

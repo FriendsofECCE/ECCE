@@ -20,6 +20,9 @@
 #      only) and the next login after a lost master asks nothing
 #  10. a refused stored password: ssh is refused once, one dialog follows
 #      (cancelled here), the stored password is gone
+#  13. the dialog's "remember" box is ticked: the system store (a stub
+#      secret-tool) gives the password after the master and .pw are gone; it
+#      is on the tool stdin only, and a refusal forgets it
 #  12. the master dies and the network is cut (the sshd container is
 #      paused): 4 openers all say "unreachable" (not refused), no dialog;
 #      after the resume the next opener logs in at once (#777)
@@ -94,8 +97,21 @@ case \$(cat /tmp/fakehome/mode 2>/dev/null) in
   slow) if [ ! -e /tmp/fakehome/slowed ]; then : > /tmp/fakehome/slowed; sleep 6; fi;;
 esac
 echo ecce-test
+case "\$*" in *remember*) [ ! -e /tmp/fakehome/remember ] || echo remember;; esac
 STUB
   chmod +x $fh/bin/passdialog
+  # a stand-in secret-tool: the secret is on stdin only; argv goes to a log
+  cat > $fh/bin/secret-tool <<STUB
+#!/bin/sh
+echo "\$@" >> /tmp/fakehome/secret-argv.log
+case \$1 in
+  store) cat > /tmp/fakehome/secret;;
+  lookup) [ -e /tmp/fakehome/secret ] && printf %s "\$(cat /tmp/fakehome/secret)";;
+  clear) rm -f /tmp/fakehome/secret;;
+esac
+STUB
+  chmod +x $fh/bin/secret-tool
+  export ECCE_SECRET_TOOL=$fh/bin/secret-tool DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent
   export ECCE_HOME=$fh ECCE_ASKPASS=/src/scripts/ecce-askpass ASKLOG=/tmp/ask.log
   . /src/packaging/gateway/ecce-session-lib.sh
   STATEDIR=$HOME/.ECCE
@@ -105,8 +121,9 @@ STUB
   scenario() {  # name expected-logins driver-args...
     local n=$1 want=$2; shift 2
     : > $ASKLOG
-    rm -f $fh/slowed $fh/mode
+    rm -f $fh/slowed $fh/mode $fh/remember $fh/secret $fh/secret-argv.log
     [ -z "${MODE:-}" ] || echo $MODE > $fh/mode
+    [ -z "${REMEMBER:-}" ] || : > $fh/remember
     export XDG_RUNTIME_DIR=/tmp/xdg-$n
     rm -rf $XDG_RUNTIME_DIR; install -d -m 700 $XDG_RUNTIME_DIR
     ECCE_SESSION_ID=$(ecce_new_session_id); export ECCE_SESSION_ID
@@ -148,6 +165,9 @@ STUB
   # 9-11 (#777): a stored password re-logs in with 0 dialogs (kill, bothdead
   # and sessions above); a refused stored one: 1 dialog, then forgotten
   MINSOCKS=0 scenario refused 1 refused
+  # 13: "Remember on this computer" ticked: the system store (not .pw) logs in
+  # again, and the password was only ever on the tool stdin
+  REMEMBER=1 scenario remember 2 remember
   # 12: the dead network is "unreachable", not a refused password (#777)
   rm -f /ctl/*.done
   scenario outage 2 outage 4

@@ -287,6 +287,27 @@ int main(int argc, char** argv)
     check("exactly one dialog", dialogs() - dlg == 1, std::to_string(dialogs() - dlg));
     check("the refused password is forgotten", access(pwf.c_str(), F_OK) != 0);
     check("the transport says to forget its own copy", u->forgetCached());
+  } else if (mode == "remember") {
+    // Ticked "remember": after the master and .pw are gone the system store
+    // logs in with no dialog.
+    OpenSshTransport* t = make();
+    string e;
+    check("login by dialog, remember ticked", t->connect(e), e);
+    check("the system store has it", access("/tmp/fakehome/secret", F_OK) == 0);
+    string argv;
+    { std::ifstream in("/tmp/fakehome/secret-argv.log"); string l; while (std::getline(in, l)) argv += l; }
+    check("the password is not in the tool's argv", argv.find("ecce-test") == string::npos && !argv.empty());
+    const string b0 = t->controlSocketPath();
+    const string pwf = b0.substr(0, b0.size() - (b0.size() > 2 && b0[b0.size()-2] == '-' ? 2 : 0)) + ".pw";
+    long pid = masterPid(b0);
+    if (pid > 1) kill((pid_t)pid, SIGKILL);
+    unlink(pwf.c_str());
+    usleep(500000);
+    const int dlg = dialogs();
+    OpenSshTransport* u = make();
+    string er;
+    check("the store logs in again", u->connect(er), er);
+    check("with no dialog", dialogs() == dlg, std::to_string(dialogs() - dlg));
   } else if (mode == "outage") {
     const char* ctl = getenv("ECCE_CTL_DIR");
     if (!ctl) { std::cerr << "needs ECCE_CTL_DIR" << std::endl; return 2; }

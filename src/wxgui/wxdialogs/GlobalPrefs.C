@@ -40,6 +40,8 @@
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxNotebook.H"
+#include <wx/listbox.h>
+#include "comm/SecretStore.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/WxState.H"
@@ -591,6 +593,31 @@ void GlobalPrefs::createAdvancedPage(wxWindow* page)
       outer->Add(line, 0, wxGROW|wxLEFT|wxRIGHT|wxTOP, PAD*3);
     }
     p_advanced.push_back(row);
+  }
+  // ssh passwords kept with "Remember on this computer": host names only.
+  if (SecretStore::available()) {
+    wxStaticBoxSizer* rb = new wxStaticBoxSizer(wxVERTICAL, page,
+                                                _("Remembered ssh logins"));
+    wxListBox* list = new wxListBox(rb->GetStaticBox(), wxID_ANY);
+    auto fill = [list]() {
+      list->Clear();
+      for (const SecretStore::Login& l : SecretStore::remembered())
+        list->Append(wxString::FromUTF8((l.user + "@" + l.host + ":" +
+            std::to_string(l.port) + (l.jump.empty() ? "" : " via " + l.jump)).c_str()));
+    };
+    fill();
+    ewxButton* forget = new ewxButton(rb->GetStaticBox(), wxID_ANY, _("Forget"));
+    forget->Bind(wxEVT_BUTTON, [list, fill](wxCommandEvent&) {
+      int sel = list->GetSelection();
+      std::vector<SecretStore::Login> all = SecretStore::remembered();
+      if (sel >= 0 && sel < (int)all.size()) {
+        SecretStore::forgetRemembered(all[sel]);
+        fill();
+      }
+    });
+    rb->Add(list, 1, wxGROW|wxALL, PAD);
+    rb->Add(forget, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
+    outer->Add(rb, 0, wxGROW|wxALL, PAD);
   }
   page->SetSizer(outer);
 }

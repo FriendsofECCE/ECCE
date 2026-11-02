@@ -73,11 +73,15 @@ case $kind in
     fi
     # The answer, not the exit status, decides: an older passdialog exits
     # 255 after OK.  It prints nothing when it is cancelled.
-    answer=$("$bin/passdialog" "$what" "$host" "$user")
+    rem=
+    [ "$what" = password ] && [ "${ECCE_ASKPASS_REMEMBER:-}" = 1 ] && rem=remember
+    reply=$("$bin/passdialog" "$what" "$host" "$user" $rem)
+    # Line 1 is the password, an optional line 2 "remember" (the checkbox).
+    answer=$(printf '%s\n' "$reply" | sed -n 1p)
     [ -n "$answer" ] || cancel
     # ECCE keeps a password (not a passcode) that was accepted, 0600.
     if [ "$what" = password ] && [ -n "${ECCE_ASKPASS_ANSWER:-}" ]; then
-      ( umask 077; printf '%s\n' "$answer" > "$ECCE_ASKPASS_ANSWER" )
+      ( umask 077; printf '%s\n' "$reply" > "$ECCE_ASKPASS_ANSWER" )
     fi
     printf '%s\n' "$answer"
     ;;

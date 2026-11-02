@@ -26,6 +26,11 @@ bool PasswordDialogApp::OnInit()
 
   WxAuth authDlg(NULL);
 
+  // A fourth argument "remember" shows the checkbox (ssh passwords only).
+  const bool canRemember = argc > 4 && argv[4].ToStdString() == "remember" &&
+                           type == "password";
+  authDlg.enableRemember(canRemember);
+
   authDlg.setPrompt("");
   authDlg.setServerLabel("Host:");
   authDlg.setServer(host);
@@ -46,6 +51,10 @@ bool PasswordDialogApp::OnInit()
                        : authDlg.ShowModal() == wxID_OK;
   if (ok) {
     cout << (test ? std::string(test) : authDlg.getPassword()) << endl;
+    // ECCE_TEST_AUTH_REMEMBER: the checkbox ticked, without the dialog.
+    if (canRemember && (test ? getenv("ECCE_TEST_AUTH_REMEMBER") != NULL
+                             : authDlg.remembered()))
+      cout << "remember" << endl;
     exit(0);
   }
   exit(1);

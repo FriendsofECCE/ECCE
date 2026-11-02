@@ -1,4 +1,8 @@
 #include "comm/OpenSshTransport.H"
+#include "comm/SecretStore.H"
+#ifndef _WIN32
+#include <pwd.h>
+#endif
 
 #include <algorithm>
 #include <cerrno>
@@ -788,6 +792,18 @@ bool OpenSshTransport::openMaster()
     pwKept = onTmpfs(ownedControlDir());
     if (pw.empty() && pwKept) pw = readSecret(pwFile);
   }
+  // Then the system's store, if the user asked to remember this login.
+  SecretStore::Login who;
+  who.host = p_host;
+  who.user = p_user;
+  if (who.user.empty()) {
+    struct passwd* pe = getpwuid(getuid());
+    if (pe) who.user = pe->pw_name;
+  }
+  who.port = p_port > 0 ? p_port : 22;
+  who.jump = p_jumpHost;
+  const bool storeUsable = owned && !viaOtherHost && SecretStore::available();
+  if (pw.empty() && storeUsable) SecretStore::lookup(who, pw);
 
   // ssh asks again after a refusal; askpass records a cancel in this file
   // (its directory is ours alone) so that one cancel is one dialog.  An
@@ -835,6 +851,7 @@ bool OpenSshTransport::openMaster()
   if (haveState) a.push_back("ECCE_ASKPASS_STATE=" + stateDir + "/cancelled");
   if (!fifo.empty()) a.push_back("ECCE_ASKPASS_PWFIFO=" + fifo);
   if (haveState) a.push_back("ECCE_ASKPASS_ANSWER=" + stateDir + "/answer");
+  if (storeUsable) a.push_back("ECCE_ASKPASS_REMEMBER=1");
   a.push_back("SSH_ASKPASS_REQUIRE=force");
   a.push_back("ECCE_ASKPASS_HOST=" + p_host);
   a.push_back("ECCE_ASKPASS_USER=" + p_user);
@@ -880,10 +897,20 @@ bool OpenSshTransport::openMaster()
   const bool fed = marked("fed");
   const bool storedRefused = marked("refused") || (!ok && p_refused && fed);
   std::string answered;
-  if (haveState) answered = readSecret(stateDir + "/answer");
+  bool remember = false;
+  if (haveState) {
+    // Line 1 is the password, line 2 "remember" when the box was ticked.
+    answered = readSecret(stateDir + "/answer");
+    size_t nl = answered.find('\n');
+    if (nl != std::string::npos) {
+      remember = answered.compare(nl + 1, std::string::npos, "remember") == 0;
+      answered.erase(nl);
+    }
+  }
   if (storedRefused) {
     // Forget it: the same wrong password must not be sent again.
     if (!pwFile.empty()) unlink(pwFile.c_str());
+    if (storeUsable) SecretStore::forgetRemembered(who);
     p_forgetCached = true;
   }
   if (ok && owned && !viaOtherHost) {
@@ -891,6 +918,8 @@ bool OpenSshTransport::openMaster()
     if (!good.empty()) {
       p_accepted = good;
       if (pwKept && good != readSecret(pwFile)) writeSmall(pwFile, good + "\n");
+      if (remember && storeUsable && SecretStore::save(who, good))
+        SecretStore::noteRemembered(who);
     }
   }
   if (!ok && !userCancel) {

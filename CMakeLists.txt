@@ -321,6 +321,9 @@ target_link_libraries(eccetdat PUBLIC ecceutil)
 # (ecce_app): a dependency back into the group would be a cycle CMake refuses.
 if(NOT WIN32)
   target_link_libraries(eccercmd PUBLIC eccetdat ecceutil)
+  if(WIN32)
+    target_link_libraries(eccercmd PUBLIC advapi32)  # SecretStore: Credential Manager
+  endif()
 endif()
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
@@ -3531,6 +3534,14 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(testOpenSshTransport PRIVATE eccercmd ecceutil)
   add_test(NAME transport_openssh COMMAND testOpenSshTransport)
   set_tests_properties(transport_openssh PROPERTIES TIMEOUT 180)
+
+  # SecretStore: the password is only ever on the helper's stdin (stub tool).
+  add_executable(testSecretStore tests/transport/testSecretStore.C)
+  target_link_libraries(testSecretStore PRIVATE eccercmd ecceutil)
+  add_test(NAME transport_secretstore
+           COMMAND ${CMAKE_COMMAND} -E env STUB_DIR=${CMAKE_CURRENT_BINARY_DIR}/secretstore-stub
+                   sh -c "mkdir -p $STUB_DIR && $<TARGET_FILE:testSecretStore> stub")
+  set_tests_properties(transport_secretstore PROPERTIES TIMEOUT 60)
 
   # A host that accepts TCP and never sends the ssh banner fails in bounded
   # time, with no libssh retry after OpenSSH timed out.  POSIX sockets.
