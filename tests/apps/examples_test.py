@@ -113,9 +113,12 @@ for _topic in sorted(os.listdir(_GC)):
                                 "lewis-structures-and-resonance")
         GENCHEM[_name] = (QM_LOC if _molecular and _name not in ("He2", "LiF")
                           else ["TE", "MO"])
-WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE"] if c == "xtb"
-                                   else ["TE", "VIBFREQ"])
+WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE", "MO", "ORBENG"]
+                                   if c == "xtb"
+                                   else ["TE", "VIBFREQ", "MO", "ORBENG"])
              for n in ("6_0", "5_1", "4_2") for c in ("xtb", "orca")}
+WORKFLOWS.update({"sn2_" + k: ["TE"] for k in
+                  ("reactant", "scan", "product", "qst3", "irc")})
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
             "Examples/Spectroscopy": SPECTROSCOPY,
             "Examples/General_Chemistry": GENCHEM,
