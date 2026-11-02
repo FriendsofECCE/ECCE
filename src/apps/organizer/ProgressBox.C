@@ -18,6 +18,7 @@
 #include <wx/settings.h>
 #include <wx/stattext.h>
 
+#include "comm/JobFailureReason.H"
 #include "tdat/VibSpectrum.H"
 #include "wxgui/PlotStyle.H"
 #include "wxgui/ewxConfig.H"
@@ -172,11 +173,17 @@ vector<JobProgress::Block> ProgressBox::blocks() const
 }
 
 
-// What a finished job came to, ending with its final energy.
-vector<string> ProgressBox::outcome() const
+// What a finished job came to, ending with its final energy.  shorten: the
+// box's own display shortens the scheduler note's quoted line; false keeps
+// it whole, as the stored reason (run log, ecce-* tools) -- and "Copy all"
+// -- have it.
+vector<string> ProgressBox::outcome(bool shorten) const
 {
   vector<string> out = p_progress.summary(p_completed);
-  if (!p_stopped.empty()) out.push_back("Incomplete: " + p_stopped);
+  if (!p_stopped.empty())
+    out.push_back("Incomplete: " +
+                  (shorten ? JobFailureReason::reasonForProgressBox(p_stopped)
+                           : p_stopped));
   if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
   return out;
 }
@@ -189,7 +196,7 @@ string ProgressBox::copyText(int what) const
     return p_finalValue.empty() || p_finalUnits.empty()
                ? p_finalValue : p_finalValue + " " + p_finalUnits;
   string all;
-  for (const string& line : describe()) all += line + "\n";
+  for (const string& line : describe(true)) all += line + "\n";
   return all;
 }
 
@@ -221,8 +228,13 @@ string ProgressBox::foldedText() const
   if (outOfContact())
     return JobProgress::noContactText((double)time(0) - p_lastHeard);
   if (p_finished) {
-    vector<string> s = outcome();
-    return s.empty() ? string() : s[0];
+    vector<string> s = outcome(true);
+    if (s.empty()) return string();
+    // The whole reason as the one folded line would run wider than the box;
+    // a folded box says only that the job is Incomplete (the open box has
+    // the reason).
+    if (s[0].compare(0, 11, "Incomplete:") == 0) return "Incomplete";
+    return s[0];
   }
   if (p_queued && p_progress.empty()) {
     const vector<JobProgress::Block> q = blocks();
@@ -257,7 +269,7 @@ static string plotCaption(const JobProgress::Block& b)
 }
 
 
-vector<string> ProgressBox::describe() const
+vector<string> ProgressBox::describe(bool full) const
 {
   vector<string> out;
   if (!wanted()) return out;
@@ -294,7 +306,7 @@ vector<string> ProgressBox::describe() const
   }
   for (const string& g : p_geom) out.push_back("geom " + g);
   if (p_finished)
-    for (const string& s : outcome())
+    for (const string& s : outcome(!full))
       out.push_back("summary: " + s);
   else if (!outOfContact() && age() >= 0)
     out.push_back(JobProgress::updatedText(age()));
@@ -693,7 +705,7 @@ wxSize ProgressBox::layout(wxDC *dc)
 
         // A finished job keeps its plots; the outcome goes under them.
         if (p_finished) {
-          for (const string& s : outcome()) {
+          for (const string& s : outcome(true)) {
             //  The final energy is a real label, so it can be selected and
             //  copied (#408); placed when measuring, like the buttons.
             if (s == p_finalEnergy) {
