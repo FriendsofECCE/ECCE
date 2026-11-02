@@ -13,6 +13,7 @@ runs are photographed (atoms drawn, molecules whole across the cell).
 Exit status 77 (skip) without an installed organizer or Xvfb.
 """
 
+import csv
 import glob
 import os
 import re
@@ -47,12 +48,13 @@ def task(root, study):
     return os.path.dirname(found[0]) if found else None
 
 
-def builder(display, url, lines, png=None, windowTimeout=90, settle=30):
+def builder(display, url, lines, png=None, windowTimeout=90, settle=30,
+            panel="Speed Distribution"):
     script = tempfile.mktemp(prefix="bscript-")
     with open(script, "w") as f:
         f.write("\n".join(lines) + "\nquit\n")
     env = {"ECCE_BUILDER_SCRIPT": script, "ECCE_PANEL_MODE": "detail",
-           "ECCE_OPEN_PANEL": "Speed Distribution"}
+           "ECCE_OPEN_PANEL": panel}
     result = apps.run(display, "builder", args=["-context", url],
                       windowTimeout=windowTimeout, settle=settle, env=env,
                       inspect=(lambda d: subprocess.run(
@@ -75,7 +77,8 @@ def run(display, data, work):
             # The organizer is stopped when this returns, so wait for the
             # big trajectories too: an import cut short leaves no structure.
             done = [task(root, st) for st in ("ar-gas-300K", "he-gas", "water-spce",
-                                              "nacl-dissolving")]
+                                              "nacl-dissolving", "ar-gas-40K",
+                                              "ar-gas-100K", "ar-gas-130K", "ar-gas-200K")]
             if all(done) and all(os.path.exists(os.path.join(d, "Props", "GEOMTRACE"))
                                  for d in done):
                 time.sleep(20)
@@ -104,6 +107,44 @@ def run(display, data, work):
                   for o in offered),
               "Compare from %s offers %s" % (os.path.basename(os.path.dirname(own)), other),
               m.group(0) if m else log[-1500:])
+    studies = ("ar-gas-40K", "ar-gas-100K", "ar-gas-130K", "ar-gas-200K")
+    runs = [task(root, study) for study in studies]
+    check(all(runs), "all four argon temperatures were imported")
+    if all(runs):
+        # Study-qualified names distinguish tasks that are all named dynamics.
+        names = [study + "/" + os.path.basename(run)
+                 for study, run in zip(studies[1:], runs[1:])]
+        for kind in ("speed", "msd"):
+            path = os.path.join(work, kind + "-four.csv")
+            compare = "comparewith" if kind == "speed" else "comparewith msd"
+            commands = ["wait 6000", "%s %s" % (compare, " ".join(reversed(names))),
+                        "mdcsv %s %s" % (kind, path),
+                        "mdcompare %s %s" % (kind, names[0]),
+                        "mdcompare %s none" % kind]
+            log = builder(display, "file://" + runs[0] + "/", commands,
+                          panel="Speed Distribution" if kind == "speed" else "Displacement (MSD)")
+            check("mdcsv curves=8 ok" in log and
+                  "mdcompare %s curves=8 ok" % names[-1] in log,
+                  "%s: three compared argon runs plus the current run are drawn" % kind,
+                  log[-2000:])
+            check("mdcompare %s curves=4 ok" % names[0] in log and
+                  "mdcompare none curves=2 ok" in log,
+                  "%s: replacing the set and removing all comparisons redraws it" % kind,
+                  log[-2000:])
+            if os.path.exists(path):
+                with open(path) as f:
+                    rows = list(csv.reader(line for line in f if not line.startswith("#")))
+                suffix = "_measured" if kind == "speed" else "_msd_nm2"
+                atom = "Ar" if kind == "speed" else "AR"
+                labels = [atom + "_" + name + suffix for name in names]
+                header = rows[0] if rows else []
+                check(all(label in header for label in labels) and
+                      header.index(labels[0]) < header.index(labels[1]) < header.index(labels[2]) and
+                      len(header) == (12 if kind == "speed" else 8) and
+                      all(len(row) == len(header) for row in rows),
+                      "%s: all three compared runs reach CSV columns in folder order" % kind)
+            else:
+                check(False, "%s: comparison CSV exists" % kind)
     shots = os.environ.get("ECCE_MDCOMPARE_PNG")
     if shots:
         os.makedirs(shots, exist_ok=True)

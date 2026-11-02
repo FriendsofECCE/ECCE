@@ -1198,13 +1198,15 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: pullcsv points=%d %s\n", pp->points(),
                   pp->exportCsv(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
         }
-      } else if ((w[0] == "mdcsv" || w[0] == "mdcompare" || w[0] == "mdfit" ||
+      } else if ((w[0] == "mdcsv" || w[0] == "mdcompare" || w[0] == "comparewith" || w[0] == "mdfit" ||
                   w[0] == "mdloglog") && w.size() >= 2) {
-        //  mdcsv speed|msd <path>; mdcompare speed|msd <calculation|none|?>;
+        //  mdcsv speed|msd <path>; mdcompare speed|msd <calculation...|none|?>;
+        //  comparewith [speed|msd] <calculation...> defaults to speed;
         //  mdfit <from ps> <to ps>; mdloglog on|off: the Speed Distribution
         //  and Displacement panels' Export, Compare, Fit and Log-log without
         //  dialogs or clicks.
-        const bool speed = w[1] == "speed";
+        const bool bareCompare = w[0] == "comparewith" && w[1] != "speed" && w[1] != "msd";
+        const bool speed = bareCompare || w[1] == "speed";
         MdAnalysisPanel *mp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
@@ -1229,9 +1231,14 @@ void Builder::runBuilderScript(const std::string& file)
           for (const std::string& l : labels) all += (all.empty() ? "" : "|") + l;
           fprintf(stderr, "BUILDER: mdcompare candidates=%d ms=%ld %s\n",
                   (int)labels.size(), took.Time(), all.c_str());
-        } else if (w[0] == "mdcompare" && w.size() >= 3) {
-          fprintf(stderr, "BUILDER: mdcompare %s curves=%d %s\n", w[2].c_str(), mp->curves(),
-                  mp->compareWith(w[2] == "none" ? std::string() : w[2]) ? "ok" : "failed");
+        } else if ((w[0] == "mdcompare" || w[0] == "comparewith") &&
+                   w.size() >= (bareCompare ? 2u : 3u)) {
+          const size_t firstName = bareCompare ? 1 : 2;
+          std::vector<std::string> names(w.begin() + firstName, w.end());
+          if (names.size() == 1 && names[0] == "none") names.clear();
+          const bool ok = mp->compareWith(names);
+          fprintf(stderr, "BUILDER: mdcompare %s curves=%d %s\n", w[firstName].c_str(), mp->curves(),
+                  ok ? "ok" : "failed");
         } else if (w[0] == "mdfit" && w.size() >= 3 && msd) {
           msd->setFit(atof(w[1].c_str()), atof(w[2].c_str()));
           fprintf(stderr, "BUILDER: mdfit D=%.4g\n", msd->diffusion(0));

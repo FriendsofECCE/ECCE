@@ -23,10 +23,10 @@ curve: the most probable speed (√(2k<sub>B</sub>T/m)), the mean speed
 The text above the plot gives the measured mean and rms speeds beside them.
 
 The speeds need the velocities of the run, saved with `nstvout`; a run without
-them has no speed distribution. **Compare...** draws another calculation of the
+them has no speed distribution. **Compare...** draws selected calculations of the
 same folder over this one: helium over argon shows that the lighter atoms are
 faster by √(m<sub>Ar</sub>/m<sub>He</sub>), and the curve is lower and wider. **Remove**
-takes it off again; **Export .csv...** writes the histograms and the curves.
+takes all compared runs off again; **Export .csv...** writes the histograms and the curves.
 
 ## Displacement
 
@@ -47,9 +47,13 @@ The dashed line is the straight line fitted to the points between the two
 vertical lines. **Fit from ... to ... ps** sets that range (the default is the
 last three quarters of the lag times; the longest lag times have the fewest
 independent origins, so pick the range where the curve is straight); **Fit**
-applies it. D is given in 10⁻⁵ cm²/s and in m²/s. **Compare...** draws another
-calculation of the folder over this one: liquid argon over argon gas, or decane
+applies it. D is given in 10⁻⁵ cm²/s and in m²/s. **Compare...** draws selected
+calculations of the folder over this one: liquid argon over argon gas, or decane
 over water, with each curve fitted on its own.
+
+## Compare calculations
+
+In either panel, **Compare...** lets you tick up to eight other calculations; reopening it shows the current selection, and OK replaces that set (untick all to clear it). If more than eight are ticked, the first eight in folder order are used; each run has its own colour and a calculation-name suffix in the legend and CSV, and **Remove** clears them all.
 
 ## Making the analysis for your own run
 
