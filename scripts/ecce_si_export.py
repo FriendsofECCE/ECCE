@@ -580,6 +580,9 @@ def main(argv=None):
                     help="write the Checks table (#615) instead of the xyz file")
     ap.add_argument("--total", action="store_true",
                     help="with --checks: add a last row with the summed core-hours")
+    ap.add_argument("--compare-forces", action="store_true",
+                    help="compare final stored forces of exactly two calculations")
+    ap.add_argument("--json", action="store_true", help="with --compare-forces: JSON output")
     ap.add_argument("--rank", choices=["csv", "latex"],
                     help="rank the calculations of a folder by energy (#703)")
     ap.add_argument("--ref", help="with --rank: the reference calculation (name)")
@@ -595,6 +598,26 @@ def main(argv=None):
     ap.add_argument("--include-excluded", action="store_true",
                     help="also list calculations marked excluded (ecce:excluded)")
     a = ap.parse_args(argv)
+    if a.compare_forces:
+        if len(a.calcs) != 2 or a.rank or a.checks or a.table:
+            ap.error("--compare-forces requires exactly two calculations and no other table mode")
+        exe = os.path.join(os.environ.get("ECCE_HOME", ""), "bin", "ecce-force-compare")
+        if not os.path.isfile(exe):
+            exe = "ecce-force-compare"
+        try:
+            result = subprocess.run([exe] + a.calcs + (["--json"] if a.json else []),
+                                    text=True, capture_output=True)
+        except OSError as error:
+            print("ecce-si-export: %s" % error, file=sys.stderr)
+            return 1
+        if a.output:
+            open(a.output, "w").write(result.stdout)
+        else:
+            sys.stdout.write(result.stdout)
+        sys.stderr.write(result.stderr)
+        return result.returncode
+    if a.json:
+        ap.error("--json requires --compare-forces")
     if a.rank:
         try:
             sub = tuple(a.substitution.split(">", 1)) if a.substitution else None

@@ -504,6 +504,7 @@ protected:
   // Tools > Compare Energies (#573).
   class CompareEnergiesDialog *newCompareEnergiesDialog(const vector<EcceURL>& sel);
   void OnCompareEnergies(wxCommandEvent& event);
+  void OnCompareForces(wxCommandEvent& event);
   bool p_compareEnergiesWired = false;
   // File > Export > Supporting Information (#625).
   void OnSiExport(wxCommandEvent& event);

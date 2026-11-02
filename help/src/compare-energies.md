@@ -89,3 +89,42 @@ report one) is named in a note and no table is made.
 Energies from different methods or basis sets do not subtract to a physical
 quantity. The warning is a reminder of that, and the number is still there if
 the comparison is what you intend.
+
+## Compare Forces
+
+Select exactly two calculations, then choose **Tools > Compare Forces...**.
+The dialog labels them **A** and **B**. Both must have the same atom count
+and element sequence, and a stored EGRADVEC gradient. The last stored gradient
+and final geometry are used. The starting geometry is used if there is no
+geometry trace. Missing forces, incompatible atoms or unknown gradient units
+are reported instead of producing a comparison.
+
+For each element, and for **all atoms**, the table gives the atom count,
+maximum and RMS of the per-atom vector norm **|F(B) - F(A)|**, in eV/Angstrom.
+Forces are minus the energy gradients; 1 Hartree/Bohr = 51.42208619 eV/Angstrom.
+Use these statistics to assess cutoff, basis and pseudopotential convergence.
+If the final geometries differ by more than 0.01 Angstrom RMS per atom, a
+warning reminds you that forces of different geometries are not a convergence
+test. Coordinates and vectors are compared in their stored Cartesian frames,
+without alignment or periodic wrapping.
+
+With the same stored code and theory/functional (including dispersion), the
+dialog also gives **Delta E = E(B) - E(A)** in eV per cell and meV per atom.
+Different methods suppress the energy difference and leave the forces table.
+Missing total energies also leave the forces table available. **Copy** copies
+the labels, tab-separated table, energy difference and warnings.
+
+The same comparison is available on the command line for stored calculation
+folders (or calculation URLs):
+
+```sh
+ecce-si-export --compare-forces A B
+ecce-si-export --compare-forces A B --json
+```
+
+`--json` returns rows with `element`, `n`, `max` and `rms`, plus
+`geometry_rms_angstrom`, `delta_e_ev`, `delta_e_mev_per_atom` and `notes`.
+Unavailable energy differences are JSON `null`; refused comparisons have
+`ok: false`, a `problem` and a nonzero exit status. `-o FILE` saves the output.
+Older CP2K output containing only the `ATOMIC FORCES in [a.u.]` block does
+not yet supply stored forces through ECCE's parser.
