@@ -150,6 +150,20 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
       return s.fail("plotshot: no Bond type column to sort");
     if (mode == "spin" && !mo->selectFieldType("Spin Density"))
       return s.fail("plotshot: no Spin Density for this calculation");
+    //  "spinpaint": the atom colours before, with Show on structure on, and
+    //  after turning it off again (#616).
+    if (mode == "spinpaint") {
+      if (!mo->selectFieldType("Spin Density"))
+        return s.fail("plotshot: no Spin Density for this calculation");
+      for (int step = 0; step < 3; step++) {
+        if (step) mo->paintSpin(step == 1);
+        fprintf(stderr, "PLOTSHOT-SPINCOLOURS %s %s\n", w[1].c_str(),
+                step == 0 ? "before" : step == 1 ? "on" : "off");
+        for (const string& r : mo->atomColourRows())
+          fprintf(stderr, "PLOTSHOT-SPINCOLOUR %s\n", r.c_str());
+        settle(300);
+      }
+    }
     wxCommandEvent ev(wxEVT_MENU, mode == "plotsym" ? MoPanel::PLOTSYM
                                  : mode == "plot" ? MoPanel::PLOT
                                                   : MoPanel::TABLE);
