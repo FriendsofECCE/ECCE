@@ -595,6 +595,15 @@ target_include_directories(ecce-thermo PRIVATE
   ${CMAKE_SOURCE_DIR}/src/apps/thermo ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-thermo PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+# Shared gathering with Organizer; the comparison itself lives in eccetdat.
+add_executable(ecce-force-compare src/apps/forcecompare/forcecompare.C
+  src/apps/organizer/CompareForcesGather.C
+  src/apps/organizer/CompareEnergies.C src/apps/organizer/CompareEnergiesGather.C)
+target_include_directories(ecce-force-compare PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/apps/organizer ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-force-compare PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+
 # flock(1) for the session scripts where util-linux is absent (macOS).
 if(NOT WIN32)   # the Windows client has no session scripts (#133)
   add_executable(ecce-flock src/apps/flock/ecce-flock.c)
@@ -1187,7 +1196,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -2370,6 +2379,10 @@ add_executable(compare_energies_test tests/compareenergies/compare_energies_test
 target_include_directories(compare_energies_test PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer ${XercesC_INCLUDE_DIRS})
 target_link_libraries(compare_energies_test PRIVATE eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
 add_test(NAME compare_energies COMMAND compare_energies_test)
+add_executable(compare_forces_test tests/compareenergies/compare_forces_test.C)
+target_link_libraries(compare_forces_test PRIVATE eccetdat ecceutil)
+add_test(NAME compare_forces COMMAND compare_forces_test)
+
 # Thermochemistry recomputed from stored frequencies (#692): ORCA and hand oracles.
 add_executable(thermo_test tests/thermo/thermo_test.C
   src/tdat/thermo/ThermoChem.C)
@@ -3163,6 +3176,10 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_box PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Tools > Compare Forces: selection, shared CLI and dialog.
+  add_test(NAME apps_compare_forces
+    COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/compare_forces_test.py)
+  set_tests_properties(apps_compare_forces PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # Tools > Compare Energies (#573): the hook and the dialog.
   add_test(NAME apps_compare_energies
            COMMAND ${PYTHON3_EXECUTABLE}
