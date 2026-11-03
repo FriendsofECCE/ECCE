@@ -85,7 +85,8 @@
 <!-- libcint's real solid harmonics, m = -l .. +l.  p is x y z; d is
      xy yz z2 xz x2-y2; f is y(3x2-y2) xyz y(4z2-x2-y2) z(2z2-3x2-3y2)
      x(4z2-x2-y2) z(x2-y2) x(x2-3y2).  Each function's own scale is
-     irrelevant, its signs and ratios are not. -->
+     irrelevant, its signs and ratios are not.  Include G..I because higher
+     polarization shells are needed even for occupied d/f orbitals. -->
 <MOOrdering type="spherical" >
    <lshell lval="0" a1="1"></lshell>
    <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
@@ -94,6 +95,27 @@
    <lshell lval="3" a1="3xxy/2-yyy/2" a2="xyz" a3="-xxy/2-yyy/2+2yzz"
     a4="-3xxz/2-3yyz/2+zzz" a5="-xxx/2-xyy/2+2xzz" a6="xxz/2-yyz/2"
     a7="xxx/2-3xyy/2"></lshell>
+   <lshell lval="4"
+     a1="xxxy-xyyy" a2="3xxyz-yyyz"
+     a3="6xyzz-xxxy-xyyy" a4="4yzzz-3xxyz-3yyyz"
+     a5="8zzzz-24xxzz-24yyzz+3xxxx+6xxyy+3yyyy" a6="4xzzz-3xxxz-3xyyz"
+     a7="6xxzz-6yyzz-xxxx+yyyy" a8="xxxz-3xyyz"
+     a9="xxxx-6xxyy+yyyy"></lshell>
+   <lshell lval="5"
+     a1="5xxxxy-10xxyyy+yyyyy" a2="xxxyz-xyyyz"
+     a3="24xxyzz-8yyyzz-3xxxxy-2xxyyy+yyyyy" a4="2xyzzz-xxxyz-xyyyz"
+     a5="8yzzzz-12xxyzz-12yyyzz+xxxxy+2xxyyy+yyyyy" a6="8zzzzz-40xxzzz-40yyzzz+15xxxxz+30xxyyz+15yyyyz"
+     a7="8xzzzz-12xxxzz-12xyyzz+xxxxx+2xxxyy+xyyyy" a8="2xxzzz-2yyzzz-xxxxz+yyyyz"
+     a9="8xxxzz-24xyyzz-xxxxx+2xxxyy+3xyyyy" a10="xxxxz-6xxyyz+yyyyz"
+     a11="xxxxx-10xxxyy+5xyyyy"></lshell>
+   <lshell lval="6"
+     a1="3xxxxxy-10xxxyyy+3xyyyyy" a2="5xxxxyz-10xxyyyz+yyyyyz"
+     a3="10xxxyzz-10xyyyzz-xxxxxy+xyyyyy" a4="24xxyzzz-8yyyzzz-9xxxxyz-6xxyyyz+3yyyyyz"
+     a5="16xyzzzz-16xxxyzz-16xyyyzz+xxxxxy+2xxxyyy+xyyyyy" a6="8yzzzzz-20xxyzzz-20yyyzzz+5xxxxyz+10xxyyyz+5yyyyyz"
+     a7="16zzzzzz-120xxzzzz-120yyzzzz+90xxxxzz+180xxyyzz+90yyyyzz-5xxxxxx-15xxxxyy-15xxyyyy-5yyyyyy" a8="8xzzzzz-20xxxzzz-20xyyzzz+5xxxxxz+10xxxyyz+5xyyyyz"
+     a9="16xxzzzz-16yyzzzz-16xxxxzz+16yyyyzz+xxxxxx+xxxxyy-xxyyyy-yyyyyy" a10="8xxxzzz-24xyyzzz-3xxxxxz+6xxxyyz+9xyyyyz"
+     a11="10xxxxzz-60xxyyzz+10yyyyzz-xxxxxx+5xxxxyy+5xxyyyy-yyyyyy" a12="xxxxxz-10xxxyyz+5xyyyyz"
+     a13="xxxxxx-15xxxxyy+15xxyyyy-yyyyyy"></lshell>
 </MOOrdering>
 
 <!-- The basis sets the Calculation Editor offers (its quick-pick menu,

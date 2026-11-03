@@ -2,9 +2,11 @@
 """
 The MO Diagram panel on a single atom (#813): the aufbau view, headless.
 
-The stored genchem atom examples O (ROKS), Ne and Ar are opened with the MO
+The stored genchem atom examples O (ROKS), Ne and Ar, plus Ca, Cr and Cu
+when their example folders are available, are opened with the MO
 Diagram panel; the Builder scene commands `modiagram <name> aufbaupng 0|1`
-draw it as boxes (B) and to scale (A) at 900x600 and 500x400, write the
+draw it as boxes (B) and to scale (A) at 900x600 (also 500x400 for s/p
+atoms), write the
 pictures and list the layout rectangles and hit targets. Checked: the configuration, the arrows of each subshell (Hund's rule
 in O 2p), the core flag in drawing A, and that a click on a level computes
 the orbital.  ECCE_AUFBAU_PNG=<dir> also keeps the pictures.
@@ -34,6 +36,9 @@ ATOMS = os.path.join(REPO, "data", "client", "examples", "genchem", "atoms")
 CASES = {
     "O": ("O: 1s2 2s2 2p4", {"1s": (1, 1), "2s": (1, 1), "2p": (3, 1)}),
     "Ne": ("Ne: 1s2 2s2 2p6", {"1s": (1, 1), "2p": (3, 3)}),
+    "Ca": ("Ca: 1s2 2s2 2p6 3s2 3p6 4s2", {"4s": (1, 1)}),
+    "Cr": ("Cr: 1s2 2s2 2p6 3s2 3p6 3d5 4s1", {"3d": (5, 0), "4s": (1, 0)}),
+    "Cu": ("Cu: 1s2 2s2 2p6 3s2 3p6 3d10 4s1", {"3d": (5, 5), "4s": (1, 0)}),
     "Ar": ("Ar: 1s2 2s2 2p6 3s2 3p6", {"3s": (1, 1), "3p": (3, 3)}),
     "Ca": ("Ca: 1s2 2s2 2p6 3s2 3p6 4s2", {"4s": (1, 1)}),
     "Cr": ("Cr: 1s2 2s2 2p6 3s2 3p6 3d5 4s1", {"3d": (5, 0), "4s": (1, 0)}),
@@ -81,14 +86,24 @@ def main():
         if not ok:
             failures.append(what)
 
+    cases_present = {}
+    for name, case in CASES.items():
+        if name not in ("Ca", "Cr", "Cu") or os.path.isdir(
+                os.path.join(ATOMS, "ecceqm-" + name)):
+            cases_present[name] = case
+        else:
+            print("SKIP: %s example folder absent" % name)
+
     urls = installLocal(data, {name: os.path.join(ATOMS, "ecceqm-" + name,
                                                   "stored", name)
-                               for name in CASES})
+                               for name in cases_present})
     with xdisplay.Display() as display:
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
                        env=display.env(), timeout=180)
         try:
-            cases = [(name, size) for name in CASES for size in ("900x600", "500x400")]
+            cases = [(name, size) for name in cases_present
+                     for size in (("900x600",) if name in ("Cr", "Cu")
+                                  else ("900x600", "500x400"))]
             for name, size in cases:
                 config, arrows = CASES[name]
                 if os.environ.get("ECCE_AUFBAU_ONLY") not in (None, name):
@@ -104,6 +119,9 @@ def main():
                 check(not result.crashed, "%s: the Builder did not crash" % name)
                 check(not os.path.exists(failed), "%s: the scene ran to the end %s" % (
                     name, open(failed).read() if os.path.exists(failed) else ""))
+                if os.path.exists(failed):
+                    print(result.log)
+                    continue
                 for view in ("A", "B"):
                     path = os.path.join(out, view + ".txt")
                     text = open(path).read() if os.path.exists(path) else ""
@@ -142,6 +160,13 @@ def main():
                         check(all(y is not None for y in rows) and
                               all(a > b for a, b in zip(rows, rows[1:])),
                               "%s %s: staircase energy ranks increase upwards" % (name, size))
+                    if view == "B" and name in ("Cr", "Cu"):
+                        boxes = {label: next(r for r in rects
+                                            if r[0] == "box" and r[5] == label)
+                                 for label in ("3d", "4s")}
+                        check(boxes["3d"][1] < boxes["4s"][1] and
+                              boxes["3d"][2] > boxes["4s"][2],
+                              "%s %s: 3d in n=3, 4s in n=4, ordered by energy" % (name, size))
                     core_rows = []
                     for label, shell in shells.items():
                         if shell[0]:

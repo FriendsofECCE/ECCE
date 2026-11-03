@@ -109,6 +109,7 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       /** One atom: the aufbau view is drawn instead of the correlation diagram. */
       bool atomView() const { return p_atomView; }
+      string aufbauFailure() const { return p_aufbauFailure; }
       /**
        * Save the aufbau drawing as a PNG, to scale (A) or as boxes (B);
        * false when this is not a one-atom calculation.
@@ -216,6 +217,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       MoDiagramCanvas *p_canvas;
       MoAufbauCanvas  *p_aufbau = nullptr;
       wxCheckBox      *p_aufbauScale = nullptr;
+      string           p_aufbauFailure = "Aufbau view has not been built.";
       bool             p_atomView = false;
       wxPanel         *p_fragPanel;
       wxButton        *p_fragToggle;

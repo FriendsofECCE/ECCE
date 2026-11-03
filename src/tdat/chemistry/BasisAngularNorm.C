@@ -81,12 +81,26 @@ double getoddNormalize(int shell_type, int index, TGBSAngFunc *angfunc)
                return 1.0;
             }
             break;
-            // This will need to be fixed when h and i are added. - TLW
          case TGaussianBasisSet::g_shell:
          case TGaussianBasisSet::h_shell:
-         case TGaussianBasisSet::i_shell:
-            return 1.0;
-            break;
+         case TGaussianBasisSet::i_shell: {
+            // Match the shell's axis-aligned normalization by integrating
+            // the squared solid harmonic; cross terms matter for g and up.
+            func = angfunc->getFunc(shell_type, index);
+            double norm = 0.0;
+            for (const Monomial& a : func)
+               for (const Monomial& b : func) {
+                  const int x = a.m_l + b.m_l;
+                  const int y = a.m_m + b.m_m;
+                  const int z = a.m_n + b.m_n;
+                  if (x % 2 || y % 2 || z % 2) continue;
+                  norm += a.m_coefficient * b.m_coefficient *
+                      oddDoubleFactorial(x - 1) * oddDoubleFactorial(y - 1) *
+                      oddDoubleFactorial(z - 1);
+               }
+            return norm > 0.0
+                ? sqrt(oddDoubleFactorial(2*shell_type - 1) / norm) : 1.0;
+         }
          default:
             EE_RT_ASSERT(0, EE_FATAL,
                   "Unrecognized funcType type");

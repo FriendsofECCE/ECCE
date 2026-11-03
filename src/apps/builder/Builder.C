@@ -6398,7 +6398,7 @@ void Builder::updatePropertyMenus()
           } else if (w[2] == "status") {
             out << "status " << md->statusText() << "\n";
           } else if (w[2] == "aufbau" || w[2] == "aufbaupng") {
-            if (!md->atomView()) return s.fail("modiagram: not a one-atom calculation");
+            if (!md->atomView()) return s.fail("modiagram: " + md->aufbauFailure());
             md->setAufbauToScale(n != 0);
             if (w[2] == "aufbaupng" &&
                 !md->exportAufbau(outdir + "/" + w[1] + ".png", n != 0, 900, 600))
