@@ -11056,8 +11056,11 @@ WxResourceTreeItemData * CalcMgr::findNodeFresh(const EcceURL &targetUrl,
     EcceURL next = up.getParent();
     if (next.toString() == up.toString()) break;
     up = next;
+    //  Above the server roots the URL is empty, which is the hidden root's:
+    //  it has no resource to refresh (a path outside the data crashed, #814).
+    if (up.toString().empty()) break;
     WxResourceTreeItemData *known = findNode(up, false, true);
-    if (known) {
+    if (known && known->getResource()) {
       p_treeCtrl->refresh(known);
       return findNode(targetUrl, openWhenFound, true);
     }
