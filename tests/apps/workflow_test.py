@@ -136,6 +136,7 @@ def run_best(display, data, work, shots):
         "workflowcopy %s %s/crest ens" % (wf, proj),
         "workflowstep %s orca_es best %s/ens best=3" % (wf, wf),
         "workflowstep %s orca_es toomany %s/ens best=7" % (wf, wf),
+        "workflowstep %s orca_es plain %s/ens" % (wf, wf),
         "workflowinfo %s" % wf,
         "workflowready %s" % wf,
         "workflowresults %s" % wf,
@@ -181,6 +182,13 @@ def run_best(display, data, work, shots):
               all(abs(a - b) < 1e-4 for a, b in zip(got, ref)), "%s vs %s" % (got, ref))
     check("the conformers differ", len({tuple(frames[order[k]][:6]) for k in range(3)}) == 3,
           "frames equal")
+    plain = table.get("plain")
+    got = [float(v) for v in plain["xyz0"].split(",")] if plain and plain.get("xyz0") else []
+    ref = frames[order[0]][:3]
+    check("a plain geometry link from an ensemble gives the lowest conformer (#812)",
+          bool(plain) and "ens>plain:geometry" in links and
+          len(got) == 3 and all(abs(a - b) < 1e-4 for a, b in zip(got, ref)),
+          "plain %s, want %s, links %s" % (got, ref, links))
     note = os.path.join(root, "conf", "Workflow", "best-conf2", ".ecce-meta")
     text = open(note).read() if os.path.exists(note) else ""
     check("the annotation names the conformer and its energy",
