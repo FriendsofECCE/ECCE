@@ -27,13 +27,13 @@ string unitLabel(const string& units)
 }
 
 
-string valueLabel(double value, int decimals)
+string valueLabel(double value, int decimals, bool keepZeros)
 {
   char buf[64];
   snprintf(buf, sizeof buf, "%.*f", decimals, value);
   string s = buf;
   const size_t dot = s.find('.');
-  if (dot == string::npos) return s;
+  if (dot == string::npos || keepZeros) return s;
   size_t end = s.size();
   while (end > dot + 2 && s[end - 1] == '0') --end;
   return s.substr(0, end);

@@ -35,7 +35,7 @@ such as a reaction; see [Energy Calculator](energy-calculator.md).
 The table shows the type and application of each calculation in one column
 (**Type**), its name, state, progress, **Total energy**, dates, formula,
 theory, run type and machine. **Total energy** is the final energy of a
-finished calculation in Hartree, as the Progress box shows it; it is empty
+finished calculation in Eh, as the Progress box shows it; it is empty
 when the calculation has none, and for a MOPAC calculation, whose result is a
 heat of formation.
 

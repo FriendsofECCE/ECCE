@@ -68,7 +68,7 @@ int main()
   forces.parse("opt step=3 maxgrad=2.0e-03/3e-04 rmsgrad=5.0e-04/1e-04\n"
                "opt~ maxgrad=9e-03,5e-03,2e-03\nopt~ rmsgrad=4e-03,1.6e-03,5e-04\n");
   const JobProgress::Block fb = forces.running(0)[0];
-  check(fb.plotLog && fb.curves.size() == 2 && fb.plotUnit == "Hartree/bohr" &&
+  check(fb.plotLog && fb.curves.size() == 2 && fb.plotUnit == "Eh/bohr" &&
         fb.curves[0].label == "max" && fb.curves[1].label == "RMS" &&
         fb.curves[0].hasThreshold && fabs(fb.curves[0].threshold - log10(3e-4)) < 1e-9 &&
         fabs(fb.curves[1].values[2] - log10(5e-4)) < 1e-9,
@@ -82,7 +82,7 @@ int main()
   check(s.plotLog && s.plot.size() == 3 && fabs(s.plot[2] - log10(3.1e-6)) < 1e-9,
         "log |dE| per SCF cycle");
   check(s.curves.size() == 1 && s.curves[0].hasThreshold &&
-        fabs(s.curves[0].threshold + 10) < 1e-9 && s.plotUnit == "Hartree",
+        fabs(s.curves[0].threshold + 10) < 1e-9 && s.plotUnit == "Eh",
         "the SCF plot carries its limit and unit");
 
   const string done =
@@ -95,7 +95,7 @@ int main()
   f.parse(done);
   vector<string> sum = f.summary(true);
   check(sum.size() == 2 && has(sum, "Optimisation converged in 6 steps") &&
-        has(sum, "-76.40895000 hartree"), "summary: optimisation and final energy");
+        has(sum, "\xe2\x88\x92" "76.408950 Eh"), "summary: optimisation and final energy in Eh");
   check(has(sum, "Frequencies: 3 modes, 0 imaginary") && has(sum, "ZPE 0.021346"),
         "summary: frequencies and ZPE");
 
@@ -316,14 +316,46 @@ int main()
   JobProgress e;
   e.parse("# seq=3\nscf cycle=15 energy=-1.1 converged=yes\n");
   vector<string> es = e.summary(true);
-  check(es.size() == 1 && has(es, "SCF converged in 15 cycles"), "single point summary");
+  check(es.size() == 1 && has(es, "SCF converged in 15 cycles") &&
+        has(es, "E = \xe2\x88\x92" "1.100000 Eh"), "single point summary");
+
+  // #826: a finished SCF is a summary line under a frequency run too, from
+  // the real monitor's snapshots (ORCA D3BJ, G16 and ECCE-QM analytic runs).
+  JobProgress fo;
+  fo.parse("# seq=2\nscf cycle=12 energy=-114.2840101001427371 dE=-2.07e-09/1.000e-08 converged=yes\n"
+           "result disp=D3\n"
+           "freq kind=analytic point=15/15 phase=assemble last=Loop real=6 imaginary=0 done=yes zpe=0.02681377\n");
+  vector<string> fos = fo.summary(true);
+  check(fos.size() == 2 &&
+        fos[0] == "SCF converged in 12 cycles \xc2\xb7 E = \xe2\x88\x92" "114.284010 Eh" &&
+        fos[1] == "Frequencies: 6 modes, 0 imaginary \xc2\xb7 ZPE 0.026814 Eh" &&
+        fo.fieldOf("result", "disp") == "D3",
+        "ORCA freq-only summary: SCF line, then frequencies");
+  check(fo.running(0, true).size() == 2, "the result stage is no block");
+  JobProgress g16;
+  g16.parse("# seq=2\nscf cycle=7 energy=-76.4089539099 converged=yes\n"
+            "freq kind=analytic pass=5 real=3 imaginary=0 done=yes zpe=0.021164\n");
+  check(has(g16.summary(true), "SCF converged in 7 cycles \xc2\xb7 E = \xe2\x88\x92" "76.408954 Eh") &&
+        has(g16.summary(true), "Frequencies: 3 modes, 0 imaginary"),
+        "G16 freq-only summary: SCF line, then frequencies");
+  JobProgress qm;
+  qm.parse("# seq=2\nscf cycle=8 energy=-74.9630231385 dE=-8.67e-13/1e-10 grad=4.89e-11/1e-07 converged=yes\n"
+           "freq kind=analytic point=9/9 pass=0 phase=assemble done=yes real=3 imaginary=0 zpe=0.0257944722\n");
+  check(has(qm.summary(true), "SCF converged in 8 cycles \xc2\xb7 E = \xe2\x88\x92" "74.963023 Eh") &&
+        has(qm.summary(true), "ZPE 0.025794 Eh"),
+        "ECCE-QM freq-only summary");
+  JobProgress nf;
+  nf.parse("# seq=2\nscf cycle=5 energy=-1.5 converged=yes\n"
+           "freq kind=numerical point=12/12 done=yes real=3 imaginary=0\n");
+  check(!has(nf.summary(true), "SCF converged"),
+        "numerical frequencies: the last displaced SCF is no summary");
 
   // MOPAC: no SCF cycles, a gradient history that is no energy.
   JobProgress m;
   m.parse("# seq=2\nopt step=5 grad=0.484/1.0 converged=yes\n"
           "opt~ grad=31.9,6.2,0.484\nscf converged=yes\n");
   vector<string> ms = m.summary(true);
-  check(has(ms, "Optimisation converged in 5 steps") && !has(ms, "hartree"),
+  check(has(ms, "Optimisation converged in 5 steps") && !has(ms, "Eh"),
         "MOPAC summary: no gradient shown as an energy");
   JobProgress m1;
   m1.parse("# seq=1\nscf converged=yes\n");

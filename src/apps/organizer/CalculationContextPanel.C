@@ -369,23 +369,43 @@ void CalculationContextPanel::updateProgress()
     const FinalEnergy fe = finalEnergyOf(task);
     const bool scanned = fe.scanned, hof = fe.heat;
     if (fe.found) {
-      const string unit = scanned || fe.ts ? "Hartree"
+      string unit = scanned || fe.ts ? "Hartree"
                         : fe.units == "NA" ? "" : unitLabel(fe.units);
-      const string value = valueLabel(fe.value, 6);
-      char line[128];
-      snprintf(line, sizeof line, "%s %s%s",
+      // Every energy in the box is Eh with six decimals and a real minus (#826).
+      if (unit == "Hartree" || unit == "hartree") unit = "Eh";
+      const string value = valueLabel(fe.value, 6, unit == "Eh");
+      string shown = value;
+      if (!shown.empty() && shown[0] == '-') shown.replace(0, 1, "\xe2\x88\x92");
+      // What the code's own output says the final energy contains.
+      string contains;
+      if (!scanned && !hof && !fe.ts) {
+        JobProgress cp;
+        if (cp.parse(text)) {
+          const string d = cp.fieldOf("result", "disp"), g = cp.fieldOf("result", "gcp");
+          if (!d.empty() || !g.empty()) {
+            contains = " (SCF";
+            if (!d.empty()) contains += " + " + d;
+            if (!g.empty()) contains += " + " + g;
+            contains += ")";
+          }
+        }
+      }
+      char line[160];
+      snprintf(line, sizeof line, "%s %s%s%s",
                scanned ? "Final energy (last scan point)"
                        : fe.ts ? "TS energy" : hof ? "Heat of formation" : "Final energy",
-               value.c_str(), unit.empty() ? "" : (" " + unit).c_str());
+               shown.c_str(), unit.empty() ? "" : (" " + unit).c_str(), contains.c_str());
       p_progressBox->setFinalEnergy(line, value, unit);
       // A dynamics run's result is the average over the run, not the last step.
       JobProgress jp;
       double avg, sd;
       if (!scanned && !hof && jp.parse(text) && jp.average("gmx-etot", avg, sd)) {
-        const string v = valueLabel(avg, 6);
+        const string v = valueLabel(avg, 6, unit == "Eh");
+        string vs = v;
+        if (!vs.empty() && vs[0] == '-') vs.replace(0, 1, "\xe2\x88\x92");
         char avgLine[160];
         snprintf(avgLine, sizeof avgLine, "Total energy %s \xc2\xb1 %.2g%s (average)",
-                 v.c_str(), sd, unit.empty() ? "" : (" " + unit).c_str());
+                 vs.c_str(), sd, unit.empty() ? "" : (" " + unit).c_str());
         p_progressBox->setFinalEnergy(avgLine, v, unit);
       }
     }
