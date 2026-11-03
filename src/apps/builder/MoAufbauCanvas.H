@@ -136,8 +136,7 @@ class MoAufbauCanvas : public wxPanel
       }
       dc.SetFont(*wxNORMAL_FONT);
       const int lineH = dc.GetTextExtent(wxT("Xg")).y;
-      text(dc, p_scale ? "orbital energies to scale (eV)" : "not to scale", 12,
-           size.y - lineH - 6);
+      if (!p_scale) text(dc, "not to scale", 12, size.y - lineH - 6);
       top += 14;
       const wxRect plot(12, top, size.x - 24, size.y - top - lineH - 18);
       if (p_scale) drawScaled(dc, plot); else drawBoxes(dc, plot);
@@ -349,7 +348,14 @@ class MoAufbauCanvas : public wxPanel
       const int lineH = dc.GetTextExtent(wxT("Xg")).y;
       const int coreRow = std::max(26, lineH + 8);
       const int coreH = cores ? 30 + cores * coreRow : 0;
-      const int axisX = plot.x + 46;
+      wxFont valueFont = dc.GetFont();
+      valueFont.SetPointSize(std::max(8, valueFont.GetPointSize()-2));
+      dc.SetFont(valueFont);
+      const string coreTitle = "core (not to scale)";
+      const int coreTitleW = dc.GetTextExtent(wxString::FromUTF8(coreTitle.c_str())).x;
+      dc.SetFont(*wxNORMAL_FONT);
+      const int axisX = plot.x + std::max(46, cores ? coreTitleW+14 : 46);
+      text(dc, "Energy (eV)", axisX-24, plot.y);
       const int valTop = plot.y + 24, valBot = plot.GetBottom() - coreH - (cores ? 18 : 0);
       if (valBot - valTop < lineH) return;
       auto yFor = [&](double eV) {
@@ -374,40 +380,54 @@ class MoAufbauCanvas : public wxPanel
         dc.DrawLine(axisX - 6, brk - 1, axisX + 6, brk - 5);
         dc.DrawLine(axisX - 6, brk + 3, axisX + 6, brk - 1);
         dc.DrawLine(axisX, brk + 3, axisX, plot.GetBottom());
-        text(dc, "core levels, not to scale", axisX + 20, brk + 8);
+        dc.SetFont(valueFont);
+        text(dc, coreTitle, plot.x, brk+8);
+        dc.SetFont(*wxNORMAL_FONT);
       }
 
       //  One column per angular type, shells of that type stacked in it.
       int maxL = 0;
       for (const AufbauShell& s : p_shells) maxL = std::max(maxL, s.l);
-      vector<int> labelW(maxL+1, 0), slots(maxL+1, 0), colX(maxL+1, 0);
-      auto caption = [](const AufbauShell& s) {
-        if (!s.core) return s.label;
-        char buf[64]; snprintf(buf, sizeof buf, " (%.1f eV)", s.mean);
-        return s.label + buf;
+      auto energyText = [](double value) {
+        char buf[64];
+        snprintf(buf, sizeof buf, "%.1f eV", std::fabs(value) < 0.05 ? 0.0 : std::fabs(value));
+        return (value <= -0.05 ? string("\xE2\x88\x92") : string()) + buf;
       };
+      vector<int> labelW(maxL+1, 0), valueW(maxL+1, 0), slots(maxL+1, 0), colX(maxL+1, 0);
       for (const AufbauShell& s : p_shells) {
-        labelW[s.l] = std::max(labelW[s.l], dc.GetTextExtent(wxString::FromUTF8(caption(s).c_str())).x);
+        labelW[s.l] = std::max(labelW[s.l], dc.GetTextExtent(wxString::FromUTF8(s.label.c_str())).x);
         slots[s.l] = std::max(slots[s.l], (int)s.orbs.size());
-      }
-      int fixed = 0, count = 0;
-      for (int l = 0; l <= maxL; ++l) {
-        fixed += labelW[l] + 16;
-        count += slots[l];
+        dc.SetFont(valueFont);
+        for (const AufbauOrbital& o : s.orbs)
+          valueW[s.l] = std::max(valueW[s.l], dc.GetTextExtent(wxString::FromUTF8(energyText(o.eV).c_str())).x);
+        dc.SetFont(*wxNORMAL_FONT);
       }
       const int available = plot.GetRight() - axisX - 16;
-      const int pitch = std::max(14, std::min(34, (available-fixed)/std::max(1,count)));
-      const int spare = std::max(0, available-fixed-count*pitch);
-      int x = axisX + 16;
+      int pitch = 28, gap = 0, groupW = 0;
+      // Reserve annotations within each column, then centre the whole group.
+      // A narrow panel reduces the gap and level width rather than separating sets.
+      for (; pitch >= 12; --pitch) {
+        int fixed = 0;
+        for (int l = 0; l <= maxL; ++l)
+          fixed += labelW[l]+6+slots[l]*pitch+4+valueW[l];
+        gap = maxL ? std::max(0, std::min({160, 2*(pitch-4), (available-fixed)/maxL})) : 0;
+        groupW = fixed+maxL*gap;
+        if (groupW <= available) break;
+      }
+      pitch = std::max(12, pitch);
+      int x = axisX + 16 + std::max(0, (available-groupW)/2);
       for (int l = 0; l <= maxL; ++l) {
         colX[l] = x + labelW[l] + 6;
-        x += labelW[l] + 16 + slots[l]*pitch + spare/std::max(1,maxL);
+        x += labelW[l]+6+slots[l]*pitch+4+valueW[l]+gap;
       }
+      struct Value { string label; wxRect bounds; };
+      vector<Value> values;
+      vector<wxRect> occupied;
       int coreSeen = 0;
       vector<int> previousLabel(maxL+1, plot.GetBottom()+lineH+4);
       // The model is sorted from low to high energy, including the core.
       for (const AufbauShell& s : p_shells) {
-        const int coreY = plot.GetBottom() - 4 - coreSeen*coreRow;
+        const int coreY = plot.GetBottom() - lineH/2 - 2 - coreSeen*coreRow;
         if (s.core) ++coreSeen;
         for (size_t k = 0; k < s.orbs.size(); ++k) {
           const AufbauOrbital& o = s.orbs[k];
@@ -417,16 +437,41 @@ class MoAufbauCanvas : public wxPanel
           dc.DrawLine(bar.x, y, bar.x+bar.width, y);
           rectangle("level", s.label, bar);
           drawArrows(dc, bar.x+bar.width/2, y-19, y-3, o, bar.width);
-          addHit(wxRect(bar.x, y-21, bar.width, 24), s, o);
+          const wxRect hit(bar.x, y-21, bar.width, 24);
+          addHit(hit, s, o);
+          occupied.push_back(hit);
+          // Degenerate orbitals share one value after their last line.
+          if (k+1 == s.orbs.size() || std::fabs(s.orbs[k+1].eV-o.eV) > 0.0005) {
+            const string value = energyText(o.eV);
+            dc.SetFont(valueFont);
+            const wxSize extent = dc.GetTextExtent(wxString::FromUTF8(value.c_str()));
+            values.push_back({value, wxRect(bar.GetRight()+7, y-extent.y/2, extent.x, extent.y)});
+            dc.SetFont(*wxNORMAL_FONT);
+          }
         }
         dc.SetTextForeground(wxColour(30,30,30));
-        const string label = caption(s);
+        const string label = s.label;
         const int w = dc.GetTextExtent(wxString::FromUTF8(label.c_str())).x;
         const int desired = (s.core ? coreY : yFor(s.mean)) - lineH/2;
         const int y = std::min(desired, previousLabel[s.l] - lineH - 4);
         text(dc, label, colX[s.l]-6-w, y);
+        occupied.push_back(wxRect(colX[s.l]-6-w, y, w, lineH));
         previousLabel[s.l] = y;
       }
+      dc.SetFont(valueFont);
+      dc.SetTextForeground(wxColour(110,110,110));
+      for (const Value& value : values) {
+        if (!plot.Contains(value.bounds)) continue;
+        bool collision = false;
+        for (const wxRect& r : occupied)
+          if (value.bounds.Intersects(r)) { collision = true; break; }
+        if (collision) continue;
+        text(dc, value.label, value.bounds.x, value.bounds.y);
+        wxRect reserved = value.bounds;
+        reserved.Inflate(2, 2);
+        occupied.push_back(reserved);
+      }
+      dc.SetFont(*wxNORMAL_FONT);
     }
 
     void onPaint(wxPaintEvent&)
