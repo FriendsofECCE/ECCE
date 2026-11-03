@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single 3s electron of sodium outside its filled neon-like core.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 02:41:15 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 05:50:57 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.4.7
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 02:41:13 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 05:50:56 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.7
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/Na__iyJ7Zp
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/Na__vFXIii
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
@@ -36,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793673675.033 at=1793673675\nscf cycle=7 energy=-162.2553164808 dE=-1.14e-13/1e-10 grad=3.95e-09/1e-07 converged=yes\nscf~ dE=-2.00e-02,-3.16e-04,-1.08e-05,-5.65e-07,-4.99e-11,-1.14e-13\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793685057.765 at=1793685057\nscf cycle=7 energy=-162.2553164808 dE=-1.14e-13/1e-10 grad=3.95e-09/1e-07 converged=yes\nscf~ dE=-2.00e-02,-3.16e-04,-1.08e-05,-5.65e-07,-4.99e-11,-1.14e-13\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -48,7 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Doublet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 02:41:14 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 05:50:56 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793673673
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793685056
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

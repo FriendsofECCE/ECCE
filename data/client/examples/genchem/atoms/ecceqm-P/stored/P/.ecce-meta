@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the occupied orbitals of the phosphorus atom, filled in order of increasing energy.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 02:41:15 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 05:50:58 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.4.7
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 02:41:14 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 05:50:56 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.7
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/P__5YRLMR
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/P__VXDncH
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
@@ -36,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793673675.570 at=1793673675\nscf cycle=8 energy=-341.2293198423 dE=-5.68e-14/1e-10 grad=6.28e-10/1e-07 converged=yes\nscf~ dE=-1.18e-01,-1.06e-03,-5.20e-05,-4.40e-06,-1.37e-08,-1.25e-10,-5.68e-14\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793685058.322 at=1793685058\nscf cycle=8 energy=-341.2293198423 dE=-5.68e-14/1e-10 grad=6.28e-10/1e-07 converged=yes\nscf~ dE=-1.18e-01,-1.06e-03,-5.20e-05,-4.40e-06,-1.37e-08,-1.25e-10,-5.68e-14\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -48,7 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Quartet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 02:41:14 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 05:50:57 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793673674
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793685057
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT
