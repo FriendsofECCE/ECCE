@@ -78,8 +78,9 @@ are moved apart vertically and joined to their level by a thin line.
 
 For a calculation on one atom there is nothing to correlate, so the panel
 shows the atom's orbitals filled with electrons, the way aufbau is drawn in a
-textbook. Each row is a subshell (1s, 2s, 2p and so on) in order of energy,
-with the orbitals of the subshell side by side as boxes. Arrows show the
+textbook. The staircase has one column per principal shell n, with s, p and d
+subshells stepping to the right inside it; the lowest energy is at the bottom.
+The boxes fit the panel, and empty subshells have dashed grey outlines. Arrows show the
 electrons: in a partly filled subshell the orbitals take one electron each
 before any takes a second (Hund's rule). The lowest empty subshells are drawn
 empty. The electron configuration, for example O: 1s² 2s² 2p⁴, is written
