@@ -25,9 +25,9 @@ struct AufbauOrbital {
 };
 
 struct AufbauShell {
-  string label;     // "2p", or "p (virtual)" for an unnamed empty set
+  string label;     // "2p"; an unnamed empty set is numbered above the named ones
   int l;
-  int n;            // 0 when unnamed
+  int n;
   double mean;      // eV
   bool core;
   int electrons;
@@ -94,6 +94,15 @@ static inline vector<AufbauShell> shells(const vector<double>& e,
       for (size_t m = 0; m < e.size() && m < eB.size(); m++) betaOf[m] = (int)m;
   }
 
+  //  An unnamed empty set of type l is the next shell of that type above the
+  //  named ones (Ar: s (virtual) is 4s), so it gets that n for the drawing.
+  int topN[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  for (const string& key : keys) {
+    const int l = lOfLabel(key);
+    if (l >= 0 && l < 8 && isdigit((unsigned char)key[0]))
+      topN[l] = std::max(topN[l], atoi(key.c_str()));
+  }
+
   for (size_t k = 0; k < keys.size(); k++) {
     vector<int>& ms = byKey[k];
     std::stable_sort(ms.begin(), ms.end(), [&](int a, int b) { return e[a] < e[b]; });
@@ -105,10 +114,13 @@ static inline vector<AufbauShell> shells(const vector<double>& e,
                       !isdigit((unsigned char)keys[k][0]);
     for (size_t from = 0; from < ms.size(); from += per) {
       AufbauShell s;
-      s.label = keys[k];
-      if (virt) s.label += " (virtual)";
       s.l = l;
       s.n = atoi(keys[k].c_str());
+      s.label = keys[k];
+      if (virt && l < 8) {
+        s.n = std::max(topN[l] + 1, l + 1);
+        s.label = std::to_string(s.n) + keys[k];
+      }
       s.core = false;
       s.electrons = 0;
       double sum = 0;
