@@ -15,7 +15,7 @@
 
 ## New codes
 - **xTB** (GFN2, GFN1, GFN-FF): energies, optimisations, frequencies and thermochemistry, implicit solvent (ALPB, GBSA), orbitals from xtb's Molden file, molecular dynamics; runs made outside ECCE can be imported (#362).
-- **CREST:** conformer search, protonation sites, tautomers and solvation shells, with an ensemble table ranked by energy, with Boltzmann populations and coordination patterns (#682, #708). The solvation shell (QCG) needs an xtb newer than the one in Debian 13 (#758, #809).
+- **CREST:** conformer search, protonation sites, tautomers and solvation shells, with an ensemble table ranked by energy, with Boltzmann populations and coordination patterns (#682, #708). Select rows in the ensemble table and choose New Calculation from Selected to set up one calculation per structure in the same folder, named <calculation>_conf<rank> (#708). The solvation shell (QCG) needs an xtb newer than the one in Debian 13 (#758, #809).
 - **ML potential** (ASE, MACE first): energies and geometries, with cell relaxation, for screening (#728).
 
 ## Analysis of many calculations

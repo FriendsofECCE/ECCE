@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include <wx/button.h>
+#include <wx/choicdlg.h>
 #include <wx/filedlg.h>
 #include <wx/listctrl.h>
 #include <wx/link.h>
@@ -10,7 +11,15 @@
 #include <wx/sizer.h>
 #include <wx/toolbar.h>
 
+#include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
+#include "dsm/ChemistryTask.H"
+#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceType.H"
+#include "dsm/Session.H"
+#include "tdat/Fragment.H"
+#include "tdat/TRunType.H"
+#include "WorkflowSteps.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/ScanPoint.H"
@@ -20,6 +29,7 @@
 #include "PropertyPanel.H"
 #include "PropertyPanelFactory.H"
 #include "XYPlotCanvas.H"
+#include "util/EcceURL.H"
 
 wxFORCE_LINK_THIS_MODULE(EnsemblePropertyPanel)
 
@@ -43,12 +53,22 @@ std::string noun(const std::string& kind)
   return "Conformer";
 }
 
+// Short tag of the member in a calculation name: crest_conf3, crest_site2.
+std::string tag(const std::string& kind)
+{
+  if (kind == "Protonation Sites") return "site";
+  if (kind == "Tautomers") return "taut";
+  if (kind == "Clusters") return "cluster";
+  if (kind == "Poses") return "pose";
+  return "conf";
+}
+
 }  // namespace
 
 
 EnsemblePropertyPanel::EnsemblePropertyPanel()
   : GeomTracePropertyPanel(), p_hasPatterns(false), p_inSelect(false),
-    p_selRank(0), p_sortCol(0), p_sortUp(true), p_table(NULL), p_export(NULL)
+    p_selRank(0), p_sortCol(0), p_sortUp(true), p_table(NULL), p_export(NULL), p_newCalcs(NULL)
 {
 }
 
@@ -57,7 +77,7 @@ EnsemblePropertyPanel::EnsemblePropertyPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
   : GeomTracePropertyPanel(), p_hasPatterns(false), p_inSelect(false),
-    p_selRank(0), p_sortCol(0), p_sortUp(true), p_table(NULL), p_export(NULL)
+    p_selRank(0), p_sortCol(0), p_sortUp(true), p_table(NULL), p_export(NULL), p_newCalcs(NULL)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -148,7 +168,7 @@ void EnsemblePropertyPanel::initialize()
   load();
 
   p_table = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 220),
-                           wxLC_REPORT | wxLC_SINGLE_SEL);
+                           wxLC_REPORT);
   p_table->AppendColumn("Rank", wxLIST_FORMAT_RIGHT, 60);
   p_table->AppendColumn(wxString::FromUTF8(p_deName.c_str()), wxLIST_FORMAT_RIGHT, 150);
   p_table->AppendColumn("Population (%)", wxLIST_FORMAT_RIGHT, 110);
@@ -170,7 +190,16 @@ void EnsemblePropertyPanel::initialize()
   p_export->SetToolTip("Save the table (rank, energy, population, pattern) as "
                        "a CSV file");
   p_export->Bind(wxEVT_BUTTON, &EnsemblePropertyPanel::OnExport, this);
-  GetSizer()->Add(p_export, 0, wxALL, 4);
+  p_newCalcs = new wxButton(this, wxID_ANY, "New Calculation from Selected...");
+  p_newCalcs->SetToolTip("Create one new calculation for each selected row, "
+      "named <calculation>_<kind><rank>, in the same folder, with the code you "
+      "choose, a Geometry Optimization run type, this calculation's charge and "
+      "multiplicity and the structure of that row. Select several rows with Ctrl or Shift.");
+  p_newCalcs->Bind(wxEVT_BUTTON, &EnsemblePropertyPanel::OnNewCalcs, this);
+  wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
+  buttons->Add(p_export, 0, wxALL, 4);
+  buttons->Add(p_newCalcs, 0, wxALL, 4);
+  GetSizer()->Add(buttons, 0);
 
   fillTable();
   fillPlot();
@@ -233,7 +262,9 @@ void EnsemblePropertyPanel::refresh()
 
 void EnsemblePropertyPanel::OnRowSelected(wxListEvent& event)
 {
-  if (p_inSelect) return;
+  // With several rows selected, leave the selection alone (selectRank would
+  // collapse it to the clicked row).
+  if (p_inSelect || p_table->GetSelectedItemCount() > 1) return;
   selectRank((int)event.GetData());
 }
 
@@ -329,4 +360,136 @@ void EnsemblePropertyPanel::OnExport(wxCommandEvent&)
   if (!exportCsv(std::string(dlg.GetPath().utf8_str())))
     wxMessageBox("The file could not be written.", "Export ensemble table",
                  wxOK | wxICON_ERROR, this);
+}
+
+
+vector<int> EnsemblePropertyPanel::selectedRanks() const
+{
+  vector<int> ranks;
+  for (long i = p_table ? p_table->GetNextItem(-1, wxLIST_NEXT_ALL,
+                                               wxLIST_STATE_SELECTED) : -1;
+       i >= 0; i = p_table->GetNextItem(i, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED))
+    ranks.push_back((int)p_table->GetItemData(i));
+  std::sort(ranks.begin(), ranks.end());
+  return ranks;
+}
+
+
+vector<string> EnsemblePropertyPanel::codeChoices(int& dflt)
+{
+  vector<string> out;
+  dflt = 0;
+  ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+  vector<ResourceType*> types = rd.getResourceTypes();
+  const vector<WorkflowSteps::Code>& codes = WorkflowSteps::codes();
+  for (size_t i = 0; i < codes.size(); i++) {
+    // CREST has no Geometry run type; a conformer is for a further calculation.
+    if (string(codes[i].typeName) == "crest_es") continue;
+    bool installed = false;
+    for (size_t t = 0; t < types.size(); t++)
+      if (types[t]->getName() == codes[i].typeName) installed = true;
+    if (!installed) continue;
+    if (string(codes[i].label) == "ORCA") dflt = (int)out.size();
+    out.push_back(string(codes[i].label) + "|" + codes[i].typeName);
+  }
+  return out;
+}
+
+
+// A workflow step goes through WorkflowSteps (link geometry.cK, annotation);
+// otherwise the calculation is made beside this one.  The structure is the
+// frame of GEOMTRACE for the rank, found with ScanPoint so a sorted table and
+// the energy order cannot disagree.
+vector<string> EnsemblePropertyPanel::newCalcsFromRanks(const vector<int>& ranks,
+                                                        const string& typeName,
+                                                        string& why)
+{
+  vector<string> urls;
+  PropertyTask *task = dynamic_cast<PropertyTask*>(getCalculation());
+  ICalculation *from = dynamic_cast<ICalculation*>(getCalculation());
+  ResourceType *rt = 0;
+  vector<ResourceType*> types =
+      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+  for (size_t t = 0; t < types.size() && !rt; t++)
+    if (types[t]->getName() == typeName) rt = types[t];
+  if (!task || !from || !rt || ranks.empty()) {
+    why = "No such code or calculation.";
+    return urls;
+  }
+  const EcceURL here = task->getURL();
+  Resource *parent = EDSIFactory::getResource(here.getParent());
+  Session *wf = dynamic_cast<Session*>(parent);
+  vector<Resource*> made;
+  if (wf) {
+    made = WorkflowSteps::createRanks(wf, rt, here.getFilePathTail(), task,
+                                      ranks, WorkflowSteps::Carry(), why);
+  } else if (parent) {
+    for (size_t i = 0; i < ranks.size(); i++) {
+      string err;
+      Fragment *frag = ScanPoint::fragment(task, "c" + std::to_string(ranks[i]), err);
+      Resource *r = frag ? parent->createChild(here.getFilePathTail() + "_" +
+          tag(kind()) + std::to_string(ranks[i]), rt) : 0;
+      ChemistryTask *ct = dynamic_cast<ChemistryTask*>(r);
+      ICalculation *to = dynamic_cast<ICalculation*>(r);
+      if (!ct || !to) {
+        why = "Rank " + std::to_string(ranks[i]) + ": " +
+              (err.empty() ? "the calculation could not be created." : err);
+        delete frag;
+        break;
+      }
+      ct->fragment(frag);
+      delete frag;
+      to->spinMultiplicity(from->spinMultiplicity());
+      to->openShells(from->openShells());
+      made.push_back(r);
+    }
+  }
+  for (size_t i = 0; i < made.size(); i++) {
+    ICalculation *to = dynamic_cast<ICalculation*>(made[i]);
+    if (to) {
+      TRunType rtype;
+      rtype.name("Geometry");
+      to->runtype(rtype);
+    }
+    EDSIFactory::notifyCreate(made[i]->getURL().toString(), true);
+    urls.push_back(made[i]->getURL().toString());
+  }
+  return urls;
+}
+
+
+void EnsemblePropertyPanel::OnNewCalcs(wxCommandEvent&)
+{
+  const vector<int> ranks = selectedRanks();
+  if (ranks.empty()) {
+    wxMessageBox("Select one or more rows first (Ctrl or Shift for several).",
+                 "New calculation", wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  int dflt = 0;
+  const vector<string> choices = codeChoices(dflt);
+  if (choices.empty()) {
+    wxMessageBox("No code with a Geometry run type is installed.",
+                 "New calculation", wxOK | wxICON_WARNING, this);
+    return;
+  }
+  wxArrayString labels;
+  for (size_t i = 0; i < choices.size(); i++)
+    labels.Add(wxString::FromUTF8(choices[i].substr(0, choices[i].find('|')).c_str()));
+  wxSingleChoiceDialog dlg(this, "Code for the new calculations (Geometry "
+      "Optimization run type):", "New calculation", labels);
+  dlg.SetSelection(dflt);
+  if (dlg.ShowModal() != wxID_OK) return;
+  const string typeName = choices[dlg.GetSelection()].substr(
+      choices[dlg.GetSelection()].find('|') + 1);
+  string why;
+  const vector<string> urls = newCalcsFromRanks(ranks, typeName, why);
+  wxString text = wxString::Format("Created %d of %d calculation(s) in %s.",
+      (int)urls.size(), (int)ranks.size(),
+      urls.empty() ? wxString() : wxString::FromUTF8(
+          EcceURL(urls[0]).getParent().getFilePathTail().c_str()));
+  if (!why.empty()) text += "\n" + wxString::FromUTF8(why.c_str());
+  else text += "\nThey are in the Organizer, ready to edit and launch.";
+  wxMessageBox(text, "New calculation", wxOK |
+               (why.empty() ? wxICON_INFORMATION : wxICON_WARNING), this);
 }

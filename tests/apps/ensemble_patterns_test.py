@@ -150,7 +150,7 @@ def panel(tmp):
                     "gtfocus\ngtenrows\n" +
                     "".join("gtenkind %s %d\n" % k for k in kinds) +
                     "".join("gtenselect %d\n" % k for k in range(1, len(FRAMES) + 1)) +
-                    "gtencsv %s\ngtclose\nhold 1\n" % csvout)
+                    "gtencalc orca_es 1 3\ngtencsv %s\ngtclose\nhold 1\n" % csvout)
                 args = ("-context", url)
                 if os.path.realpath(state) != os.path.realpath(os.path.expanduser("~")):
                     auth = fx.authFile(os.path.join(state, ".ECCE", "auth.pipe"), user=fx.USER)
@@ -198,6 +198,24 @@ def panel(tmp):
                           m and all(abs(float(m.group(j + 1)) - float(ax[j + 1])) < 1e-4
                                     for j in range(3)) and int(m.group(4)) == k,
                           m and m.groups())
+                # New Calculation from Selected (#708): ranks 1 and 3.
+                for k in (1, 3):
+                    ax = atoms(FRAMES[order[k - 1]][0])
+                    m = re.search(r"GTSTRESS: encalc %d type=(\S+) run=(.*?) mult=(\d+) name=(\S+) atoms=(\d+) first (\S+) (\S+) (\S+) "
+                                  r"last (\S+) (\S+) (\S+)" % k, log)
+                    want = [float(v) for v in ax[0][1:]] + [float(v) for v in ax[-1][1:]]
+                    check("new calculation from rank %d: name ends _conf%d" % (k, k),
+                          m and m.group(4).endswith("_conf%d" % k), m and m.groups())
+                    check("new calculation from rank %d: code orca_es, run type Geometry, mult carried" % k,
+                          m and m.group(1) == "orca_es" and m.group(2) == "Geometry" and m.group(3) == "1",
+                          m and m.groups())
+                    check("new calculation from rank %d has that frame's geometry" % k,
+                          m and int(m.group(5)) == len(ax) and
+                          all(abs(float(m.group(6 + j)) - want[j]) < 1e-4 for j in range(6)),
+                          m and m.groups())
+                made = re.search(r"GTSTRESS: encalc made=(\d+) why=(.*)", log)
+                check("two calculations created, no error",
+                      made and made.group(1) == "2" and not made.group(2), made and made.groups())
                 if os.path.exists(csvout):
                     lines = open(csvout).read().splitlines()
                     check("CSV has a header and %d rows" % len(FRAMES),

@@ -128,6 +128,13 @@ heading to sort, and a row to show that structure in the 3-D view. Below the
 table, a plot of the energy against the rank (lowest first) marks the chosen
 structure; clicking a point selects its row. **Export .csv** saves the table.
 
+Select several rows with Ctrl or Shift and choose **New Calculation from
+Selected...** to set up one calculation per structure: it asks once for the
+code and creates each with that structure, the Geometry Optimization run type
+and the charge and multiplicity of this calculation. If this calculation is a
+step of a workflow, they become steps linked from it; otherwise they are
+calculations beside it, named `<calculation>_conf<rank>`.
+
 The energies and populations compare the structures within the one method of
 this calculation only. They cannot be compared with the energy from another
 method, or from another run with a different window or solvent, and the

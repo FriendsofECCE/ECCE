@@ -44,6 +44,19 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     // Show member `rank` (1 = lowest) in the table, plot and 3-D view.
     bool selectRank(int rank);
     int selectedRank() const { return p_selRank; }
+    // Ranks of the selected rows, ascending.
+    std::vector<int> selectedRanks() const;
+    // The codes offered for a new calculation (WorkflowSteps codes with a
+    // Geometry run type) as "label|resource type" and the default's index.
+    static std::vector<std::string> codeChoices(int& dflt);
+    // "New calculation from selected" (#708): per rank a Geometry
+    // Optimization calculation of code `typeName` (a resource type such as
+    // orca_es) with that structure and this calculation's charge and
+    // multiplicity: a linked workflow step if this is a workflow step, else a
+    // calculation beside it.  The URLs created.
+    std::vector<std::string> newCalcsFromRanks(const std::vector<int>& ranks,
+                                               const std::string& typeName,
+                                               std::string& why);
     bool exportCsv(const std::string& path) const;
     std::string kind() const;
 
@@ -61,6 +74,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     void OnRowSelected(wxListEvent& event);
     void OnColumn(wxListEvent& event);
     void OnExport(wxCommandEvent& event);
+    void OnNewCalcs(wxCommandEvent& event);
 
     std::vector<Member> p_members;   // as shown (sorted by the user's column)
     std::string p_deName;            // energy column header
@@ -71,6 +85,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     bool p_sortUp;
     wxListCtrl *p_table;
     wxButton *p_export;
+    wxButton *p_newCalcs;
 };
 
 #endif

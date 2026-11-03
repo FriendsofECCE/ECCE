@@ -91,6 +91,12 @@ namespace WorkflowSteps {
                                     const std::string& name, Resource *source,
                                     int n, const Carry& carry, std::string& why);
 
+  /// The same for the given ranks (1 = lowest relative energy), in order.
+  std::vector<Resource*> createRanks(Session *wf, ResourceType *rt,
+                                     const std::string& name, Resource *source,
+                                     const std::vector<int>& ranks,
+                                     const Carry& carry, std::string& why);
+
   /// Like createBest, but one step per coordination pattern of the ensemble,
   /// named "<name>-pat<k>" (k = 1.. by the pattern's lowest energy) and
   /// annotated with the pattern, its count and its representative.

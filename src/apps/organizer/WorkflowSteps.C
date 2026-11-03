@@ -227,6 +227,26 @@ vector<Resource*> WorkflowSteps::createBest(Session *wf, ResourceType *rt,
                                             Resource *source, int n,
                                             const Carry& carry, string& why)
 {
+  const int size = ScanPoint::ensembleSize(dynamic_cast<PropertyTask*>(source));
+  if (size >= 1 && (n < 1 || n > size)) {
+    char buf[96];
+    snprintf(buf, sizeof buf, "The ensemble has %d conformers; %d asked for.",
+             size, n);
+    why = buf;
+    return vector<Resource*>();
+  }
+  vector<int> ranks;
+  for (int k = 1; k <= n; k++) ranks.push_back(k);
+  return createRanks(wf, rt, name, source, ranks, carry, why);
+}
+
+
+vector<Resource*> WorkflowSteps::createRanks(Session *wf, ResourceType *rt,
+                                             const string& name,
+                                             Resource *source,
+                                             const vector<int>& ranks,
+                                             const Carry& carry, string& why)
+{
   vector<Resource*> made;
   PropertyTask *task = dynamic_cast<PropertyTask*>(source);
   const int size = ScanPoint::ensembleSize(task);
@@ -234,14 +254,16 @@ vector<Resource*> WorkflowSteps::createBest(Session *wf, ResourceType *rt,
     why = "The source has no conformer or pose ensemble.";
     return made;
   }
-  if (n < 1 || n > size) {
-    char buf[96];
-    snprintf(buf, sizeof buf, "The ensemble has %d conformers; %d asked for.",
-             size, n);
-    why = buf;
-    return made;
+  for (size_t r = 0; r < ranks.size(); r++) {
+    const int k = ranks[r];
+    if (k < 1 || k > size) {
+      why = "The ensemble has " + std::to_string(size) + " members; rank " +
+            std::to_string(k) + " asked for.";
+      return made;
+    }
   }
-  for (int k = 1; k <= n; k++) {
+  for (size_t r = 0; r < ranks.size(); r++) {
+    const int k = ranks[r];
     Carry c = carry;
     c.point = "c" + std::to_string(k);
     Resource *step = create(wf, rt, name + "-conf" + std::to_string(k), source,

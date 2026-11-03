@@ -702,6 +702,11 @@ ecce_app(builder src/apps/builder WX GL
   LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd 
        eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
        ${ECCE_X11_LIBS} jpeg freetype)
+# "New Calculation from Selected" makes workflow steps (#708).
+target_sources(builder PRIVATE src/apps/organizer/WorkflowSteps.C
+  src/apps/organizer/Recipe.C src/apps/organizer/KeyData.C
+  src/apps/organizer/CompareEnergies.C src/apps/organizer/CompareEnergiesGather.C)
+target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
 
