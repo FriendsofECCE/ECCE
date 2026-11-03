@@ -89,7 +89,10 @@ subshell is placed by the mean energy of its orbitals.
 
 Tick **Energies to scale** to draw the orbital energies to scale on an eV
 axis instead. The core levels are below a break in the axis and are not to
-scale; their energies are written beside them. In a restricted open-shell
+scale, with the lowest at the bottom. The s, p and d columns form a centred
+group. Energies appear to the right of the levels in grey; degenerate levels
+share one value. A value is omitted if it would overlap another label or
+level; hovering still shows the energy. In a restricted open-shell
 calculation (ROKS or ROHF) the orbitals of a partly filled subshell do not
 have the same energy, and this drawing shows the splitting. For an
 unrestricted calculation up arrows are the alpha electrons and down arrows the

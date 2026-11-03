@@ -33,7 +33,8 @@ def main():
             subprocess.run([binary, str(output)], check=True, env=display.env(env), timeout=120)
     failures = []
     for path in sorted(output.glob('*.txt')):
-        name, dimensions = path.stem.split('-')
+        scaled = path.stem.endswith('-scale')
+        name, dimensions = path.stem.removesuffix('-scale').split('-')
         width, height = map(int, dimensions.split('x'))
         text = path.read_text()
         rects = []
@@ -43,7 +44,7 @@ def main():
                 rects.append((m[1], *map(int, m.group(2, 3, 4, 5)), m[6]))
         problems = []
         layout = re.search(r'boxes size=(\d+) wraps=(\d+) core=(\S+)', text)
-        if not layout or int(layout[1]) < 18:
+        if not scaled and (not layout or int(layout[1]) < 18):
             problems.append('missing or unreadable boxes')
         if layout:
             if width == 900 and (int(layout[2]) or layout[3] != 'none'):
@@ -64,7 +65,8 @@ def main():
             if not shell_boxes or heading[2] <= max(r[2]+r[4] for r in shell_boxes):
                 problems.append('heading is not at column foot')
         hits = re.findall(r'^hit (\d+) (\d+)$', text, re.M)
-        if len(hits) != len(boxes) or any(a != b for a, b in hits):
+        levels = [r for r in rects if r[0] == ('level' if scaled else 'box')]
+        if len(hits) != len(levels) or any(a != b for a, b in hits):
             problems.append('orbital hit targets differ')
         ys = {r[5]: r[2] for r in boxes}
         ranks = re.findall(r'^shell (\S+)', text, re.M)
@@ -74,6 +76,33 @@ def main():
         if layout and layout[3] == 'none':
             if len(boxes) != len(re.findall(r'^  orbital ', text, re.M)):
                 problems.append('an unfolded orbital is missing')
+        if scaled:
+            if not any(r[5] == 'Energy (eV)' and r[2] < min(q[2] for q in levels) for r in rects):
+                problems.append('axis title is not above the axis')
+            core_labels = re.findall(r'^shell (\S+) core=1', text, re.M)
+            core_ys = [next(r[2] for r in levels if r[5] == label) for label in core_labels]
+            if any(a <= b for a, b in zip(core_ys, core_ys[1:])):
+                problems.append('core order is inverted')
+            values = [r for r in rects if r[0] == 'text' and r[5].endswith(' eV')]
+            if not values or any(not re.fullmatch(r'−?\d+\.\d eV', r[5]) for r in values):
+                problems.append('missing or incorrectly formatted energy values')
+            if not any(r[5] == '−3200.0 eV' for r in values):
+                problems.append('core energy value is missing')
+            if sum(r[5] == '−300.0 eV' for r in values) != 1:
+                problems.append('degenerate core value is missing or repeated')
+            if name == 'O' and any(r[5] == '−250.0 eV' for r in values):
+                problems.append('crowded split-level value was not omitted')
+            first_x = {r[5]: min(q[1] for q in levels if q[5] == r[5]) for r in levels}
+            for angular in ('s', 'p', 'd'):
+                if len({x for label, x in first_x.items() if label.endswith(angular)}) > 1:
+                    problems.append('core and valence columns differ')
+            if width == 900:
+                starts = sorted({r[1] for r in levels if r[5] in ('1s', '2p', '3d')})
+                if any(b-a > 270 for a, b in zip(starts, starts[1:])):
+                    problems.append('angular columns spread too far apart')
+            print(('FAIL ' if problems else 'PASS ')+path.stem+': '+('; '.join(problems) if problems else 'core order, values, group spacing, hits, no overlaps'))
+            failures.extend(problems)
+            continue
         config_lines = []
         for r in rects:
             if r[0] == 'text' and r[5] == 'not to scale':

@@ -47,6 +47,22 @@ public:
         if (!canvas->savePng(path+".png", false, size.x, size.y)) result = 1;
         std::ofstream out(path+".txt");
         out << canvas->describe();
+        if (size.x >= 500 && (name == "O" || name == "Ar" || name == "Cu")) {
+          vector<AufbauShell> scaled = shells;
+          const double energies[] = {-3200, -300, -250, -30, -12, 2, 4, 8};
+          for (size_t j = 0; j < scaled.size(); ++j) {
+            AufbauShell& s = scaled[j];
+            s.mean = energies[j];
+            s.core = j < (name == "O" ? 1 : 3);
+            for (size_t k = 0; k < s.orbs.size(); ++k)
+              s.orbs[k].eV = s.mean + (name == "O" && s.label == "2p" && k > 0 ? 5 : 0);
+            if (name == "O" && s.label == "2p") s.mean += 10.0/3;
+          }
+          canvas->setModel(name, scaled);
+          if (!canvas->savePng(path+"-scale.png", true, size.x, size.y)) result = 1;
+          std::ofstream(path+"-scale.txt") << canvas->describe();
+          canvas->setModel(name, shells);
+        }
       }
     }
     delete frame;
