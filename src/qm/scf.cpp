@@ -276,7 +276,8 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   const double order_tol = 1e-3;  // eigenvalue degeneracy tolerance, hartree
   std::vector<int> swap_cycles;
   int relax_left = 0;
-  struct Saved { ScfResult R; Mat Ca, Fa, Fb; Vec eps; };
+  struct Saved { ScfResult R; Mat Ca, Fa, Fb; Vec eps; ScfCycle cycle; };
+  ScfCycle last_cycle;
   std::unique_ptr<Saved> mom_result;
   Vec eps_a, eps_b;
   Mat Ca, Cb;
@@ -372,15 +373,15 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     const bool strict = !first && std::fabs(E - Eold) < opt.conv_energy && gmax < opt.conv_grad;
     const bool plateau = !strict && stable >= plateau_cycles - 1 && gmax < plateau_grad_factor * opt.conv_grad;
     const bool done = strict || plateau;
-    if (opt.on_cycle) {
-      ScfCycle c;
+    {
+      ScfCycle& c = last_cycle;
       c.cycle = it;
       c.energy = E;
       c.dE = it > 1 ? E - Eold : std::nan("");
       c.grad = gmax;
       c.converged = done;
       c.by_plateau = plateau;
-      opt.on_cycle(c);
+      if (opt.on_cycle) opt.on_cycle(c);
     }
     if (done) {
       R.converged = true;
@@ -407,7 +408,7 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
           // hold an excited configuration.  Relax with aufbau from here for a
           // few cycles and keep whichever converged energy is lower.  (An
           // unevenly filled atomic shell is legitimately out of order.)
-          mom_result.reset(new Saved{R, Ca, Fa, Fb, eps_a});
+          mom_result.reset(new Saved{R, Ca, Fa, Fb, eps_a, last_cycle});
           relax_left = relax_cycles;
           mom = mom_allowed = false;
           R.converged = false;
@@ -462,6 +463,13 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     eps_a = eps_b = mom_result->eps;
     Fa = mom_result->Fa;
     Fb = mom_result->Fb;
+    // The monitor reads the last progress line; it still describes the
+    // discarded relaxation.
+    if (opt.on_cycle) {
+      ScfCycle c = mom_result->cycle;
+      c.cycle = iters;
+      opt.on_cycle(c);
+    }
   }
   if (!R.converged) {
     // leave the last orbitals in place
