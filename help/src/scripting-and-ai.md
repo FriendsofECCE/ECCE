@@ -6,6 +6,20 @@ assistants can work with it too. The commands are `ecce-launch`,
 `ecce-contacts`; see [Launch Selected](launch-selected.md) for the launch and
 terminate commands.
 
+## Command line only
+
+Some functions have no menu in the Organizer and are used from a terminal, by
+scripts and AI assistants:
+
+| Command | What it does |
+|---|---|
+| `ecce-si-export --checks csv <folder>` | the [Checks table](checks-table.md), with the core-hours booked and used |
+| `ecce-si-export` | the [Supporting Information export](si-export.md) |
+| `ecce-series` | [New Series](new-series.md): one setup on many structures |
+| `ecce-force-compare` | compare the stored forces of two calculations |
+| `ecce-contacts` | metal-donor contacts of a structure |
+| `ecce-annotate --exclude` | the [excluded mark](excluded.md); it is not shown in the Organizer |
+
 ## Setting an annotation
 
 `ecce-annotate <calculation>... "text"` sets the Annotation field of

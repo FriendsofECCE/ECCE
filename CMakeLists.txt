@@ -3441,6 +3441,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_exclude PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Organizer right-click menus and project table columns (#805).
+  add_test(NAME apps_organizer_menus
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_menus_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_menus PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Checks table: the dialog's rows equal ecce-si-export --checks (#615).
   add_test(NAME apps_checks_table
            COMMAND ${PYTHON3_EXECUTABLE}

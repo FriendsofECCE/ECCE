@@ -46,6 +46,8 @@ class GridProperty {
                              runstate icon (WxState) */
       PT_NUMERIC,       /**< Numeric data */
       PT_FLOAT,         /**< Floating point data */
+      PT_TOTAL_ENERGY,  /**< The final energy of a finished calculation, in
+                             Hartree; made by the Organizer */
       PT_PROGRESS,      /**< A running job's progress as one line of text,
                              made by the application, not stored (#284) */
       PT_UNDEFINED      /**< An unrecognized data type */

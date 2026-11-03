@@ -3,12 +3,9 @@
 The Checks table lists every calculation under a folder in one sortable grid,
 so that a failed or doubtful run is seen before its numbers are used.
 
-1. In the Organizer, select a folder (or some calculations).
-2. Right-click and choose **Checks Table...**, or use
-   **File > Export > Checks Table...**.
-3. Click a column heading to sort by it; click again to reverse. Values that
-   are not stored sort last.
-4. **Export CSV...** and **Export LaTeX...** write the table to a file.
+Run `ecce-si-export --checks csv <calculation>...` (or `latex`) in a
+terminal; there is no menu item for it in the Organizer. Values that are not
+stored sort last.
 
 Columns: state; normal termination; optimisation converged; SCF converged;
 number of imaginary modes; the expectation value of S<sup>2</sup> and its
@@ -37,7 +34,7 @@ sum.
 Imaginary modes have wavenumbers below -1 cm⁻¹. Frequencies with magnitude
 below 1 cm⁻¹ are numerical translation/rotation zeros and are excluded from
 mode counts, including small negative values displayed as `-0.0`.
-The same rule is used in Rank flags, thermochemistry, the vibrations panel
+The same rule is used in Compare Energies flags, thermochemistry, the vibrations panel
 and the finished job's progress panel. Progress shows the total number of
 vibrational modes (real plus imaginary), followed by the imaginary count;
 stored frequencies supply the counts when the output does not report them.
@@ -45,7 +42,4 @@ stored frequencies supply the counts when the output does not report them.
 A row is shown in red when the calculation did not terminate normally, did
 not converge, has an imaginary-mode count that does not fit its run type (none
 for a minimum, one for a transition state), or has S<sup>2</sup> more than 0.1
-from S(S+1). Excluded calculations are grey.
-
-From a terminal: `ecce-si-export --checks csv <calculation>...` (or `latex`)
-prints the same table.
+from S(S+1). 

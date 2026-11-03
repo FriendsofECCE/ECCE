@@ -1,15 +1,13 @@
 # Export for Supporting Information
 
-**File > Export > Supporting Information...** writes the selected
+`ecce-si-export` writes the selected
 calculations as one multi-structure XYZ file, and optionally a table of the
 same values, for the Supporting Information of a paper.
 
-1. In the Organizer, select the calculations. Select several with Ctrl or
-   Shift.
-2. Choose **File > Export > Supporting Information...** and name the XYZ
-   file.
-3. Choose whether to also write a table: **CSV** or **LaTeX**. It is saved
-   beside the XYZ file with the extension `.csv` or `.tex`.
+Run `ecce-si-export <calculation>... -o supporting-information.xyz`, and
+add `--table csv` or `--table latex` to also write a table, saved beside the
+XYZ file with the extension `.csv` or `.tex`. There is no menu item for it in
+the Organizer.
 
 For each calculation the XYZ file has the number of atoms, a comment line,
 and the final geometry in Å. The comment line reads

@@ -3,11 +3,13 @@
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 
 #include <wx/button.h>
 #include <wx/filedlg.h>
 #include <wx/grid.h>
 #include <wx/msgdlg.h>
+#include <wx/progdlg.h>
 #include <wx/settings.h>
 #include <wx/sizer.h>
 
@@ -70,12 +72,23 @@ vector<EcceURL> calculationsUnder(const vector<EcceURL>& roots)
 }
 
 ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool rank)
-  : wxDialog(parent, wxID_ANY, rank ? "Rank" : "Checks table", wxDefaultPosition,
+  : wxDialog(parent, wxID_ANY, rank ? "Compare Energies" : "Checks table", wxDefaultPosition,
              wxSize(1100, 480), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
     p_calcs(calcs), p_rank(rank)
 {
   string text;
-  if (!(p_rank ? rankTable(p_calcs, "csv", text, p_why)
+  // More than a few calculations take a while to gather: show n of N.
+  std::unique_ptr<wxProgressDialog> pd;
+  GatherProgress progress;
+  if (p_rank && p_calcs.size() > 3) {
+    pd.reset(new wxProgressDialog("Compare Energies", "Starting...",
+        (int)p_calcs.size(), parent, wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_APP_MODAL));
+    progress = [&pd](size_t i, size_t n, const string& name) {
+      return pd->Update((int)i, wxString::Format("Reading %zu of %zu: %s",
+          i + 1, n, wxString::FromUTF8(name.c_str())));
+    };
+  }
+  if (!(p_rank ? rankTable(p_calcs, "csv", text, p_why, progress)
                 : checksTable(p_calcs, "csv", text, p_why))) return;
   vector<vector<string>> all = parseCsv(text);
   if (all.empty()) { p_why = "The table is empty."; return; }
@@ -168,7 +181,7 @@ string ChecksDialog::csv() const
 
 void ChecksDialog::exportAs(const string& format)
 {
-  wxFileDialog dlg(this, p_rank ? "Write the Rank table to" : "Write the Checks table to", "",
+  wxFileDialog dlg(this, p_rank ? "Write the Compare Energies table to" : "Write the Checks table to", "",
                    format == "csv" ? (p_rank ? "rank.csv" : "checks.csv") : (p_rank ? "rank.tex" : "checks.tex"), "*",
                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
   if (dlg.ShowModal() != wxID_OK) return;

@@ -545,7 +545,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * allocations    Tools > Allocations: prints "ALLOC: machine|account|used|
  *                 checked" for each row on stderr
  * siexport <out.xyz> <csv|latex|none> <url>,<url>... [include-excluded]
- *                 File > Export > Supporting Information (#625); "ok" or
+ *                 what ecce-si-export reads (#625); "ok" or
  *                 "failed: <why>"
  * checks <out.csv> <url>,<url>...
  *                 the Checks table dialog's rows (folders expanded) as CSV
@@ -553,7 +553,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * rank <out.csv> <url>,<url>...
  *                 the Rank table dialog's rows (#703), as for "checks"
  * compareenergies <sideA> <sideB>
- *                 what Tools > Compare Energies shows for the two sides
+ *                 what Tools > Energy Calculator shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
  *                 an optional third word names an ecce-thermo treatment for
  *                 the G row; the spread over treatments is always shown
@@ -568,10 +568,11 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 what Check Job on Machine said, as if it had run
  * fold open|shut  fold the Progress box, as a click on its heading does
  * exclude <url> <reason> | include <url>
- *                 Exclude.../Include again (#617); "name\tok\t"
- * tableexcluded  the shown project table's excluded rows, "name|tip|grey|strike"
- * summaryexcluded the shown calculation summary's "Excluded: reason" line
- * treetip <url>   the tree item's tooltip, strikethrough and grey (#617)
+ *                 what ecce-annotate --exclude/--include does (#617);
+ *                 "name\tok\t"
+ * treetip <url>   the tree item's strikethrough and grey (never set, #805)
+ * tablecolumns    the shown project table's column headings, " | " between
+ * tableenergies   the shown project table's Total energy cells
  * treestate <url> the tree icon's index, and those of running and of
  *                 out of contact
  * tablestates     the shown project table's State cells
@@ -582,10 +583,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  */
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
-static const int ID_COMPARE_FORCES = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
-static const int ID_SI_EXPORT = wxNewId();
-static const int ID_CHECKS = wxNewId();
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -1726,24 +1724,14 @@ void CalcMgr::runTestCommand(const string& line)
       annotateForCommand(sel, command == "exclude" ? reason : string(), lines,
                          "excluded");
       outcome = lines.empty() ? string("none") : lines[0];
-    } else if (command == "tableexcluded" || command == "summaryexcluded") {
-      // The shown project table's excluded rows (name|tooltip|grey|strike), or
-      // the shown calculation summary's Excluded line (#617).
-      ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
-      CalculationContextPanel *sum = dynamic_cast<CalculationContextPanel*>(p_contextPanel);
-      if (command == "tableexcluded") {
-        outcome = table ? "rows" : "no table";
-        if (table) for (const string& r : table->excludedRows()) outcome += " ; " + r;
-      } else {
-        outcome = sum ? "line=" + sum->excludedLine() : string("no summary");
-      }
     } else if (command == "treetip") {
-      // "treetip <url>": tooltip text, font strike and text colour of the item
+      // "treetip <url>": font strike and text colour of the tree item; an
+      // excluded calculation is not marked in the GUI (#805).
       WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
       if (!node) outcome = "no node";
       else {
         wxColour c = p_treeCtrl->GetItemTextColour(node->GetId());
-        outcome = "tip=" + p_treeCtrl->itemTip(node->GetId()) + " strike=" +
+        outcome = string("strike=") +
             (p_treeCtrl->GetItemFont(node->GetId()).GetStrikethrough() ? "1" : "0") +
             " grey=" + (c == wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT) ? "1" : "0");
       }
@@ -1917,24 +1905,6 @@ void CalcMgr::runTestCommand(const string& line)
       snprintf(secs, sizeof secs, " (%.1f s)", std::chrono::duration<double>(
                    std::chrono::steady_clock::now() - t0).count());
       outcome += secs;
-    } else if (command == "compareforcesselection") {
-      std::istringstream args(calcName);
-      string url;
-      vector<EcceURL> urls;
-      while (args >> url) urls.push_back(EcceURL(url));
-      WxResourceTreeItemData *parent = urls.empty() ? 0 :
-          findNode(urls[0].getParent(), true, true);
-      if (parent) {
-        p_treeCtrl->SelectItem(parent->GetId());
-        for (int i = 0; i < 40; ++i) { wxYield(); wxMilliSleep(50); }
-      }
-      if (p_contextPanel) p_contextPanel->selectResources(urls);
-      p_focusOnTree = false;
-      updateSelectionMenus();
-      wxMenuBar *bar = GetMenuBar();
-      wxMenuItem *item = bar->FindItem(ID_COMPARE_FORCES);
-      outcome = item && item->IsEnabled() &&
-          bar->IsEnabledTop(bar->FindMenu(_("Tools"))) ? "enabled" : "disabled";
     } else if (command == "compareforcesdialog") {
       std::istringstream args(calcName);
       string a, b, png;
@@ -2013,6 +1983,36 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "panel=" + std::to_string((unsigned long)(uintptr_t)table) +
                   " paints=" + std::to_string(table->progressPaints());
         for (const string& c : table->progressCells()) outcome += " | " + c;
+      }
+    } else if (command == "tablecolumns" || command == "tableenergies") {
+      ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      outcome = table ? "ok" : "no table";
+      if (table) {
+        const vector<string> v = command == "tablecolumns"
+            ? table->columnHeadings() : table->energyCells();
+        for (const string& c : v) outcome += " | " + c;
+      }
+    } else if (command == "menulabels") {
+      // "menulabels <url>": the labels of that item's context menu, "/"
+      // between a submenu and its items, " | " between entries.
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
+      if (!node) outcome = "no node";
+      else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 20; ++i) { wxYield(); wxMilliSleep(25); }
+        wxMenu menu;
+        getContextMenu(menu);
+        std::function<void(wxMenu*, const string&)> dump =
+            [&](wxMenu *m, const string& prefix) {
+          for (wxMenuItem *it : m->GetMenuItems()) {
+            if (it->IsSeparator()) continue;
+            string label = string(it->GetItemLabelText().ToUTF8());
+            outcome += " | " + prefix + label + (it->IsEnabled() ? "" : " (disabled)");
+            if (it->GetSubMenu()) dump(it->GetSubMenu(), prefix + label + "/");
+          }
+        };
+        outcome = "menu";
+        dump(&menu, "");
       }
     } else if (command == "tablestates") {
       // The shown table's State cells, "name=state" ("running?": #284).
@@ -4002,27 +4002,6 @@ bool CalcMgr::annotateForCommand(const vector<EcceURL>& urls,
 }
 
 
-//  Exclude... asks for the reason (one for all selected); Include again
-//  clears it. Local, server and CLI all store ecce:excluded the same way.
-void CalcMgr::excludeSelected(bool exclude)
-{
-  string reason;
-  if (exclude) {
-    ewxTextEntryDialog dialog(this,
-        "Why is this calculation excluded? (shown as its tooltip and in "
-        "exports)", "Exclude", "", wxOK | wxCANCEL);
-    if (dialog.ShowModal() != wxID_OK) return;
-    reason = dialog.GetValue();
-    if (reason.empty()) reason = "excluded";
-  }
-  vector<string> lines;
-  annotateForCommand(p_currentSelection, reason, lines, "excluded");
-  for (size_t i = 0; i < lines.size(); i++)
-    if (lines[i].find("\tno\t") != string::npos)
-      setMessage(lines[i], WxFeedback::ERROR);
-}
-
-
 //  Terminate Selected for a request from another process (#695): the same
 //  terminateCalc, without the confirmation. One line per calculation,
 //  "name\tok\tjob id" or "name\tno\treason".
@@ -5701,7 +5680,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"Li_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "lithium atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"Li_HF_cation",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -5711,7 +5690,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"Be_HF_neutral",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the "
      "beryllium atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"Be_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -5721,7 +5700,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"C_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "carbon atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"C_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -5731,7 +5710,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"N_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "nitrogen atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"N_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -5741,7 +5720,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"O_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "oxygen atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"O_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -5751,7 +5730,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"F_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "fluorine atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"F_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -5770,7 +5749,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "the ionisation energy."},
     {"Li_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
-     "lithium atom; with the anion, Tools > Compare Energies gives the "
+     "lithium atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"Li_anion",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
@@ -5779,7 +5758,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "affinity."},
     {"Be_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
-     "beryllium atom; with the anion, Tools > Compare Energies gives the "
+     "beryllium atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"Be_anion",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
@@ -5790,19 +5769,19 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "not more stable than the atom."},
     {"C_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
-     "carbon atom; with the anion, Tools > Compare Energies gives the "
+     "carbon atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"N_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
-     "nitrogen atom; with the anion, Tools > Compare Energies gives the "
+     "nitrogen atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"O_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
-     "oxygen atom; with the anion, Tools > Compare Energies gives the "
+     "oxygen atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"F_PBE0_neutral",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
-     "fluorine atom; with the anion, Tools > Compare Energies gives the "
+     "fluorine atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"C_anion",
      "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
@@ -7304,16 +7283,33 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Append(wxID_COPY, wxT("&Copy"));
   menu.Append(wxID_PASTE, wxT("&Paste"));
   menu.Enable(wxID_PASTE, !p_clipboard.empty());
+  menu.Append(wxID_RENAME, wxT("&Rename"));
+  menu.Enable(wxID_RENAME, true);
+  menu.Append(wxID_DELETE, wxT("&Delete"));
+  menu.Enable(wxID_DELETE, true);
   //  A study task is rerun by a copy that keeps its place in the study.
   if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
           itemData->getResource()))
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
+  //  A calculation's menu: the clipboard items, what to make from it, and
+  //  what to do with its run. The tools (Builder, Calculation Editor, ...)
+  //  are on the toolbar and the Tools menu.
+  wxMenu *runMenu = 0;
   if (isCalculationNode) {
-    menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
-    menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
-    menu.Append(wxID_NEW_SERIES, _("New Series from This..."),
-                _("Make one calculation per structure with this "
-                  "calculation's setup"));
+    wxMenu *from = new wxMenu();
+    from->Append(wxID_DUPLICATE, _("Rerun"),
+                 _("A copy of this calculation, ready to run again"));
+    from->Append(wxID_DUPLICATE2, _("Continue from Last Geometry"),
+                 _("A copy with the geometry this calculation ended on"));
+    string why;
+    bool can = OrbitalGuess::available(
+        dynamic_cast<TaskJob*>(itemData->getResource()), why);
+    wxMenuItem *item = from->Append(wxID_DUPLICATE3,
+        _("Continue from Final Orbitals"),
+        can ? _("A copy with the last geometry that starts from this "
+                "calculation's final orbitals") : wxString(why));
+    item->Enable(can);
+    menu.AppendSubMenu(from, _("New from This"));
     {
       const string refusal =
           workflowMoveRefusal(itemData->getResource());
@@ -7355,23 +7351,28 @@ void CalcMgr::getContextMenu(wxMenu & menu)
                           : wxString(refusal));
       sub->Enable(refusal.empty() && !flows.empty());
     }
-    menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+    runMenu = new wxMenu();
+    runMenu->Append(wxID_LAUNCH_SELECTED, _("Launch..."));
     string noReconnect = reconnectProblem(itemData->getResource());
-    wxMenuItem *reconnect = menu.Append(wxID_RECONNECT_SELECTED,
-        _("Reconnect Selected..."), wxString(noReconnect));
+    wxMenuItem *reconnect = runMenu->Append(wxID_RECONNECT_SELECTED,
+        _("Reconnect..."), wxString(noReconnect));
     reconnect->Enable(noReconnect.empty());
-    menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), _("Run the "
+    //  Terminate and the run-directory shell are the state-based Run
+    //  Management tasks; they are listed always and enabled by the state.
+    vector<ResourceRmTask *> rmVec = resType->getRmTasks(state);
+    int terminateId = wxID_ANY, shellId = wxID_ANY;
+    for (size_t i = 0; i < rmVec.size(); i++) {
+      if (rmVec[i]->getName() == "terminateCalc") terminateId = rmVec[i]->getId();
+      if (rmVec[i]->getName() == "shellInRunDir") shellId = rmVec[i]->getId();
+    }
+    runMenu->Append(terminateId, _("Terminate"))->Enable(terminateId != wxID_ANY);
+    runMenu->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), _("Run the "
                 "parsers again over the outputs stored with the calculation"))
         ->Enable(state >= ResourceDescriptor::STATE_COMPLETED);
-    string why;
-    bool can = OrbitalGuess::available(
-        dynamic_cast<TaskJob*>(itemData->getResource()), why);
-    wxMenuItem *item = menu.Append(wxID_DUPLICATE3,
-        _("Duplicate with Final Orbitals"),
-        can ? _("Duplicate with the last geometry and start from this "
-                "calculation's final orbitals") : wxString(why));
-    item->Enable(can);
+    runMenu->Append(shellId, _("Shell in Run Directory"))
+        ->Enable(shellId != wxID_ANY);
   }
+  if (runMenu) menu.AppendSubMenu(runMenu, _("Run"));
   //  Calculation rows selected in the project table: the tree's own
   //  selection is then the project, so the batch items come from the same
   //  rows Launch Selected itself would use (one row too).
@@ -7383,77 +7384,51 @@ void CalcMgr::getContextMenu(wxMenu & menu)
       allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
     }
     if (allCalcs) {
-      menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-      menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."))
+      wxMenu *batch = new wxMenu();
+      batch->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+      batch->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."))
           ->Enable(anyReconnectable(rows));
-      menu.Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
-      menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
+      batch->Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
+      batch->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
+      menu.AppendSubMenu(batch, _("Run"));
     }
   }
-  menu.Append(wxID_RENAME, wxT("&Rename"));
-  menu.Enable(wxID_RENAME, true);
-  menu.Append(wxID_DELETE, wxT("&Delete"));
-  menu.Enable(wxID_DELETE, true);
+  //  Comparing the energies of the selection: calculations picked in the
+  //  project table (two or more), or a folder.
   {
-    int id = wxWindow::NewControlId();
-    menu.Append(id, _("Checks Table..."));
-    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
-      CallAfter([this]() { wxCommandEvent e; OnChecks(e); });
-    }, id);
-  }
-  {
-    int id = wxWindow::NewControlId();
-    menu.Append(id, _("Rank..."));
-    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
-      CallAfter([this]() { wxCommandEvent e; OnRank(e); });
-    }, id);
-  }
-  {
-    // Only calculations can be excluded (#617).
-    Resource *first = getSelection() && !p_currentSelection.empty()
-        ? [&]{ WxResourceTreeItemData *n = findNode(p_currentSelection[0], false, true);
-               return n ? n->getResource() : (Resource*)0; }() : 0;
-    if (dynamic_cast<TaskJob*>(first)) {
-      const bool is = !WxResourceTreeCtrl::excludedReason(first).empty();
+    size_t nCalcs = 0;
+    bool container = false;
+    if (!isCalculationNode) {
+      vector<EcceURL> rows = launchSelection();
+      bool allCalcs = !rows.empty();
+      for (size_t i = 0; allCalcs && i < rows.size(); i++) {
+        WxResourceTreeItemData *n = findNode(rows[i], false, true);
+        allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
+      }
+      if (allCalcs) nCalcs = rows.size();
+      container = nCalcs == 0 && itemData && itemData->getResource() &&
+          itemData->getResource()->getContentType() !=
+              ResourceDescriptor::CT_CALCULATION &&
+          dynamic_cast<TaskJob*>(itemData->getResource()) == 0;
+    }
+    if (nCalcs >= 2 || container) {
       int id = wxWindow::NewControlId();
-      menu.Append(id, is ? _("Include again") : _("Exclude..."));
-      menu.Bind(wxEVT_MENU, [this, is](wxCommandEvent&) {
-        CallAfter([this, is]() { excludeSelected(!is); });
+      menu.AppendSeparator();
+      menu.Append(id, _("Compare Energies..."), _("Relative energies of the "
+                  "selected calculations, or of the calculations in this folder"));
+      menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+        CallAfter([this]() { wxCommandEvent e; OnRank(e); });
       }, id);
     }
   }
-
   // get the tools available based on the state of the selection
   if (getSelection()) {
     itemData = findNode(p_currentSelection[0], false, true);
     getTypeAndState(itemData, resType, state);
-    vector<ResourceTool *> toolVec;
-    if (resType->getStateBased()) {
-      toolVec = resType->getTools(state);
-    }
-    else {
-      toolVec = resType->getTools();
-    }
-
-    // for each tool, add the tool to the menu
-    if (!toolVec.empty()) {
-      menu.AppendSeparator();
-    }
-    vector<ResourceTool *>::iterator toolItor;
-    for (toolItor = toolVec.begin(); toolItor != toolVec.end(); toolItor++) {
-      wxMenuItem *item = new wxMenuItem(&menu, (*toolItor)->getId(),
-              (*toolItor)->getMenuItem().c_str(), _T(""), wxITEM_NORMAL);
-      item->SetBitmap(wxBitmap(ewxBitmap((*toolItor)->getIcon())
-                               .ConvertToImage().Scale(16,16)));
-      menu.Append(item);
-    }
-
-    // The two Run Mgmt tasks used mid-run are also reachable here; the
-    // state-based task list is what enables them, as in the menu bar.
     // An MD study task is a TaskJob with its own content type, so it is
     // not a "calculation node" but runs and is cancelled the same way (#731).
-    if (isCalculationNode || (itemData && dynamic_cast<MdTask*>(
-            itemData->getResource()))) {
+    if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
+            itemData->getResource())) {
       bool sep = false;
       vector<ResourceRmTask *> rmVec = resType->getRmTasks(state);
       for (size_t i = 0; i < rmVec.size(); i++) {
@@ -7590,19 +7565,6 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
 
   menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
               _T(""), wxITEM_NORMAL);
-  {
-    wxMenu *exportMenu = new wxMenu;
-    exportMenu->Append(ID_SI_EXPORT, _("&Supporting Information..."));
-    exportMenu->Append(ID_CHECKS, _("&Checks Table..."));
-    menu.Append(wxID_ANY, _("E&xport"), exportMenu);
-    if (!p_siExportWired) {
-      Connect(ID_SI_EXPORT, wxEVT_COMMAND_MENU_SELECTED,
-              wxCommandEventHandler(CalcMgr::OnSiExport));
-      Connect(ID_CHECKS, wxEVT_COMMAND_MENU_SELECTED,
-              wxCommandEventHandler(CalcMgr::OnChecks));
-      p_siExportWired = true;
-    }
-  }
   menu.Append(wxID_IMPORTGROMACS, _("Import &GROMACS Run..."),
               _T(""), wxITEM_NORMAL);
   menu.Append(wxID_OPENEXAMPLES, _("Open &Example Calculations"),
@@ -7785,21 +7747,11 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
     added = true;
   }
 
-  menu.Append(ID_COMPARE_FORCES, _("Compare Forces..."));
-  bool forcePair = false;
-  if (p_treeCtrl && p_treeCtrl->getSelection()) {
-    getSelection();
-    forcePair = p_currentSelection.size() == 2;
-    for (const EcceURL& url : p_currentSelection)
-      forcePair = forcePair && dynamic_cast<PropertyTask*>(EDSIFactory::getResource(url));
-  }
-  menu.Enable(ID_COMPARE_FORCES, forcePair);
-  menu.Append(ID_COMPARE_ENERGIES, _("Compare Energies..."));
+  //  Not "Compare Energies": that is the table of selected calculations.
+  menu.Append(ID_COMPARE_ENERGIES, _("Energy Calculator..."));
   if (!p_compareEnergiesWired) {
     Connect(ID_COMPARE_ENERGIES, wxEVT_COMMAND_MENU_SELECTED,
             wxCommandEventHandler(CalcMgr::OnCompareEnergies));
-    Connect(ID_COMPARE_FORCES, wxEVT_COMMAND_MENU_SELECTED,
-            wxCommandEventHandler(CalcMgr::OnCompareForces));
     p_compareEnergiesWired = true;
   }
   menu.Append(ID_ALLOCATIONS, _("Allocations..."));
@@ -7837,16 +7789,6 @@ CompareEnergiesDialog *CalcMgr::newCompareEnergiesDialog(
   return new CompareEnergiesDialog(this, calculationsIn(project), a, b);
 }
 
-void CalcMgr::OnCompareForces(wxCommandEvent&)
-{
-  getSelection();
-  if (p_currentSelection.size() != 2) return;
-  CompareForcesDialog *dialog = new CompareForcesDialog(this,
-      p_currentSelection[0].toString(), p_currentSelection[1].toString());
-  dialog->ShowModal();
-  dialog->Destroy();
-}
-
 void CalcMgr::OnCompareEnergies(wxCommandEvent&)
 {
   getSelection();
@@ -7855,75 +7797,23 @@ void CalcMgr::OnCompareEnergies(wxCommandEvent&)
   dialog->Destroy();
 }
 
-// The selected calculations as an xyz file (and a table): the file and the
-// table format are asked for; the arithmetic is ecce-si-export's.
-void CalcMgr::OnSiExport(wxCommandEvent&)
-{
-  getSelection();
-  if (p_currentSelection.empty()) {
-    wxMessageBox(_("Select the calculations to export first."),
-                 _("Supporting Information"), wxOK | wxICON_INFORMATION, this);
-    return;
-  }
-  ewxFileDialog dlg(this, "Write structures and energies to", Ecce::realUserHome(),
-                    "supporting-information.xyz", "XYZ files|*.xyz|All Files|*",
-                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT, wxDefaultPosition);
-  if (dlg.ShowModal() != wxID_OK) return;
-  const wxString formats[] = {_("No table"), _("CSV table"), _("LaTeX table")};
-  wxSingleChoiceDialog pick(this, _("Also write a table of the same values (name, code, method, charge, multiplicity, E, G, imaginary frequencies)?"),
-                            _("Supporting Information"), 3, formats);
-  if (pick.ShowModal() != wxID_OK) return;
-  const int k = pick.GetSelection();
-  string why;
-  // Excluded calculations are left out unless the user wants them (#617).
-  size_t nExcl = 0;
-  for (const EcceURL& u : p_currentSelection) {
-    WxResourceTreeItemData *n = findNode(u, false, true);
-    if (n && !WxResourceTreeCtrl::excludedReason(n->getResource()).empty()) nExcl++;
-  }
-  const bool withExcluded = nExcl > 0 && wxMessageBox(
-      wxString::Format(_("%zu selected calculation(s) are excluded. Include them in the export?"), nExcl),
-      _("Supporting Information"), wxYES_NO, this) == wxYES;
-  if (!siExport(p_currentSelection, dlg.GetPath().ToStdString(),
-                k == 1 ? "csv" : k == 2 ? "latex" : "", why, withExcluded))
-    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Supporting Information"),
-                 wxOK | wxICON_ERROR, this);
-}
-
-// The Checks table of the selected folders and calculations (#615).
-void CalcMgr::OnChecks(wxCommandEvent&)
-{
-  getSelection();
-  const vector<EcceURL> calcs = calculationsUnder(p_currentSelection);
-  if (calcs.empty()) {
-    wxMessageBox(_("Select a folder or calculations first."), _("Checks Table"),
-                 wxOK | wxICON_INFORMATION, this);
-    return;
-  }
-  ChecksDialog dlg(this, calcs);
-  string why;
-  if (!dlg.ok(why)) {
-    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Checks Table"),
-                 wxOK | wxICON_ERROR, this);
-    return;
-  }
-  dlg.ShowModal();
-}
-
-// The Rank table of the selected folders and calculations (#703).
+// Compare Energies (the Rank table, #703): the calculations picked in the
+// project table, else those under the selected folder.
 void CalcMgr::OnRank(wxCommandEvent&)
 {
   getSelection();
-  const vector<EcceURL> calcs = calculationsUnder(p_currentSelection);
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
   if (calcs.empty()) {
-    wxMessageBox(_("Select a folder or calculations first."), _("Rank"),
-                 wxOK | wxICON_INFORMATION, this);
+    wxMessageBox(_("Select a folder or calculations first."),
+                 _("Compare Energies"), wxOK | wxICON_INFORMATION, this);
     return;
   }
   ChecksDialog dlg(this, calcs, true);
   string why;
   if (!dlg.ok(why)) {
-    wxMessageBox(wxString::FromUTF8(why.c_str()), _("Rank"), wxOK | wxICON_ERROR, this);
+    if (why != "Cancelled.")
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("Compare Energies"),
+                   wxOK | wxICON_ERROR, this);
     return;
   }
   dlg.ShowModal();
@@ -10832,6 +10722,25 @@ void CalcMgr::finishProgressBackfill(long pid)
       dynamic_cast<CalculationContextPanel*>(p_contextPanel);
   if (panel && progressKey(panel->getUrl()) == progressKey(url))
     panel->updateProgress();
+}
+
+
+//  The Total energy column: the final energy the Progress box shows, in
+//  Hartree. A MOPAC heat of formation is not a total energy, so it is left
+//  out; so is anything unfinished or without a result.
+string CalcMgr::totalEnergyCellText(Resource * resource) const
+{
+  PropertyTask *task = dynamic_cast<PropertyTask*>(resource);
+  if (!task || !resource->hasAccess() ||
+      ResourceUtils::stringToState(resource->getProp(
+          VDoc::getEcceNamespace() + ":state")) < ResourceDescriptor::STATE_COMPLETED)
+    return "";
+  const FinalEnergy fe = finalEnergyOf(task);
+  double hartree;
+  if (!fe.found || fe.heat || !finalEnergyHartree(fe, &hartree)) return "";
+  char buf[64];
+  snprintf(buf, sizeof buf, "%.6f", fabs(hartree));
+  return string(hartree < 0 ? "\xe2\x88\x92" : "") + buf;
 }
 
 

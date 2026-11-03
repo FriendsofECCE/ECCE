@@ -69,7 +69,8 @@ GridPropElement::GridPropElement(Resource *resource, ResourceProperty *property)
   if (property->getName() == "displayname") {
     setValue(resource->getName());
   }
-  else if (property->getType() == GridProperty::PT_PROGRESS) {
+  else if (property->getType() == GridProperty::PT_PROGRESS ||
+           property->getType() == GridProperty::PT_TOTAL_ENERGY) {
     // Made by the Organizer from the job's live or stored snapshot; the
     // stored text itself is not a cell value.
     setValue("");
@@ -131,6 +132,10 @@ wxGridCellAttr *GridPropElement::getAttributes()
       cellAttr->SetRenderer(new wxGridCellStringRenderer);
       cellAttr->SetAlignment(wxALIGN_CENTER, wxALIGN_CENTER);
       break;
+    case GridProperty::PT_TOTAL_ENERGY:
+      cellAttr->SetRenderer(new wxGridCellStringRenderer);
+      cellAttr->SetAlignment(wxALIGN_RIGHT, wxALIGN_CENTER);
+      break;
     case GridProperty::PT_PROGRESS:
       cellAttr->SetRenderer(new ProgressCellRenderer);
       cellAttr->SetAlignment(wxALIGN_LEFT, wxALIGN_CENTER);
@@ -148,13 +153,6 @@ wxGridCellAttr *GridPropElement::getAttributes()
       cellAttr->SetEditor(new wxGridCellTextEditor);
   }
   return cellAttr;
-}
-
-
-string GridPropElement::mutedReason() const
-{
-  if (!p_resource || !p_resource->hasAccess()) return "";
-  return p_resource->getProp(VDoc::getEcceNamespace() + ":excluded");
 }
 
 

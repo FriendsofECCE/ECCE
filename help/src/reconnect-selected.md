@@ -12,7 +12,7 @@ calculations in one step. It does the same as **Run Mgmt > Reconnect** (or the
 1. Select the calculations in a project's table (with the Ctrl key held), or
    in the tree.
 2. Choose **Run Mgmt > Reconnect Selected...**. The same item is in the
-   right-click menu of a calculation.
+   **Run** submenu of a calculation's right-click menu.
 3. The window lists each calculation with its **Machine**, its **State** and
    a **Check**. A calculation that can be reconnected shows **OK**. One that
    cannot is listed in grey, with the reason after **Skipped:**.

@@ -24,4 +24,4 @@ stored frequencies the panel says so and shows no recomputed numbers.
 
 The numbers come from the `ecce-thermo` command, so running it on the same
 calculation gives the same values. For the spread of a reaction G over the
-treatments, see [Compare Energies](compare-energies.md).
+treatments, see [Energy Calculator](energy-calculator.md).

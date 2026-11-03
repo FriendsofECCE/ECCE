@@ -73,16 +73,13 @@ describe what you did and what happened.
    [How far the atoms moved](displacement.md): displacement from the first
    frame, colour by displacement, and the aligned difference between two
    calculations.
-   [Export for Supporting Information](si-export.md): the selected
-   calculations as one XYZ file with charge, multiplicity, E and G, and a
-   CSV or LaTeX table.
-   [Checks table](checks-table.md): one row per calculation under a
-   folder with termination, convergence, imaginary modes, S2, charge,
-   multiplicity, method, energies; problems highlighted; CSV or LaTeX.
-   [Rank calculations](rank-table.md): the calculations of a folder from the
-   lowest energy up, dE and dG in kJ/mol and eV, mismatches flagged.
-   [Excluded calculations](excluded.md): mark a calculation as not to be
-   used, with a reason; exports and workflows skip it.
+   [Compare Energies](compare-energies.md): the selected calculations, or
+   those of a folder, from the lowest energy up, dE and dG in kJ/mol and
+   eV, mismatches flagged.
+   From the command line: [Export for Supporting Information](si-export.md),
+   [Checks table](checks-table.md) and
+   [Excluded calculations](excluded.md); see
+   [Scripting and AI assistants](scripting-and-ai.md).
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a
    bond, an angle or a torsion fixed during an optimisation, and use a dummy
    atom as a reference point; the potential of ammonia as the example.
@@ -135,7 +132,7 @@ describe what you did and what happened.
    atomic speeds of a dynamics run against Maxwell-Boltzmann, and the
    mean-square displacement with the diffusion coefficient.
 
-25. [Compare Energies](compare-energies.md): the difference between the final
+25. [Energy Calculator](energy-calculator.md): the difference between the final
    energies of two calculations in Hartree, kJ/mol, kcal/mol and eV, and the
    notes on differing code, method or basis set.
 
@@ -152,6 +149,9 @@ describe what you did and what happened.
 28. [Run states](run-states.md): what Created, Running, Completed,
    Incomplete, Killed, Monitor Error, System Error and the other states
    mean, and where the reason for an ended job is shown.
+
+28a. [The Organizer's right-click menus](organizer-menus.md): what a calculation's
+   menu offers, Compare Energies, and the project table's columns.
 
 29. [Re-Parse Outputs](reparse-outputs.md): running the parsers again over the
    outputs stored with a calculation, without logging in to the machine.
@@ -178,8 +178,7 @@ describe what you did and what happened.
    folders recipes are read from, and a complete example.
 
 36. [New Series](new-series.md): one calculation's setup applied to a list of
-   structures (xyz files or calculations), from the right-click menu or
-   `ecce-series`.
+   structures (xyz files or calculations), with `ecce-series`.
 
 Reference:
 

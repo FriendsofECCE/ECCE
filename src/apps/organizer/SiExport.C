@@ -145,7 +145,8 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
 
 // Scratch folders for `calcs`, then the script with `args` appended.
 static bool runScript(const vector<EcceURL>& calcs, const string& tail,
-                      string& text, string& why)
+                      string& text, string& why,
+                      const GatherProgress& progress = GatherProgress())
 {
   static int serial = 0;
   const fs::path tmp = fs::temp_directory_path() /
@@ -153,8 +154,15 @@ static bool runScript(const vector<EcceURL>& calcs, const string& tail,
   std::error_code ec;
   string args;
   int n = 0;
+  size_t seen = 0;
   for (const EcceURL& u : calcs) {
     PropertyTask *t = EDSIFactory::getPropertyTask(u);
+    // The gather stays on this (GUI) thread, as EDSI is not thread-safe.
+    if (progress && !progress(seen++, calcs.size(), t ? t->getName() : string())) {
+      fs::remove_all(tmp, ec);
+      why = "Cancelled.";
+      return false;
+    }
     if (!t) continue;
     string name = t->getName();
     for (char& ch : name) if (ch == '/' || ch == '\\') ch = '_';
@@ -186,9 +194,9 @@ bool checksTable(const vector<EcceURL>& calcs, const string& format,
 }
 
 bool rankTable(const vector<EcceURL>& calcs, const string& format,
-               string& text, string& why)
+               string& text, string& why, const GatherProgress& progress)
 {
-  return runScript(calcs, " --rank " + format, text, why);
+  return runScript(calcs, " --rank " + format, text, why, progress);
 }
 
 bool siExport(const vector<EcceURL>& calcs, const string& xyzFile,
