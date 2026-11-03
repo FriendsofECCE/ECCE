@@ -18,7 +18,7 @@ FIXTURES = os.path.join(HERE, "fixtures")
 
 def main():
     out = os.path.join(HERE, "testJobFailureReason.bin")
-    cmd = ["g++", "-O2", "-w", "-std=c++14",
+    cmd = ["g++", "-O2", "-w", "-std=c++17",
            "-I", os.path.join(ROOT, "include"),
            os.path.join(HERE, "testJobFailureReason.C"),
            "-o", out]
@@ -37,7 +37,7 @@ def main():
 
     # JobLogDates: the date forms in a job's log block (#650)
     out = os.path.join(HERE, "testJobLogDates.bin")
-    r = subprocess.run(["g++", "-O2", "-w", "-std=c++14",
+    r = subprocess.run(["g++", "-O2", "-w", "-std=c++17",
                         "-I", os.path.join(ROOT, "include"),
                         os.path.join(HERE, "testJobLogDates.C"), "-o", out])
     if r.returncode != 0:
@@ -53,7 +53,7 @@ def main():
 
     # OutputCopyCheck: outputs copied back short or without the end line (#732)
     out = os.path.join(HERE, "testOutputCopyCheck.bin")
-    r = subprocess.run(["g++", "-O2", "-w", "-std=c++14",
+    r = subprocess.run(["g++", "-O2", "-w", "-std=c++17",
                         "-I", os.path.join(ROOT, "include"),
                         os.path.join(HERE, "testOutputCopyCheck.C"), "-o", out])
     if r.returncode != 0:
@@ -69,7 +69,7 @@ def main():
 
     # StalledRule: when a running job's silent output is called stalled (#769)
     out = os.path.join(HERE, "testStalledRule.bin")
-    r = subprocess.run(["g++", "-O2", "-w", "-std=c++14",
+    r = subprocess.run(["g++", "-O2", "-w", "-std=c++17",
                         "-I", os.path.join(ROOT, "include"),
                         os.path.join(HERE, "testStalledRule.C"), "-o", out])
     if r.returncode != 0:
