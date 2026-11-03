@@ -2,8 +2,16 @@
 
 A recipe makes the boxes of a [workflow](workflows.md) for a kind of study,
 already linked, with the run types and settings the study needs. ECCE ships
-two: **TS search with IRC** and **Conformers**. A site can add its own, and
+six: **TS search with IRC**, **Conformers**, **Protonation sites**,
+**Tautomers**, **Solvation shell** and **xTB first, then conformers**. A site can add its own, and
 any workflow can be saved as a recipe.
+
+- **Conformers**: a CREST conformer search, then xTB, then a DFT optimisation with frequencies.
+- **Protonation sites**: CREST finds the protonation sites, then xTB and DFT refine the lowest protomer, with the charge raised by one.
+- **Tautomers**: CREST finds the tautomers, then xTB and DFT refine the lowest one.
+- **Solvation shell**: CREST grows a shell of solvent molecules (water, ten, by default) around the solute, then xTB and DFT refine the whole cluster with the same implicit solvent.
+- **xTB first, then conformers**: an xTB optimisation of a rough structure, then a CREST conformer search from it, then DFT.
+- **TS search with IRC**: reactant and product, a TS search with frequencies, then the IRC.
 
 ## Apply Recipe
 

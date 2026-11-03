@@ -680,6 +680,12 @@ def run_recipes(display, data, work, shots):
                 "role: geom | Geometry | PBE0 | cc-pVDZ | test\n"
                 "variant: main | ECCE-QM | ECCE-QM\n"
                 "step: main | opt | ECCE-QM | geom | GeoVib | ECCE-QM Opt | structure\n")
+    # A step flagged charge=+1 takes its source's charge plus one (#808).
+    with open(os.path.join(userdir, "shifted.recipe"), "w") as f:
+        f.write("recipe: shifted\ntitle: Shifted\n"
+                "role: geom | Geometry | PBE | def2-SVP | test\n"
+                "variant: main | ORCA | ORCA\n"
+                "step: main | cation | ORCA | geom | GeoVib | ORCA Opt | charge=+1\n")
     # The anion rule: a structure stored later turns 6-31G(d) into 6-31+G(d).
     with open(os.path.join(userdir, "anion.recipe"), "w") as f:
         f.write("recipe: anion\ntitle: Anion\n"
@@ -720,6 +726,7 @@ def run_recipes(display, data, work, shots):
                  "workflowrecipe %s single main %s/reactant" % (kwf, kwf),
                  "workflowrecipe %s singleqm main %s/reactant solvent=water" % (kwf, kwf),
                  "workflowrecipe %s anion main -" % wf,
+                 "workflowrecipe %s shifted main %s/reactant" % (kwf, kwf),
                  "workflowstructure %s %s/start %s/reactant" % (wf, wf, kwf),
                  "workflowinfo %s" % wf,
                  "workflowrecipehere %s %s/start" % (wf, wf),
@@ -841,6 +848,12 @@ def run_recipes(display, data, work, shots):
           qm and "solvent-model=CPCM solvent=Water" in qm[0], "QM: %r" % qm)
     check("none is gas phase for a user recipe",
           single and "solvent-model=None" in single[0], "single: %r" % single)
+    shift = [h for h in hand if h.startswith("ok") and "|cation ORCA" in h]
+    qr = re.search(r"(^|\|| )reactant G16 \S+ \S+ charge=(-?\d+)", shift[0]) if shift else None
+    qc = re.search(r"(^|\|)cation ORCA \S+ \S+ charge=(-?\d+)", shift[0]) if shift else None
+    check("a charge=+1 step after a source gets the source's charge plus one",
+          qr and qc and int(qc.group(2)) == int(qr.group(2)) + 1,
+          "shifted: %r" % shift)
     check("only the first box needs a structure",
           [n for n in st if st[n].get("needs") == "1"] == ["reactant"],
           "needs: %r" % [(n, st[n].get("needs")) for n in st])

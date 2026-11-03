@@ -747,7 +747,7 @@ void applyRoleBasis(Resource *step)
 }
 
 // Copies what a link carries from `source` into `made`.
-void carryInto(Resource *source, Resource *made, const string& point)
+void carryInto(Resource *source, Resource *made, const string& point, int chargeShift = 0)
 {
   ICalculation *from = dynamic_cast<ICalculation*>(source);
   ICalculation *to = dynamic_cast<ICalculation*>(made);
@@ -762,7 +762,10 @@ void carryInto(Resource *source, Resource *made, const string& point)
     frag = fromTask->fragment();
     if (frag) fromTask->getFragmentStep(frag, -1);
   }
-  if (frag && frag->numAtoms() > 0) toTask->fragment(frag);
+  if (frag && frag->numAtoms() > 0) {
+    if (chargeShift) frag->charge(frag->charge() + chargeShift);
+    toTask->fragment(frag);
+  }
   delete frag;
   to->spinMultiplicity(from->spinMultiplicity());
   to->openShells(from->openShells());
@@ -848,7 +851,7 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       for (size_t i = 0; i < variant.steps.size(); i++)
         if (!hasSource[i]) {
           wf->addLink(after, made[i], Session::INPUT_PROVIDER, kGeometryLink);
-          carryInto(after, made[i], "");
+          carryInto(after, made[i], "", variant.steps[i].chargeShift);
           hasSource[i] = true;
         }
     wf->saveLinkbase();
@@ -883,6 +886,13 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
         if (kv.first == "ES.Theory.SCF.UseSCRF" || kv.first == "ES.Theory.SCF.UseSolvation")
           g->get(kv.first)->m_type = "toggle_input";
       }
+      // The shell's molecule follows the Solvent row when CREST can build it.
+      if (rs.runType == "Solvation Shell") {
+        string lower = solventName;
+        std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+        if (lower == "water" || lower == "methanol" || lower == "acetonitrile")
+          setKey(g, "ES.Runtype.QCG.Solvent", lower);
+      }
       calc->guiparams(g);
       delete g;
 
@@ -890,6 +900,7 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       step->addProp(nsKey(":recipe.role"), rs.role);
       step->addProp(nsKey(":recipe.key"), rs.keyRole);
       step->addProp(nsKey(":recipe.thermo"), rs.thermo ? "1" : "0");
+      step->addProp(nsKey(":recipe.charge"), std::to_string(rs.chargeShift));
       step->addProp(nsKey(":recipe.method"), method);
       step->addProp(nsKey(":recipe.basis"), basis);
       step->addProp(nsKey(":recipe.caption"), rs.caption);
@@ -938,7 +949,8 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
     splitLinkName(l->linkName, role, point);
     if ((role == "geometry" || role == "reactant") &&
         hasResultGeometry(l->source)) {
-      carryInto(l->source, step, role == "reactant" ? "" : point);
+      carryInto(l->source, step, role == "reactant" ? "" : point,
+                atoi(step->getProp(nsKey(":recipe.charge")).c_str()));
       carried = true;
     }
   }
@@ -1163,6 +1175,7 @@ bool WorkflowSteps::toRecipe(Session *wf, const string& id, const string& title,
     s.caption = step->getProp(nsKey(":recipe.caption"));
     s.keyRole = step->getProp(nsKey(":recipe.key"));
     s.thermo = step->getProp(nsKey(":recipe.thermo")) == "1";
+    s.chargeShift = atoi(step->getProp(nsKey(":recipe.charge")).c_str());
     s.role = step->getProp(nsKey(":recipe.role"));
     s.needsStructure = nodes[i].in.empty();
     GUIValues *g = calc->guiparams();

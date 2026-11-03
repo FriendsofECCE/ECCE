@@ -1,0 +1,22 @@
+# xTB pre-optimisation, CREST conformer search, DFT refinement.
+recipe: xtb-crest
+title: xTB first, then conformers
+field: Conformations
+summary: xTB optimisation, then a CREST conformer search, then DFT optimisation and frequencies
+description: A rough structure from the Builder is optimised with xTB first, so CREST starts from a sensible geometry; CREST searches the conformers and a DFT optimisation with frequencies refines the lowest one.
+role: dft | DFT optimisation and frequencies | B3LYP | 6-31+G(d) | the usual starting level; diffuse functions when the molecule is an anion
+rules: anion-diffuse, heavy-ecp, size, registered
+
+variant: orca | xTB, CREST, ORCA | ORCA
+step: orca | xtb | xtb | | Geometry | xTB Opt | structure
+step: orca | crest | CREST | | Conformer Search | conformer search |
+step: orca | dft | ORCA | dft | GeoVib | DFT Opt + Freq | key=final, thermo
+link: orca | xtb | crest | geometry
+link: orca | crest | dft | geometry.c1
+
+variant: g16 | xTB, CREST, Gaussian 16 | G16
+step: g16 | xtb | xtb | | Geometry | xTB Opt | structure
+step: g16 | crest | CREST | | Conformer Search | conformer search |
+step: g16 | dft | G16 | dft | GeoVib | DFT Opt + Freq | key=final, thermo
+link: g16 | xtb | crest | geometry
+link: g16 | crest | dft | geometry.c1

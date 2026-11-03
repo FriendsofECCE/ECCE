@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
   std::vector<std::string> problems;
   std::vector<Recipe> all = loadRecipes({root + "/data/client/recipes"}, &problems);
-  check(problems.empty() && all.size() == 2, "both built-in recipes load");
+  check(problems.empty() && all.size() == 6, "all six built-in recipes load");
   const Recipe *ts = 0, *conf = 0;
   for (const Recipe& r : all) { if (r.id == "ts-irc") ts = &r; if (r.id == "conformers") conf = &r; }
   check(ts && ts->variants.size() == 2 && ts->variants[0].steps.size() == 5 &&
@@ -51,6 +51,66 @@ int main(int argc, char **argv)
   check(ts && ts->variants[0].links.size() == 6, "TS search: six links in the G16 variant");
   check(conf && conf->variants[0].steps[0].code == "CREST" &&
         conf->variants[0].steps[0].needsStructure, "Conformers start with a CREST box that needs a structure");
+
+  // the CREST recipes (#808)
+  auto find = [&](const char *id) -> const Recipe * {
+    for (const Recipe& r : all) if (r.id == id) return &r;
+    return (const Recipe *)0;
+  };
+  auto stepIn = [](const RecipeVariant& v, const char *id) -> const RecipeStep * {
+    for (const RecipeStep& s : v.steps) if (s.id == id) return &s;
+    return (const RecipeStep *)0;
+  };
+  auto linkIn = [](const RecipeVariant& v, const char *from, const char *to) -> std::string {
+    for (const RecipeLink& l : v.links) if (l.from == from && l.to == to) return l.name;
+    return "";
+  };
+  struct Want { const char *id, *runType, *link; int shift; };
+  const Want crest[] = {{"protonation-sites", "Protonation Sites", "geometry.c1", 1},
+                        {"tautomers", "Tautomers", "geometry.c1", 0},
+                        {"solvation-shell", "Solvation Shell", "geometry", 0}};
+  for (const Want& w : crest) {
+    const Recipe *r = find(w.id);
+    bool ok = r && r->variants.size() == 2 && r->field == "Conformations";
+    for (size_t i = 0; ok && i < 2; i++) {
+      const RecipeVariant& v = r->variants[i];
+      const char *dft = v.code == "ORCA" ? "ORCA" : "G16";
+      const RecipeStep *c = stepIn(v, "crest"), *x = stepIn(v, "xtb"), *d = stepIn(v, "dft");
+      ok = v.steps.size() == 3 && v.links.size() == 2 && c && x && d &&
+           c->code == "CREST" && c->runType == w.runType && c->needsStructure &&
+           c->chargeShift == 0 && x->code == "xtb" && d->code == dft &&
+           x->chargeShift == w.shift && d->chargeShift == 0 && d->thermo && d->keyRole == "final" &&
+           linkIn(v, "crest", "xtb") == w.link && linkIn(v, "xtb", "dft") == "geometry";
+    }
+    check(ok, (std::string(w.id) + ": CREST -> xTB -> DFT, both codes, links, charge shift").c_str());
+  }
+  const Recipe *prot = find("protonation-sites"), *sol = find("solvation-shell"),
+               *xc = find("xtb-crest");
+  check(prot && !prot->rules.count("anion-diffuse") && prot->rules.count("size"),
+        "protonation: no anion-diffuse rule for the cation");
+  const RecipeStep *shell = sol ? stepIn(sol->variants[0], "crest") : 0;
+  bool water = false, ten = false;
+  for (size_t i = 0; shell && i < shell->settings.size(); i++) {
+    if (shell->settings[i].first == "ES.Runtype.QCG.Solvent" && shell->settings[i].second == "water") water = true;
+    if (shell->settings[i].first == "ES.Runtype.QCG.Number" && shell->settings[i].second == "10") ten = true;
+  }
+  check(water && ten && sol->roles.back().id == "solvent" && sol->roles.back().basis == "water",
+        "solvation shell: water, ten molecules, Solvent row starts at water");
+  bool ok = xc && xc->variants.size() == 2;
+  for (size_t i = 0; ok && i < 2; i++) {
+    const RecipeVariant& v = xc->variants[i];
+    const RecipeStep *x = stepIn(v, "xtb"), *c = stepIn(v, "crest"), *d = stepIn(v, "dft");
+    ok = v.steps.size() == 3 && x && c && d && x->needsStructure && x->runType == "Geometry" &&
+         c->runType == "Conformer Search" && !c->needsStructure &&
+         linkIn(v, "xtb", "crest") == "geometry" && linkIn(v, "crest", "dft") == "geometry.c1";
+  }
+  check(ok, "xtb-crest: xTB Opt -> CREST on its geometry -> DFT, both codes");
+  Recipe shifted;
+  std::string serr;
+  check(parseRecipe("recipe: s\nvariant: a | A | G16\nstep: a | p | G16 | | Geometry | p | charge=-2, thermo\n", shifted, serr) &&
+        shifted.variants[0].steps[0].chargeShift == -2 && shifted.variants[0].steps[0].thermo &&
+        has(recipeText(shifted), "charge=-2") && !parseRecipe("recipe: s\nvariant: a | A | G16\nstep: a | p | G16 | | Geometry | p | charge=x\n", shifted, serr),
+        "charge= flag parses, is written back, and a bad number is refused");
 
   Recipe again;
   std::string err;
