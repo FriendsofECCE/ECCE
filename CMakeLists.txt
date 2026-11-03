@@ -541,6 +541,12 @@ target_include_directories(ecce-annotate PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-annotate PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
+# Make Workflow / Move into Workflow from the command line (#807).
+add_executable(ecce-workflow src/apps/launch/ecce-workflow.C)
+target_include_directories(ecce-workflow PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-workflow PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # One calculation's setup applied to a list of structures (#621).
 add_executable(ecce-series src/apps/launch/ecce-series.C)
 target_include_directories(ecce-series PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1144,6 +1150,10 @@ set(_annot_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-annotate)
 string(REPLACE "bin/ecce-terminate" "bin/ecce-annotate" _annot_text "${_term_text}")
 file(WRITE ${_annot_wrapper} "${_annot_text}")
 install(PROGRAMS ${_annot_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+set(_wflow_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-workflow)
+string(REPLACE "bin/ecce-terminate" "bin/ecce-workflow" _wflow_text "${_term_text}")
+file(WRITE ${_wflow_wrapper} "${_wflow_text}")
+install(PROGRAMS ${_wflow_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 set(_series_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-series)
 string(REPLACE "bin/ecce-terminate" "bin/ecce-series" _series_text "${_term_text}")
 file(WRITE ${_series_wrapper} "${_series_text}")
@@ -1203,7 +1213,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)

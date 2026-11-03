@@ -957,6 +957,9 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowjoin WF TYPE NAME SRC=role[@point] ...   a join, roles
       //     reactant|product|tsguess; the step's structure files as
       //     TS Search writes them: workflowqst WF STEP
+      //   workflowmake CALC [NAME]   Make Workflow...: CALC is moved into a
+      //     new workflow; "ok WF step=URL selected" (#807)
+      //   workflowmove CALC WF       Move into Workflow >
       //   workflowinfo WF       steps, states, carried values and links
       //   workflowlaunch WF     Launch Ready Steps without dialogs
       //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
@@ -991,7 +994,8 @@ void CalcMgr::runTestCommand(const string& line)
           if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
         }
       } else if (command == "workflowcopy" || command == "workflowmenu" ||
-                 command == "workflowqst") {
+                 command == "workflowqst" || command == "workflowmake" ||
+                 command == "workflowmove") {
         args >> a >> b >> c;
       } else if (command == "workflowjoin") {
         args >> a >> b >> c;
@@ -1020,7 +1024,34 @@ void CalcMgr::runTestCommand(const string& line)
           if (members[i]->getURL() == EcceURL(url)) return members[i];
         return 0;
       };
-      if (!wf) {
+      if (command == "workflowmake" || command == "workflowmove") {
+        // workflowmake CALC [NAME]; workflowmove CALC WF (a is the calc)
+        WxResourceTreeItemData *cn = findNode(EcceURL(a), true, true);
+        Resource *calc = cn ? cn->getResource() : 0;
+        Session *into = command == "workflowmove"
+            ? dynamic_cast<Session*>(EDSIFactory::getResource(EcceURL(b))) : 0;
+        EcceURL wfUrl;
+        if (!calc) outcome = "error: no such calculation";
+        else if (command == "workflowmove" && !into)
+          outcome = "error: no such workflow";
+        else {
+          const string leaf = EcceURL(a).getFilePathTail();
+          string name = (command == "workflowmake" && !b.empty()) ? b
+                        : leaf + "_workflow";
+          string why = moveIntoWorkflow(calc, into, name, &wfUrl);
+          if (!why.empty()) outcome = "error: " + why;
+          else {
+            EcceURL step = wfUrl.getChild(leaf);
+            showInWorkflow(wfUrl, step);
+            bool sel = false;
+            if (p_contextPanel)
+              for (const EcceURL &u : p_contextPanel->getSelections())
+                if (u == step) sel = true;
+            outcome = string("ok ") + wfUrl.toString() + " step=" +
+                      step.toString() + (sel ? " selected" : " unselected");
+          }
+        }
+      } else if (!wf) {
         outcome = "no workflow";
       } else if (command == "workflowstep") {
         Resource *source = step(d);
@@ -6691,6 +6722,148 @@ bool CalcMgr::refuseMoveOfActiveJob(Resource *res, const string& what)
 }
 
 
+//  Why a calculation cannot be made a step of a workflow ("" if it can).
+string CalcMgr::workflowMoveRefusal(Resource *calc)
+{
+  if (!dynamic_cast<TaskJob*>(calc))
+    return "Only a calculation can be made a step of a workflow.";
+  Resource *folder = EDSIFactory::getResource(calc->getURL().getParent());
+  if (Session *s = dynamic_cast<Session*>(folder)) {
+    if (s->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+      return "This calculation is already in a workflow.";
+    return "This calculation is part of a study and cannot be moved out of it.";
+  }
+  string name;
+  if (activeJobIn(calc, name, 0))
+    return "The job of this calculation is submitted or running: its results "
+           "are written back to where the calculation is now. Wait until it "
+           "has ended, or terminate it.";
+  return "";
+}
+
+
+//  Moves calc into wf, or into a new workflow of that name beside it.  "" on
+//  success, else why not.  The tree and the workflow view are left to the
+//  caller.
+string CalcMgr::moveIntoWorkflow(Resource *calc, Session *wf,
+                                 const string& name, EcceURL *wfUrl)
+{
+  string why = workflowMoveRefusal(calc);
+  if (!why.empty()) return why;
+  const EcceURL oldUrl = calc->getURL();
+  Resource *folder = EDSIFactory::getResource(oldUrl.getParent());
+  if (!folder) return "The calculation's folder cannot be opened.";
+  bool created = false;
+  if (!wf) {
+    ResourceType *wt = 0;
+    for (ResourceType *rt :
+         ResourceDescriptor::getResourceDescriptor().getResourceTypes())
+      if (rt->getName() == "workflow") wt = rt;
+    if (!wt) return "This installation has no workflow type.";
+    if (!wt->isValidResourceName(name))
+      return "A name may contain only letters, digits, '.', '_' and '-'.";
+    wf = dynamic_cast<Session*>(folder->createChild(name, wt));
+    if (!wf) return "The workflow cannot be created: " + folder->messages();
+    created = true;
+  } else if (wf->getURL().getParent() != oldUrl.getParent() ||
+             wf->getApplicationType() != ResourceDescriptor::AT_WORKFLOW) {
+    return "Only a workflow in the same folder can take the calculation.";
+  }
+  EcceURL target = wf->getURL().getChild(oldUrl.getFilePathTail());
+  vector<Resource*> *kids = wf->getChildren(true);
+  for (size_t i = 0; kids && i < kids->size(); i++)
+    if ((*kids)[i]->getURL() == target)
+      return "The workflow already has a calculation named \"" +
+             oldUrl.getFilePathTail() + "\".";
+  if (!calc->move(target)) {
+    string msg = calc->messages();
+    if (created) wf->remove();
+    return "The calculation cannot be moved: " + msg;
+  }
+  Resource *moved = EDSIFactory::getResource(target);
+  try {
+    wf->addMember(moved);
+    wf->saveLinkbase();
+  } catch (InvalidException &ex) {
+    return string("The calculation was moved but not added to the workflow: ")
+           + ex.what();
+  }
+  if (WxResourceTreeItemData *n = findNode(oldUrl.getParent(), false, true))
+    p_treeCtrl->refresh(n);
+  notifyRename(oldUrl.toString(), target.toString(), "");
+  if (created) notifyCreate(wf->getURL().toString());
+  if (wfUrl) *wfUrl = wf->getURL();
+  return "";
+}
+
+
+string CalcMgr::workflowForCommand(const string& verb, const EcceURL& calcUrl,
+                                   const string& second)
+{
+  Resource *calc = EDSIFactory::getResource(calcUrl);
+  if (!calc) return "error: no such calculation";
+  Session *into = 0;
+  if (verb == "move") {
+    into = dynamic_cast<Session*>(EDSIFactory::getResource(EcceURL(second)));
+    if (!into) return "error: no such workflow";
+  }
+  const string leaf = calcUrl.getFilePathTail();
+  EcceURL wfUrl;
+  string why = moveIntoWorkflow(calc, into,
+                                second.empty() ? leaf + "_workflow" : second,
+                                &wfUrl);
+  if (!why.empty()) return "error: " + why;
+  showInWorkflow(wfUrl, wfUrl.getChild(leaf));
+  return "ok " + wfUrl.toString();
+}
+
+
+//  Opens the workflow and selects the moved calculation's box.
+void CalcMgr::showInWorkflow(const EcceURL& wfUrl, const EcceURL& step)
+{
+  findNode(wfUrl, true, true);
+  for (int i = 0; i < 5; i++) wxYield();
+  if (p_contextPanel) p_contextPanel->selectResource(step);
+}
+
+
+//  Make Workflow... / Move into Workflow > on the selected calculation.
+void CalcMgr::makeWorkflowFromSelection(Session *into)
+{
+  WxResourceTreeItemData *node = p_treeCtrl->getSelection();
+  Resource *calc = node ? node->getResource() : 0;
+  if (!calc) return;
+  string why = workflowMoveRefusal(calc);
+  string name;
+  if (why.empty() && !into) {
+    ewxTextEntryDialog dlg(this,
+        "Name of the new workflow. The calculation is moved into it as its "
+        "first step, with its inputs, results and job record; the workflow "
+        "view then opens so the next steps can be added.",
+        "Make Workflow", calc->getName() + "_workflow", wxOK | wxCANCEL);
+    dlg.spacesToUnderscores();
+    wxButton *help = new wxButton(&dlg, wxID_HELP, "Help");
+    help->Bind(wxEVT_BUTTON, [](wxCommandEvent&) {
+      WxHelpViewer::show("workflows.html");
+    });
+    dlg.GetSizer()->Add(help, 0, wxALL | wxALIGN_RIGHT, 5);
+    dlg.GetSizer()->SetSizeHints(&dlg);
+    if (dlg.ShowModal() != wxID_OK) return;
+    name = dlg.GetValue();
+  }
+  EcceURL wfUrl;
+  const EcceURL oldUrl = calc->getURL();
+  if (why.empty()) why = moveIntoWorkflow(calc, into, name, &wfUrl);
+  if (!why.empty()) {
+    ewxMessageDialog err(this, why, "Make Workflow",
+                         wxOK | wxICON_EXCLAMATION, wxDefaultPosition);
+    err.ShowModal();
+    return;
+  }
+  showInWorkflow(wfUrl, wfUrl.getChild(oldUrl.getFilePathTail()));
+}
+
+
 bool CalcMgr::selectionHasSystemFolder()
 {
   if (!getSelection()) return false;
@@ -7085,6 +7258,47 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     menu.Append(wxID_NEW_SERIES, _("New Series from This..."),
                 _("Make one calculation per structure with this "
                   "calculation's setup"));
+    {
+      const string refusal =
+          workflowMoveRefusal(itemData->getResource());
+      int id = wxWindow::NewControlId();
+      wxMenuItem *mk = menu.Append(id, _("Make Workflow..."),
+          refusal.empty() ? wxString(_("Move this calculation into a new "
+                                       "workflow as its first step"))
+                          : wxString(refusal));
+      mk->Enable(refusal.empty());
+      menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+        CallAfter([this]() { makeWorkflowFromSelection(0); });
+      }, id);
+      wxMenu *into = new wxMenu();
+      vector<Session*> flows;
+      if (refusal.empty()) {
+        Resource *folder = EDSIFactory::getResource(
+            itemData->getResource()->getURL().getParent());
+        vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+        for (size_t i = 0; kids && i < kids->size(); i++) {
+          Session *s = dynamic_cast<Session*>((*kids)[i]);
+          if (s && s->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+            flows.push_back(s);
+        }
+      }
+      for (Session *s : flows) {
+        int fid = wxWindow::NewControlId();
+        into->Append(fid, wxString(s->getName()));
+        const EcceURL url = s->getURL();
+        menu.Bind(wxEVT_MENU, [this, url](wxCommandEvent&) {
+          CallAfter([this, url]() {
+            makeWorkflowFromSelection(
+                dynamic_cast<Session*>(EDSIFactory::getResource(url)));
+          });
+        }, fid);
+      }
+      wxMenuItem *sub = menu.AppendSubMenu(into, _("Move into Workflow"),
+          refusal.empty() ? wxString(_("Move this calculation into a "
+                                       "workflow of this folder"))
+                          : wxString(refusal));
+      sub->Enable(refusal.empty() && !flows.empty());
+    }
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
     wxMenuItem *reconnect = menu.Append(wxID_RECONNECT_SELECTED,
                                         _("Reconnect Selected..."));

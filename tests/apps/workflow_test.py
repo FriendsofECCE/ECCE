@@ -910,6 +910,82 @@ def run_recipes(display, data, work, shots):
     shutil.rmtree(recdir, ignore_errors=True)
 
 
+def tree_of(path):
+    out = set()
+    for d, _, files in os.walk(path):
+        for f in files:
+            out.add(os.path.relpath(os.path.join(d, f), path))
+    return out
+
+
+def run_make(display, data, work, shots):
+    """Make Workflow / Move into Workflow (#807): the calculation is moved,
+    not copied, and keeps its files; refused when already in a workflow."""
+    root = os.path.join(data, "users", "local")
+    project = os.path.join(root, "mk")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    for name in ("water", "water2"):
+        shutil.copytree(CALC, os.path.join(project, name), symlinks=True)
+    proj = "file://" + root + "/mk"
+    wf = proj + "/Workflow"
+    commands = [
+        "summary %s/water" % proj,
+        "workflowmake %s/water" % proj,
+        "workflowmake %s/water again" % proj,
+        "new %s workflow" % proj,
+        "workflowmove %s/water2 %s" % (proj, wf),
+        "workflowmake %s/Workflow/water2 nope" % proj,
+        "workflowmove %s/water %s" % (proj, wf),
+        "workflowinfo %s/water_workflow" % proj,
+        "workflowinfo %s" % wf,
+    ]
+    script = os.path.join(work, "commands-make")
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    what = "Make workflow"
+    if result.crashed:
+        return fail(what, "CRASHED (%s)" % result.signalName, log)
+
+    def answers(prefix):
+        return re.findall(r"ECCE_TEST_ORGANIZER: %s.*?: (.*)$" % re.escape(prefix),
+                          log, re.M)
+
+    made = answers("workflowmake %s/water" % proj)
+    check("make: ok, step selected",
+          bool(made) and made[0].startswith("ok ") and made[0].endswith(" selected"),
+          str(made))
+    check("make: calculation now inside the new workflow",
+          os.path.isdir(os.path.join(project, "water_workflow", "water")),
+          "no water_workflow/water")
+    check("make: original location gone",
+          not os.path.exists(os.path.join(project, "water")), "water still there")
+    check("make: files and results intact",
+          tree_of(os.path.join(project, "water_workflow", "water"))
+          >= tree_of(CALC),
+          "missing: %s" % sorted(tree_of(CALC) - tree_of(
+              os.path.join(project, "water_workflow", "water"))))
+    check("make: second make of the moved path fails",
+          len(made) > 1 and made[1].startswith("error"), str(made))
+    info = answers("workflowinfo %s/water_workflow" % proj)
+    check("make: workflow lists the step",
+          bool(info) and info[0].startswith("ok water "), str(info))
+    moved = answers("workflowmove %s/water2" % proj)
+    check("move: into the existing workflow",
+          bool(moved) and moved[0].startswith("ok ") and
+          os.path.isdir(os.path.join(project, "Workflow", "water2")) and
+          not os.path.exists(os.path.join(project, "water2")), str(moved))
+    nope = answers("workflowmake %s/Workflow/water2" % proj)
+    check("refused: already in a workflow",
+          bool(nope) and "already in a workflow" in nope[0], str(nope))
+    fin = answers("workflowinfo %s/Workflow" % proj)
+    check("move: workflow lists the moved step",
+          bool(fin) and "water2" in fin[0], str(fin))
+
+
 def main():
     keep = None
     if "--shots" in sys.argv:
@@ -939,13 +1015,17 @@ def main():
         gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
         subprocess.run([gateway], env=display.env(), timeout=180)
         try:
-            if "--recipes-only" not in sys.argv:
+            if "--make-only" in sys.argv:
+                run_make(display, data, work, shots)
+            elif "--recipes-only" not in sys.argv:
                 run(display, data, work, shots)
                 run_joins(display, data, work, shots)
+                run_make(display, data, work, shots)
                 run_best(display, data, work, shots)
                 run_best_poses(display, data, work, shots)
                 run_patterns(display, data, work, shots)
-            run_recipes(display, data, work, shots)
+            if "--make-only" not in sys.argv:
+                run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
             subprocess.run([stop], env=display.env(), timeout=120)
