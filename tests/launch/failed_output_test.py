@@ -118,7 +118,7 @@ def main():
 
     check(rc == 0, "monitor ends normally (exit %d)" % rc)
     check("jmERROR fatal" not in text, "no fatal error sent")
-    check(re.search(r"jmFILE\s+output\s+\S*\s*\d+\s+job\.out", text),
+    check(re.search(r"jmFILE\s+output\s+\S*\s*\d+(?::\d+)?\s+job\.out", text),
           "output file job.out sent")
     check(re.findall(r"jmSTATUS\s*(\d+)", text)[-1:] == ["231"],
           "job's own status 231 sent")

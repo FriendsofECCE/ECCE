@@ -4157,6 +4157,12 @@ sub MsgSendFile
         }
     }
 
+    # The size on this host rides on the count ("1:<bytes>"), which an older
+    # job store reads with atoi: the store checks its copy against it (#732).
+    my $path = ($gConfig{'monitoringMode'} eq 'live') ? $file : "$idir$file";
+    my $size = -s $path;
+    $count .= ":$size" if (defined $size);
+
     &MsgSend(
         join $MSG_SEP, $MSG_TYPE_FILE, $msgType, $parseType, $count, $file);
 }

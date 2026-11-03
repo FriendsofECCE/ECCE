@@ -3727,6 +3727,17 @@ if(PYTHON3_EXECUTABLE)
                    sh -c "mkdir -p $STUB_DIR && $<TARGET_FILE:testSecretStore> stub")
   set_tests_properties(transport_secretstore PROPERTIES TIMEOUT 60)
 
+  # A copy from a host that cannot be asked fails rather than "succeeding"
+  # with nothing copied (#732).  A fake transport, no ssh.
+  if(NOT WIN32)
+  add_executable(testCopyUnreachable tests/transport/testCopyUnreachable.C)
+  target_link_libraries(testCopyUnreachable PRIVATE
+    eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_copy_unreachable COMMAND testCopyUnreachable)
+  set_tests_properties(transport_copy_unreachable PROPERTIES TIMEOUT 60)
+  endif()
+
   # A host that accepts TCP and never sends the ssh banner fails in bounded
   # time, with no libssh retry after OpenSSH timed out.  POSIX sockets.
   if(NOT WIN32)
