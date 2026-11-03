@@ -55,7 +55,8 @@ def main():
                         local=True, keep=args.keep)
     slow = os.path.join(s.state, "slow-nwchem")
     with open(slow, "w") as h:
-        h.write("#!/bin/sh\nsleep 300\nexec /bin/true \"$@\"\n")
+        # NWChem's monitor detects Running from its parse file, not stdout.
+        h.write("#!/bin/sh\n: > ecce.out\nsleep 300\nexec /bin/true \"$@\"\n")
     os.chmod(slow, 0o755)
     harness.link(os.path.join(build, "organizer"),
                  os.path.join(s.home, "bin", "organizer"))
@@ -74,6 +75,10 @@ def main():
     rundir = os.path.join(s.state, "run")
     os.makedirs(work, exist_ok=True)
     os.makedirs(rundir, exist_ok=True)
+    # Retargeting uses the destination machine's default allocation profile.
+    with open(os.path.join(s.state, ".ECCE", "MachPrefs"), "w") as h:
+        h.write("localhost:\t%s|ssh|normal|%s|%s||1|1|60|0|0|1\n"
+                % (s.user(), rundir, rundir))
     deck = os.path.join(REPO, "tests", "apps", "fixtures", "calc-water-opt", "Inputs", "nwch.nw")
 
     display = org = None
