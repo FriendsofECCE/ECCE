@@ -54,7 +54,7 @@ def main():
             os.path.join(ROOT, "src/wxgui/wxtools/WxState.C"),
             "-I" + os.path.join(ROOT, "include")] + cxx
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir]
-           + ["-l" + lib for lib in LIBS]
+           + ["-Wl,--start-group"] + ["-l" + lib for lib in LIBS] + ["-Wl,--end-group"]
            + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"]
            + out(["pkg-config", "--libs", "gtk+-3.0"]).stdout.split())
     b = out(cmd)
