@@ -4015,6 +4015,87 @@ bool CalcMgr::annotateForCommand(const vector<EcceURL>& urls,
 }
 
 
+//  ecce-move / ecce-rename (#824): the drag-and-drop move and Edit > Rename
+//  without dialogs, with the same refusals (#700). verb "move": second is the
+//  target folder's URL; "rename": second is the new name. One line per
+//  calculation, "name\tok\t" or "name\tno\treason". Only local data and
+//  data servers: the job store and the ssh trees are not covered.
+bool CalcMgr::moveForCommand(const string& verb, const vector<EcceURL>& urls,
+                             const string& second, vector<string>& lines)
+{
+  lines.clear();
+  const bool rename = verb == "rename";
+  EcceURL destUrl;
+  WxResourceTreeItemData *dest = 0;
+  string destWhy;
+  if (!rename) {
+    destUrl = EcceURL(second);
+    dest = findNodeFresh(destUrl, false);
+    if (!dest || !dest->getResource()) destWhy = "the target folder is not in this session";
+    else if (dest->getResource()->getContentType() == ResourceDescriptor::CT_CALCULATION ||
+             !p_treeCtrl->setExpandable(dest))
+      destWhy = "the target is not a folder";
+    else if (dest->getUrl().getProtocol().find("sftp") == 0)
+      destWhy = "only local data and data servers are supported";
+  }
+  for (size_t i = 0; i < urls.size(); i++) {
+    const string leaf = urls[i].getFilePathTail();
+    auto no = [&](const string& why) { lines.push_back(leaf + "\tno\t" + why); };
+    WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
+    Resource *res = n ? n->getResource() : 0;
+    if (!res) { no("not in this session"); continue; }
+    const EcceURL oldUrl = n->getUrl();
+    if (oldUrl.isSystemFolder()) { no("a system folder cannot be moved or renamed"); continue; }
+    if (oldUrl.getProtocol().find("sftp") == 0) {
+      no("only local data and data servers are supported");
+      continue;
+    }
+    EcceURL newUrl;
+    if (rename) {
+      ResourceType *rt = res->getDescriptor();
+      if (!rt || !rt->isValidResourceName(second)) {
+        no("a name may contain only letters, digits, '.', '_' and '-'");
+        continue;
+      }
+      newUrl = oldUrl.getParent().getChild(second);
+      if (newUrl == oldUrl) { no("it already has that name"); continue; }
+    } else {
+      if (!destWhy.empty()) { no(destWhy); continue; }
+      const string cross = crossTreeRefusal(vector<EcceURL>(1, oldUrl), destUrl);
+      if (!cross.empty()) { no("the folder is in another data store"); continue; }
+      if (destUrl == oldUrl || destUrl.isChildOf(oldUrl)) {
+        no("a folder cannot be moved into itself");
+        continue;
+      }
+      if (destUrl == oldUrl.getParent()) { no("it is already in that folder"); continue; }
+      newUrl = destUrl.getChild(leaf);
+    }
+    //  A name clash is refused here, not left to the data layer's overwrite.
+    {
+      Resource *folder = EDSIFactory::getResource(newUrl.getParent());
+      vector<Resource*> *kids = folder ? folder->getChildren(true) : 0;
+      bool clash = false;
+      for (size_t k = 0; kids && k < kids->size(); k++)
+        if ((*kids)[k]->getURL() == newUrl) clash = true;
+      if (clash) {
+        no("there is already a calculation or folder named \"" +
+           newUrl.getFilePathTail() + "\" there");
+        continue;
+      }
+    }
+    const string busy = activeJobRefusal(res, rename ? "Rename" : "Move");
+    if (!busy.empty()) { no(busy); continue; }
+    if (!res->move(newUrl)) { no(res->messages()); continue; }
+    if (WxResourceTreeItemData *up = findNode(oldUrl.getParent(), false, true))
+      p_treeCtrl->refresh(up);
+    if (dest) p_treeCtrl->refresh(findNode(destUrl, false, true));
+    notifyRename(oldUrl.toString(), newUrl.toString(), "");
+    lines.push_back(leaf + "\tok\t" + newUrl.toString());
+  }
+  return true;
+}
+
+
 //  Terminate Selected for a request from another process (#695): the same
 //  terminateCalc, without the confirmation. One line per calculation,
 //  "name\tok\tjob id" or "name\tno\treason".
@@ -6750,13 +6831,22 @@ static bool activeJobIn(Resource *r, string& name, int depth)
 }
 
 
-bool CalcMgr::refuseMoveOfActiveJob(Resource *res, const string& what)
+//  The #700 refusal as text ("" when the move is allowed); the dialog
+//  and ecce-move/ecce-rename say the same thing.
+string CalcMgr::activeJobRefusal(Resource *res, const string& what)
 {
   string name;
-  if (!activeJobIn(res, name, 0)) return false;
-  const string msg = what + " is not possible while the job of \"" + name +
+  if (!activeJobIn(res, name, 0)) return "";
+  return what + " is not possible while the job of \"" + name +
       "\" is submitted or running: its results are written back to where "
       "the calculation is now. Wait until the job has ended, or terminate it.";
+}
+
+
+bool CalcMgr::refuseMoveOfActiveJob(Resource *res, const string& what)
+{
+  const string msg = activeJobRefusal(res, what);
+  if (msg.empty()) return false;
   ewxMessageDialog dlg(this, msg, what + " Not Allowed",
                        wxOK | wxICON_EXCLAMATION, wxDefaultPosition);
   dlg.ShowModal();

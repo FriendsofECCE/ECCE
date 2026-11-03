@@ -187,6 +187,9 @@ public:
   // line format ("name\tok\t" or "name\tno\treason"). Never refused.
   bool annotateForCommand(const vector<EcceURL>& urls, const string& text,
                           vector<string>& lines, const string& key = "");
+  // ecce-move / ecce-rename (#824): the Organizer's own move, same line format.
+  bool moveForCommand(const string& verb, const vector<EcceURL>& urls,
+                      const string& second, vector<string>& lines);
   // ecce-workflow (#807): "ok <workflow URL>" or "error: reason".
   string workflowForCommand(const string& verb, const EcceURL& calc,
                             const string& second);
@@ -534,6 +537,7 @@ protected:
   void startBatch(const vector<LaunchSelected::Row>& rows, bool showReport);
   bool refuseDuringBatch(const string& what);
   bool refuseMoveOfActiveJob(Resource *res, const string& what);
+  string activeJobRefusal(Resource *res, const string& what);
   // Make Workflow... / Move into Workflow > (#807).
   string workflowMoveRefusal(Resource *calc);
   string moveIntoWorkflow(Resource *calc, Session *wf, const string& name,

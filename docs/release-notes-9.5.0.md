@@ -39,7 +39,7 @@
 - ECCE-QM: every library basis set and the Basis Set Tool (#765); restricted open-shell atoms converge (#790); IRC branches leave from the relaxed saddle, so they end in different minima (#764).
 
 ## Running jobs
-- **Command line:** `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch` and `ecce-annotate` work inside the running session; `AGENTS.md` describes them for scripts and AI assistants (#687, #695, #720, #721, #742, #759).
+- **Command line:** `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`, `ecce-annotate`, `ecce-move` and `ecce-rename` work inside the running session (`ecce-move`/`ecce-rename`: #824); `AGENTS.md` describes them for scripts and AI assistants (#687, #695, #720, #721, #742, #759).
 - **Launcher:** threads per MPI rank (Slurm `--cpus-per-task`, `OMP_NUM_THREADS`, CP2K `psmp`); memory per node (#739).
 - **SSH:** after a dropped connection ECCE reconnects with the password it already has; optional Remember on this computer (#777).
 - A job whose output stopped growing is flagged Stalled (#769). Reconnect follows one rule in every menu and is greyed out for Completed and Killed calculations (#689).

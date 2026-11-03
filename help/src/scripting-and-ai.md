@@ -2,7 +2,8 @@
 
 Everything ECCE does can be done from the command line, so scripts and AI
 assistants can work with it too. The commands are `ecce-launch`,
-`ecce-terminate`, `ecce-annotate`, `ecce-reconnect`, `ecce-fetch` and
+`ecce-terminate`, `ecce-annotate`, `ecce-move`, `ecce-rename`,
+`ecce-reconnect`, `ecce-fetch` and
 `ecce-contacts`; see [Launch Selected](launch-selected.md) for the launch and
 terminate commands.
 
@@ -36,6 +37,22 @@ old one. A write without the lock can overwrite a state or progress update
 that a job monitor stores in the same folder at the same moment, and the
 Organizer keeps its own copy of what it has read and can write that back. The
 command avoids both.
+
+## Moving and renaming
+
+`ecce-move <calculation or folder>... <folder>` moves calculations into an
+existing folder, and `ecce-rename <calculation or folder> <new name>` renames
+one. Both ask the running Organizer, as dragging and Edit > Rename do, so the
+tree is updated at once; moving the folders behind the Organizer's back leaves
+stale entries in the tree. The refusals are the same as in the Organizer: a
+calculation whose job is Submitted, Running or Waiting for Login, and a folder
+holding one, are not moved (see [Renaming and moving
+calculations](rename-and-move.md)); a name that exists in the target is
+never overwritten. The other calculations in the same command still move, and
+the exit status is 1. One line is printed per calculation, for example
+`calc-1: moved to archive` or `calc-2: not moved: reason`. Local data and data
+servers are supported. Without a running ECCE the commands print a message and
+exit with status 2.
 
 ## The AGENTS.md file
 
