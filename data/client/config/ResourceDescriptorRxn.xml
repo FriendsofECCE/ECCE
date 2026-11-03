@@ -7821,6 +7821,30 @@
         <Type>resourceicon</Type>
       </Property>
     </ToolPropertyView>
+    <ToolPropertyView contentType="ecceCalculation" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdPrepare" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdOptimize" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEnergy" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdDynamics" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEquilibrate" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+    </ToolPropertyView>
     <ToolPropertyView contentType="" tool="ResourceButton">
       <MenuItem>MD Prepare</MenuItem>
       <Order>10</Order>
