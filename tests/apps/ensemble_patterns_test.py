@@ -142,7 +142,15 @@ def panel(tmp):
                     check("install the fixture", False, error)
                     return
                 scene = os.path.join(tmp, "scene")
-                open(scene, "w").write("gtfocus\ngtpatterns\ngtclose\nhold 1\n")
+                csvout = os.path.join(tmp, "ensemble.csv")
+                kinds = [("Conformer_Search", 0), ("Conformer_search_(simple)", 0),
+                         ("Protonation_Sites", 0), ("Tautomers", 0),
+                         ("Solvation_Shell", 0), ("Docking_(aISS)", 1), ("Other", 1)]
+                open(scene, "w").write(
+                    "gtfocus\ngtenrows\n" +
+                    "".join("gtenkind %s %d\n" % k for k in kinds) +
+                    "".join("gtenselect %d\n" % k for k in range(1, len(FRAMES) + 1)) +
+                    "gtencsv %s\ngtclose\nhold 1\n" % csvout)
                 args = ("-context", url)
                 if os.path.realpath(state) != os.path.realpath(os.path.expanduser("~")):
                     auth = fx.authFile(os.path.join(state, ".ECCE", "auth.pipe"), user=fx.USER)
@@ -157,12 +165,45 @@ def panel(tmp):
                 failed = os.path.join(tmp, "FAILED")
                 if os.path.exists(failed):
                     check("the scene ran", False, open(failed).read())
-                rows = re.findall(r"GTSTRESS: pattern (.*)$", log, re.M)
-                check("the panel lists three patterns", len(rows) == 3, rows or log[-6000:])
-                for tag, rel in (("6_0", 0.0), ("5_1", 0.4), ("4_2", 1.5)):
-                    rank = sorted(r for _t, r in FRAMES).index(rel) + 1
-                    want = "%s | 2 | %.3f | %d" % (WANT[tag], rel, rank)
-                    check("row for %s: %s" % (tag, want), want in rows, rows)
+                kind = re.search(r"GTSTRESS: ensemble kind=(.*) rows=(\d+)", log)
+                check("the panel is the Conformers panel with %d rows" % len(FRAMES),
+                      kind and kind.group(1) == "Conformers" and
+                      int(kind.group(2)) == len(FRAMES), kind and kind.groups() or log[-6000:])
+                for rt, poses in kinds:
+                    want = {"Conformer_Search": "Conformers", "Conformer_search_(simple)": "Conformers",
+                            "Protonation_Sites": "Protonation Sites", "Tautomers": "Tautomers",
+                            "Solvation_Shell": "Clusters", "Docking_(aISS)": "Poses",
+                            "Other": "Poses"}[rt]
+                    check("run type %s is titled %s" % (rt, want),
+                          "enkind %s = %s\n" % (rt, want) in log)
+                rows = [r.split(" | ") for r in
+                        re.findall(r"GTSTRESS: enrow (.*)$", log, re.M)]
+                check("ranks 1..n in order", [r[0] for r in rows] ==
+                      [str(i) for i in range(1, len(FRAMES) + 1)], rows)
+                de = [float(r[1]) for r in rows]
+                check("lowest energy first", de == sorted(de) and
+                      de == sorted(r for _t, r in FRAMES), de)
+                pop = [float(r[2]) for r in rows]
+                check("populations sum to 100 percent", abs(sum(pop) - 100) < 0.3 and
+                      pop == sorted(pop, reverse=True), pop)
+                order = sorted(range(len(FRAMES)), key=lambda i: FRAMES[i][1])
+                for k, i in enumerate(order, 1):
+                    tag = FRAMES[i][0]
+                    row = rows[k - 1]
+                    check("row %d has pattern %s" % (k, WANT[tag]),
+                          len(row) == 4 and row[3] == WANT[tag], row)
+                    ax = atoms(tag)[0]
+                    m = re.search(r"GTSTRESS: enselect %d ok=1 atom1 (\S+) (\S+) (\S+) plot=(\d+)" % k, log)
+                    check("selecting row %d shows frame %d (%s)" % (k, i + 1, tag),
+                          m and all(abs(float(m.group(j + 1)) - float(ax[j + 1])) < 1e-4
+                                    for j in range(3)) and int(m.group(4)) == k,
+                          m and m.groups())
+                if os.path.exists(csvout):
+                    lines = open(csvout).read().splitlines()
+                    check("CSV has a header and %d rows" % len(FRAMES),
+                          len(lines) == len(FRAMES) + 1 and lines[0].startswith("rank,"), lines)
+                else:
+                    check("CSV written", False, log[-3000:])
             finally:
                 restore()
                 fx.remove("na-ensemble")

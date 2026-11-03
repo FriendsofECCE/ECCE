@@ -83,10 +83,10 @@ def main():
         out, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + dest + "/"],
             ["wait 4000", "shot ensemble", "quit"], png, "ensemble",
-            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Geometry Trace"})
+            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Conformers"})
         ct.check("ensemble" in shots, "the window was photographed")
         ct.check("no property panel named" not in out,
-                 "the Builder offers a Geometry Trace panel")
+                 "the Builder offers a Conformers panel")
         ct.check("segmentation" not in out.lower() and
                  "crash" not in out.lower(), "no crash in the Builder log")
     finally:

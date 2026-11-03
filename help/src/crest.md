@@ -118,16 +118,24 @@ structure between `ECCE-CREST-BEST` lines). The ensemble is
 protonation sites, `tautomers.xyz` for the tautomers and CREST's final
 ensemble for the solvation shell; each is lowest first.
 
-In the Builder, the **Geometry Trace** shows each structure as a frame, with
-the plot **Relative Conformer Energy** in kcal/mol, against the number of the
-conformer: the first frame is the lowest and has 0. These energies compare conformers within the one method of
-this calculation only. They cannot be compared with the energy from another
-method, or from another run with a different window or solvent.
+In the Builder, the ensemble is a Properties panel named for the run type:
+**Conformers** (conformer search), **Protonation Sites**, **Tautomers** or
+**Clusters** (solvation shell). It lists one row per structure, lowest first:
+the rank, the energy relative to the lowest in kcal/mol, the Boltzmann
+population in percent at 298.15 K, and, for an ensemble around an ion, the
+coordination pattern (the donor atoms in the first shell). Click a column
+heading to sort, and a row to show that structure in the 3-D view. Below the
+table, a plot of the energy against the rank (lowest first) marks the chosen
+structure; clicking a point selects its row. **Export .csv** saves the table.
 
-For an ensemble around an ion, the Geometry Trace also lists the coordination
-patterns: the donor atoms in the first shell, how many conformers have each
-pattern, and the lowest relative energy and the conformer number of each. The
-same table is printed by `ecce-contacts crest_conformers.xyz --group`.
+The energies and populations compare the structures within the one method of
+this calculation only. They cannot be compared with the energy from another
+method, or from another run with a different window or solvent, and the
+population is a weight of the energies shown, not a measured one.
+
+The same patterns, grouped, with how many structures have each and the lowest
+relative energy and rank of each, are printed by
+`ecce-contacts crest_conformers.xyz --group`.
 
 While a search runs, the Progress box shows the stage (metadynamics
 sampling, the multilevel optimisation and its crude and tight passes), how

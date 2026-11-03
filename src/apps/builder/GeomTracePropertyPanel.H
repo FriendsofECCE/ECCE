@@ -86,6 +86,7 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
 
   protected:
     virtual void initialize();
+    void buildPatternTable();     // CREST ensembles around an ion
 
     virtual void fillPlot();
 

@@ -309,6 +309,14 @@ bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
     pt.count = atoi(col[1].c_str());
     pt.rank = atoi(col[2].c_str());
     pt.relative = atof(col[3].c_str());
+    if (col.size() > 4) {
+      for (size_t from = 0; from < col[4].size();) {
+        pt.members.push_back(atoi(col[4].c_str() + from));
+        size_t comma = col[4].find(',', from);
+        if (comma == string::npos) break;
+        from = comma + 1;
+      }
+    }
     out.push_back(pt);
   }
   if (out.empty() || out[0].label == "no metal") {

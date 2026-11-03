@@ -41,6 +41,7 @@ namespace ScanPoint {
     int count;
     int rank;
     double relative;
+    std::vector<int> members;   // every rank (1 = lowest) that has the pattern
   };
 
   /// Groups the ensemble by first-shell donor atoms with ecce-contacts (one
