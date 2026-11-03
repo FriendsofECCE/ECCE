@@ -1,0 +1,11 @@
+title Ca atom, B3LYP/cc-pVTZ (restricted), ground state
+charge 0
+multiplicity 1
+method b3lyp
+basis cc-pVTZ
+runtype energy
+charges loewdin
+grid_prune off
+geometry
+ Ca      0.00000000     0.00000000     0.00000000
+end

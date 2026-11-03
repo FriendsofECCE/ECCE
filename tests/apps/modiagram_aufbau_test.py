@@ -35,6 +35,9 @@ CASES = {
     "O": ("O: 1s2 2s2 2p4", {"1s": (1, 1), "2s": (1, 1), "2p": (3, 1)}),
     "Ne": ("Ne: 1s2 2s2 2p6", {"1s": (1, 1), "2p": (3, 3)}),
     "Ar": ("Ar: 1s2 2s2 2p6 3s2 3p6", {"3s": (1, 1), "3p": (3, 3)}),
+    "Ca": ("Ca: 1s2 2s2 2p6 3s2 3p6 4s2", {"4s": (1, 1)}),
+    "Cr": ("Cr: 1s2 2s2 2p6 3s2 3p6 3d5 4s1", {"3d": (5, 0), "4s": (1, 0)}),
+    "Cu": ("Cu: 1s2 2s2 2p6 3s2 3p6 3d10 4s1", {"3d": (5, 5), "4s": (1, 0)}),
 }
 
 
@@ -123,7 +126,7 @@ def main():
                         os.makedirs(keep, exist_ok=True)
                         shutil.copy(png, os.path.join(keep, "%s-%s.png" % (name, view)))
                 shells = parse(open(os.path.join(out, "A.txt")).read())
-                valence = {"O": "2p", "Ne": "2p", "Ar": "3p"}[name]
+                valence = {"O": "2p", "Ne": "2p", "Ar": "3p", "Ca": "4s", "Cr": "4s", "Cu": "4s"}[name]
                 check(shells.get("1s", [0])[0] == 1 and shells.get(valence, [1])[0] == 0,
                       "%s: 1s is core, %s is not" % (name, valence))
                 if name == "O":
