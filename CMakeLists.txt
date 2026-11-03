@@ -2416,6 +2416,14 @@ target_link_libraries(authcache_pipe_test PRIVATE
   ${XercesC_LIBRARIES})
 add_test(NAME authcache-pipe COMMAND authcache_pipe_test)
 set_tests_properties(authcache-pipe PROPERTIES TIMEOUT 120)
+# An ssh password goes to its own host, port and user only (#791).
+add_executable(authcache_host_test tests/mqtt/authcache_host_test.C)
+target_include_directories(authcache_host_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(authcache_host_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME authcache-host COMMAND authcache_host_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(authcache-host PROPERTIES TIMEOUT 60)
 endif()
 
 # tests/tls -- https data-server client (#236): pinned certificate, CA mode
