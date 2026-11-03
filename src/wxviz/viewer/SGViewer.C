@@ -128,15 +128,6 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
                     long style, Type type, SoCamera *cameraToCopy ):
   SoWxExaminerViewer( parent, id, pos, size, style, type )
 {
-  p_zoomTimer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
-    const double steps = p_pendingZoom;
-    p_pendingZoom = 0.0;
-    if (steps != 0.0 && p_camera) {
-      touchOrientation();
-      zoomCamera(static_cast<float>(steps));
-      p_renderArea->Refresh(false);
-    }
-  });
   p_renderArea->EnableTouchEvents(wxTOUCH_ZOOM_GESTURE);
   p_renderArea->Bind(wxEVT_GESTURE_ZOOM, [this](wxZoomGestureEvent& event) {
     const double factor = event.GetZoomFactor();
@@ -249,7 +240,6 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
 
 SGViewer::~SGViewer()
 {
-  p_zoomTimer.Stop();
 }
 
 
@@ -1079,10 +1069,13 @@ void SGViewer::restoreCursor()
 
 void SGViewer::queueZoom(double steps)
 {
-  if (steps == 0.0 || !std::isfinite(steps)) return;
-  // Drain input before rendering so trackpad events share a camera update.
-  p_pendingZoom += steps;
-  if (!p_zoomTimer.IsRunning()) p_zoomTimer.StartOnce(16);
+  if (steps == 0.0 || !std::isfinite(steps) || !p_camera) return;
+  // Move the camera now but only ask for a repaint: queued paints merge, so a
+  // trackpad's burst of small events costs one render instead of piling up
+  // (a timer here starves behind slow software-GL paints).
+  touchOrientation();
+  zoomCamera(static_cast<float>(steps));
+  p_renderArea->Refresh(false);
 }
 
 

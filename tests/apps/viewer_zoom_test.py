@@ -69,10 +69,11 @@ def main():
                 continue
             values = dict(line.split() for line in text.splitlines()
                           if len(line.split()) == 2)
-            if int(values["immediate_changes"]) != 0:
-                problems.append(axis + " changed the camera during the input burst")
-            if int(values["changes"]) != expected_changes:
-                problems.append(axis + " camera changes: " + values["changes"])
+            # The camera moves as the events arrive; only the repaint is merged.
+            if (int(values["immediate_changes"]) > 0) != (expected_changes > 0):
+                problems.append(axis + " camera changes: " + values["immediate_changes"])
+            if not math.isclose(float(values["immediate_ratio"]), expected_ratio, rel_tol=2e-6):
+                problems.append(axis + " camera ratio during the burst: " + values["immediate_ratio"])
             if not math.isclose(float(values["ratio"]), expected_ratio, rel_tol=2e-6):
                 problems.append(axis + " camera ratio: " + values["ratio"])
         for problem in problems:
