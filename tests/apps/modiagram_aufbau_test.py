@@ -4,8 +4,8 @@ The MO Diagram panel on a single atom (#813): the aufbau view, headless.
 
 The stored genchem atom examples O (ROKS), Ne and Ar are opened with the MO
 Diagram panel; the Builder scene commands `modiagram <name> aufbaupng 0|1`
-draw it as boxes (B) and to scale (A), write the pictures and list what was
-drawn.  Checked: the configuration, the arrows of each subshell (Hund's rule
+draw it as boxes (B) and to scale (A) at 900x600 and 500x400, write the
+pictures and list the layout rectangles and hit targets. Checked: the configuration, the arrows of each subshell (Hund's rule
 in O 2p), the core flag in drawing A, and that a click on a level computes
 the orbital.  ECCE_AUFBAU_PNG=<dir> also keeps the pictures.
 
@@ -88,11 +88,14 @@ def main():
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
                        env=display.env(), timeout=180)
         try:
-            for name, (config, arrows) in CASES.items():
+            cases = [(name, size) for name in CASES for size in ("900x600", "500x400")]
+            for name, size in cases:
+                config, arrows = CASES[name]
                 if os.environ.get("ECCE_AUFBAU_ONLY") not in (None, name):
                     continue
-                out = os.path.join(work, "run-" + name)
-                scene = "hold 3\nmodiagram B aufbaupng 0\nmodiagram A aufbaupng 1\n"
+                os.environ["ECCE_AUFBAU_PNG_SIZE"] = size
+                out = os.path.join(work, "run-" + name + "-" + size)
+                scene = "hold 3\nmodiagram B aufbaupng 0\nmodiagram A aufbaupng 1\nmodiagram listing aufbau 0\n"
                 if name == "O":
                     scene += "modiagram click click 3\n"
                 result = base.runBuilder(display, urls[name], out, scene,
@@ -106,7 +109,50 @@ def main():
                     text = open(path).read() if os.path.exists(path) else ""
                     check(text.startswith("config " + config + "\n"),
                           "%s %s: configuration %s" % (name, view, config))
+                    check("control pi shown=0" in text,
+                          "%s %s %s: pi checkbox is hidden" % (name, view, size))
+                    rects = []
+                    for line in text.splitlines():
+                        m = re.match(r"rect (text|box|level|break) (-?\d+) (-?\d+) (\d+) (\d+) (.*)", line)
+                        if m:
+                            rects.append((m[1], *map(int, m.group(2, 3, 4, 5)), m[6]))
+                    hits = re.findall(r"^hit (\d+) (\d+)$", text, re.M)
+                    check(len(hits) == sum(r[0] in ("box", "level") for r in rects) and
+                          bool(hits) and all(wanted == picked for wanted, picked in hits),
+                          "%s %s %s: box/level centres hit their orbitals" % (name, view, size))
+                    width, height = map(int, size.split("x"))
+                    check("layout %d %d" % (width, height) in text and bool(rects),
+                          "%s %s %s: exported layout dimensions" % (name, view, size))
+                    check(all(x >= 0 and y >= 0 and x+w <= width and y+h <= height
+                              for _, x, y, w, h, _ in rects),
+                          "%s %s %s: rectangles fit the panel" % (name, view, size))
+                    overlaps = []
+                    for i, r in enumerate(rects):
+                        for q in rects[i+1:]:
+                            if (max(r[1], q[1]) < min(r[1]+r[3], q[1]+q[3]) and
+                                    max(r[2], q[2]) < min(r[2]+r[4], q[2]+q[4])):
+                                overlaps.append((r, q))
+                    check(not overlaps, "%s %s %s: no rectangle overlaps %s" %
+                          (name, view, size, overlaps))
                     shells = parse(text)
+                    if view == "B":
+                        rows = [next((r[2] for r in rects
+                                      if r[0] == "box" and r[5] == label), None)
+                                for label in shells]
+                        check(all(y is not None for y in rows) and
+                              all(a > b for a, b in zip(rows, rows[1:])),
+                              "%s %s: staircase energy ranks increase upwards" % (name, size))
+                    core_rows = []
+                    for label, shell in shells.items():
+                        if shell[0]:
+                            ys = [r[2] for r in rects if r[0] == "level" and r[5] == label]
+                            if ys:
+                                core_rows.append((sum(shell[3])/len(shell[3]), ys[0]))
+                    if view == "A":
+                        core_rows.sort()
+                        check(len(core_rows) == sum(s[0] for s in shells.values()) and
+                              all(a[1] > b[1] for a, b in zip(core_rows, core_rows[1:])),
+                              "%s %s: core energy increases upwards" % (name, size))
                     for label, (up, down) in arrows.items():
                         got = shells.get(label)
                         check(got is not None and (got[1], got[2]) == (up, down),
@@ -121,10 +167,15 @@ def main():
                           "%s %s: the picture is written" % (name, view))
                     if keep and os.path.exists(path):
                         os.makedirs(keep, exist_ok=True)
-                        shutil.copy(path, os.path.join(keep, "%s-%s.txt" % (name, view)))
+                        shutil.copy(path, os.path.join(keep, "%s-%s-%s.txt" % (name, view, size)))
                     if keep and os.path.exists(png):
                         os.makedirs(keep, exist_ok=True)
-                        shutil.copy(png, os.path.join(keep, "%s-%s.png" % (name, view)))
+                        shutil.copy(png, os.path.join(keep, "%s-%s-%s.png" % (name, view, size)))
+                listing = os.path.join(out, "listing.txt")
+                listing_text = open(listing).read() if os.path.exists(listing) else ""
+                check(listing_text.startswith("config " + config + "\n") and
+                      "rect box " in listing_text and "rect level " not in listing_text,
+                      "%s %s: listing hook follows the chosen drawing" % (name, size))
                 shells = parse(open(os.path.join(out, "A.txt")).read())
                 valence = {"O": "2p", "Ne": "2p", "Ar": "3p", "Ca": "4s", "Cr": "4s", "Cu": "4s"}[name]
                 check(shells.get("1s", [0])[0] == 1 and shells.get(valence, [1])[0] == 0,

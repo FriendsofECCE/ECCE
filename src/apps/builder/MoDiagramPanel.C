@@ -739,13 +739,22 @@ void MoDiagramPanel::setAufbauToScale(bool toScale)
 bool MoDiagramPanel::exportAufbau(const string& path, bool toScale, int width, int height)
 {
   if (!p_atomView || p_aufbau == 0) return false;
+  // Allow the scene export to exercise compact panels as well as its default size.
+  if (const char *size = getenv("ECCE_AUFBAU_PNG_SIZE")) {
+    int w, h;
+    if (sscanf(size, "%dx%d", &w, &h) == 2 && w >= 300 && h >= 250) {
+      width = w; height = h;
+    }
+  }
   return p_aufbau->savePng(path, toScale, width, height);
 }
 
 
 string MoDiagramPanel::aufbauText() const
 {
-  return p_atomView && p_aufbau != 0 ? p_aufbau->describe() : string();
+  if (!p_atomView || p_aufbau == 0) return string();
+  return p_aufbau->describe() + "control pi shown=" +
+      (p_piOnly->IsShown() ? "1\n" : "0\n");
 }
 
 
@@ -756,7 +765,7 @@ void MoDiagramPanel::atomChrome()
   p_optSizer->Show(p_fragToggle, false);
   p_fragPanel->Show(false);
   wxWindow *molecular[] = { p_showEnergies, p_showDescription, p_constructLabels,
-                            p_symmetryLabels, p_ligandField, p_showAll };
+                            p_symmetryLabels, p_ligandField, p_showAll, p_piOnly };
   for (wxWindow *w : molecular) p_optViews->Show(w, false);
 }
 
