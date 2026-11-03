@@ -8,6 +8,7 @@
 #include "tdat/MoDiagram.H"
 #include "tdat/MoFragments.H"
 #include "MoDiagramCanvas.H"
+#include "MoAufbauCanvas.H"
 
 class wxCheckListBox;
 class wxCheckBox;
@@ -106,6 +107,18 @@ class MoDiagramPanel : public VizPropertyPanel,
       /** The status line under the diagram's controls; empty when hidden. */
       string statusText() const;
 
+      /** One atom: the aufbau view is drawn instead of the correlation diagram. */
+      bool atomView() const { return p_atomView; }
+      /**
+       * Save the aufbau drawing as a PNG, to scale (A) or as boxes (B);
+       * false when this is not a one-atom calculation.
+       */
+      bool exportAufbau(const string& path, bool toScale, int width, int height);
+      /** What the aufbau view draws, line by line (empty for a molecule). */
+      string aufbauText() const;
+      /** Choose drawing A (true) or B for the aufbau view, as its box does. */
+      void setAufbauToScale(bool toScale);
+
    protected:
 
       /**
@@ -189,10 +202,21 @@ class MoDiagramPanel : public VizPropertyPanel,
       //  below).
       void buildOnce();
 
+      //  One atom: fill the aufbau view (true), or show the diagram (false).
+      bool buildAufbau(IPropCalculation *calc, const vector<double>& e,
+                       const vector<double>& o, const vector<double>& eB,
+                       const vector<double>& oB, bool haveBeta);
+      void showAtomView(bool atom);
+      void atomChrome();
+      void onAufbauScale(wxCommandEvent& event);
+
       //  Opens or closes the "Fragments..." expander.
       void setFragmentsOpen(bool open);
 
       MoDiagramCanvas *p_canvas;
+      MoAufbauCanvas  *p_aufbau = nullptr;
+      wxCheckBox      *p_aufbauScale = nullptr;
+      bool             p_atomView = false;
       wxPanel         *p_fragPanel;
       wxButton        *p_fragToggle;
       wxButton        *p_optToggle;
