@@ -627,6 +627,10 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         notRestored = []
         if (EcceGlobals.RestoreFlag == "GUIValues"):
             f = open(EcceGlobals.FdIn, "r")
+            # An explicit RI choice wins regardless of restore-file order.
+            hasRIMode = any(line.startswith("ES.Theory.SCF.RIMode|")
+                            for line in f)
+            f.seek(0)
             line = f.readline()
             while line:
                 name = ""
@@ -654,6 +658,13 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
                     else:
                         j = j + 1
                     i = i + 1
+
+                if (j == 5 and name == "ES.Theory.SCF.UseRIJCOSX" and
+                        not hasRIMode and any(x.GetName() == "ES.Theory.SCF.RIMode"
+                                              for x in self.Settings)):
+                    name = "ES.Theory.SCF.RIMode"
+                    value = "RIJCOSX" if value == "1" else "None"
+                    valType = "menu_input"
 
                 # line has been parsed, assign values (if line is intelligable)
                 if j == 5 and (

@@ -11,8 +11,8 @@ int name=ES.Theory.SCF.ConvergenceIterations label="Max. Iterations:" default=64
 combo name=ES.Theory.SCF.ConvergenceTolerance label="Convergence:" choices="Normal|Loose|Tight|Very Tight" default=Normal export=1
 
 box label="RI Approximation" cols=2
-check name=ES.Theory.SCF.UseRIJCOSX label=" Use RIJCOSX" default=0 export=1
-combo name=ES.Theory.SCF.RIJCOSXAuxBasis label="Auxiliary Basis:" choices="def2/J|def2/JK|SARC/J" default=def2/J export=1 enable_if="ES.Theory.SCF.UseRIJCOSX==1"
+combo name=ES.Theory.SCF.RIMode label="RI approximation:" choices="None|RIJCOSX|RIJONX" default=None export=1
+combo name=ES.Theory.SCF.RIJCOSXAuxBasis label="Auxiliary Basis:" choices="def2/J|def2/JK|SARC/J" default=def2/J export=1 enable_if="ES.Theory.SCF.RIMode!=None"
 
 box label="Memory" cols=1
 int name=ES.Theory.SCF.MemorySize label="Memory Per Core:" default=1 hard="[0..512]" unit="Gigabytes / core" export=1

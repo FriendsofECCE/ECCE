@@ -334,9 +334,20 @@ void Model::initialize()
   if (par_.restoreFlag == "GUIValues") {
     std::ifstream f(par_.restoreFile);
     string line;
+    // An explicit RI choice wins regardless of restore-file order.
+    bool hasRIMode = false;
+    while (std::getline(f, line))
+      if (line.find("ES.Theory.SCF.RIMode|") == 0) hasRIMode = true;
+    f.clear();
+    f.seekg(0);
     while (std::getline(f, line)) {
       Strings part = split(line, '|');
       if (part.size() != 6) continue;
+      if (part[0] == "ES.Theory.SCF.UseRIJCOSX" && !hasRIMode &&
+          find("ES.Theory.SCF.RIMode") >= 0) {
+        part[0] = "ES.Theory.SCF.RIMode";
+        part[1] = part[1] == "1" ? "RIJCOSX" : "None";
+      }
       const string &name = part[0], &value0 = part[1], &unit = part[2],
                    &active = part[3];
       int i = find(name);
