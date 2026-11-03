@@ -181,11 +181,20 @@ static string fmt(const char *f, double v)
 }
 
 
+// Every energy in the box: Eh, six decimals, a real minus sign (#826).
+static string ehText(double e)
+{
+  string s = fmt("%.6f", e);
+  if (!s.empty() && s[0] == '-') s.replace(0, 1, "\xe2\x88\x92");
+  return s + " Eh";
+}
+
+
 static string energyText(const string& v)
 {
   double e;
   if (!number(v, e)) return v;
-  return fmt("%.8f", e) + " hartree";
+  return ehText(e);
 }
 
 
@@ -638,6 +647,13 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
 }
 
 
+string JobProgress::fieldOf(const string& stageName, const string& key) const
+{
+  const Stage *st = stage(stageName);
+  return st ? st->field(key) : string();
+}
+
+
 bool JobProgress::average(const string& stageName, double& avg, double& sd,
                           int *n) const
 {
@@ -680,7 +696,7 @@ vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
       if (p_order[i][0] == '{') { wild = i; break; }
     vector<pair<size_t, const Stage*> > ranked;
     for (const auto& st : p_stages) {
-      if (st.name == "gmx-etot") continue;
+      if (st.name == "gmx-etot" || st.name == "result") continue;
       const auto it = std::find(p_order.begin(), p_order.end(), st.name);
       ranked.push_back(make_pair(it == p_order.end() ? wild : (size_t)(it - p_order.begin()), &st));
     }
@@ -699,7 +715,7 @@ vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
     if (const Stage *st = stage(name)) out.push_back(stageBlock(*st, age, finished));
   for (const auto& st : p_stages)
     if (st.name != "scan" && st.name != "opt" && st.name != "neb" && st.name != "freq" &&
-        st.name != "scf" && st.name != "gmx-etot")
+        st.name != "scf" && st.name != "gmx-etot" && st.name != "result")
       out.push_back(stageBlock(st, age, finished));
   return out;
 }
@@ -758,6 +774,30 @@ vector<string> JobProgress::summary(bool completed) const
     if (!e.empty()) line += " \xc2\xb7 E = " + energyText(e);
     out.push_back(line);
   }
+  // The last SCF is a stage's result when no optimisation follows; under a
+  // numerical frequency run it is the last displaced geometry's, so skipped.
+  auto scfSummary = [&]() {
+    const string cyc = scf->field("cycle");
+    string line;
+    // MOPAC prints no SCF cycles unless asked to.
+    if (scf->field("converged") == "yes" && cyc.empty())
+      line = "SCF converged";
+    else if (scf->field("converged") == "yes")
+      line = "SCF converged in " + cyc + " cycles";
+    else if (scf->field("converged") == "no")
+      line = "SCF not converged after " + cyc + " cycles";
+    else
+      line = "SCF stopped at cycle " + cyc;
+    if (!scf->field("energy").empty())
+      line += " \xc2\xb7 E = " + energyText(scf->field("energy"));
+    out.push_back(line);
+  };
+  bool scfShown = false;
+  if (!opt && scf && freq &&
+      (freq->field("point").empty() || freq->field("kind") == "analytic")) {
+    scfSummary();
+    scfShown = true;
+  }
   if (freq) {
     double k = 0, n = 0, real, imag, zpe;
     bool hasN = false;
@@ -767,13 +807,13 @@ vector<string> JobProgress::summary(bool completed) const
       string line = fmt("Frequencies: %.0f modes", real + imag) +
                     fmt(", %.0f imaginary", imag);
       if (number(freq->field("zpe"), zpe))
-        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " hartree";
+        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " Eh";
       out.push_back(line);
     } else if (freq->field("done") == "yes") {
       // Codes that do not say how many modes are imaginary.
       string line = "Frequencies: done";
       if (number(freq->field("zpe"), zpe))
-        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " hartree";
+        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " Eh";
       out.push_back(line);
     } else if (hasN) {
       out.push_back(string(freq->field("kind") == "analytic"
@@ -812,22 +852,7 @@ vector<string> JobProgress::summary(bool completed) const
       line += " \xc2\xb7 lowest " + cr->field("emin") + " Eh";
     out.push_back(line);
   }
-  if (!opt && !freq && scf) {
-    const string cyc = scf->field("cycle");
-    string line;
-    // MOPAC prints no SCF cycles unless asked to.
-    if (scf->field("converged") == "yes" && cyc.empty())
-      line = "SCF converged";
-    else if (scf->field("converged") == "yes")
-      line = "SCF converged in " + cyc + " cycles";
-    else if (scf->field("converged") == "no")
-      line = "SCF not converged after " + cyc + " cycles";
-    else
-      line = "SCF stopped at cycle " + cyc;
-    if (!scf->field("energy").empty())
-      line += " \xc2\xb7 E = " + energyText(scf->field("energy"));
-    out.push_back(line);
-  }
+  if (!scfShown && !opt && !freq && scf) scfSummary();
   if (out.empty() && !completed) {
     for (const auto& b : running(0))
       if (!b.lines.empty())

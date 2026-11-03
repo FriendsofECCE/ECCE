@@ -489,6 +489,30 @@ static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
 }
 
 
+// A row drawn in `fg`, the "N imaginary" count in `bad` when N is not what
+// the search wants (0 for a minimum, 1 for a transition state).
+static void drawRow(wxDC& dc, const wxString& row, int x, int y, const wxColour& fg,
+                    const wxColour& bad, int expected, bool grey)
+{
+  const int at = row.Find(" imaginary");
+  int from = at;
+  while (from > 0 && wxIsdigit(row[from - 1])) --from;
+  long n = 0;
+  if (at <= 0 || from == at || !row.Mid(from, at - from).ToLong(&n)) {
+    dc.DrawText(row, x, y);
+    return;
+  }
+  const wxString head = row.Left(from), count = row.Mid(from, at + 10 - from);
+  dc.DrawText(head, x, y);
+  dc.SetTextForeground(!grey && n != expected ? bad : fg);
+  dc.DrawText(count, x + dc.GetTextExtent(head).x, y);
+  dc.SetTextForeground(fg);
+  const wxString tail = row.Mid(at + 10);
+  if (!tail.empty())
+    dc.DrawText(tail, x + dc.GetTextExtent(head + count).x, y);
+}
+
+
 // `s` broken at spaces into rows no wider than `width` (a longer word keeps
 // its own row).
 static vector<wxString> wrapLine(wxDC& dc, const string& s, int width)
@@ -644,7 +668,9 @@ wxSize ProgressBox::layout(wxDC *dc)
           for (size_t li = 0; li < b.lines.size(); li++) {
             const vector<wxString> rows = wrapLine(m, b.lines[li], textAvail);
             for (size_t ri = 0; ri < rows.size(); ri++) {
-              if (dc) dc->DrawText(rows[ri], x0, y);
+              if (dc) drawRow(*dc, rows[ri], x0, y, fg, pal.imaginary,
+                              p_progress.search() == JobProgress::SEARCH_TS ? 1 : 0,
+                              lost || p_progress.search() == JobProgress::SEARCH_UNKNOWN);
               //  The imaginary count follows the last row of the last line.
               if (dc && !b.alert.empty() && li + 1 == b.lines.size() &&
                   ri + 1 == rows.size()) {
@@ -721,7 +747,9 @@ wxSize ProgressBox::layout(wxDC *dc)
             } else {
               if (dc) dc->SetTextForeground(text);
               for (const wxString& r : wrapLine(m, s, availW)) {
-                if (dc) dc->DrawText(r, 0, y);
+                if (dc) drawRow(*dc, r, 0, y, text, pal.imaginary,
+                                p_progress.search() == JobProgress::SEARCH_TS ? 1 : 0,
+                                p_progress.search() == JobProgress::SEARCH_UNKNOWN);
                 y += lh;
               }
             }

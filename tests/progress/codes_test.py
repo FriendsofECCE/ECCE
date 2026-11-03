@@ -111,6 +111,20 @@ case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
               "point": "9/9", "phase": "assemble", "last": lambda v: v != ""},
       "scf": {"cycle": lambda v: int(v) >= 1, "dE": target}},
      {"opt": (4, 4)})
+# What the final energy contains comes from the code's own output (#826):
+# D3BJ prints "DFTD3" and the dispersion correction; r2SCAN-3c prints D4 and gCP.
+EX = os.path.join(ROOT, "data", "client", "examples")
+case("orca freq-only with D3BJ: the final energy includes D3", "orca.desc",
+     os.path.join(EX, "spectroscopy", "carbonyl-compounds", "orca-formaldehyde",
+                  "formaldehyde.out"),
+     {"result": {"disp": "D3"},
+      "scf": {"cycle": "12", "converged": "yes"}})
+case("orca r2SCAN-3c opt+freq: D4 and gCP", "orca.desc",
+     os.path.join(EX, "workflows", "na-hydration", "orca-na_6_0", "stored",
+                  "na_6_0_orca", "Outputs", "na_6_0_orca.out"),
+     {"result": {"disp": "D4", "gcp": "gCP"}})
+case("orca without dispersion names nothing", "orca.desc",
+     fx("orca", "h2o_optfreq.out"), {"!result": {}})
 # Mode counts from the printed frequencies (#611): the translations and
 # rotations are skipped, a negative frequency is imaginary.
 case("orca frequency count", "orca.desc", fx("orca", "h2o_freq_raman.out"),

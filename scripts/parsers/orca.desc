@@ -549,6 +549,22 @@ History=dE
 # parameter; for several the last one is kept and the box drops a total
 # smaller than the point number).
 [PROGRESS]
+Begin=^\s+\*\s+SCF CONVERGED AFTER\s+\d+ CYCLES
+Progress=scf converged=yes
+[END]
+
+# What "FINAL SINGLE POINT ENERGY" contains: the box names it (#826).
+[PROGRESS]
+Begin=^\s+DFT(D[34]) V\d
+Progress=result disp=$1
+[END]
+
+[PROGRESS]
+Begin=^gCP correction\s+-?\d
+Progress=result gcp=gCP
+[END]
+
+[PROGRESS]
 Begin=range=\s*-?\d+\.\d+ \.\. -?\d+\.\d+\s+steps =\s+(\d+)
 Remember=scanpts
 [END]

@@ -156,6 +156,11 @@ public:
   bool average(const std::string& stage, double& avg, double& sd,
                int *n = 0) const;
 
+  // One field of a stage, "" when absent.  The stage "result" is never
+  // drawn: it carries what the final energy contains (disp=, gcp=).
+  std::string fieldOf(const std::string& stage, const std::string& key) const;
+  Search search() const { return p_search; }
+
   // The stage's title: "Optimisation", "SCF", "Frequencies", or its name.
   static std::string title(const std::string& stage);
 
