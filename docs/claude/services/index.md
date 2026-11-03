@@ -49,6 +49,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Central-server TLS: ports, loopback, what must stay in step](tls-central-server.md)
 - [Per-session state is keyed by the session id, and the "is it already running?" checks must be too](per-user-service-state-is-keyed-by.md)
 - [A calculation can live in any local folder, not only in a data store](calculations-in-any-local-folder.md)
+- ["No longer on disk" in the Organizer means the node's path is gone; check the folder's ctime](no-access-panel-missing-means-enoent.md)
 - [In local data mode the Organizer's root is the user's home, labelled Local data](organizer-local-tree-has-no-users-level.md)
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
 - [SftpEDSI (sftp:// URLs): FileEDSI logic on a scratch mirror, mkdir lock, link and test traps (#767)](sftpedsi-ssh-folder-storage.md)
