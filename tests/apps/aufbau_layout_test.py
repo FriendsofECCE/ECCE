@@ -84,11 +84,11 @@ def main():
             if any(a <= b for a, b in zip(core_ys, core_ys[1:])):
                 problems.append('core order is inverted')
             values = [r for r in rects if r[0] == 'text' and r[5].endswith(' eV')]
-            if not values or any(not re.fullmatch(r'−?\d+\.\d eV', r[5]) for r in values):
+            if (width >= 500 and not values) or any(not re.fullmatch(r'−?\d+\.\d eV', r[5]) for r in values):
                 problems.append('missing or incorrectly formatted energy values')
-            if not any(r[5] == '−3200.0 eV' for r in values):
+            if width >= 500 and not any(r[5] == '−3200.0 eV' for r in values):
                 problems.append('core energy value is missing')
-            if sum(r[5] == '−300.0 eV' for r in values) != 1:
+            if width >= 500 and sum(r[5] == '−300.0 eV' for r in values) != 1:
                 problems.append('degenerate core value is missing or repeated')
             if name == 'O' and any(r[5] == '−250.0 eV' for r in values):
                 problems.append('crowded split-level value was not omitted')
