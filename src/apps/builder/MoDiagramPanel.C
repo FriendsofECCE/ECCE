@@ -39,6 +39,7 @@
 #include "wxgui/ewxStaticText.H"
 
 #include "tdat/MoAoBasis.H"
+#include "tdat/RadialDist.H"
 #include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
 #include "tdat/FoDiagram.H"
@@ -365,6 +366,10 @@ bool MoDiagramPanel::Create(IPropCalculation *calculation,
   p_canvas = new MoDiagramCanvas(this);
   p_canvas->setClickHandler(this);
   sizer->Add(p_canvas, 1, wxEXPAND|wxALL, 2);
+  p_aufbau = new MoAufbauCanvas(this);
+  p_aufbau->setClickHandler(this);
+  sizer->Add(p_aufbau, 1, wxEXPAND|wxALL, 2);
+  sizer->Show(p_aufbau, false);
 
   buildFragmentChooser(sizer);
   //  Below every control, nearest the log: a message, not a setting.
@@ -574,6 +579,17 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showAll->Enable(false);
   views->Add(p_showAll, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  //  Only for a one-atom calculation (the aufbau view); see showAtomView().
+  p_aufbauScale = new ewxCheckBox(this, wxID_ANY, _("Energies to scale"));
+  p_aufbauScale->SetValue(getenv("ECCE_MODIAGRAM_AUFBAU_SCALE") != 0);
+  p_aufbauScale->SetToolTip("Draw the orbital energies to scale on an eV axis, "
+                            "the core levels below a break, instead of boxes "
+                            "per subshell. In a restricted open-shell atom the "
+                            "orbitals of a partly filled subshell then show "
+                            "their splitting");
+  p_aufbauScale->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onAufbauScale, this);
+  views->Add(p_aufbauScale, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   //  SAY WHAT A FRAGMENT IS, ON THE PANEL.
   //
   //  "Choose fragments" with a list of atom counts beside it does not
@@ -648,6 +664,8 @@ void MoDiagramPanel::setOptionsOpen(bool open)
   p_optSizer->Show(p_optViews, open, true);
   p_optSizer->Show(p_fragToggle, open);
   p_fragPanel->Show(open && p_fragWasOpen);
+  p_optViews->Show(p_aufbauScale, p_atomView && open);
+  if (p_atomView) atomChrome();
   p_optToggle->SetLabel(wxString::FromUTF8(
       open ? "\xe2\x96\xbe Options" : "\xe2\x96\xb8 Options"));
   ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
@@ -701,6 +719,81 @@ void MoDiagramPanel::fillFragmentChooser(const vector< vector<int> >& orbits,
   for (size_t i = 0; i < orbits.size(); i++) {
     if (p_fragments->IsChecked((unsigned int)i)) p_sideOfOrbit[i] = 0;
   }
+}
+
+
+void MoDiagramPanel::onAufbauScale(wxCommandEvent& WXUNUSED(event))
+{
+  if (p_aufbau != 0) p_aufbau->setToScale(p_aufbauScale->IsChecked());
+}
+
+
+void MoDiagramPanel::setAufbauToScale(bool toScale)
+{
+  if (p_aufbau == 0) return;
+  p_aufbauScale->SetValue(toScale);
+  p_aufbau->setToScale(toScale);
+}
+
+
+bool MoDiagramPanel::exportAufbau(const string& path, bool toScale, int width, int height)
+{
+  if (!p_atomView || p_aufbau == 0) return false;
+  return p_aufbau->savePng(path, toScale, width, height);
+}
+
+
+string MoDiagramPanel::aufbauText() const
+{
+  return p_atomView && p_aufbau != 0 ? p_aufbau->describe() : string();
+}
+
+
+//  A molecule's controls (fragments, labels, pick) mean nothing for an atom.
+void MoDiagramPanel::atomChrome()
+{
+  p_optSizer->Show(p_optRow, false, true);
+  p_optSizer->Show(p_fragToggle, false);
+  p_fragPanel->Show(false);
+  wxWindow *molecular[] = { p_showEnergies, p_showDescription, p_constructLabels,
+                            p_symmetryLabels, p_ligandField, p_showAll };
+  for (wxWindow *w : molecular) p_optViews->Show(w, false);
+}
+
+
+void MoDiagramPanel::showAtomView(bool atom)
+{
+  if (p_aufbau == 0 || p_optSizer == 0) return;
+  const bool was = p_atomView;
+  p_atomView = atom;
+  GetSizer()->Show(p_canvas, !atom);
+  GetSizer()->Show(p_aufbau, atom);
+  if (atom != was) setOptionsOpen(p_optOpen);
+  Layout();
+}
+
+
+//  One atom: its subshells with their electrons.  False (and the ordinary
+//  diagram) when the shells cannot be named, e.g. without a basis.
+bool MoDiagramPanel::buildAufbau(IPropCalculation *calc, const vector<double>& e,
+                                 const vector<double>& o, const vector<double>& eB,
+                                 const vector<double>& oB, bool haveBeta)
+{
+  //  From the calculation, not the scene: the panel can be built before the
+  //  viewer has loaded the structure.
+  std::unique_ptr<Fragment> frag(calc->getFragmentStep(-1));
+  if (!frag || frag->numAtoms() != 1 || p_aufbau == 0) return false;
+  TAtm *atom = frag->atomRef(0);
+  if (atom == 0) return false;
+  const vector<string> labels = RadialDist::atomOrbitalLabels(calc, false);
+  vector<string> labelsB;
+  if (haveBeta) labelsB = RadialDist::atomOrbitalLabels(calc, true);
+  const vector<double> noE, noO;
+  const vector<AufbauShell> shells = aufbau::shells(e, o, labels,
+      haveBeta ? eB : noE, haveBeta ? oB : noO, labelsB);
+  if (shells.empty()) return false;
+  p_aufbau->setModel(atom->atomicSymbol(), shells);
+  return true;
 }
 
 
@@ -2333,6 +2426,19 @@ void MoDiagramPanel::buildOnce()
       for (int i = 0; i < symsBeta->rows(); i++) sB.push_back(symsBeta->value(i));
     }
   }
+
+  //  --- one atom: the aufbau view instead of a diagram ---------------
+  if (buildAufbau(calc, e, o, eB, oB, haveBeta)) {
+    showAtomView(true);
+    p_aufbau->setToScale(p_aufbauScale->IsChecked());
+    p_lastNote.clear();
+    if (!dumpPath.empty()) {
+      std::ofstream(dumpPath) << p_aufbau->describe();
+      exitAfterDumpIfRequested();
+    }
+    return;
+  }
+  showAtomView(false);
 
   //  --- the molecule's symmetry --------------------------------------
   //

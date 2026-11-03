@@ -6370,6 +6370,9 @@ void Builder::updatePropertyMenus()
           GetEventHandler()->ProcessEvent(ev);
           return true;
         }
+        //  "modiagram <name> aufbau|aufbaupng 0|1": a one-atom calculation's aufbau
+        //  view in drawing B (0) or A, energies to scale (1): what it draws
+        //  -> <name>.txt, and for aufbaupng the picture -> <name>.png.
         //  "modiagram <name> tip|click|overlaps|links|status <n>": the diagram's text for molecular
         //  level <n> (the tooltip), or a click on orbital <n> (0-based ORBENG
         //  index); -> <name>.txt, with whether a surface was computed.
@@ -6394,6 +6397,13 @@ void Builder::updatePropertyMenus()
             out << md->linkGaps();
           } else if (w[2] == "status") {
             out << "status " << md->statusText() << "\n";
+          } else if (w[2] == "aufbau" || w[2] == "aufbaupng") {
+            if (!md->atomView()) return s.fail("modiagram: not a one-atom calculation");
+            md->setAufbauToScale(n != 0);
+            if (w[2] == "aufbaupng" &&
+                !md->exportAufbau(outdir + "/" + w[1] + ".png", n != 0, 900, 600))
+              return s.fail("modiagram: the picture could not be saved");
+            out << md->aufbauText();
           } else {
             md->orbitalClicked(n);
             SingleGrid *grid = getSG()->getCurrentGrid();

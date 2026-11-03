@@ -1965,6 +1965,10 @@ add_test(NAME glpath COMMAND glpath_test)
 add_executable(elementlayout_test tests/builder/elementlayout_test.C)
 target_include_directories(elementlayout_test PRIVATE src/apps/builder)
 target_link_libraries(elementlayout_test PRIVATE eccetdat ecceutil)
+# The MO Diagram's one-atom (aufbau) view: arrows per orbital (#813).
+add_executable(aufbau_model_test tests/builder/aufbau_model_test.C)
+target_include_directories(aufbau_model_test PRIVATE src/apps/builder)
+add_test(NAME aufbau_model COMMAND aufbau_model_test)
 # The chooser alone, for screenshots on a display with no ECCE services.
 add_executable(chooser_shot tests/builder/chooser_shot.C src/apps/builder/ElementChooser.C)
 target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS})
