@@ -13,6 +13,8 @@
 #ifndef VIBSPECTRUM_HH
 #define VIBSPECTRUM_HH
 
+#include "util/VibFrequency.H"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -206,7 +208,7 @@ class VibSpectrum
      * rotations some codes list among the modes (ORCA prints 0.00, NWChem
      * values of 1e-5).  They are not vibrations, so they get no stick.
      */
-    static double zeroTolerance() { return 10.0; }
+    static double zeroTolerance() { return VibFrequency::IMAG_THRESHOLD; }
 
     /** Scaled wavenumber of mode i. */
     double wavenumber(int i) const

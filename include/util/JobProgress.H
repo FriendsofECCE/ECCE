@@ -93,6 +93,9 @@ public:
   // False for empty or unreadable text (nothing to show).
   bool parse(const std::string& text);
 
+  // Stored results complete or correct counts from the progress snapshot.
+  void setFrequencies(const std::vector<double>& frequencies);
+
   bool empty() const { return p_stages.empty(); }
   int seq() const { return p_seq; }
   // When the job store relayed it (its clock, seconds since 1970); 0 if

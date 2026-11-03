@@ -46,6 +46,12 @@ PropertyIndexPanel::PropertyIndexPanel(wxWindow *parent)
 
   p_tree->Bind(wxEVT_TREE_SEL_CHANGED, &PropertyIndexPanel::OnSelChanged,
                this);
+  p_tree->Bind(wxEVT_TREE_ITEM_GETTOOLTIP, [this](wxTreeEvent& event) {
+    auto *data = dynamic_cast<NameData*>(p_tree->GetItemData(event.GetItem()));
+    if (data) for (const auto& entry : p_entries)
+      if (entry.name == data->name)
+        event.SetToolTip(wxString::FromUTF8(entry.tooltip.c_str()));
+  });
 }
 
 

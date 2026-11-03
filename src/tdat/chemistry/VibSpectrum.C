@@ -234,12 +234,12 @@ string VibSpectrum::axisLabel(VibKind kind) const
 bool VibSpectrum::isVibration(int i) const
 {
   if (electronic()) return p_freq[i] > 0;
-  return std::fabs(p_freq[i]) >= zeroTolerance();
+  return VibFrequency::isReal(p_freq[i]) || VibFrequency::isImaginary(p_freq[i]);
 }
 
 bool VibSpectrum::isImaginary(int i) const
 {
-  return !electronic() && p_freq[i] <= -zeroTolerance();
+  return !electronic() && VibFrequency::isImaginary(p_freq[i]);
 }
 
 //  What is drawn for mode i: the code's number, or, when its unit is

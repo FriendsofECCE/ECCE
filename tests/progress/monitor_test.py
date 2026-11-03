@@ -145,6 +145,39 @@ def check_qe_md_snapshot():
         shutil.rmtree(work, ignore_errors=True)
 
 
+def check_frequency_counts():
+    work = tempfile.mkdtemp(prefix="ecce-progress-")
+    try:
+        header = open(os.path.join(ROOT, "include", "util", "VibFrequency.H")).read()
+        monitor = open(MONITOR).read()
+        cpp_threshold = float(re.search(r"IMAG_THRESHOLD\s*=\s*([\d.]+)", header)[1])
+        perl_threshold = float(re.search(r"\$IMAG_THRESHOLD\s*=\s*([\d.]+)", monitor)[1])
+        check(cpp_threshold == perl_threshold == 1.0,
+              "progress and C++ share the 1 cm-1 frequency threshold")
+        desc = os.path.join(work, "freq.desc")
+        with open(desc, "w") as h:
+            h.write("[PROGRESS]\nBegin=^frequency (\\S+)\nCount=fq\n"
+                    "Progress=freq real={fq_real} imaginary={fq_imag}\n[END]\n")
+        out = os.path.join(work, "freq.out")
+        with open(out, "w") as h:
+            h.write("".join("frequency %s\n" % f
+                            for f in ("-0.0", "-0.01", "-0.9", "-50", "1200")))
+        results = os.path.join(work, "r.out")
+        cmd = ["perl", MONITOR, "-commType", "stdio", "-monitoringMode", "post",
+               "-jobOutputFile", out, "-parseDescriptorFile", desc,
+               "-parseTypes", "NONE", "-outputFile", results, "-calcName", "p",
+               "-logFile", os.path.join(work, "m.log"), "-filesToTransfer", "",
+               "-importDir", work + os.sep, "-progress", "1"]
+        proc = subprocess.run(cmd, cwd=work, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, timeout=60)
+        check(proc.returncode == 0, "frequency count monitor exits normally")
+        raw = open(results, "rb").read().decode("utf-8", "replace")
+        check("freq real=1 imaginary=1" in raw,
+              "progress skips -0.0, -0.01 and -0.9 and counts -50 as imaginary")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     if not shutil.which("perl"):
         return 77
@@ -194,6 +227,7 @@ def main():
         check(len(geo) == 1, "the progress line inside a geometry block stays in that block")
         check_remember_and_second_file()
         check_qe_md_snapshot()
+        check_frequency_counts()
     finally:
         shutil.rmtree(work, ignore_errors=True)
     print("FAILED: %s" % "; ".join(failures) if failures else "PASSED")

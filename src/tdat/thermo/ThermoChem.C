@@ -1,4 +1,5 @@
 #include "tdat/thermo/ThermoChem.H"
+#include "util/VibFrequency.H"
 
 #include <cctype>
 #include <cmath>
@@ -251,19 +252,11 @@ std::vector<double> realVibrations(const std::vector<double>& storedFreqs,
                                    std::vector<std::string>& notes)
 {
   std::vector<double> out;
-  size_t i = 0;
-  int dropped = 0;
-  // Translation/rotation modes are listed first and are essentially zero.
-  while (i < storedFreqs.size() && std::fabs(storedFreqs[i]) < 1.0) {
-    i++;
-    dropped++;
-  }
-  int imag = 0;
-  for (; i < storedFreqs.size(); i++) {
-    const double f = storedFreqs[i];
-    if (f < 0.0) { imag++; continue; }
-    if (f < 1.0) { dropped++; continue; }
-    out.push_back(f);
+  int dropped = 0, imag = 0;
+  for (double f : storedFreqs) {
+    if (VibFrequency::isZero(f)) { dropped++; continue; }
+    if (VibFrequency::isImaginary(f)) { imag++; continue; }
+    if (VibFrequency::isReal(f)) out.push_back(f);
   }
   if (dropped)
     notes.push_back(num(dropped, 0) + " translation/rotation mode(s) below 1 cm-1 "

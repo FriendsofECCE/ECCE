@@ -42,6 +42,10 @@ BEGIN
 # debugging output flags
 my $DEBUG_PD		= 0x01;
 
+# Match util/VibFrequency.H and ecce_si_export.py so numerical zeros do
+# not become imaginary modes in the live progress snapshot.
+my $IMAG_THRESHOLD = 1.0;
+
 # parse descriptor constants
 my $PD_KEY_BEGIN        = 'begin';	# canonical form of rule key Begin
 my $PD_KEY_END          = 'end';	# canonical form of rule key End
@@ -4812,8 +4816,11 @@ sub ProgressLine
             {
                 foreach my $v (grep { defined } ($1, $2, $3, $4, $5, $6))
                 {
-                    next if (abs($v) < 1);
-                    $gProgMem{$name . ($v < 0 ? '_imag' : '_real')}++;
+                    if ($v < -$IMAG_THRESHOLD) {
+                        $gProgMem{$name . '_imag'}++;
+                    } elsif ($v >= $IMAG_THRESHOLD) {
+                        $gProgMem{$name . '_real'}++;
+                    }
                 }
             }
             $gProgMem{$name . '_real'} //= 0;

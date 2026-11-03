@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "tdat/VibAnalysis.H"
+#include "util/VibFrequency.H"
 #include "tdat/CharacterTable.H"
 #include "tdat/Fragment.H"
 #include "tdat/MoFragments.H"
@@ -20,10 +21,6 @@ using std::set;
 using std::pair;
 
 namespace {
-
-//  Below this a "mode" is a rotation or translation, which carries no
-//  symmetry label of its own.
-const double ZERO_FREQ = 10.0;
 
 string upperCase(string s)
 {
@@ -263,7 +260,7 @@ double rigidShare(const VibInput& in, const vector<double>& mass)
 
    double worst = 0.0;
    for (size_t m = 0; m < in.modes.size(); m++) {
-      if (fabs(in.freqs[m]) < ZERO_FREQ || in.modes[m].size() != 3*N) continue;
+      if (VibFrequency::isZero(in.freqs[m]) || in.modes[m].size() != 3*N) continue;
       Vec q(3*N);
       for (size_t a = 0; a < N; a++)
          for (int c = 0; c < 3; c++) q[3*a+c] = sqrt(mass[a])*in.modes[m][3*a+c];
@@ -397,7 +394,7 @@ static void labelRigid(const VibInput& in, const vector<Vec>& modes,
 
    vector<size_t> rows;
    for (size_t m = 0; m < nm; m++)
-      if (fabs(in.freqs[m]) < ZERO_FREQ) rows.push_back(m);
+      if (VibFrequency::isZero(in.freqs[m])) rows.push_back(m);
    if (rows.size() != ideals.size()) return;
 
    vector<bool> hasVector(nm, false);
@@ -553,7 +550,7 @@ bool VibAnalysis::symmetry(const VibInput& in, const string& group,
    //  Degenerate sets: neighbours in frequency.
    vector<size_t> order;
    for (size_t m = 0; m < nm; m++)
-      if (fabs(in.freqs[m]) >= ZERO_FREQ) order.push_back(m);
+      if (!VibFrequency::isZero(in.freqs[m])) order.push_back(m);
    std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
       return in.freqs[a] < in.freqs[b]; });
 
@@ -979,7 +976,7 @@ void VibAnalysis::describe(const VibInput& in, VibResult& out)
 
    for (size_t m = 0; m < nm; m++) {
       const Vec& d = in.modes[m];
-      if (d.size() != 3*N || fabs(in.freqs[m]) < ZERO_FREQ) continue;
+      if (d.size() != 3*N || VibFrequency::isZero(in.freqs[m])) continue;
 
       vector<double> S(coords.size()), w(coords.size());
       double total = 0.0;
@@ -1270,7 +1267,7 @@ bool VibAnalysis::composition(const VibInput& in, const vector<VibCoordSpec>& ch
    for (size_t m = 0; m < in.modes.size(); m++) {
       vector<double> row(nc, 0.0);
       const Vec& d = in.modes[m];
-      if (d.size() == 3*N && m < in.freqs.size() && fabs(in.freqs[m]) >= ZERO_FREQ) {
+      if (d.size() == 3*N && m < in.freqs.size() && !VibFrequency::isZero(in.freqs[m])) {
          vector<double> sv(nc), y(nc);
          for (size_t i = 0; i < nc; i++) sv[i] = dot(coords[i].b, d);
          for (size_t i = 0; i < nc; i++) {          // L z = s

@@ -179,6 +179,23 @@ int main()
     check(hasTrans && hasImag, "notes mention dropped and imaginary modes");
   }
 
+  {
+    vector<string> notes;
+    const vector<double> freqs = realVibrations(
+        {-0.0, -0.01, -0.9, -50.0, 1200.0}, notes);
+    check(freqs.size() == 1 && freqs[0] == 1200.0,
+          "numerical negative zeros do not count as imaginary vibrations");
+    check(notes.size() == 2 && notes[0].find("3 translation/rotation") == 0 &&
+          notes[1].find("1 imaginary") == 0,
+          "three zeros and one imaginary mode are reported");
+
+    notes.clear();
+    realVibrations({1200.0, -0.9, -50.0, -0.01, -0.0}, notes);
+    check(notes.size() == 2 && notes[0].find("3 translation/rotation") == 0 &&
+          notes[1].find("1 imaginary") == 0,
+          "zero classification does not depend on frequency ordering");
+  }
+
   // --treatment qrrho-grimme:50 must parse (the CLI used wrong compare
   // lengths, so the w0-bearing treatments never matched).
   {

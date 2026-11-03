@@ -1,4 +1,5 @@
 #include "vibration.hpp"
+#include "util/VibFrequency.H"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -237,7 +238,7 @@ VibResult analyse_vibrations(const Molecule& mol, const Derivatives& d) {
   const double conv = kElemCharge / std::sqrt(kAmu);  // e/sqrt(amu) -> C/sqrt(kg)
   for (int m = 0; m < nv; ++m) {
     res.freq.push_back(to_wavenumber(es.eigenvalues()(m)));
-    if (res.freq.back() < 0) ++res.n_imaginary;
+    if (VibFrequency::isImaginary(res.freq.back())) ++res.n_imaginary;
     Vec dx(n);
     for (int i = 0; i < n; ++i) dx(i) = q(i, m) / w(i);
     double a2 = 0;

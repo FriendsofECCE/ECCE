@@ -6,6 +6,7 @@
 #include "dsm/IPropCalculation.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
+#include "Builder.H"
 #include "DensityMapPanel.H"
 #include "DensityProfilePanel.H"
 #include "MoDiagramPanel.H"
@@ -111,4 +112,11 @@ void selectOrbitalPoint(IPropCalculation *calc, int tableIndex, int row)
     else if (DensityProfilePanel *f = dynamic_cast<DensityProfilePanel*>(p)) f->orbitalPointChanged();
     else if (MoDiagramPanel *g = dynamic_cast<MoDiagramPanel*>(p)) g->refresh();
   }
+  //  Which surfaces are offered depends on the point's orbitals.
+  for (PropertyPanel *p : PropertyPanel::getPanels(url))
+    if (dynamic_cast<MoPanel*>(p)) {
+      if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(p)))
+        builder->surfacesChanged();
+      break;
+    }
 }

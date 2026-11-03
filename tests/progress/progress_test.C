@@ -96,8 +96,30 @@ int main()
   vector<string> sum = f.summary(true);
   check(sum.size() == 2 && has(sum, "Optimisation converged in 6 steps") &&
         has(sum, "-76.40895000 hartree"), "summary: optimisation and final energy");
-  check(has(sum, "Frequencies: 3 real, 0 imaginary") && has(sum, "ZPE 0.021346"),
+  check(has(sum, "Frequencies: 3 modes, 0 imaginary") && has(sum, "ZPE 0.021346"),
         "summary: frequencies and ZPE");
+
+  {
+    const vector<double> frequencies = {-0.0, -0.01, -0.9, -50.0, 1200.0};
+    JobProgress stored;
+    stored.parse("freq done=yes real=1 imaginary=4 zpe=0.012\n");
+    stored.setFrequencies(frequencies);
+    check(has(stored.summary(true), "Frequencies: 2 modes, 1 imaginary"),
+          "stored frequencies correct numerical-zero counts in old progress");
+    check(has(stored.running(0, true)[0].lines, "2 modes, 1 imaginary"),
+          "finished frequencies without kind or point show mode counts");
+    check(has(stored.summary(true), "ZPE 0.012000"),
+          "stored mode counts preserve other progress fields");
+    JobProgress missing;
+    missing.setFrequencies(frequencies);
+    check(has(missing.summary(true), "Frequencies: 2 modes, 1 imaginary"),
+          "stored frequencies supply missing frequency progress");
+    JobProgress analytic;
+    analytic.parse("freq kind=analytic done=yes\n");
+    analytic.setFrequencies(frequencies);
+    check(has(analytic.running(0, true)[0].lines, "2 modes, 1 imaginary"),
+          "analytic frequency progress gains stored counts");
+  }
 
   //  #722: the code's own converged line missed the snapshot, but the run is
   //  Complete and its last step meets every limit.

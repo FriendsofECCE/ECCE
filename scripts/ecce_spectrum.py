@@ -41,7 +41,9 @@ except ImportError:
     B = importlib.util.module_from_spec(_s)
     _l.exec_module(B)
 
-ZERO = 10.0   # cm-1: below this a "mode" is a translation or rotation
+# Match util/VibFrequency.H: below this (cm-1) a "mode" is a numerical
+# translation/rotation, and an imaginary mode is not drawn.
+IMAG_THRESHOLD = 1.0
 
 
 def line(shape, off, fwhm):
@@ -60,7 +62,7 @@ class Curve:
         _el, _xyz, freqs, ir, _modes = B.read_modes(calc)
         self.sticks = []
         for i, f in enumerate(freqs):
-            if abs(f) < ZERO or f <= -ZERO or not ir:
+            if f < IMAG_THRESHOLD or not ir:
                 continue
             self.sticks.append((f * scale, ir[i]))
         self.fwhm, self.shape = fwhm, shape

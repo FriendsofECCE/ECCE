@@ -301,6 +301,8 @@ BEGIN_EVENT_TABLE( Builder, BuilderGUI )
     EVT_SPINCTRL(ID_ROT_Y, Builder::OnRotY)
     EVT_SPINCTRL(ID_ROT_Z, Builder::OnRotZ)
     EVT_BUTTON(ID_CHOICE_VIEWER, Builder::OnViewerChoice)
+    EVT_MENU_RANGE(ID_SURFACE_MENU_BASE, ID_SURFACE_MENU_BASE+99,
+                   Builder::OnPropertyMenuClick )
     EVT_MENU_RANGE(ID_PROPERTY_MENU_BASE, ID_PROPERTY_MENU_BASE+99,
                    Builder::OnPropertyMenuClick )
 END_EVENT_TABLE()
@@ -3998,6 +4000,11 @@ void Builder::OnPropertyMenuClick( wxCommandEvent& event )
 {
   BuilderRedrawHold hold(this);
   wxString name = p_propertyMenu->GetLabelText(event.GetId());
+  if (event.GetId() >= ID_SURFACE_MENU_BASE &&
+      event.GetId() < ID_SURFACE_MENU_BASE + 100) {
+    selectDetail(name.ToStdString());
+    return;
+  }
   wxAuiPaneInfo &pane = p_mgr.GetPane(name);
   if (!pane.IsOk()) {
     return;
@@ -6582,6 +6589,8 @@ void Builder::updatePropertyMenus()
               shown += (shown.empty() ? "" : ",") + pi.name.ToStdString();
           }
           out << "shown " << shown << "\n";
+          if (p_index) for (const auto& entry : p_index->listing())
+            out << "entry " << entry << "\n";
           return true;
         }
         //  "property <menu item>" / "list <entry>": a Properties menu choice
@@ -6598,8 +6607,9 @@ void Builder::updatePropertyMenus()
           int id = p_propertyMenu->FindItem(name);
           if (id == wxNOT_FOUND)
             return s.fail("property: no Properties menu item " + name);
-          bool on = !p_propertyMenu->IsChecked(id);
-          p_propertyMenu->Check(id, on);
+          const bool checkable = p_propertyMenu->FindItem(id)->IsCheckable();
+          bool on = !checkable || !p_propertyMenu->IsChecked(id);
+          if (checkable) p_propertyMenu->Check(id, on);
           wxCommandEvent ev(wxEVT_MENU, id);
           ev.SetInt(on ? 1 : 0);
           GetEventHandler()->ProcessEvent(ev);
@@ -7466,6 +7476,39 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
   p_propertyMenu->AppendCheckItem(
           ID_PROPERTY_MENU_BASE+p_propertyMenu->GetMenuItemCount(),
           name, "")->Check(added.IsShown());
+  if (MoPanel *mo = dynamic_cast<MoPanel*>(panel)) rebuildSurfacesMenu(mo);
+}
+
+
+//  The Surfaces submenu follows the MOs item and depends on the orbital
+//  point, so it is rebuilt whenever that changes.
+void Builder::rebuildSurfacesMenu(MoPanel *mo)
+{
+  int mosPos = wxNOT_FOUND;
+  for (int i = (int)p_propertyMenu->GetMenuItemCount() - 1; i >= 0; --i) {
+    wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+    if (item->IsSubMenu() && item->GetItemLabelText() == "Surfaces")
+      p_propertyMenu->Destroy(item);
+  }
+  for (size_t i = 0; i < p_propertyMenu->GetMenuItemCount(); ++i)
+    if (p_propertyMenu->FindItemByPosition(i)->GetItemLabelText() == "MOs")
+      mosPos = (int)i;
+  const auto surfaces = mo->surfaceEntries();
+  if (surfaces.empty() || mosPos == wxNOT_FOUND) return;
+  wxMenu *menu = new wxMenu;
+  for (size_t i = 0; i < surfaces.size(); ++i)
+    menu->Append(ID_SURFACE_MENU_BASE + i,
+                 wxString::FromUTF8(surfaces[i].label.c_str()),
+                 wxString::FromUTF8(surfaces[i].description.c_str()));
+  p_propertyMenu->Insert(mosPos + 1, wxID_ANY, "Surfaces", menu);
+}
+
+
+void Builder::surfacesChanged()
+{
+  if (MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window))
+    rebuildSurfacesMenu(mo);
+  updatePropertyIndex();
 }
 
 

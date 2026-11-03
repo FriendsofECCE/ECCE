@@ -9,6 +9,7 @@
 #include "tdat/SpinMult.H"
 #include "util/InvalidException.H"
 #include "util/ResourceUtils.H"
+#include "util/VibFrequency.H"
 
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
@@ -1132,11 +1133,10 @@ string WorkflowSteps::resultLine(Resource *step, const string& progress)
     if (e[0] == '-') e = "\xe2\x88\x92" + e.substr(1);
     line = "E " + e + " Eh";
   }
-  // No shared rule for "imaginary" on main: a mode below -1 cm-1.
   PropVector *vf = dynamic_cast<PropVector*>(task->getProperty("VIBFREQ"));
   if (vf && !vf->values().empty()) {
     int imag = 0;
-    for (double f : vf->values()) if (f < -1.0) imag++;
+    for (double f : vf->values()) if (VibFrequency::isImaginary(f)) imag++;
     line += (line.empty() ? "" : dot) + std::to_string(imag) + " imaginary";
   }
   return line;

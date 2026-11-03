@@ -7,7 +7,9 @@ compared with the stored value; a missing value must read "-".
 """
 import csv
 import io
+import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -50,6 +52,17 @@ def stored(calc, prop):
 
 tmp = tempfile.mkdtemp(prefix="checks-")
 try:
+    spec = importlib.util.spec_from_file_location("si_export", SCRIPT)
+    exporter = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(exporter)
+    header = open(os.path.join(ROOT, "include", "util", "VibFrequency.H")).read()
+    threshold = re.search(r"IMAG_THRESHOLD\s*=\s*([0-9.]+)", header)
+    check("Python and C++ frequency thresholds agree", threshold is not None and
+          float(threshold.group(1)) == exporter.IMAG_THRESHOLD)
+    numerical = "-0.0 -0.01 -0.9 -50 1200"
+    check("one real, one imaginary, three numerical zeros",
+          exporter.mode_counts(numerical.split()) == (1, 1, 3))
+
     good = os.path.join(tmp, "opt_freq")
     shutil.copytree(os.path.join(QM, "h2o-geovib"), good)
     setmeta(good, "progress", "# seq=3\\nscf cycle=9 converged=yes\\nopt step=4 converged=yes\\n")
@@ -85,6 +98,21 @@ try:
     check("good: charge/mult/method", (g["charge"], g["multiplicity"], g["method"]) ==
           ("0", "1", "DFT/DFT"), g)
     check("good: no problems", g["problems"] == "" and g["solvent"] == "-", g)
+
+    zeros = os.path.join(tmp, "numerical_zeros")
+    shutil.copytree(good, zeros)
+    setprop(zeros, "VIBFREQ", numerical)
+    pz = subprocess.run([sys.executable, SCRIPT, "--checks", "csv", zeros],
+                        capture_output=True, text=True)
+    zr = list(csv.DictReader(io.StringIO(pz.stdout)))
+    check("checks CLI ignores small negative numerical zeros",
+          pz.returncode == 0 and len(zr) == 1 and
+          zr[0]["imaginary_modes"] == "1", pz.stdout + pz.stderr)
+    check("SI export uses the same imaginary count",
+          exporter.read_calc(zeros)["nimag"] == "1")
+    setprop(zeros, "VIBFREQ", "-0.0 -0.01 -0.9 1200")
+    check("numerical zeros do not flag a minimum",
+          exporter.read_checks(zeros)["problems"] == "")
 
     b = rows["opt_notconv"]
     check("notconverged: abnormal, opt no, scf yes", (b["normal_termination"],

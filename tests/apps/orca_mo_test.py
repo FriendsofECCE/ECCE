@@ -202,7 +202,7 @@ def checkGood(display, data, work):
 def checkWidth(display, data, work, mode):
     """The MOs pane at least as wide as its rows.  This calculation has
     Mulliken charges, so the field-type choice carries its longest entry
-    ("Density (ESP from atomic charges)") as a finished run's does."""
+    ("ESP on Density (atomic charges)") as a finished run's does."""
     url = makeCalc(data, "water-" + mode)
     out = os.path.join(work, "width-" + mode)
     result = runBuilder(display, url, out, "hold 20\n", mode=mode)
@@ -325,7 +325,7 @@ def checkEspBar(display, data, work):
     draws the bar) and says what the colours and the units are."""
     url = makeCalc(data, "esp-bar", source=WATER_G16)
     out = os.path.join(work, "esp-bar")
-    scene = ("mobar before\nmofield Density (ESP)\nmobar chosen\n"
+    scene = ("mobar before\nmofield ESP on Density\nmobar chosen\n"
              "mopanel esp\nhold 3\nmobar drawn\npanestate pst MOs\nmofield MO\nmobar typed\n"
              "mopanel mo\nmobar mo\n")
     result = runBuilder(display, url, out, scene,
@@ -388,7 +388,7 @@ def checkEspBar(display, data, work):
     #  over, which IsoSurfaceCmd logs independently of the bar.
     out = os.path.join(work, "esp-bar-auto")
     result = runBuilder(display, url, out,
-                        "mofield Density (ESP)\nmopanel esp\nmobar auto\n",
+                        "mofield ESP on Density\nmopanel esp\nmobar auto\n",
                         extraEnv={"ECCE_DEBUG_ISO": "1",
                                   "ECCE_PANEL_FULLSCREEN": "1"})
     what = "ESP colour bar, auto range"

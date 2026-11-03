@@ -99,6 +99,7 @@ bool ProgressBox::set(const string& text, double received, bool finished,
     p_text = text;
     p_progress.parse(text);
   }
+  if (finished) p_progress.setFrequencies(p_frequencies);
   p_received = received;
   p_finished = finished;
   p_completed = completed;
