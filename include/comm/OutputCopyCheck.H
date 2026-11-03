@@ -10,8 +10,9 @@
 #include <cstring>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 #include <string>
-#include <sys/stat.h>
+#include <system_error>
 
 namespace OutputCopyCheck {
 
@@ -46,11 +47,12 @@ inline int parseCountToken(const char* tok, long long& hostSize)
 }
 
 // -1 when the file does not exist.
+// std::filesystem: plain stat() has a 32-bit size on MinGW.
 inline long long localSize(const std::string& path)
 {
-  struct stat sb;
-  if (stat(path.c_str(), &sb) != 0) return -1;
-  return (long long)sb.st_size;
+  std::error_code ec;
+  const auto n = std::filesystem::file_size(std::filesystem::path(path), ec);
+  return ec ? -1 : (long long)n;
 }
 
 // True when the copy is missing or shorter than the file the host named.
