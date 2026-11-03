@@ -1127,28 +1127,6 @@ fi
 exec \"$ECCE_HOME/bin/ecce-launch\" \"$@\"
 ")
 install(PROGRAMS ${_launch_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
-# Same environment as ecce-launch.
-set(_term_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-terminate)
-file(READ ${_launch_wrapper} _term_text)
-string(REPLACE "bin/ecce-launch" "bin/ecce-terminate" _term_text "${_term_text}")
-file(WRITE ${_term_wrapper} "${_term_text}")
-install(PROGRAMS ${_term_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
-set(_annot_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-annotate)
-string(REPLACE "bin/ecce-terminate" "bin/ecce-annotate" _annot_text "${_term_text}")
-file(WRITE ${_annot_wrapper} "${_annot_text}")
-install(PROGRAMS ${_annot_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
-set(_series_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-series)
-string(REPLACE "bin/ecce-terminate" "bin/ecce-series" _series_text "${_term_text}")
-file(WRITE ${_series_wrapper} "${_series_text}")
-install(PROGRAMS ${_series_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
-set(_reconn_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-reconnect)
-string(REPLACE "bin/ecce-terminate" "bin/ecce-reconnect" _reconn_text "${_term_text}")
-file(WRITE ${_reconn_wrapper} "${_reconn_text}")
-install(PROGRAMS ${_reconn_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
-set(_fetch_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-fetch)
-string(REPLACE "bin/ecce-terminate" "bin/ecce-fetch" _fetch_text "${_term_text}")
-file(WRITE ${_fetch_wrapper} "${_fetch_text}")
-install(PROGRAMS ${_fetch_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
   file(WRITE ${_ds_wrapper}
@@ -4606,3 +4584,47 @@ if(WIN32)
     endif()
   endforeach()
 endif()
+
+# Public CLI names share the launcher's environment without starting services.
+# Installed Python tools have already been renamed by install(PROGRAMS).
+set(ECCE_COMMAND_WRAPPERS
+  ecce-terminate=bin/ecce-terminate
+  ecce-annotate=bin/ecce-annotate
+  ecce-series=bin/ecce-series
+  ecce-reconnect=bin/ecce-reconnect
+  ecce-fetch=bin/ecce-fetch
+  ecce-localdata=bin/ecce-localdata
+  ecce-thermo=bin/ecce-thermo
+  ecce-force-compare=bin/ecce-force-compare
+  ecce-check-props=bin/ecce-check-props
+  ecce-contacts=bin/ecce-contacts
+  ecce-displacement=bin/ecce-displacement
+  ecce-bandshift=bin/ecce-bandshift
+  ecce-spectrum=bin/ecce-spectrum
+  ecce-displace=bin/ecce-displace
+  ecce-si-export=bin/ecce-si-export
+  ecce-mlp=scripts/ecce-mlp
+  ecce-confsearch=scripts/ecce-confsearch)
+if(TARGET ecce-qm)
+  list(APPEND ECCE_COMMAND_WRAPPERS ecce-qm=bin/ecce-qm)
+endif()
+if(TARGET ecce-results)
+  list(APPEND ECCE_COMMAND_WRAPPERS ecce-results=bin/ecce-results)
+endif()
+file(READ ${_launch_wrapper} _command_template)
+foreach(_command IN LISTS ECCE_COMMAND_WRAPPERS)
+  string(REPLACE "=" ";" _command_parts "${_command}")
+  list(GET _command_parts 0 _name)
+  list(GET _command_parts 1 _program)
+  string(REPLACE "bin/ecce-launch" "${_program}" _command_text "${_command_template}")
+  set(_command_wrapper ${CMAKE_BINARY_DIR}/wrappers/${_name})
+  file(WRITE ${_command_wrapper} "${_command_text}")
+  install(PROGRAMS ${_command_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+endforeach()
+
+add_test(NAME packaging_command_wrappers
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/packaging/command_wrappers_test.py
+                 --build ${CMAKE_BINARY_DIR}
+                 --home ${ECCE_HOME_DIR}
+                 --wrappers ${ECCE_WRAPPER_DESTINATION})
