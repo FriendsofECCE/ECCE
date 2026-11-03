@@ -187,6 +187,9 @@ public:
   // line format ("name\tok\t" or "name\tno\treason"). Never refused.
   bool annotateForCommand(const vector<EcceURL>& urls, const string& text,
                           vector<string>& lines, const string& key = "");
+  // ecce-workflow (#807): "ok <workflow URL>" or "error: reason".
+  string workflowForCommand(const string& verb, const EcceURL& calc,
+                            const string& second);
   // Exclude... / Include again on the selection (#617); the same store.
   void excludeSelected(bool exclude);
   // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
@@ -535,6 +538,12 @@ protected:
   void startBatch(const vector<LaunchSelected::Row>& rows, bool showReport);
   bool refuseDuringBatch(const string& what);
   bool refuseMoveOfActiveJob(Resource *res, const string& what);
+  // Make Workflow... / Move into Workflow > (#807).
+  string workflowMoveRefusal(Resource *calc);
+  string moveIntoWorkflow(Resource *calc, Session *wf, const string& name,
+                          EcceURL *wfUrl);
+  void showInWorkflow(const EcceURL& wfUrl, const EcceURL& step);
+  void makeWorkflowFromSelection(Session *into);
   bool p_quitAsking = false;        // the Quit dialog is open (#291)
   bool p_quitConfirmed = false;     // the user said yes; teardown pending
 

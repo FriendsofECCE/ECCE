@@ -199,6 +199,8 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_terminate_request", (wxJmsCBFunc)&CalcMgrApp::terminateRequestMCB);
   // ecce-annotate (#742)
   subscribe("ecce_annotate_request", (wxJmsCBFunc)&CalcMgrApp::annotateRequestMCB);
+  // ecce-workflow
+  subscribe("ecce_workflow_request", (wxJmsCBFunc)&CalcMgrApp::workflowRequestMCB);
   // ecce-reconnect
   subscribe("ecce_reconnect_request", (wxJmsCBFunc)&CalcMgrApp::reconnectRequestMCB);
   // ecce-fetch
@@ -337,6 +339,20 @@ void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
   for (size_t i = 0; i < lines.size(); i++)
     r->addProperty("line" + std::to_string(i), lines[i]);
   publish("ecce_annotate_reply", *r);
+  delete r;
+}
+
+
+// ecce-workflow (#807): one answer line, "ok <workflow URL>" or "error: ...".
+void CalcMgrApp::workflowRequestMCB(JMSMessage& msg)
+{
+  const string answer = p_calcMgr->workflowForCommand(
+      msg.getProperty("verb"), EcceURL(msg.getProperty("calc")),
+      msg.getProperty("second"));
+  JMSMessage* r = newMessage();
+  r->addProperty("reply_id", msg.getProperty("reply_id"));
+  r->addProperty("answer", answer);
+  publish("ecce_workflow_reply", *r);
   delete r;
 }
 

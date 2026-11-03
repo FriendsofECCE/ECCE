@@ -17,6 +17,35 @@ MOPAC, xTB, Quantum ESPRESSO and CP2K, in any mixture.
 3. The workflow appears in the project. Selecting it shows the workflow view
    above and the table of its calculations below.
 
+## Making a workflow from a calculation
+
+A calculation you have already set up or run can become the first step of a
+workflow.
+
+1. Right-click the calculation in the tree and choose **Make Workflow...**.
+2. Give the workflow a name (the default is the calculation's name followed
+   by `_workflow`) and choose **OK**.
+
+The workflow is created in the calculation's folder and the calculation is
+**moved** into it, not copied: its state, inputs, results and job record go
+with it, and the original place is empty. The workflow view opens with the
+calculation's box selected. A finished calculation's results are carried over
+to the next step as for any finished step, so add the next steps from its box
+or with **Apply Recipe**.
+
+**Move into Workflow** in the same menu lists the workflows already in the
+folder and moves the calculation into the chosen one as an unlinked step.
+
+Both items are greyed out, with the reason as their tip, for a calculation
+that is already in a workflow or that belongs to an MD study, and for one
+whose job is submitted or running: its results are written back to where the
+calculation is, so wait until the job has ended or terminate it.
+
+From a terminal, with ECCE running:
+
+    ecce-workflow make <calculation> [name]
+    ecce-workflow move <calculation> <workflow>
+
 ## The view
 
 Each step is a box with the code in its colour, the state of the calculation
