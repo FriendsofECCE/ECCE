@@ -526,6 +526,11 @@ bool GridModel::sortRows(const vector<GridElement*> r1, const vector<GridElement
   if ((sortCol < r1.size()) && (sortCol < r2.size())) {
     GridElement *e1 = r1[sortCol];
     GridElement *e2 = r2[sortCol];
+    // Missing results belong at the end even when the numeric order reverses.
+    if (e1->getPropertyType() == GridProperty::PT_TOTAL_ENERGY &&
+        e2->getPropertyType() == GridProperty::PT_TOTAL_ENERGY &&
+        (e1->getValue().empty() || e2->getValue().empty()))
+      return !e1->getValue().empty() && e2->getValue().empty();
     if (p_ascSort) {
       ret = (e1->compare(e2, p_caseSensitive) < 0);
     }

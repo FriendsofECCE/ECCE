@@ -63,7 +63,7 @@ class ProjectContextPanel : public ProjectContextPanelGUI
     vector<string> stateCells();
     // Column headings, and the Total energy cells as "name=text" (tests).
     vector<string> columnHeadings();
-    vector<string> energyCells();
+    vector<string> energyCells(int sort = 0);
     int progressPaints() const { return p_progressSets; }
 
     vector<EcceURL> getSelections();

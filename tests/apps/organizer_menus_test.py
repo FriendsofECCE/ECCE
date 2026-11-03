@@ -14,6 +14,8 @@ import re
 import shutil
 import sys
 import tempfile
+import time
+import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -45,6 +47,23 @@ def run(display):
         shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
         calc = os.path.join(project, "water")
         shutil.copytree(SRC, calc, symlinks=True)
+        energy_file = os.path.join(calc, "Props", "TE")
+        stored_energy = float(ET.parse(energy_file).getroot().text)
+        # Re-parse must replace a result already read into the Organizer cache.
+        ET.ElementTree(ET.fromstring(
+            '<value name="TE" units="Hartree">-9.0</value>')).write(energy_file)
+        initial_energy = float(ET.parse(energy_file).getroot().text)
+        for name, energy in (("deep", -100.0), ("positive", 10.0), ("small", 2.0),
+                             ("empty_a", None), ("empty_b", None)):
+            d = os.path.join(project, name)
+            shutil.copytree(SRC, d, symlinks=True)
+            if energy is None:
+                shutil.rmtree(os.path.join(d, "Props"))
+                os.makedirs(os.path.join(d, "Props"))
+            else:
+                ET.ElementTree(ET.fromstring(
+                    '<value name="TE" units="Hartree">%s</value>' % energy
+                )).write(os.path.join(d, "Props", "TE"))
         u = "file://" + calc
         cmds = os.path.join(work, "commands")
         shots = os.environ.get("ECCE_SHOTS805", "")
@@ -53,13 +72,31 @@ def run(display):
             h.write("menulabels file://%s\n" % project)
             h.write("tablecolumns x\n")
             h.write("tableenergies x\n")
+            h.write("tableenergies asc\n")
+            h.write("tableenergies desc\n")
             if shots:
                 os.makedirs(shots, exist_ok=True)
                 h.write("snap %s/organizer.png\n" % shots)
+            h.write("reparseoutputs %s\n" % u)
+
+        def after_reparse(_display):
+            deadline = time.monotonic() + 90
+            while time.monotonic() < deadline:
+                try:
+                    if abs(float(ET.parse(energy_file).getroot().text) - stored_energy) < 1e-8:
+                        break
+                except (OSError, ET.ParseError, TypeError, ValueError):
+                    pass
+                time.sleep(1)
+            with open(cmds, "a") as h:
+                h.write("table file://%s\n" % project)
+                h.write("tableenergies reparsed\n")
+            time.sleep(3)
+
         result = apps.run(display, "organizer", windowTimeout=60, settle=40,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + project,
-                               "ECCE_LOCAL_DATA": data})
+                               "ECCE_LOCAL_DATA": data}, inspect=after_reparse)
         log = result.log or ""
         if result.crashed:
             check(False, "the Organizer ran", "CRASHED (%s)" % result.signalName)
@@ -92,10 +129,25 @@ def run(display):
         check(not any(x in heads for x in ("Viewed", "Size", "Application")),
               "table has no Viewed, Size or Application column", heads)
         en = ans("tableenergies")
-        check(bool(en) and re.search(r"water=\S*\d+\.\d{6}$", en[0].strip()) is not None,
-              "Total energy cell is a six-decimal number", en)
-        check(bool(en) and ("water=−" in en[0] or "water=-" not in en[0]),
-              "negative energies use U+2212", en)
+        def cells(answer):
+            return dict(x.strip().split("=", 1) for x in answer.split("|")[1:])
+
+        value = cells(en[0]).get("water", "") if en else ""
+        check(re.fullmatch(r"−\d+\.\d{6}", value) is not None,
+              "negative Total energy requires U+2212 and six decimals", value)
+        check(bool(value) and abs(float(value.replace("−", "-")) - initial_energy) < 5e-7,
+              "Total energy equals the stored negative energy", value)
+        for direction, expected in ((1, ["deep", "water", "small", "positive"]),
+                                    (2, ["positive", "small", "water", "deep"])):
+            names = list(cells(en[direction])) if len(en) > direction else []
+            check(names[:4] == expected and set(names[4:]) == {"empty_a", "empty_b"},
+                  "Total energy sorts numerically with empty cells last (%s)" %
+                  ("ascending" if direction == 1 else "descending"), names)
+        latest = cells(en[-1]).get("water", "") if len(en) >= 4 else ""
+        check(bool(latest) and abs(float(latest.replace("−", "-")) - stored_energy) < 5e-7,
+              "after Re-Parse Outputs the table shows the new stored energy", latest)
+        check("REPARSE: Re-parse finished: 1 done" in log,
+              "Re-Parse Outputs completed", log[-1500:])
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
