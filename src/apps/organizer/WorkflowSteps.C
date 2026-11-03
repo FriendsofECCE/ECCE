@@ -89,6 +89,27 @@ string WorkflowSteps::linkLabel(const string& name)
 }
 
 
+// An ensemble has no "last" step; its representative is the lowest member,
+// the same frame the geometry.c1 link gives.
+static Fragment *finalGeometry(PropertyTask *task, bool *fromResult = 0)
+{
+  if (fromResult) *fromResult = false;
+  if (!task) return 0;
+  if (ScanPoint::ensembleSize(task) > 0) {
+    string w;
+    Fragment *f = ScanPoint::fragment(task, "c1", w);
+    if (f && fromResult) *fromResult = true;
+    return f;
+  }
+  Fragment *f = task->fragment();
+  if (f) {
+    bool r = task->getFragmentStep(f, -1);
+    if (fromResult) *fromResult = r;
+  }
+  return f;
+}
+
+
 bool WorkflowSteps::isScan(Resource *step)
 {
   return ScanPoint::isScan(dynamic_cast<PropertyTask*>(step));
@@ -99,10 +120,8 @@ bool WorkflowSteps::hasResultGeometry(Resource *step)
 {
   PropertyTask *task = dynamic_cast<PropertyTask*>(step);
   if (!task) return false;
-  Fragment *frag = task->fragment();
-  if (!frag) return false;
-  bool result = task->getFragmentStep(frag, -1);
-  delete frag;
+  bool result = false;
+  delete finalGeometry(task, &result);
   return result;
 }
 
@@ -171,9 +190,8 @@ Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
     ChemistryTask *toTask = dynamic_cast<ChemistryTask*>(made);
     if (from && to && fromTask && toTask) {
       if (carry.geometry) {
-        Fragment *frag = pointFrag ? pointFrag : fromTask->fragment();
+        Fragment *frag = pointFrag ? pointFrag : finalGeometry(fromTask);
         if (frag) {
-          if (!pointFrag) fromTask->getFragmentStep(frag, -1);
           if (!carry.chargeMult) frag->charge(0);
           toTask->fragment(frag);
           delete frag;
@@ -600,8 +618,8 @@ string WorkflowSteps::info(Session *wf)
     if (frag && frag->numAtoms() > 0) {
       const double *c = frag->atomRef(0)->coordinates();
       out << " xyz0=" << c[0] << "," << c[1] << "," << c[2];
-      Fragment *last = task->fragment();
-      bool result = last && task->getFragmentStep(last, -1);
+      bool result = false;
+      Fragment *last = finalGeometry(task, &result);
       if (result) {
         const double *f = last->atomRef(0)->coordinates();
         out << " final0=" << f[0] << "," << f[1] << "," << f[2];
@@ -759,8 +777,7 @@ void carryInto(Resource *source, Resource *made, const string& point, int charge
     string w;
     frag = ScanPoint::fragment(fromTask, point, w);
   } else {
-    frag = fromTask->fragment();
-    if (frag) fromTask->getFragmentStep(frag, -1);
+    frag = finalGeometry(fromTask);
   }
   if (frag && frag->numAtoms() > 0) {
     if (chargeShift) frag->charge(frag->charge() + chargeShift);
