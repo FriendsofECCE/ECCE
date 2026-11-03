@@ -16,6 +16,7 @@
 #endif
 
 #include "wx/window.h"
+#include "wx/timer.h"
 #include "wx/bitmap.h"
 #include "wxgui/PlotDefs.H"
 #include "wxgui/PlotCurv.H"
@@ -961,6 +962,8 @@ protected:
     long   m_min_exponential;   // minimum number displayed as an exponential
     double m_pen_print_width;   // width of a 1 pixel pen in mm when printed
 
+    wxTimer m_wheelTimer;
+    double m_wheelLogZoom;
     wxTimer  *m_timer;          // don't use, see accessor functions
     wxWindow *m_winCapture;     // don't use, see accessor functions
 

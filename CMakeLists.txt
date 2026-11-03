@@ -2899,6 +2899,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_BINARY_DIR}/render-rgb)
   set_tests_properties(look_imageconv PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  add_test(NAME viewer_zoom_scene
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/viewer_zoom_test.py
+                   ${CMAKE_BINARY_DIR}/viewer-scenes)
+  set_tests_properties(viewer_zoom_scene PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # Thumbnail / Save As renders shade an ESP surface like the canvas.
   # Needs `ninja viewer-scenes`, Xvfb and PIL; SKIPs without them.
   add_test(NAME look_offscreen_shading

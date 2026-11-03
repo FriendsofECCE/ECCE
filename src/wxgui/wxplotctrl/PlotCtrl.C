@@ -427,6 +427,13 @@ void wxPlotCtrl::Init()
     m_min_exponential   = 1000;
     m_pen_print_width   = 0.4;
 
+    m_wheelLogZoom = 0;
+    m_wheelTimer.SetOwner(this);
+    Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+        const double factor = exp(m_wheelLogZoom);
+        m_wheelLogZoom = 0;
+        SetZoom(GetZoom() * factor, true, true);
+    }, m_wheelTimer.GetId());
     m_timer      = NULL;
     m_winCapture = NULL;
 
@@ -3139,16 +3146,12 @@ void wxPlotCtrl::ProcessAreaEVT_MOUSE_EVENTS( wxMouseEvent &event )
         }
     }
 
-    // Wheel scrolling up and down
-    if (event.GetWheelRotation() != 0)
+    if (event.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL && event.GetWheelRotation() != 0)
     {
-        //double dir = event.GetWheelRotation() > 0 ? 0.25 : -0.25;
-        //SetOrigin( m_viewRect.GetLeft(),
-        //           m_viewRect.GetTop() + dir*m_viewRect.m_height, true);
-
-        double dir = event.GetWheelRotation() > 0 ? 1.25 : 0.75;
-        wxPoint2DDouble z = GetZoom();
-        SetZoom( z * dir, true, true);
+        const int delta = event.GetWheelDelta() > 0 ? event.GetWheelDelta() : 120;
+        const double steps = event.GetWheelRotation() / (double)delta;
+        m_wheelLogZoom += steps > 0 ? steps * log(1.25) : -steps * log(0.75);
+        if (!m_wheelTimer.IsRunning()) m_wheelTimer.StartOnce(16);
     }
 
     int active_index = GetActiveIndex();
@@ -3390,7 +3393,7 @@ void wxPlotCtrl::ProcessAxisEVT_MOUSE_EVENTS( wxMouseEvent &event )
 
     int wheel = event.GetWheelRotation();
 
-    if (wheel != 0)
+    if (wheel != 0 && event.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL)
     {
         wheel = wheel > 0 ? 1 : wheel < 0 ? -1 : 0;
         double dx = 0, dy = 0;

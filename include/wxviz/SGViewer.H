@@ -108,6 +108,9 @@ public:
 
 protected:
 
+  void queueZoom(double steps);
+  double p_zoomGestureFactor = 1.0;
+
   int p_stickyMode;
   bool p_showText;
   bool p_dragFlag;
