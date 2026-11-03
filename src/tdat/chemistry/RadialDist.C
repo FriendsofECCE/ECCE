@@ -288,16 +288,24 @@ vector<int> radialNodes(const DensityPlane::Evaluator& ev, bool beta,
 }
 
 vector<string> shellLabels(IPropCalculation *calc,
-                           const DensityPlane::Evaluator& ev, bool beta)
+                           const DensityPlane::Evaluator& ev, bool beta, string *why)
 {
+  if (why) why->clear();
   vector<string> out;
-  if (ev.symbols.size() != 1) return out;
+  if (ev.symbols.size() != 1) {
+    if (why) *why = "not a one-atom calculation";
+    return out;
+  }
   vector< vector<double> > rows;
-  if (!MoAoBasis::coefficients(calc, ev.symbols, beta, rows) || rows.empty())
+  if (!MoAoBasis::coefficients(calc, ev.symbols, beta, rows) || rows.empty()) {
+    if (why) *why = "No MO coefficients for atomic shell labels.";
     return out;
+  }
   MoAoBasis basis;
-  if (!basis.build(calc, ev.symbols, ev.coordsAng, (int)rows[0].size()))
+  if (!basis.build(calc, ev.symbols, ev.coordsAng, (int)rows[0].size())) {
+    if (why) *why = "Atomic shell labels: " + basis.complaint;
     return out;
+  }
   const vector<double>& occ = beta ? ev.occBeta : ev.occ;
   static const char *letters = "spdfgh";
   int seen[6] = { 0, 0, 0, 0, 0, 0 };
@@ -381,11 +389,18 @@ vector<string> shellLabels(IPropCalculation *calc,
   return out;
 }
 
-vector<string> atomOrbitalLabels(IPropCalculation *calc, bool beta)
+vector<string> atomOrbitalLabels(IPropCalculation *calc, bool beta, string *why)
 {
   DensityPlane::Evaluator ev;
-  if (!calc || !ev.build(calc) || ev.symbols.size() != 1) return vector<string>();
-  return shellLabels(calc, ev, beta);
+  if (!calc) {
+    if (why) *why = "No calculation for atomic orbital labels.";
+    return vector<string>();
+  }
+  if (!ev.build(calc)) {
+    if (why) *why = "Atomic orbital evaluator: " + ev.complaint;
+    return vector<string>();
+  }
+  return shellLabels(calc, ev, beta, why);
 }
 
 vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,
