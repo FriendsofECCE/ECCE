@@ -237,6 +237,28 @@ static void trimUnconnectedFragment(MoColumn& column,
 }
 
 
+void MoDiagramPanel::setShowCore(bool on)
+{
+  if (p_showCore == 0) return;
+  p_showCore->SetValue(on);
+  wxCommandEvent event(wxEVT_CHECKBOX, p_showCore->GetId());
+  event.SetInt(on ? 1 : 0);
+  p_showCore->GetEventHandler()->ProcessEvent(event);
+}
+
+
+string MoDiagramPanel::coreText() const
+{
+  ostringstream out;
+  out.setf(std::ios::fixed);
+  out.precision(4);
+  for (const MoLevel& l : p_coreShown)
+    out << "core " << l.label << " E=" << l.energy << " occ=" << l.occupancy
+        << " side=" << l.coreSide << " nonbonding\n";
+  return out.str();
+}
+
+
 string MoDiagramPanel::levelText(int level)
 {
   return p_canvas ? p_canvas->describeLevel(level) : string();
@@ -579,6 +601,20 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showAll->Enable(false);
   views->Add(p_showAll, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  p_showCore = new ewxCheckBox(this, wxID_ANY, _("Show core orbitals"));
+  p_showCore->SetToolTip("Draw the core orbitals (F 1s, ...) as non-bonding "
+                         "levels below an axis break, not to scale. On by "
+                         "default for molecules of up to five atoms");
+  p_showCore->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+    ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+    if (cfg) {
+      cfg->Write("/MoDiagram/ShowCore", p_showCore->GetValue());
+      cfg->Flush();
+    }
+    onFragmentChanged(event);
+  });
+  views->Add(p_showCore, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   //  Only for a one-atom calculation (the aufbau view); see showAtomView().
   p_aufbauScale = new ewxCheckBox(this, wxID_ANY, _("Energies to scale"));
   p_aufbauScale->SetValue(getenv("ECCE_MODIAGRAM_AUFBAU_SCALE") != 0);
@@ -765,7 +801,7 @@ void MoDiagramPanel::atomChrome()
   p_optSizer->Show(p_fragToggle, false);
   p_fragPanel->Show(false);
   wxWindow *molecular[] = { p_showEnergies, p_showDescription, p_constructLabels,
-                            p_symmetryLabels, p_ligandField, p_showAll, p_piOnly };
+                            p_symmetryLabels, p_ligandField, p_showAll, p_piOnly, p_showCore };
   for (wxWindow *w : molecular) p_optViews->Show(w, false);
 }
 
@@ -3105,6 +3141,15 @@ void MoDiagramPanel::buildOnce()
   //  Both ends of the spectrum are folded away, not just the core, and
   //  both cutoffs report what they hid so an absence the reader cannot
   //  see does not pass for a complete diagram.
+  //  The occupied levels the core cutoff folds away, kept for the core band (#827).
+  vector<MoLevel> coreCandidates;
+  {
+    const double cut = MoDiagram::suggestCoreCutoff(centre.levels);
+    for (size_t i = 0; i < centre.levels.size(); i++)
+      if (centre.levels[i].energy < cut && centre.levels[i].occupancy > 0.0 &&
+          !centre.levels[i].orbitals.empty())
+        coreCandidates.push_back(centre.levels[i]);
+  }
   MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
 
   //  SEMICORE (#175): an OCCUPIED level whose largest Lowdin share sits,
@@ -3448,6 +3493,7 @@ void MoDiagramPanel::buildOnce()
   //  Which atoms actually ended up in each column -- needed below to
   //  compute each molecular level's composition, not just its irrep.
   vector<int> leftAtoms, rightAtoms;
+  vector<int> coreLeftAtoms, coreRightAtoms;   // as above, kept for the core band (#827)
 
   //  The fragment-orbital construction (FoDiagram) has its own columns,
   //  lines, placement and note; none of the symmetry-based machinery
@@ -3678,6 +3724,8 @@ void MoDiagramPanel::buildOnce()
             foNotOffered = "The model diagram is not available: " + mw +
                            " Use the MOs panel to look at the orbitals.";
         } else if (buildModel(leftAtoms, rightAtoms, charge, false, mw)) {
+          coreLeftAtoms = leftAtoms;
+          coreRightAtoms = rightAtoms;
           leftAtoms.clear();
           rightAtoms.clear();
         } else if (!mw.empty()) {
@@ -4274,6 +4322,60 @@ void MoDiagramPanel::buildOnce()
   //  refusals do; the reason is in the lines under the diagram.
   const string pickHeadline = (pickActive && !haveFragments && !why.empty())
       ? "The picked atoms cannot be drawn as two fragments" : string();
+  //  CORE BAND (#827): the folded occupied core levels, named by the MOs panel.
+  p_coreShown.clear();
+  if (p_showCore != 0) {
+    ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+    bool stored = false;
+    bool on = elements.size() <= 5;
+    if (cfg && cfg->Read("/MoDiagram/ShowCore", &stored, false)) on = stored;
+    const char *env = getenv("ECCE_MODIAGRAM_SHOWCORE");
+    if (env != 0) on = atoi(env) != 0;
+    if (p_showCore->GetValue() != on) p_showCore->SetValue(on);
+    if (on && !coreCandidates.empty()) {
+      MoPanel *mo = 0;
+      set<PropertyPanel*> panels = PropertyPanel::getPanels(
+          getCalculation()->getURL().toString(), "MOs");
+      for (set<PropertyPanel*>::iterator it = panels.begin();
+           it != panels.end() && !mo; ++it)
+        mo = dynamic_cast<MoPanel*>(*it);
+      for (size_t i = 0; mo != 0 && i < coreCandidates.size(); i++) {
+        MoLevel level = coreCandidates[i];
+        string label;
+        int atom = -1;
+        if (!mo->coreOrbital(level.orbitals[0], label, atom)) continue;
+        level.label = label;
+        level.coreAtom = atom;
+        level.coreSide = 0;
+        const vector<int>& la = coreLeftAtoms.empty() ? leftAtoms : coreLeftAtoms;
+        const vector<int>& ra = coreRightAtoms.empty() ? rightAtoms : coreRightAtoms;
+        for (size_t a = 0; a < la.size(); a++)
+          if (la[a] == atom) level.coreSide = -1;
+        for (size_t a = 0; a < ra.size(); a++)
+          if (ra[a] == atom) level.coreSide = 1;
+        level.character = MoLevel::NONBONDING;
+        p_coreShown.push_back(level);
+      }
+    }
+  }
+  centre.coreLevels = p_coreShown;
+  if (!p_coreShown.empty()) {
+    //  The summary counts the core orbitals "hidden"; the drawn ones are not.
+    int drawn = 0;
+    for (size_t i = 0; i < p_coreShown.size(); i++)
+      drawn += p_coreShown[i].degeneracy > 0 ? p_coreShown[i].degeneracy : 1;
+    const int all = centre.hiddenCount + centre.hiddenSemicoreCount;
+    const string cut = " \xC2\xB7 " + std::to_string(all) + " core";
+    const size_t at = tiers.summary.rfind(cut);
+    if (at != string::npos) {
+      tiers.summary.erase(at);
+      const int left = all - drawn;
+      if (left > 0)
+        tiers.summary += " \xC2\xB7 " + std::to_string(left) +
+            (centre.hiddenSemicoreCount > 0 ? " core and semicore orbitals"
+             : left == 1 ? " core orbital" : " core orbitals") + " hidden";
+    }
+  }
   p_canvas->setDiagram(left, centre, right, links, haveFragments, "", pickHeadline);
   p_canvas->setCalcHeader(levelSource(getCalculation(), true));
   p_lastNote = levelSource(getCalculation()) + tiers.summary;
