@@ -49,6 +49,7 @@ class PropertyTask : public ChemistryTask,
       virtual bool hasPointOrbitals();
       virtual bool orbitalsAtSomePointsOnly();
       int tsOnlyIrcOrbitals();
+      int computeTsOnlyIrcOrbitals();
       virtual bool pointHasOrbitals(int point);
 
       virtual bool fragment(Fragment* frag);
@@ -127,6 +128,10 @@ class PropertyTask : public ChemistryTask,
       TProperty* pointOrbitalProperty(const string& name, bool& hide);
       int orbitalTable(int point);
       int p_orbitalPoint = -1;
+      // tsOnlyIrcOrbitals() answer, kept until the cache is flushed or one of
+      // the properties it reads changes (it is asked on every getProperty).
+      bool p_tsOnlyKnown = false;
+      int p_tsOnly = -1;
       // Built from the per-point tables, "<key>@<point>"; kept until the
       // cache is flushed, since panels hold the pointers they were given.
       map<string, TProperty*> p_pointProps;

@@ -1908,10 +1908,15 @@ void CalcMgr::runTestCommand(const string& line)
         roots.push_back(EcceURL(urls.substr(at, end - at)));
         at = end + 1;
       }
+      const auto t0 = std::chrono::steady_clock::now();
       ChecksDialog dlg(this, calculationsUnder(roots), command == "rank");
       string why;
       if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
       else outcome = "failed: " + why;
+      char secs[40];
+      snprintf(secs, sizeof secs, " (%.1f s)", std::chrono::duration<double>(
+                   std::chrono::steady_clock::now() - t0).count());
+      outcome += secs;
     } else if (command == "compareforcesselection") {
       std::istringstream args(calcName);
       string url;

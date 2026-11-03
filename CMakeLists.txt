@@ -3457,6 +3457,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_rank_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Rank and Checks on a killed calculation, an empty folder and 60 large
+  # ones all answer (#793).
+  add_test(NAME apps_rank_freeze
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/rank_freeze_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_rank_freeze PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Vibrations panel Displace: new calculations along a mode (#618).
   add_test(NAME apps_nmode_displace
            COMMAND ${PYTHON3_EXECUTABLE}

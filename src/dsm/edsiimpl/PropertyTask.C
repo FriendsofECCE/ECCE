@@ -204,6 +204,9 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
   EcceURL fileUrl;
 
 
+  if (name == "PTMO" || name == "MO" || name == "IRCCOORD" || name == "IRCGEOM")
+    p_tsOnlyKnown = false;
+
   // Check if property is in the map first:
   // Else, get the property from the dav server add it to the map 
   // and return so that we don't add a step twice.  All data should be 
@@ -453,6 +456,29 @@ bool PropertyTask::hasPointOrbitals()
  */
 int PropertyTask::tsOnlyIrcOrbitals()
 {
+  if (!p_tsOnlyKnown) {
+    p_tsOnly = computeTsOnlyIrcOrbitals();
+    p_tsOnlyKnown = true;
+  }
+  return p_tsOnly;
+}
+
+
+int PropertyTask::computeTsOnlyIrcOrbitals()
+{
+  // Only an IRC has both; asking the store which properties exist keeps this
+  // from loading a multi-megabyte MO table for every other calculation.
+  try {
+    bool coord = false, geom = false;
+    for (const EcceURL& u : getVDoc()->getProperties()) {
+      const string n = u.getFilePathTail();
+      coord = coord || n == "IRCCOORD";
+      geom = geom || n == "IRCGEOM";
+    }
+    if (!coord || !geom) return -1;
+  } catch (...) {
+    return -1;
+  }
   if (getStoredProperty("PTMO") || !getStoredProperty("MO")) return -1;
   PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
   PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
@@ -1971,6 +1997,7 @@ void PropertyTask::flushPropertyCache()
      cur++;
    }
    p_properties.clear();
+   p_tsOnlyKnown = false;
    for (map<string, TProperty*>::iterator p = p_pointProps.begin();
         p != p_pointProps.end(); ++p)
      delete p->second;
