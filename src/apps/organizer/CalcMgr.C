@@ -586,6 +586,22 @@ static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
 
+// Include submenu paths so tests can check the action and its enabled state.
+static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
+                                    bool enabled = true)
+{
+  string labels;
+  for (wxMenuItem *item : menu.GetMenuItems()) {
+    if (item->IsSeparator()) continue;
+    const string path = prefix + string(item->GetItemLabelText().ToUTF8());
+    const bool active = enabled && item->IsEnabled();
+    labels += string("|") + (active ? "" : "~") + path;
+    if (item->GetSubMenu())
+      labels += testContextMenuLabels(*item->GetSubMenu(), path + ">", active);
+  }
+  return labels;
+}
+
 void CalcMgr::runTestCommand(const string& line)
 {
   string outcome;
@@ -2273,16 +2289,11 @@ void CalcMgr::runTestCommand(const string& line)
       p_focusOnTree = false;
       wxMenu menu;
       getContextMenu(menu);
-      outcome = "ok";
-      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
-        wxMenuItem *it = menu.FindItemByPosition(i);
-        if (!it->IsSeparator())
-          outcome += string("|") + (it->IsEnabled() ? "" : "~") +
-                     string(it->GetItemLabelText().ToUTF8());
-      }
+      outcome = "ok" + testContextMenuLabels(menu);
     } else if (command == "treecontextmenu") {
       // "treecontextmenu URL": selects URL in the tree and lists the items
-      // its right-click menu offers (joined by |), "~" before a disabled one.
+      // its right-click menu offers (joined by |), ">" inside submenus,
+      // "~" before a disabled path.
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
       if (node) {
         p_treeCtrl->SelectItem(node->GetId());
@@ -2290,13 +2301,7 @@ void CalcMgr::runTestCommand(const string& line)
       }
       wxMenu menu;
       getContextMenu(menu);
-      outcome = "ok";
-      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
-        wxMenuItem *it = menu.FindItemByPosition(i);
-        if (!it->IsSeparator())
-          outcome += string("|") + (it->IsEnabled() ? "" : "~") +
-                     string(it->GetItemLabelText().ToUTF8());
-      }
+      outcome = "ok" + testContextMenuLabels(menu);
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
       // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered

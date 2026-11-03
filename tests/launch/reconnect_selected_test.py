@@ -214,23 +214,33 @@ def main():
         #  The tree's right-click menu: on a waiting job, enabled; on the
         #  calculation that was never launched, offered but disabled.
         ans = send("treecontextmenu %s" % urls[0])
-        check("|Reconnect Selected..." in ans, "tree menu: Reconnect Selected on a waiting job (%s)" % ans)
+        check("Run>Reconnect..." in ans.split("|"), "tree menu: Reconnect on a waiting job (%s)" % ans)
         ans = send("treecontextmenu %s" % never)
-        check("|~Reconnect Selected..." in ans, "tree menu: Reconnect Selected disabled when not launched (%s)" % ans)
+        check("~Run>Reconnect..." in ans.split("|"), "tree menu: Reconnect disabled when not launched (%s)" % ans)
 
         #  The project table's right-click menu, one row: the same rule (#689).
         ans = send("tablecontextmenu %s" % urls[0])
-        check("|Reconnect Selected..." in ans, "table menu: Reconnect Selected on a waiting job (%s)" % ans)
+        check("Run>Reconnect Selected..." in ans.split("|"), "table menu: Reconnect Selected on a waiting job (%s)" % ans)
         ans = send("tablecontextmenu %s" % never)
-        check("|~Reconnect Selected..." in ans, "table menu: Reconnect Selected disabled when not launched (%s)" % ans)
+        check("~Run>Reconnect Selected..." in ans.split("|"), "table menu: Reconnect Selected disabled when not launched (%s)" % ans)
+
+        #  Finished and cancelled jobs must not have their outputs cleared.
+        for state in ("completed", "killed"):
+            ans = send("setstate %s %s" % (urls[1], state))
+            check(ans == "ok", "second job set %s (%s)" % (state, ans))
+            for view, label in (("tree", "Reconnect..."),
+                                ("table", "Reconnect Selected...")):
+                ans = send("%scontextmenu %s" % (view, urls[1]))
+                check("~Run>" + label in ans.split("|"),
+                      "%s menu: Reconnect disabled when %s (%s)" % (view, state, ans))
 
         #  An incomplete job with its job record is reconnectable everywhere.
         ans = send("setstate %s incomplete" % urls[1])
         check(ans == "ok", "second job set incomplete (%s)" % ans)
         ans = send("treecontextmenu %s" % urls[1])
-        check("|Reconnect Selected..." in ans, "tree menu: Reconnect Selected on an incomplete job (%s)" % ans)
+        check("Run>Reconnect..." in ans.split("|"), "tree menu: Reconnect on an incomplete job (%s)" % ans)
         ans = send("tablecontextmenu %s" % urls[1])
-        check("|Reconnect Selected..." in ans, "table menu: Reconnect Selected on an incomplete job (%s)" % ans)
+        check("Run>Reconnect Selected..." in ans.split("|"), "table menu: Reconnect Selected on an incomplete job (%s)" % ans)
         ans = send("reconnectselectedlist %s" % urls[1])
         check(("%s|localhost|Incomplete|ok" % names[1]) in ans, "incomplete job listed as reconnectable (%s)" % ans)
 
