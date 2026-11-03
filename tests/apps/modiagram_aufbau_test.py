@@ -148,6 +148,13 @@ def main():
                     check(not overlaps, "%s %s %s: no rectangle overlaps %s" %
                           (name, view, size, overlaps))
                     shells = parse(text)
+                    empty_labels = [label for label, shell in shells.items()
+                                    if shell[1] + shell[2] == 0]
+                    expected_empty = {"O": {"3s", "3p"}, "Ar": {"4s", "4p"},
+                                      "Cr": {"4p", "5s"}}.get(name)
+                    if expected_empty is not None:
+                        check(set(empty_labels) == expected_empty,
+                              "%s %s: empty subshell names %s" % (name, view, empty_labels))
                     if view == "B":
                         rows = [next((r[2] for r in rects
                                       if r[0] == "box" and r[5] == label), None)
@@ -160,11 +167,24 @@ def main():
                               (layout is not None and layout[3] != "none")) and
                               all(a > b for a, b in zip(visible, visible[1:])),
                               "%s %s: staircase energy ranks increase upwards" % (name, size))
+                    if view == "B":
+                        clear = True
+                        for label in empty_labels:
+                            dashed = sorted((r for r in rects if r[0] == "box" and r[5] == label),
+                                            key=lambda r: r[1])
+                            labels = [r for r in rects if r[0] == "text" and r[5] == label]
+                            clear &= len(dashed) == len(shells[label][3]) and len(labels) == 1
+                            clear &= all(b[1] - (a[1]+a[3]) == 3 for a, b in zip(dashed, dashed[1:]))
+                            if dashed and labels:
+                                clear &= dashed[0][1] - (labels[0][1]+labels[0][3]) == 4
+                        check(clear, "%s %s: dashed boxes keep box and label gaps" % (name, size))
                     if view == "B" and name in ("Cr", "Cu"):
                         boxes = {label: next(r for r in rects
                                             if r[0] == "box" and r[5] == label)
-                                 for label in ("3d", "4s")}
-                        check(boxes["3d"][1] < boxes["4s"][1] and
+                                 for label in ("3s", "3d", "4s", "4p")}
+                        check(boxes["3d"][1] == boxes["3s"][1] and
+                              boxes["4s"][1] == boxes["4p"][1] and
+                              (int(layout[2]) > 0 or boxes["3d"][1] < boxes["4s"][1]) and
                               boxes["3d"][2] > boxes["4s"][2],
                               "%s %s: 3d in n=3, 4s in n=4, ordered by energy" % (name, size))
                     core_rows = []

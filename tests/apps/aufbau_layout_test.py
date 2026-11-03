@@ -60,6 +60,17 @@ def main():
                 if max(r[1], q[1]) < min(r[1]+r[3], q[1]+q[3]) and max(r[2], q[2]) < min(r[2]+r[4], q[2]+q[4]):
                     problems.append('overlap: '+str((r, q)))
         boxes = [r for r in rects if r[0] == 'box']
+        empty_labels = re.findall(r'^shell (\S+) core=\d electrons=0', text, re.M)
+        if not scaled:
+            for label in empty_labels:
+                dashed = sorted((r for r in boxes if r[5] == label), key=lambda r: r[1])
+                labels = [r for r in rects if r[0] == 'text' and r[5] == label]
+                if not dashed or len(labels) != 1:
+                    problems.append('empty subshell boxes or label missing: '+label)
+                    continue
+                if (any(b[1]-(a[1]+a[3]) != 3 for a, b in zip(dashed, dashed[1:])) or
+                        dashed[0][1]-(labels[0][1]+labels[0][3]) != 4):
+                    problems.append('dashed box or label gap differs: '+label)
         for heading in (r for r in rects if r[0] == 'text' and r[5].startswith('n = ')):
             shell_boxes = [r for r in boxes if r[5].startswith(heading[5][-1])]
             if not shell_boxes or heading[2] <= max(r[2]+r[4] for r in shell_boxes):

@@ -18,7 +18,9 @@ public:
     for (const string& name : {"O", "Ar", "Cr", "Cu", "Xe", "reordered"}) {
       vector<AufbauShell> shells;
       std::istringstream labels(name == "Cr"
-          ? "1s 2s 2p 3s 3p 3d 4s 6p 5s"
+          ? "1s 2s 2p 3s 3p 3d 4s 4p 5s"
+          : name == "O" ? "1s 2s 2p 3s 3p"
+          : name == "Ar" ? "1s 2s 2p 3s 3p 4s 4p"
           : "1s 2s 2p 3s 3p 4s 3d 4p 5s 4d 5p 6s 5d");
       string label;
       int orbital = 0;
@@ -30,19 +32,19 @@ public:
         for (int k = 0; k < 2*s.l+1; ++k) {
           AufbauOrbital o; o.index = orbital++; o.eV = s.mean;
           o.up = o.down = label != "6s" && label != "5d";
-          if ((name == "O" && label == "3s") ||
-              (name == "Ar" && (label == "4s" || label == "3d")) ||
+          if ((name == "O" && (label == "3s" || label == "3p")) ||
+              (name == "Ar" && (label == "4s" || label == "4p")) ||
               ((name == "Cu" || name == "Cr") && label == "4p")) o.up = o.down = 0;
           if (name == "O" && label == "2p") o.down = k == 0;
           if ((name == "Cu" || name == "Cr") && label == "4s") o.down = 0;
           if (name == "Cr" && label == "3d") o.down = 0;
-          if (name == "Cr" && (label == "6p" || label == "5s")) o.up = o.down = 0;
+          if (name == "Cr" && (label == "4p" || label == "5s")) o.up = o.down = 0;
           s.electrons += o.up+o.down; s.orbs.push_back(o);
         }
         shells.push_back(s);
-        if ((name == "O" && label == "3s") ||
-            (name == "Ar" && label == "3d") ||
-            ((name == "Cu" || name == "Cr") && label == "4p")) break;
+        if ((name == "O" && label == "3p") ||
+            (name == "Ar" && label == "4p") ||
+            (name == "Cu" && label == "4p")) break;
       }
       if (name == "reordered") std::swap(shells[5], shells[6]);
       canvas->setModel(name, shells);
