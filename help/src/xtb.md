@@ -81,8 +81,10 @@ other code. xtb has no basis set, so the Basis Set Tool is not used.
 
   GFN-FF is the quick choice for a first look; GFN2-xTB gives better
   relative energies. The ensemble is stored like a CREST ensemble: the
-  conformers are the geometry trace in the Builder, ordered by relative
-  energy (kcal/mol, within this one method), and the workflow steps that take
+  conformers are listed in the Builder's **Conformers** panel, lowest first,
+  with the relative energy (kcal/mol, within this one method), the Boltzmann
+  population at 298.15 K and, around an ion, the coordination pattern; a
+  click on a row shows that conformer, and **Export .csv** saves the table. The workflow steps that take
   the lowest conformers or one conformer per coordination pattern work on
   it unchanged. The step runs `python3` on the machine that runs the
   job, and uses the processors of the job to optimise several starts at

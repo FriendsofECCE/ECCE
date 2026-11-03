@@ -39,6 +39,7 @@
 
 #include "Builder.H"
 #include "GeomTracePropertyPanel.H"
+#include "EnsemblePropertyPanel.H"
 #include "wxgui/ewxChoice.H"
 #include "PlotAnyPropertyPanel.H"
 #include "wxgui/SliderCombo.H"
@@ -305,6 +306,40 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     fprintf(stderr, "GTSTRESS: click %d -> structure %ld of %d, plot point %d\n",
             index, pb ? pb->GetCurrentStep() + 1 : -1,
             gt->frameCount(), plot->selectedIndex());
+    return true;
+  }
+
+  //  Ensemble panel: "gtenrows" prints the table and the panel's kind;
+  //  "gtenselect <rank>" shows that member and prints atom 1; "gtencsv <path>".
+  //  "gtenkind <runtype, _ for space> <0|1 scored>": the entry name for a run type.
+  if (c == "gtenkind" && w.size() == 3) {
+    string rt = w[1];
+    for (size_t i = 0; i < rt.size(); i++) if (rt[i] == '_') rt[i] = ' ';
+    fprintf(stderr, "GTSTRESS: enkind %s = %s\n", w[1].c_str(),
+            EnsemblePropertyPanel::kindFor(rt, w[2] == "1").c_str());
+    return true;
+  }
+  if (c == "gtenrows" || c == "gtencsv" || c == "gtenselect") {
+    EnsemblePropertyPanel *en = dynamic_cast<EnsemblePropertyPanel*>(gt);
+    if (!en) return s.fail(c + ": no ensemble panel");
+    if (c == "gtenrows") {
+      vector<string> rows = en->tableRows();
+      fprintf(stderr, "GTSTRESS: ensemble kind=%s rows=%d\n", en->kind().c_str(),
+              (int)rows.size());
+      for (size_t i = 0; i < rows.size(); i++)
+        fprintf(stderr, "GTSTRESS: enrow %s\n", rows[i].c_str());
+    } else if (c == "gtencsv" && w.size() == 2) {
+      fprintf(stderr, "GTSTRESS: encsv %s\n", en->exportCsv(w[1]) ? "ok" : "failed");
+    } else if (c == "gtenselect" && w.size() == 2) {
+      const bool ok = en->selectRank(atoi(w[1].c_str()));
+      spin(50);
+      const double *p = getSG()->getFragment()->atomRef(0)->coordinates();
+      fprintf(stderr, "GTSTRESS: enselect %s ok=%d atom1 %.6f %.6f %.6f plot=%d\n",
+              w[1].c_str(), (int)ok, p[0], p[1], p[2],
+              plotOf(en) ? plotOf(en)->selectedIndex() + 1 : -1);
+    } else {
+      return s.fail("bad ensemble command");
+    }
     return true;
   }
 

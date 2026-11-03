@@ -162,6 +162,32 @@ GeomTracePropertyPanel::~GeomTracePropertyPanel()
 }
 
 
+void GeomTracePropertyPanel::buildPatternTable()
+{
+  vector<ScanPoint::Pattern> pats;
+  string why;
+  if (!ScanPoint::ensemblePatterns(dynamic_cast<PropertyTask*>(getCalculation()),
+                                   pats, why))
+    return;
+  p_patterns = new wxListCtrl(this, wxID_ANY, wxDefaultPosition,
+                              wxSize(-1, 24 * ((int)pats.size() + 1)),
+                              wxLC_REPORT | wxLC_SINGLE_SEL);
+  p_patterns->AppendColumn("Coordination pattern", wxLIST_FORMAT_LEFT, 260);
+  p_patterns->AppendColumn("Conformers", wxLIST_FORMAT_RIGHT, 90);
+  p_patterns->AppendColumn("Lowest (kcal/mol)", wxLIST_FORMAT_RIGHT, 120);
+  p_patterns->AppendColumn("Conformer", wxLIST_FORMAT_RIGHT, 80);
+  for (size_t i = 0; i < pats.size(); i++) {
+    long row = p_patterns->InsertItem((long)i, wxString::FromUTF8(pats[i].label.c_str()));
+    p_patterns->SetItem(row, 1, wxString::Format("%d", pats[i].count));
+    p_patterns->SetItem(row, 2, wxString::Format("%.3f", pats[i].relative));
+    p_patterns->SetItem(row, 3, wxString::Format("%d", pats[i].rank));
+  }
+  p_patterns->SetToolTip("Conformers grouped by first-shell donor atoms; "
+      "relative energies are within the one CREST method only");
+  GetSizer()->Add(p_patterns, 0, wxEXPAND|wxALL, 2);
+}
+
+
 void GeomTracePropertyPanel::initialize()
 {
   set<string> names;
@@ -236,31 +262,7 @@ void GeomTracePropertyPanel::initialize()
   sizer->Add(p_propChoice, 1, wxALIGN_CENTER_VERTICAL);
   GetSizer()->Add(sizer, 0, wxEXPAND|wxALL, 2);
 
-  // A CREST ensemble around an ion: its coordination patterns (ecce-contacts)
-  // with the lowest-energy conformer of each.
-  {
-    vector<ScanPoint::Pattern> pats;
-    string why;
-    if (ScanPoint::ensemblePatterns(dynamic_cast<PropertyTask*>(getCalculation()),
-                                    pats, why)) {
-      p_patterns = new wxListCtrl(this, wxID_ANY, wxDefaultPosition,
-                                  wxSize(-1, 24 * ((int)pats.size() + 1)),
-                                  wxLC_REPORT | wxLC_SINGLE_SEL);
-      p_patterns->AppendColumn("Coordination pattern", wxLIST_FORMAT_LEFT, 260);
-      p_patterns->AppendColumn("Conformers", wxLIST_FORMAT_RIGHT, 90);
-      p_patterns->AppendColumn("Lowest (kcal/mol)", wxLIST_FORMAT_RIGHT, 120);
-      p_patterns->AppendColumn("Conformer", wxLIST_FORMAT_RIGHT, 80);
-      for (size_t i = 0; i < pats.size(); i++) {
-        long row = p_patterns->InsertItem((long)i, wxString::FromUTF8(pats[i].label.c_str()));
-        p_patterns->SetItem(row, 1, wxString::Format("%d", pats[i].count));
-        p_patterns->SetItem(row, 2, wxString::Format("%.3f", pats[i].relative));
-        p_patterns->SetItem(row, 3, wxString::Format("%d", pats[i].rank));
-      }
-      p_patterns->SetToolTip("Conformers grouped by first-shell donor atoms; "
-          "relative energies are within the one CREST method only");
-      GetSizer()->Add(p_patterns, 0, wxEXPAND|wxALL, 2);
-    }
-  }
+  buildPatternTable();
 
   buildDisplacementPane();
 
@@ -385,7 +387,7 @@ bool GeomTracePropertyPanel::isRelevant(IPropCalculation *propCalc) const
   if (propCalc) {
     PropTSVecTable *trace = (PropTSVecTable*)propCalc->getProperty(getTracePropKey());
     if (trace && trace->tables() > 1) {
-      ret = true;
+      ret = !ScanPoint::ensembleSize(dynamic_cast<PropertyTask*>(propCalc));
     }
   }
 
