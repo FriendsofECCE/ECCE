@@ -22,6 +22,12 @@ INTERNAL = {
 SCRIPT_COMMANDS = {"ecce-mlp", "ecce-confsearch", "ecce-csh2sh"}
 
 
+def staged(path):
+    """The file of an installed path, under $DESTDIR for a staged install."""
+    root = os.environ.get("DESTDIR")
+    return Path(root) / path.relative_to("/") if root else path
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build", required=True, type=Path)
@@ -36,7 +42,7 @@ def main():
     if not programs:
         parser.error("install manifest contains no ECCE bin programs")
     programs += sorted(args.home / "scripts" / name for name in SCRIPT_COMMANDS)
-    launch = (args.wrappers / "ecce-launch").read_text()
+    launch = staged(args.wrappers / "ecce-launch").read_text()
     failures = []
     checked = 0
     for program in programs:
@@ -46,15 +52,15 @@ def main():
             continue
         command = name if name.startswith("ecce-") else "ecce-" + name
         wrapper = args.wrappers / command
-        if program not in installed or not program.is_file():
+        if program not in installed or not staged(program).is_file():
             failures.append("installed program missing: " + str(program))
             continue
-        if wrapper not in installed or not wrapper.is_file():
+        if wrapper not in installed or not staged(wrapper).is_file():
             failures.append("no installed wrapper for %s: %s" % (name, command))
             continue
         checked += 1
         print("WRAPPED %s -> %s" % (name, command))
-        text = wrapper.read_text()
+        text = staged(wrapper).read_text()
         target = program.relative_to(args.home).as_posix()
         # The plain CLI wrappers must forward to the installed name, including
         # scripts renamed from Python sources. Legacy GUI wrappers do more work.
@@ -81,7 +87,7 @@ def main():
                        ECCE_LOCAL_DATA=str(root / "data"))
             for key in ("ECCE_REALUSER", "ECCE_REALUSERHOME", "HOST"):
                 env.pop(key, None)
-            result = subprocess.run(["bash", str(wrapper), "two words", ""],
+            result = subprocess.run(["bash", str(staged(wrapper)), "two words", ""],
                                     env=env, capture_output=True, text=True, timeout=15)
             if result.returncode != 37:
                 failures.append("environment/arguments/exit status: %s: %s %s" %

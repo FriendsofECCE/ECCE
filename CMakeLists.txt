@@ -4689,5 +4689,5 @@ add_test(NAME packaging_command_wrappers
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/packaging/command_wrappers_test.py
                  --build ${CMAKE_BINARY_DIR}
-                 --home ${ECCE_HOME_DIR}
+                 --home ${CMAKE_INSTALL_PREFIX}
                  --wrappers ${ECCE_WRAPPER_DESTINATION})
