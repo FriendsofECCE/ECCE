@@ -1131,7 +1131,7 @@ string WorkflowSteps::resultLine(Resource *step, const string& progress)
     // U+2212, as the Progress box writes a negative number
     string e = number("%.3f", hartree);
     if (e[0] == '-') e = "\xe2\x88\x92" + e.substr(1);
-    line = "E " + e + " Eh";
+    line = (fe.ts ? "TS E " : "E ") + e + " Eh";
   }
   PropVector *vf = dynamic_cast<PropVector*>(task->getProperty("VIBFREQ"));
   if (vf && !vf->values().empty()) {
