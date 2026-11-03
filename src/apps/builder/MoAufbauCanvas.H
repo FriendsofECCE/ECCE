@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <sstream>
 #include <vector>
 
 #include <wx/bitmap.h>
@@ -115,13 +116,29 @@ class MoAufbauCanvas : public wxPanel
       configFont.SetPointSize(configFont.GetPointSize() + 3);
       dc.SetFont(configFont);
       const string config = aufbau::configuration(p_symbol, p_shells);
-      const wxSize extent = dc.GetTextExtent(wxString::FromUTF8(config.c_str()));
-      text(dc, config, std::max(8, (size.x - extent.x) / 2), 8);
+      // Keep every subshell in the configuration even when the drawing folds a core.
+      std::istringstream words(config);
+      string word, line;
+      vector<string> lines;
+      while (words >> word) {
+        const string next = line.empty() ? word : line + " " + word;
+        if (!line.empty() && dc.GetTextExtent(wxString::FromUTF8(next.c_str())).x > size.x-16) {
+          lines.push_back(line);
+          line = word;
+        } else line = next;
+      }
+      if (!line.empty()) lines.push_back(line);
+      int top = 8;
+      for (const string& value : lines) {
+        const wxSize extent = dc.GetTextExtent(wxString::FromUTF8(value.c_str()));
+        text(dc, value, std::max(8, (size.x - extent.x) / 2), top);
+        top += extent.y;
+      }
       dc.SetFont(*wxNORMAL_FONT);
       const int lineH = dc.GetTextExtent(wxT("Xg")).y;
       text(dc, p_scale ? "orbital energies to scale (eV)" : "not to scale", 12,
            size.y - lineH - 6);
-      const int top = 8 + extent.y + 14;
+      top += 14;
       const wxRect plot(12, top, size.x - 24, size.y - top - lineH - 18);
       if (p_scale) drawScaled(dc, plot); else drawBoxes(dc, plot);
     }
@@ -163,85 +180,148 @@ class MoAufbauCanvas : public wxPanel
           std::to_string(p_hits[picked].orbital) + "\n";
     }
 
-    // Shell columns share energy ranks; measured labels reserve their own space.
+    // Share energy ranks across wraps; reserve each column's entire vertical span
+    // because a lower-n d shell can lie above the next shell's s level.
     void drawBoxes(wxDC& dc, const wxRect& plot)
     {
-      const int rows = (int)p_shells.size();
       const int lineH = dc.GetTextExtent(wxT("Xg")).y;
+      const int gap = 3, labelGap = 4, colGap = 10, rowGap = 2;
+      const int arrowW = lineH + 28;
       int maxN = 1, labelW = 0;
       for (const AufbauShell& s : p_shells) {
         maxN = std::max(maxN, s.n);
         labelW = std::max(labelW, dc.GetTextExtent(wxString::FromUTF8(s.label.c_str())).x);
       }
-      const int gap = 3, labelGap = 4, colGap = 10;
-      const int arrowW = lineH + 28;
-      auto widths = [&](int box) {
-        vector<int> widths(maxN, dc.GetTextExtent(wxT("n = 1")).x);
-        for (const AufbauShell& s : p_shells) {
-          int width = 0;
-          for (int l = 0; l <= s.l; ++l)
-            width += labelW + labelGap + (2*l+1)*(box+gap) + colGap;
-          widths[s.n-1] = std::max(widths[s.n-1], width - colGap);
+      struct Column { int n, first, last; wxRect bounds; };
+      vector<Column> columns;
+      vector<int> shown;
+      string core;
+      int box = 18, rowH = 22, height = 0, width = 0, wraps = 0;
+      auto layout = [&](int first, int candidate, bool wrap) {
+        columns.clear(); shown.clear(); wraps = 0;
+        box = candidate;
+        rowH = std::max(box, lineH) + rowGap;
+        for (int r = first; r < (int)p_shells.size(); ++r) shown.push_back(r);
+        const int rows = (int)shown.size();
+        height = rows*rowH + lineH + 4 + (core.empty() ? 0 : lineH+12);
+        if (height > plot.height) return false;
+        int nextX = 0;
+        width = 0;
+        for (int n = 1; n <= maxN; ++n) {
+          Column c; c.n = n; c.first = rows; c.last = -1;
+          int w = dc.GetTextExtent(wxString::FromUTF8(("n = " + std::to_string(n)).c_str())).x;
+          for (int r = 0; r < rows; ++r) {
+            const AufbauShell& s = p_shells[shown[r]];
+            if (s.n != n) continue;
+            c.first = std::min(c.first, r); c.last = r;
+            w = std::max(w, labelW + labelGap + (int)s.orbs.size()*(box+gap)-gap);
+          }
+          if (c.last < 0) continue;
+          c.bounds = wxRect(nextX, (rows-1-c.last)*rowH, w,
+                            (c.last-c.first)*rowH + box + 4 + lineH);
+          if (c.bounds.GetRight()+1 > plot.width-arrowW && wrap) {
+            c.bounds.x = 0;
+            ++wraps;
+          }
+          // A wrap may cross an earlier column whose levels extend higher.
+          bool collision;
+          do {
+            collision = false;
+            for (const Column& old : columns) {
+              if (!c.bounds.Intersects(old.bounds)) continue;
+              c.bounds.x = old.bounds.GetRight()+1+colGap;
+              collision = true;
+            }
+          } while (collision);
+          if (c.bounds.GetRight()+1 > plot.width-arrowW) return false;
+          nextX = c.bounds.GetRight()+1+colGap;
+          width = std::max(width, nextX-colGap);
+          columns.push_back(c);
         }
-        return widths;
+        if (!core.empty()) width = std::max(width, dc.GetTextExtent(wxString::FromUTF8(core.c_str())).x+16);
+        width += arrowW;
+        return width <= plot.width;
       };
-      int box = std::min(40, (plot.height - lineH - 16) / std::max(1, rows) - 8);
-      box = std::max(14, box);
-      vector<int> colW;
-      int total = 0;
-      for (;;) {
-        colW = widths(box);
-        total = arrowW + colGap * (maxN - 1);
-        for (int w : colW) total += w;
-        if (total <= plot.width || box == 14) break;
-        --box;
+      auto fit = [&](int first) {
+        for (bool wrap : {false, true})
+          for (int candidate = 40; candidate >= 18; --candidate)
+            if (layout(first, candidate, wrap)) return true;
+        return false;
+      };
+      bool fitted = fit(0);
+      if (!fitted) {
+        const char *names[] = {"He", "Ne", "Ar", "Kr", "Xe"};
+        const char *filled[] = {"1s", "2s 2p", "3s 3p", "4s 3d 4p", "5s 4d 5p"};
+        vector<string> labels;
+        for (int k = 0; k < 5 && !fitted; ++k) {
+          std::istringstream tokens(filled[k]);
+          string label;
+          while (tokens >> label) labels.push_back(label);
+          int first = 0;
+          for (const AufbauShell& s : p_shells) {
+            if (std::find(labels.begin(), labels.end(), s.label) == labels.end() ||
+                (int)s.orbs.size() != 2*s.l+1 || s.electrons != 2*(2*s.l+1)) break;
+            ++first;
+          }
+          if (first != (int)labels.size() || first == (int)p_shells.size()) continue;
+          core = "[" + string(names[k]) + "]";
+          fitted = fit(first);
+        }
       }
-      const int rowH = std::max(std::max(box, lineH) + 8,
-          std::min(64, (plot.height - lineH - 16) / std::max(1, rows)));
-      const int height = lineH + 16 + rows * rowH;
-      const int left = plot.x + (plot.width - total) / 2;
-      const int top = plot.y + std::max(0, (plot.height - height) / 2);
-      vector<int> colX(maxN, left);
-      for (int n = 1; n < maxN; ++n) colX[n] = colX[n-1] + colW[n-1] + colGap;
-      for (int n = 1; n <= maxN; ++n) {
-        const string heading = "n = " + std::to_string(n);
+      if (!fitted) return;
+      p_layout += "boxes size=" + std::to_string(box) + " wraps=" + std::to_string(wraps) +
+          " core=" + (core.empty() ? "none" : core) + "\n";
+      const int left = plot.x + (plot.width-width)/2;
+      const int top = plot.y + (plot.height-height)/2;
+      const int rows = (int)shown.size();
+      for (const Column& c : columns) {
+        const string heading = "n = " + std::to_string(c.n);
         const int w = dc.GetTextExtent(wxString::FromUTF8(heading.c_str())).x;
-        text(dc, heading, colX[n-1] + (colW[n-1] - w)/2, top);
-      }
-      for (int r = 0; r < rows; ++r) {
-        const AufbauShell& s = p_shells[r];
-        int x = colX[s.n-1];
-        for (int l = 0; l < s.l; ++l)
-          x += labelW + labelGap + (2*l+1)*(box+gap) + colGap;
-        const int y = top + lineH + 16 + (rows - 1 - r)*rowH;
-        const wxColour colour = s.electrons ? wxColour(30,30,30) : wxColour(145,145,145);
-        dc.SetTextForeground(colour);
-        const int w = dc.GetTextExtent(wxString::FromUTF8(s.label.c_str())).x;
-        text(dc, s.label, x + labelW - w, y + (box-lineH)/2);
-        x += labelW + labelGap;
-        vector<const AufbauOrbital*> order;
-        for (const AufbauOrbital& o : s.orbs) order.push_back(&o);
-        std::stable_sort(order.begin(), order.end(),
-            [](const AufbauOrbital *a, const AufbauOrbital *b)
-            { return a->up + a->down > b->up + b->down; });
-        for (size_t k = 0; k < order.size(); ++k) {
-          const wxRect rect(x + (int)k*(box+gap), y, box, box);
-          dc.SetPen(wxPen(colour, 1, s.electrons ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
-          dc.SetBrush(*wxTRANSPARENT_BRUSH);
-          dc.DrawRectangle(rect);
-          rectangle("box", s.label, rect);
-          drawArrows(dc, rect.x + box/2, y+3, y+box-3, *order[k], box);
-          addHit(rect, s, *order[k]);
+        dc.SetTextForeground(wxColour(30,30,30));
+        text(dc, heading, left+c.bounds.x+(c.bounds.width-w)/2,
+             top+(rows-1-c.first)*rowH+box+4);
+        for (int r = c.first; r <= c.last; ++r) {
+          const AufbauShell& s = p_shells[shown[r]];
+          if (s.n != c.n) continue;
+          int x = left+c.bounds.x;
+          const int y = top+(rows-1-r)*rowH;
+          const wxColour colour = s.electrons ? wxColour(30,30,30) : wxColour(145,145,145);
+          dc.SetTextForeground(colour);
+          const int w = dc.GetTextExtent(wxString::FromUTF8(s.label.c_str())).x;
+          text(dc, s.label, x+labelW-w, y+(box-lineH)/2);
+          x += labelW+labelGap;
+          vector<const AufbauOrbital*> order;
+          for (const AufbauOrbital& o : s.orbs) order.push_back(&o);
+          std::stable_sort(order.begin(), order.end(),
+              [](const AufbauOrbital *a, const AufbauOrbital *b)
+              { return a->up+a->down > b->up+b->down; });
+          for (size_t k = 0; k < order.size(); ++k) {
+            const wxRect rect(x+(int)k*(box+gap), y, box, box);
+            dc.SetPen(wxPen(colour, 1, s.electrons ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            dc.DrawRectangle(rect);
+            rectangle("box", s.label, rect);
+            drawArrows(dc, rect.x+box/2, y+3, y+box-3, *order[k], box);
+            addHit(rect, s, *order[k]);
+          }
         }
       }
       dc.SetTextForeground(wxColour(80,80,80));
       dc.SetPen(wxPen(wxColour(80,80,80), 1));
-      const int ax = left + total - arrowW + 8;
-      const int ay = top + lineH + 16;
-      arrow(dc, ax, ay, ay + rows*rowH - 8, true);
+      if (!core.empty()) {
+        const wxSize e = dc.GetTextExtent(wxString::FromUTF8(core.c_str()));
+        const wxRect rect(left, top+rows*rowH+lineH+4, e.x+16, lineH+8);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(rect);
+        // Record the label's enclosing box once, so overlap checks include its border.
+        rectangle("core", core, rect);
+        dc.DrawText(wxString::FromUTF8(core.c_str()), rect.x+8, rect.y+4);
+      }
+      const int ax = left+width-arrowW+8;
+      arrow(dc, ax, top, top+rows*rowH-4, true);
       const wxString caption = wxT("energy (order)");
       const wxSize e = dc.GetTextExtent(caption);
-      const int cy = ay + (rows*rowH + e.x)/2;
+      const int cy = top+(rows*rowH+e.x)/2;
       rectangle("text", "energy (order)", wxRect(ax+8, cy-e.x, e.y, e.x));
       dc.DrawRotatedText(caption, ax+8, cy, 90);
     }
