@@ -115,8 +115,9 @@ The numbers are those of `ecce-thermo --reactions`.
 
 ## Compare Forces
 
-Select exactly two calculations, then choose **Tools > Compare Forces...**.
-The dialog labels them **A** and **B**. Both must have the same atom count
+Compare Forces is used from the command line, with `ecce-force-compare` or
+`ecce-si-export --compare-forces` (below); it has no menu item. It takes two
+calculations, **A** and **B**. Both must have the same atom count
 and element sequence, and a stored EGRADVEC gradient. The last stored gradient
 and final geometry are used. The starting geometry is used if there is no
 geometry trace. Missing forces, incompatible atoms or unknown gradient units
@@ -132,13 +133,11 @@ test. Coordinates and vectors are compared in their stored Cartesian frames,
 without alignment or periodic wrapping.
 
 With the same stored code and theory/functional (including dispersion), the
-dialog also gives **Delta E = E(B) - E(A)** in eV per cell and meV per atom.
+output also gives **Delta E = E(B) - E(A)** in eV per cell and meV per atom.
 Different methods suppress the energy difference and leave the forces table.
-Missing total energies also leave the forces table available. **Copy** copies
-the labels, tab-separated table, energy difference and warnings.
+Missing total energies also leave the forces table available.
 
-The same comparison is available on the command line for stored calculation
-folders (or calculation URLs):
+The command takes stored calculation folders (or calculation URLs):
 
 ```sh
 ecce-si-export --compare-forces A B

@@ -3,6 +3,7 @@
 **Platforms.** Linux (Debian 13; Ubuntu 24.04, RHEL/Rocky 9 and Fedora 44 packages are built on those systems but not tested). Windows 10 and 11. macOS, Apple silicon and Intel: experimental.
 
 ## Upgrading from 9.4
+- **Organizer menus (#805):** a calculation's right-click menu is Cut, Copy, Paste, Rename, Delete, **New from This** (Rerun, Continue from Last Geometry, Continue from Final Orbitals) and **Run** (Launch, Reconnect, Terminate, Re-Parse Outputs, Shell in Run Directory). The project table has no Viewed or Size column, shows Type and Application in one column and has a Total energy column.
 - **Local by default.** A new installation keeps calculations in a folder on this computer and asks nothing at first start. Installations already set up with a data server start as before (#767).
 - **Edit > Preferences > Data** shows the local folder and a list of servers. **Add Server** adds an ECCE server or an SSH folder; each appears in the Organizer as its own tree, with its own login, and calculations in it are launched and stored there (#767, #789).
 - Every command-line tool now has a wrapper on PATH (`ecce-<tool>`), including the new `ecce-workflow` and `ecce-density-field` (#794).
@@ -19,16 +20,21 @@
 - **ML potential** (ASE, MACE first): energies and geometries, with cell relaxation, for screening (#728).
 
 ## Analysis of many calculations
-- **Checks table** for a folder (state, convergence, imaginary modes, ⟨S²⟩, E, ZPE, G), **Rank** (ΔE/ΔG per cell, formula unit or site), **Reaction overview** (ΔE/ΔG chart for a set of reactions with the spread over low-frequency treatments), export for Supporting Information, Exclude with a reason, core hours booked and used (#615, #703, #709, #625, #617, #627).
-- **Create a series:** one setup applied to a list of structures (#621).
+- **Compare Energies:** select calculations in the project table, or a folder, and right-click **Compare Energies...**: ΔE/ΔG from the lowest or a chosen reference, per cell, formula unit or site, with consistency flags; a progress window above three calculations (#703, #805). **Tools > Energy Calculator...** is the former Compare Energies window, for the energy of sums of calculations such as a reaction.
+- **Reaction overview** (button in the Compare Energies window): ΔE/ΔG chart for a set of reactions with the spread over low-frequency treatments (#709).
+
+![Reaction overview](reaction-overview.png)
+
+- **Command line only** (no menu items): Checks table for a folder (state, convergence, imaginary modes, ⟨S²⟩, E, ZPE, G), export for Supporting Information, Compare Forces, the excluded mark with a reason, and core hours booked and used; see Scripting and AI assistants in the help (#615, #625, #776, #617, #627, #805).
+- **New Series:** one setup applied to a list of structures, with `ecce-series` (command line only) (#621, #805).
 - **Thermochemistry:** G with a chosen low-frequency treatment (RRHO or quasi-RRHO), with the spread (#692). One imaginary-mode rule everywhere: a mode below 1 cm⁻¹ counts as zero (#792).
 - **Vibrations:** matched bands and shifts between two calculations, a difference spectrum and an experimental overlay; a new calculation displaced along an imaginary mode (#707, #618).
-- **Compare Forces** and **displacement/RMSD** between two calculations; spin per atom (#776, #701, #616).
+- **Displacement/RMSD** between two calculations; spin per atom (#701, #616).
 - **MD Compare:** up to eight calculations of a folder in one plot (Speed Distribution, MSD) (#678).
 
 ## Orbitals and densities
 - **Surfaces** category in the Properties panel: Density, Spin Density, ESP on Density, ELF, LOL and NCI, each with a description (#787, #799, #800).
-- **MO Diagram for a single atom:** the subshells with their electrons as boxes, or the orbital energies to scale (#813).
+- **MO Diagram for a single atom:** the subshells with their electrons as boxes, or the orbital energies to scale (#813). #817: textbook staircase of subshells (aufbau order) for a single atom.
 - Density Map: best-fit and principal planes for non-planar molecules (#659). Density Profile: square-root y axis (#715).
 - ECCE-QM: every library basis set and the Basis Set Tool (#765); restricted open-shell atoms converge (#790); IRC branches leave from the relaxed saddle, so they end in different minima (#764).
 
@@ -45,7 +51,7 @@
 - Stretch or shrink the bonds of one atom; combine structures from two calculations; Select Within Distance (#619, #620, #662).
 
 ## Fixes
-- Rank and the Checks table no longer freeze the Organizer (#793). `ecce-reconnect` and `ecce-fetch` with a path outside the data no longer crash the Organizer (#814). No crash when the code is switched on the code bar (#785) or when `ecce-launch` runs before anything is loaded (#781). A stored table with the wrong number of values warns once (`ecce-check-props` finds them) (#719, #722).
+- Compare Energies and the Checks table no longer freeze the Organizer, and no longer load every MO table (#793). `ecce-reconnect` and `ecce-fetch` with a path outside the data no longer crash the Organizer (#814). No crash when the code is switched on the code bar (#785) or when `ecce-launch` runs before anything is loaded (#781). A stored table with the wrong number of values warns once (`ecce-check-props` finds them) (#719, #722).
 - All fixes released in 9.4.1 to 9.4.8.
 
 ## Known issues
