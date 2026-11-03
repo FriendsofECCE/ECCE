@@ -1,7 +1,7 @@
-title F atom, B3LYP/aug-cc-pVTZ (unrestricted), ground state
+title F atom, B3LYP/aug-cc-pVTZ (restricted open-shell), ground state
 charge 0
 multiplicity 2
-method ub3lyp
+method rob3lyp
 basis aug-cc-pVTZ
 runtype energy
 charges loewdin

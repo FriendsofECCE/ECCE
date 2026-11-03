@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<vector name="LOCMOENG" rowLabel="Basis Function" rows="9" units="Hartree">-101.610791136516   -9.512623980887   -7.286895829932   -7.264033880021
--7.264033879014   -0.847809711406   -0.410181572521   -0.355335548196
--0.355335546650</vector>
+<vector name="LOCMOENG" rowLabel="Basis Function" rows="9" units="Hartree">-101.610969559033   -9.512780000653   -7.287049234373   -7.264125144989
+-7.264125143314   -0.846624115612   -0.407260307166   -0.356366859563
+-0.356366857938</vector>
