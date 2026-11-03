@@ -27,10 +27,13 @@ on most cycles.
 orbital (`moved > 0.5`) at least twice in the last five cycles. MOM then takes
 the orbitals with the largest overlap with the previous cycle's doubly and
 singly occupied densities, and the columns of C are reordered so that
-`[0, nb)` is doubly and `[nb, na)` singly occupied. As a result the reported
-ROHF orbital energies need not be in ascending order, and code that reads the
-occupied set must use the column index or `occ_a`/`occ_b`, never a sort by
-energy.
+`[0, nb)` is doubly and `[nb, na)` singly occupied. Inside `run_scf`
+`ScfResult` therefore holds the occupied orbitals first, and its energies need
+not ascend (localise and the checkpoint read the first `nalpha` columns). The
+writers in `output.cpp` (`.qmout` orbitals, point orbitals, Molden) sort by
+energy through `energy_order`, each orbital keeping its occupations, because
+`MoPanel::fillTable` and the MO diagram assume ascending energies and take the
+HOMO from the last occupied row.
 
 Do not start MOM as soon as two cycles fill the same spaces. A first version
 did that and locked doublet NO (ROHF/def2-SVP, 1.5 A) at cycle 6 into a
@@ -40,6 +43,11 @@ open or virtual orbital more than 1e-3 Eh below an occupied one, the SCF
 relaxes with aufbau for up to 20 cycles and keeps the lower converged energy.
 The atoms trip this check legitimately (their doubly occupied p lies 0.06 to
 0.13 Eh above an open p), so their cycle counts include those 20 cycles.
+
+When the relaxation fails and the saved MOM solution is restored, `run_scf`
+emits one more progress callback (the accepted cycle's energy, gradient and
+converged flag, numbered with the final cycle count), or the monitor would
+show "SCF stopped" for a converged run.
 
 Tried and rejected: a level shift of the open and virtual blocks (it leaves
 the stationary point alone, but it slows the near-free rotation of the

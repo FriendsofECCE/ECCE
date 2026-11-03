@@ -37,6 +37,37 @@ LARGE = [("O", 3, "rob3lyp", "ub3lyp", "aug-cc-pVTZ")]
 METHODS = [("rohf", "uhf"), ("rob3lyp", "ub3lyp")]
 BASIS = "def2-SVP"
 TOL = 1e-6
+LAST_OUT = None
+
+
+def check_output_order(out):
+    """Stored orbitals ascend in energy and the last progress line is the
+    accepted result (O and F take the MOM path with the aufbau relaxation
+    discarded).  Returns a list of problems."""
+    bad, eps, occ, prog, energy = [], [], [], None, None
+    inblock = False
+    for line in open(out):
+        t = line.split()
+        if line.startswith("begin orbitals"):
+            inblock = True
+        elif line.startswith("end orbitals"):
+            inblock = False
+        elif inblock:
+            eps.append(float(t[1])); occ.append(float(t[2]))
+        elif line.startswith("progress scf"):
+            prog = line
+        elif t and t[0] == "energy_total":
+            energy = float(t[1])
+    if any(b < a - 1e-9 for a, b in zip(eps, eps[1:])):
+        bad.append("orbital energies not ascending")
+    occupied = [i for i, o in enumerate(occ) if o > 0]
+    if not occupied or max(occupied) != max(occupied, key=lambda i: eps[i]):
+        bad.append("HOMO is not the highest-energy occupied orbital")
+    if prog is None or "converged=yes" not in prog:
+        bad.append("last progress line is not converged=yes: %s" % (prog or "none").strip())
+    elif energy is not None and abs(float(prog.split("energy=")[1].split()[0]) - energy) > 1e-8:
+        bad.append("last progress energy differs from energy_total")
+    return bad
 
 
 def run(exe, bdir, d, name, mult, method, atoms=None, basis=BASIS):
@@ -50,6 +81,8 @@ def run(exe, bdir, d, name, mult, method, atoms=None, basis=BASIS):
         for a in atoms:
             f.write(" %s %.6f %.6f %.6f\n" % a)
         f.write("end\n")
+    global LAST_OUT
+    LAST_OUT = out
     env = dict(os.environ, OMP_NUM_THREADS="1")
     p = subprocess.run([exe, "--basis-dir", bdir, "-o", out, inp], env=env, capture_output=True)
     r = {}
@@ -72,6 +105,7 @@ def main():
     for sym, mult in ATOMS:
         for ro, u in METHODS:
             ok, it, e = run(exe, bdir, d, sym, mult, ro)
+            ro_out = LAST_OUT
             uok, _, eu = run(exe, bdir, d, sym, mult, u)
             msg = "%-2s %-8s converged=%s cycles=%3d E=%.8f  E(%s)=%.8f" % (sym, ro, ok, it, e, u, eu)
             if not ok:
@@ -82,6 +116,9 @@ def main():
                 msg += "  FAIL: below the unrestricted energy by %.2e" % (eu - e)
             else:
                 msg = "ok   " + msg
+            if ro == "rohf" and sym in ("O", "F", "S", "Cl") and ok:
+                for b in check_output_order(ro_out):
+                    msg += "  FAIL: " + b
             if "FAIL" in msg:
                 fails += 1
             print(msg, flush=True)
