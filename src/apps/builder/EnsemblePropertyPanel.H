@@ -44,6 +44,12 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     // Show member `rank` (1 = lowest) in the table, plot and 3-D view.
     bool selectRank(int rank);
     int selectedRank() const { return p_selRank; }
+    // Ranks of the selected rows, ascending.
+    std::vector<int> selectedRanks() const;
+    // "New calculation from selected" (#708): one calculation per rank in the
+    // CREST calculation's folder, <calc>_<noun><rank>; the URLs created.
+    std::vector<std::string> newCalcsFromRanks(const std::vector<int>& ranks,
+                                               std::string& why);
     bool exportCsv(const std::string& path) const;
     std::string kind() const;
 
@@ -61,6 +67,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     void OnRowSelected(wxListEvent& event);
     void OnColumn(wxListEvent& event);
     void OnExport(wxCommandEvent& event);
+    void OnNewCalcs(wxCommandEvent& event);
 
     std::vector<Member> p_members;   // as shown (sorted by the user's column)
     std::string p_deName;            // energy column header
@@ -71,6 +78,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     bool p_sortUp;
     wxListCtrl *p_table;
     wxButton *p_export;
+    wxButton *p_newCalcs;
 };
 
 #endif

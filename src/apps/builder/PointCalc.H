@@ -22,9 +22,12 @@ bool applyPointStructure(Fragment *frag, const std::vector<double>& xyz,
  * basis and run type) whose structure is frame <frame> of property <key>
  * (SCANGEOM or IRCGEOM), reset to the created state so it can be edited and
  * run.  Named <original>_point_<point>; resource names cannot hold spaces.
- * Returns the new calculation's URL, or "" with the reason in why.
+ * A non-empty suffix replaces "_point_<point>" in the name (ensemble members
+ * use "_conf3" and the like, #708).  Returns the new calculation's URL, or ""
+ * with the reason in why.
  */
 std::string newCalcFromPoint(IPropCalculation *calc, const std::string& key,
-                             int frame, int point, std::string& why);
+                             int frame, int point, std::string& why,
+                             const std::string& suffix = std::string());
 
 #endif

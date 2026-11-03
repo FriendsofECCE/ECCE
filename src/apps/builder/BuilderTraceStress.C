@@ -310,6 +310,7 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
   }
 
   //  Ensemble panel: "gtenrows" prints the table and the panel's kind;
+  //  "gtencalc <rank>..." makes new calculations (#708);
   //  "gtenselect <rank>" shows that member and prints atom 1; "gtencsv <path>".
   //  "gtenkind <runtype, _ for space> <0|1 scored>": the entry name for a run type.
   if (c == "gtenkind" && w.size() == 3) {
@@ -319,7 +320,8 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
             EnsemblePropertyPanel::kindFor(rt, w[2] == "1").c_str());
     return true;
   }
-  if (c == "gtenrows" || c == "gtencsv" || c == "gtenselect") {
+  if (c == "gtenrows" || c == "gtencsv" || c == "gtenselect" ||
+      c == "gtencalc") {
     EnsemblePropertyPanel *en = dynamic_cast<EnsemblePropertyPanel*>(gt);
     if (!en) return s.fail(c + ": no ensemble panel");
     if (c == "gtenrows") {
@@ -337,6 +339,26 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
       fprintf(stderr, "GTSTRESS: enselect %s ok=%d atom1 %.6f %.6f %.6f plot=%d\n",
               w[1].c_str(), (int)ok, p[0], p[1], p[2],
               plotOf(en) ? plotOf(en)->selectedIndex() + 1 : -1);
+    } else if (c == "gtencalc" && w.size() >= 2) {
+      vector<int> ranks;
+      for (size_t i = 1; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
+      string why;
+      vector<string> urls = en->newCalcsFromRanks(ranks, why);
+      for (size_t i = 0; i < urls.size(); i++) {
+        // Read the new calculation back: its name and first/last atom.
+        PropertyTask *nt = dynamic_cast<PropertyTask*>(
+            EDSIFactory::getResource(EcceURL(urls[i])));
+        Fragment *nf = nt ? nt->fragment() : 0;
+        const int na = nf ? nf->numAtoms() : 0;
+        const double *a = na ? nf->atomRef(0)->coordinates() : 0;
+        const double *z = na ? nf->atomRef(na - 1)->coordinates() : 0;
+        fprintf(stderr, "GTSTRESS: encalc %d name=%s atoms=%d first %.6f %.6f %.6f "
+                "last %.6f %.6f %.6f\n", ranks[i],
+                EcceURL(urls[i]).getFilePathTail().c_str(), na,
+                a ? a[0] : 0, a ? a[1] : 0, a ? a[2] : 0,
+                z ? z[0] : 0, z ? z[1] : 0, z ? z[2] : 0);
+      }
+      fprintf(stderr, "GTSTRESS: encalc made=%d why=%s\n", (int)urls.size(), why.c_str());
     } else {
       return s.fail("bad ensemble command");
     }

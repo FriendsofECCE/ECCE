@@ -19,7 +19,9 @@
 #include "EnsemblePropertyPanel.H"
 #include "PropertyPanel.H"
 #include "PropertyPanelFactory.H"
+#include "PointCalc.H"
 #include "XYPlotCanvas.H"
+#include "util/EcceURL.H"
 
 wxFORCE_LINK_THIS_MODULE(EnsemblePropertyPanel)
 
@@ -43,12 +45,22 @@ std::string noun(const std::string& kind)
   return "Conformer";
 }
 
+// Short tag of the member in a calculation name: crest_conf3, crest_site2.
+std::string tag(const std::string& kind)
+{
+  if (kind == "Protonation Sites") return "site";
+  if (kind == "Tautomers") return "taut";
+  if (kind == "Clusters") return "cluster";
+  if (kind == "Poses") return "pose";
+  return "conf";
+}
+
 }  // namespace
 
 
 EnsemblePropertyPanel::EnsemblePropertyPanel()
   : GeomTracePropertyPanel(), p_hasPatterns(false), p_inSelect(false),
-    p_selRank(0), p_sortCol(0), p_sortUp(true), p_table(NULL), p_export(NULL)
+    p_selRank(0), p_sortCol(0), p_sortUp(true), p_table(NULL), p_export(NULL), p_newCalcs(NULL)
 {
 }
 
@@ -57,7 +69,7 @@ EnsemblePropertyPanel::EnsemblePropertyPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
   : GeomTracePropertyPanel(), p_hasPatterns(false), p_inSelect(false),
-    p_selRank(0), p_sortCol(0), p_sortUp(true), p_table(NULL), p_export(NULL)
+    p_selRank(0), p_sortCol(0), p_sortUp(true), p_table(NULL), p_export(NULL), p_newCalcs(NULL)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -148,7 +160,7 @@ void EnsemblePropertyPanel::initialize()
   load();
 
   p_table = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 220),
-                           wxLC_REPORT | wxLC_SINGLE_SEL);
+                           wxLC_REPORT);
   p_table->AppendColumn("Rank", wxLIST_FORMAT_RIGHT, 60);
   p_table->AppendColumn(wxString::FromUTF8(p_deName.c_str()), wxLIST_FORMAT_RIGHT, 150);
   p_table->AppendColumn("Population (%)", wxLIST_FORMAT_RIGHT, 110);
@@ -170,7 +182,16 @@ void EnsemblePropertyPanel::initialize()
   p_export->SetToolTip("Save the table (rank, energy, population, pattern) as "
                        "a CSV file");
   p_export->Bind(wxEVT_BUTTON, &EnsemblePropertyPanel::OnExport, this);
-  GetSizer()->Add(p_export, 0, wxALL, 4);
+  p_newCalcs = new wxButton(this, wxID_ANY, "New Calculation from Selected...");
+  p_newCalcs->SetToolTip("Create one new calculation for each selected row, "
+      "named <calculation>_<kind><rank>, in the same folder, with this "
+      "calculation's code, theory, charge and multiplicity and the structure "
+      "of that row. Select several rows with Ctrl or Shift.");
+  p_newCalcs->Bind(wxEVT_BUTTON, &EnsemblePropertyPanel::OnNewCalcs, this);
+  wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
+  buttons->Add(p_export, 0, wxALL, 4);
+  buttons->Add(p_newCalcs, 0, wxALL, 4);
+  GetSizer()->Add(buttons, 0);
 
   fillTable();
   fillPlot();
@@ -233,7 +254,9 @@ void EnsemblePropertyPanel::refresh()
 
 void EnsemblePropertyPanel::OnRowSelected(wxListEvent& event)
 {
-  if (p_inSelect) return;
+  // With several rows selected, leave the selection alone (selectRank would
+  // collapse it to the clicked row).
+  if (p_inSelect || p_table->GetSelectedItemCount() > 1) return;
   selectRank((int)event.GetData());
 }
 
@@ -329,4 +352,61 @@ void EnsemblePropertyPanel::OnExport(wxCommandEvent&)
   if (!exportCsv(std::string(dlg.GetPath().utf8_str())))
     wxMessageBox("The file could not be written.", "Export ensemble table",
                  wxOK | wxICON_ERROR, this);
+}
+
+
+vector<int> EnsemblePropertyPanel::selectedRanks() const
+{
+  vector<int> ranks;
+  for (long i = p_table ? p_table->GetNextItem(-1, wxLIST_NEXT_ALL,
+                                               wxLIST_STATE_SELECTED) : -1;
+       i >= 0; i = p_table->GetNextItem(i, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED))
+    ranks.push_back((int)p_table->GetItemData(i));
+  std::sort(ranks.begin(), ranks.end());
+  return ranks;
+}
+
+
+// The structures are frames of GEOMTRACE, found through the rank so a sorted
+// table and the energy order cannot disagree; the copy and rename are the
+// ones "New calculation from this point" uses.
+vector<string> EnsemblePropertyPanel::newCalcsFromRanks(const vector<int>& ranks,
+                                                        string& why)
+{
+  vector<string> urls;
+  PropertyTask *task = dynamic_cast<PropertyTask*>(getCalculation());
+  for (size_t i = 0; i < ranks.size(); i++) {
+    string err;
+    const int frame = ScanPoint::frame(task, "c" + std::to_string(ranks[i]), err);
+    const string url = frame < 0 ? string() :
+        newCalcFromPoint(getCalculation(), "GEOMTRACE", frame, ranks[i], err,
+                         "_" + tag(kind()) + std::to_string(ranks[i]));
+    if (url.empty()) {
+      why = "Rank " + std::to_string(ranks[i]) + ": " + err;
+      break;
+    }
+    urls.push_back(url);
+  }
+  return urls;
+}
+
+
+void EnsemblePropertyPanel::OnNewCalcs(wxCommandEvent&)
+{
+  const vector<int> ranks = selectedRanks();
+  if (ranks.empty()) {
+    wxMessageBox("Select one or more rows first (Ctrl or Shift for several).",
+                 "New calculation", wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  string why;
+  const vector<string> urls = newCalcsFromRanks(ranks, why);
+  wxString text = wxString::Format("Created %d of %d calculation(s) in %s.",
+      (int)urls.size(), (int)ranks.size(),
+      urls.empty() ? wxString() : wxString::FromUTF8(
+          EcceURL(urls[0]).getParent().getFilePathTail().c_str()));
+  if (!why.empty()) text += "\n" + wxString::FromUTF8(why.c_str());
+  else text += "\nThey are in the Organizer, ready to edit and launch.";
+  wxMessageBox(text, "New calculation", wxOK |
+               (why.empty() ? wxICON_INFORMATION : wxICON_WARNING), this);
 }
