@@ -328,6 +328,22 @@ vector<string> shellLabels(IPropCalculation *calc,
       out[m] = to_string(l + 1 + seen[l]++ / (2 * l + 1)) + letters[l];
     }
   }
+  //  The empty members of a partly filled shell (B 2p1: two more 2p) are
+  //  that shell's own orbitals, so they carry its n whatever their nodes say.
+  for (int l = 0; l < 6; l++) {
+    const int per = 2 * l + 1;
+    if (seen[l] % per == 0) continue;
+    int need = per - seen[l] % per;
+    const int n = l + 1 + (seen[l] - 1) / per;
+    for (size_t k = 0; k < virt.size() && need > 0; k++)
+      if (virtL[k] == l) {
+        out[virt[k]] = to_string(n) + letters[l] + " (virtual)";
+        virt.erase(virt.begin() + k);
+        virtL.erase(virtL.begin() + k);
+        k--;
+        need--;
+      }
+  }
   //  A virtual is named by shell only if it is a real Rydberg-like orbital:
   //  its radial nodes count up from the occupied shells of its type
   //  (n = l + nodes + 1, steps of 0 or 1 because an IVO set is only
