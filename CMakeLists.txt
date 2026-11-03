@@ -2956,6 +2956,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_scan_view PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  # Scan and trace steps keep every atom in view (#832).
+  add_test(NAME apps_h2_far_atoms
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/h2_far_atoms_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_h2_far_atoms PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # The Relaxed Scan panel on an ECCE-QM scan (#450): engine output through
   # ecceqm.parse into the panel.
   if(ECCE_BUILD_QM)
