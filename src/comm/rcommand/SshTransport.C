@@ -1233,12 +1233,14 @@ int SshTransport::remoteKind(const std::string& remotePath)
   if (p_nested) {
     TransportResult r = runImpl("p=" + shPath(remotePath) + "\nif [ -d \"$p\" ]; "
       "then echo 1; elif [ -e \"$p\" ]; then echo 0; else echo -1; fi\n", 30, false);
-    return r.status == 0 ? atoi(r.out.c_str()) : -1;
+    if (r.status != 0 || !r.error.empty()) return -2;
+    int k = atoi(r.out.c_str());
+    return (k >= -1 && k <= 1 && !r.out.empty()) ? k : -2;
   }
   std::string err;
-  if (!sftp(err)) return -1;
+  if (!sftp(err)) return -2;
   sftp_attributes a = sftp_stat(p_sftp, homeRelative(remotePath).c_str());
-  if (!a) return -1;
+  if (!a) return sftp_get_error(p_sftp) == SSH_FX_NO_SUCH_FILE ? -1 : -2;
   int kind = a->type == SSH_FILEXFER_TYPE_DIRECTORY ? 1 : 0;
   sftp_attributes_free(a);
   return kind;

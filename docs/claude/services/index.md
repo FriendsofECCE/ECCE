@@ -81,3 +81,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [passdialog exit status and ecce-askpass](passdialog-exit-status.md) — a wx OnInit returning false exits 255; askpass took OK as cancel (#487)
 - [Ubuntu 26.04 mosquitto AppArmor profile blocks the per-user broker; ecce-client adds a local block (#646)](ubuntu-26-mosquitto-apparmor-profile.md)
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
+- [A copy-back from a host that cannot be asked "succeeded" with nothing copied and stored a 0-byte output; sizes now checked, Complete needs the normal-end line (#732)](copy-back-unreachable-host-732.md)

@@ -72,6 +72,8 @@
 #include "comm/JobParser.H"
 #include "comm/JobFailureReason.H"
 #include "comm/JobLogDates.H"
+#include "comm/OutputCopyCheck.H"
+#include <map>
 #include "comm/QueueWait.H"
 #include "util/WaitingJobs.H"
 
@@ -94,6 +96,12 @@ typedef struct
   int             count;
   FileInfoStruct* list;
 } FileListStruct;
+
+// Each named file's size on the compute host, from the monitor's file
+// message (-1 or absent: an older monitor that does not send it).
+static std::map<string, long long> gHostSize;
+static bool copyOutputs(const vector<string>& files, const string& calcdir,
+                        string& err);
 
 enum LogModeJobStore
 {
@@ -516,6 +524,20 @@ void calcPutOutFileName(const string& fileName, const string& parseType)
 { 
   string outputFile = tmpStorage + "/" + fileName; 
   string key, value;
+  // A file that did not arrive, or arrived empty although the host has
+  // data, is not stored: it would replace any earlier copy with nothing.
+  {
+    long long local = OutputCopyCheck::localSize(outputFile);
+    std::map<string, long long>::const_iterator h = gHostSize.find(fileName);
+    long long host = h == gHostSize.end() ? -1 : h->second;
+    if (local < 0 || (local == 0 && host > 0)) {
+      logErr("File Copy", fileName + " not stored: " +
+             (local < 0 ? string("it did not arrive")
+                        : "it arrived empty, the compute host has " +
+                          OutputCopyCheck::sizeText(host)));
+      return;
+    }
+  }
   ifstream ifs(outputFile.c_str(), ios::in | ios::binary);
   VDoc *vdoc = EDSIFactory::getVdoc(calculation->getURL());
   if (vdoc != 0) {
@@ -738,6 +760,7 @@ void recordStatusReason(const string& reason)
     const string existing =
         calculation->getProp(VDoc::getEcceNamespace() + ":runStatusReason");
     if (!existing.empty() &&
+        !OutputCopyCheck::isContactReason(existing) &&
         existing.find("setting status") == string::npos &&
         existing.find("(exit code") == string::npos) {
       return;
@@ -797,6 +820,39 @@ void cleanup(int exitStatus)
       }
     }
 
+    // The state follows the output that was stored, not only the job's exit
+    // status: an output that did not come back whole, or lacks the code's
+    // normal-end line, is not a Complete result (#732).
+    string incomplete;
+    if ((endState == ResourceDescriptor::STATE_COMPLETED ||
+         endState == ResourceDescriptor::STATE_UNSUCCESSFUL) && !gReparse &&
+        cpImportDir.empty()) {
+      TypedFile oFile;
+      calculation->getDataFile(JCode::PRIMARY_OUTPUT, oFile);
+      const JCode* jc = calculation->application();
+      if (!oFile.name().empty() && jc != 0) {
+        const string marker = OutputCopyCheck::normalTerminationMarker(jc->name());
+        const string oPath = tmpStorage + "/" + oFile.name();
+        long long local = OutputCopyCheck::localSize(oPath);
+        std::map<string, long long>::const_iterator h = gHostSize.find(oFile.name());
+        long long host = h == gHostSize.end() ? -1 : h->second;
+        // Without the host's size (an older monitor, or none was named) only
+        // the marker can tell.
+        bool shortCopy = host >= 0 && OutputCopyCheck::copyIsShort(local, host);
+        bool noMarker = endState == ResourceDescriptor::STATE_COMPLETED &&
+                        !OutputCopyCheck::hasMarker(oPath, marker);
+        if (shortCopy || noMarker) {
+          incomplete = OutputCopyCheck::incompleteOutputReason(
+              oFile.name(), noMarker ? marker : string(""),
+              local, host);
+          logErr("Calculation Incomplete", incomplete);
+        }
+      }
+    }
+    const bool wasComplete = endState == ResourceDescriptor::STATE_COMPLETED;
+    if (wasComplete && !incomplete.empty())
+      endState = ResourceDescriptor::STATE_UNSUCCESSFUL;
+
     calculation->setState(endState);
     string stateStr = ResourceUtils::stateToString(endState);
     logMessage("Calculation State Change", stateStr);
@@ -811,7 +867,9 @@ void cleanup(int exitStatus)
       calculation->resetReactionTasks();
     }
 
-    if (endState == ResourceDescriptor::STATE_UNSUCCESSFUL) {
+    if (wasComplete && !incomplete.empty()) {
+      recordStatusReason(incomplete);
+    } else if (endState == ResourceDescriptor::STATE_UNSUCCESSFUL) {
       // By now interactGetFiles() (called from run(), before cleanup())
       // has already fetched the calc's output files into tmpStorage, so
       // the log-block line -- unlike at the point interactStatus() first
@@ -863,6 +921,8 @@ void cleanup(int exitStatus)
       if (gUnsuccessfulStatus != 305 && !gSchedulerErrFile.empty())
         reason += JobFailureReason::schedulerErrNote(
                       gSchedulerErrFile, tmpStorage + "/" + gSchedulerErrFile);
+      if (!incomplete.empty())
+        reason += " " + incomplete;
 
       recordStatusReason(reason);
     } else if ((endState == ResourceDescriptor::STATE_FAILED ||
@@ -1366,6 +1426,43 @@ void fileAdd(int callCount, bool dbStoreContents, bool dbStoreName,
 }
 
 
+// Copy files (full paths on the compute host) into calcdir, over the
+// monitor's login when there is one, else a new login.
+static bool copyOutputs(const vector<string>& files, const string& calcdir,
+                        string& err)
+{
+  bool status = false;
+  RefMachine* refMachine = RefMachine::refLookup(cpServerRef);
+  EE_RT_ASSERT(refMachine,EE_FATAL,"No RefMachine object");
+
+  if (cpRemoteShell.find("shellcp")!=string::npos ||
+      refMachine->singleConnect() ||
+      (refMachine->frontendMachine()!="" &&
+       (refMachine->frontendBypass()=="" ||
+        !RCommand::isSameDomain(refMachine->frontendBypass())))) {
+    if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
+      status = remoteconn->shellget(files, calcdir);
+      if (!status) err = "shell based file transfer failed";
+    } else {
+      err = "remote shell connection not available";
+    }
+    return status;
+  }
+  // A new login would ask a two-factor site for another code.
+  if (remoteconn != (RCommand*)0 && remoteconn->isOpen() &&
+      remoteconn->sshBackend() != "") {
+    status = remoteconn->copyOnLogin(false, files, calcdir, err);
+    if (!status)
+      logMessage("File System", "Copy over the monitor's login failed (" +
+                 err + "); logging in again to copy");
+  }
+  if (!status)
+    status = RCommand::get(err, cpServerName, cpRemoteShell, cpUserName, "",
+                           files, calcdir);
+  return status;
+}
+
+
 // ------------------------------------------------------------------------- //
 // Copy the files remembered via fileAdd() into the current directory.
 // ------------------------------------------------------------------------- //
@@ -1489,43 +1586,37 @@ void interactGetFiles(void)
   }
 
   string copyErrMessage;
-  bool status;
+  vector<string> allFiles;
+  for (int n = 0; fileStrs[n] != NULL; n++) allFiles.push_back(fileStrs[n]);
+  logMessage("Benchmark", "Before file copy of output files");
+  bool status = copyOutputs(allFiles, calcdir, copyErrMessage);
+  logMessage("Benchmark", "After file copy of output files");
 
-  RefMachine* refMachine = RefMachine::refLookup(cpServerRef);
-  EE_RT_ASSERT(refMachine,EE_FATAL,"No RefMachine object");
-
-  if (cpRemoteShell.find("shellcp")!=string::npos ||
-      refMachine->singleConnect() ||
-      (refMachine->frontendMachine()!="" &&
-       (refMachine->frontendBypass()=="" ||
-        !RCommand::isSameDomain(refMachine->frontendBypass())))) {
-    if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
-      logMessage("Benchmark", "Before shell based file transfer of output files");
-      status = remoteconn->shellget((const char**)fileStrs, calcdir);
-      logMessage("Benchmark", "After shell based file transfer of output files");
-    } else {
-      logMessage("Benchmark", "Could not attempt shell based file transfer of "
-                 "output files--remote shell connection not available");
+  // A copy that "succeeded" has still been seen to leave a named output
+  // missing or shorter than on the host: check each against the size the
+  // monitor sent, copy the short ones again once, and log what is left.
+  if (status) {
+    vector<string> again;
+    for (fi = filesToGet.list; fi; fi = fi->next) {
+      std::map<string, long long>::const_iterator h = gHostSize.find(fi->fileName);
+      long long host = h == gHostSize.end() ? -1 : h->second;
+      long long local = OutputCopyCheck::localSize(calcdir + "/" + fi->fileName);
+      if (!OutputCopyCheck::copyIsShort(local, host)) continue;
+      string full = cpRemoteDir + "/" + fi->fileName;
+      bool dup = false;
+      for (size_t k = 0; k < again.size(); k++) dup = dup || again[k] == full;
+      if (!dup) again.push_back(full);
     }
-  } else {
-    // copy files from server
-    logMessage("Benchmark", "Before file copy of output files");
-    // Over the monitor's own login when there is one: a new login would ask
-    // a two-factor site for another code.
-    status = false;
-    if (remoteconn != (RCommand*)0 && remoteconn->isOpen() &&
-        remoteconn->sshBackend() != "") {
-      vector<string> fs;
-      for (int n = 0; fileStrs[n] != NULL; n++) fs.push_back(fileStrs[n]);
-      status = remoteconn->copyOnLogin(false, fs, calcdir, copyErrMessage);
-      if (!status)
-        logMessage("File System", "Copy over the monitor's login failed (" +
-                   copyErrMessage + "); logging in again to copy");
+    if (!again.empty()) {
+      string names;
+      for (size_t k = 0; k < again.size(); k++)
+        names += " " + again[k].substr(again[k].rfind('/') + 1);
+      logErr("File Copy", "Copied back missing or shorter than on the "
+             "compute host, copying again:" + names);
+      string err2;
+      if (!copyOutputs(again, calcdir, err2))
+        logErr("File Copy", "The second copy failed: " + err2);
     }
-    if (!status)
-      status = RCommand::get(copyErrMessage, cpServerName, cpRemoteShell,
-                             cpUserName, "", (const char**)fileStrs, calcdir);
-    logMessage("Benchmark", "After file copy of output files");
   }
 
   if (status) {
@@ -2713,12 +2804,15 @@ void interactFile(char* fileData)
   if (countStr==NULL || *countStr=='\0')
     restart("eccejobmonitor", "Unexpected end of message (wanted count)");
 
-  int callCount = atoi(countStr);
+  long long hostSize;
+  int callCount = OutputCopyCheck::parseCountToken(countStr, hostSize);
 
   // get file name
   string fileName = nextToken();
   if (fileName == "")
     restart("eccejobmonitor", "Unexpected end of message (wanted file name)");
+  if (hostSize >= 0)
+    gHostSize[fileName] = hostSize;
 
   bool dbStoreContents;
   bool dbStoreName;

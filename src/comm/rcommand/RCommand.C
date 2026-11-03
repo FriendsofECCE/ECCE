@@ -1550,17 +1550,27 @@ bool RCommand::transportCopy(RemoteTransport* t, bool putFlag,
 
   for (size_t i = 0; i < files.size(); i++) {
     vector<string> one;
+    // Only a host that answered "no such file" makes a source missing; one
+    // that could not be asked fails the copy, or the caller stores outputs
+    // that never arrived (#732).
     if (!t->remoteGlob(files[i], one, err)) {
-      if (err == files[i] + ": No such file or directory" ||
-          t->remoteKind(files[i]) < 0) {
+      int kind = t->remoteKind(files[i]);
+      if (kind == -1) {
         copyWarn(err);
         continue;
       }
-      errMessage = err;
+      errMessage = (kind == -2) ? "cannot reach the host to look for " +
+                                  files[i] + (err.empty() ? "" : ": " + err)
+                                : err;
       return false;
     }
     for (size_t k = 0; k < one.size(); k++) {
-      if (t->remoteKind(one[k]) < 0) {
+      int kind = t->remoteKind(one[k]);
+      if (kind == -2) {
+        errMessage = "cannot reach the host to look for " + one[k];
+        return false;
+      }
+      if (kind < 0) {
         copyWarn(one[k] + ": No such file or directory");
         continue;
       }
