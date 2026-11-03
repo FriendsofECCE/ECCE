@@ -501,12 +501,13 @@ def rank(paths, ref=None, per_fu=None, per_site=None, treatment=None,
         if (r["lattice"] is None) != (base["lattice"] is None) or (
                 r["lattice"] is not None and not _same_cell(r["lattice"], base["lattice"])):
             r["flags"].append("cell differs from %s" % base["name"])
-    e0 = float(base["E"]) if ref else min(float(r["E"]) for r in usable)
+    # No calculation has an energy (all killed or excluded): rows, no deltas.
+    e0 = (float(base["E"]) if ref else min(float(r["E"]) for r in usable)) if usable else None
     gs = [float(r["G"]) for r in usable if _num(r["G"]) is not None]
-    gb = _num(base["G"]) if ref else (min(gs) if gs else None)
+    gb = (_num(base["G"]) if ref else (min(gs) if gs else None)) if base else None
     fu = None
     if per_fu == "auto":
-        fu = math.gcd(*base["counts"].values()) if base["counts"] else None
+        fu = math.gcd(*base["counts"].values()) if base and base["counts"] else None
     elif per_fu:
         fu = float(per_fu)
     extra = []
@@ -518,7 +519,7 @@ def rank(paths, ref=None, per_fu=None, per_site=None, treatment=None,
                           for q in ("dE", "dG") for u in ("kJ", "eV")]
     fields += [d.split("=", 1)[0] for d in descriptors] + ["excluded", "flags"]
     for r in recs:
-        r["dE"] = float(r["E"]) - e0 if r in usable else None
+        r["dE"] = float(r["E"]) - e0 if r in usable and e0 is not None else None
         g = _num(r["G"])
         r["dG"] = g - gb if r in usable and g is not None and gb is not None else None
     if sort == "G" and any(r["dG"] is not None for r in recs):
