@@ -35,6 +35,7 @@ DECLARE_CLASS(CalcMgrApp)
   void quitMCB(JMSMessage& msg);
   void identifyMCB(JMSMessage& msg);
   void launchRequestMCB(JMSMessage& msg);
+  void rerunRequestMCB(JMSMessage& msg);
   void terminateRequestMCB(JMSMessage& msg);
   void annotateRequestMCB(JMSMessage& msg);
   void moveRequestMCB(JMSMessage& msg);

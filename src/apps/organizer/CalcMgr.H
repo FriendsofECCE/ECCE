@@ -179,6 +179,8 @@ public:
   bool launchForCommand(const vector<EcceURL>& urls,
                         const LaunchBatch::Target& target,
                         vector<string>& lines);
+  bool rerunForCommand(const vector<EcceURL>& urls, bool launch,
+                       const LaunchBatch::Target& target, vector<string>& lines);
   // ecce-terminate (#695): Terminate Selected without the dialog; same line
   // format as launchForCommand. False, with lines empty, while a batch submits.
   bool terminateForCommand(const vector<EcceURL>& urls, const string& reason,
@@ -629,7 +631,11 @@ protected:
   void viewProperties(WxResourceTreeItemData *itemData);
   void resetWithLastGeom(WxResourceTreeItemData *itemData);
   WxResourceTreeItemData* duplicate(WxResourceTreeItemData* itemData,
-                                    bool openWhenFound = true);
+                                    bool openWhenFound = true,
+                                    const string& name = "");
+  WxResourceTreeItemData* duplicateForRerun(WxResourceTreeItemData* itemData,
+                                           bool select, const string& name = "",
+                                           string *why = 0);
 
   // EditListener virtuals
   void processEditCompletion(const EditEvent& ee);
