@@ -416,6 +416,9 @@ sub otherOptions {
   if ($line =~ /qst[23]/i) {
     $runType = ($line =~ /freq/i) ? "Transition State (QST) + Frequencies"
                                   : "Transition State (QST)";
+  } elsif ($line =~ /\birc\b/i) {
+    # before opt: the IRC parsers (gaussian-16.irc, .ircgeom) need it
+    $runType = "IRC";
   } elsif ($line =~ /opt.*freq/i) {
     $runType = "GeoVib";
   } elsif ($line =~ /freq.*opt/i) {

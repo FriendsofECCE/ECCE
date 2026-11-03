@@ -4867,7 +4867,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "24";
+const char *const kExampleSetVersion = "25";
 
 string treeName(string s)
 {
@@ -5395,7 +5395,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"sn2_scan", "Gaussian 16, B3LYP/6-31+G(d), charge -1, relaxed scan of the C...Cl distance. This calculation shows the energy along the approach of chloride to the carbon, with a maximum whose structure is the transition-state guess of the join."},
     {"sn2_product", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies, started from the last point of the scan. This calculation shows the product complex of methyl chloride and bromide."},
     {"sn2_qst3", "Gaussian 16, B3LYP/6-31+G(d), charge -1, QST3 transition-state search and frequencies, a join of the reactant, the product and the maximum of the scan. This calculation shows a saddle point with one imaginary frequency, the inversion at carbon."},
-    {"sn2_irc", "Gaussian 16, B3LYP/6-31+G(d), charge -1, IRC in both directions from the transition state. This calculation shows the path from the transition state towards the reactant side and the product side."},
+    {"SN2_Cl-_and_CH3Br/sn2_irc", "Gaussian 16, B3LYP/6-31+G(d), charge -1, IRC in both directions from the transition state. This calculation shows the path from the transition state towards the reactant side and the product side."},
     {"methane", "NWChem, B3LYP/6-31G*. This calculation shows the effect of "
                 "tetrahedral symmetry: degenerate orbitals (a1, t2) and "
                 "degenerate vibrational modes."},
@@ -6125,9 +6125,17 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       }
       if (dynamic_cast<ICalculation*>(calc) && added.count(calc->getName()))
         thumbUrls.push_back(calc->getURL().toString());
+      // Calculation names repeat across sets (sn2_irc is ORCA in Organic
+      // and G16 in Workflows): a "<folder>/<calc>" note wins over a bare one.
+      const string qualified = projRes->getName() + "/" + calc->getName();
+      bool haveQualified = false;
+      for (const auto &note : kNotes)
+        if (qualified == note.name) haveQualified = true;
       for (const auto &note : kNotes) {
         // a calculation that was already there keeps the user's annotation
-        if (calc->getName() == note.name && added.count(calc->getName())) {
+        if ((haveQualified ? qualified == note.name
+                           : calc->getName() == note.name) &&
+            added.count(calc->getName())) {
           vector<MetaDataResult> ann(1);
           ann[0].name = VDoc::getEcceNamespace() + ":annotation";
           ann[0].value = note.text;

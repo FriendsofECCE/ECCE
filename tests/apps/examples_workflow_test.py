@@ -72,7 +72,7 @@ def run(display, data, work, shots):
     png2 = os.path.join(shots, "workflow-sn2.png")
     commands = ["examples workflows"] + menus + ["workflowinfo " + wf,
                 "workflowshot %s %s" % (png, wf), "workflowinfo " + sn2,
-                "workflowshot %s %s" % (png2, sn2)]
+                "workflowshot %s %s" % (png2, sn2), "workflowresults " + sn2]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -138,6 +138,37 @@ def run(display, data, work, shots):
     check("SN2 view: five boxes, six links, labels clear",
           len(shot2) > 1 and shot2[1].startswith("ok boxes=5 links=6 label-overlaps=0"),
           "workflowshot answered %r" % shot2)
+
+    # #784: the G16 IRC was imported as an Energy run, so it had no path,
+    # and it carried the ORCA IRC's note (same calculation name).
+    res = answer("workflowresults")
+    lines = dict(l.split(": ", 1) for l in res[0][3:].split("|")
+                 if ": " in l) if res and res[0].startswith("ok ") else {}
+    # The G16 IRC has no final energy (no TE without an archive entry).
+    check("SN2: every step but the IRC has a result line",
+          set(lines) == set(t2) and all(v.strip() for k, v in lines.items()
+                                        if k != "sn2_irc"),
+          "workflowresults answered %r" % res)
+    irc = os.path.join(root, "Examples", "Workflows", "SN2_Cl-_and_CH3Br",
+                       "sn2_irc")
+    props = os.listdir(os.path.join(irc, "Props")) \
+        if os.path.isdir(os.path.join(irc, "Props")) else []
+    check("SN2 IRC: path and structures (IRCCOORD, IRCENERGY, IRCGEOM)",
+          {"IRCCOORD", "IRCENERGY", "IRCGEOM"} <= set(props),
+          "Props %s" % sorted(props))
+    meta = {}
+    try:
+        for row in open(os.path.join(irc, ".ecce-meta")):
+            f = row.rstrip("\n").split("\t")
+            if len(f) >= 4 and f[0] == ".":
+                meta[f[1].rsplit(":", 1)[-1]] = f[3]
+    except OSError:
+        pass
+    check("SN2 IRC: run type IRC and its own Gaussian 16 note",
+          meta.get("runtype") == "IRC" and
+          meta.get("annotation", "").startswith("Gaussian 16"),
+          "runtype %r, annotation %r" % (meta.get("runtype"),
+                                         meta.get("annotation", "")[:40]))
 
 
 def main():
