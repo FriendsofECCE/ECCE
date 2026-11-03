@@ -21,6 +21,8 @@ MOPAC → spec) is the bridge it would reuse.
 
 ## Entries
 
+- [Atomic Aufbau needs the basis's polarization shells](atomic-aufbau-needs-the-full-angular-table.md)
+
 ### The MO correlation diagram (#132)
 
 - [Start from the AO composition, not symmetry machinery](start-from-the-ao-composition-not-symmetry.md)

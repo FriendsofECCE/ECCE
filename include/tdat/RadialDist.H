@@ -139,7 +139,8 @@ namespace RadialDist
    * a diffuse basis), else "s (virtual)".
    */
   vector<string> shellLabels(IPropCalculation *calc,
-                             const DensityPlane::Evaluator& ev, bool beta);
+                             const DensityPlane::Evaluator& ev, bool beta,
+                             string *why = 0);
 
   /**
    * Radial nodes of each MO of a single atom (empty for a molecule): the
@@ -150,8 +151,9 @@ namespace RadialDist
   vector<int> radialNodes(const DensityPlane::Evaluator& ev, bool beta,
                           vector<double> *meanR = 0);
 
-  /** shellLabels for a calculation's atom; empty when it is not one atom. */
-  vector<string> atomOrbitalLabels(IPropCalculation *calc, bool beta);
+  /** shellLabels for a calculation's atom; optional reason on failure. */
+  vector<string> atomOrbitalLabels(IPropCalculation *calc, bool beta,
+                                   string *why = 0);
 
   /**
    * Curves for the given orbitals (1-based).  `weighted` weights each by its

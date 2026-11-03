@@ -739,13 +739,22 @@ void MoDiagramPanel::setAufbauToScale(bool toScale)
 bool MoDiagramPanel::exportAufbau(const string& path, bool toScale, int width, int height)
 {
   if (!p_atomView || p_aufbau == 0) return false;
+  // Allow the scene export to exercise compact panels as well as its default size.
+  if (const char *size = getenv("ECCE_AUFBAU_PNG_SIZE")) {
+    int w, h;
+    if (sscanf(size, "%dx%d", &w, &h) == 2 && w >= 300 && h >= 250) {
+      width = w; height = h;
+    }
+  }
   return p_aufbau->savePng(path, toScale, width, height);
 }
 
 
 string MoDiagramPanel::aufbauText() const
 {
-  return p_atomView && p_aufbau != 0 ? p_aufbau->describe() : string();
+  if (!p_atomView || p_aufbau == 0) return string();
+  return p_aufbau->describe() + "control pi shown=" +
+      (p_piOnly->IsShown() ? "1\n" : "0\n");
 }
 
 
@@ -756,7 +765,7 @@ void MoDiagramPanel::atomChrome()
   p_optSizer->Show(p_fragToggle, false);
   p_fragPanel->Show(false);
   wxWindow *molecular[] = { p_showEnergies, p_showDescription, p_constructLabels,
-                            p_symmetryLabels, p_ligandField, p_showAll };
+                            p_symmetryLabels, p_ligandField, p_showAll, p_piOnly };
   for (wxWindow *w : molecular) p_optViews->Show(w, false);
 }
 
@@ -781,17 +790,34 @@ bool MoDiagramPanel::buildAufbau(IPropCalculation *calc, const vector<double>& e
 {
   //  From the calculation, not the scene: the panel can be built before the
   //  viewer has loaded the structure.
+  p_aufbauFailure = "not a one-atom calculation";
   std::unique_ptr<Fragment> frag(calc->getFragmentStep(-1));
-  if (!frag || frag->numAtoms() != 1 || p_aufbau == 0) return false;
+  if (!frag || frag->numAtoms() != 1) return false;
+  p_aufbauFailure = "Atomic drawing is unavailable.";
+  if (p_aufbau == 0) return false;
   TAtm *atom = frag->atomRef(0);
   if (atom == 0) return false;
-  const vector<string> labels = RadialDist::atomOrbitalLabels(calc, false);
+  const vector<string> labels = RadialDist::atomOrbitalLabels(calc, false, &p_aufbauFailure);
+  if (!p_aufbauFailure.empty()) return false;
   vector<string> labelsB;
-  if (haveBeta) labelsB = RadialDist::atomOrbitalLabels(calc, true);
+  if (haveBeta) {
+    labelsB = RadialDist::atomOrbitalLabels(calc, true, &p_aufbauFailure);
+    if (!p_aufbauFailure.empty()) return false;
+  }
+  if (labels.size() != e.size() || o.size() != e.size()) {
+    p_aufbauFailure = "Atomic label, energy and occupation counts differ (" +
+        std::to_string(labels.size()) + ", " + std::to_string(e.size()) +
+        ", " + std::to_string(o.size()) + ").";
+    return false;
+  }
   const vector<double> noE, noO;
   const vector<AufbauShell> shells = aufbau::shells(e, o, labels,
       haveBeta ? eB : noE, haveBeta ? oB : noO, labelsB);
-  if (shells.empty()) return false;
+  if (shells.empty()) {
+    p_aufbauFailure = "No atomic subshells could be identified from the orbital labels.";
+    return false;
+  }
+  p_aufbauFailure.clear();
   p_aufbau->setModel(atom->atomicSymbol(), shells);
   return true;
 }
