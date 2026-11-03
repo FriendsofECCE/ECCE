@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <vector>
 #include <iostream>
@@ -64,6 +65,8 @@ void IsoSurfaceCmd::init()
    //  it: building at the default first showed that surface for a frame
    //  or two before IsoValueCmd replaced it (#226).
    addParameter(new CommandParameter("isovalue", 0.0));
+   //  NCI only: s is ignored where the density is above this (au).
+   addParameter(new CommandParameter("rhoCutoff", NCI_RHO_CUTOFF));
 
 }
 
@@ -90,7 +93,10 @@ bool IsoSurfaceCmd::execute()
       //  here because the question is asked in three places below, and
       //  three copies of a string comparison is how one of them gets
       //  missed.
-      bool densityLike = (fieldType == "Density" ||
+      const bool nci = (fieldType == NCI_FIELD_TYPE);
+      bool densityLike = (fieldType == "Density" || nci ||
+                          fieldType == ELF_FIELD_TYPE ||
+                          fieldType == LOL_FIELD_TYPE ||
                           fieldType == ESP_FIELD_TYPE ||
                           fieldType == ESP_CHARGES_FIELD_TYPE);
       unsigned int resX = gridStruct->dimensions()[0];
@@ -211,9 +217,13 @@ bool IsoSurfaceCmd::execute()
       float *latticeData = ((SoMFFloat *)(lattice->data))->startEditing();
       EE_RT_ASSERT(latticeData,EE_FATAL,"Unexpected Null pointer.");
 
+      //  |sign(lambda2)rho| is rho itself, so the cut-off needs no second
+      //  field and can be moved without recomputing the grid.
+      const float rhoCut = (float)getParameter("rhoCutoff")->getDouble();
       if (colorField != 0) {
          for (int idx=0; idx<gridRes; idx++) {
-            latticeData[idx*2]     = field[idx];
+            const bool dense = nci && fabsf(colorField[idx]) >= rhoCut;
+            latticeData[idx*2]     = dense ? 100.0f : field[idx];
             latticeData[idx*2 + 1] = colorField[idx];
          }
       } else {
@@ -230,6 +240,8 @@ bool IsoSurfaceCmd::execute()
       float isovalue = (fieldType == ESP_FIELD_TYPE ||
                         fieldType == ESP_CHARGES_FIELD_TYPE) ? 0.002f
                                                              : 0.05f;
+      if (fieldType == ELF_FIELD_TYPE) isovalue = 0.8f;
+      if (fieldType == LOL_FIELD_TYPE || nci) isovalue = 0.5f;
 
       //  Scale the colour ramp to the potential ON THIS SURFACE.
       //
@@ -241,7 +253,13 @@ bool IsoSurfaceCmd::execute()
       //  carries hundredths, and the whole surface came out one colour.
       const bool colorAuto = getParameter("colorAuto")->getBoolean();
 
-      if (colorField != 0 && !colorAuto) {
+      if (nci) {
+        //  The scale is the field's definition, not something to fit.
+        gridStruct->colorFieldMin(NCI_COLOR_MIN);
+        gridStruct->colorFieldMax(NCI_COLOR_MAX);
+      }
+
+      if (colorField != 0 && !colorAuto && !nci) {
         //  An explicit range from the panel wins over any measurement.
         const double lo = getParameter("colorMin")->getDouble();
         const double hi = getParameter("colorMax")->getDouble();
@@ -253,7 +271,7 @@ bool IsoSurfaceCmd::execute()
         }
       }
 
-      if (colorField != 0 && colorAuto) {
+      if (colorField != 0 && colorAuto && !nci) {
         vector<float> shell;
         const float lo = 0.5f*isovalue;
         const float hi = 2.0f*isovalue;
@@ -338,7 +356,9 @@ bool IsoSurfaceCmd::execute()
          isosurf1->colorVar = 1;
          ESP_LOG << "ESP: colour lattice attached" << std::endl;
          setPotentialRamp(isosurf1, gridStruct->colorFieldMin(),
-                          gridStruct->colorFieldMax(), transparency);
+                          gridStruct->colorFieldMax(), transparency, nci);
+         //  Low s is inside an NCI region, the reverse of a density blob.
+         if (nci) isosurf1->flipNormals = true;
       }
 
       isosurf1->threshold.setValue(threshold);
@@ -514,8 +534,23 @@ void IsoSurfaceCmd::potentialRampRange(float& minValue, float& maxValue)
 }
 
 
+void IsoSurfaceCmd::nciRampColor(double t, double& r, double& g, double& b)
+{
+   //  Green sits at sign(lambda2)rho = 0 on the fixed scale.
+   const double zero = -1.0 + 2.0*(-NCI_COLOR_MIN)/(NCI_COLOR_MAX - NCI_COLOR_MIN);
+   if (t < zero) {                // blue -> green
+      const double f = (t + 1.0)/(zero + 1.0);
+      r = 0.0;  g = f;  b = 1.0 - f;
+   } else {                       // green -> red
+      const double f = (t - zero)/(1.0 - zero);
+      r = f;  g = 1.0 - f;  b = 0.0;
+   }
+}
+
+
 void IsoSurfaceCmd::setPotentialRamp(ChemIso *isosurf, float minValue,
-                                     float maxValue, double transparency)
+                                     float maxValue, double transparency,
+                                     bool nci)
 {
    const int steps = 64;
 
@@ -527,7 +562,8 @@ void IsoSurfaceCmd::setPotentialRamp(ChemIso *isosurf, float minValue,
       const double t = 2.0*i/(steps-1) - 1.0;
 
       double r, g, b;
-      potentialRampColor(t, r, g, b);
+      if (nci) nciRampColor(t, r, g, b);
+      else potentialRampColor(t, r, g, b);
       ramp[i] = SbColor(r, g, b).getPackedValue(transparency);
    }
    isosurf->orderedRGBA.finishEditing();

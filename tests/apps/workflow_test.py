@@ -2,7 +2,7 @@
 """Workflows (#341): a workflow of linked steps, made as the code buttons
 make them, through the Organizer's ECCE_TEST_ORGANIZER hook.
 
-    tests/apps/workflow_test.py [--shots DIR]
+    tests/apps/workflow_test.py [--recipes-only] [--shots DIR]
 
 An NWChem calculation with a result is the first step; an xTB step is made
 from it (final geometry, charge and multiplicity carried), an ORCA step from
@@ -136,8 +136,10 @@ def run_best(display, data, work, shots):
         "workflowcopy %s %s/crest ens" % (wf, proj),
         "workflowstep %s orca_es best %s/ens best=3" % (wf, wf),
         "workflowstep %s orca_es toomany %s/ens best=7" % (wf, wf),
+        "workflowstep %s orca_es plain %s/ens" % (wf, wf),
         "workflowinfo %s" % wf,
         "workflowready %s" % wf,
+        "workflowresults %s" % wf,
     ]
     script = os.path.join(work, "commands-best")
     with open(script, "w") as handle:
@@ -180,6 +182,13 @@ def run_best(display, data, work, shots):
               all(abs(a - b) < 1e-4 for a, b in zip(got, ref)), "%s vs %s" % (got, ref))
     check("the conformers differ", len({tuple(frames[order[k]][:6]) for k in range(3)}) == 3,
           "frames equal")
+    plain = table.get("plain")
+    got = [float(v) for v in plain["xyz0"].split(",")] if plain and plain.get("xyz0") else []
+    ref = frames[order[0]][:3]
+    check("a plain geometry link from an ensemble gives the lowest conformer (#812)",
+          bool(plain) and "ens>plain:geometry" in links and
+          len(got) == 3 and all(abs(a - b) < 1e-4 for a, b in zip(got, ref)),
+          "plain %s, want %s, links %s" % (got, ref, links))
     note = os.path.join(root, "conf", "Workflow", "best-conf2", ".ecce-meta")
     text = open(note).read() if os.path.exists(note) else ""
     check("the annotation names the conformer and its energy",
@@ -188,6 +197,10 @@ def run_best(display, data, work, shots):
     ready = answer("workflowready")
     check("Launch Ready Steps takes all three",
           bool(ready) and all(n in ready[0] for n in want), "ready %s" % ready)
+    res = answer("workflowresults")
+    check("the CREST box counts its conformers within the default window (#810)",
+          bool(res) and "ens: 6 conformers within 6 kcal/mol" in res[0],
+          "workflowresults answered %r" % res)
 
 
 def run_patterns(display, data, work, shots):
@@ -480,6 +493,9 @@ def run(display, data, work, shots):
     dlg = os.path.join(shots, "workflow-new-step.png")
     dlg2 = os.path.join(shots, "workflow-new-first-step.png")
     png2 = os.path.join(shots, "workflow-states.png")
+    prog = os.path.join(work, "xtb-progress")
+    with open(prog, "w") as handle:
+        handle.write("# seq=1 sent=1760000000.0\ncrest stage=sampling mtd=9/14\n")
     commands = [
         "summary %s/water" % proj,
         "new %s workflow" % proj,
@@ -503,6 +519,10 @@ def run(display, data, work, shots):
         "setstate %s/xtb-1 running" % wf,
         "workflowshot %s %s %s/xtb-1" % (png2, wf, wf),
         "workflowicons %s" % wf,
+        # the result line under each name (#810): a finished step's energy,
+        # a running step's progress
+        "progress %s/xtb-1 %s" % (wf, prog),
+        "workflowresults %s" % wf,
     ]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
@@ -611,6 +631,14 @@ def run(display, data, work, shots):
           all(n in icons and icons[n] == tree.get(n) for n in names) and
           icons.get("nw-water") != icons.get("xtb-1"),
           "workflowicons answered %r" % got)
+    energy = float(re.search(r">(-?[\d.e+-]+)<", open(os.path.join(
+        CALC, "Props", "TE")).read()).group(1))
+    lines = dict(l.split(": ", 1) for l in
+                 (answer("workflowresults") or ["ok "])[0][3:].split("|") if ": " in l)
+    check("a finished step says its energy, a running one its progress",
+          lines.get("nw-water") == "E \u2212%.3f Eh" % -energy and
+          lines.get("xtb-1") == "MTD 9 of 14",
+          "workflowresults answered %r" % lines)
 
 
 EXAMPLE = os.path.join(ROOT, "data", "client", "examples", "workflows",
@@ -660,6 +688,12 @@ def run_recipes(display, data, work, shots):
                 "role: geom | Geometry | PBE0 | cc-pVDZ | test\n"
                 "variant: main | ECCE-QM | ECCE-QM\n"
                 "step: main | opt | ECCE-QM | geom | GeoVib | ECCE-QM Opt | structure\n")
+    # A step flagged charge=+1 takes its source's charge plus one (#808).
+    with open(os.path.join(userdir, "shifted.recipe"), "w") as f:
+        f.write("recipe: shifted\ntitle: Shifted\n"
+                "role: geom | Geometry | PBE | def2-SVP | test\n"
+                "variant: main | ORCA | ORCA\n"
+                "step: main | cation | ORCA | geom | GeoVib | ORCA Opt | charge=+1\n")
     # The anion rule: a structure stored later turns 6-31G(d) into 6-31+G(d).
     with open(os.path.join(userdir, "anion.recipe"), "w") as f:
         f.write("recipe: anion\ntitle: Anion\n"
@@ -677,10 +711,10 @@ def run_recipes(display, data, work, shots):
         "new %s workflow" % proj, "new %s workflow" % kproj,
         "workflowrecipelist",
         "workflowrecipepanel - %s ts-irc orca -" % wf,
-        "workflowrecipepanel %s %s ts-irc g16 -" % (shots_panel, wf),
+        "workflowrecipepanel %s %s ts-irc g16 - solvent=DMSO" % (shots_panel, wf),
         "workflowrecipecreate %s" % wf,
         # a second recipe appended after the TS box
-        "workflowrecipepanel - %s conformers orca %s/ts" % (wf, wf),
+        "workflowrecipepanel - %s conformers orca %s/ts solvent=DMSO" % (wf, wf),
         "workflowrecipecreate %s" % wf,
         "workflowsaverecipe %s mine My-recipe" % wf,
     ]
@@ -696,10 +730,11 @@ def run_recipes(display, data, work, shots):
                  "workfloworient vertical",
                  "workflowshot %s %s" % (shots_vertical, kwf),
                  "workfloworient horizontal",
-                 "workflowrecipe %s handmade main -" % wf,
+                 "workflowrecipe %s handmade main - solvent=chloroform" % wf,
                  "workflowrecipe %s single main %s/reactant" % (kwf, kwf),
-                 "workflowrecipe %s singleqm main %s/reactant" % (kwf, kwf),
+                 "workflowrecipe %s singleqm main %s/reactant solvent=water" % (kwf, kwf),
                  "workflowrecipe %s anion main -" % wf,
+                 "workflowrecipe %s shifted main %s/reactant" % (kwf, kwf),
                  "workflowstructure %s %s/start %s/reactant" % (wf, wf, kwf),
                  "workflowinfo %s" % wf,
                  "workflowrecipehere %s %s/start" % (wf, wf),
@@ -712,6 +747,8 @@ def run_recipes(display, data, work, shots):
     result = apps.run(display, "organizer", windowTimeout=60, settle=75, env=env)
     log = result.log or ""
     what = "Recipes"
+    with open(os.path.join(shots, "recipe-dialog.log"), "w") as handle:
+        handle.write(log)
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
 
@@ -767,12 +804,64 @@ def run_recipes(display, data, work, shots):
     check("the panel offers the recommendation and its reason",
           len(panels) >= 2 and "B3LYP/6-31+G(d)" in panels[1] and "Why: the usual starting level" in panels[1],
           "panel answered %r" % panels[1:2])
+    check("recipe dialog has no GTK minimum-size warnings",
+          "for_size smaller than min-size" not in log,
+          "\n".join(line for line in log.splitlines() if "for_size" in line))
+    check("method and basis column headings, full wrapped role label and step names",
+          len(panels) >= 2 and "headings=Method;Basis set;" in panels[1]
+          and "Optimisations, TS search, frequencies, IRC" in panels[1]
+          and "Applies to: reactant, scan, product, ts, irc" in panels[1],
+          "panels: %r" % panels)
+    check("new workflow hides section 3; selected box shows the named choices",
+          len(panels) >= 3 and all("where-visible=0" in p for p in panels[:2])
+          and "where-visible=1" in panels[2]
+          and "where-heading=3  Where the new steps go" in panels[2]
+          and "new-label=Start a new workflow" in panels[2]
+          and 'after-label=Continue after the selected box "ts"' in panels[2],
+          "panels: %r" % panels)
+    check("rebuilt role rows fit without overlap or clipped labels",
+          len(panels) >= 3 and all("role-overlaps=0 clipped-labels=0" in p for p in panels),
+          "panels: %r" % panels)
+    check("each built-in recipe has one solvent row applying to every step",
+          len(panels) >= 3 and all(p.count("row[solvent]=Solvent;") == 1
+          and "applies to every step" in p for p in panels)
+          and "Solvent model: CREST: ALPB; xtb: ALPB; ORCA: CPCM" in panels[2],
+          "panels: %r" % panels)
     created = answers("workflowrecipecreate")
     info = created[0] if created else ""
     st = steps(info.replace("ok ", "", 1))
     check("Create boxes makes the five G16 steps",
           sorted(st) == ["irc", "product", "reactant", "scan", "ts"],
           "info %r" % info[:300])
+    check("solvent choice sets PCM and the accepted solvent name in every G16 step",
+          len(st) == 5 and all(v.get("solvent-model") == "PCM"
+          and v.get("solvent") == "Dimethylsulfoxide"
+          and v.get("solvent-toggle-type") == "toggle_input" for v in st.values()),
+          "steps: %r" % st)
+    conf = steps(created[1].replace("ok ", "", 1)) if len(created) > 1 else {}
+    check("Conformers applies ALPB to CREST/xTB and CPCM to ORCA",
+          all(conf.get(n, {}).get("solvent-model") == model
+          and conf.get(n, {}).get("solvent") == name
+          for n, model, name in (("crest", "ALPB", "dmso"),
+                                 ("xtb", "ALPB", "dmso"), ("dft", "CPCM", "DMSO"))),
+          "steps: %r" % conf)
+    check("solvent checkbox restores as a checkbox in the ORCA theory editor",
+          conf.get("dft", {}).get("solvent-toggle-type") == "toggle_input",
+          "DFT step: %r" % conf.get("dft"))
+    check("a user recipe without a solvent role gets solvent in all steps, with aliases",
+          hand and "solvent-model=ALPB solvent=chcl3" in hand[0]
+          and "solvent-model=CPCM solvent=chloroform" in hand[0],
+          "user recipe: %r" % hand[:1])
+    check("ECCE-QM uses its CPCM solvent setting",
+          qm and "solvent-model=CPCM solvent=Water" in qm[0], "QM: %r" % qm)
+    check("none is gas phase for a user recipe",
+          single and "solvent-model=None" in single[0], "single: %r" % single)
+    shift = [h for h in hand if h.startswith("ok") and "|cation ORCA" in h]
+    qr = re.search(r"(^|\|| )reactant G16 \S+ \S+ charge=(-?\d+)", shift[0]) if shift else None
+    qc = re.search(r"(^|\|)cation ORCA \S+ \S+ charge=(-?\d+)", shift[0]) if shift else None
+    check("a charge=+1 step after a source gets the source's charge plus one",
+          qr and qc and int(qc.group(2)) == int(qr.group(2)) + 1,
+          "shifted: %r" % shift)
     check("only the first box needs a structure",
           [n for n in st if st[n].get("needs") == "1"] == ["reactant"],
           "needs: %r" % [(n, st[n].get("needs")) for n in st])
@@ -795,6 +884,8 @@ def run_recipes(display, data, work, shots):
           "answered %r" % saved)
     if saved and saved[0].startswith("ok "):
         text = open(saved[0][3:]).read()
+        check("the saved recipe keeps its shared solvent default",
+              "role: solvent | Solvent |  | DMSO |" in text, text[:300])
         check("the saved recipe keeps links and drops structures",
               "link: main | reactant | scan | geometry" in text and "xyz" not in text.lower(),
               text[:300])
@@ -848,11 +939,12 @@ def main():
         gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
         subprocess.run([gateway], env=display.env(), timeout=180)
         try:
-            run(display, data, work, shots)
-            run_joins(display, data, work, shots)
-            run_best(display, data, work, shots)
-            run_best_poses(display, data, work, shots)
-            run_patterns(display, data, work, shots)
+            if "--recipes-only" not in sys.argv:
+                run(display, data, work, shots)
+                run_joins(display, data, work, shots)
+                run_best(display, data, work, shots)
+                run_best_poses(display, data, work, shots)
+                run_patterns(display, data, work, shots)
             run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")

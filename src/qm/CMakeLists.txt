@@ -125,6 +125,10 @@ if(QM_PYTHON3)
   set_tests_properties(qm_diatomic_order PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Loewdin, CHELPG and Merz-Kollman charges against ORCA and Gaussian 16;
   # exits 77 (skip) when neither is installed.
+  # Restricted open-shell atoms H-Ar, Ca-Cu converge, above the UHF/UKS energy (#790).
+  add_test(NAME qm_roks_atoms COMMAND ${QM_PYTHON3} ${_qm_tests}/roks_atoms_test.py
+           $<TARGET_FILE:ecce-qm> ${_ecce_root}/data/admin/basissets)
+  set_tests_properties(qm_roks_atoms PROPERTIES TIMEOUT 1800)
   add_test(NAME qm_charges COMMAND ${QM_PYTHON3} ${_qm_tests}/charges_test.py $<TARGET_FILE:ecce-qm>)
   add_test(NAME qm_charges_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/charges_deck_test.py)
   set_tests_properties(qm_charges PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)

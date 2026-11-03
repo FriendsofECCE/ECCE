@@ -95,7 +95,10 @@ struct FieldLabel { const char *key; const char *label; const char *description;
 const FieldLabel surfaceFields[] = {
    {"Density", "Density", "Total electron density ρ(r). The surface encloses the region where ρ exceeds the isovalue (au)."},
    {"Spin Density", "Spin Density", "ρ_α - ρ_β: where the unpaired electrons are; the two colours mark alpha and beta excess."},
-   {ESP_FIELD_TYPE, "ESP on Density", "Electrostatic potential on a density surface: red negative (electron-rich), blue positive."}
+   {ESP_FIELD_TYPE, "ESP on Density", "Electrostatic potential on a density surface: red negative (electron-rich), blue positive."},
+   {ELF_FIELD_TYPE, "ELF", "Electron localisation function, 0 to 1; values near 1 mark localised pairs: bonds, lone pairs, core shells."},
+   {LOL_FIELD_TYPE, "LOL", "Localised orbital locator, 0 to 1; as ELF, with sharper separation between basins."},
+   {NCI_FIELD_TYPE, "NCI", "Reduced density gradient at low density, coloured by sign(λ2)ρ: blue hydrogen bonds and other attraction, green weak contacts with little density overlap, red steric repulsion."}
 };
 const FieldLabel chargeField = {ESP_CHARGES_FIELD_TYPE,
    "ESP on Density (atomic charges)", ""};
@@ -449,6 +452,7 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_slider->SetToolTip("Log Iso value:");
 
    buildEspRangeControls();
+   buildFieldViewControls();
    buildBasisWarning();
    p_fieldNote = new wxStaticText(this, wxID_ANY, wxEmptyString);
    p_fieldNote->SetMinSize(wxSize(1, -1));
@@ -609,6 +613,7 @@ void MoPanel::updateUIOptions()
    //  is chosen, which OnTypeSelected below keeps in step.
    showEspRangeControls(false);
    updateFieldNote();
+   showFieldViewControls(false, false);
 
    // Make sure we have a GBSConfig.  If not we'll crash when
    // we try to compute.
@@ -1724,6 +1729,12 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    cmd->getParameter("toZ")->setDouble(toz);
    fw.execute(cmd);
 
+   //  A cancelled or failed ELF/LOL/NCI compute: nothing new to draw.
+   if (cmd->getParameter("FieldFailed")->getInteger() > 0) {
+      event.Skip();
+      return;
+   }
+
    //  Coefficients that do not fit the basis are not a zero grid, and the
    //  grid still holds the previous orbital: say what is wrong and stop.
    const int usedWidth = cmd->getParameter("FallbackWidth")->getInteger();
@@ -1817,10 +1828,19 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       if (fieldtype == "Spin Density") {
          isovalue = -2.5;
       }
+      //  ELF and LOL run 0..1, s of an NCI surface about 0..2: the slider
+      //  is a log10 one, and these views are driven from the row's boxes.
+      bool nciView = false;
+      const bool fieldView = fieldViewSelected(&nciView);
+      if (fieldView) {
+         isovalue = log10(fieldViewIsovalue(fieldtype));
+         absIsovalMax = fieldtype == ELF_FIELD_TYPE || fieldtype == LOL_FIELD_TYPE ? 1.0 : 2.0;
+      }
 
       cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
       applyEspRange(cmd);
       cmd->getParameter("isovalue")->setDouble(pow(10.0, isovalue));
+      cmd->getParameter("rhoCutoff")->setDouble(fieldViewCutoff());
       cmd->getParameter("transparency")->setDouble(getTransparency());
       cmd->getParameter("positiveRed")->setDouble(posR);
       cmd->getParameter("positiveGreen")->setDouble(posG);
@@ -1836,7 +1856,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       p_slider->SetValue(isovalue);
       updateIsoValue(isovalue);
 
-      p_espDrawnType = espSurface ? fieldtype : string();
+      p_espDrawnType = (espSurface || nciView) ? fieldtype : string();
       p_drawnType = fieldtype;
       //  The composition describes the selected MO, not a density or ESP
       //  surface.
@@ -2437,6 +2457,13 @@ double MoPanel::getTransparency()
    //  configured MO transparency does not apply to it.
    if (espFieldSelected()) return 0.0;
 
+   //  An ELF surface is a shell around the atoms: always translucent.
+   ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   if (tw != 0 && tw->GetSelection() != wxNOT_FOUND &&
+       string((const char*)tw->GetString(tw->GetSelection()).mb_str()) ==
+          ELF_FIELD_TYPE)
+      return 0.5;
+
    double ret = 0.0;
    int id;
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
@@ -2622,13 +2649,34 @@ void MoPanel::refreshEspBar()
    IsoSurfaceCmd::potentialRampRange(lo, hi);
    const double toKcal = 627.5095;   // 1 Hartree/e in kcal/mol per e
    const double iso = pow(10.0, static_cast<double>(p_slider->GetFloatValue()));
+   if (p_espDrawnType == NCI_FIELD_TYPE) { lo = NCI_COLOR_MIN; hi = NCI_COLOR_MAX; }
 
    p_espBarMin->SetLabel(wxString::Format("%+.4f", lo));
    p_espBarMax->SetLabel(wxString::Format("%+.4f", hi));
-   p_espBarInfo->SetLabel(wxString::Format(
-      "red: negative (electron-rich)   blue: positive (electron-poor)\n"
-      "a.u. (Hartree/e); %+.1f to %+.1f kcal/mol per e; surface %.4f e/bohr^3",
-      lo*toKcal, hi*toKcal, iso));
+   const bool nciDrawn = p_espDrawnType == NCI_FIELD_TYPE;
+   //  The bar's ramp follows the surface on screen, as its legend does.
+   vector<wxColour> colors;
+   for (int i = 0; i < 64; i++) {
+      double r, g, b;
+      if (nciDrawn) IsoSurfaceCmd::nciRampColor(2.0*i/63 - 1.0, r, g, b);
+      else IsoSurfaceCmd::potentialRampColor(2.0*i/63 - 1.0, r, g, b);
+      colors.push_back(wxColour((unsigned char)(r*255.0 + 0.5),
+                                (unsigned char)(g*255.0 + 0.5),
+                                (unsigned char)(b*255.0 + 0.5)));
+   }
+   p_espBar->setColors(colors);
+   if (nciDrawn) {
+      p_espBarInfo->SetLabel(wxString::Format(
+         "blue: attractive (hydrogen bond)   green: weak (van der Waals)   "
+         "red: repulsive (steric)\n"
+         "sign(lambda2) rho in a.u.; surface s = %.2f where rho < %.3f",
+         fieldViewIsovalue(NCI_FIELD_TYPE), fieldViewCutoff()));
+   } else {
+      p_espBarInfo->SetLabel(wxString::Format(
+         "red: negative (electron-rich)   blue: positive (electron-poor)\n"
+         "a.u. (Hartree/e); %+.1f to %+.1f kcal/mol per e; surface %.4f e/bohr^3",
+         lo*toKcal, hi*toKcal, iso));
+   }
    GetSizer()->Show(p_espBarSizer, true, true);
    const bool changed = !p_espBarShown;
    p_espBarShown = true;
@@ -2757,6 +2805,110 @@ void MoPanel::showEspRangeControls(bool show)
    p_espMax->Enable(show && !automatic);
 
    GetSizer()->Layout();
+}
+
+
+static const wxWindowID ID_FIELD_ISO = wxNewId();
+static const wxWindowID ID_FIELD_CUT = wxNewId();
+
+/** Isovalue (and, for NCI, density cut-off) boxes of the ELF, LOL and NCI views. */
+void MoPanel::buildFieldViewControls()
+{
+   p_fieldSizer = new wxBoxSizer(wxHORIZONTAL);
+   GetSizer()->Add(p_fieldSizer, 0, wxALIGN_LEFT|wxLEFT|wxBOTTOM, 5);
+
+   p_fieldSizer->Add(new ewxStaticText(this, wxID_STATIC, _("Isovalue:")),
+                     0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
+   p_fieldIso = new ewxTextCtrl(this, ID_FIELD_ISO, _("0.80"),
+                                wxDefaultPosition, wxSize(60, -1),
+                                wxTE_PROCESS_ENTER);
+   p_fieldIso->SetToolTip(_("ELF and LOL: the value of the localisation "
+         "function the surface is drawn at (0 to 1). NCI: the reduced "
+         "density gradient s."));
+   p_fieldSizer->Add(p_fieldIso, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 10);
+
+   p_fieldCutLabel = new ewxStaticText(this, wxID_STATIC,
+                                       _("Density cut-off (a.u.):"));
+   p_fieldSizer->Add(p_fieldCutLabel, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
+   p_fieldCut = new ewxTextCtrl(this, ID_FIELD_CUT, _("0.05"),
+                                wxDefaultPosition, wxSize(60, -1),
+                                wxTE_PROCESS_ENTER);
+   p_fieldCut->SetToolTip(_("NCI: the surface is drawn only where the "
+         "electron density is below this value, which leaves out the "
+         "bonds and the cores."));
+   p_fieldSizer->Add(p_fieldCut, 0, wxALIGN_CENTER_VERTICAL, 0);
+
+   GetSizer()->Show(p_fieldSizer, false, true);
+   for (ewxTextCtrl *t : { p_fieldIso, p_fieldCut }) {
+      t->Bind(wxEVT_TEXT_ENTER, &MoPanel::onFieldViewChanged, this);
+      t->Bind(wxEVT_KILL_FOCUS, &MoPanel::onFieldViewFocusLost, this);
+   }
+}
+
+bool MoPanel::fieldViewSelected(bool *nci)
+{
+   if (nci) *nci = false;
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   if (typewin == 0 || typewin->GetSelection() == wxNOT_FOUND) return false;
+   const string chosen = (const char*)typewin->GetString(
+                                          typewin->GetSelection()).mb_str();
+   if (nci) *nci = chosen == NCI_FIELD_TYPE;
+   return chosen == ELF_FIELD_TYPE || chosen == LOL_FIELD_TYPE ||
+          chosen == NCI_FIELD_TYPE;
+}
+
+double MoPanel::fieldViewIsovalue(const string& type) const
+{
+   const double dflt = type == ELF_FIELD_TYPE ? 0.8 : 0.5;
+   double v;
+   if (p_fieldIso == 0 || !((wxString)p_fieldIso->GetValue()).ToDouble(&v) ||
+       !(v > 0.0))
+      return dflt;
+   return v;
+}
+
+double MoPanel::fieldViewCutoff() const
+{
+   double v;
+   if (p_fieldCut == 0 || !((wxString)p_fieldCut->GetValue()).ToDouble(&v) ||
+       !(v > 0.0))
+      return NCI_RHO_CUTOFF;
+   return v;
+}
+
+void MoPanel::showFieldViewControls(bool show, bool nci)
+{
+   if (p_fieldSizer == 0) return;
+   GetSizer()->Show(p_fieldSizer, show, true);
+   p_fieldCutLabel->Show(show && nci);
+   p_fieldCut->Show(show && nci);
+   //  The row's box replaces the log slider for these views.
+   p_slider->GetParent()->Show(!show);
+   if (show) {
+      ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+      const string chosen(tw->GetString(tw->GetSelection()).mb_str());
+      p_fieldIso->ChangeValue(wxString::Format("%.2f",
+                              chosen == ELF_FIELD_TYPE ? 0.8 : 0.5));
+   }
+   GetSizer()->Layout();
+}
+
+/** Apply the boxes: NCI rebuilds (the cut-off is in the surface), ELF/LOL move the level. */
+void MoPanel::onFieldViewChanged(wxCommandEvent& WXUNUSED(event))
+{
+   if (!p_isValid || p_drawnType.empty() ||
+       getFW().getSceneGraph().getCurrentGrid() == 0) return;
+   const double iso = fieldViewIsovalue(p_drawnType);
+   p_slider->SetValue(log10(iso));
+   if (p_drawnType == NCI_FIELD_TYPE) rebuildEspSurface();
+   else updateIsoValue(log10(iso));
+}
+
+void MoPanel::onFieldViewFocusLost(wxFocusEvent& event)
+{
+   event.Skip();
+   wxCommandEvent ev;
+   onFieldViewChanged(ev);
 }
 
 
@@ -3006,7 +3158,10 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
    event.Skip();
 
    const bool esp = espFieldSelected();
+   bool nciSel = false;
+   const bool fieldView = fieldViewSelected(&nciSel);
    showEspRangeControls(esp);
+   showFieldViewControls(fieldView, nciSel);
    updateFieldNote();
    if (IsShownOnScreen())
       if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
@@ -3032,7 +3187,7 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
    //  leave an opaque map being drawn under SCREEN_DOOR, or the
    //  reverse.
    getFW().getViewer().setTransparencyType(
-      esp ? SoGLRenderAction::SORTED_OBJECT_BLEND
+      esp || nciSel ? SoGLRenderAction::SORTED_OBJECT_BLEND
           : SoGLRenderAction::SCREEN_DOOR);
 }
 
@@ -3065,6 +3220,7 @@ void MoPanel::rebuildEspSurface()
    applyEspRange(cmd);
    cmd->getParameter("isovalue")->setDouble(
          pow(10.0, static_cast<double>(p_slider->GetFloatValue())));
+   cmd->getParameter("rhoCutoff")->setDouble(fieldViewCutoff());
    cmd->getParameter("transparency")->setDouble(getTransparency());
    cmd->getParameter("positiveRed")->setDouble(posR);
    cmd->getParameter("positiveGreen")->setDouble(posG);

@@ -468,15 +468,16 @@ string csv(const Map& m, const string& calcName)
 Evaluator::Evaluator() : unrestricted(false), p_basis(new vector<EspBasisFunction>) {}
 Evaluator::~Evaluator() { delete p_basis; }
 
-bool Evaluator::build(IPropCalculation *calc)
+bool Evaluator::build(IPropCalculation *calc, const Fragment *shown)
 {
   complaint.clear();
-  std::unique_ptr<Fragment> frag(calc->getFragmentStep(-1));
+  std::unique_ptr<Fragment> own(shown ? 0 : calc->getFragmentStep(-1));
+  const Fragment *frag = shown ? shown : own.get();
   if (!frag || frag->numAtoms() == 0) {
     complaint = "The calculation has no chemical system.";
     return false;
   }
-  if (!MoAoBasis::fragmentGeometry(frag.get(), symbols, coordsAng)) {
+  if (!MoAoBasis::fragmentGeometry(const_cast<Fragment*>(frag), symbols, coordsAng)) {
     complaint = "The chemical system has no usable atoms.";
     return false;
   }
@@ -653,6 +654,90 @@ void Evaluator::evaluateAt(double x, double y, double z, const vector<char>& nee
     if (occupied || (m < needB.size() && needB[m])) psiB[m] = combine(p_cBeta[m], phi);
     if (occupied) rho += occBeta[m]*psiB[m]*psiB[m];
   }
+}
+
+FieldPoint::FieldPoint()
+{
+  rho[0] = rho[1] = tau[0] = tau[1] = rhoTotal = 0.0;
+  for (int s = 0; s < 2; s++) for (int k = 0; k < 3; k++) grad[s][k] = 0.0;
+  for (int k = 0; k < 3; k++) { gradTotal[k] = 0.0; eig[k] = 0.0; }
+  for (int k = 0; k < 6; k++) hess[k] = 0.0;
+}
+
+// Eigenvalues of a symmetric 3x3 (xx yy zz xy xz yz), ascending, by Jacobi sweeps.
+static void eigenvalues(const double h[6], double e[3])
+{
+  double a[3][3] = { {h[0], h[3], h[4]}, {h[3], h[1], h[5]}, {h[4], h[5], h[2]} };
+  for (int sweep = 0; sweep < 50; sweep++) {
+    const double off = fabs(a[0][1]) + fabs(a[0][2]) + fabs(a[1][2]);
+    if (off < 1e-300) break;
+    for (int p = 0; p < 2; p++)
+      for (int q = p + 1; q < 3; q++) {
+        if (a[p][q] == 0.0) continue;
+        const double th = (a[q][q] - a[p][p])/(2.0*a[p][q]);
+        const double t = (th >= 0 ? 1.0 : -1.0)/(fabs(th) + sqrt(th*th + 1.0));
+        const double c = 1.0/sqrt(t*t + 1.0), sn = t*c;
+        for (int k = 0; k < 3; k++) {          // columns p, q
+          const double akp = a[k][p], akq = a[k][q];
+          a[k][p] = c*akp - sn*akq;
+          a[k][q] = sn*akp + c*akq;
+        }
+        for (int k = 0; k < 3; k++) {          // rows p, q
+          const double apk = a[p][k], aqk = a[q][k];
+          a[p][k] = c*apk - sn*aqk;
+          a[q][k] = sn*apk + c*aqk;
+        }
+      }
+  }
+  e[0] = a[0][0]; e[1] = a[1][1]; e[2] = a[2][2];
+  std::sort(e, e + 3);
+}
+
+void Evaluator::fieldsAt(double x, double y, double z, FieldPoint& out) const
+{
+  const double bx = x*BOHR_PER_ANGSTROM, by = y*BOHR_PER_ANGSTROM,
+               bz = z*BOHR_PER_ANGSTROM;
+  const size_t nb = p_basis->size();
+  vector<double> v(nb), g(3*nb), h(6*nb);
+  for (size_t i = 0; i < nb; i++)
+    (*p_basis)[i].derivatives(bx, by, bz, v[i], &g[3*i], &h[6*i]);
+
+  out = FieldPoint();
+  // One orbital: psi, grad psi, Hessian of psi, then added with weight n to the spin.
+  auto add = [&](const vector<double>& c, double na, double nb_) {
+    double psi = 0, gp[3] = {0, 0, 0}, hp[6] = {0, 0, 0, 0, 0, 0};
+    for (size_t i = 0; i < nb; i++) {
+      const double ci = c[i];
+      psi += ci*v[i];
+      for (int k = 0; k < 3; k++) gp[k] += ci*g[3*i + k];
+      for (int k = 0; k < 6; k++) hp[k] += ci*h[6*i + k];
+    }
+    const double w[2] = { na, nb_ };
+    const double g2 = gp[0]*gp[0] + gp[1]*gp[1] + gp[2]*gp[2];
+    for (int s = 0; s < 2; s++) {
+      if (w[s] == 0.0) continue;
+      out.rho[s] += w[s]*psi*psi;
+      out.tau[s] += 0.5*w[s]*g2;
+      for (int k = 0; k < 3; k++) out.grad[s][k] += 2.0*w[s]*psi*gp[k];
+      static const int ka[6] = {0, 1, 2, 0, 0, 1}, kb[6] = {0, 1, 2, 1, 2, 2};
+      for (int m = 0; m < 6; m++)
+        out.hess[m] += 2.0*w[s]*(gp[ka[m]]*gp[kb[m]] + psi*hp[m]);
+    }
+  };
+  if (unrestricted) {
+    for (size_t m = 0; m < p_c.size(); m++) if (occ[m] != 0.0) add(p_c[m], occ[m], 0.0);
+    for (size_t m = 0; m < p_cBeta.size(); m++)
+      if (occBeta[m] != 0.0) add(p_cBeta[m], 0.0, occBeta[m]);
+  } else {
+    for (size_t m = 0; m < p_c.size(); m++) {
+      if (occ[m] == 0.0) continue;
+      const double a = std::min(occ[m], 1.0);
+      add(p_c[m], a, occ[m] - a);
+    }
+  }
+  out.rhoTotal = out.rho[0] + out.rho[1];
+  for (int k = 0; k < 3; k++) out.gradTotal[k] = out.grad[0][k] + out.grad[1][k];
+  eigenvalues(out.hess, out.eig);
 }
 
 bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,

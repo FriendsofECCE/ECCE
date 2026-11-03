@@ -9,6 +9,7 @@
 #include "tdat/SpinMult.H"
 #include "util/InvalidException.H"
 #include "util/ResourceUtils.H"
+#include "util/VibFrequency.H"
 
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
@@ -27,6 +28,9 @@
 #include "dsm/VDoc.H"
 #include "util/Ecce.H"
 #include "CompareEnergies.H"
+#include "comm/JobFailureReason.H"
+#include "tdat/PropVector.H"
+#include "util/JobProgress.H"
 
 #include "WorkflowSteps.H"
 
@@ -86,6 +90,27 @@ string WorkflowSteps::linkLabel(const string& name)
 }
 
 
+// An ensemble has no "last" step; its representative is the lowest member,
+// the same frame the geometry.c1 link gives.
+static Fragment *finalGeometry(PropertyTask *task, bool *fromResult = 0)
+{
+  if (fromResult) *fromResult = false;
+  if (!task) return 0;
+  if (ScanPoint::ensembleSize(task) > 0) {
+    string w;
+    Fragment *f = ScanPoint::fragment(task, "c1", w);
+    if (f && fromResult) *fromResult = true;
+    return f;
+  }
+  Fragment *f = task->fragment();
+  if (f) {
+    bool r = task->getFragmentStep(f, -1);
+    if (fromResult) *fromResult = r;
+  }
+  return f;
+}
+
+
 bool WorkflowSteps::isScan(Resource *step)
 {
   return ScanPoint::isScan(dynamic_cast<PropertyTask*>(step));
@@ -96,10 +121,8 @@ bool WorkflowSteps::hasResultGeometry(Resource *step)
 {
   PropertyTask *task = dynamic_cast<PropertyTask*>(step);
   if (!task) return false;
-  Fragment *frag = task->fragment();
-  if (!frag) return false;
-  bool result = task->getFragmentStep(frag, -1);
-  delete frag;
+  bool result = false;
+  delete finalGeometry(task, &result);
   return result;
 }
 
@@ -168,9 +191,8 @@ Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
     ChemistryTask *toTask = dynamic_cast<ChemistryTask*>(made);
     if (from && to && fromTask && toTask) {
       if (carry.geometry) {
-        Fragment *frag = pointFrag ? pointFrag : fromTask->fragment();
+        Fragment *frag = pointFrag ? pointFrag : finalGeometry(fromTask);
         if (frag) {
-          if (!pointFrag) fromTask->getFragmentStep(frag, -1);
           if (!carry.chargeMult) frag->charge(0);
           toTask->fragment(frag);
           delete frag;
@@ -565,6 +587,31 @@ string WorkflowSteps::info(Session *wf)
       std::replace(v.begin(), v.end(), ' ', '_');
       out << " xc=" << v;
     }
+    if (gv && code) {
+      string model, solvent;
+      auto value = [&](const char *key) {
+        GUIValue *v = gv->get(key);
+        return v ? v->getValueAsString() : string();
+      };
+      if (code->label == string("CREST") || code->label == string("xtb")) {
+        model = value("ES.Theory.Solvent.Model");
+        solvent = value("ES.Theory.Solvent.Name");
+      } else if (code->label == string("ORCA")) {
+        model = value("ES.Theory.SCF.UseSolvation") == "1" ? value("ES.Theory.SCF.SolvationModel") : "None";
+        solvent = value("ES.Theory.SCF.Solvent");
+      } else if (code->label == string("G16")) {
+        model = value("ES.Theory.SCF.UseSCRF") == "1" ? value("ES.Theory.SCF.SCRF") : "None";
+        solvent = value("ES.Theory.SCF.Solvent");
+      } else if (code->label == string("ECCE-QM")) {
+        solvent = value("ES.Theory.ECCEQM.Solvent");
+        model = solvent == "None" || solvent.empty() ? "None" : "CPCM";
+      }
+      if (!model.empty()) out << " solvent-model=" << model << " solvent=" << solvent;
+      const char *toggleKey = code->label == string("G16") ? "ES.Theory.SCF.UseSCRF"
+                              : code->label == string("ORCA") ? "ES.Theory.SCF.UseSolvation" : "";
+      GUIValue *toggle = gv->get(toggleKey);
+      if (toggle) out << " solvent-toggle-type=" << toggle->m_type;
+    }
     delete gv;
     TGBSConfig *gbs = calc ? calc->gbsConfig() : 0;
     if (gbs && !gbs->name().empty()) out << " basis=" << gbs->name();
@@ -572,8 +619,8 @@ string WorkflowSteps::info(Session *wf)
     if (frag && frag->numAtoms() > 0) {
       const double *c = frag->atomRef(0)->coordinates();
       out << " xyz0=" << c[0] << "," << c[1] << "," << c[2];
-      Fragment *last = task->fragment();
-      bool result = last && task->getFragmentStep(last, -1);
+      bool result = false;
+      Fragment *last = finalGeometry(task, &result);
       if (result) {
         const double *f = last->atomRef(0)->coordinates();
         out << " final0=" << f[0] << "," << f[1] << "," << f[2];
@@ -719,7 +766,7 @@ void applyRoleBasis(Resource *step)
 }
 
 // Copies what a link carries from `source` into `made`.
-void carryInto(Resource *source, Resource *made, const string& point)
+void carryInto(Resource *source, Resource *made, const string& point, int chargeShift = 0)
 {
   ICalculation *from = dynamic_cast<ICalculation*>(source);
   ICalculation *to = dynamic_cast<ICalculation*>(made);
@@ -731,10 +778,12 @@ void carryInto(Resource *source, Resource *made, const string& point)
     string w;
     frag = ScanPoint::fragment(fromTask, point, w);
   } else {
-    frag = fromTask->fragment();
-    if (frag) fromTask->getFragmentStep(frag, -1);
+    frag = finalGeometry(fromTask);
   }
-  if (frag && frag->numAtoms() > 0) toTask->fragment(frag);
+  if (frag && frag->numAtoms() > 0) {
+    if (chargeShift) frag->charge(frag->charge() + chargeShift);
+    toTask->fragment(frag);
+  }
   delete frag;
   to->spinMultiplicity(from->spinMultiplicity());
   to->openShells(from->openShells());
@@ -820,7 +869,7 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       for (size_t i = 0; i < variant.steps.size(); i++)
         if (!hasSource[i]) {
           wf->addLink(after, made[i], Session::INPUT_PROVIDER, kGeometryLink);
-          carryInto(after, made[i], "");
+          carryInto(after, made[i], "", variant.steps[i].chargeShift);
           hasSource[i] = true;
         }
     wf->saveLinkbase();
@@ -847,6 +896,21 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       Levels::const_iterator lv = levels.find(rs.role);
       const string method = lv == levels.end() ? "" : lv->second.first;
       const string basis = lv == levels.end() ? "" : lv->second.second;
+      auto solvent = levels.find("solvent");
+      const string solventName = solvent == levels.end() ? "none" : solvent->second.second;
+      for (const auto& kv : recipeSolventSettings(rs.code, solventName)) {
+        setKey(g, kv.first, kv.second);
+        // The theory editor restores checkboxes according to the wire type.
+        if (kv.first == "ES.Theory.SCF.UseSCRF" || kv.first == "ES.Theory.SCF.UseSolvation")
+          g->get(kv.first)->m_type = "toggle_input";
+      }
+      // The shell's molecule follows the Solvent row when CREST can build it.
+      if (rs.runType == "Solvation Shell") {
+        string lower = solventName;
+        std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+        if (lower == "water" || lower == "methanol" || lower == "acetonitrile")
+          setKey(g, "ES.Runtype.QCG.Solvent", lower);
+      }
       calc->guiparams(g);
       delete g;
 
@@ -854,6 +918,7 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       step->addProp(nsKey(":recipe.role"), rs.role);
       step->addProp(nsKey(":recipe.key"), rs.keyRole);
       step->addProp(nsKey(":recipe.thermo"), rs.thermo ? "1" : "0");
+      step->addProp(nsKey(":recipe.charge"), std::to_string(rs.chargeShift));
       step->addProp(nsKey(":recipe.method"), method);
       step->addProp(nsKey(":recipe.basis"), basis);
       step->addProp(nsKey(":recipe.caption"), rs.caption);
@@ -902,7 +967,8 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
     splitLinkName(l->linkName, role, point);
     if ((role == "geometry" || role == "reactant") &&
         hasResultGeometry(l->source)) {
-      carryInto(l->source, step, role == "reactant" ? "" : point);
+      carryInto(l->source, step, role == "reactant" ? "" : point,
+                atoi(step->getProp(nsKey(":recipe.charge")).c_str()));
       carried = true;
     }
   }
@@ -997,6 +1063,86 @@ string WorkflowSteps::structureSet(Session *wf, Resource *step)
 }
 
 
+namespace {
+
+// One word per CREST run type, plural and singular.
+void ensembleWords(const string& runtype, string& many, string& one)
+{
+  if (runtype == "Protonation Sites") { many = "protonation sites"; one = "protonation site"; }
+  else if (runtype == "Tautomers") { many = "tautomers"; one = "tautomer"; }
+  else if (runtype == "Solvation Shell") { many = "clusters"; one = "cluster"; }
+  else { many = "conformers"; one = "conformer"; }
+}
+
+string number(const char *fmt, double v)
+{
+  char b[64];
+  snprintf(b, sizeof b, fmt, v);
+  return b;
+}
+
+}  // namespace
+
+
+string WorkflowSteps::resultLine(Resource *step, const string& progress)
+{
+  const ResourceDescriptor::RUNSTATE st = stateOf(step);
+  if (st == ResourceDescriptor::STATE_RUNNING) {
+    JobProgress p;
+    return p.parse(progress) ? p.shortLine() : string();
+  }
+  if (st == ResourceDescriptor::STATE_UNSUCCESSFUL ||
+      st == ResourceDescriptor::STATE_FAILED ||
+      st == ResourceDescriptor::STATE_SYSTEM_FAILURE) {
+    const string why = JobFailureReason::reasonForProgressBox(
+        step->getProp(VDoc::getEcceNamespace() + ":runStatusReason"));
+    return why.empty() ? string("Incomplete") : why.substr(0, why.find('\n'));
+  }
+  if (!isComplete(step)) return "";
+
+  PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  if (!task || !calc) return "";
+  const string dot = " \xc2\xb7 ";
+
+  const int n = ScanPoint::ensembleSize(task);
+  if (n > 0 && !ScanPoint::ensembleIsPoses(task)) {
+    const string rt = calc->runtype().name();
+    string many, one;
+    ensembleWords(rt, many, one);
+    string line = std::to_string(n) + " " + (n == 1 ? one : many);
+    // Protonation and tautomer runs have no window of their own.
+    if (rt != "Protonation Sites" && rt != "Tautomers" && rt != "Solvation Shell") {
+      double w = 6;                         // what ai.crest writes when none is set
+      GUIValues *g = calc->guiparams();
+      GUIValue *v = g ? g->get("ES.Runtype.Conformers.EnergyWindow") : 0;
+      if (v && atof(v->getValueAsString().c_str()) > 0)
+        w = atof(v->getValueAsString().c_str());
+      delete g;
+      line += " within " + number("%g", w) + " kcal/mol";
+    }
+    return line;
+  }
+
+  string line;
+  const FinalEnergy fe = finalEnergyOf(task);
+  double hartree;
+  if (fe.found && !fe.heat && finalEnergyHartree(fe, &hartree)) {
+    // U+2212, as the Progress box writes a negative number
+    string e = number("%.3f", hartree);
+    if (e[0] == '-') e = "\xe2\x88\x92" + e.substr(1);
+    line = "E " + e + " Eh";
+  }
+  PropVector *vf = dynamic_cast<PropVector*>(task->getProperty("VIBFREQ"));
+  if (vf && !vf->values().empty()) {
+    int imag = 0;
+    for (double f : vf->values()) if (VibFrequency::isImaginary(f)) imag++;
+    line += (line.empty() ? "" : dot) + std::to_string(imag) + " imaginary";
+  }
+  return line;
+}
+
+
 vector<KeyStep> WorkflowSteps::keySteps(Session *wf)
 {
   vector<KeyStep> out;
@@ -1046,6 +1192,7 @@ bool WorkflowSteps::toRecipe(Session *wf, const string& id, const string& title,
     s.caption = step->getProp(nsKey(":recipe.caption"));
     s.keyRole = step->getProp(nsKey(":recipe.key"));
     s.thermo = step->getProp(nsKey(":recipe.thermo")) == "1";
+    s.chargeShift = atoi(step->getProp(nsKey(":recipe.charge")).c_str());
     s.role = step->getProp(nsKey(":recipe.role"));
     s.needsStructure = nodes[i].in.empty();
     GUIValues *g = calc->guiparams();
@@ -1069,6 +1216,22 @@ bool WorkflowSteps::toRecipe(Session *wf, const string& id, const string& title,
         v.links.push_back({ids[nodes[i].in[k].source], ids[nodes[i].step],
                            nodes[i].in[k].name});
   if (v.steps.empty()) { why = "The workflow has no calculation steps."; return false; }
+  // Keep a shared solution setting when the saved recipe opens its selector.
+  string solvent = "none";
+  for (const string& name : recipeSolvents(v)) {
+    if (name == "none") continue;
+    bool matches = true, mapped = false;
+    for (const RecipeStep& step : v.steps) {
+      const auto settings = recipeSolventSettings(step.code, name);
+      if (settings.empty()) continue;
+      mapped = true;
+      for (const auto& kv : settings)
+        if (std::find(step.settings.begin(), step.settings.end(), kv) == step.settings.end())
+          matches = false;
+    }
+    if (mapped && matches) solvent = name;
+  }
+  out.roles.push_back({"solvent", "Solvent", "", solvent, "saved workflow solvent"});
   out.variants.push_back(v);
   return true;
 }

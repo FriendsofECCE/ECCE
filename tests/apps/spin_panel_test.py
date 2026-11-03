@@ -46,6 +46,9 @@ def checkApp(display, name, results, verbose=False):
             h.write("ptree categories\n"
                     "list Density\nhold 1\nmotable density-note\n"
                     "list Spin Density\nhold 1\nmotable spin-note\n"
+                    "list ELF\nhold 1\nmotable elf-note\n"
+                    "list LOL\nhold 1\nmotable lol-note\n"
+                    "list NCI\nhold 1\nmotable nci-note\n"
                     "property ESP on Density\nhold 1\nmotable esp-note\n"
                     "ptree selected-surface\n"
                     "list MOs\nhold 1\n"
@@ -59,7 +62,8 @@ def checkApp(display, name, results, verbose=False):
         categories = open(categories_path).read().splitlines() if os.path.exists(categories_path) else []
         surfaces = [line for line in categories if line.startswith("entry Surfaces/")]
         if surfaces != ["entry Surfaces/Density", "entry Surfaces/Spin Density",
-                        "entry Surfaces/ESP on Density"]:
+                        "entry Surfaces/ESP on Density", "entry Surfaces/ELF",
+                        "entry Surfaces/LOL", "entry Surfaces/NCI"]:
             results.fail("surfaces", "wrong ordered category: %r" % surfaces)
         for unchanged in ("Density Map", "Density Profile"):
             if "entry Orbitals/" + unchanged not in categories:
@@ -68,6 +72,9 @@ def checkApp(display, name, results, verbose=False):
             "density-note": ("Density", "Total electron density ρ(r). The surface encloses the region where ρ exceeds the isovalue (au)."),
             "spin-note": ("Spin Density", "ρ_α - ρ_β: where the unpaired electrons are; the two colours mark alpha and beta excess."),
             "esp-note": ("ESP on Density", "Electrostatic potential on a density surface: red negative (electron-rich), blue positive."),
+            "elf-note": ("ELF", "Electron localisation function, 0 to 1; values near 1 mark localised pairs: bonds, lone pairs, core shells."),
+            "lol-note": ("LOL", "Localised orbital locator, 0 to 1; as ELF, with sharper separation between basins."),
+            "nci-note": ("NCI", "Reduced density gradient at low density, coloured by sign(λ2)ρ: blue hydrogen bonds and other attraction, green weak contacts with little density overlap, red steric repulsion."),
         }
         for state, (label, description) in expected_notes.items():
             path = os.path.join(out, state + ".txt")

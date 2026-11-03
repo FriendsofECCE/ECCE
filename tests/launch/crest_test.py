@@ -164,13 +164,25 @@ def main():
           "crest --gfn2 --chrg 0 --uhf 0 --tautomerize", "tautomerize: %r" % text.splitlines()[0])
     text, rc = deck(METHYLAMINE, "GFN-FF", runtype="Protonation Sites")
     check(rc != 0, "protonation with GFN-FF is refused (CREST needs LMOs)")
+    qcg = ("ES.Runtype.QCG.Solvent:\tmethanol\nES.Runtype.QCG.Number:\t4\n")
     text, rc = deck(METHYLAMINE, "GFN2-xTB", runtype="Solvation Shell",
-                    extra="ES.Runtype.QCG.Solvent:\tmethanol\n"
-                          "ES.Runtype.QCG.Number:\t4\n")
+                    extra=qcg)
     lines = text.splitlines()
-    check(rc == 0 and lines[0] == "crest --gfn2 --chrg 0 --uhf 0 --qcg solvent.xyz "
-          "--nsolv 4 --ensemble" and lines[1] == "$solvent" and
-          lines[8] == "$end" and lines[9] == "7", "QCG deck: %r" % lines[:10])
+    check(rc == 0 and lines[0] == "crest --qcg solvent.xyz --nsolv 4 "
+          "--gfn2 --chrg 0 --uhf 0 --alpb methanol" and lines[1] == "$solvent"
+          and lines[8] == "$end" and lines[9] == "7", "QCG deck: %r" % lines[:10])
+    # The Theory dialog's solvent is not used: the solvent is the molecule.
+    text, rc = deck(METHYLAMINE, "GFN2-xTB", runtype="Solvation Shell",
+                    extra=qcg + "ES.Runtype.QCG.Ensemble:\t1\n"
+                    "ES.Theory.Solvent.Model:\tALPB\n"
+                    "ES.Theory.Solvent.Name:\tbenzene\n")
+    check(rc == 0 and text.splitlines()[0] == "crest --qcg solvent.xyz "
+          "--nsolv 4 --ensemble --gfn2 --chrg 0 --uhf 0 --alpb methanol",
+          "QCG ensemble deck: %r" % text.splitlines()[0])
+    text, rc = deck(METHYLAMINE, "GFN2-xTB", runtype="Solvation Shell",
+                    extra=qcg + "ES.Theory.Solvent.Model:\tNone\n")
+    check(rc == 0 and "--alpb" not in text.splitlines()[0],
+          "QCG with model None has no --alpb")
 
     s = harness.Session(build, "crest", {"xTB": xtb, "CREST": crest},
                         local=True, keep=args.keep)
@@ -240,7 +252,8 @@ def main():
                     for t in a:
                         h.write("%s %.4f %.4f %.4f\n" % t)
             res = subprocess.run([crest, "a.xyz", "--qcg", "b.xyz", "--nsolv",
-                                  "1", "--gfn2", "-T", "2"], cwd=probe,
+                                  "1", "--gfn2", "--chrg", "0", "--uhf", "0",
+                                  "-T", "2"], cwd=probe,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT, timeout=240)
             grown = os.path.join(probe, "grow", "qcg_grow.xyz")

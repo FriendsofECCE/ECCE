@@ -730,27 +730,28 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command == "workflowrecipelist" || command == "workflowrecipe" ||
                command == "workflowrecipepanel" || command == "workflowrecipecreate" ||
-               command == "workflowkeydata" || command == "workflowmark" ||
+               command == "workflowkeydata" || command == "workflowresults" || command == "workflowmark" ||
                command == "workflowsaverecipe" || command == "workflowlink" ||
                command == "workflowstructure" || command == "workflowrecipehere") {
       // Recipes (Recipe.H, RecipePanel.H); WF is the workflow's URL.
       //   workflowrecipelist            the recipes found: id:variants;...
-      //   workflowrecipe WF ID VARIANT SOURCE|- [method=M] [basis=B]
+      //   workflowrecipe WF ID VARIANT SOURCE|- [method=M] [basis=B] [solvent=S]
       //     Create boxes without the panel
-      //   workflowrecipepanel PNG|- WF ID VARIANT SOURCE|- [method=M] [basis=B]
+      //   workflowrecipepanel PNG|- WF ID VARIANT SOURCE|- [method=M] [basis=B] [solvent=S]
       //     opens the set-up panel on SOURCE's box (or none), sets the
       //     choices and takes a picture; answers with the panel's report
       //   workflowrecipehere WF STEP    the box menu's Apply Recipe from here
       //     on STEP: its labels, then the panel's report
       //   workflowrecipecreate WF       Create boxes in the open panel
       //   workflowkeydata WF            the key-data box as text, "|" for newlines
+      //   workflowresults WF            each box's result line: "name: text|..."
       //   workflowmark WF STEP KEY THERMO   make a copied step a recipe step (KEY: reactant, ts, ...)
       //   workflowsaverecipe WF ID TITLE   Save Workflow as Recipe
       //   workflowlink WF SRC DST NAME     a link between two steps
       //   workflowstructure WF STEP FROM   stores FROM's structure in STEP as
       //     the Builder does, then what its ecce_url_subject notice triggers
       std::istringstream args(calcName);
-      string png, wfUrl, rid, vid, src, flag, method, basis;
+      string png, wfUrl, rid, vid, src, flag, method, basis, solvent;
       if (command == "workflowrecipepanel") args >> png >> wfUrl >> rid >> vid >> src;
       else if (command == "workflowrecipe") args >> wfUrl >> rid >> vid >> src;
       else if (command == "workflowmark") args >> wfUrl >> rid >> vid >> src >> method;
@@ -761,6 +762,7 @@ void CalcMgr::runTestCommand(const string& line)
       while (args >> flag) {
         if (flag.compare(0, 7, "method=") == 0) method = flag.substr(7);
         if (flag.compare(0, 6, "basis=") == 0) basis = flag.substr(6);
+        if (flag.compare(0, 8, "solvent=") == 0) solvent = flag.substr(8);
       }
       if (command == "workflowrecipelist") {
         outcome = "ok";
@@ -806,6 +808,7 @@ void CalcMgr::runTestCommand(const string& line)
               levels[r->roles[i].id] = std::make_pair(
                   method.empty() ? r->roles[i].method : method,
                   basis.empty() ? r->roles[i].basis : basis);
+            if (!solvent.empty()) levels["solvent"] = std::make_pair("", solvent);
             string why = wp->recipeCreate(*r, *v, levels, source);
             outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
           }
@@ -821,8 +824,9 @@ void CalcMgr::runTestCommand(const string& line)
           else {
             if (!method.empty() || !basis.empty())
               for (const auto &lv : panel->levels())
-                panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
+                if (lv.first != "solvent") panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
                                 basis.empty() ? lv.second.second : basis);
+            if (!solvent.empty()) panel->setLevel("solvent", "", solvent);
             SetSize(1500, 900);
             Raise();
             for (int i = 0; i < 8; i++) wxYield();
@@ -844,6 +848,8 @@ void CalcMgr::runTestCommand(const string& line)
             outcome = wp->recipePanel() ? "error: panel still open: " + wp->recipePanel()->problem()
                                         : "ok " + WorkflowSteps::info(wf);
           }
+        } else if (command == "workflowresults") {
+          outcome = "ok " + wp->resultLines();
         } else if (command == "workflowkeydata") {
           string t = wp->keyDataText();
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
@@ -4830,7 +4836,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "23";
+const char *const kExampleSetVersion = "24";
 
 string treeName(string s)
 {
@@ -5569,63 +5575,63 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "calculation shows how the axial C4 hydroxyl group of galactose "
      "changes the vibrational spectrum compared with glucose."},
     {"H",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " electron of the hydrogen atom in the 1s orbital."},
     {"He",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the two "
      "electrons of helium paired in the 1s orbital."},
     {"Li",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " 2s electron of lithium outside its filled 1s orbital."},
     {"Be",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the beryllium atom, filled in order of increasing"
      " energy."},
     {"B",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the boron atom, filled in order of increasing "
      "energy."},
     {"C",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the two 2p"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the two 2p"
      " electrons of carbon in different p orbitals with parallel spins."},
     {"N",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the three "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the three "
      "2p electrons of nitrogen in different p orbitals with parallel spins."},
     {"O",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the four "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the four "
      "2p electrons of oxygen, two of them paired and two unpaired."},
     {"F",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the fluorine atom, filled in order of increasing "
      "energy."},
     {"Ne",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the full "
      "second shell of neon, with all its orbitals doubly occupied."},
     {"Na",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " 3s electron of sodium outside its filled neon-like core."},
     {"Mg",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the magnesium atom, filled in order of increasing"
      " energy."},
     {"Al",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the aluminium atom, filled in order of increasing"
      " energy."},
     {"Si",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the silicon atom, filled in order of increasing "
      "energy."},
     {"P",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the phosphorus atom, filled in order of "
      "increasing energy."},
     {"S",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the sulfur atom, filled in order of increasing "
      "energy."},
     {"Cl",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the chlorine atom, filled in order of increasing "
      "energy."},
     {"Ar",
@@ -10394,6 +10400,9 @@ void CalcMgr::progressUpdate(const EcceURL & url, const string & text)
   // The project table: that one cell, no rebuild (#254).
   if (ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel))
     table->updateProgress(url);
+  if (SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel))
+    if (WorkflowPanel *wp = spc->getWorkflowPanel()) wp->resultsChanged(url);
 }
 
 

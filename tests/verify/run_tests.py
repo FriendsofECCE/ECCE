@@ -64,6 +64,11 @@ CASES = [
                                                       ("GOOD", "charge")]),
     ("g16-ozone-sci.g16in",   "Gaussian-16",      3, [("GOOD", "geometry")]),
     ("g16-gen-basis.g16in",   "Gaussian-16",      3, [("GOOD", "basis")]),
+    #  CREST Solvation Shell: the solvent molecule is a $solvent block
+    #  before the molecule's xyz part, not part of the molecule.
+    ("crest-qcg-methanol.crestin", "CREST",       6, [("GOOD", "solvent"),
+                                                      ("GOOD", "geometry"),
+                                                      ("GOOD", "electrons")]),
     ("orca-ethane.orcain",    "ORCA",             8, [("GOOD", "route"),
                                                       ("GOOD", "geomblock"),
                                                       ("GOOD", "geometry")]),

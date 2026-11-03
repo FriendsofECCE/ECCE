@@ -57,6 +57,7 @@ class Fragment;
 class IPropCalculation;
 class Job;
 class MiniPerTab;
+class MoPanel;
 class PropertyIndexPanel;
 class PropertyPanel;
 class SFile;
@@ -416,6 +417,7 @@ class Builder: public BuilderGUI,
       void focusShownPanel(wxWindow *win);
       void unfocusPanel(wxWindow *win);
       void syncIndexSelection(wxWindow *win);
+      void surfacesChanged();
               void OnPropertyMenuClick( wxCommandEvent& event );
 
       // Help menu events
@@ -518,6 +520,7 @@ class Builder: public BuilderGUI,
       void accordionNormalize(wxWindow *keepOpen=0);
       void foldPane(wxWindow *win, bool fold);
       void updatePropertyIndex();
+      void rebuildSurfacesMenu(MoPanel *mo);
       void collapseLog();
       bool paneWanted(const wxAuiPaneInfo& pane) const;
       string layoutPrefix() const;

@@ -24,6 +24,7 @@
 #include "dsm/PropertyTask.H"
 #include "dsm/ResourceType.H"
 #include "dsm/ScanPoint.H"
+#include "dsm/VDoc.H"
 #include "dsm/Session.H"
 
 #include "wxgui/ewxWindowUtils.H"
@@ -195,6 +196,16 @@ public:
     return o.str();
   }
 
+  /// "name: line" per box, for the test hook.
+  string resultLines()
+  {
+    string out;
+    for (const WfBox &b : p_boxes)
+      out += (out.empty() ? "" : "|") + b.step->getName() + ": " +
+             string(resultText(b.step).utf8_str());
+    return out;
+  }
+
   const WfBox *boxOf(const EcceURL &url) const
   {
     for (size_t i = 0; i < p_boxes.size(); i++)
@@ -333,7 +344,14 @@ private:
       dc.SetTextForeground(text);
       wxString name = wxControl::Ellipsize(wxString::FromUTF8(b.step->getName().c_str()),
                                            dc, wxELLIPSIZE_END, r.width - 32);
-      dc.DrawText(name, r.x + 18, r.y + r.height - 8 - dc.GetTextExtent(name).y);
+      const int lh = dc.GetTextExtent("Ag").y;
+      dc.DrawText(name, r.x + 18, r.y + r.height - 8 - 2 * lh);
+      const wxString res = resultText(b.step);
+      if (!res.empty()) {
+        dc.SetTextForeground(dim);
+        dc.DrawText(wxControl::Ellipsize(res, dc, wxELLIPSIZE_END, r.width - 32),
+                    r.x + 18, r.y + r.height - 8 - lh);
+      }
     }
 
     if (p_hasKey) {
@@ -362,6 +380,54 @@ private:
       }
     }
   }
+
+public:
+  /// A progress message or state change for a step: drop its cached line.
+  void resultsChanged(const EcceURL &url)
+  {
+    p_results.erase(url.toString());
+    for (const WfBox &b : p_boxes)
+      if (b.step->getURL() == url) { Refresh(); return; }
+  }
+
+private:
+  // The result line of a step, kept until its state or its snapshot changes,
+  // so a paint reads no files.
+  wxString resultText(Resource *step)
+  {
+    CalcMgr *mgr = p_panel->p_calcMgr;
+    const string key = step->getURL().toString();
+    const ResourceDescriptor::RUNSTATE st = WorkflowSteps::stateOf(step);
+    const string ecce = VDoc::getEcceNamespace();
+    string progress;
+    if (st == ResourceDescriptor::STATE_RUNNING) {
+      double at;
+      if (!mgr || !mgr->liveProgress(step->getURL(), progress, at))
+        progress = step->getProp(ecce + ":progress");
+    }
+    const string stamp = progress + "|" + step->getProp(ecce + ":completiondate") +
+                         "|" + step->getProp(ecce + ":runStatusReason");
+    auto it = p_results.find(key);
+    if (it == p_results.end() || it->second.state != st || it->second.stamp != stamp) {
+      CachedResult c;
+      c.state = st;
+      c.stamp = stamp;
+      string error = CalcMgr::guarded([&]() {
+        c.text = wxString::FromUTF8(WorkflowSteps::resultLine(step, progress).c_str());
+      });
+      if (!error.empty()) c.text.clear();
+      it = p_results.insert(std::make_pair(key, c)).first;
+      it->second = c;
+    }
+    return it->second.text;
+  }
+
+  struct CachedResult {
+    ResourceDescriptor::RUNSTATE state = ResourceDescriptor::STATE_ILLEGAL;
+    string stamp;
+    wxString text;
+  };
+  std::map<string, CachedResult> p_results;
 
   WorkflowPanel *p_panel;
   vector<WfBox> p_boxes;
@@ -636,6 +702,18 @@ string WorkflowPanel::keyDataText()
 {
   if (WorkflowSteps::recipeId(p_session).empty()) return "";
   return keyData(WorkflowSteps::keySteps(p_session)).text();
+}
+
+
+void WorkflowPanel::resultsChanged(const EcceURL &url)
+{
+  p_canvas->resultsChanged(url);
+}
+
+
+string WorkflowPanel::resultLines()
+{
+  return p_canvas->resultLines();
 }
 
 

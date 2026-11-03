@@ -31,6 +31,15 @@ def scaled_copy(dst, k):
     open(p, "w").write(s[:a] + new + s[b:])
 
 
+def low_mode_copy(dst):
+    """The fixture with its first mode at 5 cm-1 and a second at -0.5."""
+    shutil.copytree(FIX, dst)
+    p = os.path.join(dst, "Props", "VIBFREQ")
+    s = open(p).read()
+    a, b = s.index(">", s.index("<vector")) + 1, s.index("</vector>")
+    open(p, "w").write(s[:a] + "5.0   -0.5   3965.0409" + s[b:])
+
+
 def write_exp(path, transmittance, percent):
     centres = [(1612.0, 0.8, 25.0), (3790.0, 0.2, 30.0)]
     with open(path, "w") as f:
@@ -44,6 +53,16 @@ def write_exp(path, transmittance, percent):
 def main():
     tmp = tempfile.mkdtemp(prefix="ecce-spectrum-")
     try:
+        import re
+        header = open(os.path.join(REPO, "include", "util", "VibFrequency.H")).read()
+        m = re.search(r"IMAG_THRESHOLD\s*=\s*([0-9.]+)", header)
+        check("Python and C++ frequency thresholds agree",
+              m is not None and float(m.group(1)) == S.IMAG_THRESHOLD)
+        low = os.path.join(tmp, "low")
+        low_mode_copy(low)
+        sticks = S.Curve(low, 1.0, 10.0, "lorentzian").sticks
+        check("a real 5 cm-1 mode is drawn, a numerical zero is not",
+              len(sticks) == 2 and abs(sticks[0][0] - 5.0) < 1e-9, sticks)
         sc = os.path.join(tmp, "scaled")
         scaled_copy(sc, 0.98)
         r = S.spectrum(FIX, FIX, None, 0, 4000, 1.0)

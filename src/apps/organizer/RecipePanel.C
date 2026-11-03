@@ -7,6 +7,7 @@
 #include "wx/dcbuffer.h"
 #include "wx/dcgraph.h"
 #include "wx/listctrl.h"
+#include "wx/scrolwin.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -181,8 +182,11 @@ RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
   delete frag;
 
   wxBoxSizer *top = new wxBoxSizer(wxHORIZONTAL);
-  wxPanel *left = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                              wxBORDER_SIMPLE);
+  p_settings = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                    wxVSCROLL | wxBORDER_SIMPLE);
+  p_settings->SetScrollRate(0, 12);
+  p_settings->SetMinSize(wxSize(540, -1));
+  wxWindow *left = p_settings;
   wxBoxSizer *ls = new wxBoxSizer(wxVERTICAL);
   wxFont bold = GetFont(); bold.SetWeight(wxFONTWEIGHT_BOLD);
   auto heading = [&](const char *t) {
@@ -207,7 +211,7 @@ RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
   p_description = new wxStaticText(left, wxID_ANY, "");
   ls->Add(p_description, 0, wxLEFT | wxRIGHT, 10);
 
-  p_variantBox = new wxBoxSizer(wxHORIZONTAL);
+  p_variantBox = new wxBoxSizer(wxVERTICAL);
   ls->Add(p_variantBox, 0, wxALL, 10);
 
   heading("2  Level of theory  (recommended; change any row)");
@@ -218,21 +222,24 @@ RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
   p_rolePanel->SetSizer(p_roleSizer);
   ls->Add(p_rolePanel, 0, wxEXPAND | wxALL, 4);
 
-  heading("3  Where");
-  wxBoxSizer *apply = new wxBoxSizer(wxHORIZONTAL);
-  apply->Add(new wxStaticText(left, wxID_ANY, "Apply to:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-  p_new = new wxRadioButton(left, wxID_ANY, "new workflow", wxDefaultPosition,
+  p_where = new wxPanel(left, wxID_ANY);
+  wxBoxSizer *apply = new wxBoxSizer(wxVERTICAL);
+  wxStaticText *where = new wxStaticText(p_where, wxID_ANY, "3  Where the new steps go");
+  where->SetFont(bold);
+  apply->Add(where, 0, wxBOTTOM, 6);
+  p_new = new wxRadioButton(p_where, wxID_ANY, "Start a new workflow", wxDefaultPosition,
                             wxDefaultSize, wxRB_GROUP);
-  p_afterButton = new wxRadioButton(left, wxID_ANY,
-      after ? U("after the selected box \"" + after->getName() + "\"")
-            : wxString("after the selected box (none selected)"));
-  p_afterButton->Enable(after != 0);
+  p_afterButton = new wxRadioButton(p_where, wxID_ANY,
+      after ? U("Continue after the selected box \"" + after->getName() + "\"")
+            : wxString("Continue after the selected box"));
   (p_applyAfter ? p_afterButton : p_new)->SetValue(true);
   p_new->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent &) { setApplyAfter(false); });
   p_afterButton->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent &) { setApplyAfter(true); });
-  apply->Add(p_new, 0, wxRIGHT, 14);
+  apply->Add(p_new, 0, wxBOTTOM, 4);
   apply->Add(p_afterButton, 0);
-  ls->Add(apply, 0, wxALL, 10);
+  p_where->SetSizer(apply);
+  ls->Add(p_where, 0, wxEXPAND | wxALL, 10);
+  p_where->Show(after != 0);
 
   wxPanel *note = new wxPanel(left, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE);
   note->SetBackgroundColour(wxColour(0xff, 0xf8, 0xe1));
@@ -324,8 +331,7 @@ void RecipePanel::fillVariants()
   p_variantBox->Clear(true);
   p_variantButtons.clear();
   wxWindow *host = p_list->GetParent();
-  p_variantBox->Add(new wxStaticText(host, wxID_ANY, "Code:"), 0,
-                    wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+  p_variantBox->Add(new wxStaticText(host, wxID_ANY, "Code:"), 0, wxBOTTOM, 4);
   const set<string> registered = registeredCodes();
   bool chosen = false;
   for (size_t i = 0; i < recipe()->variants.size(); i++) {
@@ -338,12 +344,12 @@ void RecipePanel::fillVariants()
     if (ok && !chosen) { b->SetValue(true); p_variant = (int)i; chosen = true; }
     b->Bind(wxEVT_RADIOBUTTON, [this, i](wxCommandEvent &) {
       p_variant = (int)i;
+      fillRoles(true);
       changed();
     });
     p_variantBox->Add(b, 0, wxRIGHT, 14);
     p_variantButtons.push_back(b);
   }
-  p_variantBox->Layout();
 }
 
 
@@ -354,6 +360,7 @@ bool RecipePanel::selectVariant(const string &id)
     if (recipe()->variants[i].id == id && p_variantButtons[i]->IsEnabled()) {
       p_variant = (int)i;
       p_variantButtons[i]->SetValue(true);
+      fillRoles(true);
       changed();
       return true;
     }
@@ -361,51 +368,117 @@ bool RecipePanel::selectVariant(const string &id)
 }
 
 
-void RecipePanel::fillRoles()
+void RecipePanel::layoutSettings()
 {
+  // Rebuilding rows changes their best size as well as the parent's minimum.
+  p_rolePanel->InvalidateBestSize();
+  p_rolePanel->Layout();
+  p_settings->Layout();
+  p_settings->FitInside();
+  Layout();
+}
+
+
+void RecipePanel::fillRoles(bool preserve)
+{
+  const WorkflowSteps::Levels previous = preserve ? levels() : WorkflowSteps::Levels();
+#ifdef __WXMSW__
+  p_settings->Freeze();
+#endif
   p_roleSizer->Clear(true);
   p_roles.clear();
+  wxBoxSizer *columns = new wxBoxSizer(wxHORIZONTAL);
+  columns->Add(198, 1);
+  columns->Add(new wxStaticText(p_rolePanel, wxID_ANY, "Method"), 0, wxRIGHT, 8);
+  columns->GetItem((size_t)1)->SetMinSize(130, -1);
+  columns->Add(new wxStaticText(p_rolePanel, wxID_ANY, "Basis set"), 0);
+  p_roleSizer->Add(columns, 0, wxLEFT | wxBOTTOM, 5);
   for (const RecipeRole &role : recipe()->roles) {
-    RoleChoice c = recommend(*recipe(), role, p_facts);
+    const bool solvent = role.id == "solvent";
+    RoleChoice c = solvent ? RoleChoice{role.method, role.basis, role.why, {}}
+                           : recommend(*recipe(), role, p_facts);
+    auto old = previous.find(role.id);
+    if (old != previous.end()) { c.method = old->second.first; c.basis = old->second.second; }
     wxPanel *row = new wxPanel(p_rolePanel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                                wxBORDER_SIMPLE);
     wxBoxSizer *rs = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *line = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticText *label = new wxStaticText(row, wxID_ANY, U(role.label), wxDefaultPosition,
-                                           wxSize(190, -1), wxST_ELLIPSIZE_END);
-    wxComboBox *method = new wxComboBox(row, wxID_ANY, U(c.method), wxDefaultPosition,
-                                        wxSize(130, -1));
-    for (const char *m : kLevels) method->Append(m);
-    wxComboBox *basis = new wxComboBox(row, wxID_ANY, U(c.basis), wxDefaultPosition,
-                                       wxSize(130, -1));
-    for (const char *b : kBases) basis->Append(b);
+    wxStaticText *label = new wxStaticText(row, wxID_ANY, U(role.label));
+    label->Wrap(190);
+    label->SetMinSize(wxSize(190, -1));
+    wxComboBox *method = nullptr;
+    wxComboBox *basis = new wxComboBox(row, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                       wxSize(130, -1), wxArrayString(), solvent ? wxCB_READONLY : 0);
     line->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-    line->Add(method, 0, wxRIGHT, 8);
-    line->Add(basis, 0);
-    wxStaticText *why = new wxStaticText(row, wxID_ANY, U("Why: " + c.why));
+    string applies = "Applies to: ";
+    for (const RecipeStep& st : variant()->steps)
+      if (solvent || st.role == role.id) {
+        if (applies != "Applies to: ") applies += ", ";
+        applies += st.id;
+      }
+    if (solvent) {
+      applies += " (applies to every step)";
+      wxBoxSizer *pick = new wxBoxSizer(wxVERTICAL);
+      pick->Add(new wxStaticText(row, wxID_ANY, "Solvent"), 0, wxBOTTOM, 2);
+      const vector<string> names = recipeSolvents(*variant());
+      for (const string& name : names) basis->Append(U(name));
+      if (std::find(names.begin(), names.end(), c.basis) == names.end()) c.basis = "none";
+      basis->SetValue(U(c.basis));
+      pick->Add(basis);
+      line->Add(pick);
+      c.why = "none = gas phase. Solvent model: ";
+      set<string> codes;
+      for (const RecipeStep& st : variant()->steps) if (codes.insert(st.code).second) {
+        if (codes.size() > 1) c.why += "; ";
+        const string model = recipeSolventModel(st.code);
+        c.why += st.code + ": " + (model.empty() ? "no recipe solvent mapping; set it in the box" : model);
+      }
+    } else {
+      method = new wxComboBox(row, wxID_ANY, U(c.method), wxDefaultPosition, wxSize(130, -1));
+      for (const char *m : kLevels) method->Append(m);
+      for (const char *b : kBases) basis->Append(b);
+      basis->SetValue(U(c.basis));
+      line->Add(method, 0, wxRIGHT, 8);
+      line->Add(basis, 0);
+    }
+    wxStaticText *targets = new wxStaticText(row, wxID_ANY, U(applies));
+    targets->Wrap(490);
+    string reason = "Why: " + c.why;
+    for (const string& warning : c.warnings) reason += "\n" + warning;
+    wxStaticText *why = new wxStaticText(row, wxID_ANY, U(reason));
+    why->Wrap(490);
     why->SetForegroundColour(wxColour(0x1e, 0x7e, 0x34));
     rs->Add(line, 0, wxALL, 4);
+    rs->Add(targets, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
     rs->Add(why, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
     row->SetSizer(rs);
     p_roleSizer->Add(row, 0, wxEXPAND | wxBOTTOM, 4);
-    RoleRow rr = {role.id, method, basis, why};
+    RoleRow rr = {role.id, method, basis, why, label, targets};
     p_roles.push_back(rr);
-    auto edited = [this, &role, rr](wxCommandEvent &) {
-      vector<string> w = checkLevel(*recipe(), string(rr.method->GetValue().ToUTF8()),
-                                    string(rr.basis->GetValue().ToUTF8()), p_facts);
-      string t = "Why: " + role.why;
-      for (size_t i = 0; i < w.size(); i++) t += "\n" + w[i];
-      rr.why->SetLabel(U(t));
-      Layout();
-    };
-    method->Bind(wxEVT_TEXT, edited);
-    basis->Bind(wxEVT_TEXT, edited);
-    for (size_t i = 0; i < c.warnings.size(); i++) rr.why->SetLabel(U("Why: " + c.why + "\n" + c.warnings[i]));
+    if (method) {
+      const string originalWhy = role.why;
+      auto edited = [this, originalWhy, rr](wxCommandEvent &) {
+        vector<string> warnings = checkLevel(*recipe(), string(rr.method->GetValue().ToUTF8()),
+                                              string(rr.basis->GetValue().ToUTF8()), p_facts);
+        string text = "Why: " + originalWhy;
+        for (const string& warning : warnings) text += "\n" + warning;
+        rr.why->SetLabel(U(text));
+        rr.why->Wrap(490);
+        layoutSettings();
+      };
+      method->Bind(wxEVT_TEXT, edited);
+      basis->Bind(wxEVT_TEXT, edited);
+    }
   }
   p_facts_text->SetLabel(p_facts.known
       ? U("Rules applied to the selected box: charge " + std::to_string(p_facts.charge) +
           ", " + std::to_string(p_facts.atoms) + " atoms")
       : wxString("Defaults of the recipe; the rules apply again when a structure is set."));
+  p_facts_text->Wrap(490);
+  layoutSettings();
+#ifdef __WXMSW__
+  p_settings->Thaw();
+#endif
 }
 
 
@@ -413,7 +486,7 @@ bool RecipePanel::setLevel(const string &role, const string &method, const strin
 {
   for (size_t i = 0; i < p_roles.size(); i++)
     if (p_roles[i].id == role) {
-      p_roles[i].method->SetValue(U(method));
+      if (p_roles[i].method) p_roles[i].method->SetValue(U(method));
       p_roles[i].basis->SetValue(U(basis));
       changed();
       return true;
@@ -434,7 +507,7 @@ WorkflowSteps::Levels RecipePanel::levels() const
 {
   WorkflowSteps::Levels out;
   for (size_t i = 0; i < p_roles.size(); i++)
-    out[p_roles[i].id] = std::make_pair(string(p_roles[i].method->GetValue().ToUTF8()),
+    out[p_roles[i].id] = std::make_pair(p_roles[i].method ? string(p_roles[i].method->GetValue().ToUTF8()) : string(),
                                         string(p_roles[i].basis->GetValue().ToUTF8()));
   return out;
 }
@@ -443,7 +516,7 @@ WorkflowSteps::Levels RecipePanel::levels() const
 void RecipePanel::changed()
 {
   p_preview->show(variant(), !p_applyAfter);
-  Layout();
+  layoutSettings();
 }
 
 
@@ -459,10 +532,38 @@ string RecipePanel::report() const
     o << it->first << ":" << it->second.first << "/" << it->second.second << ";";
   o << " why=";
   for (size_t i = 0; i < p_roles.size(); i++)
-    o << string(p_roles[i].why->GetLabel().ToUTF8()).substr(0, 70) << ";";
+    o << string(p_roles[i].why->GetLabel().ToUTF8()) << ";";
   o << " variants-enabled=";
   for (size_t i = 0; i < p_variantButtons.size(); i++) o << (p_variantButtons[i]->IsEnabled() ? 1 : 0);
-  return o.str();
+  o << " where-visible=" << p_where->IsShown()
+    << " where-heading=" << p_where->GetChildren().GetFirst()->GetData()->GetLabel().ToStdString()
+    << " new-label=" << p_new->GetLabel().ToStdString()
+    << " after-label=" << p_afterButton->GetLabel().ToStdString();
+  auto flat = [](wxStaticText *t) {
+    string text = t->GetLabel().ToStdString();
+    std::replace(text.begin(), text.end(), '\n', ' ');
+    return text;
+  };
+  o << " headings=";
+  for (wxWindow *child : p_rolePanel->GetChildren())
+    if (auto text = dynamic_cast<wxStaticText*>(child)) o << flat(text) << ";";
+  int overlaps = 0, clipped = 0;
+  const auto& items = p_roleSizer->GetChildren();
+  int bottom = 0;
+  for (auto item : items) if (item->IsWindow()) {
+    const wxRect rect = item->GetWindow()->GetRect();
+    if (rect.y < bottom) overlaps++;
+    bottom = rect.GetBottom() + 1;
+  }
+  for (const auto& row : p_roles) {
+    o << " row[" << row.id << "]=" << flat(row.label) << ";" << flat(row.applies);
+    if (row.label->GetSize().y < row.label->GetBestSize().y) clipped++;
+  }
+  if (p_rolePanel->GetSize().y < bottom) overlaps++;
+  o << " role-overlaps=" << overlaps << " clipped-labels=" << clipped;
+  string result = o.str();
+  std::replace(result.begin(), result.end(), '\n', ' ');
+  return result;
 }
 
 

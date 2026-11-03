@@ -55,11 +55,17 @@ message when the input is generated.
   of the molecule and returns the tautomers, lowest first. GFN2-xTB only.
   Neither of these two run types has settings of its own.
 - **Solvation Shell**: CREST's quantum cluster growth (`--qcg`). It adds
-  solvent molecules one at a time around the molecule of the calculation and
-  then samples the arrangements of the cluster (`--ensemble`).
-  **Runtype Details** has the **Solvent molecule** (water, ammonia, methanol or
-  acetonitrile) and the **Number of solvent molecules** (10 by default). The
-  implicit solvent of Theory Details is applied on top, if chosen. CREST
+  solvent molecules one at a time around the molecule of the calculation.
+  **Runtype Details** has the **Solvent molecule** (water, methanol or
+  acetonitrile), the **Number of solvent molecules** (10 by default) and
+  **Ensemble of clusters**. The solvent is chosen once: Theory Details shows
+  the same solvent, greyed, and its **Model** is ALPB by default (None gives
+  a cluster without implicit solvent), so the deck has `--alpb <solvent>`.
+  The solvent has to have ALPB parameters, which is why ammonia is not on the
+  list. **Ensemble of clusters** (off by default) adds `--ensemble`, which
+  samples the arrangements of the finished cluster. CREST 3.0.2 crashes in
+  that step, so it is off; without it the result is the grown cluster, one
+  structure with its energy. CREST
   docks each solvent molecule with `xtb dock`, which aborts in xtb 6.7.1
   (Debian 13's package and the 6.7.1 release alike); the job then ends without
   a result, and the output file shows CREST's own error. A newer xtb (the
@@ -99,7 +105,7 @@ line by hand; the input check looks only at the shape of the file and at the
 charge and multiplicity.
 
 For the other run types the first line has `--protonate` or `--tautomerize`
-instead of the energy window, or `--qcg solvent.xyz --nsolv <n> --ensemble`.
+instead of the energy window, or `--qcg solvent.xyz --nsolv <n>` (with `--ensemble` if chosen).
 A solvation-shell deck also has the solvent molecule below the first line,
 between `$solvent` and `$end`; the job script writes it to `solvent.xyz`.
 
@@ -112,15 +118,32 @@ structure between `ECCE-CREST-BEST` lines). The ensemble is
 protonation sites, `tautomers.xyz` for the tautomers and CREST's final
 ensemble for the solvation shell; each is lowest first.
 
-In the Builder, the **Geometry Trace** shows each structure as a frame, with
-the plot **Relative Conformer Energy** in kcal/mol, against the number of the
-conformer: the first frame is the lowest and has 0. These energies compare conformers within the one method of
+In the Builder, the ensemble is a Properties panel named for the run type:
+**Conformers** (conformer search), **Protonation Sites**, **Tautomers** or
+**Clusters** (solvation shell). It lists one row per structure, lowest first:
+the rank, the energy relative to the lowest in kcal/mol, the Boltzmann
+population in percent at 298.15 K, and, for an ensemble around an ion, the
+coordination pattern (the donor atoms in the first shell). Click a column
+heading to sort, and a row to show that structure in the 3-D view. Below the
+table, a plot of the energy against the rank (lowest first) marks the chosen
+structure; clicking a point selects its row. **Export .csv** saves the table.
+
+The energies and populations compare the structures within the one method of
 this calculation only. They cannot be compared with the energy from another
-method, or from another run with a different window or solvent.
+method, or from another run with a different window or solvent, and the
+population is a weight of the energies shown, not a measured one.
 
-For an ensemble around an ion, the Geometry Trace also lists the coordination
-patterns: the donor atoms in the first shell, how many conformers have each
-pattern, and the lowest relative energy and the conformer number of each. The
-same table is printed by `ecce-contacts crest_conformers.xyz --group`.
+The same patterns, grouped, with how many structures have each and the lowest
+relative energy and rank of each, are printed by
+`ecce-contacts crest_conformers.xyz --group`.
 
-The Progress box counts the metadynamics runs of the search.
+While a search runs, the Progress box shows the stage (metadynamics
+sampling, the multilevel optimisation and its crude and tight passes), how
+many metadynamics runs are done of the total, how many structures were
+optimised and how many remain within the energy window, the lowest energy so
+far in hartree and, once CREST has timed a trial run, the estimated time of a
+batch of metadynamics runs. The metadynamics runs go in parallel and finish in
+any order, so the count is of the runs finished, not the number of the last
+one. In a workflow, the CREST box says how many conformers (protonation sites,
+tautomers or clusters) the finished search kept, within the energy window
+of a Conformer Search.

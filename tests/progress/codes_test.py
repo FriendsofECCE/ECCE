@@ -168,6 +168,14 @@ case("ecceqm numerical frequencies (Raman input)", "ecceqm.desc",
      fx("ecceqm", "h2o_numfreq.qmout"),
      {"freq": {"kind": "numerical", "point": "18/18", "done": "yes"}})
 
+# CREST 3.0.2 conformer search (#810): 14 MTDs run in parallel and finish out
+# of order, twice; the tally restarts with each iteration.
+case("crest conformer search (butane, 2 iterations)", "crest.desc",
+     fx("crest", "conformation.crestout"),
+     {"crest": {"stage": "tight", "mtd": "14/14", "iter": "2", "nopt": "261",
+                "remain": "255", "window": "6.00", "emin": "-20.88735",
+                "est": "31", "estunit": "sec"}})
+
 case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
      fx("gaussian-16", "h2o2_dihedral_scan.log"),
      {"scan": {"point": "7/7"}, "opt": {"converged": "yes"}},

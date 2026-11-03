@@ -157,6 +157,7 @@ string JobProgress::title(const string& stage)
   if (stage == "scan") return "Scan";
   if (stage == "neb") return "NEB";
   if (stage == "prepare") return "Prepare";
+  if (stage == "crest") return "CREST";
   // GROMACS names the stage by its integrator.
   if (stage == "steep" || stage == "cg" || stage == "l-bfgs" || stage == "nm")
     return "Minimisation";
@@ -395,11 +396,54 @@ void JobProgress::plotAxis(const Stage& st, const string& rec,
 }
 
 
+// CREST (#810): the rows Stage, Metadynamics, Structures, Lowest energy and
+// Estimated, each only once the output has said it.
+JobProgress::Block JobProgress::crestBlock(const Stage& st, bool finished) const
+{
+  Block b;
+  b.title = title(st.name);
+  const string dot = " \xc2\xb7 ";
+  const string stage = st.field("stage");
+  string row;
+  if (stage == "sampling") {
+    row = "Metadynamics sampling";
+    if (!st.field("iter").empty()) row += ", iteration " + st.field("iter");
+  } else if (stage == "optimising") row = "Multilevel ensemble optimisation";
+  else if (stage == "crude") row = "Multilevel ensemble optimisation" + dot + "crude pre-optimisation";
+  else if (stage == "tight") row = "Multilevel ensemble optimisation" + dot + "optimisation with tight thresholds";
+  else if (stage == "regularmd") row = "Additional regular MDs";
+  if (!row.empty()) b.lines.push_back("Stage: " + row);
+
+  double k, n;
+  bool hasN;
+  if (split(st.field("mtd"), k, n, hasN) && hasN && n > 0) {
+    b.lines.push_back(fmt("Metadynamics: %.0f", k) + fmt(" of %.0f", n) + " done");
+    if (stage == "sampling") {
+      b.bar = true;
+      b.fraction = std::min(1.0, k / n);
+    }
+  }
+  string structs;
+  if (!st.field("nopt").empty()) structs = st.field("nopt") + " optimised";
+  if (!st.field("remain").empty())
+    structs += (structs.empty() ? "" : " \xe2\x86\x92 ") + st.field("remain") +
+               " within " + st.field("window") + " kcal/mol";
+  if (!structs.empty()) b.lines.push_back("Structures: " + structs);
+  if (!st.field("emin").empty())
+    b.lines.push_back("Lowest energy (Eh): " + st.field("emin"));
+  if (!st.field("est").empty() && !finished)
+    b.lines.push_back("Estimated: " + st.field("est") + " " + st.field("estunit") +
+                      " for one batch of metadynamics runs");
+  return b;
+}
+
+
 JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
                                            bool finished) const
 {
   Block b;
   b.title = title(st.name);
+  if (st.name == "crest") return crestBlock(st, finished);
   const string rec = !st.field("cycle").empty() ? "cycle"
                    : !st.field("iter").empty() ? "iter"
                    : !st.field("step").empty() ? "step"
@@ -759,6 +803,15 @@ vector<string> JobProgress::summary(bool completed) const
              (hasN ? fmt(" of %.0f", n) : string()) + " steps";
     out.push_back(line);
   }
+  if (const Stage *cr = stage("crest")) {
+    string line = "CREST";
+    if (!cr->field("remain").empty())
+      line += ": " + cr->field("remain") + " structures within " +
+              cr->field("window") + " kcal/mol";
+    if (!cr->field("emin").empty())
+      line += " \xc2\xb7 lowest " + cr->field("emin") + " Eh";
+    out.push_back(line);
+  }
   if (!opt && !freq && scf) {
     const string cyc = scf->field("cycle");
     string line;
@@ -835,6 +888,18 @@ string JobProgress::shortLine() const
   }
   if (!scfPart.empty()) return scfPart;
 
+  if (const Stage *cr = stage("crest")) {
+    double k, n;
+    bool hasN;
+    const string stg = cr->field("stage");
+    if (stg == "sampling" && split(cr->field("mtd"), k, n, hasN) && hasN)
+      return fmt("MTD %.0f", k) + fmt(" of %.0f", n);
+    if (stg == "sampling") return "Metadynamics";
+    if (stg == "crude") return "Pre-optimising structures";
+    if (stg == "tight") return "Optimising structures";
+    if (stg == "optimising") return "Optimising structures";
+    if (stg == "regularmd") return "Regular MDs";
+  }
   for (const auto& st : p_stages) {       // runs counted in steps (GROMACS)
     double k, n;
     bool hasN;

@@ -965,6 +965,9 @@ void Builder::selectDetail(const string& name)
   if (pane.IsFloating() && pane.frame) {
     pane.frame->Raise();
   }
+  //  An accordion keeps folded panes folded across updatePanes().
+  if (p_panelMode == PANELS_ACCORDION && paneGroup(pane) == GROUP_PROPERTIES)
+    accordionNormalize(pane.window);
   sizeIndexPane();
   updatePanes(true);
   focusShownPanel(pane.window);

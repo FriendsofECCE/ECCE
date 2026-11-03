@@ -10,7 +10,8 @@ like or move to a second screen.
 ## Surfaces
 
 The **Surfaces** category in the **Properties** list opens the whole-molecule
-surface views, in this order: **Density**, **Spin Density**, **ESP on Density**.
+surface views, in this order: **Density**, **Spin Density**, **ESP on Density**, **ELF**,
+**LOL**, **NCI**.
 Only views supported by the calculation are offered; **Spin Density** needs
 an open shell. These entries use the MOs panel's existing controls. Choose
 the view, then click **Compute**; no atom selection is needed.
@@ -21,6 +22,13 @@ the view, then click **Compute**; no atom selection is needed.
   The two colours mark alpha and beta excess.
 - **ESP on Density**: electrostatic potential on a density surface, with
   red negative (electron-rich) and blue positive.
+- **ELF**: electron localisation function, 0 to 1; values near 1 mark
+  localised pairs: bonds, lone pairs, core shells.
+- **LOL**: localised orbital locator, 0 to 1; as ELF, with sharper
+  separation between basins.
+- **NCI**: reduced density gradient at low density, coloured by
+  sign(λ2)ρ: blue hydrogen bonds and other attraction, green weak contacts
+  with little density overlap, red steric repulsion.
 
 The selected view's description appears below the controls and in the
 field selector's tooltip. The field selector also offers these views from

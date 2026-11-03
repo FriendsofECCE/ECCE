@@ -34,6 +34,11 @@ One `key: value` per line. A value with several fields separates them with
 Flags of a step, separated by commas: `structure` (the box needs a structure),
 `thermo` (the key data gives G for it), and `key=reactant`, `key=product`,
 `key=ts`, `key=min` or `key=final` (its place in the key data).
+`charge=+1` (or `charge=-1`, `charge=+2`...) adds that number to the charge the
+box takes from its source. Use it on the first box after a CREST
+**Protonation Sites** step: CREST's structures are cations, one charge above
+the structure that went in. Later boxes copy the charge of the box before them,
+so only the first box needs the flag.
 The run type is the name the Calculation Editor uses, for example `Energy`,
 `Geometry`, `GeoVib` (optimisation and frequencies), `IRC`,
 `Transition State (QST) + Frequencies` or `Conformer Search`. List the steps

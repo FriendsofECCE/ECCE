@@ -473,6 +473,23 @@ static void atomLabels(const string& root)
   }
 }
 
+//  B (ROHF-type single list, 2p1): the two empty 2p are the occupied
+//  shell's partners and read "2p (virtual)", not "p (virtual)" (#788).
+static void partlyFilledShell(const string& root)
+{
+  IPropCalculation *calc;
+  DensityPlane::Evaluator b;
+  if (!load(root, "b-rohf", calc, b)) return;
+  const vector<string> labels = RadialDist::shellLabels(calc, b, false);
+  int twoP = 0, bare = 0;  // higher p virtuals stay bare by design
+  for (const string& l : labels) {
+    if (l == "2p (virtual)") twoP++;
+    if (l == "p (virtual)") bare++;
+  }
+  fprintf(stderr, "B: %d '2p (virtual)', %d 'p (virtual)'\n", twoP, bare);
+  CHECK(twoP == 2, "B: the two empty 2p orbitals are labelled 2p (virtual)");
+}
+
 //  compute() shares one basis pass among all specs; it must give the numbers
 //  of summing value() (one pass per orbital) directly.  The 6-point Lebedev
 //  grid is the six axis directions with weight 1/6, so the reference is easy.
@@ -534,5 +551,6 @@ int main(int argc, char **argv)
   diatomics(argv[1]);
   shiftAndVirtuals(argv[1]);
   atomLabels(argv[1]);
+  partlyFilledShell(argv[1]);
   return failures ? 1 : 0;
 }

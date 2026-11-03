@@ -75,6 +75,10 @@ public:
   void closeRecipe();
   /// Save Workflow as Recipe: "ok <file>" or "error: ...".
   std::string saveAsRecipe(const std::string& id, const std::string& title);
+  /// A step's progress or state changed: redraw its result line (#810).
+  void resultsChanged(const EcceURL& url);
+  /// The result line of every box, "name: text|...", for the test hook.
+  std::string resultLines();
   /// The key-data box as text ("" for a workflow made without a recipe).
   std::string keyDataText();
 
