@@ -21,6 +21,7 @@ struct FinalEnergy
    std::string units;     ///< as stored ("Hartree", "kcal/Mole", "NA")
    bool scanned = false;  ///< last point of a relaxed scan
    bool heat = false;     ///< MOPAC heat of formation, not a total energy
+   bool ts = false;       ///< IRC: the energy of the transition state
 };
 
 /**

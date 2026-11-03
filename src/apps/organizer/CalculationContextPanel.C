@@ -378,13 +378,13 @@ void CalculationContextPanel::updateProgress()
     const FinalEnergy fe = finalEnergyOf(task);
     const bool scanned = fe.scanned, hof = fe.heat;
     if (fe.found) {
-      const string unit = scanned ? "Hartree"
+      const string unit = scanned || fe.ts ? "Hartree"
                         : fe.units == "NA" ? "" : unitLabel(fe.units);
       const string value = valueLabel(fe.value, 6);
       char line[128];
       snprintf(line, sizeof line, "%s %s%s",
                scanned ? "Final energy (last scan point)"
-                       : hof ? "Heat of formation" : "Final energy",
+                       : fe.ts ? "TS energy" : hof ? "Heat of formation" : "Final energy",
                value.c_str(), unit.empty() ? "" : (" " + unit).c_str());
       p_progressBox->setFinalEnergy(line, value, unit);
       // A dynamics run's result is the average over the run, not the last step.

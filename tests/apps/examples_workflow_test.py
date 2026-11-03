@@ -62,6 +62,22 @@ def steps(info):
     return table
 
 
+def orca_ts_energy(data):
+    """IRCENERGY at IRCCOORD 0 of the ORCA SN2 IRC example (what the box shows)."""
+    base = os.path.join(HERE, "..", "..", "data", "client", "examples", "organic",
+                        "reactions", "orca-sn2_irc", "stored", "sn2_irc", "Props")
+    try:
+        vals = {}
+        for k in ("IRCCOORD", "IRCENERGY"):
+            body = open(os.path.join(base, k)).read()
+            vals[k] = body[body.index(">", body.index("<vector")) + 1:
+                           body.rindex("</vector>")].split()
+        i = [float(c) for c in vals["IRCCOORD"]].index(0.0)
+        return vals["IRCENERGY"][i]
+    except (OSError, ValueError, IndexError):
+        return None
+
+
 def run(display, data, work, shots):
     root = os.path.join(data, "users", "local")
     wf = "file://" + root + "/Examples/Workflows/Na_hydration"
@@ -144,11 +160,14 @@ def run(display, data, work, shots):
     res = answer("workflowresults")
     lines = dict(l.split(": ", 1) for l in res[0][3:].split("|")
                  if ": " in l) if res and res[0].startswith("ok ") else {}
-    # The G16 IRC has no final energy (no TE without an archive entry).
-    check("SN2: every step but the IRC has a result line",
-          set(lines) == set(t2) and all(v.strip() for k, v in lines.items()
-                                        if k != "sn2_irc"),
+    # An IRC's line is its TS energy: G16 prints it as "relative to the TS
+    # energy of", the stored path has it at coordinate 0.
+    check("SN2: every step has a result line, the IRC's is the TS energy",
+          set(lines) == set(t2) and all(v.strip() for v in lines.values()) and
+          lines.get("sn2_irc", "").strip() == "TS E \u22123071.917 Eh",
           "workflowresults answered %r" % res)
+    check("ORCA IRC example: stored TS row is the energy at coordinate 0",
+          orca_ts_energy(data) == "-3073.683420", "got %r" % orca_ts_energy(data))
     irc = os.path.join(root, "Examples", "Workflows", "SN2_Cl-_and_CH3Br",
                        "sn2_irc")
     props = os.listdir(os.path.join(irc, "Props")) \
