@@ -18,6 +18,7 @@ struct ScfCycle {
   int cycle = 0;
   double energy = 0, dE = 0, grad = 0;
   bool converged = false;
+  bool by_plateau = false;  // converged on the energy-plateau rule
 };
 
 struct ScfOptions {
@@ -49,6 +50,7 @@ struct ScfOptions {
 
 struct ScfResult {
   bool converged = false;
+  std::string convergence_note;  // set when the energy-plateau rule ended the run
   int iterations = 0;
   double energy = 0, e_nuc = 0, e_one = 0, e_coulomb = 0, e_exchange_hf = 0, e_xc = 0;
   Reference reference = Reference::Restricted;

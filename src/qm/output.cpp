@@ -1,6 +1,7 @@
 #include "output.hpp"
 #include "localise.hpp"
 #include "polar.hpp"
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -120,12 +121,44 @@ void write_irc_geometries(std::ostream& os, const std::vector<IrcPoint>& path) {
   os.flush();
 }
 
+// A MOM result keeps its doubly occupied orbitals ahead of the singly occupied
+// ones, so its energies can descend; readers (MO table, diagram) expect them
+// ascending.  Sort by energy, each orbital keeping its occupations.
+struct EnergyOrder {
+  Vec eps, occ_a, occ_b;
+  Mat C;
+};
+
+EnergyOrder energy_order(const ScfResult& r) {
+  const int n = static_cast<int>(r.eps_a.size());
+  std::vector<int> idx(n);
+  for (int i = 0; i < n; ++i) idx[i] = i;
+  if (r.reference == Reference::RestrictedOpen)
+    std::stable_sort(idx.begin(), idx.end(), [&](int a, int b) { return r.eps_a(a) < r.eps_a(b); });
+  EnergyOrder o;
+  o.eps.resize(n); o.occ_a.resize(n); o.occ_b.resize(n);
+  o.C.resize(r.C_a.rows(), n);
+  for (int i = 0; i < n; ++i) {
+    o.eps(i) = r.eps_a(idx[i]);
+    o.occ_a(i) = r.occ_a(idx[i]);
+    o.occ_b(i) = r.occ_b(idx[i]);
+    o.C.col(i) = r.C_a.col(idx[i]);
+  }
+  return o;
+}
+
 PointOrbitals point_orbitals(const ScfResult& r) {
   PointOrbitals o;
   o.restricted = r.reference != Reference::Unrestricted;
   o.eps_a = r.eps_a; o.eps_b = r.eps_b;
   o.occ_a = r.occ_a; o.occ_b = r.occ_b;
   o.C_a = r.C_a; o.C_b = r.C_b;
+  if (r.reference == Reference::RestrictedOpen) {
+    const EnergyOrder s = energy_order(r);
+    o.eps_a = o.eps_b = s.eps;
+    o.occ_a = s.occ_a; o.occ_b = s.occ_b;
+    o.C_a = o.C_b = s.C;
+  }
   return o;
 }
 
@@ -186,6 +219,7 @@ void write_progress_scf(std::ostream& os, const ScfCycle& c, const ScfOptions& o
   if (!std::isnan(c.dE)) os << " dE=" << sci(c.dE) << "/" << sci(opt.conv_energy, 0);
   os << " grad=" << sci(c.grad) << "/" << sci(opt.conv_grad, 0);
   if (c.converged) os << " converged=yes";
+  if (c.by_plateau) os << " criterion=energy_plateau";
   os << "\n";
   os.flush();
 }
@@ -321,6 +355,7 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "nbf " << b.nbf() << "\n";
   os << "nalpha " << r.nalpha << "\nnbeta " << r.nbeta << "\n";
   os << "converged " << (r.converged ? "yes" : "no") << "\n";
+  if (r.converged && !r.convergence_note.empty()) os << "convergence_note " << r.convergence_note << "\n";
   os << "iterations " << r.iterations << "\n";
   if (opt) {
     os << "opt_converged " << (opt->converged ? "yes" : "no") << "\n";
@@ -399,7 +434,10 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   };
   if (r.ivo_applied) os << "virtual_orbitals ivo\n";
   else if (!r.ivo_note.empty()) os << "virtual_orbitals_note " << r.ivo_note << "\n";
-  if (restricted) spin_block("restricted", r.eps_a, r.occ_a, r.occ_b, r.C_a, true);
+  if (restricted) {
+    const EnergyOrder s = energy_order(r);
+    spin_block("restricted", s.eps, s.occ_a, s.occ_b, s.C, true);
+  }
   else {
     spin_block("alpha", r.eps_a, r.occ_a, r.occ_a, r.C_a, false);
     spin_block("beta", r.eps_b, r.occ_b, r.occ_b, r.C_b, false);
@@ -508,10 +546,11 @@ void write_molden(std::ostream& os, const Input& in, const Basis& b, const ScfRe
     spin("Beta", r.eps_b, r.occ_b, r.C_b, false);
   } else {
     // one set of orbitals: occupation 2, 1 or 0 (ROHF open shell = 1)
-    Vec occ = r.occ_a + r.occ_b;
+    const EnergyOrder s = energy_order(r);
+    const Vec occ = s.occ_a + s.occ_b;
     for (int i = 0; i < b.nbf(); ++i) {
-      os << "Sym= " << i + 1 << "a\nEne= " << r.eps_a(i) << "\nSpin= Alpha\nOccup= " << occ(i) << "\n";
-      for (int k = 0; k < b.nbf(); ++k) os << " " << k + 1 << " " << r.C_a(perm[k], i) << "\n";
+      os << "Sym= " << i + 1 << "a\nEne= " << s.eps(i) << "\nSpin= Alpha\nOccup= " << occ(i) << "\n";
+      for (int k = 0; k < b.nbf(); ++k) os << " " << k + 1 << " " << s.C(perm[k], i) << "\n";
     }
   }
 }
