@@ -27,6 +27,7 @@
 #include <wx/image.h>
 #include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/timer.h>
 
 #include "tdat/VibSpectrum.H"
 #include "wxgui/PlotStyle.H"
@@ -84,7 +85,7 @@ class SpectrumCanvas : public wxPanel
         p_hoverKind(VIB_IR),
         p_hoverMode(-1), p_hoverAt(0, 0), p_pressed(false),
         p_dragging(false), p_panning(false), p_band(false),
-        p_bandLo(0), p_bandHi(0), p_cacheValid(false), p_strip(false)
+        p_bandLo(0), p_bandHi(0), p_cacheValid(false), p_strip(false), p_wheelTimer(this)
     {
       p_s->views.push_back(this);
       SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -99,6 +100,7 @@ class SpectrumCanvas : public wxPanel
       Bind(wxEVT_MIDDLE_UP, &SpectrumCanvas::onPanUp, this);
       Bind(wxEVT_MOTION, &SpectrumCanvas::onMotion, this);
       Bind(wxEVT_MOUSEWHEEL, &SpectrumCanvas::onWheel, this);
+      Bind(wxEVT_TIMER, &SpectrumCanvas::onWheelFrame, this, p_wheelTimer.GetId());
       Bind(wxEVT_KEY_DOWN, &SpectrumCanvas::onKey, this);
       Bind(wxEVT_LEAVE_WINDOW, &SpectrumCanvas::onLeave, this);
       Bind(wxEVT_MOUSE_CAPTURE_LOST, &SpectrumCanvas::onCaptureLost, this);
@@ -1207,16 +1209,25 @@ class SpectrumCanvas : public wxPanel
 
     void onWheel(wxMouseEvent& e)
     {
+      if (e.GetWheelAxis() == wxMOUSE_WHEEL_HORIZONTAL || e.GetWheelRotation() == 0)
+        return;
       const int delta = e.GetWheelDelta() > 0 ? e.GetWheelDelta() : 120;
       const double notches = e.GetWheelRotation() / (double)delta;
-      if (e.ShiftDown()) {
-        p_s->axis.pan(-notches * 0.1 * p_s->axis.span() *
-                   (p_s->axis.reversed() ? -1 : 1));
-      } else {
-        //  About the pointer, so the band under it stays put.
-        p_s->axis.zoomAbout(wavenumberAt(e.GetPosition().x),
-                         std::pow(0.8, notches));
+      if (!p_wheelTimer.IsRunning()) {
+        p_wheelAnchor = wavenumberAt(e.GetX());
+        p_wheelTimer.StartOnce(16);
       }
+      if (e.ShiftDown()) p_wheelPan += notches;
+      else p_wheelZoom += notches;
+    }
+
+    void onWheelFrame(wxTimerEvent&)
+    {
+      const double zoom = p_wheelZoom, pan = p_wheelPan;
+      p_wheelZoom = p_wheelPan = 0;
+      p_s->axis.zoomAbout(p_wheelAnchor, std::pow(0.8, zoom));
+      p_s->axis.pan(-pan * 0.1 * p_s->axis.span() *
+                   (p_s->axis.reversed() ? -1 : 1));
       p_cacheValid = false;
       Refresh();
     }
@@ -1273,6 +1284,8 @@ class SpectrumCanvas : public wxPanel
     std::vector<wxString> p_stripText;
     double p_cacheKey[7];
     double p_maxStick[2], p_maxEnv[2];
+    wxTimer p_wheelTimer;
+    double p_wheelZoom = 0, p_wheelPan = 0, p_wheelAnchor = 0;
 };
 
 #endif

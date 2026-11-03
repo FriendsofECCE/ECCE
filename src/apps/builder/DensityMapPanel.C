@@ -21,6 +21,7 @@
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
 #include <wx/stopwatch.h>
+#include <wx/timer.h>
 
 #include "PointNote.H"
 #include "dsm/IPropCalculation.H"
@@ -64,20 +65,32 @@ class DensityMapCanvas : public wxPanel
     DensityMapCanvas(wxWindow *parent)
       : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                 wxFULL_REPAINT_ON_RESIZE),
-        p_have(false)
+        p_have(false), p_wheelTimer(this)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);
       SetMinSize(wxSize(200, 200));
       Bind(wxEVT_PAINT, &DensityMapCanvas::onPaint, this);
       Bind(wxEVT_MOUSEWHEEL, [this](wxMouseEvent& e) {
         double u, v;
+        if (e.GetWheelAxis() == wxMOUSE_WHEEL_HORIZONTAL) return;
         if (!p_have || !onZoom || e.GetWheelRotation() == 0 ||
             !densityMapPointAt(GetClientSize(), p_map, e.GetX(), e.GetY(), u, v)) {
           e.Skip();
           return;
         }
-        onZoom(u, v, e.GetWheelRotation() > 0 ? 1.25 : 0.8);
+        if (!p_wheelTimer.IsRunning()) {
+          p_wheelAnchor = wxRealPoint(u, v);
+          p_wheelTimer.StartOnce(16);
+        }
+        const int delta = e.GetWheelDelta() > 0 ? e.GetWheelDelta() : 120;
+        p_wheelSteps += e.GetWheelRotation() / (double)delta;
       });
+      Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+        const double steps = p_wheelSteps;
+        p_wheelSteps = 0;
+        if (p_have && onZoom && steps != 0)
+          onZoom(p_wheelAnchor.x, p_wheelAnchor.y, std::pow(1.25, steps));
+      }, p_wheelTimer.GetId());
       Bind(wxEVT_LEFT_DCLICK, [this](wxMouseEvent&) {
         if (onZoomReset) onZoomReset();
       });
@@ -136,6 +149,9 @@ class DensityMapCanvas : public wxPanel
     wxString p_message;
     bool p_panning = false;
     wxPoint p_drag;
+    wxTimer p_wheelTimer;
+    double p_wheelSteps = 0;
+    wxRealPoint p_wheelAnchor;
 };
 
 

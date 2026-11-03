@@ -7,6 +7,7 @@
 
 #include "inv/actions/SoGLRenderAction.H"
 #include <stack>
+#include <wx/timer.h>
 
 #include "util/Receiver.H"
 
@@ -107,6 +108,11 @@ public:
   bool getSelectModeDrag();
 
 protected:
+
+  void queueZoom(double steps);
+  wxTimer p_zoomTimer;
+  double p_pendingZoom = 0.0;
+  double p_zoomGestureFactor = 1.0;
 
   int p_stickyMode;
   bool p_showText;

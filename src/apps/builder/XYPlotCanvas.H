@@ -28,6 +28,7 @@
 #include <wx/dcmemory.h>
 #include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/timer.h>
 
 #include "tdat/VibSpectrum.H"
 #include "wxgui/PlotStyle.H"
@@ -49,7 +50,7 @@ class XYPlotCanvas : public wxPanel
         p_palette(PlotPalette::system()), p_showKey(false), p_showXAxis(true),
         p_selCurve(-1), p_selIndex(-1), p_hoverCurve(-1), p_hoverIndex(-1),
         p_zoomed(false), p_xPad(0), p_pressed(false), p_dragging(false),
-        p_panning(false), p_band(false)
+        p_panning(false), p_band(false), p_wheelTimer(this)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);
       SetMinSize(wxSize(240, 160));
@@ -63,6 +64,7 @@ class XYPlotCanvas : public wxPanel
       Bind(wxEVT_MIDDLE_UP, &XYPlotCanvas::onPanUp, this);
       Bind(wxEVT_MOTION, &XYPlotCanvas::onMotion, this);
       Bind(wxEVT_MOUSEWHEEL, &XYPlotCanvas::onWheel, this);
+      Bind(wxEVT_TIMER, &XYPlotCanvas::onWheelFrame, this, p_wheelTimer.GetId());
       Bind(wxEVT_KEY_DOWN, &XYPlotCanvas::onKey, this);
       Bind(wxEVT_LEAVE_WINDOW, &XYPlotCanvas::onLeave, this);
       Bind(wxEVT_MOUSE_CAPTURE_LOST, &XYPlotCanvas::onCaptureLost, this);
@@ -1131,12 +1133,30 @@ class XYPlotCanvas : public wxPanel
 
     void onWheel(wxMouseEvent& e)
     {
-      if (!p_laidOut) return;
+      if (!p_laidOut || e.GetWheelAxis() == wxMOUSE_WHEEL_HORIZONTAL ||
+          e.GetWheelRotation() == 0) return;
       const int delta = e.GetWheelDelta() > 0 ? e.GetWheelDelta() : 120;
       const double notches = e.GetWheelRotation() / (double)delta;
-      //  Shift+wheel: y axis only, to lift a flat curve out of a tall one.
-      zoomAbout(xFrom(e.GetPosition().x), yFrom(e.GetPosition().y),
-                std::pow(0.8, notches), !e.ShiftDown());
+      if (!p_wheelTimer.IsRunning()) {
+        p_wheelAnchor = wxRealPoint(xFrom(e.GetX()), yFrom(e.GetY()));
+        p_wheelTimer.StartOnce(16);
+      }
+      p_wheelY += notches;
+      if (!e.ShiftDown()) p_wheelX += notches;
+    }
+
+    void onWheelFrame(wxTimerEvent&)
+    {
+      const double sx = std::pow(0.8, p_wheelX), sy = std::pow(0.8, p_wheelY);
+      p_wheelX = p_wheelY = 0;
+      startView();
+      const double cx = p_wheelAnchor.x;
+      const double cy = p_keepYBottom && !p_yLog ? p_vy0 : p_wheelAnchor.y;
+      // Apply both axes together so Shift changes do not cause extra paints.
+      p_vx0 = cx + (p_vx0 - cx) * sx; p_vx1 = cx + (p_vx1 - cx) * sx;
+      p_vy0 = cy + (p_vy0 - cy) * sy; p_vy1 = cy + (p_vy1 - cy) * sy;
+      clampView();
+      Refresh();
     }
 
     void onKey(wxKeyEvent& e)
@@ -1181,6 +1201,9 @@ class XYPlotCanvas : public wxPanel
     bool p_pressed, p_dragging, p_panning, p_band;
     wxPoint p_pressAt, p_lastPan;
     wxRealPoint p_bandA, p_bandB;
+    wxTimer p_wheelTimer;
+    double p_wheelX = 0, p_wheelY = 0;
+    wxRealPoint p_wheelAnchor;
 };
 
 #endif
