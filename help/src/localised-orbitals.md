@@ -50,7 +50,8 @@ orbitals are listed and the panel says so. Choose another type to get the table
 back.
 
 In the orbital table, **Main atoms** names the largest contributions to the
-orbital and adds **other** for the rest; hold the pointer over the cell to see
+orbital by element and shell with the principal quantum number (F 1s, F 2s,
+H 1s; H(1) 1s and H(2) 1s when an element occurs more than once) and adds **other** for the rest; hold the pointer over the cell to see
 every atom with at least 1 %. The spin population table gives each atom's spin
 population in electrons and its **Share (%)** of the total absolute spin, with
 the atoms that carry most spin first.

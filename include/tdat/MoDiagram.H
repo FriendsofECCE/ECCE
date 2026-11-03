@@ -215,13 +215,17 @@ struct MoLevel
    string         calcLabel;
    double         calcOccupancy, calcOccupancyBeta;
    int            calcDegeneracy;
+   /** A core level drawn below the axis break (#827): the atom it belongs to, or -1; side -1 left, 1 right, 0 neither. */
+   int            coreAtom;
+   int            coreSide;
 
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
                occupancyBeta(-1.0),
                shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
                tabulated(0.0), character(UNKNOWN), pairing(-1),
                model(false), clipped(false), hasCalc(false), calcEnergy(0.0), calcOverlap(0.0),
-               calcOccupancy(0.0), calcOccupancyBeta(-1.0), calcDegeneracy(0) {}
+               calcOccupancy(0.0), calcOccupancyBeta(-1.0), calcDegeneracy(0),
+               coreAtom(-1), coreSide(0) {}
 };
 
 
@@ -294,6 +298,9 @@ struct MoColumn
     */
    int              sketchNormal;
    vector<MoLevel>  levels;
+
+   /** Core levels drawn in a band below an axis break, labelled "F 1s" (#827); not part of `levels`. */
+   vector<MoLevel>  coreLevels;
 
    /**
     * Orbitals folded away below the energy cutoff.

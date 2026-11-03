@@ -23,6 +23,7 @@
 
 #include "dsm/ICalcUtils.H"
 #include "tdat/MoAoBasis.H"
+#include "tdat/ShellLabel.H"
 #include "tdat/SpinTables.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
@@ -595,6 +596,7 @@ bool MoPanel::rebuildTable()
    IPropCalculation *expt = getCalculation();
    p_aoBasis = nullptr;
    p_aoTried = false;
+   p_coreDone[0] = p_coreDone[1] = false;
    p_aoRows[0].clear();
    p_aoRows[1].clear();
 
@@ -872,7 +874,7 @@ void MoPanel::fillCharacterColumn(bool haveTypes)
       if (mo < 1 || mo > (long)rows.size() ||
           !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp))
          continue;
-      vector<MoAoBasis::Share> parts = comp.types;
+      vector<MoAoBasis::Share> parts = namedTypes(comp.types, (int)mo, beta);
       std::stable_sort(parts.begin(), parts.end(),
           [](const MoAoBasis::Share& a, const MoAoBasis::Share& b) {
             return a.share > b.share; });
@@ -1420,6 +1422,46 @@ bool MoPanel::ensureAoBasis()
 }
 
 
+/**
+ * The labels of an orbital's parts with the principal quantum number.  Which
+ * MOs are core orbitals is found once per spin from the deepest ones only
+ * (a core orbital cannot be anywhere else).
+ */
+vector<MoAoBasis::Share> MoPanel::namedTypes(const vector<MoAoBasis::Share>& types,
+                                             int mo, bool beta)
+{
+   vector<MoAoBasis::Share> out = types;
+   if (p_aoBasis == nullptr) return out;
+   const int set = beta ? 1 : 0;
+   const vector<string>& elements = p_aoBasis->elements;
+   if (!p_coreDone[set]) {
+      p_coreDone[set] = true;
+      const int keep = std::min((int)p_aoRows[set].size(),
+                                ShellLabel::coreCapacity(elements));
+      vector< vector<ShellLabel::Part> > orbitals;
+      for (int i = 0; i < keep; i++) {
+         MoAoBasis::Composition comp;
+         vector<ShellLabel::Part> parts;
+         if (p_aoBasis->analyse(p_aoRows[set][i], MoAoBasis::MULLIKEN, comp))
+            for (size_t k = 0; k < comp.types.size(); k++)
+               parts.push_back(ShellLabel::Part(comp.types[k].atom,
+                                                comp.types[k].l,
+                                                comp.types[k].share));
+         orbitals.push_back(parts);
+      }
+      p_coreInfo[set] = ShellLabel::coreOrbitals(elements, orbitals);
+   }
+   const vector<string> names = ShellLabel::atomNames(elements);
+   const ShellLabel::Core none;
+   const ShellLabel::Core& core =
+      (mo >= 1 && mo <= (int)p_coreInfo[set].size()) ? p_coreInfo[set][mo-1] : none;
+   for (size_t k = 0; k < out.size(); k++)
+      out[k].label = ShellLabel::partName(elements, names,
+         ShellLabel::Part(out[k].atom, out[k].l, out[k].share), core);
+   return out;
+}
+
+
 namespace {
 /** Parts largest first, as "O1 p 45.2%   H2 s 10.0%   other (3) 1.1%". */
 string shareList(vector<MoAoBasis::Share> parts)
@@ -1485,7 +1527,7 @@ void MoPanel::showComposition()
           !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp)) {
          text = _("Composition not available for this orbital.");
       } else {
-         const string list = shareList(comp.types);
+         const string list = shareList(namedTypes(comp.types, mo, type == "beta"));
          p_compSummary = list;
          text = wxString::Format(_("MO %d%s, composition (%s population):\n"),
                   mo, type == "beta" ? " beta" : "",
@@ -2263,6 +2305,31 @@ bool MoPanel::showOrbital(int orbengIndex)
 }
 
 
+bool MoPanel::coreOrbital(int orbeng, string& label, int& atom)
+{
+   ensureInitialized();
+   if (orbeng < 0 || !ensureAoBasis() || orbeng >= (int)p_aoRows[0].size())
+      return false;
+   MoAoBasis::Composition comp;
+   if (!p_aoBasis->analyse(p_aoRows[0][orbeng], MoAoBasis::MULLIKEN, comp))
+      return false;
+   const vector<MoAoBasis::Share> named = namedTypes(comp.types, orbeng + 1, false);
+   if (orbeng >= (int)p_coreInfo[0].size() || !p_coreInfo[0][orbeng].core)
+      return false;
+   const ShellLabel::Core& core = p_coreInfo[0][orbeng];
+   int best = -1;
+   for (size_t k = 0; k < comp.types.size(); k++)
+      if (comp.types[k].l == core.l &&
+          p_aoBasis->elements[comp.types[k].atom] == core.element &&
+          (best < 0 || comp.types[k].share > comp.types[best].share))
+         best = (int)k;
+   if (best < 0) return false;
+   atom = comp.types[best].atom;
+   label = named[best].label;
+   return true;
+}
+
+
 string MoPanel::compositionText(const vector<int>& orbengIndices)
 {
    ensureInitialized();
@@ -2279,7 +2346,7 @@ string MoPanel::compositionText(const vector<int>& orbengIndices)
       if (mo < 1 || mo > (int)rows.size() ||
           !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp))
          return "Composition not available for this orbital.";
-      if (k == 0) mean = comp.types;
+      if (k == 0) mean = namedTypes(comp.types, mo, false);
       else for (size_t j = 0; j < mean.size() && j < comp.types.size(); j++)
          mean[j].share += comp.types[j].share;
       numbers += (k ? ", " : "") + std::to_string(mo);

@@ -114,6 +114,10 @@ class MoDiagramPanel : public VizPropertyPanel,
        * Save the aufbau drawing as a PNG, to scale (A) or as boxes (B);
        * false when this is not a one-atom calculation.
        */
+      /** The core levels as drawn, one line each; for tests. */
+      string coreText() const;
+      bool showCoreChecked() const { return p_showCore != 0 && p_showCore->GetValue(); }
+      void setShowCore(bool on);
       bool exportAufbau(const string& path, bool toScale, int width, int height);
       /** What the aufbau view draws, line by line (empty for a molecule). */
       string aufbauText() const;
@@ -235,6 +239,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxCheckBox      *p_constructLabels;
       wxCheckBox      *p_symmetryLabels;
       wxCheckBox      *p_showAll;
+      wxCheckBox      *p_showCore = 0;     // core levels below an axis break (#827)
       wxCheckBox      *p_ligandField;
       wxButton        *p_about;
       wxChoice        *p_pickFirst;
@@ -245,6 +250,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       vector<double>   p_pickCoords;       // for the second chooser's bonded atoms
       vector<string>   p_pickElements;
       string           p_lastNote;
+      vector<MoLevel>  p_coreShown;   // the core levels last handed to the canvas (#827)
       vector<string>   p_atomLabels;     // "O1", "H2", ... as the Builder numbers
       vector<int>      p_secondAtoms;    // atoms in the second chooser, after (none)
 

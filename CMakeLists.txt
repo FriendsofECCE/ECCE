@@ -1969,6 +1969,10 @@ target_link_libraries(elementlayout_test PRIVATE eccetdat ecceutil)
 add_executable(aufbau_model_test tests/builder/aufbau_model_test.C)
 target_include_directories(aufbau_model_test PRIVATE src/apps/builder)
 add_test(NAME aufbau_model COMMAND aufbau_model_test)
+# The principal quantum number in orbital labels (#827).
+add_executable(shelllabel_test tests/builder/shelllabel_test.C)
+target_link_libraries(shelllabel_test PRIVATE eccetdat ecceutil)
+add_test(NAME shelllabel COMMAND shelllabel_test)
 # The chooser alone, for screenshots on a display with no ECCE services.
 add_executable(chooser_shot tests/builder/chooser_shot.C src/apps/builder/ElementChooser.C)
 target_include_directories(chooser_shot PRIVATE src/apps/builder ${wxWidgets_INCLUDE_DIRS})
