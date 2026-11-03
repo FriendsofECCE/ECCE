@@ -183,9 +183,9 @@ def checkLayout(tag, b):
         check(y0 >= prevBottom, "%s: the %s section starts below the previous "
               "plot" % (tag, title), g.group(0))
         prevBottom = max(textEnd, py + ph)
-    caps = {"SCF": ["SCF: |\u0394E| per cycle (Hartree)"],
+    caps = {"SCF": ["SCF: |\u0394E| per cycle (Eh)"],
             "Optimisation": ["Optimisation: energy per step, all points",
-                             "Optimisation: max and RMS force per step (Hartree/bohr), all points"]}
+                             "Optimisation: max and RMS force per step (Eh/bohr), all points"]}
     for title, options in caps.items():
         if re.search(r"\| geom %s " % title, b):
             check(any(("plot " + cap) in b for cap in options),
@@ -321,8 +321,8 @@ def run(display, pngs):
         check("Optimisation: step 4" in stored and "max force 4.1e-04 (limit 3e-04) \u2717" in stored
               and "RMS force 8.0e-05 (limit 1e-04) \u2713" in stored,
               "running (stored): step, criteria against targets", stored)
-        check("plot Optimisation: max and RMS force per step (Hartree/bohr), all points (4 points)" in stored and
-              "plot SCF: |\u0394E| per cycle (Hartree) (6 points)" in stored,
+        check("plot Optimisation: max and RMS force per step (Eh/bohr), all points (4 points)" in stored and
+              "plot SCF: |\u0394E| per cycle (Eh) (6 points)" in stored,
               "running (stored): the force and SCF plots", stored)
         check(re.search(r"updated (19|2\d) s ago", stored) is not None,
               "running (stored): updated about 20 s ago, from the job store's stamp", stored)
@@ -357,7 +357,7 @@ def run(display, pngs):
         for tag, b in (("1024x600", scan1), ("1366x768", scan2), ("1920x1080", scan3)):
             check("Scan: point 5 of 5" in b and "bar 1.00" in b and
                   "plot Optimisation: energy per step, all points (39 points)" in b and
-                  "plot SCF: |\u0394E| per cycle (Hartree) (4 points)" in b,
+                  "plot SCF: |\u0394E| per cycle (Eh) (4 points)" in b,
                   "relaxed scan (%s): point 5 of 5, every optimisation step "
                   "of all 5 points in the energy plot" % tag, b)
         for tag, b in (("stored", stored), ("live", after), ("completed", completed),

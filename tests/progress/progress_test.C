@@ -68,7 +68,7 @@ int main()
   forces.parse("opt step=3 maxgrad=2.0e-03/3e-04 rmsgrad=5.0e-04/1e-04\n"
                "opt~ maxgrad=9e-03,5e-03,2e-03\nopt~ rmsgrad=4e-03,1.6e-03,5e-04\n");
   const JobProgress::Block fb = forces.running(0)[0];
-  check(fb.plotLog && fb.curves.size() == 2 && fb.plotUnit == "Hartree/bohr" &&
+  check(fb.plotLog && fb.curves.size() == 2 && fb.plotUnit == "Eh/bohr" &&
         fb.curves[0].label == "max" && fb.curves[1].label == "RMS" &&
         fb.curves[0].hasThreshold && fabs(fb.curves[0].threshold - log10(3e-4)) < 1e-9 &&
         fabs(fb.curves[1].values[2] - log10(5e-4)) < 1e-9,
@@ -82,7 +82,7 @@ int main()
   check(s.plotLog && s.plot.size() == 3 && fabs(s.plot[2] - log10(3.1e-6)) < 1e-9,
         "log |dE| per SCF cycle");
   check(s.curves.size() == 1 && s.curves[0].hasThreshold &&
-        fabs(s.curves[0].threshold + 10) < 1e-9 && s.plotUnit == "Hartree",
+        fabs(s.curves[0].threshold + 10) < 1e-9 && s.plotUnit == "Eh",
         "the SCF plot carries its limit and unit");
 
   const string done =

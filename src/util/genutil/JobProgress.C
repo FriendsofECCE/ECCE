@@ -612,7 +612,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     }
     b.plot = b.curves[0].values;
     b.plotLog = true;
-    if (b.curves[0].hasThreshold) b.plotUnit = "Hartree/bohr";
+    if (b.curves[0].hasThreshold) b.plotUnit = "Eh/bohr";
     b.plotLabel = "max and RMS force per " + (rec.empty() ? string("record") : recName);
     plotAxis(st, rec, recName, b);
   } else if (st.history.size() >= 2) {
@@ -636,7 +636,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       b.plot = c.values;
       b.curves.push_back(c);
       b.plotLog = true;
-      if (st.name == "scf" && st.historyKey == "dE") b.plotUnit = "Hartree";
+      if (st.name == "scf" && st.historyKey == "dE") b.plotUnit = "Eh";
       if (st.name == "gmx-fmax") b.plotUnit = "kJ/mol/nm";
       b.plotLabel = "|" + criterionLabel(st.name, st.historyKey) +
                     "| per " + (rec.empty() ? "record" : recName);
