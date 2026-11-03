@@ -2,7 +2,7 @@
 """Organizer > Run Mgmt > Launch Selected (#492): several ready calculations
 are submitted in one go with the launch settings each stores.
 
-Three CP2K calculations (the code is /bin/true) and one with no machine are
+Three CP2K calculations (the code is a stand-in that prints CP2K's normal end) and one with no machine are
 made in a local data folder; the Organizer hook `launchselected URL...` runs
 the batch without its dialogs, and `launchselectedshot PNG URL...` saves the
 summary dialog.  Every complete calculation must leave "ready" through the
@@ -66,7 +66,13 @@ def main():
     shutil.copytree(os.path.join(build, "wrappers"), wrappers)
     for entry in os.listdir(wrappers):
         os.chmod(os.path.join(wrappers, entry), 0o755)
-    s.registerMachine("localhost", "Shell", {"CP2K": "/bin/true"})
+    #  A finished CP2K run counts as Complete only with CP2K's normal-end
+    #  line in its output (#732), so the stand-in prints one.
+    cp2k = os.path.join(s.state, "cp2k-stub")
+    with open(cp2k, "w") as h:
+        h.write("#!/bin/sh\necho ' PROGRAM ENDED AT  2026-01-01 00:00:00.000'\n")
+    os.chmod(cp2k, 0o755)
+    s.registerMachine("localhost", "Shell", {"CP2K": cp2k})
     #  Launch on (#492): "small" cuts cores and wall time and has no "batch"
     #  queue (a Shell manager lists no queues, so Slurm, staged: the submit
     #  stops after the settings are stored); "orcaonly" does not offer CP2K.
