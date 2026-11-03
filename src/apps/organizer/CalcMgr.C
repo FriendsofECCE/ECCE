@@ -1404,6 +1404,7 @@ void CalcMgr::runTestCommand(const string& line)
       // "panelmessage URL": select the node already in the tree and tell
       // the no-access panel's text (newlines shown as |), if that is shown.
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, false);
+      if (!node) node = findNode(EcceURL(calcName), true, true);
       if (!node) {
         outcome = "not in the tree";
       } else {

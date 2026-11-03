@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""A calculation renamed on disk behind the Organizer's back: selecting its
-stale tree node must say it no longer exists, not ask for a password (#683).
+"""A calculation renamed or moved on disk behind the Organizer's back:
+selecting its stale tree node must say it is no longer on disk (and where a
+folder of that name now is), not ask for a password (#683); one that only
+cannot be read must say why, not that it was moved.
 
     tests/apps/organizer_missing_node_test.py
 
@@ -39,39 +41,66 @@ def fail(what, why, log=""):
 
 def run(display, data, work):
     project = os.path.join(data, "users", "local", "alpha")
-    os.makedirs(project)
-    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    beta = os.path.join(data, "users", "local", "beta")
+    for folder in (project, beta):
+        os.makedirs(folder)
+        shutil.copy(PROJECT_META, os.path.join(folder, ".ecce-meta"))
     calc = os.path.join(project, "water")
-    shutil.copytree(CALC, calc, symlinks=True)
+    moved = os.path.join(project, "ice")
+    locked = os.path.join(beta, "steam")
+    for folder in (calc, moved, locked):
+        shutil.copytree(CALC, folder, symlinks=True)
+    sub = os.path.join(project, "sub")
+    os.makedirs(sub)
     script = os.path.join(work, "commands")
     open(script, "w").close()
 
     def behind_its_back(_display):
-        os.rename(calc, os.path.join(project, "water-renamed"))
         with open(script, "a") as handle:
-            # The opened calculation is already selected; move off it first.
-            handle.write("panelmessage file://%s\n" % project)
-            handle.write("panelmessage file://%s\n" % calc)
+            # Load every node before the disk changes under them.
+            for url in (project, moved, beta, locked, project):
+                handle.write("panelmessage file://%s\n" % url)
         time.sleep(4)
+        os.rename(calc, os.path.join(project, "water-renamed"))
+        os.rename(moved, os.path.join(sub, "ice"))
+        os.chmod(beta, 0o600)
+        with open(script, "a") as handle:
+            for url in (calc, moved, locked):
+                handle.write("panelmessage file://%s\n" % url)
+        time.sleep(4)
+        os.chmod(beta, 0o755)
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=30,
                       inspect=behind_its_back,
                       env={"ECCE_TEST_ORGANIZER": script,
                            "ECCE_TEST_ORGANIZER_NOLAUNCH": "1",
                            "ECCE_ORGANIZER_OPEN": "file://" + calc})
+    os.chmod(beta, 0o755)
     log = result.log or ""
-    what = "Organizer, renamed calculation"
+    what = "Organizer, calculation gone or unreadable"
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
     got = re.findall(r"ECCE_TEST_ORGANIZER: panelmessage\b.*?: (ok.*)$", log,
                      re.M)
-    if len(got) < 2:
+    if len(got) < 8:
         return fail(what, "panelmessage not answered", log)
-    text = got[-1]
-    if "password" in text or "no longer exists" not in text \
-            or "refresh" not in text:
-        return fail(what, "wrong panel text: %s" % text, log)
-    print("ok    %s" % what)
+    renamed, down, unreadable = got[-3:]
+    if "password" in renamed or "no longer on disk" not in renamed \
+            or calc not in renamed or "refresh" not in renamed:
+        fail("renamed calculation", "wrong panel text: %s" % renamed, log)
+    else:
+        print("ok    renamed calculation")
+    if "no longer on disk" not in down or os.path.join(sub, "ice") not in down:
+        fail("calculation moved into a sibling folder",
+             "wrong panel text: %s" % down, log)
+    else:
+        print("ok    calculation moved into a sibling folder")
+    # A folder that cannot be read is not one that was moved or removed.
+    if "no longer" in unreadable or "Permission denied" not in unreadable:
+        fail("unreadable calculation", "wrong panel text: %s" % unreadable,
+             log)
+    else:
+        print("ok    unreadable calculation")
 
 
 def check(display, results, verbose=False):
