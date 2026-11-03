@@ -10,11 +10,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
 #include "util/EcceURL.H"
 #include "tdat/DensityPlane.H"
+#include "tdat/MoAoBasis.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/IPropCalculation.H"
@@ -189,8 +192,50 @@ static void levels()
   CHECK(a.size() == 8 && a.back() == 0.004 && a[5] == 0.001, "levels are base 0.001 * 2^k");
 }
 
+// Probe the stored molecular wavefunction using the Density Map's evaluator
+// and overlap from the same flattened basis, without numerical grid quadrature.
+static int molecularProbe(const string& path, const string& points)
+{
+  EDSIServerCentral central;
+  IPropCalculation *calc = nullptr;
+  open(path, calc);
+  Evaluator ev;
+  if (!calc || !ev.build(calc)) {
+    cerr << "FAIL evaluator: " << ev.complaint << endl;
+    return 1;
+  }
+  vector<vector<double>> rows;
+  vector<int> counts;
+  vector<double> overlap;
+  if (!MoAoBasis::coefficients(calc, ev.symbols, false, rows) || rows.empty() ||
+      !MoAoBasis::overlapMatrix(calc, ev.symbols, ev.coordsAng,
+                              rows[0].size(), counts, overlap)) return 1;
+  const size_t n = rows[0].size();
+  double electrons = 0;
+  for (size_t m = 0; m < ev.occ.size(); ++m) {
+    if (ev.occ[m] == 0) continue;
+    double norm = 0;
+    for (size_t i = 0; i < n; ++i)
+      for (size_t j = 0; j < n; ++j)
+        norm += rows[m][i]*overlap[i*n+j]*rows[m][j];
+    electrons += ev.occ[m]*norm;
+  }
+  cout << std::setprecision(17) << "electrons " << electrons << "\n";
+  std::ifstream input(points);
+  if (!input) return 1;
+  double x, y, z;
+  while (input >> x >> y >> z) {
+    for (size_t m = 0; m < ev.occ.size(); ++m)
+      if (ev.occ[m] > 0)
+        cout << "orbital " << m+1 << " " << ev.orbital(m+1, false, x, y, z) << "\n";
+  }
+  return std::fabs(electrons-10) <= 1e-6 ? 0 : 1;
+}
+
 int main(int argc, char **argv)
 {
+  if (argc == 4 && string(argv[1]) == "--molecular-probe")
+    return molecularProbe(argv[2], argv[3]);
   planes();
   levels();
   if (argc < 2) {

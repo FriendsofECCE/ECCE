@@ -5,8 +5,7 @@ The MO Diagram panel on a single atom (#813): the aufbau view, headless.
 The stored genchem atom examples O (ROKS), Ne and Ar, plus Ca, Cr and Cu
 when their example folders are available, are opened with the MO
 Diagram panel; the Builder scene commands `modiagram <name> aufbaupng 0|1`
-draw it as boxes (B) and to scale (A) at 900x600 (also 500x400 for s/p
-atoms), write the
+draw it as boxes (B) and to scale (A) at 900x600, 500x400 and 400x300, write the
 pictures and list the layout rectangles and hit targets. Checked: the configuration, the arrows of each subshell (Hund's rule
 in O 2p), the core flag in drawing A, and that a click on a level computes
 the orbital.  ECCE_AUFBAU_PNG=<dir> also keeps the pictures.
@@ -99,8 +98,7 @@ def main():
                        env=display.env(), timeout=180)
         try:
             cases = [(name, size) for name in cases_present
-                     for size in (("900x600",) if name in ("Cr", "Cu")
-                                  else ("900x600", "500x400"))]
+                     for size in ("900x600", "500x400", "400x300")]
             for name, size in cases:
                 config, arrows = CASES[name]
                 if os.environ.get("ECCE_AUFBAU_ONLY") not in (None, name):
@@ -128,7 +126,7 @@ def main():
                           "%s %s %s: pi checkbox is hidden" % (name, view, size))
                     rects = []
                     for line in text.splitlines():
-                        m = re.match(r"rect (text|box|level|break) (-?\d+) (-?\d+) (\d+) (\d+) (.*)", line)
+                        m = re.match(r"rect (text|box|level|break|core) (-?\d+) (-?\d+) (\d+) (\d+) (.*)", line)
                         if m:
                             rects.append((m[1], *map(int, m.group(2, 3, 4, 5)), m[6]))
                     hits = re.findall(r"^hit (\d+) (\d+)$", text, re.M)
@@ -154,8 +152,13 @@ def main():
                         rows = [next((r[2] for r in rects
                                       if r[0] == "box" and r[5] == label), None)
                                 for label in shells]
-                        check(all(y is not None for y in rows) and
-                              all(a > b for a, b in zip(rows, rows[1:])),
+                        layout = re.search(r"boxes size=(\d+) wraps=(\d+) core=(\S+)", text)
+                        check(layout is not None and int(layout[1]) >= 18,
+                              "%s %s: boxes stay readable" % (name, size))
+                        visible = [y for y in rows if y is not None]
+                        check(bool(visible) and (all(y is not None for y in rows) or
+                              (layout is not None and layout[3] != "none")) and
+                              all(a > b for a, b in zip(visible, visible[1:])),
                               "%s %s: staircase energy ranks increase upwards" % (name, size))
                     if view == "B" and name in ("Cr", "Cu"):
                         boxes = {label: next(r for r in rects

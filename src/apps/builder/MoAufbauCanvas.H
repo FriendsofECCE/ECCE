@@ -346,8 +346,8 @@ class MoAufbauCanvas : public wxPanel
       const double pad = std::max(1.0, 0.08 * (hi - lo));
       lo -= pad; hi += pad;
       const int lineH = dc.GetTextExtent(wxT("Xg")).y;
-      const int coreRow = std::max(26, lineH + 8);
-      const int coreH = cores ? 30 + cores * coreRow : 0;
+      const int coreRow = std::max(23, lineH + 4);
+      const int coreH = cores ? 18 + cores * coreRow : 0;
       wxFont valueFont = dc.GetFont();
       valueFont.SetPointSize(std::max(8, valueFont.GetPointSize()-2));
       dc.SetFont(valueFont);
@@ -371,7 +371,8 @@ class MoAufbauCanvas : public wxPanel
         const int y = yFor(v);
         dc.DrawLine(axisX - 4, y, axisX, y);
         char buf[32]; snprintf(buf, sizeof buf, "%g", v);
-        text(dc, buf, axisX - 8 - dc.GetTextExtent(wxString(buf)).x, y - lineH/2);
+        if (y-lineH/2 >= valTop)
+          text(dc, buf, axisX - 8 - dc.GetTextExtent(wxString(buf)).x, y - lineH/2);
       }
       if (cores) {
         const int brk = valBot + 9;
@@ -404,6 +405,7 @@ class MoAufbauCanvas : public wxPanel
       }
       const int available = plot.GetRight() - axisX - 16;
       int pitch = 28, gap = 0, groupW = 0;
+      bool reserveValues = true;
       // Reserve annotations within each column, then centre the whole group.
       // A narrow panel reduces the gap and level width rather than separating sets.
       for (; pitch >= 12; --pitch) {
@@ -413,6 +415,15 @@ class MoAufbauCanvas : public wxPanel
         gap = maxL ? std::max(0, std::min({160, 2*(pitch-4), (available-fixed)/maxL})) : 0;
         groupW = fixed+maxL*gap;
         if (groupW <= available) break;
+      }
+      if (groupW > available) {
+        // Values are optional; keep every labelled angular column inside the panel.
+        reserveValues = false;
+        std::fill(valueW.begin(), valueW.end(), 0);
+        pitch = 12;
+        groupW = 0;
+        for (int l = 0; l <= maxL; ++l)
+          groupW += labelW[l]+6+slots[l]*pitch+4;
       }
       pitch = std::max(12, pitch);
       int x = axisX + 16 + std::max(0, (available-groupW)/2);
@@ -424,7 +435,16 @@ class MoAufbauCanvas : public wxPanel
       vector<Value> values;
       vector<wxRect> occupied;
       int coreSeen = 0;
-      vector<int> previousLabel(maxL+1, plot.GetBottom()+lineH+4);
+      vector<int> labelY(p_shells.size());
+      for (int l = 0; l <= maxL; ++l) {
+        int previous = valTop-lineH-4;
+        for (int j = (int)p_shells.size()-1; j >= 0; --j) {
+          const AufbauShell& s = p_shells[j];
+          if (s.l != l || s.core) continue;
+          labelY[j] = std::max(yFor(s.mean)-lineH/2, previous+lineH+4);
+          previous = labelY[j];
+        }
+      }
       // The model is sorted from low to high energy, including the core.
       for (const AufbauShell& s : p_shells) {
         const int coreY = plot.GetBottom() - lineH/2 - 2 - coreSeen*coreRow;
@@ -437,11 +457,11 @@ class MoAufbauCanvas : public wxPanel
           dc.DrawLine(bar.x, y, bar.x+bar.width, y);
           rectangle("level", s.label, bar);
           drawArrows(dc, bar.x+bar.width/2, y-19, y-3, o, bar.width);
-          const wxRect hit(bar.x, y-21, bar.width, 24);
+          const wxRect hit(bar.x, y-10, bar.width, 21);
           addHit(hit, s, o);
           occupied.push_back(hit);
           // Degenerate orbitals share one value after their last line.
-          if (k+1 == s.orbs.size() || std::fabs(s.orbs[k+1].eV-o.eV) > 0.0005) {
+          if (reserveValues && (k+1 == s.orbs.size() || std::fabs(s.orbs[k+1].eV-o.eV) > 0.0005)) {
             const string value = energyText(o.eV);
             dc.SetFont(valueFont);
             const wxSize extent = dc.GetTextExtent(wxString::FromUTF8(value.c_str()));
@@ -452,11 +472,9 @@ class MoAufbauCanvas : public wxPanel
         dc.SetTextForeground(wxColour(30,30,30));
         const string label = s.label;
         const int w = dc.GetTextExtent(wxString::FromUTF8(label.c_str())).x;
-        const int desired = (s.core ? coreY : yFor(s.mean)) - lineH/2;
-        const int y = std::min(desired, previousLabel[s.l] - lineH - 4);
+        const int y = s.core ? coreY-lineH/2 : labelY[&s-p_shells.data()];
         text(dc, label, colX[s.l]-6-w, y);
         occupied.push_back(wxRect(colX[s.l]-6-w, y, w, lineH));
-        previousLabel[s.l] = y;
       }
       dc.SetFont(valueFont);
       dc.SetTextForeground(wxColour(110,110,110));
@@ -484,9 +502,16 @@ class MoAufbauCanvas : public wxPanel
 
     int hitAt(const wxPoint& p) const
     {
-      for (size_t i = 0; i < p_hits.size(); i++)
-        if (p_hits[i].box.Contains(p)) return (int)i;
-      return -1;
+      int nearest = -1;
+      int distance = 0;
+      // Close energy levels share a forgiving hit area; select the nearest centre.
+      for (size_t i = 0; i < p_hits.size(); i++) {
+        const wxRect& box = p_hits[i].box;
+        if (!box.Contains(p)) continue;
+        const int d = std::abs(p.y-(box.y+box.height/2));
+        if (nearest < 0 || d < distance) { nearest = (int)i; distance = d; }
+      }
+      return nearest;
     }
 
     void onClick(wxMouseEvent& event)
