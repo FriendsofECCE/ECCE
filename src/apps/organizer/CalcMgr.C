@@ -573,7 +573,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 "name\tok\t"
  * treetip <url>   the tree item's strikethrough and grey (never set, #805)
  * tablecolumns    the shown project table's column headings, " | " between
- * tableenergies   the shown project table's Total energy cells
+ * tableenergies [asc|desc]  the shown project table's Total energy cells
  * treestate <url> the tree icon's index, and those of running and of
  *                 out of contact
  * tablestates     the shown project table's State cells
@@ -1888,8 +1888,8 @@ void CalcMgr::runTestCommand(const string& line)
       // "checks <out.csv> <url>,<url>...": the Checks table dialog's rows
       // (folders expanded to their calculations) written as CSV (#615).
       std::istringstream args(calcName);
-      string out, urls, ref;
-      args >> out >> urls >> ref;
+      string out, urls, ref, rejected;
+      args >> out >> urls >> ref >> rejected;
       vector<EcceURL> roots;
       for (size_t at = 0; at < urls.size(); ) {
         size_t end = urls.find(',', at);
@@ -1901,12 +1901,21 @@ void CalcMgr::runTestCommand(const string& line)
       ChecksDialog dlg(this, calculationsUnder(roots), command == "rank");
       string why;
       if (dlg.ok(why) && !ref.empty() && command == "rank") dlg.setReference(ref, why);
+      if (dlg.ok(why) && !rejected.empty()) {
+        const bool accepted = dlg.setReference(rejected, why);
+        outcome = accepted ? "accepted" : "rejected";
+      }
+      const string referenceResult = outcome;
       if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
       else outcome = "failed: " + why;
       char secs[40];
       snprintf(secs, sizeof secs, " (%.1f s)", std::chrono::duration<double>(
                    std::chrono::steady_clock::now() - t0).count());
       outcome += secs;
+      if (command == "rank") {
+        outcome += " | " + referenceResult + " | reference=" + dlg.selectedReference();
+        for (const string& name : dlg.referenceChoices()) outcome += " | choice=" + name;
+      }
     } else if (command == "compareforcesdialog") {
       std::istringstream args(calcName);
       string a, b, png;
@@ -1991,7 +2000,8 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = table ? "ok" : "no table";
       if (table) {
         const vector<string> v = command == "tablecolumns"
-            ? table->columnHeadings() : table->energyCells();
+            ? table->columnHeadings() : table->energyCells(
+                calcName == "asc" ? 1 : calcName == "desc" ? -1 : 0);
         for (const string& c : v) outcome += " | " + c;
       }
     } else if (command == "menulabels") {
@@ -9077,6 +9087,8 @@ bool CalcMgr::resetForRerun(WxResourceTreeItemData *itemData,
   bool ret = false;
   if (task && task->canChangeState(message)) {
     ret = task->resetForRerun(tostate);
+    if (PropertyTask *props = dynamic_cast<PropertyTask*>(task))
+      props->flushPropertyCache();
     if (!ret) {
       setMessage(task->messages());
     }
@@ -10513,6 +10525,9 @@ void CalcMgr::updateUrl(const EcceURL & url)
   if (target != 0) {
 
     EcceURL selectedUrl = p_treeCtrl->getSelection()->getUrl();
+    // Metadata refresh does not discard parsed results from a previous run.
+    if (PropertyTask *task = dynamic_cast<PropertyTask*>(target->getResource()))
+      task->flushPropertyCache();
     EDSIFactory::changePoolResource(url);
     
     if (selectedUrl.isChildOf(url)) {

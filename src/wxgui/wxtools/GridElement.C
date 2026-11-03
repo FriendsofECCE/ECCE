@@ -106,6 +106,20 @@ int GridElement::compare(GridElement *element,
             ret = (e1_dt_val < e2_dt_val) ? (-1) :
                   ((e1_dt_val > e2_dt_val) ? (1) : (0)); }
           break;
+        case GridProperty::PT_TOTAL_ENERGY:
+          {
+            if (e1_val.empty() || e2_val.empty()) {
+              ret = e1_val.empty() ? (e2_val.empty() ? 0 : 1) : -1;
+              break;
+            }
+            e1_val.Replace(wxString::FromUTF8("\xe2\x88\x92"), "-");
+            e2_val.Replace(wxString::FromUTF8("\xe2\x88\x92"), "-");
+            double x = 0, y = 0;
+            e1_val.ToDouble(&x);
+            e2_val.ToDouble(&y);
+            ret = x < y ? -1 : x > y ? 1 : 0;
+          }
+          break;
         case GridProperty::PT_NUMERIC:
         case GridProperty::PT_FLOAT:
           {

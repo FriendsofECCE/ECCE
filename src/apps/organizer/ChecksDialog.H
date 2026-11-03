@@ -8,6 +8,7 @@
 
 #include "util/EcceURL.H"
 
+class wxChoice;
 class wxGrid;
 class wxGridEvent;
 
@@ -27,10 +28,13 @@ public:
   bool setReference(const std::string& name, std::string& why);
   /// The rows as shown (current sort) in the script's CSV form.
   std::string csv() const;
+  std::vector<std::string> referenceChoices() const;
+  std::string selectedReference() const;
 
 private:
   bool load(wxWindow *parent, bool withProgress);
   void fill();
+  void syncReference();
   void onSort(wxGridEvent& e);
   void exportAs(const std::string& format);
 
@@ -38,6 +42,7 @@ private:
   std::vector<std::string> p_head;
   std::vector<std::vector<std::string>> p_rows;
   wxGrid *p_grid = nullptr;
+  wxChoice *p_reference = nullptr;
   int p_sortCol = -1;
   bool p_ascending = true;
   bool p_rank = false;

@@ -65,14 +65,20 @@ def run(display):
                 '<?xml version="1.0"?>\n<value name="TE" units="Hartree">%s</value>\n' % te)
         with open(os.path.join(project, "water_x", ".ecce-meta"), "a") as h:
             h.write(".\t%sexcluded\t\tbad run\n" % NS)
+        missing = os.path.join(project, "water_missing")
+        shutil.copytree(SRC, missing, symlinks=True)
+        shutil.rmtree(os.path.join(missing, "Props"))
+        os.makedirs(os.path.join(missing, "Props"))
         cli = subprocess.run([sys.executable, CLI, "--rank", "csv", project],
                              capture_output=True, text=True, check=True).stdout
         out = os.path.join(work, "gui.csv")
         out2 = os.path.join(work, "gui-ref.csv")
+        out3 = os.path.join(work, "gui-rejected.csv")
         cmds = os.path.join(work, "commands")
         with open(cmds, "w") as h:
             h.write("rank %s file://%s\n" % (out, project))
             h.write("rank %s file://%s water_b\n" % (out2, project))
+            h.write("rank %s file://%s water_b water_x\n" % (out3, project))
         result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + project,
@@ -84,7 +90,7 @@ def run(display):
                      (result.log or "")[-1500:]):
             return
         gui, ref = rows(open(out).read()), rows(cli)
-        check(set(gui) == set(ref) == {"water_a", "water_b", "water_x"}, "same rows", (list(gui), list(ref)))
+        check(set(gui) == set(ref) == {"water_a", "water_b", "water_x", "water_missing"}, "same rows", (list(gui), list(ref)))
         for name, r in ref.items():
             g = gui.get(name, {})
             bad = [k for k in ("dE_kJ", "dE_eV", "dG_kJ", "dG_eV", "excluded")
@@ -103,6 +109,15 @@ def run(display):
             check(g2.get("water_b", {}).get("dE_kJ") == "0.0000" and
                   all(same(g2[n]["dE_kJ"], r2[n]["dE_kJ"]) for n in r2),
                   "against water_b the deltas equal the CLI's --ref", (g2, r2))
+        answers = re.findall(r"ECCE_TEST_ORGANIZER: rank .*?: (.*)$", result.log or "", re.M)
+        check(len(answers) == 3 and all(
+              set(x.strip() for x in re.findall(r"choice=([^|]+)", a)) ==
+              {"Lowest", "water_a", "water_b"} for a in answers),
+              "reference chooser omits excluded and energy-less calculations", answers)
+        check(len(answers) == 3 and "rejected | reference=water_b" in answers[2],
+              "a rejected reference restores the chooser to water_b", answers)
+        check(os.path.exists(out3) and open(out3).read() == open(out2).read(),
+              "a rejected reference preserves the table and CSV")
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)

@@ -201,8 +201,16 @@ vector<string> ProjectContextPanel::columnHeadings()
 }
 
 
-vector<string> ProjectContextPanel::energyCells()
+vector<string> ProjectContextPanel::energyCells(int sort)
 {
+  if (sort && p_projectView)
+    for (int col = 0; col < p_projectView->getColCount(); ++col) {
+      GridElement *cell = p_projectView->getElement(0, col);
+      if (cell && cell->getPropertyType() == GridProperty::PT_TOTAL_ENERGY) {
+        p_projectView->sortByCol(col, sort > 0);
+        break;
+      }
+    }
   return columnCells(GridProperty::PT_TOTAL_ENERGY);
 }
 

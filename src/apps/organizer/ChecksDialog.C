@@ -103,8 +103,10 @@ bool ChecksDialog::setReference(const string& name, string& why)
   if (!load(this, true)) {
     why = p_why;
     p_ref = old;
+    syncReference();
     return false;
   }
+  syncReference();
   p_sortCol = -1;
   if (p_grid) fill();
   return true;
@@ -123,23 +125,16 @@ ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool 
     wxBoxSizer *refRow = new wxBoxSizer(wxHORIZONTAL);
     refRow->Add(new wxStaticText(this, wxID_ANY, "Reference:"), 0,
                 wxALIGN_CENTER_VERTICAL | wxALL, 5);
-    wxChoice *ref = new wxChoice(this, wxID_ANY);
-    ref->Append("Lowest");
-    vector<string> names;
-    for (const EcceURL& u : p_calcs)
-      if (Resource *r = EDSIFactory::getResource(u)) {
-        string n = r->getName();
-        for (char& ch : n) if (ch == '/' || ch == '\\') ch = '_';
-        names.push_back(n);
-        ref->Append(wxString::FromUTF8(n.c_str()));
-      }
-    ref->SetSelection(0);
-    refRow->Add(ref, 0, wxALL, 5);
+    p_reference = new wxChoice(this, wxID_ANY);
+    syncReference();
+    refRow->Add(p_reference, 0, wxALL, 5);
     top->Add(refRow, 0, wxEXPAND);
-    ref->Bind(wxEVT_CHOICE, [this, ref, names](wxCommandEvent&) {
-      const int k = ref->GetSelection();
+    p_reference->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
+      const int k = p_reference->GetSelection();
+      const string name = k <= 0 ? string() :
+          p_reference->GetString(k).ToStdString(wxConvUTF8);
       string why;
-      if (!setReference(k <= 0 ? string() : names[k - 1], why))
+      if (!setReference(name, why) && why != "Cancelled.")
         wxMessageBox(wxString::FromUTF8(why.c_str()), "Compare Energies",
                      wxOK | wxICON_ERROR, this);
     });
@@ -163,6 +158,42 @@ ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool 
       [this](wxCommandEvent&) { EndModal(wxID_CLOSE); });
   p_grid->Bind(wxEVT_GRID_LABEL_LEFT_CLICK, &ChecksDialog::onSort, this);
   fill();
+}
+
+vector<string> ChecksDialog::referenceChoices() const
+{
+  vector<string> names;
+  if (p_reference)
+    for (unsigned i = 0; i < p_reference->GetCount(); ++i)
+      names.push_back(p_reference->GetString(i).ToStdString(wxConvUTF8));
+  return names;
+}
+
+string ChecksDialog::selectedReference() const
+{
+  return p_reference ? p_reference->GetStringSelection().ToStdString(wxConvUTF8) : "";
+}
+
+void ChecksDialog::syncReference()
+{
+  if (!p_reference) return;
+  p_reference->Clear();
+  p_reference->Append("Lowest");
+  const auto name = std::find(p_head.begin(), p_head.end(), "name");
+  const auto energy = std::find(p_head.begin(), p_head.end(), "E_el");
+  const auto excluded = std::find(p_head.begin(), p_head.end(), "excluded");
+  if (name != p_head.end() && energy != p_head.end() && excluded != p_head.end())
+    for (const auto& row : p_rows) {
+      const string& e = row[energy - p_head.begin()];
+      char *end;
+      strtod(e.c_str(), &end);
+      // Use the gathered rows so the chooser and exported table agree.
+      if (!e.empty() && end != e.c_str() && !*end &&
+          row[excluded - p_head.begin()].empty())
+        p_reference->Append(wxString::FromUTF8(row[name - p_head.begin()].c_str()));
+    }
+  p_reference->SetSelection(p_ref.empty() ? 0 :
+      p_reference->FindString(wxString::FromUTF8(p_ref.c_str()), true));
 }
 
 // Rows with a problem are red text on a light red ground; excluded rows grey.
