@@ -14,8 +14,89 @@ Frequency=all
 End=^ECCE-CREST-ENDFRAME
 [END]
 
+# Progress (#810): one "crest" stage, the box's rows are its keys.  MTDs run
+# in parallel and start and finish out of order, so the done count is a
+# tally of "completed" lines (Count=), reset at each Meta-Dynamics Iteration.
+[PROGRESS]
+Begin=CREST iMTD-GC SAMPLING
+Progress=crest stage=sampling
+[END]
+
+[PROGRESS]
+Begin=^\s*Meta-Dynamics Iteration\s+(\d+)
+Remember=mtd_real
+Value=0
+[END]
+
+[PROGRESS]
+Begin=^\s*Meta-Dynamics Iteration\s+(\d+)
+Progress=crest stage=sampling iter=$1 mtd=0/{mtdn}
+[END]
+
+# " t(MTD) total / ps :    84.0 (14 MTDs)"
+[PROGRESS]
+Begin=\(\s*(\d+) MTDs\)\s*$
+Remember=mtdn
+[END]
+
+[PROGRESS]
+Begin=\(\s*(\d+) MTDs\)\s*$
+Progress=crest mtd=0/$1
+[END]
+
 # "  ::::::::::::: starting MTD    3 :::::::::::::"
 [PROGRESS]
 Begin=^\s+:+ starting MTD\s+(\d+)\s
-Progress=sampling mtd=$1
+Progress=crest stage=sampling mtd={mtd_real}/{mtdn}
+[END]
+
+# "*MTD   9 completed successfully ...        0 min,  8.102 sec"
+[PROGRESS]
+Begin=^\*MTD\s+(\d+) completed
+Count=mtd
+Progress=crest stage=sampling mtd={mtd_real}/{mtdn}
+[END]
+
+[PROGRESS]
+Begin=\|\s+Multilevel Ensemble Optimization
+Progress=crest stage=optimising
+[END]
+
+[PROGRESS]
+Begin=^\s*crude pre-optimization
+Progress=crest stage=crude
+[END]
+
+[PROGRESS]
+Begin=^\s*optimization with tight thresholds
+Progress=crest stage=tight
+[END]
+
+[PROGRESS]
+Begin=^\s*Additional regular MDs
+Progress=crest stage=regularmd
+[END]
+
+# " Optimizing all 826 structures from file ..."
+[PROGRESS]
+Begin=^\s*Optimizing all\s+(\d+) structures
+Progress=crest nopt=$1
+[END]
+
+# " 612 structures remain within    12.00 kcal/mol window"
+[PROGRESS]
+Begin=^\s*(\d+) structures remain within\s+([\d.]+)\s+kcal/mol window
+Progress=crest remain=$1 window=$2
+[END]
+
+# "CREGEN> E lowest :   -20.88707"
+[PROGRESS]
+Begin=^CREGEN> E lowest\s*:\s+(-?\d+\.\d+)
+Progress=crest emin=$1
+[END]
+
+# " Estimated runtime for a batch of 14 MTDs on 4 threads: 31 sec"
+[PROGRESS]
+Begin=^\s*Estimated runtime for a batch of \d+ MTDs on \d+ threads:\s+(\d+)\s+(\w+)
+Progress=crest est=$1 estunit=$2
 [END]

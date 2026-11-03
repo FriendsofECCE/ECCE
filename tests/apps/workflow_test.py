@@ -138,6 +138,7 @@ def run_best(display, data, work, shots):
         "workflowstep %s orca_es toomany %s/ens best=7" % (wf, wf),
         "workflowinfo %s" % wf,
         "workflowready %s" % wf,
+        "workflowresults %s" % wf,
     ]
     script = os.path.join(work, "commands-best")
     with open(script, "w") as handle:
@@ -188,6 +189,10 @@ def run_best(display, data, work, shots):
     ready = answer("workflowready")
     check("Launch Ready Steps takes all three",
           bool(ready) and all(n in ready[0] for n in want), "ready %s" % ready)
+    res = answer("workflowresults")
+    check("the CREST box counts its conformers within the default window (#810)",
+          bool(res) and "ens: 6 conformers within 6 kcal/mol" in res[0],
+          "workflowresults answered %r" % res)
 
 
 def run_patterns(display, data, work, shots):
@@ -480,6 +485,9 @@ def run(display, data, work, shots):
     dlg = os.path.join(shots, "workflow-new-step.png")
     dlg2 = os.path.join(shots, "workflow-new-first-step.png")
     png2 = os.path.join(shots, "workflow-states.png")
+    prog = os.path.join(work, "xtb-progress")
+    with open(prog, "w") as handle:
+        handle.write("# seq=1 sent=1760000000.0\ncrest stage=sampling mtd=9/14\n")
     commands = [
         "summary %s/water" % proj,
         "new %s workflow" % proj,
@@ -503,6 +511,10 @@ def run(display, data, work, shots):
         "setstate %s/xtb-1 running" % wf,
         "workflowshot %s %s %s/xtb-1" % (png2, wf, wf),
         "workflowicons %s" % wf,
+        # the result line under each name (#810): a finished step's energy,
+        # a running step's progress
+        "progress %s/xtb-1 %s" % (wf, prog),
+        "workflowresults %s" % wf,
     ]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
@@ -611,6 +623,14 @@ def run(display, data, work, shots):
           all(n in icons and icons[n] == tree.get(n) for n in names) and
           icons.get("nw-water") != icons.get("xtb-1"),
           "workflowicons answered %r" % got)
+    energy = float(re.search(r">(-?[\d.e+-]+)<", open(os.path.join(
+        CALC, "Props", "TE")).read()).group(1))
+    lines = dict(l.split(": ", 1) for l in
+                 (answer("workflowresults") or ["ok "])[0][3:].split("|") if ": " in l)
+    check("a finished step says its energy, a running one its progress",
+          lines.get("nw-water") == "E \u2212%.3f Eh" % -energy and
+          lines.get("xtb-1") == "MTD 9 of 14",
+          "workflowresults answered %r" % lines)
 
 
 EXAMPLE = os.path.join(ROOT, "data", "client", "examples", "workflows",

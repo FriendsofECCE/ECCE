@@ -258,6 +258,23 @@ int main()
     check(db.size() == 1 && db[0].fraction == 1.0, "a finished Prepare's bar is full");
   }
 
+  // CREST (#810): the rows, and the cell while it samples.
+  {
+    JobProgress cr;
+    cr.parse("# seq=1\ncrest stage=tight mtd=14/14 iter=2 nopt=261 emin=-20.88735 "
+             "remain=255 window=6.00 est=31 estunit=sec\n");
+    vector<JobProgress::Block> kb = cr.running(0);
+    check(kb.size() == 1 && kb[0].title == "CREST" &&
+          has(kb[0].lines, "Metadynamics: 14 of 14 done") &&
+          has(kb[0].lines, "Structures: 261 optimised \xe2\x86\x92 255 within 6.00 kcal/mol") &&
+          has(kb[0].lines, "Lowest energy (Eh): -20.88735") &&
+          has(kb[0].lines, "Estimated: 31 sec for one batch of metadynamics runs"),
+          "CREST rows");
+    JobProgress cs;
+    cs.parse("# seq=1\ncrest stage=sampling mtd=9/14\n");
+    check(cs.shortLine() == "MTD 9 of 14", "cell: CREST sampling: " + cs.shortLine());
+  }
+
   // The table cell.
   check(p.shortLine() == "Freq 14/54", "cell: frequencies, the last of opt/freq: " + p.shortLine());
   JobProgress c1;
