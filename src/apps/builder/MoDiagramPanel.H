@@ -263,6 +263,9 @@ class MoDiagramPanel : public VizPropertyPanel,
       //  it finishes, rather than the two calls racing on p_canvas.
       bool p_building;
       bool p_rebuildPending;
+      //  A refresh while the panel is not on screen (a scan step with the
+      //  diagram closed or on another tab) only marks it out of date (#838).
+      bool p_refreshWhenShown;
 };
 
 #endif

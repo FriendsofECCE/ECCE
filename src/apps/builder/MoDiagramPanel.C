@@ -95,7 +95,7 @@ MoDiagramPanel::MoDiagramPanel()
     p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_optToggle(0), p_optSizer(0), p_optRow(0), p_optViews(0), p_optOpen(true), p_fragWasOpen(false), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
     p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
-    p_building(false), p_rebuildPending(false)
+    p_building(false), p_rebuildPending(false), p_refreshWhenShown(false)
 {
 }
 
@@ -107,7 +107,7 @@ MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
     p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_optToggle(0), p_optSizer(0), p_optRow(0), p_optViews(0), p_optOpen(true), p_fragWasOpen(false), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
     p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
-    p_building(false), p_rebuildPending(false)
+    p_building(false), p_rebuildPending(false), p_refreshWhenShown(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -400,6 +400,16 @@ bool MoDiagramPanel::Create(IPropCalculation *calculation,
   p_status->Hide();
   sizer->Add(p_status, 0, wxEXPAND|wxALL, 4);
   SetSizer(sizer);
+
+  //  Idle, not wxEVT_SHOW: a parent pane or notebook page becoming visible
+  //  sends no show event to this panel.
+  Bind(wxEVT_IDLE, [this](wxIdleEvent& e) {
+    if (p_refreshWhenShown && !p_building && IsShownOnScreen()) {
+      p_refreshWhenShown = false;
+      build();
+    }
+    e.Skip();
+  });
 
   return true;
 }
@@ -1945,6 +1955,12 @@ namespace {
 
 void MoDiagramPanel::refresh()
 {
+  //  Every scan or IRC step refreshes all panels of the calculation; a
+  //  diagram nobody can see is rebuilt when it is shown again (#838).
+  if (!IsShownOnScreen()) {
+    p_refreshWhenShown = true;
+    return;
+  }
   build();
 }
 
