@@ -25,7 +25,7 @@ struct AufbauOrbital {
 };
 
 struct AufbauShell {
-  string label;     // "2p"; an unnamed empty set is numbered above the named ones
+  string label;     // "2p"; empty sets follow the occupied shells of their type
   int l;
   int n;
   double mean;      // eV
@@ -94,33 +94,17 @@ static inline vector<AufbauShell> shells(const vector<double>& e,
       for (size_t m = 0; m < e.size() && m < eB.size(); m++) betaOf[m] = (int)m;
   }
 
-  //  An unnamed empty set of type l is the next shell of that type above the
-  //  named ones (Ar: s (virtual) is 4s), so it gets that n for the drawing.
-  int topN[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  for (const string& key : keys) {
-    const int l = lOfLabel(key);
-    if (l >= 0 && l < 8 && isdigit((unsigned char)key[0]))
-      topN[l] = std::max(topN[l], atoi(key.c_str()));
-  }
-
   for (size_t k = 0; k < keys.size(); k++) {
     vector<int>& ms = byKey[k];
     std::stable_sort(ms.begin(), ms.end(), [&](int a, int b) { return e[a] < e[b]; });
     const int l = lOfLabel(keys[k]);
     if (l < 0) continue;
     const size_t per = (size_t)(2 * l + 1);
-    //  Only the first set of an unnamed empty type: the rest is just more basis.
-    const bool virt = labels[ms[0]].find("virtual") != string::npos &&
-                      !isdigit((unsigned char)keys[k][0]);
     for (size_t from = 0; from < ms.size(); from += per) {
       AufbauShell s;
       s.l = l;
       s.n = atoi(keys[k].c_str());
       s.label = keys[k];
-      if (virt && l < 8) {
-        s.n = std::max(topN[l] + 1, l + 1);
-        s.label = std::to_string(s.n) + keys[k];
-      }
       s.core = false;
       s.electrons = 0;
       double sum = 0;
@@ -153,11 +137,22 @@ static inline vector<AufbauShell> shells(const vector<double>& e,
       for (const AufbauOrbital& ob : s.orbs) s.electrons += ob.up + ob.down;
       s.mean = sum / (double)s.orbs.size();
       out.push_back(s);
-      if (virt) break;
     }
   }
   std::stable_sort(out.begin(), out.end(),
                    [](const AufbauShell& a, const AufbauShell& b) { return a.mean < b.mean; });
+
+  // Finite-basis radial nodes can overname diffuse empty shells. Number them
+  // above the occupied shells of the same angular type, in energy order.
+  int topN[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  for (const AufbauShell& s : out)
+    if (s.electrons > 0) topN[s.l] = std::max(topN[s.l], s.n);
+  for (AufbauShell& s : out) {
+    if (s.electrons > 0) continue;
+    s.n = std::max(topN[s.l] + 1, s.l + 1);
+    topN[s.l] = s.n;
+    s.label = std::to_string(s.n) + LETTERS[s.l];
+  }
 
   //  Keep every shell with electrons and the lowest few empty ones.
   vector<AufbauShell> kept;

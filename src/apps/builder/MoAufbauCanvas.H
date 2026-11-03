@@ -296,9 +296,20 @@ class MoAufbauCanvas : public wxPanel
               { return a->up+a->down > b->up+b->down; });
           for (size_t k = 0; k < order.size(); ++k) {
             const wxRect rect(x+(int)k*(box+gap), y, box, box);
-            dc.SetPen(wxPen(colour, 1, s.electrons ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
+            dc.SetPen(wxPen(colour, 1));
             dc.SetBrush(*wxTRANSPARENT_BRUSH);
-            dc.DrawRectangle(rect);
+            if (s.electrons) dc.DrawRectangle(rect);
+            else {
+              // Native dashed rectangle caps can extend into the gaps on GTK.
+              // Solid segments keep the empty outline inside the same bounds.
+              for (int d = 0; d < box; d += 7) {
+                const int end = std::min(d + 4, box - 1);
+                dc.DrawLine(rect.x+d, rect.y, rect.x+end, rect.y);
+                dc.DrawLine(rect.x+d, rect.GetBottom(), rect.x+end, rect.GetBottom());
+                dc.DrawLine(rect.x, rect.y+d, rect.x, rect.y+end);
+                dc.DrawLine(rect.GetRight(), rect.y+d, rect.GetRight(), rect.y+end);
+              }
+            }
             rectangle("box", s.label, rect);
             drawArrows(dc, rect.x+box/2, y+3, y+box-3, *order[k], box);
             addHit(rect, s, *order[k]);
