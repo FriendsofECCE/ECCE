@@ -282,6 +282,9 @@ int ScanPanel::showPoint(int index)
   frag->addCovalentBonds();
   frag->touchNumbers();
   sg.touchChemDisplay();
+  // The camera was fitted to the stored (last) point; the first point of a
+  // bond scan can be far wider (#832).  Re-fit only when atoms leave the view.
+  if (getFW().atomsOutsideView()) getFW().center();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
   selectOrbitalPoint(calc, p_frame[index], index);
   return p_frame[index];
