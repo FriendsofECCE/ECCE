@@ -199,6 +199,8 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_terminate_request", (wxJmsCBFunc)&CalcMgrApp::terminateRequestMCB);
   // ecce-annotate (#742)
   subscribe("ecce_annotate_request", (wxJmsCBFunc)&CalcMgrApp::annotateRequestMCB);
+  // ecce-move / ecce-rename (#824)
+  subscribe("ecce_move_request", (wxJmsCBFunc)&CalcMgrApp::moveRequestMCB);
   // ecce-workflow
   subscribe("ecce_workflow_request", (wxJmsCBFunc)&CalcMgrApp::workflowRequestMCB);
   // ecce-reconnect
@@ -339,6 +341,28 @@ void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
   for (size_t i = 0; i < lines.size(); i++)
     r->addProperty("line" + std::to_string(i), lines[i]);
   publish("ecce_annotate_reply", *r);
+  delete r;
+}
+
+
+// ecce-move / ecce-rename: as annotateRequestMCB, answered on ecce_move_reply.
+void CalcMgrApp::moveRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+  vector<string> lines;
+  p_calcMgr->moveForCommand(msg.getProperty("verb"), urls,
+                            msg.getProperty("second"), lines);
+  JMSMessage* r = newMessage();
+  r->addProperty("reply_id", id);
+  r->addProperty("kind", "done");
+  r->addIntProperty("n", (int)lines.size());
+  for (size_t i = 0; i < lines.size(); i++)
+    r->addProperty("line" + std::to_string(i), lines[i]);
+  publish("ecce_move_reply", *r);
   delete r;
 }
 
