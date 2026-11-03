@@ -895,7 +895,7 @@ def run_recipes(display, data, work, shots):
           keys and keys[0] == "ok ", "answered %r" % keys[:1])
     text = keys[1] if len(keys) > 1 else ""
     check("key data: one code, one level, shown with progress",
-          "4 of 5 steps complete" in text and "Gaussian-16  B3LYP" in text, text)
+          "5 of 5 steps complete" in text and "Gaussian-16  B3LYP" in text, text)
     check("key data: reaction energy -9.6 kJ/mol and barrier +27.3 kJ/mol",
           "E(product) - E(reactant): -9.6 kJ/mol" in text and
           "E(TS) - E(reactant): +27.3 kJ/mol" in text, text)
