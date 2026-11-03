@@ -4878,7 +4878,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "25";
+const char *const kExampleSetVersion = "26";
 
 string treeName(string s)
 {
@@ -5679,6 +5679,18 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"Ar",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the full "
      "third shell of argon, with all its orbitals doubly occupied."},
+    {"Ca",
+     "ECCE-QM, B3LYP/cc-pVTZ, energy. This calculation shows the two 4s "
+     "electrons of calcium outside its argon-like core, with the 3d orbitals "
+     "still empty."},
+    {"Cr",
+     "ECCE-QM, ROB3LYP/def2-TZVPD, energy. This calculation shows the "
+     "3d5 4s1 configuration of chromium: five unpaired 3d electrons and one "
+     "4s electron, all with parallel spins."},
+    {"Cu",
+     "ECCE-QM, ROB3LYP/def2-TZVPD, energy. This calculation shows the "
+     "3d10 4s1 configuration of copper: a filled 3d shell and a single 4s "
+     "electron."},
     {"Li_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "lithium atom; with the cation, Tools > "
