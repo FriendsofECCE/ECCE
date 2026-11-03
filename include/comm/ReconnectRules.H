@@ -34,29 +34,42 @@ inline std::string stateText(ResourceDescriptor::RUNSTATE s)
     case ResourceDescriptor::STATE_RUNNING: return "Running";
     case ResourceDescriptor::STATE_WAITING: return "Waiting for Login";
     case ResourceDescriptor::STATE_COMPLETED: return "Completed";
-    case ResourceDescriptor::STATE_LOADED: return "Loaded";
+    case ResourceDescriptor::STATE_LOADED: return "Imported";
     case ResourceDescriptor::STATE_KILLED: return "Killed";
-    case ResourceDescriptor::STATE_UNSUCCESSFUL: return "Unsuccessful";
-    case ResourceDescriptor::STATE_FAILED: return "Failed";
-    case ResourceDescriptor::STATE_SYSTEM_FAILURE: return "System failure";
+    case ResourceDescriptor::STATE_UNSUCCESSFUL: return "Incomplete";
+    case ResourceDescriptor::STATE_FAILED: return "Monitor Error";
+    case ResourceDescriptor::STATE_SYSTEM_FAILURE: return "System Error";
     default: return "Unknown";
   }
 }
 
-// Empty when the calculation can be reconnected, else the reason.  Only a job
-// that may still be on the machine, or whose monitoring was lost, qualifies.
+// Empty when the calculation can be reconnected, else the reason.  The one
+// rule for Run Mgmt > Reconnect, Reconnect Selected and both context menus.
+// A job that ended badly (incomplete, monitor or system error) can still have
+// its output in the run directory.  A reconnect deletes the stored outputs
+// first, so a completed job is re-parsed instead, and a killed one (only a
+// user's cancel kills) is left as the user left it.
 inline std::string problem(const Input& in)
 {
   switch (in.state) {
     case ResourceDescriptor::STATE_SUBMITTED:
     case ResourceDescriptor::STATE_RUNNING:
     case ResourceDescriptor::STATE_WAITING:
+    case ResourceDescriptor::STATE_UNSUCCESSFUL:
+    case ResourceDescriptor::STATE_FAILED:
+    case ResourceDescriptor::STATE_SYSTEM_FAILURE:
       break;
     case ResourceDescriptor::STATE_CREATED:
     case ResourceDescriptor::STATE_READY:
       return "not launched";
+    case ResourceDescriptor::STATE_COMPLETED:
+      return "already finished (use Re-Parse Outputs)";
+    case ResourceDescriptor::STATE_KILLED:
+      return "already finished (cancelled)";
+    case ResourceDescriptor::STATE_LOADED:
+      return "imported";
     default:
-      return "already finished";
+      return "unknown state";
   }
   if (in.machine.empty()) return "no machine stored";
   if (!in.machineRegistered)

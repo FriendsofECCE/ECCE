@@ -218,11 +218,27 @@ def main():
         ans = send("treecontextmenu %s" % never)
         check("|~Reconnect Selected..." in ans, "tree menu: Reconnect Selected disabled when not launched (%s)" % ans)
 
+        #  The project table's right-click menu, one row: the same rule (#689).
+        ans = send("tablecontextmenu %s" % urls[0])
+        check("|Reconnect Selected..." in ans, "table menu: Reconnect Selected on a waiting job (%s)" % ans)
+        ans = send("tablecontextmenu %s" % never)
+        check("|~Reconnect Selected..." in ans, "table menu: Reconnect Selected disabled when not launched (%s)" % ans)
+
+        #  An incomplete job with its job record is reconnectable everywhere.
+        ans = send("setstate %s incomplete" % urls[1])
+        check(ans == "ok", "second job set incomplete (%s)" % ans)
+        ans = send("treecontextmenu %s" % urls[1])
+        check("|Reconnect Selected..." in ans, "tree menu: Reconnect Selected on an incomplete job (%s)" % ans)
+        ans = send("tablecontextmenu %s" % urls[1])
+        check("|Reconnect Selected..." in ans, "table menu: Reconnect Selected on an incomplete job (%s)" % ans)
+        ans = send("reconnectselectedlist %s" % urls[1])
+        check(("%s|localhost|Incomplete|ok" % names[1]) in ans, "incomplete job listed as reconnectable (%s)" % ans)
+
         shot = args.shot or os.path.join(s.state, "reconnect.png")
         ans = send("reconnectselectedshot %s %s" % (shot, " ".join(every)))
         check(ans == "not reconnected" and os.path.getsize(shot) > 1000,
               "dialog saved (%s)" % ans)
-        check(all(s.state_of(u) == "waiting" for u in urls),
+        check(s.state_of(urls[0]) == "waiting" and s.state_of(urls[1]) != "submitted",
               "the dialog alone reconnects nothing")
 
         ans = send("reconnectselected %s" % " ".join(every))
