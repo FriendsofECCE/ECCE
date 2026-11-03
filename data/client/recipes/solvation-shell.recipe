@@ -1,0 +1,27 @@
+# Solvation shell: CREST grows a cluster; xTB and DFT refine the cluster.
+recipe: solvation-shell
+title: Solvation shell
+field: Conformations
+summary: CREST solvation shell (QCG), then xTB and DFT optimisation and frequencies of the cluster
+description: CREST grows a shell of solvent molecules around the solute (water, ten molecules, one cluster; set in the CREST box), xTB re-optimises the cluster and a DFT optimisation with frequencies refines it. The Solvent row sets the implicit solvent of the xTB and DFT steps and, when CREST can build it (water, methanol, acetonitrile), the solvent molecule of the shell; it starts at water. The energies are those of the whole cluster.
+role: dft | DFT optimisation and frequencies | B3LYP | 6-31+G(d) | the usual starting level; diffuse functions when the molecule is an anion
+role: solvent | Solvent | | water | the shell's solvent molecule, also used as the implicit solvent
+rules: anion-diffuse, heavy-ecp, size, registered
+
+variant: orca | CREST, xTB, ORCA | ORCA
+step: orca | crest | CREST | | Solvation Shell | solvation shell | structure
+set: orca | crest | ES.Runtype.QCG.Solvent | water
+set: orca | crest | ES.Runtype.QCG.Number | 10
+step: orca | xtb | xtb | | GeoVib | xTB Opt + Freq | 
+step: orca | dft | ORCA | dft | GeoVib | DFT Opt + Freq | key=final, thermo
+link: orca | crest | xtb | geometry
+link: orca | xtb | dft | geometry
+
+variant: g16 | CREST, xTB, Gaussian 16 | G16
+step: g16 | crest | CREST | | Solvation Shell | solvation shell | structure
+set: g16 | crest | ES.Runtype.QCG.Solvent | water
+set: g16 | crest | ES.Runtype.QCG.Number | 10
+step: g16 | xtb | xtb | | GeoVib | xTB Opt + Freq | 
+step: g16 | dft | G16 | dft | GeoVib | DFT Opt + Freq | key=final, thermo
+link: g16 | crest | xtb | geometry
+link: g16 | xtb | dft | geometry

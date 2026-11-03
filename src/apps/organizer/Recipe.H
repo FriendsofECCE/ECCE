@@ -17,7 +17,8 @@
  *   step: <variant> | <id> | <code> | <role> | <run type> | <caption> | <flags>
  *       flags (comma separated): structure (the box needs a structure),
  *       key=<reactant|product|ts|min|final> (its place in the key data),
- *       thermo (the key data gives its G)
+ *       thermo (the key data gives its G),
+ *       charge=<+N|-N> (the source's charge plus N, for a step after CREST Protonation Sites)
  *   set: <variant> | <step id> | <ES key> | <value>
  *   link: <variant> | <from> | <to> | <link name>     (name as WorkflowSteps)
  *   rules: anion-diffuse, heavy-ecp, size, registered
@@ -40,6 +41,7 @@ struct RecipeStep {
   std::vector<std::pair<std::string, std::string> > settings;
   bool needsStructure = false;
   bool thermo = false;
+  int chargeShift = 0;   // added to the charge carried from the source (a protonated cation: +1)
   std::string keyRole;
 };
 

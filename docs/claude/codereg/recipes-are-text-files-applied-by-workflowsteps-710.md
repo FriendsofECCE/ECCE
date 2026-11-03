@@ -3,7 +3,7 @@ type: map
 title: "Recipes (#710): a .recipe text file, applied by WorkflowSteps::applyRecipe; the set-up panel and the key-data box"
 area: codereg
 paths: [src/apps/organizer/Recipe.C, src/apps/organizer/KeyData.C, src/apps/organizer/RecipePanel.C, src/apps/organizer/WorkflowLayout.C, src/apps/organizer/WorkflowSteps.C, data/client/recipes, tests/recipes, tests/apps/workflow_test.py]
-issues: [710, 674]
+issues: [710, 674, 808]
 ---
 - Format and rules: `Recipe.H` (wx-free; tested by `recipe_test`). Built-ins
   are `data/client/recipes/*.recipe`; a site adds `Recipes/` in any site
@@ -42,3 +42,13 @@ issues: [710, 674]
 - Test hooks: `workflowrecipelist`, `workflowrecipe`, `workflowrecipepanel`,
   `workflowrecipecreate`, `workflowrecipehere` (the box menu's Apply Recipe from here), `workflowkeydata`, `workflowmark`, `workflowlink`,
   `workflowsaverecipe`, `workflowstructure` (CalcMgr.C); test `tests/apps/workflow_test.py`.
+- Step flag `charge=+N` (`RecipeStep::chargeShift`, #808): `carryInto` adds N to
+  the fragment charge it copies from the source (at creation after a box and in
+  `refreshFromSources`, which re-copies each time, so it never adds twice). Only
+  the first step after CREST Protonation Sites needs it; later links copy the
+  shifted charge. CREST ensemble links use `geometry.c1` (the lowest conformer):
+  the ensemble frames are in CREST's file order, so plain `geometry` is the
+  last frame, not the lowest. The Solvation Shell result is one frame (the
+  grown cluster), so plain `geometry` carries solute plus solvent; its CREST
+  step's QCG solvent follows the dialog's Solvent row for water, methanol and
+  acetonitrile (`applyRecipe`).

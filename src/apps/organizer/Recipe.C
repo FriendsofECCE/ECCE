@@ -98,6 +98,12 @@ bool parseRecipe(const string& text, Recipe& out, string& error)
           if (flag == "structure") s.needsStructure = true;
           else if (flag == "thermo") s.thermo = true;
           else if (flag.compare(0, 4, "key=") == 0) s.keyRole = flag.substr(4);
+          else if (flag.compare(0, 7, "charge=") == 0) {
+            char *end = 0;
+            const long n = strtol(flag.c_str() + 7, &end, 10);
+            if (flag.size() == 7 || *end) return bad("charge= needs a whole number, like charge=+1");
+            s.chargeShift = (int)n;
+          }
           else if (!flag.empty()) return bad("unknown flag " + flag);
         }
       }
@@ -163,6 +169,7 @@ string recipeText(const Recipe& r)
       if (s.needsStructure) add("structure");
       if (s.thermo) add("thermo");
       if (!s.keyRole.empty()) add("key=" + s.keyRole);
+      if (s.chargeShift) add(string("charge=") + (s.chargeShift > 0 ? "+" : "") + std::to_string(s.chargeShift));
       o << "step: " << v.id << " | " << s.id << " | " << s.code << " | " << s.role
         << " | " << s.runType << " | " << s.caption << " | " << flags << "\n";
       for (const auto& kv : s.settings)
