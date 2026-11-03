@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -64,6 +65,7 @@
 #include "inv/events/SoLocation2Event.H"
 #include "inv/events/SoMouseButtonEvent.H"
 #include "inv/nodes/SoCamera.H"
+#include "inv/sensors/SoFieldSensor.H"
 #include "viz/TwoDMoveCmd.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/EDSIFactory.H"
@@ -179,6 +181,87 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     SbVec3f focal = cam->position.getValue() + dir * d;
     cam->focalDistance.setValue(d / f);
     cam->position.setValue(focal - dir * (d / f));
+  } else if ((c == "wheelburst" || c == "zoomburst") && w.size() == 5) {
+    SoWxRenderArea *area = findRenderArea(p_viewer);
+    SoCamera *camera = p_viewer->getCamera();
+    if (!area || !camera) return fail("wheelburst: no viewer camera");
+    wxTextCtrl *text = nullptr;
+    if (w[4] == "key" || w[4] == "textkey") {
+      if (w[4] == "textkey") {
+        text = new wxTextCtrl(p_viewer, wxID_ANY);
+        text->SetFocus();
+      } else {
+        area->SetFocus();
+      }
+      wxTheApp->Yield(true);
+    }
+    FILE *out = fopen((p_outdir + "/" + w[1] + ".txt").c_str(), "w");
+    if (!out) return fail("wheelburst: cannot write " + w[1]);
+    struct Trace {
+      FILE *out;
+      std::chrono::steady_clock::time_point start;
+      int changes = 0;
+      int frames = 0;
+      double elapsed() const {
+        return std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - start).count();
+      }
+    } trace{out, std::chrono::steady_clock::now()};
+    SoFieldSensor sensor([](void *data, SoSensor *) {
+      static_cast<Trace *>(data)->changes++;
+    }, &trace);
+    sensor.setPriority(0);
+    sensor.attach(&camera->focalDistance);
+    area->setFrameCallback([](void *data) {
+      Trace *t = static_cast<Trace *>(data);
+      fprintf(t->out, "frame %d finished_ms %.6f\n", ++t->frames, t->elapsed());
+    }, &trace);
+    const float before = camera->focalDistance.getValue();
+    const int count = atoi(w[2].c_str()), rotation = atoi(w[3].c_str());
+    for (int i = 0; i < count; ++i) {
+      if (w[4] == "pinch") {
+        wxZoomGestureEvent gesture(area->GetId());
+        gesture.SetEventObject(area);
+        gesture.SetGestureStart(i == 0);
+        gesture.SetGestureEnd(i == count - 1);
+        gesture.SetZoomFactor(std::pow(atof(w[3].c_str()),
+                                     i / double(std::max(1, count - 1))));
+        area->GetEventHandler()->ProcessEvent(gesture);
+        continue;
+      }
+      if (w[4] == "key" || w[4] == "textkey") {
+        wxKeyEvent key(wxEVT_KEY_DOWN);
+        key.m_keyCode = w[3] == "add" ? WXK_NUMPAD_ADD :
+                        w[3] == "subtract" ? WXK_NUMPAD_SUBTRACT : w[3][0];
+        key.SetEventObject(area);
+        area->GetEventHandler()->ProcessEvent(key);
+        continue;
+      }
+      wxMouseEvent event(wxEVT_MOUSEWHEEL);
+      event.SetEventObject(area);
+      event.SetTimestamp(i);
+      event.m_wheelRotation = rotation;
+      event.m_wheelDelta = 120;
+      event.m_wheelAxis = w[4] == "horizontal" ? wxMOUSE_WHEEL_HORIZONTAL : wxMOUSE_WHEEL_VERTICAL;
+      const double start = trace.elapsed();
+      area->GetEventHandler()->ProcessEvent(event);
+      fprintf(out, "event %d timestamp %ld start_ms %.6f end_ms %.6f\n",
+              i, event.GetTimestamp(), start, trace.elapsed());
+    }
+    fprintf(out, "immediate_changes %d\nimmediate_ratio %.9g\n", trace.changes,
+            camera->focalDistance.getValue() / before);
+    // Yield after dispatching the whole burst so it occupies one input frame.
+    const auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+    while (std::chrono::steady_clock::now() < end) {
+      wxTheApp->Yield(true);
+      wxMilliSleep(2);
+    }
+    fprintf(out, "changes %d\nratio %.9g\nframes %d\n", trace.changes,
+            camera->focalDistance.getValue() / before, trace.frames);
+    area->setFrameCallback(0, 0);
+    sensor.detach();
+    fclose(out);
+    if (text) text->Destroy();
   } else if (c == "idleframes" && w.size() == 2) {
     //  "idleframes <name>": frames the idle loop alone draws (no forced
     //  paint) after the previous command, and the last of them as

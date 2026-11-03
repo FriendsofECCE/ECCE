@@ -211,6 +211,17 @@ own error can be in the queue's error file instead, such as `slurm.err`.
 ECCE brings that file back into the calculation's Outputs when it has
 text in it, and the reason shown for a failed calculation names it.
 
+## Mouse and trackpad in the 3-D view
+
+Use the vertical mouse wheel or two-finger vertical scrolling to zoom the
+molecule. Horizontal scrolling leaves the zoom unchanged. Pinch two fingers
+apart to zoom in, or together to zoom out, on systems that provide pinch
+gestures. Scroll movement is combined for each frame to keep zoom responsive.
+
+Click the 3-D view to give it keyboard focus, then press **+** or **−** to
+zoom in or out; the keypad **+** and **−** work too. Keys typed in text
+fields continue to edit the text.
+
 ## 7. Look at the results
 
 1. Select `water-opt`.

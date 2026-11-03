@@ -6,6 +6,7 @@
 // using namespace std;
 
 #include <algorithm>
+#include <cmath>
 #include "inv/elements/SoViewportRegionElement.H"
 #include "inv/sensors/SoFieldSensor.H"
 #include "inv/fields/SoSFTime.H"
@@ -127,6 +128,25 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
                     long style, Type type, SoCamera *cameraToCopy ):
   SoWxExaminerViewer( parent, id, pos, size, style, type )
 {
+  p_zoomTimer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+    const double steps = p_pendingZoom;
+    p_pendingZoom = 0.0;
+    if (steps != 0.0 && p_camera) {
+      touchOrientation();
+      zoomCamera(static_cast<float>(steps));
+      p_renderArea->Refresh(false);
+    }
+  });
+  p_renderArea->EnableTouchEvents(wxTOUCH_ZOOM_GESTURE);
+  p_renderArea->Bind(wxEVT_GESTURE_ZOOM, [this](wxZoomGestureEvent& event) {
+    const double factor = event.GetZoomFactor();
+    if (!std::isfinite(factor) || factor <= 0.0) return;
+    if (event.IsGestureStart()) p_zoomGestureFactor = factor;
+    // wx reports magnification since gesture start, rather than per event.
+    queueZoom(-8.0 * std::log2(factor / p_zoomGestureFactor));
+    p_zoomGestureFactor = event.IsGestureEnd() ? 1.0 : factor;
+  });
+
   p_showText = true;
 
   // Turn off trim
@@ -229,6 +249,7 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
 
 SGViewer::~SGViewer()
 {
+  p_zoomTimer.Stop();
 }
 
 
@@ -748,8 +769,32 @@ SbBool SGViewer::processCommonEvents(wxEvent * event)
   */
 
 
+  wxKeyEvent *keyEvent = dynamic_cast<wxKeyEvent *>(event);
+  if (keyEvent && event->GetEventType() == wxEVT_KEY_DOWN &&
+      p_renderArea->HasFocus() && !keyEvent->ControlDown() &&
+      !keyEvent->AltDown() && !keyEvent->MetaDown()) {
+    const int key = keyEvent->GetKeyCode();
+    if (key == '+' || key == WXK_ADD || key == WXK_NUMPAD_ADD ||
+        (key == '=' && keyEvent->ShiftDown())) {
+      queueZoom(-1.0);
+      return true;
+    }
+    if (key == '-' || key == WXK_SUBTRACT || key == WXK_NUMPAD_SUBTRACT) {
+      queueZoom(1.0);
+      return true;
+    }
+  }
+
   wxMouseEvent * mouseEvent = dynamic_cast<wxMouseEvent *>(event);
   if (mouseEvent) {
+    if (event->GetEventType() == wxEVT_MOUSEWHEEL) {
+      if (mouseEvent->GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL &&
+          mouseEvent->GetWheelDelta() != 0) {
+        queueZoom(static_cast<double>(mouseEvent->GetWheelRotation()) /
+                  mouseEvent->GetWheelDelta());
+      }
+      return true;
+    }
     if (mouseEvent->ButtonDown() || mouseEvent->ButtonUp() ||
         mouseEvent->Dragging() || mouseEvent->GetWheelRotation()) {
       touchOrientation();
@@ -803,20 +848,7 @@ SbBool SGViewer::processCommonEvents(wxEvent * event)
       restoreCursor();
       return true;
     }
-    if (mouseEvent->GetWheelRotation()) {
-      zoomCamera(mouseEvent->GetWheelRotation()*1.0/mouseEvent->GetWheelDelta());
-      // processCommonEvents() returning true makes processEvent() take
-      // an early return (see its "if (processCommonEvents(event)) return;"
-      // at the top) -- skipping the Refresh()/Update() calls at its own
-      // end that every other interaction (rotate, pan, dolly) relies on
-      // to actually force a repaint. Without this, zoomCamera() above
-      // updates the camera correctly, but nothing paints it -- the
-      // change sits invisible until some *other* interaction happens to
-      // trigger a repaint later. Force it here instead.
-      p_renderArea->Refresh(false);
-      p_renderArea->Update();
-      return true;
-    }
+
   }
 
   // send the event to the scene graph if viewing is off
@@ -973,9 +1005,6 @@ void SGViewer::processEvent( wxEvent * event )
         break;
       }
     }
-    else if (mouseEvent->GetWheelRotation()) {
-      zoomCamera(mouseEvent->GetWheelRotation()*1.0/mouseEvent->GetWheelDelta());
-    }
   }
   else {
     wxKeyEvent * keyEvent = dynamic_cast<wxKeyEvent *>(event);
@@ -1046,6 +1075,15 @@ void SGViewer::restoreCursor()
  //   getSel()->stopProcessing2DMotion();
  }
 */
+
+
+void SGViewer::queueZoom(double steps)
+{
+  if (steps == 0.0 || !std::isfinite(steps)) return;
+  // Drain input before rendering so trackpad events share a camera update.
+  p_pendingZoom += steps;
+  if (!p_zoomTimer.IsRunning()) p_zoomTimer.StartOnce(16);
+}
 
 
 void SGViewer::zoomCamera(float delta)
