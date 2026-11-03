@@ -10,8 +10,8 @@ properties than its output contains.
 
 1. Select one or more finished calculations: in a project's table (with the
    Ctrl key held), or in the tree.
-2. Choose **Run Mgmt > Re-Parse Outputs**. The same item is in the right-click
-   menu of a calculation. It is available for a calculation that is
+2. Choose **Run Mgmt > Re-Parse Outputs**. The same item is in the **Run**
+   submenu of a calculation's right-click menu. It is available for a calculation that is
    **Completed**, **Failed**, **Killed** or otherwise ended.
 3. The Organizer starts the parsing in the background. The properties appear
    as each calculation finishes. The message area at the bottom of the

@@ -190,8 +190,6 @@ public:
   // ecce-workflow (#807): "ok <workflow URL>" or "error: reason".
   string workflowForCommand(const string& verb, const EcceURL& calc,
                             const string& second);
-  // Exclude... / Include again on the selection (#617); the same store.
-  void excludeSelected(bool exclude);
   // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
   bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
   bool anyReconnectable(const vector<EcceURL>& urls);
@@ -394,6 +392,7 @@ public:
   // The project table's Progress cell: JobProgress::shortLine() of the live
   // snapshot, else the stored one; empty unless the calculation is running.
   string progressCellText(Resource * resource) const;
+  string totalEnergyCellText(Resource * resource) const;
   // Out of contact (#284): the job store's "contact" ("lost <epoch last
   // heard>" or "ok") on ecce_url_progress, with the snapshot it holds.
   void contactUpdate(const EcceURL & url, const string & contact,
@@ -505,16 +504,12 @@ protected:
   WxResourceTreeItemData * nearestContainer(WxResourceTreeItemData * node,
                                             ResourceType * resType);
   void OnGlobalTool(wxCommandEvent& event);
-  // Tools > Compare Energies (#573).
+  // Tools > Energy Calculator (#573).
   class CompareEnergiesDialog *newCompareEnergiesDialog(const vector<EcceURL>& sel);
   void OnCompareEnergies(wxCommandEvent& event);
-  void OnCompareForces(wxCommandEvent& event);
   bool p_compareEnergiesWired = false;
   // File > Export > Supporting Information (#625).
-  void OnSiExport(wxCommandEvent& event);
-  void OnChecks(wxCommandEvent& event);
   void OnRank(wxCommandEvent& event);
-  bool p_siExportWired = false;
   // Tools > Allocations (#613).
   void OnAllocations(wxCommandEvent& event);
   bool p_allocationsWired = false;

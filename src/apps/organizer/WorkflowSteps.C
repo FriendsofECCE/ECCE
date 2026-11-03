@@ -528,7 +528,8 @@ vector<WorkflowSteps::Node> WorkflowSteps::tree(Session *wf)
 }
 
 
-vector<Resource*> WorkflowSteps::readySteps(Session *wf, vector<string> *waiting)
+vector<Resource*> WorkflowSteps::readySteps(Session *wf, vector<string> *waiting,
+                                            vector<string> *excluded)
 {
   vector<Resource*> ready;
   vector<Node> nodes = tree(wf);
@@ -536,7 +537,10 @@ vector<Resource*> WorkflowSteps::readySteps(Session *wf, vector<string> *waiting
     Resource *step = nodes[i].step;
     if (isLaunched(step)) continue;
     // An excluded step is not launched (#617).
-    if (!step->getProp(VDoc::getEcceNamespace() + ":excluded").empty()) continue;
+    if (!step->getProp(VDoc::getEcceNamespace() + ":excluded").empty()) {
+      if (excluded) excluded->push_back(step->getName());
+      continue;
+    }
     bool sourcesDone = true;
     for (size_t k = 0; k < nodes[i].in.size(); k++)
       if (!isComplete(nodes[i].in[k].source)) sourcesDone = false;

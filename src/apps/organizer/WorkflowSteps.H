@@ -208,9 +208,11 @@ namespace WorkflowSteps {
   std::vector<Node> tree(Session *wf);
 
   /// Steps not yet launched whose source is complete; `waiting` gets the
-  /// names of the other unlaunched ones.
+  /// names of the other unlaunched ones, `excluded` those left out because
+  /// they are marked excluded.
   std::vector<Resource*> readySteps(Session *wf,
-                                    std::vector<std::string> *waiting = 0);
+                                    std::vector<std::string> *waiting = 0,
+                                    std::vector<std::string> *excluded = 0);
 
   /// "name code state source charge mult atoms" per step (a join's source is
   /// "a+b+c"), joined by "|",

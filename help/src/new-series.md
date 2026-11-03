@@ -4,22 +4,18 @@ A series is one calculation's setup applied to a list of structures, giving
 one calculation each. Use it for the same method and basis on a set of
 molecules, or for the same job on every conformer.
 
-## In the Organizer
+## Making the series
 
-1. Make the **template**: a calculation with the code, theory, run type,
-   basis set, solvent and launch settings (machine, cores, wall time) you
-   want. Its own structure does not matter, and it need not have been run.
-   If some of the structures have unpaired electrons, use an unrestricted
-   theory in the template: the series keeps the template's theory as it is.
-2. Select the template. To use other stored calculations as structures,
-   select them in the project table together with the template.
-3. Right-click the template and choose **New Series from This...**.
-4. In the file dialog, choose the `.xyz` files to add (several at once), or
-   cancel it if the structures are all calculations.
-5. A report lists each new calculation as made, or not made with the reason.
-   The new calculations appear next to the template, named after the xyz file
-   or the calculation, in state Ready with their input files generated.
-6. Select them and choose **Run Mgmt > Launch Selected**.
+The command is `ecce-series`; the Organizer has no menu item for it. Make the
+**template** first: a calculation with the code, theory, run type, basis set,
+solvent and launch settings (machine, cores, wall time) you want. Its own
+structure does not matter, and it need not have been run. If some of the
+structures have unpaired electrons, use an unrestricted theory in the
+template: the series keeps the template's theory as it is.
+
+The new calculations appear next to the template in state Ready with their
+input files generated. Select them in the Organizer and choose
+**Run Mgmt > Launch Selected**.
 
 ## Charge and multiplicity
 
@@ -39,7 +35,7 @@ says when constraints were left out. If a structure contains elements the templa
 basis set was not assigned to, the basis set of the same name is assigned to
 the new elements.
 
-## From the command line
+## Command
 
 ```
 ecce-series [--charge N] [--mult M] <template> <folder> <structure>...

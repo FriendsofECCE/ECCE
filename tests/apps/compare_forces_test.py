@@ -82,18 +82,12 @@ def run(display):
         cmds = os.path.join(work, "commands")
         png = os.path.join(work, "forces.png")
         with open(cmds, "w") as handle:
-            handle.write("compareforcesselection file://%s\n" % a)
-            handle.write("compareforcesselection file://%s file://%s\n" % (a,b))
-            handle.write("compareforcesselection file://%s file://%s file://%s\n" % (a,b,c))
             handle.write("compareforcesdialog file://%s file://%s %s\n" % (a,b,png))
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + a,
                                "ECCE_LOCAL_DATA": data})
         check(not result.crashed, "Organizer opens force dialog", result.log or "")
-        selection = re.findall(r"ECCE_TEST_ORGANIZER: compareforcesselection .*?: (enabled|disabled)", result.log or "")
-        check(selection == ["disabled", "enabled", "disabled"],
-              "Compare Forces enabled only for exactly two calculations", str(selection))
         answers = re.findall(r"ECCE_TEST_ORGANIZER: compareforcesdialog .*?: (ok.*)", result.log or "")
         text = answers[0] if answers else ""
         check("H\t2\t4\t3.16227766" in text and "O\t1\t5\t5" in text,

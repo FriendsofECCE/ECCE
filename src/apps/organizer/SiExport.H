@@ -1,6 +1,7 @@
 #ifndef SIEXPORT_HH
 #define SIEXPORT_HH
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -18,8 +19,15 @@ bool siExport(const std::vector<EcceURL>& calcs, const std::string& xyzFile,
 bool checksTable(const std::vector<EcceURL>& calcs, const std::string& format,
                  std::string& text, std::string& why);
 
-/// The Rank table (#703): ecce-si-export --rank `format` for `calcs`.
+/// Called before each calculation is gathered (index, count, name); false
+/// cancels, and `why` then reads "Cancelled.".
+typedef std::function<bool(size_t, size_t, const std::string&)> GatherProgress;
+
+/// The Rank table (#703), shown as Compare Energies: ecce-si-export --rank
+/// `format` for `calcs`.
 bool rankTable(const std::vector<EcceURL>& calcs, const std::string& format,
-               std::string& text, std::string& why);
+               std::string& text, std::string& why,
+               const GatherProgress& progress = GatherProgress(),
+               const std::string& ref = std::string());
 
 #endif

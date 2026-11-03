@@ -229,15 +229,15 @@ launcher, without command wrappers for these tools.
 | Command | Purpose |
 |---|---|
 | `ecce-localdata` | Print the local data folder |
-| `ecce-series` | Work with a series of calculations |
+| `ecce-series` | Work with a series of calculations (command line only) |
 | `ecce-check-props` | Check stored property dimensions |
-| `ecce-si-export` | Export structures and a Supporting Information table |
+| `ecce-si-export` | Export structures and a Supporting Information table; `--checks` makes the Checks table (with core-hours), `--rank` the Compare Energies table. Command line only |
 | `ecce-displacement` | Compare geometries and aligned RMSD |
 | `ecce-bandshift` | Match vibrational bands and report shifts |
 | `ecce-spectrum` | Process spectral curves |
 | `ecce-displace` | Displace a structure along a normal mode |
 | `ecce-thermo` | Recompute thermochemistry from stored results |
-| `ecce-force-compare` | Compare stored forces |
+| `ecce-force-compare` | Compare stored forces (command line only) |
 | `ecce-mlp` | Run an ML potential job from its input file |
 | `ecce-confsearch` | Run a simple conformer search from its input file |
 | `ecce-qm` | Run the bundled quantum chemistry program, when built |

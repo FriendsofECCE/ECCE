@@ -10,7 +10,7 @@ memory, wall time, run directory), unless another machine is chosen.
 1. Select the calculations in a project's table (with the Ctrl key held), or
    in the tree.
 2. Choose **Run Mgmt > Launch Selected...**. The same item is in the
-   right-click menu of a calculation.
+   **Run** submenu of a calculation's right-click menu.
 3. The window lists each calculation with its **Machine**, **Queue**,
    **Cores** and **Wall time**, and a **Check**. A calculation that can be
    submitted shows **OK**. One that cannot is listed in grey, with the reason

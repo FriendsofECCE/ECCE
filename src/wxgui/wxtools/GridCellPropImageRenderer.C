@@ -19,6 +19,8 @@
 #include "util/StringConverter.H"
 #include "util/ResourceUtils.H"
 
+#include "dsm/Resource.H"
+#include "dsm/VDoc.H"
 #include "dsm/ResourceProperty.H"
 #include "dsm/GridProperty.H"
 
@@ -71,7 +73,7 @@ void GridCellPropImageRenderer::Draw(wxGrid& grid,
             drawIcon(element, grid, attr, dc, rectCell, row, col, isSelected);
             break;
           case GridProperty::PT_RESOURCE_ICON:
-            drawResourceIcon(element, wxALIGN_CENTER, grid, attr, dc,
+            drawResourceIcon(element, wxALIGN_LEFT, grid, attr, dc,
                              rectCell, row, col, isSelected);
             break;
           case GridProperty::PT_RUNSTATE_ICON:
@@ -85,6 +87,23 @@ void GridCellPropImageRenderer::Draw(wxGrid& grid,
 
     }
   }
+}
+
+
+wxSize GridCellPropImageRenderer::GetBestSize(wxGrid& grid, wxGridCellAttr& attr,
+                                              wxDC& dc, int row, int col)
+{
+  GridModel *model = dynamic_cast<GridModel*>(grid.GetTable());
+  GridPropElement *element = model ? dynamic_cast<GridPropElement*>(
+      model->GetValueAsGridElement(row, col)) : 0;
+  if (!element || element->getPropertyType() != GridProperty::PT_RESOURCE_ICON)
+    return wxGridCellStringRenderer::GetBestSize(grid, attr, dc, row, col);
+  Resource *res = element->getResource();
+  wxString app = res && res->hasAccess() ? wxString::FromUTF8(
+      res->getProp(VDoc::getEcceNamespace() + ":application").c_str()) : wxString();
+  dc.SetFont(attr.GetFont());
+  const wxSize t = dc.GetTextExtent(app);
+  return wxSize(16 + grid.FromDIP(14) + t.GetWidth(), wxMax(t.GetHeight(), 16));
 }
 
 
@@ -112,7 +131,21 @@ void GridCellPropImageRenderer::drawResourceIcon(GridPropElement *element,
   int imageIdx;
   if (StringConverter::toInt(element->getValue().ToStdString(), imageIdx)) {
     wxIcon icon = WxResourceImageList::getImageList()->GetIcon(imageIdx);
-    drawIcon(icon, dc, rectCell, align);
+    dc.DrawBitmap(wxBitmap(icon), rectCell.x + 2, rectCell.y +
+                  (rectCell.height - icon.GetHeight()) / 2, true);
+    // Type and application are one column: the icon, then the application's
+    // name.
+    Resource *res = element->getResource();
+    if (res && res->hasAccess()) {
+      wxString app = wxString::FromUTF8(
+          res->getProp(VDoc::getEcceNamespace() + ":application").c_str());
+      const int x = rectCell.x + 2 + icon.GetWidth() + grid.FromDIP(6);
+      dc.SetFont(attr.GetFont());
+      dc.SetTextForeground(isSelected ? grid.GetSelectionForeground()
+                                      : attr.GetTextColour());
+      dc.DrawText(app, x, rectCell.y +
+                  (rectCell.height - dc.GetTextExtent(app).GetHeight()) / 2);
+    }
   }
 }
 

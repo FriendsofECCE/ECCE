@@ -4,8 +4,9 @@ Excluded calculations (#617), headless.
 
 A stored calculation is marked excluded with a reason (ecce:excluded in its
 .ecce-meta).  The ECCE_TEST_ORGANIZER hooks "exclude"/"include"/"treetip" run
-what Exclude... and Include again run: the tree item must be struck through,
-grey and carry the reason as its tooltip, and be plain again afterwards.  The
+what ecce-annotate --exclude/--include do; the GUI does not show the mark
+at all (#805), so the tree item stays plain throughout and neither the project
+table nor the summary has a row style or an Excluded line.  The
 CLI (ecce-annotate --exclude/--include, no session) must write the same
 property, ecce-si-export must skip an excluded calculation unless given
 --include-excluded and carry an "excluded" column, and Launch Ready Steps
@@ -66,12 +67,9 @@ def run(display):
             h.write("exclude %s %s\n" % (u, REASON))
             h.write("treetip %s\n" % u)
             h.write("summary file://%s\n" % project)
-            h.write("tableexcluded x\n")
             h.write("summary %s\n" % u)
-            h.write("summaryexcluded x\n")
             h.write("include %s\n" % u)
             h.write("summary file://%s\n" % project)
-            h.write("tableexcluded x\n")
             h.write("treetip %s\n" % u)
             # workflow: a step that is excluded is not ready
             h.write("new file://%s workflow\n" % project)
@@ -95,22 +93,11 @@ def run(display):
         tips = ans("treetip")
         if not check(len(tips) == 3, "the hooks answered", log[-1500:]):
             return
-        check("tip=" in tips[0] and "strike=0" in tips[0] and tips[0].startswith("tip= "),
-              "before: plain item, no tooltip", tips[0])
-        check(("tip=Excluded: " + REASON) in tips[1] and "strike=1" in tips[1] and
-              "grey=1" in tips[1], "excluded: struck through, grey, reason as tooltip", tips[1])
-        check("strike=0" in tips[2] and "grey=0" in tips[2] and "tip= " in tips[2],
-              "Include again restores the item", tips[2])
+        check(all("strike=0" in t and "grey=0" in t for t in tips),
+              "the tree item is never struck through or grey", tips)
         # The meta holds the reason after the exclude and nothing after include.
         check("excluded" not in meta(calc) or not re.search(r"excluded\t\t\S", meta(calc)),
               "include cleared the stored reason")
-
-        tab = ans("tableexcluded")
-        check(len(tab) == 2 and ("water|Excluded: " + REASON + "|1|1") in tab[0] and
-              tab[1].strip() == "rows", "project table row greyed, struck through, "
-              "tooltip has the reason; plain after include", tab)
-        line = ans("summaryexcluded")
-        check(line == ["line=Excluded: " + REASON], "summary shows the Excluded line", line)
 
         ready = ans("workflowready")
         check(len(ready) == 2 and " a" in ready[0] and " b" in ready[0],

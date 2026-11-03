@@ -41,6 +41,10 @@ class GridCellPropImageRenderer : public wxGridCellStringRenderer
                       int row, int col,
                       bool isSelected);
 
+    /// A resource icon is drawn with the application's name beside it.
+    virtual wxSize GetBestSize(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc,
+                               int row, int col);
+
   protected:
 
     void drawIcon(GridPropElement *element,
