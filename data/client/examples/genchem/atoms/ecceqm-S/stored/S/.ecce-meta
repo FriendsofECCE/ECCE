@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the occupied orbitals of the sulfur atom, filled in order of increasing energy.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:15:00 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 01:35:51 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:14:58 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 01:35:49 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/S__6uWiXh
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/S__bnbiYp
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793592900.270 idle=0 at=1793592900\nscf cycle=9 energy=-398.0783860722 dE=-2.33e-12/1e-10 grad=3.54e-08/1e-07 converged=yes\nscf~ dE=-8.89e-02,-4.19e-03,-2.91e-04,-6.24e-05,-3.11e-07,-3.48e-09,-1.49e-10,-2.33e-12\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793669751.172 idle=0 at=1793669751\nscf cycle=46 energy=-398.0765618689 dE=-3.38e-11/1e-10 grad=5.09e-08/1e-07 converged=yes\nscf~ dE=-8.89e-02,3.88e-03,-1.45e-03,-2.01e-03,2.88e-03,-3.60e-05,-4.83e-04,-4.99e-04,-1.35e-05,2.30e-04,-2.44e-03,2.10e-03,1.01e-04,1.96e-03,-1.13e-03,-3.67e-04,-5.71e-04,3.74e-04,-4.45e-04,4.82e-04,-5.08e-03,-1.61e-04,-2.64e-05,-2.75e-07,-3.09e-09,-3.38e-11,6.63e-03,2.95e-09,2.04e-09,7.98e-09,2.22e-07,-2.31e-07,2.88e-07,-3.44e-07,1.29e-04,-6.08e-05,-1.36e-03,-2.30e-03,1.47e-04,8.95e-04,-3.91e-04,-1.46e-04,-6.34e-04,1.65e-04,-3.38e-11\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Triplet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:14:59 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 01:35:50 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793592899
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793669749
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

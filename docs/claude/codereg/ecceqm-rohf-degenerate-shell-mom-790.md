@@ -93,3 +93,17 @@ atoms were unchanged.
 thread). Ti def2-TZVPD on the pruned grid: UKS converges by the plateau rule
 (121 cycles, -849.282354857), while ROKS still stops at 150 cycles near
 -849.281601 (#797).
+
+## The atom examples are ROKS (#788)
+
+The 13 open-shell atoms of the General Chemistry `atoms` topic (H, Li, B, C,
+N, O, F, Na, Al, Si, P, S, Cl) are `rob3lyp`, so the MO list is one set with
+occupations 0/1/2 (no beta list). Energies lie 0.01 to 2.7 mEh above the old
+UKS ones. Rerun with `ecce-qm`, copy the `.qmout`, then
+`tools/examples/preparse.py genchem` and `git checkout` every stored copy that
+should not change (it rewrites all of them). `ninja install` does not delete
+files, so a stale `Props/*BETA` in a private install makes
+`apps_examples_preparsed` report "only in the copy".
+
+Empty members of a partly filled shell (B 2p1) are named `2p (virtual)` by
+`RadialDist::shellLabels`; other virtuals stay `p (virtual)`.
