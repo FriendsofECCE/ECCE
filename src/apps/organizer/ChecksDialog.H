@@ -22,10 +22,14 @@ public:
 
   /// False, with `why`, when the table could not be made.
   bool ok(std::string& why) const { why = p_why; return p_ok; }
+  /// Compare Energies only: take dE and dG against calculation `name`
+  /// ("" = the lowest) and refill the table; false, with `why`, on failure.
+  bool setReference(const std::string& name, std::string& why);
   /// The rows as shown (current sort) in the script's CSV form.
   std::string csv() const;
 
 private:
+  bool load(wxWindow *parent, bool withProgress);
   void fill();
   void onSort(wxGridEvent& e);
   void exportAs(const std::string& format);
@@ -39,6 +43,7 @@ private:
   bool p_rank = false;
   bool p_ok = false;
   std::string p_why;
+  std::string p_ref;
 };
 
 /// The calculations at or below each of `roots`, in tree order.

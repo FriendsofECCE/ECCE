@@ -6,6 +6,8 @@
 #include <memory>
 
 #include <wx/button.h>
+#include <wx/choice.h>
+#include <wx/stattext.h>
 #include <wx/filedlg.h>
 #include <wx/grid.h>
 #include <wx/msgdlg.h>
@@ -71,16 +73,13 @@ vector<EcceURL> calculationsUnder(const vector<EcceURL>& roots)
   return out;
 }
 
-ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool rank)
-  : wxDialog(parent, wxID_ANY, rank ? "Compare Energies" : "Checks table", wxDefaultPosition,
-             wxSize(1100, 480), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
-    p_calcs(calcs), p_rank(rank)
+bool ChecksDialog::load(wxWindow *parent, bool withProgress)
 {
   string text;
   // More than a few calculations take a while to gather: show n of N.
   std::unique_ptr<wxProgressDialog> pd;
   GatherProgress progress;
-  if (p_rank && p_calcs.size() > 3) {
+  if (p_rank && withProgress && p_calcs.size() > 3) {
     pd.reset(new wxProgressDialog("Compare Energies", "Starting...",
         (int)p_calcs.size(), parent, wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_APP_MODAL));
     progress = [&pd](size_t i, size_t n, const string& name) {
@@ -88,15 +87,63 @@ ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool 
           i + 1, n, wxString::FromUTF8(name.c_str())));
     };
   }
-  if (!(p_rank ? rankTable(p_calcs, "csv", text, p_why, progress)
-                : checksTable(p_calcs, "csv", text, p_why))) return;
+  if (!(p_rank ? rankTable(p_calcs, "csv", text, p_why, progress, p_ref)
+                : checksTable(p_calcs, "csv", text, p_why))) return false;
   vector<vector<string>> all = parseCsv(text);
-  if (all.empty()) { p_why = "The table is empty."; return; }
+  if (all.empty()) { p_why = "The table is empty."; return false; }
   p_head = all[0];
   p_rows.assign(all.begin() + 1, all.end());
+  return true;
+}
+
+bool ChecksDialog::setReference(const string& name, string& why)
+{
+  const string old = p_ref;
+  p_ref = name;
+  if (!load(this, true)) {
+    why = p_why;
+    p_ref = old;
+    return false;
+  }
+  p_sortCol = -1;
+  if (p_grid) fill();
+  return true;
+}
+
+ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool rank)
+  : wxDialog(parent, wxID_ANY, rank ? "Compare Energies" : "Checks table", wxDefaultPosition,
+             wxSize(1100, 480), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
+    p_calcs(calcs), p_rank(rank)
+{
+  if (!load(parent, true)) return;
   p_ok = true;
 
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  if (p_rank) {
+    wxBoxSizer *refRow = new wxBoxSizer(wxHORIZONTAL);
+    refRow->Add(new wxStaticText(this, wxID_ANY, "Reference:"), 0,
+                wxALIGN_CENTER_VERTICAL | wxALL, 5);
+    wxChoice *ref = new wxChoice(this, wxID_ANY);
+    ref->Append("Lowest");
+    vector<string> names;
+    for (const EcceURL& u : p_calcs)
+      if (Resource *r = EDSIFactory::getResource(u)) {
+        string n = r->getName();
+        for (char& ch : n) if (ch == '/' || ch == '\\') ch = '_';
+        names.push_back(n);
+        ref->Append(wxString::FromUTF8(n.c_str()));
+      }
+    ref->SetSelection(0);
+    refRow->Add(ref, 0, wxALL, 5);
+    top->Add(refRow, 0, wxEXPAND);
+    ref->Bind(wxEVT_CHOICE, [this, ref, names](wxCommandEvent&) {
+      const int k = ref->GetSelection();
+      string why;
+      if (!setReference(k <= 0 ? string() : names[k - 1], why))
+        wxMessageBox(wxString::FromUTF8(why.c_str()), "Compare Energies",
+                     wxOK | wxICON_ERROR, this);
+    });
+  }
   p_grid = new wxGrid(this, wxID_ANY);
   p_grid->CreateGrid(0, (int)p_head.size());
   p_grid->EnableEditing(false);
@@ -187,7 +234,7 @@ void ChecksDialog::exportAs(const string& format)
   if (dlg.ShowModal() != wxID_OK) return;
   string text, why;
   if (format == "csv") text = csv();
-  else if (!(p_rank ? rankTable(p_calcs, format, text, why)
+  else if (!(p_rank ? rankTable(p_calcs, format, text, why, GatherProgress(), p_ref)
                     : checksTable(p_calcs, format, text, why))) {
     wxMessageBox(wxString::FromUTF8(why.c_str()), "Checks table", wxOK | wxICON_ERROR, this);
     return;

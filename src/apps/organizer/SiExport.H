@@ -27,6 +27,7 @@ typedef std::function<bool(size_t, size_t, const std::string&)> GatherProgress;
 /// `format` for `calcs`.
 bool rankTable(const std::vector<EcceURL>& calcs, const std::string& format,
                std::string& text, std::string& why,
-               const GatherProgress& progress = GatherProgress());
+               const GatherProgress& progress = GatherProgress(),
+               const std::string& ref = std::string());
 
 #endif

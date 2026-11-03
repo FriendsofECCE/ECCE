@@ -550,8 +550,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * checks <out.csv> <url>,<url>...
  *                 the Checks table dialog's rows (folders expanded) as CSV
  *                 (#615); "ok" or "failed: <why>"
- * rank <out.csv> <url>,<url>...
- *                 the Rank table dialog's rows (#703), as for "checks"
+ * rank <out.csv> <url>,<url>... [reference-name]
+ *                 the Compare Energies dialog's rows (#703), as for "checks";
+ *                 with a name, dE and dG against that calculation
  * compareenergies <sideA> <sideB>
  *                 what Tools > Energy Calculator shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
@@ -1887,8 +1888,8 @@ void CalcMgr::runTestCommand(const string& line)
       // "checks <out.csv> <url>,<url>...": the Checks table dialog's rows
       // (folders expanded to their calculations) written as CSV (#615).
       std::istringstream args(calcName);
-      string out, urls;
-      args >> out >> urls;
+      string out, urls, ref;
+      args >> out >> urls >> ref;
       vector<EcceURL> roots;
       for (size_t at = 0; at < urls.size(); ) {
         size_t end = urls.find(',', at);
@@ -1899,6 +1900,7 @@ void CalcMgr::runTestCommand(const string& line)
       const auto t0 = std::chrono::steady_clock::now();
       ChecksDialog dlg(this, calculationsUnder(roots), command == "rank");
       string why;
+      if (dlg.ok(why) && !ref.empty() && command == "rank") dlg.setReference(ref, why);
       if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
       else outcome = "failed: " + why;
       char secs[40];
@@ -10191,7 +10193,8 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
                                const string& shot)
 {
   vector<string> waiting;
-  vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting);
+  vector<string> excluded;
+  vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting, &excluded);
   string note;
   if (!waiting.empty()) {
     note = "Waiting for their source step: ";
@@ -10199,6 +10202,10 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
       note += (i ? ", " : "") + waiting[i];
     note += ".";
   }
+  //  The GUI does not show the excluded mark, so say why a step is left out.
+  for (const string& n : excluded)
+    note += (note.empty() ? "" : " ") + n +
+            ": skipped, marked excluded (ecce-annotate --include to clear).";
   if (ready.empty()) {
     string msg = "No step is ready to launch." + (note.empty() ? "" : " " + note);
     if (interactive) setMessage(msg, WxFeedback::INFO);
@@ -10213,6 +10220,7 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
     urls.push_back(ready[i]->getURL());
   }
   launchSelected(urls, interactive, outcome, shot);
+  if (outcome && !excluded.empty()) *outcome += " " + note;
 }
 
 

@@ -68,9 +68,11 @@ def run(display):
         cli = subprocess.run([sys.executable, CLI, "--rank", "csv", project],
                              capture_output=True, text=True, check=True).stdout
         out = os.path.join(work, "gui.csv")
+        out2 = os.path.join(work, "gui-ref.csv")
         cmds = os.path.join(work, "commands")
         with open(cmds, "w") as h:
             h.write("rank %s file://%s\n" % (out, project))
+            h.write("rank %s file://%s water_b\n" % (out2, project))
         result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + project,
@@ -93,6 +95,14 @@ def run(display):
               abs(float(gui["water_b"]["dE_kJ"]) - 0.1 * 2625.499638) < 1e-2,
               "the deltas are the hand-computed ones", gui)
         check(gui.get("water_x", {}).get("dE_kJ") == "-", "the excluded row has no delta", gui)
+        # A chosen reference (the dialog's Reference choice) = ecce-si-export --ref.
+        if check(os.path.exists(out2), "the reference run wrote its rows"):
+            cref = subprocess.run([sys.executable, CLI, "--rank", "csv", "--ref", "water_b", project],
+                                  capture_output=True, text=True, check=True).stdout
+            g2, r2 = rows(open(out2).read()), rows(cref)
+            check(g2.get("water_b", {}).get("dE_kJ") == "0.0000" and
+                  all(same(g2[n]["dE_kJ"], r2[n]["dE_kJ"]) for n in r2),
+                  "against water_b the deltas equal the CLI's --ref", (g2, r2))
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)

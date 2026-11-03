@@ -131,14 +131,15 @@ void GridCellPropImageRenderer::drawResourceIcon(GridPropElement *element,
   int imageIdx;
   if (StringConverter::toInt(element->getValue().ToStdString(), imageIdx)) {
     wxIcon icon = WxResourceImageList::getImageList()->GetIcon(imageIdx);
-    drawIcon(icon, dc, rectCell, align);
+    dc.DrawBitmap(wxBitmap(icon), rectCell.x + 2, rectCell.y +
+                  (rectCell.height - icon.GetHeight()) / 2, true);
     // Type and application are one column: the icon, then the application's
     // name.
     Resource *res = element->getResource();
     if (res && res->hasAccess()) {
       wxString app = wxString::FromUTF8(
           res->getProp(VDoc::getEcceNamespace() + ":application").c_str());
-      const int x = rectCell.x + icon.GetWidth() + grid.FromDIP(6);
+      const int x = rectCell.x + 2 + icon.GetWidth() + grid.FromDIP(6);
       dc.SetFont(attr.GetFont());
       dc.SetTextForeground(isSelected ? grid.GetSelectionForeground()
                                       : attr.GetTextColour());

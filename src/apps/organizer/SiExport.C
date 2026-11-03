@@ -194,9 +194,12 @@ bool checksTable(const vector<EcceURL>& calcs, const string& format,
 }
 
 bool rankTable(const vector<EcceURL>& calcs, const string& format,
-               string& text, string& why, const GatherProgress& progress)
+               string& text, string& why, const GatherProgress& progress,
+               const string& ref)
 {
-  return runScript(calcs, " --rank " + format, text, why, progress);
+  return runScript(calcs, " --rank " + format +
+                   (ref.empty() ? string() : " --ref " + quote(ref)),
+                   text, why, progress);
 }
 
 bool siExport(const vector<EcceURL>& calcs, const string& xyzFile,
