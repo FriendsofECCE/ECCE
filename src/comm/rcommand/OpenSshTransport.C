@@ -1138,7 +1138,13 @@ int OpenSshTransport::remoteKind(const std::string& remotePath)
 {
   TransportResult r = runImpl("p=" + shPath(remotePath) + "\nif [ -d \"$p\" ]; "
     "then echo 1; elif [ -e \"$p\" ]; then echo 0; else echo -1; fi\n", 30, false);
-  return r.status == 0 ? atoi(r.out.c_str()) : -1;
+  if (r.status != 0 || !r.error.empty()) return -2;
+  std::string o = r.out;
+  while (!o.empty() && isspace((unsigned char)o[o.size() - 1])) o.erase(o.size() - 1);
+  if (o == "1") return 1;
+  if (o == "0") return 0;
+  if (o == "-1") return -1;
+  return -2;
 }
 
 bool OpenSshTransport::remoteGlob(const std::string& pattern,
