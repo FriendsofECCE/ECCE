@@ -2,7 +2,7 @@
 
 Everything ECCE does can be done from the command line, so scripts and AI
 assistants can work with it too. The commands are `ecce-launch`,
-`ecce-terminate`, `ecce-annotate`, `ecce-move`, `ecce-rename`,
+`ecce-terminate`, `ecce-rerun`, `ecce-annotate`, `ecce-move`, `ecce-rename`,
 `ecce-reconnect`, `ecce-fetch` and
 `ecce-contacts`; see [Launch Selected](launch-selected.md) for the launch and
 terminate commands.
@@ -53,6 +53,27 @@ the exit status is 1. One line is printed per calculation, for example
 `calc-1: moved to archive` or `calc-2: not moved: reason`. Local data and data
 servers are supported. Without a running ECCE the commands print a message and
 exit with status 2.
+
+## Rerunning a calculation
+
+`ecce-rerun [on=MACHINE] [launch] <calculation>...` asks the running
+Organizer for **New from This > Rerun**. It makes a copy in the same folder,
+named `<name>_r2`, then `_r3` and so on, using the first free name. The copy
+keeps the structure, code, theory, basis, run type and launch settings;
+finished, killed and failed calculations become Ready, with results removed.
+The original stays untouched. Submitted, Running and Waiting for Login
+calculations, and items that are not calculations, are refused with a reason.
+
+Add `launch` to submit each new copy with its stored launch settings, as
+`ecce-launch` does; `on=MACHINE` overrides the launch machine. For example,
+`ecce-rerun on=localhost launch project/water` prints
+`water: rerun as water_r2, job id N`. Without `launch` it prints
+`water: rerun as water_r2`. A refused item prints `name: not rerun: reason`;
+other items still proceed. If submission fails, the line identifies the copy
+that was made and gives the launch failure; the copy remains available.
+
+Local data paths and data-server URLs are supported. Exit status: 0 all done,
+1 any refusal or missing answer, 2 no running ECCE session, 64 invalid usage.
 
 ## The AGENTS.md file
 

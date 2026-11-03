@@ -1325,6 +1325,8 @@ void CalcMgr::runTestCommand(const string& line)
       for (int i = 0; i <= (int)WxState::OUT_OF_CONTACT; i++)
         if (WxState::getName((ResourceDescriptor::RUNSTATE)i, false) == n) found = i;
       if (n == "imported") found = (int)ResourceDescriptor::STATE_LOADED;
+      if (n == "failed") found = (int)ResourceDescriptor::STATE_FAILED;
+      if (n == "waiting") found = (int)ResourceDescriptor::STATE_WAITING;
       outcome = !job ? "no such task" : found < 0 ? "no such state"
               : job->setState((ResourceDescriptor::RUNSTATE)found) ? "ok" : "not set";
     } else if (command == "walk") {
@@ -3781,22 +3783,7 @@ void CalcMgr::OnDuplicateClick( wxCommandEvent& event )
     WxResourceTreeItemData * sel = findNode(p_currentSelection[0], false, true);
     if (dynamic_cast<TaskJob*>(sel->getResource())) {
       // it is a calculation, so duplicate it and select it in tree
-      WxResourceTreeItemData *dup = 0;
-      dup = duplicate(sel, true);
-      if (dup) {
-        // duplicate was successful, now reset for rerun
-        TaskJob *task = dynamic_cast<TaskJob*>(dup->getResource());
-        if (task) {
-          task->resetForRerun();
-          // some props changed, so we need to update the panel.  However, the 
-          // state also changed so we also need to update the menubar's dynamic 
-          // menus.
-          // 08/07/06 Lisong: Since CalcMgr is listening to itself for pool
-          //                  state change messages, wonder if this refresh
-          //                  is still necessary or not.
-          onSelectionChange(true);
-        }
-      }
+      if (duplicateForRerun(sel, true)) onSelectionChange(true);
     } else {
       p_feedback->clearMessage();
       setMessage("Duplicate is only applicable to calculations.");
@@ -3953,6 +3940,91 @@ bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome)
   vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks);
   startBatch(rows, false);
   if (outcome) *outcome = "started";
+  return true;
+}
+
+
+// Both the menu and command keep the entire setup through the same copy
+// and reset. Only the command supplies a name; the menu keeps its naming.
+WxResourceTreeItemData* CalcMgr::duplicateForRerun(
+    WxResourceTreeItemData *item, bool select, const string& name, string *why)
+{
+  WxResourceTreeItemData *copy = duplicate(item, select, name);
+  TaskJob *task = copy ? dynamic_cast<TaskJob*>(copy->getResource()) : 0;
+  if (!task) {
+    if (why) *why = "could not copy the calculation";
+    return 0;
+  }
+  if (!task->resetForRerun()) {
+    if (why) *why = "copy " + copy->getName() + " could not be reset: " + task->messages();
+    return 0;
+  }
+  return copy;
+}
+
+
+bool CalcMgr::rerunForCommand(const vector<EcceURL>& urls, bool launch,
+                              const LaunchBatch::Target& target,
+                              vector<string>& lines)
+{
+  lines.clear();
+  for (const EcceURL& url : urls) {
+    const string name = url.getFilePathTail();
+    auto no = [&](const string& why) { lines.push_back(name + "\tno\t" + why); };
+    if (p_batch) { no("the Organizer is submitting a Launch Selected batch"); continue; }
+    WxResourceTreeItemData *item = findNodeFresh(url, false);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (!task) { no("not a calculation in this session"); continue; }
+    if (url.getProtocol().find("sftp") == 0) {
+      no("only local data and data servers are supported");
+      continue;
+    }
+    const auto state = task->getState();
+    if (state == ResourceDescriptor::STATE_SUBMITTED ||
+        state == ResourceDescriptor::STATE_RUNNING ||
+        state == ResourceDescriptor::STATE_WAITING) {
+      no("state is " + ResourceUtils::stateToString(state));
+      continue;
+    }
+    Resource *parent = EDSIFactory::getResource(url.getParent());
+    vector<Resource*> *children = parent ? parent->getChildren(true) : 0;
+    if (!children) { no("cannot read the parent folder"); continue; }
+    string next;
+    for (unsigned int n = 2; ; ++n) {
+      next = name + "_r" + std::to_string(n);
+      bool taken = false;
+      for (Resource *child : *children)
+        if (child->getURL().getFilePathTail() == next) { taken = true; break; }
+      if (!taken) break;
+    }
+    string why;
+    WxResourceTreeItemData *copy = duplicateForRerun(item, false, next, &why);
+    if (!copy) { no(why); continue; }
+    const EcceURL copyUrl = copy->getUrl();
+    string result = copy->getName();
+    if (launch) {
+      vector<string> launched;
+      if (!launchForCommand(vector<EcceURL>(1, copyUrl), target, launched)) {
+        lines.push_back(name + "\tlaunch_failed\t" + result +
+                        ", not launched: Organizer is busy");
+        continue;
+      }
+      bool submitted = false;
+      for (const string& line : launched) {
+        const size_t a = line.find('\t');
+        const size_t b = a == string::npos ? a : line.find('\t', a + 1);
+        if (b == string::npos) continue;
+        const string status = line.substr(a + 1, b - a - 1);
+        if (status == "ok") { result += ", job id " + line.substr(b + 1); submitted = true; }
+        else if (status == "no") why = line.substr(b + 1);
+      }
+      if (!submitted) {
+        lines.push_back(name + "\tlaunch_failed\t" + result + ", not launched: " + why);
+        continue;
+      }
+    }
+    lines.push_back(name + "\tok\t" + result);
+  }
   return true;
 }
 
@@ -10052,7 +10124,8 @@ void CalcMgr::resetWithLastGeom(WxResourceTreeItemData *itemData)
  *                        null if failed
  */
 WxResourceTreeItemData* CalcMgr::duplicate(WxResourceTreeItemData* itemData,
-                                           bool openWhenFound)
+                                           bool openWhenFound,
+                                           const string& name)
 {
   // return variable
   WxResourceTreeItemData *ret = 0;
@@ -10068,6 +10141,7 @@ WxResourceTreeItemData* CalcMgr::duplicate(WxResourceTreeItemData* itemData,
 
   // get the url of the given tree item
   EcceURL copyUrl = itemData->getUrl();
+  if (!name.empty()) copyUrl = copyUrl.getParent().getChild(name);
 
   // the copy method will make an exact copy of the resource but give it a 
   // unique name and place it in the given item's parent

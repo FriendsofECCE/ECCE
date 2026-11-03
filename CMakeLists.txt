@@ -530,6 +530,10 @@ target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_executable(ecce-launch src/apps/launch/ecce-launch.C)
 target_include_directories(ecce-launch PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-launch PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
+# Copies a calculation for rerun through the running Organizer (#825).
+add_executable(ecce-rerun src/apps/launch/ecce-rerun.C)
+target_include_directories(ecce-rerun PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-rerun PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
 # Terminates running calculations inside the running session (#695).
 add_executable(ecce-terminate src/apps/launch/ecce-terminate.C)
 target_include_directories(ecce-terminate PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1201,7 +1205,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-terminate ecce-annotate ecce-move ecce-rename ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -4100,6 +4104,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(ecce_move PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  add_test(NAME ecce_rerun
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecce_rerun_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(ecce_rerun PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # ecce-reconnect asks the running Organizer to reconnect calculations;
   # skipped (77) without Xvfb.
   add_test(NAME ecce_reconnect
@@ -4720,6 +4731,7 @@ endif()
 set(ECCE_COMMAND_WRAPPERS
   ecce-terminate=bin/ecce-terminate
   ecce-annotate=bin/ecce-annotate
+  ecce-rerun=bin/ecce-rerun
   ecce-move=bin/ecce-move
   ecce-rename=bin/ecce-rename
   ecce-workflow=bin/ecce-workflow

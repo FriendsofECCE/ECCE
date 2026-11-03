@@ -195,6 +195,7 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
   // ecce-launch (#687)
   subscribe("ecce_launch_request", (wxJmsCBFunc)&CalcMgrApp::launchRequestMCB);
+  subscribe("ecce_rerun_request", (wxJmsCBFunc)&CalcMgrApp::rerunRequestMCB);
   // ecce-terminate (#695)
   subscribe("ecce_terminate_request", (wxJmsCBFunc)&CalcMgrApp::terminateRequestMCB);
   // ecce-annotate (#742)
@@ -320,6 +321,36 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
     reply("busy", lines);
   else
     reply("done", lines);
+}
+
+
+// ecce-rerun: an "ack" at once tells the command an Organizer is there; the
+// answer follows when the batch has submitted.
+void CalcMgrApp::rerunRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  auto reply = [this, &id](const string& kind, const vector<string>& lines) {
+    JMSMessage* r = newMessage();
+    r->addProperty("reply_id", id);
+    r->addProperty("kind", kind);
+    r->addIntProperty("n", (int)lines.size());
+    for (size_t i = 0; i < lines.size(); i++)
+      r->addProperty("line" + std::to_string(i), lines[i]);
+    publish("ecce_rerun_reply", *r);
+    delete r;
+  };
+  reply("ack", vector<string>());
+
+  LaunchBatch::Target target;
+  target.machine = msg.getProperty("on");
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+
+  vector<string> lines;
+  p_calcMgr->rerunForCommand(urls, msg.getProperty("launch") == "yes", target, lines);
+  reply("done", lines);
 }
 
 

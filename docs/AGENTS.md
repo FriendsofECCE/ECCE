@@ -130,7 +130,7 @@ to. Other variables: the `ENVIRONMENT.md` file next to this one.
 ## Commands
 
 The `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`,
-`ecce-annotate`, `ecce-move` and `ecce-rename` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
+`ecce-annotate`, `ecce-rerun`, `ecce-move` and `ecce-rename` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
 to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.
@@ -152,6 +152,27 @@ filled in or dropped (for example no stored queue).
 
     ecce-launch ~/.ECCE-local/users/local/Examples/water-opt
     ecce-launch on=cluster queue=short wall=2:00 proj/calc-1 proj/calc-2
+
+### ecce-rerun
+
+    ecce-rerun [on=MACHINE] [launch] <calculation>...
+
+Uses the Organizer's **New from This > Rerun**: copies the full setup
+(structure, code, theory, basis, run type and launch settings) into the same
+folder, removes the copy's results and makes a finished, killed or failed
+calculation Ready. The original stays untouched. Names are `<name>_r2`,
+`_r3`, and so on, taking the first free name. Submitted, Running and Waiting
+for Login calculations and non-calculations are refused with their reason.
+
+With `launch`, submits the new copy as `ecce-launch` does; `on=MACHINE`
+overrides its launch machine. Output: `name: rerun as new`, optionally
+`, job id N`, or `name: not rerun: reason`. A launch failure identifies the
+copy that was made and leaves it available. Other calculations still proceed.
+Exit codes, as ecce-move: 0 all done, 1 any refusal or no answer, 2 no running
+session, 64 usage. Local data paths and data-server URLs only.
+
+    ecce-rerun project/killed-job
+    ecce-rerun on=localhost launch project/finished-job
 
 ### ecce-terminate
 
