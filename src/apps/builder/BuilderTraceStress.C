@@ -26,6 +26,7 @@
 #include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
 #include "dsm/PropertyTask.H"
+#include "dsm/ResourceType.H"
 #include "tdat/Fragment.H"
 #include "tdat/GUIValues.H"
 #include "dsm/VDoc.H"
@@ -310,7 +311,7 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
   }
 
   //  Ensemble panel: "gtenrows" prints the table and the panel's kind;
-  //  "gtencalc <rank>..." makes new calculations (#708);
+  //  "gtencalc <type> <rank>..." makes new calculations (#708);
   //  "gtenselect <rank>" shows that member and prints atom 1; "gtencsv <path>".
   //  "gtenkind <runtype, _ for space> <0|1 scored>": the entry name for a run type.
   if (c == "gtenkind" && w.size() == 3) {
@@ -341,9 +342,9 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
               plotOf(en) ? plotOf(en)->selectedIndex() + 1 : -1);
     } else if (c == "gtencalc" && w.size() >= 2) {
       vector<int> ranks;
-      for (size_t i = 1; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
+      for (size_t i = 2; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
       string why;
-      vector<string> urls = en->newCalcsFromRanks(ranks, why);
+      vector<string> urls = en->newCalcsFromRanks(ranks, w[1], why);
       for (size_t i = 0; i < urls.size(); i++) {
         // Read the new calculation back: its name and first/last atom.
         PropertyTask *nt = dynamic_cast<PropertyTask*>(
@@ -352,8 +353,11 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
         const int na = nf ? nf->numAtoms() : 0;
         const double *a = na ? nf->atomRef(0)->coordinates() : 0;
         const double *z = na ? nf->atomRef(na - 1)->coordinates() : 0;
-        fprintf(stderr, "GTSTRESS: encalc %d name=%s atoms=%d first %.6f %.6f %.6f "
+        ICalculation *ic = dynamic_cast<ICalculation*>(nt);
+        fprintf(stderr, "GTSTRESS: encalc %d type=%s run=%s mult=%d name=%s atoms=%d first %.6f %.6f %.6f "
                 "last %.6f %.6f %.6f\n", ranks[i],
+                nt && nt->getDescriptor() ? nt->getDescriptor()->getName().c_str() : "",
+                ic ? ic->runtype().name().c_str() : "", ic ? (int)ic->spinMultiplicity() : 0,
                 EcceURL(urls[i]).getFilePathTail().c_str(), na,
                 a ? a[0] : 0, a ? a[1] : 0, a ? a[2] : 0,
                 z ? z[0] : 0, z ? z[1] : 0, z ? z[2] : 0);

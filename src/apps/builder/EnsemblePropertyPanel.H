@@ -46,9 +46,16 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     int selectedRank() const { return p_selRank; }
     // Ranks of the selected rows, ascending.
     std::vector<int> selectedRanks() const;
-    // "New calculation from selected" (#708): one calculation per rank in the
-    // CREST calculation's folder, <calc>_<noun><rank>; the URLs created.
+    // The codes offered for a new calculation (WorkflowSteps codes with a
+    // Geometry run type) as "label|resource type" and the default's index.
+    static std::vector<std::string> codeChoices(int& dflt);
+    // "New calculation from selected" (#708): per rank a Geometry
+    // Optimization calculation of code `typeName` (a resource type such as
+    // orca_es) with that structure and this calculation's charge and
+    // multiplicity: a linked workflow step if this is a workflow step, else a
+    // calculation beside it.  The URLs created.
     std::vector<std::string> newCalcsFromRanks(const std::vector<int>& ranks,
+                                               const std::string& typeName,
                                                std::string& why);
     bool exportCsv(const std::string& path) const;
     std::string kind() const;

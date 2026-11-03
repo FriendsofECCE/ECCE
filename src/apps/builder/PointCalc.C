@@ -19,8 +19,7 @@ bool applyPointStructure(Fragment *frag, const std::vector<double>& xyz,
 }
 
 std::string newCalcFromPoint(IPropCalculation *calc, const std::string& key,
-                             int frame, int point, std::string& why,
-                             const std::string& suffix)
+                             int frame, int point, std::string& why)
 {
   if (!calc) { why = "No calculation."; return ""; }
   PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(calc->getProperty(key));
@@ -47,10 +46,9 @@ std::string newCalcFromPoint(IPropCalculation *calc, const std::string& key,
   task->resetForRerun(ResourceDescriptor::STATE_CREATED);
 
   // The copy has a generated name; a failed rename keeps it.
-  char dflt[32];
-  snprintf(dflt, sizeof dflt, "_point_%d", point);
-  EcceURL named = url.getParent().getChild(url.getFilePathTail() +
-                                           (suffix.empty() ? dflt : suffix));
+  char suffix[32];
+  snprintf(suffix, sizeof suffix, "_point_%d", point);
+  EcceURL named = url.getParent().getChild(url.getFilePathTail() + suffix);
   if (copy->move(named)) copyUrl = named;
   EDSIFactory::notifyCreate(copyUrl.toString(), true);
   return copyUrl.toString();
