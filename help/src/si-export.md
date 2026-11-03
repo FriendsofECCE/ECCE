@@ -24,7 +24,11 @@ calculation).
 The values are listed as they are stored. Energies from different codes or
 methods are not combined or compared.
 
-The same files can be made from the command line:
+## Command line
+
+The same files can be made from a terminal with `ecce-si-export`. On Linux
+the command is on PATH; on macOS it is in `ECCE.app/Contents/Resources/bin`,
+which you add to PATH.
 
     ecce-si-export calc1 calc2 -o si.xyz --table latex
 

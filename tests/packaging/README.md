@@ -1,6 +1,17 @@
 # Package install tests
 
-Both need rootless podman and the network. Neither is a ctest.
+The container install tests need rootless podman and the network.
+
+## `packaging_command_wrappers` (ctest)
+
+After `cmake --install build-cmake`, run
+`ctest --test-dir build-cmake -R '^packaging_command_wrappers$'`.
+The test reads the install manifest and checks every program in ECCE's
+`bin/` has an installed wrapper under its public command name. Internal
+helpers are explicit exceptions in `command_wrappers_test.py`. It also checks
+the public job drivers in `scripts/` and probes the shared CLI wrappers with
+stub programs for argument, environment and exit-status forwarding. No GUI,
+services, containers or chemistry programs are started.
 
 ## `install_smoke.sh <package> <image>`
 

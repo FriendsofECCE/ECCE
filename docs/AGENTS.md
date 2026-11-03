@@ -212,12 +212,38 @@ fetched (or listed) and nothing refused.
 Reads a structure or an ensemble file and prints coordination shells,
 hydrogen bonds and, for an ensemble, a pattern key per frame (`--group` keeps
 one representative per pattern with its count). It reads files and talks to no
-ECCE session. It is in ECCE's `bin` folder.
+ECCE session.
 
     ecce-contacts --hbonds --format json solvated.xyz
     ecce-contacts --group --hbonds trajectory.xyz
 
 Exit code 0 on success; anything else is an error message on stderr.
+
+### Other command-line tools
+
+On Linux these commands are on PATH. In the macOS app they are in
+`ECCE.app/Contents/Resources/bin`; add that folder to PATH to use them from a
+terminal. The Windows package currently supplies only the main `ecce.cmd`
+launcher, without command wrappers for these tools.
+
+| Command | Purpose |
+|---|---|
+| `ecce-localdata` | Print the local data folder |
+| `ecce-series` | Work with a series of calculations |
+| `ecce-check-props` | Check stored property dimensions |
+| `ecce-si-export` | Export structures and a Supporting Information table |
+| `ecce-displacement` | Compare geometries and aligned RMSD |
+| `ecce-bandshift` | Match vibrational bands and report shifts |
+| `ecce-spectrum` | Process spectral curves |
+| `ecce-displace` | Displace a structure along a normal mode |
+| `ecce-thermo` | Recompute thermochemistry from stored results |
+| `ecce-force-compare` | Compare stored forces |
+| `ecce-mlp` | Run an ML potential job from its input file |
+| `ecce-confsearch` | Run a simple conformer search from its input file |
+| `ecce-qm` | Run the bundled quantum chemistry program, when built |
+| `ecce-results` | Convert and inspect results files, when built with HDF5 |
+
+See the matching help page for inputs, options and units.
 
 ## Checking a result
 

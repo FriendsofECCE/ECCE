@@ -12,10 +12,7 @@ if len(names) < 5:
     print("expected the five commands under '## Commands', found", names)
     bad += 1
 for n in names:
-    if n == "ecce-contacts":
-        ok = os.path.exists(os.path.join(src, "scripts", "ecce_contacts.py"))
-    else:
-        ok = os.path.exists(os.path.join(build, "wrappers", n))
+    ok = os.path.exists(os.path.join(build, "wrappers", n))
     print(("ok      " if ok else "MISSING ") + n)
     bad += not ok
 # the usage line under each heading starts with the command itself
