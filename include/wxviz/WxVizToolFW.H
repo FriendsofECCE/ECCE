@@ -42,6 +42,9 @@ class WxVizToolFW
       /* Centers the viz display. */
       virtual void center() = 0;
 
+      /* Whether an atom lies outside the 3-D view. */
+      virtual bool atomsOutsideView() { return false; }
+
       /* returns true if each mode is auto-centering */
       virtual bool isAutoCenter() const = 0;
 

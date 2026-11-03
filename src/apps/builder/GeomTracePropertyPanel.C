@@ -641,6 +641,10 @@ void GeomTracePropertyPanel::processStep(int step)
   // Deliberately unconditional rather than inside the p_recompute branch
   // where sg.touchChemDisplay() sits: the geometry moves on every step,
   // whether or not bonds are being recomputed.
+  // The camera was fitted to the structure the calculation stored (a scan's
+  // last point); a step can lie well outside it, e.g. the 4 A start of a
+  // bond scan (#832).  Only zoom out, so playback does not pump.
+  if (fw.atomsOutsideView()) fw.center();
   fw.getViewer().refreshRenderArea();
 
   ::wxYieldIfNeeded();
