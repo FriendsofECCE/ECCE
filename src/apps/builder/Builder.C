@@ -6640,6 +6640,10 @@ void Builder::updatePropertyMenus()
             out << "overlaps " << md->centreOverlaps() << "\n";
           } else if (w[2] == "links") {
             out << md->linkGaps();
+          } else if (w[2] == "core") {
+            //  Show core orbitals on (1) or off (0), then the levels drawn below the break.
+            md->setShowCore(n != 0);
+            out << md->coreText();
           } else if (w[2] == "status") {
             out << "status " << md->statusText() << "\n";
           } else if (w[2] == "aufbau" || w[2] == "aufbaupng") {

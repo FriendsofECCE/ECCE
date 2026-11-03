@@ -132,7 +132,7 @@ def main():
                   "every tooltip head names MO, energy, occupancy")
             check(all("composition (Mulliken population):" in t for t in shown),
                   "every tooltip carries the MOs panel's composition line")
-            check(any("O1" in t for t in shown), "the composition names O1")
+            check(any("O 2p" in t or "O 1s" in t for t in shown), "the composition names O with its shell (O 2p)")
             degenerate = [t for t in shown if t.startswith("MOs ")]
             print("tooltips:\n" + "\n".join(shown[:3]))
             if degenerate:
@@ -175,6 +175,36 @@ def main():
                   "HF draws correlation lines from both atoms (%d)" % len(gaps))
             check(gaps and max(gaps) <= 1,
                   "every HF correlation line reaches its level's bar (gaps %s)" % gaps)
+            #  #827: labels carry the principal quantum number; the core
+            #  level is drawn below the break on request.
+            scene = ("hold 3\nmotable mot\nmodiagram coreon core 1\n"
+                     "modiagram coreoff core 0\nmodiagram tip0 tip 0\n")
+            res = base.runBuilder(display, url, out, scene, panel="MO Diagram")
+            mot = text(out, "mot") or ""
+            rows = {}
+            for l in mot.splitlines():
+                if l.startswith("row "):
+                    cells = [c.strip() for c in l[4:].split("|")]
+                    rows[cells[0]] = l
+            print("HF MOs table, MO 1 and 2:\n%s\n%s" % (rows.get("1"), rows.get("2")))
+            check("F 1s" in rows.get("1", "") and "F2" not in rows.get("1", ""),
+                  "HF MO 1 is labelled F 1s in the MOs table")
+            check("F 2s" in rows.get("2", ""),
+                  "HF MO 2 is labelled F 2s in the MOs table")
+            on = text(out, "coreon") or ""
+            off = text(out, "coreoff") or ""
+            check("core F 1s" in on and "nonbonding" in on,
+                  "Show core orbitals: an F 1s non-bonding level is drawn below the break (%r)" % on.strip())
+            check(off.strip() == "", "Show core orbitals off: no core level")
+            check("F 2p" in (text(out, "tip0") or "") or "F 2s" in (text(out, "tip0") or ""),
+                  "a level's tooltip names its shells with n")
+            url = makeFrom(data, "ecceqm-water",
+                           os.path.join(os.path.dirname(HERE), "modiagram", "fixtures", "ecceqm-water"))
+            out = os.path.join(work, "water827")
+            res = base.runBuilder(display, url, out, "hold 3\nmotable mot\n", panel="MO Diagram")
+            mot = text(out, "mot") or ""
+            check("H(1) 1s" in mot and "H(2) 1s" in mot and "O 1s" in mot,
+                  "water: H(1) 1s, H(2) 1s and O 1s in the MOs table")
             #  #745: the diagram is canonical; with the localised set listed
             #  it says so, and a click on a level brings the canonical list back.
             url = base.makeCalc(data, "o2loc", source=O2LOC)

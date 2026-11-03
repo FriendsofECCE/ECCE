@@ -267,6 +267,7 @@ def captureOne(name, source, outfile, timeout, png=None):
         if os.environ.get("ECCE_OPEN_PANEL_SIZE"):
             env["ECCE_OPEN_PANEL_SIZE"] = os.environ["ECCE_OPEN_PANEL_SIZE"]
         env["ECCE_MODIAGRAM_DUMP"] = outfile
+        env.setdefault("ECCE_MODIAGRAM_SHOWCORE", "0")   # goldens predate the core band (#827)
         env.update(FIXTURE_ENV.get(name, {}))
         sceneOut = None
         if name in FIXTURE_SCENE:

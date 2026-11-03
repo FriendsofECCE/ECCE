@@ -7,6 +7,8 @@
 #include <utility>
 #include "wxgui/SliderCombo.H"
 #include "tdat/SpinTables.H"
+#include "tdat/MoAoBasis.H"
+#include "tdat/ShellLabel.H"
 
 #include "MoGUI.H"
 #include <set>
@@ -109,6 +111,8 @@ class MoPanel : public MoGUI,
       * a degenerate set.  For the MO diagram's tooltip and info line.
       */
      string compositionText(const std::vector<int>& orbengIndices);
+     /** Is MO `orbeng` (0-based) a core orbital?  Its label ("F 1s") and atom (#827). */
+     bool coreOrbital(int orbeng, string& label, int& atom);
 
      /**
       * The table's selection and scroll state as "key value" lines, for
@@ -283,6 +287,12 @@ class MoPanel : public MoGUI,
       string           p_aoWhy;
       vector< vector<double> > p_aoRows[2];     // alpha, beta
       string           p_compSummary;
+      //  Core orbitals for the "F 1s" labels (#827), per spin, from the deepest MOs.
+      vector<ShellLabel::Core> p_coreInfo[2];
+      bool             p_coreDone[2] = { false, false };
+      /** comp.types with labels "F 1s" / "H(1) 1s": n from the element, core for a core MO. */
+      vector<MoAoBasis::Share> namedTypes(const vector<MoAoBasis::Share>& types,
+                                          int mo, bool beta);
 
       /* The report oriented table showing MO energies */
       wxGrid *p_mogrid;  

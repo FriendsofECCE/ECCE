@@ -1989,6 +1989,86 @@ class MoDiagramCanvas : public wxPanel
      * without a person looking at a screen.  The handler does nothing
      * but supply the window's own context and size.
      */
+    //  CORE BAND (#827): occupied core orbitals, drawn below an axis break, not to scale.
+    int coreDrawn() const
+    {
+      int n = 0;
+      for (size_t i = 0; i < p_centre.coreLevels.size(); i++)
+        n += p_centre.coreLevels[i].degeneracy > 0 ? p_centre.coreLevels[i].degeneracy : 1;
+      return n;
+    }
+
+    /** Core orbitals folded away and NOT drawn. */
+    int hiddenCores() const { return max(0, p_centre.hiddenCount - coreDrawn()); }
+
+    int coreBandHeight() const
+    {
+      if (p_centre.coreLevels.empty() || p_centre.levels.empty()) return 0;
+      return 40 + 40*(int)p_centre.coreLevels.size();
+    }
+
+    void drawCoreBand(wxDC& dc, const wxRect& plot, int xLeft, int leftWidth,
+                      int xCentre, int centreWidth, int xRight, int rightWidth,
+                      int xCalc, int calcWidth, bool model)
+    {
+      if (coreBandHeight() == 0) return;
+      const int y0 = plot.y + plot.height + 6;
+      const int ax = 22;
+      dc.SetFont(*wxSMALL_FONT);
+      //  The break: two slanted strokes across the axis, and a dotted rule.
+      dc.SetPen(wxPen(wxColour(120, 120, 120), 1));
+      dc.DrawLine(ax - 6, y0 - 1, ax + 6, y0 - 5);
+      dc.DrawLine(ax - 6, y0 + 4, ax + 6, y0);
+      dc.DrawLine(ax, y0 + 8, ax, y0 + coreBandHeight() - 6);
+      dc.SetPen(wxPen(wxColour(170, 170, 170), 1, wxPENSTYLE_DOT));
+      dc.DrawLine(ax + 10, y0 - 2, plot.width - 4, y0 - 2);
+      dc.SetTextForeground(wxColour(110, 110, 110));
+      dc.DrawText(wxT("core, not to scale"), ax + 10, y0 + 1);
+
+      const bool haveL = p_haveFragments && !p_left.levels.empty();
+      const bool haveR = p_haveFragments && !p_right.levels.empty();
+      const int textH = dc.GetTextExtent(wxT("Xg")).y;
+      for (size_t k = 0; k < p_centre.coreLevels.size(); k++) {
+        const MoLevel& l = p_centre.coreLevels[k];
+        const int y = y0 + 22 + textH + 14 + (int)k*40;
+        const int count = l.degeneracy > 0 ? l.degeneracy : 1;
+        const int slot = 22, lane = 18;
+        const int bx = xCentre + (centreWidth - count*slot)/2;
+        const wxString label = wxString::FromUTF8(l.label.c_str());
+        //  The atom's own level in its column, and the line to the molecular one.
+        const bool left = l.coreSide < 0 && haveL, right = l.coreSide > 0 && haveR;
+        if (left || right) {
+          const int cx = left ? xLeft + leftWidth/2 : xRight + rightWidth/2;
+          const int ax0 = cx - 15;
+          dc.SetPen(wxPen(wxColour(0, 0, 0), 2));
+          dc.DrawLine(ax0, y, ax0 + 30, y);
+          dc.SetTextForeground(wxColour(30, 30, 30));
+          dc.DrawText(label, cx - dc.GetTextExtent(label).x/2, y - textH - 11);
+          MoLevel atomic = l;
+          atomic.degeneracy = 1;
+          atomic.occupancy = 2.0;
+          atomic.occupancyBeta = -1.0;
+          drawElectrons(dc, atomic, ax0, 30, 30, y, 0, plot);
+          dc.SetPen(wxPen(wxColour(150, 150, 150), 1, wxPENSTYLE_DOT));
+          if (left) dc.DrawLine(ax0 + 30, y, bx, y);
+          else      dc.DrawLine(bx + count*slot, y, ax0, y);
+        }
+        dc.SetPen(wxPen(wxColour(0, 0, 0), 2));
+        for (int d = 0; d < count; d++)
+          dc.DrawLine(bx + d*slot, y, bx + d*slot + lane, y);
+        drawElectrons(dc, l, bx, slot, lane, y, 0, plot);
+        dc.SetTextForeground(wxColour(30, 30, 30));
+        const wxString nb = label;
+        dc.DrawText(nb, bx + (count*slot - dc.GetTextExtent(nb).x)/2, y - textH - 11);
+        if (model && calcWidth > 0 && !l.orbitals.empty()) {
+          wxString mo;
+          mo.Printf(wxT("MO %d  %.1f eV"), l.orbitals[0] + 1, l.energy*HARTREE_EV);
+          dc.SetTextForeground(wxColour(60, 60, 60));
+          dc.DrawText(mo, xCalc, y - textH/2);
+        }
+      }
+    }
+
     void paintOnto(wxDC& dc, const wxSize& size)
     {
       if (p_centre.levels.empty()) {
@@ -2097,7 +2177,7 @@ class MoDiagramCanvas : public wxPanel
       if (!refused) warnLines.clear();
       int footerLines = (int)infoLines.size() + (int)warnLines.size() + (hint ? 1 : 0);
       if (p_summary.empty()) footerLines += (int)noteLines.size();
-      if (p_centre.hiddenCount > 0)  footerLines += 2;      // band and text
+      if (hiddenCores() > 0)  footerLines += 2;      // band and text
 
       const int footerHeight = footerLines*lineHeight + 6;
 
@@ -2210,8 +2290,9 @@ class MoDiagramCanvas : public wxPanel
         dc.SetFont(*wxNORMAL_FONT);
       }
 
+      const int coreBand = coreBandHeight();
       const wxRect plot(0, top, size.x,
-                        max(40, size.y - top - footerHeight - 6));
+                        max(40, size.y - top - footerHeight - 6 - coreBand));
       if (p_stripRows > 0) p_stripH = max(1, min(plot.height/3, 44*(p_stripRows - 1)));
       if (model) buildMap(cols);
 
@@ -2511,6 +2592,8 @@ class MoDiagramCanvas : public wxPanel
 
       //  THE CALCULATION: its own column, axis and scale (see layoutCalc).
       if (model) drawCalc(dc, plot, calcItems, calcAxisX);
+      drawCoreBand(dc, plot, xLeft, leftWidth, xCentre, centreWidth, xRight,
+                   rightWidth, xCalc, calcWidth, model);
 
       //  The stack, from the bottom of the window upward: the reasons
       //  of a refused diagram, the click hint, what was clicked.
@@ -2547,7 +2630,7 @@ class MoDiagramCanvas : public wxPanel
       //  The folded core, said out loud rather than silently dropped:
       //  an absence the reader cannot see is worse than a cluttered
       //  diagram.
-      if (p_centre.hiddenCount > 0 || p_centre.hiddenSemicoreCount > 0) {
+      if (hiddenCores() > 0 || p_centre.hiddenSemicoreCount > 0) {
         line -= lineHeight;
         ostringstream text;
         //  Semicore counted under its own name rather than folded
@@ -2555,8 +2638,8 @@ class MoDiagramCanvas : public wxPanel
         //  (it takes no part in bonding) but is a different chemical
         //  claim, and a reader comparing against a textbook diagram
         //  needs to be able to tell the two apart (#175).
-        if (p_centre.hiddenCount > 0 && p_centre.hiddenSemicoreCount > 0) {
-          text << p_centre.hiddenCount << " core and "
+        if (hiddenCores() > 0 && p_centre.hiddenSemicoreCount > 0) {
+          text << hiddenCores() << " core and "
                << p_centre.hiddenSemicoreCount << " semicore orbitals below "
                << p_centre.hiddenMaxEnergy << " Hartree, not shown";
         } else if (p_centre.hiddenSemicoreCount > 0) {
@@ -2564,8 +2647,8 @@ class MoDiagramCanvas : public wxPanel
                << (p_centre.hiddenSemicoreCount == 1 ? "" : "s") << " below "
                << p_centre.hiddenMaxEnergy << " Hartree, not shown";
         } else {
-          text << p_centre.hiddenCount << " core orbital"
-               << (p_centre.hiddenCount == 1 ? "" : "s") << " below "
+          text << hiddenCores() << " core orbital"
+               << (hiddenCores() == 1 ? "" : "s") << " below "
                << p_centre.hiddenMaxEnergy << " Hartree, not shown";
         }
         dc.DrawText(wxString(text.str().c_str(), wxConvUTF8),
