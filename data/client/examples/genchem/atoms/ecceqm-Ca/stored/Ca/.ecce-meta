@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/cc-pVTZ, energy. This calculation shows the two 4s electrons of calcium outside its argon-like core, with the 3d orbitals still empty.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 10:54:42 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:56:26 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 10:54:41 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:56:25 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/Ca__Y2v3jR
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/Ca__OtbG65
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793703282.594 idle=0 at=1793703282\nscf cycle=6 energy=-677.5108248472 dE=-7.73e-12/1e-10 grad=3.43e-08/1e-07 converged=yes\nscf~ dE=-3.24e-03,-5.51e-05,-1.09e-05,-2.33e-09,-7.73e-12\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750186.683 idle=0 at=1793750186\nscf cycle=6 energy=-677.5108248472 dE=-7.73e-12/1e-10 grad=3.43e-08/1e-07 converged=yes\nscf~ dE=-3.24e-03,-5.51e-05,-1.09e-05,-2.33e-09,-7.73e-12\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 10:54:41 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:56:25 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793703281
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793750185
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

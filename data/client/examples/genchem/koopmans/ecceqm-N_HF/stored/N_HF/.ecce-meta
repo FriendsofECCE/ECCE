@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital energies of the nitrogen atom in Hartree-Fock theory, where minus the energy of the highest occupied orbital approximates the ionisation energy (Koopmans' theorem).
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:15:09 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:56:40 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:15:08 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:56:38 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/N_HF__uCMgd2
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/N_HF__DQQGNd
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793592909.535 idle=0 at=1793592909\nscf cycle=16 energy=-54.4011622403 dE=-9.38e-13/1e-10 grad=4.09e-08/1e-07 converged=yes\nscf~ dE=-5.15e-01,-9.53e-09,4.39e-08,-2.48e-08,8.21e-10,1.05e-09,-4.70e-10,1.33e-09,-3.63e-02,-4.34e-04,-1.39e-05,-4.09e-07,-1.89e-08,-7.08e-11,-9.38e-13\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750199.950 idle=0 at=1793750199\nscf cycle=16 energy=-54.4011622403 dE=-9.38e-13/1e-10 grad=4.09e-08/1e-07 converged=yes\nscf~ dE=-5.15e-01,-9.53e-09,4.39e-08,-2.48e-08,8.21e-10,1.05e-09,-4.70e-10,1.33e-09,-3.63e-02,-4.34e-04,-1.39e-05,-4.09e-07,-1.89e-08,-7.08e-11,-9.38e-13\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Quartet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:15:08 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:56:38 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793592908
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793750198
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/HF

@@ -1,12 +1,12 @@
 .	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
-.	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the carbon atom; with the cation, Tools > Compare Energies gives the ionisation energy as the difference of their energies.
+.	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the carbon atom; with the cation, Tools > Energy Calculator gives the ionisation energy as the difference of their energies.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:15:02 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:56:32 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:15:00 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:56:30 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/C_HF_neutral__95wK0f
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/C_HF_neutral__7wFyKD
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793592902.010 idle=0 at=1793592902\nscf cycle=21 energy=-37.6918113115 dE=-1.49e-13/1e-10 grad=3.66e-08/1e-07 converged=yes\nscf~ dE=-3.11e-01,-4.68e-08,9.31e-08,-5.02e-09,7.15e-11,-8.14e-10,5.21e-09,-4.78e-09,-3.42e-02,-2.94e-03,-6.93e-04,-3.52e-05,-2.33e-06,-1.10e-07,-5.25e-08,-2.87e-08,-1.94e-09,-6.12e-11,-3.11e-12,-1.49e-13\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750191.550 idle=0 at=1793750191\nscf cycle=21 energy=-37.6918113115 dE=-1.49e-13/1e-10 grad=3.66e-08/1e-07 converged=yes\nscf~ dE=-3.11e-01,-4.68e-08,9.31e-08,-5.02e-09,7.15e-11,-8.14e-10,5.21e-09,-4.78e-09,-3.42e-02,-2.94e-03,-6.93e-04,-3.52e-05,-2.33e-06,-1.10e-07,-5.25e-08,-2.87e-08,-1.94e-09,-6.12e-11,-3.11e-12,-1.49e-13\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Triplet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:15:01 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:56:30 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793592900
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793750190
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/HF

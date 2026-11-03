@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, geometry optimisation, orbitals localised. This calculation shows the very polar bond of LiF, whose bonding orbital lies almost entirely on fluorine.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:15:18 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:56:49 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:15:13 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:56:43 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/LiF__dTPzoc
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/LiF__Zvja1H
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793592914.706 idle=0 at=1793592918\nscf cycle=2 energy=-107.3716038116 dE=-7.11e-14/1e-10 grad=1.52e-08/1e-07 converged=yes\nscf~ dE=-7.11e-14\nopt step=100 energy=-107.3716038116 maxgrad=3.43e-04/3e-04 rmsgrad=1.98e-04/1e-04 maxstep=1.61e-09/4e-03 rmsstep=9.32e-10/2e-03 dE=3.13e-13/5e-06 converged=no\nopt~ maxgrad=3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04\nopt~ rmsgrad=1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750205.225 idle=0 at=1793750208\nscf cycle=2 energy=-107.3716038116 dE=-7.11e-14/1e-10 grad=1.52e-08/1e-07 converged=yes\nscf~ dE=-7.11e-14\nopt step=100 energy=-107.3716038116 maxgrad=3.43e-04/3e-04 rmsgrad=1.98e-04/1e-04 maxstep=1.61e-09/4e-03 rmsstep=9.32e-10/2e-03 dE=3.13e-13/5e-06 converged=no\nopt~ maxgrad=3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04,3.43e-04\nopt~ rmsgrad=1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04,1.98e-04\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:15:13 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:56:44 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793592913
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793750203
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

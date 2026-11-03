@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*. This calculation shows how a frequency calculation gives the IR spectrum of a molecule, and how the computed atomic charges depend on the partitioning scheme (Mulliken, Löwdin, CHELPG, Merz-Kollman).
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:17:01 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:58:34 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:16:59 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:58:32 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/water__hve6lv
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/water__MQdVi8
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793593021.150 idle=0 at=1793593021\nscf cycle=8 energy=-76.3698919940 dE=-1.42e-14/1e-11 grad=9.54e-10/1e-08 converged=yes\nscf~ dE=-1.00e-06,-1.83e-07,-9.41e-08,-5.25e-10,-2.86e-12,-1.85e-13,-1.42e-14\nopt step=4 energy=-76.3698948394 maxgrad=8.32e-05/3e-04 rmsgrad=3.97e-05/1e-04 maxstep=1.06e-04/4e-03 rmsstep=4.52e-05/2e-03 dE=-5.56e-08/5e-06 converged=yes\nopt~ maxgrad=1.13e-03,4.18e-04,2.36e-04,8.32e-05\nopt~ rmsgrad=5.40e-04,2.15e-04,1.03e-04,3.97e-05\nfreq point=18/18 done=yes real=3 imaginary=0 zpe=0.0211154445\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750314.276 idle=0 at=1793750314\nscf cycle=8 energy=-76.3698919940 dE=-1.42e-14/1e-11 grad=9.54e-10/1e-08 converged=yes\nscf~ dE=-1.00e-06,-1.83e-07,-9.41e-08,-5.25e-10,-2.86e-12,-1.85e-13,-1.42e-14\nopt step=4 energy=-76.3698948394 maxgrad=8.32e-05/3e-04 rmsgrad=3.97e-05/1e-04 maxstep=1.06e-04/4e-03 rmsstep=4.52e-05/2e-03 dE=-5.56e-08/5e-06 converged=yes\nopt~ maxgrad=1.13e-03,4.18e-04,2.36e-04,8.32e-05\nopt~ rmsgrad=5.40e-04,2.15e-04,1.03e-04,3.97e-05\nfreq point=18/18 done=yes real=3 imaginary=0 zpe=0.0211154445\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:17:00 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:58:33 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793593019
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793750312
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and Raman. This calculation shows the S–O stretches of the free sulfate ion, the reference for the sulfate complexes in this set.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:16:56 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:58:29 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:16:54 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:58:26 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/sulfate__fuBKiR
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/sulfate__xhINnk
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793593015.867 idle=0 at=1793593015\nscf cycle=11 energy=-698.4943699897166880 dE=-3.02e-09/1.000e-08\nscf~ dE=0.00e+00,-1.92e-01,-6.83e-02,-4.26e-02,-9.56e-02,-3.40e-04,-5.89e-05,-4.84e-07,-2.00e-08,-3.51e-08,-3.02e-09\nfreq kind=analytic point=18/18 phase=assemble last=Loop real=9 imaginary=0 done=yes zpe=0.01591685\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750308.575 idle=0 at=1793750308\nscf cycle=11 energy=-698.4943699897166880 dE=-3.02e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-1.92e-01,-6.83e-02,-4.26e-02,-9.56e-02,-3.40e-04,-5.89e-05,-4.84e-07,-2.00e-08,-3.51e-08,-3.02e-09\nresult disp=D3\nfreq kind=analytic point=18/18 phase=assemble last=Loop real=9 imaginary=0 done=yes zpe=0.01591685\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:16:54 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:58:27 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793593014
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793750307
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

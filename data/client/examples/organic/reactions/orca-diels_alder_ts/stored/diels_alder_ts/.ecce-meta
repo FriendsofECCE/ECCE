@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/def2-SVP. Transition-state optimisation (OptTS) and frequencies. This calculation shows that the Diels-Alder reaction goes through one transition state with one imaginary mode, -516.33 cm-1, and two equal forming C...C distances of 2.271 Å, so the two bonds form together. Its electronic energy, -234.233996 Eh, is 51.9 kJ/mol above butadiene plus ethylene (computed, no zero-point correction).
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:16:16 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:57:47 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:16:13 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:57:43 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/diels_alder_ts__NJE4J8
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/diels_alder_ts__WCzcvR
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1793592976.076 idle=0 at=1793592976\nopt step=4 energy=-234.234147597 dE=-0.0000001011/0.0000010000 rmsgrad=0.0000004980/0.0000300000 maxgrad=0.0000031466/0.0001000000 rmsstep=0.0000720196/0.0006000000 maxstep=0.0002017363/0.0010000000 converged=yes\nopt~ rmsgrad=0.0002700512,0.0000504061,0.0000128597,0.0000004980\nopt~ maxgrad=0.0018747545,0.0003145429,0.0000751429,0.0000031466\nscf cycle=3 energy=-234.2087151891952033 dE=-7.59e-10/1.000e-08\nscf~ dE=0.00e+00,-5.01e-09,-7.59e-10\nfreq kind=analytic point=48/48 phase=assemble last=Van real=41 imaginary=1 done=yes zpe=0.13936751\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1793750266.608 idle=0 at=1793750266\nopt step=4 energy=-234.234147597 dE=-0.0000001011/0.0000010000 rmsgrad=0.0000004980/0.0000300000 maxgrad=0.0000031466/0.0001000000 rmsstep=0.0000720196/0.0006000000 maxstep=0.0002017363/0.0010000000 converged=yes\nopt~ rmsgrad=0.0002700512,0.0000504061,0.0000128597,0.0000004980\nopt~ maxgrad=0.0018747545,0.0003145429,0.0000751429,0.0000031466\nscf cycle=3 energy=-234.2087151891952033 dE=-7.59e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-5.01e-09,-7.59e-10\nresult disp=D3\nfreq kind=analytic point=48/48 phase=assemble last=Van real=41 imaginary=1 done=yes zpe=0.13936751\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:16:13 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:57:44 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793592973
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793750264
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

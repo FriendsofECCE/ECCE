@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. This calculation shows the linear molecule N2O, which is described by resonance between two Lewis structures.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 04:15:24 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:56:53 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Mon, 02 Nov 2026 04:15:22 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:56:51 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/N2O__MlxEab
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/N2O__oMq3Gh
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793592924.206 idle=0 at=1793592924\nscf cycle=8 energy=-184.5737416258 dE=-2.22e-12/1e-10 grad=5.60e-08/1e-07 converged=yes\nscf~ dE=-4.00e-07,2.94e-07,-4.10e-07,-4.74e-09,-4.86e-10,-4.63e-11,-2.22e-12\nopt step=4 energy=-184.5737416258 maxgrad=4.52e-05/3e-04 rmsgrad=1.86e-05/1e-04 maxstep=3.24e-05/4e-03 rmsstep=1.45e-05/2e-03 dE=-6.46e-07/5e-06 converged=yes\nopt~ maxgrad=1.16e-02,8.80e-03,1.02e-03,4.52e-05\nopt~ rmsgrad=4.75e-03,3.61e-03,4.82e-04,1.86e-05\nfreq point=18/18 done=yes real=3 imaginary=0 zpe=0.0098488675\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750212.880 idle=0 at=1793750212\nscf cycle=8 energy=-184.5737416258 dE=-2.22e-12/1e-10 grad=5.60e-08/1e-07 converged=yes\nscf~ dE=-4.00e-07,2.94e-07,-4.10e-07,-4.74e-09,-4.86e-10,-4.63e-11,-2.22e-12\nopt step=4 energy=-184.5737416258 maxgrad=4.52e-05/3e-04 rmsgrad=1.86e-05/1e-04 maxstep=3.24e-05/4e-03 rmsstep=1.45e-05/2e-03 dE=-6.46e-07/5e-06 converged=yes\nopt~ maxgrad=1.16e-02,8.80e-03,1.02e-03,4.52e-05\nopt~ rmsgrad=4.75e-03,3.61e-03,4.82e-04,1.86e-05\nfreq point=18/18 done=yes real=3 imaginary=0 zpe=0.0098488675\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 04:15:23 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:56:51 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793592922
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793750211
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT
