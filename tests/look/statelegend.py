@@ -23,7 +23,7 @@ import xdisplay  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 LIBS = ["eccewxgui", "eccewxplotctrl", "eccewxthings", "eccewxgui",
-        "eccecomm", "eccercmd", "eccedsi", "eccedav", "eccecipc",
+        "eccecomm", "eccercmd", "eccedsi", "eccercmd", "eccedav", "eccecipc",
         "eccefaces", "eccexml", "eccetdat", "ecceutil"]
 
 

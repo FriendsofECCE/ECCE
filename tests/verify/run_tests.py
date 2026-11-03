@@ -260,7 +260,7 @@ def run(fixture, code, atoms):
 SMOKE = os.path.join(HERE, "dialog_smoke.C")
 
 LIBS = ["eccecomm", "eccercmd", "eccewxgui", "eccewxplotctrl",
-        "eccewxthings", "eccedsi", "eccedav", "eccecipc", "eccefaces",
+        "eccewxthings", "eccedsi", "eccercmd", "eccedav", "eccecipc", "eccefaces",
         "eccexml", "eccetdat", "ecceutil"]
 
 
