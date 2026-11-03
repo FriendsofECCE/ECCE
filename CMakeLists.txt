@@ -3039,6 +3039,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_examples_upgrade PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # A 9.4 user's state (local data, per-user data server, own server) after
+  # the upgrade; skips (77) unless ECCE_TEST_OLD_HOME/ECCE_TEST_OLD_WRAPPERS
+  # point at an installed 9.4.
+  add_test(NAME apps_upgrade_94
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/upgrade_94_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_upgrade_94 PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
   # The pre-parsed copies of the examples agree with a parse (#448).
   add_test(NAME apps_examples_preparsed
            COMMAND ${PYTHON3_EXECUTABLE}
