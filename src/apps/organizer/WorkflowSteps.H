@@ -188,6 +188,12 @@ namespace WorkflowSteps {
   /// The code's own value for a recipe method, "" when it has none.
   std::string methodValue(const std::string& codeType, const std::string& method);
 
+  /// The small line under a box's name (#810): a finished step's energy and
+  /// imaginary modes, or its ensemble size; a running step's progress; why a
+  /// failed one stopped.  `progress` is the live or stored snapshot text.
+  /// "" when there is nothing to say.
+  std::string resultLine(Resource *step, const std::string& progress);
+
   /// The steps of a recipe workflow with their energies, for keyData().
   std::vector<KeyStep> keySteps(Session *wf);
 

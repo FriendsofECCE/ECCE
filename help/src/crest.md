@@ -129,4 +129,13 @@ patterns: the donor atoms in the first shell, how many conformers have each
 pattern, and the lowest relative energy and the conformer number of each. The
 same table is printed by `ecce-contacts crest_conformers.xyz --group`.
 
-The Progress box counts the metadynamics runs of the search.
+While a search runs, the Progress box shows the stage (metadynamics
+sampling, the multilevel optimisation and its crude and tight passes), how
+many metadynamics runs are done of the total, how many structures were
+optimised and how many remain within the energy window, the lowest energy so
+far in hartree and, once CREST has timed a trial run, the estimated time of a
+batch of metadynamics runs. The metadynamics runs go in parallel and finish in
+any order, so the count is of the runs finished, not the number of the last
+one. In a workflow, the CREST box says how many conformers (protonation sites,
+tautomers or clusters) the finished search kept, within the energy window
+of a Conformer Search.

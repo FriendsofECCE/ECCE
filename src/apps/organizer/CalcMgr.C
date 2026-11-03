@@ -730,7 +730,7 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command == "workflowrecipelist" || command == "workflowrecipe" ||
                command == "workflowrecipepanel" || command == "workflowrecipecreate" ||
-               command == "workflowkeydata" || command == "workflowmark" ||
+               command == "workflowkeydata" || command == "workflowresults" || command == "workflowmark" ||
                command == "workflowsaverecipe" || command == "workflowlink" ||
                command == "workflowstructure" || command == "workflowrecipehere") {
       // Recipes (Recipe.H, RecipePanel.H); WF is the workflow's URL.
@@ -744,6 +744,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     on STEP: its labels, then the panel's report
       //   workflowrecipecreate WF       Create boxes in the open panel
       //   workflowkeydata WF            the key-data box as text, "|" for newlines
+      //   workflowresults WF            each box's result line: "name: text|..."
       //   workflowmark WF STEP KEY THERMO   make a copied step a recipe step (KEY: reactant, ts, ...)
       //   workflowsaverecipe WF ID TITLE   Save Workflow as Recipe
       //   workflowlink WF SRC DST NAME     a link between two steps
@@ -847,6 +848,8 @@ void CalcMgr::runTestCommand(const string& line)
             outcome = wp->recipePanel() ? "error: panel still open: " + wp->recipePanel()->problem()
                                         : "ok " + WorkflowSteps::info(wf);
           }
+        } else if (command == "workflowresults") {
+          outcome = "ok " + wp->resultLines();
         } else if (command == "workflowkeydata") {
           string t = wp->keyDataText();
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
@@ -10397,6 +10400,9 @@ void CalcMgr::progressUpdate(const EcceURL & url, const string & text)
   // The project table: that one cell, no rebuild (#254).
   if (ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel))
     table->updateProgress(url);
+  if (SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel))
+    if (WorkflowPanel *wp = spc->getWorkflowPanel()) wp->resultsChanged(url);
 }
 
 

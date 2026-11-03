@@ -47,16 +47,18 @@ WfLayoutResult layoutWorkflow(wxDC &dc, const vector<WfLayoutNode> &nodes,
           wxString::FromUTF8(nodes[i].in[k].second.c_str())).x);
   const int gapX = std::max(kGapX, maxLabel + kDrop + 50);
 
-  vector<int> width(n, kBoxW), height(n, kBoxH);
+  // One more line than before: the result line under the name (#810).
+  const int boxH = kBoxH + th.y;
+  vector<int> width(n, kBoxW), height(n, boxH);
   int maxW = kBoxW;
-  int maxH = kBoxH;
+  int maxH = boxH;
   for (size_t i = 0; i < n; i++) {
     if (nodes[i].in.size() > 1) {
       // Vertical arrows need a lane each so their horizontal labels stay clear.
       if (vertical)
         width[i] = std::max(kBoxW, (int)(nodes[i].in.size() + 1) * (maxLabel + 30));
       else
-        height[i] = std::max(kBoxH, (int)(nodes[i].in.size() + 1) * (th.y + 10));
+        height[i] = std::max(boxH, (int)(nodes[i].in.size() + 1) * (th.y + 10));
     }
     maxW = std::max(maxW, width[i]);
     maxH = std::max(maxH, height[i]);

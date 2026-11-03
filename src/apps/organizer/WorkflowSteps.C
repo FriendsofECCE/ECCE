@@ -27,6 +27,9 @@
 #include "dsm/VDoc.H"
 #include "util/Ecce.H"
 #include "CompareEnergies.H"
+#include "comm/JobFailureReason.H"
+#include "tdat/PropVector.H"
+#include "util/JobProgress.H"
 
 #include "WorkflowSteps.H"
 
@@ -1027,6 +1030,87 @@ string WorkflowSteps::structureSet(Session *wf, Resource *step)
         << r->getProp(nsKey(":recipe.method")) << "/" << r->getProp(nsKey(":recipe.basis"));
   }
   return out.str();
+}
+
+
+namespace {
+
+// One word per CREST run type, plural and singular.
+void ensembleWords(const string& runtype, string& many, string& one)
+{
+  if (runtype == "Protonation Sites") { many = "protonation sites"; one = "protonation site"; }
+  else if (runtype == "Tautomers") { many = "tautomers"; one = "tautomer"; }
+  else if (runtype == "Solvation Shell") { many = "clusters"; one = "cluster"; }
+  else { many = "conformers"; one = "conformer"; }
+}
+
+string number(const char *fmt, double v)
+{
+  char b[64];
+  snprintf(b, sizeof b, fmt, v);
+  return b;
+}
+
+}  // namespace
+
+
+string WorkflowSteps::resultLine(Resource *step, const string& progress)
+{
+  const ResourceDescriptor::RUNSTATE st = stateOf(step);
+  if (st == ResourceDescriptor::STATE_RUNNING) {
+    JobProgress p;
+    return p.parse(progress) ? p.shortLine() : string();
+  }
+  if (st == ResourceDescriptor::STATE_UNSUCCESSFUL ||
+      st == ResourceDescriptor::STATE_FAILED ||
+      st == ResourceDescriptor::STATE_SYSTEM_FAILURE) {
+    const string why = JobFailureReason::reasonForProgressBox(
+        step->getProp(VDoc::getEcceNamespace() + ":runStatusReason"));
+    return why.empty() ? string("Incomplete") : why.substr(0, why.find('\n'));
+  }
+  if (!isComplete(step)) return "";
+
+  PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  if (!task || !calc) return "";
+  const string dot = " \xc2\xb7 ";
+
+  const int n = ScanPoint::ensembleSize(task);
+  if (n > 0 && !ScanPoint::ensembleIsPoses(task)) {
+    const string rt = calc->runtype().name();
+    string many, one;
+    ensembleWords(rt, many, one);
+    string line = std::to_string(n) + " " + (n == 1 ? one : many);
+    // Protonation and tautomer runs have no window of their own.
+    if (rt != "Protonation Sites" && rt != "Tautomers" && rt != "Solvation Shell") {
+      double w = 6;                         // what ai.crest writes when none is set
+      GUIValues *g = calc->guiparams();
+      GUIValue *v = g ? g->get("ES.Runtype.Conformers.EnergyWindow") : 0;
+      if (v && atof(v->getValueAsString().c_str()) > 0)
+        w = atof(v->getValueAsString().c_str());
+      delete g;
+      line += " within " + number("%g", w) + " kcal/mol";
+    }
+    return line;
+  }
+
+  string line;
+  const FinalEnergy fe = finalEnergyOf(task);
+  double hartree;
+  if (fe.found && !fe.heat && finalEnergyHartree(fe, &hartree)) {
+    // U+2212, as the Progress box writes a negative number
+    string e = number("%.3f", hartree);
+    if (e[0] == '-') e = "\xe2\x88\x92" + e.substr(1);
+    line = "E " + e + " Eh";
+  }
+  // No shared rule for "imaginary" on main: a mode below -1 cm-1.
+  PropVector *vf = dynamic_cast<PropVector*>(task->getProperty("VIBFREQ"));
+  if (vf && !vf->values().empty()) {
+    int imag = 0;
+    for (double f : vf->values()) if (f < -1.0) imag++;
+    line += (line.empty() ? "" : dot) + std::to_string(imag) + " imaginary";
+  }
+  return line;
 }
 
 

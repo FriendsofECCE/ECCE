@@ -159,6 +159,7 @@ public:
 private:
   Search p_search = SEARCH_UNKNOWN;
   Block stageBlock(const Stage& st, double age, bool finished) const;
+  Block crestBlock(const Stage& st, bool finished) const;
   void plotAxis(const Stage& st, const std::string& rec,
                 const std::string& recName, Block& b) const;
 

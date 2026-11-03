@@ -1,0 +1,97 @@
+          │              CREST iMTD-GC SAMPLING             │
+ Σ(t(MTD)) / ps :    84.0 (14 MTDs)
+ Estimated runtime for a batch of 14 MTDs on 4 threads: 31 sec
+ Meta-Dynamics Iteration 1
+  ::::::::::::: starting MTD    5 :::::::::::::
+  ::::::::::::: starting MTD   12 :::::::::::::
+  ::::::::::::: starting MTD    9 :::::::::::::
+  ::::::::::::: starting MTD    1 :::::::::::::
+*MTD   9 completed successfully ...        0 min,  8.102 sec
+  ::::::::::::: starting MTD   10 :::::::::::::
+*MTD  12 completed successfully ...        0 min,  8.285 sec
+  ::::::::::::: starting MTD   13 :::::::::::::
+*MTD   5 completed successfully ...        0 min,  8.482 sec
+  ::::::::::::: starting MTD    6 :::::::::::::
+*MTD   1 completed successfully ...        0 min,  8.603 sec
+  ::::::::::::: starting MTD    2 :::::::::::::
+*MTD  10 completed successfully ...        0 min,  8.604 sec
+  ::::::::::::: starting MTD   11 :::::::::::::
+*MTD   2 completed successfully ...        0 min,  9.070 sec
+  ::::::::::::: starting MTD    3 :::::::::::::
+*MTD  13 completed successfully ...        0 min,  9.898 sec
+  ::::::::::::: starting MTD   14 :::::::::::::
+*MTD   6 completed successfully ...        0 min, 10.527 sec
+  ::::::::::::: starting MTD    7 :::::::::::::
+*MTD  11 completed successfully ...        0 min,  8.574 sec
+*MTD   3 completed successfully ...        0 min,  8.378 sec
+  ::::::::::::: starting MTD    4 :::::::::::::
+*MTD  14 completed successfully ...        0 min,  8.246 sec
+*MTD   7 completed successfully ...        0 min,  8.448 sec
+  ::::::::::::: starting MTD    8 :::::::::::::
+*MTD   4 completed successfully ...        0 min,  7.964 sec
+*MTD   8 completed successfully ...        0 min,  7.977 sec
+ |  Multilevel Ensemble Optimization  |
+ Optimizing all 826 structures from file "crest_dynamics.trj" ...
+ crude pre-optimization
+CREGEN> E lowest :   -20.88707
+ 612 structures remain within    12.00 kcal/mol window
+ optimization with tight thresholds
+CREGEN> E lowest :   -20.88735
+ 191 structures remain within     6.00 kcal/mol window
+ Meta-Dynamics Iteration 2
+  ::::::::::::: starting MTD    1 :::::::::::::
+  ::::::::::::: starting MTD    5 :::::::::::::
+  ::::::::::::: starting MTD   12 :::::::::::::
+  ::::::::::::: starting MTD    9 :::::::::::::
+*MTD   1 completed successfully ...        0 min,  9.946 sec
+  ::::::::::::: starting MTD    2 :::::::::::::
+*MTD  12 completed successfully ...        0 min, 10.265 sec
+  ::::::::::::: starting MTD   13 :::::::::::::
+*MTD   5 completed successfully ...        0 min, 10.327 sec
+  ::::::::::::: starting MTD    6 :::::::::::::
+*MTD   9 completed successfully ...        0 min, 10.631 sec
+  ::::::::::::: starting MTD   10 :::::::::::::
+*MTD   2 completed successfully ...        0 min,  8.291 sec
+  ::::::::::::: starting MTD    3 :::::::::::::
+*MTD  13 completed successfully ...        0 min,  8.291 sec
+  ::::::::::::: starting MTD   14 :::::::::::::
+*MTD   6 completed successfully ...        0 min,  8.289 sec
+  ::::::::::::: starting MTD    7 :::::::::::::
+*MTD  10 completed successfully ...        0 min,  8.391 sec
+  ::::::::::::: starting MTD   11 :::::::::::::
+*MTD   3 completed successfully ...        0 min,  8.122 sec
+  ::::::::::::: starting MTD    4 :::::::::::::
+*MTD  14 completed successfully ...        0 min,  8.099 sec
+*MTD   7 completed successfully ...        0 min,  8.278 sec
+  ::::::::::::: starting MTD    8 :::::::::::::
+*MTD  11 completed successfully ...        0 min,  8.130 sec
+*MTD   4 completed successfully ...        0 min,  7.553 sec
+*MTD   8 completed successfully ...        0 min,  7.565 sec
+ |  Multilevel Ensemble Optimization  |
+ Optimizing all 826 structures from file "crest_dynamics.trj" ...
+ crude pre-optimization
+CREGEN> E lowest :   -20.88710
+ 651 structures remain within    12.00 kcal/mol window
+ optimization with tight thresholds
+CREGEN> E lowest :   -20.88735
+ 182 structures remain within     6.00 kcal/mol window
+CREGEN> E lowest :   -20.88735
+ 241 structures remain within     6.00 kcal/mol window
+ Additional regular MDs on lowest 4 conformer(s)
+ Optimizing all 473 structures from file "crest_rotamers_1.xyz" ...
+ optimization with tight thresholds
+CREGEN> E lowest :   -20.88735
+ 242 structures remain within     6.00 kcal/mol window
+ |  Multilevel Ensemble Optimization  |
+ Optimizing all 300 structures from file "confcross.xyz" ...
+ crude pre-optimization
+CREGEN> E lowest :   -20.88735
+ 204 structures remain within    12.00 kcal/mol window
+ optimization with tight thresholds
+CREGEN> E lowest :   -20.88735
+ 112 structures remain within     6.00 kcal/mol window
+CREGEN> E lowest :   -20.88735
+ Optimizing all 261 structures from file "crest_rotamers_3.xyz" ...
+ optimization with very tight thresholds
+CREGEN> E lowest :   -20.88735
+ 255 structures remain within     6.00 kcal/mol window

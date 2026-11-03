@@ -29,6 +29,15 @@ Starting from a point of a scan, below).
 Several arrows
 from one box are branches.
 
+Under the name, a small grey line gives the result of the step. A finished
+optimisation or frequency step shows its total energy in hartree and, when it
+has frequencies, how many are imaginary (below -1 cm-1); a finished CREST step
+shows how many conformers, protonation sites, tautomers or clusters it found,
+and the energy window of a conformer search. While a step runs the line is the
+first line of its Progress box, for example **MTD 9 of 14**; a step that
+stopped shows the reason given in its Progress box. The line is empty until
+there is something to say.
+
 Click a box to select it; the calculation is selected in the tree and the
 table at the same time. Double-click a box to open the calculation in the
 tree. The right-click menu of a box is that of the calculation.
