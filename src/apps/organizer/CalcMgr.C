@@ -3569,7 +3569,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "15";
+const char *const kExampleSetVersion = "16";
 
 string treeName(string s)
 {
@@ -4244,63 +4244,63 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "calculation shows how the axial C4 hydroxyl group of galactose "
      "changes the vibrational spectrum compared with glucose."},
     {"H",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " electron of the hydrogen atom in the 1s orbital."},
     {"He",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the two "
      "electrons of helium paired in the 1s orbital."},
     {"Li",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " 2s electron of lithium outside its filled 1s orbital."},
     {"Be",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the beryllium atom, filled in order of increasing"
      " energy."},
     {"B",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the boron atom, filled in order of increasing "
      "energy."},
     {"C",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the two 2p"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the two 2p"
      " electrons of carbon in different p orbitals with parallel spins."},
     {"N",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the three "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the three "
      "2p electrons of nitrogen in different p orbitals with parallel spins."},
     {"O",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the four "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the four "
      "2p electrons of oxygen, two of them paired and two unpaired."},
     {"F",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the fluorine atom, filled in order of increasing "
      "energy."},
     {"Ne",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the full "
      "second shell of neon, with all its orbitals doubly occupied."},
     {"Na",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " 3s electron of sodium outside its filled neon-like core."},
     {"Mg",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the magnesium atom, filled in order of increasing"
      " energy."},
     {"Al",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the aluminium atom, filled in order of increasing"
      " energy."},
     {"Si",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the silicon atom, filled in order of increasing "
      "energy."},
     {"P",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the phosphorus atom, filled in order of "
      "increasing energy."},
     {"S",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the sulfur atom, filled in order of increasing "
      "energy."},
     {"Cl",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the chlorine atom, filled in order of increasing "
      "energy."},
     {"Ar",
