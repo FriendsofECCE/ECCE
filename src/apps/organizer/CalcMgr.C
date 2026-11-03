@@ -2237,6 +2237,31 @@ void CalcMgr::runTestCommand(const string& line)
         if (!it->IsSeparator())
           outcome += "|" + string(it->GetItemLabelText().ToUTF8());
       }
+    } else if (command == "tablecontextmenu") {
+      // "tablecontextmenu URL...": selects the URLs' rows in the project
+      // table, as a right click on a row does, and lists that menu as
+      // treecontextmenu does.
+      std::istringstream args(calcName);
+      vector<EcceURL> urls;
+      string u;
+      while (args >> u) urls.push_back(EcceURL(u));
+      WxResourceTreeItemData *parent = urls.empty() ? 0 :
+          findNode(urls[0].getParent(), true, true);
+      if (parent) {
+        p_treeCtrl->SelectItem(parent->GetId());
+        for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
+      }
+      if (p_contextPanel) p_contextPanel->selectResources(urls);
+      p_focusOnTree = false;
+      wxMenu menu;
+      getContextMenu(menu);
+      outcome = "ok";
+      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
+        wxMenuItem *it = menu.FindItemByPosition(i);
+        if (!it->IsSeparator())
+          outcome += string("|") + (it->IsEnabled() ? "" : "~") +
+                     string(it->GetItemLabelText().ToUTF8());
+      }
     } else if (command == "treecontextmenu") {
       // "treecontextmenu URL": selects URL in the tree and lists the items
       // its right-click menu offers (joined by |), "~" before a disabled one.
@@ -7184,9 +7209,8 @@ string CalcMgr::guarded(const std::function<void()>& f)
 }
 
 
-//  Reconnect is offered in the states the resource type's own reconnectJob
-//  task lists (ResourceDescriptor.xml), so the context menus and Run Mgmt
-//  cannot disagree: an incomplete job is reconnectable from all of them.
+//  Where Reconnect is shown follows the resource type's reconnectJob task
+//  (ResourceDescriptor.xml); whether it is enabled is reconnectProblem().
 static bool offersReconnect(ResourceType *resType,
                             ResourceDescriptor::RUNSTATE state)
 {
@@ -7194,6 +7218,25 @@ static bool offersReconnect(ResourceType *resType,
   vector<ResourceRmTask *> tasks = resType->getRmTasks(state);
   for (size_t i = 0; i < tasks.size(); i++)
     if (tasks[i]->getName() == RECONNECTJOB) return true;
+  return false;
+}
+
+
+//  The one rule for every Reconnect item and hook (ReconnectRules): empty
+//  when the calculation can be reconnected, else why not.
+static string reconnectProblem(Resource *res)
+{
+  TaskJob *job = dynamic_cast<TaskJob*>(res);
+  return job ? JobCatchUp::plan(job).problem : string("not a calculation");
+}
+
+
+bool CalcMgr::anyReconnectable(const vector<EcceURL>& urls)
+{
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNode(urls[i], false, true);
+    if (n && reconnectProblem(n->getResource()).empty()) return true;
+  }
   return false;
 }
 
@@ -7308,9 +7351,10 @@ void CalcMgr::getContextMenu(wxMenu & menu)
       sub->Enable(refusal.empty() && !flows.empty());
     }
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+    string noReconnect = reconnectProblem(itemData->getResource());
     wxMenuItem *reconnect = menu.Append(wxID_RECONNECT_SELECTED,
-                                        _("Reconnect Selected..."));
-    reconnect->Enable(offersReconnect(resType, state));
+        _("Reconnect Selected..."), wxString(noReconnect));
+    reconnect->Enable(noReconnect.empty());
     menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), _("Run the "
                 "parsers again over the outputs stored with the calculation"))
         ->Enable(state >= ResourceDescriptor::STATE_COMPLETED);
@@ -7323,19 +7367,20 @@ void CalcMgr::getContextMenu(wxMenu & menu)
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
   }
-  //  Several calculation rows selected in the project table: the tree's own
+  //  Calculation rows selected in the project table: the tree's own
   //  selection is then the project, so the batch items come from the same
-  //  rows Launch Selected itself would use.
+  //  rows Launch Selected itself would use (one row too).
   if (!isCalculationNode) {
     vector<EcceURL> rows = launchSelection();
-    bool allCalcs = rows.size() > 1;
+    bool allCalcs = !rows.empty();
     for (size_t i = 0; allCalcs && i < rows.size(); i++) {
       WxResourceTreeItemData *n = findNode(rows[i], false, true);
       allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
     }
     if (allCalcs) {
       menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-      menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."))
+          ->Enable(anyReconnectable(rows));
       menu.Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
       menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
@@ -7647,6 +7692,12 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
     } else {
       menu.Append((*rmTaskItor)->getId(), menuItem, "", wxITEM_NORMAL);
     }
+    if (name == RECONNECTJOB) {
+      WxResourceTreeItemData *on = itemData ? itemData : p_treeCtrl->getSelection();
+      string why = reconnectProblem(on ? on->getResource() : 0);
+      wxMenuItem *it = menu.FindItem((*rmTaskItor)->getId());
+      if (it) { it->Enable(why.empty()); it->SetHelp(wxString(why)); }
+    }
   }
   if ((state == ResourceDescriptor::STATE_READY ||
        state == ResourceDescriptor::STATE_CREATED) &&
@@ -7658,8 +7709,9 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   if (offersReconnect(resType, state) &&
       itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
     if (menu.GetMenuItemCount() > 0) menu.AppendSeparator();
-    menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."), "",
-                wxITEM_NORMAL);
+    string why = reconnectProblem(itemData->getResource());
+    menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."),
+                wxString(why), wxITEM_NORMAL)->Enable(why.empty());
   }
   if (state >= ResourceDescriptor::STATE_COMPLETED &&
       itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
@@ -9041,12 +9093,11 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
   PropertyTask *calc = dynamic_cast<PropertyTask*>(itemData->getResource());
   NULLPOINTEREXCEPTION(calc,"Could not cast from Resource to PropertyTask.")
 
-  // Get state and job id
-  Jobdata job = calc->jobdata();
   ResourceDescriptor::RUNSTATE state = calc->getState();
-
-  if (job.jobid.empty()) {
-    setMessage("No job id available to reconnect", WxFeedback::ERROR);
+  string why = reconnectProblem(calc);
+  if (!why.empty()) {
+    p_reconnectNote = "not reconnected: " + why;
+    setMessage("Not reconnected: " + why, WxFeedback::ERROR);
     return;
   }
 
@@ -11442,7 +11493,8 @@ void CalcMgr::updateSelectionMenus()
     clearMenu(*rm);
     if (allCalcs) {
       rm->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-      rm->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      rm->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."))
+          ->Enable(anyReconnectable(p_currentSelection));
       rm->Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
       rm->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }

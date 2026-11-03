@@ -2537,7 +2537,8 @@ add_test(NAME progress COMMAND progress_test)
 # Reconnect Selected (#601): the eligibility rules, without wx.
 add_executable(reconnect_rules_test tests/progress/reconnect_rules_test.C)
 target_link_libraries(reconnect_rules_test PRIVATE ecceutil)
-add_test(NAME progress_reconnect_rules COMMAND reconnect_rules_test)
+add_test(NAME progress_reconnect_rules COMMAND reconnect_rules_test
+         ${CMAKE_CURRENT_SOURCE_DIR}/data/client/config/ResourceDescriptor.xml)
 if(PYTHON3_FOR_SPECTRUM)
   add_test(NAME progress-monitor
            COMMAND ${PYTHON3_FOR_SPECTRUM}

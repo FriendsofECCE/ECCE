@@ -3,17 +3,30 @@ type: map
 title: Organizer Reconnect Selected runs the single-job reconnect per eligible calculation
 area: services
 paths: [src/comm/commxt/JobStore.C, tests/launch/reconnect_race_test.py, include/comm/ReconnectRules.H, src/comm/commxt/JobCatchUp.C, src/apps/organizer/ReconnectSelected.C, src/apps/organizer/CalcMgr.C, tests/progress/reconnect_rules_test.C, tests/launch/reconnect_selected_test.py]
-issues: [601, 599, 684]
+issues: [601, 599, 684, 689]
 ---
 Run Mgmt > Reconnect Selected... (also the calculation context menu and the
 multi-select Run Mgmt menu) takes the same selection as Launch Selected
 (`CalcMgr::launchSelection()`: the project table's rows when several, else the
 tree item). A selected project is not expanded; its table rows are.
 
-Eligibility is `ReconnectRules::problem()` (wx-free, plain values in): only
-Submitted, Running and Waiting qualify, and only with a machine registered
-here, a job id and a run directory. Everything else is listed and skipped with
-the reason. `JobCatchUp::plan()` fills the values from the calculation.
+Eligibility is `ReconnectRules::problem()` (wx-free, plain values in), and it
+is the only rule: Run Mgmt > Reconnect Job Monitoring, Reconnect Selected,
+the tree's and the project table's context menus (`reconnectProblem()` in
+CalcMgr.C) and `reconnectJob()` itself all ask it. Submitted, Running,
+Waiting, Incomplete (Unsuccessful), Monitor Error and System Error qualify,
+only with a machine registered here, a job id and a run directory. Completed
+and Killed do not: a reconnect deletes the stored outputs first, and Killed
+means a user's cancel. Everything else is listed and skipped with the reason.
+`JobCatchUp::plan()` fills the values from the calculation.
+
+**Pitfall (#689): menus that pick their own states diverge.** The context
+menus once enabled the item for Submitted/Running/Waiting, Run Mgmt followed
+the XML `reconnectJob` states, and the batch skipped Incomplete as "already
+finished". The XML now only decides where the item appears; the unit test
+checks that every `reconnectJob` task lists all the states the rule accepts.
+The table's one-row menu reaches the batch items through `launchSelection()`
+(the tree selection is then the project). Hook: `tablecontextmenu URL...`.
 
 Each eligible row runs `JobCatchUp::reconnect()` -- the call behind the
 single Reconnect -- on the GUI thread, one after the other, rows of one
