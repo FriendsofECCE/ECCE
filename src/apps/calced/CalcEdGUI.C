@@ -286,7 +286,7 @@ void CalcEdGUI::CreateControls()
         _("Triplet"),
         _("Quintet"),
         _("Septet"),
-        _("Nontet")
+        _("Nonet")
     };
     ewxComboBox* itemComboBox24 = new ewxComboBox( p_chemSysInner, ID_COMBOBOX_CALCED_SPIN_MULT, _("Singlet"), wxDefaultPosition, wxSize(105, -1), 5, itemComboBox24Strings, wxCB_DROPDOWN );
     itemComboBox24->SetStringSelection(_("Singlet"));

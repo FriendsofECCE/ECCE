@@ -37,7 +37,7 @@ string SpinMult::toString (SpinMult::SpinMultEnum enumValue)
       case SpinMult::sextet  : result = "Sextet" ; break;
       case SpinMult::septet  : result = "Septet" ; break;
       case SpinMult::octet   : result = "Octet"  ; break;
-      case SpinMult::nontet  : result = "Nontet" ; break;
+      case SpinMult::nontet  : result = "Nonet"  ; break;
       default :
         char buf[16];   
         sprintf(buf, "%d", (int)enumValue);
@@ -70,7 +70,9 @@ SpinMult::SpinMultEnum SpinMult::toSpinMult(const string& value)
     enumValue = SpinMult::septet;
   else if (value == "Octet" || value == "octet" || value == "OCTET")
     enumValue = SpinMult::octet;
-  else if (value == "Nontet" || value == "nontet" || value == "NONTET")
+  // "Nontet" is what calculations stored before 9.5.2.
+  else if (value == "Nonet" || value == "nonet" || value == "NONET" ||
+           value == "Nontet" || value == "nontet" || value == "NONTET")
     enumValue = SpinMult::nontet;
   else
     enumValue = (SpinMult::SpinMultEnum)strtoul(value.c_str(), NULL, 10);

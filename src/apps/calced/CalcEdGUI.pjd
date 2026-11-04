@@ -907,7 +907,7 @@
                       <long name="proxy-Id value">10036</long>
                       <string name="proxy-Class">"wxComboBox"</string>
                       <string name="proxy-Member variable name">""</string>
-                      <string name="proxy-Strings">"Singlet|Triplet|Quintet|Septet|Nontet"</string>
+                      <string name="proxy-Strings">"Singlet|Triplet|Quintet|Septet|Nonet"</string>
                       <string name="proxy-Initial value">"Singlet"</string>
                       <string name="proxy-Help text">""</string>
                       <string name="proxy-Tooltip text">""</string>
