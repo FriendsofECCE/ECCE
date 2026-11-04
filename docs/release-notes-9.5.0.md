@@ -6,10 +6,16 @@
 - **Organizer menus (#805):** a calculation's right-click menu is Cut, Copy, Paste, Rename, Delete, **New from This** (Rerun, Continue from Last Geometry, Continue from Final Orbitals) and **Run** (Launch, Reconnect, Terminate, Re-Parse Outputs, Shell in Run Directory). The project table has no Viewed or Size column, shows Type and Application in one column and has a Total energy column.
 - **Local by default.** A new installation keeps calculations in a folder on this computer and asks nothing at first start. Installations already set up with a data server start as before (#767).
 - **Edit > Preferences > Data** shows the local folder and a list of servers. **Add Server** adds an ECCE server or an SSH folder; each appears in the Organizer as its own tree, with its own login, and calculations in it are launched and stored there (#767, #789).
+
+<a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.5.0/ssh-server-tree.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.5.0/ssh-server-tree.png" width="400" alt="An SSH folder as its own Organizer tree, with an xTB calculation launched and stored there" title="An SSH folder as its own Organizer tree, with an xTB calculation launched and stored there"></a>
+
 - Every command-line tool now has a wrapper on PATH (`ecce-<tool>`), including the new `ecce-workflow` and `ecce-density-field` (#794).
 
 ## Workflows and recipes
 - **Workflows:** File > New > Workflow draws a set of calculations as a tree. Select a box and a code to add a step that starts from that box's final structure, charge and multiplicity; **Launch Ready Steps** launches every step whose source is complete. Joins make QST2/QST3 or NEB-TS steps from a reactant, a product and a TS guess; a step can start from a scan point (#341, #674, #782).
+
+<a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.5.0/workflow-sn2.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.5.0/workflow-sn2.png" width="400" alt="The SN2 example workflow: reactant, scan, QST3 and IRC steps" title="The SN2 example workflow: reactant, scan, QST3 and IRC steps"></a>
+
 - **Recipes:** Apply Recipe builds the linked boxes of a TS search with IRC, a conformer search, protonation sites, tautomers or a solvation shell, with the method and basis set of each role and one solvent for every step, shown in a live preview. A workflow can be saved as a recipe, and a calculation can be turned into a workflow (#710, #807, #808).
 - Each box shows one result line (energy; for an IRC the TS energy); a CREST box shows the stage, the metadynamics count, the structures found and the lowest energy (#810, #784). A link from a CREST ensemble carries the lowest conformer (#812).
 - Examples: the SN2 workflow and a Na⁺(H₂O)₆ workflow (xTB arrangements refined with ORCA r2SCAN-3c) in File > Open Example Calculations (#712, #772, #784).
@@ -19,11 +25,11 @@
 - **CREST:** conformer search, protonation sites, tautomers and solvation shells, with an ensemble table ranked by energy, with Boltzmann populations and coordination patterns (#682, #708). Select rows in the ensemble table and choose New Calculation from Selected to set up one calculation per structure in the same folder, named <calculation>_conf<rank> (#708). The solvation shell (QCG) needs an xtb newer than the one in Debian 13 (#758, #809).
 - **ML potential** (ASE, MACE first): energies and geometries, with cell relaxation, for screening (#728).
 
+<a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.5.0/crest-conformers.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.5.0/crest-conformers.png" width="400" alt="CREST conformer search on 1-pentanol: the Conformers panel with energies and Boltzmann populations" title="CREST conformer search on 1-pentanol: the Conformers panel with energies and Boltzmann populations"></a>
+
 ## Analysis of many calculations
 - **Compare Energies:** select calculations in the project table, or a folder, and right-click **Compare Energies...**: ΔE/ΔG from the lowest or a chosen reference, per cell, formula unit or site, with consistency flags; a progress window above three calculations (#703, #805). **Tools > Energy Calculator...** is the former Compare Energies window, for the energy of sums of calculations such as a reaction.
 - **Reaction overview** (button in the Compare Energies window): ΔE/ΔG chart for a set of reactions with the spread over low-frequency treatments (#709).
-
-![Reaction overview](reaction-overview.png)
 
 - **Command line only** (no menu items): Checks table for a folder (state, convergence, imaginary modes, ⟨S²⟩, E, ZPE, G), export for Supporting Information, Compare Forces, the excluded mark with a reason, and core hours booked and used; see Scripting and AI assistants in the help (#615, #625, #776, #617, #627, #805).
 - **New Series:** one setup applied to a list of structures, with `ecce-series` (command line only) (#621, #805).
