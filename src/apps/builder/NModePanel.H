@@ -183,14 +183,15 @@ class NModePanel : public NModesGUI,
       void createSpectrumPane();
       void openSpectrumWindow();
       void dumpSpectrumIfRequested();
-      void exportSpectrumDialog();
+      void exportSpectrumDialog(const wxString& path = wxString());
       void compareDialog();
       void matchBandsDialog();
       void importExperimentalDialog();
       bool writeModesFile(IPropCalculation *calc, const string& path,
                           wxString *error);
       vector<IPropCalculation*> comparableCalculations(bool needSpectrum = true);
-      void applySpectrumSettings();
+      wxSizer *createSpectrumSettings(wxWindow *pane, wxBoxSizer *col, bool window);
+      void applySpectrumSettings(wxTextCtrl *width = nullptr, wxTextCtrl *factor = nullptr);
       void updateVectors(int mode,
                          float amplitude,
                          bool sign,
@@ -218,6 +219,7 @@ class NModePanel : public NModesGUI,
       /* The report oriented table showing modes */
       wxGrid *p_grid;  
       SpectrumCanvas *p_spectrum;
+      bool p_spectrumDumped = false;
       wxWeakRef<wxFrame> p_spectrumFrame;        // "Open in window"
       wxWeakRef<SpectrumCanvas> p_spectrumPop;
       wxWeakRef<wxFrame> p_compFrame;            // Mode composition (#486)

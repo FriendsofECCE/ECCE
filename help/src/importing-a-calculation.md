@@ -193,6 +193,45 @@ contributes to the energy. The structure's bonds and their orders (C=O,
 C≡N) are those of the Builder. A wide **Mode** cell is cut short in a
 narrow panel; the tooltip has all of it.
 
+#### Spectrum window
+
+Click **Spectrum...** beside Graph/Table to open the full IR and Raman
+plots. **Open in window** in the Graph view opens the same window. Clicking
+a peak selects its mode in the table and the molecular view. The strip
+under the plots shows the frequency, irrep, IR/Raman activity and computed
+intensities, description and all available contributions. Its text wraps
+when you resize the window. Modes without an assigned description still
+show their frequency and intensities.
+
+The window and Graph view share these settings; a change in either is
+reflected in the other:
+
+- **Width:** full width at half maximum in cm⁻¹ (0–200); 0 shows sticks only.
+- **Freq. factor:** multiplies computed frequencies; it starts at 1 for
+  each calculation and does not change the experimental wavenumbers.
+- **Sticks** and **High on left:** show the individual modes and choose
+  the wavenumber axis direction.
+- **Range**, **Zoom** and **Reset:** enter the lowest and highest wavenumber,
+  then click Zoom or press Enter; Reset shows the full spectrum. Drag to
+  zoom, use the wheel to zoom, or right-drag to pan. Both views share the range.
+
+The **Other spectra** row provides the same actions as the panel:
+
+- **Compare...:** draw another calculation's spectrum from the same folder
+  in both views, using the same width and frequency factor.
+- **Remove comparison:** clear the second curve; enabled only while a
+  comparison is drawn.
+- **Match bands...:** open the band-matching dialog, using **ecce-bandshift**
+  to match the normal-mode motion and report frequency shifts.
+- **Export .csv...:** save the sticks and every displayed curve on one
+  wavenumber grid, including comparison, difference and experimental curves.
+- **Difference:** after choosing **Compare...**, show the
+  second curve minus the first on a signed axis.
+- **Experimental...:** load a measured absorbance or transmittance spectrum,
+  or remove the loaded spectrum. See
+  [Difference and experimental spectra](ir-spectrum-difference-experiment.md)
+  for file formats and scaling.
+
 See [Your first calculation](first-calculation.md#vibrations-optional) for
 the same steps on a calculation you ran yourself.
 

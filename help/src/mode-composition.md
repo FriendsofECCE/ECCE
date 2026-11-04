@@ -66,7 +66,10 @@ full PED may follow later.
   selected mode: its number, frequency, irrep, IR intensity and short label,
   and below them its contributions in two columns. Hovering a peak shows the
   mode number and frequency, the short label and the IR intensity and Raman
-  activity.
+  activity. Its **Other spectra** row has **Compare...**, **Remove comparison**,
+  **Match bands...** and **Export .csv...**, alongside **Difference** and
+  **Experimental...**. These share the panel's actions and curves; see the
+  [Spectrum window](importing-a-calculation.md#spectrum-window) for details.
 - **Panel**: the selected mode's line sits in its own bordered box under the
   plot, above Width and Freq. factor. It wraps; nothing is cut off.
   When the Freq. factor is not 1 it also gives the scaled wavenumber, for
