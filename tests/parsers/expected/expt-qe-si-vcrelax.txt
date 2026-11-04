@@ -1,0 +1,32 @@
+# expt-qe-si-vcrelax
+# QuantumESPRESSO.expt qe/si_vcrelax.pwout
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	si_vcrelax
+type:	molecule
+charge:	0
+lattice_vectors:
+ -2.744925   0.000000   2.744925
+ -0.000000   2.744925   2.744925
+ -2.744925   2.744925   0.000000
+num_atoms:	2
+atom_info:	symbol cart
+atom_list:
+ Si -0.00000000 0.00000000 -0.00000000
+ Si -1.37246227 1.37246227 1.37246227
+
+=== .param
+title:	si_vcrelax
+version:	6.7MaX
+Category:	PW
+Theory:	PW
+RunType:	Geometry
+Charge:	0
+ES.ChemSys.Multiplicity:	1
+ES.Runtype.PW.OptimizeCell:	1
+ES.Theory.PW.EcutWfc:	18.0000
+
+=== .gbs
+(not produced)
