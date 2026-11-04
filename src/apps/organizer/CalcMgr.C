@@ -6296,20 +6296,14 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "localised. This calculation shows that the two O-O bonds of ozone are "
      "equivalent, as the average of two resonance structures."},
     {"al_fcc",
-     "Quantum ESPRESSO, PBE (PAW), plane waves to 40 Ry, 16x16x16 k-points, "
-     "Marzari-Vanderbilt smearing, one-atom face-centred cubic cell "
-     "(a = 4.05 A). This calculation shows the total energy of aluminium "
+     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of aluminium "
      "metal, a close-packed crystal with twelve neighbours per atom."},
     {"na_bcc",
-     "Quantum ESPRESSO, PBE (PAW), plane waves to 50 Ry, 12x12x12 k-points, "
-     "Marzari-Vanderbilt smearing, one-atom body-centred cubic cell "
-     "(a = 4.291 A). This calculation shows the total energy of sodium "
+     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of sodium "
      "metal, whose body-centred cubic packing has eight neighbours per "
      "atom."},
     {"po_sc",
-     "Quantum ESPRESSO, PBE (PAW), plane waves to 60 Ry, 12x12x12 k-points, "
-     "Marzari-Vanderbilt smearing, one-atom simple cubic cell "
-     "(a = 3.359 A). This calculation shows the total energy of alpha-"
+     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of alpha-"
      "polonium, the only element that crystallises in the simple cubic "
      "structure, with six neighbours per atom."},
     {"ar-gas-300K",
