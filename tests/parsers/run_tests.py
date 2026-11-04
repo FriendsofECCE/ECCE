@@ -685,6 +685,8 @@ def run_expt_cases(res, args):
                      produced['stderr'].strip()))
         if wantReturncode == 0:
             for extension in expt.PRODUCTS:
+                if extension == '.gbs' and case.get('no_gbs'):
+                    continue    # a plane-wave code has no basis set
                 res.check(extension in produced, name,
                           '%s produced no %s file' % (case['script'], extension))
         for substr in case.get('expect_stdout_contains', ()):
