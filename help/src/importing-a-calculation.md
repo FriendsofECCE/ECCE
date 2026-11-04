@@ -169,7 +169,7 @@ The **Table** has a row for each vibration:
 - **Mode**: what moves, in the standard notation of vibrational
   spectroscopy. Hold the pointer over a cell for the shares, or select the
   row to read them in the line under the table (also under the plot in the
-  Graph view): irrep, description, and which of IR and Raman it is active in.
+  Spectrum view): irrep, description, and which of IR and Raman it is active in.
   The six zero-frequency rows are the translations and rotations of the
   molecule (**Tx** to **Rz**), with their irreps. Where the output prints no
   displacement for them, ECCE names them in the usual order, translations
@@ -193,44 +193,63 @@ contributes to the energy. The structure's bonds and their orders (C=O,
 C≡N) are those of the Builder. A wide **Mode** cell is cut short in a
 narrow panel; the tooltip has all of it.
 
+#### The panel
+
+From the top: the **Spectrum | Table** toggle (**Export .csv...** appears
+beside it in the Table view); the spectrum, with IR above Raman; the selected
+mode in full under it (frequency, irrep, IR and Raman intensity, and its
+contributions); the **Mode in the viewer** group; and the buttons
+**Open in window...**, **Composition...** and **Displace...**.
+
+IR and Raman are drawn one over the other. When a second calculation, an
+experimental spectrum or a difference is loaded they cannot be stacked: the
+plot then shows one kind at a time, and an **IR | Raman** switch at its top
+right chooses which kind all the curves show.
+
+**Mode in the viewer:** **Show** draws the selected mode in the molecular
+view (off leaves the structure alone); **Animation** or **Vectors** chooses
+how; **Arrow length** (amplitude in Animation) sets its size, with the delay
+between frames for Animation and the arrow colour for Vectors; **Reverse**
+shows the displacement in the opposite direction.
+
 #### Spectrum window
 
-Click **Spectrum...** beside Graph/Table to open the full IR and Raman
-plots. **Open in window** in the Graph view opens the same window. Clicking
-a peak selects its mode in the table and the molecular view. The strip
-under the plots shows the frequency, irrep, IR/Raman activity and computed
-intensities, description and all available contributions. Its text wraps
-when you resize the window. Modes without an assigned description still
-show their frequency and intensities.
+Click **Open in window...** to open the full plots. Clicking a peak selects
+its mode in the table and the molecular view. The strip under the plots shows
+the frequency, irrep, IR/Raman activity and computed intensities, description
+and all available contributions. Its text wraps when you resize the window.
+Modes without an assigned description still show their frequency and
+intensities. The settings of the spectrum are here, not in the panel; the
+panel's plot follows them.
 
-The window and Graph view share these settings; a change in either is
-reflected in the other:
+The **Spectrum** group:
 
-- **Width:** full width at half maximum in cm⁻¹ (0–200); 0 shows sticks only.
-- **Freq. factor:** multiplies computed frequencies; it starts at 1 for
+- **Width:** full width at half maximum in cm⁻¹ (0-200); 0 shows sticks only.
+- **Scale factor:** multiplies computed frequencies; it starts at 1 for
   each calculation and does not change the experimental wavenumbers.
 - **Sticks** and **High on left:** show the individual modes and choose
   the wavenumber axis direction.
-- **Range**, **Zoom** and **Reset:** enter the lowest and highest wavenumber,
-  then click Zoom or press Enter; Reset shows the full spectrum. Drag to
-  zoom, use the wheel to zoom, or right-drag to pan. Both views share the range.
+- **Range**, **Reset zoom:** type the lowest and highest wavenumber and press
+  Enter; **Reset zoom** shows the full spectrum. Drag to zoom, use the wheel
+  to zoom, or right-drag to pan.
 
-The **Other spectra** row provides the same actions as the panel:
+The **Other spectra** group:
 
-- **Compare...:** draw another calculation's spectrum from the same folder
-  in both views, using the same width and frequency factor.
-- **Remove comparison:** clear the second curve; enabled only while a
-  comparison is drawn.
-- **Match bands...:** open the band-matching dialog, using **ecce-bandshift**
-  to match the normal-mode motion and report frequency shifts.
+- **Compare...:** choose another calculation of the same folder, and either
+  **overlay spectrum** (its curve is drawn with the same width and scale
+  factor) or **match modes** (the band-matching table, see
+  [Match bands](match-bands.md)). Choosing *(none)* removes the second curve.
+- **Difference:** after an overlay, show the second curve minus the first on
+  a signed axis.
+- **Experimental...:** load a measured absorbance or transmittance spectrum.
+  See [Difference and experimental spectra](ir-spectrum-difference-experiment.md)
+  for file formats and scaling.
+- **Remove:** remove the other spectra (the overlay, the difference and the
+  experimental curve); enabled only while one is loaded.
 - **Export .csv...:** save the sticks and every displayed curve on one
   wavenumber grid, including comparison, difference and experimental curves.
-- **Difference:** after choosing **Compare...**, show the
-  second curve minus the first on a signed axis.
-- **Experimental...:** load a measured absorbance or transmittance spectrum,
-  or remove the loaded spectrum. See
-  [Difference and experimental spectra](ir-spectrum-difference-experiment.md)
-  for file formats and scaling.
+
+**Composition...** and **Close** are at the bottom of the window.
 
 See [Your first calculation](first-calculation.md#vibrations-optional) for
 the same steps on a calculation you ran yourself.

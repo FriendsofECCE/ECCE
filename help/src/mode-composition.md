@@ -7,7 +7,7 @@ amide II mostly the N-H bend together with the C-N stretch.
 
 ## The table
 
-Click **Composition...** beside the Graph/Table choice. The window is a
+Click **Composition...** at the bottom of the panel. The window is a
 read-only table for assigning bands and for pasting into a report. Each
 vibration has its frequency, its short label (the one in the frequency
 table's Mode column) and its largest contributions, in percent, for example
@@ -62,19 +62,18 @@ full PED may follow later.
 
 ## Where else a mode is described
 
-- **Spectrum window** (**Spectrum...**): under the plot a strip shows the
+- **Spectrum window** (**Open in window...**): under the plot a strip shows the
   selected mode: its number, frequency, irrep, IR intensity and short label,
   and below them its contributions in two columns. Hovering a peak shows the
   mode number and frequency, the short label and the IR intensity and Raman
-  activity. Its **Other spectra** row has **Compare...**, **Remove comparison**,
-  **Match bands...** and **Export .csv...**, alongside **Difference** and
-  **Experimental...**. These share the panel's actions and curves; see the
+  activity. Its **Other spectra** group has **Compare...**, **Difference**,
+  **Experimental...**, **Remove** and **Export .csv...**; see the
   [Spectrum window](importing-a-calculation.md#spectrum-window) for details.
 - **Panel**: the selected mode's line sits in its own bordered box under the
-  plot, above Width and Freq. factor. It wraps; nothing is cut off.
-  When the Freq. factor is not 1 it also gives the scaled wavenumber, for
+  plot. It wraps; nothing is cut off.
+  When the Scale factor is not 1 it also gives the scaled wavenumber, for
   example 1842.8 cm⁻¹ (scaled 921.4).
-- **Width and Freq. factor**: the factor multiplies every wavenumber in the
+- **Width and Scale factor** (in the Spectrum window): the factor multiplies every wavenumber in the
   plot. It starts at 1 each time the panel opens and is not remembered; the
   width is. A decimal comma is accepted in both fields, so 0,96 means 0.96.
 - **Frequency table**: wavenumbers are shown with one decimal and intensities

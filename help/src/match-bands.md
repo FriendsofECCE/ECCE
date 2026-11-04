@@ -7,8 +7,10 @@ amide I stays where it was.
 
 ## The table
 
-1. Open a calculation that has normal modes and click **Match bands...**.
-2. Choose another calculation of the same folder that has normal modes.
+1. Open a calculation that has normal modes, click **Open in window...** and
+   then **Compare...** in the **Other spectra** group.
+2. Choose another calculation of the same folder that has normal modes, the
+   entry marked **(match modes)**.
 3. If the two have different numbers of atoms, give the common atoms, this
    calculation's first, counted from 1. `1-12:5-16` maps this calculation's
    atoms 1-12 to the other one's atoms 5-16, for instance a free ligand and
