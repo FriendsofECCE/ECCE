@@ -7514,6 +7514,16 @@ void Builder::rebuildSurfacesMenu(MoPanel *mo)
 }
 
 
+//  The pane keeps its name (lookups use it); only the title changes.
+void Builder::setPaneCaption(wxWindow *win, const wxString& caption)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(win);
+  if (!pane.IsOk()) return;
+  pane.Caption(caption);
+  p_mgr.Update();
+}
+
+
 void Builder::surfacesChanged()
 {
   if (MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window))

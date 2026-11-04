@@ -418,6 +418,7 @@ class Builder: public BuilderGUI,
       void unfocusPanel(wxWindow *win);
       void syncIndexSelection(wxWindow *win);
       void surfacesChanged();
+      void setPaneCaption(wxWindow *win, const wxString& caption);
               void OnPropertyMenuClick( wxCommandEvent& event );
 
       // Help menu events

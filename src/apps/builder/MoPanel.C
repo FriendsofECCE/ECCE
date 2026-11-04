@@ -584,6 +584,13 @@ void MoPanel::setSurfaceMode(bool on)
    if (on == p_surfaceMode) return;
    ensureInitialized();
    p_surfaceMode = on;
+   //  A surface from the other mode would sit under the wrong controls.
+   getFW().getSceneGraph().clearGrids();
+   p_drawnType.clear();
+   p_espDrawnType.clear();
+   hideEspBar();
+   if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+      builder->setPaneCaption(this, on ? "Surfaces" : "MOs");
    populateTypeChoice();
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    typewin->SetSelection(typewin->GetCount() ? 0 : wxNOT_FOUND);
