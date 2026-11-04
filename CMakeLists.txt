@@ -2961,6 +2961,16 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # A side column width set by the user is kept through every property panel
+  # switch at 1366x768 and 1024x600; wider panels scroll (#843).
+  add_test(NAME apps_property_width
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_width_test.py
+                   --png ${CMAKE_CURRENT_BINARY_DIR}/property_width
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_property_width PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # The Builder on an ECCE-QM calculation (fixture from the bundled engine):
   # MOs panel present, MO Diagram not offered; an ORCA calculation as control.
   add_test(NAME apps_ecceqm_builder
