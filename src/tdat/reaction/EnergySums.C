@@ -194,6 +194,7 @@ SumResult sumEnergies(const vector<EnergyTerm>& a, const vector<EnergyTerm>& b)
   if (thermo && tDiffer)
     r.warnings.push_back("The thermochemistry temperatures differ, so H and G "
                          "are not comparable.");
+  if (thermo && !first) r.gTemperature = tMin;
   struct { const char *label; double RxnState::*f; bool zpe; } lv[3] = {
     {"E + ZPE", &RxnState::energy, true}, {"H", &RxnState::enthalpy, false},
     {"G", &RxnState::gibbs, false}};
@@ -209,6 +210,42 @@ SumResult sumEnergies(const vector<EnergyTerm>& a, const vector<EnergyTerm>& b)
     r.rows.push_back(w);
   }
   return r;
+}
+
+namespace {
+const double R_KJ = 8.314462618e-3;   // kJ/mol/K
+const double R_LATM = 0.0820574;      // L atm/K/mol, with p0 = 1 atm
+}
+
+double standardStateCorrection(int dn, double T)
+{
+  return dn * R_KJ * T * std::log(R_LATM * T);
+}
+
+double logKFromDeltaG(double deltaG, double T)
+{
+  return -deltaG / (R_KJ * T * std::log(10.0));
+}
+
+void applyStandardState(SumResult& r, const vector<EnergyTerm>& a,
+                        const vector<EnergyTerm>& b, bool apply)
+{
+  StdState& s = r.stdState;
+  s = StdState();
+  if (!r.ok || r.rows.size() < 4 || !r.rows[3].available ||
+      r.gTemperature <= 0)
+    return;
+  const double T = r.gTemperature;
+  for (const EnergyTerm& t : a) s.dn -= t.coeff;
+  for (const EnergyTerm& t : b) s.dn += t.coeff;
+  s.lnFactor = std::log(R_LATM * T);
+  s.correction = standardStateCorrection(s.dn, T);
+  s.applied = apply;
+  SumRow& g = r.rows[3];
+  if (apply) g.b += s.correction / hartreeTo(1.0, EU_KJ);
+  s.deltaG = hartreeTo(g.delta(), EU_KJ);
+  s.logK = logKFromDeltaG(s.deltaG, T);
+  s.available = true;
 }
 
 string sumTable(const SumResult& r, bool full)
@@ -244,6 +281,16 @@ string sumTable(const SumResult& r, bool full)
   }
   t += "Solvent: " + r.solventA + " / " + r.solventB + "\n";
   if (!r.deltaLabel.empty()) t += "B - A is " + r.deltaLabel + ".\n";
+  const StdState& s = r.stdState;
+  if (s.available) {
+    if (s.applied && s.dn == 0)
+      t += "1 M standard state: \xCE\x94n = 0, the correction is zero.\n";
+    else if (s.applied)
+      t += "1 M standard state: \xCE\x94n = " + std::to_string(s.dn) +
+           ", RT ln(" + num(std::exp(s.lnFactor), 2) + ") per species, " +
+           num(s.correction, 2) + " kJ/mol added to \xCE\x94G\n";
+    t += "log K = " + num(s.logK, 2) + "\n";
+  }
   return t;
 }
 

@@ -9,6 +9,7 @@
 
 class wxBoxSizer;
 class wxButton;
+class wxCheckBox;
 class wxChoice;
 class wxPanel;
 class wxSpinCtrl;
@@ -32,6 +33,8 @@ public:
   std::string notesText() const;
   /** Test hook: choose the treatment of the G row (ecce-thermo name, "" = the code's own). */
   void setTreatment(const std::string& treatment);
+  /** Test hook: tick or clear "1 M standard state (solution)". */
+  void setStandardState(bool on);
   /** What Copy puts on the clipboard: full precision. */
   std::string copyText() const;
 
@@ -57,6 +60,7 @@ private:
   std::vector<std::pair<std::string, std::string> > p_calcs;
   SideBox p_side[2];
   wxChoice *p_treatment;
+  wxCheckBox *p_std;
   wxTextCtrl *p_results, *p_notes;
   std::string p_copy;
 };

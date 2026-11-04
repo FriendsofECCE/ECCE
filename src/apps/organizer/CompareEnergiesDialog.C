@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 #include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/choice.h>
 #include <wx/clipbrd.h>
 #include <wx/dataobj.h>
@@ -65,6 +66,8 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
   tbar->Add(p_treatment, 0);
   top->Add(tbar, 0, wxLEFT | wxRIGHT | wxTOP, 10);
 
+  p_std = new wxCheckBox(this, wxID_ANY, _("1 M standard state (solution)"));
+  p_std->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { update(); });
   p_results = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
                              wxSize(720, 140),
                              wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
@@ -75,6 +78,7 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
   top->Add(new wxStaticText(this, wxID_ANY, _("Energies")), 0,
            wxLEFT | wxRIGHT, 10);
   top->Add(p_results, 1, wxEXPAND | wxALL, 10);
+  top->Add(p_std, 0, wxLEFT | wxRIGHT, 10);
   top->Add(new wxStaticText(this, wxID_ANY, _("Notes")), 0,
            wxLEFT | wxRIGHT, 10);
   top->Add(p_notes, 1, wxEXPAND | wxALL, 10);
@@ -205,6 +209,7 @@ void CompareEnergiesDialog::update()
   const string problem = applyThermoTreatments(r, t[0], t[1],
       sel > 0 ? string(thermoTreatments()[sel - 1].cli) : string());
   if (!problem.empty()) r.notes.push_back(problem);
+  applyStandardState(r, t[0], t[1], p_std->GetValue());
   p_results->SetValue(wxString::FromUTF8(sumTable(r, false).c_str()));
   p_notes->SetValue(wxString::FromUTF8(sumNotes(r).c_str()));
   p_copy = sumText(r, true);
@@ -217,6 +222,12 @@ void CompareEnergiesDialog::setTreatment(const string& treatment)
   for (size_t i = 0; i < t.size(); i++)
     if (treatment == t[i].cli) sel = (int)i + 1;
   p_treatment->SetSelection(sel);
+  update();
+}
+
+void CompareEnergiesDialog::setStandardState(bool on)
+{
+  p_std->SetValue(on);
   update();
 }
 
