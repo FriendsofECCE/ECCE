@@ -44,14 +44,15 @@ def checkApp(display, name, results, verbose=False):
         os.makedirs(out, exist_ok=True)
         with open(scene, "w") as h:
             h.write("ptree categories\n"
-                    "list Density\nhold 1\nmotable density-note\n"
-                    "list Spin Density\nhold 1\nmotable spin-note\n"
-                    "list ELF\nhold 1\nmotable elf-note\n"
-                    "list LOL\nhold 1\nmotable lol-note\n"
-                    "list NCI\nhold 1\nmotable nci-note\n"
-                    "property ESP on Density\nhold 1\nmotable esp-note\n"
+                    "list Surfaces\nhold 1\nmotable density-note\n"
+                    "mofield Spin Density\nhold 1\nmotable spin-note\n"
+                    "mofield ELF\nhold 1\nmotable elf-note\n"
+                    "mofield LOL\nhold 1\nmotable lol-note\n"
+                    "mofield NCI\nhold 1\nmotable nci-note\n"
+                    "list MOs\nhold 1\nmotable mos-note\n"
+                    "property Surfaces\nhold 1\nmofield ESP on Density\nhold 1\nmotable esp-note\n"
                     "ptree selected-surface\n"
-                    "list MOs\nhold 1\n"
+                    "list Surfaces\nmofield Spin Density\nhold 1\n"
                     "plotshot spinv 0 0 MOs:dockedspin\n"
                     "plotshot spinc 0 0 MOs:dockedspinpaint\nhold 1\n")
         log = apps.run(display, "builder", args=("-context", urls["o2"]),
@@ -60,11 +61,13 @@ def checkApp(display, name, results, verbose=False):
                             "ECCE_VIEWER_SCENE_OUT": out}).log or ""
         categories_path = os.path.join(out, "categories.txt")
         categories = open(categories_path).read().splitlines() if os.path.exists(categories_path) else []
-        surfaces = [line for line in categories if line.startswith("entry Surfaces/")]
-        if surfaces != ["entry Surfaces/Density", "entry Surfaces/Spin Density",
-                        "entry Surfaces/ESP on Density", "entry Surfaces/ELF",
-                        "entry Surfaces/LOL", "entry Surfaces/NCI"]:
-            results.fail("surfaces", "wrong ordered category: %r" % surfaces)
+        if [l for l in categories if l.startswith("entry Surfaces/")]:
+            results.fail("surfaces", "Surfaces is still a category")
+        if "entry Orbitals/Surfaces" not in categories:
+            results.fail("surfaces", "no Surfaces entry under Orbitals: %r" % categories)
+        for moved in ("Density", "Spin Density", "ESP on Density", "ELF", "LOL", "NCI"):
+            if any(l.endswith("/" + moved) for l in categories):
+                results.fail("surfaces", moved + " is listed as an entry of its own")
         for unchanged in ("Density Map", "Density Profile"):
             if "entry Orbitals/" + unchanged not in categories:
                 results.fail("surfaces", unchanged + " moved or renamed")
@@ -83,9 +86,30 @@ def checkApp(display, name, results, verbose=False):
                              "fieldNoteShown 1", "fieldTypeTip " + description):
                 if expected not in lines:
                     results.fail("surfaces", state + " missing " + expected)
+        def state(name):
+            path = os.path.join(out, name + ".txt")
+            return open(path).read().splitlines() if os.path.exists(path) else []
+        density = state("density-note")
+        types = [l for l in density if l.startswith("fieldTypes ")]
+        if not types or not types[0].startswith(
+                "fieldTypes Density | Spin Density | ESP on Density | ELF | LOL | NCI"):
+            results.fail("surfaces", "Surfaces drop-down wrong: %r" % types)
+        if any(" MO" in l for l in types):
+            results.fail("surfaces", "orbital choice in the Surfaces drop-down: %r" % types)
+        for name in ("density-note", "nci-note", "esp-note"):
+            lines = state(name)
+            for expected in ("surfaceMode 1", "tableShown 0", "coefControlsShown 0"):
+                if expected not in lines:
+                    results.fail("surfaces", name + " (no orbital table or coefficient controls) missing " + expected)
+        mos = state("mos-note")
+        for expected in ("surfaceMode 0", "tableShown 1", "coefControlsShown 1", "fieldTypes MO"):
+            if expected not in mos and not any(l.startswith(expected + " ") or l == expected for l in mos):
+                results.fail("surfaces", "MOs panel missing " + expected)
+        if any(l.startswith("fieldTypes") and "Density" in l for l in mos):
+            results.fail("surfaces", "MOs drop-down still lists surfaces")
         selected_path = os.path.join(out, "selected-surface.txt")
         selected = open(selected_path).read() if os.path.exists(selected_path) else ""
-        if "tree ESP on Density\n" not in selected or "shown MOs\n" not in selected:
+        if "tree Surfaces\n" not in selected or "shown MOs\n" not in selected:
             results.fail("surfaces", "menu did not select the existing MOs pane: " + selected)
         text = mt.parseState(log, "spinv").get("spinView", "")
         m = re.search(r"largest spin: (O\d) (-?\d+\.\d+) \(Mulliken\)", text)

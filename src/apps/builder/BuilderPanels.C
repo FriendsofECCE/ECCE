@@ -949,9 +949,9 @@ void Builder::selectDetail(const string& name)
   string panelName = name;
   MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window);
   bool surface = false;
-  if (mo) {
-    for (const auto& entry : mo->surfaceEntries())
-      if (name == entry.label) { panelName = "MOs"; surface = true; }
+  if (mo && name == "Surfaces" && !mo->surfaceEntries().empty()) {
+    panelName = "MOs";
+    surface = true;
   }
   wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(panelName));
   if (!pane.IsOk()) {
@@ -971,7 +971,7 @@ void Builder::selectDetail(const string& name)
   sizeIndexPane();
   updatePanes(true);
   focusShownPanel(pane.window);
-  if (surface) mo->selectFieldType(name);
+  if (surface) mo->setSurfaceMode(true);
   else if (mo && name == "MOs") mo->selectFieldType("MO");
   if (p_index) p_index->setSelected(name);
 }
@@ -1109,9 +1109,11 @@ void Builder::updatePropertyIndex()
   for (size_t i = 0; i < ordered.size(); ++i) {
     entries.push_back(ordered[i].second);
     if (ordered[i].second.name == "MOs") {
+      const string entry_group_of_mos = ordered[i].second.group;
       MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window);
-      if (mo) for (const auto& surface : mo->surfaceEntries())
-        entries.push_back({surface.label, "Surfaces", surface.description});
+      if (mo && !mo->surfaceEntries().empty())
+        entries.push_back({"Surfaces", entry_group_of_mos,
+          "Density, spin density, ESP, ELF, LOL and NCI surfaces"});
     }
   }
   p_index->setEntries(entries);

@@ -7494,27 +7494,23 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
 }
 
 
-//  The Surfaces submenu follows the MOs item and depends on the orbital
-//  point, so it is rebuilt whenever that changes.
+//  The Surfaces item follows the MOs item and exists only when the
+//  calculation has a density, which the orbital point decides; rebuilt
+//  whenever that changes.
 void Builder::rebuildSurfacesMenu(MoPanel *mo)
 {
   int mosPos = wxNOT_FOUND;
   for (int i = (int)p_propertyMenu->GetMenuItemCount() - 1; i >= 0; --i) {
     wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
-    if (item->IsSubMenu() && item->GetItemLabelText() == "Surfaces")
+    if (item->GetItemLabelText() == "Surfaces")
       p_propertyMenu->Destroy(item);
   }
   for (size_t i = 0; i < p_propertyMenu->GetMenuItemCount(); ++i)
     if (p_propertyMenu->FindItemByPosition(i)->GetItemLabelText() == "MOs")
       mosPos = (int)i;
-  const auto surfaces = mo->surfaceEntries();
-  if (surfaces.empty() || mosPos == wxNOT_FOUND) return;
-  wxMenu *menu = new wxMenu;
-  for (size_t i = 0; i < surfaces.size(); ++i)
-    menu->Append(ID_SURFACE_MENU_BASE + i,
-                 wxString::FromUTF8(surfaces[i].label.c_str()),
-                 wxString::FromUTF8(surfaces[i].description.c_str()));
-  p_propertyMenu->Insert(mosPos + 1, wxID_ANY, "Surfaces", menu);
+  if (mo->surfaceEntries().empty() || mosPos == wxNOT_FOUND) return;
+  p_propertyMenu->Insert(mosPos + 1, ID_SURFACE_MENU_BASE, "Surfaces",
+                         "Density, spin density, ESP, ELF, LOL and NCI surfaces");
 }
 
 
