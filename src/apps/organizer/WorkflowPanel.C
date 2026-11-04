@@ -617,6 +617,12 @@ void WorkflowPanel::updateTexts()
   if (p_session->numMembers() == 0)
     p_help->SetLabel("Pick a code on the right to add the first step.  "
                      "Its structure is set in the Builder.");
+  else if (!WorkflowSteps::recipeId(p_session).empty())
+    p_help->SetLabel(
+      "Build the first molecule in Builder; open its editor, save and launch.\n"
+      "After a source is Complete, open the next editor to load its structure.\n"
+      "Check its settings, save and launch.\n"
+      "Launch Ready Steps launches all steps whose sources are Complete.");
   else
     p_help->SetLabel(
       "Select a box, then a code on the right: the new step starts from that "
