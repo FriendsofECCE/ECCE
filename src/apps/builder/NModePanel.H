@@ -190,7 +190,8 @@ class NModePanel : public NModesGUI,
       bool writeModesFile(IPropCalculation *calc, const string& path,
                           wxString *error);
       vector<IPropCalculation*> comparableCalculations(bool needSpectrum = true);
-      void applySpectrumSettings();
+      wxSizer *createSpectrumSettings(wxWindow *pane, wxBoxSizer *col, bool window);
+      void applySpectrumSettings(wxTextCtrl *width = nullptr, wxTextCtrl *factor = nullptr);
       void updateVectors(int mode,
                          float amplitude,
                          bool sign,

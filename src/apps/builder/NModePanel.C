@@ -13,6 +13,7 @@
 #include <algorithm>
   using std::fill;
 #include <limits>
+#include <functional>
 
 #include <sstream>
 #include <filesystem>
@@ -74,6 +75,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/SliderCombo.H"
 #include "wxgui/WindowEvent.H"
+#include "wxgui/WindowShot.H"
 
 #include "viz/NModeStepCmd.H"
 #include "viz/NModeTraceCmd.H"
@@ -85,6 +87,8 @@
 #include "wxviz/WxVizToolFW.H"
 
 #include "NModePanel.H"
+
+static wxString activityText(const VibModeInfo& v);
 
 namespace {
 //  Height of a label's text as drawn, all its lines.
@@ -192,9 +196,13 @@ NModePanel::~NModePanel()
    //  The animation timer must not fire into a destroyed panel.
    unsubscribe();
    delete p_timer;
-   //  The window's canvas calls back into this panel.
+   //  Destroy callbacks while their panel is still alive; frame destruction
+   //  itself is deferred by wxWidgets.
    if (p_spectrumPop) p_spectrumPop->setClickHandler(0);
-   if (p_spectrumFrame) p_spectrumFrame->Destroy();
+   if (p_spectrumFrame) {
+      p_spectrumFrame->DestroyChildren();
+      p_spectrumFrame->Destroy();
+   }
 }
 
 
@@ -582,99 +590,7 @@ void NModePanel::createSpectrumPane()
    p_graphBox->SetSizer(boxSizer);
    col->Add(p_graphBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
 
-   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
-   const int gap = 6;
-
-   row->Add(new wxStaticText(pane, wxID_ANY,
-              wxString::FromUTF8("Width:")),
-            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
-   p_fwhmText = new wxTextCtrl(pane, wxID_ANY,
-                  wxString::Format("%g", fwhm), wxDefaultPosition,
-                  wxSize(48, -1), wxTE_PROCESS_ENTER);
-   p_fwhmText->SetToolTip(wxString::FromUTF8(
-      "Full width at half maximum of each band, in cm\xE2\x81\xBB\xC2\xB9 "
-      "(0 to 200).\nCondensed-phase bands are typically 5 to 30 wide.\n"
-      "0 shows sticks only.\nA narrow width gives sharp lines at the band "
-      "origins; it does not reproduce the rotational structure of a "
-      "gas-phase spectrum."));
-   row->Add(p_fwhmText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-
-   row->Add(new wxStaticText(pane, wxID_ANY, "Freq. factor:"),
-            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-   p_scaleText = new wxTextCtrl(pane, wxID_ANY,
-                  wxString::Format("%g", scale), wxDefaultPosition,
-                  wxSize(48, -1), wxTE_PROCESS_ENTER);
-   p_scaleText->SetToolTip(wxString::FromUTF8(
-      "Multiplies every frequency. Harmonic frequencies from most "
-      "methods are 3 to 5 % too high; a typical factor is 0.96."));
-   row->Add(p_scaleText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-
-   wxCheckBox *left = new wxCheckBox(pane, wxID_ANY,
-                                     "High on left");
-   left->SetValue(reversed);
-   row->Add(left, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-
-   wxCheckBox *stk = new wxCheckBox(pane, wxID_ANY, "Sticks");
-   stk->SetValue(sticks);
-   row->Add(stk, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-
-   wxButton *reset = new wxButton(pane, wxID_ANY, "Reset");
-   reset->SetToolTip("Show the whole spectrum (or double-click the plot, "
-                     "or press Home).\nClick a peak to show its mode. Drag "
-                     "to zoom to a band, mouse wheel to zoom, right-drag "
-                     "to pan.");
-   row->Add(reset, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, gap * 2);
-   wxButton *popout = new wxButton(pane, wxID_ANY, "Open in window");
-   popout->SetToolTip("The same spectrum in its own resizable window, with "
-                      "both panes and both axes.");
-   row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
-   col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
-
-   //  Zoom range, difference and experimental curve (#707); wraps so the
-   //  docked panel does not grow.
-   wxWrapSizer *more = new wxWrapSizer(wxHORIZONTAL);
-   more->Add(new wxStaticText(pane, wxID_ANY, "Range:"), 0,
-             wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
-   p_zoomLo = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
-                             wxSize(52, -1), wxTE_PROCESS_ENTER);
-   p_zoomHi = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
-                             wxSize(52, -1), wxTE_PROCESS_ENTER);
-   p_zoomLo->SetToolTip("Lowest wavenumber shown, cm-1.");
-   p_zoomHi->SetToolTip("Highest wavenumber shown, cm-1.");
-   more->Add(p_zoomLo, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-   more->Add(new wxStaticText(pane, wxID_ANY, "to"), 0,
-             wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-   more->Add(p_zoomHi, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-   wxButton *zoomBtn = new wxButton(pane, wxID_ANY, "Zoom");
-   zoomBtn->SetToolTip("Show this wavenumber range (dragging on the plot "
-                       "does the same).");
-   more->Add(zoomBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-   auto doZoom = [this]() {
-      double a, b;
-      if (p_zoomLo->GetValue().ToCDouble(&a) && p_zoomHi->GetValue().ToCDouble(&b))
-         zoomSpectrum(a, b);
-   };
-   zoomBtn->Bind(wxEVT_BUTTON, [doZoom](wxCommandEvent&) { doZoom(); });
-   p_zoomHi->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
-   p_zoomLo->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
-   p_diffCheck = new wxCheckBox(pane, wxID_ANY, "Difference");
-   p_diffCheck->SetToolTip("Draw the second calculation's curve minus this "
-                           "one's (choose Compare... first), with the same "
-                           "line width and scaling factor.");
-   p_diffCheck->SetValue(p_showDiff);
-   p_diffCheck->Enable(p_compare != 0);
-   p_diffCheck->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
-      setShowDifference(e.IsChecked());
-   });
-   more->Add(p_diffCheck, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-   wxButton *expBtn = new wxButton(pane, wxID_ANY, "Experimental...");
-   expBtn->SetToolTip("Draw a measured spectrum from a CSV file (wavenumber "
-                      "and absorbance or transmittance), scaled to this "
-                      "calculation's tallest peak in view. Choose it again "
-                      "with Cancel to remove it.");
-   expBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { importExperimentalDialog(); });
-   more->Add(expBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-   col->Add(more, 0, wxEXPAND | wxBOTTOM, 3);
+   wxSizer *row = createSpectrumSettings(pane, col, false);
 
    //  The dock can give this panel less height than a plot is readable
    //  in; then this stands in for the whole plot rather than a squashed one.
@@ -785,27 +701,165 @@ void NModePanel::createSpectrumPane()
       CallAfter([this]() { Layout(); });
    });
 
-   p_fwhmText->Bind(wxEVT_TEXT_ENTER,
-                    [this](wxCommandEvent&) { applySpectrumSettings(); });
-   p_fwhmText->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
-      applySpectrumSettings(); e.Skip(); });
-   p_scaleText->Bind(wxEVT_TEXT_ENTER,
-                     [this](wxCommandEvent&) { applySpectrumSettings(); });
-   p_scaleText->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
-      applySpectrumSettings(); e.Skip(); });
+
+}
+
+
+wxSizer *NModePanel::createSpectrumSettings(wxWindow *pane, wxBoxSizer *col,
+                                                bool window)
+{
+   const double fwhm = p_spectrum->spectrum().fwhm();
+   const double scale = p_spectrum->spectrum().scale();
+   const bool reversed = p_spectrum->reversed(), sticks = p_spectrum->showSticks();
+   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
+   const int gap = 6;
+
+   row->Add(new wxStaticText(pane, wxID_ANY,
+              wxString::FromUTF8("Width:")),
+            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
+   wxTextCtrl *width = new wxTextCtrl(pane, wxID_ANY,
+                  wxString::Format("%g", fwhm), wxDefaultPosition,
+                  wxSize(48, -1), wxTE_PROCESS_ENTER);
+   width->SetToolTip(wxString::FromUTF8(
+      "Full width at half maximum of each band, in cm\xE2\x81\xBB\xC2\xB9 "
+      "(0 to 200).\nCondensed-phase bands are typically 5 to 30 wide.\n"
+      "0 shows sticks only.\nA narrow width gives sharp lines at the band "
+      "origins; it does not reproduce the rotational structure of a "
+      "gas-phase spectrum."));
+   row->Add(width, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+
+   row->Add(new wxStaticText(pane, wxID_ANY, "Freq. factor:"),
+            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+   wxTextCtrl *factor = new wxTextCtrl(pane, wxID_ANY,
+                  wxString::Format("%g", scale), wxDefaultPosition,
+                  wxSize(48, -1), wxTE_PROCESS_ENTER);
+   factor->SetToolTip(wxString::FromUTF8(
+      "Multiplies every frequency. Harmonic frequencies from most "
+      "methods are 3 to 5 % too high; a typical factor is 0.96."));
+   row->Add(factor, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+
+   wxCheckBox *left = new wxCheckBox(pane, wxID_ANY,
+                                     "High on left");
+   left->SetValue(reversed);
+   row->Add(left, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+
+   wxCheckBox *stk = new wxCheckBox(pane, wxID_ANY, "Sticks");
+   stk->SetValue(sticks);
+   row->Add(stk, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+
+   wxButton *reset = new wxButton(pane, wxID_ANY, "Reset");
+   reset->SetToolTip("Show the whole spectrum (or double-click the plot, "
+                     "or press Home).\nClick a peak to show its mode. Drag "
+                     "to zoom to a band, mouse wheel to zoom, right-drag "
+                     "to pan.");
+   row->Add(reset, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, gap * 2);
+   if (!window) {
+      wxButton *popout = new wxButton(pane, wxID_ANY, "Open in window");
+      row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
+      popout->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { openSpectrumWindow(); });
+   }
+   col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
+
+   //  Wrapping keeps the same controls usable in a narrow dock.
+   wxWrapSizer *more = new wxWrapSizer(wxHORIZONTAL);
+   more->Add(new wxStaticText(pane, wxID_ANY, "Range:"), 0,
+             wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
+   wxTextCtrl *lo = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
+                             wxSize(52, -1), wxTE_PROCESS_ENTER);
+   wxTextCtrl *hi = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
+                             wxSize(52, -1), wxTE_PROCESS_ENTER);
+   lo->SetToolTip("Lowest wavenumber shown, cm-1.");
+   hi->SetToolTip("Highest wavenumber shown, cm-1.");
+   more->Add(lo, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   more->Add(new wxStaticText(pane, wxID_ANY, "to"), 0,
+             wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   more->Add(hi, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   wxButton *zoomBtn = new wxButton(pane, wxID_ANY, "Zoom");
+   zoomBtn->SetToolTip("Show this wavenumber range (dragging on the plot "
+                       "does the same).");
+   more->Add(zoomBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   auto doZoom = [this, lo, hi]() {
+      double a, b;
+      if (lo->GetValue().ToCDouble(&a) && hi->GetValue().ToCDouble(&b))
+         zoomSpectrum(a, b);
+   };
+   zoomBtn->Bind(wxEVT_BUTTON, [doZoom](wxCommandEvent&) { doZoom(); });
+   hi->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
+   lo->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
+   wxCheckBox *difference = new wxCheckBox(pane, wxID_ANY, "Difference");
+   difference->SetToolTip("Draw the second calculation's curve minus this "
+                           "one's (choose Compare... first), with the same "
+                           "line width and scaling factor.");
+   difference->SetValue(p_showDiff);
+   difference->Enable(p_compare != 0);
+   difference->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+      setShowDifference(e.IsChecked());
+   });
+   more->Add(difference, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+   wxButton *expBtn = new wxButton(pane, wxID_ANY, "Experimental...");
+   expBtn->SetToolTip("Draw a measured spectrum from a CSV file (wavenumber "
+                      "and absorbance or transmittance), scaled to this "
+                      "calculation's tallest peak in view. Choose it again "
+                      "to remove it.");
+   expBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { importExperimentalDialog(); });
+   more->Add(expBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+   col->Add(more, 0, wxEXPAND | wxBOTTOM, 3);
+
+
+   if (!window) {
+      p_fwhmText = width;
+      p_scaleText = factor;
+      p_zoomLo = lo;
+      p_zoomHi = hi;
+      p_diffCheck = difference;
+   }
+   width->SetName("spectrum-width");
+   factor->SetName("spectrum-factor");
+   lo->SetName("spectrum-low");
+   hi->SetName("spectrum-high");
+   left->SetName("spectrum-direction");
+   stk->SetName("spectrum-sticks");
+   difference->SetName("spectrum-difference");
+   reset->SetName("spectrum-reset");
+   zoomBtn->SetName("spectrum-zoom");
+   expBtn->SetName("spectrum-experimental");
+   auto apply = [this, width, factor]() { applySpectrumSettings(width, factor); };
+   for (wxTextCtrl *field : {width, factor}) {
+      field->Bind(wxEVT_TEXT_ENTER, [apply](wxCommandEvent&) { apply(); });
+      field->Bind(wxEVT_KILL_FOCUS, [apply](wxFocusEvent& e) { apply(); e.Skip(); });
+   }
    left->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
       p_spectrum->setReversed(e.IsChecked());
-      ewxConfig::getConfig(INIFILE)->Write("NMode/WavenumberHighOnLeft",
-                                           e.IsChecked());
+      ewxConfig::getConfig(INIFILE)->Write("NMode/WavenumberHighOnLeft", e.IsChecked());
    });
    stk->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
       p_spectrum->setShowSticks(e.IsChecked());
       ewxConfig::getConfig(INIFILE)->Write("NMode/ShowSticks", e.IsChecked());
    });
-   popout->Bind(wxEVT_BUTTON,
-                [this](wxCommandEvent&) { openSpectrumWindow(); });
-   reset->Bind(wxEVT_BUTTON,
-               [this](wxCommandEvent&) { p_spectrum->resetZoom(); });
+   reset->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { p_spectrum->resetZoom(); });
+
+   //  Read back the shared state, including mouse zooms in either canvas.
+   //  Leave a field being edited alone until Enter or focus loss applies it.
+   auto syncText = [](wxTextCtrl *field, std::function<double()> value) {
+      field->SetExtraStyle(field->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
+      field->Bind(wxEVT_UPDATE_UI, [field, value](wxUpdateUIEvent&) {
+         const wxString text = wxString::Format("%g", value());
+         if (!field->HasFocus() && field->GetValue() != text) field->ChangeValue(text);
+      });
+   };
+   syncText(width, [this]() { return p_spectrum->spectrum().fwhm(); });
+   syncText(factor, [this]() { return p_spectrum->spectrum().scale(); });
+   syncText(lo, [this]() { return p_spectrum->axis().lo(); });
+   syncText(hi, [this]() { return p_spectrum->axis().hi(); });
+   for (wxCheckBox *check : {left, stk, difference})
+      check->SetExtraStyle(check->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
+   left->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) { e.Check(p_spectrum->reversed()); });
+   stk->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) { e.Check(p_spectrum->showSticks()); });
+   difference->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
+      e.Check(p_showDiff);
+      e.Enable(p_compare != nullptr);
+   });
+   return row;
 }
 
 
@@ -823,14 +877,19 @@ void NModePanel::openSpectrumWindow()
    wxFrame *frame = new wxFrame(wxGetTopLevelParent(this), wxID_ANY,
                                 "Vibrational Frequencies: spectrum",
                                 wxDefaultPosition, wxSize(1000, 700));
-   SpectrumCanvas *canvas = new SpectrumCanvas(frame);
+   wxPanel *panel = new wxPanel(frame);
+   SpectrumCanvas *canvas = new SpectrumCanvas(panel);
    canvas->shareWith(*p_spectrum);
    canvas->setClickHandler(this);
    canvas->setCompactBelow(0);
    canvas->setStrip(true);
    wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
    sizer->Add(canvas, 1, wxEXPAND);
-   frame->SetSizer(sizer);
+   createSpectrumSettings(panel, sizer, true);
+   panel->SetSizer(sizer);
+   wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
+   outer->Add(panel, 1, wxEXPAND);
+   frame->SetSizer(outer);
    p_spectrumFrame = frame;
    p_spectrumPop = canvas;
    frame->Show(true);
@@ -884,9 +943,11 @@ void NModePanel::exportSpectrumDialog()
  * something: a width of 0 to 200 cm-1 (0 is sticks only), a positive
  * scale.  A field left unreadable goes back to what is in force.
  */
-void NModePanel::applySpectrumSettings()
+void NModePanel::applySpectrumSettings(wxTextCtrl *width, wxTextCtrl *factor)
 {
-   if (p_spectrum == 0 || p_fwhmText == 0 || p_scaleText == 0) return;
+   if (!width) width = p_fwhmText;
+   if (!factor) factor = p_scaleText;
+   if (p_spectrum == 0 || width == 0 || factor == 0) return;
    double fwhm = p_spectrum->spectrum().fwhm();
    double scale = p_spectrum->spectrum().scale();
    //  A decimal comma is read as a point, whatever the locale.
@@ -896,13 +957,13 @@ void NModePanel::applySpectrumSettings()
       return c.Trim(true).Trim(false).ToCDouble(out);
    };
    double v;
-   if (parse(p_fwhmText->GetValue(), &v) && v >= 0) {
+   if (parse(width->GetValue(), &v) && v >= 0) {
       fwhm = v > 200 ? 200 : v;
       if (fwhm > 0 && fwhm < 0.1) fwhm = 0.1;
    }
-   if (parse(p_scaleText->GetValue(), &v) && v > 0) scale = v;
-   p_fwhmText->ChangeValue(wxString::Format("%g", fwhm));
-   p_scaleText->ChangeValue(wxString::Format("%g", scale));
+   if (parse(factor->GetValue(), &v) && v > 0) scale = v;
+   width->ChangeValue(wxString::Format("%g", fwhm));
+   factor->ChangeValue(wxString::Format("%g", scale));
 
    const bool scaleChanged = scale != p_spectrum->spectrum().scale();
    if (fwhm != p_spectrum->spectrum().fwhm()) p_spectrum->setFwhm(fwhm);
@@ -1030,7 +1091,11 @@ bool NModePanel::fillGraph()
   spectrum.setDifference(p_showDiff);
   if (p_expX.size() > 1) spectrum.setExperimental(p_expX, p_expY, p_expLabel);
   if (p_diffCheck) p_diffCheck->Enable(p_compare != 0);
+  const int selected = p_spectrum->selected();
+  const SpectrumAxis axis = p_spectrum->axis();
   p_spectrum->setSpectrum(spectrum);
+  p_spectrum->setSelected(selected);
+  if (axis.zoomed()) p_spectrum->zoomRange(axis.lo(), axis.hi());
 
   return any;
 }
@@ -1551,7 +1616,13 @@ void NModePanel::dumpSpectrumIfRequested()
       //  ECCE_SPECTRUM_WINDOW=1: open the pop-out and click in IT.
       SpectrumCanvas *clicker = p_spectrum;
       if (getenv("ECCE_SPECTRUM_WINDOW") != 0) {
-         openSpectrumWindow();
+         wxWindow *button = wxWindow::FindWindowByLabel("Spectrum...", this);
+         if (button) {
+            wxCommandEvent event(wxEVT_BUTTON, button->GetId());
+            event.SetEventObject(button);
+            button->GetEventHandler()->ProcessEvent(event);
+         }
+         if (!p_spectrumPop) { fclose(out); return; }
          clicker = p_spectrumPop;
          wxBitmap shot(1000, 700, 24);
          wxMemoryDC wdc(shot);
@@ -1597,9 +1668,94 @@ void NModePanel::dumpSpectrumIfRequested()
          wdc.SelectObject(wxNullBitmap);
          shot.SaveFile(wxString(path) + ".window.png", wxBITMAP_TYPE_PNG);
          fprintf(out, "strip selected %d\n", sel + 1);
+         p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
+         const char *names[] = {"width", "factor", "low", "high", "direction", "sticks",
+                                "difference", "reset", "zoom", "experimental"};
+         for (const char *name : names) {
+            wxWindow *control = wxWindow::FindWindowByName(wxString("spectrum-") + name,
+                                                          p_spectrumFrame);
+            fprintf(out, "setting %s %d\n", name, control && control->IsShownOnScreen());
+         }
+         if (getenv("ECCE_SPECTRUM_SETTINGS")) {
+            auto field = [this](const char *name) {
+               return wxDynamicCast(wxWindow::FindWindowByName(
+                  wxString("spectrum-") + name, p_spectrumFrame), wxTextCtrl);
+            };
+            auto command = [](wxWindow *control, wxEventType type, int value = 0) {
+               wxCommandEvent event(type, control->GetId());
+               event.SetEventObject(control);
+               event.SetInt(value);
+               control->GetEventHandler()->ProcessEvent(event);
+            };
+            const double oldWidth = s.fwhm(), oldScale = s.scale();
+            field("width")->ChangeValue("23");
+            field("factor")->ChangeValue("0.96");
+            command(field("width"), wxEVT_TEXT_ENTER);
+            UpdateWindowUI(wxUPDATE_UI_RECURSE);
+            bool ok = s.fwhm() == 23 && s.scale() == 0.96 &&
+                      p_fwhmText->GetValue() == "23" && p_scaleText->GetValue() == "0.96";
+            p_fwhmText->ChangeValue("17");
+            p_scaleText->ChangeValue("1");
+            command(p_fwhmText, wxEVT_TEXT_ENTER);
+            p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
+            ok = ok && field("width")->GetValue() == "17" && field("factor")->GetValue() == "1";
+            field("low")->ChangeValue("1000");
+            field("high")->ChangeValue("2000");
+            command(field("high"), wxEVT_TEXT_ENTER);
+            UpdateWindowUI(wxUPDATE_UI_RECURSE);
+            ok = ok && p_spectrum->axis().lo() == 1000 && p_spectrum->axis().hi() == 2000 &&
+                 p_zoomLo->GetValue() == "1000" && p_zoomHi->GetValue() == "2000";
+            for (const char *name : {"direction", "sticks"}) {
+               wxWindow *control = wxWindow::FindWindowByName(wxString("spectrum-") + name,
+                                                             p_spectrumFrame);
+               command(control, wxEVT_CHECKBOX, 0);
+            }
+            ok = ok && !p_spectrum->reversed() && !p_spectrum->showSticks();
+            //  A refresh for the difference curve must keep the selected mode and zoom.
+            setShowDifference(true);
+            ok = ok && p_spectrum->selected() == sel && p_spectrum->axis().lo() == 1000 &&
+                 p_spectrum->axis().hi() == 2000;
+            setShowDifference(false);
+            wxWindow *reset = wxWindow::FindWindowByName("spectrum-reset", p_spectrumFrame);
+            command(reset, wxEVT_BUTTON);
+            ok = ok && !p_spectrum->axis().zoomed();
+            fprintf(out, "settings-sync %d\n", ok);
+            p_fwhmText->ChangeValue(wxString::Format("%g", oldWidth));
+            p_scaleText->ChangeValue(wxString::Format("%g", oldScale));
+            command(p_fwhmText, wxEVT_TEXT_ENTER);
+            p_spectrum->setReversed(true);
+            p_spectrum->setShowSticks(true);
+            wxMemoryDC updated(shot);
+            p_spectrumPop->paintOnto(updated, wxSize(1000, 700));
+            updated.SelectObject(wxNullBitmap);
+            p_spectrum->setModeNotes({});
+            wxMemoryDC unassigned(shot);
+            p_spectrumPop->paintOnto(unassigned, wxSize(1000, 700));
+            fprintf(out, "strip-unassigned %d\n", !p_spectrumPop->stripText().empty());
+            std::vector<SpectrumModeNote> notes(p_vib.modes.size());
+            for (size_t m = 0; m < notes.size(); ++m) {
+               notes[m].label = p_vib.modes[m].label;
+               notes[m].parts = p_vib.modes[m].parts;
+               notes[m].irrep = p_vib.modes[m].irrep;
+               notes[m].activity = std::string(activityText(p_vib.modes[m]).utf8_str());
+            }
+            p_spectrum->setModeNotes(notes);
+            p_spectrumPop->paintOnto(unassigned, wxSize(1000, 700));
+            unassigned.SelectObject(wxNullBitmap);
+         }
          const std::vector<wxString>& st = p_spectrumPop->stripText();
          for (size_t i = 0; i < st.size(); i++)
             fprintf(out, "strip %zu %s\n", i, (const char*)st[i].utf8_str());
+         const wxWeakRef<wxFrame> frame = p_spectrumFrame;
+         const wxString framePath = wxString(path) + ".frame.png";
+         CallAfter([frame, framePath]() {
+            if (!frame) return;
+            frame->Layout();
+            frame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
+            frame->Refresh();
+            frame->Update();
+            ecceClientShot(frame, framePath);
+         });
       }
       fclose(out);
    }
@@ -1768,6 +1924,8 @@ void NModePanel::fillTable()
       std::vector<SpectrumModeNote> notes(p_vib.modes.size());
       for (size_t m = 0; m < notes.size(); m++) {
          notes[m].label = p_vib.modes[m].label;
+         notes[m].irrep = p_vib.modes[m].irrep;
+         notes[m].activity = std::string(activityText(p_vib.modes[m]).utf8_str());
          notes[m].parts = p_vib.modes[m].parts;
       }
       if (p_spectrum) p_spectrum->setModeNotes(notes);

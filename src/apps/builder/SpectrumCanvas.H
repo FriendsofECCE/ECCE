@@ -53,6 +53,7 @@ class SpectrumCanvas;
 struct SpectrumModeNote
 {
   std::string label;
+  std::string irrep, activity;
   std::vector< std::pair<std::string, double> > parts;   // name, percent
 };
 
@@ -367,7 +368,7 @@ class SpectrumCanvas : public wxPanel
       const bool xTitle = !compact || size.y >= 140;
       //  The strip is under everything else, so what it needs is taken off
       //  the plot, never laid over it.
-      const int stripH = stripHeight(dc);
+      const int stripH = stripHeight(dc, size.x - left - right);
       const int bottom = (compact
           ? ch + 12 + (xTitle ? ch + 6 : 0)
           : 2 * ch + 20 + (imaginary ? ch + 4 : 0)) +
@@ -967,36 +968,26 @@ class SpectrumCanvas : public wxPanel
       return f;
     }
 
-    static int stripRows(size_t n) { return (int)((n + 1) / 2); }
-
-    //  Height of the strip under the plot, or 0 when there is none to draw:
-    //  one bold line and the contributions in two columns, in the tick-label
-    //  font.
-    int stripHeight(wxDC& dc)
-    {
-      if (!p_strip || p_s->selected < 0 || p_s->selected >= (int)p_s->notes.size())
-        return 0;
-      const SpectrumModeNote& n = p_s->notes[p_s->selected];
-      if (n.label.empty() && n.parts.empty()) return 0;
-      dc.SetFont(*wxSMALL_FONT);
-      const int ch = dc.GetCharHeight();
-      return 10 + (1 + stripRows(n.parts.size())) * (ch + 2);
-    }
-
-    void paintStrip(wxDC& dc, const wxRect& box)
+    wxString stripHeading() const
     {
       const int m = p_s->selected;
+      if (m < 0) return wxString();
       const std::vector<VibStick> ir = p_s->spec.sticks(VIB_IR);
       const std::vector<VibStick> ra = p_s->spec.sticks(VIB_RAMAN);
-      const VibStick *at = 0, *atIr = 0, *atRa = 0;
-      for (size_t i = 0; i < ir.size(); i++) if (ir[i].mode == m) atIr = at = &ir[i];
-      for (size_t i = 0; i < ra.size(); i++) if (ra[i].mode == m) { atRa = &ra[i]; if (!at) at = &ra[i]; }
-      if (at == 0) return;
-      const SpectrumModeNote& note = p_s->notes[m];
-
+      const VibStick *at = nullptr, *atIr = nullptr, *atRa = nullptr;
+      for (const VibStick& stick : ir) if (stick.mode == m) atIr = at = &stick;
+      for (const VibStick& stick : ra) if (stick.mode == m) {
+        atRa = &stick;
+        if (!at) at = &stick;
+      }
+      if (!at) return wxString();
+      const SpectrumModeNote note = m < (int)p_s->notes.size()
+          ? p_s->notes[m] : SpectrumModeNote();
       wxString head = utf8(p_s->spec.itemWord().c_str()) + wxString::Format(" %d", m + 1) +
                       "    " + utf8(p_s->spec.positionText(*at).c_str());
-      if (!at->irrep.empty()) head += "    " + utf8(at->irrep.c_str());
+      const std::string sym = at->irrep.empty() ? note.irrep : at->irrep;
+      if (!sym.empty()) head += "    " + utf8(sym.c_str());
+      if (!note.activity.empty()) head += "    " + utf8(note.activity.c_str());
       if (atIr && !p_s->spec.electronic())
         head += "    IR " + wxString::Format("%.1f ", atIr->intensity) +
                 utf8(p_s->spec.unitLabel(VIB_IR).c_str());
@@ -1004,36 +995,80 @@ class SpectrumCanvas : public wxPanel
         head += "    Raman " + wxString::Format("%.1f ", atRa->intensity) +
                 utf8(p_s->spec.unitLabel(VIB_RAMAN).c_str());
       if (!note.label.empty()) head += "    " + utf8(note.label.c_str());
+      return head;
+    }
 
+    //  Measure and draw the same wrapped lines so a narrow window keeps
+    //  the complete description and every contribution readable.
+    static std::vector<wxString> wrapped(wxDC& dc, wxString text, int width)
+    {
+      std::vector<wxString> lines;
+      width = std::max(1, width);
+      while (!text.empty()) {
+        size_t end = 0, space = 0;
+        while (end < text.length() &&
+               dc.GetTextExtent(text.Left(end + 1)).x <= width) {
+          if (text[end] == ' ') space = end;
+          ++end;
+        }
+        if (end < text.length() && space > 0) end = space;
+        end = std::max(size_t(1), end);
+        lines.push_back(text.Left(end));
+        text = text.Mid(end).Trim(false);
+      }
+      return lines;
+    }
+
+    std::vector<wxString> contributionLines(wxDC& dc, int width) const
+    {
+      std::vector<wxString> lines;
+      const int m = p_s->selected;
+      if (m >= 0 && m < (int)p_s->notes.size())
+        for (const auto& part : p_s->notes[m].parts) {
+          const auto more = wrapped(dc, utf8(part.first.c_str()) +
+                                    wxString::Format("  %.0f %%", part.second), width);
+          lines.insert(lines.end(), more.begin(), more.end());
+        }
+      return lines;
+    }
+
+    int stripHeight(wxDC& dc, int width)
+    {
+      if (!p_strip || stripHeading().empty()) return 0;
+      wxFont bold(*wxSMALL_FONT);
+      bold.SetWeight(wxFONTWEIGHT_BOLD);
+      dc.SetFont(bold);
+      const int headRows = wrapped(dc, stripHeading(), width - 24).size();
+      dc.SetFont(*wxSMALL_FONT);
+      const int rows = contributionLines(dc, width - 24).size();
+      return 10 + (headRows + rows) * (dc.GetCharHeight() + 2);
+    }
+
+    void paintStrip(wxDC& dc, const wxRect& box)
+    {
       dc.SetPen(wxPen(p_palette.axis, 1));
       dc.SetBrush(wxBrush(p_palette.box));
       dc.DrawRoundedRectangle(box, 4);
       wxFont bold(*wxSMALL_FONT);
       bold.SetWeight(wxFONTWEIGHT_BOLD);
       dc.SetTextForeground(p_palette.text);
-      dc.SetFont(*wxSMALL_FONT);
-      const int ch = dc.GetCharHeight();
-      const int pad = 12, inner = box.width - 2 * pad;
       dc.SetFont(bold);
-      dc.DrawText(wxControl::Ellipsize(head, dc, wxELLIPSIZE_END, inner),
-                  box.x + pad, box.y + 5);
-      p_stripText.push_back(head);
-
-      //  Two columns, filled across; the percentages end at a common edge.
-      dc.SetFont(*wxSMALL_FONT);
-      const int half = inner / 2, gutter = 16;
-      for (size_t i = 0; i < note.parts.size(); i++) {
-        const int col = (int)(i % 2), row = (int)(i / 2);
-        const int x0 = box.x + pad + col * half;
-        const int y = box.y + 5 + (ch + 2) * (1 + row);
-        const wxString pct = wxString::Format("%.0f %%", note.parts[i].second);
-        const int pw = dc.GetTextExtent("100 %").x;
-        wxString name = utf8(note.parts[i].first.c_str());
-        name = wxControl::Ellipsize(name, dc, wxELLIPSIZE_END, half - pw - gutter - 8);
-        dc.DrawText(name, x0, y);
-        dc.DrawText(pct, x0 + half - gutter - dc.GetTextExtent(pct).x, y);
-        p_stripText.push_back(utf8(note.parts[i].first.c_str()) + "  " + pct);
+      int y = box.y + 5;
+      for (const auto& line : wrapped(dc, stripHeading(), box.width - 24)) {
+        dc.DrawText(line, box.x + 12, y);
+        y += dc.GetCharHeight() + 2;
       }
+      p_stripText.push_back(stripHeading());
+      dc.SetFont(*wxSMALL_FONT);
+      for (const auto& line : contributionLines(dc, box.width - 24)) {
+        dc.DrawText(line, box.x + 12, y);
+        y += dc.GetCharHeight() + 2;
+      }
+      const int m = p_s->selected;
+      if (m >= 0 && m < (int)p_s->notes.size())
+        for (const auto& part : p_s->notes[m].parts)
+          p_stripText.push_back(utf8(part.first.c_str()) +
+                               wxString::Format("  %.0f %%", part.second));
     }
 
     void paintReadout(wxDC& dc, const wxSize& size)

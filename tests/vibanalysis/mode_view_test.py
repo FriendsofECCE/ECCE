@@ -149,12 +149,26 @@ def main():
             run(s, display, env, wrappers, png, calc, calc + "-spectrum",
                 {"ECCE_SPECTRUM_DUMP": sp, "ECCE_SPECTRUM_WINDOW": "1",
                  "ECCE_SPECTRUM_CLICK": str(click), "ECCE_SPECTRUM_HOVER": str(click),
-                 "ECCE_EXIT_AFTER_DUMP": "1"})
+                 "ECCE_EXIT_AFTER_DUMP": "1", "ECCE_SPECTRUM_SETTINGS": "1"})
             lines = read(sp)
             hover = [l.split(" ", 2)[2] for l in lines if l.startswith("hover ")]
             strip = [l.split(" ", 2)[2] for l in lines if l.startswith("strip ") and l[6].isdigit()]
             say("  hover: %s" % hover)
             say("  strip: %s" % strip)
+            for name in ("width", "factor", "low", "high", "direction", "sticks",
+                         "reset", "zoom", "difference", "experimental"):
+                check("setting %s 1" % name in lines,
+                      "%s: Spectrum window shows %s" % (calc, name))
+            check("strip-unassigned 1" in lines,
+                  "%s: an unassigned mode still has a frequency/intensity strip" % calc)
+            check("settings-sync 1" in lines,
+                  "%s: window and dock settings share state; refresh keeps selection and zoom" % calc)
+            check(bool(strip) and "IR " in strip[0] and "Raman active" in strip[0]
+                  and "IR active" in strip[0],
+                  "%s: strip includes intensities and symmetry activity" % calc)
+            if os.path.exists(sp + ".frame.png"):
+                shutil.copy(sp + ".frame.png", os.path.join(png, "%s-spectrum-frame.png" % calc))
+
             check(bool(hover) and re.fullmatch(r"Mode %d — -?\d+\.\d cm.+" % click, hover[0]),
                   "%s: hover line 1 is 'Mode N — freq': %s" % (calc, hover[:1]))
             check(len(hover) >= 3 and hover[1] == d["modes"][click]["label"] and
