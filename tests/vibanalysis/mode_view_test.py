@@ -161,8 +161,8 @@ def main():
             say("  hover: %s" % hover)
             say("  strip: %s" % strip)
             for name in ("width", "factor", "low", "high", "direction", "sticks",
-                         "reset", "zoom", "difference", "experimental", "compare",
-                         "remove-comparison", "match-bands", "export-csv"):
+                         "reset", "difference", "experimental", "compare",
+                         "remove", "export-csv"):
                 check("setting %s 1" % name in lines,
                       "%s: Spectrum window shows %s" % (calc, name))
             check("window-dialogs compare 1" in lines,

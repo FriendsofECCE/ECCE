@@ -14,6 +14,10 @@
 #include <wx/weakref.h>
 
 class wxCheckBox;
+class wxToggleButton;
+class wxRadioButton;
+class wxButton;
+class wxWrapSizer;
 class wxGrid;
 class wxTextCtrl;
 class PropVector;
@@ -185,12 +189,19 @@ class NModePanel : public NModesGUI,
       void dumpSpectrumIfRequested();
       void exportSpectrumDialog(const wxString& path = wxString());
       void compareDialog();
-      void matchBandsDialog();
+      void matchBandsDialog(IPropCalculation *other);
+      /** Remove every other spectrum: the comparison, the difference and the experimental curve. */
+      void removeOtherSpectra();
+      bool hasOtherSpectra() const { return p_compare != nullptr || !p_expX.empty(); }
+      /** The panel's own layout: view toggle, viewer group, bottom row. */
+      void buildLayout();
+      void syncViewControls();
+      void showStyle(bool animation);
       void importExperimentalDialog();
       bool writeModesFile(IPropCalculation *calc, const string& path,
                           wxString *error);
       vector<IPropCalculation*> comparableCalculations(bool needSpectrum = true);
-      wxSizer *createSpectrumSettings(wxWindow *pane, wxBoxSizer *col, bool window);
+      void createWindowControls(wxWindow *pane, wxBoxSizer *col);
       void applySpectrumSettings(wxTextCtrl *width = nullptr, wxTextCtrl *factor = nullptr);
       void updateVectors(int mode,
                          float amplitude,
@@ -212,6 +223,7 @@ class NModePanel : public NModesGUI,
       void OnRadioboxUpdateUI( wxUpdateUIEvent& event );
       void OnModeSelection( wxGridEvent& event );
       void OnCheckboxNmodeVecsignClick( wxCommandEvent& event );
+      void OnShowToggled( wxCommandEvent& event );
       void OnTimer( wxTimerEvent& event );
 
    private:
@@ -229,8 +241,12 @@ class NModePanel : public NModesGUI,
       vector<double> p_expX, p_expY;             // experimental spectrum (#707)
       string p_expLabel;
       bool p_showDiff = false;
-      wxCheckBox *p_diffCheck = 0;
-      wxTextCtrl *p_zoomLo = 0, *p_zoomHi = 0;
+      wxToggleButton *p_viewSpectrum = 0, *p_viewTable = 0;
+      wxButton *p_exportBtn = 0;
+      wxRadioButton *p_animRadio = 0, *p_vecRadio = 0;
+      wxCheckBox *p_showCheck = 0;
+      bool p_show = true;               // "Show": draw the mode in the viewer
+      wxBoxSizer *p_viewerRow = 0;
       wxStaticText *p_bandNote = 0;
       wxCheckBox *p_compCH = 0;
       std::vector<int> p_picked;          // atoms selected in the 3-D view, 0-based
@@ -241,9 +257,6 @@ class NModePanel : public NModesGUI,
       vector<double> p_compFreqs;
       std::shared_ptr<VibSpectrum> p_compare;   // the second curve, if any
       string p_compareName, p_compareCode;
-      wxButton *p_compareRemove = 0;
-      wxTextCtrl *p_fwhmText;
-      wxTextCtrl *p_scaleText;
 
       wxTimer *p_timer;
       std::vector<double> p_home;   // atoms as they were before the animation

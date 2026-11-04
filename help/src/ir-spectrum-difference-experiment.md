@@ -7,13 +7,13 @@ and any wavenumber range you choose.
 ## Zoom to a range
 
 Type the lowest and the highest wavenumber in the two **Range** fields and
-click **Zoom** (or press Enter). Dragging on the plot, the mouse wheel and
-**Reset** work as before.
+press Enter. Dragging on the plot, the mouse wheel and **Reset zoom** work as
+before.
 
 ## Difference spectrum
 
-1. Click **Compare...** and choose a second calculation. Its curve is drawn
-   with the same line width and the same **Freq. factor** as the first.
+1. Click **Compare...** and choose a second calculation marked **(overlay spectrum)**. Its curve is drawn
+   with the same line width and the same **Scale factor** as the first.
 2. Tick **Difference**. A pane under the plot, with the same wavenumber axis and zoom,
    shows the second calculation's curve minus the first's on its own signed
    axis, with a solid zero line. A band that moved shows as a peak at its new
@@ -34,10 +34,12 @@ semicolon, tab or spaces. Other lines, such as a header, are ignored.
   range equals the highest point of the computed curve there. No baseline is
   removed. It needs a line width above 0 (sticks only has no curve to
   scale to).
-- The **Freq. factor** moves the computed curve only; the experimental
+- The **Scale factor** moves the computed curve only; the experimental
   spectrum is never shifted.
 
-Click **Experimental...** again and answer **Yes** to remove it.
+Click **Remove** to remove it (and any comparison), or **Experimental...** again and answer **Yes**.
+
+With a comparison or an experimental curve loaded the plot shows IR or Raman one at a time, chosen by the **IR | Raman** switch at its top right; with one spectrum they are stacked.
 
 ## Export
 

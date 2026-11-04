@@ -20,6 +20,9 @@
 #include <fstream>
 #include <sstream>
 #include <wx/checkbox.h>
+#include <wx/tglbtn.h>
+#include <wx/radiobut.h>
+#include <wx/statbox.h>
 #include <wx/dialog.h>
 #include <wx/choicdlg.h>
 #include <wx/modalhook.h>
@@ -149,8 +152,6 @@ NModePanel::NModePanel()
     TearableContentProvider(),
     p_grid(NULL),
     p_spectrum(NULL),
-    p_fwhmText(NULL),
-    p_scaleText(NULL),
     p_timer(NULL), p_animating(false),
     p_slider(NULL),
     p_selectedRow(0),
@@ -175,8 +176,6 @@ NModePanel::NModePanel(IPropCalculation *calculation,
     TearableContentProvider(),
     p_grid(NULL),
     p_spectrum(NULL),
-    p_fwhmText(NULL),
-    p_scaleText(NULL),
     p_timer(NULL), p_animating(false),
     p_slider(NULL),
     p_selectedRow(0),
@@ -349,6 +348,8 @@ bool NModePanel::Create(IPropCalculation *calculation,
      viewbox->SetSelection(isGraphShown() ? 0 : 1);
    }
 
+   buildLayout();
+
    int delay;
    config->Read("NMode/Delay",&delay,20);
    ewxTextCtrl *text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_NMODE_DELAY);
@@ -426,6 +427,7 @@ void NModePanel::initialize()
             (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
       if (viewbox != 0 && viewbox->GetCount() > 1) {
          viewbox->SetSelection(1);   // 0 = Graph, 1 = Table
+         syncViewControls();
       }
    }
 
@@ -491,6 +493,7 @@ void NModePanel::showTable()
    p_gridPlotSizer->Show((size_t)0,true);
    p_gridPlotSizer->Show((size_t)1,false);
    p_gridPlotSizer->Layout();
+   syncViewControls();
 }
 
 void NModePanel::showGraph()
@@ -498,6 +501,7 @@ void NModePanel::showGraph()
    p_gridPlotSizer->Show((size_t)1,true);
    p_gridPlotSizer->Show((size_t)0,false);
    p_gridPlotSizer->Layout();
+   syncViewControls();
 }
 
 bool NModePanel::isGraphShown()
@@ -553,8 +557,9 @@ bool NModePanel::checkStructure()
 }
 
 /**
- * The plot: the spectrum canvas with its controls underneath.  Item 1 of
- * p_gridPlotSizer, which showGraph()/showTable() rely on.
+ * The plot: the spectrum canvas and the selected mode under it.  Item 1 of
+ * p_gridPlotSizer, which showGraph()/showTable() rely on.  IR and Raman are
+ * stacked here; the settings live in the Spectrum window.
  */
 void NModePanel::createSpectrumPane()
 {
@@ -577,6 +582,7 @@ void NModePanel::createSpectrumPane()
    p_spectrum->setScale(scale);
    p_spectrum->setReversed(reversed);
    p_spectrum->setShowSticks(sticks);
+   p_spectrum->setCompactBelow(0);
    col->Add(p_spectrum, 1, wxEXPAND);
 
    //  The selected mode, frequency first, wrapped into two lines under the
@@ -587,13 +593,11 @@ void NModePanel::createSpectrumPane()
                             wxBORDER_SIMPLE);
    p_graphBox->SetBackgroundColour(pane->GetBackgroundColour().ChangeLightness(106));
    p_graphDetail = new wxStaticText(p_graphBox, wxID_ANY, "");
-   p_graphDetail->SetMinSize(wxSize(50, p_graphDetail->GetCharHeight() + 2));
+   p_graphDetail->SetMinSize(wxSize(50, 2*p_graphDetail->GetCharHeight() + 2));
    wxBoxSizer *boxSizer = new wxBoxSizer(wxVERTICAL);
    boxSizer->Add(p_graphDetail, 1, wxEXPAND | wxALL, 4);
    p_graphBox->SetSizer(boxSizer);
    col->Add(p_graphBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
-
-   wxSizer *row = createSpectrumSettings(pane, col, false);
 
    //  The dock can give this panel less height than a plot is readable
    //  in; then this stands in for the whole plot rather than a squashed one.
@@ -609,15 +613,11 @@ void NModePanel::createSpectrumPane()
    col->Show(noRoom, false);
    noRoomButton->Bind(wxEVT_BUTTON,
                       [this](wxCommandEvent&) { openSpectrumWindow(); });
-   //  The settings row goes first: at the Viewer's first size on a laptop
-   //  screen (1366x768) the pane is about 140 px, room for the plot alone.
-   pane->Bind(wxEVT_SIZE, [pane, col, row, noRoom, this](wxSizeEvent& e) {
+   pane->Bind(wxEVT_SIZE, [col, noRoom, this](wxSizeEvent& e) {
       const int h = e.GetSize().y;
-      const bool plot = h >= 110, settings = h >= 190, text = h >= 150;
-      if (col->IsShown(p_spectrum) != plot || col->IsShown(row) != settings ||
-          col->IsShown(p_graphBox) != text) {
+      const bool plot = h >= 110, text = h >= 150;
+      if (col->IsShown(p_spectrum) != plot || col->IsShown(p_graphBox) != text) {
          col->Show(p_spectrum, plot);
-         col->Show(row, settings);
          col->Show(p_graphBox, text);
          col->Show(noRoom, !plot);
       }
@@ -627,75 +627,6 @@ void NModePanel::createSpectrumPane()
    pane->SetSizer(col);
    p_gridPlotSizer->Add(pane, 1, wxGROW);
 
-   //  The window is most useful beside the Table view, where the plot's own
-   //  button is hidden: offer it next to the Graph/Table choice as well.
-   wxWindow *viewBox = FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
-   wxSizer *viewSizer = viewBox ? viewBox->GetContainingSizer() : 0;
-   if (viewSizer) {
-      size_t at = 0;
-      for (wxSizerItemList::compatibility_iterator n =
-             viewSizer->GetChildren().GetFirst(); n; n = n->GetNext(), at++)
-         if (n->GetData()->GetWindow() == viewBox) break;
-      wxButton *spectrum = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                        "Spectrum...");
-      spectrum->SetToolTip("The IR and Raman spectra in their own window.");
-      viewSizer->Insert(at + 1, spectrum, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      spectrum->Bind(wxEVT_BUTTON,
-                     [this](wxCommandEvent&) { openSpectrumWindow(); });
-      //  Beside the Graph/Table choice, not in the plot's settings row,
-      //  where it wrapped onto a line of its own and took the plot's height.
-      wxButton *exportCsv = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                         "Export .csv...");
-      exportCsv->SetToolTip("Save the spectrum (sticks and broadened "
-                            "curve) as a comma-separated file for a "
-                            "spreadsheet or plotting program.");
-      viewSizer->Insert(at + 2, exportCsv, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      exportCsv->Bind(wxEVT_BUTTON,
-                      [this](wxCommandEvent& e) { exportSpectrumDialog(e.GetString()); });
-      wxButton *compare = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                       "Compare...");
-      compare->SetToolTip("Draw the IR or Raman spectrum of another "
-                          "calculation in this folder as a second curve.");
-      viewSizer->Insert(at + 3, compare, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      compare->Bind(wxEVT_BUTTON,
-                    [this](wxCommandEvent&) { compareDialog(); });
-      wxButton *bands = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                     "Match bands...");
-      bands->SetToolTip("Which band of another calculation in this folder is "
-                        "which band of this one, and how far it moved "
-                        "(from the overlap of the normal-mode motion).");
-      viewSizer->Insert(at + 3, bands, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      bands->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { matchBandsDialog(); });
-      wxButton *composition = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                           "Composition...");
-      composition->SetToolTip("What each mode is made of: its share along "
-                              "bond stretches, angle bends and torsions.");
-      viewSizer->Insert(at + 4, composition, 0,
-                        wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      composition->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-         wxString err;
-         if (!showComposition(-1, &err))
-            wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
-      });
-      wxButton *displace = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                        "Displace...");
-      displace->SetToolTip("New calculation(s) with the structure displaced "
-                           "along the selected mode or all imaginary modes: "
-                           "the way off a saddle point.");
-      viewSizer->Insert(at + 5, displace, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      displace->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { displaceDialog(); });
-      //  Enabled, not hidden, so the row does not reflow at narrow widths.
-      p_compareRemove = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                     "Remove comparison");
-      p_compareRemove->SetToolTip("Remove the second curve and show this "
-                                  "calculation only.");
-      p_compareRemove->Enable(false);
-      viewSizer->Insert(at + 5, p_compareRemove, 0,
-                        wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      p_compareRemove->Bind(wxEVT_BUTTON,
-                    [this](wxCommandEvent&) { compareWith(string()); });
-   }
-
    //  The wrap sizers under the plot learn their width only in a layout, so
    //  the first one reserved them several rows (on MSW about 100 px) and the
    //  plot did not fit; a second pass at the same size gives it back.
@@ -703,145 +634,282 @@ void NModePanel::createSpectrumPane()
       e.Skip();
       CallAfter([this]() { Layout(); });
    });
-
-
 }
 
 
-wxSizer *NModePanel::createSpectrumSettings(wxWindow *pane, wxBoxSizer *col,
-                                                bool window)
+/**
+ * The rest of the panel, top to bottom: Spectrum | Table, the plot (made
+ * above), the "Mode in the viewer" group and the row of windows.  The old
+ * Animation/Vector and Graph/Table radio boxes stay as hidden state holders,
+ * so the script hooks and handlers that drive them keep working.
+ */
+void NModePanel::buildLayout()
+{
+   wxSizer *top = GetSizer();
+   FindWindow(ID_RADIOBOX_NMODE_VIZTYPE)->Hide();
+   FindWindow(ID_RADIOBOX_NMODE_DATAVIEW)->Hide();
+
+   wxBoxSizer *tr = new wxBoxSizer(wxHORIZONTAL);
+   p_viewSpectrum = new wxToggleButton(this, wxID_ANY, "Spectrum");
+   p_viewTable = new wxToggleButton(this, wxID_ANY, "Table");
+   auto choose = [this](int i) {
+      wxRadioBox *v = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
+      v->SetSelection(i);
+      wxCommandEvent ev(wxEVT_RADIOBOX, v->GetId());
+      ev.SetEventObject(v);
+      ev.SetInt(i);
+      v->GetEventHandler()->ProcessEvent(ev);
+   };
+   p_viewSpectrum->Bind(wxEVT_TOGGLEBUTTON, [choose](wxCommandEvent&) { choose(0); });
+   p_viewTable->Bind(wxEVT_TOGGLEBUTTON, [choose](wxCommandEvent&) { choose(1); });
+   p_viewSpectrum->SetToolTip("The IR and Raman spectra, one over the other.");
+   p_viewTable->SetToolTip("The frequencies as a table.");
+   p_exportBtn = new wxButton(this, wxID_ANY, "Export .csv...");
+   p_exportBtn->SetToolTip("Save the spectrum (sticks and broadened curve) "
+                           "as a comma-separated file for a spreadsheet or "
+                           "plotting program.");
+   p_exportBtn->Bind(wxEVT_BUTTON,
+                     [this](wxCommandEvent& e) { exportSpectrumDialog(e.GetString()); });
+   tr->Add(p_viewSpectrum, 0, wxALL, 3);
+   tr->Add(p_viewTable, 0, wxALL, 3);
+   tr->AddStretchSpacer(1);
+   tr->Add(p_exportBtn, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   top->Insert(0, tr, 0, wxEXPAND);
+
+   //  Detach the old rows' contents and regroup them.
+   wxSizer *box5 = 0;
+   for (wxSizerItem *it : top->GetChildren())
+      if (it->GetSizer() && it->GetSizer()->GetItem(p_)) box5 = it->GetSizer();
+   box5->Detach(p_);
+   box5->Detach(p_styleSizer);
+   p_->Detach(p_sliderSizer);
+   p_styleSizer->Detach(p_animateSizer);
+   p_styleSizer->Detach(p_vectorSizer);
+
+   wxStaticBoxSizer *group = new wxStaticBoxSizer(wxVERTICAL, this, "Mode in the viewer");
+   wxStaticBox *sb = group->GetStaticBox();
+   //  The controls moved into the box must be its children, or the box
+   //  is drawn over them.
+   std::function<void(wxSizer*)> adopt = [&](wxSizer *z) {
+      for (wxSizerItem *it : z->GetChildren()) {
+         if (it->GetWindow()) it->GetWindow()->Reparent(sb);
+         else if (it->GetSizer()) adopt(it->GetSizer());
+      }
+   };
+   adopt(p_sliderSizer);
+   adopt(p_animateSizer);
+   adopt(p_vectorSizer);
+   wxWrapSizer *kind = new wxWrapSizer(wxHORIZONTAL);
+   p_showCheck = new wxCheckBox(sb, wxID_ANY, "Show");
+   p_showCheck->SetValue(true);
+   p_showCheck->SetToolTip("Draw the selected mode in the viewer. Off leaves "
+                           "the structure alone.");
+   p_animRadio = new wxRadioButton(sb, wxID_ANY, "Animation", wxDefaultPosition,
+                                   wxDefaultSize, wxRB_GROUP);
+   p_vecRadio = new wxRadioButton(sb, wxID_ANY, "Vectors");
+   kind->Add(p_showCheck, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   kind->Add(p_animRadio, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   kind->Add(p_vecRadio, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   p_showCheck->Bind(wxEVT_CHECKBOX, &NModePanel::OnShowToggled, this);
+   auto pick = [this](int i) {
+      wxRadioBox *v = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+      v->SetSelection(i);
+      wxCommandEvent ev(wxEVT_RADIOBOX, v->GetId());
+      ev.SetEventObject(v);
+      ev.SetInt(i);
+      v->GetEventHandler()->ProcessEvent(ev);
+   };
+   p_animRadio->Bind(wxEVT_RADIOBUTTON, [pick](wxCommandEvent&) { pick(0); });
+   p_vecRadio->Bind(wxEVT_RADIOBUTTON, [pick](wxCommandEvent&) { pick(1); });
+   group->Add(kind, 0, wxEXPAND);
+
+   p_viewerRow = new wxBoxSizer(wxHORIZONTAL);
+   p_viewerRow->Add(p_sliderSizer, 0, wxALIGN_CENTER_VERTICAL);
+   p_viewerRow->Add(p_animateSizer, 0, wxALIGN_CENTER_VERTICAL);
+   p_viewerRow->Add(p_vectorSizer, 0, wxALIGN_CENTER_VERTICAL);
+   group->Add(p_viewerRow, 0, wxEXPAND);
+   top->Add(group, 0, wxEXPAND | wxALL, 3);
+
+   FindWindow(ID_CHECKBOX_NMODE_VECSIGN)->SetToolTip(
+      "Show the displacement in the opposite direction (the negative of the mode).");
+
+   wxWrapSizer *bottom = new wxWrapSizer(wxHORIZONTAL);
+   wxButton *window = new wxButton(this, wxID_ANY, "Open in window...");
+   window->SetToolTip("The IR and Raman spectra in their own window, with "
+                      "width, scale factor, comparison and export.");
+   window->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { openSpectrumWindow(); });
+   wxButton *composition = new wxButton(this, wxID_ANY, "Composition...");
+   composition->SetToolTip("What each mode is made of: its share along "
+                           "bond stretches, angle bends and torsions.");
+   composition->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+      wxString err;
+      if (!showComposition(-1, &err))
+         wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
+   });
+   wxButton *displace = new wxButton(this, wxID_ANY, "Displace...");
+   displace->SetToolTip("New calculation(s) with the structure displaced "
+                        "along the selected mode or all imaginary modes: "
+                        "the way off a saddle point.");
+   displace->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { displaceDialog(); });
+   for (wxButton *b : {window, composition, displace})
+      bottom->Add(b, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   top->Add(bottom, 0, wxEXPAND | wxALL, 0);
+
+   showStyle(((wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE))->GetSelection() == 0);
+   syncViewControls();
+}
+
+
+/// The toggles, the viewer-group radios and the export button follow the
+/// hidden radio boxes, however those were changed.
+void NModePanel::syncViewControls()
+{
+   if (p_viewSpectrum == 0) return;
+   const bool graph = isGraphShown();
+   p_viewSpectrum->SetValue(graph);
+   p_viewTable->SetValue(!graph);
+   p_exportBtn->Show(!graph);
+   wxRadioBox *viz = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   if (viz != 0 && p_animRadio != 0) {
+      p_animRadio->SetValue(viz->GetSelection() == 0);
+      p_vecRadio->SetValue(viz->GetSelection() != 0);
+   }
+   Layout();
+}
+
+
+void NModePanel::showStyle(bool animation)
+{
+   if (p_viewerRow == 0) return;
+   p_viewerRow->Show(p_animateSizer, animation);
+   p_viewerRow->Show(p_vectorSizer, !animation);
+   p_viewerRow->Layout();
+   Layout();
+}
+
+
+void NModePanel::OnShowToggled(wxCommandEvent&)
+{
+   p_show = p_showCheck->IsChecked();
+   wxRadioBox *viz = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   if (!p_active || !checkStructure()) return;
+   if (viz->GetSelection() == 0) {
+      if (p_show) showAnimationMode(); else stop();
+   } else {
+      showVectorMode();
+   }
+}
+
+
+/**
+ * The Spectrum window's controls, above the plot: the settings of the
+ * spectrum, and the other spectra drawn with it.
+ */
+void NModePanel::createWindowControls(wxWindow *pane, wxBoxSizer *col)
 {
    const double fwhm = p_spectrum->spectrum().fwhm();
    const double scale = p_spectrum->spectrum().scale();
    const bool reversed = p_spectrum->reversed(), sticks = p_spectrum->showSticks();
-   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
    const int gap = 6;
 
-   row->Add(new wxStaticText(pane, wxID_ANY,
-              wxString::FromUTF8("Width:")),
-            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
-   wxTextCtrl *width = new wxTextCtrl(pane, wxID_ANY,
+   wxStaticBoxSizer *g1 = new wxStaticBoxSizer(wxHORIZONTAL, pane, "Spectrum");
+   wxWindow *w1 = g1->GetStaticBox();
+   wxStaticBoxSizer *g2 = new wxStaticBoxSizer(wxHORIZONTAL, pane, "Other spectra");
+   wxWindow *w2 = g2->GetStaticBox();
+   auto add = [gap](wxSizer *s, wxWindow *w, int left = 0) {
+      s->Add(w, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, left ? left : gap / 2);
+   };
+
+   add(g1, new wxStaticText(w1, wxID_ANY, "Width"));
+   wxTextCtrl *width = new wxTextCtrl(w1, wxID_ANY,
                   wxString::Format("%g", fwhm), wxDefaultPosition,
-                  wxSize(48, -1), wxTE_PROCESS_ENTER);
+                  wxSize(52, -1), wxTE_PROCESS_ENTER);
    width->SetToolTip(wxString::FromUTF8(
       "Full width at half maximum of each band, in cm\xE2\x81\xBB\xC2\xB9 "
       "(0 to 200).\nCondensed-phase bands are typically 5 to 30 wide.\n"
       "0 shows sticks only.\nA narrow width gives sharp lines at the band "
       "origins; it does not reproduce the rotational structure of a "
       "gas-phase spectrum."));
-   row->Add(width, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-
-   row->Add(new wxStaticText(pane, wxID_ANY, "Freq. factor:"),
-            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-   wxTextCtrl *factor = new wxTextCtrl(pane, wxID_ANY,
+   add(g1, width);
+   add(g1, new wxStaticText(w1, wxID_ANY, wxString::FromUTF8("cm\xE2\x81\xBB\xC2\xB9")));
+   add(g1, new wxStaticText(w1, wxID_ANY, "Scale factor"), gap * 2);
+   wxTextCtrl *factor = new wxTextCtrl(w1, wxID_ANY,
                   wxString::Format("%g", scale), wxDefaultPosition,
-                  wxSize(48, -1), wxTE_PROCESS_ENTER);
+                  wxSize(56, -1), wxTE_PROCESS_ENTER);
    factor->SetToolTip(wxString::FromUTF8(
       "Multiplies every frequency. Harmonic frequencies from most "
       "methods are 3 to 5 % too high; a typical factor is 0.96."));
-   row->Add(factor, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-
-   wxCheckBox *left = new wxCheckBox(pane, wxID_ANY,
-                                     "High on left");
-   left->SetValue(reversed);
-   row->Add(left, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-
-   wxCheckBox *stk = new wxCheckBox(pane, wxID_ANY, "Sticks");
+   add(g1, factor);
+   wxCheckBox *stk = new wxCheckBox(w1, wxID_ANY, "Sticks");
    stk->SetValue(sticks);
-   row->Add(stk, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-
-   wxButton *reset = new wxButton(pane, wxID_ANY, "Reset");
+   add(g1, stk, gap * 2);
+   wxCheckBox *left = new wxCheckBox(w1, wxID_ANY, "High on left");
+   left->SetValue(reversed);
+   add(g1, left, gap * 2);
+   add(g1, new wxStaticText(w1, wxID_ANY, "Range"), gap * 2);
+   wxTextCtrl *lo = new wxTextCtrl(w1, wxID_ANY, "", wxDefaultPosition,
+                             wxSize(60, -1), wxTE_PROCESS_ENTER);
+   wxTextCtrl *hi = new wxTextCtrl(w1, wxID_ANY, "", wxDefaultPosition,
+                             wxSize(60, -1), wxTE_PROCESS_ENTER);
+   lo->SetToolTip("Lowest wavenumber shown, cm-1; Enter applies the range.");
+   hi->SetToolTip("Highest wavenumber shown, cm-1; Enter applies the range.");
+   add(g1, lo);
+   add(g1, new wxStaticText(w1, wxID_ANY, "to"));
+   add(g1, hi);
+   wxButton *reset = new wxButton(w1, wxID_ANY, "Reset zoom");
    reset->SetToolTip("Show the whole spectrum (or double-click the plot, "
                      "or press Home).\nClick a peak to show its mode. Drag "
                      "to zoom to a band, mouse wheel to zoom, right-drag "
                      "to pan.");
-   row->Add(reset, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, gap * 2);
-   if (!window) {
-      wxButton *popout = new wxButton(pane, wxID_ANY, "Open in window");
-      row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
-      popout->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { openSpectrumWindow(); });
-   }
-   col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
-
-   //  Wrapping keeps the same controls usable in a narrow dock.
-   wxWrapSizer *more = new wxWrapSizer(wxHORIZONTAL);
-   more->Add(new wxStaticText(pane, wxID_ANY, "Range:"), 0,
-             wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
-   wxTextCtrl *lo = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
-                             wxSize(52, -1), wxTE_PROCESS_ENTER);
-   wxTextCtrl *hi = new wxTextCtrl(pane, wxID_ANY, "", wxDefaultPosition,
-                             wxSize(52, -1), wxTE_PROCESS_ENTER);
-   lo->SetToolTip("Lowest wavenumber shown, cm-1.");
-   hi->SetToolTip("Highest wavenumber shown, cm-1.");
-   more->Add(lo, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-   more->Add(new wxStaticText(pane, wxID_ANY, "to"), 0,
-             wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-   more->Add(hi, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-   wxButton *zoomBtn = new wxButton(pane, wxID_ANY, "Zoom");
-   zoomBtn->SetToolTip("Show this wavenumber range (dragging on the plot "
-                       "does the same).");
-   more->Add(zoomBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+   add(g1, reset, gap);
+   //  Range is applied by Enter in either field or when the second loses
+   //  focus; a drag on the plot sets the same fields.
    auto doZoom = [this, lo, hi]() {
       double a, b;
       if (lo->GetValue().ToCDouble(&a) && hi->GetValue().ToCDouble(&b))
          zoomSpectrum(a, b);
    };
-   zoomBtn->Bind(wxEVT_BUTTON, [doZoom](wxCommandEvent&) { doZoom(); });
+   hi->Bind(wxEVT_KILL_FOCUS, [doZoom](wxFocusEvent& e) { doZoom(); e.Skip(); });
    hi->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
    lo->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
-   wxWrapSizer *spectra = more;
-   if (window) {
-      spectra = new wxWrapSizer(wxHORIZONTAL);
-      col->Add(more, 0, wxEXPAND | wxBOTTOM, 3);
-      spectra->Add(new wxStaticText(pane, wxID_ANY, "Other spectra:"), 0,
-                   wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
-      auto action = [pane, spectra, gap](const char *label, const char *name) {
-         wxButton *button = new wxButton(pane, wxID_ANY, label);
-         button->SetName(wxString("spectrum-") + name);
-         spectra->Add(button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
-         return button;
-      };
-      wxButton *compare = action("Compare...", "compare");
-      compare->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { compareDialog(); });
-      wxButton *remove = action("Remove comparison", "remove-comparison");
-      remove->Enable(p_compare != nullptr);
-      remove->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { compareWith(string()); });
-      remove->SetExtraStyle(remove->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
-      remove->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
-         e.Enable(p_compare != nullptr);
-      });
-      wxButton *bands = action("Match bands...", "match-bands");
-      bands->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { matchBandsDialog(); });
-      wxButton *csv = action("Export .csv...", "export-csv");
-      csv->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) { exportSpectrumDialog(e.GetString()); });
-   }
-   wxCheckBox *difference = new wxCheckBox(pane, wxID_ANY, "Difference");
+
+   wxButton *compare = new wxButton(w2, wxID_ANY, "Compare...");
+   compare->SetToolTip("Another calculation in this folder: draw its "
+                       "spectrum with this one, or match its bands with "
+                       "this one's modes.");
+   compare->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { compareDialog(); });
+   add(g2, compare, gap);
+   add(g2, new wxStaticText(w2, wxID_ANY, "(overlay or mode matching)"));
+   wxCheckBox *difference = new wxCheckBox(w2, wxID_ANY, "Difference");
    difference->SetToolTip("Draw the second calculation's curve minus this "
-                           "one's (choose Compare... first), with the same "
-                           "line width and scaling factor.");
+                          "one's (choose Compare... first), with the same "
+                          "line width and scaling factor.");
    difference->SetValue(p_showDiff);
    difference->Enable(p_compare != 0);
    difference->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
       setShowDifference(e.IsChecked());
    });
-   spectra->Add(difference, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-   wxButton *expBtn = new wxButton(pane, wxID_ANY, "Experimental...");
+   add(g2, difference, gap * 2);
+   wxButton *expBtn = new wxButton(w2, wxID_ANY, "Experimental...");
    expBtn->SetToolTip("Draw a measured spectrum from a CSV file (wavenumber "
                       "and absorbance or transmittance), scaled to this "
-                      "calculation's tallest peak in view. Choose it again "
-                      "to remove it.");
+                      "calculation's tallest peak in view.");
    expBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { importExperimentalDialog(); });
-   spectra->Add(expBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-   col->Add(spectra, 0, wxEXPAND | wxBOTTOM, 3);
+   add(g2, expBtn, gap);
+   wxButton *remove = new wxButton(w2, wxID_ANY, "Remove");
+   remove->SetToolTip("Remove the other spectra: the comparison, the "
+                      "difference and the experimental curve.");
+   remove->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { removeOtherSpectra(); });
+   remove->Enable(hasOtherSpectra());
+   add(g2, remove, gap);
+   g2->AddStretchSpacer(1);
+   wxButton *csv = new wxButton(w2, wxID_ANY, "Export .csv...");
+   csv->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) { exportSpectrumDialog(e.GetString()); });
+   add(g2, csv, gap);
 
+   col->Add(g1, 0, wxEXPAND | wxALL, 3);
+   col->Add(g2, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 3);
 
-   if (!window) {
-      p_fwhmText = width;
-      p_scaleText = factor;
-      p_zoomLo = lo;
-      p_zoomHi = hi;
-      p_diffCheck = difference;
-   }
    width->SetName("spectrum-width");
    factor->SetName("spectrum-factor");
    lo->SetName("spectrum-low");
@@ -850,8 +918,10 @@ wxSizer *NModePanel::createSpectrumSettings(wxWindow *pane, wxBoxSizer *col,
    stk->SetName("spectrum-sticks");
    difference->SetName("spectrum-difference");
    reset->SetName("spectrum-reset");
-   zoomBtn->SetName("spectrum-zoom");
    expBtn->SetName("spectrum-experimental");
+   compare->SetName("spectrum-compare");
+   remove->SetName("spectrum-remove");
+   csv->SetName("spectrum-export-csv");
    auto apply = [this, width, factor]() { applySpectrumSettings(width, factor); };
    for (wxTextCtrl *field : {width, factor}) {
       field->Bind(wxEVT_TEXT_ENTER, [apply](wxCommandEvent&) { apply(); });
@@ -867,7 +937,7 @@ wxSizer *NModePanel::createSpectrumSettings(wxWindow *pane, wxBoxSizer *col,
    });
    reset->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { p_spectrum->resetZoom(); });
 
-   //  Read back the shared state, including mouse zooms in either canvas.
+   //  Read back the shared state, including mouse zooms on the plot.
    //  Leave a field being edited alone until Enter or focus loss applies it.
    auto syncText = [](wxTextCtrl *field, std::function<double()> value) {
       field->SetExtraStyle(field->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
@@ -880,15 +950,25 @@ wxSizer *NModePanel::createSpectrumSettings(wxWindow *pane, wxBoxSizer *col,
    syncText(factor, [this]() { return p_spectrum->spectrum().scale(); });
    syncText(lo, [this]() { return p_spectrum->axis().lo(); });
    syncText(hi, [this]() { return p_spectrum->axis().hi(); });
-   for (wxCheckBox *check : {left, stk, difference})
-      check->SetExtraStyle(check->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
+   for (wxWindow *w : std::initializer_list<wxWindow*>{left, stk, difference, remove})
+      w->SetExtraStyle(w->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
    left->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) { e.Check(p_spectrum->reversed()); });
    stk->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) { e.Check(p_spectrum->showSticks()); });
    difference->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
       e.Check(p_showDiff);
       e.Enable(p_compare != nullptr);
    });
-   return row;
+   remove->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
+      e.Enable(hasOtherSpectra());
+   });
+}
+
+
+void NModePanel::removeOtherSpectra()
+{
+   setShowDifference(false);
+   if (!p_expX.empty()) importExperimental("", "");
+   compareWith("");
 }
 
 
@@ -913,8 +993,21 @@ void NModePanel::openSpectrumWindow()
    canvas->setCompactBelow(0);
    canvas->setStrip(true);
    wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+   createWindowControls(panel, sizer);
    sizer->Add(canvas, 1, wxEXPAND);
-   createSpectrumSettings(panel, sizer, true);
+   wxBoxSizer *foot = new wxBoxSizer(wxHORIZONTAL);
+   foot->AddStretchSpacer(1);
+   wxButton *comp = new wxButton(panel, wxID_ANY, "Composition...");
+   wxButton *close = new wxButton(panel, wxID_ANY, "Close");
+   comp->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+      wxString err;
+      if (!showComposition(-1, &err))
+         wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
+   });
+   close->Bind(wxEVT_BUTTON, [frame](wxCommandEvent&) { frame->Close(); });
+   foot->Add(comp, 0, wxALL, 4);
+   foot->Add(close, 0, wxALL, 4);
+   sizer->Add(foot, 0, wxEXPAND);
    panel->SetSizer(sizer);
    wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
    outer->Add(panel, 1, wxEXPAND);
@@ -978,9 +1071,7 @@ void NModePanel::exportSpectrumDialog(const wxString& requestedPath)
  */
 void NModePanel::applySpectrumSettings(wxTextCtrl *width, wxTextCtrl *factor)
 {
-   if (!width) width = p_fwhmText;
-   if (!factor) factor = p_scaleText;
-   if (p_spectrum == 0 || width == 0 || factor == 0) return;
+   if (p_spectrum == 0 || (width == 0 && factor == 0)) return;
    double fwhm = p_spectrum->spectrum().fwhm();
    double scale = p_spectrum->spectrum().scale();
    //  A decimal comma is read as a point, whatever the locale.
@@ -990,13 +1081,13 @@ void NModePanel::applySpectrumSettings(wxTextCtrl *width, wxTextCtrl *factor)
       return c.Trim(true).Trim(false).ToCDouble(out);
    };
    double v;
-   if (parse(width->GetValue(), &v) && v >= 0) {
+   if (width != 0 && parse(width->GetValue(), &v) && v >= 0) {
       fwhm = v > 200 ? 200 : v;
       if (fwhm > 0 && fwhm < 0.1) fwhm = 0.1;
    }
-   if (parse(factor->GetValue(), &v) && v > 0) scale = v;
-   width->ChangeValue(wxString::Format("%g", fwhm));
-   factor->ChangeValue(wxString::Format("%g", scale));
+   if (factor != 0 && parse(factor->GetValue(), &v) && v > 0) scale = v;
+   if (width != 0) width->ChangeValue(wxString::Format("%g", fwhm));
+   if (factor != 0) factor->ChangeValue(wxString::Format("%g", scale));
 
    const bool scaleChanged = scale != p_spectrum->spectrum().scale();
    if (fwhm != p_spectrum->spectrum().fwhm()) p_spectrum->setFwhm(fwhm);
@@ -1020,10 +1111,8 @@ void NModePanel::modeClicked(int mode)
 
 void NModePanel::showAnimationMode()
 {
-   p_styleSizer->Show(p_animateSizer,1);
-   p_styleSizer->Show(p_vectorSizer,0);
+   showStyle(true);
    p_scaleLabel->SetLabel(_("Amplitude:"));
-   p_styleSizer->Layout();
 
    SGContainer& sg = getFW().getSceneGraph();
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
@@ -1031,15 +1120,13 @@ void NModePanel::showAnimationMode()
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
 
    // Choosing Animation plays the selected mode; there is no Start button.
-   if (p_active) start();
+   if (p_active && p_show) start();
 }
 
 void NModePanel::showVectorMode()
 {
-   p_styleSizer->Show(p_animateSizer,0);
-   p_styleSizer->Show(p_vectorSizer,1);
+   showStyle(false);
    p_scaleLabel->SetLabel(_("Arrow length:"));
-   p_styleSizer->Layout();
 
    stop();
 
@@ -1051,7 +1138,7 @@ void NModePanel::showVectorMode()
 
    SGContainer& sg = getFW().getSceneGraph();
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
-   sg.getNMVecRoot()->whichChild.setValue(SO_SWITCH_ALL);
+   sg.getNMVecRoot()->whichChild.setValue(p_show ? SO_SWITCH_ALL : SO_SWITCH_NONE);
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
 }
 
@@ -1123,7 +1210,6 @@ bool NModePanel::fillGraph()
   if (p_compare) spectrum.setCompare(*p_compare, p_compareName);
   spectrum.setDifference(p_showDiff);
   if (p_expX.size() > 1) spectrum.setExperimental(p_expX, p_expY, p_expLabel);
-  if (p_diffCheck) p_diffCheck->Enable(p_compare != 0);
   const int selected = p_spectrum->selected();
   const SpectrumAxis axis = p_spectrum->axis();
   p_spectrum->setSpectrum(spectrum);
@@ -1147,7 +1233,6 @@ bool NModePanel::compareWith(const string& name)
     p_compare.reset();
     p_compareName.clear();
     p_compareCode.clear();
-    if (p_compareRemove) p_compareRemove->Enable(false);
     fillGraph();
     return true;
   }
@@ -1162,7 +1247,6 @@ bool NModePanel::compareWith(const string& name)
     ChemistryTask *task = dynamic_cast<ChemistryTask*>(found[i]);
     const JCode *code = task ? task->application() : 0;
     p_compareCode = code ? code->name() : string();
-    if (p_compareRemove) p_compareRemove->Enable(true);
     fillGraph();
     return true;
   }
@@ -1197,21 +1281,39 @@ vector<IPropCalculation*> NModePanel::comparableCalculations(bool needSpectrum)
 void NModePanel::compareDialog()
 {
   wxBusyCursor busy;
-  const vector<IPropCalculation*> found = comparableCalculations();
-  if (found.empty()) {
-    wxMessageBox("No other calculation in this folder has IR or Raman data.",
-                 "Compare spectra", wxOK | wxICON_INFORMATION, this);
+  const vector<IPropCalculation*> spectra = comparableCalculations();
+  const vector<IPropCalculation*> modes = comparableCalculations(false);
+  if (spectra.empty() && modes.empty()) {
+    wxMessageBox("No other calculation in this folder has IR, Raman or "
+                 "normal-mode data.", "Compare", wxOK | wxICON_INFORMATION, this);
     return;
   }
+  //  One list: each calculation once per thing that can be done with it.
   wxArrayString names;
+  vector<std::pair<IPropCalculation*, bool>> what;   // calculation, overlay?
   names.Add("(none: this calculation only)");
-  for (size_t i = 0; i < found.size(); i++)
-    names.Add(wxString::FromUTF8(found[i]->getURL().getFilePathTail().c_str()));
+  what.push_back({0, true});
+  auto nameOf = [](IPropCalculation *c) {
+    return wxString::FromUTF8(c->getURL().getFilePathTail().c_str());
+  };
+  for (IPropCalculation *c : spectra) {
+    names.Add(nameOf(c) + "  (overlay spectrum)");
+    what.push_back({c, true});
+  }
+  for (IPropCalculation *c : modes) {
+    names.Add(nameOf(c) + "  (match modes)");
+    what.push_back({c, false});
+  }
   const int at = wxGetSingleChoiceIndex(
-      "Draw the spectrum of this calculation as a second curve, with the "
-      "same scaling factor and line width:", "Compare spectra", names, this);
+      "Draw another calculation's spectrum as a second curve, with the same "
+      "scaling factor and line width, or match its bands with this one's "
+      "modes:", "Compare", names, this);
   if (at < 0) return;
-  compareWith(at == 0 ? string() : found[at - 1]->getURL().getFilePathTail());
+  if (at == 0) { compareWith(string()); return; }
+  if (what[at].second)
+    compareWith(what[at].first->getURL().getFilePathTail());
+  else
+    matchBandsDialog(what[at].first);
 }
 
 
@@ -1408,7 +1510,6 @@ int NModePanel::scriptBandClick(int row)
 void NModePanel::setShowDifference(bool on)
 {
    p_showDiff = on;
-   if (p_diffCheck) p_diffCheck->SetValue(on);
    fillGraph();
 }
 
@@ -1417,10 +1518,6 @@ void NModePanel::zoomSpectrum(double lo, double hi)
 {
    if (p_spectrum == 0) return;
    p_spectrum->zoomRange(lo, hi);
-   if (p_zoomLo && p_zoomHi) {
-      p_zoomLo->ChangeValue(wxString::Format("%g", p_spectrum->axis().lo()));
-      p_zoomHi->ChangeValue(wxString::Format("%g", p_spectrum->axis().hi()));
-   }
 }
 
 
@@ -1498,25 +1595,11 @@ void NModePanel::importExperimentalDialog()
 }
 
 
-void NModePanel::matchBandsDialog()
+void NModePanel::matchBandsDialog(IPropCalculation *other)
 {
-  wxBusyCursor busy;
-  const vector<IPropCalculation*> found = comparableCalculations(false);
-  if (found.empty()) {
-    wxMessageBox("No other calculation in this folder has stored normal modes.",
-                 "Match bands", wxOK | wxICON_INFORMATION, this);
-    return;
-  }
-  wxArrayString names;
-  for (size_t i = 0; i < found.size(); i++)
-    names.Add(wxString::FromUTF8(found[i]->getURL().getFilePathTail().c_str()));
-  const int at = wxGetSingleChoiceIndex(
-      "Match the bands of this calculation with those of:", "Match bands",
-      names, this);
-  if (at < 0) return;
   string atoms;
   Fragment fa, fb;
-  if (getCalculation()->getFragment(fa) && found[at]->getFragment(fb) &&
+  if (getCalculation()->getFragment(fa) && other->getFragment(fb) &&
       fa.numAtoms() != fb.numAtoms()) {
     wxString a = wxGetTextFromUser(
         wxString::Format("This calculation has %d atoms and the other %d. The "
@@ -1528,7 +1611,7 @@ void NModePanel::matchBandsDialog()
     atoms = (const char*)a.utf8_str();
   }
   wxString err;
-  if (!matchBands(found[at]->getURL().getFilePathTail(), atoms, &err))
+  if (!matchBands(other->getURL().getFilePathTail(), atoms, &err))
     wxMessageBox(err, "Match bands", wxOK | wxICON_INFORMATION, this);
 }
 
@@ -1540,12 +1623,14 @@ void NModePanel::matchBandsDialog()
  */
 wxString NModePanel::scriptSpectrumFactor(const wxString& text)
 {
-   if (!p_isValid || p_spectrum == 0 || p_scaleText == 0) return "no graph";
-   p_scaleText->ChangeValue(text);
-   applySpectrumSettings();
+   if (!p_isValid || p_spectrum == 0) return "no graph";
+   wxTextCtrl *field = new wxTextCtrl(this, wxID_ANY, text);
+   field->Hide();
+   applySpectrumSettings(nullptr, field);
    const VibSpectrum& s = p_spectrum->spectrum();
    wxString out = wxString::Format("field '%s' scale %g sticks",
-                                   p_scaleText->GetValue(), s.scale());
+                                   field->GetValue(), s.scale());
+   field->Destroy();
    for (int k = 0; k < 2; k++)
       if (s.has((VibKind)k)) {
          const vector<VibStick> st = s.sticks((VibKind)k);
@@ -1631,26 +1716,24 @@ void NModePanel::dumpSpectrumIfRequested()
                        cs[i].wavenumber, cs[i].intensity);
          }
       }
-      //  ECCE_SPECTRUM_REMOVE_COMPARE=1: click "Remove comparison" and
-      //  report the button and the second curve before and after.
-      if (other != 0 && getenv("ECCE_SPECTRUM_REMOVE_COMPARE") != 0 &&
-          p_compareRemove != 0) {
+      //  ECCE_SPECTRUM_REMOVE_COMPARE=1: remove the other spectra as the
+      //  window's Remove does, and report whether there were any and the
+      //  second curve before and after.
+      if (other != 0 && getenv("ECCE_SPECTRUM_REMOVE_COMPARE") != 0) {
          auto second = [&]() {
             return (int)(p_spectrum->spectrum().compareSticks(VIB_IR).size() +
                          p_spectrum->spectrum().compareSticks(VIB_RAMAN).size());
          };
          fprintf(out, "remove-button before enabled %d compare-sticks %d\n",
-                 p_compareRemove->IsEnabled() ? 1 : 0, second());
-         wxCommandEvent ev(wxEVT_BUTTON, p_compareRemove->GetId());
-         ev.SetEventObject(p_compareRemove);
-         p_compareRemove->GetEventHandler()->ProcessEvent(ev);
+                 hasOtherSpectra() ? 1 : 0, second());
+         removeOtherSpectra();
          fprintf(out, "remove-button after enabled %d compare-sticks %d\n",
-                 p_compareRemove->IsEnabled() ? 1 : 0, second());
+                 hasOtherSpectra() ? 1 : 0, second());
       }
       //  ECCE_SPECTRUM_WINDOW=1: open the pop-out and click in IT.
       SpectrumCanvas *clicker = p_spectrum;
       if (getenv("ECCE_SPECTRUM_WINDOW") != 0) {
-         wxWindow *button = wxWindow::FindWindowByLabel("Spectrum...", this);
+         wxWindow *button = wxWindow::FindWindowByLabel("Open in window...", this);
          if (button) {
             wxCommandEvent event(wxEVT_BUTTON, button->GetId());
             event.SetEventObject(button);
@@ -1704,8 +1787,8 @@ void NModePanel::dumpSpectrumIfRequested()
          fprintf(out, "strip selected %d\n", sel + 1);
          p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
          const char *names[] = {"width", "factor", "low", "high", "direction", "sticks",
-                                "difference", "reset", "zoom", "experimental", "compare",
-                                "remove-comparison", "match-bands", "export-csv"};
+                                "difference", "reset", "experimental", "compare",
+                                "remove", "export-csv"};
          for (const char *name : names) {
             wxWindow *control = wxWindow::FindWindowByName(wxString("spectrum-") + name,
                                                           p_spectrumFrame);
@@ -1721,7 +1804,7 @@ void NModePanel::dumpSpectrumIfRequested()
                      for (wxWindow *child : choice->GetChildren()) {
                         auto *list = dynamic_cast<wxListBox*>(child);
                         if (!list) continue;
-                        const int at = list->FindString(calculation);
+                        const int at = list->FindString(calculation + "  (overlay spectrum)");
                         if (at == wxNOT_FOUND) return wxID_CANCEL;
                         choice->SetSelection(at);
                         ++choices;
@@ -1754,8 +1837,8 @@ void NModePanel::dumpSpectrumIfRequested()
                          dock[i].intensity == pop[i].intensity;
                fprintf(out, "window-compare %s dock %zu window %zu same %d remove %d/%d diff %d/%d\n",
                        stage, dock.size(), pop.size(), same,
-                       p_compareRemove->IsEnabled(), button("remove-comparison")->IsEnabled(),
-                       p_diffCheck->IsEnabled(), button("difference")->IsEnabled());
+                       p_compare != nullptr, button("remove")->IsEnabled(),
+                       p_compare != nullptr, button("difference")->IsEnabled());
             };
             states("before");
             press(button("compare"));
@@ -1766,7 +1849,7 @@ void NModePanel::dumpSpectrumIfRequested()
             press(wxWindow::FindWindowByLabel("Export .csv...", this),
                   wxString(path) + ".panel.csv");
             fprintf(out, "window-dialogs compare %d\n", answers.choices);
-            press(button("remove-comparison"));
+            press(button("remove"));
             states("removed");
             // Leave the comparison drawn for the window capture.
             press(button("compare"));
@@ -1787,19 +1870,17 @@ void NModePanel::dumpSpectrumIfRequested()
             field("factor")->ChangeValue("0.96");
             command(field("width"), wxEVT_TEXT_ENTER);
             UpdateWindowUI(wxUPDATE_UI_RECURSE);
-            bool ok = s.fwhm() == 23 && s.scale() == 0.96 &&
-                      p_fwhmText->GetValue() == "23" && p_scaleText->GetValue() == "0.96";
-            p_fwhmText->ChangeValue("17");
-            p_scaleText->ChangeValue("1");
-            command(p_fwhmText, wxEVT_TEXT_ENTER);
+            bool ok = s.fwhm() == 23 && s.scale() == 0.96;
+            field("width")->ChangeValue("17");
+            field("factor")->ChangeValue("1");
+            command(field("width"), wxEVT_TEXT_ENTER);
             p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
-            ok = ok && field("width")->GetValue() == "17" && field("factor")->GetValue() == "1";
+            ok = ok && s.fwhm() == 17 && s.scale() == 1;
             field("low")->ChangeValue("1000");
             field("high")->ChangeValue("2000");
             command(field("high"), wxEVT_TEXT_ENTER);
             UpdateWindowUI(wxUPDATE_UI_RECURSE);
-            ok = ok && p_spectrum->axis().lo() == 1000 && p_spectrum->axis().hi() == 2000 &&
-                 p_zoomLo->GetValue() == "1000" && p_zoomHi->GetValue() == "2000";
+            ok = ok && p_spectrum->axis().lo() == 1000 && p_spectrum->axis().hi() == 2000;
             for (const char *name : {"direction", "sticks"}) {
                wxWindow *control = wxWindow::FindWindowByName(wxString("spectrum-") + name,
                                                              p_spectrumFrame);
@@ -1815,9 +1896,9 @@ void NModePanel::dumpSpectrumIfRequested()
             command(reset, wxEVT_BUTTON);
             ok = ok && !p_spectrum->axis().zoomed();
             fprintf(out, "settings-sync %d\n", ok);
-            p_fwhmText->ChangeValue(wxString::Format("%g", oldWidth));
-            p_scaleText->ChangeValue(wxString::Format("%g", oldScale));
-            command(p_fwhmText, wxEVT_TEXT_ENTER);
+            field("width")->ChangeValue(wxString::Format("%g", oldWidth));
+            field("factor")->ChangeValue(wxString::Format("%g", oldScale));
+            command(field("width"), wxEVT_TEXT_ENTER);
             p_spectrum->setReversed(true);
             p_spectrum->setShowSticks(true);
             wxMemoryDC updated(shot);
@@ -2613,7 +2694,7 @@ void NModePanel::showMode(int index)
 
    // Another mode while Animation is chosen: play that one, also after a pause.
    wxRadioBox *vizbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
-   if (vizbox && vizbox->GetSelection() == 0 && p_active) {
+   if (vizbox && vizbox->GetSelection() == 0 && p_active && p_show) {
       p_paused = false;
       start();
    }
@@ -2983,6 +3064,7 @@ void NModePanel::OnRadioboxSelected( wxCommandEvent& event )
 {
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
    p_lastRadioSel = radbox->GetSelection();
+   syncViewControls();
    setSlider();
    if (p_lastRadioSel == 0) {
       showAnimationMode();
@@ -3029,6 +3111,7 @@ void NModePanel::OnRadioboxUpdateUI( wxUpdateUIEvent& event )
    int sel = radbox->GetSelection();
    if (sel != p_lastRadioSel) {
       p_lastRadioSel = sel;
+      syncViewControls();
       setSlider();
       if (sel == 0) {
          showAnimationMode();
