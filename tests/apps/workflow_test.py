@@ -2,7 +2,7 @@
 """Workflows (#341): a workflow of linked steps, made as the code buttons
 make them, through the Organizer's ECCE_TEST_ORGANIZER hook.
 
-    tests/apps/workflow_test.py [--recipes-only | --editor-only] [--shots DIR]
+    tests/apps/workflow_test.py [--recipes-only | --editor-only | --protonation-only] [--shots DIR]
 
 An NWChem calculation with a result is the first step; an xTB step is made
 from it (final geometry, charge and multiplicity carried), an ORCA step from
@@ -1111,6 +1111,91 @@ def run_editor(display, data, work, shots):
                       "RunType: Geometry\n" in params, params)
 
 
+def run_protonation(display, data, work, shots):
+    """Protonation Sites recipe (#851): CREST sees the xTB optimisation that
+    feeds it, and the step after CREST gets the lowest protomer, which has one
+    atom more than CREST's own input."""
+    project = os.path.join(data, "users", "local", "proton")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    folder = os.path.join(project, "Workflow")
+
+    def organizer(tag, commands):
+        script = os.path.join(work, "proton-" + tag)
+        with open(script, "w") as f:
+            f.write("\n".join(commands) + "\n")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=35,
+                          env={"ECCE_TEST_ORGANIZER": script,
+                               "ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
+        log = result.log or ""
+        with open(os.path.join(shots, "proton-" + tag + ".log"), "w") as f:
+            f.write(log)
+        check("protonation %s Organizer survives" % tag, not result.crashed, log)
+        return log
+
+    def answer(log, command):
+        got = re.findall(r"ECCE_TEST_ORGANIZER: %s.*?: (.*)$" % command, log, re.M)
+        return got[-1] if got else ""
+
+    log = organizer("create", [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowrecipe %s protonation-sites orca %s/seed" % (wf, wf),
+        "workflowcrestcheck %s %s/crest" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ])
+    check("the recipe links preopt to crest",
+          "preopt>crest:geometry" in answer(log, "workflowinfo"),
+          answer(log, "workflowinfo"))
+    check("Launch sees the xTB optimisation feeding CREST",
+          answer(log, "workflowcrestcheck") == "ok fromopt=1",
+          answer(log, "workflowcrestcheck"))
+
+    # preopt completes with water's optimised geometry, as a monitor would leave it
+    shutil.copytree(os.path.join(CALC, "Props"), os.path.join(folder, "preopt", "Props"),
+                    dirs_exist_ok=True)
+    organizer("crest", [
+        "setstate %s/preopt completed" % wf,
+        "start CalculationEditor %s/crest" % wf,
+    ])
+    # CREST --protonate keeps the input order and appends the proton
+    # (protonated.xyz); two protomers, the second lowest.
+    frames = [("0.0 0.0 0.0 0.77 0.64 0.0 -0.77 0.64 0.0 0.0 -0.3 0.95", 2.5),
+              ("0.0 0.0 0.1 0.80 0.60 0.0 -0.80 0.60 0.0 0.0 -0.5 -0.80", 0.0)]
+    props = os.path.join(folder, "crest", "Props")
+    os.makedirs(props, exist_ok=True)
+    with open(os.path.join(props, "GEOMTRACE"), "w") as f:
+        f.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+                '<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" '
+                'name="GEOMTRACE" rowLabel="Geometry Step" rowLabels="1-O 2-H 3-H 4-H" '
+                'rows="4" units="Angstrom" vectorLabel="Coordinate" vectors="1">\n')
+        for i, (xyz, _e) in enumerate(frames):
+            f.write('  <step number="%d">%s</step>\n' % (i + 1, xyz))
+        f.write("</tsvectable>\n")
+    with open(os.path.join(props, "CONFREL"), "w") as f:
+        f.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+                '<tsvector name="CONFREL" rowLabel="Geometry Step" rows="1" '
+                'units="kcal/mol">\n')
+        for i, (_xyz, e) in enumerate(frames):
+            f.write('  <step number="%d">%.3f</step>\n' % (i + 1, e))
+        f.write("</tsvector>\n")
+    log = organizer("next", [
+        "setstate %s/crest completed" % wf,
+        "start CalculationEditor %s/xtb" % wf,
+        "workflowinfo %s" % wf,
+    ])
+    rec = steps(answer(log, "workflowinfo").partition("ok ")[2]).get("xtb", {})
+    check("the step after CREST gets the protomer and the charge plus one",
+          (rec.get("atoms"), rec.get("charge")) == ("4", "1"), str(rec))
+    chem = os.path.join(folder, "xtb", "Parameters", "chemsys.mvm")
+    text = open(chem).read() if os.path.isfile(chem) else ""
+    check("the protomer stored is the lowest one",
+          "-0.5" in text and "-0.8" in text, text)
+
+
 def main():
     keep = None
     if "--shots" in sys.argv:
@@ -1142,6 +1227,8 @@ def main():
         try:
             if "--editor-only" in sys.argv:
                 run_editor(display, data, work, shots)
+            elif "--protonation-only" in sys.argv:
+                run_protonation(display, data, work, shots)
             elif "--make-only" in sys.argv:
                 run_make(display, data, work, shots)
             elif "--recipes-only" not in sys.argv:
@@ -1153,7 +1240,8 @@ def main():
                 run_patterns(display, data, work, shots)
                 run_crest_preopt(display, data, work, shots)
                 run_editor(display, data, work, shots)
-            if "--make-only" not in sys.argv and "--editor-only" not in sys.argv:
+                run_protonation(display, data, work, shots)
+            if not {"--make-only", "--editor-only", "--protonation-only"} & set(sys.argv):
                 run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")

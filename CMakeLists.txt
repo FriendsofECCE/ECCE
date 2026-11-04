@@ -3299,6 +3299,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_workflow PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Protonation Sites recipe: CREST's launch check and the protomer after it (#851).
+  add_test(NAME apps_workflow_protonation
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py --protonation-only
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_workflow_protonation PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The Workflows example set imports as a workflow session (#341).
   add_test(NAME apps_examples_workflow
            COMMAND ${PYTHON3_EXECUTABLE}

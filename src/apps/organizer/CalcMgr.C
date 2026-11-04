@@ -991,6 +991,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     label, shown, inside the view (not clicked)
       //   workflowmenu WF STEP  a right-click on STEP's box: the menu's
       //     labels, or "error: ..." with what threw (#681)
+      //   workflowcrestcheck WF STEP   Launch's CREST check: "ok fromopt=1|0"
       std::istringstream args(calcName);
       string a, b, c, d, flag, geomFrom;
       vector<string> joinArgs;
@@ -1010,6 +1011,7 @@ void CalcMgr::runTestCommand(const string& line)
         }
       } else if (command == "workflowcopy" || command == "workflowmenu" ||
                  command == "workflowqst" || command == "workflowmake" ||
+                 command == "workflowcrestcheck" ||
                  command == "workflowmove") {
         args >> a >> b >> c;
       } else if (command == "workflowjoin") {
@@ -1151,6 +1153,10 @@ void CalcMgr::runTestCommand(const string& line)
           if (node) p_treeCtrl->refresh(node);
           outcome = "ok " + to.toString();
         }
+      } else if (command == "workflowcrestcheck") {
+        TaskJob *t = dynamic_cast<TaskJob*>(step(b));
+        outcome = !t ? string("no such step") : string("ok fromopt=") +
+                  (Launch::crestFromOptimisation(t) ? "1" : "0");
       } else if (command == "workflowready") {
         vector<string> waiting;
         vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting);
