@@ -2,7 +2,7 @@
 """Workflows (#341): a workflow of linked steps, made as the code buttons
 make them, through the Organizer's ECCE_TEST_ORGANIZER hook.
 
-    tests/apps/workflow_test.py [--recipes-only] [--shots DIR]
+    tests/apps/workflow_test.py [--recipes-only | --editor-only] [--shots DIR]
 
 An NWChem calculation with a result is the first step; an xTB step is made
 from it (final geometry, charge and multiplicity carried), an ORCA step from
@@ -1022,6 +1022,95 @@ def run_make(display, data, work, shots):
           bool(fin) and "water2" in fin[0], str(fin))
 
 
+def run_editor(display, data, work, shots):
+    """A recipe successor must be editable before Launch Ready Steps."""
+    project = os.path.join(data, "users", "local", "editor")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    userdir = os.path.join(os.environ["ECCE_REALUSERHOME"], ".ECCE", "Recipes")
+    os.makedirs(userdir, exist_ok=True)
+    with open(os.path.join(userdir, "editor.recipe"), "w") as f:
+        f.write("recipe: editor\ntitle: Editor\n"
+                "variant: main | xTB | xtb\n"
+                "step: main | first | xtb | | Geometry | First | structure\n"
+                "step: main | next | xtb | | Geometry | Next |\n"
+                "link: main | first | next | geometry\n")
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+
+    def organizer(tag, commands):
+        script = os.path.join(work, "editor-" + tag)
+        with open(script, "w") as f:
+            f.write("\n".join(commands) + "\n")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=35,
+                          env={"ECCE_TEST_ORGANIZER": script,
+                               "ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
+        with open(os.path.join(shots, "editor-" + tag + ".log"), "w") as f:
+            f.write(result.log or "")
+        check("recipe editor %s Organizer survives" % tag,
+              not result.crashed, result.log or "")
+        return result.log or ""
+
+    created = organizer("create", [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowstep %s xtb_es charged %s/seed geomfrom=%s/water charge=1 mult=2"
+        % (wf, wf, proj),
+        "workflowrecipe %s editor main %s/charged" % (wf, wf),
+        "start CalculationEditor %s/next" % wf,
+        "workflowinfo %s" % wf,
+    ])
+    check("a recipe successor waits for its source to complete",
+          "next xtb Created first charge=-99 mult=0 atoms=-1" in created, created)
+    # Supply a completed optimisation's final geometry, as a monitor would.
+    first = os.path.join(project, "Workflow", "first")
+    shutil.copytree(os.path.join(CALC, "Props"), os.path.join(first, "Props"),
+                    dirs_exist_ok=True)
+    log = organizer("open", [
+        "setstate %s/first completed" % wf,
+        "start CalculationEditor %s/next" % wf,
+        "workflowstep %s xtb_es manual %s/first" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ])
+    info = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo.*?: ok (.*)$", log, re.M)
+    table = steps(info[-1]) if info else {}
+    for name in ("next", "manual"):
+        rec = table.get(name, {})
+        check(name + " stores atoms, charge and multiplicity before launch",
+              (rec.get("atoms"), rec.get("charge"), rec.get("mult")) ==
+              ("3", "1", "2"), str(rec))
+        check(name + " stores its own chemical system",
+              os.path.isfile(os.path.join(project, "Workflow", name,
+                                           "Parameters", "chemsys.mvm")), str(rec))
+        commands = os.path.join(work, "calced-" + name)
+        with open(commands, "w") as f:
+            f.write("state\nsave\nstate\n")
+        result = apps.run(display, "calced", args=("-context", wf + "/" + name),
+                          windowTimeout=60, settle=25,
+                          env={"ECCE_TEST_CALCED": commands, "ECCE_TMPDIR": work})
+        text = result.log or ""
+        with open(os.path.join(shots, "editor-" + name + ".log"), "w") as f:
+            f.write(text)
+        check(name + " editor loads theory and saves launch input",
+              not result.crashed and "theory=SE/GFN2-xTB" in text and
+              "ECCE_TEST_CALCED: save: kept " in text, text)
+        kept = re.search(r"ECCE_TEST_CALCED: save: kept (.+)", text)
+        if kept:
+            folder = kept.group(1).strip()
+            with open(os.path.join(folder, name + ".frag")) as f:
+                frag = f.read()
+            with open(os.path.join(folder, name + ".param")) as f:
+                params = f.read()
+            check(name + " generated input has the chemical system",
+                  "num_atoms: 3" in frag and "charge: 1" in frag and
+                  "Charge: 1\n" in params and "ChemSys.Multiplicity: 2\n" in params
+                  and "NumElectrons: 9\n" in params, frag + params)
+            if name == "next":
+                check("the recipe run type survives opening and saving",
+                      "RunType: Geometry\n" in params, params)
+
+
 def main():
     keep = None
     if "--shots" in sys.argv:
@@ -1051,7 +1140,9 @@ def main():
         gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
         subprocess.run([gateway], env=display.env(), timeout=180)
         try:
-            if "--make-only" in sys.argv:
+            if "--editor-only" in sys.argv:
+                run_editor(display, data, work, shots)
+            elif "--make-only" in sys.argv:
                 run_make(display, data, work, shots)
             elif "--recipes-only" not in sys.argv:
                 run(display, data, work, shots)
@@ -1061,7 +1152,8 @@ def main():
                 run_best_poses(display, data, work, shots)
                 run_patterns(display, data, work, shots)
                 run_crest_preopt(display, data, work, shots)
-            if "--make-only" not in sys.argv:
+                run_editor(display, data, work, shots)
+            if "--make-only" not in sys.argv and "--editor-only" not in sys.argv:
                 run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")

@@ -3286,7 +3286,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_workflow PROPERTIES TIMEOUT 600
+  set_tests_properties(apps_workflow PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # The Workflows example set imports as a workflow session (#341).
   add_test(NAME apps_examples_workflow
