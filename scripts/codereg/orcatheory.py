@@ -72,19 +72,15 @@ class OrcaTheoryPanel(EccePanel):
         #  stored one.
         self.panelSizer.Add(scfSizer)
 
-        # RIJCOSX -- RI-J + "chain of spheres" approximate exchange, the
-        # single most common speed knob in real-world ORCA input files.
-        # Verified against real ORCA 6.1.1 (both "RKS B3LYP ... RIJCOSX
-        # def2/J" and "HF ... RIJCOSX def2/J") -- COSX grid generation
-        # and "Your calculation utilizes the auxiliary basis: def2/J"
-        # both confirmed in the output, for DFT and HF alike.
+        # Both RI modes share the Coulomb-fitting auxiliary basis.
         riSizer = EcceBoxSizer(self, label="RI Approximation", cols=2)
-        self.useRIJCOSX = EcceCheckBox(self,
-                                       label=" Use RIJCOSX",
-                                       name="ES.Theory.SCF.UseRIJCOSX",
-                                       default=False,
-                                       export=1)
-        riSizer.AddWidget(self.useRIJCOSX)
+        self.riMode = EcceComboBox(self,
+                                   label="RI approximation:",
+                                   name="ES.Theory.SCF.RIMode",
+                                   choices=["None", "RIJCOSX", "RIJONX"],
+                                   default=0,
+                                   export=1)
+        riSizer.AddWidget(self.riMode)
 
         auxBasisChoice = ["def2/J",
                           "def2/JK",
@@ -347,9 +343,9 @@ class OrcaTheoryPanel(EccePanel):
             self.compNote.Show(comp)
         if EcceGlobals.Category in ("SCF", "DFT"):
             self.dispersion.Enable(not comp)
-        self.auxBasis.Enable(self.useRIJCOSX.GetValue())
+        self.auxBasis.Enable(self.riMode.GetValue() != "None")
         # Grey the solvation controls out until solvation is asked for,
-        # matching how auxBasis follows useRIJCOSX above.
+        # matching how auxBasis follows the RI mode above.
         useSolv = self.useSolvation.GetValue()
         self.solvModel.Enable(useSolv)
         self.solvent.Enable(useSolv)

@@ -35,6 +35,28 @@ def route(work, extra, func="B3LYP", cat="DFT", theory="RDFT"):
 
 def main():
     with tempfile.TemporaryDirectory() as work:
+        # RI mode and the old checkbox must survive both direct generation
+        # and migration to an explicit None choice.
+        modekey = "ES.Theory.SCF.RIMode: %s\n"
+        oldkey = "ES.Theory.SCF.UseRIJCOSX: %s\n"
+        for cat, theory in (("DFT", "RDFT"), ("SCF", "RHF")):
+            cases = [("", "None"), (oldkey % "0", "None"),
+                     (oldkey % "1", "RIJCOSX")]
+            for mode in ("None", "RIJCOSX", "RIJONX"):
+                cases.extend([(modekey % mode, mode),
+                              ((oldkey % "1") + (modekey % mode), mode)])
+            for extra, expected in cases:
+                r = route(work, extra, cat=cat, theory=theory)
+                ri = [x for x in r if x in ("RIJCOSX", "RIJONX")]
+                check(ri == ([] if expected == "None" else [expected]) and
+                      r.count("def2/J") == (expected != "None"),
+                      "%s RI %r -> %s" % (cat, extra.strip(), " ".join(r)))
+            for mode in ("RIJCOSX", "RIJONX"):
+                r = route(work, (modekey % mode) +
+                          "ES.Theory.SCF.RIJCOSXAuxBasis: def2/JK\n",
+                          cat=cat, theory=theory)
+                check(mode in r and "def2/JK" in r and "def2/J" not in r,
+                      "%s %s uses the selected auxiliary basis" % (cat, mode))
         d = lambda v: "ES.Theory.SCF.Dispersion: %s\n" % v
         r = route(work, d("None"))
         check("D3BJ" not in r and "D4" not in r and "D3ZERO" not in r, "None writes no keyword")
@@ -67,4 +89,5 @@ def main():
     return 1 if fails else 0
 
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())

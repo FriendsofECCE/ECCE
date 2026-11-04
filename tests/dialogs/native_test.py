@@ -216,6 +216,15 @@ def restoreCases(inv):
                       [line(w, urls[i % 2]) for i, w in enumerate(cp)]))
         cases.append(("calcpick first only", [line(cp[0], urls[1])]))
         cases.append(("calcpick unknown url", [line(cp[0], urls[2])]))
+    if any(w["name"] == "ES.Theory.SCF.RIMode" for w in ws):
+        modekey = "ES.Theory.SCF.RIMode"
+        legacy = tog("ES.Theory.SCF.UseRIJCOSX", 1)
+        cases.extend([("RI legacy on", [legacy]),
+                      ("RI legacy off", [tog("ES.Theory.SCF.UseRIJCOSX", 0)])])
+        for mode in ("None", "RIJCOSX", "RIJONX"):
+            cases.extend([("RI " + mode, [menu(modekey, mode)]),
+                          ("RI override " + mode, [legacy, menu(modekey, mode)]),
+                          ("RI override reversed " + mode, [menu(modekey, mode), legacy])])
     cases.append(("unknown key", ["ES.Nothing|7||1|1|integer_input"]))
     return cases
 
@@ -371,6 +380,19 @@ def main():
         pl, perr, pdone = run(pyCmd, env, CODEREG, restore, ov, flag)
         nl, nerr, ndone = run(nativeCmd, env, CODEREG, restore, ov, flag)
         ok = pdone and ndone and pl == nl
+        if " RI " in title:
+            stored = dict((p[0], p[1]) for p in
+                          (l.split("|") for l in restore))
+            expected = stored.get("ES.Theory.SCF.RIMode",
+                                  "RIJCOSX" if stored.get("ES.Theory.SCF.UseRIJCOSX") == "1"
+                                  else "None") if flag == "GUIValues" else "None"
+            for lines in (pl, nl):
+                values = {p[0]: p for p in (l.split("|") for l in lines)
+                          if len(p) == 6}
+                mode = values.get("ES.Theory.SCF.RIMode", [])
+                aux = values.get("ES.Theory.SCF.RIJCOSXAuxBasis", [])
+                ok = ok and bool(mode and aux and mode[1] == expected and
+                                 aux[3] == ("0" if expected == "None" else "1"))
         return title, ok, pl, nl, perr, nerr
 
     try:

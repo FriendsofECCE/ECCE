@@ -26,6 +26,7 @@ $maxcoregb
 $maxiter\nend\n
 $maxsteps\n
 $message\n
+$mode
 $model
 $n\nend\n
 $name
@@ -111,7 +112,6 @@ $wrote
 6-31g*
 6-31g**
 :n:t:pfbcqeshv
-<auxbasis>
 <basename>
 <basis>/c
 <keywords>
@@ -329,6 +329,7 @@ es.theory.scf.memorysize
 es.theory.scf.orbitalguessfile
 es.theory.scf.refractiveindex
 es.theory.scf.rijcosxauxbasis
+es.theory.scf.rimode
 es.theory.scf.solvationmodel
 es.theory.scf.solvent
 es.theory.scf.userijcosx
@@ -504,6 +505,7 @@ revpbe
 revtpss
 rhf
 rijcosx
+rijonx
 rks
 rmp2
 rpbe
