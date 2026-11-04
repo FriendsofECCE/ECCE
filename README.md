@@ -27,7 +27,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.4.9](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.9)),
+  [9.5.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.5.0)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -44,41 +44,9 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.5.0
+## Coming in 9.6.0
 
-- Local by default: ECCE starts with your calculations in a folder on this computer, without a question at first start (installations set up with a server start as before). **Edit > Preferences > Data** shows that folder and a list of servers; **Add Server...** adds an SSH folder or an ECCE server ([#767](https://github.com/FriendsofECCE/ECCE/issues/767)). Each ECCE server added there is its own tree in the Organizer, with its own login; calculations in it are launched and stored on that server SSH folders are trees too, with their own ssh login.
-
-- Example set Workflows: a workflow of Na+(H2O)6 in which xTB optimises three arrangements (6+0, 5+1, 4+2) and ORCA r2SCAN-3c refines each result, opened from **File > Open Example Calculations**.
-
-- Workflows (preview): **File > New > Workflow...** makes a set of calculations
-  of any electronic-structure code (ECCE-QM, ORCA, Gaussian-16, NWChem, MOPAC,
-  xTB, Quantum ESPRESSO, CP2K) drawn as a tree. Select a box and a code on the
-  right to add a step that starts from the final geometry, charge and
-  multiplicity of that box (several steps from one box are branches), and
-  **Launch Ready Steps** launches every step whose source is Complete.
-
-- xTB: GFN2-xTB, GFN1-xTB and GFN-FF through the `xtb` program, as a new
-  code in the code bar: energy and geometry optimisation, with an implicit
-  solvent (ALPB or GBSA). The orbitals (energies, occupations and
-  coefficients) are read from xtb's Molden file for GFN2 and GFN1; GFN-FF has
-  no orbitals. Atomic charges, and a Vibration and a Geometry + Vibration
-  run type with frequencies, IR intensities, normal modes and the
-  thermochemistry (zero-point energy, enthalpy, Gibbs energy, T*S). The
-  output of an `xtb` run made outside ECCE can be imported from the
-  Organizer, with the files xtb wrote beside it; the Getting Started set has
-  an xTB water example, and the [xTB help page](help/src/xtb.md) describes the
-  code.
-
-- Results file: the `ecce-results` command converts orbitals from Molden, Gaussian fchk and ORCA files, and an ORCA Hessian, into one HDF5 file (`results.h5`) with a fixed orbital order, the basis for carrying orbitals and Hessians from one workflow step to the next; the [results file help page](help/src/results-file-format.md) describes it.
-
-- CP2K: **Mixing alpha**, **Broyden history** and **Added MOs** for diagonalisation, and **Print HOMO-LUMO gap**, which stores the gap with the results ([#698](https://github.com/FriendsofECCE/ECCE/issues/698)).
-- `ecce-annotate`: set a calculation's Annotation from the command line, through the running Organizer ([#742](https://github.com/FriendsofECCE/ECCE/issues/742)).
-- Launcher: **Threads per rank** for batch-queue machines; the MPI rank count is derived from the processors, and the Slurm script gets `--cpus-per-task` and `OMP_NUM_THREADS` (CP2K runs `cp2k.psmp`) ([#739](https://github.com/FriendsofECCE/ECCE/issues/739)).
-- `ecce-launch`: launch Ready calculations from the command line, inside the running ECCE session, with their stored machine, cores and wall time; it prints each job id ([#687](https://github.com/FriendsofECCE/ECCE/issues/687)).
-
-- Workflow joins: Ctrl-click a reactant, a product and a TS guess and choose Gaussian 16 or ORCA to make a QST3 (or QST2) or NEB-TS step; a step can start from a scan's last point, its maximum or any point. Example: an SN2 reaction, Cl⁻ + CH₃Br, from the reactant complex through a relaxed scan to the QST3 transition state and its IRC.
-
-- Gaussian 16 IRC: points per direction, step size and direction in Runtype Details ([#688](https://github.com/FriendsofECCE/ECCE/issues/688)).
+Nothing merged yet. The order of planned work (DOS/PDOS, CP2K cell optimisation and MD, MD analysis, umbrella sampling, docking, rigid scans and more) is on the [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan). What 9.5.0 brought: [release notes](docs/release-notes-9.5.0.md).
 
 ## First steps
 

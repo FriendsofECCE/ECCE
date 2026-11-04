@@ -39,9 +39,10 @@
 - ECCE-QM: every library basis set and the Basis Set Tool (#765); restricted open-shell atoms converge (#790); IRC branches leave from the relaxed saddle, so they end in different minima (#764).
 
 ## Running jobs
-- **Command line:** `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`, `ecce-annotate`, `ecce-move` and `ecce-rename` work inside the running session (`ecce-move`/`ecce-rename`: #824); `AGENTS.md` describes them for scripts and AI assistants (#687, #695, #720, #721, #742, #759).
+- **Command line:** `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`, `ecce-annotate`, `ecce-move`, `ecce-rename` and `ecce-rerun` work inside the running session (`ecce-move`/`ecce-rename`: #824; `ecce-rerun`, a Ready copy of a killed, failed or finished calculation, optionally launched: #825); `AGENTS.md` describes them for scripts and AI assistants (#687, #695, #720, #721, #742, #759).
 - **Launcher:** threads per MPI rank (Slurm `--cpus-per-task`, `OMP_NUM_THREADS`, CP2K `psmp`); memory per node (#739).
 - **SSH:** after a dropped connection ECCE reconnects with the password it already has; optional Remember on this computer (#777).
+- **Progress box:** energies in Eh with six decimals, a summary line for each finished stage (SCF converged in N cycles, optimisation, frequencies), and the final energy says what it contains, e.g. "(SCF + D3)" for ORCA (#826).
 - A job whose output stopped growing is flagged Stalled (#769). Reconnect follows one rule in every menu and is greyed out for Completed and Killed calculations (#689).
 - MD tasks copy back `traj.xtc`, `ener.edr` and `topol.tpr`, and time continues along a study chain (#743).
 - CP2K: a basis and a potential file per element row; mixing, Broyden history and Added MOs; the HOMO–LUMO gap stored; `*.pdos` copied back; an out-of-memory kill quotes CP2K's HFX estimate (#697, #698, #720, #739).
@@ -52,7 +53,8 @@
 
 ## Fixes
 - Compare Energies and the Checks table no longer freeze the Organizer, and no longer load every MO table (#793). `ecce-reconnect` and `ecce-fetch` with a path outside the data no longer crash the Organizer (#814). No crash when the code is switched on the code bar (#785) or when `ecce-launch` runs before anything is loaded (#781). A stored table with the wrong number of values warns once (`ecce-check-props` finds them) (#719, #722).
-- All fixes released in 9.4.1 to 9.4.8.
+- Scans with atoms far apart: a scan or trace step that puts atoms outside the view re-fits the camera (#832). A hidden MO Diagram is no longer rebuilt at every scan or IRC step (#838). The no-access panel names a moved calculation's new folder (#823). Organizer menus review fixes: Total energy after a rerun, reference chooser, numeric sort (#819).
+- All fixes released in 9.4.1 to 9.4.10, among them outputs no longer stored empty when the login to the compute host fails at the end of a job (#732), and orbital names with the principal quantum number with Show core orbitals in the MO Diagram (#827).
 
 ## Known issues
 - **Windows:** uninstalling takes long (#815); a few items are off at 150-200 % display scaling (#670); the first start takes about a minute on slower computers (#444).
