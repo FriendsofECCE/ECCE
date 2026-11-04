@@ -1,11 +1,11 @@
 # ELF, LOL and NCI in the 3-D view
 
-The **MOs** panel draws three more views of the electron density as surfaces
+The **Surfaces** panel draws three more views of the electron density as surfaces
 in the 3-D view, next to **Density** and **Spin Density**: **ELF**,
 **LOL** and **NCI**. They are calculated from the orbital
 coefficients and the basis set stored with the calculation, so they are
 offered for every calculation that has orbitals, occupations and a basis set.
-Choose one in the type list, or under **Properties > Surfaces**, and press **Compute**. The grid is the one the
+Choose one in the drop-down of **Properties > Orbitals > Surfaces**, and press **Compute**. The grid is the one the
 other density views use (set it with the grid button), and a long
 calculation shows a progress bar with a **Cancel** button.
 
