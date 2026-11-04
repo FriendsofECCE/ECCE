@@ -77,10 +77,6 @@ class MoPanel : public MoGUI,
     void OnButtonMoComputeClick( wxCommandEvent& event );
     void OnButtonMoViewcoefClick( wxCommandEvent& event );
 
-    //  Never narrower than its own rows: the Builder gives every property
-    //  panel a flat minimum, and the dock is sized from this.
-    virtual wxSize GetMinSize() const override;
-
    protected:
      virtual void initialize() override;
      void initialize(bool resetgrids);
