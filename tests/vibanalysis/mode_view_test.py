@@ -145,7 +145,8 @@ def main():
             if args.shots:
                 bo.runScript(s, display, env, wrappers,
                              ["-context", "file://" + os.path.join(project, calc) + "/"],
-                             ["wait 9000", "shot panel", "quit"], png, "%s-panel" % calc,
+                             ["wait 9000", "background 1 1 1", "vibmode %d" % (click - 1), "wait 800",
+                              "shot panel", "quit"], png, "%s-panel" % calc,
                              {"ECCE_PANEL_MODE": "detail",
                               "ECCE_OPEN_PANEL": "Vibrational Frequencies"})
 

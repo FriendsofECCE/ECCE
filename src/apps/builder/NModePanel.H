@@ -173,6 +173,7 @@ class NModePanel : public NModesGUI,
       void showModeDetail(int row);
       /** Sets a description label to `text`, wrapped to two lines at its width. */
       void wrapAll(wxStaticText *label, const std::vector<wxString>& parts);
+      void wrapText(wxStaticText *label, const wxString& full);
       static void setWrapped(wxStaticText *label, const std::vector<wxString>& parts);
       void dumpTableIfRequested();
       void dumpCompositionIfRequested();
@@ -223,7 +224,6 @@ class NModePanel : public NModesGUI,
       void OnRadioboxUpdateUI( wxUpdateUIEvent& event );
       void OnModeSelection( wxGridEvent& event );
       void OnCheckboxNmodeVecsignClick( wxCommandEvent& event );
-      void OnShowToggled( wxCommandEvent& event );
       void OnTimer( wxTimerEvent& event );
 
    private:
@@ -245,7 +245,6 @@ class NModePanel : public NModesGUI,
       wxButton *p_exportBtn = 0;
       wxRadioButton *p_animRadio = 0, *p_vecRadio = 0;
       wxCheckBox *p_showCheck = 0;
-      bool p_show = true;               // "Show": draw the mode in the viewer
       wxBoxSizer *p_viewerRow = 0;
       wxStaticText *p_bandNote = 0;
       wxCheckBox *p_compCH = 0;
@@ -293,6 +292,7 @@ class NModePanel : public NModesGUI,
       wxPanel *p_graphBox = NULL;     // its own box under the plot
       std::vector<wxString> p_detailParts;
       std::vector<wxString> p_graphParts;
+      wxString p_graphText;           // the box under the plot, \n between its two lines
       wxString p_detailText;          // unwrapped, for re-wrapping on a resize
       int         p_mode;
       int         p_numAnimations;

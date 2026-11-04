@@ -281,7 +281,7 @@ bool NModePanel::Create(IPropCalculation *calculation,
       e.Skip();
    });
    p_graphDetail->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
-      wrapAll(p_graphDetail, p_graphParts);
+      wrapText(p_graphDetail, p_graphText);
       e.Skip();
    });
    p_grid->GetGridWindow()->Bind(wxEVT_MOTION, &NModePanel::OnGridMotion, this);
@@ -702,15 +702,15 @@ void NModePanel::buildLayout()
    wxWrapSizer *kind = new wxWrapSizer(wxHORIZONTAL);
    p_showCheck = new wxCheckBox(sb, wxID_ANY, "Show");
    p_showCheck->SetValue(true);
-   p_showCheck->SetToolTip("Draw the selected mode in the viewer. Off leaves "
-                           "the structure alone.");
+   p_showCheck->SetToolTip("Draw the selected mode in the viewer. Off shows "
+                           "the molecule alone.");
    p_animRadio = new wxRadioButton(sb, wxID_ANY, "Animation", wxDefaultPosition,
                                    wxDefaultSize, wxRB_GROUP);
    p_vecRadio = new wxRadioButton(sb, wxID_ANY, "Vectors");
    kind->Add(p_showCheck, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
    kind->Add(p_animRadio, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
    kind->Add(p_vecRadio, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-   p_showCheck->Bind(wxEVT_CHECKBOX, &NModePanel::OnShowToggled, this);
+   adoptViewerToggle(p_showCheck);
    auto pick = [this](int i) {
       wxRadioBox *v = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
       v->SetSelection(i);
@@ -785,19 +785,6 @@ void NModePanel::showStyle(bool animation)
    p_viewerRow->Show(p_vectorSizer, !animation);
    p_viewerRow->Layout();
    Layout();
-}
-
-
-void NModePanel::OnShowToggled(wxCommandEvent&)
-{
-   p_show = p_showCheck->IsChecked();
-   wxRadioBox *viz = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
-   if (!p_active || !checkStructure()) return;
-   if (viz->GetSelection() == 0) {
-      if (p_show) showAnimationMode(); else stop();
-   } else {
-      showVectorMode();
-   }
 }
 
 
@@ -1120,7 +1107,7 @@ void NModePanel::showAnimationMode()
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
 
    // Choosing Animation plays the selected mode; there is no Start button.
-   if (p_active && p_show) start();
+   if (p_active) start();
 }
 
 void NModePanel::showVectorMode()
@@ -1138,7 +1125,7 @@ void NModePanel::showVectorMode()
 
    SGContainer& sg = getFW().getSceneGraph();
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
-   sg.getNMVecRoot()->whichChild.setValue(p_show ? SO_SWITCH_ALL : SO_SWITCH_NONE);
+   sg.getNMVecRoot()->whichChild.setValue(SO_SWITCH_ALL);
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
 }
 
@@ -2557,6 +2544,13 @@ void NModePanel::wrapAll(wxStaticText *label, const std::vector<wxString>& parts
    wxString full;
    for (size_t i = 0; i < parts.size(); i++)
       full += (i ? wxString::FromUTF8(" \xC2\xB7 ") : wxString()) + parts[i];
+   wrapText(label, full);
+}
+
+/// Wraps each paragraph (lines of `full` split at \n) to the label's width.
+void NModePanel::wrapText(wxStaticText *label, const wxString& full)
+{
+   if (label == 0) return;
    label->SetToolTip(full.empty() ? NULL : new wxToolTip(full));
    int width = label->GetClientSize().x;
    if (const char *w = getenv("ECCE_NMODE_DETAIL_WIDTH")) width = atoi(w);
@@ -2564,16 +2558,22 @@ void NModePanel::wrapAll(wxStaticText *label, const std::vector<wxString>& parts
    dc.SetFont(label->GetFont());
    wxString shown, line;
    int lines = 1;
-   wxStringTokenizer words(full, " ");
-   while (words.HasMoreTokens()) {
-      const wxString word = words.GetNextToken();
-      const wxString t = line.empty() ? word : line + " " + word;
-      if (!line.empty() && width > 40 && dc.GetTextExtent(t).x > width) {
-         shown += line + "\n";
-         line = word;
-         lines++;
-      } else {
-         line = t;
+   wxStringTokenizer paras(full, "\n", wxTOKEN_RET_EMPTY_ALL);
+   bool firstPara = true;
+   while (paras.HasMoreTokens()) {
+      if (!firstPara) { shown += line + "\n"; line.clear(); lines++; }
+      firstPara = false;
+      wxStringTokenizer words(paras.GetNextToken(), " ");
+      while (words.HasMoreTokens()) {
+         const wxString word = words.GetNextToken();
+         const wxString t = line.empty() ? word : line + " " + word;
+         if (!line.empty() && width > 40 && dc.GetTextExtent(t).x > width) {
+            shown += line + "\n";
+            line = word;
+            lines++;
+         } else {
+            line = t;
+         }
       }
    }
    shown += line;
@@ -2630,7 +2630,34 @@ void NModePanel::showModeDetail(int row)
    setWrapped(p_modeDetail, vparts);
    p_graphParts = vparts;
    if (!freq.empty()) p_graphParts.insert(p_graphParts.begin(), freq);
-   wrapAll(p_graphDetail, p_graphParts);
+   //  Under the plot: line 1 names the mode with the intensities that
+   //  exist, line 2 the contributions.
+   wxString l1, l2;
+   if (!freq.empty() && row >= 0 && row < (int)p_vib.modes.size()) {
+      const wxString dot = wxString::FromUTF8(" \xC2\xB7 ");
+      const VibModeInfo& v = p_vib.modes[row];
+      l1 = wxString::Format("Mode %d", row + 1) + dot + freq;
+      wxString sym = p_symColumn >= 0 && p_symColumn < p_grid->GetNumberCols()
+                        ? p_grid->GetCellValue(row, p_symColumn) : wxString();
+      if (sym.empty()) sym = wxString::FromUTF8(v.irrep.c_str());
+      if (!sym.empty()) l1 += dot + sym;
+      if (p_spectrum != 0 && !p_spectrum->spectrum().electronic())
+         for (int k = 0; k < 2; k++) {
+            const VibSpectrum& sp = p_spectrum->spectrum();
+            if (!sp.has((VibKind)k)) continue;
+            for (const VibStick& st : sp.sticks((VibKind)k))
+               if (st.mode == row)
+                  l1 += dot + (k == VIB_IR ? "IR " : "Raman ") +
+                        wxString::Format("%.1f ", st.intensity) +
+                        wxString::FromUTF8(sp.unitLabel((VibKind)k).c_str());
+         }
+      for (const auto& part : v.parts)
+         l2 += (l2.empty() ? "" : "  ") + wxString::FromUTF8(part.first.c_str()) +
+               wxString::Format(" %.0f %%", part.second);
+      if (!l2.empty()) l2 += "  (others < 5 %)";
+   }
+   p_graphText = l2.empty() ? l1 : l1 + "\n" + l2;
+   wrapText(p_graphDetail, p_graphText);
 }
 
 
@@ -2694,7 +2721,7 @@ void NModePanel::showMode(int index)
 
    // Another mode while Animation is chosen: play that one, also after a pause.
    wxRadioBox *vizbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
-   if (vizbox && vizbox->GetSelection() == 0 && p_active && p_show) {
+   if (vizbox && vizbox->GetSelection() == 0 && p_active) {
       p_paused = false;
       start();
    }
