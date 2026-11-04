@@ -107,6 +107,13 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       bool atomPoint(int n, double& u, double& v) const;
       /** Where each control sits at a given panel width, and which are clipped. */
       std::string layoutReport(int width);
+      /**
+       * Show the total density as a difference: this calculation minus the
+       * calculations at `urls` (empty: the plain density).  False, with the
+       * reason in `why`, if a fragment does not match (#726).
+       */
+      bool setFragments(const std::vector<std::string>& urls, std::string& why);
+      const std::vector<std::string>& fragments() const { return p_fragments; }
       /** The MOs panel's selection (1-based, alpha or beta). */
       void followMo(int mo, bool beta);
 
@@ -146,6 +153,11 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       void relayout();
       std::string zoomKey(const DensityPlane::Plane& plane, int what,
                           int orbital, bool beta) const;
+
+      std::vector<std::string> p_fragments;
+      wxButton *p_diff;
+      void chooseFragments();
+      void updateDiffButton();
 
       bool p_zoomed;
       double p_zoomWin[4], p_fullWin[4], p_levelTop;

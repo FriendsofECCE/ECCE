@@ -29,6 +29,7 @@
 #include "tdat/Fragment.H"
 #include "util/Event.H"
 #include "wxgui/ewxConfig.H"
+#include "DensityFragments.H"
 #include "DensityProfilePanel.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
@@ -47,7 +48,7 @@ const wxWindowID ID_SHOW = wxNewId(), ID_SPIN = wxNewId(), ID_MO = wxNewId(),
                  ID_PLANE = wxNewId(), ID_ATOM = wxNewId(),
                  ID_PNG = wxNewId(), ID_CSV = wxNewId(),
                  ID_OFFSET = wxNewId(), ID_VIEW = wxNewId(),
-                 ID_FIELD = wxNewId(), ID_RESET = wxNewId(), ID_PLANETOGGLE = wxNewId(), ID_ZOOMRESET = wxNewId();
+                 ID_FIELD = wxNewId(), ID_RESET = wxNewId(), ID_PLANETOGGLE = wxNewId(), ID_ZOOMRESET = wxNewId(), ID_DIFF = wxNewId();
 
 const char *PLANE_NAME = "DensityMapPlane";
 const double MARGIN = 1.5;            // A beyond the atoms' extent
@@ -163,7 +164,7 @@ DensityMapPanel::DensityMapPanel()
     p_inViewer(false), p_dragging(false), p_mapCoarse(false), p_show(0), p_spin(0), p_atomA(0),
     p_atomB(0), p_atomC(0), p_plane(0), p_principal(0), p_offsetField(0), p_resetOffset(0),
     p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
-    p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
+    p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_diff(0), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
 {
 }
 
@@ -252,7 +253,11 @@ void DensityMapPanel::build()
   moPair->Add(new wxStaticText(this, wxID_ANY, "MO"), 0, RIGHT, 6);
   moPair->Add(p_mo, 0, RIGHT, 8);
   moPair->Add(p_spin, 0, wxALIGN_CENTER_VERTICAL);
-  row1->Add(moPair, 0);
+  row1->Add(moPair, 0, RIGHT, 12);
+  p_diff = new wxButton(this, ID_DIFF, "Difference...");
+  p_diff->SetToolTip("Show this density minus the density of other calculations of "
+                     "some of the same atoms (the fragments of a complex)");
+  row1->Add(p_diff, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
   wxArrayString planes;
   planes.Add("Molecular plane");
@@ -381,6 +386,7 @@ void DensityMapPanel::build()
   Bind(wxEVT_TIMER, [this](wxTimerEvent&) { refineZoom(); }, p_zoomRest.GetId());
   p_canvas->onZoomReset = [this]() { resetZoom(); };
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { resetZoom(); }, ID_ZOOMRESET);
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { chooseFragments(); }, ID_DIFF);
   addOrbitalPointNote(this, top, getCalculation());
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_principal, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -693,6 +699,7 @@ void DensityMapPanel::syncControls()
 {
   const bool orbital = p_show->GetSelection() != 0;
   p_mo->Enable(orbital);
+  p_diff->Enable(!orbital);
   p_spin->Enable(orbital && p_eval->unrestricted);
   const int plane = p_plane->GetSelection();
   const bool two = plane == 2, three = plane == 1;
@@ -829,6 +836,13 @@ void DensityMapPanel::compute(bool coarse, bool progressInPanel)
            : p_map.quantity == ORBITAL_SET ? " bohr\xE2\x81\xBB\xC2\xB3"
            : " bohr\xE2\x81\xBB\xC2\xB3\xE2\x81\x84\xC2\xB2";
   }
+  if (p_map.difference) {
+    char b[160];
+    snprintf(b, sizeof b, "Blue: density gained, red: lost, white: unchanged; full "
+             "colour at \xC2\xB1%.3g e/bohr\xC2\xB3 (the 99th percentile of the plane)",
+             p_map.colourLimit);
+    p_statusText = coarse ? "Coarse grid while dragging" : b;
+  } else
   p_statusText = coarse ? (p_dragging ? "Coarse grid while dragging"
                                        : "Coarse grid while zooming")
       : lev.empty() ? std::string("No contour level is reached in this plane")
@@ -1055,6 +1069,9 @@ string DensityMapPanel::state() const
            p_map.u0, p_map.u(p_map.nu - 1), p_map.v0, p_map.v(p_map.nv - 1));
   s += buf;
   s += "title " + p_map.title + "\n";
+  snprintf(buf, sizeof buf, "difference %d fragments %d colourlimit %.6g\n",
+           p_map.difference ? 1 : 0, (int)p_fragments.size(), p_map.colourLimit);
+  s += buf;
   s += "plane " + p_map.plane.description + "\n";
   s += "labelled";
   for (const string& l : densityMapLabelled(p_map)) s += " " + l;
@@ -1090,6 +1107,43 @@ bool DensityMapPanel::exportCsv(const wxString& path)
   return fclose(out) == 0 && ok;
 }
 
+bool DensityMapPanel::setFragments(const std::vector<std::string>& urls, string& why)
+{
+  ensureInitialized();
+  if (!p_eval || !p_canvas || !p_show || !p_show->IsEnabled()) {
+    why = "The Density Map is not available for this calculation.";
+    return false;
+  }
+  if (!DensityFragments::attach(*p_eval, urls, why)) {
+    p_fragments.clear();
+    updateDiffButton();
+    compute();
+    return false;
+  }
+  p_fragments = urls;
+  updateDiffButton();
+  p_zoomed = false;
+  compute();
+  return true;
+}
+
+void DensityMapPanel::updateDiffButton()
+{
+  p_diff->SetLabel(p_fragments.empty() ? wxString("Difference...")
+      : wxString::Format("Difference: %d fragment%s...", (int)p_fragments.size(),
+                         p_fragments.size() == 1 ? "" : "s"));
+  relayout();
+}
+
+void DensityMapPanel::chooseFragments()
+{
+  std::vector<std::string> chosen;
+  if (!DensityFragments::choose(this, getCalculation(), p_fragments, chosen)) return;
+  string why;
+  if (!setFragments(chosen, why))
+    wxMessageBox(wxString::FromUTF8(why.c_str()), "Density difference", wxOK | wxICON_WARNING, this);
+}
+
 void DensityMapPanel::orbitalPointChanged()
 {
   if (!p_eval || !p_canvas || !p_show || !p_show->IsEnabled()) return;
@@ -1100,6 +1154,8 @@ void DensityMapPanel::orbitalPointChanged()
     removePlaneFromViewer();
     return;
   }
+  string ignored;
+  if (!DensityFragments::attach(*p_eval, p_fragments, ignored)) p_fragments.clear();
   const int n = std::max(1, p_eval->orbitals(false));
   p_mo->SetRange(1, n);
   p_mo->SetValue(std::min(p_mo->GetValue(), n));

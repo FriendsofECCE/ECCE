@@ -124,6 +124,29 @@ the density of the π electrons above the ring.
   energy and occupation, which member of a degenerate set it is, the plane
   and the offset.
 
+## Difference from fragments
+
+**Difference...** (with **Total density**) shows how the density of a complex
+differs from the densities of its parts: the density of this calculation minus
+the densities of the fragments you tick. A fragment is another calculation in
+the same folder (or a sibling folder) of some of the same atoms, at the same
+positions, with the same basis set and method; a hydrogen-bonded dimer minus the
+two monomers, each calculated at its geometry in the dimer. Each density is
+evaluated from that calculation's own orbitals and basis set.
+
+The map is filled: blue where density is gained, red where it is lost, white
+where it is unchanged, with the colour bar at the right. Full colour is at the
+value given there, the 99th percentile of the values in the plane, so the
+peaks at the nuclei do not wash out the region between the molecules; the
+status line repeats it. The integral of the difference over all space is the
+electron count of the complex minus those of the fragments, zero for neutral
+fragments.
+
+A fragment atom must lie within 0.05 Å of an atom of the same element in
+this calculation, and no atom may belong to two fragments; otherwise the panel
+says which atom does not match. Tick nothing and press OK to return to the
+plain density. The **Density Profile** has the same button, under **More**.
+
 ## Export
 
 **Export .png...** saves the picture as drawn. **Export .csv...** saves every

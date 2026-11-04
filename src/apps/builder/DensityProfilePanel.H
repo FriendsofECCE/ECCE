@@ -84,6 +84,10 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       bool setBohr(bool bohr);
       bool setCombine(bool on);
       bool setClip(bool on);                          // clip the nuclear peaks
+      /** The total density as a difference from the calculations at `urls`
+       *  (none: plain), #726; false and `why` if a fragment does not match. */
+      bool setFragments(const std::vector<std::string>& urls, std::string& why);
+      const std::vector<std::string>& fragments() const { return p_fragments; }
       bool setXAxis(const std::string& name);         // linear sqrt log (atom mode)
       bool setYAxis(const std::string& name);         // linear log
       bool setShift(double angstrom, bool outOfPlane);  // sideways, line mode
@@ -152,6 +156,10 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       double p_sumError;                         // negative: not applicable
       double p_sumPeak;
       bool p_ok, p_busy, p_atomsOnly;
+      std::vector<std::string> p_fragments;
+      wxButton *p_diff = nullptr;
+      void chooseFragments();
+      bool differenceOn() const;                 // fragments set and a density is plotted
       bool p_ranked = false;                     // the ranking for this recompute is done
       bool p_autoActive;                         // Total + the largest contributors
       wxString p_autoNote;

@@ -2245,6 +2245,17 @@ add_test(NAME densityfields_cli
 set_tests_properties(densityfields_cli PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityfields;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityfields-home")
 
+# tests/tdat/densitydifference_test (#726): complex minus fragments.
+add_executable(densitydifference_test tests/tdat/densitydifference_test.C)
+target_include_directories(densitydifference_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(densitydifference_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
+add_test(NAME densitydifference
+  COMMAND densitydifference_test ${CMAKE_SOURCE_DIR}/tests/builder/difference-fixtures)
+set_tests_properties(densitydifference PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densitydifference;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densitydifference-home")
+
 # tests/tdat/radialdist_test: quadrature on analytic functions, and the
 # stored H, Ne, Ar, H2, N2 calculations: spherical averages and line profiles.
 add_executable(radialdist_test tests/tdat/radialdist_test.C)
