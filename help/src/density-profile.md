@@ -139,6 +139,14 @@ total is black and heavier, and when the colours run out the next curves are
 dashed. For an unrestricted calculation choose alpha, beta, or
 alpha + beta; the contributions add up to the total only for alpha + beta.
 
+**Difference...** (under **More**) plots the total density of this calculation
+minus the densities of other calculations of some of the same atoms, at the same
+positions and with the same basis set, which you tick in a list (the fragments
+of a complex; see "Difference from fragments" in **The Density Map**). The plot
+then has one signed curve, "Density difference", with a zero line: above it
+density is gained in the complex, below it lost. The orbital curves are not
+drawn, the vertical axis cannot be logarithmic (the values change sign) and the nuclear peaks are not clipped.
+
 **clip peaks** (along a line) cuts the vertical axis, when the peaks are more than three times higher, a little above the
 highest value found 0.35 Å or more from every atom. The density at a nucleus is
 hundreds of times the density in a bond, and without the cut those peaks flatten

@@ -15,6 +15,7 @@
 #define DENSITYPLANE_HH
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 using std::string;
@@ -103,6 +104,8 @@ namespace DensityPlane
     double zmin, zmax;
     Plane plane;
     vector<Mark> atoms;
+    bool difference;    // a density difference: signed, drawn on a diverging scale
+    double colourLimit; // difference: |value| at full colour (99th percentile of |z|)
     double levelTop;    // > 0: level ladder from this maximum, not zmax/zmin
     string title;       // "Total density", "MO 5 (HOMO)  -0.4 Eh  2 e"
     Map();
@@ -157,6 +160,19 @@ namespace DensityPlane
     FieldPoint();
   };
 
+  class Evaluator;
+
+  /**
+   * Whether `fragment` can be subtracted from `whole` (#726): every fragment
+   * atom sits on an atom of `whole` of the same element within `tolerance` A.
+   * `used` (one flag per atom of `whole`, may be shared over several
+   * fragments) catches an atom claimed twice.  On refusal `complaint` says
+   * which atom and why.
+   */
+  bool matchFragment(const Evaluator& whole, const Evaluator& fragment,
+                     vector<char>& used, string& complaint,
+                     double tolerance = 0.05);
+
   class Evaluator
   {
     public:
@@ -179,8 +195,20 @@ namespace DensityPlane
       /** "O1", "H2", ... in coefficient order. */
       vector<string> atomLabels() const;
 
-      /** Total density (alpha + beta) at a point, A, stored frame. */
+      /** Total density (alpha + beta) at a point, A, stored frame.  With
+       *  fragments added it is the difference: this - sum of the fragments. */
       double density(double x, double y, double z) const;
+
+      /**
+       * Make density() and the density maps/profiles the difference
+       * rho(this) - sum rho(fragment), each from its own MOs and basis (#726).
+       * The fragment must pass matchFragment(); `name` is for the title.
+       */
+      void addFragment(std::shared_ptr<const Evaluator> fragment, const string& name);
+      void clearFragments();
+      bool isDifference() const { return !p_fragments.empty(); }
+      /** "Density difference: complex - H_a - H_b" for titles. */
+      string differenceTitle() const;
       /** True when alpha and beta electrons differ in number: a second
        *  MO set, or a restricted open shell (occupations other than 0, 2). */
       bool openShell() const;
@@ -220,6 +248,8 @@ namespace DensityPlane
                const double *win = nullptr) const;
 
     private:
+      vector< std::shared_ptr<const Evaluator> > p_fragments;
+      vector<string> p_fragmentNames;
       vector<EspBasisFunction> *p_basis;
       vector< vector<double> > p_c, p_cBeta;
       void functions(double x, double y, double z, vector<double>& phi) const;
