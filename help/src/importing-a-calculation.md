@@ -196,15 +196,17 @@ narrow panel; the tooltip has all of it.
 #### The panel
 
 From the top: the **Spectrum | Table** toggle (**Export .csv...** appears
-beside it in the Table view); the spectrum, with IR above Raman; the selected
+beside it in the Table view); the spectrum; the selected
 mode in full under it (frequency, irrep, IR and Raman intensity, and its
 contributions); the **Mode in the viewer** group; and the buttons
 **Open in window...**, **Composition...** and **Displace...**.
 
-IR and Raman are drawn one over the other. When a second calculation, an
-experimental spectrum or a difference is loaded they cannot be stacked: the
-plot then shows one kind at a time, and an **IR | Raman** switch at its top
-right chooses which kind all the curves show.
+In the panel the plot shows IR or Raman, chosen by the **IR | Raman** switch
+at its top right; a panel taller than about 320 pixels shows them one over
+the other. In the Spectrum window (**Open in window...**) IR and Raman are
+stacked; when a second calculation, an experimental spectrum or a difference
+is loaded they cannot be, and the window shows one kind at a time with the
+same switch.
 
 **Mode in the viewer:** **Show** draws the selected mode in the molecular
 view (off leaves the structure alone); **Animation** or **Vectors** chooses
