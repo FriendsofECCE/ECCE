@@ -582,7 +582,6 @@ void NModePanel::createSpectrumPane()
    p_spectrum->setScale(scale);
    p_spectrum->setReversed(reversed);
    p_spectrum->setShowSticks(sticks);
-   p_spectrum->setCompactBelow(0);
    col->Add(p_spectrum, 1, wxEXPAND);
 
    //  The selected mode, frequency first, wrapped into two lines under the
