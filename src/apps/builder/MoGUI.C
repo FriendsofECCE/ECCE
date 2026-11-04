@@ -134,8 +134,14 @@ void MoGUI::CreateControls()
     ewxButton* itemButton6 = new ewxButton( itemVizPropertyPanel1, ID_BUTTON_MO_COMPUTE, _("Compute"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer4->Add(itemButton6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
+    //  Isovalue slider and View Coeff... on a row of their own: on the
+    //  Compute row they made the panel wider than the column (#843).
+    wxBoxSizer* sliderRow = new wxBoxSizer(wxHORIZONTAL);
+    itemBoxSizer2->Add(sliderRow, 0, wxALIGN_LEFT|wxALL, 0);
     p_sliderSizer = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer4->Add(p_sliderSizer, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    sliderRow->Add(p_sliderSizer, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 5);
+    ewxButton* itemButton12 = new ewxButton( itemVizPropertyPanel1, ID_BUTTON_MO_VIEWCOEF, _("View Coeff..."), wxDefaultPosition, wxDefaultSize, 0 );
+    sliderRow->Add(itemButton12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxPanel* itemPanel8 = new ewxPanel( itemVizPropertyPanel1, ID_PANEL, wxDefaultPosition, wxDefaultSize, wxSUNKEN_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer2->Add(itemPanel8, 0, wxALIGN_LEFT|wxALL, 5);
@@ -149,8 +155,6 @@ void MoGUI::CreateControls()
     ewxTextCtrl* itemTextCtrl11 = new ewxTextCtrl( itemPanel8, ID_TEXTCTRL_MO_CUTOFF, _("0.001"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer9->Add(itemTextCtrl11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-    ewxButton* itemButton12 = new ewxButton( itemPanel8, ID_BUTTON_MO_VIEWCOEF, _("View Coeff..."), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer9->Add(itemButton12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
 ////@end MoGUI content construction
 }
