@@ -52,6 +52,32 @@ A gas-phase and a solvent calculation of one molecule (same atoms, charge,
 multiplicity, method and basis set) give **B - A** as the solvation energy, and
 the window says so.
 
+## 1 M standard state and log K
+
+The free energies the codes store refer to an ideal gas at 1 atm. For a
+reaction in solution the usual standard state is 1 mol/L. Tick **1 M standard
+state (solution)**, under the table, to apply that change to the **G** row. It
+is off by default and it is applied to the stored 1 atm free energies, so a
+free energy that was already referred to 1 mol/L would be corrected twice.
+
+The correction is added to **B - A** of G only:
+
+    delta n * R * T * ln(R' * T / p0)
+
+where delta n is the sum of the coefficients on side B minus the sum on side A
+(a **-** entry counts as negative), T is the temperature of the G row, R is
+the gas constant in kJ/(mol K), R' = 0.0820574 L atm/(K mol) and p0 = 1 atm.
+At 298.15 K, R*T*ln(24.47) = 7.93 kJ/mol per species. A line under the table
+gives delta n and the correction in kJ/mol; for delta n = 0 it says that the
+correction is zero. E, E + ZPE and H are not changed.
+
+When the G row has a value, a line under the table gives **log K**:
+
+    log K = -(B - A of G) / (R * T * ln 10)
+
+with the correction included when the box is ticked. **Copy** includes both
+lines.
+
 ## G over treatments
 
 When every calculation has stored frequencies, the **G** row has an extra

@@ -177,6 +177,46 @@ int main()
           n[4] == "O2", "sorted list");
   }
 
+  // 1 M standard state and log K (#835): 2 A -> B at 298.15 K, delta G = -10 kJ/mol
+  {
+    const double kj = hartreeTo(1.0, EU_KJ);
+    Side sa = {term("A", -1.0, "", 2)}, sb = {term("B", -2.0, "")};
+    freq(sa[0], 0.0, -1.0, -1.0, 298.15);
+    freq(sb[0], 0.0, -2.0, -2.0 - 10.0 / kj, 298.15);
+    check(near(standardStateCorrection(1, 298.15), 7.926, 0.005) &&
+          near(logKFromDeltaG(-10.0, 298.15), 1.752, 0.005),
+          "RT ln(24.47) = 7.93 kJ/mol; log K of -10 kJ/mol is 1.75");
+    r = sumEnergies(sa, sb);
+    applyStandardState(r, sa, sb, false);
+    check(r.stdState.available && r.stdState.dn == -1 && !r.stdState.applied &&
+          near(r.stdState.deltaG, -10.0, 1e-6) && near(r.stdState.logK, 1.752, 0.005),
+          "dn = -1 for 2 A -> B; log K without the correction");
+    check(has(sumTable(r, false), "log K = 1.75") &&
+          !has(sumTable(r, false), "1 M standard state"), "log K line, no correction line");
+    r = sumEnergies(sa, sb);
+    applyStandardState(r, sa, sb, true);
+    check(near(r.rows[3].delta() * kj, -10.0 - 7.926, 0.005) &&
+          near(r.rows[1].delta(), r.rows[1].b - r.rows[1].a) &&
+          near(r.stdState.logK, 17.925 / (8.314462618e-3 * 298.15 * std::log(10.0)), 1e-3),
+          "the correction goes into G only; log K follows it");
+    check(has(sumTable(r, false), "\xCE\x94n = -1") &&
+          has(sumTable(r, false), "-7.93 kJ/mol added") && has(sumText(r, true), "log K"),
+          "the correction line and log K are shown and copied");
+    Side sc = {term("C", -1.0, "")};
+    freq(sc[0], 0.0, -1.0, -1.0);
+    Side sd = {term("D", -1.1, "")};
+    freq(sd[0], 0.0, -1.1, -1.1);
+    r = sumEnergies(sc, sd);
+    applyStandardState(r, sc, sd, true);
+    check(r.stdState.dn == 0 && near(r.stdState.correction, 0) &&
+          has(sumTable(r, false), "the correction is zero"), "dn = 0: no correction");
+    Side sn = {term("A", -1.0, "")};
+    r = sumEnergies(sn, sd);
+    applyStandardState(r, sn, sd, true);
+    check(!r.stdState.available && !has(sumTable(r, false), "log K"),
+          "no log K without frequencies");
+  }
+
   printf("%d failure(s)\n", failures);
   return failures ? 1 : 0;
 }
