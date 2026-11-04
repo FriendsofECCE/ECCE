@@ -3004,7 +3004,7 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
-  set_tests_properties(apps PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  set_tests_properties(apps PROPERTIES TIMEOUT 2700 SKIP_RETURN_CODE 77)
   # Builder Add Structure from File on PDB/XYZ/CAR and on missing paths,
   # through the installed builder's ECCE_TEST_IMPORT hook.
   add_test(NAME apps_import

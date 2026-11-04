@@ -64,8 +64,9 @@ import xdisplay                                               # noqa: E402
 #  I thought of is bounded" is not the same claim as "the run terminates",
 #  and only the second one is worth relying on.
 #
-#  A healthy full run is about six minutes.
-DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "1500"))
+#  A healthy full run took about 25 minutes on niobium (2026-11) with the
+#  Builder and Organizer checks added since.
+DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "2400"))
 
 
 class BudgetExpired(Exception):
