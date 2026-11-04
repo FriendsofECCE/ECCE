@@ -72,6 +72,16 @@ Add `launch` to submit each new copy with its stored launch settings, as
 other items still proceed. If submission fails, the line identifies the copy
 that was made and gives the launch failure; the copy remains available.
 
+`ecce-rerun --last-geometry [cores=N] [wall="D H:M"] <calculation>...` uses
+**New from This > Continue from Last Geometry** instead. The copy starts from
+the last geometry in the stored geometry trace, and its annotation begins
+`continued from <name> (last geometry)`. A Submitted, Running or Waiting
+calculation is terminated first, as `ecce-terminate` does. A calculation with
+no stored geometry yet is refused with that reason, no copy is made and a
+running job is left alone. `cores=N` and `wall=` (`D H:M`, `H:M` or minutes)
+set the copy's launch settings, with or without `--last-geometry`; with
+`launch` the copy is submitted with them.
+
 Local data paths and data-server URLs are supported. Exit status: 0 all done,
 1 any refusal or missing answer, 2 no running ECCE session, 64 invalid usage.
 

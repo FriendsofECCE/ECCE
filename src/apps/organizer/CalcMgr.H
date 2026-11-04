@@ -179,8 +179,13 @@ public:
   bool launchForCommand(const vector<EcceURL>& urls,
                         const LaunchBatch::Target& target,
                         vector<string>& lines);
+  // lastGeom: end a running job first and start the copy from its last
+  // stored geometry. cores > 0 and a non-empty wall ("D H:M" or H:M) are
+  // stored as the copy's launch settings.
   bool rerunForCommand(const vector<EcceURL>& urls, bool launch,
-                       const LaunchBatch::Target& target, vector<string>& lines);
+                       const LaunchBatch::Target& target, vector<string>& lines,
+                       bool lastGeom = false, unsigned long cores = 0,
+                       const string& wall = "");
   // ecce-terminate (#695): Terminate Selected without the dialog; same line
   // format as launchForCommand. False, with lines empty, while a batch submits.
   bool terminateForCommand(const vector<EcceURL>& urls, const string& reason,

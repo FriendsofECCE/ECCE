@@ -110,20 +110,30 @@ int main(int argc, char **argv)
 #endif
   }
 
-  string on;
-  bool launch = false, badUsage = false;
+  string on, wall;
+  unsigned long cores = 0;
+  bool launch = false, lastGeom = false, badUsage = false;
   vector<string> args;
   for (int i = 1; i < argc; i++) {
     string a = argv[i];
     if (a.compare(0, 3, "on=") == 0) {
       on = a.substr(3);
       if (on.empty()) badUsage = true;
-    } else if (a == "launch") launch = true;
+    } else if (a.compare(0, 6, "cores=") == 0) {
+      char *e = 0;
+      cores = strtoul(a.c_str() + 6, &e, 10);
+      if (a.size() == 6 || *e || cores == 0 || cores > 1000000) badUsage = true;
+    } else if (a.compare(0, 5, "wall=") == 0) {
+      wall = a.substr(5);
+      if (wall.empty()) badUsage = true;
+    } else if (a == "--last-geometry") lastGeom = true;
+    else if (a == "launch") launch = true;
     else if (a.compare(0, 1, "-") == 0) badUsage = true;
     else args.push_back(a);
   }
   if (args.empty() || badUsage) {
-    std::cerr << "usage: ecce-rerun [on=MACHINE] [launch] <calculation path or URL>..."
+    std::cerr << "usage: ecce-rerun [--last-geometry] [cores=N] [wall=\"D H:M\"] "
+                 "[on=MACHINE] [launch] <calculation path or URL>..."
               << std::endl;
     return 64;
   }
@@ -162,6 +172,9 @@ int main(int argc, char **argv)
   msg->addProperty("reply_id", gReplyId);
   msg->addProperty("on", on);
   msg->addProperty("launch", launch ? "yes" : "no");
+  msg->addProperty("last_geometry", lastGeom ? "yes" : "no");
+  msg->addProperty("cores", std::to_string(cores));
+  msg->addProperty("wall", wall);
   msg->addIntProperty("n", (int)urls.size());
   for (size_t i = 0; i < urls.size(); i++)
     msg->addProperty("url" + std::to_string(i), urls[i]);
