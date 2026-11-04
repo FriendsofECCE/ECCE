@@ -46,7 +46,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 MULT = {"singlet": 1, "doublet": 2, "triplet": 3, "quartet": 4, "quintet": 5,
-        "sextet": 6, "septet": 7, "octet": 8, "nonet": 9, "decet": 10}
+        "sextet": 6, "septet": 7, "octet": 8, "nonet": 9, "nontet": 9, "decet": 10}
 FIELDS = ["name", "code", "method", "charge", "mult", "E", "G", "nimag",
           "excluded"]
 
