@@ -3,7 +3,7 @@ type: map
 title: "Recipes (#710): a .recipe text file, applied by WorkflowSteps::applyRecipe; the set-up panel and the key-data box"
 area: codereg
 paths: [src/apps/organizer/Recipe.C, src/apps/organizer/KeyData.C, src/apps/organizer/RecipePanel.C, src/apps/organizer/WorkflowLayout.C, src/apps/organizer/WorkflowSteps.C, data/client/recipes, tests/recipes, tests/apps/workflow_test.py]
-issues: [710, 674, 808]
+issues: [710, 674, 808, 847]
 ---
 - Format and rules: `Recipe.H` (wx-free; tested by `recipe_test`). Built-ins
   are `data/client/recipes/*.recipe`; a site adds `Recipes/` in any site
@@ -18,8 +18,12 @@ issues: [710, 674, 808]
   key-data box.
 - A recipe step with no incoming link and no atoms is a placeholder
   ("needs structure"). Its successors get geometry, charge and multiplicity
-  only when launched: `launchReadySteps` calls `refreshFromSources`, which
-  acts on recipe steps only so other workflows behave as before.
+  when launched, or before opening an empty step's Calculation Editor once
+  all sources are Complete: `CalcMgr::startApp` calls `refreshFromSources`
+  before dispatching the editor request (#847). It checks the step's own
+  fragment without input-provider fallback and preserves existing structures
+  and launched steps. `launchReadySteps` still refreshes at launch. Both
+  paths act on recipe steps only so other workflows behave as before.
 - The method and basis chosen per role are recorded as properties.
   `applyRoleMethod` sets theory RDFT plus `ES.Theory.DFT.XCFunctionals` (or
   SCF/RHF for HF) for G16, ORCA and ECCE-QM only (ECCE-QM: theory DFT/DFT or SCF/HF, functionals SVWN, PBE, B3LYP, PBE0), through `methodValue`, which holds

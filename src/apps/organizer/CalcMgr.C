@@ -8252,6 +8252,28 @@ bool CalcMgr::checkMovable(WxResourceTreeItemData * node)
 void CalcMgr::startApp(const string& app, int force, const string& url,
                        const string& codename, int debug)
 {
+  if (app == "CalculationEditor" && !url.empty()) {
+    Resource *step = EDSIFactory::getResource(EcceURL(url));
+    if (step && !step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()
+        && !WorkflowSteps::isLaunched(step)) {
+      ChemistryTask *task = dynamic_cast<ChemistryTask*>(step);
+      Fragment own;
+      // An inherited thumbnail is not the editor's chemical system. Store
+      // the completed source before opening, but preserve an edited structure.
+      if (task && (!task->getFragment(own, false) || own.numAtoms() == 0)) {
+        Session *wf = dynamic_cast<Session*>(
+            EDSIFactory::getResource(step->getURL().getParent()));
+        if (wf) {
+          vector<Resource*> ready = WorkflowSteps::readySteps(wf);
+          for (Resource *member : ready)
+            if (member->getURL() == step->getURL()) {
+              WorkflowSteps::refreshFromSources(wf, member);
+              break;
+            }
+        }
+      }
+    }
+  }
   //  cerr << "\nInvoke " << app << " with url " << url << endl;
   // Send the start app request to gateway:
   Target gateway(GATEWAY, "");

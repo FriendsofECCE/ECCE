@@ -85,7 +85,8 @@ The boxes are ordinary steps and can be edited like any calculation.
 - A box marked **needs structure** has no structure yet. Click it and build
   or import the structure in the Builder.
 - The other boxes take the geometry, charge and multiplicity of their source
-  when you choose **Launch Ready Steps** after the source is Complete.
+  when you open their editor after the source is Complete, or when you choose
+  **Launch Ready Steps**.
 - The method and basis chosen in the panel are kept with each box. For
   Gaussian 16, ORCA and ECCE-QM the method is set as the box's functional (HF as its
   SCF theory) when one of the editor's functionals has that name; other
@@ -96,6 +97,23 @@ The boxes are ordinary steps and can be edited like any calculation.
   functions, an element beyond Kr a def2 basis. A level you typed in the
   panel is kept; only the recommended one changes.
 - The Calculation Editor shows the other settings of the recipe's run type.
+
+## Using a workflow made from a recipe
+
+1. After **Apply Recipe** and **Create boxes**, select the first box marked
+   **needs structure**. Build or import its molecule in the Builder and save
+   it. A recipe continued after an existing box takes its starting structure
+   from that box.
+2. Open the first step's Calculation Editor. Check its charge, multiplicity,
+   theory and run type, then save. Open the Launcher, choose the machine and
+   launch settings, and launch the step.
+3. Wait until the source step is **Complete**. Open the next step's editor;
+   an empty step now receives its source's final geometry, charge and
+   multiplicity. Check the recipe's settings, save, and launch this step.
+4. Repeat for the remaining steps. For branches, **Launch Ready Steps**
+   launches every step whose sources are Complete using its saved launch
+   settings. Use **Open in Launcher** for steps that still need launch
+   settings. Nothing launches automatically when a step finishes.
 
 ## Key data
 
