@@ -94,6 +94,7 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 
 | 9.x | 8.x (bug fixes) |
 |---|---|
+| **v9.5.1** — Vibrational Frequencies panel and Spectrum window redesigned (#845, #846); Surfaces as one entry under Orbitals (#842); density difference (#726); Thermochemistry labels (#844); recipe steps get their structure (#847) and CREST starts from an xTB optimisation (#840) |  |
 | **v9.5.0** — local by default with servers as Organizer trees (#767); workflows and recipes; xTB, CREST and an ML potential as codes; Compare Energies and the reaction overview; Surfaces (ELF, LOL, NCI); command-line launch, terminate, move, rename, rerun; Progress box rule (#826); see docs/release-notes-9.5.0.md |  |
 | **v9.4.10** — outputs no longer stored empty when the login to the compute host fails at the end of a job (#732); orbital names with the principal quantum number and Show core orbitals in the MO Diagram (#827); scan steps keep far-apart atoms in view (#832) |  |
 | **v9.4.9** — MO Diagram for a single atom as a textbook staircase, energies to scale with grouped levels and values, d-block atoms and g-function basis sets (#817); General Chemistry atoms Ca, Cr, Cu (#788) |  |
