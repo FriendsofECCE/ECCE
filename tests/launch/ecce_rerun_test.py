@@ -240,6 +240,73 @@ def main():
             check(rc == 1 and "not rerun:" in out and org.poll() is None,
                   "outside-data argument refused: " + arg)
         check(send("tree").startswith("ok"), "Organizer still answers")
+
+        # --last-geometry: the copy starts from the last trace step.
+        def trace_last(url):
+            text = open(os.path.join(path(url), "Props", "GEOMTRACE")).read()
+            step = re.findall(r"<step[^>]*>(.*?)</step>", text, re.S)[-1]
+            return [float(v) for v in step.split()]
+
+        def mvm_coords(url):
+            lines = open(os.path.join(path(url), "Parameters", "chemsys.mvm")).read().splitlines()
+            at = lines.index("atom_list: ") + 1
+            n = int([l for l in lines if l.startswith("num_atoms:")][0].split()[1])
+            return [float(v) for l in lines[at:at + n] for v in l.split()[1:4]]
+
+        want = trace_last(urls["killed"])
+        before = mvm_coords(urls["killed"])
+        check(max(abs(a - b) for a, b in zip(want, before)) > 1e-3,
+              "fixture: the last trace step differs from the input structure")
+        rc, out, err = go("--last-geometry", "cores=4", "wall=1 2:30", urls["killed"])
+        say(out + err)
+        m = re.fullmatch(r"killed: rerun as (killed_r\d+)\n", out)
+        check(rc == 0 and m is not None, "--last-geometry: one successful line")
+        if m:
+            copy2 = os.path.join(os.path.dirname(urls["killed"]), m.group(1))
+            got = mvm_coords(copy2)
+            check(len(got) == len(want) and max(abs(a - b) for a, b in zip(want, got)) < 1e-4,
+                  "copy's structure equals the last trace step")
+            check(s.state_of(copy2) in ("ready", "created"), "last-geometry copy can be launched")
+            rc, settings = s.driver("launchdata", copy2)
+            say(settings)
+            check(re.search(r"(procs|totalprocs)\D*=\s*4\b", settings) is not None and
+                  "wall=0 1:0" not in settings and "1 2:30" in settings.replace("wall=", ""),
+                  "cores= and wall= reach the copy's launch settings")
+            rc, ann = s.driver("meta", copy2, "annotation")
+            check("continued from killed (last geometry)" in ann, "annotation names the original")
+            check(snapshot(urls["killed"]) == originals["killed"], "original untouched")
+
+        rc, out, err = go("cores=2", "wall=0:45", urls["failed"])
+        m = re.fullmatch(r"failed: rerun as (failed_r\d+)\n", out)
+        check(rc == 0 and m is not None, "cores=/wall= without --last-geometry")
+        if m:
+            rc, settings = s.driver("launchdata", urls["failed"] + m.group(1)[len("failed"):])
+            check(re.search(r"(procs|totalprocs)\D*=\s*2\b", settings) is not None,
+                  "cores= applied to a plain rerun copy")
+        rc, out, err = go("wall=soon", urls["failed"])
+        check(rc == 1 and "not rerun: wall time" in out, "bad wall= refused")
+        check(all(run(*a)[0] == 64 for a in (("cores=0", "a"), ("cores=x", "a"), ("wall=", "a"))),
+              "bad cores=/wall= usage: exit 64")
+
+        # A running job with no stored geometry is refused and keeps running.
+        check(s.state_of(copy) == "running", "the launched copy still runs")
+        names = set(os.listdir(os.path.dirname(path(copy))))
+        rc, out, err = go("--last-geometry", copy)
+        check(rc == 1 and "not rerun: no stored geometry yet" in out and
+              set(os.listdir(os.path.dirname(path(copy)))) == names and
+              s.state_of(copy) == "running",
+              "no stored geometry: clear error, no copy, job not terminated")
+
+        # With a trace present, the running job is ended and continued.
+        os.makedirs(os.path.join(path(copy), "Props"), exist_ok=True)
+        shutil.copy(os.path.join(path(urls["killed"]), "Props", "GEOMTRACE"),
+                    os.path.join(path(copy), "Props", "GEOMTRACE"))
+        rc, out, err = go("--last-geometry", copy)
+        say(out + err)
+        check(rc == 0 and re.fullmatch(r"completed_r3: rerun as completed_r3_r\d+\n", out) is not None,
+              "running job with a trace: terminated and continued")
+        state = s.waitState(copy, seconds=60, want=harness.FINAL_STATES)
+        check(state == "killed", "the running original was terminated (%s)" % state)
         s.driver("kill", copy)
     finally:
         if org and org.poll() is None:

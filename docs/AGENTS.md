@@ -155,7 +155,7 @@ filled in or dropped (for example no stored queue).
 
 ### ecce-rerun
 
-    ecce-rerun [on=MACHINE] [launch] <calculation>...
+    ecce-rerun [--last-geometry] [cores=N] [wall="D H:M"] [on=MACHINE] [launch] <calculation>...
 
 Uses the Organizer's **New from This > Rerun**: copies the full setup
 (structure, code, theory, basis, run type and launch settings) into the same
@@ -163,6 +163,17 @@ folder, removes the copy's results and makes a finished, killed or failed
 calculation Ready. The original stays untouched. Names are `<name>_r2`,
 `_r3`, and so on, taking the first free name. Submitted, Running and Waiting
 for Login calculations and non-calculations are refused with their reason.
+
+`--last-geometry` uses **New from This > Continue from Last Geometry**
+instead: the copy starts from the last geometry in the calculation's stored
+geometry trace, and its annotation begins `continued from <name> (last
+geometry)`. A Submitted, Running or Waiting calculation is ended first, as
+`ecce-terminate` does; the result is the same copy as for a killed run. With no
+stored geometry yet the command says so (`not rerun: no stored geometry yet`),
+makes no copy and leaves a running job alone. `cores=N` and `wall=` (`D H:M`,
+`H:M` or minutes) are stored as the copy's launch settings, with or without
+`--last-geometry`; on a machine other than the stored one, `on=` still applies
+that machine's limits at launch.
 
 With `launch`, submits the new copy as `ecce-launch` does; `on=MACHINE`
 overrides its launch machine. Output: `name: rerun as new`, optionally
@@ -173,6 +184,7 @@ session, 64 usage. Local data paths and data-server URLs only.
 
     ecce-rerun project/killed-job
     ecce-rerun on=localhost launch project/finished-job
+    ecce-rerun --last-geometry cores=16 wall="2 0:00" launch project/slow-opt
 
 ### ecce-terminate
 

@@ -3965,13 +3965,19 @@ WxResourceTreeItemData* CalcMgr::duplicateForRerun(
 
 bool CalcMgr::rerunForCommand(const vector<EcceURL>& urls, bool launch,
                               const LaunchBatch::Target& target,
-                              vector<string>& lines)
+                              vector<string>& lines, bool lastGeom,
+                              unsigned long cores, const string& wall)
 {
   lines.clear();
+  const string wallStored = wall.empty() ? string() : LaunchBatch::parseWall(wall);
   for (const EcceURL& url : urls) {
     const string name = url.getFilePathTail();
     auto no = [&](const string& why) { lines.push_back(name + "\tno\t" + why); };
     if (p_batch) { no("the Organizer is submitting a Launch Selected batch"); continue; }
+    if (!wall.empty() && wallStored.empty()) {
+      no("wall time \"" + wall + "\" is not understood: use D H:M, H:M or minutes");
+      continue;
+    }
     WxResourceTreeItemData *item = findNodeFresh(url, false);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (!task) { no("not a calculation in this session"); continue; }
@@ -3979,12 +3985,36 @@ bool CalcMgr::rerunForCommand(const vector<EcceURL>& urls, bool launch,
       no("only local data and data servers are supported");
       continue;
     }
-    const auto state = task->getState();
-    if (state == ResourceDescriptor::STATE_SUBMITTED ||
-        state == ResourceDescriptor::STATE_RUNNING ||
-        state == ResourceDescriptor::STATE_WAITING) {
+    auto state = task->getState();
+    const bool active = state == ResourceDescriptor::STATE_SUBMITTED ||
+                        state == ResourceDescriptor::STATE_RUNNING ||
+                        state == ResourceDescriptor::STATE_WAITING;
+    if (active && !lastGeom) {
       no("state is " + ResourceUtils::stateToString(state));
       continue;
+    }
+    if (lastGeom) {
+      // Checked before anything is ended, so a refusal leaves the job alone.
+      PropertyTask *calc = dynamic_cast<PropertyTask*>(task);
+      PropTSVecTable *trace = calc && calc->fragment() ?
+          (PropTSVecTable*)calc->getProperty("GEOMTRACE") : 0;
+      if (!trace || trace->tables() < 1) {
+        no("no stored geometry yet (no geometry trace): nothing copied");
+        continue;
+      }
+      if (active) {
+        vector<string> ended;
+        terminateForCommand(vector<EcceURL>(1, url), "continued from last geometry", ended);
+        const size_t a = ended.empty() ? string::npos : ended[0].find('\t');
+        const size_t b = a == string::npos ? a : ended[0].find('\t', a + 1);
+        if (b == string::npos || ended[0].substr(a + 1, b - a - 1) != "ok") {
+          no("not terminated: " + (b == string::npos ? string("no answer") : ended[0].substr(b + 1)));
+          continue;
+        }
+        item = findNodeFresh(url, false);
+        task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+        if (!task) { no("not a calculation in this session"); continue; }
+      }
     }
     Resource *parent = EDSIFactory::getResource(url.getParent());
     vector<Resource*> *children = parent ? parent->getChildren(true) : 0;
@@ -3998,10 +4028,39 @@ bool CalcMgr::rerunForCommand(const vector<EcceURL>& urls, bool launch,
       if (!taken) break;
     }
     string why;
-    WxResourceTreeItemData *copy = duplicateForRerun(item, false, next, &why);
+    WxResourceTreeItemData *copy = 0;
+    if (lastGeom) {
+      // The Continue from Last Geometry copy; its coordinates are the last
+      // trace step, not the input's.
+      copy = duplicate(item, false, next);
+      if (copy) resetWithLastGeom(copy);
+      else why = "could not copy the calculation";
+    } else {
+      copy = duplicateForRerun(item, false, next, &why);
+    }
     if (!copy) { no(why); continue; }
     const EcceURL copyUrl = copy->getUrl();
     string result = copy->getName();
+    TaskJob *copyTask = dynamic_cast<TaskJob*>(copy->getResource());
+    if (copyTask && (cores > 0 || !wallStored.empty())) {
+      Launchdata l = copyTask->launchdata();
+      if (cores > 0) {
+        l.totalprocs = cores;
+        if (l.nodes > cores) l.nodes = cores;
+      }
+      if (!wallStored.empty()) l.maxwall = wallStored;
+      if (!copyTask->launchdata(l)) {
+        lines.push_back(name + "\tno\t" + result + " made but its launch settings could not be stored");
+        continue;
+      }
+    }
+    if (lastGeom && copy->getResource()) {
+      const string key = VDoc::getEcceNamespace() + ":annotation";
+      const string old = copy->getResource()->getProp(key);
+      copy->getResource()->addProp(key, "continued from " + name + " (last geometry)" +
+                                        (old.empty() ? string() : "\n" + old));
+      updateUrl(copyUrl);
+    }
     if (launch) {
       vector<string> launched;
       if (!launchForCommand(vector<EcceURL>(1, copyUrl), target, launched)) {

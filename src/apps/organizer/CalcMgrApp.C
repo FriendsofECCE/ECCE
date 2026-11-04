@@ -349,7 +349,10 @@ void CalcMgrApp::rerunRequestMCB(JMSMessage& msg)
     urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
 
   vector<string> lines;
-  p_calcMgr->rerunForCommand(urls, msg.getProperty("launch") == "yes", target, lines);
+  p_calcMgr->rerunForCommand(urls, msg.getProperty("launch") == "yes", target, lines,
+                             msg.getProperty("last_geometry") == "yes",
+                             strtoul(msg.getProperty("cores").c_str(), 0, 10),
+                             msg.getProperty("wall"));
   reply("done", lines);
 }
 
