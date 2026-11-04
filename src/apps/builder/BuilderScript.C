@@ -52,6 +52,8 @@
 //    atomtable                   the shown text of each Atom Table row
 //    progress N                  the MO Compute progress dialog, N seconds
 //    property NAME               a click on Properties > NAME (toggles it)
+//    columnwidth N               restore a saved side column width of N pixels
+//    panesize NAME               report pane width, height and virtual width
 //    list NAME                   a click on NAME in the Properties list
 //    viewer NAME                 a click on NAME's "Show in viewer" box
 //    overlay                     the column's tab (1 = Properties), and for
@@ -277,15 +279,40 @@ void Builder::runBuilderScript(const std::string& file)
           ev.SetInt(1);
           GetEventHandler()->ProcessEvent(ev);
         }
+      } else if (w[0] == "columnwidth" && w.size() == 2) {
+        wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(NAME_PROPERTY_INDEX));
+        if (!pane.IsOk() || !pane.IsShown()) {
+          outcome = "no Properties pane";
+        } else {
+          // Restore the dock size as a saved user layout does.
+          std::string perspective = p_mgr.SavePerspective().ToStdString();
+          const std::string key = wxString::Format("dock_size(%d,%d,%d)=",
+              pane.dock_direction, pane.dock_layer, pane.dock_row).ToStdString();
+          const size_t at = perspective.find(key);
+          if (at == std::string::npos) {
+            outcome = "no Properties dock size";
+          } else {
+            const size_t value = at + key.size();
+            perspective.replace(value, perspective.find('|', value) - value, w[1]);
+            p_mgr.LoadPerspective(wxString(perspective), false);
+            updatePanes();
+          }
+        }
       } else if (w[0] == "panesize" && w.size() >= 2) {
         wxString nm = line.substr(line.find("panesize") + 9);
         nm.Trim(false).Trim(true);
         wxAuiPaneInfo &pn = p_mgr.GetPane(nm);
         fprintf(stderr, "PANESIZE %s: %s y=%d height=%d min_height=%d "
-                "resizable=%d\n",
+                "resizable=%d width=%d client_width=%d virtual_width=%d "
+                "pane_min_width=%d window_min_width=%d content_width=%d\n",
                 (const char*)nm.mb_str(),
                 pn.IsOk() && pn.IsShown() ? "shown" : "hidden", pn.rect.y,
-                pn.rect.height, pn.min_size.y, pn.IsResizable() ? 1 : 0);
+                pn.rect.height, pn.min_size.y, pn.IsResizable() ? 1 : 0,
+                pn.rect.width, pn.window ? pn.window->GetClientSize().x : 0,
+                pn.window ? pn.window->GetVirtualSize().x : 0, pn.min_size.x,
+                pn.window ? pn.window->GetMinSize().x : 0,
+                pn.window && pn.window->GetSizer()
+                    ? pn.window->GetSizer()->GetMinSize().x : 0);
       } else if (w[0] == "pbc" && w.size() >= 2 && pbc) {
         std::vector<std::string> rest(w.begin() + 1, w.end());
         std::string err = pbc->scriptCommand(rest);
