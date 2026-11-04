@@ -26,7 +26,7 @@ SKIP = 77
 SETS = {"getting-started": ("Examples/Getting_Started", 6),
         "organic": ("Examples/Organic_Chemistry", 21),
         "spectroscopy": ("Examples/Spectroscopy", 19),
-        "genchem": ("Examples/General_Chemistry", 100),
+        "genchem": ("Examples/General_Chemistry", 103),
         "workflows": ("Examples/Workflows", 11)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
