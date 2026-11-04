@@ -3,7 +3,7 @@
 
     tests/apps/thermo_panel_test.py [--build build-cmake] [--png DIR]
 
-A frequency calculation (stored ORCA-labelled results: the water thermochemistry
+A frequency calculation (stored Gaussian-16-labelled results: the water thermochemistry
 scalars of the Gaussian fixture, plus constructed low frequencies so that the
 treatments differ) is opened in the Builder.  The script command "thermo"
 chooses a treatment, temperature and standard state in the panel and prints
@@ -76,6 +76,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     ap.add_argument("--png")
+    ap.add_argument("--size", default="1366x768")
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -103,28 +104,50 @@ def main():
         if not s.services(True):
             check(False, "services came up")
             return 1
-        xdisplay.SCREEN = "1500x950x24"
+        xdisplay.SCREEN = args.size + "x24"
         display = xdisplay.Display().__enter__()
         env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         project = os.path.join(s.localData(), "users", "local", "qm")
         os.makedirs(project, exist_ok=True)
         shutil.copy(bo.PROJECT_META, os.path.join(project, ".ecce-meta"))
-        calc = makeThermoCalc(project, "soft", [25.0, 60.0, 150.0, 1645.0, 3866.0, 3965.0])
+        calc = makeThermoCalc(project, "soft", [25.0, 60.0, 150.0, 1645.0, 3866.0, 3965.0],
+                              code="Gaussian-16")
         url = "file://" + calc
         cenv = dict(env, ECCE_HOME=s.home)
 
         want = {}
-        cmds = ["wait 6000", "shot panel"]
+        cmds = ["wait 6000", "thermolayout", "shot panel"]
         cases = [(t, 298.15, False) for t in TREATMENTS] + [("qrrho-grimme:100", 350.0, True)]
         for t, T, molar in cases:
             extra = ["--T", "%.2f" % T] + (["--standard-state", "1M"] if molar else [])
             want[(t, T, molar)] = cli(cenv, url, *extra)[t]
             cmds.append("thermo %s %.2f %s" % (t, T, "1M" if molar else "1atm"))
-        cmds.append("quit")
+        cmds.extend(["thermolayout", "quit"])
+        audit = os.path.join(png, "clip.tsv")
+        open(audit, "w").close()
         text, shots = bo.runScript(
             s, display, env, wrappers, ["-context", url + "/"], cmds, png, "thermo",
-            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Thermochemistry"})
+            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Thermochemistry",
+             "ECCE_PANEL_FULLSCREEN": "1", "ECCE_CLIP_AUDIT": audit})
+        with open(os.path.join(png, "builder.log"), "w") as f:
+            f.write(text)
+        check("panel" in shots, "panel screenshot captured")
+        widths = re.findall(r"thermolayout (row|col)=(\d+) width=(\d+) text=(\d+)", text)
+        check(len(widths) == 10, "row-label and header widths reported before and after changes")
+        for kind, index, width, extent in widths:
+            check(int(width) >= int(extent), "%s %s fits its full label" % (kind, index),
+                  "width=%s text=%s" % (width, extent))
+        scrolls = re.findall(r"thermolayout viewport=(\d+) content=(\d+) scroll=(\d+) thumb=(\d+)", text)
+        check(len(scrolls) == 2, "horizontal scrolling reported")
+        for viewport, content, scroll, thumb in scrolls:
+            check(int(content) <= int(viewport) or int(scroll) > int(thumb),
+                  "columns wider than the viewport can scroll horizontally")
+        heights = re.findall(r"thermolayout height=(\d+) rows=(\d+)", text)
+        check(len(heights) == 2 and all(int(h) >= int(rows) for h, rows in heights),
+              "all three rows fit above the horizontal scrollbar", str(heights))
+        findings = [line for line in open(audit) if line.startswith("FINDING\t")]
+        check(not findings, "Thermochemistry controls pass the clipping audit", "".join(findings))
         check("segmentation" not in text.lower(), "no crash")
         got = re.findall(r"BUILDER: thermo (\S+) H=(\S+) S=(\S+) G=(\S+) (ok|failed.*)", text)
         check(len(got) == len(cases), "every thermo command answered", text[-1500:])

@@ -3,6 +3,7 @@
 
 #include <wx/choice.h>
 #include <wx/grid.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
@@ -89,7 +90,6 @@ bool ThermoPanel::Create(IPropCalculation *calculation,
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(1, 110));
   p_grid->CreateGrid(3, 2);
   p_grid->EnableEditing(false);
-  p_grid->SetRowLabelSize(wxGRID_AUTOSIZE);
   GetSizer()->Add(p_grid, 0, wxEXPAND | wxALL, 3);
 
   Bind(wxEVT_CHOICE, &ThermoPanel::OnChange, this, ID_TREATMENT);
@@ -153,7 +153,17 @@ void ThermoPanel::fill()
     p_grid->SetCellValue(row, 1, haveStored && (row != 1 || tt > 0) ?
         wxString::Format(row == 1 ? "%.3f" : "%.6f", theirs[row]) : wxString("-"));
   }
+  // Measure the descriptive labels, not CreateGrid's initial row numbers.
+  // Keep these widths when the viewport narrows; wxGrid scrolls the cells.
+  p_grid->SetRowLabelSize(wxGRID_AUTOSIZE);
   p_grid->AutoSizeColumns();
+  // Reserve the horizontal scrollbar's height so all three rows stay visible.
+  int height = p_grid->GetColLabelSize() +
+      wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, p_grid) +
+      p_grid->GetSize().y - p_grid->GetClientSize().y;
+  for (int row = 0; row < p_grid->GetNumberRows(); ++row)
+    height += p_grid->GetRowSize(row);
+  p_grid->SetMinSize(wxSize(1, height));
   Layout();
 }
 

@@ -58,6 +58,7 @@
 //                                each viewer panel: shown, viz focus
 //    rows PANEL                  the rows of a key/value panel (Energies)
 //    tablecopy PANEL             Copy all of the first table in PANEL
+//    thermolayout                Thermochemistry label widths and clip audit
 //    inview                      whether an atom is outside the 3-D view
 //    zoom F                      camera view angle/height times F (<1: in)
 //    fold PANEL GROUP            a click on that group's heading
@@ -94,6 +95,7 @@
 #include <wx/checkbox.h>
 #include <wx/dcmemory.h>
 #include <wx/dcscreen.h>
+#include <wx/grid.h>
 #include <wx/weakref.h>
 #include <wx/image.h>
 #include <wx/menu.h>
@@ -1264,7 +1266,7 @@ void Builder::runBuilderScript(const std::string& file)
                                 w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
         }
-      } else if (w[0] == "thermo" && w.size() >= 2) {
+      } else if (w[0] == "thermolayout" || (w[0] == "thermo" && w.size() >= 2)) {
         //  thermo <treatment> [T] [1atm|1M]: set the Thermochemistry panel's
         //  choices (#692) and print the recomputed H, S, G.
         ThermoPanel *tp = 0;
@@ -1274,6 +1276,32 @@ void Builder::runBuilderScript(const std::string& file)
             if ((tp = dynamic_cast<ThermoPanel*>(p)) != 0) break;
         if (!tp) {
           outcome = "no Thermochemistry panel";
+        } else if (w[0] == "thermolayout") {
+          for (wxWindow *child : tp->GetChildren()) {
+            wxGrid *grid = wxDynamicCast(child, wxGrid);
+            if (!grid) continue;
+            wxClientDC dc(grid);
+            dc.SetFont(grid->GetLabelFont());
+            for (int row = 0; row < grid->GetNumberRows(); ++row)
+              fprintf(stderr, "BUILDER: thermolayout row=%d width=%d text=%d\n",
+                      row, grid->GetRowLabelSize(),
+                      dc.GetTextExtent(grid->GetRowLabelValue(row)).x);
+            for (int col = 0; col < grid->GetNumberCols(); ++col)
+              fprintf(stderr, "BUILDER: thermolayout col=%d width=%d text=%d\n",
+                      col, grid->GetColSize(col),
+                      dc.GetTextExtent(grid->GetColLabelValue(col)).x);
+            fprintf(stderr, "BUILDER: thermolayout viewport=%d content=%d scroll=%d thumb=%d\n",
+                    grid->GetGridWindow()->GetClientSize().x,
+                    grid->GetColSize(0) + grid->GetColSize(1),
+                    grid->GetScrollRange(wxHORIZONTAL),
+                    grid->GetScrollThumb(wxHORIZONTAL));
+            int rowsHeight = 0;
+            for (int row = 0; row < grid->GetNumberRows(); ++row)
+              rowsHeight += grid->GetRowSize(row);
+            fprintf(stderr, "BUILDER: thermolayout height=%d rows=%d\n",
+                    grid->GetGridWindow()->GetClientSize().y, rowsHeight);
+          }
+          ewxWindowUtils::clipAuditReport(tp, "Thermochemistry");
         } else {
           ThermoValue v;
           const bool set = tp->setChoice(w[1], w.size() > 2 ? atof(w[2].c_str()) : 298.15,

@@ -38,7 +38,8 @@ class ThermoPanel : public PropertyPanel
       virtual ~ThermoPanel();
 
       virtual int minimumHeight() const { return 220; }
-      virtual int openingHeight() const { return 260; }
+      // Leave room below the property list for wrapped controls and the grid.
+      virtual int openingHeight() const { return 300; }
 
       /** Test hook: set the controls (treatment by ecce-thermo name). */
       bool setChoice(const std::string& treatment, double kelvin, bool oneMolar);
