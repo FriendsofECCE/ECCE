@@ -203,6 +203,42 @@ def run_best(display, data, work, shots):
           "workflowresults answered %r" % res)
 
 
+def run_crest_preopt(display, data, work, shots):
+    """New step > CREST on a box that is not an optimisation adds an xTB
+    optimisation between them (#840)."""
+    import ensemble_patterns_test as ep
+    root = os.path.join(data, "users", "local")
+    project = os.path.join(root, "pre")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    ep.fixture(os.path.join(project, "crest"))
+    proj = "file://" + root + "/pre"
+    wf = proj + "/Workflow"
+    commands = [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/crest ens" % (wf, proj),
+        "workflowstep %s orca_es sp %s/ens nogeom" % (wf, wf),
+        "workflowstep %s crest_es cr %s/sp" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ]
+    script = os.path.join(work, "commands-preopt")
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=75,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    what = "CREST after a non-optimisation"
+    if result.crashed:
+        return fail(what, "CRASHED (%s)" % result.signalName, log)
+    info = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo.*?: (.*)$", log, re.M)
+    if not info or not info[0].startswith("ok "):
+        return fail(what, "no workflowinfo answer", log)
+    links = info[0].split(" links:")[1].split()
+    check("an xTB step sits between the box and CREST",
+          "sp>xtb-1:geometry" in links and "xtb-1>cr:geometry" in links,
+          "links %s" % links)
+
+
 def run_patterns(display, data, work, shots):
     """One step per coordination pattern of a CREST ensemble around Na+ (#682)."""
     import ensemble_patterns_test as ep
@@ -825,7 +861,7 @@ def run_recipes(display, data, work, shots):
     check("each built-in recipe has one solvent row applying to every step",
           len(panels) >= 3 and all(p.count("row[solvent]=Solvent;") == 1
           and "applies to every step" in p for p in panels)
-          and "Solvent model: CREST: ALPB; xtb: ALPB; ORCA: CPCM" in panels[2],
+          and "Solvent model: xtb: ALPB; CREST: ALPB; ORCA: CPCM" in panels[2],
           "panels: %r" % panels)
     created = answers("workflowrecipecreate")
     info = created[0] if created else ""
@@ -875,8 +911,8 @@ def run_recipes(display, data, work, shots):
     check("the TS step is the QST3 run type",
           st.get("ts", {}).get("code") == "G16", "ts: %r" % st.get("ts"))
     check("appended after a box: the chain starts from it",
-          len(created) > 1 and "ts>crest:geometry" in created[1]
-          and "crest>xtb:geometry" in created[1] and "xtb>dft:geometry" in created[1],
+          len(created) > 1 and "preopt>crest:geometry" in created[1]
+          and "ts>preopt:geometry" in created[1] and "crest>xtb:geometry" in created[1] and "xtb>dft:geometry" in created[1],
           "second info %r" % (created[1][-300:] if len(created) > 1 else ""))
     saved = answers("workflowsaverecipe")
     check("Save Workflow as Recipe writes a recipe file",
@@ -1024,6 +1060,7 @@ def main():
                 run_best(display, data, work, shots)
                 run_best_poses(display, data, work, shots)
                 run_patterns(display, data, work, shots)
+                run_crest_preopt(display, data, work, shots)
             if "--make-only" not in sys.argv:
                 run_recipes(display, data, work, shots)
         finally:

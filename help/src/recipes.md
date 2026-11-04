@@ -6,7 +6,7 @@ six: **TS search with IRC**, **Conformers**, **Protonation sites**,
 **Tautomers**, **Solvation shell** and **xTB first, then conformers**. A site can add its own, and
 any workflow can be saved as a recipe.
 
-- **Conformers**: a CREST conformer search, then xTB, then a DFT optimisation with frequencies.
+- **Conformers**: an xTB optimisation (CREST needs an optimised structure, in every recipe that uses it), a CREST conformer search, then xTB, then a DFT optimisation with frequencies.
 - **Protonation sites**: CREST finds the protonation sites, then xTB and DFT refine the lowest protomer, with the charge raised by one.
 - **Tautomers**: CREST finds the tautomers, then xTB and DFT refine the lowest one.
 - **Solvation shell**: CREST grows a shell of solvent molecules (water, ten, by default) around the solute, then xTB and DFT refine the whole cluster with the same implicit solvent.

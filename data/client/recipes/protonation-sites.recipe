@@ -2,20 +2,24 @@
 recipe: protonation-sites
 title: Protonation sites
 field: Conformations
-summary: CREST protonation sites, then xTB, then DFT optimisation and frequencies of the lowest protomer
-description: CREST finds the protonation sites and ranks the protomers, xTB re-optimises the lowest and a DFT optimisation with frequencies refines it. The steps after CREST get the charge of the structure plus one. The product is a cation, so the rule that adds diffuse functions for anions is left out.
+summary: xTB optimisation, CREST protonation sites, then xTB, then DFT optimisation and frequencies of the lowest protomer
+description: xTB optimises the structure first because CREST needs an optimised geometry, CREST finds the protonation sites and ranks the protomers, xTB re-optimises the lowest and a DFT optimisation with frequencies refines it. The steps after CREST get the charge of the structure plus one. The product is a cation, so the rule that adds diffuse functions for anions is left out.
 role: dft | DFT optimisation and frequencies | B3LYP | 6-31+G(d) | the usual starting level; diffuse functions when the molecule is an anion
 rules: heavy-ecp, size, registered
 
 variant: orca | CREST, xTB, ORCA | ORCA
-step: orca | crest | CREST | | Protonation Sites | protonation sites | structure
+step: orca | preopt | xtb | | Geometry | xTB Opt | structure
+step: orca | crest | CREST | | Protonation Sites | protonation sites |
+link: orca | preopt | crest | geometry
 step: orca | xtb | xtb | | GeoVib | xTB Opt + Freq | charge=+1
 step: orca | dft | ORCA | dft | GeoVib | DFT Opt + Freq | key=final, thermo
 link: orca | crest | xtb | geometry.c1
 link: orca | xtb | dft | geometry
 
 variant: g16 | CREST, xTB, Gaussian 16 | G16
-step: g16 | crest | CREST | | Protonation Sites | protonation sites | structure
+step: g16 | preopt | xtb | | Geometry | xTB Opt | structure
+step: g16 | crest | CREST | | Protonation Sites | protonation sites |
+link: g16 | preopt | crest | geometry
 step: g16 | xtb | xtb | | GeoVib | xTB Opt + Freq | charge=+1
 step: g16 | dft | G16 | dft | GeoVib | DFT Opt + Freq | key=final, thermo
 link: g16 | crest | xtb | geometry.c1

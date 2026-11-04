@@ -1,21 +1,25 @@
-# Conformers: CREST search, xTB re-optimisation, DFT refinement.
+# Conformers: xTB optimisation, CREST search, xTB re-optimisation, DFT refinement.
 recipe: conformers
 title: Conformers
 field: Conformations
-summary: CREST conformer search, then xTB, then DFT optimisation and frequencies
-description: CREST searches the conformers, xTB re-optimises the structure, and a DFT optimisation with frequencies refines it. One box per conformer pattern is a later addition; this recipe follows the lowest conformer.
+summary: xTB optimisation, CREST conformer search, then xTB, then DFT optimisation and frequencies
+description: xTB optimises the structure first because CREST needs an optimised geometry, CREST searches the conformers, xTB re-optimises the structure, and a DFT optimisation with frequencies refines it. One box per conformer pattern is a later addition; this recipe follows the lowest conformer.
 role: dft | DFT optimisation and frequencies | B3LYP | 6-31+G(d) | the usual starting level; diffuse functions when the molecule is an anion
 rules: anion-diffuse, heavy-ecp, size, registered
 
 variant: orca | CREST, xTB, ORCA | ORCA
-step: orca | crest | CREST | | Conformer Search | conformer search | structure
+step: orca | preopt | xtb | | Geometry | xTB Opt | structure
+step: orca | crest | CREST | | Conformer Search | conformer search |
+link: orca | preopt | crest | geometry
 step: orca | xtb | xtb | | GeoVib | xTB Opt + Freq |
 step: orca | dft | ORCA | dft | GeoVib | DFT Opt + Freq | key=final, thermo
 link: orca | crest | xtb | geometry
 link: orca | xtb | dft | geometry
 
 variant: g16 | CREST, xTB, Gaussian 16 | G16
-step: g16 | crest | CREST | | Conformer Search | conformer search | structure
+step: g16 | preopt | xtb | | Geometry | xTB Opt | structure
+step: g16 | crest | CREST | | Conformer Search | conformer search |
+link: g16 | preopt | crest | geometry
 step: g16 | xtb | xtb | | GeoVib | xTB Opt + Freq |
 step: g16 | dft | G16 | dft | GeoVib | DFT Opt + Freq | key=final, thermo
 link: g16 | crest | xtb | geometry
