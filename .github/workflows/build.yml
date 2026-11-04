@@ -112,7 +112,7 @@ jobs:
           d=$(mktemp -d)
           ls -l build-cmake/*.deb
           dpkg-deb -x build-cmake/ecce-client_*.deb "$d"
-          q=$(find "$d" -path '*/bin/ecce-qm')
+          q=$(find "$d" -path '*/bin/ecce-qm' ! -path '*/usr/bin/*')  # not the PATH wrapper (#794)
           test -n "$q"
           file "$q" || true
           python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
@@ -191,7 +191,7 @@ jobs:
           d=$(mktemp -d)
           ls -l build-cmake/*.deb
           dpkg-deb -x build-cmake/ecce-client_*.deb "$d"
-          q=$(find "$d" -path '*/bin/ecce-qm')
+          q=$(find "$d" -path '*/bin/ecce-qm' ! -path '*/usr/bin/*')  # not the PATH wrapper (#794)
           test -n "$q"
           file "$q" || true
           python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
@@ -262,7 +262,7 @@ jobs:
           d=$(mktemp -d)
           ls -l "$w"/build-cmake/*.rpm
           (cd "$d" && rpm2cpio "$w"/build-cmake/ecce-client-*.x86_64.rpm | cpio -idm 2>/dev/null)
-          q=$(find "$d" -path '*/bin/ecce-qm')
+          q=$(find "$d" -path '*/bin/ecce-qm' ! -path '*/usr/bin/*')  # not the PATH wrapper (#794)
           test -n "$q"
           ls -l "$q"
           python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
@@ -322,7 +322,7 @@ jobs:
           d=$(mktemp -d)
           ls -l "$w"/build-cmake/*.rpm
           (cd "$d" && rpm2cpio "$w"/build-cmake/ecce-client-*.x86_64.rpm | cpio -idm 2>/dev/null)
-          q=$(find "$d" -path '*/bin/ecce-qm')
+          q=$(find "$d" -path '*/bin/ecce-qm' ! -path '*/usr/bin/*')  # not the PATH wrapper (#794)
           test -n "$q"
           ls -l "$q"
           python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
