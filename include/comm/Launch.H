@@ -80,6 +80,7 @@ public:
         // Name of the input provider an MD study task takes its starting
         // structure from while that provider is not Complete; "" otherwise.
         static string waitsFor(TaskJob *task);
+        static bool crestFromOptimisation(TaskJob *task);
         // The extra copy-back wildcard a CP2K deck asks for: *.pdos when it
         // has a &PDOS section (case-insensitive), else "" (#720).
         static string cp2kCopyBackPatterns(const string& deck);

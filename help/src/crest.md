@@ -20,6 +20,12 @@ the machine in **Register Machines**, register **xTB** (see [xTB](xtb.md)) and
 registered for the same machine. The CREST button in the code bar, next to
 xTB, starts a calculation with this code.
 
+CREST must start from an optimised structure; from an unoptimised one the job
+fails. Optimise with xTB first (**New step > xTB**, run type Geometry) and start
+CREST from that result. The recipes and **New step > CREST** on a box that is
+not an optimisation add this xTB step for you, and Launch warns when a CREST
+calculation does not follow an optimisation (**Launch anyway** goes on).
+
 ## Theory
 
 The calculation's **Theory** is the method used for the search:
