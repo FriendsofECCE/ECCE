@@ -54,6 +54,7 @@
 //    property NAME               a click on Properties > NAME (toggles it)
 //    columnwidth N               restore a saved side column width of N pixels
 //    panesize NAME               report pane width, height and virtual width
+//    minsizes NAME               each control's and sizer row's minimum width
 //    list NAME                   a click on NAME in the Properties list
 //    viewer NAME                 a click on NAME's "Show in viewer" box
 //    overlay                     the column's tab (1 = Properties), and for
@@ -299,6 +300,40 @@ void Builder::runBuilderScript(const std::string& file)
             p_mgr.LoadPerspective(wxString(perspective), false);
             updatePanes();
           }
+        }
+      } else if (w[0] == "minsizes" && w.size() >= 2) {
+        //  Which control or sizer row sets a pane's minimum width.
+        wxString nm = line.substr(line.find("minsizes") + 9);
+        nm.Trim(false).Trim(true);
+        wxAuiPaneInfo &pn = p_mgr.GetPane(nm);
+        std::function<void(wxSizer*, int)> dump = [&](wxSizer *s, int depth) {
+          for (wxSizerItem *it : s->GetChildren()) {
+            wxString what = it->IsShown() ? "" : "(hidden) ";
+            if (it->IsWindow()) {
+              wxWindow *win = it->GetWindow();
+              what += wxString(win->GetClassInfo()->GetClassName()) + " '" +
+                     win->GetLabel().Left(30) + "'";
+            } else if (it->IsSizer()) {
+              what += wxString(it->GetSizer()->GetClassInfo()->GetClassName());
+            } else {
+              what += "spacer";
+            }
+            fprintf(stderr, "MINSIZE %*s%s min=%d border=%d\n", depth * 2, "",
+                    (const char*)what.mb_str(), it->CalcMin().x,
+                    it->GetBorder());
+            if (it->IsSizer()) dump(it->GetSizer(), depth + 1);
+            else if (it->IsWindow() && it->GetWindow()->GetSizer() &&
+                     depth < 3)
+              dump(it->GetWindow()->GetSizer(), depth + 1);
+          }
+        };
+        if (pn.IsOk() && pn.window && pn.window->GetSizer()) {
+          fprintf(stderr, "MINSIZE %s window_min=%d sizer_min=%d\n",
+                  (const char*)nm.mb_str(), pn.window->GetMinSize().x,
+                  pn.window->GetSizer()->GetMinSize().x);
+          dump(pn.window->GetSizer(), 1);
+        } else {
+          outcome = "no such pane";
         }
       } else if (w[0] == "panesize" && w.size() >= 2) {
         wxString nm = line.substr(line.find("panesize") + 9);
