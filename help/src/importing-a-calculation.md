@@ -202,8 +202,7 @@ contributions); the **Mode in the viewer** group; and the buttons
 **Open in window...**, **Composition...** and **Displace...**.
 
 In the panel the plot shows IR or Raman, chosen by the **IR | Raman** switch
-at its top right; a panel taller than about 320 pixels shows them one over
-the other. In the Spectrum window (**Open in window...**) IR and Raman are
+at its top right. In the Spectrum window (**Open in window...**) IR and Raman are
 stacked; when a second calculation, an experimental spectrum or a difference
 is loaded they cannot be, and the window shows one kind at a time with the
 same switch.

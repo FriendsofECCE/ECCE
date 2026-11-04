@@ -582,6 +582,8 @@ void NModePanel::createSpectrumPane()
    p_spectrum->setScale(scale);
    p_spectrum->setReversed(reversed);
    p_spectrum->setShowSticks(sticks);
+   //  The panel shows IR or Raman, never stacked; stacking is the window's.
+   p_spectrum->setCompactBelow(std::numeric_limits<int>::max());
    col->Add(p_spectrum, 1, wxEXPAND);
 
    //  The selected mode, frequency first, wrapped into two lines under the
