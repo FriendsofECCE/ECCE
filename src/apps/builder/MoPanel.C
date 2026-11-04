@@ -260,14 +260,6 @@ MoPanel::~MoPanel()
 
 
 
-wxSize MoPanel::GetMinSize() const
-{
-   wxSize min = MoGUI::GetMinSize();
-   if (GetSizer() != 0) {
-      min.x = std::max(min.x, GetSizer()->GetMinSize().x);
-   }
-   return min;
-}
 
 
 bool MoPanel::Create(IPropCalculation *calculation,
