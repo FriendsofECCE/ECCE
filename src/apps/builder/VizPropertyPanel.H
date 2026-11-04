@@ -69,6 +69,7 @@ class VizPropertyPanel : public PropertyPanel,
 
     void selectFragStep(int index);
     void addViewerToggle();
+    void adoptViewerToggle(wxCheckBox *box);
     bool isRelevent(IPropCalculation *propCalc,
                     const string& code, 
                     const string& runtype,

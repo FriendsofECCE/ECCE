@@ -33,8 +33,18 @@ the second's sticks and the CSV against the output file's own numbers;
 `SPECTRUM_REPO_CLIENT=1` is needed when the builder is newer than /opt/ecce.
 Unit test: `vibspectrum_test` (`testCompare`).
 
-"Remove comparison" (#425) sits after Compare... and is enabled only while a
-second curve is held; it calls `compareWith("")`, as choosing (none) does.
-`ECCE_SPECTRUM_REMOVE_COMPARE=1` clicks it from the dump hook and writes
+Since #845 the settings and the other-spectra actions live only in the
+Spectrum window (`createWindowControls`; hook names `spectrum-compare`,
+`-remove`, `-export-csv`, ...). "Compare..." is one list: each calculation as
+"(overlay spectrum)" or "(match modes)" (the old Match bands), "(none)" removes.
+"Remove" clears compare, difference and experimental (`removeOtherSpectra`).
+`ECCE_SPECTRUM_REMOVE_COMPARE=1` calls it from the dump hook and writes
 `remove-button before/after` lines; `capture.py --compare` checks them
-(`SPECTRUM_KEEP_COMPARE=1` skips the click, for a screenshot).
+(`SPECTRUM_KEEP_COMPARE=1` skips it, for a screenshot).
+
+With a compare, an experimental curve or a difference loaded the canvas
+cannot stack IR over Raman and shows one kind, with its own IR | Raman switch
+(`several` in `SpectrumCanvas::paintOnto`); with one spectrum they are stacked.
+The panel's Animation/Vector and Graph/Table radio boxes are kept hidden as
+state holders; the visible toggles and radio buttons mirror them
+(`syncViewControls`), so script hooks that drive the radio boxes still work.

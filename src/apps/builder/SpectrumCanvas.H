@@ -314,9 +314,15 @@ class SpectrumCanvas : public wxPanel
       //  A short canvas (the docked panel) shows one pane, chosen with a
       //  toggle, and no envelope axis; the pop-out window shows it all.
       const bool compact = p_compactBelow > 0 && size.y < p_compactBelow;
-      const bool toggle = compact && kinds.size() > 1;
+      //  Stacked IR over Raman is the default; with a second curve or an
+      //  experimental spectrum loaded one kind is shown, chosen by the toggle.
+      const bool several = p_s->spec.hasExperimental() ||
+                           p_s->spec.hasCompare(VIB_IR) ||
+                           p_s->spec.hasCompare(VIB_RAMAN);
+      const bool oneKind = compact || several;
+      const bool toggle = oneKind && kinds.size() > 1;
       p_toggle[0] = p_toggle[1] = wxRect();
-      if (compact && kinds.size() > 1) {
+      if (oneKind && kinds.size() > 1) {
         const VibKind keep = p_kindShown;
         kinds.assign(1, keep == VIB_RAMAN && haveRaman ? VIB_RAMAN : VIB_IR);
         if (kinds[0] == VIB_IR && !haveIr) kinds[0] = VIB_RAMAN;
