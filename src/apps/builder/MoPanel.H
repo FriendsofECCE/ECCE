@@ -133,7 +133,11 @@ class MoPanel : public MoGUI,
      bool selectFieldType(const string& name);
      struct SurfaceEntry { string label; string description; };
      std::vector<SurfaceEntry> surfaceEntries() const;
+     /** "Surfaces" while the panel shows the density surfaces, else "MOs". */
      string selectedSurface() const;
+     /** Surfaces entry vs MOs entry: the same panel, with its own drop-down and controls. */
+     void setSurfaceMode(bool on);
+     bool surfaceMode() const { return p_surfaceMode; }
 
      /** The table lists the localised orbitals ("Localised MO" chosen). */
      bool localisedShown() const { return p_localised; }
@@ -152,6 +156,8 @@ class MoPanel : public MoGUI,
      void updateIsoValue(double val);
      void updateSurface();
      void updateUIOptions();
+     void populateTypeChoice();
+     void showOrbitalControls();
      bool rebuildTable();   // table and graphs for the canonical or localised set
      void setLocalised(bool localised);  // switch the table's set, tell the MO diagram
      void fillUI();
@@ -331,6 +337,7 @@ class MoPanel : public MoGUI,
       //  then beta, replacing the symmetry label; empty for a molecule.
       vector<string> p_atomLabels[2];
       string p_virtNote;          // "Virtual orbitals: ..." line, for tests
+      bool p_surfaceMode = false; // the Surfaces entry: no orbital table or coefficient controls
       bool p_localised = false;   // the table lists the localised orbitals
 
       /* The first plot; all symmetries are on same x value. */

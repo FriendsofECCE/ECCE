@@ -147,10 +147,7 @@ string MoPanel::selectedFieldKey() const
 
 string MoPanel::selectedSurface() const
 {
-   const string key = selectedFieldKey();
-   for (const auto& field : surfaceFields)
-      if (key == field.key) return field.label;
-   return "MOs";
+   return p_surfaceMode ? "Surfaces" : "MOs";
 }
 
 void MoPanel::updateFieldNote()
@@ -548,6 +545,60 @@ string MoPanel::getSelectedType() const
 }
 
 
+/** The drop-down lists orbital quantities in the MOs entry, density surfaces in Surfaces. */
+void MoPanel::populateTypeChoice()
+{
+   IPropCalculation *expt = getCalculation();
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   typewin->Clear();
+   if (p_surfaceMode) {
+      const auto surfaces = surfaceEntries();
+      bool densityOk = false;
+      for (const auto& entry : surfaces) {
+         if (fieldKey(entry.label) == "Density") densityOk = true;
+         typewin->Append(wxString::FromUTF8(entry.label.c_str()));
+      }
+      if (densityOk && (expt->getProperty("ESPCHARGE") ||
+            expt->getProperty("ESPFIT") || expt->getProperty("MULLIKEN")))
+         typewin->Append(chargeField.label);
+   } else {
+      typewin->Append(_("MO"));
+      if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG"))
+         typewin->Append("Localised MO");
+   }
+}
+
+/** The table, plots, composition and coefficient controls are for orbitals only. */
+void MoPanel::showOrbitalControls()
+{
+   if (wxWindow *cut = FindWindow(ID_TEXTCTRL_MO_CUTOFF))
+      cut->GetParent()->Show(!p_surfaceMode);
+   if (p_compBox != 0)
+      GetSizer()->Show(p_compBox, !p_surfaceMode &&
+                       (p_drawnType == "MO" || p_drawnType == "Localised MO"));
+   showMainView();
+}
+
+void MoPanel::setSurfaceMode(bool on)
+{
+   if (on == p_surfaceMode) return;
+   ensureInitialized();
+   p_surfaceMode = on;
+   //  A surface from the other mode would sit under the wrong controls.
+   getFW().getSceneGraph().clearGrids();
+   p_drawnType.clear();
+   p_espDrawnType.clear();
+   hideEspBar();
+   if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+      builder->setPaneCaption(this, on ? "Surfaces" : "MOs");
+   populateTypeChoice();
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   typewin->SetSelection(typewin->GetCount() ? 0 : wxNOT_FOUND);
+   showOrbitalControls();
+   wxCommandEvent changed(wxEVT_CHOICE);
+   onFieldTypeChanged(changed);
+}
+
 /**
  * Examine data to see what options can be performed (if any) and update
  * the ui accordingly.
@@ -564,27 +615,22 @@ void MoPanel::updateUIOptions()
       if (fieldKey(entry.label) == "Density") densityOk = true;
       if (fieldKey(entry.label) == "Spin Density") spinOk = true;
    }
-   const bool espChargesOk = densityOk && (expt->getProperty("ESPCHARGE") ||
-      expt->getProperty("ESPFIT") || expt->getProperty("MULLIKEN"));
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-   typewin->Clear();
-   if (espChargesOk) typewin->Insert(chargeField.label, 0);
-   for (auto entry = surfaces.rbegin(); entry != surfaces.rend(); ++entry)
-      typewin->Insert(wxString::FromUTF8(entry->label.c_str()), 0);
    if (p_localised) tellDiagrams(getCalculation(), false);
    p_localised = false;
-   if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG")) {
-      typewin->Insert("Localised MO",0);
-   } else if (PropVecString *why = (PropVecString*) expt->getProperty("LOCMONOTE")) {
+   populateTypeChoice();
+   if (!(expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG")) &&
+       !p_surfaceMode) {
+      if (PropVecString *why = (PropVecString*) expt->getProperty("LOCMONOTE")) {
       //  The engine tried and could not; say so rather than omit the type silently.
       if (why->rows() > 0) {
          string text = why->values()[0];
          std::replace(text.begin(), text.end(), '_', ' ');
          getFW().showMessage("No localised orbitals: " + text + ".", false/*warning*/);
       }
+      }
    }
-   typewin->Insert("MO",0);
-   typewin->SetStringSelection(_("MO"));
+   typewin->SetSelection(0);
    p_virtNote.clear();
    typewin->SetToolTip(spinOk || !densityOk ? wxString() :
       _("Spin density is offered for open-shell calculations (UHF, ROHF, UKS)."));
@@ -615,6 +661,7 @@ void MoPanel::updateUIOptions()
    showEspRangeControls(false);
    updateFieldNote();
    showFieldViewControls(false, false);
+   showOrbitalControls();
 
    // Make sure we have a GBSConfig.  If not we'll crash when
    // we try to compute.
@@ -1249,6 +1296,10 @@ string MoPanel::tableState() const
         << "\nfieldNoteShown " << (p_fieldNote && p_fieldNote->IsShownOnScreen() ? 1 : 0);
       s << "\n" << "fieldTypeTip " << (tw->GetToolTip() ? tw->GetToolTip()->GetTip() : wxString()) << "\n";
    }
+   s << "surfaceMode " << p_surfaceMode << "\n";
+   s << "tableShown " << (p_mogrid->IsShownOnScreen() ? 1 : 0) << "\n";
+   if (wxWindow *cut = FindWindow(ID_TEXTCTRL_MO_CUTOFF))
+      s << "coefControlsShown " << (cut->IsShownOnScreen() ? 1 : 0) << "\n";
    s << "virtNote " << p_virtNote << "\n";
    s << "headerHeight " << p_mogrid->GetColLabelSize() << "\n";
    s << "gridRect " << p_mogrid->GetRect().y << " " << p_mogrid->GetRect().height << "\n";
@@ -2363,6 +2414,7 @@ void MoPanel::chooseMoFieldType()
 {
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    if (typewin == 0) return;
+   if (p_surfaceMode) setSurfaceMode(false);
    //  Both orbital sets count as orbitals; the localised one must survive.
    const int sel = typewin->GetSelection();
    const wxString cur = sel == wxNOT_FOUND ? wxString() : typewin->GetString(sel);
@@ -2779,6 +2831,8 @@ void MoPanel::reflow()
 bool MoPanel::selectFieldType(const string& name)
 {
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   const bool orbital = name == "MO" || name == "Localised MO";
+   if (orbital == p_surfaceMode) setSurfaceMode(!orbital);
    const int at = typewin->FindString(wxString::FromUTF8(fieldLabel(name).c_str()));
    if (at == wxNOT_FOUND) return false;
    typewin->SetSelection(at);
@@ -2985,9 +3039,10 @@ void MoPanel::showMainView()
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
    int which;
    config->Read("MO/Which", &which, TABLE);
-   p_mogrid->Show(!p_spinShown && which == TABLE);
-   p_plotReg->Show(!p_spinShown && which == PLOT);
-   p_plotSym->Show(!p_spinShown && which == PLOTSYM);
+   const bool orbitals = !p_spinShown && !p_surfaceMode;
+   p_mogrid->Show(orbitals && which == TABLE);
+   p_plotReg->Show(orbitals && which == PLOT);
+   p_plotSym->Show(orbitals && which == PLOTSYM);
    p_spinView->Show(p_spinShown);
    p_mogrid->GetContainingSizer()->Layout();
 }

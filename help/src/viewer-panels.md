@@ -9,12 +9,14 @@ like or move to a second screen.
 
 ## Surfaces
 
-The **Surfaces** category in the **Properties** list opens the whole-molecule
-surface views, in this order: **Density**, **Spin Density**, **ESP on Density**, **ELF**,
-**LOL**, **NCI**.
+The **Surfaces** entry under **Orbitals** in the **Properties** list opens
+the whole-molecule surface views. Pick one in the drop-down, in this order:
+**Density**, **Spin Density**, **ESP on Density**, **ELF**, **LOL**, **NCI**
+(and **ESP on Density (atomic charges)** when atomic charges are available).
 Only views supported by the calculation are offered; **Spin Density** needs
-an open shell. These entries use the MOs panel's existing controls. Choose
-the view, then click **Compute**; no atom selection is needed.
+an open shell. Each view shows only its own settings (isovalue, and for NCI
+the density cut-off) and then **Compute**; there is no orbital table and no
+atom selection.
 
 - **Density**: total electron density ρ(r). The surface encloses the region
   where ρ exceeds the isovalue, in atomic units.
@@ -31,9 +33,7 @@ the view, then click **Compute**; no atom selection is needed.
   with little density overlap, red steric repulsion.
 
 The selected view's description appears below the controls and in the
-field selector's tooltip. The field selector also offers these views from
-**MOs**, including the separate **ESP on Density (atomic charges)**
-approximation when atomic charges are available.
+drop-down's tooltip. The drop-down in **MOs** lists orbitals only.
 
 **Density Map** and **Density Profile** remain under **Orbitals**. They plot
 a plane or a line through chosen atoms; see [Density Map](density-map.md)
