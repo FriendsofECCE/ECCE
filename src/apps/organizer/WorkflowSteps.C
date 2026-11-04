@@ -111,6 +111,15 @@ static Fragment *finalGeometry(PropertyTask *task, bool *fromResult = 0)
 }
 
 
+bool WorkflowSteps::isOptimisation(Resource *step)
+{
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  if (!calc) return false;
+  const string rt = calc->runtype().name();
+  return rt == "Geometry" || rt == "GeoVib";
+}
+
+
 bool WorkflowSteps::isScan(Resource *step)
 {
   return ScanPoint::isScan(dynamic_cast<PropertyTask*>(step));

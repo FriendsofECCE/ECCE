@@ -53,6 +53,7 @@
 #include "dsm/MachineConfig.H"
 #include "dsm/NWChemMDModel.H"
 #include "dsm/TaskJob.H"
+#include "dsm/ICalculation.H"
 #include "dsm/Session.H"
 #include "dsm/JCode.H"
 #include "dsm/CodeFactory.H"
@@ -396,6 +397,15 @@ Launch::Launch(TaskJob* task,
         "was given, not from its result.";
   }
 
+  // CREST fails from an unoptimised structure.  A stored structure carries no
+  // mark of where it came from, so only a workflow link from an optimisation
+  // counts as proof.
+  if (!crestFromOptimisation(task)) {
+    const string w = "CREST needs an optimised structure; optimise with xTB "
+      "first (New step > xTB, Geometry) or CREST may fail.";
+    p_launchWarning = p_launchWarning.empty() ? w : p_launchWarning + "\n" + w;
+  }
+
   p_valid = true;
   p_storeStarted = false;
   p_connection = (RCommand*)0;
@@ -558,6 +568,20 @@ string Launch::waitsFor(TaskJob *task)
   if (prov == 0 || prov->getState() == ResourceDescriptor::STATE_COMPLETED)
     return "";
   return prov->getName();
+}
+
+// True unless task is a CREST calculation with no optimisation feeding it.
+bool Launch::crestFromOptimisation(TaskJob *task)
+{
+  if (task == 0 || task->application() == 0 ||
+      strcasecmp(task->application()->getCodeName().c_str(), "CREST") != 0)
+    return true;
+  Session *wf = task->getSession();
+  Resource *prov = wf ? task->getInputProvider(wf) : 0;
+  ICalculation *calc = dynamic_cast<ICalculation*>(prov);
+  if (calc == 0) return false;
+  const string rt = calc->runtype().name();
+  return rt == "Geometry" || rt == "GeoVib";
 }
 
 string Launch::launchWarning(void) const

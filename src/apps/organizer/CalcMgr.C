@@ -10299,6 +10299,35 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   FrameHold hold(this);
   string why;
   vector<Resource*> all;
+  // CREST fails from an unoptimised structure: put an xTB optimisation between.
+  string preoptNote;
+  if (source && carry.geometry && code->label == string("CREST") &&
+      !WorkflowSteps::isOptimisation(source)) {
+    ResourceType *xrt = 0;
+    const WorkflowSteps::Code *xcode = 0;
+    for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
+      if (c.label == string("xtb")) xcode = &c;
+    vector<ResourceType*> types =
+        ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+    for (size_t i = 0; xcode && i < types.size(); i++)
+      if (types[i]->getName() == xcode->typeName) xrt = types[i];
+    if (xrt) {
+      string xwhy;
+      Resource *opt = WorkflowSteps::create(wf, xrt,
+                          WorkflowSteps::defaultName(wf, *xcode), source, carry, xwhy);
+      ICalculation *oc = dynamic_cast<ICalculation*>(opt);
+      if (opt && oc) {
+        TRunType geo;
+        geo.name("Geometry");
+        oc->runtype(geo);
+        notifyCreate(opt->getURL().toString());
+        source = opt;
+        carry.point.clear();
+        preoptNote = "An xTB geometry optimisation was added before CREST, "
+                     "which needs an optimised structure.";
+      }
+    }
+  }
   if (source && carry.perPattern) {
     all = WorkflowSteps::createPatterns(wf, rt, name, source, carry, why);
   } else if (source && carry.best > 0) {
@@ -10328,6 +10357,7 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
     ResourceTool *tool = made->getDefaultTool();
     if (tool) startApp(tool->getName(), 0, newurl.toString());
   }
+  if (!preoptNote.empty()) setMessage(preoptNote, WxFeedback::INFO);
   if (outcome) *outcome = urls;
   return made;
 }

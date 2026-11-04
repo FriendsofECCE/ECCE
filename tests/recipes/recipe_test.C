@@ -49,8 +49,8 @@ int main(int argc, char **argv)
   check(ts && ts->variants.size() == 2 && ts->variants[0].steps.size() == 5 &&
         ts->variants[1].steps.size() == 4, "TS search: G16 five steps, ORCA four");
   check(ts && ts->variants[0].links.size() == 6, "TS search: six links in the G16 variant");
-  check(conf && conf->variants[0].steps[0].code == "CREST" &&
-        conf->variants[0].steps[0].needsStructure, "Conformers start with a CREST box that needs a structure");
+  check(conf && conf->variants[0].steps[0].code == "xtb" &&
+        conf->variants[0].steps[0].needsStructure, "Conformers start with an xTB optimisation that needs a structure");
 
   // the CREST recipes (#808)
   auto find = [&](const char *id) -> const Recipe * {
@@ -66,7 +66,8 @@ int main(int argc, char **argv)
     return "";
   };
   struct Want { const char *id, *runType, *link; int shift; };
-  const Want crest[] = {{"protonation-sites", "Protonation Sites", "geometry.c1", 1},
+  const Want crest[] = {{"conformers", "Conformer Search", "geometry", 0},
+                        {"protonation-sites", "Protonation Sites", "geometry.c1", 1},
                         {"tautomers", "Tautomers", "geometry.c1", 0},
                         {"solvation-shell", "Solvation Shell", "geometry", 0}};
   for (const Want& w : crest) {
@@ -75,14 +76,17 @@ int main(int argc, char **argv)
     for (size_t i = 0; ok && i < 2; i++) {
       const RecipeVariant& v = r->variants[i];
       const char *dft = v.code == "ORCA" ? "ORCA" : "G16";
-      const RecipeStep *c = stepIn(v, "crest"), *x = stepIn(v, "xtb"), *d = stepIn(v, "dft");
-      ok = v.steps.size() == 3 && v.links.size() == 2 && c && x && d &&
-           c->code == "CREST" && c->runType == w.runType && c->needsStructure &&
+      const RecipeStep *p = stepIn(v, "preopt"), *c = stepIn(v, "crest"),
+                       *x = stepIn(v, "xtb"), *d = stepIn(v, "dft");
+      ok = v.steps.size() == 4 && v.links.size() == 3 && p && c && x && d &&
+           p->code == "xtb" && p->runType == "Geometry" && p->needsStructure &&
+           c->code == "CREST" && c->runType == w.runType && !c->needsStructure &&
            c->chargeShift == 0 && x->code == "xtb" && d->code == dft &&
            x->chargeShift == w.shift && d->chargeShift == 0 && d->thermo && d->keyRole == "final" &&
+           linkIn(v, "preopt", "crest") == "geometry" &&
            linkIn(v, "crest", "xtb") == w.link && linkIn(v, "xtb", "dft") == "geometry";
     }
-    check(ok, (std::string(w.id) + ": CREST -> xTB -> DFT, both codes, links, charge shift").c_str());
+    check(ok, (std::string(w.id) + ": xTB Opt -> CREST -> xTB -> DFT, both codes, links, charge shift").c_str());
   }
   const Recipe *prot = find("protonation-sites"), *sol = find("solvation-shell"),
                *xc = find("xtb-crest");

@@ -105,6 +105,9 @@ namespace WorkflowSteps {
                                         Resource *source, const Carry& carry,
                                         std::string& why);
 
+  /// True when step is a geometry optimisation by run type (Geometry, GeoVib).
+  bool isOptimisation(Resource *step);
+
   /// Makes a step of type rt in wf, links it to source (null for the first
   /// step) and copies what carry says.  Null with `why` set on failure.
   Resource *create(Session *wf, ResourceType *rt, const std::string& name,
