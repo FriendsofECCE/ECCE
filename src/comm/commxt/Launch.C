@@ -577,7 +577,16 @@ bool Launch::crestFromOptimisation(TaskJob *task)
       strcasecmp(task->application()->getCodeName().c_str(), "CREST") != 0)
     return true;
   Session *wf = task->getSession();
-  Resource *prov = wf ? task->getInputProvider(wf) : 0;
+  // Workflow steps link their structure as "geometry" or "geometry.<point>",
+  // never under the empty name getInputProvider() looks up by default.
+  Resource *prov = 0;
+  if (wf)
+    for (Session::Link *l : wf->getLinks())
+      if (l->target == task && l->linkType == Session::INPUT_PROVIDER &&
+          (l->linkName == "geometry" || l->linkName.rfind("geometry.", 0) == 0)) {
+        prov = l->source;
+        break;
+      }
   ICalculation *calc = dynamic_cast<ICalculation*>(prov);
   if (calc == 0) return false;
   const string rt = calc->runtype().name();
