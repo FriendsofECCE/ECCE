@@ -5106,7 +5106,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "26";
+const char *const kExampleSetVersion = "27";
 
 string treeName(string s)
 {
@@ -5142,7 +5142,7 @@ void collectExamples(const string &setDir, const string &topicDir,
       // the output is the first file with one of these extensions
       // (tools/examples/preparse.py does the same)
       string found;
-      for (const char *ext : {".qmout", ".eprint", ".out"}) {
+      for (const char *ext : {".qmout", ".eprint", ".pwout", ".out"}) {
         vector<string> files;
         for (const auto &f : fs::directory_iterator(setDir + dirRel, ec))
           if (f.is_regular_file() && f.path().extension() == ext &&
@@ -5530,7 +5530,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       {
         static const struct { const char *key, *shown; } kCodes[] = {
           {"ecceqm", "ECCE-QM"}, {"mopac", "MOPAC"}, {"nwchem", "NWChem"},
-          {"orca", "ORCA"}, {"gromacs", "GROMACS"}, {"xtb", "xTB"}};
+          {"orca", "ORCA"}, {"gromacs", "GROMACS"}, {"xtb", "xTB"},
+          {"qe", "Quantum ESPRESSO"}};
         size_t dash = ex.name.find('-');
         size_t from = dash == string::npos ? 0 : dash + 1;
         string code = ex.name.substr(0, dash);
@@ -6294,6 +6295,23 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows that the two O-O bonds of ozone are "
      "equivalent, as the average of two resonance structures."},
+    {"al_fcc",
+     "Quantum ESPRESSO, PBE (PAW), plane waves to 40 Ry, 16x16x16 k-points, "
+     "Marzari-Vanderbilt smearing, one-atom face-centred cubic cell "
+     "(a = 4.05 A). This calculation shows the total energy of aluminium "
+     "metal, a close-packed crystal with twelve neighbours per atom."},
+    {"na_bcc",
+     "Quantum ESPRESSO, PBE (PAW), plane waves to 50 Ry, 12x12x12 k-points, "
+     "Marzari-Vanderbilt smearing, one-atom body-centred cubic cell "
+     "(a = 4.291 A). This calculation shows the total energy of sodium "
+     "metal, whose body-centred cubic packing has eight neighbours per "
+     "atom."},
+    {"po_sc",
+     "Quantum ESPRESSO, PBE (PAW), plane waves to 60 Ry, 12x12x12 k-points, "
+     "Marzari-Vanderbilt smearing, one-atom simple cubic cell "
+     "(a = 3.359 A). This calculation shows the total energy of alpha-"
+     "polonium, the only element that crystallises in the simple cubic "
+     "structure, with six neighbours per atom."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "
