@@ -21,6 +21,9 @@
 #include <sstream>
 #include <wx/checkbox.h>
 #include <wx/dialog.h>
+#include <wx/choicdlg.h>
+#include <wx/modalhook.h>
+#include <wx/listbox.h>
 #include <wx/utils.h>
 #include <wx/radiobox.h>
 #include <wx/dcclient.h>
@@ -648,7 +651,7 @@ void NModePanel::createSpectrumPane()
                             "spreadsheet or plotting program.");
       viewSizer->Insert(at + 2, exportCsv, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
       exportCsv->Bind(wxEVT_BUTTON,
-                      [this](wxCommandEvent&) { exportSpectrumDialog(); });
+                      [this](wxCommandEvent& e) { exportSpectrumDialog(e.GetString()); });
       wxButton *compare = new wxButton(viewBox->GetParent(), wxID_ANY,
                                        "Compare...");
       compare->SetToolTip("Draw the IR or Raman spectrum of another "
@@ -786,6 +789,32 @@ wxSizer *NModePanel::createSpectrumSettings(wxWindow *pane, wxBoxSizer *col,
    zoomBtn->Bind(wxEVT_BUTTON, [doZoom](wxCommandEvent&) { doZoom(); });
    hi->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
    lo->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
+   wxWrapSizer *spectra = more;
+   if (window) {
+      spectra = new wxWrapSizer(wxHORIZONTAL);
+      col->Add(more, 0, wxEXPAND | wxBOTTOM, 3);
+      spectra->Add(new wxStaticText(pane, wxID_ANY, "Other spectra:"), 0,
+                   wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
+      auto action = [pane, spectra, gap](const char *label, const char *name) {
+         wxButton *button = new wxButton(pane, wxID_ANY, label);
+         button->SetName(wxString("spectrum-") + name);
+         spectra->Add(button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
+         return button;
+      };
+      wxButton *compare = action("Compare...", "compare");
+      compare->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { compareDialog(); });
+      wxButton *remove = action("Remove comparison", "remove-comparison");
+      remove->Enable(p_compare != nullptr);
+      remove->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { compareWith(string()); });
+      remove->SetExtraStyle(remove->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
+      remove->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
+         e.Enable(p_compare != nullptr);
+      });
+      wxButton *bands = action("Match bands...", "match-bands");
+      bands->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { matchBandsDialog(); });
+      wxButton *csv = action("Export .csv...", "export-csv");
+      csv->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) { exportSpectrumDialog(e.GetString()); });
+   }
    wxCheckBox *difference = new wxCheckBox(pane, wxID_ANY, "Difference");
    difference->SetToolTip("Draw the second calculation's curve minus this "
                            "one's (choose Compare... first), with the same "
@@ -795,15 +824,15 @@ wxSizer *NModePanel::createSpectrumSettings(wxWindow *pane, wxBoxSizer *col,
    difference->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
       setShowDifference(e.IsChecked());
    });
-   more->Add(difference, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+   spectra->Add(difference, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
    wxButton *expBtn = new wxButton(pane, wxID_ANY, "Experimental...");
    expBtn->SetToolTip("Draw a measured spectrum from a CSV file (wavenumber "
                       "and absorbance or transmittance), scaled to this "
                       "calculation's tallest peak in view. Choose it again "
                       "to remove it.");
    expBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { importExperimentalDialog(); });
-   more->Add(expBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-   col->Add(more, 0, wxEXPAND | wxBOTTOM, 3);
+   spectra->Add(expBtn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+   col->Add(spectra, 0, wxEXPAND | wxBOTTOM, 3);
 
 
    if (!window) {
@@ -924,16 +953,20 @@ bool NModePanel::exportSpectrumCsv(const wxString& path, VibKind kind)
    return fclose(out) == 0 && ok;
 }
 
-void NModePanel::exportSpectrumDialog()
+void NModePanel::exportSpectrumDialog(const wxString& requestedPath)
 {
    IPropCalculation *calc = getCalculation();
    if (calc == 0) return;
-   wxFileDialog dlg(this, "Export spectrum",  wxEmptyString,
+   wxString path = requestedPath;
+   if (path.empty()) {
+      wxFileDialog dlg(this, "Export spectrum",  wxEmptyString,
                     wxString::FromUTF8(calc->getURL().getFilePathTail().c_str()) +
                     "-spectrum.csv", "CSV files (*.csv)|*.csv",
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-   if (dlg.ShowModal() != wxID_OK) return;
-   if (!exportSpectrumCsv(dlg.GetPath(), spectrumKindShown()))
+      if (dlg.ShowModal() != wxID_OK) return;
+      path = dlg.GetPath();
+   }
+   if (!exportSpectrumCsv(path, spectrumKindShown()))
       wxMessageBox("The file could not be written.", "Export spectrum",
                    wxOK | wxICON_ERROR, this);
 }
@@ -1536,7 +1569,8 @@ wxString NModePanel::scriptSpectrumFactor(const wxString& text)
 void NModePanel::dumpSpectrumIfRequested()
 {
    const char *path = getenv("ECCE_SPECTRUM_DUMP");
-   if (path == 0 || p_spectrum == 0) return;
+   if (path == 0 || p_spectrum == 0 || p_spectrumDumped) return;
+   p_spectrumDumped = true;
 
    //  ECCE_SPECTRUM_COMPARE=<calculation>: the second curve before painting;
    //  ECCE_SPECTRUM_CSV=<path>: the CSV an export would write.
@@ -1670,11 +1704,72 @@ void NModePanel::dumpSpectrumIfRequested()
          fprintf(out, "strip selected %d\n", sel + 1);
          p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
          const char *names[] = {"width", "factor", "low", "high", "direction", "sticks",
-                                "difference", "reset", "zoom", "experimental"};
+                                "difference", "reset", "zoom", "experimental", "compare",
+                                "remove-comparison", "match-bands", "export-csv"};
          for (const char *name : names) {
             wxWindow *control = wxWindow::FindWindowByName(wxString("spectrum-") + name,
                                                           p_spectrumFrame);
             fprintf(out, "setting %s %d\n", name, control && control->IsShownOnScreen());
+         }
+         // Exercise the buttons and their real dialogs without native UI automation.
+         if (const char *target = getenv("ECCE_SPECTRUM_WINDOW_ACTIONS")) {
+            struct Answers : wxModalDialogHook {
+               wxString calculation;
+               int choices = 0;
+               int Enter(wxDialog *dialog) override {
+                  if (auto *choice = dynamic_cast<wxSingleChoiceDialog*>(dialog)) {
+                     for (wxWindow *child : choice->GetChildren()) {
+                        auto *list = dynamic_cast<wxListBox*>(child);
+                        if (!list) continue;
+                        const int at = list->FindString(calculation);
+                        if (at == wxNOT_FOUND) return wxID_CANCEL;
+                        choice->SetSelection(at);
+                        ++choices;
+                        return wxID_OK;
+                     }
+                  }
+                  return wxID_CANCEL;
+               }
+            } answers;
+            answers.calculation = wxString::FromUTF8(target);
+            answers.Register();
+            auto button = [this](const char *name) {
+               return wxWindow::FindWindowByName(wxString("spectrum-") + name,
+                                                 p_spectrumFrame);
+            };
+            auto press = [](wxWindow *control, const wxString& path = wxString()) {
+               if (!control || !control->IsEnabled()) return;
+               wxCommandEvent event(wxEVT_BUTTON, control->GetId());
+               event.SetEventObject(control);
+               event.SetString(path);
+               control->GetEventHandler()->ProcessEvent(event);
+            };
+            auto states = [&](const char *stage) {
+               p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
+               const auto dock = p_spectrum->spectrum().compareSticks(VIB_IR);
+               const auto pop = p_spectrumPop->spectrum().compareSticks(VIB_IR);
+               bool same = dock.size() == pop.size();
+               for (size_t i = 0; same && i < dock.size(); ++i)
+                  same = dock[i].wavenumber == pop[i].wavenumber &&
+                         dock[i].intensity == pop[i].intensity;
+               fprintf(out, "window-compare %s dock %zu window %zu same %d remove %d/%d diff %d/%d\n",
+                       stage, dock.size(), pop.size(), same,
+                       p_compareRemove->IsEnabled(), button("remove-comparison")->IsEnabled(),
+                       p_diffCheck->IsEnabled(), button("difference")->IsEnabled());
+            };
+            states("before");
+            press(button("compare"));
+            states("drawn");
+            // Supply the destination through the command event so a headless
+            // export uses the handler without the native file picker.
+            press(button("export-csv"), wxString(path) + ".window.csv");
+            press(wxWindow::FindWindowByLabel("Export .csv...", this),
+                  wxString(path) + ".panel.csv");
+            fprintf(out, "window-dialogs compare %d\n", answers.choices);
+            press(button("remove-comparison"));
+            states("removed");
+            // Leave the comparison drawn for the window capture.
+            press(button("compare"));
          }
          if (getenv("ECCE_SPECTRUM_SETTINGS")) {
             auto field = [this](const char *name) {

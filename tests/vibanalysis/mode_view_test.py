@@ -2,6 +2,7 @@
 """Where the Vibrational Frequencies panel shows a mode (#579), in the real
 Builder, headless: the Spectrum window's strip and hover box, the frequency
 table's decimals and resizable Mode column, the Composition window's columns.
+Also checks the Spectrum window's shared comparison, removal and CSV export (#846).
 
     tests/vibanalysis/mode_view_test.py [--build build-cmake] [--png DIR]
 
@@ -104,6 +105,9 @@ def main():
         name, fixture, elements, key = vp.MOLECULES[0]
         vp.makeCalc(project, "h2o", fixture, "ecceqm.desc", "GeoVib", list(elements), key)
 
+        name, fixture, elements, key = vp.MOLECULES[1]
+        vp.makeCalc(project, "co2", fixture, "ecceqm.desc", "GeoVib", list(elements), key)
+
         out = s.state
         for calc, click in [c for c in (("gal", 39), ("h2o", 8)) if not args.only or c[0] == args.only]:
             say("== %s" % calc)
@@ -149,16 +153,34 @@ def main():
             run(s, display, env, wrappers, png, calc, calc + "-spectrum",
                 {"ECCE_SPECTRUM_DUMP": sp, "ECCE_SPECTRUM_WINDOW": "1",
                  "ECCE_SPECTRUM_CLICK": str(click), "ECCE_SPECTRUM_HOVER": str(click),
-                 "ECCE_EXIT_AFTER_DUMP": "1", "ECCE_SPECTRUM_SETTINGS": "1"})
+                 "ECCE_EXIT_AFTER_DUMP": "1", "ECCE_SPECTRUM_SETTINGS": "1",
+                 "ECCE_SPECTRUM_WINDOW_ACTIONS": "co2"})
             lines = read(sp)
             hover = [l.split(" ", 2)[2] for l in lines if l.startswith("hover ")]
             strip = [l.split(" ", 2)[2] for l in lines if l.startswith("strip ") and l[6].isdigit()]
             say("  hover: %s" % hover)
             say("  strip: %s" % strip)
             for name in ("width", "factor", "low", "high", "direction", "sticks",
-                         "reset", "zoom", "difference", "experimental"):
+                         "reset", "zoom", "difference", "experimental", "compare",
+                         "remove-comparison", "match-bands", "export-csv"):
                 check("setting %s 1" % name in lines,
                       "%s: Spectrum window shows %s" % (calc, name))
+            check("window-dialogs compare 1" in lines,
+                  "%s: window Compare opens the shared calculation chooser" % calc)
+            check("window-compare before dock 0 window 0 same 1 remove 0/0 diff 0/0" in lines,
+                  "%s: Remove comparison and Difference start disabled in both views" % calc)
+            drawn = [l for l in lines if l.startswith("window-compare drawn ")]
+            check(bool(drawn) and re.fullmatch(
+                r"window-compare drawn dock ([1-9]\d*) window \1 same 1 remove 1/1 diff 1/1",
+                drawn[0]), "%s: window Compare draws the same second curve in both views" % calc)
+            check("window-compare removed dock 0 window 0 same 1 remove 0/0 diff 0/0" in lines,
+                  "%s: window Remove clears both curves and disables both controls" % calc)
+            window_csv, panel_csv = read(sp + ".window.csv"), read(sp + ".panel.csv")
+            check(bool(window_csv) and window_csv == panel_csv,
+                  "%s: window and panel Export write identical CSV files" % calc)
+            check(any("compared with" in l and "co2" in l for l in window_csv) and
+                  any("intensity_co2" in l for l in window_csv),
+                  "%s: exported CSV includes the comparison on the shared grid" % calc)
             check("strip-unassigned 1" in lines,
                   "%s: an unassigned mode still has a frequency/intensity strip" % calc)
             check("settings-sync 1" in lines,

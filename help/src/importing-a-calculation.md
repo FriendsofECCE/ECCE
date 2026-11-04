@@ -214,7 +214,18 @@ reflected in the other:
 - **Range**, **Zoom** and **Reset:** enter the lowest and highest wavenumber,
   then click Zoom or press Enter; Reset shows the full spectrum. Drag to
   zoom, use the wheel to zoom, or right-drag to pan. Both views share the range.
-- **Difference:** after choosing **Compare...** in the panel, show the
+
+The **Other spectra** row provides the same actions as the panel:
+
+- **Compare...:** draw another calculation's spectrum from the same folder
+  in both views, using the same width and frequency factor.
+- **Remove comparison:** clear the second curve; enabled only while a
+  comparison is drawn.
+- **Match bands...:** open the band-matching dialog, using **ecce-bandshift**
+  to match the normal-mode motion and report frequency shifts.
+- **Export .csv...:** save the sticks and every displayed curve on one
+  wavenumber grid, including comparison, difference and experimental curves.
+- **Difference:** after choosing **Compare...**, show the
   second curve minus the first on a signed axis.
 - **Experimental...:** load a measured absorbance or transmittance spectrum,
   or remove the loaded spectrum. See
