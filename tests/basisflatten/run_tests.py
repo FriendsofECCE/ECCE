@@ -69,17 +69,21 @@ def main():
     rc = run.returncode
 
     rc2 = run_cro_moaoorder(env)
-    return rc or rc2
+    # HF/cc-pVQZ has a g shell on F (#861): ORCA's spherical table must
+    # reach lval=4 or BasisFlatten leaves empty functions.
+    rc3 = run_cro_moaoorder(env, ["fixtures/hf_qz.nb", "fixtures/hf_qz.xyz", "10"],
+                            "fixtures/hf_qz_mo_block.txt")
+    return rc or rc2 or rc3
 
 
-def run_cro_moaoorder(env):
+def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt"):
     """orca.mo's canonical-order fix (fault A) + MoAoOrder's un-permute,
     against ORCA's real CrO/def2-SVP MO block -- see testCrOMoAoOrder.C.
     """
     perl = subprocess.run(
         ["perl", os.path.join(ROOT, "scripts/parsers/orca.mo"),
          "MO", "Energy", "SCF", "RHF"],
-        stdin=open(os.path.join(HERE, "fixtures/cro_mo_block.txt")),
+        stdin=open(os.path.join(HERE, block)),
         capture_output=True, text=True)
     if perl.returncode != 0:
         print("orca.mo failed on the CrO fixture:")
@@ -101,7 +105,7 @@ def run_cro_moaoorder(env):
         os.unlink(parsed)
         return 2
 
-    run = subprocess.run([out, parsed], capture_output=True, text=True,
+    run = subprocess.run([out, parsed, *extra], capture_output=True, text=True,
                           env=env, cwd=HERE)
     print(run.stdout, end="")
     if run.stderr:
