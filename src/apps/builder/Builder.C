@@ -1695,8 +1695,18 @@ void Builder::setContext(const string& url, const bool& force)
     // A structure that carries a cell shows it, without the Periodic
     // Builder open (the Viewer of a Prepare has no use for the panel).
     PBC *pbcPanel = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
-    if (pbcPanel && getSG()->getFragment()->getLattice())
+    // A crystal without bonds starts with its box at the origin, so the
+    // atoms on the cell boundary land on it (#859); molecules in a box
+    // keep the box centred on them.
+    {
+      SGFragment *lf = getSG()->getFragment();
+      if (lf->getLattice() && lf->numAtoms() > 0 && lf->numBonds() == 0)
+        lf->getLattice()->setCentering(false);
+    }
+    if (pbcPanel && getSG()->getFragment()->getLattice()) {
       pbcPanel->showLattice(true);
+      pbcPanel->indicateCentering();
+    }
 
     // The constraints follow the atoms of this fragment from here on.
     const string ctxUrl = p_calculation->getURL().toString();

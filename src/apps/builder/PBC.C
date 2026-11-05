@@ -508,6 +508,14 @@ void PBC::showReplication()
    }
 }
 
+void PBC::indicateCentering()
+{
+   SGFragment *frag = getFW().getSceneGraph().getFragment();
+   LatticeDef *lattice = frag ? frag->getLattice() : 0;
+   wxCheckBox *cen = (wxCheckBox*)FindWindow(ID_CHECKBOX_PBC_CENTER);
+   if (cen && lattice) cen->SetValue(lattice->getCentering());
+}
+
 void PBC::refresh()
 {
    // Not totally sure about this... Relies on refresh being called when 
@@ -573,6 +581,9 @@ void PBC::refresh()
          txt->SetValue(cellText(a3.z()));
 
          delete vecs;
+
+         wxCheckBox *cen = (wxCheckBox*)FindWindow(ID_CHECKBOX_PBC_CENTER);
+         if (cen) cen->SetValue(lattice->getCentering());
 
          bool replicated = false;
          int na1, na2, na3;
