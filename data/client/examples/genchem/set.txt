@@ -1,5 +1,5 @@
 General Chemistry
-Atoms and periodicity, ionisation energies, Koopmans' theorem, orbitals of diatomic molecules, polar bonds, molecular shapes, Lewis structures and resonance (ECCE-QM), and molecular dynamics of gases, liquids and solids.
+Atoms and periodicity, ionisation energies, Koopmans' theorem, orbitals of diatomic molecules, polar bonds, molecular shapes, Lewis structures and resonance (ECCE-QM), molecular dynamics of gases, liquids and solids, and the packing of metal atoms in crystals.
 atoms|Atoms
 ionisation-and-electron-affinity|Ionisation energies and electron affinities
 koopmans|Koopmans' theorem
@@ -8,3 +8,4 @@ polar-bonds-and-dipole-moments|Polar bonds and dipole moments
 vsepr|VSEPR
 lewis-structures-and-resonance|Lewis structures and resonance
 gases-liquids-solids|Gases, liquids and solids
+packing-in-solids|Packing in solids

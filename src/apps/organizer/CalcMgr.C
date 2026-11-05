@@ -5180,7 +5180,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "27";
+const char *const kExampleSetVersion = "28";
 
 string treeName(string s)
 {
@@ -6369,17 +6369,34 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows that the two O-O bonds of ozone are "
      "equivalent, as the average of two resonance structures."},
-    {"al_fcc",
-     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of aluminium "
-     "metal, a close-packed crystal with twelve neighbours per atom."},
-    {"na_bcc",
-     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of sodium "
-     "metal, whose body-centred cubic packing has eight neighbours per "
-     "atom."},
     {"po_sc",
-     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of alpha-"
-     "polonium, the only element that crystallises in the simple cubic "
-     "structure, with six neighbours per atom."},
+     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the cubic "
+     "cell. This calculation shows the simple cubic packing of "
+     "alpha polonium: one atom in the cubic cell, six nearest neighbours, "
+     "and 52 % of the space filled by the atoms."},
+    {"na_bcc",
+     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the cubic "
+     "cell. This calculation shows the body-centred cubic packing of "
+     "sodium: two atoms in the cubic cell, eight nearest neighbours, "
+     "and 68 % of the space filled by the atoms."},
+    {"al_fcc",
+     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the cubic "
+     "cell. This calculation shows the face-centred cubic packing of "
+     "aluminium, with layers stacked ABC: four atoms in the cubic "
+     "cell, twelve nearest neighbours, and 74 % of the space filled by "
+     "the atoms."},
+    {"cu_fcc",
+     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the cubic "
+     "cell. This calculation shows the face-centred cubic packing of "
+     "copper, with layers stacked ABC: four atoms in the cubic cell, "
+     "twelve nearest neighbours, and 74 % of the space filled by the "
+     "atoms."},
+    {"mg_hcp",
+     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the hexagonal "
+     "cell. This calculation shows the hexagonal close packing of "
+     "magnesium, with layers stacked ABA: two atoms in the hexagonal "
+     "cell, twelve nearest neighbours, and 74 % of the space filled by "
+     "the atoms."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "
