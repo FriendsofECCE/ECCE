@@ -3666,6 +3666,22 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_pbc_ux PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Builder scene-script photo hooks (#860): measure labels and no selection,
+  # assigncharges, gtstep moving the plot marker, panelfloat/panelsize.
+  add_test(NAME apps_shot_hooks
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/shot_hooks_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_shot_hooks PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # tools/screenshots/shots.py on a two-shot list.
+  add_test(NAME apps_shots_driver
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/shots_driver_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_shots_driver PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # The default tool panes of a calculation not yet run (Symmetry last) stay
   # docked, clear of the viewer, at 1024x600, 1366x768 and 1400x900.
   add_test(NAME apps_tool_column

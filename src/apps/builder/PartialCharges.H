@@ -40,6 +40,8 @@ class PartialCharges : public VizPropertyPanel,
             long style=wxTAB_TRAVERSAL,
             const wxString& name="PartialCharges");
     virtual ~PartialCharges();
+    /// What the Assign Charges button does (script hook, #860).
+    void assignCharges() { wxCommandEvent none; OnAssign(none); }
 
    protected:
      void fillUI();
