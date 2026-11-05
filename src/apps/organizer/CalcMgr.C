@@ -1204,7 +1204,13 @@ void CalcMgr::runTestCommand(const string& line)
         if (!s) outcome = "error: no such step";
         else launchStep(wf, s, false, &outcome);
       } else if (command == "workflowplay") {
-        // The play button of every box: "name:1|0:reason".
+        // The play button of every box: "name:1|0:reason", once queued
+        // notices and any launch batch (auto-run's included) are done.
+        for (int i = 0; i < 600 && (p_batch || !p_autoPending.empty() ||
+                                    !p_queuedUpdates.empty()); i++) {
+          wxYield();
+          wxMilliSleep(50);
+        }
         p_treeCtrl->SelectItem(wfNode->GetId());
         for (int i = 0; i < 5; i++) wxYield();
         SessionProjectContextPanel *spc =
@@ -1378,6 +1384,9 @@ void CalcMgr::runTestCommand(const string& line)
       if (n == "waiting") found = (int)ResourceDescriptor::STATE_WAITING;
       outcome = !job ? "no such task" : found < 0 ? "no such state"
               : job->setState((ResourceDescriptor::RUNSTATE)found) ? "ok" : "not set";
+      // The notice a job monitor's state change brings, so the Organizer
+      // reacts to it as to a real one (auto-run, #736).
+      if (outcome == "ok") queueUpdate(UPDATE_CHANGED, job->getURL());
     } else if (command == "walk") {
       // Select and expand every node below the home as a user clicking
       // through the tree does: the tree's own event handlers run.
@@ -3970,6 +3979,22 @@ void CalcMgr::startBatch(const vector<LaunchSelected::Row>& rows, bool showRepor
         delete p_batch;
         p_batch = 0;
         if (showReport) LaunchSelected::showResults(this, done);
+        if (p_autoBatch) {
+          // Nobody pressed a button, so say what happened, failures included.
+          p_autoBatch = false;
+          string r = p_batchReport;
+          for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = ' ';
+          setMessage("Auto-run: " + r, WxFeedback::INFO);
+          // Launched steps have left Created; a failed one may be tried again.
+          p_autoLaunched.clear();
+        }
+        std::set<string> pending;
+        pending.swap(p_autoPending);
+        for (const string& u : pending) {
+          WxResourceTreeItemData *n = findNode(EcceURL(u), false, false);
+          if (Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0)
+            autoRunWorkflow(wf);
+        }
       });
     });
   p_batch->start();
@@ -10539,6 +10564,8 @@ void CalcMgr::launchStep(Session *wf, Resource *step, bool interactive,
 void CalcMgr::autoRunWorkflow(Session *wf)
 {
   if (!wf || !WorkflowSteps::autoRun(wf)) return;
+  // One launch batch at a time; this workflow is looked at when it ends.
+  if (p_batch) { p_autoPending.insert(wf->getURL().toString()); return; }
   // A step seen past Created is launched for good; forget it.
   vector<Resource*> members = wf->getMembers();
   for (size_t i = 0; i < members.size(); i++)
@@ -10561,10 +10588,12 @@ void CalcMgr::autoRunWorkflow(Session *wf)
     for (size_t k = 0; k < ready.size(); k++)
       if (ready[k]->getURL() == urls[i])
         ready[k]->addProp(VDoc::getEcceNamespace() + ":autolaunched", "1");
-  setMessage("Auto-run launched " + names + " in " + wf->getName() + ".",
+  setMessage("Auto-run is launching " + names + " in " + wf->getName() + ".",
              WxFeedback::INFO);
+  // In the background, as Launch Selected does: a submission over ssh must
+  // not freeze the Organizer, and this can run inside another event's yield.
   string outcome;
-  launchSelected(urls, false, &outcome, "");
+  if (launchSelectedAsync(urls, &outcome)) p_autoBatch = true;
 }
 
 

@@ -1355,8 +1355,8 @@ def main():
                 run_patterns(display, data, work, shots)
                 run_crest_preopt(display, data, work, shots)
                 run_editor(display, data, work, shots)
-                run_protonation(display, data, work, shots)
-                run_autorun(display, data, work, shots)
+                # Protonation and auto-run have their own ctest entries
+                # (apps_workflow_protonation, apps_workflow_autorun).
             if not {"--make-only", "--editor-only", "--protonation-only", "--autorun-only"} & set(sys.argv):
                 run_recipes(display, data, work, shots)
         finally:
