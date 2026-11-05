@@ -567,6 +567,11 @@ class Builder: public BuilderGUI,
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
       bool traceStressCommand(SceneScript& s, const vector<string>& w);
+      /// Show frame `index` through the Geometry Trace panel (plot marker
+      /// included); false when that panel is not open.
+      bool traceFrame(int index);
+      bool shotHookCommand(SceneScript& s, const vector<string>& w,
+                           const string& outdir);
       bool nmodeTestCommand(SceneScript& s, const vector<string>& w);
       bool plotShotCommand(SceneScript& s, const vector<string>& w,
                            const string& outdir);

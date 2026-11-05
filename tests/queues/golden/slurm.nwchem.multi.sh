@@ -35,7 +35,7 @@ canceljob() {
   echo $X_INTERRUPTED > /qtest/run/.ecce.status
   exit 1
 }
-trap canceljob INT
+trap canceljob INT TERM
 
 #  Change to the run directory
 cd /qtest/run || exit 1

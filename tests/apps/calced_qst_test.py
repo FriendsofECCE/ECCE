@@ -101,7 +101,7 @@ def makeProject(folder, linear=False):
         ["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o", driver,
          os.path.join(REPO, "tests", "filedsi", "resourceTest.C"), "-L" + build]
         + ["-l" + l for l in libs] * 3
-        + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH],
+        + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if built.returncode != 0:
         return None, built.stdout.decode()[-1500:]

@@ -182,6 +182,7 @@ namespace DensityPlane
       vector<double> energyBeta, occBeta;
       bool unrestricted;
       string complaint;
+      bool fromResults;             // orbitals came from results.h5
 
       Evaluator();
       ~Evaluator();

@@ -111,22 +111,27 @@ int main(int argc, char** argv) {
     return 2;
   }
   const string moPath = argv[1];
+  // Optional: a second fixture (NumericalBasis, xyz, electron count) for
+  // which C^T S C must be the unit matrix and trace(P S) = N.
+  const string nbPath  = argc > 2 ? argv[2] : "fixtures/cro.nb";
+  const string xyzPath = argc > 3 ? argv[3] : "fixtures/cro.xyz";
+  const int nElec = argc > 4 ? atoi(argv[4]) : 0;
 
   const JCode* code = CodeFactory::lookup("ORCA");
   check(code != 0, "ORCA registered");
   if (code == 0) { printf("FAIL\n"); return 1; }
 
-  ifstream nb("fixtures/cro.nb");
+  ifstream nb(nbPath.c_str());
   TGBSConfig* cfg = ICalcUtils::importConfig(nb);
   check(cfg != 0, "CrO def2-SVP NumericalBasis fixture parsed");
 
-  ifstream xyz("fixtures/cro.xyz");
+  ifstream xyz(xyzPath.c_str());
   vector<string> el; vector<double> coordsAng; string s; double x, y, z;
   while (xyz >> s >> x >> y >> z) {
     el.push_back(s);
     coordsAng.push_back(x); coordsAng.push_back(y); coordsAng.push_back(z);
   }
-  check(el.size() == 2, "CrO fixture has 2 atoms");
+  check(el.size() >= 1, "fixture has atoms");
 
   TGBSAngFunc* af = code->getAngFunc(TGaussianBasisSet::Spherical);
   int lenS[7] = {1,3,5,7,9,11,13};
@@ -150,6 +155,14 @@ int main(int argc, char** argv) {
 
   double maxErr = 0;
   int nbad = 0;
+  vector<double> S;
+  if (nElec > 0) {
+    size_t nb = basis.size();
+    S.assign(nb*nb, 0.0);
+    for (size_t i = 0; i < nb; i++)
+      for (size_t j = 0; j < nb; j++)
+        S[i*nb+j] = EspField::overlapOf(basis[i], basis[j]);
+  }
   for (int m = 0; m < reordered->rows(); m++) {
     double n = 0;
     for (size_t i = 0; i < basis.size(); i++) {
@@ -166,7 +179,27 @@ int main(int argc, char** argv) {
     if (err > 1.0e-3) nbad++;
   }
   printf("max|c^T S c - 1| = %.3e over %d MOs\n", maxErr, reordered->rows());
-  check(maxErr < 1.0e-4, "every CrO MO is normalised (fault A + f(+-3) sign)");
+  if (nElec > 0) {
+    // Closed shell: the first nElec/2 MOs are doubly occupied.
+    int nocc = nElec/2, nb = (int)basis.size();
+    double worstOff = 0, trPS = 0;
+    for (int a = 0; a < nocc; a++)
+      for (int b = 0; b <= a; b++) {
+        double v = 0;
+        for (int i = 0; i < nb; i++) {
+          double ci = reordered->value(a, i);
+          if (ci == 0.0) continue;
+          for (int j = 0; j < nb; j++) v += ci * S[(size_t)i*nb+j] * reordered->value(b, j);
+        }
+        if (a == b) trPS += 2*v;
+        else if (fabs(v) > worstOff) worstOff = fabs(v);
+      }
+    printf("occupied: max|offdiag C^T S C| = %.3e, trace(PS) = %.6f (N = %d)\n",
+           worstOff, trPS, nElec);
+    check(worstOff < 1.0e-4, "occupied MOs orthogonal");
+    check(fabs(trPS - nElec) < 1.0e-4, "trace(PS) = number of electrons");
+  }
+  check(maxErr < 1.0e-4, "every MO is normalised (fault A, f(+-3) sign, ORCA g row)");
   check(nbad == 0, "no MO off by more than 1e-3");
 
   if (owned) delete reordered;

@@ -579,6 +579,13 @@ void GeomTracePropertyPanel::OnPointClick(int, int index)
 }
 
 
+void GeomTracePropertyPanel::showFrame(int frame)
+{
+  if (p_playback) p_playback->SetCurrentStep((long)frame);
+  processStep(frame);
+}
+
+
 void GeomTracePropertyPanel::showPlotPoint(int index, int points)
 {
   const int frame = frameOfPlotPoint(index, points);

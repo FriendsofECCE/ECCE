@@ -35,7 +35,7 @@ def main():
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"), "-o", exe,
             os.path.join(HERE, "testXtbTracePS.C")] + extra +
            ["-L" + BUILD] + ["-l" + l for l in LIBS] * 3 +
-           ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH,
+           ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH,
             "-Wl,-rpath," + BUILD])
     b = subprocess.run(cmd, capture_output=True, text=True)
     if b.returncode != 0:

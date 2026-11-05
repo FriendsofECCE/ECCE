@@ -52,6 +52,9 @@
 //    atomtable                   the shown text of each Atom Table row
 //    progress N                  the MO Compute progress dialog, N seconds
 //    property NAME               a click on Properties > NAME (toggles it)
+//    columnwidth N               restore a saved side column width of N pixels
+//    panesize NAME               report pane width, height and virtual width
+//    minsizes NAME               each control's and sizer row's minimum width
 //    list NAME                   a click on NAME in the Properties list
 //    viewer NAME                 a click on NAME's "Show in viewer" box
 //    overlay                     the column's tab (1 = Properties), and for
@@ -133,6 +136,7 @@
 #include "viz/ForegroundCmd.H"
 #include "wxgui/SliderCombo.H"
 #include "viz/SGContainer.H"
+#include "viz/SGLattice.H"
 #include "viz/SGFragment.H"
 #include "viz/AtomMeasureDist.H"
 #include "viz/AtomMeasureAngle.H"
@@ -279,15 +283,74 @@ void Builder::runBuilderScript(const std::string& file)
           ev.SetInt(1);
           GetEventHandler()->ProcessEvent(ev);
         }
+      } else if (w[0] == "columnwidth" && w.size() == 2) {
+        wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(NAME_PROPERTY_INDEX));
+        if (!pane.IsOk() || !pane.IsShown()) {
+          outcome = "no Properties pane";
+        } else {
+          // Restore the dock size as a saved user layout does.
+          std::string perspective = p_mgr.SavePerspective().ToStdString();
+          const std::string key = wxString::Format("dock_size(%d,%d,%d)=",
+              pane.dock_direction, pane.dock_layer, pane.dock_row).ToStdString();
+          const size_t at = perspective.find(key);
+          if (at == std::string::npos) {
+            outcome = "no Properties dock size";
+          } else {
+            const size_t value = at + key.size();
+            perspective.replace(value, perspective.find('|', value) - value, w[1]);
+            p_mgr.LoadPerspective(wxString(perspective), false);
+            updatePanes();
+          }
+        }
+      } else if (w[0] == "minsizes" && w.size() >= 2) {
+        //  Which control or sizer row sets a pane's minimum width.
+        wxString nm = line.substr(line.find("minsizes") + 9);
+        nm.Trim(false).Trim(true);
+        wxAuiPaneInfo &pn = p_mgr.GetPane(nm);
+        std::function<void(wxSizer*, int)> dump = [&](wxSizer *s, int depth) {
+          for (wxSizerItem *it : s->GetChildren()) {
+            wxString what = it->IsShown() ? "" : "(hidden) ";
+            if (it->IsWindow()) {
+              wxWindow *win = it->GetWindow();
+              what += wxString(win->GetClassInfo()->GetClassName()) + " '" +
+                     win->GetLabel().Left(30) + "'";
+            } else if (it->IsSizer()) {
+              what += wxString(it->GetSizer()->GetClassInfo()->GetClassName());
+            } else {
+              what += "spacer";
+            }
+            fprintf(stderr, "MINSIZE %*s%s min=%d border=%d\n", depth * 2, "",
+                    (const char*)what.mb_str(), it->CalcMin().x,
+                    it->GetBorder());
+            if (it->IsSizer()) dump(it->GetSizer(), depth + 1);
+            else if (it->IsWindow() && it->GetWindow()->GetSizer() &&
+                     depth < 3)
+              dump(it->GetWindow()->GetSizer(), depth + 1);
+          }
+        };
+        if (pn.IsOk() && pn.window && pn.window->GetSizer()) {
+          fprintf(stderr, "MINSIZE %s window_min=%d sizer_min=%d\n",
+                  (const char*)nm.mb_str(), pn.window->GetMinSize().x,
+                  pn.window->GetSizer()->GetMinSize().x);
+          dump(pn.window->GetSizer(), 1);
+        } else {
+          outcome = "no such pane";
+        }
       } else if (w[0] == "panesize" && w.size() >= 2) {
         wxString nm = line.substr(line.find("panesize") + 9);
         nm.Trim(false).Trim(true);
         wxAuiPaneInfo &pn = p_mgr.GetPane(nm);
         fprintf(stderr, "PANESIZE %s: %s y=%d height=%d min_height=%d "
-                "resizable=%d\n",
+                "resizable=%d width=%d client_width=%d virtual_width=%d "
+                "pane_min_width=%d window_min_width=%d content_width=%d\n",
                 (const char*)nm.mb_str(),
                 pn.IsOk() && pn.IsShown() ? "shown" : "hidden", pn.rect.y,
-                pn.rect.height, pn.min_size.y, pn.IsResizable() ? 1 : 0);
+                pn.rect.height, pn.min_size.y, pn.IsResizable() ? 1 : 0,
+                pn.rect.width, pn.window ? pn.window->GetClientSize().x : 0,
+                pn.window ? pn.window->GetVirtualSize().x : 0, pn.min_size.x,
+                pn.window ? pn.window->GetMinSize().x : 0,
+                pn.window && pn.window->GetSizer()
+                    ? pn.window->GetSizer()->GetMinSize().x : 0);
       } else if (w[0] == "pbc" && w.size() >= 2 && pbc) {
         std::vector<std::string> rest(w.begin() + 1, w.end());
         std::string err = pbc->scriptCommand(rest);
@@ -557,6 +620,21 @@ void Builder::runBuilderScript(const std::string& file)
           if (frag->atomRef(i)->atomicSymbol() == "Nub") nubs++;
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s nubs=%d\n",
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no", nubs);
+        fprintf(stderr, "BUILDER: cell_images=%d\n", getSG()->numCellImages());
+        if (lat) {
+          MPoint cc = lat->getLatticeCorner();
+          fprintf(stderr, "BUILDER: lattice_centered=%d corner=%.3f %.3f %.3f\n",
+                  lat->getCentering() ? 1 : 0, cc.x(), cc.y(), cc.z());
+          SGLattice *sgl = dynamic_cast<SGLattice*>(getSG()->findNode("lattice"));
+          double lo[3], hi[3];
+          if (sgl && sgl->drawnBounds(lo, hi))
+            fprintf(stderr, "BUILDER: lattice_drawn=%.3f %.3f %.3f %.3f %.3f %.3f\n",
+                    lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]);
+          vector<MPoint> *basis = lat->toVectors();
+          for (MPoint& v : *basis)
+            fprintf(stderr, "BUILDER: lattice_vector=%.3f %.3f %.3f\n", v.x(), v.y(), v.z());
+          delete basis;
+        }
         fprintf(stderr, "BUILDER: frame=%lld\n", ewxModalGuard::frameCounter(this));
         fprintf(stderr, "BUILDER: periodic_builder=%s\n",
                 p_mgr.GetPane(NAME_TOOL_PBC).IsShown() ? "shown" : "hidden");
@@ -1579,6 +1657,11 @@ void Builder::runBuilderScript(const std::string& file)
         fgCmd.getParameter("green")->setDouble(fg[1]);
         fgCmd.getParameter("blue")->setDouble(fg[2]);
         fgCmd.execute();
+      } else if (w[0] == "style" && w.size() >= 2) {
+        // "style Ball And Stick", as Render > <style>.
+        string name = w[1];
+        for (size_t i = 2; i < w.size(); i++) name += " " + w[i];
+        p_viewerEvtHandler->doStyleChange(wxString(name));
       } else if (w[0] == "viewall") {
         getViewer().viewAll();
       } else if ((w[0] == "rotate" || w[0] == "rotatex") && w.size() == 2) {

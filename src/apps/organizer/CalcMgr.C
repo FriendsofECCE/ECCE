@@ -757,6 +757,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     choices and takes a picture; answers with the panel's report
       //   workflowrecipehere WF STEP    the box menu's Apply Recipe from here
       //     on STEP: its labels, then the panel's report
+      //     (flag autorun: tick "Run the remaining steps automatically")
       //   workflowrecipecreate WF       Create boxes in the open panel
       //   workflowkeydata WF            the key-data box as text, "|" for newlines
       //   workflowresults WF            each box's result line: "name: text|..."
@@ -774,7 +775,9 @@ void CalcMgr::runTestCommand(const string& line)
                command == "workflowstructure" || command == "workflowrecipehere")
         args >> wfUrl >> rid >> vid >> src;
       else args >> wfUrl;
+      bool autorun = false;
       while (args >> flag) {
+        if (flag == "autorun") autorun = true;
         if (flag.compare(0, 7, "method=") == 0) method = flag.substr(7);
         if (flag.compare(0, 6, "basis=") == 0) basis = flag.substr(6);
         if (flag.compare(0, 8, "solvent=") == 0) solvent = flag.substr(8);
@@ -824,7 +827,7 @@ void CalcMgr::runTestCommand(const string& line)
                   method.empty() ? r->roles[i].method : method,
                   basis.empty() ? r->roles[i].basis : basis);
             if (!solvent.empty()) levels["solvent"] = std::make_pair("", solvent);
-            string why = wp->recipeCreate(*r, *v, levels, source);
+            string why = wp->recipeCreate(*r, *v, levels, source, autorun);
             outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
           }
         } else if (command == "workflowrecipepanel") {
@@ -842,6 +845,7 @@ void CalcMgr::runTestCommand(const string& line)
                 if (lv.first != "solvent") panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
                                 basis.empty() ? lv.second.second : basis);
             if (!solvent.empty()) panel->setLevel("solvent", "", solvent);
+            panel->setAutoRun(autorun);
             SetSize(1500, 900);
             Raise();
             for (int i = 0; i < 8; i++) wxYield();
@@ -980,6 +984,9 @@ void CalcMgr::runTestCommand(const string& line)
       //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
       //   workflowcopy WF CALC-URL NAME   a stored calculation as a first step
       //   workflowready WF      the steps Launch Ready Steps would launch
+      //   workflowautorun WF on|off|query   the auto-run setting (#736)
+      //   workflowlaunchstep WF STEP   launch that one step if it is ready
+      //   workflowplay WF       play button of each box: "name:1|0:reason|.."
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
       //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
@@ -991,6 +998,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     label, shown, inside the view (not clicked)
       //   workflowmenu WF STEP  a right-click on STEP's box: the menu's
       //     labels, or "error: ..." with what threw (#681)
+      //   workflowcrestcheck WF STEP   Launch's CREST check: "ok fromopt=1|0"
       std::istringstream args(calcName);
       string a, b, c, d, flag, geomFrom;
       vector<string> joinArgs;
@@ -1010,8 +1018,11 @@ void CalcMgr::runTestCommand(const string& line)
         }
       } else if (command == "workflowcopy" || command == "workflowmenu" ||
                  command == "workflowqst" || command == "workflowmake" ||
+                 command == "workflowcrestcheck" ||
+                 command == "workflowautorun" || command == "workflowlaunchstep" ||
+                 command == "workflowsetlaunch" ||
                  command == "workflowmove") {
-        args >> a >> b >> c;
+        args >> a >> b >> c >> d;
       } else if (command == "workflowjoin") {
         args >> a >> b >> c;
         while (args >> flag) joinArgs.push_back(flag);
@@ -1151,6 +1162,10 @@ void CalcMgr::runTestCommand(const string& line)
           if (node) p_treeCtrl->refresh(node);
           outcome = "ok " + to.toString();
         }
+      } else if (command == "workflowcrestcheck") {
+        TaskJob *t = dynamic_cast<TaskJob*>(step(b));
+        outcome = !t ? string("no such step") : string("ok fromopt=") +
+                  (Launch::crestFromOptimisation(t) ? "1" : "0");
       } else if (command == "workflowready") {
         vector<string> waiting;
         vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting);
@@ -1162,6 +1177,46 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok " + WorkflowSteps::info(wf);
       } else if (command == "workflowlaunch") {
         launchReadySteps(wf, false, &outcome, "");
+      } else if (command == "workflowautorun") {
+        if (b == "on" || b == "off") WorkflowSteps::setAutoRun(wf, b == "on");
+        outcome = string("ok autorun=") + (WorkflowSteps::autoRun(wf) ? "on" : "off");
+      } else if (command == "workflowsetlaunch") {
+        // workflowsetlaunch WF STEP MACHINE RUNDIR: the launch settings the
+        // Launcher would store on the step.
+        TaskJob *t = dynamic_cast<TaskJob*>(step(b));
+        if (!t) outcome = "error: no such step";
+        else {
+          Launchdata l = t->launchdata();
+          l.machine = c;
+          l.rundir = d;
+          l.totalprocs = 1;
+          l.nodes = 1;
+          l.queue = "normal";
+          const char *u = getenv("ECCE_REALUSER");
+          l.user = u ? u : "";
+          // And the input deck the Calculation Editor would have stored.
+          std::istringstream deck("##XtbHeader##\n##chemsys##\n");
+          outcome = t->launchdata(l) && t->putInputFile("xtb.xtbin", &deck)
+                  ? "ok" : "error: not stored";
+        }
+      } else if (command == "workflowlaunchstep") {
+        Resource *s = step(b);
+        if (!s) outcome = "error: no such step";
+        else launchStep(wf, s, false, &outcome);
+      } else if (command == "workflowplay") {
+        // The play button of every box: "name:1|0:reason", once queued
+        // notices and any launch batch (auto-run's included) are done.
+        for (int i = 0; i < 600 && (p_batch || !p_autoPending.empty() ||
+                                    !p_queuedUpdates.empty()); i++) {
+          wxYield();
+          wxMilliSleep(50);
+        }
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        outcome = wp ? "ok " + wp->playReport() : "no workflow panel";
       } else if (command == "workflowicons") {
         // Box icons and tree icons read in the same poll, until they agree
         // (the tree follows a stored state change a moment later) or 10 s.
@@ -1329,6 +1384,9 @@ void CalcMgr::runTestCommand(const string& line)
       if (n == "waiting") found = (int)ResourceDescriptor::STATE_WAITING;
       outcome = !job ? "no such task" : found < 0 ? "no such state"
               : job->setState((ResourceDescriptor::RUNSTATE)found) ? "ok" : "not set";
+      // The notice a job monitor's state change brings, so the Organizer
+      // reacts to it as to a real one (auto-run, #736).
+      if (outcome == "ok") queueUpdate(UPDATE_CHANGED, job->getURL());
     } else if (command == "walk") {
       // Select and expand every node below the home as a user clicking
       // through the tree does: the tree's own event handlers run.
@@ -3921,6 +3979,22 @@ void CalcMgr::startBatch(const vector<LaunchSelected::Row>& rows, bool showRepor
         delete p_batch;
         p_batch = 0;
         if (showReport) LaunchSelected::showResults(this, done);
+        if (p_autoBatch) {
+          // Nobody pressed a button, so say what happened, failures included.
+          p_autoBatch = false;
+          string r = p_batchReport;
+          for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = ' ';
+          setMessage("Auto-run: " + r, WxFeedback::INFO);
+          // Launched steps have left Created; a failed one may be tried again.
+          p_autoLaunched.clear();
+        }
+        std::set<string> pending;
+        pending.swap(p_autoPending);
+        for (const string& u : pending) {
+          WxResourceTreeItemData *n = findNode(EcceURL(u), false, false);
+          if (Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0)
+            autoRunWorkflow(wf);
+        }
       });
     });
   p_batch->start();
@@ -4277,7 +4351,13 @@ bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
         job->addProps(r);
         job->notifyProperty("runStatusReason", reason);
       }
-      lines.push_back(name + "\tok\t" + (id.empty() ? string("none (imported job)") : id));
+      // What RunMgmt found left in the run directory (#855), after the id.
+      const size_t semi = msg.find("; ");
+      const string note = semi == string::npos ? "" : msg.substr(semi + 2);
+      const bool left = note.compare(0, 13, "still running") == 0;
+      lines.push_back(name + (left ? "\tleft\t" : "\tok\t") +
+                      (id.empty() ? string("none (imported job)") : id) +
+                      (note.empty() ? "" : ", " + note));
     }
   }
   return true;
@@ -5106,7 +5186,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "27";
+const char *const kExampleSetVersion = "30";
 
 string treeName(string s)
 {
@@ -6295,17 +6375,34 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows that the two O-O bonds of ozone are "
      "equivalent, as the average of two resonance structures."},
-    {"al_fcc",
-     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of aluminium "
-     "metal, a close-packed crystal with twelve neighbours per atom."},
-    {"na_bcc",
-     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of sodium "
-     "metal, whose body-centred cubic packing has eight neighbours per "
-     "atom."},
     {"po_sc",
-     "Quantum ESPRESSO, PBE, plane waves. This calculation shows the total energy of alpha-"
-     "polonium, the only element that crystallises in the simple cubic "
-     "structure, with six neighbours per atom."},
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the simple cubic packing of "
+     "alpha polonium: one atom in the cubic cell, six nearest neighbours, "
+     "and 52 % of the space filled by the atoms."},
+    {"na_bcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the body-centred cubic packing of "
+     "sodium: two atoms in the cubic cell, eight nearest neighbours, "
+     "and 68 % of the space filled by the atoms."},
+    {"al_fcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the face-centred cubic packing of "
+     "aluminium, with layers stacked ABC: four atoms in the cubic "
+     "cell, twelve nearest neighbours, and 74 % of the space filled by "
+     "the atoms."},
+    {"cu_fcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the face-centred cubic packing of "
+     "copper, with layers stacked ABC: four atoms in the cubic cell, "
+     "twelve nearest neighbours, and 74 % of the space filled by the "
+     "atoms."},
+    {"mg_hcp",
+     "Quantum ESPRESSO, PBE, plane waves, the hexagonal "
+     "cell. This calculation shows the hexagonal close packing of "
+     "magnesium, with layers stacked ABA: two atoms in the hexagonal "
+     "cell, twelve nearest neighbours, and 74 % of the space filled by "
+     "the atoms."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "
@@ -10541,6 +10638,59 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
 }
 
 
+void CalcMgr::launchStep(Session *wf, Resource *step, bool interactive,
+                         string *outcome)
+{
+  std::map<Resource*, string> blocked = WorkflowSteps::stepBlockers(wf);
+  auto why = blocked.find(step);
+  if (why != blocked.end()) {
+    const string msg = step->getName() + " cannot be launched: " + why->second + ".";
+    if (interactive) setMessage(msg, WxFeedback::INFO);
+    if (outcome) *outcome = "blocked " + why->second;
+    return;
+  }
+  WorkflowSteps::refreshFromSources(wf, step);
+  vector<EcceURL> urls(1, step->getURL());
+  launchSelected(urls, interactive, outcome, "");
+}
+
+
+void CalcMgr::autoRunWorkflow(Session *wf)
+{
+  if (!wf || !WorkflowSteps::autoRun(wf)) return;
+  // One launch batch at a time; this workflow is looked at when it ends.
+  if (p_batch) { p_autoPending.insert(wf->getURL().toString()); return; }
+  // A step seen past Created is launched for good; forget it.
+  vector<Resource*> members = wf->getMembers();
+  for (size_t i = 0; i < members.size(); i++)
+    if (WorkflowSteps::isLaunched(members[i]))
+      p_autoLaunched.erase(members[i]->getURL().toString());
+  vector<Resource*> ready = WorkflowSteps::readySteps(wf);
+  vector<EcceURL> urls;
+  string names;
+  for (size_t i = 0; i < ready.size(); i++) {
+    const string key = ready[i]->getURL().toString();
+    if (p_autoLaunched.count(key)) continue;
+    p_autoLaunched.insert(key);
+    WorkflowSteps::refreshFromSources(wf, ready[i]);
+    urls.push_back(ready[i]->getURL());
+    names += (names.empty() ? "" : ", ") + ready[i]->getName();
+  }
+  if (urls.empty()) return;
+  // No run log exists before a step runs, so the step carries the note.
+  for (size_t i = 0; i < urls.size(); i++)
+    for (size_t k = 0; k < ready.size(); k++)
+      if (ready[k]->getURL() == urls[i])
+        ready[k]->addProp(VDoc::getEcceNamespace() + ":autolaunched", "1");
+  setMessage("Auto-run is launching " + names + " in " + wf->getName() + ".",
+             WxFeedback::INFO);
+  // In the background, as Launch Selected does: a submission over ssh must
+  // not freeze the Organizer, and this can run inside another event's yield.
+  string outcome;
+  if (launchSelectedAsync(urls, &outcome)) p_autoBatch = true;
+}
+
+
 /**
  * Resource created in parent of type resType.  If option is selected, the
  * rename prompt is opened during creation.
@@ -10822,7 +10972,8 @@ void CalcMgr::updateUrl(const EcceURL & url)
     if (PropertyTask *task = dynamic_cast<PropertyTask*>(target->getResource()))
       task->flushPropertyCache();
     EDSIFactory::changePoolResource(url);
-    
+    const bool stepDone = WorkflowSteps::isComplete(target->getResource());
+
     if (selectedUrl.isChildOf(url)) {
       findNode(url, true, false);
       selectedUrl = url;
@@ -10839,6 +10990,19 @@ void CalcMgr::updateUrl(const EcceURL & url)
       //      findNode(selectedUrl, false, true);
       onSelectionChange(true);
       //      stopDisabler();
+    }
+
+    // A step of an auto-run workflow finished: start what it unblocked.
+    // The tree refresh above may free `target`, and launching reselects
+    // nodes, so this runs after the update ends, from the URL alone.
+    if (stepDone) {
+      const EcceURL wfUrl = url.getParent();
+      CallAfter([this, wfUrl]() {
+        WxResourceTreeItemData *n = findNode(wfUrl, false, false);
+        Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0;
+        if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+          autoRunWorkflow(wf);
+      });
     }
   }
 }

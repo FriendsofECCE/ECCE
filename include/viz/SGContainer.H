@@ -88,6 +88,10 @@ public:
     // Radius (A) of the sphere drawn for atom idx in its display style; 0
     // where none is drawn (wireframe, stick, hidden).
     double displayedSphereRadius(int idx);
+    // Display-only copies of atoms on the cell's corners, edges and faces
+    // at their equivalent boundary positions (#859); number drawn.
+    void updateCellImages();
+    int numCellImages() const { return p_numCellImages; }
     // Re-seat the normal-mode arrows on the spheres now drawn.
     void updateNMVecStarts();
     // Bond cylinders are drawn thinner while normal-mode arrows are shown.
@@ -229,6 +233,8 @@ SoINTERNAL public:
    void  constructor();
 
     SoSeparator *p_chemSysTop;
+    SoSeparator *p_cellImages;
+    int p_numCellImages;
     SoSeparator *p_mainSep;
 
   private:

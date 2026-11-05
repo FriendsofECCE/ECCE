@@ -56,6 +56,10 @@ class SceneScript
     // Unknown commands go here; return false (and set fail()) on error.
     typedef std::function<bool(SceneScript&, const vector<string>&)> Extension;
     void setExtension(Extension e) { p_ext = e; }
+    /// Steps a Geometry Trace panel, so its plot marker follows gtstep;
+    /// returns false when there is no such panel (the scene is stepped alone).
+    typedef std::function<bool(int)> TraceStep;
+    void setTraceStep(TraceStep t) { p_traceStep = t; }
 
     // Runs act() and records every frame the render area under canvasOwner
     // paints meanwhile: <name>-NN.ppm plus one line per frame in
@@ -81,6 +85,7 @@ class SceneScript
     string p_outdir;
     string p_msg;
     Extension p_ext;
+    TraceStep p_traceStep;
 };
 
 #endif

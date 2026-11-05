@@ -1,0 +1,32 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'mg_hcp'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tstress = .true.
+/
+&SYSTEM
+  ibrav = 0
+  nat = 2
+  ntyp = 1
+  ecutwfc = 40
+  ecutrho = 320
+  occupations = 'smearing'
+  smearing = 'marzari-vanderbilt'
+  degauss = 0.02
+/
+&ELECTRONS
+  conv_thr = 1e-08
+  mixing_beta = 0.7
+/
+ATOMIC_SPECIES
+  Mg  24.305  Mg.pbe-n-kjpaw_psl.0.3.0.UPF
+CELL_PARAMETERS angstrom
+  3.2100000000 0.0000000000 0.0000000000
+  -1.6050000000 2.7799415461 0.0000000000
+  0.0000000000 0.0000000000 5.2100000000
+ATOMIC_POSITIONS angstrom
+  Mg 0.0000000000 0.0000000000 0.0000000000
+  Mg 0.0000000000 1.8532943641 2.6050000000
+K_POINTS automatic
+  10 10 6 0 0 0

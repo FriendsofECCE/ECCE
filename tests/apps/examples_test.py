@@ -113,8 +113,9 @@ for _topic in sorted(os.listdir(_GC)):
                                 "lewis-structures-and-resonance")
         GENCHEM[_name] = (QM_LOC if _molecular and _name not in ("He2", "LiF")
                           else ["TE", "MO"])
-# the Quantum ESPRESSO crystals of Gases, liquids and solids: energy only
-GENCHEM.update({c: ["TE"] for c in ("al_fcc", "na_bcc", "po_sc")})
+# the Quantum ESPRESSO crystals of Packing in solids: energy only
+GENCHEM.update({c: ["TE"] for c in ("po_sc", "na_bcc", "al_fcc", "cu_fcc",
+                                    "mg_hcp")})
 WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE", "MO", "ORBENG"]
                                    if c == "xtb"
                                    else ["TE", "VIBFREQ", "MO", "ORBENG"])

@@ -233,7 +233,7 @@ void NModesGUI::CreateControls()
     ewxButton* itemButton20 = new ewxButton( itemVizPropertyPanel1, ID_BUTTON_NMODE_VECCOLOR, _T(""), wxDefaultPosition, wxSize(24, 24), wxBU_EXACTFIT );
     p_vectorSizer->Add(itemButton20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
-    ewxCheckBox* itemCheckBox21 = new ewxCheckBox( itemVizPropertyPanel1, ID_CHECKBOX_NMODE_VECSIGN, _("Use Negative Displacement"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox21 = new ewxCheckBox( itemVizPropertyPanel1, ID_CHECKBOX_NMODE_VECSIGN, _("Reverse"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox21->SetValue(false);
     p_vectorSizer->Add(itemCheckBox21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 

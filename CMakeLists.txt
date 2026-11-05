@@ -276,6 +276,23 @@ else()
 endif()
 
 
+# results.h5: ECCE's internal results format and converters (wx-free).  The
+# library is part of eccetdat: the job store writes the file and the orbital
+# views read it, and both sit on top of tdat.
+option(ECCE_WITH_HDF5 "Build ecce-results and the results.h5 library (needs libhdf5-dev, C API)" ON)
+set(ECCE_HAVE_RESULTSH5 OFF)
+if(ECCE_WITH_HDF5)
+  find_package(HDF5 COMPONENTS C)
+  if(HDF5_FOUND)
+    set(ECCE_HAVE_RESULTSH5 ON)
+  else()
+    message(STATUS "HDF5 not found: ecce-results and results.h5 are not built")
+  endif()
+endif()
+if(ECCE_HAVE_RESULTSH5)
+  add_compile_definitions(ECCE_HAVE_HDF5)
+endif()
+
 # --- src/tdat -> libeccetdat.a ---
 ecce_library(eccetdat
   src/tdat/calcorg
@@ -287,6 +304,13 @@ ecce_library(eccetdat
   src/tdat/resources
   src/tdat/thermo
 )
+if(ECCE_HAVE_RESULTSH5)
+  target_sources(eccetdat PRIVATE
+    src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
+    src/tdat/resultsh5/ResultsConvert.C)
+  target_include_directories(eccetdat PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(eccetdat PUBLIC ${HDF5_LIBRARIES})
+endif()
 
 # --- src/dsm -> 5 separate libraries, matching the old per-subdir mapping ---
 ecce_library(eccexml    src/dsm/chemistry src/dsm/xml)
@@ -1428,6 +1452,11 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
           DESTINATION scripts
           COMPONENT client)
 endif()
+# scripts/ecce-rundir-sweep: RunMgmt::terminate sends it to the job's machine
+# to end what a cancel left running in the run directory (#855).
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-rundir-sweep
+        DESTINATION scripts
+        COMPONENT client)
 
 # scripts/ecce-askpass: ssh's SSH_ASKPASS program, which RCommand hands to the
 # OpenSSH backend so that opening a shared connection asks in ECCE's dialogs.
@@ -2331,6 +2360,10 @@ add_test(NAME orca_dispersion COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_dis
 add_test(NAME orca_grid COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_grid/run_tests.py)
 # Custom solvent (dielectric constant + refractive index) for ORCA and Gaussian 16 (#642).
 add_test(NAME custom_solvent COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/custom_solvent/run_tests.py)
+# BasisFlatten and the ORCA MO table against real ORCA output, incl. HF/cc-pVQZ
+# with a g shell: every MO c^T S c = 1, trace(PS) = N (#861).
+add_test(NAME basisflatten COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basisflatten/run_tests.py)
+set_tests_properties(basisflatten PROPERTIES ENVIRONMENT ECCE_TEST_BUILD=${CMAKE_BINARY_DIR})
 # ORCA Geometry/GeoVib on one atom: no Opt, Freq kept; runs ORCA when installed (#623).
 add_test(NAME orca_one_atom COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_one_atom/run_tests.py)
 # Opt=QST2/QST3 decks for HCN<->HNC, run with Gaussian 16 when installed (#419)
@@ -3105,6 +3138,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_sash PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # A cell shows its boundary atoms at every equivalent position, display
+  # only, and a crystal's box starts at the origin (#859).
+  add_test(NAME apps_packing_cells
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/packing_cells_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_packing_cells PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # The Builder's new element chooser (#222) and the old popup it replaces
   # by default, driven headless with the tree's builder binary.
   add_test(NAME apps_builder_chooser
@@ -3299,6 +3341,20 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_workflow PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Protonation Sites recipe: CREST's launch check and the protomer after it (#851).
+  add_test(NAME apps_workflow_protonation
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py --protonation-only
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_workflow_protonation PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Auto-run and the box play button (#736).
+  add_test(NAME apps_workflow_autorun
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py --autorun-only
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_workflow_autorun PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The Workflows example set imports as a workflow session (#341).
   add_test(NAME apps_examples_workflow
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3371,6 +3427,16 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/panel_layouts_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # A side column width set by the user is kept through every property panel
+  # switch at 1366x768 and 1024x600; wider panels scroll (#843).
+  add_test(NAME apps_property_width
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_width_test.py
+                   --png ${CMAKE_CURRENT_BINARY_DIR}/property_width
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_property_width PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # The Builder on an ECCE-QM calculation (fixture from the bundled engine):
@@ -3558,6 +3624,17 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # results.h5 (#690): the Density Map reads the properties without one and
+  # the file once `ecce-results write` has made it, with the same plane.
+  if(ECCE_HAVE_RESULTSH5)
+    add_test(NAME apps_results_h5
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/results_h5_test.py
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+    set_tests_properties(apps_results_h5 PROPERTIES TIMEOUT 900
+                         SKIP_RETURN_CODE 77)
+  endif()
+
   # ELF, LOL and NCI as 3-D views (#799, #800): each builds a surface for the
   # water dimer; NCI shows the hydrogen bond blue and carries its colour bar.
   add_test(NAME apps_density_fields_3d
@@ -3592,6 +3669,22 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/pbc_ux_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_pbc_ux PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Builder scene-script photo hooks (#860): measure labels and no selection,
+  # assigncharges, gtstep moving the plot marker, panelfloat/panelsize.
+  add_test(NAME apps_shot_hooks
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/shot_hooks_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_shot_hooks PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # tools/screenshots/shots.py on a two-shot list.
+  add_test(NAME apps_shots_driver
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/shots_driver_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_shots_driver PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # The default tool panes of a calculation not yet run (Symmetry last) stay
@@ -4525,6 +4618,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/slurm_cancel_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_slurm_cancel PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  # #855: a cancelled job leaves no program running in its run directory.
+  add_test(NAME launch_terminate_leftover
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/terminate_leftover_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_terminate_leftover PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   # #641: a pending Slurm job's reason and start reach ECCE once per change.
   add_test(NAME launch_slurm_pending
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4705,24 +4804,16 @@ add_executable(box_shape_test tests/boxshape/box_shape_test.C)
 target_link_libraries(box_shape_test PRIVATE eccetdat ecceutil)
 add_test(NAME box_shape COMMAND box_shape_test ${CMAKE_SOURCE_DIR}/tests/boxshape/fixtures)
 
-# results.h5: ECCE's internal results format and converters (wx-free).
-option(ECCE_WITH_HDF5 "Build ecce-results and the results.h5 library (needs libhdf5-dev, C API)" ON)
-if(ECCE_WITH_HDF5)
-  find_package(HDF5 COMPONENTS C)
-  if(HDF5_FOUND)
-    add_library(ecceresultsh5 STATIC
-      src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
-      src/tdat/resultsh5/ResultsConvert.C
-      src/tdat/chemistry/EspField.C src/tdat/chemistry/CoulombIntegrals.C)
-    target_include_directories(ecceresultsh5 PUBLIC ${CMAKE_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS})
-    target_link_libraries(ecceresultsh5 PUBLIC ${HDF5_LIBRARIES})
-    add_executable(ecce-results src/tdat/resultsh5/ecce_results.C)
-    target_link_libraries(ecce-results PRIVATE ecceresultsh5)
-    install(TARGETS ecce-results RUNTIME DESTINATION bin COMPONENT client)
-    include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
-  else()
-    message(STATUS "HDF5 not found: ecce-results and results.h5 are not built")
-  endif()
+# ecce-results: the converters' command line.  `write` reads a stored
+# calculation, so it links the data-store libraries like the other CLIs.
+if(ECCE_HAVE_RESULTSH5)
+  add_executable(ecce-results src/tdat/resultsh5/ecce_results.C)
+  target_include_directories(ecce-results PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(ecce-results PRIVATE
+    eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+    ${XercesC_LIBRARIES} Threads::Threads)
+  install(TARGETS ecce-results RUNTIME DESTINATION bin COMPONENT client)
+  include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
 endif()
 
 # Windows: programs linked outside ecce_app's RESCAN group can name eccetdat

@@ -77,6 +77,31 @@ Begin=^\s*Additional regular MDs
 Progress=crest stage=regularmd
 [END]
 
+# Quantum cluster growth (--qcg): its own stages, the solvent count and the
+# cluster energy after each added molecule.
+# "  |   quantum cluster growth: GROW        |"
+[PROGRESS]
+Begin=quantum cluster growth:\s+(\w+)
+Progress=crest stage=qcg qcgstep=$1
+[END]
+
+# "  # of solvents to add   : 3"
+[PROGRESS]
+Begin=^\s*# of solvents to add\s*:\s*(\d+)
+Remember=nsolv
+[END]
+
+[PROGRESS]
+Begin=^\s*# of solvents to add\s*:\s*(\d+)
+Progress=crest solv=0/$1
+[END]
+
+# Growth table: "    2   -33.866447   -6.58     181.18       1.218 ..."
+[PROGRESS]
+Begin=^\s+(\d+)\s+(-\d+\.\d+)\s+-?\d+\.\d+\s+-?\d+\.\d+\s+\d+\.\d+\s
+Progress=crest solv=$1/{nsolv} ecluster=$2
+[END]
+
 # " Optimizing all 826 structures from file ..."
 [PROGRESS]
 Begin=^\s*Optimizing all\s+(\d+) structures

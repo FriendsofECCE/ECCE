@@ -228,19 +228,24 @@ void DensityMapPanel::build()
   const bool ok = p_eval->build(getCalculation());
   const int RIGHT = wxALIGN_CENTER_VERTICAL | wxRIGHT;
 
-  //  Rows wrap instead of widening the panel: none is wider than the dock.
-  wxWrapSizer *row1 = new wxWrapSizer(wxHORIZONTAL);
+  //  Labels share one column width, so Show, MO and Offset line up; the
+  //  controls beside them stretch, which keeps the panel no wider than the dock.
+  const int labelW = GetTextExtent("Offset").GetWidth() + 8;
+  auto label = [&](const wxString &t) {
+    wxStaticText *l = new wxStaticText(this, wxID_ANY, t);
+    l->SetMinSize(wxSize(labelW, -1));
+    return l;
+  };
+  wxFlexGridSizer *grid = new wxFlexGridSizer(2, 4, 6);
+  grid->AddGrowableCol(1);
   p_show = new wxChoice(this, ID_SHOW);
   p_show->Append("Total density");
   p_show->Append("One orbital");
   p_show->Append("Sum of the degenerate set");
   p_show->SetSelection(0);
   p_show->SetToolTip("The orbital is the one selected in the MOs panel");
-  //  A label and its control wrap together, never apart.
-  wxBoxSizer *showPair = new wxBoxSizer(wxHORIZONTAL);
-  showPair->Add(new wxStaticText(this, wxID_ANY, "Show"), 0, RIGHT, 6);
-  showPair->Add(p_show, 0, wxALIGN_CENTER_VERTICAL);
-  row1->Add(showPair, 0, RIGHT, 12);
+  grid->Add(label("Show"), 0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(p_show, 1, wxEXPAND);
   p_mo = new wxSpinCtrl(this, ID_MO, "1", wxDefaultPosition, wxSize(110, -1),
                         wxSP_ARROW_KEYS, 1, std::max(1, ok ? p_eval->orbitals(false) : 1),
                         std::max(1, ok ? p_eval->homo() : 1));
@@ -250,14 +255,13 @@ void DensityMapPanel::build()
   p_spin->Append("beta");
   p_spin->SetSelection(0);
   wxBoxSizer *moPair = new wxBoxSizer(wxHORIZONTAL);
-  moPair->Add(new wxStaticText(this, wxID_ANY, "MO"), 0, RIGHT, 6);
   moPair->Add(p_mo, 0, RIGHT, 8);
   moPair->Add(p_spin, 0, wxALIGN_CENTER_VERTICAL);
-  row1->Add(moPair, 0, RIGHT, 12);
+  grid->Add(label("MO"), 0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(moPair, 1, wxEXPAND);
   p_diff = new wxButton(this, ID_DIFF, "Difference...");
   p_diff->SetToolTip("Show this density minus the density of other calculations of "
                      "some of the same atoms (the fragments of a complex)");
-  row1->Add(p_diff, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
   wxArrayString planes;
   planes.Add("Molecular plane");
@@ -343,7 +347,7 @@ void DensityMapPanel::build()
                                  wxSize(64, -1), wxTE_PROCESS_ENTER | wxTE_RIGHT);
   p_offsetField->SetToolTip(wxString::FromUTF8("Distance along the plane's normal, in Å (0.01)"));
   p_resetOffset = new wxButton(this, ID_RESET, "Reset");
-  rowOff->Add(new wxStaticText(this, wxID_ANY, "Offset"), 0, RIGHT, 6);
+  rowOff->Add(label("Offset"), 0, RIGHT, 6);
   rowOff->Add(p_offset, 1, RIGHT, 6);
   rowOff->Add(p_offsetField, 0, RIGHT, 2);
   rowOff->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("\xC3\x85")), 0, RIGHT, 6);
@@ -357,11 +361,15 @@ void DensityMapPanel::build()
                                wxDefaultSize, wxST_ELLIPSIZE_END);
   p_status = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                               wxDefaultSize, wxST_ELLIPSIZE_END);
-  //  The export buttons share the first row: height is what the map lacks.
-  row1->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxLEFT | wxRIGHT, 4);
-  row1->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0, wxRIGHT, 4);
+  //  The four actions in one grid of equal widths (as "Mode in the viewer"
+  //  in the Vibrational Frequencies panel); height is what the map lacks.
+  wxGridSizer *buttons = new wxGridSizer(2, 4, 4);
+  buttons->Add(p_diff, 0, wxEXPAND);
+  buttons->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxEXPAND);
+  buttons->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0, wxEXPAND);
 
-  top->Add(row1, 0, wxEXPAND | wxALL, 6);
+  top->Add(grid, 0, wxEXPAND | wxALL, 6);
+  top->Add(buttons, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   //  The plane controls take most of the height; the choice is remembered.
   p_planeToggle = new wxButton(this, ID_PLANETOGGLE, wxEmptyString,
                                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
@@ -374,12 +382,12 @@ void DensityMapPanel::build()
     //  Nothing remembered: a short panel starts folded (see relayout).
     p_planeAuto = !(cfg && cfg->Exists("/DensityMap/PlaneControlsOpen"));
   }
-  row1->Add(p_planeToggle, 0, wxRIGHT, 4);
+  buttons->Add(p_planeToggle, 0, wxEXPAND);
   //  Shown only while zoomed, so the row stays one line otherwise.
   p_zoomReset = new wxButton(this, ID_ZOOMRESET, "Whole plane");
   p_zoomReset->SetToolTip("Mouse wheel zooms around the pointer; double-click also resets");
   p_zoomReset->Hide();
-  row1->Add(p_zoomReset, 0);
+  top->Add(p_zoomReset, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   p_canvas->onZoom = [this](double u, double v, double f) { zoomAt(u, v, f, true); };
   p_canvas->onPan = [this](double du, double dv) { panBy(du, dv, true); };
   p_zoomRest.SetOwner(this);
@@ -1069,6 +1077,7 @@ string DensityMapPanel::state() const
            p_map.u0, p_map.u(p_map.nu - 1), p_map.v0, p_map.v(p_map.nv - 1));
   s += buf;
   s += "title " + p_map.title + "\n";
+  s += "orbitals " + string(p_eval && p_eval->fromResults ? "results.h5" : "properties") + "\n";
   snprintf(buf, sizeof buf, "difference %d fragments %d colourlimit %.6g\n",
            p_map.difference ? 1 : 0, (int)p_fragments.size(), p_map.colourLimit);
   s += buf;

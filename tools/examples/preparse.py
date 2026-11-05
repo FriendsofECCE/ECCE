@@ -19,6 +19,10 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))), "tests", "apps"))
+from examples_preparsed_test import h5content
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 EXAMPLES = os.path.join(ROOT, "data", "client", "examples")
@@ -115,10 +119,23 @@ def main():
             else:
                 parent = project
             dest = os.path.join(EXAMPLES, setId, example, "stored")
+            oldH5 = os.path.join(dest, calc, "Outputs", "results.h5")
+            kept = open(oldH5, "rb").read() if os.path.exists(oldH5) else None
             shutil.rmtree(dest, ignore_errors=True)
             shutil.copytree(os.path.join(parent, calc),
                             os.path.join(dest, calc), symlinks=True,
                             ignore=shutil.ignore_patterns("Thumbnail*", "*.lock"))
+            # HDF5 lays out equal content differently from run to run; keep
+            # the old bytes when the content is the same, so git sees no change
+            if kept is not None and os.path.exists(oldH5):
+                fresh = oldH5 + ".fresh"
+                os.rename(oldH5, fresh)
+                with open(oldH5, "wb") as f:
+                    f.write(kept)
+                if h5content(oldH5) == h5content(fresh):
+                    os.remove(fresh)
+                else:
+                    os.replace(fresh, oldH5)
             with open(os.path.join(dest, "stamp"), "w") as f:
                 f.write(stamp(os.path.join(EXAMPLES, setId, example, output))
                         + "\n")

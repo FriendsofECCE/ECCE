@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/ma-def2-SVP. Single-point energy of Br-. This calculation shows the leaving ion of the SN2 reaction, with an electronic energy of -2573.820390 Eh; Br- plus CH3Cl lies 20.1 kJ/mol above the reactant complex (computed).
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:57:42 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 05 Nov 2026 22:18:22 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:57:41 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 05 Nov 2026 22:18:20 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/bromide__xorvCd
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/bromide__ylwxNT
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750262.596 idle=0 at=1793750262\nscf cycle=11 energy=-2573.8203897117459746 dE=-4.77e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-1.94e-02,-1.07e-02,-5.73e-03,-1.15e-02,-5.27e-05,-1.02e-05,-4.91e-07,-9.81e-07,-1.25e-08,-4.77e-09\nresult disp=D3\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793917102.223 idle=0 at=1793917102\nscf cycle=11 energy=-2573.8203897117459746 dE=-4.77e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-1.94e-02,-1.07e-02,-5.73e-03,-1.15e-02,-5.27e-05,-1.02e-05,-4.91e-07,-9.81e-07,-1.25e-08,-4.77e-09\nresult disp=D3\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:57:41 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 05 Nov 2026 22:18:21 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793750261
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793917100
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

@@ -1,0 +1,224 @@
+
+       ╔════════════════════════════════════════════╗
+       ║            ___ ___ ___ ___ _____           ║
+       ║           / __| _ \ __/ __|_   _|          ║
+       ║          | (__|   / _|\__ \ | |            ║
+       ║           \___|_|_\___|___/ |_|            ║
+       ║                                            ║
+       ║  Conformer-Rotamer Ensemble Sampling Tool  ║
+       ║          based on the xTB methods          ║
+       ║                                            ║
+       ╚════════════════════════════════════════════╝
+       Version 3.0.2, Sun, 25 August 20:02:44, 08/25/2024
+       commit (af7eb99) compiled by 'usr@fv-az732-492'
+
+   Cite work conducted with this code as
+
+   • P.Pracht, F.Bohle, S.Grimme, PCCP, 2020, 22, 7169-7192.
+   • S.Grimme, JCTC, 2019, 15, 2847-2862.
+   • P.Pracht, S.Grimme, C.Bannwarth, F.Bohle, S.Ehlert,
+     G.Feldmann, J.Gorges, M.Müller, T.Neudecker, C.Plett,
+     S.Spicher, P.Steinbach, P.Wesołowski, F.Zeller,
+     J. Chem. Phys., 2024, 160, 114110.
+
+   for works involving QCG cite
+
+   • S.Spicher, C.Plett, P.Pracht, A.Hansen, S.Grimme,
+     JCTC, 2022, 18 (5), 3174-3189.
+   • C.Plett, S. Grimme,
+     Angew. Chem. Int. Ed. 2023, 62, e202214477.
+
+   for works involving MECP screening cite
+
+   • P.Pracht, C.Bannwarth, JCTC, 2022, 18 (10), 6370-6385.
+
+   Original code
+     P.Pracht, S.Grimme, Universität Bonn, MCTC
+   with help from (alphabetical order):
+     C.Bannwarth, F.Bohle, S.Ehlert, G.Feldmann, J.Gorges,
+     S.Grimme, C.Plett, P.Pracht, S.Spicher, P.Steinbach,
+     P.Wesolowski, F.Zeller
+
+   Online documentation is available at
+   https://crest-lab.github.io/crest-docs/
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Lesser General Public License (LGPL) for more details.
+
+ Command line input:
+ $ /usr/local/bin/crest crest.xyz --qcg solvent.xyz --nsolv 3 --gfn2 --chrg -1 --uhf 0 --alpb water --xnam /usr/local/bin/xtb -T 4
+
+  --gfn2               : Use of GFN2-xTB requested.
+  --chrg -1
+  --uhf 0
+  --alpb water : implicit solvation
+  -xnam :
+     xtb executable was set to: "/usr/local/bin/xtb"
+  -T 4 (CPUs/Threads selected)
+
+> Setting up backup calculator ... done.
+ ----------------
+ Calculation info
+ ----------------
+> User-defined calculation level:
+ : xTB calculation via tblite lib
+ : GFN2-xTB level
+ :   Molecular charge    : -1
+ :   Solvation model     : alpb
+ :   Solvent             : water
+ :   Fermi temperature   : 300.00000
+ :   Accuracy            : 1.00000
+ :   max SCC cycles      : 500
+
+
+  ========================================
+  |           ----------------           |
+  |                 Q C G                |
+  |           ----------------           |
+  |        Quantum Cluster Growth        |
+  |       University of Bonn, MCTC       |
+  ========================================
+   S. Grimme, S. Spicher, C. Plett.
+
+   Cite work conducted with this code as
+
+   S. Spicher, C. Plett, P. Pracht, A. Hansen, S. Grimme, JCTC, 2022, 18, 3174-3189.
+
+
+   The use of the aISS algorithm is requested (recommend).
+   This requires xtb version 6.6.0 or newer.
+   xTB-IFF can still be used with the --xtbiff flag.
+
+
+  =========================================
+  |   quantum cluster growth: INPUT       |
+  =========================================
+
+  QCG: Only Cluster Generation
+
+  input parameters     
+  solute                 : crest.xyz
+  charge                 : -1
+  uhf                    : 0
+  solvent                : solvent.xyz
+  # of solvents to add   : 3
+  Cluster generated that are above 10 % populated 
+  # of CPUs used         : 4
+  Solvation model        : water               
+  xtb opt level          : normal
+  System temperature [K] : 298.1
+  RRHO scaling factor    : 0.75
+
+
+ Solute geometry
+  molecular radius (Bohr**1):    6.45
+  molecular area   (Bohr**2):  603.46
+  molecular volume (Bohr**3): 1125.00
+ Solvent geometry
+  molecular radius (Bohr**1):    3.88
+  molecular area   (Bohr**2):  194.68
+  molecular volume (Bohr**3):  244.08
+
+  radius of solute    :    10.40
+  radius of solvent   :     6.25
+
+  =========================================
+  |            Preoptimization            |
+  =========================================
+  Total Energy of solute:     -24.0140915 Eh
+  Total energy of solvent:     -5.0705444 Eh
+
+  ________________________________________________________________________
+
+  __________________     Solute Cluster Generation   _____________________
+
+  ________________________________________________________________________
+
+
+  =========================================
+  |   quantum cluster growth: GROW        |
+  =========================================
+
+
+  Water as solvent recognized, adjusting scaling factor for outer wall pot to 0.70
+
+  Constraining solute during Growth 
+ Solute:
+       unit ellipsoid axis a,b,c     :   0.400   0.306   0.294
+ Solvent:
+       unit ellipsoid axis a,b,c     :   0.386   0.322   0.292
+
+  solvent anisotropy            :     1.133
+  solute anisotropy             :     1.147
+  roff inner wall               :     1.283
+  solute max dist               :    14.217
+  solvent max dist              :     7.284
+  inner unit axis               :     0.469     0.276     0.255
+  inner ellipsoid/Bohr          :    13.428     7.895     7.280
+  scaling factor outer ellipsoid:     0.700
+  outer ellipsoid/Bohr          :     9.840     7.545     7.246
+
+  Size       E        De       Detot      Density     Eatom    av. R  Rlast   Volume    Opt
+            [Eh]    [kcal]     [kcal]     [u/Å^3]     [kcal]   [bohr] [bohr] [bohr^3]
+    1   -28.785414  187.76     187.76       1.205     -7.196      0.0   0.0    1284.9   normal
+    2   -33.866447   -6.58     181.18       1.218     -7.769      4.9   5.8    1437.4   normal
+    3   -38.944717   -4.85     176.34       1.205     -8.303      5.4   6.8    1620.4   normal
+
+  Growth finished after 3 solvents added
+  Results can be found in grow directory
+  Energy list in file <qcg_energy.dat>
+  Interaction energy in file <qcg_conv.dat>
+  Growing process in <qcg_grow.xyz>
+  Final geometry after grow in <cluster.coord> and <cluster.xyz>
+  Final geometry optimized without wall potential in <cluster_optimized.xyz>
+  Potentials and geometry written in <cluster_cavity.coord> and <twopot_cavity.coord>
+
+ -----------------
+ Wall Time Summary
+ -----------------
+ CREST runtime (total)               0 d,  0 h,  0 min,  9.322 sec
+ ------------------------------------------------------------------
+ Grow                       ...        0 min,  9.107 sec ( 97.701%)
+ I/O and setup              ...        0 min,  0.214 sec (  2.299%)
+ ------------------------------------------------------------------
+ * wall-time:     0 d,  0 h,  0 min,  9.322 sec
+ *  cpu-time:     0 d,  0 h,  0 min,  0.306 sec
+ * ratio c/w:     0.033 speedup
+ ------------------------------------------------------------------
+ CREST terminated normally.
+ECCE-CREST-FRAME 1 22
+energy: -38.9447165385 relative: 0.0000
+ N         -0.1312083752       -1.5393677476       -0.4077228022
+ C          0.2617242997       -0.1855416744       -0.7639718045
+ C         -0.8407104130        0.8562378140       -0.5000030080
+ S         -2.2610245316        0.1504349273        0.3931010862
+ C          1.5856390559        0.1765446889        0.0832263849
+ O          1.9479459480        1.3503421117        0.0324286165
+ O          2.0862693956       -0.7998650117        0.6604606790
+ H         -0.1423441320       -2.1643333638       -1.2052822449
+ H         -1.6487953766       -1.0587600386        0.3521762973
+ H          0.6133151229       -1.8450486018        0.2419874938
+ H          0.5494103342       -0.1078527067       -1.8218946508
+ H         -1.2309133824        1.2754926305       -1.4318002445
+ H         -0.4322596592        1.6731040819        0.0987517570
+ O         -0.5741655698       -0.5222840993        2.4966906369
+ H          0.2260228334       -1.0485861015        2.4142751608
+ H         -0.2675934403        0.3879785656        2.6554658627
+ O          0.5901885864        1.9609390209        2.3764055122
+ H          0.0911877804        2.6107945674        1.8786932948
+ H          1.4223789397        1.8432330294        1.8989221441
+ O          2.7447043921       -1.2515699922       -2.0162395913
+ H          3.1876019573       -0.4030121356       -1.9422210456
+ H          2.9079324212       -1.6971726557       -1.1785944862
+ECCE-CREST-ENDFRAME
+
+-----ECCE Log Information-----
+Starting Job: Wed Nov  4 12:38:56 PM CET 2026
+Starting Job (UTC): 2026-11-04T11:38:56Z
+Using crest path: /usr/local/bin/crest, xtb path: /usr/local/bin/xtb
+crest exit status = 0
+Final exit status = 0
+Completed Job: Wed Nov  4 12:39:05 PM CET 2026
+Completed Job (UTC): 2026-11-04T11:39:05Z

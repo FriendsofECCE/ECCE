@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital energies of the aluminium atom in Hartree-Fock theory, where minus the energy of the highest occupied orbital approximates the ionisation energy (Koopmans' theorem).
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:56:37 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 05 Nov 2026 22:17:16 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:56:35 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 05 Nov 2026 22:17:14 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/Al_HF__eWY9WV
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/Al_HF__ZIjxtY
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750197.383 idle=0 at=1793750197\nscf cycle=21 energy=-241.8791739441 dE=-2.30e-12/1e-10 grad=9.40e-08/1e-07 converged=yes\nscf~ dE=-8.06e-02,-4.08e-10,-5.39e-10,4.23e-09,-2.84e-14,-1.14e-13,-2.05e-11,-9.04e-08,-1.18e-02,-2.10e-03,-1.07e-03,-1.68e-03,-6.95e-04,-1.59e-04,-1.69e-05,-9.89e-07,-5.12e-08,-2.58e-09,-1.14e-10,-2.30e-12\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793917035.791 idle=0 at=1793917035\nscf cycle=21 energy=-241.8791739441 dE=-2.30e-12/1e-10 grad=9.40e-08/1e-07 converged=yes\nscf~ dE=-8.06e-02,-4.08e-10,-5.39e-10,4.23e-09,-2.84e-14,-1.14e-13,-2.05e-11,-9.04e-08,-1.18e-02,-2.10e-03,-1.07e-03,-1.68e-03,-6.95e-04,-1.59e-04,-1.69e-05,-9.89e-07,-5.12e-08,-2.58e-09,-1.14e-10,-2.30e-12\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Doublet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:56:36 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 05 Nov 2026 22:17:14 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793750196
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793917034
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/HF

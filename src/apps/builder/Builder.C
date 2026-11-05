@@ -1695,8 +1695,18 @@ void Builder::setContext(const string& url, const bool& force)
     // A structure that carries a cell shows it, without the Periodic
     // Builder open (the Viewer of a Prepare has no use for the panel).
     PBC *pbcPanel = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
-    if (pbcPanel && getSG()->getFragment()->getLattice())
+    // A crystal without bonds starts with its box at the origin, so the
+    // atoms on the cell boundary land on it (#859); molecules in a box
+    // keep the box centred on them.
+    {
+      SGFragment *lf = getSG()->getFragment();
+      if (lf->getLattice() && lf->numAtoms() > 0 && lf->numBonds() == 0)
+        lf->getLattice()->setCentering(false);
+    }
+    if (pbcPanel && getSG()->getFragment()->getLattice()) {
       pbcPanel->showLattice(true);
+      pbcPanel->indicateCentering();
+    }
 
     // The constraints follow the atoms of this fragment from here on.
     const string ctxUrl = p_calculation->getURL().toString();
@@ -6399,6 +6409,7 @@ void Builder::updatePropertyMenus()
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
+      run.setTraceStep([this](int index) { return traceFrame(index); });
       //  "mopanel <name>": press the MO panel's Compute, as a user would,
       //  recording every frame the Builder's own canvas paints meanwhile.
       run.setExtension([this, outdir](SceneScript& s, const vector<string>& w) {
@@ -6472,6 +6483,10 @@ void Builder::updatePropertyMenus()
           return densityMapCommand(s, w, outdir);
         //  "atomnumbers N [panel]": atom N's number in the status line, label and a table.
         if (w[0] == "atomnumbers") return atomNumbersCommand(s, w);
+        //  Photo hooks (#860): assigncharges, panelfloat, panelsize, shot.
+        if (w[0] == "assigncharges" || w[0] == "panelfloat" ||
+            w[0] == "panelsize" || w[0] == "shot")
+          return shotHookCommand(s, w, outdir);
         //  "dp...": the Density Profile panel's controls.
         if (w[0].compare(0, 2, "dp") == 0) return densityProfileCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).

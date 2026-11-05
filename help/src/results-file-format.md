@@ -54,6 +54,48 @@ The converters take care of the differences between programs. The
 attribute `ao_convention` in `provenance` says which convention the source
 file turned out to use.
 
+## When ECCE writes it
+
+Every finished calculation whose orbitals ECCE has parsed gets a
+`results.h5`, stored with the calculation beside its other outputs (for
+example `Outputs/results.h5` in a local calculation). It is written at the end
+of the job store, the step that parses the output and stores the properties
+after a run, and again after **Re-Parse Outputs**. The original files of the
+code stay where they are.
+
+The file is made from what ECCE has parsed, not from a second reading of the
+output: the geometry of the last step, the orbitals (alpha and beta, with
+their energies and occupations) in the basis set stored with the calculation,
+and, where the code gave them, the total energy, atomic charges per scheme,
+the dipole moment, the final gradient and the vibrational frequencies and
+IR intensities. This works for every code whose orbitals ECCE reads and whose
+basis is Gaussian: ECCE-QM, ORCA, Gaussian 16, NWChem and xtb. A calculation
+with no orbitals, or a semiempirical one with a Slater basis (MOPAC), gets no
+file. Calculations stored before this was added have none until you make one
+(see `ecce-results write` below); nothing else changes for them.
+
+## What is checked
+
+Each time the file is written ECCE computes the overlap matrix of the basis
+and tests two things:
+
+- tr(PS) equals the number of electrons of each spin, to 1e-4 relative;
+- C'SC = 1 over the occupied orbitals, to 1e-5.
+
+The result is one line in the calculation's run log, with the numbers. A
+failed check never fails the job. The file is still written, with the
+attribute `checks` at the top set to `failed: ...` (it reads `ok: ...`
+otherwise), and the views ignore a file marked failed.
+
+## Which views read it
+
+The Density Map, the Density Profile, the density-field command
+(`ecce-density-field`) and the composition shown in the MOs panel take their
+orbitals and basis from `results.h5` when the calculation has an unmarked
+one, and from the stored properties and basis set otherwise. Both routes give
+the same numbers. Setting the environment variable `ECCE_RESULTS_H5=0`
+switches the file off for writing and reading.
+
 ## Looking at a file
 
 ```
@@ -70,6 +112,8 @@ ecce-results convert calc.hess results.h5
 ecce-results export molden results.h5 out.molden
 ecce-results show results.h5
 ecce-results check results.h5
+ecce-results write <calculation folder or URL>
+ecce-results write <calculation folder or URL> out.h5
 ```
 
 `convert` chooses the reader from the file name: `.molden` (also
@@ -77,6 +121,11 @@ ecce-results check results.h5
 existing `results.h5`, so convert the orbitals first. `export molden`
 writes the geometry, basis and orbitals as a Molden file that ECCE-QM,
 xtb, ORCA tools and most viewers read. `show` prints what the file holds.
+
+`write` makes the file for a calculation that has none, from its stored
+properties, in the same way as the job store does, and prints the check line.
+Without `out.h5` the file is stored with the calculation; with it, the file is
+written there and the calculation is not changed.
 
 `check` tests that the conversion kept the physics and exits with 1 when it
 did not:
@@ -95,7 +144,7 @@ did not:
 | xtb | geometry, orbitals | Molden file | done |
 | ORCA | geometry, orbitals, Hessian, frequencies, modes | Molden file, `.hess` | done |
 | Gaussian 16 | geometry, basis, orbitals, Hessian, gradient, charges, dipole, frequencies | formatted checkpoint (`.fchk`) | done |
-| ECCE-QM | everything it computes | written directly later | planned |
+| ECCE-QM | geometry, orbitals, charges, dipole, energy | stored properties, see above | done |
 | MOPAC | geometry, orbitals in an orthonormal Slater basis, charges | output file | planned |
 | NWChem | geometry, orbitals, Hessian | Molden output, `.hess` | planned |
 | CP2K | geometry, cell, pseudopotentials, orbitals | Molden output | planned |

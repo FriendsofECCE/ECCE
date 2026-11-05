@@ -206,7 +206,31 @@ Fragment *ScanPoint::fragment(PropertyTask *calc, const string& spec,
   Fragment *frag = calc->fragment();
   if (!frag) { why = "The calculation has no chemical system."; return 0; }
   Keys keys = conformerRank(spec) ? ensembleKeys(calc) : keysOf(calc);
-  if (!apply(frag, keys.geom->values(f), why)) {
+  const vector<double>& xyz = keys.geom->values(f);
+  // A protomer or solvent cluster has more atoms than the calculation's own
+  // input; its elements come from the table's "n-El" row labels.
+  const vector<string> *labels = keys.geom->rowLabels();
+  size_t real = 0;
+  for (int i = 0; i < frag->numAtoms(); i++)
+    if (frag->atomRef(i)->atomicSymbol() != "X") real++;
+  if (conformerRank(spec) && labels && 3 * labels->size() == xyz.size() &&
+      3 * frag->numAtoms() != xyz.size() && 3 * real != xyz.size()) {
+    vector<string> el;
+    for (const string& l : *labels) {
+      size_t dash = l.find('-');
+      el.push_back(dash == string::npos ? l : l.substr(dash + 1));
+    }
+    size_t keep = frag->numAtoms();
+    bool prefix = keep < el.size();
+    for (size_t i = 0; prefix && i < keep; i++)
+      prefix = frag->atomRef((int)i)->atomicSymbol() == el[i];
+    if (!prefix) {
+      while (frag->numAtoms() > 0) frag->deleteAtom((int)frag->numAtoms() - 1);
+      keep = 0;
+    }
+    for (size_t i = keep; i < el.size(); i++) frag->addAtom(el[i], &xyz[3 * i]);
+  }
+  if (!apply(frag, xyz, why)) {
     delete frag;
     return 0;
   }

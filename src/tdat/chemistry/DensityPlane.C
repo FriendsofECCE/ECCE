@@ -465,7 +465,7 @@ string csv(const Map& m, const string& calcName)
 //----------------------------------------------------------------------
 //  Evaluator
 
-Evaluator::Evaluator() : unrestricted(false), p_basis(new vector<EspBasisFunction>) {}
+Evaluator::Evaluator() : unrestricted(false), fromResults(false), p_basis(new vector<EspBasisFunction>) {}
 Evaluator::~Evaluator() { delete p_basis; }
 
 bool Evaluator::build(IPropCalculation *calc, const Fragment *shown)
@@ -481,32 +481,24 @@ bool Evaluator::build(IPropCalculation *calc, const Fragment *shown)
     complaint = "The chemical system has no usable atoms.";
     return false;
   }
-  if (!MoAoBasis::coefficients(calc, symbols, false, p_c) || p_c.empty()) {
-    complaint = "The calculation has no MO coefficients.";
+  MoAoBasis::OrbitalSet os;
+  if (!MoAoBasis::orbitalSet(calc, symbols, coordsAng, os, &complaint))
     return false;
-  }
-  unrestricted = MoAoBasis::coefficients(calc, symbols, true, p_cBeta) &&
-                 !p_cBeta.empty();
-  if (!unrestricted) p_cBeta.clear();
-  if (!MoAoBasis::flatBasis(calc, symbols, coordsAng, (int)p_c[0].size(),
-                            *p_basis)) {
-    complaint = "The stored basis set does not match the orbital "
-                "coefficients.";
-    return false;
-  }
-
-  auto fetch = [&](const char *key, vector<double>& out) {
-    PropVector *pv = (PropVector*) calc->getProperty(key);
-    out.clear();
-    if (pv != 0) for (int i = 0; i < pv->rows(); i++) out.push_back(pv->value(i));
-  };
-  fetch("ORBENG", energy);
-  fetch("ORBOCC", occ);
+  fromResults = os.fromResults;
+  p_c.swap(os.rows[0]);
+  unrestricted = !os.rows[1].empty();
+  if (unrestricted) p_cBeta.swap(os.rows[1]); else p_cBeta.clear();
+  p_basis->swap(os.basis);
+  energy = os.energy[0];
+  occ = os.occupation[0];
   if (occ.size() < p_c.size()) occ.resize(p_c.size(), 0.0);
   if (unrestricted) {
-    fetch("ORBENGBETA", energyBeta);
-    fetch("ORBOCCBETA", occBeta);
+    energyBeta = os.energy[1];
+    occBeta = os.occupation[1];
     if (occBeta.size() < p_cBeta.size()) occBeta.resize(p_cBeta.size(), 0.0);
+  } else {
+    energyBeta.clear();
+    occBeta.clear();
   }
   return true;
 }

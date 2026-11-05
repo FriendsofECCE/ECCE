@@ -84,12 +84,22 @@ void VizPropertyPanel::addViewerToggle()
   p_viewerToggle = new wxCheckBox(this, wxID_ANY, "Show in viewer");
   p_viewerToggle->SetToolTip("Draw this property in the 3-D view; untick "
                              "it to show the molecule alone");
-  p_viewerToggle->SetValue(p_hasFocus);
-  p_viewerToggle->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
-    if (event.IsChecked() != p_hasFocus) setFocus(event.IsChecked());
-  });
+  adoptViewerToggle(p_viewerToggle);
   GetSizer()->Add(p_viewerToggle, 0, wxLEFT|wxRIGHT|wxBOTTOM, 5);
   Layout();
+}
+
+
+/// The box that follows and sets whether this panel has the viewer; a
+/// panel with a "Show" box of its own hands it over instead of getting
+/// a second one under it.
+void VizPropertyPanel::adoptViewerToggle(wxCheckBox *box)
+{
+  p_viewerToggle = box;
+  box->SetValue(p_hasFocus);
+  box->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+    if (event.IsChecked() != p_hasFocus) setFocus(event.IsChecked());
+  });
 }
 
 

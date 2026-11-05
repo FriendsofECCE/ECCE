@@ -47,7 +47,7 @@ def main():
     cmd = (["nice", "-n", "19", "g++", "-std=c++17", "-o", binary,
             os.path.join(HERE, "messagedialog.C"), "-I" + o.include] + cxx
            + ["-L" + o.libdir] + ["-l" + lib for lib in LIBS]
-           + libs + out(["pkg-config", "--libs", "gtk+-3.0"]).stdout.split() + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
+           + libs + out(["pkg-config", "--libs", "gtk+-3.0"]).stdout.split() + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
     b = out(cmd)
     if b.returncode:
         print(b.stderr[-3000:])

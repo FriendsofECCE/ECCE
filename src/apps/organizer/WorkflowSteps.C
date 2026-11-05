@@ -582,6 +582,39 @@ vector<Resource*> WorkflowSteps::readySteps(Session *wf, vector<string> *waiting
 }
 
 
+std::map<Resource*, string> WorkflowSteps::stepBlockers(Session *wf)
+{
+  std::map<Resource*, string> out;
+  vector<Node> nodes = tree(wf);
+  for (size_t i = 0; i < nodes.size(); i++) {
+    Resource *step = nodes[i].step;
+    if (isLaunched(step)) { out[step] = "already run"; continue; }
+    if (!step->getProp(VDoc::getEcceNamespace() + ":excluded").empty()) {
+      out[step] = "excluded";
+      continue;
+    }
+    string waiting;
+    for (size_t k = 0; k < nodes[i].in.size(); k++)
+      if (!isComplete(nodes[i].in[k].source))
+        waiting += (waiting.empty() ? "" : ", ") + nodes[i].in[k].source->getName();
+    if (!waiting.empty()) out[step] = "waiting for " + waiting;
+  }
+  return out;
+}
+
+
+bool WorkflowSteps::autoRun(Session *wf)
+{
+  return wf && wf->getProp(VDoc::getEcceNamespace() + ":autorun") == "1";
+}
+
+
+void WorkflowSteps::setAutoRun(Session *wf, bool on)
+{
+  if (wf) wf->addProp(VDoc::getEcceNamespace() + ":autorun", on ? "1" : "0");
+}
+
+
 namespace {
 string sourcesText(const WorkflowSteps::Node& n)
 {

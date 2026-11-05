@@ -223,6 +223,14 @@ namespace WorkflowSteps {
                                     std::vector<std::string> *waiting = 0,
                                     std::vector<std::string> *excluded = 0);
 
+  /// Why each step cannot be launched now ("already run", "excluded",
+  /// "waiting for A, B"); a ready step has no entry.
+  std::map<Resource*, std::string> stepBlockers(Session *wf);
+
+  /// The workflow's "run the remaining steps automatically" setting (#736).
+  bool autoRun(Session *wf);
+  void setAutoRun(Session *wf, bool on);
+
   /// "name code state source charge mult atoms" per step (a join's source is
   /// "a+b+c"), joined by "|",
   /// then " links:" and "src>dst:name" for each link.

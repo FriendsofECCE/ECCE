@@ -4645,7 +4645,7 @@ bool NWDirdy::restrictSpin(const int& numElectrons, ewxChoice* choice,
     case 8:
       currMult = "Octet"; break;
     case 9:
-      currMult = "Nontet";
+      currMult = "Nonet";
   }
   choice->Clear();
 
@@ -4654,7 +4654,7 @@ bool NWDirdy::restrictSpin(const int& numElectrons, ewxChoice* choice,
     choice->Append("Triplet");
     choice->Append("Quintet");
     choice->Append("Septet");
-    choice->Append("Nontet");
+    choice->Append("Nonet");
 
     if (currMult=="" || currMult=="Doublet" || currMult=="Quartet" ||
         currMult=="Sextet" || currMult=="Octet") {
@@ -4673,7 +4673,7 @@ bool NWDirdy::restrictSpin(const int& numElectrons, ewxChoice* choice,
     choice->Append("Octet");
 
     if (currMult=="" || currMult=="Singlet" || currMult=="Triplet" ||
-        currMult=="Quintet" || currMult=="Septet" || currMult=="Nontet") {
+        currMult=="Quintet" || currMult=="Septet" || currMult=="Nonet") {
       ret = true;
       choice->SetStringSelection("Doublet");
       if (tsFlag && p_setupGUI!=(NWDirdySetup*)0) {

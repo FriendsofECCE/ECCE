@@ -115,6 +115,8 @@ int main(int argc, char **argv)
   DensityPlane::Evaluator ev;
   if (!ev.build(calc)) { cerr << "ecce-density-field: " << ev.complaint << endl; return 1; }
 
+  fprintf(stderr, "ecce-density-field: orbitals from %s\n",
+          ev.fromResults ? "results.h5" : "the stored properties");
   if (!grid) {
     printf("# x_A y_A z_A rho gradx grady gradz rho_alpha rho_beta tau_alpha tau_beta"
            " lambda1 lambda2 lambda3 elf lol rdg signl2rho  (atomic units)\n");

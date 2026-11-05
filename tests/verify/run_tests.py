@@ -305,14 +305,14 @@ def dialog_smoke(verbose):
             "-I" + calced]
            + wxflags("--cxxflags")
            + ["-L" + tree] + ["-l" + lib for lib in LIBS]
-           + ["--libs=core,base,adv,html"] + ["-lxerces-c", "-lmosquitto"])
+           + ["--libs=core,base,adv,html"] + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto"])
     #  wx-config --libs takes its component list as an argument, which
     #  the line above cannot express; build it properly.
     cmd = [c for c in cmd if not c.startswith("--libs=")]
     p = subprocess.run(["wx-config", "--libs", "core,base,adv,html"],
                        capture_output=True, text=True)
     #  libeccercmd's SSH transport needs libssh.
-    cmd = cmd[:-1] + p.stdout.split() + ["-lxerces-c", "-lssh", "-lssl", "-lcrypto"]
+    cmd = cmd[:-1] + p.stdout.split() + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lssh", "-lssl", "-lcrypto"]
 
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:

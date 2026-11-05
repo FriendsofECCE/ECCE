@@ -27,7 +27,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.5.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.5.0)),
+  [9.5.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.5.1)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -44,9 +44,18 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.6.0
+## Coming in 9.5.2
 
-Nothing merged yet. The order of planned work (DOS/PDOS, CP2K cell optimisation and MD, MD analysis, umbrella sampling, docking, rigid scans and more) is on the [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan). What 9.5.0 brought: [release notes](docs/release-notes-9.5.0.md).
+On main, not in a package yet:
+- Workflows: an Auto-run checkbox runs the remaining steps once the first one is launched, and a play button on each box runs that step (#736); the Protonation Sites recipe no longer warns that CREST needs an optimised structure, and the step after CREST gets the protomer (#851).
+- General Chemistry examples: Packing in solids, with simple cubic Po, bcc Na, fcc Al and Cu, and hcp Mg shown as unit cells (#859); Quantum ESPRESSO pw.x outputs can be imported (#447).
+- ORCA: RI approximation None, RIJCOSX or RIJONX (#834); orbital views (Density Map, Density Profile, density fields) work for basis sets with g functions (#861).
+- Energy Calculator: a 1 M standard-state term on G and a log K line (#835). `ecce-rerun --last-geometry` continues a running calculation from its last geometry with new cores and wall time (#837).
+- CREST quantum cluster growth runs show their progress (#862); multiplicity 9 is "Nonet" (#853); the side panel keeps its width between panels (#843); Density Map controls tidied (#852).
+- Every finished calculation with orbitals gets a `results.h5` stored beside it, checked (tr(PS) and orthonormality) on every write; the Density Map, Density Profile and density-field command read the orbitals from it. `ecce-results write` makes one for an older calculation (#690).
+- Terminate: a program that outlives the queue's cancel is ended too, and the message says whether anything is still running in the run directory (#855).
+
+The order of the remaining work is on the [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan). What 9.5.0 brought: [release notes](docs/release-notes-9.5.0.md).
 
 ## First steps
 

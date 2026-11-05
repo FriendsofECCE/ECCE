@@ -56,6 +56,16 @@ class IPropCalculation
 
       virtual bool promptBeforeSave(Fragment *frag, string& msg, string& title) = 0;
 
+      // A file stored with the calculation under `name`, copied to or from a
+      // local path (binary).  False when there is none or the store cannot
+      // hold it; calculations without a data store answer false.
+      virtual bool fetchStoredFile(const string& name, const string& localPath)
+        { return false; }
+      virtual bool storeFile(const string& name, const string& localPath)
+        { return false; }
+      // Remove such a file; true if none is left.
+      virtual bool removeStoredFile(const string& name) { return true; }
+
    protected:
       IPropCalculation() { };
 };

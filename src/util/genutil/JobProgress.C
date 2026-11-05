@@ -3,6 +3,7 @@
 #include "util/VibFrequency.H"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -421,6 +422,11 @@ JobProgress::Block JobProgress::crestBlock(const Stage& st, bool finished) const
   else if (stage == "crude") row = "Multilevel ensemble optimisation" + dot + "crude pre-optimisation";
   else if (stage == "tight") row = "Multilevel ensemble optimisation" + dot + "optimisation with tight thresholds";
   else if (stage == "regularmd") row = "Additional regular MDs";
+  else if (stage == "qcg") {
+    string step = st.field("qcgstep");
+    for (char& c : step) c = (char)tolower((unsigned char)c);
+    row = "Quantum cluster growth" + (step.empty() ? string() : dot + step);
+  }
   if (!row.empty()) b.lines.push_back("Stage: " + row);
 
   double k, n;
@@ -432,6 +438,15 @@ JobProgress::Block JobProgress::crestBlock(const Stage& st, bool finished) const
       b.fraction = std::min(1.0, k / n);
     }
   }
+  if (split(st.field("solv"), k, n, hasN) && hasN && n > 0) {
+    b.lines.push_back(fmt("Solvent molecules: %.0f", k) + fmt(" of %.0f", n) + " added");
+    if (stage == "qcg") {
+      b.bar = true;
+      b.fraction = std::min(1.0, k / n);
+    }
+  }
+  if (!st.field("ecluster").empty())
+    b.lines.push_back("Cluster energy (Eh): " + st.field("ecluster"));
   string structs;
   if (!st.field("nopt").empty()) structs = st.field("nopt") + " optimised";
   if (!st.field("remain").empty())
@@ -850,6 +865,12 @@ vector<string> JobProgress::summary(bool completed) const
               cr->field("window") + " kcal/mol";
     if (!cr->field("emin").empty())
       line += " \xc2\xb7 lowest " + cr->field("emin") + " Eh";
+    double k, n;
+    bool hasN;
+    if (cr->field("stage") == "qcg" && split(cr->field("solv"), k, n, hasN) && hasN)
+      line += fmt(": %.0f", k) + fmt(" of %.0f solvent molecules added", n);
+    if (!cr->field("ecluster").empty())
+      line += " \xc2\xb7 cluster " + cr->field("ecluster") + " Eh";
     out.push_back(line);
   }
   if (!scfShown && !opt && !freq && scf) scfSummary();
@@ -924,6 +945,9 @@ string JobProgress::shortLine() const
     if (stg == "tight") return "Optimising structures";
     if (stg == "optimising") return "Optimising structures";
     if (stg == "regularmd") return "Regular MDs";
+    if (stg == "qcg" && split(cr->field("solv"), k, n, hasN) && hasN)
+      return fmt("QCG %.0f", k) + fmt(" of %.0f solvents", n);
+    if (stg == "qcg") return "Cluster growth";
   }
   for (const auto& st : p_stages) {       // runs counted in steps (GROMACS)
     double k, n;

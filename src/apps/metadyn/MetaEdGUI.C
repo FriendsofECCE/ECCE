@@ -207,7 +207,7 @@ void MetaEdGUI::CreateControls()
         _("Triplet"),
         _("Quintet"),
         _("Septet"),
-        _("Nontet")
+        _("Nonet")
     };
     ewxComboBox* itemComboBox20 = new ewxComboBox( itemFrame1, ID_COMBOBOX_METAED_SPIN_MULT, _("Singlet"), wxDefaultPosition, wxSize(75, -1), 5, itemComboBox20Strings, wxCB_DROPDOWN );
     itemComboBox20->SetStringSelection(_("Singlet"));

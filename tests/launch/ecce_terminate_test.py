@@ -31,6 +31,8 @@ import harness  # noqa: E402
 from harness import say  # noqa: E402
 
 failures = []
+#  What the run directory sweep says after the cancel (#855).
+LEFT_NONE = r"no process left in the run directory on \S+$"
 
 
 def check(ok, what):
@@ -167,9 +169,9 @@ def main():
         say(err)
         check(rc == 1, "exit status 1 as one calculation was refused (%s)" % rc)
         lines = out.splitlines()
-        check(any(re.match(r"^one: terminated, job id \S+$", l) for l in lines),
+        check(any(re.match(r"^one: terminated, job id \d+, " + LEFT_NONE, l) for l in lines),
               "path argument: 'one: terminated, job id N'")
-        check(any(re.match(r"^two: terminated, job id \S+$", l) for l in lines),
+        check(any(re.match(r"^two: terminated, job id \d+, " + LEFT_NONE, l) for l in lines),
               "URL argument: 'two: terminated, job id N'")
         check(any(l.startswith("idle: not terminated: ") and "state is" in l
                   for l in lines), "a Ready calculation is refused with its state")
@@ -190,7 +192,7 @@ def main():
 
         rc, out, err = run(urls["three"])
         say(out)
-        check(rc == 0 and re.search(r"^three: terminated, job id \S+$", out, re.M),
+        check(rc == 0 and re.search(r"^three: terminated, job id \d+, " + LEFT_NONE, out, re.M),
               "without --reason: terminated, exit 0 (rc=%s)" % rc)
         st = s.waitState(urls["three"], seconds=240)
         check(st == "killed", "three is killed (%s)" % st)
