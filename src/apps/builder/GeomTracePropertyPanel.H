@@ -62,6 +62,9 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     //  stored structure is shown.
     void showPlotPoint(int index, int points);
     int frameCount() const { return numSteps(); }
+    /// Show frame `frame` (0-based) as a click on the playback bar would:
+    /// the structure, the playback position and the plot marker.
+    void showFrame(int frame);
     //  Plot the series `key` (as the Plot choice does); false if unknown.
     bool showSeries(const string& key);
     //  The coordination-pattern table of a CREST ensemble, one string per row

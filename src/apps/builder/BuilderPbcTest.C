@@ -23,6 +23,9 @@
 #include "viz/SGLattice.H"
 #include "viz/TranslateCmd.H"
 #include "wxviz/ViewerEvtHandler.H"
+#include "wxviz/SGSelection.H"
+#include "wxviz/SGViewer.H"
+#include "inv/nodes/SoGroup.H"
 
 #include "wxviz/SceneScript.H"
 
@@ -68,6 +71,15 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
       : w[1] == "angle" ? ViewerEvtHandler::ID_MEASURE_ANGLE
                         : ViewerEvtHandler::ID_MEASURE_TORSION);
     GetEventHandler()->ProcessEvent(ev);
+    //  The atoms were only picked to make the measure; left selected they
+    //  would be drawn highlighted in the picture.
+    frag->m_atomHighLight.clear();
+    p_viewer->getSel()->deselectAll();
+    updateSelectionText();
+    wxTheApp->Yield(true);
+    SoGroup *top = getSG()->getTopLabel();
+    fprintf(stderr, "SHOTHOOK: measure %s labels=%d selected=%d\n", w[1].c_str(),
+            top ? top->getNumChildren() : 0, (int)frag->m_atomHighLight.size());
     return true;
   }
 

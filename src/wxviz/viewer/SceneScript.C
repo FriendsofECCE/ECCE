@@ -647,6 +647,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     }
   } else if (c == "gtstep") {
     if (!p_calc || w.size() < 2) return fail("gtstep: needs a calculation and a step");
+    if (p_traceStep && p_traceStep(atoi(w[1].c_str()))) return true;
     GTStepCmd g("Trace Step", p_sg, p_calc);
     g.getParameter("Index")->setInteger(atoi(w[1].c_str()));
     g.getParameter("PropKey")->setString("GEOMTRACE");

@@ -6409,6 +6409,7 @@ void Builder::updatePropertyMenus()
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
+      run.setTraceStep([this](int index) { return traceFrame(index); });
       //  "mopanel <name>": press the MO panel's Compute, as a user would,
       //  recording every frame the Builder's own canvas paints meanwhile.
       run.setExtension([this, outdir](SceneScript& s, const vector<string>& w) {
@@ -6482,6 +6483,10 @@ void Builder::updatePropertyMenus()
           return densityMapCommand(s, w, outdir);
         //  "atomnumbers N [panel]": atom N's number in the status line, label and a table.
         if (w[0] == "atomnumbers") return atomNumbersCommand(s, w);
+        //  Photo hooks (#860): assigncharges, panelfloat, panelsize, shot.
+        if (w[0] == "assigncharges" || w[0] == "panelfloat" ||
+            w[0] == "panelsize" || w[0] == "shot")
+          return shotHookCommand(s, w, outdir);
         //  "dp...": the Density Profile panel's controls.
         if (w[0].compare(0, 2, "dp") == 0) return densityProfileCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).

@@ -1,0 +1,19 @@
+{
+  "calculations": {
+    "water": "tests/apps/fixtures/calc-water-opt",
+    "water-vib": "tests/apps/fixtures/calc-water-vib"
+  },
+  "shots": [
+    {"name": "water-measure", "calc": "water", "size": [1100, 800],
+     "script": ["measure dist 0 1", "measure angle 1 0 2"]},
+    {"name": "water-charges", "calc": "water", "panel": "Mulliken Charges",
+     "size": [1400, 900], "script": ["assigncharges Mulliken Charges"]},
+    {"name": "water-trace-frame4", "calc": "water", "panel": "Geometry Trace",
+     "size": [1400, 900], "script": ["gtstep 4"]},
+    {"name": "water-modiagram", "calc": "water", "panel": "MO Diagram",
+     "size": [1500, 950], "capture": "screen", "crop": "720x560+0+0",
+     "script": ["panelfloat MO Diagram 700 520"]},
+    {"name": "energy-calculator", "kind": "energycalc",
+     "sideA": ["water"], "sideB": ["water-vib"]}
+  ]
+}

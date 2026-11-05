@@ -112,11 +112,34 @@ string stepMessage(int step, int atoms, int values)
 }  // namespace
 
 
+bool Builder::traceFrame(int index)
+{
+  GeomTracePropertyPanel *gt = tracePanel(p_calculation);
+  if (!gt || !plotOf(gt)) return false;
+  gt->showFrame(index);
+  spin(50);
+  PlaybackControl *pb = playback(gt);
+  fprintf(stderr, "GTSTRESS: step %d -> playback %ld, plot marker %d of %d\n", index,
+          pb ? pb->GetCurrentStep() : -1, plotOf(gt)->selectedIndex(),
+          plotOf(gt)->pointCount(0));
+  return true;
+}
+
+
 bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
 {
   const string& c = w[0];
   GeomTracePropertyPanel *gt = tracePanel(p_calculation);
   PlaybackControl *pb = playback(gt);
+
+  //  "gtframe <n>" (0-based; "last"): show that frame as gtstep does, and
+  //  report the playback position and the plot's marker (stderr).
+  if (c == "gtframe" && w.size() == 2) {
+    XYPlotCanvas *plot = plotOf(gt);
+    if (!gt || !plot) return s.fail("gtframe: no Geometry Trace panel");
+    const int frame = w[1] == "last" ? gt->frameCount() - 1 : atoi(w[1].c_str());
+    return traceFrame(frame);
+  }
 
   //  "gtfocus": give the panel the viewer, as a click into it does.
   if (c == "gtfocus") {

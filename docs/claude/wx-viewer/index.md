@@ -11,6 +11,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
+- [Photographing the Builder: scene-script hooks (measure, assigncharges, gtstep, panelfloat, shot) and tools/screenshots/shots.py (#860)](builder-scene-script-photo-hooks-860.md)
 - [A property panel's overlay follows the panel: opened = drawn, closed/replaced/folded = removed; "Show in viewer" turns it off](property-overlay-follows-the-shown-panel.md)
 - [Organizer tool buttons paint their SVG icon; setBitMap (the calculation thumbnail) must replace it there](organizer-tool-button-draws-its-svg-not-setbitmap.md)
 - [The MD editor tools are registered once, as NWChem's; the Organizer's button must name the task's code and fit its label](md-editor-tools-are-registered-as-nwchems.md)
