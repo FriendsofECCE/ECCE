@@ -211,3 +211,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [results.h5: internal results format (format_version 1), canonical AO order, converters, gates](results-h5-format.md) — layout, units, why the AO order is not the viewer's per-code order
 - [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)
 - [xTB "Conformer search (simple)": ecce-confsearch inlined by gensub, ensemble in CREST frame format (#682)](xtb-simple-conformer-search-682.md)
+- [A code's spherical MOOrdering stops below the basis's highest shell: empty functions, every orbital view refuses (ORCA g, #861)](angular-table-below-the-basis-highest-shell-861.md)

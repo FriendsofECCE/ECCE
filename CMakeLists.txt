@@ -2331,6 +2331,10 @@ add_test(NAME orca_dispersion COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_dis
 add_test(NAME orca_grid COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_grid/run_tests.py)
 # Custom solvent (dielectric constant + refractive index) for ORCA and Gaussian 16 (#642).
 add_test(NAME custom_solvent COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/custom_solvent/run_tests.py)
+# BasisFlatten and the ORCA MO table against real ORCA output, incl. HF/cc-pVQZ
+# with a g shell: every MO c^T S c = 1, trace(PS) = N (#861).
+add_test(NAME basisflatten COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basisflatten/run_tests.py)
+set_tests_properties(basisflatten PROPERTIES ENVIRONMENT ECCE_TEST_BUILD=${CMAKE_BINARY_DIR})
 # ORCA Geometry/GeoVib on one atom: no Opt, Freq kept; runs ORCA when installed (#623).
 add_test(NAME orca_one_atom COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_one_atom/run_tests.py)
 # Opt=QST2/QST3 decks for HCN<->HNC, run with Gaussian 16 when installed (#419)
