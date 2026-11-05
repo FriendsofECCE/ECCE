@@ -14,6 +14,12 @@
 #   unchecked WHY              this system cannot be checked
 
 d=$(cd "$1" 2>/dev/null && pwd -P) || { echo "unchecked no run directory $1"; exit 0; }
+# A run directory set to the home folder (or above it) holds the user's own
+# work too: sweeping it would end unrelated programs.
+h=$(cd "$HOME" 2>/dev/null && pwd -P)
+case $h/ in
+  "${d%/}"/*) echo "unchecked run directory $d contains the home folder"; exit 0 ;;
+esac
 mgr=$2
 id=$3
 grace=${4:-10}

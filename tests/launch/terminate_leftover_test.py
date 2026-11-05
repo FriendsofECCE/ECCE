@@ -173,6 +173,11 @@ def sweepCases(tmp):
           "sweep: a Slurm job on another node is reported as not visible")
     check(sweep(os.path.join(tmp, "nope")).startswith("unchecked "),
           "sweep: a missing run directory is 'unchecked'")
+    home = dict(os.environ, HOME=os.path.join(tmp, "h"))
+    os.makedirs(home["HOME"], exist_ok=True)
+    for d in (tmp, home["HOME"], "/"):
+        check("contains the home folder" in sweep(d, env=home),
+              "sweep: refuses %s, which holds the home folder" % d)
     if term:
         onTty = [p for p in descendants(term.pid) if p != term.pid]
         check(onTty and all(alive(p) for p in onTty),
