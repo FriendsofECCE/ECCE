@@ -4351,7 +4351,13 @@ bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
         job->addProps(r);
         job->notifyProperty("runStatusReason", reason);
       }
-      lines.push_back(name + "\tok\t" + (id.empty() ? string("none (imported job)") : id));
+      // What RunMgmt found left in the run directory (#855), after the id.
+      const size_t semi = msg.find("; ");
+      const string note = semi == string::npos ? "" : msg.substr(semi + 2);
+      const bool left = note.compare(0, 13, "still running") == 0;
+      lines.push_back(name + (left ? "\tleft\t" : "\tok\t") +
+                      (id.empty() ? string("none (imported job)") : id) +
+                      (note.empty() ? "" : ", " + note));
     }
   }
   return true;
