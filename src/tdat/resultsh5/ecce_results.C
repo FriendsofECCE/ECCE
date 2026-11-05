@@ -5,7 +5,19 @@
 #include <cstring>
 #include <fstream>
 #include <sys/stat.h>
+#ifndef _WIN32
+#include <unistd.h>
+#else
+#include <direct.h>
+#define getcwd _getcwd
+#endif
 #include "tdat/ResultsH5.H"
+#include "tdat/ResultsFromCalc.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/EDSIServerCentral.H"
+#include "dsm/IPropCalculation.H"
+#include "dsm/Resource.H"
+#include "util/EcceURL.H"
 
 using namespace resultsh5;
 
@@ -28,6 +40,7 @@ static int show(const Model& m) {
   printf("format_version %d\n", m.formatVersion);
   for (std::map<string,string>::const_iterator i = m.provenance.begin(); i != m.provenance.end(); ++i)
     printf("  %s = %s\n", i->first.c_str(), i->second.c_str());
+  if (!m.checks.empty()) printf("checks %s\n", m.checks.c_str());
   printf("atoms %zu, geometries %zu\n", m.natoms(), m.nframes());
   printf("basis %s%s: %zu shells, %zu AOs\n", m.basis.type.c_str(), m.basis.orthonormal ? " (orthonormal)" : "",
          m.basis.shells.size(), m.basis.nao());
@@ -115,8 +128,35 @@ static int selftest(int argc, char** argv) {
   return fails ? 1 : 0;
 }
 
+// write: results.h5 for a calculation that has none (stored before ECCE
+// wrote it itself, or re-parsed elsewhere), from its stored properties.
+static int writeForCalc(int argc, char** argv) {
+  string target = argv[2], out = argc > 3 ? argv[3] : "";
+  if (target.find("://") == string::npos) {
+    char buf[4096];
+    if (target[0] != '/' && getcwd(buf, sizeof buf)) target = string(buf) + "/" + target;
+    target = "file://" + target;
+  }
+  EDSIServerCentral central;
+  Resource* res = EDSIFactory::getResource(EcceURL(target));
+  IPropCalculation* calc = dynamic_cast<IPropCalculation*>(res);
+  if (!calc) { fprintf(stderr, "ecce-results: %s is not a calculation\n", argv[2]); return 1; }
+  string line;
+  if (out.empty()) {
+    bool ok = ResultsFromCalc::store(calc, line);
+    printf("%s\n", line.c_str());
+    return ok ? 0 : 1;
+  }
+  Model m; string why, err;
+  if (!ResultsFromCalc::build(calc, m, line, why)) { fprintf(stderr, "ecce-results: not written: %s\n", why.c_str()); return 1; }
+  if (!writeFile(out, m, err)) { fprintf(stderr, "ecce-results: %s\n", err.c_str()); return 1; }
+  printf("wrote %s (%ld bytes); %s\n", out.c_str(), fsize(out), line.c_str());
+  return 0;
+}
+
 int main(int argc, char** argv) {
   string err;
+  if (argc >= 3 && !strcmp(argv[1], "write")) return writeForCalc(argc, argv);
   if (argc >= 2 && !strcmp(argv[1], "selftest")) return selftest(argc, argv);
   if (argc >= 4 && !strcmp(argv[1], "convert")) {
     string in = argv[2], out = argv[3];
@@ -144,6 +184,8 @@ int main(int argc, char** argv) {
   }
   fprintf(stderr, "usage: ecce-results convert <in.molden|in.fchk|in.hess> <results.h5>\n"
                   "       ecce-results export molden <results.h5> <out.molden>\n"
-                  "       ecce-results show|check <results.h5>\n");
+                  "       ecce-results show|check <results.h5>\n"
+                  "       ecce-results write <calculation folder or URL> [out.h5]\n"
+                  "           (no out.h5: store results.h5 in the calculation)\n");
   return 2;
 }

@@ -52,6 +52,7 @@ On main, not in a package yet:
 - ORCA: RI approximation None, RIJCOSX or RIJONX (#834); orbital views (Density Map, Density Profile, density fields) work for basis sets with g functions (#861).
 - Energy Calculator: a 1 M standard-state term on G and a log K line (#835). `ecce-rerun --last-geometry` continues a running calculation from its last geometry with new cores and wall time (#837).
 - CREST quantum cluster growth runs show their progress (#862); multiplicity 9 is "Nonet" (#853); the side panel keeps its width between panels (#843); Density Map controls tidied (#852).
+- Every finished calculation with orbitals gets a `results.h5` stored beside it, checked (tr(PS) and orthonormality) on every write; the Density Map, Density Profile and density-field command read the orbitals from it. `ecce-results write` makes one for an older calculation (#690).
 
 The order of the remaining work is on the [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan). What 9.5.0 brought: [release notes](docs/release-notes-9.5.0.md).
 

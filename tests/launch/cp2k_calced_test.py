@@ -61,7 +61,7 @@ def buildResourceTest(build, work):
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o", driver,
             os.path.join(REPO, "tests", "filedsi", "resourceTest.C"), "-L" + build]
            + ["-l" + l for l in LIBS] * 3
-           + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
+           + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         say(proc.stderr[-2000:])

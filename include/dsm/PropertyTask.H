@@ -62,6 +62,10 @@ class PropertyTask : public ChemistryTask,
 
       virtual EcceURL getURL() const;
 
+      virtual bool fetchStoredFile(const string& name, const string& localPath);
+      virtual bool storeFile(const string& name, const string& localPath);
+      virtual bool removeStoredFile(const string& name);
+
       virtual bool isReadOnly() const;
 
       virtual bool promptBeforeSave(Fragment *frag, string& msg, string& title);

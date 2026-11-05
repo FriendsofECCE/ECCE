@@ -49,7 +49,7 @@ def build(src, work, o):
            + (["-DHAVE_NEW"] if o.tag == "after" else []) + cxx
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir]
            + ["-Wl,--start-group"] + ["-l" + lib for lib in LIBS] + ["-Wl,--end-group"]
-           + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl",
+           + libs + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lssh", "-lmosquitto", "-lssl",
                      "-lcrypto", "-lgtk-3", "-lgdk-3", "-lgobject-2.0", "-lglib-2.0",
                      "-lX11"])
     b = out(cmd)

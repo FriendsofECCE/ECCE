@@ -2003,7 +2003,7 @@ def makeLocalCalculation(env, home, data, mode="create", user=None):
     driver = os.path.join(state, "resourceTest")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o",
             driver, os.path.join(HERE, "..", "filedsi", "resourceTest.C"),
-            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
+            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     built = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if built.returncode != 0:
         return built.stdout.decode()[-1500:]

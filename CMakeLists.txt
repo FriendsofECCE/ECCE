@@ -276,6 +276,23 @@ else()
 endif()
 
 
+# results.h5: ECCE's internal results format and converters (wx-free).  The
+# library is part of eccetdat: the job store writes the file and the orbital
+# views read it, and both sit on top of tdat.
+option(ECCE_WITH_HDF5 "Build ecce-results and the results.h5 library (needs libhdf5-dev, C API)" ON)
+set(ECCE_HAVE_RESULTSH5 OFF)
+if(ECCE_WITH_HDF5)
+  find_package(HDF5 COMPONENTS C)
+  if(HDF5_FOUND)
+    set(ECCE_HAVE_RESULTSH5 ON)
+  else()
+    message(STATUS "HDF5 not found: ecce-results and results.h5 are not built")
+  endif()
+endif()
+if(ECCE_HAVE_RESULTSH5)
+  add_compile_definitions(ECCE_HAVE_HDF5)
+endif()
+
 # --- src/tdat -> libeccetdat.a ---
 ecce_library(eccetdat
   src/tdat/calcorg
@@ -287,6 +304,13 @@ ecce_library(eccetdat
   src/tdat/resources
   src/tdat/thermo
 )
+if(ECCE_HAVE_RESULTSH5)
+  target_sources(eccetdat PRIVATE
+    src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
+    src/tdat/resultsh5/ResultsConvert.C)
+  target_include_directories(eccetdat PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(eccetdat PUBLIC ${HDF5_LIBRARIES})
+endif()
 
 # --- src/dsm -> 5 separate libraries, matching the old per-subdir mapping ---
 ecce_library(eccexml    src/dsm/chemistry src/dsm/xml)
@@ -3595,6 +3619,17 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # results.h5 (#690): the Density Map reads the properties without one and
+  # the file once `ecce-results write` has made it, with the same plane.
+  if(ECCE_HAVE_RESULTSH5)
+    add_test(NAME apps_results_h5
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/results_h5_test.py
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+    set_tests_properties(apps_results_h5 PROPERTIES TIMEOUT 900
+                         SKIP_RETURN_CODE 77)
+  endif()
+
   # ELF, LOL and NCI as 3-D views (#799, #800): each builds a surface for the
   # water dimer; NCI shows the hydrogen bond blue and carries its colour bar.
   add_test(NAME apps_density_fields_3d
@@ -4742,24 +4777,16 @@ add_executable(box_shape_test tests/boxshape/box_shape_test.C)
 target_link_libraries(box_shape_test PRIVATE eccetdat ecceutil)
 add_test(NAME box_shape COMMAND box_shape_test ${CMAKE_SOURCE_DIR}/tests/boxshape/fixtures)
 
-# results.h5: ECCE's internal results format and converters (wx-free).
-option(ECCE_WITH_HDF5 "Build ecce-results and the results.h5 library (needs libhdf5-dev, C API)" ON)
-if(ECCE_WITH_HDF5)
-  find_package(HDF5 COMPONENTS C)
-  if(HDF5_FOUND)
-    add_library(ecceresultsh5 STATIC
-      src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
-      src/tdat/resultsh5/ResultsConvert.C
-      src/tdat/chemistry/EspField.C src/tdat/chemistry/CoulombIntegrals.C)
-    target_include_directories(ecceresultsh5 PUBLIC ${CMAKE_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS})
-    target_link_libraries(ecceresultsh5 PUBLIC ${HDF5_LIBRARIES})
-    add_executable(ecce-results src/tdat/resultsh5/ecce_results.C)
-    target_link_libraries(ecce-results PRIVATE ecceresultsh5)
-    install(TARGETS ecce-results RUNTIME DESTINATION bin COMPONENT client)
-    include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
-  else()
-    message(STATUS "HDF5 not found: ecce-results and results.h5 are not built")
-  endif()
+# ecce-results: the converters' command line.  `write` reads a stored
+# calculation, so it links the data-store libraries like the other CLIs.
+if(ECCE_HAVE_RESULTSH5)
+  add_executable(ecce-results src/tdat/resultsh5/ecce_results.C)
+  target_include_directories(ecce-results PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(ecce-results PRIVATE
+    eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+    ${XercesC_LIBRARIES} Threads::Threads)
+  install(TARGETS ecce-results RUNTIME DESTINATION bin COMPONENT client)
+  include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
 endif()
 
 # Windows: programs linked outside ecce_app's RESCAN group can name eccetdat

@@ -68,7 +68,7 @@ def main():
              "-I" + os.path.join(ROOT, "include"),
              "-L" + o.libdir, "-Wl,-rpath," + o.libdir,
              "-Wl,--start-group"] + ["-l" + l for l in LIBS] +
-            ["-Wl,--end-group", "-lxerces-c"],
+            ["-Wl,--end-group", "-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split()],
             capture_output=True, text=True)
         if cxx.returncode:
             print(cxx.stderr[-3000:])

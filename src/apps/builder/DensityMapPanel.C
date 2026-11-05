@@ -1077,6 +1077,7 @@ string DensityMapPanel::state() const
            p_map.u0, p_map.u(p_map.nu - 1), p_map.v0, p_map.v(p_map.nv - 1));
   s += buf;
   s += "title " + p_map.title + "\n";
+  s += "orbitals " + string(p_eval && p_eval->fromResults ? "results.h5" : "properties") + "\n";
   snprintf(buf, sizeof buf, "difference %d fragments %d colourlimit %.6g\n",
            p_map.difference ? 1 : 0, (int)p_fragments.size(), p_map.colourLimit);
   s += buf;

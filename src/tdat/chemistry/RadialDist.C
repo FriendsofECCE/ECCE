@@ -296,14 +296,16 @@ vector<string> shellLabels(IPropCalculation *calc,
     if (why) *why = "not a one-atom calculation";
     return out;
   }
-  vector< vector<double> > rows;
-  if (!MoAoBasis::coefficients(calc, ev.symbols, beta, rows) || rows.empty()) {
-    if (why) *why = "No MO coefficients for atomic shell labels.";
+  vector< vector<double> > both[2];
+  MoAoBasis basis;
+  if (!basis.buildWithOrbitals(calc, ev.symbols, ev.coordsAng, both)) {
+    if (why) *why = both[0].empty() ? "No MO coefficients for atomic shell labels."
+                                    : "Atomic shell labels: " + basis.complaint;
     return out;
   }
-  MoAoBasis basis;
-  if (!basis.build(calc, ev.symbols, ev.coordsAng, (int)rows[0].size())) {
-    if (why) *why = "Atomic shell labels: " + basis.complaint;
+  const vector< vector<double> >& rows = both[beta ? 1 : 0];
+  if (rows.empty()) {
+    if (why) *why = "No MO coefficients for atomic shell labels.";
     return out;
   }
   const vector<double>& occ = beta ? ev.occBeta : ev.occ;

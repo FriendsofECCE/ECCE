@@ -201,6 +201,7 @@ bool writeFile(const string& path, const Model& m, string& err) {
   size_t N = m.natoms();
   attrInt(f, "format_version", FORMAT_VERSION);
   if (m.nelectron[0] >= 0) { attrInt(f, "nelectron_alpha", m.nelectron[0]); attrInt(f, "nelectron_beta", m.nelectron[1]); }
+  if (!m.checks.empty()) attrStr(f, "checks", m.checks);
 
   if (!m.provenance.empty()) {
     hid_t g = grp(f, "provenance");
@@ -410,14 +411,20 @@ bool readFile(const string& path, Model& m, string& err) {
   }
   m.nelectron[0] = int(rdInt(f, "nelectron_alpha", -1));
   m.nelectron[1] = int(rdInt(f, "nelectron_beta", -1));
+  m.checks = rdStr(f, "checks");
   if (has(f, "provenance")) {
     hid_t g = H5Gopen2(f, "provenance", H5P_DEFAULT);
     // H5Oget_info changed signature between HDF5 1.10 and 1.12; walk by index instead.
+    // The walk ends on an error, which HDF5 would print.
+    H5E_auto2_t walkf; void* walkd;
+    H5Eget_auto2(H5E_DEFAULT, &walkf, &walkd);
+    H5Eset_auto2(H5E_DEFAULT, 0, 0);
     for (hsize_t i = 0;; i++) {
       char nm[256];
       if (H5Aget_name_by_idx(g, ".", H5_INDEX_NAME, H5_ITER_INC, i, nm, sizeof nm, H5P_DEFAULT) < 0) break;
       m.provenance[nm] = rdStr(g, nm);
     }
+    H5Eset_auto2(H5E_DEFAULT, walkf, walkd);
     H5Gclose(g);
   }
   if (has(f, "nucleus")) {

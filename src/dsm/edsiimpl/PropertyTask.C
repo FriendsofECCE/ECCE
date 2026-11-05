@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <set>
   using std::find;
@@ -46,6 +47,7 @@ static void warnShape(const std::string& calc, const std::string& prop,
 #include "dsm/VDoc.H"
 
 #include "tdat/PropString.H"
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropTSTable.H"
 #include "tdat/PropTSVecString.H"
@@ -2002,6 +2004,48 @@ void PropertyTask::flushPropertyCache()
         p != p_pointProps.end(); ++p)
      delete p->second;
    p_pointProps.clear();
+   ResultsFromCalc::forget(this);
+}
+
+
+// The data file `name` of this calculation, copied byte for byte.
+bool PropertyTask::fetchStoredFile(const string& name, const string& localPath)
+{
+  try {
+    vector<EcceURL> urls = getVDoc()->getOutputs();
+    for (size_t i = 0; i < urls.size(); i++) {
+      if (urls[i].getFilePathTail() != name) continue;
+      EDSI *edsi = EDSIFactory::getEDSI(urls[i]);
+      if (edsi == 0) return false;
+      std::ofstream out(localPath.c_str(), std::ios::binary);
+      bool ok = out && edsi->getDataSet(out);
+      out.close();
+      delete edsi;
+      return ok;
+    }
+  }
+  catch (DavException&) {}
+  return false;
+}
+
+
+bool PropertyTask::storeFile(const string& name, const string& localPath)
+{
+  std::ifstream in(localPath.c_str(), std::ios::in | std::ios::binary);
+  if (!in) return false;
+  return putOutputFile(name, &in);
+}
+
+
+bool PropertyTask::removeStoredFile(const string& name)
+{
+  try {
+    vector<EcceURL> urls = getVDoc()->getOutputs();
+    for (size_t i = 0; i < urls.size(); i++)
+      if (urls[i].getFilePathTail() == name) return putOutputFile(name, 0);
+  }
+  catch (DavException&) { return false; }
+  return true;
 }
 
 

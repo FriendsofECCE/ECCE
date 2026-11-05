@@ -209,6 +209,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [File= properties (GEOMTRACE, MDMSD) are stored last; a long GROMACS log delays them by minutes (#544)](file-parse-properties-are-stored-last.md)
 - [Allocation profiles (#541): Default is the MachPrefs line, the rest are in MachProfiles, each calculation stores its own](allocation-profiles-541.md)
 - [results.h5: internal results format (format_version 1), canonical AO order, converters, gates](results-h5-format.md) — layout, units, why the AO order is not the viewer's per-code order
+- [results.h5 written from the Props at the end of the job store; the views switch in one place](results-h5-written-from-props.md) — where it hooks in, checks, `ResultsFromCalc::stored`, what is not switched
 - [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)
 - [xTB "Conformer search (simple)": ecce-confsearch inlined by gensub, ensemble in CREST frame format (#682)](xtb-simple-conformer-search-682.md)
 - [A code's spherical MOOrdering stops below the basis's highest shell: empty functions, every orbital view refuses (ORCA g, #861)](angular-table-below-the-basis-highest-shell-861.md)
