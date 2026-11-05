@@ -1020,8 +1020,9 @@ void CalcMgr::runTestCommand(const string& line)
                  command == "workflowqst" || command == "workflowmake" ||
                  command == "workflowcrestcheck" ||
                  command == "workflowautorun" || command == "workflowlaunchstep" ||
+                 command == "workflowsetlaunch" ||
                  command == "workflowmove") {
-        args >> a >> b >> c;
+        args >> a >> b >> c >> d;
       } else if (command == "workflowjoin") {
         args >> a >> b >> c;
         while (args >> flag) joinArgs.push_back(flag);
@@ -1179,6 +1180,25 @@ void CalcMgr::runTestCommand(const string& line)
       } else if (command == "workflowautorun") {
         if (b == "on" || b == "off") WorkflowSteps::setAutoRun(wf, b == "on");
         outcome = string("ok autorun=") + (WorkflowSteps::autoRun(wf) ? "on" : "off");
+      } else if (command == "workflowsetlaunch") {
+        // workflowsetlaunch WF STEP MACHINE RUNDIR: the launch settings the
+        // Launcher would store on the step.
+        TaskJob *t = dynamic_cast<TaskJob*>(step(b));
+        if (!t) outcome = "error: no such step";
+        else {
+          Launchdata l = t->launchdata();
+          l.machine = c;
+          l.rundir = d;
+          l.totalprocs = 1;
+          l.nodes = 1;
+          l.queue = "normal";
+          const char *u = getenv("ECCE_REALUSER");
+          l.user = u ? u : "";
+          // And the input deck the Calculation Editor would have stored.
+          std::istringstream deck("##XtbHeader##\n##chemsys##\n");
+          outcome = t->launchdata(l) && t->putInputFile("xtb.xtbin", &deck)
+                  ? "ok" : "error: not stored";
+        }
       } else if (command == "workflowlaunchstep") {
         Resource *s = step(b);
         if (!s) outcome = "error: no such step";
@@ -10900,7 +10920,8 @@ void CalcMgr::updateUrl(const EcceURL & url)
     if (PropertyTask *task = dynamic_cast<PropertyTask*>(target->getResource()))
       task->flushPropertyCache();
     EDSIFactory::changePoolResource(url);
-    
+    const bool stepDone = WorkflowSteps::isComplete(target->getResource());
+
     if (selectedUrl.isChildOf(url)) {
       findNode(url, true, false);
       selectedUrl = url;
@@ -10920,11 +10941,16 @@ void CalcMgr::updateUrl(const EcceURL & url)
     }
 
     // A step of an auto-run workflow finished: start what it unblocked.
-    if (WorkflowSteps::isComplete(target->getResource())) {
-      WxResourceTreeItemData *parent = findNode(url.getParent(), false, false);
-      Session *wf = parent ? dynamic_cast<Session*>(parent->getResource()) : 0;
-      if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
-        autoRunWorkflow(wf);
+    // The tree refresh above may free `target`, and launching reselects
+    // nodes, so this runs after the update ends, from the URL alone.
+    if (stepDone) {
+      const EcceURL wfUrl = url.getParent();
+      CallAfter([this, wfUrl]() {
+        WxResourceTreeItemData *n = findNode(wfUrl, false, false);
+        Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0;
+        if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+          autoRunWorkflow(wf);
+      });
     }
   }
 }
