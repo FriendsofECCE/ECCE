@@ -1,0 +1,95 @@
+#!/bin/sh
+# ecce-rundir-sweep DIR QUEUEMGR JOBID [GRACE]  (#855)
+#
+# Run by RunMgmt::terminate on the job's machine after the cancel command:
+# ends this user's processes whose working directory is the run directory
+# (or below it), TERM first and KILL after GRACE seconds. A program can
+# outlive the cancel when its job shell died first and it was reparented
+# out of the scheduler's process tracking.  The job monitor is spared: it
+# reports the end.  Prints one line:
+#   none                       nothing was left
+#   killed PID NAME ...        these were left and are gone now
+#   left PID NAME ...          these are still running
+#   remote NODES               nothing here; the job ran on NODES, not seen
+#   unchecked WHY              this system cannot be checked
+
+d=$(cd "$1" 2>/dev/null && pwd -P) || { echo "unchecked no run directory $1"; exit 0; }
+mgr=$2
+id=$3
+grace=${4:-10}
+# Helpers forked below must not count as the job's: they inherit this cwd.
+cd / || exit 0
+case $(uname -s) in
+  Linux) ;;
+  *) echo "unchecked no /proc on $(uname -s)"; exit 0 ;;
+esac
+
+remote=
+case $mgr in
+  Shell) ;;
+  Slurm)
+    n=$(sacct -n -X -j "$id" -P -o NodeList 2>/dev/null | head -n 1)
+    case $n in
+      ""|"None assigned"|"$(hostname -s)"|"$(hostname)") ;;
+      *) remote=$n ;;
+    esac ;;
+  *) remote="the queue's compute nodes" ;;
+esac
+
+monitor() {
+  case $(tr '\0' ' ' < "/proc/$1/cmdline" 2>/dev/null) in
+    *eccejobmonitor*) return 0 ;;
+  esac
+  return 1
+}
+
+# "PID NAME" for each process of ours left in the run directory.  A
+# terminal opened there (its shell, an editor, the terminal program that is
+# their parent) is the user's, not the job's.
+list() {
+  find /proc -mindepth 2 -maxdepth 2 -name cwd -user "$(id -u)" \
+       -printf '%h %l\n' 2>/dev/null |
+  while read -r p c; do
+    case $c in "$d"|"$d"/*) ;; *) continue ;; esac
+    pid=${p#/proc/}
+    case $pid in *[!0-9]*) continue ;; esac
+    [ "$pid" = "$$" ] || [ "$pid" = "$PPID" ] && continue
+    monitor "$pid" && continue
+    pp=$(sed -n 's/^PPid:[[:space:]]*//p' "$p/status" 2>/dev/null)
+    [ -n "$pp" ] && monitor "$pp" && continue
+    tty=$(sed 's/.*) //' "$p/stat" 2>/dev/null | cut -d' ' -f5)
+    echo "$pid ${pp:-0} ${tty:-0} $(cat "$p/comm" 2>/dev/null)"
+  done |
+  awk '{ pid[NR] = $1; line[NR] = $1; for (k = 4; k <= NF; k++) line[NR] = line[NR] " " $k
+         if ($3 != 0) { skip[$1] = 1; skip[$2] = 1 } }
+       END { for (i = 1; i <= NR; i++) if (!(pid[i] in skip)) print line[i] }'
+}
+
+pids() { list | cut -d' ' -f1; }
+names() { list | tr '\n' ' ' | sed 's/ $//'; }
+
+# What obeys the cancel's own TERM is gone within a moment; only the rest
+# counts as left.
+i=0
+while [ "$i" -lt 3 ] && [ -n "$(pids)" ]; do
+  sleep 1
+  i=$((i + 1))
+done
+found=$(names)
+if [ -z "$found" ]; then
+  if [ -n "$remote" ]; then echo "remote $remote"; else echo none; fi
+  exit 0
+fi
+kill -TERM $(pids) 2>/dev/null
+i=0
+while [ "$i" -lt "$grace" ] && [ -n "$(pids)" ]; do
+  sleep 1
+  i=$((i + 1))
+done
+left=$(pids)
+if [ -n "$left" ]; then
+  kill -KILL $left 2>/dev/null
+  sleep 1
+fi
+left=$(names)
+if [ -n "$left" ]; then echo "left $left"; else echo "killed $found"; fi

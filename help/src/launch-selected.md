@@ -102,8 +102,17 @@ cancels submitted, running or waiting calculations the way **Run Mgmt >
 Terminate Selected** does, without asking for confirmation. Calculations in
 other states are refused by name, with their state. The reason, if given, is
 shown as the calculation's run status reason. One line is printed for each
-calculation, either `name: terminated, job id N` or `name: not terminated:
-reason`; the exit status is 0 only when every calculation was terminated.
+calculation, either `name: terminated, job id N, ...` or `name: not
+terminated: reason`. After the cancel, ECCE looks on the machine for
+programs still running in the calculation's run directory and stops them
+(first asking them to stop, then forcing them after ten seconds). The rest
+of the line says what it found: `no process left in the run directory`,
+what it had to stop, or what is `still running` there. A queued job that
+ran on a compute node other than the machine ECCE logs in to cannot be
+checked from there; the line says so, and the queue system ends the
+processes it tracks. The same text is shown in the Organizer's message
+bar for **Terminate Selected**. The exit status is 0 only when every
+calculation was terminated and nothing was left running.
 Paths, URLs and the message without a running ECCE session are as for
 `ecce-launch`.
 

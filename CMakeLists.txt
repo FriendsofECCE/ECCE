@@ -1452,6 +1452,11 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
           DESTINATION scripts
           COMPONENT client)
 endif()
+# scripts/ecce-rundir-sweep: RunMgmt::terminate sends it to the job's machine
+# to end what a cancel left running in the run directory (#855).
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-rundir-sweep
+        DESTINATION scripts
+        COMPONENT client)
 
 # scripts/ecce-askpass: ssh's SSH_ASKPASS program, which RCommand hands to the
 # OpenSSH backend so that opening a shared connection asks in ECCE's dialogs.
@@ -4597,6 +4602,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/slurm_cancel_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_slurm_cancel PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  # #855: a cancelled job leaves no program running in its run directory.
+  add_test(NAME launch_terminate_leftover
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/terminate_leftover_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_terminate_leftover PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   # #641: a pending Slurm job's reason and start reach ECCE once per change.
   add_test(NAME launch_slurm_pending
            COMMAND ${PYTHON3_EXECUTABLE}

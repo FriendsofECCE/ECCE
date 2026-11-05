@@ -12,7 +12,10 @@
 #include <unistd.h>
 #include <vector>
 #include <cstdio>
+#include <cstdlib>
 #include <ctime>
+#include <fstream>
+#include <sstream>
 
 #include <iostream>
 using namespace std;
@@ -40,6 +43,54 @@ using namespace std;
 #include "comm/CodePrograms.H"
 #include "comm/RCommand.H"
 #include "comm/RunMgmt.H"
+
+///////////////////////////////////////////////////////////////////////////////
+// After the cancel: what is still running in the run directory on the job's
+// machine, ended by scripts/ecce-rundir-sweep (#855).  A program can outlive
+// the cancel when its job shell died first and it left the scheduler's
+// process tracking.  Seen from a login node, compute nodes are not visible,
+// and the note says so instead of claiming nothing is left.
+///////////////////////////////////////////////////////////////////////////////
+static string sweepRunDir(RCommand& rcmd, const string& dir,
+                          const string& qMgr, const string& id,
+                          const string& machine)
+{
+  std::ifstream in(string(Ecce::ecceHome()) + "/scripts/ecce-rundir-sweep");
+  if (!in) return "processes in the run directory not checked "
+                  "(ecce-rundir-sweep is not installed)";
+  std::stringstream text;
+  text << in.rdbuf();
+  const char *grace = getenv("ECCE_TERMINATE_GRACE");
+  string cmd = "sh -c " + RCommand::quotePath(text.str()) +
+               " ecce-rundir-sweep " + RCommand::quotePath(dir) + " " +
+               RCommand::quotePath(qMgr) + " " + RCommand::quotePath(id) +
+               " " + (grace && atoi(grace) > 0 ? to_string(atoi(grace)) : "10");
+  string out;
+  rcmd.execout(cmd, out, "", 90);
+  // The last line is the answer; anything before it is the login's noise.
+  while (!out.empty() && (out.back() == '\n' || out.back() == '\r'))
+    out.pop_back();
+  size_t nl = out.rfind('\n');
+  string line = nl == string::npos ? out : out.substr(nl + 1);
+  size_t sp = line.find(' ');
+  string word = line.substr(0, sp);
+  string rest = sp == string::npos ? "" : line.substr(sp + 1);
+  if (word == "none")
+    return "no process left in the run directory on " + machine;
+  if (word == "killed")
+    return "ended what was still running in the run directory on " +
+           machine + " (" + rest + "); no process left";
+  if (word == "left")
+    return "still running in the run directory on " + machine + ": " + rest;
+  if (word == "remote")
+    return "the job ran on " + rest + ", whose processes cannot be checked "
+           "from " + machine + "; the queue system ends those it tracks";
+  if (word == "unchecked")
+    return "processes in the run directory not checked (" + rest + ")";
+  return "processes in the run directory not checked" +
+         (rcmd.commError().empty() ? string("") : " (" + rcmd.commError() + ")");
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -196,6 +247,9 @@ string RunMgmt::terminate(const TaskJob *calc)
     if (ret.find("has been issued") == string::npos &&
         ret.find("process not found") == string::npos)
       const_cast<TaskJob*>(calc)->killRequested(false);
+    else if (rcmd.isOpen())
+      ret += "; " + sweepRunDir(rcmd, job.jobpath, qMgrName, id,
+                                launch.machine);
 
     delete refMachine;
   } else

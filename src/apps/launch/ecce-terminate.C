@@ -6,8 +6,10 @@
  * its Terminate Selected code does the work, without the confirmation.
  * The reason, if given, becomes the calculation's run status reason.
  *
- * Prints "name: terminated, job id N" or "name: not terminated: reason" per
- * calculation. Exit 0: all terminated; 1: some were not (or no answer);
+ * Prints "name: terminated, job id N, <what is left>" or "name: not
+ * terminated: reason" per calculation; what is left says whether a process
+ * still runs in the run directory (#855). Exit 0: all terminated and nothing
+ * left; 1: some were not, a process is still running (or no answer);
  * 2: no running ECCE session; 3: the Organizer is busy with a Launch
  * Selected batch; 64: usage.
  */
@@ -200,6 +202,10 @@ int main(int argc, char **argv)
     string name = gLines[i].substr(0, a), ok = gLines[i].substr(a + 1, b - a - 1),
            text = gLines[i].substr(b + 1);
     if (ok == "ok") std::cout << name << ": terminated, job id " << text << std::endl;
+    else if (ok == "left") {
+      std::cout << name << ": terminated, job id " << text << std::endl;
+      allOk = false;
+    }
     else { std::cout << name << ": not terminated: " << text << std::endl; allOk = false; }
   }
   return allOk ? 0 : 1;
