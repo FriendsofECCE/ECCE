@@ -45,7 +45,7 @@ def topicsOf(setId):
             folder, name = line.split("|", 1)
             topics[folder] = name.replace(" ", "_")
     return topics
-EXTENSIONS = (".qmout", ".eprint", ".out")   # the output of an example folder
+EXTENSIONS = (".qmout", ".eprint", ".pwout", ".out")   # the output of an example folder
 
 
 def outputOf(folder):

@@ -37,6 +37,8 @@ class PBC : public PBCGUI,
       virtual void eventMCB(const Event& event);
       Command *restoreUnitCell();
       void refresh();
+      // The Center Lattice checkbox shows the lattice's own state.
+      void indicateCentering();
       void showReplication();
       void showLattice(bool showit);
       bool latticeShown();
