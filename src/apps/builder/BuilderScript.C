@@ -136,6 +136,7 @@
 #include "viz/ForegroundCmd.H"
 #include "wxgui/SliderCombo.H"
 #include "viz/SGContainer.H"
+#include "viz/SGLattice.H"
 #include "viz/SGFragment.H"
 #include "viz/AtomMeasureDist.H"
 #include "viz/AtomMeasureAngle.H"
@@ -624,6 +625,15 @@ void Builder::runBuilderScript(const std::string& file)
           MPoint cc = lat->getLatticeCorner();
           fprintf(stderr, "BUILDER: lattice_centered=%d corner=%.3f %.3f %.3f\n",
                   lat->getCentering() ? 1 : 0, cc.x(), cc.y(), cc.z());
+          SGLattice *sgl = dynamic_cast<SGLattice*>(getSG()->findNode("lattice"));
+          double lo[3], hi[3];
+          if (sgl && sgl->drawnBounds(lo, hi))
+            fprintf(stderr, "BUILDER: lattice_drawn=%.3f %.3f %.3f %.3f %.3f %.3f\n",
+                    lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]);
+          vector<MPoint> *basis = lat->toVectors();
+          for (MPoint& v : *basis)
+            fprintf(stderr, "BUILDER: lattice_vector=%.3f %.3f %.3f\n", v.x(), v.y(), v.z());
+          delete basis;
         }
         fprintf(stderr, "BUILDER: frame=%lld\n", ewxModalGuard::frameCounter(this));
         fprintf(stderr, "BUILDER: periodic_builder=%s\n",

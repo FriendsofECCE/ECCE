@@ -143,6 +143,20 @@ def main():
                          and at0 == crystal,
                          "%s: centred=%s, corner at the origin: %s"
                          % (name, c.group(1), at0))
+            # The box on screen is the cell the images are placed on: a box
+            # left where it was drawn before centring changed floats off the atoms.
+            d = re.search(r"lattice_drawn=" + " ".join([r"(\S+)"] * 6), text)
+            v = re.findall(r"BUILDER: lattice_vector=(\S+) (\S+) (\S+)", text)
+            if bo.check(d is not None and c is not None and len(v) == 3,
+                        "%s: drawn box and vectors reported" % name):
+                corner = [float(c.group(i)) for i in (2, 3, 4)]
+                vecs = [[float(x) for x in t] for t in v]
+                lo = [corner[k] + sum(min(0.0, u[k]) for u in vecs) for k in range(3)]
+                hi = [corner[k] + sum(max(0.0, u[k]) for u in vecs) for k in range(3)]
+                drawn = [float(d.group(i)) for i in range(1, 7)]
+                bo.check(all(abs(drawn[k] - lo[k]) < 0.1 and abs(drawn[3 + k] - hi[k]) < 0.1
+                             for k in range(3)),
+                         "%s: drawn box %s, cell %s..%s" % (name, drawn, lo, hi))
             if bo.failures:
                 say(text[-2000:])
     finally:
