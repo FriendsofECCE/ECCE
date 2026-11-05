@@ -1,7 +1,7 @@
 chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		0
-chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		Cu32
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		Cu4
 chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		cu_fcc
-chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		32
-chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		928
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		4
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		116
 chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C1
 chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

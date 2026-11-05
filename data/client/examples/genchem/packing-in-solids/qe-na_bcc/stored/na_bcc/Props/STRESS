@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<vector name="STRESS" rowLabel="Unknown" rowLabels="XX XY XZ YX YY YZ ZX ZY ZZ" rows="9" units="kbar">-1.44   0.00   0.00   0.00
--1.44   0.00   0.00   0.00
--1.44</vector>
+<vector name="STRESS" rowLabel="Unknown" rowLabels="XX XY XZ YX YY YZ ZX ZY ZZ" rows="9" units="kbar">-1.60   0.00   0.00   0.00
+-1.60   0.00   0.00   0.00
+-1.60</vector>

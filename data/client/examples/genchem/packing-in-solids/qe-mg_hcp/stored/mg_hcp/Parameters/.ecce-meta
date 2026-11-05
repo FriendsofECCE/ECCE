@@ -1,7 +1,7 @@
 chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		0
-chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		Mg16
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		Mg2
 chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		mg_hcp
-chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		16
-chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		192
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		2
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		24
 chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C1
 chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

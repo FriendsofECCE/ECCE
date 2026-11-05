@@ -5180,7 +5180,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "28";
+const char *const kExampleSetVersion = "29";
 
 string treeName(string s)
 {
@@ -6370,29 +6370,29 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "localised. This calculation shows that the two O-O bonds of ozone are "
      "equivalent, as the average of two resonance structures."},
     {"po_sc",
-     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the cubic "
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the simple cubic packing of "
      "alpha polonium: one atom in the cubic cell, six nearest neighbours, "
      "and 52 % of the space filled by the atoms."},
     {"na_bcc",
-     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the cubic "
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the body-centred cubic packing of "
      "sodium: two atoms in the cubic cell, eight nearest neighbours, "
      "and 68 % of the space filled by the atoms."},
     {"al_fcc",
-     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the cubic "
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the face-centred cubic packing of "
      "aluminium, with layers stacked ABC: four atoms in the cubic "
      "cell, twelve nearest neighbours, and 74 % of the space filled by "
      "the atoms."},
     {"cu_fcc",
-     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the cubic "
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the face-centred cubic packing of "
      "copper, with layers stacked ABC: four atoms in the cubic cell, "
      "twelve nearest neighbours, and 74 % of the space filled by the "
      "atoms."},
     {"mg_hcp",
-     "Quantum ESPRESSO, PBE, plane waves, 2x2x2 cells of the hexagonal "
+     "Quantum ESPRESSO, PBE, plane waves, the hexagonal "
      "cell. This calculation shows the hexagonal close packing of "
      "magnesium, with layers stacked ABA: two atoms in the hexagonal "
      "cell, twelve nearest neighbours, and 74 % of the space filled by "
