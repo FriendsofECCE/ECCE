@@ -44,9 +44,16 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.6.0
+## Coming in 9.5.2
 
-Nothing merged yet. The order of planned work (DOS/PDOS, CP2K cell optimisation and MD, MD analysis, umbrella sampling, docking, rigid scans and more) is on the [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan). What 9.5.0 brought: [release notes](docs/release-notes-9.5.0.md).
+On main, not in a package yet:
+- Workflows: an Auto-run checkbox runs the remaining steps once the first one is launched, and a play button on each box runs that step (#736); the Protonation Sites recipe no longer warns that CREST needs an optimised structure, and the step after CREST gets the protomer (#851).
+- General Chemistry examples: Packing in solids, with simple cubic Po, bcc Na, fcc Al and Cu, and hcp Mg shown as unit cells (#859); Quantum ESPRESSO pw.x outputs can be imported (#447).
+- ORCA: RI approximation None, RIJCOSX or RIJONX (#834); orbital views (Density Map, Density Profile, density fields) work for basis sets with g functions (#861).
+- Energy Calculator: a 1 M standard-state term on G and a log K line (#835). `ecce-rerun --last-geometry` continues a running calculation from its last geometry with new cores and wall time (#837).
+- CREST quantum cluster growth runs show their progress (#862); multiplicity 9 is "Nonet" (#853); the side panel keeps its width between panels (#843); Density Map controls tidied (#852).
+
+The order of the remaining work is on the [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan). What 9.5.0 brought: [release notes](docs/release-notes-9.5.0.md).
 
 ## First steps
 
