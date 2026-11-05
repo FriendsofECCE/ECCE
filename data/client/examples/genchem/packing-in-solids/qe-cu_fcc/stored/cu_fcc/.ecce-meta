@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		Quantum ESPRESSO, PBE, plane waves, the conventional cubic cell. This calculation shows the face-centred cubic packing of copper, with layers stacked ABC: four atoms in the cubic cell, twelve nearest neighbours, and 74 % of the space filled by the atoms.
 .	http://www.emsl.pnl.gov/ecce:application		QuantumESPRESSO
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 05 Nov 2026 15:37:34 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 05 Nov 2026 18:49:16 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.6.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 05 Nov 2026 15:37:32 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.6.0-dev
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.10
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 05 Nov 2026 18:49:14 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.10
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,8 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/cu_fcc__WxJAwa
-.	http://www.emsl.pnl.gov/ecce:killreason		
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/cu_fcc__vhw3hl
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
@@ -30,7 +29,6 @@
 .	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
 .	http://www.emsl.pnl.gov/ecce:launch_rundir		
 .	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
-.	http://www.emsl.pnl.gov/ecce:launch_threads		0
 .	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
 .	http://www.emsl.pnl.gov/ecce:launch_user		
 .	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
@@ -38,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793893054.242 idle=0 at=1793893054\nscf cycle=10 scferr=9.1E-12/1.0E-08 converged=yes\nscf~ scferr=0.22876642,0.75347715,0.00122175,0.00129065,0.00053286,0.00000259,0.00000005,0.00000059,0.00000002,9.1E-12\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793904556.832 at=1793904556\nscf cycle=10 scferr=9.1E-12/1.0E-08 converged=yes\nscf~ scferr=0.22876642,0.75347715,0.00122175,0.00129065,0.00053286,0.00000259,0.00000005,0.00000059,0.00000002,9.1E-12\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,8 +48,8 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 05 Nov 2026 15:37:33 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 05 Nov 2026 18:49:15 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793893052
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793904555
 .	http://www.emsl.pnl.gov/ecce:theory		PW/PW
 .	http://www.emsl.pnl.gov/ecce:version		PWSCF 6.7MaX
