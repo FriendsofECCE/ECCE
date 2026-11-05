@@ -3,12 +3,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with four waters in the first shell and two beyond them, relaxed with the cheap method that starts the workflow.
 .	http://www.emsl.pnl.gov/ecce:application		xTB
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 02:50:38 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 05 Nov 2026 22:19:41 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:58:57 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 05 Nov 2026 22:19:38 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -16,7 +16,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/na_4_2_xtb__FwVAfH
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/na_4_2_xtb__a0IQJG
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -39,7 +39,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750339.405 idle=0 at=1793750339\nscf cycle=3 energy=-30.6238467 converged=yes\nopt step=44 energy=-30.4201713 grad=0.0001583/0.1000000E-02 converged=yes\nopt~ energy=-30.3998084,-30.4018169,-30.4060248,-30.4085881,-30.4110308,-30.4127715,-30.4145309,-30.4157943,-30.4163763,-30.4171093,-30.4175019,-30.4181076,-30.4183113,-30.4186086,-30.4183405,-30.4188342,-30.4188945,-30.4189764,-30.4191096,-30.4192502,-30.4186271,-30.4196107,-30.4197937,-30.4198619,-30.4199392,-30.4199805,-30.4200117,-30.4200437,-30.4200442,-30.4200631,-30.4200730,-30.4200839,-30.4200980,-30.4201097,-30.4201240,-30.4201343,-30.4201471,-30.4201575,-30.4201628,-30.4201668,-30.4201679,-30.4201655,-30.4201706,-30.4201713\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793917180.503 idle=0 at=1793917180\nscf cycle=3 energy=-30.6238467 converged=yes\nopt step=44 energy=-30.4201713 grad=0.0001583/0.1000000E-02 converged=yes\nopt~ energy=-30.3998084,-30.4018169,-30.4060248,-30.4085881,-30.4110308,-30.4127715,-30.4145309,-30.4157943,-30.4163763,-30.4171093,-30.4175019,-30.4181076,-30.4183113,-30.4186086,-30.4183405,-30.4188342,-30.4188945,-30.4189764,-30.4191096,-30.4192502,-30.4186271,-30.4196107,-30.4197937,-30.4198619,-30.4199392,-30.4199805,-30.4200117,-30.4200437,-30.4200442,-30.4200631,-30.4200730,-30.4200839,-30.4200980,-30.4201097,-30.4201240,-30.4201343,-30.4201471,-30.4201575,-30.4201628,-30.4201668,-30.4201679,-30.4201655,-30.4201706,-30.4201713\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -51,7 +51,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Geometry
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 02:50:38 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 05 Nov 2026 22:19:39 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793750338
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793917179
 .	http://www.emsl.pnl.gov/ecce:theory		SE/GFN2-xTB

@@ -84,6 +84,26 @@ def files(root):
     return found
 
 
+def h5content(path):
+    """What results.h5 holds, as ecce-results prints it: the summary and the
+    full geometry, basis and orbitals of a Molden export."""
+    tool = os.path.join(os.environ.get("ECCE_TEST_WRAPPERS", "/usr/bin"),
+                        "ecce-results")
+    env = dict(os.environ)
+    home = tempfile.mkdtemp(prefix="h5cmp-")
+    env["ECCE_REALUSERHOME"] = home
+    try:
+        show = subprocess.run([tool, "show", path], env=env,
+                              capture_output=True, text=True).stdout
+        molden = os.path.join(home, "x.molden")
+        subprocess.run([tool, "export", "molden", path, molden], env=env,
+                       capture_output=True)
+        text = open(molden).read() if os.path.exists(molden) else ""
+        return show + text
+    finally:
+        shutil.rmtree(home, ignore_errors=True)
+
+
 def compare(parsed, copied):
     problems = []
     a, b = files(parsed), files(copied)
@@ -102,6 +122,10 @@ def compare(parsed, copied):
                         ra.get(key, "-")[-160:], rb.get(key, "-")[-160:]))
         elif os.path.basename(rel) == "eccejobstorelog.ecce_run_log":
             continue    # a log of this run, with its own times
+        elif rel.endswith(".h5"):
+            # HDF5 does not lay out the same content byte for byte twice
+            if h5content(pa) != h5content(pb):
+                problems.append("%s: content differs" % rel)
         else:
             with open(pa, "rb") as x, open(pb, "rb") as y:
                 da, db = x.read(), y.read()

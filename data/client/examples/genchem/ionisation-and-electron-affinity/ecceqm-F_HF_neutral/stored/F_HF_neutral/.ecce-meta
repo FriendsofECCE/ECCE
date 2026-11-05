@@ -2,12 +2,12 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the fluorine atom; with the cation, Tools > Energy Calculator gives the ionisation energy as the difference of their energies.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 23:56:32 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 05 Nov 2026 22:17:11 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.0-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 23:56:31 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.0-dev
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 05 Nov 2026 22:17:09 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/F_HF_neutral__uGY4Dw
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/F_HF_neutral__hpM93n
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793750192.681 idle=0 at=1793750192\nscf cycle=20 energy=-99.4068793529 dE=-2.63e-12/1e-10 grad=9.88e-08/1e-07 converged=yes\nscf~ dE=-3.38e-01,-2.38e-08,-7.46e-10,-5.25e-09,6.01e-12,-2.92e-08,2.36e-10,3.84e-09,-5.41e-03,7.84e-03,-1.05e-02,-1.18e-03,-7.09e-04,-2.16e-04,-1.05e-05,-6.71e-07,-2.01e-09,-5.58e-11,-2.63e-12\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793917030.981 idle=0 at=1793917030\nscf cycle=20 energy=-99.4068793529 dE=-2.63e-12/1e-10 grad=9.88e-08/1e-07 converged=yes\nscf~ dE=-3.38e-01,-2.38e-08,-7.46e-10,-5.25e-09,6.01e-12,-2.92e-08,2.36e-10,3.84e-09,-5.41e-03,7.84e-03,-1.05e-02,-1.18e-03,-7.09e-04,-2.16e-04,-1.05e-05,-6.71e-07,-2.01e-09,-5.58e-11,-2.63e-12\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Doublet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 23:56:31 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 05 Nov 2026 22:17:09 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793750191
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793917029
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/HF
