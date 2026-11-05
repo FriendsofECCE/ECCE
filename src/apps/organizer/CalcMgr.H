@@ -368,6 +368,12 @@ public:
                                    Resource *after, string *outcome);
   void launchReadySteps(Session *workflow, bool interactive, string *outcome,
                         const string& shot);
+  /// Launch one step if it is ready (the play button, #736); otherwise say
+  /// why not.
+  void launchStep(Session *workflow, Resource *step, bool interactive,
+                  string *outcome);
+  /// Auto-run (#736): launch what is ready in a workflow that has it on.
+  void autoRunWorkflow(Session *workflow);
   void createResource(ResourceType * resource,
                       WxResourceTreeItemData * parent = NULL,
                       const bool& bypassNamePrompt = false);
@@ -722,6 +728,9 @@ protected:
 
   void applyQueuedUpdates();
   std::vector<std::pair<UpdateKind, string> > p_queuedUpdates;
+  // Steps auto-run launched whose state has not yet left Created, so a
+  // second notice cannot launch them again.
+  std::set<string> p_autoLaunched;
   wxTimer *p_updateTimer = 0;
   // For the "counts" test command.
   // True while openExampleSet() imports several outputs: the tree is rebuilt

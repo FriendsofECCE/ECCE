@@ -212,5 +212,26 @@ grey with the reason and is not launched; choose **Open in Launcher** to
 set it up.
 
 Steps whose source is not Complete yet are named in the message under the
-list and are not launched. Nothing is launched when a job finishes: choose
-**Launch Ready Steps** again when the steps before have completed.
+list and are not launched. Unless **Run the remaining steps automatically** is
+ticked, nothing is launched when a job finishes: choose **Launch Ready Steps**
+again when the steps before have completed.
+
+### Run the remaining steps automatically
+
+The checkbox **Run the remaining steps automatically** (under **Launch Ready
+Steps**, and in the Apply Recipe panel) is stored with the workflow and is off
+by default. When it is on, each step is launched as soon as the step it starts
+from is Complete, with its stored launch settings and without a window. A step
+that fails stops its branch: the steps after it keep waiting. A step is never
+launched twice, and the Organizer shows a message when it launches steps for
+you.
+
+The launching is done by the Organizer. With no Organizer open, the chain
+pauses, and it continues when you start the Organizer and open the workflow.
+
+### The play button on a box
+
+Each box has a small triangle at its lower right. It is green when the step
+can be launched now, and grey otherwise; point at it to see why (waiting for a
+source step, already run, or excluded). Click the green one to launch just that
+step, with the settings it already stores.

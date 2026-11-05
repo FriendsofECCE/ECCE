@@ -71,8 +71,13 @@ public:
   RecipePanel *recipePanel() const { return p_recipe; }
   /// Create boxes: makes the steps; "" or why not.  Closes the panel on success.
   std::string recipeCreate(const Recipe& recipe, const RecipeVariant& variant,
-                           const WorkflowSteps::Levels& levels, Resource *after);
+                           const WorkflowSteps::Levels& levels, Resource *after,
+                           bool autorun = false);
   void closeRecipe();
+  /// A box's play button: launches that step if it is ready (#736).
+  void playClicked(const EcceURL& step, bool interactive = true);
+  /// Each box's play button, "name:1|0:reason|...", for the test hook.
+  std::string playReport();
   /// Save Workflow as Recipe: "ok <file>" or "error: ...".
   std::string saveAsRecipe(const std::string& id, const std::string& title);
   /// A step's progress or state changed: redraw its result line (#810).
@@ -102,6 +107,7 @@ private:
   wxStaticText *p_help;
   wxStaticText *p_status;
   wxButton *p_launch;
+  wxCheckBox *p_autorun;
   wxButton *p_apply;
   wxPanel *p_empty;
   wxBoxSizer *p_left;
