@@ -1575,16 +1575,11 @@ bool MoPanel::ensureAoBasis()
    vector<double> coords;
    if (calc == 0 || !MoAoBasis::fragmentGeometry(frag, symbols, coords))
       return false;
-   if (!MoAoBasis::coefficients(calc, symbols, false, p_aoRows[0]))
-      return false;
-   if (calc->getProperty("MOBETA") != 0)
-      MoAoBasis::coefficients(calc, symbols, true, p_aoRows[1]);
-
    CompositionProgress progress(wxGetTopLevelParent(this));
    MoAoBasis *basis = new MoAoBasis();
-   if (!basis->build(calc, symbols, coords, (int)p_aoRows[0][0].size(),
-                     [&](double frac) { progress.progress(frac); })) {
-      p_aoWhy = basis->complaint;
+   if (!basis->buildWithOrbitals(calc, symbols, coords, p_aoRows,
+                                 [&](double frac) { progress.progress(frac); })) {
+      p_aoWhy = basis->complaint.empty() ? p_aoWhy : basis->complaint;
       delete basis;
       return false;
    }

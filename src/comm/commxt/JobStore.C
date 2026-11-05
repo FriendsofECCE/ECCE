@@ -58,6 +58,8 @@
 #include "tdat/AuthCache.H"
 #include "tdat/RefMachine.H"
 #include "tdat/DefaultDavAuth.H"
+#include "tdat/ResultsFromCalc.H"
+#include "dsm/IPropCalculation.H"
 
 #include "dsm/MachinePreferences.H"
 #include "dsm/JCode.H"
@@ -123,6 +125,7 @@ void calcStoreData(string parseType, int callCount,
                    const char* data, bool fromFile);
 void calcUpdateState(ResourceDescriptor::RUNSTATE state);
 void cleanup(int exitStatus);
+static void resultsFileStore();
 string unsuccessfulReason(int status);
 string gensubLogReason(const string& outputFilePath);
 void recordStatusReason(const string& reason);
@@ -428,6 +431,8 @@ cout << "total JobParser::storeProperty perl parsing time (" << perlTimer.elapse
 #ifdef JSDBTIMER
 cout << "total JobParser::storeProperty DAV storage time (" << dbTimer.elapsedTime() << ")" << endl;
 #endif
+
+  resultsFileStore();
 
   // clean up everything
   cleanup(0);
@@ -789,6 +794,24 @@ void recordStatusReason(const string& reason)
 // ------------------------------------------------------------------------- //
 // Clean up everything in preparation for termination.
 // ------------------------------------------------------------------------- //
+// results.h5 from what was just parsed (#690), before the final state is
+// set.  Whatever happens here the job's own result stands.
+static void resultsFileStore()
+{
+  if (calculation == 0) return;
+  IPropCalculation *props = dynamic_cast<IPropCalculation*>(calculation);
+  if (props == 0) return;
+  try {
+    props->flushPropertyCache();
+    string line;
+    ResultsFromCalc::store(props, line);
+    logMessage("results.h5", line);
+  } catch (...) {
+    logMessage("results.h5", "results.h5 not written: an error while reading the properties");
+  }
+}
+
+
 void cleanup(int exitStatus)
 {
   // Before the final state: the Organizer reads the snapshot when the
