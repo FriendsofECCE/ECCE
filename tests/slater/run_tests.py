@@ -52,7 +52,7 @@ def roundTrip():
             os.path.join(ROOT, "src/tdat/chemistry/SlaterBasisSet.C"),
             os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("  skipped: could not link against the build tree")

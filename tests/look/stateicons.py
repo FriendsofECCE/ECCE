@@ -55,7 +55,7 @@ def main():
             "-I" + os.path.join(ROOT, "include")] + cxx
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir]
            + ["-Wl,--start-group"] + ["-l" + lib for lib in LIBS] + ["-Wl,--end-group"]
-           + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"]
+           + libs + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lssh", "-lmosquitto", "-lssl", "-lcrypto"]
            + out(["pkg-config", "--libs", "gtk+-3.0"]).stdout.split())
     b = out(cmd)
     if b.returncode:

@@ -51,7 +51,7 @@ def main():
             "-o", out,
             os.path.join(HERE, "testBasisFlatten.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("could not build testBasisFlatten:")
@@ -97,7 +97,7 @@ def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt"):
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
             "-o", out, os.path.join(HERE, "testCrOMoAoOrder.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("could not build testCrOMoAoOrder:")
