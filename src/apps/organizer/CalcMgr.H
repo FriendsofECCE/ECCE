@@ -731,6 +731,9 @@ protected:
   // Steps auto-run launched whose state has not yet left Created, so a
   // second notice cannot launch them again.
   std::set<string> p_autoLaunched;
+  // Workflows to look at again when the running launch batch ends.
+  std::set<string> p_autoPending;
+  bool p_autoBatch = false;
   wxTimer *p_updateTimer = 0;
   // For the "counts" test command.
   // True while openExampleSet() imports several outputs: the tree is rebuilt
