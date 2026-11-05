@@ -190,6 +190,13 @@ case("crest conformer search (butane, 2 iterations)", "crest.desc",
                 "remain": "255", "window": "6.00", "emin": "-20.88735",
                 "est": "31", "estunit": "sec"}})
 
+# CREST quantum cluster growth (#862): three waters around deprotonated
+# cysteine; the stage, the solvents added and the last cluster energy.
+case("crest quantum cluster growth (3 waters)", "crest.desc",
+     fx("crest", "qcg_3water.crestout"),
+     {"crest": {"stage": "qcg", "qcgstep": "GROW", "solv": "3/3",
+                "ecluster": "-38.944717"}})
+
 case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
      fx("gaussian-16", "h2o2_dihedral_scan.log"),
      {"scan": {"point": "7/7"}, "opt": {"converged": "yes"}},

@@ -295,6 +295,16 @@ int main()
     JobProgress cs;
     cs.parse("# seq=1\ncrest stage=sampling mtd=9/14\n");
     check(cs.shortLine() == "MTD 9 of 14", "cell: CREST sampling: " + cs.shortLine());
+    // Quantum cluster growth (#862): its stage, the solvents added and the cluster energy.
+    JobProgress cq;
+    cq.parse("# seq=1\ncrest stage=qcg qcgstep=GROW solv=2/3 ecluster=-33.866447\n");
+    vector<JobProgress::Block> qb = cq.running(0);
+    check(qb.size() == 1 && qb[0].title == "CREST" &&
+          has(qb[0].lines, "Stage: Quantum cluster growth \xc2\xb7 grow") &&
+          has(qb[0].lines, "Solvent molecules: 2 of 3 added") &&
+          has(qb[0].lines, "Cluster energy (Eh): -33.866447") && qb[0].bar,
+          "CREST QCG rows");
+    check(cq.shortLine() == "QCG 2 of 3 solvents", "cell: CREST QCG: " + cq.shortLine());
   }
 
   // The table cell.
