@@ -553,6 +553,12 @@ void Builder::runBuilderScript(const std::string& file)
           if (frag->atomRef(i)->atomicSymbol() == "Nub") nubs++;
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s nubs=%d\n",
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no", nubs);
+        fprintf(stderr, "BUILDER: cell_images=%d\n", getSG()->numCellImages());
+        if (lat) {
+          MPoint cc = lat->getLatticeCorner();
+          fprintf(stderr, "BUILDER: lattice_centered=%d corner=%.3f %.3f %.3f\n",
+                  lat->getCentering() ? 1 : 0, cc.x(), cc.y(), cc.z());
+        }
         fprintf(stderr, "BUILDER: frame=%lld\n", ewxModalGuard::frameCounter(this));
         fprintf(stderr, "BUILDER: periodic_builder=%s\n",
                 p_mgr.GetPane(NAME_TOOL_PBC).IsShown() ? "shown" : "hidden");
@@ -1485,6 +1491,11 @@ void Builder::runBuilderScript(const std::string& file)
         fgCmd.getParameter("green")->setDouble(fg[1]);
         fgCmd.getParameter("blue")->setDouble(fg[2]);
         fgCmd.execute();
+      } else if (w[0] == "style" && w.size() >= 2) {
+        // "style Ball And Stick", as Render > <style>.
+        string name = w[1];
+        for (size_t i = 2; i < w.size(); i++) name += " " + w[i];
+        p_viewerEvtHandler->doStyleChange(wxString(name));
       } else if (w[0] == "viewall") {
         getViewer().viewAll();
       } else if ((w[0] == "rotate" || w[0] == "rotatex") && w.size() == 2) {

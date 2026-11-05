@@ -3569,7 +3569,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "17";
+const char *const kExampleSetVersion = "18";
 
 string treeName(string s)
 {
@@ -3605,7 +3605,7 @@ void collectExamples(const string &setDir, const string &topicDir,
       // the output is the first file with one of these extensions
       // (tools/examples/preparse.py does the same)
       string found;
-      for (const char *ext : {".qmout", ".eprint", ".out"}) {
+      for (const char *ext : {".qmout", ".eprint", ".pwout", ".out"}) {
         vector<string> files;
         for (const auto &f : fs::directory_iterator(setDir + dirRel, ec))
           if (f.is_regular_file() && f.path().extension() == ext)
@@ -3950,7 +3950,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       {
         static const struct { const char *key, *shown; } kCodes[] = {
           {"ecceqm", "ECCE-QM"}, {"mopac", "MOPAC"}, {"nwchem", "NWChem"},
-          {"orca", "ORCA"}, {"gromacs", "GROMACS"}};
+          {"orca", "ORCA"}, {"gromacs", "GROMACS"},
+          {"qe", "Quantum ESPRESSO"}};
         size_t dash = ex.name.find('-');
         size_t from = dash == string::npos ? 0 : dash + 1;
         string code = ex.name.substr(0, dash);
@@ -4693,6 +4694,34 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows that the two O-O bonds of ozone are "
      "equivalent, as the average of two resonance structures."},
+    {"po_sc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the simple cubic packing of "
+     "alpha polonium: one atom in the cubic cell, six nearest neighbours, "
+     "and 52 % of the space filled by the atoms."},
+    {"na_bcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the body-centred cubic packing of "
+     "sodium: two atoms in the cubic cell, eight nearest neighbours, "
+     "and 68 % of the space filled by the atoms."},
+    {"al_fcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the face-centred cubic packing of "
+     "aluminium, with layers stacked ABC: four atoms in the cubic "
+     "cell, twelve nearest neighbours, and 74 % of the space filled by "
+     "the atoms."},
+    {"cu_fcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the face-centred cubic packing of "
+     "copper, with layers stacked ABC: four atoms in the cubic cell, "
+     "twelve nearest neighbours, and 74 % of the space filled by the "
+     "atoms."},
+    {"mg_hcp",
+     "Quantum ESPRESSO, PBE, plane waves, the hexagonal "
+     "cell. This calculation shows the hexagonal close packing of "
+     "magnesium, with layers stacked ABA: two atoms in the hexagonal "
+     "cell, twelve nearest neighbours, and 74 % of the space filled by "
+     "the atoms."},
     {"ar-gas",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "

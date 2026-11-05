@@ -2736,6 +2736,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_sash PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # A cell shows its boundary atoms at every equivalent position, display
+  # only, and a crystal's box starts at the origin (#859).
+  add_test(NAME apps_packing_cells
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/packing_cells_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_packing_cells PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # The Builder's new element chooser (#222) and the old popup it replaces
   # by default, driven headless with the tree's builder binary.
   add_test(NAME apps_builder_chooser
