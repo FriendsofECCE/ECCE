@@ -86,3 +86,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
 - [A copy-back from a host that cannot be asked "succeeded" with nothing copied and stored a 0-byte output; sizes now checked, Complete needs the normal-end line (#732)](copy-back-unreachable-host-732.md)
 - [Windows broker: retries need their own folder (#958)](windows-broker-retry-needs-its-own-folder-958.md)
+- [A cancelled job's program outlived scancel (linuxproc, job shell died on TERM); TERM trapped, run directory swept after the cancel (#855)](terminate-leaves-program-running-855.md)

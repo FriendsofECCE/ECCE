@@ -175,7 +175,10 @@
   print SUBMIT "  echo \$X_INTERRUPTED > $statusFile\n";
   print SUBMIT "  exit 1\n";
   print SUBMIT "}\n";
-  print SUBMIT "trap canceljob INT\n";
+  # TERM too (scancel, qdel, the Shell cancel): with the trap the shell
+  # waits for the program instead of dying at once, so the program stays in
+  # its process tree and the scheduler's KILL still finds it (#855).
+  print SUBMIT "trap canceljob INT TERM\n";
 
   # Always run from the run directory.
   print SUBMIT "\n$CC Change to the run directory\n";
