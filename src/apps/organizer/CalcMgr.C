@@ -757,6 +757,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     choices and takes a picture; answers with the panel's report
       //   workflowrecipehere WF STEP    the box menu's Apply Recipe from here
       //     on STEP: its labels, then the panel's report
+      //     (flag autorun: tick "Run the remaining steps automatically")
       //   workflowrecipecreate WF       Create boxes in the open panel
       //   workflowkeydata WF            the key-data box as text, "|" for newlines
       //   workflowresults WF            each box's result line: "name: text|..."
@@ -774,7 +775,9 @@ void CalcMgr::runTestCommand(const string& line)
                command == "workflowstructure" || command == "workflowrecipehere")
         args >> wfUrl >> rid >> vid >> src;
       else args >> wfUrl;
+      bool autorun = false;
       while (args >> flag) {
+        if (flag == "autorun") autorun = true;
         if (flag.compare(0, 7, "method=") == 0) method = flag.substr(7);
         if (flag.compare(0, 6, "basis=") == 0) basis = flag.substr(6);
         if (flag.compare(0, 8, "solvent=") == 0) solvent = flag.substr(8);
@@ -824,7 +827,7 @@ void CalcMgr::runTestCommand(const string& line)
                   method.empty() ? r->roles[i].method : method,
                   basis.empty() ? r->roles[i].basis : basis);
             if (!solvent.empty()) levels["solvent"] = std::make_pair("", solvent);
-            string why = wp->recipeCreate(*r, *v, levels, source);
+            string why = wp->recipeCreate(*r, *v, levels, source, autorun);
             outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
           }
         } else if (command == "workflowrecipepanel") {
@@ -842,6 +845,7 @@ void CalcMgr::runTestCommand(const string& line)
                 if (lv.first != "solvent") panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
                                 basis.empty() ? lv.second.second : basis);
             if (!solvent.empty()) panel->setLevel("solvent", "", solvent);
+            panel->setAutoRun(autorun);
             SetSize(1500, 900);
             Raise();
             for (int i = 0; i < 8; i++) wxYield();
@@ -980,6 +984,9 @@ void CalcMgr::runTestCommand(const string& line)
       //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
       //   workflowcopy WF CALC-URL NAME   a stored calculation as a first step
       //   workflowready WF      the steps Launch Ready Steps would launch
+      //   workflowautorun WF on|off|query   the auto-run setting (#736)
+      //   workflowlaunchstep WF STEP   launch that one step if it is ready
+      //   workflowplay WF       play button of each box: "name:1|0:reason|.."
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
       //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
@@ -1012,6 +1019,7 @@ void CalcMgr::runTestCommand(const string& line)
       } else if (command == "workflowcopy" || command == "workflowmenu" ||
                  command == "workflowqst" || command == "workflowmake" ||
                  command == "workflowcrestcheck" ||
+                 command == "workflowautorun" || command == "workflowlaunchstep" ||
                  command == "workflowmove") {
         args >> a >> b >> c;
       } else if (command == "workflowjoin") {
@@ -1168,6 +1176,21 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok " + WorkflowSteps::info(wf);
       } else if (command == "workflowlaunch") {
         launchReadySteps(wf, false, &outcome, "");
+      } else if (command == "workflowautorun") {
+        if (b == "on" || b == "off") WorkflowSteps::setAutoRun(wf, b == "on");
+        outcome = string("ok autorun=") + (WorkflowSteps::autoRun(wf) ? "on" : "off");
+      } else if (command == "workflowlaunchstep") {
+        Resource *s = step(b);
+        if (!s) outcome = "error: no such step";
+        else launchStep(wf, s, false, &outcome);
+      } else if (command == "workflowplay") {
+        // The play button of every box: "name:1|0:reason".
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        outcome = wp ? "ok " + wp->playReport() : "no workflow panel";
       } else if (command == "workflowicons") {
         // Box icons and tree icons read in the same poll, until they agree
         // (the tree follows a stored state change a moment later) or 10 s.
@@ -10476,6 +10499,55 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
 }
 
 
+void CalcMgr::launchStep(Session *wf, Resource *step, bool interactive,
+                         string *outcome)
+{
+  std::map<Resource*, string> blocked = WorkflowSteps::stepBlockers(wf);
+  auto why = blocked.find(step);
+  if (why != blocked.end()) {
+    const string msg = step->getName() + " cannot be launched: " + why->second + ".";
+    if (interactive) setMessage(msg, WxFeedback::INFO);
+    if (outcome) *outcome = "blocked " + why->second;
+    return;
+  }
+  WorkflowSteps::refreshFromSources(wf, step);
+  vector<EcceURL> urls(1, step->getURL());
+  launchSelected(urls, interactive, outcome, "");
+}
+
+
+void CalcMgr::autoRunWorkflow(Session *wf)
+{
+  if (!wf || !WorkflowSteps::autoRun(wf)) return;
+  // A step seen past Created is launched for good; forget it.
+  vector<Resource*> members = wf->getMembers();
+  for (size_t i = 0; i < members.size(); i++)
+    if (WorkflowSteps::isLaunched(members[i]))
+      p_autoLaunched.erase(members[i]->getURL().toString());
+  vector<Resource*> ready = WorkflowSteps::readySteps(wf);
+  vector<EcceURL> urls;
+  string names;
+  for (size_t i = 0; i < ready.size(); i++) {
+    const string key = ready[i]->getURL().toString();
+    if (p_autoLaunched.count(key)) continue;
+    p_autoLaunched.insert(key);
+    WorkflowSteps::refreshFromSources(wf, ready[i]);
+    urls.push_back(ready[i]->getURL());
+    names += (names.empty() ? "" : ", ") + ready[i]->getName();
+  }
+  if (urls.empty()) return;
+  // No run log exists before a step runs, so the step carries the note.
+  for (size_t i = 0; i < urls.size(); i++)
+    for (size_t k = 0; k < ready.size(); k++)
+      if (ready[k]->getURL() == urls[i])
+        ready[k]->addProp(VDoc::getEcceNamespace() + ":autolaunched", "1");
+  setMessage("Auto-run launched " + names + " in " + wf->getName() + ".",
+             WxFeedback::INFO);
+  string outcome;
+  launchSelected(urls, false, &outcome, "");
+}
+
+
 /**
  * Resource created in parent of type resType.  If option is selected, the
  * rename prompt is opened during creation.
@@ -10774,6 +10846,14 @@ void CalcMgr::updateUrl(const EcceURL & url)
       //      findNode(selectedUrl, false, true);
       onSelectionChange(true);
       //      stopDisabler();
+    }
+
+    // A step of an auto-run workflow finished: start what it unblocked.
+    if (WorkflowSteps::isComplete(target->getResource())) {
+      WxResourceTreeItemData *parent = findNode(url.getParent(), false, false);
+      Session *wf = parent ? dynamic_cast<Session*>(parent->getResource()) : 0;
+      if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+        autoRunWorkflow(wf);
     }
   }
 }
