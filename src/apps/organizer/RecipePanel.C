@@ -252,6 +252,11 @@ RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
   note->SetSizer(ns);
   ls->Add(note, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
+  p_autorun = new wxCheckBox(left, wxID_ANY, "Run the remaining steps automatically");
+  p_autorun->SetToolTip("Launch each step as soon as the step it starts from is "
+                        "Complete. Works while the Organizer is open.");
+  ls->Add(p_autorun, 0, wxLEFT | wxRIGHT | wxTOP, 10);
+
   p_problem = new wxStaticText(left, wxID_ANY, "");
   p_problem->SetForegroundColour(wxColour(0xc9, 0x2a, 0x2a));
   ls->Add(p_problem, 0, wxLEFT | wxRIGHT | wxTOP, 10);
@@ -495,6 +500,12 @@ bool RecipePanel::setLevel(const string &role, const string &method, const strin
 }
 
 
+void RecipePanel::setAutoRun(bool on)
+{
+  p_autorun->SetValue(on);
+}
+
+
 void RecipePanel::setApplyAfter(bool after)
 {
   p_applyAfter = after && p_after;
@@ -570,7 +581,8 @@ string RecipePanel::report() const
 void RecipePanel::createClicked()
 {
   if (!variant()) return;
-  string why = p_owner->recipeCreate(*recipe(), *variant(), levels(), after());
+  string why = p_owner->recipeCreate(*recipe(), *variant(), levels(), after(),
+                                 p_autorun->GetValue());
   if (!why.empty()) {
     p_problem->SetLabel(U(why));
     Layout();

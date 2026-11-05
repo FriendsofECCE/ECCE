@@ -84,6 +84,7 @@ public:
     SetScrollRate(10, 10);
     Bind(wxEVT_PAINT, &WorkflowCanvas::OnPaint, this);
     Bind(wxEVT_LEFT_DOWN, &WorkflowCanvas::OnClick, this);
+    Bind(wxEVT_MOTION, &WorkflowCanvas::OnMotion, this);
     Bind(wxEVT_LEFT_DCLICK, &WorkflowCanvas::OnDClick, this);
     Bind(wxEVT_RIGHT_DOWN, &WorkflowCanvas::OnRightDown, this);
     Bind(wxEVT_CONTEXT_MENU, &WorkflowCanvas::OnContextMenu, this);
@@ -189,6 +190,7 @@ public:
       << " label-overlaps=" << overlaps() << " keybox=" << (p_hasKey ? 1 : 0)
       << " keyshown=" << (p_hasKey && p_key.shown ? 1 : 0) << " vertical=" << p_panel->p_vertical
       << " box-overlaps=" << boxOverlaps << " rank-errors=" << rankErrors
+      << " play=" << playReport()
       << " canvas-height=" << GetSize().y << " icons=";
     for (size_t i = 0; i < p_boxes.size(); i++)
       o << (i ? "," : "") << p_boxes[i].step->getName() << ":"
@@ -203,6 +205,32 @@ public:
     for (const WfBox &b : p_boxes)
       out += (out.empty() ? "" : "|") + b.step->getName() + ": " +
              string(resultText(b.step).utf8_str());
+    return out;
+  }
+
+  /// The play button, bottom right of a box.
+  static wxRect playRect(const WfBox &b)
+  {
+    return wxRect(b.rect.GetRight() - 28, b.rect.GetBottom() - 28, 20, 20);
+  }
+
+  /// "" when the box's step can be launched now, otherwise why not.
+  string playBlocker(const WfBox &b) const
+  {
+    std::map<Resource*, string> blocked = WorkflowSteps::stepBlockers(p_panel->p_session);
+    auto it = blocked.find(b.step);
+    return it == blocked.end() ? string() : it->second;
+  }
+
+  string playReport() const
+  {
+    std::map<Resource*, string> blocked = WorkflowSteps::stepBlockers(p_panel->p_session);
+    string out;
+    for (const WfBox &b : p_boxes) {
+      auto it = blocked.find(b.step);
+      out += (out.empty() ? "" : "|") + b.step->getName() + ":" +
+             (it == blocked.end() ? "1:" : "0:" + it->second);
+    }
     return out;
   }
 
@@ -246,7 +274,27 @@ private:
   void OnClick(wxMouseEvent &e)
   {
     SetFocus();
-    select(boxAt(CalcUnscrolledPosition(e.GetPosition())), false, e.CmdDown());
+    const wxPoint at = CalcUnscrolledPosition(e.GetPosition());
+    const WfBox *b = boxAt(at);
+    if (b && playRect(*b).Contains(at)) {
+      p_panel->playClicked(b->step->getURL());
+      return;
+    }
+    select(b, false, e.CmdDown());
+  }
+
+  void OnMotion(wxMouseEvent &e)
+  {
+    const wxPoint at = CalcUnscrolledPosition(e.GetPosition());
+    const WfBox *b = boxAt(at);
+    wxString tip;
+    if (b && playRect(*b).Contains(at)) {
+      const string why = playBlocker(*b);
+      tip = why.empty() ? wxString("Launch this step")
+                        : wxString::FromUTF8(("Cannot launch: " + why).c_str());
+    }
+    if (tip != GetToolTipText()) SetToolTip(tip);
+    e.Skip();
   }
 
   void OnDClick(wxMouseEvent &e)
@@ -309,6 +357,7 @@ private:
     }
 
     const EcceURL sel = p_panel->p_selected;
+    std::map<Resource*, string> blocked = WorkflowSteps::stepBlockers(p_panel->p_session);
     for (const WfBox &b : p_boxes) {
       const WorkflowSteps::Code *code = WorkflowSteps::codeOf(b.step);
       const bool isSel = (b.step->getURL() == sel) ||
@@ -343,15 +392,25 @@ private:
 
       dc.SetTextForeground(text);
       wxString name = wxControl::Ellipsize(wxString::FromUTF8(b.step->getName().c_str()),
-                                           dc, wxELLIPSIZE_END, r.width - 32);
+                                           dc, wxELLIPSIZE_END, r.width - 58);
       const int lh = dc.GetTextExtent("Ag").y;
       dc.DrawText(name, r.x + 18, r.y + r.height - 8 - 2 * lh);
       const wxString res = resultText(b.step);
       if (!res.empty()) {
         dc.SetTextForeground(dim);
-        dc.DrawText(wxControl::Ellipsize(res, dc, wxELLIPSIZE_END, r.width - 32),
+        dc.DrawText(wxControl::Ellipsize(res, dc, wxELLIPSIZE_END, r.width - 58),
                     r.x + 18, r.y + r.height - 8 - lh);
       }
+      // Play button: coloured when the step can be launched, grey otherwise.
+      const wxRect pr = playRect(b);
+      const bool canPlay = blocked.find(b.step) == blocked.end();
+      dc.SetPen(*wxTRANSPARENT_PEN);
+      dc.SetBrush(wxBrush(canPlay ? wxColour(0x2f, 0x9e, 0x44)
+                                  : wxColour(0xc8, 0xcc, 0xd0)));
+      wxPoint tri[3] = {wxPoint(pr.x + 3, pr.y + 1),
+                        wxPoint(pr.x + 3, pr.GetBottom() - 1),
+                        wxPoint(pr.GetRight() - 1, pr.y + pr.height / 2)};
+      dc.DrawPolygon(3, tri);
     }
 
     if (p_hasKey) {
@@ -482,7 +541,7 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
                              wxWindow *parent)
   : ewxPanel(parent, wxID_ANY), p_calcMgr(calcMgr),
     p_session(dynamic_cast<Session*>(node->getResource())),
-    p_canvas(0), p_help(0), p_status(0), p_launch(0), p_apply(0), p_empty(0),
+    p_canvas(0), p_help(0), p_status(0), p_launch(0), p_autorun(0), p_apply(0), p_empty(0),
     p_left(0), p_top(0), p_recipe(0), p_vertical(false),
     p_toolbar(0), p_orientationId(wxWindow::NewControlId())
 {
@@ -490,6 +549,8 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
   prefs.getBool("Organizer.Workflow.Vertical", p_vertical);
   createControls();
   Bind(wxEVT_MENU, [this](wxCommandEvent &) { recipeFromHere(); }, recipeHereId());
+  // Catch up: a step finished while this workflow was not open.
+  CallAfter([this]() { p_calcMgr->autoRunWorkflow(p_session); });
 }
 
 
@@ -569,7 +630,18 @@ void WorkflowPanel::createControls()
   noteSizer->Add(texts, 1, wxEXPAND);
   noteSizer->Add(saveRecipe, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM | wxLEFT, 8);
   noteSizer->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM | wxLEFT, 8);
-  noteSizer->Add(p_launch, 0, wxALIGN_CENTER_VERTICAL | wxALL, 8);
+  p_autorun = new wxCheckBox(notes, wxID_ANY, "Run the remaining steps automatically");
+  p_autorun->SetToolTip("Launch each step as soon as the step it starts from is "
+                        "Complete. Works while the Organizer is open.");
+  p_autorun->SetValue(WorkflowSteps::autoRun(p_session));
+  p_autorun->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
+    WorkflowSteps::setAutoRun(p_session, p_autorun->GetValue());
+    p_calcMgr->autoRunWorkflow(p_session);
+  });
+  wxBoxSizer *launchCol = new wxBoxSizer(wxVERTICAL);
+  launchCol->Add(p_launch, 0, wxALIGN_RIGHT);
+  launchCol->Add(p_autorun, 0, wxALIGN_RIGHT | wxTOP, 4);
+  noteSizer->Add(launchCol, 0, wxALIGN_CENTER_VERTICAL | wxALL, 8);
   notes->SetSizer(noteSizer);
   left->Add(notes, 0, wxEXPAND | wxTOP, 4);
   top->Add(left, 1, wxEXPAND);
@@ -609,6 +681,7 @@ void WorkflowPanel::setVertical(bool vertical)
 
 void WorkflowPanel::updateTexts()
 {
+  if (p_autorun) p_autorun->SetValue(WorkflowSteps::autoRun(p_session));
   if (p_left && !p_recipe) {
     const bool empty = p_session->numMembers() == 0;
     p_left->Show(p_canvas, !empty);
@@ -676,12 +749,14 @@ void WorkflowPanel::closeRecipe()
 
 
 string WorkflowPanel::recipeCreate(const Recipe &recipe, const RecipeVariant &variant,
-                                   const WorkflowSteps::Levels &levels, Resource *after)
+                                   const WorkflowSteps::Levels &levels, Resource *after,
+                                   bool autorun)
 {
   string outcome;
   vector<Resource*> made = p_calcMgr->newRecipeSteps(p_session, recipe, variant, levels,
                                                      after, &outcome);
   if (made.empty()) return outcome.empty() ? "Nothing was created." : outcome;
+  if (autorun) WorkflowSteps::setAutoRun(p_session, true);
   closeRecipe();
   refresh();
   return "";
@@ -798,6 +873,20 @@ void WorkflowPanel::launchReadyClicked()
 {
   say("");
   p_calcMgr->launchReadySteps(p_session, true, 0, "");
+}
+
+
+void WorkflowPanel::playClicked(const EcceURL &url, bool interactive)
+{
+  say("");
+  const WfBox *b = p_canvas->boxOf(url);
+  if (b) p_calcMgr->launchStep(p_session, b->step, interactive, 0);
+}
+
+
+string WorkflowPanel::playReport()
+{
+  return p_canvas->playReport();
 }
 
 

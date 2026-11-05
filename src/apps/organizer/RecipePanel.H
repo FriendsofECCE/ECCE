@@ -24,6 +24,7 @@
 class Resource;
 class Session;
 class WorkflowPanel;
+class wxCheckBox;
 class wxListCtrl;
 class RecipePreview;
 class wxScrolledWindow;
@@ -35,6 +36,7 @@ public:
   RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
               Resource *after);
 
+  void setAutoRun(bool on);
   bool selectRecipe(const std::string& id);
   bool selectVariant(const std::string& id);
   bool setLevel(const std::string& role, const std::string& method,
@@ -85,6 +87,7 @@ private:
   std::vector<RoleRow> p_roles;
   wxRadioButton *p_new, *p_afterButton;
   wxStaticText *p_description, *p_problem, *p_facts_text;
+  wxCheckBox *p_autorun;
   RecipePreview *p_preview;
 };
 

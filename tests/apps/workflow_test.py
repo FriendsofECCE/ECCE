@@ -1196,6 +1196,119 @@ def run_protonation(display, data, work, shots):
           "-0.5" in text and "-0.8" in text, text)
 
 
+def run_autorun(display, data, work, shots):
+    """Auto-run and the play button (#736): with the setting on, a step that
+    completes launches the next; a play button is enabled only for a ready
+    step; Launch Step launches just that one."""
+    project = os.path.join(data, "users", "local", "autorun")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    script = os.path.join(work, "autorun-commands")
+    # A local Shell machine with xtb, as Machine Registration would store it,
+    # in the isolated state directory.
+    prefs = os.path.join(os.environ["ECCE_REALUSERHOME"], ".ECCE")
+    os.makedirs(prefs, exist_ok=True)
+    rundir = os.path.join(work, "autorun-run")
+    os.makedirs(rundir, exist_ok=True)
+    with open(os.path.join(prefs, "MyMachines"), "w") as h:
+        h.write("localhost\tlocalhost\tGeneric\tqueue test machine\tUnspecified\t"
+                "1:16\tssh\t:xTB\tMN:RD:SD:Q:TL:MM:SS:AA\n")
+    with open(os.path.join(prefs, "Queues"), "w") as h:
+        h.write("Queues: localhost\nlocalhost|queueMgrName:   Shell\n"
+                "localhost|prefFile:       localhost.Q\n\n")
+    with open(os.path.join(prefs, "localhost.Q"), "w") as h:
+        h.write("Queues: normal\nnormal|minProcessors: 1\nnormal|maxProcessors: 16\n"
+                "normal|runLimit: 1440\nnormal|memLimit: 0\nnormal|memUnits: MB\n")
+    with open(os.path.join(prefs, "CONFIG.localhost"), "w") as h:
+        h.write("xTB: %s\nperlPath: /usr/bin\n" % (shutil.which("xtb") or "/usr/bin/xtb"))
+    setup = [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowstep %s xtb_es a %s/seed" % (wf, wf),
+        "workflowstep %s xtb_es b %s/a" % (wf, wf),
+        "workflowstep %s xtb_es c %s/a" % (wf, wf),
+    ] + ["workflowsetlaunch %s %s/%s localhost %s" % (wf, wf, n, rundir)
+         for n in ("a", "b", "c")]
+    with open(script, "w") as f:
+        f.write("\n".join(setup) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    check("autorun setup Organizer survives", not result.crashed, result.log or "")
+    # The input deck the Calculation Editor would have written.
+    for n in ("a", "b", "c"):
+        with open(os.path.join(project, "Workflow", n, "xtb.xtbin"), "w") as f:
+            f.write("##XtbHeader##\n##chemsys##\n")
+    script = os.path.join(work, "autorun-commands1")
+    commands = [
+        "workflowautorun %s query" % wf,
+        "workflowplay %s" % wf,
+        "workflowlaunchstep %s %s/b" % (wf, wf),
+        "workflowlaunchstep %s %s/a" % (wf, wf),
+        "workflowplay %s" % wf,
+        "workflowlaunchstep %s %s/a" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ]
+    with open(script, "w") as f:
+        f.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    with open(os.path.join(shots, "autorun-1.log"), "w") as f:
+        f.write(log)
+    check("autorun Organizer survives", not result.crashed, log)
+
+    def answers(command):
+        return re.findall(r"ECCE_TEST_ORGANIZER: %s.*?: (.*)$" % command, log, re.M)
+
+    check("auto-run is off by default",
+          answers("workflowautorun")[-1:] == ["ok autorun=off"], str(answers("workflowautorun")))
+    play = answers("workflowplay")
+    check("play buttons: only the ready step is enabled", len(play) == 2 and
+          "seed:0:already run|a:1:|b:0:waiting for a|c:0:waiting for a" in play[0],
+          str(play))
+    launch = answers("workflowlaunchstep")
+    check("a step that is waiting is not launched",
+          len(launch) == 3 and launch[0] == "ok blocked waiting for a" or
+          (len(launch) == 3 and "blocked waiting for a" in launch[0]), str(launch))
+    check("launching a step launches only that one and not twice",
+          len(launch) == 3 and launch[1].startswith("ok a:") and
+          "skipped" not in launch[1] and
+          "blocked already run" in launch[2], str(launch))
+    check("only the launched step left Created",
+          len(play) == 2 and "a:0:already run" in play[1] and
+          "b:0:waiting for a" in play[1], str(play))
+
+    # Auto-run on: the first step completes, the next two start by themselves.
+    script2 = os.path.join(work, "autorun-commands2")
+    commands = [
+        "workflowautorun %s on" % wf,
+        "setstate %s/a completed" % wf,
+        "workflowplay %s" % wf,
+        "workflowplay %s" % wf,
+        "workflowplay %s" % wf,
+        "workflowplay %s" % wf,
+        "workflowautorun %s query" % wf,
+        "workflowshot %s %s" % (os.path.join(shots, "workflow-play-buttons.png"), wf),
+    ]
+    with open(script2, "w") as f:
+        f.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script2})
+    log = result.log or ""
+    with open(os.path.join(shots, "autorun-2.log"), "w") as f:
+        f.write(log)
+    check("autorun second Organizer survives", not result.crashed, log)
+    play = answers("workflowplay")
+    check("with auto-run on, the dependants of a completed step were launched",
+          play and "b:0:already run" in play[-1] and "c:0:already run" in play[-1],
+          str(play))
+    check("auto-run stays on", answers("workflowautorun")[-1:] == ["ok autorun=on"],
+          str(answers("workflowautorun")))
+
+
 def main():
     keep = None
     if "--shots" in sys.argv:
@@ -1229,6 +1342,8 @@ def main():
                 run_editor(display, data, work, shots)
             elif "--protonation-only" in sys.argv:
                 run_protonation(display, data, work, shots)
+            elif "--autorun-only" in sys.argv:
+                run_autorun(display, data, work, shots)
             elif "--make-only" in sys.argv:
                 run_make(display, data, work, shots)
             elif "--recipes-only" not in sys.argv:
@@ -1240,8 +1355,9 @@ def main():
                 run_patterns(display, data, work, shots)
                 run_crest_preopt(display, data, work, shots)
                 run_editor(display, data, work, shots)
-                run_protonation(display, data, work, shots)
-            if not {"--make-only", "--editor-only", "--protonation-only"} & set(sys.argv):
+                # Protonation and auto-run have their own ctest entries
+                # (apps_workflow_protonation, apps_workflow_autorun).
+            if not {"--make-only", "--editor-only", "--protonation-only", "--autorun-only"} & set(sys.argv):
                 run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
