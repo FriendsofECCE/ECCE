@@ -1346,6 +1346,15 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_ensemble.py
         DESTINATION bin RENAME ecce-ensemble
         COMPONENT client)
 
+# ecce-rate (#872): TST rate constants with Wigner/Eckart tunnelling; ecce-rates
+# is its formula library (no command of its own).
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_rate.py
+        DESTINATION bin RENAME ecce-rate
+        COMPONENT client)
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
+        DESTINATION bin RENAME ecce-rates
+        COMPONENT client)
+
 # ecce-bandshift (#707): matched bands and their shifts between two calculations.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
         DESTINATION bin RENAME ecce-bandshift
@@ -2712,6 +2721,15 @@ add_test(NAME ensemble
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/ensemble/run_tests.py)
 set_tests_properties(ensemble PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
+# tests/rates -- scripts/ecce_rates.py formulas (Eckart against a Schroedinger
+# solution, fits) and ecce-rate on the stored SN2 workflow (#872); the CLI part needs
+# a DESTDIR install (ECCE_TEST_HOME, ECCE_TEST_WRAPPERS) and SKIPs without.
+add_test(NAME rates_formulas
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rates/unit_tests.py)
+add_test(NAME rates
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rates/cli_tests.py)
+set_tests_properties(rates PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
 # tests/bandshift -- scripts/ecce_bandshift.py on stored frequency calculations (#707).
 add_test(NAME bandshift
@@ -4891,6 +4909,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-displacement=bin/ecce-displacement
   ecce-bandshift=bin/ecce-bandshift
   ecce-ensemble=bin/ecce-ensemble
+  ecce-rate=bin/ecce-rate
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
   ecce-si-export=bin/ecce-si-export
