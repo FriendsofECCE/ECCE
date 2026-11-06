@@ -164,7 +164,7 @@ DensityMapPanel::DensityMapPanel()
     p_inViewer(false), p_dragging(false), p_mapCoarse(false), p_show(0), p_spin(0), p_atomA(0),
     p_atomB(0), p_atomC(0), p_plane(0), p_principal(0), p_offsetField(0), p_resetOffset(0),
     p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
-    p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_diff(0), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
+    p_viewRow(0), p_moreRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_diff(0), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
 {
 }
 
@@ -363,17 +363,20 @@ void DensityMapPanel::build()
                               wxDefaultSize, wxST_ELLIPSIZE_END);
   //  The four actions in one grid of equal widths (as "Mode in the viewer"
   //  in the Vibrational Frequencies panel); height is what the map lacks.
-  wxGridSizer *buttons = new wxGridSizer(2, 4, 4);
-  buttons->Add(p_diff, 0, wxEXPAND);
-  buttons->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxEXPAND);
-  buttons->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0, wxEXPAND);
+  //  One Options toggle; the rarely used actions sit inside it with the
+  //  plane controls, so the map keeps the height.
+  wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
+  p_moreRow = new wxBoxSizer(wxHORIZONTAL);
+  p_moreRow->Add(p_diff, 0, RIGHT, 4);
+  p_moreRow->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, RIGHT, 4);
+  p_moreRow->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0, 0);
 
   top->Add(grid, 0, wxEXPAND | wxALL, 6);
   top->Add(buttons, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   //  The plane controls take most of the height; the choice is remembered.
   p_planeToggle = new wxButton(this, ID_PLANETOGGLE, wxEmptyString,
                                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-  p_planeToggle->SetToolTip("Show or hide the plane choice and its atoms");
+  p_planeToggle->SetToolTip("Show or hide the plane choice, Difference... and the exports");
   {
     bool open = true;
     ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
@@ -382,7 +385,7 @@ void DensityMapPanel::build()
     //  Nothing remembered: a short panel starts folded (see relayout).
     p_planeAuto = !(cfg && cfg->Exists("/DensityMap/PlaneControlsOpen"));
   }
-  buttons->Add(p_planeToggle, 0, wxEXPAND);
+  buttons->Add(p_planeToggle, 0, 0);
   //  Shown only while zoomed, so the row stays one line otherwise.
   p_zoomReset = new wxButton(this, ID_ZOOMRESET, "Whole plane");
   p_zoomReset->SetToolTip("Mouse wheel zooms around the pointer; double-click also resets");
@@ -396,6 +399,7 @@ void DensityMapPanel::build()
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { resetZoom(); }, ID_ZOOMRESET);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { chooseFragments(); }, ID_DIFF);
   addOrbitalPointNote(this, top, getCalculation());
+  top->Add(p_moreRow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_principal, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_atomRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -714,7 +718,8 @@ void DensityMapPanel::syncControls()
   p_labelA->Show(two || three);  p_atomA->Show(two || three);
   p_labelB->Show(two || three);  p_atomB->Show(two || three);
   p_labelC->Show(three);         p_atomC->Show(three);
-  p_planeToggle->SetLabel(p_planeOpen ? "Hide plane controls" : "Show plane controls");
+  p_planeToggle->SetLabel(wxString::FromUTF8(p_planeOpen ? "\xE2\x96\xBE Options" : "\xE2\x96\xB8 Options"));
+  GetSizer()->Show(p_moreRow, p_planeOpen, true);
   GetSizer()->Show(p_plane, p_planeOpen, true);
   GetSizer()->Show(p_principal, p_planeOpen && plane == 0 && !p_principalPlanes.empty());
   GetSizer()->Show(p_atomRow, p_planeOpen && (two || three), true);
