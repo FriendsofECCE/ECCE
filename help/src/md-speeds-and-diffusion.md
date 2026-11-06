@@ -3,9 +3,18 @@
 Two panels of the Builder analyse the motion of the atoms in a GROMACS dynamics
 run: **Speed Distribution** and **Displacement (MSD)**. Open them from the
 **Properties** list, in the Energies group beside **Pull Force**. They appear for
-a run that carries the analysis: the examples of the **General Chemistry** set
-(see [Example calculations](example-calculations.md)) and any run imported with
-an `ecce-parse-md.txt` made by the `ecce-mdanalysis` program (below).
+every GROMACS dynamics run that saves a compressed trajectory (.xtc): after
+mdrun the job runs ECCE's `mdanalysis` program on the trajectory and topology.
+The displacements need only the trajectory; the speeds need velocities, which
+GROMACS saves only with `nstvout` (for example `nstvout = 50` under Extra .mdp
+lines). Without them the Speed Distribution panel says that no velocities were
+saved. A machine without ECCE installed skips the analysis and says so in the
+job's log. An imported GROMACS run gets the same analysis when its folder holds
+the .xtc, the topology and the .mdp (with `gmx` installed, the topology is read
+through `gmx grompp`, so library force fields are found); an `ecce-parse-md.txt`
+in the folder (below) is used as it is. The examples of the **General
+Chemistry** set (see [Example calculations](example-calculations.md)) carry the
+analysis already.
 
 ## Speed distribution
 

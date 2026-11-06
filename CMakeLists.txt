@@ -4442,6 +4442,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_import PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # #877: every GROMACS run gets the Speed Distribution and Displacement data
+  # (mdanalysis in the job script), and so does an imported run directory.
+  add_test(NAME launch_gromacs_md_analysis
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_md_analysis_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_md_analysis PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # The classic NWChem MD workflow (Prepare, Optimize, Energy, Dynamics), headless.
   add_test(NAME launch_nwchem_md_walk
            COMMAND ${PYTHON3_EXECUTABLE}
