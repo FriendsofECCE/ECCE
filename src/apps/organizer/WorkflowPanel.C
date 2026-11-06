@@ -1051,6 +1051,7 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
   p_point = 0;
   p_geometry = 0;
   p_charge = 0;
+  p_hessian = 0;
   p_best = 0;
   p_bestN = 0;
   p_patterns = 0;
@@ -1078,13 +1079,19 @@ WorkflowStepDialog::WorkflowStepDialog(wxWindow *parent, Session *wf,
     p_charge->SetValue(true);
     wxCheckBox *orbitals = new wxCheckBox(this, wxID_ANY,
                              "Orbitals as the starting guess");
-    wxCheckBox *hessian = new wxCheckBox(this, wxID_ANY, "Hessian (for a TS search)");
+    p_hessian = new wxCheckBox(this, wxID_ANY,
+                               "Start from the source's Hessian");
+    const bool canHessian = WorkflowSteps::canCarryHessian(source, type);
+    p_hessian->Enable(canHessian);
+    p_hessian->SetValue(canHessian);
+    p_hessian->SetToolTip(canHessian
+        ? "The optimisation reads the Hessian of the source step as its "
+          "initial Hessian."
+        : "Needs an ORCA step with a stored Hessian as source and an ORCA "
+          "step as the new one.");
     orbitals->Enable(false);
-    hessian->Enable(false);
-    const wxString notYet = "not yet: needs orbital converters";
-    orbitals->SetToolTip(notYet);
-    hessian->SetToolTip(notYet);
-    for (wxCheckBox *c : {p_geometry, p_charge, orbitals, hessian})
+    orbitals->SetToolTip("not yet: needs orbital converters");
+    for (wxCheckBox *c : {p_geometry, p_charge, orbitals, p_hessian})
       top->Add(c, 0, wxLEFT | wxTOP, 28);
     const int conformers = ScanPoint::ensembleSize(dynamic_cast<PropertyTask*>(source));
     if (conformers > 0) {
@@ -1164,6 +1171,7 @@ WorkflowSteps::Carry WorkflowStepDialog::carry() const
   WorkflowSteps::Carry c;
   if (p_geometry) c.geometry = p_geometry->GetValue();
   if (p_charge) c.chargeMult = p_charge->GetValue();
+  c.hessian = p_hessian && p_hessian->IsEnabled() && p_hessian->GetValue();
   if (p_point) c.point = p_point->spec();
   if (p_patterns && p_patterns->GetValue()) {
     c.perPattern = true;

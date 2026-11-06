@@ -16,6 +16,8 @@
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/TGBSConfig.H"
 #include "dsm/ICalculation.H"
+#include "dsm/OrbitalGuess.H"
+#include "dsm/TaskJob.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/ResourceType.H"
@@ -63,6 +65,15 @@ const WorkflowSteps::Code *WorkflowSteps::codeOf(const Resource *step)
   for (size_t i = 0; i < codes().size(); i++)
     if (rt->getName() == codes()[i].typeName) return &codes()[i];
   return 0;
+}
+
+
+bool WorkflowSteps::canCarryHessian(Resource *source, ResourceType *toType)
+{
+  ResourceType *from = source ? source->getDescriptor() : 0;
+  return from && toType && from->getName() == "orca_es" &&
+         toType->getName() == "orca_es" &&
+         OrbitalGuess::hessianAvailable(dynamic_cast<TaskJob*>(source));
 }
 
 
@@ -211,6 +222,15 @@ Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
         to->spinMultiplicity(from->spinMultiplicity());
         to->openShells(from->openShells());
       }
+    }
+    if (carry.hessian && canCarryHessian(source, rt)) {
+      TaskJob *target = dynamic_cast<TaskJob*>(made);
+      string hessWhy;
+      if (!target ||
+          !OrbitalGuess::attachHessian(target, dynamic_cast<TaskJob*>(source),
+                                       hessWhy))
+        throw InvalidException(hessWhy.empty() ? "The Hessian could not be "
+                               "carried over" : hessWhy, WHERE);
     }
   }
   catch (InvalidException& ex) {
@@ -684,6 +704,9 @@ string WorkflowSteps::info(Session *wf)
     TGBSConfig *gbs = calc ? calc->gbsConfig() : 0;
     if (gbs && !gbs->name().empty()) out << " basis=" << gbs->name();
     delete gbs;
+    TaskJob *job = dynamic_cast<TaskJob*>(step);
+    if (job && job->hasHessianInput())
+      out << " hess=" << job->getProp(TaskJob::hessianFromSourceProp());
     if (frag && frag->numAtoms() > 0) {
       const double *c = frag->atomRef(0)->coordinates();
       out << " xyz0=" << c[0] << "," << c[1] << "," << c[2];

@@ -968,7 +968,7 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command.compare(0, 8, "workflow") == 0) {
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
-      //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge]
+      //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge] [hess]
       //     a code button without the dialog (type = e.g. orca_es)
       //     point=last|max|N: the scan point the link carries
       //     best=N: from a CREST ensemble, N steps (conformers by energy)
@@ -1009,6 +1009,7 @@ void CalcMgr::runTestCommand(const string& line)
         while (args >> flag) {
           if (flag == "nogeom") carry.geometry = false;
           if (flag == "nocharge") carry.chargeMult = false;
+          if (flag == "hess") carry.hessian = true;
           if (flag.compare(0, 9, "geomfrom=") == 0) geomFrom = flag.substr(9);
           if (flag.compare(0, 6, "point=") == 0) carry.point = flag.substr(6);
           if (flag == "patterns") carry.perPattern = true;
@@ -5175,6 +5176,9 @@ struct ExampleTopic {
   bool workflow = false;
   struct FlowLink { string from, to, name; };
   vector<FlowLink> links;
+  // steps (calculation names) that start from their source's Hessian, with
+  // the .hess file the source's example folder ships
+  vector<std::pair<string, string>> hessian;
 };
 struct ExampleSet {
   string id, title, line, project;
@@ -5186,7 +5190,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "30";
+const char *const kExampleSetVersion = "31";
 
 string treeName(string s)
 {
@@ -5238,7 +5242,8 @@ void collectExamples(const string &setDir, const string &topicDir,
     topic.outputs.push_back(o);
   }
   // workflow.txt: one example folder per line, "<folder>" for a first step
-  // or "<folder> < <source folder>" for a step made from another.
+  // or "<folder> < <source folder>" for a step made from another;
+  // "<source folder>+hess" also starts it from the source's Hessian.
   std::ifstream wf(setDir + topicDir + "/workflow.txt");
   if (!topicDir.empty() && wf) {
     topic.workflow = true;
@@ -5257,6 +5262,10 @@ void collectExamples(const string &setDir, const string &topicDir,
       // "<source>=<role>[@<point>]" for each source.
       const string to = calcOf(folder);
       while (words >> tok) {
+        // "+hess": the step reads the Hessian of this source
+        const size_t plus = tok.find("+hess");
+        const bool hess = plus != string::npos && plus + 5 == tok.size();
+        if (hess) tok.erase(plus);
         const size_t at = tok.find('@');
         const size_t eq = tok.find('=');
         const size_t end = std::min(eq, at);
@@ -5267,6 +5276,10 @@ void collectExamples(const string &setDir, const string &topicDir,
         const string from = calcOf(tok.substr(0, end));
         if (!to.empty() && !from.empty())
           topic.links.push_back({from, to, WorkflowSteps::linkName(role, point)});
+        if (hess && !to.empty() && !from.empty())
+          topic.hessian.push_back({to, setDir + topicDir + "/" +
+                                       tok.substr(0, end) + "/" + from +
+                                       ".hess"});
       }
     }
   }
@@ -5598,8 +5611,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     }
     Session *flow = topic.workflow ? dynamic_cast<Session*>(parent) : 0;
     if (flow)
+    {
       for (const auto &l : topic.links)
         p_flowSources[l.to].push_back({l.from, l.name});
+      for (const auto &h : topic.hessian) p_flowHessian[h.first] = h.second;
+    }
     findNode(parent->getURL(), true, true);
     for (const ExampleOut *exp : todo->second) {
       const ExampleOut &ex = *exp;
@@ -5707,10 +5723,13 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
                   "ECCE and imported from the program's output files."},
     {"na_6_0_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with six waters in the first shell, relaxed with the cheap method that starts the workflow."},
     {"na_6_0_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (six waters in the first shell) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
+    {"na_6_0_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with six waters in the first shell in water, where the order of the arrangements differs from the gas phase."},
     {"na_5_1_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with five waters in the first shell and one in the second, relaxed with the cheap method that starts the workflow."},
     {"na_5_1_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (five waters in the first shell and one in the second) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
+    {"na_5_1_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with five waters in the first shell and one in the second in water, where the order of the arrangements differs from the gas phase."},
     {"na_4_2_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with four waters in the first shell and two beyond them, relaxed with the cheap method that starts the workflow."},
     {"na_4_2_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (four waters in the first shell and two beyond them) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
+    {"na_4_2_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with four waters in the first shell and two beyond them in water, where the order of the arrangements differs from the gas phase."},
     {"sn2_reactant", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies. This calculation shows the ion-dipole complex of chloride with methyl bromide, the first step of the SN2 workflow and the geometry the scan starts from."},
     {"sn2_scan", "Gaussian 16, B3LYP/6-31+G(d), charge -1, relaxed scan of the C...Cl distance. This calculation shows the energy along the approach of chloride to the carbon, with a maximum whose structure is the transition-state guess of the join."},
     {"sn2_product", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies, started from the last point of the scan. This calculation shows the product complex of methyl chloride and bromide."},
@@ -11604,6 +11623,21 @@ void CalcMgr::joinExampleWorkflow(Resource *step)
           wf->addLink(from, to, Session::INPUT_PROVIDER, src.second);
       }
     wf->saveLinkbase();
+    // "+hess" in workflow.txt: the step reads the Hessian of its source
+    for (const auto &l : p_flowSources) {
+      auto hess = p_flowHessian.find(l.first);
+      if (hess == p_flowHessian.end() || l.second.empty()) continue;
+      Resource *to = member(l.first), *from = member(l.second[0].first);
+      if (!to || !from) continue;
+      if (!same(to, step) && !same(from, step)) continue;
+      TaskJob *target = dynamic_cast<TaskJob*>(to);
+      string why;
+      if (target && !target->hasHessianInput() &&
+          !OrbitalGuess::attachHessianFile(target, hess->second,
+                                           from->getName(), why))
+        cerr << "Organizer: example workflow: " << to->getName()
+             << ": " << why << endl;
+    }
   } catch (InvalidException &ex) {
     cerr << "Organizer: example workflow: " << ex.what() << endl;
   }

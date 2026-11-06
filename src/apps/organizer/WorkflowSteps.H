@@ -49,11 +49,17 @@ namespace WorkflowSteps {
     /// From a CREST ensemble: one step per coordination pattern, from the
     /// pattern's lowest-energy conformer (ScanPoint::ensemblePatterns).
     bool perPattern;
-    Carry() : geometry(true), chargeMult(true), best(0), perPattern(false) {}
+    bool hessian;   ///< the source's Hessian as the initial Hessian (ORCA)
+    Carry() : geometry(true), chargeMult(true), best(0), perPattern(false),
+              hessian(false) {}
   };
 
   /// The link name a step carries its geometry under.
   extern const char *const kGeometryLink;
+
+  /// True if `to` can start from the Hessian of `source`: both are ORCA
+  /// calculations and the source kept a .hess.
+  bool canCarryHessian(Resource *source, ResourceType *toType);
 
   /// Link names are "<role>" or "<role>.<point>" ("@" is not allowed in a link
   /// name): geometry, reactant,

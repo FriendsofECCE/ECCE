@@ -260,8 +260,18 @@ bool writeParams(ICalculation *calc, const string& file,
   TaskJob *job = dynamic_cast<TaskJob*>(calc);
   if (job && job->hasOrbitalGuess())
     os << "ES.Theory.SCF.OrbitalGuessFile: " << job->orbitalGuessFile() << endl;
-  if (job && job->hasHessianInput())
+  if (job && job->hasHessianInput()) {
     os << "ES.Runtype.GeomOpt.HessianFile: " << job->hessianInputFile() << endl;
+    // A workflow step made with "Start from the source's Hessian" reads it
+    // unless the Initial Hessian was set to something else; the last line
+    // of a key wins.
+    GUIValue *init = gv ? gv->get("ES.Runtype.GeomOpt.InitialHessian") : 0;
+    const string chosen = init ? init->getValueAsString() : "";
+    if (!job->getProp(TaskJob::hessianFromSourceProp()).empty() &&
+        (chosen.empty() || chosen == "Default"))
+      os << "ES.Runtype.GeomOpt.InitialHessian: "
+            "Read from previous calculation" << endl;
+  }
   return true;
 }
 

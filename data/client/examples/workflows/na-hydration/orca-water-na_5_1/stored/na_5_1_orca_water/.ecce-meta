@@ -1,0 +1,58 @@
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://purl.org/dc/terms/:taskIndex		4
+.	http://www.emsl.pnl.gov/ecce:annotation		ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with five waters in the first shell and one in the second in water, where the order of the arrangements differs from the gas phase.
+.	http://www.emsl.pnl.gov/ecce:application		ORCA
+.	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
+.	http://www.emsl.pnl.gov/ecce:completiondate		Fri, 06 Nov 2026 05:52:31 GMT
+.	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
+.	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Fri, 06 Nov 2026 05:52:15 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
+.	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
+.	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
+.	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:hasinputs		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Inputs/inhess.hess" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:hessianfromsource		na_5_1_orca
+.	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
+.	http://www.emsl.pnl.gov/ecce:job_clientid		
+.	http://www.emsl.pnl.gov/ecce:job_jobid		
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/na_5_1_orca_water__cBwv1x
+.	http://www.emsl.pnl.gov/ecce:killreason		
+.	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
+.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
+.	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
+.	http://www.emsl.pnl.gov/ecce:launch_maxwall		
+.	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
+.	http://www.emsl.pnl.gov/ecce:launch_nodes		0
+.	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
+.	http://www.emsl.pnl.gov/ecce:launch_queue		
+.	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
+.	http://www.emsl.pnl.gov/ecce:launch_rundir		
+.	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_threads		0
+.	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
+.	http://www.emsl.pnl.gov/ecce:launch_user		
+.	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
+.	http://www.emsl.pnl.gov/ecce:moleculeDocument		chemsys.mvm
+.	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
+.	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
+.	http://www.emsl.pnl.gov/ecce:owner		andy
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=15 sent=1793944350.093 idle=0 at=1793944351\nopt step=41 energy=-620.829445358 dE=-0.0000004116/0.0000050000 rmsgrad=0.0000208943/0.0001000000 maxgrad=0.0000753105/0.0003000000 rmsstep=0.0010442711/0.0020000000 maxstep=0.0026441272/0.0040000000 converged=yes\nopt~ rmsgrad=0.0015166682,0.0175917583,0.0038759697,0.0043229297,0.0084211221,0.0061473430,0.0014838038,0.0043079419,0.0027052607,0.0025737481,0.0021862331,0.0029678970,0.0018410446,0.0022574237,0.0024698296,0.0027054145,0.0013083697,0.0016006655,0.0011409790,0.0011862214,0.0011448585,0.0018043060,0.0005155184,0.0009528904,0.0002414179,0.0005560079,0.0005472646,0.0010475346,0.0001893956,0.0004024311,0.0001812868,0.0003905568,0.0001313301,0.0003649741,0.0002632836,0.0003782510,0.0000975905,0.0000999884,0.0000216592,0.0000370920,0.0000208943\nopt~ maxgrad=0.0107928610,0.1692903476,0.0369819430,0.0402510696,0.0783346354,0.0502105066,0.0120587263,0.0413039693,0.0239470514,0.0198438853,0.0191267463,0.0190083830,0.0101638333,0.0178199353,0.0163935209,0.0232815656,0.0085149684,0.0147935528,0.0077851829,0.0053630725,0.0096887304,0.0092715598,0.0029198486,0.0069107388,0.0014671095,0.0029831843,0.0024796534,0.0059073236,0.0007793928,0.0022734605,0.0006267901,0.0022176732,0.0005369735,0.0016892826,0.0015475267,0.0020907806,0.0007991301,0.0006162668,0.0001156006,0.0001652008,0.0000753105\nscf cycle=4 energy=-620.8398353607435638 dE=-2.86e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-2.20e-06,-7.96e-08,-2.86e-09\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=57/57 phase=assemble last=GCP-Hessian real=51 imaginary=0 done=yes zpe=0.14198572\n
+.	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
+.	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
+.	http://www.emsl.pnl.gov/ecce:rerun		false
+.	http://www.emsl.pnl.gov/ecce:resourcetype		virtual_document
+.	http://www.emsl.pnl.gov/ecce:reviewed		false
+.	http://www.emsl.pnl.gov/ecce:reviewedDate		
+.	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
+.	http://www.emsl.pnl.gov/ecce:runStatusReason		
+.	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
+.	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
+.	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
+.	http://www.emsl.pnl.gov/ecce:startdate		Fri, 06 Nov 2026 05:52:15 GMT
+.	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793944335

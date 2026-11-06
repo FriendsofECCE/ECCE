@@ -27,7 +27,7 @@ SETS = {"getting-started": ("Examples/Getting_Started", 6),
         "organic": ("Examples/Organic_Chemistry", 21),
         "spectroscopy": ("Examples/Spectroscopy", 19),
         "genchem": ("Examples/General_Chemistry", 105),
-        "workflows": ("Examples/Workflows", 11)}
+        "workflows": ("Examples/Workflows", 14)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",

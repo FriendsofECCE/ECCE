@@ -142,6 +142,7 @@ private:
   PointChooser *p_point;
   wxCheckBox *p_geometry;
   wxCheckBox *p_charge;
+  wxCheckBox *p_hessian;
   wxCheckBox *p_best;
   wxSpinCtrl *p_bestN;
   wxCheckBox *p_patterns;

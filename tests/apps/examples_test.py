@@ -120,6 +120,9 @@ WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE", "MO", "ORBENG"]
                                    if c == "xtb"
                                    else ["TE", "VIBFREQ", "MO", "ORBENG"])
              for n in ("6_0", "5_1", "4_2") for c in ("xtb", "orca")}
+# the water steps print no MO block (gas-phase steps carry it for #712)
+WORKFLOWS.update({"na_%s_orca_water" % n: ["TE", "VIBFREQ"]
+                  for n in ("6_0", "5_1", "4_2")})
 WORKFLOWS.update({"sn2_" + k: ["TE"] for k in
                   ("reactant", "scan", "product", "qst3")})
 WORKFLOWS["sn2_irc"] = ["GEOMTRACE"]
