@@ -320,7 +320,9 @@ bool AddDipoleMomentCmd::execute()
          const double *z = frag->atomRef(bonds[b].second)->coordinates();
          double len = sqrt((z[0]-a[0])*(z[0]-a[0]) + (z[1]-a[1])*(z[1]-a[1]) +
                            (z[2]-a[2])*(z[2]-a[2]));
-         room[b] = std::max(0.3, len - 0.5);
+         // The visible gap between the two drawn atom spheres, with a margin.
+         room[b] = std::max(0.15, len - sg->displayedSphereRadius(bonds[b].first)
+                               - sg->displayedSphereRadius(bonds[b].second) - 0.1);
          if (mag[b] > mag[big]) big = b;
       }
       const double scale = mag.empty() || mag[big] <= 0 ? 0 : room[big]/mag[big];
@@ -328,19 +330,21 @@ bool AddDipoleMomentCmd::execute()
          if (mag[b] < 0.005) continue;
          const double *a = frag->atomRef(bonds[b].first)->coordinates();
          const double *z = frag->atomRef(bonds[b].second)->coordinates();
-         double L = std::min(room[b], std::max(0.2, mag[b]*scale));
+         double L = std::min(room[b], std::max(0.3, mag[b]*scale));
          double d[3], len = 0.0;
          for (int k = 0; k < 3; k++) { d[k] = z[k]-a[k]; len += d[k]*d[k]; }
          len = sqrt(len);
          VRVector *vec = new VRVector;
          vec->setColor(bcol.red(), bcol.green(), bcol.blue());
-         double f = 0.5*(len - L)/len;   // centred on the bond midpoint
+         // Centred in the gap between the atom spheres.
+         double r1 = sg->displayedSphereRadius(bonds[b].first);
+         double f = (r1 + 0.05 + 0.5*(room[b] - L))/len;
          vec->position(a[0] + f*d[0], a[1] + f*d[1], a[2] + f*d[2]);
          double s2 = L/len/1.075;
          vec->direction(d[0]*s2, d[1]*s2, d[2]*s2);
          // Opaque and a little wider than the bond, so the arrow sheathes it.
-         vec->fixedThickness((float)(1.3*rad), (float)(2.0*rad),
-                             (float)std::min(0.20, 0.5*L));
+         vec->fixedThickness((float)(1.3*rad), (float)std::min(2.0*rad, 0.6*L),
+                             (float)std::min(0.20, 0.4*L));
          root->addChild(vec);
       }
    }
