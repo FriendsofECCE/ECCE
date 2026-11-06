@@ -2716,10 +2716,10 @@ void SGFragment::generateDNA(string &sequence)
   //
   // Some hardwired but relative paths.
   //
-  string bpbegin = "/DNA_Bases/Base_Pairs_Termini";
-  string bp3end = "/DNA_Bases/3_Terminus";
-  string bp5end = "/DNA_Bases/5_Terminus";
-  string bpinterior = "/DNA_Bases/Interior";
+  string bpbegin = "/Biomolecules/DNA/Base_pairs";
+  string bp3end = "/Biomolecules/DNA/Chain_units/3_Terminus";
+  string bp5end = "/Biomolecules/DNA/Chain_units/5_Terminus";
+  string bpinterior = "/Biomolecules/DNA/Chain_units/Interior";
 
   // Multiplier for units. Since they are Angstroms, just set to 1.0
   double mult = 1.0;
@@ -3074,9 +3074,9 @@ void SGFragment::generatePeptide(string &sequence)
   //
   // Some hardwired but relative paths.
   //
-  string aaNend = "/Amino_Acids/N_Terminus";
-  string aaCend = "/Amino_Acids/C_Terminus";
-  string aainterior = "/Amino_Acids/Interior";
+  string aaNend = "/Biomolecules/Amino_acids/N_Terminus";
+  string aaCend = "/Biomolecules/Amino_acids/C_Terminus";
+  string aainterior = "/Biomolecules/Amino_acids/Interior";
 
   // Multiplier for units. Since they are Angstroms, just set to 1.0
   double mult = 1.0;

@@ -93,14 +93,14 @@ static void testHungarian()
 static void testPermutations(const std::string& root)
 {
    const char* files[] = {
-      "SimpleStructures/Miscellaneous2/Propane.mvm",
-      "SimpleStructures/Miscellaneous2/Isobutane.mvm",
-      "SimpleStructures/Miscellaneous/Ethanol.mvm",
-      "SimpleStructures/Simple_arenes2/Toluene.mvm",
-      "SimpleStructures/Alicycles/Cyclobutane.mvm",
-      "Amino_Acids/Interior/Alanine.mvm",
-      "Amino_Acids/Interior/Phenylalanine.mvm",
-      "Ligands/Bipyridine.mvm" };
+      "Small_organic_molecules/Hydrocarbons/Propane.mvm",
+      "Small_organic_molecules/Hydrocarbons/Isobutane.mvm",
+      "Small_organic_molecules/Alcohols_ethers_carbonyls_and_acids/Ethanol.mvm",
+      "Small_organic_molecules/Arenes/Toluene.mvm",
+      "Small_organic_molecules/Alicycles/Cyclobutane.mvm",
+      "Biomolecules/Amino_acids/Interior/Alanine.mvm",
+      "Biomolecules/Amino_acids/Interior/Phenylalanine.mvm",
+      "Inorganic/Ligands/Bipyridine.mvm" };
    for (size_t f = 0; f < sizeof(files)/sizeof(files[0]); f++) {
       Xyz s;
       if (!readMvm(root + "/data/client/StructureLibrary/" + files[f], s)) {
@@ -144,7 +144,7 @@ static void testPermutations(const std::string& root)
 static void testIdentity(const std::string& root)
 {
    Xyz s;
-   readMvm(root + "/data/client/StructureLibrary/SimpleStructures/Miscellaneous2/Isobutane.mvm", s);
+   readMvm(root + "/data/client/StructureLibrary/Small_organic_molecules/Hydrocarbons/Isobutane.mvm", s);
    const int n = (int)s.el.size();
    std::vector<int> order(n);
    for (int i = 0; i < n; i++) order[i] = i;
@@ -222,7 +222,7 @@ static void testReaction(const std::string& root)
    // half way to the neighbouring carbon, atoms shuffled.  Every atom but
    // that H must sit on its own counterpart.
    Xyz p;
-   readMvm(root + "/data/client/StructureLibrary/SimpleStructures/Miscellaneous2/Propane.mvm", p);
+   readMvm(root + "/data/client/StructureLibrary/Small_organic_molecules/Hydrocarbons/Propane.mvm", p);
    Xyz q = p;
    const int moved = 3, from = 1, to = 0;   // H3 sits on C1; C0 is the central carbon
    for (int k = 0; k < 3; k++) q.c[3*moved+k] += 0.5*(p.c[3*to+k] - p.c[3*moved+k]);
@@ -253,7 +253,7 @@ static void testReaction(const std::string& root)
 static void testHeavyAlignment(const std::string& root)
 {
    Xyz p;
-   readMvm(root + "/data/client/StructureLibrary/SimpleStructures/Miscellaneous2/Propane.mvm", p);
+   readMvm(root + "/data/client/StructureLibrary/Small_organic_molecules/Hydrocarbons/Propane.mvm", p);
    Xyz q = p;
    int h = -1;
    for (size_t i = 0; i < p.el.size(); i++) if (p.el[i] == "H") { h = (int)i; break; }
@@ -274,8 +274,8 @@ static void testHeavyAlignment(const std::string& root)
 static void testErrors(const std::string& root)
 {
    Xyz p, e;
-   readMvm(root + "/data/client/StructureLibrary/SimpleStructures/Miscellaneous2/Propane.mvm", p);
-   readMvm(root + "/data/client/StructureLibrary/SimpleStructures/Miscellaneous/Ethanol.mvm", e);
+   readMvm(root + "/data/client/StructureLibrary/Small_organic_molecules/Hydrocarbons/Propane.mvm", p);
+   readMvm(root + "/data/client/StructureLibrary/Small_organic_molecules/Alcohols_ethers_carbonyls_and_acids/Ethanol.mvm", e);
    AtomMapResult r = AtomMap::map(p.el, p.c, e.el, e.c);
    CHECK(!r.ok && !r.error.empty(), "count mismatch must be an error");
    printf("count mismatch: %s\n", r.error.c_str());
