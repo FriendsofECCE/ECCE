@@ -100,11 +100,21 @@ line for one key.
 
 A run leaves `ener.edr` (the energies), `topol.tpr` (the run input grompp
 built) and, for a Dynamics task that writes a trajectory, `traj.xtc` in the
-run directory, and ECCE fetches them back when the job ends. Tick **Leave
+run directory, and ECCE fetches them back when the job ends, with the
+resolved topology `ecce_pp.top` and, when velocities are saved, `traj.trr`.
+The **MD Analysis** panel works on these files (see [MD Analysis](md-analysis.md)). Tick **Leave
 trajectory files on the machine** to keep all three there instead. Files
 larger than the fetch limit (500 MB each, unless the site sets another) are
 left there in any case, with a note in the job output; fetch them later with
 `ecce-fetch`.
+
+## Save velocities
+
+Tick **Save velocities every ... steps (for speed distributions)** and give the
+interval to write `nstvout`: the velocities go to `traj.trr`, which ECCE
+fetches with the other files (under the same size limit) and which the
+**Speed Distribution** panel needs. It is off by default, since a `.trr` is
+large. An `nstvout` line under Extra .mdp lines takes precedence.
 
 ## Continuing a run
 

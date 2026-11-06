@@ -156,6 +156,18 @@ def text_tests():
     rc, mdp = mdp_of(EQ, dynamics=npt(), interaction=tag("GmxExtraMdp", "TCOUPL = berendsen"))
     check(keys(mdp)["tcoupl"] == ["berendsen"], "keys are compared without regard to case")
 
+    print("== saving velocities")
+    rc, mdp = mdp_of("ecceMdDynamics", dynamics=npt(), interaction=tag("GmxNstvout", 250))
+    check(keys(mdp).get("nstvout") == ["250"], "Save velocities writes nstvout = 250 (%s)"
+          % keys(mdp).get("nstvout"))
+    rc, mdp = mdp_of("ecceMdDynamics", dynamics=npt(), interaction=tag("GmxNstvout", 250)
+                     + tag("GmxExtraMdp", "nstvout = 40"))
+    check(keys(mdp).get("nstvout") == ["40"], "an nstvout under Extra .mdp lines wins (%s)"
+          % keys(mdp).get("nstvout"))
+    rc, mdp = mdp_of("ecceMdDynamics", dynamics=npt())
+    check(keys(mdp).get("nstvout") in (None, ["0"]), "off by default (%s)"
+          % keys(mdp).get("nstvout"))
+
     print("== continuing the clock")
     top = tag("ProviderEndTime", "2.0") + tag("ProviderEndStep", "1000")
     rc, mdp = mdp_of("ecceMdDynamics", dynamics=npt(), top=top)

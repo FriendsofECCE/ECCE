@@ -50,6 +50,7 @@
 #include "util/ResourceUtils.H"
 #include "util/StringTokenizer.H"
 #include "util/DavException.H"
+#include "util/MdAnalysisRun.H"
 
 #include "util/JMSSubscriber.H"
 #include "util/JMSMessage.H"
@@ -152,6 +153,7 @@ void interactFile(char* fileData);
 void interactNode(char* nodeData);
 void interactGetOutput(void);
 void interactGetFiles(void);
+static void gromacsMdAnalysisFallback(bool parsedMd);
 void getJobMonitorInput(int fid);
 void restart(const char* name, const string& msg);
 void restartSystem(const char* name, const string& msg);
@@ -1809,7 +1811,9 @@ void interactGetFiles(void)
   free((char*)fileStrs);
 
   // store files in database
+  bool parsedMd = false;
   for (fi = filesToGet.list; fi; fi = fi->next) {
+    if (fi->fileName == "ecce-parse-md.txt") parsedMd = true;
     if (fi->dbStoreContents) {
 
       // store data in database
@@ -1842,6 +1846,7 @@ void interactGetFiles(void)
   storeMatches("*.cub");
   storeMatches("*.cube");
   storeMatches("*.pdos");
+  gromacsMdAnalysisFallback(parsedMd);
 
   //  The auxiliary output a code asks to keep (ORCA's .gbw).  Only a
   //  file that really arrived is stored; a failed job may leave none.
@@ -2923,6 +2928,69 @@ void interactError(char* errorData)
 // Process a file message by echoing it to the log file, adding the file to
 // the list of those to be copied, and storing the data in the database.
 // ------------------------------------------------------------------------- //
+// ------------------------------------------------------------------------- //
+// The GROMACS files Launch asks the monitor to send back (filesToTransfer).
+// ------------------------------------------------------------------------- //
+static bool isGromacsResult(const string& name)
+{
+  return name == "traj.xtc" || name == "traj.trr" || name == "ener.edr" ||
+         name == "topol.tpr" || name == "ecce_pp.top";
+}
+
+// ------------------------------------------------------------------------- //
+// A GROMACS run whose host has no ECCE mdanalysis sends no ecce-parse-md.txt;
+// with the trajectory and resolved topology here, it is made on this side
+// as an import does, so Speed Distribution and Displacement still appear.
+// ------------------------------------------------------------------------- //
+static void gromacsMdAnalysisFallback(bool parsedMd)
+{
+  string code = cpCodeName;
+  for (char& c : code) c = toupper(c);
+  if (parsedMd || code != "GROMACS" || !calculation) return;
+  const string xtc = tmpStorage + "/traj.xtc", top = tmpStorage + "/ecce_pp.top";
+  if (!localconn->exists(xtc) || !localconn->exists(top)) return;
+  const string mda = MdAnalysisRun::program();
+  if (access(mda.c_str(), X_OK) != 0) return;
+  istream *is = calculation->getDataFile(JCode::PRIMARY_INPUT);
+  if (!is) return;
+  const string mdp = tmpStorage + "/ecce_md_input.mdp";
+  {
+    ofstream out(mdp.c_str());
+    out << is->rdbuf();
+  }
+  delete is;
+  //  The job script skips minimisations, which have no dynamics to analyse.
+  {
+    std::ifstream in(mdp.c_str());
+    string line, integrator;
+    while (std::getline(in, line)) {
+      line = line.substr(0, line.find(';'));
+      const size_t eq = line.find('=');
+      if (eq == string::npos) continue;
+      std::istringstream k(line.substr(0, eq)), v(line.substr(eq + 1));
+      string key;
+      k >> key;
+      if (key == "integrator") v >> integrator;
+    }
+    for (char& c : integrator) c = tolower(c);
+    for (const char* m : {"steep", "cg", "l-bfgs", "nm", "tpi", "tpic"})
+      if (integrator == m) { unlink(mdp.c_str()); return; }
+  }
+  const string trr = localconn->exists(tmpStorage + "/traj.trr")
+                     ? tmpStorage + "/traj.trr" : string();
+  const string md = MdAnalysisRun::run(mda, top, mdp, xtc, trr, tmpStorage);
+  unlink(mdp.c_str());
+  if (md.empty()) {
+    logMessage("MD analysis", "mdanalysis on the client gave no data");
+    return;
+  }
+  const string file = "ecce-parse-md.txt";
+  ofstream(tmpStorage + "/" + file) << md;
+  logMessage("MD analysis", "ecce-parse-md.txt made on the client: the compute "
+             "host did not run mdanalysis");
+  calcStoreData("MDSPEED", 1, file.c_str(), true);
+}
+
 void interactFile(char* fileData)
 {
   filesFlag = false;
@@ -2971,7 +3039,9 @@ void interactFile(char* fileData)
   }
   else {
     dbStoreContents = false;
-    dbStoreName = false;
+    //  GROMACS's binary results stay with the calculation, for the MD
+    //  Analysis panel and ecce-gmxanalysis.
+    dbStoreName = isGromacsResult(fileName);
   }
   string message = "File marked to copy from compute host: " + fileName;
   logMessage("eccejobmonitor", message); 

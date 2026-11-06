@@ -70,6 +70,8 @@ class GromacsRunPanel : public ewxPanel
       ewxCheckBox   *p_posres;
       ewxTextCtrl   *p_posresName;
       ewxCheckBox   *p_leaveTraj;
+      ewxCheckBox   *p_saveVel;
+      ewxTextCtrl   *p_nstvout;
       wxWindow      *p_defsBox;
       wxSizer       *p_chainRow;
       vector<string> p_chainIds;

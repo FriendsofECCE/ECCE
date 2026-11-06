@@ -134,6 +134,8 @@ void NWChemMDModelXMLizer::deserialize(const string& data,
             if (value.length() > 0) run.extraMdp = value;
             value = getTagValue(iroot, "GmxLeaveTraj");
             if (value.length() > 0) run.leaveTraj = atoi(value.c_str()) != 0;
+            value = getTagValue(iroot, "GmxNstvout");
+            if (value.length() > 0) run.nstvout = atoi(value.c_str());
             value = getTagValue(iroot, "GmxPull");
             if (value.length() > 0) run.pull = atoi(value.c_str()) != 0;
             value = getTagValue(iroot, "GmxPullGroup1");
@@ -998,6 +1000,8 @@ void NWChemMDModelXMLizer::dumpInteraction(InteractionModel *model, ostream &os)
       os << "    <GmxExtraMdp>" << xmlText(g.extraMdp) << "</GmxExtraMdp>" << endl;
     if (g.leaveTraj != d.leaveTraj)
       os << "    <GmxLeaveTraj>" << (g.leaveTraj ? 1 : 0) << "</GmxLeaveTraj>" << endl;
+    if (g.nstvout != d.nstvout)
+      os << "    <GmxNstvout>" << g.nstvout << "</GmxNstvout>" << endl;
     if (g.pull != d.pull)
       os << "    <GmxPull>" << (g.pull ? 1 : 0) << "</GmxPull>" << endl;
     if (g.pullGroup1 != d.pullGroup1)

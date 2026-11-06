@@ -39,6 +39,7 @@ struct GromacsRun
    int    nstpcouple;    ///< 0: leave to grompp
    string extraMdp;      ///< lines written at the end of the .mdp
    bool   leaveTraj;     ///< keep traj.xtc/ener.edr/topol.tpr on the machine
+   int    nstvout;       ///< save velocities every N steps; 0: none
    bool   pull;          ///< centre-of-mass pulling between two groups
    string pullGroup1;    ///< names of index groups (GromacsRun::groups)
    string pullGroup2;
