@@ -170,7 +170,6 @@ record.  They are worth reading as a description of what this suite is for:
 | all four `ai.gauss*` | `"None"` in the combined-XC list had no case, so the method string collapsed to bare `r`/`u`/`ro` |
 | `ged{03,09,16,98}theory.py` | `except wx.PyDeadObjectError` -- gone in Phoenix, so the except clause itself raised; **the Gaussian-03 theory dialog could not be opened** |
 | `ged03theory.py` | `CheckDependency()` touched SCRF widgets built only for DFT -- a second dialog-killing bug that only became reachable once the one above was fixed |
-| `amicatheory.py:349` | `wx.FlexGridSizer(0, 2)` has no Phoenix overload; **the Amica theory dialog could not be opened** |
 | `ged{03,09,16}theory.py` x5 | missing comma made `"1-Butanol"` + `"Cyclohexane"` one `"1-ButanolCyclohexane"` entry; both solvents unselectable |
 | `nedtheory.py:958` | missing comma in the local-correlation list |
 

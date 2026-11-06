@@ -63,6 +63,7 @@ using std::vector;
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
 #include <wx/radiobut.h>
+#include "dsm/DavCalculation.H"
 #include "dsm/ICalculation.H"
 #include "dsm/JCode.H"
 #include "GeomConstraintsDialog.H"
@@ -79,7 +80,6 @@ using std::vector;
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceTool.H"
 #include "dsm/Session.H"
-#include "dsm/DirDyVTSTTask.H"
 #include "dsm/EDSIServerCentral.H"
 
 #include "comm/RunMgmt.H"

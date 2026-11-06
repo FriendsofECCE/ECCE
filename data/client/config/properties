@@ -90,50 +90,6 @@ Energy		MNDO Energy				EMNDO		Energy		PropValue	Total
 Energy		AM1 Energy				EAM1		Energy		PropValue	Total
 Energy		PM3 Energy				EPM3		Energy		PropValue	Total
 #
-AmicaSCF	Hartree-Fock				ESCF_A		Energy		PropValue
-AmicaSCF	MCSCF 					EMCSCF_A	Energy		PropValue
-AmicaOther	MP2					EMP2_A		Energy		PropValue
-AmicaOther	MP3 					EMP3_A		Energy		PropValue
-AmicaOther	MP4 					EMP4_A		Energy		PropValue
-AmicaOther	MP2-R12 				EMP2-R12	Energy		PropValue
-AmicaOther	MP3-R12 				EMP3-R12	Energy		PropValue
-AmicaOther	MP4-R12					EMP4-R12	Energy		PropValue
-AmicaOther	ACCD 					EACCD_A		Energy		PropValue
-AmicaOther	CCD 					ECCD_A		Energy		PropValue
-AmicaOther	CCSD					ECCSD_A		Energy		PropValue
-AmicaOther	CCSD(T) 				ECCSDTPERT_A	Energy		PropValue
-AmicaOther	CCSD[T] 				ECCSDTPERT3_A	Energy		PropValue
-AmicaOther	CCSDT-1a 				ECCSDT1A_A	Energy		PropValue
-AmicaOther	LCCD 					EL-CCD_A	Energy		PropValue
-AmicaOther	ACCD-R12 				EACCD-R12	Energy		PropValue
-AmicaOther	CCD-R12 				ECCD-R12	Energy		PropValue
-AmicaOther	CCSD-R12 				ECCSD-R12	Energy		PropValue
-AmicaOther	CCSD(T)-R12 				ECCSDTPERT-R12	Energy		PropValue
-AmicaOther	CCSD[T]-R12 				ECCSDTPERT3-R12	Energy		PropValue
-AmicaOther	CCSDT-1a-R12 				ECCSDT1A-R12	Energy		PropValue
-AmicaOther	LCCD-R12 				EL-CCD-R12	Energy		PropValue
-AmicaOther	ACPF 					EACPF_A		Energy		PropValue
-AmicaOther	ACPF2 					EACPF2_A	Energy		PropValue
-AmicaOther	AQCC 					EAQCC_A		Energy		PropValue
-AmicaOther	CEPA0 					ECEPA0_A	Energy		PropValue
-AmicaOther	CI(SD)					ECISD_A		Energy		PropValue
-AmicaOther	CPF 					ECPF_A		Energy		PropValue
-AmicaOther	R12-CISD 				ER12-CISD	Energy		PropValue
-AmicaOther	R12-ACPF 				ER12-ACPF	Energy		PropValue
-AmicaOther	R12-ACPF2 				ER12-ACPF2	Energy		PropValue
-AmicaOther	R12-AQCC 				ER12-AQCC	Energy		PropValue
-AmicaOther	R12-CEPA0 				ER12-CEPA0	Energy		PropValue
-AmicaOther	MR-CISD 				EMR-CISD_A	Energy		PropValue
-AmicaOther	MR-ACPF 				EMR-ACPF_A	Energy		PropValue
-AmicaOther	MR-ACPF2 				EMR-ACPF2_A	Energy		PropValue
-AmicaOther	MR-AQCC 				EMR-AQCC_A	Energy		PropValue
-AmicaOther	MR-CEPA0 				EMR-CEPA0_A	Energy		PropValue
-AmicaOther	R12-MR-CISD 				ER12-MR-CISD	Energy		PropValue
-AmicaOther	R12-MR-ACPF 				ER12-MR-ACPF	Energy		PropValue
-AmicaOther	R12-MR-ACPF2 				ER12-MR-ACPF2	Energy		PropValue
-AmicaOther	R12-MR-AQCC 				ER12-MR-AQCC	Energy		PropValue
-AmicaOther	R12-MR-CEPA0 				ER12-MR-CEPA0	Energy		PropValue
-AmicaOther	Cowan-Griffin Relativistic Correction	ERELCORR_A	Energy		PropValue
 #
 #  SC02 results
 #

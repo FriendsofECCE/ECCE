@@ -47,7 +47,7 @@ Things that are easy to get wrong:
   only reported, as gensub reports it at submit time. `condorAllowTmp` is a
   `CfgRow` with `gensubOnly`, shown for HTCondor only.
 - The Codes tab follows the code selected in its list (retired codes -
-  Gaussian-03, Gaussian-98, Gaussian-09, GAMESS-UK, Amica - are listed only when the
+  Gaussian-03, Gaussian-98, Gaussian-09, GAMESS-UK, Amica, DirDyVTST, Polyrate - are listed only when the
   machine has a key for them). Per code the keys are `<Code>` (the program),
   `<Code>Modules`, `<Code>Environment`, `<Code>Command`, `<code>_setup`, `<code>_wrapup`,
   `<Code>FilesToRemove`, `<Code>PrelimFilesToRemove`; gensub lower-cases every

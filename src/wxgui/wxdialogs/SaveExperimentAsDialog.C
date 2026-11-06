@@ -3,8 +3,8 @@
  
 #include <wx/bmpcbox.h> // for wxBitmapComboBox
 
+#include "dsm/DavCalculation.H"
 #include "dsm/ChemistryTask.H"
-#include "dsm/DirDyVTSTTask.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
@@ -372,11 +372,7 @@ bool SaveExperimentAsDialog::doSaveAsChemistryTask(
     // Sessions (MD and Reaction) require extra Resource(s)
     if (child->getContentType() == ResourceDescriptor::CT_SESSION) {
       Session *session = dynamic_cast<Session*>(child);
-      if (child->getApplicationType() == ResourceDescriptor::AT_REACTION_STUDY)
-      {
-        task = doSaveReactionStudy(session);
-      }
-      else if (child->getApplicationType() == ResourceDescriptor::AT_MDSTUDY)
+      if (child->getApplicationType() == ResourceDescriptor::AT_MDSTUDY)
       {
         task = doSaveMdStudy(session);
       }
@@ -455,79 +451,6 @@ ChemistryTask* SaveExperimentAsDialog::doSaveMdStudy(Session *session) const
     session = 0;
   }
  
-  return task;
-}
-
-
-/**
- * Returns a pointer to the Transition-State task where we will add the
- * fragment.  Performs all necessary task creation and linking.
- */
-ChemistryTask* SaveExperimentAsDialog::doSaveReactionStudy(
-        Session *session) const
-{
-  ResourceType  *dirdyType = 0;
-  Resource      *dirdy = 0;
-  ResourceType  *nwchemType = 0;
-  Resource      *child = 0;
-  ChemistryTask *task = 0;
-
-  try {
-    // find the dirdy type, contained by the child we just created
-    vector<ResourceType*> types = session->getDescriptor()->getContains();
-    vector<ResourceType*>::iterator typeIter;
-    for (typeIter = types.begin(); typeIter != types.end(); typeIter++) {
-      if ((*typeIter)->getApplicationType() ==
-              ResourceUtils::applicationTypeToString(
-              ResourceDescriptor::AT_DRDVTST)) {
-        dirdyType = (*typeIter);
-        break;
-      }
-    }
-    if (!dirdyType) throw InvalidException("Null ResourceType",WHERE);
-  
-    // create the dirdy calc
-    dirdy = session->createChild(dirdyType->getLabel(), dirdyType);
-    if (!dirdy) throw InvalidException("Null Resource", WHERE);
-
-    // link in the dirdy calc
-    session->addMember(dirdy);
-  
-    // we need a Transition-State (NWChem ES) calc too
-    string linkName = DirDyVTSTTask::componentTypeToString(
-                      DirDyVTSTTask::TRANSITION);
-    nwchemType = ResourceDescriptor::getResourceDescriptor().
-            getResourceType(ResourceUtils::resourceTypeToString(
-                            ResourceDescriptor::RT_VIRTUAL_DOCUMENT),
-                            ResourceUtils::contentTypeToString(
-                            ResourceDescriptor::CT_CALCULATION),
-                            "NWChem");
-    if (!nwchemType) throw InvalidException("Null ResourceType",WHERE);
-
-    // create the NWChem calc
-    child = session->createChild(linkName, nwchemType);
-    if (!child) throw InvalidException("Null Resource", WHERE);
-
-    // link in the NWChem calc
-    session->addMember(child);
-    session->addLink(child, dirdy, Session::INPUT_PROVIDER, linkName);
-
-    // save model
-    session->saveLinkbase();
-
-    // set our return pointer
-    task = dynamic_cast<ChemistryTask*>(child);
-
-  } catch (InvalidException& ex) {
-    // if we failed at any step along the way, clean up all traces of activity
-    if (task) { task->remove(); }
-    if (dirdy) { dirdy->remove(); }
-    if (session) { session->remove(); }
-    task = 0;
-    dirdy = 0;
-    session = 0;
-  }
-
   return task;
 }
 

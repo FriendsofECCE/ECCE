@@ -4291,10 +4291,6 @@ static string builtinCommand(const string& code)
     if (code == "GAMESS-UK")
         return "$gamessuk $inFile > $outFile 2>&1\n" + one +
                "none: a command must be set";
-    if (code == "Polyrate")
-        return "$polyrate";
-    if (code == "Amica")
-        return "amica -P $totalprocs < $inFile";
     return "";
 }
 
@@ -4348,8 +4344,6 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
             return "e.g. rungms $inFile 00 $totalprocs > $outFile";
         if (code == "GAMESS-UK")
             return "e.g. srun $gamessuk $inFile > $outFile";
-        if (code == "Polyrate")
-            return "e.g. nice $polyrate";
         return "";
     }
     if (b.id == "csetup")

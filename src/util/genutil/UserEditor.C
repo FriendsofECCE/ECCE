@@ -195,17 +195,7 @@ void UserEditor::getEditCommand(const SFile& file,
          // terminals get only -e.
          if (isXterm) {
             addArg(args,curArg, maxArgs, "-geom");
-            if (quotedName.find("amica.out") != string::npos) {
-               // determine width of xterm based on longest line of file
-               string pcmd = "perl -e 'open(INFILE, \"" + quotedName + "\"); "
-                  "while (<INFILE>) {exit(0) if (length() > 81); "
-                  "exit(1) if ($lines_in++ > 1000);} exit(1);'";
-               int istatus = system(pcmd.c_str());
-               istatus = istatus >> 8;
-               addArg(args,curArg, maxArgs, istatus == 0 ? "132x40" : "80x40");
-            } else {
-               addArg(args,curArg, maxArgs, "80x40");
-            }
+            addArg(args,curArg, maxArgs, "80x40");
 
             addColorArgs(args,curArg, maxArgs, readOnly);
 

@@ -1461,45 +1461,6 @@ sub nwchemmd()
 
 ###########################################################################
 # Description
-###########################################################################
-sub amica() 
-{
-  use strict vars;
-  my ($retval,$amica,$parallel,$cmd);
-  $retval = "";
-  $amica = $::config{$::lccode};
-  if ($amica eq "") { die "Path for amica not found"; }
-  $cmd = &userCmd("amicacommand");
-
-  # We still need to check the environment to allow the user
-  # to override the path like we did with the previous implementation
-  $retval .= &pathVar("amica", "$amica", "ECCE_AMICA");
-  $retval .= "echo \"Using amica path: \$amica\" >> $::logfile\n";
-  $retval .= "PATH=\"\$amica:/usr/bsd:\$PATH\"; export PATH\n";
-  $retval .= "alias which=/usr/bsd/which\n";
-
-  # For NQS and NQE systems use the system defined $TMPDIR, if available,
-  # otherwise use the user configured scratch directory (if defined)
-  if (defined($::scratchDir)) {
-    $retval .= "export AMICA_SCR=$::scratchDir\n";
-    $retval .= "echo \"Using $::scratchDir as AMICA_SCR\" >> $::logfile\n";
-  } elsif ($::qMgr eq "NQS" || $::qMgr eq "NQE") {
-    $retval .= "if [ -n \"\${TMPDIR+set}\" ]; then\n  export AMICA_SCR=\$TMPDIR\n";
-    $retval .= "  echo \"Using \$TMPDIR as AMICA_SCR\" >> $::logfile\n";
-    $retval .= "fi\n";
-  }
-
-  if ($cmd ne "") {
-    $retval .= "$cmd\n";
-  } else {
-    $retval .= "amica -P $::totalprocs < $::inFile\n";
-  }
-  return $retval;
-  nouse strict vars;
-}
-
-###########################################################################
-# Description
 #   GAMESS-UK
 ###########################################################################
 ###########################################################################
@@ -2601,32 +2562,6 @@ sub gamessus()
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
     $retval .= "\"\$gamess\" $::inFile > $::outFile 2>&1\n";
-  }
-  return $retval;
-  nouse strict vars;
-}
-
-###########################################################################
-# Description
-#   POLYRATE
-###########################################################################
-sub polyrate() 
-{
-  use strict vars;
-  my ($retval,$polyrate,$cmd);
-  $retval = "";
-  $polyrate = $::config{$::lccode};
-  if ($polyrate eq "") { die "Path for POLYRATE not found"; }
-  $cmd = &userCmd("polyratecommand");
-
-  # We still need to check the environment to allow the user
-  # to override the path like we did with the previous implementation
-  $retval .= &pathVar("polyrate", "$polyrate", "ECCE_POLYRATE");
-  $retval .= "echo \"Using POLYRATE path: \$polyrate\" >> $::logfile\n";
-  if ($cmd ne "") {
-    $retval .= "$cmd\n";
-  } else {
-    $retval .= "\"\$polyrate\"\n";
   }
   return $retval;
   nouse strict vars;

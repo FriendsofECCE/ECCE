@@ -47,7 +47,7 @@ XFAIL = {
     # the same unchecked getTool(...)->getIcon() (Builder.C:492,
     # CalcMgr.C:164, SolvateEd.C:104, WxLauncher.C:118,
     # MachineBrowser.C:145, WxMachineRegister.C:96, MDPrep.C:163,
-    # Polyrate.C:106, NWDirdy.C:117, WxBasisTool.C:286,
+    # WxBasisTool.C:286,
     # PartialCharge.C:93, ...), each a latent crash of the same shape
     # waiting for its own <Tool> entry to be removed or renamed.  This
     # suite cannot see them until one actually breaks.

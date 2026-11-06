@@ -87,6 +87,7 @@ static std::string s_registerMessage;
 #include "tdat/PropTSVecTable.H"
 #include "tdat/RefMachine.H"
 
+#include "dsm/DavCalculation.H"
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
@@ -109,7 +110,6 @@ static std::string s_registerMessage;
 #include "dsm/TGBSConfig.H"
 #include "tdat/Fragment.H"
 #include "tdat/SpinMult.H"
-#include "dsm/DirDyVTSTTask.H"
 
 #include "comm/EcceShell.H"
 #include "comm/JobCatchUp.H"
@@ -10881,19 +10881,8 @@ void CalcMgr::createResource(ResourceType * resType,
       startApp(tool->getName(), 0, newurl.toString());
     }
 
-    // Immediately create a DirDyVTST task for a reaction study since that's
-    // the only thing that makes sense to do initially
-    if (newRes->getApplicationType() == ResourceDescriptor::AT_REACTION_STUDY) {
-      ResourceDescriptor rd = ResourceDescriptor::getResourceDescriptor();
-      ResourceType *rt = rd.getResourceType(
-                               ResourceDescriptor::RT_VIRTUAL_DOCUMENT, 
-                               ResourceDescriptor::CT_CALCULATION,
-                               ResourceDescriptor::AT_DRDVTST);
-      createResource(rt, NULL, true);
-    }
-    // Likewise, immediately create a Solvate task for a condensed reaction
-    // study
-    else if (newRes->getApplicationType() ==
+    // Immediately create a Solvate task for a condensed reaction study
+    if (newRes->getApplicationType() ==
                      ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
       ResourceDescriptor rd = ResourceDescriptor::getResourceDescriptor();
       ResourceType *rt = rd.getResourceType(

@@ -57,8 +57,7 @@ class NedTheoryPanel(EccePanel):
         # NWChem's esp module only runs on SCF/DFT wavefunctions; the ESP
         # runtype already is this fit, so it needs no tick box.
         if ((EcceGlobals.Category == "SCF" or EcceGlobals.Category == "DFT")
-            and EcceGlobals.RunType != "ESP"
-            and EcceGlobals.RunType != "DirDyVTST"):
+            and EcceGlobals.RunType != "ESP"):
             chargeSizer = EcceBoxSizer(self, "Charges", 1)
             self.espCharges = EcceCheckBox(self,
                                            label = " ESP-fitted charges (task esp)",
@@ -67,67 +66,64 @@ class NedTheoryPanel(EccePanel):
             chargeSizer.AddWidget(self.espCharges)
             self.panelSizer.Add(chargeSizer)
 
-        # Special logic for DirDyVTST task, as determined by overloading
-        # the meaning of the RunType value
-        if EcceGlobals.RunType != "DirDyVTST":
-            geometrySizer = EcceBoxSizer(self, "Geometry", 2)
+        geometrySizer = EcceBoxSizer(self, "Geometry", 2)
 
-            #  "Use Available Symmetry" now lives on the Calculation
-            #  Editor's own page, beside the point group, so the key has
-            #  one owner.  The tolerance below stays here: it is
-            #  NWChem's own and means nothing to the other codes.
+        #  "Use Available Symmetry" now lives on the Calculation
+        #  Editor's own page, beside the point group, so the key has
+        #  one owner.  The tolerance below stays here: it is
+        #  NWChem's own and means nothing to the other codes.
 
-            self.symmetryTol = EcceFloatInput(self,
-                                              name = "ES.Theory.SymmetryTol",
-                                              default = 1e-2,
-                                              hardRange = "(0..)",
-                                              unit = "Angstroms",
-                                              label = "Tolerance:")
-            geometrySizer.AddWidget(self.symmetryTol)
+        self.symmetryTol = EcceFloatInput(self,
+                                          name = "ES.Theory.SymmetryTol",
+                                          default = 1e-2,
+                                          hardRange = "(0..)",
+                                          unit = "Angstroms",
+                                          label = "Tolerance:")
+        geometrySizer.AddWidget(self.symmetryTol)
 
-            self.useAutoZ = EcceCheckBox(self,
-                                         label = " Use Automatic Z-matrix",
-                                         name = "ES.Theory.UseAutoZ",
-                                         default = True)
-            geometrySizer.AddWidget(self.useAutoZ)
-            self.panelSizer.Add(geometrySizer)
+        self.useAutoZ = EcceCheckBox(self,
+                                     label = " Use Automatic Z-matrix",
+                                     name = "ES.Theory.UseAutoZ",
+                                     default = True)
+        geometrySizer.AddWidget(self.useAutoZ)
+        self.panelSizer.Add(geometrySizer)
         
-            # MEMEORY/DISK LIMIT
-            if EcceGlobals.Category == "SCF":
-                memTitle = "Memory/Disk Limits"
-            else:
-                memTitle = "Memory Limit"
-            memorySizer = EcceBoxSizer(self, memTitle, 4)
+        # MEMEORY/DISK LIMIT
+        if EcceGlobals.Category == "SCF":
+            memTitle = "Memory/Disk Limits"
+        else:
+            memTitle = "Memory Limit"
+        memorySizer = EcceBoxSizer(self, memTitle, 4)
 
-            self.memTog = EcceCheckBox(self,
-                                       label = " Memory:",
-                                       name = "ES.Theory.SCF.Memory",
-                                       default = False)
-            memorySizer.AddWidget(self.memTog)
+        self.memTog = EcceCheckBox(self,
+                                   label = " Memory:",
+                                   name = "ES.Theory.SCF.Memory",
+                                   default = False)
+        memorySizer.AddWidget(self.memTog)
 
-            self.memSize = EcceSpinCtrl(self,
-                                        hardRange = "[0..)",
-                                        unit = "Gigabytes / core",
-                                        name = "ES.Theory.SCF.MemorySize",
-                                        default = 2,
-                                        export = 1)
-            memorySizer.AddWidget(self.memSize)
+        self.memSize = EcceSpinCtrl(self,
+                                    hardRange = "[0..)",
+                                    unit = "Gigabytes / core",
+                                    name = "ES.Theory.SCF.MemorySize",
+                                    default = 2,
+                                    export = 1)
+        memorySizer.AddWidget(self.memSize)
 
-            if EcceGlobals.Category == "SCF":
-                self.diskTog = EcceCheckBox(self,
-                                            label = " Disk:",
-                                            name = "ES.Theory.SCF.Disk",
-                                            default = 0)
-                memorySizer.AddWidget(self.diskTog)
+        if EcceGlobals.Category == "SCF":
+            self.diskTog = EcceCheckBox(self,
+                                        label = " Disk:",
+                                        name = "ES.Theory.SCF.Disk",
+                                        default = 0)
+            memorySizer.AddWidget(self.diskTog)
         
-                self.diskSize = EcceSpinCtrl(self,
-                                             hardRange = "[0..)",
-                                             unit = "Megawords",
-                                             name = "ES.Theory.SCF.DiskSize",
-                                             default = 64,
-                                             export = 1)
-                memorySizer.AddWidget(self.diskSize)
-            self.panelSizer.Add(memorySizer)
+            self.diskSize = EcceSpinCtrl(self,
+                                         hardRange = "[0..)",
+                                         unit = "Megawords",
+                                         name = "ES.Theory.SCF.DiskSize",
+                                         default = 64,
+                                         export = 1)
+            memorySizer.AddWidget(self.diskSize)
+        self.panelSizer.Add(memorySizer)
 
         # SCF CONVERGENCE
         scfSizer = EcceBoxSizer(self, "SCF Convergence", 2)
@@ -301,8 +297,7 @@ class NedTheoryPanel(EccePanel):
         self.panelSizer.Add(scfSizer)
 
         # Start Eric Bylaska's planewave module integration
-        if (EcceGlobals.RunType != "DirDyVTST" and
-            EcceGlobals.Category != "NWPW"):
+        if (EcceGlobals.Category != "NWPW"):
             # End Eric Bylaska's planewave module integration
             sovSizer = EcceBoxSizer(self,
                                     label = "Solvation",
@@ -967,24 +962,21 @@ class NedTheoryPanel(EccePanel):
         self.AddButtons()
         
     def CheckDependency(self):
-        # Special logic for DirDyVTST task, as determined by overloading
-        # the meaning of the RunType value
-        if (EcceGlobals.RunType != "DirDyVTST"):
-            #  The "use symmetry" tick now lives on the Calculation
-            #  Editor's page and this dialog cannot see it.  What it can
-            #  see is the point group, and the tolerance means nothing
-            #  without symmetry to detect: enable it wherever there is
-            #  any, and leave it alone in C1.
-            self.symmetryTol.Enable(
-                str(EcceGlobals.SymmetryGroup).upper() not in ("C1", ""))
-            self.memSize.Enable(self.memTog.GetValue())
-            if EcceGlobals.Category == "SCF":
-                if self.SCFDirect.GetValue() == "Semi-Direct":
-                    self.diskTog.Enable(True)
-                    self.diskSize.Enable(self.diskTog.GetValue())
-                else:
-                    self.diskTog.Enable(False)
-                    self.diskSize.Enable(False)
+        #  The "use symmetry" tick now lives on the Calculation
+        #  Editor's page and this dialog cannot see it.  What it can
+        #  see is the point group, and the tolerance means nothing
+        #  without symmetry to detect: enable it wherever there is
+        #  any, and leave it alone in C1.
+        self.symmetryTol.Enable(
+            str(EcceGlobals.SymmetryGroup).upper() not in ("C1", ""))
+        self.memSize.Enable(self.memTog.GetValue())
+        if EcceGlobals.Category == "SCF":
+            if self.SCFDirect.GetValue() == "Semi-Direct":
+                self.diskTog.Enable(True)
+                self.diskSize.Enable(self.diskTog.GetValue())
+            else:
+                self.diskTog.Enable(False)
+                self.diskSize.Enable(False)
 
         if (EcceGlobals.Category == "DFT"):
             self.gradient.Enable(self.algorithm.GetValue()!="Iterative SCF")
@@ -1034,8 +1026,7 @@ class NedTheoryPanel(EccePanel):
 
 
         # Start Eric Bylaska's planewave module integration
-        if (EcceGlobals.RunType != "DirDyVTST" and
-            EcceGlobals.Category != "NWPW"):
+        if (EcceGlobals.Category != "NWPW"):
            # End Eric Bylaska's planewave module integration
             self.solvent.Enable(self.useCosmo.GetValue())
             self.cosmoRadius.Enable(self.useCosmo.GetValue())

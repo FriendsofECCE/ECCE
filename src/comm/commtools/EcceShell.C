@@ -406,12 +406,6 @@ string EcceShell::sshTerminal(RefMachine* refMachine, const string& shell,
                " does not exist--cannot run remote command.";
       }
       t.geometry = "80x40";
-      if (pathFull.find("amica.out") != string::npos) {
-        string pcmd = "perl -e 'open(INFILE, \"" + pathFull + "\"); "
-                      "while (<INFILE>) {exit(0) if (length() > 81); "
-                      "exit(1) if ($lines_in++ > 1000);} exit(1);'";
-        if (rcmd.exec(pcmd)) t.geometry = "132x40";
-      }
     }
   } else {
     dir = "~";
@@ -497,12 +491,6 @@ string EcceShell::remoteShell
                " does not exist--cannot run remote command.";
       }
       t.geometry = "80x40";
-      if (pathFull.find("amica.out") != string::npos) {
-        string pcmd = "perl -e 'open(INFILE, \"" + pathFull + "\"); "
-                      "while (<INFILE>) {exit(0) if (length() > 81); "
-                      "exit(1) if ($lines_in++ > 1000);} exit(1);'";
-        if (rcmd.exec(pcmd)) t.geometry = "132x40";
-      }
     }
   } else {
     t.dir = "~";

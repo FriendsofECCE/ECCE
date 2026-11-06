@@ -49,7 +49,7 @@ int main(int argc, char** argv)
   const char *icons[] = { "calcorca.xpm", "calcecceqm.xpm", "calcnwchem.xpm",
                           "calcgaussian.xpm", "calcgaussian16.xpm",
                           "calcmopac.xpm", "calcqe.xpm", "calcnwchemmd.xpm",
-                          "calcamica.xpm", "calcgamessuk.xpm" };
+                          "calcgamessuk.xpm" };
   wxFrame *frame = new wxFrame(NULL, wxID_ANY, "codebuttons",
                                wxDefaultPosition, wxSize(600, 90));
   wxPanel *panel = new wxPanel(frame);

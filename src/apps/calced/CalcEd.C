@@ -469,8 +469,7 @@ void CalcEd::createCodeButtons()
 
   for (size_t it = 0; it < codes.size(); it++) {
     rt = rd.getResourceType("virtual_document", "ecceCalculation", codes[it]);
-    if (rt!=(ResourceType*)0 && rt->getFactoryCategory()=="EsCalculation" &&
-        !(rxnFlag && codes[it]=="Amica")) {
+    if (rt!=(ResourceType*)0 && rt->getFactoryCategory()=="EsCalculation") {
       // add the index into the list of supported codes as a way of
       // retrieving which code button was hit in the callback
       codeButton = new wxCustomButton(this, ID_BUTTON_CALCED_CODE,

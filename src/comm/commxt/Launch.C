@@ -49,6 +49,7 @@
 #include "tdat/RefQueueMgr.H"
 #include "tdat/AuthCache.H"
 
+#include "dsm/DavCalculation.H"
 #include "dsm/VDoc.H"
 #include "dsm/MachineConfig.H"
 #include "dsm/NWChemMDModel.H"
@@ -59,7 +60,6 @@
 #include "dsm/CodeFactory.H"
 #include "dsm/MdTask.H"
 #include "dsm/EDSIFactory.H"
-#include "dsm/DirDyVTSTTask.H"
 #include "dsm/ResourceType.H"
 #include "dsm/ResourceDescriptor.H"
 

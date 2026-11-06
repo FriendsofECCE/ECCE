@@ -47,8 +47,6 @@ vector<string> CodePrograms::names(const string& code)
     }
     else if (code == "GAMESS-US")
         n.push_back("gamess.00.x");
-    else if (code == "Polyrate")
-        n.push_back("polyrate");
     else
     {
         string l = code;

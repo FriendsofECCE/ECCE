@@ -22,8 +22,7 @@ CODES = ("xTB", "CREST", "ORCA", "ECCE-QM", "Gaussian-16", "CP2K",
 
 def codeResources():
     """Include any additional registered code buttons in this installation."""
-    config = "ResourceDescriptorRxn.xml" if os.path.exists(
-        os.path.join(apps.INSTALL, "bin", "dirdyed")) else "ResourceDescriptor.xml"
+    config = "ResourceDescriptorRxn.xml"
     data = os.path.join(apps.INSTALL, "data", "client")
     resources = {}
     for resource in ET.parse(os.path.join(data, "config", config)).iter("ResourceType"):

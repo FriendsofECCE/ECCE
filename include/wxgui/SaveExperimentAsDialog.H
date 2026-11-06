@@ -50,7 +50,6 @@ class SaveExperimentAsDialog : public ewxGenericFileDialog
     bool doSaveAsChemFileType(Fragment *fragment, string& context) const;
     bool doSaveAsChemistryTask(Fragment *fragment, string& context) const;
     ChemistryTask* doSaveMdStudy(Session *session) const;
-    ChemistryTask* doSaveReactionStudy(Session *session) const;
 
     void DoSetSaveAsFilterIndex(int index);
 

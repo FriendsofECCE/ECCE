@@ -11,14 +11,10 @@ anywhere":
   2. `ResourceDescriptor.xml` AND `ResourceDescriptorRxn.xml` must each carry
      the code's <ResourceType> block *and* a <ContainsResource> entry on
      `project` -- that is what puts "New <Code> Calculation..." in the menu;
-  3. the two files must agree, because which one is loaded depends on whether
-     `bin/dirdyed` exists (ResourceDescriptor.C switches on it).
-
-Gate 3 is the one that bites.  Before this check existed,
-`ResourceDescriptor.xml` was missing `gaussian09_es`, `gaussian16_es` and
-`orca_es` while the Rxn variant had them -- latent only because `dirdyed` is
-installed on this build.  Dropping `dirdyed` would have made three live codes
-vanish from the New Calculation menu at once, with nothing to explain it.
+  3. the two files must agree.  ResourceDescriptor.C reads only the Rxn file
+     since #873 (it used to switch on whether `bin/dirdyed` existed), so
+     ResourceDescriptor.xml is a stale twin; the check keeps it from
+     drifting until it is deleted.
 
 These checks need no dialog, no display and no build; they are pure file
 consistency.
@@ -94,10 +90,8 @@ def check(report):
             for name in sorted(missing):
                 report("resource graph",
                        "%s is offered by %s but NOT by %s.\n"
-                       "      Which file is loaded depends on whether "
-                       "bin/dirdyed exists, so this code appears or vanishes "
-                       "from the New Calculation menu depending on an "
-                       "unrelated binary."
+                       "      Only the Rxn file is loaded at run time, "
+                       "so the other has drifted."
                        % (name, present.name, absent.name))
 
     # (b) no dangling references

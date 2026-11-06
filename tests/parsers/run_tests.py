@@ -98,7 +98,6 @@ AUX_FILE_DEPENDENCIES = {
     #  aux file       writer script        reader script
     'parseSym':  ('nwchem.symlab',    'nwchem.molab'),
     'parseMD':   ('nwchem.mdheader',  'nwchem.mdprop'),
-    'rxMasses':  ('nwchemrx.masses',  'nwchemrx.rxstep'),
 }
 
 

@@ -671,8 +671,6 @@ ecce_app(basistool src/apps/basistool WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(calced src/apps/calced WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(dirdyed src/apps/dirdyed WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(gateway src/apps/gateway WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(launcher src/apps/launcher WX
@@ -705,8 +703,6 @@ ecce_app(hostkeydialog src/apps/hostkeydialog WX
 ecce_app(passdialog src/apps/passdialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(pertable src/apps/pertable WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(polyed src/apps/polyrate WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(solvate src/apps/solvate WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
@@ -1225,9 +1221,9 @@ install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMP
 # them without a lot of path-handling surgery this session hasn't done.
 # ------------------------------------------------------------------------
 set(ECCE_GUI_APPS
-  basistool calced dirdyed gateway launcher machbrowser machregister
+  basistool calced gateway launcher machbrowser machregister
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
-  passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
+  passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
@@ -3377,6 +3373,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_missing_node_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_missing_node PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Stored DirDyVTST/Polyrate/Amica calculations still list (#873).
+  add_test(NAME apps_organizer_retired_codes
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_retired_codes_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_retired_codes PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Workflows (#341): steps linked by carried geometry, the view's labels.
   add_test(NAME apps_workflow

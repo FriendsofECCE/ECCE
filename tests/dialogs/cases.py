@@ -16,18 +16,6 @@ KNOWN_UNMAPPED = {
     # Triaged 2026-09-22. Every entry below was checked by reading the
     # generator: in each case the value is the code's own default and the
     # resolver is an opt-in switch, so emitting nothing is correct.
-    ("Amica", "ES.Theory.CC.R12_CC"): {
-        'Traditional':
-            "Means 'no R12'; ai.amica:491 emits only for the r12 variants.",
-    },
-    ("Amica", "ES.Theory.CI.Properties"): {
-        'No Density/Property':
-            "Means 'compute nothing extra', so emitting nothing is right.",
-    },
-    ("Amica", "ES.Theory.MISC.UNIT"): {
-        'Bohr':
-            "Amica's default; ai.amica:560 adds ANGSTROM only for 'Angstrom'.",
-    },
     ("Gaussian-03", "ES.Runtype.GeomOpt.InitialHessian"): {
         'Valence Force Field':
             "Gaussian's default; only 'Calculate' emits CalcFC "
@@ -233,7 +221,6 @@ XFAIL = {
     #   * except wx.PyDeadObjectError, x4           -> ged{03,09,16,98}theory
     #   * ged03 CheckDependency touching SCRF
     #     widgets built only for DFT                -> ged03theory
-    #   * wx.FlexGridSizer(0, 2)                    -> amicatheory
     #   * five missing commas in solvent lists      -> ged{03,09,16}theory
     #   * one missing comma in nedtheory
     # Add an entry when a check finds a real bug that is not being fixed in
@@ -441,8 +428,7 @@ RESTORE_CASES = [
 # Codes ECCE no longer supports, and no longer maintains.
 #
 # Distinct from NOT_IN_MENU, which only records that a code is absent from the
-# New Calculation menu -- Polyrate is reachable by another route and
-# is still maintained.  A code listed HERE is not
+# New Calculation menu.  A code listed HERE is not
 # checked at all: its dialogs and generator stay on disk so existing
 # calculations still open, but nobody is going to fix a finding in them, so
 # reporting one is noise that hides the findings that matter.
@@ -454,9 +440,8 @@ RETIRED = {
     "Gaussian-98": "No longer supported (2026-09-22).",
     "GAMESS-UK": "No longer supported (2026-09-22).",
     "Gaussian-09": "No longer supported (2026-10-20).",
-    #  Disconnected in the same issue #11 batch as Gaussian-03 and
-    #  Gaussian-98; listed here on that basis.
-    "Amica": "No longer supported (2026-09-22).",
+    #  DirDyVTST, Polyrate and Amica are gone altogether (#873): no .edml,
+    #  so nothing for this suite to see.
     #  NOT listed: MetaDyn, whose .edml declares codeName="NWChem" -- it is
     #  NWChem's plane-wave metadynamics front end rather than a code of its
     #  own, and NWChem is maintained.  It is also the only plane-wave-only
@@ -465,8 +450,6 @@ RETIRED = {
 
 
 NOT_IN_MENU = {
-    "Amica": "Disconnected 2026-08-30 (issue #11) along with Gaussian-03, "
-             "Gaussian-98 and MetaDyn.",
     "Gaussian-03": "Disconnected 2026-08-30 (issue #11).",
     "Gaussian-98": "Disconnected 2026-08-30 (issue #11).",
     "Gaussian-09": "Disconnected 2026-10-20 (retired); existing calculations "
@@ -477,9 +460,6 @@ NOT_IN_MENU = {
                  "gukruntype.py, ai.gamess-uk, gamess-uk.tpl -- and its "
                  "files are untouched, so existing GAMESS-UK calculations "
                  "still open; only creating a new one from the menu is gone.",
-    "Polyrate": "Not disconnected: reached from a reaction study node in "
-                "ResourceDescriptorRxn.xml rather than from `project`, so it "
-                "never appears in the project New Calculation menu by design.",
 }
 
 

@@ -254,8 +254,6 @@ static ProgramHelp baseHelp(const string& code)
     }
     else if (code == "GAMESS-US")
         h.examples.push_back("/opt/gamess/gamess.00.x");
-    else if (code == "Polyrate")
-        h.examples.push_back("/opt/polyrate/polyrate");
     else
         h.examples.push_back("/opt/" + n0 + "/bin/" + n0);
     return h;

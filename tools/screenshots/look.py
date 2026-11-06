@@ -36,8 +36,8 @@ sys.path.insert(0, os.path.join(ROOT, "tests", "apps"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 WINDOWS = ["organizer", "preferences", "calced", "launcher", "builder",
-           "basistool", "machregister", "machbrowser", "pertable", "polyed",
-           "solvate", "mdprepare", "metadyn", "dirdyed", "mddynamics",
+           "basistool", "machregister", "machbrowser", "pertable",
+           "solvate", "mdprepare", "metadyn", "mddynamics",
            "mdenergy", "mdoptimize"]
 
 #  Time for an app to fetch from the data server and draw before capture.
