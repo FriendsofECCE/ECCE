@@ -1346,13 +1346,13 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_ensemble.py
         DESTINATION bin RENAME ecce-ensemble
         COMPONENT client)
 
-# ecce-rate (#872): TST rate constants with Wigner/Eckart tunnelling; ecce-rates
-# is its formula library (no command of its own).
+# ecce-rate (#872): TST rate constants with Wigner/Eckart tunnelling; ecce_rates.py
+# is its formula library (a module in scripts/, not a command).
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_rate.py
         DESTINATION bin RENAME ecce-rate
         COMPONENT client)
-install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
-        DESTINATION bin RENAME ecce-rates
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
+        DESTINATION scripts
         COMPONENT client)
 
 # ecce-bandshift (#707): matched bands and their shifts between two calculations.

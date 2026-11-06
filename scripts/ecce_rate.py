@@ -35,7 +35,9 @@ def _load(module, installed):
 
 
 S = _load("ecce_si_export", "ecce-si-export")
-R = _load("ecce_rates", "ecce-rates")
+# the formula library is a module, installed in <home>/scripts beside the parsers
+sys.path.insert(0, os.path.join(os.path.dirname(_here), "scripts"))
+R = _load("ecce_rates", "ecce_rates.py")
 
 KJ_PER_HARTREE = 4.3597447222071e-18 * 6.02214076e23 / 1000.0
 BARRIER_MAX = 1000.0   # kJ/mol; above this the energies cannot belong together
