@@ -2071,7 +2071,7 @@ if(ECCE_SPLIT_PACKAGES)
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client")
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "openbabel, www-browser")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
   # owns e.g. /opt/ecce/bin/organizer is a file-already-owned conflict,
@@ -4926,3 +4926,7 @@ add_executable(fraggraft_test tests/tdat/fraggraft_test.C)
 target_link_libraries(fraggraft_test PRIVATE eccetdat ecceutil)
 add_test(NAME fraggraft COMMAND fraggraft_test)
 set_tests_properties(fraggraft PROPERTIES SKIP_RETURN_CODE 77)
+# Own SMILES reader and 3-D builder (#867); Open Babel is only an oracle there.
+add_executable(smiles_test tests/tdat/smiles_test.C)
+target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)
+add_test(NAME smiles COMMAND smiles_test ${CMAKE_SOURCE_DIR}/tests/tdat/smiles_corpus.txt)
