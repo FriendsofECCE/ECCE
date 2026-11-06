@@ -32,6 +32,8 @@
 #include "wxgui/WxStateImageList.H"
 
 #include "CalcMgr.H"
+#include "RateBox.H"
+#include "RateDetailsDialog.H"
 #include "RecipePanel.H"
 #include "WorkflowLayout.H"
 #include "WorkflowPanel.H"
@@ -88,6 +90,41 @@ public:
     Bind(wxEVT_LEFT_DCLICK, &WorkflowCanvas::OnDClick, this);
     Bind(wxEVT_RIGHT_DOWN, &WorkflowCanvas::OnRightDown, this);
     Bind(wxEVT_CONTEXT_MENU, &WorkflowCanvas::OnContextMenu, this);
+
+    // The Rate box's controls sit on the canvas and scroll with it.
+    p_rateTField = new wxTextCtrl(this, wxID_ANY, "298.15", wxDefaultPosition, wxSize(90, -1),
+                                  wxTE_PROCESS_ENTER);
+    p_rateTField->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &) { applyRateT(); });
+    p_rateTField->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &e) { applyRateT(); e.Skip(); });
+    p_rateDetails = new wxButton(this, wxID_ANY, "Details...");
+    p_rateDetails->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { showRateDetails(); });
+    p_rateTField->Hide();
+    p_rateDetails->Hide();
+  }
+
+  /// The Rate box as plain lines (test hook), after setting T when given.
+  string rateText(const string &T)
+  {
+    if (!T.empty()) p_rateTField->SetValue(T);
+    applyRateT();
+    if (p_hasRate)   // bring the box into view for a picture
+      Scroll(std::max(0, (p_rateRect.x - 40) / 10), std::max(0, (p_rateRect.y - 10) / 10));
+    return p_rate.text();
+  }
+
+  /// The details table for LOW:HIGH:STEP as CSV into file; "" when written.
+  string rateDetailsCsvTo(const string &file, const string &range)
+  {
+    RateRequest req;
+    string waiting;
+    if (!rateRequest(KeyStepsNow(), req, waiting) || !waiting.empty())
+      return waiting.empty() ? "no rate box" : waiting;
+    req.temperatures = range;
+    const RateResult r = runRate(req);
+    if (!r.ok) return r.error;
+    std::ofstream f(file.c_str());
+    f << rateDetailsCsv(r);
+    return f ? "" : "cannot write " + file;
   }
 
   void relayout()
@@ -123,8 +160,9 @@ public:
     p_keyRect = wxRect();
     p_key = KeyDataResult();
     p_hasKey = !WorkflowSteps::recipeId(wf).empty() && !nodes.empty();
+    const vector<KeyStep> keySteps = WorkflowSteps::keySteps(wf);
     if (p_hasKey) {
-      p_key = keyData(WorkflowSteps::keySteps(wf));
+      p_key = keyData(keySteps);
       const int lh = dc.GetTextExtent("Ag").y + 4;
       const int kw = 540;
       p_keyLines.clear();
@@ -153,7 +191,88 @@ public:
       maxX = std::max(maxX, p_keyRect.GetRight());
       maxY = std::max(maxY, p_keyRect.GetBottom());
     }
+    layoutRate(keySteps, dc, maxX, maxY);
     SetVirtualSize(maxX + kMargin, maxY + kMargin);
+  }
+
+  /// The Rate box (#872) under the key-data box, or at its place when there is none.
+  /// ecce-rate runs only when a reactant, TS or product step, or T, has changed.
+  void layoutRate(const vector<KeyStep> &ks, wxDC &dc, int &maxX, int &maxY)
+  {
+    p_rateRect = wxRect();
+    p_hasRate = false;
+    RateRequest probe;
+    string waiting;
+    if (!rateRequest(ks, probe, waiting)) {
+      p_rate = RateBoxResult();
+      p_rateSig.clear();
+      p_rateTField->Hide();
+      p_rateDetails->Hide();
+      return;
+    }
+    p_hasRate = true;
+    string sig = p_rateTField->GetValue().ToStdString();
+    for (const KeyStep &s : ks)
+      if (!s.keyRole.empty())
+        sig += "|" + s.keyRole + ":" + s.url + ":" + (s.complete ? "1" : "0") + ":" + s.stamp;
+    if (sig != p_rateSig) {
+      p_rateSig = sig;
+      p_rate = rateBox(ks, p_rateTField->GetValue().ToStdString());
+    }
+    const int lh = dc.GetTextExtent("Ag").y + 4;
+    const int kw = 540;
+    p_rateLines.clear();
+    if (!p_rate.level.empty())
+      p_rateLines.push_back(std::make_pair(wxString::FromUTF8(p_rate.level.c_str()), wxString()));
+    for (const auto &r : p_rate.rows)
+      p_rateLines.push_back(std::make_pair(wxString::FromUTF8(r.first.c_str()),
+                                           wxString::FromUTF8(r.second.c_str())));
+    wxString line;
+    wxArrayString words = wxSplit(wxString::FromUTF8(p_rate.note.c_str()), ' ');
+    for (size_t i = 0; i < words.size(); i++) {
+      wxString next = line.empty() ? words[i] : line + " " + words[i];
+      if (dc.GetTextExtent(next).x > kw - 28 && !line.empty()) {
+        p_rateLines.push_back(std::make_pair(line, wxString()));
+        next = words[i];
+      }
+      line = next;
+    }
+    if (!line.empty()) p_rateLines.push_back(std::make_pair(line, wxString()));
+    const int top = p_hasKey ? p_keyRect.GetBottom() + 20 : kMargin;
+    const int h = ((int)p_rateLines.size() + 2) * lh + 20 + 40;
+    p_rateRect = p_panel->p_vertical
+        ? wxRect(kMargin, p_hasKey ? top : maxY + 60, kw, h)
+        : wxRect(p_hasKey ? p_keyRect.x : maxX + 60, top, kw, h);
+    maxX = std::max(maxX, p_rateRect.GetRight());
+    maxY = std::max(maxY, p_rateRect.GetBottom());
+    const int cy = p_rateRect.GetBottom() - 34;
+    int sx, sy;
+    CalcScrolledPosition(p_rateRect.x + 70, cy, &sx, &sy);
+    p_rateTField->SetPosition(wxPoint(sx, sy));
+    CalcScrolledPosition(p_rateRect.GetRight() - 14 - p_rateDetails->GetSize().x, cy, &sx, &sy);
+    p_rateDetails->SetPosition(wxPoint(sx, sy));
+    p_rateTField->Show();
+    p_rateDetails->Show();
+    p_rateDetails->Enable(p_rate.ready);
+  }
+
+  vector<KeyStep> KeyStepsNow() { return WorkflowSteps::keySteps(p_panel->p_session); }
+
+  void applyRateT()
+  {
+    if (p_rateTField->GetValue().ToStdString() == p_rateAppliedT) return;
+    p_rateAppliedT = p_rateTField->GetValue().ToStdString();
+    relayout();
+    Refresh();
+  }
+
+  void showRateDetails()
+  {
+    RateRequest req;
+    string waiting;
+    if (!rateRequest(KeyStepsNow(), req, waiting) || !waiting.empty()) return;
+    RateDetailsDialog dlg(this, req);
+    dlg.ShowModal();
   }
 
   const WfBox *boxAt(const wxPoint &unscrolled) const
@@ -413,6 +532,32 @@ private:
       dc.DrawPolygon(3, tri);
     }
 
+    if (p_hasRate) {
+      const wxRect &k = p_rateRect;
+      const int lh = dc.GetTextExtent("Ag").y + 4;
+      dc.SetBrush(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
+      dc.SetPen(wxPen(dim, 2));
+      dc.DrawRoundedRectangle(k, 6);
+      dc.SetFont(bold);
+      dc.SetTextForeground(text);
+      dc.DrawText("Rate", k.x + 14, k.y + 10);
+      dc.SetFont(base);
+      int y = k.y + 10 + lh + 6;
+      for (size_t i = 0; i < p_rateLines.size(); i++, y += lh) {
+        const bool isRow = !p_rateLines[i].second.empty();
+        dc.SetTextForeground(isRow ? text : dim);
+        if (!isRow) {
+          dc.DrawText(p_rateLines[i].first, k.x + 14, y);
+          continue;
+        }
+        const int vw = dc.GetTextExtent(p_rateLines[i].second).x;
+        dc.DrawText(p_rateLines[i].first, k.x + 14, y);
+        dc.DrawText(p_rateLines[i].second, k.GetRight() - 14 - vw, y);
+      }
+      dc.SetTextForeground(dim);
+      dc.DrawText("T / K", k.x + 14, k.GetBottom() - 30);
+    }
+
     if (p_hasKey) {
       const wxRect &k = p_keyRect;
       const int lh = dc.GetTextExtent("Ag").y + 4;
@@ -496,6 +641,13 @@ private:
   bool p_hasKey = false;
   int p_keyNote = 0;
   vector<std::pair<wxString, wxString> > p_keyLines;
+  RateBoxResult p_rate;
+  wxRect p_rateRect;
+  bool p_hasRate = false;
+  string p_rateSig, p_rateAppliedT = "298.15";
+  vector<std::pair<wxString, wxString> > p_rateLines;
+  wxTextCtrl *p_rateTField = 0;
+  wxButton *p_rateDetails = 0;
 };
 
 
@@ -776,6 +928,18 @@ string WorkflowPanel::saveAsRecipe(const string &id, const string &title)
   f << recipeText(r);
   f.close();
   return f ? "ok " + file : "error: cannot write " + file;
+}
+
+
+string WorkflowPanel::rateText(const string& T)
+{
+  return p_canvas->rateText(T);
+}
+
+
+string WorkflowPanel::rateDetailsCsv(const string& file, const string& range)
+{
+  return p_canvas->rateDetailsCsvTo(file, range);
 }
 
 

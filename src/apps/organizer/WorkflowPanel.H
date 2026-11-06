@@ -86,6 +86,9 @@ public:
   std::string resultLines();
   /// The key-data box as text ("" for a workflow made without a recipe).
   std::string keyDataText();
+  /// The Rate box as plain lines (T set first when given); the details CSV for a range.
+  std::string rateText(const std::string& T = "");
+  std::string rateDetailsCsv(const std::string& file, const std::string& range);
 
   /// Geometry of the drawing, for the screenshot test.
   std::string layoutReport();

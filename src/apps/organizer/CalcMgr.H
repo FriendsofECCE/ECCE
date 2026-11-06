@@ -744,6 +744,7 @@ protected:
   std::map<std::string, std::vector<std::pair<std::string, std::string> > >
     p_flowSources;   // target calc -> (source calc, link name)
   std::map<std::string, std::string> p_flowHessian;   // step -> .hess file
+  std::map<std::string, std::pair<std::string, bool> > p_flowKeys;   // step -> key role, thermo
   void joinExampleWorkflow(Resource *step);
   std::string p_batchError;     // the first import that failed in the batch
   int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;

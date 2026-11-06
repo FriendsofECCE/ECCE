@@ -128,6 +128,36 @@ The box shows numbers only when every Complete step uses one code and one
 level of theory (method, basis and solvent). Otherwise it says so and shows
 none: energies of different methods are never compared.
 
+## Rate
+
+A workflow with a reactant step and a TS step (and a product step, when it
+has one) also gets a **Rate** box, below the Key data box or in its place. The
+steps are those marked reactant, ts and product: the TS search recipe marks
+them, and so does the SN2 workflow in the Workflows examples. The box waits
+until those steps are Complete and says which one it is waiting for.
+
+Once they are, the box shows, at the temperature in its **T / K** field
+(298.15 K at first):
+
+- the free energy of activation, ΔG‡, in kJ/mol;
+- the rate constant k without tunnelling, and with the Wigner and with the
+  Eckart correction, each with its factor κ, in the unit of the reaction
+  (s^-1 for one reactant, M^-1 s^-1 for two);
+- with a product step, the reverse rate constant and the equilibrium constant
+  K_eq.
+
+The line under the title gives the treatment of the low frequencies and the
+standard state; the box uses Grimme's quasi-RRHO with omega0 = 100 cm-1 and
+1 M. The numbers are those of `ecce-rate`. Press Enter in the T field to
+recompute. A TS that does not have exactly one imaginary frequency is not a
+transition state, and the box shows the reason instead of numbers. The box
+needs calculations stored on this machine.
+
+**Details...** opens a window with the same quantities at a range of
+temperatures (250 to 400 K in steps of 25 by default; change the three
+fields and press **Update**), the Arrhenius and Eyring fits over the range,
+and **Export CSV...** for the table.
+
 ## Save Workflow as Recipe
 
 Click **Save as Recipe...** beside **Apply Recipe...** and give the recipe a

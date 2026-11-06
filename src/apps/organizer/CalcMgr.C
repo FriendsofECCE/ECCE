@@ -745,7 +745,8 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command == "workflowrecipelist" || command == "workflowrecipe" ||
                command == "workflowrecipepanel" || command == "workflowrecipecreate" ||
-               command == "workflowkeydata" || command == "workflowresults" || command == "workflowmark" ||
+               command == "workflowkeydata" || command == "workflowrate" ||
+               command == "workflowresults" || command == "workflowmark" ||
                command == "workflowsaverecipe" || command == "workflowlink" ||
                command == "workflowstructure" || command == "workflowrecipehere") {
       // Recipes (Recipe.H, RecipePanel.H); WF is the workflow's URL.
@@ -760,6 +761,9 @@ void CalcMgr::runTestCommand(const string& line)
       //     (flag autorun: tick "Run the remaining steps automatically")
       //   workflowrecipecreate WF       Create boxes in the open panel
       //   workflowkeydata WF            the key-data box as text, "|" for newlines
+      //   workflowrate WF [T=K] [png=FILE] [csv=FILE] [range=LOW:HIGH:STEP]
+      //     the Rate box as text ("|" for newlines); the picture of the window;
+      //     the Details table for the range (default 250:400:25) as CSV
       //   workflowresults WF            each box's result line: "name: text|..."
       //   workflowmark WF STEP KEY THERMO   make a copied step a recipe step (KEY: reactant, ts, ...)
       //   workflowsaverecipe WF ID TITLE   Save Workflow as Recipe
@@ -776,7 +780,12 @@ void CalcMgr::runTestCommand(const string& line)
         args >> wfUrl >> rid >> vid >> src;
       else args >> wfUrl;
       bool autorun = false;
+      string rateT, ratePng, rateCsv, rateRange = "250:400:25";
       while (args >> flag) {
+        if (flag.compare(0, 2, "T=") == 0) rateT = flag.substr(2);
+        if (flag.compare(0, 4, "png=") == 0) ratePng = flag.substr(4);
+        if (flag.compare(0, 4, "csv=") == 0) rateCsv = flag.substr(4);
+        if (flag.compare(0, 6, "range=") == 0) rateRange = flag.substr(6);
         if (flag == "autorun") autorun = true;
         if (flag.compare(0, 7, "method=") == 0) method = flag.substr(7);
         if (flag.compare(0, 6, "basis=") == 0) basis = flag.substr(6);
@@ -869,6 +878,19 @@ void CalcMgr::runTestCommand(const string& line)
           }
         } else if (command == "workflowresults") {
           outcome = "ok " + wp->resultLines();
+        } else if (command == "workflowrate") {
+          SetSize(1500, 900);
+          Raise();
+          for (int i = 0; i < 4; i++) wxYield();
+          string t = wp->rateText(rateT);
+          for (int i = 0; i < 4; i++) wxYield();
+          for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
+          outcome = "ok " + t;
+          if (!ratePng.empty()) outcome += ecceWindowShot(this, ratePng) ? " png saved" : " png failed";
+          if (!rateCsv.empty()) {
+            const string why = wp->rateDetailsCsv(rateCsv, rateRange);
+            outcome += why.empty() ? " csv saved" : " csv failed: " + why;
+          }
         } else if (command == "workflowkeydata") {
           string t = wp->keyDataText();
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
@@ -2038,21 +2060,23 @@ void CalcMgr::runTestCommand(const string& line)
         d->Destroy();
       }
     } else if (command == "reactionoverview") {
-      // "reactionoverview <file> <treatment> [png [csv]]": the dialog for the
+      // "reactionoverview <file> <treatment> [png [csv [T]]]": the dialog for the
       // reactions in <file>; prints the chart points and what a click on
       // reaction 1 lists, and writes the PNG and CSV exports.
       std::istringstream args(calcName);
-      string file, treatment, png, csvOut;
-      args >> file >> treatment >> png >> csvOut;
+      string file, treatment, png, csvOut, kelvin;
+      args >> file >> treatment >> png >> csvOut >> kelvin;
       std::ifstream in(file.c_str());
       std::stringstream text;
       text << in.rdbuf();
       ReactionOverviewDialog *d = new ReactionOverviewDialog(this, text.str());
       d->Show();
       d->setTreatment(treatment);
+      if (!kelvin.empty()) d->setTemperature(kelvin);
       for (int i = 0; i < 5; i++) wxYield();
       outcome = "ok";
-      std::istringstream r(d->chartText() + "Click 1:\n" + d->clickText(1));
+      std::istringstream r(d->chartText() + "Click 1:\n" + d->clickText(1) + "Rates:\n" +
+                           d->rateText());
       for (string l; std::getline(r, l); ) outcome += " | " + l;
       if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
       if (!csvOut.empty()) outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
@@ -5179,6 +5203,9 @@ struct ExampleTopic {
   // steps (calculation names) that start from their source's Hessian, with
   // the .hess file the source's example folder ships
   vector<std::pair<string, string>> hessian;
+  // "!key <folder> <role> [thermo]": the step's key role for the Rate box
+  struct FlowKey { string calc, role; bool thermo; };
+  vector<FlowKey> keys;
 };
 struct ExampleSet {
   string id, title, line, project;
@@ -5190,7 +5217,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "32";
+const char *const kExampleSetVersion = "33";
 
 string treeName(string s)
 {
@@ -5257,6 +5284,13 @@ void collectExamples(const string &setDir, const string &topicDir,
       std::istringstream words(l);
       string folder, lt, tok;
       if (!(words >> folder) || folder[0] == '#') continue;
+      if (folder == "!key") {
+        string f, role, flag;
+        words >> f >> role >> flag;
+        if (!calcOf(f).empty())
+          topic.keys.push_back({calcOf(f), role, flag == "thermo"});
+        continue;
+      }
       words >> lt;
       // "<source>", "<source>@max" (a scan point), or for a join
       // "<source>=<role>[@<point>]" for each source.
@@ -5615,6 +5649,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       for (const auto &l : topic.links)
         p_flowSources[l.to].push_back({l.from, l.name});
       for (const auto &h : topic.hessian) p_flowHessian[h.first] = h.second;
+      for (const auto &k : topic.keys) p_flowKeys[k.calc] = {k.role, k.thermo};
     }
     findNode(parent->getURL(), true, true);
     for (const ExampleOut *exp : todo->second) {
@@ -11612,6 +11647,13 @@ void CalcMgr::joinExampleWorkflow(Resource *step)
           wf->addLink(from, to, Session::INPUT_PROVIDER, src.second);
       }
     wf->saveLinkbase();
+    // "!key" in workflow.txt: the roles the Rate box looks for
+    auto key = p_flowKeys.find(step->getName());
+    if (key != p_flowKeys.end()) {
+      const string ns = VDoc::getEcceNamespace();
+      step->addProp(ns + ":recipe.key", key->second.first);
+      step->addProp(ns + ":recipe.thermo", key->second.second ? "1" : "0");
+    }
     // "+hess" in workflow.txt: the step reads the Hessian of its source
     for (const auto &l : p_flowSources) {
       auto hess = p_flowHessian.find(l.first);
