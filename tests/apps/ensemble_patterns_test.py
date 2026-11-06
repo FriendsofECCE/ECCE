@@ -10,12 +10,14 @@ representatives are each pattern's lowest-energy member; the Builder's Geometry
 Trace panel must list the same three rows.
 """
 import json
+import csv
 import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -222,11 +224,98 @@ def panel(tmp):
                           len(lines) == len(FRAMES) + 1 and lines[0].startswith("rank,"), lines)
                 else:
                     check("CSV written", False, log[-3000:])
+                stored_superposition(tmp, display, state)
             finally:
                 restore()
                 fx.remove("na-ensemble")
         finally:
             apps.stopServices(display)
+
+
+def stored_superposition(tmp, display, state):
+    """Compare against an SVD Kabsch fit, independent of the quaternion fit
+    used by the viewer, on the stored CREST n-butane search."""
+    import numpy as np
+    from PIL import Image
+    import apps
+    import fixture as fx
+
+    src = os.path.join(tmp, "stored-butane")
+    shutil.copytree(BASE, src, symlinks=True)
+    trace = ET.parse(os.path.join(BASE, "Props", "GEOMTRACE")).getroot()
+    heavy = [i for i, label in enumerate(trace.attrib["rowLabels"].split())
+             if label.split("-", 1)[1] not in ("H", "X")]
+    frames = [np.array([float(x) for x in s.text.split()]).reshape(-1, 3)[heavy]
+              for s in trace.findall("step")]
+    energies = [float(s.text) for s in ET.parse(
+        os.path.join(BASE, "Props", "CONFREL")).getroot().findall("step")]
+    ranked = [frames[i] for i in sorted(range(len(frames)), key=lambda i: energies[i])]
+
+    def rmsd(reference, moving):
+        a = reference - reference.mean(axis=0)
+        b = moving - moving.mean(axis=0)
+        u, _s, vt = np.linalg.svd(b.T @ a)
+        correction = np.diag([1.0, 1.0, np.linalg.det(u @ vt)])
+        return np.sqrt(np.sum((b @ (u @ correction @ vt) - a) ** 2) / len(a))
+
+    png = os.path.join(tmp, "stored-table.png")
+    csvpath = os.path.join(tmp, "stored-fits.csv")
+    scene = os.path.join(tmp, "stored-scene")
+    with open(scene, "w") as f:
+        f.write("gtfocus\ngtenselect 3 1 5\ngtenfit\ngtencsv %s\ngtensort 1 down\ngtenfit\n"
+                "gtenpng %s\ngtenthumbs\ngtenpng %s\n"
+                "gtenselect 1\ngtenfit\ngtenselect 5 3 1\ngtenfit\n"
+                "gtenviewer off\ngtenfit\ngtclose\nhold 1\n" % (csvpath, png, png + ".png"))
+    args = ("-context", "file://" + src + "/")
+    if os.path.realpath(state) != os.path.realpath(os.path.expanduser("~")):
+        auth = fx.authFile(os.path.join(state, ".ECCE", "auth.pipe"), user=fx.USER)
+        args = ("-pipe", auth) + args
+    result = apps.run(display, "builder", args=args, windowTimeout=120, settle=120,
+                      env={"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": tmp,
+                           "ECCE_REALUSER": fx.USER, "GTK_THEME": "Adwaita",
+                           "ECCE_OPEN_PANEL": "Conformers"})
+    log = result.log or ""
+    check("stored CREST superposition scene completes without a crash",
+          not result.crashed and not os.path.exists(os.path.join(tmp, "FAILED")), log[-5000:])
+    rows = re.findall(r"GTSTRESS: enfit (\d+) \| ([0-9.]+) \| (#[0-9A-Fa-f]{6})", log)
+    for group, ranks in enumerate(([3, 1, 5], [3, 1, 5], [5, 3, 1])):
+        actual = rows[3*group:3*group+3]
+        check("fit %d keeps selection order (including after sorting)" % group,
+              [int(r[0]) for r in actual] == ranks, actual)
+        for rank, value, _colour in actual:
+            expected = rmsd(ranked[ranks[0]-1], ranked[int(rank)-1])
+            check("fit %d member %s RMSD matches independent SVD to 0.0001 Å" % (group, rank),
+                  abs(float(value) - expected) < 1e-4, (value, expected))
+        check("fit %d uses distinct shared palette colours" % group,
+              len({r[2].lower() for r in actual}) == 3 and
+              [r[2].lower() for r in actual] == ["#0072b2", "#d55e00", "#cc79a7"], actual)
+    states = re.findall(r"GTSTRESS: enfit members=(\d+) visible=(\d+)", log)
+    check("multi-select draws overlay; one row and closing restore normal view",
+          states == [("3", "1"), ("3", "1"), ("0", "0"), ("3", "1"), ("3", "0")], states)
+    thumbs = [int(x) for x in re.findall(r"GTSTRESS: enthumb (\d+)", log)]
+    check("every stored ensemble member has a cached thumbnail",
+          thumbs == list(range(1, len(frames) + 1)), thumbs)
+    if os.path.exists(csvpath):
+        with open(csvpath) as f:
+            exported = list(csv.DictReader(f))
+        fitted = [r for r in exported if r["reference_rank"]]
+        check("CSV exports the selected members' reference, RMSD and colour",
+              len(fitted) == 3 and all(r["reference_rank"] == "3" and
+              abs(float(r["heavy_atom_rmsd_angstrom"]) - rmsd(ranked[2], ranked[int(r["rank"])-1])) < 1e-4
+              and r["colour"].startswith("#") for r in fitted), fitted)
+    else:
+        check("CSV with RMSDs was written", False)
+    if os.path.exists(png):
+        with Image.open(png) as image:
+            check("PNG table contains every row", image.height == 32 + 62*len(frames), image.size)
+            for i in range(len(frames)):
+                crop = image.crop((5, 35 + 62*i, 77, 91 + 62*i)).convert("RGB")
+                check("thumbnail %d contains rendered atoms and bonds" % (i+1),
+                      len(crop.getcolors(10000) or []) > 3)
+        check("export reuses the cached pictures",
+              open(png, "rb").read() == open(png + ".png", "rb").read())
+    else:
+        check("PNG table was written", False, log[-5000:])
 
 
 def main():

@@ -141,6 +141,39 @@ and the charge and multiplicity of this calculation. If this calculation is a
 step of a workflow, they become steps linked from it; otherwise they are
 calculations beside it, named `<calculation>_conf<rank>`.
 
+### Superposing selected members
+
+Ctrl-click or Shift-click several rows to compare their structures in the
+3-D view. Each member is fitted onto the **first selected member**, using a
+proper rotation (Kabsch) over all heavy atoms, with equal weights. Atoms are
+matched by their stored indices: equivalent atoms and solvent molecules are
+not permuted. An ensemble containing only hydrogen is fitted over all atoms.
+The key below the table lists each rank, its colour and its heavy-atom RMSD
+to the reference in Å. The first six colours are the shared plot palette;
+larger selections use lightness variants. Sorting preserves the selection
+and its reference. Selecting one row restores the normal structure view;
+closing the panel or unticking **Show in viewer** removes the overlay.
+**Export .csv** also includes the selected members' reference rank, RMSD and
+colour while a multiple selection is active.
+
+### Structure thumbnails and table pictures
+
+The **Structure** column contains off-screen rendered ball-and-line pictures,
+with atoms coloured by element and inferred covalent bonds. Pictures use the
+viewer's orientation when thumbnail generation starts, fitted to each member.
+They are generated in small batches and cached in memory for this ensemble,
+so scrolling does not render them again. A property refresh regenerates the
+pictures; no additional files are stored with the calculation.
+**Export .png...** writes the whole table, including every thumbnail and rows
+outside the visible scroll area.
+
+The Builder scene-script hooks are `gtenselect <rank>...` (selection order
+sets the reference), `gtenfit` (members, RMSDs, colours and overlay visibility),
+`gtenthumbs` (cached ranks), `gtenpng <file>` and `gtencsv <file>`.
+`gtenviewer on|off` operates the **Show in viewer** checkbox.
+`gtensort <column> up|down` sorts rank (0), energy (1), population (2) or
+pattern (3). These run through the existing `ECCE_VIEWER_SCENE` interface.
+
 The energies and populations compare the structures within the one method of
 this calculation only. They cannot be compared with the energy from another
 method, or from another run with a different window or solvent, and the
