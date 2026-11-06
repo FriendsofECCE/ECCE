@@ -271,6 +271,8 @@ int ScanPanel::showPoint(int index)
   if (!calc) return -1;
   p_selected = index;
   SGContainer& sg = getFW().getSceneGraph();
+  // A view that already cuts atoms off was zoomed in by the user: keep it.
+  const bool wholeInView = !getFW().atomsOutsideView();
   Command *cmd = new GTStepCmd("Scan Step", &sg, calc);
   cmd->getParameter("Index")->setInteger(p_frame[index]);
   cmd->getParameter("PropKey")->setString("SCANGEOM");
@@ -283,8 +285,9 @@ int ScanPanel::showPoint(int index)
   frag->touchNumbers();
   sg.touchChemDisplay();
   // The camera was fitted to the stored (last) point; the first point of a
-  // bond scan can be far wider (#832).  Re-fit only when atoms leave the view.
-  if (getFW().atomsOutsideView()) getFW().center();
+  // bond scan can be far wider (#832).  Re-fit only when atoms leave a view
+  // that showed them all.
+  if (wholeInView && getFW().atomsOutsideView()) getFW().center();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
   selectOrbitalPoint(calc, p_frame[index], index);
   return p_frame[index];

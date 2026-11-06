@@ -632,6 +632,9 @@ void GeomTracePropertyPanel::processStep(int step)
   SGFragment *frag = sg.getFragment();
   LatticeDef *lattice = frag->getLattice();
   int numAtoms = frag->numAtoms();
+  // A view that already cuts atoms off was zoomed or panned by the user:
+  // playback keeps it.
+  const bool wholeInView = !fw.atomsOutsideView();
 
   int x,y,z = 1; // lattice replication factors
 
@@ -728,8 +731,9 @@ void GeomTracePropertyPanel::processStep(int step)
   // whether or not bonds are being recomputed.
   // The camera was fitted to the structure the calculation stored (a scan's
   // last point); a step can lie well outside it, e.g. the 4 A start of a
-  // bond scan (#832).  Only zoom out, so playback does not pump.
-  if (fw.atomsOutsideView()) fw.center();
+  // bond scan (#832).  Only zoom out, so playback does not pump, and only
+  // while the whole structure was in view.
+  if (wholeInView && fw.atomsOutsideView()) fw.center();
   fw.getViewer().refreshRenderArea();
 
   ::wxYieldIfNeeded();

@@ -141,6 +141,16 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     return traceFrame(frame);
   }
 
+  //  "gtinview": whether an atom is outside the 3-D view, the atoms and
+  //  whether there is a cell (stderr).
+  if (c == "gtinview") {
+    SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+    fprintf(stderr, "GTSTRESS: inview outside=%d atoms=%d lattice=%s\n",
+            atomsOutsideView() ? 1 : 0, frag ? (int)frag->numAtoms() : -1,
+            frag && frag->getLattice() ? "yes" : "no");
+    return true;
+  }
+
   //  "gtfocus": give the panel the viewer, as a click into it does.
   if (c == "gtfocus") {
     if (!gt) {

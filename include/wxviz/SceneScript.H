@@ -32,6 +32,8 @@ class wxWindow;
  *   drag <name> <n> <dx> <dy>     select atom n, drag it by pixels; coords
  *   redraws <name> <step>...      one gt step per change, frames -> <name>.txt
  *   viewall | clear               reset the camera / hide MO and modes
+ *   camera [label]                the camera's position, orientation, focal
+ *                                 distance and height (angle) on stderr
  *   snap <name>   the canvas, read back with glReadPixels -> <name>.ppm
  *   thumb <name>  64x64 black background, as the calculation thumbnail
  *   nmcheck <name>  per normal-mode arrow: tip distance from its atom centre

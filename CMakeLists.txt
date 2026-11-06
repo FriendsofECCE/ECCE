@@ -4475,6 +4475,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # Stepping and playing a geometry trace (GROMACS box, ORCA optimisation)
+  # keeps a zoomed-in camera; skipped (77) without Xvfb.
+  add_test(NAME apps_trace_camera
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/trace_camera_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_trace_camera PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The MOPAC ammonia example's charges colour the atoms without closing the
   # Builder (#429); skipped (77) without Xvfb, import or python3-pil.
   add_test(NAME apps_example_charges
