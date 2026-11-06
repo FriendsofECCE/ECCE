@@ -322,7 +322,7 @@ void MomentsPanel::fillBondTable()
       p_bondGrid->DeleteRows(0, p_bondGrid->GetNumberRows());
    p_bondGrid->SetColLabelValue(0, "Bond");
    p_bondGrid->SetColLabelValue(1, wxString::FromUTF8("|\u03bc| / D"));
-   p_bondGrid->SetColLabelValue(2, "Direction (- to +)");
+   p_bondGrid->SetColLabelValue(2, "Direction");
    if (!p_bondCheck->GetValue()) return;
 
    IPropCalculation *expt = getCalculation();
@@ -366,14 +366,19 @@ void MomentsPanel::fillBondTable()
       mu[k] = vec->value(k) / BondDipoles::DEBYE_PER_E_ANGSTROM;
    add("Computed", mu, true);
    for (int k = 0; k < 3; k++) rem[k] = mu[k] - r.pointCharge[k];
-   add("Remainder (computed - point charges)", rem, true);
+   add("Remainder", rem, true);
 
    p_bondGrid->AppendRows((int)p_bondRows.size());
    for (size_t i = 0; i < p_bondRows.size(); i++)
       for (int c = 0; c < 3; c++)
          p_bondGrid->SetCellValue((int)i, c,
             wxString::FromUTF8(p_bondRows[i][c]));
-   p_bondGrid->AutoSize();
+   p_bondGrid->AutoSizeColumns();
+   // Fit the three columns to the pane without a horizontal scrollbar.
+   int w = p_bondGrid->GetClientSize().GetWidth();
+   int c1 = p_bondGrid->GetColSize(1), c2 = p_bondGrid->GetColSize(2);
+   if (w > c1 + c2 + 40) p_bondGrid->SetColSize(0, w - c1 - c2);
+   p_bondGrid->ForceRefresh();
 }
 
 

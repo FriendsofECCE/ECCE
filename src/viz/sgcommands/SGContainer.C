@@ -2040,6 +2040,17 @@ void SGContainer::touchLattice()
    }
 }
 
+double SGContainer::displayedBondRadius(int idx)
+{
+   SGFragment *frag = getFragment();
+   if (!frag || idx < 0 || idx >= (int)frag->numAtoms()) return 0.0;
+   DisplayStyle style = frag->atomRef(idx)->displayStyle();
+   for (size_t k = 0; k < p_displayDescs.size() && k < p_displayParams.size(); k++)
+      if (style.getName() == p_displayDescs[k].getName())
+         return p_displayParams[k]->bondCylinderRadius.getValue();
+   return 0.0;
+}
+
 double SGContainer::displayedSphereRadius(int idx)
 {
    SGFragment *frag = getFragment();
