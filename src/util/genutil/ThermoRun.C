@@ -111,10 +111,12 @@ ThermoRunResult runThermo(const string& url, double kelvin, bool oneMolar)
 }
 
 bool runThermoReactions(const string& file, const string& treatment, string& csv,
-                        string& error)
+                        string& error, double kelvin)
 {
   const char *home = getenv("ECCE_HOME");
   const string exe = (home && *home ? string(home) + "/bin/" : string()) + "ecce-thermo";
+  char tbuf[32];
+  snprintf(tbuf, sizeof tbuf, " --T %.4f", kelvin);
   auto q = [](const string& v) {
     string o;
     for (char c : v) o += c == '\'' ? string("'\\''") : string(1, c);
@@ -122,10 +124,10 @@ bool runThermoReactions(const string& file, const string& treatment, string& csv
   };
 #ifdef _WIN32
   const string cmd = "\"" + exe + ".exe\" --reactions \"" + file + "\" --chosen " + treatment +
-                     " --format csv";
+                     " --format csv" + tbuf;
 #else
   const string cmd = q(exe) + " --reactions " + q(file) + " --chosen " + q(treatment) +
-                     " --format csv 2>/dev/null";
+                     " --format csv" + tbuf + " 2>/dev/null";
 #endif
   const int status = Ecce::readCommand(cmd, csv);
   if (status != 0 || csv.compare(0, 8, "reaction") != 0) {

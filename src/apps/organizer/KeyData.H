@@ -21,6 +21,8 @@ struct KeyStep {
   std::string keyRole;       ///< reactant, product, ts, min, final or ""
   bool thermo = false;       ///< the recipe asks for G of this step
   bool complete = false;
+  std::string url;           ///< the stored calculation
+  std::string stamp;         ///< completion date: changes when the step is rerun
   EnergyTerm term;           ///< its energy, thermochemistry and level
 };
 

@@ -42,7 +42,7 @@ ThermoRunResult runThermo(const std::string& url, double kelvin, bool oneMolar);
  * and returns its CSV; false with `error` when it could not be run.
  */
 bool runThermoReactions(const std::string& file, const std::string& treatment,
-                        std::string& csv, std::string& error);
+                        std::string& csv, std::string& error, double kelvin = 298.15);
 
 /** Hartree -> kJ/mol, the constant ecce-thermo uses. */
 double thermoHartreeToKJ(double hartree);

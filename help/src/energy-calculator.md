@@ -125,6 +125,14 @@ set up in the window: side A as the reactants and side B as the products.
 - The text box holds the reactions, one per line, in the form
   `a, 2*b -> c`, where each name is a calculation and `2*` a coefficient.
   Add lines to chart several reactions side by side.
+- Write `a, b -> [ts] -> c` to give the transition state of a reaction. The
+  chart then also shows the barriers ΔE‡ and ΔG‡ (TS minus reactants) for it,
+  and the box below the chart lists the rate constant k at the temperature in
+  the **T / K** field, without tunnelling and with the Wigner and the Eckart
+  correction, with κ for each. The reactants, TS and product must be
+  calculations stored on this machine, each named once (no `N*`), and the TS
+  must have exactly one imaginary frequency. The rates are those of
+  `ecce-rate`.
 - **G treatment** chooses the treatment of the low frequencies for ΔG (the
   default is Grimme's quasi-RRHO with omega0 = 100 cm-1). **Update** redraws
   the chart after the text is changed.
@@ -133,7 +141,8 @@ set up in the window: side A as the reactants and side B as the products.
   [G over treatments](#g-over-treatments).
 - Click a point to list the soft modes (below 100 cm-1) of each species with
   their share of its entropy and of G.
-- **Export CSV...** writes the numbers, and **Export PNG...** the chart.
+- **Export CSV...** writes the numbers (with the barrier and rate columns when
+  a reaction has a `[ts]`), and **Export PNG...** the chart.
 
 A reaction whose calculations differ in code, method, basis set, solvent or
 dispersion correction is not drawn, and the box below the chart says why.

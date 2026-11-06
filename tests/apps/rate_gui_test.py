@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Reaction rates in the GUI (#872), headless.
+
+The SN2 workflow example carries the keys reactant, ts and product (workflow.txt
+"!key" lines), so its Rate box must show what `ecce-rate --json` prints for the
+same calculations, at 298.15 K and at a T typed into the box; the Details
+table's CSV must equal the CLI's temperature rows.  The Reaction overview with
+`reactant -> [ts] -> product` must list the same k and its chart must carry the
+barrier points; a reaction without [ts] must not get rate columns.
+ECCE_RATE_SHOTS=<dir> keeps the PNGs.  Same install and isolation as
+examples_workflow_test.py; exit 77 (skip) without an install or Xvfb.
+"""
+import csv
+import io
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+
+import apps       # noqa: E402
+import isolate    # noqa: E402
+import xdisplay   # noqa: E402
+
+failures = []
+
+
+def check(what, cond, why=""):
+    print(("ok    " if cond else "FAIL  ") + what + ("" if cond else "\n      " + str(why)[:600]))
+    if not cond:
+        failures.append(what)
+    return cond
+
+
+def cli(args):
+    env = dict(os.environ, ECCE_HOME=apps.INSTALL)
+    r = subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-rate")] + args + ["--json"],
+                       env=env, capture_output=True, text=True)
+    return json.loads(r.stdout) if r.returncode == 0 else None
+
+
+def sci(v):
+    return "%.3e" % v
+
+
+def run(display, data, work, shots):
+    root = os.path.join(data, "users", "local", "Examples", "Workflows", "SN2_Cl-_and_CH3Br")
+    wf = "file://" + root
+    re_, ts, pr = (os.path.join(root, n) for n in ("sn2_reactant", "sn2_qst3", "sn2_product"))
+    png = os.path.join(shots, "rate-box.png")
+    csv1 = os.path.join(work, "details.csv")
+    rx = os.path.join(work, "reactions.txt")
+    with open(rx, "w") as f:
+        f.write("file://%s -> [file://%s] -> file://%s\nfile://%s -> file://%s\n" % (re_, ts, pr, re_, pr))
+    png2 = os.path.join(shots, "reaction-overview-ts.png")
+    csv2 = os.path.join(work, "overview.csv")
+    commands = ["examples workflows",
+                "workflowrate %s png=%s csv=%s range=250:400:25" % (wf, png, csv1),
+                "workflowrate %s T=310" % wf,
+                "reactionoverview %s qrrho-grimme:100 %s %s 298.15" % (rx, png2, csv2)]
+    script = os.path.join(work, "commands")
+    open(script, "w").write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=120,
+                      env={"ECCE_TEST_ORGANIZER": script, "ECCE_NO_EXAMPLE_IMPORT": ""})
+    log = result.log or ""
+    if result.crashed:
+        return check("the Organizer ran", False, "CRASHED (%s)\n%s" % (result.signalName, log[-1500:]))
+
+    def answers(prefix):
+        return re.findall(r"ECCE_TEST_ORGANIZER: %s.*?: (.*)$" % re.escape(prefix), log, re.M)
+
+    rate = answers("workflowrate")
+    if not check("two workflowrate answers", len(rate) == 2 and all(a.startswith("ok ") for a in rate),
+                 "%r\n%s" % (rate, log[-1500:])):
+        return
+    ref = cli([re_, ts, pr, "--T", "298.15"])
+    ref310 = cli([re_, ts, pr, "--T", "310"])
+    check("ecce-rate runs on the example calculations", ref is not None and ref310 is not None)
+    if ref is None or ref310 is None:
+        return
+    row, row310 = ref["temperatures"][0], ref310["temperatures"][0]
+
+    def box(text):
+        d = {}
+        for l in text[3:].split("|"):
+            if ": " in l:
+                k, v = l.split(": ", 1)
+                d[k] = v
+        return d
+    b = box(rate[0])
+    check("Rate box: dG at 298.15 K", any("298.15 K" in k and v.startswith("%.2f kJ/mol" % row["dG_act"])
+                                         for k, v in b.items()), b)
+    check("Rate box: k TST equals ecce-rate", b.get("k (TST)", "").startswith(sci(row["k"]["none"])), b)
+    check("Rate box: Wigner and Eckart k equal ecce-rate",
+          any(k.startswith("κ Wigner") and v.startswith("k " + sci(row["k"]["wigner"])) for k, v in b.items()) and
+          any(k.startswith("κ Eckart") and v.startswith("k " + sci(row["k"]["eckart"])) for k, v in b.items()), b)
+    check("Rate box: product given, so reverse k and K_eq",
+          b.get("k reverse (Eckart)", "").startswith(sci(row["k_reverse"]["eckart"])) and
+          b.get("K_eq", "") == sci(row["K_eq"]), b)
+    check("Rate box: treatment and standard state shown", "qrrho-grimme:100, 1 M standard state" in rate[0], rate[0])
+    b2 = box(rate[1])
+    check("Rate box at T = 310 K equals ecce-rate",
+          b2.get("k (TST)", "").startswith(sci(row310["k"]["none"])), b2)
+    got = answers("workflowrate")[0]
+    check("details CSV written", "csv saved" in got and "png saved" in got, got[-200:])
+    full = cli([re_, ts, pr, "--T", "250:400:25"])
+    try:
+        rows = list(csv.DictReader(open(csv1).read().split("\n\n")[0].splitlines()))
+        ok = len(rows) == len(full["temperatures"]) and all(
+            abs(float(r["k_eckart"]) / t["k"]["eckart"] - 1) < 1e-4 and
+            abs(float(r["dG_act_kJ_mol"]) - t["dG_act"]) < 1e-3
+            for r, t in zip(rows, full["temperatures"]))
+    except Exception as e:  # noqa
+        ok, rows = False, str(e)
+    check("details CSV equals the CLI's 250-400 K rows", ok, rows)
+    check("Rate box PNG exists", os.path.exists(png) and os.path.getsize(png) > 5000, png)
+
+    ov = answers("reactionoverview")
+    if not check("overview answered", len(ov) == 1 and ov[0].startswith("ok"), "%r\n%s" % (ov, log[-1200:])):
+        return
+    lines = ov[0].split(" | ")
+    tsPts = [l for l in lines if re.match(r"[23] \d+ 1 ", l)]
+    check("overview chart has barrier points dE and dG for reaction 1",
+          len(tsPts) == 2 and abs(float(tsPts[1].split()[4]) - row["dG_act"]) < 1e-2, tsPts)
+    i = lines.index("Rates:") if "Rates:" in lines else -1
+    rt = " ".join(lines[i + 1:]) if i >= 0 else ""
+    check("overview lists the same k (TST, Wigner, Eckart)",
+          sci(row["k"]["none"]) in rt and sci(row["k"]["wigner"]) in rt and sci(row["k"]["eckart"]) in rt, rt)
+    check("overview lists the kappas", "kappa Wigner %.3f" % row["kappa"]["wigner"] in rt, rt)
+    check("the reaction without [ts] has no rate lines", not re.search(r"\b2: dE", rt), rt)
+    try:
+        crows = list(csv.DictReader(open(csv2)))
+        ok = (len(crows) == 2 and abs(float(crows[0]["k_eckart"]) / row["k"]["eckart"] - 1) < 1e-3 and
+              crows[1]["k_tst"] == "" and "dG_act_kJ_mol" in crows[0])
+    except Exception as e:  # noqa
+        ok, crows = False, str(e)
+    check("overview CSV has the rate columns, empty for the plain reaction", ok, crows)
+    check("overview PNG exists", os.path.exists(png2) and os.path.getsize(png2) > 3000, png2)
+
+
+def main():
+    if not os.path.exists(os.path.join(apps.WRAPPERS, "ecce-organizer")):
+        print("SKIP: no ecce-organizer under %s" % apps.WRAPPERS)
+        return 77
+    if not shutil.which("Xvfb"):
+        print("SKIP: no Xvfb")
+        return 77
+    try:
+        settings = isolate.apply(apps.INSTALL)
+    except isolate.IsolationError as exc:
+        print("refusing to run: %s" % exc)
+        return 1
+    print(isolate.describe(settings))
+    os.environ["ECCE_NO_REAP"] = "1"
+    os.environ["GTK_THEME"] = "Adwaita"
+    work = tempfile.mkdtemp(prefix="rate-gui-", dir=os.environ.get("ECCE_REALUSERHOME"))
+    shots = os.environ.get("ECCE_RATE_SHOTS") or os.path.join(work, "shots")
+    os.makedirs(shots, exist_ok=True)
+    data = os.path.join(work, "data")
+    os.makedirs(os.path.join(data, "users", "local"))
+    os.environ["ECCE_LOCAL_DATA"] = data
+    with xdisplay.Display() as display:
+        gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
+        subprocess.run([gateway], env=display.env(), timeout=180)
+        try:
+            run(display, data, work, shots)
+        finally:
+            subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")],
+                           env=display.env(), timeout=120)
+    shutil.rmtree(work, ignore_errors=True)
+    print("FAILED: " + ", ".join(failures) if failures else "PASSED")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

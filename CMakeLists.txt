@@ -3580,6 +3580,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_reaction_overview PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Rate box of a workflow and rates in the Reaction overview equal ecce-rate (#872).
+  add_test(NAME apps_rate_gui
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/rate_gui_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_rate_gui PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # ecce-thermo --reactions: reaction overview data (#709).
   add_test(NAME apps_thermo_reactions
            COMMAND ${PYTHON3_EXECUTABLE}

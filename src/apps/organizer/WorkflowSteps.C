@@ -1240,9 +1240,13 @@ vector<KeyStep> WorkflowSteps::keySteps(Session *wf)
   vector<Node> nodes = tree(wf);
   for (size_t i = 0; i < nodes.size(); i++) {
     Resource *step = nodes[i].step;
-    if (step->getProp(nsKey(":recipe.step")).empty()) continue;
+    // Example workflows carry only the key (workflow.txt), recipe steps both.
+    if (step->getProp(nsKey(":recipe.step")).empty() &&
+        step->getProp(nsKey(":recipe.key")).empty()) continue;
     KeyStep k;
     k.name = step->getName();
+    k.url = step->getURL().toString();
+    k.stamp = step->getProp(nsKey(":completiondate"));
     k.keyRole = step->getProp(nsKey(":recipe.key"));
     k.thermo = step->getProp(nsKey(":recipe.thermo")) == "1";
     k.complete = isComplete(step);
