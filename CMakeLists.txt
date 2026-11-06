@@ -2904,7 +2904,7 @@ if(PYTHON3_EXECUTABLE)
     set(_extra "")
     set(_timeout 3600)   # ORCA runs ~25 min on an idle machine
     if(_d MATCHES "^ged16")
-      set(_extra --dedupe --jobs 8)
+      set(_extra --dedupe --jobs 4)   # half of an 8-core desk machine
       set(_timeout 7200)
     endif()
     add_test(NAME dialogs_native_${_d}
