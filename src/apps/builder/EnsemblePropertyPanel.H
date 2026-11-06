@@ -3,11 +3,18 @@
 
 #include <string>
 #include <vector>
+#include <map>
+#include <utility>
+#include <wx/bitmap.h>
+#include <wx/timer.h>
+#include "inv/SbLinear.H"
 
 #include "GeomTracePropertyPanel.H"
 
 class wxButton;
 class wxListEvent;
+class wxImageList;
+class SoSeparator;
 
 // The members of a conformer, protonation-site, tautomer, cluster or pose
 // ensemble ranked by energy: table, population, energy-against-rank plot.
@@ -43,6 +50,13 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     std::vector<std::string> tableRows() const;
     // Show member `rank` (1 = lowest) in the table, plot and 3-D view.
     bool selectRank(int rank);
+    bool selectRanks(const std::vector<int>& ranks);
+    // Selection order, with heavy-atom RMSD in Angstrom and HTML colour.
+    std::vector<std::string> superpositionRows() const;
+    bool superpositionVisible() const { return p_overlay; }
+    bool exportPng(const std::string& path);
+    std::vector<int> thumbnailRanks() const;
+    void sortTable(int column, bool ascending);
     int selectedRank() const { return p_selRank; }
     // Ranks of the selected rows, ascending.
     std::vector<int> selectedRanks() const;
@@ -75,6 +89,18 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     void OnColumn(wxListEvent& event);
     void OnExport(wxCommandEvent& event);
     void OnNewCalcs(wxCommandEvent& event);
+    void updateSelection();
+    void clearOverlay();
+    struct Geometry {
+      std::vector<double> xyz;
+      std::vector<int> elements;
+      std::vector<std::pair<int,int> > bonds;
+    };
+    const Geometry& geometry(int rank);
+    SoSeparator *molecule(const Geometry& g, const std::vector<double>& xyz,
+                           const wxColour *colour = NULL);
+    bool makeThumbnail(int rank);
+    void thumbnailBatch();
 
     std::vector<Member> p_members;   // as shown (sorted by the user's column)
     std::string p_deName;            // energy column header
@@ -86,6 +112,19 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     wxListCtrl *p_table;
     wxButton *p_export;
     wxButton *p_newCalcs;
+    std::vector<int> p_selection;
+    std::vector<std::string> p_fits;
+    std::map<int, Geometry> p_geometry;
+    std::map<int, wxBitmap> p_thumbnails;
+    std::map<int, int> p_imageIndex;
+    wxImageList *p_images = NULL;
+    wxListCtrl *p_key = NULL;
+    wxTimer p_thumbTimer, p_selectTimer;
+    SbRotation p_thumbOrientation;
+    bool p_haveOrientation = false;
+    bool p_overlay = false;
+    bool p_updatingSelection = false;
+    int p_savedCS = 0;
 };
 
 #endif

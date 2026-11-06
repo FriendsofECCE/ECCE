@@ -34,6 +34,7 @@
 
 #include "XYPlotCanvas.H"
 #include "wxgui/PlaybackControl.H"
+#include <wx/checkbox.h>
 #include "wxgui/ThingToggle.H"
 
 #include "wxviz/SceneScript.H"
@@ -355,7 +356,8 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     return true;
   }
   if (c == "gtenrows" || c == "gtencsv" || c == "gtenselect" ||
-      c == "gtencalc") {
+      c == "gtencalc" || c == "gtenfit" || c == "gtenpng" ||
+      c == "gtenthumbs" || c == "gtensort" || c == "gtenviewer") {
     EnsemblePropertyPanel *en = dynamic_cast<EnsemblePropertyPanel*>(gt);
     if (!en) return s.fail(c + ": no ensemble panel");
     if (c == "gtenrows") {
@@ -366,8 +368,32 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
         fprintf(stderr, "GTSTRESS: enrow %s\n", rows[i].c_str());
     } else if (c == "gtencsv" && w.size() == 2) {
       fprintf(stderr, "GTSTRESS: encsv %s\n", en->exportCsv(w[1]) ? "ok" : "failed");
-    } else if (c == "gtenselect" && w.size() == 2) {
-      const bool ok = en->selectRank(atoi(w[1].c_str()));
+    } else if (c == "gtenpng" && w.size() == 2) {
+      if (!en->exportPng(w[1])) return s.fail("gtenpng: render or write failed");
+      fprintf(stderr, "GTSTRESS: enpng ok\n");
+    } else if (c == "gtenthumbs") {
+      for (int rank : en->thumbnailRanks())
+        fprintf(stderr, "GTSTRESS: enthumb %d\n", rank);
+    } else if (c == "gtenviewer" && w.size() == 2) {
+      wxCheckBox *box = en->viewerToggle();
+      if (!box) return s.fail("gtenviewer: no viewer toggle");
+      const bool on = w[1] == "on";
+      box->SetValue(on);
+      wxCommandEvent event(wxEVT_CHECKBOX, box->GetId());
+      event.SetEventObject(box);
+      event.SetInt(on);
+      box->GetEventHandler()->ProcessEvent(event);
+    } else if (c == "gtensort" && w.size() == 3) {
+      en->sortTable(atoi(w[1].c_str()), w[2] == "up");
+    } else if (c == "gtenfit") {
+      fprintf(stderr, "GTSTRESS: enfit members=%d visible=%d\n",
+              (int)en->superpositionRows().size(), (int)en->superpositionVisible());
+      for (const string& row : en->superpositionRows())
+        fprintf(stderr, "GTSTRESS: enfit %s\n", row.c_str());
+    } else if (c == "gtenselect" && w.size() >= 2) {
+      vector<int> ranks;
+      for (size_t i = 1; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
+      const bool ok = en->selectRanks(ranks);
       spin(50);
       const double *p = getSG()->getFragment()->atomRef(0)->coordinates();
       fprintf(stderr, "GTSTRESS: enselect %s ok=%d atom1 %.6f %.6f %.6f plot=%d\n",
