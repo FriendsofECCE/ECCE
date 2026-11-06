@@ -103,6 +103,8 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
   if (p_dos.ok) {
     p_pdos->addCurve(p_dos.energy, p_dos.tdos, _("total"), (int)p_dos.sets.size(),
                      XYPlotCanvas::LINE);
+    // The total in the text colour, so the fragments keep the palette's first colours.
+    p_pdos->setCurveColour(0, p_pdos->palette().text);
     for (size_t s = 0; s < p_dos.sets.size(); s++)
       p_pdos->addCurve(p_dos.energy, p_dos.pdos[s], U(shown(p_dos.sets[s])), (int)s,
                        XYPlotCanvas::LINE);

@@ -55,17 +55,18 @@ struct PlotPalette
   }
 
   /**
-   * The i-th curve colour when a plot has several, Okabe-Ito and
-   * distinguishable without hue.  The first is the spectrum's IR blue.
+   * The i-th curve colour when a plot has several, Okabe-Ito.  The first is
+   * the spectrum's IR blue; the first three differ clearly in hue and
+   * lightness (blue and bluish green look alike, so green comes fourth).
    */
   wxColour series(size_t i) const
   {
     static const unsigned char light[6][3] = {
-      {0, 114, 178}, {213, 94, 0}, {0, 128, 96},
-      {204, 121, 167}, {230, 159, 0}, {86, 180, 233} };
+      {0, 114, 178}, {213, 94, 0}, {204, 121, 167},
+      {0, 158, 115}, {230, 159, 0}, {86, 180, 233} };
     static const unsigned char darkc[6][3] = {
-      {86, 180, 233}, {255, 138, 80}, {64, 208, 160},
-      {230, 160, 200}, {240, 190, 60}, {150, 200, 240} };
+      {86, 180, 233}, {255, 138, 80}, {230, 160, 200},
+      {64, 208, 160}, {240, 190, 60}, {150, 200, 240} };
     const unsigned char *c = dark_ ? darkc[i % 6] : light[i % 6];
     return wxColour(c[0], c[1], c[2]);
   }
