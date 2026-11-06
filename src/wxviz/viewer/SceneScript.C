@@ -18,6 +18,7 @@
 #include "inv/actions/SoSearchAction.H"
 #include "inv/actions/SoGetMatrixAction.H"
 #include "inv/nodes/SoPerspectiveCamera.H"
+#include "inv/nodes/SoOrthographicCamera.H"
 #include "inv/nodes/SoIndexedTriangleStripSet.H"
 #include "inv/nodes/SoVertexProperty.H"
 #include "inv/misc/SoChildList.H"
@@ -700,6 +701,22 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     if (system(cmd.c_str()) != 0) return fail("storedthumb: copy failed");
   } else if (c == "redraws" && w.size() >= 3) {
     return countRedraws(w[1], vector<string>(w.begin() + 2, w.end()));
+  } else if (c == "camera") {
+    //  "camera [label]": the viewer's camera on stderr, to check what an
+    //  action did to the user's view.
+    SoCamera *cam = p_viewer->getCamera();
+    if (!cam) return fail("camera: no camera");
+    SbVec3f p = cam->position.getValue(), axis;
+    float angle;
+    cam->orientation.getValue().getValue(axis, angle);
+    float size = 0;
+    if (cam->isOfType(SoPerspectiveCamera::getClassTypeId()))
+      size = ((SoPerspectiveCamera*)cam)->heightAngle.getValue();
+    else if (cam->isOfType(SoOrthographicCamera::getClassTypeId()))
+      size = ((SoOrthographicCamera*)cam)->height.getValue();
+    fprintf(stderr, "SCENE camera %s: pos %.5g %.5g %.5g rot %.5g %.5g %.5g %.5g"
+            " focal %.5g size %.5g\n", rest.c_str(), p[0], p[1], p[2],
+            axis[0], axis[1], axis[2], angle, cam->focalDistance.getValue(), size);
   } else if (c == "viewall") {
     p_viewer->viewAll();
   } else if (c == "resetview") {
